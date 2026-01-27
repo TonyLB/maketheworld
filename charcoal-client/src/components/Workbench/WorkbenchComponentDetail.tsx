@@ -20,6 +20,7 @@ import StandardReference from '@tonylb/mtw-wml/ts/standardize/components/referen
 import { excludeUndefined } from '../../lib/lists'
 import TopLevelStandardLiteralEditor from './TopLevelStandardLiteralEditor'
 import WorkbenchExampleEditor from './ExampleEditor'
+import WorkbenchSpacer from './WorkbenchSpacer'
 
 const WMLComponentAppearance: FunctionComponent<{ universalKey: ComponentUUID }> = ({ universalKey }) => {
     const { standardForm, inheritedStandardForm, updateStandard } = useWorkbenchAsset()
@@ -81,6 +82,7 @@ const WMLComponentAppearance: FunctionComponent<{ universalKey: ComponentUUID }>
         {
             (component instanceof StandardRoom) && (
                 <>
+                    <WorkbenchSpacer />
                     <WorkbenchRoomExitEditor RoomId={universalKey} />
                     <WorkbenchRoomLensEditor RoomId={universalKey} />
                 </>

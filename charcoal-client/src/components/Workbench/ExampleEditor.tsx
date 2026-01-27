@@ -10,7 +10,7 @@ import { useDebouncedOnChange } from "../../hooks/useDebounce";
 import { StandardRender } from "@tonylb/mtw-wml/ts/standardize/render";
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize";
 import WorkbenchStandardRenderEditor from "./StandardRenderEditor";
-import WorkbenchSidebarTitledBox from "./WorkbenchSidebarTitledBox";
+import { MakeTheWorldAccordion } from "../UI";
 import StandardRoom from "@tonylb/mtw-wml/ts/standardize/components/room";
 import StandardFeature from "@tonylb/mtw-wml/ts/standardize/components/feature";
 import StandardKnowledge from "@tonylb/mtw-wml/ts/standardize/components/knowledge";
@@ -114,61 +114,51 @@ export const WorkbenchExampleEditor: FunctionComponent<ExampleEditorProps> = ({ 
             })
         }
     }, [componentId, localStandardForm, standardForm, updateStandard])
-    return <WorkbenchSidebarTitledBox title="Example" sidebarTitle="Inherited" sidebar={inherited} minHeight="5em">
-        <Box sx={{
-            display: 'flex',
-            flexDirection: 'row',
-            flexGrow: 1
-        }}>
-            <Box sx={{
-                flexGrow: 1
-            }}>
-                <TextField
-                    value={name}
-                    onChange={(event) => { setName(event.target.value) }}
-                />
-                <Box
-                    sx={{
-                        backgroundColor: 'lightgray',
-                        paddingTop: '0.5em',
-                        paddingBottom: '0.5em',
-                        width: '100%'
-                    }}
-                >
-                    <WorkbenchStandardRenderEditor
-                        value={summary}
-                        onChange={setSummary}
-                        validLinkTags={[]}
-                        toolbar={false}
-                    />
+    return (
+        <MakeTheWorldAccordion 
+            title="Example" 
+            defaultExpanded
+            icon={inherited ? <LockIcon /> : <LockOpenIcon />}
+            actions={
+                <Box sx={{ display: 'flex', gap: 0.5 }}>
+                    <IconButton onClick={localizeExample} size="small">
+                        <EditIcon />
+                    </IconButton>
+                    {!inherited && (
+                        <IconButton size="small">
+                            <DeleteIcon />
+                        </IconButton>
+                    )}
                 </Box>
+            }
+        >
+            <TextField
+                value={name}
+                onChange={(event) => { setName(event.target.value) }}
+            />
+            <Box
+                sx={{
+                    backgroundColor: 'lightgray',
+                    paddingTop: '0.5em',
+                    paddingBottom: '0.5em',
+                    width: '100%'
+                }}
+            >
                 <WorkbenchStandardRenderEditor
-                    value={description}
-                    onChange={setDescription}
+                    value={summary}
+                    onChange={setSummary}
                     validLinkTags={[]}
                     toolbar={false}
                 />
             </Box>
-            <Box sx={{
-                width: '5em',
-                display: 'flex',
-                flexDirection: 'column'
-            }}>
-                <IconButton>
-                    { inherited ? <LockIcon /> : <LockOpenIcon /> }
-                </IconButton>
-                <IconButton onClick={localizeExample}>
-                    <EditIcon />
-                </IconButton>
-                {
-                    !inherited &&
-                    <IconButton>
-                        <DeleteIcon />
-                    </IconButton>
-                }
-            </Box>
-        </Box>
-    </WorkbenchSidebarTitledBox>
+            <WorkbenchStandardRenderEditor
+                value={description}
+                onChange={setDescription}
+                validLinkTags={[]}
+                toolbar={false}
+            />
+        </MakeTheWorldAccordion>
+    )
 }
 
 export default WorkbenchExampleEditor
