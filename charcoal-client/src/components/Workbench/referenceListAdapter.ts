@@ -1,0 +1,65 @@
+import { ReferenceList } from "@tonylb/mtw-wml/ts/standardize/keys/referenceList"
+import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
+import { WorkbenchReferenceListItem } from "./WorkbenchReferenceList"
+
+type ComponentTag =
+    | "Character"
+    | "Map"
+    | "Room"
+    | "Feature"
+    | "Knowledge"
+    | "Example"
+    | "Lens"
+    | "Mark"
+    | "Message"
+
+export const referenceListToWorkbenchItems = ({
+    referenceList,
+    standardForm,
+    tag
+}: {
+    referenceList: ReferenceList
+    standardForm: StandardForm
+    tag?: ComponentTag
+}): WorkbenchReferenceListItem[] => {
+    const references = referenceList.payload
+
+    return references
+        .filter((ref) => {
+            if (!tag) {
+                return true
+            }
+            return ref.tag === tag
+        })
+        .map<WorkbenchReferenceListItem>((ref, index) => {
+            const universalKey = ref.universalKey
+            const component = universalKey ? standardForm.byUniversalId[universalKey] : undefined
+
+            let title = "Untitled"
+            let subtitle: string | undefined
+
+            if (component && (component as any).shortName) {
+                const shortNameData = (component as any).shortName?._payload?.plain?.toJSON()
+                if (typeof shortNameData === "string" && shortNameData.trim().length) {
+                    title = shortNameData
+                }
+            }
+
+            if (title === "Untitled") {
+                if (ref.standardKey.key) {
+                    title = ref.standardKey.key
+                } else if (universalKey) {
+                    title = universalKey
+                }
+            } else if (universalKey) {
+                subtitle = universalKey
+            }
+
+            return {
+                id: universalKey ?? ref.standardKey.key ?? `${index}`,
+                title,
+                subtitle
+            }
+        })
+}
+
