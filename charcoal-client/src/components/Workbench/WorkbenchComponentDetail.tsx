@@ -18,8 +18,7 @@ import { hasShortName, StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
 import StandardReference from '@tonylb/mtw-wml/ts/standardize/components/reference'
 import { excludeUndefined } from '../../lib/lists'
-import WorkbenchTitledBox from './WorkbenchTitledBox'
-import WorkbenchStandardLiteralEditor from './StandardLiteralEditor'
+import TopLevelStandardLiteralEditor from './TopLevelStandardLiteralEditor'
 import WorkbenchExampleEditor from './ExampleEditor'
 
 const WMLComponentAppearance: FunctionComponent<{ universalKey: ComponentUUID }> = ({ universalKey }) => {
@@ -51,25 +50,24 @@ const WMLComponentAppearance: FunctionComponent<{ universalKey: ComponentUUID }>
     }}>
         {
             hasShortName(component) && (
-                <WorkbenchTitledBox title="Short Name">
-                    <WorkbenchStandardLiteralEditor
-                        value={component.shortName ?? new StandardLiteral('')}
-                        onChange={(newShortName) => {
-                            updateStandard({
-                                type: 'update',
-                                update: (incoming: StandardForm) => {
-                                    const base = incoming.byUniversalId[universalKey]
-                                    if (base instanceof StandardRoom || base instanceof StandardCharacter || base instanceof StandardFeature || base instanceof StandardKnowledge) {
-                                        base._payload._shortName = newShortName
-                                    }
-                                    return incoming
+                <TopLevelStandardLiteralEditor
+                    value={component.shortName ?? new StandardLiteral('')}
+                    onChange={(newShortName) => {
+                        updateStandard({
+                            type: 'update',
+                            update: (incoming: StandardForm) => {
+                                const base = incoming.byUniversalId[universalKey]
+                                if (base instanceof StandardRoom || base instanceof StandardCharacter || base instanceof StandardFeature || base instanceof StandardKnowledge) {
+                                    base._payload._shortName = newShortName
                                 }
-                            })
-                        }}
-                        placeholder="Enter short name..."
-                        size="small"
-                    />
-                </WorkbenchTitledBox>
+                                return incoming
+                            }
+                        })
+                    }}
+                    label="Short Name"
+                    placeholder="Enter short name..."
+                    size="small"
+                />
             )
         }
         {
