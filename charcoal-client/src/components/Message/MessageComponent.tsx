@@ -14,6 +14,7 @@ interface MessageComponentProps {
     toolActions?: ReactElement;
     sx?: SxProps<Theme>;
     children?: ReactNode;
+    flush?: boolean; // When true, removes padding to allow background to extend to edges (for sticky headers)
 }
 
 export const MessageComponent: FunctionComponent<MessageComponentProps> = ({
@@ -23,9 +24,10 @@ export const MessageComponent: FunctionComponent<MessageComponentProps> = ({
     rightIcon,
     rightGutter = 70,
     toolActions,
-    sx
+    sx,
+    flush = false
 }) => {
-    return <Box sx={{ padding: "2px", position: "relative" }}>
+    return <Box sx={{ padding: flush ? 0 : "2px", position: "relative" }}>
             { toolActions
                 ? <Box sx={{ position: "absolute", top: "0.25em", right: "0.5em" }}>
                     { toolActions }

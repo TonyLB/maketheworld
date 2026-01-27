@@ -112,13 +112,19 @@ export const RoomDescription = ({ parsedWML, metaData, header, currentHeader }: 
     useOnboardingCheckpoint('navigatePersonalRoom', { requireSequence: true, condition: inPersonalRoom })
 
     return <MessageComponent
+            flush={header}
             sx={{
                 paddingTop: "10px",
                 paddingBottom: "10px",
                 background: `linear-gradient(75deg, ${blue[200]}, #ffffff)`,
                 color: (theme) => (theme.palette.getContrastText(blue[200])),
                 ...(header
-                    ? {}
+                    ? {
+                        // When header is sticky, ensure it extends to edges
+                        // GroupedVirtuoso handles sticky positioning automatically
+                        marginLeft: 0,
+                        marginRight: 0
+                    }
                     : {
                         marginLeft: "70px",
                         marginRight: "70px"
