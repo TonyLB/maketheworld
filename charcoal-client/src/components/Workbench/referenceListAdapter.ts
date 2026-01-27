@@ -36,7 +36,6 @@ export const referenceListToWorkbenchItems = ({
             const component = universalKey ? standardForm.byUniversalId[universalKey] : undefined
 
             let title = "Untitled"
-            let subtitle: string | undefined
 
             if (component && (component as any).shortName) {
                 const shortNameData = (component as any).shortName?._payload?.plain?.toJSON()
@@ -45,20 +44,9 @@ export const referenceListToWorkbenchItems = ({
                 }
             }
 
-            if (title === "Untitled") {
-                if (ref.standardKey.key) {
-                    title = ref.standardKey.key
-                } else if (universalKey) {
-                    title = universalKey
-                }
-            } else if (universalKey) {
-                subtitle = universalKey
-            }
-
             return {
                 id: universalKey ?? ref.standardKey.key ?? `${index}`,
-                title,
-                subtitle
+                title
             }
         })
 }
