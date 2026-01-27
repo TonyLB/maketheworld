@@ -7,8 +7,7 @@ import { getStatus as getLifeLineStatus } from '../../slices/lifeLine'
 import { playerDataSourceSelectors } from '../../slices/player/playerDataSource'
 import { contentHeadersSelectors } from '../../slices/contentHeaders'
 import { selectors as ephemeraSelectors } from '../../slices/ephemera'
-import { getActiveCharacters } from '../../slices/activeCharacters'
-import { getCurrentCharacterId } from '../../slices/settings'
+import { getPlayerName } from '../../slices/settings'
 
 /**
  * CheckpointItem - Individual checkpoint display item
@@ -77,73 +76,94 @@ const EASE_IN_STOP = 0.35
 export const CheckpointOverlay: FunctionComponent<CheckpointOverlayProps> = ({ fadeZoneSize = '40px' }) => {
     // Selectors for checkpoint status
     const lifeLineStatus = useSelector(getLifeLineStatus)
+    const playerName = useSelector(getPlayerName)
     const playerDataSourceStatus = useSelector(playerDataSourceSelectors.getStatus)
+    const playerActiveStreamKeys = useSelector(playerDataSourceSelectors.getActiveStreamKeys)
     const contentHeadersStatus = useSelector(contentHeadersSelectors.getStatus)
+    const contentHeadersActiveStreamKeys = useSelector(contentHeadersSelectors.getActiveStreamKeys)
     const ephemeraStatus = useSelector(ephemeraSelectors.getStatus)
-    const activeCharacters = useSelector(getActiveCharacters)
-    const currentCharacterId = useSelector(getCurrentCharacterId)
 
-    // Determine checkpoint completion status
-    const connectionComplete = lifeLineStatus === 'CONNECTED'
-    const playerInfoComplete = playerDataSourceStatus === 'READY' || playerDataSourceStatus === 'SUBSCRIBED'
-    // DataSource slices redirect SUBSCRIBED → READY; when stable, contentHeaders sits in READY
-    const worldHeadersComplete = contentHeadersStatus === 'READY' || contentHeadersStatus === 'SUBSCRIBED'
-    // Ephemera: SUBSCRIBE → SYNCHRONIZE → CONNECTED. Treat SYNCHRONIZE as complete too (we've subscribed;
-    // sync may never finish if the backend fails, but we've done our part).
-    const ephemeraComplete = ephemeraStatus === 'SYNCHRONIZE' || ephemeraStatus === 'CONNECTED'
-    
-    // Character-related checkpoints (require currentCharacterId)
-    const characterState = currentCharacterId ? activeCharacters[currentCharacterId] : null
-    // Character registration is complete when we've reached REGISTER or later states
-    const characterRegistrationComplete = characterState && (
-        characterState.state === 'REGISTER' ||
-        characterState.state === 'SYNCHRONIZE' ||
-        characterState.state === 'SYNCHRONIZEBACKOFF' ||
-        characterState.state === 'CONNECTED'
-    )
-    // Messages subscription is complete when character is CONNECTED (messages are subscribed at this point)
-    // Note: Messages are subscribed during the activeCharacters flow, but fully active at CONNECTED
-    const messagesSubscriptionComplete = characterState && characterState.state === 'CONNECTED'
-    // Message sync is complete when character is CONNECTED (indicates SYNCHRONIZE has completed)
-    // Both sync and subscription complete at CONNECTED, but we show them as separate logical steps
-    const messageSyncComplete = characterState && characterState.state === 'CONNECTED'
+    // LifeLine states: INITIAL → SUBSCRIBE → CONNECT → CONNECTED
+    // "Subscribing to messages" is complete when we've started subscribing (SUBSCRIBE or later)
+    const lifeLineSubscribed = lifeLineStatus === 'SUBSCRIBE' || lifeLineStatus === 'CONNECT' || lifeLineStatus === 'CONNECTED'
+    // "Connection Established" is complete when connection succeeds (CONNECTED state)
+    const lifeLineConnected = lifeLineStatus === 'CONNECTED'
+    // "Receiving session info" is complete when PlayerName is available (from SessionInitialized message)
+    const sessionInfoReceived = playerName !== ''
 
-    // Checkpoint definitions
+    // PlayerDataSource states: INITIAL → INITIALIZE → READY → SUBSCRIBE → SUBSCRIBED → READY
+    const playerInitialized = playerDataSourceStatus === 'INITIALIZE' || playerDataSourceStatus === 'READY' || playerDataSourceStatus === 'SUBSCRIBE' || playerDataSourceStatus === 'SUBSCRIBED'
+    const playerReady = playerDataSourceStatus === 'READY' || playerDataSourceStatus === 'SUBSCRIBE' || playerDataSourceStatus === 'SUBSCRIBED'
+    // "Subscribing" is complete when we're actively subscribing OR we have active stream keys (meaning we've subscribed)
+    const playerSubscribing = playerDataSourceStatus === 'SUBSCRIBE' || playerDataSourceStatus === 'SUBSCRIBED' || playerActiveStreamKeys.length > 0
+
+    // ContentHeaders states: INITIAL → INITIALIZE → READY → SUBSCRIBE → SUBSCRIBED → READY
+    const headersInitialized = contentHeadersStatus === 'INITIALIZE' || contentHeadersStatus === 'READY' || contentHeadersStatus === 'SUBSCRIBE' || contentHeadersStatus === 'SUBSCRIBED'
+    const headersReady = contentHeadersStatus === 'READY' || contentHeadersStatus === 'SUBSCRIBE' || contentHeadersStatus === 'SUBSCRIBED'
+    // "Subscribing" is complete when we're actively subscribing OR we have active stream keys (meaning we've subscribed)
+    const headersSubscribing = contentHeadersStatus === 'SUBSCRIBE' || contentHeadersStatus === 'SUBSCRIBED' || contentHeadersActiveStreamKeys.length > 0
+
+    // Ephemera states: INITIAL → SUBSCRIBE → SYNCHRONIZE → CONNECTED
+    const ephemeraSubscribed = ephemeraStatus === 'SUBSCRIBE' || ephemeraStatus === 'SYNCHRONIZE' || ephemeraStatus === 'CONNECTED'
+    const ephemeraSynchronizing = ephemeraStatus === 'SYNCHRONIZE' || ephemeraStatus === 'CONNECTED'
+
+    // Checkpoint definitions - granular sub-states that complete before messages pane appears
+    // Order: Items that can run immediately come first, items waiting for PlayerName come after
     const checkpoints = [
         {
-            id: 'connection',
-            label: 'Establishing connection',
-            completed: connectionComplete
-        },
-        {
-            id: 'player',
-            label: 'Reading player information',
-            completed: playerInfoComplete
-        },
-        {
-            id: 'headers',
-            label: 'Subscribing to world headers',
-            completed: worldHeadersComplete
-        },
-        {
-            id: 'ephemera',
-            label: 'Subscribing to ephemera',
-            completed: ephemeraComplete
-        },
-        {
-            id: 'character',
-            label: 'Registering character',
-            completed: characterRegistrationComplete || false
-        },
-        {
-            id: 'messages',
+            id: 'lifeline-subscribe',
             label: 'Subscribing to messages',
-            completed: messagesSubscriptionComplete || false
+            completed: lifeLineSubscribed
         },
         {
-            id: 'sync',
-            label: 'Syncing message history',
-            completed: messageSyncComplete || false
+            id: 'lifeline-connected',
+            label: 'Connection established',
+            completed: lifeLineConnected
+        },
+        {
+            id: 'headers-initialize',
+            label: 'Initializing world headers',
+            completed: headersInitialized
+        },
+        {
+            id: 'headers-ready',
+            label: 'World headers ready',
+            completed: headersReady
+        },
+        {
+            id: 'headers-subscribe',
+            label: 'Subscribing to world headers',
+            completed: headersSubscribing
+        },
+        {
+            id: 'ephemera-subscribe',
+            label: 'Subscribing to ephemera',
+            completed: ephemeraSubscribed
+        },
+        {
+            id: 'ephemera-sync',
+            label: 'Synchronizing ephemera',
+            completed: ephemeraSynchronizing
+        },
+        {
+            id: 'session-info',
+            label: 'Receiving session info',
+            completed: sessionInfoReceived
+        },
+        {
+            id: 'player-initialize',
+            label: 'Initializing player data',
+            completed: playerInitialized
+        },
+        {
+            id: 'player-ready',
+            label: 'Player data ready',
+            completed: playerReady
+        },
+        {
+            id: 'player-subscribe',
+            label: 'Subscribing to player data',
+            completed: playerSubscribing
         }
     ]
 
