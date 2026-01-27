@@ -30,16 +30,33 @@ export const MessagePanelSkeleton: FunctionComponent = () => {
                 overflow: 'hidden'
             }}>
                 {/* Prominent Room-Summary header skeleton */}
-                <Box sx={{ marginBottom: '20px' }}>
+                <Box sx={{ 
+                    marginBottom: '20px', 
+                    marginLeft: '-10px', 
+                    marginRight: '-10px',
+                    marginTop: '-10px',
+                    width: 'calc(100% + 20px)',
+                    position: 'relative'
+                }}>
                     <MessageComponent
-                        leftGutter={70}
-                        rightGutter={70}
+                        flush={true}
+                        leftGutter={0}
+                        rightGutter={0}
+                        sx={{
+                            marginLeft: 0,
+                            marginRight: 0,
+                            width: '100%',
+                            maxWidth: 'none'
+                        }}
                     >
                         <Box sx={{
                             background: (theme: any) => (theme.palette.extras?.paleGradient || 'rgba(0, 0, 0, 0.05)'),
                             padding: '15px 20px',
-                            borderRadius: '8px',
-                            width: '100%'
+                            paddingLeft: '90px', // Offset content back to align with other messages
+                            width: '100%',
+                            marginLeft: 0,
+                            marginRight: 0,
+                            boxSizing: 'border-box'
                         }}>
                             {/* Room name skeleton */}
                             <Skeleton 
