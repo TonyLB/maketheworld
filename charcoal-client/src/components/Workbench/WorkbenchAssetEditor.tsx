@@ -3,7 +3,16 @@ import { useSelector, useDispatch } from 'react-redux'
 import { Box, CircularProgress } from '@mui/material'
 
 import { getStatus } from '../../slices/personalAssets'
-import { getCurrentView, getCurrentComponentId, getCurrentAssetId, setCurrentView, setCurrentComponentId } from '../../slices/UI/workbench'
+import {
+    getCurrentView,
+    getCurrentComponentId,
+    getCurrentAssetId,
+    setCurrentView,
+    setCurrentComponentId,
+    getBreadcrumbStack,
+    pushBreadcrumb,
+    popBreadcrumbToIndex
+} from '../../slices/UI/workbench'
 import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 import { useWorkbenchAsset } from './useWorkbenchAsset'
 import WorkbenchAssetEditForm from './WorkbenchAssetEditForm'
@@ -23,6 +32,7 @@ export const WorkbenchAssetEditor: FunctionComponent = () => {
     const currentAssetId = useSelector(getCurrentAssetId)
     const currentView = useSelector(getCurrentView)
     const currentComponentId = useSelector(getCurrentComponentId)
+    const breadcrumbStack = useSelector(getBreadcrumbStack)
     const assetData = useWorkbenchAsset()
     const currentStatus = useSelector(getStatus(assetData.AssetId))
 
@@ -30,12 +40,58 @@ export const WorkbenchAssetEditor: FunctionComponent = () => {
     const prevAssetIdRef = useRef<AssetUUID | null>(null)
     useEffect(() => {
         if (currentAssetId && prevAssetIdRef.current !== null && prevAssetIdRef.current !== currentAssetId) {
-            // Asset changed - reset view to asset
+            // Asset changed at runtime (e.g., user chose a different asset while workbench was open).
+            // The slice will already have initialized an asset-level breadcrumb; here we make sure
+            // the view matches that root.
             dispatch(setCurrentView('asset'))
             dispatch(setCurrentComponentId(null))
         }
         prevAssetIdRef.current = currentAssetId
     }, [currentAssetId, dispatch])
+
+    //
+    // Keep breadcrumb history in sync with navigation state.
+    //
+    // The reducer owns the low-level stack operations (push / pop-to-index); this effect observes
+    // currentView/currentComponentId and applies those primitives to model a simple navigation history:
+    // - entering a component view pushes a component breadcrumb
+    // - returning to the asset view trims the stack back to the asset breadcrumb
+    //
+    // Future sibling-navigation flows (for example, clicking a Feature link inside a room-example
+    // description) can build on these same primitives by dispatching an explicit pop followed by a
+    // push to represent \"jump sideways\" rather than a deep dive. Keeping the logic here small and
+    // explicit should make those evolutions straightforward.
+    //
+    const prevViewRef = useRef<'asset' | 'component' | null>(null)
+    const prevComponentIdRef = useRef<string | null>(null)
+
+    useEffect(() => {
+        const lastCrumb = breadcrumbStack[breadcrumbStack.length - 1]
+
+        if (currentView === 'asset' && currentAssetId) {
+            // Trim back to the asset breadcrumb when returning to asset view.
+            const assetIndex = breadcrumbStack.findIndex(
+                (entry) => entry.kind === 'asset' && entry.id === currentAssetId
+            )
+            if (assetIndex >= 0 && assetIndex < breadcrumbStack.length - 1) {
+                dispatch(popBreadcrumbToIndex(assetIndex))
+            }
+        }
+
+        if (currentView === 'component' && currentComponentId) {
+            // Push a new component breadcrumb when we navigate into a component.
+            if (!(lastCrumb && lastCrumb.kind === 'component' && lastCrumb.id === currentComponentId)) {
+                dispatch(pushBreadcrumb({
+                    id: currentComponentId,
+                    kind: 'component',
+                    componentId: currentComponentId
+                }))
+            }
+        }
+
+        prevViewRef.current = currentView
+        prevComponentIdRef.current = currentComponentId
+    }, [breadcrumbStack, currentView, currentComponentId, currentAssetId, dispatch])
 
     // Handle loading states - same pattern as EditAsset
     const isReady = useMemo(() => {

@@ -6,7 +6,15 @@ import SwapHorizIcon from '@mui/icons-material/SwapHoriz'
 import { AssetUUID, ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import WorkbenchContent from './WorkbenchContent'
 import AssetSelector from './AssetSelector'
-import { setCurrentAssetId, putWorkbenchSettings, setCurrentView, setCurrentComponentId, getCurrentView, getCurrentComponentId } from '../../slices/UI/workbench'
+import {
+    setCurrentAssetId,
+    putWorkbenchSettings,
+    setCurrentView,
+    setCurrentComponentId,
+    getCurrentView,
+    getCurrentComponentId,
+    getBreadcrumbStack
+} from '../../slices/UI/workbench'
 import { useWorkbenchAsset } from './useWorkbenchAsset'
 import { getAssetZone } from '../../slices/player'
 import { createWorkbenchTheme } from './workbenchTheme'
@@ -53,6 +61,7 @@ export const WorkbenchContainer: FunctionComponent<WorkbenchContainerProps> = ({
     // Read current view and component ID from Redux state
     const currentView = useSelector(getCurrentView)
     const currentComponentId = useSelector(getCurrentComponentId)
+    const breadcrumbStack = useSelector(getBreadcrumbStack)
     
     // Create workbench theme that extends the base theme
     // This allows the workbench to have a distinctive appearance
@@ -109,94 +118,94 @@ export const WorkbenchContainer: FunctionComponent<WorkbenchContainerProps> = ({
         dispatch(putWorkbenchSettings({ currentAssetId: null }))
     }, [dispatch])
 
-    // Build breadcrumb trail from SchemaOrganization when viewing a component
+    //
+    // Build breadcrumb trail from **navigation history** rather than schema ancestry.
+    //
+    // The workbench slice maintains a stack of breadcrumb entries that encode how the user
+    // arrived at the current view (asset → room → feature, etc.). We resolve those entries
+    // into labels and icons here using the current asset's standardForm.
+    //
+    // In future we may allow more complex sibling-navigation steps (for example, clicking a
+    // Feature link from inside a room-example description) which would map to \"pop some
+    // breadcrumbs, then push a different branch\". The underlying stack model and this
+    // resolution path are intentionally simple so that richer behaviors can be layered on
+    // later without rewriting the header.
+    //
     const breadcrumbTrail = useMemo(() => {
-        if (currentView !== 'component' || !currentComponentId || assetData.AssetId === 'ASSET#uninitialized') {
+        if (!assetId || assetData.AssetId === 'ASSET#uninitialized') {
             return null
         }
 
-        try {
-            // Get SchemaOrganization instance
-            const organization = assetData.standardForm._getSchemaOrganization()
-            
-            // Get component from standardForm to access its standardKey
-            const component = assetData.standardForm.byUniversalId[currentComponentId as ComponentUUID]
-            if (!component || !component.standardKey) {
-                return null
-            }
+        if (!breadcrumbStack.length) {
+            return null
+        }
 
-            // Build ancestry chain (doesn't include Asset - stops at undefined parent)
-            const ancestryChain = organization.buildAncestryChain(component.standardKey)
-            
-            // Extract component names from each reference in the chain
-            const componentBreadcrumbs = ancestryChain.map((reference, index) => {
-                const universalKey = reference.universalKey
-                if (!universalKey) {
-                    return null
-                }
-                
-                const refComponent = assetData.standardForm.byUniversalId[universalKey]
-                let name = 'Untitled'
-                
-                if (refComponent) {
-                    if (hasShortName(refComponent)) {
-                        name = refComponent.shortName?._payload?.plain?.toJSON() ?? 'Untitled'
-                    } else if (hasName(refComponent)) {
-                        name = schemaOutputToString((unwrapSubject(refComponent.name)?.children ?? []) as GenericTree<SchemaOutputTag>)
-                    } else {
-                        // Fallback to key if no name available
-                        const keyValue = refComponent.key
-                        if (typeof keyValue === 'string') {
-                            name = keyValue
-                        } else if (keyValue && typeof keyValue === 'object' && 'toJSON' in keyValue) {
-                            const jsonValue = (keyValue as any).toJSON()
-                            name = typeof jsonValue === 'string' ? jsonValue : 'Untitled'
-                        }
-                    }
-                }
-                
-                const isLast = index === ancestryChain.length - 1
-                // Use tag from reference if available, otherwise derive from component
-                const icon = reference.tag 
-                    ? getComponentIconByTag(reference.tag, { fontSize: '1rem', verticalAlign: 'middle', marginRight: 0.5 })
-                    : getComponentIcon(refComponent, { fontSize: '1rem', verticalAlign: 'middle', marginRight: 0.5 })
-                
+        return breadcrumbStack.map((entry, index) => {
+            const isLast = index === breadcrumbStack.length - 1
+
+            if (entry.kind === 'asset') {
                 return {
-                    universalKey: universalKey as ComponentUUID,
-                    name,
-                    isLast,
-                    isAsset: false,
-                    icon
-                }
-            }).filter((crumb): crumb is NonNullable<typeof crumb> => crumb !== null)
-            
-            // Prepend Asset as first breadcrumb (buildAncestryChain doesn't include it)
-            return [
-                {
                     universalKey: assetData.AssetId as ComponentUUID,
                     name: assetName || 'Untitled',
-                    isLast: false,
+                    isLast,
                     isAsset: true,
-                    icon: getComponentIconByTag('Asset', { fontSize: '1rem', verticalAlign: 'middle', marginRight: 0.5 })
-                },
-                ...componentBreadcrumbs
-            ]
-        } catch (error) {
-            console.error('Error building breadcrumb trail:', error)
-            return null
-        }
-    }, [currentView, currentComponentId, assetData.standardForm, assetData.AssetId, assetName])
+                    icon: getComponentIconByTag('Asset', { fontSize: '1rem', verticalAlign: 'middle', marginRight: 0.5 }),
+                    index
+                }
+            }
+
+            // Component breadcrumb: look up the component for naming and icon.
+            const universalKey = entry.componentId as ComponentUUID | null
+            const refComponent = universalKey ? assetData.standardForm.byUniversalId[universalKey] : undefined
+            let name = 'Untitled'
+
+            if (refComponent) {
+                if (hasShortName(refComponent)) {
+                    name = refComponent.shortName?._payload?.plain?.toJSON() ?? 'Untitled'
+                } else if (hasName(refComponent)) {
+                    name = schemaOutputToString((unwrapSubject(refComponent.name)?.children ?? []) as GenericTree<SchemaOutputTag>)
+                } else {
+                    const keyValue = refComponent.key
+                    if (typeof keyValue === 'string') {
+                        name = keyValue
+                    } else if (keyValue && typeof keyValue === 'object' && 'toJSON' in keyValue) {
+                        const jsonValue = (keyValue as any).toJSON()
+                        name = typeof jsonValue === 'string' ? jsonValue : 'Untitled'
+                    }
+                }
+            }
+
+            const icon = getComponentIcon(refComponent, { fontSize: '1rem', verticalAlign: 'middle', marginRight: 0.5 })
+
+            return {
+                universalKey: (universalKey || assetData.AssetId) as ComponentUUID,
+                name,
+                isLast,
+                isAsset: false,
+                icon,
+                index
+            }
+        })
+    }, [assetId, assetData.AssetId, assetData.standardForm, assetName, breadcrumbStack])
 
     // Handle breadcrumb navigation
-    const handleBreadcrumbClick = useCallback((universalKey: ComponentUUID, isLast: boolean, isAsset: boolean) => {
+    const handleBreadcrumbClick = useCallback((universalKey: ComponentUUID, isLast: boolean, isAsset: boolean, index: number) => {
         if (isLast) return // Don't navigate if it's the current component
         
-        // If clicking on asset, go to asset view
+        // Clicking a breadcrumb represents \"go back to this step\" in the navigation
+        // history, so we:
+        // - trim the breadcrumb stack to that index
+        // - set the view based on whether the target is the asset or a component
+        //
+        dispatch({
+            type: 'workbench/popBreadcrumbToIndex',
+            payload: index
+        })
+
         if (isAsset) {
             dispatch(setCurrentView('asset'))
             dispatch(setCurrentComponentId(null))
         } else {
-            // Navigate to the clicked component
             dispatch(setCurrentView('component'))
             dispatch(setCurrentComponentId(universalKey))
         }
@@ -263,10 +272,10 @@ export const WorkbenchContainer: FunctionComponent<WorkbenchContainerProps> = ({
                                     {breadcrumbTrail && breadcrumbTrail.length > 0 ? (
                                         <>
                                             <Breadcrumbs aria-label="navigation breadcrumbs" sx={{ mb: 0.5 }}>
-                                                {breadcrumbTrail.map((crumb, index) => (
+                                                {breadcrumbTrail.map((crumb) => (
                                                     crumb.isLast ? (
                                                         <Typography 
-                                                            key={`crumb-${index}`} 
+                                                            key={`crumb-${crumb.index}`} 
                                                             color="text.primary" 
                                                             sx={{ fontWeight: 'bold', display: 'flex', alignItems: 'center' }}
                                                         >
@@ -275,11 +284,11 @@ export const WorkbenchContainer: FunctionComponent<WorkbenchContainerProps> = ({
                                                         </Typography>
                                                     ) : (
                                                         <Link
-                                                            key={`crumb-${index}`}
+                                                            key={`crumb-${crumb.index}`}
                                                             sx={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}
                                                             underline="hover"
                                                             color="inherit"
-                                                            onClick={() => handleBreadcrumbClick(crumb.universalKey as ComponentUUID, false, crumb.isAsset || false)}
+                                                            onClick={() => handleBreadcrumbClick(crumb.universalKey as ComponentUUID, false, crumb.isAsset || false, crumb.index)}
                                                         >
                                                             {crumb.icon}
                                                             {crumb.name}
@@ -311,7 +320,7 @@ export const WorkbenchContainer: FunctionComponent<WorkbenchContainerProps> = ({
                                         </Box>
                                     )}
                                 </Box>
-                                {assetId !== null && (
+                                {assetId !== null && currentView !== 'component' && (
                                     <Button
                                         variant="text"
                                         size="small"
@@ -396,7 +405,7 @@ export const WorkbenchContainer: FunctionComponent<WorkbenchContainerProps> = ({
                                 minHeight: 64,
                                 display: 'flex',
                                 flexDirection: 'column',
-                                background: (theme) => theme.palette.extras?.headerGradient,
+                                background: (theme) => (theme.palette as any).extras.headerGradient,
                             }}
                         >
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -404,10 +413,10 @@ export const WorkbenchContainer: FunctionComponent<WorkbenchContainerProps> = ({
                                     {breadcrumbTrail && breadcrumbTrail.length > 0 ? (
                                         <>
                                             <Breadcrumbs aria-label="navigation breadcrumbs" sx={{ mb: 0.5 }}>
-                                                {breadcrumbTrail.map((crumb, index) => (
+                                                {breadcrumbTrail.map((crumb) => (
                                                     crumb.isLast ? (
                                                         <Typography 
-                                                            key={`crumb-${index}`} 
+                                                            key={`crumb-${crumb.index}`} 
                                                             color="text.primary" 
                                                             sx={{ fontWeight: 'bold', display: 'flex', alignItems: 'center' }}
                                                         >
@@ -416,11 +425,11 @@ export const WorkbenchContainer: FunctionComponent<WorkbenchContainerProps> = ({
                                                         </Typography>
                                                     ) : (
                                                         <Link
-                                                            key={`crumb-${index}`}
+                                                            key={`crumb-${crumb.index}`}
                                                             sx={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}
                                                             underline="hover"
                                                             color="inherit"
-                                                            onClick={() => handleBreadcrumbClick(crumb.universalKey as ComponentUUID, false, crumb.isAsset || false)}
+                                                            onClick={() => handleBreadcrumbClick(crumb.universalKey as ComponentUUID, false, crumb.isAsset || false, crumb.index)}
                                                         >
                                                             {crumb.icon}
                                                             {crumb.name}
@@ -452,7 +461,7 @@ export const WorkbenchContainer: FunctionComponent<WorkbenchContainerProps> = ({
                                         </Box>
                                     )}
                                 </Box>
-                                {assetId !== null && (
+                                {assetId !== null && currentView !== 'component' && (
                                     <Button
                                         variant="text"
                                         size="small"
