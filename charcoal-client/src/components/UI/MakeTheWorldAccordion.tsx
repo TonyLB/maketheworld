@@ -81,13 +81,11 @@ export const MakeTheWorldAccordion: FunctionComponent<MakeTheWorldAccordionProps
     summary
 }) => {
     const [expanded, setExpanded] = useState(defaultExpanded)
-    const useControlled = summary !== undefined
 
     return (
         <Accordion
-            expanded={useControlled ? expanded : undefined}
-            defaultExpanded={useControlled ? undefined : defaultExpanded}
-            onChange={useControlled ? (_, exp) => setExpanded(exp) : undefined}
+            expanded={expanded}
+            onChange={(_, exp) => setExpanded(exp)}
             disabled={disabled}
             sx={{
                 boxShadow: 'none',
