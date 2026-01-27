@@ -1,10 +1,11 @@
-import React, { FunctionComponent, ReactNode } from 'react'
+import React, { FunctionComponent, ReactNode, useState } from 'react'
 import {
     Accordion,
     AccordionSummary,
     AccordionDetails,
     Typography,
-    Box
+    Box,
+    Fade
 } from '@mui/material'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 
@@ -41,6 +42,13 @@ export interface MakeTheWorldAccordionProps {
      * Optional action buttons to display in the header (right side)
      */
     actions?: ReactNode
+    
+    /**
+     * Optional summary shown when collapsed (e.g. "north, south, stairs" for Exits).
+     * Fades in when the accordion closes and fades out when it opens.
+     * Truncates with ellipsis if it overflows the header.
+     */
+    summary?: ReactNode
 }
 
 /**
@@ -69,11 +77,17 @@ export const MakeTheWorldAccordion: FunctionComponent<MakeTheWorldAccordionProps
     defaultExpanded = false,
     disabled = false,
     icon,
-    actions
+    actions,
+    summary
 }) => {
+    const [expanded, setExpanded] = useState(defaultExpanded)
+    const useControlled = summary !== undefined
+
     return (
         <Accordion
-            defaultExpanded={defaultExpanded}
+            expanded={useControlled ? expanded : undefined}
+            defaultExpanded={useControlled ? undefined : defaultExpanded}
+            onChange={useControlled ? (_, exp) => setExpanded(exp) : undefined}
             disabled={disabled}
             sx={{
                 boxShadow: 'none',
@@ -131,17 +145,37 @@ export const MakeTheWorldAccordion: FunctionComponent<MakeTheWorldAccordionProps
                         variant="subtitle1"
                         sx={{
                             flexGrow: 1,
+                            flexShrink: 0,
                             fontWeight: 500,
+                            minWidth: 0,
                         }}
                     >
                         {title}
                     </Typography>
+                    {summary !== undefined && (
+                        <Fade in={!expanded}>
+                            <Box
+                                sx={{
+                                    minWidth: 0,
+                                    flexShrink: 1,
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                    color: 'text.secondary',
+                                    typography: 'body2',
+                                }}
+                            >
+                                {summary}
+                            </Box>
+                        </Fade>
+                    )}
                     {actions && (
                         <Box
                             sx={{
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: 0.5,
+                                flexShrink: 0,
                             }}
                             onClick={(e) => e.stopPropagation()} // Prevent accordion toggle when clicking actions
                         >

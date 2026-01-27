@@ -182,6 +182,17 @@ export const WorkbenchRoomExitEditor: FunctionComponent<RoomExitEditorProps> = (
 
     const exits = useMemo(() => room?.exits.items || [], [room])
 
+    const exitSummary = useMemo(() => {
+        if (!exits.length) return undefined
+        const names = exits
+            .map((e) => {
+                const p = e.payload.toJSON()
+                return typeof p === 'string' ? p : ''
+            })
+            .filter(Boolean)
+        return names.length ? names.join(', ') : undefined
+    }, [exits])
+
     const addExit = useCallback(() => {
         if (!room) return
 
@@ -233,7 +244,7 @@ export const WorkbenchRoomExitEditor: FunctionComponent<RoomExitEditorProps> = (
 
     if (!room) {
         return (
-            <MakeTheWorldAccordion title="Exits" defaultExpanded>
+            <MakeTheWorldAccordion title="Exits" defaultExpanded={false}>
                 <Box sx={{ p: 2, textAlign: 'center', color: 'text.secondary' }}>
                     Room not found
                 </Box>
@@ -242,7 +253,7 @@ export const WorkbenchRoomExitEditor: FunctionComponent<RoomExitEditorProps> = (
     }
 
     return (
-        <MakeTheWorldAccordion title="Exits" defaultExpanded>
+        <MakeTheWorldAccordion title="Exits" defaultExpanded summary={exitSummary}>
             <List>
                 {exits.map((exit, index) => (
                     <ExitEditor
