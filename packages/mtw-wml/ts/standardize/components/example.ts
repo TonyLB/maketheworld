@@ -11,6 +11,7 @@ import { StandardToJSONOptions } from "./baseClasses"
 import { StandardExampleData, StandardExampleNDJSONData } from "./dataTypes/example"
 import { AssetUUID, ComponentUUID, isSchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaExample } from "@tonylb/mtw-base/ts/schema/example"
+import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { deepEqual } from "../../lib/objects"
 import { renderTreeToSchema, schemaToRenderTree, RenderTree } from "@tonylb/mtw-base/ts/renderTree"
 import { StandardKey } from "../keys/key"
@@ -20,11 +21,14 @@ import { MarkFacetList, StandardMarkFacet } from "../keys/facets/mark"
 import { findTaggedChildren, recurseIntoEditable } from "../../schema/utils"
 import { StandardEditableData, extractFromEditableData } from "@tonylb/mtw-base/ts/editable"
 import { StandardFormSubsetRequest } from "../baseClasses"
+import { StandardLiteral } from "../literal"
+import { HasShortName } from "./abstract"
 
-export class StandardExamplePayload implements ComponentConstructorMethods<StandardExampleNDJSONData | StandardExampleData> {
+export class StandardExamplePayload implements HasShortName, ComponentConstructorMethods<StandardExampleNDJSONData | StandardExampleData> {
     _name?: StandardRender;
     _summary?: StandardRender;
     _description?: StandardRender;
+    _shortName?: StandardLiteral;
     _marks: MarkFacetList;
     tag = 'Example' as const
 
@@ -33,6 +37,7 @@ export class StandardExamplePayload implements ComponentConstructorMethods<Stand
             this._name = previous._name
             this._summary = previous._summary
             this._description = previous._description
+            this._shortName = previous._shortName
             this._marks = previous._marks.clone()
         }
         else {
@@ -41,10 +46,11 @@ export class StandardExamplePayload implements ComponentConstructorMethods<Stand
     }
 
     fromJSON(props: StandardExampleData | StandardExampleNDJSONData) {
-        const { name, summary, description, marks } = props
+        const { name, summary, description, marks, shortName } = props
         this._name = name ? new StandardRender(name) : undefined
         this._summary = summary ? new StandardRender(summary) : undefined
         this._description = description ? new StandardRender(description) : undefined
+        this._shortName = shortName ? new StandardLiteral(shortName, { tag: 'ShortName' }) : undefined
         this._marks = new MarkFacetList(marks ?? [])
     }
 
@@ -86,6 +92,8 @@ export class StandardExamplePayload implements ComponentConstructorMethods<Stand
                     return new StandardMarkFacet([markNode])
                 })
             this._marks = new MarkFacetList(parsedFacets)
+            const shortNameNode = findTaggedChildren({ children: node.children, tag: 'ShortName' })
+            this._shortName = shortNameNode.length ? new StandardLiteral(shortNameNode, { tag: 'ShortName' }) : undefined
             return
         }
         throw new Error('Schema mismatch in StandardExample constructor')
@@ -94,6 +102,7 @@ export class StandardExamplePayload implements ComponentConstructorMethods<Stand
     get name() { return this._name }
     get summary() { return this._summary }
     get description() { return this._description }
+    get shortName() { return this._shortName }
     get marks() { return this._marks }
 
     toJSON(options?: StandardToJSONOptions): Omit<StandardExampleData, 'key' | 'universalKey'> {
@@ -103,6 +112,7 @@ export class StandardExamplePayload implements ComponentConstructorMethods<Stand
             name: this._name?.toJSON(),
             summary: this._summary?.toJSON(),
             description: this._description?.toJSON(),
+            ...(this._shortName ? { shortName: this._shortName.toJSON() } : {}),
             ...(this.marks.length ? { marks: this.marks.toJSON() } : {})
         }
     }
@@ -113,12 +123,14 @@ export class StandardExamplePayload implements ComponentConstructorMethods<Stand
             name: this._name?.toJSON(),
             summary: this._summary?.toJSON(),
             description: this._description?.toJSON(),
+            ...(this._shortName ? { shortName: this._shortName.toJSON() } : {}),
             ...(this.marks.length ? { marks: this.marks.toJSON() } : {})
         }
     }
 
     schema(key: string, universalKey?: ComponentUUID, mappings?: StandardReference[]): GenericTreeNode<SchemaTag> {
         const children = [
+            ...[this._shortName].filter(excludeUndefined).map((s) => s.nestedSchema()).flat(1),
             rebuildSchemaFromStandardRender(this._name, { tag: 'Name' }, mappings),
             rebuildSchemaFromStandardRender(this._summary, { tag: 'Summary' }, mappings),
             rebuildSchemaFromStandardRender(this._description, { tag: 'Description' }, mappings),
@@ -147,6 +159,7 @@ export class StandardExamplePayload implements ComponentConstructorMethods<Stand
         returnValue._name = (this._name && incoming._name) ? this._name.merge(incoming._name) : this._name ?? incoming._name
         returnValue._summary = (this._summary && incoming._summary) ? this._summary.merge(incoming._summary) : this._summary ?? incoming._summary
         returnValue._description = (this._description && incoming._description) ? this._description.merge(incoming._description) : this._description ?? incoming._description
+        returnValue._shortName = (this._shortName && incoming._shortName) ? this._shortName.merge(incoming._shortName) : this._shortName ?? incoming._shortName
         const mergedMarks = (this._marks && incoming._marks) ? this._marks.merge(incoming._marks) : this._marks ?? incoming._marks ?? new MarkFacetList([])
         returnValue._marks = mergedMarks ?? new MarkFacetList([])
         return returnValue as this
@@ -169,6 +182,16 @@ export class StandardExamplePayload implements ComponentConstructorMethods<Stand
 
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): this {
         const returnValue = new StandardExamplePayload(this)
+        if (returnValue._shortName) {
+            returnValue._shortName = returnValue._shortName
+                .mapContents((value: string): string => {
+                    const tree = callback([{ data: { tag: 'String', value }, children: [] }])
+                    if (!tree.length) return ''
+                    const first = tree[0]
+                    if (!isSchemaString(first.data)) return ''
+                    return first.data.value
+                })
+        }
         if (returnValue._name) {
             returnValue._name = returnValue._name.mapContents((renderTree) => (schemaToRenderTree(callback(renderTreeToSchema(renderTree)))))
         }
@@ -196,18 +219,20 @@ export class StandardExamplePayload implements ComponentConstructorMethods<Stand
         returnValue._name = this._name ? this._name.invert() : undefined
         returnValue._summary = this._summary ? this._summary.invert() : undefined
         returnValue._description = this._description ? this._description.invert() : undefined
+        returnValue._shortName = this._shortName ? this._shortName.invert() as StandardLiteral : undefined
         // Invert marks (creates Remove operations with ref=-1)
         returnValue._marks = this._marks.invert()
         return returnValue as this
     }
 
     isEmpty(): boolean {
-        // An example is empty if it has no name, summary, description, or marks
+        // An example is empty if it has no name, summary, description, marks, or shortName
         const hasName = Boolean(this._name)
         const hasSummary = Boolean(this._summary)
         const hasDescription = Boolean(this._description)
+        const hasShortName = Boolean(this._shortName)
         const hasMarks = this._marks.length > 0
-        return !(hasName || hasSummary || hasDescription || hasMarks)
+        return !(hasName || hasSummary || hasDescription || hasShortName || hasMarks)
     }
 
     nestedSchema(lookup: (key: string | StandardKey) => StandardComponent | undefined, options: NestedSchemaOptions): GenericTreeNode<SchemaTag> {
@@ -228,6 +253,7 @@ export class StandardExamplePayload implements ComponentConstructorMethods<Stand
 
         // Combine with other Example content
         const children = [
+            ...[this._shortName].filter(excludeUndefined).map((s) => s.nestedSchema()).flat(1),
             rebuildSchemaFromStandardRender(this._name, { tag: 'Name' }, options.mappings),
             rebuildSchemaFromStandardRender(this._summary, { tag: 'Summary' }, options.mappings),
             rebuildSchemaFromStandardRender(this._description, { tag: 'Description' }, options.mappings),
@@ -246,6 +272,7 @@ export class StandardExample extends componentClassFactory(StandardExamplePayloa
     get name() { return this._payload.name }
     get summary() { return this._payload.summary }
     get description() { return this._payload.description }
+    get shortName() { return this._payload.shortName }
     get marks() { return this._payload.marks }
 
     constructor(props: string | StandardExampleData | StandardExampleNDJSONData | GenericTreeNode<SchemaTag> | StandardExample) {

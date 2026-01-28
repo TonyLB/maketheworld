@@ -105,7 +105,8 @@ export const hasShortName = (component: StandardComponent): component is Standar
     return (component instanceof StandardRoom) ||
         (component instanceof StandardCharacter) ||
         (component instanceof StandardFeature) ||
-        (component instanceof StandardKnowledge)
+        (component instanceof StandardKnowledge) ||
+        (component instanceof StandardExample)
 }
 
 export class StandardForm {

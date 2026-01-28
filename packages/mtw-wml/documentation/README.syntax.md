@@ -99,6 +99,8 @@ The Asset and Room are things being defined, in and of themselves. They have a r
 separately. The Name and Description tag do not have existence outside of the Room they are defined in ... they are
 details *of* that room, rather than things that exist on their own.
 
+An **Example** may optionally contain a **`<ShortName>`** child (plain string), which is the *Example's own* label—used to identify the Example in tabs, lists, and other UI. **`<Name>`** on an Example is the name of the *item being exemplified* (e.g. the Room, Feature, or Knowledge the Example describes), **not** the name of the Example itself. Use `ShortName` for the Example's label; do **not** use `Name` as the Example's label.
+
 Wrapped inside content tags is often (but not always) *free-text*. Technically, this is also a bunch of tags
 (String tags, and whitespace, and various formatting tags), but it is handled much more like normal text, and
 has different rules around what spacing and line breaks mean (see *Whitespace*, below).

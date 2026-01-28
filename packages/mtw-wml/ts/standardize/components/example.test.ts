@@ -857,4 +857,115 @@ describe('StandardExample class', () => {
             })
         })
     })
+
+    describe('ShortName functionality', () => {
+        it('should round-trip WML with ShortName', () => {
+            const testSource = deIndentWML(`
+                <Example uuid=(ex1) key=(ex1)>
+                    <ShortName>Tab label</ShortName>
+                    <Name>Name Test</Name>
+                    <Summary>Summary Test</Summary>
+                    <Description>Description Test</Description>
+                </Example>
+            `)
+            const testExample = new StandardExample(testSource)
+            expect(testExample.shortName?.toJSON()).toEqual('Tab label')
+            expect(testExample.name?.toJSON()).toEqual(['Name Test'])
+            const resultWML = schemaToWML([testExample.schema])
+            expect(resultWML).toContain('<ShortName>Tab label</ShortName>')
+            expect(resultWML).toContain('<Name>Name Test</Name>')
+            expect(resultWML).toContain('<Summary>Summary Test</Summary>')
+            expect(resultWML).toContain('<Description>Description Test</Description>')
+        })
+
+        it('should construct from StandardExampleData with shortName', () => {
+            const testExampleData: StandardExampleData = {
+                key: 'test',
+                tag: 'Example',
+                shortName: 'Example label',
+                name: ['Name Test'],
+                summary: ['Summary Test'],
+                description: ['Description Test'],
+            }
+            const testExample = new StandardExample(testExampleData)
+            expect(testExample.shortName?.toJSON()).toEqual('Example label')
+            expect(testExample.toJSON()).toMatchObject({ shortName: 'Example label' })
+        })
+
+        it('should merge shortName when present', () => {
+            const base = new StandardExample({
+                key: 'test',
+                tag: 'Example',
+                name: ['Name Test'],
+                shortName: 'Base',
+            })
+            const incoming = new StandardExample({
+                key: 'test',
+                tag: 'Example',
+                name: ['Name Test'],
+                shortName: 'Incoming',
+            })
+            const merged = base.merge(incoming) as StandardExample
+            expect(merged?.shortName?.toJSON()).toEqual('BaseIncoming')
+        })
+
+        it('should invert shortName when present', () => {
+            const testExample = new StandardExample({
+                key: 'test',
+                tag: 'Example',
+                name: ['Name Test'],
+                shortName: 'Label',
+            })
+            const inverted = testExample.invert() as StandardExample
+            expect(inverted.shortName).toBeDefined()
+        })
+
+        it('should consider shortName in isEmpty check', () => {
+            const emptyExample = new StandardExample({ key: 'test', tag: 'Example' })
+            expect(emptyExample.isEmpty()).toBe(true)
+
+            const exampleWithShortName = new StandardExample({
+                key: 'test',
+                tag: 'Example',
+                shortName: 'Only label',
+            })
+            expect(exampleWithShortName.isEmpty()).toBe(false)
+        })
+
+        it('should include ShortName in schema and nestedSchema when set', () => {
+            const testExample = new StandardExample({
+                key: 'test',
+                tag: 'Example',
+                shortName: 'Tab label',
+                name: ['Name Test'],
+            })
+            const schema = testExample.schema
+            const shortNameNode = schema.children.find((c: any) => c.data?.tag === 'ShortName')
+            expect(shortNameNode).toBeDefined()
+
+            const options = { key: new StandardKey({ key: 'test', universalKey: 'EXAMPLE#test' }) }
+            const mockLookup = (_k: string | StandardKey) => undefined
+            const nested = testExample.nestedSchema(mockLookup, options)
+            const nestedShortName = nested.children.find((c: any) => c.data?.tag === 'ShortName')
+            expect(nestedShortName).toBeDefined()
+        })
+
+        it('should apply mapContents to shortName', () => {
+            const testExample = new StandardExample({
+                key: 'test',
+                tag: 'Example',
+                shortName: 'Original',
+                name: ['Name Test'],
+            })
+            const mapped = testExample.mapContents((tree) =>
+                tree.map((node) => {
+                    if (treeNodeTypeguard(isSchemaString)(node)) {
+                        return { data: { tag: 'String', value: node.data.value + '-mapped' }, children: [] }
+                    }
+                    return { ...node, children: [] }
+                })
+            ) as StandardExample
+            expect(mapped.shortName?.toJSON()).toEqual('Original-mapped')
+        })
+    })
 })

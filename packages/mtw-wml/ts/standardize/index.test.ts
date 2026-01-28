@@ -1,5 +1,5 @@
 import { Schema, schemaToWML } from '../schema'
-import { StandardForm } from '.'
+import { StandardForm, hasShortName } from '.'
 import { deIndentWML } from '../schema/utils'
 import { GenericTreeNode } from '@tonylb/mtw-base/ts/genericTree'
 import { SchemaTag } from '@tonylb/mtw-base/ts/schema'
@@ -440,6 +440,29 @@ describe('StandardForm', () => {
         expect(example.name?.toJSON()).toEqual(['Example Name'])
         expect(example.summary?.toJSON()).toEqual(['Example Summary'])
         expect(example.description?.toJSON()).toEqual(['Example Description'])
+    })
+
+    it('should correctly parse Example with ShortName and hasShortName', () => {
+        const testWML = deIndentWML(`
+            <Asset uuid=(Test)>
+                <Room uuid=(room1) key=(room1)>
+                    <ShortName>Test Room</ShortName>
+                    <Example uuid=(example1) key=(example1)>
+                        <ShortName>Tab label</ShortName>
+                        <Name>Example Name</Name>
+                        <Summary>Example Summary</Summary>
+                        <Description>Example Description</Description>
+                    </Example>
+                </Room>
+            </Asset>
+        `)
+        const test = new StandardForm(testWML)
+        const example = test.byUniversalId['EXAMPLE#example1'] as StandardExample
+        expect(example).toBeDefined()
+        expect(example).toBeInstanceOf(StandardExample)
+        expect(hasShortName(example)).toBe(true)
+        expect(example.shortName?.toJSON()).toEqual('Tab label')
+        expect(example.name?.toJSON()).toEqual(['Example Name'])
     })
 
     it('should correctly construct classes', () => {

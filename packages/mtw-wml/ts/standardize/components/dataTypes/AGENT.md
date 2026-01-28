@@ -105,7 +105,7 @@ Serialization format for `StandardReference` - standalone reference format. Can 
 ### **Component Data Types**
 
 #### **StandardExampleData** (`example.ts`)
-Serialization format for Example components. Contains `name`, `summary`, and `description` as `RenderTree` arrays for storage and transmission.
+Serialization format for Example components. Contains `name`, `summary`, and `description` as `RenderTree` arrays for storage and transmission. Optional `shortName` (string or editable) is the *Example's own* label, used for UI (tabs, lists). **Name vs ShortName**: `name` is the name of the *item being exemplified* (Room/Feature/Knowledge); `shortName` is the label of the *Example itself*. Use `shortName` for the Example's tab/list label; do **not** use `name` as the Example's label.
 
 #### **StandardRoomData** (`room.ts`)
 Serialization format for Room components. Contains `shortName`, `exits`, `features`, and `examples` with proper reference structures.
