@@ -12,7 +12,7 @@ import EditIcon from '@mui/icons-material/Edit'
 import { WorkbenchUnshownRooms } from './UnshownRooms'
 import { blue } from '@mui/material/colors'
 import RenameIcon from '../Maps/Edit/MapLayers/RenameIcon'
-import { setCurrentView, setCurrentComponentId } from '../../slices/UI/workbench'
+import { navigateToComponent } from '../../slices/UI/workbench'
 import { useWorkbenchAsset } from './useWorkbenchAsset'
 import { useDispatch } from 'react-redux'
 
@@ -72,9 +72,8 @@ const RoomLayer: FunctionComponent<{ roomId: `ROOM#${string}`; name: string; inh
     const renameRef = useRef<HTMLDivElement>(null)
     const editRef = useRef<HTMLButtonElement>(null)
     const handleEditClick = useCallback(() => {
-        dispatch(setCurrentView('component'))
-        dispatch(setCurrentComponentId(roomId))
-    }, [dispatch, roomId, setCurrentView, setCurrentComponentId])
+        dispatch(navigateToComponent(roomId as ComponentUUID))
+    }, [dispatch, roomId])
     return <React.Fragment>
         <ListItemButton
             dense

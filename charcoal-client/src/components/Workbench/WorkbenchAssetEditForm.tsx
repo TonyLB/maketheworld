@@ -12,7 +12,7 @@ import { getAssetZone } from '../../slices/player'
 import { addOnboardingComplete } from '../../slices/player/index.api'
 import { useOnboardingCheckpoint } from '../Onboarding/useOnboarding'
 import { useWorkbenchAsset } from './useWorkbenchAsset'
-import { setCurrentView, setCurrentComponentId } from '../../slices/UI/workbench'
+import { navigateToComponent } from '../../slices/UI/workbench'
 import StandardCharacter from '@tonylb/mtw-wml/ts/standardize/components/character'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
@@ -165,8 +165,7 @@ export const WorkbenchAssetEditForm: FunctionComponent = () => {
 
     // Handle component selection - use state-based navigation
     const handleComponentClick = useCallback((componentId: ComponentUUID) => {
-        dispatch(setCurrentView('component'))
-        dispatch(setCurrentComponentId(componentId))
+        dispatch(navigateToComponent(componentId))
     }, [dispatch])
 
     return (

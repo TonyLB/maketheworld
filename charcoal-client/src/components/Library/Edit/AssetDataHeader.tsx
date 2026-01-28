@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactChild } from 'react'
+import React, { FunctionComponent, ReactNode } from 'react'
 
 import {
     ListItemButton,
@@ -12,7 +12,7 @@ import {
 import MiniChip from '../../MiniChip'
 
 export type AssetDataHeaderRenderFunction = {
-    (key: string): ReactChild;
+    (key: string): ReactNode;
 }
 
 //
@@ -21,9 +21,9 @@ export type AssetDataHeaderRenderFunction = {
 //
 interface AssetDataHeaderProps {
     ItemId: string;
-    icon: ReactChild;
-    iconIndicator?: ReactChild;
-    actions?: ReactChild;
+    icon: ReactNode;
+    iconIndicator?: ReactNode;
+    actions?: ReactNode;
     primary?: AssetDataHeaderRenderFunction;
     secondary?: AssetDataHeaderRenderFunction;
     onClick?: () => void;

@@ -129,12 +129,12 @@ The tab bar is the persistent "layer stack." You always see **all** siblings in 
 - Only one panel visible at a time (no stacked peek like pattern 2).
 
 **Implementation notes**  
-- Use `@mui/material` `Tabs` and `Tab` (already in the project).  
+- Use `@mui/material` `Tabs` and `Tab` (already in the project), wrapped in a `LayeredExamplesTabs` helper under `Workbench/LayeredContext`.  
 - `variant="scrollable"` — horizontal scroll when tabs overflow.  
 - `scrollButtons="auto"` — show scroll buttons on desktop when needed; hide on mobile. Use `scrollButtons={true}` + `allowScrollButtonsMobile` if you want arrows on mobile too.  
-- `value` = current Example id (or index); `onChange` updates local state or a `layeredContext` slice.  
+- `value` = current Example id; `onChange` updates local state within the Examples view (or a `layeredContext` slice keyed by parent id).  
 - Render one `WorkbenchExampleEditor` for the active tab's id; no need for accordions.  
-- Works inside `WorkbenchComponentDetail`; breadcrumbs stay Asset → Parent.
+- Works inside `WorkbenchExamplesView`, which is selected from the main workbench router when the mode is in the Examples (component-layer) state.
 
 **Minimal code sketch**  
 ```tsx
@@ -183,9 +183,10 @@ const [currentId, setCurrentId] = useState(siblings[0]?.id ?? null)
 
 ## Integration with Workbench
 
-- **Breadcrumbs**: Remain **Asset → Parent** (Room/Feature/Knowledge). We do **not** push Example-level breadcrumbs; Examples are "layers" within the parent, not separate nav steps.  
-- **`currentComponentId`**: Stays on the parent. "Current Example" (or current layer) is **local** to the layered-context component (or a small `layeredContext` slice keyed by parent id) so we don’t overload the main workbench stack.  
-- **Data**: Sibling list comes from `component.examples` (or the equivalent reference list). Use `shortName` for the Example's tab/list label; do **not** use `name` (that is the exemplified item's name). Fall back to "Example 1", "Example 2", etc. when `shortName` is missing.
+- **Breadcrumbs**: When we are in the Examples view, breadcrumbs read **Asset → Parent → Examples** (e.g. **Asset → Room → Examples**). We do **not** push per-Example breadcrumbs; Examples are "layers" within the parent, not separate nav steps. Clicking the parent crumb (e.g. **Room**) exits the Examples mode back to the parent’s main editor. The `Examples` crumb is represented as a dedicated breadcrumb kind (`'componentLayer'`) layered on top of the existing asset/component stack.  
+- **Navigation model**: Redux navigation is modeled as a stack of breadcrumb entries (`breadcrumbStack`). The first entry is always the asset, the last `kind === 'component'` (if present) is the current parent component, and an optional trailing `kind === 'componentLayer'` represents the current layered view (Examples) for that parent. `currentView`, parent component id, and current layer id are all **derived selectors** over this stack rather than separate pieces of state.  
+- **Examples management vs. Examples view**: The set of Example layers is managed via an `Examples` `WorkbenchReferenceList` accordion under the parent component (mirroring the Features/Exits/Lenses pattern). Adding/removing Examples happens there by editing the parent’s `component.examples` reference list; entering the layered Examples view for a specific Example uses breadcrumb-based navigation into a `componentLayer` entry.  
+- **Data**: Sibling list for the layered view comes from `component.examples` (or the equivalent reference list). Use `shortName` for the Example's tab/list label; do **not** use `name` (that is the exemplified item's name). Fall back to "Untitled" when `shortName` is missing.
 
 ---
 

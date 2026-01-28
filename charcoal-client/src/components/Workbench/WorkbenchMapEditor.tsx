@@ -8,7 +8,7 @@ import WorkbenchMapArea from './MapArea'
 import WorkbenchMapLayers from './MapLayers'
 import ToolSelect from '../Maps/Edit/Area/ToolSelect'
 import { useWorkbenchAsset } from './useWorkbenchAsset'
-import { setCurrentView, setCurrentComponentId, getCurrentComponentId } from '../../slices/UI/workbench'
+import { getCurrentComponentId, navigateToAsset } from '../../slices/UI/workbench'
 import WorkbenchMapController from './MapController'
 import { useOnboardingCheckpoint } from '../Onboarding/useOnboarding'
 import TutorialPopover from '../Onboarding/TutorialPopover'
@@ -18,7 +18,7 @@ import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 
 export const WorkbenchMapEditor: FunctionComponent = () => {
     const dispatch = useDispatch()
-    const { standardForm } = useWorkbenchAsset()
+    const { standardForm, AssetId } = useWorkbenchAsset()
     const currentComponentId = useSelector(getCurrentComponentId)
     useOnboardingCheckpoint('editMap', { requireSequence: true })
     
@@ -52,8 +52,7 @@ export const WorkbenchMapEditor: FunctionComponent = () => {
     const mapAreaRef = useRef<HTMLDivElement>(null)
 
     const handleBackToAsset = () => {
-        dispatch(setCurrentView('asset'))
-        dispatch(setCurrentComponentId(null))
+        dispatch(navigateToAsset())
     }
 
     return (
