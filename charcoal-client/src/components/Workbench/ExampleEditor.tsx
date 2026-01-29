@@ -149,6 +149,7 @@ export const WorkbenchExampleEditor: FunctionComponent<ExampleEditorProps> = ({ 
                     onChange={setSummary}
                     validLinkTags={[]}
                     toolbar={false}
+                    tag="Summary"
                 />
             </Box>
             <WorkbenchStandardRenderEditor
@@ -156,6 +157,7 @@ export const WorkbenchExampleEditor: FunctionComponent<ExampleEditorProps> = ({ 
                 onChange={setDescription}
                 validLinkTags={[]}
                 toolbar={false}
+                tag="Description"
             />
         </MakeTheWorldAccordion>
     )

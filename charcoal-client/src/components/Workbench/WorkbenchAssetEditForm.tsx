@@ -197,6 +197,7 @@ export const WorkbenchAssetEditForm: FunctionComponent = () => {
                                             onChange={setSummary}
                                             validLinkTags={[]}
                                             toolbar={false}
+                                            tag="Summary"
                                         />
                                     </Box>
                                 </Box>

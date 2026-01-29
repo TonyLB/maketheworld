@@ -100,6 +100,7 @@ export const WorkbenchMarkEditor: FunctionComponent<WorkbenchMarkEditorProps> = 
                     validLinkTags={[]}
                     toolbar={true}
                     placeholder="Enter a Description"
+                    tag="Description"
                 />
             </WorkbenchTitledBox>
         </Box>

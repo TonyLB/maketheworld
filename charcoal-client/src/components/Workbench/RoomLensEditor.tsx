@@ -382,6 +382,7 @@ export const WorkbenchRoomLensEditor: FunctionComponent<RoomLensEditorProps> = (
                             validLinkTags={[]}
                             toolbar={true}
                             placeholder="Enter a Description"
+                            tag="Description"
                         />
                     </WorkbenchTitledBox>
                 </Box>
