@@ -175,15 +175,14 @@ export const WorkbenchAssetEditForm: FunctionComponent = () => {
                     {!readonly && (
                         <MakeTheWorldAccordion title="Metadata" defaultExpanded={metadataDefaultExpanded}>
                             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                                <Box>
-                                    <Typography variant="subtitle2" sx={{ marginBottom: "0.5em" }}>Short Name</Typography>
-                                    <WorkbenchStandardLiteralEditor
-                                        value={shortName}
-                                        onChange={handleShortNameChange}
-                                        placeholder="Enter a short name for this draft"
-                                        readonly={readonly}
-                                    />
-                                </Box>
+                                <WorkbenchStandardLiteralEditor
+                                    value={shortName}
+                                    onChange={handleShortNameChange}
+                                    label="Short Name"
+                                    placeholder="Enter a short name for this draft"
+                                    variant="outlined"
+                                    readonly={readonly}
+                                />
                                 <Box>
                                     <Typography variant="subtitle2" sx={{ marginBottom: "0.5em" }}>Summary</Typography>
                                     <Box sx={{

@@ -10,6 +10,7 @@ import '../../theme/extensions'
 interface StandardLiteralEditorProps {
     value: StandardLiteral;
     onChange: (value: StandardLiteral) => void;
+    label?: string;
     placeholder?: string;
     readonly?: boolean;
     fullWidth?: boolean;
@@ -20,6 +21,7 @@ interface StandardLiteralEditorProps {
 export const WorkbenchStandardLiteralEditor: FunctionComponent<StandardLiteralEditorProps> = ({
     value,
     onChange,
+    label,
     placeholder = '',
     readonly = false,
     fullWidth = true,
@@ -59,12 +61,13 @@ export const WorkbenchStandardLiteralEditor: FunctionComponent<StandardLiteralEd
         <TextField
             value={localValue}
             onChange={handleChange}
+            label={label}
             placeholder={placeholder}
             disabled={isReadonly}
             fullWidth={fullWidth}
             size={size}
             variant={variant}
-            hiddenLabel={size === 'small'}
+            hiddenLabel={size === 'small' && !label}
             sx={
                 variant === 'outlined'
                     ? {

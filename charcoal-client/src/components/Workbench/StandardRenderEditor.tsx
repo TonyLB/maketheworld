@@ -41,6 +41,8 @@ interface StandardRenderEditorProps {
     checkPoints?: string[];
     value: StandardRender;
     onChange: (value: StandardRender) => void;
+    /** Override placeholder (e.g. when not inside StandardFormSchema). Example: "Enter a Description" */
+    placeholder?: string;
 }
 
 const withInlines = (editor: Editor) => {
@@ -197,9 +199,10 @@ const StandardRenderSlateComponent: FunctionComponent<StandardRenderSlateCompone
 export const WorkbenchStandardRenderEditor: FunctionComponent<StandardRenderEditorProps> = (props) => {
     const { tag } = useStandardFormContext()
     const { standardForm, readonly } = useWorkbenchAsset()
+    const contextPlaceholder = ['ShortName', 'Name', 'Summary', 'Description'].includes(tag) ? `Enter a ${tag}` : ''
     return <StandardRenderSlateComponent
         { ...props }
-        placeholder={['ShortName', 'Name', 'Summary', 'Description'].includes(tag) ? `Enter a ${tag}` : ''}
+        placeholder={props.placeholder ?? contextPlaceholder}
         standard={standardForm}
         readonly={readonly}
         checkPoints={props.checkPoints}
