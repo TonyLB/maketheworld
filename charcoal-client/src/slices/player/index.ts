@@ -1,10 +1,16 @@
-import { PlayerPublic } from './baseClasses'
+import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
+import { LibraryAsset } from '@tonylb/mtw-interfaces/ts/library'
+import { PlayerSnapshot } from '@tonylb/mtw-interfaces/ts/eventBridge/assets/players'
+import { AssetKey } from '@tonylb/mtw-utilities/ts/types'
 import { createSelector, Selector } from '@reduxjs/toolkit'
+
+import { PlayerPublic } from './baseClasses'
 import { OnboardingKey, OnboardingSubItem, onboardingChapters } from '../../components/Onboarding/checkpoints'
 import { playerDataSourceSelectors } from './playerDataSource'
 import { getPlayerName, getSessionId } from '../settings'
-import { PlayerSnapshot } from '@tonylb/mtw-interfaces/ts/eventBridge/assets/players'
-import { AssetKey } from '@tonylb/mtw-utilities/ts/types'
+
+/** Draft assets from the player snapshot are always ASSET# (not CHARACTER#). */
+export type DraftAsset = Omit<LibraryAsset, 'AssetId'> & { AssetId: AssetUUID }
 
 // Helper to get the materialized view from playerDataSource
 const getPlayerSnapshot = (state: any): PlayerSnapshot | null => {
@@ -67,7 +73,7 @@ export const getMyAssets = createSelector(
 
 export const getMyDraftAssets = createSelector(
     getMyAssets,
-    (assets) => assets.filter((asset: any) => (asset?.zone === 'Draft'))
+    (assets): DraftAsset[] => assets.filter((asset: LibraryAsset) => asset?.zone === 'Draft') as DraftAsset[]
 )
 
 export const getMyPersonalAssets = createSelector(

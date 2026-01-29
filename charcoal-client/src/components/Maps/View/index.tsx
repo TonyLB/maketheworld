@@ -80,16 +80,15 @@ export const MapView: FunctionComponent<MapViewProps> = () => {
     const onImportListItemClick = useCallback(({ asset, key }: { asset: EphemeraAssetId, key: string }) => {
         // Import into first draft asset if available, then open workbench on that asset + map
         if (firstDraftAssetId) {
-            const draftAssetId = firstDraftAssetId as AssetUUID
             const fromAssetKey = asset.split('#')[1]
             if (asset !== firstDraftAssetId && fromAssetKey) {
-                dispatch(addImport({ assetId: draftAssetId, fromAsset: `ASSET#${fromAssetKey}` as AssetUUID, tag: 'Map', uuid: key as ComponentUUID }))
+                dispatch(addImport({ assetId: firstDraftAssetId, fromAsset: `ASSET#${fromAssetKey}` as AssetUUID, tag: 'Map', uuid: key as ComponentUUID }))
             }
             const mapComponentId = key.startsWith('MAP#') ? (key as ComponentUUID) : (`MAP#${key}` as ComponentUUID)
-            dispatch(setCurrentAssetId(draftAssetId))
+            dispatch(setCurrentAssetId(firstDraftAssetId))
             dispatch(setBreadcrumbStack([{ id: mapComponentId, kind: 'component', componentId: mapComponentId }]))
             dispatch(openWorkbench())
-            dispatch(putWorkbenchSettings({ currentAssetId: draftAssetId }))
+            dispatch(putWorkbenchSettings({ currentAssetId: firstDraftAssetId }))
             setOpen(false)
         }
     }, [firstDraftAssetId, dispatch])
