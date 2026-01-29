@@ -8,6 +8,8 @@ import ListItemText from "@mui/material/ListItemText"
 import IconButton from "@mui/material/IconButton"
 import Typography from "@mui/material/Typography"
 import Alert from "@mui/material/Alert"
+import { useDispatch } from "react-redux"
+import { navigateToComponentLayer } from "../../slices/UI/workbench"
 import { useWorkbenchAsset } from "./useWorkbenchAsset"
 import AddIcon from '@mui/icons-material/Add'
 import DeleteIcon from '@mui/icons-material/Delete'
@@ -23,6 +25,9 @@ import WorkbenchStandardLiteralEditor from "./StandardLiteralEditor"
 import WorkbenchStandardRenderEditor from "./StandardRenderEditor"
 import WorkbenchTitledBox from "./WorkbenchTitledBox"
 import WorkbenchLensSelectorDialog from "./LensSelectorDialog"
+import { WorkbenchInlineReferenceList } from "./WorkbenchInlineReferenceList"
+import { MarkInlineEditor } from "./MarkInlineEditor"
+import { referenceListToWorkbenchItems } from "./referenceListAdapter"
 import { ComponentUUID } from "@tonylb/mtw-base/ts/schema"
 import { v4 as uuidv4 } from 'uuid'
 import { RenderTree } from "@tonylb/mtw-base/ts/renderTree"
@@ -55,63 +60,8 @@ const renderTreeToPlainText = (tree: RenderTree): string => {
         .trim()
 }
 
-const MarkListItem: FunctionComponent<{
-    mark: StandardMark
-    onDelete: () => void
-    disabled?: boolean
-}> = ({ mark, onDelete, disabled }) => {
-    const { readonly } = useWorkbenchAsset()
-    const isDisabled = readonly || disabled
-
-    const shortName = useMemo(() => {
-        const shortNameData = mark.shortName?._payload?.plain?.toJSON()
-        return typeof shortNameData === 'string' ? shortNameData : 'Untitled Mark'
-    }, [mark.shortName])
-
-    const descriptionText = useMemo(() => {
-        const plain = mark.description?.plain ?? []
-        if (mark.description && mark.description._payload && !(mark.description._payload instanceof PlainClass)) {
-            console.error('Expected PlainClass but got', mark.description._payload.constructor.name, mark.description)
-        }
-        return renderTreeToPlainText(plain)
-    }, [mark.description])
-
-    return (
-        <ListItem
-            sx={{
-                border: '1px solid #e0e0e0',
-                borderRadius: '8px',
-                marginBottom: '8px',
-                backgroundColor: 'white'
-            }}
-            secondaryAction={
-                <IconButton
-                    edge="end"
-                    aria-label="delete mark"
-                    onClick={onDelete}
-                    disabled={isDisabled}
-                    color="error"
-                    size="small"
-                >
-                    <DeleteIcon />
-                </IconButton>
-            }
-        >
-            <Box sx={{ display: 'flex', flexDirection: 'column', width: '100%', gap: 1 }}>
-                <Typography variant="body2" fontWeight="bold">
-                    {shortName}
-                </Typography>
-                {descriptionText && (
-                    <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-                        {descriptionText}
-                    </Typography>
-                )}
-            </Box>
-        </ListItem>
-    )
-}
-
 export const WorkbenchRoomLensEditor: FunctionComponent<RoomLensEditorProps> = ({ RoomId }) => {
+    const dispatch = useDispatch()
     const { standardForm, updateStandard, readonly } = useWorkbenchAsset()
     const [dialogOpen, setDialogOpen] = useState(false)
 
@@ -326,6 +276,40 @@ export const WorkbenchRoomLensEditor: FunctionComponent<RoomLensEditorProps> = (
             .filter((mark): mark is StandardMark => mark !== null)
     }, [singleLens, standardForm])
 
+    const markItems = useMemo(() => {
+        if (!singleLens) return []
+        return referenceListToWorkbenchItems({
+            referenceList: singleLens.marks,
+            standardForm,
+            tag: 'Mark'
+        })
+    }, [singleLens, standardForm])
+
+    const handleMarkRemove = useCallback(
+        (id: string) => {
+            if (!singleLens) return
+            const index = singleLens.marks.payload.findIndex(ref => ref.universalKey === id)
+            if (index >= 0) removeMarkFromLens(index)
+        },
+        [singleLens, removeMarkFromLens]
+    )
+
+    const renderMarkEditor = useCallback(
+        (id: string) => {
+            const mark = marks.find(m => m.universalKey === id)
+            if (!mark) return null
+            return <MarkInlineEditor mark={mark} />
+        },
+        [marks]
+    )
+
+    const handleMarkClick = useCallback(
+        (id: string) => {
+            dispatch(navigateToComponentLayer(RoomId, id as ComponentUUID))
+        },
+        [dispatch, RoomId]
+    )
+
     if (!room) {
         return (
             <MakeTheWorldAccordion title="Lens" defaultExpanded>
@@ -378,6 +362,19 @@ export const WorkbenchRoomLensEditor: FunctionComponent<RoomLensEditorProps> = (
                         />
                     </WorkbenchTitledBox>
 
+                    <WorkbenchInlineReferenceList
+                        title="Marks"
+                        items={markItems}
+                        defaultExpanded
+                        onItemRemove={handleMarkRemove}
+                        onAddClick={addMarkToLens}
+                        addLabel="Add Mark"
+                        emptyStateText="No marks. Add one to describe points of interest."
+                        renderItemEditor={renderMarkEditor}
+                        onItemClick={handleMarkClick}
+                        disabled={readonly}
+                    />
+
                     <WorkbenchTitledBox title="Description">
                         <WorkbenchStandardRenderEditor
                             value={singleLens.description ?? new StandardRender([])}
@@ -385,35 +382,6 @@ export const WorkbenchRoomLensEditor: FunctionComponent<RoomLensEditorProps> = (
                             validLinkTags={[]}
                             toolbar={true}
                         />
-                    </WorkbenchTitledBox>
-
-                    <WorkbenchTitledBox title="Marks">
-                        <List>
-                            {marks.map((mark, index) => {
-                                const markRef = singleLens.marks.payload[index]
-                                if (!markRef) return null
-                                return (
-                                    <MarkListItem
-                                        key={markRef.universalKey || index}
-                                        mark={mark}
-                                        onDelete={() => removeMarkFromLens(index)}
-                                        disabled={readonly}
-                                    />
-                                )
-                            })}
-                            <ListItem>
-                                <ListItemButton
-                                    onClick={addMarkToLens}
-                                    disabled={readonly}
-                                    sx={{ justifyContent: 'center' }}
-                                >
-                                    <ListItemIcon>
-                                        <AddIcon />
-                                    </ListItemIcon>
-                                    <ListItemText primary="Add Mark" />
-                                </ListItemButton>
-                            </ListItem>
-                        </List>
                     </WorkbenchTitledBox>
                 </Box>
             </MakeTheWorldAccordion>

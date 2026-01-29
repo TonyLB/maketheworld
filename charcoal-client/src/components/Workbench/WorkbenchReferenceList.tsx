@@ -11,6 +11,7 @@ import AddIcon from "@mui/icons-material/Add"
 import DeleteIcon from "@mui/icons-material/Delete"
 
 import { MakeTheWorldAccordion } from "../UI"
+import "../../theme/extensions"
 
 export interface WorkbenchReferenceListItem {
     id: string
@@ -132,11 +133,14 @@ export const WorkbenchReferenceList: FunctionComponent<WorkbenchReferenceListPro
                         <ListItem
                             key={id}
                             disablePadding
-                            sx={{
-                                border: "1px solid #e0e0e0",
-                                borderRadius: "8px",
-                                marginBottom: "8px",
-                                backgroundColor: "white"
+                            sx={(theme) => {
+                                const ex = (theme.palette as { extras?: { sectionHeaderBackground?: string; sectionBorder?: string } }).extras
+                                return {
+                                    border: `1px solid ${ex?.sectionBorder ?? "#e0e0e0"}`,
+                                    borderRadius: "8px",
+                                    marginBottom: "8px",
+                                    backgroundColor: ex?.sectionHeaderBackground ?? "#ffcc80"
+                                }
                             }}
                         >
                             <ListItemButton

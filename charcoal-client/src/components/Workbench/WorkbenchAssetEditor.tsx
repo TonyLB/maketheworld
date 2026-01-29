@@ -6,16 +6,19 @@ import { getStatus } from '../../slices/personalAssets'
 import {
     getCurrentView,
     getCurrentComponentId,
+    getCurrentComponentLayerId,
     getCurrentAssetId
 } from '../../slices/UI/workbench'
 import { useWorkbenchAsset } from './useWorkbenchAsset'
 import WorkbenchAssetEditForm from './WorkbenchAssetEditForm'
 import WorkbenchComponentDetail from './WorkbenchComponentDetail'
 import WorkbenchExamplesView from './WorkbenchExamplesView'
+import WorkbenchMarkEditor from './WorkbenchMarkEditor'
 import WorkbenchMapEditor from './WorkbenchMapEditor'
 import WorkbenchCharacterEditor from './WorkbenchCharacterEditor'
 import StandardCharacter from '@tonylb/mtw-wml/ts/standardize/components/character'
 import StandardMap from '@tonylb/mtw-wml/ts/standardize/components/map'
+import StandardMark from '@tonylb/mtw-wml/ts/standardize/components/worldState'
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 
 /**
@@ -26,6 +29,7 @@ export const WorkbenchAssetEditor: FunctionComponent = () => {
     const currentAssetId = useSelector(getCurrentAssetId)
     const currentView = useSelector(getCurrentView)
     const currentComponentId = useSelector(getCurrentComponentId)
+    const currentComponentLayerId = useSelector(getCurrentComponentLayerId)
     const assetData = useWorkbenchAsset()
     const currentStatus = useSelector(getStatus(assetData.AssetId))
 
@@ -60,6 +64,11 @@ export const WorkbenchAssetEditor: FunctionComponent = () => {
     }
 
     if (currentView === 'componentLayer' && currentComponentId) {
+        const layerId = currentComponentLayerId as ComponentUUID | null
+        const layerComponent = layerId ? assetData.standardForm.byUniversalId[layerId] : undefined
+        if (layerComponent instanceof StandardMark && layerId) {
+            return <WorkbenchMarkEditor markId={layerId} />
+        }
         return <WorkbenchExamplesView />
     }
 
