@@ -10,6 +10,7 @@ export type StandardExampleData = {
     summary?: StandardEditableData<RenderTree>;
     description?: StandardEditableData<RenderTree>;
     marks?: FacetListData<string>;  // MarkFacet uses string payload (Remove/Replace handled via StandardFacetData)
+    shortName?: StandardEditableData<string>;
 } & StandardBaseData
 
 export type StandardExampleNDJSONData = {
@@ -18,6 +19,7 @@ export type StandardExampleNDJSONData = {
     summary?: StandardEditableData<RenderTree>;
     description?: StandardEditableData<RenderTree>;
     marks?: FacetListData<string>;  // MarkFacet uses string payload (Remove/Replace handled via StandardFacetData)
+    shortName?: StandardEditableData<string>;
 } & StandardBaseData
 
 export const isStandardExampleData = (arg: any): arg is StandardExampleData => {
@@ -34,7 +36,8 @@ export const isStandardExampleData = (arg: any): arg is StandardExampleData => {
             name: 'renderTree',
             summary: 'renderTree',
             description: 'renderTree',
-            marks: 'facetList'
+            marks: 'facetList',
+            shortName: 'literal'
         })
     )
 }

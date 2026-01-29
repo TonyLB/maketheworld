@@ -14,7 +14,7 @@ import { ComponentUUID } from "@tonylb/mtw-base/ts/schema"
 import { enforceTypedKey } from "@tonylb/mtw-utilities/ts/types"
 import { v4 as uuidv4 } from "uuid"
 import { useDispatch } from "react-redux"
-import { setCurrentComponentId, setCurrentView } from "../../slices/UI/workbench"
+import { navigateToComponent } from "../../slices/UI/workbench"
 import WorkbenchFeatureSelectorDialog from "./FeatureSelectorDialog"
 
 type RoomFeatureEditorProps = {
@@ -152,8 +152,7 @@ export const WorkbenchRoomFeatureEditor: FunctionComponent<RoomFeatureEditorProp
             if (readonly) {
                 return
             }
-            dispatch(setCurrentComponentId(id as ComponentUUID))
-            dispatch(setCurrentView("component"))
+            dispatch(navigateToComponent(id as ComponentUUID))
         },
         [dispatch, readonly]
     )

@@ -1,25 +1,31 @@
 import { createSlice, PayloadAction, createSelector } from '@reduxjs/toolkit'
 
 import { RootState, Selector, AppDispatch } from '../../../store'
-import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
+import { AssetUUID, ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import cacheDB, { ClientSettingType } from '../../../cacheDB'
 import { getStandardForm } from '../../personalAssets'
 import { getAssetZone, getMyAssets } from '../../player'
 import { AssetKey } from '@tonylb/mtw-utilities/ts/types'
 
-type WorkbenchBreadcrumbKind = 'asset' | 'component'
+type WorkbenchBreadcrumbKind = 'component' | 'componentLayer'
+
+type WorkbenchView = 'asset' | 'component' | 'componentLayer' | null
 
 export type WorkbenchBreadcrumbEntry = {
     //
     // NOTE: Breadcrumbs track **navigation history**, not schema ancestry.
-    // For now we assume a simple stack model (push on deeper navigation,
-    // pop when going \"back\" or clicking a breadcrumb).
     //
-    // In future we may support sibling navigation patterns (for example,
-    // clicking a Feature link inside a room-example description) that are
-    // more naturally represented as \"pop some, then push a different branch\"
-    // rather than a pure stack. The current model is intentionally small and
-    // conservative so we can evolve it as those needs become concrete.
+    // Invariants:
+    // - breadcrumbStack tracks **within-asset** navigation only (components and layered views).
+    // - Zero or more component entries may exist; the last { kind: 'component' } is the
+    //   current parent component for editing.
+    // - At most one componentLayer entry may exist, and if it does, it must be the last
+    //   entry and must follow a component entry. It represents a layered view (e.g. Examples)
+    //   for the current parent component.
+    //
+    // Asset identity is modeled separately via currentAssetId. When deriving a full
+    // navigation trail for the UI, selectors treat the currentAssetId as an implicit
+    // leading asset breadcrumb, followed by this within-asset stack.
     //
     id: string;
     kind: WorkbenchBreadcrumbKind;
@@ -35,8 +41,6 @@ interface WorkbenchState {
     authoringMode: 'play' | 'authoring';
     currentAssetId: AssetUUID | null;
     secondaryContext: string | null;
-    currentView: 'asset' | 'component' | null;
-    currentComponentId: string | null;
     breadcrumbStack: WorkbenchBreadcrumbEntry[];
 }
 
@@ -45,8 +49,6 @@ const initialState: WorkbenchState = {
     authoringMode: 'play',
     currentAssetId: null,
     secondaryContext: null,
-    currentView: null,
-    currentComponentId: null,
     breadcrumbStack: []
 }
 
@@ -65,27 +67,11 @@ const workbenchSlice = createSlice({
             const prevAssetId = state.currentAssetId
             state.currentAssetId = nextAssetId
             //
-            // When the asset changes, treat that as a new navigation root:
-            // - reset view to the asset-level editor
-            // - clear component selection
-            // - initialize breadcrumbs to just the asset
+            // When clearing the asset entirely (back to selector), or when
+            // switching to a different asset, any existing within-asset
+            // breadcrumb history becomes invalid and should be cleared.
             //
-            if (nextAssetId && nextAssetId !== prevAssetId) {
-                state.currentView = 'asset'
-                state.currentComponentId = null
-                state.breadcrumbStack = [{
-                    id: nextAssetId,
-                    kind: 'asset',
-                    componentId: null
-                }]
-            }
-            //
-            // When clearing the asset entirely (back to selector), there is
-            // no meaningful breadcrumb history to display.
-            //
-            if (!nextAssetId) {
-                state.currentView = null
-                state.currentComponentId = null
+            if (!nextAssetId || nextAssetId !== prevAssetId) {
                 state.breadcrumbStack = []
             }
         },
@@ -100,36 +86,13 @@ const workbenchSlice = createSlice({
             if (nextAssetId !== undefined) {
                 state.currentAssetId = nextAssetId
                 //
-                // When workbench settings are hydrated (e.g., on app startup), we may already have
-                // a currentAssetId without having gone through setCurrentAssetId(). In that case,
-                // initialize a root breadcrumb on first load so that later component navigation
-                // can extend it into Asset → Component paths rather than starting at the component.
-                //
-                if (nextAssetId && state.breadcrumbStack.length === 0) {
-                    state.currentView = state.currentView ?? 'asset'
-                    state.currentComponentId = state.currentComponentId ?? null
-                    state.breadcrumbStack = [{
-                        id: nextAssetId,
-                        kind: 'asset',
-                        componentId: null
-                    }]
-                }
-                //
                 // If settings explicitly clear currentAssetId, also clear breadcrumb history so the
                 // header falls back to the asset selector state.
                 //
                 if (!nextAssetId) {
-                    state.currentView = null
-                    state.currentComponentId = null
                     state.breadcrumbStack = []
                 }
             }
-        },
-        setCurrentView(state, action: PayloadAction<'asset' | 'component' | null>) {
-            state.currentView = action.payload
-        },
-        setCurrentComponentId(state, action: PayloadAction<string | null>) {
-            state.currentComponentId = action.payload
         },
         //
         // Breadcrumb actions
@@ -157,6 +120,9 @@ const workbenchSlice = createSlice({
         },
         resetBreadcrumbs(state) {
             state.breadcrumbStack = []
+        },
+        setBreadcrumbStack(state, action: PayloadAction<WorkbenchBreadcrumbEntry[]>) {
+            state.breadcrumbStack = action.payload
         }
     }
 })
@@ -168,21 +134,121 @@ export const {
     setAuthoringMode,
     setSecondaryContext,
     receiveWorkbenchSettings,
-    setCurrentView,
-    setCurrentComponentId,
     pushBreadcrumb,
     popBreadcrumbToIndex,
-    resetBreadcrumbs
+    resetBreadcrumbs,
+    setBreadcrumbStack
 } = workbenchSlice.actions
+
+//
+// Navigation helpers
+//
+
+export const navigateToComponent = (componentId: ComponentUUID) => (dispatch: AppDispatch, getState: () => RootState) => {
+    const state = getState()
+    const assetId = state.UI.workbench.currentAssetId
+    if (!assetId) {
+        return
+    }
+    const stack: WorkbenchBreadcrumbEntry[] = [
+        { id: componentId, kind: 'component', componentId }
+    ]
+    dispatch(setBreadcrumbStack(stack))
+}
+
+export const navigateToComponentLayer = (parentComponentId: ComponentUUID, layerComponentId: ComponentUUID) => (dispatch: AppDispatch, getState: () => RootState) => {
+    const state = getState()
+    const assetId = state.UI.workbench.currentAssetId
+    if (!assetId) {
+        return
+    }
+    const stack: WorkbenchBreadcrumbEntry[] = [
+        { id: parentComponentId, kind: 'component', componentId: parentComponentId },
+        { id: layerComponentId, kind: 'componentLayer', componentId: layerComponentId }
+    ]
+    dispatch(setBreadcrumbStack(stack))
+}
+
+export const navigateViaBreadcrumbIndex = (index: number) => (dispatch: AppDispatch, getState: () => RootState) => {
+    const state = getState()
+    const stack = state.UI.workbench.breadcrumbStack
+    //
+    // Index is interpreted relative to the full navigation trail
+    // (asset root at index 0, within-asset entries thereafter).
+    // Index 0 means \"asset root\" → clear within-asset stack.
+    //
+    if (index <= 0) {
+        dispatch(setBreadcrumbStack([]))
+        return
+    }
+    const withinAssetIndex = index - 1
+    if (withinAssetIndex < 0 || withinAssetIndex >= stack.length) {
+        return
+    }
+    dispatch(setBreadcrumbStack(stack.slice(0, withinAssetIndex + 1)))
+}
 
 // Selectors
 export const getWorkbenchOpen: Selector<boolean> = (state: RootState) => state.UI.workbench.open
 export const getAuthoringMode: Selector<'play' | 'authoring'> = (state: RootState) => state.UI.workbench.authoringMode
 export const getCurrentAssetId: Selector<AssetUUID | null> = (state: RootState) => state.UI.workbench.currentAssetId
 export const getSecondaryContext: Selector<string | null> = (state: RootState) => state.UI.workbench.secondaryContext
-export const getCurrentView: Selector<'asset' | 'component' | null> = (state: RootState) => state.UI.workbench.currentView
-export const getCurrentComponentId: Selector<string | null> = (state: RootState) => state.UI.workbench.currentComponentId
 export const getBreadcrumbStack: Selector<WorkbenchBreadcrumbEntry[]> = (state: RootState) => state.UI.workbench.breadcrumbStack
+
+//
+// Navigation selectors
+//
+
+export const getNavigationTrail = createSelector(
+    [getCurrentAssetId, getBreadcrumbStack],
+    (assetId, stack): WorkbenchBreadcrumbEntry[] => {
+        if (!assetId) {
+            return []
+        }
+        const assetEntry: WorkbenchBreadcrumbEntry = {
+            id: assetId,
+            kind: 'component', // special-cased as asset in header; componentId remains null
+            componentId: null
+        }
+        return [assetEntry, ...stack]
+    }
+)
+
+export const getCurrentView: Selector<WorkbenchView> = createSelector(
+    [getCurrentAssetId, getBreadcrumbStack],
+    (assetId, stack): WorkbenchView => {
+        if (!assetId) {
+            return null
+        }
+        if (!stack.length) {
+            return 'asset'
+        }
+        const last = stack[stack.length - 1]
+        if (last.kind === 'component') {
+            return 'component'
+        }
+        if (last.kind === 'componentLayer') {
+            return 'componentLayer'
+        }
+        return 'asset'
+    }
+)
+
+export const getCurrentComponentId: Selector<string | null> = createSelector(
+    getBreadcrumbStack,
+    (stack): string | null => {
+        const lastComponent = [...stack].reverse().find((entry) => entry.kind === 'component')
+        return lastComponent?.componentId ?? null
+    }
+)
+
+export const getCurrentComponentLayerId: Selector<string | null> = createSelector(
+    getBreadcrumbStack,
+    (stack): string | null => {
+        const lastLayer = [...stack].reverse().find((entry) => entry.kind === 'componentLayer')
+        return lastLayer?.componentId ?? null
+    }
+)
 
 // Intermediate selector to get standard form for current asset using full RootState
 const getCurrentAssetStandardForm = createSelector(

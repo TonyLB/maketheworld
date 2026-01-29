@@ -3,17 +3,17 @@ import { useDispatch, useSelector } from 'react-redux'
 import { Box, Drawer, Dialog, useMediaQuery, useTheme, Button, ThemeProvider, Breadcrumbs, Link, Typography } from '@mui/material'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz'
+import LayersIcon from '@mui/icons-material/Layers'
 import { AssetUUID, ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import WorkbenchContent from './WorkbenchContent'
 import AssetSelector from './AssetSelector'
 import {
     setCurrentAssetId,
     putWorkbenchSettings,
-    setCurrentView,
-    setCurrentComponentId,
     getCurrentView,
     getCurrentComponentId,
-    getBreadcrumbStack
+    getNavigationTrail,
+    navigateViaBreadcrumbIndex
 } from '../../slices/UI/workbench'
 import { useWorkbenchAsset } from './useWorkbenchAsset'
 import { getAssetZone } from '../../slices/player'
@@ -61,7 +61,7 @@ export const WorkbenchContainer: FunctionComponent<WorkbenchContainerProps> = ({
     // Read current view and component ID from Redux state
     const currentView = useSelector(getCurrentView)
     const currentComponentId = useSelector(getCurrentComponentId)
-    const breadcrumbStack = useSelector(getBreadcrumbStack)
+    const navigationTrail = useSelector(getNavigationTrail)
     
     // Create workbench theme that extends the base theme
     // This allows the workbench to have a distinctive appearance
@@ -136,20 +136,32 @@ export const WorkbenchContainer: FunctionComponent<WorkbenchContainerProps> = ({
             return null
         }
 
-        if (!breadcrumbStack.length) {
+        if (!navigationTrail.length) {
             return null
         }
 
-        return breadcrumbStack.map((entry, index) => {
-            const isLast = index === breadcrumbStack.length - 1
+        return navigationTrail.map((entry, index) => {
+            const isLast = index === navigationTrail.length - 1
 
-            if (entry.kind === 'asset') {
+            // Asset root crumb: derived from current asset id; componentId is null.
+            if (index === 0) {
                 return {
                     universalKey: assetData.AssetId as ComponentUUID,
                     name: assetName || 'Untitled',
                     isLast,
                     isAsset: true,
                     icon: getComponentIconByTag('Asset', { fontSize: '1rem', verticalAlign: 'middle', marginRight: 0.5 }),
+                    index
+                }
+            }
+
+            if (entry.kind === 'componentLayer') {
+                return {
+                    universalKey: (entry.componentId || assetData.AssetId) as ComponentUUID,
+                    name: 'Examples',
+                    isLast,
+                    isAsset: false,
+                    icon: <LayersIcon sx={{ fontSize: '1rem', verticalAlign: 'middle', mr: 0.5 }} />,
                     index
                 }
             }
@@ -186,29 +198,16 @@ export const WorkbenchContainer: FunctionComponent<WorkbenchContainerProps> = ({
                 index
             }
         })
-    }, [assetId, assetData.AssetId, assetData.standardForm, assetName, breadcrumbStack])
+    }, [assetId, assetData.AssetId, assetData.standardForm, assetName, navigationTrail])
 
     // Handle breadcrumb navigation
     const handleBreadcrumbClick = useCallback((universalKey: ComponentUUID, isLast: boolean, isAsset: boolean, index: number) => {
         if (isLast) return // Don't navigate if it's the current component
         
         // Clicking a breadcrumb represents \"go back to this step\" in the navigation
-        // history, so we:
-        // - trim the breadcrumb stack to that index
-        // - set the view based on whether the target is the asset or a component
-        //
-        dispatch({
-            type: 'workbench/popBreadcrumbToIndex',
-            payload: index
-        })
-
-        if (isAsset) {
-            dispatch(setCurrentView('asset'))
-            dispatch(setCurrentComponentId(null))
-        } else {
-            dispatch(setCurrentView('component'))
-            dispatch(setCurrentComponentId(universalKey))
-        }
+        // history; navigation state (view, current component, etc.) is derived from
+        // the resulting breadcrumb stack.
+        dispatch(navigateViaBreadcrumbIndex(index))
     }, [dispatch])
 
     // Get current component key for display

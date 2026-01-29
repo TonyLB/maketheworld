@@ -8,7 +8,7 @@ import WorkbenchMapArea from './MapArea'
 import WorkbenchMapLayers from './MapLayers'
 import ToolSelect from '../Maps/Edit/Area/ToolSelect'
 import { useWorkbenchAsset } from './useWorkbenchAsset'
-import { setCurrentView, setCurrentComponentId, getCurrentComponentId } from '../../slices/UI/workbench'
+import { getCurrentComponentId, navigateViaBreadcrumbIndex } from '../../slices/UI/workbench'
 import WorkbenchMapController from './MapController'
 import { useOnboardingCheckpoint } from '../Onboarding/useOnboarding'
 import TutorialPopover from '../Onboarding/TutorialPopover'
@@ -52,8 +52,7 @@ export const WorkbenchMapEditor: FunctionComponent = () => {
     const mapAreaRef = useRef<HTMLDivElement>(null)
 
     const handleBackToAsset = () => {
-        dispatch(setCurrentView('asset'))
-        dispatch(setCurrentComponentId(null))
+        dispatch(navigateViaBreadcrumbIndex(0))
     }
 
     return (
