@@ -64,6 +64,7 @@ export const WorkbenchStandardLiteralEditor: FunctionComponent<StandardLiteralEd
             fullWidth={fullWidth}
             size={size}
             variant={variant}
+            hiddenLabel={size === 'small'}
             sx={
                 variant === 'outlined'
                     ? {
