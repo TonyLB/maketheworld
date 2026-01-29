@@ -45,7 +45,7 @@ export const MarkInlineEditor: FunctionComponent<MarkInlineEditorProps> = ({ mar
             onChange={handleShortNameChange}
             placeholder="Untitled"
             size="small"
-            variant="standard"
+            variant="outlined"
             readonly={readonly}
         />
     )

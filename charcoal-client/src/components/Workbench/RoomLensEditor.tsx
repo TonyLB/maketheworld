@@ -353,14 +353,14 @@ export const WorkbenchRoomLensEditor: FunctionComponent<RoomLensEditorProps> = (
         return (
             <MakeTheWorldAccordion title="Lens" defaultExpanded>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, p: 2 }}>
-                    <WorkbenchTitledBox title="Short Name">
-                        <WorkbenchStandardLiteralEditor
-                            value={singleLens.shortName ?? new StandardLiteral('')}
-                            onChange={updateLensShortName}
-                            placeholder="Enter lens short name..."
-                            size="small"
-                        />
-                    </WorkbenchTitledBox>
+                    <WorkbenchStandardLiteralEditor
+                        value={singleLens.shortName ?? new StandardLiteral('')}
+                        onChange={updateLensShortName}
+                        label="Short Name"
+                        placeholder="Enter lens short name..."
+                        size="small"
+                        variant="outlined"
+                    />
 
                     <WorkbenchInlineReferenceList
                         title="Marks"
@@ -381,6 +381,7 @@ export const WorkbenchRoomLensEditor: FunctionComponent<RoomLensEditorProps> = (
                             onChange={updateLensDescription}
                             validLinkTags={[]}
                             toolbar={true}
+                            placeholder="Enter a Description"
                         />
                     </WorkbenchTitledBox>
                 </Box>

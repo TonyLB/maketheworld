@@ -84,21 +84,22 @@ export const WorkbenchMarkEditor: FunctionComponent<WorkbenchMarkEditorProps> = 
 
     return (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, p: 2 }}>
-            <WorkbenchTitledBox title="Short Name">
-                <WorkbenchStandardLiteralEditor
-                    value={mark.shortName ?? new StandardLiteral('')}
-                    onChange={handleShortNameChange}
-                    placeholder="Mark short name..."
-                    size="small"
-                    readonly={readonly}
-                />
-            </WorkbenchTitledBox>
+            <WorkbenchStandardLiteralEditor
+                value={mark.shortName ?? new StandardLiteral('')}
+                onChange={handleShortNameChange}
+                label="Short Name"
+                placeholder="Mark short name..."
+                size="small"
+                variant="outlined"
+                readonly={readonly}
+            />
             <WorkbenchTitledBox title="Description">
                 <WorkbenchStandardRenderEditor
                     value={mark.description ?? new StandardRender([])}
                     onChange={handleDescriptionChange}
                     validLinkTags={[]}
                     toolbar={true}
+                    placeholder="Enter a Description"
                 />
             </WorkbenchTitledBox>
         </Box>
