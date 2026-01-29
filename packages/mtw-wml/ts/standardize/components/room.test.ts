@@ -6,6 +6,8 @@ import { mergeTest } from "./utils/testing"
 import StandardReference from "../keys/reference"
 import { StandardKey } from "../keys/key"
 import { StandardExplicitParent } from "../explicit"
+import { StandardLens } from "./worldState"
+import { StandardForm } from "../"
 
 describe('StandardRoom class', () => {
 
@@ -1345,6 +1347,55 @@ describe('StandardRoom class', () => {
             expect(result.features.payload.length).toBe(1)
             expect(result.examples.payload.length).toBe(0)
             expect(result.characters.payload.length).toBe(0)
+        })
+    })
+
+    describe('Lens output in schema', () => {
+        it('should round-trip Room with Lens containing ShortName', () => {
+            const testSource = deIndentWML(`
+                <Asset uuid=(Test)>
+                    <Room uuid=(room1) key=(testRoom)>
+                        <ShortName>Test Room</ShortName>
+                        <Lens uuid=(lens1) key=(testLens)>
+                            <ShortName>Test Lens</ShortName>
+                        </Lens>
+                    </Room>
+                </Asset>
+            `)
+            const testForm = new StandardForm(testSource)
+            expect(schemaToWML([testForm.schema])).toEqual(testSource)
+        })
+
+        it('should round-trip Room with Lens containing ShortName and Description', () => {
+            const testSource = deIndentWML(`
+                <Asset uuid=(Test)>
+                    <Room uuid=(room1) key=(testRoom)>
+                        <Lens uuid=(lens1) key=(testLens)>
+                            <ShortName>Test Lens</ShortName>
+                            <Description>Test description.</Description>
+                        </Lens>
+                    </Room>
+                </Asset>
+            `)
+            const testForm = new StandardForm(testSource)
+            expect(schemaToWML([testForm.schema])).toEqual(testSource)
+        })
+
+        it('should round-trip Room with Lens containing Marks', () => {
+            const testSource = deIndentWML(`
+                <Asset uuid=(Test)>
+                    <Room uuid=(room1) key=(testRoom)>
+                        <Lens uuid=(lens1) key=(testLens)>
+                            <ShortName>Test Lens</ShortName>
+                            <Mark uuid=(mark1) key=(mark1)>
+                                <ShortName>Test Mark</ShortName>
+                            </Mark>
+                        </Lens>
+                    </Room>
+                </Asset>
+            `)
+            const testForm = new StandardForm(testSource)
+            expect(schemaToWML([testForm.schema])).toEqual(testSource)
         })
     })
 

@@ -23,7 +23,6 @@ import StandardLiteralEditor from "../StandardLiteralEditor"
 import StandardRenderEditor from "../StandardRenderEditor"
 import TitledBox from "../../../TitledBox"
 import LensSelectorDialog from "./LensSelectorDialog"
-import { useDebouncedOnChange } from "../../../../hooks/useDebounce"
 import { ComponentUUID } from "@tonylb/mtw-base/ts/schema"
 import { v4 as uuidv4 } from 'uuid'
 import { RenderTree } from "@tonylb/mtw-base/ts/renderTree"
@@ -165,7 +164,6 @@ export const RoomLensEditor: FunctionComponent<RoomLensEditorProps> = ({ RoomId 
         const LensKey = enforceTypedKey('LENS')
         const uuid = uuidv4()
         const lensUniversalKey = LensKey(uuid) as ComponentUUID
-
         updateStandard({
             type: 'update',
             update: (draft: StandardForm) => {
@@ -192,7 +190,6 @@ export const RoomLensEditor: FunctionComponent<RoomLensEditorProps> = ({ RoomId 
 
     const addLensReference = useCallback((universalKey: ComponentUUID) => {
         if (!room || readonly) return
-
         updateStandard({
             type: 'update',
             update: (draft: StandardForm) => {
@@ -211,7 +208,6 @@ export const RoomLensEditor: FunctionComponent<RoomLensEditorProps> = ({ RoomId 
 
     const removeLensReference = useCallback((index: number) => {
         if (!room || readonly) return
-
         updateStandard({
             type: 'update',
             update: (draft: StandardForm) => {
@@ -225,35 +221,6 @@ export const RoomLensEditor: FunctionComponent<RoomLensEditorProps> = ({ RoomId 
         })
     }, [room, RoomId, updateStandard, readonly])
 
-    const updateLensShortName = useCallback((newShortName: StandardLiteral) => {
-        if (!singleLens || readonly || !singleLens.universalKey) return
-
-        updateStandard({
-            type: 'update',
-            update: (draft: StandardForm) => {
-                const lens = draft.byUniversalId[singleLens.universalKey!]
-                if (lens && lens instanceof StandardLens) {
-                    lens._payload._shortName = newShortName
-                }
-                return draft
-            }
-        })
-    }, [singleLens, updateStandard, readonly])
-
-    const updateLensDescription = useCallback((newDescription: StandardRender) => {
-        if (!singleLens || readonly || !singleLens.universalKey) return
-
-        updateStandard({
-            type: 'update',
-            update: (draft: StandardForm) => {
-                const lens = draft.byUniversalId[singleLens.universalKey!]
-                if (lens && lens instanceof StandardLens) {
-                    lens._payload._description = newDescription
-                }
-                return draft
-            }
-        })
-    }, [singleLens, updateStandard, readonly])
 
     const addMarkToLens = useCallback(() => {
         if (!singleLens || readonly || !singleLens.universalKey) return
@@ -262,7 +229,6 @@ export const RoomLensEditor: FunctionComponent<RoomLensEditorProps> = ({ RoomId 
         const MarkKey = enforceTypedKey('MARK')
         const uuid = uuidv4()
         const markUniversalKey = MarkKey(uuid) as ComponentUUID
-
         updateStandard({
             type: 'update',
             update: (draft: StandardForm) => {
@@ -289,7 +255,6 @@ export const RoomLensEditor: FunctionComponent<RoomLensEditorProps> = ({ RoomId 
 
     const removeMarkFromLens = useCallback((index: number) => {
         if (!singleLens || readonly || !singleLens.universalKey) return
-
         updateStandard({
             type: 'update',
             update: (draft: StandardForm) => {
@@ -318,34 +283,59 @@ export const RoomLensEditor: FunctionComponent<RoomLensEditorProps> = ({ RoomId 
             .filter((mark): mark is StandardMark => mark !== null)
     }, [singleLens, standardForm])
 
-    // State for single lens editing
-    const [lensShortName, setLensShortName] = useState<StandardLiteral>(
-        singleLens?.shortName ?? new StandardLiteral('')
+    // Get stable lens universalKey for callbacks
+    const lensUniversalKey = useMemo(() => singleLens?.universalKey ?? null, [singleLens?.universalKey])
+
+    // Cache current lens text values for change detection
+    const lensShortNameString = useMemo(
+        () => singleLens?.shortName?._payload?.plain?.toJSON() ?? '',
+        [singleLens?.shortName]
     )
-    const [lensDescription, setLensDescription] = useState<StandardRender>(
-        singleLens?.description ?? new StandardRender([])
+    const lensDescriptionJSON = useMemo(
+        () => singleLens?.description?.toJSON() ?? [],
+        [singleLens?.description]
     )
 
-    // Update state when singleLens changes
-    React.useEffect(() => {
-        if (singleLens) {
-            setLensShortName(singleLens.shortName ?? new StandardLiteral(''))
-            setLensDescription(singleLens.description ?? new StandardRender([]))
+    // Stable update callbacks that use universalKey instead of singleLens object
+    const updateLensShortNameStable = useCallback((newShortName: StandardLiteral) => {
+        if (!lensUniversalKey || readonly) return
+
+        const newValue = newShortName._payload?.plain?.toJSON() ?? ''
+        if (lensShortNameString === newValue || (!lensShortNameString && !newValue)) {
+            return
         }
-    }, [singleLens])
+        updateStandard({
+            type: 'update',
+            update: (draft: StandardForm) => {
+                const lens = draft.byUniversalId[lensUniversalKey]
+                if (lens && lens instanceof StandardLens) {
+                    // Set to undefined if empty string, otherwise set the new value
+                    lens._payload._shortName = (newValue === '' || newValue === undefined) ? undefined : newShortName
+                }
+                return draft
+            }
+        })
+    }, [lensUniversalKey, lensShortNameString, updateStandard, readonly])
 
-    // Debounced updates for lens fields
-    useDebouncedOnChange({
-        value: lensShortName,
-        delay: 1000,
-        onChange: updateLensShortName
-    })
+    const updateLensDescriptionStable = useCallback((newDescription: StandardRender) => {
+        if (!lensUniversalKey || readonly) return
 
-    useDebouncedOnChange({
-        value: lensDescription,
-        delay: 1000,
-        onChange: updateLensDescription
-    })
+        const newValue = newDescription.toJSON() ?? []
+        if (JSON.stringify(lensDescriptionJSON) === JSON.stringify(newValue)) {
+            return
+        }
+        updateStandard({
+            type: 'update',
+            update: (draft: StandardForm) => {
+                const lens = draft.byUniversalId[lensUniversalKey]
+                if (lens && lens instanceof StandardLens) {
+                    const isEmpty = !newValue || (Array.isArray(newValue) && newValue.length === 0)
+                    lens._payload._description = isEmpty ? undefined : newDescription
+                }
+                return draft
+            }
+        })
+    }, [lensUniversalKey, lensDescriptionJSON, updateStandard, readonly])
 
     if (!room) {
         return (
@@ -394,8 +384,8 @@ export const RoomLensEditor: FunctionComponent<RoomLensEditorProps> = ({ RoomId 
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, p: 2 }}>
                     <TitledBox title="Short Name">
                         <StandardLiteralEditor
-                            value={lensShortName}
-                            onChange={setLensShortName}
+                            value={singleLens.shortName ?? new StandardLiteral('')}
+                            onChange={updateLensShortNameStable}
                             placeholder="Enter lens short name..."
                             size="small"
                         />
@@ -403,8 +393,8 @@ export const RoomLensEditor: FunctionComponent<RoomLensEditorProps> = ({ RoomId 
 
                     <TitledBox title="Description">
                         <StandardRenderEditor
-                            value={lensDescription}
-                            onChange={setLensDescription}
+                            value={singleLens.description ?? new StandardRender([])}
+                            onChange={updateLensDescriptionStable}
                             validLinkTags={[]}
                             toolbar={true}
                         />
