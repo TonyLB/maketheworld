@@ -18,6 +18,7 @@ import {
 import { useWorkbenchAsset } from './useWorkbenchAsset'
 import { getAssetZone } from '../../slices/player'
 import { createWorkbenchTheme } from './workbenchTheme'
+import StandardMark from '@tonylb/mtw-wml/ts/standardize/components/worldState'
 import { hasShortName, hasName } from '@tonylb/mtw-wml/ts/standardize'
 import { schemaOutputToString } from '@tonylb/mtw-wml/ts/schema/utils/schemaOutput/schemaOutputToString'
 import { GenericTree } from '@tonylb/mtw-base/ts/genericTree'
@@ -156,9 +157,14 @@ export const WorkbenchContainer: FunctionComponent<WorkbenchContainerProps> = ({
             }
 
             if (entry.kind === 'componentLayer') {
+                const layerId = entry.componentId as ComponentUUID | null
+                const layerComponent = layerId ? assetData.standardForm.byUniversalId[layerId] : undefined
+                const isMark = layerComponent instanceof StandardMark
+                const sn = isMark && hasShortName(layerComponent) ? layerComponent.shortName?._payload?.plain?.toJSON() : undefined
+                const name = isMark ? (typeof sn === 'string' && sn.trim() ? sn : 'Mark') : 'Examples'
                 return {
-                    universalKey: (entry.componentId || assetData.AssetId) as ComponentUUID,
-                    name: 'Examples',
+                    universalKey: (layerId || assetData.AssetId) as ComponentUUID,
+                    name,
                     isLast,
                     isAsset: false,
                     icon: <LayersIcon sx={{ fontSize: '1rem', verticalAlign: 'middle', mr: 0.5 }} />,

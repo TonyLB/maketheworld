@@ -13,13 +13,7 @@ import DeleteIcon from "@mui/icons-material/Delete"
 import { MakeTheWorldAccordion } from "../UI"
 import type { WorkbenchReferenceListItem } from "./WorkbenchReferenceList"
 
-/**
- * Affordances passed into the inline editor so the editor can place them (e.g. delete) where it makes sense.
- */
-export interface InlineReferenceListAffordances {
-    onRemove: () => void
-    disabled: boolean
-}
+const GAP_MIN_WIDTH = 48
 
 export interface WorkbenchInlineReferenceListProps {
     /**
@@ -69,10 +63,15 @@ export interface WorkbenchInlineReferenceListProps {
     emptyStateText?: string
 
     /**
-     * When provided, renders the full item content (no separate header row).
-     * Receives the item id and affordances (onRemove, disabled); the editor decides where to render them for a compact layout.
+     * When provided, renders only the inline-edit UI for each item (e.g. shortName field).
+     * The list owns row layout: [ edit slot | gap | affordances ]. The editor must not render delete or other list-owned controls.
      */
-    renderItemEditor?: (id: string, affordances: InlineReferenceListAffordances) => ReactNode
+    renderItemEditor?: (id: string) => ReactNode
+
+    /**
+     * When provided, the gap between edit slot and affordances is clickable; click navigates to the detailed editor for that item.
+     */
+    onItemClick?: (id: string) => void
 }
 
 export const WorkbenchInlineReferenceList: FunctionComponent<WorkbenchInlineReferenceListProps> = ({
@@ -85,19 +84,9 @@ export const WorkbenchInlineReferenceList: FunctionComponent<WorkbenchInlineRefe
     onAddClick,
     addLabel = "Add",
     emptyStateText,
-    renderItemEditor
+    renderItemEditor,
+    onItemClick
 }) => {
-    const getAffordances = useCallback(
-        (id: string): InlineReferenceListAffordances => ({
-            onRemove: () => {
-                if (disabled || !onItemRemove) return
-                onItemRemove(id)
-            },
-            disabled
-        }),
-        [disabled, onItemRemove]
-    )
-
     const handleAddClick = useCallback(
         () => {
             if (disabled || !onAddClick) {
@@ -135,11 +124,55 @@ export const WorkbenchInlineReferenceList: FunctionComponent<WorkbenchInlineRefe
                             {renderItemEditor ? (
                                 <Box
                                     sx={{
+                                        display: "flex",
+                                        alignItems: "center",
                                         width: "100%",
-                                        padding: 1
+                                        padding: 1,
+                                        gap: 0
                                     }}
                                 >
-                                    {renderItemEditor(id, getAffordances(id))}
+                                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                                        {renderItemEditor(id)}
+                                    </Box>
+                                    {onItemClick ? (
+                                        <Box
+                                            component="button"
+                                            type="button"
+                                            onClick={() => {
+                                                if (disabled) return
+                                                onItemClick(id)
+                                            }}
+                                            disabled={disabled}
+                                            aria-label="Open detailed editor"
+                                            sx={{
+                                                flexShrink: 0,
+                                                minWidth: GAP_MIN_WIDTH,
+                                                height: 40,
+                                                cursor: "pointer",
+                                                border: "none",
+                                                background: "transparent",
+                                                padding: 0
+                                            }}
+                                        />
+                                    ) : (
+                                        <Box sx={{ flexShrink: 0, minWidth: GAP_MIN_WIDTH }} />
+                                    )}
+                                    {onItemRemove && (
+                                        <IconButton
+                                            aria-label="remove"
+                                            onClick={(e) => {
+                                                e.stopPropagation()
+                                                if (disabled || !onItemRemove) return
+                                                onItemRemove(id)
+                                            }}
+                                            disabled={disabled}
+                                            color="error"
+                                            size="small"
+                                            sx={{ flexShrink: 0 }}
+                                        >
+                                            <DeleteIcon fontSize="small" />
+                                        </IconButton>
+                                    )}
                                 </Box>
                             ) : (
                                 <Box
@@ -179,7 +212,8 @@ export const WorkbenchInlineReferenceList: FunctionComponent<WorkbenchInlineRefe
                                             aria-label="remove"
                                             onClick={(e) => {
                                                 e.stopPropagation()
-                                                getAffordances(id).onRemove()
+                                                if (disabled || !onItemRemove) return
+                                                onItemRemove(id)
                                             }}
                                             disabled={disabled}
                                             color="error"

@@ -8,6 +8,8 @@ import ListItemText from "@mui/material/ListItemText"
 import IconButton from "@mui/material/IconButton"
 import Typography from "@mui/material/Typography"
 import Alert from "@mui/material/Alert"
+import { useDispatch } from "react-redux"
+import { navigateToComponentLayer } from "../../slices/UI/workbench"
 import { useWorkbenchAsset } from "./useWorkbenchAsset"
 import AddIcon from '@mui/icons-material/Add'
 import DeleteIcon from '@mui/icons-material/Delete'
@@ -23,7 +25,7 @@ import WorkbenchStandardLiteralEditor from "./StandardLiteralEditor"
 import WorkbenchStandardRenderEditor from "./StandardRenderEditor"
 import WorkbenchTitledBox from "./WorkbenchTitledBox"
 import WorkbenchLensSelectorDialog from "./LensSelectorDialog"
-import { WorkbenchInlineReferenceList, type InlineReferenceListAffordances } from "./WorkbenchInlineReferenceList"
+import { WorkbenchInlineReferenceList } from "./WorkbenchInlineReferenceList"
 import { MarkInlineEditor } from "./MarkInlineEditor"
 import { referenceListToWorkbenchItems } from "./referenceListAdapter"
 import { ComponentUUID } from "@tonylb/mtw-base/ts/schema"
@@ -59,6 +61,7 @@ const renderTreeToPlainText = (tree: RenderTree): string => {
 }
 
 export const WorkbenchRoomLensEditor: FunctionComponent<RoomLensEditorProps> = ({ RoomId }) => {
+    const dispatch = useDispatch()
     const { standardForm, updateStandard, readonly } = useWorkbenchAsset()
     const [dialogOpen, setDialogOpen] = useState(false)
 
@@ -292,12 +295,19 @@ export const WorkbenchRoomLensEditor: FunctionComponent<RoomLensEditorProps> = (
     )
 
     const renderMarkEditor = useCallback(
-        (id: string, affordances: InlineReferenceListAffordances) => {
+        (id: string) => {
             const mark = marks.find(m => m.universalKey === id)
             if (!mark) return null
-            return <MarkInlineEditor mark={mark} affordances={affordances} />
+            return <MarkInlineEditor mark={mark} />
         },
         [marks]
+    )
+
+    const handleMarkClick = useCallback(
+        (id: string) => {
+            dispatch(navigateToComponentLayer(RoomId, id as ComponentUUID))
+        },
+        [dispatch, RoomId]
     )
 
     if (!room) {
@@ -369,6 +379,7 @@ export const WorkbenchRoomLensEditor: FunctionComponent<RoomLensEditorProps> = (
                         addLabel="Add Mark"
                         emptyStateText="No marks. Add one to describe points of interest."
                         renderItemEditor={renderMarkEditor}
+                        onItemClick={handleMarkClick}
                         disabled={readonly}
                     />
                 </Box>
