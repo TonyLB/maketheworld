@@ -362,18 +362,10 @@ export const WorkbenchRoomLensEditor: FunctionComponent<RoomLensEditorProps> = (
                         />
                     </WorkbenchTitledBox>
 
-                    <WorkbenchTitledBox title="Description">
-                        <WorkbenchStandardRenderEditor
-                            value={singleLens.description ?? new StandardRender([])}
-                            onChange={updateLensDescription}
-                            validLinkTags={[]}
-                            toolbar={true}
-                        />
-                    </WorkbenchTitledBox>
-
                     <WorkbenchInlineReferenceList
                         title="Marks"
                         items={markItems}
+                        defaultExpanded
                         onItemRemove={handleMarkRemove}
                         onAddClick={addMarkToLens}
                         addLabel="Add Mark"
@@ -382,6 +374,15 @@ export const WorkbenchRoomLensEditor: FunctionComponent<RoomLensEditorProps> = (
                         onItemClick={handleMarkClick}
                         disabled={readonly}
                     />
+
+                    <WorkbenchTitledBox title="Description">
+                        <WorkbenchStandardRenderEditor
+                            value={singleLens.description ?? new StandardRender([])}
+                            onChange={updateLensDescription}
+                            validLinkTags={[]}
+                            toolbar={true}
+                        />
+                    </WorkbenchTitledBox>
                 </Box>
             </MakeTheWorldAccordion>
         )

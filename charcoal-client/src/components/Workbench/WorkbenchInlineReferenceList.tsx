@@ -12,8 +12,9 @@ import DeleteIcon from "@mui/icons-material/Delete"
 
 import { MakeTheWorldAccordion } from "../UI"
 import type { WorkbenchReferenceListItem } from "./WorkbenchReferenceList"
+import "../../theme/extensions"
 
-const GAP_MIN_WIDTH = 48
+const GAP_MIN_WIDTH = 96
 
 export interface WorkbenchInlineReferenceListProps {
     /**
@@ -112,13 +113,16 @@ export const WorkbenchInlineReferenceList: FunctionComponent<WorkbenchInlineRefe
                         <ListItem
                             key={id}
                             disablePadding
-                            sx={{
-                                border: "1px solid #e0e0e0",
-                                borderRadius: "8px",
-                                marginBottom: "8px",
-                                backgroundColor: "white",
-                                flexDirection: "column",
-                                alignItems: "stretch"
+                            sx={(theme) => {
+                                const ex = (theme.palette as { extras?: { sectionHeaderBackground?: string; sectionBorder?: string } }).extras
+                                return {
+                                    border: `1px solid ${ex?.sectionBorder ?? "#e0e0e0"}`,
+                                    borderRadius: "8px",
+                                    marginBottom: "8px",
+                                    backgroundColor: ex?.sectionHeaderBackground ?? "#ffcc80",
+                                    flexDirection: "column",
+                                    alignItems: "stretch"
+                                }
                             }}
                         >
                             {renderItemEditor ? (

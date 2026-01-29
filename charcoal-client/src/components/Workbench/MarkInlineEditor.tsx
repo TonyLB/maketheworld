@@ -43,9 +43,9 @@ export const MarkInlineEditor: FunctionComponent<MarkInlineEditorProps> = ({ mar
         <WorkbenchStandardLiteralEditor
             value={mark.shortName ?? new StandardLiteral("")}
             onChange={handleShortNameChange}
-            placeholder="Mark short name..."
+            placeholder="Untitled"
             size="small"
-            variant="filled"
+            variant="standard"
             readonly={readonly}
         />
     )
