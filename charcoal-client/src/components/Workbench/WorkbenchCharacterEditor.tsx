@@ -21,7 +21,7 @@ import {
 import { heartbeat } from '../../slices/stateSeekingMachine/ssmHeartbeat'
 
 import { useWorkbenchAsset } from './useWorkbenchAsset'
-import { getCurrentComponentId, navigateToAsset } from '../../slices/UI/workbench'
+import { getCurrentComponentId, navigateViaBreadcrumbIndex } from '../../slices/UI/workbench'
 import useDebounce from '../../hooks/useDebounce'
 import { CharacterAvatarDirect } from '../CharacterAvatar'
 import FileWrapper, { useFileWrapper } from '../Library/FileInputWrapper'
@@ -163,7 +163,7 @@ export const WorkbenchCharacterEditor: FunctionComponent = () => {
     }, [dispatch])
     
     const handleBackToAsset = useCallback(() => {
-        dispatch(navigateToAsset())
+        dispatch(navigateViaBreadcrumbIndex(0))
     }, [dispatch])
 
     useOnboardingCheckpoint('editCharacter', { requireSequence: true })

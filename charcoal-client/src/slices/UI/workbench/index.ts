@@ -64,12 +64,14 @@ const workbenchSlice = createSlice({
         },
         setCurrentAssetId(state, action: PayloadAction<AssetUUID | null>) {
             const nextAssetId = action.payload
+            const prevAssetId = state.currentAssetId
             state.currentAssetId = nextAssetId
             //
-            // When clearing the asset entirely (back to selector), there is
-            // no meaningful breadcrumb history to display.
+            // When clearing the asset entirely (back to selector), or when
+            // switching to a different asset, any existing within-asset
+            // breadcrumb history becomes invalid and should be cleared.
             //
-            if (!nextAssetId) {
+            if (!nextAssetId || nextAssetId !== prevAssetId) {
                 state.breadcrumbStack = []
             }
         },
@@ -142,22 +144,6 @@ export const {
 // Navigation helpers
 //
 
-export const navigateToAsset = (assetIdOverride?: AssetUUID) => (dispatch: AppDispatch, getState: () => RootState) => {
-    const state = getState()
-    const currentAssetId = state.UI.workbench.currentAssetId
-    const assetId = assetIdOverride ?? currentAssetId
-
-    if (!assetId) {
-        return
-    }
-
-    if (assetIdOverride) {
-        dispatch(setCurrentAssetId(assetIdOverride))
-    }
-
-    dispatch(setBreadcrumbStack([]))
-}
-
 export const navigateToComponent = (componentId: ComponentUUID) => (dispatch: AppDispatch, getState: () => RootState) => {
     const state = getState()
     const assetId = state.UI.workbench.currentAssetId
@@ -186,10 +172,20 @@ export const navigateToComponentLayer = (parentComponentId: ComponentUUID, layer
 export const navigateViaBreadcrumbIndex = (index: number) => (dispatch: AppDispatch, getState: () => RootState) => {
     const state = getState()
     const stack = state.UI.workbench.breadcrumbStack
-    if (index < 0 || index >= stack.length) {
+    //
+    // Index is interpreted relative to the full navigation trail
+    // (asset root at index 0, within-asset entries thereafter).
+    // Index 0 means \"asset root\" → clear within-asset stack.
+    //
+    if (index <= 0) {
+        dispatch(setBreadcrumbStack([]))
         return
     }
-    dispatch(setBreadcrumbStack(stack.slice(0, index + 1)))
+    const withinAssetIndex = index - 1
+    if (withinAssetIndex < 0 || withinAssetIndex >= stack.length) {
+        return
+    }
+    dispatch(setBreadcrumbStack(stack.slice(0, withinAssetIndex + 1)))
 }
 
 // Selectors
