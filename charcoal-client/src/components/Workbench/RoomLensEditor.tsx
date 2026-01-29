@@ -23,7 +23,7 @@ import WorkbenchStandardLiteralEditor from "./StandardLiteralEditor"
 import WorkbenchStandardRenderEditor from "./StandardRenderEditor"
 import WorkbenchTitledBox from "./WorkbenchTitledBox"
 import WorkbenchLensSelectorDialog from "./LensSelectorDialog"
-import { WorkbenchInlineReferenceList } from "./WorkbenchInlineReferenceList"
+import { WorkbenchInlineReferenceList, type InlineReferenceListAffordances } from "./WorkbenchInlineReferenceList"
 import { MarkInlineEditor } from "./MarkInlineEditor"
 import { referenceListToWorkbenchItems } from "./referenceListAdapter"
 import { ComponentUUID } from "@tonylb/mtw-base/ts/schema"
@@ -259,51 +259,6 @@ export const WorkbenchRoomLensEditor: FunctionComponent<RoomLensEditorProps> = (
         })
     }, [singleLens, updateStandard, readonly])
 
-    const updateMarkShortName = useCallback(
-        (markUniversalKey: ComponentUUID) => (newShortName: StandardLiteral) => {
-            if (readonly) return
-            const currentMark = standardForm.byUniversalId[markUniversalKey]
-            if (!currentMark || !(currentMark instanceof StandardMark)) return
-            const newValue = newShortName._payload?.plain?.toJSON() ?? ''
-            const currentValue = currentMark.shortName?._payload?.plain?.toJSON() ?? ''
-            if (currentValue === newValue || (!currentValue && !newValue)) return
-            updateStandard({
-                type: 'update',
-                update: (draft: StandardForm) => {
-                    const mark = draft.byUniversalId[markUniversalKey]
-                    if (mark && mark instanceof StandardMark) {
-                        mark._payload._shortName = newValue ? newShortName : undefined
-                    }
-                    return draft
-                }
-            })
-        },
-        [standardForm, updateStandard, readonly]
-    )
-
-    const updateMarkDescription = useCallback(
-        (markUniversalKey: ComponentUUID) => (newDescription: StandardRender) => {
-            if (readonly) return
-            const currentMark = standardForm.byUniversalId[markUniversalKey]
-            if (!currentMark || !(currentMark instanceof StandardMark)) return
-            const newValue = newDescription.toJSON() ?? []
-            const currentValue = currentMark.description?.toJSON() ?? []
-            if (JSON.stringify(currentValue) === JSON.stringify(newValue)) return
-            updateStandard({
-                type: 'update',
-                update: (draft: StandardForm) => {
-                    const mark = draft.byUniversalId[markUniversalKey]
-                    if (mark && mark instanceof StandardMark) {
-                        const isEmpty = !newValue || (Array.isArray(newValue) && newValue.length === 0)
-                        mark._payload._description = isEmpty ? undefined : newDescription
-                    }
-                    return draft
-                }
-            })
-        },
-        [standardForm, updateStandard, readonly]
-    )
-
     const marks = useMemo(() => {
         if (!singleLens) return []
         return singleLens.marks.payload
@@ -337,19 +292,12 @@ export const WorkbenchRoomLensEditor: FunctionComponent<RoomLensEditorProps> = (
     )
 
     const renderMarkEditor = useCallback(
-        (id: string) => {
+        (id: string, affordances: InlineReferenceListAffordances) => {
             const mark = marks.find(m => m.universalKey === id)
             if (!mark) return null
-            return (
-                <MarkInlineEditor
-                    mark={mark}
-                    onShortNameChange={updateMarkShortName(id as ComponentUUID)}
-                    onDescriptionChange={updateMarkDescription(id as ComponentUUID)}
-                    disabled={readonly}
-                />
-            )
+            return <MarkInlineEditor mark={mark} affordances={affordances} />
         },
-        [marks, updateMarkShortName, updateMarkDescription, readonly]
+        [marks]
     )
 
     if (!room) {

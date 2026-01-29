@@ -13,6 +13,14 @@ import DeleteIcon from "@mui/icons-material/Delete"
 import { MakeTheWorldAccordion } from "../UI"
 import type { WorkbenchReferenceListItem } from "./WorkbenchReferenceList"
 
+/**
+ * Affordances passed into the inline editor so the editor can place them (e.g. delete) where it makes sense.
+ */
+export interface InlineReferenceListAffordances {
+    onRemove: () => void
+    disabled: boolean
+}
+
 export interface WorkbenchInlineReferenceListProps {
     /**
      * Title for the accordion header.
@@ -61,10 +69,10 @@ export interface WorkbenchInlineReferenceListProps {
     emptyStateText?: string
 
     /**
-     * When provided, renders an editing pane below each item's header.
-     * Receives the item id (e.g. universalKey) and returns the editor content.
+     * When provided, renders the full item content (no separate header row).
+     * Receives the item id and affordances (onRemove, disabled); the editor decides where to render them for a compact layout.
      */
-    renderItemEditor?: (id: string) => ReactNode
+    renderItemEditor?: (id: string, affordances: InlineReferenceListAffordances) => ReactNode
 }
 
 export const WorkbenchInlineReferenceList: FunctionComponent<WorkbenchInlineReferenceListProps> = ({
@@ -79,14 +87,14 @@ export const WorkbenchInlineReferenceList: FunctionComponent<WorkbenchInlineRefe
     emptyStateText,
     renderItemEditor
 }) => {
-    const handleItemRemove = useCallback(
-        (id: string) => (event: React.MouseEvent) => {
-            event.stopPropagation()
-            if (disabled || !onItemRemove) {
-                return
-            }
-            onItemRemove(id)
-        },
+    const getAffordances = useCallback(
+        (id: string): InlineReferenceListAffordances => ({
+            onRemove: () => {
+                if (disabled || !onItemRemove) return
+                onItemRemove(id)
+            },
+            disabled
+        }),
         [disabled, onItemRemove]
     )
 
@@ -124,73 +132,62 @@ export const WorkbenchInlineReferenceList: FunctionComponent<WorkbenchInlineRefe
                                 alignItems: "stretch"
                             }}
                         >
-                            <Box
-                                sx={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    width: "100%",
-                                    paddingLeft: 1,
-                                    paddingTop: 1,
-                                    paddingBottom: renderItemEditor ? 0 : 1
-                                }}
-                            >
-                                {icon && (
-                                    <ListItemIcon sx={{ minWidth: 32 }}>
-                                        {icon}
-                                    </ListItemIcon>
-                                )}
-                                <ListItemText
-                                    primary={
-                                        <Typography variant="body1" noWrap>
-                                            {itemTitle}
-                                        </Typography>
-                                    }
-                                    secondary={
-                                        subtitle ? (
-                                            <Typography
-                                                variant="body2"
-                                                color="text.secondary"
-                                                noWrap
-                                            >
-                                                {subtitle}
+                            {renderItemEditor ? (
+                                <Box
+                                    sx={{
+                                        width: "100%",
+                                        padding: 1
+                                    }}
+                                >
+                                    {renderItemEditor(id, getAffordances(id))}
+                                </Box>
+                            ) : (
+                                <Box
+                                    sx={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        width: "100%",
+                                        padding: 1
+                                    }}
+                                >
+                                    {icon && (
+                                        <ListItemIcon sx={{ minWidth: 32 }}>
+                                            {icon}
+                                        </ListItemIcon>
+                                    )}
+                                    <ListItemText
+                                        primary={
+                                            <Typography variant="body1" noWrap>
+                                                {itemTitle}
                                             </Typography>
-                                        ) : undefined
-                                    }
-                                    sx={{ flex: 1, minWidth: 0 }}
-                                />
-                                {onItemRemove && (
-                                    <Box
-                                        sx={{
-                                            display: "flex",
-                                            alignItems: "center",
-                                            justifyContent: "center",
-                                            paddingRight: 1
-                                        }}
-                                    >
+                                        }
+                                        secondary={
+                                            subtitle ? (
+                                                <Typography
+                                                    variant="body2"
+                                                    color="text.secondary"
+                                                    noWrap
+                                                >
+                                                    {subtitle}
+                                                </Typography>
+                                            ) : undefined
+                                        }
+                                        sx={{ flex: 1, minWidth: 0 }}
+                                    />
+                                    {onItemRemove && (
                                         <IconButton
-                                            edge="end"
                                             aria-label="remove"
-                                            onClick={handleItemRemove(id)}
+                                            onClick={(e) => {
+                                                e.stopPropagation()
+                                                getAffordances(id).onRemove()
+                                            }}
                                             disabled={disabled}
                                             color="error"
                                             size="small"
                                         >
                                             <DeleteIcon fontSize="small" />
                                         </IconButton>
-                                    </Box>
-                                )}
-                            </Box>
-                            {renderItemEditor && (
-                                <Box
-                                    sx={{
-                                        width: "100%",
-                                        paddingLeft: 1,
-                                        paddingRight: 1,
-                                        paddingBottom: 1,
-                                        paddingTop: 0.5
-                                    }}
-                                >
-                                    {renderItemEditor(id)}
+                                    )}
                                 </Box>
                             )}
                         </ListItem>

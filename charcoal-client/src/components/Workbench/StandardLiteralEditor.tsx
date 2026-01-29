@@ -4,6 +4,9 @@ import { useDebouncedOnChange } from '../../hooks/useDebounce'
 import { useWorkbenchAsset } from './useWorkbenchAsset'
 import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
 
+// Import theme extensions so palette.extras is available when inside workbench theme
+import '../../theme/extensions'
+
 interface StandardLiteralEditorProps {
     value: StandardLiteral;
     onChange: (value: StandardLiteral) => void;
@@ -11,6 +14,7 @@ interface StandardLiteralEditorProps {
     readonly?: boolean;
     fullWidth?: boolean;
     size?: 'small' | 'medium';
+    variant?: 'outlined' | 'filled' | 'standard';
 }
 
 export const WorkbenchStandardLiteralEditor: FunctionComponent<StandardLiteralEditorProps> = ({
@@ -19,7 +23,8 @@ export const WorkbenchStandardLiteralEditor: FunctionComponent<StandardLiteralEd
     placeholder = '',
     readonly = false,
     fullWidth = true,
-    size = 'medium'
+    size = 'medium',
+    variant = 'outlined'
 }) => {
     const { readonly: assetReadonly } = useWorkbenchAsset()
     const isReadonly = readonly || assetReadonly
@@ -58,12 +63,23 @@ export const WorkbenchStandardLiteralEditor: FunctionComponent<StandardLiteralEd
             disabled={isReadonly}
             fullWidth={fullWidth}
             size={size}
-            variant="outlined"
-            sx={{
-                '& .MuiOutlinedInput-root': {
-                    backgroundColor: 'background.paper'
-                }
-            }}
+            variant={variant}
+            sx={
+                variant === 'outlined'
+                    ? {
+                          '& .MuiOutlinedInput-root': {
+                              backgroundColor: 'background.paper'
+                          }
+                      }
+                    : variant === 'filled'
+                      ? {
+                          '& .MuiFilledInput-root': {
+                              backgroundColor: (theme) =>
+                                  (theme.palette as unknown as { extras?: { sectionBackground?: string } }).extras?.sectionBackground ?? '#fffbf5'
+                          }
+                      }
+                    : undefined
+            }
         />
     )
 }

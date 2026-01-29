@@ -25,14 +25,12 @@ For lists where each item is **navigated to** (e.g. Examples) or **selected via 
 
 For reference lists whose items are **small components** that can be edited in place (e.g. Marks in a Lens), without navigating away.
 
-- **Structure**: Same as typical (accordion, list, add row, delete per item) plus a **per-item editor pane**. Each list item has:
-  1. **Header row**: title (and optional subtitle/icon), delete button. No row-level click (no navigation).
-  2. **Editor pane** (optional): when `renderItemEditor(id)` is provided, its return value is rendered below the header inside the same card.
-- **Props**: Same as typical except **no `onItemClick`**. New: `renderItemEditor?: (id: string) => ReactNode`.
-- **Use case**: **Marks** in the Workbench Room Lens editor. Items from `referenceListToWorkbenchItems({ referenceList: singleLens.marks, standardForm, tag: 'Mark' })`. `renderItemEditor(id)` resolves the Mark and returns `MarkInlineEditor` (Short Name + Description). Add/remove via the list’s add row and delete. The pattern is generic so other small inline-editable reference lists can reuse `WorkbenchInlineReferenceList`.
+- **Structure**: Accordion, list of cards, add row. There is **no separate header row** per item. When `renderItemEditor` is provided, each card contains only the editor’s content; the list passes **affordances** (`InlineReferenceListAffordances`: `onRemove`, `disabled`) into the editor, and the **editor decides where and how to render them** (e.g. delete on the same row as the first field) for a compact layout. When `renderItemEditor` is omitted, each card falls back to a simple title + delete row.
+- **Props**: Same as typical except **no `onItemClick`**. New: `renderItemEditor?: (id: string, affordances: InlineReferenceListAffordances) => ReactNode`.
+- **Use case**: **Marks** in the Workbench Room Lens editor. `renderItemEditor(id, affordances)` resolves the Mark and returns `MarkInlineEditor` with `affordances`; the editor renders Short Name and the delete button on one row, then Description below, avoiding duplicate “Short Name” header + field.
 
 ---
 
 ## Related components
 
-- **`MarkInlineEditor`**: Inline editor for a single Mark (shortName, description). Used by the Marks section in `WorkbenchRoomLensEditor` via `WorkbenchInlineReferenceList`’s `renderItemEditor`.
+- **`MarkInlineEditor`**: Inline editor for a single Mark. Accepts optional `affordances`; when provided, renders the remove button on the same row as the Short Name field, then Description below. Used by the Marks section in `WorkbenchRoomLensEditor` via `WorkbenchInlineReferenceList`’s `renderItemEditor`.
