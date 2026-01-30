@@ -14,8 +14,9 @@ import { Slate, Editable, withReact, ReactEditor } from 'slate-react'
 
 import {
     Box,
-    Toolbar,
     Button,
+    ButtonGroup,
+    Toolbar,
 } from '@mui/material'
 import LinkIcon from '@mui/icons-material/Link'
 import LinkOffIcon from '@mui/icons-material/LinkOff'
@@ -27,6 +28,7 @@ import descendantsToRender from '../Editor/StandardRenderEditor/descendantsToRen
 import descendantsFromRender from '../Editor/StandardRenderEditor/descendantsFromRender'
 import { Element } from '../Editor/StandardRenderEditor/components'
 import WorkbenchLinkDialog from './LinkDialog'
+import WorkbenchTitledBox from './WorkbenchTitledBox'
 import { useWorkbenchAsset } from './useWorkbenchAsset'
 import useUpdatedSlate from '../../hooks/useUpdatedSlate'
 import withConstrainedWhitespace from '../Editor/StandardRenderEditor/constrainedWhitespace'
@@ -46,6 +48,8 @@ interface StandardRenderEditorProps {
     placeholder?: string;
     /** Field tag for default placeholder when placeholder is not provided. E.g. "Summary" -> "Enter a Summary" */
     tag?: StandardFormTag;
+    /** When set, the editor renders a bordered title box (WorkbenchTitledBox) with the toolbar in the title bar */
+    title?: string;
 }
 
 const withInlines = (editor: Editor) => {
@@ -123,6 +127,7 @@ type StandardRenderSlateComponentProperties = {
     toolbar?: boolean;
     readonly: boolean;
     checkPoints?: string[];
+    title?: string;
 }
 
 const useStandardRenderEditorHook = (standard: StandardForm, value: StandardRender, onChange: (value: StandardRender) => void): { editor: Editor, value: Descendant[], setValue: (value: Descendant[]) => void } => {
@@ -162,7 +167,8 @@ const StandardRenderSlateComponent: FunctionComponent<StandardRenderSlateCompone
     placeholder,
     toolbar,
     readonly,
-    checkPoints = []
+    checkPoints = [],
+    title
 }) => {
 
     const [linkDialogOpen, setLinkDialogOpen] = useState<boolean>(false)
@@ -174,24 +180,47 @@ const StandardRenderSlateComponent: FunctionComponent<StandardRenderSlateCompone
     const renderElement = useCallback((props: any) => <Element {...props} />, [])
     const ref = useRef<HTMLDivElement>(null)
 
-    return <Slate editor={editor} initialValue={initialValue} onChange={(next) => setValue(next)}>
-        <WorkbenchLinkDialog open={linkDialogOpen} onClose={() => { setLinkDialogOpen(false) }} validTags={validLinkTags} />
-        { toolbar && <Toolbar variant="dense" disableGutters sx={{ marginTop: '-0.375em' }}>
-                { (validLinkTags?.length &&
-                    <React.Fragment>
-                        <AddLinkButton openDialog={() => { setLinkDialogOpen(true) }} />
-                        <RemoveLinkButton />
-                    </React.Fragment>) || null
+    const toolbarButtons = toolbar && validLinkTags?.length ? (
+        <ButtonGroup
+            size="small"
+            variant="outlined"
+            sx={{
+                alignSelf: 'stretch',
+                '& > button:last-of-type': {
+                    borderTopRightRadius: '0.5em',
+                    borderBottomRightRadius: '0.5em'
                 }
-            </Toolbar>
-        }
-        <Box sx={{ padding: '0.5em' }} ref={ref}>
+            }}
+        >
+            <AddLinkButton openDialog={() => { setLinkDialogOpen(true) }} />
+            <RemoveLinkButton />
+        </ButtonGroup>
+    ) : null
+
+    const editableContent = (
+        <Box sx={{ padding: title ? '0.25em 0.5em 0.5em 0.5em' : '0.5em' }} ref={ref}>
             <Editable
                 renderElement={renderElement}
                 readOnly={readonly}
                 placeholder={placeholder}
             />
         </Box>
+    )
+
+    return <Slate editor={editor} initialValue={initialValue} onChange={(next) => setValue(next)}>
+        <WorkbenchLinkDialog open={linkDialogOpen} onClose={() => { setLinkDialogOpen(false) }} validTags={validLinkTags} />
+        { title ? (
+            <WorkbenchTitledBox title={title} actions={toolbarButtons}>
+                {editableContent}
+            </WorkbenchTitledBox>
+        ) : (
+            <>
+                { toolbar && <Toolbar variant="dense" disableGutters sx={{ marginTop: '-0.375em' }}>
+                    {toolbarButtons}
+                </Toolbar> }
+                {editableContent}
+            </>
+        ) }
         <TutorialPopover
             anchorEl={ref as any}
             placement="top"

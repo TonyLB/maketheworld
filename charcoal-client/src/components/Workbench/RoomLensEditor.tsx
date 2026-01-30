@@ -23,7 +23,6 @@ import { StandardRender, PlainClass } from "@tonylb/mtw-wml/ts/standardize/rende
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
 import WorkbenchStandardLiteralEditor from "./StandardLiteralEditor"
 import WorkbenchStandardRenderEditor from "./StandardRenderEditor"
-import WorkbenchTitledBox from "./WorkbenchTitledBox"
 import WorkbenchLensSelectorDialog from "./LensSelectorDialog"
 import { WorkbenchInlineReferenceList } from "./WorkbenchInlineReferenceList"
 import { MarkInlineEditor } from "./MarkInlineEditor"
@@ -375,16 +374,15 @@ export const WorkbenchRoomLensEditor: FunctionComponent<RoomLensEditorProps> = (
                         disabled={readonly}
                     />
 
-                    <WorkbenchTitledBox title="Description">
-                        <WorkbenchStandardRenderEditor
-                            value={singleLens.description ?? new StandardRender([])}
-                            onChange={updateLensDescription}
-                            validLinkTags={[]}
-                            toolbar={true}
-                            placeholder="Enter a Description"
-                            tag="Description"
-                        />
-                    </WorkbenchTitledBox>
+                    <WorkbenchStandardRenderEditor
+                        title="Description"
+                        value={singleLens.description ?? new StandardRender([])}
+                        onChange={updateLensDescription}
+                        validLinkTags={['Feature', 'Knowledge']}
+                        toolbar={true}
+                        placeholder="Enter a Description"
+                        tag="Description"
+                    />
                 </Box>
             </MakeTheWorldAccordion>
         )

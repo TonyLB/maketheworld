@@ -7,7 +7,6 @@ import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
 import { ComponentUUID } from "@tonylb/mtw-base/ts/schema"
 import WorkbenchStandardLiteralEditor from "./StandardLiteralEditor"
 import WorkbenchStandardRenderEditor from "./StandardRenderEditor"
-import WorkbenchTitledBox from "./WorkbenchTitledBox"
 import { useWorkbenchAsset } from "./useWorkbenchAsset"
 
 export interface WorkbenchMarkEditorProps {
@@ -93,16 +92,15 @@ export const WorkbenchMarkEditor: FunctionComponent<WorkbenchMarkEditorProps> = 
                 variant="outlined"
                 readonly={readonly}
             />
-            <WorkbenchTitledBox title="Description">
-                <WorkbenchStandardRenderEditor
-                    value={mark.description ?? new StandardRender([])}
-                    onChange={handleDescriptionChange}
-                    validLinkTags={[]}
-                    toolbar={true}
-                    placeholder="Enter a Description"
-                    tag="Description"
-                />
-            </WorkbenchTitledBox>
+            <WorkbenchStandardRenderEditor
+                title="Description"
+                value={mark.description ?? new StandardRender([])}
+                onChange={handleDescriptionChange}
+                validLinkTags={['Feature', 'Knowledge']}
+                toolbar={true}
+                placeholder="Enter a Description"
+                tag="Description"
+            />
         </Box>
     )
 }
