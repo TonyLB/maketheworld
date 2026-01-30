@@ -6,7 +6,7 @@ import DeleteIcon from '@mui/icons-material/Delete'
 import CallMadeIcon from '@mui/icons-material/CallMade'
 
 import AssetDataHeader, { AssetDataHeaderRenderFunction} from '../Editor/AssetDataHeader'
-import { useWorkbenchAsset } from './useWorkbenchAsset'
+import { useWorkbenchAsset } from './foundations/useWorkbenchAsset'
 import { schemaOutputToString } from '@tonylb/mtw-wml/ts/schema/utils/schemaOutput/schemaOutputToString'
 import { hasName, hasShortName } from '@tonylb/mtw-wml/ts/standardize'
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'

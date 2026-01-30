@@ -27,7 +27,7 @@ import ExpandLess from '@mui/icons-material/ExpandLess'
 import ExpandMore from '@mui/icons-material/ExpandMore'
 import { blue } from '@mui/material/colors'
 
-import { useWorkbenchAsset } from './useWorkbenchAsset'
+import { useWorkbenchAsset } from './foundations/useWorkbenchAsset'
 import { getComponentIconByTag } from '../../lib/componentIcons'
 import { addImport } from '../../slices/personalAssets'
 import { getRecentlyVisited } from '../../slices/messages/selectors'

@@ -2,7 +2,7 @@ import React, { FunctionComponent, useCallback, useMemo } from 'react'
 
 import MapDisplay from '../Maps/Edit/Area/MapDisplay'
 import { useMapContext } from './MapController'
-import { useWorkbenchAsset } from './useWorkbenchAsset'
+import { useWorkbenchAsset } from './foundations/useWorkbenchAsset'
 import { extractExitsFromStandardForm } from '../Maps/exitExtraction'
 import { useDispatch } from 'react-redux'
 import { addOnboardingComplete } from '../../slices/player/index.api'

@@ -23,19 +23,19 @@ import {
     getPendingEdits,
     getLocalStandardForm,
     addItem
-} from '../../slices/personalAssets'
-import { heartbeat } from '../../slices/stateSeekingMachine/ssmHeartbeat'
-import { PersonalAssetsLoadedImage, PersonalAssetsNodes } from '../../slices/personalAssets/baseClasses'
-import { UpdateStandardPayload } from '../../slices/personalAssets/reducers'
+} from '../../../slices/personalAssets'
+import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
+import { PersonalAssetsLoadedImage, PersonalAssetsNodes } from '../../../slices/personalAssets/baseClasses'
+import { UpdateStandardPayload } from '../../../slices/personalAssets/reducers'
 import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 import { StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
-import { getAssetZone } from '../../slices/player'
-import { getCurrentAssetId } from '../../slices/UI/workbench'
+import { getAssetZone } from '../../../slices/player'
+import { getCurrentAssetId } from '../../../slices/UI/workbench'
 import { AssetKey } from '@tonylb/mtw-utilities/ts/types'
-import { RootState } from '../../store'
-import { getConfiguration } from '../../slices/configuration'
-import { DevEnvironment } from '../../environment'
+import { RootState } from '../../../store'
+import { getConfiguration } from '../../../slices/configuration'
+import { DevEnvironment } from '../../../environment'
 
 type WorkbenchAssetContextType = {
     assetKey: string;

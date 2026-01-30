@@ -7,7 +7,7 @@ import { MapGridContainer, MapContentArea, MapSidebarArea } from '../Maps/Edit/u
 import WorkbenchMapArea from './MapArea'
 import WorkbenchMapLayers from './MapLayers'
 import ToolSelect from '../Maps/Edit/Area/ToolSelect'
-import { useWorkbenchAsset } from './useWorkbenchAsset'
+import { useWorkbenchAsset } from './foundations/useWorkbenchAsset'
 import { getCurrentComponentId, navigateViaBreadcrumbIndex } from '../../slices/UI/workbench'
 import WorkbenchMapController from './MapController'
 import { useOnboardingCheckpoint } from '../Onboarding/useOnboarding'

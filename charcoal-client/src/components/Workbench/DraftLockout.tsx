@@ -1,7 +1,7 @@
 import React, { FunctionComponent, useCallback } from "react"
 import { useDispatch, useSelector } from "react-redux"
 import { getStatus, revertDraftWML, setIntent } from "../../slices/personalAssets"
-import { useWorkbenchAsset } from "./useWorkbenchAsset"
+import { useWorkbenchAsset } from "./foundations/useWorkbenchAsset"
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Card from '@mui/material/Card'

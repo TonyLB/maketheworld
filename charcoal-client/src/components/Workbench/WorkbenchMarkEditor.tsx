@@ -5,9 +5,9 @@ import { StandardLiteral } from "@tonylb/mtw-wml/ts/standardize/literal"
 import { StandardRender } from "@tonylb/mtw-wml/ts/standardize/render"
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
 import { ComponentUUID } from "@tonylb/mtw-base/ts/schema"
-import WorkbenchStandardLiteralEditor from "./StandardLiteralEditor"
-import WorkbenchStandardRenderEditor from "./StandardRenderEditor"
-import { useWorkbenchAsset } from "./useWorkbenchAsset"
+import { WorkbenchStandardLiteralEditor } from "./foundations/StandardLiteral"
+import { WorkbenchStandardRenderEditor } from "./foundations/StandardRender"
+import { useWorkbenchAsset } from "./foundations/useWorkbenchAsset"
 
 export interface WorkbenchMarkEditorProps {
     markId: ComponentUUID

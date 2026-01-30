@@ -14,7 +14,7 @@ import {
 import CloseIcon from "@mui/icons-material/Close"
 import AddIcon from "@mui/icons-material/Add"
 
-import { useWorkbenchAsset } from "./useWorkbenchAsset"
+import { useWorkbenchAsset } from "./foundations/useWorkbenchAsset"
 import StandardFeature from "@tonylb/mtw-wml/ts/standardize/components/feature"
 import { ComponentUUID } from "@tonylb/mtw-base/ts/schema"
 

@@ -1,7 +1,7 @@
 import React, { FunctionComponent, useMemo, useCallback } from 'react'
 import { Box } from '@mui/material'
 
-import { useWorkbenchAsset } from './useWorkbenchAsset'
+import { useWorkbenchAsset } from './foundations/useWorkbenchAsset'
 import WorkbenchDraftLockout from './DraftLockout'
 import WorkbenchRoomExitEditor from './RoomExitEditor'
 import WorkbenchRoomLensEditor from './RoomLensEditor'
@@ -21,10 +21,9 @@ import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
 import StandardReference from '@tonylb/mtw-wml/ts/standardize/components/reference'
 import { ReferenceList } from '@tonylb/mtw-wml/ts/standardize/keys/referenceList'
 import { excludeUndefined } from '../../lib/lists'
-import TopLevelStandardLiteralEditor from './TopLevelStandardLiteralEditor'
+import { TopLevelStandardLiteralEditor } from './foundations/StandardLiteral'
 import WorkbenchSpacer from './WorkbenchSpacer'
-import { WorkbenchReferenceList } from './WorkbenchReferenceList'
-import { referenceListToWorkbenchItems } from './referenceListAdapter'
+import { WorkbenchReferenceList, referenceListToWorkbenchItems } from './foundations/ReferenceList'
 
 const WMLComponentAppearance: FunctionComponent<{ universalKey: ComponentUUID }> = ({ universalKey }) => {
     const dispatch = useDispatch()

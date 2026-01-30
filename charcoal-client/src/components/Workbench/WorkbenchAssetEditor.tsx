@@ -9,7 +9,7 @@ import {
     getCurrentComponentLayerId,
     getCurrentAssetId
 } from '../../slices/UI/workbench'
-import { useWorkbenchAsset } from './useWorkbenchAsset'
+import { useWorkbenchAsset } from './foundations/useWorkbenchAsset'
 import WorkbenchAssetEditForm from './WorkbenchAssetEditForm'
 import WorkbenchComponentDetail from './WorkbenchComponentDetail'
 import WorkbenchExamplesView from './WorkbenchExamplesView'

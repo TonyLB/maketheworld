@@ -10,8 +10,8 @@ import Typography from "@mui/material/Typography"
 import AddIcon from "@mui/icons-material/Add"
 import DeleteIcon from "@mui/icons-material/Delete"
 
-import { MakeTheWorldAccordion } from "../UI"
-import "../../theme/extensions"
+import { MakeTheWorldAccordion } from "../../../UI"
+import "../../../../theme/extensions"
 
 export interface WorkbenchReferenceListItem {
     id: string
@@ -238,4 +238,3 @@ export const WorkbenchReferenceList: FunctionComponent<WorkbenchReferenceListPro
 }
 
 export default WorkbenchReferenceList
-

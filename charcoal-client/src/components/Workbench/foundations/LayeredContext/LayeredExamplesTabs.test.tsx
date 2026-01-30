@@ -2,7 +2,7 @@ import React from 'react'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { vi } from 'vitest'
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
-import { LayeredExamplesTabs } from '../LayeredContext/LayeredExamplesTabs'
+import { LayeredExamplesTabs } from './LayeredExamplesTabs'
 
 const exampleId = 'COMPONENT#example' as ComponentUUID
 const otherId = 'COMPONENT#other' as ComponentUUID
@@ -42,4 +42,3 @@ describe('LayeredExamplesTabs', () => {
         expect(handleChange).toHaveBeenCalledWith(otherId)
     })
 })
-

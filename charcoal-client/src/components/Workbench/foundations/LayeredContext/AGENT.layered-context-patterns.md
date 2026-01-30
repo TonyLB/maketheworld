@@ -11,7 +11,7 @@
 ### 1. **Layer strip + focus panel** (Photoshop-style)
 
 **Layout**  
-A compact **layer strip** (vertical list, always visible) lists all sibling items. The main area shows the **focused** item’s full editor only.
+A compact **layer strip** (vertical list, always visible) lists all sibling items. The main area shows the **focused** item's full editor only.
 
 - **Strip**: Narrow sidebar (e.g. left) or collapsible panel. Each row = one Example (or layer): name, optional 1-line summary, selected state.
 - **Focus panel**: Full `WorkbenchExampleEditor` (or equivalent) for the **current** sibling only.
@@ -45,13 +45,13 @@ The strip is the persistent "layer stack." You always see **all** siblings; the 
 Keep siblings **stacked** (e.g. accordions) as today, but add a **sibling index bar** above the stack.
 
 - **Index bar**: Horizontal row of chips (or tab-like pills), one per Example. Each chip shows layer name (or "Example 1", "Example 2" if no name). Current layer highlighted.
-- **Stack**: Existing `MakeTheWorldAccordion` + per-Example editor. Only the **current** Example’s accordion is expanded; others are collapsed (or show a single-line "peek" in the header via `summary`).
+- **Stack**: Existing `MakeTheWorldAccordion` + per-Example editor. Only the **current** Example's accordion is expanded; others are collapsed (or show a single-line "peek" in the header via `summary`).
 
 **Layered context**  
 The index bar answers "which layer am I on?" and "how many siblings are there?" at a glance. The stack still shows all layers in order; collapsed siblings reinforce "these are the other layers."
 
 **Sibling navigation**  
-- Click a chip → scroll to that Example’s block and expand it; optionally collapse the previously expanded one.  
+- Click a chip → scroll to that Example's block and expand it; optionally collapse the previously expanded one.  
 - Optional prev/next in the index bar (or keyboard) to move "current" and sync scroll + expansion.
 
 **Pros**  
@@ -80,7 +80,7 @@ Explicit **split**: one pane for the **layer list**, one for the **editor**.
 - **Editor pane**: Full editor for the **selected** layer only.
 
 **Layered context**  
-The list pane is the dedicated "layers" context. It’s always on screen, so you constantly see the full set of siblings and which one is selected.
+The list pane is the dedicated "layers" context. It's always on screen, so you constantly see the full set of siblings and which one is selected.
 
 **Sibling navigation**  
 - Click a list item → selection changes; editor pane shows that layer.  
@@ -129,7 +129,7 @@ The tab bar is the persistent "layer stack." You always see **all** siblings in 
 - Only one panel visible at a time (no stacked peek like pattern 2).
 
 **Implementation notes**  
-- Use `@mui/material` `Tabs` and `Tab` (already in the project), wrapped in a `LayeredExamplesTabs` helper under `Workbench/LayeredContext`.  
+- Use `@mui/material` `Tabs` and `Tab` (already in the project), wrapped in a `LayeredExamplesTabs` helper under `Workbench/foundations/LayeredContext`.  
 - `variant="scrollable"` — horizontal scroll when tabs overflow.  
 - `scrollButtons="auto"` — show scroll buttons on desktop when needed; hide on mobile. Use `scrollButtons={true}` + `allowScrollButtonsMobile` if you want arrows on mobile too.  
 - `value` = current Example id; `onChange` updates local state within the Examples view (or a `layeredContext` slice keyed by parent id).  
@@ -183,9 +183,9 @@ const [currentId, setCurrentId] = useState(siblings[0]?.id ?? null)
 
 ## Integration with Workbench
 
-- **Breadcrumbs**: When we are in the Examples view, breadcrumbs read **Asset → Parent → Examples** (e.g. **Asset → Room → Examples**). We do **not** push per-Example breadcrumbs; Examples are "layers" within the parent, not separate nav steps. Clicking the parent crumb (e.g. **Room**) exits the Examples mode back to the parent’s main editor. The `Examples` crumb is represented as a dedicated breadcrumb kind (`'componentLayer'`) layered on top of the existing asset/component stack.  
+- **Breadcrumbs**: When we are in the Examples view, breadcrumbs read **Asset → Parent → Examples** (e.g. **Asset → Room → Examples**). We do **not** push per-Example breadcrumbs; Examples are "layers" within the parent, not separate nav steps. Clicking the parent crumb (e.g. **Room**) exits the Examples mode back to the parent's main editor. The `Examples` crumb is represented as a dedicated breadcrumb kind (`'componentLayer'`) layered on top of the existing asset/component stack.  
 - **Navigation model**: Redux navigation is modeled as a stack of breadcrumb entries (`breadcrumbStack`). The first entry is always the asset, the last `kind === 'component'` (if present) is the current parent component, and an optional trailing `kind === 'componentLayer'` represents the current layered view (Examples) for that parent. `currentView`, parent component id, and current layer id are all **derived selectors** over this stack rather than separate pieces of state.  
-- **Examples management vs. Examples view**: The set of Example layers is managed via an `Examples` `WorkbenchReferenceList` accordion under the parent component (mirroring the Features/Exits/Lenses pattern). Adding/removing Examples happens there by editing the parent’s `component.examples` reference list; entering the layered Examples view for a specific Example uses breadcrumb-based navigation into a `componentLayer` entry.  
+- **Examples management vs. Examples view**: The set of Example layers is managed via an `Examples` `WorkbenchReferenceList` accordion under the parent component (mirroring the Features/Exits/Lenses pattern). Adding/removing Examples happens there by editing the parent's `component.examples` reference list; entering the layered Examples view for a specific Example uses breadcrumb-based navigation into a `componentLayer` entry.  
 - **Data**: Sibling list for the layered view comes from `component.examples` (or the equivalent reference list). Use `shortName` for the Example's tab/list label; do **not** use `name` (that is the exemplified item's name). Fall back to "Untitled" when `shortName` is missing.
 
 ---

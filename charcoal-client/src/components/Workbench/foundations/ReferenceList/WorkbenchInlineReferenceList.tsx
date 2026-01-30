@@ -10,9 +10,9 @@ import Typography from "@mui/material/Typography"
 import AddIcon from "@mui/icons-material/Add"
 import DeleteIcon from "@mui/icons-material/Delete"
 
-import { MakeTheWorldAccordion } from "../UI"
+import { MakeTheWorldAccordion } from "../../../UI"
 import type { WorkbenchReferenceListItem } from "./WorkbenchReferenceList"
-import "../../theme/extensions"
+import "../../../../theme/extensions"
 
 const GAP_MIN_WIDTH = 96
 

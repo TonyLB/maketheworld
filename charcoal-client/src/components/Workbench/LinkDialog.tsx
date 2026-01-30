@@ -19,7 +19,7 @@ import {
     Transforms,
     Element as SlateElement
 } from 'slate';
-import { useWorkbenchAsset } from './useWorkbenchAsset';
+import { useWorkbenchAsset } from './foundations/useWorkbenchAsset';
 import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature';
 import StandardKnowledge from '@tonylb/mtw-wml/ts/standardize/components/knowledge';
 import { excludeUndefined } from '@tonylb/mtw-base/ts/utils/lists';

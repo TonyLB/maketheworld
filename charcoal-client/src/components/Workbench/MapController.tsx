@@ -1,5 +1,5 @@
 import React, { FunctionComponent, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from "react"
-import { useWorkbenchAsset } from "./useWorkbenchAsset"
+import { useWorkbenchAsset } from "./foundations/useWorkbenchAsset"
 
 import { MapContextItemSelected, MapContextPosition, MapContextType, MapDispatchAction, ToolSelected, isMapTreeRoomWithPosition } from "../Maps/Controller/baseClasses"
 import MapDThree from "../Maps/Edit/MapDThree"

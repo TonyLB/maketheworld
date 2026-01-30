@@ -5,7 +5,7 @@ import { Box, IconButton, SxProps } from '@mui/material'
 
 import AssetDataHeader, { AssetDataHeaderRenderFunction} from '../Editor/AssetDataHeader'
 import FileWrapper, { useFileWrapper } from '../Editor/FileInputWrapper';
-import { useWorkbenchAsset, useLibraryImageURL } from './useWorkbenchAsset'
+import { useWorkbenchAsset, useLibraryImageURL } from './foundations/useWorkbenchAsset'
 import { useDispatch } from 'react-redux';
 import { setLoadedImage } from '../../slices/personalAssets';
 

@@ -18,8 +18,8 @@ The Workbench sits within the Charcoal Client's [dual-mode architecture](../../.
 ### Key Concepts
 
 - **Breadcrumb Stack**: Within-asset navigation history; `component` entries for parent components, `componentLayer` for layered sibling views (e.g., Examples, Marks within a Lens)
-- **Reference Lists**: WML `ReferenceList` fields (e.g. `examples`, `features`, `lenses`, `marks`) rendered as accordion lists with add/remove; see [AGENT.reference-lists.md](./AGENT.reference-lists.md)
-- **Layered Context**: Sibling-in-context editing for groups like Examples (Photoshop-layer style); see [AGENT.layered-context-patterns.md](./AGENT.layered-context-patterns.md)
+- **Reference Lists**: WML `ReferenceList` fields (e.g. `examples`, `features`, `lenses`, `marks`) rendered as accordion lists with add/remove; see [AGENT.reference-lists.md](./foundations/ReferenceList/AGENT.reference-lists.md)
+- **Layered Context**: Sibling-in-context editing for groups like Examples (Photoshop-layer style); see [AGENT.layered-context-patterns.md](./foundations/LayeredContext/AGENT.layered-context-patterns.md)
 - **StandardForm**: WML asset representation; the Workbench reads and mutates `StandardForm` via `updateStandard` from `useWorkbenchAsset`
 
 ---
@@ -63,12 +63,12 @@ type WorkbenchBreadcrumbEntry = {
 }
 ```
 
-**WorkbenchReferenceListItem** (`WorkbenchReferenceList.tsx`):
+**WorkbenchReferenceListItem** (`foundations/ReferenceList/WorkbenchReferenceList.tsx`):
 ```typescript
 { id: string; title: string; subtitle?: string; icon?: ReactNode }
 ```
 
-**referenceListAdapter** (`referenceListAdapter.ts`): Converts WML `ReferenceList` + `StandardForm` + optional `tag` into `WorkbenchReferenceListItem[]`.
+**referenceListAdapter** (`foundations/ReferenceList/referenceListAdapter.ts`): Converts WML `ReferenceList` + `StandardForm` + optional `tag` into `WorkbenchReferenceListItem[]`.
 
 ### Core Methods
 
@@ -186,7 +186,7 @@ updateStandard({
 ### Getting Started
 
 1. **Workbench Flow**: Start at [`WorkbenchContainer.tsx`](./WorkbenchContainer.tsx) for layout and breadcrumb header; then [`WorkbenchAssetEditor.tsx`](./WorkbenchAssetEditor.tsx) for view routing
-2. **Asset Context**: Read [`useWorkbenchAsset.ts`](./useWorkbenchAsset.ts) to understand how asset data flows from `personalAssets` into Workbench components
+2. **Asset Context**: Read [`foundations/useWorkbenchAsset.ts`](./foundations/useWorkbenchAsset.ts) to understand how asset data flows from `personalAssets` into Workbench components
 3. **Navigation State**: Read [`src/slices/UI/workbench/index.ts`](../../slices/UI/workbench/index.ts) for breadcrumb model and selectors
 4. **Component Editing**: [`WorkbenchComponentDetail.tsx`](./WorkbenchComponentDetail.tsx) is the main component editor; it delegates to `WorkbenchRoomFeatureEditor`, `RoomLensEditor`, `RoomExitEditor`, `WorkbenchReferenceList`, etc.
 
@@ -198,16 +198,16 @@ updateStandard({
 | `WorkbenchAssetEditor.tsx` | View routing (asset / component / componentLayer) |
 | `WorkbenchAssetEditForm.tsx` | Asset-level metadata, component list, imports |
 | `WorkbenchComponentDetail.tsx` | Room/Feature/Knowledge detail; reference lists, Examples |
-| `WorkbenchExamplesView.tsx` | Layered Examples view (tabs); uses `LayeredContext/LayeredExamplesTabs` |
+| `WorkbenchExamplesView.tsx` | Layered Examples view (tabs); uses `foundations/LayeredContext/LayeredExamplesTabs` |
 | `WorkbenchMarkEditor.tsx` | Full Mark editor (shortName + description) |
-| `WorkbenchRoomLensEditor.tsx` | Lens editing; Marks via `WorkbenchInlineReferenceList` |
-| `StandardRenderEditor.tsx` | Rich text (Slate); shared with Editor components |
-| `referenceListAdapter.ts` | `referenceListToWorkbenchItems` for list display |
+| `RoomLensEditor.tsx` | Lens editing; Marks via `WorkbenchInlineReferenceList` |
+| `foundations/StandardRender/StandardRenderEditor.tsx` | Rich text (Slate); shared with Editor components |
+| `foundations/ReferenceList/referenceListAdapter.ts` | `referenceListToWorkbenchItems` for list display |
 
 ### Related Documentation
 
-- [AGENT.reference-lists.md](./AGENT.reference-lists.md) - `WorkbenchReferenceList` vs `WorkbenchInlineReferenceList`, `referenceListToWorkbenchItems`, Mark inline pattern
-- [AGENT.layered-context-patterns.md](./AGENT.layered-context-patterns.md) - Layer strip, index bar, split-pane, MUI Tabs; Examples layered view design
+- [AGENT.reference-lists.md](./foundations/ReferenceList/AGENT.reference-lists.md) - `WorkbenchReferenceList` vs `WorkbenchInlineReferenceList`, `referenceListToWorkbenchItems`, Mark inline pattern
+- [AGENT.layered-context-patterns.md](./foundations/LayeredContext/AGENT.layered-context-patterns.md) - Layer strip, index bar, split-pane, MUI Tabs; Examples layered view design
 - [charcoal-client/AGENT.testing.slate.md](../../../AGENT.testing.slate.md) - Slate/rich text testing if modifying StandardRenderEditor
 
 ---

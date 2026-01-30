@@ -13,7 +13,7 @@ import { WorkbenchUnshownRooms } from './UnshownRooms'
 import { blue } from '@mui/material/colors'
 import RenameIcon from '../Maps/Edit/MapLayers/RenameIcon'
 import { navigateToComponent } from '../../slices/UI/workbench'
-import { useWorkbenchAsset } from './useWorkbenchAsset'
+import { useWorkbenchAsset } from './foundations/useWorkbenchAsset'
 import { useDispatch } from 'react-redux'
 
 import { addOnboardingComplete } from '../../slices/player/index.api'

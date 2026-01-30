@@ -15,7 +15,7 @@ import {
     getNavigationTrail,
     navigateViaBreadcrumbIndex
 } from '../../slices/UI/workbench'
-import { useWorkbenchAsset } from './useWorkbenchAsset'
+import { useWorkbenchAsset } from './foundations/useWorkbenchAsset'
 import { getAssetZone } from '../../slices/player'
 import { createWorkbenchTheme } from './workbenchTheme'
 import StandardMark from '@tonylb/mtw-wml/ts/standardize/components/worldState'

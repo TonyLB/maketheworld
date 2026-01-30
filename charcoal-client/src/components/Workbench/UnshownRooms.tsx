@@ -1,5 +1,5 @@
 import React, { FunctionComponent, useCallback, useMemo, useRef } from "react"
-import { useWorkbenchAsset } from "./useWorkbenchAsset"
+import { useWorkbenchAsset } from "./foundations/useWorkbenchAsset"
 import { useMapContext } from "./MapController"
 import {
     List,

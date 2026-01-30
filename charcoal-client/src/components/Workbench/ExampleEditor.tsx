@@ -1,5 +1,5 @@
 import React, { FunctionComponent, useCallback, useMemo, useState } from "react"
-import { useWorkbenchAsset } from "./useWorkbenchAsset"
+import { useWorkbenchAsset } from "./foundations/useWorkbenchAsset"
 import StandardExample from "@tonylb/mtw-wml/ts/standardize/components/example";
 import { Box, IconButton, TextField } from "@mui/material";
 import LockIcon from '@mui/icons-material/Lock';
@@ -9,7 +9,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import { useDebouncedOnChange } from "../../hooks/useDebounce";
 import { StandardRender } from "@tonylb/mtw-wml/ts/standardize/render";
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize";
-import WorkbenchStandardRenderEditor from "./StandardRenderEditor";
+import { WorkbenchStandardRenderEditor } from "./foundations/StandardRender";
 import { MakeTheWorldAccordion } from "../UI";
 import StandardRoom from "@tonylb/mtw-wml/ts/standardize/components/room";
 import StandardFeature from "@tonylb/mtw-wml/ts/standardize/components/feature";

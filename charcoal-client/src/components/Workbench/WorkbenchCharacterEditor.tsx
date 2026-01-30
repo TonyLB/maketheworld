@@ -20,7 +20,7 @@ import {
 } from '../../slices/personalAssets'
 import { heartbeat } from '../../slices/stateSeekingMachine/ssmHeartbeat'
 
-import { useWorkbenchAsset } from './useWorkbenchAsset'
+import { useWorkbenchAsset } from './foundations/useWorkbenchAsset'
 import { getCurrentComponentId, navigateViaBreadcrumbIndex } from '../../slices/UI/workbench'
 import useDebounce from '../../hooks/useDebounce'
 import { CharacterAvatarDirect } from '../CharacterAvatar'
@@ -35,7 +35,7 @@ import { treeNodeTypeguard } from '@tonylb/mtw-base/ts/genericTree'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
-import { useLibraryImageURL } from './useWorkbenchAsset'
+import { useLibraryImageURL } from './foundations/useWorkbenchAsset'
 
 const LiteralShortNameField: FunctionComponent<{ character: StandardCharacter }> = ({ character }) => {
     const { updateStandard } = useWorkbenchAsset()
