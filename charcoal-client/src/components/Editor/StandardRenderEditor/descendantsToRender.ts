@@ -3,10 +3,9 @@ import {
     isCustomBlock,
     isCustomLink,
     isCustomParagraph,
-    isCustomParagraphContents,
-    isCustomText
+    isCustomParagraphContents
 } from "../baseClasses"
-import { Descendant } from "slate"
+import { Descendant, Text } from "slate"
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
 import { StandardRender, PlainClass } from "@tonylb/mtw-wml/ts/standardize/render"
 
@@ -14,7 +13,7 @@ export const descendantsToRender = (standard: StandardForm) => (items: Descendan
     const returnValue = items.filter((value): value is CustomBlock => isCustomBlock(value)).reduce<StandardRender>((previous, item) => {
         if (isCustomParagraph(item)) {
             const paragraphResult = item.children
-                .filter((item) => (!(isCustomText(item) && !item.text)))
+                .filter((item) => (!(Text.isText(item) && !item.text)))
                 .reduce<StandardRender>((accumulator, item) => {
                     if (isCustomLink(item)) {
                         const text = item.children

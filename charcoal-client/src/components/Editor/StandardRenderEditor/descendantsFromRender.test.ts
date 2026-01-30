@@ -129,11 +129,15 @@ describe('descendantsFromRender', () => {
     // Test Whitespace Handling
     describe('Whitespace Handling', () => {
         it('should handle StandardRenderSpace', () => {
-            const render = new StandardRender([{ data: { tag: 'Space' }, children: [] }])
+            const render = new StandardRender([
+                'One',
+                { data: { tag: 'Space' }, children: [] },
+                'Two'
+            ])
             const result = descendantsFromRender(render, { standard: standardForm })
             expect(result).toEqual([{
                 type: 'paragraph',
-                children: [{ text: ' ' }]
+                children: [{ text: 'One Two' }] // Space between text is normalized to single space
             }])
         })
 
@@ -160,8 +164,33 @@ describe('descendantsFromRender', () => {
             const result = descendantsFromRender(render, { standard: standardForm })
             expect(result).toEqual([{
                 type: 'paragraph',
-                children: [{ text: ' Hello World ' }] // Multiple spaces normalized to single spaces
+                children: [{ text: 'Hello World' }] // No leading/trailing space at paragraph boundaries
             }])
+        })
+
+        it('should not have leading space at start of paragraph after line break', () => {
+            const render = new StandardRender([
+                { data: { tag: 'br' }, children: [] },
+                '  foo'
+            ])
+            const result = descendantsFromRender(render, { standard: standardForm })
+            expect(result).toEqual([
+                { type: 'paragraph', children: [{ text: '' }] },
+                { type: 'paragraph', children: [{ text: 'foo' }] }
+            ])
+        })
+
+        it('should not have trailing space at end of paragraph before line break', () => {
+            const render = new StandardRender([
+                'foo  ',
+                { data: { tag: 'br' }, children: [] },
+                'bar'
+            ])
+            const result = descendantsFromRender(render, { standard: standardForm })
+            expect(result).toEqual([
+                { type: 'paragraph', children: [{ text: 'foo' }] },
+                { type: 'paragraph', children: [{ text: 'bar' }] }
+            ])
         })
     })
 
@@ -333,7 +362,7 @@ describe('descendantsFromRender', () => {
             const result = descendantsFromRender(render, { standard: standardForm })
             expect(result).toEqual([{
                 type: 'paragraph',
-                children: [{ text: ' ' }] // Multiple spaces normalized to single space
+                children: [{ text: '' }] // Trimmed to empty at paragraph boundaries
             }])
         })
 
@@ -373,7 +402,7 @@ describe('descendantsFromRender', () => {
             const result = descendantsFromRender(render, { standard: standardForm })
             expect(result).toEqual([{
                 type: 'paragraph',
-                children: [{ text: ' ' }] // Multiple spaces normalized to single space
+                children: [{ text: '' }] // Single space trimmed away at boundaries
             }])
         })
     })

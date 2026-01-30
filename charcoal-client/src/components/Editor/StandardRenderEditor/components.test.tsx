@@ -10,7 +10,8 @@ import '@testing-library/jest-dom'
 import { createEditor, Descendant } from 'slate'
 import { Slate, withReact } from 'slate-react'
 import { Element, Leaf } from './components'
-import { CustomParagraphElement, CustomText, CustomFeatureLinkElement, CustomKnowledgeLinkElement } from '../baseClasses'
+import { CustomParagraphElement, CustomFeatureLinkElement, CustomKnowledgeLinkElement } from '../baseClasses'
+import { Text } from 'slate'
 
 // Mock the DescriptionLinkFeatureChip component
 vi.mock('../../Message/DescriptionLink', () => ({
@@ -176,7 +177,7 @@ describe('StandardRenderEditor Components', () => {
         const mockChildren = <span>Leaf content</span>
 
         it('renders leaf content', () => {
-            const leaf: CustomText = {
+            const leaf: Text = {
                 text: 'test'
             }
 
@@ -195,7 +196,7 @@ describe('StandardRenderEditor Components', () => {
         })
 
         it('applies correct styles to leaf content', () => {
-            const leaf: CustomText = {
+            const leaf: Text = {
                 text: 'test'
             }
 

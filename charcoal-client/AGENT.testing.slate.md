@@ -12,6 +12,7 @@
 - **Custom Elements**: Extended Slate element types for our use cases
 - **Custom Leafs**: Extended Slate leaf types for our use cases
 - **Editor Plugins**: Functions that enhance Slate editor behavior
+- **StandardRender to Slate**: The render tree is reduced directly to paragraph elements (CustomBlock[]). Paragraph boundaries are trimmed: no leading or trailing spaces at the start or end of a paragraph.
 
 **Cross-Reference**: See [AGENT.testing.md](./AGENT.testing.md) for general testing standards and setup.
 
@@ -98,27 +99,25 @@ const paragraphNode = {
 // ✅ REQUIRED - Some type guards expect NO type property
 const paragraphNode = {
     type: 'paragraph',
-    children: [{ text: ' leading space' }]  // No type property for isCustomText
+    children: [{ text: ' leading space' }]  // No type property for Text.isText
 }
 ```
 
-**Why This Happens**: Slate's internal functions like `isCustomText` have specific logic that may expect items **without** a `type` property. The `isCustomText` function returns true for `{ text: '...' }` but **false** for `{ type: 'text', text: '...' }`.
+**Why This Happens**: Slate's `Text.isText()` (and our paragraph-contents logic) expect text nodes **without** a `type` property. `Text.isText({ text: '...' })` is true; `Text.isText({ type: 'text', text: '...' })` is false.
 
 #### **Type Guard Behavior Nuances**
-Slate's type guard functions have specific expectations that may not be intuitive:
+Slate's `Text.isText()` (and paragraph-contents checks) have specific expectations:
 
 ```typescript
-// The isCustomText function has this logic:
-export const isCustomText = (item: CustomParagraphContents): item is CustomText => 
-    ('text' in item)
+// Text.isText() (from 'slate') identifies text nodes by shape (e.g. 'text' in item).
 
 // This means:
-// ✅ isCustomText({ text: 'hello' }) === true
-// ❌ isCustomText({ type: 'text', text: 'hello' }) === false
-// ❌ isCustomText({ type: 'featureLink', to: 'test', children: [] }) === false
+// ✅ Text.isText({ text: 'hello' }) === true
+// ❌ Text.isText({ type: 'text', text: 'hello' }) === false  // if you added a type
+// ❌ Text.isText({ type: 'featureLink', to: 'test', children: [] }) === false
 ```
 
-**Why This Happens**: Slate's type system distinguishes between "pure text objects" (which have no type property) and "typed text objects" (which have explicit type properties). Some functions expect the pure form.
+**Why This Happens**: Slate's type system distinguishes between text nodes (no `type` property) and elements (with `type`). Use Slate's `Text` type and `Text.isText()` for text nodes.
 
 #### **Path Array Requirements**
 Slate's path system requires specific array structures:
@@ -239,10 +238,10 @@ import { render, screen } from '@testing-library/react'
 import { ThemeProvider, createTheme } from '@mui/material/styles'
 import { vi, beforeEach, describe, it, expect } from 'vitest'
 import '@testing-library/jest-dom'
-import { createEditor, Node, Element as SlateElement, Transforms } from 'slate'
+import { createEditor, Node, Element as SlateElement, Transforms, Text } from 'slate'
 import { Slate, withReact } from 'slate-react'
 import { Element, Leaf } from './components'
-import { CustomParagraphElement, CustomText, CustomFeatureLinkElement, CustomKnowledgeLinkElement } from '../baseClasses'
+import { CustomParagraphElement, CustomFeatureLinkElement, CustomKnowledgeLinkElement } from '../baseClasses'
 ```
 
 ## Mocking Slate Dependencies
@@ -511,7 +510,7 @@ describe('paragraph rendering', () => {
 ```typescript
 describe('Leaf Component', () => {
     it('renders leaf with highlight when highlight is true', () => {
-        const leaf: CustomText = {
+        const leaf: Text = {
             text: 'test',
             highlight: true
         }
@@ -609,9 +608,9 @@ expect(parentElement).toHaveAttribute('data-slate-leaf', 'true')
 
 ### **"Property 'text' is missing in type" Error**
 **Cause**: `RenderLeafProps` interface requires a `text` property
-**Solution**: Ensure your mock leaf objects include the `text` property:
+**Solution**: Ensure your mock leaf objects include the `text` property (use Slate's `Text` type):
 ```typescript
-const leaf: CustomText = {
+const leaf: Text = {
     text: 'test'  // Required property
 }
 ```
@@ -687,18 +686,18 @@ The test was looking for `&nbsp;` instead of using our documented flexible text 
 All decorator tests were returning empty arrays, suggesting the mock data structure was incomplete.
 
 **Root Cause Discovery**: 
-The `isCustomText` function expects items **without** a `type` property:
+Text nodes must be **without** a `type` property (Slate's `Text.isText()` and our paragraph-contents logic expect plain `{ text: string }`):
 ```typescript
-// ❌ WRONG - This will fail isCustomText check
+// ❌ WRONG - Text nodes should not have a type property
 { type: 'text', text: ' leading space' }
 
-// ✅ CORRECT - This will pass isCustomText check  
+// ✅ CORRECT - Plain text node
 { text: ' leading space' }  // No type property
 ```
 
 **Analysis**: Our generalization about **"Mock Data Structure Requirements"** needed to be **more specific** - we were missing a critical detail about how Slate's type guards actually work.
 
-**Result**: ❌ **Our generalization was incomplete** - we needed to understand the exact behavior of `isCustomText`.
+**Result**: ❌ **Our generalization was incomplete** - we needed to understand the exact behavior of text-node checks (now using Slate's `Text.isText()`).
 
 ### **Key Lessons for Future Testing**
 
