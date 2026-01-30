@@ -102,9 +102,6 @@ describe.skip('MapDThreeStack', () => {
     //             <Room key=(GHI)><Position {300, 300} /></Room>
     //             <Room key=(DEF)><Position {300, 200} /></Room>
     //             <Room key=(ABC)><Position {200, 200} /></Room>
-    //             <If {true}>
-    //                 <Room key=(GHI)><Position {300, 300} /></Room>
-    //             </If>
     //         </Map>
     //     </Asset>
     // `)

@@ -58,20 +58,6 @@ describe('descendantsCompact', () => {
             ])
         })
 
-        it('should combine text before and after line breaks', () => {
-            const items: CustomParagraphContents[] = [
-                { text: 'First line' },
-                { type: 'lineBreak' },
-                { text: 'Second line' }
-            ]
-            const result = descendantsCompact(items)
-            expect(result).toEqual([
-                { text: 'First line' },
-                { type: 'lineBreak' },
-                { text: 'Second line' }
-            ])
-        })
-
         it('should handle multiple consecutive text elements with spaces', () => {
             const items: CustomParagraphContents[] = [
                 { text: 'Text' },
@@ -97,13 +83,13 @@ describe('descendantsCompact', () => {
 
         it('should handle only non-text elements', () => {
             const items: CustomParagraphContents[] = [
-                { type: 'lineBreak' },
-                { type: 'featureLink', to: 'test', children: [{ text: 'link' }] }
+                { type: 'featureLink', to: 'test', children: [{ text: 'link' }] },
+                { type: 'knowledgeLink', to: 'other', children: [{ text: 'other' }] }
             ]
             const result = descendantsCompact(items)
             expect(result).toEqual([
-                { type: 'lineBreak' },
-                { type: 'featureLink', to: 'test', children: [{ text: 'link' }] }
+                { type: 'featureLink', to: 'test', children: [{ text: 'link' }] },
+                { type: 'knowledgeLink', to: 'other', children: [{ text: 'other' }] }
             ])
         })
 

@@ -1,22 +1,18 @@
 import {
     CustomBlock,
-    CustomReplaceBlock,
     isCustomBlock,
     isCustomLink,
-    isCustomParagraph,
-    isCustomParagraphContents,
-    isCustomReplaceBlock,
-    isCustomText
+    isCustomParagraph
 } from "../baseClasses"
-import { Descendant } from "slate"
+import { Descendant, Text } from "slate"
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
-import { StandardRender, PlainClass } from "@tonylb/mtw-wml/ts/standardize/render"
+import { StandardRender } from "@tonylb/mtw-wml/ts/standardize/render"
 
 export const descendantsToRender = (standard: StandardForm) => (items: Descendant[]): StandardRender => {
-    const returnValue = items.filter((value): value is CustomReplaceBlock | CustomBlock => ((isCustomParagraphContents(value) && isCustomReplaceBlock(value)) || isCustomBlock(value))).reduce<StandardRender>((previous, item) => {
+    const returnValue = items.filter((value): value is CustomBlock => isCustomBlock(value)).reduce<StandardRender>((previous, item) => {
         if (isCustomParagraph(item)) {
             const paragraphResult = item.children
-                .filter((item) => (!(isCustomText(item) && !item.text)))
+                .filter((item) => (!(Text.isText(item) && !item.text)))
                 .reduce<StandardRender>((accumulator, item) => {
                     if (isCustomLink(item)) {
                         const text = item.children

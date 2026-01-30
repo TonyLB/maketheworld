@@ -25,7 +25,7 @@ import { isCustomBlock } from '../Editor/baseClasses'
 import { useDebouncedOnChange } from '../../hooks/useDebounce'
 import descendantsToRender from '../Editor/StandardRenderEditor/descendantsToRender'
 import descendantsFromRender from '../Editor/StandardRenderEditor/descendantsFromRender'
-import { decorateFactory, Element, Leaf, withParagraphBR } from '../Editor/StandardRenderEditor/components'
+import { Element } from '../Editor/StandardRenderEditor/components'
 import WorkbenchLinkDialog from './LinkDialog'
 import { useWorkbenchAsset } from './useWorkbenchAsset'
 import useUpdatedSlate from '../../hooks/useUpdatedSlate'
@@ -34,7 +34,7 @@ import TutorialPopover from '../Onboarding/TutorialPopover'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardRender } from '@tonylb/mtw-wml/ts/standardize/render'
 
-type StandardFormTag = 'ShortName' | 'Name' | 'Summary' | 'Description' | 'Statement' | 'Fallthrough' | 'If' | 'Exits'
+type StandardFormTag = 'ShortName' | 'Name' | 'Summary' | 'Description'
 
 interface StandardRenderEditorProps {
     validLinkTags?: ('Feature' | 'Knowledge')[];
@@ -130,8 +130,9 @@ const useStandardRenderEditorHook = (standard: StandardForm, value: StandardRend
         const returnValue = descendantsFromRender(value, { standard })
         return returnValue
     }, [value, standard])
+    // useUpdatedSlate syncs external value via Transforms (removeNodes/insertNodes), not by mutating editor.children
     const editor = useUpdatedSlate({
-        initializeEditor: () => withConstrainedWhitespace(withParagraphBR(withInlines(withHistory(withReact(createEditor()))))),
+        initializeEditor: () => withConstrainedWhitespace(withInlines(withHistory(withReact(createEditor())))),
         value: defaultValue,
         comparisonOutput: descendantsToRender(standard)
     })
@@ -166,12 +167,14 @@ const StandardRenderSlateComponent: FunctionComponent<StandardRenderSlateCompone
 
     const [linkDialogOpen, setLinkDialogOpen] = useState<boolean>(false)
     const { editor, value: slateValue, setValue } = useStandardRenderEditorHook(standard, value, onChange)
+    // Slate 0.123+ uses initialValue (uncontrolled); capture first value so we don't change it after mount
+    const [initialValue] = useState<Descendant[]>(() =>
+        slateValue.length ? slateValue : [{ type: 'paragraph', children: [{ text: '' }] }]
+    )
     const renderElement = useCallback((props: any) => <Element {...props} />, [])
-    const renderLeaf = useCallback((props: any) => <Leaf {...props} />, [])
     const ref = useRef<HTMLDivElement>(null)
 
-    const decorate = useCallback(decorateFactory(editor), [editor])
-    return <Slate editor={editor} value={slateValue} onChange={(value) => { setValue(value) }}>
+    return <Slate editor={editor} initialValue={initialValue} onChange={(next) => setValue(next)}>
         <WorkbenchLinkDialog open={linkDialogOpen} onClose={() => { setLinkDialogOpen(false) }} validTags={validLinkTags} />
         { toolbar && <Toolbar variant="dense" disableGutters sx={{ marginTop: '-0.375em' }}>
                 { (validLinkTags?.length &&
@@ -185,8 +188,6 @@ const StandardRenderSlateComponent: FunctionComponent<StandardRenderSlateCompone
         <Box sx={{ padding: '0.5em' }} ref={ref}>
             <Editable
                 renderElement={renderElement}
-                renderLeaf={renderLeaf}
-                decorate={decorate}
                 readOnly={readonly}
                 placeholder={placeholder}
             />

@@ -10,8 +10,9 @@
 - **Slate**: Rich text editor framework
 - **Slate-React**: React bindings for Slate
 - **Custom Elements**: Extended Slate element types for our use cases
-- **Custom Leafs**: Extended Slate leaf types for our use cases
+- **Leaf rendering**: We use Slate's default leaf renderer (no custom `renderLeaf`); add a custom one only if you need leaf-level formatting (e.g. bold/highlight).
 - **Editor Plugins**: Functions that enhance Slate editor behavior
+- **StandardRender to Slate**: The render tree is reduced directly to paragraph elements (CustomBlock[]). Paragraph boundaries are trimmed: no leading or trailing spaces at the start or end of a paragraph.
 
 **Cross-Reference**: See [AGENT.testing.md](./AGENT.testing.md) for general testing standards and setup.
 
@@ -98,27 +99,25 @@ const paragraphNode = {
 // ✅ REQUIRED - Some type guards expect NO type property
 const paragraphNode = {
     type: 'paragraph',
-    children: [{ text: ' leading space' }]  // No type property for isCustomText
+    children: [{ text: ' leading space' }]  // No type property for Text.isText
 }
 ```
 
-**Why This Happens**: Slate's internal functions like `isCustomText` have specific logic that may expect items **without** a `type` property. The `isCustomText` function returns true for `{ text: '...' }` but **false** for `{ type: 'text', text: '...' }`.
+**Why This Happens**: Slate's `Text.isText()` (and our paragraph-contents logic) expect text nodes **without** a `type` property. `Text.isText({ text: '...' })` is true; `Text.isText({ type: 'text', text: '...' })` is false.
 
 #### **Type Guard Behavior Nuances**
-Slate's type guard functions have specific expectations that may not be intuitive:
+Slate's `Text.isText()` (and paragraph-contents checks) have specific expectations:
 
 ```typescript
-// The isCustomText function has this logic:
-export const isCustomText = (item: CustomParagraphContents): item is CustomText => 
-    ('text' in item)
+// Text.isText() (from 'slate') identifies text nodes by shape (e.g. 'text' in item).
 
 // This means:
-// ✅ isCustomText({ text: 'hello' }) === true
-// ❌ isCustomText({ type: 'text', text: 'hello' }) === false
-// ❌ isCustomText({ type: 'featureLink', to: 'test', children: [] }) === false
+// ✅ Text.isText({ text: 'hello' }) === true
+// ❌ Text.isText({ type: 'text', text: 'hello' }) === false  // if you added a type
+// ❌ Text.isText({ type: 'featureLink', to: 'test', children: [] }) === false
 ```
 
-**Why This Happens**: Slate's type system distinguishes between "pure text objects" (which have no type property) and "typed text objects" (which have explicit type properties). Some functions expect the pure form.
+**Why This Happens**: Slate's type system distinguishes between text nodes (no `type` property) and elements (with `type`). Use Slate's `Text` type and `Text.isText()` for text nodes.
 
 #### **Path Array Requirements**
 Slate's path system requires specific array structures:
@@ -170,12 +169,12 @@ Text content may be split across multiple DOM elements:
 Slate components need a proper editor instance:
 ```typescript
 // ❌ WRONG - Missing editor context
-render(<Leaf attributes={attrs} children={children} leaf={leaf} />)
+render(<Element attributes={attrs} children={children} element={element} />)
 
 // ✅ REQUIRED - Must be wrapped in Slate context
 render(
     <Slate editor={editor} value={[]}>
-        <Leaf attributes={attrs} children={children} leaf={leaf} />
+        <Element attributes={attrs} children={children} element={element} />
     </Slate>
 )
 ```
@@ -183,16 +182,7 @@ render(
 **Why This Happens**: Slate components use hooks and context that require the component to be within a Slate editor tree.
 
 #### **Plugin Function Dependencies**
-Slate plugin functions expect specific editor types:
-```typescript
-// ❌ WRONG - Plugin functions modify editor behavior
-const enhancedEditor = withParagraphBR(editor)
-// Must test that the editor was actually modified
-
-// ✅ REQUIRED - Test both the modification and return value
-expect(enhancedEditor.normalizeNode).not.toBe(editor.normalizeNode)
-expect(enhancedEditor).toBe(editor)  // Plugin returns same instance
-```
+Slate plugin functions (e.g. withConstrainedWhitespace, withInlines) modify editor behavior and return the same editor instance. Test both that the editor was modified and that the same instance is returned.
 
 ### **How These Challenges Affect Testing Strategy**
 
@@ -248,10 +238,10 @@ import { render, screen } from '@testing-library/react'
 import { ThemeProvider, createTheme } from '@mui/material/styles'
 import { vi, beforeEach, describe, it, expect } from 'vitest'
 import '@testing-library/jest-dom'
-import { createEditor, Node, Element as SlateElement, Transforms } from 'slate'
+import { createEditor, Node, Element as SlateElement, Transforms, Text } from 'slate'
 import { Slate, withReact } from 'slate-react'
-import { Element, Leaf, withParagraphBR, decorateFactory } from './components'
-import { CustomParagraphElement, CustomText, CustomFeatureLinkElement, CustomKnowledgeLinkElement } from '../baseClasses'
+import { Element } from './components'
+import { CustomParagraphElement, CustomFeatureLinkElement, CustomKnowledgeLinkElement } from '../baseClasses'
 ```
 
 ## Mocking Slate Dependencies
@@ -455,72 +445,18 @@ describe('element with boolean flags', () => {
 })
 ```
 
-#### **Specific Example: Paragraph BR Logic**
-```typescript
-describe('paragraph rendering', () => {
-    it('renders paragraph with explicit BR when explicitBR is true', () => {
-        const element: CustomParagraphElement = {
-            type: 'paragraph',
-            explicitBR: true,
-            softBR: false,
-            children: []
-        }
-
-        render(
-            <TestWrapper>
-                <Element
-                    attributes={mockAttributes}
-                    children={mockChildren}
-                    element={element}
-                />
-            </TestWrapper>
-        )
-
-        // Check for KeyboardReturnIcon (explicit BR)
-        const returnIcon = screen.getByTestId('KeyboardReturnIcon')
-        expect(returnIcon).toBeInTheDocument()
-        
-        // Check for BR element
-        const brElement = document.querySelector('br')
-        expect(brElement).toBeInTheDocument()
-    })
-
-    it('renders paragraph with only explicit BR when both flags are true (explicit takes precedence)', () => {
-        const element: CustomParagraphElement = {
-            type: 'paragraph',
-            explicitBR: true,
-            softBR: true,
-            children: []
-        }
-
-        render(
-            <TestWrapper>
-                <Element
-                    attributes={mockAttributes}
-                    children={mockChildren}
-                    element={element}
-                />
-            </TestWrapper>
-        )
-
-        // When both are true, only explicit BR icon should show
-        const returnIcon = screen.getByTestId('KeyboardReturnIcon')
-        expect(returnIcon).toBeInTheDocument()
-        
-        // MoreIcon should not be visible because of the condition: (element.softBR && !element.explicitBR)
-        const moreIcon = screen.queryByTestId('MoreIcon')
-        expect(moreIcon).not.toBeInTheDocument()
-    })
-})
-```
+#### **Note on paragraph rendering**
+The paragraph element no longer uses `explicitBR` or `softBR` (that feature—showing carriage returns as visible markers—was removed). Paragraphs are now simple block elements (`<p>`). The general pattern above (testing elements with multiple boolean flags) still applies to other element types that have conditional rendering.
 
 ## Testing Slate Leaf Components
 
-### **Basic Leaf Component Testing**
+We do **not** use a custom Leaf component; we omit `renderLeaf` and let Slate use its default (a simple `<span {...attributes}>{children}</span>`). The sections below apply if you add a custom `renderLeaf` (e.g. for bold/highlight formatting).
+
+### **Basic Leaf Component Testing** (when you have a custom Leaf)
 ```typescript
 describe('Leaf Component', () => {
     it('renders leaf with highlight when highlight is true', () => {
-        const leaf: CustomText = {
+        const leaf: Text = {
             text: 'test',
             highlight: true
         }
@@ -542,12 +478,12 @@ describe('Leaf Component', () => {
 })
 ```
 
-**Key Patterns**:
+**Key Patterns** (for custom Leaf):
 - Test conditional rendering based on leaf properties
 - Verify styling and visual effects
 - Check attribute application
 
-### **Critical Leaf Component Testing Patterns - Common Pitfalls**
+### **Critical Leaf Component Testing Patterns - Common Pitfalls** (for custom Leaf)
 
 #### **1. Highlight Box Rendering Logic**
 ```typescript
@@ -614,138 +550,14 @@ const parentElement = contentSpan.closest('[data-slate-leaf]')
 expect(parentElement).toHaveAttribute('data-slate-leaf', 'true')
 ```
 
-## Testing Slate Editor Plugins
-
-### **Plugin Function Testing**
-```typescript
-describe('withParagraphBR Plugin', () => {
-    it('applies paragraph BR normalization to editor', () => {
-        const editor = withReact(createEditor())
-        const originalNormalizeNode = editor.normalizeNode
-        
-        const enhancedEditor = withParagraphBR(editor)
-        
-        expect(enhancedEditor.normalizeNode).not.toBe(originalNormalizeNode)
-        expect(typeof enhancedEditor.normalizeNode).toBe('function')
-    })
-
-    it('returns the enhanced editor', () => {
-        const editor = withReact(createEditor())
-        const enhancedEditor = withParagraphBR(editor)
-        
-        expect(enhancedEditor).toBe(editor)
-    })
-})
-```
-
-**Key Patterns**:
-- Test that plugins modify editor behavior correctly
-- Verify plugin functions return enhanced editor
-- Test plugin integration without full editor complexity
-
-## Testing Slate Decorator Functions
-
-### **Basic Decorator Function Testing**
-```typescript
-describe('decorateFactory Function', () => {
-    it('creates decorators for leading spaces in paragraph content', () => {
-        const editor = withReact(createEditor())
-        const decorate = decorateFactory(editor)
-        
-        const paragraphNode = {
-            type: 'paragraph',
-            children: [{ type: 'text', text: ' leading space' }]
-        }
-        const result = decorate([paragraphNode, [0]])
-        
-        expect(result).toHaveLength(1)
-        expect(result[0]).toHaveProperty('highlight', true)
-    })
-})
-```
-
-**Key Patterns**:
-- Test decorator creation with various input types
-- Verify decorator properties and structure
-- Test edge cases and empty inputs
-
-### **Critical Decorator Function Testing Patterns**
-
-#### **1. Mock Data Structure Requirements**
-```typescript
-// ❌ WRONG - Adding type property breaks isCustomText check
-const paragraphNode = {
-    type: 'paragraph',
-    children: [{ type: 'text', text: ' leading space' }]
-}
-
-// ✅ CORRECT - isCustomText expects pure text objects (no type property)
-const paragraphNode = {
-    type: 'paragraph',
-    children: [{ text: ' leading space' }]  // No type property
-}
-```
-
-**Critical Insight**: The `isCustomText` function returns `false` for objects with `type: 'text'` because it expects "pure text objects" that only have a `text` property.
-
-#### **2. Testing Space Detection Logic**
-```typescript
-// The decorator function checks for:
-// - Leading spaces: firstChild.text.match(/^\s/)
-// - Trailing spaces: lastChild.text.match(/\s$/)
-
-// ✅ CORRECT - Test with actual space characters
-it('creates decorators for leading spaces', () => {
-    const paragraphNode = {
-        type: 'paragraph',
-        children: [{ 
-            type: 'text', 
-            text: ' leading space' // Note the leading space
-        }]
-    }
-    // ... test logic
-})
-```
-
-#### **3. Path Structure for Decorators**
-```typescript
-// Decorators create paths like: [...path, ...firstChildPath, offset]
-// Ensure your mock paths are arrays: [0] not 0
-const result = decorate([paragraphNode, [0]]) // ✅ Correct
-const result = decorate([paragraphNode, 0])   // ❌ Wrong
-```
-
 ## Troubleshooting Common Slate Testing Issues
-
-### **"Unable to find an element with the text: &nbsp;" Error**
-**Cause**: The highlight box renders a space character ` `, not the HTML entity `&nbsp;`
-**Solution**: Use flexible text matching for space characters:
-```typescript
-const highlightBox = screen.getByText((content, element) => {
-    return element?.textContent === ' ' || element?.textContent === '\u00A0'
-})
-```
 
 ### **"Property 'text' is missing in type" Error**
 **Cause**: `RenderLeafProps` interface requires a `text` property
-**Solution**: Ensure your mock leaf objects include the `text` property:
+**Solution**: Ensure your mock leaf objects include the `text` property (use Slate's `Text` type):
 ```typescript
-const leaf: CustomText = {
-    text: 'test',  // Required property
-    highlight: true
-}
-```
-
-### **Decorator Function Returns Empty Array**
-**Cause**: Mock data structure doesn't match what the function expects
-**Solution**: Ensure your mock paragraph nodes have the correct structure:
-```typescript
-const paragraphNode = {
-    type: 'paragraph',
-    children: [{ 
-        type: 'text',  // Required type property
-        text: ' leading space'  // Required text property with actual spaces
-    }]
+const leaf: Text = {
+    text: 'test'  // Required property
 }
 ```
 
@@ -768,7 +580,7 @@ const paragraphNode = {
 ### **Testing Slate Editor Plugins**
 
 #### **What We Know**
-- Plugin functions modify editor behavior and return enhanced editors
+- Plugin functions (e.g. withConstrainedWhitespace, withInlines) modify editor behavior and return enhanced editors
 - We can test that the editor was modified by comparing function references
 - We can test that the same editor instance is returned
 
@@ -777,70 +589,14 @@ const paragraphNode = {
 - **How do we test plugin behavior in isolation?** Can we test normalization logic without full editor context?
 - **What are the performance implications** of plugin testing patterns?
 
-#### **Current Testing Pattern (Needs Validation)**
-```typescript
-describe('withParagraphBR Plugin', () => {
-    it('applies paragraph BR normalization to editor', () => {
-        const editor = withReact(createEditor())
-        const originalNormalizeNode = editor.normalizeNode
-        
-        const enhancedEditor = withParagraphBR(editor)
-        
-        expect(enhancedEditor.normalizeNode).not.toBe(originalNormalizeNode)
-        expect(typeof enhancedEditor.normalizeNode).toBe('function')
-    })
-
-    it('returns the enhanced editor', () => {
-        const editor = withReact(createEditor())
-        const enhancedEditor = withParagraphBR(editor)
-        
-        expect(enhancedEditor).toBe(editor)
-    })
-})
-```
-
-### **Testing Slate Decorator Functions**
-
-#### **What We Know**
-- Decorator functions expect specific data structures with `type` properties
-- Path parameters must be arrays, not primitive values
-- Space detection uses regex patterns on text content
-
-#### **What We Need to Research**
-- **Why do decorator functions require complete node structures?** Is this for type safety or runtime validation?
-- **How do decorator functions integrate with Slate's rendering system?** Are they called during render or separately?
-- **What are the performance characteristics** of decorator functions in real editing scenarios?
-
-#### **Current Testing Pattern (Needs Validation)**
-```typescript
-describe('decorateFactory Function', () => {
-    it('creates decorators for leading spaces in paragraph content', () => {
-        const editor = withReact(createEditor())
-        const decorate = decorateFactory(editor)
-        
-        const paragraphNode = {
-            type: 'paragraph',
-            children: [{ type: 'text', text: ' leading space' }]
-        }
-        const result = decorate([paragraphNode, [0]])
-        
-        expect(result).toHaveLength(1)
-        expect(result[0]).toHaveProperty('highlight', true)
-    })
-})
-```
-
 ### **Testing Slate Leaf Components**
 
 #### **What We Know**
-- Leaf components render conditional elements based on leaf properties
-- Attributes are spread on nested components, not outer elements
-- Text content may be rendered as actual characters, not HTML entities
+- We use Slate's default leaf renderer (no custom `renderLeaf`); leaves are rendered as `<span {...attributes}>{children}</span>`.
+- If you add a custom Leaf (e.g. for bold/highlight), it would render conditionally based on leaf properties; attributes go on the top-level element; text content may be actual characters, not HTML entities.
 
 #### **What We Need to Research**
-- **Why do Slate leaf components use React Fragments?** Is this for performance or architectural reasons?
-- **How do leaf components interact with Slate's selection system?** Are there selection-related testing considerations?
-- **What are the accessibility implications** of the current leaf component structure?
+- **When to add a custom renderLeaf:** Only if you need leaf-level formatting (bold, highlight, etc.); otherwise omit it.
 
 ---
 
@@ -860,7 +616,7 @@ The failing tests in our `components.test.tsx` file provided valuable insights t
 **What Actually Happened**: 
 The test was looking for `&nbsp;` instead of using our documented flexible text matcher.
 
-**Analysis**: This was a **test implementation error** - the test wasn't following our documented pattern correctly.
+**Analysis**: This was a **test implementation error** - the test wasn't following our documented pattern correctly. (We have since removed our custom Leaf and use Slate's default leaf renderer.)
 
 **Result**: ✅ **Our generalization was sound** - applying the documented pattern fixed the test.
 
@@ -873,18 +629,18 @@ The test was looking for `&nbsp;` instead of using our documented flexible text 
 All decorator tests were returning empty arrays, suggesting the mock data structure was incomplete.
 
 **Root Cause Discovery**: 
-The `isCustomText` function expects items **without** a `type` property:
+Text nodes must be **without** a `type` property (Slate's `Text.isText()` and our paragraph-contents logic expect plain `{ text: string }`):
 ```typescript
-// ❌ WRONG - This will fail isCustomText check
+// ❌ WRONG - Text nodes should not have a type property
 { type: 'text', text: ' leading space' }
 
-// ✅ CORRECT - This will pass isCustomText check  
+// ✅ CORRECT - Plain text node
 { text: ' leading space' }  // No type property
 ```
 
 **Analysis**: Our generalization about **"Mock Data Structure Requirements"** needed to be **more specific** - we were missing a critical detail about how Slate's type guards actually work.
 
-**Result**: ❌ **Our generalization was incomplete** - we needed to understand the exact behavior of `isCustomText`.
+**Result**: ❌ **Our generalization was incomplete** - we needed to understand the exact behavior of text-node checks (now using Slate's `Text.isText()`).
 
 ### **Key Lessons for Future Testing**
 

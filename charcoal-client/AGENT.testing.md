@@ -270,8 +270,7 @@ This includes:
 - **Slate Component Testing Setup** - Test wrappers, Material-UI integration
 - **Element Component Testing** - Feature links, knowledge links, paragraphs
 - **Leaf Component Testing** - Highlight boxes, attributes, conditional rendering
-- **Editor Plugin Testing** - withParagraphBR, withInlines, etc.
-- **Decorator Function Testing** - Space detection, path structures
+- **Editor Plugin Testing** - withConstrainedWhitespace, withInlines, etc.
 - **Common Pitfalls & Solutions** - Troubleshooting guide
 
 The Slate testing patterns are substantial enough to warrant their own dedicated documentation file.
