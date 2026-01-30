@@ -273,10 +273,11 @@ case 'SayMessage':
 
 ### Getting Started - Authoring Mode
 
-1. **Library Overview**: Start at [`src/components/Library/index.tsx`](src/components/Library/index.tsx)
-2. **Asset Editing**: Examine [`src/components/Library/Edit/EditAsset.tsx`](src/components/Library/Edit/EditAsset.tsx)
-3. **WML Integration**: Review [`src/components/Library/Edit/WMLEdit.tsx`](src/components/Library/Edit/WMLEdit.tsx)
-4. **Component Creation**: Study [`src/components/Library/Edit/WMLComponentDetail.tsx`](src/components/Library/Edit/WMLComponentDetail.tsx)
+1. **Workbench (Form-Based)**: See [`src/components/Workbench/AGENT.md`](src/components/Workbench/AGENT.md) for the overlay authoring interface, breadcrumb navigation, and component editing patterns
+2. **Library Overview**: Start at [`src/components/Library/index.tsx`](src/components/Library/index.tsx)
+3. **Asset Editing**: Examine [`src/components/Library/Edit/EditAsset.tsx`](src/components/Library/Edit/EditAsset.tsx)
+4. **WML Integration**: Review [`src/components/Library/Edit/WMLEdit.tsx`](src/components/Library/Edit/WMLEdit.tsx)
+5. **Component Creation**: Study [`src/components/Library/Edit/WMLComponentDetail.tsx`](src/components/Library/Edit/WMLComponentDetail.tsx)
 
 ### Getting Started - Playing Mode
 

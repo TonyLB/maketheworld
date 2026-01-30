@@ -1,0 +1,236 @@
+# Workbench - Agent Navigation Guide
+
+## Overview
+
+The Workbench is the **form-based authoring interface** for creating and editing WML content in the Charcoal Client. It provides a responsive, overlay-style editing experience that enables authors to work on assets without leaving their current context (e.g., while viewing the playing interface). The Workbench is the primary UI for the **Authoring Mode** form-based editing path.
+
+### Purpose
+
+- **Asset Editing**: Edit WML assets through structured forms rather than raw markup
+- **Component Navigation**: Navigate within an asset's component hierarchy (Rooms, Features, Examples, Lenses, Marks, etc.)
+- **Contextual Overlay**: Present editing UI as a drawer (desktop) or full-screen overlay (mobile) relative to the viewport
+- **Draft-Centric**: Optimized for editing assets in the Draft zone; read-only behavior for published assets
+
+### Context
+
+The Workbench sits within the Charcoal Client's [dual-mode architecture](../../../AGENT.md): it serves **Authoring Mode** alongside the Library system. Unlike the Library's `/Library/Edit/Asset/:AssetId/*` route-based editing, the Workbench uses **Redux state-based navigation** (breadcrumb stack) and can be opened from multiple entry points (e.g., from within the playing interface when in authoring mode).
+
+### Key Concepts
+
+- **Breadcrumb Stack**: Within-asset navigation history; `component` entries for parent components, `componentLayer` for layered sibling views (e.g., Examples, Marks within a Lens)
+- **Reference Lists**: WML `ReferenceList` fields (e.g. `examples`, `features`, `lenses`, `marks`) rendered as accordion lists with add/remove; see [AGENT.reference-lists.md](./AGENT.reference-lists.md)
+- **Layered Context**: Sibling-in-context editing for groups like Examples (Photoshop-layer style); see [AGENT.layered-context-patterns.md](./AGENT.layered-context-patterns.md)
+- **StandardForm**: WML asset representation; the Workbench reads and mutates `StandardForm` via `updateStandard` from `useWorkbenchAsset`
+
+---
+
+## Core Purpose
+
+### Primary Function
+
+Provide a form-based, component-centric editing experience for WML assets that:
+- Uses Redux state for within-asset navigation instead of React Router
+- Renders structured editors for Rooms, Features, Knowledge, Examples, Lenses, Marks, Maps, and Characters
+- Supports rich text editing (`StandardRender`) and literal editing (`StandardLiteral`) through shared editor components
+
+### Key Responsibilities
+
+- **Navigation**: Maintain breadcrumb stack and route to asset, component, or component-layer views
+- **Data Binding**: Connect `StandardForm` (from `personalAssets` slice) to form controls via `useWorkbenchAsset`
+- **Reference List Management**: Add/remove/reorder components in reference lists (Examples, Features, Exits, Lenses, Marks)
+- **Draft Lockout**: Enforce read-only behavior for non-Draft assets via `DraftLockout` and `readonly` from `useWorkbenchAsset`
+
+---
+
+## Technical Details
+
+### Data Structures
+
+**Workbench State** ([`src/slices/UI/workbench/index.ts`](../../slices/UI/workbench/index.ts)):
+```typescript
+interface WorkbenchState {
+    open: boolean;
+    authoringMode: 'play' | 'authoring';
+    currentAssetId: AssetUUID | null;
+    secondaryContext: string | null;
+    breadcrumbStack: WorkbenchBreadcrumbEntry[];
+}
+
+type WorkbenchBreadcrumbEntry = {
+    id: string;
+    kind: 'component' | 'componentLayer';
+    componentId: string | null;
+}
+```
+
+**WorkbenchReferenceListItem** (`WorkbenchReferenceList.tsx`):
+```typescript
+{ id: string; title: string; subtitle?: string; icon?: ReactNode }
+```
+
+**referenceListAdapter** (`referenceListAdapter.ts`): Converts WML `ReferenceList` + `StandardForm` + optional `tag` into `WorkbenchReferenceListItem[]`.
+
+### Core Methods
+
+- **`useWorkbenchAsset()`**: Hook providing `standardForm`, `updateStandard`, `readonly`, and other asset context; derives `AssetId` from workbench Redux state
+- **`navigateToComponent(componentId)`**: Sets breadcrumb stack to a single component entry
+- **`navigateToComponentLayer(parentId, layerId)`**: Sets stack to component + componentLayer (e.g., Examples view, Mark in Lens)
+- **`navigateViaBreadcrumbIndex(index)`**: Pops to a given breadcrumb index (index 0 = asset root)
+- **`referenceListToWorkbenchItems({ referenceList, standardForm, tag })`**: Adapter for reference lists to list items
+
+### Configuration
+
+- **Workbench Theme** (`workbenchTheme.ts`): `createWorkbenchTheme(baseTheme)` extends MUI theme for distinctive Workbench appearance
+- **Responsive Layout**: Desktop (min-width 1200px, landscape) uses right-side Drawer (~600px); smaller viewports use full-screen Dialog/Drawer
+
+---
+
+## Integration Points
+
+### Dependencies
+
+- **personalAssets Slice**: Asset loading, `StandardForm` data, `updateStandard` reducer, `getStatus`, `getAssetZone`
+- **workbench Slice** ([`src/slices/UI/workbench/`](../../slices/UI/workbench/)): Navigation state, `currentAssetId`, breadcrumb stack, selectors (`getCurrentView`, `getCurrentComponentId`, `getCurrentComponentLayerId`, `getNavigationTrail`)
+- **cacheDB**: Persists `CurrentAssetId` via `putWorkbenchSettings` / `loadWorkbenchSettings`
+- **WML Standardize** ([`packages/mtw-wml/ts/standardize/`](../../../../packages/mtw-wml/ts/standardize/AGENT.md)): `StandardForm`, `StandardComponent`, `StandardRoom`, `StandardFeature`, `StandardExample`, `StandardLens`, `StandardMark`, `StandardRender`, `StandardLiteral`, `ReferenceList`
+
+### Cross-References
+
+- **Client Architecture**: [`charcoal-client/AGENT.md`](../../../AGENT.md) - Authoring vs Playing modes, Library vs Workbench
+- **Standard Form**: [`packages/mtw-wml/ts/standardize/AGENT.md`](../../../../packages/mtw-wml/ts/standardize/AGENT.md) - Asset structure, merge/diff/subset
+- **Standard Components**: [`packages/mtw-wml/ts/standardize/components/AGENT.md`](../../../../packages/mtw-wml/ts/standardize/components/AGENT.md) - Room, Feature, Example, Lens, Mark
+- **Examples Cache**: [`lambda/ephemera/internalCache/examples.AGENT.md`](../../../../lambda/ephemera/internalCache/examples.AGENT.md) - Backend example storage and future vision
+
+### API Contracts
+
+- **useWorkbenchAsset**: Returns `{ assetKey, AssetId, standardForm, localStandardForm, inheritedStandardForm, updateStandard, readonly, ... }`; matches `LibraryAssetContext` interface for migration compatibility
+- **updateStandard(UpdateStandardPayload)**: Dispatches to `personalAssets`; triggers `setIntent` and `heartbeat` for persistence
+
+### System Relationships
+
+- **AppLayout**: Renders `WorkbenchContainer` with `open`, `onClose`, `assetId`, `secondaryContext`; controls workbench visibility
+- **WorkbenchAssetEditor**: Orchestrates view routing based on `getCurrentView`, `getCurrentComponentId`, `getCurrentComponentLayerId`; delegates to `WorkbenchAssetEditForm`, `WorkbenchComponentDetail`, `WorkbenchExamplesView`, `WorkbenchMarkEditor`, `WorkbenchMapEditor`, `WorkbenchCharacterEditor`
+
+---
+
+## Usage Patterns
+
+### Authoring Workflow
+
+```typescript
+// 1. Open workbench and set asset
+dispatch(openWorkbench())
+dispatch(setCurrentAssetId(assetId))
+
+// 2. Navigate to a component
+dispatch(navigateToComponent('ROOM#room-uuid'))
+
+// 3. Edit via useWorkbenchAsset
+const { updateStandard, standardForm, readonly } = useWorkbenchAsset()
+updateStandard({
+    type: 'update',
+    update: (draft) => {
+        const room = draft.byUniversalId['ROOM#room-uuid']
+        if (room instanceof StandardRoom) {
+            room._payload._shortName = new StandardLiteral('Updated Name')
+        }
+        return draft
+    }
+})
+
+// 4. Navigate to component layer (e.g., Example)
+dispatch(navigateToComponentLayer(parentComponentId, exampleId))
+```
+
+### Reference List Editing
+
+```typescript
+// Use referenceListToWorkbenchItems for list display
+const items = referenceListToWorkbenchItems({ referenceList, standardForm, tag: 'Example' })
+
+// Add/remove via updateStandard and ReferenceList
+updateStandard({
+    type: 'update',
+    update: (draft) => {
+        const base = draft.byUniversalId[universalKey]
+        if (base instanceof StandardRoom) {
+            const currentExamples = base._payload._examples ?? new ReferenceList([])
+            base._payload._examples = currentExamples.assureItem(new StandardReference({ universalKey: exampleId, tag: 'Example' }))
+        }
+        return draft
+    }
+})
+```
+
+### Rich Text Editing
+
+`StandardRenderEditor` and `WorkbenchMarkEditor` use Slate for rich text; `StandardLiteralEditor` for plain text. Both integrate with `updateStandard` and `useDebouncedOnChange` for persistence.
+
+### Best Practices
+
+- Use `useWorkbenchAsset` instead of `useLibraryAsset` when in Workbench context
+- Resolve components via `standardForm.byUniversalId[id]` and use `instanceof` checks (e.g. `StandardRoom`, `StandardFeature`)
+- Prefer `referenceListToWorkbenchItems` for consistent list display across Examples, Features, Lenses, Marks
+- Handle `readonly` from `useWorkbenchAsset` before allowing edits (non-Draft assets)
+
+### Error Handling
+
+- `useWorkbenchAsset` returns uninitialized values when `currentAssetId` is null; `AssetId` becomes `'ASSET#uninitialized'`
+- Loading state: `WorkbenchAssetEditor` shows `CircularProgress` until asset status is `FRESH`, `WMLDIRTY`, `SCHEMADIRTY`, etc.
+- `DraftLockout` displays when zone is not `Draft`, preventing edits
+
+---
+
+## Navigation Tips
+
+### Getting Started
+
+1. **Workbench Flow**: Start at [`WorkbenchContainer.tsx`](./WorkbenchContainer.tsx) for layout and breadcrumb header; then [`WorkbenchAssetEditor.tsx`](./WorkbenchAssetEditor.tsx) for view routing
+2. **Asset Context**: Read [`useWorkbenchAsset.ts`](./useWorkbenchAsset.ts) to understand how asset data flows from `personalAssets` into Workbench components
+3. **Navigation State**: Read [`src/slices/UI/workbench/index.ts`](../../slices/UI/workbench/index.ts) for breadcrumb model and selectors
+4. **Component Editing**: [`WorkbenchComponentDetail.tsx`](./WorkbenchComponentDetail.tsx) is the main component editor; it delegates to `WorkbenchRoomFeatureEditor`, `RoomLensEditor`, `RoomExitEditor`, `WorkbenchReferenceList`, etc.
+
+### Key Files
+
+| File | Purpose |
+|------|---------|
+| `WorkbenchContainer.tsx` | Responsive layout, breadcrumbs, AssetSelector, theme |
+| `WorkbenchAssetEditor.tsx` | View routing (asset / component / componentLayer) |
+| `WorkbenchAssetEditForm.tsx` | Asset-level metadata, component list, imports |
+| `WorkbenchComponentDetail.tsx` | Room/Feature/Knowledge detail; reference lists, Examples |
+| `WorkbenchExamplesView.tsx` | Layered Examples view (tabs); uses `LayeredContext/LayeredExamplesTabs` |
+| `WorkbenchMarkEditor.tsx` | Full Mark editor (shortName + description) |
+| `WorkbenchRoomLensEditor.tsx` | Lens editing; Marks via `WorkbenchInlineReferenceList` |
+| `StandardRenderEditor.tsx` | Rich text (Slate); shared with Editor components |
+| `referenceListAdapter.ts` | `referenceListToWorkbenchItems` for list display |
+
+### Related Documentation
+
+- [AGENT.reference-lists.md](./AGENT.reference-lists.md) - `WorkbenchReferenceList` vs `WorkbenchInlineReferenceList`, `referenceListToWorkbenchItems`, Mark inline pattern
+- [AGENT.layered-context-patterns.md](./AGENT.layered-context-patterns.md) - Layer strip, index bar, split-pane, MUI Tabs; Examples layered view design
+- [charcoal-client/AGENT.testing.slate.md](../../../AGENT.testing.slate.md) - Slate/rich text testing if modifying StandardRenderEditor
+
+---
+
+## Development Notes
+
+### Current State
+
+- **Form-Based Editing**: Primary path for WML authoring in overlay context
+- **Breadcrumb Navigation**: Redux-driven; no React Router within Workbench
+- **Responsive**: Drawer on desktop, full-screen on mobile
+- **Reference Lists**: `WorkbenchReferenceList` and `WorkbenchInlineReferenceList` with adapter
+- **Layered Examples**: `LayeredExamplesTabs` (MUI Tabs) for sibling Example navigation
+- **Draft Lockout**: Non-Draft assets are read-only
+
+### Future Plans
+
+- Chat-based editing integration (Workbench designed to accommodate multiple content types)
+- Live editing indicators and collaborative editing (foundation via WebSocket)
+- Additional "layer-like" sibling groups (Lenses, Marks) using layered-context pattern
+
+### Technical Debt
+
+- **RoomExitEditor**: Recently refactored; may need further review for error handling, UX, accessibility (see [charcoal-client/AGENT.md](../../AGENT.md) Technical Debt)
+- **Component Complexity**: Some components mix layout, navigation, and editing concerns
+- **Testing Coverage**: Expand tests for Workbench components; follow [AGENT.testing.md](../../AGENT.testing.md) for Vitest patterns
