@@ -10,7 +10,7 @@
 - **Slate**: Rich text editor framework
 - **Slate-React**: React bindings for Slate
 - **Custom Elements**: Extended Slate element types for our use cases
-- **Custom Leafs**: Extended Slate leaf types for our use cases
+- **Leaf rendering**: We use Slate's default leaf renderer (no custom `renderLeaf`); add a custom one only if you need leaf-level formatting (e.g. bold/highlight).
 - **Editor Plugins**: Functions that enhance Slate editor behavior
 - **StandardRender to Slate**: The render tree is reduced directly to paragraph elements (CustomBlock[]). Paragraph boundaries are trimmed: no leading or trailing spaces at the start or end of a paragraph.
 
@@ -169,12 +169,12 @@ Text content may be split across multiple DOM elements:
 Slate components need a proper editor instance:
 ```typescript
 // ❌ WRONG - Missing editor context
-render(<Leaf attributes={attrs} children={children} leaf={leaf} />)
+render(<Element attributes={attrs} children={children} element={element} />)
 
 // ✅ REQUIRED - Must be wrapped in Slate context
 render(
     <Slate editor={editor} value={[]}>
-        <Leaf attributes={attrs} children={children} leaf={leaf} />
+        <Element attributes={attrs} children={children} element={element} />
     </Slate>
 )
 ```
@@ -240,7 +240,7 @@ import { vi, beforeEach, describe, it, expect } from 'vitest'
 import '@testing-library/jest-dom'
 import { createEditor, Node, Element as SlateElement, Transforms, Text } from 'slate'
 import { Slate, withReact } from 'slate-react'
-import { Element, Leaf } from './components'
+import { Element } from './components'
 import { CustomParagraphElement, CustomFeatureLinkElement, CustomKnowledgeLinkElement } from '../baseClasses'
 ```
 
@@ -445,68 +445,14 @@ describe('element with boolean flags', () => {
 })
 ```
 
-#### **Specific Example: Paragraph BR Logic**
-```typescript
-describe('paragraph rendering', () => {
-    it('renders paragraph with explicit BR when explicitBR is true', () => {
-        const element: CustomParagraphElement = {
-            type: 'paragraph',
-            explicitBR: true,
-            softBR: false,
-            children: []
-        }
-
-        render(
-            <TestWrapper>
-                <Element
-                    attributes={mockAttributes}
-                    children={mockChildren}
-                    element={element}
-                />
-            </TestWrapper>
-        )
-
-        // Check for KeyboardReturnIcon (explicit BR)
-        const returnIcon = screen.getByTestId('KeyboardReturnIcon')
-        expect(returnIcon).toBeInTheDocument()
-        
-        // Check for BR element
-        const brElement = document.querySelector('br')
-        expect(brElement).toBeInTheDocument()
-    })
-
-    it('renders paragraph with only explicit BR when both flags are true (explicit takes precedence)', () => {
-        const element: CustomParagraphElement = {
-            type: 'paragraph',
-            explicitBR: true,
-            softBR: true,
-            children: []
-        }
-
-        render(
-            <TestWrapper>
-                <Element
-                    attributes={mockAttributes}
-                    children={mockChildren}
-                    element={element}
-                />
-            </TestWrapper>
-        )
-
-        // When both are true, only explicit BR icon should show
-        const returnIcon = screen.getByTestId('KeyboardReturnIcon')
-        expect(returnIcon).toBeInTheDocument()
-        
-        // MoreIcon should not be visible because of the condition: (element.softBR && !element.explicitBR)
-        const moreIcon = screen.queryByTestId('MoreIcon')
-        expect(moreIcon).not.toBeInTheDocument()
-    })
-})
-```
+#### **Note on paragraph rendering**
+The paragraph element no longer uses `explicitBR` or `softBR` (that feature—showing carriage returns as visible markers—was removed). Paragraphs are now simple block elements (`<p>`). The general pattern above (testing elements with multiple boolean flags) still applies to other element types that have conditional rendering.
 
 ## Testing Slate Leaf Components
 
-### **Basic Leaf Component Testing**
+We do **not** use a custom Leaf component; we omit `renderLeaf` and let Slate use its default (a simple `<span {...attributes}>{children}</span>`). The sections below apply if you add a custom `renderLeaf` (e.g. for bold/highlight formatting).
+
+### **Basic Leaf Component Testing** (when you have a custom Leaf)
 ```typescript
 describe('Leaf Component', () => {
     it('renders leaf with highlight when highlight is true', () => {
@@ -532,12 +478,12 @@ describe('Leaf Component', () => {
 })
 ```
 
-**Key Patterns**:
+**Key Patterns** (for custom Leaf):
 - Test conditional rendering based on leaf properties
 - Verify styling and visual effects
 - Check attribute application
 
-### **Critical Leaf Component Testing Patterns - Common Pitfalls**
+### **Critical Leaf Component Testing Patterns - Common Pitfalls** (for custom Leaf)
 
 #### **1. Highlight Box Rendering Logic**
 ```typescript
@@ -646,14 +592,11 @@ const leaf: Text = {
 ### **Testing Slate Leaf Components**
 
 #### **What We Know**
-- Leaf components render conditional elements based on leaf properties
-- Attributes are spread on nested components, not outer elements
-- Text content may be rendered as actual characters, not HTML entities
+- We use Slate's default leaf renderer (no custom `renderLeaf`); leaves are rendered as `<span {...attributes}>{children}</span>`.
+- If you add a custom Leaf (e.g. for bold/highlight), it would render conditionally based on leaf properties; attributes go on the top-level element; text content may be actual characters, not HTML entities.
 
 #### **What We Need to Research**
-- **Why do Slate leaf components use React Fragments?** Is this for performance or architectural reasons?
-- **How do leaf components interact with Slate's selection system?** Are there selection-related testing considerations?
-- **What are the accessibility implications** of the current leaf component structure?
+- **When to add a custom renderLeaf:** Only if you need leaf-level formatting (bold, highlight, etc.); otherwise omit it.
 
 ---
 
@@ -673,7 +616,7 @@ The failing tests in our `components.test.tsx` file provided valuable insights t
 **What Actually Happened**: 
 The test was looking for `&nbsp;` instead of using our documented flexible text matcher.
 
-**Analysis**: This was a **test implementation error** - the test wasn't following our documented pattern correctly.
+**Analysis**: This was a **test implementation error** - the test wasn't following our documented pattern correctly. (We have since removed our custom Leaf and use Slate's default leaf renderer.)
 
 **Result**: ✅ **Our generalization was sound** - applying the documented pattern fixed the test.
 

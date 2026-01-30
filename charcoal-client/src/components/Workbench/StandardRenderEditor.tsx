@@ -25,7 +25,7 @@ import { isCustomBlock } from '../Editor/baseClasses'
 import { useDebouncedOnChange } from '../../hooks/useDebounce'
 import descendantsToRender from '../Editor/StandardRenderEditor/descendantsToRender'
 import descendantsFromRender from '../Editor/StandardRenderEditor/descendantsFromRender'
-import { Element, Leaf } from '../Editor/StandardRenderEditor/components'
+import { Element } from '../Editor/StandardRenderEditor/components'
 import WorkbenchLinkDialog from './LinkDialog'
 import { useWorkbenchAsset } from './useWorkbenchAsset'
 import useUpdatedSlate from '../../hooks/useUpdatedSlate'
@@ -172,7 +172,6 @@ const StandardRenderSlateComponent: FunctionComponent<StandardRenderSlateCompone
         slateValue.length ? slateValue : [{ type: 'paragraph', children: [{ text: '' }] }]
     )
     const renderElement = useCallback((props: any) => <Element {...props} />, [])
-    const renderLeaf = useCallback((props: any) => <Leaf {...props} />, [])
     const ref = useRef<HTMLDivElement>(null)
 
     return <Slate editor={editor} initialValue={initialValue} onChange={(next) => setValue(next)}>
@@ -189,7 +188,6 @@ const StandardRenderSlateComponent: FunctionComponent<StandardRenderSlateCompone
         <Box sx={{ padding: '0.5em' }} ref={ref}>
             <Editable
                 renderElement={renderElement}
-                renderLeaf={renderLeaf}
                 readOnly={readonly}
                 placeholder={placeholder}
             />

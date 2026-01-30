@@ -9,9 +9,8 @@ import { vi, beforeEach, describe, it, expect } from 'vitest'
 import '@testing-library/jest-dom'
 import { createEditor, Descendant } from 'slate'
 import { Slate, withReact } from 'slate-react'
-import { Element, Leaf } from './components'
+import { Element } from './components'
 import { CustomParagraphElement, CustomFeatureLinkElement, CustomKnowledgeLinkElement } from '../baseClasses'
-import { Text } from 'slate'
 
 // Mock the DescriptionLinkFeatureChip component
 vi.mock('../../Message/DescriptionLink', () => ({
@@ -118,7 +117,7 @@ describe('StandardRenderEditor Components', () => {
         })
 
         describe('paragraph rendering', () => {
-            it('renders paragraph as simple block with inline-block layout', () => {
+            it('renders paragraph as block with vertical spacing', () => {
                 const element: CustomParagraphElement = {
                     type: 'paragraph',
                     children: []
@@ -134,13 +133,9 @@ describe('StandardRenderEditor Components', () => {
                     </TestWrapper>
                 )
 
-                const paragraph = screen.getByText('Test content').closest('div')
+                const paragraph = screen.getByText('Test content').closest('p')
                 expect(paragraph).toBeInTheDocument()
-                expect(paragraph).toHaveStyle({
-                    display: 'inline-block',
-                    verticalAlign: 'top',
-                    marginRight: '0.1em'
-                })
+                expect(paragraph?.tagName).toBe('P')
             })
         })
 
@@ -165,56 +160,6 @@ describe('StandardRenderEditor Components', () => {
                 expect(div).toBeInTheDocument()
                 expect(div).toHaveAttribute('data-slate-element', 'true')
             })
-        })
-    })
-
-    describe('Leaf Component', () => {
-        const mockAttributes = { 
-            'data-slate-leaf': true as const,
-            'data-slate-length': '11',
-            ref: null
-        }
-        const mockChildren = <span>Leaf content</span>
-
-        it('renders leaf content', () => {
-            const leaf: Text = {
-                text: 'test'
-            }
-
-            render(
-                <TestWrapper>
-                    <Leaf
-                        attributes={mockAttributes}
-                        children={mockChildren}
-                        leaf={leaf}
-                        text={leaf}  // Slate expects this for RenderLeafProps
-                    />
-                </TestWrapper>
-            )
-
-            expect(screen.getByText('Leaf content')).toBeInTheDocument()
-        })
-
-        it('applies correct styles to leaf content', () => {
-            const leaf: Text = {
-                text: 'test'
-            }
-
-            render(
-                <TestWrapper>
-                    <Leaf
-                        attributes={mockAttributes}
-                        children={mockChildren}
-                        leaf={leaf}
-                        text={leaf}  // Slate expects this for RenderLeafProps
-                    />
-                </TestWrapper>
-            )
-
-            // Find the content span, then check its parent for attributes
-            const contentSpan = screen.getByText('Leaf content')
-            const parentElement = contentSpan.closest('[data-slate-leaf]')
-            expect(parentElement).toHaveAttribute('data-slate-leaf', 'true')
         })
     })
 })

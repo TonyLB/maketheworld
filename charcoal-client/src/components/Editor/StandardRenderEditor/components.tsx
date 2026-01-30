@@ -1,6 +1,6 @@
 import React, { FunctionComponent } from 'react'
 import InlineChromiumBugfix from '../../../lib/slateUtils'
-import { RenderElementProps, RenderLeafProps } from 'slate-react'
+import { RenderElementProps } from 'slate-react'
 import { DescriptionLinkFeatureChip } from '../../Message/DescriptionLink'
 
 import Box from '@mui/material/Box'
@@ -28,11 +28,8 @@ export const Element: FunctionComponent<RenderElementProps> = (props) => {
             return (
                 <Box
                     {...attributes}
-                    sx={{
-                        display: 'inline-block',
-                        verticalAlign: 'top',
-                        marginRight: '0.1em'
-                    }}
+                    component="p"
+                    sx={{ marginBottom: '0.5em', '&:last-child': { marginBottom: 0 } }}
                 >
                     {children}
                 </Box>
@@ -43,27 +40,4 @@ export const Element: FunctionComponent<RenderElementProps> = (props) => {
             </div>
         )
     }
-}
-
-export const Leaf: FunctionComponent<RenderLeafProps> = ({ attributes, children }) => {
-    //
-    // Hide Slate's default br after an empty paragraph block, so it can be used as a placeholder
-    // in a horizontal layout with other blocks
-    //
-    return (
-        <Box
-            component="span"
-            {...attributes}
-            sx={{
-                [`& span[data-slate-length=0]`]: {
-                    marginRight: '0.25em',
-                    '& br': {
-                        display: 'none'
-                    }
-                }
-            }}
-        >
-            {children}
-        </Box>
-    )
 }
