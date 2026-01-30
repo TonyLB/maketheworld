@@ -14,8 +14,9 @@ import { Slate, Editable, withReact, ReactEditor } from 'slate-react'
 
 import {
     Box,
-    Toolbar,
     Button,
+    ButtonGroup,
+    Toolbar,
 } from '@mui/material'
 import LinkIcon from '@mui/icons-material/Link'
 import LinkOffIcon from '@mui/icons-material/LinkOff'
@@ -180,14 +181,24 @@ const StandardRenderSlateComponent: FunctionComponent<StandardRenderSlateCompone
     const ref = useRef<HTMLDivElement>(null)
 
     const toolbarButtons = toolbar && validLinkTags?.length ? (
-        <React.Fragment>
+        <ButtonGroup
+            size="small"
+            variant="outlined"
+            sx={{
+                alignSelf: 'stretch',
+                '& > button:last-of-type': {
+                    borderTopRightRadius: '0.5em',
+                    borderBottomRightRadius: '0.5em'
+                }
+            }}
+        >
             <AddLinkButton openDialog={() => { setLinkDialogOpen(true) }} />
             <RemoveLinkButton />
-        </React.Fragment>
+        </ButtonGroup>
     ) : null
 
     const editableContent = (
-        <Box sx={{ padding: '0.5em' }} ref={ref}>
+        <Box sx={{ padding: title ? '0.25em 0.5em 0.5em 0.5em' : '0.5em' }} ref={ref}>
             <Editable
                 renderElement={renderElement}
                 readOnly={readonly}

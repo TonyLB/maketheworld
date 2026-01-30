@@ -27,7 +27,7 @@ export const WorkbenchTitledBox: FunctionComponent<WorkbenchTitledBoxProperties>
             sx={{
                 border: (theme) => `2px solid ${(theme.palette as any).extras?.sectionBorder ?? theme.palette.primary.main}`, 
                 borderRadius: '0.5em',
-                paddingTop: "1em",
+                paddingTop: "0.5em",
                 position: "relative",
                 marginTop: "1em",
                 backgroundColor: 'white'
@@ -42,7 +42,7 @@ export const WorkbenchTitledBox: FunctionComponent<WorkbenchTitledBoxProperties>
                     borderRadius: '0.5em',
                     background: (theme) => (theme.palette as any).extras?.sectionHeaderBackground ?? theme.palette.primary.light,
                     paddingLeft: "0.5em",
-                    paddingRight: "0.5em",
+                    paddingRight: actions ? 0 : "0.5em",
                     ...(actions ? {
                         display: 'flex',
                         alignItems: 'center',
