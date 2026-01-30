@@ -271,7 +271,6 @@ This includes:
 - **Element Component Testing** - Feature links, knowledge links, paragraphs
 - **Leaf Component Testing** - Highlight boxes, attributes, conditional rendering
 - **Editor Plugin Testing** - withConstrainedWhitespace, withInlines, etc.
-- **Decorator Function Testing** - decorateFactory, path structures
 - **Common Pitfalls & Solutions** - Troubleshooting guide
 
 The Slate testing patterns are substantial enough to warrant their own dedicated documentation file.

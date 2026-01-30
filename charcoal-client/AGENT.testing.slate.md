@@ -241,7 +241,7 @@ import { vi, beforeEach, describe, it, expect } from 'vitest'
 import '@testing-library/jest-dom'
 import { createEditor, Node, Element as SlateElement, Transforms } from 'slate'
 import { Slate, withReact } from 'slate-react'
-import { Element, Leaf, decorateFactory } from './components'
+import { Element, Leaf } from './components'
 import { CustomParagraphElement, CustomText, CustomFeatureLinkElement, CustomKnowledgeLinkElement } from '../baseClasses'
 ```
 
@@ -605,22 +605,6 @@ const parentElement = contentSpan.closest('[data-slate-leaf]')
 expect(parentElement).toHaveAttribute('data-slate-leaf', 'true')
 ```
 
-## Testing Slate Decorator Functions
-
-`decorateFactory()` returns a decorator that currently returns no ranges (no leading/trailing space highlighting). Test that it returns an empty array for any node:
-
-```typescript
-describe('decorateFactory Function', () => {
-    it('returns empty array for any node', () => {
-        const decorate = decorateFactory()
-        const result = decorate([paragraphNode, [0]])
-        expect(result).toEqual([])
-    })
-})
-```
-
-**Path structure**: Ensure mock paths are arrays: `[0]` not `0`.
-
 ## Troubleshooting Common Slate Testing Issues
 
 ### **"Property 'text' is missing in type" Error**
@@ -631,9 +615,6 @@ const leaf: CustomText = {
     text: 'test'  // Required property
 }
 ```
-
-### **Decorator Function Returns Empty Array**
-**Expected**: `decorateFactory()` currently returns a decorator that always returns `[]` (no leading/trailing space highlighting). Tests should expect an empty array.
 
 ## Integration with General Testing Standards
 
@@ -662,24 +643,6 @@ const leaf: CustomText = {
 - **Why do plugins return the same editor instance?** Is this a Slate design pattern or implementation detail?
 - **How do we test plugin behavior in isolation?** Can we test normalization logic without full editor context?
 - **What are the performance implications** of plugin testing patterns?
-
-### **Testing Slate Decorator Functions**
-
-#### **What We Know**
-- `decorateFactory()` returns a decorator that currently returns no ranges
-- Path parameters must be arrays, not primitive values
-
-#### **Current Testing Pattern**
-```typescript
-describe('decorateFactory Function', () => {
-    it('returns empty array for any node', () => {
-        const decorate = decorateFactory()
-        const paragraphNode = { type: 'paragraph', children: [] }
-        const result = decorate([paragraphNode, [0]])
-        expect(result).toEqual([])
-    })
-})
-```
 
 ### **Testing Slate Leaf Components**
 

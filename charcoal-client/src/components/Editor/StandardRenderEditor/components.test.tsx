@@ -9,7 +9,7 @@ import { vi, beforeEach, describe, it, expect } from 'vitest'
 import '@testing-library/jest-dom'
 import { createEditor, Descendant } from 'slate'
 import { Slate, withReact } from 'slate-react'
-import { Element, Leaf, decorateFactory } from './components'
+import { Element, Leaf } from './components'
 import { CustomParagraphElement, CustomText, CustomFeatureLinkElement, CustomKnowledgeLinkElement } from '../baseClasses'
 
 // Mock the DescriptionLinkFeatureChip component
@@ -214,29 +214,6 @@ describe('StandardRenderEditor Components', () => {
             const contentSpan = screen.getByText('Leaf content')
             const parentElement = contentSpan.closest('[data-slate-leaf]')
             expect(parentElement).toHaveAttribute('data-slate-leaf', 'true')
-        })
-    })
-
-    describe('decorateFactory Function', () => {
-        it('returns empty array for any node', () => {
-            const decorate = decorateFactory()
-
-            const nonParagraphNode = { text: 'test content' }
-            const result = decorate([nonParagraphNode, [0]])
-
-            expect(result).toEqual([])
-        })
-
-        it('returns empty array for paragraph elements', () => {
-            const decorate = decorateFactory()
-
-            const paragraphNode: CustomParagraphElement = {
-                type: 'paragraph',
-                children: []
-            }
-            const result = decorate([paragraphNode, [0]])
-
-            expect(result).toEqual([])
         })
     })
 })

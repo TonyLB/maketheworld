@@ -4,7 +4,6 @@ import { RenderElementProps, RenderLeafProps } from 'slate-react'
 import { DescriptionLinkFeatureChip } from '../../Message/DescriptionLink'
 
 import Box from '@mui/material/Box'
-import { NodeEntry, Range } from 'slate'
 
 export const Element: FunctionComponent<RenderElementProps> = (props) => {
     const { attributes, children, element } = props
@@ -68,6 +67,3 @@ export const Leaf: FunctionComponent<RenderLeafProps> = ({ attributes, children 
         </Box>
     )
 }
-
-export const decorateFactory = () =>
-    (_entry: NodeEntry): (Range & { highlight?: boolean })[] => []

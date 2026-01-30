@@ -25,7 +25,7 @@ import { isCustomBlock } from '../Editor/baseClasses'
 import { useDebouncedOnChange } from '../../hooks/useDebounce'
 import descendantsToRender from '../Editor/StandardRenderEditor/descendantsToRender'
 import descendantsFromRender from '../Editor/StandardRenderEditor/descendantsFromRender'
-import { decorateFactory, Element, Leaf } from '../Editor/StandardRenderEditor/components'
+import { Element, Leaf } from '../Editor/StandardRenderEditor/components'
 import WorkbenchLinkDialog from './LinkDialog'
 import { useWorkbenchAsset } from './useWorkbenchAsset'
 import useUpdatedSlate from '../../hooks/useUpdatedSlate'
@@ -175,7 +175,6 @@ const StandardRenderSlateComponent: FunctionComponent<StandardRenderSlateCompone
     const renderLeaf = useCallback((props: any) => <Leaf {...props} />, [])
     const ref = useRef<HTMLDivElement>(null)
 
-    const decorate = useCallback(decorateFactory(), [])
     return <Slate editor={editor} initialValue={initialValue} onChange={(next) => setValue(next)}>
         <WorkbenchLinkDialog open={linkDialogOpen} onClose={() => { setLinkDialogOpen(false) }} validTags={validLinkTags} />
         { toolbar && <Toolbar variant="dense" disableGutters sx={{ marginTop: '-0.375em' }}>
@@ -191,7 +190,6 @@ const StandardRenderSlateComponent: FunctionComponent<StandardRenderSlateCompone
             <Editable
                 renderElement={renderElement}
                 renderLeaf={renderLeaf}
-                decorate={decorate}
                 readOnly={readonly}
                 placeholder={placeholder}
             />
