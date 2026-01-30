@@ -173,6 +173,7 @@ export type MapContextPosition = {
 
 export type MapContextType = {
     mapId: `MAP#${string}`;
+    standardForm: StandardForm;
     UI: {
         //
         // The Map editor can conceivably need data for:

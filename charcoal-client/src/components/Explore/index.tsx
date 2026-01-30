@@ -1,6 +1,6 @@
 import React, { FunctionComponent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useSelector } from 'react-redux'
+import { useDispatch } from 'react-redux'
 
 import { blue } from '@mui/material/colors'
 import Avatar from '@mui/material/Avatar'
@@ -17,9 +17,11 @@ import LockIcon from '@mui/icons-material/Lock'
 import { getConfiguration } from '../../slices/configuration'
 import useOnboarding from '../Onboarding/useOnboarding'
 import { DevEnvironment } from '../../environment'
+import { openWorkbench, setCurrentAssetId } from '../../slices/UI/workbench'
 
 export const Explore: FunctionComponent = () => {
     const navigate = useNavigate()
+    const dispatch = useDispatch()
     const medium = useMediaQuery('(min-width: 600px)')
     const large = useMediaQuery('(min-width: 1200px)')
     const iconSize = large ? 80 : medium ? 60 : 40
@@ -121,7 +123,10 @@ export const Explore: FunctionComponent = () => {
                                         <Avatar
                                             sx={{ width: `${iconSize}px`, height: `${iconSize}px` }}
                                             alt={'Library'}
-                                            onClick={() => { navigate('/Library/') }}
+                                            onClick={() => {
+                                                dispatch(setCurrentAssetId(null))
+                                                dispatch(openWorkbench())
+                                            }}
                                         >
                                             <LibraryIcon sx={{ fontSize: iconSize * 0.6 }} />
                                         </Avatar>

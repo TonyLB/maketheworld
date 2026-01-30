@@ -42,7 +42,7 @@ type MapLayersContextType = {
 const MapLayersContext = React.createContext<MapLayersContextType>({ mapId: '' })
 export const useMapLayersContext = () => (useContext(MapLayersContext))
 
-const RoomLayer: FunctionComponent<{ roomId: `ROOM#${string}`; name: string; inherited?: boolean; newestRoom?: boolean, children?: ReactNode }> = ({ roomId, name, children }) => {
+const RoomLayer: FunctionComponent<{ roomId: `ROOM#${string}`; name: string; inherited?: boolean; newestRoom?: boolean, children?: ReactNode }> = ({ roomId, name, inherited, children }) => {
     const dispatch = useDispatch()
     const { standardForm, updateStandard, AssetId } = useWorkbenchAsset()
     const [renaming, setRenaming] = useState<boolean>(false)

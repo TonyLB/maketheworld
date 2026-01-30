@@ -85,7 +85,8 @@ To deprecate/remove Library without breaking the workbench you have two options:
 2. **Copy into workbench**  
    Copy the minimal needed code into the Workbench tree and then delete Library. Simpler for a one-way deprecation but duplicates logic (e.g. StandardRenderEditor, StandardFormContext).
 
-**Recommendation**: Prefer (1) for `baseClasses`, `AssetDataHeader`, `FileInputWrapper`, and the StandardRenderEditor utilities/components — they are generic editor building blocks. Move them once, point Workbench (and any other consumers) at the new location, then remove Library-edit. `AssetCard` and `ImageHeader` can either be moved to the same shared area or inlined into Workbench if they are thin wrappers.
+**Decision (Jan 2026): Option 1 — move shared pieces into `src/components/Editor/`.**  
+Use a dedicated **Editor** folder for all editor primitives: StandardFormContext, baseClasses, AssetDataHeader, FileInputWrapper, StandardRenderEditor utilities/components, AssetCard, ImageHeader. Workbench (and temporarily Library-edit, if needed) will import from `Editor/`. Single home for editing building blocks; then remove Library-edit once Workbench is switched over.
 
 ---
 
@@ -156,7 +157,7 @@ So: Maps/View is **not** in Library or workbench; it’s a play-spine page. Givi
    ~~Replace the “import and edit map” navigation to `/Library/Edit/Asset/.../Map/...` with opening the workbench with the same asset and map (set workbench state and open workbench).~~ **Done (Jan 2026).** Maps/View now opens the workbench with the selected asset and map (setCurrentAssetId, setBreadcrumbStack, openWorkbench, putWorkbenchSettings) instead of navigating to Library.
 
 2. **Workbench → Library imports**  
-   Move (or copy) the shared editor primitives used by the workbench into a non-Library module and switch Workbench imports to that module. Then remove Library-edit and, if unused, the rest of Library.
+   Move the shared editor primitives into **`src/components/Editor/`** (per decision above) and switch Workbench imports to that module. Then remove Library-edit and, if unused, the rest of Library.
 
 3. **AppLayout**  
    Remove routes and imports for `Library`, `EditAsset`, and `EditCharacter` once the above are done and any remaining entry points (e.g. Explore “Library” link) are updated to open the workbench or another replacement flow.

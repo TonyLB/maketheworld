@@ -1,8 +1,8 @@
 import React, { FunctionComponent } from 'react'
 import { blue } from '@mui/material/colors'
-import InlineChromiumBugfix from '../../../../lib/slateUtils'
+import InlineChromiumBugfix from '../../../lib/slateUtils'
 import { RenderElementProps, RenderLeafProps, useSlate } from 'slate-react'
-import { DescriptionLinkFeatureChip } from '../../../Message/DescriptionLink'
+import { DescriptionLinkFeatureChip } from '../../Message/DescriptionLink'
 
 import Box from '@mui/material/Box'
 import KeyboardReturnIcon from '@mui/icons-material/KeyboardReturn'

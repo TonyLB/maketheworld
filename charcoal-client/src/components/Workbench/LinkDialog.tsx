@@ -12,7 +12,7 @@ import {
 import CloseIcon from '@mui/icons-material/Close'
 import React, { FunctionComponent, useMemo } from 'react';
 import { ReactEditor, useSlate } from 'slate-react';
-import { CustomFeatureLinkElement, CustomKnowledgeLinkElement } from '../Library/Edit/baseClasses';
+import { CustomFeatureLinkElement, CustomKnowledgeLinkElement } from '../Editor/baseClasses';
 import {
     Range,
     Editor,
