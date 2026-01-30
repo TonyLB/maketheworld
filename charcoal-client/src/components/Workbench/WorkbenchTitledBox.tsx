@@ -6,6 +6,8 @@ import '../../theme/extensions'
 
 type WorkbenchTitledBoxProperties = {
     title?: string;
+    /** Optional actions (e.g. toolbar buttons) rendered to the right of the title in the overlaid strip */
+    actions?: ReactNode;
     children?: ReactNode;
 }
 
@@ -19,7 +21,7 @@ type WorkbenchTitledBoxProperties = {
  * 
  * Uses Material UI's `sx` prop theme-aware capabilities to access theme values directly.
  */
-export const WorkbenchTitledBox: FunctionComponent<WorkbenchTitledBoxProperties> = ({ title, children }) => {
+export const WorkbenchTitledBox: FunctionComponent<WorkbenchTitledBoxProperties> = ({ title, actions, children }) => {
     if (title) {
         return <Box
             sx={{
@@ -27,7 +29,8 @@ export const WorkbenchTitledBox: FunctionComponent<WorkbenchTitledBoxProperties>
                 borderRadius: '0.5em',
                 paddingTop: "1em",
                 position: "relative",
-                marginTop: "1em"
+                marginTop: "1em",
+                backgroundColor: 'white'
             }}
         >
             <Box
@@ -39,10 +42,17 @@ export const WorkbenchTitledBox: FunctionComponent<WorkbenchTitledBoxProperties>
                     borderRadius: '0.5em',
                     background: (theme) => (theme.palette as any).extras?.sectionHeaderBackground ?? theme.palette.primary.light,
                     paddingLeft: "0.5em",
-                    paddingRight: "0.5em"
+                    paddingRight: "0.5em",
+                    ...(actions ? {
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '0.5em'
+                    } : {})
                 }}
             >
                 {title}
+                {actions ?? null}
             </Box>
             { children }
         </Box>
