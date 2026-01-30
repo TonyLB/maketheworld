@@ -129,6 +129,7 @@ Include specific guidance for AI assistants:
 
 #### **Client System** (`charcoal-client/`)
 - **[Client Architecture](charcoal-client/AGENT.md)**: Frontend system with authoring vs playing mode distinction
+- **[Authoring Workbench](charcoal-client/src/components/Workbench/AGENT.md)**: Form-based WML editing, component navigation, reference lists, layered context patterns
 - **[Client Testing Standards](charcoal-client/AGENT.testing.md)**: Vitest patterns and React component testing guidelines
 - **[Message Persistence](charcoal-client/src/slices/messages/AGENT.md)**: Dual-layer client/server message storage, IndexedDB caching, synchronization
 
