@@ -128,4 +128,3 @@ const AssetCard: FunctionComponent<AssetCardProps> = ({ asset, onClick, isSelect
 }
 
 export default AssetCard
-

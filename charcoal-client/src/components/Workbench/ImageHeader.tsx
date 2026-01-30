@@ -3,8 +3,8 @@ import React, { FunctionComponent, useCallback } from 'react'
 import UploadIcon from '@mui/icons-material/Upload'
 import { Box, IconButton, SxProps } from '@mui/material'
 
-import AssetDataHeader, { AssetDataHeaderRenderFunction} from '../Library/Edit/AssetDataHeader'
-import FileWrapper, { useFileWrapper } from '../Library/FileInputWrapper';
+import AssetDataHeader, { AssetDataHeaderRenderFunction} from '../Editor/AssetDataHeader'
+import FileWrapper, { useFileWrapper } from '../Editor/FileInputWrapper';
 import { useWorkbenchAsset, useLibraryImageURL } from './useWorkbenchAsset'
 import { useDispatch } from 'react-redux';
 import { setLoadedImage } from '../../slices/personalAssets';

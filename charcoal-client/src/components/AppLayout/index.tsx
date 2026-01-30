@@ -32,10 +32,6 @@ import CheckpointOverlay from '../Message/CheckpointOverlay'
 import Explore from '../Explore'
 
 import MapView from '../Maps/View'
-import Library from '../Library'
-import EditAsset from '../Library/Edit/EditAsset'
-
-import EditCharacter from '../Library/Edit/EditCharacter'
 import { getMyCharacters, getMySettings, getPlayer } from '../../slices/player'
 import { playerDataSourceSelectors } from '../../slices/player/playerDataSource'
 import Knowledge from '../Knowledge'
@@ -219,9 +215,6 @@ export const AppLayout = ({ whoPanel, homePanel, settingsPanel, messagePanel, on
             <Route path="/SignIn" element={signInOrUp} />
             <Route path="/Character/Archived" element={<InDevelopment />} />
             <Route path="/Character/:CharacterId/*" element={<CharacterRouterSwitch messagePanel={messagePanel} />} />
-            <Route path="/Library/" element={<Library />} />
-            <Route path="/Library/Edit/Asset/:AssetId/*" element={<EditAsset />} />
-            <Route path="/Library/Edit/Character/:AssetId/*" element={<EditCharacter />} />
             <Route path="/Knowledge/" element={<Knowledge />} />
             <Route path="/Knowledge/:KnowledgeId/" element={<Knowledge />} />
             <Route path="/Explore" element={<Explore />} />

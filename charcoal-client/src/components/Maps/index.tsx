@@ -6,14 +6,14 @@ import {
 } from "react-router-dom"
 
 import MapList from './List/'
-import MapEdit from './Edit/'
 
 // eslint-disable-next-line no-empty-pattern
 type MapHomeProps = {}
 
 //
 // TODO: Either deprecate MapHome (not currently used) or extend it to deal with
-// general maps outside the context of a specific character
+// general maps outside the context of a specific character.
+// Map edit flow is now in the workbench; legacy Library/Edit/Asset map route was removed.
 //
 export const MapHome: FunctionComponent<MapHomeProps> = () => {
 
@@ -26,7 +26,6 @@ export const MapHome: FunctionComponent<MapHomeProps> = () => {
     //
     return <Routes>
         <Route path={''} element={<MapList />} />
-        <Route path={`Edit/:mapId/`} element={<MapEdit />} />
     </Routes>
 
 }

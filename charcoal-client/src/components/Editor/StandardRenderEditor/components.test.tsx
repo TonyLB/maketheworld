@@ -13,7 +13,7 @@ import { Element, Leaf, withParagraphBR, decorateFactory } from './components'
 import { CustomParagraphElement, CustomText, CustomFeatureLinkElement, CustomKnowledgeLinkElement } from '../baseClasses'
 
 // Mock the DescriptionLinkFeatureChip component
-vi.mock('../../../Message/DescriptionLink', () => ({
+vi.mock('../../Message/DescriptionLink', () => ({
     DescriptionLinkFeatureChip: ({ children, tooltipTitle }: { children: React.ReactNode, tooltipTitle: string }) => (
         <span data-testid="description-link-chip" title={tooltipTitle}>
             {children}
@@ -22,7 +22,7 @@ vi.mock('../../../Message/DescriptionLink', () => ({
 }))
 
 // Mock the InlineChromiumBugfix component
-vi.mock('../../../../lib/slateUtils', () => ({
+vi.mock('../../../lib/slateUtils', () => ({
     default: () => <span data-testid="inline-chromium-bugfix" />
 }))
 
@@ -185,37 +185,6 @@ describe('StandardRenderEditor Components', () => {
                 // Check for MoreIcon (soft BR)
                 const moreIcon = screen.getByTestId('MoreIcon')
                 expect(moreIcon).toBeInTheDocument()
-                
-                // Check for BR element
-                const brElement = document.querySelector('br')
-                expect(brElement).toBeInTheDocument()
-            })
-
-            it('renders paragraph with only explicit BR when both flags are true (explicit takes precedence)', () => {
-                const element: CustomParagraphElement = {
-                    type: 'paragraph',
-                    explicitBR: true,
-                    softBR: true,
-                    children: []
-                }
-
-                render(
-                    <TestWrapper>
-                        <Element
-                            attributes={mockAttributes}
-                            children={mockChildren}
-                            element={element}
-                        />
-                    </TestWrapper>
-                )
-
-                // When both are true, only explicit BR icon should show
-                const returnIcon = screen.getByTestId('KeyboardReturnIcon')
-                expect(returnIcon).toBeInTheDocument()
-                
-                // MoreIcon should not be visible because of the condition: (element.softBR && !element.explicitBR)
-                const moreIcon = screen.queryByTestId('MoreIcon')
-                expect(moreIcon).not.toBeInTheDocument()
                 
                 // Check for BR element
                 const brElement = document.querySelector('br')

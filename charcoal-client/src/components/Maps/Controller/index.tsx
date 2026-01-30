@@ -1,5 +1,4 @@
 import React, { FunctionComponent, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from "react"
-import { useLibraryAsset } from "../../Library/Edit/LibraryAsset"
 
 import { MapContextItemSelected, MapContextPosition, MapContextType, MapDispatchAction, ToolSelected, isMapTreeRoomWithPosition } from "./baseClasses"
 import MapDThree from "../Edit/MapDThree"
@@ -20,8 +19,10 @@ import { excludeUndefined } from "../../../lib/lists"
 import { StandardPositionFacet, PositionRemoveClass } from "@tonylb/mtw-wml/ts/standardize/keys/facets/position"
 import { ExitFacetList } from "@tonylb/mtw-wml/ts/standardize/keys/facets/exit"
 
+const emptyStandardForm = new StandardForm('<Asset uuid=(default) />')
 export const MapContext = React.createContext<MapContextType>({
     mapId: 'MAP#default',
+    standardForm: emptyStandardForm,
     UI: {
         toolSelected: 'Select',
         exitDrag: { sourceRoomId: 'ROOM#', x: 0, y: 0 }
@@ -118,175 +119,6 @@ const localPositionsFromStandardForms = ({ inherited, local, mapId }: { inherite
     return [...(inherited ? localPositionsFromSingleStandardForm(inherited) : []), ...localPositionsFromSingleStandardForm(local)]
 }
 
-export const MapController: FunctionComponent<{ mapId: `MAP#${string}`; children?: ReactNode }> = ({ children, mapId }) => {
-    const { AssetId, localStandardForm, inheritedStandardForm, standardForm, updateStandard } = useLibraryAsset()
-    const [toolSelected, setToolSelected] = useState<ToolSelected>('Select')
-    const [itemSelected, setItemSelected] = useState<MapContextItemSelected | undefined>(undefined)
-    const dispatch = useDispatch()
-
-    //
-    // Create a StandardForm representation of the items relevant to the map
-    //
-    const editable: StandardForm = useMemo(() => (mapTreeMemo(localStandardForm, mapId)), [localStandardForm, mapId])
-    const inherited: StandardForm = useMemo(() => (mapTreeMemo(inheritedStandardForm, mapId)), [inheritedStandardForm, mapId])
-
-    //
-    // Make local data and setters for exit decorator source and drag location.
-    //
-    const [exitDrag, setExitDrag] = useState<{ sourceRoomId: `ROOM#${string}`; x: number; y: number }>({ sourceRoomId: 'ROOM#', x: 0, y: 0 })
-
-    //
-    // Extract a MapTreeItem tree out of StandardForm
-    //
-    const [mapD3] = useState<MapDThree>(() => {
-        return new MapDThree({
-            inherited,
-            editable,
-            updateStandard,
-            mapId,
-            onExitDrag: setExitDrag,
-        })
-    })
-    const [localPositions, setLocalPositions] = useState<MapContextPosition[]>(localPositionsFromStandardForms({ inherited, local: editable, mapId }))
-
-    const onTick = useCallback((nodes: SimNode[]) => {
-        setLocalPositions(nodes.map(({ id, x, y }) => {
-            const roomComponent = editable.byUniversalId[id]
-            if (roomComponent && roomComponent instanceof StandardRoom) {
-                return {
-                    roomId: id as `ROOM#${string}`,
-                    id: id as `ROOM#${string}`,
-                    x,
-                    y,
-                    name: roomComponent.shortName?._payload?.plain?.toJSON() ?? ''
-                }
-            }
-            else {
-                return {
-                    roomId: id as `ROOM#${string}`,
-                    id: id as `ROOM#${string}`,
-                    x,
-                    y,
-                    name: ''
-                }
-            }
-        }))
-    }, [setLocalPositions, editable])
-
-    const onStability = useCallback((nodes: SimNode[]) => {
-        const update = (standard: StandardForm) => {
-            const draft = standard._clone()
-            const mapComponent = draft.byUniversalId[mapId]
-            if (mapComponent && mapComponent instanceof StandardMap) {
-                nodes.forEach(({ id, x, y }) => {
-                    const facetIndex = mapComponent.positions.items.findIndex((facet) => facet.reference.universalKey === id)
-                    if (facetIndex !== -1) {
-                        const facet = mapComponent.positions.items[facetIndex]
-                        const updatedFacet = new StandardPositionFacet({
-                            reference: facet.reference.toJSON(),
-                            payload: { x, y }
-                        })
-                        mapComponent.positions.items[facetIndex] = updatedFacet
-                    }
-                })
-            }
-            return draft
-        }
-        updateStandard({ type: 'update', update })
-    }, [mapId, updateStandard])
-
-    const dispatchParentId = useMemo(() => (''), [])
-
-    const maybeAddImport = useCallback((roomId: `ROOM#${string}`): 'local' | 'added' | 'notFound' => {
-        const localAsset = editable.byUniversalId[roomId]
-        if (localAsset) {
-            return 'local'
-        }
-        const inheritedAsset = inherited.byUniversalId[roomId]
-        if (inheritedAsset) {
-            const originAssetId = (inheritedAsset.origin ?? []).slice(-1)[0]
-            if (originAssetId) {
-                dispatch(addImport({ assetId: AssetId, fromAsset: originAssetId, tag: 'Room', uuid: roomId }))
-                return 'added'
-            }
-        }
-        return 'notFound'
-    }, [inherited, dispatch])
-
-    const mapDispatch = useCallback((action: MapDispatchAction) => {
-        switch(action.type) {
-            case 'SetToolSelected':
-                setToolSelected(action.value)
-                return
-            case 'UpdateTree':
-                mapD3.update(inherited, editable, updateStandard, mapId)
-                return
-            case 'SetNode':
-                mapD3.dragNode({ roomId: action.roomId, x: action.x, y: action.y })
-                return
-            case 'EndDrag':
-                mapD3.endDrag()
-                return
-            case 'DragExit':
-                mapD3.dragExit({ roomId: action.sourceRoomId, x: action.x, y: action.y, double: action.double ?? false })
-                return
-            case 'SelectItem':
-                setItemSelected(action.item)
-                return
-            case 'SelectParent':
-                return
-            case 'AddRoom':
-                addRoomFactory({ mapId, standard: editable, updateStandard })({ roomId: action.roomId, x: action.x, y: action.y })
-                return
-            case 'UnlockRoom':
-                //
-                // Look up the origin asset of the roomId in the inheritedStandardForm
-                //
-                const unlockRoomId = action.roomId
-                if (unlockRoomId && isSchemaComponentUUID(unlockRoomId) && unlockRoomId.startsWith('ROOM#')) {
-                    if (maybeAddImport(unlockRoomId as `ROOM#${string}`) === 'added') {
-                        addRoomFactory({ mapId, standard: editable, updateStandard })({ roomId: unlockRoomId as `ROOM#${string}` })
-                    }
-                }
-                return
-
-        }
-    }, [AssetId, mapD3, mapId, dispatchParentId, setToolSelected, setItemSelected, editable, updateStandard, dispatch])
-    useEffect(() => {
-        const addExitFactoryOutput = addExitFactory({ standardForm, editable, addImport: maybeAddImport, updateStandard })
-        const onAddExit = (fromRoomId: `ROOM#${string}`, toRoomId: `ROOM#${string}`, double: boolean) => {
-            addExitFactoryOutput({ from: fromRoomId, to: toRoomId })
-            if (double) {
-                dispatch(addOnboardingComplete(['connectNewRoom']))
-                addExitFactoryOutput({ from: toRoomId, to: fromRoomId })
-            }
-        }
-        mapD3.setCallbacks({ onTick, onStability, onAddExit })
-    }, [mapD3, dispatch, mapId, standardForm, editable, updateStandard, onTick, onStability])
-    useEffect(() => {
-        mapDispatch({ type: 'UpdateTree', inherited, editable })
-    }, [mapDispatch, inherited, editable])
-    useEffect(() => () => {
-        mapD3.unmount()
-    }, [mapD3])
-
-    return <MapContext.Provider
-        value={{
-            mapId,
-            UI: {
-                toolSelected,
-                exitDrag,
-                itemSelected
-            },
-            mapDispatch,
-            mapD3,
-            localPositions
-        }}
-    >
-        { children }
-    </MapContext.Provider>
-}
-
 export const MapDisplayController: FunctionComponent<{ standardForm: StandardForm; mapId: `MAP#${string}`; children?: ReactNode }> = ({ standardForm, mapId, children }) => {
 
     //
@@ -338,6 +170,7 @@ export const MapDisplayController: FunctionComponent<{ standardForm: StandardFor
     return <MapContext.Provider
         value={{
             mapId,
+            standardForm,
             UI: {
                 toolSelected: 'Select',
                 exitDrag: { sourceRoomId: 'ROOM#', x: 0, y: 0 }
@@ -350,5 +183,3 @@ export const MapDisplayController: FunctionComponent<{ standardForm: StandardFor
         { children }
     </MapContext.Provider>
 }
-
-export default MapController

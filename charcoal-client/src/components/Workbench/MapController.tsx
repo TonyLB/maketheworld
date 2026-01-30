@@ -203,6 +203,7 @@ export const WorkbenchMapController: FunctionComponent<{ mapId: `MAP#${string}`;
     return <MapContext.Provider
         value={{
             mapId,
+            standardForm,
             UI: {
                 toolSelected,
                 exitDrag,

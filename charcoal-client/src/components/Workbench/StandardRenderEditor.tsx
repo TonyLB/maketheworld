@@ -20,20 +20,21 @@ import {
 import LinkIcon from '@mui/icons-material/Link'
 import LinkOffIcon from '@mui/icons-material/LinkOff'
 
-import { isCustomBlock } from '../Library/Edit/baseClasses'
+import { isCustomBlock } from '../Editor/baseClasses'
 
 import { useDebouncedOnChange } from '../../hooks/useDebounce'
-import descendantsToRender from '../Library/Edit/StandardRenderEditor/descendantsToRender'
-import descendantsFromRender from '../Library/Edit/StandardRenderEditor/descendantsFromRender'
-import { decorateFactory, Element, Leaf, withParagraphBR } from '../Library/Edit/StandardRenderEditor/components'
+import descendantsToRender from '../Editor/StandardRenderEditor/descendantsToRender'
+import descendantsFromRender from '../Editor/StandardRenderEditor/descendantsFromRender'
+import { decorateFactory, Element, Leaf, withParagraphBR } from '../Editor/StandardRenderEditor/components'
 import WorkbenchLinkDialog from './LinkDialog'
 import { useWorkbenchAsset } from './useWorkbenchAsset'
 import useUpdatedSlate from '../../hooks/useUpdatedSlate'
-import withConstrainedWhitespace from '../Library/Edit/StandardRenderEditor/constrainedWhitespace'
+import withConstrainedWhitespace from '../Editor/StandardRenderEditor/constrainedWhitespace'
 import TutorialPopover from '../Onboarding/TutorialPopover'
-import { useStandardFormContext } from '../Library/Edit/StandardFormContext'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardRender } from '@tonylb/mtw-wml/ts/standardize/render'
+
+type StandardFormTag = 'ShortName' | 'Name' | 'Summary' | 'Description' | 'Statement' | 'Fallthrough' | 'If' | 'Exits'
 
 interface StandardRenderEditorProps {
     validLinkTags?: ('Feature' | 'Knowledge')[];
@@ -41,8 +42,10 @@ interface StandardRenderEditorProps {
     checkPoints?: string[];
     value: StandardRender;
     onChange: (value: StandardRender) => void;
-    /** Override placeholder (e.g. when not inside StandardFormSchema). Example: "Enter a Description" */
+    /** Override placeholder. Example: "Enter a Description" */
     placeholder?: string;
+    /** Field tag for default placeholder when placeholder is not provided. E.g. "Summary" -> "Enter a Summary" */
+    tag?: StandardFormTag;
 }
 
 const withInlines = (editor: Editor) => {
@@ -197,9 +200,8 @@ const StandardRenderSlateComponent: FunctionComponent<StandardRenderSlateCompone
 }
 
 export const WorkbenchStandardRenderEditor: FunctionComponent<StandardRenderEditorProps> = (props) => {
-    const { tag } = useStandardFormContext()
     const { standardForm, readonly } = useWorkbenchAsset()
-    const contextPlaceholder = ['ShortName', 'Name', 'Summary', 'Description'].includes(tag) ? `Enter a ${tag}` : ''
+    const contextPlaceholder = props.placeholder !== undefined ? '' : (props.tag && ['ShortName', 'Name', 'Summary', 'Description'].includes(props.tag) ? `Enter a ${props.tag}` : '')
     return <StandardRenderSlateComponent
         { ...props }
         placeholder={props.placeholder ?? contextPlaceholder}

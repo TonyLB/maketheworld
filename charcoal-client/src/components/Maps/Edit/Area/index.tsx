@@ -2,7 +2,6 @@ import React, { FunctionComponent, useCallback, useMemo } from 'react'
 
 import MapDisplay from './MapDisplay'
 import { useMapContext } from '../../Controller'
-import { useLibraryAsset } from '../../../Library/Edit/LibraryAsset'
 import { extractExitsFromStandardForm } from '../../exitExtraction'
 import { useDispatch } from 'react-redux'
 import { addOnboardingComplete } from '../../../../slices/player/index.api'
@@ -13,7 +12,7 @@ type MapAreaProps = {
 }
 
 export const MapArea: FunctionComponent<MapAreaProps>= ({ fileURL, editMode }) => {
-    const { standardForm } = useLibraryAsset()
+    const { standardForm } = useMapContext()
     const { UI: { toolSelected, exitDrag, itemSelected }, localPositions: rooms, mapId, mapDispatch } = useMapContext()
     const dispatch = useDispatch()
     const exits = useMemo(() => (extractExitsFromStandardForm(standardForm, mapId)), [standardForm, mapId])

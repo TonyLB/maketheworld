@@ -36,7 +36,7 @@ import { ReferenceList } from '@tonylb/mtw-wml/ts/standardize/keys/referenceList
 import WorkbenchComponentRow from './WorkbenchComponentRow'
 import WorkbenchAddComponent from './WorkbenchAddComponent'
 import WorkbenchAddImport from './WorkbenchAddImport'
-import ImageHeader from '../Library/Edit/ImageHeader'
+import ImageHeader from './ImageHeader'
 import WorkbenchDraftLockout from './DraftLockout'
 import { MakeTheWorldAccordion } from '../UI'
 
@@ -197,6 +197,7 @@ export const WorkbenchAssetEditForm: FunctionComponent = () => {
                                             onChange={setSummary}
                                             validLinkTags={[]}
                                             toolbar={false}
+                                            tag="Summary"
                                         />
                                     </Box>
                                 </Box>

@@ -19,10 +19,10 @@ import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
 import MapArea from '../Edit/Area'
 import { EphemeraAssetId, EphemeraMapId, EphemeraCharacterId, isEphemeraMapId } from '@tonylb/mtw-interfaces/ts/baseClasses';
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize';
-import { ComponentUUID } from '@tonylb/mtw-base/ts/schema';
+import { AssetUUID, ComponentUUID } from '@tonylb/mtw-base/ts/schema';
 import { MapDisplayController } from '../Controller';
-import { useNavigate } from 'react-router-dom';
 import { AssetPicker } from '../../AssetPicker';
+import { openWorkbench, setCurrentAssetId, setBreadcrumbStack, putWorkbenchSettings } from '../../../slices/UI/workbench';
 import { addImport } from '../../../slices/personalAssets';
 import { useOnboardingCheckpoint } from '../../Onboarding/useOnboarding';
 import TutorialPopover from '../../Onboarding/TutorialPopover';
@@ -41,8 +41,6 @@ export const MapView: FunctionComponent<MapViewProps> = () => {
     // Get first draft asset for import target (or undefined if no drafts)
     const firstDraftAsset = draftAssets.length > 0 ? draftAssets[0] : undefined
     const firstDraftAssetId = firstDraftAsset?.AssetId
-    // Removed useAutoPin - tab navigation removed
-    const navigate = useNavigate()
     useOnboardingCheckpoint('openMap', { requireSequence: true })
     useEffect(() => {
         dispatch(addItem({ key: CharacterId }))
@@ -80,18 +78,20 @@ export const MapView: FunctionComponent<MapViewProps> = () => {
     // - Determining the target asset for map room imports
     // ...all needs to be redesigned with multi-draft support in mind.
     const onImportListItemClick = useCallback(({ asset, key }: { asset: EphemeraAssetId, key: string }) => {
-        // dispatch(addOnboardingComplete(['importRoom']))
-        // Import into first draft asset if available, otherwise skip import
+        // Import into first draft asset if available, then open workbench on that asset + map
         if (firstDraftAssetId) {
-            // Extract UUID from AssetId (e.g., 'ASSET#uuid' -> 'uuid')
-            const draftAssetKey = firstDraftAssetId.replace('ASSET#', '')
             const fromAssetKey = asset.split('#')[1]
             if (asset !== firstDraftAssetId && fromAssetKey) {
-                dispatch(addImport({ assetId: firstDraftAssetId as EphemeraAssetId | EphemeraCharacterId, fromAsset: `ASSET#${fromAssetKey}` as `ASSET#${string}`, tag: 'Map', uuid: key as ComponentUUID }))
+                dispatch(addImport({ assetId: firstDraftAssetId, fromAsset: `ASSET#${fromAssetKey}` as AssetUUID, tag: 'Map', uuid: key as ComponentUUID }))
             }
-            navigate(`/Library/Edit/Asset/${draftAssetKey}/Map/${key}`)
+            const mapComponentId = key.startsWith('MAP#') ? (key as ComponentUUID) : (`MAP#${key}` as ComponentUUID)
+            dispatch(setCurrentAssetId(firstDraftAssetId))
+            dispatch(setBreadcrumbStack([{ id: mapComponentId, kind: 'component', componentId: mapComponentId }]))
+            dispatch(openWorkbench())
+            dispatch(putWorkbenchSettings({ currentAssetId: firstDraftAssetId }))
+            setOpen(false)
         }
-    }, [navigate, firstDraftAssetId, dispatch])
+    }, [firstDraftAssetId, dispatch])
     const onClick = useCallback(() => {
         if (importOptions.length > 1) {
             setOpen(true)

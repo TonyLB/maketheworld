@@ -9,7 +9,7 @@ import {
     Box
 } from '@mui/material'
 
-import MiniChip from '../../MiniChip'
+import MiniChip from '../MiniChip'
 
 export type AssetDataHeaderRenderFunction = {
     (key: string): ReactNode;
