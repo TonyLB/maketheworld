@@ -130,6 +130,7 @@ const useStandardRenderEditorHook = (standard: StandardForm, value: StandardRend
         const returnValue = descendantsFromRender(value, { standard })
         return returnValue
     }, [value, standard])
+    // useUpdatedSlate syncs external value via Transforms (removeNodes/insertNodes), not by mutating editor.children
     const editor = useUpdatedSlate({
         initializeEditor: () => withConstrainedWhitespace(withParagraphBR(withInlines(withHistory(withReact(createEditor()))))),
         value: defaultValue,
