@@ -197,12 +197,13 @@ describe('descendantsFromRender', () => {
     // Test Line Break Handling
     describe('Line Break Handling', () => {
         it('should handle StandardRenderLineBreak', () => {
+            // A single <br /> means: end current (empty) paragraph, start next (empty). Round-trips as two paragraphs.
             const render = new StandardRender([{ data: { tag: 'br' }, children: [] }])
             const result = descendantsFromRender(render, { standard: standardForm })
-            expect(result).toEqual([{
-                type: 'paragraph',
-                children: [{ text: '' }]
-            }])
+            expect(result).toEqual([
+                { type: 'paragraph', children: [{ text: '' }] },
+                { type: 'paragraph', children: [{ text: '' }] }
+            ])
         })
 
         it('should handle multiple line breaks', () => {
@@ -377,20 +378,16 @@ describe('descendantsFromRender', () => {
         })
 
         it('should handle render with only line breaks', () => {
+            // [br, br] = three paragraphs (empty, empty, empty).
             const render = new StandardRender([
                 { data: { tag: 'br' }, children: [] },
                 { data: { tag: 'br' }, children: [] }
             ])
             const result = descendantsFromRender(render, { standard: standardForm })
             expect(result).toEqual([
-                {
-                    type: 'paragraph',
-                    children: [{ text: '' }]
-                },
-                {
-                    type: 'paragraph',
-                    children: [{ text: '' }]
-                }
+                { type: 'paragraph', children: [{ text: '' }] },
+                { type: 'paragraph', children: [{ text: '' }] },
+                { type: 'paragraph', children: [{ text: '' }] }
             ])
         })
 

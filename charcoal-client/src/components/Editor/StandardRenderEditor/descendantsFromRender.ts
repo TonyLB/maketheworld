@@ -99,9 +99,8 @@ export const descendantsFromRender = (render: StandardRender, options: { standar
     if (paragraphs.length === 0 && currentChildren.length === 0) {
         return [{ type: 'paragraph', children: [{ text: '' }] }]
     }
-    if (currentChildren.length > 0) {
-        pushParagraph()
-    }
+    // Always flush the current paragraph so a trailing <br /> (empty paragraph in Slate) round-trips correctly.
+    pushParagraph()
     return paragraphs
 }
 
