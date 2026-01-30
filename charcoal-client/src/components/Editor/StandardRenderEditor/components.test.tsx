@@ -7,7 +7,7 @@ import { render, screen } from '@testing-library/react'
 import { ThemeProvider, createTheme } from '@mui/material/styles'
 import { vi, beforeEach, describe, it, expect } from 'vitest'
 import '@testing-library/jest-dom'
-import { createEditor, Node, Element as SlateElement, Transforms } from 'slate'
+import { createEditor, Descendant, Node, Element as SlateElement, Transforms } from 'slate'
 import { Slate, withReact } from 'slate-react'
 import { Element, Leaf, withParagraphBR, decorateFactory } from './components'
 import { CustomParagraphElement, CustomText, CustomFeatureLinkElement, CustomKnowledgeLinkElement } from '../baseClasses'
@@ -26,14 +26,19 @@ vi.mock('../../../lib/slateUtils', () => ({
     default: () => <span data-testid="inline-chromium-bugfix" />
 }))
 
+// Valid default document for Slate (0.123+ requires initialValue to be a list of elements)
+const DEFAULT_SLATE_VALUE: Descendant[] = [
+    { type: 'paragraph', children: [{ text: '' }] }
+]
+
 // Test wrapper with Material-UI theme and Slate editor
-const TestWrapper: React.FC<{ children: React.ReactNode, value?: any[] }> = ({ children, value = [] }) => {
+const TestWrapper: React.FC<{ children: React.ReactNode, initialValue?: Descendant[] }> = ({ children, initialValue = DEFAULT_SLATE_VALUE }) => {
     const theme = createTheme()
     const editor = withReact(createEditor())
-    
+
     return (
         <ThemeProvider theme={theme}>
-            <Slate editor={editor} value={value}>
+            <Slate editor={editor} initialValue={initialValue}>
                 {children}
             </Slate>
         </ThemeProvider>

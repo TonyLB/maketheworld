@@ -166,12 +166,16 @@ const StandardRenderSlateComponent: FunctionComponent<StandardRenderSlateCompone
 
     const [linkDialogOpen, setLinkDialogOpen] = useState<boolean>(false)
     const { editor, value: slateValue, setValue } = useStandardRenderEditorHook(standard, value, onChange)
+    // Slate 0.123+ uses initialValue (uncontrolled); capture first value so we don't change it after mount
+    const [initialValue] = useState<Descendant[]>(() =>
+        slateValue.length ? slateValue : [{ type: 'paragraph', children: [{ text: '' }] }]
+    )
     const renderElement = useCallback((props: any) => <Element {...props} />, [])
     const renderLeaf = useCallback((props: any) => <Leaf {...props} />, [])
     const ref = useRef<HTMLDivElement>(null)
 
     const decorate = useCallback(decorateFactory(editor), [editor])
-    return <Slate editor={editor} value={slateValue} onChange={(value) => { setValue(value) }}>
+    return <Slate editor={editor} initialValue={initialValue} onChange={(next) => setValue(next)}>
         <WorkbenchLinkDialog open={linkDialogOpen} onClose={() => { setLinkDialogOpen(false) }} validTags={validLinkTags} />
         { toolbar && <Toolbar variant="dense" disableGutters sx={{ marginTop: '-0.375em' }}>
                 { (validLinkTags?.length &&
