@@ -4,5 +4,5 @@ export { default as FileInputWrapper, FileWrapper, useFileWrapper } from './File
 export { default as AssetCard, type AssetWithMetadata } from './AssetCard'
 export { default as descendantsToRender } from './StandardRenderEditor/descendantsToRender'
 export { default as descendantsFromRender, descendantsCompact } from './StandardRenderEditor/descendantsFromRender'
-export { decorateFactory, Element, Leaf, withParagraphBR } from './StandardRenderEditor/components'
+export { decorateFactory, Element, Leaf } from './StandardRenderEditor/components'
 export { default as withConstrainedWhitespace } from './StandardRenderEditor/constrainedWhitespace'

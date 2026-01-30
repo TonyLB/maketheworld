@@ -183,16 +183,7 @@ render(
 **Why This Happens**: Slate components use hooks and context that require the component to be within a Slate editor tree.
 
 #### **Plugin Function Dependencies**
-Slate plugin functions expect specific editor types:
-```typescript
-// ❌ WRONG - Plugin functions modify editor behavior
-const enhancedEditor = withParagraphBR(editor)
-// Must test that the editor was actually modified
-
-// ✅ REQUIRED - Test both the modification and return value
-expect(enhancedEditor.normalizeNode).not.toBe(editor.normalizeNode)
-expect(enhancedEditor).toBe(editor)  // Plugin returns same instance
-```
+Slate plugin functions (e.g. withConstrainedWhitespace, withInlines) modify editor behavior and return the same editor instance. Test both that the editor was modified and that the same instance is returned.
 
 ### **How These Challenges Affect Testing Strategy**
 
@@ -250,7 +241,7 @@ import { vi, beforeEach, describe, it, expect } from 'vitest'
 import '@testing-library/jest-dom'
 import { createEditor, Node, Element as SlateElement, Transforms } from 'slate'
 import { Slate, withReact } from 'slate-react'
-import { Element, Leaf, withParagraphBR, decorateFactory } from './components'
+import { Element, Leaf, decorateFactory } from './components'
 import { CustomParagraphElement, CustomText, CustomFeatureLinkElement, CustomKnowledgeLinkElement } from '../baseClasses'
 ```
 
@@ -614,140 +605,35 @@ const parentElement = contentSpan.closest('[data-slate-leaf]')
 expect(parentElement).toHaveAttribute('data-slate-leaf', 'true')
 ```
 
-## Testing Slate Editor Plugins
-
-### **Plugin Function Testing**
-```typescript
-describe('withParagraphBR Plugin', () => {
-    it('applies paragraph BR normalization to editor', () => {
-        const editor = withReact(createEditor())
-        const originalNormalizeNode = editor.normalizeNode
-        
-        const enhancedEditor = withParagraphBR(editor)
-        
-        expect(enhancedEditor.normalizeNode).not.toBe(originalNormalizeNode)
-        expect(typeof enhancedEditor.normalizeNode).toBe('function')
-    })
-
-    it('returns the enhanced editor', () => {
-        const editor = withReact(createEditor())
-        const enhancedEditor = withParagraphBR(editor)
-        
-        expect(enhancedEditor).toBe(editor)
-    })
-})
-```
-
-**Key Patterns**:
-- Test that plugins modify editor behavior correctly
-- Verify plugin functions return enhanced editor
-- Test plugin integration without full editor complexity
-
 ## Testing Slate Decorator Functions
 
-### **Basic Decorator Function Testing**
+`decorateFactory()` returns a decorator that currently returns no ranges (no leading/trailing space highlighting). Test that it returns an empty array for any node:
+
 ```typescript
 describe('decorateFactory Function', () => {
-    it('creates decorators for leading spaces in paragraph content', () => {
-        const editor = withReact(createEditor())
-        const decorate = decorateFactory(editor)
-        
-        const paragraphNode = {
-            type: 'paragraph',
-            children: [{ type: 'text', text: ' leading space' }]
-        }
+    it('returns empty array for any node', () => {
+        const decorate = decorateFactory()
         const result = decorate([paragraphNode, [0]])
-        
-        expect(result).toHaveLength(1)
-        expect(result[0]).toHaveProperty('highlight', true)
+        expect(result).toEqual([])
     })
 })
 ```
 
-**Key Patterns**:
-- Test decorator creation with various input types
-- Verify decorator properties and structure
-- Test edge cases and empty inputs
-
-### **Critical Decorator Function Testing Patterns**
-
-#### **1. Mock Data Structure Requirements**
-```typescript
-// ❌ WRONG - Adding type property breaks isCustomText check
-const paragraphNode = {
-    type: 'paragraph',
-    children: [{ type: 'text', text: ' leading space' }]
-}
-
-// ✅ CORRECT - isCustomText expects pure text objects (no type property)
-const paragraphNode = {
-    type: 'paragraph',
-    children: [{ text: ' leading space' }]  // No type property
-}
-```
-
-**Critical Insight**: The `isCustomText` function returns `false` for objects with `type: 'text'` because it expects "pure text objects" that only have a `text` property.
-
-#### **2. Testing Space Detection Logic**
-```typescript
-// The decorator function checks for:
-// - Leading spaces: firstChild.text.match(/^\s/)
-// - Trailing spaces: lastChild.text.match(/\s$/)
-
-// ✅ CORRECT - Test with actual space characters
-it('creates decorators for leading spaces', () => {
-    const paragraphNode = {
-        type: 'paragraph',
-        children: [{ 
-            type: 'text', 
-            text: ' leading space' // Note the leading space
-        }]
-    }
-    // ... test logic
-})
-```
-
-#### **3. Path Structure for Decorators**
-```typescript
-// Decorators create paths like: [...path, ...firstChildPath, offset]
-// Ensure your mock paths are arrays: [0] not 0
-const result = decorate([paragraphNode, [0]]) // ✅ Correct
-const result = decorate([paragraphNode, 0])   // ❌ Wrong
-```
+**Path structure**: Ensure mock paths are arrays: `[0]` not `0`.
 
 ## Troubleshooting Common Slate Testing Issues
-
-### **"Unable to find an element with the text: &nbsp;" Error**
-**Cause**: The highlight box renders a space character ` `, not the HTML entity `&nbsp;`
-**Solution**: Use flexible text matching for space characters:
-```typescript
-const highlightBox = screen.getByText((content, element) => {
-    return element?.textContent === ' ' || element?.textContent === '\u00A0'
-})
-```
 
 ### **"Property 'text' is missing in type" Error**
 **Cause**: `RenderLeafProps` interface requires a `text` property
 **Solution**: Ensure your mock leaf objects include the `text` property:
 ```typescript
 const leaf: CustomText = {
-    text: 'test',  // Required property
-    highlight: true
+    text: 'test'  // Required property
 }
 ```
 
 ### **Decorator Function Returns Empty Array**
-**Cause**: Mock data structure doesn't match what the function expects
-**Solution**: Ensure your mock paragraph nodes have the correct structure:
-```typescript
-const paragraphNode = {
-    type: 'paragraph',
-    children: [{ 
-        type: 'text',  // Required type property
-        text: ' leading space'  // Required text property with actual spaces
-    }]
-}
-```
+**Expected**: `decorateFactory()` currently returns a decorator that always returns `[]` (no leading/trailing space highlighting). Tests should expect an empty array.
 
 ## Integration with General Testing Standards
 
@@ -768,7 +654,7 @@ const paragraphNode = {
 ### **Testing Slate Editor Plugins**
 
 #### **What We Know**
-- Plugin functions modify editor behavior and return enhanced editors
+- Plugin functions (e.g. withConstrainedWhitespace, withInlines) modify editor behavior and return enhanced editors
 - We can test that the editor was modified by comparing function references
 - We can test that the same editor instance is returned
 
@@ -777,55 +663,20 @@ const paragraphNode = {
 - **How do we test plugin behavior in isolation?** Can we test normalization logic without full editor context?
 - **What are the performance implications** of plugin testing patterns?
 
-#### **Current Testing Pattern (Needs Validation)**
-```typescript
-describe('withParagraphBR Plugin', () => {
-    it('applies paragraph BR normalization to editor', () => {
-        const editor = withReact(createEditor())
-        const originalNormalizeNode = editor.normalizeNode
-        
-        const enhancedEditor = withParagraphBR(editor)
-        
-        expect(enhancedEditor.normalizeNode).not.toBe(originalNormalizeNode)
-        expect(typeof enhancedEditor.normalizeNode).toBe('function')
-    })
-
-    it('returns the enhanced editor', () => {
-        const editor = withReact(createEditor())
-        const enhancedEditor = withParagraphBR(editor)
-        
-        expect(enhancedEditor).toBe(editor)
-    })
-})
-```
-
 ### **Testing Slate Decorator Functions**
 
 #### **What We Know**
-- Decorator functions expect specific data structures with `type` properties
+- `decorateFactory()` returns a decorator that currently returns no ranges
 - Path parameters must be arrays, not primitive values
-- Space detection uses regex patterns on text content
 
-#### **What We Need to Research**
-- **Why do decorator functions require complete node structures?** Is this for type safety or runtime validation?
-- **How do decorator functions integrate with Slate's rendering system?** Are they called during render or separately?
-- **What are the performance characteristics** of decorator functions in real editing scenarios?
-
-#### **Current Testing Pattern (Needs Validation)**
+#### **Current Testing Pattern**
 ```typescript
 describe('decorateFactory Function', () => {
-    it('creates decorators for leading spaces in paragraph content', () => {
-        const editor = withReact(createEditor())
-        const decorate = decorateFactory(editor)
-        
-        const paragraphNode = {
-            type: 'paragraph',
-            children: [{ type: 'text', text: ' leading space' }]
-        }
+    it('returns empty array for any node', () => {
+        const decorate = decorateFactory()
+        const paragraphNode = { type: 'paragraph', children: [] }
         const result = decorate([paragraphNode, [0]])
-        
-        expect(result).toHaveLength(1)
-        expect(result[0]).toHaveProperty('highlight', true)
+        expect(result).toEqual([])
     })
 })
 ```

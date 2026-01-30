@@ -25,7 +25,7 @@ import { isCustomBlock } from '../Editor/baseClasses'
 import { useDebouncedOnChange } from '../../hooks/useDebounce'
 import descendantsToRender from '../Editor/StandardRenderEditor/descendantsToRender'
 import descendantsFromRender from '../Editor/StandardRenderEditor/descendantsFromRender'
-import { decorateFactory, Element, Leaf, withParagraphBR } from '../Editor/StandardRenderEditor/components'
+import { decorateFactory, Element, Leaf } from '../Editor/StandardRenderEditor/components'
 import WorkbenchLinkDialog from './LinkDialog'
 import { useWorkbenchAsset } from './useWorkbenchAsset'
 import useUpdatedSlate from '../../hooks/useUpdatedSlate'
@@ -34,7 +34,7 @@ import TutorialPopover from '../Onboarding/TutorialPopover'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardRender } from '@tonylb/mtw-wml/ts/standardize/render'
 
-type StandardFormTag = 'ShortName' | 'Name' | 'Summary' | 'Description' | 'Statement' | 'Fallthrough' | 'If' | 'Exits'
+type StandardFormTag = 'ShortName' | 'Name' | 'Summary' | 'Description'
 
 interface StandardRenderEditorProps {
     validLinkTags?: ('Feature' | 'Knowledge')[];
@@ -132,7 +132,7 @@ const useStandardRenderEditorHook = (standard: StandardForm, value: StandardRend
     }, [value, standard])
     // useUpdatedSlate syncs external value via Transforms (removeNodes/insertNodes), not by mutating editor.children
     const editor = useUpdatedSlate({
-        initializeEditor: () => withConstrainedWhitespace(withParagraphBR(withInlines(withHistory(withReact(createEditor()))))),
+        initializeEditor: () => withConstrainedWhitespace(withInlines(withHistory(withReact(createEditor())))),
         value: defaultValue,
         comparisonOutput: descendantsToRender(standard)
     })
@@ -175,7 +175,7 @@ const StandardRenderSlateComponent: FunctionComponent<StandardRenderSlateCompone
     const renderLeaf = useCallback((props: any) => <Leaf {...props} />, [])
     const ref = useRef<HTMLDivElement>(null)
 
-    const decorate = useCallback(decorateFactory(editor), [editor])
+    const decorate = useCallback(decorateFactory(), [])
     return <Slate editor={editor} initialValue={initialValue} onChange={(next) => setValue(next)}>
         <WorkbenchLinkDialog open={linkDialogOpen} onClose={() => { setLinkDialogOpen(false) }} validTags={validLinkTags} />
         { toolbar && <Toolbar variant="dense" disableGutters sx={{ marginTop: '-0.375em' }}>
