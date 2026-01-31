@@ -501,7 +501,7 @@ describe('TagTree', () => {
                         <Name>Guard Captain</Name>
                     </Character>
                     <Map key=(dungeonMap) uuid=(Map1)>
-                        <Name>Dungeon Layout</Name>
+                        <ShortName>Dungeon Layout</ShortName>
                         <Room key=(room1) uuid=(Room1)><Position {0, 0} /></Room>
                     </Map>
                 </Asset>
@@ -511,12 +511,12 @@ describe('TagTree', () => {
                 tree: testTree, 
                 classify, 
                 compare, 
-                orderIndependence: [['Name'], ['Character', 'Map']] 
+                orderIndependence: [['Name', 'ShortName'], ['Character', 'Map']] 
             })
             
             expect(tagTree._tagList).toHaveLength(3)
             
-            // Character and Map still include Name directly
+            // Character includes Name directly; Map includes ShortName directly
             const characterTags = tagTree._tagList.filter(tagList => 
                 tagList.some(tag => tag.data.tag === 'Character')
             )

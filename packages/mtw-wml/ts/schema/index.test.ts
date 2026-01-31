@@ -352,7 +352,7 @@ describe('schemaFromParse', () => {
             <Asset uuid=(Test)>
                 <Map key=(testMap)>
                     <Image key=(image1) />
-                    <Name>Test Map</Name>
+                    <ShortName>Test Map</ShortName>
                     <Room key=(ABC)><Position {100, 0} /></Room>
                     <Room key=(DEF)><Position {-100, 0} /></Room>
                 </Map>
@@ -373,7 +373,7 @@ describe('schemaFromParse', () => {
                     children: [
                         { data: { tag: 'Image', key: 'image1' }, children: [] },
                         {
-                            data: { tag: 'Name' },
+                            data: { tag: 'ShortName' },
                             children: [{ data: { tag: 'String', value: 'Test Map' }, children: [] }]
                         },
                         {
@@ -554,7 +554,7 @@ describe('schemaToWML', () => {
                     </Example>
                 </Knowledge>
                 <Map uuid=(123-map) key=(map1)>
-                    <Name>Test Map</Name>
+                    <ShortName>Test Map</ShortName>
                     <Room key=(ABC)><Position {100, 0} /></Room>
                 </Map>
                 <Moment uuid=(123-moment) key=(moment1)>

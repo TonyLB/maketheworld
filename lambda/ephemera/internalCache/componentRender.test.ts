@@ -194,7 +194,7 @@ describe('ComponentRender cache handler', () => {
                     return {
                         [`ASSET#Base`]: new StandardMap({
                             universalKey: 'MAP#TestOne',
-                            name: 'Test Map',
+                            shortName: 'Test Map',
                             images: [],
                             positions: [{ reference: 'ROOM#TestRoomOne', payload: { x: 0, y: 0 } }],
                             tag: 'Map',
@@ -252,7 +252,7 @@ describe('ComponentRender cache handler', () => {
                     <Exit to=(ROOM#TestRoomOne)>First Room</Exit>
                 </Room>
                 <Map uuid=(TestOne) ref={0}>
-                    <Name>Test Map</Name>
+                    <ShortName>Test Map</ShortName>
                     <Room uuid=(TestRoomOne)><Position {0, 0} /></Room>
                     <Room uuid=(TestRoomTwo)><Position {100, 0} /></Room>
                 </Map>

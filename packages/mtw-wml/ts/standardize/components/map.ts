@@ -24,14 +24,14 @@ import { StandardExplicitParent } from "../explicit"
  * to a Room and a payload with x, y coordinates.
  */
 export class StandardMapPayload implements ComponentConstructorMethods<StandardMapData> {
-    _name?: StandardLiteral;
+    _shortName?: StandardLiteral;
     _images: GenericTree<SchemaTag> = [];
     _positions: PositionFacetList;
     tag = 'Map' as const
 
     constructor(previous?: StandardMapPayload) {
         if (previous) {
-            this._name = previous._name
+            this._shortName = previous._shortName
             this._images = [...previous._images]
             this._positions = previous._positions.clone()
         } else {
@@ -40,7 +40,7 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
     }
 
     fromJSON(props: StandardMapData) {
-        this._name = props.name ? new StandardLiteral(props.name, { tag: 'Name' }) : undefined
+        this._shortName = props.shortName ? new StandardLiteral(props.shortName, { tag: 'ShortName' }) : undefined
         this._images = props.images ?? []
         this._positions = new PositionFacetList(props.positions ?? [])
     }
@@ -48,10 +48,10 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
     fromSchema(node: GenericTreeNode<SchemaTag>) {
         if (treeNodeTypeguard(isSchemaMap)(node)) {
             const tagTree = new SchemaTagTree(node.children)
-            const nameItem = findTaggedChildren({ children: node.children, tag: 'Name' })
+            const shortNameItem = findTaggedChildren({ children: node.children, tag: 'ShortName' })
             const imagesTagTree = tagTree.filter({ match: 'Image' })
 
-            this._name = nameItem && nameItem.length > 0 ? new StandardLiteral(nameItem, { tag: 'Name' }) : undefined
+            this._shortName = shortNameItem && shortNameItem.length > 0 ? new StandardLiteral(shortNameItem, { tag: 'ShortName' }) : undefined
             this._images = imagesTagTree.tree
             
             // Parse Position facets (Room tags with Position children)
@@ -87,14 +87,14 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
         throw new Error('Schema mismatch in StandardMap constructor')
     }
 
-    get name() { return this._name }
+    get shortName() { return this._shortName }
     get images() { return this._images }
     get positions() { return this._positions }
 
     toJSON(): Omit<StandardMapData, 'key' | 'universalKey'> {
         return {
             tag: 'Map',
-            name: this.name?.toJSON(),
+            shortName: this.shortName?.toJSON(),
             ...(this.images.length ? { images: this.images } : {}),
             ...(this._positions.length ? { positions: this._positions.toJSON() } : {})
         }
@@ -111,7 +111,7 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
         }).filter(excludeUndefined) as GenericTreeNode<SchemaTag>[]
         
         const children = [
-            ...this.name ? this.name.nestedSchema() : [],
+            ...this.shortName ? this.shortName.nestedSchema() : [],
             ...this.images,
             ...positionSchemas
         ].filter(excludeUndefined)
@@ -164,7 +164,7 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
         return {
             data: { tag: 'Map', key: mapKey.key ?? '', uuid: mapKey.universalKey },
             children: [
-                ...this.name ? this.name.nestedSchema() : [],
+                ...this.shortName ? this.shortName.nestedSchema() : [],
                 ...this.images,
                 ...positionSchemas
             ]
@@ -173,7 +173,7 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
 
     merge(incoming: this): this {
         const returnValue = new StandardMapPayload()
-        returnValue._name = this._name && incoming._name ? this._name.merge(incoming._name) : this._name ?? incoming._name,
+        returnValue._shortName = this._shortName && incoming._shortName ? this._shortName.merge(incoming._shortName) : this._shortName ?? incoming._shortName
         returnValue._images = applyEdits([...this.images, ...incoming.images])
         const mergedPositions = this._positions.merge(incoming._positions)
         returnValue._positions = mergedPositions ?? new PositionFacetList([])
@@ -206,7 +206,6 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
 
     mapContents(callback: (incoming: GenericTree<SchemaTag>) => GenericTree<SchemaTag>): this {
         const returnValue = new StandardMapPayload(this)
-        // returnValue._name = applyTreeCallbackToNode(callback)(returnValue._name) as GenericTreeNodeFiltered<SchemaNameTag, SchemaOutputTag> | undefined
         returnValue._images = callback(returnValue._images)
         return returnValue as this
     }
@@ -218,16 +217,16 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
     }
 
     isEmpty(): boolean {
-        // A map is empty if it has no name, images, or positions
-        const hasName = Boolean(this._name)
+        // A map is empty if it has no shortName, images, or positions
+        const hasShortName = Boolean(this._shortName)
         const hasImages = this._images.length > 0
         const hasPositions = this._positions.length > 0
-        return !(hasName || hasImages || hasPositions)
+        return !(hasShortName || hasImages || hasPositions)
     }
 }
 
 export class StandardMap extends componentClassFactory(StandardMapPayload, 'StandardMap') {
-    get name() { return this._payload.name }
+    get shortName() { return this._payload.shortName }
     get images() { return this._payload.images }
     get positions() { return this._payload.positions }
 

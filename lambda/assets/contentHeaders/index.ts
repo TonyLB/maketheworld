@@ -16,7 +16,7 @@ import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import internalCache from '../internalCache'
 import { excludeUndefined } from '@tonylb/mtw-utilities/ts/lists'
-import { hasShortName, StandardForm } from '@tonylb/mtw-wml/ts/standardize'
+import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { WMLZoneEvent, isWMLZoneEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/wml'
 import { Zone } from '@tonylb/mtw-asset-workspace'
 import { standardComponentFactory } from '@tonylb/mtw-wml/ts/standardize/componentFactory'
@@ -97,7 +97,7 @@ function extractHeaderComponent(component: any) {
         tag: component.tag as any,
         key: component.key,
         universalKey: component.universalKey,
-        shortName: hasShortName(component) ? component.shortName?.toJSON() : undefined
+        shortName: component.shortName?.toJSON()
     } as any
 
     return standardComponentFactory(minimalJson) ?? undefined

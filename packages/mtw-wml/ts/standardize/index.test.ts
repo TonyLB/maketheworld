@@ -978,7 +978,7 @@ describe('StandardForm', () => {
     it('should render maps correctly', () => {
         const test = new StandardForm(`<Asset uuid=(Test)>
             <Map uuid=(testMap) key=(testMap)>
-                <Name>Test map</Name>
+                <ShortName>Test map</ShortName>
                 <Room uuid=(testRoomOne) key=(testRoomOne)>
                     <Position {0, 0} />
                     <Example uuid=(testRoomOneBase)>
@@ -1017,7 +1017,7 @@ describe('StandardForm', () => {
                     <Exit to=(testRoomOne)>one</Exit>
                 </Room>
                 <Map uuid=(testMap) key=(testMap)>
-                    <Name>Test map</Name>
+                    <ShortName>Test map</ShortName>
                     <Image key=(mapBackground) />
                     <Room key=(testRoomOne)><Position {0, 0} /></Room>
                     <Room key=(testRoomTwo)><Position {-100, 0} /></Room>

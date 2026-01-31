@@ -8,6 +8,7 @@ import StandardReference from "../keys/reference";
 import { StandardKey } from "../keys/key";
 import { StandardExplicitParent, StandardExplicitKey } from "../explicit";
 import { OrganizationContext } from "../schemaOrganization";
+import { StandardLiteral } from "../literal";
 
 export type StandardToJSONOptions = {
     stripUniversalKey?: boolean;
@@ -37,6 +38,7 @@ export interface StandardComponent {
     universalKey?: ComponentUUID;
     standardKey: StandardKey;
     explicitParent?: StandardExplicitParent;
+    shortName?: StandardLiteral;
     clone(): StandardComponent;
     withMapping(mapping: StandardReference[]): StandardComponent;
     withKey(key: string): StandardComponent;

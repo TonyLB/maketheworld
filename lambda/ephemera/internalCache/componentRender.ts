@@ -299,7 +299,7 @@ export class ComponentRenderData {
             const [rooms, fileURLs, rest] = await Promise.all([
                 roomMetaPromise,
                 [],
-                { name: merged?.name?._payload?.plain?.toJSON?.() },
+                { shortName: merged?.shortName?._payload?.plain?.toJSON?.() },
             ])
             const mapRow: StandardMapData = {
                 tag: 'Map',

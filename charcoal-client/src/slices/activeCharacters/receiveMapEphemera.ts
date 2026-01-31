@@ -34,8 +34,8 @@ const extractMapDataFromStandardForm = (standardForm: StandardForm, mapId: Ephem
         }
     }
 
-    // Extract name - use .plain to get the underlying string value
-    const name = mapComponent.name?._payload?.plain?.toJSON() ?? ''
+    // Extract display name from shortName
+    const name = mapComponent.shortName?._payload?.plain?.toJSON() ?? ''
 
     // Extract rooms from positions
     const rooms = mapComponent.positions.items

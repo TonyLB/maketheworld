@@ -334,7 +334,7 @@ describe('WML DataSource', () => {
             })
         })
 
-        it('should process failed applyEdit events without streaming', async () => {
+        it('should stream Merge Conflict event when applyEdit fails', async () => {
             const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
             const mockApplyEditRequest = {
                 type: 'Apply Edit',
@@ -368,8 +368,11 @@ describe('WML DataSource', () => {
                 schema: 'invalid-wml-content'
             })
 
-            // Verify no Content Update event was streamed for failed edits
-            expect(mockStreamEvent).not.toHaveBeenCalled()
+            // Verify Merge Conflict event was streamed so client knows the edit failed
+            expect(mockStreamEvent).toHaveBeenCalledWith({
+                streamKey: 'ASSET#test-asset',
+                update: { type: 'Merge Conflict', error: 'Parse error' }
+            })
         })
 
         it('should handle applyEdit processing errors gracefully', async () => {

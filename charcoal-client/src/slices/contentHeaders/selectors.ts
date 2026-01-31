@@ -7,7 +7,7 @@ import { ContentHeadersSnapshot } from '@tonylb/mtw-interfaces/ts/eventBridge/as
 import { Zone } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { AssetUUID, ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
-import { hasShortName, hasName } from '@tonylb/mtw-wml/ts/standardize'
+import { hasName } from '@tonylb/mtw-wml/ts/standardize'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
 import StandardKnowledge from '@tonylb/mtw-wml/ts/standardize/components/knowledge'
@@ -55,11 +55,12 @@ export const getComponentsForAsset = (state: any, assetId: AssetUUID): StandardC
 }
 
 /**
- * Get display name for a component (shortName if available, otherwise key)
+ * Get display name for a component (shortName if available, then name, then key)
  */
 export const getComponentDisplayName = (component: StandardComponent): string => {
-    if (hasShortName(component) && component.shortName?._payload?.plain?.toJSON()) {
-        return component.shortName._payload.plain.toJSON()
+    const shortNameValue = component.shortName?._payload?.plain?.toJSON()
+    if (typeof shortNameValue === 'string' && shortNameValue.trim()) {
+        return shortNameValue
     }
     if (hasName(component) && component.name) {
         // Extract plain text from name if it's a render tree
