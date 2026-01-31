@@ -2,7 +2,7 @@ import React, { FunctionComponent, useCallback, useMemo } from 'react'
 
 import MapDisplay from '../Maps/Edit/Area/MapDisplay'
 import { useMapContext } from './MapController'
-import { useWorkbenchAsset } from './useWorkbenchAsset'
+import { useWorkbenchAsset } from './foundations/useWorkbenchAsset'
 import { extractExitsFromStandardForm } from '../Maps/exitExtraction'
 import { useDispatch } from 'react-redux'
 import { addOnboardingComplete } from '../../slices/player/index.api'
@@ -12,7 +12,7 @@ type MapAreaProps = {
     editMode?: boolean;
 }
 
-export const WorkbenchMapArea: FunctionComponent<MapAreaProps>= ({ fileURL, editMode }) => {
+export const MapArea: FunctionComponent<MapAreaProps>= ({ fileURL, editMode }) => {
     const { standardForm } = useWorkbenchAsset()
     const { UI: { toolSelected, exitDrag, itemSelected }, localPositions: rooms, mapId, mapDispatch } = useMapContext()
     const dispatch = useDispatch()
@@ -60,4 +60,4 @@ export const WorkbenchMapArea: FunctionComponent<MapAreaProps>= ({ fileURL, edit
 
 }
 
-export default WorkbenchMapArea
+export default MapArea

@@ -19,7 +19,7 @@ import {
     Transforms,
     Element as SlateElement
 } from 'slate';
-import { useWorkbenchAsset } from './useWorkbenchAsset';
+import { useWorkbenchAsset } from './foundations/useWorkbenchAsset';
 import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature';
 import StandardKnowledge from '@tonylb/mtw-wml/ts/standardize/components/knowledge';
 import { excludeUndefined } from '@tonylb/mtw-base/ts/utils/lists';
@@ -141,7 +141,7 @@ const LinkChoicesSubsection: FunctionComponent<LinkChoicesSubsectionProps> = ({ 
         : null
 }
 
-export const WorkbenchLinkDialog: FunctionComponent<LinkDialogProps> = ({ open, onClose, validTags = ['Feature', 'Knowledge'] }) => {
+export const LinkDialog: FunctionComponent<LinkDialogProps> = ({ open, onClose, validTags = ['Feature', 'Knowledge'] }) => {
     const { standardForm } = useWorkbenchAsset()
     const { features, knowledges } = useMemo<{ features: string[], knowledges: string[] }>(() => (
         standardForm._components.reduce<{ features: string[], knowledges: string[] }>((previous, component) => {
@@ -194,4 +194,4 @@ export const WorkbenchLinkDialog: FunctionComponent<LinkDialogProps> = ({ open, 
     </Dialog>
 }
 
-export default WorkbenchLinkDialog
+export default LinkDialog

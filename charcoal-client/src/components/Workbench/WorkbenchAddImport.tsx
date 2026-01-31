@@ -3,12 +3,12 @@ import { Box, Typography, useTheme } from '@mui/material'
 import { alpha } from '@mui/material/styles'
 import ImportExportIcon from '@mui/icons-material/ImportExport'
 
-interface WorkbenchAddImportProps {
+interface AddImportProps {
     onImportClick: () => void
     isEven?: boolean
 }
 
-export const WorkbenchAddImport: FunctionComponent<WorkbenchAddImportProps> = ({
+export const AddImport: FunctionComponent<AddImportProps> = ({
     onImportClick,
     isEven = false
 }) => {
@@ -69,4 +69,4 @@ export const WorkbenchAddImport: FunctionComponent<WorkbenchAddImportProps> = ({
     )
 }
 
-export default WorkbenchAddImport
+export default AddImport

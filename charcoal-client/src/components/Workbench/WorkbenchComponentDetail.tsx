@@ -1,11 +1,11 @@
 import React, { FunctionComponent, useMemo, useCallback } from 'react'
 import { Box } from '@mui/material'
 
-import { useWorkbenchAsset } from './useWorkbenchAsset'
-import WorkbenchDraftLockout from './DraftLockout'
-import WorkbenchRoomExitEditor from './RoomExitEditor'
-import WorkbenchRoomLensEditor from './RoomLensEditor'
-import WorkbenchRoomFeatureEditor from './WorkbenchRoomFeatureEditor'
+import { useWorkbenchAsset } from './foundations/useWorkbenchAsset'
+import DraftLockout from './DraftLockout'
+import RoomExitEditor from './RoomExitEditor'
+import RoomLensEditor from './RoomLensEditor'
+import RoomFeatureEditor from './WorkbenchRoomFeatureEditor'
 import { useOnboardingCheckpoint } from '../Onboarding/useOnboarding'
 
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
@@ -21,10 +21,9 @@ import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
 import StandardReference from '@tonylb/mtw-wml/ts/standardize/components/reference'
 import { ReferenceList } from '@tonylb/mtw-wml/ts/standardize/keys/referenceList'
 import { excludeUndefined } from '../../lib/lists'
-import TopLevelStandardLiteralEditor from './TopLevelStandardLiteralEditor'
-import WorkbenchSpacer from './WorkbenchSpacer'
-import { WorkbenchReferenceList } from './WorkbenchReferenceList'
-import { referenceListToWorkbenchItems } from './referenceListAdapter'
+import { TopLevelStandardLiteralEditor } from './foundations/StandardLiteral'
+import Spacer from './WorkbenchSpacer'
+import { ReferenceListEditor, referenceListToItems } from './foundations/ReferenceList'
 
 const WMLComponentAppearance: FunctionComponent<{ universalKey: ComponentUUID }> = ({ universalKey }) => {
     const dispatch = useDispatch()
@@ -113,7 +112,7 @@ const WMLComponentAppearance: FunctionComponent<{ universalKey: ComponentUUID }>
 
     const exampleItems = useMemo(
         () =>
-            referenceListToWorkbenchItems({
+            referenceListToItems({
                 referenceList: exampleReferences,
                 standardForm,
                 tag: 'Example'
@@ -161,14 +160,14 @@ const WMLComponentAppearance: FunctionComponent<{ universalKey: ComponentUUID }>
             )}
             {component instanceof StandardRoom && (
                 <>
-                    <WorkbenchSpacer />
-                    <WorkbenchRoomExitEditor RoomId={universalKey} />
-                    <WorkbenchRoomLensEditor RoomId={universalKey} />
-                    <WorkbenchRoomFeatureEditor RoomId={universalKey} />
+                    <Spacer />
+                    <RoomExitEditor RoomId={universalKey} />
+                    <RoomLensEditor RoomId={universalKey} />
+                    <RoomFeatureEditor RoomId={universalKey} />
                 </>
             )}
             <Box sx={{ marginTop: '0.5em' }}>
-                <WorkbenchReferenceList
+                <ReferenceListEditor
                     title="Examples"
                     items={exampleItems}
                     summary={examplesSummary}
@@ -185,7 +184,7 @@ const WMLComponentAppearance: FunctionComponent<{ universalKey: ComponentUUID }>
     ) : <Box />
 }
 
-export const WorkbenchComponentDetail: FunctionComponent = () => {
+export const ComponentDetail: FunctionComponent = () => {
     const { standardForm } = useWorkbenchAsset()
     const currentComponentId = useSelector(getCurrentComponentId)
     
@@ -205,10 +204,10 @@ export const WorkbenchComponentDetail: FunctionComponent = () => {
                 <Box sx={{ padding: 2 }}>
                     <WMLComponentAppearance universalKey={universalKey} />
                 </Box>
-                <WorkbenchDraftLockout />
+                <DraftLockout />
             </Box>
         </Box>
     )
 }
 
-export default WorkbenchComponentDetail
+export default ComponentDetail

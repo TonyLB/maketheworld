@@ -1,11 +1,11 @@
 import React, { FunctionComponent, useMemo, useEffect, useState, useCallback } from 'react'
 import { TextField } from '@mui/material'
-import { useDebouncedOnChange } from '../../hooks/useDebounce'
-import { useWorkbenchAsset } from './useWorkbenchAsset'
+import { useDebouncedOnChange } from '../../../../hooks/useDebounce'
+import { useWorkbenchAsset } from '../useWorkbenchAsset'
 import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
 
 // Import theme extensions so palette.extras is available when inside workbench theme
-import '../../theme/extensions'
+import '../../../../theme/extensions'
 
 interface StandardLiteralEditorProps {
     value: StandardLiteral;
@@ -18,7 +18,7 @@ interface StandardLiteralEditorProps {
     variant?: 'outlined' | 'filled' | 'standard';
 }
 
-export const WorkbenchStandardLiteralEditor: FunctionComponent<StandardLiteralEditorProps> = ({
+export const StandardLiteralEditor: FunctionComponent<StandardLiteralEditorProps> = ({
     value,
     onChange,
     label,
@@ -88,4 +88,4 @@ export const WorkbenchStandardLiteralEditor: FunctionComponent<StandardLiteralEd
     )
 }
 
-export default WorkbenchStandardLiteralEditor
+export default StandardLiteralEditor

@@ -2,15 +2,15 @@ import React, { FunctionComponent, useCallback } from "react"
 import StandardMark from "@tonylb/mtw-wml/ts/standardize/components/worldState"
 import { StandardLiteral } from "@tonylb/mtw-wml/ts/standardize/literal"
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
-import WorkbenchStandardLiteralEditor from "./StandardLiteralEditor"
-import { useWorkbenchAsset } from "./useWorkbenchAsset"
+import { StandardLiteralEditor } from "./foundations/StandardLiteral"
+import { useWorkbenchAsset } from "./foundations/useWorkbenchAsset"
 
 export interface MarkInlineEditorProps {
     mark: StandardMark
 }
 
 /**
- * Inline editor for a Mark's shortName only. Used in WorkbenchInlineReferenceList
+ * Inline editor for a Mark's shortName only. Used in InlineReferenceList
  * edit slots. Description and remove affordances are handled elsewhere (detail view, list).
  */
 export const MarkInlineEditor: FunctionComponent<MarkInlineEditorProps> = ({ mark }) => {
@@ -40,7 +40,7 @@ export const MarkInlineEditor: FunctionComponent<MarkInlineEditorProps> = ({ mar
     )
 
     return (
-        <WorkbenchStandardLiteralEditor
+        <StandardLiteralEditor
             value={mark.shortName ?? new StandardLiteral("")}
             onChange={handleShortNameChange}
             placeholder="Untitled"

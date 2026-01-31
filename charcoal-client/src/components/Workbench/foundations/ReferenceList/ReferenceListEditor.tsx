@@ -10,17 +10,17 @@ import Typography from "@mui/material/Typography"
 import AddIcon from "@mui/icons-material/Add"
 import DeleteIcon from "@mui/icons-material/Delete"
 
-import { MakeTheWorldAccordion } from "../UI"
-import "../../theme/extensions"
+import { MakeTheWorldAccordion } from "../../../UI"
+import "../../../../theme/extensions"
 
-export interface WorkbenchReferenceListItem {
+export interface ReferenceListItem {
     id: string
     title: string
     subtitle?: string
     icon?: ReactNode
 }
 
-export interface WorkbenchReferenceListProps {
+export interface ReferenceListEditorProps {
     /**
      * Title for the accordion header.
      */
@@ -29,7 +29,7 @@ export interface WorkbenchReferenceListProps {
     /**
      * Items to render inside the list.
      */
-    items: WorkbenchReferenceListItem[]
+    items: ReferenceListItem[]
 
     /**
      * Optional summary string or node shown in the accordion header when collapsed.
@@ -75,7 +75,7 @@ export interface WorkbenchReferenceListProps {
     emptyStateText?: string
 }
 
-export const WorkbenchReferenceList: FunctionComponent<WorkbenchReferenceListProps> = ({
+export const ReferenceListEditor: FunctionComponent<ReferenceListEditorProps> = ({
     title,
     items,
     summary,
@@ -237,5 +237,4 @@ export const WorkbenchReferenceList: FunctionComponent<WorkbenchReferenceListPro
     )
 }
 
-export default WorkbenchReferenceList
-
+export default ReferenceListEditor

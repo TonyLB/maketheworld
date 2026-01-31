@@ -11,7 +11,7 @@ import Select, { SelectChangeEvent } from "@mui/material/Select"
 import MenuItem from "@mui/material/MenuItem"
 import FormControl from "@mui/material/FormControl"
 import InputLabel from "@mui/material/InputLabel"
-import { useWorkbenchAsset } from "./useWorkbenchAsset"
+import { useWorkbenchAsset } from "./foundations/useWorkbenchAsset"
 import ExitIcon from '@mui/icons-material/CallMade'
 import AddIcon from '@mui/icons-material/Add'
 import DeleteIcon from '@mui/icons-material/Delete'
@@ -167,7 +167,7 @@ const ExitEditor: FunctionComponent<{
     )
 }
 
-export const WorkbenchRoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId }) => {
+export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId }) => {
     const { standardForm, updateStandard } = useWorkbenchAsset()
 
     const room = useMemo(() => {
@@ -277,4 +277,4 @@ export const WorkbenchRoomExitEditor: FunctionComponent<RoomExitEditorProps> = (
     )
 }
 
-export default WorkbenchRoomExitEditor
+export default RoomExitEditor

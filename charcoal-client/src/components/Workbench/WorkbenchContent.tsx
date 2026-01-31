@@ -15,7 +15,7 @@ interface WorkbenchContentProps {
  * 
  * The content area is designed to be flexible and not assume any specific content type.
  */
-export const WorkbenchContent: FunctionComponent<WorkbenchContentProps> = ({ children }) => {
+export const Content: FunctionComponent<WorkbenchContentProps> = ({ children }) => {
     return (
         <Box
             sx={{
@@ -29,4 +29,4 @@ export const WorkbenchContent: FunctionComponent<WorkbenchContentProps> = ({ chi
     )
 }
 
-export default WorkbenchContent
+export default Content

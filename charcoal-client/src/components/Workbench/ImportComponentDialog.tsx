@@ -27,7 +27,7 @@ import ExpandLess from '@mui/icons-material/ExpandLess'
 import ExpandMore from '@mui/icons-material/ExpandMore'
 import { blue } from '@mui/material/colors'
 
-import { useWorkbenchAsset } from './useWorkbenchAsset'
+import { useWorkbenchAsset } from './foundations/useWorkbenchAsset'
 import { getComponentIconByTag } from '../../lib/componentIcons'
 import { addImport } from '../../slices/personalAssets'
 import { getRecentlyVisited } from '../../slices/messages/selectors'
@@ -57,7 +57,7 @@ interface ImportComponentDialogProps {
     assetId: AssetUUID
 }
 
-export const WorkbenchImportComponentDialog: FunctionComponent<ImportComponentDialogProps> = ({ open, onClose, assetId }) => {
+export const ImportComponentDialog: FunctionComponent<ImportComponentDialogProps> = ({ open, onClose, assetId }) => {
     const dispatch = useDispatch()
     const { standardForm: currentStandardForm } = useWorkbenchAsset()
 
@@ -402,4 +402,4 @@ export const WorkbenchImportComponentDialog: FunctionComponent<ImportComponentDi
     )
 }
 
-export default WorkbenchImportComponentDialog
+export default ImportComponentDialog

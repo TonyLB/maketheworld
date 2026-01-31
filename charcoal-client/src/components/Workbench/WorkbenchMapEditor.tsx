@@ -4,19 +4,19 @@ import { Box, Button } from '@mui/material'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 
 import { MapGridContainer, MapContentArea, MapSidebarArea } from '../Maps/Edit/useMapStyles'
-import WorkbenchMapArea from './MapArea'
-import WorkbenchMapLayers from './MapLayers'
+import MapArea from './MapArea'
+import MapLayers from './MapLayers'
 import ToolSelect from '../Maps/Edit/Area/ToolSelect'
-import { useWorkbenchAsset } from './useWorkbenchAsset'
+import { useWorkbenchAsset } from './foundations/useWorkbenchAsset'
 import { getCurrentComponentId, navigateViaBreadcrumbIndex } from '../../slices/UI/workbench'
-import WorkbenchMapController from './MapController'
+import MapController from './MapController'
 import { useOnboardingCheckpoint } from '../Onboarding/useOnboarding'
 import TutorialPopover from '../Onboarding/TutorialPopover'
 import StandardMap from '@tonylb/mtw-wml/ts/standardize/components/map'
 import { isSchemaImage } from '@tonylb/mtw-base/ts/schema/image'
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 
-export const WorkbenchMapEditor: FunctionComponent = () => {
+export const MapEditor: FunctionComponent = () => {
     const dispatch = useDispatch()
     const { standardForm } = useWorkbenchAsset()
     const currentComponentId = useSelector(getCurrentComponentId)
@@ -69,19 +69,19 @@ export const WorkbenchMapEditor: FunctionComponent = () => {
             </Box>
             
             <Box sx={{ flexGrow: 1, position: "relative", width: "100%" }}>
-                <WorkbenchMapController mapId={(mapId ?? '') as `MAP#${string}`}>
+                <MapController mapId={(mapId ?? '') as `MAP#${string}`}>
                     <MapGridContainer>
                         <MapContentArea ref={mapAreaRef}>
                             <div style={{ position: 'absolute', top: '20px', left: '20px', zIndex: 10 }}>
                                 <ToolSelect />
                             </div>
-                            <WorkbenchMapArea
+                            <MapArea
                                 fileURL={mapImages.length ? mapImages[0] : undefined}
                                 editMode
                             />
                         </MapContentArea>
                         <MapSidebarArea>
-                            <WorkbenchMapLayers mapId={(mapId ?? '') as `MAP#${string}`} />
+                            <MapLayers mapId={(mapId ?? '') as `MAP#${string}`} />
                         </MapSidebarArea>
                     </MapGridContainer>
                     <TutorialPopover
@@ -89,10 +89,10 @@ export const WorkbenchMapEditor: FunctionComponent = () => {
                         placement='right'
                         checkPoints={['positionNewRoom', 'connectNewRoom']}
                     />
-                </WorkbenchMapController>
+                </MapController>
             </Box>
         </Box>
     )
 }
 
-export default WorkbenchMapEditor
+export default MapEditor

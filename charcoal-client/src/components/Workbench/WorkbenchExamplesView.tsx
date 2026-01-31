@@ -2,7 +2,7 @@ import React, { FunctionComponent, useEffect, useMemo, useState } from 'react'
 import { Box, Typography } from '@mui/material'
 import { useSelector } from 'react-redux'
 
-import { useWorkbenchAsset } from './useWorkbenchAsset'
+import { useWorkbenchAsset } from './foundations/useWorkbenchAsset'
 import { getCurrentComponentId } from '../../slices/UI/workbench'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
@@ -11,10 +11,10 @@ import StandardExample from '@tonylb/mtw-wml/ts/standardize/components/example'
 import StandardReference from '@tonylb/mtw-wml/ts/standardize/components/reference'
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import { excludeUndefined } from '../../lib/lists'
-import { LayeredExamplesTabs } from './LayeredContext/LayeredExamplesTabs'
-import WorkbenchExampleEditor from './ExampleEditor'
+import { LayeredExamplesTabs } from './foundations/LayeredContext'
+import ExampleEditor from './ExampleEditor'
 
-export const WorkbenchExamplesView: FunctionComponent = () => {
+export const ExamplesView: FunctionComponent = () => {
     const { standardForm } = useWorkbenchAsset()
     const currentComponentId = useSelector(getCurrentComponentId)
 
@@ -96,12 +96,12 @@ export const WorkbenchExamplesView: FunctionComponent = () => {
                 onChange={(nextId) => setCurrentExampleId(nextId)}
             >
                 <Box sx={{ padding: 2 }}>
-                    <WorkbenchExampleEditor componentId={activeId} />
+                    <ExampleEditor componentId={activeId} />
                 </Box>
             </LayeredExamplesTabs>
         </Box>
     )
 }
 
-export default WorkbenchExamplesView
+export default ExamplesView
 

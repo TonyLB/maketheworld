@@ -5,11 +5,11 @@ import { StandardLiteral } from "@tonylb/mtw-wml/ts/standardize/literal"
 import { StandardRender } from "@tonylb/mtw-wml/ts/standardize/render"
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
 import { ComponentUUID } from "@tonylb/mtw-base/ts/schema"
-import WorkbenchStandardLiteralEditor from "./StandardLiteralEditor"
-import WorkbenchStandardRenderEditor from "./StandardRenderEditor"
-import { useWorkbenchAsset } from "./useWorkbenchAsset"
+import { StandardLiteralEditor } from "./foundations/StandardLiteral"
+import { StandardRenderEditor } from "./foundations/StandardRender"
+import { useWorkbenchAsset } from "./foundations/useWorkbenchAsset"
 
-export interface WorkbenchMarkEditorProps {
+export interface MarkEditorProps {
     markId: ComponentUUID
 }
 
@@ -17,7 +17,7 @@ export interface WorkbenchMarkEditorProps {
  * Full Mark editor (shortName + description). Used when navigating to a Mark
  * via the inline reference list gap. Add/remove Marks stays in the list.
  */
-export const WorkbenchMarkEditor: FunctionComponent<WorkbenchMarkEditorProps> = ({ markId }) => {
+export const MarkEditor: FunctionComponent<MarkEditorProps> = ({ markId }) => {
     const { standardForm, updateStandard, readonly } = useWorkbenchAsset()
 
     const mark = useMemo(() => {
@@ -83,7 +83,7 @@ export const WorkbenchMarkEditor: FunctionComponent<WorkbenchMarkEditorProps> = 
 
     return (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, p: 2 }}>
-            <WorkbenchStandardLiteralEditor
+            <StandardLiteralEditor
                 value={mark.shortName ?? new StandardLiteral('')}
                 onChange={handleShortNameChange}
                 label="Short Name"
@@ -92,7 +92,7 @@ export const WorkbenchMarkEditor: FunctionComponent<WorkbenchMarkEditorProps> = 
                 variant="outlined"
                 readonly={readonly}
             />
-            <WorkbenchStandardRenderEditor
+            <StandardRenderEditor
                 title="Description"
                 value={mark.description ?? new StandardRender([])}
                 onChange={handleDescriptionChange}
@@ -105,4 +105,4 @@ export const WorkbenchMarkEditor: FunctionComponent<WorkbenchMarkEditorProps> = 
     )
 }
 
-export default WorkbenchMarkEditor
+export default MarkEditor

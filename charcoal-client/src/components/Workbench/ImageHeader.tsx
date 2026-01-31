@@ -5,7 +5,7 @@ import { Box, IconButton, SxProps } from '@mui/material'
 
 import AssetDataHeader, { AssetDataHeaderRenderFunction} from '../Editor/AssetDataHeader'
 import FileWrapper, { useFileWrapper } from '../Editor/FileInputWrapper';
-import { useWorkbenchAsset, useLibraryImageURL } from './useWorkbenchAsset'
+import { useWorkbenchAsset, useLibraryImageURL } from './foundations/useWorkbenchAsset'
 import { useDispatch } from 'react-redux';
 import { setLoadedImage } from '../../slices/personalAssets';
 
@@ -49,7 +49,7 @@ const ImageHeaderInterior: FunctionComponent<ImageHeaderProps> = ({ ItemId, onCl
     </Box>
 }
 
-export const WorkbenchImageHeader: FunctionComponent<ImageHeaderProps> = (props) => {
+export const ImageHeader: FunctionComponent<ImageHeaderProps> = (props) => {
     const { AssetId } = useWorkbenchAsset()
     const dispatch = useDispatch()
     const onDrop = useCallback((file: File) => {
@@ -63,4 +63,4 @@ export const WorkbenchImageHeader: FunctionComponent<ImageHeaderProps> = (props)
     </FileWrapper>
 }
 
-export default WorkbenchImageHeader
+export default ImageHeader

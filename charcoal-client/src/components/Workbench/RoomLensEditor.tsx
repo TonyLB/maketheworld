@@ -10,7 +10,7 @@ import Typography from "@mui/material/Typography"
 import Alert from "@mui/material/Alert"
 import { useDispatch } from "react-redux"
 import { navigateToComponentLayer } from "../../slices/UI/workbench"
-import { useWorkbenchAsset } from "./useWorkbenchAsset"
+import { useWorkbenchAsset } from "./foundations/useWorkbenchAsset"
 import AddIcon from '@mui/icons-material/Add'
 import DeleteIcon from '@mui/icons-material/Delete'
 import { MakeTheWorldAccordion } from "../UI"
@@ -21,12 +21,12 @@ import { ReferenceList } from "@tonylb/mtw-wml/ts/standardize/keys/referenceList
 import { StandardLiteral } from "@tonylb/mtw-wml/ts/standardize/literal"
 import { StandardRender, PlainClass } from "@tonylb/mtw-wml/ts/standardize/render"
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
-import WorkbenchStandardLiteralEditor from "./StandardLiteralEditor"
-import WorkbenchStandardRenderEditor from "./StandardRenderEditor"
-import WorkbenchLensSelectorDialog from "./LensSelectorDialog"
-import { WorkbenchInlineReferenceList } from "./WorkbenchInlineReferenceList"
+import { StandardLiteralEditor } from "./foundations/StandardLiteral"
+import { StandardRenderEditor } from "./foundations/StandardRender"
+import LensSelectorDialog from "./LensSelectorDialog"
+import { InlineReferenceList } from "./foundations/ReferenceList"
 import { MarkInlineEditor } from "./MarkInlineEditor"
-import { referenceListToWorkbenchItems } from "./referenceListAdapter"
+import { referenceListToItems } from "./foundations/ReferenceList"
 import { ComponentUUID } from "@tonylb/mtw-base/ts/schema"
 import { v4 as uuidv4 } from 'uuid'
 import { RenderTree } from "@tonylb/mtw-base/ts/renderTree"
@@ -59,7 +59,7 @@ const renderTreeToPlainText = (tree: RenderTree): string => {
         .trim()
 }
 
-export const WorkbenchRoomLensEditor: FunctionComponent<RoomLensEditorProps> = ({ RoomId }) => {
+export const RoomLensEditor: FunctionComponent<RoomLensEditorProps> = ({ RoomId }) => {
     const dispatch = useDispatch()
     const { standardForm, updateStandard, readonly } = useWorkbenchAsset()
     const [dialogOpen, setDialogOpen] = useState(false)
@@ -277,7 +277,7 @@ export const WorkbenchRoomLensEditor: FunctionComponent<RoomLensEditorProps> = (
 
     const markItems = useMemo(() => {
         if (!singleLens) return []
-        return referenceListToWorkbenchItems({
+        return referenceListToItems({
             referenceList: singleLens.marks,
             standardForm,
             tag: 'Mark'
@@ -338,7 +338,7 @@ export const WorkbenchRoomLensEditor: FunctionComponent<RoomLensEditorProps> = (
                         </ListItem>
                     </List>
                 </MakeTheWorldAccordion>
-                <WorkbenchLensSelectorDialog
+                <LensSelectorDialog
                     open={dialogOpen}
                     onClose={() => setDialogOpen(false)}
                     onSelectExisting={addLensReference}
@@ -352,7 +352,7 @@ export const WorkbenchRoomLensEditor: FunctionComponent<RoomLensEditorProps> = (
         return (
             <MakeTheWorldAccordion title="Lens" defaultExpanded>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, p: 2 }}>
-                    <WorkbenchStandardLiteralEditor
+                    <StandardLiteralEditor
                         value={singleLens.shortName ?? new StandardLiteral('')}
                         onChange={updateLensShortName}
                         label="Short Name"
@@ -361,7 +361,7 @@ export const WorkbenchRoomLensEditor: FunctionComponent<RoomLensEditorProps> = (
                         variant="outlined"
                     />
 
-                    <WorkbenchInlineReferenceList
+                    <InlineReferenceList
                         title="Marks"
                         items={markItems}
                         defaultExpanded
@@ -374,7 +374,7 @@ export const WorkbenchRoomLensEditor: FunctionComponent<RoomLensEditorProps> = (
                         disabled={readonly}
                     />
 
-                    <WorkbenchStandardRenderEditor
+                    <StandardRenderEditor
                         title="Description"
                         value={singleLens.description ?? new StandardRender([])}
                         onChange={updateLensDescription}
@@ -454,4 +454,4 @@ export const WorkbenchRoomLensEditor: FunctionComponent<RoomLensEditorProps> = (
     )
 }
 
-export default WorkbenchRoomLensEditor
+export default RoomLensEditor

@@ -14,7 +14,7 @@ import {
 import CloseIcon from '@mui/icons-material/Close'
 import AddIcon from '@mui/icons-material/Add'
 import React, { FunctionComponent, useMemo } from 'react'
-import { useWorkbenchAsset } from './useWorkbenchAsset'
+import { useWorkbenchAsset } from './foundations/useWorkbenchAsset'
 import { StandardLens } from '@tonylb/mtw-wml/ts/standardize/components/worldState'
 import { excludeUndefined } from '@tonylb/mtw-base/ts/utils/lists'
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
@@ -54,7 +54,7 @@ const LensChoicesSubsection: FunctionComponent<{
         : null
 }
 
-export const WorkbenchLensSelectorDialog: FunctionComponent<LensSelectorDialogProps> = ({
+export const LensSelectorDialog: FunctionComponent<LensSelectorDialogProps> = ({
     open,
     onClose,
     onSelectExisting,
@@ -138,4 +138,4 @@ export const WorkbenchLensSelectorDialog: FunctionComponent<LensSelectorDialogPr
     )
 }
 
-export default WorkbenchLensSelectorDialog
+export default LensSelectorDialog

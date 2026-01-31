@@ -10,12 +10,12 @@ import { alpha } from '@mui/material/styles'
 import DeleteIcon from '@mui/icons-material/Delete'
 import CallMadeIcon from '@mui/icons-material/CallMade'
 
-import { useWorkbenchAsset } from './useWorkbenchAsset'
+import { useWorkbenchAsset } from './foundations/useWorkbenchAsset'
 import { schemaOutputToString } from '@tonylb/mtw-wml/ts/schema/utils/schemaOutput/schemaOutputToString'
 import { hasName, hasShortName } from '@tonylb/mtw-wml/ts/standardize'
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 
-interface WorkbenchComponentRowProps {
+interface ComponentRowProps {
     ItemId: ComponentUUID;
     onClick: () => void;
     icon?: ReactChild;
@@ -43,7 +43,7 @@ const ComponentName: FunctionComponent<{ itemId: ComponentUUID }> = ({ itemId })
     return <Typography variant="body2" color="text.secondary">Untitled</Typography>
 }
 
-export const WorkbenchComponentRow: FunctionComponent<WorkbenchComponentRowProps> = ({ 
+export const ComponentRow: FunctionComponent<ComponentRowProps> = ({ 
     ItemId, 
     onClick, 
     icon, 
@@ -131,4 +131,4 @@ export const WorkbenchComponentRow: FunctionComponent<WorkbenchComponentRowProps
     )
 }
 
-export default WorkbenchComponentRow
+export default ComponentRow

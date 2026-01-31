@@ -9,13 +9,13 @@ import {
     getCurrentComponentLayerId,
     getCurrentAssetId
 } from '../../slices/UI/workbench'
-import { useWorkbenchAsset } from './useWorkbenchAsset'
-import WorkbenchAssetEditForm from './WorkbenchAssetEditForm'
-import WorkbenchComponentDetail from './WorkbenchComponentDetail'
-import WorkbenchExamplesView from './WorkbenchExamplesView'
-import WorkbenchMarkEditor from './WorkbenchMarkEditor'
-import WorkbenchMapEditor from './WorkbenchMapEditor'
-import WorkbenchCharacterEditor from './WorkbenchCharacterEditor'
+import { useWorkbenchAsset } from './foundations/useWorkbenchAsset'
+import AssetEditForm from './WorkbenchAssetEditForm'
+import ComponentDetail from './WorkbenchComponentDetail'
+import ExamplesView from './WorkbenchExamplesView'
+import MarkEditor from './WorkbenchMarkEditor'
+import MapEditor from './WorkbenchMapEditor'
+import CharacterEditor from './WorkbenchCharacterEditor'
 import StandardCharacter from '@tonylb/mtw-wml/ts/standardize/components/character'
 import StandardMap from '@tonylb/mtw-wml/ts/standardize/components/map'
 import StandardMark from '@tonylb/mtw-wml/ts/standardize/components/worldState'
@@ -52,28 +52,28 @@ export const WorkbenchAssetEditor: FunctionComponent = () => {
         const component = assetData.standardForm.byUniversalId[currentComponentId as ComponentUUID]
         
         if (component instanceof StandardMap) {
-            return <WorkbenchMapEditor />
+            return <MapEditor />
         }
         
         if (component instanceof StandardCharacter) {
-            return <WorkbenchCharacterEditor />
+            return <CharacterEditor />
         }
         
-        // For Room, Feature, Knowledge, use WorkbenchComponentDetail
-        return <WorkbenchComponentDetail />
+        // For Room, Feature, Knowledge, use ComponentDetail
+        return <ComponentDetail />
     }
 
     if (currentView === 'componentLayer' && currentComponentId) {
         const layerId = currentComponentLayerId as ComponentUUID | null
         const layerComponent = layerId ? assetData.standardForm.byUniversalId[layerId] : undefined
         if (layerComponent instanceof StandardMark && layerId) {
-            return <WorkbenchMarkEditor markId={layerId} />
+            return <MarkEditor markId={layerId} />
         }
-        return <WorkbenchExamplesView />
+        return <ExamplesView />
     }
 
     // Default to asset view
-    return <WorkbenchAssetEditForm />
+    return <AssetEditForm />
 }
 
 export default WorkbenchAssetEditor

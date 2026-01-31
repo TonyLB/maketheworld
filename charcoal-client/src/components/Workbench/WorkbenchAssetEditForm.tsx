@@ -11,7 +11,7 @@ import HomeIcon from '@mui/icons-material/Home'
 import { getAssetZone } from '../../slices/player'
 import { addOnboardingComplete } from '../../slices/player/index.api'
 import { useOnboardingCheckpoint } from '../Onboarding/useOnboarding'
-import { useWorkbenchAsset } from './useWorkbenchAsset'
+import { useWorkbenchAsset } from './foundations/useWorkbenchAsset'
 import { navigateToComponent } from '../../slices/UI/workbench'
 import StandardCharacter from '@tonylb/mtw-wml/ts/standardize/components/character'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
@@ -20,9 +20,9 @@ import StandardKnowledge from '@tonylb/mtw-wml/ts/standardize/components/knowled
 import StandardMap from '@tonylb/mtw-wml/ts/standardize/components/map'
 import StandardImage from '@tonylb/mtw-wml/ts/standardize/components/image'
 import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
-import WorkbenchImportComponentDialog from './ImportComponentDialog'
-import WorkbenchStandardLiteralEditor from './StandardLiteralEditor'
-import WorkbenchStandardRenderEditor from './StandardRenderEditor'
+import ImportComponentDialog from './ImportComponentDialog'
+import { StandardLiteralEditor } from './foundations/StandardLiteral'
+import { StandardRenderEditor } from './foundations/StandardRender'
 import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
 import { StandardRender } from '@tonylb/mtw-wml/ts/standardize/render'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
@@ -33,14 +33,14 @@ import { v4 as uuidv4 } from 'uuid'
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import StandardReference from '@tonylb/mtw-wml/ts/standardize/components/reference'
 import { ReferenceList } from '@tonylb/mtw-wml/ts/standardize/keys/referenceList'
-import WorkbenchComponentRow from './WorkbenchComponentRow'
-import WorkbenchAddComponent from './WorkbenchAddComponent'
-import WorkbenchAddImport from './WorkbenchAddImport'
+import ComponentRow from './WorkbenchComponentRow'
+import AddComponent from './WorkbenchAddComponent'
+import AddImport from './WorkbenchAddImport'
 import ImageHeader from './ImageHeader'
-import WorkbenchDraftLockout from './DraftLockout'
+import DraftLockout from './DraftLockout'
 import { MakeTheWorldAccordion } from '../UI'
 
-export const WorkbenchAssetEditForm: FunctionComponent = () => {
+export const AssetEditForm: FunctionComponent = () => {
     const { updateStandard, standardForm, readonly, AssetId } = useWorkbenchAsset()
     const zone = useSelector(getAssetZone(AssetId))
     const dispatch = useDispatch()
@@ -175,7 +175,7 @@ export const WorkbenchAssetEditForm: FunctionComponent = () => {
                     {!readonly && (
                         <MakeTheWorldAccordion title="Metadata" defaultExpanded={metadataDefaultExpanded}>
                             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                                <WorkbenchStandardLiteralEditor
+                                <StandardLiteralEditor
                                     value={shortName}
                                     onChange={handleShortNameChange}
                                     label="Short Name"
@@ -192,7 +192,7 @@ export const WorkbenchAssetEditForm: FunctionComponent = () => {
                                         borderRadius: '4px',
                                         padding: '0.5em'
                                     }}>
-                                        <WorkbenchStandardRenderEditor
+                                        <StandardRenderEditor
                                             value={summary}
                                             onChange={setSummary}
                                             validLinkTags={[]}
@@ -208,7 +208,7 @@ export const WorkbenchAssetEditForm: FunctionComponent = () => {
                     <MakeTheWorldAccordion title="Components" defaultExpanded={true}>
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                             {allComponents.map(({ component, icon }, index) => (
-                                <WorkbenchComponentRow
+                                <ComponentRow
                                     key={component.universalKey}
                                     ItemId={component.universalKey!}
                                     onClick={() => handleComponentClick(component.universalKey!)}
@@ -228,11 +228,11 @@ export const WorkbenchAssetEditForm: FunctionComponent = () => {
                             }
                             {!readonly && (
                                 <>
-                                    <WorkbenchAddComponent
+                                    <AddComponent
                                         onAddAsset={(tag) => addAsset(tag)()}
                                         isEven={(allComponents.length + images.length) % 2 === 1}
                                     />
-                                    <WorkbenchAddImport
+                                    <AddImport
                                         onImportClick={() => setImportDialogOpen(true)}
                                         isEven={(allComponents.length + images.length + 1) % 2 === 1}
                                     />
@@ -241,10 +241,10 @@ export const WorkbenchAssetEditForm: FunctionComponent = () => {
                         </Box>
                     </MakeTheWorldAccordion>
                 </Box>
-                <WorkbenchDraftLockout />
+                <DraftLockout />
             </Box>
             
-            <WorkbenchImportComponentDialog
+            <ImportComponentDialog
                 open={importDialogOpen}
                 onClose={() => setImportDialogOpen(false)}
                 assetId={AssetId}
@@ -253,4 +253,4 @@ export const WorkbenchAssetEditForm: FunctionComponent = () => {
     )
 }
 
-export default WorkbenchAssetEditForm
+export default AssetEditForm

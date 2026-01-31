@@ -6,7 +6,7 @@ import DeleteIcon from '@mui/icons-material/Delete'
 import CallMadeIcon from '@mui/icons-material/CallMade'
 
 import AssetDataHeader, { AssetDataHeaderRenderFunction} from '../Editor/AssetDataHeader'
-import { useWorkbenchAsset } from './useWorkbenchAsset'
+import { useWorkbenchAsset } from './foundations/useWorkbenchAsset'
 import { schemaOutputToString } from '@tonylb/mtw-wml/ts/schema/utils/schemaOutput/schemaOutputToString'
 import { hasName, hasShortName } from '@tonylb/mtw-wml/ts/standardize'
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
@@ -38,7 +38,7 @@ const WMLComponentName: FunctionComponent<{ itemId: ComponentUUID }> = ({ itemId
     return null
 }
 
-export const WorkbenchWMLComponentHeader: FunctionComponent<WMLComponentHeaderProps> = ({ ItemId, onClick, icon, sx, selected }) => {
+export const WMLComponentHeader: FunctionComponent<WMLComponentHeaderProps> = ({ ItemId, onClick, icon, sx, selected }) => {
     const { updateStandard, inheritedStandardForm, standardForm } = useWorkbenchAsset()
     const primary = useCallback((key: string) => (<WMLComponentName itemId={key as ComponentUUID} />), [])
 
@@ -76,4 +76,4 @@ export const WorkbenchWMLComponentHeader: FunctionComponent<WMLComponentHeaderPr
     />
 }
 
-export default WorkbenchWMLComponentHeader
+export default WMLComponentHeader

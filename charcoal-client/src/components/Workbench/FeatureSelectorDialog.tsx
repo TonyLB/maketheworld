@@ -14,7 +14,7 @@ import {
 import CloseIcon from "@mui/icons-material/Close"
 import AddIcon from "@mui/icons-material/Add"
 
-import { useWorkbenchAsset } from "./useWorkbenchAsset"
+import { useWorkbenchAsset } from "./foundations/useWorkbenchAsset"
 import StandardFeature from "@tonylb/mtw-wml/ts/standardize/components/feature"
 import { ComponentUUID } from "@tonylb/mtw-base/ts/schema"
 
@@ -58,7 +58,7 @@ const FeatureChoicesSubsection: FunctionComponent<{
     )
 }
 
-export const WorkbenchFeatureSelectorDialog: FunctionComponent<FeatureSelectorDialogProps> = ({
+export const FeatureSelectorDialog: FunctionComponent<FeatureSelectorDialogProps> = ({
     open,
     onClose,
     onSelectExisting,
@@ -145,5 +145,5 @@ export const WorkbenchFeatureSelectorDialog: FunctionComponent<FeatureSelectorDi
     )
 }
 
-export default WorkbenchFeatureSelectorDialog
+export default FeatureSelectorDialog
 
