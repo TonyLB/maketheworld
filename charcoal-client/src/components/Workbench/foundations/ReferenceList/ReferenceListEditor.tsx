@@ -73,6 +73,11 @@ export interface ReferenceListEditorProps {
      * Message to show when there are no items.
      */
     emptyStateText?: string
+
+    /**
+     * Row styling: `contained` (default) = bordered cards; `table` = flat list rows.
+     */
+    variant?: "contained" | "table"
 }
 
 export const ReferenceListEditor: FunctionComponent<ReferenceListEditorProps> = ({
@@ -85,7 +90,8 @@ export const ReferenceListEditor: FunctionComponent<ReferenceListEditorProps> = 
     onItemRemove,
     onAddClick,
     addLabel = "Add",
-    emptyStateText
+    emptyStateText,
+    variant = "contained"
 }) => {
     const handleItemClick = useCallback(
         (id: string) => () => {
@@ -129,72 +135,122 @@ export const ReferenceListEditor: FunctionComponent<ReferenceListEditorProps> = 
         >
             <List>
                 {hasItems ? (
-                    items.map(({ id, title: itemTitle, subtitle, icon }) => (
-                        <ListItem
-                            key={id}
-                            disablePadding
-                            sx={(theme) => {
-                                const ex = (theme.palette as { extras?: { sectionHeaderBackground?: string; sectionBorder?: string } }).extras
-                                return {
-                                    border: `1px solid ${ex?.sectionBorder ?? "#e0e0e0"}`,
-                                    borderRadius: "8px",
-                                    marginBottom: "8px",
-                                    backgroundColor: ex?.sectionHeaderBackground ?? "#ffcc80"
+                    items.map(({ id, title: itemTitle, subtitle, icon }) =>
+                        variant === "table" ? (
+                            <ListItem
+                                key={id}
+                                disablePadding
+                                secondaryAction={
+                                    onItemRemove ? (
+                                        <IconButton
+                                            edge="end"
+                                            aria-label="remove"
+                                            onClick={handleItemRemove(id)}
+                                            disabled={disabled}
+                                            color="error"
+                                            size="small"
+                                        >
+                                            <DeleteIcon fontSize="small" />
+                                        </IconButton>
+                                    ) : undefined
                                 }
-                            }}
-                        >
-                            <ListItemButton
-                                onClick={handleItemClick(id)}
-                                disabled={disabled || !onItemClick}
-                                sx={{ paddingRight: onItemRemove ? "3rem" : undefined }}
                             >
-                                {icon && (
-                                    <ListItemIcon sx={{ minWidth: 32 }}>
-                                        {icon}
-                                    </ListItemIcon>
-                                )}
-                                <ListItemText
-                                    primary={
-                                        <Typography variant="body1" noWrap>
-                                            {itemTitle}
-                                        </Typography>
-                                    }
-                                    secondary={
-                                        subtitle ? (
-                                            <Typography
-                                                variant="body2"
-                                                color="text.secondary"
-                                                noWrap
-                                            >
-                                                {subtitle}
-                                            </Typography>
-                                        ) : undefined
-                                    }
-                                />
-                            </ListItemButton>
-                            {onItemRemove && (
-                                <Box
-                                    sx={{
-                                        display: "flex",
-                                        alignItems: "center",
-                                        justifyContent: "center",
-                                        paddingRight: 1
-                                    }}
+                                <ListItemButton
+                                    onClick={handleItemClick(id)}
+                                    disabled={disabled || !onItemClick}
                                 >
-                                    <IconButton
-                                        edge="end"
-                                        aria-label="remove"
-                                        onClick={handleItemRemove(id)}
-                                        disabled={disabled}
-                                        color="error"
-                                        size="small"
+                                    {icon && (
+                                        <ListItemIcon sx={{ minWidth: 32 }}>
+                                            {icon}
+                                        </ListItemIcon>
+                                    )}
+                                    <ListItemText
+                                        primary={
+                                            <Typography variant="body1" noWrap>
+                                                {itemTitle}
+                                            </Typography>
+                                        }
+                                        secondary={
+                                            subtitle ? (
+                                                <Typography
+                                                    variant="body2"
+                                                    color="text.secondary"
+                                                    noWrap
+                                                >
+                                                    {subtitle}
+                                                </Typography>
+                                            ) : undefined
+                                        }
+                                    />
+                                </ListItemButton>
+                            </ListItem>
+                        ) : (
+                            <ListItem
+                                key={id}
+                                disablePadding
+                                sx={(theme) => {
+                                    const ex = (theme.palette as { extras?: { sectionHeaderBackground?: string; sectionBorder?: string } }).extras
+                                    return {
+                                        border: `1px solid ${ex?.sectionBorder ?? "#e0e0e0"}`,
+                                        borderRadius: "8px",
+                                        marginBottom: "8px",
+                                        backgroundColor: ex?.sectionHeaderBackground ?? "#ffcc80"
+                                    }
+                                }}
+                            >
+                                <ListItemButton
+                                    onClick={handleItemClick(id)}
+                                    disabled={disabled || !onItemClick}
+                                    sx={{ paddingRight: onItemRemove ? "3rem" : undefined }}
+                                >
+                                    {icon && (
+                                        <ListItemIcon sx={{ minWidth: 32 }}>
+                                            {icon}
+                                        </ListItemIcon>
+                                    )}
+                                    <ListItemText
+                                        primary={
+                                            <Typography variant="body1" noWrap>
+                                                {itemTitle}
+                                            </Typography>
+                                        }
+                                        secondary={
+                                            subtitle ? (
+                                                <Typography
+                                                    variant="body2"
+                                                    color="text.secondary"
+                                                    noWrap
+                                                >
+                                                    {subtitle}
+                                                </Typography>
+                                            ) : undefined
+                                        }
+                                    />
+                                </ListItemButton>
+                                {onItemRemove && (
+                                    <Box
+                                        sx={{
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            paddingRight: 1
+                                        }}
                                     >
-                                        <DeleteIcon fontSize="small" />
-                                    </IconButton>
-                                </Box>
-                            )}
-                        </ListItem>
-                    ))
+                                        <IconButton
+                                            edge="end"
+                                            aria-label="remove"
+                                            onClick={handleItemRemove(id)}
+                                            disabled={disabled}
+                                            color="error"
+                                            size="small"
+                                        >
+                                            <DeleteIcon fontSize="small" />
+                                        </IconButton>
+                                    </Box>
+                                )}
+                            </ListItem>
+                        )
+                    )
                 ) : (
                     <ListItem>
                         <Box
