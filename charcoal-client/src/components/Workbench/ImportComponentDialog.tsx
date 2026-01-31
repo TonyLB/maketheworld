@@ -55,9 +55,19 @@ interface ImportComponentDialogProps {
     open: boolean
     onClose: () => void
     assetId: AssetUUID
+    /**
+     * When provided, called instead of dispatching addImport.
+     * Caller handles updateStandard + fetchImports (e.g. TopLevelEditor).
+     */
+    onImportSelect?: (fromAsset: AssetUUID, uuid: ComponentUUID, tag: SchemaImportMapping['type']) => void
 }
 
-export const ImportComponentDialog: FunctionComponent<ImportComponentDialogProps> = ({ open, onClose, assetId }) => {
+export const ImportComponentDialog: FunctionComponent<ImportComponentDialogProps> = ({
+    open,
+    onClose,
+    assetId,
+    onImportSelect
+}) => {
     const dispatch = useDispatch()
     const { standardForm: currentStandardForm } = useWorkbenchAsset()
 
@@ -148,26 +158,34 @@ export const ImportComponentDialog: FunctionComponent<ImportComponentDialogProps
                 return
             }
 
-            dispatch(
-                addImport({
-                    assetId,
-                    fromAsset,
-                    uuid: component.universalKey as ComponentUUID,
-                    tag
-                })
-            )
+            if (onImportSelect) {
+                onImportSelect(fromAsset, component.universalKey as ComponentUUID, tag)
+            } else {
+                dispatch(
+                    addImport({
+                        assetId,
+                        fromAsset,
+                        uuid: component.universalKey as ComponentUUID,
+                        tag
+                    })
+                )
+            }
 
             onClose()
         },
-        [dispatch, assetId, onClose]
+        [dispatch, assetId, onClose, onImportSelect]
     )
 
     const handleImportFromRecent = useCallback(
         (fromAsset: AssetUUID, universalKey: ComponentUUID, tag: SchemaImportMapping['type']) => {
-            dispatch(addImport({ assetId, fromAsset, uuid: universalKey, tag }))
+            if (onImportSelect) {
+                onImportSelect(fromAsset, universalKey, tag)
+            } else {
+                dispatch(addImport({ assetId, fromAsset, uuid: universalKey, tag }))
+            }
             onClose()
         },
-        [dispatch, assetId, onClose]
+        [dispatch, assetId, onClose, onImportSelect]
     )
 
     const handleTabChange = useCallback(

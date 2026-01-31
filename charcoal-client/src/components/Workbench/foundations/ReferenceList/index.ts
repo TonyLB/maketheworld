@@ -1,4 +1,6 @@
 export { ReferenceListEditor } from './ReferenceListEditor'
+export { ReferenceListEditorGeneric } from './ReferenceListEditorGeneric'
+export { TopLevelEditor } from './TopLevelEditor'
 export { InlineReferenceList } from './InlineReferenceList'
 export { referenceListToItems } from './referenceListAdapter'
 export type { ReferenceListItem } from './ReferenceListEditor'

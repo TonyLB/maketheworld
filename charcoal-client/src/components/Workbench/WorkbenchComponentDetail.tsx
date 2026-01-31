@@ -15,118 +15,59 @@ import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
 import StandardKnowledge from '@tonylb/mtw-wml/ts/standardize/components/knowledge'
 import StandardCharacter from '@tonylb/mtw-wml/ts/standardize/components/character'
-import StandardExample from '@tonylb/mtw-wml/ts/standardize/components/example'
 import { hasShortName, StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
-import StandardReference from '@tonylb/mtw-wml/ts/standardize/components/reference'
 import { ReferenceList } from '@tonylb/mtw-wml/ts/standardize/keys/referenceList'
-import { excludeUndefined } from '../../lib/lists'
 import { TopLevelStandardLiteralEditor } from './foundations/StandardLiteral'
 import Spacer from './WorkbenchSpacer'
-import { ReferenceListEditor, referenceListToItems } from './foundations/ReferenceList'
+import { ReferenceListEditor } from './foundations/ReferenceList'
 
 const WMLComponentAppearance: FunctionComponent<{ universalKey: ComponentUUID }> = ({ universalKey }) => {
     const dispatch = useDispatch()
-    const { standardForm, inheritedStandardForm, updateStandard, readonly } = useWorkbenchAsset()
-    const [component, inherited]: [StandardFeature | StandardKnowledge | StandardRoom | undefined, StandardFeature | StandardKnowledge | StandardRoom | undefined] = useMemo(() => {
-        const extractComponent = (standardForm: StandardForm): StandardFeature | StandardKnowledge | StandardRoom | undefined => {
+    const { standardForm, updateStandard, readonly } = useWorkbenchAsset()
+    const [component]: [StandardFeature | StandardKnowledge | StandardRoom | undefined] = useMemo(() => {
+        const extractComponent = (form: StandardForm): StandardFeature | StandardKnowledge | StandardRoom | undefined => {
             if (universalKey) {
-                const component = standardForm.byUniversalId[universalKey]
-                if (component && (component instanceof StandardFeature || component instanceof StandardKnowledge || component instanceof StandardRoom)) {
-                    return component
+                const c = form.byUniversalId[universalKey]
+                if (c && (c instanceof StandardFeature || c instanceof StandardKnowledge || c instanceof StandardRoom)) {
+                    return c
                 }
             }
             return undefined
         }
-        return [extractComponent(standardForm), extractComponent(inheritedStandardForm)]
-    }, [universalKey, standardForm, inheritedStandardForm])
+        return [extractComponent(standardForm)]
+    }, [universalKey, standardForm])
     const { tag } = component ?? {}
     useOnboardingCheckpoint('navigateRoom', { requireSequence: true, condition: tag === 'Room' })
     useOnboardingCheckpoint('navigateAssetWithImport', { requireSequence: true })
 
-    const handleExamplesAdd = useCallback(() => {
-        if (!component || readonly) {
-            return
-        }
-        const ExampleKey = (value: string) => (`EXAMPLE#${value}` as ComponentUUID)
-        const uuid = `example-${Date.now()}`
-        const exampleUniversalKey = ExampleKey(uuid)
-
-        updateStandard({
-            type: 'update',
-            update: (draft: StandardForm) => {
-                const base = draft.byUniversalId[universalKey]
-                if (base instanceof StandardRoom || base instanceof StandardFeature || base instanceof StandardKnowledge) {
-                    const newExample = new StandardExample({
-                        tag: 'Example',
-                        universalKey: exampleUniversalKey
-                    })
-                    draft.byUniversalId[exampleUniversalKey] = newExample
-
-                    const exampleReference = new StandardReference({
-                        universalKey: exampleUniversalKey,
-                        tag: 'Example'
-                    })
-                    const currentExamples = base._payload._examples ?? new ReferenceList([])
-                    base._payload._examples = currentExamples.assureItem(exampleReference)
-                }
-                return draft
+    const examplesListContext = useCallback(
+        (form: StandardForm) => {
+            const base = form.byUniversalId[universalKey]
+            if (
+                !base ||
+                !(base instanceof StandardRoom || base instanceof StandardFeature || base instanceof StandardKnowledge)
+            ) {
+                return null
             }
-        })
-    }, [component, readonly, updateStandard, universalKey])
-
-    const handleExamplesRemove = useCallback((id: string) => {
-        if (!component || readonly) {
-            return
-        }
-        updateStandard({
-            type: 'update',
-            update: (draft: StandardForm) => {
-                const base = draft.byUniversalId[universalKey]
-                if (base instanceof StandardRoom || base instanceof StandardFeature || base instanceof StandardKnowledge) {
-                    const currentExamples = base._payload._examples ?? new ReferenceList([])
-                    const filtered = currentExamples.payload.filter((ref) => {
-                        const universalKey = ref.universalKey
-                        const key = ref.standardKey.key
-                        const resolvedId = universalKey ?? key
-                        return resolvedId !== id
-                    })
-                    base._payload._examples = new ReferenceList(filtered)
+            const examples = base._payload._examples ?? new ReferenceList([])
+            return {
+                referenceList: examples,
+                setReferenceList: (list: ReferenceList) => {
+                    base._payload._examples = list
                 }
-                return draft
             }
-        })
-    }, [component, readonly, updateStandard, universalKey])
-
-    const handleExamplesItemClick = useCallback((id: string) => {
-        if (!component || readonly) {
-            return
-        }
-        dispatch(navigateToComponentLayer(universalKey, id as ComponentUUID))
-    }, [component, readonly, dispatch, universalKey])
-
-    const exampleReferences = useMemo(
-        () => (component ? (component.examples ?? new ReferenceList([])) : new ReferenceList([])),
-        [component]
+        },
+        [universalKey]
     )
 
-    const exampleItems = useMemo(
-        () =>
-            referenceListToItems({
-                referenceList: exampleReferences,
-                standardForm,
-                tag: 'Example'
-            }),
-        [exampleReferences, standardForm]
+    const handleExamplesItemClick = useCallback(
+        (id: string) => {
+            if (!component || readonly) return
+            dispatch(navigateToComponentLayer(universalKey, id as ComponentUUID))
+        },
+        [component, readonly, dispatch, universalKey]
     )
-
-    const examplesSummary = useMemo(() => {
-        if (!exampleItems.length) {
-            return undefined
-        }
-        const titles = exampleItems.map(({ title }) => title).filter(Boolean)
-        return titles.join(', ')
-    }, [exampleItems])
 
     return component ? (
         <Box sx={{
@@ -169,15 +110,13 @@ const WMLComponentAppearance: FunctionComponent<{ universalKey: ComponentUUID }>
             <Box sx={{ marginTop: '0.5em' }}>
                 <ReferenceListEditor
                     title="Examples"
-                    items={exampleItems}
-                    summary={examplesSummary}
-                    defaultExpanded={!!exampleItems.length}
-                    disabled={readonly}
-                    onItemClick={handleExamplesItemClick}
-                    onItemRemove={handleExamplesRemove}
-                    onAddClick={handleExamplesAdd}
+                    listContext={examplesListContext}
+                    tag="Example"
+                    addAffordance="create"
                     addLabel="Add Example"
                     emptyStateText="This component does not currently reference any Examples."
+                    disabled={readonly}
+                    onItemClick={handleExamplesItemClick}
                 />
             </Box>
         </Box>
