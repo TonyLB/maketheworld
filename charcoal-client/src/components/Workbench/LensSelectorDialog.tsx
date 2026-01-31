@@ -54,7 +54,7 @@ const LensChoicesSubsection: FunctionComponent<{
         : null
 }
 
-export const WorkbenchLensSelectorDialog: FunctionComponent<LensSelectorDialogProps> = ({
+export const LensSelectorDialog: FunctionComponent<LensSelectorDialogProps> = ({
     open,
     onClose,
     onSelectExisting,
@@ -138,4 +138,4 @@ export const WorkbenchLensSelectorDialog: FunctionComponent<LensSelectorDialogPr
     )
 }
 
-export default WorkbenchLensSelectorDialog
+export default LensSelectorDialog

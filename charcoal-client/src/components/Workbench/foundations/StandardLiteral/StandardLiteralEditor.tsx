@@ -18,7 +18,7 @@ interface StandardLiteralEditorProps {
     variant?: 'outlined' | 'filled' | 'standard';
 }
 
-export const WorkbenchStandardLiteralEditor: FunctionComponent<StandardLiteralEditorProps> = ({
+export const StandardLiteralEditor: FunctionComponent<StandardLiteralEditorProps> = ({
     value,
     onChange,
     label,
@@ -88,4 +88,4 @@ export const WorkbenchStandardLiteralEditor: FunctionComponent<StandardLiteralEd
     )
 }
 
-export default WorkbenchStandardLiteralEditor
+export default StandardLiteralEditor

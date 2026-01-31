@@ -1,1 +1,1 @@
-export { default as WorkbenchStandardRenderEditor } from './StandardRenderEditor'
+export { default as StandardRenderEditor } from './StandardRenderEditor'

@@ -6,12 +6,12 @@ Reference lists in the Workbench (WML `ReferenceList` on a component—e.g. `exa
 
 ## Shared item type and adapter
 
-- **`WorkbenchReferenceListItem`**: `{ id: string, title: string, subtitle?: string, icon?: ReactNode }`. Used by both list components.
-- **`referenceListToWorkbenchItems`** (`referenceListAdapter.ts`): Converts a WML `ReferenceList` + `StandardForm` + optional `tag` into `WorkbenchReferenceListItem[]`. Resolves each reference's component and uses `shortName` for `title` when present; `id` is the reference's `universalKey` (or fallback). Use for Examples, Features, Lenses, Marks, etc.
+- **`ReferenceListItem`**: `{ id: string, title: string, subtitle?: string, icon?: ReactNode }`. Used by both list components.
+- **`referenceListToItems`** (`referenceListAdapter.ts`): Converts a WML `ReferenceList` + `StandardForm` + optional `tag` into `ReferenceListItem[]`. Resolves each reference's component and uses `shortName` for `title` when present; `id` is the reference's `universalKey` (or fallback). Use for Examples, Features, Lenses, Marks, etc.
 
 ---
 
-## Typical reference list: `WorkbenchReferenceList`
+## Typical reference list: `ReferenceListEditor`
 
 For lists where each item is **navigated to** (e.g. Examples) or **selected via dialog** (e.g. Features). No per-item data editing in the list itself.
 
@@ -21,7 +21,7 @@ For lists where each item is **navigated to** (e.g. Examples) or **selected via 
 
 ---
 
-## Inline reference list: `WorkbenchInlineReferenceList` (v2)
+## Inline reference list: `InlineReferenceList` (v2)
 
 For reference lists whose items are **small components** with lightweight inline editing (e.g. Marks in a Lens). The list owns row layout; the inline editor receives only a constrained **edit slot**. Heavier editing (e.g. description) lives in a **detailed editor**, reachable by clicking a dedicated **gap** between the edit slot and affordances.
 
@@ -33,11 +33,11 @@ For reference lists whose items are **small components** with lightweight inline
   - **`renderItemEditor?: (id: string) => ReactNode`** — Renders only the inline-edit content for each item. No affordances are passed in.
   - **`onItemClick?: (id: string) => void`** — When provided, the gap is clickable; click dispatches navigation to the detailed editor for that item.
 - **Fallback**: When `renderItemEditor` is omitted, each card falls back to a simple title + delete row. No gap, no `onItemClick`.
-- **Use case**: **Marks** in the Workbench Room Lens editor. `renderItemEditor(id)` resolves the Mark and returns `MarkInlineEditor` (shortName only). `onItemClick(id)` navigates to `WorkbenchMarkEditor` (shortName + description). Delete stays in the list affordances.
+- **Use case**: **Marks** in the Workbench Room Lens editor. `renderItemEditor(id)` resolves the Mark and returns `MarkInlineEditor` (shortName only). `onItemClick(id)` navigates to `MarkEditor` (shortName + description). Delete stays in the list affordances.
 
 ---
 
 ## Related components
 
-- **`MarkInlineEditor`**: Inline editor for a Mark's **shortName only**. Used in `WorkbenchInlineReferenceList` edit slots. No affordances; no description. Description and remove are handled by the detail view and the list respectively.
-- **`WorkbenchMarkEditor`**: Full Mark editor (shortName + description). Shown when navigating to a Mark via the inline list gap (e.g. from Lens Marks). Add/remove Marks remains in the list.
+- **`MarkInlineEditor`**: Inline editor for a Mark's **shortName only**. Used in `InlineReferenceList` edit slots. No affordances; no description. Description and remove are handled by the detail view and the list respectively.
+- **`MarkEditor`**: Full Mark editor (shortName + description). Shown when navigating to a Mark via the inline list gap (e.g. from Lens Marks). Add/remove Marks remains in the list.

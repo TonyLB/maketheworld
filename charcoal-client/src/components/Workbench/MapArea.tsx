@@ -12,7 +12,7 @@ type MapAreaProps = {
     editMode?: boolean;
 }
 
-export const WorkbenchMapArea: FunctionComponent<MapAreaProps>= ({ fileURL, editMode }) => {
+export const MapArea: FunctionComponent<MapAreaProps>= ({ fileURL, editMode }) => {
     const { standardForm } = useWorkbenchAsset()
     const { UI: { toolSelected, exitDrag, itemSelected }, localPositions: rooms, mapId, mapDispatch } = useMapContext()
     const dispatch = useDispatch()
@@ -60,4 +60,4 @@ export const WorkbenchMapArea: FunctionComponent<MapAreaProps>= ({ fileURL, edit
 
 }
 
-export default WorkbenchMapArea
+export default MapArea

@@ -21,18 +21,18 @@ import {
 import LinkIcon from '@mui/icons-material/Link'
 import LinkOffIcon from '@mui/icons-material/LinkOff'
 
-import { isCustomBlock } from '../../../../Editor/baseClasses'
+import { isCustomBlock } from '../../../Editor/baseClasses'
 
 import { useDebouncedOnChange } from '../../../../hooks/useDebounce'
-import descendantsToRender from '../../../../Editor/StandardRenderEditor/descendantsToRender'
-import descendantsFromRender from '../../../../Editor/StandardRenderEditor/descendantsFromRender'
-import { Element } from '../../../../Editor/StandardRenderEditor/components'
-import WorkbenchLinkDialog from '../../../LinkDialog'
-import WorkbenchTitledBox from '../../../WorkbenchTitledBox'
+import descendantsToRender from '../../../Editor/StandardRenderEditor/descendantsToRender'
+import descendantsFromRender from '../../../Editor/StandardRenderEditor/descendantsFromRender'
+import { Element } from '../../../Editor/StandardRenderEditor/components'
+import LinkDialog from '../../LinkDialog'
+import WorkbenchTitledBox from '../../WorkbenchTitledBox'
 import { useWorkbenchAsset } from '../useWorkbenchAsset'
 import useUpdatedSlate from '../../../../hooks/useUpdatedSlate'
-import withConstrainedWhitespace from '../../../../Editor/StandardRenderEditor/constrainedWhitespace'
-import TutorialPopover from '../../../../Onboarding/TutorialPopover'
+import withConstrainedWhitespace from '../../../Editor/StandardRenderEditor/constrainedWhitespace'
+import TutorialPopover from '../../../Onboarding/TutorialPopover'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardRender } from '@tonylb/mtw-wml/ts/standardize/render'
 
@@ -208,7 +208,7 @@ const StandardRenderSlateComponent: FunctionComponent<StandardRenderSlateCompone
     )
 
     return <Slate editor={editor} initialValue={initialValue} onChange={(next) => setValue(next)}>
-        <WorkbenchLinkDialog open={linkDialogOpen} onClose={() => { setLinkDialogOpen(false) }} validTags={validLinkTags} />
+        <LinkDialog open={linkDialogOpen} onClose={() => { setLinkDialogOpen(false) }} validTags={validLinkTags} />
         { title ? (
             <WorkbenchTitledBox title={title} actions={toolbarButtons}>
                 {editableContent}
@@ -229,7 +229,7 @@ const StandardRenderSlateComponent: FunctionComponent<StandardRenderSlateCompone
     </Slate>
 }
 
-export const WorkbenchStandardRenderEditor: FunctionComponent<StandardRenderEditorProps> = (props) => {
+export const StandardRenderEditor: FunctionComponent<StandardRenderEditorProps> = (props) => {
     const { standardForm, readonly } = useWorkbenchAsset()
     const contextPlaceholder = props.placeholder !== undefined ? '' : (props.tag && ['ShortName', 'Name', 'Summary', 'Description'].includes(props.tag) ? `Enter a ${props.tag}` : '')
     return <StandardRenderSlateComponent
@@ -241,4 +241,4 @@ export const WorkbenchStandardRenderEditor: FunctionComponent<StandardRenderEdit
     />
 }
 
-export default WorkbenchStandardRenderEditor
+export default StandardRenderEditor

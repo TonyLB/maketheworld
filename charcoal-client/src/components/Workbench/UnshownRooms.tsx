@@ -21,7 +21,7 @@ type UnshownRoomsProps = {
 
 }
 
-export const WorkbenchUnshownRooms: FunctionComponent<UnshownRoomsProps> = () => {
+export const UnshownRooms: FunctionComponent<UnshownRoomsProps> = () => {
     const { standardForm, localStandardForm } = useWorkbenchAsset()
     const { mapId, UI: { itemSelected }, mapDispatch } = useMapContext()
     const dispatch = useDispatch()
@@ -100,4 +100,4 @@ export const WorkbenchUnshownRooms: FunctionComponent<UnshownRoomsProps> = () =>
     </React.Fragment>
 }
 
-export default WorkbenchUnshownRooms
+export default UnshownRooms

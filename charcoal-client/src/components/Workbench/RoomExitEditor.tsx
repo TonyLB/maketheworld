@@ -167,7 +167,7 @@ const ExitEditor: FunctionComponent<{
     )
 }
 
-export const WorkbenchRoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId }) => {
+export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId }) => {
     const { standardForm, updateStandard } = useWorkbenchAsset()
 
     const room = useMemo(() => {
@@ -277,4 +277,4 @@ export const WorkbenchRoomExitEditor: FunctionComponent<RoomExitEditorProps> = (
     )
 }
 
-export default WorkbenchRoomExitEditor
+export default RoomExitEditor

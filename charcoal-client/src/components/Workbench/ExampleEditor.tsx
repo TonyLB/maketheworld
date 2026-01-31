@@ -9,7 +9,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import { useDebouncedOnChange } from "../../hooks/useDebounce";
 import { StandardRender } from "@tonylb/mtw-wml/ts/standardize/render";
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize";
-import { WorkbenchStandardRenderEditor } from "./foundations/StandardRender";
+import { StandardRenderEditor } from "./foundations/StandardRender";
 import { MakeTheWorldAccordion } from "../UI";
 import StandardRoom from "@tonylb/mtw-wml/ts/standardize/components/room";
 import StandardFeature from "@tonylb/mtw-wml/ts/standardize/components/feature";
@@ -21,7 +21,7 @@ type ExampleEditorProps = {
     componentId: ComponentUUID;
 }
 
-export const WorkbenchExampleEditor: FunctionComponent<ExampleEditorProps> = ({ componentId }) => {
+export const ExampleEditor: FunctionComponent<ExampleEditorProps> = ({ componentId }) => {
     const { standardForm, localStandardForm, updateStandard } = useWorkbenchAsset()
     const component = useMemo<StandardExample>(() => {
         const component = standardForm.byUniversalId[componentId]
@@ -144,7 +144,7 @@ export const WorkbenchExampleEditor: FunctionComponent<ExampleEditorProps> = ({ 
                     width: '100%'
                 }}
             >
-                <WorkbenchStandardRenderEditor
+                <StandardRenderEditor
                     value={summary}
                     onChange={setSummary}
                     validLinkTags={[]}
@@ -152,7 +152,7 @@ export const WorkbenchExampleEditor: FunctionComponent<ExampleEditorProps> = ({ 
                     tag="Summary"
                 />
             </Box>
-            <WorkbenchStandardRenderEditor
+            <StandardRenderEditor
                 value={description}
                 onChange={setDescription}
                 validLinkTags={[]}
@@ -163,4 +163,4 @@ export const WorkbenchExampleEditor: FunctionComponent<ExampleEditorProps> = ({ 
     )
 }
 
-export default WorkbenchExampleEditor
+export default ExampleEditor

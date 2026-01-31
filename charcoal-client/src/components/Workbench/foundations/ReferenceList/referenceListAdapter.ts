@@ -1,6 +1,6 @@
 import { ReferenceList } from "@tonylb/mtw-wml/ts/standardize/keys/referenceList"
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
-import { WorkbenchReferenceListItem } from "./WorkbenchReferenceList"
+import { ReferenceListItem } from "./ReferenceListEditor"
 
 type ComponentTag =
     | "Character"
@@ -13,7 +13,7 @@ type ComponentTag =
     | "Mark"
     | "Message"
 
-export const referenceListToWorkbenchItems = ({
+export const referenceListToItems = ({
     referenceList,
     standardForm,
     tag
@@ -21,7 +21,7 @@ export const referenceListToWorkbenchItems = ({
     referenceList: ReferenceList
     standardForm: StandardForm
     tag?: ComponentTag
-}): WorkbenchReferenceListItem[] => {
+}): ReferenceListItem[] => {
     const references = referenceList.payload
 
     return references
@@ -31,7 +31,7 @@ export const referenceListToWorkbenchItems = ({
             }
             return ref.tag === tag
         })
-        .map<WorkbenchReferenceListItem>((ref, index) => {
+        .map<ReferenceListItem>((ref, index) => {
             const universalKey = ref.universalKey
             const component = universalKey ? standardForm.byUniversalId[universalKey] : undefined
 

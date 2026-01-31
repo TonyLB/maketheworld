@@ -49,7 +49,7 @@ const ImageHeaderInterior: FunctionComponent<ImageHeaderProps> = ({ ItemId, onCl
     </Box>
 }
 
-export const WorkbenchImageHeader: FunctionComponent<ImageHeaderProps> = (props) => {
+export const ImageHeader: FunctionComponent<ImageHeaderProps> = (props) => {
     const { AssetId } = useWorkbenchAsset()
     const dispatch = useDispatch()
     const onDrop = useCallback((file: File) => {
@@ -63,4 +63,4 @@ export const WorkbenchImageHeader: FunctionComponent<ImageHeaderProps> = (props)
     </FileWrapper>
 }
 
-export default WorkbenchImageHeader
+export default ImageHeader

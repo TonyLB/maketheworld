@@ -141,7 +141,7 @@ const LinkChoicesSubsection: FunctionComponent<LinkChoicesSubsectionProps> = ({ 
         : null
 }
 
-export const WorkbenchLinkDialog: FunctionComponent<LinkDialogProps> = ({ open, onClose, validTags = ['Feature', 'Knowledge'] }) => {
+export const LinkDialog: FunctionComponent<LinkDialogProps> = ({ open, onClose, validTags = ['Feature', 'Knowledge'] }) => {
     const { standardForm } = useWorkbenchAsset()
     const { features, knowledges } = useMemo<{ features: string[], knowledges: string[] }>(() => (
         standardForm._components.reduce<{ features: string[], knowledges: string[] }>((previous, component) => {
@@ -194,4 +194,4 @@ export const WorkbenchLinkDialog: FunctionComponent<LinkDialogProps> = ({ open, 
     </Dialog>
 }
 
-export default WorkbenchLinkDialog
+export default LinkDialog

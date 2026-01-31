@@ -60,7 +60,7 @@ const localPositionsFromStandardForms = ({ inherited, local, mapId }: { inherite
     return [...(inherited ? localPositionsFromSingleStandardForm(inherited) : []), ...localPositionsFromSingleStandardForm(local)]
 }
 
-export const WorkbenchMapController: FunctionComponent<{ mapId: `MAP#${string}`; children?: ReactNode }> = ({ children, mapId }) => {
+export const MapController: FunctionComponent<{ mapId: `MAP#${string}`; children?: ReactNode }> = ({ children, mapId }) => {
     const { AssetId, localStandardForm, inheritedStandardForm, standardForm, updateStandard } = useWorkbenchAsset()
     const [toolSelected, setToolSelected] = useState<ToolSelected>('Select')
     const [itemSelected, setItemSelected] = useState<MapContextItemSelected | undefined>(undefined)
@@ -218,4 +218,4 @@ export const WorkbenchMapController: FunctionComponent<{ mapId: `MAP#${string}`;
     </MapContext.Provider>
 }
 
-export default WorkbenchMapController
+export default MapController

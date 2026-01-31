@@ -1,4 +1,4 @@
-export { WorkbenchReferenceList } from './WorkbenchReferenceList'
-export { WorkbenchInlineReferenceList } from './WorkbenchInlineReferenceList'
-export { referenceListToWorkbenchItems } from './referenceListAdapter'
-export type { WorkbenchReferenceListItem } from './WorkbenchReferenceList'
+export { ReferenceListEditor } from './ReferenceListEditor'
+export { InlineReferenceList } from './InlineReferenceList'
+export { referenceListToItems } from './referenceListAdapter'
+export type { ReferenceListItem } from './ReferenceListEditor'

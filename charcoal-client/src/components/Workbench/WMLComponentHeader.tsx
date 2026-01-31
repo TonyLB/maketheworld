@@ -38,7 +38,7 @@ const WMLComponentName: FunctionComponent<{ itemId: ComponentUUID }> = ({ itemId
     return null
 }
 
-export const WorkbenchWMLComponentHeader: FunctionComponent<WMLComponentHeaderProps> = ({ ItemId, onClick, icon, sx, selected }) => {
+export const WMLComponentHeader: FunctionComponent<WMLComponentHeaderProps> = ({ ItemId, onClick, icon, sx, selected }) => {
     const { updateStandard, inheritedStandardForm, standardForm } = useWorkbenchAsset()
     const primary = useCallback((key: string) => (<WMLComponentName itemId={key as ComponentUUID} />), [])
 
@@ -76,4 +76,4 @@ export const WorkbenchWMLComponentHeader: FunctionComponent<WMLComponentHeaderPr
     />
 }
 
-export default WorkbenchWMLComponentHeader
+export default WMLComponentHeader

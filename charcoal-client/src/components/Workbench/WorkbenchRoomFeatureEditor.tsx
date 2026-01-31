@@ -3,7 +3,7 @@ import { Box } from "@mui/material"
 import FeatureIcon from "@mui/icons-material/Search"
 
 import { useWorkbenchAsset } from "./foundations/useWorkbenchAsset"
-import { WorkbenchReferenceList, referenceListToWorkbenchItems } from "./foundations/ReferenceList"
+import { ReferenceListEditor, referenceListToItems } from "./foundations/ReferenceList"
 import StandardRoom from "@tonylb/mtw-wml/ts/standardize/components/room"
 import StandardFeature from "@tonylb/mtw-wml/ts/standardize/components/feature"
 import StandardReference from "@tonylb/mtw-wml/ts/standardize/components/reference"
@@ -14,13 +14,13 @@ import { enforceTypedKey } from "@tonylb/mtw-utilities/ts/types"
 import { v4 as uuidv4 } from "uuid"
 import { useDispatch } from "react-redux"
 import { navigateToComponent } from "../../slices/UI/workbench"
-import WorkbenchFeatureSelectorDialog from "./FeatureSelectorDialog"
+import FeatureSelectorDialog from "./FeatureSelectorDialog"
 
 type RoomFeatureEditorProps = {
     RoomId: ComponentUUID
 }
 
-export const WorkbenchRoomFeatureEditor: FunctionComponent<RoomFeatureEditorProps> = ({ RoomId }) => {
+export const RoomFeatureEditor: FunctionComponent<RoomFeatureEditorProps> = ({ RoomId }) => {
     const { standardForm, updateStandard, readonly } = useWorkbenchAsset()
     const dispatch = useDispatch()
     const [dialogOpen, setDialogOpen] = useState(false)
@@ -42,7 +42,7 @@ export const WorkbenchRoomFeatureEditor: FunctionComponent<RoomFeatureEditorProp
 
     const items = useMemo(
         () =>
-            referenceListToWorkbenchItems({
+            referenceListToItems({
                 referenceList: featureReferences,
                 standardForm,
                 tag: "Feature"
@@ -159,7 +159,7 @@ export const WorkbenchRoomFeatureEditor: FunctionComponent<RoomFeatureEditorProp
     if (!room) {
         return (
             <Box sx={{ marginTop: "0.5em" }}>
-                <WorkbenchReferenceList
+                <ReferenceListEditor
                     title="Features"
                     items={[]}
                     defaultExpanded
@@ -172,7 +172,7 @@ export const WorkbenchRoomFeatureEditor: FunctionComponent<RoomFeatureEditorProp
 
     return (
         <Box sx={{ marginTop: "0.5em" }}>
-            <WorkbenchReferenceList
+            <ReferenceListEditor
                 title="Features"
                 items={items}
                 summary={summary}
@@ -184,7 +184,7 @@ export const WorkbenchRoomFeatureEditor: FunctionComponent<RoomFeatureEditorProp
                 addLabel="Add Feature"
                 emptyStateText="This room does not currently reference any features."
             />
-            <WorkbenchFeatureSelectorDialog
+            <FeatureSelectorDialog
                 open={dialogOpen}
                 onClose={() => setDialogOpen(false)}
                 onSelectExisting={handleSelectExisting}
@@ -194,5 +194,5 @@ export const WorkbenchRoomFeatureEditor: FunctionComponent<RoomFeatureEditorProp
     )
 }
 
-export default WorkbenchRoomFeatureEditor
+export default RoomFeatureEditor
 

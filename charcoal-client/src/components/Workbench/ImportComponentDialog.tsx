@@ -57,7 +57,7 @@ interface ImportComponentDialogProps {
     assetId: AssetUUID
 }
 
-export const WorkbenchImportComponentDialog: FunctionComponent<ImportComponentDialogProps> = ({ open, onClose, assetId }) => {
+export const ImportComponentDialog: FunctionComponent<ImportComponentDialogProps> = ({ open, onClose, assetId }) => {
     const dispatch = useDispatch()
     const { standardForm: currentStandardForm } = useWorkbenchAsset()
 
@@ -402,4 +402,4 @@ export const WorkbenchImportComponentDialog: FunctionComponent<ImportComponentDi
     )
 }
 
-export default WorkbenchImportComponentDialog
+export default ImportComponentDialog

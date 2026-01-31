@@ -19,7 +19,7 @@ import ImageIcon from '@mui/icons-material/Image'
 
 export type AddComponentTag = 'Character' | 'Map' | 'Room' | 'Feature' | 'Knowledge' | 'Image'
 
-interface WorkbenchAddComponentProps {
+interface AddComponentProps {
     onAddAsset: (tag: AddComponentTag) => void
     isEven?: boolean
 }
@@ -33,7 +33,7 @@ const ADD_OPTIONS: { tag: AddComponentTag; icon: React.ReactNode; label: string 
     { tag: 'Image', icon: <ImageIcon sx={{ fontSize: '1rem' }} />, label: 'Image' }
 ]
 
-export const WorkbenchAddComponent: FunctionComponent<WorkbenchAddComponentProps> = ({
+export const AddComponent: FunctionComponent<AddComponentProps> = ({
     onAddAsset,
     isEven = false
 }) => {
@@ -142,4 +142,4 @@ export const WorkbenchAddComponent: FunctionComponent<WorkbenchAddComponentProps
     )
 }
 
-export default WorkbenchAddComponent
+export default AddComponent

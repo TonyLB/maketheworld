@@ -8,7 +8,7 @@ import { Box } from '@mui/material'
  * Provides consistent spacing when elements aren't thematically grouped
  * (e.g., between a top-level field and accordion sections).
  */
-export const WorkbenchSpacer: FunctionComponent<{
+export const Spacer: FunctionComponent<{
     /**
      * Height of the spacer. Defaults to '1em' for standard spacing.
      */
@@ -19,4 +19,4 @@ export const WorkbenchSpacer: FunctionComponent<{
     )
 }
 
-export default WorkbenchSpacer
+export default Spacer

@@ -58,7 +58,7 @@ const FeatureChoicesSubsection: FunctionComponent<{
     )
 }
 
-export const WorkbenchFeatureSelectorDialog: FunctionComponent<FeatureSelectorDialogProps> = ({
+export const FeatureSelectorDialog: FunctionComponent<FeatureSelectorDialogProps> = ({
     open,
     onClose,
     onSelectExisting,
@@ -145,5 +145,5 @@ export const WorkbenchFeatureSelectorDialog: FunctionComponent<FeatureSelectorDi
     )
 }
 
-export default WorkbenchFeatureSelectorDialog
+export default FeatureSelectorDialog
 

@@ -9,7 +9,7 @@ import CancelIcon from '@mui/icons-material/Cancel'
 import PositionIcon from '@mui/icons-material/ControlCamera'
 import EditIcon from '@mui/icons-material/Edit'
 
-import { WorkbenchUnshownRooms } from './UnshownRooms'
+import UnshownRooms from './UnshownRooms'
 import { blue } from '@mui/material/colors'
 import RenameIcon from '../Maps/Edit/MapLayers/RenameIcon'
 import { navigateToComponent } from '../../slices/UI/workbench'
@@ -175,7 +175,7 @@ const PositionLayer: FunctionComponent<{ x: number, y: number, inherited?: boole
     </ListItem>
 }
 
-export const WorkbenchMapLayers: FunctionComponent<MapLayersProps> = ({ mapId }) => {
+export const MapLayers: FunctionComponent<MapLayersProps> = ({ mapId }) => {
     const { standardForm, localStandardForm } = useWorkbenchAsset()
     
     const mapComponent = standardForm.byUniversalId[mapId]
@@ -278,7 +278,7 @@ export const WorkbenchMapLayers: FunctionComponent<MapLayersProps> = ({ mapId })
     
     return <MapLayersContext.Provider value={{ mapId }}>
         <Box sx={{ width: '100%', background: blue[50], marginBottom: '0.5em' }}>Unshown Rooms</Box>
-        <WorkbenchUnshownRooms />
+        <UnshownRooms />
         <Box sx={{ width: '100%', background: blue[50], marginBottom: '0.5em', marginTop: '0.5em' }}>Map Layers</Box>
         <Box sx={{position: "relative", zIndex: 0 }}>
             {roomLayers}
@@ -286,4 +286,4 @@ export const WorkbenchMapLayers: FunctionComponent<MapLayersProps> = ({ mapId })
     </MapLayersContext.Provider>
 }
 
-export default WorkbenchMapLayers
+export default MapLayers

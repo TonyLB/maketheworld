@@ -109,7 +109,7 @@ const EditCharacterIcon: FunctionComponent<ImageHeaderProps> = ({ ItemId, Name }
     </Box>
 }
 
-export const WorkbenchCharacterEditor: FunctionComponent = () => {
+export const CharacterEditor: FunctionComponent = () => {
     const dispatch = useDispatch()
     const { updateStandard, standardForm, AssetId, status } = useWorkbenchAsset()
     const currentComponentId = useSelector(getCurrentComponentId)
@@ -226,4 +226,4 @@ export const WorkbenchCharacterEditor: FunctionComponent = () => {
     )
 }
 
-export default WorkbenchCharacterEditor
+export default CharacterEditor

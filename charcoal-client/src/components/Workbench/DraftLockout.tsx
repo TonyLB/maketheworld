@@ -10,7 +10,7 @@ import CardActions from '@mui/material/CardActions'
 import Typography from '@mui/material/Typography'
 import { heartbeat } from "../../slices/stateSeekingMachine/ssmHeartbeat"
 
-export const WorkbenchDraftLockout: FunctionComponent<{}> = () => {
+export const DraftLockout: FunctionComponent<{}> = () => {
     const { AssetId } = useWorkbenchAsset()
     const currentStatus = useSelector(getStatus(AssetId))
     const dispatch = useDispatch()
@@ -58,4 +58,4 @@ export const WorkbenchDraftLockout: FunctionComponent<{}> = () => {
         : null
 }
 
-export default WorkbenchDraftLockout
+export default DraftLockout

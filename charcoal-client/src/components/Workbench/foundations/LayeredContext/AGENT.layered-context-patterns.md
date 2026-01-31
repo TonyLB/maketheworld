@@ -14,7 +14,7 @@
 A compact **layer strip** (vertical list, always visible) lists all sibling items. The main area shows the **focused** item's full editor only.
 
 - **Strip**: Narrow sidebar (e.g. left) or collapsible panel. Each row = one Example (or layer): name, optional 1-line summary, selected state.
-- **Focus panel**: Full `WorkbenchExampleEditor` (or equivalent) for the **current** sibling only.
+- **Focus panel**: Full `ExampleEditor` (or equivalent) for the **current** sibling only.
 
 **Layered context**  
 The strip is the persistent "layer stack." You always see **all** siblings; the selected one is clearly highlighted. Optional: small preview (name + truncated summary) per row so you can distinguish layers at a glance.
@@ -33,9 +33,9 @@ The strip is the persistent "layer stack." You always see **all** siblings; the 
 - No inline editing of non-focused layers; you must switch focus to edit.
 
 **Implementation notes**  
-- Reuse a list primitive similar to `WorkbenchReferenceList` for the strip: `items` = siblings, `onItemClick` = set "current" layer (local state or a small `layeredContext` slice).  
+- Reuse a list primitive similar to `ReferenceListEditor` for the strip: `items` = siblings, `onItemClick` = set "current" layer (local state or a small `layeredContext` slice).  
 - Main area renders the layer editor only when `currentId` matches.  
-- Works within existing Workbench: breadcrumbs stay **Asset → Parent** (Room/Feature/Knowledge); the strip+panel live inside `WorkbenchComponentDetail` as the "Examples" section.
+- Works within existing Workbench: breadcrumbs stay **Asset → Parent** (Room/Feature/Knowledge); the strip+panel live inside `ComponentDetail` as the "Examples" section.
 
 ---
 
@@ -65,7 +65,7 @@ The index bar answers "which layer am I on?" and "how many siblings are there?" 
 
 **Implementation notes**  
 - Add a `LayeredContextIndexBar` (or similar) above the Example list: `siblings: { id, label }[]`, `currentId`, `onSelect(id)`.  
-- `WorkbenchComponentDetail` derives sibling list from `component.examples`, tracks `currentExampleId` (local state or slice).  
+- `ComponentDetail` derives sibling list from `component.examples`, tracks `currentExampleId` (local state or slice).  
 - Accordions: `expanded` only for `currentExampleId`; `summary` prop can show name/summary when collapsed.  
 - Use `scroll-margin` / `scrollIntoView` when selecting a chip so the chosen accordion comes into view.
 
@@ -97,9 +97,9 @@ The list pane is the dedicated "layers" context. It's always on screen, so you c
 
 **Implementation notes**  
 - Use a resizable split (e.g. MUI `Grid`, or a small split-pane utility) if we adopt this.  
-- List pane: `WorkbenchReferenceList`-style component, or a dedicated `LayeredContextList`, with `onItemClick` to set selection.  
+- List pane: `ReferenceListEditor`-style component, or a dedicated `LayeredContextList`, with `onItemClick` to set selection.  
 - Editor pane: same as pattern 1—render the layer editor only for the selected id.  
-- Works inside `WorkbenchComponentDetail`; breadcrumbs remain Asset → Parent.
+- Works inside `ComponentDetail`; breadcrumbs remain Asset → Parent.
 
 ---
 
@@ -109,7 +109,7 @@ The list pane is the dedicated "layers" context. It's always on screen, so you c
 A **top horizontal scrollable row of tabs**, one per sibling (Example). The selected tab is highlighted; the main area below shows **only** the selected layer's editor.
 
 - **Tabs**: MUI [`Tabs`](https://mui.com/material-ui/react-tabs/) + [`Tab`](https://mui.com/material-ui/api/tab/) with `variant="scrollable"` and `scrollButtons="auto"`. Each tab label is the *Example's* label: use `shortName` when present; otherwise fall back to "Example 1", "Example 2", etc. Do **not** use `name` for the Example's tab label (that is the exemplified item's name).
-- **Panel**: Single content area showing `WorkbenchExampleEditor` (or equivalent) for the **current** tab's id only.
+- **Panel**: Single content area showing `ExampleEditor` (or equivalent) for the **current** tab's id only.
 
 **Layered context**  
 The tab bar is the persistent "layer stack." You always see **all** siblings in order; the selected tab is visually distinct (MUI's default indicator + selected styling). Overflowing tabs scroll horizontally (desktop: optional scroll buttons; mobile: swipe).
@@ -133,8 +133,8 @@ The tab bar is the persistent "layer stack." You always see **all** siblings in 
 - `variant="scrollable"` — horizontal scroll when tabs overflow.  
 - `scrollButtons="auto"` — show scroll buttons on desktop when needed; hide on mobile. Use `scrollButtons={true}` + `allowScrollButtonsMobile` if you want arrows on mobile too.  
 - `value` = current Example id; `onChange` updates local state within the Examples view (or a `layeredContext` slice keyed by parent id).  
-- Render one `WorkbenchExampleEditor` for the active tab's id; no need for accordions.  
-- Works inside `WorkbenchExamplesView`, which is selected from the main workbench router when the mode is in the Examples (component-layer) state.
+- Render one `ExampleEditor` for the active tab's id; no need for accordions.  
+- Works inside `ExamplesView`, which is selected from the main workbench router when the mode is in the Examples (component-layer) state.
 
 **Minimal code sketch**  
 ```tsx
@@ -155,7 +155,7 @@ const [currentId, setCurrentId] = useState(siblings[0]?.id ?? null)
       <Tab key={id} value={id} label={label || 'Untitled'} />
     ))}
   </Tabs>
-  {currentId && <WorkbenchExampleEditor componentId={currentId} />}
+  {currentId && <ExampleEditor componentId={currentId} />}
 </Box>
 ```
 
@@ -185,7 +185,7 @@ const [currentId, setCurrentId] = useState(siblings[0]?.id ?? null)
 
 - **Breadcrumbs**: When we are in the Examples view, breadcrumbs read **Asset → Parent → Examples** (e.g. **Asset → Room → Examples**). We do **not** push per-Example breadcrumbs; Examples are "layers" within the parent, not separate nav steps. Clicking the parent crumb (e.g. **Room**) exits the Examples mode back to the parent's main editor. The `Examples` crumb is represented as a dedicated breadcrumb kind (`'componentLayer'`) layered on top of the existing asset/component stack.  
 - **Navigation model**: Redux navigation is modeled as a stack of breadcrumb entries (`breadcrumbStack`). The first entry is always the asset, the last `kind === 'component'` (if present) is the current parent component, and an optional trailing `kind === 'componentLayer'` represents the current layered view (Examples) for that parent. `currentView`, parent component id, and current layer id are all **derived selectors** over this stack rather than separate pieces of state.  
-- **Examples management vs. Examples view**: The set of Example layers is managed via an `Examples` `WorkbenchReferenceList` accordion under the parent component (mirroring the Features/Exits/Lenses pattern). Adding/removing Examples happens there by editing the parent's `component.examples` reference list; entering the layered Examples view for a specific Example uses breadcrumb-based navigation into a `componentLayer` entry.  
+- **Examples management vs. Examples view**: The set of Example layers is managed via an `Examples` `ReferenceListEditor` accordion under the parent component (mirroring the Features/Exits/Lenses pattern). Adding/removing Examples happens there by editing the parent's `component.examples` reference list; entering the layered Examples view for a specific Example uses breadcrumb-based navigation into a `componentLayer` entry.  
 - **Data**: Sibling list for the layered view comes from `component.examples` (or the equivalent reference list). Use `shortName` for the Example's tab/list label; do **not** use `name` (that is the exemplified item's name). Fall back to "Untitled" when `shortName` is missing.
 
 ---
@@ -193,6 +193,6 @@ const [currentId, setCurrentId] = useState(siblings[0]?.id ?? null)
 ## Next steps
 
 1. Choose one pattern (or a hybrid) for Examples.  
-2. Implement a small **`LayeredContext*`** component set (e.g. index bar, strip, or split list) and wire it into `WorkbenchComponentDetail` for the Examples section.  
+2. Implement a small **`LayeredContext*`** component set (e.g. index bar, strip, or split list) and wire it into `ComponentDetail` for the Examples section.  
 3. Add sibling navigation (click-to-select, optional prev/next) and ensure accessibility (keyboard, focus management, aria).  
 4. Document the pattern in this file and reuse for future "layer-like" sibling groups (e.g. Lenses, Marks) as needed.

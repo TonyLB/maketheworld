@@ -63,12 +63,12 @@ type WorkbenchBreadcrumbEntry = {
 }
 ```
 
-**WorkbenchReferenceListItem** (`foundations/ReferenceList/WorkbenchReferenceList.tsx`):
+**ReferenceListItem** (`foundations/ReferenceList/ReferenceListEditor.tsx`):
 ```typescript
 { id: string; title: string; subtitle?: string; icon?: ReactNode }
 ```
 
-**referenceListAdapter** (`foundations/ReferenceList/referenceListAdapter.ts`): Converts WML `ReferenceList` + `StandardForm` + optional `tag` into `WorkbenchReferenceListItem[]`.
+**referenceListAdapter** (`foundations/ReferenceList/referenceListAdapter.ts`): Converts WML `ReferenceList` + `StandardForm` + optional `tag` into `ReferenceListItem[]`.
 
 ### Core Methods
 
@@ -76,7 +76,7 @@ type WorkbenchBreadcrumbEntry = {
 - **`navigateToComponent(componentId)`**: Sets breadcrumb stack to a single component entry
 - **`navigateToComponentLayer(parentId, layerId)`**: Sets stack to component + componentLayer (e.g., Examples view, Mark in Lens)
 - **`navigateViaBreadcrumbIndex(index)`**: Pops to a given breadcrumb index (index 0 = asset root)
-- **`referenceListToWorkbenchItems({ referenceList, standardForm, tag })`**: Adapter for reference lists to list items
+- **`referenceListToItems({ referenceList, standardForm, tag })`**: Adapter for reference lists to list items
 
 ### Configuration
 
@@ -109,7 +109,7 @@ type WorkbenchBreadcrumbEntry = {
 ### System Relationships
 
 - **AppLayout**: Renders `WorkbenchContainer` with `open`, `onClose`, `assetId`, `secondaryContext`; controls workbench visibility
-- **WorkbenchAssetEditor**: Orchestrates view routing based on `getCurrentView`, `getCurrentComponentId`, `getCurrentComponentLayerId`; delegates to `WorkbenchAssetEditForm`, `WorkbenchComponentDetail`, `WorkbenchExamplesView`, `WorkbenchMarkEditor`, `WorkbenchMapEditor`, `WorkbenchCharacterEditor`
+- **WorkbenchAssetEditor**: Orchestrates view routing based on `getCurrentView`, `getCurrentComponentId`, `getCurrentComponentLayerId`; delegates to `AssetEditForm`, `ComponentDetail`, `ExamplesView`, `MarkEditor`, `MapEditor`, `CharacterEditor`
 
 ---
 
@@ -145,8 +145,8 @@ dispatch(navigateToComponentLayer(parentComponentId, exampleId))
 ### Reference List Editing
 
 ```typescript
-// Use referenceListToWorkbenchItems for list display
-const items = referenceListToWorkbenchItems({ referenceList, standardForm, tag: 'Example' })
+// Use referenceListToItems for list display
+const items = referenceListToItems({ referenceList, standardForm, tag: 'Example' })
 
 // Add/remove via updateStandard and ReferenceList
 updateStandard({
@@ -164,13 +164,13 @@ updateStandard({
 
 ### Rich Text Editing
 
-`StandardRenderEditor` and `WorkbenchMarkEditor` use Slate for rich text; `StandardLiteralEditor` for plain text. Both integrate with `updateStandard` and `useDebouncedOnChange` for persistence.
+`StandardRenderEditor` and `MarkEditor` use Slate for rich text; `StandardLiteralEditor` for plain text. Both integrate with `updateStandard` and `useDebouncedOnChange` for persistence.
 
 ### Best Practices
 
 - Use `useWorkbenchAsset` instead of `useLibraryAsset` when in Workbench context
 - Resolve components via `standardForm.byUniversalId[id]` and use `instanceof` checks (e.g. `StandardRoom`, `StandardFeature`)
-- Prefer `referenceListToWorkbenchItems` for consistent list display across Examples, Features, Lenses, Marks
+- Prefer `referenceListToItems` for consistent list display across Examples, Features, Lenses, Marks
 - Handle `readonly` from `useWorkbenchAsset` before allowing edits (non-Draft assets)
 
 ### Error Handling
@@ -188,7 +188,7 @@ updateStandard({
 1. **Workbench Flow**: Start at [`WorkbenchContainer.tsx`](./WorkbenchContainer.tsx) for layout and breadcrumb header; then [`WorkbenchAssetEditor.tsx`](./WorkbenchAssetEditor.tsx) for view routing
 2. **Asset Context**: Read [`foundations/useWorkbenchAsset.ts`](./foundations/useWorkbenchAsset.ts) to understand how asset data flows from `personalAssets` into Workbench components
 3. **Navigation State**: Read [`src/slices/UI/workbench/index.ts`](../../slices/UI/workbench/index.ts) for breadcrumb model and selectors
-4. **Component Editing**: [`WorkbenchComponentDetail.tsx`](./WorkbenchComponentDetail.tsx) is the main component editor; it delegates to `WorkbenchRoomFeatureEditor`, `RoomLensEditor`, `RoomExitEditor`, `WorkbenchReferenceList`, etc.
+4. **Component Editing**: [`WorkbenchComponentDetail.tsx`](./WorkbenchComponentDetail.tsx) is the main component editor; it delegates to `RoomFeatureEditor`, `RoomLensEditor`, `RoomExitEditor`, `ReferenceListEditor`, etc.
 
 ### Key Files
 
@@ -200,13 +200,13 @@ updateStandard({
 | `WorkbenchComponentDetail.tsx` | Room/Feature/Knowledge detail; reference lists, Examples |
 | `WorkbenchExamplesView.tsx` | Layered Examples view (tabs); uses `foundations/LayeredContext/LayeredExamplesTabs` |
 | `WorkbenchMarkEditor.tsx` | Full Mark editor (shortName + description) |
-| `RoomLensEditor.tsx` | Lens editing; Marks via `WorkbenchInlineReferenceList` |
+| `RoomLensEditor.tsx` | Lens editing; Marks via `InlineReferenceList` |
 | `foundations/StandardRender/StandardRenderEditor.tsx` | Rich text (Slate); shared with Editor components |
-| `foundations/ReferenceList/referenceListAdapter.ts` | `referenceListToWorkbenchItems` for list display |
+| `foundations/ReferenceList/referenceListAdapter.ts` | `referenceListToItems` for list display |
 
 ### Related Documentation
 
-- [AGENT.reference-lists.md](./foundations/ReferenceList/AGENT.reference-lists.md) - `WorkbenchReferenceList` vs `WorkbenchInlineReferenceList`, `referenceListToWorkbenchItems`, Mark inline pattern
+- [AGENT.reference-lists.md](./foundations/ReferenceList/AGENT.reference-lists.md) - `ReferenceListEditor` vs `InlineReferenceList`, `referenceListToItems`, Mark inline pattern
 - [AGENT.layered-context-patterns.md](./foundations/LayeredContext/AGENT.layered-context-patterns.md) - Layer strip, index bar, split-pane, MUI Tabs; Examples layered view design
 - [charcoal-client/AGENT.testing.slate.md](../../../AGENT.testing.slate.md) - Slate/rich text testing if modifying StandardRenderEditor
 
@@ -219,7 +219,7 @@ updateStandard({
 - **Form-Based Editing**: Primary path for WML authoring in overlay context
 - **Breadcrumb Navigation**: Redux-driven; no React Router within Workbench
 - **Responsive**: Drawer on desktop, full-screen on mobile
-- **Reference Lists**: `WorkbenchReferenceList` and `WorkbenchInlineReferenceList` with adapter
+- **Reference Lists**: `ReferenceListEditor` and `InlineReferenceList` with adapter
 - **Layered Examples**: `LayeredExamplesTabs` (MUI Tabs) for sibling Example navigation
 - **Draft Lockout**: Non-Draft assets are read-only
 

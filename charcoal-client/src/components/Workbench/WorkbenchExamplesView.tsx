@@ -12,9 +12,9 @@ import StandardReference from '@tonylb/mtw-wml/ts/standardize/components/referen
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import { excludeUndefined } from '../../lib/lists'
 import { LayeredExamplesTabs } from './foundations/LayeredContext'
-import WorkbenchExampleEditor from './ExampleEditor'
+import ExampleEditor from './ExampleEditor'
 
-export const WorkbenchExamplesView: FunctionComponent = () => {
+export const ExamplesView: FunctionComponent = () => {
     const { standardForm } = useWorkbenchAsset()
     const currentComponentId = useSelector(getCurrentComponentId)
 
@@ -96,12 +96,12 @@ export const WorkbenchExamplesView: FunctionComponent = () => {
                 onChange={(nextId) => setCurrentExampleId(nextId)}
             >
                 <Box sx={{ padding: 2 }}>
-                    <WorkbenchExampleEditor componentId={activeId} />
+                    <ExampleEditor componentId={activeId} />
                 </Box>
             </LayeredExamplesTabs>
         </Box>
     )
 }
 
-export default WorkbenchExamplesView
+export default ExamplesView
 

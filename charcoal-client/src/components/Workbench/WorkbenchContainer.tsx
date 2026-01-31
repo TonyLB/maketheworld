@@ -5,7 +5,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz'
 import LayersIcon from '@mui/icons-material/Layers'
 import { AssetUUID, ComponentUUID } from '@tonylb/mtw-base/ts/schema'
-import WorkbenchContent from './WorkbenchContent'
+import Content from './WorkbenchContent'
 import AssetSelector from './AssetSelector'
 import {
     setCurrentAssetId,
@@ -342,13 +342,13 @@ export const WorkbenchContainer: FunctionComponent<WorkbenchContainerProps> = ({
                             </Box>
                         </Box>
 
-                        <WorkbenchContent>
+                        <Content>
                             {assetId === null ? (
                                 <AssetSelector onAssetSelect={handleAssetSelect} />
                             ) : (
                                 children
                             )}
-                        </WorkbenchContent>
+                        </Content>
 
                         {/* Actions area - "Return to Story" button */}
                         <Box
@@ -484,13 +484,13 @@ export const WorkbenchContainer: FunctionComponent<WorkbenchContainerProps> = ({
                             </Box>
                         </Box>
 
-                        <WorkbenchContent>
+                        <Content>
                             {assetId === null ? (
                                 <AssetSelector onAssetSelect={handleAssetSelect} />
                             ) : (
                                 children
                             )}
-                        </WorkbenchContent>
+                        </Content>
 
                         {/* Actions area - "Return to Story" button */}
                         <Box
