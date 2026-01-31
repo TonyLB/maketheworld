@@ -277,14 +277,15 @@ export class StandardForm {
 
     /**
      * Returns true when the StandardForm contains no meaningful content.
-     * Meaningful content includes any components, or Asset-level ShortName/Summary.
+     * Meaningful content includes any components, Asset-level ShortName/Summary, or topLevel references.
      * Imports and empty metadata do not count as content.
      */
     isEmpty(): boolean {
         const hasComponents = this._components.length > 0
         const hasShortName = Boolean(this._shortName)
         const hasSummary = Boolean(this._summary)
-        return !(hasComponents || hasShortName || hasSummary)
+        const hasTopLevel = Boolean(this._topLevel?.payload?.length)
+        return !(hasComponents || hasShortName || hasSummary || hasTopLevel)
     }
 
     get metaData(): GenericTree<SchemaTag> {
