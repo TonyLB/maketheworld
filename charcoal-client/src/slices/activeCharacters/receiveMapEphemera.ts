@@ -27,7 +27,7 @@ const extractMapDataFromStandardForm = (standardForm: StandardForm, mapId: Ephem
     if (!mapComponent || !(mapComponent instanceof StandardMap)) {
         return {
             description: '',
-            name: '',
+            shortName: '',
             rooms: [],
             assets: {},
             fileURL: undefined
@@ -35,7 +35,7 @@ const extractMapDataFromStandardForm = (standardForm: StandardForm, mapId: Ephem
     }
 
     // Extract display name from shortName
-    const name = mapComponent.shortName?._payload?.plain?.toJSON() ?? ''
+    const shortName = mapComponent.shortName?._payload?.plain?.toJSON() ?? ''
 
     // Extract rooms from positions
     const rooms = mapComponent.positions.items
@@ -53,14 +53,14 @@ const extractMapDataFromStandardForm = (standardForm: StandardForm, mapId: Ephem
             const exits = roomComponent.exits.items
                 .map((exitFacet) => {
                     const to = exitFacet.reference.universalKey ?? ''
-                    const name = exitFacet.payload.toJSON() ?? ''
-                    return { name, to }
+                    const description = exitFacet.payload.toJSON() ?? ''
+                    return { description, to }
                 })
                 .filter((exit) => exit.to !== '')
 
             return {
                 roomId: roomId as string,
-                name: roomComponent.shortName?._payload?.plain?.toJSON() ?? '',
+                shortName: roomComponent.shortName?._payload?.plain?.toJSON() ?? '',
                 x: position.x ?? 0,
                 y: position.y ?? 0,
                 exits
@@ -102,7 +102,7 @@ export const receiveMapEphemera = (state: any, action: PayloadAction<ActiveChara
             // Fallback to empty structure
             mapData = {
                 description,
-                name: '',
+                shortName: '',
                 rooms: [],
                 assets: {},
                 fileURL: undefined

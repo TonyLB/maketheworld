@@ -95,18 +95,18 @@ export type RoomDescribeData = {
 
 export type MapDescribeRoom = {
     roomId: EphemeraRoomId;
-    name: string;
+    shortName: string;
     x: number;
     y: number;
     exits: {
-        name: string;
+        description: string;
         to: EphemeraRoomId;
     }[];
 }
 
 export type MapDescribeData = {
     MapId: EphemeraMapId;
-    name?: string;
+    shortName?: string;
     fileURL?: string;
     rooms: MapDescribeRoom[];
     assets?: AssetUUID[];
@@ -129,7 +129,7 @@ const validateMapRoomList = (items: any) => {
             return false
         }
         return exits.reduce<boolean>((previous, exit) => (
-            previous && checkTypes(exit, { name: 'string', to: 'string' }) && isEphemeraRoomId(exit.to)
+            previous && checkTypes(exit, { description: 'string', to: 'string' }) && isEphemeraRoomId(exit.to)
         ), true)
     }, true)
 }
@@ -140,7 +140,7 @@ export const isMapDescribeData = (message: any): message is MapDescribeData => {
         !(message.fileURL && typeof message.fileURL !== 'string'),
         isEphemeraMapId(message.MapId),
         validateMapRoomList(message.rooms),
-        isRenderTree(message.name)
+        isRenderTree(message.shortName)
     )
 }
 

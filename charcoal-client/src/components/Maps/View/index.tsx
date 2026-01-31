@@ -123,7 +123,7 @@ export const MapView: FunctionComponent<MapViewProps> = () => {
                         {
                             Object.entries({ ...maps, ...(MapId ? {} : { none: { name: 'None selected', MapId: 'MAP#none' as EphemeraMapId, description: '', rooms: [], assets: {} }}) })
                                 .map(([key, map]) => (
-                                    <MenuItem key={key} value={key}>{map.name || 'Unnamed map'}</MenuItem>
+                                    <MenuItem key={key} value={key}>{map.shortName || 'Unnamed map'}</MenuItem>
                                 ))
                         }
                     </Select>

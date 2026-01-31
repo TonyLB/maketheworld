@@ -1,6 +1,6 @@
 # Syntax
 
-The structure of WML is made up of ***tags***, like `<Room key=(room1) />`.  These tags can either be self-closing (as at left) or can enclose other tags, like `<Room key=(room2)><Name>Lobby</Name></Room>`.
+The structure of WML is made up of ***tags***, like `<Room key=(room1) />`.  These tags can either be self-closing (as at left) or can enclose other tags, like `<Room key=(room2)><ShortName>Lobby</ShortName></Room>`.
 
 ## Context Tags
 
@@ -12,7 +12,7 @@ wrapped in both will exist in the context of the **relationship** between those 
 <Asset uuid=(testAsset)>
     <Map key=(testMap)>
         <Room key=(room1)>
-            <Name>Lobby</Name>
+            <ShortName>Lobby</ShortName>
             <Position "0, 100" />
         </Room>
     </Map>
@@ -27,7 +27,7 @@ Because the Map and Room tags are only there to establish context, the **order**
 ```
 <Asset uuid=(testAsset)>
     <Room key=(room1)>
-        <Name>Lobby</Name>
+        <ShortName>Lobby</ShortName>
         <Map key=(testMap)>
             <Position "0, 100" />
         </Map>
@@ -35,7 +35,7 @@ Because the Map and Room tags are only there to establish context, the **order**
 </Asset>
 ```
 
-Again, the **Position** tag exists within the context of all the tags needed to define its place in relation to the given map and room, while the **Name** tag is only associated with the Room.
+Again, the **Position** tag exists within the context of all the tags needed to define its place in relation to the given map and room, while the **ShortName** tag is only associated with the Room.
 
 For some relationship, there is nothing associated with the relationship ... the mere fact of a connection is enough. For instance:
 

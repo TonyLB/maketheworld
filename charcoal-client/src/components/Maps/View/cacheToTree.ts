@@ -4,27 +4,23 @@ import { GenericTree } from '@tonylb/mtw-base/ts/genericTree'
 
 export const cacheToTree = ({ rooms = [] }: ActiveCharacterMap): GenericTree<MapTreeItem> => {
     const tree = rooms
-        .reduce<GenericTree<MapTreeItem>>((previous: GenericTree<MapTreeItem>, { roomId, name, x = 0, y = 0, exits }: { roomId: string; name: string; x: number; y: number; exits: Array<{ name: string; to: string }> }, index: number) => ([
+        .reduce<GenericTree<MapTreeItem>>((previous: GenericTree<MapTreeItem>, { roomId, shortName, x = 0, y = 0, exits }: { roomId: string; shortName: string; x: number; y: number; exits: Array<{ description: string; to: string }> }, index: number) => ([
             ...previous,
             {
                 data: {
                     tag: 'Room',
                     key: roomId,
-                    //
-                    // TODO: ISS-3402: Refactor how name data in MapDescribe is formatted
-                    //
-                    // name: name.map((item) => ({ data: item, children: [] })),
-                    name: [{ data: { tag: 'String', value: name }, children: [] }],
+                    shortName: [{ data: { tag: 'String', value: shortName }, children: [] }],
                     x,
                     y
                 },
-                children: exits.map(({ name, to }) => ({
+                children: exits.map(({ description, to }) => ({
                     data: {
                         tag: 'Exit',
                         key: `${roomId}#${to}`,
                         from: roomId,
                         to,
-                        name
+                        description
                     },
                     children: []
                 }))

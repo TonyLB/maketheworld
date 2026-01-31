@@ -26,7 +26,7 @@ describe('TagTree', () => {
                     <Room key=(room1) uuid=(Room1)>
                         <Example uuid=(room1-example)>
                             <Description>Test description</Description>
-                            <Name>Test room</Name>
+                            <DisplayName>Test room</DisplayName>
                         </Example>
                         <Exit to=(room2) />
                     </Room>
@@ -53,7 +53,7 @@ describe('TagTree', () => {
                     { data: { tag: 'Asset', uuid: 'ASSET#test' } },
                     { data: { tag: 'Room', key: 'room1', uuid: 'ROOM#Room1' } },
                     { data: { tag: 'Example', uuid: 'EXAMPLE#room1-example' } },
-                    { data: { tag: 'Name' } },
+                    { data: { tag: 'DisplayName' } },
                     { data: { tag: 'String', value: 'Test room' } },
                 ],
                 [
@@ -73,7 +73,7 @@ describe('TagTree', () => {
                 <Asset uuid=(test)>
                     <Room key=(room1) uuid=(Room1)>
                         <Example uuid=(room1-example)>
-                            <Name>Main Hall</Name>
+                            <DisplayName>Main Hall</DisplayName>
                             <Description>A grand entrance hall</Description>
                         </Example>
                         <Exit to=(room2)>North</Exit>
@@ -161,7 +161,7 @@ describe('TagTree', () => {
                 <Asset uuid=(test)>
                     <Room key=(room1) uuid=(Room1)>
                         <Example uuid=(room1-example)>
-                            <Name>Main Hall</Name>
+                            <DisplayName>Main Hall</DisplayName>
                             <Description>A grand entrance hall</Description>
                         </Example>
                         <Exit to=(room2)>North</Exit>
@@ -169,13 +169,13 @@ describe('TagTree', () => {
                     </Room>
                     <Room key=(room2) uuid=(Room2)>
                         <Example uuid=(room2-example)>
-                            <Name>North Wing</Name>
+                            <DisplayName>North Wing</DisplayName>
                             <Description>A quiet study area</Description>
                         </Example>
                     </Room>
                     <Knowledge key=(info1) uuid=(Knowledge1)>
                         <Example uuid=(info1-example)>
-                            <Name>Ancient Lore</Name>
+                            <DisplayName>Ancient Lore</DisplayName>
                             <Description>Knowledge of the ancients</Description>
                         </Example>
                     </Knowledge>
@@ -249,39 +249,39 @@ describe('TagTree', () => {
             const filtered = tagTree.filter({
                 and: [
                     { match: 'Room' },
-                    { match: 'Name' }
+                    { match: 'DisplayName' }
                 ]
             })
             const transformed = filtered._transformedTags
             
             // The AND operation finds tags that match BOTH conditions
-            // So we get only Name tags that are within Room contexts
-            // This excludes Name tags in other component types like Knowledge
-            expect(transformed).toHaveLength(2) // room1: Name, room2: Name
+            // So we get only DisplayName tags that are within Room contexts (e.g. Example's display name)
+            // This excludes DisplayName tags in other component types like Knowledge
+            expect(transformed).toHaveLength(2) // room1: DisplayName, room2: DisplayName
             
-            // Check that we have only Room+Name combinations
-            const room1NameEntries = transformed.filter(tagList => 
+            // Check that we have only Room+DisplayName combinations
+            const room1NameEntries = transformed.filter(tagList =>
                 tagList.some(tag => tag.data.tag === 'Room' && tag.data.key === 'room1') &&
-                tagList.some(tag => tag.data.tag === 'Name')
+                tagList.some(tag => tag.data.tag === 'DisplayName')
             )
-            const room2NameEntries = transformed.filter(tagList => 
+            const room2NameEntries = transformed.filter(tagList =>
                 tagList.some(tag => tag.data.tag === 'Room' && tag.data.key === 'room2') &&
-                tagList.some(tag => tag.data.tag === 'Name')
+                tagList.some(tag => tag.data.tag === 'DisplayName')
             )
             
-            expect(room1NameEntries).toHaveLength(1) // room1 has Name
-            expect(room2NameEntries).toHaveLength(1) // room2 has Name
+            expect(room1NameEntries).toHaveLength(1) // room1 has DisplayName
+            expect(room2NameEntries).toHaveLength(1) // room2 has DisplayName
             
-            // Verify that all results contain both Room and Name tags
+            // Verify that all results contain both Room and DisplayName tags
             transformed.forEach(tagList => {
                 const hasRoom = tagList.some(tag => tag.data.tag === 'Room')
-                const hasName = tagList.some(tag => tag.data.tag === 'Name')
+                const hasDisplayName = tagList.some(tag => tag.data.tag === 'DisplayName')
                 expect(hasRoom).toBe(true) // All results must have Room
-                expect(hasName).toBe(true) // All results must have Name
+                expect(hasDisplayName).toBe(true) // All results must have DisplayName
             })
             
-            // Verify that Knowledge Name tags are NOT included (they don't have Room context)
-            const knowledgeEntries = transformed.filter(tagList => 
+            // Verify that Knowledge DisplayName tags are NOT included (they don't have Room context)
+            const knowledgeEntries = transformed.filter(tagList =>
                 tagList.some(tag => tag.data.tag === 'Knowledge')
             )
             expect(knowledgeEntries).toHaveLength(0)
@@ -342,13 +342,13 @@ describe('TagTree', () => {
                 <Asset uuid=(test)>
                     <Room key=(room1) uuid=(Room1)>
                         <Example uuid=(room1-example)>
-                            <Name>Hall</Name>
+                            <DisplayName>Hall</DisplayName>
                         </Example>
                         <Exit to=(room2)>North</Exit>
                     </Room>
                     <Room key=(room2) uuid=(Room2)>
                         <Example uuid=(room2-example)>
-                            <Name>Study</Name>
+                            <DisplayName>Study</DisplayName>
                         </Example>
                         <Exit to=(room1)>South</Exit>
                     </Room>
@@ -419,7 +419,7 @@ describe('TagTree', () => {
                 <Asset uuid=(complex)>
                     <Feature key=(doors) uuid=(Feature1)>
                         <Example uuid=(doors-example)>
-                            <Name>Magic Doors</Name>
+                            <DisplayName>Magic Doors</DisplayName>
                             <Description>Doors that respond to conditions</Description>
                         </Example>
                         <Exit to=(room1)>Main Entrance</Exit>
@@ -427,7 +427,7 @@ describe('TagTree', () => {
                     </Feature>
                     <Knowledge key=(lore) uuid=(Knowledge1)>
                         <Example uuid=(lore-example)>
-                            <Name>Door Lore</Name>
+                            <DisplayName>Door Lore</DisplayName>
                             <Description>Ancient knowledge about doors</Description>
                         </Example>
                     </Knowledge>
@@ -498,7 +498,7 @@ describe('TagTree', () => {
             const testTree = schemaFromParse(parse(tokenizer(new SourceStream(`
                 <Asset uuid=(mixed)>
                     <Character key=(npc1) uuid=(Character1)>
-                        <Name>Guard Captain</Name>
+                        <DisplayName>Guard Captain</DisplayName>
                     </Character>
                     <Map key=(dungeonMap) uuid=(Map1)>
                         <ShortName>Dungeon Layout</ShortName>

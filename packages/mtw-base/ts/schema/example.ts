@@ -2,15 +2,6 @@ import { ComponentUUID, isSchemaAssetUUID } from ".";
 import checkTypes, { CheckTypes } from "../utils/checkTypes";
 import { SchemaBase, SchemaImportableBase } from "./baseClasses";
 
-export type SchemaNameTag = {
-    tag: 'Name';
-} & SchemaBase
-
-/** @deprecated Use SchemaDisplayNameTag for Example/Character display name. Name remains for legacy Room/Feature WML only. */
-export const isSchemaName = (schema: any): schema is SchemaNameTag => (
-    checkTypes({ required: { tag: CheckTypes.STRING }, values: { tag: 'Name' } })(schema)
-)
-
 export type SchemaDisplayNameTag = {
     tag: 'DisplayName';
 } & SchemaBase

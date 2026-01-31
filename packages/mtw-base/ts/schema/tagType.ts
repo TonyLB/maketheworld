@@ -23,7 +23,6 @@ export type SchemaTagType =
     'Link' |
     'ShortName' |
     'Match' |
-    'Name' |
     'DisplayName' |
     'Example' |
     'Room' |
@@ -65,7 +64,6 @@ export const isLegalSchemaTag = (value: any): value is SchemaTagType => (
         'Link',
         'ShortName',
         'Match',
-        'Name',
         'DisplayName',
         'Example',
         'Room',

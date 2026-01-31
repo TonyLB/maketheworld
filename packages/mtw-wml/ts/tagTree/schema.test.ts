@@ -32,7 +32,7 @@ describe('SchemaTagTree', () => {
                 <Room key=(room1) uuid=(Room1)>
                     <Example uuid=(room1-example)>
                         <Description>Test description</Description>
-                        <Name>Test room</Name>
+                        <DisplayName>Test room</DisplayName>
                     </Example>
                     <Exit to=(room2) />
                 </Room>
@@ -54,7 +54,7 @@ describe('SchemaTagTree', () => {
                 <Room uuid=(Room1) key=(room1)>
                     <Example uuid=(room1-example)>
                         <Description>Test description</Description>
-                        <Name>Test room</Name>
+                        <DisplayName>Test room</DisplayName>
                     </Example>
                     <Exit to=(room2) />
                     <Example uuid=(room1-example)>
@@ -73,7 +73,7 @@ describe('SchemaTagTree', () => {
                 <Room key=(room1) uuid=(Room1)>
                     <Example uuid=(room1-example)>
                         <Description>Test description</Description>
-                        <Name>Test room</Name>
+                        <DisplayName>Test room</DisplayName>
                     </Example>
                     <Exit to=(room2) />
                 </Room>
@@ -89,14 +89,14 @@ describe('SchemaTagTree', () => {
                 </Map>
             </Asset>
         `))))
-        const tagTree = new SchemaTagTree(testTree).prune({ match: 'Map' }).reorderedSiblings([['Description'], ['Name']])
+        const tagTree = new SchemaTagTree(testTree).prune({ match: 'Map' }).reorderedSiblings([['Description'], ['DisplayName']])
         // The system maintains separate Example tags and applies reordering
         expect(schemaToWML(tagTree.tree)).toEqual(deIndentWML(`
             <Asset uuid=(test)>
                 <Room uuid=(Room1) key=(room1)>
                     <Example uuid=(room1-example)>
                         <Description>Test description</Description>
-                        <Name>Test room</Name>
+                        <DisplayName>Test room</DisplayName>
                     </Example>
                     <Exit to=(room2) />
                     <Example uuid=(room1-example)>
@@ -115,7 +115,7 @@ describe('SchemaTagTree', () => {
             <Asset uuid=(complex)>
                 <Feature key=(doors) uuid=(Feature1)>
                     <Example uuid=(doors-example)>
-                        <Name>Magic Doors</Name>
+                        <DisplayName>Magic Doors</DisplayName>
                         <Description>Doors that respond to conditions</Description>
                     </Example>
                 </Feature>
@@ -135,7 +135,7 @@ describe('SchemaTagTree', () => {
             <Asset uuid=(complex)>
                 <Feature uuid=(Feature1) key=(doors)>
                     <Example uuid=(doors-example)>
-                        <Name>Magic Doors</Name>
+                        <DisplayName>Magic Doors</DisplayName>
                         <Description>Doors that respond to conditions</Description>
                     </Example>
                 </Feature>
@@ -184,13 +184,13 @@ describe('SchemaTagTree', () => {
             <Asset uuid=(order)>
                 <Knowledge key=(lore) uuid=(Knowledge1)>
                     <Example uuid=(lore-example)>
-                        <Name>Ancient Lore</Name>
+                        <DisplayName>Ancient Lore</DisplayName>
                         <Description>Knowledge of the ancients</Description>
                     </Example>
                 </Knowledge>
                 <Room key=(room1) uuid=(Room1)>
                     <Example uuid=(room1-example)>
-                        <Name>Main Hall</Name>
+                        <DisplayName>Main Hall</DisplayName>
                         <Description>A grand entrance hall</Description>
                     </Example>
                     <Exit to=(room2)>North</Exit>
@@ -202,13 +202,13 @@ describe('SchemaTagTree', () => {
             <Asset uuid=(order)>
                 <Knowledge uuid=(Knowledge1) key=(lore)>
                     <Example uuid=(lore-example)>
-                        <Name>Ancient Lore</Name>
+                        <DisplayName>Ancient Lore</DisplayName>
                         <Description>Knowledge of the ancients</Description>
                     </Example>
                 </Knowledge>
                 <Room uuid=(Room1) key=(room1)>
                     <Example uuid=(room1-example)>
-                        <Name>Main Hall</Name>
+                        <DisplayName>Main Hall</DisplayName>
                         <Description>A grand entrance hall</Description>
                     </Example>
                     <Exit to=(room2)>North</Exit>
@@ -222,7 +222,7 @@ describe('SchemaTagTree', () => {
             <Asset uuid=(merge)>
                 <Feature key=(trap) uuid=(Feature1)>
                     <Example uuid=(trap-example)>
-                        <Name>Hidden Trap</Name>
+                        <DisplayName>Hidden Trap</DisplayName>
                         <Description>A dangerous pit</Description>
                     </Example>
                 </Feature>
@@ -240,7 +240,7 @@ describe('SchemaTagTree', () => {
         expect(schemaToWML(tagTree.tree)).toEqual(deIndentWML(`
             <Asset uuid=(merge)>
                 <Example uuid=(trap-example)>
-                    <Name>Hidden Trap</Name>
+                    <DisplayName>Hidden Trap</DisplayName>
                     <Description>A dangerous pit: It's actually safe now</Description>
                 </Example>
             </Asset>
@@ -252,7 +252,7 @@ describe('SchemaTagTree', () => {
             <Asset uuid=(edit)>
                 <Feature key=(trap) uuid=(Feature1)>
                     <Example uuid=(trap-example)>
-                        <Name>Hidden Trap</Name>
+                        <DisplayName>Hidden Trap</DisplayName>
                         <Description>A dangerous pit</Description>
                     </Example>
                 </Feature>
@@ -272,7 +272,7 @@ describe('SchemaTagTree', () => {
             <Asset uuid=(edit)>
                 <Feature uuid=(Feature1) key=(trap)>
                     <Example uuid=(trap-example)>
-                        <Name>Hidden Trap</Name>
+                        <DisplayName>Hidden Trap</DisplayName>
                         <Description>A dangerous pit</Description>
                     </Example>
                 </Feature>

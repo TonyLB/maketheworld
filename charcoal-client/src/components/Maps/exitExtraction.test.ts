@@ -87,7 +87,7 @@ describe('extractExitsFromStandardForm', () => {
             if (result[0] instanceof MapExit) {
                 expect(result[0].from).toBe('ROOM#room1')
                 expect(result[0].to).toBe('ROOM#room2')
-                expect(result[0].name).toBe('to room two')
+                expect(result[0].description).toBe('to room two')
             }
         })
 
@@ -172,13 +172,13 @@ describe('extractExitsFromStandardForm', () => {
             expect(room1Exit).toBeDefined()
             if (room1Exit instanceof MapExit) {
                 expect(room1Exit.to).toBe('ROOM#room2')
-                expect(room1Exit.name).toBe('to room two')
+                expect(room1Exit.description).toBe('to room two')
             }
             
             expect(room2Exit).toBeDefined()
             if (room2Exit instanceof MapExit) {
                 expect(room2Exit.to).toBe('ROOM#room3')
-                expect(room2Exit.name).toBe('to room three')
+                expect(room2Exit.description).toBe('to room three')
             }
         })
 
@@ -268,7 +268,7 @@ describe('extractExitsFromStandardForm', () => {
             
             // Clean access via .payload instead of ._payload.plain
             if (result[0] instanceof MapExit) {
-                const exitName = result[0].name
+                const exitName = result[0].description
                 expect(exitName).toBe('Complex Exit Name With Multiple Parts')
             }
         })
@@ -319,10 +319,10 @@ describe('extractExitsFromStandardForm', () => {
             expect(inheritedExit).toBeDefined()
             expect(localExit).toBeDefined()
             if (inheritedExit instanceof MapExit) {
-                expect(inheritedExit.name).toBe('inherited exit')
+                expect(inheritedExit.description).toBe('inherited exit')
             }
             if (localExit instanceof MapExit) {
-                expect(localExit.name).toBe('local exit')
+                expect(localExit.description).toBe('local exit')
             }
         })
 
@@ -357,7 +357,7 @@ describe('extractExitsFromStandardForm', () => {
             if (result[0] instanceof MapExit) {
                 expect(result[0].from).toBe('ROOM#room1')
                 expect(result[0].to).toBe('ROOM#room2')
-                expect(result[0].name).toBe('local override exit')
+                expect(result[0].description).toBe('local override exit')
             }
         })
     })
@@ -387,7 +387,7 @@ describe('extractExitsFromStandardForm', () => {
             if (result[0] instanceof MapExit) {
                 expect(result[0].from).toBe('ROOM#room1')
                 expect(result[0].to).toBe('ROOM#room2')
-                expect(result[0].name).toBeUndefined()
+                expect(result[0].description).toBeUndefined()
             }
         })
 

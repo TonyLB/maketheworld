@@ -7,7 +7,7 @@ describe('keysByTag selector', () => {
         testOne.loadWML(`
             <Asset uuid=(testOne)>
                 <Room key=(room1)>
-                    <Name>Test room</Name>
+                    <ShortName>Test room</ShortName>
                     <Description>
                         TestZero
                         <Link to=(feature1)>Link</Link>

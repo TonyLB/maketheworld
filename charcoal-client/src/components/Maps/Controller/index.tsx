@@ -108,7 +108,7 @@ const localPositionsFromStandardForms = ({ inherited, local, mapId }: { inherite
                         id: roomUniversalKey as `ROOM#${string}`,
                         x: plainPayload.x,
                         y: plainPayload.y,
-                        name: roomComponent.shortName?._payload?.plain?.toJSON() ?? ''
+                        shortName: roomComponent.shortName?._payload?.plain?.toJSON() ?? ''
                     }
                 }
                 return undefined
@@ -134,7 +134,7 @@ export const MapDisplayController: FunctionComponent<{ standardForm: StandardFor
                     id: id as `ROOM#${string}`,
                     x,
                     y,
-                    name: roomComponent.shortName?._payload?.plain?.toJSON() ?? ''
+                    shortName: roomComponent.shortName?._payload?.plain?.toJSON() ?? ''
                 }
             }
             else {
@@ -143,7 +143,7 @@ export const MapDisplayController: FunctionComponent<{ standardForm: StandardFor
                     id: id as `ROOM#${string}`,
                     x,
                     y,
-                    name: ''
+                    shortName: ''
                 }
             }
         }))

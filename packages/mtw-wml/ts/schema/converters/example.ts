@@ -4,7 +4,7 @@ import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./base
 import { tagRender } from "./tagRender"
 import { validateProperties, validateExpressionAsNonNegativeInteger } from "./utils"
 import { GenericTree, GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree"
-import { isSchemaDescription, isSchemaExample, isSchemaName, isSchemaSummary, isSchemaDisplayName, SchemaDescriptionTag, SchemaExampleTag, SchemaNameTag, SchemaDisplayNameTag, SchemaSummaryTag } from "@tonylb/mtw-base/ts/schema/example"
+import { isSchemaDescription, isSchemaExample, isSchemaSummary, isSchemaDisplayName, SchemaDescriptionTag, SchemaExampleTag, SchemaDisplayNameTag, SchemaSummaryTag } from "@tonylb/mtw-base/ts/schema/example"
 import { isSchemaTaggedMessageLegalContents, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { PrintMode } from "@tonylb/mtw-base/ts/schema/printMap"
 import { enforceTypedKey, stripTypedKey } from "@tonylb/mtw-utilities/ts/types"
@@ -12,7 +12,6 @@ import { enforceTypedKey, stripTypedKey } from "@tonylb/mtw-utilities/ts/types"
 const exampleTemplates = {
     Description: {},
     Summary: {},
-    Name: {},
     DisplayName: {},
     Example: {
         uuid: { type: ParsePropertyTypes.Key },
@@ -48,22 +47,6 @@ export const exampleConverters: Record<string, ConverterMapEntry> = {
         typeCheckContents: isSchemaTaggedMessageLegalContents,
         finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaSummaryTag, SchemaTag> => {
             if (!isSchemaSummary(initialTag)) {
-                throw new Error('Type mismatch on schema finalize')
-            }
-            return {
-                data: initialTag,
-                children: compressWhitespace(children)
-            }
-        }
-    },
-    Name: {
-        initialize: ({ parseOpen }): SchemaNameTag => ({
-            tag: 'Name',
-            ...validateProperties(exampleTemplates.Name)(parseOpen)
-        }),
-        typeCheckContents: isSchemaTaggedMessageLegalContents,
-        finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaNameTag, SchemaTag> => {
-            if (!isSchemaName(initialTag)) {
                 throw new Error('Type mismatch on schema finalize')
             }
             return {
@@ -115,14 +98,6 @@ export const examplePrintMap: Record<string, PrintMapEntry> = {
         tagRender({
             ...args,
             tag: 'Summary',
-            properties: [],
-            node: { data, children }
-        })
-    ),
-    Name: ({ tag: { data, children }, ...args }: PrintMapEntryArguments) => (
-        tagRender({
-            ...args,
-            tag: 'Name',
             properties: [],
             node: { data, children }
         })

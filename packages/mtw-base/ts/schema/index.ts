@@ -5,7 +5,7 @@ import { isSchemaExit, isSchemaFeature, isSchemaKnowledge, isSchemaMap, isSchema
 import { isSchemaMatch, isSchemaMark, isSchemaLens, SchemaMatchTag, SchemaMarkTag, SchemaLensTag } from "./worldState"
 
 import { isSchemaEdit, isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload, SchemaEditTag, SchemaReplaceTag } from "./edit"
-import { isSchemaDescription, isSchemaExample, isSchemaName, isSchemaSummary, isSchemaDisplayName, SchemaDescriptionTag, SchemaExampleTag, SchemaNameTag, SchemaDisplayNameTag, SchemaSummaryTag } from "./example"
+import { isSchemaDescription, isSchemaExample, isSchemaSummary, isSchemaDisplayName, SchemaDescriptionTag, SchemaExampleTag, SchemaDisplayNameTag, SchemaSummaryTag } from "./example"
 import { isSchemaImage, SchemaImageTag } from "./image"
 import { isSchemaImport, isSchemaMeta, SchemaImportTag, SchemaMetaTag } from "./metaData"
 import { isSchemaLineBreak, isSchemaLink, isSchemaSpacer, isSchemaString, SchemaLineBreakTag, SchemaLinkTag, SchemaSpacerTag, SchemaStringTag, SchemaWhitespaceTag } from "./renderTree"
@@ -51,7 +51,6 @@ export type SchemaTag = SchemaAssetTag |
     SchemaLinkTag |
     SchemaShortNameTag |
     SchemaMatchTag |
-    SchemaNameTag |
     SchemaDisplayNameTag |
     SchemaExampleTag |
     SchemaRoomTag |
@@ -82,7 +81,6 @@ export type SchemaWithContents = SchemaAssetTag |
     SchemaMapTag |
     SchemaShortNameTag |
     SchemaMatchTag |
-    SchemaNameTag |
     SchemaDisplayNameTag |
     SchemaExampleTag |
     SchemaMessageTag |
@@ -96,7 +94,7 @@ export const isSchemaCharacter = (value: SchemaTag): value is SchemaCharacterTag
 export const isSchemaAsset = (value: SchemaTag): value is SchemaAssetTag => (value.tag === 'Asset')
 
 export const isSchemaWithContents = (value: SchemaTag): value is SchemaWithContents => (
-    ['Asset', 'Story', 'Example', 'Room', 'Feature', 'Knowledge', 'Description', 'Summary', 'Exit', 'Character', 'Map', 'Message', 'Moment', 'Name', 'DisplayName', 'ShortName', 'Match', 'Replace', 'ReplaceMatch', 'ReplacePayload'].includes(value.tag)
+    ['Asset', 'Story', 'Example', 'Room', 'Feature', 'Knowledge', 'Description', 'Summary', 'Exit', 'Character', 'Map', 'Message', 'Moment', 'DisplayName', 'ShortName', 'Match', 'Replace', 'ReplaceMatch', 'ReplacePayload'].includes(value.tag)
 )
 
 export const isImportable = (value: SchemaTag): value is SchemaRoomTag | SchemaFeatureTag | SchemaKnowledgeTag | SchemaMapTag | SchemaMessageTag | SchemaMomentTag | SchemaMarkTag | SchemaLensTag => (
@@ -148,7 +146,6 @@ export const isSchemaTag = (value: any): value is SchemaTag => {
         isSchemaLink(value) ||
         isSchemaShortName(value) ||
         isSchemaMatch(value) ||
-        isSchemaName(value) ||
         isSchemaDisplayName(value) ||
         isSchemaExample(value) ||
         isSchemaRoom(value) ||

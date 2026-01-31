@@ -11,16 +11,16 @@ export interface ActiveCharacterInternal {
 
 export type ActiveCharacterMapRoom = {
     roomId: string;
-    name: string;
+    shortName: string;
     x: number;
     y: number;
-    exits: Array<{ name: string; to: string }>;
+    exits: Array<{ description: string; to: string }>;
 }
 
 export type ActiveCharacterMap = {
     MapId: EphemeraMapId;
     description: string;
-    name: string;
+    shortName: string;
     rooms: ActiveCharacterMapRoom[];
     assets: Record<EphemeraAssetId, string>;
     fileURL?: string;

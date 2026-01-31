@@ -282,7 +282,7 @@ export class ComponentRenderData {
                 const mergedRoom = roomMeta.reduce<StandardRoom | undefined>((previous, current) => (previous ? previous.merge(current) as StandardRoom | undefined : current), undefined)
                 return {
                     roomId: ephemeraId,
-                    name: mergedRoom?.shortName?._payload?.plain?.toJSON?.() as string,
+                    shortName: mergedRoom?.shortName?._payload?.plain?.toJSON?.() as string,
                     exits: (mergedRoom?.exits.items ?? [])
                         .filter((exitFacet) => (Boolean(
                             merged &&
@@ -320,7 +320,7 @@ export class ComponentRenderData {
                             payload: exit.description || undefined
                         }))
                     } : {}),
-                    shortName: room.name
+                    shortName: room.shortName
                 }))
             ])
         }
