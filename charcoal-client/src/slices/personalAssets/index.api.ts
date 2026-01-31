@@ -105,7 +105,7 @@ export const fetchImports = (id: string) => async (dispatch: any, getState: () =
                     }
                     if (componentData.key) {
                         // Look up component in StandardForm by key to get universalKey
-                        const component = standardForm._components.find(c => c.key === componentData.key)
+                        const component = standardForm.components.find(c => c.key === componentData.key)
                         return component?.universalKey
                     }
                     return undefined

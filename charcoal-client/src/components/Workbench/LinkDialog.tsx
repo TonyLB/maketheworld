@@ -144,7 +144,7 @@ const LinkChoicesSubsection: FunctionComponent<LinkChoicesSubsectionProps> = ({ 
 export const LinkDialog: FunctionComponent<LinkDialogProps> = ({ open, onClose, validTags = ['Feature', 'Knowledge'] }) => {
     const { standardForm } = useWorkbenchAsset()
     const { features, knowledges } = useMemo<{ features: string[], knowledges: string[] }>(() => (
-        standardForm._components.reduce<{ features: string[], knowledges: string[] }>((previous, component) => {
+        standardForm.components.reduce<{ features: string[], knowledges: string[] }>((previous, component) => {
             if (validTags.includes('Feature') && component instanceof StandardFeature) {
                 return { ...previous, features: [...previous.features, component.key].filter(excludeUndefined)}
             }

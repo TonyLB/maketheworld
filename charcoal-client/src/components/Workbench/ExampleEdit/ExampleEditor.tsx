@@ -89,7 +89,7 @@ export const ExampleEditor: FunctionComponent<ExampleEditorProps> = ({ component
     const localizeExample = useCallback(() => {
         if (!(componentId in localStandardForm.byUniversalId)) {
             const parentIds: string[] = []
-            Object.values(standardForm.byId).forEach((component) => {
+            standardForm.components.forEach((component) => {
                 if (component instanceof StandardRoom || component instanceof StandardFeature || component instanceof StandardKnowledge) {
                     const hasExample = component.examples.payload.some((ref) =>
                         ref instanceof StandardReference && ref.universalKey === componentId
