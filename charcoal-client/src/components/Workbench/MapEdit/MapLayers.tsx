@@ -11,24 +11,22 @@ import EditIcon from '@mui/icons-material/Edit'
 
 import UnshownRooms from './UnshownRooms'
 import { blue } from '@mui/material/colors'
-import RenameIcon from '../Maps/Edit/MapLayers/RenameIcon'
-import { navigateToComponent } from '../../slices/UI/workbench'
-import { useWorkbenchAsset } from './foundations/useWorkbenchAsset'
+import RenameIcon from '../../Maps/Edit/MapLayers/RenameIcon'
+import { navigateToComponent } from '../../../slices/UI/workbench'
+import { useWorkbenchAsset } from '../foundations/useWorkbenchAsset'
 import { useDispatch } from 'react-redux'
 
-import { addOnboardingComplete } from '../../slices/player/index.api'
-import { requestLLMGeneration } from '../../slices/personalAssets'
+import { addOnboardingComplete } from '../../../slices/player/index.api'
+import { requestLLMGeneration } from '../../../slices/personalAssets'
 import { isEphemeraAssetId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import TutorialPopover from '../Onboarding/TutorialPopover'
+import TutorialPopover from '../../Onboarding/TutorialPopover'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 
 import StandardMap from '@tonylb/mtw-wml/ts/standardize/components/map'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
-import { unique } from '@tonylb/mtw-base/ts/utils/lists'
-import { excludeUndefined } from '@tonylb/mtw-base/ts/utils/lists'
-import { splitType } from '@tonylb/mtw-utilities/ts/types'
+import { unique, excludeUndefined } from '@tonylb/mtw-base/ts/utils/lists'
 import { useMapContext } from './MapController'
 
 type MapLayersProps = {
@@ -131,7 +129,7 @@ const RoomLayer: FunctionComponent<{ roomId: `ROOM#${string}`; name: string; inh
                                 }}
                             >
                                 <RenameIcon />
-                        </IconButton>
+                            </IconButton>
                 }
             </Box>
             <TutorialPopover
@@ -177,72 +175,72 @@ const PositionLayer: FunctionComponent<{ x: number, y: number, inherited?: boole
 
 export const MapLayers: FunctionComponent<MapLayersProps> = ({ mapId }) => {
     const { standardForm, localStandardForm } = useWorkbenchAsset()
-    
+
     const mapComponent = standardForm.byUniversalId[mapId]
-    
+
     const localMapComponent = localStandardForm.byUniversalId[mapId]
-    
+
     const roomLayers = useMemo(() => {
         if (!mapComponent || !(mapComponent instanceof StandardMap)) {
             return []
         }
-        
+
         if (!(localMapComponent instanceof StandardMap)) {
             return []
         }
-        
+
         const positionedRooms = unique(localMapComponent.positions.items
             .map((facet) => facet.reference.universalKey)
-            .filter((roomId): roomId is `ROOM#${string}` => 
+            .filter((roomId): roomId is `ROOM#${string}` =>
                 Boolean(roomId && roomId.startsWith('ROOM#'))
             )
         )
-        
+
         const allPositionedRooms = mapComponent.positions.items
             .map((facet) => facet.reference.universalKey!)
             .filter(excludeUndefined)
             .map((roomId) => standardForm.byUniversalId[roomId as ComponentUUID])
             .filter(excludeUndefined)
-            .filter((component): component is StandardRoom => 
+            .filter((component): component is StandardRoom =>
                 component instanceof StandardRoom
             )
         const allPositionedRoomIds = unique(allPositionedRooms
             .map((room) => room.universalKey)
             .filter(excludeUndefined)
-            .filter((roomId): roomId is `ROOM#${string}` => 
+            .filter((roomId): roomId is `ROOM#${string}` =>
                 Boolean(roomId && roomId.startsWith('ROOM#'))
             )
         ) as `ROOM#${string}`[]
-        
+
         const getRelevantExits = (room: StandardRoom) => {
             return room.exits.items.filter((exitFacet) => {
                 const destinationId = exitFacet.reference.universalKey
                 return destinationId && allPositionedRoomIds.includes(destinationId as `ROOM#${string}`)
             })
         }
-        
+
         const roomsWithRelevantExits = allPositionedRooms
             .filter((room) => getRelevantExits(room).length > 0)
             .map((room) => room.universalKey)
-            .filter((roomId): roomId is ComponentUUID => 
+            .filter((roomId): roomId is ComponentUUID =>
                 typeof roomId === 'string' && roomId.startsWith('ROOM#')
             )
-        
+
         const roomsToShow = unique([...positionedRooms, ...roomsWithRelevantExits]) as `ROOM#${string}`[]
-        
+
         return Array.from(roomsToShow).map((roomId) => {
             const roomComponent = standardForm.byUniversalId[roomId as ComponentUUID]
             if (!(roomComponent && roomComponent instanceof StandardRoom)) {
                 return null
             }
-            
+
             const roomKey = roomComponent.key
             const roomName = roomComponent.shortName?._payload?.plain?.toJSON() ?? roomKey ?? 'Room'
-            
-            const positionFacet = localMapComponent.positions.items.find((facet) => 
+
+            const positionFacet = localMapComponent.positions.items.find((facet) =>
                 facet.reference.universalKey === roomId
             )
-            
+
             return (
                 <RoomLayer
                     key={roomId}
@@ -253,21 +251,21 @@ export const MapLayers: FunctionComponent<MapLayersProps> = ({ mapId }) => {
                     {positionFacet?.payload.plain && (
                         <PositionLayer x={positionFacet.payload.plain.x} y={positionFacet.payload.plain.y} />
                     )}
-                    
+
                     {getRelevantExits(roomComponent).map((exitFacet, index) => {
                         const destinationKey = exitFacet.reference.standardKey.toJSON()
                         if (!destinationKey) {
                             return null
                         }
                         const destinationComponent = standardForm._lookup(destinationKey)
-                        const exitName = (destinationComponent && destinationComponent instanceof StandardRoom) 
+                        const exitName = (destinationComponent && destinationComponent instanceof StandardRoom)
                             ? destinationComponent.shortName?._payload?.plain?.toJSON() ?? destinationComponent.key ?? ''
                             : ''
-                        
+
                         return (
-                            <ExitLayer 
-                                key={`${roomId}-exit-${index}`} 
-                                name={exitName} 
+                            <ExitLayer
+                                key={`${roomId}-exit-${index}`}
+                                name={exitName}
                             />
                         )
                     })}
@@ -275,7 +273,7 @@ export const MapLayers: FunctionComponent<MapLayersProps> = ({ mapId }) => {
             )
         }).filter(Boolean)
     }, [mapComponent, localMapComponent, standardForm, localStandardForm, mapId])
-    
+
     return <MapLayersContext.Provider value={{ mapId }}>
         <Box sx={{ width: '100%', background: blue[50], marginBottom: '0.5em' }}>Unshown Rooms</Box>
         <UnshownRooms />

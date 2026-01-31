@@ -11,31 +11,31 @@ import Select, { SelectChangeEvent } from "@mui/material/Select"
 import MenuItem from "@mui/material/MenuItem"
 import FormControl from "@mui/material/FormControl"
 import InputLabel from "@mui/material/InputLabel"
-import { useWorkbenchAsset } from "./foundations/useWorkbenchAsset"
+import { useWorkbenchAsset } from "../foundations/useWorkbenchAsset"
 import ExitIcon from '@mui/icons-material/CallMade'
 import AddIcon from '@mui/icons-material/Add'
 import DeleteIcon from '@mui/icons-material/Delete'
-import { MakeTheWorldAccordion } from "../UI"
+import { MakeTheWorldAccordion } from "../../UI"
 import StandardRoom from "@tonylb/mtw-wml/ts/standardize/components/room"
 import { StandardExitFacet } from "@tonylb/mtw-wml/ts/standardize/keys/facets/exit"
 import { ComponentUUID } from "@tonylb/mtw-base/ts/schema"
 
-type RoomExitEditorProps = {
+export type ExitEditorProps = {
     RoomId: ComponentUUID;
 }
 
-const ExitTargetSelector: FunctionComponent<{ 
-    target: string; 
+const ExitTargetSelector: FunctionComponent<{
+    target: string;
     currentRoomKey: string | undefined;
     onChange: (target: string) => void;
     disabled?: boolean;
 }> = ({ target, currentRoomKey, onChange, disabled }) => {
     const { readonly, standardForm } = useWorkbenchAsset()
-    
+
     const roomNamesInScope = useMemo<Record<string, string>>(() => {
         const rooms = Object.values(standardForm.byUniversalId)
             .filter((component): component is StandardRoom => (component instanceof StandardRoom))
-        
+
         const roomNamesInScope: Record<string, string> = {}
         rooms
             .filter(room => room.key !== currentRoomKey)
@@ -82,7 +82,7 @@ const ExitTargetSelector: FunctionComponent<{
     )
 }
 
-const ExitEditor: FunctionComponent<{
+const ExitRowEditor: FunctionComponent<{
     exit: StandardExitFacet;
     onUpdate: (exit: StandardExitFacet) => void;
     onDelete: () => void;
@@ -167,7 +167,7 @@ const ExitEditor: FunctionComponent<{
     )
 }
 
-export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId }) => {
+export const ExitEditor: FunctionComponent<ExitEditorProps> = ({ RoomId }) => {
     const { standardForm, updateStandard } = useWorkbenchAsset()
 
     const room = useMemo(() => {
@@ -256,7 +256,7 @@ export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId 
         <MakeTheWorldAccordion title="Exits" defaultExpanded={false} summary={exitSummary}>
             <List>
                 {exits.map((exit, index) => (
-                    <ExitEditor
+                    <ExitRowEditor
                         key={`${RoomId}-exit-${index}`}
                         exit={exit}
                         onUpdate={(updatedExit) => updateExit(index, updatedExit)}
@@ -277,4 +277,4 @@ export const RoomExitEditor: FunctionComponent<RoomExitEditorProps> = ({ RoomId 
     )
 }
 
-export default RoomExitEditor
+export default ExitEditor

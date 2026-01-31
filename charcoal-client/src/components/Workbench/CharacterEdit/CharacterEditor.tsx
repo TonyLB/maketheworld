@@ -17,16 +17,16 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import {
     setIntent,
     setLoadedImage,
-} from '../../slices/personalAssets'
-import { heartbeat } from '../../slices/stateSeekingMachine/ssmHeartbeat'
+} from '../../../slices/personalAssets'
+import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
 
-import { useWorkbenchAsset } from './foundations/useWorkbenchAsset'
-import { getCurrentComponentId, navigateViaBreadcrumbIndex } from '../../slices/UI/workbench'
-import useDebounce from '../../hooks/useDebounce'
-import { CharacterAvatarDirect } from '../CharacterAvatar'
-import FileWrapper, { useFileWrapper } from '../Editor/FileInputWrapper'
-import { useOnboardingCheckpoint } from '../Onboarding/useOnboarding'
-import { addOnboardingComplete } from '../../slices/player/index.api'
+import { useWorkbenchAsset } from '../foundations/useWorkbenchAsset'
+import { getCurrentComponentId, navigateViaBreadcrumbIndex } from '../../../slices/UI/workbench'
+import useDebounce from '../../../hooks/useDebounce'
+import { CharacterAvatarDirect } from '../../CharacterAvatar'
+import FileWrapper, { useFileWrapper } from '../../Editor/FileInputWrapper'
+import { useOnboardingCheckpoint } from '../../Onboarding/useOnboarding'
+import { addOnboardingComplete } from '../../../slices/player/index.api'
 import { schemaOutputToString } from '@tonylb/mtw-wml/ts/schema/utils/schemaOutput/schemaOutputToString'
 import { unwrapSubject } from '@tonylb/mtw-wml/ts/schema/utils'
 import { StandardCharacter } from '@tonylb/mtw-wml/ts/standardize/components/character'
@@ -35,7 +35,7 @@ import { treeNodeTypeguard } from '@tonylb/mtw-base/ts/genericTree'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
-import { useLibraryImageURL } from './foundations/useWorkbenchAsset'
+import { useLibraryImageURL } from '../foundations/useWorkbenchAsset'
 
 const LiteralShortNameField: FunctionComponent<{ character: StandardCharacter }> = ({ character }) => {
     const { updateStandard } = useWorkbenchAsset()
@@ -113,7 +113,7 @@ export const CharacterEditor: FunctionComponent = () => {
     const dispatch = useDispatch()
     const { updateStandard, standardForm, AssetId, status } = useWorkbenchAsset()
     const currentComponentId = useSelector(getCurrentComponentId)
-    
+
     // Derive universalKey from currentComponentId
     const universalKey = useMemo<ComponentUUID | undefined>(() => {
         if (!currentComponentId) return undefined
@@ -157,11 +157,11 @@ export const CharacterEditor: FunctionComponent = () => {
             dispatch(heartbeat)
         }
     }, [dispatch, character, universalKey, updateStandard, AssetId])
-    
+
     const saveHandler = useCallback(() => {
         dispatch(addOnboardingComplete(['saveCharacter'], { requireSequence: true }))
     }, [dispatch])
-    
+
     const handleBackToAsset = useCallback(() => {
         dispatch(navigateViaBreadcrumbIndex(0))
     }, [dispatch])
@@ -171,7 +171,7 @@ export const CharacterEditor: FunctionComponent = () => {
     if (!character) {
         return <Box sx={{ width: "100%" }} />
     }
-    
+
     return (
         <Box sx={{ width: "100%", display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
             <Box sx={{ padding: 2, borderBottom: 1, borderColor: 'divider', display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -197,7 +197,7 @@ export const CharacterEditor: FunctionComponent = () => {
                     Save
                 </Button>
             </Box>
-            
+
             <Box sx={{ flexGrow: 1, overflowY: 'auto', padding: 2 }}>
                 <Card>
                     <CardHeader title="Character Details" />

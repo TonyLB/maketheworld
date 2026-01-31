@@ -1,11 +1,11 @@
 import React, { FunctionComponent, useCallback, useMemo } from 'react'
 
-import MapDisplay from '../Maps/Edit/Area/MapDisplay'
+import MapDisplay from '../../Maps/Edit/Area/MapDisplay'
 import { useMapContext } from './MapController'
-import { useWorkbenchAsset } from './foundations/useWorkbenchAsset'
-import { extractExitsFromStandardForm } from '../Maps/exitExtraction'
+import { useWorkbenchAsset } from '../foundations/useWorkbenchAsset'
+import { extractExitsFromStandardForm } from '../../Maps/exitExtraction'
 import { useDispatch } from 'react-redux'
-import { addOnboardingComplete } from '../../slices/player/index.api'
+import { addOnboardingComplete } from '../../../slices/player/index.api'
 
 type MapAreaProps = {
     fileURL?: string;

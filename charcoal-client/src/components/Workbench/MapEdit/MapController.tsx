@@ -1,25 +1,23 @@
-import React, { FunctionComponent, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from "react"
-import { useWorkbenchAsset } from "./foundations/useWorkbenchAsset"
+import React, { FunctionComponent, ReactNode, useCallback, useEffect, useMemo, useState } from "react"
+import { useWorkbenchAsset } from "../foundations/useWorkbenchAsset"
 
-import { MapContextItemSelected, MapContextPosition, MapContextType, MapDispatchAction, ToolSelected, isMapTreeRoomWithPosition } from "../Maps/Controller/baseClasses"
-import MapDThree from "../Maps/Edit/MapDThree"
-import { SimNode } from "../Maps/Edit/MapDThree/baseClasses"
-import { addExitFactory } from "../Maps/Controller/addExit"
-import { addRoomFactory } from "../Maps/Controller/addRoom"
+import { MapContextItemSelected, MapContextPosition, MapDispatchAction, ToolSelected } from "../../Maps/Controller/baseClasses"
+import MapDThree from "../../Maps/Edit/MapDThree"
+import { SimNode } from "../../Maps/Edit/MapDThree/baseClasses"
+import { addExitFactory } from "../../Maps/Controller/addExit"
+import { addRoomFactory } from "../../Maps/Controller/addRoom"
 import { useDispatch } from "react-redux"
 
-import { addImport } from "../../slices/personalAssets"
-import { addOnboardingComplete } from "../../slices/player/index.api"
+import { addImport } from "../../../slices/personalAssets"
+import { addOnboardingComplete } from "../../../slices/player/index.api"
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
 import { StandardMap } from "@tonylb/mtw-wml/ts/standardize/components/map"
-import StandardRoom, { StandardRoomPayload } from "@tonylb/mtw-wml/ts/standardize/components/room"
+import StandardRoom from "@tonylb/mtw-wml/ts/standardize/components/room"
 import { isSchemaComponentUUID } from "@tonylb/mtw-base/ts/schema"
 
-import { StandardKey } from "@tonylb/mtw-wml/ts/standardize/components/reference"
-import { excludeUndefined } from "../../lib/lists"
+import { excludeUndefined } from "../../../lib/lists"
 import { StandardPositionFacet, PositionRemoveClass } from "@tonylb/mtw-wml/ts/standardize/keys/facets/position"
-import { ExitFacetList } from "@tonylb/mtw-wml/ts/standardize/keys/facets/exit"
-import { mapTreeMemo, MapContext as OriginalMapContext, useMapContext as originalUseMapContext } from "../Maps/Controller/index"
+import { mapTreeMemo, MapContext as OriginalMapContext, useMapContext as originalUseMapContext } from "../../Maps/Controller/index"
 
 // Re-export MapContext and useMapContext for workbench components
 export const MapContext = OriginalMapContext
