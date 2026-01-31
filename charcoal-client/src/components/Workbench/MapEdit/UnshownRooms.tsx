@@ -1,5 +1,5 @@
 import React, { FunctionComponent, useCallback, useMemo, useRef } from "react"
-import { useWorkbenchAsset } from "./foundations/useWorkbenchAsset"
+import { useWorkbenchAsset } from "../foundations/useWorkbenchAsset"
 import { useMapContext } from "./MapController"
 import {
     List,
@@ -11,11 +11,11 @@ import { grey } from '@mui/material/colors'
 import RoomIcon from '@mui/icons-material/Home'
 import AddIcon from '@mui/icons-material/Add'
 import { useDispatch } from "react-redux"
-import { addOnboardingComplete } from "../../slices/player/index.api"
-import TutorialPopover from "../Onboarding/TutorialPopover"
+import { addOnboardingComplete } from "../../../slices/player/index.api"
+import TutorialPopover from "../../Onboarding/TutorialPopover"
 import StandardRoom from "@tonylb/mtw-wml/ts/standardize/components/room"
 import { StandardMap } from "@tonylb/mtw-wml/ts/standardize/components/map"
-import { excludeUndefined } from "../../lib/lists"
+import { excludeUndefined } from "../../../lib/lists"
 
 type UnshownRoomsProps = {
 
@@ -25,7 +25,7 @@ export const UnshownRooms: FunctionComponent<UnshownRoomsProps> = () => {
     const { standardForm, localStandardForm } = useWorkbenchAsset()
     const { mapId, UI: { itemSelected }, mapDispatch } = useMapContext()
     const dispatch = useDispatch()
-    
+
     const shownRooms = useMemo(() => {
         const mapComponent = localStandardForm.byUniversalId[mapId]
         if (!(mapComponent instanceof StandardMap)) {
@@ -61,7 +61,7 @@ export const UnshownRooms: FunctionComponent<UnshownRoomsProps> = () => {
                         dense
                         sx={{ width: '100%' }}
                         selected={itemSelected?.type === 'UnshownRoom' && itemSelected?.key === key}
-                        onClick={() => { 
+                        onClick={() => {
                             if (key) {
                                 mapDispatch({ type: 'SelectItem', item: { type: 'UnshownRoom', key: key as `ROOM#${string}` }})
                                 mapDispatch({ type: 'SetToolSelected', value: 'AddRoom' })

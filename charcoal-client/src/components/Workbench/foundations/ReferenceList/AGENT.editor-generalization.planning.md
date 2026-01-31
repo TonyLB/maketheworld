@@ -83,8 +83,8 @@ This document tracks the phased consolidation of reference-list UI patterns acro
   - List of existing components of the given tag (from `standardForm`) with shortName / key display.
   - "Create new" action (or inline affordance).
   - Optional filtering, search, or grouping if needed.
-- Migrate `WorkbenchRoomFeatureEditor` (and other editors needing "reference existing") to use the generic selector via Phase 6's "Reference existing (X)" affordance.
-- Migrate `RoomLensEditor` to use the generic selector instead of `LensSelectorDialog`.
+- Migrate `RoomEdit/FeatureListEditor` (and other editors needing "reference existing") to use the generic selector via Phase 6's "Reference existing (X)" affordance.
+- Migrate `RoomEdit/LensEditor` to use the generic selector instead of `LensSelectorDialog`.
 - **Out of scope**: `ImportComponentDialog` — it operates on cross-asset imports and different data (inherited forms, external assets). Keep it separate.
 
 **Reference**: [`LensSelectorDialog.tsx`](../../LensSelectorDialog.tsx), [`ImportComponentDialog.tsx`](../../ImportComponentDialog.tsx)

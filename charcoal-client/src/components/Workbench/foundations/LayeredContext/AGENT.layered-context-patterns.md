@@ -35,7 +35,7 @@ The strip is the persistent "layer stack." You always see **all** siblings; the 
 **Implementation notes**  
 - Reuse a list primitive similar to `ReferenceListEditor` for the strip: `items` = siblings, `onItemClick` = set "current" layer (local state or a small `layeredContext` slice).  
 - Main area renders the layer editor only when `currentId` matches.  
-- Works within existing Workbench: breadcrumbs stay **Asset → Parent** (Room/Feature/Knowledge); the strip+panel live inside `ComponentDetail` as the "Examples" section.
+- Works within existing Workbench: breadcrumbs stay **Asset → Parent** (Room/Feature/Knowledge); the strip+panel live inside RoomEditor/FeatureEditor/KnowledgeEditor as the "Examples" section.
 
 ---
 
@@ -65,7 +65,7 @@ The index bar answers "which layer am I on?" and "how many siblings are there?" 
 
 **Implementation notes**  
 - Add a `LayeredContextIndexBar` (or similar) above the Example list: `siblings: { id, label }[]`, `currentId`, `onSelect(id)`.  
-- `ComponentDetail` derives sibling list from `component.examples`, tracks `currentExampleId` (local state or slice).  
+- RoomEditor/FeatureEditor/KnowledgeEditor derive sibling list from `component.examples`; ExamplesView tracks `currentExampleId` (local state or slice).  
 - Accordions: `expanded` only for `currentExampleId`; `summary` prop can show name/summary when collapsed.  
 - Use `scroll-margin` / `scrollIntoView` when selecting a chip so the chosen accordion comes into view.
 
@@ -99,7 +99,7 @@ The list pane is the dedicated "layers" context. It's always on screen, so you c
 - Use a resizable split (e.g. MUI `Grid`, or a small split-pane utility) if we adopt this.  
 - List pane: `ReferenceListEditor`-style component, or a dedicated `LayeredContextList`, with `onItemClick` to set selection.  
 - Editor pane: same as pattern 1—render the layer editor only for the selected id.  
-- Works inside `ComponentDetail`; breadcrumbs remain Asset → Parent.
+- Works inside RoomEditor/FeatureEditor/KnowledgeEditor (Examples section); breadcrumbs remain Asset → Parent.
 
 ---
 
@@ -193,6 +193,6 @@ const [currentId, setCurrentId] = useState(siblings[0]?.id ?? null)
 ## Next steps
 
 1. Choose one pattern (or a hybrid) for Examples.  
-2. Implement a small **`LayeredContext*`** component set (e.g. index bar, strip, or split list) and wire it into `ComponentDetail` for the Examples section.  
+2. Implement a small **`LayeredContext*`** component set (e.g. index bar, strip, or split list) and wire it into RoomEditor/FeatureEditor/KnowledgeEditor for the Examples section.  
 3. Add sibling navigation (click-to-select, optional prev/next) and ensure accessibility (keyboard, focus management, aria).  
 4. Document the pattern in this file and reuse for future "layer-like" sibling groups (e.g. Lenses, Marks) as needed.

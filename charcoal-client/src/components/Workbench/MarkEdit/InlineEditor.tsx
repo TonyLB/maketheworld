@@ -1,9 +1,9 @@
 import React, { FunctionComponent, useCallback } from "react"
 import StandardMark from "@tonylb/mtw-wml/ts/standardize/components/worldState"
-import { StandardLiteral } from "@tonylb/mtw-wml/ts/standardize/literal"
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
-import { StandardLiteralEditor } from "./foundations/StandardLiteral"
-import { useWorkbenchAsset } from "./foundations/useWorkbenchAsset"
+import { StandardLiteral } from "@tonylb/mtw-wml/ts/standardize/literal"
+import { StandardLiteralEditor } from "../foundations/StandardLiteral"
+import { useWorkbenchAsset } from "../foundations/useWorkbenchAsset"
 
 export interface MarkInlineEditorProps {
     mark: StandardMark

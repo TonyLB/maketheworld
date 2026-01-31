@@ -109,7 +109,7 @@ type WorkbenchBreadcrumbEntry = {
 ### System Relationships
 
 - **AppLayout**: Renders `WorkbenchContainer` with `open`, `onClose`, `assetId`, `secondaryContext`; controls workbench visibility
-- **WorkbenchAssetEditor**: Orchestrates view routing based on `getCurrentView`, `getCurrentComponentId`, `getCurrentComponentLayerId`; delegates to `AssetEditForm`, `ComponentDetail`, `ExamplesView`, `MarkEditor`, `MapEditor`, `CharacterEditor`
+- **WorkbenchAssetEditor**: Orchestrates view routing based on `getCurrentView`, `getCurrentComponentId`, `getCurrentComponentLayerId`; delegates to `AssetEditForm`, `RoomEditor`, `FeatureEditor`, `KnowledgeEditor`, `ExamplesView`, `MarkEditor`, `MapEditor`, `CharacterEditor`
 
 ---
 
@@ -188,19 +188,22 @@ updateStandard({
 1. **Workbench Flow**: Start at [`WorkbenchContainer.tsx`](./WorkbenchContainer.tsx) for layout and breadcrumb header; then [`WorkbenchAssetEditor.tsx`](./WorkbenchAssetEditor.tsx) for view routing
 2. **Asset Context**: Read [`foundations/useWorkbenchAsset.ts`](./foundations/useWorkbenchAsset.ts) to understand how asset data flows from `personalAssets` into Workbench components
 3. **Navigation State**: Read [`src/slices/UI/workbench/index.ts`](../../slices/UI/workbench/index.ts) for breadcrumb model and selectors
-4. **Component Editing**: [`WorkbenchComponentDetail.tsx`](./WorkbenchComponentDetail.tsx) is the main component editor; it delegates to `RoomFeatureEditor`, `RoomLensEditor`, `RoomExitEditor`, `ReferenceListEditor`, etc.
+4. **Component Editing**: One editor per component type, each under its own `{Component}Edit` directory (e.g. `RoomEdit/RoomEditor.tsx`, `FeatureEdit/FeatureEditor.tsx`, `KnowledgeEdit/KnowledgeEditor.tsx`). RoomEditor composes `ExitEditor`, `LensEditor`, `FeatureListEditor`, and Examples `ReferenceListEditor`; FeatureEditor and KnowledgeEditor show shortName + Examples only.
 
 ### Key Files
 
-| File | Purpose |
-|------|---------|
+| File / Directory | Purpose |
+|------------------|---------|
 | `WorkbenchContainer.tsx` | Responsive layout, breadcrumbs, AssetSelector, theme |
 | `WorkbenchAssetEditor.tsx` | View routing (asset / component / componentLayer) |
 | `WorkbenchAssetEditForm.tsx` | Asset-level metadata, component list, imports |
-| `WorkbenchComponentDetail.tsx` | Room/Feature/Knowledge detail; reference lists, Examples |
-| `WorkbenchExamplesView.tsx` | Layered Examples view (tabs); uses `foundations/LayeredContext/LayeredExamplesTabs` |
-| `WorkbenchMarkEditor.tsx` | Full Mark editor (shortName + description) |
-| `RoomLensEditor.tsx` | Lens editing; Marks via `InlineReferenceList` |
+| `RoomEdit/` | RoomEditor, ExitEditor, LensEditor, FeatureListEditor |
+| `FeatureEdit/` | FeatureEditor (shortName + Examples) |
+| `KnowledgeEdit/` | KnowledgeEditor (shortName + Examples) |
+| `ExampleEdit/` | ExampleEditor, ExamplesView (layered Examples tabs) |
+| `MarkEdit/` | MarkEditor (full), InlineEditor (shortName only; used in LensEditor) |
+| `MapEdit/` | MapEditor, MapArea, MapController, MapLayers, UnshownRooms |
+| `CharacterEdit/` | CharacterEditor |
 | `foundations/StandardRender/StandardRenderEditor.tsx` | Rich text (Slate); shared with Editor components |
 | `foundations/ReferenceList/referenceListAdapter.ts` | `referenceListToItems` for list display |
 
@@ -231,6 +234,6 @@ updateStandard({
 
 ### Technical Debt
 
-- **RoomExitEditor**: Recently refactored; may need further review for error handling, UX, accessibility (see [charcoal-client/AGENT.md](../../AGENT.md) Technical Debt)
+- **RoomEdit/ExitEditor**: May need further review for error handling, UX, accessibility (see [charcoal-client/AGENT.md](../../AGENT.md) Technical Debt)
 - **Component Complexity**: Some components mix layout, navigation, and editing concerns
 - **Testing Coverage**: Expand tests for Workbench components; follow [AGENT.testing.md](../../AGENT.testing.md) for Vitest patterns

@@ -2,20 +2,20 @@ import React, { FunctionComponent, useCallback, useMemo } from "react"
 import { Box } from "@mui/material"
 import FeatureIcon from "@mui/icons-material/Search"
 
-import { useWorkbenchAsset } from "./foundations/useWorkbenchAsset"
-import { ReferenceListEditor } from "./foundations/ReferenceList"
+import { useWorkbenchAsset } from "../foundations/useWorkbenchAsset"
+import { ReferenceListEditor } from "../foundations/ReferenceList"
 import StandardRoom from "@tonylb/mtw-wml/ts/standardize/components/room"
 import { ReferenceList } from "@tonylb/mtw-wml/ts/standardize/keys/referenceList"
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
 import { ComponentUUID } from "@tonylb/mtw-base/ts/schema"
 import { useDispatch } from "react-redux"
-import { navigateToComponent } from "../../slices/UI/workbench"
+import { navigateToComponent } from "../../../slices/UI/workbench"
 
-type RoomFeatureEditorProps = {
+type FeatureListEditorProps = {
     RoomId: ComponentUUID
 }
 
-export const RoomFeatureEditor: FunctionComponent<RoomFeatureEditorProps> = ({ RoomId }) => {
+export const FeatureListEditor: FunctionComponent<FeatureListEditorProps> = ({ RoomId }) => {
     const { standardForm, readonly } = useWorkbenchAsset()
     const dispatch = useDispatch()
 
@@ -79,4 +79,4 @@ export const RoomFeatureEditor: FunctionComponent<RoomFeatureEditorProps> = ({ R
     )
 }
 
-export default RoomFeatureEditor
+export default FeatureListEditor

@@ -9,11 +9,11 @@ import IconButton from "@mui/material/IconButton"
 import Typography from "@mui/material/Typography"
 import Alert from "@mui/material/Alert"
 import { useDispatch } from "react-redux"
-import { navigateToComponentLayer } from "../../slices/UI/workbench"
-import { useWorkbenchAsset } from "./foundations/useWorkbenchAsset"
+import { navigateToComponentLayer } from "../../../slices/UI/workbench"
+import { useWorkbenchAsset } from "../foundations/useWorkbenchAsset"
 import AddIcon from '@mui/icons-material/Add'
 import DeleteIcon from '@mui/icons-material/Delete'
-import { MakeTheWorldAccordion } from "../UI"
+import { MakeTheWorldAccordion } from "../../UI"
 import StandardRoom from "@tonylb/mtw-wml/ts/standardize/components/room"
 import StandardMark, { StandardLens } from "@tonylb/mtw-wml/ts/standardize/components/worldState"
 import StandardReference from "@tonylb/mtw-wml/ts/standardize/components/reference"
@@ -21,19 +21,19 @@ import { ReferenceList } from "@tonylb/mtw-wml/ts/standardize/keys/referenceList
 import { StandardLiteral } from "@tonylb/mtw-wml/ts/standardize/literal"
 import { StandardRender, PlainClass } from "@tonylb/mtw-wml/ts/standardize/render"
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
-import { StandardLiteralEditor } from "./foundations/StandardLiteral"
-import { StandardRenderEditor } from "./foundations/StandardRender"
-import LensSelectorDialog from "./LensSelectorDialog"
-import { InlineReferenceList } from "./foundations/ReferenceList"
-import { MarkInlineEditor } from "./MarkInlineEditor"
-import { referenceListToItems } from "./foundations/ReferenceList"
+import { StandardLiteralEditor } from "../foundations/StandardLiteral"
+import { StandardRenderEditor } from "../foundations/StandardRender"
+import LensSelectorDialog from "../LensSelectorDialog"
+import { InlineReferenceList } from "../foundations/ReferenceList"
+import { MarkInlineEditor } from "../MarkEdit/InlineEditor"
+import { referenceListToItems } from "../foundations/ReferenceList"
 import { ComponentUUID } from "@tonylb/mtw-base/ts/schema"
 import { v4 as uuidv4 } from 'uuid'
 import { RenderTree } from "@tonylb/mtw-base/ts/renderTree"
 import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { enforceTypedKey } from '@tonylb/mtw-utilities/ts/types'
 
-type RoomLensEditorProps = {
+type LensEditorProps = {
     RoomId: ComponentUUID
 }
 
@@ -59,7 +59,7 @@ const renderTreeToPlainText = (tree: RenderTree): string => {
         .trim()
 }
 
-export const RoomLensEditor: FunctionComponent<RoomLensEditorProps> = ({ RoomId }) => {
+export const LensEditor: FunctionComponent<LensEditorProps> = ({ RoomId }) => {
     const dispatch = useDispatch()
     const { standardForm, updateStandard, readonly } = useWorkbenchAsset()
     const [dialogOpen, setDialogOpen] = useState(false)
@@ -454,4 +454,4 @@ export const RoomLensEditor: FunctionComponent<RoomLensEditorProps> = ({ RoomId 
     )
 }
 
-export default RoomLensEditor
+export default LensEditor

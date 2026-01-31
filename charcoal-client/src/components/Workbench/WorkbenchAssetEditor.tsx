@@ -11,14 +11,19 @@ import {
 } from '../../slices/UI/workbench'
 import { useWorkbenchAsset } from './foundations/useWorkbenchAsset'
 import AssetEditForm from './WorkbenchAssetEditForm'
-import ComponentDetail from './WorkbenchComponentDetail'
-import ExamplesView from './WorkbenchExamplesView'
-import MarkEditor from './WorkbenchMarkEditor'
-import MapEditor from './WorkbenchMapEditor'
-import CharacterEditor from './WorkbenchCharacterEditor'
+import RoomEditor from './RoomEdit/RoomEditor'
+import FeatureEditor from './FeatureEdit/FeatureEditor'
+import KnowledgeEditor from './KnowledgeEdit/KnowledgeEditor'
+import ExamplesView from './ExampleEdit/ExamplesView'
+import MarkEditor from './MarkEdit/MarkEditor'
+import MapEditor from './MapEdit/MapEditor'
+import CharacterEditor from './CharacterEdit/CharacterEditor'
 import StandardCharacter from '@tonylb/mtw-wml/ts/standardize/components/character'
 import StandardMap from '@tonylb/mtw-wml/ts/standardize/components/map'
 import StandardMark from '@tonylb/mtw-wml/ts/standardize/components/worldState'
+import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
+import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
+import StandardKnowledge from '@tonylb/mtw-wml/ts/standardize/components/knowledge'
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 
 /**
@@ -58,9 +63,20 @@ export const WorkbenchAssetEditor: FunctionComponent = () => {
         if (component instanceof StandardCharacter) {
             return <CharacterEditor />
         }
-        
-        // For Room, Feature, Knowledge, use ComponentDetail
-        return <ComponentDetail />
+
+        if (component instanceof StandardRoom) {
+            return <RoomEditor />
+        }
+
+        if (component instanceof StandardFeature) {
+            return <FeatureEditor />
+        }
+
+        if (component instanceof StandardKnowledge) {
+            return <KnowledgeEditor />
+        }
+
+        return <Box />
     }
 
     if (currentView === 'componentLayer' && currentComponentId) {

@@ -3,15 +3,15 @@ import { useDispatch, useSelector } from 'react-redux'
 import { Box, Button } from '@mui/material'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 
-import { MapGridContainer, MapContentArea, MapSidebarArea } from '../Maps/Edit/useMapStyles'
+import { MapGridContainer, MapContentArea, MapSidebarArea } from '../../Maps/Edit/useMapStyles'
 import MapArea from './MapArea'
 import MapLayers from './MapLayers'
-import ToolSelect from '../Maps/Edit/Area/ToolSelect'
-import { useWorkbenchAsset } from './foundations/useWorkbenchAsset'
-import { getCurrentComponentId, navigateViaBreadcrumbIndex } from '../../slices/UI/workbench'
+import ToolSelect from '../../Maps/Edit/Area/ToolSelect'
+import { useWorkbenchAsset } from '../foundations/useWorkbenchAsset'
+import { getCurrentComponentId, navigateViaBreadcrumbIndex } from '../../../slices/UI/workbench'
 import MapController from './MapController'
-import { useOnboardingCheckpoint } from '../Onboarding/useOnboarding'
-import TutorialPopover from '../Onboarding/TutorialPopover'
+import { useOnboardingCheckpoint } from '../../Onboarding/useOnboarding'
+import TutorialPopover from '../../Onboarding/TutorialPopover'
 import StandardMap from '@tonylb/mtw-wml/ts/standardize/components/map'
 import { isSchemaImage } from '@tonylb/mtw-base/ts/schema/image'
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
@@ -21,7 +21,7 @@ export const MapEditor: FunctionComponent = () => {
     const { standardForm } = useWorkbenchAsset()
     const currentComponentId = useSelector(getCurrentComponentId)
     useOnboardingCheckpoint('editMap', { requireSequence: true })
-    
+
     // Extract mapId from currentComponentId (remove the MAP# prefix if present)
     const mapId = useMemo<string | undefined>(() => {
         if (!currentComponentId) return undefined
@@ -31,7 +31,7 @@ export const MapEditor: FunctionComponent = () => {
         }
         return currentComponentId
     }, [currentComponentId])
-    
+
     const mapComponent = useMemo<StandardMap | undefined>(() => {
         if (!currentComponentId) return undefined
         const component = standardForm.byUniversalId[currentComponentId as ComponentUUID]
@@ -67,7 +67,7 @@ export const MapEditor: FunctionComponent = () => {
                     Back to Asset
                 </Button>
             </Box>
-            
+
             <Box sx={{ flexGrow: 1, position: "relative", width: "100%" }}>
                 <MapController mapId={(mapId ?? '') as `MAP#${string}`}>
                     <MapGridContainer>

@@ -1,16 +1,16 @@
 import React, { FunctionComponent, useCallback, useMemo, useState } from "react"
-import { useWorkbenchAsset } from "./foundations/useWorkbenchAsset"
+import { useWorkbenchAsset } from "../foundations/useWorkbenchAsset"
 import StandardExample from "@tonylb/mtw-wml/ts/standardize/components/example";
 import { Box, IconButton, TextField } from "@mui/material";
 import LockIcon from '@mui/icons-material/Lock';
 import LockOpenIcon from '@mui/icons-material/LockOpen';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
-import { useDebouncedOnChange } from "../../hooks/useDebounce";
+import { useDebouncedOnChange } from "../../../hooks/useDebounce";
 import { StandardRender } from "@tonylb/mtw-wml/ts/standardize/render";
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize";
-import { StandardRenderEditor } from "./foundations/StandardRender";
-import { MakeTheWorldAccordion } from "../UI";
+import { StandardRenderEditor } from "../foundations/StandardRender";
+import { MakeTheWorldAccordion } from "../../UI";
 import StandardRoom from "@tonylb/mtw-wml/ts/standardize/components/room";
 import StandardFeature from "@tonylb/mtw-wml/ts/standardize/components/feature";
 import StandardKnowledge from "@tonylb/mtw-wml/ts/standardize/components/knowledge";
@@ -91,7 +91,7 @@ export const ExampleEditor: FunctionComponent<ExampleEditorProps> = ({ component
             const parentIds: string[] = []
             Object.values(standardForm.byId).forEach((component) => {
                 if (component instanceof StandardRoom || component instanceof StandardFeature || component instanceof StandardKnowledge) {
-                    const hasExample = component.examples.payload.some((ref) => 
+                    const hasExample = component.examples.payload.some((ref) =>
                         ref instanceof StandardReference && ref.universalKey === componentId
                     )
                     if (hasExample && component.universalKey) {
@@ -115,8 +115,8 @@ export const ExampleEditor: FunctionComponent<ExampleEditorProps> = ({ component
         }
     }, [componentId, localStandardForm, standardForm, updateStandard])
     return (
-        <MakeTheWorldAccordion 
-            title="Example" 
+        <MakeTheWorldAccordion
+            title="Example"
             defaultExpanded
             icon={inherited ? <LockIcon /> : <LockOpenIcon />}
             actions={
