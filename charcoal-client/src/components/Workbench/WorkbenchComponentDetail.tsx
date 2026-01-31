@@ -112,9 +112,6 @@ const WMLComponentAppearance: FunctionComponent<{ universalKey: ComponentUUID }>
                     title="Examples"
                     listContext={examplesListContext}
                     tag="Example"
-                    addAffordance="create"
-                    addLabel="Add Example"
-                    emptyStateText="This component does not currently reference any Examples."
                     disabled={readonly}
                     onItemClick={handleExamplesItemClick}
                 />
