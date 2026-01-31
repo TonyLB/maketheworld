@@ -1,6 +1,6 @@
 import { ReferenceList } from "@tonylb/mtw-wml/ts/standardize/keys/referenceList"
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
-import { ReferenceListItem } from "./ReferenceListEditor"
+import { ReferenceListItem } from "./ReferenceListEditorGeneric"
 
 type ComponentTag =
     | "Character"

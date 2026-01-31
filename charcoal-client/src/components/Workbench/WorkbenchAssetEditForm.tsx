@@ -1,49 +1,23 @@
 import React, { FunctionComponent, useMemo, useCallback, useState, useRef, useEffect } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
+import { useSelector } from 'react-redux'
 import { Box, Typography } from '@mui/material'
 
-import FeatureIcon from '@mui/icons-material/Search'
-import KnowledgeIcon from '@mui/icons-material/School'
-import MapIcon from '@mui/icons-material/Map'
-import PersonIcon from '@mui/icons-material/Person'
-import HomeIcon from '@mui/icons-material/Home'
-
 import { getAssetZone } from '../../slices/player'
-import { addOnboardingComplete } from '../../slices/player/index.api'
 import { useOnboardingCheckpoint } from '../Onboarding/useOnboarding'
 import { useWorkbenchAsset } from './foundations/useWorkbenchAsset'
-import { navigateToComponent } from '../../slices/UI/workbench'
-import StandardCharacter from '@tonylb/mtw-wml/ts/standardize/components/character'
-import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
-import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
-import StandardKnowledge from '@tonylb/mtw-wml/ts/standardize/components/knowledge'
-import StandardMap from '@tonylb/mtw-wml/ts/standardize/components/map'
-import StandardImage from '@tonylb/mtw-wml/ts/standardize/components/image'
-import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
-import ImportComponentDialog from './ImportComponentDialog'
 import { StandardLiteralEditor } from './foundations/StandardLiteral'
 import { StandardRenderEditor } from './foundations/StandardRender'
 import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
 import { StandardRender } from '@tonylb/mtw-wml/ts/standardize/render'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { useDebouncedOnChange } from '../../hooks/useDebounce'
-import { standardComponentFactory } from '@tonylb/mtw-wml/ts/standardize/componentFactory'
-import { enforceTypedKey } from '@tonylb/mtw-utilities/ts/types'
-import { v4 as uuidv4 } from 'uuid'
-import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
-import StandardReference from '@tonylb/mtw-wml/ts/standardize/components/reference'
-import { ReferenceList } from '@tonylb/mtw-wml/ts/standardize/keys/referenceList'
-import ComponentRow from './WorkbenchComponentRow'
-import AddComponent from './WorkbenchAddComponent'
-import AddImport from './WorkbenchAddImport'
-import ImageHeader from './ImageHeader'
 import DraftLockout from './DraftLockout'
 import { MakeTheWorldAccordion } from '../UI'
+import { TopLevelEditor } from './foundations/ReferenceList'
 
 export const AssetEditForm: FunctionComponent = () => {
     const { updateStandard, standardForm, readonly, AssetId } = useWorkbenchAsset()
     const zone = useSelector(getAssetZone(AssetId))
-    const dispatch = useDispatch()
     useOnboardingCheckpoint('navigateBackToDraft', { requireSequence: true, condition: zone === 'Draft' })
 
     // Asset-level metadata editing (ShortName and Summary) - only for drafts
@@ -64,7 +38,6 @@ export const AssetEditForm: FunctionComponent = () => {
     
     const [summary, setSummary] = useState(standardForm.summary ?? new StandardRender([]))
     const summaryRef = useRef(summary)
-    const [importDialogOpen, setImportDialogOpen] = useState(false)
     
     useEffect(() => {
         summaryRef.current = summary
@@ -101,72 +74,6 @@ export const AssetEditForm: FunctionComponent = () => {
             })
         }
     })
-
-    // Get top-level components from _topLevel ReferenceList
-    const topLevelComponents = useMemo<StandardComponent[]>(() => {
-        if (!standardForm?._topLevel) return []
-        return standardForm._topLevel.payload
-            .map(ref => standardForm._lookup(ref.standardKey.toJSON()))
-            .filter((component): component is StandardComponent => component !== undefined)
-    }, [standardForm])
-
-    const characters = useMemo<StandardCharacter[]>(() => topLevelComponents.filter((component): component is StandardCharacter => component instanceof StandardCharacter), [topLevelComponents])
-    const rooms = useMemo<StandardRoom[]>(() => topLevelComponents.filter((component): component is StandardRoom => component instanceof StandardRoom), [topLevelComponents])
-    const features = useMemo<StandardFeature[]>(() => topLevelComponents.filter((component): component is StandardFeature => component instanceof StandardFeature), [topLevelComponents])
-    const knowledges = useMemo<StandardKnowledge[]>(() => topLevelComponents.filter((component): component is StandardKnowledge => component instanceof StandardKnowledge), [topLevelComponents])
-    const maps = useMemo<StandardMap[]>(() => topLevelComponents.filter((component): component is StandardMap => component instanceof StandardMap), [topLevelComponents])
-    const images = useMemo<StandardImage[]>(() => topLevelComponents.filter((component): component is StandardImage => component instanceof StandardImage), [topLevelComponents])
-
-    // Combine all components for rendering with alternating row shading
-    const allComponents = useMemo(() => {
-        const result: Array<{ component: StandardComponent; icon: React.ReactChild }> = []
-        characters.forEach(c => result.push({ component: c, icon: <PersonIcon sx={{ fontSize: '1.25rem' }} /> }))
-        maps.forEach(m => result.push({ component: m, icon: <MapIcon sx={{ fontSize: '1.25rem' }} /> }))
-        rooms.forEach(r => result.push({ component: r, icon: <HomeIcon sx={{ fontSize: '1.25rem' }} /> }))
-        features.forEach(f => result.push({ component: f, icon: <FeatureIcon sx={{ fontSize: '1.25rem' }} /> }))
-        knowledges.forEach(k => result.push({ component: k, icon: <KnowledgeIcon sx={{ fontSize: '1.25rem' }} /> }))
-        return result
-    }, [characters, maps, rooms, features, knowledges])
-
-    const addAsset = useCallback((tag: 'Character' | 'Map' | 'Room' | 'Feature' | 'Knowledge' | 'Image') => () => {
-        switch(tag) {
-            case 'Room':
-                dispatch(addOnboardingComplete(['addRoom']))
-                break
-        }
-        updateStandard({
-            type: 'update',
-            update: (draft) => {
-                const tagUpper = tag.toUpperCase() as 'ROOM' | 'FEATURE' | 'KNOWLEDGE' | 'CHARACTER' | 'MAP' | 'IMAGE'
-                const enforceKey = enforceTypedKey(tagUpper)
-                const uuid = uuidv4()
-                const universalKey = enforceKey(uuid) as ComponentUUID
-                
-                const component = standardComponentFactory({ tag, universalKey })
-                if (component) {
-                    // Use byUniversalId to add component (handles _components and cache invalidation)
-                    draft.byUniversalId[universalKey] = component
-                    
-                    // Add component reference to _topLevel if it exists, or create it
-                    const componentReference = new StandardReference({ universalKey, tag })
-                    if (draft._topLevel) {
-                        draft._topLevel = draft._topLevel.assureItem(componentReference)
-                    } else {
-                        draft._topLevel = new ReferenceList([componentReference])
-                    }
-                }
-                else {
-                    throw new Error(`Invalid tag: ${tag}`)
-                }
-                return draft
-            }
-        })
-    }, [updateStandard, dispatch])
-
-    // Handle component selection - use state-based navigation
-    const handleComponentClick = useCallback((componentId: ComponentUUID) => {
-        dispatch(navigateToComponent(componentId))
-    }, [dispatch])
 
     return (
         <Box sx={{ position: "relative", display: 'flex', flexDirection: 'column', width: "100%", height: "100%" }}>
@@ -205,50 +112,10 @@ export const AssetEditForm: FunctionComponent = () => {
                         </MakeTheWorldAccordion>
                     )}
                     
-                    <MakeTheWorldAccordion title="Components" defaultExpanded={true}>
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                            {allComponents.map(({ component, icon }, index) => (
-                                <ComponentRow
-                                    key={component.universalKey}
-                                    ItemId={component.universalKey!}
-                                    onClick={() => handleComponentClick(component.universalKey!)}
-                                    icon={icon}
-                                    isEven={index % 2 === 1}
-                                />
-                            ))}
-                            {images.length
-                                ? images.map((image) => (
-                                    <ImageHeader
-                                        key={image.universalKey ?? image.key}
-                                        ItemId={image.universalKey ?? ''}
-                                        onClick={() => {}}
-                                    />
-                                ))
-                                : null
-                            }
-                            {!readonly && (
-                                <>
-                                    <AddComponent
-                                        onAddAsset={(tag) => addAsset(tag)()}
-                                        isEven={(allComponents.length + images.length) % 2 === 1}
-                                    />
-                                    <AddImport
-                                        onImportClick={() => setImportDialogOpen(true)}
-                                        isEven={(allComponents.length + images.length + 1) % 2 === 1}
-                                    />
-                                </>
-                            )}
-                        </Box>
-                    </MakeTheWorldAccordion>
+                    <TopLevelEditor title="Components" defaultExpanded={true} />
                 </Box>
                 <DraftLockout />
             </Box>
-            
-            <ImportComponentDialog
-                open={importDialogOpen}
-                onClose={() => setImportDialogOpen(false)}
-                assetId={AssetId}
-            />
         </Box>
     )
 }
