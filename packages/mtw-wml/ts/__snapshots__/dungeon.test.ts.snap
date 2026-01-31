@@ -78,7 +78,7 @@ exports[`large WML test should parse properly 1`] = `
   },
   {
     "properties": [],
-    "tag": "Name",
+    "tag": "DisplayName",
     "type": 0,
   },
   {
@@ -86,7 +86,7 @@ exports[`large WML test should parse properly 1`] = `
     "type": 3,
   },
   {
-    "tag": "Name",
+    "tag": "DisplayName",
     "type": 2,
   },
   {
@@ -346,7 +346,7 @@ exports[`large WML test should parse properly 1`] = `
   },
   {
     "properties": [],
-    "tag": "Name",
+    "tag": "DisplayName",
     "type": 0,
   },
   {
@@ -354,7 +354,7 @@ exports[`large WML test should parse properly 1`] = `
     "type": 3,
   },
   {
-    "tag": "Name",
+    "tag": "DisplayName",
     "type": 2,
   },
   {
@@ -387,7 +387,7 @@ exports[`large WML test should parse properly 1`] = `
   },
   {
     "properties": [],
-    "tag": "Name",
+    "tag": "DisplayName",
     "type": 0,
   },
   {
@@ -395,7 +395,7 @@ exports[`large WML test should parse properly 1`] = `
     "type": 3,
   },
   {
-    "tag": "Name",
+    "tag": "DisplayName",
     "type": 2,
   },
   {
@@ -443,7 +443,7 @@ exports[`large WML test should parse properly 1`] = `
   },
   {
     "properties": [],
-    "tag": "Name",
+    "tag": "DisplayName",
     "type": 0,
   },
   {
@@ -451,7 +451,7 @@ exports[`large WML test should parse properly 1`] = `
     "type": 3,
   },
   {
-    "tag": "Name",
+    "tag": "DisplayName",
     "type": 2,
   },
   {
@@ -626,10 +626,10 @@ exports[`large WML test should standardize properly 1`] = `
     "description": [
       "Light streams in from the entrance. On one side of the cave is an old firepit and comfortably tamped-down earth floor. At the opposite end, a jumbled pile of jagged rocks against the wall make a far less hospitable space.",
     ],
-    "key": undefined,
-    "name": [
+    "displayName": [
       "Shallow cave",
     ],
+    "key": undefined,
     "summary": undefined,
     "tag": "Example",
     "universalKey": "EXAMPLE#example2",
@@ -638,10 +638,10 @@ exports[`large WML test should standardize properly 1`] = `
     "description": [
       "Light streams in from the entrance. On one side of the cave is an old firepit and comfortably tamped-down earth floor. At the opposite end, rocks have been cleared revealing a passage further underground.",
     ],
-    "key": undefined,
-    "name": [
+    "displayName": [
       "Shallow cave",
     ],
+    "key": undefined,
     "summary": undefined,
     "tag": "Example",
     "universalKey": "EXAMPLE#example3",
@@ -679,8 +679,8 @@ exports[`large WML test should standardize properly 1`] = `
   },
   {
     "description": undefined,
+    "displayName": undefined,
     "key": undefined,
-    "name": undefined,
     "summary": undefined,
     "tag": "Example",
     "universalKey": "EXAMPLE#example5",
@@ -728,10 +728,10 @@ exports[`large WML test should standardize properly 1`] = `
     "description": [
       "Walls smoothly cut from the bedrock curve in a long arc, lit every few yards by a small sconce mounted above eye-level.",
     ],
-    "key": undefined,
-    "name": [
+    "displayName": [
       "Curving Passage",
     ],
+    "key": undefined,
     "summary": undefined,
     "tag": "Example",
     "universalKey": "EXAMPLE#example4",
@@ -832,10 +832,10 @@ exports[`large WML test should standardize properly 1`] = `
       },
       "(You could also go literally anywhere else in the world, if any of it had been created. But it hasn't)",
     ],
-    "key": undefined,
-    "name": [
+    "displayName": [
       "Cave entrance",
     ],
+    "key": undefined,
     "summary": undefined,
     "tag": "Example",
     "universalKey": "EXAMPLE#example1",

@@ -309,7 +309,7 @@ describe('StandardRoom class', () => {
             const testSource = deIndentWML(`
                 <Room key=(testRoom)>
                     <Character key=(char1)>
-                        <Name>Character One</Name>
+                        <DisplayName>Character One</DisplayName>
                     </Character>
                     <Character uuid=(CHARACTER#uuid123)>
                         <DisplayName>Character Two</DisplayName>
