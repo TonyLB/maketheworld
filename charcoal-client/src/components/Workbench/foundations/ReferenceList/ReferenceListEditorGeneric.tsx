@@ -58,11 +58,6 @@ export interface ReferenceListEditorGenericProps {
     variant?: "contained" | "table"
 
     /**
-     * Message to show when there are no items.
-     */
-    emptyStateText?: string
-
-    /**
      * Called when a list item is clicked.
      */
     onItemClick?: (id: string) => void
@@ -93,7 +88,6 @@ export const ReferenceListEditorGeneric: FunctionComponent<ReferenceListEditorGe
     defaultExpanded = false,
     disabled = false,
     variant = "contained",
-    emptyStateText,
     onItemClick,
     updateReferenceList,
     onItemRemove,
@@ -284,15 +278,13 @@ export const ReferenceListEditorGeneric: FunctionComponent<ReferenceListEditorGe
                                 gap: 1
                             }}
                         >
-                            {emptyStateText && (
-                                <Typography
-                                    variant="body2"
-                                    color="text.secondary"
-                                    sx={{ textAlign: "center" }}
-                                >
-                                    {emptyStateText}
-                                </Typography>
-                            )}
+                            <Typography
+                                variant="body2"
+                                color="text.secondary"
+                                sx={{ textAlign: "center" }}
+                            >
+                                No items yet.
+                            </Typography>
                         </Box>
                     </ListItem>
                 )}

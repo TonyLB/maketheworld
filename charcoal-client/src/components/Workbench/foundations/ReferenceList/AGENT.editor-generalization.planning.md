@@ -52,27 +52,26 @@ This document tracks the phased consolidation of reference-list UI patterns acro
 
 ---
 
-## Phase 4: Deprecate orphaned code
+## Phase 4: Deprecate orphaned code — DONE (partial)
 
 **Goal**: Remove or deprecate components and patterns that were replaced by the generalized ReferenceListEditor.
 
-**Planned work**:
-- Identify and deprecate/remove:
-  - `WorkbenchComponentRow` (replaced by ReferenceListEditor table variant)
-  - `WorkbenchAddComponent` (replaced by ReferenceList add row + generic selector)
-  - `WorkbenchAddImport` (replaced by ReferenceListEditor Import row)
-- After Phase 5, deprecate selector dialogs that are superseded by the generic component selector:
-  - `FeatureSelectorDialog` (if fully replaced)
-  - `LensSelectorDialog` (if fully replaced)
+**Completed**:
+- Removed `WorkbenchComponentRow`, `WorkbenchAddComponent`, `WorkbenchAddImport` (inlined into TopLevelEditor).
+- Removed `FeatureSelectorDialog` — simplified ReferenceListEditor to "create" only for now. Phase 5/6 will add "Reference existing (X)" in a unified way.
+- Simplified ReferenceListEditor affordances: removed `addAffordance` prop (always renders create affordance); derived `addLabel` from `tag` (`Add {tag}`); removed `emptyStateText` option — `ReferenceListEditorGeneric` now uses fixed copy "No items yet." in all cases.
+
+**Remaining**:
+- After Phase 5, deprecate `LensSelectorDialog` (if superseded by generic selector).
 - Do **not** deprecate `ImportComponentDialog` — it serves cross-asset import and depends on different data sources.
 
-**Reference**: [`WorkbenchComponentRow.tsx`](../../WorkbenchComponentRow.tsx), [`WorkbenchAddComponent.tsx`](../../WorkbenchAddComponent.tsx), [`WorkbenchAddImport.tsx`](../../WorkbenchAddImport.tsx), [`FeatureSelectorDialog.tsx`](../../FeatureSelectorDialog.tsx), [`LensSelectorDialog.tsx`](../../LensSelectorDialog.tsx)
+**Reference**: [`LensSelectorDialog.tsx`](../../LensSelectorDialog.tsx)
 
 ---
 
 ## Phase 5: Generic component selector
 
-**Goal**: Create a single, generic component selector dialog that can replace ad-hoc solutions like `FeatureSelectorDialog`, `LensSelectorDialog`, etc. It should support "create new" and "select existing" for components of a given tag within the current workbench asset.
+**Goal**: Create a single, generic component selector dialog that can replace ad-hoc solutions like `LensSelectorDialog`, etc. It should support "create new" and "select existing" for components of a given tag within the current workbench asset. (FeatureSelectorDialog was removed; Phase 6 will add "Reference existing Feature" using this generic selector.)
 
 **Planned work**:
 - Define a generic `ComponentSelectorDialog` (or similar name) with props:
@@ -84,11 +83,11 @@ This document tracks the phased consolidation of reference-list UI patterns acro
   - List of existing components of the given tag (from `standardForm`) with shortName / key display.
   - "Create new" action (or inline affordance).
   - Optional filtering, search, or grouping if needed.
-- Migrate `WorkbenchRoomFeatureEditor` to use the generic selector instead of `FeatureSelectorDialog`.
+- Migrate `WorkbenchRoomFeatureEditor` (and other editors needing "reference existing") to use the generic selector via Phase 6's "Reference existing (X)" affordance.
 - Migrate `RoomLensEditor` to use the generic selector instead of `LensSelectorDialog`.
 - **Out of scope**: `ImportComponentDialog` — it operates on cross-asset imports and different data (inherited forms, external assets). Keep it separate.
 
-**Reference**: [`FeatureSelectorDialog.tsx`](../../FeatureSelectorDialog.tsx), [`LensSelectorDialog.tsx`](../../LensSelectorDialog.tsx), [`ImportComponentDialog.tsx`](../../ImportComponentDialog.tsx)
+**Reference**: [`LensSelectorDialog.tsx`](../../LensSelectorDialog.tsx), [`ImportComponentDialog.tsx`](../../ImportComponentDialog.tsx)
 
 ---
 
@@ -113,7 +112,7 @@ This document tracks the phased consolidation of reference-list UI patterns acro
 | ----- | ------- | ------------------------------------------------------- |
 | 1     | Done    | ReferenceListEditor `variant` prop (contained / table)   |
 | 2     | Done    | Add Import row to both ReferenceList variants           |
-| 3     | Planned | Refactor asset edit view to use ReferenceListEditor     |
-| 4     | Planned | Deprecate orphaned components                           |
-| 5     | Planned | Generic component selector (replace Feature/Lens dialogs)|
+| 3     | Done    | Refactor asset edit view to use TopLevelEditor           |
+| 4     | Done    | Deprecate orphaned components (incl. FeatureSelectorDialog) |
+| 5     | Planned | Generic component selector (replace Lens dialog)         |
 | 6     | Planned | "Reference existing (X)" option in ReferenceListEditor  |

@@ -10,7 +10,6 @@ import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
 import { ComponentUUID } from "@tonylb/mtw-base/ts/schema"
 import { useDispatch } from "react-redux"
 import { navigateToComponent } from "../../slices/UI/workbench"
-import FeatureSelectorDialog from "./FeatureSelectorDialog"
 
 type RoomFeatureEditorProps = {
     RoomId: ComponentUUID
@@ -59,9 +58,6 @@ export const RoomFeatureEditor: FunctionComponent<RoomFeatureEditorProps> = ({ R
                     title="Features"
                     listContext={listContext}
                     tag="Feature"
-                    addAffordance="create"
-                    addLabel="Add Feature"
-                    emptyStateText="Room not found"
                     disabled={true}
                 />
             </Box>
@@ -74,17 +70,6 @@ export const RoomFeatureEditor: FunctionComponent<RoomFeatureEditorProps> = ({ R
                 title="Features"
                 listContext={listContext}
                 tag="Feature"
-                addAffordance="dialog"
-                addDialogRenderer={({ open, onClose, onSelectExisting, onCreateNew }) => (
-                    <FeatureSelectorDialog
-                        open={open}
-                        onClose={onClose}
-                        onSelectExisting={onSelectExisting}
-                        onCreateNew={onCreateNew}
-                    />
-                )}
-                addLabel="Add Feature"
-                emptyStateText="This room does not currently reference any features."
                 defaultExpanded={undefined}
                 disabled={readonly}
                 onItemClick={handleItemClick}

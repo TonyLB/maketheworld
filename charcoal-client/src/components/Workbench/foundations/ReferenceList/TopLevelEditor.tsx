@@ -360,7 +360,6 @@ export const TopLevelEditor: FunctionComponent<TopLevelEditorProps> = ({
             defaultExpanded={defaultExpanded}
             disabled={readonly}
             variant="table"
-            emptyStateText={undefined}
             onItemClick={handleItemClick}
             onItemRemove={handleItemRemove}
             actionAffordances={actionAffordances}

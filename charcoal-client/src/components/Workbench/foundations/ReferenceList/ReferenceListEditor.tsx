@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactNode, useCallback, useMemo, useState } from "react"
+import React, { FunctionComponent, ReactNode, useCallback, useMemo } from "react"
 import ListItem from "@mui/material/ListItem"
 import ListItemButton from "@mui/material/ListItemButton"
 import ListItemIcon from "@mui/material/ListItemIcon"
@@ -38,15 +38,8 @@ export interface ReferenceListEditorProps {
     title: string
     listContext: (form: StandardForm) => ListContextDescriptor | null
     tag: ComponentTag
-    addAffordance: "create" | "dialog" | ReactNode
-    addDialogRenderer?: (props: {
-        open: boolean
-        onClose: () => void
-        onSelectExisting: (universalKey: ComponentUUID) => void
-        onCreateNew: () => void
-    }) => ReactNode
+    /** Override for Add button label; default "Add {tag}". */
     addLabel?: string
-    emptyStateText?: string
     variant?: "contained" | "table"
     icon?: ReactNode
     defaultExpanded?: boolean
@@ -58,10 +51,7 @@ export const ReferenceListEditor: FunctionComponent<ReferenceListEditorProps> = 
     title,
     listContext,
     tag,
-    addAffordance,
-    addDialogRenderer,
-    addLabel = "Add",
-    emptyStateText,
+    addLabel,
     variant = "contained",
     icon,
     defaultExpanded,
@@ -69,7 +59,6 @@ export const ReferenceListEditor: FunctionComponent<ReferenceListEditorProps> = 
     onItemClick
 }) => {
     const { standardForm, updateStandard, readonly } = useWorkbenchAsset()
-    const [dialogOpen, setDialogOpen] = useState(false)
     const disabled = disabledProp ?? readonly
 
     const updateReferenceList = useCallback(
@@ -134,76 +123,25 @@ export const ReferenceListEditor: FunctionComponent<ReferenceListEditorProps> = 
         })
     }, [disabled, tag, updateStandard, listContext])
 
-    const handleSelectExisting = useCallback(
-        (universalKey: ComponentUUID) => {
-            if (disabled) return
-            updateStandard({
-                type: "update",
-                update: (draft: StandardForm) => {
-                    const descriptor = listContext(draft)
-                    if (!descriptor) return draft
-                    const { referenceList: refList, setReferenceList } = descriptor
-                    const reference = new StandardReference({ universalKey, tag })
-                    setReferenceList(refList.assureItem(reference))
-                    return draft
-                }
-            })
-        },
-        [disabled, tag, updateStandard, listContext]
-    )
+    const addButtonLabel = addLabel ?? `Add ${tag}`
 
-    const actionAffordances = useMemo(() => {
-        if (addAffordance === "create") {
-            return (
-                <ListItem>
-                    <ListItemButton
-                        onClick={handleCreateNew}
-                        disabled={disabled}
-                        sx={{ justifyContent: "center" }}
-                    >
-                        <ListItemIcon>
-                            <AddIcon />
-                        </ListItemIcon>
-                        <ListItemText primary={addLabel} />
-                    </ListItemButton>
-                </ListItem>
-            )
-        }
-        if (addAffordance === "dialog" && addDialogRenderer) {
-            return (
-                <>
-                    <ListItem>
-                        <ListItemButton
-                            onClick={() => setDialogOpen(true)}
-                            disabled={disabled}
-                            sx={{ justifyContent: "center" }}
-                        >
-                            <ListItemIcon>
-                                <AddIcon />
-                            </ListItemIcon>
-                            <ListItemText primary={addLabel} />
-                        </ListItemButton>
-                    </ListItem>
-                    {addDialogRenderer({
-                        open: dialogOpen,
-                        onClose: () => setDialogOpen(false),
-                        onSelectExisting: (uk) => {
-                            handleSelectExisting(uk)
-                            setDialogOpen(false)
-                        },
-                        onCreateNew: () => {
-                            handleCreateNew()
-                            setDialogOpen(false)
-                        }
-                    })}
-                </>
-            )
-        }
-        if (React.isValidElement(addAffordance)) {
-            return addAffordance
-        }
-        return null
-    }, [addAffordance, addDialogRenderer, addLabel, disabled, dialogOpen, handleCreateNew, handleSelectExisting])
+    const actionAffordances = useMemo(
+        () => (
+            <ListItem>
+                <ListItemButton
+                    onClick={handleCreateNew}
+                    disabled={disabled}
+                    sx={{ justifyContent: "center" }}
+                >
+                    <ListItemIcon>
+                        <AddIcon />
+                    </ListItemIcon>
+                    <ListItemText primary={addButtonLabel} />
+                </ListItemButton>
+            </ListItem>
+        ),
+        [addButtonLabel, disabled, handleCreateNew]
+    )
 
     return (
         <ReferenceListEditorGeneric
@@ -213,7 +151,6 @@ export const ReferenceListEditor: FunctionComponent<ReferenceListEditorProps> = 
             defaultExpanded={defaultExpanded ?? !!items.length}
             disabled={disabled}
             variant={variant}
-            emptyStateText={emptyStateText}
             onItemClick={onItemClick}
             updateReferenceList={updateReferenceList}
             actionAffordances={actionAffordances}
