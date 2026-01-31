@@ -1208,8 +1208,10 @@ export class StandardForm {
         //
         diffedValue._components = diffedComponents
 
-        // Collect all referenced keys from components in the diff and ensure they exist in the diff output
-        const referencedKeys = diffedComponents.reduce<StandardReference[]>((previous, component) => {
+        // Collect all referenced keys from the diff: (1) keys referenced inside components, (2) keys at topLevel.
+        // This ensures we add default empty components for any key that appears in the diff output but has no
+        // content change (e.g. a Feature that only moved between Rooms, or a component added at topLevel).
+        const referencedByComponents = diffedComponents.reduce<StandardReference[]>((previous, component) => {
             const componentReferences = component.referencedKeys()
             return componentReferences.reduce<StandardReference[]>((refs, { reference }) => {
                 const mergedRef = mergedForKeys.find((key) => key.sameKey(reference))
@@ -1221,6 +1223,17 @@ export class StandardForm {
                 return refs
             }, previous)
         }, [])
+        const referencedAtTopLevel = (diffedValue._topLevel?.payload ?? []).map((ref) => {
+            const mergedRef = mergedForKeys.find((key) => key.sameKey(ref))
+            return mergedRef ?? ref
+        })
+        const referencedKeys = referencedAtTopLevel.reduce<StandardReference[]>((refs, refToAdd) => {
+            const existingIndex = refs.findIndex((r) => r.sameKey(refToAdd))
+            if (existingIndex === -1) {
+                return [...refs, refToAdd]
+            }
+            return refs
+        }, referencedByComponents)
         const referencedComponentsList = new ReferenceList(referencedKeys)
         const diffedValueFinal = diffedValue.assureComponents(referencedComponentsList)
 

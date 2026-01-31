@@ -1950,11 +1950,7 @@ describe('StandardForm', () => {
                 </Asset>
             `))
             const diff = base.diff(incoming)
-            expect(schemaToWML([diff.schema])).toEqual(deIndentWML(`
-                <Asset uuid=(Test)>
-                    <Feature uuid=(testFeature) key=(testFeature) />
-                </Asset>
-            `))
+            expect(schemaToWML([diff.schema])).toEqual(`<Asset uuid=(Test)><Feature uuid=(testFeature) key=(testFeature) /></Asset>`)
         })
 
         it('should return the diff for removed components', () => {
