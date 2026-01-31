@@ -18,20 +18,18 @@ This document tracks the phased consolidation of reference-list UI patterns acro
 
 ---
 
-## Phase 2: Add Import entry to both ReferenceList variants
+## Phase 2: Add Import entry to both ReferenceList variants — DONE
 
 **Goal**: Add an "Import" row/entry to both `contained` and `table` variants of `ReferenceListEditor`, following the pattern in AssetEditForm (where `AddImport` appears after `AddComponent` and opens `ImportComponentDialog`).
 
-**Planned work**:
-- Add `onImportClick?: () => void` prop. When provided, render an "Import" row (similar to the "Add" row) after the add row when `onAddClick` is present, or on its own when only import is needed.
-- Style the Import row to match each variant:
-  - `contained`: Same ListItemButton pattern as Add row (icon + label).
-  - `table`: Row styling consistent with the table variant (e.g., matching AddImport / ComponentRow alternating or flat style).
-- Use `ImportExportIcon` and label "Import", matching `AddImport`.
-- Consider `importLabel?: string` for i18n or customization (default: `"Import"`).
-- **Scope**: Import is about importing components from *other assets* (cross-asset). `ImportComponentDialog` handles that flow and depends on asset-level data. ReferenceListEditor will only provide the affordance; the parent wires `onImportClick` to open the dialog. **Use cases for Import**: Asset-level Components (add from other assets); **Marks** (common Marks like "Illumination" or "Crowding" are often shared between Lenses in different Rooms); **Examples** (the first step to editing a specific example is often to import it into the draft).
+**Completed**:
+- Added `onImportClick?: () => void` and `importLabel?: string` (default: `"Import"`) to `ReferenceListEditorProps`.
+- When `onImportClick` is provided, an Import row renders after the Add row (or on its own when only import is needed).
+- Import row uses the same `ListItem` + `ListItemButton` structure as the Add row; styling matches both variants.
+- Uses `ImportExportIcon` and `aria-label="Import component from another asset"`.
+- No changes to existing callers; wiring `onImportClick` in callers deferred to Phase 3 and beyond.
 
-**Reference**: [`WorkbenchAddImport.tsx`](../../WorkbenchAddImport.tsx), [`WorkbenchAssetEditForm.tsx`](../../WorkbenchAssetEditForm.tsx)
+**Reference**: [`ReferenceListEditor.tsx`](./ReferenceListEditor.tsx), [`WorkbenchAddImport.tsx`](../../WorkbenchAddImport.tsx)
 
 ---
 
@@ -114,7 +112,7 @@ This document tracks the phased consolidation of reference-list UI patterns acro
 | Phase | Status  | Description                                             |
 | ----- | ------- | ------------------------------------------------------- |
 | 1     | Done    | ReferenceListEditor `variant` prop (contained / table)   |
-| 2     | Planned | Add Import row to both ReferenceList variants           |
+| 2     | Done    | Add Import row to both ReferenceList variants           |
 | 3     | Planned | Refactor asset edit view to use ReferenceListEditor     |
 | 4     | Planned | Deprecate orphaned components                           |
 | 5     | Planned | Generic component selector (replace Feature/Lens dialogs)|
