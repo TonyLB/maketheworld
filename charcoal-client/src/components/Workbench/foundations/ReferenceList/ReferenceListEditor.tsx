@@ -1,11 +1,13 @@
-import React, { FunctionComponent, ReactNode, useCallback, useMemo } from "react"
+import React, { FunctionComponent, ReactNode, useCallback, useMemo, useState } from "react"
 import ListItem from "@mui/material/ListItem"
 import ListItemButton from "@mui/material/ListItemButton"
 import ListItemIcon from "@mui/material/ListItemIcon"
 import ListItemText from "@mui/material/ListItemText"
 import AddIcon from "@mui/icons-material/Add"
+import LinkIcon from "@mui/icons-material/Link"
 
 import { useWorkbenchAsset } from "../useWorkbenchAsset"
+import { ComponentSelectorDialog } from "../ComponentSelector"
 import { ReferenceListEditorGeneric } from "./ReferenceListEditorGeneric"
 import { referenceListToItems } from "./referenceListAdapter"
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
@@ -40,6 +42,10 @@ export interface ReferenceListEditorProps {
     tag: ComponentTag
     /** Override for Add button label; default "Add {tag}". */
     addLabel?: string
+    /** When true, show "Reference existing {tag}" row that opens component selector. */
+    enableReferenceExisting?: boolean
+    /** Override for Reference existing button label; default "Reference existing {tag}". */
+    referenceExistingLabel?: string
     variant?: "contained" | "table"
     icon?: ReactNode
     defaultExpanded?: boolean
@@ -52,6 +58,8 @@ export const ReferenceListEditor: FunctionComponent<ReferenceListEditorProps> = 
     listContext,
     tag,
     addLabel,
+    enableReferenceExisting = false,
+    referenceExistingLabel,
     variant = "contained",
     icon,
     defaultExpanded,
@@ -60,6 +68,7 @@ export const ReferenceListEditor: FunctionComponent<ReferenceListEditorProps> = 
 }) => {
     const { standardForm, updateStandard, readonly } = useWorkbenchAsset()
     const disabled = disabledProp ?? readonly
+    const [selectorOpen, setSelectorOpen] = useState(false)
 
     const updateReferenceList = useCallback(
         (mutate: (ctx: { referenceList: ReferenceList; standardForm: StandardForm }) => void) => {
@@ -123,38 +132,97 @@ export const ReferenceListEditor: FunctionComponent<ReferenceListEditorProps> = 
         })
     }, [disabled, tag, updateStandard, listContext])
 
+    const handleReferenceSelect = useCallback(
+        (universalKey: ComponentUUID) => {
+            if (disabled) return
+            updateStandard({
+                type: "update",
+                update: (draft: StandardForm) => {
+                    const descriptor = listContext(draft)
+                    if (!descriptor) return draft
+                    const { referenceList: refList, setReferenceList } = descriptor
+                    const reference = new StandardReference({ universalKey, tag })
+                    setReferenceList(refList.assureItem(reference))
+                    return draft
+                }
+            })
+            setSelectorOpen(false)
+        },
+        [disabled, tag, updateStandard, listContext]
+    )
+
+    const isExcluded = useCallback(
+        (universalKey: ComponentUUID) =>
+            referenceList.payload.some((ref) => ref.universalKey === universalKey),
+        [referenceList]
+    )
+
     const addButtonLabel = addLabel ?? `Add ${tag}`
+    const refExistingLabel = referenceExistingLabel ?? `Reference existing ${tag}`
 
     const actionAffordances = useMemo(
         () => (
-            <ListItem>
-                <ListItemButton
-                    onClick={handleCreateNew}
-                    disabled={disabled}
-                    sx={{ justifyContent: "center" }}
-                >
-                    <ListItemIcon>
-                        <AddIcon />
-                    </ListItemIcon>
-                    <ListItemText primary={addButtonLabel} />
-                </ListItemButton>
-            </ListItem>
+            <>
+                <ListItem>
+                    <ListItemButton
+                        onClick={handleCreateNew}
+                        disabled={disabled}
+                        sx={{ justifyContent: "center" }}
+                    >
+                        <ListItemIcon>
+                            <AddIcon />
+                        </ListItemIcon>
+                        <ListItemText primary={addButtonLabel} />
+                    </ListItemButton>
+                </ListItem>
+                {enableReferenceExisting && (
+                    <ListItem>
+                        <ListItemButton
+                            onClick={() => setSelectorOpen(true)}
+                            disabled={disabled}
+                            sx={{ justifyContent: "center" }}
+                        >
+                            <ListItemIcon>
+                                <LinkIcon />
+                            </ListItemIcon>
+                            <ListItemText primary={refExistingLabel} />
+                        </ListItemButton>
+                    </ListItem>
+                )}
+            </>
         ),
-        [addButtonLabel, disabled, handleCreateNew]
+        [
+            addButtonLabel,
+            refExistingLabel,
+            disabled,
+            handleCreateNew,
+            enableReferenceExisting
+        ]
     )
 
     return (
-        <ReferenceListEditorGeneric
-            title={title}
-            items={items}
-            summary={summary}
-            defaultExpanded={defaultExpanded ?? !!items.length}
-            disabled={disabled}
-            variant={variant}
-            onItemClick={onItemClick}
-            updateReferenceList={updateReferenceList}
-            actionAffordances={actionAffordances}
-        />
+        <>
+            <ReferenceListEditorGeneric
+                title={title}
+                items={items}
+                summary={summary}
+                defaultExpanded={defaultExpanded ?? !!items.length}
+                disabled={disabled}
+                variant={variant}
+                onItemClick={onItemClick}
+                updateReferenceList={updateReferenceList}
+                actionAffordances={actionAffordances}
+            />
+            {enableReferenceExisting && (
+                <ComponentSelectorDialog
+                    open={selectorOpen}
+                    onClose={() => setSelectorOpen(false)}
+                    tag={tag}
+                    onSelect={handleReferenceSelect}
+                    isExcluded={isExcluded}
+                />
+            )}
+        </>
     )
 }
 

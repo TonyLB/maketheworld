@@ -74,6 +74,7 @@ export const FeatureListEditor: FunctionComponent<FeatureListEditorProps> = ({ R
                 disabled={readonly}
                 onItemClick={handleItemClick}
                 icon={<FeatureIcon sx={{ fontSize: "1.1rem" }} />}
+                enableReferenceExisting={true}
             />
         </Box>
     )

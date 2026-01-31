@@ -13,6 +13,7 @@ import { navigateToComponentLayer } from "../../../slices/UI/workbench"
 import { useWorkbenchAsset } from "../foundations/useWorkbenchAsset"
 import AddIcon from '@mui/icons-material/Add'
 import DeleteIcon from '@mui/icons-material/Delete'
+import LinkIcon from '@mui/icons-material/Link'
 import { MakeTheWorldAccordion } from "../../UI"
 import StandardRoom from "@tonylb/mtw-wml/ts/standardize/components/room"
 import StandardMark, { StandardLens } from "@tonylb/mtw-wml/ts/standardize/components/worldState"
@@ -23,7 +24,7 @@ import { StandardRender, PlainClass } from "@tonylb/mtw-wml/ts/standardize/rende
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
 import { StandardLiteralEditor } from "../foundations/StandardLiteral"
 import { StandardRenderEditor } from "../foundations/StandardRender"
-import LensSelectorDialog from "../LensSelectorDialog"
+import { ComponentSelectorDialog } from "../foundations/ComponentSelector"
 import { InlineReferenceList } from "../foundations/ReferenceList"
 import { MarkInlineEditor } from "../MarkEdit/InlineEditor"
 import { referenceListToItems } from "../foundations/ReferenceList"
@@ -62,7 +63,7 @@ const renderTreeToPlainText = (tree: RenderTree): string => {
 export const LensEditor: FunctionComponent<LensEditorProps> = ({ RoomId }) => {
     const dispatch = useDispatch()
     const { standardForm, updateStandard, readonly } = useWorkbenchAsset()
-    const [dialogOpen, setDialogOpen] = useState(false)
+    const [lensSelectorOpen, setLensSelectorOpen] = useState(false)
 
     const room = useMemo(() => {
         if (RoomId) {
@@ -147,6 +148,12 @@ export const LensEditor: FunctionComponent<LensEditorProps> = ({ RoomId }) => {
             }
         })
     }, [room, RoomId, updateStandard, readonly])
+
+    const isLensExcluded = useCallback(
+        (universalKey: ComponentUUID) =>
+            lensReferences.some((ref) => ref.universalKey === universalKey),
+        [lensReferences]
+    )
 
     const removeLensReference = useCallback((index: number) => {
         if (!room || readonly) return
@@ -326,7 +333,7 @@ export const LensEditor: FunctionComponent<LensEditorProps> = ({ RoomId }) => {
                     <List>
                         <ListItem>
                             <ListItemButton
-                                onClick={() => setDialogOpen(true)}
+                                onClick={createAndAddLens}
                                 disabled={readonly}
                                 sx={{ justifyContent: 'center' }}
                             >
@@ -336,13 +343,26 @@ export const LensEditor: FunctionComponent<LensEditorProps> = ({ RoomId }) => {
                                 <ListItemText primary="Add Lens" />
                             </ListItemButton>
                         </ListItem>
+                        <ListItem>
+                            <ListItemButton
+                                onClick={() => setLensSelectorOpen(true)}
+                                disabled={readonly}
+                                sx={{ justifyContent: 'center' }}
+                            >
+                                <ListItemIcon>
+                                    <LinkIcon />
+                                </ListItemIcon>
+                                <ListItemText primary="Reference existing Lens" />
+                            </ListItemButton>
+                        </ListItem>
                     </List>
                 </MakeTheWorldAccordion>
-                <LensSelectorDialog
-                    open={dialogOpen}
-                    onClose={() => setDialogOpen(false)}
-                    onSelectExisting={addLensReference}
-                    onCreateNew={createAndAddLens}
+                <ComponentSelectorDialog
+                    open={lensSelectorOpen}
+                    onClose={() => setLensSelectorOpen(false)}
+                    tag="Lens"
+                    onSelect={addLensReference}
+                    isExcluded={isLensExcluded}
                 />
             </>
         )
