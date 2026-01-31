@@ -58,7 +58,7 @@ describe('RoomCharacter', () => {
         // Create a StandardCharacter with name using WML
         const character = new StandardCharacter(`
             <Character key=(testCharacter)>
-                <Name>Test Character</Name>
+                <DisplayName>Test Character</DisplayName>
                 <ShortName>Test</ShortName>
             </Character>
         `)
@@ -79,7 +79,7 @@ describe('RoomCharacter', () => {
         // Create a StandardCharacter with image using WML
         const character = new StandardCharacter(`
             <Character key=(imageCharacter)>
-                <Name>Image Character</Name>
+                <DisplayName>Image Character</DisplayName>
                 <ShortName>Image</ShortName>
                 <Image key=(test-image) />
             </Character>
@@ -98,7 +98,7 @@ describe('RoomCharacter', () => {
     it('should handle click and dispatch socketDispatchPromise', () => {
         const character = new StandardCharacter(`
             <Character key=(clickableCharacter)>
-                <Name>Clickable Character</Name>
+                <DisplayName>Clickable Character</DisplayName>
                 <ShortName>Clickable</ShortName>
             </Character>
         `)
@@ -138,7 +138,7 @@ describe('RoomCharacter', () => {
     it('should handle missing image gracefully', () => {
         const character = new StandardCharacter(`
             <Character key=(noImageCharacter)>
-                <Name>No Image Character</Name>
+                <DisplayName>No Image Character</DisplayName>
                 <ShortName>NoImage</ShortName>
             </Character>
         `)
@@ -155,7 +155,7 @@ describe('RoomCharacter', () => {
     it('should pass character ID to CharacterChip', () => {
         const character = new StandardCharacter(`
             <Character key=(idCharacter)>
-                <Name>ID Character</Name>
+                <DisplayName>ID Character</DisplayName>
                 <ShortName>ID</ShortName>
             </Character>
         `)

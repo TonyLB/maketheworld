@@ -40,7 +40,7 @@ describe('mapTreeMemo', () => {
             const testWML = `
                 <Asset uuid=(testAsset)>
                     <Map uuid=(testMap)>
-                        <Name>Test Map</Name>
+                        <ShortName>Test Map</ShortName>
                         <Room uuid=(room1)>
                             <Position {100, 100} />
                             <ShortName>Room One</ShortName>
@@ -64,7 +64,7 @@ describe('mapTreeMemo', () => {
             expect(mapComponent).toBeDefined()
             expect(schemaToWML([mapComponent.schema])).toEqual(deIndentWML(`
                 <Map uuid=(testMap)>
-                    <Name>Test Map</Name>
+                    <ShortName>Test Map</ShortName>
                     <Room uuid=(room1)><Position {100, 100} /></Room>
                     <Room uuid=(room2)><Position {200, 200} /></Room>
                 </Map>
@@ -75,7 +75,7 @@ describe('mapTreeMemo', () => {
             const testWML = `
                 <Asset uuid=(testAsset)>
                     <Map uuid=(testMap)>
-                        <Name>Test Map</Name>
+                        <ShortName>Test Map</ShortName>
                         <Room uuid=(room1)>
                             <Position {100, 100} />
                             <ShortName>Room One</ShortName>
@@ -294,7 +294,7 @@ describe('mapTreeMemo', () => {
             const testWML = `
                 <Asset uuid=(testAsset)>
                     <Map uuid=(testMap)>
-                        <Name>Empty Map</Name>
+                        <ShortName>Empty Map</ShortName>
                     </Map>
                 </Asset>
             `

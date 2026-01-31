@@ -329,12 +329,12 @@ describe('messages selectors', () => {
             expect(getRecentlyVisited(1)(testState)).toEqual([{
                 tag: 'Room',
                 ephemeraId: 'ROOM#TEST',
-                name: 'Test1',
+                name: 'Unknown',
                 assets: [{ fromAssetId: 'ASSET#test', universalKey: 'key1' }, { fromAssetId: 'ASSET#testTwo', universalKey: 'key1' }]
             }, {
                 tag: 'Room',
                 ephemeraId: 'ROOM#TEST4',
-                name: 'Test4',
+                name: 'Unknown',
                 assets: [{ fromAssetId: 'ASSET#test', universalKey: 'key3' }]
             }])
         })
@@ -343,7 +343,7 @@ describe('messages selectors', () => {
             expect(getRecentlyVisited(4)(testState)).toEqual([{
                 tag: 'Room',
                 ephemeraId: 'ROOM#TEST4',
-                name: 'Test4',
+                name: 'Unknown',
                 assets: [{ fromAssetId: 'ASSET#test', universalKey: 'key3' }]
             }])
         })

@@ -128,7 +128,7 @@ describe('EphemeraClientMessage typeguard', () => {
                     CharacterId: 'CHARACTER#TestABC',
                     Connected: true,
                     RoomId: 'ROOM#VORTEX',
-                    Name: 123,
+                    DisplayName: 123,
                     Color: 'green'
                 }]
             })).toBe(false)
@@ -142,7 +142,7 @@ describe('EphemeraClientMessage typeguard', () => {
                     CharacterId: 'TestABC',
                     Connected: true,
                     RoomId: 'ROOM#VORTEX',
-                    Name: 'Tess',
+                    DisplayName: 'Tess',
                     Color: 'green'
                 }]
             })).toBe(false)
@@ -156,7 +156,7 @@ describe('EphemeraClientMessage typeguard', () => {
                     CharacterId: 'CHARACTER#TestABC',
                     Connected: true,
                     RoomId: 'VORTEX',
-                    Name: 'Tess',
+                    DisplayName: 'Tess',
                     Color: 'green'
                 }]
             })).toBe(false)
@@ -170,7 +170,7 @@ describe('EphemeraClientMessage typeguard', () => {
                     CharacterId: 'CHARACTER#TestABC',
                     Connected: true,
                     RoomId: 'ROOM#VORTEX',
-                    Name: 'Tess',
+                    DisplayName: 'Tess',
                     Color: 'mauve'
                 }]
             })).toBe(false)
@@ -184,7 +184,7 @@ describe('EphemeraClientMessage typeguard', () => {
                     CharacterId: 'CHARACTER#TestABC',
                     Connected: true,
                     RoomId: 'ROOM#VORTEX',
-                    Name: 'Tess',
+                    DisplayName: 'Tess',
                     Color: 'green'
                 }]
             })).toBe(true)

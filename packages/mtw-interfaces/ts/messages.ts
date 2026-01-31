@@ -62,7 +62,7 @@ const validateRoomExitList = (items: any) => {
 }
 
 export type RoomCharacter = {
-    Name: string;
+    DisplayName: string;
     CharacterId: EphemeraCharacterId;
     fileURL?: string;
 }
@@ -73,7 +73,7 @@ const validateRoomCharacterList = (items: any) => {
     }
     return items.reduce<boolean>((previous, roomItem) => (
         previous
-            && checkTypes(roomItem, { Name: 'string', CharacterId: 'string' })
+            && checkTypes(roomItem, { DisplayName: 'string', CharacterId: 'string' })
             && isEphemeraCharacterId(roomItem.CharacterId)
     ), true)
 }
@@ -81,7 +81,7 @@ const validateRoomCharacterList = (items: any) => {
 export type RoomDescribeData = {
     Description: RenderTree;
     ShortName?: string;
-    Name: RenderTree;
+    DisplayName: RenderTree;
     Summary: RenderTree;
     RoomId: EphemeraRoomId;
     Exits: RoomExit[];
@@ -95,18 +95,18 @@ export type RoomDescribeData = {
 
 export type MapDescribeRoom = {
     roomId: EphemeraRoomId;
-    name: string;
+    shortName: string;
     x: number;
     y: number;
     exits: {
-        name: string;
+        description: string;
         to: EphemeraRoomId;
     }[];
 }
 
 export type MapDescribeData = {
     MapId: EphemeraMapId;
-    name?: string;
+    shortName?: string;
     fileURL?: string;
     rooms: MapDescribeRoom[];
     assets?: AssetUUID[];
@@ -129,7 +129,7 @@ const validateMapRoomList = (items: any) => {
             return false
         }
         return exits.reduce<boolean>((previous, exit) => (
-            previous && checkTypes(exit, { name: 'string', to: 'string' }) && isEphemeraRoomId(exit.to)
+            previous && checkTypes(exit, { description: 'string', to: 'string' }) && isEphemeraRoomId(exit.to)
         ), true)
     }, true)
 }
@@ -140,7 +140,7 @@ export const isMapDescribeData = (message: any): message is MapDescribeData => {
         !(message.fileURL && typeof message.fileURL !== 'string'),
         isEphemeraMapId(message.MapId),
         validateMapRoomList(message.rooms),
-        isRenderTree(message.name)
+        isRenderTree(message.shortName)
     )
 }
 
@@ -154,7 +154,7 @@ export type RoomUpdate = {
 
 type MessageCharacterInfo = {
     CharacterId: EphemeraCharacterId;
-    Name: string;
+    DisplayName: string;
     Color: LegalCharacterColor;
     fileURL?: string;
 }
@@ -341,7 +341,7 @@ export const isMessage = (message: any): message is Message => {
                 checkTypes(message, {}, { RoomId: 'string' }),
                 validateRoomExitList(message.Exits ?? []),
                 validateRoomCharacterList(message.Characters ?? []),
-                isRenderTree(message.Name ?? []),
+                isRenderTree(message.DisplayName ?? []),
                 isRenderTree(message.Description ?? []),
                 ...(Object.keys(message.assets || {})).map(isEphemeraAssetId)
             ) && isEphemeraRoomId(message.RoomId)

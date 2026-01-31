@@ -13,13 +13,16 @@ import { StandardExplicitParent } from "../explicit"
 import { excludeUndefined } from "../../lib/lists"
 import { findTaggedChildren } from "../../schema/utils"
 import { renderReference } from "./utils/schema"
+import { StandardLiteral } from "../literal"
 
 export class StandardMomentPayload implements ComponentConstructorMethods<StandardMomentData> {
+    _shortName?: StandardLiteral;
     _messages: ReferenceList;
     tag = 'Moment' as const
 
     constructor(previous?: StandardMomentPayload) {
         if (previous) {
+            this._shortName = previous._shortName
             this._messages = previous._messages.clone()
         }
         else {
@@ -28,22 +31,27 @@ export class StandardMomentPayload implements ComponentConstructorMethods<Standa
     }
 
     fromJSON(props: StandardMomentData) {
+        this._shortName = props.shortName ? new StandardLiteral(props.shortName, { tag: 'ShortName' }) : undefined
         this._messages = new ReferenceList(props.messages?.map((reference) => (new StandardReference(reference))) ?? [])
     }
 
     fromSchema(node: GenericTreeNode<SchemaTag>) {
         if (treeNodeTypeguard(isSchemaMoment)(node)) {
+            const shortNameItem = findTaggedChildren({ children: node.children, tag: 'ShortName' })
+            this._shortName = shortNameItem.length ? new StandardLiteral(shortNameItem, { tag: 'ShortName' }) : undefined
             this._messages = new ReferenceList(findTaggedChildren({ children: node.children, tag: 'Message' }).map(childReferenceFactory))
             return
         }
         throw new Error('Schema mismatch in StandardMoment constructor')
     }
 
+    get shortName() { return this._shortName }
     get messages() { return this._messages }
 
     toJSON(): Omit<StandardMomentData, 'key' | 'universalKey'> {
         return {
             tag: 'Moment',
+            ...(this._shortName ? { shortName: this._shortName.toJSON() } : {}),
             ...(this.messages.payload.length ? { messages: this.messages.toJSON() } : {})
         }
     }
@@ -51,7 +59,10 @@ export class StandardMomentPayload implements ComponentConstructorMethods<Standa
     schema(key: string, universalKey?: ComponentUUID, mappings?: StandardReference[]): GenericTreeNode<SchemaTag> {
         return {
             data: { tag: 'Moment', key, uuid: universalKey },
-            children: this.messages.schema
+            children: [
+                ...(this._shortName ? this._shortName.nestedSchema() : []),
+                ...this.messages.schema
+            ]
         }
     }
 
@@ -71,12 +82,16 @@ export class StandardMomentPayload implements ComponentConstructorMethods<Standa
         
         return {
             data: { tag: 'Moment', key: key.key ?? '', uuid: key.universalKey },
-            children: messagesToRender.payload.map(renderReference({ lookup, options })).filter(excludeUndefined).flat(1)
+            children: [
+                ...(this._shortName ? this._shortName.nestedSchema() : []),
+                ...messagesToRender.payload.map(renderReference({ lookup, options })).filter(excludeUndefined).flat(1)
+            ]
         }
     }
     
     merge(incoming: this): this {
         const returnValue = new StandardMomentPayload()
+        returnValue._shortName = (this._shortName && incoming._shortName) ? this._shortName.merge(incoming._shortName) : this._shortName ?? incoming._shortName
         returnValue._messages = this.messages.merge(incoming.messages) ?? new ReferenceList([])
         return returnValue as this
     }
@@ -120,6 +135,7 @@ export class StandardMomentPayload implements ComponentConstructorMethods<Standa
 
     invert(): this {
         const returnValue = new StandardMomentPayload()
+        returnValue._shortName = this._shortName ? this._shortName.invert() as StandardLiteral : undefined
         // Invert messages ReferenceList
         returnValue._messages = this._messages.invert()
         return returnValue as this
@@ -156,6 +172,7 @@ export class StandardMomentPayload implements ComponentConstructorMethods<Standa
 }
 
 export class StandardMoment extends componentClassFactory(StandardMomentPayload, 'StandardMoment') {
+    get shortName() { return this._payload.shortName }
     get messages() { return this._payload.messages }
 
     override _wrap(instance: StandardComponent): this {
@@ -172,7 +189,8 @@ export class StandardMoment extends componentClassFactory(StandardMomentPayload,
         if (!(incoming instanceof StandardMoment)) {
             return false
         }
-        return !(this.messages.diff(incoming.messages)?.payload?.length)
+        const shortNameEqual = (this.shortName?.toJSON() ?? '') === (incoming.shortName?.toJSON() ?? '')
+        return shortNameEqual && !(this.messages.diff(incoming.messages)?.payload?.length)
     }
 
 }

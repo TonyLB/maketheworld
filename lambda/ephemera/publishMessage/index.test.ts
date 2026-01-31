@@ -84,12 +84,12 @@ describe('PublishMessage', () => {
         cacheMock.OrchestrateMessages.allOffsets.mockReturnValue({})
         cacheMock.RoomCharacterList.get.mockResolvedValue([{
             EphemeraId: 'CHARACTER#123',
-            Name: '',
+            DisplayName: '',
             SessionIds: ['Z123']
         },
         {
             EphemeraId: 'CHARACTER#456',
-            Name: '',
+            DisplayName: '',
             SessionIds: ['Z456']
         }])
         cacheMock.CharacterSessions.get.mockImplementation(async (characterId) => {
@@ -156,12 +156,12 @@ describe('PublishMessage', () => {
         cacheMock.OrchestrateMessages.allOffsets.mockReturnValue({})
         cacheMock.RoomCharacterList.get.mockResolvedValue([{
             EphemeraId: 'CHARACTER#123',
-            Name: '',
+            DisplayName: '',
             SessionIds: ['Z123']
         },
         {
             EphemeraId: 'CHARACTER#456',
-            Name: '',
+            DisplayName: '',
             SessionIds: ['Z456']
         }])
         cacheMock.SessionConnections.get.mockImplementation(async (sessionId) => (sessionId === 'Z123' ? ['Y123'] : ['Y456'] ))

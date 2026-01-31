@@ -19,10 +19,9 @@ import { useWorkbenchAsset } from './foundations/useWorkbenchAsset'
 import { getAssetZone } from '../../slices/player'
 import { createWorkbenchTheme } from './workbenchTheme'
 import StandardMark from '@tonylb/mtw-wml/ts/standardize/components/worldState'
-import { hasShortName, hasName } from '@tonylb/mtw-wml/ts/standardize'
+import { hasDisplayName } from '@tonylb/mtw-wml/ts/standardize'
 import { schemaOutputToString } from '@tonylb/mtw-wml/ts/schema/utils/schemaOutput/schemaOutputToString'
 import { GenericTree } from '@tonylb/mtw-base/ts/genericTree'
-import { unwrapSubject } from '@tonylb/mtw-wml/ts/schema/utils'
 import { SchemaOutputTag } from '@tonylb/mtw-base/ts/schema'
 import { getComponentIcon, getComponentIconByTag } from '../../lib/componentIcons'
 
@@ -160,7 +159,7 @@ export const WorkbenchContainer: FunctionComponent<WorkbenchContainerProps> = ({
                 const layerId = entry.componentId as ComponentUUID | null
                 const layerComponent = layerId ? assetData.standardForm.byUniversalId[layerId] : undefined
                 const isMark = layerComponent instanceof StandardMark
-                const sn = isMark && hasShortName(layerComponent) ? layerComponent.shortName?._payload?.plain?.toJSON() : undefined
+                const sn = isMark ? layerComponent.shortName?._payload?.plain?.toJSON() : undefined
                 const name = isMark ? (typeof sn === 'string' && sn.trim() ? sn : 'Mark') : 'Examples'
                 return {
                     universalKey: (layerId || assetData.AssetId) as ComponentUUID,
@@ -178,10 +177,11 @@ export const WorkbenchContainer: FunctionComponent<WorkbenchContainerProps> = ({
             let name = 'Untitled'
 
             if (refComponent) {
-                if (hasShortName(refComponent)) {
-                    name = refComponent.shortName?._payload?.plain?.toJSON() ?? 'Untitled'
-                } else if (hasName(refComponent)) {
-                    name = schemaOutputToString((unwrapSubject(refComponent.name)?.children ?? []) as GenericTree<SchemaOutputTag>)
+                const shortNameValue = refComponent.shortName?._payload?.plain?.toJSON()
+                if (typeof shortNameValue === 'string' && shortNameValue.trim()) {
+                    name = shortNameValue
+                } else if (hasDisplayName(refComponent) && refComponent.displayName) {
+                    name = schemaOutputToString((refComponent.displayName?.children ?? []) as GenericTree<SchemaOutputTag>)
                 } else {
                     const keyValue = refComponent.key
                     if (typeof keyValue === 'string') {

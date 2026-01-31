@@ -1,5 +1,5 @@
 import { SchemaImportableBase } from "./baseClasses";
-import { SchemaNameTag } from "./example";
+import { SchemaDisplayNameTag } from "./example";
 import { SchemaImageTag } from "./image";
 import { SchemaImportTag, SchemaMetaTag } from "./metaData";
 import checkTypes, { CheckTypes } from "../utils/checkTypes";
@@ -8,7 +8,7 @@ import { SchemaShortNameTag } from "./components";
 import { SchemaRemoveTag, SchemaReplaceTag } from "./edit";
 import { ComponentUUID, isSchemaAssetUUID } from ".";
 
-export type SchemaCharacterLegalContents = SchemaNameTag | SchemaShortNameTag | SchemaRemoveTag | SchemaReplaceTag | SchemaPronounsTag | SchemaImageTag | SchemaImportTag | SchemaMetaTag
+export type SchemaCharacterLegalContents = SchemaDisplayNameTag | SchemaShortNameTag | SchemaRemoveTag | SchemaReplaceTag | SchemaPronounsTag | SchemaImageTag | SchemaImportTag | SchemaMetaTag
 
 export type SchemaPronounsTag = SchemaLiteralTag<'Pronouns'>
 

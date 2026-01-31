@@ -17,7 +17,7 @@ describe('PlayerAggregator', () => {
         const replacement: PlayerSnapshot = {
             type: 'Snapshot',
             assets: [{ AssetId: 'AssetOne', zone: 'Draft' }],
-            characters: [{ CharacterId: 'CHARACTER#test', Name: 'Test Character', scopedId: 'test', fileName: 'test' }],
+            characters: [{ CharacterId: 'CHARACTER#test', DisplayName: 'Test Character', scopedId: 'test', fileName: 'test' }],
             settings: { onboardCompleteTags: ['basic'] }
         }
 

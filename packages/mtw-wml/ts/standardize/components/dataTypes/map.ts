@@ -8,7 +8,7 @@ import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";
 
 export type StandardMapData = {
     tag: 'Map';
-    name?: StandardEditableData<string>;
+    shortName?: StandardEditableData<string>;
     images?: GenericTree<SchemaTag>;
     positions?: FacetListData<PositionPayload>;
 } & StandardBaseData
@@ -24,7 +24,7 @@ export const isStandardMapData = (arg: any): arg is StandardMapData => {
         {
             key: 'key',
             universalKey: 'string',
-            name: 'literal',
+            shortName: 'literal',
             images: 'tree',
             positions: 'facetList'
         })

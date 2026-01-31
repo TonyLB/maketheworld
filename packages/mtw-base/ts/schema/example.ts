@@ -2,9 +2,13 @@ import { ComponentUUID, isSchemaAssetUUID } from ".";
 import checkTypes, { CheckTypes } from "../utils/checkTypes";
 import { SchemaBase, SchemaImportableBase } from "./baseClasses";
 
-export type SchemaNameTag = {
-    tag: 'Name';
+export type SchemaDisplayNameTag = {
+    tag: 'DisplayName';
 } & SchemaBase
+
+export const isSchemaDisplayName = (schema: any): schema is SchemaDisplayNameTag => (
+    checkTypes({ required: { tag: CheckTypes.STRING }, values: { tag: 'DisplayName' } })(schema)
+)
 
 export type SchemaDescriptionTag = {
     tag: 'Description';
@@ -20,10 +24,6 @@ export type SchemaExampleTag = {
     key?: string;
     ref?: number;
 } & SchemaImportableBase
-
-export const isSchemaName = (schema: any): schema is SchemaNameTag => (
-    checkTypes({ required: { tag: CheckTypes.STRING }, values: { tag: 'Name' } })(schema)
-)
 
 export const isSchemaDescription = (schema: any): schema is SchemaDescriptionTag => (
     checkTypes({ required: { tag: CheckTypes.STRING }, values: { tag: 'Description' } })(schema)

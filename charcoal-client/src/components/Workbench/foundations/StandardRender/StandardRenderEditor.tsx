@@ -36,7 +36,7 @@ import TutorialPopover from '../../../Onboarding/TutorialPopover'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardRender } from '@tonylb/mtw-wml/ts/standardize/render'
 
-type StandardFormTag = 'ShortName' | 'Name' | 'Summary' | 'Description'
+type StandardFormTag = 'ShortName' | 'DisplayName' | 'Summary' | 'Description'
 
 interface StandardRenderEditorProps {
     validLinkTags?: ('Feature' | 'Knowledge')[];
@@ -231,7 +231,7 @@ const StandardRenderSlateComponent: FunctionComponent<StandardRenderSlateCompone
 
 export const StandardRenderEditor: FunctionComponent<StandardRenderEditorProps> = (props) => {
     const { standardForm, readonly } = useWorkbenchAsset()
-    const contextPlaceholder = props.placeholder !== undefined ? '' : (props.tag && ['ShortName', 'Name', 'Summary', 'Description'].includes(props.tag) ? `Enter a ${props.tag}` : '')
+    const contextPlaceholder = props.placeholder !== undefined ? '' : (props.tag && ['ShortName', 'DisplayName', 'Summary', 'Description'].includes(props.tag) ? `Enter a ${props.tag}` : '')
     return <StandardRenderSlateComponent
         { ...props }
         placeholder={props.placeholder ?? contextPlaceholder}

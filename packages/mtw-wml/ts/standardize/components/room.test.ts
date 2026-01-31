@@ -119,7 +119,7 @@ describe('StandardRoom class', () => {
         expect(mergeTest(
             `<Room key=(testRoomOne)>
                 <Example key=(base)>
-                    <Name>Lobby</Name>
+                    <DisplayName>Lobby</DisplayName>
                     <Description>A plain lobby.</Description>
                 </Example>
             </Room>`,
@@ -127,7 +127,7 @@ describe('StandardRoom class', () => {
             `<Room key=(testRoomOne) ref={0}>
                 <Feature key=(testFeature) />
                 <Example key=(base) ref={0}>
-                    <Replace><Name>Lobby</Name></Replace><With><Name>Spooky Lobby</Name></With>
+                    <Replace><DisplayName>Lobby</DisplayName></Replace><With><DisplayName>Spooky Lobby</DisplayName></With>
                     <Description><Space />Shadows cling to the corners of the room.</Description>
                 </Example>
             </Room>`
@@ -153,7 +153,7 @@ describe('StandardRoom class', () => {
     //     const test = new StandardRoom(`
     //         <Room key=(testRoomOne)>
     //             <Example key=(base)>
-    //                 <Name>Lobby</Name>
+    //                 <DisplayName>Lobby</DisplayName>
     //                 <Summary>A lobby</Summary>
     //                 <Description>A plain lobby.</Description>
     //             </Example>
@@ -312,7 +312,7 @@ describe('StandardRoom class', () => {
                         <Name>Character One</Name>
                     </Character>
                     <Character uuid=(CHARACTER#uuid123)>
-                        <Name>Character Two</Name>
+                        <DisplayName>Character Two</DisplayName>
                     </Character>
                 </Room>
             `)

@@ -1,8 +1,10 @@
 import { StandardBaseData } from "./abstract"
 import { checkAll, checkTypes } from "./typeguards";
+import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";
 
 export type StandardImageData = {
     tag: 'Image';
+    shortName?: StandardEditableData<string>;
 } & StandardBaseData
 
 export const isStandardImageData = (arg: any): arg is StandardImageData => {
@@ -15,7 +17,7 @@ export const isStandardImageData = (arg: any): arg is StandardImageData => {
         checkTypes(
             arg,
             { key: 'key' },
-            {}
+            { shortName: 'literal' }
         )
     )
 }

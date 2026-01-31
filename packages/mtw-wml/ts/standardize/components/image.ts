@@ -6,39 +6,55 @@ import { AssetUUID, ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaImage } from "@tonylb/mtw-base/ts/schema/image";
 import StandardReference from "../keys/reference";
 import { StandardKey } from "../keys/key";
-import { StandardExplicitParent } from "../explicit";
+import { StandardExplicitParent } from "../explicit"
+import { StandardLiteral } from "../literal"
+import { excludeUndefined } from "../../lib/lists"
+import { findTaggedChildren } from "../../schema/utils"
 
 export class StandardImagePayload implements ComponentConstructorMethods<StandardImageData> {
+    _shortName?: StandardLiteral;
     tag = 'Image' as const;
 
     constructor(previous?: StandardImagePayload) {
+        if (previous) {
+            this._shortName = previous._shortName
+        }
     }
 
     fromJSON(props: StandardImageData) {
+        this._shortName = props.shortName ? new StandardLiteral(props.shortName, { tag: 'ShortName' }) : undefined
     }
 
     fromSchema(node: GenericTreeNode<SchemaTag>) {
         if (treeNodeTypeguard(isSchemaImage)(node)) {
+            const shortNameItem = findTaggedChildren({ children: node.children, tag: 'ShortName' })
+            this._shortName = shortNameItem.length ? new StandardLiteral(shortNameItem, { tag: 'ShortName' }) : undefined
             return
         }
         throw new Error('Schema mismatch in StandardImage constructor')
     }
 
+    get shortName() { return this._shortName }
+
     toJSON(): Omit<StandardImageData, 'key' | 'universalKey'> {
         return {
-            tag: 'Image'
+            tag: 'Image',
+            ...(this._shortName ? { shortName: this._shortName.toJSON() } : {})
         }
     }
 
     schema(key: string): GenericTreeNode<SchemaTag> {
         return {
             data: { tag: 'Image', key },
-            children: []
+            children: [
+                ...[this._shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema())).flat(1)
+            ]
         }
     }
 
     merge(incoming: this): this {
         const returnValue = new StandardImagePayload()
+        returnValue._shortName = (this._shortName && incoming._shortName) ? this._shortName.merge(incoming._shortName) : this._shortName ?? incoming._shortName
         return returnValue as this
     }
 
@@ -55,13 +71,12 @@ export class StandardImagePayload implements ComponentConstructorMethods<Standar
     }
 
     isEmpty(): boolean {
-        // An image component has no content fields, so it's always considered empty
-        // (though the component itself may still exist for reference purposes)
-        return true
+        return !Boolean(this._shortName)
     }
 }
 
 export class StandardImage extends componentClassFactory(StandardImagePayload, 'StandardImage') {
+    get shortName() { return this._payload.shortName }
 
     override _wrap(instance: StandardComponent): this {
         return new StandardImage(instance as StandardImage) as this

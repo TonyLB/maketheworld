@@ -48,7 +48,7 @@ describe('fetchPlayerEphemera', () => {
                 CharacterId: 'CHARACTER#ABC',
                 Connected: true,
                 RoomId: 'ROOM#XYZ',
-                Name: 'Testy',
+                DisplayName: 'Testy',
                 fileURL: 'test.png',
                 Color: 'purple',
                 connectionTargets: ['CONNECTION#XYZ']

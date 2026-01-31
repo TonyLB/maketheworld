@@ -5,16 +5,16 @@ describe('quantumRender combine', () => {
     it('should properly combine both naive and nested contents', () => {
         expect(combine(
             [
-                { printMode: PrintMode.naive, tag: 'Name', output: '<Name>Test</Name>' },
-                { printMode: PrintMode.nested, tag: 'Name', output: '<Name>\n    Test\n</Name>' }
+                { printMode: PrintMode.naive, tag: 'DisplayName', output: '<DisplayName>Test</DisplayName>' },
+                { printMode: PrintMode.nested, tag: 'DisplayName', output: '<DisplayName>\n    Test\n</DisplayName>' }
             ],
             [
                 { printMode: PrintMode.naive, tag: 'Description', output: '<Description>Pretty</Description>'},
                 { printMode: PrintMode.nested, tag: 'Description', output: '<Description>\n    Pretty\n</Description>' }
             ],
         )).toEqual([
-            { printMode: PrintMode.naive, output: '<Name>Test</Name><Description>Pretty</Description>' },
-            { printMode: PrintMode.nested, output: '<Name>\n    Test\n</Name>\n<Description>\n    Pretty\n</Description>'}
+            { printMode: PrintMode.naive, output: '<DisplayName>Test</DisplayName><Description>Pretty</Description>' },
+            { printMode: PrintMode.nested, output: '<DisplayName>\n    Test\n</DisplayName>\n<Description>\n    Pretty\n</Description>'}
         ])
     })
 
@@ -53,9 +53,9 @@ describe('quantumRender combine', () => {
     it('should line up row-level iterations in a given nesting level', () => {
         expect(combine(
             [
-                { printMode: PrintMode.naive, output: '<Replace><Name>Garden</Name></Replace><With><Name>Wasteland</Name></With>'},
-                { printMode: PrintMode.nested, output: '<Replace><Name>Garden</Name></Replace>\n<With><Name>Wasteland</Name></With>'},
-                { printMode: PrintMode.nested, output: '<Replace>\n    <Name>Garden</Name>\n</Replace>\n<With>\n    <Name>Wasteland</Name>\n</With>'}
+                { printMode: PrintMode.naive, output: '<Replace><DisplayName>Garden</DisplayName></Replace><With><DisplayName>Wasteland</DisplayName></With>'},
+                { printMode: PrintMode.nested, output: '<Replace><DisplayName>Garden</DisplayName></Replace>\n<With><DisplayName>Wasteland</DisplayName></With>'},
+                { printMode: PrintMode.nested, output: '<Replace>\n    <DisplayName>Garden</DisplayName>\n</Replace>\n<With>\n    <DisplayName>Wasteland</DisplayName>\n</With>'}
             ],
             [
                 { printMode: PrintMode.naive, output: '<Replace><Description>Pretty</Description></Replace><With><Description>Ugly</Description></With>'},
@@ -63,9 +63,9 @@ describe('quantumRender combine', () => {
                 { printMode: PrintMode.nested, output: '<Replace>\n    <Description>Pretty</Description>\n</Replace>\n<With>\n    <Description>Ugly</Description>\n</With>'}
             ],
         )).toEqual([
-            { printMode: PrintMode.naive, output: '<Replace><Name>Garden</Name></Replace><With><Name>Wasteland</Name></With><Replace><Description>Pretty</Description></Replace><With><Description>Ugly</Description></With>' },
-            { printMode: PrintMode.nested, output: '<Replace><Name>Garden</Name></Replace>\n<With><Name>Wasteland</Name></With>\n<Replace><Description>Pretty</Description></Replace>\n<With><Description>Ugly</Description></With>'},
-            { printMode: PrintMode.nested, output: '<Replace>\n    <Name>Garden</Name>\n</Replace>\n<With>\n    <Name>Wasteland</Name>\n</With>\n<Replace>\n    <Description>Pretty</Description>\n</Replace>\n<With>\n    <Description>Ugly</Description>\n</With>'}
+            { printMode: PrintMode.naive, output: '<Replace><DisplayName>Garden</DisplayName></Replace><With><DisplayName>Wasteland</DisplayName></With><Replace><Description>Pretty</Description></Replace><With><Description>Ugly</Description></With>' },
+            { printMode: PrintMode.nested, output: '<Replace><DisplayName>Garden</DisplayName></Replace>\n<With><DisplayName>Wasteland</DisplayName></With>\n<Replace><Description>Pretty</Description></Replace>\n<With><Description>Ugly</Description></With>'},
+            { printMode: PrintMode.nested, output: '<Replace>\n    <DisplayName>Garden</DisplayName>\n</Replace>\n<With>\n    <DisplayName>Wasteland</DisplayName>\n</With>\n<Replace>\n    <Description>Pretty</Description>\n</Replace>\n<With>\n    <Description>Ugly</Description>\n</With>'}
         ])
     })
 })

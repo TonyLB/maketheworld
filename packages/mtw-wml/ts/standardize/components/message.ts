@@ -19,14 +19,17 @@ import { findTaggedChildren } from "../../schema/utils"
 import { StandardReferenceData } from "./dataTypes/reference"
 import { deepEqual } from "../../lib/objects"
 import { StandardExplicitParent } from "../explicit"
+import { StandardLiteral } from "../literal"
 
 export class StandardMessagePayload implements ComponentConstructorMethods<StandardMessageData> {
+    _shortName?: StandardLiteral;
     _description?: StandardRender;
     _rooms: ReferenceList;
     tag = 'Message' as const
 
     constructor(previous?: StandardMessagePayload) {
         if (previous) {
+            this._shortName = previous._shortName
             this._description = previous._description
             this._rooms = new ReferenceList(previous._rooms)
         }
@@ -36,12 +39,15 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
     }
 
     fromJSON(props: StandardMessageData) {
+        this._shortName = props.shortName ? new StandardLiteral(props.shortName, { tag: 'ShortName' }) : undefined
         this._description = extractStandardRender(props.description, isSchemaDescription, 'Schema mismatch in StandardMessage constructor')
         this._rooms = new ReferenceList(props.rooms?.map((reference) => (new StandardReference(reference))) ?? [])
     }
 
     fromSchema(node: GenericTreeNode<SchemaTag>) {
         if (treeNodeTypeguard(isSchemaMessage)(node)) {
+            const shortNameItem = findTaggedChildren({ children: node.children, tag: 'ShortName' })
+            this._shortName = shortNameItem.length ? new StandardLiteral(shortNameItem, { tag: 'ShortName' }) : undefined
             const descriptionNodes = findTaggedChildren({ children: node.children, tag: 'Description' })
             const descriptionItem = descriptionNodes[0] as EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag> | undefined
             this._description = extractStandardRender<SchemaDescriptionTag>(descriptionItem, isSchemaDescription, 'Schema mismatch in StandardMessage constructor')
@@ -51,12 +57,14 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
         throw new Error('Schema mismatch in StandardMessage constructor')
     }
 
+    get shortName() { return this._shortName }
     get description() { return this._description }
     get rooms() { return this._rooms }
 
     toJSON(options?: StandardToJSONOptions): Omit<StandardMessageData, 'key' | 'universalKey'> {
         return {
             tag: 'Message',
+            ...(this._shortName ? { shortName: this._shortName.toJSON() } : {}),
             description: rebuildSchemaFromStandardRender(this._description, { tag: 'Description' as const }, undefined),
             ...(this.rooms.payload.length ? { rooms: this.rooms.toJSON() } : {})
         }
@@ -71,6 +79,7 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
         return {
             data: { tag: 'Message', key, uuid: universalKey },
             children: [
+                ...(this._shortName ? this._shortName.nestedSchema() : []),
                 ...roomsSchema,
                 ...(this.description ? [rebuildSchemaFromStandardRender(this.description, { tag: 'Description' as const }, mappings)].filter(excludeUndefined) : [])
             ]
@@ -79,6 +88,7 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
 
     merge(incoming: this): this {
         const returnValue = new StandardMessagePayload()
+        returnValue._shortName = (this._shortName && incoming._shortName) ? this._shortName.merge(incoming._shortName) : this._shortName ?? incoming._shortName
         returnValue._description = (this._description && incoming._description) ? this._description.merge(incoming._description) : this._description ?? incoming._description
         returnValue._rooms = this._rooms.merge(incoming._rooms) ?? new ReferenceList([])
         return returnValue as this
@@ -169,6 +179,7 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
 }
 
 export class StandardMessage extends componentClassFactory(StandardMessagePayload, 'StandardMessage') {
+    get shortName() { return this._payload.shortName }
     get description() { return this._payload.description }
     get rooms() { return this._payload.rooms }
 
@@ -188,6 +199,7 @@ export class StandardMessage extends componentClassFactory(StandardMessagePayloa
         }
         const roomsDiff = this.rooms.diff(incoming.rooms) ?? new ReferenceList([])
         return !(roomsDiff.payload.length) &&
+            deepEqual(this.shortName?.toJSON(), incoming.shortName?.toJSON()) &&
             deepEqual(this.description?.toJSON(), incoming.description?.toJSON())
     }
 

@@ -140,7 +140,7 @@ export type AssetClientPlayerAsset = {
 
 export type AssetClientPlayerCharacter = {
     CharacterId: EphemeraCharacterId;
-    Name: string;
+    DisplayName: string;
     scopedId?: string;
     fileName?: string;
     fileURL?: string;
@@ -275,7 +275,7 @@ export const isAssetClientMessage = (message: any): message is AssetClientMessag
                             characterItem,
                             {
                                 CharacterId: 'string',
-                                Name: 'string',
+                                DisplayName: 'string',
                             },
                             {
                                 scopedId: 'string',

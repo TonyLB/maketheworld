@@ -1,11 +1,12 @@
-import { isSchemaMessage, isSchemaMoment, SchemaMessageTag, SchemaMomentTag } from "@tonylb/mtw-base/ts/schema/components"
+import { isSchemaMessage, isSchemaMoment, isSchemaRoom, isSchemaShortName, SchemaMessageTag, SchemaMomentTag } from "@tonylb/mtw-base/ts/schema/components"
+import { isSchemaDescription } from "@tonylb/mtw-base/ts/schema/example"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { compressWhitespace } from "../utils/schemaOutput/compressWhitespace"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./baseClasses"
 import { tagRender } from "./tagRender"
 import { validateProperties, validateExpressionAsNonNegativeInteger } from "./utils"
 import { GenericTree, GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree"
-import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { SchemaTag, isSchemaTaggedMessageLegalContents } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaRemove } from "@tonylb/mtw-base/ts/schema/edit"
 import { PrintMode } from "@tonylb/mtw-base/ts/schema/printMap"
 import { enforceTypedKey, stripTypedKey } from "@tonylb/mtw-utilities/ts/types"
@@ -39,6 +40,7 @@ export const messagingConverters: Record<string, ConverterMapEntry> = {
                 ...rest
             }
         },
+        typeCheckContents: (node) => isSchemaShortName(node) || isSchemaTaggedMessageLegalContents(node) || isSchemaDescription(node) || isSchemaRoom(node),
         finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaMessageTag, SchemaTag> => {
             if (!isSchemaMessage(initialTag)) {
                 throw new Error('Type mismatch on schema finalize')
@@ -60,7 +62,7 @@ export const messagingConverters: Record<string, ConverterMapEntry> = {
                 ...rest
             }
         },
-        typeCheckContents: (node) => (isSchemaMessage(node) || isSchemaRemove(node))
+        typeCheckContents: (node) => (isSchemaMessage(node) || isSchemaRemove(node) || isSchemaShortName(node))
     },
 }
 

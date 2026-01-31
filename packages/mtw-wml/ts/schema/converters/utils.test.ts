@@ -3,7 +3,7 @@ import { validateContents } from './utils'
 describe('parser utilities', () => {
     describe('validateContents', () => {
         it('should return true on empty contents', () => {
-            expect(validateContents({ isValid: () => (false), branchTags: ['Room'], leafTags: ['Name', 'Exit'] })([])).toBe(true)
+            expect(validateContents({ isValid: () => (false), branchTags: ['Room'], leafTags: ['DisplayName', 'Exit'] })([])).toBe(true)
         })
 
         it('should reject on failed isValid', () => {

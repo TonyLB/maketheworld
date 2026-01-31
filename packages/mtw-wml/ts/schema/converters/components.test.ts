@@ -211,7 +211,7 @@ describe('Parent tag', () => {
             const testParse = parse(tokenizer(new SourceStream(deIndentWML(`
                 <Asset uuid=(Test)>
                     <Room key=(room1)>
-                        <Name>Test Room</Name>
+                        <ShortName>Test Room</ShortName>
                         <Parent>ROOM#parent-room</Parent>
                         <Description>Room description</Description>
                     </Room>
@@ -222,7 +222,7 @@ describe('Parent tag', () => {
             expect(roomNode).toBeDefined()
             const parentNode = roomNode?.children.find(({ data }) => data.tag === 'Parent')
             expect(parentNode).toBeDefined()
-            const nameNode = roomNode?.children.find(({ data }) => data.tag === 'Name')
+            const nameNode = roomNode?.children.find(({ data }) => data.tag === 'ShortName')
             expect(nameNode).toBeDefined()
         })
 
@@ -230,7 +230,7 @@ describe('Parent tag', () => {
             const testParse = parse(tokenizer(new SourceStream(deIndentWML(`
                 <Asset uuid=(Test)>
                     <Room key=(room1)>
-                        <Name>Test Room</Name>
+                        <ShortName>Test Room</ShortName>
                         <Parent />
                         <Description>Room description</Description>
                     </Room>
@@ -389,7 +389,7 @@ describe('Key tag', () => {
             const testParse = parse(tokenizer(new SourceStream(deIndentWML(`
                 <Asset uuid=(Test)>
                     <Room key=(room1)>
-                        <Name>Test Room</Name>
+                        <ShortName>Test Room</ShortName>
                         <Key>room2</Key>
                         <Description>Room description</Description>
                     </Room>
@@ -400,7 +400,7 @@ describe('Key tag', () => {
             expect(roomNode).toBeDefined()
             const keyNode = roomNode?.children.find(({ data }) => data.tag === 'Key')
             expect(keyNode).toBeDefined()
-            const nameNode = roomNode?.children.find(({ data }) => data.tag === 'Name')
+            const nameNode = roomNode?.children.find(({ data }) => data.tag === 'ShortName')
             expect(nameNode).toBeDefined()
         })
 

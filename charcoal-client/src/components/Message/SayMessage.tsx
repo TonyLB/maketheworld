@@ -85,7 +85,7 @@ export const SayMessage: FunctionComponent<SayMessageProps> = ({ message, varian
         >
             <SpeechBubble variant={variant}>
                 <Box sx={{ fontWeight: 'bold' }}>
-                    {message.Name}
+                    {message.DisplayName}
                 </Box>
                 <Typography variant='body1' align='left'>
                     <RenderTreeContent list={message.Message} onClickLink={() => {}} />

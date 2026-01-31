@@ -105,7 +105,7 @@ describe('reconstructFromManifest', () => {
                     return JSON.stringify(chunkEvent)
                 }
                 if (Key === 'test.wml/chunks/1729418400000-abc123.wml') {
-                    return '<Asset uuid=(test)><Room uuid=(lobby)><Name>Lobby</Name></Room></Asset>'
+                    return '<Asset uuid=(test)><Room uuid=(lobby)><ShortName>Lobby</ShortName></Room></Asset>'
                 }
                 throw new Error('Not found')
             })
@@ -155,13 +155,13 @@ describe('reconstructFromManifest', () => {
                     return events.map(e => JSON.stringify(e)).join('\n')
                 }
                 if (Key === 'test.wml/chunks/1729418400000-abc123.wml') {
-                    return '<Asset uuid=(test)><Room uuid=(lobby)><Name>Lobby</Name></Room></Asset>'
+                    return '<Asset uuid=(test)><Room uuid=(lobby)><ShortName>Lobby</ShortName></Room></Asset>'
                 }
                 if (Key === 'test.wml/chunks/1729422000000-def456.wml') {
-                    return '<Asset uuid=(test)><Feature uuid=(desk)><Name>Desk</Name></Feature></Asset>'
+                    return '<Asset uuid=(test)><Feature uuid=(desk)><ShortName>Desk</ShortName></Feature></Asset>'
                 }
                 if (Key === 'test.wml/chunks/1729425600000-ghi789.wml') {
-                    return '<Asset uuid=(test)><Knowledge uuid=(lore)><Name>Lore</Name></Knowledge></Asset>'
+                    return '<Asset uuid=(test)><Knowledge uuid=(lore)><ShortName>Lore</ShortName></Knowledge></Asset>'
                 }
                 throw new Error('Not found')
             })
@@ -202,7 +202,7 @@ describe('reconstructFromManifest', () => {
                     return JSON.stringify(snapshotEvent)
                 }
                 if (Key === 'test.wml/snapshots/1729418400000.wml') {
-                    return '<Asset uuid=(test)><Room uuid=(lobby)><Name>Lobby</Name></Room><Feature uuid=(desk)><Name>Desk</Name></Feature></Asset>'
+                    return '<Asset uuid=(test)><Room uuid=(lobby)><ShortName>Lobby</ShortName></Room><Feature uuid=(desk)><ShortName>Desk</ShortName></Feature></Asset>'
                 }
                 throw new Error('Not found')
             })
@@ -262,13 +262,13 @@ describe('reconstructFromManifest', () => {
                 }
                 if (Key === 'test.wml/snapshots/1729418400000.wml') {
                     // Snapshot already includes the old chunk content
-                    return '<Asset uuid=(test)><Room uuid=(lobby)><Name>Lobby</Name></Room></Asset>'
+                    return '<Asset uuid=(test)><Room uuid=(lobby)><ShortName>Lobby</ShortName></Room></Asset>'
                 }
                 if (Key === 'test.wml/chunks/1729422000000-new1.wml') {
-                    return '<Asset uuid=(test)><Feature uuid=(desk)><Name>Desk</Name></Feature></Asset>'
+                    return '<Asset uuid=(test)><Feature uuid=(desk)><ShortName>Desk</ShortName></Feature></Asset>'
                 }
                 if (Key === 'test.wml/chunks/1729425600000-new2.wml') {
-                    return '<Asset uuid=(test)><Knowledge uuid=(lore)><Name>Lore</Name></Knowledge></Asset>'
+                    return '<Asset uuid=(test)><Knowledge uuid=(lore)><ShortName>Lore</ShortName></Knowledge></Asset>'
                 }
                 throw new Error('Not found')
             })
@@ -332,10 +332,10 @@ describe('reconstructFromManifest', () => {
                 }
                 if (Key === 'test.wml/snapshots/1729418400000.wml') {
                     // Latest snapshot
-                    return '<Asset uuid=(test)><Room uuid=(lobby)><Name>Latest Snapshot</Name></Room></Asset>'
+                    return '<Asset uuid=(test)><Room uuid=(lobby)><ShortName>Latest Snapshot</ShortName></Room></Asset>'
                 }
                 if (Key === 'test.wml/chunks/1729422000000-new.wml') {
-                    return '<Asset uuid=(test)><Feature uuid=(desk)><Name>Desk</Name></Feature></Asset>'
+                    return '<Asset uuid=(test)><Feature uuid=(desk)><ShortName>Desk</ShortName></Feature></Asset>'
                 }
                 throw new Error('Not found')
             })
@@ -466,7 +466,7 @@ describe('reconstructFromManifest', () => {
                     throw new Error('S3 object not found')
                 }
                 if (Key === 'test.wml/chunks/1729422000000-new.wml') {
-                    return '<Asset uuid=(test)><Room uuid=(lobby)><Name>Lobby</Name></Room></Asset>'
+                    return '<Asset uuid=(test)><Room uuid=(lobby)><ShortName>Lobby</ShortName></Room></Asset>'
                 }
                 throw new Error('Not found')
             })
@@ -524,13 +524,13 @@ describe('reconstructFromManifest', () => {
                     return events.map(e => JSON.stringify(e)).join('\n')
                 }
                 if (Key === 'test.wml/chunks/1729418400000-good1.wml') {
-                    return '<Asset uuid=(test)><Room uuid=(lobby)><Name>Lobby</Name></Room></Asset>'
+                    return '<Asset uuid=(test)><Room uuid=(lobby)><ShortName>Lobby</ShortName></Room></Asset>'
                 }
                 if (Key === 'test.wml/chunks/1729422000000-missing.wml') {
                     throw new Error('S3 object not found')
                 }
                 if (Key === 'test.wml/chunks/1729425600000-good2.wml') {
-                    return '<Asset uuid=(test)><Feature uuid=(desk)><Name>Desk</Name></Feature></Asset>'
+                    return '<Asset uuid=(test)><Feature uuid=(desk)><ShortName>Desk</ShortName></Feature></Asset>'
                 }
                 throw new Error('Not found')
             })
@@ -582,7 +582,7 @@ describe('reconstructFromManifest', () => {
                     return events.map(e => JSON.stringify(e)).join('\n')
                 }
                 if (Key === 'test.wml/chunks/1729418400000-good.wml') {
-                    return '<Asset uuid=(test)><Room uuid=(lobby)><Name>Lobby</Name></Room></Asset>'
+                    return '<Asset uuid=(test)><Room uuid=(lobby)><ShortName>Lobby</ShortName></Room></Asset>'
                 }
                 if (Key === 'test.wml/chunks/1729422000000-corrupt.wml') {
                     return '<Asset uuid=(test)><Invalid>Corrupt</Invalid></Asset>' // Invalid WML

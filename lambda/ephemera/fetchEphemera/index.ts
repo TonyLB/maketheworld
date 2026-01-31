@@ -17,7 +17,7 @@ const serialize = ({
         CharacterId: EphemeraId,
         Connected: true,
         RoomId,
-        Name,
+        DisplayName: Name,
         fileURL: fileURL || '',
         Color: Color || 'grey'
     }

@@ -23,7 +23,8 @@ import StandardMoment from "@tonylb/mtw-wml/ts/standardize/components/moment"
 import StandardReference from "@tonylb/mtw-wml/ts/standardize/components/reference"
 import { schemaToWML } from "@tonylb/mtw-wml/ts/schema"
 import StandardMessage from "@tonylb/mtw-wml/ts/standardize/components/message"
-import { isStandardMessageData } from "@tonylb/mtw-wml/ts/standardize/components/dataTypes";
+import { isStandardMessageData } from "@tonylb/mtw-wml/ts/standardize/components/dataTypes"
+import { RenderTree } from "@tonylb/mtw-base/ts/renderTree"
 
 type EphemeraCharacterDescription = {
     [K in 'Name' | 'Pronouns' | 'fileURL' | 'Color']: EphemeraCharacter[K];
@@ -83,13 +84,14 @@ export const perceptionMessage = async ({
                     if (messageForm.byUniversalId[characterMeta.RoomId]) {
                         const messageItem = messageForm._components.find((item) => (item instanceof StandardMessage)) as StandardMessage | undefined
                         if (messageItem) {
-                            const message = messageItem.description?.toJSON()
-                            if (message) {
+                            const rawMessage = messageItem.description?.toJSON()
+                            const message: RenderTree = Array.isArray(rawMessage) ? rawMessage : []
+                            if (message.length) {
                                 messageBus.send({
                                     type: 'PublishMessage',
                                     targets: [characterId],
                                     displayProtocol: 'WorldMessage',
-                                    message: messageItem.description?.toJSON() ?? [],
+                                    message,
                                     messageGroupId: payload.messageGroupId
                                 })
                             }
@@ -183,13 +185,13 @@ export const perceptionMessage = async ({
                     Pronouns: 'they/them',
                 }
                 
-                // Generate WML content for the character
-                const { Name = 'Unknown', Pronouns = 'they/them' } = characterDescription
+                // Generate WML content for the character (DB has Name; we emit DisplayName in WML)
+                const { Name: displayName = 'Unknown', Pronouns = 'they/them' } = characterDescription
                 const fileURL = ('fileURL' in characterDescription) ? characterDescription.fileURL : undefined
                 const imageTag = fileURL ? `<Image key=(portrait) fileURL="${fileURL}" />` : ''
                 const wmlContent = `<Asset uuid=(render)>
     <Character uuid=(${ephemeraId})>
-        <Name>${Name}</Name>
+        <DisplayName>${displayName}</DisplayName>
         <Pronouns>${Pronouns}</Pronouns>
         ${imageTag}
     </Character>

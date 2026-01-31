@@ -67,7 +67,7 @@ describe('Perception message', () => {
             targets: ['CHARACTER#TESS'],
             wmlContent: `<Asset uuid=(render)>
     <Character uuid=(CHARACTER#TESS)>
-        <Name>Tess</Name>
+        <DisplayName>Tess</DisplayName>
         <Pronouns>she/her</Pronouns>
         
     </Character>

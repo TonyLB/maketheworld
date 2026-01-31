@@ -95,14 +95,14 @@ describe('StandardForm', () => {
                             children: [{
                                 data: { tag: 'ReplaceMatch' },
                                 children: [{
-                                    data: { tag: 'Name' },
+                                    data: { tag: 'DisplayName' },
                                     children: [{ data: { tag: 'String', value: 'Lobby' }, children: [] }]
                                 }]
                             },
                             {
                                 data: { tag: 'ReplacePayload' },
                                 children: [{
-                                    data: { tag: 'Name' },
+                                    data: { tag: 'DisplayName' },
                                     children: [{ data: { tag: 'String', value: 'Foyer' }, children: [] }]
                                 }]
                             }]    
@@ -139,7 +139,7 @@ describe('StandardForm', () => {
                 {
                     tag: 'Example',
                     universalKey: 'EXAMPLE#testRoomBase',
-                    name: {
+                    displayName: {
                         tag: 'Replace',
                         match: ['Lobby'],
                         payload: ['Foyer']
@@ -195,7 +195,7 @@ describe('StandardForm', () => {
                 </Feature>
                 <Room uuid=(test) key=(test)>
                     <Example uuid=(testRoomBase)>
-                        <Name>Test Room</Name>
+                        <DisplayName>Test Room</DisplayName>
                         <Summary>One<br />Two</Summary>
                         <Description>Three</Description>
                     </Example>
@@ -411,7 +411,7 @@ describe('StandardForm', () => {
                     <Description>This is a condition mark.</Description>
                 </Mark>
                 <Example uuid=(example1) key=(example1)>
-                    <Name>Example Name</Name>
+                    <DisplayName>Example Name</DisplayName>
                     <Summary>Example Summary</Summary>
                     <Description>Example Description</Description>
                     <Mark key=(mark1)><Match>Condition narrative</Match></Mark>
@@ -437,7 +437,7 @@ describe('StandardForm', () => {
         expect(facet.payload.toJSON()).toEqual('Condition narrative')
         
         // Verify example content
-        expect(example.name?.toJSON()).toEqual(['Example Name'])
+        expect(example.displayName?.toJSON()).toEqual(['Example Name'])
         expect(example.summary?.toJSON()).toEqual(['Example Summary'])
         expect(example.description?.toJSON()).toEqual(['Example Description'])
     })
@@ -449,7 +449,7 @@ describe('StandardForm', () => {
                     <ShortName>Test Room</ShortName>
                     <Example uuid=(example1) key=(example1)>
                         <ShortName>Tab label</ShortName>
-                        <Name>Example Name</Name>
+                        <DisplayName>Example Name</DisplayName>
                         <Summary>Example Summary</Summary>
                         <Description>Example Description</Description>
                     </Example>
@@ -462,7 +462,7 @@ describe('StandardForm', () => {
         expect(example).toBeInstanceOf(StandardExample)
         expect(hasShortName(example)).toBe(true)
         expect(example.shortName?.toJSON()).toEqual('Tab label')
-        expect(example.name?.toJSON()).toEqual(['Example Name'])
+        expect(example.displayName?.toJSON()).toEqual(['Example Name'])
     })
 
     it('should correctly construct classes', () => {
@@ -526,7 +526,7 @@ describe('StandardForm', () => {
                 <Example uuid=(testFeatureBase) key=(base)><Description>Four</Description></Example>
             </Feature>
             <Room key=(test) ref={0}>
-                <Example key=(testExample) ref={0}><Name>Test Room</Name></Example>
+                <Example key=(testExample) ref={0}><DisplayName>Test Room</DisplayName></Example>
             </Room>
         </Asset>`)
         expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
@@ -538,7 +538,7 @@ describe('StandardForm', () => {
                 </Feature>
                 <Room uuid=(test) key=(test)>
                     <Example uuid=(testRoomExample) key=(testExample)>
-                        <Name>Test Room</Name>
+                        <DisplayName>Test Room</DisplayName>
                         <Summary>One<br />Two</Summary>
                         <Description>Three</Description>
                     </Example>
@@ -896,13 +896,13 @@ describe('StandardForm', () => {
             </Room>
             <Feature uuid=(testFeatureOne) key=(testFeatureOne)>
                 <Example uuid=(testFeatureOneBase)>
-                    <Name>TestOne</Name>
+                    <DisplayName>TestOne</DisplayName>
                     <Description><Link to=(testFeatureTwo)>two</Link></Description>
                 </Example>
             </Feature>
             <Feature uuid=(testFeatureTwo) key=(testFeatureTwo)>
                 <Example uuid=(testFeatureTwoBase)>
-                    <Name>TestTwo</Name>
+                    <DisplayName>TestTwo</DisplayName>
                     <Description>Test</Description>
                 </Example>
             </Feature>
@@ -911,13 +911,13 @@ describe('StandardForm', () => {
             <Asset uuid=(Test)>
                 <Feature uuid=(testFeatureOne) key=(testFeatureOne)>
                     <Example uuid=(testFeatureOneBase)>
-                        <Name>TestOne</Name>
+                        <DisplayName>TestOne</DisplayName>
                         <Description><Link to=(testFeatureTwo)>two</Link></Description>
                     </Example>
                 </Feature>
                 <Feature uuid=(testFeatureTwo) key=(testFeatureTwo)>
                     <Example uuid=(testFeatureTwoBase)>
-                        <Name>TestTwo</Name>
+                        <DisplayName>TestTwo</DisplayName>
                         <Description>Test</Description>
                     </Example>
                 </Feature>
@@ -941,13 +941,13 @@ describe('StandardForm', () => {
             </Room>
             <Knowledge uuid=(testKnowledgeOne) key=(testKnowledgeOne)>
                 <Example uuid=(testKnowledgeOneBase)>
-                    <Name>TestOne</Name>
+                    <DisplayName>TestOne</DisplayName>
                     <Description><Link to=(testKnowledgeTwo)>two</Link></Description>
                 </Example>
             </Knowledge>
             <Knowledge uuid=(testKnowledgeTwo) key=(testKnowledgeTwo)>
                 <Example uuid=(testKnowledgeTwoBase)>
-                    <Name>TestTwo</Name>
+                    <DisplayName>TestTwo</DisplayName>
                     <Description>Test</Description>
                 </Example>
             </Knowledge>
@@ -956,13 +956,13 @@ describe('StandardForm', () => {
             <Asset uuid=(Test)>
                 <Knowledge uuid=(testKnowledgeOne) key=(testKnowledgeOne)>
                     <Example uuid=(testKnowledgeOneBase)>
-                        <Name>TestOne</Name>
+                        <DisplayName>TestOne</DisplayName>
                         <Description><Link to=(testKnowledgeTwo)>two</Link></Description>
                     </Example>
                 </Knowledge>
                 <Knowledge uuid=(testKnowledgeTwo) key=(testKnowledgeTwo)>
                     <Example uuid=(testKnowledgeTwoBase)>
-                        <Name>TestTwo</Name>
+                        <DisplayName>TestTwo</DisplayName>
                         <Description>Test</Description>
                     </Example>
                 </Knowledge>
@@ -978,7 +978,7 @@ describe('StandardForm', () => {
     it('should render maps correctly', () => {
         const test = new StandardForm(`<Asset uuid=(Test)>
             <Map uuid=(testMap) key=(testMap)>
-                <Name>Test map</Name>
+                <ShortName>Test map</ShortName>
                 <Room uuid=(testRoomOne) key=(testRoomOne)>
                     <Position {0, 0} />
                     <Example uuid=(testRoomOneBase)>
@@ -1017,7 +1017,7 @@ describe('StandardForm', () => {
                     <Exit to=(testRoomOne)>one</Exit>
                 </Room>
                 <Map uuid=(testMap) key=(testMap)>
-                    <Name>Test map</Name>
+                    <ShortName>Test map</ShortName>
                     <Image key=(mapBackground) />
                     <Room key=(testRoomOne)><Position {0, 0} /></Room>
                     <Room key=(testRoomTwo)><Position {-100, 0} /></Room>
@@ -1116,28 +1116,28 @@ describe('StandardForm', () => {
             <Asset uuid=(complex)>
                 <Character uuid=(global1) key=(global1)>
                     <ShortName>Global1</ShortName>
-                    <Name>Global Character 1</Name>
+                    <DisplayName>Global Character 1</DisplayName>
                 </Character>
                 <Character uuid=(global2) key=(global2)>
                     <ShortName>Global2</ShortName>
-                    <Name>Global Character 2</Name>
+                    <DisplayName>Global Character 2</DisplayName>
                 </Character>
                 <Room uuid=(mainRoom) key=(mainRoom)>
                     <Character key=(local1)>
                         <ShortName>Local1</ShortName>
-                        <Name>Local Character 1</Name>
+                        <DisplayName>Local Character 1</DisplayName>
                     </Character>
                     <Character uuid=(global1) />
                     <Character key=(local2)>
                         <ShortName>Local2</ShortName>
-                        <Name>Local Character 2</Name>
+                        <DisplayName>Local Character 2</DisplayName>
                     </Character>
                 </Room>
                 <Room uuid=(sideRoom) key=(sideRoom)>
                     <Character uuid=(global2) />
                     <Character key=(local3)>
                         <ShortName>Local3</ShortName>
-                        <Name>Local Character 3</Name>
+                        <DisplayName>Local Character 3</DisplayName>
                     </Character>
                 </Room>
             </Asset>
@@ -1169,13 +1169,13 @@ describe('StandardForm', () => {
             <Asset uuid=(roundtrip)>
                 <Character uuid=(char1) key=(char1)>
                     <ShortName>Test</ShortName>
-                    <Name>Test Character</Name>
+                    <DisplayName>Test Character</DisplayName>
                 </Character>
                 <Room uuid=(room1) key=(room1)>
                     <Character key=(char1) />
                     <Character uuid=(local1) key=(local1)>
                         <ShortName>Local</ShortName>
-                        <Name>Local Character</Name>
+                        <DisplayName>Local Character</DisplayName>
                     </Character>
                 </Room>
             </Asset>
@@ -1210,16 +1210,16 @@ describe('StandardForm', () => {
             <Asset uuid=(diff)>
                 <Character uuid=(char1) key=(char1)>
                     <ShortName>Alice</ShortName>
-                    <Name>Alice</Name>
+                    <DisplayName>Alice</DisplayName>
                 </Character>
                 <Character uuid=(char2) key=(char2)>
                     <ShortName>Bob</ShortName>
-                    <Name>Bob</Name>
+                    <DisplayName>Bob</DisplayName>
                 </Character>
                 <Room uuid=(room1) key=(room1)>
                     <Character uuid=(local1) key=(local1)>
                         <ShortName>Local1</ShortName>
-                        <Name>Local Character 1</Name>
+                        <DisplayName>Local Character 1</DisplayName>
                     </Character>
                     <Character uuid=(char1) />
                 </Room>
@@ -1230,20 +1230,20 @@ describe('StandardForm', () => {
             <Asset uuid=(diff)>
                 <Character uuid=(char1) key=(char1)>
                     <ShortName>Alice</ShortName>
-                    <Name>Alice</Name>
+                    <DisplayName>Alice</DisplayName>
                 </Character>
                 <Character uuid=(char2) key=(char2)>
                     <ShortName>Bob</ShortName>
-                    <Name>Bob</Name>
+                    <DisplayName>Bob</DisplayName>
                 </Character>
                 <Character uuid=(char3) key=(char3)>
                     <ShortName>Charlie</ShortName>
-                    <Name>Charlie</Name>
+                    <DisplayName>Charlie</DisplayName>
                 </Character>
                 <Room uuid=(room1) key=(room1)>
                     <Character uuid=(local2) key=(local2)>
                         <ShortName>Local2</ShortName>
-                        <Name>Local Character 2</Name>
+                        <DisplayName>Local Character 2</DisplayName>
                     </Character>
                     <Character uuid=(char2) />
                     <Character uuid=(char3) />
@@ -1267,19 +1267,19 @@ describe('StandardForm', () => {
             <Asset uuid=(diff)>
                 <Character uuid=(char3) key=(char3)>
                     <ShortName>Charlie</ShortName>
-                    <Name>Charlie</Name>
+                    <DisplayName>Charlie</DisplayName>
                 </Character>
                 <Room uuid=(room1) key=(room1) ref={0}>
                     <Character key=(char3) />
                     <Remove>
                         <Character uuid=(local1) key=(local1)>
                             <ShortName>Local1</ShortName>
-                            <Name>Local Character 1</Name>
+                            <DisplayName>Local Character 1</DisplayName>
                         </Character>
                     </Remove>
                     <Character uuid=(local2) key=(local2)>
                         <ShortName>Local2</ShortName>
-                        <Name>Local Character 2</Name>
+                        <DisplayName>Local Character 2</DisplayName>
                     </Character>
                     <Remove><Character uuid=(char1) key=(char1) /></Remove>
                     <Character uuid=(char2) key=(char2) />
@@ -1293,12 +1293,12 @@ describe('StandardForm', () => {
             <Asset uuid=(merge)>
                 <Character uuid=(char1) key=(char1)>
                     <ShortName>Alice</ShortName>
-                    <Name>Alice</Name>
+                    <DisplayName>Alice</DisplayName>
                 </Character>
                 <Room uuid=(room1) key=(room1)>
                     <Character key=(local1)>
                         <ShortName>Local1</ShortName>
-                        <Name>Local Character 1</Name>
+                        <DisplayName>Local Character 1</DisplayName>
                     </Character>
                     <Character uuid=(char1) />
                 </Room>
@@ -1309,12 +1309,12 @@ describe('StandardForm', () => {
             <Asset uuid=(merge)>
                 <Character uuid=(char2) key=(char2)>
                     <ShortName>Bob</ShortName>
-                    <Name>Bob</Name>
+                    <DisplayName>Bob</DisplayName>
                 </Character>
                 <Room uuid=(room1) key=(room1)>
                     <Character key=(local2)>
                         <ShortName>Local2</ShortName>
-                        <Name>Local Character 2</Name>
+                        <DisplayName>Local Character 2</DisplayName>
                     </Character>
                     <Character uuid=(char2) />
                 </Room>
@@ -1342,7 +1342,7 @@ describe('StandardForm', () => {
         const emptyWML = deIndentWML(`
             <Asset uuid=(empty)>
                 <Room uuid=(room1) key=(room1)>
-                    <Name>Empty Room</Name>
+                    <DisplayName>Empty Room</DisplayName>
                 </Room>
             </Asset>
         `)
@@ -1365,7 +1365,7 @@ describe('StandardForm', () => {
         const originWML = deIndentWML(`
             <Asset uuid=(origin)>
                 <Character uuid=(char1) origin=(ASSET#123,ASSET#456)>
-                    <Name>Character with Origin</Name>
+                    <DisplayName>Character with Origin</DisplayName>
                 </Character>
                 <Room uuid=(room1) origin=(ASSET#789)>
                     <Feature uuid=(feature1) origin=(ASSET#101,ASSET#102) />
@@ -1419,7 +1419,7 @@ describe('StandardForm', () => {
                 <Remove>
                     <Room uuid=(testRoomTwo) key=(testRoomTwo)>
                         <Example uuid=(testRoomTwoBase) key=(base)>
-                            <Name>Test To Delete</Name>
+                            <DisplayName>Test To Delete</DisplayName>
                         </Example>
                     </Room>
                 </Remove>
@@ -1433,7 +1433,7 @@ describe('StandardForm', () => {
         const testSource = deIndentWML(`
             <Asset uuid=(test)>
                 <Character key=(Tess)>
-                    <Name>Tess</Name>
+                    <DisplayName>Tess</DisplayName>
                     <Image key=(TessIcon) />
                 </Character>
                 <Image key=(TessIcon) />
@@ -1449,7 +1449,7 @@ describe('StandardForm', () => {
             <Asset uuid=(Test)>
                 <Room uuid=(testRoomOne)>
                     <Example uuid=(testRoomOneBase)>
-                        <Name>Lobby</Name>
+                        <DisplayName>Lobby</DisplayName>
                         <Description>A plain lobby.</Description>
                     </Example>
                 </Room>
@@ -1458,8 +1458,8 @@ describe('StandardForm', () => {
         const test = new StandardForm(`
             <Asset uuid=(Test)>
                 <Example uuid=(testRoomOneBase) ref={0}>
-                    <Replace><Name>Lobby</Name></Replace>
-                    <With><Name>Darkened lobby</Name></With>
+                    <Replace><DisplayName>Lobby</DisplayName></Replace>
+                    <With><DisplayName>Darkened lobby</DisplayName></With>
                 </Example>
             </Asset>
         `)
@@ -1467,7 +1467,7 @@ describe('StandardForm', () => {
             <Asset uuid=(Test)>
                 <Room uuid=(testRoomOne)>
                     <Example uuid=(testRoomOneBase)>
-                        <Name>Darkened lobby</Name>
+                        <DisplayName>Darkened lobby</DisplayName>
                         <Description>A plain lobby.</Description>
                     </Example>
                 </Room>
@@ -1480,7 +1480,7 @@ describe('StandardForm', () => {
             <Asset uuid=(Test)>
                 <Room uuid=(testRoomOne) key=(testRoomOne)>
                     <Example uuid=(testRoomOneBase) key=(base)>
-                        <Name>Lobby</Name>
+                        <DisplayName>Lobby</DisplayName>
                         <Description>A plain lobby.</Description>
                     </Example>
                 </Room>
@@ -1492,7 +1492,7 @@ describe('StandardForm', () => {
                 <Remove>
                     <Room uuid=(testRoomOne) key=(testRoomOne)>
                         <Example uuid=(testRoomOneBase) key=(base)>
-                            <Name>Lobby</Name>
+                            <DisplayName>Lobby</DisplayName>
                             <Description>A plain lobby.</Description>
                         </Example>
                     </Room>
@@ -1513,7 +1513,7 @@ describe('StandardForm', () => {
         const test = new StandardForm(`
             <Asset uuid=(Test)>
                 <Remove>
-                    <Room uuid=(testRoomOne) key=(testRoomOne)><Example uuid=(testRoomOneBase) key=(base)><Name>Lobby</Name></Example></Room>
+                    <Room uuid=(testRoomOne) key=(testRoomOne)><Example uuid=(testRoomOneBase) key=(base)><DisplayName>Lobby</DisplayName></Example></Room>
                 </Remove>
             </Asset>
         `)
@@ -1523,7 +1523,7 @@ describe('StandardForm', () => {
                 <Remove>
                     <Room uuid=(testRoomOne) key=(testRoomOne)>
                         <Example uuid=(testRoomOneBase) key=(base)>
-                            <Name>Lobby</Name>
+                            <DisplayName>Lobby</DisplayName>
                         </Example>
                     </Room>
                 </Remove>
@@ -1564,23 +1564,23 @@ describe('StandardForm', () => {
             <Asset uuid=(Test)>
                 <Room uuid=(testRoomOne) key=(testRoomOne)>
                     <Example uuid=(testRoomOneBase)>
-                        <Name>Lobby</Name>
+                        <DisplayName>Lobby</DisplayName>
                         <Description>A plain lobby.</Description>
                     </Example>
                 </Room>
                 <Room uuid=(testRoomTwo) key=(testRoomTwo)>
-                    <Example uuid=(testRoomTwoBase)><Name>Test Two</Name></Example>
+                    <Example uuid=(testRoomTwoBase)><DisplayName>Test Two</DisplayName></Example>
                 </Room>
             </Asset>
         `)
         const test = new StandardForm(`
             <Asset uuid=(Test)>
                 <Example uuid=(testRoomOneBase) ref={0}>
-                    <Name><Space />(at night)</Name>
+                    <DisplayName><Space />(at night)</DisplayName>
                     <Description><Space />Shadows cling to the corners of the room.</Description>
                 </Example>
                 <Room uuid=(testRoomThree) key=(testRoomThree)>
-                    <Example uuid=(testRoomThreeBase)><Name>Test Three</Name></Example>
+                    <Example uuid=(testRoomThreeBase)><DisplayName>Test Three</DisplayName></Example>
                 </Room>
             </Asset>
         `)
@@ -1588,17 +1588,21 @@ describe('StandardForm', () => {
             <Asset uuid=(Test)>
                 <Room uuid=(testRoomOne) key=(testRoomOne)>
                     <Example uuid=(testRoomOneBase)>
-                        <Name>Lobby (at night)</Name>
+                        <DisplayName>Lobby (at night)</DisplayName>
                         <Description>
                             A plain lobby. Shadows cling to the corners of the room.
                         </Description>
                     </Example>
                 </Room>
                 <Room uuid=(testRoomThree) key=(testRoomThree)>
-                    <Example uuid=(testRoomThreeBase)><Name>Test Three</Name></Example>
+                    <Example uuid=(testRoomThreeBase)>
+                        <DisplayName>Test Three</DisplayName>
+                    </Example>
                 </Room>
                 <Room uuid=(testRoomTwo) key=(testRoomTwo)>
-                    <Example uuid=(testRoomTwoBase)><Name>Test Two</Name></Example>
+                    <Example uuid=(testRoomTwoBase)>
+                        <DisplayName>Test Two</DisplayName>
+                    </Example>
                 </Room>
             </Asset>
         `))
@@ -1609,13 +1613,13 @@ describe('StandardForm', () => {
             <Asset uuid=(Test)>
                 <Room uuid=(testRoomOne) key=(testRoomOne) from=(ASSET#primitives)>
                     <Example uuid=(testRoomOneBase)>
-                        <Name>Lobby</Name>
+                        <DisplayName>Lobby</DisplayName>
                         <Description>A plain lobby.</Description>
                     </Example>
                 </Room>
                 <Room uuid=(testRoomTwo) key=(testRoomTwo)>
                     <Example uuid=(testRoomTwoBase)>
-                        <Name>Test Two</Name>
+                        <DisplayName>Test Two</DisplayName>
                     </Example>
                 </Room>
             </Asset>
@@ -1623,12 +1627,12 @@ describe('StandardForm', () => {
         const test = new StandardForm(`
             <Asset uuid=(Test)>
                 <Example uuid=(testRoomOneBase) ref={0}>
-                    <Name><Space />(at night)</Name>
+                    <DisplayName><Space />(at night)</DisplayName>
                     <Description><Space />Shadows cling to the corners of the room.</Description>
                 </Example>
                 <Room uuid=(testRoomThree) key=(testRoomThree) from=(ASSET#primitives)>
                     <Example uuid=(testRoomThreeBase)>
-                        <Name>Test Three</Name>
+                        <DisplayName>Test Three</DisplayName>
                     </Example>
                 </Room>
             </Asset>
@@ -1637,17 +1641,21 @@ describe('StandardForm', () => {
             <Asset uuid=(Test)>
                 <Room uuid=(testRoomOne) key=(testRoomOne) from=(ASSET#primitives)>
                     <Example uuid=(testRoomOneBase)>
-                        <Name>Lobby (at night)</Name>
+                        <DisplayName>Lobby (at night)</DisplayName>
                         <Description>
                             A plain lobby. Shadows cling to the corners of the room.
                         </Description>
                     </Example>
                 </Room>
                 <Room uuid=(testRoomThree) key=(testRoomThree) from=(ASSET#primitives)>
-                    <Example uuid=(testRoomThreeBase)><Name>Test Three</Name></Example>
+                    <Example uuid=(testRoomThreeBase)>
+                        <DisplayName>Test Three</DisplayName>
+                    </Example>
                 </Room>
                 <Room uuid=(testRoomTwo) key=(testRoomTwo)>
-                    <Example uuid=(testRoomTwoBase)><Name>Test Two</Name></Example>
+                    <Example uuid=(testRoomTwoBase)>
+                        <DisplayName>Test Two</DisplayName>
+                    </Example>
                 </Room>
             </Asset>
         `))
@@ -1658,13 +1666,13 @@ describe('StandardForm', () => {
             <Asset uuid=(Test)>
                 <Room uuid=(testRoomOne) key=(testRoomOne)>
                     <Example uuid=(testRoomOneBase)>
-                        <Name>Lobby</Name>
+                        <DisplayName>Lobby</DisplayName>
                         <Description>A plain lobby.</Description>
                     </Example>
                 </Room>
                 <Room uuid=(testRoomTwo) key=(testRoomTwo)>
                     <Example uuid=(testRoomTwoBase)>
-                        <Name>Test Two</Name>
+                        <DisplayName>Test Two</DisplayName>
                     </Example>
                 </Room>
             </Asset>
@@ -1681,7 +1689,7 @@ describe('StandardForm', () => {
                 {
                     tag: 'Example',
                     universalKey: 'EXAMPLE#testRoomOneBase',
-                    name: [{ data: { tag: 'String', value: ': Night' }, children: [] }],
+                    displayName: [{ data: { tag: 'String', value: ': Night' }, children: [] }],
                 },
             ],
             metaData: []
@@ -1691,12 +1699,14 @@ describe('StandardForm', () => {
             <Asset uuid=(Test)>
                 <Room uuid=(testRoomOne) key=(testRoomOne)>
                     <Example uuid=(testRoomOneBase)>
-                        <Name>Lobby: Night</Name>
+                        <DisplayName>Lobby: Night</DisplayName>
                         <Description>A plain lobby.</Description>
                     </Example>
                 </Room>
                 <Room uuid=(testRoomTwo) key=(testRoomTwo)>
-                    <Example uuid=(testRoomTwoBase)><Name>Test Two</Name></Example>
+                    <Example uuid=(testRoomTwoBase)>
+                        <DisplayName>Test Two</DisplayName>
+                    </Example>
                 </Room>
             </Asset>
         `))
@@ -1934,7 +1944,7 @@ describe('StandardForm', () => {
             const base = new StandardForm(`<Asset uuid=(Test)>
                 <Room uuid=(testRoom) key=(testRoom)>
                     <Example uuid=(base)>
-                        <Name>Test Room</Name>
+                        <DisplayName>Test Room</DisplayName>
                         <Description>Test Description</Description>
                     </Example>
                 </Room>
@@ -1951,7 +1961,7 @@ describe('StandardForm', () => {
                     <Remove>
                         <Room uuid=(testRoom) key=(testRoom)>
                             <Example uuid=(base)>
-                                <Name>Test Room</Name>
+                                <DisplayName>Test Room</DisplayName>
                                 <Description>Test Description</Description>
                             </Example>
                         </Room>
@@ -1961,14 +1971,14 @@ describe('StandardForm', () => {
         })
 
         it('should return a minimal in-place edit diff for modified nested components', () => {
-            const base = new StandardForm(`<Asset uuid=(Test)><Room uuid=(testRoom) key=(testRoom)><Example uuid=(base) key=(base)><Name>Old Name</Name></Example></Room></Asset>`)
-            const incoming = new StandardForm(`<Asset uuid=(Test)><Room uuid=(testRoom) key=(testRoom)><Example uuid=(base) key=(base)><Name>New Name</Name></Example></Room></Asset>`)
+            const base = new StandardForm(`<Asset uuid=(Test)><Room uuid=(testRoom) key=(testRoom)><Example uuid=(base) key=(base)><DisplayName>Old Name</DisplayName></Example></Room></Asset>`)
+            const incoming = new StandardForm(`<Asset uuid=(Test)><Room uuid=(testRoom) key=(testRoom)><Example uuid=(base) key=(base)><DisplayName>New Name</DisplayName></Example></Room></Asset>`)
             const diff = base.diff(incoming)
             expect(schemaToWML([diff.schema])).toEqual(deIndentWML(`
                 <Asset uuid=(Test)>
                     <Example uuid=(base) key=(base) ref={0}>
-                        <Replace><Name>Old Name</Name></Replace>
-                        <With><Name>New Name</Name></With>
+                        <Replace><DisplayName>Old Name</DisplayName></Replace>
+                        <With><DisplayName>New Name</DisplayName></With>
                     </Example>
                 </Asset>
             `))
@@ -2083,7 +2093,7 @@ describe('StandardForm', () => {
                     <Asset uuid=(Test)>
                         <Room uuid=(room1) key=(room1)>
                             <Example uuid=(ex1) key=(ex1)>
-                                <Name>Old Name</Name>
+                                <DisplayName>Old Name</DisplayName>
                             </Example>
                         </Room>
                     </Asset>
@@ -2092,7 +2102,7 @@ describe('StandardForm', () => {
                     <Asset uuid=(Test)>
                         <Room uuid=(room1) key=(room1)>
                             <Example uuid=(ex1) key=(ex1)>
-                                <Name>New Name</Name>
+                                <DisplayName>New Name</DisplayName>
                             </Example>
                         </Room>
                     </Asset>
@@ -2103,8 +2113,8 @@ describe('StandardForm', () => {
                 expect(schemaToWML([diff.schema])).toEqual(deIndentWML(`
                     <Asset uuid=(Test)>
                         <Example uuid=(ex1) key=(ex1) ref={0}>
-                            <Replace><Name>Old Name</Name></Replace>
-                            <With><Name>New Name</Name></With>
+                            <Replace><DisplayName>Old Name</DisplayName></Replace>
+                            <With><DisplayName>New Name</DisplayName></With>
                         </Example>
                     </Asset>
                 `))
@@ -2123,7 +2133,7 @@ describe('StandardForm', () => {
                     <Asset uuid=(Test)>
                         <Room uuid=(room1) key=(room1)>
                             <Example uuid=(ex1) key=(ex1)>
-                                <Name>Original</Name>
+                                <DisplayName>Original</DisplayName>
                             </Example>
                         </Room>
                     </Asset>
@@ -2131,8 +2141,8 @@ describe('StandardForm', () => {
                 const diff = new StandardForm(deIndentWML(`
                     <Asset uuid=(Test)>
                         <Example uuid=(ex1) key=(ex1) ref={0}>
-                            <Replace><Name>Original</Name></Replace>
-                            <With><Name>Updated</Name></With>
+                            <Replace><DisplayName>Original</DisplayName></Replace>
+                            <With><DisplayName>Updated</DisplayName></With>
                         </Example>
                     </Asset>
                 `))
@@ -2142,7 +2152,9 @@ describe('StandardForm', () => {
                 expect(schemaToWML([merged.schema])).toEqual(deIndentWML(`
                     <Asset uuid=(Test)>
                         <Room uuid=(room1) key=(room1)>
-                            <Example uuid=(ex1) key=(ex1)><Name>Updated</Name></Example>
+                            <Example uuid=(ex1) key=(ex1)>
+                                <DisplayName>Updated</DisplayName>
+                            </Example>
                         </Room>
                     </Asset>
                 `))
@@ -2161,7 +2173,7 @@ describe('StandardForm', () => {
                 <Asset uuid=(Test)>
                     <Room uuid=(room1) key=(room1)>
                         <Example uuid=(ex1) key=(ex1)>
-                            <Name>Old Example</Name>
+                            <DisplayName>Old Example</DisplayName>
                         </Example>
                     </Room>
                 </Asset>
@@ -2169,7 +2181,7 @@ describe('StandardForm', () => {
             const incoming = new StandardForm(deIndentWML(`
                 <Asset uuid=(Test)>
                     <Example uuid=(ex1) key=(ex1)>
-                        <Name>New Example</Name>
+                        <DisplayName>New Example</DisplayName>
                     </Example>
                     <Room uuid=(room1) key=(room1) />
                 </Asset>
@@ -2180,8 +2192,8 @@ describe('StandardForm', () => {
             expect(schemaToWML([diff.schema])).toEqual(deIndentWML(`
                 <Asset uuid=(Test)>
                     <Example uuid=(ex1) key=(ex1)>
-                        <Replace><Name>Old Example</Name></Replace>
-                        <With><Name>New Example</Name></With>
+                        <Replace><DisplayName>Old Example</DisplayName></Replace>
+                        <With><DisplayName>New Example</DisplayName></With>
                     </Example>
                     <Room uuid=(room1) key=(room1) ref={0}>
                         <Remove><Example key=(ex1) /></Remove>
@@ -2205,7 +2217,7 @@ describe('StandardForm', () => {
                     <Asset uuid=(Test)>
                         <Example uuid=(ex1) key=(ex1)>
                             <Parent />
-                            <Name>New Example</Name>
+                            <DisplayName>New Example</DisplayName>
                         </Example>
                     </Asset>
                 `))
@@ -2216,7 +2228,7 @@ describe('StandardForm', () => {
                     <Asset uuid=(Test)>
                         <Example uuid=(ex1) key=(ex1)>
                             <Parent />
-                            <Name>New Example</Name>
+                            <DisplayName>New Example</DisplayName>
                         </Example>
                         <Room uuid=(room1) key=(room1)><Example key=(ex1) /></Room>
                     </Asset>
@@ -2243,7 +2255,7 @@ describe('StandardForm', () => {
                     <Asset uuid=(Test)>
                         <Room uuid=(room1) key=(room1)>
                             <Example uuid=(ex1) key=(ex1)>
-                                <Name>Nested Example</Name>
+                                <DisplayName>Nested Example</DisplayName>
                             </Example>
                         </Room>
                     </Asset>
@@ -2251,7 +2263,7 @@ describe('StandardForm', () => {
                 const incoming = new StandardForm(deIndentWML(`
                     <Asset uuid=(Test)>
                         <Example uuid=(ex1) key=(ex1)>
-                            <Name>Top-Level Example</Name>
+                            <DisplayName>Top-Level Example</DisplayName>
                         </Example>
                         <Room uuid=(room1) key=(room1) />
                     </Asset>
@@ -2262,8 +2274,8 @@ describe('StandardForm', () => {
                 expect(schemaToWML([diff.schema])).toEqual(deIndentWML(`
                     <Asset uuid=(Test)>
                         <Example uuid=(ex1) key=(ex1)>
-                            <Replace><Name>Nested Example</Name></Replace>
-                            <With><Name>Top-Level Example</Name></With>
+                            <Replace><DisplayName>Nested Example</DisplayName></Replace>
+                            <With><DisplayName>Top-Level Example</DisplayName></With>
                         </Example>
                         <Room uuid=(room1) key=(room1) ref={0}>
                             <Remove><Example key=(ex1) /></Remove>
@@ -2287,7 +2299,7 @@ describe('StandardForm', () => {
                     <Asset uuid=(Test)>
                         <Room uuid=(room1) key=(room1)>
                             <Example uuid=(ex1) key=(ex1)>
-                                <Name>Nested Example</Name>
+                                <DisplayName>Nested Example</DisplayName>
                             </Example>
                         </Room>
                     </Asset>
@@ -2296,8 +2308,8 @@ describe('StandardForm', () => {
                     <Asset uuid=(Test)>
                         <Example uuid=(ex1) key=(ex1)>
                             <Parent />
-                            <Replace><Name>Nested Example</Name></Replace>
-                            <With><Name>Top-Level Example</Name></With>
+                            <Replace><DisplayName>Nested Example</DisplayName></Replace>
+                            <With><DisplayName>Top-Level Example</DisplayName></With>
                         </Example>
                         <Room uuid=(room1) key=(room1) ref={0}>
                             <Remove><Example key=(ex1) /></Remove>
@@ -2311,7 +2323,7 @@ describe('StandardForm', () => {
                     <Asset uuid=(Test)>
                         <Example uuid=(ex1) key=(ex1)>
                             <Parent />
-                            <Name>Top-Level Example</Name>
+                            <DisplayName>Top-Level Example</DisplayName>
                         </Example>
                         <Room uuid=(room1) key=(room1) />
                     </Asset>
@@ -2343,7 +2355,7 @@ describe('StandardForm', () => {
                     <Asset uuid=(Test)>
                         <Room uuid=(room1) key=(room1) />
                         <Example uuid=(ex1) key=(ex1)>
-                            <Name>Top-level</Name>
+                            <DisplayName>Top-level</DisplayName>
                         </Example>
                     </Asset>
                 `))
@@ -2351,7 +2363,7 @@ describe('StandardForm', () => {
                     <Asset uuid=(Test)>
                         <Room uuid=(room1) key=(room1)>
                             <Example uuid=(ex1) key=(ex1)>
-                                <Name>Now nested</Name>
+                                <DisplayName>Now nested</DisplayName>
                             </Example>
                         </Room>
                     </Asset>
@@ -2364,8 +2376,8 @@ describe('StandardForm', () => {
                         <Remove><Example key=(ex1) /></Remove>
                         <Room uuid=(room1) key=(room1) ref={0}>
                             <Example uuid=(ex1) key=(ex1)>
-                                <Replace><Name>Top-level</Name></Replace>
-                                <With><Name>Now nested</Name></With>
+                                <Replace><DisplayName>Top-level</DisplayName></Replace>
+                                <With><DisplayName>Now nested</DisplayName></With>
                             </Example>
                         </Room>
                     </Asset>
@@ -2382,7 +2394,7 @@ describe('StandardForm', () => {
                     <Asset uuid=(Test)>
                         <Room uuid=(room1) key=(room1) />
                         <Example uuid=(ex1) key=(ex1)>
-                            <Name>Top-level</Name>
+                            <DisplayName>Top-level</DisplayName>
                         </Example>
                     </Asset>
                 `))
@@ -2392,8 +2404,8 @@ describe('StandardForm', () => {
                         <Room uuid=(room1) key=(room1) ref={0}>
                             <Example uuid=(ex1) key=(ex1)>
                                 <Parent>room1</Parent>
-                                <Replace><Name>Top-level</Name></Replace>
-                                <With><Name>Now nested</Name></With>
+                                <Replace><DisplayName>Top-level</DisplayName></Replace>
+                                <With><DisplayName>Now nested</DisplayName></With>
                             </Example>
                         </Room>
                     </Asset>
@@ -2406,7 +2418,7 @@ describe('StandardForm', () => {
                         <Room uuid=(room1) key=(room1)>
                             <Example uuid=(ex1) key=(ex1)>
                                 <Parent>room1</Parent>
-                                <Name>Now nested</Name>
+                                <DisplayName>Now nested</DisplayName>
                             </Example>
                         </Room>
                     </Asset>
@@ -3021,7 +3033,7 @@ describe('StandardForm', () => {
             <Asset uuid=(test)>
                 <Feature uuid=(003) key=(testFeature)>
                     <Example uuid=(0035)>
-                        <Name>Clocktower</Name>
+                        <DisplayName>Clocktower</DisplayName>
                         <Description>
                             A tower built of white sandstone blocks, with an ornate clock
                             set on the northern face.
@@ -3030,14 +3042,14 @@ describe('StandardForm', () => {
                 </Feature>
                 <Knowledge uuid=(004) key=(testKnowledge)>
                     <Example uuid=(0045)>
-                        <Name>Learn</Name>
+                        <DisplayName>Learn</DisplayName>
                         <Description>There is so much to know!</Description>
                     </Example>
                 </Knowledge>
                 <Room uuid=(002) key=(testRoom)>
                     <ShortName>Vortex</ShortName>
                     <Example uuid=(025)>
-                        <Name>Vortex</Name>
+                        <DisplayName>Vortex</DisplayName>
                         <Description>Vortex Desc</Description>
                     </Example>
                 </Room>
@@ -3077,7 +3089,7 @@ describe('StandardForm', () => {
                 <Room uuid=(001) key=(testRoom)>
                     <Feature uuid=(004) key=(testLocal)>
                         <Example uuid=(004b)>
-                            <Name>Clocktower</Name>
+                            <DisplayName>Clocktower</DisplayName>
                             <Description>
                                 A tower built of white sandstone blocks, with an ornate clock set on
                                 the northern face.
@@ -3086,7 +3098,7 @@ describe('StandardForm', () => {
                     </Feature>
                     <Feature uuid=(003) key=(testGlobal) />
                     <Example uuid=(001b)>
-                        <Name>Vortex</Name>
+                        <DisplayName>Vortex</DisplayName>
                     </Example>
                 </Room>
                 <Room uuid=(002) key=(testRoomTwo) />
@@ -3126,7 +3138,7 @@ describe('StandardForm', () => {
             {
                 tag: 'Example',
                 universalKey: 'EXAMPLE#001b',
-                name:['Vortex']
+                displayName:['Vortex']
             },
             {
                 tag: 'Feature',
@@ -3138,7 +3150,7 @@ describe('StandardForm', () => {
                 tag: 'Example',
                 universalKey: 'EXAMPLE#004b',
                 description: ['A tower built of white sandstone blocks, with an ornate clock set on the northern face.'],
-                name: ['Clocktower']
+                displayName: ['Clocktower']
             },
             { tag: 'Room', key: 'testRoomTwo', universalKey: 'ROOM#002' }
         ])
@@ -3154,14 +3166,14 @@ describe('StandardForm', () => {
                     <Feature key=(testGlobal) />
                     <Feature uuid=(004) key=(testLocal)>
                         <Example uuid=(004b)>
-                            <Name>Clocktower</Name>
+                            <DisplayName>Clocktower</DisplayName>
                             <Description>
                                 A tower built of white sandstone blocks, with an ornate
                                 clock set on the northern face.
                             </Description>
                         </Example>
                     </Feature>
-                    <Example uuid=(001b)><Name>Vortex</Name></Example>
+                    <Example uuid=(001b)><DisplayName>Vortex</DisplayName></Example>
                 </Room>
                 <Room uuid=(002) key=(testRoomTwo) />
             </Asset>
@@ -3190,7 +3202,7 @@ describe('StandardForm', () => {
                 const base = new StandardForm(`
                     <Asset uuid=(test)>
                         <Feature key=(testFeature)>
-                            <Example uuid=(base)><Name>Test</Name></Example>
+                            <Example uuid=(base)><DisplayName>Test</DisplayName></Example>
                         </Feature>
                     </Asset>
                 `)
@@ -3211,7 +3223,7 @@ describe('StandardForm', () => {
                 const base = new StandardForm(`
                     <Asset uuid=(test)>
                         <Feature key=(testFeature)>
-                            <Example uuid=(base)><Name>Test</Name></Example>
+                            <Example uuid=(base)><DisplayName>Test</DisplayName></Example>
                         </Feature>
                     </Asset>
                 `)
@@ -3401,7 +3413,7 @@ describe('StandardForm', () => {
                 const base = new StandardForm(`
                     <Asset uuid=(test)>
                         <Feature uuid=(FEATURE#feature1) key=(testFeature)>
-                            <Example uuid=(base)><Name>Test</Name></Example>
+                            <Example uuid=(base)><DisplayName>Test</DisplayName></Example>
                         </Feature>
                     </Asset>
                 `)
@@ -3425,10 +3437,10 @@ describe('StandardForm', () => {
                 const base = new StandardForm(`
                     <Asset uuid=(test)>
                         <Feature uuid=(FEATURE#feature1) key=(feature1)>
-                            <Example uuid=(base)><Name>One</Name></Example>
+                            <Example uuid=(base)><DisplayName>One</DisplayName></Example>
                         </Feature>
                         <Feature uuid=(FEATURE#feature2) key=(feature2)>
-                            <Example uuid=(base)><Name>Two</Name></Example>
+                            <Example uuid=(base)><DisplayName>Two</DisplayName></Example>
                         </Feature>
                     </Asset>
                 `)
@@ -3594,7 +3606,7 @@ describe('StandardForm', () => {
                 <Asset uuid=(test)>
                     <Room uuid=(testRoom) key=(testRoom)>
                         <Example uuid=(testExample) key=(testExample)>
-                            <Name>Test Room</Name>
+                            <DisplayName>Test Room</DisplayName>
                             <Description>Test room description</Description>
                         </Example>
                     </Room>
@@ -3611,7 +3623,7 @@ describe('StandardForm', () => {
             
             // Test that the returned instances have the expected properties
             if (foundExample instanceof StandardExample) {
-                expect(foundExample.name).toBeDefined()
+                expect(foundExample.displayName).toBeDefined()
                 expect(foundExample.description).toBeDefined()
             }
         })
@@ -3623,16 +3635,16 @@ describe('StandardForm', () => {
                 <Asset uuid=(test)>
                     <Character uuid=(char1) key=(char1)>
                         <ShortName>Alice</ShortName>
-                        <Name>Alice</Name>
+                        <DisplayName>Alice</DisplayName>
                     </Character>
                     <Character uuid=(char2) key=(char2)>
                         <ShortName>Bob</ShortName>
-                        <Name>Bob</Name>
+                        <DisplayName>Bob</DisplayName>
                     </Character>
                     <Room uuid=(room1) key=(room1)>
                         <Character key=(char3)>
                             <ShortName>Charlie</ShortName>
-                            <Name>Charlie</Name>
+                            <DisplayName>Charlie</DisplayName>
                         </Character>
                         <Character uuid=(char1) />
                     </Room>
@@ -3640,7 +3652,7 @@ describe('StandardForm', () => {
                         <Character uuid=(char2) />
                         <Character key=(char4)>
                             <ShortName>David</ShortName>
-                            <Name>David</Name>
+                            <DisplayName>David</DisplayName>
                         </Character>
                     </Room>
                 </Asset>
@@ -3682,24 +3694,24 @@ describe('StandardForm', () => {
                 <Asset uuid=(test)>
                     <Character uuid=(char1) key=(char1)>
                         <ShortName>Alice</ShortName>
-                        <Name>Alice</Name>
+                        <DisplayName>Alice</DisplayName>
                     </Character>
                     <Character uuid=(char2) key=(char2)>
                         <ShortName>Bob</ShortName>
-                        <Name>Bob</Name>
+                        <DisplayName>Bob</DisplayName>
                     </Character>
                     <Room uuid=(room1) key=(room1)>
                         <Character key=(char1) />
                         <Character uuid=(mock-uuid-1) key=(char3)>
                             <ShortName>Charlie</ShortName>
-                            <Name>Charlie</Name>
+                            <DisplayName>Charlie</DisplayName>
                         </Character>
                     </Room>
                     <Room uuid=(room2) key=(room2)>
                         <Character key=(char2) />
                         <Character uuid=(mock-uuid-2) key=(char4)>
                             <ShortName>David</ShortName>
-                            <Name>David</Name>
+                            <DisplayName>David</DisplayName>
                         </Character>
                     </Room>
                 </Asset>
@@ -3733,7 +3745,7 @@ describe('StandardForm', () => {
         const baseForm = new StandardForm(`<Asset uuid=(Test)>
             <Room key=(testRoom)>
                 <Example uuid=(room-example)>
-                    <Name>Lobby</Name>
+                    <DisplayName>Lobby</DisplayName>
                     <Description>A sterile corporate lobby.</Description>
                 </Example>
             </Room>
@@ -3741,7 +3753,7 @@ describe('StandardForm', () => {
 
         const editForm = new StandardForm(`<Asset uuid=(Test)>
             <Example uuid=(room-example) ref={0}>
-                <Replace><Name>Lobby</Name></Replace><With><Name>Grand Foyer</Name></With>
+                <Replace><DisplayName>Lobby</DisplayName></Replace><With><DisplayName>Grand Foyer</DisplayName></With>
             </Example>
         </Asset>`)
 
@@ -3754,7 +3766,7 @@ describe('StandardForm', () => {
             <Asset uuid=(Test)>
                 <Room key=(testRoom)>
                     <Example uuid=(room-example)>
-                        <Name>Grand Foyer</Name>
+                        <DisplayName>Grand Foyer</DisplayName>
                         <Description>A sterile corporate lobby.</Description>
                     </Example>
                 </Room>
@@ -3763,7 +3775,7 @@ describe('StandardForm', () => {
         
         // Verify the merge actually happened correctly
         const example = mergedForm._lookup('EXAMPLE#room-example') as StandardExample
-        expect(example.name?.toJSON()).toEqual(['Grand Foyer'])
+        expect(example.displayName?.toJSON()).toEqual(['Grand Foyer'])
         expect(example.description?.toJSON()).toEqual(['A sterile corporate lobby.'])
     })
 

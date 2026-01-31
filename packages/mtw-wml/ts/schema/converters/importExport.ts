@@ -7,6 +7,7 @@ import { GenericTree, GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/generi
 import { isImportable, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaRemove, isSchemaReplace } from "@tonylb/mtw-base/ts/schema/edit"
 import { isSchemaImage, SchemaImageTag } from "@tonylb/mtw-base/ts/schema/image"
+import { isSchemaShortName } from "@tonylb/mtw-base/ts/schema/components"
 import { PrintMode } from "@tonylb/mtw-base/ts/schema/printMap"
 
 const importExportTemplates = {
@@ -70,6 +71,16 @@ export const importExportConverters: Record<string, ConverterMapEntry> = {
                 tag: 'Image',
                 ...(refValue !== undefined ? { ref: refValue } : {}),
                 ...rest
+            }
+        },
+        typeCheckContents: (item) => isSchemaShortName(item),
+        finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag>): GenericTreeNodeFiltered<SchemaImageTag, SchemaTag> => {
+            if (!isSchemaImage(initialTag)) {
+                throw new Error('Type mismatch on schema finalize')
+            }
+            return {
+                data: initialTag,
+                children
             }
         }
     }

@@ -4,10 +4,9 @@ import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./base
 import { tagRender } from "./tagRender"
 import { validateProperties, validateExpressionAsNonNegativeInteger, parsePositionCoordinates } from "./utils"
 import { GenericTree, GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree"
-import { isSchemaExit, isSchemaFeature, isSchemaKnowledge, isSchemaMap, isSchemaPosition, isSchemaRoom, isSchemaParent, isSchemaKey, SchemaExitTag, SchemaFeatureTag, SchemaKnowledgeTag, SchemaMapTag, SchemaPositionTag, SchemaRoomTag, SchemaShortNameTag, SchemaParentTag, SchemaKeyTag } from "@tonylb/mtw-base/ts/schema/components"
+import { isSchemaExit, isSchemaFeature, isSchemaKnowledge, isSchemaMap, isSchemaPosition, isSchemaRoom, isSchemaShortName, isSchemaParent, isSchemaKey, SchemaExitTag, SchemaFeatureTag, SchemaKnowledgeTag, SchemaMapTag, SchemaPositionTag, SchemaRoomTag, SchemaShortNameTag, SchemaParentTag, SchemaKeyTag } from "@tonylb/mtw-base/ts/schema/components"
 import { isSchemaString, SchemaStringTag } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { isSchemaMapContents, SchemaTag, isSchemaComponent, isSchemaComponentUUID } from "@tonylb/mtw-base/ts/schema"
-import { isSchemaName } from "@tonylb/mtw-base/ts/schema/example"
 import { PrintMode, PrintMapResult } from "@tonylb/mtw-base/ts/schema/printMap"
 import { literalTagFactory } from "@tonylb/mtw-base/ts/schema/literalTagFactory"
 import { enforceTypedKey, stripTypedKey } from "@tonylb/mtw-utilities/ts/types"
@@ -19,7 +18,7 @@ const componentTemplates = {
     },
     Description: {},
     Summary: {},
-    Name: {},
+    DisplayName: {},
     ShortName: {},
     Parent: {},
     Key: {},
@@ -265,7 +264,7 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
                 ...rest
             }
         },
-        typeCheckContents: (item) => (isSchemaMapContents(item) || isSchemaName(item)),
+        typeCheckContents: (item) => (isSchemaMapContents(item) || isSchemaShortName(item)),
         validateContents: {
             isValid: (tag) => (true),
             branchTags: ['Room'],

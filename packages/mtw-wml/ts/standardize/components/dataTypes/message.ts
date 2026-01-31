@@ -7,6 +7,7 @@ import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";
 
 export type StandardMessageData = {
     tag: 'Message';
+    shortName?: StandardEditableData<string>;
     description?: EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag>;
     rooms?: ReferenceListData;
 } & StandardBaseData
@@ -23,6 +24,7 @@ export const isStandardMessageData = (arg: any): arg is StandardMessageData => {
             rooms: 'referenceList'
         },
         {
+            shortName: 'literal',
             description: 'node'
         })
     )

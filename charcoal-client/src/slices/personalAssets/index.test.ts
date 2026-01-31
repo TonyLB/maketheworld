@@ -6,7 +6,7 @@ import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 
 const schema = new Schema()
 schema.loadWML(`<Asset uuid=(testAsset)>
-    <Room uuid=(testRoom) from=(ASSET#testImport)><Name>: imported</Name></Room>
+    <Room uuid=(testRoom) from=(ASSET#testImport)><ShortName>: imported</ShortName></Room>
 </Asset>`)
 const standard = new StandardForm(schema.schema[0])
 

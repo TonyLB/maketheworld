@@ -82,7 +82,7 @@ export const ephemeraUpdate = async ({ payloads }: { payloads: EphemeraUpdateMes
                                     {
                                         ...(characterDefaults
                                             ? {
-                                                Name: characterDefaults.Name,
+                                                DisplayName: characterDefaults.Name,
                                                 RoomId: characterDefaults.RoomId,
                                                 fileURL: characterDefaults.fileURL,
                                                 Color: characterDefaults.Color

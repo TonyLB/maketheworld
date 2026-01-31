@@ -747,7 +747,6 @@ exports[`large WML test should standardize properly 1`] = `
       },
     ],
     "key": "dungeonMap",
-    "name": undefined,
     "positions": [
       {
         "payload": {
@@ -794,6 +793,7 @@ exports[`large WML test should standardize properly 1`] = `
         },
       },
     ],
+    "shortName": undefined,
     "tag": "Map",
     "universalKey": undefined,
   },

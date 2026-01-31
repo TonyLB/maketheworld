@@ -65,7 +65,7 @@ export const RoomDescription = ({ parsedWML, metaData, header, currentHeader }: 
                     
                     if (exampleComponent instanceof StandardExample) {
                         // StandardExample properties now return StandardRender objects directly
-                        name = exampleComponent.name || new StandardRender(['Untitled'])
+                        name = exampleComponent.displayName || new StandardRender(['Untitled'])
                         description = exampleComponent.description || new StandardRender([])
                         summary = exampleComponent.summary || new StandardRender([])
                     }

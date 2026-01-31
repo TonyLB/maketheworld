@@ -54,7 +54,7 @@ describe('personalAsset slice reducers', () => {
                     <Asset uuid=(testAsset)>
                         <Room uuid=(testRoom)>
                             <Example uuid=(base)>
-                                <Name>Test Room</Name>
+                                <DisplayName>Test Room</DisplayName>
                                 <Description>Test Description</Description>
                             </Example>
                         </Room>
@@ -69,7 +69,7 @@ describe('personalAsset slice reducers', () => {
                         const exampleComponent = draft.byUniversalId['EXAMPLE#base']
                         if (exampleComponent instanceof StandardExample) {
                             const newExample = exampleComponent.clone()
-                            newExample._payload._name = new StandardRender(['Test Update'])
+                            newExample._payload._displayName = new StandardRender(['Test Update'])
                             draft.byUniversalId['EXAMPLE#base'] = newExample
                         }
                         return draft
@@ -80,7 +80,7 @@ describe('personalAsset slice reducers', () => {
                     <Asset uuid=(testAsset)>
                         <Room uuid=(testRoom)>
                             <Example uuid=(base)>
-                                <Name>Test Room</Name>
+                                <DisplayName>Test Room</DisplayName>
                                 <Description>Test Description</Description>
                             </Example>
                         </Room>
@@ -90,7 +90,7 @@ describe('personalAsset slice reducers', () => {
                     <Asset uuid=(testAsset)>
                         <Room uuid=(testRoom)>
                             <Example uuid=(base)>
-                                <Name>Test Update</Name>
+                                <DisplayName>Test Update</DisplayName>
                                 <Description>Test Description</Description>
                             </Example>
                         </Room>
@@ -100,7 +100,7 @@ describe('personalAsset slice reducers', () => {
                     <Asset uuid=(testAsset)>
                         <Room uuid=(testRoom)>
                             <Example uuid=(base)>
-                                <Name>Test Update</Name>
+                                <DisplayName>Test Update</DisplayName>
                                 <Description>Test Description</Description>
                             </Example>
                         </Room>
@@ -109,7 +109,8 @@ describe('personalAsset slice reducers', () => {
                 edit: deIndentWML(`
                     <Asset uuid=(testAsset)>
                         <Example uuid=(base) ref={0}>
-                            <Replace><Name>Room</Name></Replace><With><Name>Update</Name></With>
+                            <Replace><DisplayName>Room</DisplayName></Replace>
+                            <With><DisplayName>Update</DisplayName></With>
                         </Example>
                     </Asset>
                 `)
@@ -122,7 +123,7 @@ describe('personalAsset slice reducers', () => {
                 <Asset uuid=(testAsset)>
                     <Room uuid=(testRoom)>
                         <Example uuid=(base)>
-                            <Name>Test Room</Name>
+                            <DisplayName>Test Room</DisplayName>
                             <Description>Test Description</Description>
                         </Example>
                     </Room>
@@ -145,7 +146,7 @@ describe('personalAsset slice reducers', () => {
                     <Asset uuid=(testAsset)>
                         <Room uuid=(testRoom)>
                             <Example uuid=(base)>
-                                <Name>Test Room</Name>
+                                <DisplayName>Test Room</DisplayName>
                                 <Description>Test Description</Description>
                             </Example>
                         </Room>
@@ -163,7 +164,7 @@ describe('personalAsset slice reducers', () => {
                         <Remove>
                             <Room uuid=(testRoom)>
                                 <Example uuid=(base)>
-                                    <Name>Test Room</Name>
+                                    <DisplayName>Test Room</DisplayName>
                                     <Description>Test Description</Description>
                                 </Example>
                             </Room>
@@ -179,7 +180,7 @@ describe('personalAsset slice reducers', () => {
                 <Asset uuid=(testAsset)>
                     <Room uuid=(testRoom)>
                         <Example uuid=(base)>
-                            <Name>Test Room</Name>
+                            <DisplayName>Test Room</DisplayName>
                             <Description>Test Description</Description>
                         </Example>
                     </Room>
@@ -194,7 +195,7 @@ describe('personalAsset slice reducers', () => {
                         const exampleComponent = draft.byUniversalId['EXAMPLE#base']
                         if (exampleComponent instanceof StandardExample) {
                             const newExample = exampleComponent.clone()
-                            newExample._payload._name = undefined
+                            newExample._payload._displayName = undefined
                             draft.byUniversalId['EXAMPLE#base'] = newExample
                         }
                         return draft
@@ -205,7 +206,7 @@ describe('personalAsset slice reducers', () => {
                     <Asset uuid=(testAsset)>
                         <Room uuid=(testRoom)>
                             <Example uuid=(base)>
-                                <Name>Test Room</Name>
+                                <DisplayName>Test Room</DisplayName>
                                 <Description>Test Description</Description>
                             </Example>
                         </Room>
@@ -232,7 +233,7 @@ describe('personalAsset slice reducers', () => {
                 edit: deIndentWML(`
                     <Asset uuid=(testAsset)>
                         <Example uuid=(base) ref={0}>
-                            <Remove><Name>Test Room</Name></Remove>
+                            <Remove><DisplayName>Test Room</DisplayName></Remove>
                         </Example>
                     </Asset>
                 `)
@@ -245,13 +246,13 @@ describe('personalAsset slice reducers', () => {
                 <Asset uuid=(testAsset)>
                     <Room uuid=(Room1)>
                         <Example uuid=(base)>
-                            <Name>Test Room</Name>
+                            <DisplayName>Test Room</DisplayName>
                             <Description>Test Description</Description>
                         </Example>
                         <Exit to=(ROOM#Room2)>out</Exit>
                     </Room>
                     <Room uuid=(Room2)>
-                        <Example uuid=(base2)><Name>Garden</Name></Example>
+                        <Example uuid=(base2)><DisplayName>Garden</DisplayName></Example>
                         <Exit to=(ROOM#Room1)>text</Exit>
                     </Room>
                 </Asset>
@@ -274,13 +275,13 @@ describe('personalAsset slice reducers', () => {
                     <Asset uuid=(testAsset)>
                         <Room uuid=(Room1)>
                             <Example uuid=(base)>
-                                <Name>Test Room</Name>
+                                <DisplayName>Test Room</DisplayName>
                                 <Description>Test Description</Description>
                             </Example>
                             <Exit to=(ROOM#Room2)>out</Exit>
                         </Room>
                         <Room uuid=(Room2)>
-                            <Example uuid=(base2)><Name>Garden</Name></Example>
+                            <Example uuid=(base2)><DisplayName>Garden</DisplayName></Example>
                             <Exit to=(ROOM#Room1)>text</Exit>
                         </Room>
                     </Asset>
@@ -289,13 +290,13 @@ describe('personalAsset slice reducers', () => {
                     <Asset uuid=(testAsset)>
                         <Room uuid=(Room1)>
                             <Example uuid=(base)>
-                                <Name>Test Room</Name>
+                                <DisplayName>Test Room</DisplayName>
                                 <Description>Test Description</Description>
                             </Example>
                             <Exit to=(garden)>out</Exit>
                         </Room>
                         <Room uuid=(Room2) key=(garden)>
-                            <Example uuid=(base2)><Name>Garden</Name></Example>
+                            <Example uuid=(base2)><DisplayName>Garden</DisplayName></Example>
                             <Exit to=(ROOM#Room1)>text</Exit>
                         </Room>
                     </Asset>
@@ -304,13 +305,13 @@ describe('personalAsset slice reducers', () => {
                     <Asset uuid=(testAsset)>
                         <Room uuid=(Room1)>
                             <Example uuid=(base)>
-                                <Name>Test Room</Name>
+                                <DisplayName>Test Room</DisplayName>
                                 <Description>Test Description</Description>
                             </Example>
                             <Exit to=(garden)>out</Exit>
                         </Room>
                         <Room uuid=(Room2) key=(garden)>
-                            <Example uuid=(base2)><Name>Garden</Name></Example>
+                            <Example uuid=(base2)><DisplayName>Garden</DisplayName></Example>
                             <Exit to=(ROOM#Room1)>text</Exit>
                         </Room>
                     </Asset>
@@ -325,7 +326,7 @@ describe('personalAsset slice reducers', () => {
             expect(transformWML(
                 `
                 <Asset uuid=(testAsset)>
-                    <Room uuid=(Room2)><Example uuid=(base)><Name>Garden</Name></Example></Room>
+                    <Room uuid=(Room2)><Example uuid=(base)><DisplayName>Garden</DisplayName></Example></Room>
                     <Map uuid=(testMap)><Room uuid=(Room2)><Position {0, 0} /></Room></Map>
                 </Asset>
                 `,
@@ -346,7 +347,7 @@ describe('personalAsset slice reducers', () => {
                 base: deIndentWML(`
                     <Asset uuid=(testAsset)>
                         <Room uuid=(Room2)>
-                            <Example uuid=(base)><Name>Garden</Name></Example>
+                            <Example uuid=(base)><DisplayName>Garden</DisplayName></Example>
                         </Room>
                         <Map uuid=(testMap)><Room uuid=(Room2)><Position {0, 0} /></Room></Map>
                     </Asset>
@@ -354,7 +355,7 @@ describe('personalAsset slice reducers', () => {
                 standard: deIndentWML(`
                     <Asset uuid=(testAsset)>
                         <Room uuid=(Room2) key=(garden)>
-                            <Example uuid=(base)><Name>Garden</Name></Example>
+                            <Example uuid=(base)><DisplayName>Garden</DisplayName></Example>
                         </Room>
                         <Map uuid=(testMap)><Room key=(garden)><Position {0, 0} /></Room></Map>
                     </Asset>
@@ -362,7 +363,7 @@ describe('personalAsset slice reducers', () => {
                 calculated: deIndentWML(`
                     <Asset uuid=(testAsset)>
                         <Room uuid=(Room2) key=(garden)>
-                            <Example uuid=(base)><Name>Garden</Name></Example>
+                            <Example uuid=(base)><DisplayName>Garden</DisplayName></Example>
                         </Room>
                         <Map uuid=(testMap)><Room key=(garden)><Position {0, 0} /></Room></Map>
                     </Asset>
@@ -379,7 +380,7 @@ describe('personalAsset slice reducers', () => {
                 <Asset uuid=(testAsset)>
                     <Feature uuid=(Feature1) key=(Feature1)>
                         <Example uuid=(base)>
-                            <Name>Test Feature</Name>
+                            <DisplayName>Test Feature</DisplayName>
                             <Description><Link to=(Feature1)>Link</Link></Description>
                         </Example>
                     </Feature>
@@ -403,7 +404,7 @@ describe('personalAsset slice reducers', () => {
                     <Asset uuid=(testAsset)>
                         <Feature uuid=(Feature1) key=(Feature1)>
                             <Example uuid=(base)>
-                                <Name>Test Feature</Name>
+                                <DisplayName>Test Feature</DisplayName>
                                 <Description><Link to=(Feature1)>Link</Link></Description>
                             </Example>
                         </Feature>
@@ -413,7 +414,7 @@ describe('personalAsset slice reducers', () => {
                     <Asset uuid=(testAsset)>
                         <Feature uuid=(Feature1) key=(clockTower)>
                             <Example uuid=(base)>
-                                <Name>Test Feature</Name>
+                                <DisplayName>Test Feature</DisplayName>
                                 <Description><Link to=(clockTower)>Link</Link></Description>
                             </Example>
                         </Feature>
@@ -423,7 +424,7 @@ describe('personalAsset slice reducers', () => {
                     <Asset uuid=(testAsset)>
                         <Feature uuid=(Feature1) key=(clockTower)>
                             <Example uuid=(base)>
-                                <Name>Test Feature</Name>
+                                <DisplayName>Test Feature</DisplayName>
                                 <Description><Link to=(clockTower)>Link</Link></Description>
                             </Example>
                         </Feature>

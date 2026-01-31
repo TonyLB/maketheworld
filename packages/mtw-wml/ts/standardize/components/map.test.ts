@@ -4,14 +4,13 @@ import { treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { StandardMapData } from "./dataTypes/map"
 import StandardMap from './map'
 import { mergeTest } from "./utils/testing"
-import { isSchemaName } from "@tonylb/mtw-base/ts/schema/example"
 
 describe('StandardMap class', () => {
 
     it('should construct StandardMap from WML', () => {
         const testSource = deIndentWML(`
             <Map uuid=(001) key=(test)>
-                <Name>Name Test</Name>
+                <ShortName>Name Test</ShortName>
                 <Image key=(testImage) />
                 <Room key=(testRoom)><Position {100, 100} /></Room>
             </Map>
@@ -19,7 +18,7 @@ describe('StandardMap class', () => {
         const testMap = new StandardMap(testSource)
         expect(testMap.universalKey).toEqual('MAP#001')
         expect(testMap.key).toEqual('test')
-        expect(testMap.name?.toJSON()).toEqual('Name Test')
+        expect(testMap.shortName?.toJSON()).toEqual('Name Test')
         expect(testMap.images).toEqual([{ data: { tag: 'Image', key: "testImage" }, children: [] }])
         expect(testMap.positions.toJSON()).toEqual([{ reference: { key: "testRoom", tag: 'Room' }, payload: { x: 100, y: 100 } }])
         expect(schemaToWML([testMap.schema])).toEqual(testSource)
@@ -29,7 +28,7 @@ describe('StandardMap class', () => {
         const schema = new Schema()
         const testSource = deIndentWML(`
             <Map key=(test)>
-                <Name>Name Test</Name>
+                <ShortName>Name Test</ShortName>
                 <Image key=(testImage) />
                 <Room key=(testRoom)><Position {100, 100} /></Room>
             </Map>
@@ -37,7 +36,7 @@ describe('StandardMap class', () => {
         schema.loadWML(testSource)
         const testMap = new StandardMap(schema.schema[0])
         expect(testMap.key).toEqual('test')
-        expect(testMap.name?.toJSON()).toEqual('Name Test')
+        expect(testMap.shortName?.toJSON()).toEqual('Name Test')
         expect(testMap.images).toEqual([{ data: { tag: 'Image', key: "testImage" }, children: [] }])
         expect(testMap.positions.toJSON()).toEqual([{ reference: { key: "testRoom", tag: 'Room' }, payload: { x: 100, y: 100 } }])
         expect(schemaToWML([testMap.schema])).toEqual(testSource)
@@ -47,13 +46,13 @@ describe('StandardMap class', () => {
         const testMapData: StandardMapData = {
             key: 'test',
             tag: 'Map',
-            name: 'Name Test',
+            shortName: 'Name Test',
             images: [{ data: { tag: 'Image', key: "testImage" }, children: [] }],
             positions: [{ reference: { key: "testRoom", tag: 'Room' }, payload: { x: 10, y: 100 } }]
         }
         const testMap = new StandardMap(testMapData)
         expect(testMap.key).toEqual('test')
-        expect(testMap.name?.toJSON()).toEqual('Name Test')
+        expect(testMap.shortName?.toJSON()).toEqual('Name Test')
         expect(testMap.images).toEqual([{ data: { tag: 'Image', key: "testImage" }, children: [] }])
         expect(testMap.positions.items.map((position) => (position.toJSON()))).toEqual([{ 
             reference: { key: "testRoom", tag: "Room", universalKey: undefined }, 
@@ -90,7 +89,7 @@ describe('StandardMap class', () => {
     it('should ignore non-position children of Room tags', () => {
         const testMap = new StandardMap(deIndentWML(`
             <Map key=(testMap)>
-                <Name>Lobby</Name>
+                <ShortName>Lobby</ShortName>
                 <Room key=(testRoom)>
                     <Position {100, 100} />
                     <ShortName>Room Name</ShortName>
@@ -105,12 +104,12 @@ describe('StandardMap class', () => {
         const testMapDataWithoutImagesAndPositions: StandardMapData = {
             key: 'test',
             tag: 'Map',
-            name: 'Name Test'
+            shortName: 'Name Test'
             // images and positions properties are missing - this should not crash
         }
         const testMap = new StandardMap(testMapDataWithoutImagesAndPositions)
         expect(testMap.key).toEqual('test')
-        expect(testMap.name?.toJSON()).toEqual('Name Test')
+        expect(testMap.shortName?.toJSON()).toEqual('Name Test')
         expect(testMap.images).toEqual([])  // Should default to empty array
         expect(testMap.positions.items).toEqual([])  // Should default to empty array
         
@@ -123,7 +122,7 @@ describe('StandardMap class', () => {
     it('should merge correctly', () => {
         expect(mergeTest(
             `<Map key=(testMap)>
-                <Name>Lobby</Name>
+                <ShortName>Lobby</ShortName>
                 <Room key=(testRoom)><Position {100, 100} /></Room>
             </Map>`,
             StandardMap,
@@ -132,7 +131,7 @@ describe('StandardMap class', () => {
             </Map>`
         )).toEqual(deIndentWML(`
             <Map key=(testMap)>
-                <Name>Lobby</Name>
+                <ShortName>Lobby</ShortName>
                 <Room key=(testRoom)><Position {100, 100} /></Room>
                 <Room key=(testRoomTwo)><Position {100, 50} /></Room>
             </Map>

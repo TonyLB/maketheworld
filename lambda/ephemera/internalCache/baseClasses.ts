@@ -49,7 +49,7 @@ export type RoomCharacterListItem = {
     Color?: LegalCharacterColor;
     SessionIds: string[];
     fileURL?: string;
-    Name: string;
+    DisplayName: string;
 }
 
 export type LegalDependencyTag = 'Asset' | 'Room' | 'Feature' | 'Map'

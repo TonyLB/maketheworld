@@ -8,7 +8,7 @@ import { StandardExitFacet } from "@tonylb/mtw-wml/ts/standardize/keys/facets/ex
 export type ToolSelected = 'Select' | 'Move' | 'AddRoom' | 'OneWayExit' | 'TwoWayExit'
 
 export type MapTreeExit = SchemaExitTag & { inherited?: boolean }
-export type MapTreeRoom = SchemaRoomTag & { name: GenericTree<SchemaOutputTag>, inherited?: boolean; }
+export type MapTreeRoom = SchemaRoomTag & { shortName: GenericTree<SchemaOutputTag>, inherited?: boolean; }
 
 export type MapTreeItem = MapTreeExit | MapTreeRoom
 export const isMapTreeRoom = (node: MapTreeItem): node is MapTreeRoom => (node.tag === 'Room')
@@ -44,13 +44,6 @@ export class MapExit {
      */
     get to(): string {
         return this._facet.reference.universalKey ?? ''
-    }
-
-    /**
-     * Get the exit name/description if available
-     */
-    get name(): string | undefined {
-        return this.description
     }
 
     /**
@@ -168,7 +161,7 @@ export type MapContextPosition = {
     id: `ROOM#${string}`;
     x: number;
     y: number;
-    name: string;
+    shortName: string;
 }
 
 export type MapContextType = {

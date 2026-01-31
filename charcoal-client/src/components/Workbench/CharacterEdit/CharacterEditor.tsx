@@ -209,8 +209,8 @@ export const CharacterEditor: FunctionComponent = () => {
                                     onFile={onDrop}
                                 >
                                     <EditCharacterIcon ItemId={(universalKey || `CHARACTER#${character?.key || '123'}`) as `CHARACTER#${string}`} Name={(() => {
-                                        if (!character?.name) return ''
-                                        const nameNode = character.name as any
+                                        if (!character?.displayName) return ''
+                                        const nameNode = character.displayName as any
                                         return schemaOutputToString(nameNode.children || [])
                                     })()} />
                                 </FileWrapper>

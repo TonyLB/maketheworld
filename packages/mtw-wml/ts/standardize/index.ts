@@ -10,7 +10,7 @@ import StandardFeature, { StandardFeaturePayload } from "./components/feature"
 import StandardKnowledge, { StandardKnowledgePayload } from "./components/knowledge"
 import StandardMap from "./components/map"
 import { wrappedNodeTypeGuard } from "../schema/utils"
-import { HasDescription, HasName, HasShortName } from "./components/abstract"
+import { HasDescription, HasDisplayName, HasShortName } from "./components/abstract"
 import { StandardBaseData } from "./components/dataTypes/abstract"
 import { StandardComponent, StandardComponentReferenceKey } from "./components/baseClasses"
 import processComponents, { ComponentProcessingTemplate } from "./processComponents"
@@ -93,8 +93,8 @@ export const assertInstance = <C extends { new (...args: any[]) : any }>(value: 
     throw new Error('Type mismatch')
 }
 
-export const hasName = (component: StandardComponent): component is StandardComponent & HasName => {
-    return (component instanceof StandardRoom || component instanceof StandardFeature || component instanceof StandardKnowledge || component instanceof StandardMap)
+export const hasDisplayName = (component: StandardComponent): component is StandardComponent & HasDisplayName => {
+    return (component instanceof StandardExample || component instanceof StandardCharacter)
 }
 
 export const hasDescription = (component: StandardComponent): component is StandardComponent & HasDescription => {
@@ -106,7 +106,11 @@ export const hasShortName = (component: StandardComponent): component is Standar
         (component instanceof StandardCharacter) ||
         (component instanceof StandardFeature) ||
         (component instanceof StandardKnowledge) ||
-        (component instanceof StandardExample)
+        (component instanceof StandardExample) ||
+        (component instanceof StandardMap) ||
+        (component instanceof StandardImage) ||
+        (component instanceof StandardMessage) ||
+        (component instanceof StandardMoment)
 }
 
 export class StandardForm {
@@ -202,7 +206,7 @@ export class StandardForm {
                 //
                 const tagTree = new SchemaTagTree(node.children)
                 const shortNameItem = tagTree
-                    .filter({ and: [{ match: 'ShortName' }, { not: { or: [{ match: 'Room' }, { match: 'Feature' }, { match: 'Character' }, { match: 'Knowledge' }, { match: 'Mark' }, { match: 'Lens' }] } }] })
+                    .filter({ and: [{ match: 'ShortName' }, { not: { or: [{ match: 'Room' }, { match: 'Feature' }, { match: 'Character' }, { match: 'Knowledge' }, { match: 'Mark' }, { match: 'Lens' }, { match: 'Map' }, { match: 'Message' }, { match: 'Moment' }, { match: 'Image' }] } }] })
                     .tree
                 const summaryItem = tagTree
                     .filter({ and: [{ match: 'Summary' }, { not: { match: 'Example' } }] })

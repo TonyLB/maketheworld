@@ -17,7 +17,7 @@ import { wrappedNodeTypeGuard } from "../../schema/utils"
 import { StandardExplicitParent } from "../explicit"
 
 export class StandardCharacterPayload implements ComponentConstructorMethods<StandardCharacterData> {
-    _name?: StandardRender;
+    _displayName?: StandardRender;
     _shortName?: StandardLiteral;
     _pronouns?: StandardLiteral;
     _image?: EditWrappedStandardNode<SchemaImageTag, SchemaTag>;
@@ -26,17 +26,17 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
     constructor(previous?: StandardCharacterPayload) {
         if (previous) {
             this._shortName = previous._shortName
-            this._name = previous._name
+            this._displayName = previous._displayName
             this._image = previous._image
             this._pronouns = previous._pronouns
         }
     }
 
     fromJSON(props: StandardCharacterData) {
-        const { shortName, pronouns } = props
+        const { shortName, pronouns, displayName } = props
         this._shortName = shortName ? new StandardLiteral(shortName, { tag: 'ShortName' }) : undefined
         this._pronouns = pronouns ? new StandardLiteral(pronouns, { tag: 'Pronouns' }) : undefined
-        this._name = props.name ? new StandardRender(props.name) : undefined
+        this._displayName = displayName ? new StandardRender(displayName) : undefined
         this._image = props.image
     }
 
@@ -47,9 +47,9 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
             this._shortName = shortNameItem.length ? new StandardLiteral(shortNameItem, { tag: 'ShortName' }) : undefined
             const pronounsItem = findTaggedChildren({ children: node.children, tag: 'Pronouns' })
             this._pronouns = pronounsItem.length ? new StandardLiteral(pronounsItem, { tag: 'Pronouns' }) : undefined
-            const nameItem = tagTree.filter({ match: 'Name' }).prune({ match: 'Name' }).tree.filter(wrappedNodeTypeGuard(isSchemaOutputTag))
-            if (nameItem.length) {
-                this._name = new StandardRender(nameItem)
+            const displayNameItem = tagTree.filter({ match: 'DisplayName' }).prune({ match: 'DisplayName' }).tree.filter(wrappedNodeTypeGuard(isSchemaOutputTag))
+            if (displayNameItem.length) {
+                this._displayName = new StandardRender(displayNameItem)
             }
             this._image = node.children.find(treeNodeTypeguard(isSchemaImage))
             return
@@ -59,7 +59,7 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
 
     get shortName() { return this._shortName }
     get pronouns() { return this._pronouns}
-    get name() { return this._name }
+    get displayName() { return this._displayName }
     get image() { return this._image }
 
     toJSON(): Omit<StandardCharacterData, 'key' | 'universalKey'> {
@@ -67,7 +67,7 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
             tag: 'Character',
             shortName: this?.shortName?.toJSON(),
             pronouns: this?.pronouns?.toJSON(),
-            name: this.name?.toJSON(),
+            displayName: this.displayName?.toJSON(),
             image: this.image,
         }
     }
@@ -78,7 +78,7 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
             children: [
                 ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema())).flat(1),
                 ...[this.pronouns].filter(excludeUndefined).map((pronouns) => (pronouns.nestedSchema())).flat(1),
-                rebuildSchemaFromStandardRender(this._name, { tag: 'Name' }, mappings),
+                rebuildSchemaFromStandardRender(this._displayName, { tag: 'DisplayName' }, mappings),
                 this.image
             ].filter(excludeUndefined).flat(1)
         }
@@ -91,7 +91,7 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
         const returnValue = new StandardCharacterPayload()
         returnValue._shortName = (this._shortName && incoming._shortName) ? this._shortName.merge(incoming._shortName) : this._shortName ?? incoming._shortName
         returnValue._pronouns = (this._pronouns && incoming._pronouns) ? this._pronouns.merge(incoming._pronouns) : this._pronouns ?? incoming._pronouns
-        returnValue._name = (this._name && incoming._name) ? this._name.merge(incoming._name) : this._name ?? incoming._name
+        returnValue._displayName = (this._displayName && incoming._displayName) ? this._displayName.merge(incoming._displayName) : this._displayName ?? incoming._displayName
         returnValue._image = this._image ?? incoming._image
         return returnValue as this
     }
@@ -109,12 +109,12 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
     }
 
     isEmpty(): boolean {
-        // A character is empty if it has no name, shortName, pronouns, or image
-        const hasName = Boolean(this._name)
+        // A character is empty if it has no displayName, shortName, pronouns, or image
+        const hasDisplayName = Boolean(this._displayName)
         const hasShortName = Boolean(this._shortName)
         const hasPronouns = Boolean(this._pronouns)
         const hasImage = Boolean(this._image)
-        return !(hasName || hasShortName || hasPronouns || hasImage)
+        return !(hasDisplayName || hasShortName || hasPronouns || hasImage)
     }
 
     invert(): this {
@@ -123,8 +123,8 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
         returnValue._shortName = this._shortName ? this._shortName.invert() as StandardLiteral : undefined
         // Invert pronouns if it exists (StandardLiteral has invert() from standardEditableFactory)
         returnValue._pronouns = this._pronouns ? this._pronouns.invert() as StandardLiteral : undefined
-        // Invert name if it exists (StandardRender has invert())
-        returnValue._name = this._name ? this._name.invert() : undefined
+        // Invert displayName if it exists (StandardRender has invert())
+        returnValue._displayName = this._displayName ? this._displayName.invert() : undefined
         // Leave _image unchanged (EditWrappedStandardNode doesn't have invert support)
         returnValue._image = this._image
         return returnValue as this
@@ -134,7 +134,7 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
 export class StandardCharacter extends componentClassFactory(StandardCharacterPayload, 'StandardCharacter') {
     get shortName() { return this._payload.shortName }
     get pronouns() { return this._payload.pronouns }
-    get name() { return this._payload.name }
+    get displayName() { return this._payload.displayName }
     get image() { return this._payload.image }
 
     constructor(props: string | StandardCharacterData | GenericTreeNode<SchemaTag> | StandardCharacter) {
