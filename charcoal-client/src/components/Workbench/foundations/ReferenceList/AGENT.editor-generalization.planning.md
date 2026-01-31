@@ -44,7 +44,7 @@ This document tracks the phased consolidation of reference-list UI patterns acro
 - Use `ReferenceListEditor` with `variant="table"`, wiring:
   - `onItemClick` → navigate to component
   - `onItemRemove` → remove from `_topLevel`
-  - `onAddClick` → expand/create new component (via Add row → generic component selector in Phase 5)
+  - `onAddClick` → create new component (Add row); "Reference existing (X)" is a separate affordance (Phase 6, opens generic selector from Phase 5)
   - `onImportClick` → open `ImportComponentDialog`
 - Remove direct use of `ComponentRow`, `AddComponent`, `AddImport` from the Components section. `ImportComponentDialog` stays (it uses different data: external assets).
 
@@ -69,25 +69,34 @@ This document tracks the phased consolidation of reference-list UI patterns acro
 
 ---
 
-## Phase 5: Generic component selector
+## Phase 5: Generic component selector — DONE (partial)
 
-**Goal**: Create a single, generic component selector dialog that can replace ad-hoc solutions like `LensSelectorDialog`, etc. It should support "create new" and "select existing" for components of a given tag within the current workbench asset. (FeatureSelectorDialog was removed; Phase 6 will add "Reference existing Feature" using this generic selector.)
+**Goal**: Facilitate **separate affordances** for "Add (X)" (create new) and "Reference existing (X)" within the current workbench asset. Create a single, generic component selector dialog used when the user explicitly chooses "Reference existing (X)" (or when a full picker is needed). It is **not** an extension of the "Click Add, then choose new vs reference" pattern — callers surface distinct actions for add vs reference-existing. This dialog is for **selecting existing** components only; "Add (X)" remains a separate affordance elsewhere.
 
-**Planned work**:
-- Define a generic `ComponentSelectorDialog` (or similar name) with props:
+**Generic component selector design**:
+
+- **Optional `tag` argument**:
+  - If **present**: Filter the list to components of that tag only; show a **flat list with no section headers** by type.
+  - If **absent**: Replicate `ImportComponentDialog`-style appearance: show **all** possible references in the current asset, **grouped and headered by type** (e.g. Features, Lenses, Rooms, …).
+- **Exclusion callback**: Accept a callback that, per component, indicates whether it should be **excluded** from the list (e.g. because it is already in the reference list being added to). The dialog omits any component for which the callback returns true.
+
+**Completed**:
+- Created `ComponentSelectorDialog` in [`foundations/ComponentSelector/`](../ComponentSelector/) with props:
   - `open`, `onClose`
-  - `tag: ComponentTag` (e.g., `'Feature'`, `'Lens'`, `'Room'`, …)
-  - `onSelectExisting: (universalKey: ComponentUUID) => void`
-  - `onCreateNew: () => void`
-- Implement shared UX:
-  - List of existing components of the given tag (from `standardForm`) with shortName / key display.
-  - "Create new" action (or inline affordance).
-  - Optional filtering, search, or grouping if needed.
-- Migrate `RoomEdit/FeatureListEditor` (and other editors needing "reference existing") to use the generic selector via Phase 6's "Reference existing (X)" affordance.
+  - `tag?: DialogComponentTag` (optional; includes ReferenceListEditor `ComponentTag` plus `"Image"`)
+    - If set: filter to that tag only; flat list; no type headers.
+    - If omitted: all component types in the current asset, grouped and headered by type (ImportComponentDialog-like).
+  - `onSelect: (universalKey: ComponentUUID) => void`
+  - `isExcluded?: (universalKey: ComponentUUID) => boolean` — when true, that component is omitted from the list.
+- Implemented UX: flat list when `tag` set; grouped list with section headers and optional icons when `tag` absent; empty state "No components to show."; data from `useWorkbenchAsset().standardForm`.
+- Not yet wired from any caller (Phase 6 and migration will add usage).
+
+**Remaining**:
 - Migrate `RoomEdit/LensEditor` to use the generic selector instead of `LensSelectorDialog`.
+- Phase 6 will add the "Reference existing (X)" row in ReferenceListEditor that opens this dialog (with `tag` set and `isExcluded` wired from the current reference list).
 - **Out of scope**: `ImportComponentDialog` — it operates on cross-asset imports and different data (inherited forms, external assets). Keep it separate.
 
-**Reference**: [`LensSelectorDialog.tsx`](../../LensSelectorDialog.tsx), [`ImportComponentDialog.tsx`](../../ImportComponentDialog.tsx)
+**Reference**: [`ComponentSelector/ComponentSelectorDialog.tsx`](../ComponentSelector/ComponentSelectorDialog.tsx), [`LensSelectorDialog.tsx`](../../LensSelectorDialog.tsx), [`ImportComponentDialog.tsx`](../../ImportComponentDialog.tsx)
 
 ---
 
@@ -114,5 +123,5 @@ This document tracks the phased consolidation of reference-list UI patterns acro
 | 2     | Done    | Add Import row to both ReferenceList variants           |
 | 3     | Done    | Refactor asset edit view to use TopLevelEditor           |
 | 4     | Done    | Deprecate orphaned components (incl. FeatureSelectorDialog) |
-| 5     | Planned | Generic component selector (replace Lens dialog)         |
+| 5     | Done (partial) | Generic component selector created; migration in Phase 6 |
 | 6     | Planned | "Reference existing (X)" option in ReferenceListEditor  |
