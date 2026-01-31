@@ -1929,6 +1929,30 @@ describe('StandardForm', () => {
             expect(schemaToWML([diff.schema])).toEqual(`<Asset uuid=(Test)><Room uuid=(testRoomTwo) key=(testRoomTwo) /></Asset>`)
         })
 
+        it('should return the diff for added top-level references to pre-existing components', () => {
+            const base = new StandardForm(deIndentWML(`
+                <Asset uuid=(Test)>
+                    <Room uuid=(testRoom) key=(testRoom)>
+                        <Feature uuid=(testFeature) key=(testFeature)>
+                            <ShortName>Test Feature</ShortName>
+                        </Feature>
+                    </Room>
+                </Asset>
+            `))
+            const incoming = new StandardForm(deIndentWML(`
+                <Asset uuid=(Test)>
+                    <Room uuid=(testRoom) key=(testRoom)>
+                        <Feature uuid=(testFeature) key=(testFeature) />
+                    </Room>
+                    <Feature uuid=(testFeature) key=(testFeature)>
+                        <ShortName>Test Feature</ShortName>
+                    </Feature>
+                </Asset>
+            `))
+            const diff = base.diff(incoming)
+            expect(schemaToWML([diff.schema])).toEqual(`<Asset uuid=(Test)><Feature uuid=(testFeature) key=(testFeature) /></Asset>`)
+        })
+
         it('should return the diff for removed components', () => {
             const base = new StandardForm(`<Asset uuid=(Test)><Room uuid=(testRoom) key=(testRoom) /><Room uuid=(testRoomTwo) key=(testRoomTwo) /></Asset>`)
             const incoming = new StandardForm(`<Asset uuid=(Test)><Room uuid=(testRoom) key=(testRoom) /></Asset>`)

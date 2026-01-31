@@ -5,6 +5,7 @@ import AddIcon from "@mui/icons-material/Add"
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
 import ExpandLessIcon from "@mui/icons-material/ExpandLess"
 import ImportExportIcon from "@mui/icons-material/ImportExport"
+import LinkIcon from "@mui/icons-material/Link"
 import FeatureIcon from "@mui/icons-material/Search"
 import KnowledgeIcon from "@mui/icons-material/School"
 import MapIcon from "@mui/icons-material/Map"
@@ -21,6 +22,7 @@ import { navigateToComponent } from "../../../../slices/UI/workbench"
 import { ReferenceListEditorGeneric } from "./ReferenceListEditorGeneric"
 import { referenceListToItems } from "./referenceListAdapter"
 import ImportComponentDialog from "../../ImportComponentDialog"
+import { ComponentSelectorDialog } from "../ComponentSelector"
 import ImageHeader from "../../ImageHeader"
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
 import { ReferenceList } from "@tonylb/mtw-wml/ts/standardize/keys/referenceList"
@@ -71,6 +73,7 @@ export const TopLevelEditor: FunctionComponent<TopLevelEditorProps> = ({
     const { standardForm, updateStandard, readonly, AssetId, inheritedStandardForm } = useWorkbenchAsset()
     const [addExpanded, setAddExpanded] = useState(false)
     const [importDialogOpen, setImportDialogOpen] = useState(false)
+    const [referenceExistingOpen, setReferenceExistingOpen] = useState(false)
 
     const referenceList = useMemo(
         () => standardForm._topLevel ?? new ReferenceList([]),
@@ -193,6 +196,58 @@ export const TopLevelEditor: FunctionComponent<TopLevelEditorProps> = ({
         [dispatch, AssetId]
     )
 
+    const isTopLevelExcluded = useCallback(
+        (universalKey: ComponentUUID) => {
+            if (referenceList.payload.some((ref) => ref.universalKey === universalKey)) return true
+            const comp = standardForm.byUniversalId[universalKey] as StandardComponent | undefined
+            if (!comp) return true
+            return !(
+                comp instanceof StandardRoom ||
+                comp instanceof StandardFeature ||
+                comp instanceof StandardKnowledge ||
+                comp instanceof StandardMap ||
+                comp instanceof StandardCharacter ||
+                comp instanceof StandardImage
+            )
+        },
+        [referenceList, standardForm]
+    )
+
+    const handleReferenceExistingSelect = useCallback(
+        (universalKey: ComponentUUID) => {
+            if (readonly) return
+            const comp = standardForm.byUniversalId[universalKey] as StandardComponent | undefined
+            if (!comp) return
+            const tag = comp.tag as AddComponentTag
+            if (
+                !(
+                    comp instanceof StandardRoom ||
+                    comp instanceof StandardFeature ||
+                    comp instanceof StandardKnowledge ||
+                    comp instanceof StandardMap ||
+                    comp instanceof StandardCharacter ||
+                    comp instanceof StandardImage
+                )
+            ) {
+                return
+            }
+            updateStandard({
+                type: "update",
+                update: (draft: StandardForm) => {
+                    const ref = new StandardReference({ universalKey, tag })
+                    if (draft._topLevel) {
+                        draft._topLevel = draft._topLevel.assureItem(ref)
+                    } else {
+                        draft._topLevel = new ReferenceList([ref])
+                    }
+                    return draft
+                }
+            })
+            setReferenceExistingOpen(false)
+        },
+        [readonly, standardForm, updateStandard]
+    )
+
     const rowBg = alpha(
         theme.palette.primary.main,
         theme.palette.mode === "dark" ? 0.15 : 0.08
@@ -202,7 +257,8 @@ export const TopLevelEditor: FunctionComponent<TopLevelEditorProps> = ({
         theme.palette.mode === "dark" ? 0.35 : 0.18
     )
 
-    const addImportIsEven = (nonImageComponents.length + images.length + 1) % 2 === 1
+    const refExistingIsEven = (nonImageComponents.length + images.length + 2) % 2 === 1
+    const addImportIsEven = (nonImageComponents.length + images.length + 3) % 2 === 1
 
     const actionAffordances = (
         <>
@@ -302,6 +358,46 @@ export const TopLevelEditor: FunctionComponent<TopLevelEditorProps> = ({
                         )}
                     </Box>
                     <Box
+                        onClick={() => setReferenceExistingOpen(true)}
+                        role="button"
+                        tabIndex={0}
+                        aria-label="Reference existing component from this asset"
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                                e.preventDefault()
+                                setReferenceExistingOpen(true)
+                            }
+                        }}
+                        sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 1,
+                            padding: "0.5em 0.75em",
+                            cursor: "pointer",
+                            borderRadius: "4px",
+                            backgroundColor: refExistingIsEven ? rowBg : "transparent",
+                            "&:hover": { backgroundColor: rowHoverBg }
+                        }}
+                    >
+                        <Box
+                            sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 0.5,
+                                width: "38px",
+                                flexShrink: 0,
+                                color: "text.secondary"
+                            }}
+                        >
+                            <LinkIcon sx={{ fontSize: "1.25rem" }} />
+                        </Box>
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                            <Typography variant="body2" noWrap>
+                                Reference existing
+                            </Typography>
+                        </Box>
+                    </Box>
+                    <Box
                         onClick={() => setImportDialogOpen(true)}
                         role="button"
                         tabIndex={0}
@@ -348,6 +444,12 @@ export const TopLevelEditor: FunctionComponent<TopLevelEditorProps> = ({
                 onClose={() => setImportDialogOpen(false)}
                 assetId={AssetId}
                 onImportSelect={handleImportSelect}
+            />
+            <ComponentSelectorDialog
+                open={referenceExistingOpen}
+                onClose={() => setReferenceExistingOpen(false)}
+                onSelect={handleReferenceExistingSelect}
+                isExcluded={isTopLevelExcluded}
             />
         </>
     )

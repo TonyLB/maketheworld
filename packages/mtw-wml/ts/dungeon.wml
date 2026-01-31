@@ -9,7 +9,7 @@
                 (You could also go literally anywhere else in the world, if any of
                 it had been created. But it hasn't)
             </Description>
-            <Name>Cave entrance</Name>
+            <DisplayName>Cave entrance</DisplayName>
         </Example>
     </Room>
     <Map key=(dungeonMap)>
@@ -34,17 +34,17 @@
     </Map>
     <Room key=(cave)>
         <Example uuid=(example2)>
-            <Name>Shallow cave</Name>
+            <DisplayName>Shallow cave</DisplayName>
             <Description>Light streams in from the entrance. On one side of the cave is an old firepit and comfortably tamped-down earth floor. At the opposite end, a jumbled pile of jagged rocks against the wall make a far less hospitable space.</Description>
         </Example>
         <Example uuid=(example3)>
-            <Name>Shallow cave</Name>
+            <DisplayName>Shallow cave</DisplayName>
             <Description>Light streams in from the entrance. On one side of the cave is an old firepit and comfortably tamped-down earth floor. At the opposite end, rocks have been cleared revealing a passage further underground.</Description>
         </Example>
     </Room>
     <Room key=(curvingPassage)>
         <Example uuid=(example4)>
-            <Name>Curving Passage</Name>
+            <DisplayName>Curving Passage</DisplayName>
             <Description>Walls smoothly cut from the bedrock curve in a long arc, lit every few yards by a small sconce mounted above eye-level.</Description>
         </Example>
     </Room>
