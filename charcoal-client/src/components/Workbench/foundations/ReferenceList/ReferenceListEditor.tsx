@@ -9,6 +9,7 @@ import IconButton from "@mui/material/IconButton"
 import Typography from "@mui/material/Typography"
 import AddIcon from "@mui/icons-material/Add"
 import DeleteIcon from "@mui/icons-material/Delete"
+import ImportExportIcon from "@mui/icons-material/ImportExport"
 
 import { MakeTheWorldAccordion } from "../../../UI"
 import "../../../../theme/extensions"
@@ -78,6 +79,19 @@ export interface ReferenceListEditorProps {
      * Row styling: `contained` (default) = bordered cards; `table` = flat list rows.
      */
     variant?: "contained" | "table"
+
+    /**
+     * Called when the Import row is clicked.
+     * When provided, an Import row is shown after the Add row.
+     * Parent typically wires to open ImportComponentDialog (or equivalent).
+     */
+    onImportClick?: () => void
+
+    /**
+     * Label for the Import row.
+     * Defaults to "Import" if not provided.
+     */
+    importLabel?: string
 }
 
 export const ReferenceListEditor: FunctionComponent<ReferenceListEditorProps> = ({
@@ -91,7 +105,9 @@ export const ReferenceListEditor: FunctionComponent<ReferenceListEditorProps> = 
     onAddClick,
     addLabel = "Add",
     emptyStateText,
-    variant = "contained"
+    variant = "contained",
+    onImportClick,
+    importLabel = "Import"
 }) => {
     const handleItemClick = useCallback(
         (id: string) => () => {
@@ -122,6 +138,16 @@ export const ReferenceListEditor: FunctionComponent<ReferenceListEditorProps> = 
             onAddClick()
         },
         [disabled, onAddClick]
+    )
+
+    const handleImportClick = useCallback(
+        () => {
+            if (disabled || !onImportClick) {
+                return
+            }
+            onImportClick()
+        },
+        [disabled, onImportClick]
     )
 
     const hasItems = items.length > 0
@@ -285,6 +311,21 @@ export const ReferenceListEditor: FunctionComponent<ReferenceListEditorProps> = 
                                 <AddIcon />
                             </ListItemIcon>
                             <ListItemText primary={addLabel} />
+                        </ListItemButton>
+                    </ListItem>
+                )}
+                {onImportClick && (
+                    <ListItem>
+                        <ListItemButton
+                            onClick={handleImportClick}
+                            disabled={disabled}
+                            sx={{ justifyContent: "center" }}
+                            aria-label="Import component from another asset"
+                        >
+                            <ListItemIcon>
+                                <ImportExportIcon />
+                            </ListItemIcon>
+                            <ListItemText primary={importLabel} />
                         </ListItemButton>
                     </ListItem>
                 )}
