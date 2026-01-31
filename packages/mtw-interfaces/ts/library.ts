@@ -14,7 +14,7 @@ export type LibraryAsset = {
 
 export type LibraryCharacter = {
     CharacterId: EphemeraCharacterId;
-    Name: string;
+    DisplayName: string;
     scopedId?: string;
     fileName?: string;
     fileURL?: string;

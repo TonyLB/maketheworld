@@ -53,7 +53,7 @@ describe('StandardCharacter class', () => {
         const testCharacter = new StandardCharacter({
             key: 'test',
             tag: 'Character',
-            name: ['Tess'],
+            displayName: ['Tess'],
         })
         expect(testCharacter.diff(testCharacter)).toBeUndefined()
     })

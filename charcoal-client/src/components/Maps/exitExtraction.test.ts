@@ -16,7 +16,7 @@ describe('extractExitsFromStandardForm', () => {
             const standardForm = new StandardForm(`
                 <Asset uuid=(testAsset)>
                     <Map uuid=(otherMap)>
-                        <Name>Other Map</Name>
+                        <ShortName>Other Map</ShortName>
                     </Map>
                 </Asset>
             `)
@@ -29,7 +29,7 @@ describe('extractExitsFromStandardForm', () => {
             const standardForm = new StandardForm(`
                 <Asset uuid=(testAsset)>
                     <Map uuid=(testMap)>
-                        <Name>Test Map</Name>
+                        <ShortName>Test Map</ShortName>
                     </Map>
                 </Asset>
             `)
@@ -42,7 +42,7 @@ describe('extractExitsFromStandardForm', () => {
             const standardForm = new StandardForm(`
                 <Asset uuid=(testAsset)>
                     <Map uuid=(testMap)>
-                        <Name>Test Map</Name>
+                        <ShortName>Test Map</ShortName>
                         <Room uuid=(room1)>
                             <Position {100, 100} />
                             <ShortName>Room One</ShortName>
@@ -65,7 +65,7 @@ describe('extractExitsFromStandardForm', () => {
             const standardForm = new StandardForm(`
                 <Asset uuid=(testAsset)>
                     <Map uuid=(testMap)>
-                        <Name>Test Map</Name>
+                        <ShortName>Test Map</ShortName>
                         <Room uuid=(room1)>
                             <Position {100, 100} />
                             <ShortName>Room One</ShortName>
@@ -95,7 +95,7 @@ describe('extractExitsFromStandardForm', () => {
             const standardForm = new StandardForm(`
                 <Asset uuid=(testAsset)>
                     <Map uuid=(testMap)>
-                        <Name>Test Map</Name>
+                        <ShortName>Test Map</ShortName>
                         <Room uuid=(room1)>
                             <Position {100, 100} />
                             <ShortName>Room One</ShortName>
@@ -134,7 +134,7 @@ describe('extractExitsFromStandardForm', () => {
             const standardForm = new StandardForm(`
                 <Asset uuid=(testAsset)>
                     <Map uuid=(testMap)>
-                        <Name>Test Map</Name>
+                        <ShortName>Test Map</ShortName>
                         <Room uuid=(room1)>
                             <Position {100, 100} />
                             <ShortName>Room One</ShortName>
@@ -186,7 +186,7 @@ describe('extractExitsFromStandardForm', () => {
             const standardForm = new StandardForm(`
                 <Asset uuid=(testAsset)>
                     <Map uuid=(testMap)>
-                        <Name>Test Map</Name>
+                        <ShortName>Test Map</ShortName>
                         <Room uuid=(room1)>
                             <Position {100, 100} />
                             <ShortName>Room One</ShortName>
@@ -245,7 +245,7 @@ describe('extractExitsFromStandardForm', () => {
             const standardForm = new StandardForm(`
                 <Asset uuid=(testAsset)>
                     <Map uuid=(testMap)>
-                        <Name>Test Map</Name>
+                        <ShortName>Test Map</ShortName>
                         <Room uuid=(room1)>
                             <Position {100, 100} />
                             <ShortName>Room One</ShortName>
@@ -280,7 +280,7 @@ describe('extractExitsFromStandardForm', () => {
             const standardForm = new StandardForm(`
                 <Asset uuid=(testAsset)>
                     <Map uuid=(testMap)>
-                        <Name>Test Map</Name>
+                        <ShortName>Test Map</ShortName>
                         <Room uuid=(room1) origin=(ASSET#parent)>
                             <Position {100, 100} />
                             <ShortName>Room One</ShortName>
@@ -330,7 +330,7 @@ describe('extractExitsFromStandardForm', () => {
             const standardForm = new StandardForm(`
                 <Asset uuid=(testAsset)>
                     <Map uuid=(testMap)>
-                        <Name>Test Map</Name>
+                        <ShortName>Test Map</ShortName>
                         <Room uuid=(room1) origin=(ASSET#parent)>
                             <Position {100, 100} />
                             <ShortName>Room One</ShortName>
@@ -367,7 +367,7 @@ describe('extractExitsFromStandardForm', () => {
             const standardForm = new StandardForm(`
                 <Asset uuid=(testAsset)>
                     <Map uuid=(testMap)>
-                        <Name>Test Map</Name>
+                        <ShortName>Test Map</ShortName>
                         <Room uuid=(room1)>
                             <Position {100, 100} />
                             <ShortName>Room One</ShortName>
@@ -395,7 +395,7 @@ describe('extractExitsFromStandardForm', () => {
             const standardForm = new StandardForm(`
                 <Asset uuid=(testAsset)>
                     <Map uuid=(testMap)>
-                        <Name>Test Map</Name>
+                        <ShortName>Test Map</ShortName>
                         <Room uuid=(room1)>
                             <ShortName>Room One</ShortName>
                             <Exit to=(ROOM#room2)>to room two</Exit>
@@ -417,7 +417,7 @@ describe('extractExitsFromStandardForm', () => {
             const standardForm = new StandardForm(`
                 <Asset uuid=(testAsset)>
                     <Map uuid=(map1)>
-                        <Name>Map One</Name>
+                        <ShortName>Map One</ShortName>
                         <Room uuid=(room1)>
                             <Position {100, 100} />
                             <ShortName>Room One</ShortName>
@@ -429,7 +429,7 @@ describe('extractExitsFromStandardForm', () => {
                         </Room>
                     </Map>
                     <Map uuid=(map2)>
-                        <Name>Map Two</Name>
+                        <ShortName>Map Two</ShortName>
                         <Room uuid=(room3)>
                             <Position {300, 300} />
                             <ShortName>Room Three</ShortName>

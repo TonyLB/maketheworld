@@ -183,7 +183,7 @@ export class ComponentRenderData {
                 const characterData: StandardCharacterData = {
                     tag: 'Character',
                     universalKey: char.EphemeraId,
-                    name: char.Name ? [char.Name] : undefined,
+                    displayName: char.DisplayName ? [char.DisplayName] : undefined,
                     image: char.fileURL ? { 
                         data: { tag: 'Image', key: '', fileURL: char.fileURL }, 
                         children: [] 

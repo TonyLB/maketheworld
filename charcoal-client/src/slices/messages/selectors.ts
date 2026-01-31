@@ -253,7 +253,7 @@ export const getRecentlyVisited: (fromTime: number) => Selector<MessageRecentVis
                             const component = perceptionMessage.parsedWML.byUniversalId[ephemeraId]
                             if (component) {
                                 // Try to get name from component - this is component-specific logic
-                                const componentName = (component as any).name || (component as any).shortName
+                                const componentName = (component as any).displayName || (component as any).shortName
                                 if (componentName) {
                                     name = componentName.plainString || name
                                 }

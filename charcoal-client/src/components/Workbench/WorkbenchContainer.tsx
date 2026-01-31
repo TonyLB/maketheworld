@@ -19,10 +19,9 @@ import { useWorkbenchAsset } from './foundations/useWorkbenchAsset'
 import { getAssetZone } from '../../slices/player'
 import { createWorkbenchTheme } from './workbenchTheme'
 import StandardMark from '@tonylb/mtw-wml/ts/standardize/components/worldState'
-import { hasName } from '@tonylb/mtw-wml/ts/standardize'
+import { hasDisplayName } from '@tonylb/mtw-wml/ts/standardize'
 import { schemaOutputToString } from '@tonylb/mtw-wml/ts/schema/utils/schemaOutput/schemaOutputToString'
 import { GenericTree } from '@tonylb/mtw-base/ts/genericTree'
-import { unwrapSubject } from '@tonylb/mtw-wml/ts/schema/utils'
 import { SchemaOutputTag } from '@tonylb/mtw-base/ts/schema'
 import { getComponentIcon, getComponentIconByTag } from '../../lib/componentIcons'
 
@@ -181,8 +180,8 @@ export const WorkbenchContainer: FunctionComponent<WorkbenchContainerProps> = ({
                 const shortNameValue = refComponent.shortName?._payload?.plain?.toJSON()
                 if (typeof shortNameValue === 'string' && shortNameValue.trim()) {
                     name = shortNameValue
-                } else if (hasName(refComponent) && refComponent.name) {
-                    name = schemaOutputToString((unwrapSubject(refComponent.name)?.children ?? []) as GenericTree<SchemaOutputTag>)
+                } else if (hasDisplayName(refComponent) && refComponent.displayName) {
+                    name = schemaOutputToString((refComponent.displayName?.children ?? []) as GenericTree<SchemaOutputTag>)
                 } else {
                     const keyValue = refComponent.key
                     if (typeof keyValue === 'string') {

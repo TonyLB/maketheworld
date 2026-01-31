@@ -36,17 +36,17 @@ export class ExamplesData {
         this._ExamplesCache.add({
             promiseFactory: async (keys: string[]) => {
                 return await Promise.all(keys.map(async (componentId) => {
-                    const examples = await assetDB.query<{ AssetId: EphemeraRoomId | EphemeraFeatureId | EphemeraKnowledgeId; DataCategory: string; name: RenderTree; description: RenderTree; summary: RenderTree }>({
+                    const examples = await assetDB.query<{ AssetId: EphemeraRoomId | EphemeraFeatureId | EphemeraKnowledgeId; DataCategory: string; name?: RenderTree; displayName?: RenderTree; description: RenderTree; summary: RenderTree }>({
                         Key: { AssetId: componentId },
                         KeyConditionExpression: 'begins_with(DataCategory, :dcPrefix)',
                         ExpressionAttributeValues: {
                             ':dcPrefix': 'EXAMPLE#'
                         },
-                        ProjectionFields: ['DataCategory', 'name', 'description', 'summary']
+                        ProjectionFields: ['DataCategory', 'name', 'displayName', 'description', 'summary']
                     })
                     return {
                         componentId,
-                        examples: examples.map(({ DataCategory, ...example }) => {
+                        examples: examples.map(({ DataCategory, name, displayName, description, summary }) => {
                             const universalKey = DataCategory.split('::')[0]
                             if (!isSchemaComponentUUID(universalKey)) {
                                 throw new Error(`Invalid universalKey in ExamplesData.get: ${universalKey}`)
@@ -56,7 +56,9 @@ export class ExamplesData {
                                 example: new StandardExample({
                                     tag: 'Example',
                                     universalKey,
-                                    ...example
+                                    displayName: displayName ?? name,
+                                    description,
+                                    summary
                                 })
                             }
                         })

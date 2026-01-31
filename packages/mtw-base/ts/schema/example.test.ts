@@ -1,4 +1,4 @@
-import { isSchemaName, isSchemaDescription, isSchemaSummary, isSchemaExample } from './example'
+import { isSchemaName, isSchemaDisplayName, isSchemaDescription, isSchemaSummary, isSchemaExample } from './example'
 
 describe('example tags', () => {
     describe('isSchemaName', () => {
@@ -10,6 +10,18 @@ describe('example tags', () => {
         it('should return false for invalid SchemaNameTag', () => {
             const schema = { tag: 'Invalid' }
             expect(isSchemaName(schema)).toBe(false)
+        })
+    })
+
+    describe('isSchemaDisplayName', () => {
+        it('should return true for valid SchemaDisplayNameTag', () => {
+            const schema = { tag: 'DisplayName' }
+            expect(isSchemaDisplayName(schema)).toBe(true)
+        })
+
+        it('should return false for invalid SchemaDisplayNameTag', () => {
+            const schema = { tag: 'Invalid' }
+            expect(isSchemaDisplayName(schema)).toBe(false)
         })
     })
 

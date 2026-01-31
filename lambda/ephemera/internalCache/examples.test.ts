@@ -19,7 +19,7 @@ describe('ExamplesData', () => {
         assetMock.query.mockResolvedValue([{
             AssetId: 'ROOM#TestOne',
             DataCategory: 'EXAMPLE#Base::TestAsset',
-            name: ['Example Name'],
+            displayName: ['Example Name'],
             description: ['Example Description'],
             summary: ['Example Summary']
         }])
@@ -34,7 +34,7 @@ describe('ExamplesData', () => {
         expect(output['ROOM#TestOne'][0].examples[0].toJSON()).toEqual({
             tag: 'Example',
             universalKey: 'EXAMPLE#Base',
-            name: ['Example Name'],
+            displayName: ['Example Name'],
             description: ['Example Description'],
             summary: ['Example Summary']
         })
@@ -45,7 +45,7 @@ describe('ExamplesData', () => {
             ExpressionAttributeValues: {
                 ':dcPrefix': 'EXAMPLE#'
             },
-            ProjectionFields: ['DataCategory', 'name', 'description', 'summary']
+            ProjectionFields: ['DataCategory', 'name', 'displayName', 'description', 'summary']
         })
     })
 
@@ -63,7 +63,7 @@ describe('ExamplesData', () => {
             ExpressionAttributeValues: {
                 ':dcPrefix': 'EXAMPLE#'
             },
-            ProjectionFields: ['DataCategory', 'name', 'description', 'summary']
+            ProjectionFields: ['DataCategory', 'name', 'displayName', 'description', 'summary']
         })
     })
 
@@ -71,7 +71,7 @@ describe('ExamplesData', () => {
         const example = new StandardExample({
             tag: 'Example',
             universalKey: 'EXAMPLE#Base',
-            name: ['Example Name'],
+            displayName: ['Example Name'],
             description: ['Example Description'],
             summary: ['Example Summary']
         })
@@ -95,7 +95,7 @@ describe('ExamplesData', () => {
         const example = new StandardExample({
             tag: 'Example',
             universalKey: 'EXAMPLE#Base',
-            name: ['Example Name'],
+            displayName: ['Example Name'],
             description: ['Example Description'],
             summary: ['Example Summary']
         })
@@ -111,7 +111,7 @@ describe('ExamplesData', () => {
         assetMock.query.mockResolvedValue([{
             AssetId: 'ROOM#TestOne',
             DataCategory: 'EXAMPLE#Base::TestAsset',
-            name: ['Example Name'],
+            displayName: ['Example Name'],
             description: ['Example Description'],
             summary: ['Example Summary']
         }])

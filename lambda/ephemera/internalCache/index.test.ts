@@ -41,13 +41,15 @@ describe('InternalCache', () => {
                 EphemeraId: 'CHARACTER#123',
                 ConnectionIds: ['Test1'],
                 Color: 'green',
-                Name: 'Tess'
+                DisplayName: 'Tess',
+                SessionIds: []
             },
             {
                 EphemeraId: 'CHARACTER#456',
                 ConnectionIds: ['Test2'],
                 Color: 'purple',
-                Name: 'Marco'
+                DisplayName: 'Marco',
+                SessionIds: []
             }
         ]
         ephemeraMock.getItem.mockResolvedValue({

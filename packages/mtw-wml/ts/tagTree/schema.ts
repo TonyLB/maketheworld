@@ -55,7 +55,7 @@ export class SchemaTagTree extends TagTree<SchemaTag> {
             },
             classify: ({ tag }) => (tag),
             merge: ({ data: dataA }, { data: dataB }) => ({ data: { ...dataA, ...dataB } as SchemaTag }),
-            orderIndependence: [['Description', 'Summary', 'Name', 'ShortName', 'Exit'], ['Room', 'Feature', 'Knowledge', 'Message', 'Moment']],
+            orderIndependence: [['Description', 'Summary', 'Name', 'DisplayName', 'ShortName', 'Exit'], ['Room', 'Feature', 'Knowledge', 'Message', 'Moment']],
             orderIndependenceIgnore: ['Replace', 'ReplaceMatch', 'ReplacePayload', 'Remove']
         })
     }

@@ -23,7 +23,7 @@ vi.mock('./RoomExit', () => ({
 
 vi.mock('./RoomCharacter', () => ({
     default: ({ character }: any) => (
-        <div data-testid="room-character">{character?.name?.plainString || 'Character'}</div>
+        <div data-testid="room-character">{character?.displayName?.plainString || 'Character'}</div>
     )
 }))
 
@@ -123,7 +123,7 @@ describe('RoomDescription', () => {
                 <Asset uuid=(test)>
                     <Room key=(testRoom) uuid=(ROOM#testRoom)>
                         <Example key=(example1) uuid=(EXAMPLE#example1)>
-                            <Name>Test Room</Name>
+                            <DisplayName>Test Room</DisplayName>
                             <Description>A beautiful test room with stone walls</Description>
                             <Summary>Test summary</Summary>
                         </Example>
@@ -151,7 +151,7 @@ describe('RoomDescription', () => {
                 <Asset uuid=(test)>
                     <Room key=(testRoom) uuid=(ROOM#testRoom)>
                         <Example key=(example1) uuid=(EXAMPLE#example1)>
-                            <Name>Room with Exits</Name>
+                            <DisplayName>Room with Exits</DisplayName>
                             <Description>A room with multiple exits and characters</Description>
                         </Example>
                         <Exit to=(ROOM#north)>North passage</Exit>
@@ -191,7 +191,7 @@ describe('RoomDescription', () => {
                 <Asset uuid=(test)>
                     <Room key=(testRoom) uuid=(ROOM#testRoom)>
                         <Example key=(example1) uuid=(EXAMPLE#example1)>
-                            <Name>Header Room</Name>
+                            <DisplayName>Header Room</DisplayName>
                             <Description>A room shown as header</Description>
                         </Example>
                     </Room>
@@ -281,7 +281,7 @@ describe('RoomDescription', () => {
             const standardForm = new StandardForm(deIndentWML(`
                 <Asset uuid=(test)>
                     <Feature key=(notARoom)>
-                        <Name>Not a Room</Name>
+                        <DisplayName>Not a Room</DisplayName>
                     </Feature>
                 </Asset>
             `))

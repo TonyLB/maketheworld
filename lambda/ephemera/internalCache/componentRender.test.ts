@@ -35,7 +35,7 @@ describe('ComponentRender cache handler', () => {
                     new StandardExample({
                         tag: 'Example',
                         universalKey: 'EXAMPLE#Base',
-                        name: ['Example Name'],
+                        displayName: ['Example Name'],
                         description: ['Description'],
                         summary: ['Summary']
                     })
@@ -52,14 +52,14 @@ describe('ComponentRender cache handler', () => {
             })
         })
         jest.spyOn(internalCache.RoomCharacterList, "get").mockResolvedValue([
-            { EphemeraId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple', SessionIds: [] }
+            { EphemeraId: 'CHARACTER#TESS', DisplayName: 'Tess', Color: 'purple', SessionIds: [] }
         ])
         const descriptionOutput = await internalCache.ComponentRender.get('CHARACTER#TESS', 'ROOM#TestOne')
         expect(schemaToWML([descriptionOutput.schema])).toEqual(deIndentWML(`
             <Asset uuid=(render)>
-                <Character uuid=(TESS) ref={0}><Name>Tess</Name></Character>
+                <Character uuid=(TESS) ref={0}><DisplayName>Tess</DisplayName></Character>
                 <Example uuid=(rendered) ref={0}>
-                    <Name>Example Name</Name>
+                    <DisplayName>Example Name</DisplayName>
                     <Summary>Summary</Summary>
                     <Description>Description</Description>
                 </Example>
@@ -100,7 +100,7 @@ describe('ComponentRender cache handler', () => {
                     new StandardExample({
                         tag: 'Example',
                         universalKey: 'EXAMPLE#Base',
-                        name: ['Example Name'],
+                        displayName: ['Example Name'],
                         description: ['Description'],
                         summary: []
                     })
@@ -108,14 +108,14 @@ describe('ComponentRender cache handler', () => {
             }]
         })
         jest.spyOn(internalCache.RoomCharacterList, "get").mockResolvedValue([
-            { EphemeraId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple', SessionIds: [] }
+            { EphemeraId: 'CHARACTER#TESS', DisplayName: 'Tess', Color: 'purple', SessionIds: [] }
         ])
         const output = await internalCache.ComponentRender.get("CHARACTER#TESS", "FEATURE#TestOne")
         expect(internalCache.ComponentMeta.getAcrossAssets).toHaveBeenCalledWith('FEATURE#TestOne', ['ASSET#Base', 'ASSET#Personal'])
         expect(schemaToWML([output.schema])).toEqual(deIndentWML(`
             <Asset uuid=(render)>
                 <Example uuid=(rendered) ref={0}>
-                    <Name>Example Name</Name>
+                    <DisplayName>Example Name</DisplayName>
                     <Description>Description</Description>
                 </Example>
                 <Feature uuid=(TestOne) ref={0}><Example uuid=(rendered) /></Feature>
@@ -152,7 +152,7 @@ describe('ComponentRender cache handler', () => {
                         tag: 'Example',
                         key: 'example1',
                         universalKey: 'EXAMPLE#Base',
-                        name: ['Example Name'],
+                        displayName: ['Example Name'],
                         description: ['Description'],
                         summary: ['Summary']
                     })
@@ -161,14 +161,14 @@ describe('ComponentRender cache handler', () => {
         })
         // EvaluateCode removed - Variable/Computed evaluation no longer available
         jest.spyOn(internalCache.RoomCharacterList, "get").mockResolvedValue([
-            { EphemeraId: 'CHARACTER#TESS', Name: 'Tess', Color: 'purple', SessionIds: [] }
+            { EphemeraId: 'CHARACTER#TESS', DisplayName: 'Tess', Color: 'purple', SessionIds: [] }
         ])
         const output = await internalCache.ComponentRender.get("CHARACTER#TESS", "KNOWLEDGE#TestOne")
         expect(internalCache.ComponentMeta.getAcrossAssets).toHaveBeenCalledWith('KNOWLEDGE#TestOne', ['ASSET#Base', 'ASSET#Personal'])
         expect(schemaToWML([output.schema])).toEqual(deIndentWML(`
             <Asset uuid=(render)>
                 <Example uuid=(rendered) key=(example1) ref={0}>
-                    <Name>Example Name</Name>
+                    <DisplayName>Example Name</DisplayName>
                     <Summary>Summary</Summary>
                     <Description>Description</Description>
                 </Example>

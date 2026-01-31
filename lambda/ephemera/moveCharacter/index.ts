@@ -138,10 +138,10 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
                                 ...(draft.activeCharacters || []).filter(({ EphemeraId }) => (EphemeraId !== characterMeta.EphemeraId)),
                                 {
                                     EphemeraId: characterMeta.EphemeraId,
-                                    Name: characterMeta.Name,
+                                    DisplayName: characterMeta.Name,
                                     fileURL: characterMeta.fileURL,
                                     Color: characterMeta.Color,
-                                    SessionIds: unique(findMatch?.sessions ?? [], sessions ?? [])
+                                    SessionIds: unique((findMatch as any)?.SessionIds ?? (findMatch as any)?.sessions ?? [], sessions ?? [])
                                 }
                             ]
                         },

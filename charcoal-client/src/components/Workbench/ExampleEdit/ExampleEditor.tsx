@@ -34,7 +34,7 @@ export const ExampleEditor: FunctionComponent<ExampleEditorProps> = ({ component
         })
     }, [standardForm, componentId])
     const inherited = !Boolean(localStandardForm.byUniversalId[componentId])
-    const [name, setName] = useState((component.name ?? new StandardRender([])).plainString)
+    const [name, setName] = useState((component.displayName ?? new StandardRender([])).plainString)
     useDebouncedOnChange({
         value: name,
         delay: 1000,
@@ -44,7 +44,7 @@ export const ExampleEditor: FunctionComponent<ExampleEditorProps> = ({ component
                 update: (example: StandardForm) => {
                     const newValue = example.byUniversalId[componentId]
                     if (newValue instanceof StandardExample) {
-                        newValue._payload._name = new StandardRender([value])
+                        newValue._payload._displayName = new StandardRender([value])
                     }
                     return example
                 }

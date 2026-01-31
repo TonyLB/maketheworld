@@ -185,13 +185,13 @@ export const perceptionMessage = async ({
                     Pronouns: 'they/them',
                 }
                 
-                // Generate WML content for the character
-                const { Name = 'Unknown', Pronouns = 'they/them' } = characterDescription
+                // Generate WML content for the character (DB has Name; we emit DisplayName in WML)
+                const { Name: displayName = 'Unknown', Pronouns = 'they/them' } = characterDescription
                 const fileURL = ('fileURL' in characterDescription) ? characterDescription.fileURL : undefined
                 const imageTag = fileURL ? `<Image key=(portrait) fileURL="${fileURL}" />` : ''
                 const wmlContent = `<Asset uuid=(render)>
     <Character uuid=(${ephemeraId})>
-        <Name>${Name}</Name>
+        <DisplayName>${displayName}</DisplayName>
         <Pronouns>${Pronouns}</Pronouns>
         ${imageTag}
     </Character>

@@ -54,7 +54,7 @@ export const ComponentDescription = ({
             if (firstExample && firstExample.universalKey) {
                 const exampleComponent = parsedWML.byUniversalId[firstExample.universalKey as ComponentUUID]
                 if (exampleComponent && exampleComponent instanceof StandardExample) {
-                    name = exampleComponent.name || new StandardRender(['Unknown'])
+                    name = exampleComponent.displayName || new StandardRender(['Unknown'])
                     description = exampleComponent.description || new StandardRender([])
                 }
             }

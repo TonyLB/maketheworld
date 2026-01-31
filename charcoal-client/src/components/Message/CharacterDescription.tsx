@@ -41,7 +41,7 @@ export const CharacterDescription = ({ message }: CharacterDescriptionProps) => 
     if (message.parsedWML) {
         const component = message.parsedWML.byUniversalId[CharacterId]
         if (component instanceof StandardCharacter) {
-            Name = component.name?.plainString || 'Unknown'
+            Name = component.displayName?.plainString || 'Unknown'
             // Safely access image fileURL
             const imageData = component.image?.data
             fileURL = imageData && 'fileURL' in imageData ? imageData.fileURL : undefined

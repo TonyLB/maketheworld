@@ -37,7 +37,7 @@ describe('AssetData cache class', () => {
         const assetId = 'ASSET#Test'
         const mockData = [
             { tag: 'Room', key: 'Room1', AssetId: `ROOM#ABCDEF`, DataCategory: 'ASSET#Test', shortName: 'Lobby', exits: [], examples: ['EXAMPLE#GHIJKL'] },
-            { tag: 'Example', AssetId: 'EXAMPLE#GHIJKL', DataCategory: 'ASSET#Test', context: ['ROOM#ABCDEF'], name: ['Plain lobby'], description: ['A featureless lobby'], summary: [] }
+            { tag: 'Example', AssetId: 'EXAMPLE#GHIJKL', DataCategory: 'ASSET#Test', context: ['ROOM#ABCDEF'], displayName: ['Plain lobby'], description: ['A featureless lobby'], summary: [] }
         ]
         assetDBMock.query.mockResolvedValue(mockData)
         assetDBMock.getItem.mockResolvedValue({ topLevel: ['ROOM#ABCDEF'] })
@@ -53,7 +53,7 @@ describe('AssetData cache class', () => {
                 <Room uuid=(ABCDEF) key=(Room1)>
                     <ShortName>Lobby</ShortName>
                     <Example uuid=(GHIJKL)>
-                        <Name>Plain lobby</Name>
+                        <DisplayName>Plain lobby</DisplayName>
                         <Description>A featureless lobby</Description>
                     </Example>
                 </Room>

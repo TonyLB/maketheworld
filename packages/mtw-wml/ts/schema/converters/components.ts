@@ -19,6 +19,7 @@ const componentTemplates = {
     Description: {},
     Summary: {},
     Name: {},
+    DisplayName: {},
     ShortName: {},
     Parent: {},
     Key: {},

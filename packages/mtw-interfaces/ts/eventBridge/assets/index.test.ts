@@ -30,8 +30,8 @@ describe('AssetsEventSerializer', () => {
     describe('Component Events', () => {
         it('should serialize Component Updated event to external format', () => {
             const character = new StandardCharacter(deIndentWML(`
-                <Character key=(test-character) uuid=(test-character)>
-                    <Name>Test Character</Name>
+                <Character key=(testcharacter) uuid=(testcharacter)>
+                    <DisplayName>Test Character</DisplayName>
                 </Character>
             `))
 
@@ -48,10 +48,10 @@ describe('AssetsEventSerializer', () => {
 
             expect(externalEvent.type).toBe('Component Updated')
             if (externalEvent.type === 'Component Updated') {
-                expect(externalEvent.componentId).toBe('CHARACTER#test-character')
+                expect(externalEvent.componentId).toBe('CHARACTER#testcharacter')
                 expect(externalEvent.wml).toBe(deIndentWML(`
-                <Character uuid=(test-character) key=(test-character)>
-                    <Name>Test Character</Name>
+                <Character uuid=(testcharacter) key=(testcharacter)>
+                    <DisplayName>Test Character</DisplayName>
                 </Character>
             `))
             }
@@ -60,10 +60,10 @@ describe('AssetsEventSerializer', () => {
         it('should deserialize Component Updated event from external format', () => {
             const externalEvent: AssetsEventExternal = {
                 type: 'Component Updated',
-                componentId: 'CHARACTER#test-character',
+                componentId: 'CHARACTER#testcharacter',
                 wml: deIndentWML(`
-                    <Character key=(test-character) uuid=(test-character)>
-                        <Name>Test Character</Name>
+                    <Character key=(testcharacter) uuid=(testcharacter)>
+                        <DisplayName>Test Character</DisplayName>
                     </Character>
                 `)
             }
@@ -78,15 +78,15 @@ describe('AssetsEventSerializer', () => {
             expect(internalEvent).not.toBeNull()
             expect(internalEvent!.type).toBe('Component Updated')
             if (isAssetsComponentUpdatedEvent(internalEvent!)) {
-                expect(internalEvent.component.universalKey).toBe('CHARACTER#test-character')
+                expect(internalEvent.component.universalKey).toBe('CHARACTER#testcharacter')
                 expect(internalEvent.component).toBeInstanceOf(StandardCharacter)
             }
         })
 
         it('should handle Component Updated round-trip correctly', () => {
             const originalCharacter = new StandardCharacter(deIndentWML(`
-                <Character key=(test-character) uuid=(test-character)>
-                    <Name>Test Character</Name>
+                <Character key=(testcharacter) uuid=(testcharacter)>
+                    <DisplayName>Test Character</DisplayName>
                 </Character>
             `))
 
@@ -114,15 +114,15 @@ describe('AssetsEventSerializer', () => {
             expect(deserializedEvent).not.toBeNull()
             expect(isAssetsComponentUpdatedEvent(deserializedEvent!)).toBe(true)
             if (isAssetsComponentUpdatedEvent(deserializedEvent!)) {
-                expect(deserializedEvent.component.universalKey).toBe('CHARACTER#test-character')
+                expect(deserializedEvent.component.universalKey).toBe('CHARACTER#testcharacter')
                 expect(deserializedEvent.component).toBeInstanceOf(StandardCharacter)
             }
         })
 
         it('should serialize Component Removed event to external format', () => {
             const character = new StandardCharacter(deIndentWML(`
-                <Character key=(test-character) uuid=(test-character)>
-                    <Name>Test Character</Name>
+                <Character key=(testcharacter) uuid=(testcharacter)>
+                    <DisplayName>Test Character</DisplayName>
                 </Character>
             `))
 
@@ -139,10 +139,10 @@ describe('AssetsEventSerializer', () => {
 
             expect(externalEvent.type).toBe('Component Removed')
             if (externalEvent.type === 'Component Removed') {
-                expect(externalEvent.componentId).toBe('CHARACTER#test-character')
+                expect(externalEvent.componentId).toBe('CHARACTER#testcharacter')
                 expect(externalEvent.wml).toBe(deIndentWML(`
-                <Character uuid=(test-character) key=(test-character)>
-                    <Name>Test Character</Name>
+                <Character uuid=(testcharacter) key=(testcharacter)>
+                    <DisplayName>Test Character</DisplayName>
                 </Character>
             `))
             }
@@ -151,10 +151,10 @@ describe('AssetsEventSerializer', () => {
         it('should deserialize Component Removed event from external format', () => {
             const externalEvent: AssetsEventExternal = {
                 type: 'Component Removed',
-                componentId: 'CHARACTER#test-character',
+                componentId: 'CHARACTER#testcharacter',
                 wml: deIndentWML(`
-                    <Character key=(test-character) uuid=(test-character)>
-                        <Name>Test Character</Name>
+                    <Character key=(testcharacter) uuid=(testcharacter)>
+                        <DisplayName>Test Character</DisplayName>
                     </Character>
                 `)
             }
@@ -169,15 +169,15 @@ describe('AssetsEventSerializer', () => {
             expect(internalEvent).not.toBeNull()
             expect(internalEvent!.type).toBe('Component Removed')
             if (isAssetsComponentRemovedEvent(internalEvent!)) {
-                expect(internalEvent.component.universalKey).toBe('CHARACTER#test-character')
+                expect(internalEvent.component.universalKey).toBe('CHARACTER#testcharacter')
                 expect(internalEvent.component).toBeInstanceOf(StandardCharacter)
             }
         })
 
         it('should handle Component Removed round-trip correctly', () => {
             const originalCharacter = new StandardCharacter(deIndentWML(`
-                <Character key=(test-character) uuid=(test-character)>
-                    <Name>Test Character</Name>
+                <Character key=(testcharacter) uuid=(testcharacter)>
+                    <DisplayName>Test Character</DisplayName>
                 </Character>
             `))
 
@@ -205,7 +205,7 @@ describe('AssetsEventSerializer', () => {
             expect(deserializedEvent).not.toBeNull()
             expect(isAssetsComponentRemovedEvent(deserializedEvent!)).toBe(true)
             if (isAssetsComponentRemovedEvent(deserializedEvent!)) {
-                expect(deserializedEvent.component.universalKey).toBe('CHARACTER#test-character')
+                expect(deserializedEvent.component.universalKey).toBe('CHARACTER#testcharacter')
                 expect(deserializedEvent.component).toBeInstanceOf(StandardCharacter)
             }
         })
@@ -351,7 +351,7 @@ describe('AssetsEventSerializer', () => {
         it('should handle invalid WML in Component Updated deserialize', () => {
             const externalEvent: AssetsEventExternal = {
                 type: 'Component Updated',
-                componentId: 'CHARACTER#test-character',
+                componentId: 'CHARACTER#testcharacter',
                 wml: 'invalid-wml-content'
             }
 
@@ -370,8 +370,8 @@ describe('AssetsEventSerializer', () => {
                 type: 'Component Updated',
                 componentId: 'CHARACTER#missing-character',
                 wml: deIndentWML(`
-                    <Character key=(test-character) uuid=(test-character)>
-                        <Name>Test Character</Name>
+                    <Character key=(testcharacter) uuid=(testcharacter)>
+                        <DisplayName>Test Character</DisplayName>
                     </Character>
                 `)
             }
@@ -391,8 +391,8 @@ describe('AssetsEventSerializer', () => {
         describe('isAssetsComponentUpdatedEvent', () => {
             it('should return true for valid Component Updated events', () => {
                 const character = new StandardCharacter(deIndentWML(`
-                    <Character key=(test-character) uuid=(test-character)>
-                        <Name>Test Character</Name>
+                    <Character key=(testcharacter) uuid=(testcharacter)>
+                        <DisplayName>Test Character</DisplayName>
                     </Character>
                 `))
 
@@ -416,8 +416,8 @@ describe('AssetsEventSerializer', () => {
         describe('isAssetsComponentEvent', () => {
             it('should return true for valid component events', () => {
                 const character = new StandardCharacter(deIndentWML(`
-                    <Character key=(test-character) uuid=(test-character)>
-                        <Name>Test Character</Name>
+                    <Character key=(testcharacter) uuid=(testcharacter)>
+                        <DisplayName>Test Character</DisplayName>
                     </Character>
                 `))
 
@@ -433,8 +433,8 @@ describe('AssetsEventSerializer', () => {
         describe('isAssetsComponentRemovedEvent', () => {
             it('should return true for valid Component Removed events', () => {
                 const character = new StandardCharacter(deIndentWML(`
-                    <Character key=(test-character) uuid=(test-character)>
-                        <Name>Test Character</Name>
+                    <Character key=(testcharacter) uuid=(testcharacter)>
+                        <DisplayName>Test Character</DisplayName>
                     </Character>
                 `))
 
@@ -469,8 +469,8 @@ describe('AssetsEventSerializer', () => {
                 const componentEvent: ComponentUpdatedEvent = {
                     type: 'Component Updated',
                     component: new StandardCharacter(deIndentWML(`
-                        <Character key=(test-character) uuid=(test-character)>
-                            <Name>Test Character</Name>
+                        <Character key=(testcharacter) uuid=(testcharacter)>
+                            <DisplayName>Test Character</DisplayName>
                         </Character>
                     `))
                 }

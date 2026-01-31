@@ -1,4 +1,3 @@
-import { SchemaNameTag } from "@tonylb/mtw-base/ts/schema/example";
 import { EditWrappedStandardNode, StandardBaseData } from "./abstract"
 import { checkAll, checkTypes } from "./typeguards";
 import { SchemaImageTag } from "@tonylb/mtw-base/ts/schema/image";
@@ -10,7 +9,7 @@ export type StandardCharacterData = {
     tag: 'Character';
     shortName?: StandardEditableData<string>;
     pronouns?: StandardEditableData<string>;
-    name?: StandardEditableData<RenderTree>;
+    displayName?: StandardEditableData<RenderTree>;
     image?: EditWrappedStandardNode<SchemaImageTag, SchemaTag>;
 } & StandardBaseData
 
@@ -27,7 +26,7 @@ export const isStandardCharacterData = (arg: any): arg is StandardCharacterData 
             universalKey: 'string',
             shortName: 'literal',
             pronouns: 'literal',
-            name: 'renderTree',
+            displayName: 'renderTree',
             image: 'node'
         })
     )

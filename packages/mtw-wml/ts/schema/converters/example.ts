@@ -4,7 +4,7 @@ import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./base
 import { tagRender } from "./tagRender"
 import { validateProperties, validateExpressionAsNonNegativeInteger } from "./utils"
 import { GenericTree, GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree"
-import { isSchemaDescription, isSchemaExample, isSchemaName, isSchemaSummary, SchemaDescriptionTag, SchemaExampleTag, SchemaNameTag, SchemaSummaryTag } from "@tonylb/mtw-base/ts/schema/example"
+import { isSchemaDescription, isSchemaExample, isSchemaName, isSchemaSummary, isSchemaDisplayName, SchemaDescriptionTag, SchemaExampleTag, SchemaNameTag, SchemaDisplayNameTag, SchemaSummaryTag } from "@tonylb/mtw-base/ts/schema/example"
 import { isSchemaTaggedMessageLegalContents, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { PrintMode } from "@tonylb/mtw-base/ts/schema/printMap"
 import { enforceTypedKey, stripTypedKey } from "@tonylb/mtw-utilities/ts/types"
@@ -13,6 +13,7 @@ const exampleTemplates = {
     Description: {},
     Summary: {},
     Name: {},
+    DisplayName: {},
     Example: {
         uuid: { type: ParsePropertyTypes.Key },
         key: { type: ParsePropertyTypes.Key },
@@ -71,6 +72,22 @@ export const exampleConverters: Record<string, ConverterMapEntry> = {
             }
         }
     },
+    DisplayName: {
+        initialize: ({ parseOpen }): SchemaDisplayNameTag => ({
+            tag: 'DisplayName',
+            ...validateProperties(exampleTemplates.DisplayName)(parseOpen)
+        }),
+        typeCheckContents: isSchemaTaggedMessageLegalContents,
+        finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaDisplayNameTag, SchemaTag> => {
+            if (!isSchemaDisplayName(initialTag)) {
+                throw new Error('Type mismatch on schema finalize')
+            }
+            return {
+                data: initialTag,
+                children: compressWhitespace(children)
+            }
+        }
+    },
     Example: {
         initialize: ({ parseOpen }): SchemaExampleTag => {
             const { uuid, ref, ...rest } = validateProperties(exampleTemplates.Example)(parseOpen)
@@ -110,9 +127,17 @@ export const examplePrintMap: Record<string, PrintMapEntry> = {
             node: { data, children }
         })
     ),
+    DisplayName: ({ tag: { data, children }, ...args }: PrintMapEntryArguments) => (
+        tagRender({
+            ...args,
+            tag: 'DisplayName',
+            properties: [],
+            node: { data, children }
+        })
+    ),
     Example: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => {
         //
-        // Reassemble the contents out of name and description fields
+        // Reassemble the contents out of displayName and description fields
         //
         if (!isSchemaExample(tag)) {
             return [{ printMode: PrintMode.naive, output: '' }]

@@ -109,7 +109,7 @@ export const OOCMessage: FunctionComponent<OOCMessageProps> = ({ message, varian
         >
             <OOCBubble variant={variant}>
                 <Box sx={{ fontWeight: 'bold' }}>
-                    {message.Name} (out of character)
+                    {message.DisplayName} (out of character)
                 </Box>
                 <Typography variant='body1' align='left'>
                     <RenderTreeContent list={message.Message} onClickLink={() => {}} />

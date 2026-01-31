@@ -7,7 +7,7 @@ import { ContentHeadersSnapshot } from '@tonylb/mtw-interfaces/ts/eventBridge/as
 import { Zone } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { AssetUUID, ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
-import { hasName } from '@tonylb/mtw-wml/ts/standardize'
+import { hasDisplayName } from '@tonylb/mtw-wml/ts/standardize'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
 import StandardKnowledge from '@tonylb/mtw-wml/ts/standardize/components/knowledge'
@@ -55,18 +55,17 @@ export const getComponentsForAsset = (state: any, assetId: AssetUUID): StandardC
 }
 
 /**
- * Get display name for a component (shortName if available, then name, then key)
+ * Get display name for a component (shortName if available, then displayName, then key)
  */
 export const getComponentDisplayName = (component: StandardComponent): string => {
     const shortNameValue = component.shortName?._payload?.plain?.toJSON()
     if (typeof shortNameValue === 'string' && shortNameValue.trim()) {
         return shortNameValue
     }
-    if (hasName(component) && component.name) {
-        // Extract plain text from name if it's a render tree
-        const nameValue = component.name.toJSON()
-        if (typeof nameValue === 'string') {
-            return nameValue
+    if (hasDisplayName(component) && component.displayName) {
+        const displayNameStr = component.displayName.plainString
+        if (typeof displayNameStr === 'string' && displayNameStr.trim()) {
+            return displayNameStr
         }
     }
     // Fallback to key or universalKey

@@ -22,7 +22,7 @@ describe('updateContentByChunk', () => {
                 <Asset uuid=(test)>
                     <Room uuid=(testRoom)>
                         <Example uuid=(testExample)>
-                            <Name>Original Name</Name>
+                            <DisplayName>Original Name</DisplayName>
                         </Example>
                     </Room>
                 </Asset>
@@ -45,7 +45,7 @@ describe('updateContentByChunk', () => {
                 <Asset uuid=(test)>
                     <Room uuid=(testRoom)>
                         <Example uuid=(testExample)>
-                            <Name>Original Name</Name>
+                            <DisplayName>Original Name</DisplayName>
                             <Description>Added description</Description>
                         </Example>
                     </Room>
@@ -61,7 +61,7 @@ describe('updateContentByChunk', () => {
                 <Asset uuid=(newAsset)>
                     <Room uuid=(newRoom)>
                         <Example uuid=(newExample)>
-                            <Name>First Content</Name>
+                            <DisplayName>First Content</DisplayName>
                         </Example>
                     </Room>
                 </Asset>
@@ -74,7 +74,9 @@ describe('updateContentByChunk', () => {
             expect(serialized).toEqual(deIndentWML(`
                 <Asset uuid=(newAsset)>
                     <Room uuid=(newRoom)>
-                        <Example uuid=(newExample)><Name>First Content</Name></Example>
+                        <Example uuid=(newExample)>
+                            <DisplayName>First Content</DisplayName>
+                        </Example>
                     </Room>
                 </Asset>
             `))
@@ -85,7 +87,7 @@ describe('updateContentByChunk', () => {
                 <Asset uuid=(test)>
                     <Room uuid=(testRoom)>
                         <Example uuid=(testExample)>
-                            <Name>Original</Name>
+                            <DisplayName>Original</DisplayName>
                         </Example>
                     </Room>
                 </Asset>
@@ -95,10 +97,10 @@ describe('updateContentByChunk', () => {
                 <Asset uuid=(test)>
                     <Example uuid=(testExample) ref={0}>
                         <Replace>
-                            <Name>Original</Name>
+                            <DisplayName>Original</DisplayName>
                         </Replace>
                         <With>
-                            <Name>Updated</Name>
+                            <DisplayName>Updated</DisplayName>
                         </With>
                     </Example>
                 </Asset>
@@ -110,7 +112,9 @@ describe('updateContentByChunk', () => {
             expect(serialized).toEqual(deIndentWML(`
                 <Asset uuid=(test)>
                     <Room uuid=(testRoom)>
-                        <Example uuid=(testExample)><Name>Updated</Name></Example>
+                        <Example uuid=(testExample)>
+                            <DisplayName>Updated</DisplayName>
+                        </Example>
                     </Room>
                 </Asset>
             `))
@@ -144,7 +148,7 @@ describe('updateContentByChunk', () => {
                 <Asset uuid=(test)>
                     <Room uuid=(testRoom)>
                         <Example uuid=(testExample)>
-                            <Name>Original</Name>
+                            <DisplayName>Original</DisplayName>
                         </Example>
                     </Room>
                 </Asset>
@@ -170,7 +174,7 @@ describe('updateContentByChunk', () => {
                 <Asset uuid=(test)>
                     <Room uuid=(testRoom)>
                         <Example uuid=(testExample)>
-                            <Name>Original</Name>
+                            <DisplayName>Original</DisplayName>
                             <Description>Added</Description>
                         </Example>
                     </Room>

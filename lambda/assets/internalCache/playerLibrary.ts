@@ -86,7 +86,7 @@ export class CachePlayerLibraryData {
                     if (recordId) {
                         Characters[recordId] = normalizeCharacter({
                             CharacterId: recordId as EphemeraCharacterId,
-                            Name: typeof Name === 'string' ? Name : '',
+                            DisplayName: typeof Name === 'string' ? Name : '',
                             ...(typeof scopedId === 'string' ? { scopedId } : {}),
                             ...(typeof fileName === 'string' ? { fileName } : {}),
                             ...(typeof fileURL === 'string' ? { fileURL } : {}),

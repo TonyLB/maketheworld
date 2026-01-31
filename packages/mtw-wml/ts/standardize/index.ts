@@ -10,7 +10,7 @@ import StandardFeature, { StandardFeaturePayload } from "./components/feature"
 import StandardKnowledge, { StandardKnowledgePayload } from "./components/knowledge"
 import StandardMap from "./components/map"
 import { wrappedNodeTypeGuard } from "../schema/utils"
-import { HasDescription, HasName, HasShortName } from "./components/abstract"
+import { HasDescription, HasDisplayName, HasShortName } from "./components/abstract"
 import { StandardBaseData } from "./components/dataTypes/abstract"
 import { StandardComponent, StandardComponentReferenceKey } from "./components/baseClasses"
 import processComponents, { ComponentProcessingTemplate } from "./processComponents"
@@ -93,8 +93,8 @@ export const assertInstance = <C extends { new (...args: any[]) : any }>(value: 
     throw new Error('Type mismatch')
 }
 
-export const hasName = (component: StandardComponent): component is StandardComponent & HasName => {
-    return (component instanceof StandardRoom || component instanceof StandardFeature || component instanceof StandardKnowledge)
+export const hasDisplayName = (component: StandardComponent): component is StandardComponent & HasDisplayName => {
+    return (component instanceof StandardExample || component instanceof StandardCharacter)
 }
 
 export const hasDescription = (component: StandardComponent): component is StandardComponent & HasDescription => {

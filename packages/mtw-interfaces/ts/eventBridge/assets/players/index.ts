@@ -93,7 +93,7 @@ const isLibraryCharacter = (value: any): value is LibraryCharacter => (
     value &&
     typeof value === 'object' &&
     typeof value.CharacterId === 'string' &&
-    typeof value.Name === 'string' &&
+    typeof value.DisplayName === 'string' &&
     (value.scopedId === undefined || typeof value.scopedId === 'string') &&
     (value.fileName === undefined || typeof value.fileName === 'string') &&
     (value.fileURL === undefined || typeof value.fileURL === 'string') &&
