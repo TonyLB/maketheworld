@@ -33,7 +33,7 @@ const ExitTargetSelector: FunctionComponent<{
     const { readonly, standardForm } = useWorkbenchAsset()
 
     const roomNamesInScope = useMemo<Record<string, string>>(() => {
-        const rooms = Object.values(standardForm.byUniversalId)
+        const rooms = standardForm.components
             .filter((component): component is StandardRoom => (component instanceof StandardRoom))
 
         const roomNamesInScope: Record<string, string> = {}

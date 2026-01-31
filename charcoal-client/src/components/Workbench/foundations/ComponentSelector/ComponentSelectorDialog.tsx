@@ -89,7 +89,7 @@ export const ComponentSelectorDialog: FunctionComponent<ComponentSelectorDialogP
     const { standardForm } = useWorkbenchAsset()
 
     const { flat, grouped } = useMemo(() => {
-        const components = Object.values(standardForm.byId).filter(
+        const components = standardForm.components.filter(
             (c): c is StandardComponent & { universalKey: ComponentUUID } =>
                 !!c?.universalKey && !(isExcluded?.(c.universalKey as ComponentUUID) ?? false)
         )

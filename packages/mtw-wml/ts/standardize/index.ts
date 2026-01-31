@@ -515,6 +515,16 @@ export class StandardForm {
             .map((component) => (component.standardKey))
     }
 
+    /**
+     * All components in the asset.
+     * Prefer this over Object.values(byId) or Object.values(byUniversalId) when iterating;
+     * those proxies only surface components with key/universalKey defined respectively.
+     * Read-only — do not mutate the returned array.
+     */
+    get components(): readonly StandardComponent[] {
+        return this._components
+    }
+
     invalidateCache(): void {
         this._keyLookupCache = undefined
         this._schemaOrganizationCache = undefined

@@ -40,7 +40,7 @@ export const UnshownRooms: FunctionComponent<UnshownRoomsProps> = () => {
             })
             .filter(excludeUndefined)
     }, [localStandardForm, mapId])
-    const unshownRoomItems = Object.values(standardForm.byId)
+    const unshownRoomItems = standardForm.components
         .filter((component): component is StandardRoom => (component instanceof StandardRoom))
         .filter((room) => (room.key && !shownRooms.includes(room.key)))
     const nameFromKey = useCallback((key: string | undefined): string => {

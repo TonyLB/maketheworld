@@ -42,7 +42,7 @@ export const getContentHeadersByZone = (state: any, zone: Zone): Array<{
 /**
  * Get components for a specific asset
  */
-export const getComponentsForAsset = (state: any, assetId: AssetUUID): StandardComponent[] => {
+export const getComponentsForAsset = (state: any, assetId: AssetUUID): readonly StandardComponent[] => {
     const materializedView = getContentHeadersMaterializedView(state)
     if (!materializedView) {
         return []
@@ -51,7 +51,7 @@ export const getComponentsForAsset = (state: any, assetId: AssetUUID): StandardC
     if (!asset) {
         return []
     }
-    return asset.standardForm._components || []
+    return asset.standardForm.components || []
 }
 
 /**
