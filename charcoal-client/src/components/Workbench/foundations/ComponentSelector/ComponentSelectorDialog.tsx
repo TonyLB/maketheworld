@@ -77,7 +77,13 @@ export interface ComponentSelectorDialogProps {
     isExcluded?: (universalKey: ComponentUUID) => boolean
 }
 
-type ListItem = { universalKey: ComponentUUID; displayName: string; tag: DialogComponentTag }
+type ListItem = {
+    universalKey: ComponentUUID
+    displayName: string
+    /** Human-readable key for secondary display; only set when we have one (never show universalKey). */
+    secondaryKey?: string
+    tag: DialogComponentTag
+}
 
 export const ComponentSelectorDialog: FunctionComponent<ComponentSelectorDialogProps> = ({
     open,
@@ -97,9 +103,13 @@ export const ComponentSelectorDialog: FunctionComponent<ComponentSelectorDialogP
             .map((c) => {
                 const componentTag = componentToTag(c)
                 if (tag != null && componentTag !== tag) return null
+                const localKey = c.key
+                const secondaryKey =
+                    typeof localKey === 'string' && localKey.trim() ? localKey : undefined
                 return {
                     universalKey: c.universalKey as ComponentUUID,
                     displayName: getDisplayName(c),
+                    secondaryKey,
                     tag: componentTag!
                 } as ListItem | null
             })
@@ -159,7 +169,7 @@ export const ComponentSelectorDialog: FunctionComponent<ComponentSelectorDialogP
                                 key={item.universalKey}
                                 onClick={() => handleSelect(item.universalKey)}
                             >
-                                <ListItemText primary={item.displayName} secondary={item.universalKey} />
+                                <ListItemText primary={item.displayName} secondary={item.secondaryKey} />
                             </ListItemButton>
                         ))}
                     {grouped != null &&
@@ -176,7 +186,7 @@ export const ComponentSelectorDialog: FunctionComponent<ComponentSelectorDialogP
                                         key={item.universalKey}
                                         onClick={() => handleSelect(item.universalKey)}
                                     >
-                                        <ListItemText primary={item.displayName} secondary={item.universalKey} />
+                                        <ListItemText primary={item.displayName} secondary={item.secondaryKey} />
                                     </ListItemButton>
                                 ))}
                             </React.Fragment>
