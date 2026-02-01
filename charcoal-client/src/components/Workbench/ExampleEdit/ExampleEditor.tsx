@@ -1,20 +1,11 @@
-import React, { FunctionComponent, useCallback, useMemo, useState } from "react"
+import React, { FunctionComponent, useMemo, useState } from "react"
 import { useWorkbenchAsset } from "../foundations/useWorkbenchAsset"
 import StandardExample from "@tonylb/mtw-wml/ts/standardize/components/example";
-import { Box, IconButton, TextField } from "@mui/material";
-import LockIcon from '@mui/icons-material/Lock';
-import LockOpenIcon from '@mui/icons-material/LockOpen';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
+import { Box, Button, TextField, Typography } from "@mui/material";
 import { useDebouncedOnChange } from "../../../hooks/useDebounce";
 import { StandardRender } from "@tonylb/mtw-wml/ts/standardize/render";
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize";
 import { StandardRenderEditor } from "../foundations/StandardRender";
-import { MakeTheWorldAccordion } from "../../UI";
-import StandardRoom from "@tonylb/mtw-wml/ts/standardize/components/room";
-import StandardFeature from "@tonylb/mtw-wml/ts/standardize/components/feature";
-import StandardKnowledge from "@tonylb/mtw-wml/ts/standardize/components/knowledge";
-import StandardReference from "@tonylb/mtw-wml/ts/standardize/components/reference";
 import { ComponentUUID } from "@tonylb/mtw-base/ts/schema";
 
 type ExampleEditorProps = {
@@ -70,13 +61,13 @@ export const ExampleEditor: FunctionComponent<ExampleEditorProps> = ({ component
     })
     const [description, setDescription] = useState(component.description ?? new StandardRender([]))
     useDebouncedOnChange({
-        value: summary,
+        value: description,
         delay: 1000,
         onChange: (value: StandardRender) => {
             updateStandard({
                 type: 'update',
                 update: (example: StandardForm) => {
-                    const newValue = example.byId[componentId]
+                    const newValue = example.byUniversalId[componentId]
                     if (newValue instanceof StandardExample) {
                         newValue._payload._description = value
                     }
@@ -86,52 +77,18 @@ export const ExampleEditor: FunctionComponent<ExampleEditorProps> = ({ component
         }
     })
 
-    const localizeExample = useCallback(() => {
-        if (!(componentId in localStandardForm.byUniversalId)) {
-            const parentIds: string[] = []
-            standardForm.components.forEach((component) => {
-                if (component instanceof StandardRoom || component instanceof StandardFeature || component instanceof StandardKnowledge) {
-                    const hasExample = component.examples.payload.some((ref) =>
-                        ref instanceof StandardReference && ref.universalKey === componentId
-                    )
-                    if (hasExample && component.universalKey) {
-                        parentIds.push(component.universalKey)
-                    }
-                }
-            })
-            updateStandard({
-                type: 'updateLocal',
-                update: (draft) => {
-                    draft._components = [...draft._components, new StandardExample(componentId)]
-                    parentIds.forEach((parentId) => {
-                        const parent = draft.byUniversalId[parentId as ComponentUUID]
-                        if (parent instanceof StandardRoom || parent instanceof StandardFeature || parent instanceof StandardKnowledge) {
-                            parent._payload._examples = parent._payload._examples.assureItem(new StandardReference({ universalKey: componentId }))
-                        }
-                    })
-                    return draft
-                }
-            })
-        }
-    }, [componentId, localStandardForm, standardForm, updateStandard])
     return (
-        <MakeTheWorldAccordion
-            title="Example"
-            defaultExpanded
-            icon={inherited ? <LockIcon /> : <LockOpenIcon />}
-            actions={
-                <Box sx={{ display: 'flex', gap: 0.5 }}>
-                    <IconButton onClick={localizeExample} size="small">
-                        <EditIcon />
-                    </IconButton>
-                    {!inherited && (
-                        <IconButton size="small">
-                            <DeleteIcon />
-                        </IconButton>
-                    )}
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {inherited && (
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    <Typography variant="body2" color="text.secondary">
+                        Inherited from another asset
+                    </Typography>
+                    <Button size="small" variant="outlined" onClick={() => {}}>
+                        Unlock for editing
+                    </Button>
                 </Box>
-            }
-        >
+            )}
             <TextField
                 value={name}
                 onChange={(event) => { setName(event.target.value) }}
@@ -159,7 +116,7 @@ export const ExampleEditor: FunctionComponent<ExampleEditorProps> = ({ component
                 toolbar={false}
                 tag="Description"
             />
-        </MakeTheWorldAccordion>
+        </Box>
     )
 }
 
