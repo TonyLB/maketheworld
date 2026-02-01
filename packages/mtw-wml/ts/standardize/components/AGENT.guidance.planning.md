@@ -1,7 +1,7 @@
 # Guidance Component - Planning Document
 
 **Date**: February 1, 2026  
-**Status**: Planning - Phase 1 implemented  
+**Status**: Planning - Phase 1 and Phase 2 implemented  
 **Component Type**: StandardGuidance (sibling to StandardExample)
 
 ## Overview
@@ -100,75 +100,22 @@ None - Guidance components do not contain reference lists.
 
 ---
 
-### Phase 2: Schema Converter Registration
+### Phase 2: Schema Converter Registration — **Implemented**
 
 **Location**: `packages/mtw-wml/ts/schema/converters/components.ts`
 
 **Tasks**:
+1. ~~Add prefix key to PrefixKey type~~ — Done. Added `'GUIDANCE'` to the `PrefixKey` union in `packages/mtw-utilities/ts/types.ts`.
+2. ~~Import schema types~~ — Done. `isSchemaGuidance` and `SchemaGuidanceTag` imported from `@tonylb/mtw-base/ts/schema/components`.
+3. ~~Add to componentTemplates~~ — Done. Guidance entry added with uuid, key, from, origin, ref.
+4. ~~Add to componentConverters~~ — Done. Initialize function validates properties and enforces GUIDANCE-prefixed UUIDs.
+5. ~~Add to componentPrintMap~~ — Done. Renders Guidance tag with optional uuid, key, from, origin, ref.
 
-1. **Add prefix key to PrefixKey type**:
-   - **Location**: `packages/mtw-utilities/ts/types.ts`
-   - Add `'GUIDANCE'` to the `PrefixKey` type union:
-     ```typescript
-     type PrefixKey = 'ASSET' | 'CHARACTER' | 'ROOM' | 'EXAMPLE' | 'FEATURE' | 'KNOWLEDGE' | 'MAP' | 'MESSAGE' | 'MOMENT' | 'IMAGE' | 'CONNECTION' | 'SESSION' | 'MARK' | 'GUIDANCE'
-     ```
-
-2. **Import schema types**:
-   ```typescript
-   import { isSchemaGuidance, SchemaGuidanceTag } from '@tonylb/mtw-base/ts/schema/components'
-   ```
-
-3. **Add to componentTemplates**:
-   ```typescript
-   Guidance: {
-       uuid: { type: ParsePropertyTypes.Key },
-       key: { type: ParsePropertyTypes.Key },
-       from: { type: ParsePropertyTypes.Asset },
-       origin: { type: ParsePropertyTypes.AssetList },
-       ref: { type: ParsePropertyTypes.Expression }
-   }
-   ```
-
-4. **Add to componentConverters**:
-   ```typescript
-   Guidance: {
-       initialize: ({ parseOpen }): SchemaGuidanceTag => {
-           const { uuid, ref, ...rest } = validateProperties(componentTemplates.Guidance)(parseOpen)
-           const refValue = ref ? validateExpressionAsNonNegativeInteger(ref as string, 'ref', parseOpen.tag) : undefined
-           return {
-               tag: 'Guidance',
-               uuid: uuid ? enforceTypedKey('GUIDANCE')(uuid) : undefined,
-               ...(refValue !== undefined ? { ref: refValue } : {}),
-               ...rest
-           }
-       }
-   }
-   ```
-
-5. **Add to componentPrintMap**:
-   ```typescript
-   Guidance: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => {
-       if (!isSchemaGuidance(tag)) {
-           return [{ printMode: PrintMode.naive, output: '' }]
-       }
-       return tagRender({
-           ...args,
-           tag: 'Guidance',
-           properties: [
-               { key: 'uuid', type: 'key', value: tag.uuid ? stripTypedKey('GUIDANCE')(tag.uuid) : '' },
-               ...(tag.key ? [{ key: 'key', type: 'key' as const, value: tag.key }] : []),
-               { key: 'from', type: 'key', value: tag.from ?? '' },
-               ...(tag.origin && tag.origin.length ? [{ key: 'origin', type: 'assetList' as const, value: tag.origin }] : []),
-               ...(tag.ref !== undefined ? [{ key: 'ref', type: 'expression' as const, value: String(tag.ref) }] : [])
-           ],
-           node: { data: tag, children }
-       })
-   }
-   ```
+6. ~~Add Guidance to component sort order~~ — Done. Added `'Guidance'` to `componentKeys` in `referenceSortOrder` (`packages/mtw-wml/ts/standardize/keys/reference.ts`), positioned immediately before `'Example'`. Used by `SchemaOrganization.sortOrder()`, `keySortOrder`, and authorization sorting.
 
 **Reference**: See `Example` entries in `componentTemplates`, `componentConverters`, and `componentPrintMap`
 
-**Verification**: `<Guidance>` tags parse correctly from WML strings without "Cannot read properties of undefined" errors
+**Verification**: `<Guidance>` tags parse correctly from WML strings without "Cannot read properties of undefined" errors; Guidance sorts before Examples in reference/schema ordering.
 
 ---
 
