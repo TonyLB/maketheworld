@@ -190,6 +190,22 @@ const [currentId, setCurrentId] = useState(siblings[0]?.id ?? null)
 
 ---
 
+## Payload-only principle
+
+LayeredContext components present **payload editing only**. Add/remove/list management stays at the parent editor (ReferenceListEditor). The Examples flow is the canonical implementation: Room/Feature/Knowledge editors host the Examples ReferenceListEditor (add, delete, click-to-navigate); ExamplesView hosts LayeredExamplesTabs + ExampleEditor (payload fields only, no accordion wrapper, no list-management actions).
+
+---
+
+## Future development: Unlock for editing
+
+The "Unlock for editing" affordance is rendered in ExampleEditor when an Example is inherited but is **unimplemented** (no-op button). To implement it:
+
+- **fetchImportDefaults and Examples**: The `fetchImportDefaults` process has not been carefully thought through in the context of Examples. A conceptual refactor is likely needed: how do we determine the origin asset for an inherited Example so we can import it correctly?
+- **Implementation path**: Use `origin={}` data from back-end import-defaults to identify the source asset; call `addImport` (or equivalent) with `fromAsset` derived from that origin; add the Example to the local asset with proper `_from` so it becomes editable while preserving the import chain.
+- **Reference**: Map editor uses "unlock for editing" semantics; that UI is currently the most obfuscated, but the metaphor aligns.
+
+---
+
 ## Next steps
 
 1. Choose one pattern (or a hybrid) for Examples.  

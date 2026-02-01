@@ -1,20 +1,13 @@
-import React, { FunctionComponent, useCallback, useMemo, useState } from "react"
+import React, { FunctionComponent, useCallback, useMemo } from "react"
 import { useWorkbenchAsset } from "../foundations/useWorkbenchAsset"
 import StandardExample from "@tonylb/mtw-wml/ts/standardize/components/example";
-import { Box, IconButton, TextField } from "@mui/material";
-import LockIcon from '@mui/icons-material/Lock';
-import LockOpenIcon from '@mui/icons-material/LockOpen';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
-import { useDebouncedOnChange } from "../../../hooks/useDebounce";
+import { Box, Button, Typography } from "@mui/material";
+import { MakeTheWorldAccordion } from "../../UI";
+import { StandardLiteral } from "@tonylb/mtw-wml/ts/standardize/literal";
 import { StandardRender } from "@tonylb/mtw-wml/ts/standardize/render";
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize";
+import { TopLevelStandardLiteralEditor } from "../foundations/StandardLiteral";
 import { StandardRenderEditor } from "../foundations/StandardRender";
-import { MakeTheWorldAccordion } from "../../UI";
-import StandardRoom from "@tonylb/mtw-wml/ts/standardize/components/room";
-import StandardFeature from "@tonylb/mtw-wml/ts/standardize/components/feature";
-import StandardKnowledge from "@tonylb/mtw-wml/ts/standardize/components/knowledge";
-import StandardReference from "@tonylb/mtw-wml/ts/standardize/components/reference";
 import { ComponentUUID } from "@tonylb/mtw-base/ts/schema";
 
 type ExampleEditorProps = {
@@ -22,7 +15,7 @@ type ExampleEditorProps = {
 }
 
 export const ExampleEditor: FunctionComponent<ExampleEditorProps> = ({ componentId }) => {
-    const { standardForm, localStandardForm, updateStandard } = useWorkbenchAsset()
+    const { standardForm, localStandardForm, updateStandard, readonly } = useWorkbenchAsset()
     const component = useMemo<StandardExample>(() => {
         const component = standardForm.byUniversalId[componentId]
         if (component && component instanceof StandardExample) {
@@ -34,132 +27,155 @@ export const ExampleEditor: FunctionComponent<ExampleEditorProps> = ({ component
         })
     }, [standardForm, componentId])
     const inherited = !Boolean(localStandardForm.byUniversalId[componentId])
-    const [name, setName] = useState((component.displayName ?? new StandardRender([])).plainString)
-    useDebouncedOnChange({
-        value: name,
-        delay: 1000,
-        onChange: (value) => {
-            updateStandard({
-                type: 'update',
-                update: (example: StandardForm) => {
-                    const newValue = example.byUniversalId[componentId]
-                    if (newValue instanceof StandardExample) {
-                        newValue._payload._displayName = new StandardRender([value])
-                    }
-                    return example
-                }
-            })
-        }
-    })
-    const [summary, setSummary] = useState(component.summary ?? new StandardRender([]))
-    useDebouncedOnChange({
-        value: summary,
-        delay: 1000,
-        onChange: (value: StandardRender) => {
-            updateStandard({
-                type: 'update',
-                update: (example: StandardForm) => {
-                    const newValue = example.byUniversalId[componentId]
-                    if (newValue instanceof StandardExample) {
-                        newValue._payload._summary = value
-                    }
-                    return example
-                }
-            })
-        }
-    })
-    const [description, setDescription] = useState(component.description ?? new StandardRender([]))
-    useDebouncedOnChange({
-        value: summary,
-        delay: 1000,
-        onChange: (value: StandardRender) => {
-            updateStandard({
-                type: 'update',
-                update: (example: StandardForm) => {
-                    const newValue = example.byId[componentId]
-                    if (newValue instanceof StandardExample) {
-                        newValue._payload._description = value
-                    }
-                    return example
-                }
-            })
-        }
-    })
 
-    const localizeExample = useCallback(() => {
-        if (!(componentId in localStandardForm.byUniversalId)) {
-            const parentIds: string[] = []
-            standardForm.components.forEach((component) => {
-                if (component instanceof StandardRoom || component instanceof StandardFeature || component instanceof StandardKnowledge) {
-                    const hasExample = component.examples.payload.some((ref) =>
-                        ref instanceof StandardReference && ref.universalKey === componentId
-                    )
-                    if (hasExample && component.universalKey) {
-                        parentIds.push(component.universalKey)
-                    }
-                }
-            })
+    const handleShortNameChange = useCallback(
+        (newShortName: StandardLiteral) => {
+            if (!componentId || readonly) return
+            const currentExample = standardForm.byUniversalId[componentId]
+            if (!currentExample || !(currentExample instanceof StandardExample)) return
+            const newValue = newShortName._payload?.plain?.toJSON() ?? ''
+            const currentValue = currentExample.shortName?._payload?.plain?.toJSON() ?? ''
+            if (currentValue === newValue || (!currentValue && !newValue)) return
             updateStandard({
-                type: 'updateLocal',
-                update: (draft) => {
-                    draft._components = [...draft._components, new StandardExample(componentId)]
-                    parentIds.forEach((parentId) => {
-                        const parent = draft.byUniversalId[parentId as ComponentUUID]
-                        if (parent instanceof StandardRoom || parent instanceof StandardFeature || parent instanceof StandardKnowledge) {
-                            parent._payload._examples = parent._payload._examples.assureItem(new StandardReference({ universalKey: componentId }))
-                        }
-                    })
+                type: 'update',
+                update: (draft: StandardForm) => {
+                    const ex = draft.byUniversalId[componentId]
+                    if (ex && ex instanceof StandardExample) {
+                        ex._payload._shortName = newValue ? newShortName : undefined
+                    }
                     return draft
                 }
             })
-        }
-    }, [componentId, localStandardForm, standardForm, updateStandard])
+        },
+        [componentId, standardForm, updateStandard, readonly]
+    )
+
+    const handleDisplayNameChange = useCallback(
+        (newDisplayName: StandardRender) => {
+            if (!componentId || readonly) return
+            const currentExample = standardForm.byUniversalId[componentId]
+            if (!currentExample || !(currentExample instanceof StandardExample)) return
+            const newValue = newDisplayName.toJSON() ?? []
+            const currentValue = currentExample.displayName?.toJSON() ?? []
+            if (JSON.stringify(currentValue) === JSON.stringify(newValue)) return
+            updateStandard({
+                type: 'update',
+                update: (draft: StandardForm) => {
+                    const ex = draft.byUniversalId[componentId]
+                    if (ex && ex instanceof StandardExample) {
+                        const isEmpty = !newValue || (Array.isArray(newValue) && newValue.length === 0)
+                        ex._payload._displayName = isEmpty ? undefined : newDisplayName
+                    }
+                    return draft
+                }
+            })
+        },
+        [componentId, standardForm, updateStandard, readonly]
+    )
+
+    const handleSummaryChange = useCallback(
+        (newSummary: StandardRender) => {
+            if (!componentId || readonly) return
+            const currentExample = standardForm.byUniversalId[componentId]
+            if (!currentExample || !(currentExample instanceof StandardExample)) return
+            const newValue = newSummary.toJSON() ?? []
+            const currentValue = currentExample.summary?.toJSON() ?? []
+            if (JSON.stringify(currentValue) === JSON.stringify(newValue)) return
+            updateStandard({
+                type: 'update',
+                update: (draft: StandardForm) => {
+                    const ex = draft.byUniversalId[componentId]
+                    if (ex && ex instanceof StandardExample) {
+                        const isEmpty = !newValue || (Array.isArray(newValue) && newValue.length === 0)
+                        ex._payload._summary = isEmpty ? undefined : newSummary
+                    }
+                    return draft
+                }
+            })
+        },
+        [componentId, standardForm, updateStandard, readonly]
+    )
+
+    const handleDescriptionChange = useCallback(
+        (newDescription: StandardRender) => {
+            if (!componentId || readonly) return
+            const currentExample = standardForm.byUniversalId[componentId]
+            if (!currentExample || !(currentExample instanceof StandardExample)) return
+            const newValue = newDescription.toJSON() ?? []
+            const currentValue = currentExample.description?.toJSON() ?? []
+            if (JSON.stringify(currentValue) === JSON.stringify(newValue)) return
+            updateStandard({
+                type: 'update',
+                update: (draft: StandardForm) => {
+                    const ex = draft.byUniversalId[componentId]
+                    if (ex && ex instanceof StandardExample) {
+                        const isEmpty = !newValue || (Array.isArray(newValue) && newValue.length === 0)
+                        ex._payload._description = isEmpty ? undefined : newDescription
+                    }
+                    return draft
+                }
+            })
+        },
+        [componentId, standardForm, updateStandard, readonly]
+    )
+
     return (
-        <MakeTheWorldAccordion
-            title="Example"
-            defaultExpanded
-            icon={inherited ? <LockIcon /> : <LockOpenIcon />}
-            actions={
-                <Box sx={{ display: 'flex', gap: 0.5 }}>
-                    <IconButton onClick={localizeExample} size="small">
-                        <EditIcon />
-                    </IconButton>
-                    {!inherited && (
-                        <IconButton size="small">
-                            <DeleteIcon />
-                        </IconButton>
-                    )}
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {inherited && (
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    <Typography variant="body2" color="text.secondary">
+                        Inherited from another asset
+                    </Typography>
+                    <Button size="small" variant="outlined" onClick={() => {}}>
+                        Unlock for editing
+                    </Button>
                 </Box>
-            }
-        >
-            <TextField
-                value={name}
-                onChange={(event) => { setName(event.target.value) }}
+            )}
+            <TopLevelStandardLiteralEditor
+                value={component.shortName ?? new StandardLiteral('')}
+                onChange={handleShortNameChange}
+                label="Short Name"
+                placeholder="Example short name..."
+                size="small"
+                readonly={readonly}
             />
-            <Box
-                sx={{
-                    backgroundColor: 'lightgray',
-                    paddingTop: '0.5em',
-                    paddingBottom: '0.5em',
-                    width: '100%'
-                }}
-            >
-                <StandardRenderEditor
-                    value={summary}
-                    onChange={setSummary}
-                    validLinkTags={[]}
-                    toolbar={false}
-                    tag="Summary"
-                />
-            </Box>
-            <StandardRenderEditor
-                value={description}
-                onChange={setDescription}
-                validLinkTags={[]}
-                toolbar={false}
-                tag="Description"
-            />
-        </MakeTheWorldAccordion>
+            <MakeTheWorldAccordion title="Conditions">
+                <Typography variant="body2" color="text.secondary" sx={{ p: 2 }}>
+                    Mark facets will be shown here once facet rendering is implemented.
+                </Typography>
+            </MakeTheWorldAccordion>
+            <MakeTheWorldAccordion title="Appearance" defaultExpanded>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, p: 2 }}>
+                    <StandardRenderEditor
+                        title="Display Name"
+                        value={component.displayName ?? new StandardRender([])}
+                        onChange={handleDisplayNameChange}
+                        validLinkTags={['Feature', 'Knowledge']}
+                        toolbar={true}
+                        placeholder="Enter a Display Name"
+                        tag="DisplayName"
+                    />
+                    <StandardRenderEditor
+                        title="Summary"
+                        value={component.summary ?? new StandardRender([])}
+                        onChange={handleSummaryChange}
+                        validLinkTags={['Feature', 'Knowledge']}
+                        toolbar={true}
+                        placeholder="Enter a Summary"
+                        tag="Summary"
+                    />
+                    <StandardRenderEditor
+                        title="Description"
+                        value={component.description ?? new StandardRender([])}
+                        onChange={handleDescriptionChange}
+                        validLinkTags={['Feature', 'Knowledge']}
+                        toolbar={true}
+                        placeholder="Enter a Description"
+                        tag="Description"
+                    />
+                </Box>
+            </MakeTheWorldAccordion>
+        </Box>
     )
 }
 
