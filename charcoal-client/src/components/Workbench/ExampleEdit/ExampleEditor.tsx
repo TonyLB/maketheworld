@@ -1,10 +1,11 @@
-import React, { FunctionComponent, useMemo, useState } from "react"
+import React, { FunctionComponent, useCallback, useMemo } from "react"
 import { useWorkbenchAsset } from "../foundations/useWorkbenchAsset"
 import StandardExample from "@tonylb/mtw-wml/ts/standardize/components/example";
-import { Box, Button, TextField, Typography } from "@mui/material";
-import { useDebouncedOnChange } from "../../../hooks/useDebounce";
+import { Box, Button, Typography } from "@mui/material";
+import { StandardLiteral } from "@tonylb/mtw-wml/ts/standardize/literal";
 import { StandardRender } from "@tonylb/mtw-wml/ts/standardize/render";
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize";
+import { TopLevelStandardLiteralEditor } from "../foundations/StandardLiteral";
 import { StandardRenderEditor } from "../foundations/StandardRender";
 import { ComponentUUID } from "@tonylb/mtw-base/ts/schema";
 
@@ -13,7 +14,7 @@ type ExampleEditorProps = {
 }
 
 export const ExampleEditor: FunctionComponent<ExampleEditorProps> = ({ componentId }) => {
-    const { standardForm, localStandardForm, updateStandard } = useWorkbenchAsset()
+    const { standardForm, localStandardForm, updateStandard, readonly } = useWorkbenchAsset()
     const component = useMemo<StandardExample>(() => {
         const component = standardForm.byUniversalId[componentId]
         if (component && component instanceof StandardExample) {
@@ -25,57 +26,74 @@ export const ExampleEditor: FunctionComponent<ExampleEditorProps> = ({ component
         })
     }, [standardForm, componentId])
     const inherited = !Boolean(localStandardForm.byUniversalId[componentId])
-    const [name, setName] = useState((component.displayName ?? new StandardRender([])).plainString)
-    useDebouncedOnChange({
-        value: name,
-        delay: 1000,
-        onChange: (value) => {
+
+    const handleShortNameChange = useCallback(
+        (newShortName: StandardLiteral) => {
+            if (!componentId || readonly) return
+            const currentExample = standardForm.byUniversalId[componentId]
+            if (!currentExample || !(currentExample instanceof StandardExample)) return
+            const newValue = newShortName._payload?.plain?.toJSON() ?? ''
+            const currentValue = currentExample.shortName?._payload?.plain?.toJSON() ?? ''
+            if (currentValue === newValue || (!currentValue && !newValue)) return
             updateStandard({
                 type: 'update',
-                update: (example: StandardForm) => {
-                    const newValue = example.byUniversalId[componentId]
-                    if (newValue instanceof StandardExample) {
-                        newValue._payload._displayName = new StandardRender([value])
+                update: (draft: StandardForm) => {
+                    const ex = draft.byUniversalId[componentId]
+                    if (ex && ex instanceof StandardExample) {
+                        ex._payload._shortName = newValue ? newShortName : undefined
                     }
-                    return example
+                    return draft
                 }
             })
-        }
-    })
-    const [summary, setSummary] = useState(component.summary ?? new StandardRender([]))
-    useDebouncedOnChange({
-        value: summary,
-        delay: 1000,
-        onChange: (value: StandardRender) => {
+        },
+        [componentId, standardForm, updateStandard, readonly]
+    )
+
+    const handleSummaryChange = useCallback(
+        (newSummary: StandardRender) => {
+            if (!componentId || readonly) return
+            const currentExample = standardForm.byUniversalId[componentId]
+            if (!currentExample || !(currentExample instanceof StandardExample)) return
+            const newValue = newSummary.toJSON() ?? []
+            const currentValue = currentExample.summary?.toJSON() ?? []
+            if (JSON.stringify(currentValue) === JSON.stringify(newValue)) return
             updateStandard({
                 type: 'update',
-                update: (example: StandardForm) => {
-                    const newValue = example.byUniversalId[componentId]
-                    if (newValue instanceof StandardExample) {
-                        newValue._payload._summary = value
+                update: (draft: StandardForm) => {
+                    const ex = draft.byUniversalId[componentId]
+                    if (ex && ex instanceof StandardExample) {
+                        const isEmpty = !newValue || (Array.isArray(newValue) && newValue.length === 0)
+                        ex._payload._summary = isEmpty ? undefined : newSummary
                     }
-                    return example
+                    return draft
                 }
             })
-        }
-    })
-    const [description, setDescription] = useState(component.description ?? new StandardRender([]))
-    useDebouncedOnChange({
-        value: description,
-        delay: 1000,
-        onChange: (value: StandardRender) => {
+        },
+        [componentId, standardForm, updateStandard, readonly]
+    )
+
+    const handleDescriptionChange = useCallback(
+        (newDescription: StandardRender) => {
+            if (!componentId || readonly) return
+            const currentExample = standardForm.byUniversalId[componentId]
+            if (!currentExample || !(currentExample instanceof StandardExample)) return
+            const newValue = newDescription.toJSON() ?? []
+            const currentValue = currentExample.description?.toJSON() ?? []
+            if (JSON.stringify(currentValue) === JSON.stringify(newValue)) return
             updateStandard({
                 type: 'update',
-                update: (example: StandardForm) => {
-                    const newValue = example.byUniversalId[componentId]
-                    if (newValue instanceof StandardExample) {
-                        newValue._payload._description = value
+                update: (draft: StandardForm) => {
+                    const ex = draft.byUniversalId[componentId]
+                    if (ex && ex instanceof StandardExample) {
+                        const isEmpty = !newValue || (Array.isArray(newValue) && newValue.length === 0)
+                        ex._payload._description = isEmpty ? undefined : newDescription
                     }
-                    return example
+                    return draft
                 }
             })
-        }
-    })
+        },
+        [componentId, standardForm, updateStandard, readonly]
+    )
 
     return (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -89,31 +107,30 @@ export const ExampleEditor: FunctionComponent<ExampleEditorProps> = ({ component
                     </Button>
                 </Box>
             )}
-            <TextField
-                value={name}
-                onChange={(event) => { setName(event.target.value) }}
+            <TopLevelStandardLiteralEditor
+                value={component.shortName ?? new StandardLiteral('')}
+                onChange={handleShortNameChange}
+                label="Short Name"
+                placeholder="Example short name..."
+                size="small"
+                readonly={readonly}
             />
-            <Box
-                sx={{
-                    backgroundColor: 'lightgray',
-                    paddingTop: '0.5em',
-                    paddingBottom: '0.5em',
-                    width: '100%'
-                }}
-            >
-                <StandardRenderEditor
-                    value={summary}
-                    onChange={setSummary}
-                    validLinkTags={[]}
-                    toolbar={false}
-                    tag="Summary"
-                />
-            </Box>
             <StandardRenderEditor
-                value={description}
-                onChange={setDescription}
-                validLinkTags={[]}
-                toolbar={false}
+                title="Summary"
+                value={component.summary ?? new StandardRender([])}
+                onChange={handleSummaryChange}
+                validLinkTags={['Feature', 'Knowledge']}
+                toolbar={true}
+                placeholder="Enter a Summary"
+                tag="Summary"
+            />
+            <StandardRenderEditor
+                title="Description"
+                value={component.description ?? new StandardRender([])}
+                onChange={handleDescriptionChange}
+                validLinkTags={['Feature', 'Knowledge']}
+                toolbar={true}
+                placeholder="Enter a Description"
                 tag="Description"
             />
         </Box>
