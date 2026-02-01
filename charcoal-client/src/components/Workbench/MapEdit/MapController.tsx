@@ -8,7 +8,7 @@ import { addExitFactory } from "../../Maps/Controller/addExit"
 import { addRoomFactory } from "../../Maps/Controller/addRoom"
 import { useDispatch } from "react-redux"
 
-import { addImport } from "../../../slices/personalAssets"
+import { addImport, getTopLevelAddToReferenceList } from "../../../slices/personalAssets"
 import { addOnboardingComplete } from "../../../slices/player/index.api"
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
 import { StandardMap } from "@tonylb/mtw-wml/ts/standardize/components/map"
@@ -137,7 +137,7 @@ export const MapController: FunctionComponent<{ mapId: `MAP#${string}`; children
         if (inheritedAsset) {
             const originAssetId = (inheritedAsset.origin ?? []).slice(-1)[0]
             if (originAssetId) {
-                dispatch(addImport({ assetId: AssetId, fromAsset: originAssetId, tag: 'Room', uuid: roomId }))
+                dispatch(addImport({ assetId: AssetId, fromAsset: originAssetId, tag: 'Room', uuid: roomId, addToReferenceList: getTopLevelAddToReferenceList }))
                 return 'added'
             }
         }

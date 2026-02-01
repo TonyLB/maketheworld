@@ -23,7 +23,7 @@ import { AssetUUID, ComponentUUID } from '@tonylb/mtw-base/ts/schema';
 import { MapDisplayController } from '../Controller';
 import { AssetPicker } from '../../AssetPicker';
 import { openWorkbench, setCurrentAssetId, setBreadcrumbStack, putWorkbenchSettings } from '../../../slices/UI/workbench';
-import { addImport } from '../../../slices/personalAssets';
+import { addImport, getTopLevelAddToReferenceList } from '../../../slices/personalAssets';
 import { useOnboardingCheckpoint } from '../../Onboarding/useOnboarding';
 import TutorialPopover from '../../Onboarding/TutorialPopover';
 import { getPlayer, getMyDraftAssets } from '../../../slices/player';
@@ -82,7 +82,7 @@ export const MapView: FunctionComponent<MapViewProps> = () => {
         if (firstDraftAssetId) {
             const fromAssetKey = asset.split('#')[1]
             if (asset !== firstDraftAssetId && fromAssetKey) {
-                dispatch(addImport({ assetId: firstDraftAssetId, fromAsset: `ASSET#${fromAssetKey}` as AssetUUID, tag: 'Map', uuid: key as ComponentUUID }))
+                dispatch(addImport({ assetId: firstDraftAssetId, fromAsset: `ASSET#${fromAssetKey}` as AssetUUID, tag: 'Map', uuid: key as ComponentUUID, addToReferenceList: getTopLevelAddToReferenceList }))
             }
             const mapComponentId = key.startsWith('MAP#') ? (key as ComponentUUID) : (`MAP#${key}` as ComponentUUID)
             dispatch(setCurrentAssetId(firstDraftAssetId))

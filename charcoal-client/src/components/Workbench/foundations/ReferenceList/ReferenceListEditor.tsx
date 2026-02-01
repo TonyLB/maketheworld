@@ -5,9 +5,13 @@ import ListItemIcon from "@mui/material/ListItemIcon"
 import ListItemText from "@mui/material/ListItemText"
 import AddIcon from "@mui/icons-material/Add"
 import LinkIcon from "@mui/icons-material/Link"
+import ImportExportIcon from "@mui/icons-material/ImportExport"
 
+import { useDispatch } from "react-redux"
 import { useWorkbenchAsset } from "../useWorkbenchAsset"
+import { addImport, type ReferenceListDescriptor } from "../../../../slices/personalAssets"
 import { ComponentSelectorDialog } from "../ComponentSelector"
+import ImportComponentDialog from "../../ImportComponentDialog"
 import { ReferenceListEditorGeneric } from "./ReferenceListEditorGeneric"
 import { referenceListToItems } from "./referenceListAdapter"
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
@@ -16,7 +20,7 @@ import StandardReference from "@tonylb/mtw-wml/ts/standardize/components/referen
 import { standardComponentFactory } from "@tonylb/mtw-wml/ts/standardize/componentFactory"
 import { enforceTypedKey } from "@tonylb/mtw-utilities/ts/types"
 import { v4 as uuidv4 } from "uuid"
-import { ComponentUUID } from "@tonylb/mtw-base/ts/schema"
+import { AssetUUID, ComponentUUID } from "@tonylb/mtw-base/ts/schema"
 
 export type { ReferenceListItem } from "./ReferenceListEditorGeneric"
 
@@ -31,21 +35,23 @@ export type ComponentTag =
     | "Mark"
     | "Message"
 
-export interface ListContextDescriptor {
-    referenceList: ReferenceList
-    setReferenceList: (list: ReferenceList) => void
-}
-
-export interface ReferenceListEditorProps {
-    title: string
-    listContext: (form: StandardForm) => ListContextDescriptor | null
-    tag: ComponentTag
+export interface ReferenceListAffordance {
     /** Override for Add button label; default "Add {tag}". */
     addLabel?: string
     /** When true, show "Reference existing {tag}" row that opens component selector. */
     enableReferenceExisting?: boolean
+    /** When true, show "Import" row that opens import dialog. Defaults to true when tag is Room|Feature|Knowledge|Map|Message. */
+    enableImport?: boolean
     /** Override for Reference existing button label; default "Reference existing {tag}". */
     referenceExistingLabel?: string
+}
+
+export interface ReferenceListEditorProps {
+    title: string
+    listContext: (form: StandardForm) => ReferenceListDescriptor | null
+    tag: ComponentTag
+    /** Options for Add / Reference existing / Import rows. */
+    affordance?: ReferenceListAffordance
     variant?: "contained" | "table"
     icon?: ReactNode
     defaultExpanded?: boolean
@@ -53,22 +59,35 @@ export interface ReferenceListEditorProps {
     onItemClick?: (id: string) => void
 }
 
+const IMPORTABLE_TAGS: ComponentTag[] = [
+    "Room",
+    "Feature",
+    "Knowledge",
+    "Map",
+    "Message"
+]
+
 export const ReferenceListEditor: FunctionComponent<ReferenceListEditorProps> = ({
     title,
     listContext,
     tag,
-    addLabel,
-    enableReferenceExisting = false,
-    referenceExistingLabel,
+    affordance,
     variant = "contained",
     icon,
     defaultExpanded,
     disabled: disabledProp,
     onItemClick
 }) => {
-    const { standardForm, updateStandard, readonly } = useWorkbenchAsset()
+    const dispatch = useDispatch()
+    const { standardForm, updateStandard, readonly, AssetId } = useWorkbenchAsset()
     const disabled = disabledProp ?? readonly
     const [selectorOpen, setSelectorOpen] = useState(false)
+    const [importDialogOpen, setImportDialogOpen] = useState(false)
+    const canImport = IMPORTABLE_TAGS.includes(tag)
+    const enableReferenceExisting = affordance?.enableReferenceExisting ?? false
+    const enableImport = affordance?.enableImport ?? canImport
+    const addButtonLabel = affordance?.addLabel ?? `Add ${tag}`
+    const refExistingLabel = affordance?.referenceExistingLabel ?? `Reference existing ${tag}`
 
     const updateReferenceList = useCallback(
         (mutate: (ctx: { referenceList: ReferenceList; standardForm: StandardForm }) => void) => {
@@ -157,8 +176,22 @@ export const ReferenceListEditor: FunctionComponent<ReferenceListEditorProps> = 
         [referenceList]
     )
 
-    const addButtonLabel = addLabel ?? `Add ${tag}`
-    const refExistingLabel = referenceExistingLabel ?? `Reference existing ${tag}`
+    const handleImportSelect = useCallback(
+        (fromAsset: AssetUUID, uuid: ComponentUUID, importTag: "Room" | "Feature" | "Knowledge" | "Map" | "Message" | "Moment") => {
+            if (disabled) return
+            dispatch(
+                addImport({
+                    assetId: AssetId,
+                    fromAsset,
+                    uuid,
+                    tag: importTag,
+                    addToReferenceList: listContext
+                })
+            )
+            setImportDialogOpen(false)
+        },
+        [disabled, dispatch, AssetId, listContext]
+    )
 
     const actionAffordances = useMemo(
         () => (
@@ -189,6 +222,20 @@ export const ReferenceListEditor: FunctionComponent<ReferenceListEditorProps> = 
                         </ListItemButton>
                     </ListItem>
                 )}
+                {enableImport && (
+                    <ListItem>
+                        <ListItemButton
+                            onClick={() => setImportDialogOpen(true)}
+                            disabled={disabled}
+                            sx={{ justifyContent: "center" }}
+                        >
+                            <ListItemIcon>
+                                <ImportExportIcon />
+                            </ListItemIcon>
+                            <ListItemText primary="Import" />
+                        </ListItemButton>
+                    </ListItem>
+                )}
             </>
         ),
         [
@@ -196,7 +243,8 @@ export const ReferenceListEditor: FunctionComponent<ReferenceListEditorProps> = 
             refExistingLabel,
             disabled,
             handleCreateNew,
-            enableReferenceExisting
+            enableReferenceExisting,
+            enableImport
         ]
     )
 
@@ -219,6 +267,16 @@ export const ReferenceListEditor: FunctionComponent<ReferenceListEditorProps> = 
                     onClose={() => setSelectorOpen(false)}
                     tag={tag}
                     onSelect={handleReferenceSelect}
+                    isExcluded={isExcluded}
+                />
+            )}
+            {enableImport && (
+                <ImportComponentDialog
+                    open={importDialogOpen}
+                    onClose={() => setImportDialogOpen(false)}
+                    assetId={AssetId}
+                    onImportSelect={handleImportSelect}
+                    tag={canImport ? (tag as "Room" | "Feature" | "Knowledge" | "Map" | "Moment" | "Message") : undefined}
                     isExcluded={isExcluded}
                 />
             )}

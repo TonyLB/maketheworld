@@ -47,6 +47,26 @@ const autoSaveDebounce = new Debounce()
 
 const personalAssetsPromiseCache = new PromiseCache<PersonalAssetsData>()
 
+/**
+ * Descriptor for a reference list and how to replace it.
+ * Used for add (e.g. import, reference existing) and remove; parent in SchemaOrganization
+ * is inferred from reference list membership (implicit parent).
+ */
+export interface ReferenceListDescriptor {
+    referenceList: ReferenceList
+    setReferenceList: (list: ReferenceList) => void
+}
+
+/** Returns the top-level reference list descriptor (_topLevel). */
+export function getTopLevelAddToReferenceList(draft: StandardForm): ReferenceListDescriptor {
+    return {
+        referenceList: draft._topLevel ?? new ReferenceList([]),
+        setReferenceList: (list: ReferenceList) => {
+            draft._topLevel = list
+        }
+    }
+}
+
 export const {
     slice: personalAssetsSlice,
     selectors,
@@ -278,25 +298,29 @@ export const saveEdit = (key: string) => async (dispatch: any, getState: any) =>
     }
 }
 
-export const addImport = ({ assetId, fromAsset, uuid, tag }: {
-    assetId: AssetUUID,
-    fromAsset: AssetUUID,
-    tag: SchemaImportMapping["type"];
+export const addImport = ({
+    assetId,
+    fromAsset,
+    uuid,
+    tag,
+    addToReferenceList
+}: {
+    assetId: AssetUUID
+    fromAsset: AssetUUID
+    tag: SchemaImportMapping['type']
     uuid: ComponentUUID
+    addToReferenceList: (draft: StandardForm) => ReferenceListDescriptor | null
 }, options?: { overrideUpdateStandard?: typeof updateStandard }) => (dispatch: any, getState: any) => {
     dispatch((options?.overrideUpdateStandard ?? publicActions.updateStandard)(assetId)({
         type: 'update',
         update: (draft: StandardForm) => {
             let component: StandardComponent
-            
+
             if (uuid in draft.byUniversalId) {
-                // Component already exists - update its import
                 const existingComponent = draft.byUniversalId[uuid]
                 component = existingComponent.clone().withImport(fromAsset)
                 draft.byUniversalId[uuid] = component
-            }
-            else {
-                // Create new component with import
+            } else {
                 const newComponent = standardComponentFactory({ tag, universalKey: uuid })
                 if (!newComponent) {
                     throw new Error(`Could not create component for tag ${tag}`)
@@ -304,35 +328,22 @@ export const addImport = ({ assetId, fromAsset, uuid, tag }: {
                 component = newComponent.withImport(fromAsset)
                 draft.byUniversalId[uuid] = component
             }
-            
-            // Update _topLevel ReferenceList if component is top-level (no explicit parent)
-            // Top-level components should be in _topLevel so they appear in the asset
-            if (!component.explicitParent) {
+
+            const descriptor = addToReferenceList(draft)
+            if (descriptor != null) {
                 const componentReference = component.reference
                 if (componentReference) {
-                    // Initialize _topLevel if it doesn't exist
-                    if (!draft._topLevel) {
-                        draft._topLevel = new ReferenceList([])
-                    }
-                    
-                    // Check if reference already exists in _topLevel
-                    const existingRef = draft._topLevel.payload.find(ref => 
-                        ref.sameKey(componentReference)
+                    descriptor.setReferenceList(
+                        descriptor.referenceList.assureItem(componentReference)
                     )
-                    
-                    // Add to _topLevel if not already present
-                    if (!existingRef) {
-                        const newTopLevelRefs = [...draft._topLevel.payload, componentReference]
-                        draft._topLevel = new ReferenceList(newTopLevelRefs)
-                    }
                 }
             }
-            
+
             return draft
-        },
+        }
     }))
     dispatch(fetchImports(assetId))
-    dispatch(setIntent({ key: assetId, intent: ['SCHEMADIRTY', 'WMLDIRTY']}))
+    dispatch(setIntent({ key: assetId, intent: ['SCHEMADIRTY', 'WMLDIRTY'] }))
     dispatch(heartbeat)
 }
 

@@ -70,11 +70,11 @@ export const FeatureListEditor: FunctionComponent<FeatureListEditorProps> = ({ R
                 title="Features"
                 listContext={listContext}
                 tag="Feature"
+                affordance={{ enableReferenceExisting: true }}
                 defaultExpanded={undefined}
                 disabled={readonly}
                 onItemClick={handleItemClick}
                 icon={<FeatureIcon sx={{ fontSize: "1.1rem" }} />}
-                enableReferenceExisting={true}
             />
         </Box>
     )
