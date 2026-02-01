@@ -1,7 +1,7 @@
 # Guidance Component - Planning Document
 
 **Date**: February 1, 2026  
-**Status**: Planning - Not yet implemented  
+**Status**: Planning - Phase 1 implemented  
 **Component Type**: StandardGuidance (sibling to StandardExample)
 
 ## Overview
@@ -80,41 +80,23 @@ None - Guidance components do not contain reference lists.
 
 ## Implementation Phases
 
-### Phase 1: WML Schema Layer (`@tonylb/mtw-base` package)
+### Phase 1: WML Schema Layer (`@tonylb/mtw-base` package) — **Implemented**
 
-**Location**: `packages/mtw-base/ts/schema/components.ts`
+**Location**: `packages/mtw-base/ts/schema/components.ts` and `packages/mtw-base/ts/schema/index.ts`
 
 **Tasks**:
-1. Add `SchemaGuidanceTag` type definition:
-   ```typescript
-   export type SchemaGuidanceTag = {
-       tag: 'Guidance';
-       key?: string;
-       uuid?: ComponentUUID;
-       from?: AssetUUID;
-       origin?: AssetUUID[];
-       ref?: number;
-   }
-   ```
+1. ~~Add `SchemaGuidanceTag` type definition~~ — Done. Implemented with `SchemaImportableBase` (same shape as other component tags in `components.ts`).
+2. ~~Add `isSchemaGuidance` type guard~~ — Done. Implemented using `checkTypes` with required `tag`, optional `key`/`uuid`/`from`/`ref`, and `values` for `from`/`origin` (pattern from `example.ts`).
+3. ~~Add `'Guidance'` to `SchemaComponent` union type~~ — Done (in `index.ts`).
+4. ~~Add `'Guidance'` case to `isSchemaComponentTag()` function~~ — Done (in `index.ts`).
+5. ~~Add `'Guidance'` case to `isSchemaComponent()` function~~ — No code change; `isSchemaComponent` uses `isSchemaComponentTag(value.tag)`, so adding `'Guidance'` to `isSchemaComponentTag` suffices.
+6. ~~Add `'Guidance'` case to `isSchemaTag()` function~~ — Done (in `index.ts`).
 
-2. Add `isSchemaGuidance` type guard:
-   ```typescript
-   export const isSchemaGuidance = (arg: any): arg is SchemaGuidanceTag => {
-       return typeof arg === 'object' && arg !== null && arg.tag === 'Guidance'
-   }
-   ```
+**Also wired in `index.ts`**: `SchemaGuidanceTag` added to `SchemaTag`, `SchemaAssetLegalContents`, `SchemaWithContents`, `SchemaWithKey`; `isSchemaGuidance(value)` added to `isSchemaAssetContents`; `'Guidance'` added to `isSchemaWithContents`, `isSchemaWithKey`, and `isSchemaComponentTag` arrays.
 
-3. Add `'Guidance'` to `SchemaComponent` union type
+**Reference**: See how `SchemaExampleTag` and `isSchemaExample` are implemented in `example.ts` (type guard uses `checkTypes`).
 
-4. Add `'Guidance'` case to `isSchemaComponentTag()` function
-
-5. Add `'Guidance'` case to `isSchemaComponent()` function
-
-6. Add `'Guidance'` case to `isSchemaTag()` function
-
-**Reference**: See how `SchemaExampleTag` and `isSchemaExample` are implemented in `components.ts`
-
-**Verification**: WML parser can parse `<Guidance>` tags from WML strings
+**Verification**: Schema layer treats Guidance as a valid component and asset content tag; `ComponentUUID`/`isSchemaComponentUUID` accept `GUIDANCE#...`. Full WML parsing of `<Guidance>` tags requires Phase 2 (converter registration).
 
 ---
 

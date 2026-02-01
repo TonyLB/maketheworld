@@ -69,6 +69,13 @@ export type SchemaMomentTag = {
     ref?: number;
 } & SchemaImportableBase
 
+export type SchemaGuidanceTag = {
+    tag: 'Guidance';
+    uuid?: ComponentUUID;
+    key?: string;
+    ref?: number;
+} & SchemaImportableBase
+
 const { typeGuard } = literalTagFactory<'ShortName'>('ShortName')
 export const isSchemaShortName = typeGuard
 
@@ -163,6 +170,18 @@ export const isSchemaMoment = (schema: any): schema is SchemaMomentTag => (
         optional: { key: CheckTypes.STRING, uuid: CheckTypes.STRING, from: CheckTypes.STRING, ref: CheckTypes.NUMBER },
         values: { 
             tag: 'Moment', 
+            from: isSchemaAssetUUID,
+            origin: (origin: any) => (!origin || (Array.isArray(origin) && origin.every((item: any) => isSchemaAssetUUID(item))))
+        }
+    })(schema)
+)
+
+export const isSchemaGuidance = (schema: any): schema is SchemaGuidanceTag => (
+    checkTypes({
+        required: { tag: CheckTypes.STRING },
+        optional: { key: CheckTypes.STRING, uuid: CheckTypes.STRING, from: CheckTypes.STRING, ref: CheckTypes.NUMBER },
+        values: { 
+            tag: 'Guidance', 
             from: isSchemaAssetUUID,
             origin: (origin: any) => (!origin || (Array.isArray(origin) && origin.every((item: any) => isSchemaAssetUUID(item))))
         }
