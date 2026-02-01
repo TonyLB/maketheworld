@@ -1,8 +1,11 @@
 import { vi } from 'vitest'
-import { addImport } from "."
-import { Schema, schemaToWML } from "@tonylb/mtw-wml/ts/schema"
-import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
+import { addImport, getTopLevelAddToReferenceList } from '.'
+import { Schema, schemaToWML } from '@tonylb/mtw-wml/ts/schema'
+import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
+import { ReferenceList } from '@tonylb/mtw-wml/ts/standardize/keys/referenceList'
+import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
+import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
 
 const schema = new Schema()
 schema.loadWML(`<Asset uuid=(testAsset)>
@@ -30,7 +33,8 @@ describe('personalAssets slice', () => {
                 assetId: 'ASSET#testAsset',
                 fromAsset: 'ASSET#testImport',
                 uuid: 'ROOM#testRoom',
-                tag: 'Room'
+                tag: 'Room',
+                addToReferenceList: getTopLevelAddToReferenceList
             }, { overrideUpdateStandard })(dispatch, getState)
             expect(overrideUpdateStandardInternal).toHaveBeenCalledWith({
                 type: 'update',
@@ -51,7 +55,8 @@ describe('personalAssets slice', () => {
                 assetId: 'ASSET#testAsset',
                 fromAsset: 'ASSET#testImport',
                 uuid: 'ROOM#testRoomTwo',
-                tag: 'Room'
+                tag: 'Room',
+                addToReferenceList: getTopLevelAddToReferenceList
             }, { overrideUpdateStandard })(dispatch, getState)
             expect(overrideUpdateStandardInternal).toHaveBeenCalledWith({
                 type: 'update',
@@ -79,7 +84,8 @@ describe('personalAssets slice', () => {
                 assetId: 'ASSET#testAsset',
                 fromAsset: 'ASSET#testImportTwo',
                 uuid: 'ROOM#testRoomTwo',
-                tag: 'Room'
+                tag: 'Room',
+                addToReferenceList: getTopLevelAddToReferenceList
             }, { overrideUpdateStandard })(dispatch, getState)
             expect(overrideUpdateStandardInternal).toHaveBeenCalledWith({
                 type: 'update',
@@ -100,6 +106,59 @@ describe('personalAssets slice', () => {
                     </Asset>
                 `))
             }
+        })
+
+        it('when addToReferenceList returns top-level descriptor, ref is added to _topLevel', () => {
+            addImport({
+                assetId: 'ASSET#testAsset',
+                fromAsset: 'ASSET#testImport',
+                uuid: 'ROOM#testRoomTwo',
+                tag: 'Room',
+                addToReferenceList: getTopLevelAddToReferenceList
+            }, { overrideUpdateStandard })(dispatch, getState)
+            const base = new StandardForm(`
+                <Asset uuid=(testAsset)>
+                    <Import from=(testImport)><Room key=(testRoom) /></Import>
+                </Asset>
+            `)
+            const updated = overrideUpdateStandardInternal.mock.calls[0][0].update(base._clone())
+            expect(updated._topLevel).toBeDefined()
+            const refs = updated._topLevel!.payload
+            expect(refs.some((r) => r.universalKey === 'ROOM#testRoomTwo')).toBe(true)
+        })
+
+        it('when addToReferenceList returns list descriptor, ref is added to that list and _topLevel unchanged', () => {
+            const base = new StandardForm(`
+                <Asset uuid=(testAsset)>
+                    <Room uuid=(room1) />
+                    <Import from=(testImport)><Room key=(testRoom) /></Import>
+                </Asset>
+            `)
+            const addToReferenceList = (draft: StandardForm) => {
+                const room = draft.byUniversalId['ROOM#room1']
+                if (!(room instanceof StandardRoom)) return null
+                const features = room._payload._features ?? new ReferenceList([])
+                return {
+                    referenceList: features,
+                    setReferenceList: (list: ReferenceList) => {
+                        room._payload._features = list
+                    }
+                }
+            }
+            addImport({
+                assetId: 'ASSET#testAsset',
+                fromAsset: 'ASSET#testImport',
+                uuid: 'FEATURE#featureFromImport',
+                tag: 'Feature',
+                addToReferenceList
+            }, { overrideUpdateStandard })(dispatch, getState)
+            const updated = overrideUpdateStandardInternal.mock.calls[0][0].update(base._clone())
+            const feature = updated.byUniversalId['FEATURE#featureFromImport']
+            expect(feature).toBeDefined()
+            expect(feature instanceof StandardFeature).toBe(true)
+            const room = updated.byUniversalId['ROOM#room1'] as StandardRoom
+            expect(room._payload._features?.payload.some((r) => r.universalKey === 'FEATURE#featureFromImport')).toBe(true)
+            expect(updated._topLevel?.payload.some((r) => r.universalKey === 'FEATURE#featureFromImport')).toBe(false)
         })
 
     })

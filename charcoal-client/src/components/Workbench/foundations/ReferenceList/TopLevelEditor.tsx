@@ -17,7 +17,7 @@ import CallMadeIcon from "@mui/icons-material/CallMade"
 import { useWorkbenchAsset } from "../useWorkbenchAsset"
 import { useDispatch } from "react-redux"
 import { addOnboardingComplete } from "../../../../slices/player/index.api"
-import { addImport } from "../../../../slices/personalAssets"
+import { addImport, getTopLevelAddToReferenceList } from "../../../../slices/personalAssets"
 import { navigateToComponent } from "../../../../slices/UI/workbench"
 import { ReferenceListEditorGeneric } from "./ReferenceListEditorGeneric"
 import { referenceListToItems } from "./referenceListAdapter"
@@ -190,7 +190,7 @@ export const TopLevelEditor: FunctionComponent<TopLevelEditorProps> = ({
 
     const handleImportSelect = useCallback(
         (fromAsset: AssetUUID, uuid: ComponentUUID, tag: "Room" | "Feature" | "Knowledge" | "Map" | "Message" | "Moment") => {
-            dispatch(addImport({ assetId: AssetId, fromAsset, uuid, tag }))
+            dispatch(addImport({ assetId: AssetId, fromAsset, uuid, tag, addToReferenceList: getTopLevelAddToReferenceList }))
             setImportDialogOpen(false)
         },
         [dispatch, AssetId]

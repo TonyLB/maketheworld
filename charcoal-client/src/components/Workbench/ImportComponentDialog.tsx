@@ -1,5 +1,5 @@
 import React, { FunctionComponent, useMemo, useState, useCallback, useEffect } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
+import { useSelector } from 'react-redux'
 import {
     Box,
     Collapse,
@@ -18,7 +18,6 @@ import {
     ListItem,
     ListItemText,
     ListItemButton,
-    Button,
     Typography
 } from '@mui/material'
 import CloseIcon from '@mui/icons-material/Close'
@@ -29,7 +28,6 @@ import { blue } from '@mui/material/colors'
 
 import { useWorkbenchAsset } from './foundations/useWorkbenchAsset'
 import { getComponentIconByTag } from '../../lib/componentIcons'
-import { addImport } from '../../slices/personalAssets'
 import { getRecentlyVisited } from '../../slices/messages/selectors'
 import { AssetUUID, ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import { Zone } from '@tonylb/mtw-interfaces/ts/baseClasses'
@@ -46,7 +44,6 @@ import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
 import StandardKnowledge from '@tonylb/mtw-wml/ts/standardize/components/knowledge'
 import StandardMap from '@tonylb/mtw-wml/ts/standardize/components/map'
 import StandardImage from '@tonylb/mtw-wml/ts/standardize/components/image'
-import StandardCharacter from '@tonylb/mtw-wml/ts/standardize/components/character'
 import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 
 type ImportTab = 'RecentlyVisited' | Zone
@@ -55,20 +52,37 @@ interface ImportComponentDialogProps {
     open: boolean
     onClose: () => void
     assetId: AssetUUID
-    /**
-     * When provided, called instead of dispatching addImport.
-     * Caller handles updateStandard + fetchImports (e.g. TopLevelEditor).
-     */
-    onImportSelect?: (fromAsset: AssetUUID, uuid: ComponentUUID, tag: SchemaImportMapping['type']) => void
+    /** Called when user selects a component to import. Caller dispatches addImport with addToReferenceList. */
+    onImportSelect: (fromAsset: AssetUUID, uuid: ComponentUUID, tag: SchemaImportMapping['type']) => void
+    /** When set, filter components to this type only (zone tabs and Recently Visited). */
+    tag?: SchemaImportMapping['type']
+    /** When true for a universalKey, that component is omitted from the list (e.g. already in the reference list). */
+    isExcluded?: (universalKey: ComponentUUID) => boolean
 }
+
+function componentToImportTag(component: StandardComponent): SchemaImportMapping['type'] | null {
+    if (component instanceof StandardRoom) return 'Room'
+    if (component instanceof StandardFeature) return 'Feature'
+    if (component instanceof StandardKnowledge) return 'Knowledge'
+    if (component instanceof StandardMap) return 'Map'
+    return null
+}
+
+const SECTION_ORDER: SchemaImportMapping['type'][] = [
+    'Room',
+    'Feature',
+    'Knowledge',
+    'Map'
+]
 
 export const ImportComponentDialog: FunctionComponent<ImportComponentDialogProps> = ({
     open,
     onClose,
     assetId,
-    onImportSelect
+    onImportSelect,
+    tag: tagFilter,
+    isExcluded
 }) => {
-    const dispatch = useDispatch()
     const { standardForm: currentStandardForm } = useWorkbenchAsset()
 
     const [selectedTab, setSelectedTab] = useState<ImportTab>('RecentlyVisited')
@@ -93,7 +107,7 @@ export const ImportComponentDialog: FunctionComponent<ImportComponentDialogProps
         [currentStandardForm._components]
     )
 
-    const recentlyVisitedByAsset = useMemo(() => {
+    const recentlyVisitedByAssetRaw = useMemo(() => {
         return recentlyVisited.reduce<
             Record<AssetUUID, { universalKey: ComponentUUID; name: string; tag: SchemaImportMapping['type'] }[]>
         >((previous, { name, assets, tag }) => {
@@ -119,15 +133,49 @@ export const ImportComponentDialog: FunctionComponent<ImportComponentDialogProps
         }, {})
     }, [recentlyVisited, importsFromStandard])
 
+    const recentlyVisitedByAsset = useMemo(() => {
+        let entries = Object.entries(recentlyVisitedByAssetRaw)
+        if (tagFilter) {
+            entries = entries.map(([assetId, list]) => [
+                assetId,
+                list.filter((item) => item.tag === tagFilter)
+            ] as const)
+        }
+        if (isExcluded) {
+            entries = entries.map(([assetId, list]) => [
+                assetId,
+                list.filter((item) => !isExcluded(item.universalKey))
+            ] as const)
+        }
+        return Object.fromEntries(entries.filter(([, list]) => list.length > 0))
+    }, [recentlyVisitedByAssetRaw, tagFilter, isExcluded])
+
     const hasRecentItems = Object.keys(recentlyVisitedByAsset).length > 0
 
     const zoneAssets = useSelector((state: any) => getContentHeadersByZone(state, selectedZone))
 
-    const components = useSelector((state: any) =>
+    const componentsRaw = useSelector((state: any) =>
         selectedAssetId ? getComponentsForAsset(state, selectedAssetId as AssetUUID) : []
     )
 
-    const componentGroups = useMemo(() => groupComponentsByType(components), [components])
+    const components = useMemo(() => {
+        let list = componentsRaw
+        if (tagFilter) {
+            list = list.filter((c) => componentToImportTag(c) === tagFilter)
+        }
+        if (isExcluded) {
+            list = list.filter((c) => !c.universalKey || !isExcluded(c.universalKey))
+        }
+        return list
+    }, [componentsRaw, tagFilter, isExcluded])
+
+    const componentGroups = useMemo(() => {
+        const groups = groupComponentsByType([...components])
+        return SECTION_ORDER.filter((t) => groups.some((g) => g.type === t)).map((t) => ({
+            type: t,
+            components: groups.find((g) => g.type === t)!.components
+        }))
+    }, [components])
 
     const isComponentImported = useCallback(
         (component: StandardComponent): boolean => {
@@ -158,34 +206,18 @@ export const ImportComponentDialog: FunctionComponent<ImportComponentDialogProps
                 return
             }
 
-            if (onImportSelect) {
-                onImportSelect(fromAsset, component.universalKey as ComponentUUID, tag)
-            } else {
-                dispatch(
-                    addImport({
-                        assetId,
-                        fromAsset,
-                        uuid: component.universalKey as ComponentUUID,
-                        tag
-                    })
-                )
-            }
-
+            onImportSelect(fromAsset, component.universalKey as ComponentUUID, tag)
             onClose()
         },
-        [dispatch, assetId, onClose, onImportSelect]
+        [onClose, onImportSelect]
     )
 
     const handleImportFromRecent = useCallback(
         (fromAsset: AssetUUID, universalKey: ComponentUUID, tag: SchemaImportMapping['type']) => {
-            if (onImportSelect) {
-                onImportSelect(fromAsset, universalKey, tag)
-            } else {
-                dispatch(addImport({ assetId, fromAsset, uuid: universalKey, tag }))
-            }
+            onImportSelect(fromAsset, universalKey, tag)
             onClose()
         },
-        [dispatch, assetId, onClose, onImportSelect]
+        [onClose, onImportSelect]
     )
 
     const handleTabChange = useCallback(
@@ -344,7 +376,7 @@ export const ImportComponentDialog: FunctionComponent<ImportComponentDialogProps
                             {selectedAssetId && (
                                 <Box>
                                     {componentGroups.length > 0 ? (
-                                        <List>
+                                        <List dense>
                                             {componentGroups.map((group) => (
                                                 <React.Fragment key={group.type}>
                                                     <ListSubheader>
@@ -362,30 +394,24 @@ export const ImportComponentDialog: FunctionComponent<ImportComponentDialogProps
                                                             component.universalKey || component.key || 'unknown'
 
                                                         return (
-                                                            <ListItem
+                                                            <ListItemButton
                                                                 key={componentKey}
-                                                                secondaryAction={
-                                                                    <Button
-                                                                        variant="outlined"
-                                                                        size="small"
-                                                                        startIcon={<DownloadIcon />}
-                                                                        disabled={isImported}
-                                                                        onClick={() =>
-                                                                            handleImport(
-                                                                                component,
-                                                                                selectedAssetId as AssetUUID
-                                                                            )
-                                                                        }
-                                                                    >
-                                                                        {isImported ? 'Imported' : 'Import'}
-                                                                    </Button>
+                                                                disabled={isImported}
+                                                                onClick={() =>
+                                                                    handleImport(
+                                                                        component,
+                                                                        selectedAssetId as AssetUUID
+                                                                    )
                                                                 }
                                                             >
                                                                 <ListItemText
                                                                     primary={displayName}
                                                                     secondary={componentKey}
                                                                 />
-                                                            </ListItem>
+                                                                {!isImported && (
+                                                                    <DownloadIcon sx={{ ml: 1, fontSize: '1.25rem' }} />
+                                                                )}
+                                                            </ListItemButton>
                                                         )
                                                     })}
                                                 </React.Fragment>
