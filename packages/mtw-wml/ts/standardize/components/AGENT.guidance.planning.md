@@ -1,7 +1,7 @@
 # Guidance Component - Planning Document
 
 **Date**: February 1, 2026  
-**Status**: Planning - Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, Phase 6, and Phase 7 implemented; Schema Instructions Tag follow-up implemented  
+**Status**: Planning - Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, Phase 6, Phase 7, and Phase 8 implemented; Schema Instructions Tag follow-up implemented  
 **Component Type**: StandardGuidance (sibling to StandardExample)
 
 ## Overview
@@ -484,13 +484,13 @@ Phase 5 initially used type assertions (`'Instructions' as SchemaTag['tag']`) in
 
 ---
 
-### Phase 8: Add Guidance Reference List to StandardRoom
+### Phase 8: Add Guidance Reference List to StandardRoom — **Implemented**
 
 **Location**: `packages/mtw-wml/ts/standardize/components/room.ts`
 
 **Tasks**:
 
-1. **Add `_guidance` field to `StandardRoomPayload`**:
+1. ~~**Add `_guidance` field to `StandardRoomPayload`**~~ — Done.
    ```typescript
    export class StandardRoomPayload implements HasShortName, ComponentConstructorMethods<StandardRoomData> {
        _shortName?: StandardLiteral;
@@ -503,7 +503,7 @@ Phase 5 initially used type assertions (`'Instructions' as SchemaTag['tag']`) in
        tag = 'Room' as const
    ```
 
-2. **Update constructor**:
+2. ~~**Update constructor**~~ — Done.
    ```typescript
    constructor(previous?: StandardRoomPayload) {
        if (previous) {
@@ -526,7 +526,7 @@ Phase 5 initially used type assertions (`'Instructions' as SchemaTag['tag']`) in
    }
    ```
 
-3. **Update `fromJSON()`**:
+3. ~~**Update `fromJSON()`**~~ — Done.
    ```typescript
    fromJSON(props: StandardRoomData) {
        const { shortName } = props
@@ -540,7 +540,7 @@ Phase 5 initially used type assertions (`'Instructions' as SchemaTag['tag']`) in
    }
    ```
 
-4. **Update `fromSchema()`**:
+4. ~~**Update `fromSchema()`**~~ — Done.
    ```typescript
    fromSchema(node: GenericTreeNode<SchemaTag>) {
        if (treeNodeTypeguard(isSchemaRoom)(node)) {
@@ -556,12 +556,12 @@ Phase 5 initially used type assertions (`'Instructions' as SchemaTag['tag']`) in
    }
    ```
 
-5. **Add getter**:
+5. ~~**Add getter**~~ — Done.
    ```typescript
    get guidance() { return this._guidance }
    ```
 
-6. **Update `toJSON()`**:
+6. ~~**Update `toJSON()`**~~ — Done.
    ```typescript
    toJSON(options?: StandardToJSONOptions): Omit<StandardRoomData, 'key' | 'universalKey'> {
        const { stripUIFields: stripUI } = options ?? {}
@@ -578,7 +578,7 @@ Phase 5 initially used type assertions (`'Instructions' as SchemaTag['tag']`) in
    }
    ```
 
-7. **Update `schema()` method**:
+7. ~~**Update `schema()` method**~~ — Done.
    ```typescript
    schema(key: string, universalKey?: ComponentUUID, mappings?: StandardReference[]): GenericTreeNode<SchemaTag> {
        const children = [
@@ -600,7 +600,7 @@ Phase 5 initially used type assertions (`'Instructions' as SchemaTag['tag']`) in
    }
    ```
 
-8. **Update `merge()` method**:
+8. ~~**Update `merge()` method**~~ — Done.
    ```typescript
    merge(incoming: this): this {
        const returnValue = new StandardRoomPayload()
@@ -617,7 +617,7 @@ Phase 5 initially used type assertions (`'Instructions' as SchemaTag['tag']`) in
    }
    ```
 
-9. **Update `referencedKeys()` method**:
+9. ~~**Update `referencedKeys()` method**~~ — Done.
    ```typescript
    referencedKeys(mapping: StandardReference[]): StandardComponentReferenceKey[] {
        return [
@@ -634,7 +634,7 @@ Phase 5 initially used type assertions (`'Instructions' as SchemaTag['tag']`) in
    }
    ```
 
-10. **Update `assureReferences()` method**:
+10. ~~**Update `assureReferences()` method**~~ — Done.
     ```typescript
     assureReferences(children: StandardReference[]): this {
         const returnValue = new StandardRoomPayload(this)
@@ -667,7 +667,7 @@ Phase 5 initially used type assertions (`'Instructions' as SchemaTag['tag']`) in
     }
     ```
 
-11. **Update `withChild()` method** (if present):
+11. ~~**Update `withChild()` method**~~ — Done.
     ```typescript
     withChild(child: StandardReference): this {
         const returnValue = new StandardRoomPayload(this)
@@ -692,7 +692,7 @@ Phase 5 initially used type assertions (`'Instructions' as SchemaTag['tag']`) in
     }
     ```
 
-12. **Update `removeReferences()` method**:
+12. ~~**Update `removeReferences()` method**~~ — Done.
     ```typescript
     removeReferences(children: StandardReference[]): this {
         const returnValue = new StandardRoomPayload(this)
@@ -705,7 +705,7 @@ Phase 5 initially used type assertions (`'Instructions' as SchemaTag['tag']`) in
     }
     ```
 
-13. **Update `nestedSchema()` method**:
+13. ~~**Update `nestedSchema()` method**~~ — Done.
     ```typescript
     nestedSchema(lookup: (key: string | StandardKey) => StandardComponent | undefined, options: NestedSchemaOptions): GenericTreeNode<SchemaTag> {
         const { key, organizationContext } = options
@@ -755,7 +755,7 @@ Phase 5 initially used type assertions (`'Instructions' as SchemaTag['tag']`) in
     }
     ```
 
-14. **Add getter to `StandardRoom` component class**:
+14. ~~**Add getter to `StandardRoom` component class**~~ — Done.
     ```typescript
     export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'StandardRoom') {
         get shortName() { return this._payload.shortName }
@@ -774,7 +774,7 @@ Phase 5 initially used type assertions (`'Instructions' as SchemaTag['tag']`) in
 
 **Tasks**:
 
-15. **Add `guidance` field to `StandardRoomData` type**:
+15. ~~**Add `guidance` field to `StandardRoomData` type**~~ — Done.
     ```typescript
     export type StandardRoomData = {
         tag: 'Room';
