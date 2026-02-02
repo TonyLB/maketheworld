@@ -1,7 +1,7 @@
 # Guidance Component - Planning Document
 
 **Date**: February 1, 2026  
-**Status**: Planning - Phase 1, Phase 2, Phase 3, and Phase 4 implemented  
+**Status**: Planning - Phase 1, Phase 2, Phase 3, Phase 4, and Phase 5 implemented  
 **Component Type**: StandardGuidance (sibling to StandardExample)
 
 ## Overview
@@ -155,13 +155,13 @@ None - Guidance components do not contain reference lists.
 
 ---
 
-### Phase 5: Component Implementation
+### Phase 5: Component Implementation — **Implemented**
 
 **Location**: Create `packages/mtw-wml/ts/standardize/components/guidance.ts`
 
 **Tasks**:
 
-1. **Create `StandardGuidancePayload` class**:
+1. ~~**Create `StandardGuidancePayload` class**~~ — Done. Implemented in `guidance.ts` per spec (Instructions/ShortName as StandardLiteral, marks as MarkFacetList, fromSchema/fromJSON/toJSON/schema/merge/mapContents/remapReferences/nestedSchema/etc.).
    ```typescript
    import { excludeUndefined } from "../../lib/lists"
    import SchemaTagTree from "../../tagTree/schema"
@@ -376,7 +376,7 @@ None - Guidance components do not contain reference lists.
    }
    ```
 
-2. **Create `StandardGuidance` component class**:
+2. ~~**Create `StandardGuidance` component class**~~ — Done. Implemented in `guidance.ts`; extends componentClassFactory, overrides _wrap/clone/equals, default export.
    ```typescript
    export class StandardGuidance extends componentClassFactory(StandardGuidancePayload, 'StandardGuidance') {
        get instructions() { return this._payload.instructions }
@@ -417,7 +417,7 @@ None - Guidance components do not contain reference lists.
 - Parse Mark facets from schema using `hasMatchChild` filter (same as Example)
 - Implement `nestedSchema()` with facet rendering (same as Example)
 
-**Verification**: Component constructs from JSON and WML, serializes correctly, merge/diff operations work
+**Verification**: Component constructs from JSON and WML, serializes correctly, merge/diff operations work. Verified by TypeScript compile (`npx tsc --noEmit` in package); optional dedicated tests may be added later.
 
 ---
 

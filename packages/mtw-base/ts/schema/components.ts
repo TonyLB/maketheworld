@@ -4,6 +4,7 @@ import { literalTagFactory, SchemaLiteralTag } from "./literalTagFactory";
 import { ComponentUUID, isSchemaAssetUUID } from ".";
 
 export type SchemaShortNameTag = SchemaLiteralTag<'ShortName'>
+export type SchemaInstructionsTag = SchemaLiteralTag<'Instructions'>
 
 export type SchemaParentTag = {
     tag: 'Parent';
@@ -78,6 +79,9 @@ export type SchemaGuidanceTag = {
 
 const { typeGuard } = literalTagFactory<'ShortName'>('ShortName')
 export const isSchemaShortName = typeGuard
+
+const { typeGuard: isSchemaInstructionsTypeGuard } = literalTagFactory<'Instructions'>('Instructions')
+export const isSchemaInstructions = isSchemaInstructionsTypeGuard
 
 export const isSchemaParent = (schema: any): schema is SchemaParentTag => (
     checkTypes({
