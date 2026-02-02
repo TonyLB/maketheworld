@@ -31,6 +31,7 @@ export type ComponentTag =
     | "Feature"
     | "Knowledge"
     | "Example"
+    | "Guidance"
     | "Lens"
     | "Mark"
     | "Message"

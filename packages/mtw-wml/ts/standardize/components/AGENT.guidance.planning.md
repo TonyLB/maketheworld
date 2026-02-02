@@ -1,7 +1,7 @@
 # Guidance Component - Planning Document
 
 **Date**: February 1, 2026  
-**Status**: Planning - Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, Phase 6, Phase 7, Phase 8, Phase 9, Phase 10, Phase 11, and Phase 12 implemented; Schema Instructions Tag follow-up implemented  
+**Status**: Planning - Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, Phase 6, Phase 7, Phase 8, Phase 9, Phase 10, Phase 11, Phase 12, and Phase 13 implemented; Schema Instructions Tag follow-up implemented  
 **Component Type**: StandardGuidance (sibling to StandardExample)
 
 ## Overview
@@ -1222,37 +1222,13 @@ Phase 5 initially used type assertions (`'Instructions' as SchemaTag['tag']`) in
 
 ---
 
-### Phase 13: Frontend - Guidance Section in Room Editor
+### Phase 13: Frontend - Guidance Section in Room Editor — **Implemented**
 
-**Location**: Update `charcoal-client/src/components/Workbench/editors/RoomEditor/index.tsx`
+**Location**: Update `charcoal-client/src/components/Workbench/RoomEdit/RoomEditor.tsx` (actual path; planning doc had referenced `editors/RoomEditor/index.tsx`).
 
 **Tasks**:
 
-1. **Add Guidance section to RoomEditor**:
-   ```typescript
-   import ReferenceListEditor from '../../foundations/ReferenceListEditor'
-   
-   // Inside RoomEditor component:
-   <MakeTheWorldAccordion
-       summary="Guidance"
-       details={
-           <ReferenceListEditor
-               componentId={componentId}
-               referenceList={room.guidance}
-               referenceType="Guidance"
-               onNavigate={(guidanceId) => {
-                   // Navigate to layered Guidance view
-                   dispatch(pushBreadcrumb({
-                       kind: 'componentLayer',
-                       componentId: componentId,
-                       layerType: 'Guidance',
-                       currentLayerId: guidanceId
-                   }))
-               }}
-           />
-       }
-   />
-   ```
+1. ~~**Add Guidance section to RoomEditor**~~ — Done. Added `guidanceListContext` (form → room `_guidance` descriptor), `handleGuidanceItemClick` (navigateToComponentLayer), and a second `ReferenceListEditor` block after Examples with `title="Guidance"`, `tag="Guidance"`, `listContext={guidanceListContext}`, `onItemClick={handleGuidanceItemClick}`. Also added `"Guidance"` to `ComponentTag` in ReferenceListEditor.tsx and referenceListAdapter.ts.
 
 **Key Patterns**:
 - Use `ReferenceListEditor` for add/remove/list management (same as Features/Examples)
@@ -1261,7 +1237,7 @@ Phase 5 initially used type assertions (`'Instructions' as SchemaTag['tag']`) in
 
 **Reference**: See Examples section in RoomEditor for exact pattern
 
-**Verification**: Guidance section appears in Room editor, can add/remove Guidance references
+**Verification**: Guidance section appears in Room editor; add/remove Guidance references works; clicking an item navigates to the Guidance layer (GuidanceEditor). Readonly/disabled respected.
 
 ---
 
