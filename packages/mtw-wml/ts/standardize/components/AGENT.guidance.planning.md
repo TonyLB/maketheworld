@@ -1,7 +1,7 @@
 # Guidance Component - Planning Document
 
 **Date**: February 1, 2026  
-**Status**: Planning - Phase 1, Phase 2, Phase 3, Phase 4, and Phase 5 implemented  
+**Status**: Planning - Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, and Phase 6 implemented; Schema Instructions Tag follow-up implemented  
 **Component Type**: StandardGuidance (sibling to StandardExample)
 
 ## Overview
@@ -421,23 +421,41 @@ None - Guidance components do not contain reference lists.
 
 ---
 
-### Phase 6: Factory Integration
+### Schema Instructions Tag (follow-up) — **Implemented**
+
+Phase 5 initially used type assertions (`'Instructions' as SchemaTag['tag']`) in `guidance.ts` because the `<Instructions>` child tag was not yet a first-class schema tag. That gap is closed so that WML parsing and printing handle `<Instructions>...</Instructions>` the same way as `<ShortName>...</ShortName>`.
+
+**Base package (`@tonylb/mtw-base`)**:
+- **tagType.ts**: Added `'Instructions'` to `SchemaTagType` and `isLegalSchemaTag`.
+- **components.ts**: Added `SchemaInstructionsTag = SchemaLiteralTag<'Instructions'>` and `isSchemaInstructions` via `literalTagFactory<'Instructions'>('Instructions')`.
+- **index.ts**: Imported and wired `SchemaInstructionsTag` / `isSchemaInstructions` into `SchemaAssetLegalContents`, `SchemaTag`, `SchemaWithContents`, `isSchemaWithContents`, `isSchemaAssetContents`, and `isSchemaTag`; extended `isSchemaLiteralTag` to include Instructions.
+
+**WML package (`@tonylb/mtw-wml`)**:
+- **schema/converters/components.ts**: Added `Instructions: {}` to `componentTemplates`; added `instructionsConverter` and `instructionsPrintMap` via `literalTagFactory('Instructions')`; registered in `componentConverters` and `componentPrintMap`.
+- **standardize/components/guidance.ts**: Removed the three `as SchemaTag['tag']` casts; `'Instructions'` is now a valid `SchemaTag['tag']`.
+
+**Reference**: Same pattern as `SchemaShortNameTag` / ShortName in base and converters.
+
+---
+
+### Phase 6: Factory Integration — **Implemented**
 
 **Location**: `packages/mtw-wml/ts/standardize/componentFactory.ts`
 
 **Tasks**:
-1. Import `StandardGuidance` and `isStandardGuidanceData`:
+1. ~~Import `StandardGuidance` and `isStandardGuidanceData`~~ — Done.
    ```typescript
    import { StandardGuidance } from './components/guidance'
    import { isStandardGuidanceData } from './components/dataTypes/guidance'
    ```
+   Note: Implemented as `import StandardGuidance from "./components/guidance"` and `isStandardGuidanceData` from `"./components/dataTypes"`.
 
-2. Import `isSchemaGuidance`:
+2. ~~Import `isSchemaGuidance`~~ — Done. Imported from `@tonylb/mtw-base/ts/schema/components`.
    ```typescript
    import { isSchemaGuidance } from '@tonylb/mtw-base/ts/schema/components'
    ```
 
-3. Add case to `standardComponentFactory()`:
+3. ~~Add case to `standardComponentFactory()`~~ — Done. Added Guidance case immediately after Example, following same pattern.
    ```typescript
    if ((!isSchemaTreeNode(arg) && isStandardGuidanceData(arg)) || 
        (isSchemaTreeNode(arg) && treeNodeTypeguard(isSchemaGuidance)(arg))) {

@@ -3,6 +3,7 @@ import { StandardComponent } from "./components/baseClasses"
 import StandardCharacter from "./components/character"
 import StandardFeature from "./components/feature"
 import StandardExample from "./components/example"
+import StandardGuidance from "./components/guidance"
 import StandardImage from "./components/image"
 import StandardKnowledge from "./components/knowledge"
 import StandardMap from "./components/map"
@@ -13,9 +14,9 @@ import StandardMark, { StandardLens } from "./components/worldState"
 import { isSchemaCharacter, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaTreeNode } from "../schema"
 import { StandardComponentData } from "./baseClasses"
-import { isStandardCharacterData, isStandardExampleData, isStandardFeatureData, isStandardImageData, isStandardKnowledgeData, isStandardMapData, isStandardMessageData, isStandardMomentData, isStandardRoomData, isStandardMarkData, isStandardLensData } from "./components/dataTypes"
+import { isStandardCharacterData, isStandardExampleData, isStandardFeatureData, isStandardGuidanceData, isStandardImageData, isStandardKnowledgeData, isStandardMapData, isStandardMessageData, isStandardMomentData, isStandardRoomData, isStandardMarkData, isStandardLensData } from "./components/dataTypes"
 import { isSchemaExample } from "@tonylb/mtw-base/ts/schema/example"
-import { isSchemaFeature, isSchemaKnowledge, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components"
+import { isSchemaFeature, isSchemaGuidance, isSchemaKnowledge, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components"
 import { isSchemaImage } from "@tonylb/mtw-base/ts/schema/image"
 import { isSchemaMark, isSchemaLens } from "@tonylb/mtw-base/ts/schema/worldState"
 
@@ -29,6 +30,9 @@ export const standardComponentFactory = (arg: StandardComponentData | GenericTre
     }
     if ((!isSchemaTreeNode(arg) && isStandardExampleData(arg)) || (isSchemaTreeNode(arg) && treeNodeTypeguard(isSchemaExample)(arg))) {
         return new StandardExample(arg)
+    }
+    if ((!isSchemaTreeNode(arg) && isStandardGuidanceData(arg)) || (isSchemaTreeNode(arg) && treeNodeTypeguard(isSchemaGuidance)(arg))) {
+        return new StandardGuidance(arg)
     }
     if ((!isSchemaTreeNode(arg) && isStandardRoomData(arg)) || (isSchemaTreeNode(arg) && treeNodeTypeguard(isSchemaRoom)(arg))) {
         return new StandardRoom(arg)
