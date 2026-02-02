@@ -29,6 +29,7 @@ export const componentTagFromUpperCase = (tag: Uppercase<ComponentTag>): Compone
     switch (tag) {
         case 'CHARACTER': return 'Character'
         case 'EXAMPLE': return 'Example'
+        case 'GUIDANCE': return 'Guidance'
         case 'ROOM': return 'Room'
         case 'FEATURE': return 'Feature'
         case 'KNOWLEDGE': return 'Knowledge'

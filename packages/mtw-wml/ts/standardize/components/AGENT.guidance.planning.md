@@ -1,7 +1,7 @@
 # Guidance Component - Planning Document
 
 **Date**: February 1, 2026  
-**Status**: Planning - Phase 1 and Phase 2 implemented  
+**Status**: Planning - Phase 1, Phase 2, Phase 3, and Phase 4 implemented  
 **Component Type**: StandardGuidance (sibling to StandardExample)
 
 ## Overview
@@ -119,88 +119,39 @@ None - Guidance components do not contain reference lists.
 
 ---
 
-### Phase 3: Component Type System
+### Phase 3: Component Type System — **Implemented**
 
 **Location**: `packages/mtw-wml/ts/standardize/components/dataTypes/abstract.ts`
 
 **Tasks**:
-1. Add `'Guidance'` to `ComponentTag` type union (should be automatic if `SchemaGuidanceTag` is in `SchemaWithKey`)
-2. Add case to `componentTagFromUpperCase()`:
-   ```typescript
-   case 'GUIDANCE': return 'Guidance'
-   ```
+1. ~~Add `'Guidance'` to `ComponentTag` type union (should be automatic if `SchemaGuidanceTag` is in `SchemaWithKey`)~~ — Done.
+2. ~~Add case to `componentTagFromUpperCase()`: `case 'GUIDANCE': return 'Guidance'`~~ — Done.
 
-**Verification**: TypeScript compilation succeeds with `'Guidance'` as a valid `ComponentTag`
+**Verification**: TypeScript compilation succeeds with `'Guidance'` as a valid `ComponentTag`. Full verification: TypeScript compiles; componentTagFromUpperCase('GUIDANCE') returns 'Guidance'; GUIDANCE#... ComponentUUIDs deserialize correctly.
+
+**Reference**: Phase 3 required only the componentTagFromUpperCase case; ComponentTag already included 'Guidance' via SchemaWithKey.
 
 ---
 
-### Phase 4: Component Data Types
+### Phase 4: Component Data Types — **Implemented**
 
 **Location**: Create `packages/mtw-wml/ts/standardize/components/dataTypes/guidance.ts`
 
 **Tasks**:
 
-1. **Create `StandardGuidanceData` type**:
-   ```typescript
-   import { StandardBaseData } from './abstract'
-   import { StandardEditableData } from '@tonylb/mtw-base/ts/editable'
-   import { MarkFacetData } from '../../keys/facets/dataTypes/facet'
-   
-   export type StandardGuidanceData = {
-       tag: 'Guidance';
-       instructions?: StandardEditableData<string>;
-       marks?: MarkFacetData[];
-       shortName?: StandardEditableData<string>;
-   } & StandardBaseData
-   
-   export type StandardGuidanceNDJSONData = StandardGuidanceData
-   ```
+1. ~~**Create `StandardGuidanceData` type**~~ — Done. Used `FacetListData<string>` for marks (not `MarkFacetData[]`) to match Example pattern.
 
-2. **Create `isStandardGuidanceData` type guard**:
-   ```typescript
-   import { checkAll, checkTypes } from '../../../lib/objects'
-   
-   export const isStandardGuidanceData = (arg: any): arg is StandardGuidanceData => {
-       if (typeof arg !== 'object') {
-           return false
-       }
-       return checkAll(
-           ('tag' in arg && arg.tag === 'Guidance'),
-           checkTypes(arg, {}, { 
-               key: 'key', 
-               universalKey: 'string',
-               instructions: 'literal',
-               shortName: 'literal'
-           })
-       )
-   }
-   ```
+2. ~~**Create `isStandardGuidanceData` type guard**~~ — Done. Imported `checkAll`/`checkTypes` from `./typeguards`; included `marks: 'facetList'` in checkTypes.
 
-3. **Export from `dataTypes/index.ts`**:
-   ```typescript
-   export type { StandardGuidanceData, StandardGuidanceNDJSONData } from './guidance'
-   export { isStandardGuidanceData } from './guidance'
-   ```
+3. ~~**Export from `dataTypes/index.ts`**~~ — Done.
 
-4. **Add to `StandardComponentNonEditData` union**:
-   ```typescript
-   export type StandardComponentNonEditData = 
-       // ... existing types ...
-       | StandardGuidanceData
-   ```
+4. ~~**Add to `StandardComponentNonEditData` union**~~ — Done.
 
-5. **Add to `isStandardComponentData()` type guard**:
-   ```typescript
-   export const isStandardComponentData = (arg: any): arg is StandardComponentData => {
-       return isStandardCharacterData(arg) ||
-           // ... existing checks ...
-           isStandardGuidanceData(arg)
-   }
-   ```
+5. ~~**Add to `isStandardComponentData()` type guard**~~ — Done.
 
 **Reference**: See `dataTypes/example.ts` for similar pattern with `marks` field
 
-**Verification**: Data types compile and type guards work correctly
+**Verification**: Data types compile; type guards accept valid Guidance data.
 
 ---
 
