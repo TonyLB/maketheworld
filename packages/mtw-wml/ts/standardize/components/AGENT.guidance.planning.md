@@ -1,7 +1,7 @@
 # Guidance Component - Planning Document
 
 **Date**: February 1, 2026  
-**Status**: Planning - Not yet implemented  
+**Status**: Planning - Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, Phase 6, and Phase 7 implemented; Schema Instructions Tag follow-up implemented  
 **Component Type**: StandardGuidance (sibling to StandardExample)
 
 ## Overview
@@ -80,208 +80,88 @@ None - Guidance components do not contain reference lists.
 
 ## Implementation Phases
 
-### Phase 1: WML Schema Layer (`@tonylb/mtw-base` package)
+### Phase 1: WML Schema Layer (`@tonylb/mtw-base` package) — **Implemented**
 
-**Location**: `packages/mtw-base/ts/schema/components.ts`
+**Location**: `packages/mtw-base/ts/schema/components.ts` and `packages/mtw-base/ts/schema/index.ts`
 
 **Tasks**:
-1. Add `SchemaGuidanceTag` type definition:
-   ```typescript
-   export type SchemaGuidanceTag = {
-       tag: 'Guidance';
-       key?: string;
-       uuid?: ComponentUUID;
-       from?: AssetUUID;
-       origin?: AssetUUID[];
-       ref?: number;
-   }
-   ```
+1. ~~Add `SchemaGuidanceTag` type definition~~ — Done. Implemented with `SchemaImportableBase` (same shape as other component tags in `components.ts`).
+2. ~~Add `isSchemaGuidance` type guard~~ — Done. Implemented using `checkTypes` with required `tag`, optional `key`/`uuid`/`from`/`ref`, and `values` for `from`/`origin` (pattern from `example.ts`).
+3. ~~Add `'Guidance'` to `SchemaComponent` union type~~ — Done (in `index.ts`).
+4. ~~Add `'Guidance'` case to `isSchemaComponentTag()` function~~ — Done (in `index.ts`).
+5. ~~Add `'Guidance'` case to `isSchemaComponent()` function~~ — No code change; `isSchemaComponent` uses `isSchemaComponentTag(value.tag)`, so adding `'Guidance'` to `isSchemaComponentTag` suffices.
+6. ~~Add `'Guidance'` case to `isSchemaTag()` function~~ — Done (in `index.ts`).
 
-2. Add `isSchemaGuidance` type guard:
-   ```typescript
-   export const isSchemaGuidance = (arg: any): arg is SchemaGuidanceTag => {
-       return typeof arg === 'object' && arg !== null && arg.tag === 'Guidance'
-   }
-   ```
+**Also wired in `index.ts`**: `SchemaGuidanceTag` added to `SchemaTag`, `SchemaAssetLegalContents`, `SchemaWithContents`, `SchemaWithKey`; `isSchemaGuidance(value)` added to `isSchemaAssetContents`; `'Guidance'` added to `isSchemaWithContents`, `isSchemaWithKey`, and `isSchemaComponentTag` arrays.
 
-3. Add `'Guidance'` to `SchemaComponent` union type
+**Reference**: See how `SchemaExampleTag` and `isSchemaExample` are implemented in `example.ts` (type guard uses `checkTypes`).
 
-4. Add `'Guidance'` case to `isSchemaComponentTag()` function
-
-5. Add `'Guidance'` case to `isSchemaComponent()` function
-
-6. Add `'Guidance'` case to `isSchemaTag()` function
-
-**Reference**: See how `SchemaExampleTag` and `isSchemaExample` are implemented in `components.ts`
-
-**Verification**: WML parser can parse `<Guidance>` tags from WML strings
+**Verification**: Schema layer treats Guidance as a valid component and asset content tag; `ComponentUUID`/`isSchemaComponentUUID` accept `GUIDANCE#...`. Full WML parsing of `<Guidance>` tags requires Phase 2 (converter registration).
 
 ---
 
-### Phase 2: Schema Converter Registration
+### Phase 2: Schema Converter Registration — **Implemented**
 
 **Location**: `packages/mtw-wml/ts/schema/converters/components.ts`
 
 **Tasks**:
+1. ~~Add prefix key to PrefixKey type~~ — Done. Added `'GUIDANCE'` to the `PrefixKey` union in `packages/mtw-utilities/ts/types.ts`.
+2. ~~Import schema types~~ — Done. `isSchemaGuidance` and `SchemaGuidanceTag` imported from `@tonylb/mtw-base/ts/schema/components`.
+3. ~~Add to componentTemplates~~ — Done. Guidance entry added with uuid, key, from, origin, ref.
+4. ~~Add to componentConverters~~ — Done. Initialize function validates properties and enforces GUIDANCE-prefixed UUIDs.
+5. ~~Add to componentPrintMap~~ — Done. Renders Guidance tag with optional uuid, key, from, origin, ref.
 
-1. **Add prefix key to PrefixKey type**:
-   - **Location**: `packages/mtw-utilities/ts/types.ts`
-   - Add `'GUIDANCE'` to the `PrefixKey` type union:
-     ```typescript
-     type PrefixKey = 'ASSET' | 'CHARACTER' | 'ROOM' | 'EXAMPLE' | 'FEATURE' | 'KNOWLEDGE' | 'MAP' | 'MESSAGE' | 'MOMENT' | 'IMAGE' | 'CONNECTION' | 'SESSION' | 'MARK' | 'GUIDANCE'
-     ```
-
-2. **Import schema types**:
-   ```typescript
-   import { isSchemaGuidance, SchemaGuidanceTag } from '@tonylb/mtw-base/ts/schema/components'
-   ```
-
-3. **Add to componentTemplates**:
-   ```typescript
-   Guidance: {
-       uuid: { type: ParsePropertyTypes.Key },
-       key: { type: ParsePropertyTypes.Key },
-       from: { type: ParsePropertyTypes.Asset },
-       origin: { type: ParsePropertyTypes.AssetList },
-       ref: { type: ParsePropertyTypes.Expression }
-   }
-   ```
-
-4. **Add to componentConverters**:
-   ```typescript
-   Guidance: {
-       initialize: ({ parseOpen }): SchemaGuidanceTag => {
-           const { uuid, ref, ...rest } = validateProperties(componentTemplates.Guidance)(parseOpen)
-           const refValue = ref ? validateExpressionAsNonNegativeInteger(ref as string, 'ref', parseOpen.tag) : undefined
-           return {
-               tag: 'Guidance',
-               uuid: uuid ? enforceTypedKey('GUIDANCE')(uuid) : undefined,
-               ...(refValue !== undefined ? { ref: refValue } : {}),
-               ...rest
-           }
-       }
-   }
-   ```
-
-5. **Add to componentPrintMap**:
-   ```typescript
-   Guidance: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => {
-       if (!isSchemaGuidance(tag)) {
-           return [{ printMode: PrintMode.naive, output: '' }]
-       }
-       return tagRender({
-           ...args,
-           tag: 'Guidance',
-           properties: [
-               { key: 'uuid', type: 'key', value: tag.uuid ? stripTypedKey('GUIDANCE')(tag.uuid) : '' },
-               ...(tag.key ? [{ key: 'key', type: 'key' as const, value: tag.key }] : []),
-               { key: 'from', type: 'key', value: tag.from ?? '' },
-               ...(tag.origin && tag.origin.length ? [{ key: 'origin', type: 'assetList' as const, value: tag.origin }] : []),
-               ...(tag.ref !== undefined ? [{ key: 'ref', type: 'expression' as const, value: String(tag.ref) }] : [])
-           ],
-           node: { data: tag, children }
-       })
-   }
-   ```
+6. ~~Add Guidance to component sort order~~ — Done. Added `'Guidance'` to `componentKeys` in `referenceSortOrder` (`packages/mtw-wml/ts/standardize/keys/reference.ts`), positioned immediately before `'Example'`. Used by `SchemaOrganization.sortOrder()`, `keySortOrder`, and authorization sorting.
 
 **Reference**: See `Example` entries in `componentTemplates`, `componentConverters`, and `componentPrintMap`
 
-**Verification**: `<Guidance>` tags parse correctly from WML strings without "Cannot read properties of undefined" errors
+**Verification**: `<Guidance>` tags parse correctly from WML strings without "Cannot read properties of undefined" errors; Guidance sorts before Examples in reference/schema ordering.
 
 ---
 
-### Phase 3: Component Type System
+### Phase 3: Component Type System — **Implemented**
 
 **Location**: `packages/mtw-wml/ts/standardize/components/dataTypes/abstract.ts`
 
 **Tasks**:
-1. Add `'Guidance'` to `ComponentTag` type union (should be automatic if `SchemaGuidanceTag` is in `SchemaWithKey`)
-2. Add case to `componentTagFromUpperCase()`:
-   ```typescript
-   case 'GUIDANCE': return 'Guidance'
-   ```
+1. ~~Add `'Guidance'` to `ComponentTag` type union (should be automatic if `SchemaGuidanceTag` is in `SchemaWithKey`)~~ — Done.
+2. ~~Add case to `componentTagFromUpperCase()`: `case 'GUIDANCE': return 'Guidance'`~~ — Done.
 
-**Verification**: TypeScript compilation succeeds with `'Guidance'` as a valid `ComponentTag`
+**Verification**: TypeScript compilation succeeds with `'Guidance'` as a valid `ComponentTag`. Full verification: TypeScript compiles; componentTagFromUpperCase('GUIDANCE') returns 'Guidance'; GUIDANCE#... ComponentUUIDs deserialize correctly.
+
+**Reference**: Phase 3 required only the componentTagFromUpperCase case; ComponentTag already included 'Guidance' via SchemaWithKey.
 
 ---
 
-### Phase 4: Component Data Types
+### Phase 4: Component Data Types — **Implemented**
 
 **Location**: Create `packages/mtw-wml/ts/standardize/components/dataTypes/guidance.ts`
 
 **Tasks**:
 
-1. **Create `StandardGuidanceData` type**:
-   ```typescript
-   import { StandardBaseData } from './abstract'
-   import { StandardEditableData } from '@tonylb/mtw-base/ts/editable'
-   import { MarkFacetData } from '../../keys/facets/dataTypes/facet'
-   
-   export type StandardGuidanceData = {
-       tag: 'Guidance';
-       instructions?: StandardEditableData<string>;
-       marks?: MarkFacetData[];
-       shortName?: StandardEditableData<string>;
-   } & StandardBaseData
-   
-   export type StandardGuidanceNDJSONData = StandardGuidanceData
-   ```
+1. ~~**Create `StandardGuidanceData` type**~~ — Done. Used `FacetListData<string>` for marks (not `MarkFacetData[]`) to match Example pattern.
 
-2. **Create `isStandardGuidanceData` type guard**:
-   ```typescript
-   import { checkAll, checkTypes } from '../../../lib/objects'
-   
-   export const isStandardGuidanceData = (arg: any): arg is StandardGuidanceData => {
-       if (typeof arg !== 'object') {
-           return false
-       }
-       return checkAll(
-           ('tag' in arg && arg.tag === 'Guidance'),
-           checkTypes(arg, {}, { 
-               key: 'key', 
-               universalKey: 'string',
-               instructions: 'literal',
-               shortName: 'literal'
-           })
-       )
-   }
-   ```
+2. ~~**Create `isStandardGuidanceData` type guard**~~ — Done. Imported `checkAll`/`checkTypes` from `./typeguards`; included `marks: 'facetList'` in checkTypes.
 
-3. **Export from `dataTypes/index.ts`**:
-   ```typescript
-   export type { StandardGuidanceData, StandardGuidanceNDJSONData } from './guidance'
-   export { isStandardGuidanceData } from './guidance'
-   ```
+3. ~~**Export from `dataTypes/index.ts`**~~ — Done.
 
-4. **Add to `StandardComponentNonEditData` union**:
-   ```typescript
-   export type StandardComponentNonEditData = 
-       // ... existing types ...
-       | StandardGuidanceData
-   ```
+4. ~~**Add to `StandardComponentNonEditData` union**~~ — Done.
 
-5. **Add to `isStandardComponentData()` type guard**:
-   ```typescript
-   export const isStandardComponentData = (arg: any): arg is StandardComponentData => {
-       return isStandardCharacterData(arg) ||
-           // ... existing checks ...
-           isStandardGuidanceData(arg)
-   }
-   ```
+5. ~~**Add to `isStandardComponentData()` type guard**~~ — Done.
 
 **Reference**: See `dataTypes/example.ts` for similar pattern with `marks` field
 
-**Verification**: Data types compile and type guards work correctly
+**Verification**: Data types compile; type guards accept valid Guidance data.
 
 ---
 
-### Phase 5: Component Implementation
+### Phase 5: Component Implementation — **Implemented**
 
 **Location**: Create `packages/mtw-wml/ts/standardize/components/guidance.ts`
 
 **Tasks**:
 
-1. **Create `StandardGuidancePayload` class**:
+1. ~~**Create `StandardGuidancePayload` class**~~ — Done. Implemented in `guidance.ts` per spec (Instructions/ShortName as StandardLiteral, marks as MarkFacetList, fromSchema/fromJSON/toJSON/schema/merge/mapContents/remapReferences/nestedSchema/etc.).
    ```typescript
    import { excludeUndefined } from "../../lib/lists"
    import SchemaTagTree from "../../tagTree/schema"
@@ -496,7 +376,7 @@ None - Guidance components do not contain reference lists.
    }
    ```
 
-2. **Create `StandardGuidance` component class**:
+2. ~~**Create `StandardGuidance` component class**~~ — Done. Implemented in `guidance.ts`; extends componentClassFactory, overrides _wrap/clone/equals, default export.
    ```typescript
    export class StandardGuidance extends componentClassFactory(StandardGuidancePayload, 'StandardGuidance') {
        get instructions() { return this._payload.instructions }
@@ -537,27 +417,45 @@ None - Guidance components do not contain reference lists.
 - Parse Mark facets from schema using `hasMatchChild` filter (same as Example)
 - Implement `nestedSchema()` with facet rendering (same as Example)
 
-**Verification**: Component constructs from JSON and WML, serializes correctly, merge/diff operations work
+**Verification**: Component constructs from JSON and WML, serializes correctly, merge/diff operations work. Verified by TypeScript compile (`npx tsc --noEmit` in package); optional dedicated tests may be added later.
 
 ---
 
-### Phase 6: Factory Integration
+### Schema Instructions Tag (follow-up) — **Implemented**
+
+Phase 5 initially used type assertions (`'Instructions' as SchemaTag['tag']`) in `guidance.ts` because the `<Instructions>` child tag was not yet a first-class schema tag. That gap is closed so that WML parsing and printing handle `<Instructions>...</Instructions>` the same way as `<ShortName>...</ShortName>`.
+
+**Base package (`@tonylb/mtw-base`)**:
+- **tagType.ts**: Added `'Instructions'` to `SchemaTagType` and `isLegalSchemaTag`.
+- **components.ts**: Added `SchemaInstructionsTag = SchemaLiteralTag<'Instructions'>` and `isSchemaInstructions` via `literalTagFactory<'Instructions'>('Instructions')`.
+- **index.ts**: Imported and wired `SchemaInstructionsTag` / `isSchemaInstructions` into `SchemaAssetLegalContents`, `SchemaTag`, `SchemaWithContents`, `isSchemaWithContents`, `isSchemaAssetContents`, and `isSchemaTag`; extended `isSchemaLiteralTag` to include Instructions.
+
+**WML package (`@tonylb/mtw-wml`)**:
+- **schema/converters/components.ts**: Added `Instructions: {}` to `componentTemplates`; added `instructionsConverter` and `instructionsPrintMap` via `literalTagFactory('Instructions')`; registered in `componentConverters` and `componentPrintMap`.
+- **standardize/components/guidance.ts**: Removed the three `as SchemaTag['tag']` casts; `'Instructions'` is now a valid `SchemaTag['tag']`.
+
+**Reference**: Same pattern as `SchemaShortNameTag` / ShortName in base and converters.
+
+---
+
+### Phase 6: Factory Integration — **Implemented**
 
 **Location**: `packages/mtw-wml/ts/standardize/componentFactory.ts`
 
 **Tasks**:
-1. Import `StandardGuidance` and `isStandardGuidanceData`:
+1. ~~Import `StandardGuidance` and `isStandardGuidanceData`~~ — Done.
    ```typescript
    import { StandardGuidance } from './components/guidance'
    import { isStandardGuidanceData } from './components/dataTypes/guidance'
    ```
+   Note: Implemented as `import StandardGuidance from "./components/guidance"` and `isStandardGuidanceData` from `"./components/dataTypes"`.
 
-2. Import `isSchemaGuidance`:
+2. ~~Import `isSchemaGuidance`~~ — Done. Imported from `@tonylb/mtw-base/ts/schema/components`.
    ```typescript
    import { isSchemaGuidance } from '@tonylb/mtw-base/ts/schema/components'
    ```
 
-3. Add case to `standardComponentFactory()`:
+3. ~~Add case to `standardComponentFactory()`~~ — Done. Added Guidance case immediately after Example, following same pattern.
    ```typescript
    if ((!isSchemaTreeNode(arg) && isStandardGuidanceData(arg)) || 
        (isSchemaTreeNode(arg) && treeNodeTypeguard(isSchemaGuidance)(arg))) {
@@ -571,28 +469,14 @@ None - Guidance components do not contain reference lists.
 
 ---
 
-### Phase 7: Processing Integration
+### Phase 7: Processing Integration — **Implemented**
 
 **Location**: `packages/mtw-wml/ts/standardize/index.ts`
 
 **Tasks**:
 
-1. **Add to COMPONENT_TEMPLATES**:
-   ```typescript
-   { key: 'Guidance', legalParents: ['Room', 'Asset'] }
-   ```
-   Note: Initially Room-only, but allow Asset-level for future flexibility
-
-2. **Add to isStandardComponent()**:
-   ```typescript
-   import { StandardGuidance } from './components/guidance'
-   
-   export const isStandardComponent = (value: any): value is StandardComponent => {
-       return (value instanceof StandardCharacter) ||
-           // ... existing checks ...
-           (value instanceof StandardGuidance)
-   }
-   ```
+1. ~~**Add to COMPONENT_TEMPLATES**~~ — Done. Added `{ key: 'Guidance', legalParents: ['Room', 'Asset'] }` immediately after the Example entry.
+2. ~~**Add to isStandardComponent()**~~ — Done. Imported `StandardGuidance` from `./components/guidance` and added `(value instanceof StandardGuidance)` to the type guard.
 
 **Reference**: See `Example` entry in `COMPONENT_TEMPLATES` (has similar `legalParents`)
 
@@ -1655,8 +1539,8 @@ After completing all phases, verify:
 - [ ] Guidance component handles Mark facets correctly
 - [ ] Guidance component supports zero Marks
 - [ ] Guidance appears in standardComponentFactory() lookups
-- [ ] Guidance appears in COMPONENT_TEMPLATES array
-- [ ] Guidance passes isStandardComponent() type guard
+- [x] Guidance appears in COMPONENT_TEMPLATES array
+- [x] Guidance passes isStandardComponent() type guard
 - [ ] Guidance can be stored in StandardForm
 - [ ] Room can contain Guidance references
 - [ ] Room serializes Guidance references correctly

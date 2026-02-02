@@ -4,7 +4,7 @@ import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./base
 import { tagRender } from "./tagRender"
 import { validateProperties, validateExpressionAsNonNegativeInteger, parsePositionCoordinates } from "./utils"
 import { GenericTree, GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree"
-import { isSchemaExit, isSchemaFeature, isSchemaKnowledge, isSchemaMap, isSchemaPosition, isSchemaRoom, isSchemaShortName, isSchemaParent, isSchemaKey, SchemaExitTag, SchemaFeatureTag, SchemaKnowledgeTag, SchemaMapTag, SchemaPositionTag, SchemaRoomTag, SchemaShortNameTag, SchemaParentTag, SchemaKeyTag } from "@tonylb/mtw-base/ts/schema/components"
+import { isSchemaExit, isSchemaFeature, isSchemaGuidance, isSchemaKnowledge, isSchemaMap, isSchemaPosition, isSchemaRoom, isSchemaShortName, isSchemaParent, isSchemaKey, SchemaExitTag, SchemaFeatureTag, SchemaGuidanceTag, SchemaKnowledgeTag, SchemaMapTag, SchemaPositionTag, SchemaRoomTag, SchemaShortNameTag, SchemaParentTag, SchemaKeyTag } from "@tonylb/mtw-base/ts/schema/components"
 import { isSchemaString, SchemaStringTag } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { isSchemaMapContents, SchemaTag, isSchemaComponent, isSchemaComponentUUID } from "@tonylb/mtw-base/ts/schema"
 import { PrintMode, PrintMapResult } from "@tonylb/mtw-base/ts/schema/printMap"
@@ -20,6 +20,7 @@ const componentTemplates = {
     Summary: {},
     DisplayName: {},
     ShortName: {},
+    Instructions: {},
     Parent: {},
     Key: {},
     Room: {
@@ -53,10 +54,18 @@ const componentTemplates = {
         from: { type: ParsePropertyTypes.Asset },
         origin: { type: ParsePropertyTypes.AssetList },
         ref: { type: ParsePropertyTypes.Expression }
+    },
+    Guidance: {
+        uuid: { type: ParsePropertyTypes.Key },
+        key: { type: ParsePropertyTypes.Key },
+        from: { type: ParsePropertyTypes.Asset },
+        origin: { type: ParsePropertyTypes.AssetList },
+        ref: { type: ParsePropertyTypes.Expression }
     }
 } as const
 
 const { converter: shortNameConverter, printMap: shortNamePrintMap } = literalTagFactory('ShortName')
+const { converter: instructionsConverter, printMap: instructionsPrintMap } = literalTagFactory('Instructions')
 
 // Parent tag converter - similar to Literal but constrained to ComponentUUID content
 // and can only be placed inside ComponentUUID tags
@@ -124,6 +133,7 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
         }
     },
     ShortName: shortNameConverter,
+    Instructions: instructionsConverter,
     Parent: {
         initialize: ({ parseOpen, contextStack }): SchemaParentTag => {
             // Validate that Parent tag is inside a ComponentUUID
@@ -279,6 +289,18 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
                 children: children.filter(({ data }) => (isSchemaMapContents(data))),
             }
         }
+    },
+    Guidance: {
+        initialize: ({ parseOpen }): SchemaGuidanceTag => {
+            const { uuid, ref, ...rest } = validateProperties(componentTemplates.Guidance)(parseOpen)
+            const refValue = ref ? validateExpressionAsNonNegativeInteger(ref as string, 'ref', parseOpen.tag) : undefined
+            return {
+                tag: 'Guidance',
+                uuid: uuid ? enforceTypedKey('GUIDANCE')(uuid) : undefined,
+                ...(refValue !== undefined ? { ref: refValue } : {}),
+                ...rest
+            }
+        }
     }
 }
 
@@ -308,6 +330,7 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
         })
     },
     ShortName: shortNamePrintMap,
+    Instructions: instructionsPrintMap,
     Parent: parentTagRenderLiteral,
     Key: keyTagRenderLiteral,
     Room: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => {
@@ -397,6 +420,23 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
             properties: [
                 { key: 'uuid', type: 'key', value: tag.uuid ? stripTypedKey('MAP')(tag.uuid) : '' },
                 { key: 'key', type: 'key', value: tag.key ?? '' },
+                { key: 'from', type: 'key', value: tag.from ?? '' },
+                ...(tag.origin && tag.origin.length ? [{ key: 'origin', type: 'assetList' as const, value: tag.origin }] : []),
+                ...(tag.ref !== undefined ? [{ key: 'ref', type: 'expression' as const, value: String(tag.ref) }] : [])
+            ],
+            node: { data: tag, children }
+        })
+    },
+    Guidance: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => {
+        if (!isSchemaGuidance(tag)) {
+            return [{ printMode: PrintMode.naive, output: '' }]
+        }
+        return tagRender({
+            ...args,
+            tag: 'Guidance',
+            properties: [
+                { key: 'uuid', type: 'key', value: tag.uuid ? stripTypedKey('GUIDANCE')(tag.uuid) : '' },
+                ...(tag.key ? [{ key: 'key', type: 'key' as const, value: tag.key }] : []),
                 { key: 'from', type: 'key', value: tag.from ?? '' },
                 ...(tag.origin && tag.origin.length ? [{ key: 'origin', type: 'assetList' as const, value: tag.origin }] : []),
                 ...(tag.ref !== undefined ? [{ key: 'ref', type: 'expression' as const, value: String(tag.ref) }] : [])

@@ -32,6 +32,7 @@ import StandardImage from "./components/image"
 import StandardMessage from "./components/message"
 import StandardMoment from "./components/moment"
 import StandardExample from "./components/example"
+import StandardGuidance from "./components/guidance"
 import StandardMark, { StandardLens } from "./components/worldState"
 import { StandardLiteral } from "./literal"
 import { StandardRender } from "./render"
@@ -56,6 +57,7 @@ const COMPONENT_TEMPLATES: ComponentProcessingTemplate[] = [
     { key: 'Message', legalParents: ['Moment'] },
     { key: 'Moment' },
     { key: 'Example', legalParents: ['Room', 'Feature', 'Knowledge', 'Asset'] },
+    { key: 'Guidance', legalParents: ['Room', 'Asset'] },
     { key: 'Mark', legalParents: ['Lens', 'Example', 'Asset'] },
     { key: 'Lens', legalParents: ['Room', 'Asset'] }
 ]
@@ -75,6 +77,7 @@ export const isStandardComponent = (value: any): value is StandardComponent => {
         (value instanceof StandardMoment) ||
         (value instanceof StandardRoom) ||
         (value instanceof StandardExample) ||
+        (value instanceof StandardGuidance) ||
         (value instanceof StandardMark) ||
         (value instanceof StandardLens)
 }

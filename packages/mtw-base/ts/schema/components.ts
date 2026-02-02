@@ -4,6 +4,7 @@ import { literalTagFactory, SchemaLiteralTag } from "./literalTagFactory";
 import { ComponentUUID, isSchemaAssetUUID } from ".";
 
 export type SchemaShortNameTag = SchemaLiteralTag<'ShortName'>
+export type SchemaInstructionsTag = SchemaLiteralTag<'Instructions'>
 
 export type SchemaParentTag = {
     tag: 'Parent';
@@ -69,8 +70,18 @@ export type SchemaMomentTag = {
     ref?: number;
 } & SchemaImportableBase
 
+export type SchemaGuidanceTag = {
+    tag: 'Guidance';
+    uuid?: ComponentUUID;
+    key?: string;
+    ref?: number;
+} & SchemaImportableBase
+
 const { typeGuard } = literalTagFactory<'ShortName'>('ShortName')
 export const isSchemaShortName = typeGuard
+
+const { typeGuard: isSchemaInstructionsTypeGuard } = literalTagFactory<'Instructions'>('Instructions')
+export const isSchemaInstructions = isSchemaInstructionsTypeGuard
 
 export const isSchemaParent = (schema: any): schema is SchemaParentTag => (
     checkTypes({
@@ -163,6 +174,18 @@ export const isSchemaMoment = (schema: any): schema is SchemaMomentTag => (
         optional: { key: CheckTypes.STRING, uuid: CheckTypes.STRING, from: CheckTypes.STRING, ref: CheckTypes.NUMBER },
         values: { 
             tag: 'Moment', 
+            from: isSchemaAssetUUID,
+            origin: (origin: any) => (!origin || (Array.isArray(origin) && origin.every((item: any) => isSchemaAssetUUID(item))))
+        }
+    })(schema)
+)
+
+export const isSchemaGuidance = (schema: any): schema is SchemaGuidanceTag => (
+    checkTypes({
+        required: { tag: CheckTypes.STRING },
+        optional: { key: CheckTypes.STRING, uuid: CheckTypes.STRING, from: CheckTypes.STRING, ref: CheckTypes.NUMBER },
+        values: { 
+            tag: 'Guidance', 
             from: isSchemaAssetUUID,
             origin: (origin: any) => (!origin || (Array.isArray(origin) && origin.every((item: any) => isSchemaAssetUUID(item))))
         }
