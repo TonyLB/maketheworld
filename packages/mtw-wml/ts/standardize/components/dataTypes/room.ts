@@ -12,6 +12,7 @@ export type StandardRoomData = {
     lenses?: ReferenceListData;
     features?: ReferenceListData;
     examples?: ReferenceListData;
+    guidance?: ReferenceListData;
     characters?: ReferenceListData;
 } & StandardBaseData
 
@@ -30,6 +31,7 @@ export const isStandardRoomData = (arg: any): arg is StandardRoomData => {
             exits: 'facetList',
             lenses: 'referenceList',
             examples: 'referenceList',
+            guidance: 'referenceList',
             characters: 'referenceList'
         })
     )
