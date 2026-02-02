@@ -1,7 +1,7 @@
 # Guidance Component - Planning Document
 
 **Date**: February 1, 2026  
-**Status**: Planning - Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, Phase 6, Phase 7, and Phase 8 implemented; Schema Instructions Tag follow-up implemented  
+**Status**: Planning - Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, Phase 6, Phase 7, Phase 8, and Phase 9 implemented; Schema Instructions Tag follow-up implemented  
 **Component Type**: StandardGuidance (sibling to StandardExample)
 
 ## Overview
@@ -794,13 +794,13 @@ Phase 5 initially used type assertions (`'Instructions' as SchemaTag['tag']`) in
 
 ---
 
-### Phase 9: Unit Tests - Backend
+### Phase 9: Unit Tests - Backend — Implemented
 
 **Location**: Create `packages/mtw-wml/ts/standardize/components/guidance.test.ts`
 
 **Tasks**:
 
-1. **Test construction from JSON**:
+1. ~~**Test construction from JSON**~~ — Done.
    ```typescript
    describe('StandardGuidance', () => {
        it('should construct from JSON data', () => {
@@ -819,7 +819,7 @@ Phase 5 initially used type assertions (`'Instructions' as SchemaTag['tag']`) in
    })
    ```
 
-2. **Test construction from WML**:
+2. ~~**Test construction from WML**~~ — Done.
    ```typescript
    it('should construct from WML schema', () => {
        const wml = `
@@ -836,7 +836,7 @@ Phase 5 initially used type assertions (`'Instructions' as SchemaTag['tag']`) in
    })
    ```
 
-3. **Test serialization (toJSON)**:
+3. ~~**Test serialization (toJSON)**~~ — Done.
    ```typescript
    it('should serialize to JSON correctly', () => {
        const wml = `
@@ -851,7 +851,7 @@ Phase 5 initially used type assertions (`'Instructions' as SchemaTag['tag']`) in
    })
    ```
 
-4. **Test deserialization round-trip**:
+4. ~~**Test deserialization round-trip**~~ — Done.
    ```typescript
    it('should round-trip JSON → Component → JSON', () => {
        const original: StandardGuidanceData = {
@@ -867,7 +867,7 @@ Phase 5 initially used type assertions (`'Instructions' as SchemaTag['tag']`) in
    })
    ```
 
-5. **Test schema generation**:
+5. ~~**Test schema generation**~~ — Done.
    ```typescript
    it('should generate schema correctly', () => {
        const guidance = new StandardGuidance({
@@ -881,7 +881,7 @@ Phase 5 initially used type assertions (`'Instructions' as SchemaTag['tag']`) in
    })
    ```
 
-6. **Test merge operations**:
+6. ~~**Test merge operations**~~ — Done.
    ```typescript
    it('should merge two guidance components', () => {
        const guidance1 = new StandardGuidance({
@@ -899,7 +899,7 @@ Phase 5 initially used type assertions (`'Instructions' as SchemaTag['tag']`) in
    })
    ```
 
-7. **Test isEmpty()**:
+7. ~~**Test isEmpty()**~~ — Done.
    ```typescript
    it('should detect empty guidance', () => {
        const empty = new StandardGuidance({
@@ -917,7 +917,7 @@ Phase 5 initially used type assertions (`'Instructions' as SchemaTag['tag']`) in
    })
    ```
 
-8. **Test invert()**:
+8. ~~**Test invert()**~~ — Done.
    ```typescript
    it('should invert guidance operations', () => {
        const guidance = new StandardGuidance({
@@ -930,7 +930,7 @@ Phase 5 initially used type assertions (`'Instructions' as SchemaTag['tag']`) in
    })
    ```
 
-9. **Test Mark facets**:
+9. ~~**Test Mark facets**~~ — Done.
    ```typescript
    it('should handle Mark facets correctly', () => {
        const wml = `
@@ -944,7 +944,7 @@ Phase 5 initially used type assertions (`'Instructions' as SchemaTag['tag']`) in
    })
    ```
 
-10. **Test zero-Mark guidance**:
+10. ~~**Test zero-Mark guidance**~~ — Done.
     ```typescript
     it('should support guidance with zero marks', () => {
         const wml = `
@@ -1547,7 +1547,7 @@ After completing all phases, verify:
 - [ ] Room deserializes Guidance references correctly
 - [ ] Room merge operations handle Guidance correctly
 - [ ] Room assureReferences() handles Guidance correctly
-- [ ] All backend unit tests pass
+- [x] All backend unit tests pass
 - [ ] All Room integration tests pass
 - [ ] GuidanceEditor renders correctly
 - [ ] MarkFacetsEditor renders correctly
