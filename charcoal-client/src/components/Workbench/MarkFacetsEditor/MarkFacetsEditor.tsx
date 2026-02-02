@@ -6,12 +6,7 @@ import {
     List,
     ListItem,
     ListItemText,
-    IconButton,
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
-    TextField
+    IconButton
 } from "@mui/material"
 import DeleteIcon from "@mui/icons-material/Delete"
 import AddIcon from "@mui/icons-material/Add"
@@ -40,16 +35,21 @@ export const MarkFacetsEditor: FunctionComponent<MarkFacetsEditorProps> = ({
     onChange,
     readonly = false
 }) => {
-    const [addDialogOpen, setAddDialogOpen] = useState(false)
     const [selectorOpen, setSelectorOpen] = useState(false)
-    const [selectedMarkId, setSelectedMarkId] = useState<ComponentUUID | null>(null)
-    const [matchValue, setMatchValue] = useState("")
 
     const handleAddMark = useCallback(() => {
-        setSelectedMarkId(null)
-        setMatchValue("")
-        setAddDialogOpen(true)
+        setSelectorOpen(true)
     }, [])
+
+    const handleAddMarkSelect = useCallback(
+        (universalKey: ComponentUUID) => {
+            if (readonly || !onChange) return
+            const reference = new StandardReference({ tag: "Mark", universalKey })
+            const newFacet = new StandardMarkFacet({ reference, payload: "" })
+            onChange(new MarkFacetList([...marks.items, newFacet]))
+        },
+        [marks.items, onChange, readonly]
+    )
 
     const handleRemoveMark = useCallback(
         (index: number) => {
@@ -59,30 +59,6 @@ export const MarkFacetsEditor: FunctionComponent<MarkFacetsEditorProps> = ({
         },
         [marks.items, onChange, readonly]
     )
-
-    const handleSelectMark = useCallback((universalKey: ComponentUUID) => {
-        setSelectedMarkId(universalKey)
-        setSelectorOpen(false)
-    }, [])
-
-    const handleAddConfirm = useCallback(() => {
-        if (!selectedMarkId || !onChange || readonly) return
-        const reference = new StandardReference({ tag: "Mark", universalKey: selectedMarkId })
-        const newFacet = new StandardMarkFacet({ reference, payload: matchValue })
-        const newList = new MarkFacetList([...marks.items, newFacet])
-        onChange(newList)
-        setAddDialogOpen(false)
-        setSelectedMarkId(null)
-        setMatchValue("")
-    }, [selectedMarkId, matchValue, marks.items, onChange, readonly])
-
-    const handleAddDialogClose = useCallback(() => {
-        setAddDialogOpen(false)
-        setSelectedMarkId(null)
-        setMatchValue("")
-    }, [])
-
-    const canAdd = Boolean(selectedMarkId) && Boolean(onChange) && !readonly
 
     return (
         <Box>
@@ -131,45 +107,12 @@ export const MarkFacetsEditor: FunctionComponent<MarkFacetsEditorProps> = ({
                 </Typography>
             )}
 
-            <Dialog open={addDialogOpen} onClose={handleAddDialogClose} maxWidth="sm" fullWidth>
-                <DialogTitle>Add Mark</DialogTitle>
-                <DialogContent>
-                    <Box sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
-                        <Box>
-                            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-                                Mark component
-                            </Typography>
-                            <Button
-                                variant="outlined"
-                                size="small"
-                                onClick={() => setSelectorOpen(true)}
-                            >
-                                {selectedMarkId ? "Mark selected" : "Select Mark..."}
-                            </Button>
-                        </Box>
-                        <TextField
-                            label="Match"
-                            value={matchValue}
-                            onChange={(e) => setMatchValue(e.target.value)}
-                            placeholder="Match value for this Mark"
-                            size="small"
-                            fullWidth
-                        />
-                    </Box>
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={handleAddDialogClose}>Cancel</Button>
-                    <Button onClick={handleAddConfirm} variant="contained" disabled={!canAdd}>
-                        Add
-                    </Button>
-                </DialogActions>
-            </Dialog>
-
             <ComponentSelectorDialog
                 open={selectorOpen}
                 onClose={() => setSelectorOpen(false)}
                 tag="Mark"
-                onSelect={handleSelectMark}
+                onSelect={handleAddMarkSelect}
+                isExcluded={(id) => marks.items.some((f) => f.reference.universalKey === id)}
             />
         </Box>
     )
