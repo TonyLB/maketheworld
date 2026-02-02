@@ -1,7 +1,7 @@
 # Guidance Component - Planning Document
 
 **Date**: February 1, 2026  
-**Status**: Planning - Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, and Phase 6 implemented; Schema Instructions Tag follow-up implemented  
+**Status**: Planning - Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, Phase 6, and Phase 7 implemented; Schema Instructions Tag follow-up implemented  
 **Component Type**: StandardGuidance (sibling to StandardExample)
 
 ## Overview
@@ -469,28 +469,14 @@ Phase 5 initially used type assertions (`'Instructions' as SchemaTag['tag']`) in
 
 ---
 
-### Phase 7: Processing Integration
+### Phase 7: Processing Integration — **Implemented**
 
 **Location**: `packages/mtw-wml/ts/standardize/index.ts`
 
 **Tasks**:
 
-1. **Add to COMPONENT_TEMPLATES**:
-   ```typescript
-   { key: 'Guidance', legalParents: ['Room', 'Asset'] }
-   ```
-   Note: Initially Room-only, but allow Asset-level for future flexibility
-
-2. **Add to isStandardComponent()**:
-   ```typescript
-   import { StandardGuidance } from './components/guidance'
-   
-   export const isStandardComponent = (value: any): value is StandardComponent => {
-       return (value instanceof StandardCharacter) ||
-           // ... existing checks ...
-           (value instanceof StandardGuidance)
-   }
-   ```
+1. ~~**Add to COMPONENT_TEMPLATES**~~ — Done. Added `{ key: 'Guidance', legalParents: ['Room', 'Asset'] }` immediately after the Example entry.
+2. ~~**Add to isStandardComponent()**~~ — Done. Imported `StandardGuidance` from `./components/guidance` and added `(value instanceof StandardGuidance)` to the type guard.
 
 **Reference**: See `Example` entry in `COMPONENT_TEMPLATES` (has similar `legalParents`)
 
@@ -1553,8 +1539,8 @@ After completing all phases, verify:
 - [ ] Guidance component handles Mark facets correctly
 - [ ] Guidance component supports zero Marks
 - [ ] Guidance appears in standardComponentFactory() lookups
-- [ ] Guidance appears in COMPONENT_TEMPLATES array
-- [ ] Guidance passes isStandardComponent() type guard
+- [x] Guidance appears in COMPONENT_TEMPLATES array
+- [x] Guidance passes isStandardComponent() type guard
 - [ ] Guidance can be stored in StandardForm
 - [ ] Room can contain Guidance references
 - [ ] Room serializes Guidance references correctly
