@@ -15,6 +15,7 @@ import RoomEditor from './RoomEdit/RoomEditor'
 import FeatureEditor from './FeatureEdit/FeatureEditor'
 import KnowledgeEditor from './KnowledgeEdit/KnowledgeEditor'
 import ExamplesView from './ExampleEdit/ExamplesView'
+import GuidanceEditor from './GuidanceEdit/GuidanceEditor'
 import MarkEditor from './MarkEdit/MarkEditor'
 import MapEditor from './MapEdit/MapEditor'
 import CharacterEditor from './CharacterEdit/CharacterEditor'
@@ -24,6 +25,7 @@ import StandardMark from '@tonylb/mtw-wml/ts/standardize/components/worldState'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
 import StandardKnowledge from '@tonylb/mtw-wml/ts/standardize/components/knowledge'
+import StandardGuidance from '@tonylb/mtw-wml/ts/standardize/components/guidance'
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 
 /**
@@ -84,6 +86,9 @@ export const WorkbenchAssetEditor: FunctionComponent = () => {
         const layerComponent = layerId ? assetData.standardForm.byUniversalId[layerId] : undefined
         if (layerComponent instanceof StandardMark && layerId) {
             return <MarkEditor markId={layerId} />
+        }
+        if (layerComponent instanceof StandardGuidance && layerId) {
+            return <GuidanceEditor componentId={layerId} />
         }
         return <ExamplesView />
     }

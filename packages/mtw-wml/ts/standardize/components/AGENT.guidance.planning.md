@@ -1,7 +1,7 @@
 # Guidance Component - Planning Document
 
 **Date**: February 1, 2026  
-**Status**: Planning - Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, Phase 6, Phase 7, Phase 8, Phase 9, and Phase 10 implemented; Schema Instructions Tag follow-up implemented  
+**Status**: Planning - Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, Phase 6, Phase 7, Phase 8, Phase 9, Phase 10, and Phase 11 implemented; Schema Instructions Tag follow-up implemented  
 **Component Type**: StandardGuidance (sibling to StandardExample)
 
 ## Overview
@@ -1039,13 +1039,13 @@ Phase 5 initially used type assertions (`'Instructions' as SchemaTag['tag']`) in
 
 ---
 
-### Phase 11: Frontend - Guidance Editor Component
+### Phase 11: Frontend - Guidance Editor Component — **Implemented**
 
-**Location**: Create `charcoal-client/src/components/Workbench/editors/GuidanceEditor/index.tsx`
+**Location**: Create `charcoal-client/src/components/Workbench/GuidanceEdit/GuidanceEditor.tsx` (and `GuidanceEdit/index.ts`).
 
 **Tasks**:
 
-1. **Create GuidanceEditor component**:
+1. ~~**Create GuidanceEditor component**~~ — Done. GuidanceEdit/GuidanceEditor created; shortName via TopLevelStandardLiteralEditor, instructions via debounced multiline TextField with StandardLiteral (tag: 'Instructions'); Marks section placeholder until Phase 12; WorkbenchAssetEditor routing added for componentLayer when layer is StandardGuidance.
    ```typescript
    import React from 'react'
    import { Box, TextField } from '@mui/material'
@@ -1121,7 +1121,7 @@ Phase 5 initially used type assertions (`'Instructions' as SchemaTag['tag']`) in
 
 **Reference**: See `ExampleEditor` for similar structure with `shortName` and `marks`
 
-**Verification**: GuidanceEditor renders correctly and updates component state
+**Verification**: GuidanceEditor renders correctly when navigating to a Guidance layer (Phase 13 adds Room Guidance section and navigation); short name and instructions persist via updateStandard; readonly respected.
 
 ---
 
