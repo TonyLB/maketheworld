@@ -1,7 +1,7 @@
 # Guidance Component - Planning Document
 
 **Date**: February 1, 2026  
-**Status**: Planning - Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, Phase 6, Phase 7, Phase 8, Phase 9, Phase 10, and Phase 11 implemented; Schema Instructions Tag follow-up implemented  
+**Status**: Planning - Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, Phase 6, Phase 7, Phase 8, Phase 9, Phase 10, Phase 11, and Phase 12 implemented; Schema Instructions Tag follow-up implemented  
 **Component Type**: StandardGuidance (sibling to StandardExample)
 
 ## Overview
@@ -1125,15 +1125,15 @@ Phase 5 initially used type assertions (`'Instructions' as SchemaTag['tag']`) in
 
 ---
 
-### Phase 12: Frontend - MarkFacetsEditor Component
+### Phase 12: Frontend - MarkFacetsEditor Component — **Implemented**
 
-**Location**: Create `charcoal-client/src/components/Workbench/editors/MarkFacetsEditor/index.tsx`
+**Location**: Create `charcoal-client/src/components/Workbench/MarkFacetsEditor/` (created at Workbench level to match existing editor folders; planning doc had `editors/MarkFacetsEditor`).
 
 **Note**: This component may already exist if Example editor has been implemented. If so, reuse it. If not, create it as a shared component.
 
 **Tasks**:
 
-1. **Create MarkFacetsEditor component**:
+1. ~~**Create MarkFacetsEditor component**~~ — Done. Created `MarkFacetsEditor.tsx` and `index.ts` under `charcoal-client/src/components/Workbench/MarkFacetsEditor/`. List display with reference label and Match value; remove by index; Add Mark via dialog (ComponentSelectorDialog with `tag="Mark"` + TextField for Match); empty state "No marks specified (applies to all situations)"; readonly disables Add/Remove. Wired into GuidanceEditor with `handleMarksChange` updating `_payload._marks` in draft.
    ```typescript
    import React from 'react'
    import { Box, Typography, Button, List, ListItem, ListItemText, IconButton } from '@mui/material'
@@ -1218,7 +1218,7 @@ Phase 5 initially used type assertions (`'Instructions' as SchemaTag['tag']`) in
 
 **Reference**: See existing facet editors (Exit facets in Room editor) for patterns
 
-**Verification**: MarkFacetsEditor displays marks correctly and handles add/remove
+**Verification**: MarkFacetsEditor displays marks correctly and handles add/remove; GuidanceEditor shows marks list and persists add/remove via updateStandard; readonly respected.
 
 ---
 

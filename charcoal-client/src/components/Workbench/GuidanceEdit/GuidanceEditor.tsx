@@ -8,6 +8,8 @@ import { TopLevelStandardLiteralEditor } from "../foundations/StandardLiteral"
 import { MakeTheWorldAccordion } from "../../UI"
 import { useDebouncedOnChange } from "../../../hooks/useDebounce"
 import { ComponentUUID } from "@tonylb/mtw-base/ts/schema"
+import { MarkFacetsEditor } from "../MarkFacetsEditor"
+import { MarkFacetList } from "@tonylb/mtw-wml/ts/standardize/keys/facets/mark"
 
 type GuidanceEditorProps = {
     componentId: ComponentUUID
@@ -79,6 +81,25 @@ export const GuidanceEditor: FunctionComponent<GuidanceEditorProps> = ({ compone
         setLocalInstructions(event.target.value)
     }, [])
 
+    const handleMarksChange = useCallback(
+        (newMarks: MarkFacetList) => {
+            if (!componentId || readonly) return
+            const current = standardForm.byUniversalId[componentId]
+            if (!current || !(current instanceof StandardGuidance)) return
+            updateStandard({
+                type: "update",
+                update: (draft: StandardForm) => {
+                    const g = draft.byUniversalId[componentId]
+                    if (g && g instanceof StandardGuidance) {
+                        g._payload._marks = newMarks
+                    }
+                    return draft
+                }
+            })
+        },
+        [componentId, standardForm, updateStandard, readonly]
+    )
+
     if (!component) {
         return null
     }
@@ -137,9 +158,14 @@ export const GuidanceEditor: FunctionComponent<GuidanceEditorProps> = ({ compone
                 </Box>
             </Box>
             <MakeTheWorldAccordion title="Marks">
-                <Typography variant="body2" color="text.secondary" sx={{ p: 2 }}>
-                    Mark facets will be shown here once facet rendering is implemented.
-                </Typography>
+                <Box sx={{ p: 2 }}>
+                    <MarkFacetsEditor
+                        componentId={componentId}
+                        marks={component.marks}
+                        onChange={handleMarksChange}
+                        readonly={readonly}
+                    />
+                </Box>
             </MakeTheWorldAccordion>
         </Box>
     )
