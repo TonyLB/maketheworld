@@ -492,8 +492,8 @@ describe('StandardRoom class', () => {
                 ]
             })
             const json = room.toJSON()
-            expect(json.guidance).toBeDefined()
-            expect(json.guidance?.length).toBe(1)
+            expect((json as any).guidance).toBeDefined()
+            expect((json as any).guidance?.length).toBe(1)
         })
 
         it('should merge guidance references', () => {
