@@ -62,6 +62,29 @@ export const RoomEditor: FunctionComponent = () => {
         [room, readonly, dispatch, universalKey]
     )
 
+    const guidanceListContext = useCallback(
+        (form: StandardForm) => {
+            const base = form.byUniversalId[universalKey!]
+            if (!base || !(base instanceof StandardRoom)) return null
+            const guidance = base._payload._guidance ?? new ReferenceList([])
+            return {
+                referenceList: guidance,
+                setReferenceList: (list: ReferenceList) => {
+                    base._payload._guidance = list
+                }
+            }
+        },
+        [universalKey]
+    )
+
+    const handleGuidanceItemClick = useCallback(
+        (id: string) => {
+            if (!room || readonly) return
+            dispatch(navigateToComponentLayer(universalKey!, id as ComponentUUID))
+        },
+        [room, readonly, dispatch, universalKey]
+    )
+
     if (!universalKey || !(universalKey in standardForm.byUniversalId) || !room) {
         return <Box />
     }
@@ -108,6 +131,15 @@ export const RoomEditor: FunctionComponent = () => {
                                 tag="Example"
                                 disabled={readonly}
                                 onItemClick={handleExamplesItemClick}
+                            />
+                        </Box>
+                        <Box sx={{ marginTop: '0.5em' }}>
+                            <ReferenceListEditor
+                                title="Guidance"
+                                listContext={guidanceListContext}
+                                tag="Guidance"
+                                disabled={readonly}
+                                onItemClick={handleGuidanceItemClick}
                             />
                         </Box>
                     </Box>
