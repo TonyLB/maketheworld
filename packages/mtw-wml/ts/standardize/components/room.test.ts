@@ -471,6 +471,61 @@ describe('StandardRoom class', () => {
 
     })
 
+    describe('Guidance references', () => {
+        it('should handle guidance references', () => {
+            const wml = deIndentWML(`
+                <Room key=(tavern)>
+                    <Guidance key=(darkGuidance)/>
+                    <Guidance key=(moonlightGuidance)/>
+                </Room>
+            `)
+            const room = new StandardRoom(wml)
+            expect(room.guidance.payload.length).toBe(2)
+        })
+
+        it('should serialize guidance references correctly', () => {
+            const room = new StandardRoom({
+                tag: 'Room',
+                key: 'tavern',
+                guidance: [
+                    { tag: 'Guidance', key: 'darkGuidance', ref: 1 }
+                ]
+            })
+            const json = room.toJSON()
+            expect(json.guidance).toBeDefined()
+            expect(json.guidance?.length).toBe(1)
+        })
+
+        it('should merge guidance references', () => {
+            const room1 = new StandardRoom({
+                tag: 'Room',
+                key: 'tavern',
+                guidance: [{ tag: 'Guidance', key: 'guidance1', ref: 1 }]
+            })
+            const room2 = new StandardRoom({
+                tag: 'Room',
+                key: 'tavern',
+                guidance: [{ tag: 'Guidance', key: 'guidance2', ref: 1 }]
+            })
+            const merged = room1.merge(room2) as StandardRoom
+            expect(merged.guidance.payload.length).toBe(2)
+        })
+
+        it('should assure guidance references correctly', () => {
+            const room = new StandardRoom({
+                tag: 'Room',
+                key: 'tavern'
+            })
+            const guidanceRef = new StandardReference({
+                tag: 'Guidance',
+                key: 'testGuidance',
+                ref: 1
+            })
+            const withReferences = room._payload.assureReferences([guidanceRef])
+            expect(withReferences.guidance.payload.length).toBe(1)
+        })
+    })
+
     describe('explicitParent', () => {
         it('should construct StandardRoom from WML with Parent tag', () => {
             const testSource = deIndentWML(`

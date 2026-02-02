@@ -1,7 +1,7 @@
 # Guidance Component - Planning Document
 
 **Date**: February 1, 2026  
-**Status**: Planning - Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, Phase 6, Phase 7, Phase 8, and Phase 9 implemented; Schema Instructions Tag follow-up implemented  
+**Status**: Planning - Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, Phase 6, Phase 7, Phase 8, Phase 9, and Phase 10 implemented; Schema Instructions Tag follow-up implemented  
 **Component Type**: StandardGuidance (sibling to StandardExample)
 
 ## Overview
@@ -964,13 +964,13 @@ Phase 5 initially used type assertions (`'Instructions' as SchemaTag['tag']`) in
 
 ---
 
-### Phase 10: Unit Tests - Room Integration
+### Phase 10: Unit Tests - Room Integration — Implemented
 
 **Location**: Update `packages/mtw-wml/ts/standardize/components/room.test.ts`
 
 **Tasks**:
 
-1. **Test Room with Guidance references**:
+1. ~~**Test Room with Guidance references**~~ — Done.
    ```typescript
    it('should handle guidance references', () => {
        const wml = `
@@ -984,7 +984,7 @@ Phase 5 initially used type assertions (`'Instructions' as SchemaTag['tag']`) in
    })
    ```
 
-2. **Test Room serialization with Guidance**:
+2. ~~**Test Room serialization with Guidance**~~ — Done.
    ```typescript
    it('should serialize guidance references correctly', () => {
        const room = new StandardRoom({
@@ -1000,7 +1000,7 @@ Phase 5 initially used type assertions (`'Instructions' as SchemaTag['tag']`) in
    })
    ```
 
-3. **Test Room merge with Guidance**:
+3. ~~**Test Room merge with Guidance**~~ — Done.
    ```typescript
    it('should merge guidance references', () => {
        const room1 = new StandardRoom({
@@ -1018,7 +1018,7 @@ Phase 5 initially used type assertions (`'Instructions' as SchemaTag['tag']`) in
    })
    ```
 
-4. **Test assureReferences with Guidance**:
+4. ~~**Test assureReferences with Guidance**~~ — Done.
    ```typescript
    it('should assure guidance references correctly', () => {
        const room = new StandardRoom({
@@ -1548,7 +1548,7 @@ After completing all phases, verify:
 - [ ] Room merge operations handle Guidance correctly
 - [ ] Room assureReferences() handles Guidance correctly
 - [x] All backend unit tests pass
-- [ ] All Room integration tests pass
+- [x] All Room integration tests pass
 - [ ] GuidanceEditor renders correctly
 - [ ] MarkFacetsEditor renders correctly
 - [ ] Guidance section appears in Room editor
