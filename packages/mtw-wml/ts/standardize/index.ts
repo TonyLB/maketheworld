@@ -9,7 +9,7 @@ import StandardRoom, { StandardRoomPayload } from "./components/room"
 import StandardFeature, { StandardFeaturePayload } from "./components/feature"
 import StandardKnowledge, { StandardKnowledgePayload } from "./components/knowledge"
 import StandardMap from "./components/map"
-import { wrappedNodeTypeGuard } from "../schema/utils"
+import { findTaggedChildren, wrappedNodeTypeGuard } from "../schema/utils"
 import { HasDescription, HasDisplayName, HasShortName } from "./components/abstract"
 import { StandardBaseData } from "./components/dataTypes/abstract"
 import { StandardComponent, StandardComponentReferenceKey } from "./components/baseClasses"
@@ -205,12 +205,11 @@ export class StandardForm {
                 this._metaData = node.children.filter(wrappedNodeTypeGuard(isSchemaMeta))
 
                 //
-                // Extract ShortName and Summary from Asset children
+                // Extract ShortName and Summary from Asset children.
+                // Use findTaggedChildren for direct ShortName only (Asset-level shortName is a direct child of Asset).
                 //
+                const shortNameItem = findTaggedChildren({ children: node.children, tag: 'ShortName' })
                 const tagTree = new SchemaTagTree(node.children)
-                const shortNameItem = tagTree
-                    .filter({ and: [{ match: 'ShortName' }, { not: { or: [{ match: 'Room' }, { match: 'Feature' }, { match: 'Character' }, { match: 'Knowledge' }, { match: 'Mark' }, { match: 'Lens' }, { match: 'Map' }, { match: 'Message' }, { match: 'Moment' }, { match: 'Image' }] } }] })
-                    .tree
                 const summaryItem = tagTree
                     .filter({ and: [{ match: 'Summary' }, { not: { match: 'Example' } }] })
                     .prune({ match: 'Summary' })
