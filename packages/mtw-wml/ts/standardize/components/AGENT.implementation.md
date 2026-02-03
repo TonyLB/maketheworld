@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document covers implementation details, architectural patterns, and component type specifications for the `standardize/components` directory. For conceptual overview and future requirements, see [`AGENT.md`](./AGENT.md). For practical usage examples, see [`AGENT.usage.md`](./AGENT.usage.md).
+This document covers implementation details, architectural patterns, and component type specifications for the `standardize/components` directory. For conceptual overview and future requirements, see [`AGENT.md`](./AGENT.md). For practical usage examples, see [`AGENT.usage.md`](./AGENT.usage.md). For the planned rearchitecture of `fromSchema` to a process-and-remainder pipeline, see [`AGENT.fromSchema.planning.md`](./AGENT.fromSchema.planning.md).
 
 ## Technical Debt
 
@@ -674,6 +674,7 @@ npm run test -- --watchAll=false ts/standardize/components/character.test.ts
 
 - [`AGENT.md`](./AGENT.md) - Conceptual overview and navigation guide
 - [`AGENT.usage.md`](./AGENT.usage.md) - Practical code examples and usage patterns
+- [`AGENT.fromSchema.planning.md`](./AGENT.fromSchema.planning.md) - Plan for fromSchema process-and-remainder rearchitecture
 - [`dataTypes/AGENT.md`](./dataTypes/AGENT.md) - Serialization vs. Manipulation Types architecture
 - [`render/AGENT.md`](../render/AGENT.md) - StandardRender system documentation
 - [`../AGENT.md`](../AGENT.md) - Parent directory overview
