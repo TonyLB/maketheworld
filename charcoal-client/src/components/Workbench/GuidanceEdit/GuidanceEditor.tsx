@@ -5,7 +5,6 @@ import StandardGuidance from "@tonylb/mtw-wml/ts/standardize/components/guidance
 import { StandardLiteral } from "@tonylb/mtw-wml/ts/standardize/literal"
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
 import { TopLevelStandardLiteralEditor } from "../foundations/StandardLiteral"
-import { MakeTheWorldAccordion } from "../../UI"
 import { useDebouncedOnChange } from "../../../hooks/useDebounce"
 import { ComponentUUID } from "@tonylb/mtw-base/ts/schema"
 import { MarkFacetsEditor } from "../MarkFacetsEditor"
@@ -157,16 +156,12 @@ export const GuidanceEditor: FunctionComponent<GuidanceEditorProps> = ({ compone
                     />
                 </Box>
             </Box>
-            <MakeTheWorldAccordion title="Marks">
-                <Box sx={{ p: 2 }}>
-                    <MarkFacetsEditor
-                        componentId={componentId}
-                        marks={component.marks}
-                        onChange={handleMarksChange}
-                        readonly={readonly}
-                    />
-                </Box>
-            </MakeTheWorldAccordion>
+            <MarkFacetsEditor
+                componentId={componentId}
+                marks={component.marks}
+                onChange={handleMarksChange}
+                readonly={readonly}
+            />
         </Box>
     )
 }

@@ -19,6 +19,7 @@ import { useWorkbenchAsset } from './foundations/useWorkbenchAsset'
 import { getAssetZone } from '../../slices/player'
 import { createWorkbenchTheme } from './workbenchTheme'
 import StandardMark from '@tonylb/mtw-wml/ts/standardize/components/worldState'
+import StandardGuidance from '@tonylb/mtw-wml/ts/standardize/components/guidance'
 import { hasDisplayName } from '@tonylb/mtw-wml/ts/standardize'
 import { schemaOutputToString } from '@tonylb/mtw-wml/ts/schema/utils/schemaOutput/schemaOutputToString'
 import { GenericTree } from '@tonylb/mtw-base/ts/genericTree'
@@ -159,8 +160,13 @@ export const WorkbenchContainer: FunctionComponent<WorkbenchContainerProps> = ({
                 const layerId = entry.componentId as ComponentUUID | null
                 const layerComponent = layerId ? assetData.standardForm.byUniversalId[layerId] : undefined
                 const isMark = layerComponent instanceof StandardMark
-                const sn = isMark ? layerComponent.shortName?._payload?.plain?.toJSON() : undefined
-                const name = isMark ? (typeof sn === 'string' && sn.trim() ? sn : 'Mark') : 'Examples'
+                const isGuidance = layerComponent instanceof StandardGuidance
+                const sn = (isMark || isGuidance) ? layerComponent.shortName?._payload?.plain?.toJSON() : undefined
+                const name = isMark
+                    ? (typeof sn === 'string' && sn.trim() ? sn : 'Mark')
+                    : isGuidance
+                        ? (typeof sn === 'string' && sn.trim() ? sn : 'Guidance')
+                        : 'Examples'
                 return {
                     universalKey: (layerId || assetData.AssetId) as ComponentUUID,
                     name,

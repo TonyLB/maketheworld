@@ -196,6 +196,21 @@ LayeredContext components present **payload editing only**. Add/remove/list mana
 
 ---
 
+## ReferenceList vs FacetList: LayeredContext is payload-agnostic
+
+**Does LayeredContext accept a referenceList (or similar) as the payload?** No. LayeredContext accepts:
+
+- **`siblings`**: `{ id, label }[]` — the list of layer ids and labels. In Examples, this is *derived from* the parent's ReferenceList (e.g. `parentComponent.examples.payload`). In Guidance, it would be derived from `parentComponent.guidance` (also a ReferenceList).
+- **`currentId`**, **`onChange`**, and **`children`** — the tab content is whatever component you pass (ExampleEditor, GuidanceEditor, etc.).
+
+The **payload** being edited is entirely owned by the child (ExampleEditor, GuidanceEditor). LayeredContext never sees "referenceList" or "FacetList" as the payload — it only sees sibling ids/labels and renders the child for the current id.
+
+**Is LayeredContext general enough to handle a FacetList?** Yes. The *list of layers* (tabs) comes from a ReferenceList on the parent (examples, guidance). The *content* of each layer is the component's payload — for Example that includes marks (a FacetList); for Guidance it is shortName, instructions, and marks (FacetList). The child editor (GuidanceEditor) is what knows about and edits the FacetList. LayeredContext does not need to "handle" FacetList; it is payload-agnostic.
+
+**Guidance today**: Guidance does not currently use a LayeredContext wrapper. When you navigate to a Guidance layer, we render `GuidanceEditor(componentId)` directly (single edit pane). If we added `LayeredGuidanceTabs`, we would derive siblings from `parentComponent.guidance` (ReferenceList) and render `GuidanceEditor(componentId)` as the tab content — the payload (including marks FacetList) would still be edited only in GuidanceEditor. Persistence issues when editing Guidance are therefore unlikely to be caused by LayeredContext not handling FacetList; they point to reducer/selector or state-keying behavior.
+
+---
+
 ## Future development: Unlock for editing
 
 The "Unlock for editing" affordance is rendered in ExampleEditor when an Example is inherited but is **unimplemented** (no-op button). To implement it:

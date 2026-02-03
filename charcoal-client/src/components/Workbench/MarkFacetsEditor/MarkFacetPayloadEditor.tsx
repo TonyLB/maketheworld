@@ -1,30 +1,58 @@
-import React, { FunctionComponent } from "react"
+import React, { FunctionComponent, useState, useEffect, useMemo, useCallback } from "react"
 import Box from "@mui/material/Box"
 import TextField from "@mui/material/TextField"
 import Typography from "@mui/material/Typography"
 import { StandardMarkFacet } from "@tonylb/mtw-wml/ts/standardize/keys/facets/mark"
+import { useDebouncedOnChange } from "../../../hooks/useDebounce"
 
 export interface MarkFacetPayloadEditorProps {
     facet: StandardMarkFacet
     onChange: (newPayload: string) => void
     readonly?: boolean
+    /** Human-readable label for the referenced Mark (e.g. shortName). Falls back to key/universalKey when absent. */
+    referenceDisplayName?: string
 }
 
+/** Extract displayable string from Mark facet payload (Plain string, or Remove/Replace object from round-trip). */
 const payloadDisplay = (facet: StandardMarkFacet): string => {
     const payload = facet.payload
     if (!payload) return ""
     const json = (payload as { toJSON?: () => unknown }).toJSON?.()
-    return typeof json === "string" ? json : String(json ?? "")
+    if (typeof json === "string") return json
+    if (json && typeof json === "object" && "payload" in json) return String((json as { payload: unknown }).payload ?? "")
+    if (json && typeof json === "object" && "match" in json) return String((json as { match: unknown }).match ?? "")
+    return String(json ?? "")
 }
 
 export const MarkFacetPayloadEditor: FunctionComponent<MarkFacetPayloadEditorProps> = ({
     facet,
     onChange,
-    readonly = false
+    readonly = false,
+    referenceDisplayName
 }) => {
     const ref = facet.reference
-    const label = ref.key ?? ref.universalKey ?? "Mark"
-    const value = payloadDisplay(facet)
+    const label = referenceDisplayName ?? ref.key ?? ref.universalKey ?? "Mark"
+
+    const incomingValue = useMemo(() => payloadDisplay(facet), [facet])
+    const [localValue, setLocalValue] = useState<string>(incomingValue)
+
+    useEffect(() => {
+        setLocalValue(incomingValue)
+    }, [incomingValue])
+
+    useDebouncedOnChange({
+        value: localValue,
+        delay: 1000,
+        onChange: (newValue: string) => {
+            if (readonly) return
+            if (newValue === incomingValue) return
+            onChange(newValue)
+        }
+    })
+
+    const handleChange = useCallback((event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        setLocalValue(event.target.value)
+    }, [])
 
     return (
         <Box sx={{ display: "flex", alignItems: "center", gap: 1, minWidth: 0 }}>
@@ -34,8 +62,8 @@ export const MarkFacetPayloadEditor: FunctionComponent<MarkFacetPayloadEditorPro
             <TextField
                 size="small"
                 placeholder="Match value"
-                value={value}
-                onChange={(e) => onChange(e.target.value)}
+                value={localValue}
+                onChange={handleChange}
                 disabled={readonly}
                 fullWidth
                 variant="outlined"

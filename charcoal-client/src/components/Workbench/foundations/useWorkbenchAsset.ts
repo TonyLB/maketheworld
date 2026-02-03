@@ -5,7 +5,7 @@
 // editing interfaces to the workbench context.
 //
 
-import { useMemo, useCallback, useEffect, useState } from 'react'
+import { useMemo, useCallback, useEffect, useState, useRef } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 
 import {
@@ -136,6 +136,26 @@ export const useWorkbenchAsset = (): WorkbenchAssetContextType => {
         }
         return new StandardForm(standardFormData)
     }, [standardFormData])
+
+    // Instrumentation: log payloads for all marks in all Guidance components (to trace merge flow)
+    const prevStandardRef = useRef<typeof standardFormData>(undefined)
+    useEffect(() => {
+        if (standardFormData === undefined) return
+        if (prevStandardRef.current === standardFormData) return
+        prevStandardRef.current = standardFormData
+        const components = standardFormData?.components ?? []
+        const payloadsOnly: unknown[] = []
+        for (const c of components) {
+            const comp = c as { tag?: string; marks?: { payload: unknown }[] }
+            if (comp.tag !== 'Guidance') continue
+            const marks = comp.marks ?? []
+            for (const m of marks) {
+                const item = m as { payload: unknown }
+                payloadsOnly.push(item.payload)
+            }
+        }
+        console.log('[useWorkbenchAsset] standard — marks payloads only', JSON.stringify(payloadsOnly, null, 2))
+    }, [AssetId, standardFormData])
     const pendingEdits = useSelector(getPendingEdits(AssetId))
     const inheritedStandardFormData = useSelector(getInherited(AssetId))
     const inheritedStandardForm = useMemo(() => {

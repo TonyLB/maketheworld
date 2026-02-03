@@ -77,6 +77,12 @@ export const addDelta = <FinalType extends StandardEditablePayload<any>>(
     }
     const cancelledRemove = baseRemove && incomingRemove ? add(incomingRemove, baseRemove) : baseRemove ?? incomingRemove
     const cancelledAdd = baseAdd && incomingAdd ? add(baseAdd, incomingAdd) : baseAdd ?? incomingAdd
+    // Merging Remove(match: '') with Plain('') yields cancelledAdd = '' and cancelledRemove = '', which would
+    // create Replace(match: '', payload: '') and lose the user's value when they later type (e.g. 'Dark').
+    // Treat "both empty" as Plain('') so subsequent merges with Plain('Dark') produce Plain('Dark').
+    if (cancelledAdd === '' && cancelledRemove === '') {
+        return { add: '' }
+    }
     return (cancelledAdd && cancelledRemove)
         ? diff(cancelledRemove, cancelledAdd)
         : { add: cancelledAdd, remove: cancelledRemove }
@@ -207,17 +213,25 @@ export const standardEditableFactory = <DataType, FinalType extends StandardEdit
         // Factory method that creates instances from delta objects
         static fromDelta(delta: StandardEditableDataDelta<PayloadDataType<FinalType>>): GeneratedEditableClass | undefined {
             const { add, remove } = delta;
-            
-            if (add && remove) {
-                // Both add and remove present = Replace
+            // Use explicit presence checks so empty string (e.g. empty Match value in Mark facet) is valid
+            const hasAdd = add !== undefined;
+            const hasRemove = remove !== undefined;
+
+            if (hasAdd && hasRemove) {
+                // "Replace empty with value" (e.g. '' -> 'Dark') should serialize as Plain(add), not Replace,
+                // so merge and downstream consumers see a plain string and don't keep emitting Replace objects.
+                if (remove === '') {
+                    return new GeneratedEditablePlainClass(add);
+                }
+                // Both add and remove present (and remove non-empty) = Replace
                 const replaceData = { tag: 'Replace' as const, match: remove, payload: add };
                 return new GeneratedEditableReplaceClass(replaceData);
-            } else if (remove) {
-                // Only remove present = Remove
+            } else if (hasRemove) {
+                // Only remove present = Remove (includes remove: '' for empty payload)
                 const removeData = { tag: 'Remove' as const, match: remove };
                 return new GeneratedEditableRemoveClass(removeData);
-            } else if (add) {
-                // Only add present = Plain
+            } else if (hasAdd) {
+                // Only add present = Plain (includes add: '' for empty payload)
                 return new GeneratedEditablePlainClass(add);
             } else {
                 // Empty delta - represents no content (completely removed content)
