@@ -62,11 +62,11 @@ Component constructors that accept WML schema (e.g. `StandardRoom`, `StandardFea
 
 ### Phase 1: Foundation
 
-1. **Implement `splitTaggedChildren`**
-   - Implement in schema utils with the same Remove/Replace semantics as `findTaggedChildren`.
-   - Return `{ matched, remainder }`; ensure remainder does not contain nodes that were placed in matched (and that wrappers are split correctly when they contain both).
-   - Add unit tests (including Remove/Replace cases and remainder correctness).
-   - Optionally add a small integration test that a single component (e.g. Room) can be refactored to use it without changing behavior.
+1. **Implement `splitTaggedChildren`** — **Done (February 2025)**
+   - Implemented in schema utils with the same Remove/Replace semantics as `findTaggedChildren`.
+   - Returns `{ matched, remainder }`; remainder does not contain nodes that were placed in matched (wrappers are split correctly when they contain both).
+   - Unit tests in `packages/mtw-wml/ts/schema/utils/splitTaggedChildren.test.ts` (parity with findTaggedChildren, remainder correctness, Remove/Replace splitting, integration-style pipeline).
+   - Util: `packages/mtw-wml/ts/schema/utils/splitTaggedChildren.ts`; exported from schema utils index.
 
 2. **Define a minimal pipeline contract**
    - Document (or introduce) the type/shape of a “fromSchema step”: e.g. `(children) => { remainder }` plus side effect on the payload, or a small step descriptor type used by a shared runner.
@@ -123,7 +123,7 @@ Component constructors that accept WML schema (e.g. `StandardRoom`, `StandardFea
 
 ## Integration Points
 
-- **Schema utils**: [`packages/mtw-wml/ts/schema/utils/findTaggedChildren.ts`](../../schema/utils/findTaggedChildren.ts) – extend or add `splitTaggedChildren` alongside.
+- **Schema utils**: [`packages/mtw-wml/ts/schema/utils/findTaggedChildren.ts`](../../schema/utils/findTaggedChildren.ts), [`packages/mtw-wml/ts/schema/utils/splitTaggedChildren.ts`](../../schema/utils/splitTaggedChildren.ts) – `splitTaggedChildren` implemented alongside `findTaggedChildren`.
 - **Component base**: [`packages/mtw-wml/ts/standardize/components/component.ts`](./component.ts) – continues to strip Key/Parent and call `payload.fromSchema(nodeWithoutParentAndKey)`; payloads implement the pipeline internally.
 - **Payloads**: All `*Payload` classes in this directory that implement `fromSchema` are migration targets.
 - **Related docs**: [AGENT.implementation.md](./AGENT.implementation.md) (implementation patterns), [AGENT.md](./AGENT.md) (overview). Optional: [AGENT.development.md](../../../../AGENT.development.md) for roadmap tracking.
@@ -140,6 +140,6 @@ Component constructors that accept WML schema (e.g. `StandardRoom`, `StandardFea
 
 ## Next Steps
 
-1. Implement and test `splitTaggedChildren` (Phase 1, step 1).
+1. ~~Implement and test `splitTaggedChildren` (Phase 1, step 1).~~ Done.
 2. Define the pipeline contract and refactor `StandardRoomPayload.fromSchema` to use it (Phase 1–2).
 3. Add unconsumed-remainder error and tests; then proceed with remaining components (Phases 3–4).

@@ -5,8 +5,9 @@ import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplaceP
 //
 // semanticallyRepresentsTag checks if a node semantically represents a given tag,
 // considering Remove and Replace wrappers. Only checks direct children (one level deep).
+// Exported for use by splitTaggedChildren.
 //
-const semanticallyRepresentsTag = (node: GenericTreeNode<SchemaTag>, tag: SchemaTag["tag"]): boolean => {
+export const semanticallyRepresentsTag = (node: GenericTreeNode<SchemaTag>, tag: SchemaTag["tag"]): boolean => {
     // Direct match
     if (node.data.tag === tag) {
         return true
