@@ -1,2 +1,2 @@
-export { LayeredExamplesTabs } from './LayeredExamplesTabs'
+export { LayeredTabs } from './LayeredTabs'
 export { LayeredContextView } from './LayeredContextView'

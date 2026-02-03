@@ -1,4 +1,5 @@
 import React, { FunctionComponent, useCallback, useMemo, useEffect, useState } from "react"
+import { useSelector } from "react-redux"
 import { Box, TextField, Typography } from "@mui/material"
 import { useWorkbenchAsset } from "../foundations/useWorkbenchAsset"
 import StandardGuidance from "@tonylb/mtw-wml/ts/standardize/components/guidance"
@@ -9,14 +10,18 @@ import { useDebouncedOnChange } from "../../../hooks/useDebounce"
 import { ComponentUUID } from "@tonylb/mtw-base/ts/schema"
 import { MarkFacetsEditor } from "../MarkFacetsEditor"
 import { MarkFacetList } from "@tonylb/mtw-wml/ts/standardize/keys/facets/mark"
+import { getCurrentComponentId, getCurrentComponentLayerId } from "../../../slices/UI/workbench"
 
-type GuidanceEditorProps = {
-    componentId: ComponentUUID
-}
-
-export const GuidanceEditor: FunctionComponent<GuidanceEditorProps> = ({ componentId }) => {
+/**
+ * Guidance payload editor. Reads the current Guidance id from the workbench: when in
+ * layered context (e.g. Room → Guidance) uses the layer id; otherwise the top breadcrumb.
+ */
+export const GuidanceEditor: FunctionComponent = () => {
     const { standardForm, updateStandard, readonly } = useWorkbenchAsset()
+    const componentId = (useSelector(getCurrentComponentLayerId) ?? useSelector(getCurrentComponentId)) as ComponentUUID | null
+
     const component = useMemo(() => {
+        if (!componentId) return null
         const c = standardForm.byUniversalId[componentId]
         if (c && c instanceof StandardGuidance) return c
         return null
@@ -157,7 +162,7 @@ export const GuidanceEditor: FunctionComponent<GuidanceEditorProps> = ({ compone
                 </Box>
             </Box>
             <MarkFacetsEditor
-                componentId={componentId}
+                componentId={componentId!}
                 marks={component.marks}
                 onChange={handleMarksChange}
                 readonly={readonly}

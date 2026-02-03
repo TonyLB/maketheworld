@@ -80,15 +80,15 @@ export const WorkbenchAssetEditor: FunctionComponent = () => {
         }
 
         if (component instanceof StandardMark) {
-            return <MarkEditor markId={currentComponentId as ComponentUUID} />
+            return <MarkEditor />
         }
 
         if (component instanceof StandardExample) {
-            return <ExampleEditor componentId={currentComponentId as ComponentUUID} />
+            return <ExampleEditor />
         }
 
         if (component instanceof StandardGuidance) {
-            return <GuidanceEditor componentId={currentComponentId as ComponentUUID} />
+            return <GuidanceEditor />
         }
 
         return <Box />

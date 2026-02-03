@@ -2,14 +2,14 @@ import React, { FunctionComponent, ReactNode } from 'react'
 import { Box, Tabs, Tab } from '@mui/material'
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 
-type LayeredExamplesTabsProps = {
+type LayeredTabsProps = {
     siblings: { id: ComponentUUID; label?: string | null }[];
     currentId: ComponentUUID | null;
     onChange: (nextId: ComponentUUID) => void;
     children: ReactNode;
 }
 
-export const LayeredExamplesTabs: FunctionComponent<LayeredExamplesTabsProps> = ({
+export const LayeredTabs: FunctionComponent<LayeredTabsProps> = ({
     siblings,
     currentId,
     onChange,
@@ -26,7 +26,7 @@ export const LayeredExamplesTabs: FunctionComponent<LayeredExamplesTabsProps> = 
                 onChange={handleChange}
                 variant="scrollable"
                 scrollButtons="auto"
-                aria-label="Example layers"
+                aria-label="Layered items"
             >
                 {siblings.map(({ id, label }) => (
                     <Tab
@@ -43,4 +43,4 @@ export const LayeredExamplesTabs: FunctionComponent<LayeredExamplesTabsProps> = 
     )
 }
 
-export default LayeredExamplesTabs
+export default LayeredTabs

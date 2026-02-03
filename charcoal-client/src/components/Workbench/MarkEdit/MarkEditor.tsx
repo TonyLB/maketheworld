@@ -1,4 +1,5 @@
 import React, { FunctionComponent, useCallback, useMemo } from "react"
+import { useSelector } from "react-redux"
 import Box from "@mui/material/Box"
 import StandardMark from "@tonylb/mtw-wml/ts/standardize/components/worldState"
 import { StandardLiteral } from "@tonylb/mtw-wml/ts/standardize/literal"
@@ -8,19 +9,19 @@ import { ComponentUUID } from "@tonylb/mtw-base/ts/schema"
 import { StandardLiteralEditor } from "../foundations/StandardLiteral"
 import { StandardRenderEditor } from "../foundations/StandardRender"
 import { useWorkbenchAsset } from "../foundations/useWorkbenchAsset"
-
-export interface MarkEditorProps {
-    markId: ComponentUUID
-}
+import { getCurrentComponentId } from "../../../slices/UI/workbench"
 
 /**
  * Full Mark editor (shortName + description). Used when navigating to a Mark
  * via the inline reference list gap. Add/remove Marks stays in the list.
+ * Reads the current component id from the workbench breadcrumb (top of stack).
  */
-export const MarkEditor: FunctionComponent<MarkEditorProps> = ({ markId }) => {
+export const MarkEditor: FunctionComponent = () => {
     const { standardForm, updateStandard, readonly } = useWorkbenchAsset()
+    const markId = useSelector(getCurrentComponentId) as ComponentUUID | null
 
     const mark = useMemo(() => {
+        if (!markId) return null
         const component = standardForm.byUniversalId[markId]
         if (component && component instanceof StandardMark) {
             return component

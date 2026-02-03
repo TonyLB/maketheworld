@@ -5,7 +5,7 @@ import { Box, Typography } from '@mui/material'
 import { useWorkbenchAsset } from '../useWorkbenchAsset'
 import { getBreadcrumbStack, replaceTopBreadcrumb } from '../../../../slices/UI/workbench'
 import { getLayeredContext } from './layeredContextUtils'
-import { LayeredExamplesTabs } from './LayeredExamplesTabs'
+import { LayeredTabs } from './LayeredTabs'
 import ExampleEditor from '../../ExampleEdit/ExampleEditor'
 import GuidanceEditor from '../../GuidanceEdit/GuidanceEditor'
 
@@ -38,19 +38,19 @@ export const LayeredContextView: FunctionComponent = () => {
     }
 
     return (
-        <LayeredExamplesTabs
+        <LayeredTabs
             siblings={context.siblings}
             currentId={context.currentId}
             onChange={(id) => dispatch(replaceTopBreadcrumb(id))}
         >
             <Box sx={{ padding: 2 }}>
                 {context.tag === 'Example' ? (
-                    <ExampleEditor componentId={context.currentId} />
+                    <ExampleEditor />
                 ) : (
-                    <GuidanceEditor componentId={context.currentId} />
+                    <GuidanceEditor />
                 )}
             </Box>
-        </LayeredExamplesTabs>
+        </LayeredTabs>
     )
 }
 

@@ -202,7 +202,7 @@ updateStandard({
 | `FeatureEdit/` | FeatureEditor (shortName + Examples) |
 | `KnowledgeEdit/` | KnowledgeEditor (shortName + Examples) |
 | `ExampleEdit/` | ExampleEditor |
-| `foundations/LayeredContext/` | LayeredContextView (layered Examples/Guidance tabs), LayeredExamplesTabs |
+| `foundations/LayeredContext/` | LayeredContextView (layered Examples/Guidance tabs), LayeredTabs |
 | `MarkEdit/` | MarkEditor (full), InlineEditor (shortName only; used in LensEditor) |
 | `MapEdit/` | MapEditor, MapArea, MapController, MapLayers, UnshownRooms |
 | `CharacterEdit/` | CharacterEditor |
@@ -225,7 +225,7 @@ updateStandard({
 - **Breadcrumb Navigation**: Redux-driven; no React Router within Workbench
 - **Responsive**: Drawer on desktop, full-screen on mobile
 - **Reference Lists**: `ReferenceListEditor` and `InlineReferenceList` with adapter
-- **Layered Examples**: `LayeredExamplesTabs` (MUI Tabs) for sibling Example navigation
+- **Layered Examples/Guidance**: `LayeredTabs` (MUI Tabs) for sibling Example or Guidance navigation
 - **Draft Lockout**: Non-Draft assets are read-only
 
 ### Future Plans

@@ -129,7 +129,7 @@ The tab bar is the persistent "layer stack." You always see **all** siblings in 
 - Only one panel visible at a time (no stacked peek like pattern 2).
 
 **Implementation notes**  
-- Use `@mui/material` `Tabs` and `Tab` (already in the project), wrapped in a `LayeredExamplesTabs` helper under `Workbench/foundations/LayeredContext`.  
+- Use `@mui/material` `Tabs` and `Tab` (already in the project), wrapped in a `LayeredTabs` helper under `Workbench/foundations/LayeredContext`.  
 - `variant="scrollable"` — horizontal scroll when tabs overflow.  
 - `scrollButtons="auto"` — show scroll buttons on desktop when needed; hide on mobile. Use `scrollButtons={true}` + `allowScrollButtonsMobile` if you want arrows on mobile too.  
 - `value` = current Example id; `onChange` updates local state within the Examples view (or a `layeredContext` slice keyed by parent id).  
@@ -193,7 +193,7 @@ const [currentId, setCurrentId] = useState(siblings[0]?.id ?? null)
 
 ## Payload-only principle
 
-LayeredContext components present **payload editing only**. Add/remove/list management stays at the parent editor (ReferenceListEditor). The Examples flow is the canonical implementation: Room/Feature/Knowledge editors host the Examples ReferenceListEditor (add, delete, click-to-navigate); ExamplesView hosts LayeredExamplesTabs + ExampleEditor (payload fields only, no accordion wrapper, no list-management actions).
+LayeredContext components present **payload editing only**. Add/remove/list management stays at the parent editor (ReferenceListEditor). The Examples flow is the canonical implementation: Room/Feature/Knowledge editors host the Examples ReferenceListEditor (add, delete, click-to-navigate); LayeredContextView hosts LayeredTabs + ExampleEditor or GuidanceEditor (payload fields only, no accordion wrapper, no list-management actions).
 
 ---
 
