@@ -1,7 +1,7 @@
 # Guidance Component - Planning Document
 
 **Date**: February 1, 2026  
-**Status**: Planning - Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, Phase 6, Phase 7, Phase 8, Phase 9, Phase 10, Phase 11, Phase 12, and Phase 13 implemented; Schema Instructions Tag follow-up implemented  
+**Status**: Planning - Phase 1–14, Phase 15, Phase 16 implemented; Phase 17 partially implemented (backend unit tests only); Schema Instructions Tag follow-up implemented  
 **Component Type**: StandardGuidance (sibling to StandardExample)
 
 ## Overview
@@ -1241,13 +1241,13 @@ Phase 5 initially used type assertions (`'Instructions' as SchemaTag['tag']`) in
 
 ---
 
-### Phase 14: Frontend - LayeredGuidanceTabs Component
+### Phase 14: Frontend - LayeredGuidanceTabs Component — **Implemented**
 
 **Location**: Create `charcoal-client/src/components/Workbench/foundations/LayeredContext/LayeredGuidanceTabs.tsx`
 
 **Tasks**:
 
-1. **Create LayeredGuidanceTabs component** (following Pattern 4 from `AGENT.layered-context-patterns.md`):
+1. ~~**Create LayeredGuidanceTabs component**~~ (following Pattern 4 from `AGENT.layered-context-patterns.md`) — Done.
    ```typescript
    import React, { useState, useEffect } from 'react'
    import { Box, Tabs, Tab } from '@mui/material'
@@ -1349,11 +1349,13 @@ Phase 5 initially used type assertions (`'Instructions' as SchemaTag['tag']`) in
 
 **Reference**: See `AGENT.layered-context-patterns.md` Pattern 4 implementation notes
 
-**Verification**: LayeredGuidanceTabs renders tabs correctly, switches between Guidance editors
+**Verification**: LayeredGuidanceTabs renders tabs from Room guidance refs, switches editor by tab, syncs breadcrumb via `navigateToComponentLayer`. Exported from LayeredContext index. Room with zero guidance shows empty-state message.
 
 ---
 
-### Phase 15: Frontend - Workbench Navigation Integration
+### Phase 15: Frontend - Workbench Navigation Integration — **Implemented**
+
+**Implementation note**: Implemented with `LayeredGuidanceTabs`: when `currentView === 'componentLayer'` and the layer component is `StandardGuidance`, `WorkbenchAssetEditor.tsx` renders `LayeredGuidanceTabs` with the Room as `parentComponentId` and the selected Guidance as `currentGuidanceId`. `LayeredGuidanceTabs` drives tab-to-tab navigation via `navigateToComponentLayer`, and `WorkbenchContainer.tsx` uses the breadcrumb stack (including the current Guidance component) to derive labels from `shortName` or fallback keys. Navigation and back-navigation work.
 
 **Location**: Update `charcoal-client/src/components/Workbench/index.tsx` (or equivalent router)
 
@@ -1391,7 +1393,9 @@ Phase 5 initially used type assertions (`'Instructions' as SchemaTag['tag']`) in
 
 ---
 
-### Phase 16: Frontend - Redux State Integration
+### Phase 16: Frontend - Redux State Integration — **Implemented**
+
+**Implementation note**: Implemented via generic `componentLayer` rather than explicit `ComponentLayerType`: `charcoal-client/src/slices/UI/workbench/index.ts` uses `WorkbenchBreadcrumbKind = 'component' | 'componentLayer'` and `navigateToComponentLayer(parentComponentId, layerComponentId)`; the UI derives Guidance (vs Examples/Mark) from the layer component via `instanceof StandardGuidance`. Selectors `getCurrentView`, `getCurrentComponentLayerId` support Guidance layer navigation.
 
 **Location**: Update `charcoal-client/src/slices/UI/index.ts` (or equivalent navigation slice)
 
@@ -1425,7 +1429,9 @@ Phase 5 initially used type assertions (`'Instructions' as SchemaTag['tag']`) in
 
 ---
 
-### Phase 17: Integration Testing
+### Phase 17: Integration Testing — **Partially implemented**
+
+**Implementation note**: Backend unit tests exist (`packages/mtw-wml/ts/standardize/components/guidance.test.ts`, Guidance coverage in `room.test.ts`). Dedicated integration tests (backend merge/serialize, frontend navigation/edit, E2E) as described below are not yet present.
 
 **Location**: Manual testing and integration test suite
 
