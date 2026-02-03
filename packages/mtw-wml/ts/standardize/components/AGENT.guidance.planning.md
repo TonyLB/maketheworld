@@ -1,7 +1,7 @@
 # Guidance Component - Planning Document
 
 **Date**: February 1, 2026  
-**Status**: Planning - Phase 1–14, Phase 15, Phase 16 implemented; Phase 17 partially implemented (backend unit tests only); Schema Instructions Tag follow-up implemented  
+**Status**: Planning - Phase 1–14, Phase 15, Phase 16 implemented; Phase 17 partially implemented (backend unit tests only); Phase 18 implemented; Schema Instructions Tag follow-up implemented  
 **Component Type**: StandardGuidance (sibling to StandardExample)
 
 ## Overview
@@ -1466,13 +1466,18 @@ Phase 5 initially used type assertions (`'Instructions' as SchemaTag['tag']`) in
 
 ## Future Enhancements (Not in Initial Implementation)
 
-### Phase 18: Create AGENT.rendering.md (After Phases 1-17)
+### Phase 18: Create AGENT.rendering.md (After Phases 1-17) — **Implemented**
 
 **Prerequisite**: Complete Phases 1-17 first. Create this document after implementation so we can document what we've learned and get it right the first time.
 
 **Location**: `packages/mtw-wml/ts/standardize/components/AGENT.rendering.md`
 
 **Purpose**: Lay out the constraints established so far about how Guidance, Examples, Lenses, and Marks work together to provide a framework for rendering components in different world-states. This will be a living document—fill it out as we go along and implement more patterns.
+
+**Tasks**:
+1. ~~Create AGENT.rendering.md~~ — Done.
+
+**Verification**: AGENT.rendering.md exists and describes Guidance, Examples, Lenses, Marks, and world-state; includes overview, concepts, constraints, and related-doc links.
 
 ### Phase 19: Extend to Feature and Knowledge (Future)
 
