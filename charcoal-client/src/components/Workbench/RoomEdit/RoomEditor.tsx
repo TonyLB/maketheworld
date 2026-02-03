@@ -10,7 +10,7 @@ import { useOnboardingCheckpoint } from '../../Onboarding/useOnboarding'
 
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import { useSelector, useDispatch } from 'react-redux'
-import { getCurrentComponentId, navigateToComponentLayer } from '../../../slices/UI/workbench'
+import { getCurrentComponentId, pushBreadcrumb } from '../../../slices/UI/workbench'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
@@ -57,7 +57,7 @@ export const RoomEditor: FunctionComponent = () => {
     const handleExamplesItemClick = useCallback(
         (id: string) => {
             if (!room || readonly) return
-            dispatch(navigateToComponentLayer(universalKey!, id as ComponentUUID))
+            dispatch(pushBreadcrumb({ id: id as ComponentUUID, kind: 'component', componentId: id as ComponentUUID }))
         },
         [room, readonly, dispatch, universalKey]
     )
@@ -80,7 +80,7 @@ export const RoomEditor: FunctionComponent = () => {
     const handleGuidanceItemClick = useCallback(
         (id: string) => {
             if (!room || readonly) return
-            dispatch(navigateToComponentLayer(universalKey!, id as ComponentUUID))
+            dispatch(pushBreadcrumb({ id: id as ComponentUUID, kind: 'component', componentId: id as ComponentUUID }))
         },
         [room, readonly, dispatch, universalKey]
     )

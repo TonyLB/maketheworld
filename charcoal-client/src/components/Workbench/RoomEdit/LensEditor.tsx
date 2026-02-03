@@ -9,7 +9,7 @@ import IconButton from "@mui/material/IconButton"
 import Typography from "@mui/material/Typography"
 import Alert from "@mui/material/Alert"
 import { useDispatch } from "react-redux"
-import { navigateToComponentLayer } from "../../../slices/UI/workbench"
+import { pushBreadcrumb } from "../../../slices/UI/workbench"
 import { useWorkbenchAsset } from "../foundations/useWorkbenchAsset"
 import AddIcon from '@mui/icons-material/Add'
 import DeleteIcon from '@mui/icons-material/Delete'
@@ -311,7 +311,7 @@ export const LensEditor: FunctionComponent<LensEditorProps> = ({ RoomId }) => {
 
     const handleMarkClick = useCallback(
         (id: string) => {
-            dispatch(navigateToComponentLayer(RoomId, id as ComponentUUID))
+            dispatch(pushBreadcrumb({ id: id as ComponentUUID, kind: 'component', componentId: id as ComponentUUID }))
         },
         [dispatch, RoomId]
     )

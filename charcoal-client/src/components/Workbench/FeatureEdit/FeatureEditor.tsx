@@ -6,7 +6,7 @@ import DraftLockout from '../DraftLockout'
 
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import { useSelector, useDispatch } from 'react-redux'
-import { getCurrentComponentId, navigateToComponentLayer } from '../../../slices/UI/workbench'
+import { getCurrentComponentId, pushBreadcrumb } from '../../../slices/UI/workbench'
 import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
@@ -49,7 +49,7 @@ export const FeatureEditor: FunctionComponent = () => {
     const handleExamplesItemClick = useCallback(
         (id: string) => {
             if (!feature || readonly) return
-            dispatch(navigateToComponentLayer(universalKey!, id as ComponentUUID))
+            dispatch(pushBreadcrumb({ id: id as ComponentUUID, kind: 'component', componentId: id as ComponentUUID }))
         },
         [feature, readonly, dispatch, universalKey]
     )

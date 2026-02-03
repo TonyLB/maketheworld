@@ -1,4 +1,7 @@
-import { WorkbenchBreadcrumbEntry } from './index'
+import { configureStore } from '@reduxjs/toolkit'
+import thunk from 'redux-thunk'
+import { combineReducers } from 'redux'
+import { WorkbenchBreadcrumbEntry, setBreadcrumbStack, replaceTopBreadcrumb } from './index'
 import {
     getCurrentView,
     getCurrentComponentId,
@@ -6,6 +9,7 @@ import {
     getNavigationTrail
 } from './index'
 import { RootState } from '../../../store'
+import workbenchReducer from './index'
 
 describe('workbench navigation selectors', () => {
     const baseState: RootState = {
@@ -55,16 +59,37 @@ describe('workbench navigation selectors', () => {
         expect(getCurrentComponentLayerId(state)).toBeNull()
     })
 
-    it('derives view and layer id from asset → component → componentLayer', () => {
+    it('derives view and component ids from asset → component → component (uniform stack)', () => {
         const stack: WorkbenchBreadcrumbEntry[] = [
             { id: 'ROOM#one', kind: 'component', componentId: 'ROOM#one' },
-            { id: 'EXAMPLE#one', kind: 'componentLayer', componentId: 'EXAMPLE#one' }
+            { id: 'EXAMPLE#one', kind: 'component', componentId: 'EXAMPLE#one' }
         ]
         const state = withBreadcrumbs(stack)
+        // Without standardForm in state, getLayeredContext returns null so we get component view
+        expect(getCurrentView(state)).toBe('component')
+        expect(getCurrentComponentId(state)).toBe('EXAMPLE#one')
+        expect(getCurrentComponentLayerId(state)).toBeNull()
+    })
 
-        expect(getCurrentView(state)).toBe('componentLayer')
-        expect(getCurrentComponentId(state)).toBe('ROOM#one')
-        expect(getCurrentComponentLayerId(state)).toBe('EXAMPLE#one')
+    it('replaceTopBreadcrumb replaces last stack entry with new id', () => {
+        const store = configureStore({
+            reducer: {
+                UI: combineReducers({
+                    workbench: workbenchReducer
+                })
+            },
+            middleware: [thunk]
+        })
+        const stack: WorkbenchBreadcrumbEntry[] = [
+            { id: 'ROOM#one', kind: 'component', componentId: 'ROOM#one' },
+            { id: 'EXAMPLE#one', kind: 'component', componentId: 'EXAMPLE#one' }
+        ]
+        store.dispatch(setBreadcrumbStack(stack))
+        store.dispatch(replaceTopBreadcrumb('EXAMPLE#two' as any))
+        const result = store.getState().UI.workbench.breadcrumbStack
+        expect(result).toHaveLength(2)
+        expect(result[0]).toMatchObject({ id: 'ROOM#one', componentId: 'ROOM#one' })
+        expect(result[1]).toMatchObject({ id: 'EXAMPLE#two', kind: 'component', componentId: 'EXAMPLE#two' })
     })
 })
 

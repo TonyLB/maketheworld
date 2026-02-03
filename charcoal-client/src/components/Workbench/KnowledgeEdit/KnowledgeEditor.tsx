@@ -6,7 +6,7 @@ import DraftLockout from '../DraftLockout'
 
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import { useSelector, useDispatch } from 'react-redux'
-import { getCurrentComponentId, navigateToComponentLayer } from '../../../slices/UI/workbench'
+import { getCurrentComponentId, pushBreadcrumb } from '../../../slices/UI/workbench'
 import StandardKnowledge from '@tonylb/mtw-wml/ts/standardize/components/knowledge'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
@@ -49,7 +49,7 @@ export const KnowledgeEditor: FunctionComponent = () => {
     const handleExamplesItemClick = useCallback(
         (id: string) => {
             if (!knowledge || readonly) return
-            dispatch(navigateToComponentLayer(universalKey!, id as ComponentUUID))
+            dispatch(pushBreadcrumb({ id: id as ComponentUUID, kind: 'component', componentId: id as ComponentUUID }))
         },
         [knowledge, readonly, dispatch, universalKey]
     )

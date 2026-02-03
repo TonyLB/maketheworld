@@ -2,12 +2,14 @@ import { createSlice, PayloadAction, createSelector } from '@reduxjs/toolkit'
 
 import { RootState, Selector, AppDispatch } from '../../../store'
 import { AssetUUID, ComponentUUID } from '@tonylb/mtw-base/ts/schema'
+import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
+import { getLayeredContext } from '../../../components/Workbench/foundations/LayeredContext/layeredContextUtils'
 import cacheDB, { ClientSettingType } from '../../../cacheDB'
 import { getStandardForm } from '../../personalAssets'
 import { getAssetZone, getMyAssets } from '../../player'
 import { AssetKey } from '@tonylb/mtw-utilities/ts/types'
 
-type WorkbenchBreadcrumbKind = 'component' | 'componentLayer'
+type WorkbenchBreadcrumbKind = 'component'
 
 type WorkbenchView = 'asset' | 'component' | 'componentLayer' | null
 
@@ -16,12 +18,10 @@ export type WorkbenchBreadcrumbEntry = {
     // NOTE: Breadcrumbs track **navigation history**, not schema ancestry.
     //
     // Invariants:
-    // - breadcrumbStack tracks **within-asset** navigation only (components and layered views).
-    // - Zero or more component entries may exist; the last { kind: 'component' } is the
-    //   current parent component for editing.
-    // - At most one componentLayer entry may exist, and if it does, it must be the last
-    //   entry and must follow a component entry. It represents a layered view (e.g. Examples)
-    //   for the current parent component.
+    // - breadcrumbStack tracks **within-asset** navigation only (component ids).
+    // - All entries use kind: 'component' and componentId. "Layered" context (e.g. Examples,
+    //   Guidance tabs) is derived when the top of the stack is a ref-list child of the
+    //   second-to-top (see getLayeredContext in layeredContextUtils).
     //
     // Asset identity is modeled separately via currentAssetId. When deriving a full
     // navigation trail for the UI, selectors treat the currentAssetId as an implicit
@@ -29,10 +29,6 @@ export type WorkbenchBreadcrumbEntry = {
     //
     id: string;
     kind: WorkbenchBreadcrumbKind;
-    //
-    // When kind === 'component', componentId points at the component in the
-    // current asset's standardForm. For 'asset', componentId is null.
-    //
     componentId: string | null;
 }
 
@@ -156,19 +152,6 @@ export const navigateToComponent = (componentId: ComponentUUID) => (dispatch: Ap
     dispatch(setBreadcrumbStack(stack))
 }
 
-export const navigateToComponentLayer = (parentComponentId: ComponentUUID, layerComponentId: ComponentUUID) => (dispatch: AppDispatch, getState: () => RootState) => {
-    const state = getState()
-    const assetId = state.UI.workbench.currentAssetId
-    if (!assetId) {
-        return
-    }
-    const stack: WorkbenchBreadcrumbEntry[] = [
-        { id: parentComponentId, kind: 'component', componentId: parentComponentId },
-        { id: layerComponentId, kind: 'componentLayer', componentId: layerComponentId }
-    ]
-    dispatch(setBreadcrumbStack(stack))
-}
-
 export const navigateViaBreadcrumbIndex = (index: number) => (dispatch: AppDispatch, getState: () => RootState) => {
     const state = getState()
     const stack = state.UI.workbench.breadcrumbStack
@@ -188,12 +171,42 @@ export const navigateViaBreadcrumbIndex = (index: number) => (dispatch: AppDispa
     dispatch(setBreadcrumbStack(stack.slice(0, withinAssetIndex + 1)))
 }
 
+export const replaceTopBreadcrumb = (newComponentId: ComponentUUID) => (dispatch: AppDispatch, getState: () => RootState) => {
+    const stack = getState().UI.workbench.breadcrumbStack
+    if (stack.length < 1) return
+    dispatch(setBreadcrumbStack([
+        ...stack.slice(0, -1),
+        { id: newComponentId, kind: 'component', componentId: newComponentId }
+    ]))
+}
+
 // Selectors
 export const getWorkbenchOpen: Selector<boolean> = (state: RootState) => state.UI.workbench.open
 export const getAuthoringMode: Selector<'play' | 'authoring'> = (state: RootState) => state.UI.workbench.authoringMode
 export const getCurrentAssetId: Selector<AssetUUID | null> = (state: RootState) => state.UI.workbench.currentAssetId
 export const getSecondaryContext: Selector<string | null> = (state: RootState) => state.UI.workbench.secondaryContext
 export const getBreadcrumbStack: Selector<WorkbenchBreadcrumbEntry[]> = (state: RootState) => state.UI.workbench.breadcrumbStack
+
+// Intermediate selector to get standard form for current asset using full RootState
+const getCurrentAssetStandardForm = createSelector(
+    [getCurrentAssetId, (state: RootState) => state],
+    (assetId, rootState) => {
+        if (!assetId || !rootState.personalAssets?.byId) return null
+        const standardFormSelector = getStandardForm(assetId)
+        return standardFormSelector(rootState) || null
+    }
+)
+
+// StandardForm instance for layered-context detection (getLayeredContext expects class instance)
+const getCurrentAssetStandardFormInstance = createSelector(
+    getCurrentAssetStandardForm,
+    (data): StandardForm | null => (data ? new StandardForm(data) : null)
+)
+
+const getLayeredContextFromState = createSelector(
+    [getCurrentAssetStandardFormInstance, getBreadcrumbStack],
+    (standardForm, stack) => getLayeredContext(standardForm, stack)
+)
 
 //
 // Navigation selectors
@@ -215,51 +228,29 @@ export const getNavigationTrail = createSelector(
 )
 
 export const getCurrentView: Selector<WorkbenchView> = createSelector(
-    [getCurrentAssetId, getBreadcrumbStack],
-    (assetId, stack): WorkbenchView => {
-        if (!assetId) {
-            return null
-        }
-        if (!stack.length) {
-            return 'asset'
-        }
-        const last = stack[stack.length - 1]
-        if (last.kind === 'component') {
-            return 'component'
-        }
-        if (last.kind === 'componentLayer') {
-            return 'componentLayer'
-        }
-        return 'asset'
+    [getCurrentAssetId, getBreadcrumbStack, getLayeredContextFromState],
+    (assetId, stack, layeredContext): WorkbenchView => {
+        if (!assetId) return null
+        if (!stack.length) return 'asset'
+        if (layeredContext) return 'componentLayer'
+        return 'component'
     }
 )
 
 export const getCurrentComponentId: Selector<string | null> = createSelector(
-    getBreadcrumbStack,
-    (stack): string | null => {
-        const lastComponent = [...stack].reverse().find((entry) => entry.kind === 'component')
-        return lastComponent?.componentId ?? null
+    [getBreadcrumbStack, getLayeredContextFromState],
+    (stack, layeredContext): string | null => {
+        if (layeredContext) return layeredContext.parentId
+        const last = stack[stack.length - 1]
+        return last?.componentId ?? null
     }
 )
 
 export const getCurrentComponentLayerId: Selector<string | null> = createSelector(
-    getBreadcrumbStack,
-    (stack): string | null => {
-        const lastLayer = [...stack].reverse().find((entry) => entry.kind === 'componentLayer')
-        return lastLayer?.componentId ?? null
-    }
-)
-
-// Intermediate selector to get standard form for current asset using full RootState
-const getCurrentAssetStandardForm = createSelector(
-    [getCurrentAssetId, (state: RootState) => state],
-    (assetId, rootState) => {
-        if (!assetId) return null
-        // getStandardForm(assetId) returns a selector that expects the full RootState
-        // It may need other assets for inheritance/imports
-        // It returns undefined if the asset doesn't exist in personalAssets.byId[assetId]
-        const standardFormSelector = getStandardForm(assetId)
-        return standardFormSelector(rootState) || null
+    [getBreadcrumbStack, getLayeredContextFromState],
+    (stack, layeredContext): string | null => {
+        if (layeredContext) return layeredContext.currentId
+        return null
     }
 )
 
