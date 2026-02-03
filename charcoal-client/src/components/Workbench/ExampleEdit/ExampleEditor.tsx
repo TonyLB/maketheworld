@@ -1,4 +1,5 @@
 import React, { FunctionComponent, useCallback, useMemo } from "react"
+import { useSelector } from "react-redux"
 import { useWorkbenchAsset } from "../foundations/useWorkbenchAsset"
 import StandardExample from "@tonylb/mtw-wml/ts/standardize/components/example";
 import { Box, Button, Typography } from "@mui/material";
@@ -9,14 +10,18 @@ import { StandardForm } from "@tonylb/mtw-wml/ts/standardize";
 import { TopLevelStandardLiteralEditor } from "../foundations/StandardLiteral";
 import { StandardRenderEditor } from "../foundations/StandardRender";
 import { ComponentUUID } from "@tonylb/mtw-base/ts/schema";
+import { getCurrentComponentId, getCurrentComponentLayerId } from "../../../slices/UI/workbench";
 
-type ExampleEditorProps = {
-    componentId: ComponentUUID;
-}
-
-export const ExampleEditor: FunctionComponent<ExampleEditorProps> = ({ componentId }) => {
+/**
+ * Example payload editor. Reads the current Example id from the workbench: when in
+ * layered context (e.g. Room → Example) uses the layer id; otherwise the top breadcrumb.
+ */
+export const ExampleEditor: FunctionComponent = () => {
     const { standardForm, localStandardForm, updateStandard, readonly } = useWorkbenchAsset()
+    const componentId = (useSelector(getCurrentComponentLayerId) ?? useSelector(getCurrentComponentId)) as ComponentUUID | null
+
     const component = useMemo<StandardExample>(() => {
+        if (!componentId) return new StandardExample({ universalKey: '' as ComponentUUID, tag: 'Example' })
         const component = standardForm.byUniversalId[componentId]
         if (component && component instanceof StandardExample) {
             return component
@@ -26,7 +31,7 @@ export const ExampleEditor: FunctionComponent<ExampleEditorProps> = ({ component
             tag: 'Example'
         })
     }, [standardForm, componentId])
-    const inherited = !Boolean(localStandardForm.byUniversalId[componentId])
+    const inherited = componentId ? !Boolean(localStandardForm.byUniversalId[componentId]) : false
 
     const handleShortNameChange = useCallback(
         (newShortName: StandardLiteral) => {

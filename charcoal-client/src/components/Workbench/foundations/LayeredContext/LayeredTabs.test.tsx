@@ -2,22 +2,22 @@ import React from 'react'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { vi } from 'vitest'
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
-import { LayeredExamplesTabs } from './LayeredExamplesTabs'
+import { LayeredTabs } from './LayeredTabs'
 
-const exampleId = 'COMPONENT#example' as ComponentUUID
-const otherId = 'COMPONENT#other' as ComponentUUID
+const exampleId = 'EXAMPLE#tab-one' as ComponentUUID
+const guidanceId = 'GUIDANCE#tab-two' as ComponentUUID
 
-describe('LayeredExamplesTabs', () => {
+describe('LayeredTabs', () => {
     it('falls back to "Untitled" when label is missing', () => {
         const handleChange = vi.fn()
         render(
-            <LayeredExamplesTabs
+            <LayeredTabs
                 siblings={[{ id: exampleId, label: null }]}
                 currentId={exampleId}
                 onChange={handleChange}
             >
                 <div>content</div>
-            </LayeredExamplesTabs>
+            </LayeredTabs>
         )
 
         expect(screen.getByText('Untitled')).toBeTruthy()
@@ -26,19 +26,19 @@ describe('LayeredExamplesTabs', () => {
     it('calls onChange when a different tab is clicked', () => {
         const handleChange = vi.fn()
         render(
-            <LayeredExamplesTabs
+            <LayeredTabs
                 siblings={[
                     { id: exampleId, label: 'First' },
-                    { id: otherId, label: 'Second' }
+                    { id: guidanceId, label: 'Second' }
                 ]}
                 currentId={exampleId}
                 onChange={handleChange}
             >
                 <div>content</div>
-            </LayeredExamplesTabs>
+            </LayeredTabs>
         )
 
         fireEvent.click(screen.getByText('Second'))
-        expect(handleChange).toHaveBeenCalledWith(otherId)
+        expect(handleChange).toHaveBeenCalledWith(guidanceId)
     })
 })

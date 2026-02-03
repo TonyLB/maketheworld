@@ -18,8 +18,9 @@ import {
 import { useWorkbenchAsset } from './foundations/useWorkbenchAsset'
 import { getAssetZone } from '../../slices/player'
 import { createWorkbenchTheme } from './workbenchTheme'
-import StandardMark from '@tonylb/mtw-wml/ts/standardize/components/worldState'
 import StandardGuidance from '@tonylb/mtw-wml/ts/standardize/components/guidance'
+import StandardExample from '@tonylb/mtw-wml/ts/standardize/components/example'
+import { isReferenceListChild } from './foundations/LayeredContext/layeredContextUtils'
 import { hasDisplayName } from '@tonylb/mtw-wml/ts/standardize'
 import { schemaOutputToString } from '@tonylb/mtw-wml/ts/schema/utils/schemaOutput/schemaOutputToString'
 import { GenericTree } from '@tonylb/mtw-base/ts/genericTree'
@@ -156,16 +157,18 @@ export const WorkbenchContainer: FunctionComponent<WorkbenchContainerProps> = ({
                 }
             }
 
-            if (entry.kind === 'componentLayer') {
+            const prevComponentId = index >= 1 ? (navigationTrail[index - 1].componentId as ComponentUUID | null) : null
+            const isLayerCrumb = isReferenceListChild(assetData.standardForm, prevComponentId, entry.componentId as ComponentUUID | null)
+            if (isLayerCrumb) {
                 const layerId = entry.componentId as ComponentUUID | null
                 const layerComponent = layerId ? assetData.standardForm.byUniversalId[layerId] : undefined
-                const isMark = layerComponent instanceof StandardMark
                 const isGuidance = layerComponent instanceof StandardGuidance
-                const sn = (isMark || isGuidance) ? layerComponent.shortName?._payload?.plain?.toJSON() : undefined
-                const name = isMark
-                    ? (typeof sn === 'string' && sn.trim() ? sn : 'Mark')
-                    : isGuidance
-                        ? (typeof sn === 'string' && sn.trim() ? sn : 'Guidance')
+                const isExample = layerComponent instanceof StandardExample
+                const sn = (isGuidance || isExample) ? layerComponent.shortName?._payload?.plain?.toJSON() : undefined
+                const name = isGuidance
+                    ? (typeof sn === 'string' && sn.trim() ? sn : 'Guidance')
+                    : isExample
+                        ? (typeof sn === 'string' && sn.trim() ? sn : 'Examples')
                         : 'Examples'
                 return {
                     universalKey: (layerId || assetData.AssetId) as ComponentUUID,

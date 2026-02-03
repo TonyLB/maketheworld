@@ -6,7 +6,6 @@ import { getStatus } from '../../slices/personalAssets'
 import {
     getCurrentView,
     getCurrentComponentId,
-    getCurrentComponentLayerId,
     getCurrentAssetId
 } from '../../slices/UI/workbench'
 import { useWorkbenchAsset } from './foundations/useWorkbenchAsset'
@@ -14,17 +13,19 @@ import AssetEditForm from './WorkbenchAssetEditForm'
 import RoomEditor from './RoomEdit/RoomEditor'
 import FeatureEditor from './FeatureEdit/FeatureEditor'
 import KnowledgeEditor from './KnowledgeEdit/KnowledgeEditor'
-import ExamplesView from './ExampleEdit/ExamplesView'
+import { LayeredContextView } from './foundations/LayeredContext'
+import ExampleEditor from './ExampleEdit/ExampleEditor'
+import GuidanceEditor from './GuidanceEdit/GuidanceEditor'
 import MarkEditor from './MarkEdit/MarkEditor'
 import MapEditor from './MapEdit/MapEditor'
 import CharacterEditor from './CharacterEdit/CharacterEditor'
-import { LayeredGuidanceTabs } from './foundations/LayeredContext'
 import StandardCharacter from '@tonylb/mtw-wml/ts/standardize/components/character'
 import StandardMap from '@tonylb/mtw-wml/ts/standardize/components/map'
 import StandardMark from '@tonylb/mtw-wml/ts/standardize/components/worldState'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
 import StandardKnowledge from '@tonylb/mtw-wml/ts/standardize/components/knowledge'
+import StandardExample from '@tonylb/mtw-wml/ts/standardize/components/example'
 import StandardGuidance from '@tonylb/mtw-wml/ts/standardize/components/guidance'
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 
@@ -33,10 +34,8 @@ import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
  * Replaces React Router routing with state management.
  */
 export const WorkbenchAssetEditor: FunctionComponent = () => {
-    const currentAssetId = useSelector(getCurrentAssetId)
     const currentView = useSelector(getCurrentView)
     const currentComponentId = useSelector(getCurrentComponentId)
-    const currentComponentLayerId = useSelector(getCurrentComponentLayerId)
     const assetData = useWorkbenchAsset()
     const currentStatus = useSelector(getStatus(assetData.AssetId))
 
@@ -53,7 +52,9 @@ export const WorkbenchAssetEditor: FunctionComponent = () => {
         )
     }
 
-    // Route to appropriate view based on currentView and currentComponentId
+    // Route to appropriate view based on currentView and currentComponentId.
+    // Example and Guidance appear here when navigated as top-level (no siblings); when they are
+    // children of a parent's ref list, currentView is 'componentLayer' and LayeredContextView renders.
     if (currentView === 'component' && currentComponentId) {
         // Derive component type from standardForm
         const component = assetData.standardForm.byUniversalId[currentComponentId as ComponentUUID]
@@ -78,24 +79,23 @@ export const WorkbenchAssetEditor: FunctionComponent = () => {
             return <KnowledgeEditor />
         }
 
+        if (component instanceof StandardMark) {
+            return <MarkEditor />
+        }
+
+        if (component instanceof StandardExample) {
+            return <ExampleEditor />
+        }
+
+        if (component instanceof StandardGuidance) {
+            return <GuidanceEditor />
+        }
+
         return <Box />
     }
 
     if (currentView === 'componentLayer' && currentComponentId) {
-        const layerId = currentComponentLayerId as ComponentUUID | null
-        const layerComponent = layerId ? assetData.standardForm.byUniversalId[layerId] : undefined
-        if (layerComponent instanceof StandardMark && layerId) {
-            return <MarkEditor markId={layerId} />
-        }
-        if (layerComponent instanceof StandardGuidance && layerId) {
-            return (
-                <LayeredGuidanceTabs
-                    parentComponentId={currentComponentId as ComponentUUID}
-                    currentGuidanceId={layerId}
-                />
-            )
-        }
-        return <ExamplesView />
+        return <LayeredContextView />
     }
 
     // Default to asset view

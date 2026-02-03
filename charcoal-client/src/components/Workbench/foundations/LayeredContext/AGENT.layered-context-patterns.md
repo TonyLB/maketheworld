@@ -129,7 +129,7 @@ The tab bar is the persistent "layer stack." You always see **all** siblings in 
 - Only one panel visible at a time (no stacked peek like pattern 2).
 
 **Implementation notes**  
-- Use `@mui/material` `Tabs` and `Tab` (already in the project), wrapped in a `LayeredExamplesTabs` helper under `Workbench/foundations/LayeredContext`.  
+- Use `@mui/material` `Tabs` and `Tab` (already in the project), wrapped in a `LayeredTabs` helper under `Workbench/foundations/LayeredContext`.  
 - `variant="scrollable"` — horizontal scroll when tabs overflow.  
 - `scrollButtons="auto"` — show scroll buttons on desktop when needed; hide on mobile. Use `scrollButtons={true}` + `allowScrollButtonsMobile` if you want arrows on mobile too.  
 - `value` = current Example id; `onChange` updates local state within the Examples view (or a `layeredContext` slice keyed by parent id).  
@@ -183,16 +183,17 @@ const [currentId, setCurrentId] = useState(siblings[0]?.id ?? null)
 
 ## Integration with Workbench
 
-- **Breadcrumbs**: When we are in the Examples view, breadcrumbs read **Asset → Parent → Examples** (e.g. **Asset → Room → Examples**). We do **not** push per-Example breadcrumbs; Examples are "layers" within the parent, not separate nav steps. Clicking the parent crumb (e.g. **Room**) exits the Examples mode back to the parent's main editor. The `Examples` crumb is represented as a dedicated breadcrumb kind (`'componentLayer'`) layered on top of the existing asset/component stack.  
-- **Navigation model**: Redux navigation is modeled as a stack of breadcrumb entries (`breadcrumbStack`). The first entry is always the asset, the last `kind === 'component'` (if present) is the current parent component, and an optional trailing `kind === 'componentLayer'` represents the current layered view (Examples) for that parent. `currentView`, parent component id, and current layer id are all **derived selectors** over this stack rather than separate pieces of state.  
-- **Examples management vs. Examples view**: The set of Example layers is managed via an `Examples` `ReferenceListEditor` accordion under the parent component (mirroring the Features/Exits/Lenses pattern). Adding/removing Examples happens there by editing the parent's `component.examples` reference list; entering the layered Examples view for a specific Example uses breadcrumb-based navigation into a `componentLayer` entry.  
+- **Component section vs LayeredContextView**: Example and Guidance can appear in two ways. (1) **Layered context**: navigated from a parent (Room/Feature/Knowledge) so the stack has parent then child; `getLayeredContext` is set, `currentView === 'componentLayer'`, and `LayeredContextView` renders (tabs + editor). (2) **Top-level**: Example or Guidance is the only component on the stack (e.g. navigated to as a top-level asset element); `currentView === 'component'`, and `WorkbenchAssetEditor` renders `ExampleEditor` or `GuidanceEditor` directly in the component section—no tabs, single editor.
+- **Breadcrumbs**: When we are in a layered view, breadcrumbs read **Asset → Parent → Child** (e.g. **Asset → Room → Example** or **Asset → Room → Guidance**). The stack uses uniform `kind: 'component'` entries; layered context is derived when the top component is in the second-from-top’s reference list. Clicking the parent crumb exits the layered view. Example/Guidance can also be top-level (stack has only that component); then breadcrumbs are **Asset → Example** (or Guidance) and the component section shows the single editor.  
+- **Navigation model**: Redux navigation is a stack of breadcrumb entries (`breadcrumbStack`), all `kind: 'component'`. The asset is implied (currentAssetId); the stack holds component ids. When the top component is a child of the second-from-top’s reference list (examples/guidance), `getLayeredContext` returns context and `currentView === 'componentLayer'`; otherwise `currentView === 'component'`. `currentView`, current component id, and layered layer id are **derived selectors** over this stack.  
+- **Examples/Guidance management vs. layered view**: The set of Example/Guidance items is managed via `ReferenceListEditor` under the parent (Room/Feature/Knowledge). Entering the layered view pushes the child’s component id onto the stack (so stack is e.g. [parent, child]); `LayeredContextView` then shows tabs and editor. Switching tabs uses `replaceTopBreadcrumb(childId)`.  
 - **Data**: Sibling list for the layered view comes from `component.examples` (or the equivalent reference list). Use `shortName` for the Example's tab/list label; do **not** use `name` (that is the exemplified item's name). Fall back to "Untitled" when `shortName` is missing.
 
 ---
 
 ## Payload-only principle
 
-LayeredContext components present **payload editing only**. Add/remove/list management stays at the parent editor (ReferenceListEditor). The Examples flow is the canonical implementation: Room/Feature/Knowledge editors host the Examples ReferenceListEditor (add, delete, click-to-navigate); ExamplesView hosts LayeredExamplesTabs + ExampleEditor (payload fields only, no accordion wrapper, no list-management actions).
+LayeredContext components present **payload editing only**. Add/remove/list management stays at the parent editor (ReferenceListEditor). The Examples flow is the canonical implementation: Room/Feature/Knowledge editors host the Examples ReferenceListEditor (add, delete, click-to-navigate); LayeredContextView hosts LayeredTabs + ExampleEditor or GuidanceEditor (payload fields only, no accordion wrapper, no list-management actions).
 
 ---
 

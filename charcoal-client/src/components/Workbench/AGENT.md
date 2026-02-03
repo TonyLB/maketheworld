@@ -74,7 +74,8 @@ type WorkbenchBreadcrumbEntry = {
 
 - **`useWorkbenchAsset()`**: Hook providing `standardForm`, `updateStandard`, `readonly`, and other asset context; derives `AssetId` from workbench Redux state
 - **`navigateToComponent(componentId)`**: Sets breadcrumb stack to a single component entry
-- **`navigateToComponentLayer(parentId, layerId)`**: Sets stack to component + componentLayer (e.g., Examples view, Mark in Lens)
+- **`pushBreadcrumb(entry)`**: Pushes a component entry (e.g. when navigating to an Example or Guidance from Room)
+- **`replaceTopBreadcrumb(newComponentId)`**: Replaces the top of the stack (e.g. when switching tabs in LayeredContextView)
 - **`navigateViaBreadcrumbIndex(index)`**: Pops to a given breadcrumb index (index 0 = asset root)
 - **`referenceListToItems({ referenceList, standardForm, tag })`**: Adapter for reference lists to list items
 
@@ -109,7 +110,7 @@ type WorkbenchBreadcrumbEntry = {
 ### System Relationships
 
 - **AppLayout**: Renders `WorkbenchContainer` with `open`, `onClose`, `assetId`, `secondaryContext`; controls workbench visibility
-- **WorkbenchAssetEditor**: Orchestrates view routing based on `getCurrentView`, `getCurrentComponentId`, `getCurrentComponentLayerId`; delegates to `AssetEditForm`, `RoomEditor`, `FeatureEditor`, `KnowledgeEditor`, `ExamplesView`, `MarkEditor`, `MapEditor`, `CharacterEditor`
+- **WorkbenchAssetEditor**: Orchestrates view routing based on `getCurrentView`, `getCurrentComponentId`, `getCurrentComponentLayerId`; delegates to `AssetEditForm`, `RoomEditor`, `FeatureEditor`, `KnowledgeEditor`, `LayeredContextView` (Examples/Guidance tabs), `MarkEditor`, `MapEditor`, `CharacterEditor`
 
 ---
 
@@ -139,7 +140,7 @@ updateStandard({
 })
 
 // 4. Navigate to component layer (e.g., Example)
-dispatch(navigateToComponentLayer(parentComponentId, exampleId))
+dispatch(pushBreadcrumb({ id: exampleId, kind: 'component', componentId: exampleId }))
 ```
 
 ### Reference List Editing
@@ -200,7 +201,8 @@ updateStandard({
 | `RoomEdit/` | RoomEditor, ExitEditor, LensEditor, FeatureListEditor |
 | `FeatureEdit/` | FeatureEditor (shortName + Examples) |
 | `KnowledgeEdit/` | KnowledgeEditor (shortName + Examples) |
-| `ExampleEdit/` | ExampleEditor, ExamplesView (layered Examples tabs) |
+| `ExampleEdit/` | ExampleEditor |
+| `foundations/LayeredContext/` | LayeredContextView (layered Examples/Guidance tabs), LayeredTabs |
 | `MarkEdit/` | MarkEditor (full), InlineEditor (shortName only; used in LensEditor) |
 | `MapEdit/` | MapEditor, MapArea, MapController, MapLayers, UnshownRooms |
 | `CharacterEdit/` | CharacterEditor |
@@ -223,7 +225,7 @@ updateStandard({
 - **Breadcrumb Navigation**: Redux-driven; no React Router within Workbench
 - **Responsive**: Drawer on desktop, full-screen on mobile
 - **Reference Lists**: `ReferenceListEditor` and `InlineReferenceList` with adapter
-- **Layered Examples**: `LayeredExamplesTabs` (MUI Tabs) for sibling Example navigation
+- **Layered Examples/Guidance**: `LayeredTabs` (MUI Tabs) for sibling Example or Guidance navigation
 - **Draft Lockout**: Non-Draft assets are read-only
 
 ### Future Plans
