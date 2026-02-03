@@ -1355,7 +1355,7 @@ Phase 5 initially used type assertions (`'Instructions' as SchemaTag['tag']`) in
 
 ### Phase 15: Frontend - Workbench Navigation Integration — **Implemented**
 
-**Implementation note**: Implemented without LayeredGuidanceTabs: when `currentView === 'componentLayer'` and the layer component is `StandardGuidance`, `WorkbenchAssetEditor.tsx` renders `GuidanceEditor(componentId)` directly (single edit pane). Breadcrumbs in `WorkbenchContainer.tsx` distinguish Guidance via `instanceof StandardGuidance` and show shortName or "Guidance". Navigation and back-navigation work.
+**Implementation note**: Implemented with `LayeredGuidanceTabs`: when `currentView === 'componentLayer'` and the layer component is `StandardGuidance`, `WorkbenchAssetEditor.tsx` renders `LayeredGuidanceTabs` with the Room as `parentComponentId` and the selected Guidance as `currentGuidanceId`. `LayeredGuidanceTabs` drives tab-to-tab navigation via `navigateToComponentLayer`, and `WorkbenchContainer.tsx` uses the breadcrumb stack (including the current Guidance component) to derive labels from `shortName` or fallback keys. Navigation and back-navigation work.
 
 **Location**: Update `charcoal-client/src/components/Workbench/index.tsx` (or equivalent router)
 

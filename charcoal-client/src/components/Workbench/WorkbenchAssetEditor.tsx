@@ -15,10 +15,10 @@ import RoomEditor from './RoomEdit/RoomEditor'
 import FeatureEditor from './FeatureEdit/FeatureEditor'
 import KnowledgeEditor from './KnowledgeEdit/KnowledgeEditor'
 import ExamplesView from './ExampleEdit/ExamplesView'
-import GuidanceEditor from './GuidanceEdit/GuidanceEditor'
 import MarkEditor from './MarkEdit/MarkEditor'
 import MapEditor from './MapEdit/MapEditor'
 import CharacterEditor from './CharacterEdit/CharacterEditor'
+import { LayeredGuidanceTabs } from './foundations/LayeredContext'
 import StandardCharacter from '@tonylb/mtw-wml/ts/standardize/components/character'
 import StandardMap from '@tonylb/mtw-wml/ts/standardize/components/map'
 import StandardMark from '@tonylb/mtw-wml/ts/standardize/components/worldState'
@@ -88,7 +88,12 @@ export const WorkbenchAssetEditor: FunctionComponent = () => {
             return <MarkEditor markId={layerId} />
         }
         if (layerComponent instanceof StandardGuidance && layerId) {
-            return <GuidanceEditor componentId={layerId} />
+            return (
+                <LayeredGuidanceTabs
+                    parentComponentId={currentComponentId as ComponentUUID}
+                    currentGuidanceId={layerId}
+                />
+            )
         }
         return <ExamplesView />
     }
