@@ -132,9 +132,12 @@ This design allows StandardRoom (and other "simple" components) to define an ord
      - Kept existing behavior for all valid WML (round-trips and merge/diff tests remain green).
 
 6. **Migrate components with predicate or multi-tag steps**
-   - **Lens / Mark**: First step splits by "is component child" vs "not"; run tag-based steps on the non-component remainder. Ensure reference lists (e.g. Marks inside Lens) still come from the component children.
+   - **Lens / Mark** — **Done (February 2026)**  
+     - `StandardLens` and `StandardMark` now use the standard pipeline pattern: `StandardizeConsumerStandardLiteral` for `ShortName`, `StandardizeConsumerRender` for `Description`, and `StandardizeConsumerReferenceList` for `Mark` (Lens only).  
+     - No additional "split components from non-components" step is required, since `splitTaggedChildren` and the consumers already respect Remove/Replace semantics and avoid recursing into nested components.  
+     - As a side-effect of enabling the remainder check, `StandardExample` tests that pass Mark *facets* (Marks with `<Match>` payloads) now fail with `Unconsumed child tags` errors when those facet payloads are fed through the Mark *component* parser. We are treating this as a **deliberate signal** to drive TDD for facet-aware pipelines (e.g. deciding how facet `Match` payloads are parsed vs. left to higher-level facet handling, and whether `remainder` should be threaded into `processComponents` for Example/Guidance).
    - **Map**: Handle "Room with Position" as a step that consumes Room nodes that have Position children; remainder is the rest. Preserve ShortName and Image steps as in current logic.
-   - **Example / Guidance**: Handle Mark facets and any tag-tree filtering in step logic; ensure remainder is consistent. **Note:** Because of their facet/Mark complexity, `StandardExample` and `StandardGuidance` are *not* included in Phase 3 Step 5 and will be migrated here alongside Lens/Mark/Map.
+   - **Example / Guidance**: Handle Mark facets and any tag-tree filtering in step logic; ensure remainder is consistent. **Note:** Because of their facet/Mark complexity and the new failing tests around Mark facets with `<Match>` payloads, `StandardExample` and `StandardGuidance` are *not* included in Phase 3 Step 5 and will be migrated here alongside Map, with facet behavior and any `processComponents`/`remainder` threading decisions driven by those tests.
 
 7. **Align base Key/Parent stripping with the pipeline (optional)**
    - The component base already strips Key and Parent before calling `payload.fromSchema`. Optionally document this as the "first two conceptual steps" or leave as-is; either way, the payload's pipeline starts from "children without Key and Parent."
