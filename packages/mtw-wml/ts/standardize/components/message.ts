@@ -15,11 +15,16 @@ import { renderTreeToSchema, schemaToRenderTree } from "@tonylb/mtw-base/ts/rend
 import { ReferenceList } from "./reference"
 import StandardReference from "../keys/reference"
 import { StandardKey } from "../keys/key"
-import { findTaggedChildren } from "../../schema/utils"
 import { StandardReferenceData } from "./dataTypes/reference"
 import { deepEqual } from "../../lib/objects"
 import { StandardExplicitParent } from "../explicit"
 import { StandardLiteral } from "../literal"
+import {
+    processWithConsumers,
+    StandardizeConsumerReferenceList,
+    StandardizeConsumerRender,
+    StandardizeConsumerStandardLiteral,
+} from "./fromSchemaPipeline"
 
 export class StandardMessagePayload implements ComponentConstructorMethods<StandardMessageData> {
     _shortName?: StandardLiteral;
@@ -46,12 +51,29 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
 
     fromSchema(node: GenericTreeNode<SchemaTag>) {
         if (treeNodeTypeguard(isSchemaMessage)(node)) {
-            const shortNameItem = findTaggedChildren({ children: node.children, tag: 'ShortName' })
-            this._shortName = shortNameItem.length ? new StandardLiteral(shortNameItem, { tag: 'ShortName' }) : undefined
-            const descriptionNodes = findTaggedChildren({ children: node.children, tag: 'Description' })
-            const descriptionItem = descriptionNodes[0] as EditWrappedStandardNode<SchemaDescriptionTag, SchemaOutputTag> | undefined
-            this._description = extractStandardRender<SchemaDescriptionTag>(descriptionItem, isSchemaDescription, 'Schema mismatch in StandardMessage constructor')
-            this._rooms = new ReferenceList(findTaggedChildren({ children: node.children, tag: 'Room' }).map(childReferenceFactory))
+            const consumers = [
+                new StandardizeConsumerStandardLiteral(this, {
+                    tag: "ShortName",
+                    update(literal) {
+                        this._shortName = literal
+                    },
+                }),
+                new StandardizeConsumerRender<StandardMessagePayload, SchemaDescriptionTag>(this, {
+                    tag: "Description",
+                    nodeTypeGuard: isSchemaDescription,
+                    errorMessage: 'Schema mismatch in StandardMessage constructor',
+                    update(render) {
+                        this._description = render
+                    },
+                }),
+                new StandardizeConsumerReferenceList(this, {
+                    tag: "Room",
+                    update(list) {
+                        this._rooms = list
+                    },
+                }),
+            ]
+            processWithConsumers(this, consumers, node.children)
             return
         }
         throw new Error('Schema mismatch in StandardMessage constructor')

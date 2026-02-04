@@ -117,26 +117,62 @@ This design allows StandardRoom (and other "simple" components) to define an ord
 
 ### Phase 3: Roll Out to Remaining Components
 
-5. **Migrate remaining "simple" components**
-   - Components that only use tag-based consumption (e.g. Feature, Knowledge, Example, Character, Message, Moment, Image, Guidance) can be migrated to the same pipeline pattern.
-   - For each: define the ordered list of steps, replace `findTaggedChildren` with `splitTaggedChildren` and remainder passing, add final remainder check.
-   - Keep tests green and document any component-specific rules (e.g. order of steps).
+5. **Migrate remaining "simple" components** — **Done (February 2026)**
+   - Simple components that only use tag-based consumption were migrated to the same pipeline pattern as `StandardRoom`.
+   - **Migrated components (Phase 3 Step 5 scope):**
+     - `StandardFeature` (tags: `ShortName`, `Example`)
+     - `StandardKnowledge` (tags: `ShortName`, `Example`)
+     - `StandardCharacter` (tags: `ShortName`, `Pronouns`, `DisplayName`, `Image`)
+     - `StandardMessage` (tags: `ShortName`, `Description`, `Room`)
+     - `StandardMoment` (tags: `ShortName`, `Message`)
+     - `StandardImage` (tags: `ShortName`)
+   - For each of the above:
+     - Defined an ordered list of consumer steps and replaced `findTaggedChildren`-style scans with `processWithConsumers(this, consumers, node.children)`.
+     - Ensured the final remainder is empty; unknown or unexpected child tags now surface as `Unconsumed child tags: …` errors (subject to schema-layer validation).
+     - Kept existing behavior for all valid WML (round-trips and merge/diff tests remain green).
 
 6. **Migrate components with predicate or multi-tag steps**
    - **Lens / Mark**: First step splits by "is component child" vs "not"; run tag-based steps on the non-component remainder. Ensure reference lists (e.g. Marks inside Lens) still come from the component children.
    - **Map**: Handle "Room with Position" as a step that consumes Room nodes that have Position children; remainder is the rest. Preserve ShortName and Image steps as in current logic.
-   - **Example / Guidance**: Handle Mark facets and any tag-tree filtering in step logic; ensure remainder is consistent.
+   - **Example / Guidance**: Handle Mark facets and any tag-tree filtering in step logic; ensure remainder is consistent. **Note:** Because of their facet/Mark complexity, `StandardExample` and `StandardGuidance` are *not* included in Phase 3 Step 5 and will be migrated here alongside Lens/Mark/Map.
 
 7. **Align base Key/Parent stripping with the pipeline (optional)**
    - The component base already strips Key and Parent before calling `payload.fromSchema`. Optionally document this as the "first two conceptual steps" or leave as-is; either way, the payload's pipeline starts from "children without Key and Parent."
 
-### Phase 4: Cleanup and Hardening
+### Phase 4: Shift Validation from Schema to Standardize
 
-8. **Remove ad-hoc patterns**
-   - Once all components use the pipeline, remove any remaining per-component "scan the whole list again" patterns.
+8. **Relax schema-level child validation**
+   - Today, the schema converters (e.g. `schema/converters/components.ts`) attempt to enforce per-component child tag legality when building `Schema*Tag` nodes (e.g. rejecting `<Map>` under `<Message>`). This logic is clumsy compared to what the process-and-remainder pipeline can express.
+   - Adjust the schema layer so that component converters:
+     - Continue to validate **properties/attributes** and overall tag shape (e.g. required keys, UUID formats).
+     - Stop trying to deeply validate **child tag contents** beyond basic structural well-formedness. Children should be passed through as a generic `GenericTree<SchemaTag>` without per-component tag whitelists.
+   - The goal is that “is this tag allowed here?” becomes a **Standardize concern** enforced by `fromSchema` pipelines, not by the schema parser.
+
+9. **Centralize semantic child validation in pipelines**
+   - For each component with a `fromSchema` pipeline (Room, Feature, Knowledge, Character, Message, Moment, Image, and future Lens/Map/Example/Guidance/Mark):
+     - Treat the ordered consumer list as the single source of truth for “which child tags are legal here.”
+     - Rely on `processWithConsumers`’s final remainder check to flag any unknown or misplaced child tags as `Unconsumed child tags: …`.
+   - Where we previously duplicated simple tag validity rules in the schema converters (e.g. disallowing certain tags as children), remove or relax those checks once the corresponding component has a robust pipeline and unconsumed-tag tests.
+   - **Revisit unit tests that were previously constrained by schema validation** (e.g. the “illegal child tag” tests for Character, Message, Moment, Image) and re-enable or extend them so they construct now-schema-legal but semantically invalid child combinations, asserting that the Standardize pipeline (not the schema layer) throws the appropriate unconsumed-tag errors.
+
+10. **Simplify and document the division of responsibility**
+   - Update schema-layer documentation to clarify that:
+     - Schema parsing is responsible for **syntactic correctness** and property-level validation.
+     - Component payloads (`fromSchema` pipelines) are responsible for **semantic correctness** of child structures (which tags are accepted, in what combinations).
+   - Add notes to `AGENT.implementation.md` and relevant schema docs pointing back to this Phase 4, so future changes add new child-validation rules at the Standardize layer rather than reintroducing tight schema-level constraints.
+   - **Typeguard usage rubric** going forward:
+     - Keep typeguards that express **structural shape** of schema nodes (e.g. `isSchemaMessage`, `isSchemaDescription`, `isSchemaImage`, `isSchemaOutputTag`) and use them where we need to safely manipulate typed trees (building `StandardRender`, handling `Image` payloads, etc.).
+     - Keep root-level typeguards in `fromSchema` as cheap assertions that the payload was called with the correct `Schema*Tag` (good error messages, low complexity).
+     - Prefer removing or relaxing typeguard-based checks whose only purpose is to enforce **which child tags are allowed under a parent** at the schema layer; those rules should instead be encoded in the component’s consumer pipeline and enforced via the unconsumed-remainder check.
+     - When auditing existing code, treat “is this node structurally a X?” uses of typeguards as **still valuable**, and “is X allowed under Y?” uses as **legacy** candidates to be moved into the Standardize layer.
+
+### Phase 5: Cleanup and Hardening
+
+11. **Remove ad-hoc patterns**
+   - Once all components use the pipeline and schema-level child validation has been simplified, remove any remaining per-component "scan the whole list again" patterns.
    - Consider exporting a small set of shared step builders (e.g. "shortName step," "referenceList step for tag X") to keep component definitions concise and consistent.
 
-9. **Document and cross-reference**
+12. **Document and cross-reference**
    - Finalize the "fromSchema pipeline" section in component docs; link from [AGENT.md](./AGENT.md) or [AGENT.implementation.md](./AGENT.implementation.md) so future work (e.g. new WML tags or new components) follows the same pattern.
    - If this refactor is tracked in a master roadmap (e.g. [AGENT.development.md](../../../../AGENT.development.md)), add a short pointer and status there.
 
@@ -174,4 +210,6 @@ This design allows StandardRoom (and other "simple" components) to define an ord
 1. ~~Implement and test `splitTaggedChildren` (Phase 1, step 1).~~ Done.
 2. ~~Define the pipeline contract (Phase 1, step 2).~~ Done.
 3. ~~Refactor `StandardRoomPayload.fromSchema` to use the pipeline (Phase 2).~~ Done.
-4. Proceed with remaining components (Phases 3–4): migrate Feature, Knowledge, Example, Character, etc., then Lens/Map and predicate steps.
+4. Proceed with remaining components (Phases 3–4):  
+   - **Completed (Phase 3 Step 5):** migrate Feature, Knowledge, Character, Message, Moment, Image to the process-and-remainder pipeline.  
+   - **Upcoming (Phase 3 Step 6):** migrate Lens, Map, Example, Guidance, and other predicate/multi-tag components.

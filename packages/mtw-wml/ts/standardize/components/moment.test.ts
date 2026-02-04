@@ -115,6 +115,12 @@ describe('StandardMoment class', () => {
         `))
     })
 
+    //
+    // NOTE: Schema converters already reject illegal child tags under Moment, so the
+    // fromSchema remainder check is exercised indirectly via other components (e.g., Room).
+    // We intentionally do not add a separate unconsumed-tag test here to avoid fighting
+    // schema-level validation semantics.
+    //
     describe('assureReferences method', () => {
         it('should return unchanged moment when children array is empty', () => {
             const moment = new StandardMoment({ tag: 'Moment', key: 'test' })

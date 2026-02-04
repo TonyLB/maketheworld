@@ -4,7 +4,9 @@ import { GenericTree } from "@tonylb/mtw-base/ts/genericTree"
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { StandardLiteral } from "../literal"
 import { ReferenceList } from "./reference"
-import { StandardizeConsumerReferenceList, StandardizeConsumerSimple, StandardizeConsumerStandardLiteral, processWithConsumers } from "./fromSchemaPipeline"
+import { StandardRender } from "../render"
+import { isSchemaDescription, SchemaDescriptionTag } from "@tonylb/mtw-base/ts/schema/example"
+import { StandardizeConsumerReferenceList, StandardizeConsumerRender, StandardizeConsumerSimple, StandardizeConsumerStandardLiteral, processWithConsumers } from "./fromSchemaPipeline"
 
 describe("fromSchemaPipeline", () => {
     describe("StandardizeConsumerSimple", () => {
@@ -131,6 +133,52 @@ describe("fromSchemaPipeline", () => {
             })
             consumer.process(children)
             expect(mockContext.literal).toBeUndefined()
+        })
+    })
+
+    describe("StandardizeConsumerRender", () => {
+        it("with matching render tag: update is called with StandardRender, remainder is the rest", () => {
+            const tree = treeFromWML(deIndentWML(`
+                <Message key=(test)>
+                    <Description>Message Test</Description>
+                    <Room key=(testRoom) />
+                </Message>
+            `))
+            const children = tree[0].children
+            const mockContext = { render: undefined as StandardRender | undefined }
+            const consumer = new StandardizeConsumerRender<typeof mockContext, SchemaDescriptionTag>(mockContext, {
+                tag: "Description",
+                nodeTypeGuard: isSchemaDescription,
+                errorMessage: "Schema mismatch in test",
+                update(render) {
+                    mockContext.render = render
+                },
+            })
+            const remainder = consumer.process(children)
+            expect(mockContext.render).toBeInstanceOf(StandardRender)
+            expect(mockContext.render!.toJSON()).toEqual(["Message Test"])
+            expect(remainder).toHaveLength(1)
+            expect(remainder[0].data.tag).toBe("Room")
+        })
+
+        it("with no matching tag: update is called with undefined", () => {
+            const tree = treeFromWML(deIndentWML(`
+                <Message key=(test)>
+                    <Room key=(testRoom) />
+                </Message>
+            `))
+            const children = tree[0].children
+            const mockContext = { render: undefined as StandardRender | undefined }
+            const consumer = new StandardizeConsumerRender<typeof mockContext, SchemaDescriptionTag>(mockContext, {
+                tag: "Description",
+                nodeTypeGuard: isSchemaDescription,
+                errorMessage: "Schema mismatch in test",
+                update(render) {
+                    mockContext.render = render
+                },
+            })
+            consumer.process(children)
+            expect(mockContext.render).toBeUndefined()
         })
     })
 

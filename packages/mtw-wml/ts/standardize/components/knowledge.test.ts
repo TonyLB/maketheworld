@@ -97,6 +97,17 @@ describe('StandardKnowledge class', () => {
         `))
     })
 
+    it('should throw on unconsumed child tags', () => {
+        const testSource = deIndentWML(`
+            <Knowledge key=(testKnowledge)>
+                <Example key=(Example1) />
+                <Map />
+            </Knowledge>
+        `)
+        expect(() => new StandardKnowledge(testSource)).toThrow(/Unconsumed child tags:/)
+        expect(() => new StandardKnowledge(testSource)).toThrow(/Map/)
+    })
+
     it('should correctly add an example reference to knowledge', () => {
         const test = new StandardKnowledge(`
             <Knowledge key=(testKnowledge)>
