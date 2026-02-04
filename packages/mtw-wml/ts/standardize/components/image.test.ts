@@ -60,5 +60,11 @@ describe('StandardImage class', () => {
         })
         expect(testImage.diff(testImage)).toBeUndefined()
     })
-    
+
+    //
+    // NOTE: Schema converters already reject illegal child tags under Image, so the
+    // fromSchema remainder check is exercised indirectly via other components (e.g., Room).
+    // We intentionally do not add a separate unconsumed-tag test here to avoid fighting
+    // schema-level validation semantics.
+    //
 })

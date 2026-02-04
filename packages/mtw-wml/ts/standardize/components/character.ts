@@ -3,18 +3,22 @@ import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-bas
 import { EditWrappedStandardNode } from "../baseClasses"
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
 import { StandardCharacterData } from "./dataTypes/character"
-import { AssetUUID, ComponentUUID, isSchemaCharacter, isSchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { AssetUUID, ComponentUUID, isSchemaCharacter, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaImage, SchemaImageTag } from "@tonylb/mtw-base/ts/schema/image"
+import { isSchemaDisplayName, SchemaDisplayNameTag } from "@tonylb/mtw-base/ts/schema/example"
 import { StandardLiteral } from "../literal"
-import SchemaTagTree from "../../tagTree/schema"
-import { findTaggedChildren } from "../../schema/utils"
 import { StandardComponent, StandardComponentReferenceKey } from "./baseClasses"
 import StandardReference from "../keys/reference"
 import { StandardKey } from "../keys/key"
 import { StandardRender } from "../render"
 import { rebuildSchemaFromStandardRender } from "./utils/extractStandardRender"
-import { wrappedNodeTypeGuard } from "../../schema/utils"
 import { StandardExplicitParent } from "../explicit"
+import {
+    processWithConsumers,
+    StandardizeConsumerRender,
+    StandardizeConsumerSimple,
+    StandardizeConsumerStandardLiteral,
+} from "./fromSchemaPipeline"
 
 export class StandardCharacterPayload implements ComponentConstructorMethods<StandardCharacterData> {
     _displayName?: StandardRender;
@@ -42,16 +46,47 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
 
     fromSchema(node: GenericTreeNode<SchemaTag>) {
         if (treeNodeTypeguard(isSchemaCharacter)(node)) {
-            const tagTree = new SchemaTagTree(node.children)
-            const shortNameItem = findTaggedChildren({ children: node.children, tag: 'ShortName' })
-            this._shortName = shortNameItem.length ? new StandardLiteral(shortNameItem, { tag: 'ShortName' }) : undefined
-            const pronounsItem = findTaggedChildren({ children: node.children, tag: 'Pronouns' })
-            this._pronouns = pronounsItem.length ? new StandardLiteral(pronounsItem, { tag: 'Pronouns' }) : undefined
-            const displayNameItem = tagTree.filter({ match: 'DisplayName' }).prune({ match: 'DisplayName' }).tree.filter(wrappedNodeTypeGuard(isSchemaOutputTag))
-            if (displayNameItem.length) {
-                this._displayName = new StandardRender(displayNameItem)
-            }
-            this._image = node.children.find(treeNodeTypeguard(isSchemaImage))
+            const consumers = [
+                new StandardizeConsumerStandardLiteral(this, {
+                    tag: "ShortName",
+                    update(literal) {
+                        this._shortName = literal
+                    },
+                }),
+                new StandardizeConsumerStandardLiteral(this, {
+                    tag: "Pronouns",
+                    update(literal) {
+                        this._pronouns = literal
+                    },
+                }),
+                new StandardizeConsumerRender<StandardCharacterPayload, SchemaDisplayNameTag>(this, {
+                    tag: "DisplayName",
+                    nodeTypeGuard: isSchemaDisplayName,
+                    errorMessage: 'Schema mismatch in StandardCharacter constructor',
+                    update(render) {
+                        this._displayName = render
+                    },
+                }),
+                new StandardizeConsumerSimple(this, {
+                    tag: "Image",
+                    update(matched) {
+                        const findImage = (nodes: GenericTree<SchemaTag>): EditWrappedStandardNode<SchemaImageTag, SchemaTag> | undefined => {
+                            for (const node of nodes) {
+                                if (treeNodeTypeguard(isSchemaImage)(node)) {
+                                    return node as EditWrappedStandardNode<SchemaImageTag, SchemaTag>
+                                }
+                                const childFound = findImage(node.children)
+                                if (childFound) {
+                                    return childFound
+                                }
+                            }
+                            return undefined
+                        }
+                        this._image = findImage(matched)
+                    },
+                }),
+            ]
+            processWithConsumers(this, consumers, node.children)
             return
         }
         throw new Error('Schema mismatch in StandardCharacter constructor')

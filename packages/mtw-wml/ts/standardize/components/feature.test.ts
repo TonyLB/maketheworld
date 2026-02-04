@@ -97,6 +97,17 @@ describe('StandardFeature class', () => {
         `))
     })
 
+    it('should throw on unconsumed child tags', () => {
+        const testSource = deIndentWML(`
+            <Feature key=(testFeature)>
+                <Example key=(Example1) />
+                <Map />
+            </Feature>
+        `)
+        expect(() => new StandardFeature(testSource)).toThrow(/Unconsumed child tags:/)
+        expect(() => new StandardFeature(testSource)).toThrow(/Map/)
+    })
+
 
     it('should correctly add an example reference to a feature', () => {
         const test = new StandardFeature(`

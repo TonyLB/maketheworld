@@ -155,6 +155,13 @@ describe('StandardMessage class', () => {
         expect(outputJSON.rooms).toBeUndefined()
     })
 
+    //
+    // NOTE: Schema converters already reject illegal child tags under Message, so the
+    // fromSchema remainder check is exercised indirectly via other components (e.g., Room).
+    // We intentionally do not add a separate unconsumed-tag test here to avoid fighting
+    // schema-level validation semantics.
+    //
+
     describe('assureReferences method', () => {
         it('should return unchanged message when children array is empty', () => {
             const message = new StandardMessage({ tag: 'Message', key: 'test' })

@@ -9,7 +9,10 @@ import { StandardKey } from "../keys/key";
 import { StandardExplicitParent } from "../explicit"
 import { StandardLiteral } from "../literal"
 import { excludeUndefined } from "../../lib/lists"
-import { findTaggedChildren } from "../../schema/utils"
+import {
+    processWithConsumers,
+    StandardizeConsumerStandardLiteral,
+} from "./fromSchemaPipeline"
 
 export class StandardImagePayload implements ComponentConstructorMethods<StandardImageData> {
     _shortName?: StandardLiteral;
@@ -27,8 +30,15 @@ export class StandardImagePayload implements ComponentConstructorMethods<Standar
 
     fromSchema(node: GenericTreeNode<SchemaTag>) {
         if (treeNodeTypeguard(isSchemaImage)(node)) {
-            const shortNameItem = findTaggedChildren({ children: node.children, tag: 'ShortName' })
-            this._shortName = shortNameItem.length ? new StandardLiteral(shortNameItem, { tag: 'ShortName' }) : undefined
+            const consumers = [
+                new StandardizeConsumerStandardLiteral(this, {
+                    tag: "ShortName",
+                    update(literal) {
+                        this._shortName = literal
+                    },
+                }),
+            ]
+            processWithConsumers(this, consumers, node.children)
             return
         }
         throw new Error('Schema mismatch in StandardImage constructor')

@@ -9,6 +9,8 @@ import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { splitTaggedChildren } from "../../schema/utils"
 import { ReferenceList } from "./reference"
 import { StandardLiteral } from "../literal"
+import { StandardRender } from "../render"
+import { extractStandardRender } from "./utils/extractStandardRender"
 
 export interface StandardizeConsumer {
     process(children: GenericTree<SchemaTag>): GenericTree<SchemaTag>
@@ -86,6 +88,34 @@ export class StandardizeConsumerStandardLiteral<D extends object = object> imple
         })
         const literal = matched.length > 0 ? new StandardLiteral(matched, { tag: this.options.tag }) : undefined
         this.options.update.call(this.context, literal)
+        return remainder
+    }
+}
+
+/**
+ * Consumer that consumes one render-bearing tag, builds a StandardRender using extractStandardRender,
+ * and calls update(context, render). Pass undefined when no nodes matched (so optional fields can be cleared).
+ * Use for Description, DisplayName, Summary, etc.
+ */
+export class StandardizeConsumerRender<D extends object = object, S extends SchemaTag = SchemaTag> implements StandardizeConsumer {
+    constructor(
+        private readonly context: D,
+        private readonly options: {
+            tag: SchemaTag["tag"]
+            nodeTypeGuard: (data: SchemaTag) => data is S
+            errorMessage: string
+            update: (this: D, render: StandardRender | undefined) => void
+        }
+    ) {}
+
+    process(children: GenericTree<SchemaTag>): GenericTree<SchemaTag> {
+        const { matched, remainder } = splitTaggedChildren({
+            children,
+            tag: this.options.tag,
+        })
+        const first = matched[0] as any | undefined
+        const render = extractStandardRender(first, this.options.nodeTypeGuard, this.options.errorMessage)
+        this.options.update.call(this.context, render)
         return remainder
     }
 }

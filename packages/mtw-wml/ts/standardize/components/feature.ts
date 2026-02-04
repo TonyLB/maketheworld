@@ -1,11 +1,8 @@
 import { excludeUndefined } from "../../lib/lists"
-import { findTaggedChildren } from "../../schema/utils"
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
 import { NestedSchemaOptions, StandardComponent, StandardComponentReferenceKey, StandardDiffOptions } from "./baseClasses"
 import { StandardFeatureData } from "./dataTypes/feature"
-import { childReferenceFactory, ReferenceFormat } from "./utils/references"
-import { StandardToJSONOptions } from "./baseClasses"
 import { ReferenceList } from "./reference"
 import StandardReference from "../keys/reference"
 import { StandardKey } from "../keys/key"
@@ -17,6 +14,11 @@ import { renderReference } from "./utils/schema"
 import { HasShortName } from "./abstract"
 import { StandardLiteral } from "../literal"
 import { StandardExplicitParent } from "../explicit"
+import {
+    processWithConsumers,
+    StandardizeConsumerReferenceList,
+    StandardizeConsumerStandardLiteral,
+} from "./fromSchemaPipeline"
 
 export class StandardFeaturePayload implements HasShortName, ComponentConstructorMethods<StandardFeatureData> {
     _shortName?: StandardLiteral;
@@ -41,9 +43,21 @@ export class StandardFeaturePayload implements HasShortName, ComponentConstructo
 
     fromSchema(node: GenericTreeNode<SchemaTag>) {
         if (treeNodeTypeguard(isSchemaFeature)(node)) {
-            const shortNameItem = findTaggedChildren({ children: node.children, tag: 'ShortName' })
-            this._shortName = shortNameItem.length ? new StandardLiteral(shortNameItem, { tag: 'ShortName' }) : undefined
-            this._examples = new ReferenceList(findTaggedChildren({ children: node.children, tag: 'Example' }).map(childReferenceFactory))
+            const consumers = [
+                new StandardizeConsumerStandardLiteral(this, {
+                    tag: "ShortName",
+                    update(literal) {
+                        this._shortName = literal
+                    },
+                }),
+                new StandardizeConsumerReferenceList(this, {
+                    tag: "Example",
+                    update(list) {
+                        this._examples = list
+                    },
+                }),
+            ]
+            processWithConsumers(this, consumers, node.children)
             return
         }
         throw new Error('Schema mismatch in StandardFeature constructor')

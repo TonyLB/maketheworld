@@ -2,7 +2,7 @@ import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-bas
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
 import { NestedSchemaOptions, StandardComponent, StandardComponentReferenceKey, StandardDiffOptions } from "./baseClasses"
 import { StandardMomentData } from "./dataTypes/moment"
-import { childReferenceFactory, ReferenceFormat } from "./utils/references"
+import { ReferenceFormat } from "./utils/references"
 import { AssetUUID, ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaMoment } from "@tonylb/mtw-base/ts/schema/components"
 import { ReferenceList } from "./reference"
@@ -11,9 +11,13 @@ import { StandardKey } from "../keys/key"
 import { StandardReferenceData } from "./dataTypes/reference"
 import { StandardExplicitParent } from "../explicit"
 import { excludeUndefined } from "../../lib/lists"
-import { findTaggedChildren } from "../../schema/utils"
 import { renderReference } from "./utils/schema"
 import { StandardLiteral } from "../literal"
+import {
+    processWithConsumers,
+    StandardizeConsumerReferenceList,
+    StandardizeConsumerStandardLiteral,
+} from "./fromSchemaPipeline"
 
 export class StandardMomentPayload implements ComponentConstructorMethods<StandardMomentData> {
     _shortName?: StandardLiteral;
@@ -37,9 +41,21 @@ export class StandardMomentPayload implements ComponentConstructorMethods<Standa
 
     fromSchema(node: GenericTreeNode<SchemaTag>) {
         if (treeNodeTypeguard(isSchemaMoment)(node)) {
-            const shortNameItem = findTaggedChildren({ children: node.children, tag: 'ShortName' })
-            this._shortName = shortNameItem.length ? new StandardLiteral(shortNameItem, { tag: 'ShortName' }) : undefined
-            this._messages = new ReferenceList(findTaggedChildren({ children: node.children, tag: 'Message' }).map(childReferenceFactory))
+            const consumers = [
+                new StandardizeConsumerStandardLiteral(this, {
+                    tag: "ShortName",
+                    update(literal) {
+                        this._shortName = literal
+                    },
+                }),
+                new StandardizeConsumerReferenceList(this, {
+                    tag: "Message",
+                    update(list) {
+                        this._messages = list
+                    },
+                }),
+            ]
+            processWithConsumers(this, consumers, node.children)
             return
         }
         throw new Error('Schema mismatch in StandardMoment constructor')
