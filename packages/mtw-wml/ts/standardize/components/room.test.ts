@@ -66,6 +66,17 @@ describe('StandardRoom class', () => {
         `))
     })
 
+    it('should throw when Room contains unconsumed child tags', () => {
+        const testSource = deIndentWML(`
+            <Room key=(test)>
+                <ShortName>Name</ShortName>
+                <Map />
+            </Room>
+        `)
+        expect(() => new StandardRoom(testSource)).toThrow(/Unconsumed child tags/)
+        expect(() => new StandardRoom(testSource)).toThrow(/Map/)
+    })
+
     it('should construct StandardRoom from StandardRoomData', () => {
         const testRoomData: StandardRoomData = {
             key: 'test',

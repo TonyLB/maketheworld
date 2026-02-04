@@ -1,11 +1,10 @@
 import { excludeUndefined } from "../../lib/lists"
-import { findTaggedChildren } from "../../schema/utils"
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { HasShortName } from "./abstract"
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
 import { NestedSchemaOptions, StandardComponent, StandardComponentReferenceKey, StandardDiffOptions } from "./baseClasses"
 import { StandardRoomData } from "./dataTypes/room"
-import { childReferenceFactory, ReferenceFormat } from "./utils/references"
+import { ReferenceFormat } from "./utils/references"
 import { StandardToJSONOptions } from "./baseClasses"
 import { ReferenceList } from "./reference"
 import StandardReference from "../keys/reference"
@@ -21,6 +20,7 @@ import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { ExitFacetList, StandardExitFacet } from "../keys/facets/exit"
 import { StandardExplicitParent } from "../explicit"
 import { StandardFormSubsetRequest } from "../baseClasses"
+import { processWithConsumers, StandardizeConsumerReferenceList, StandardizeConsumerSimple, StandardizeConsumerStandardLiteral } from "./fromSchemaPipeline"
 
 export class StandardRoomPayload implements HasShortName, ComponentConstructorMethods<StandardRoomData> {
     _shortName?: StandardLiteral;
@@ -65,27 +65,40 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
 
     fromSchema(node: GenericTreeNode<SchemaTag>) {
         if (treeNodeTypeguard(isSchemaRoom)(node)) {
-            const shortNameNode = findTaggedChildren({ children: node.children, tag: 'ShortName' })
-            this._shortName = shortNameNode.length ? new StandardLiteral(shortNameNode, { tag: 'ShortName' }) : undefined
-            // Parse Exit facets (Exit tags)
-            // findTaggedChildren handles Remove and Replace wrappers automatically
-            const exitNodes = findTaggedChildren({ children: node.children, tag: 'Exit' })
-            const parsedFacets = exitNodes.map(exitNode => {
-                // Create StandardExitFacet directly from schema - it will handle Replace/Remove/Plain dispatch
-                // StandardExitFacet constructor accepts GenericTree<SchemaTag> and handles parsing internally
-                try {
-                    return new StandardExitFacet([exitNode])
-                }
-                catch (e) {
-                    return undefined
-                }
-            }).filter(excludeUndefined)
-            this._exits = new ExitFacetList(parsedFacets)
-            this._lenses = new ReferenceList(findTaggedChildren({ children: node.children, tag: 'Lens' }).map(childReferenceFactory))
-            this._features = new ReferenceList(findTaggedChildren({ children: node.children, tag: 'Feature' }).map(childReferenceFactory))
-            this._examples = new ReferenceList(findTaggedChildren({ children: node.children, tag: 'Example' }).map(childReferenceFactory))
-            this._guidance = new ReferenceList(findTaggedChildren({ children: node.children, tag: 'Guidance' }).map(childReferenceFactory))
-            this._characters = new ReferenceList(findTaggedChildren({ children: node.children, tag: 'Character' }).map(childReferenceFactory))
+            // Process-and-remainder pipeline: each step consumes one tag and passes remainder to the next.
+            // Unconsumed children (e.g. unknown tags) cause processWithConsumers to throw. See AGENT.fromSchema.planning.md.
+            const consumers = [
+                new StandardizeConsumerStandardLiteral(this, {
+                    tag: "ShortName",
+                    update(literal) {
+                        this._shortName = literal
+                    },
+                }),
+                new StandardizeConsumerSimple(this, {
+                    tag: "Exit",
+                    update(matched) {
+                        const parsedFacets = matched.map((exitNode) => {
+                            try {
+                                return new StandardExitFacet([exitNode])
+                            } catch {
+                                return undefined
+                            }
+                        }).filter(excludeUndefined)
+                        this._exits = new ExitFacetList(parsedFacets)
+                    },
+                }),
+                new StandardizeConsumerReferenceList(this, { tag: "Lens", update(list) { this._lenses = list } }),
+                new StandardizeConsumerReferenceList(this, { tag: "Feature", update(list) { this._features = list } }),
+                new StandardizeConsumerReferenceList(this, { tag: "Example", update(list) { this._examples = list } }),
+                new StandardizeConsumerReferenceList(this, { tag: "Guidance", update(list) { this._guidance = list } }),
+                new StandardizeConsumerReferenceList(this, { tag: "Character", update(list) { this._characters = list } }),
+                // Position is consumed as no-op for backward compatibility (Room may contain Position from Map context; we do not store it).
+                new StandardizeConsumerSimple(this, { tag: "Position", update: () => {} }),
+                // Grant and DisplayName consumed as no-op so Room accepts WML that previously was silently ignored.
+                new StandardizeConsumerSimple(this, { tag: "Grant", update: () => {} }),
+                new StandardizeConsumerSimple(this, { tag: "DisplayName", update: () => {} }),
+            ]
+            processWithConsumers(this, consumers, node.children)
             return
         }
         throw new Error('Schema mismatch in StandardRoom constructor')

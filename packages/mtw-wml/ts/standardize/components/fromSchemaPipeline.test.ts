@@ -2,8 +2,9 @@ import { treeFromWML } from "../../schema"
 import { deIndentWML } from "../../schema/utils"
 import { GenericTree } from "@tonylb/mtw-base/ts/genericTree"
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
-import { StandardComponent } from "./baseClasses"
-import { StandardizeConsumerSimple, processWithConsumers } from "./fromSchemaPipeline"
+import { StandardLiteral } from "../literal"
+import { ReferenceList } from "./reference"
+import { StandardizeConsumerReferenceList, StandardizeConsumerSimple, StandardizeConsumerStandardLiteral, processWithConsumers } from "./fromSchemaPipeline"
 
 describe("fromSchemaPipeline", () => {
     describe("StandardizeConsumerSimple", () => {
@@ -13,7 +14,7 @@ describe("fromSchemaPipeline", () => {
             const mockContext = { value: undefined as GenericTree<SchemaTag> | undefined }
             const update = jest.fn<void, [GenericTree<SchemaTag>]>()
             const consumer = new StandardizeConsumerSimple(
-                mockContext as unknown as StandardComponent,
+                mockContext,
                 { tag: "ShortName", update }
             )
             const remainder = consumer.process(children)
@@ -33,7 +34,7 @@ describe("fromSchemaPipeline", () => {
             const mockContext = { value: undefined as GenericTree<SchemaTag> | undefined }
             const update = jest.fn<void, [GenericTree<SchemaTag>]>()
             const consumer = new StandardizeConsumerSimple(
-                mockContext as unknown as StandardComponent,
+                mockContext,
                 { tag: "ShortName", update }
             )
             const remainder = consumer.process(children)
@@ -56,13 +57,80 @@ describe("fromSchemaPipeline", () => {
             const mockContext = { value: undefined as GenericTree<SchemaTag> | undefined }
             const update = jest.fn<void, [GenericTree<SchemaTag>]>()
             const consumer = new StandardizeConsumerSimple(
-                mockContext as unknown as StandardComponent,
+                mockContext,
                 { tag: "ShortName", update }
             )
             const remainder = consumer.process(children)
             expect(update).not.toHaveBeenCalled()
             expect(remainder).toHaveLength(2)
             expect(remainder.map((n) => n.data.tag)).toEqual(["Feature", "Example"])
+        })
+    })
+
+    describe("StandardizeConsumerReferenceList", () => {
+        it("with matching tag: update is called with ReferenceList, remainder is the rest", () => {
+            const roomTree = treeFromWML(deIndentWML(`
+                <Room key=(test)>
+                    <Feature key=(f1) />
+                    <ShortName>Name</ShortName>
+                </Room>
+            `))
+            const children = roomTree[0].children
+            const mockContext = { list: undefined as ReferenceList | undefined }
+            const consumer = new StandardizeConsumerReferenceList(mockContext, {
+                tag: "Feature",
+                update(list) {
+                    mockContext.list = list
+                },
+            })
+            const remainder = consumer.process(children)
+            expect(mockContext.list).toBeInstanceOf(ReferenceList)
+            expect(mockContext.list!.payload).toHaveLength(1)
+            expect(mockContext.list!.payload[0].key).toBe("f1")
+            expect(remainder).toHaveLength(1)
+            expect(remainder[0].data.tag).toBe("ShortName")
+        })
+    })
+
+    describe("StandardizeConsumerStandardLiteral", () => {
+        it("with matching tag: update is called with StandardLiteral, remainder is the rest", () => {
+            const roomTree = treeFromWML(deIndentWML(`
+                <Room key=(test)>
+                    <ShortName>Main Room</ShortName>
+                    <Feature key=(f1) />
+                </Room>
+            `))
+            const children = roomTree[0].children
+            const mockContext = { literal: undefined as StandardLiteral | undefined }
+            const consumer = new StandardizeConsumerStandardLiteral(mockContext, {
+                tag: "ShortName",
+                update(literal) {
+                    mockContext.literal = literal
+                },
+            })
+            const remainder = consumer.process(children)
+            expect(mockContext.literal).toBeInstanceOf(StandardLiteral)
+            expect(mockContext.literal!.toJSON()).toBe("Main Room")
+            expect(remainder).toHaveLength(1)
+            expect(remainder[0].data.tag).toBe("Feature")
+        })
+
+        it("with no matching tag: update is called with undefined", () => {
+            const roomTree = treeFromWML(deIndentWML(`
+                <Room key=(test)>
+                    <Feature key=(f1) />
+                </Room>
+            `))
+            const children = roomTree[0].children
+            const mockContext = { literal: undefined as StandardLiteral | undefined }
+            const consumer = new StandardizeConsumerStandardLiteral(mockContext, {
+                tag: "ShortName",
+                update(literal) {
+                    mockContext.literal = literal
+                },
+            })
+            consumer.process(children)
+            expect(mockContext.literal).toBeUndefined()
         })
     })
 
@@ -75,7 +143,7 @@ describe("fromSchemaPipeline", () => {
             `))
             const children = roomTree[0].children
             const mockContext = { value: undefined as GenericTree<SchemaTag> | undefined }
-            const consumer = new StandardizeConsumerSimple(mockContext as unknown as StandardComponent, {
+            const consumer = new StandardizeConsumerSimple(mockContext, {
                 tag: "ShortName",
                 update(nodes) {
                     mockContext.value = nodes
@@ -96,13 +164,13 @@ describe("fromSchemaPipeline", () => {
             const shortNameReceived: GenericTree<SchemaTag>[] = []
             const featureReceived: GenericTree<SchemaTag>[] = []
             const mockContext = {}
-            const c1 = new StandardizeConsumerSimple(mockContext as unknown as StandardComponent, {
+            const c1 = new StandardizeConsumerSimple(mockContext, {
                 tag: "ShortName",
                 update(nodes) {
                     shortNameReceived.push(nodes)
                 },
             })
-            const c2 = new StandardizeConsumerSimple(mockContext as unknown as StandardComponent, {
+            const c2 = new StandardizeConsumerSimple(mockContext, {
                 tag: "Feature",
                 update(nodes) {
                     featureReceived.push(nodes)
@@ -124,7 +192,7 @@ describe("fromSchemaPipeline", () => {
             `))
             const children = roomTree[0].children
             const mockContext = {}
-            const consumer = new StandardizeConsumerSimple(mockContext as unknown as StandardComponent, {
+            const consumer = new StandardizeConsumerSimple(mockContext, {
                 tag: "ShortName",
                 update() {},
             })

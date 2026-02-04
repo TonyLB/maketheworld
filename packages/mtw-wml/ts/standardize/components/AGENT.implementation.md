@@ -90,6 +90,7 @@ The component system maintains a clear separation between:
 - **Purpose**: Represents rooms with name, description, exits, features, and characters
 - **Content Properties**: `name`, `description` (both `StandardRender`)
 - **Reference Properties**: `features`, `examples`, `characters` (all `ReferenceList`)
+- **fromSchema**: Uses the process-and-remainder pipeline. Accepted child tags: ShortName, Exit, Lens, Feature, Example, Guidance, Character, Position (no-op), Grant, DisplayName (no-ops for backward compatibility). See [fromSchema: process-and-remainder pipeline](#fromschema-process-and-remainder-pipeline) below.
 
 ## Architectural Patterns
 
@@ -128,6 +129,15 @@ This principle ensures that:
 - Empty arrays/objects don't clutter serialized data
 - Required identifiers are always present for component identification
 - Storage and transmission formats remain efficient
+
+### fromSchema: process-and-remainder pipeline
+
+Payloads that parse from WML schema use a **process-and-remainder pipeline** so that each child is consumed exactly once and unknown tags are rejected.
+
+- **Pattern:** The payload builds an ordered list of `StandardizeConsumer` steps and calls `processWithConsumers(this, consumers, node.children)`. Each step consumes one (or more) tag(s) from the current children and returns the remainder for the next step. The runner throws if the final remainder is non-empty.
+- **Rule:** Unconsumed child tags are an error (no silent ignore). The error message lists unconsumed tag names (e.g. `Unconsumed child tags: Map`).
+- **Simple components:** Use `StandardizeConsumerSimple` with `{ tag, update }`; the order of steps is the contract for what the component accepts. Tags that should be accepted but not stored (e.g. Position, Grant) use a no-op `update`.
+- **Reference:** Full design and migration status: [AGENT.fromSchema.planning.md](./AGENT.fromSchema.planning.md).
 
 ### assureReferences Method
 
