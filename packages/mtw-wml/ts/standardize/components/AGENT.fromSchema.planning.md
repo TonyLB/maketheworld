@@ -103,17 +103,17 @@ This design allows StandardRoom (and other "simple" components) to define an ord
    - Pipeline runs via this shared helper: each payload's `fromSchema` builds its ordered list of consumers and calls `processWithConsumers(this, consumers, node.children)`; the pattern is reused across Room, Feature, Lens, etc.
    - Util: `packages/mtw-wml/ts/standardize/components/fromSchemaPipeline.ts`; tests: `fromSchemaPipeline.test.ts`.
 
-### Phase 2: Migrate One Component End-to-End
+### Phase 2: Migrate One Component End-to-End — **Done (February 2025)**
 
-3. **Refactor one component to the pipeline**
-   - Choose **StandardRoom** as the first (many tags, no predicate split).
-   - Replace the current sequence of `findTaggedChildren` calls with a process-and-remainder pipeline using `splitTaggedChildren`.
-   - Add the **remainder check**: after the last step, if `remainder.length > 0`, throw a clear error (e.g. list unconsumed tags).
-   - Preserve existing behavior for all valid Room WML; add or adjust tests so that invalid/misplaced tags (e.g. Map inside Room) are rejected with a clear error.
+**Summary:** StandardRoom migrated to the process-and-remainder pipeline; remainder check in place; unconsumed-tag tests added; no-op consumers for Position, Grant, DisplayName preserve backward compatibility; full test suite green; AGENT.implementation.md updated with pipeline pattern.
 
-4. **Validate and document**
-   - Run full mtw-wml test suite; fix any regressions.
-   - Update [AGENT.implementation.md](./AGENT.implementation.md) (or a dedicated subsection) to describe the new fromSchema pattern and the "unconsumed = error" rule.
+3. **Refactor one component to the pipeline** — **Done**
+   - **StandardRoom** refactored: ordered consumers (ShortName, Exit, Lens, Feature, Example, Guidance, Character, Position, Grant, DisplayName), `processWithConsumers(this, consumers, node.children)`; remainder check throws with unconsumed tag names.
+   - Preserved existing behavior for all valid Room WML; invalid/misplaced tags (e.g. Map inside Room) are rejected with a clear error.
+
+4. **Validate and document** — **Done**
+   - Full mtw-wml test suite passing; regressions fixed (added no-op consumers for Grant, Edit, DisplayName where tests expected silent ignore).
+   - [AGENT.implementation.md](./AGENT.implementation.md) updated with "fromSchema: process-and-remainder pipeline" subsection and unconsumed = error rule.
 
 ### Phase 3: Roll Out to Remaining Components
 
@@ -173,5 +173,5 @@ This design allows StandardRoom (and other "simple" components) to define an ord
 
 1. ~~Implement and test `splitTaggedChildren` (Phase 1, step 1).~~ Done.
 2. ~~Define the pipeline contract (Phase 1, step 2).~~ Done.
-3. Refactor `StandardRoomPayload.fromSchema` to use the pipeline (Phase 2).
-4. Add unconsumed-remainder error and tests; then proceed with remaining components (Phases 3–4).
+3. ~~Refactor `StandardRoomPayload.fromSchema` to use the pipeline (Phase 2).~~ Done.
+4. Proceed with remaining components (Phases 3–4): migrate Feature, Knowledge, Example, Character, etc., then Lens/Map and predicate steps.
