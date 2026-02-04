@@ -463,6 +463,17 @@ describe('StandardMark class', () => {
         expect(testMark._payload.isEmpty()).toBe(false)
     })
 
+    it('should throw when Mark contains unconsumed child tags', () => {
+        const testSource = deIndentWML(`
+            <Mark key=(test)>
+                <ShortName>Test</ShortName>
+                <Room key=(unexpectedRoom) />
+            </Mark>
+        `)
+        expect(() => new StandardMark(testSource)).toThrow(/Unconsumed child tags/)
+        expect(() => new StandardMark(testSource)).toThrow(/Room/)
+    })
+
 })
 
 describe('StandardLens class', () => {
@@ -842,6 +853,17 @@ describe('StandardLens class', () => {
         expect(testLens.description).toBeUndefined()
         expect(testLens.marks.payload.length).toEqual(1)
         expect(testLens._payload.isEmpty()).toBe(false)
+    })
+
+    it('should throw when Lens contains unconsumed child tags', () => {
+        const testSource = deIndentWML(`
+            <Lens key=(test)>
+                <ShortName>Test Lens</ShortName>
+                <Room key=(unexpectedRoom) />
+            </Lens>
+        `)
+        expect(() => new StandardLens(testSource)).toThrow(/Unconsumed child tags/)
+        expect(() => new StandardLens(testSource)).toThrow(/Room/)
     })
 
 })

@@ -1,5 +1,5 @@
 import { excludeUndefined } from "../../lib/lists"
-import { findTaggedChildren, wrappedNodeTypeGuard } from "../../schema/utils"
+import { wrappedNodeTypeGuard } from "../../schema/utils"
 import SchemaTagTree from "../../tagTree/schema"
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
@@ -10,7 +10,7 @@ import { rebuildSchemaFromStandardRender } from "./utils/extractStandardRender"
 import { StandardToJSONOptions } from "./baseClasses"
 import { StandardMarkData } from "./dataTypes/mark"
 import { StandardLensData } from "./dataTypes/lens"
-import { AssetUUID, ComponentUUID, isSchemaOutputTag, SchemaTag, isSchemaComponent } from "@tonylb/mtw-base/ts/schema"
+import { AssetUUID, ComponentUUID, isSchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaMark, isSchemaLens } from "@tonylb/mtw-base/ts/schema/worldState"
 import { deepEqual } from "../../lib/objects"
 import { renderTreeToSchema, schemaToRenderTree, RenderTree } from "@tonylb/mtw-base/ts/renderTree"
@@ -21,6 +21,13 @@ import { StandardLiteral } from "../literal"
 import { ReferenceList } from "../keys/referenceList"
 import { renderReference } from "./utils/schema"
 import { StandardEditableData, extractFromEditableData } from "@tonylb/mtw-base/ts/editable"
+import {
+    processWithConsumers,
+    StandardizeConsumerReferenceList,
+    StandardizeConsumerRender,
+    StandardizeConsumerStandardLiteral,
+} from "./fromSchemaPipeline"
+import { SchemaDescriptionTag, isSchemaDescription } from "@tonylb/mtw-base/ts/schema/example"
 
 export class StandardMarkPayload implements HasShortName, ComponentConstructorMethods<StandardMarkData> {
     _shortName?: StandardLiteral;
@@ -42,17 +49,23 @@ export class StandardMarkPayload implements HasShortName, ComponentConstructorMe
 
     fromSchema(node: GenericTreeNode<SchemaTag>) {
         if (treeNodeTypeguard(isSchemaMark)(node)) {
-            // Filter out component children to avoid including nested ShortName tags from child components
-            const nonComponentChildren = node.children.filter((child) => !isSchemaComponent(child.data))
-            const shortNameItem = findTaggedChildren({ children: nonComponentChildren, tag: 'ShortName' })
-            this._shortName = shortNameItem.length ? new StandardLiteral(shortNameItem, { tag: 'ShortName' }) : undefined
-            const tagTree = new SchemaTagTree(nonComponentChildren)
-            const descriptionItem = tagTree
-                .filter({ match: 'Description' })
-                .prune({ match: 'Description' })
-                .tree
-                .filter(wrappedNodeTypeGuard(isSchemaOutputTag))
-            this._description = descriptionItem.length ? new StandardRender(descriptionItem) : undefined
+            const consumers = [
+                new StandardizeConsumerStandardLiteral<StandardMarkPayload>(this, {
+                    tag: "ShortName",
+                    update(literal) {
+                        this._shortName = literal
+                    },
+                }),
+                new StandardizeConsumerRender<StandardMarkPayload, SchemaDescriptionTag>(this, {
+                    tag: "Description",
+                    nodeTypeGuard: isSchemaDescription,
+                    errorMessage: "Schema mismatch in StandardMark constructor",
+                    update(render) {
+                        this._description = render
+                    },
+                }),
+            ]
+            processWithConsumers(this, consumers, node.children)
             return
         }
         throw new Error('Schema mismatch in StandardMark constructor')
@@ -187,18 +200,29 @@ export class StandardLensPayload implements HasShortName, ComponentConstructorMe
 
     fromSchema(node: GenericTreeNode<SchemaTag>) {
         if (treeNodeTypeguard(isSchemaLens)(node)) {
-            // Filter out component children to avoid including nested ShortName tags from child components
-            const nonComponentChildren = node.children.filter((child) => !isSchemaComponent(child.data))
-            const shortNameItem = findTaggedChildren({ children: nonComponentChildren, tag: 'ShortName' })
-            this._shortName = shortNameItem.length ? new StandardLiteral(shortNameItem, { tag: 'ShortName' }) : undefined
-            const tagTree = new SchemaTagTree(nonComponentChildren)
-            const descriptionItem = tagTree
-                .filter({ match: 'Description' })
-                .prune({ match: 'Description' })
-                .tree
-                .filter(wrappedNodeTypeGuard(isSchemaOutputTag))
-            this._description = descriptionItem.length ? new StandardRender(descriptionItem) : undefined
-            this._marks = new ReferenceList(findTaggedChildren({ children: node.children, tag: 'Mark' }).map(childReferenceFactory))
+            const consumers = [
+                new StandardizeConsumerStandardLiteral<StandardLensPayload>(this, {
+                    tag: "ShortName",
+                    update(literal) {
+                        this._shortName = literal
+                    },
+                }),
+                new StandardizeConsumerRender<StandardLensPayload, SchemaDescriptionTag>(this, {
+                    tag: "Description",
+                    nodeTypeGuard: isSchemaDescription,
+                    errorMessage: "Schema mismatch in StandardLens constructor",
+                    update(render) {
+                        this._description = render
+                    },
+                }),
+                new StandardizeConsumerReferenceList<StandardLensPayload>(this, {
+                    tag: "Mark",
+                    update(list) {
+                        this._marks = list
+                    },
+                }),
+            ]
+            processWithConsumers(this, consumers, node.children)
             return
         }
         throw new Error('Schema mismatch in StandardLens constructor')

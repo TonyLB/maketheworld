@@ -159,6 +159,17 @@ This principle ensures that:
 - Required identifiers are always present for component identification
 - Storage and transmission formats remain efficient
 
+### **StandardMark** 🟢
+- **Purpose**: Represents marks with optional shortName and description, and can embed rich-text content with links.
+- **Content Properties**: `shortName` (`StandardLiteral`), `description` (`StandardRender`)
+- **Status**: 🟢 Uses the process-and-remainder pipeline for `fromSchema` (tags: `ShortName`, `Description`). Unknown child tags are rejected as unconsumed.
+
+### **StandardLens** 🟢
+- **Purpose**: Represents lenses that attach Marks and rich-text description to other components.
+- **Content Properties**: `shortName` (`StandardLiteral`), `description` (`StandardRender`)
+- **Reference Properties**: `marks` (`ReferenceList` of `Mark` references)
+- **fromSchema**: Uses the process-and-remainder pipeline (tags: `ShortName`, `Description`, `Mark`). Unknown child tags are rejected as unconsumed.
+
 ### fromSchema: process-and-remainder pipeline
 
 Payloads that parse from WML schema use a **process-and-remainder pipeline** so that each child is consumed exactly once and unknown tags are rejected.
@@ -166,7 +177,7 @@ Payloads that parse from WML schema use a **process-and-remainder pipeline** so 
 - **Pattern:** The payload builds an ordered list of `StandardizeConsumer` steps and calls `processWithConsumers(this, consumers, node.children)`. Each step consumes one (or more) tag(s) from the current children and returns the remainder for the next step. The runner throws if the final remainder is non-empty.
 - **Rule:** Unconsumed child tags are an error (no silent ignore). The error message lists unconsumed tag names (e.g. `Unconsumed child tags: Map`).
 - **Simple components:** Use `StandardizeConsumerSimple`, `StandardizeConsumerStandardLiteral`, and/or `StandardizeConsumerReferenceList` with `{ tag, update }`; the order of steps is the contract for what the component accepts. Tags that should be accepted but not stored (e.g. Position, Grant) use a no-op `update`.
-- **Current coverage:** `StandardRoom`, `StandardFeature`, `StandardKnowledge`, `StandardCharacter`, `StandardMessage`, `StandardMoment`, and `StandardImage` all use the process-and-remainder pipeline for `fromSchema` (see component sections above for their accepted tag sets). More complex predicate/multi-tag components (Lens, Map, Example, Guidance, Mark) remain to be migrated in Phase 3 Step 6.
+- **Current coverage:** `StandardRoom`, `StandardFeature`, `StandardKnowledge`, `StandardCharacter`, `StandardMessage`, `StandardMoment`, `StandardImage`, `StandardMark`, and `StandardLens` all use the process-and-remainder pipeline for `fromSchema` (see component sections above for their accepted tag sets). More complex predicate/multi-tag components (Map, Example, Guidance) remain to be migrated in Phase 3 Step 6.
 - **Reference:** Full design and migration status: [AGENT.fromSchema.planning.md](./AGENT.fromSchema.planning.md).
 
 ### assureReferences Method
