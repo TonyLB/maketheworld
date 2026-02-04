@@ -175,6 +175,7 @@ This design allows StandardRoom (and other "simple" components) to define an ord
 12. **Document and cross-reference**
    - Finalize the "fromSchema pipeline" section in component docs; link from [AGENT.md](./AGENT.md) or [AGENT.implementation.md](./AGENT.implementation.md) so future work (e.g. new WML tags or new components) follows the same pattern.
    - If this refactor is tracked in a master roadmap (e.g. [AGENT.development.md](../../../../AGENT.development.md)), add a short pointer and status there.
+   - As a follow-on, **register a ticket to refactor `extractStandardRender` and related render parsing** so that more of the wrapper/edit interpretation for rich-text fields (`Description`, `DisplayName`, `Summary`, etc.) lives inside the `StandardRender` layer (or a closely related helper) rather than in ad-hoc schema utilities. This should happen after the fromSchema pipeline rollout and schema/Standardize responsibility shift are complete, so we have a stable baseline to refactor against.
 
 ---
 
