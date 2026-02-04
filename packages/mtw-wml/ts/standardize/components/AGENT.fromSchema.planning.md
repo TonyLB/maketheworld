@@ -82,6 +82,8 @@ Before implementing the pipeline in components, we define the following contract
 
 This design allows StandardRoom (and other "simple" components) to define an ordered list of `StandardizeConsumerSimple` instances (one per tag/property) and call `processWithConsumers(this, consumers, node.children)` from `fromSchema`. Components with custom steps (e.g. predicate-based split) can implement `StandardizeConsumer` directly and plug into the same runner.
 
+**Implementation**: [fromSchemaPipeline.ts](./fromSchemaPipeline.ts) (interface, class, `processWithConsumers`); [fromSchemaPipeline.test.ts](./fromSchemaPipeline.test.ts) (unit tests).
+
 ---
 
 ## High-Level Steps to Pursue
@@ -94,11 +96,12 @@ This design allows StandardRoom (and other "simple" components) to define an ord
    - Unit tests in `packages/mtw-wml/ts/schema/utils/splitTaggedChildren.test.ts` (parity with findTaggedChildren, remainder correctness, Remove/Replace splitting, integration-style pipeline).
    - Util: `packages/mtw-wml/ts/schema/utils/splitTaggedChildren.ts`; exported from schema utils index.
 
-2. **Define the pipeline contract (Phase 1 Step 2)**
-   - Introduce the **`StandardizeConsumer`** interface: a `process(children) => remainder` contract; steps side-effect the payload (see "Phase 1 Step 2 (detailed)" under Pipeline Shape above).
-   - Implement **`StandardizeConsumerSimple<D extends StandardComponent>`**: constructor takes `{ tag, update }`, uses `splitTaggedChildren`, calls `update` when matched is non-empty, returns remainder.
-   - Implement **`processWithConsumers(context, consumers, children)`**: reduces through the consumer list (side-effecting `context`), throws if final remainder is non-empty.
+2. **Define the pipeline contract (Phase 1 Step 2)** — **Done (February 2025)**
+   - **`StandardizeConsumer`** interface: `process(children) => remainder` (see "Phase 1 Step 2 (detailed)" under Pipeline Shape above).
+   - **`StandardizeConsumerSimple<D extends StandardComponent>`**: constructor takes `(context, { tag, update })`, uses `splitTaggedChildren`, calls `update` when matched is non-empty, returns remainder.
+   - **`processWithConsumers(context, consumers, children)`**: reduces through the consumer list (side-effecting `context`), throws if final remainder is non-empty (error message lists unconsumed tags).
    - Pipeline runs via this shared helper: each payload's `fromSchema` builds its ordered list of consumers and calls `processWithConsumers(this, consumers, node.children)`; the pattern is reused across Room, Feature, Lens, etc.
+   - Util: `packages/mtw-wml/ts/standardize/components/fromSchemaPipeline.ts`; tests: `fromSchemaPipeline.test.ts`.
 
 ### Phase 2: Migrate One Component End-to-End
 
@@ -169,5 +172,6 @@ This design allows StandardRoom (and other "simple" components) to define an ord
 ## Next Steps
 
 1. ~~Implement and test `splitTaggedChildren` (Phase 1, step 1).~~ Done.
-2. Define the pipeline contract and refactor `StandardRoomPayload.fromSchema` to use it (Phase 1–2).
-3. Add unconsumed-remainder error and tests; then proceed with remaining components (Phases 3–4).
+2. ~~Define the pipeline contract (Phase 1, step 2).~~ Done.
+3. Refactor `StandardRoomPayload.fromSchema` to use the pipeline (Phase 2).
+4. Add unconsumed-remainder error and tests; then proceed with remaining components (Phases 3–4).
