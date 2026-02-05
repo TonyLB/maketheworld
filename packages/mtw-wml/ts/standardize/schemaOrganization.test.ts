@@ -1024,15 +1024,28 @@ describe('SchemaOrganization', () => {
             // Create context from existing organization
             const context = createOrganizationContext(organization)
             
-            // Verify it works with explicit parent scenarios
+            // Verify it works with explicit parent scenarios (ASSET-level explicit parent)
+            const room1 = form._lookup('ROOM#room1')
             const feature1 = form._lookup('FEATURE#feature1')
+            expect(room1).toBeDefined()
             expect(feature1).toBeDefined()
 
+            // Explicit parent should be ASSET (represented as { explicitParent: undefined }).
+            // Explicit parents are queried on the SchemaOrganization itself.
             const feature1Key = feature1!.standardKey
+            const explicitParent = organization.getExplicitParent(feature1Key)
+            expect(explicitParent).toBeDefined()
+            expect(explicitParent?.explicitParent).toBeUndefined()
+
+            // Implicit parent should still reflect structural parent (Room1)
             const implicitParent = context.getImplicitParent(feature1Key)
             
-            // Feature has explicit parent of ASSET, so implicit parent should be undefined
-            expect(implicitParent).toBeUndefined()
+            // Feature is nested under Room1, so implicit parent should be Room1
+            const room1Key = room1!.standardKey
+            expect(implicitParent).toBeDefined()
+            if (implicitParent) {
+                expect(implicitParent.equals(room1Key)).toBe(true)
+            }
 
             // But it should appear in asset-level children
             const assetChildren = context.getChildrenOfParent(form._universalKey)
