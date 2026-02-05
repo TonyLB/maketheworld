@@ -63,7 +63,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         this._characters = new ReferenceList(props.characters?.map((reference) => (new StandardReference(reference))) ?? [])
     }
 
-    fromSchema(node: GenericTreeNode<SchemaTag>) {
+    fromSchema(node: GenericTreeNode<SchemaTag>): GenericTree<SchemaTag> {
         if (treeNodeTypeguard(isSchemaRoom)(node)) {
             // Process-and-remainder pipeline: each step consumes one tag and passes remainder to the next.
             // Unconsumed children (e.g. unknown tags) cause processWithConsumers to throw. See AGENT.fromSchema.planning.md.
@@ -98,8 +98,8 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
                 new StandardizeConsumerSimple(this, { tag: "Grant", update: () => {} }),
                 new StandardizeConsumerSimple(this, { tag: "DisplayName", update: () => {} }),
             ]
-            processWithConsumers(this, consumers, node.children)
-            return
+            const returnRemainder = processWithConsumers(this, consumers, node.children)
+            return returnRemainder
         }
         throw new Error('Schema mismatch in StandardRoom constructor')
     }

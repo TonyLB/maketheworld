@@ -28,7 +28,7 @@ export class StandardImagePayload implements ComponentConstructorMethods<Standar
         this._shortName = props.shortName ? new StandardLiteral(props.shortName, { tag: 'ShortName' }) : undefined
     }
 
-    fromSchema(node: GenericTreeNode<SchemaTag>) {
+    fromSchema(node: GenericTreeNode<SchemaTag>): GenericTree<SchemaTag> {
         if (treeNodeTypeguard(isSchemaImage)(node)) {
             const consumers = [
                 new StandardizeConsumerStandardLiteral(this, {
@@ -38,8 +38,8 @@ export class StandardImagePayload implements ComponentConstructorMethods<Standar
                     },
                 }),
             ]
-            processWithConsumers(this, consumers, node.children)
-            return
+            const returnRemainder = processWithConsumers(this, consumers, node.children)
+            return returnRemainder
         }
         throw new Error('Schema mismatch in StandardImage constructor')
     }

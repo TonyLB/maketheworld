@@ -131,34 +131,52 @@ This design allows StandardRoom (and other "simple" components) to define an ord
      - Ensured the final remainder is empty; unknown or unexpected child tags now surface as `Unconsumed child tags: …` errors (subject to schema-layer validation).
      - Kept existing behavior for all valid WML (round-trips and merge/diff tests remain green).
 
-6. **Migrate components with predicate or multi-tag steps**
-   - **Lens / Mark** — **Done (February 2026)**  
+6. **Migrate components with predicate or multi-tag steps (Lens / Mark)** — **Done (February 2026)**
+   - **Lens / Mark**
      - `StandardLens` and `StandardMark` now use the standard pipeline pattern: `StandardizeConsumerStandardLiteral` for `ShortName`, `StandardizeConsumerRender` for `Description`, and `StandardizeConsumerReferenceList` for `Mark` (Lens only).  
      - No additional "split components from non-components" step is required, since `splitTaggedChildren` and the consumers already respect Remove/Replace semantics and avoid recursing into nested components.  
      - As a side-effect of enabling the remainder check, `StandardExample` tests that pass Mark *facets* (Marks with `<Match>` payloads) now fail with `Unconsumed child tags` errors when those facet payloads are fed through the Mark *component* parser. We are treating this as a **deliberate signal** to drive TDD for facet-aware pipelines (e.g. deciding how facet `Match` payloads are parsed vs. left to higher-level facet handling, and whether `remainder` should be threaded into `processComponents` for Example/Guidance).
-   - **Map**: Handle "Room with Position" as a step that consumes Room nodes that have Position children; remainder is the rest. Preserve ShortName and Image steps as in current logic.
-   - **Example / Guidance**: Handle Mark facets and any tag-tree filtering in step logic; ensure remainder is consistent. **Note:** Because of their facet/Mark complexity and the new failing tests around Mark facets with `<Match>` payloads, `StandardExample` and `StandardGuidance` are *not* included in Phase 3 Step 5 and will be migrated here alongside Map, with facet behavior and any `processComponents`/`remainder` threading decisions driven by those tests.
 
-7. **Align base Key/Parent stripping with the pipeline (optional)**
+7. **Integrate two-remainder pipeline with processComponents**
+   - **Goal**: Allow components that have ReferenceList or FacetList consumers to pass a **return remainder** (nodes that should be recursed into by `processComponents`) alongside the existing **parsing remainder** (what is left to run past the rest of the pipeline). This unblocks Map (Room+Position facets) and Example/Guidance (Mark facets) without special-case hooks.
+   - **Observation**: Only component tags (Room, Feature, etc.) ever produce entries in the flat component list. Tags like ShortName are purely local; ReferenceList and FacetList consumers are the ones that "produce" nodes that `processComponents` must recurse into. So the boundary is at the consumer: some consumers contribute to a **return remainder** that is passed to `processComponents` for recursion; the rest only whittle the parsing remainder.
+   - **Two remainders**:
+     - **Parsing remainder**: Unchanged from today. Starts as `children`; each consumer returns the next parsing remainder; must be empty at end of pipeline (unconsumed = error).
+     - **Return remainder**: Starts empty. Only ReferenceList and (when added) FacetList consumers add to it. For **ReferenceList**: each matched tag (e.g. Feature, Example) is added in full so `processComponents` can recurse and create the child component. For **FacetList** (e.g. Position under Map): each matched "Room with Position" yields facet data for the FacetList and a **Room node without Position** (same node, children = remainder after stripping Position) added to the return remainder so `processComponents` builds `StandardRoom` from the rest. Literal/Render/Simple consumers never add to the return remainder.
+   - **Contract**: (a) Parsing remainder must be empty after the last consumer. (b) The aggregated return remainder is what `fromSchema` returns and what `processComponents` uses (instead of raw `item.children`) when recursing.
+   - **Order**: WML is treated as order-independent for this purpose. Return remainder is built in consumer order; the only theoretical order sensitivity would be overlapping edits on different-typed siblings in non-standard WML, which we do not need to support.
+   - **Implementation outline** (order of work; to be refined when implementing):
+   - **7a. Add component-level `fromSchema` everywhere (first)** — **Done (February 2026)**  
+      Instance method `fromSchema(node): GenericTree<SchemaTag>` exists on the component base and is shared by all components. It does Key/Parent stripping and explicitParent handling, calls `this._payload.fromSchema(nodeWithoutParentAndKey)`, and returns the payload’s return value. The constructor’s schema branch delegates to `this.fromSchema(node)` and ignores the return. This established the entry point without changing behavior.
+   - **7b. Two-remainder pipeline and return values (groundwork only)** — **In progress (current work)**  
+      The `StandardizeConsumer` interface now returns both parsing remainder and return-remainder addition (e.g. `{ parsingRemainder, returnRemainderAddition }`). `processWithConsumers` maintains both accumulators and returns the aggregated return remainder so payload `fromSchema` can return it. Payload `fromSchema` signatures for pipeline-based components (`StandardRoom`, `StandardFeature`, `StandardKnowledge`, `StandardCharacter`, `StandardMessage`, `StandardMoment`, `StandardImage`, `StandardMark`, `StandardLens`) now return `GenericTree<SchemaTag>` (currently always `[]`), and `component.fromSchema` simply returns the payload’s return value. **processComponents still uses `item.children` for recursion**; wiring the return remainder into recursion and enabling non-empty `returnRemainderAddition` for ReferenceList/FacetList consumers is deferred to a later sub-step.
+   - **Default construction for “component then fromSchema”**: The component constructor already does `this._payload = new Base()` first, so the payload’s default construction is already reused. A constructor path that leaves the component in that state (e.g. `props === undefined` → return early after assigning the payload) allows the factory to do “construct, then call fromSchema” when we later change `processComponents` to use the return remainder.
+   - **Gaps / to be decided**: Exact consumer method signature and runner API; whether to add `StandardizeConsumerFacetList` in this step or in Step 8.
+
+8. **Migrate Map and Example / Guidance (facet-aware pipelines)**
+   - **Map**: Handle "Room with Position" as a step that consumes Room nodes that have Position children; remainder is the rest. Preserve ShortName and Image steps as in current logic. Rely on Step 7 return remainder so Room-without-Position is passed to `processComponents` for `StandardRoom` creation; remove no-op Position consumer from StandardRoom when Map is the only legal parent for Position.
+   - **Example / Guidance**: Handle Mark facets and any tag-tree filtering in step logic; ensure remainder is consistent. Because of their facet/Mark complexity and the failing tests around Mark facets with `<Match>` payloads, migration is driven by those tests and by the Step 7 return-remainder integration.
+
+9. **Align base Key/Parent stripping with the pipeline (optional)**
    - The component base already strips Key and Parent before calling `payload.fromSchema`. Optionally document this as the "first two conceptual steps" or leave as-is; either way, the payload's pipeline starts from "children without Key and Parent."
 
 ### Phase 4: Shift Validation from Schema to Standardize
 
-8. **Relax schema-level child validation**
+10. **Relax schema-level child validation**
    - Today, the schema converters (e.g. `schema/converters/components.ts`) attempt to enforce per-component child tag legality when building `Schema*Tag` nodes (e.g. rejecting `<Map>` under `<Message>`). This logic is clumsy compared to what the process-and-remainder pipeline can express.
    - Adjust the schema layer so that component converters:
      - Continue to validate **properties/attributes** and overall tag shape (e.g. required keys, UUID formats).
      - Stop trying to deeply validate **child tag contents** beyond basic structural well-formedness. Children should be passed through as a generic `GenericTree<SchemaTag>` without per-component tag whitelists.
    - The goal is that “is this tag allowed here?” becomes a **Standardize concern** enforced by `fromSchema` pipelines, not by the schema parser.
 
-9. **Centralize semantic child validation in pipelines**
+11. **Centralize semantic child validation in pipelines**
    - For each component with a `fromSchema` pipeline (Room, Feature, Knowledge, Character, Message, Moment, Image, and future Lens/Map/Example/Guidance/Mark):
      - Treat the ordered consumer list as the single source of truth for “which child tags are legal here.”
      - Rely on `processWithConsumers`’s final remainder check to flag any unknown or misplaced child tags as `Unconsumed child tags: …`.
    - Where we previously duplicated simple tag validity rules in the schema converters (e.g. disallowing certain tags as children), remove or relax those checks once the corresponding component has a robust pipeline and unconsumed-tag tests.
    - **Revisit unit tests that were previously constrained by schema validation** (e.g. the “illegal child tag” tests for Character, Message, Moment, Image) and re-enable or extend them so they construct now-schema-legal but semantically invalid child combinations, asserting that the Standardize pipeline (not the schema layer) throws the appropriate unconsumed-tag errors.
 
-10. **Simplify and document the division of responsibility**
+12. **Simplify and document the division of responsibility**
    - Update schema-layer documentation to clarify that:
      - Schema parsing is responsible for **syntactic correctness** and property-level validation.
      - Component payloads (`fromSchema` pipelines) are responsible for **semantic correctness** of child structures (which tags are accepted, in what combinations).
@@ -171,11 +189,11 @@ This design allows StandardRoom (and other "simple" components) to define an ord
 
 ### Phase 5: Cleanup and Hardening
 
-11. **Remove ad-hoc patterns**
+13. **Remove ad-hoc patterns**
    - Once all components use the pipeline and schema-level child validation has been simplified, remove any remaining per-component "scan the whole list again" patterns.
    - Consider exporting a small set of shared step builders (e.g. "shortName step," "referenceList step for tag X") to keep component definitions concise and consistent.
 
-12. **Document and cross-reference**
+14. **Document and cross-reference**
    - Finalize the "fromSchema pipeline" section in component docs; link from [AGENT.md](./AGENT.md) or [AGENT.implementation.md](./AGENT.implementation.md) so future work (e.g. new WML tags or new components) follows the same pattern.
    - If this refactor is tracked in a master roadmap (e.g. [AGENT.development.md](../../../../AGENT.development.md)), add a short pointer and status there.
    - As a follow-on, **register a ticket to refactor `extractStandardRender` and related render parsing** so that more of the wrapper/edit interpretation for rich-text fields (`Description`, `DisplayName`, `Summary`, etc.) lives inside the `StandardRender` layer (or a closely related helper) rather than in ad-hoc schema utilities. This should happen after the fromSchema pipeline rollout and schema/Standardize responsibility shift are complete, so we have a stable baseline to refactor against.
@@ -216,4 +234,6 @@ This design allows StandardRoom (and other "simple" components) to define an ord
 3. ~~Refactor `StandardRoomPayload.fromSchema` to use the pipeline (Phase 2).~~ Done.
 4. Proceed with remaining components (Phases 3–4):  
    - **Completed (Phase 3 Step 5):** migrate Feature, Knowledge, Character, Message, Moment, Image to the process-and-remainder pipeline.  
-   - **Upcoming (Phase 3 Step 6):** migrate Lens, Map, Example, Guidance, and other predicate/multi-tag components.
+   - **Completed (Phase 3 Step 6):** migrate Lens and Mark to the pipeline.  
+   - **Upcoming (Phase 3 Step 7):** integrate two-remainder pipeline with processComponents (return remainder from fromSchema; processComponents recurses on it).  
+   - **Upcoming (Phase 3 Step 8):** migrate Map and Example/Guidance (facet-aware pipelines).

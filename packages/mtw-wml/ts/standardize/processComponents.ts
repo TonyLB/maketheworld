@@ -98,7 +98,7 @@ export const processComponents = (props: {
             const template = componentTemplates.find(({ key }) => (key === item.data.tag))
             if (template) {
 
-                const component = standardComponentFactory(item)
+                const { component } = standardComponentFactory(item)
 
                 //
                 // If the template has legalParents, check if there are any legal parent tags in the componentContext

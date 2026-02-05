@@ -4,16 +4,30 @@
 // See AGENT.fromSchema.planning.md Phase 1 Step 2 (detailed).
 //
 
-import { GenericTree } from "@tonylb/mtw-base/ts/genericTree"
+import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components"
 import { splitTaggedChildren } from "../../schema/utils"
 import { ReferenceList } from "./reference"
 import { StandardLiteral } from "../literal"
 import { StandardRender } from "../render"
 import { extractStandardRender } from "./utils/extractStandardRender"
+import { PositionFacetList, StandardPositionFacet } from "../keys/facets/position"
 
 export interface StandardizeConsumer {
-    process(children: GenericTree<SchemaTag>): GenericTree<SchemaTag>
+    /**
+     * Process a list of children and return:
+     * - parsingRemainder: children not consumed by this step (threaded to the next consumer)
+     * - returnRemainderAddition: child schema to be re-exposed to processComponents for recursion
+     *
+     * In the initial two-remainder rollout, real consumers should continue to
+     * populate parsingRemainder exactly as before and returnRemainderAddition
+     * should remain an empty list (behavior-neutral).
+     */
+    process(children: GenericTree<SchemaTag>): {
+        parsingRemainder: GenericTree<SchemaTag>;
+        returnRemainderAddition: GenericTree<SchemaTag>;
+    }
 }
 
 /**
@@ -29,7 +43,7 @@ export class StandardizeConsumerSimple<D extends object = object> implements Sta
         }
     ) {}
 
-    process(children: GenericTree<SchemaTag>): GenericTree<SchemaTag> {
+    process(children: GenericTree<SchemaTag>): { parsingRemainder: GenericTree<SchemaTag>; returnRemainderAddition: GenericTree<SchemaTag> } {
         const { matched, remainder } = splitTaggedChildren({
             children,
             tag: this.options.tag,
@@ -37,7 +51,10 @@ export class StandardizeConsumerSimple<D extends object = object> implements Sta
         if (matched.length > 0) {
             this.options.update.call(this.context, matched)
         }
-        return remainder
+        return {
+            parsingRemainder: remainder,
+            returnRemainderAddition: []
+        }
     }
 }
 
@@ -54,7 +71,7 @@ export class StandardizeConsumerReferenceList<D extends object = object> impleme
         }
     ) {}
 
-    process(children: GenericTree<SchemaTag>): GenericTree<SchemaTag> {
+    process(children: GenericTree<SchemaTag>): { parsingRemainder: GenericTree<SchemaTag>; returnRemainderAddition: GenericTree<SchemaTag> } {
         const { matched, remainder } = splitTaggedChildren({
             children,
             tag: this.options.tag,
@@ -63,7 +80,18 @@ export class StandardizeConsumerReferenceList<D extends object = object> impleme
             const list = new ReferenceList(matched)
             this.options.update.call(this.context, list)
         }
-        return remainder
+        //
+        // NOTE: In this initial rollout, ReferenceList consumers do not yet
+        // contribute to the return remainder. When the two-remainder pipeline
+        // is fully wired into processComponents, this consumer will be
+        // extended so that matched component tags (e.g. Feature, Example,
+        // Guidance, Mark under Lens) can opt-in to exposing child schema back
+        // to processComponents for recursion.
+        //
+        return {
+            parsingRemainder: remainder,
+            returnRemainderAddition: []
+        }
     }
 }
 
@@ -81,14 +109,17 @@ export class StandardizeConsumerStandardLiteral<D extends object = object> imple
         }
     ) {}
 
-    process(children: GenericTree<SchemaTag>): GenericTree<SchemaTag> {
+    process(children: GenericTree<SchemaTag>): { parsingRemainder: GenericTree<SchemaTag>; returnRemainderAddition: GenericTree<SchemaTag> } {
         const { matched, remainder } = splitTaggedChildren({
             children,
             tag: this.options.tag,
         })
         const literal = matched.length > 0 ? new StandardLiteral(matched, { tag: this.options.tag }) : undefined
         this.options.update.call(this.context, literal)
-        return remainder
+        return {
+            parsingRemainder: remainder,
+            returnRemainderAddition: []
+        }
     }
 }
 
@@ -108,7 +139,7 @@ export class StandardizeConsumerRender<D extends object = object, S extends Sche
         }
     ) {}
 
-    process(children: GenericTree<SchemaTag>): GenericTree<SchemaTag> {
+    process(children: GenericTree<SchemaTag>): { parsingRemainder: GenericTree<SchemaTag>; returnRemainderAddition: GenericTree<SchemaTag> } {
         const { matched, remainder } = splitTaggedChildren({
             children,
             tag: this.options.tag,
@@ -116,7 +147,69 @@ export class StandardizeConsumerRender<D extends object = object, S extends Sche
         const first = matched[0] as any | undefined
         const render = extractStandardRender(first, this.options.nodeTypeGuard, this.options.errorMessage)
         this.options.update.call(this.context, render)
-        return remainder
+        return {
+            parsingRemainder: remainder,
+            returnRemainderAddition: []
+        }
+    }
+}
+
+/**
+ * Facet-list consumer prototype used initially for Map→Room Position facets.
+ *
+ * Design notes:
+ * - This first-draft implementation is intentionally specialized for Position facets
+ *   (Room children with Position tags) but exposes a configuration surface that can be
+ *   generalized for other homogeneous facet lists in later phases.
+ * - It parses Room children with Position tags into a PositionFacetList and updates
+ *   the payload via options.update(list).
+ * - It returns a parsingRemainder where the Room nodes have had their Position tags
+ *   removed, and a returnRemainderAddition of [] so that upstream behavior remains
+ *   unchanged while we prototype the two-remainder shape.
+ */
+export class StandardizeConsumerFacetListPosition<D extends object = object> implements StandardizeConsumer {
+    constructor(
+        private readonly context: D,
+        private readonly options: {
+            update: (this: D, list: PositionFacetList) => void
+        }
+    ) {}
+
+    process(children: GenericTree<SchemaTag>): { parsingRemainder: GenericTree<SchemaTag>; returnRemainderAddition: GenericTree<SchemaTag> } {
+        // Match Room children under the current component.
+        const roomNodes: GenericTreeNode<SchemaTag>[] = children.filter(treeNodeTypeguard(isSchemaRoom))
+
+        // Parse Position facets from the original Room nodes.
+        const facets = roomNodes
+            .map((roomNode) => {
+                try {
+                    return new StandardPositionFacet([roomNode])
+                }
+                catch {
+                    return undefined
+                }
+            })
+            .filter((facet): facet is StandardPositionFacet => Boolean(facet))
+
+        const list = new PositionFacetList(facets)
+        this.options.update.call(this.context, list)
+
+        // Build cleaned Room nodes with Position tags removed from their children.
+        const cleanedRooms: GenericTree<SchemaTag> = roomNodes.map((roomNode) => {
+            const { remainder: childrenWithoutPosition } = splitTaggedChildren({
+                children: roomNode.children,
+                tag: 'Position',
+            })
+            return {
+                ...roomNode,
+                children: childrenWithoutPosition
+            }
+        })
+
+        return {
+            parsingRemainder: [],
+            returnRemainderAddition: cleanedRooms
+        }
     }
 }
 
@@ -135,13 +228,19 @@ export function processWithConsumers<T>(
     _context: T,
     consumers: StandardizeConsumer[],
     children: GenericTree<SchemaTag>
-): void {
-    let current: GenericTree<SchemaTag> = children
+): GenericTree<SchemaTag> {
+    let parsingRemainder: GenericTree<SchemaTag> = children
+    let returnRemainder: GenericTree<SchemaTag> = []
     for (const consumer of consumers) {
-        current = consumer.process(current)
+        const { parsingRemainder: nextParsingRemainder, returnRemainderAddition } = consumer.process(parsingRemainder)
+        parsingRemainder = nextParsingRemainder
+        if (returnRemainderAddition.length) {
+            returnRemainder = [...returnRemainder, ...returnRemainderAddition]
+        }
     }
-    if (current.length > 0) {
-        const tagList = [...new Set(collectTagsFromTree(current))].join(", ")
+    if (parsingRemainder.length > 0) {
+        const tagList = [...new Set(collectTagsFromTree(parsingRemainder))].join(", ")
         throw new Error(`Unconsumed child tags: ${tagList}`)
     }
+    return returnRemainder
 }

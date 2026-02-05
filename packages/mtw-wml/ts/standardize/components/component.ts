@@ -27,7 +27,7 @@ import { isStandardReferenceData, StandardReferenceData } from "./dataTypes/refe
 import StandardReference from "../keys/reference";
 import { StandardKey } from "../keys/key";
 import { StandardExplicitParent, StandardExplicitKey, StandardExplicitKeyPlain, StandardExplicitKeyRemove, StandardExplicitKeyReplace } from "../explicit";
-import SchemaTagTree from "../../tagTree/schema";
+import { splitTaggedChildren } from "../../schema/utils";
 
 export type ComponentConstructorMethodsDiff<D extends ComponentKey> = {
     action: 'Replace';
@@ -38,7 +38,7 @@ export type ComponentConstructorMethodsDiff<D extends ComponentKey> = {
 
 export interface ComponentConstructorMethods<D> {
     fromJSON(line: D): void;
-    fromSchema(node: GenericTreeNode<SchemaTag>): void;
+    fromSchema(node: GenericTreeNode<SchemaTag>): GenericTree<SchemaTag>;
     subset(options: StandardFormSubsetRequest): this;
     merge(incoming: this): this;
     toJSON(options?: StandardToJSONOptions): Omit<D, 'key' | 'universalKey'>;
@@ -73,6 +73,16 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
         explicitParent?: StandardExplicitParent;
         constructor(props: string | D | GenericTreeNode<SchemaTag> | GeneratedComponentClass) {
             this._payload = new Base() as InstanceType<typeof Base>
+            //
+            // Default-construction path: allow callers to create an "empty" component whose payload
+            // is just the Base default. This is used in the two-remainder pipeline to construct a
+            // component and then populate it via fromSchema(node) while also obtaining a child
+            // remainder. For existing call sites that always pass a props argument, this branch
+            // is never taken.
+            //
+            if (props === undefined) {
+                return
+            }
             if (props instanceof GeneratedComponentClass) {
                 this._universalKey = props._universalKey
                 this._key = props._key ? new StandardExplicitKey(props._key) : undefined
@@ -97,79 +107,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
                 const node = typeof props === 'string'
                     ? nodeFromWML(props)
                     : props
-                if (!treeNodeTypeguard(isSchemaComponent)(node)) {
-                    throw new Error(`Invalid schema node type in ${label} constructor call: ${node.data.tag}`)
-                }
-                this._universalKey = 'uuid' in node.data ? node.data.uuid : undefined
-                this._from = node.data.from
-                this._origin = 'origin' in node.data ? node.data.origin : undefined
-                // Extract Key tag from children using tagTree (handles Remove/Replace wrapping)
-                // Filter for Key tags that are direct children, excluding ones nested in other components
-                const tagTree = new SchemaTagTree(node.children)
-                const keyItem = tagTree
-                    .filter({ 
-                        and: [
-                            { match: 'Key' },
-                            { not: { or: [
-                                { match: 'Room' },
-                                { match: 'Feature' },
-                                { match: 'Knowledge' },
-                                { match: 'Example' },
-                                { match: 'Character' },
-                                { match: 'Image' },
-                                { match: 'Map' },
-                                { match: 'Message' },
-                                { match: 'Moment' },
-                                { match: 'Exit' }
-                            ] } }
-                        ]
-                    })
-                    .prune({ not: { or: [{ match: 'Key' }, { match: 'String' }, { match: 'Remove' }, { match: 'Replace' }, { match: 'ReplaceMatch' }, { match: 'ReplacePayload' }] } })
-                    .tree
-                if (keyItem.length > 0) {
-                    // Always create StandardExplicitKey if Key tag exists
-                    this._key = new StandardExplicitKey(keyItem)
-                } else if (node.data.key) {
-                    // Convert key attribute to explicitKey
-                    this._key = new StandardExplicitKey(node.data.key)
-                }
-                // Extract Parent tag from children using tagTree (handles Remove/Replace wrapping)
-                // Filter for Parent tags that are direct children, excluding ones nested in other components
-                const parentItem = tagTree
-                    .filter({ 
-                        and: [
-                            { match: 'Parent' },
-                            { not: { or: [
-                                { match: 'Room' },
-                                { match: 'Feature' },
-                                { match: 'Knowledge' },
-                                { match: 'Example' },
-                                { match: 'Character' },
-                                { match: 'Image' },
-                                { match: 'Map' },
-                                { match: 'Message' },
-                                { match: 'Moment' },
-                                { match: 'Exit' }
-                            ] } }
-                        ]
-                    })
-                    .prune({ not: { or: [{ match: 'Parent' }, { match: 'String' }, { match: 'Remove' }, { match: 'Replace' }, { match: 'ReplaceMatch' }, { match: 'ReplacePayload' }] } })
-                    .tree
-                if (parentItem.length > 0) {
-                    // Always create StandardExplicitParent if Parent tag exists (even if empty)
-                    this.explicitParent = new StandardExplicitParent(parentItem)
-                }
-                // Create a node without Parent and Key tags for payload processing
-                // Use SchemaTagTree to filter out Parent and Key tags (handles Remove/Replace wrapping automatically)
-                const childrenTagTree = new SchemaTagTree(node.children)
-                const childrenWithoutParentAndKey = childrenTagTree
-                    .filter({ not: { or: [{ match: 'Parent' }, { match: 'Key' }] } })
-                    .tree
-                const nodeWithoutParentAndKey = {
-                    ...node,
-                    children: childrenWithoutParentAndKey
-                }
-                this._payload.fromSchema(nodeWithoutParentAndKey)
+                this.fromSchema(node)
                 return
             }
             this._universalKey = props.universalKey
@@ -182,6 +120,51 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             this._payload.fromJSON(props)
             // Backwards compatibility: silently ignore implicitParent if present in JSON
             // (it's no longer used, but old data may still contain it)
+        }
+
+        //
+        // Component-level fromSchema: shared schema-node handling for all components.
+        // Side-effects this instance (wrapper fields and payload) and returns a child
+        // remainder from the payload's fromSchema pipeline (currently always empty for
+        // components that don't expose child schema to processComponents).
+        //
+        fromSchema(node: GenericTreeNode<SchemaTag>): GenericTree<SchemaTag> {
+            if (!treeNodeTypeguard(isSchemaComponent)(node)) {
+                throw new Error(`Invalid schema node type in ${label} constructor call: ${node.data.tag}`)
+            }
+            this._universalKey = 'uuid' in node.data ? node.data.uuid : undefined
+            this._from = node.data.from
+            this._origin = 'origin' in node.data ? node.data.origin : undefined
+            //
+            // Extract Key and Parent tags from direct children using splitTaggedChildren.
+            // splitTaggedChildren respects Remove/Replace semantics and avoids recursing into
+            // nested components, matching the previous SchemaTagTree-based behavior.
+            //
+            const { matched: keyNodes, remainder: withoutKey } = splitTaggedChildren({
+                children: node.children,
+                tag: 'Key',
+            })
+            if (keyNodes.length > 0) {
+                // Always create StandardExplicitKey if Key tag exists
+                this._key = new StandardExplicitKey(keyNodes)
+            } else if (node.data.key) {
+                // Convert key attribute to explicitKey
+                this._key = new StandardExplicitKey(node.data.key)
+            }
+            const { matched: parentNodes, remainder: childrenWithoutParentAndKey } = splitTaggedChildren({
+                children: withoutKey,
+                tag: 'Parent',
+            })
+            if (parentNodes.length > 0) {
+                // Always create StandardExplicitParent if Parent tag exists (even if empty)
+                this.explicitParent = new StandardExplicitParent(parentNodes)
+            }
+            // Create a node without Parent and Key tags for payload processing
+            const nodeWithoutParentAndKey = {
+                ...node,
+                children: childrenWithoutParentAndKey
+            }
+            return this._payload.fromSchema(nodeWithoutParentAndKey)
         }
 
         _wrap(instance: GeneratedComponentClass): this {

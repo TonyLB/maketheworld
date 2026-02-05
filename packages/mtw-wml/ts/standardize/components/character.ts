@@ -44,7 +44,7 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
         this._image = props.image
     }
 
-    fromSchema(node: GenericTreeNode<SchemaTag>) {
+    fromSchema(node: GenericTreeNode<SchemaTag>): GenericTree<SchemaTag> {
         if (treeNodeTypeguard(isSchemaCharacter)(node)) {
             const consumers = [
                 new StandardizeConsumerStandardLiteral(this, {
@@ -86,8 +86,8 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
                     },
                 }),
             ]
-            processWithConsumers(this, consumers, node.children)
-            return
+            const returnRemainder = processWithConsumers(this, consumers, node.children)
+            return returnRemainder
         }
         throw new Error('Schema mismatch in StandardCharacter constructor')
     }

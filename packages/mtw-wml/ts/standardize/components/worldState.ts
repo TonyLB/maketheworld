@@ -47,7 +47,7 @@ export class StandardMarkPayload implements HasShortName, ComponentConstructorMe
         this._description = description ? new StandardRender(description) : undefined
     }
 
-    fromSchema(node: GenericTreeNode<SchemaTag>) {
+    fromSchema(node: GenericTreeNode<SchemaTag>): GenericTree<SchemaTag> {
         if (treeNodeTypeguard(isSchemaMark)(node)) {
             const consumers = [
                 new StandardizeConsumerStandardLiteral<StandardMarkPayload>(this, {
@@ -65,8 +65,8 @@ export class StandardMarkPayload implements HasShortName, ComponentConstructorMe
                     },
                 }),
             ]
-            processWithConsumers(this, consumers, node.children)
-            return
+            const returnRemainder = processWithConsumers(this, consumers, node.children)
+            return returnRemainder
         }
         throw new Error('Schema mismatch in StandardMark constructor')
     }
@@ -198,7 +198,7 @@ export class StandardLensPayload implements HasShortName, ComponentConstructorMe
         this._marks = new ReferenceList(marks?.map((reference) => (new StandardReference(reference))) ?? [])
     }
 
-    fromSchema(node: GenericTreeNode<SchemaTag>) {
+    fromSchema(node: GenericTreeNode<SchemaTag>): GenericTree<SchemaTag> {
         if (treeNodeTypeguard(isSchemaLens)(node)) {
             const consumers = [
                 new StandardizeConsumerStandardLiteral<StandardLensPayload>(this, {
@@ -222,8 +222,8 @@ export class StandardLensPayload implements HasShortName, ComponentConstructorMe
                     },
                 }),
             ]
-            processWithConsumers(this, consumers, node.children)
-            return
+            const returnRemainder = processWithConsumers(this, consumers, node.children)
+            return returnRemainder
         }
         throw new Error('Schema mismatch in StandardLens constructor')
     }
