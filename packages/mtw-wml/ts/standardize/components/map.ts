@@ -1,7 +1,5 @@
 import { excludeUndefined } from "../../lib/lists"
 import applyEdits from "../../schema/treeManipulation/applyEdits"
-import SchemaTagTree from "../../tagTree/schema"
-import { findTaggedChildren, recurseIntoEditable } from "../../schema/utils"
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
 import { StandardComponent, StandardComponentReferenceKey, NestedSchemaOptions } from "./baseClasses"
@@ -15,6 +13,7 @@ import StandardReference from "../keys/reference"
 import { StandardKey } from "../keys/key"
 import { StandardLiteral } from "../literal"
 import { StandardExplicitParent } from "../explicit"
+import { processWithConsumers, StandardizeConsumerFacetListPosition, StandardizeConsumerSimple, StandardizeConsumerStandardLiteral } from "./fromSchemaPipeline"
 
 /**
  * StandardMapPayload represents a Map component.
@@ -45,44 +44,30 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
         this._positions = new PositionFacetList(props.positions ?? [])
     }
 
-    fromSchema(node: GenericTreeNode<SchemaTag>) {
+    fromSchema(node: GenericTreeNode<SchemaTag>): GenericTree<SchemaTag> {
         if (treeNodeTypeguard(isSchemaMap)(node)) {
-            const tagTree = new SchemaTagTree(node.children)
-            const shortNameItem = findTaggedChildren({ children: node.children, tag: 'ShortName' })
-            const imagesTagTree = tagTree.filter({ match: 'Image' })
+            const consumers = [
+                new StandardizeConsumerStandardLiteral<StandardMapPayload>(this, {
+                    tag: "ShortName",
+                    update(literal) {
+                        this._shortName = literal
+                    },
+                }),
+                new StandardizeConsumerSimple<StandardMapPayload>(this, {
+                    tag: "Image",
+                    update(nodes) {
+                        this._images = nodes
+                    },
+                }),
+                new StandardizeConsumerFacetListPosition<StandardMapPayload>(this, {
+                    update(list) {
+                        this._positions = list
+                    },
+                }),
+            ]
 
-            this._shortName = shortNameItem && shortNameItem.length > 0 ? new StandardLiteral(shortNameItem, { tag: 'ShortName' }) : undefined
-            this._images = imagesTagTree.tree
-            
-            // Parse Position facets (Room tags with Position children)
-            // findTaggedChildren handles Remove and Replace wrappers automatically
-            const roomNodes = findTaggedChildren({ children: node.children, tag: 'Room' })
-            
-            // Helper function to check if a Room node contains Position children
-            // Uses recurseIntoEditable to unwrap edit wrappers, then checks each content node for Position children
-            const hasPositionChild = (node: GenericTreeNode<SchemaTag>): boolean => {
-                return recurseIntoEditable(node, (contentNode) => {
-                    // Check if this content node has Position children
-                    const positionChildren = findTaggedChildren({ children: contentNode.children, tag: 'Position' })
-                    return positionChildren.length > 0
-                }).some(result => result)
-            }
-            
-            const parsedFacets = roomNodes
-                .filter(hasPositionChild)
-                .map(roomNode => {
-                    // Create StandardPositionFacet directly from schema - it will handle Replace/Remove/Plain dispatch
-                    // StandardPositionFacet constructor accepts GenericTree<SchemaTag> and handles parsing internally
-                    try {
-                        return new StandardPositionFacet([roomNode])
-                    }
-                    catch (e) {
-                        return undefined
-                    }
-                })
-                .filter(excludeUndefined)
-            this._positions = new PositionFacetList(parsedFacets)
-            return
+            const returnRemainder = processWithConsumers(this, consumers, node.children)
+            return returnRemainder
         }
         throw new Error('Schema mismatch in StandardMap constructor')
     }

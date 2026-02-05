@@ -4,13 +4,15 @@
 // See AGENT.fromSchema.planning.md Phase 1 Step 2 (detailed).
 //
 
-import { GenericTree } from "@tonylb/mtw-base/ts/genericTree"
+import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components"
 import { splitTaggedChildren } from "../../schema/utils"
 import { ReferenceList } from "./reference"
 import { StandardLiteral } from "../literal"
 import { StandardRender } from "../render"
 import { extractStandardRender } from "./utils/extractStandardRender"
+import { PositionFacetList, StandardPositionFacet } from "../keys/facets/position"
 
 export interface StandardizeConsumer {
     /**
@@ -148,6 +150,65 @@ export class StandardizeConsumerRender<D extends object = object, S extends Sche
         return {
             parsingRemainder: remainder,
             returnRemainderAddition: []
+        }
+    }
+}
+
+/**
+ * Facet-list consumer prototype used initially for Map→Room Position facets.
+ *
+ * Design notes:
+ * - This first-draft implementation is intentionally specialized for Position facets
+ *   (Room children with Position tags) but exposes a configuration surface that can be
+ *   generalized for other homogeneous facet lists in later phases.
+ * - It parses Room children with Position tags into a PositionFacetList and updates
+ *   the payload via options.update(list).
+ * - It returns a parsingRemainder where the Room nodes have had their Position tags
+ *   removed, and a returnRemainderAddition of [] so that upstream behavior remains
+ *   unchanged while we prototype the two-remainder shape.
+ */
+export class StandardizeConsumerFacetListPosition<D extends object = object> implements StandardizeConsumer {
+    constructor(
+        private readonly context: D,
+        private readonly options: {
+            update: (this: D, list: PositionFacetList) => void
+        }
+    ) {}
+
+    process(children: GenericTree<SchemaTag>): { parsingRemainder: GenericTree<SchemaTag>; returnRemainderAddition: GenericTree<SchemaTag> } {
+        // Match Room children under the current component.
+        const roomNodes: GenericTreeNode<SchemaTag>[] = children.filter(treeNodeTypeguard(isSchemaRoom))
+
+        // Parse Position facets from the original Room nodes.
+        const facets = roomNodes
+            .map((roomNode) => {
+                try {
+                    return new StandardPositionFacet([roomNode])
+                }
+                catch {
+                    return undefined
+                }
+            })
+            .filter((facet): facet is StandardPositionFacet => Boolean(facet))
+
+        const list = new PositionFacetList(facets)
+        this.options.update.call(this.context, list)
+
+        // Build cleaned Room nodes with Position tags removed from their children.
+        const cleanedRooms: GenericTree<SchemaTag> = roomNodes.map((roomNode) => {
+            const { remainder: childrenWithoutPosition } = splitTaggedChildren({
+                children: roomNode.children,
+                tag: 'Position',
+            })
+            return {
+                ...roomNode,
+                children: childrenWithoutPosition
+            }
+        })
+
+        return {
+            parsingRemainder: [],
+            returnRemainderAddition: cleanedRooms
         }
     }
 }

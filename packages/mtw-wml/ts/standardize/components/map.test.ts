@@ -2,8 +2,9 @@ import { Schema, schemaToWML } from "../../schema"
 import { deIndentWML } from "../../schema/utils"
 import { treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { StandardMapData } from "./dataTypes/map"
-import StandardMap from './map'
+import StandardMap, { StandardMapPayload } from './map'
 import { mergeTest } from "./utils/testing"
+import { isSchemaPosition, isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components"
 
 describe('StandardMap class', () => {
 
@@ -136,6 +137,31 @@ describe('StandardMap class', () => {
                 <Room key=(testRoomTwo)><Position {100, 50} /></Room>
             </Map>
         `))
+    })
+
+    it('should return remainder with Rooms stripped of Position tags', () => {
+        const schema = new Schema()
+        const testSource = deIndentWML(`
+            <Map key=(test)>
+                <ShortName>Name Test</ShortName>
+                <Image key=(testImage) />
+                <Room key=(testRoom)><Position {100, 100} /><ShortName>Room Name</ShortName></Room>
+            </Map>
+        `)
+        schema.loadWML(testSource)
+        const mapNode = schema.schema[0]
+        const payload = new StandardMapPayload()
+        const remainder = payload.fromSchema(mapNode)
+
+        expect(remainder).toHaveLength(1)
+        const roomNode = remainder[0]
+        expect(treeNodeTypeguard(isSchemaRoom)(roomNode)).toBe(true)
+
+        const positionChildren = roomNode.children.filter(treeNodeTypeguard(isSchemaPosition))
+        expect(positionChildren.length).toBe(0)
+
+        const shortNameChildren = roomNode.children.filter(child => child.data.tag === 'ShortName')
+        expect(shortNameChildren.length).toBe(1)
     })
 
 })
