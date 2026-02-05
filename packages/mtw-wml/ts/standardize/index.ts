@@ -144,11 +144,11 @@ export class StandardForm {
 
             this._metaData = args.metaData.filter((node) => (!wrappedNodeTypeGuard(isSchemaImport)(node)))
             this._components = args.components.reduce<StandardComponent[]>((previous, standardData) => {
-                const standardItem = standardComponentFactory(standardData)
-                if (standardItem) {
+                const { component } = standardComponentFactory(standardData)
+                if (component) {
                     return [
                         ...previous,
-                        standardItem
+                        component
                     ]
                 }
                 else {
@@ -179,10 +179,10 @@ export class StandardForm {
             this._topLevel = (assetLine as any).topLevel ? new ReferenceList((assetLine as any).topLevel) : undefined
             
             this._components = args.filter(isStandardComponentData).reduce<StandardComponent[]>((previous, standardData: StandardComponentData & SerializeNDJSONMixin) => {
-                const standardItem = standardComponentFactory(standardData)
-                if (standardItem) {
-                    standardItem._from = standardData.from
-                    return [...previous, standardItem]
+                const { component } = standardComponentFactory(standardData)
+                if (component) {
+                    component._from = standardData.from
+                    return [...previous, component]
                 }
                 else {
                     return previous
@@ -550,7 +550,7 @@ export class StandardForm {
                 const key = reference.key
                 const universalKey = reference.universalKey
                 const defaultData = defaultComponentFromTag(tag, key, universalKey)
-                const component = standardComponentFactory(defaultData)
+                const { component } = standardComponentFactory(defaultData)
                 if (component) {
                     return [...previous, component]
                 }
