@@ -38,7 +38,7 @@ export type ComponentConstructorMethodsDiff<D extends ComponentKey> = {
 
 export interface ComponentConstructorMethods<D> {
     fromJSON(line: D): void;
-    fromSchema(node: GenericTreeNode<SchemaTag>): void;
+    fromSchema(node: GenericTreeNode<SchemaTag>): GenericTree<SchemaTag>;
     subset(options: StandardFormSubsetRequest): this;
     merge(incoming: this): this;
     toJSON(options?: StandardToJSONOptions): Omit<D, 'key' | 'universalKey'>;
@@ -125,9 +125,8 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
         //
         // Component-level fromSchema: shared schema-node handling for all components.
         // Side-effects this instance (wrapper fields and payload) and returns a child
-        // remainder. In Step 7a the payload fromSchema still returns void, so this
-        // method temporarily returns an empty array; Step 7b will thread through the
-        // real return remainder from the payload.
+        // remainder from the payload's fromSchema pipeline (currently always empty for
+        // components that don't expose child schema to processComponents).
         //
         fromSchema(node: GenericTreeNode<SchemaTag>): GenericTree<SchemaTag> {
             if (!treeNodeTypeguard(isSchemaComponent)(node)) {
@@ -165,9 +164,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
                 ...node,
                 children: childrenWithoutParentAndKey
             }
-            this._payload.fromSchema(nodeWithoutParentAndKey)
-            // Step 7a: payload.fromSchema does not yet return a remainder, so return an empty array.
-            return []
+            return this._payload.fromSchema(nodeWithoutParentAndKey)
         }
 
         _wrap(instance: GeneratedComponentClass): this {

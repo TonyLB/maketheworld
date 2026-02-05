@@ -1,7 +1,7 @@
 import { excludeUndefined } from "../../lib/lists"
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
-import { NestedSchemaOptions, StandardComponent, StandardComponentReferenceKey } from "./baseClasses"
+import { NestedSchemaOptions, StandardComponent, StandardComponentReferenceKey, StandardToJSONOptions } from "./baseClasses"
 import { StandardKnowledgeData } from "./dataTypes/knowledge"
 import { ReferenceList } from "./reference"
 import StandardReference from "../keys/reference"
@@ -19,6 +19,7 @@ import {
     StandardizeConsumerReferenceList,
     StandardizeConsumerStandardLiteral,
 } from "./fromSchemaPipeline"
+import { ReferenceFormat } from "./utils/references"
 
 export class StandardKnowledgePayload implements HasShortName, ComponentConstructorMethods<StandardKnowledgeData> {
     _shortName?: StandardLiteral;
@@ -41,7 +42,7 @@ export class StandardKnowledgePayload implements HasShortName, ComponentConstruc
         this._examples = new ReferenceList(props.examples?.map((reference) => (new StandardReference(reference))) ?? [])
     }
 
-    fromSchema(node: GenericTreeNode<SchemaTag>) {
+    fromSchema(node: GenericTreeNode<SchemaTag>): GenericTree<SchemaTag> {
         if (treeNodeTypeguard(isSchemaKnowledge)(node)) {
             const consumers = [
                 new StandardizeConsumerStandardLiteral(this, {
@@ -57,8 +58,8 @@ export class StandardKnowledgePayload implements HasShortName, ComponentConstruc
                     },
                 }),
             ]
-            processWithConsumers(this, consumers, node.children)
-            return
+            const returnRemainder = processWithConsumers(this, consumers, node.children)
+            return returnRemainder
         }
         throw new Error('Schema mismatch in StandardKnowledge constructor')
     }

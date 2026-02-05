@@ -174,11 +174,22 @@ This principle ensures that:
 
 Payloads that parse from WML schema use a **process-and-remainder pipeline** so that each child is consumed exactly once and unknown tags are rejected.
 
-- **Pattern:** The payload builds an ordered list of `StandardizeConsumer` steps and calls `processWithConsumers(this, consumers, node.children)`. Each step consumes one (or more) tag(s) from the current children and returns the remainder for the next step. The runner throws if the final remainder is non-empty.
+- **Pattern (single remainder):** The payload builds an ordered list of `StandardizeConsumer` steps and calls `processWithConsumers(this, consumers, node.children)`. Each step consumes one (or more) tag(s) from the current children and returns the remainder for the next step. The runner throws if the final remainder is non-empty.
 - **Rule:** Unconsumed child tags are an error (no silent ignore). The error message lists unconsumed tag names (e.g. `Unconsumed child tags: Map`).
 - **Simple components:** Use `StandardizeConsumerSimple`, `StandardizeConsumerStandardLiteral`, and/or `StandardizeConsumerReferenceList` with `{ tag, update }`; the order of steps is the contract for what the component accepts. Tags that should be accepted but not stored (e.g. Position, Grant) use a no-op `update`.
 - **Current coverage:** `StandardRoom`, `StandardFeature`, `StandardKnowledge`, `StandardCharacter`, `StandardMessage`, `StandardMoment`, `StandardImage`, `StandardMark`, and `StandardLens` all use the process-and-remainder pipeline for `fromSchema` (see component sections above for their accepted tag sets). More complex predicate/multi-tag components (Map, Example, Guidance) remain to be migrated in Phase 3 Step 6.
 - **Reference:** Full design and migration status: [AGENT.fromSchema.planning.md](./AGENT.fromSchema.planning.md).
+
+#### Two-remainder shape (Phase 3 Step 7b groundwork)
+
+The fromSchema pipeline now supports a **two-remainder shape** for future integration with `processComponents`:
+
+- **Parsing remainder:** As before, each consumer returns a `parsingRemainder` (children not consumed by that step). `processWithConsumers` threads this through the consumer list and throws if the final remainder is non-empty. This preserves the existing \"unconsumed children = error\" contract.
+- **Return remainder:** Each consumer also returns a `returnRemainderAddition` that represents child schema to be re-exposed to `processComponents` for recursion. `processWithConsumers` aggregates these additions into a single `returnRemainder` and returns it to the payload.
+- **Current behavior:** All real consumers (`StandardizeConsumerSimple`, `StandardizeConsumerStandardLiteral`, `StandardizeConsumerRender`, `StandardizeConsumerReferenceList`) currently return `returnRemainderAddition: []`, so payload `fromSchema` methods return `[]`. No component yet exposes child schema back to `processComponents` via this channel.
+- **Component wrapper:** `StandardComponent.fromSchema(node)` strips `Key`/`Parent`, sets wrapper fields, and delegates to `this._payload.fromSchema(nodeWithoutParentAndKey)`. It returns the payload’s (currently empty) `returnRemainder`. Constructors that receive schema nodes call `this.fromSchema(node)` and ignore the returned remainder.
+
+This two-remainder shape is **behavior-neutral** today and exists as groundwork for later phases (Map / Example / Guidance facet-aware pipelines) where ReferenceList and facet consumers will opt in to contributing child schema to the return remainder.
 
 ### assureReferences Method
 

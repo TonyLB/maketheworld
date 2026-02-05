@@ -39,7 +39,7 @@ export class StandardMomentPayload implements ComponentConstructorMethods<Standa
         this._messages = new ReferenceList(props.messages?.map((reference) => (new StandardReference(reference))) ?? [])
     }
 
-    fromSchema(node: GenericTreeNode<SchemaTag>) {
+    fromSchema(node: GenericTreeNode<SchemaTag>): GenericTree<SchemaTag> {
         if (treeNodeTypeguard(isSchemaMoment)(node)) {
             const consumers = [
                 new StandardizeConsumerStandardLiteral(this, {
@@ -55,8 +55,8 @@ export class StandardMomentPayload implements ComponentConstructorMethods<Standa
                     },
                 }),
             ]
-            processWithConsumers(this, consumers, node.children)
-            return
+            const returnRemainder = processWithConsumers(this, consumers, node.children)
+            return returnRemainder
         }
         throw new Error('Schema mismatch in StandardMoment constructor')
     }

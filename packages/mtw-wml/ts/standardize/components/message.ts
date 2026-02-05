@@ -49,7 +49,7 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
         this._rooms = new ReferenceList(props.rooms?.map((reference) => (new StandardReference(reference))) ?? [])
     }
 
-    fromSchema(node: GenericTreeNode<SchemaTag>) {
+    fromSchema(node: GenericTreeNode<SchemaTag>): GenericTree<SchemaTag> {
         if (treeNodeTypeguard(isSchemaMessage)(node)) {
             const consumers = [
                 new StandardizeConsumerStandardLiteral(this, {
@@ -73,8 +73,8 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
                     },
                 }),
             ]
-            processWithConsumers(this, consumers, node.children)
-            return
+            const returnRemainder = processWithConsumers(this, consumers, node.children)
+            return returnRemainder
         }
         throw new Error('Schema mismatch in StandardMessage constructor')
     }

@@ -19,10 +19,11 @@ describe("fromSchemaPipeline", () => {
                 mockContext,
                 { tag: "ShortName", update }
             )
-            const remainder = consumer.process(children)
+            const { parsingRemainder: remainder, returnRemainderAddition } = consumer.process(children)
             expect(update).not.toHaveBeenCalled()
             expect(remainder).toEqual(children)
             expect(remainder).toHaveLength(0)
+            expect(returnRemainderAddition).toEqual([])
         })
 
         it("with one matching tag: update is called with matched nodes, remainder is the rest", () => {
@@ -39,13 +40,14 @@ describe("fromSchemaPipeline", () => {
                 mockContext,
                 { tag: "ShortName", update }
             )
-            const remainder = consumer.process(children)
+            const { parsingRemainder: remainder, returnRemainderAddition } = consumer.process(children)
             expect(update).toHaveBeenCalledTimes(1)
             const [matched] = update.mock.calls[0]
             expect(matched).toHaveLength(1)
             expect(matched[0].data.tag).toBe("ShortName")
             expect(remainder).toHaveLength(1)
             expect(remainder[0].data.tag).toBe("Feature")
+            expect(returnRemainderAddition).toEqual([])
         })
 
         it("with no matching tag: update is not called, remainder equals children", () => {
@@ -62,10 +64,11 @@ describe("fromSchemaPipeline", () => {
                 mockContext,
                 { tag: "ShortName", update }
             )
-            const remainder = consumer.process(children)
+            const { parsingRemainder: remainder, returnRemainderAddition } = consumer.process(children)
             expect(update).not.toHaveBeenCalled()
             expect(remainder).toHaveLength(2)
             expect(remainder.map((n) => n.data.tag)).toEqual(["Feature", "Example"])
+            expect(returnRemainderAddition).toEqual([])
         })
     })
 
@@ -85,12 +88,13 @@ describe("fromSchemaPipeline", () => {
                     mockContext.list = list
                 },
             })
-            const remainder = consumer.process(children)
+            const { parsingRemainder: remainder, returnRemainderAddition } = consumer.process(children)
             expect(mockContext.list).toBeInstanceOf(ReferenceList)
             expect(mockContext.list!.payload).toHaveLength(1)
             expect(mockContext.list!.payload[0].key).toBe("f1")
             expect(remainder).toHaveLength(1)
             expect(remainder[0].data.tag).toBe("ShortName")
+            expect(returnRemainderAddition).toEqual([])
         })
     })
 
@@ -110,11 +114,12 @@ describe("fromSchemaPipeline", () => {
                     mockContext.literal = literal
                 },
             })
-            const remainder = consumer.process(children)
+            const { parsingRemainder: remainder, returnRemainderAddition } = consumer.process(children)
             expect(mockContext.literal).toBeInstanceOf(StandardLiteral)
             expect(mockContext.literal!.toJSON()).toBe("Main Room")
             expect(remainder).toHaveLength(1)
             expect(remainder[0].data.tag).toBe("Feature")
+            expect(returnRemainderAddition).toEqual([])
         })
 
         it("with no matching tag: update is called with undefined", () => {
@@ -131,8 +136,9 @@ describe("fromSchemaPipeline", () => {
                     mockContext.literal = literal
                 },
             })
-            consumer.process(children)
+            const { returnRemainderAddition } = consumer.process(children)
             expect(mockContext.literal).toBeUndefined()
+            expect(returnRemainderAddition).toEqual([])
         })
     })
 
@@ -154,11 +160,12 @@ describe("fromSchemaPipeline", () => {
                     mockContext.render = render
                 },
             })
-            const remainder = consumer.process(children)
+            const { parsingRemainder: remainder, returnRemainderAddition } = consumer.process(children)
             expect(mockContext.render).toBeInstanceOf(StandardRender)
             expect(mockContext.render!.toJSON()).toEqual(["Message Test"])
             expect(remainder).toHaveLength(1)
             expect(remainder[0].data.tag).toBe("Room")
+            expect(returnRemainderAddition).toEqual([])
         })
 
         it("with no matching tag: update is called with undefined", () => {
@@ -177,8 +184,9 @@ describe("fromSchemaPipeline", () => {
                     mockContext.render = render
                 },
             })
-            consumer.process(children)
+            const { returnRemainderAddition } = consumer.process(children)
             expect(mockContext.render).toBeUndefined()
+            expect(returnRemainderAddition).toEqual([])
         })
     })
 
@@ -248,6 +256,25 @@ describe("fromSchemaPipeline", () => {
                 /Unconsumed child tags:/
             )
             expect(() => processWithConsumers(mockContext, [consumer], children)).toThrow(/Map/)
+        })
+
+        it("aggregates returnRemainderAddition from consumers", () => {
+            const roomTree = treeFromWML(deIndentWML(`
+                <Room key=(test)>
+                    <ShortName>Name</ShortName>
+                </Room>
+            `))
+            const children = roomTree[0].children
+            const additions: GenericTree<SchemaTag>[] = []
+            const mockConsumer: StandardizeConsumer = {
+                process(current) {
+                    additions.push(current)
+                    return { parsingRemainder: [], returnRemainderAddition: current }
+                }
+            }
+            const result = processWithConsumers({}, [mockConsumer], children)
+            expect(result).toHaveLength(1)
+            expect(result[0].data.tag).toBe("ShortName")
         })
     })
 })
