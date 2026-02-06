@@ -92,7 +92,7 @@ export class StandardizeConsumerReferenceList<D extends object = object> impleme
         //
         return {
             parsingRemainder: remainder,
-            returnRemainderAddition: []
+            returnRemainderAddition: matched
         }
     }
 }
