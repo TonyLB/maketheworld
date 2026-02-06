@@ -13,7 +13,32 @@ import StandardReference from "../keys/reference"
 import { StandardKey } from "../keys/key"
 import { StandardLiteral } from "../literal"
 import { StandardExplicitParent } from "../explicit"
-import { processWithConsumers, StandardizeConsumerFacetListPosition, StandardizeConsumerSimple, StandardizeConsumerStandardLiteral } from "./fromSchemaPipeline"
+import { processWithConsumers, StandardizeConsumer, StandardizeConsumerFacetListPosition, StandardizeConsumerStandardLiteral } from "./fromSchemaPipeline"
+import { splitTaggedChildren } from "../../schema/utils"
+
+class StandardizeConsumerImageList<D extends object = object> implements StandardizeConsumer {
+    constructor(
+        private readonly context: D,
+        private readonly options: {
+            tag: SchemaTag["tag"]
+            update: (this: D, nodes: GenericTree<SchemaTag>) => void
+        }
+    ) {}
+
+    process(children: GenericTree<SchemaTag>) {
+        const { matched, remainder } = splitTaggedChildren({
+            children,
+            tag: this.options.tag,
+        })
+        if (matched.length > 0) {
+            this.options.update.call(this.context, matched)
+        }
+        return {
+            parsingRemainder: remainder,
+            returnRemainderAddition: matched
+        }
+    }
+}
 
 /**
  * StandardMapPayload represents a Map component.
@@ -53,7 +78,7 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
                         this._shortName = literal
                     },
                 }),
-                new StandardizeConsumerSimple<StandardMapPayload>(this, {
+                new StandardizeConsumerImageList<StandardMapPayload>(this, {
                     tag: "Image",
                     update(nodes) {
                         this._images = nodes

@@ -98,7 +98,7 @@ export const processComponents = (props: {
             const template = componentTemplates.find(({ key }) => (key === item.data.tag))
             if (template) {
 
-                const { component } = standardComponentFactory(item)
+                const { component, remainder } = standardComponentFactory(item)
 
                 //
                 // If the template has legalParents, check if there are any legal parent tags in the componentContext
@@ -135,9 +135,9 @@ export const processComponents = (props: {
                 // Process children recursively
                 // Component tag is always a ComponentTag (not 'Remove' or 'Replace') since we only store plain components
                 const componentTag = plainComponent.tag as ComponentTag
-                const childrenResult = processComponents({ 
-                    ...props, 
-                    schema: item.children,
+                const childrenResult = processComponents({
+                    ...props,
+                    schema: remainder,
                     componentContext: [...componentContext, componentTag]
                 })
 

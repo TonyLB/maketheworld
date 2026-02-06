@@ -180,16 +180,29 @@ Payloads that parse from WML schema use a **process-and-remainder pipeline** so 
 - **Current coverage:** `StandardRoom`, `StandardFeature`, `StandardKnowledge`, `StandardCharacter`, `StandardMessage`, `StandardMoment`, `StandardImage`, `StandardMark`, and `StandardLens` all use the process-and-remainder pipeline for `fromSchema` (see component sections above for their accepted tag sets). More complex predicate/multi-tag components (Map, Example, Guidance) remain to be migrated in Phase 3 Step 6.
 - **Reference:** Full design and migration status: [AGENT.fromSchema.planning.md](./AGENT.fromSchema.planning.md).
 
-#### Two-remainder shape (Phase 3 Step 7b groundwork)
+#### Two-remainder shape and processComponents recursion (Phase 3 Step 7b/9)
 
-The fromSchema pipeline now supports a **two-remainder shape** for future integration with `processComponents`:
+The fromSchema pipeline now supports a **two-remainder shape** that is fully integrated with `processComponents`:
 
 - **Parsing remainder:** As before, each consumer returns a `parsingRemainder` (children not consumed by that step). `processWithConsumers` threads this through the consumer list and throws if the final remainder is non-empty. This preserves the existing \"unconsumed children = error\" contract.
 - **Return remainder:** Each consumer also returns a `returnRemainderAddition` that represents child schema to be re-exposed to `processComponents` for recursion. `processWithConsumers` aggregates these additions into a single `returnRemainder` and returns it to the payload.
-- **Current behavior:** Most real consumers (`StandardizeConsumerSimple`, `StandardizeConsumerStandardLiteral`, `StandardizeConsumerRender`) currently return `returnRemainderAddition: []`. Reference-list consumers (`StandardizeConsumerReferenceList`) now contribute their matched component nodes (Feature, Example, Room, Message, Mark under Lens, etc.) to the return remainder, but `processComponents` still ignores this channel until Phase 3 Step 9 wires it into recursion.
-- **Component wrapper:** `StandardComponent.fromSchema(node)` strips `Key`/`Parent`, sets wrapper fields, and delegates to `this._payload.fromSchema(nodeWithoutParentAndKey)`. It returns the payload’s (currently empty) `returnRemainder`. Constructors that receive schema nodes call `this.fromSchema(node)` and ignore the returned remainder.
+- **Reference and facet consumers:** Reference-list consumers (`StandardizeConsumerReferenceList`) contribute their matched component nodes (Feature, Example, Room, Message, Mark under Lens, etc.) to the return remainder. Facet-list consumers (`StandardizeConsumerFacetListPosition`, `StandardizeConsumerFacetListMark`) contribute cleaned component nodes (e.g., `Room` without `Position`, `Mark` without `Match`) that should be materialized as child components.
+- **Component wrapper:** `StandardComponent.fromSchema(node)` strips `Key`/`Parent`, sets wrapper fields, and delegates to `this._payload.fromSchema(nodeWithoutParentAndKey)`. It returns the payload’s `returnRemainder`. Constructors that receive schema nodes call `this.fromSchema(node)` and ignore the returned remainder; the remainder is consumed by `processComponents`.
 
-This two-remainder shape is **behavior-neutral** today and exists as groundwork for later phases (Map / Example / Guidance facet-aware pipelines) where ReferenceList and facet consumers will opt in to contributing child schema to the return remainder.
+`standardComponentFactory` exposes this shape to the processing pipeline:
+
+- For schema-based construction, the factory builds an \"empty\" component instance, calls `instance.fromSchema(node)`, and returns `{ component: instance, remainder }`.
+- For data-based construction, it returns `{ component: new StandardX(data), remainder: [] }` so existing callers remain behavior-neutral.
+
+`processComponents` now **recurses only into this returned remainder**, not into the raw `item.children`:
+
+- When an `isSchemaComponent(item)` is encountered, `processComponents` calls `standardComponentFactory(item)` and recurses into the `remainder` it returns. This remainder is exactly the set of child schema nodes that component payloads have chosen to expose for further processing (via ReferenceList and facet-list consumers).
+- Top-level detection, Remove/Replace handling, and `referenceCollection` construction remain unchanged; only the **source of child schema for recursion** has shifted from `item.children` to the payload-controlled `remainder`.
+
+Practically, this means:
+
+- **Only** consumers that contribute to `returnRemainderAddition` (ReferenceList and facet-list consumers) can cause additional components to be discovered beneath a given parent.
+- Tags consumed by literal/render/simple consumers are **internal** to the component’s payload and are never revisited by `processComponents`.
 
 ### assureReferences Method
 
