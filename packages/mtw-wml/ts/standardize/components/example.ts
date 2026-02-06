@@ -1,6 +1,4 @@
 import { excludeUndefined } from "../../lib/lists"
-import { wrappedNodeTypeGuard } from "../../schema/utils"
-import SchemaTagTree from "../../tagTree/schema"
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { componentClassFactory, ComponentConstructorMethods } from "./component"
 import { StandardComponent, StandardComponentReferenceKey, NestedSchemaOptions } from "./baseClasses"
@@ -9,20 +7,20 @@ import { StandardRender } from "../render"
 import { rebuildSchemaFromStandardRender } from "./utils/extractStandardRender"
 import { StandardToJSONOptions } from "./baseClasses"
 import { StandardExampleData, StandardExampleNDJSONData } from "./dataTypes/example"
-import { AssetUUID, ComponentUUID, isSchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
-import { isSchemaExample } from "@tonylb/mtw-base/ts/schema/example"
+import { AssetUUID, ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { isSchemaExample, isSchemaDisplayName, isSchemaSummary, isSchemaDescription, SchemaDisplayNameTag, SchemaSummaryTag, SchemaDescriptionTag } from "@tonylb/mtw-base/ts/schema/example"
 import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { deepEqual } from "../../lib/objects"
 import { renderTreeToSchema, schemaToRenderTree, RenderTree } from "@tonylb/mtw-base/ts/renderTree"
 import { StandardKey } from "../keys/key"
 import StandardReference from "../keys/reference"
 import { StandardExplicitParent } from "../explicit"
-import { MarkFacetList, StandardMarkFacet } from "../keys/facets/mark"
-import { findTaggedChildren, recurseIntoEditable } from "../../schema/utils"
+import { MarkFacetList } from "../keys/facets/mark"
 import { StandardEditableData, extractFromEditableData } from "@tonylb/mtw-base/ts/editable"
 import { StandardFormSubsetRequest } from "../baseClasses"
 import { StandardLiteral } from "../literal"
 import { HasShortName } from "./abstract"
+import { processWithConsumers, StandardizeConsumerFacetListMark, StandardizeConsumerRender, StandardizeConsumerStandardLiteral } from "./fromSchemaPipeline"
 
 export class StandardExamplePayload implements HasShortName, ComponentConstructorMethods<StandardExampleNDJSONData | StandardExampleData> {
     _displayName?: StandardRender;
@@ -54,47 +52,48 @@ export class StandardExamplePayload implements HasShortName, ComponentConstructo
         this._marks = new MarkFacetList(marks ?? [])
     }
 
-    fromSchema(node: GenericTreeNode<SchemaTag>) {
+    fromSchema(node: GenericTreeNode<SchemaTag>): GenericTree<SchemaTag> {
         if (treeNodeTypeguard(isSchemaExample)(node)) {
-            const tagTree = new SchemaTagTree(node.children)
-            const displayNameItem = tagTree.filter({ match: 'DisplayName' }).prune({ match: 'DisplayName' }).tree.filter(wrappedNodeTypeGuard(isSchemaOutputTag))
-            const summaryItem = tagTree.filter({ match: 'Summary' }).prune({ match: 'Summary' }).tree.filter(wrappedNodeTypeGuard(isSchemaOutputTag))
-            const descriptionItem = tagTree.filter({ match: 'Description' }).prune({ match: 'Description' }).tree.filter(wrappedNodeTypeGuard(isSchemaOutputTag))
-            if (displayNameItem.length) {
-                this._displayName = new StandardRender(displayNameItem)
-            }
-            if (summaryItem.length) {
-                this._summary = new StandardRender(summaryItem)
-            }
-            if (descriptionItem.length) {
-                this._description = new StandardRender(descriptionItem)
-            }
-            
-            // Parse Mark facets (only Marks with Match children)
-            // findTaggedChildren handles Remove and Replace wrappers automatically
-            const markNodes = findTaggedChildren({ children: node.children, tag: 'Mark' })
-            
-            // Helper function to check if a node contains Match children
-            // Uses recurseIntoEditable to unwrap edit wrappers, then checks each content node for Match children
-            const hasMatchChild = (node: GenericTreeNode<SchemaTag>): boolean => {
-                return recurseIntoEditable(node, (contentNode) => {
-                    // Check if this content node has Match children
-                    const matchChildren = findTaggedChildren({ children: contentNode.children, tag: 'Match' })
-                    return matchChildren.length > 0
-                }).some(result => result)
-            }
-            
-            const parsedFacets = markNodes
-                .filter(hasMatchChild)
-                .map(markNode => {
-                    // Create StandardMarkFacet directly from schema - it will handle Replace/Remove/Plain dispatch
-                    // StandardMarkFacet constructor accepts GenericTree<SchemaTag> and handles parsing internally
-                    return new StandardMarkFacet([markNode])
-                })
-            this._marks = new MarkFacetList(parsedFacets)
-            const shortNameNode = findTaggedChildren({ children: node.children, tag: 'ShortName' })
-            this._shortName = shortNameNode.length ? new StandardLiteral(shortNameNode, { tag: 'ShortName' }) : undefined
-            return
+            const consumers = [
+                new StandardizeConsumerStandardLiteral<StandardExamplePayload>(this, {
+                    tag: "ShortName",
+                    update(literal) {
+                        this._shortName = literal
+                    },
+                }),
+                new StandardizeConsumerRender<StandardExamplePayload, SchemaDisplayNameTag>(this, {
+                    tag: "DisplayName",
+                    nodeTypeGuard: isSchemaDisplayName,
+                    errorMessage: "Schema mismatch in StandardExample constructor",
+                    update(render) {
+                        this._displayName = render
+                    },
+                }),
+                new StandardizeConsumerRender<StandardExamplePayload, SchemaSummaryTag>(this, {
+                    tag: "Summary",
+                    nodeTypeGuard: isSchemaSummary,
+                    errorMessage: "Schema mismatch in StandardExample constructor",
+                    update(render) {
+                        this._summary = render
+                    },
+                }),
+                new StandardizeConsumerRender<StandardExamplePayload, SchemaDescriptionTag>(this, {
+                    tag: "Description",
+                    nodeTypeGuard: isSchemaDescription,
+                    errorMessage: "Schema mismatch in StandardExample constructor",
+                    update(render) {
+                        this._description = render
+                    },
+                }),
+                new StandardizeConsumerFacetListMark<StandardExamplePayload>(this, {
+                    update(list) {
+                        this._marks = list
+                    },
+                }),
+            ]
+
+            const returnRemainder = processWithConsumers(this, consumers, node.children)
+            return returnRemainder
         }
         throw new Error('Schema mismatch in StandardExample constructor')
     }

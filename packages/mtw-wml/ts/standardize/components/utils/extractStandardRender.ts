@@ -27,8 +27,18 @@ export const extractStandardRender = <D extends SchemaTag>(node: EditWrappedStan
             const matchChild = match.children[0]
             const payloadChild = payload.children[0]
             if (matchChild && treeNodeTypeguard(typeguard)(matchChild) && payloadChild && treeNodeTypeguard(typeguard)(payloadChild)) {
-                // Pass the Replace schema structure directly
-                return new StandardRender([node])
+                //
+                // Convert schema-level Replace+ReplaceMatch+ReplacePayload structure into
+                // StandardEditableData<RenderTree> expected by StandardRender. The match
+                // and payload children of the render-bearing tag (Description, DisplayName,
+                // Summary, etc.) are treated as RenderTree.
+                //
+                const editableReplace = {
+                    tag: 'Replace' as const,
+                    match: matchChild.children,
+                    payload: payloadChild.children
+                }
+                return new StandardRender(editableReplace)
             }
         }
     }

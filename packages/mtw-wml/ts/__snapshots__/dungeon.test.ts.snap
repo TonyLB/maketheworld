@@ -528,6 +528,11 @@ exports[`large WML test should parse properly 1`] = `
     "type": 0,
   },
   {
+    "properties": [],
+    "tag": "Description",
+    "type": 0,
+  },
+  {
     "text": "A ten-by-ten squared off cut stone room. Across from the passage leading in is a table with a ",
     "type": 3,
   },
@@ -576,6 +581,10 @@ exports[`large WML test should parse properly 1`] = `
   {
     "text": ".",
     "type": 3,
+  },
+  {
+    "tag": "Description",
+    "type": 2,
   },
   {
     "tag": "Example",
@@ -678,7 +687,43 @@ exports[`large WML test should standardize properly 1`] = `
     "universalKey": undefined,
   },
   {
-    "description": undefined,
+    "description": [
+      "A ten-by-ten squared off cut stone room. Across from the passage leading in is a table with a ",
+      {
+        "children": [
+          {
+            "children": [],
+            "data": {
+              "tag": "String",
+              "value": "pie",
+            },
+          },
+        ],
+        "data": {
+          "tag": "Link",
+          "text": "pie",
+          "to": "pie",
+        },
+      },
+      ". Standing before the table is an angry ",
+      {
+        "children": [
+          {
+            "children": [],
+            "data": {
+              "tag": "String",
+              "value": "orc",
+            },
+          },
+        ],
+        "data": {
+          "tag": "Link",
+          "text": "orc",
+          "to": "orc",
+        },
+      },
+      ".",
+    ],
     "displayName": undefined,
     "key": undefined,
     "summary": undefined,

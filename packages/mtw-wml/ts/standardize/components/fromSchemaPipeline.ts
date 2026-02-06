@@ -7,12 +7,14 @@
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components"
+import { isSchemaMark } from "@tonylb/mtw-base/ts/schema/worldState"
 import { splitTaggedChildren } from "../../schema/utils"
 import { ReferenceList } from "./reference"
 import { StandardLiteral } from "../literal"
 import { StandardRender } from "../render"
 import { extractStandardRender } from "./utils/extractStandardRender"
 import { PositionFacetList, StandardPositionFacet } from "../keys/facets/position"
+import { MarkFacetList, StandardMarkFacet } from "../keys/facets/mark"
 
 export interface StandardizeConsumer {
     /**
@@ -209,6 +211,62 @@ export class StandardizeConsumerFacetListPosition<D extends object = object> imp
         return {
             parsingRemainder: [],
             returnRemainderAddition: cleanedRooms
+        }
+    }
+}
+
+/**
+ * Facet-list consumer for Mark facets under Example/Guidance.
+ *
+ * - Parses Mark children with Match payloads into a MarkFacetList and updates
+ *   the payload via options.update(list).
+ * - Returns all Mark nodes (with Match children stripped where present) in
+ *   returnRemainderAddition so that processComponents can recurse into cleaned
+ *   Mark components once the two-remainder pipeline is wired.
+ * - Non-Mark children are passed through as parsingRemainder for subsequent
+ *   consumers (when this consumer is not the last step).
+ */
+export class StandardizeConsumerFacetListMark<D extends object = object> implements StandardizeConsumer {
+    constructor(
+        private readonly context: D,
+        private readonly options: {
+            update: (this: D, list: MarkFacetList) => void
+        }
+    ) {}
+
+    process(children: GenericTree<SchemaTag>): { parsingRemainder: GenericTree<SchemaTag>; returnRemainderAddition: GenericTree<SchemaTag> } {
+        const markNodes: GenericTreeNode<SchemaTag>[] = children.filter(treeNodeTypeguard(isSchemaMark))
+
+        const facets = markNodes
+            .map((markNode) => {
+                try {
+                    return new StandardMarkFacet([markNode])
+                }
+                catch {
+                    return undefined
+                }
+            })
+            .filter((facet): facet is StandardMarkFacet => Boolean(facet))
+
+        const list = new MarkFacetList(facets)
+        this.options.update.call(this.context, list)
+
+        const cleanedMarks: GenericTree<SchemaTag> = markNodes.map((markNode) => {
+            const { remainder: childrenWithoutMatch } = splitTaggedChildren({
+                children: markNode.children,
+                tag: 'Match',
+            })
+            return {
+                ...markNode,
+                children: childrenWithoutMatch
+            }
+        })
+
+        const parsingRemainder: GenericTree<SchemaTag> = children.filter((child) => !treeNodeTypeguard(isSchemaMark)(child))
+
+        return {
+            parsingRemainder,
+            returnRemainderAddition: cleanedMarks
         }
     }
 }
