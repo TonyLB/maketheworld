@@ -5,10 +5,10 @@
 //
 
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
-import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { isSchemaComponent, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components"
 import { isSchemaMark } from "@tonylb/mtw-base/ts/schema/worldState"
-import { splitTaggedChildren } from "../../schema/utils"
+import { splitChildrenByPredicate, splitTaggedChildren } from "../../schema/utils"
 import { ReferenceList } from "./reference"
 import { StandardLiteral } from "../literal"
 import { StandardRender } from "../render"
@@ -267,6 +267,25 @@ export class StandardizeConsumerFacetListMark<D extends object = object> impleme
         return {
             parsingRemainder,
             returnRemainderAddition: cleanedMarks
+        }
+    }
+}
+
+/**
+ * Consumer that accepts any direct child that is a component tag with ref={0}
+ * (inline shared resource) and passes it unchanged to returnRemainderAddition.
+ * Does not mutate context. Uses splitChildrenByPredicate so Remove/Replace
+ * wrappers are respected. Should run last in payloads that have ReferenceList
+ * or FacetList consumers. See AGENT.fromSchema.inlines.planning.md.
+ */
+export class StandardizeConsumerInline implements StandardizeConsumer {
+    process(children: GenericTree<SchemaTag>): { parsingRemainder: GenericTree<SchemaTag>; returnRemainderAddition: GenericTree<SchemaTag> } {
+        const predicate = (node: GenericTreeNode<SchemaTag>) =>
+            treeNodeTypeguard(isSchemaComponent)(node) && (node.data as { ref?: number }).ref === 0
+        const { matched, remainder } = splitChildrenByPredicate(children, predicate)
+        return {
+            parsingRemainder: remainder,
+            returnRemainderAddition: matched
         }
     }
 }

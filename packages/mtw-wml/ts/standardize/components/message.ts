@@ -21,6 +21,7 @@ import { StandardExplicitParent } from "../explicit"
 import { StandardLiteral } from "../literal"
 import {
     processWithConsumers,
+    StandardizeConsumerInline,
     StandardizeConsumerReferenceList,
     StandardizeConsumerRender,
     StandardizeConsumerStandardLiteral,
@@ -72,6 +73,7 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
                         this._rooms = list
                     },
                 }),
+                new StandardizeConsumerInline(),
             ]
             const returnRemainder = processWithConsumers(this, consumers, node.children)
             return returnRemainder

@@ -188,27 +188,77 @@ In other words: **parsing and structural organization can be made correct before
 
 ---
 
-## Open Questions / Next Steps
+## First-Draft Architecture Sketch
 
-This document only captures the **intent**; concrete design is still to be determined:
+This section records a first-draft architectural direction for closing the inline shared-resource gap. It is intentionally high-level; details may change as we refine the boundary between `SchemaOrganization` and schema-rendering.
 
-- **Room-level consumers for inline Marks**
-  - Do we introduce a dedicated consumer (e.g. `StandardizeConsumerInlineSharedMark`) that:
-    - Accepts `Mark` children under `Room`.
-    - Does *not* store them on the Room payload.
-    - Forwards them entirely via `returnRemainderAddition` so `processComponents` can construct `StandardMark` instances?
+### 1. Parsing Side: Inline Consumer
 
-- **Generalization beyond Marks**
-  - Are there other components that should be treated as inline shared resources under a parent (e.g. shared `Example`s or `Guidance` across multiple children)?
-  - If yes, we may need a **general pattern** for “inline shared resource consumers” at the parent level.
+- **Goal**: Allow parents (e.g. `Room`) to **tolerate** inline shared resources as structural children without binding them to payload fields.
+- **Idea**: Introduce a generic inline consumer, e.g. `StandardizeConsumerInline`, with responsibility to:
+  - Match “inline shared resource” nodes under a parent:
+    - Component tags only (e.g. `Mark`, `Example`, etc., as appropriate).
+    - Likely constrained to `ref={0}` (or a similar marker) to avoid consuming truly illegal tags.
+  - Leave the parent payload unchanged.
+  - Return the matched nodes **entirely via `returnRemainderAddition`**, so that `processComponents` will recurse into them and construct the corresponding child components.
 
-- **Interaction with facets**
-  - How do inline shared resources composed with facet-like relationships (e.g., Mark facets on Examples/Guidance) behave when lifted to parents?
+This keeps the parent payload’s fields semantically honest while making the **two-remainder pipeline** expressive enough to represent “hosted but not owned” children.
 
-- **Documentation updates**
-  - Once the pattern is implemented, cross-reference this behavior in:
-    - `AGENT.fromSchema.planning.md` (two-remainder design).
-    - `AGENT.implementation.md` (SchemaOrganization and structural relationships).
+**Parsing-side implementation (done):** `StandardizeConsumerInline` is implemented in [fromSchemaPipeline.ts](./fromSchemaPipeline.ts). It accepts any direct child that is a component tag with `ref={0}` (via `splitChildrenByPredicate` so Remove/Replace wrappers are respected) and passes it unchanged via `returnRemainderAddition`. It is used as the **last** consumer in all payloads that have a ReferenceList or FacetList consumer: Room, Feature, Knowledge, Message, Moment, Lens, Map, Example, and Guidance. The **serialization gap** (assureReferences / nestedSchema) remains; rendering inline shared resources at the parent level is out of scope for this work.
 
-These questions belong to a follow-up design pass; for now, this file serves as a **marker and narrative** for why parent-level “inline resource” handling is needed and how it should behave in round-trip terms.
+### 2. Rendering Side: Bucketed vs Inline Remainder at Schema Time
+
+Today’s schema rendering assumes:
+
+- Each payload’s stored data (plus assured references) fully determines what appears under it in schema.
+- `SchemaOrganization` is used to decide *which* components are children of a given parent, but not *how* to render children that don’t have a natural payload bucket.
+
+For inline shared resources, we want the parent’s schema-rendering to be driven by **both**:
+
+- Payload-owned fields (shortName, exits, Lens/Feature/Example/Guidance/Character lists), and
+- **Parentage information** from `SchemaOrganization` (e.g. “Mark A is structurally under Room X”).
+
+First-draft sketch:
+
+1. **Extend `assureReferences` to return a remainder**  
+   - Instead of only “project references into payload buckets and return an updated payload”, we want:
+     - `updatedPayload`: same behavior as today, with Lens/Feature/Example/Guidance/Character references routed into their ReferenceLists (possibly with `ref={0}`).
+     - `unhandledInlines`: a remainder of references that the payload **does not know how to store** (e.g. `Mark` under `Room`).
+
+   Conceptually:
+   - `assureReferences(children) => { payloadWithBuckets, inlineRemainder }`
+
+2. **Pass inline remainder into `nestedSchema` / `schema`**  
+   - `nestedSchema` (and, if needed, `schema`) should be able to:
+     - Render the **bucketed children** from the payload as before (shortName, Lens, Feature, Example, Guidance, Character, exits).
+     - Then, for each reference in `inlineRemainder`:
+       - Use the `lookup` function (and `SchemaOrganization`) to find the referenced component.
+       - Call that component’s `nestedSchema` to render it inline under the current parent (e.g. produce `<Mark ... ref={0}>…</Mark>` under `Room`).
+
+3. **Per-component responsibility**  
+   - Each component’s payload controls:
+     - Which child references map into **named buckets** (e.g. Room’s Lens/Feature/Example/Guidance/Character).
+     - Which tags it deliberately leaves in `inlineRemainder` to be rendered structurally as child components (e.g. Marks under Room).
+   - `SchemaOrganization` remains the source of truth for:
+     - Which components are descendants of which parents (implicit/explicit parent relationships).
+
+### 3. Boundary Layer Between SchemaOrganization and Rendering (To Iterate)
+
+This draft suggests a cleaner separation of concerns:
+
+- **SchemaOrganization**:
+  - Computes implicit/explicit parentage and children per parent.
+  - Provides per-parent child references to rendering (`getChildrenOfParent`, `isParentContext`, etc.).
+
+- **Payload / Rendering**:
+  - Decides how to:
+    - Project those child references into payload buckets via `assureReferences` (with a remainder).
+    - Render:
+      - Bucketed children via existing ReferenceList/schema patterns.
+      - Inline remainder children by recursively invoking `nestedSchema` on the referenced components.
+
+The exact API shape (new helper vs. extended `assureReferences`, how `inlineRemainder` is threaded through `NestedSchemaOptions`, etc.) is still open and will be refined in a subsequent design pass.
+
+For now, this serves as a **first-draft architecture**:  
+parse-time inline consumers plus render-time “bucket + inline remainder” handling form the core of how we intend to support parent-level inline shared resources.
 

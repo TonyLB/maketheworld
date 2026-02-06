@@ -6,7 +6,7 @@ import { StandardLiteral } from "../literal"
 import { ReferenceList } from "./reference"
 import { StandardRender } from "../render"
 import { isSchemaDescription, SchemaDescriptionTag } from "@tonylb/mtw-base/ts/schema/example"
-import { StandardizeConsumerReferenceList, StandardizeConsumerRender, StandardizeConsumerSimple, StandardizeConsumerStandardLiteral, processWithConsumers } from "./fromSchemaPipeline"
+import { StandardizeConsumerInline, StandardizeConsumerReferenceList, StandardizeConsumerRender, StandardizeConsumerSimple, StandardizeConsumerStandardLiteral, processWithConsumers } from "./fromSchemaPipeline"
 
 describe("fromSchemaPipeline", () => {
     describe("StandardizeConsumerSimple", () => {
@@ -303,6 +303,60 @@ describe("fromSchemaPipeline", () => {
             expect(result).toHaveLength(2)
             expect(result.map((node) => node.data.tag)).toEqual(["Feature", "Feature"])
             expect(result.map((node) => (node.data as any).key)).toEqual(["f1", "f2"])
+        })
+    })
+
+    describe("StandardizeConsumerInline", () => {
+        it("with no ref=0 component children: returnRemainderAddition empty, parsingRemainder equals children", () => {
+            const roomTree = treeFromWML(deIndentWML(`
+                <Room key=(test)>
+                    <ShortName>Main</ShortName>
+                    <Feature key=(f1) />
+                </Room>
+            `))
+            const children = roomTree[0].children
+            const consumer = new StandardizeConsumerInline()
+            const { parsingRemainder, returnRemainderAddition } = consumer.process(children)
+            expect(returnRemainderAddition).toEqual([])
+            expect(parsingRemainder).toHaveLength(2)
+            expect(parsingRemainder.map((n) => n.data.tag)).toEqual(["ShortName", "Feature"])
+        })
+
+        it("with one ref=0 component: node in returnRemainderAddition, rest in parsingRemainder", () => {
+            const roomTree = treeFromWML(deIndentWML(`
+                <Room key=(test)>
+                    <ShortName>Main</ShortName>
+                    <Mark key=(m1) ref={0}><ShortName>Mark One</ShortName></Mark>
+                    <Feature key=(f1) />
+                </Room>
+            `))
+            const children = roomTree[0].children
+            const consumer = new StandardizeConsumerInline()
+            const { parsingRemainder, returnRemainderAddition } = consumer.process(children)
+            expect(returnRemainderAddition).toHaveLength(1)
+            expect(returnRemainderAddition[0].data.tag).toBe("Mark")
+            expect((returnRemainderAddition[0].data as { ref?: number }).ref).toBe(0)
+            expect(parsingRemainder).toHaveLength(2)
+            expect(parsingRemainder.map((n) => n.data.tag)).toEqual(["ShortName", "Feature"])
+        })
+
+        it("mixed: only ref=0 Mark in returnRemainderAddition, non-ref component in parsingRemainder", () => {
+            const roomTree = treeFromWML(deIndentWML(`
+                <Room key=(test)>
+                    <Mark key=(m1) ref={0}><ShortName>Inline Mark</ShortName></Mark>
+                    <Mark key=(m2)><ShortName>Other Mark</ShortName></Mark>
+                </Room>
+            `))
+            const children = roomTree[0].children
+            const consumer = new StandardizeConsumerInline()
+            const { parsingRemainder, returnRemainderAddition } = consumer.process(children)
+            expect(returnRemainderAddition).toHaveLength(1)
+            expect(returnRemainderAddition[0].data.tag).toBe("Mark")
+            expect((returnRemainderAddition[0].data as { ref?: number }).ref).toBe(0)
+            expect((returnRemainderAddition[0].data as { key?: string }).key).toBe("m1")
+            expect(parsingRemainder).toHaveLength(1)
+            expect(parsingRemainder[0].data.tag).toBe("Mark")
+            expect((parsingRemainder[0].data as { key?: string }).key).toBe("m2")
         })
     })
 })

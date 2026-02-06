@@ -13,7 +13,7 @@ import StandardReference from "../keys/reference"
 import { StandardKey } from "../keys/key"
 import { StandardLiteral } from "../literal"
 import { StandardExplicitParent } from "../explicit"
-import { processWithConsumers, StandardizeConsumer, StandardizeConsumerFacetListPosition, StandardizeConsumerStandardLiteral } from "./fromSchemaPipeline"
+import { processWithConsumers, StandardizeConsumer, StandardizeConsumerFacetListPosition, StandardizeConsumerInline, StandardizeConsumerStandardLiteral } from "./fromSchemaPipeline"
 import { splitTaggedChildren } from "../../schema/utils"
 
 class StandardizeConsumerImageList<D extends object = object> implements StandardizeConsumer {
@@ -89,6 +89,7 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
                         this._positions = list
                     },
                 }),
+                new StandardizeConsumerInline(),
             ]
 
             const returnRemainder = processWithConsumers(this, consumers, node.children)

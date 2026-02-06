@@ -16,6 +16,7 @@ import { StandardLiteral } from "../literal"
 import { StandardExplicitParent } from "../explicit"
 import {
     processWithConsumers,
+    StandardizeConsumerInline,
     StandardizeConsumerReferenceList,
     StandardizeConsumerStandardLiteral,
 } from "./fromSchemaPipeline"
@@ -57,6 +58,7 @@ export class StandardFeaturePayload implements HasShortName, ComponentConstructo
                         this._examples = list
                     },
                 }),
+                new StandardizeConsumerInline(),
             ]
             const returnRemainder = processWithConsumers(this, consumers, node.children)
             return returnRemainder

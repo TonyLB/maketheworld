@@ -20,7 +20,7 @@ import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { ExitFacetList, StandardExitFacet } from "../keys/facets/exit"
 import { StandardExplicitParent } from "../explicit"
 import { StandardFormSubsetRequest } from "../baseClasses"
-import { processWithConsumers, StandardizeConsumerReferenceList, StandardizeConsumerSimple, StandardizeConsumerStandardLiteral } from "./fromSchemaPipeline"
+import { processWithConsumers, StandardizeConsumerInline, StandardizeConsumerReferenceList, StandardizeConsumerSimple, StandardizeConsumerStandardLiteral } from "./fromSchemaPipeline"
 
 export class StandardRoomPayload implements HasShortName, ComponentConstructorMethods<StandardRoomData> {
     _shortName?: StandardLiteral;
@@ -97,6 +97,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
                 // Grant and DisplayName consumed as no-op so Room accepts WML that previously was silently ignored.
                 new StandardizeConsumerSimple(this, { tag: "Grant", update: () => {} }),
                 new StandardizeConsumerSimple(this, { tag: "DisplayName", update: () => {} }),
+                new StandardizeConsumerInline(),
             ]
             const returnRemainder = processWithConsumers(this, consumers, node.children)
             return returnRemainder

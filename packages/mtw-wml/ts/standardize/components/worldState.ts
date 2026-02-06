@@ -23,6 +23,7 @@ import { renderReference } from "./utils/schema"
 import { StandardEditableData, extractFromEditableData } from "@tonylb/mtw-base/ts/editable"
 import {
     processWithConsumers,
+    StandardizeConsumerInline,
     StandardizeConsumerReferenceList,
     StandardizeConsumerRender,
     StandardizeConsumerStandardLiteral,
@@ -221,6 +222,7 @@ export class StandardLensPayload implements HasShortName, ComponentConstructorMe
                         this._marks = list
                     },
                 }),
+                new StandardizeConsumerInline(),
             ]
             const returnRemainder = processWithConsumers(this, consumers, node.children)
             return returnRemainder

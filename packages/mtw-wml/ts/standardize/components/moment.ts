@@ -15,6 +15,7 @@ import { renderReference } from "./utils/schema"
 import { StandardLiteral } from "../literal"
 import {
     processWithConsumers,
+    StandardizeConsumerInline,
     StandardizeConsumerReferenceList,
     StandardizeConsumerStandardLiteral,
 } from "./fromSchemaPipeline"
@@ -54,6 +55,7 @@ export class StandardMomentPayload implements ComponentConstructorMethods<Standa
                         this._messages = list
                     },
                 }),
+                new StandardizeConsumerInline(),
             ]
             const returnRemainder = processWithConsumers(this, consumers, node.children)
             return returnRemainder
