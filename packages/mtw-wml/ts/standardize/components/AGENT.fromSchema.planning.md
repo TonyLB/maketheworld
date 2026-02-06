@@ -167,8 +167,8 @@ This design allows StandardRoom (and other "simple" components) to define an ord
    - **Boundary of responsibility:** Only children explicitly surfaced through `returnRemainderAddition` (typically via ReferenceList or facet-list consumers) are revisited by `processComponents`. Literal/render/simple consumers continue to consume their tags entirely within the payload pipeline; any unconsumed tags still trigger the \"Unconsumed child tags\" error via the parsing remainder check.
    - This wiring enables Map’s Room-without-Position remainder and Example/Guidance’s Mark-without-Match remainder to flow naturally into `processComponents` for `StandardRoom` and `StandardMark` creation, without any special-case hooks in the processing loop.
 
-10. **Align base Key/Parent stripping with the pipeline (optional)**
-   - The component base already strips Key and Parent before calling `payload.fromSchema`. Optionally document this as the "first two conceptual steps" or leave as-is; either way, the payload's pipeline starts from "children without Key and Parent."
+10. **Align base Key/Parent stripping with the pipeline (optional)** — **Done (February 2026)**
+   - The component base already strips Key and Parent before calling `payload.fromSchema`, using `splitTaggedChildren` to respect Remove/Replace semantics. This behavior is documented as the shared component wrapper entry point in [AGENT.implementation.md](./AGENT.implementation.md), and the payload's pipeline consistently starts from "children without Key and Parent."
 
 ### Phase 4: Shift Validation from Schema to Standardize
 
@@ -248,4 +248,4 @@ This design allows StandardRoom (and other "simple" components) to define an ord
    - **Completed (Phase 3 Step 7b):** two-remainder groundwork (interface, processWithConsumers, payload return values; standardComponentFactory returns { component, remainder }).  
    - **Completed (Phase 3 Step 8 – Map):** migrate Map to facet-aware pipeline with StandardizeConsumerFacetListPosition.  
    - **Completed (Phase 3 Step 8 – Example/Guidance):** migrate Example and Guidance to facet-aware pipelines using `StandardizeConsumerFacetListMark` and pipeline-based render parsing.  
-   - **Upcoming (Phase 3 Step 9):** wire return remainder into processComponents (add returnRemainderAddition to ReferenceList consumers; replace item.children with returned remainder).
+   - **Completed (Phase 3 Step 9):** wire return remainder into processComponents (add returnRemainderAddition to ReferenceList consumers; replace item.children with returned remainder).
