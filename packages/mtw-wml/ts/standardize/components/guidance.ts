@@ -11,11 +11,11 @@ import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { deepEqual } from "../../lib/objects"
 import { StandardKey } from "../keys/key"
 import StandardReference from "../keys/reference"
-import { MarkFacetList, StandardMarkFacet } from "../keys/facets/mark"
-import { findTaggedChildren, recurseIntoEditable } from "../../schema/utils"
+import { MarkFacetList } from "../keys/facets/mark"
 import { StandardFormSubsetRequest } from "../baseClasses"
 import { StandardLiteral } from "../literal"
 import { HasShortName } from "./abstract"
+import { processWithConsumers, StandardizeConsumerFacetListMark, StandardizeConsumerStandardLiteral } from "./fromSchemaPipeline"
 
 export class StandardGuidancePayload implements HasShortName, ComponentConstructorMethods<StandardGuidanceNDJSONData | StandardGuidanceData> {
     _instructions?: StandardLiteral;
@@ -41,33 +41,30 @@ export class StandardGuidancePayload implements HasShortName, ComponentConstruct
         this._marks = new MarkFacetList(marks ?? [])
     }
 
-    fromSchema(node: GenericTreeNode<SchemaTag>) {
+    fromSchema(node: GenericTreeNode<SchemaTag>): GenericTree<SchemaTag> {
         if (treeNodeTypeguard(isSchemaGuidance)(node)) {
-            const instructionsNode = findTaggedChildren({ children: node.children, tag: 'Instructions' as SchemaTag['tag'] })
-            this._instructions = instructionsNode.length ? new StandardLiteral(instructionsNode, { tag: 'Instructions' }) : undefined
+            const consumers = [
+                new StandardizeConsumerStandardLiteral<StandardGuidancePayload>(this, {
+                    tag: "Instructions",
+                    update(literal) {
+                        this._instructions = literal
+                    },
+                }),
+                new StandardizeConsumerStandardLiteral<StandardGuidancePayload>(this, {
+                    tag: "ShortName",
+                    update(literal) {
+                        this._shortName = literal
+                    },
+                }),
+                new StandardizeConsumerFacetListMark<StandardGuidancePayload>(this, {
+                    update(list) {
+                        this._marks = list
+                    },
+                }),
+            ]
 
-            const shortNameNode = findTaggedChildren({ children: node.children, tag: 'ShortName' })
-            this._shortName = shortNameNode.length ? new StandardLiteral(shortNameNode, { tag: 'ShortName' }) : undefined
-
-            // Parse Mark facets (only Marks with Match children)
-            // findTaggedChildren handles Remove and Replace wrappers automatically
-            const markNodes = findTaggedChildren({ children: node.children, tag: 'Mark' })
-
-            // Helper function to check if a node contains Match children
-            const hasMatchChild = (node: GenericTreeNode<SchemaTag>): boolean => {
-                return recurseIntoEditable(node, (contentNode) => {
-                    const matchChildren = findTaggedChildren({ children: contentNode.children, tag: 'Match' })
-                    return matchChildren.length > 0
-                }).some(result => result)
-            }
-
-            const parsedFacets = markNodes
-                .filter(hasMatchChild)
-                .map(markNode => {
-                    return new StandardMarkFacet([markNode])
-                })
-            this._marks = new MarkFacetList(parsedFacets)
-            return
+            const returnRemainder = processWithConsumers(this, consumers, node.children)
+            return returnRemainder
         }
         throw new Error('Schema mismatch in StandardGuidance constructor')
     }

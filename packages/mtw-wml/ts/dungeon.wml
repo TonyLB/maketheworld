@@ -54,9 +54,11 @@
         <Feature key=(pie)>
         </Feature>
         <Example uuid=(example5)>
-            A ten-by-ten squared off cut stone room. Across from the passage leading in is a table with a
-            <Link to=(pie)>pie</Link>. Standing before the table is an angry 
-            <Link to=(orc)>orc</Link>.
+            <Description>
+                A ten-by-ten squared off cut stone room. Across from the passage leading in is a table with a
+                <Link to=(pie)>pie</Link>. Standing before the table is an angry 
+                <Link to=(orc)>orc</Link>.
+            </Description>
         </Example>
     </Room>
 </Asset>
