@@ -1,5 +1,5 @@
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
-import { componentClassFactory, ComponentConstructorMethods } from "./component"
+import { AssureReferencesResult, componentClassFactory, ComponentConstructorMethods } from "./component"
 import { NestedSchemaOptions, StandardComponent, StandardComponentReferenceKey, StandardDiffOptions } from "./baseClasses"
 import { StandardMomentData } from "./dataTypes/moment"
 import { ReferenceFormat } from "./utils/references"
@@ -94,8 +94,9 @@ export class StandardMomentPayload implements ComponentConstructorMethods<Standa
         if (options.organization) {
             // Get children from organization and assure references
             const children = options.organization.getChildrenOfParent(key) ?? []
-            const assured = this.assureReferences(children)
+            const { payload: assured, inlineRemainder } = this.assureReferences(children)
             messagesToRender = assured.messages
+            // inlineRemainder available for Phase 2 Item 2 (not used yet)
         }
         
         return {
@@ -159,21 +160,21 @@ export class StandardMomentPayload implements ComponentConstructorMethods<Standa
         return returnValue as this
     }
 
-    assureReferences(children: StandardReference[]): this {
+    assureReferences(children: StandardReference[]): AssureReferencesResult<this> {
+        const BUCKET_TAGS = ['Message'] as const
+        const bucketChildren = children.filter(c => BUCKET_TAGS.includes(c.tag as (typeof BUCKET_TAGS)[number]))
+        const remainder = children.filter(c => !BUCKET_TAGS.includes(c.tag as (typeof BUCKET_TAGS)[number]))
+
         const returnValue = new StandardMomentPayload(this)
-        
-        // Filter and map children by type, creating references with ref={0}
         const messageReferences = new ReferenceList(
-            children
-                .filter(child => child.tag === 'Message')
-                .map(child => child.withRef(0))
+            bucketChildren.filter(child => child.tag === 'Message').map(child => child.withRef(0))
         )
-        
-        // Merge with existing bucket, preserving ref={0} references
-        // cleanEmptyReferences: false ensures ref={0} entries are preserved when merging
         returnValue._messages = this._messages.merge(messageReferences, { cleanEmptyReferences: false }) ?? this._messages
-        
-        return returnValue as this
+
+        return {
+            payload: returnValue as this,
+            inlineRemainder: remainder.map(c => c.withRef(0))
+        }
     }
 
     removeReferences(references: StandardReference[]): this {

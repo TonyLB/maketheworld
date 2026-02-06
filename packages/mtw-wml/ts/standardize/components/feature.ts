@@ -1,6 +1,6 @@
 import { excludeUndefined } from "../../lib/lists"
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
-import { componentClassFactory, ComponentConstructorMethods } from "./component"
+import { AssureReferencesResult, componentClassFactory, ComponentConstructorMethods } from "./component"
 import { NestedSchemaOptions, StandardComponent, StandardComponentReferenceKey, StandardDiffOptions, StandardToJSONOptions } from "./baseClasses"
 import { StandardFeatureData } from "./dataTypes/feature"
 import { ReferenceList } from "./reference"
@@ -97,8 +97,9 @@ export class StandardFeaturePayload implements HasShortName, ComponentConstructo
         if (options.organization) {
             // Get children from organization and assure references
             const children = options.organization.getChildrenOfParent(key) ?? []
-            const assured = this.assureReferences(children)
+            const { payload: assured, inlineRemainder } = this.assureReferences(children)
             examplesToRender = assured.examples
+            // inlineRemainder available for Phase 2 Item 2 (not used yet)
         }
         
         return {
@@ -165,21 +166,21 @@ export class StandardFeaturePayload implements HasShortName, ComponentConstructo
         return returnValue as this
     }
 
-    assureReferences(children: StandardReference[]): this {
+    assureReferences(children: StandardReference[]): AssureReferencesResult<this> {
+        const BUCKET_TAGS = ['Example'] as const
+        const bucketChildren = children.filter(c => BUCKET_TAGS.includes(c.tag as (typeof BUCKET_TAGS)[number]))
+        const remainder = children.filter(c => !BUCKET_TAGS.includes(c.tag as (typeof BUCKET_TAGS)[number]))
+
         const returnValue = new StandardFeaturePayload(this)
-        
-        // Filter and map children by type, creating references with ref={0}
         const exampleReferences = new ReferenceList(
-            children
-                .filter(child => child.tag === 'Example')
-                .map(child => child.withRef(0))
+            bucketChildren.filter(child => child.tag === 'Example').map(child => child.withRef(0))
         )
-        
-        // Merge with existing bucket, preserving ref={0} references
-        // cleanEmptyReferences: false ensures ref={0} entries are preserved when merging
         returnValue._examples = this._examples.merge(exampleReferences, { cleanEmptyReferences: false }) ?? this._examples
-        
-        return returnValue as this
+
+        return {
+            payload: returnValue as this,
+            inlineRemainder: remainder.map(c => c.withRef(0))
+        }
     }
 
     removeReferences(references: StandardReference[]): this {

@@ -2,7 +2,7 @@ import { excludeUndefined } from "../../lib/lists"
 import { wrappedNodeTypeGuard } from "../../schema/utils"
 import SchemaTagTree from "../../tagTree/schema"
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
-import { componentClassFactory, ComponentConstructorMethods } from "./component"
+import { AssureReferencesResult, componentClassFactory, ComponentConstructorMethods } from "./component"
 import { NestedSchemaOptions, StandardComponent, StandardComponentReferenceKey } from "./baseClasses"
 import linkReferenceKeys, { ReferenceFormat, childReferenceFactory } from "./utils/references"
 import { StandardRender } from "../render"
@@ -264,8 +264,9 @@ export class StandardLensPayload implements HasShortName, ComponentConstructorMe
         if (options.organization) {
             // Get children from organization and assure references
             const children = options.organization.getChildrenOfParent(key) ?? []
-            const assured = this.assureReferences(children)
+            const { payload: assured, inlineRemainder } = this.assureReferences(children)
             marksToRender = assured.marks
+            // inlineRemainder available for Phase 2 Item 2 (not used yet)
         }
         
         return {
@@ -328,21 +329,21 @@ export class StandardLensPayload implements HasShortName, ComponentConstructorMe
         return returnValue as this
     }
 
-    assureReferences(children: StandardReference[]): this {
+    assureReferences(children: StandardReference[]): AssureReferencesResult<this> {
+        const BUCKET_TAGS = ['Mark'] as const
+        const bucketChildren = children.filter(c => BUCKET_TAGS.includes(c.tag as (typeof BUCKET_TAGS)[number]))
+        const remainder = children.filter(c => !BUCKET_TAGS.includes(c.tag as (typeof BUCKET_TAGS)[number]))
+
         const returnValue = new StandardLensPayload(this)
-
-        // Filter and map children by type, creating references with ref={0}
         const markReferences = new ReferenceList(
-            children
-                .filter(child => child.tag === 'Mark')
-                .map(child => child.withRef(0))
+            bucketChildren.filter(child => child.tag === 'Mark').map(child => child.withRef(0))
         )
-
-        // Merge with existing buckets, preserving ref={0} references
-        // cleanEmptyReferences: false ensures ref={0} entries are preserved when merging
         returnValue._marks = this._marks.merge(markReferences, { cleanEmptyReferences: false }) ?? this._marks
-        
-        return returnValue as this
+
+        return {
+            payload: returnValue as this,
+            inlineRemainder: remainder.map(c => c.withRef(0))
+        }
     }
 
     invert(): this {

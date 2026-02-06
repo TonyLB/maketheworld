@@ -29,6 +29,11 @@ import { StandardKey } from "../keys/key";
 import { StandardExplicitParent, StandardExplicitKey, StandardExplicitKeyPlain, StandardExplicitKeyRemove, StandardExplicitKeyReplace } from "../explicit";
 import { splitTaggedChildren } from "../../schema/utils";
 
+export interface AssureReferencesResult<T> {
+    payload: T
+    inlineRemainder: StandardReference[]
+}
+
 export type ComponentConstructorMethodsDiff<D extends ComponentKey> = {
     action: 'Replace';
 } | {
@@ -52,9 +57,10 @@ export interface ComponentConstructorMethods<D> {
     invert?(): this;
     /**
      * Assures that the given child references exist in the appropriate buckets with ref={0} if needed.
+     * Returns payload with buckets updated and inlineRemainder (references not mapping to any bucket).
      * See AGENT.implementation.md for detailed documentation.
      */
-    assureReferences?(children: StandardReference[]): this;
+    assureReferences?(children: StandardReference[]): AssureReferencesResult<this>;
     /**
      * Removes matching references from the component's reference lists.
      */
@@ -619,7 +625,9 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             const returnValue = new GeneratedComponentClass(this)
             // Delegate to payload if it has assureReferences method
             if (this._payload.assureReferences && typeof this._payload.assureReferences === 'function') {
-                returnValue._payload = this._payload.assureReferences(children) as InstanceType<typeof Base>
+                const result = this._payload.assureReferences(children)
+                returnValue._payload = result.payload as InstanceType<typeof Base>
+                // inlineRemainder discarded at component level; nestedSchema uses payload directly
             }
             // If payload doesn't have assureReferences, return instance unchanged
             return this._wrap(returnValue)

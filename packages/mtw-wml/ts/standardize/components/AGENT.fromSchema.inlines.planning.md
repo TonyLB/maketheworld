@@ -220,13 +220,11 @@ For inline shared resources, we want the parent’s schema-rendering to be drive
 
 First-draft sketch:
 
-1. **Extend `assureReferences` to return a remainder**  
-   - Instead of only “project references into payload buckets and return an updated payload”, we want:
-     - `updatedPayload`: same behavior as today, with Lens/Feature/Example/Guidance/Character references routed into their ReferenceLists (possibly with `ref={0}`).
-     - `unhandledInlines`: a remainder of references that the payload **does not know how to store** (e.g. `Mark` under `Room`).
+1. **Extend `assureReferences` to return a remainder** — **DONE (Phase 2 Item 1)**  
+   - Implemented as `AssureReferencesResult<T> = { payload: T; inlineRemainder: StandardReference[] }`
 
-   Conceptually:
-   - `assureReferences(children) => { payloadWithBuckets, inlineRemainder }`
+   - Each payload partitions children by bucket tags; remainder (e.g. Mark under Room) goes to `inlineRemainder` with `ref={0}`
+   - `nestedSchema` callers destructure and use `payload`; `inlineRemainder` is available for Phase 2 Item 2
 
 2. **Pass inline remainder into `nestedSchema` / `schema`**  
    - `nestedSchema` (and, if needed, `schema`) should be able to:

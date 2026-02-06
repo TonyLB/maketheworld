@@ -124,9 +124,10 @@ describe('StandardMoment class', () => {
     describe('assureReferences method', () => {
         it('should return unchanged moment when children array is empty', () => {
             const moment = new StandardMoment({ tag: 'Moment', key: 'test' })
-            const result = moment._payload.assureReferences([])
+            const { payload: result, inlineRemainder } = moment._payload.assureReferences([])
             
             expect(result.messages.payload.length).toBe(0)
+            expect(inlineRemainder).toEqual([])
             // Verify it's a clone (original unchanged)
             expect(moment._payload.messages.payload.length).toBe(0)
         })
@@ -135,7 +136,7 @@ describe('StandardMoment class', () => {
             const moment = new StandardMoment({ tag: 'Moment', key: 'test' })
             const messageRef = new StandardReference({ tag: 'Message', key: 'msg1' })
             
-            const result = moment._payload.assureReferences([messageRef])
+            const { payload: result } = moment._payload.assureReferences([messageRef])
             
             // Verify reference was added with ref={0}
             expect(result.messages.payload.length).toBe(1)
@@ -151,7 +152,7 @@ describe('StandardMoment class', () => {
             `))
             const messageRef = new StandardReference({ tag: 'Message', key: 'msg1' })
             
-            const result = moment._payload.assureReferences([messageRef])
+            const { payload: result } = moment._payload.assureReferences([messageRef])
             
             // Verify existing reference was left unchanged
             expect(result.messages.payload.length).toBe(1)
@@ -167,7 +168,7 @@ describe('StandardMoment class', () => {
             const existingMessage = new StandardReference({ tag: 'Message', key: 'existingMsg' })
             const newMessage = new StandardReference({ tag: 'Message', key: 'newMsg' })
             
-            const result = moment._payload.assureReferences([existingMessage, newMessage])
+            const { payload: result } = moment._payload.assureReferences([existingMessage, newMessage])
             
             // Existing message should be unchanged
             expect(result.messages.payload.length).toBe(2)
@@ -184,7 +185,7 @@ describe('StandardMoment class', () => {
             const originalMessagesLength = moment._payload.messages.payload.length
             const messageRef = new StandardReference({ tag: 'Message', key: 'msg1' })
             
-            const result = moment._payload.assureReferences([messageRef])
+            const { payload: result } = moment._payload.assureReferences([messageRef])
             
             // Original should be unchanged
             expect(moment._payload.messages.payload.length).toBe(originalMessagesLength)
@@ -198,38 +199,43 @@ describe('StandardMoment class', () => {
             const moment = new StandardMoment({ tag: 'Moment', key: 'test' })
             const messageRef = new StandardReference({ tag: 'Message', key: 'msg1' })
             
-            const firstCall = moment._payload.assureReferences([messageRef])
-            const secondCall = firstCall.assureReferences([messageRef])
+            const { payload: firstPayload } = moment._payload.assureReferences([messageRef])
+            const { payload: secondPayload } = firstPayload.assureReferences([messageRef])
             
             // Both calls should produce the same result
-            expect(firstCall.messages.payload.length).toBe(1)
-            expect(secondCall.messages.payload.length).toBe(1)
-            expect(firstCall.messages.payload[0].sameKey(secondCall.messages.payload[0])).toBe(true)
-            expect(firstCall.messages.payload[0].ref).toBe(0)
-            expect(secondCall.messages.payload[0].ref).toBe(0)
+            expect(firstPayload.messages.payload.length).toBe(1)
+            expect(secondPayload.messages.payload.length).toBe(1)
+            expect(firstPayload.messages.payload[0].sameKey(secondPayload.messages.payload[0])).toBe(true)
+            expect(firstPayload.messages.payload[0].ref).toBe(0)
+            expect(secondPayload.messages.payload[0].ref).toBe(0)
         })
         
         it('should dispatch children to correct bucket based on tag', () => {
             const moment = new StandardMoment({ tag: 'Moment', key: 'test' })
             const messageRef = new StandardReference({ tag: 'Message', key: 'msg1' })
             
-            const result = moment._payload.assureReferences([messageRef])
+            const { payload: result } = moment._payload.assureReferences([messageRef])
             
             // Verify reference went to the correct bucket
             expect(result.messages.payload.length).toBe(1)
             expect(result.messages.payload[0].sameKey(messageRef)).toBe(true)
         })
         
-        it('should ignore children with incorrect tag', () => {
+        it('should put non-bucket children in inlineRemainder', () => {
             const moment = new StandardMoment({ tag: 'Moment', key: 'test' })
             const exampleRef = new StandardReference({ tag: 'Example', key: 'ex1' })
             const messageRef = new StandardReference({ tag: 'Message', key: 'msg1' })
             
-            const result = moment._payload.assureReferences([exampleRef, messageRef])
+            const { payload: result, inlineRemainder } = moment._payload.assureReferences([exampleRef, messageRef])
             
-            // Only Message should be added
+            // Message goes to bucket
             expect(result.messages.payload.length).toBe(1)
             expect(result.messages.payload[0].sameKey(messageRef)).toBe(true)
+            // Example goes to remainder
+            expect(inlineRemainder.length).toBe(1)
+            expect(inlineRemainder[0].tag).toBe('Example')
+            expect(inlineRemainder[0].sameKey(exampleRef)).toBe(true)
+            expect(inlineRemainder[0].ref).toBe(0)
         })
     })
 

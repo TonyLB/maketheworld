@@ -165,9 +165,10 @@ describe('StandardMessage class', () => {
     describe('assureReferences method', () => {
         it('should return unchanged message when children array is empty', () => {
             const message = new StandardMessage({ tag: 'Message', key: 'test' })
-            const result = message._payload.assureReferences([])
+            const { payload: result, inlineRemainder } = message._payload.assureReferences([])
             
             expect(result.rooms.payload.length).toBe(0)
+            expect(inlineRemainder).toEqual([])
             // Verify it's a clone (original unchanged)
             expect(message._payload.rooms.payload.length).toBe(0)
         })
@@ -176,7 +177,7 @@ describe('StandardMessage class', () => {
             const message = new StandardMessage({ tag: 'Message', key: 'test' })
             const roomRef = new StandardReference({ tag: 'Room', key: 'room1' })
             
-            const result = message._payload.assureReferences([roomRef])
+            const { payload: result } = message._payload.assureReferences([roomRef])
             
             // Verify reference was added with ref={0}
             expect(result.rooms.payload.length).toBe(1)
@@ -192,7 +193,7 @@ describe('StandardMessage class', () => {
             `))
             const roomRef = new StandardReference({ tag: 'Room', key: 'room1' })
             
-            const result = message._payload.assureReferences([roomRef])
+            const { payload: result } = message._payload.assureReferences([roomRef])
             
             // Verify existing reference was left unchanged
             expect(result.rooms.payload.length).toBe(1)
@@ -208,7 +209,7 @@ describe('StandardMessage class', () => {
             const existingRoom = new StandardReference({ tag: 'Room', key: 'existingRoom' })
             const newRoom = new StandardReference({ tag: 'Room', key: 'newRoom' })
             
-            const result = message._payload.assureReferences([existingRoom, newRoom])
+            const { payload: result } = message._payload.assureReferences([existingRoom, newRoom])
             
             // Existing room should be unchanged
             expect(result.rooms.payload.length).toBe(2)
@@ -225,7 +226,7 @@ describe('StandardMessage class', () => {
             const originalRoomsLength = message._payload.rooms.payload.length
             const roomRef = new StandardReference({ tag: 'Room', key: 'room1' })
             
-            const result = message._payload.assureReferences([roomRef])
+            const { payload: result } = message._payload.assureReferences([roomRef])
             
             // Original should be unchanged
             expect(message._payload.rooms.payload.length).toBe(originalRoomsLength)
@@ -239,38 +240,43 @@ describe('StandardMessage class', () => {
             const message = new StandardMessage({ tag: 'Message', key: 'test' })
             const roomRef = new StandardReference({ tag: 'Room', key: 'room1' })
             
-            const firstCall = message._payload.assureReferences([roomRef])
-            const secondCall = firstCall.assureReferences([roomRef])
+            const { payload: firstPayload } = message._payload.assureReferences([roomRef])
+            const { payload: secondPayload } = firstPayload.assureReferences([roomRef])
             
             // Both calls should produce the same result
-            expect(firstCall.rooms.payload.length).toBe(1)
-            expect(secondCall.rooms.payload.length).toBe(1)
-            expect(firstCall.rooms.payload[0].sameKey(secondCall.rooms.payload[0])).toBe(true)
-            expect(firstCall.rooms.payload[0].ref).toBe(0)
-            expect(secondCall.rooms.payload[0].ref).toBe(0)
+            expect(firstPayload.rooms.payload.length).toBe(1)
+            expect(secondPayload.rooms.payload.length).toBe(1)
+            expect(firstPayload.rooms.payload[0].sameKey(secondPayload.rooms.payload[0])).toBe(true)
+            expect(firstPayload.rooms.payload[0].ref).toBe(0)
+            expect(secondPayload.rooms.payload[0].ref).toBe(0)
         })
         
         it('should dispatch children to correct bucket based on tag', () => {
             const message = new StandardMessage({ tag: 'Message', key: 'test' })
             const roomRef = new StandardReference({ tag: 'Room', key: 'room1' })
             
-            const result = message._payload.assureReferences([roomRef])
+            const { payload: result } = message._payload.assureReferences([roomRef])
             
             // Verify reference went to the correct bucket
             expect(result.rooms.payload.length).toBe(1)
             expect(result.rooms.payload[0].sameKey(roomRef)).toBe(true)
         })
         
-        it('should ignore children with incorrect tag', () => {
+        it('should put non-bucket children in inlineRemainder', () => {
             const message = new StandardMessage({ tag: 'Message', key: 'test' })
             const exampleRef = new StandardReference({ tag: 'Example', key: 'ex1' })
             const roomRef = new StandardReference({ tag: 'Room', key: 'room1' })
             
-            const result = message._payload.assureReferences([exampleRef, roomRef])
+            const { payload: result, inlineRemainder } = message._payload.assureReferences([exampleRef, roomRef])
             
-            // Only Room should be added
+            // Room goes to bucket
             expect(result.rooms.payload.length).toBe(1)
             expect(result.rooms.payload[0].sameKey(roomRef)).toBe(true)
+            // Example goes to remainder
+            expect(inlineRemainder.length).toBe(1)
+            expect(inlineRemainder[0].tag).toBe('Example')
+            expect(inlineRemainder[0].sameKey(exampleRef)).toBe(true)
+            expect(inlineRemainder[0].ref).toBe(0)
         })
     })
 

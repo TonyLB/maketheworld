@@ -217,27 +217,29 @@ The `assureReferences` method is the single point where `ref={0}` references are
 
 #### Method Signature
 
-- **Payload interface** (`ComponentConstructorMethods`): `assureReferences?(children: StandardReference[]): this` (optional)
+- **Payload interface** (`ComponentConstructorMethods`): `assureReferences?(children: StandardReference[]): AssureReferencesResult<this>` (optional)
 - **Component interface** (`StandardComponent`): `assureReferences(children: StandardReference[]): StandardComponent` (required)
+- **Return type** (`AssureReferencesResult<T>`): `{ payload: T; inlineRemainder: StandardReference[] }` — `payload` has bucketed references merged; `inlineRemainder` holds references that did not map to any bucket (e.g. Mark under Room)
 
 #### Behavior
 
-- **Pure function**: Returns a cloned component/payload, does not mutate the original
-- **Idempotency**: Calling `assureReferences` multiple times with the same children should produce equivalent results
-- **Delegation pattern**: Component wrapper delegates to payload's `assureReferences` if available, otherwise returns instance unchanged
+- **Pure function**: Returns a result object; does not mutate the original payload
+- **Idempotency**: Calling `assureReferences` multiple times with the same children should produce equivalent results (for the payload)
+- **Delegation pattern**: Component wrapper delegates to payload's `assureReferences` if available, extracts `payload` for the component, discards `inlineRemainder` (nestedSchema uses payload directly)
 - **Reference handling**:
-  - Uses `StandardReference.sameKey()` to check if a reference already exists in a bucket
-  - If reference exists with non-zero ref, leaves it unchanged
-  - If reference doesn't exist, adds it with `ref={0}` (using `StandardReference.withRef(0)` or equivalent)
+  - Partitions children into bucketed (tag maps to a ReferenceList) vs remainder (no bucket)
+  - Bucketed children: merged into payload buckets with `ref={0}` where appropriate; uses `StandardReference.sameKey()` and leaves existing non-zero refs unchanged
+  - Remainder: returned in `inlineRemainder` with `ref={0}` for use by Phase 2 Item 2 (render at parent level)
 
 #### Component-Specific Dispatch
 
-Each component type implements its own dispatch logic:
-- **StandardRoom**: Dispatches to `features`, `examples`, `characters` based on the reference's `tag` property
-- **StandardFeature**: Dispatches to `examples` based on the reference's `tag` property
-- **StandardKnowledge**: Dispatches to `examples` based on the reference's `tag` property
-- **StandardMoment**: Dispatches to `messages` based on the reference's `tag` property
-- **StandardMessage**: Dispatches to `rooms` based on the reference's `tag` property
+Each component type implements its own dispatch logic (bucket tags); all other tags go to `inlineRemainder`:
+- **StandardRoom**: Buckets Lens, Feature, Example, Guidance, Character (e.g. Mark → inlineRemainder)
+- **StandardFeature**: Bucket Example
+- **StandardKnowledge**: Bucket Example
+- **StandardMoment**: Bucket Message
+- **StandardMessage**: Bucket Room
+- **StandardLens**: Bucket Mark
 - All component types with reference lists now implement `assureReferences` (migration complete)
 
 #### Relationship to Other Operations

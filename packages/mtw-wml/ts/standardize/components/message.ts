@@ -1,7 +1,7 @@
 import { excludeUndefined } from "../../lib/lists"
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { EditWrappedStandardNode } from "../baseClasses"
-import { componentClassFactory, ComponentConstructorMethods } from "./component"
+import { AssureReferencesResult, componentClassFactory, ComponentConstructorMethods } from "./component"
 import { StandardComponent, StandardComponentReferenceKey, StandardDiffOptions } from "./baseClasses"
 import { StandardMessageData } from "./dataTypes/message"
 import { childReferenceFactory, ReferenceFormat } from "./utils/references"
@@ -173,21 +173,21 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
         return returnValue as this
     }
 
-    assureReferences(children: StandardReference[]): this {
+    assureReferences(children: StandardReference[]): AssureReferencesResult<this> {
+        const BUCKET_TAGS = ['Room'] as const
+        const bucketChildren = children.filter(c => BUCKET_TAGS.includes(c.tag as (typeof BUCKET_TAGS)[number]))
+        const remainder = children.filter(c => !BUCKET_TAGS.includes(c.tag as (typeof BUCKET_TAGS)[number]))
+
         const returnValue = new StandardMessagePayload(this)
-        
-        // Filter and map children by type, creating references with ref={0}
         const roomReferences = new ReferenceList(
-            children
-                .filter(child => child.tag === 'Room')
-                .map(child => child.withRef(0))
+            bucketChildren.filter(child => child.tag === 'Room').map(child => child.withRef(0))
         )
-        
-        // Merge with existing bucket, preserving ref={0} references
-        // cleanEmptyReferences: false ensures ref={0} entries are preserved when merging
         returnValue._rooms = this._rooms.merge(roomReferences, { cleanEmptyReferences: false }) ?? this._rooms
-        
-        return returnValue as this
+
+        return {
+            payload: returnValue as this,
+            inlineRemainder: remainder.map(c => c.withRef(0))
+        }
     }
 
     removeReferences(references: StandardReference[]): this {

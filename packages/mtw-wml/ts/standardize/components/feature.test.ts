@@ -149,9 +149,10 @@ describe('StandardFeature class', () => {
     describe('assureReferences method', () => {
         it('should return unchanged feature when children array is empty', () => {
             const feature = new StandardFeature({ tag: 'Feature', key: 'test' })
-            const result = feature._payload.assureReferences([])
+            const { payload: result, inlineRemainder } = feature._payload.assureReferences([])
             
             expect(result.examples.payload.length).toBe(0)
+            expect(inlineRemainder).toEqual([])
             // Verify it's a clone (original unchanged)
             expect(feature._payload.examples.payload.length).toBe(0)
         })
@@ -160,7 +161,7 @@ describe('StandardFeature class', () => {
             const feature = new StandardFeature({ tag: 'Feature', key: 'test' })
             const exampleRef = new StandardReference({ tag: 'Example', key: 'ex1' })
             
-            const result = feature._payload.assureReferences([exampleRef])
+            const { payload: result } = feature._payload.assureReferences([exampleRef])
             
             // Verify reference was added with ref={0}
             expect(result.examples.payload.length).toBe(1)
@@ -176,7 +177,7 @@ describe('StandardFeature class', () => {
             `))
             const exampleRef = new StandardReference({ tag: 'Example', key: 'ex1' })
             
-            const result = feature._payload.assureReferences([exampleRef])
+            const { payload: result } = feature._payload.assureReferences([exampleRef])
             
             // Verify existing reference was left unchanged
             expect(result.examples.payload.length).toBe(1)
@@ -192,7 +193,7 @@ describe('StandardFeature class', () => {
             const existingExample = new StandardReference({ tag: 'Example', key: 'existingEx' })
             const newExample = new StandardReference({ tag: 'Example', key: 'newEx' })
             
-            const result = feature._payload.assureReferences([existingExample, newExample])
+            const { payload: result } = feature._payload.assureReferences([existingExample, newExample])
             
             // Existing example should be unchanged
             expect(result.examples.payload.length).toBe(2)
@@ -209,7 +210,7 @@ describe('StandardFeature class', () => {
             const originalExamplesLength = feature._payload.examples.payload.length
             const exampleRef = new StandardReference({ tag: 'Example', key: 'ex1' })
             
-            const result = feature._payload.assureReferences([exampleRef])
+            const { payload: result } = feature._payload.assureReferences([exampleRef])
             
             // Original should be unchanged
             expect(feature._payload.examples.payload.length).toBe(originalExamplesLength)
@@ -223,38 +224,43 @@ describe('StandardFeature class', () => {
             const feature = new StandardFeature({ tag: 'Feature', key: 'test' })
             const exampleRef = new StandardReference({ tag: 'Example', key: 'ex1' })
             
-            const firstCall = feature._payload.assureReferences([exampleRef])
-            const secondCall = firstCall.assureReferences([exampleRef])
+            const { payload: firstPayload } = feature._payload.assureReferences([exampleRef])
+            const { payload: secondPayload } = firstPayload.assureReferences([exampleRef])
             
             // Both calls should produce the same result
-            expect(firstCall.examples.payload.length).toBe(1)
-            expect(secondCall.examples.payload.length).toBe(1)
-            expect(firstCall.examples.payload[0].sameKey(secondCall.examples.payload[0])).toBe(true)
-            expect(firstCall.examples.payload[0].ref).toBe(0)
-            expect(secondCall.examples.payload[0].ref).toBe(0)
+            expect(firstPayload.examples.payload.length).toBe(1)
+            expect(secondPayload.examples.payload.length).toBe(1)
+            expect(firstPayload.examples.payload[0].sameKey(secondPayload.examples.payload[0])).toBe(true)
+            expect(firstPayload.examples.payload[0].ref).toBe(0)
+            expect(secondPayload.examples.payload[0].ref).toBe(0)
         })
         
         it('should dispatch children to correct bucket based on tag', () => {
             const feature = new StandardFeature({ tag: 'Feature', key: 'test' })
             const exampleRef = new StandardReference({ tag: 'Example', key: 'ex1' })
             
-            const result = feature._payload.assureReferences([exampleRef])
+            const { payload: result } = feature._payload.assureReferences([exampleRef])
             
             // Verify reference went to the correct bucket
             expect(result.examples.payload.length).toBe(1)
             expect(result.examples.payload[0].sameKey(exampleRef)).toBe(true)
         })
         
-        it('should ignore children with incorrect tag', () => {
+        it('should put non-bucket children in inlineRemainder', () => {
             const feature = new StandardFeature({ tag: 'Feature', key: 'test' })
-            const featureRef = new StandardReference({ tag: 'Feature', key: 'feat1' })
+            const lensRef = new StandardReference({ tag: 'Lens', key: 'lens1' })
             const exampleRef = new StandardReference({ tag: 'Example', key: 'ex1' })
             
-            const result = feature._payload.assureReferences([featureRef, exampleRef])
+            const { payload: result, inlineRemainder } = feature._payload.assureReferences([lensRef, exampleRef])
             
-            // Only Example should be added
+            // Example goes to bucket
             expect(result.examples.payload.length).toBe(1)
             expect(result.examples.payload[0].sameKey(exampleRef)).toBe(true)
+            // Lens goes to remainder
+            expect(inlineRemainder.length).toBe(1)
+            expect(inlineRemainder[0].tag).toBe('Lens')
+            expect(inlineRemainder[0].sameKey(lensRef)).toBe(true)
+            expect(inlineRemainder[0].ref).toBe(0)
         })
     })
 
