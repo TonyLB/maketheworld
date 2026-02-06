@@ -1463,6 +1463,69 @@ describe('StandardRoom class', () => {
             const testForm = new StandardForm(testSource)
             expect(schemaToWML([testForm.schema])).toEqual(testSource)
         })
+
+        it('should round-trip Room with shared Mark between Lens and Example via implicit parent', () => {
+            //
+            // Starting point: Mark content is authored under the Lens and referenced from the Example.
+            //
+            const originalWML = deIndentWML(`
+                <Asset uuid=(Test)>
+                    <Room uuid=(room1) key=(roomX)>
+                        <ShortName>Room X</ShortName>
+                        <Lens uuid=(lens1) key=(lensX)>
+                            <ShortName>Room X Lens</ShortName>
+                            <Mark uuid=(markA) key=(markA)>
+                                <ShortName>Mark A</ShortName>
+                            </Mark>
+                        </Lens>
+                        <Example uuid=(example1) key=(exampleX)>
+                            <DisplayName>Example using Mark A</DisplayName>
+                            <Mark uuid=(markA) />
+                        </Example>
+                    </Room>
+                </Asset>
+            `)
+
+            //
+            // Step 1: Parse the original WML into StandardForm. This should succeed with
+            // Mark A's content defined under the Lens and referenced from the Example.
+            //
+            const formFromOriginal = new StandardForm(originalWML)
+
+            //
+            // Step 2: Serialize back to WML. SchemaOrganization may choose to render Mark A
+            // as an implicit child of Room X (e.g., via ref={0} at the Room level).
+            //
+            const implicitParentWML = deIndentWML(`
+                <Asset uuid=(Test)>
+                    <Room uuid=(room1) key=(roomX)>
+                        <ShortName>Room X</ShortName>
+                        <Lens uuid=(lens1) key=(lensX)>
+                            <ShortName>Room X Lens</ShortName>
+                            <Mark key=(markA) />
+                        </Lens>
+                        <Example uuid=(example1) key=(exampleX)>
+                            <DisplayName>Example using Mark A</DisplayName>
+                            <Mark key=(markA) />
+                        </Example>
+                        <Mark uuid=(markA) key=(markA) ref={0}>
+                            <ShortName>Mark A</ShortName>
+                        </Mark>
+                    </Room>
+                </Asset>
+            `)
+            expect(schemaToWML([formFromOriginal.schema])).toEqual(implicitParentWML)
+
+            //
+            // Step 3: Parse the implicit-parent WML back into StandardForm and ensure it
+            // round-trips without change. Today we expect this to fail because StandardRoom's
+            // fromSchema pipeline does not yet have a consumer for Mark children, so a Mark
+            // under Room becomes an "Unconsumed child tags: Mark" error.
+            //
+            const formFromImplicitParent = new StandardForm(implicitParentWML)
+            const roundTrippedWML = schemaToWML([formFromImplicitParent.schema])
+            expect(roundTrippedWML).toEqual(implicitParentWML)
+        })
     })
 
 })
