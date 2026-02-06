@@ -77,6 +77,7 @@ describe("fromSchemaPipeline", () => {
             const roomTree = treeFromWML(deIndentWML(`
                 <Room key=(test)>
                     <Feature key=(f1) />
+                    <Feature key=(f2) />
                     <ShortName>Name</ShortName>
                 </Room>
             `))
@@ -90,11 +91,13 @@ describe("fromSchemaPipeline", () => {
             })
             const { parsingRemainder: remainder, returnRemainderAddition } = consumer.process(children)
             expect(mockContext.list).toBeInstanceOf(ReferenceList)
-            expect(mockContext.list!.payload).toHaveLength(1)
-            expect(mockContext.list!.payload[0].key).toBe("f1")
+            expect(mockContext.list!.payload).toHaveLength(2)
+            expect(mockContext.list!.payload.map((ref) => ref.key)).toEqual(["f1", "f2"])
             expect(remainder).toHaveLength(1)
             expect(remainder[0].data.tag).toBe("ShortName")
-            expect(returnRemainderAddition).toEqual([])
+            expect(returnRemainderAddition).toHaveLength(2)
+            expect(returnRemainderAddition.map((node) => node.data.tag)).toEqual(["Feature", "Feature"])
+            expect(returnRemainderAddition.map((node) => (node.data as any).key)).toEqual(["f1", "f2"])
         })
     })
 
@@ -275,6 +278,31 @@ describe("fromSchemaPipeline", () => {
             const result = processWithConsumers({}, [mockConsumer], children)
             expect(result).toHaveLength(1)
             expect(result[0].data.tag).toBe("ShortName")
+        })
+
+        it("aggregates returnRemainderAddition from StandardizeConsumerReferenceList", () => {
+            const roomTree = treeFromWML(deIndentWML(`
+                <Room key=(test)>
+                    <Feature key=(f1) />
+                    <Feature key=(f2) />
+                </Room>
+            `))
+            const children = roomTree[0].children
+            const mockContext = { list: undefined as ReferenceList | undefined }
+            const consumer = new StandardizeConsumerReferenceList(mockContext, {
+                tag: "Feature",
+                update(list) {
+                    mockContext.list = list
+                },
+            })
+            const result = processWithConsumers(mockContext, [consumer], children)
+            // All children consumed, so no parsing remainder (no throw)
+            expect(mockContext.list).toBeInstanceOf(ReferenceList)
+            expect(mockContext.list!.payload).toHaveLength(2)
+            // Aggregated return remainder should be the matched Feature nodes
+            expect(result).toHaveLength(2)
+            expect(result.map((node) => node.data.tag)).toEqual(["Feature", "Feature"])
+            expect(result.map((node) => (node.data as any).key)).toEqual(["f1", "f2"])
         })
     })
 })
