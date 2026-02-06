@@ -153,8 +153,8 @@ describe('StandardMap class', () => {
         const payload = new StandardMapPayload()
         const remainder = payload.fromSchema(mapNode)
 
-        expect(remainder).toHaveLength(1)
-        const roomNode = remainder[0]
+        expect(remainder).toHaveLength(2)
+        const roomNode = remainder.find(node => treeNodeTypeguard(isSchemaRoom)(node))!
         expect(treeNodeTypeguard(isSchemaRoom)(roomNode)).toBe(true)
 
         const positionChildren = roomNode.children.filter(treeNodeTypeguard(isSchemaPosition))

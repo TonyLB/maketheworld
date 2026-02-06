@@ -121,13 +121,6 @@ describe("processComponents", () => {
                 </Room>
             `),
             deIndentWML(`
-                <Example uuid=(testRoomExample)>
-                    <DisplayName>Test Room</DisplayName>
-                    <Summary>One<br />Two</Summary>
-                    <Description>Three</Description>
-                </Example>
-            `),
-            deIndentWML(`
                 <Feature key=(testLocal)><Example uuid=(testLocalExample) /></Feature>
             `),
             deIndentWML(`
@@ -138,6 +131,13 @@ describe("processComponents", () => {
             `),
             deIndentWML(`
                 <Example uuid=(testGlobalExample)><Description>Global</Description></Example>
+            `),
+            deIndentWML(`
+                <Example uuid=(testRoomExample)>
+                    <DisplayName>Test Room</DisplayName>
+                    <Summary>One<br />Two</Summary>
+                    <Description>Three</Description>
+                </Example>
             `)
         ])
         //
