@@ -2,6 +2,7 @@ import { StandardRender, PlainClass as StandardRenderSimple, RemoveClass as Stan
 import { Schema, schemaToWML } from '../../schema'
 import { deIndentWML } from '../../schema/utils'
 import StandardReference from '../keys/reference'
+import { isSchemaDescription } from '@tonylb/mtw-base/ts/schema/example'
 
 describe('StandardRenderRemove', () => {
     it('should create an instance from valid incoming schema', () => {
@@ -133,6 +134,42 @@ describe('StandardRender', () => {
         `)
         const render = new StandardRender(schema.schema)
         expect(render.schema).toEqual(schema.schema)
+    })
+
+    describe('constructor with options.tag (single schema node)', () => {
+        it('should create instance from plain content-tag node (e.g. Description)', () => {
+            const schema = new Schema()
+            schema.loadWML(`<Message key=(m)><Description>Hello world</Description></Message>`)
+            const messageNode = schema.schema[0]
+            const descriptionNode = messageNode.children[0]
+            const render = new StandardRender(descriptionNode, { tag: 'Description', nodeTypeGuard: isSchemaDescription, errorMessage: 'Schema mismatch in test' })
+            expect(render.plainString).toBe('Hello world')
+        })
+
+        it('should create instance from Remove-wrapped content-tag node', () => {
+            const schema = new Schema()
+            schema.loadWML(`<Message key=(m)><Remove><Description>Remove me</Description></Remove></Message>`)
+            const messageNode = schema.schema[0]
+            const removeNode = messageNode.children[0]
+            const render = new StandardRender(removeNode, { tag: 'Description', nodeTypeGuard: isSchemaDescription, errorMessage: 'Schema mismatch in test' })
+            const expectedSchema = new Schema()
+            expectedSchema.loadWML(`<Remove>Remove me</Remove>`)
+            expect(render.schema).toEqual(expectedSchema.schema)
+        })
+
+        it('should create instance from Replace-wrapped content-tag node', () => {
+            const schema = new Schema()
+            schema.loadWML(`
+                <Message key=(m)>
+                    <Replace><Description>Old</Description></Replace>
+                    <With><Description>New</Description></With>
+                </Message>
+            `)
+            const messageNode = schema.schema[0]
+            const replaceNode = messageNode.children[0]
+            const render = new StandardRender(replaceNode, { tag: 'Description', nodeTypeGuard: isSchemaDescription, errorMessage: 'Schema mismatch in test' })
+            expect(render.toJSON()).toEqual({ tag: 'Replace', match: ['Old'], payload: ['New'] })
+        })
     })
 
     it('should create an instance from incoming remove', () => {

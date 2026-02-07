@@ -1,12 +1,11 @@
 import { excludeUndefined } from "../../lib/lists"
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
-import { EditWrappedStandardNode } from "../baseClasses"
 import { AssureReferencesResult, componentClassFactory, ComponentConstructorMethods } from "./component"
-import { StandardComponent, StandardComponentReferenceKey, StandardDiffOptions } from "./baseClasses"
+import { StandardComponent, StandardComponentReferenceKey } from "./baseClasses"
 import { StandardMessageData } from "./dataTypes/message"
-import { childReferenceFactory, ReferenceFormat } from "./utils/references"
+import { ReferenceFormat } from "./utils/references"
 import { StandardRender } from "../render"
-import { extractStandardRender, rebuildSchemaFromStandardRender } from "./utils/extractStandardRender"
+import { rebuildSchemaFromStandardRender } from "./utils/extractStandardRender"
 import { StandardToJSONOptions } from "./baseClasses"
 import { AssetUUID, ComponentUUID, SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaDescription, SchemaDescriptionTag } from "@tonylb/mtw-base/ts/schema/example"
@@ -46,7 +45,7 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
 
     fromJSON(props: StandardMessageData) {
         this._shortName = props.shortName ? new StandardLiteral(props.shortName, { tag: 'ShortName' }) : undefined
-        this._description = extractStandardRender(props.description, isSchemaDescription, 'Schema mismatch in StandardMessage constructor')
+        this._description = props.description ? new StandardRender(props.description, { tag: 'Description', nodeTypeGuard: isSchemaDescription, errorMessage: 'Schema mismatch in StandardMessage constructor' }) : undefined
         this._rooms = new ReferenceList(props.rooms?.map((reference) => (new StandardReference(reference))) ?? [])
     }
 
