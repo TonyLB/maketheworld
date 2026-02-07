@@ -1,7 +1,7 @@
 //
 // fromSchema pipeline: StandardizeConsumer interface, StandardizeConsumerSimple,
 // and processWithConsumers runner for process-and-remainder fromSchema parsing.
-// See AGENT.fromSchema.planning.md Phase 1 Step 2 (detailed).
+// See AGENT.implementation.md (fromSchema: process-and-remainder pipeline).
 //
 
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
