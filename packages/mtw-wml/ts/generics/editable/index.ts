@@ -81,7 +81,7 @@ export const addDelta = <FinalType extends StandardEditablePayload<any>>(
     // create Replace(match: '', payload: '') and lose the user's value when they later type (e.g. 'Dark').
     // Treat "both empty" as Plain('') so subsequent merges with Plain('Dark') produce Plain('Dark').
     if (cancelledAdd === '' && cancelledRemove === '') {
-        return { add: '' }
+        return { add: '' as PayloadDataType<FinalType> }
     }
     return (cancelledAdd && cancelledRemove)
         ? diff(cancelledRemove, cancelledAdd)
