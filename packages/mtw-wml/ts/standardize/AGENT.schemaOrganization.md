@@ -22,19 +22,30 @@ The core idea is:
 
 ---
 
+### Reference and hosting (independent qualities)
+
+**Reference** and **hosting** are two independent qualities of a parent–child relationship. Component A can reference Component B, host Component B, both, or neither.
+
+- **Reference**: The parent actively tracks the child in data it owns—a reference list (e.g. Room's features, examples) or a facet list (e.g. Map's positions). Either the parent references the child (has it in a list) or it does not.
+- **Hosting**: The child's content is rendered under the parent in the tree produced by `SchemaOrganization` (the hierarchy used for serialization and display). A component may be referenced in many places, but its content is centralized in one—that parent is the host. Either the parent hosts the child (we render the child's content here) or it does not.
+
+Common combinations: A Room typically **references and hosts** its Features (they are in its reference list and their content is rendered under it). A Room **hosts but does not reference** a shared Mark (the Mark's content is rendered under the Room in WML for structural convenience, but the Room has no marks list). In other cases, reference and hosting can diverge (e.g. explicit parent overrides). When reasoning about a parent–child edge, ask separately: does the parent reference this child? Does the parent host this child? For how this affects `assureReferences` and schema generation, see [components/AGENT.implementation.md](components/AGENT.implementation.md) (Reference vs. hosting, assureReferences).
+
+---
+
 ### Mental Model: “Intuitively Right” Organization
 
-When you look at an asset’s WML and its usage patterns, there is usually an “obvious” way to think about **locality**:
+When you look at an asset's WML and its usage patterns, there is usually an “obvious” way to think about **locality**:
 
 - *This* Feature is only ever referenced in `RoomA`, so it is naturally “local to `RoomA`.”
 - *That* Feature is referenced from `RoomA`, `RoomB`, and `RoomC`, so it is a shared thing, not owned by any single Room.
 - A third Feature might be shared structurally, but explicitly listed as a child of `RoomA` for presentation purposes.
 
-`SchemaOrganization`’s job is to:
+`SchemaOrganization`'s job is to:
 
 - **Infer these structures of locality from references**, even when WML nesting does not directly encode them.
 - **Respect legal parentage rules** (e.g., Features cannot become children of tags that are not allowed to reference them).
-- **Produce a consistent tree** that matches a human reader’s intuition about “what is local to what,” while still allowing explicit overrides where the user wants something different.
+- **Produce a consistent tree** that matches a human reader's intuition about “what is local to what,” while still allowing explicit overrides where the user wants something different.
 
 Concretely:
 
@@ -95,7 +106,7 @@ When deciding **where a component appears in the final tree**:
 
 - **Explicit parent wins** over implicit parent.
 - Asset-level explicit parentage (`{ explicitParent: undefined }`) means:
-  - The component should show up among the Asset’s top-level children.
+  - The component should show up among the Asset's top-level children.
   - Even if structurally it is reachable under some Room or other ancestor.
 
 This is the core override mechanism: explicit parents express “user intent” and may supersede the structural default.
@@ -104,7 +115,7 @@ This is the core override mechanism: explicit parents express “user intent” 
 
 ### Semantic Division: Implicit vs. Explicit Parents
 
-It’s crucial to keep these concepts separate in your head and in code:
+It's crucial to keep these concepts separate in your head and in code:
 
 #### Implicit Parent (`getImplicitParent`)
 
@@ -119,20 +130,20 @@ Think of **implicit parent** as:
 
 Use it when you care about:
 
-- Structural ancestry chains (“who’s above me if I follow edges?”).
+- Structural ancestry chains (“who's above me if I follow edges?”).
 - Descendant queries (`implicitDescendantsOfAncestor`).
 - Sorting and tie‑breaking when parents differ (`sortOrder` uses ancestry chains built from implicit + explicit parents).
 
 Implications:
 
-- When a single Room (or other component) is the **clear, dominant structural referrer** of a Feature in the graph (according to the tiered reference rules), the intent is that the Feature’s `implicitParent` will usually be that Room, even if an explicit parent later moves it in the visible tree.
+- When a single Room (or other component) is the **clear, dominant structural referrer** of a Feature in the graph (according to the tiered reference rules), the intent is that the Feature's `implicitParent` will usually be that Room, even if an explicit parent later moves it in the visible tree.
 - When debugging: if `implicitParent` looks wrong, the bug is typically in the **graph construction** (references/topLevel), not in the explicit-parent logic.
 
 #### Explicit Parent (`getExplicitParent`)
 
 Think of **explicit parent** as:
 
-- The **author’s override** for where this component should appear in the tree.
+- The **author's override** for where this component should appear in the tree.
 - Stored as `{ explicitParent: StandardKey | undefined }`:
   - `undefined` → Asset-level explicit parent (child of Asset).
   - `StandardKey` → explicit component parent.

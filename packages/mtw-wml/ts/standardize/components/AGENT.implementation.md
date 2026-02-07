@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document covers implementation details, architectural patterns, and component type specifications for the `standardize/components` directory. For conceptual overview and future requirements, see [`AGENT.md`](./AGENT.md). For practical usage examples, see [`AGENT.usage.md`](./AGENT.usage.md). For the planned rearchitecture of `fromSchema` to a process-and-remainder pipeline, see [`AGENT.fromSchema.planning.md`](./AGENT.fromSchema.planning.md).
+This document covers implementation details, architectural patterns, and component type specifications for the `standardize/components` directory. For conceptual overview and future requirements, see [`AGENT.md`](./AGENT.md). For practical usage examples, see [`AGENT.usage.md`](./AGENT.usage.md). For the `fromSchema` process-and-remainder pipeline and consumer pattern, see [fromSchema: process-and-remainder pipeline](#fromschema-process-and-remainder-pipeline) below.
 
 ## Technical Debt
 
@@ -56,6 +56,15 @@ The component system maintains a clear separation between:
 - ✅ `nestedSchema` uses `OrganizationContext` for on-demand reference assurance during tree construction
 - ✅ Component storage uses plain components only (no `StandardRemove`/`StandardReplace` wrappers)
 - ✅ Replace operations removed from component/reference level (expressed as Add+Remove pairs)
+
+### Reference and hosting (independent qualities)
+
+**Reference** and **hosting** are two independent qualities of a parent–child relationship. Component A can reference Component B, host Component B, both, or neither.
+
+- **Reference**: The parent **references** the child when it actively tracks that child in data it owns—e.g. a `ReferenceList` (features, examples, rooms, messages, marks) or a facet list (positions on a Map, marks on an Example). Either the parent references the child or it does not.
+- **Hosting**: The parent **hosts** the child when the child's content is rendered under the parent in the tree structure (the hierarchy used for serialization and display). A component may be referenced in many places, but its content is centralized in one—that parent is the host. Either the parent hosts the child or it does not.
+
+Common combinations: A Room typically references and hosts its Features. A Room may host a shared Mark without referencing it (the Mark's content is rendered under the Room in WML but the Room has no marks list). When implementing or debugging tree structure, ask separately: does the parent reference this child? Does the parent host this child? See also [AGENT.schemaOrganization.md](../AGENT.schemaOrganization.md) for how the tree is derived.
 
 ## Component Types
 
@@ -177,31 +186,31 @@ Payloads that parse from WML schema use a **process-and-remainder pipeline** so 
 - **Pattern (single remainder):** The payload builds an ordered list of `StandardizeConsumer` steps and calls `processWithConsumers(this, consumers, node.children)`. Each step consumes one (or more) tag(s) from the current children and returns the remainder for the next step. The runner throws if the final remainder is non-empty.
 - **Rule:** Unconsumed child tags are an error (no silent ignore). The error message lists unconsumed tag names (e.g. `Unconsumed child tags: Map`).
 - **Simple components:** Use `StandardizeConsumerSimple`, `StandardizeConsumerStandardLiteral`, and/or `StandardizeConsumerReferenceList` with `{ tag, update }`; the order of steps is the contract for what the component accepts. Tags that should be accepted but not stored (e.g. Position, Grant) use a no-op `update`.
-- **Pipeline usage:** All component payloads use the process-and-remainder pipeline for `fromSchema`. Most use tag-based consumers only (see component sections above for each component’s accepted tag set); Map, Example, and Guidance add facet-list consumers (e.g. `StandardizeConsumerFacetListPosition`, `StandardizeConsumerFacetListMark`).
-- **Reference:** Full design and migration status: [AGENT.fromSchema.planning.md](./AGENT.fromSchema.planning.md).
+- **Pipeline usage:** All component payloads use the process-and-remainder pipeline for `fromSchema`. Most use tag-based consumers only (see component sections above for each component's accepted tag set); Map, Example, and Guidance add facet-list consumers (e.g. `StandardizeConsumerFacetListPosition`, `StandardizeConsumerFacetListMark`).
+- **Consumer types:** Use `StandardizeConsumerSimple` or `StandardizeConsumerStandardLiteral` for a single tag → one property; `StandardizeConsumerRender` for rich-text tags (Description, DisplayName, etc.); `StandardizeConsumerReferenceList` for component references (Feature, Example, Room, Message, Mark under Lens, etc.); `StandardizeConsumerFacetListPosition` / `StandardizeConsumerFacetListMark` for facet data (Map positions, Example/Guidance mark facets); `StandardizeConsumerInline` as the last step when the component has reference or facet consumers, to accept and forward hosted component nodes (e.g. Mark under Room) that don't map to a bucket. Implementation: [fromSchemaPipeline.ts](./fromSchemaPipeline.ts), [fromSchemaPipeline.test.ts](./fromSchemaPipeline.test.ts).
 
 #### Division of responsibility (Schema vs Standardize)
 
-**Where to add child-validation rules:** Add new rules for *which child tags are allowed under a parent* in the **Standardize layer** (each component’s `fromSchema` consumer pipeline), not in the schema layer. See [AGENT.fromSchema.planning.md](./AGENT.fromSchema.planning.md) Phase 4 for the full shift.
+**Where to add child-validation rules:** Add new rules for *which child tags are allowed under a parent* in the **Standardize layer** (each component's `fromSchema` consumer pipeline), not in the schema layer.
 
 - **Schema parsing** is responsible for **syntactic correctness** and **property-level validation** (e.g. attributes, content models for tags like Exit, Parent, Key, Description). It does not enforce per-component child-tag whitelists; children are passed through to Standardize.
-- **Component payloads** (`fromSchema` pipelines) are responsible for **semantic correctness of child structures**: which tags are accepted, in what combinations. The ordered consumer list is the single source of truth; `processWithConsumers`’s final remainder check throws `Unconsumed child tags: …` for unknown or misplaced children.
+- **Component payloads** (`fromSchema` pipelines) are responsible for **semantic correctness of child structures**: which tags are accepted, in what combinations. The ordered consumer list is the single source of truth; `processWithConsumers`'s final remainder check throws `Unconsumed child tags: …` for unknown or misplaced children.
 
 #### Typeguard usage rubric
 
 - **Keep** typeguards that express **structural shape** of schema nodes (e.g. `isSchemaMessage`, `isSchemaDescription`, `isSchemaImage`, `isSchemaOutputTag`) and use them where we need to safely manipulate typed trees (building `StandardRender`, handling `Image` payloads, etc.).
 - **Keep** root-level typeguards in `fromSchema` as cheap assertions that the payload was called with the correct `Schema*Tag` (good error messages, low complexity).
-- **Prefer removing or relaxing** typeguard-based checks whose only purpose is to enforce *which child tags are allowed under a parent* at the schema layer; those rules belong in the component’s consumer pipeline and are enforced via the unconsumed-remainder check.
-- When auditing existing code: treat “is this node structurally a X?” uses of typeguards as **still valuable**; treat “is X allowed under Y?” uses as **legacy** candidates to move into the Standardize layer.
+- **Prefer removing or relaxing** typeguard-based checks whose only purpose is to enforce *which child tags are allowed under a parent* at the schema layer; those rules belong in the component's consumer pipeline and are enforced via the unconsumed-remainder check.
+- When auditing existing code: treat "is this node structurally a X?" uses of typeguards as **still valuable**; treat "is X allowed under Y?" uses as **legacy** candidates to move into the Standardize layer.
 
-#### Two-remainder shape and processComponents recursion (Phase 3 Step 7b/9)
+#### Two-remainder shape and processComponents recursion
 
 The fromSchema pipeline now supports a **two-remainder shape** that is fully integrated with `processComponents`:
 
 - **Parsing remainder:** As before, each consumer returns a `parsingRemainder` (children not consumed by that step). `processWithConsumers` threads this through the consumer list and throws if the final remainder is non-empty. This preserves the existing \"unconsumed children = error\" contract.
 - **Return remainder:** Each consumer also returns a `returnRemainderAddition` that represents child schema to be re-exposed to `processComponents` for recursion. `processWithConsumers` aggregates these additions into a single `returnRemainder` and returns it to the payload.
 - **Reference and facet consumers:** Reference-list consumers (`StandardizeConsumerReferenceList`) contribute their matched component nodes (Feature, Example, Room, Message, Mark under Lens, etc.) to the return remainder. Facet-list consumers (`StandardizeConsumerFacetListPosition`, `StandardizeConsumerFacetListMark`) contribute cleaned component nodes (e.g., `Room` without `Position`, `Mark` without `Match`) that should be materialized as child components.
-- **Component wrapper:** `StandardComponent.fromSchema(node)` strips `Key`/`Parent`, sets wrapper fields, and delegates to `this._payload.fromSchema(nodeWithoutParentAndKey)`. It returns the payload’s `returnRemainder`. Constructors that receive schema nodes call `this.fromSchema(node)` and ignore the returned remainder; the remainder is consumed by `processComponents`.
+- **Component wrapper:** `StandardComponent.fromSchema(node)` strips `Key`/`Parent`, sets wrapper fields, and delegates to `this._payload.fromSchema(nodeWithoutParentAndKey)`. It returns the payload's `returnRemainder`. Constructors that receive schema nodes call `this.fromSchema(node)` and ignore the returned remainder; the remainder is consumed by `processComponents`.
 
 `standardComponentFactory` exposes this shape to the processing pipeline:
 
@@ -216,7 +225,7 @@ The fromSchema pipeline now supports a **two-remainder shape** that is fully int
 Practically, this means:
 
 - **Only** consumers that contribute to `returnRemainderAddition` (ReferenceList and facet-list consumers) can cause additional components to be discovered beneath a given parent.
-- Tags consumed by literal/render/simple consumers are **internal** to the component’s payload and are never revisited by `processComponents`.
+- Tags consumed by literal/render/simple consumers are **internal** to the component's payload and are never revisited by `processComponents`.
 
 ### assureReferences Method
 
@@ -233,7 +242,7 @@ The `assureReferences` method is the single point where `ref={0}` references are
 
 - **Payload interface** (`ComponentConstructorMethods`): `assureReferences?(children: StandardReference[]): AssureReferencesResult<this>` (optional)
 - **Component interface** (`StandardComponent`): `assureReferences(children: StandardReference[]): StandardComponent` (required)
-- **Return type** (`AssureReferencesResult<T>`): `{ payload: T; inlineRemainder: StandardReference[] }` — `payload` has bucketed references merged; `inlineRemainder` holds references that did not map to any bucket (e.g. Mark under Room)
+- **Return type** (`AssureReferencesResult<T>`): `{ payload: T; inlineRemainder: StandardReference[] }` — `payload` has bucketed references merged; `inlineRemainder` holds references that are **hosted** by this parent (they appear as tree children but have no reference-list bucket on this component, e.g. Mark under Room)
 
 #### Behavior
 
@@ -243,12 +252,12 @@ The `assureReferences` method is the single point where `ref={0}` references are
 - **Reference handling**:
   - Partitions children into bucketed (tag maps to a ReferenceList) vs remainder (no bucket)
   - Bucketed children: merged into payload buckets with `ref={0}` where appropriate; uses `StandardReference.sameKey()` and leaves existing non-zero refs unchanged
-  - Remainder: returned in `inlineRemainder` with `ref={0}` for use by Phase 2 Item 2 (render at parent level)
+  - Remainder: returned in `inlineRemainder` with `ref={0}` for rendering as hosted children at the parent level in schema output
 
 #### Component-Specific Dispatch
 
-Each component type implements its own dispatch logic (bucket tags); all other tags go to `inlineRemainder`:
-- **StandardRoom**: Buckets Lens, Feature, Example, Guidance, Character (e.g. Mark → inlineRemainder)
+Each component type implements its own dispatch logic (bucket tags); all other tags go to `inlineRemainder` (hosted children):
+- **StandardRoom**: Buckets Lens, Feature, Example, Guidance, Character (e.g. Mark → inlineRemainder, rendered as hosted)
 - **StandardFeature**: Bucket Example
 - **StandardKnowledge**: Bucket Example
 - **StandardMoment**: Bucket Message
@@ -549,7 +558,7 @@ export const isStandardKnowledgeData = (arg: any): arg is StandardKnowledgeData 
    - Store private fields for component data (prefixed with `_`)
    - Implement constructor with optional `previous` parameter for cloning
    - Implement `fromJSON()` - Parse from data type
-   - Implement `fromSchema()` - Parse from WML schema tree (use `treeNodeTypeguard(isSchema{ComponentName})`)
+   - Implement `fromSchema()` - Parse from WML schema tree using the **process-and-remainder pipeline** (use `treeNodeTypeguard(isSchema{ComponentName})` at entry; build an ordered list of consumers and call `processWithConsumers(this, consumers, node.children)`). See [fromSchema: process-and-remainder pipeline](#fromschema-process-and-remainder-pipeline) and Consumer types above.
    - Implement getters for public properties
    - Implement `toJSON()` - Serialize to data type (follow omission-over-empty principle)
    - Implement `schema()` - Generate schema tree from payload
@@ -765,7 +774,7 @@ npm run test -- --watchAll=false ts/standardize/components/character.test.ts
 
 - [`AGENT.md`](./AGENT.md) - Conceptual overview and navigation guide
 - [`AGENT.usage.md`](./AGENT.usage.md) - Practical code examples and usage patterns
-- [`AGENT.fromSchema.planning.md`](./AGENT.fromSchema.planning.md) - Plan for fromSchema process-and-remainder rearchitecture
+- [`../AGENT.schemaOrganization.md`](../AGENT.schemaOrganization.md) - SchemaOrganization, reference vs. hosting, parentage
 - [`dataTypes/AGENT.md`](./dataTypes/AGENT.md) - Serialization vs. Manipulation Types architecture
 - [`render/AGENT.md`](../render/AGENT.md) - StandardRender system documentation
 - [`../AGENT.md`](../AGENT.md) - Parent directory overview

@@ -66,7 +66,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
     fromSchema(node: GenericTreeNode<SchemaTag>): GenericTree<SchemaTag> {
         if (treeNodeTypeguard(isSchemaRoom)(node)) {
             // Process-and-remainder pipeline: each step consumes one tag and passes remainder to the next.
-            // Unconsumed children (e.g. unknown tags) cause processWithConsumers to throw. See AGENT.fromSchema.planning.md.
+            // Unconsumed children (e.g. unknown tags) cause processWithConsumers to throw. See AGENT.implementation.md (fromSchema: process-and-remainder pipeline).
             const consumers = [
                 new StandardizeConsumerStandardLiteral(this, {
                     tag: "ShortName",
