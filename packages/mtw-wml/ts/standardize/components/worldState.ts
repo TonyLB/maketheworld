@@ -6,7 +6,6 @@ import { AssureReferencesResult, componentClassFactory, ComponentConstructorMeth
 import { NestedSchemaOptions, StandardComponent, StandardComponentReferenceKey } from "./baseClasses"
 import linkReferenceKeys, { ReferenceFormat, childReferenceFactory } from "./utils/references"
 import { StandardRender } from "../render"
-import { rebuildSchemaFromStandardRender } from "./utils/extractStandardRender"
 import { StandardToJSONOptions } from "./baseClasses"
 import { StandardMarkData } from "./dataTypes/mark"
 import { StandardLensData } from "./dataTypes/lens"
@@ -87,7 +86,7 @@ export class StandardMarkPayload implements HasShortName, ComponentConstructorMe
     schema(key: string, universalKey?: ComponentUUID, mappings?: StandardReference[]): GenericTreeNode<SchemaTag> {
         const children = [
             ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema({ tag: 'ShortName' }))).flat(1),
-            rebuildSchemaFromStandardRender(this._description, { tag: 'Description' }, mappings)
+            ...(this._description?.nestedSchema({ tag: 'Description', mappings }) ?? [])
         ].filter(excludeUndefined)
         return {
             data: { tag: 'Mark', key, uuid: universalKey },
@@ -248,7 +247,7 @@ export class StandardLensPayload implements HasShortName, ComponentConstructorMe
             data: { tag: 'Lens', key, uuid: universalKey },
             children: [
                 ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema())).flat(1),
-                rebuildSchemaFromStandardRender(this._description, { tag: 'Description' }, mappings),
+                ...(this._description?.nestedSchema({ tag: 'Description', mappings }) ?? []),
                 ...this.marks.schema
             ].filter(excludeUndefined)
         }
@@ -274,7 +273,7 @@ export class StandardLensPayload implements HasShortName, ComponentConstructorMe
             data: { tag: 'Lens', key: key.key ?? '', uuid: key.universalKey },
             children: [
                 ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema())).flat(1),
-                rebuildSchemaFromStandardRender(this._description, { tag: 'Description' }, options.mappings),
+                ...(this._description?.nestedSchema({ tag: 'Description', mappings: options.mappings }) ?? []),
                 ...marksToRender.payload.map(renderReference({ lookup, options: { ...options, parent: key } })).filter(excludeUndefined),
                 ...inlineRemainder.map(renderReference({ lookup, options: { ...options, parent: key } })).filter(excludeUndefined)
             ].filter(excludeUndefined)

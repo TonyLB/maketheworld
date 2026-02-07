@@ -3,17 +3,18 @@ import StandardRenderLineBreak from "./lineBreak"
 import StandardRenderLink from "./link"
 import StandardRenderSpace from "./space"
 import { excludeUndefined } from "../../lib/lists"
-import { GenericTree } from "@tonylb/mtw-base/ts/genericTree"
+import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize"
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable"
 import { deepEqual } from "../../lib/objects"
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
-import { isSchemaRemove, isSchemaReplace } from "@tonylb/mtw-base/ts/schema/edit"
+import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from "@tonylb/mtw-base/ts/schema/edit"
 import { isRenderTreeNode, isSimpleRenderTree, RenderTree, RenderTreeNode, renderTreeToSchema, renderTreeToString, schemaToRenderTree } from "@tonylb/mtw-base/ts/renderTree"
 import { standardEditableFactory, StandardEditablePayload } from "../../generics/editable"
 import StandardReference from "../keys/reference"
 import { ReferenceFormat } from "../components/utils/references"
 import { isSchemaLineBreak, isSchemaLink, isSchemaSpacer, isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
+import { stripWrapperTag } from "../../schema/utils"
 
 export type StandardRenderSimpleElement = StandardRenderString | StandardRenderLineBreak | StandardRenderLink | StandardRenderSpace
 
@@ -332,11 +333,39 @@ export const {
     // No validateReplace - not needed for RenderTree
 }, 'StandardRender')
 
+function validateSchemaNodeForRender<D extends SchemaTag>(
+    node: GenericTreeNode<SchemaTag>,
+    typeguard: (data: SchemaTag) => data is D,
+    errorMessage: string
+): void {
+    if (treeNodeTypeguard(typeguard)(node)) {
+        return
+    }
+    if (treeNodeTypeguard(isSchemaRemove)(node)) {
+        const child = node.children[0]
+        if (child && treeNodeTypeguard(typeguard)(child)) {
+            return
+        }
+        throw new Error(errorMessage)
+    }
+    if (treeNodeTypeguard(isSchemaReplace)(node)) {
+        const match = node.children.find(treeNodeTypeguard(isSchemaReplaceMatch))
+        const payload = node.children.find(treeNodeTypeguard(isSchemaReplacePayload))
+        if (match && payload) {
+            const matchChild = match.children[0]
+            const payloadChild = payload.children[0]
+            if (matchChild && treeNodeTypeguard(typeguard)(matchChild) && payloadChild && treeNodeTypeguard(typeguard)(payloadChild)) {
+                return
+            }
+        }
+    }
+    throw new Error(errorMessage)
+}
 
 export class StandardRender {
     _payload: InstanceType<typeof EditableClass>;
     
-    constructor(arg: any) {
+    constructor(arg: any, options?: { tag?: SchemaTag["tag"]; nodeTypeGuard?: (data: SchemaTag) => data is SchemaTag; errorMessage?: string }) {
         // Handle existing StandardRender instance (for cloning)
         if (arg instanceof StandardRender) {
             this._payload = arg._payload
@@ -362,6 +391,16 @@ export class StandardRender {
                 this._payload = EditableClass.create(arg as StandardEditableData<RenderTree>)
                 return
             }
+        }
+        
+        // Handle single schema node with options.tag (strip content wrapper, then dispatch)
+        if (options?.tag && typeof arg === 'object' && arg !== null && 'data' in arg && 'children' in arg && Array.isArray((arg as any).children)) {
+            if (options.nodeTypeGuard && options.errorMessage) {
+                validateSchemaNodeForRender(arg as GenericTreeNode<SchemaTag>, options.nodeTypeGuard, options.errorMessage)
+            }
+            const stripped = stripWrapperTag([arg as GenericTreeNode<SchemaTag>], options.tag)
+            this._payload = EditableClass.create(stripped)
+            return
         }
         
         // Handle RenderTree array directly (no wrapper tag stripping needed)
@@ -409,36 +448,41 @@ export class StandardRender {
         return this._payload.schema
     }
 
-    nestedSchema(tag: SchemaTag): GenericTree<SchemaTag> {
-        // Wrap payload schema in the provided tag
-        if (this._payload instanceof PlainClass) {
-            return [{ data: tag, children: this._payload.schema }]
+    nestedSchema(options?: { tag?: SchemaTag["tag"]; mappings?: StandardReference[] }): GenericTree<SchemaTag> {
+        const render = options?.mappings ? this.remapReferences({ mapping: options.mappings, mapTo: 'key' }) : this
+        const payload = render._payload
+
+        if (!options?.tag) {
+            return payload.schema
         }
-        if (this._payload instanceof RemoveClass) {
-            const match = (this._payload as any).match
+
+        const tag = { tag: options.tag } as SchemaTag
+
+        if (payload instanceof PlainClass) {
+            if (payload.schema.length === 0) {
+                return []
+            }
+            return [{ data: tag, children: payload.schema }]
+        }
+        if (payload instanceof RemoveClass) {
+            const match = (payload as any).match
             return [{
-                data: tag,
-                children: [{
-                    data: { tag: 'Remove' as const },
-                    children: match?.schema ?? []
-                }]
+                data: { tag: 'Remove' as const },
+                children: [{ data: tag, children: match?.schema ?? [] }]
             }]
         }
-        if (this._payload instanceof ReplaceClass) {
-            const match = (this._payload as any).match
-            const payload = (this._payload as any).payload
+        if (payload instanceof ReplaceClass) {
+            const match = (payload as any).match
+            const replacePayload = (payload as any).payload
             return [{
-                data: tag,
-                children: [{
-                    data: { tag: 'Replace' as const },
-                    children: [
-                        { data: { tag: 'ReplaceMatch' as const }, children: match?.schema ?? [] },
-                        { data: { tag: 'ReplacePayload' as const }, children: payload?.schema ?? [] }
-                    ]
-                }]
+                data: { tag: 'Replace' as const },
+                children: [
+                    { data: { tag: 'ReplaceMatch' as const }, children: [{ data: tag, children: match?.schema ?? [] }] },
+                    { data: { tag: 'ReplacePayload' as const }, children: [{ data: tag, children: replacePayload?.schema ?? [] }] }
+                ]
             }]
         }
-        return this._payload.nestedSchema(tag)
+        return payload.nestedSchema(tag)
     }
 
     toJSON(): StandardEditableData<RenderTree> {

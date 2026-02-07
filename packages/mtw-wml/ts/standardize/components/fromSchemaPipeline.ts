@@ -12,7 +12,6 @@ import { splitChildrenByPredicate, splitTaggedChildren } from "../../schema/util
 import { ReferenceList } from "./reference"
 import { StandardLiteral } from "../literal"
 import { StandardRender } from "../render"
-import { extractStandardRender } from "./utils/extractStandardRender"
 import { PositionFacetList, StandardPositionFacet } from "../keys/facets/position"
 import { MarkFacetList, StandardMarkFacet } from "../keys/facets/mark"
 
@@ -126,8 +125,8 @@ export class StandardizeConsumerStandardLiteral<D extends object = object> imple
 }
 
 /**
- * Consumer that consumes one render-bearing tag, builds a StandardRender using extractStandardRender,
- * and calls update(context, render). Pass undefined when no nodes matched (so optional fields can be cleared).
+ * Consumer that consumes one render-bearing tag, builds a StandardRender using the constructor with options.tag
+ * (and optional validation), and calls update(context, render). Pass undefined when no nodes matched (so optional fields can be cleared).
  * Use for Description, DisplayName, Summary, etc.
  */
 export class StandardizeConsumerRender<D extends object = object, S extends SchemaTag = SchemaTag> implements StandardizeConsumer {
@@ -147,7 +146,7 @@ export class StandardizeConsumerRender<D extends object = object, S extends Sche
             tag: this.options.tag,
         })
         const first = matched[0] as any | undefined
-        const render = extractStandardRender(first, this.options.nodeTypeGuard, this.options.errorMessage)
+        const render = first !== undefined ? new StandardRender(first, { tag: this.options.tag, nodeTypeGuard: this.options.nodeTypeGuard, errorMessage: this.options.errorMessage }) : undefined
         this.options.update.call(this.context, render)
         return {
             parsingRemainder: remainder,

@@ -1,12 +1,10 @@
 import { excludeUndefined } from "../../lib/lists"
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
-import { EditWrappedStandardNode } from "../baseClasses"
 import { AssureReferencesResult, componentClassFactory, ComponentConstructorMethods } from "./component"
-import { StandardComponent, StandardComponentReferenceKey, StandardDiffOptions } from "./baseClasses"
+import { StandardComponent, StandardComponentReferenceKey } from "./baseClasses"
 import { StandardMessageData } from "./dataTypes/message"
-import { childReferenceFactory, ReferenceFormat } from "./utils/references"
+import { ReferenceFormat } from "./utils/references"
 import { StandardRender } from "../render"
-import { extractStandardRender, rebuildSchemaFromStandardRender } from "./utils/extractStandardRender"
 import { StandardToJSONOptions } from "./baseClasses"
 import { AssetUUID, ComponentUUID, SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaDescription, SchemaDescriptionTag } from "@tonylb/mtw-base/ts/schema/example"
@@ -46,7 +44,7 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
 
     fromJSON(props: StandardMessageData) {
         this._shortName = props.shortName ? new StandardLiteral(props.shortName, { tag: 'ShortName' }) : undefined
-        this._description = extractStandardRender(props.description, isSchemaDescription, 'Schema mismatch in StandardMessage constructor')
+        this._description = props.description ? new StandardRender(props.description, { tag: 'Description', nodeTypeGuard: isSchemaDescription, errorMessage: 'Schema mismatch in StandardMessage constructor' }) : undefined
         this._rooms = new ReferenceList(props.rooms?.map((reference) => (new StandardReference(reference))) ?? [])
     }
 
@@ -89,7 +87,7 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
         return {
             tag: 'Message',
             ...(this._shortName ? { shortName: this._shortName.toJSON() } : {}),
-            description: rebuildSchemaFromStandardRender(this._description, { tag: 'Description' as const }, undefined),
+            description: this._description?.nestedSchema({ tag: 'Description' })?.[0] as StandardMessageData['description'],
             ...(this.rooms.payload.length ? { rooms: this.rooms.toJSON() } : {})
         }
     }
@@ -105,7 +103,7 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
             children: [
                 ...(this._shortName ? this._shortName.nestedSchema() : []),
                 ...roomsSchema,
-                ...(this.description ? [rebuildSchemaFromStandardRender(this.description, { tag: 'Description' as const }, mappings)].filter(excludeUndefined) : [])
+                ...(this.description?.nestedSchema({ tag: 'Description', mappings }) ?? [])
             ]
         }
     }
