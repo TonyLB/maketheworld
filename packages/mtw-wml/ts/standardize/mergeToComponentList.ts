@@ -6,7 +6,7 @@ import { unique } from "@tonylb/mtw-base/ts/utils/lists"
 
 const mergeHelper = (base: StandardComponent, value: StandardComponent): StandardComponent | undefined => {
     const merged = base ? (value ? base.merge(value) : base) : value
-    
+
     if (merged) {
         const origin = unique([...(base.origin ?? []), ...(value.origin ?? [])])
         return merged.withOrigin(origin.length ? origin : undefined)

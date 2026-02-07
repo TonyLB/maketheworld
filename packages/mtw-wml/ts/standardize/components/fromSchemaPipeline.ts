@@ -208,8 +208,10 @@ export class StandardizeConsumerFacetListPosition<D extends object = object> imp
             }
         })
 
+        // Pass through non-Room children (e.g. Feature ref={0}) so later consumers (Inline) can process them.
+        const parsingRemainder: GenericTree<SchemaTag> = children.filter((child) => !treeNodeTypeguard(isSchemaRoom)(child))
         return {
-            parsingRemainder: [],
+            parsingRemainder,
             returnRemainderAddition: cleanedRooms
         }
     }
