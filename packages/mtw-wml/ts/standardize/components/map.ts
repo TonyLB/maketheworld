@@ -1,7 +1,7 @@
 import { excludeUndefined } from "../../lib/lists"
 import applyEdits from "../../schema/treeManipulation/applyEdits"
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
-import { componentClassFactory, ComponentConstructorMethods } from "./component"
+import { AssureReferencesResult, componentClassFactory, ComponentConstructorMethods } from "./component"
 import { StandardComponent, StandardComponentReferenceKey, NestedSchemaOptions } from "./baseClasses"
 import { StandardMapData } from "./dataTypes/map"
 import { ReferenceFormat } from "./utils/references"
@@ -133,23 +133,39 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
         }
     }
 
+    /**
+     * Prototype: assureReferences with FacetList data.
+     * Map uses Position facets (Rooms) and _images schema nodes as "buckets".
+     * Children already rendered by facets/images are excluded from remainder;
+     * remainder (e.g. shared Feature) gets withRef(0) for inline rendering.
+     * When we have more prototype-examples we can abstract a common pattern.
+     */
+    assureReferences(children: StandardReference[]): AssureReferencesResult<this> {
+        const alreadyRenderedByPosition = (ref: StandardReference) =>
+            this._positions.items.some(f => (f.reference as StandardReference).sameKey(ref))
+        const imageKeysInImages = new Set(
+            this._images.filter(treeNodeTypeguard(isSchemaImage)).map(n => n.data.key).filter((k): k is string => Boolean(k))
+        )
+        const alreadyRenderedAsImage = (ref: StandardReference) =>
+            ref.tag === 'Image' && (ref.standardKey?.key != null) && imageKeysInImages.has(ref.standardKey.key)
+        const remainder = children.filter(ref => !alreadyRenderedByPosition(ref) && !alreadyRenderedAsImage(ref))
+        return {
+            payload: this,
+            inlineRemainder: remainder.map(c => c.withRef(0))
+        }
+    }
+
     nestedSchema(lookup: (key: string | StandardKey) => StandardComponent | undefined, options: NestedSchemaOptions): GenericTreeNode<SchemaTag> {
         const { key: mapKey } = options
         const mapKeyPlain = mapKey
 
-        // When organization is present, children not rendered by position facets are inline remainder (e.g. shared Feature).
-        // Exclude refs that we already render elsewhere: position facets (Rooms) and Images (in this._images).
-        let remainder: StandardReference[] = []
+        // When organization is present, use assureReferences to partition children:
+        // facets/images excluded; remainder (e.g. shared Feature) with ref={0}.
+        let inlineRemainder: StandardReference[] = []
         if (options.organization) {
             const children = options.organization.getChildrenOfParent(mapKey) ?? []
-            const alreadyRenderedByPosition = (ref: StandardReference) =>
-                this._positions.items.some(f => (f.reference as StandardReference).sameKey(ref))
-            const imageKeysInImages = new Set(
-                this._images.filter(treeNodeTypeguard(isSchemaImage)).map(n => n.data.key).filter((k): k is string => Boolean(k))
-            )
-            const alreadyRenderedAsImage = (ref: StandardReference) =>
-                ref.tag === 'Image' && (ref.standardKey?.key != null) && imageKeysInImages.has(ref.standardKey.key)
-            remainder = children.filter(ref => !alreadyRenderedByPosition(ref) && !alreadyRenderedAsImage(ref))
+            const { inlineRemainder: remainder } = this.assureReferences(children)
+            inlineRemainder = remainder
         }
 
         // Process each position facet
@@ -188,7 +204,7 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
             }
         }
 
-        const inlineSchemas = remainder.map(renderReference({ lookup, options: { ...options, parent: mapKeyPlain } })).filter(excludeUndefined)
+        const inlineSchemas = inlineRemainder.map(renderReference({ lookup, options: { ...options, parent: mapKeyPlain } })).filter(excludeUndefined)
 
         return {
             data: { tag: 'Map', key: mapKey.key ?? '', uuid: mapKey.universalKey },

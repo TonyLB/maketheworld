@@ -176,17 +176,17 @@ describe('StandardMap class', () => {
                 <Asset uuid=(Test)>
                     <Map uuid=(map1) key=(mapX)>
                         <ShortName>Map X</ShortName>
-                        <Room uuid=(room1) key=(room1)><Position {0, 0} /></Room>
-                        <Room uuid=(room2) key=(room2)><Position {100, 0} /></Room>
+                        <Room uuid=(room1) key=(room1)>
+                            <Position {0, 0} />
+                            <ShortName>Room One</ShortName>
+                            <Feature uuid=(feat1) key=(feat1)><ShortName>Shared Feature</ShortName></Feature>
+                        </Room>
+                        <Room uuid=(room2) key=(room2)>
+                            <Position {100, 0} />
+                            <ShortName>Room Two</ShortName>
+                            <Feature uuid=(feat1) key=(feat1) />
+                        </Room>
                     </Map>
-                    <Room uuid=(room1) key=(room1)>
-                        <ShortName>Room One</ShortName>
-                        <Feature uuid=(feat1) key=(feat1)><ShortName>Shared Feature</ShortName></Feature>
-                    </Room>
-                    <Room uuid=(room2) key=(room2)>
-                        <ShortName>Room Two</ShortName>
-                        <Feature uuid=(feat1) key=(feat1) />
-                    </Room>
                 </Asset>
             `)
 
@@ -203,9 +203,19 @@ describe('StandardMap class', () => {
                 <Asset uuid=(Test)>
                     <Map uuid=(map1) key=(mapX)>
                         <ShortName>Map X</ShortName>
-                        <Room uuid=(room1) key=(room1)><Position {0, 0} /><ShortName>Room One</ShortName><Feature key=(feat1) /></Room>
-                        <Room uuid=(room2) key=(room2)><Position {100, 0} /><ShortName>Room Two</ShortName><Feature key=(feat1) /></Room>
-                        <Feature uuid=(feat1) key=(feat1) ref={0}><ShortName>Shared Feature</ShortName></Feature>
+                        <Room uuid=(room1) key=(room1)>
+                            <Position {0, 0} />
+                            <ShortName>Room One</ShortName>
+                            <Feature key=(feat1) />
+                        </Room>
+                        <Room uuid=(room2) key=(room2)>
+                            <Position {100, 0} />
+                            <ShortName>Room Two</ShortName>
+                            <Feature key=(feat1) />
+                        </Room>
+                        <Feature uuid=(feat1) key=(feat1) ref={0}>
+                            <ShortName>Shared Feature</ShortName>
+                        </Feature>
                     </Map>
                 </Asset>
             `)
