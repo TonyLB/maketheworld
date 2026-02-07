@@ -61,10 +61,14 @@ describe('StandardImage class', () => {
         expect(testImage.diff(testImage)).toBeUndefined()
     })
 
-    //
-    // NOTE: Schema converters already reject illegal child tags under Image, so the
-    // fromSchema remainder check is exercised indirectly via other components (e.g., Room).
-    // We intentionally do not add a separate unconsumed-tag test here to avoid fighting
-    // schema-level validation semantics.
-    //
+    it('should throw on unconsumed child tags', () => {
+        const testSource = deIndentWML(`
+            <Image key=(test)>
+                <ShortName>Test</ShortName>
+                <Map key=(illegalMap) />
+            </Image>
+        `)
+        expect(() => new StandardImage(testSource)).toThrow(/Unconsumed child tags/)
+        expect(() => new StandardImage(testSource)).toThrow(/Map/)
+    })
 })

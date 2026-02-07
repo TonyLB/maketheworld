@@ -115,12 +115,17 @@ describe('StandardMoment class', () => {
         `))
     })
 
-    //
-    // NOTE: Schema converters already reject illegal child tags under Moment, so the
-    // fromSchema remainder check is exercised indirectly via other components (e.g., Room).
-    // We intentionally do not add a separate unconsumed-tag test here to avoid fighting
-    // schema-level validation semantics.
-    //
+    it('should throw on unconsumed child tags', () => {
+        const testSource = deIndentWML(`
+            <Moment key=(test)>
+                <Message key=(msg1) />
+                <Map key=(illegalMap) />
+            </Moment>
+        `)
+        expect(() => new StandardMoment(testSource)).toThrow(/Unconsumed child tags/)
+        expect(() => new StandardMoment(testSource)).toThrow(/Map/)
+    })
+
     describe('assureReferences method', () => {
         it('should return unchanged moment when children array is empty', () => {
             const moment = new StandardMoment({ tag: 'Moment', key: 'test' })

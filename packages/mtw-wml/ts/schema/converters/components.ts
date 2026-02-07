@@ -6,7 +6,7 @@ import { validateProperties, validateExpressionAsNonNegativeInteger, parsePositi
 import { GenericTree, GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree"
 import { isSchemaExit, isSchemaFeature, isSchemaGuidance, isSchemaKnowledge, isSchemaMap, isSchemaPosition, isSchemaRoom, isSchemaShortName, isSchemaParent, isSchemaKey, SchemaExitTag, SchemaFeatureTag, SchemaGuidanceTag, SchemaKnowledgeTag, SchemaMapTag, SchemaPositionTag, SchemaRoomTag, SchemaShortNameTag, SchemaParentTag, SchemaKeyTag } from "@tonylb/mtw-base/ts/schema/components"
 import { isSchemaString, SchemaStringTag } from "@tonylb/mtw-base/ts/schema/renderTree"
-import { isSchemaMapContents, SchemaTag, isSchemaComponent, isSchemaComponentUUID } from "@tonylb/mtw-base/ts/schema"
+import { SchemaTag, isSchemaComponent, isSchemaComponentUUID } from "@tonylb/mtw-base/ts/schema"
 import { PrintMode, PrintMapResult } from "@tonylb/mtw-base/ts/schema/printMap"
 import { literalTagFactory } from "@tonylb/mtw-base/ts/schema/literalTagFactory"
 import { enforceTypedKey, stripTypedKey } from "@tonylb/mtw-utilities/ts/types"
@@ -274,19 +274,13 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
                 ...rest
             }
         },
-        typeCheckContents: (item) => (isSchemaMapContents(item) || isSchemaShortName(item)),
-        validateContents: {
-            isValid: (tag) => (true),
-            branchTags: ['Room'],
-            leafTags: ['Position', 'Image']
-        },
         finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag> ): GenericTreeNodeFiltered<SchemaMapTag, SchemaTag> => {
             if (!isSchemaMap(initialTag)) {
                 throw new Error('Type mismatch on schema finalize')
             }
             return {
                 data: initialTag,
-                children: children.filter(({ data }) => (isSchemaMapContents(data))),
+                children
             }
         }
     },

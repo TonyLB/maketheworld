@@ -1,6 +1,6 @@
 ## Inline Shared Resources – Planning Notes
 
-**Status**: Planning  
+**Status**: Implementation complete (Phase 2 Items 1 & 2)  
 **Created**: February 2026  
 
 This document captures design intent and open questions around **inline / shared resources** in `fromSchema` pipelines – specifically, component instances (e.g. `Mark`) that are **shared between multiple sibling children** of a parent and for which `SchemaOrganization` chooses the **parent** (not any particular child) as the canonical structural home.
@@ -226,8 +226,9 @@ First-draft sketch:
    - Each payload partitions children by bucket tags; remainder (e.g. Mark under Room) goes to `inlineRemainder` with `ref={0}`
    - `nestedSchema` callers destructure and use `payload`; `inlineRemainder` is available for Phase 2 Item 2
 
-2. **Pass inline remainder into `nestedSchema` / `schema`**  
-   - `nestedSchema` (and, if needed, `schema`) should be able to:
+2. **Pass inline remainder into `nestedSchema` / `schema`** — **DONE (Phase 2 Item 2)**  
+   - Implemented: payloads (Room, Feature, Knowledge, Moment, Lens) append `inlineRemainder.map(renderReference(...)).filter(excludeUndefined)` to `children` in `nestedSchema`; Map computes remainder (organization children minus position facets and `_images`) and appends the same way. No new option type.
+   - `nestedSchema` (and, if needed, `schema`) is able to:
      - Render the **bucketed children** from the payload as before (shortName, Lens, Feature, Example, Guidance, Character, exits).
      - Then, for each reference in `inlineRemainder`:
        - Use the `lookup` function (and `SchemaOrganization`) to find the referenced component.

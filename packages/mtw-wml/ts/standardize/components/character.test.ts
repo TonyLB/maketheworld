@@ -77,10 +77,14 @@ describe('StandardCharacter class', () => {
         `))
     })
 
-    //
-    // NOTE: Schema converters already reject illegal child tags under Character, so the
-    // fromSchema remainder check is exercised indirectly via other components (e.g., Room).
-    // We intentionally do not add a separate unconsumed-tag test here to avoid fighting
-    // schema-level validation semantics.
-    //
+    it('should throw on unconsumed child tags', () => {
+        const testSource = deIndentWML(`
+            <Character key=(test)>
+                <ShortName>Tess</ShortName>
+                <Map key=(illegalMap) />
+            </Character>
+        `)
+        expect(() => new StandardCharacter(testSource)).toThrow(/Unconsumed child tags/)
+        expect(() => new StandardCharacter(testSource)).toThrow(/Map/)
+    })
 })
