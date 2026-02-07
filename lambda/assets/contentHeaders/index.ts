@@ -100,7 +100,8 @@ function extractHeaderComponent(component: any) {
         shortName: component.shortName?.toJSON()
     } as any
 
-    return standardComponentFactory(minimalJson) ?? undefined
+    const { component: headerComponent } = standardComponentFactory(minimalJson)
+    return headerComponent ?? undefined
 }
 
 const generateContentHeadersSnapshot = async (): Promise<ContentHeadersSnapshot> => {
