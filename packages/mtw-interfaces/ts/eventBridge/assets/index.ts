@@ -300,7 +300,7 @@ export class AssetsEventSerializer implements DataSourceEventSerializer<AssetsEv
         // Parse WML back to StandardComponent using the proper factory
         // The WML should be just the component itself, not wrapped in an Asset
         const node = nodeFromWML(wml)
-        const component = standardComponentFactory(node)
+        const { component } = standardComponentFactory(node)
         if (!component) {
             throw new Error(`Could not create component from WML: ${wml}`)
         }

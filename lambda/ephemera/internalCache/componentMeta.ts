@@ -62,7 +62,7 @@ export class ComponentMetaData {
                 }
                 const tag = tagFromEphemeraWrappedId(EphemeraId)
                 const defaultData = defaultComponentFromTag(tag, undefined, EphemeraId)
-                const defaultComponent: StandardComponent | undefined = standardComponentFactory(defaultData)
+                const { component: defaultComponent } = standardComponentFactory(defaultData)
                 if (!defaultComponent) {
                     throw new Error(`No default component found for tag ${tag} and EphemeraId ${EphemeraId}`)
                 }
@@ -116,7 +116,7 @@ export class ComponentMetaData {
                     if (!isStandardComponentData(componentData)) {
                         throw new Error(`Invalid component data for EphemeraId: ${EphemeraId} and DataCategory: ${DataCategory}`)
                     }
-                    const component = standardComponentFactory(componentData)
+                    const { component } = standardComponentFactory(componentData)
                     if (!component) {
                         throw new Error(`Failed to create component for EphemeraId: ${EphemeraId} and DataCategory: ${DataCategory}`)
                     }
