@@ -321,7 +321,7 @@ export const addImport = ({
                 component = existingComponent.clone().withImport(fromAsset)
                 draft.byUniversalId[uuid] = component
             } else {
-                const newComponent = standardComponentFactory({ tag, universalKey: uuid })
+                const { component: newComponent } = standardComponentFactory({ tag, universalKey: uuid })
                 if (!newComponent) {
                     throw new Error(`Could not create component for tag ${tag}`)
                 }

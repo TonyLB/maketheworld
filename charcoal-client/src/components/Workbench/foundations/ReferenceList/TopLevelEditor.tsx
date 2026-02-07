@@ -165,7 +165,7 @@ export const TopLevelEditor: FunctionComponent<TopLevelEditorProps> = ({
                     const uuid = uuidv4()
                     const universalKey = enforceKey(uuid) as ComponentUUID
 
-                    const component = standardComponentFactory({ tag, universalKey })
+                    const { component } = standardComponentFactory({ tag, universalKey })
                     if (component) {
                         draft.byUniversalId[universalKey] = component
                         const componentReference = new StandardReference({
