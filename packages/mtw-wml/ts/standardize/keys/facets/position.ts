@@ -10,7 +10,7 @@ import { isSchemaPosition, isSchemaRoom } from "@tonylb/mtw-base/ts/schema/compo
 import { isSchemaRemove } from "@tonylb/mtw-base/ts/schema/edit";
 import { facetClassFactory } from './facetFactory';
 import { isSchemaTreeNode, treeFromWML } from "../../../schema";
-import { transformNestedChildren, findTaggedChildren } from "../../../schema/utils";
+import { transformNestedChildren, splitTaggedChildren } from "../../../schema/utils";
 
 //
 // StandardPositionPayloadBase holds the contents for a simple PositionPayload
@@ -479,9 +479,9 @@ export function createPositionFacetPayload(arg: any): PositionFacetPayload {
             const firstElement = schema[0];
             // If first element is a Room tag, extract only Position children (and Remove/Replace wrappers containing Position)
             if (treeNodeTypeguard(isSchemaRoom)(firstElement)) {
-                // Extract only Position children from Room tag - findTaggedChildren handles Remove/Replace wrappers
+                // Extract only Position children from Room tag - splitTaggedChildren handles Remove/Replace wrappers
                 // This ensures payloadFactory receives a tree where the first element is a Position tag (or Remove/Replace wrapper)
-                const positionChildren = findTaggedChildren({ children: firstElement.children, tag: 'Position' });
+                const { matched: positionChildren } = splitTaggedChildren({ children: firstElement.children, tag: 'Position' });
                 if (positionChildren.length === 0) {
                     throw new Error('Room node does not contain Position children');
                 }
