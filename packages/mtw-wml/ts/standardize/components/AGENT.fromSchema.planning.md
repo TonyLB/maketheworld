@@ -198,7 +198,9 @@ This design allows StandardRoom (and other "simple" components) to define an ord
 
 14. **Remove ad-hoc patterns**
    - Once all components use the pipeline and schema-level child validation has been simplified, remove any remaining per-component "scan the whole list again" patterns.
+   - Position facet parsing (`createPositionFacetPayload` in `standardize/keys/facets/position.ts`) was updated to use `splitTaggedChildren` instead of `findTaggedChildren` for consistency with the pipeline pattern.
    - Consider exporting a small set of shared step builders (e.g. "shortName step," "referenceList step for tag X") to keep component definitions concise and consistent.
+   - **Deferred:** Any further cleanup or refactor of Map/position facet parsing (e.g. aligning with a full process-and-remainder style at the facet factory) is deferred until Map data is refactored to the planned more general **Area** type; that refactor is the right time to revisit this code path.
 
 15. **Document and cross-reference**
    - Finalize the "fromSchema pipeline" section in component docs; link from [AGENT.md](./AGENT.md) or [AGENT.implementation.md](./AGENT.implementation.md) so future work (e.g. new WML tags or new components) follows the same pattern.
