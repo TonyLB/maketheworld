@@ -260,21 +260,23 @@ export class StandardLensPayload implements HasShortName, ComponentConstructorMe
         // If organization is available, use assured references from organization
         // Otherwise, fall back to stored reference lists
         let marksToRender = this.marks
-        
+        let inlineRemainder: StandardReference[] = []
+
         if (options.organization) {
             // Get children from organization and assure references
             const children = options.organization.getChildrenOfParent(key) ?? []
-            const { payload: assured, inlineRemainder } = this.assureReferences(children)
+            const { payload: assured, inlineRemainder: remainder } = this.assureReferences(children)
             marksToRender = assured.marks
-            // inlineRemainder available for Phase 2 Item 2 (not used yet)
+            inlineRemainder = remainder
         }
-        
+
         return {
             data: { tag: 'Lens', key: key.key ?? '', uuid: key.universalKey },
             children: [
                 ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema())).flat(1),
                 rebuildSchemaFromStandardRender(this._description, { tag: 'Description' }, options.mappings),
-                ...marksToRender.payload.map(renderReference({ lookup, options: { ...options, parent: key } })).filter(excludeUndefined)
+                ...marksToRender.payload.map(renderReference({ lookup, options: { ...options, parent: key } })).filter(excludeUndefined),
+                ...inlineRemainder.map(renderReference({ lookup, options: { ...options, parent: key } })).filter(excludeUndefined)
             ].filter(excludeUndefined)
         }
     }

@@ -93,20 +93,22 @@ export class StandardKnowledgePayload implements HasShortName, ComponentConstruc
         // If organization is available, use assured references from organization
         // Otherwise, fall back to stored reference lists
         let examplesToRender = this.examples
-        
+        let inlineRemainder: StandardReference[] = []
+
         if (options.organization) {
             // Get children from organization and assure references
             const children = options.organization.getChildrenOfParent(key) ?? []
-            const { payload: assured, inlineRemainder } = this.assureReferences(children)
+            const { payload: assured, inlineRemainder: remainder } = this.assureReferences(children)
             examplesToRender = assured.examples
-            // inlineRemainder available for Phase 2 Item 2 (not used yet)
+            inlineRemainder = remainder
         }
-        
+
         return {
             data: { tag: 'Knowledge', key: key.key ?? '', uuid: key.universalKey },
             children: [
                 ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema())).flat(1),
                 ...examplesToRender.payload.map(renderReference({ lookup, options })).filter(excludeUndefined),
+                ...inlineRemainder.map(renderReference({ lookup, options })).filter(excludeUndefined),
             ]
         }
     }

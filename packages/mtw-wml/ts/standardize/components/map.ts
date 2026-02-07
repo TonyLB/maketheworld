@@ -15,6 +15,7 @@ import { StandardLiteral } from "../literal"
 import { StandardExplicitParent } from "../explicit"
 import { processWithConsumers, StandardizeConsumer, StandardizeConsumerFacetListPosition, StandardizeConsumerInline, StandardizeConsumerStandardLiteral } from "./fromSchemaPipeline"
 import { splitTaggedChildren } from "../../schema/utils"
+import { renderReference } from "./utils/schema"
 
 class StandardizeConsumerImageList<D extends object = object> implements StandardizeConsumer {
     constructor(
@@ -135,7 +136,22 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
     nestedSchema(lookup: (key: string | StandardKey) => StandardComponent | undefined, options: NestedSchemaOptions): GenericTreeNode<SchemaTag> {
         const { key: mapKey } = options
         const mapKeyPlain = mapKey
-        
+
+        // When organization is present, children not rendered by position facets are inline remainder (e.g. shared Feature).
+        // Exclude refs that we already render elsewhere: position facets (Rooms) and Images (in this._images).
+        let remainder: StandardReference[] = []
+        if (options.organization) {
+            const children = options.organization.getChildrenOfParent(mapKey) ?? []
+            const alreadyRenderedByPosition = (ref: StandardReference) =>
+                this._positions.items.some(f => (f.reference as StandardReference).sameKey(ref))
+            const imageKeysInImages = new Set(
+                this._images.filter(treeNodeTypeguard(isSchemaImage)).map(n => n.data.key).filter((k): k is string => Boolean(k))
+            )
+            const alreadyRenderedAsImage = (ref: StandardReference) =>
+                ref.tag === 'Image' && (ref.standardKey?.key != null) && imageKeysInImages.has(ref.standardKey.key)
+            remainder = children.filter(ref => !alreadyRenderedByPosition(ref) && !alreadyRenderedAsImage(ref))
+        }
+
         // Process each position facet
         const positionSchemas: GenericTreeNode<SchemaTag>[] = []
         for (const facet of this._positions.items) {
@@ -171,13 +187,16 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
                 }
             }
         }
-        
+
+        const inlineSchemas = remainder.map(renderReference({ lookup, options: { ...options, parent: mapKeyPlain } })).filter(excludeUndefined)
+
         return {
             data: { tag: 'Map', key: mapKey.key ?? '', uuid: mapKey.universalKey },
             children: [
                 ...this.shortName ? this.shortName.nestedSchema() : [],
                 ...this.images,
-                ...positionSchemas
+                ...positionSchemas,
+                ...inlineSchemas
             ]
         }
     }

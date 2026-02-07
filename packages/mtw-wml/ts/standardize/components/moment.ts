@@ -90,20 +90,22 @@ export class StandardMomentPayload implements ComponentConstructorMethods<Standa
         // If organization is available, use assured references from organization
         // Otherwise, fall back to stored reference lists
         let messagesToRender = this.messages
-        
+        let inlineRemainder: StandardReference[] = []
+
         if (options.organization) {
             // Get children from organization and assure references
             const children = options.organization.getChildrenOfParent(key) ?? []
-            const { payload: assured, inlineRemainder } = this.assureReferences(children)
+            const { payload: assured, inlineRemainder: remainder } = this.assureReferences(children)
             messagesToRender = assured.messages
-            // inlineRemainder available for Phase 2 Item 2 (not used yet)
+            inlineRemainder = remainder
         }
-        
+
         return {
             data: { tag: 'Moment', key: key.key ?? '', uuid: key.universalKey },
             children: [
                 ...(this._shortName ? this._shortName.nestedSchema() : []),
-                ...messagesToRender.payload.map(renderReference({ lookup, options })).filter(excludeUndefined).flat(1)
+                ...messagesToRender.payload.map(renderReference({ lookup, options })).filter(excludeUndefined).flat(1),
+                ...inlineRemainder.map(renderReference({ lookup, options })).filter(excludeUndefined),
             ]
         }
     }

@@ -166,17 +166,18 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         let examplesToRender = this.examples
         let guidanceToRender = this.guidance
         let charactersToRender = this.characters
-        
+        let inlineRemainder: StandardReference[] = []
+
         if (options.organization) {
             // Get children from organization and assure references
             const children = options.organization.getChildrenOfParent(key) ?? []
-            const { payload: assured, inlineRemainder } = this.assureReferences(children)
+            const { payload: assured, inlineRemainder: remainder } = this.assureReferences(children)
             lensesToRender = assured.lenses
             featuresToRender = assured.features
             examplesToRender = assured.examples
             guidanceToRender = assured.guidance
             charactersToRender = assured.characters
-            // inlineRemainder available for Phase 2 Item 2 (not used yet)
+            inlineRemainder = remainder
         }
         
         // Process each exit facet
@@ -204,6 +205,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
                 ...guidanceToRender.payload.map(renderReference({ lookup, options: { ...options, parent: key } })).filter(excludeUndefined),
                 ...examplesToRender.payload.map(renderReference({ lookup, options: { ...options, parent: key } })).filter(excludeUndefined),
                 ...charactersToRender.payload.map(renderReference({ lookup, options: { ...options, parent: key } })).filter(excludeUndefined),
+                ...inlineRemainder.map(renderReference({ lookup, options: { ...options, parent: key } })).filter(excludeUndefined),
                 ...exitSchemas
             ]
         }
