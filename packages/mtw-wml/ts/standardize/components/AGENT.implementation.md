@@ -339,7 +339,7 @@ const schema = component.schema  // Uses this._mapping internally
 // Payload method receives mappings as parameter
 schema(key: string, universalKey?: ComponentUUID, mappings?: StandardReference[]): GenericTreeNode<SchemaTag> {
     // Use mappings to remap Links in StandardRender to 'key' format
-    rebuildSchemaFromStandardRender(this._name, { tag: 'Name' }, mappings)
+    this._name?.nestedSchema({ tag: 'Name', mappings })?.[0]
 }
 ```
 
@@ -709,7 +709,7 @@ export const isStandardComponent = (value: any): value is StandardComponent => {
 - More complex `schema()` generation with nested structure reconstruction
 
 **Common Pitfalls**:
-- Incorrect `StandardRender` reconstruction in `schema()` - use `rebuildSchemaFromStandardRender()` helper
+- Incorrect `StandardRender` reconstruction in `schema()` - use `StandardRender.nestedSchema({ tag, mappings })` and spread or take `[0]` as needed
 - Missing mapping parameter handling in `schema()` and `nestedSchema()` for Link remapping
 - Not handling edit wrappers (Remove/Replace) correctly in `fromSchema()`
 

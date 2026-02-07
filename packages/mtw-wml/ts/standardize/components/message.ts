@@ -5,7 +5,6 @@ import { StandardComponent, StandardComponentReferenceKey } from "./baseClasses"
 import { StandardMessageData } from "./dataTypes/message"
 import { ReferenceFormat } from "./utils/references"
 import { StandardRender } from "../render"
-import { rebuildSchemaFromStandardRender } from "./utils/extractStandardRender"
 import { StandardToJSONOptions } from "./baseClasses"
 import { AssetUUID, ComponentUUID, SchemaOutputTag, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaDescription, SchemaDescriptionTag } from "@tonylb/mtw-base/ts/schema/example"
@@ -88,7 +87,7 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
         return {
             tag: 'Message',
             ...(this._shortName ? { shortName: this._shortName.toJSON() } : {}),
-            description: rebuildSchemaFromStandardRender(this._description, { tag: 'Description' as const }, undefined),
+            description: this._description?.nestedSchema({ tag: 'Description' })?.[0] as StandardMessageData['description'],
             ...(this.rooms.payload.length ? { rooms: this.rooms.toJSON() } : {})
         }
     }
@@ -104,7 +103,7 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
             children: [
                 ...(this._shortName ? this._shortName.nestedSchema() : []),
                 ...roomsSchema,
-                ...(this.description ? [rebuildSchemaFromStandardRender(this.description, { tag: 'Description' as const }, mappings)].filter(excludeUndefined) : [])
+                ...(this.description?.nestedSchema({ tag: 'Description', mappings }) ?? [])
             ]
         }
     }

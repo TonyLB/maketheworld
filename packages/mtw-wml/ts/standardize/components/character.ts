@@ -11,7 +11,6 @@ import { StandardComponent, StandardComponentReferenceKey } from "./baseClasses"
 import StandardReference from "../keys/reference"
 import { StandardKey } from "../keys/key"
 import { StandardRender } from "../render"
-import { rebuildSchemaFromStandardRender } from "./utils/extractStandardRender"
 import { StandardExplicitParent } from "../explicit"
 import {
     processWithConsumers,
@@ -113,7 +112,7 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
             children: [
                 ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema())).flat(1),
                 ...[this.pronouns].filter(excludeUndefined).map((pronouns) => (pronouns.nestedSchema())).flat(1),
-                rebuildSchemaFromStandardRender(this._displayName, { tag: 'DisplayName' }, mappings),
+                ...(this._displayName?.nestedSchema({ tag: 'DisplayName', mappings }) ?? []),
                 this.image
             ].filter(excludeUndefined).flat(1)
         }

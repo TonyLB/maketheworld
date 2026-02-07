@@ -4,7 +4,6 @@ import { componentClassFactory, ComponentConstructorMethods } from "./component"
 import { StandardComponent, StandardComponentReferenceKey, NestedSchemaOptions } from "./baseClasses"
 import linkReferenceKeys, { ReferenceFormat } from "./utils/references"
 import { StandardRender } from "../render"
-import { rebuildSchemaFromStandardRender } from "./utils/extractStandardRender"
 import { StandardToJSONOptions } from "./baseClasses"
 import { StandardExampleData, StandardExampleNDJSONData } from "./dataTypes/example"
 import { AssetUUID, ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
@@ -131,9 +130,9 @@ export class StandardExamplePayload implements HasShortName, ComponentConstructo
     schema(key: string, universalKey?: ComponentUUID, mappings?: StandardReference[]): GenericTreeNode<SchemaTag> {
         const children = [
             ...[this._shortName].filter(excludeUndefined).map((s) => s.nestedSchema()).flat(1),
-            rebuildSchemaFromStandardRender(this._displayName, { tag: 'DisplayName' }, mappings),
-            rebuildSchemaFromStandardRender(this._summary, { tag: 'Summary' }, mappings),
-            rebuildSchemaFromStandardRender(this._description, { tag: 'Description' }, mappings),
+            ...(this._displayName?.nestedSchema({ tag: 'DisplayName', mappings }) ?? []),
+            ...(this._summary?.nestedSchema({ tag: 'Summary', mappings }) ?? []),
+            ...(this._description?.nestedSchema({ tag: 'Description', mappings }) ?? []),
             ...this.marks.items.map(facet => {
                 // TypeScript doesn't narrow the reference type correctly, so we need to assert
                 const ref = facet.reference as StandardReference
@@ -254,9 +253,9 @@ export class StandardExamplePayload implements HasShortName, ComponentConstructo
         // Combine with other Example content
         const children = [
             ...[this._shortName].filter(excludeUndefined).map((s) => s.nestedSchema()).flat(1),
-            rebuildSchemaFromStandardRender(this._displayName, { tag: 'DisplayName' }, options.mappings),
-            rebuildSchemaFromStandardRender(this._summary, { tag: 'Summary' }, options.mappings),
-            rebuildSchemaFromStandardRender(this._description, { tag: 'Description' }, options.mappings),
+            ...(this._displayName?.nestedSchema({ tag: 'DisplayName', mappings: options.mappings }) ?? []),
+            ...(this._summary?.nestedSchema({ tag: 'Summary', mappings: options.mappings }) ?? []),
+            ...(this._description?.nestedSchema({ tag: 'Description', mappings: options.mappings }) ?? []),
             ...markNodes
         ].filter(excludeUndefined)
 

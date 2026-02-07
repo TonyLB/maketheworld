@@ -448,36 +448,41 @@ export class StandardRender {
         return this._payload.schema
     }
 
-    nestedSchema(tag: SchemaTag): GenericTree<SchemaTag> {
-        // Wrap payload schema in the provided tag
-        if (this._payload instanceof PlainClass) {
-            return [{ data: tag, children: this._payload.schema }]
+    nestedSchema(options?: { tag?: SchemaTag["tag"]; mappings?: StandardReference[] }): GenericTree<SchemaTag> {
+        const render = options?.mappings ? this.remapReferences({ mapping: options.mappings, mapTo: 'key' }) : this
+        const payload = render._payload
+
+        if (!options?.tag) {
+            return payload.schema
         }
-        if (this._payload instanceof RemoveClass) {
-            const match = (this._payload as any).match
+
+        const tag = { tag: options.tag } as SchemaTag
+
+        if (payload instanceof PlainClass) {
+            if (payload.schema.length === 0) {
+                return []
+            }
+            return [{ data: tag, children: payload.schema }]
+        }
+        if (payload instanceof RemoveClass) {
+            const match = (payload as any).match
             return [{
-                data: tag,
-                children: [{
-                    data: { tag: 'Remove' as const },
-                    children: match?.schema ?? []
-                }]
+                data: { tag: 'Remove' as const },
+                children: [{ data: tag, children: match?.schema ?? [] }]
             }]
         }
-        if (this._payload instanceof ReplaceClass) {
-            const match = (this._payload as any).match
-            const payload = (this._payload as any).payload
+        if (payload instanceof ReplaceClass) {
+            const match = (payload as any).match
+            const replacePayload = (payload as any).payload
             return [{
-                data: tag,
-                children: [{
-                    data: { tag: 'Replace' as const },
-                    children: [
-                        { data: { tag: 'ReplaceMatch' as const }, children: match?.schema ?? [] },
-                        { data: { tag: 'ReplacePayload' as const }, children: payload?.schema ?? [] }
-                    ]
-                }]
+                data: { tag: 'Replace' as const },
+                children: [
+                    { data: { tag: 'ReplaceMatch' as const }, children: [{ data: tag, children: match?.schema ?? [] }] },
+                    { data: { tag: 'ReplacePayload' as const }, children: [{ data: tag, children: replacePayload?.schema ?? [] }] }
+                ]
             }]
         }
-        return this._payload.nestedSchema(tag)
+        return payload.nestedSchema(tag)
     }
 
     toJSON(): StandardEditableData<RenderTree> {

@@ -542,4 +542,41 @@ describe('StandardRender', () => {
             </With>
         `))
     })
+
+    describe('nestedSchema(options)', () => {
+        it('with no options returns payload schema (no wrapping)', () => {
+            const schema = new Schema()
+            schema.loadWML(`Example<Link to=(F1)>L</Link>`)
+            const render = new StandardRender(schema.schema)
+            const result = render.nestedSchema()
+            expect(result).toEqual(render.schema)
+        })
+
+        it('with tag returns list of one wrapped node', () => {
+            const schema = new Schema()
+            schema.loadWML(`Hello world`)
+            const render = new StandardRender(schema.schema)
+            const result = render.nestedSchema({ tag: 'Description' })
+            expect(schemaToWML(result)).toEqual(deIndentWML(`
+                <Description>Hello world</Description>
+            `))
+        })
+
+        it('with tag and mappings remaps then wraps', () => {
+            const schema = new Schema()
+            schema.loadWML(`<Link to=(FEATURE#f1)>Link</Link>`)
+            const render = new StandardRender(schema.schema)
+            const mappings = [new StandardReference({ key: 'F1', tag: 'Feature', universalKey: 'FEATURE#f1' })]
+            const result = render.nestedSchema({ tag: 'Description', mappings })
+            expect(schemaToWML(result)).toEqual(deIndentWML(`
+                <Description><Link to=(F1)>Link</Link></Description>
+            `))
+        })
+
+        it('with tag and empty plain content returns empty list', () => {
+            const render = new StandardRender([])
+            const result = render.nestedSchema({ tag: 'Description' })
+            expect(result).toEqual([])
+        })
+    })
 })

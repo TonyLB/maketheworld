@@ -37,7 +37,6 @@ import StandardMark, { StandardLens } from "./components/worldState"
 import { StandardLiteral } from "./literal"
 import { StandardRender } from "./render"
 import { excludeUndefined } from "../lib/lists"
-import { rebuildSchemaFromStandardRender } from "./components/utils/extractStandardRender"
 import { KeyLookup } from "./keyLookup"
 import { SchemaOrganization, createOrganizationContext } from "./schemaOrganization"
 import { renderReference } from "./components/utils/schema"
@@ -497,7 +496,7 @@ export class StandardForm {
             children: [
                 ...metaData.filter(treeNodeTypeguard(isSchemaMeta)),
                 ...[this._shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema())).flat(1),
-                ...[rebuildSchemaFromStandardRender(this._summary, { tag: 'Summary' }, mapKeys)].filter(excludeUndefined),
+                ...(this._summary?.nestedSchema({ tag: 'Summary', mappings: mapKeys }) ?? []),
                 ...children
             ]
         }
