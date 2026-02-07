@@ -71,7 +71,7 @@ const processPerceptionMessage = (message: Message): EnhancedMessage => {
             // Create a proper fallback StandardForm with the correct component type
             const fallbackForm = new StandardForm('fallback')
             const defaultData = defaultComponentFromTag(tag as any, 'fallback', componentUUID)
-            const fallbackComponent = standardComponentFactory(defaultData)
+            const { component: fallbackComponent } = standardComponentFactory(defaultData)
             
             if (fallbackComponent) {
                 fallbackForm._components = [fallbackComponent]

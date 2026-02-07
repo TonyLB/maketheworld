@@ -142,7 +142,7 @@ export const ReferenceListEditor: FunctionComponent<ReferenceListEditorProps> = 
                 const descriptor = listContext(draft)
                 if (!descriptor) return draft
                 const { referenceList: refList, setReferenceList } = descriptor
-                const component = standardComponentFactory({ tag, universalKey })
+                const { component } = standardComponentFactory({ tag, universalKey })
                 if (!component) return draft
                 draft.byUniversalId[universalKey] = component
                 const reference = new StandardReference({ universalKey, tag })

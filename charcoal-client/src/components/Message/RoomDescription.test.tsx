@@ -281,7 +281,7 @@ describe('RoomDescription', () => {
             const standardForm = new StandardForm(deIndentWML(`
                 <Asset uuid=(test)>
                     <Feature key=(notARoom)>
-                        <DisplayName>Not a Room</DisplayName>
+                        <ShortName>Not a Room</ShortName>
                     </Feature>
                 </Asset>
             `))
