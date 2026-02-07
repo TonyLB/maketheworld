@@ -65,7 +65,8 @@ export interface StandardComponent {
     invert?(): StandardComponent;
     /**
      * Assures that the given child references exist in the appropriate buckets with ref={0} if needed.
-     * Delegates to payload's assureReferences if available, otherwise returns instance unchanged.
+     * Delegates to payload's assureReferences if available; payload returns { payload, inlineRemainder }.
+     * Component returns updated instance; inlineRemainder is discarded (nestedSchema uses payload directly).
      * See AGENT.implementation.md for detailed documentation.
      */
     assureReferences(children: StandardReference[]): StandardComponent;

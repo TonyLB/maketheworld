@@ -20,7 +20,7 @@ import { StandardEditableData, extractFromEditableData } from "@tonylb/mtw-base/
 import { StandardFormSubsetRequest } from "../baseClasses"
 import { StandardLiteral } from "../literal"
 import { HasShortName } from "./abstract"
-import { processWithConsumers, StandardizeConsumerFacetListMark, StandardizeConsumerRender, StandardizeConsumerStandardLiteral } from "./fromSchemaPipeline"
+import { processWithConsumers, StandardizeConsumerFacetListMark, StandardizeConsumerInline, StandardizeConsumerRender, StandardizeConsumerStandardLiteral } from "./fromSchemaPipeline"
 
 export class StandardExamplePayload implements HasShortName, ComponentConstructorMethods<StandardExampleNDJSONData | StandardExampleData> {
     _displayName?: StandardRender;
@@ -90,6 +90,7 @@ export class StandardExamplePayload implements HasShortName, ComponentConstructo
                         this._marks = list
                     },
                 }),
+                new StandardizeConsumerInline(),
             ]
 
             const returnRemainder = processWithConsumers(this, consumers, node.children)

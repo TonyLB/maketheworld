@@ -4,7 +4,7 @@ import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./base
 import { tagRender } from "./tagRender"
 import { validateProperties, validateExpressionAsNonNegativeInteger } from "./utils"
 import { GenericTree, GenericTreeNode, GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree"
-import { isSchemaCharacter, isSchemaCharacterContents, SchemaTag, AssetUUID } from "@tonylb/mtw-base/ts/schema"
+import { isSchemaCharacter, SchemaTag, AssetUUID } from "@tonylb/mtw-base/ts/schema"
 import { literalTagFactory } from "@tonylb/mtw-base/ts/schema/literalTagFactory"
 import { PrintMode } from "@tonylb/mtw-base/ts/schema/printMap"
 import { enforceTypedKey, stripTypedKey } from "@tonylb/mtw-utilities/ts/types"
@@ -35,8 +35,7 @@ export const characterConverters: Record<string, ConverterMapEntry> = {
                 ...(refValue !== undefined ? { ref: refValue } : {}),
                 ...rest
             }
-        },
-        typeCheckContents: isSchemaCharacterContents,
+        }
     }
 }
 

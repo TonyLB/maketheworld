@@ -167,20 +167,17 @@ This design allows StandardRoom (and other "simple" components) to define an ord
    - **Boundary of responsibility:** Only children explicitly surfaced through `returnRemainderAddition` (typically via ReferenceList or facet-list consumers) are revisited by `processComponents`. Literal/render/simple consumers continue to consume their tags entirely within the payload pipeline; any unconsumed tags still trigger the \"Unconsumed child tags\" error via the parsing remainder check.
    - This wiring enables Map’s Room-without-Position remainder and Example/Guidance’s Mark-without-Match remainder to flow naturally into `processComponents` for `StandardRoom` and `StandardMark` creation, without any special-case hooks in the processing loop.
 
-10. **Align base Key/Parent stripping with the pipeline (optional)**
-   - The component base already strips Key and Parent before calling `payload.fromSchema`. Optionally document this as the "first two conceptual steps" or leave as-is; either way, the payload's pipeline starts from "children without Key and Parent."
+10. **Align base Key/Parent stripping with the pipeline (optional)** — **Done (February 2026)**
+   - The component base already strips Key and Parent before calling `payload.fromSchema`, using `splitTaggedChildren` to respect Remove/Replace semantics. This behavior is documented as the shared component wrapper entry point in [AGENT.implementation.md](./AGENT.implementation.md), and the payload's pipeline consistently starts from "children without Key and Parent."
 
 ### Phase 4: Shift Validation from Schema to Standardize
 
-11. **Relax schema-level child validation**
-   - Today, the schema converters (e.g. `schema/converters/components.ts`) attempt to enforce per-component child tag legality when building `Schema*Tag` nodes (e.g. rejecting `<Map>` under `<Message>`). This logic is clumsy compared to what the process-and-remainder pipeline can express.
-   - Adjust the schema layer so that component converters:
-     - Continue to validate **properties/attributes** and overall tag shape (e.g. required keys, UUID formats).
-     - Stop trying to deeply validate **child tag contents** beyond basic structural well-formedness. Children should be passed through as a generic `GenericTree<SchemaTag>` without per-component tag whitelists.
-   - The goal is that “is this tag allowed here?” becomes a **Standardize concern** enforced by `fromSchema` pipelines, not by the schema parser.
+11. **Relax schema-level child validation** — **Done (February 2026)**
+   - Removed typeCheckContents (and where present validateContents and finalize child filtering) from Map, Character, Message, Moment, Image, and Asset. Component converters no longer enforce per-component child-tag whitelists; children are passed through. Properties/attributes and content-model validation (Exit, Parent, Key, Description, etc.) are unchanged.
+   - The goal is achieved: "is this tag allowed here?" is now a **Standardize concern** enforced by `fromSchema` pipelines, not by the schema parser.
 
-12. **Centralize semantic child validation in pipelines**
-   - For each component with a `fromSchema` pipeline (Room, Feature, Knowledge, Character, Message, Moment, Image, and future Lens/Map/Example/Guidance/Mark):
+12. **Centralize semantic child validation in pipelines** — **Partially done**
+   - Unconsumed-tag tests added for Message, Moment, Image, and Character (pipeline throws on illegal child tags). For each component with a `fromSchema` pipeline (Room, Feature, Knowledge, Character, Message, Moment, Image, and future Lens/Map/Example/Guidance/Mark):
      - Treat the ordered consumer list as the single source of truth for “which child tags are legal here.”
      - Rely on `processWithConsumers`’s final remainder check to flag any unknown or misplaced child tags as `Unconsumed child tags: …`.
    - Where we previously duplicated simple tag validity rules in the schema converters (e.g. disallowing certain tags as children), remove or relax those checks once the corresponding component has a robust pipeline and unconsumed-tag tests.
@@ -248,4 +245,4 @@ This design allows StandardRoom (and other "simple" components) to define an ord
    - **Completed (Phase 3 Step 7b):** two-remainder groundwork (interface, processWithConsumers, payload return values; standardComponentFactory returns { component, remainder }).  
    - **Completed (Phase 3 Step 8 – Map):** migrate Map to facet-aware pipeline with StandardizeConsumerFacetListPosition.  
    - **Completed (Phase 3 Step 8 – Example/Guidance):** migrate Example and Guidance to facet-aware pipelines using `StandardizeConsumerFacetListMark` and pipeline-based render parsing.  
-   - **Upcoming (Phase 3 Step 9):** wire return remainder into processComponents (add returnRemainderAddition to ReferenceList consumers; replace item.children with returned remainder).
+   - **Completed (Phase 3 Step 9):** wire return remainder into processComponents (add returnRemainderAddition to ReferenceList consumers; replace item.children with returned remainder).

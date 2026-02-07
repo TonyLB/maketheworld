@@ -73,7 +73,6 @@ export const importExportConverters: Record<string, ConverterMapEntry> = {
                 ...rest
             }
         },
-        typeCheckContents: (item) => isSchemaShortName(item),
         finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag>): GenericTreeNodeFiltered<SchemaImageTag, SchemaTag> => {
             if (!isSchemaImage(initialTag)) {
                 throw new Error('Type mismatch on schema finalize')

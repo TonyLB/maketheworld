@@ -13,7 +13,7 @@ import { tagRender } from "./tagRender"
 import { exampleConverters, examplePrintMap } from "./example"
 import { worldStateConverters, worldStatePrintMap } from "./worldState"
 import { SchemaAssetTag } from "@tonylb/mtw-base/ts/schema/asset"
-import { isSchemaAsset, isSchemaAssetContents } from "@tonylb/mtw-base/ts/schema"
+import { isSchemaAsset } from "@tonylb/mtw-base/ts/schema"
 import { enforceTypedKey, stripTypedKey } from "@tonylb/mtw-utilities/ts/types"
 
 const validationTemplates = {
@@ -35,8 +35,7 @@ export const converterMap: Record<string, ConverterMapEntry> = {
                 uuid: enforceTypedKey('ASSET')(uuid),
                 ...rest
             }
-        },
-        typeCheckContents: isSchemaAssetContents
+        }
     },
     ...exampleConverters,
     ...characterConverters,

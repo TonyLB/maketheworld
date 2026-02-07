@@ -1,7 +1,7 @@
 import { excludeUndefined } from "../../lib/lists"
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { HasShortName } from "./abstract"
-import { componentClassFactory, ComponentConstructorMethods } from "./component"
+import { AssureReferencesResult, componentClassFactory, ComponentConstructorMethods } from "./component"
 import { NestedSchemaOptions, StandardComponent, StandardComponentReferenceKey, StandardDiffOptions } from "./baseClasses"
 import { StandardRoomData } from "./dataTypes/room"
 import { ReferenceFormat } from "./utils/references"
@@ -20,7 +20,7 @@ import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { ExitFacetList, StandardExitFacet } from "../keys/facets/exit"
 import { StandardExplicitParent } from "../explicit"
 import { StandardFormSubsetRequest } from "../baseClasses"
-import { processWithConsumers, StandardizeConsumerReferenceList, StandardizeConsumerSimple, StandardizeConsumerStandardLiteral } from "./fromSchemaPipeline"
+import { processWithConsumers, StandardizeConsumerInline, StandardizeConsumerReferenceList, StandardizeConsumerSimple, StandardizeConsumerStandardLiteral } from "./fromSchemaPipeline"
 
 export class StandardRoomPayload implements HasShortName, ComponentConstructorMethods<StandardRoomData> {
     _shortName?: StandardLiteral;
@@ -97,6 +97,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
                 // Grant and DisplayName consumed as no-op so Room accepts WML that previously was silently ignored.
                 new StandardizeConsumerSimple(this, { tag: "Grant", update: () => {} }),
                 new StandardizeConsumerSimple(this, { tag: "DisplayName", update: () => {} }),
+                new StandardizeConsumerInline(),
             ]
             const returnRemainder = processWithConsumers(this, consumers, node.children)
             return returnRemainder
@@ -165,16 +166,18 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         let examplesToRender = this.examples
         let guidanceToRender = this.guidance
         let charactersToRender = this.characters
-        
+        let inlineRemainder: StandardReference[] = []
+
         if (options.organization) {
             // Get children from organization and assure references
             const children = options.organization.getChildrenOfParent(key) ?? []
-            const assured = this.assureReferences(children)
+            const { payload: assured, inlineRemainder: remainder } = this.assureReferences(children)
             lensesToRender = assured.lenses
             featuresToRender = assured.features
             examplesToRender = assured.examples
             guidanceToRender = assured.guidance
             charactersToRender = assured.characters
+            inlineRemainder = remainder
         }
         
         // Process each exit facet
@@ -202,6 +205,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
                 ...guidanceToRender.payload.map(renderReference({ lookup, options: { ...options, parent: key } })).filter(excludeUndefined),
                 ...examplesToRender.payload.map(renderReference({ lookup, options: { ...options, parent: key } })).filter(excludeUndefined),
                 ...charactersToRender.payload.map(renderReference({ lookup, options: { ...options, parent: key } })).filter(excludeUndefined),
+                ...inlineRemainder.map(renderReference({ lookup, options: { ...options, parent: key } })).filter(excludeUndefined),
                 ...exitSchemas
             ]
         }
@@ -235,45 +239,39 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         return returnValue as this
     }
 
-    assureReferences(children: StandardReference[]): this {
+    assureReferences(children: StandardReference[]): AssureReferencesResult<this> {
+        const BUCKET_TAGS = ['Lens', 'Feature', 'Example', 'Guidance', 'Character'] as const
+        const bucketChildren = children.filter((c): c is StandardReference => BUCKET_TAGS.includes(c.tag as (typeof BUCKET_TAGS)[number]))
+        const remainder = children.filter(c => !BUCKET_TAGS.includes(c.tag as (typeof BUCKET_TAGS)[number]))
+
         const returnValue = new StandardRoomPayload(this)
-        
-        // Filter and map children by type, creating references with ref={0}
+
         const lensReferences = new ReferenceList(
-            children
-                .filter(child => child.tag === 'Lens')
-                .map(child => child.withRef(0))
+            bucketChildren.filter(child => child.tag === 'Lens').map(child => child.withRef(0))
         )
         const featureReferences = new ReferenceList(
-            children
-                .filter(child => child.tag === 'Feature')
-                .map(child => child.withRef(0))
+            bucketChildren.filter(child => child.tag === 'Feature').map(child => child.withRef(0))
         )
         const exampleReferences = new ReferenceList(
-            children
-                .filter(child => child.tag === 'Example')
-                .map(child => child.withRef(0))
+            bucketChildren.filter(child => child.tag === 'Example').map(child => child.withRef(0))
         )
         const guidanceReferences = new ReferenceList(
-            children
-                .filter(child => child.tag === 'Guidance')
-                .map(child => child.withRef(0))
+            bucketChildren.filter(child => child.tag === 'Guidance').map(child => child.withRef(0))
         )
         const characterReferences = new ReferenceList(
-            children
-                .filter(child => child.tag === 'Character')
-                .map(child => child.withRef(0))
+            bucketChildren.filter(child => child.tag === 'Character').map(child => child.withRef(0))
         )
-        
-        // Merge with existing buckets, preserving ref={0} references
-        // cleanEmptyReferences: false ensures ref={0} entries are preserved when merging
+
         returnValue._lenses = this._lenses.merge(lensReferences, { cleanEmptyReferences: false }) ?? this._lenses
         returnValue._features = this._features.merge(featureReferences, { cleanEmptyReferences: false }) ?? this._features
         returnValue._examples = this._examples.merge(exampleReferences, { cleanEmptyReferences: false }) ?? this._examples
         returnValue._guidance = this._guidance.merge(guidanceReferences, { cleanEmptyReferences: false }) ?? this._guidance
         returnValue._characters = this._characters.merge(characterReferences, { cleanEmptyReferences: false }) ?? this._characters
-        
-        return returnValue as this
+
+        return {
+            payload: returnValue as this,
+            inlineRemainder: remainder.map(c => c.withRef(0))
+        }
     }
 
     removeReferences(references: StandardReference[]): this {

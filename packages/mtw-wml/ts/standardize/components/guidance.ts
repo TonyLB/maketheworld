@@ -15,7 +15,7 @@ import { MarkFacetList } from "../keys/facets/mark"
 import { StandardFormSubsetRequest } from "../baseClasses"
 import { StandardLiteral } from "../literal"
 import { HasShortName } from "./abstract"
-import { processWithConsumers, StandardizeConsumerFacetListMark, StandardizeConsumerStandardLiteral } from "./fromSchemaPipeline"
+import { processWithConsumers, StandardizeConsumerFacetListMark, StandardizeConsumerInline, StandardizeConsumerStandardLiteral } from "./fromSchemaPipeline"
 
 export class StandardGuidancePayload implements HasShortName, ComponentConstructorMethods<StandardGuidanceNDJSONData | StandardGuidanceData> {
     _instructions?: StandardLiteral;
@@ -61,6 +61,7 @@ export class StandardGuidancePayload implements HasShortName, ComponentConstruct
                         this._marks = list
                     },
                 }),
+                new StandardizeConsumerInline(),
             ]
 
             const returnRemainder = processWithConsumers(this, consumers, node.children)
