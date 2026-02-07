@@ -47,7 +47,7 @@ export class ComponentData {
                     .filter(isStandardNDJSONLine)
                     .map((line) => {
                         const AssetId = line.DataCategory as `ASSET#${string}`
-                        const component = standardComponentFactory(line)
+                        const { component } = standardComponentFactory(line)
                         if (AssetId && component) {
                             return {
                                 AssetId,

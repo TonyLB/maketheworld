@@ -57,7 +57,7 @@ export class CharacterEventSerializer implements DataSourceEventSerializer<Chara
         // Deserialize WML back to StandardComponent
         try {
             const schemaNode = nodeFromWML(externalUpdate.wml)
-            const component = standardComponentFactory(schemaNode)
+            const { component } = standardComponentFactory(schemaNode)
             
             if (!component) {
                 return null

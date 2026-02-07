@@ -65,7 +65,8 @@ const generateCharacterSnapshot = async (assetId: string): Promise<CharacterSnap
             }
             
             // Create StandardCharacter instance
-            return standardComponentFactory(componentData)
+            const { component } = standardComponentFactory(componentData)
+            return component
         })
         .filter(excludeUndefined)
 
