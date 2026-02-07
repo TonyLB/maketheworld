@@ -177,8 +177,22 @@ Payloads that parse from WML schema use a **process-and-remainder pipeline** so 
 - **Pattern (single remainder):** The payload builds an ordered list of `StandardizeConsumer` steps and calls `processWithConsumers(this, consumers, node.children)`. Each step consumes one (or more) tag(s) from the current children and returns the remainder for the next step. The runner throws if the final remainder is non-empty.
 - **Rule:** Unconsumed child tags are an error (no silent ignore). The error message lists unconsumed tag names (e.g. `Unconsumed child tags: Map`).
 - **Simple components:** Use `StandardizeConsumerSimple`, `StandardizeConsumerStandardLiteral`, and/or `StandardizeConsumerReferenceList` with `{ tag, update }`; the order of steps is the contract for what the component accepts. Tags that should be accepted but not stored (e.g. Position, Grant) use a no-op `update`.
-- **Current coverage:** `StandardRoom`, `StandardFeature`, `StandardKnowledge`, `StandardCharacter`, `StandardMessage`, `StandardMoment`, `StandardImage`, `StandardMark`, and `StandardLens` all use the process-and-remainder pipeline for `fromSchema` (see component sections above for their accepted tag sets). More complex predicate/multi-tag components (Map, Example, Guidance) remain to be migrated in Phase 3 Step 6.
+- **Pipeline usage:** All component payloads use the process-and-remainder pipeline for `fromSchema`. Most use tag-based consumers only (see component sections above for each component’s accepted tag set); Map, Example, and Guidance add facet-list consumers (e.g. `StandardizeConsumerFacetListPosition`, `StandardizeConsumerFacetListMark`).
 - **Reference:** Full design and migration status: [AGENT.fromSchema.planning.md](./AGENT.fromSchema.planning.md).
+
+#### Division of responsibility (Schema vs Standardize)
+
+**Where to add child-validation rules:** Add new rules for *which child tags are allowed under a parent* in the **Standardize layer** (each component’s `fromSchema` consumer pipeline), not in the schema layer. See [AGENT.fromSchema.planning.md](./AGENT.fromSchema.planning.md) Phase 4 for the full shift.
+
+- **Schema parsing** is responsible for **syntactic correctness** and **property-level validation** (e.g. attributes, content models for tags like Exit, Parent, Key, Description). It does not enforce per-component child-tag whitelists; children are passed through to Standardize.
+- **Component payloads** (`fromSchema` pipelines) are responsible for **semantic correctness of child structures**: which tags are accepted, in what combinations. The ordered consumer list is the single source of truth; `processWithConsumers`’s final remainder check throws `Unconsumed child tags: …` for unknown or misplaced children.
+
+#### Typeguard usage rubric
+
+- **Keep** typeguards that express **structural shape** of schema nodes (e.g. `isSchemaMessage`, `isSchemaDescription`, `isSchemaImage`, `isSchemaOutputTag`) and use them where we need to safely manipulate typed trees (building `StandardRender`, handling `Image` payloads, etc.).
+- **Keep** root-level typeguards in `fromSchema` as cheap assertions that the payload was called with the correct `Schema*Tag` (good error messages, low complexity).
+- **Prefer removing or relaxing** typeguard-based checks whose only purpose is to enforce *which child tags are allowed under a parent* at the schema layer; those rules belong in the component’s consumer pipeline and are enforced via the unconsumed-remainder check.
+- When auditing existing code: treat “is this node structurally a X?” uses of typeguards as **still valuable**; treat “is X allowed under Y?” uses as **legacy** candidates to move into the Standardize layer.
 
 #### Two-remainder shape and processComponents recursion (Phase 3 Step 7b/9)
 

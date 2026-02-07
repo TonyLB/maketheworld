@@ -176,19 +176,19 @@ This design allows StandardRoom (and other "simple" components) to define an ord
    - Removed typeCheckContents (and where present validateContents and finalize child filtering) from Map, Character, Message, Moment, Image, and Asset. Component converters no longer enforce per-component child-tag whitelists; children are passed through. Properties/attributes and content-model validation (Exit, Parent, Key, Description, etc.) are unchanged.
    - The goal is achieved: "is this tag allowed here?" is now a **Standardize concern** enforced by `fromSchema` pipelines, not by the schema parser.
 
-12. **Centralize semantic child validation in pipelines** — **Partially done**
+12. **Centralize semantic child validation in pipelines** — **Done (February 2026)**
    - Unconsumed-tag tests added for Message, Moment, Image, and Character (pipeline throws on illegal child tags). For each component with a `fromSchema` pipeline (Room, Feature, Knowledge, Character, Message, Moment, Image, and future Lens/Map/Example/Guidance/Mark):
      - Treat the ordered consumer list as the single source of truth for “which child tags are legal here.”
      - Rely on `processWithConsumers`’s final remainder check to flag any unknown or misplaced child tags as `Unconsumed child tags: …`.
    - Where we previously duplicated simple tag validity rules in the schema converters (e.g. disallowing certain tags as children), remove or relax those checks once the corresponding component has a robust pipeline and unconsumed-tag tests.
-   - **Revisit unit tests that were previously constrained by schema validation** (e.g. the “illegal child tag” tests for Character, Message, Moment, Image) and re-enable or extend them so they construct now-schema-legal but semantically invalid child combinations, asserting that the Standardize pipeline (not the schema layer) throws the appropriate unconsumed-tag errors.
+   - Revisited unit tests that were previously constrained by schema validation (e.g. the “illegal child tag” tests for Character, Message, Moment, Image) and re-enabled or extended them so they construct now-schema-legal but semantically invalid child combinations, asserting that the Standardize pipeline (not the schema layer) throws the appropriate unconsumed-tag errors. Unit tests run clean.
 
-13. **Simplify and document the division of responsibility**
-   - Update schema-layer documentation to clarify that:
+13. **Simplify and document the division of responsibility** — **Done (February 2026)**
+   - Updated schema-layer documentation to clarify that:
      - Schema parsing is responsible for **syntactic correctness** and property-level validation.
      - Component payloads (`fromSchema` pipelines) are responsible for **semantic correctness** of child structures (which tags are accepted, in what combinations).
-   - Add notes to `AGENT.implementation.md` and relevant schema docs pointing back to this Phase 4, so future changes add new child-validation rules at the Standardize layer rather than reintroducing tight schema-level constraints.
-   - **Typeguard usage rubric** going forward:
+   - Added notes to `AGENT.implementation.md` and the schema package README pointing back to this Phase 4, so future changes add new child-validation rules at the Standardize layer rather than reintroducing tight schema-level constraints.
+   - **Typeguard usage rubric** (documented in `AGENT.implementation.md`):
      - Keep typeguards that express **structural shape** of schema nodes (e.g. `isSchemaMessage`, `isSchemaDescription`, `isSchemaImage`, `isSchemaOutputTag`) and use them where we need to safely manipulate typed trees (building `StandardRender`, handling `Image` payloads, etc.).
      - Keep root-level typeguards in `fromSchema` as cheap assertions that the payload was called with the correct `Schema*Tag` (good error messages, low complexity).
      - Prefer removing or relaxing typeguard-based checks whose only purpose is to enforce **which child tags are allowed under a parent** at the schema layer; those rules should instead be encoded in the component’s consumer pipeline and enforced via the unconsumed-remainder check.
