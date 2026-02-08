@@ -43,8 +43,8 @@ describe('singleFlightFactory', () => {
         // Mock getCurrentTimestamp to return predictable values
         mockGetCurrentTimestamp.mockReturnValue(100000000)
         
-        // Mock uuid to return predictable values
-        mockUuidv4.mockReturnValue('test-uuid-123')
+        // Mock uuid to return predictable values (cast for @types/uuid overload that uses Uint8Array)
+        mockUuidv4.mockReturnValue('test-uuid-123' as unknown as ReturnType<typeof uuidv4>)
         
         config = {
             optimisticUpdateFunction: mockOptimisticUpdate,
@@ -688,7 +688,7 @@ describe('singleFlightFactory', () => {
         it('should wait for earlier instance to complete before executing', async () => {
             // Arrange
             let uuidCounter = 0
-            mockUuidv4.mockImplementation(() => `uuid-${++uuidCounter}`)
+            mockUuidv4.mockImplementation((() => `uuid-${++uuidCounter}`) as typeof uuidv4)
             
             let timestampCounter = 100000000
             mockGetCurrentTimestamp.mockImplementation(() => timestampCounter++)
@@ -775,7 +775,7 @@ describe('singleFlightFactory', () => {
             // Arrange
             let timestampValue = 100000000
             mockGetCurrentTimestamp.mockImplementation(() => timestampValue)
-            mockUuidv4.mockReturnValue('my-uuid')
+            mockUuidv4.mockReturnValue('my-uuid' as unknown as ReturnType<typeof uuidv4>)
             
             // First getItem: existing earlier instance
             mockGetItem.mockResolvedValueOnce({
@@ -970,7 +970,7 @@ describe('singleFlightFactory', () => {
             
             // Arrange
             mockGetCurrentTimestamp.mockReturnValueOnce(100000000).mockReturnValueOnce(100000000).mockReturnValue(100060000)
-            mockUuidv4.mockReturnValue('D-uuid')
+            mockUuidv4.mockReturnValue('D-uuid' as unknown as ReturnType<typeof uuidv4>)
             
             // First getItem: D sees A (expired), B (QUEUED), C (QUEUED)
             mockGetItem.mockResolvedValueOnce({
@@ -1117,7 +1117,7 @@ describe('singleFlightFactory', () => {
             
             // Arrange
             mockGetCurrentTimestamp.mockReturnValueOnce(100000000).mockReturnValueOnce(100000000)
-            mockUuidv4.mockReturnValue('my-uuid')
+            mockUuidv4.mockReturnValue('my-uuid' as unknown as ReturnType<typeof uuidv4>)
             
             // First getItem: existing earlier instance
             mockGetItem.mockResolvedValueOnce({

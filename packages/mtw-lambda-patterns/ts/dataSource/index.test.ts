@@ -319,7 +319,7 @@ describe('DataSource', () => {
             
             expect(mockSnapshotContentGenerator).toHaveBeenCalledWith(streamKey)
             expect(result).toEqual({
-                type: 'Snapshot Generated',
+                type: 'Snapshot',
                 id: 'test-id',
                 name: 'Test Snapshot',
                 value: 42,
@@ -463,7 +463,7 @@ describe('DataSource', () => {
             })
             expect(result).toEqual({
                 ...storedSnapshot,
-                type: 'Snapshot Generated'
+                type: 'Snapshot'
             })
         })
 
@@ -521,7 +521,7 @@ describe('DataSource', () => {
             })
             expect(result).toEqual({
                 ...storedSnapshot,
-                type: 'Snapshot Generated'
+                type: 'Snapshot'
             })
         })
 
@@ -538,7 +538,7 @@ describe('DataSource', () => {
     describe('streamEvent', () => {
         beforeEach(() => {
             // Reset the mock to return predictable values
-            mockUuidv4.mockReturnValue('test-uuid-123')
+            mockUuidv4.mockReturnValue('test-uuid-123' as unknown as ReturnType<typeof uuidv4>)
         })
 
         afterEach(() => {
@@ -689,8 +689,8 @@ describe('DataSource', () => {
             
             // Mock different UUIDs for different calls
             mockUuidv4
-                .mockReturnValueOnce('uuid-1')
-                .mockReturnValueOnce('uuid-2')
+                .mockReturnValueOnce('uuid-1' as unknown as ReturnType<typeof uuidv4>)
+                .mockReturnValueOnce('uuid-2' as unknown as ReturnType<typeof uuidv4>)
             
             await dataSource.streamEvent({ update, streamKey })
             await dataSource.streamEvent({ update, streamKey })
@@ -759,12 +759,10 @@ describe('DataSource', () => {
             expect(mockMessageBus.send).toHaveBeenCalledWith({
                 type: 'StreamingEvent',
                 dataSourceKey: 'mtw.testDataSource',
-                event: {
-                    streamKey: 'test-stream',
-                    update: {
-                        type: 'TestUpdatePayload',
-                        update: 'test-update'
-                    },
+                streamKey: 'test-stream',
+                detailEnvelope: {
+                    type: 'TestUpdatePayload',
+                    update: 'test-update'
                 },
                 timestamp: 100000000
             })
@@ -778,7 +776,7 @@ describe('DataSource', () => {
             
             // Mock getSnapshot to return a snapshot
             const mockSnapshot = {
-                type: 'Snapshot Generated',
+                type: 'Snapshot',
                 id: 'test-id',
                 name: 'Test Snapshot',
                 value: 42,
@@ -813,7 +811,7 @@ describe('DataSource', () => {
                 dataSourceKey: 'mtw.testDataSource',
                 streamKey: 'test-stream',
                 update: {
-                    type: 'Snapshot Generated',
+                    type: 'Snapshot',
                     id: 'test-id',
                     name: 'Test Snapshot',
                     value: 42
@@ -876,6 +874,43 @@ describe('DataSource', () => {
                 streamKey: 'test-stream',
                 update: expect.any(Object)
             })
+        })
+
+        it('should deliver sidecar Snapshot when snapshotSidecarUrlGenerator is configured', async () => {
+            const sessionId = 'SESSION#test-session' as const
+            const streamKey = 'test-stream'
+            const sidecarUrl = 'https://example.com/sidecar'
+            const createdAt = 12345
+            const expiresAt = 12346
+
+            const sidecarDataSource = new TestDataSource({
+                dynamo: mockDynamo,
+                sns: mockSns,
+                messageBus: mockMessageBus,
+                primaryKeyName: 'AssetId',
+                dataSourceKey: 'mtw.testDataSource',
+                snapshotSidecarUrlGenerator: jest.fn().mockResolvedValue({ sidecarUrl, createdAt, expiresAt }),
+                feedbackTopicArn: 'arn:aws:sns:us-east-1:123456789012:test-feedback',
+                replayable: true
+            })
+            mockDynamo.query.mockResolvedValue([])
+
+            await sidecarDataSource.initializeSubscription({ sessionId, streamKey })
+
+            expect(mockSns.send).toHaveBeenCalledTimes(1)
+            const snapshotCall = mockSns.send.mock.calls[0][0]
+            const snapshotMessage = JSON.parse(snapshotCall.Message)
+            expect(snapshotMessage).toMatchObject({
+                messageType: 'StreamEvent',
+                dataSourceKey: 'mtw.testDataSource',
+                streamKey: 'test-stream',
+                timestamp: createdAt,
+                update: {
+                    type: 'Snapshot',
+                    sidecarUrl
+                }
+            })
+            expect(snapshotCall.MessageAttributes.Targets.StringValue).toBe(JSON.stringify([sessionId]))
         })
     })
 
@@ -1464,7 +1499,7 @@ describe('DataSource', () => {
                     type: 'StreamingEvent',
                     dataSourceKey: 'mtw.subscriptions',
                     streamKey: 'test-stream',
-                    event: {
+                    detailEnvelope: {
                         type: 'Initialize Subscription - mtw.assets.contentHeaders',
                         update: {
                             streamKey: 'test-stream',
@@ -1486,8 +1521,8 @@ describe('DataSource', () => {
                 // Test wrong event type
                 const wrongEventType = {
                     ...validEvent,
-                    event: {
-                        ...validEvent.event,
+                    detailEnvelope: {
+                        ...validEvent.detailEnvelope,
                         type: 'Initialize Subscription - mtw.otherDataSource'
                     }
                 }
@@ -1503,8 +1538,8 @@ describe('DataSource', () => {
                 // Test missing required fields
                 const missingFields = {
                     ...validEvent,
-                    event: {
-                        ...validEvent.event,
+                    detailEnvelope: {
+                        ...validEvent.detailEnvelope,
                         update: {
                             streamKey: 'test-stream'
                             // Missing sessionId and requestId
@@ -1540,7 +1575,7 @@ describe('DataSource', () => {
                     type: 'StreamingEvent',
                     dataSourceKey: 'mtw.subscriptions',
                     streamKey: 'test-stream',
-                    event: {
+                    detailEnvelope: {
                         type: 'Initialize Subscription - mtw.assets.contentHeaders',
                         update: {
                             streamKey: 'test-stream',
@@ -1586,7 +1621,7 @@ describe('DataSource', () => {
                         type: 'StreamingEvent',
                         dataSourceKey: 'mtw.subscriptions',
                         streamKey: 'test-stream-1',
-                        event: {
+                        detailEnvelope: {
                             type: 'Initialize Subscription - mtw.assets.contentHeaders',
                             update: {
                                 streamKey: 'test-stream-1',
@@ -1600,7 +1635,7 @@ describe('DataSource', () => {
                         type: 'StreamingEvent',
                         dataSourceKey: 'mtw.subscriptions',
                         streamKey: 'test-stream-2',
-                        event: {
+                        detailEnvelope: {
                             type: 'Initialize Subscription - mtw.assets.contentHeaders',
                             update: {
                                 streamKey: 'test-stream-2',
@@ -1654,7 +1689,7 @@ describe('DataSource', () => {
                     type: 'StreamingEvent',
                     dataSourceKey: 'mtw.subscriptions',
                     streamKey: 'test-stream',
-                    event: {
+                    detailEnvelope: {
                         type: 'Initialize Subscription - mtw.assets.contentHeaders',
                         update: {
                             streamKey: 'test-stream',
@@ -1729,7 +1764,7 @@ describe('DataSource', () => {
             
             // Mock different snapshot content generation for different streams
             const generatedSnapshot1 = {
-                type: 'Snapshot Generated',
+                type: 'Snapshot',
                 id: 'generated-stream-1-id',
                 name: 'Generated Stream 1 Snapshot',
                 value: 300,
@@ -1738,7 +1773,7 @@ describe('DataSource', () => {
             }
             
             const generatedSnapshot2 = {
-                type: 'Snapshot Generated',
+                type: 'Snapshot',
                 id: 'generated-stream-2-id',
                 name: 'Generated Stream 2 Snapshot', 
                 value: 400,
@@ -2139,7 +2174,7 @@ describe('DataSource', () => {
 
                 expect(mockSerializer.serializeSnapshot).toHaveBeenCalledWith(internalSnapshot)
                 expect(result).toEqual({
-                    type: 'Snapshot Generated',
+                    type: 'Snapshot',
                     externalId: 'test-id',
                     externalName: 'Test Snapshot',
                     externalValue: 42,
@@ -2151,7 +2186,7 @@ describe('DataSource', () => {
             it('should return cached external snapshot from storage', async () => {
                 const streamKey = 'test-stream'
                 const externalSnapshot = {
-                    type: 'Snapshot Generated',
+                    type: 'Snapshot',
                     externalId: 'stored-id',
                     externalName: 'Stored Snapshot',
                     externalValue: 200,
@@ -2172,7 +2207,7 @@ describe('DataSource', () => {
             it('should deserialize external snapshot to internal format', async () => {
                 const streamKey = 'test-stream'
                 const externalSnapshot = {
-                    type: 'Test Snapshot Generated' as const,
+                    type: 'Snapshot' as const,
                     externalId: 'test-id',
                     externalName: 'Test Snapshot',
                     externalValue: 42,
@@ -2185,7 +2220,7 @@ describe('DataSource', () => {
                 const result = await dataSourceWithSerializer.getSnapshot(streamKey)
 
                 expect(mockSerializer.deserializeSnapshot).toHaveBeenCalledWith({
-                    type: 'Test Snapshot Generated',
+                    type: 'Snapshot',
                     externalId: 'test-id',
                     externalName: 'Test Snapshot',
                     externalValue: 42
@@ -2251,7 +2286,7 @@ describe('DataSource', () => {
                 const sessionId = 'SESSION#test-session' as const
                 const streamKey = 'test-stream'
                 const externalSnapshot = {
-                    type: 'Snapshot Generated',
+                    type: 'Snapshot',
                     externalId: 'test-id',
                     externalName: 'Test Snapshot',
                     externalValue: 42,
@@ -2272,7 +2307,7 @@ describe('DataSource', () => {
                     dataSourceKey: 'mtw.testDataSource',
                     streamKey: 'test-stream',
                     update: expect.objectContaining({
-                        type: 'Snapshot Generated',
+                        type: 'Snapshot',
                         externalId: 'test-id'
                     })
                 })
