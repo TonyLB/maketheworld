@@ -56,10 +56,13 @@ export const literalTagFactory = <D extends SchemaTagType>(tag: D): LiteralTagFa
                 previous[previous.length - 1] = `${lastLine} ${word}`
                 return previous
             }, [])
+            const nestedOutput = [
+                `<${tag.data.tag}>`,
+                ...prettyPrintedLines.map((line) => `    ${line}`),
+                `</${tag.data.tag}>`
+            ].join("\n")
             return [
-                { printMode: PrintMode.nested, output: `<${tag.data.tag}>` },
-                ...prettyPrintedLines.map((line) => ({ printMode: PrintMode.nested, output: `    ${line}` })),
-                { printMode: PrintMode.nested, output: `</${tag.data.tag}>` }
+                { printMode: PrintMode.nested, output: nestedOutput }
             ]
         }
         else {

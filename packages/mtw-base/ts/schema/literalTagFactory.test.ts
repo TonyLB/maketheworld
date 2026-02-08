@@ -25,10 +25,7 @@ describe('literalTagFactory - printMap', () => {
         })
 
         expect(result).toEqual([
-            { printMode: PrintMode.nested, output: '<ShortName>' },
-            { printMode: PrintMode.nested, output: '    This is a very long content that should be pretty printed because it exceeds the' },
-            { printMode: PrintMode.nested, output: '    80 characters limit when considering indentation.' },
-            { printMode: PrintMode.nested, output: '</ShortName>' }
+            { printMode: PrintMode.nested, output: '<ShortName>\n    This is a very long content that should be pretty printed because it exceeds the\n    80 characters limit when considering indentation.\n</ShortName>' }
         ])
     })
 

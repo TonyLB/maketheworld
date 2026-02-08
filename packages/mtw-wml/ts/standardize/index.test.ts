@@ -1361,6 +1361,53 @@ describe('StandardForm', () => {
         expect(reconstructedRoom.characters.payload.length).toBe(0)
     })
 
+    it('should merge guidance with instruction and mark facet', () => {
+        const baseWML = deIndentWML(`
+            <Asset uuid=(testAsset)>
+                <Room uuid=(room)>
+                    <Lens uuid=(lens)>
+                        <ShortName>Environment</ShortName>
+                        <Mark uuid=(mark)>
+                            <ShortName>Illumination</ShortName>
+                        </Mark>
+                    </Lens>
+                    <Guidance uuid=(guidance)>
+                        <ShortName>Dark</ShortName>
+                        <Instructions>Set a spooky mood</Instructions>
+                        <Mark uuid=(mark)><Match>dark</Match></Mark>
+                    </Guidance>
+                </Room>
+            </Asset>
+        `)
+        const incomingWML = deIndentWML(`
+            <Asset uuid=(testAsset)>
+                <Guidance uuid=(guidance) ref={0}>
+                    <Instructions>, emphasizing shadows and dark corners</Instructions>
+                </Guidance>
+            </Asset>
+        `)
+        const mergedWML = (new StandardForm(baseWML)).merge(new StandardForm(incomingWML))
+        expect(schemaToWML([mergedWML.schema])).toEqual(deIndentWML(`
+            <Asset uuid=(testAsset)>
+                <Mark uuid=(mark)><ShortName>Illumination</ShortName></Mark>
+                <Room uuid=(room)>
+                    <Lens uuid=(lens)>
+                        <ShortName>Environment</ShortName>
+                        <Mark uuid=(mark) />
+                    </Lens>
+                    <Guidance uuid=(guidance)>
+                        <ShortName>Dark</ShortName>
+                        <Instructions>
+                            Set a spooky mood, emphasizing shadows and dark corners
+                        </Instructions>
+                        <Mark uuid=(mark)><Match>dark</Match></Mark>
+                    </Guidance>
+                </Room>
+            </Asset>
+            `
+        ))
+    })
+
     it('should handle origin properties correctly in WML parsing and serialization', () => {
         const originWML = deIndentWML(`
             <Asset uuid=(origin)>
