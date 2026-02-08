@@ -248,6 +248,16 @@ Three action factories manage lifecycle:
 
 **Safety Pattern**: Subscribe/unsubscribe throw errors if called before initialization completes.
 
+#### **Sidecar Snapshot Handling**
+
+Snapshot events may carry a **`sidecarUrl`** instead of an inline payload (backend sends a presigned URL; the client fetches the body). Resolution happens **before** the reducer runs:
+
+1. **LifeLine callback** receives `update.type === 'Snapshot'`. It dispatches the **wrapper** (not the raw reducer action).
+2. **Wrapper** (in `index.ts`): If `rawSnapshot.sidecarUrl` is present and the slice config provides **`resolveSidecarSnapshot`**, the wrapper returns a **thunk** that (a) awaits `resolveSidecarSnapshot(streamKey, sidecarUrl, rawSnapshot)`, (b) dispatches `processRawSnapshot({ streamKey, timestamp, rawSnapshot: resolved })` with the same envelope `timestamp`. If `sidecarUrl` is present but no resolver is configured, the wrapper logs a warning and does not dispatch. If there is no `sidecarUrl`, the wrapper returns the normal reducer action.
+3. **Reducer** (`reducers.ts`) is unchanged: it only ever sees a resolved `rawSnapshot` (inline or produced by the resolver), so timestamp-based ordering and cleanup work as for inline snapshots.
+
+Data sources that use sidecar (e.g. mtw.wml) set **`resolveSidecarSnapshot`** in the slice config; it should fetch the URL, parse the response (e.g. JSON or WML), and return the same `ExternalSnapshotPayload` shape that `deserializeSnapshot` expects.
+
 #### **Slice Factory (`index.ts`)**
 
 Main factory function that:
