@@ -555,5 +555,33 @@ describe('personalAsset slice reducers', () => {
             expect(room).toBeDefined()
             expect(state.base).not.toEqual(baseState.base)
         })
+
+        it('should replace base on Content Update (not merge) so ShortName does not duplicate', () => {
+            const wml = '<Asset uuid=(test)><ShortName>Test</ShortName></Asset>'
+            const schema = new Schema()
+            schema.loadWML(wml)
+            const initialForm = new StandardForm(schema.schema[0])
+            const stateWithShortName = produce(baseState, (draft) => {
+                (draft as any).base = initialForm.toJSON()
+            })
+            const state = produce(stateWithShortName, (draft) => {
+                receiveWMLEvent(draft, {
+                    type: 'receiveWMLEvent',
+                    payload: {
+                        assetKey: 'ASSET#test',
+                        event: {
+                            messageType: 'StreamEvent',
+                            dataSourceKey: 'mtw.wml',
+                            streamKey: 'ASSET#test',
+                            timestamp: 0,
+                            RequestIds: [],
+                            update: { type: 'Content Update', wml }
+                        }
+                    }
+                })
+            })
+            const form = new StandardForm(state.base)
+            expect(form.shortName?.toJSON()).toBe('Test')
+        })
     })
 })

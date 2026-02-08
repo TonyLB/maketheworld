@@ -102,13 +102,13 @@ export const receiveWMLEvent = (state: PersonalAssetsPublic, action: PayloadActi
     const { event } = action.payload
     if (event.dataSourceKey !== 'mtw.wml') return
     if (event.update.type === 'Content Update') {
-        const base = new StandardForm(state.base)
+        // Subscription Content Update carries the new canonical full content; replace base, do not merge.
+        // (Merge would concatenate e.g. ShortName "Test" + "Test" -> "TestTest" and repeat on each delivery.)
         const incomingSchema = new Schema()
         incomingSchema.loadWML(event.update.wml)
         const incoming = new StandardForm(incomingSchema.schema[0])
         try {
-            const mergedStandardizer = base.merge(incoming)
-            state.base = mergedStandardizer.toJSON()
+            state.base = incoming.toJSON()
         }
         catch (err) {}
         state.pendingEdits = state.pendingEdits.filter(({ meta }) => !event.RequestIds?.includes(meta.key))

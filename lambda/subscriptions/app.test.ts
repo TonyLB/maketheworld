@@ -24,11 +24,11 @@ describe('subscriptions app handler', () => {
 
     describe('enhanced Subscribe API processing', () => {
         it('should trigger snapshot initialization for replayable DataSources', async () => {
-            // Mock subscription match
+            // Mock subscription match (matchAll returns array of handlers)
             const mockMatch = {
                 subscribe: jest.fn().mockResolvedValue(undefined)
             }
-            subscriptionLibraryMock.match.mockReturnValue(mockMatch as any)
+            subscriptionLibraryMock.matchAll.mockReturnValue([mockMatch] as any)
 
             // Mock session ID
             internalCacheMock.Global.get.mockResolvedValue('test-session-id')
@@ -75,11 +75,11 @@ describe('subscriptions app handler', () => {
         })
 
         it('should NOT trigger snapshot initialization for non-replayable DataSources', async () => {
-            // Mock subscription match
+            // Mock subscription match (matchAll returns array of handlers)
             const mockMatch = {
                 subscribe: jest.fn().mockResolvedValue(undefined)
             }
-            subscriptionLibraryMock.match.mockReturnValue(mockMatch as any)
+            subscriptionLibraryMock.matchAll.mockReturnValue([mockMatch] as any)
 
             // Mock session ID
             internalCacheMock.Global.get.mockResolvedValue('test-session-id')
@@ -118,8 +118,8 @@ describe('subscriptions app handler', () => {
         })
 
         it('should handle Subscribe API with no matching handler gracefully', async () => {
-            // Mock no subscription match
-            subscriptionLibraryMock.match.mockReturnValue(undefined)
+            // Mock no subscription match (matchAll returns empty array)
+            subscriptionLibraryMock.matchAll.mockReturnValue([])
 
             // Mock Subscribe API message
             const subscribeRequest = {
@@ -138,7 +138,7 @@ describe('subscriptions app handler', () => {
             const result = await handler(event)
 
             // Verify no subscription setup
-            expect(subscriptionLibraryMock.match).toHaveBeenCalledWith(subscribeRequest)
+            expect(subscriptionLibraryMock.matchAll).toHaveBeenCalledWith(subscribeRequest)
 
             // Verify EventBridge publishing is NOT called
             expect(eventBridgeClientMock.send).not.toHaveBeenCalled()
@@ -158,7 +158,7 @@ describe('subscriptions app handler', () => {
             const mockMatch = {
                 subscribe: jest.fn().mockResolvedValue(undefined)
             }
-            subscriptionLibraryMock.match.mockReturnValue(mockMatch as any)
+            subscriptionLibraryMock.matchAll.mockReturnValue([mockMatch] as any)
             internalCacheMock.Global.get.mockResolvedValue('test-session-id')
 
             const subscribeRequest = {
@@ -184,7 +184,7 @@ describe('subscriptions app handler', () => {
             const mockMatch = {
                 subscribe: jest.fn().mockResolvedValue(undefined)
             }
-            subscriptionLibraryMock.match.mockReturnValue(mockMatch as any)
+            subscriptionLibraryMock.matchAll.mockReturnValue([mockMatch] as any)
             internalCacheMock.Global.get.mockResolvedValue('test-session-id')
 
             const subscribeRequest = {

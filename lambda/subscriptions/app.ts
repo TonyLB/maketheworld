@@ -69,13 +69,13 @@ export const handler = async (event: any) => {
     //
     if (isSubscribeAPIMessage(request)) {
         const resolvedRequest = await resolveStreamKeys(request)
-        const match = subscriptionLibrary.match(resolvedRequest)
-        if (match) {
+        const matches = subscriptionLibrary.matchAll(resolvedRequest)
+        if (matches.length > 0) {
             const sessionId = await internalCache.Global.get("SessionId")
-            
-            // 1. Set up local subscription storage
-            await match.subscribe(resolvedRequest, `SESSION#${sessionId}`)
-            
+
+            // 1. Set up local subscription storage for every matching handler (e.g. mtw.wml Content Update and Merge Conflict)
+            await Promise.all(matches.map((match) => match.subscribe(resolvedRequest, `SESSION#${sessionId}`)))
+
             // 2. Trigger snapshot initialization for replayable DataSources
             if (isReplayableDataSource(resolvedRequest.dataSourceKey)) {
                 console.log(`Triggering snapshot initialization for replayable DataSource: ${resolvedRequest.dataSourceKey}`)
@@ -102,10 +102,10 @@ export const handler = async (event: any) => {
         }
     }
     if (isUnsubscribeAPIMessage(request)) {
-        const match = subscriptionLibrary.match(request)
-        if (match) {
+        const matches = subscriptionLibrary.matchAll(request)
+        if (matches.length > 0) {
             const sessionId = await internalCache.Global.get("SessionId")
-            await match.unsubscribe(request, `SESSION#${sessionId}`)
+            await Promise.all(matches.map((match) => match.unsubscribe(request, `SESSION#${sessionId}`)))
         }
         else {
             console.log(`No match: ${JSON.stringify(request, null, 4)}`)

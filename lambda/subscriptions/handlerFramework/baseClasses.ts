@@ -144,6 +144,14 @@ export class SubscriptionLibrary {
         }, undefined)
     }
 
+    /**
+     * Return all handlers that match the request (e.g. subscribe with dataSourceKey + streamKeys).
+     * Used so one subscribe request can register for multiple event types (e.g. mtw.wml Content Update and Merge Conflict).
+     */
+    matchAll(event: { dataSourceKey: string; type?: string; streamKey?: string }): SubscriptionHandler[] {
+        return this._library.filter((handler) => handler.match(event))
+    }
+
     matchEvent(event: CoreExternalFormat): SubscriptionEvent | undefined {
         return this._library.reduce<SubscriptionEvent | undefined>((previous, handler) => {
             if (!previous) {
