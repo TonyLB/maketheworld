@@ -100,6 +100,7 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
 
 export const receiveWMLEvent = (state: PersonalAssetsPublic, action: PayloadAction<{ assetKey: string; event: SubscriptionClientMessage }>) => {
     const { event } = action.payload
+    if (event.dataSourceKey !== 'mtw.wml') return
     if (event.update.type === 'Content Update') {
         const base = new StandardForm(state.base)
         const incomingSchema = new Schema()
@@ -110,10 +111,10 @@ export const receiveWMLEvent = (state: PersonalAssetsPublic, action: PayloadActi
             state.base = mergedStandardizer.toJSON()
         }
         catch (err) {}
-        state.pendingEdits = state.pendingEdits.filter(({ meta }) => (meta.key !== event.RequestId))
+        state.pendingEdits = state.pendingEdits.filter(({ meta }) => !event.RequestIds?.includes(meta.key))
     }
     if (event.update.type === 'Merge Conflict') {
-        state.pendingEdits = state.pendingEdits.filter(({ meta }) => (meta.key !== event.RequestId))
+        state.pendingEdits = state.pendingEdits.filter(({ meta }) => !event.RequestIds?.includes(meta.key))
     }
 }
 

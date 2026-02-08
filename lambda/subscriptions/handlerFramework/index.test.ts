@@ -4,7 +4,7 @@ jest.mock('@tonylb/mtw-utilities/ts/dynamoDB')
 import { connectionDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 jest.mock('../internalCache')
 import internalCache from "../internalCache"
-import { subscriptionLibraryConstructor } from '.'
+import { subscriptionLibrary, subscriptionLibraryConstructor } from '.'
 
 const connectionDBMock = jest.mocked(connectionDB)
 const apiClientMock = apiClient as jest.Mocked<typeof apiClient>
@@ -317,6 +317,95 @@ describe('subscription handlerFramework', () => {
         expect(apiClientMock.send).toHaveBeenCalledWith('CONN456', expect.not.objectContaining({
             SessionId: expect.anything()
         }))
+    })
+
+    describe('WML subscription library (Content Update and Merge Conflict)', () => {
+        it('should transform Content Update with top-level RequestIds and wml from event.update', async () => {
+            connectionDBMock.query.mockResolvedValue([{
+                ConnectionId: 'STREAM#mtw.wml::Content Update::ASSET#test',
+                DataCategory: 'SESSION#S1'
+            }])
+            internalCacheMock.SessionConnections.get.mockResolvedValue(['CONNECTION#C1'])
+            const coreEvent = {
+                dataSourceKey: 'mtw.wml',
+                streamKey: 'ASSET#test',
+                timestamp: 1234567890,
+                update: {
+                    type: 'Content Update',
+                    wml: '<Asset uuid=(a)><Room key=(r) uuid=(r)><Name>R1</Name></Room></Asset>',
+                    RequestIds: ['req-content-1']
+                }
+            }
+            const match = subscriptionLibrary.matchEvent(coreEvent as any)
+            expect(match).toBeDefined()
+            await match!.publish(coreEvent as any)
+            expect(apiClientMock.send).toHaveBeenCalledWith('C1', {
+                messageType: 'StreamEvent',
+                dataSourceKey: 'mtw.wml',
+                streamKey: 'ASSET#test',
+                timestamp: 1234567890,
+                RequestIds: ['req-content-1'],
+                update: {
+                    type: 'Content Update',
+                    wml: '<Asset uuid=(a)><Room key=(r) uuid=(r)><Name>R1</Name></Room></Asset>'
+                }
+            })
+        })
+
+        it('should transform Merge Conflict with top-level RequestIds', async () => {
+            connectionDBMock.query.mockResolvedValue([{
+                ConnectionId: 'STREAM#mtw.wml::Merge Conflict::ASSET#test',
+                DataCategory: 'SESSION#S2'
+            }])
+            internalCacheMock.SessionConnections.get.mockResolvedValue(['CONNECTION#C2'])
+            const coreEvent = {
+                dataSourceKey: 'mtw.wml',
+                streamKey: 'ASSET#test',
+                timestamp: 1234567890,
+                update: {
+                    type: 'Merge Conflict',
+                    error: 'Merge failed',
+                    RequestIds: ['req-merge-1']
+                }
+            }
+            const match = subscriptionLibrary.matchEvent(coreEvent as any)
+            expect(match).toBeDefined()
+            await match!.publish(coreEvent as any)
+            expect(apiClientMock.send).toHaveBeenCalledWith('C2', {
+                messageType: 'StreamEvent',
+                dataSourceKey: 'mtw.wml',
+                streamKey: 'ASSET#test',
+                timestamp: 1234567890,
+                RequestIds: ['req-merge-1'],
+                update: {
+                    type: 'Merge Conflict',
+                    error: 'Merge failed'
+                }
+            })
+        })
+
+        it('should use empty RequestIds when event.update.RequestIds is absent', async () => {
+            connectionDBMock.query.mockResolvedValue([{
+                ConnectionId: 'STREAM#mtw.wml::Content Update::ASSET#test',
+                DataCategory: 'SESSION#S3'
+            }])
+            internalCacheMock.SessionConnections.get.mockResolvedValue(['CONNECTION#C3'])
+            const coreEvent = {
+                dataSourceKey: 'mtw.wml',
+                streamKey: 'ASSET#test',
+                timestamp: 1234567890,
+                update: {
+                    type: 'Content Update',
+                    wml: '<Asset uuid=(x) />'
+                }
+            }
+            const match = subscriptionLibrary.matchEvent(coreEvent as any)
+            await match!.publish(coreEvent as any)
+            expect(apiClientMock.send).toHaveBeenCalledWith('C3', expect.objectContaining({
+                RequestIds: [],
+                update: expect.objectContaining({ type: 'Content Update', wml: '<Asset uuid=(x) />' })
+            }))
+        })
     })
 
 })

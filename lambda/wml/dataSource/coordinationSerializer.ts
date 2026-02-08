@@ -20,7 +20,7 @@ export type MoveAssetRequest = {
 
 export type ApplyEditRequest = {
     type: 'Apply Edit';
-    RequestId: string;
+    RequestId?: string;
     schema: string;
     createIfNeeded?: boolean;
     zone?: Zone;
@@ -58,7 +58,7 @@ export type MoveAssetRequestExternal = {
 
 export type ApplyEditRequestExternal = {
     type: 'Apply Edit';
-    RequestId: string;
+    RequestId?: string;
     schema: string;
     createIfNeeded?: boolean;
     zone?: Zone;
@@ -108,8 +108,8 @@ export const isApplyEditRequest = (event: any): event is ApplyEditRequest => {
     return event && 
         typeof event === 'object' && 
         event.type === 'Apply Edit' &&
-        typeof event.RequestId === 'string' &&
-        typeof event.schema === 'string'
+        typeof event.schema === 'string' &&
+        (event.RequestId === undefined || typeof event.RequestId === 'string')
 }
 
 export const isCreateSnapshotRequest = (event: any): event is CreateSnapshotRequest => {
