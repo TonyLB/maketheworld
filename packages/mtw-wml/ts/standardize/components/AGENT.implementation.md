@@ -614,13 +614,8 @@ export const isStandardKnowledgeData = (arg: any): arg is StandardKnowledgeData 
 **Location**: `packages/mtw-wml/ts/standardize/index.ts`
 
 **Tasks**:
-1. **Add to COMPONENT_TEMPLATES**:
-   - Add entry to `COMPONENT_TEMPLATES` array
-   - Format: `{ key: '{ComponentName}', legalParents?: [...] }`
-   - `legalParents` is optional - omit if component can appear at asset level
-   - Determine appropriate `legalParents` based on component's intended usage
-     - Examples: `{ key: 'Example', legalParents: ['Room', 'Feature', 'Knowledge', 'Asset'] }`
-     - Examples: `{ key: 'Knowledge' }` (no legalParents = can appear at asset level)
+1. **Add to COMPONENT_ORDER**:
+   - Add entry to `COMPONENT_ORDER` array in `index.ts` (string, e.g. `'Mark'`)
 
 2. **Add to isStandardComponent()**:
    - Import `Standard{ComponentName}`
@@ -628,9 +623,9 @@ export const isStandardKnowledgeData = (arg: any): arg is StandardKnowledgeData 
 
 **Example**:
 ```typescript
-const COMPONENT_TEMPLATES: ComponentProcessingTemplate[] = [
+const COMPONENT_ORDER: string[] = [
     // ... existing entries ...
-    { key: 'Mark', legalParents: ['Example', 'Asset'] }
+    'Mark'
 ]
 
 export const isStandardComponent = (value: any): value is StandardComponent => {
@@ -718,7 +713,7 @@ export const isStandardComponent = (value: any): value is StandardComponent => {
 1. **Missing Schema Converter**: Forgetting to register component in `schema/converters/components.ts` - WML parsing will fail with "Cannot read properties of undefined" errors
 2. **Missing Type Exports**: Forgetting to export data type and type guard from `dataTypes/index.ts`
 3. **Factory Integration**: Forgetting to add component to `standardComponentFactory()` - component won't be created from schema
-4. **Template Registration**: Forgetting to add to `COMPONENT_TEMPLATES` - component won't be processed correctly
+4. **Template Registration**: Forgetting to add to `COMPONENT_ORDER` - component won't be processed correctly
 5. **Type Guard Registration**: Forgetting to add to `isStandardComponent()` - type checks will fail
 6. **Case Sensitivity**: Component tags are case-sensitive - ensure consistent casing (`'Mark'` not `'mark'`)
 7. **Schema Type Guard**: Must import and use correct `isSchema{ComponentName}` from `@tonylb/mtw-base`
@@ -731,7 +726,7 @@ After completing all steps, verify your implementation:
 - [ ] Component can be parsed from WML string: `<{ComponentName} key="test">...</{ComponentName}>` (requires Step 2: Schema Converter Registration)
 - [ ] Component can be created from JSON data: `{ tag: '{ComponentName}', key: 'test', ... }`
 - [ ] Component appears in `standardComponentFactory()` lookups
-- [ ] Component appears in `COMPONENT_TEMPLATES` array
+- [ ] Component appears in `COMPONENT_ORDER` array
 - [ ] Component passes `isStandardComponent()` type guard
 - [ ] Component can be stored in `StandardForm`
 - [ ] Component serializes correctly (`toJSON()`)

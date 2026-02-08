@@ -13,7 +13,7 @@ import { findTaggedChildren, wrappedNodeTypeGuard } from "../schema/utils"
 import { HasDescription, HasDisplayName, HasShortName } from "./components/abstract"
 import { StandardBaseData } from "./components/dataTypes/abstract"
 import { StandardComponent, StandardComponentReferenceKey } from "./components/baseClasses"
-import processComponents, { ComponentProcessingTemplate } from "./processComponents"
+import processComponents from "./processComponents"
 import { standardComponentFactory } from "./componentFactory"
 import { StandardToJSONOptions } from "./components/baseClasses"
 import { AssetUUID, ComponentUUID, isSchemaAsset, isSchemaAssetUUID, isSchemaOutputTag, isSchemaWithKey, SchemaTag } from "@tonylb/mtw-base/ts/schema"
@@ -40,31 +40,25 @@ import { excludeUndefined } from "../lib/lists"
 import { KeyLookup } from "./keyLookup"
 import { SchemaOrganization, createOrganizationContext } from "./schemaOrganization"
 import { renderReference } from "./components/utils/schema"
-import { ComponentTag } from "./components/dataTypes/abstract"
 import { RemoveClass as StandardExplicitKeyRemoveClass, ReplaceClass as StandardExplicitKeyReplaceClass } from "./explicit/key"
 
 //
-// Component templates define legal parent relationships for component types
+// Component order defines which component tags are processed from schema (and their order).
 //
-const COMPONENT_TEMPLATES: ComponentProcessingTemplate[] = [
-    { key: 'Character', legalParents: ['Room'] },
-    { key: 'Image', legalParents: ['Character', 'Map'] },
-    { key: 'Room', legalParents: ['Map', 'Message'] },
-    { key: 'Feature', legalParents: ['Room', 'Feature'] },
-    { key: 'Knowledge' },
-    { key: 'Map' },
-    { key: 'Message', legalParents: ['Moment'] },
-    { key: 'Moment' },
-    { key: 'Example', legalParents: ['Room', 'Feature', 'Knowledge', 'Asset'] },
-    { key: 'Guidance', legalParents: ['Room', 'Asset'] },
-    { key: 'Mark', legalParents: ['Lens', 'Example', 'Asset'] },
-    { key: 'Lens', legalParents: ['Room', 'Asset'] }
+const COMPONENT_ORDER: string[] = [
+    'Character',
+    'Image',
+    'Room',
+    'Feature',
+    'Knowledge',
+    'Map',
+    'Message',
+    'Moment',
+    'Example',
+    'Guidance',
+    'Mark',
+    'Lens'
 ]
-
-const getLegalParents = (componentTag: ComponentTag): (ComponentTag | 'Asset')[] | undefined => {
-    const template = COMPONENT_TEMPLATES.find(t => t.key === componentTag)
-    return template?.legalParents
-}
 
 export const isStandardComponent = (value: any): value is StandardComponent => {
     return (value instanceof StandardCharacter) ||
@@ -218,7 +212,7 @@ export class StandardForm {
                 this._summary = summaryItem.length ? new StandardRender(summaryItem) : undefined
 
                 const { components: componentFragments, topLevel: topLevelKeys } = processComponents({ 
-                    componentTemplates: COMPONENT_TEMPLATES, 
+                    componentOrder: COMPONENT_ORDER, 
                     schema: node.children,
                     assetUUID: this._universalKey
                 })
@@ -581,7 +575,6 @@ export class StandardForm {
      * Validates asset-wide patterns and throws errors if invalid patterns are detected.
      * Currently validates StandardExplicitParent relationships:
      * - Parent references exist in the asset
-     * - Parent references point to valid parent types
      * - No circular parent relationships (validated via SchemaOrganization constructor)
      */
     validate(): void {
@@ -608,10 +601,6 @@ export class StandardForm {
 
             // Validate parent exists
             this._validateParentExists(component, parentKey)
-
-            // Validate parent type
-            const parentComponent = parentKey === 'ASSET' ? undefined : this._lookup(parentKey.toJSON())
-            this._validateParentType(component, parentComponent)
 
             // Note: Circular parentage is validated in SchemaOrganization constructor
             // (called before validate() during StandardForm construction)
@@ -668,32 +657,6 @@ export class StandardForm {
             throw new Error(`Component ${componentIdentifier} (${component.tag}) has explicitParent referencing non-existent component: ${parentKey.key || parentKey.universalKey || 'unknown'}`)
         }
     }
-
-    private _validateParentType(component: StandardComponent, parent: StandardComponent | undefined): void {
-        const componentTag = component.tag as ComponentTag
-        const legalParents = getLegalParents(componentTag)
-
-        // If parent is undefined, component is at asset level - this is always allowed
-        if (parent === undefined) {
-            return
-        }
-
-        // If no legalParents defined, component cannot have a parent component
-        if (legalParents === undefined) {
-            const componentIdentifier = component.key || component.universalKey || 'unknown'
-            throw new Error(`Component ${componentIdentifier} (${componentTag}) cannot have a parent (component type does not allow nesting)`)
-        }
-
-        // Check if parent's tag is in legalParents (filter out 'Asset' since it's not a component tag)
-        const parentTag = parent.tag as ComponentTag
-        const legalParentComponents = legalParents.filter(p => p !== 'Asset')
-        if (!legalParentComponents.includes(parentTag)) {
-            const componentIdentifier = component.key || component.universalKey || 'unknown'
-            const parentIdentifier = parent.key || parent.universalKey || 'unknown'
-            throw new Error(`Component ${componentIdentifier} (${componentTag}) has invalid explicitParent type: ${parentTag}. Legal parents: ${legalParentComponents.join(', ')}`)
-        }
-    }
-
 
     //
     // StandardForm merge method accounts for component-level edits and merges all contents in place

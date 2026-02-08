@@ -29,7 +29,7 @@ This is the substantial first chunk of work: prove the full world-state-to-rende
 Once Rooms are working end-to-end with the pipeline:
 
 - Add `guidance: ReferenceList` to StandardFeature and StandardKnowledge.
-- Update Feature/Knowledge data types and COMPONENT_TEMPLATES (legal parents).
+- Update Feature/Knowledge data types and COMPONENT_ORDER as needed.
 - Add Guidance section to FeatureEditor and KnowledgeEditor; use LayeredGuidanceTabs for Feature/Knowledge where appropriate.
 
 Same semantics as Room: Guidance on a parent component, layered by Mark-value; the pipeline then applies when rendering that parent in a given world-state.
