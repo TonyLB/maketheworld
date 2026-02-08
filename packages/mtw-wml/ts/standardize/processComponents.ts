@@ -9,11 +9,6 @@ import StandardReference from "./keys/reference"
 import { ReferenceCollection } from "./components/utils/referenceCollection"
 import { excludeUndefined } from "@tonylb/mtw-base/ts/utils/lists"
 
-export type ComponentProcessingTemplate = {
-    key: ComponentTag;
-    legalParents?: (ComponentTag | 'Asset')[];
-}
-
 // Non-edit component type - excludes components wrapped in Remove or Replace
 // Matches the pattern of StandardComponentNonEditData for data types
 //
@@ -30,21 +25,18 @@ export type ComponentProcessingResult = {
 }
 
 //
-// processComponents takes a list of component templates and a tag tree, and extracts the standard byId object.
-// Now also collects parent→child edges during processing.
+// processComponents takes a list of component tag names (componentOrder) and a tag tree,
+// and extracts components and topLevel refs. Order is used for which tags are treated as components.
 //
 export const processComponents = (props: {
-    componentTemplates: ComponentProcessingTemplate[];
+    componentOrder: string[];
     schema: GenericTree<SchemaTag>;
     componentContext?: ComponentTag[];
     inContextOfRemove?: boolean;
     assetUUID?: AssetUUID;
 }): ComponentProcessingResult => {
-    //
-    // Loop through each tag in standard order
-    //
     const {
-        componentTemplates,
+        componentOrder,
         schema,
         componentContext = [],
         inContextOfRemove = false,
@@ -75,7 +67,7 @@ export const processComponents = (props: {
             const hasComponentTag = (nodes: GenericTree<SchemaTag>): boolean => {
                 return nodes.some(node => {
                     // Check if this node is a component tag
-                    if (componentTemplates.some(template => template.key === node.data.tag)) {
+                    if (componentOrder.includes(node.data.tag)) {
                         return true
                     }
                     // Recursively check children
@@ -95,26 +87,18 @@ export const processComponents = (props: {
         }
 
         if (treeNodeTypeguard(isSchemaComponent)(item)) {
-            const template = componentTemplates.find(({ key }) => (key === item.data.tag))
-            if (template) {
+            if (componentOrder.includes(item.data.tag)) {
 
                 const { component, remainder } = standardComponentFactory(item)
-
-                //
-                // If the template has legalParents, check if there are any legal parent tags in the componentContext
-                //
-                const legalParentTags = template.legalParents ?? []
-                const ancestorTags = componentContext.filter((tag) => (legalParentTags.includes(tag)))
 
                 if (!component) {
                     return previous
                 }
 
                 //
-                // Note: We no longer set context here. Parent relationships are determined by
-                // SchemaOrganization which builds a graph from component.referencedKeys() edges.
-                // The componentContext parameter is still used for topLevel tracking,
-                // but we don't need to set context on the component itself.
+                // Note: Parent relationships are determined by SchemaOrganization which builds
+                // a graph from component.referencedKeys() edges. componentContext is used only
+                // for topLevel: a component is top level when it is a direct child of Asset.
                 //
                 const localizedComponent = component
 
@@ -124,13 +108,8 @@ export const processComponents = (props: {
                     ? localizedComponent.invert() as StandardComponentNonEdit
                     : localizedComponent as StandardComponentNonEdit
 
-                //
-                // Track if this component is at Asset level (topLevel)
-                // NOTE: This uses ancestorTags.length === 0, which means components without legalParents
-                // will always be considered topLevel even when nested. Components that can be nested
-                // should have their legalParents properly configured in componentTemplates.
-                //
-                const isTopLevel = ancestorTags.length === 0 && assetUUID
+                // Top level = direct child of Asset in the schema tree
+                const isTopLevel = componentContext.length === 0 && assetUUID
 
                 // Process children recursively
                 // Component tag is always a ComponentTag (not 'Remove' or 'Replace') since we only store plain components

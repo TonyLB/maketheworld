@@ -1,38 +1,20 @@
 import { Schema, schemaToWML } from "../schema"
 import { deIndentWML } from "../schema/utils"
-import processComponents, { ComponentProcessingTemplate } from "./processComponents"
+import processComponents from "./processComponents"
 import StandardRoom from "./components/room"
 import StandardReference from "./keys/reference"
 import { StandardKey } from "./keys/key"
 
-const componentTemplates: ComponentProcessingTemplate[] = [
-    { 
-        key: 'Character',
-        legalParents: ['Room']
-    },
-    { 
-        key: 'Image',
-        legalParents: ['Character', 'Map']
-    },
-    {
-        key: 'Room',
-        legalParents: ['Map', 'Message']
-    },
-    {
-        key: 'Feature',
-        legalParents: ['Room', 'Feature']
-    },
-    { key: 'Knowledge' },
-    { key: 'Map' },
-    {
-        key: 'Message',
-        legalParents: ['Moment']
-    },
-    { key: 'Moment' },
-    {
-        key: 'Example',
-        legalParents: ['Room', 'Feature', 'Knowledge']
-    }
+const componentOrder: string[] = [
+    'Character',
+    'Image',
+    'Room',
+    'Feature',
+    'Knowledge',
+    'Map',
+    'Message',
+    'Moment',
+    'Example'
 ]
 
 describe("processComponents", () => {
@@ -40,7 +22,7 @@ describe("processComponents", () => {
         const schema = new Schema()
         schema.loadWML(`<Asset uuid=(test) />`)
         const result = processComponents({
-            componentTemplates,
+            componentOrder,
             schema: schema.schema,
         })
         expect(result.components).toEqual([])
@@ -67,7 +49,7 @@ describe("processComponents", () => {
         const schema = new Schema()
         schema.loadWML(testSource)
         const result = processComponents({
-            componentTemplates,
+            componentOrder,
             schema: schema.schema
         })
 
@@ -109,7 +91,7 @@ describe("processComponents", () => {
         const schema = new Schema()
         schema.loadWML(testSource)
         const result = processComponents({
-            componentTemplates,
+            componentOrder,
             schema: schema.schema,
         })
         expect(result.components.map((component) => (schemaToWML([component.schema])))).toEqual([
@@ -181,7 +163,7 @@ describe("processComponents", () => {
         const schema = new Schema()
         schema.loadWML(test)
         const result = processComponents({
-            componentTemplates,
+            componentOrder,
             schema: schema.schema,
         })
 
@@ -225,7 +207,7 @@ describe("processComponents", () => {
         const schema = new Schema()
         schema.loadWML(test)
         const result = processComponents({
-            componentTemplates,
+            componentOrder,
             schema: schema.schema,
         })
 
@@ -269,7 +251,7 @@ describe("processComponents", () => {
         const schema = new Schema()
         schema.loadWML(test)
         const result = processComponents({
-            componentTemplates,
+            componentOrder,
             schema: schema.schema,
         })
 
@@ -321,7 +303,7 @@ describe("processComponents", () => {
         const schema = new Schema()
         schema.loadWML(testSource)
         const result = processComponents({
-            componentTemplates,
+            componentOrder,
             schema: schema.schema,
         })
 
@@ -375,7 +357,7 @@ describe("processComponents", () => {
         const schema = new Schema()
         schema.loadWML(testSource)
         const result = processComponents({
-            componentTemplates,
+            componentOrder,
             schema: schema.schema,
         })
         expect(result.components.map((component) => (schemaToWML([component.schema])))).toEqual([
@@ -410,7 +392,7 @@ describe("processComponents", () => {
         const schema = new Schema()
         schema.loadWML(testSource)
         const result = processComponents({
-            componentTemplates,
+            componentOrder,
             schema: schema.schema,
         })
         expect(result.components.map((component) => (schemaToWML([component.schema])))).toEqual([
@@ -438,7 +420,7 @@ describe("processComponents", () => {
         const schema = new Schema()
         schema.loadWML(testSource)
         const result = processComponents({
-            componentTemplates,
+            componentOrder,
             schema: schema.schema,
         })
         
@@ -459,7 +441,7 @@ describe("processComponents", () => {
             const schema = new Schema()
             schema.loadWML(testSource)
             const result = processComponents({
-                componentTemplates,
+                componentOrder,
                 schema: schema.schema,
                 assetUUID: 'ASSET#Test'
             })
@@ -490,7 +472,7 @@ describe("processComponents", () => {
             const schema = new Schema()
             schema.loadWML(testSource)
             const result = processComponents({
-                componentTemplates,
+                componentOrder,
                 schema: schema.schema,
                 assetUUID: 'ASSET#Test'
             })
@@ -513,7 +495,7 @@ describe("processComponents", () => {
             const schema = new Schema()
             schema.loadWML(testSource)
             const result = processComponents({
-                componentTemplates,
+                componentOrder,
                 schema: schema.schema,
                 assetUUID: 'ASSET#Test'
             })
@@ -537,7 +519,7 @@ describe("processComponents", () => {
             const schema = new Schema()
             schema.loadWML(testSource)
             const result = processComponents({
-                componentTemplates,
+                componentOrder,
                 schema: schema.schema
                 // No assetUUID
             })
@@ -552,7 +534,7 @@ describe("processComponents", () => {
             const schema = new Schema()
             schema.loadWML(`<Asset uuid=(test) />`)
             const result = processComponents({
-                componentTemplates,
+                componentOrder,
                 schema: schema.schema,
             })
             expect(result.referenceCollection.references.length).toBe(0)
@@ -569,7 +551,7 @@ describe("processComponents", () => {
             const schema = new Schema()
             schema.loadWML(testSource)
             const result = processComponents({
-                componentTemplates,
+                componentOrder,
                 schema: schema.schema,
                 assetUUID: 'ASSET#Test'
             })
@@ -602,7 +584,7 @@ describe("processComponents", () => {
             const schema = new Schema()
             schema.loadWML(testSource)
             const result = processComponents({
-                componentTemplates,
+                componentOrder,
                 schema: schema.schema,
                 assetUUID: 'ASSET#Test'
             })
@@ -630,7 +612,7 @@ describe("processComponents", () => {
             const schema = new Schema()
             schema.loadWML(testSource)
             const result = processComponents({
-                componentTemplates,
+                componentOrder,
                 schema: schema.schema,
                 assetUUID: 'ASSET#Test'
             })
@@ -655,7 +637,7 @@ describe("processComponents", () => {
             const schema = new Schema()
             schema.loadWML(testSource)
             const result = processComponents({
-                componentTemplates,
+                componentOrder,
                 schema: schema.schema,
                 assetUUID: 'ASSET#Test'
             })
