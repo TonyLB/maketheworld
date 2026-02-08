@@ -250,7 +250,7 @@ export const newAsset = (assetId: AssetUUID) => (dispatch: any) => {
 export const receiveWMLEvent = (key: string) => (args: { event: SubscriptionClientMessage }) => (dispatch: any, getState: any) => {
     const pendingEdits = getPendingEdits(key)(getState())
     dispatch(publicActions.receiveWMLEvent(key)(args))
-    if (args.event.update.type === 'Merge Conflict' && pendingEdits.find(({ meta }) => (meta.key !== args.event.RequestId))) {
+    if (args.event.update.type === 'Merge Conflict' && args.event.RequestIds?.some(id => pendingEdits.some(p => p.meta.key === id))) {
         push('Merge conflict prevented saving your changes')
     }
 }

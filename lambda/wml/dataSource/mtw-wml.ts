@@ -102,7 +102,8 @@ export const wmlDataSource = new WMLDataSource<{}, WMLEventUpdate, WMLSubscribed
                             await streamEvent({
                                 update: {
                                     type: 'Content Update',
-                                    schema: result.schema
+                                    schema: result.schema,
+                                    RequestIds: payload.RequestId != null ? [payload.RequestId] : []
                                 },
                                 streamKey: AssetId
                             })
@@ -116,7 +117,8 @@ export const wmlDataSource = new WMLDataSource<{}, WMLEventUpdate, WMLSubscribed
                             await streamEvent({
                                 update: {
                                     type: 'Merge Conflict',
-                                    error: result.error
+                                    error: result.error,
+                                    RequestIds: payload.RequestId != null ? [payload.RequestId] : []
                                 },
                                 streamKey: AssetId
                             })

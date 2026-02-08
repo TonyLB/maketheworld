@@ -324,11 +324,12 @@ describe('WML DataSource', () => {
                 schema: 'test-wml-content'
             })
 
-            // Verify Content Update event was streamed
+            // Verify Content Update event was streamed with RequestIds
             expect(mockStreamEvent).toHaveBeenCalledWith({
                 update: {
                     type: 'Content Update',
-                    schema: mockSuccessResult.schema
+                    schema: mockSuccessResult.schema,
+                    RequestIds: ['test-request-123']
                 },
                 streamKey: 'ASSET#test-asset'
             })
@@ -371,7 +372,7 @@ describe('WML DataSource', () => {
             // Verify Merge Conflict event was streamed so client knows the edit failed
             expect(mockStreamEvent).toHaveBeenCalledWith({
                 streamKey: 'ASSET#test-asset',
-                update: { type: 'Merge Conflict', error: 'Parse error' }
+                update: { type: 'Merge Conflict', error: 'Parse error', RequestIds: ['test-request-456'] }
             })
         })
 
@@ -510,7 +511,44 @@ describe('WML DataSource', () => {
             expect(mockStreamEvent).toHaveBeenCalledWith({
                 update: {
                     type: 'Content Update',
-                    schema: mockSuccessResult.schema
+                    schema: mockSuccessResult.schema,
+                    RequestIds: ['test-request-singleflight']
+                },
+                streamKey: 'ASSET#test-asset'
+            })
+        })
+
+        it('should stream RequestIds empty array when Apply Edit payload has no RequestId', async () => {
+            const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
+            const mockApplyEditRequest = {
+                type: 'Apply Edit',
+                schema: 'test-wml-content'
+                // No RequestId
+            }
+
+            const mockSuccessResult: ApplyEditResult = {
+                success: true,
+                schema: { type: 'Asset', content: 'test-content' } as any
+            }
+
+            applyEditMock.mockResolvedValue(mockSuccessResult)
+
+            const event = {
+                dataSourceKey: 'internal',
+                streamKey: 'ASSET#test-asset',
+                detailEnvelope: mockApplyEditRequest
+            }
+
+            await wmlDataSource.receiveEvents!({
+                events: [event as any],
+                streamEvent: mockStreamEvent
+            })
+
+            expect(mockStreamEvent).toHaveBeenCalledWith({
+                update: {
+                    type: 'Content Update',
+                    schema: mockSuccessResult.schema,
+                    RequestIds: []
                 },
                 streamKey: 'ASSET#test-asset'
             })

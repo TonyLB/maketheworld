@@ -7,7 +7,7 @@ import { now } from "../../utilities/mockableTime";
 
 export type ApplyEditArguments = {
     AssetId: AssetUUID;
-    RequestId: string;
+    RequestId?: string;
     schema: string;
     /**
      * If true, creates the asset if it doesn't exist or has no content.

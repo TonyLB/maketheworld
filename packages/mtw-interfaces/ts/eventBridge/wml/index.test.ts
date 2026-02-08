@@ -98,6 +98,69 @@ describe('WMLEventSerializer', () => {
                 expect(deserializedEvent.schema).toBeInstanceOf(StandardForm)
             }
         })
+
+        it('should include RequestIds in serialized Content Update when present', () => {
+            const standardForm = new StandardForm(deIndentWML(`
+                <Asset uuid=(test-asset)>
+                    <Room key=(room1) uuid=(room1)><Name>R1</Name></Room>
+                </Asset>
+            `))
+            const contentEvent: WMLEventUpdate = {
+                type: 'Content Update',
+                schema: standardForm,
+                RequestIds: ['req-123']
+            }
+            const externalEvent = serializer.serialize({ dataSourceKey: 'mtw.wml', streamKey: 'ASSET#test-asset', update: contentEvent })
+            expect(externalEvent.type).toBe('Content Update')
+            if (externalEvent.type === 'Content Update') {
+                expect(externalEvent.RequestIds).toEqual(['req-123'])
+            }
+        })
+
+        it('should preserve RequestIds when deserializing Content Update', () => {
+            const wmlString = deIndentWML(`
+                <Asset uuid=(test-asset)>
+                    <Room key=(room1) uuid=(room1)><Name>R1</Name></Room>
+                </Asset>
+            `)
+            const externalEvent: WMLEventExternal = {
+                type: 'Content Update',
+                wml: wmlString,
+                RequestIds: ['req-456']
+            }
+            const internalEvent = serializer.deserialize({
+                dataSourceKey: 'mtw.wml',
+                streamKey: 'ASSET#test-asset',
+                externalUpdate: externalEvent
+            })
+            expect(internalEvent).not.toBeNull()
+            if (internalEvent && internalEvent.type === 'Content Update') {
+                expect(internalEvent.RequestIds).toEqual(['req-456'])
+            }
+        })
+
+        it('should round-trip Content Update with RequestIds', () => {
+            const standardForm = new StandardForm(deIndentWML(`
+                <Asset uuid=(test-asset)>
+                    <Room key=(room1) uuid=(room1)><Name>R1</Name></Room>
+                </Asset>
+            `))
+            const contentEvent: WMLEventUpdate = {
+                type: 'Content Update',
+                schema: standardForm,
+                RequestIds: ['req-roundtrip']
+            }
+            const externalEvent = serializer.serialize({ dataSourceKey: 'mtw.wml', streamKey: 'ASSET#test-asset', update: contentEvent })
+            const deserialized = serializer.deserialize({
+                dataSourceKey: 'mtw.wml',
+                streamKey: 'ASSET#test-asset',
+                externalUpdate: externalEvent
+            })
+            expect(deserialized).not.toBeNull()
+            if (deserialized && deserialized.type === 'Content Update') {
+                expect(deserialized.RequestIds).toEqual(['req-roundtrip'])
+            }
+        })
     })
 
     describe('Zone Events', () => {
@@ -249,6 +312,35 @@ describe('WMLEventSerializer', () => {
             }
         })
 
+        it('should include RequestIds in serialized Merge Conflict when present', () => {
+            const mergeConflictEvent: WMLEventUpdate = {
+                type: 'Merge Conflict',
+                error: 'Conflict',
+                RequestIds: ['req-mc-1']
+            }
+            const externalEvent = serializer.serialize({ dataSourceKey: 'mtw.wml', streamKey: 'ASSET#test-asset', update: mergeConflictEvent })
+            expect(externalEvent.type).toBe('Merge Conflict')
+            if (externalEvent.type === 'Merge Conflict') {
+                expect(externalEvent.RequestIds).toEqual(['req-mc-1'])
+            }
+        })
+
+        it('should preserve RequestIds when deserializing Merge Conflict', () => {
+            const externalEvent: WMLEventExternal = {
+                type: 'Merge Conflict',
+                error: 'Conflict',
+                RequestIds: ['req-mc-2']
+            }
+            const internalEvent = serializer.deserialize({
+                dataSourceKey: 'mtw.wml',
+                streamKey: 'ASSET#test-asset',
+                externalUpdate: externalEvent
+            })
+            expect(internalEvent).toBeDefined()
+            if (internalEvent && internalEvent.type === 'Merge Conflict') {
+                expect(internalEvent.RequestIds).toEqual(['req-mc-2'])
+            }
+        })
     })
 
     describe('Purge Events', () => {

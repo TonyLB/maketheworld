@@ -14,10 +14,12 @@ export type WMLContentEvent =
     | {
         type: 'Content Update'
         schema: StandardForm
+        RequestIds?: string[]
     }
     | {
         type: 'Merge Conflict'
         error?: string
+        RequestIds?: string[]
     }
 
 export type WMLZoneEvent = {
@@ -49,10 +51,12 @@ export type WMLContentEventExternal =
     | {
         type: 'Content Update'
         wml: string
+        RequestIds?: string[]
     }
     | {
         type: 'Merge Conflict'
         error?: string
+        RequestIds?: string[]
     }
 
 export type WMLZoneEventExternal = {
@@ -189,13 +193,15 @@ export class WMLEventSerializer implements DataSourceEventSerializer<WMLEventUpd
             // Content Update events need WML conversion
             return {
                 type: 'Content Update',
-                wml: schemaToWML([update.schema.schema])
+                wml: schemaToWML([update.schema.schema]),
+                ...(update.RequestIds != null ? { RequestIds: update.RequestIds } : {})
             }
         } else if (isWMLMergeConflictEvent(update)) {
             // Merge Conflict events pass through with error information
             return {
                 type: 'Merge Conflict',
-                error: update.error
+                error: update.error,
+                ...(update.RequestIds != null ? { RequestIds: update.RequestIds } : {})
             }
         } else if (isWMLPurgeEvent(update)) {
             // Purge events pass through as-is (including optional player)
@@ -230,7 +236,8 @@ export class WMLEventSerializer implements DataSourceEventSerializer<WMLEventUpd
                     const standardForm = new StandardForm(schemaNode)
                     return {
                         type: 'Content Update',
-                        schema: standardForm
+                        schema: standardForm,
+                        ...(externalUpdate.RequestIds != null ? { RequestIds: externalUpdate.RequestIds } : {})
                     }
                 } catch (error) {
                     throw new Error(`Failed to deserialize WML: ${error instanceof Error ? error.message : String(error)}`)
@@ -242,7 +249,8 @@ export class WMLEventSerializer implements DataSourceEventSerializer<WMLEventUpd
             // Merge Conflict events pass through with error information
             return {
                 type: 'Merge Conflict',
-                error: externalUpdate.error
+                error: externalUpdate.error,
+                ...(externalUpdate.RequestIds != null ? { RequestIds: externalUpdate.RequestIds } : {})
             }
         } else if (externalUpdate.type === 'Asset Purged') {
             // Purge events pass through as-is

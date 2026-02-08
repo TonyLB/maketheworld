@@ -3,7 +3,8 @@ import { PersonalAssetsCondition, PersonalAssetsAction, PersonalAssetsPublic } f
 import {
     socketDispatchPromise,
     getStatus,
-    LifeLinePubSub
+    LifeLinePubSub,
+    socketDispatch
 } from '../lifeLine'
 import delayPromise from '../../lib/delayPromise'
 import { Token, TokenizeException } from '@tonylb/mtw-wml/ts/parser/tokenizer/baseClasses'
@@ -50,6 +51,11 @@ export const fetchAction: PersonalAssetsAction = ({ internalData: { id, fetchURL
             dispatch(receiveWMLEvent(id)({ event: wmlEvent }))
         }
     }) : undefined
+
+    // Tell the backend to deliver mtw.wml events for this asset (Content Update / Merge Conflict)
+    if (id && isSchemaAssetUUID(id)) {
+        dispatch(socketDispatch({ message: 'subscribe', dataSourceKey: 'mtw.wml', streamKeys: [id] }, { service: 'subscriptions' }))
+    }
     
     const fetchedAssetWML = await fetch(fetchURL, { method: 'GET' }).then((response) => (response.text()))
     const assetWML = fetchedAssetWML.replace(/\r/g, '')
@@ -156,6 +162,10 @@ export const clearAction: PersonalAssetsAction = ({ internalData: { id, subscrip
     // Unsubscribe from LifeLinePubSub when clearing the asset
     if (subscription) {
         LifeLinePubSub.unsubscribe(subscription)
+    }
+    // Tell the backend to stop delivering mtw.wml events for this asset
+    if (id) {
+        dispatch(socketDispatch({ message: 'unsubscribe', dataSourceKey: 'mtw.wml', streamKeys: [id] }, { service: 'subscriptions' }))
     }
     return { 
         publicData: { originalWML: undefined, currentWML: undefined },

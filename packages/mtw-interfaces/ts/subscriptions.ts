@@ -43,7 +43,7 @@ export type WMLSubscriptionClientMessage = {
     streamKey: string;
     timestamp: number;
     update: WMLContentEventExternal;
-    RequestId?: string;
+    RequestIds?: string[];
 }
 
 export type ContentHeadersSubscriptionClientMessage = {
