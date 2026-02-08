@@ -1392,9 +1392,7 @@ describe('StandardForm', () => {
                 <Room uuid=(room)>
                     <Lens uuid=(lens)>
                         <ShortName>Environment</ShortName>
-                        <Mark uuid=(mark)>
-                            <ShortName>Illumination</ShortName>
-                        </Mark>
+                        <Mark uuid=(mark)><ShortName>Illumination</ShortName></Mark>
                     </Lens>
                     <Guidance uuid=(guidance)>
                         <ShortName>Dark</ShortName>
