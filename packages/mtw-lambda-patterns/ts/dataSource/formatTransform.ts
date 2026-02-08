@@ -192,8 +192,8 @@ export function fromWebSocketFormat(webSocketMessage: WebSocketFormat): CoreExte
  * The feedback lambda does: { ...JSON.parse(Sns.Message), RequestId }
  * 
  * Example:
- *   Input: { dataSourceKey: 'mtw.assets.contentHeaders', streamKey: 'global', timestamp: 1234567890, update: { type: 'Snapshot Generated', assets: [...] } }
- *   Output: { messageType: 'StreamEvent', dataSourceKey: 'mtw.assets.contentHeaders', streamKey: 'global', timestamp: 1234567890, update: { type: 'Snapshot Generated', assets: [...] } }
+ *   Input: { dataSourceKey: 'mtw.assets.contentHeaders', streamKey: 'global', timestamp: 1234567890, update: { type: 'Snapshot', assets: [...] } }
+ *   Output: { messageType: 'StreamEvent', dataSourceKey: 'mtw.assets.contentHeaders', streamKey: 'global', timestamp: 1234567890, update: { type: 'Snapshot', assets: [...] } }
  */
 export function toSNSFeedbackFormat(coreFormat: CoreExternalFormat): SNSFeedbackFormat {
     const { dataSourceKey, streamKey, timestamp, update } = coreFormat;

@@ -1,6 +1,6 @@
 # Subscriber Sync Refactor: WML DataSource as Single Source of Truth
 
-**Status**: PLANNING  
+**Status**: PLANNING (backend generic sidecar: implemented)  
 **Scope**: Client (charcoal-client) and backend (generalized sidecar snapshot support; mtw.wml snapshot on subscribe).  
 **Related**: [AGENT.event.md](./AGENT.event.md), RequestIds pipeline, optimistic updates in personalAssets
 
@@ -67,6 +67,7 @@ We use **generalized sidecar snapshot delivery** so initial state is not in the 
 ## Backend work (sidecar + mtw.wml)
 
 - **Generalized sidecar snapshot contract**: Single Snapshot event shape with optional properties: `type: 'Snapshot', payload?: T, sidecarUrl?: string` (and optional metadata). The publisher decides which to send (inline payload or sidecarUrl). Client: if `sidecarUrl` present, fetch then deserialize; else use `payload`. DataSources that use sidecar implement "generate or locate S3 object; return presigned URL."
+- **Generic DataSource sidecar (implemented)**: In `packages/mtw-lambda-patterns/ts/dataSource/index.ts`, the DataSource class now supports an optional `snapshotSidecarUrlGenerator?: (streamKey: string) => Promise<SidecarSnapshotDescriptor>` where the descriptor is `{ sidecarUrl, createdAt, expiresAt? }`. When set, `initializeSubscription` uses it instead of `getSnapshotExternal`: it calls the generator, builds a Snapshot with `type: 'Snapshot', sidecarUrl, createdAt, expiresAt`, and delivers it via the existing `deliverReplayData` path so the client receives `update: { type: 'Snapshot', sidecarUrl }` with envelope timestamp. Use either `snapshotContentGenerator` (inline) or `snapshotSidecarUrlGenerator` (sidecar), not both. No changes to subscriptions or lambdas yet; mtw.wml can adopt this in a follow-up step.
 - **Subscriptions**: Add mtw.wml to replayable (or "snapshot-on-subscribe") list so that when client subscribes to mtw.wml, the subscriptions lambda emits "Initialize Subscription - mtw.wml" (same as contentHeaders). EventBridge rule routes that to the WML lambda.
 - **Who produces the URL for mtw.wml**: WML lambda (decided). It has access to the asset's S3 layout: materialized view and `snapshots/` directory (see `lambda/wml/s3Storage/snapshots/` and materialized view). The lambda can locate or generate the appropriate object (e.g. current materialized view or latest snapshot) and issue a presigned GET URL for the sidecar.
 - **Content Update**: Unchanged; still full WML and RequestIds.
@@ -147,6 +148,7 @@ We address these in implementation order. As decisions are made, record them her
 | Area | File(s) | Change |
 |------|---------|--------|
 | Backend (contract) | mtw-interfaces or lambda patterns | Snapshot event shape: optional `sidecarUrl`; client fetches when present. |
+| Backend (generic sidecar) | packages/mtw-lambda-patterns/ts/dataSource/index.ts | **Done.** Optional `snapshotSidecarUrlGenerator`; `SidecarSnapshotDescriptor` type; `initializeSubscription` branch delivers Snapshot with sidecarUrl when generator is set. |
 | Backend (subscriptions) | lambda/subscriptions/app.ts | Add mtw.wml to snapshot-on-subscribe list; emit Initialize Subscription - mtw.wml. |
 | Backend (URL producer) | TBD (WML lambda or assets lambda) | Handle Initialize Subscription - mtw.wml; generate/locate S3 object; return Snapshot with sidecarUrl. |
 | Backend (EventBridge) | Config | Rule: Initialize Subscription - mtw.wml → target lambda (per question 2). |
@@ -181,7 +183,7 @@ We address these in implementation order. As decisions are made, record them her
 ## Order of Work
 
 1. **Decide open questions**: Snapshot event shape (sidecarUrl); who produces URL for mtw.wml; deprecate fetch or keep for metadata.
-2. **Backend – sidecar contract**: Define Snapshot payload shape (sidecarUrl optional); document that client will fetch when present.
+2. **Backend – generic sidecar in DataSource**: **Done.** Extended mtw-lambda-patterns DataSource with optional `snapshotSidecarUrlGenerator` and sidecar delivery path in `initializeSubscription`; contract and tests in place.
 3. **Backend – URL producer for mtw.wml**: Implement handler for "Initialize Subscription - mtw.wml" (in WML lambda or assets lambda per decision); generate presigned URL for asset content; send Snapshot with sidecarUrl to client (via existing feedback/delivery path).
 4. **Backend – subscriptions**: Add mtw.wml to snapshot-on-subscribe list; EventBridge rule for Initialize Subscription - mtw.wml.
 5. **Frontend – sidecar snapshot handling**: In dataSource flow, when Snapshot has sidecarUrl, fetch URL then deserialize and apply; use timestamp-based ordering (snapshot has a timestamp; ignore events before it, apply events after it in order).
