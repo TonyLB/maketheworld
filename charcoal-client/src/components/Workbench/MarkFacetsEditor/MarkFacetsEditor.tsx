@@ -10,6 +10,7 @@ import {
 } from "../foundations/FacetList"
 import { useWorkbenchAsset } from "../foundations/useWorkbenchAsset"
 import { MarkFacetPayloadEditor } from "./MarkFacetPayloadEditor"
+import type { ScopedInstrumentationOptions } from "../../../testing/scopedInstrumentation"
 
 function markDisplayName(facet: StandardMarkFacet, standardForm: StandardForm): string | undefined {
     const universalKey = facet.reference.universalKey
@@ -27,13 +28,15 @@ export interface MarkFacetsEditorProps {
     marks: MarkFacetList
     onChange?: (marks: MarkFacetList) => void
     readonly?: boolean
+    options?: ScopedInstrumentationOptions
 }
 
 export const MarkFacetsEditor: FunctionComponent<MarkFacetsEditorProps> = ({
     componentId,
     marks,
     onChange,
-    readonly = false
+    readonly = false,
+    options
 }) => {
     const { standardForm } = useWorkbenchAsset()
     return (
@@ -59,6 +62,7 @@ export const MarkFacetsEditor: FunctionComponent<MarkFacetsEditorProps> = ({
                             onChange={handlers.onChangePayload}
                             readonly={handlers.readonly}
                             referenceDisplayName={markDisplayName(facet, standardForm)}
+                            options={options}
                         />
                     }
                     onRemove={handlers.onRemove}

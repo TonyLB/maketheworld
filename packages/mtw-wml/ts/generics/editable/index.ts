@@ -76,7 +76,8 @@ export const addDelta = <FinalType extends StandardEditablePayload<any>>(
 
     }
     const cancelledRemove = baseRemove && incomingRemove ? add(incomingRemove, baseRemove) : baseRemove ?? incomingRemove
-    const cancelledAdd = baseAdd && incomingAdd ? add(baseAdd, incomingAdd) : baseAdd ?? incomingAdd
+    // Use "both defined" (not truthy) so that add('', incoming) is used when base is empty; otherwise '' ?? incoming would keep ''.
+    const cancelledAdd = (baseAdd !== undefined && incomingAdd !== undefined) ? add(baseAdd, incomingAdd) : baseAdd ?? incomingAdd
     // Merging Remove(match: '') with Plain('') yields cancelledAdd = '' and cancelledRemove = '', which would
     // create Replace(match: '', payload: '') and lose the user's value when they later type (e.g. 'Dark').
     // Treat "both empty" as Plain('') so subsequent merges with Plain('Dark') produce Plain('Dark').

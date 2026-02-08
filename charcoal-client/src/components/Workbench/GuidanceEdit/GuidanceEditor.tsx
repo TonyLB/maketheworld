@@ -11,12 +11,18 @@ import { ComponentUUID } from "@tonylb/mtw-base/ts/schema"
 import { MarkFacetsEditor } from "../MarkFacetsEditor"
 import { MarkFacetList } from "@tonylb/mtw-wml/ts/standardize/keys/facets/mark"
 import { getCurrentComponentId, getCurrentComponentLayerId } from "../../../slices/UI/workbench"
+import type { ScopedInstrumentationOptions } from "../../../testing/scopedInstrumentation"
+
+export interface GuidanceEditorProps {
+    /** Optional scoped instrumentation for debugging. */
+    options?: ScopedInstrumentationOptions
+}
 
 /**
  * Guidance payload editor. Reads the current Guidance id from the workbench: when in
  * layered context (e.g. Room → Guidance) uses the layer id; otherwise the top breadcrumb.
  */
-export const GuidanceEditor: FunctionComponent = () => {
+export const GuidanceEditor: FunctionComponent<GuidanceEditorProps> = ({ options }) => {
     const { standardForm, updateStandard, readonly } = useWorkbenchAsset()
     const componentId = (useSelector(getCurrentComponentLayerId) ?? useSelector(getCurrentComponentId)) as ComponentUUID | null
 
@@ -90,18 +96,21 @@ export const GuidanceEditor: FunctionComponent = () => {
             if (!componentId || readonly) return
             const current = standardForm.byUniversalId[componentId]
             if (!current || !(current instanceof StandardGuidance)) return
-            updateStandard({
-                type: "update",
-                update: (draft: StandardForm) => {
-                    const g = draft.byUniversalId[componentId]
-                    if (g && g instanceof StandardGuidance) {
-                        g._payload._marks = newMarks
+            updateStandard(
+                {
+                    type: "update",
+                    update: (draft: StandardForm) => {
+                        const g = draft.byUniversalId[componentId]
+                        if (g && g instanceof StandardGuidance) {
+                            g._payload._marks = newMarks
+                        }
+                        return draft
                     }
-                    return draft
-                }
-            })
+                },
+                options
+            )
         },
-        [componentId, standardForm, updateStandard, readonly]
+        [componentId, standardForm, updateStandard, readonly, options]
     )
 
     if (!component) {
@@ -166,6 +175,7 @@ export const GuidanceEditor: FunctionComponent = () => {
                 marks={component.marks}
                 onChange={handleMarksChange}
                 readonly={readonly}
+                options={options}
             />
         </Box>
     )

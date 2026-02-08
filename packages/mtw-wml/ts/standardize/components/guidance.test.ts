@@ -110,14 +110,14 @@ describe('StandardGuidance class', () => {
     it('should merge guidance with Mark facets', () => {
         expect(mergeTest(
             `<Guidance key=(test)>
-                <Mark uuid=(mark-id)><Match>First</Match></Mark>
+                <Mark uuid=(mark-id)><Match></Match></Mark>
             </Guidance>`,
             `<Guidance key=(test) ref={0}>
                 <Mark uuid=(mark-id) ref={0}><Match>Second</Match></Mark>
             </Guidance>`
         )).toEqual(deIndentWML(`
             <Guidance key=(test)>
-                <Mark uuid=(mark-id)><Match>FirstSecond</Match></Mark>
+                <Mark uuid=(mark-id)><Match>Second</Match></Mark>
             </Guidance>
         `))
     })

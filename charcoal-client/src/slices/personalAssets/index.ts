@@ -42,6 +42,7 @@ import { AssetUUID, ComponentUUID, isSchemaComponentUUID, isSchemaAssetUUID } fr
 import { standardComponentFactory } from '@tonylb/mtw-wml/ts/standardize/componentFactory'
 import { ReferenceList } from '@tonylb/mtw-wml/ts/standardize/keys/referenceList'
 import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
+import type { ScopedInstrumentationOptions } from '../../testing/scopedInstrumentation'
 
 const autoSaveDebounce = new Debounce()
 
@@ -254,7 +255,7 @@ export const receiveWMLEvent = (key: string) => (args: { event: SubscriptionClie
     }
 }
 
-export const updateStandard = (key: string) => (payload: UpdateStandardPayload) => async (dispatch: any, getState: any) => {
+export const updateStandard = (key: string) => (payload: UpdateStandardPayload, options?: ScopedInstrumentationOptions) => async (dispatch: any, getState: any) => {
     if (!isSchemaAssetUUID(key)) {
         return
     }

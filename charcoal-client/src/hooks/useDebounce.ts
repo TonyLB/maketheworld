@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { deepEqual } from '../lib/objects'
+import type { ScopedInstrumentationOptions } from '../testing/scopedInstrumentation'
 
 //
 // useDebounce lifted from https://usehooks.com/useDebounce/
@@ -28,7 +29,19 @@ export const useDebounce = <T>(value: T, delay: number) => {
 //
 // TODO: Refactor useDebouncedOnChange to return value and "force" function that bypasses the debounce
 //
-export const useDebouncedOnChange = <T>({ value, delay, onChange }: { value: T; delay: number; onChange: (value: T) => void }): [T, (value: T) => void] => {
+export const useDebouncedOnChange = <T>({
+    value,
+    delay,
+    onChange,
+    options,
+    instrumentationKey
+}: {
+    value: T
+    delay: number
+    onChange: (value: T) => void
+    options?: ScopedInstrumentationOptions
+    instrumentationKey?: string
+}): [T, (value: T) => void] => {
     const [baseValue, setBaseValue] = useState<T>(value)
     const [debouncedValue, setDebouncedValue] = useState<T>(value);
     useEffect(
@@ -49,11 +62,17 @@ export const useDebouncedOnChange = <T>({ value, delay, onChange }: { value: T; 
     useEffect(
         () => {
             if (!deepEqual(baseValue, debouncedValue)) {
+                const hasInstrumentation = !!(instrumentationKey && options?.instrumentation?.includes(instrumentationKey))
+                if (hasInstrumentation) {
+                    console.log(`[instrumentation:${instrumentationKey}] useDebouncedOnChange firing`, { from: baseValue, to: debouncedValue })
+                } else {
+                    console.log('[useDebouncedOnChange] firing (no instrumentation key)', { from: baseValue, to: debouncedValue })
+                }
                 onChange(debouncedValue)
                 setBaseValue(debouncedValue)
             }
         },
-        [baseValue, debouncedValue, onChange, setBaseValue]
+        [baseValue, debouncedValue, onChange, setBaseValue, instrumentationKey, options]
     )
     return [debouncedValue, (value) => {
         onChange(value)

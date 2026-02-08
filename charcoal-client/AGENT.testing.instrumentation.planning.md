@@ -41,6 +41,24 @@ That gives us named "channels" we can turn on per call tree without enabling ins
 
 **Workflow:** Same as options-threading: add the cache write at the send site when you need differentiation, add instrumentation in the response handler; when done debugging, remove differentiation and instrumentation but keep the cache plumbing (store on send, lookup on response) so it's ready next time.
 
+## Instrumentation thread: Guidance Mark facet value
+
+**Bug context:** In the Guidance editor, updating the *value* of a Mark facet does not persist when navigating away and back; adding a Mark facet works. Suspect `updateStandard` or the personalAssets slice.
+
+**Differentiation site (root):** Pass `instrumentation: ['guidance-mark-facet-value']` at the root of this flow. Natural place: **GuidanceEditor** (optional `options` prop). Callers (WorkbenchAssetEditor, LayeredContextView) can pass options when debugging.
+
+**Threading path:**
+
+1. **GuidanceEditor** – Accept optional `options?: ScopedInstrumentationOptions`. Pass `options` to `MarkFacetsEditor` and to every `updateStandard(payload, options)` call (e.g. in `handleMarksChange`).
+2. **MarkFacetsEditor** – Accept optional `options?`. Pass to `FacetListEditorGeneric` and into `renderFacetRow` so the payload editor receives it.
+3. **FacetListEditorGeneric** – Accept optional `options?`. Pass to `renderFacetRow(facet, index, handlers, options)` so consumers can pass options to the payload editor.
+4. **MarkFacetPayloadEditor** – Accept optional `options?`. Pass to `useDebouncedOnChange(..., options, instrumentationKey: 'guidance-mark-facet-value')`.
+5. **useDebouncedOnChange** – Accept optional `options?` and `instrumentationKey?`. When `instrumentationKey` is in `options?.instrumentation`, log when debounced onChange fires (value -> newValue).
+6. **useWorkbenchAsset** – `updateStandard` accepts optional second argument `options?`. Pass through to the thunk.
+7. **personalAssets** – Thunk `updateStandard(assetId)(payload, options?)`. When `options?.instrumentation` includes the key, log before/after applying the update (or in the thunk before dispatch).
+
+**Instrumentation sites (where to add logs when key is active):** `useDebouncedOnChange` (debounce fire); personalAssets thunk (payload / state around update).
+
 ## Other planned patterns / tools
 
 *(Add more as we design them.)*

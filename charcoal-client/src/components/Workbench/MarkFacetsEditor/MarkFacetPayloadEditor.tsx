@@ -4,6 +4,7 @@ import TextField from "@mui/material/TextField"
 import Typography from "@mui/material/Typography"
 import { StandardMarkFacet } from "@tonylb/mtw-wml/ts/standardize/keys/facets/mark"
 import { useDebouncedOnChange } from "../../../hooks/useDebounce"
+import type { ScopedInstrumentationOptions } from "../../../testing/scopedInstrumentation"
 
 export interface MarkFacetPayloadEditorProps {
     facet: StandardMarkFacet
@@ -11,6 +12,7 @@ export interface MarkFacetPayloadEditorProps {
     readonly?: boolean
     /** Human-readable label for the referenced Mark (e.g. shortName). Falls back to key/universalKey when absent. */
     referenceDisplayName?: string
+    options?: ScopedInstrumentationOptions
 }
 
 /** Extract displayable string from Mark facet payload (Plain string, or Remove/Replace object from round-trip). */
@@ -28,7 +30,8 @@ export const MarkFacetPayloadEditor: FunctionComponent<MarkFacetPayloadEditorPro
     facet,
     onChange,
     readonly = false,
-    referenceDisplayName
+    referenceDisplayName,
+    options
 }) => {
     const ref = facet.reference
     const label = referenceDisplayName ?? ref.key ?? ref.universalKey ?? "Mark"
@@ -47,7 +50,8 @@ export const MarkFacetPayloadEditor: FunctionComponent<MarkFacetPayloadEditorPro
             if (readonly) return
             if (newValue === incomingValue) return
             onChange(newValue)
-        }
+        },
+        options
     })
 
     const handleChange = useCallback((event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
