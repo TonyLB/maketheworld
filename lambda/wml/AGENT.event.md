@@ -86,11 +86,11 @@ The WML Lambda receives events from multiple sources:
   - Triggered by: Move Asset operations, canonization, decanonization
 
 - `Content Update` - WML content successfully edited
-  - Includes: StandardForm schema (serialized to WML string)
+  - Includes: StandardForm schema (serialized to WML string), `RequestIds` for client pending-edit clearance
   - Triggered by: Apply Edit operations via DataSource
-  
+
 - `Merge Conflict` - Edit application failed
-  - Includes: error message
+  - Includes: error message, `RequestIds` for client pending-edit clearance
   - Triggered by: Apply Edit merge failures via DataSource
 
 ### Internal Event Orchestration
@@ -193,7 +193,7 @@ This document is part of a coordinated event flow documentation effort across th
 ### Low Priority (Future Enhancements)
 
 3. **Enhanced Event Metadata**
-   - Add requestId tracking through event chains
+   - RequestId/RequestIds tracking through event chains is implemented: client sends RequestId with applyEdit, WML dataSource streams RequestIds in Content Update/Merge Conflict, subscription message carries top-level RequestIds, client clears pendingEdits by RequestIds (see mtw-interfaces subscriptions and charcoal-client receiveWMLEvent).
    - Include timing/performance metrics in events
    - Add event causality tracking for debugging
 
