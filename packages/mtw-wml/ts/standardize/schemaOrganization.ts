@@ -30,8 +30,8 @@ const PARENT_CHILD_TIERS: ParentChildTier[] = [
     },
     {
         referenceTypes: ['Facet'],
-        refFilter: (ref) => ref > 0,
-        description: 'Positive Facet references'
+        refFilter: (ref) => ref >= 0,
+        description: 'Non-negative Facet references (ref=0 is first facet, e.g. Mark in Guidance)'
     },
     {
         referenceTypes: ['Facet'],
@@ -395,7 +395,6 @@ export class SchemaOrganization {
                 })
             )
             const selectedMatches = tierResults.find(matches => matches.length > 0) ?? []
-            
             // Map selected matches to edge format
             return selectedMatches.map(item => ({
                 parent: item.parent,

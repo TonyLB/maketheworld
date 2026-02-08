@@ -93,13 +93,15 @@ export class StandardGuidancePayload implements HasShortName, ComponentConstruct
     }
 
     schema(key: string, universalKey?: ComponentUUID, mappings?: StandardReference[]): GenericTreeNode<SchemaTag> {
+        const markNodes = this.marks.items.flatMap((facet) => {
+            const result = facet.renderFacet(undefined, undefined)
+            const node = result.aggregatedNode ?? result.newNode
+            return node ? [node] : []
+        })
         const children = [
             ...[this._shortName].filter(excludeUndefined).map((s) => s.nestedSchema()).flat(1),
             ...[this._instructions].filter(excludeUndefined).map((i) => i.nestedSchema()).flat(1),
-            ...this.marks.items.map(facet => {
-                const ref = facet.reference as StandardReference
-                return ref.schema
-            }).flat(1)
+            ...markNodes
         ].filter(excludeUndefined)
         return {
             data: { tag: 'Guidance', key, uuid: universalKey },

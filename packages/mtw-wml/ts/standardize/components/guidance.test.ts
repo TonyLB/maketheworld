@@ -1,5 +1,6 @@
 import { Schema, schemaToWML } from "../../schema"
 import { deIndentWML } from "../../schema/utils"
+import { StandardForm } from ".."
 import { StandardGuidanceData } from "./dataTypes/guidance"
 import StandardGuidance from "./guidance"
 
@@ -54,11 +55,7 @@ describe('StandardGuidance class', () => {
         `)
         schema.loadWML(testSource)
         const guidance = new StandardGuidance(schema.schema[0])
-        expect(guidance.key).toBe('darkGuidance')
-        expect(guidance.instructions).toBeDefined()
-        expect(guidance.shortName).toBeDefined()
-        expect(guidance.marks.length).toBe(1)
-        // Schema output uses reference-only Mark facets; do not assert full WML equality
+        expect(schemaToWML([guidance.schema])).toEqual(testSource)
     })
 
     it('should serialize to JSON correctly', () => {
@@ -102,11 +99,26 @@ describe('StandardGuidance class', () => {
             `<Guidance key=(test)>
                 <Instructions>First</Instructions>
             </Guidance>`,
-            `<Guidance key=(test)>
+            `<Guidance key=(test) ref={0}>
                 <Instructions>Second</Instructions>
             </Guidance>`
         )).toEqual(deIndentWML(`
             <Guidance key=(test)><Instructions>FirstSecond</Instructions></Guidance>
+        `))
+    })
+
+    it('should merge guidance with Mark facets', () => {
+        expect(mergeTest(
+            `<Guidance key=(test)>
+                <Mark uuid=(mark-id)><Match></Match></Mark>
+            </Guidance>`,
+            `<Guidance key=(test) ref={0}>
+                <Mark uuid=(mark-id) ref={0}><Match>Second</Match></Mark>
+            </Guidance>`
+        )).toEqual(deIndentWML(`
+            <Guidance key=(test)>
+                <Mark uuid=(mark-id)><Match>Second</Match></Mark>
+            </Guidance>
         `))
     })
 
@@ -155,5 +167,22 @@ describe('StandardGuidance class', () => {
         const guidance = new StandardGuidance(wml)
         expect(guidance.marks.length).toBe(0)
         expect(guidance.instructions).toBeDefined()
+    })
+})
+
+describe('Guidance facet round-trip (WML -> StandardForm -> WML)', () => {
+    it('should not emit Mark at top level when Guidance has a Mark facet with Match value', () => {
+        const wml = deIndentWML(`
+            <Asset uuid=(asset-id)>
+                <Guidance uuid=(guidance-id) ref={0}>
+                    <Mark uuid=(mark-id) ref={0}><Match>Dark</Match></Mark>
+                </Guidance>
+            </Asset>
+        `)
+        const standardForm = new StandardForm(wml)
+        const roundTripWML = schemaToWML([standardForm.schema])
+
+        expect(roundTripWML).toEqual(wml)
+
     })
 })
