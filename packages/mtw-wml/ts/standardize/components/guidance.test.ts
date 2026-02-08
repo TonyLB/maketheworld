@@ -98,12 +98,16 @@ describe('StandardGuidance class', () => {
         expect(mergeTest(
             `<Guidance key=(test)>
                 <Instructions>First</Instructions>
+                <Mark uuid=(mark-id)><Match>First</Match></Mark>
             </Guidance>`,
             `<Guidance key=(test) ref={0}>
                 <Instructions>Second</Instructions>
             </Guidance>`
         )).toEqual(deIndentWML(`
-            <Guidance key=(test)><Instructions>FirstSecond</Instructions></Guidance>
+            <Guidance key=(test)>
+                <Instructions>FirstSecond</Instructions>
+                <Mark uuid=(mark-id)><Match>First</Match></Mark>
+            </Guidance>
         `))
     })
 
