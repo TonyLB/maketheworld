@@ -1,7 +1,20 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { createDataSourceSlice, DataSourceSliceConfig } from './index'
 import { DataSourceAggregator } from '@tonylb/mtw-lambda-patterns/ts/dataSource/aggregation'
 import { DataSourceEventSerializer } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+
+// Capture the processRawSnapshot (wrapper) passed to createInitializeAction for sidecar tests
+let capturedProcessRawSnapshot: ((payload: { streamKey: string; timestamp: number; rawSnapshot: any }) => any) | null = null
+vi.mock('./index.api', async (importOriginal) => {
+    const mod = await importOriginal<typeof import('./index.api')>()
+    return {
+        ...mod,
+        createInitializeAction: (...args: any[]) => {
+            capturedProcessRawSnapshot = args[1]
+            return (mod.createInitializeAction as (...a: any[]) => any)(...args)
+        }
+    }
+})
 
 // Test types
 type TestSnapshot = {
@@ -171,6 +184,62 @@ describe('dataSource slice', () => {
             // Should not throw and should create valid slice
             expect(slice).toBeDefined()
             expect(slice.reducer).toBeDefined()
+        })
+
+        describe('sidecar snapshot', () => {
+            beforeEach(() => {
+                capturedProcessRawSnapshot = null
+            })
+
+            it('when resolveSidecarSnapshot is configured, invokes resolver and dispatches processRawSnapshot with resolved payload and same timestamp', async () => {
+                const resolvedSnapshot = { type: 'Snapshot' as const, value: 99 }
+                const resolveSidecarSnapshot = vi.fn().mockResolvedValue(resolvedSnapshot)
+                const config: DataSourceSliceConfig<TestSnapshot, TestUpdate, any, any> = {
+                    name: 'testDataSource',
+                    dataSourceKey: 'test.dataSource',
+                    aggregator: mockAggregator,
+                    eventSerializer: mockSerializer,
+                    isSnapshot: isTestSnapshot,
+                    isUpdate: isTestUpdate,
+                    sliceSelector: (state) => state.testDataSource,
+                    resolveSidecarSnapshot
+                }
+                createDataSourceSlice(config)
+                expect(capturedProcessRawSnapshot).toBeDefined()
+                const streamKey = 'stream1'
+                const timestamp = 1000
+                const rawSnapshot = { type: 'Snapshot' as const, sidecarUrl: 'https://example.com/sidecar', createdAt: 500 }
+                const dispatch = vi.fn()
+                const result = capturedProcessRawSnapshot!({ streamKey, timestamp, rawSnapshot })
+                expect(typeof result).toBe('function')
+                await (result as (d: any) => Promise<void>)(dispatch)
+                expect(resolveSidecarSnapshot).toHaveBeenCalledWith(streamKey, 'https://example.com/sidecar', rawSnapshot)
+                expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({
+                    payload: { streamKey, timestamp, rawSnapshot: resolvedSnapshot }
+                }))
+            })
+
+            it('when sidecarUrl is present but resolveSidecarSnapshot is not configured, does not dispatch processRawSnapshot', () => {
+                const config: DataSourceSliceConfig<TestSnapshot, TestUpdate, any, any> = {
+                    name: 'testDataSource',
+                    dataSourceKey: 'test.dataSource',
+                    aggregator: mockAggregator,
+                    eventSerializer: mockSerializer,
+                    isSnapshot: isTestSnapshot,
+                    isUpdate: isTestUpdate,
+                    sliceSelector: (state) => state.testDataSource
+                }
+                createDataSourceSlice(config)
+                expect(capturedProcessRawSnapshot).toBeDefined()
+                const dispatch = vi.fn()
+                const result = capturedProcessRawSnapshot!({
+                    streamKey: 'stream1',
+                    timestamp: 1000,
+                    rawSnapshot: { type: 'Snapshot' as const, sidecarUrl: 'https://example.com/sidecar' }
+                })
+                expect(result).toBeUndefined()
+                expect(dispatch).not.toHaveBeenCalled()
+            })
         })
     })
 })

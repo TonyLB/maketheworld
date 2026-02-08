@@ -82,7 +82,8 @@ export const performCleanup = <
 }
 
 //
-// Reducer: Process incoming snapshot event
+// Reducer: Process incoming snapshot event.
+// Sidecar resolution (fetch from sidecarUrl when present) happens before this reducer runs.
 // Curried: First apply config, then return the reducer (state, action) => void
 //
 export const processRawSnapshot = <

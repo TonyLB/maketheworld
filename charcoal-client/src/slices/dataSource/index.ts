@@ -27,6 +27,8 @@ export interface DataSourceSliceConfig<
     promiseCache?: PromiseCache<DataSourceData<SnapshotPayload, UpdatePayload>>  // Optional promise cache for state machine coordination
     onReady?: (dispatch: any, getState: any, sliceActions: any) => void  // Optional callback when slice reaches READY state (after INITIALIZE completes). Receives dispatch, getState, and slice actions for subscription management.
     holdCondition?: ISSMHoldCondition<DataSourceInternal, DataSourcePublic<SnapshotPayload, UpdatePayload>>  // Optional additional hold condition (checked alongside lifelineCondition)
+    /** When set, Snapshot events with sidecarUrl are fetched and resolved to ExternalSnapshotPayload before processRawSnapshot. Omit for inline-only data sources. */
+    resolveSidecarSnapshot?: (streamKey: string, sidecarUrl: string, rawSnapshot: any) => Promise<ExternalSnapshotPayload>
 }
 
 //
@@ -41,7 +43,7 @@ export const createDataSourceSlice = <
 >(
     config: DataSourceSliceConfig<SnapshotPayload, UpdatePayload, ExternalUpdatePayload, ExternalSnapshotPayload>
 ) => {
-    const { name, dataSourceKey, aggregator, eventSerializer, isSnapshot, isUpdate, sliceSelector, promiseCache: providedPromiseCache, holdCondition } = config
+    const { name, dataSourceKey, aggregator, eventSerializer, isSnapshot, isUpdate, sliceSelector, promiseCache: providedPromiseCache, holdCondition, resolveSidecarSnapshot } = config
 
     // Create a promise cache if one wasn't provided
     const promiseCache = providedPromiseCache ?? new PromiseCache<DataSourceData<SnapshotPayload, UpdatePayload>>()
@@ -190,6 +192,23 @@ export const createDataSourceSlice = <
         template
     })
 
+    // Sidecar-aware wrapper: when rawSnapshot has sidecarUrl and resolveSidecarSnapshot is set,
+    // return a thunk that fetches/resolves then dispatches processRawSnapshot with resolved payload.
+    const processRawSnapshotWithSidecar = (payload: { streamKey: string; timestamp: number; rawSnapshot: any }) => {
+        const { streamKey, timestamp, rawSnapshot } = payload
+        if (rawSnapshot?.sidecarUrl && resolveSidecarSnapshot) {
+            return async (dispatch: any) => {
+                const resolved = await resolveSidecarSnapshot(streamKey, rawSnapshot.sidecarUrl, rawSnapshot)
+                dispatch(result.publicActions.processRawSnapshot({ streamKey, timestamp, rawSnapshot: resolved }))
+            }
+        }
+        if (rawSnapshot?.sidecarUrl && !resolveSidecarSnapshot) {
+            console.warn(`[${dataSourceKey}] Snapshot has sidecarUrl but resolveSidecarSnapshot is not configured; ignoring. streamKey=${streamKey}`)
+            return
+        }
+        return result.publicActions.processRawSnapshot(payload)
+    }
+
     // Now that we have the result with publicActions, create the initialize action
     // This needs to be done after singleSSM call because we need access to the action creators
     // Create a wrapper for onReady that passes slice actions
@@ -205,7 +224,7 @@ export const createDataSourceSlice = <
         : undefined
     initializeAction = createInitializeAction<SnapshotPayload, UpdatePayload>(
         dataSourceKey,
-        result.publicActions.processRawSnapshot,
+        processRawSnapshotWithSidecar,
         result.publicActions.processRawEvent,
         onReadyWrapper,
         sliceSelector  // Pass sliceSelector so we can read current state after onReady

@@ -40,6 +40,18 @@ export type DataSourceRecord<SnapshotPayload, UpdatePayload> = ISSMDataLayout<Da
 export type DataSourceReturn<SnapshotPayload, UpdatePayload> = ISSMDataReturn<DataSourceInternal, DataSourcePublic<SnapshotPayload, UpdatePayload>>
 export type DataSourceAction<SnapshotPayload, UpdatePayload> = ISSMAction<DataSourceInternal, DataSourcePublic<SnapshotPayload, UpdatePayload>>
 
+//
+// Snapshot event shape from backend: may have inline payload or sidecarUrl.
+// When sidecarUrl is present, the client fetches from that URL and resolves before applying.
+//
+export type SnapshotUpdateWithSidecar = {
+    type: 'Snapshot';
+    payload?: unknown;
+    sidecarUrl?: string;
+    createdAt?: number;
+    expiresAt?: number;
+}
+
 export interface DataSourceNodes<SnapshotPayload, UpdatePayload> {
     INITIAL: ISSMHoldNode<DataSourceInternal, DataSourcePublic<SnapshotPayload, UpdatePayload>>;
     INITIALIZE: ISSMAttemptNode<DataSourceInternal, DataSourcePublic<SnapshotPayload, UpdatePayload>>;

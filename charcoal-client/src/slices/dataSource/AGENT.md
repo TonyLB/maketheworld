@@ -58,6 +58,7 @@ export const {
 - **`isSnapshot`**: Type guard to identify snapshot events
 - **`isUpdate`**: Type guard to identify update events
 - **`sliceSelector`**: Function to select this slice from root state
+- **`resolveSidecarSnapshot`** (optional): For data sources that receive Snapshot events with a `sidecarUrl` instead of an inline payload, provide a function `(streamKey, sidecarUrl, rawSnapshot) => Promise<ExternalSnapshotPayload>`. The client will fetch from the URL, then your function parses the response and returns the same external snapshot shape that `deserializeSnapshot` expects. Omit for inline-only data sources. The same timestamp-based ordering applies for sidecar snapshots.
 
 ### **Using the Slice**
 
@@ -148,6 +149,10 @@ The pattern enforces strict lifecycle ordering through multiple safety mechanism
 - **Pattern Consistency**: Follows established lifecycle patterns across the codebase
 
 ## Key Features
+
+### **Sidecar Snapshot Handling**
+
+Snapshot events from the backend may contain either an inline `payload` or a `sidecarUrl`. When `sidecarUrl` is present, the client does not put the snapshot body in the WebSocket message; instead the event carries a URL (e.g. a presigned S3 GET). If your slice config provides **`resolveSidecarSnapshot`**, the framework will call it with `(streamKey, sidecarUrl, rawSnapshot)`. Your function should fetch the URL, parse the response body (e.g. JSON or WML), and return the same `ExternalSnapshotPayload` shape that your `eventSerializer.deserializeSnapshot` expects. That resolved payload is then applied as the snapshot with the same timestamp from the StreamEvent envelope, so timestamp-based ordering (ignore events before snapshot, apply events after) works unchanged.
 
 ### **Out-of-Order Event Handling**
 
