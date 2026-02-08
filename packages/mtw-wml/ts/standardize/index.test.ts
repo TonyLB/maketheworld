@@ -1389,11 +1389,12 @@ describe('StandardForm', () => {
         const mergedWML = (new StandardForm(baseWML)).merge(new StandardForm(incomingWML))
         expect(schemaToWML([mergedWML.schema])).toEqual(deIndentWML(`
             <Asset uuid=(testAsset)>
-                <Mark uuid=(mark)><ShortName>Illumination</ShortName></Mark>
                 <Room uuid=(room)>
                     <Lens uuid=(lens)>
                         <ShortName>Environment</ShortName>
-                        <Mark uuid=(mark) />
+                        <Mark uuid=(mark)>
+                            <ShortName>Illumination</ShortName>
+                        </Mark>
                     </Lens>
                     <Guidance uuid=(guidance)>
                         <ShortName>Dark</ShortName>

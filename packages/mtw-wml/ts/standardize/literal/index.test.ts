@@ -1,3 +1,5 @@
+import { schemaToWML } from '../../schema'
+import { deIndentWML } from '../../schema/utils'
 import { StandardLiteral, PlainClass, RemoveClass, ReplaceClass } from './index'
 
 describe('StandardLiteral', () => {
@@ -241,6 +243,24 @@ describe('StandardLiteral', () => {
             const literal = new StandardLiteral(tree, { tag: 'ShortName' })
             expect(literal.toJSON()).toBe('test')
             expect(literal._wrapperTag).toBe('ShortName')
+        })
+    })
+
+    describe('multi-line render', () => {
+        it('should render long Instructions content in full when schemaToWML is used (regression: literalTagFactory nested output)', () => {
+            // Content long enough to trigger multi-line (wrapped) output from literalTagFactory
+            // so that collapse() receives one full result, not only the opening tag.
+            const longContent = 'This is a very long instruction text that should trigger multi-line wrapping when rendered to WML.'
+            const literal = new StandardLiteral(longContent, { tag: 'Instructions' })
+            const schema = literal.nestedSchema()
+            const wml = schemaToWML(schema)
+
+            expect(wml).toEqual(deIndentWML(`
+                <Instructions>
+                    This is a very long instruction text that should trigger multi-line wrapping
+                    when rendered to WML.
+                </Instructions>
+            `))
         })
     })
 })
