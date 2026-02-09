@@ -60,7 +60,7 @@ describe('WML DataSource', () => {
     it('should create wmlDataSource instance', () => {
         expect(wmlDataSource).toBeDefined()
         expect(wmlDataSource.dataSourceKey).toBe('mtw.wml')
-        expect(wmlDataSource.replayable).toBe(false)
+        expect(wmlDataSource.replayable).toBe(true)
     })
 
     it('should have event serializer configured', () => {
@@ -70,7 +70,7 @@ describe('WML DataSource', () => {
 
         it('should have correct data source configuration', () => {
             expect(wmlDataSource.dataSourceKey).toBe('mtw.wml')
-            expect(wmlDataSource.replayable).toBe(false)
+            expect(wmlDataSource.replayable).toBe(true)
             expect(wmlDataSource.getSerializer()).toBeDefined()
         })
     })

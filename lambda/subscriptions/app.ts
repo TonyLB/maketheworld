@@ -11,11 +11,13 @@ import { apiClient } from "./apiClient"
 import { apiClient as rawAPIClient } from "@tonylb/mtw-utilities/ts/apiManagement/apiManagementClient"
 import { CoordinationClientSessionInitializedMessage } from "@tonylb/mtw-interfaces/ts/coordination"
 
-// Configuration for replayable DataSources that support snapshot initialization
+// DataSources that receive Initialize Subscription on subscribe (snapshot-on-subscribe).
+// Includes replayable (Dynamo replay) and mtw.wml (sidecar snapshot only).
 const REPLAYABLE_DATA_SOURCES = [
     'mtw.assets.contentHeaders',
     'mtw.assets.library',
-    'mtw.assets.players'
+    'mtw.assets.players',
+    'mtw.wml' // Sidecar snapshot on subscribe; Dynamo replay of events since snapshot
     // Future: 'mtw.ephemera'
 ] as const
 

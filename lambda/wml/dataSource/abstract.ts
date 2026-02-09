@@ -1,4 +1,4 @@
-import { DataSource, SerializableObject } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
+import { DataSource, SerializableObject, SidecarSnapshotDescriptor } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import { EventPayload, StreamingEventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { snsClient } from '../clients'
@@ -19,6 +19,7 @@ export class WMLDataSource<SnapshotPayload extends SerializableObject, UpdatePay
     constructor(params: {
         dataSourceKey: string;
         snapshotContentGenerator?: (streamKey: string) => Promise<SnapshotPayload>; // Optional - not needed for non-replayable data sources
+        snapshotSidecarUrlGenerator?: (streamKey: string) => Promise<SidecarSnapshotDescriptor>;
         snapshotTimeoutMs?: number;
         replayable?: boolean;
         subscribedEventTypeGuard?: (event: StreamingEventPayload) => event is SubscribedEvent;

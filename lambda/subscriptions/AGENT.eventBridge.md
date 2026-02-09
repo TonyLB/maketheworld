@@ -37,6 +37,23 @@ EventBridge Rule:
     Arn: arn:aws:lambda:region:account:function:mtw-assets-contentHeaders-lambda
 ```
 
+### Rule for mtw.wml
+
+The WML lambda handles Initialize Subscription for mtw.wml (sidecar snapshot on subscribe). Route the event to the WML lambda, not the assets lambda.
+
+```yaml
+EventBridge Rule:
+  Name: InitializeSubscription-mtw-wml
+  EventPattern:
+    source:
+      - mtw.subscriptions
+    detail-type:
+      - Initialize Subscription - mtw.wml
+  Target:
+    Type: Lambda
+    Arn: arn:aws:lambda:region:account:function:mtw-wml-lambda
+```
+
 ### Rule for Future DataSources
 
 ```yaml

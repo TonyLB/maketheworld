@@ -74,17 +74,13 @@ describe('subscriptions app handler', () => {
             })
         })
 
-        it('should NOT trigger snapshot initialization for non-replayable DataSources', async () => {
-            // Mock subscription match (matchAll returns array of handlers)
+        it('should trigger snapshot initialization for mtw.wml (sidecar snapshot on subscribe)', async () => {
             const mockMatch = {
                 subscribe: jest.fn().mockResolvedValue(undefined)
             }
             subscriptionLibraryMock.matchAll.mockReturnValue([mockMatch] as any)
-
-            // Mock session ID
             internalCacheMock.Global.get.mockResolvedValue('test-session-id')
 
-            // Mock Subscribe API message for non-replayable DataSource (WML)
             const subscribeRequest = {
                 message: 'subscribe',
                 dataSourceKey: 'mtw.wml',
@@ -97,19 +93,23 @@ describe('subscriptions app handler', () => {
                 body: JSON.stringify(subscribeRequest)
             }
 
-            // Execute handler
             const result = await handler(event)
 
-            // Verify subscription setup
             expect(mockMatch.subscribe).toHaveBeenCalledWith(
                 subscribeRequest,
                 'SESSION#test-session-id'
             )
 
-            // Verify EventBridge publishing is NOT called for non-replayable DataSources
-            expect(eventBridgeClientMock.send).not.toHaveBeenCalled()
+            expect(eventBridgeClientMock.send).toHaveBeenCalledWith([{
+                Source: 'mtw.subscriptions',
+                DetailType: 'Initialize Subscription - mtw.wml',
+                Detail: {
+                    streamKey: 'ASSET#123',
+                    sessionId: 'SESSION#test-session-id',
+                    requestId: 'test-request-id'
+                }
+            }])
 
-            // Verify success response
             expect(result.statusCode).toBe(200)
             expect(JSON.parse(result.body)).toEqual({
                 messageType: 'Success',
@@ -179,8 +179,7 @@ describe('subscriptions app handler', () => {
             expect(eventBridgeClientMock.send).toHaveBeenCalled()
         })
 
-        it('should identify mtw.wml as non-replayable', async () => {
-            // This test verifies the helper function works by testing the Subscribe API behavior
+        it('should identify mtw.wml as snapshot-on-subscribe (triggers Initialize Subscription)', async () => {
             const mockMatch = {
                 subscribe: jest.fn().mockResolvedValue(undefined)
             }
@@ -201,8 +200,15 @@ describe('subscriptions app handler', () => {
 
             await handler(event)
 
-            // Verify EventBridge was NOT called (indicating non-replayable DataSource)
-            expect(eventBridgeClientMock.send).not.toHaveBeenCalled()
+            expect(eventBridgeClientMock.send).toHaveBeenCalledWith([{
+                Source: 'mtw.subscriptions',
+                DetailType: 'Initialize Subscription - mtw.wml',
+                Detail: expect.objectContaining({
+                    streamKey: 'ASSET#123',
+                    sessionId: 'SESSION#test-session-id',
+                    requestId: 'test-request-id'
+                })
+            }])
         })
     })
 })
