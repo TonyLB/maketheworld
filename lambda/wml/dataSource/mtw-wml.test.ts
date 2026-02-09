@@ -7,6 +7,8 @@ import { createManualSnapshot } from '../s3Storage/manifest/orchestration'
 import AssetWorkspace from '../s3Storage/AssetWorkspace'
 import { applyEdit } from './applyEdit'
 import { ApplyEditResult } from './applyEdit'
+import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
+import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
 
 // Mock the moveAsset, initializePrimitives, and createManualSnapshot functions
 jest.mock('./moveAsset', () => ({
@@ -289,12 +291,14 @@ describe('WML DataSource', () => {
     })
 
     describe('Apply Edit Event Processing', () => {
+        const validEditWML = '<Asset uuid=(test-asset) />'
+
         it('should process successful applyEdit events', async () => {
             const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
             const mockApplyEditRequest = {
                 type: 'Apply Edit',
                 RequestId: 'test-request-123',
-                schema: 'test-wml-content'
+                schema: validEditWML
             }
 
             const mockSuccessResult: ApplyEditResult = {
@@ -321,18 +325,20 @@ describe('WML DataSource', () => {
             expect(applyEditMock).toHaveBeenCalledWith({
                 AssetId: 'ASSET#test-asset',
                 RequestId: 'test-request-123',
-                schema: 'test-wml-content'
+                schema: validEditWML
             })
 
-            // Verify Content Update event was streamed with RequestIds
+            // Verify Content Update event was streamed with delta (edit WML) and RequestIds
             expect(mockStreamEvent).toHaveBeenCalledWith({
                 update: {
                     type: 'Content Update',
-                    schema: mockSuccessResult.schema,
+                    schema: expect.any(StandardForm),
                     RequestIds: ['test-request-123']
                 },
                 streamKey: 'ASSET#test-asset'
             })
+            const streamedSchema = mockStreamEvent.mock.calls[0][0].update.schema
+            expect(schemaToWML([streamedSchema.schema])).toBe(validEditWML)
         })
 
         it('should stream Merge Conflict event when applyEdit fails', async () => {
@@ -340,7 +346,7 @@ describe('WML DataSource', () => {
             const mockApplyEditRequest = {
                 type: 'Apply Edit',
                 RequestId: 'test-request-456',
-                schema: 'invalid-wml-content'
+                schema: '<Asset uuid=(x)></Asset>'
             }
 
             const mockFailureResult: ApplyEditResult = {
@@ -366,7 +372,7 @@ describe('WML DataSource', () => {
             expect(applyEditMock).toHaveBeenCalledWith({
                 AssetId: 'ASSET#test-asset',
                 RequestId: 'test-request-456',
-                schema: 'invalid-wml-content'
+                schema: '<Asset uuid=(x)></Asset>'
             })
 
             // Verify Merge Conflict event was streamed so client knows the edit failed
@@ -381,7 +387,7 @@ describe('WML DataSource', () => {
             const mockApplyEditRequest = {
                 type: 'Apply Edit',
                 RequestId: 'test-request-789',
-                schema: 'test-wml-content'
+                schema: validEditWML
             }
 
             applyEditMock.mockRejectedValue(new Error('WML processing failed'))
@@ -403,7 +409,7 @@ describe('WML DataSource', () => {
             expect(applyEditMock).toHaveBeenCalledWith({
                 AssetId: 'ASSET#test-asset',
                 RequestId: 'test-request-789',
-                schema: 'test-wml-content'
+                schema: validEditWML
             })
 
             // Verify no Content Update event was streamed
@@ -415,7 +421,7 @@ describe('WML DataSource', () => {
             const mockApplyEditRequest = {
                 type: 'Apply Edit',
                 RequestId: 'test-request-999',
-                schema: 'test-wml-content'
+                schema: validEditWML
             }
 
             const mockSuccessResult: ApplyEditResult = {
@@ -442,7 +448,7 @@ describe('WML DataSource', () => {
             expect(applyEditMock).toHaveBeenCalledWith({
                 AssetId: 'ASSET#test-asset',
                 RequestId: 'test-request-999',
-                schema: 'test-wml-content'
+                schema: validEditWML
             })
 
             // Verify streaming was attempted
@@ -454,7 +460,7 @@ describe('WML DataSource', () => {
             const mockApplyEditRequest = {
                 type: 'Apply Edit',
                 RequestId: 'test-request-000',
-                schema: 'test-wml-content'
+                schema: validEditWML
             }
 
             // Test with invalid streamKey (not a valid asset UUID)
@@ -479,7 +485,7 @@ describe('WML DataSource', () => {
             const mockApplyEditRequest = {
                 type: 'Apply Edit',
                 RequestId: 'test-request-singleflight',
-                schema: 'test-wml-content'
+                schema: validEditWML
             }
 
             const mockSuccessResult: ApplyEditResult = {
@@ -504,25 +510,27 @@ describe('WML DataSource', () => {
             expect(applyEditMock).toHaveBeenCalledWith({
                 AssetId: 'ASSET#test-asset',
                 RequestId: 'test-request-singleflight',
-                schema: 'test-wml-content'
+                schema: validEditWML
             })
 
-            // Verify the result was processed correctly
+            // Verify the result was processed correctly (Content Update carries delta)
             expect(mockStreamEvent).toHaveBeenCalledWith({
                 update: {
                     type: 'Content Update',
-                    schema: mockSuccessResult.schema,
+                    schema: expect.any(StandardForm),
                     RequestIds: ['test-request-singleflight']
                 },
                 streamKey: 'ASSET#test-asset'
             })
+            const streamedSchema = mockStreamEvent.mock.calls[0][0].update.schema
+            expect(schemaToWML([streamedSchema.schema])).toBe(validEditWML)
         })
 
         it('should stream RequestIds empty array when Apply Edit payload has no RequestId', async () => {
             const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
             const mockApplyEditRequest = {
                 type: 'Apply Edit',
-                schema: 'test-wml-content'
+                schema: validEditWML
                 // No RequestId
             }
 
@@ -547,11 +555,13 @@ describe('WML DataSource', () => {
             expect(mockStreamEvent).toHaveBeenCalledWith({
                 update: {
                     type: 'Content Update',
-                    schema: mockSuccessResult.schema,
+                    schema: expect.any(StandardForm),
                     RequestIds: []
                 },
                 streamKey: 'ASSET#test-asset'
             })
+            const streamedSchema = mockStreamEvent.mock.calls[0][0].update.schema
+            expect(schemaToWML([streamedSchema.schema])).toBe(validEditWML)
         })
     })
 

@@ -166,7 +166,7 @@ We address these in implementation order. As decisions are made, record them her
 
 ## Testing
 
-- **WML dataSource**: Unit tests for aggregator (apply Content Update replaces view; Merge Conflict no change). Slice test: processRawEvent updates subscribedStreams[streamKey].materializedView. Optional: integration with LifeLine and subscribe.
+- **WML dataSource**: Unit tests for aggregator (apply Content Update merges delta into view; Merge Conflict no change). Slice test: processRawEvent updates subscribedStreams[streamKey].materializedView. Optional: integration with LifeLine and subscribe.
 - **personalAssets**: Reducer tests for clearPendingEditsByRequestIds (clear by RequestIds; leave others; no base change). Remove or adjust tests that asserted base update in receiveWMLEvent.
 - **Selectors**: getBase(assetId) returns dataSource view when present.
 - **E2E / manual**: Open asset, apply edit, receive Content Update → base from dataSource updates, pendingEdits cleared for that RequestId, same re-render.
@@ -175,7 +175,7 @@ We address these in implementation order. As decisions are made, record them her
 
 ## Optional Follow-Ups
 
-- **Differential Content Update**: Backend sends editWml (delta) instead of full wml; only WML dataSource aggregator changes to merge delta; personalAssets unchanged.
+- **Differential Content Update**: **Done.** Backend sends delta (edit WML) in Content Update; WML dataSource aggregator must apply (merge) delta; personalAssets unchanged.
 - **Deprecate legacy fetch API**: Once all "open asset" flows use subscribe + sidecar Snapshot, remove or deprecate `message: 'fetch'` and getFetchURL for WML if unused.
 
 ---

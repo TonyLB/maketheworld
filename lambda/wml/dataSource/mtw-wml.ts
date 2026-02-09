@@ -7,6 +7,7 @@ import { purgeAsset } from './purgeAsset'
 import { CoordinationEventUpdate, isCoordinationEventUpdate, isCoordinationCanonizeEvent, isCoordinationDecanonizeEvent, isMoveAssetRequest, isApplyEditRequest, isCreateSnapshotRequest, isPurgeAssetRequest, MoveAssetRequest } from './coordinationSerializer'
 import { DiagnosticsEventUpdate, isS3StructureFindingEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics'
 import { isSchemaAssetUUID, AssetUUID } from "@tonylb/mtw-base/ts/schema"
+import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { initializePrimitives } from './initializePrimitives'
 import { createManualSnapshot } from '../s3Storage/manifest/orchestration'
 import AssetWorkspace from '../s3Storage/AssetWorkspace'
@@ -94,12 +95,12 @@ export const wmlDataSource = new WMLDataSource<{}, WMLEventUpdate, WMLSubscribed
                     }) as ApplyEditResult
                     
                     if (result.success) {
-                        // Stream Content Update event
+                        // Stream Content Update event with delta (edit) for clients to merge onto current state
                         try {
                             await streamEvent({
                                 update: {
                                     type: 'Content Update',
-                                    schema: result.schema,
+                                    schema: new StandardForm(payload.schema),
                                     RequestIds: payload.RequestId != null ? [payload.RequestId] : []
                                 },
                                 streamKey: AssetId

@@ -10,6 +10,7 @@ import { nodeFromWML } from '@tonylb/mtw-wml/ts/schema'
 import { Zone, isZone } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 // Internal types for WML events
+// Content Update: carries edit/delta (not full document). Consumers must merge onto current state.
 export type WMLContentEvent = 
     | {
         type: 'Content Update'
@@ -47,6 +48,7 @@ export type WMLPurgeEvent = {
 export type WMLEventUpdate = WMLContentEvent | WMLZoneEvent | WMLSnapshotEvent | WMLPurgeEvent
 
 // External types for WML events
+// Content Update: wml is edit/delta WML (Replace/Remove etc.). Consumers must merge onto current state.
 export type WMLContentEventExternal = 
     | {
         type: 'Content Update'
