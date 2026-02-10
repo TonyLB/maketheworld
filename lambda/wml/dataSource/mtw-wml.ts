@@ -7,9 +7,11 @@ import { purgeAsset } from './purgeAsset'
 import { CoordinationEventUpdate, isCoordinationEventUpdate, isCoordinationCanonizeEvent, isCoordinationDecanonizeEvent, isMoveAssetRequest, isApplyEditRequest, isCreateSnapshotRequest, isPurgeAssetRequest, MoveAssetRequest } from './coordinationSerializer'
 import { DiagnosticsEventUpdate, isS3StructureFindingEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics'
 import { isSchemaAssetUUID, AssetUUID } from "@tonylb/mtw-base/ts/schema"
+import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { initializePrimitives } from './initializePrimitives'
 import { createManualSnapshot } from '../s3Storage/manifest/orchestration'
 import AssetWorkspace from '../s3Storage/AssetWorkspace'
+import { getSidecarSnapshotDescriptor } from '../s3Storage/sidecarSnapshot'
 import { singleFlightFactory } from '@tonylb/mtw-lambda-patterns/ts/singleFlight'
 import assetDB from '../utilities/mockableAssetDB'
 import { ApplyEditResult } from './applyEdit'
@@ -38,21 +40,17 @@ type WMLSubscribedEvent =
     })
 
 //
-// Non-replayable DataSource singleton for mtw.wml
-// 
-// This DataSource handles WML-specific events and provides serialization/deserialization
-// between internal StandardForm objects and WML string format.
-// 
-// Key responsibilities:
-// - Serialize StandardForm to WML format for EventBridge events
-// - Deserialize incoming WML format events back to StandardForm for processing
-// - Handle WML-specific event processing (currently stubbed)
-// - Provide the foundation for future WML lambda refactoring
+// mtw.wml DataSource: snapshot-on-subscribe via S3 sidecar, then Content Update / Merge Conflict events.
+//
+// On subscribe, initializeSubscription delivers a Snapshot with sidecarUrl (presigned GET for
+// immutable snapshot or materialized view). Client fetches URL and applies result as initial view.
+// replayable: true is required so the DataSource subscribes to Initialize Subscription events;
+// getRecentEvents returns [] (no Dynamo event store for WML).
 //
 export const wmlDataSource = new WMLDataSource<{}, WMLEventUpdate, WMLSubscribedEvent, WMLEventExternal>({
     dataSourceKey: 'mtw.wml',
-    replayable: false, // Non-replayable - focuses on event streaming and serialization
-    // No snapshotContentGenerator needed for non-replayable data sources
+    replayable: true, // Required for initializeSubscription (sidecar snapshot on subscribe)
+    snapshotSidecarUrlGenerator: async (streamKey: string) => getSidecarSnapshotDescriptor(streamKey as AssetUUID),
     subscribedEventTypeGuard: (event: StreamingEventPayload): event is WMLSubscribedEvent => {
         // Subscribe to:
         // 1. Internal coordination events (direct API calls)
@@ -97,12 +95,12 @@ export const wmlDataSource = new WMLDataSource<{}, WMLEventUpdate, WMLSubscribed
                     }) as ApplyEditResult
                     
                     if (result.success) {
-                        // Stream Content Update event
+                        // Stream Content Update event with delta (edit) for clients to merge onto current state
                         try {
                             await streamEvent({
                                 update: {
                                     type: 'Content Update',
-                                    schema: result.schema,
+                                    schema: new StandardForm(payload.schema),
                                     RequestIds: payload.RequestId != null ? [payload.RequestId] : []
                                 },
                                 streamKey: AssetId

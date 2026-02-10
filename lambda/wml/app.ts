@@ -2,6 +2,7 @@ import backupWML from "./backupWML";
 import internalCache from "./internalCache";
 import { S3Client } from "@aws-sdk/client-s3";
 import messageBus from "./messageBus";
+import type { InitializeSubscriptionEventMessage, ExternalStreamingEventMessage } from "./messageBus/baseClasses";
 import { extractReturnValue } from "./returnValue/index";
 import { CoordinationEventExternal, CoordinationEventSerializer, CoordinationEventUpdate } from './dataSource/coordinationSerializer';
 import { fromEventBridgeFormat } from '@tonylb/mtw-lambda-patterns/ts/dataSource/formatTransform';
@@ -45,6 +46,26 @@ export const handler = async (event: any, context: any) => {
 
     // Handle EventBridge messages by publishing to messageBus for DataSource processing
     if (event?.source && event["detail-type"]) {
+        // Initialize Subscription - mtw.wml: forward to messageBus so wmlDataSource can call initializeSubscription
+        if (event.source === 'mtw.subscriptions' && event["detail-type"] === 'Initialize Subscription - mtw.wml') {
+            const initMessage: InitializeSubscriptionEventMessage = {
+                type: 'StreamingEvent',
+                dataSourceKey: 'mtw.subscriptions',
+                streamKey: event.detail.streamKey || '',
+                detailEnvelope: {
+                    type: event["detail-type"],
+                    update: {
+                        sessionId: event.detail.sessionId,
+                        requestId: event.detail.requestId
+                    }
+                },
+                timestamp: event.time ? new Date(event.time).getTime() : Date.now()
+            }
+            messageBus.send(initMessage)
+            await messageBus.flush()
+            return
+        }
+
         // Find the appropriate deserializer for this data source
         const deserializer = eventDeserializers[event.source as keyof typeof eventDeserializers]
         
@@ -69,13 +90,14 @@ export const handler = async (event: any, context: any) => {
                 })
             } else {
                 // Publish deserialized event to messageBus for DataSource processing
-                messageBus.send({
+                const externalMessage: ExternalStreamingEventMessage = {
                     type: 'StreamingEvent',
-                    dataSourceKey: coreFormat.dataSourceKey as any,
+                    dataSourceKey: coreFormat.dataSourceKey,
                     streamKey: coreFormat.streamKey,
-                    event: internalEvent as any,
+                    event: internalEvent,
                     timestamp: event.time ? new Date(event.time).getTime() : Date.now()
-                })
+                }
+                messageBus.send(externalMessage)
             }
         } else {
             // No deserializer available - this is an error condition
