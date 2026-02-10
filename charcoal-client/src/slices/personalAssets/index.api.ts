@@ -18,6 +18,7 @@ import { publicSelectors } from './selectors'
 import { isSchemaImport } from '@tonylb/mtw-base/ts/schema/metaData'
 import { isImportable, ComponentUUID, AssetUUID, isSchemaAssetUUID } from '@tonylb/mtw-base/ts/schema'
 import { isSubscriptionClientMessage, WMLSubscriptionClientMessage } from '@tonylb/mtw-interfaces/ts/subscriptions'
+import { subscribeToWmlDataSource, unsubscribeFromWmlDataSource } from '../wmlDataSource'
 
 export const lifelineCondition: PersonalAssetsCondition = ({}, getState) => {
     const state = getState()
@@ -55,6 +56,19 @@ export const fetchAction: PersonalAssetsAction = ({ internalData: { id, fetchURL
     // Tell the backend to deliver mtw.wml events for this asset (Content Update / Merge Conflict)
     if (id && isSchemaAssetUUID(id)) {
         dispatch(socketDispatch({ message: 'subscribe', dataSourceKey: 'mtw.wml', streamKeys: [id] }, { service: 'subscriptions' }))
+        //
+        // TEMPORARY: Parallel subscription into the WML dataSource slice
+        // -----------------------------------------------------------------
+        // While personalAssets still owns the direct mtw.wml subscription and
+        // base application, also subscribe the generic wmlDataSource slice to
+        // the same stream so we can compare materializedView with the legacy
+        // personalAssets.base for validation during the migration.
+        //
+        // This call should be removed once WML dataSource fully owns
+        // subscribe/unsubscribe and personalAssets stops fetching/applying
+        // WML directly (see AGENT.subscriberSync.refactor.planning.md).
+        //
+        dispatch(subscribeToWmlDataSource([id]))
     }
     
     const fetchedAssetWML = await fetch(fetchURL, { method: 'GET' }).then((response) => (response.text()))
@@ -166,6 +180,15 @@ export const clearAction: PersonalAssetsAction = ({ internalData: { id, subscrip
     // Tell the backend to stop delivering mtw.wml events for this asset
     if (id) {
         dispatch(socketDispatch({ message: 'unsubscribe', dataSourceKey: 'mtw.wml', streamKeys: [id] }, { service: 'subscriptions' }))
+        //
+        // TEMPORARY: Mirror the personalAssets unsubscribe into the WML dataSource
+        // ------------------------------------------------------------------------
+        // Keep the wmlDataSource slice subscription lifecycle aligned with the
+        // legacy personalAssets subscription so we can safely compare states
+        // during migration. This will be removed when wmlDataSource owns the
+        // mtw.wml subscribe/unsubscribe responsibility.
+        //
+        dispatch(unsubscribeFromWmlDataSource([id]))
     }
     return { 
         publicData: { originalWML: undefined, currentWML: undefined },

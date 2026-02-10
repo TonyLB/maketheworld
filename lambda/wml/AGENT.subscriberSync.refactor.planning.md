@@ -1,6 +1,6 @@
 # Subscriber Sync Refactor: WML DataSource as Single Source of Truth
 
-**Status**: PLANNING (backend generic sidecar: implemented; front-end sidecar handling: implemented)  
+**Status**: PLANNING (backend generic sidecar: implemented; front-end sidecar handling: implemented; WML dataSource slice: implemented)  
 **Scope**: Client (charcoal-client) and backend (generalized sidecar snapshot support; mtw.wml snapshot on subscribe).  
 **Related**: [AGENT.event.md](./AGENT.event.md), RequestIds pipeline, optimistic updates in personalAssets
 
@@ -109,14 +109,14 @@ We address these in implementation order. As decisions are made, record them her
 
 ## Client Work Items
 
-### 1. WML dataSource slice
+### 1. WML dataSource slice (Done)
 
-- **Location**: `charcoal-client/src/slices/wmlDataSource/` (or `personalAssets/wmlDataSource` if colocated).
+- **Location**: `charcoal-client/src/slices/wmlDataSource/` (implemented).
 - **Create**:
-  - WML aggregator: `createEmpty()` returns empty StandardFormData; `applyUpdate(current, event)` for Content Update replaces with parsed full WML; Merge Conflict leaves view unchanged (or optional event for toast).
-  - WML event serializer: maps subscription message shape (Content Update with `wml`, Merge Conflict with `error`) to internal format for the aggregator.
-  - Slice via `createDataSourceSlice` with `dataSourceKey: 'mtw.wml'`, same pattern as contentHeaders/library/player.
-- **Snapshot**: Initial state comes from Snapshot event on subscribe (sidecar URL). Client dataSource framework must support "fetch from sidecarUrl then deserialize" (see Backend / Frontend above).
+  - WML aggregator: `createEmpty()` returns empty StandardFormData; `applyUpdate(current, event)` for Content Update merges the incoming StandardForm delta onto the current materialized view; Merge Conflict leaves view unchanged (or optional event for toast).
+  - WML event serializer: WML-specific dataSource serializer (Content Update with `wml`, Merge Conflict with `error`) that maps subscription message shape to internal WML content events for the aggregator, and identity-deserializes resolved snapshots (StandardFormData).
+  - Slice via `createDataSourceSlice` with `dataSourceKey: 'mtw.wml'`, same pattern as contentHeaders/library/player, including `resolveSidecarSnapshot(streamKey, sidecarUrl, rawSnapshot)` to fetch and parse the WML sidecar.
+- **Snapshot**: Initial state comes from Snapshot event on subscribe (sidecar URL). Client dataSource framework supports "fetch from sidecarUrl then deserialize" via `resolveSidecarSnapshot` and the generic sidecar wrapper.
 
 ### 2. personalAssets refactor
 
@@ -153,9 +153,9 @@ We address these in implementation order. As decisions are made, record them her
 | Backend (URL producer) | TBD (WML lambda or assets lambda) | Handle Initialize Subscription - mtw.wml; generate/locate S3 object; return Snapshot with sidecarUrl. |
 | Backend (EventBridge) | Config | Rule: Initialize Subscription - mtw.wml → target lambda (per question 2). |
 | charcoal-client (dataSource) | dataSource reducer or INITIALIZE handler | **Done.** When Snapshot has sidecarUrl, optional `resolveSidecarSnapshot` in slice config is invoked; wrapper then dispatches processRawSnapshot with resolved payload. Reducer unchanged; timestamp ordering preserved. |
-| charcoal-client | `src/slices/wmlDataSource/index.ts` (new) | Create slice: aggregator, serializer, createDataSourceSlice for mtw.wml; supports Snapshot (sidecar or inline) and Content Update / Merge Conflict. |
-| charcoal-client | `src/slices/wmlDataSource/selectors.ts` (new, optional) | Selector for getWMLBase(state, assetId). |
-| charcoal-client | `src/store/index.ts` | Register wmlDataSource reducer; ensure INITIALIZE. |
+| charcoal-client | `src/slices/wmlDataSource/index.ts` (new) | **Done.** Create slice: aggregator, serializer, createDataSourceSlice for mtw.wml; supports Snapshot (sidecar or inline) and Content Update / Merge Conflict. |
+| charcoal-client | `src/slices/wmlDataSource/selectors.ts` (new, optional) | **Done.** Selector for getWMLBase(state, assetId). |
+| charcoal-client | `src/store/index.ts` | **Done.** Register wmlDataSource reducer; ensure INITIALIZE. |
 | charcoal-client | `src/slices/personalAssets/reducers.ts` | receiveWMLEvent: only clear pendingEdits by RequestIds; remove base update. Optionally rename to clearPendingEditsByRequestIds. |
 | charcoal-client | `src/slices/personalAssets/selectors.ts` (or baseClasses) | getBase(assetId) derives from wmlDataSource.subscribedStreams[assetId].materializedView. |
 | charcoal-client | `src/slices/personalAssets/index.api.ts` | fetchAction: stop getFetchURL + fetch for WML; trigger wmlDataSource.subscribeToStreams([id]); keep lightweight LifeLine subscription for RequestIds + toast. clearAction: dataSource unsubscribe. |
@@ -166,7 +166,7 @@ We address these in implementation order. As decisions are made, record them her
 
 ## Testing
 
-- **WML dataSource**: Unit tests for aggregator (apply Content Update merges delta into view; Merge Conflict no change). Slice test: processRawEvent updates subscribedStreams[streamKey].materializedView. Optional: integration with LifeLine and subscribe.
+- **WML dataSource**: Unit tests for aggregator (apply Content Update merges delta into view; Merge Conflict no change) and dataSource serializer, plus slice tests (including sidecar Snapshot resolution). Optional: integration with LifeLine and subscribe.
 - **personalAssets**: Reducer tests for clearPendingEditsByRequestIds (clear by RequestIds; leave others; no base change). Remove or adjust tests that asserted base update in receiveWMLEvent.
 - **Selectors**: getBase(assetId) returns dataSource view when present.
 - **E2E / manual**: Open asset, apply edit, receive Content Update → base from dataSource updates, pendingEdits cleared for that RequestId, same re-render.
@@ -187,6 +187,6 @@ We address these in implementation order. As decisions are made, record them her
 3. **Backend – URL producer for mtw.wml**: **Done.** Handler for "Initialize Subscription - mtw.wml" in WML lambda generates presigned URL for asset content and sends Snapshot with sidecarUrl to client (via existing feedback/delivery path).
 4. **Backend – subscriptions**: **Done.** mtw.wml is in the snapshot-on-subscribe (replayable) list; subscriptions lambda emits "Initialize Subscription - mtw.wml" and EventBridge rule routes it to the WML lambda.
 5. **Frontend – sidecar snapshot handling**: **Done.** In charcoal-client dataSource slice: optional `resolveSidecarSnapshot` in config; wrapper returns thunk when sidecarUrl present, resolver fetches/parses then dispatches processRawSnapshot with same timestamp. Timestamp-based ordering unchanged.
-6. **Frontend – WML dataSource slice**: Add slice (aggregator, serializer, createDataSourceSlice); handle Snapshot (sidecar or inline) and Content Update / Merge Conflict; store registration and INITIALIZE.
+6. **Frontend – WML dataSource slice**: **Done.** Add slice (aggregator, serializer, createDataSourceSlice); handle Snapshot (sidecar or inline) and Content Update / Merge Conflict; store registration and INITIALIZE.
 7. **Frontend – personalAssets**: Derive base from dataSource; refactor receiveWMLEvent to only clearPendingEditsByRequestIds; open-asset flow triggers subscribe (no fetch for WML body); clearAction unsubscribes.
-8. **Tests and cleanup**: WML dataSource tests; personalAssets reducer tests; optional deprecation of getFetchURL for WML.
+8. **Tests and cleanup**: WML dataSource tests (implemented); personalAssets reducer tests; optional deprecation of getFetchURL for WML.
