@@ -14,6 +14,7 @@ import perceptionCache from '../slices/perceptionCache'
 import { contentHeadersSlice, subscribeToContentHeaders } from '../slices/contentHeaders'
 import { libraryDataSourceSlice, subscribeToLibrary } from '../slices/libraryDataSource'
 import { playerDataSourceSlice } from '../slices/player/playerDataSource'
+import { wmlDataSourceSlice } from '../slices/wmlDataSource'
 
 export const store = configureStore({
     reducer: {
@@ -29,7 +30,8 @@ export const store = configureStore({
         perceptionCache,
         contentHeaders: contentHeadersSlice.reducer,
         libraryDataSource: libraryDataSourceSlice.reducer,
-        playerDataSource: playerDataSourceSlice.reducer
+        playerDataSource: playerDataSourceSlice.reducer,
+        wmlDataSource: wmlDataSourceSlice.reducer
     },
     middleware: [thunk]
 })
