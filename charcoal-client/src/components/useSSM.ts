@@ -9,6 +9,7 @@ import { iterateAllSSMs as collaborationStatusSSM } from '../slices/UI/collabora
 import { iterateContentHeaders } from '../slices/contentHeaders'
 import { iterateLibraryDataSource } from '../slices/libraryDataSource'
 import { iteratePlayerDataSource } from '../slices/player/playerDataSource'
+import { iterateWmlDataSource } from '../slices/wmlDataSource'
 
 export const useStateSeekingMachines = () => {
     const dispatch = useDispatch()
@@ -22,6 +23,7 @@ export const useStateSeekingMachines = () => {
         dispatch(iterateContentHeaders)
         dispatch(iterateLibraryDataSource)
         dispatch(iteratePlayerDataSource)
+        dispatch(iterateWmlDataSource)
     }, [dispatch, heartbeat])
 }
 

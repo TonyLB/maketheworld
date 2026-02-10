@@ -1,4 +1,12 @@
-import { WMLEventSerializer, WMLEventUpdate, WMLEventExternal, isWMLContentUpdateEvent } from './index'
+import {
+    WMLEventSerializer,
+    WMLEventUpdate,
+    WMLEventExternal,
+    isWMLContentUpdateEvent,
+    WMLAggregator,
+    WMLDataSourceEventSerializer,
+    isWMLMaterializedView
+} from './index'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 
@@ -405,4 +413,107 @@ describe('WMLEventSerializer', () => {
         })
     })
 
+})
+
+describe('WMLAggregator', () => {
+    const aggregator = new WMLAggregator()
+
+    describe('createEmpty', () => {
+        it('should return empty StandardFormData shape', () => {
+            const empty = aggregator.createEmpty()
+            expect(empty).toBeDefined()
+            expect(empty.universalKey).toBeDefined()
+            expect(Array.isArray(empty.components)).toBe(true)
+            expect(empty.components).toHaveLength(0)
+            expect(empty.metaData).toBeDefined()
+        })
+    })
+
+    describe('applyUpdate', () => {
+        it('should merge Content Update onto view and return new snapshot', () => {
+            const view = aggregator.createEmpty()
+            const delta = new StandardForm(deIndentWML(`
+                <Asset uuid=(test-asset)>
+                    <Room key=(room1) uuid=(room1)>
+                        <ShortName>Room One</ShortName>
+                    </Room>
+                </Asset>
+            `))
+            const result = aggregator.applyUpdate(view, { type: 'Content Update', schema: delta })
+            expect(result.success).toBe(true)
+            if (result.success) {
+                expect(result.snapshot).toBeDefined()
+                expect(result.snapshot.components).toBeDefined()
+                expect(Array.isArray(result.snapshot.components)).toBe(true)
+            }
+        })
+
+        it('should return success false and unchanged snapshot for Merge Conflict', () => {
+            const view = aggregator.createEmpty()
+            const result = aggregator.applyUpdate(view, { type: 'Merge Conflict', error: 'conflict' })
+            expect(result.success).toBe(false)
+            expect(result.snapshot).toBe(view)
+        })
+    })
+})
+
+describe('WMLDataSourceEventSerializer', () => {
+    const serializer = new WMLDataSourceEventSerializer()
+
+    it('should deserialize Content Update external to internal', () => {
+        const wml = deIndentWML(`<Asset uuid=(test)></Asset>`)
+        const result = serializer.deserialize({
+            dataSourceKey: 'mtw.wml',
+            streamKey: 'ASSET#test',
+            externalUpdate: { type: 'Content Update', wml }
+        })
+        expect(result).not.toBeNull()
+        expect(result!.type).toBe('Content Update')
+        if (result && result.type === 'Content Update') {
+            expect(result.schema).toBeInstanceOf(StandardForm)
+        }
+    })
+
+    it('should deserialize Merge Conflict external to internal', () => {
+        const result = serializer.deserialize({
+            dataSourceKey: 'mtw.wml',
+            streamKey: 'ASSET#test',
+            externalUpdate: { type: 'Merge Conflict', error: 'Conflict' }
+        })
+        expect(result).not.toBeNull()
+        expect(result!.type).toBe('Merge Conflict')
+    })
+
+    it('should return null for non-content external event (Zone Changed)', () => {
+        const result = serializer.deserialize({
+            dataSourceKey: 'mtw.wml',
+            streamKey: 'ASSET#test',
+            externalUpdate: { type: 'Zone Changed', fromZone: 'Draft', toZone: 'Canon' } as any
+        })
+        expect(result).toBeNull()
+    })
+
+    it('should deserializeSnapshot as identity', () => {
+        const snapshot = {
+            universalKey: 'ASSET#test' as any,
+            components: [],
+            metaData: []
+        }
+        const result = serializer.deserializeSnapshot(snapshot)
+        expect(result).toBe(snapshot)
+    })
+})
+
+describe('isWMLMaterializedView', () => {
+    it('should return true for StandardFormData-shaped object', () => {
+        expect(isWMLMaterializedView({
+            universalKey: 'ASSET#test',
+            components: [],
+            metaData: []
+        })).toBe(true)
+    })
+
+    it('should return false for Content Update event', () => {
+        expect(isWMLMaterializedView({ type: 'Content Update', schema: {} })).toBe(false)
+    })
 })

@@ -4,7 +4,9 @@
 // Migrated from lambda/wml/dataSource/serializers.ts
 
 import { DataSourceEventSerializer } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import { DataSourceAggregator } from '@tonylb/mtw-lambda-patterns/ts/dataSource/aggregation'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
+import { StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes'
 import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
 import { nodeFromWML } from '@tonylb/mtw-wml/ts/schema'
 import { Zone, isZone } from '@tonylb/mtw-interfaces/ts/baseClasses'
@@ -168,6 +170,49 @@ export const isWMLPurgeEvent = (event: any): event is WMLPurgeEvent => {
 }
 
 /**
+ * Empty StandardFormData for WML dataSource materialized view before any snapshot/events.
+ */
+const EMPTY_WML_VIEW: StandardFormData = {
+    universalKey: 'ASSET#uninitialized' as any,
+    components: [],
+    metaData: []
+}
+
+/**
+ * Aggregator for WML dataSource slice: materialized view is StandardFormData;
+ * Content Update events merge delta onto view; Merge Conflict leaves view unchanged.
+ */
+export class WMLAggregator implements DataSourceAggregator<StandardFormData, WMLContentEvent> {
+    createEmpty(): StandardFormData {
+        return JSON.parse(JSON.stringify(EMPTY_WML_VIEW))
+    }
+
+    applyUpdate(view: StandardFormData, event: WMLContentEvent): { success: true; snapshot: StandardFormData } | { success: false; error: Error; snapshot: StandardFormData } {
+        if (event.type === 'Merge Conflict') {
+            return { success: false, error: new Error(event.error ?? 'Merge conflict'), snapshot: view }
+        }
+        const current = new StandardForm(view)
+        const merged = current.merge(event.schema)
+        return { success: true, snapshot: merged.toJSON() }
+    }
+}
+
+/**
+ * Type guard for materialized view (StandardFormData) in recentEvents.
+ * Used by WML dataSource slice to distinguish snapshot from update events.
+ */
+export const isWMLMaterializedView = (event: any): event is StandardFormData => {
+    return Boolean(
+        event &&
+        typeof event === 'object' &&
+        'universalKey' in event &&
+        'components' in event &&
+        Array.isArray(event.components) &&
+        'metaData' in event
+    )
+}
+
+/**
  * Serializer/Deserializer for WML format events
  * 
  * This handles the conversion between:
@@ -264,4 +309,32 @@ export class WMLEventSerializer implements DataSourceEventSerializer<WMLEventUpd
     
     // Note: serializeSnapshot and deserializeSnapshot are not implemented
     // as WML events are for a non-replayable data source that doesn't use snapshots
+}
+
+/**
+ * Event serializer for the WML dataSource slice (mtw.wml).
+ * Only content events (Content Update, Merge Conflict) are deserialized; other event types return null.
+ * Snapshot is StandardFormData; deserializeSnapshot is identity (slice receives resolved payload from sidecar).
+ */
+export class WMLDataSourceEventSerializer implements DataSourceEventSerializer<WMLContentEvent, WMLContentEventExternal, StandardFormData, StandardFormData> {
+    private readonly baseSerializer = new WMLEventSerializer()
+
+    serialize(params: { dataSourceKey: string; streamKey: string; update: WMLContentEvent }): WMLContentEventExternal {
+        return this.baseSerializer.serialize(params) as WMLContentEventExternal
+    }
+
+    deserialize(params: { dataSourceKey: string; streamKey: string; externalUpdate: WMLContentEventExternal }): WMLContentEvent | null {
+        if (!isWMLContentEventExternal(params.externalUpdate)) {
+            return null
+        }
+        const result = this.baseSerializer.deserialize(params)
+        if (result && isWMLContentEvent(result)) {
+            return result
+        }
+        return null
+    }
+
+    deserializeSnapshot(externalSnapshot: StandardFormData): StandardFormData | null {
+        return externalSnapshot
+    }
 }
