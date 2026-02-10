@@ -68,9 +68,9 @@ We use **generalized sidecar snapshot delivery** so initial state is not in the 
 
 - **Generalized sidecar snapshot contract**: Single Snapshot event shape with optional properties: `type: 'Snapshot', payload?: T, sidecarUrl?: string` (and optional metadata). The publisher decides which to send (inline payload or sidecarUrl). Client: if `sidecarUrl` present, fetch then deserialize; else use `payload`. DataSources that use sidecar implement "generate or locate S3 object; return presigned URL."
 - **Generic DataSource sidecar (implemented)**: In `packages/mtw-lambda-patterns/ts/dataSource/index.ts`, the DataSource class now supports an optional `snapshotSidecarUrlGenerator?: (streamKey: string) => Promise<SidecarSnapshotDescriptor>` where the descriptor is `{ sidecarUrl, createdAt, expiresAt? }`. When set, `initializeSubscription` uses it instead of `getSnapshotExternal`: it calls the generator, builds a Snapshot with `type: 'Snapshot', sidecarUrl, createdAt, expiresAt`, and delivers it via the existing `deliverReplayData` path so the client receives `update: { type: 'Snapshot', sidecarUrl }` with envelope timestamp. Use either `snapshotContentGenerator` (inline) or `snapshotSidecarUrlGenerator` (sidecar), not both. No changes to subscriptions or lambdas yet; mtw.wml can adopt this in a follow-up step.
-- **Subscriptions**: Add mtw.wml to replayable (or "snapshot-on-subscribe") list so that when client subscribes to mtw.wml, the subscriptions lambda emits "Initialize Subscription - mtw.wml" (same as contentHeaders). EventBridge rule routes that to the WML lambda.
+- **Subscriptions (implemented)**: Add mtw.wml to replayable (or "snapshot-on-subscribe") list so that when client subscribes to mtw.wml, the subscriptions lambda emits "Initialize Subscription - mtw.wml" (same as contentHeaders). EventBridge rule routes that to the WML lambda.
 - **Who produces the URL for mtw.wml**: WML lambda (decided). It has access to the asset's S3 layout: materialized view and `snapshots/` directory (see `lambda/wml/s3Storage/snapshots/` and materialized view). The lambda can locate or generate the appropriate object (e.g. current materialized view or latest snapshot) and issue a presigned GET URL for the sidecar.
-- **Content Update**: Unchanged; still full WML and RequestIds.
+- **Content Update**: Backend now sends delta (edit WML) plus RequestIds; WML dataSource aggregator must merge the delta onto the current materialized view instead of replacing it.
 
 ---
 
@@ -184,8 +184,8 @@ We address these in implementation order. As decisions are made, record them her
 
 1. **Decide open questions**: Snapshot event shape (sidecarUrl); who produces URL for mtw.wml; deprecate fetch or keep for metadata.
 2. **Backend – generic sidecar in DataSource**: **Done.** Extended mtw-lambda-patterns DataSource with optional `snapshotSidecarUrlGenerator` and sidecar delivery path in `initializeSubscription`; contract and tests in place.
-3. **Backend – URL producer for mtw.wml**: Implement handler for "Initialize Subscription - mtw.wml" (in WML lambda or assets lambda per decision); generate presigned URL for asset content; send Snapshot with sidecarUrl to client (via existing feedback/delivery path).
-4. **Backend – subscriptions**: Add mtw.wml to snapshot-on-subscribe list; EventBridge rule for Initialize Subscription - mtw.wml.
+3. **Backend – URL producer for mtw.wml**: **Done.** Handler for "Initialize Subscription - mtw.wml" in WML lambda generates presigned URL for asset content and sends Snapshot with sidecarUrl to client (via existing feedback/delivery path).
+4. **Backend – subscriptions**: **Done.** mtw.wml is in the snapshot-on-subscribe (replayable) list; subscriptions lambda emits "Initialize Subscription - mtw.wml" and EventBridge rule routes it to the WML lambda.
 5. **Frontend – sidecar snapshot handling**: **Done.** In charcoal-client dataSource slice: optional `resolveSidecarSnapshot` in config; wrapper returns thunk when sidecarUrl present, resolver fetches/parses then dispatches processRawSnapshot with same timestamp. Timestamp-based ordering unchanged.
 6. **Frontend – WML dataSource slice**: Add slice (aggregator, serializer, createDataSourceSlice); handle Snapshot (sidecar or inline) and Content Update / Merge Conflict; store registration and INITIALIZE.
 7. **Frontend – personalAssets**: Derive base from dataSource; refactor receiveWMLEvent to only clearPendingEditsByRequestIds; open-asset flow triggers subscribe (no fetch for WML body); clearAction unsubscribes.
