@@ -3,7 +3,7 @@ import { getCurrentTimestamp } from '../internalUtils/dateUtil'
 import { eventBridgeClient } from '@tonylb/mtw-utilities/ts/eventBridge'
 import { v4 as uuidv4 } from 'uuid'
 import { PublishCommand } from '@aws-sdk/client-sns'
-import { StreamingEvent, StreamingEventPayload, DataSourceEventSerializer, EventPayload } from './baseClasses'
+import { StreamingEvent, StreamingEventPayload, StreamingEventHeader, StreamingEventEnvelope, DataSourceEventSerializer, EventPayload } from './baseClasses'
 import { 
     CoreExternalFormat, 
     toEventBridgeFormat, 
@@ -85,9 +85,9 @@ export class DataSource<
     readonly singleFlight?: ReturnType<typeof singleFlightFactory<SnapshotType<ExternalSnapshotPayload>>>
     readonly feedbackTopicArn: string
     readonly replayable: boolean
-    readonly subscribedEventTypeGuard?: (event: StreamingEventPayload) => event is SubscribedEvent
+    readonly subscribedEventTypeGuard?: (header: StreamingEventHeader) => boolean
     readonly receiveEvents?: (params: { 
-        events: SubscribedEvent[], 
+        events: Array<StreamingEventEnvelope<UpdatePayload>>, 
         streamEvent: StreamEventFunction<UpdatePayload>
     }) => Promise<void>
     readonly eventSerializer?: DataSourceEventSerializer<UpdatePayload, ExternalUpdatePayload, SnapshotPayload, ExternalSnapshotPayload>
@@ -123,9 +123,9 @@ export class DataSource<
         feedbackTopicArn: string,
         replayable?: boolean,
         snapshotTimeoutMs?: number,
-        subscribedEventTypeGuard?: (event: StreamingEventPayload) => event is SubscribedEvent,
+        subscribedEventTypeGuard?: (header: StreamingEventHeader) => boolean,
         receiveEvents?: (params: { 
-            events: SubscribedEvent[], 
+            events: Array<StreamingEventEnvelope<UpdatePayload>>, 
             streamEvent: StreamEventFunction<UpdatePayload>
         }) => Promise<void>,
         eventSerializer?: DataSourceEventSerializer<UpdatePayload, ExternalUpdatePayload, SnapshotPayload, ExternalSnapshotPayload>,
@@ -607,9 +607,13 @@ export class DataSource<
             if (message.type !== 'StreamingEvent') {
                 return false
             }
-            // Strip the type field to get StreamingEventPayload format
-            const { type, ...streamingEventPayload } = message
-            return this.subscribedEventTypeGuard(streamingEventPayload)
+            const header: StreamingEventHeader = {
+                dataSourceKey: message.dataSourceKey,
+                streamKey: message.streamKey,
+                timestamp: message.timestamp,
+                type: message.detailEnvelope?.type
+            }
+            return this.subscribedEventTypeGuard(header)
         }
 
         // Subscribe to messageBus with the derived type guard and receiveEvents callback
@@ -618,11 +622,18 @@ export class DataSource<
             priority: 5, // Default priority for data source processing
             filter: streamingEventTypeGuard,
             callback: async ({ payloads }) => {
-                // Extract all StreamingEventPayload events from the batch
-                const events = payloads.map((streamingEvent) => {
-                    // Strip the type field to get StreamingEventPayload format
-                    const { type, ...streamingEventPayload } = streamingEvent
-                    return streamingEventPayload
+                // Wrap all payloads into StreamingEventEnvelope instances
+                const events: Array<StreamingEventEnvelope<UpdatePayload>> = payloads.map((streamingEvent) => {
+                    const header: StreamingEventHeader = {
+                        dataSourceKey: streamingEvent.dataSourceKey,
+                        streamKey: streamingEvent.streamKey,
+                        timestamp: streamingEvent.timestamp,
+                        type: streamingEvent.detailEnvelope?.type
+                    }
+                    return {
+                        header,
+                        content: streamingEvent.detailEnvelope as UpdatePayload
+                    }
                 })
                 
                 // Pass all events as a batch to receiveEvents

@@ -6,6 +6,15 @@ export type EventPayload = {
     type: string;
 } & Record<string, unknown>
 
+// Header for routing and discrimination (always inline, never sidecarred)
+export type StreamingEventHeader = {
+    dataSourceKey: string;
+    streamKey: string;
+    timestamp: number;
+    type: string;
+    // Optional small domain flags like zone can be added per DataSource
+}
+
 // External EventBridge format
 export type StreamingEvent = {
     messageType: 'StreamingEvent';
@@ -21,6 +30,13 @@ export type StreamingEventPayload = {
     streamKey: string;
     timestamp: number;
     detailEnvelope: EventPayload;
+}
+
+// In-process envelope that clearly separates header from content
+// Note: In this initial step, Content is still the internal payload.
+export type StreamingEventEnvelope<Content = EventPayload> = {
+    header: StreamingEventHeader;
+    content: Content;
 }
 
 // EventBridge serialization interface for DataSource integration
