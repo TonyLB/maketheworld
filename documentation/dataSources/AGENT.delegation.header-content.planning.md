@@ -1,6 +1,6 @@
 # DataSource Header/Content Refactor Planning
 
-**Status**: PLANNING  
+**Status**: IN PROGRESS  
 **Scope**: Generic DataSource framework (`mtw-lambda-patterns`) and all concrete DataSources (lambdas + client slices).  
 **Related**: `documentation/dataSources/AGENT.delegation.planning.md`, `packages/mtw-lambda-patterns/ts/dataSource/*`, `lambda/*/dataSource/*`, `charcoal-client/src/slices/dataSource/*`
 
@@ -79,11 +79,11 @@ For this planning doc, **headers and content remain eager**; we are not yet intr
 
 ---
 
-## Step 1: Core Types in `mtw-lambda-patterns`
+## Step 1 (COMPLETED): Core Types in `mtw-lambda-patterns`
 
 ### 1.1 Add explicit header and envelope types
 
-In `packages/mtw-lambda-patterns/ts/dataSource/baseClasses.ts`:
+In `packages/mtw-lambda-patterns/ts/dataSource/baseClasses.ts` (implemented):
 
 - Introduce:
 
@@ -109,26 +109,16 @@ export type StreamingEventEnvelope<Content = EventPayload> = {
 
 ### 1.2 Thread envelope into `DataSource` generics
 
-In `packages/mtw-lambda-patterns/ts/dataSource/index.ts`:
+In `packages/mtw-lambda-patterns/ts/dataSource/index.ts` (implemented):
 
-- Today `DataSource` uses:
-  - `SubscribedEvent extends StreamingEventPayload | never` and
-  - `subscribedEventTypeGuard?: (event: StreamingEventPayload) => event is SubscribedEvent`
-  - `receiveEvents?: (params: { events: SubscribedEvent[]; streamEvent: StreamEventFunction<UpdatePayload> }) => Promise<void>`
+- `DataSource` now uses:
+  - `readonly subscribedEventTypeGuard?: (header: StreamingEventHeader) => boolean`
+  - `readonly receiveEvents?: (params: { events: Array<StreamingEventEnvelope<UpdatePayload>>; streamEvent: StreamEventFunction<UpdatePayload> }) => Promise<void>`
+  - A `subscribe()` implementation that:
+    - Builds a `StreamingEventHeader` from the message bus payload.
+    - Wraps the existing `detailEnvelope` as `content` in `StreamingEventEnvelope<UpdatePayload>`.
 
-- Refactor so that:
-  - `subscribedEventTypeGuard` receives a `StreamingEventHeader` (or a thin wrapper around it), **not** the full internal payload.
-  - `receiveEvents` receives an array of `StreamingEventEnvelope<InternalUpdatePayload>`:
-
-    ```ts
-    readonly subscribedEventTypeGuard?: (header: StreamingEventHeader) => boolean | header is SubscribedHeader;
-    readonly receiveEvents?: (params: {
-        events: Array<StreamingEventEnvelope<UpdatePayload>>;
-        streamEvent: StreamEventFunction<UpdatePayload>;
-    }) => Promise<void>;
-    ```
-
-  - For this first step, `content` can still be the existing **internal** payload; a later step can swap that to external if desired.
+- For this first step, `content` remains the existing **internal** payload; a later step can swap that to external if desired.
 
 ### 1.3 Preserve serializer contracts
 
@@ -140,61 +130,71 @@ The goal here is purely structural: separate what is used for routing (`header`)
 
 ---
 
-## Step 2: `DataSource.subscribe` and messageBus integration
+## Step 2 (COMPLETED): `DataSource.subscribe` and messageBus integration
 
 ### 2.1 Adapt the subscription filter to headers
 
-In `DataSource.subscribe()` (`packages/mtw-lambda-patterns/ts/dataSource/index.ts`):
+In `DataSource.subscribe()` (`packages/mtw-lambda-patterns/ts/dataSource/index.ts`), the internal `streamingEventTypeGuard` now:
 
-- The internal `streamingEventTypeGuard` currently receives a message of roughly:
+- Expects internal streaming messages shaped like:
 
-```ts
-{ type: 'StreamingEvent', dataSourceKey, streamKey, timestamp, detailEnvelope }
-```
+  ```ts
+  {
+      type: 'StreamingEvent',
+      dataSourceKey: string,
+      streamKey: string,
+      timestamp: number,
+      detailEnvelope: EventPayload
+  }
+  ```
 
-and adapts it for `subscribedEventTypeGuard`.
+- Returns `false` unless:
+  - `message.type === 'StreamingEvent'`, and
+  - `message.detailEnvelope` exists with a string `type` field.
 
-- Change it to:
-  - Extract `type` (and any other header fields) from the inner payload.
-  - Build a `StreamingEventHeader`:
+- When those checks pass, it builds a `StreamingEventHeader` and delegates to the configured `subscribedEventTypeGuard`:
 
-    ```ts
-    const header: StreamingEventHeader = {
-        dataSourceKey: message.dataSourceKey,
-        streamKey: message.streamKey,
-        timestamp: message.timestamp,
-        type: innerPayload.type,
-        // zone etc. if present
-    };
-    ```
+  ```ts
+  const header: StreamingEventHeader = {
+      dataSourceKey: message.dataSourceKey,
+      streamKey: message.streamKey,
+      timestamp: message.timestamp,
+      type: message.detailEnvelope.type
+  };
+  return this.subscribedEventTypeGuard(header);
+  ```
 
-  - Pass this `header` to `subscribedEventTypeGuard`.
+This ensures that **routing and filtering are header-only**, and protects against malformed or non-streaming messages reaching DataSource handlers.
 
 ### 2.2 Pass envelopes into `receiveEvents`
 
-- In the subscription callback, instead of passing an array of bare `StreamingEventPayload` objects, build envelopes:
+- In the subscription callback, all payloads are now wrapped into `StreamingEventEnvelope<UpdatePayload>` instances:
 
-```ts
-const events: Array<StreamingEventEnvelope<UpdatePayload>> = payloads.map((streamingEvent) => {
-    const innerPayload = streamingEvent.detailEnvelope; // or equivalent
-    const header: StreamingEventHeader = {
-        dataSourceKey: streamingEvent.dataSourceKey,
-        streamKey: streamingEvent.streamKey,
-        timestamp: streamingEvent.timestamp,
-        type: innerPayload.type as string
-        // zone, etc., if we can reliably derive them
-    };
-    return { header, content: innerPayload as UpdatePayload };
-});
+  ```ts
+  const events: Array<StreamingEventEnvelope<UpdatePayload>> = payloads.map((streamingEvent) => {
+      const header: StreamingEventHeader = {
+          dataSourceKey: streamingEvent.dataSourceKey,
+          streamKey: streamingEvent.streamKey,
+          timestamp: streamingEvent.timestamp,
+          type: streamingEvent.detailEnvelope.type as string
+      };
+      return {
+          header,
+          content: streamingEvent.detailEnvelope as UpdatePayload
+      };
+  });
 
-await this.receiveEvents?.({ events, streamEvent: (params) => this.streamEvent(params) });
-```
+  await this.receiveEvents?.({
+      events,
+      streamEvent: (params) => this.streamEvent(params)
+  });
+  ```
 
 - `receiveEvents` implementations now clearly see:
-  - `event.header` for routing decisions.
-  - `event.content` for actual work.
+  - `event.header` for routing decisions (e.g., `event.header.type`, `event.header.dataSourceKey`).
+  - `event.content` for the actual payload semantics.
 
-This keeps current semantics but codifies the header/content split in the core plumbing.
+This keeps current behavior (content is still the internal payload) while codifying the header/content split in the core DataSource plumbing and tests.
 
 ---
 

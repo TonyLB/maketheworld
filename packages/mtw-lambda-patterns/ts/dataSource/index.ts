@@ -607,11 +607,14 @@ export class DataSource<
             if (message.type !== 'StreamingEvent') {
                 return false
             }
+            if (!message.detailEnvelope || typeof message.detailEnvelope.type !== 'string') {
+                return false
+            }
             const header: StreamingEventHeader = {
                 dataSourceKey: message.dataSourceKey,
                 streamKey: message.streamKey,
                 timestamp: message.timestamp,
-                type: message.detailEnvelope?.type
+                type: message.detailEnvelope.type
             }
             return this.subscribedEventTypeGuard(header)
         }
@@ -628,7 +631,7 @@ export class DataSource<
                         dataSourceKey: streamingEvent.dataSourceKey,
                         streamKey: streamingEvent.streamKey,
                         timestamp: streamingEvent.timestamp,
-                        type: streamingEvent.detailEnvelope?.type
+                        type: streamingEvent.detailEnvelope.type as string
                     }
                     return {
                         header,
