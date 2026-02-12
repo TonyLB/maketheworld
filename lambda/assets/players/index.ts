@@ -1,6 +1,6 @@
 import { AssetsDataSource } from '../dataSource/abstract'
 import internalCache from '../internalCache'
-import { StreamingEventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import { StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import {
     PlayerEventSerializer,
     PlayerSnapshot,
@@ -31,42 +31,20 @@ type LibraryWithSettings = {
     settings: PlayerSettingsUpdated['settings']
 }
 
-type AssetsStreamEvent = StreamingEventPayload & {
-    dataSourceKey: 'mtw.assets'
-    streamKey: AssetUUID
-    event: AssetLevelEventUpdate
-}
+const PLAYERS_ASSET_EVENT_TYPES = new Set(['Asset Added', 'Asset Removed', 'Asset Updated', 'Zone Updated'])
+const PLAYER_SETTINGS_TYPE = 'Player Settings Updated'
 
-type InternalPlayerEvent = StreamingEventPayload & {
-    dataSourceKey: 'internal'
-    streamKey: string
-    event: PlayerSettingsUpdatedEvent
-}
+/** Payload types of events mtw.assets.players subscribes to (internal + mtw.assets). */
+type PlayersSubscribedContent = PlayerSettingsUpdatedEvent | AssetLevelEventUpdate
 
-type PlayersSubscribedEvent = AssetsStreamEvent | InternalPlayerEvent
-
-const isAssetsStreamEvent = (event: StreamingEventPayload): event is AssetsStreamEvent => {
-    if (event.dataSourceKey !== 'mtw.assets') {
-        return false
+const subscribedEventTypeGuard = (header: StreamingEventHeader): boolean => {
+    if (header.dataSourceKey === 'internal') {
+        return header.type === PLAYER_SETTINGS_TYPE
     }
-    const payload = (event as any).detailEnvelope as any
-    if (!payload || typeof payload !== 'object' || typeof (payload as any).type !== 'string') {
-        return false
+    if (header.dataSourceKey === 'mtw.assets') {
+        return PLAYERS_ASSET_EVENT_TYPES.has(header.type)
     }
-    return [
-        isAssetAddedEvent,
-        isAssetRemovedEvent,
-        isAssetUpdatedEvent,
-        isZoneUpdatedEvent
-    ].some((guard) => guard(payload))
-}
-
-const isInternalPlayerEvent = (event: StreamingEventPayload): event is InternalPlayerEvent => {
-    return event.dataSourceKey === 'internal' && isPlayerSettingsUpdatedEvent((event as any).detailEnvelope as any)
-}
-
-const subscribedEventTypeGuard = (event: StreamingEventPayload): event is PlayersSubscribedEvent => {
-    return isAssetsStreamEvent(event) || isInternalPlayerEvent(event)
+    return false
 }
 
 const stripAssetId = (assetId: AssetUUID): string => {
@@ -162,7 +140,7 @@ const emitAssetRemoved = async (
     console.log(`[emitAssetRemoved] Player Asset Removed event streamed for player=${player}, assetId=${assetId}`)
 }
 
-export const playersDataSource = new AssetsDataSource<PlayerSnapshot, PlayerEventUpdate, PlayersSubscribedEvent>({
+export const playersDataSource = new AssetsDataSource<PlayerSnapshot, PlayerEventUpdate, PlayersSubscribedContent>({
     dataSourceKey: 'mtw.assets.players',
     replayable: true,
     snapshotContentGenerator: generatePlayerSnapshot,
@@ -171,29 +149,29 @@ export const playersDataSource = new AssetsDataSource<PlayerSnapshot, PlayerEven
     subscribedEventTypeGuard,
     receiveEvents: async ({ events, streamEvent }) => {
         await Promise.all(events.map(async (event) => {
+            const { header, content } = event
+            const streamKey = header.streamKey
             try {
-                if (isInternalPlayerEvent(event)) {
-                    await emitSettingsUpdated(streamEvent, event.streamKey)
+                if (header.dataSourceKey === 'internal' && isPlayerSettingsUpdatedEvent(content)) {
+                    await emitSettingsUpdated(streamEvent, streamKey)
                     return
                 }
 
-                if (isAssetsStreamEvent(event)) {
-                    const assetId = event.streamKey
+                if (header.dataSourceKey === 'mtw.assets') {
+                    const assetId = streamKey as AssetUUID
+                    const payload = content
 
-                    if (isAssetRemovedEvent((event as any).detailEnvelope as any)) {
-                        // Use zone and player from event payload (forwarded from source event) to avoid cache timing issues
-                        const { zone, player } = (event as any).detailEnvelope as any
+                    if (isAssetRemovedEvent(payload)) {
+                        const { zone, player } = payload
                         if (isPlayerZone(zone) && player) {
-                            // Invalidate cache for consistency (even though we only need assetId for removal)
                             await invalidatePlayerLibrary(player)
                             await emitAssetRemoved(streamEvent, player, assetId)
                         }
                         return
                     }
 
-                    if (isAssetAddedEvent((event as any).detailEnvelope as any)) {
-                        // Use zone and player from event payload to avoid cache timing issues
-                        const { zone, player } = (event as any).detailEnvelope as any
+                    if (isAssetAddedEvent(payload)) {
+                        const { zone, player } = payload
                         if (isPlayerZone(zone) && player) {
                             const library = await invalidatePlayerLibrary(player)
                             await emitAssetAssigned(streamEvent, player, assetId, library)
@@ -201,9 +179,8 @@ export const playersDataSource = new AssetsDataSource<PlayerSnapshot, PlayerEven
                         return
                     }
 
-                    if (isZoneUpdatedEvent((event as any).detailEnvelope as any)) {
-                        // Use zone and player from event payload to avoid cache timing issues
-                        const { fromZone, toZone, player } = (event as any).detailEnvelope as any
+                    if (isZoneUpdatedEvent(payload)) {
+                        const { fromZone, toZone, player } = payload
                         const wasPlayerZone = isPlayerZone(fromZone)
                         const nowPlayerZone = isPlayerZone(toZone)
 
@@ -212,7 +189,6 @@ export const playersDataSource = new AssetsDataSource<PlayerSnapshot, PlayerEven
                         }
 
                         if (!nowPlayerZone && wasPlayerZone) {
-                            // Invalidate cache for consistency (even though we only need assetId for removal)
                             await invalidatePlayerLibrary(player)
                             await emitAssetRemoved(streamEvent, player, assetId)
                             return
@@ -225,11 +201,8 @@ export const playersDataSource = new AssetsDataSource<PlayerSnapshot, PlayerEven
                         return
                     }
 
-                    if (isAssetUpdatedEvent((event as any).detailEnvelope as any)) {
-                        // Asset Updated handles metadata changes (ShortName/Summary)
-                        // If the asset is already in the player's library, the aggregator will handle idempotent updates
-                        // Use player from event payload to avoid cache timing issues
-                        const { player } = (event as any).detailEnvelope as any
+                    if (isAssetUpdatedEvent(payload)) {
+                        const { player } = payload
                         if (player) {
                             const library = await invalidatePlayerLibrary(player)
                             await emitAssetAssigned(streamEvent, player, assetId, library)
@@ -237,7 +210,7 @@ export const playersDataSource = new AssetsDataSource<PlayerSnapshot, PlayerEven
                     }
                 }
             } catch (error) {
-                console.error(`mtw.assets.players: failed to process event for stream ${event.streamKey}`, error)
+                console.error(`mtw.assets.players: failed to process event for stream ${streamKey}`, error)
             }
         }))
     }

@@ -1,5 +1,5 @@
 import { DataSource, SerializableObject } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
-import { EventPayload, StreamingEventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import { EventPayload, StreamingEventHeader, StreamingEventEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import messageBus from '../messageBus'
 import { SNSClient, PublishCommand } from '@aws-sdk/client-sns'
@@ -7,19 +7,20 @@ import { SNSClient, PublishCommand } from '@aws-sdk/client-sns'
 // Local SNS client wrapper matching the interface expected by DataSource
 const snsClient = new SNSClient({ region: process.env.AWS_REGION })
 
+/** SubscribedContent = payload type of events we subscribe to (incoming). UpdatePayload = what we publish. */
 export class EphemeraDataSource<
     SnapshotPayload extends SerializableObject,
     UpdatePayload extends EventPayload,
-    SubscribedEvent extends StreamingEventPayload = never
-> extends DataSource<SnapshotPayload, UpdatePayload, SubscribedEvent, EventPayload, 'EphemeraId'> {
+    SubscribedContent extends EventPayload = UpdatePayload
+> extends DataSource<SnapshotPayload, UpdatePayload, SubscribedContent, EventPayload, 'EphemeraId'> {
     constructor(params: {
         dataSourceKey: string;
         snapshotContentGenerator?: (streamKey: string) => Promise<SnapshotPayload>;
         snapshotTimeoutMs?: number;
         replayable?: boolean;
-        subscribedEventTypeGuard?: (event: StreamingEventPayload) => event is SubscribedEvent;
+        subscribedEventTypeGuard?: (header: StreamingEventHeader) => boolean;
         receiveEvents?: (params: {
-            events: SubscribedEvent[];
+            events: Array<StreamingEventEnvelope<SubscribedContent>>;
             streamEvent: (params: { update: UpdatePayload; streamKey: string }) => Promise<void>;
         }) => Promise<void>;
         eventSerializer?: any;

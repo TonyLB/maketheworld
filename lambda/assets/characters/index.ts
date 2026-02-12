@@ -9,8 +9,8 @@ import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardCharacter } from '@tonylb/mtw-wml/ts/standardize/components/character'
 import getCurrentTimestamp from '../internalUtils/dateUtil'
 import { CharacterEventSerializer, CharacterEventUpdate } from '@tonylb/mtw-interfaces/ts/eventBridge/assets/characters'
-import { isAssetsComponentEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
-import { StreamingEventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import { isAssetsComponentEvent, ComponentEventUpdate } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
+import { StreamingEventHeader, StreamingEventEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { ReferenceList } from '@tonylb/mtw-wml/ts/standardize/keys/referenceList'
 
 // Types for the characters data source
@@ -87,11 +87,11 @@ const generateCharacterSnapshot = async (assetId: string): Promise<CharacterSnap
 }
 
 const processComponentEvent = async (
-    event: StreamingEventPayload, 
+    event: StreamingEventEnvelope<unknown>,
     streamEvent: (params: { update: CharacterEventUpdate, streamKey: string }) => Promise<void>
 ): Promise<void> => {
-    const streamKey = event.streamKey
-    const update = event.detailEnvelope as any
+    const streamKey = event.header.streamKey
+    const update = event.content as any
 
     // Check if this is a component event and if it's a character component
     if (!isAssetsComponentEvent(update)) {
@@ -116,36 +116,28 @@ const processComponentEvent = async (
 }
 
 // Create the characters data source singleton
+const CONTENT_HEADER_TYPES = new Set(['Component Updated', 'Component Removed'])
+
+/** Payload types of events mtw.assets.characters subscribes to (mtw.assets component events). */
+type CharactersSubscribedContent = ComponentEventUpdate
+
 export const charactersDataSource = new AssetsDataSource<
     CharacterSnapshotPayload,
     CharacterEventUpdate,
-    StreamingEventPayload
+    CharactersSubscribedContent
 >({
     dataSourceKey: 'mtw.assets.characters',
     replayable: true,
     eventSerializer: new CharacterEventSerializer(), // Handle character event serialization
-    subscribedEventTypeGuard: (event: any): event is StreamingEventPayload => {
+    subscribedEventTypeGuard: (header: StreamingEventHeader): boolean => {
         // Subscribe to mtw.assets component events that might be character changes
-        return event.dataSourceKey === 'mtw.assets' && 
-               (event as any).detailEnvelope && 
-               typeof (event as any).detailEnvelope === 'object' &&
-               (event as any).detailEnvelope.update &&
-               typeof (event as any).detailEnvelope.update === 'object' &&
-               isAssetsComponentEvent((event as any).detailEnvelope.update)
+        return header.dataSourceKey === 'mtw.assets' && CONTENT_HEADER_TYPES.has(header.type)
     },
     snapshotContentGenerator: generateCharacterSnapshot,
     receiveEvents: async ({ events, streamEvent }) => {
         // Process component events in parallel - each event is independent
         await Promise.all(events.map(async (event) => {
-            // Check if this event should be processed by this data source
-            const subscribedEventTypeGuard = (event: any): event is StreamingEventPayload => {
-                return event.dataSourceKey === 'mtw.assets' && 
-                       (event as any).detailEnvelope && 
-                       typeof (event as any).detailEnvelope === 'object' &&
-                       isAssetsComponentEvent((event as any).detailEnvelope)
-            }
-            
-            if (!subscribedEventTypeGuard(event)) {
+            if (!isAssetsComponentEvent(event.content)) {
                 return
             }
             await processComponentEvent(event, streamEvent)

@@ -63,11 +63,16 @@ export type SnsUtils = {
 export type StreamEventFunction<UpdatePayload = any> = 
     (params: { update: UpdatePayload, streamKey: string }) => Promise<void>
 
+/**
+ * SubscribedContent = payload type of events this DataSource subscribes *to* (incoming).
+ * UpdatePayload = payload type this DataSource publishes (streamEvent, serializer).
+ * They often differ (e.g. mtw.wml subscribes to coordination/diagnostics, publishes WMLEventUpdate).
+ */
 export class DataSource<
-    SnapshotPayload extends SerializableObject, 
-    UpdatePayload extends EventPayload, 
-    SubscribedEvent extends StreamingEventPayload | never = never, 
-    ExternalUpdatePayload extends EventPayload = EventPayload, 
+    SnapshotPayload extends SerializableObject,
+    UpdatePayload extends EventPayload,
+    SubscribedContent extends EventPayload,
+    ExternalUpdatePayload extends EventPayload = EventPayload,
     KeyType extends string = string,
     ExternalSnapshotPayload extends SerializableObject = SnapshotPayload
 > {
@@ -87,7 +92,7 @@ export class DataSource<
     readonly replayable: boolean
     readonly subscribedEventTypeGuard?: (header: StreamingEventHeader) => boolean
     readonly receiveEvents?: (params: { 
-        events: Array<StreamingEventEnvelope<UpdatePayload>>, 
+        events: Array<StreamingEventEnvelope<SubscribedContent>>,
         streamEvent: StreamEventFunction<UpdatePayload>
     }) => Promise<void>
     readonly eventSerializer?: DataSourceEventSerializer<UpdatePayload, ExternalUpdatePayload, SnapshotPayload, ExternalSnapshotPayload>
@@ -125,7 +130,7 @@ export class DataSource<
         snapshotTimeoutMs?: number,
         subscribedEventTypeGuard?: (header: StreamingEventHeader) => boolean,
         receiveEvents?: (params: { 
-            events: Array<StreamingEventEnvelope<UpdatePayload>>, 
+            events: Array<StreamingEventEnvelope<SubscribedContent>>,
             streamEvent: StreamEventFunction<UpdatePayload>
         }) => Promise<void>,
         eventSerializer?: DataSourceEventSerializer<UpdatePayload, ExternalUpdatePayload, SnapshotPayload, ExternalSnapshotPayload>,
@@ -625,8 +630,8 @@ export class DataSource<
             priority: 5, // Default priority for data source processing
             filter: streamingEventTypeGuard,
             callback: async ({ payloads }) => {
-                // Wrap all payloads into StreamingEventEnvelope instances
-                const events: Array<StreamingEventEnvelope<UpdatePayload>> = payloads.map((streamingEvent) => {
+                // Wrap all payloads into StreamingEventEnvelope instances (content = subscribed payload from bus)
+                const events: Array<StreamingEventEnvelope<SubscribedContent>> = payloads.map((streamingEvent) => {
                     const header: StreamingEventHeader = {
                         dataSourceKey: streamingEvent.dataSourceKey,
                         streamKey: streamingEvent.streamKey,
@@ -635,7 +640,7 @@ export class DataSource<
                     }
                     return {
                         header,
-                        content: streamingEvent.detailEnvelope as UpdatePayload
+                        content: streamingEvent.detailEnvelope as SubscribedContent
                     }
                 })
                 

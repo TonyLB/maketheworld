@@ -1,7 +1,7 @@
 import EphemeraDataSource from './abstract'
-import { StreamingEventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import { StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { EphemeraEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/ephemera'
-import { 
+import {
     AssetsEventUpdate,
     isAssetsComponentUpdatedEvent,
     isCanonUpdatedEvent,
@@ -10,29 +10,22 @@ import {
 import messageBus from '../messageBus'
 import { isEphemeraRoomId, isEphemeraAssetId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
-// For first iteration, no UpdatePayload or SnapshotPayload usage
-type EphemeraSubscribedEvent = StreamingEventPayload & {
-    dataSourceKey: 'mtw.assets'
-    detailEnvelope: AssetsEventUpdate
-}
+const EPHEMERA_ASSET_EVENT_TYPES = new Set(['Component Updated', 'Canon Updated', 'Zone Updated'])
 
-export const ephemeraDataSource = new EphemeraDataSource<never, never, EphemeraSubscribedEvent>({
+// SubscribedContent = AssetsEventUpdate (we subscribe to mtw.assets). UpdatePayload = what we publish (same for Ephemera).
+export const ephemeraDataSource = new EphemeraDataSource<never, AssetsEventUpdate, AssetsEventUpdate>({
     dataSourceKey: 'mtw.ephemera',
     replayable: false,
     eventSerializer: new EphemeraEventSerializer(),
-    subscribedEventTypeGuard: (event: StreamingEventPayload): event is EphemeraSubscribedEvent => {
-        return Boolean(
-            event &&
-            event.dataSourceKey === 'mtw.assets' &&
-            (event as any).detailEnvelope && typeof (event as any).detailEnvelope === 'object' &&
-            (isAssetsComponentUpdatedEvent((event as any).detailEnvelope as any) || isCanonUpdatedEvent((event as any).detailEnvelope as any) || isZoneUpdatedEvent((event as any).detailEnvelope as any))
-        )
+    subscribedEventTypeGuard: (header: StreamingEventHeader): boolean => {
+        return header.dataSourceKey === 'mtw.assets' && EPHEMERA_ASSET_EVENT_TYPES.has(header.type)
     },
     receiveEvents: async ({ events }) => {
         await Promise.all(events.map(async (evt) => {
-            const { detailEnvelope: event, streamKey } = evt as any
-            if (isAssetsComponentUpdatedEvent(event)) {
-                const { component } = event
+            const content = evt.content as AssetsEventUpdate
+            const streamKey = evt.header.streamKey
+            if (isAssetsComponentUpdatedEvent(content)) {
+                const { component } = content
                 const componentId = component.universalKey || ''
                 if (isEphemeraRoomId(componentId)) {
                     messageBus.send({
@@ -44,16 +37,16 @@ export const ephemeraDataSource = new EphemeraDataSource<never, never, EphemeraS
                 // Passive observation is limited to rooms; other components are only observed actively
                 return
             }
-            if (isCanonUpdatedEvent(event)) {
-                const { assetIds } = event
+            if (isCanonUpdatedEvent(content)) {
+                const { assetIds } = content
                 messageBus.send({
                     type: 'CanonSet',
                     assetIds: assetIds.filter(isEphemeraAssetId)
                 })
                 return
             }
-            if (isZoneUpdatedEvent(event)) {
-                const { fromZone, toZone } = event
+            if (isZoneUpdatedEvent(content)) {
+                const { fromZone, toZone } = content
                 const assetId = streamKey as string
                 if (isEphemeraAssetId(assetId)) {
                     if (toZone === 'Canon' && fromZone !== 'Canon') {

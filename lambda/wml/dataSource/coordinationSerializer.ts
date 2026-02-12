@@ -39,6 +39,16 @@ export type PurgeAssetRequest = {
 // Union type for all internal coordination events
 export type CoordinationEventUpdate = CoordinationCanonizeEvent | CoordinationDecanonizeEvent | MoveAssetRequest | ApplyEditRequest | CreateSnapshotRequest | PurgeAssetRequest
 
+// Event type strings for header-only routing (used by subscribedEventTypeGuard)
+export const COORDINATION_EVENT_TYPES = new Set<string>([
+    'Canonize Asset',
+    'Decanonize Asset',
+    'Move Asset',
+    'Apply Edit',
+    'Create Snapshot',
+    'Purge Asset'
+])
+
 // External types for coordination events (same as internal since they're hand-created)
 export type CoordinationCanonizeEventExternal = {
     type: 'Canonize Asset';

@@ -1,6 +1,11 @@
 import { InternalMessageBus } from '@tonylb/mtw-lambda-patterns/ts/messageBus'
-import { StreamingEventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import { StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { CoordinationEventUpdate } from '../dataSource/coordinationSerializer'
+
+// WML messageBus streaming messages use a header-like shape (dataSourceKey, streamKey, timestamp, type)
+// plus a content payload (detailEnvelope or event). DataSource.subscribe() maps these into
+// StreamingEventEnvelope<Content> with header: StreamingEventHeader and content. Step 4 (gates)
+// will have gates build { header, content } explicitly when sending to the bus.
 
 export type ReturnValueMessage = {
     type: 'ReturnValue';
@@ -16,7 +21,9 @@ export type ErrorMessage = {
 }
 
 
-// Constrained to only the internal events that WML dataSource actually subscribes to
+// Constrained to only the internal events that WML dataSource actually subscribes to.
+// Header part: type, dataSourceKey, streamKey, timestamp (type comes from detailEnvelope.type when wrapped).
+// Content part: detailEnvelope.
 export type StreamingEventMessage = {
     type: 'StreamingEvent';
     dataSourceKey: 'internal';
@@ -40,7 +47,8 @@ export type InitializeSubscriptionEventMessage = {
     timestamp: number;
 }
 
-// EventBridge deserialized events (mtw.coordination, mtw.diagnostics) published to messageBus
+// EventBridge deserialized events (mtw.coordination, mtw.diagnostics) published to messageBus.
+// Header part: type, dataSourceKey, streamKey, timestamp. Content part: event.
 export type ExternalStreamingEventMessage = {
     type: 'StreamingEvent';
     dataSourceKey: string;
@@ -48,6 +56,9 @@ export type ExternalStreamingEventMessage = {
     event: unknown;
     timestamp: number;
 }
+
+// Re-export for use when building envelope-shaped messages (Step 4).
+export type { StreamingEventHeader }
 
 export type MessageType = ReturnValueMessage |
     ErrorMessage |

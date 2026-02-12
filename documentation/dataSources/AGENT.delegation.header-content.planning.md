@@ -198,9 +198,11 @@ This keeps current behavior (content is still the internal payload) while codify
 
 ---
 
-## Step 3: Update DataSource Implementations to Use `header` and `content`
+## Step 3 (COMPLETED): Update DataSource Implementations to Use `header` and `content`
 
 Every concrete DataSource must be updated to use `event.header` for routing and `event.content` for the payload.
+
+**Completed:** Lambda-specific abstract classes (WML, Assets, Ephemera) now declare `subscribedEventTypeGuard?: (header: StreamingEventHeader) => boolean` and `receiveEvents` with `events: Array<StreamingEventEnvelope<UpdatePayload>>`. All concrete DataSources (WML, assets main/contentHeaders/characters/library/players, ephemera) use header-only guards and envelope-shaped events; WML messageBus types document the header/content split. All related tests updated to pass header objects to guards and `{ header, content }` to `receiveEvents`.
 
 ### 3.1 WML DataSource
 

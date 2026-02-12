@@ -1,8 +1,8 @@
-import { libraryDataSource, SubscribedAssetsEvent } from './index'
+import { libraryDataSource } from './index'
 import { LibraryEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/assets/library'
-import { StreamingEventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
+import { AssetLevelEventUpdate } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
 
 // Mock external dependencies
 jest.mock('@tonylb/mtw-utilities/ts/dynamoDB', () => ({
@@ -61,77 +61,58 @@ describe('LibraryDataSource (mtw.assets.library)', () => {
 
     describe('Event Subscription', () => {
         it('should subscribe to Zone Updated events from mtw.assets', () => {
-            const zoneUpdatedEvent: StreamingEventPayload = {
+            const header = {
                 dataSourceKey: 'mtw.assets',
                 streamKey: 'ASSET#asset123',
-                detailEnvelope: {
-                    type: 'Zone Updated',
-                    fromZone: 'Canon',
-                    toZone: 'Library'
-                },
-                timestamp: Date.now()
+                timestamp: Date.now(),
+                type: 'Zone Updated'
             }
 
-            const shouldSubscribe = libraryDataSource.subscribedEventTypeGuard?.(zoneUpdatedEvent)
-            expect(shouldSubscribe).toBe(true)
+            expect(libraryDataSource.subscribedEventTypeGuard?.(header)).toBe(true)
         })
 
         it('should subscribe to Asset Cached events from mtw.assets', () => {
-            const assetCachedEvent: StreamingEventPayload = {
+            const header = {
                 dataSourceKey: 'mtw.assets',
                 streamKey: 'ASSET#asset123',
-                detailEnvelope: {
-                    type: 'Asset Cached',
-                    zone: 'Library'
-                },
-                timestamp: Date.now()
+                timestamp: Date.now(),
+                type: 'Asset Cached'
             }
 
-            const shouldSubscribe = libraryDataSource.subscribedEventTypeGuard?.(assetCachedEvent)
-            expect(shouldSubscribe).toBe(true)
+            expect(libraryDataSource.subscribedEventTypeGuard?.(header)).toBe(true)
         })
 
         it('should subscribe to Asset Removed events from mtw.assets', () => {
-            const assetRemovedEvent: StreamingEventPayload = {
+            const header = {
                 dataSourceKey: 'mtw.assets',
                 streamKey: 'ASSET#asset123',
-                detailEnvelope: {
-                    type: 'Asset Removed'
-                },
-                timestamp: Date.now()
+                timestamp: Date.now(),
+                type: 'Asset Removed'
             }
 
-            const shouldSubscribe = libraryDataSource.subscribedEventTypeGuard?.(assetRemovedEvent)
-            expect(shouldSubscribe).toBe(true)
+            expect(libraryDataSource.subscribedEventTypeGuard?.(header)).toBe(true)
         })
 
         it('should not subscribe to Component Updated events', () => {
-            const componentEvent: StreamingEventPayload = {
+            const header = {
                 dataSourceKey: 'mtw.assets',
                 streamKey: 'ASSET#asset123',
-                detailEnvelope: {
-                    type: 'Component Updated',
-                    component: {}
-                },
-                timestamp: Date.now()
+                timestamp: Date.now(),
+                type: 'Component Updated'
             }
 
-            const shouldSubscribe = libraryDataSource.subscribedEventTypeGuard?.(componentEvent)
-            expect(shouldSubscribe).toBe(false)
+            expect(libraryDataSource.subscribedEventTypeGuard?.(header)).toBe(false)
         })
 
         it('should not subscribe to events from other data sources', () => {
-            const otherEvent: StreamingEventPayload = {
+            const header = {
                 dataSourceKey: 'mtw.wml',
                 streamKey: 'ASSET#asset123',
-                detailEnvelope: {
-                    type: 'Content Update'
-                },
-                timestamp: Date.now()
+                timestamp: Date.now(),
+                type: 'Content Update'
             }
 
-            const shouldSubscribe = libraryDataSource.subscribedEventTypeGuard?.(otherEvent)
-            expect(shouldSubscribe).toBe(false)
+            expect(libraryDataSource.subscribedEventTypeGuard?.(header)).toBe(false)
         })
     })
 
@@ -144,15 +125,18 @@ describe('LibraryDataSource (mtw.assets.library)', () => {
 
         describe('Zone Updated events', () => {
             it('should emit Asset Added when asset moves into Library', async () => {
-                const event: SubscribedAssetsEvent = {
-                    dataSourceKey: 'mtw.assets',
-                    streamKey: 'ASSET#test1',
-                    detailEnvelope: {
+                const event = {
+                    header: {
+                        dataSourceKey: 'mtw.assets',
+                        streamKey: 'ASSET#test1',
+                        timestamp: Date.now(),
+                        type: 'Zone Updated'
+                    },
+                    content: {
                         type: 'Zone Updated',
                         fromZone: 'Personal',
                         toZone: 'Library'
-                    },
-                    timestamp: Date.now()
+                    } as AssetLevelEventUpdate
                 }
 
                 await libraryDataSource.receiveEvents?.({
@@ -170,15 +154,18 @@ describe('LibraryDataSource (mtw.assets.library)', () => {
             })
 
             it('should emit Asset Removed when asset moves out of Library', async () => {
-                const event: SubscribedAssetsEvent = {
-                    dataSourceKey: 'mtw.assets',
-                    streamKey: 'ASSET#test1',
-                    detailEnvelope: {
+                const event = {
+                    header: {
+                        dataSourceKey: 'mtw.assets',
+                        streamKey: 'ASSET#test1',
+                        timestamp: Date.now(),
+                        type: 'Zone Updated'
+                    },
+                    content: {
                         type: 'Zone Updated',
                         fromZone: 'Library',
                         toZone: 'Personal'
-                    },
-                    timestamp: Date.now()
+                    } as AssetLevelEventUpdate
                 }
 
                 await libraryDataSource.receiveEvents?.({
@@ -196,15 +183,18 @@ describe('LibraryDataSource (mtw.assets.library)', () => {
             })
 
             it('should ignore zone changes not involving Library', async () => {
-                const event: SubscribedAssetsEvent = {
-                    dataSourceKey: 'mtw.assets',
-                    streamKey: 'ASSET#test1',
-                    detailEnvelope: {
+                const event = {
+                    header: {
+                        dataSourceKey: 'mtw.assets',
+                        streamKey: 'ASSET#test1',
+                        timestamp: Date.now(),
+                        type: 'Zone Updated'
+                    },
+                    content: {
                         type: 'Zone Updated',
                         fromZone: 'Canon',
                         toZone: 'Personal'
-                    },
-                    timestamp: Date.now()
+                    } as AssetLevelEventUpdate
                 }
 
                 await libraryDataSource.receiveEvents?.({
@@ -216,15 +206,18 @@ describe('LibraryDataSource (mtw.assets.library)', () => {
             })
 
             it('should ignore zone changes within Library', async () => {
-                const event: SubscribedAssetsEvent = {
-                    dataSourceKey: 'mtw.assets',
-                    streamKey: 'ASSET#test1',
-                    detailEnvelope: {
+                const event = {
+                    header: {
+                        dataSourceKey: 'mtw.assets',
+                        streamKey: 'ASSET#test1',
+                        timestamp: Date.now(),
+                        type: 'Zone Updated'
+                    },
+                    content: {
                         type: 'Zone Updated',
                         fromZone: 'Library',
                         toZone: 'Library'
-                    },
-                    timestamp: Date.now()
+                    } as AssetLevelEventUpdate
                 }
 
                 await libraryDataSource.receiveEvents?.({
@@ -238,14 +231,17 @@ describe('LibraryDataSource (mtw.assets.library)', () => {
 
         describe('Asset Cached events', () => {
             it('should emit Asset Added when asset cached in Library zone', async () => {
-                const event: SubscribedAssetsEvent = {
-                    dataSourceKey: 'mtw.assets',
-                    streamKey: 'ASSET#test1',
-                    detailEnvelope: {
+                const event = {
+                    header: {
+                        dataSourceKey: 'mtw.assets',
+                        streamKey: 'ASSET#test1',
+                        timestamp: Date.now(),
+                        type: 'Asset Cached'
+                    },
+                    content: {
                         type: 'Asset Cached',
                         zone: 'Library'
-                    },
-                    timestamp: Date.now()
+                    } as AssetLevelEventUpdate
                 }
 
                 await libraryDataSource.receiveEvents?.({
@@ -263,14 +259,17 @@ describe('LibraryDataSource (mtw.assets.library)', () => {
             })
 
             it('should ignore Asset Cached in non-Library zones', async () => {
-                const event: SubscribedAssetsEvent = {
-                    dataSourceKey: 'mtw.assets',
-                    streamKey: 'ASSET#test1',
-                    detailEnvelope: {
+                const event = {
+                    header: {
+                        dataSourceKey: 'mtw.assets',
+                        streamKey: 'ASSET#test1',
+                        timestamp: Date.now(),
+                        type: 'Asset Cached'
+                    },
+                    content: {
                         type: 'Asset Cached',
                         zone: 'Personal'
-                    },
-                    timestamp: Date.now()
+                    } as AssetLevelEventUpdate
                 }
 
                 await libraryDataSource.receiveEvents?.({
@@ -284,13 +283,16 @@ describe('LibraryDataSource (mtw.assets.library)', () => {
 
         describe('Asset Removed events', () => {
             it('should emit Asset Removed for any asset removal', async () => {
-                const event: SubscribedAssetsEvent = {
-                    dataSourceKey: 'mtw.assets',
-                    streamKey: 'ASSET#test1',
-                    detailEnvelope: {
+                const event = {
+                    header: {
+                        dataSourceKey: 'mtw.assets',
+                        streamKey: 'ASSET#test1',
+                        timestamp: Date.now(),
                         type: 'Asset Removed'
                     },
-                    timestamp: Date.now()
+                    content: {
+                        type: 'Asset Removed'
+                    } as AssetLevelEventUpdate
                 }
 
                 await libraryDataSource.receiveEvents?.({
@@ -310,35 +312,44 @@ describe('LibraryDataSource (mtw.assets.library)', () => {
 
         describe('Batch processing', () => {
             it('should process multiple events in parallel', async () => {
-                const events: SubscribedAssetsEvent[] = [
+                const events = [
                     {
-                        dataSourceKey: 'mtw.assets',
-                        streamKey: 'ASSET#test1',
-                        detailEnvelope: {
+                        header: {
+                            dataSourceKey: 'mtw.assets',
+                            streamKey: 'ASSET#test1',
+                            timestamp: Date.now(),
+                            type: 'Zone Updated'
+                        },
+                        content: {
                             type: 'Zone Updated',
                             fromZone: 'Canon',
                             toZone: 'Library'
-                        },
-                        timestamp: Date.now()
+                        } as AssetLevelEventUpdate
                     },
                     {
-                        dataSourceKey: 'mtw.assets',
-                        streamKey: 'ASSET#test2',
-                        detailEnvelope: {
+                        header: {
+                            dataSourceKey: 'mtw.assets',
+                            streamKey: 'ASSET#test2',
+                            timestamp: Date.now(),
+                            type: 'Asset Cached'
+                        },
+                        content: {
                             type: 'Asset Cached',
                             zone: 'Library'
-                        },
-                        timestamp: Date.now()
+                        } as AssetLevelEventUpdate
                     },
                     {
-                        dataSourceKey: 'mtw.assets',
-                        streamKey: 'ASSET#test3',
-                        detailEnvelope: {
+                        header: {
+                            dataSourceKey: 'mtw.assets',
+                            streamKey: 'ASSET#test3',
+                            timestamp: Date.now(),
+                            type: 'Zone Updated'
+                        },
+                        content: {
                             type: 'Zone Updated',
                             fromZone: 'Library',
                             toZone: 'Personal'
-                        },
-                        timestamp: Date.now()
+                        } as AssetLevelEventUpdate
                     }
                 ]
 

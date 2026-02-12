@@ -1,10 +1,10 @@
 import { WMLDataSource } from './abstract'
-import { StreamingEventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import { StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { WMLEventSerializer, WMLEventUpdate, WMLEventExternal } from '@tonylb/mtw-interfaces/ts/eventBridge/wml'
 import { moveAsset } from './moveAsset'
 import { applyEdit } from './applyEdit'
 import { purgeAsset } from './purgeAsset'
-import { CoordinationEventUpdate, isCoordinationEventUpdate, isCoordinationCanonizeEvent, isCoordinationDecanonizeEvent, isMoveAssetRequest, isApplyEditRequest, isCreateSnapshotRequest, isPurgeAssetRequest, MoveAssetRequest } from './coordinationSerializer'
+import { CoordinationEventUpdate, COORDINATION_EVENT_TYPES, isCoordinationCanonizeEvent, isCoordinationDecanonizeEvent, isMoveAssetRequest, isApplyEditRequest, isCreateSnapshotRequest, isPurgeAssetRequest, MoveAssetRequest } from './coordinationSerializer'
 import { DiagnosticsEventUpdate, isS3StructureFindingEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics'
 import { isSchemaAssetUUID, AssetUUID } from "@tonylb/mtw-base/ts/schema"
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
@@ -26,19 +26,6 @@ const wmlEditSingleFlight = singleFlightFactory({
     timeoutMs: 10000 // 10 second timeout for WML edits
 })
 
-// Union type constraint for legitimate incoming subscribed events
-type WMLSubscribedEvent = 
-    | (StreamingEventPayload & {
-        dataSourceKey: 'internal';
-        streamKey: string;
-        event: CoordinationEventUpdate;
-    })
-    | (StreamingEventPayload & {
-        dataSourceKey: 'mtw.diagnostics';
-        streamKey: string;
-        event: DiagnosticsEventUpdate;
-    })
-
 //
 // mtw.wml DataSource: snapshot-on-subscribe via S3 sidecar, then Content Update / Merge Conflict events.
 //
@@ -47,33 +34,29 @@ type WMLSubscribedEvent =
 // replayable: true is required so the DataSource subscribes to Initialize Subscription events;
 // getRecentEvents returns [] (no Dynamo event store for WML).
 //
-export const wmlDataSource = new WMLDataSource<{}, WMLEventUpdate, WMLSubscribedEvent, WMLEventExternal>({
+// SubscribedContent = coordination + diagnostics (what we subscribe to). UpdatePayload = WMLEventUpdate (what we publish).
+export const wmlDataSource = new WMLDataSource<{}, WMLEventUpdate, CoordinationEventUpdate | DiagnosticsEventUpdate, WMLEventExternal>({
     dataSourceKey: 'mtw.wml',
     replayable: true, // Required for initializeSubscription (sidecar snapshot on subscribe)
     snapshotSidecarUrlGenerator: async (streamKey: string) => getSidecarSnapshotDescriptor(streamKey as AssetUUID),
-    subscribedEventTypeGuard: (event: StreamingEventPayload): event is WMLSubscribedEvent => {
+    subscribedEventTypeGuard: (header: StreamingEventHeader): boolean => {
         // Subscribe to:
         // 1. Internal coordination events (direct API calls)
         // 2. mtw.diagnostics events (system health findings)
-        return Boolean(
-            (event.dataSourceKey === 'internal' &&
-                (event as any).detailEnvelope &&
-                typeof (event as any).detailEnvelope === 'object' &&
-                isCoordinationEventUpdate((event as any).detailEnvelope as any)) ||
-            (event.dataSourceKey === 'mtw.diagnostics' &&
-                (event as any).detailEnvelope &&
-                typeof (event as any).detailEnvelope === 'object')
+        return (
+            (header.dataSourceKey === 'internal' && COORDINATION_EVENT_TYPES.has(header.type)) ||
+            header.dataSourceKey === 'mtw.diagnostics'
         )
     },
     receiveEvents: async ({ events, streamEvent }) => {
         // Process internal coordination events from direct API calls and EventBridge
         await Promise.all(events.map(async (event) => {
-            const payload = (event as any).detailEnvelope as any
-            
+            const payload = event.content
+            const AssetId = event.header.streamKey
+
             // Handle Apply Edit events
             if (isApplyEditRequest(payload)) {
                 // Validate AssetId for asset-specific operations
-                const AssetId = event.streamKey
                 if (!isSchemaAssetUUID(AssetId)) {
                     console.error(`Invalid AssetId format: ${AssetId}`)
                     return
@@ -132,7 +115,6 @@ export const wmlDataSource = new WMLDataSource<{}, WMLEventUpdate, WMLSubscribed
             // Handle Move Asset events
             if (isMoveAssetRequest(payload)) {
                 // Validate AssetId for asset-specific operations
-                const AssetId = event.streamKey
                 if (!isSchemaAssetUUID(AssetId)) {
                     console.error(`Invalid AssetId format: ${AssetId}`)
                     return
@@ -174,7 +156,6 @@ export const wmlDataSource = new WMLDataSource<{}, WMLEventUpdate, WMLSubscribed
             // Process coordination events for canonization/decanonization
             if (isCoordinationCanonizeEvent(payload) || isCoordinationDecanonizeEvent(payload)) {
                 // Validate AssetId for asset-specific operations
-                const AssetId = event.streamKey
                 if (!isSchemaAssetUUID(AssetId)) {
                     console.error(`Invalid AssetId format: ${AssetId}`)
                     return
@@ -228,7 +209,6 @@ export const wmlDataSource = new WMLDataSource<{}, WMLEventUpdate, WMLSubscribed
             // Handle Create Snapshot events
             if (isCreateSnapshotRequest(payload)) {
                 // Validate AssetId for asset-specific operations
-                const AssetId = event.streamKey
                 if (!isSchemaAssetUUID(AssetId)) {
                     console.error(`Invalid AssetId format: ${AssetId}`)
                     return
@@ -279,7 +259,6 @@ export const wmlDataSource = new WMLDataSource<{}, WMLEventUpdate, WMLSubscribed
             // Handle Purge Asset events
             if (isPurgeAssetRequest(payload)) {
                 // Validate AssetId for asset-specific operations
-                const AssetId = event.streamKey
                 if (!isSchemaAssetUUID(AssetId)) {
                     console.error(`Invalid AssetId format: ${AssetId}`)
                     return

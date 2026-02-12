@@ -39,13 +39,16 @@ describe('Ephemera DataSource receiveEvents', () => {
 
             const events = [
                 {
-                    dataSourceKey: 'mtw.assets' as const,
-                    streamKey: 'ASSET#test-asset',
-                    detailEnvelope: {
+                    header: {
+                        dataSourceKey: 'mtw.assets' as const,
+                        streamKey: 'ASSET#test-asset',
+                        timestamp: getCurrentTimestamp(),
+                        type: 'Component Updated'
+                    },
+                    content: {
                         type: 'Component Updated' as const,
                         component: roomComponent
-                    },
-                    timestamp: getCurrentTimestamp()
+                    }
                 }
             ]
 
@@ -68,13 +71,16 @@ describe('Ephemera DataSource receiveEvents', () => {
 
             const events = [
                 {
-                    dataSourceKey: 'mtw.assets' as const,
-                    streamKey: 'ASSET#test-asset',
-                    detailEnvelope: {
+                    header: {
+                        dataSourceKey: 'mtw.assets' as const,
+                        streamKey: 'ASSET#test-asset',
+                        timestamp: getCurrentTimestamp(),
+                        type: 'Component Updated'
+                    },
+                    content: {
                         type: 'Component Updated' as const,
                         component: characterComponent
-                    },
-                    timestamp: getCurrentTimestamp()
+                    }
                 }
             ]
 
@@ -93,13 +99,16 @@ describe('Ephemera DataSource receiveEvents', () => {
 
             const events = [
                 {
-                    dataSourceKey: 'mtw.assets' as const,
-                    streamKey: 'ASSET#test-asset',
-                    detailEnvelope: {
+                    header: {
+                        dataSourceKey: 'mtw.assets' as const,
+                        streamKey: 'ASSET#test-asset',
+                        timestamp: getCurrentTimestamp(),
+                        type: 'Component Updated'
+                    },
+                    content: {
                         type: 'Component Updated' as const,
                         component: roomComponent
-                    },
-                    timestamp: getCurrentTimestamp()
+                    }
                 }
             ]
 
@@ -114,13 +123,16 @@ describe('Ephemera DataSource receiveEvents', () => {
         it('should process Canon Updated events and send CanonSet messages', async () => {
             const events = [
                 {
-                    dataSourceKey: 'mtw.assets' as const,
-                    streamKey: 'canon-update',
-                    detailEnvelope: {
+                    header: {
+                        dataSourceKey: 'mtw.assets' as const,
+                        streamKey: 'canon-update',
+                        timestamp: getCurrentTimestamp(),
+                        type: 'Canon Updated'
+                    },
+                    content: {
                         type: 'Canon Updated' as const,
                         assetIds: ['ASSET#canon1', 'ASSET#canon2', 'ASSET#canon3']
-                    },
-                    timestamp: getCurrentTimestamp()
+                    }
                 }
             ]
 
@@ -136,13 +148,16 @@ describe('Ephemera DataSource receiveEvents', () => {
         it('should filter out non-ephemera asset IDs', async () => {
             const events = [
                 {
-                    dataSourceKey: 'mtw.assets' as const,
-                    streamKey: 'canon-update',
-                    detailEnvelope: {
+                    header: {
+                        dataSourceKey: 'mtw.assets' as const,
+                        streamKey: 'canon-update',
+                        timestamp: getCurrentTimestamp(),
+                        type: 'Canon Updated'
+                    },
+                    content: {
                         type: 'Canon Updated' as const,
                         assetIds: ['ASSET#canon1', 'NON-ASSET#invalid', 'ASSET#canon2']
-                    },
-                    timestamp: getCurrentTimestamp()
+                    }
                 }
             ]
 
@@ -158,13 +173,16 @@ describe('Ephemera DataSource receiveEvents', () => {
         it('should send CanonSet message even when assetIds is empty', async () => {
             const events = [
                 {
-                    dataSourceKey: 'mtw.assets' as const,
-                    streamKey: 'canon-update',
-                    detailEnvelope: {
+                    header: {
+                        dataSourceKey: 'mtw.assets' as const,
+                        streamKey: 'canon-update',
+                        timestamp: getCurrentTimestamp(),
+                        type: 'Canon Updated'
+                    },
+                    content: {
                         type: 'Canon Updated' as const,
                         assetIds: []
-                    },
-                    timestamp: getCurrentTimestamp()
+                    }
                 }
             ]
 
@@ -182,14 +200,17 @@ describe('Ephemera DataSource receiveEvents', () => {
         it('should process Zone Updated events moving to Canon', async () => {
             const events = [
                 {
-                    dataSourceKey: 'mtw.assets' as const,
-                    streamKey: 'ASSET#test-asset',
-                    detailEnvelope: {
+                    header: {
+                        dataSourceKey: 'mtw.assets' as const,
+                        streamKey: 'ASSET#test-asset',
+                        timestamp: getCurrentTimestamp(),
+                        type: 'Zone Updated'
+                    },
+                    content: {
                         type: 'Zone Updated' as const,
                         fromZone: 'Library',
                         toZone: 'Canon'
-                    },
-                    timestamp: getCurrentTimestamp()
+                    }
                 }
             ]
 
@@ -205,14 +226,17 @@ describe('Ephemera DataSource receiveEvents', () => {
         it('should process Zone Updated events moving from Canon', async () => {
             const events = [
                 {
-                    dataSourceKey: 'mtw.assets' as const,
-                    streamKey: 'ASSET#test-asset',
-                    detailEnvelope: {
+                    header: {
+                        dataSourceKey: 'mtw.assets' as const,
+                        streamKey: 'ASSET#test-asset',
+                        timestamp: getCurrentTimestamp(),
+                        type: 'Zone Updated'
+                    },
+                    content: {
                         type: 'Zone Updated' as const,
                         fromZone: 'Canon',
                         toZone: 'Library'
-                    },
-                    timestamp: getCurrentTimestamp()
+                    }
                 }
             ]
 
@@ -228,14 +252,17 @@ describe('Ephemera DataSource receiveEvents', () => {
         it('should not send messages for non-Canon zone changes', async () => {
             const events = [
                 {
-                    dataSourceKey: 'mtw.assets' as const,
-                    streamKey: 'ASSET#test-asset',
-                    detailEnvelope: {
+                    header: {
+                        dataSourceKey: 'mtw.assets' as const,
+                        streamKey: 'ASSET#test-asset',
+                        timestamp: getCurrentTimestamp(),
+                        type: 'Zone Updated'
+                    },
+                    content: {
                         type: 'Zone Updated' as const,
                         fromZone: 'Library',
                         toZone: 'Personal'
-                    },
-                    timestamp: getCurrentTimestamp()
+                    }
                 }
             ]
 
@@ -248,14 +275,17 @@ describe('Ephemera DataSource receiveEvents', () => {
         it('should not send messages for non-ephemera asset IDs', async () => {
             const events = [
                 {
-                    dataSourceKey: 'mtw.assets' as const,
-                    streamKey: 'NON-ASSET#test-asset',
-                    detailEnvelope: {
+                    header: {
+                        dataSourceKey: 'mtw.assets' as const,
+                        streamKey: 'NON-ASSET#test-asset',
+                        timestamp: getCurrentTimestamp(),
+                        type: 'Zone Updated'
+                    },
+                    content: {
                         type: 'Zone Updated' as const,
                         fromZone: 'Library',
                         toZone: 'Canon'
-                    },
-                    timestamp: getCurrentTimestamp()
+                    }
                 }
             ]
 
@@ -276,32 +306,41 @@ describe('Ephemera DataSource receiveEvents', () => {
 
             const events = [
                 {
-                    dataSourceKey: 'mtw.assets' as const,
-                    streamKey: 'ASSET#test-asset',
-                    detailEnvelope: {
+                    header: {
+                        dataSourceKey: 'mtw.assets' as const,
+                        streamKey: 'ASSET#test-asset',
+                        timestamp: getCurrentTimestamp(),
+                        type: 'Component Updated'
+                    },
+                    content: {
                         type: 'Component Updated' as const,
                         component: roomComponent
-                    },
-                    timestamp: getCurrentTimestamp()
+                    }
                 },
                 {
-                    dataSourceKey: 'mtw.assets' as const,
-                    streamKey: 'canon-update',
-                    detailEnvelope: {
+                    header: {
+                        dataSourceKey: 'mtw.assets' as const,
+                        streamKey: 'canon-update',
+                        timestamp: getCurrentTimestamp(),
+                        type: 'Canon Updated'
+                    },
+                    content: {
                         type: 'Canon Updated' as const,
                         assetIds: ['ASSET#canon1', 'ASSET#canon2']
-                    },
-                    timestamp: getCurrentTimestamp()
+                    }
                 },
                 {
-                    dataSourceKey: 'mtw.assets' as const,
-                    streamKey: 'ASSET#zone-asset',
-                    detailEnvelope: {
+                    header: {
+                        dataSourceKey: 'mtw.assets' as const,
+                        streamKey: 'ASSET#zone-asset',
+                        timestamp: getCurrentTimestamp(),
+                        type: 'Zone Updated'
+                    },
+                    content: {
                         type: 'Zone Updated' as const,
                         fromZone: 'Library',
                         toZone: 'Canon'
-                    },
-                    timestamp: getCurrentTimestamp()
+                    }
                 }
             ]
 
@@ -327,32 +366,25 @@ describe('Ephemera DataSource receiveEvents', () => {
 
     describe('Event Subscription', () => {
         it('should subscribe to events from mtw.assets', () => {
-            const event = {
+            const header = {
                 dataSourceKey: 'mtw.assets',
                 streamKey: 'test-stream',
-                detailEnvelope: {
-                    type: 'Component Updated' as const,
-                    component: new StandardRoom(deIndentWML(`
-                        <Room uuid=(test) />
-                    `))
-                },
-                timestamp: getCurrentTimestamp()
-            } as const
+                timestamp: getCurrentTimestamp(),
+                type: 'Component Updated'
+            }
 
-            expect(ephemeraDataSource.subscribedEventTypeGuard?.(event)).toBe(true)
+            expect(ephemeraDataSource.subscribedEventTypeGuard?.(header)).toBe(true)
         })
 
         it('should not subscribe to events from other data sources', () => {
-            const otherEvent = {
+            const otherHeader = {
                 dataSourceKey: 'mtw.other',
                 streamKey: 'test-stream',
-                detailEnvelope: {
-                    type: 'Test Event' as const
-                },
-                timestamp: getCurrentTimestamp()
-            } as const
+                timestamp: getCurrentTimestamp(),
+                type: 'Test Event'
+            }
 
-            expect(ephemeraDataSource.subscribedEventTypeGuard?.(otherEvent)).toBe(false)
+            expect(ephemeraDataSource.subscribedEventTypeGuard?.(otherHeader)).toBe(false)
         })
     })
 })

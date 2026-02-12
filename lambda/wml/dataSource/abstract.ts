@@ -1,5 +1,5 @@
 import { DataSource, SerializableObject, SidecarSnapshotDescriptor } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
-import { EventPayload, StreamingEventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import { EventPayload, StreamingEventHeader, StreamingEventEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { snsClient } from '../clients'
 import messageBus from '../messageBus'
@@ -15,16 +15,17 @@ import messageBus from '../messageBus'
  * - Primary key name used in the WML domain
  * - Feedback topic ARN for replay data delivery
  */
-export class WMLDataSource<SnapshotPayload extends SerializableObject, UpdatePayload extends EventPayload, SubscribedEvent extends StreamingEventPayload = never, ExternalUpdate extends EventPayload = EventPayload> extends DataSource<SnapshotPayload, UpdatePayload, SubscribedEvent, ExternalUpdate, 'AssetId'> {
+/** SubscribedContent = payload type of events we subscribe to (incoming). UpdatePayload = what we publish. */
+export class WMLDataSource<SnapshotPayload extends SerializableObject, UpdatePayload extends EventPayload, SubscribedContent extends EventPayload = UpdatePayload, ExternalUpdate extends EventPayload = EventPayload> extends DataSource<SnapshotPayload, UpdatePayload, SubscribedContent, ExternalUpdate, 'AssetId'> {
     constructor(params: {
         dataSourceKey: string;
         snapshotContentGenerator?: (streamKey: string) => Promise<SnapshotPayload>; // Optional - not needed for non-replayable data sources
         snapshotSidecarUrlGenerator?: (streamKey: string) => Promise<SidecarSnapshotDescriptor>;
         snapshotTimeoutMs?: number;
         replayable?: boolean;
-        subscribedEventTypeGuard?: (event: StreamingEventPayload) => event is SubscribedEvent;
+        subscribedEventTypeGuard?: (header: StreamingEventHeader) => boolean;
         receiveEvents?: (params: { 
-            events: SubscribedEvent[], 
+            events: Array<StreamingEventEnvelope<SubscribedContent>>,
             streamEvent: (params: { update: UpdatePayload, streamKey: string }) => Promise<void>
         }) => Promise<void>;
         eventSerializer?: any; // Will be properly typed when we implement the serializer

@@ -193,15 +193,19 @@ describe('AssetsDataSource (mtw.assets)', () => {
 
     describe('Event Processing', () => {
         it('should process WML content update events', async () => {
+            const content = {
+                type: 'Content Update' as const,
+                AssetId: 'ASSET#test123',
+                schema: new StandardForm(`<Asset uuid=(test123) />`)
+            }
             const wmlEvent = {
-                dataSourceKey: 'mtw.wml' as const,
-                streamKey: 'ASSET#test123',
-                detailEnvelope: {
-                    type: 'Content Update' as const,
-                    AssetId: 'ASSET#test123',
-                    schema: new StandardForm(`<Asset uuid=(test123) />`)
+                header: {
+                    dataSourceKey: 'mtw.wml' as const,
+                    streamKey: 'ASSET#test123',
+                    timestamp: Date.now(),
+                    type: 'Content Update'
                 },
-                timestamp: Date.now()
+                content
             }
 
             // Mock the receiveEvents method
@@ -220,18 +224,21 @@ describe('AssetsDataSource (mtw.assets)', () => {
 
         it('should process WML zone changed events', async () => {
             const zoneChangedEvent = {
-                dataSourceKey: 'mtw.wml',
-                streamKey: 'ASSET#test123',
-                detailEnvelope: {
+                header: {
+                    dataSourceKey: 'mtw.wml',
+                    streamKey: 'ASSET#test123',
+                    timestamp: Date.now(),
+                    type: 'Zone Changed'
+                },
+                content: {
                     type: 'Zone Changed',
                     AssetId: 'ASSET#test123',
                     fromZone: 'Personal',
                     toZone: 'Library',
                     player: 'testplayer',
                     subFolder: 'testfolder'
-                },
-                timestamp: Date.now()
-            } as const
+                }
+            }
 
             const receiveEventsSpy = jest.spyOn(assetsDataSource, 'receiveEvents')
             
@@ -275,16 +282,19 @@ describe('AssetsDataSource (mtw.assets)', () => {
 
         it('should process WML zone changed events without optional fields', async () => {
             const zoneChangedEvent = {
-                dataSourceKey: 'mtw.wml',
-                streamKey: 'ASSET#test456',
-                detailEnvelope: {
+                header: {
+                    dataSourceKey: 'mtw.wml',
+                    streamKey: 'ASSET#test456',
+                    timestamp: Date.now(),
+                    type: 'Zone Changed'
+                },
+                content: {
                     type: 'Zone Changed',
                     AssetId: 'ASSET#test456',
                     fromZone: 'Draft',
                     toZone: 'Canon'
-                },
-                timestamp: Date.now()
-            } as const
+                }
+            }
 
             const receiveEventsSpy = jest.spyOn(assetsDataSource, 'receiveEvents')
             
@@ -349,16 +359,19 @@ describe('AssetsDataSource (mtw.assets)', () => {
 
         it('should process WML zone changed events for decanonization (leaving Canon zone)', async () => {
             const zoneChangedEvent = {
-                dataSourceKey: 'mtw.wml',
-                streamKey: 'ASSET#test789',
-                detailEnvelope: {
+                header: {
+                    dataSourceKey: 'mtw.wml',
+                    streamKey: 'ASSET#test789',
+                    timestamp: Date.now(),
+                    type: 'Zone Changed'
+                },
+                content: {
                     type: 'Zone Changed',
                     AssetId: 'ASSET#test789',
                     fromZone: 'Canon',
                     toZone: 'Library'
-                },
-                timestamp: Date.now()
-            } as const
+                }
+            }
 
             const receiveEventsSpy = jest.spyOn(assetsDataSource, 'receiveEvents')
             
@@ -424,14 +437,17 @@ describe('AssetsDataSource (mtw.assets)', () => {
 
         it('should handle WML asset purged events', async () => {
             const assetPurgedEvent = {
-                dataSourceKey: 'mtw.wml' as const,
-                streamKey: 'ASSET#purged123',
-                detailEnvelope: {
+                header: {
+                    dataSourceKey: 'mtw.wml' as const,
+                    streamKey: 'ASSET#purged123',
+                    timestamp: Date.now(),
+                    type: 'Asset Purged'
+                },
+                content: {
                     type: 'Asset Purged' as const,
                     zone: 'Draft' as const,
                     objectsDeleted: 42
-                },
-                timestamp: Date.now()
+                }
             }
 
             const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
@@ -460,13 +476,16 @@ describe('AssetsDataSource (mtw.assets)', () => {
             assetDBMock.query.mockResolvedValueOnce([]) // Return empty array for Items.map
 
             const diagnosticEvent = {
-                dataSourceKey: 'mtw.diagnostics',
-                streamKey: 'test-stream',
-                detailEnvelope: {
+                header: {
+                    dataSourceKey: 'mtw.diagnostics',
+                    streamKey: 'test-stream',
+                    timestamp: Date.now(),
                     type: 'Heal Global Values'
                 },
-                timestamp: Date.now()
-            } as const
+                content: {
+                    type: 'Heal Global Values'
+                }
+            }
 
             const receiveEventsSpy = jest.spyOn(assetsDataSource, 'receiveEvents')
             
@@ -488,33 +507,42 @@ describe('AssetsDataSource (mtw.assets)', () => {
             // Create a batch of events from different sources
             const batchEvents = [
                 {
-                    dataSourceKey: 'mtw.wml',
-                    streamKey: 'ASSET#test123',
-                    detailEnvelope: {
+                    header: {
+                        dataSourceKey: 'mtw.wml',
+                        streamKey: 'ASSET#test123',
+                        timestamp: Date.now(),
+                        type: 'Content Update'
+                    },
+                    content: {
                         type: 'Content Update',
                         AssetId: 'ASSET#test123',
                         schema: new StandardForm(`<Asset uuid=(test123) />`)
-                    },
-                    timestamp: Date.now()
-                } as const,
+                    }
+                },
                 {
-                    dataSourceKey: 'mtw.diagnostics',
-                    streamKey: 'test-stream',
-                    detailEnvelope: {
+                    header: {
+                        dataSourceKey: 'mtw.diagnostics',
+                        streamKey: 'test-stream',
+                        timestamp: Date.now(),
                         type: 'Heal Global Values'
                     },
-                    timestamp: Date.now()
-                } as const,
+                    content: {
+                        type: 'Heal Global Values'
+                    }
+                },
                 {
-                    dataSourceKey: 'mtw.wml',
-                    streamKey: 'ASSET#test456',
-                    detailEnvelope: {
+                    header: {
+                        dataSourceKey: 'mtw.wml',
+                        streamKey: 'ASSET#test456',
+                        timestamp: Date.now(),
+                        type: 'Content Update'
+                    },
+                    content: {
                         type: 'Content Update',
                         AssetId: 'ASSET#test456',
                         schema: new StandardForm(`<Asset uuid=(test456) />`)
-                    },
-                    timestamp: Date.now()
-                } as const
+                    }
+                }
             ]
             
             // Process the batch of events
@@ -535,40 +563,37 @@ describe('AssetsDataSource (mtw.assets)', () => {
             const subscribedEventTypes = ['mtw.wml', 'mtw.diagnostics', 'mtw.coordination']
             
             subscribedEventTypes.forEach(source => {
-                const event = {
+                const header = {
                     dataSourceKey: source,
                     streamKey: 'test-stream',
-                    detailEnvelope: {
-                        type: 'Test Event'
-                    },
-                    timestamp: Date.now()
-                } as const
+                    timestamp: Date.now(),
+                    type: 'Test Event'
+                }
 
-                expect(assetsDataSource.subscribedEventTypeGuard?.(event)).toBe(true)
+                expect(assetsDataSource.subscribedEventTypeGuard?.(header)).toBe(true)
             })
         })
 
         it('should not subscribe to events from other data sources', () => {
-            const otherEvent = {
+            const otherHeader = {
                 dataSourceKey: 'mtw.other',
                 streamKey: 'test-stream',
-                detailEnvelope: {
-                    type: 'Test Event'
-                },
-                timestamp: Date.now()
-            } as const
+                timestamp: Date.now(),
+                type: 'Test Event'
+            }
 
-            expect(assetsDataSource.subscribedEventTypeGuard?.(otherEvent)).toBe(false)
+            expect(assetsDataSource.subscribedEventTypeGuard?.(otherHeader)).toBe(false)
         })
 
         it('should not subscribe to events without proper structure', () => {
-            const malformedEvent = {
+            const malformedHeader = {
                 dataSourceKey: 'mtw.wml',
-                event: null as any,
+                streamKey: 'test-stream',
                 timestamp: Date.now()
-            } as const
+                // missing type
+            } as any
 
-            expect(assetsDataSource.subscribedEventTypeGuard?.(malformedEvent as any)).toBe(false)
+            expect(assetsDataSource.subscribedEventTypeGuard?.(malformedHeader)).toBe(false)
         })
     })
 })
