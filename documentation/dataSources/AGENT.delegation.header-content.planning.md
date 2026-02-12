@@ -350,53 +350,43 @@ This ensures all DataSources see a consistent `{ header, content }` envelope reg
 
 ---
 
-## Step 5: Client-Side Alignment
+## Step 5 (COMPLETED): Client-Side Alignment
 
-The client should be updated in lockstep so it also treats incoming events as `{ header, content }`.
+The client has been updated in lockstep so it also treats incoming events as `{ header, content }`.
 
 ### 5.1 LifeLine subscription
 
 File: `charcoal-client/src/slices/dataSource/index.api.ts`
 
-- Currently, on `StreamEvent`, it dispatches:
-  - `processRawSnapshot({ streamKey, timestamp, rawSnapshot: update })` for `type === 'Snapshot'`.
-  - `processRawEvent({ streamKey, timestamp, rawEvent: update })` for other events.
+- On `StreamEvent` for a given `dataSourceKey`, the LifeLine subscription now:
+  - Derives a `ClientStreamingHeader` from the incoming `update` (`type` plus optional `zone` when present).
+  - Treats the wire `update` object as `content`.
+  - Dispatches:
 
-- To align with header/content:
-  - Derive a `header` from `update` (at least `type`; optionally zone or other flags).
-  - Keep `update` as `content` (external form from the wire).
-  - Change the dispatched payloads to:
+  ```ts
+  dispatch(processRawSnapshot({ streamKey, timestamp, header, content }))
+  // or
+  dispatch(processRawEvent({ streamKey, timestamp, header, content }))
+  ```
 
-    ```ts
-    dispatch(processRawSnapshot({ streamKey, timestamp, header, content: update }))
-    // or
-    dispatch(processRawEvent({ streamKey, timestamp, header, content: update }))
-    ```
+  depending on whether `header.type === 'Snapshot'`.
 
-  - Reducers can then use `header` for branching and `content` for deserialization/aggregation.
+### 5.2 Client header/content types and reducers
 
-### 5.2 Reducers
+Files:
 
-File: `charcoal-client/src/slices/dataSource/reducers.ts`
+- `charcoal-client/src/slices/dataSource/baseClasses.ts`
+- `charcoal-client/src/slices/dataSource/reducers.ts`
 
-- Update reducer signatures and implementations so they conceptually treat payloads as `{ header, content }`:
-  - Snapshots:
+- Introduced lightweight client envelope types:
+  - `ClientStreamingHeader` (at least `type: string`, optional small flags like `zone`).
+  - `ClientStreamingEnvelope<Content>` and payload helpers `ClientSnapshotMessagePayload` / `ClientUpdateMessagePayload`, which add `streamKey` and `timestamp` around `{ header, content }`.
+- Updated `processRawSnapshot` and `processRawEvent` reducers to:
+  - Accept `PayloadAction<ClientSnapshotMessagePayload<ExternalSnapshotPayload>>` and `PayloadAction<ClientUpdateMessagePayload<ExternalUpdatePayload>>`.
+  - Use `content` as the external payload passed into `eventSerializer.deserializeSnapshot` / `eventSerializer.deserialize`.
+  - Keep header-only semantics for routing/branching while leaving `subscribedStreams.recentEvents` as internal snapshot/update events.
 
-    ```ts
-    action: PayloadAction<{ streamKey: string; timestamp: number; header: any; content: ExternalSnapshotPayload }>
-    ```
-
-  - Events:
-
-    ```ts
-    action: PayloadAction<{ streamKey: string; timestamp: number; header: any; content: ExternalUpdatePayload }>
-    ```
-
-- Inside reducers:
-  - Use `header` when any branching on event type or other metadata is needed.
-  - Pass `content` into `eventSerializer.deserialize` / `eventSerializer.deserializeSnapshot` as the external payload.
-
-After this step, both server and client will view DataSource events as `{ header, content }` with a shared meaning.
+After this step, both server and client treat DataSource events as `{ header, content }` with a shared meaning; the client’s reducers continue to aggregate internal snapshots and updates while the LifeLine subscription and action payloads are explicitly envelope-shaped.
 
 ---
 

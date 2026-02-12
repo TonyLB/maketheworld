@@ -52,6 +52,43 @@ export type SnapshotUpdateWithSidecar = {
     expiresAt?: number;
 }
 
+//
+// Client-side header/content envelope for streaming messages
+// Mirrors the server-side header/content concept but is derived from the external
+// wire payload and LifeLine metadata. Used for routing/branching only; we continue
+// to keep internal snapshot/update events in subscribedStreams.recentEvents.
+//
+export type ClientStreamingHeader = {
+    //
+    // Discriminant for TypeScript unions and client-side branching
+    //
+    type: string;
+    //
+    // Optional small domain flags that are part of the event semantics
+    // (for example, zone identifiers on certain DataSources)
+    //
+    zone?: string;
+}
+
+export type ClientStreamingEnvelope<Content> = {
+    header: ClientStreamingHeader;
+    content: Content;
+}
+
+//
+// Common payload shapes for messages dispatched into dataSource reducers.
+// These are the client view of the external snapshot/update payloads.
+//
+export type ClientSnapshotMessagePayload<ExternalSnapshotPayload> = {
+    streamKey: string;
+    timestamp: number;
+} & ClientStreamingEnvelope<ExternalSnapshotPayload>
+
+export type ClientUpdateMessagePayload<ExternalUpdatePayload> = {
+    streamKey: string;
+    timestamp: number;
+} & ClientStreamingEnvelope<ExternalUpdatePayload>
+
 export interface DataSourceNodes<SnapshotPayload, UpdatePayload> {
     INITIAL: ISSMHoldNode<DataSourceInternal, DataSourcePublic<SnapshotPayload, UpdatePayload>>;
     INITIALIZE: ISSMAttemptNode<DataSourceInternal, DataSourcePublic<SnapshotPayload, UpdatePayload>>;
