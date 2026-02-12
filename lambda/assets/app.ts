@@ -56,22 +56,33 @@ export const handler = async (event, context) => {
     //
     if (event?.message) {
         switch(event.message) {
-            case 'cacheAsset':
+            case 'cacheAsset': {
                 // Legacy Step Function call - publish as internal format StreamEvent for data source processing
+                const streamKey = `ASSET#${event.assetId}`
+                const timestamp = Date.now()
+                const content = {
+                    type: 'Content Update',
+                    update: {
+                        AssetId: event.assetId
+                    }
+                }
+                const header = {
+                    dataSourceKey: 'mtw.wml',
+                    streamKey,
+                    timestamp,
+                    type: content.type
+                }
                 messageBus.send({
                     type: 'StreamingEvent',
                     dataSourceKey: 'mtw.wml',
-                    streamKey: `ASSET#${event.assetId}`,
-                    detailEnvelope: {
-                        type: 'Content Update',
-                        update: {
-                            AssetId: event.assetId
-                        }
-                    },
-                    timestamp: Date.now()
+                    streamKey,
+                    header,
+                    content,
+                    timestamp
                 })
                 await messageBus.flush()
                 return {}
+            }
             case 'metaData':
                 return await Promise.all(
                     (event.assetIds || []).map(async (assetId) => {
@@ -101,22 +112,27 @@ export const handler = async (event, context) => {
     if (event?.source && event["detail-type"]) {
         // Special handling for Initialize Subscription events from mtw.subscriptions
         if (event.source === 'mtw.subscriptions' && event["detail-type"].startsWith('Initialize Subscription -')) {
-            // Extract dataSourceKey from the detail-type (format: "Initialize Subscription - mtw.assets.contentHeaders")
-            const dataSourceKey = event["detail-type"].replace('Initialize Subscription - ', '')
-            
-            // Publish Initialize Subscription event directly to messageBus (no deserialization needed)
+            // Publish Initialize Subscription event directly to messageBus (no deserialization needed).
+            // The target DataSource is encoded in header.type, e.g. "Initialize Subscription - mtw.assets.contentHeaders".
+            const streamKey = event.detail.streamKey || ''
+            const timestamp = event.time ? new Date(event.time).getTime() : Date.now()
+            const header = {
+                dataSourceKey: 'mtw.subscriptions',
+                streamKey,
+                timestamp,
+                type: event["detail-type"] as string
+            }
             messageBus.send({
                 type: 'StreamingEvent',
                 dataSourceKey: 'mtw.subscriptions',
-                streamKey: event.detail.streamKey || '',
-                detailEnvelope: {
-                    type: event["detail-type"],
-                    update: {
-                        sessionId: event.detail.sessionId,
-                        requestId: event.detail.requestId
-                    }
+                streamKey,
+                header,
+                content: {
+                    type: 'Initialize Subscription',
+                    sessionId: event.detail.sessionId,
+                    requestId: event.detail.requestId
                 },
-                timestamp: event.time ? new Date(event.time).getTime() : Date.now()
+                timestamp
             })
         } else {
             // Find the appropriate deserializer for this data source
@@ -142,15 +158,19 @@ export const handler = async (event, context) => {
                         }
                     })
                 } else {
-                    // Publish deserialized event to messageBus for DataSource processing
+                    // Publish deserialized event to messageBus for DataSource processing, using header/content.
+                    const header = {
+                        dataSourceKey: coreFormat.dataSourceKey,
+                        streamKey: coreFormat.streamKey,
+                        timestamp: coreFormat.timestamp,
+                        type: internalEvent.type as string
+                    }
                     messageBus.send({
                         type: 'StreamingEvent',
                         dataSourceKey: event.source,
                         streamKey: event.detail.streamKey || '',
-                        detailEnvelope: {
-                            type: internalEvent.type,
-                            update: internalEvent
-                        },
+                        header,
+                        content: internalEvent,
                         timestamp: event.time ? new Date(event.time).getTime() : Date.now()
                     })
                 }
@@ -229,7 +249,7 @@ export const handler = async (event, context) => {
         }
         // Legacy whoAmI API endpoint removed - player data now flows through mtw.assets.players data source
         // Clients subscribe to the data source stream instead of calling this API
-        if (isAssetPlayerSettingsAPIMessage(request)) {
+                if (isAssetPlayerSettingsAPIMessage(request)) {
             const player = await internalCache.Connection.get('player')
             if (player) {
                 // NOTE: This is part of the legacy pattern where API calls enqueue custom messageBus
@@ -238,16 +258,25 @@ export const handler = async (event, context) => {
                 // lambda) once the mtw.assets.players data source subsumes the old flow. For now, we
                 // emit both the legacy message and a streaming event so the new player data source can
                 // subscribe without breaking existing flows.
+                const timestamp = Date.now()
+                const content = {
+                    type: 'Player Settings Updated',
+                    actions: request.actions,
+                    ...(request.RequestId ? { RequestId: request.RequestId } : {})
+                }
+                const header = {
+                    dataSourceKey: 'internal',
+                    streamKey: player,
+                    timestamp,
+                    type: content.type
+                }
                 messageBus.send({
                     type: 'StreamingEvent',
                     dataSourceKey: 'internal',
                     streamKey: player,
-                    event: {
-                        type: 'Player Settings Updated',
-                        actions: request.actions,
-                        ...(request.RequestId ? { RequestId: request.RequestId } : {})
-                    },
-                    timestamp: Date.now()
+                    header,
+                    content,
+                    timestamp
                 })
                 messageBus.send({
                     type: 'PlayerSettings',

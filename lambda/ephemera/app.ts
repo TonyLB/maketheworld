@@ -83,16 +83,20 @@ export const handler = async (event: any, context: any) => {
                     }
                 })
             } else {
-                // Publish deserialized event to messageBus for DataSource processing
+                // Publish deserialized event to messageBus for DataSource processing, using header/content.
+                const header = {
+                    dataSourceKey: event.source,
+                    streamKey: event.detail.streamKey || '',
+                    timestamp: event.time ? new Date(event.time).getTime() : getCurrentTimestamp(),
+                    type: internalEvent.type as string
+                }
                 messageBus.send({
                     type: 'StreamingEvent',
                     dataSourceKey: event.source,
                     streamKey: event.detail.streamKey || '',
-                    detailEnvelope: {
-                        type: internalEvent.type,
-                        update: internalEvent
-                    },
-                    timestamp: event.time ? new Date(event.time).getTime() : getCurrentTimestamp()
+                    header,
+                    content: internalEvent,
+                    timestamp: header.timestamp
                 })
             }
         } else {

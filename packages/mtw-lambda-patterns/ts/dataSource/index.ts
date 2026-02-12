@@ -362,13 +362,20 @@ export class DataSource<
         const eventBridgeEvent = toEventBridgeFormat(coreFormat)
 
         // Create the internal messageBus event
-        // Format matches StreamingEventMessage: { type: 'StreamingEvent', dataSourceKey, streamKey, timestamp, event }
+        // Canonical in-process shape is { type: 'StreamingEvent', dataSourceKey, streamKey, timestamp, header, content }.
+        const header: StreamingEventHeader = {
+            dataSourceKey: this.dataSourceKey,
+            streamKey,
+            timestamp: now,
+            type: update.type
+        }
         const messageBusEvent = {
             type: 'StreamingEvent' as const,
             dataSourceKey: this.dataSourceKey,
             streamKey,
             timestamp: now,
-            detailEnvelope: update
+            header,
+            content: update
         }
 
         // Execute all operations in parallel
@@ -612,14 +619,14 @@ export class DataSource<
             if (message.type !== 'StreamingEvent') {
                 return false
             }
-            if (!message.detailEnvelope || typeof message.detailEnvelope.type !== 'string') {
+            if (!message.header || typeof message.header.type !== 'string') {
                 return false
             }
             const header: StreamingEventHeader = {
-                dataSourceKey: message.dataSourceKey,
-                streamKey: message.streamKey,
-                timestamp: message.timestamp,
-                type: message.detailEnvelope.type
+                dataSourceKey: message.header.dataSourceKey ?? message.dataSourceKey,
+                streamKey: message.header.streamKey ?? message.streamKey,
+                timestamp: message.header.timestamp ?? message.timestamp,
+                type: message.header.type
             }
             return this.subscribedEventTypeGuard(header)
         }
@@ -630,17 +637,11 @@ export class DataSource<
             priority: 5, // Default priority for data source processing
             filter: streamingEventTypeGuard,
             callback: async ({ payloads }) => {
-                // Wrap all payloads into StreamingEventEnvelope instances (content = subscribed payload from bus)
+                // Wrap all payloads into StreamingEventEnvelope instances.
                 const events: Array<StreamingEventEnvelope<SubscribedContent>> = payloads.map((streamingEvent) => {
-                    const header: StreamingEventHeader = {
-                        dataSourceKey: streamingEvent.dataSourceKey,
-                        streamKey: streamingEvent.streamKey,
-                        timestamp: streamingEvent.timestamp,
-                        type: streamingEvent.detailEnvelope.type as string
-                    }
                     return {
-                        header,
-                        content: streamingEvent.detailEnvelope as SubscribedContent
+                        header: streamingEvent.header,
+                        content: streamingEvent.content as SubscribedContent
                     }
                 })
                 
@@ -659,21 +660,19 @@ export class DataSource<
             type: 'StreamingEvent', 
             dataSourceKey: 'mtw.subscriptions',
             streamKey: string,
-            detailEnvelope: {
-                type: string,
-                update: {
-                    sessionId: string,
-                    requestId: string
-                }
+            header: StreamingEventHeader,
+            content: {
+                sessionId: string,
+                requestId: string
             },
             timestamp: number
         } => {
             return message.type === 'StreamingEvent' &&
                    message.dataSourceKey === 'mtw.subscriptions' &&
-                   message.detailEnvelope?.type === `Initialize Subscription - ${this.dataSourceKey}` &&
+                   message.header?.type === `Initialize Subscription - ${this.dataSourceKey}` &&
                    typeof message.streamKey === 'string' &&
-                   typeof message.detailEnvelope?.update?.sessionId === 'string' &&
-                   typeof message.detailEnvelope?.update?.requestId === 'string'
+                   typeof message.content?.sessionId === 'string' &&
+                   typeof message.content?.requestId === 'string'
         }
 
         // Subscribe to Initialize Subscription events with higher priority
@@ -685,7 +684,7 @@ export class DataSource<
                 // Process each Initialize Subscription event
                 for (const payload of payloads) {
                     const { streamKey } = payload
-                    const { sessionId } = payload.detailEnvelope.update
+                    const { sessionId } = payload.content
                     
                     try {
                         // Use the existing initializeSubscription method

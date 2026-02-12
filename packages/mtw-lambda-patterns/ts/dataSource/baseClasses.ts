@@ -15,7 +15,7 @@ export type StreamingEventHeader = {
     // Optional small domain flags like zone can be added per DataSource
 }
 
-// External EventBridge format
+// External EventBridge format (still uses detailEnvelope on the wire)
 export type StreamingEvent = {
     messageType: 'StreamingEvent';
     dataSourceKey: string;
@@ -24,12 +24,14 @@ export type StreamingEvent = {
     detailEnvelope: EventPayload;
 }
 
-// Internal DataSource format (clean, no external baggage)
+// Internal DataSource format for StreamingEvent messages on the messageBus.
+// Canonical shape is header + content inside the process.
 export type StreamingEventPayload = {
     dataSourceKey: string;
     streamKey: string;
     timestamp: number;
-    detailEnvelope: EventPayload;
+    header: StreamingEventHeader;
+    content: EventPayload;
 }
 
 // In-process envelope that clearly separates header from content

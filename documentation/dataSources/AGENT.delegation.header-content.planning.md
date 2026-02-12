@@ -258,11 +258,57 @@ This keeps WML’s internal messageBus aligned with the generic DataSource envel
 
 ---
 
-## Step 4: Lambda Gates Build `{ header, content }`
+## Step 4 (COMPLETED): Lambda Gates Build `{ header, content }`
 
-For this refactor, gates still deserialize external events eagerly; we only change what they send to the messageBus.
+For this refactor, gates still deserialize external events eagerly; we only change what they send to the messageBus. All three lambda gates (WML, assets, ephemera) now build an explicit `{ header, content }` envelope for DataSource processing while preserving Initialize Subscription behavior.
 
-### 4.1 Assets lambda
+### 4.1 Common `StreamingEvent` shape on the messageBus
+
+Each gate now publishes internal streaming messages in a consistent shape:
+
+```ts
+type InternalStreamingEventMessage<Content = EventPayload> = {
+    type: 'StreamingEvent';
+    dataSourceKey: string;
+    streamKey: string;
+    timestamp: number;
+    header: StreamingEventHeader;
+    content: Content;
+}
+```
+
+- **Header**:
+  - `dataSourceKey`: the producing DataSource key (e.g. `mtw.wml`, `mtw.assets`, `mtw.coordination`).
+  - `streamKey`: the logical stream identifier (asset id, zone id, etc.).
+  - `timestamp`: event timestamp from the EventBridge core format.
+  - `type`: the internal event type (e.g. `'Content Update'`, `'Zone Changed'`, `'Asset Removed'`).
+- **Content**:
+  - The fully deserialized **internal** event payload for that DataSource family.
+  - **Initialize Subscription**:
+  - Initialize Subscription messages from `mtw.subscriptions` use the same header/content shape, with the **target** DataSource encoded in the header type:
+
+  ```ts
+  {
+      type: 'StreamingEvent',
+      dataSourceKey: 'mtw.subscriptions',
+      streamKey,
+      header: {
+          dataSourceKey: 'mtw.subscriptions',
+          streamKey,
+          timestamp,
+          type: `Initialize Subscription - ${targetDataSourceKey}` // e.g. "Initialize Subscription - mtw.assets.contentHeaders"
+      },
+      content: {
+          sessionId,
+          requestId
+      },
+      timestamp
+  }
+  ```
+
+  - Each DataSource instance knows its own `dataSourceKey`, and `DataSource.subscribeToInitializeEvents()` type-guards on `header.type === "Initialize Subscription - ${this.dataSourceKey}"`. This is how the system determines **which** DataSource should handle a given Initialize Subscription event.
+
+### 4.2 Assets lambda
 
 File: `lambda/assets/app.ts`
 
@@ -285,7 +331,7 @@ File: `lambda/assets/app.ts`
     });
     ```
 
-### 4.2 WML lambda
+### 4.3 WML lambda
 
 File: `lambda/wml/app.ts`
 
@@ -293,7 +339,7 @@ File: `lambda/wml/app.ts`
   - Keep deserializing into internal WML events.
   - Compute `header` (type/zone/etc.) and send `{ header, content: internalEvent }` with the same outer envelope fields.
 
-### 4.3 Ephemera lambda
+### 4.4 Ephemera lambda
 
 File: `lambda/ephemera/app.ts`
 
