@@ -1,6 +1,6 @@
 ## DataSource Serialize/Deserialize Refactor Planning
 
-**Status**: NOT STARTED  
+**Status**: IN PROGRESS (Step 1 complete)  
 **Scope**: `DataSourceEventSerializer` interface and all concrete serializers that participate in DataSource pipelines (lambdas + client), plus minimal wiring changes where they are called.  
 **Related**: `AGENT.delegation.header-content.planning.md`, `packages/mtw-lambda-patterns/ts/dataSource/baseClasses.ts`, serializers in `mtw-interfaces/ts/**`, client reducers in `charcoal-client/src/slices/dataSource/reducers.ts`.
 
@@ -54,7 +54,9 @@ This document plans the follow-up refactor to align serializers with the header/
 
 ## Step 1: Extend Serializer Interface (Backwards-Compatible)
 
-### 1.1 Add optional header parameter to `deserialize`
+**Completed**: Interface extended in `baseClasses.ts`; optional `header?: StreamingEventHeader` added to both `deserialize` and `serialize`. All existing call sites and implementations remain valid.
+
+### 1.1 Add optional header parameter to `deserialize` (done)
 
 File: `packages/mtw-lambda-patterns/ts/dataSource/baseClasses.ts`
 
@@ -73,7 +75,7 @@ File: `packages/mtw-lambda-patterns/ts/dataSource/baseClasses.ts`
   - Existing implementations that ignore `header` remain valid.
   - Callers that do not yet have header available (or have not been updated) can simply omit it.
 
-### 1.2 Consider similar extension for `serialize` (optional)
+### 1.2 Consider similar extension for `serialize` (done)
 
 - If helpful, extend `serialize` similarly:
 
@@ -223,7 +225,14 @@ Files:
 
 - This does not require any external contract changes and can be done incrementally.
 
-### 4.2 External format (optional and later)
+### 4.2 Make header required in the serializer interface (after rollout)
+
+- **When**: After Step 2 and Step 3 are complete for all DataSource families (all call sites pass `header`, all serializers read from it with fallback).
+- **Change**: In `DataSourceEventSerializer`, make `header` a required parameter for both `deserialize` and `serialize` (remove the `?`).
+- **Effect**: TypeScript then enforces that every caller supplies header and every serializer can assume it is present; the fallback `header?.type ?? externalUpdate.type` pattern can be simplified to `header.type`.
+- **Prerequisite**: No call site may omit header; all serializers must be migrated first so that this change is a type-only tightening with no behavioral change.
+
+### 4.3 External format (optional and later)
 
 - If and when we want to further simplify payloads:
   - Consider introducing a stricter notion of payload purity for new event types:
@@ -257,7 +266,8 @@ This phase is intentionally deferred until after header-aware deserialization is
    - Repeat Step 3 for each DataSource family:
      - WML, assets (main and contentHeaders/characters/library/players), ephemera, etc.
 
-5. **Optional payload simplification** (Step 4), only after confidence is high.
+5. **Make header required** (Step 4.2): Tighten the interface so `header` is required; simplify serializers to use `header` only.
+6. **Optional payload simplification** (Step 4.3), only after confidence is high.
 
 ### 5.2 Validation
 
