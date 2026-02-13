@@ -3,7 +3,7 @@
 // This file contains event types, type guards, and serializers for the Assets data source.
 // Migrated from lambda/assets/dataSource/serializers.ts
 
-import { DataSourceEventSerializer } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import { DataSourceEventSerializer, StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { isStandardComponent, StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 import { standardComponentFactory } from '@tonylb/mtw-wml/ts/standardize/componentFactory'
@@ -264,9 +264,10 @@ export class AssetsEventSerializer implements DataSourceEventSerializer<AssetsEv
     
     deserialize(params: { 
         dataSourceKey: string
-        detailType: string
+        detailType?: string
         streamKey: string
-        externalUpdate: AssetsEventExternal 
+        externalUpdate: AssetsEventExternal
+        header?: StreamingEventHeader
     }): AssetsEventUpdate | null {
         const { streamKey, externalUpdate } = params
         

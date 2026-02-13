@@ -1,5 +1,5 @@
 import { Zone } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { DataSourceEventSerializer } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import { DataSourceEventSerializer, StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 
 // Internal types for coordination events
 export type CoordinationCanonizeEvent = {
@@ -197,7 +197,7 @@ export class CoordinationEventSerializer implements DataSourceEventSerializer<Co
      * Deserialize an external event back to internal format
      * for messageBus processing
      */
-    deserialize(params: { dataSourceKey: string; streamKey: string; externalUpdate: CoordinationEventExternal }): CoordinationEventUpdate | null {
+    deserialize(params: { dataSourceKey: string; streamKey: string; externalUpdate: CoordinationEventExternal; header?: StreamingEventHeader }): CoordinationEventUpdate | null {
         const { externalUpdate } = params
         
         if (externalUpdate.type === 'Canonize Asset') {

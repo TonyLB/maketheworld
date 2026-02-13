@@ -1,6 +1,6 @@
 ## DataSource Serialize/Deserialize Refactor Planning
 
-**Status**: IN PROGRESS (Step 1 complete)  
+**Status**: IN PROGRESS (Steps 1-2 complete)  
 **Scope**: `DataSourceEventSerializer` interface and all concrete serializers that participate in DataSource pipelines (lambdas + client), plus minimal wiring changes where they are called.  
 **Related**: `AGENT.delegation.header-content.planning.md`, `packages/mtw-lambda-patterns/ts/dataSource/baseClasses.ts`, serializers in `mtw-interfaces/ts/**`, client reducers in `charcoal-client/src/slices/dataSource/reducers.ts`.
 
@@ -93,6 +93,8 @@ File: `packages/mtw-lambda-patterns/ts/dataSource/baseClasses.ts`
 ---
 
 ## Step 2: Thread Header Into Deserialize Call Sites
+
+**Completed**: All server-side gates (assets, WML, ephemera lambdas) and the client reducer now pass `header` into `deserialize`. Header is built from EventBridge/coreFormat or from the client payload so it matches the header used for messageBus routing. Concrete serializers used by these gates have had their `deserialize` param types updated to accept optional `header` (no implementation changes; serializers still use `externalUpdate.type` until Step 3).
 
 ### 2.1 Server-side DataSource receive paths
 

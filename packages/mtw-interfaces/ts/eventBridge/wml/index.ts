@@ -3,7 +3,7 @@
 // This file contains event types, type guards, and serializers for the WML data source.
 // Migrated from lambda/wml/dataSource/serializers.ts
 
-import { DataSourceEventSerializer } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import { DataSourceEventSerializer, StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { DataSourceAggregator } from '@tonylb/mtw-lambda-patterns/ts/dataSource/aggregation'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes'
@@ -267,7 +267,7 @@ export class WMLEventSerializer implements DataSourceEventSerializer<WMLEventUpd
      * Deserialize an external event back to internal format
      * for messageBus processing
      */
-    deserialize(params: { dataSourceKey: string; streamKey: string; externalUpdate: WMLEventExternal }): WMLEventUpdate | null {
+    deserialize(params: { dataSourceKey: string; streamKey: string; externalUpdate: WMLEventExternal; header?: StreamingEventHeader }): WMLEventUpdate | null {
         const { externalUpdate } = params
         if (externalUpdate.type === 'Zone Changed') {
             // Zone events pass through as-is
@@ -323,7 +323,7 @@ export class WMLDataSourceEventSerializer implements DataSourceEventSerializer<W
         return this.baseSerializer.serialize(params) as WMLContentEventExternal
     }
 
-    deserialize(params: { dataSourceKey: string; streamKey: string; externalUpdate: WMLContentEventExternal }): WMLContentEvent | null {
+    deserialize(params: { dataSourceKey: string; streamKey: string; externalUpdate: WMLContentEventExternal; header?: StreamingEventHeader }): WMLContentEvent | null {
         if (!isWMLContentEventExternal(params.externalUpdate)) {
             return null
         }

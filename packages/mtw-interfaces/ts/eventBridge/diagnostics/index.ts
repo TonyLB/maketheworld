@@ -1,4 +1,4 @@
-import { DataSourceEventSerializer } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import { DataSourceEventSerializer, StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 
 //
 // Internal types for diagnostics events
@@ -85,6 +85,7 @@ export class DiagnosticsEventSerializer implements DataSourceEventSerializer<Dia
         dataSourceKey: string
         streamKey: string
         externalUpdate: any  // Will have type field from EventBridge detail-type
+        header?: StreamingEventHeader
     }): DiagnosticsEventUpdate | null {
         const { externalUpdate } = params
         
