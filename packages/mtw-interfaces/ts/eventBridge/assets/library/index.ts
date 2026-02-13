@@ -3,7 +3,7 @@
 // This file contains event types, type guards, and serializers for the Library data source.
 // The Library data source provides a simple list of asset IDs in the Library zone.
 
-import { DataSourceEventSerializer } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import { DataSourceEventSerializer, StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 
 // Import and re-export the base classes
@@ -73,6 +73,7 @@ export class LibraryEventSerializer implements DataSourceEventSerializer<
         dataSourceKey: string;
         streamKey: string;
         update: LibraryEventUpdate;
+        header?: StreamingEventHeader;
     }): LibraryExternal {
         const { update } = params
         

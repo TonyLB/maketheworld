@@ -3,7 +3,7 @@
 // This file contains event types, type guards, and serializers for the ContentHeaders sub-source.
 // Migrated from lambda/assets/contentHeaders/serializers.ts
 
-import { DataSourceEventSerializer } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import { DataSourceEventSerializer, StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
 import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
@@ -77,6 +77,7 @@ export class ContentHeadersEventSerializer implements DataSourceEventSerializer<
         dataSourceKey: string;
         streamKey: string;
         update: ContentHeadersEventUpdate;
+        header?: StreamingEventHeader;
     }): ContentHeadersExternal {
         const { update } = params
         

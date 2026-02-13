@@ -15,7 +15,7 @@
    Treat `content` as the domain payload that can be sidecarred, cached, or transformed without having to carry redundant routing metadata that already exists in the header.
 
 3. **Give serializers access to header + content**  
-   Extend the `DataSourceEventSerializer` contract so `deserialize` (and, where helpful, `serialize`) have access to both `header` and `content`. This allows serializers to use header for discrimination and context instead of re-parsing those concepts from the payload.
+   Extend the `DataSourceEventSerializer` contract so `deserialize` (and, where helpful, `serialize`) have access to both `header` and `content`. This allows serializers to use header for discrimination and context instead of re-parsing those concepts from the payload. **Header is now threaded into `serialize`** at the DataSource core level (`streamEvent` builds header once and passes it to `serialize`), ready for use when serializers (e.g. WML, contentHeaders) later prefer `header.zone` or other header flags.
 
 4. **Preserve existing external contracts and behavior**  
    Maintain wire formats and observable behavior during the migration. Redundancy between header and content is acceptable during the transition; the goal is to change what code *reads*, not what the network shape *is*, at least initially.
@@ -95,6 +95,8 @@ File: `packages/mtw-lambda-patterns/ts/dataSource/baseClasses.ts`
 ## Step 2: Thread Header Into Deserialize Call Sites
 
 **Completed**: All server-side gates (assets, WML, ephemera lambdas) and the client reducer now pass `header` into `deserialize`. Header is built from EventBridge/coreFormat or from the client payload so it matches the header used for messageBus routing. Concrete serializers used by these gates have had their `deserialize` param types updated to accept optional `header` (no implementation changes; serializers still use `externalUpdate.type` until Step 3).
+
+**2.3 Serialize call sites (done)**: In `DataSource.streamEvent` (mtw-lambda-patterns), header is built once before calling `serialize` and passed into `eventSerializer.serialize({ ..., header })`; the same header is reused for the messageBus event. All concrete serializers that implement `serialize` (WML, assets, contentHeaders, players, ephemera, library) have had their `serialize` param types extended to accept optional `header`; implementation bodies continue to ignore it until later steps (e.g. when moving zone into header for specific families).
 
 ### 2.1 Server-side DataSource receive paths
 

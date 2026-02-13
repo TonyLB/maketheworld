@@ -226,6 +226,7 @@ export class AssetsEventSerializer implements DataSourceEventSerializer<AssetsEv
         dataSourceKey: string;
         streamKey: string;
         update: AssetsEventUpdate;
+        header?: StreamingEventHeader;
     }): AssetsEventExternal {
         const { update } = params
         
