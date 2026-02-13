@@ -390,7 +390,7 @@ After this step, both server and client treat DataSource events as `{ header, co
 
 ---
 
-## Step 6: Tests and Validation
+## Step 6 (COMPLETED): Tests and Validation
 
 ### 6.1 `mtw-lambda-patterns` tests
 
@@ -425,6 +425,10 @@ For each family (WML, assets, ephemera):
 - Confirm that:
   - Emitted events/snapshots to SNS/WebSocket are unchanged.
   - Dynamo writes and other side effects match prior behavior.
+
+### 6.4 Completed
+
+All mtw-lambda-patterns and lambda DataSource tests were audited and updated to use and assert on `{ header, content }`. Behavior checks were performed for WML, assets, and ephemera (full test suites plus targeted flow coverage); all tests pass and observable behavior (emitted events/snapshots, Dynamo writes, side effects) is unchanged. Completed 2025-02-12.
 
 ---
 

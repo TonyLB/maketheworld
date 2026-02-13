@@ -764,8 +764,7 @@ describe('DataSource', () => {
                     dataSourceKey: 'mtw.testDataSource',
                     streamKey: 'test-stream',
                     timestamp: 100000000,
-                    type: 'TestUpdatePayload',
-                    update: 'test-update'
+                    type: 'TestUpdatePayload'
                 },
                 content: {
                     type: 'TestUpdatePayload',
@@ -990,6 +989,9 @@ describe('DataSource', () => {
             jest.clearAllMocks()
         })
 
+        // Subscription filter receives messageBus payloads; when they have header/content, the
+        // filter passes StreamingEventHeader to subscribedEventTypeGuard and the callback passes
+        // StreamingEventEnvelope[] to receiveEvents.
         describe('subscribe', () => {
             it('should subscribe to Initialize events even if subscribedEventTypeGuard is not provided (for replayable DataSources)', () => {
                 const dataSource = new TestDataSource({
