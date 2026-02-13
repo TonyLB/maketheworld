@@ -269,6 +269,13 @@ The following migrations must be completed in this specific order due to depende
 
 **Recommendation**: Address as needed based on content organization requirements. No immediate action required.
 
+#### Asset address (`.address`) usage
+**Status**: Future evaluation
+
+**Context**: Zone changes are now stored in their own structure (e.g. zone metadata in DynamoDB, S3 tags) rather than by moving objects between different zone directories. The legacy direct-invocation `metaData` handler that returned asset addresses was removed from the assets lambda.
+
+**Future consideration**: It may make sense to evaluate whether we still use `.address` for assets at all. If zone is fully expressed in metadata and no longer implied by directory layout, code that relies on `assetWorkspace.address` or similar may be redundant or simplifiable.
+
 ---
 
 ## Cross-Phase Considerations

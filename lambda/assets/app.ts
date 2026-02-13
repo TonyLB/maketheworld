@@ -16,8 +16,7 @@ import {
 
 import messageBus from "./messageBus/index.js"
 import { sfnClient, snsClient } from "./clients"
-import { AssetKey, ConnectionKey } from "@tonylb/mtw-utilities/ts/types"
-import ReadOnlyAssetWorkspace from "@tonylb/mtw-asset-workspace/ts/readOnly"
+import { ConnectionKey } from "@tonylb/mtw-utilities/ts/types"
 import { StartExecutionCommand } from "@aws-sdk/client-sfn"
 import { PublishCommand } from "@aws-sdk/client-sns"
 import { createBackupEntry } from "./backups"
@@ -83,14 +82,6 @@ export const handler = async (event, context) => {
                 await messageBus.flush()
                 return {}
             }
-            case 'metaData':
-                return await Promise.all(
-                    (event.assetIds || []).map(async (assetId) => {
-                        const assetKey = AssetKey(assetId)
-                        const assetWorkspace = await ReadOnlyAssetWorkspace.fromUUID(assetKey)
-                        return assetWorkspace?.address
-                    })
-                )
             case 'createBackupEntry':
                 return await createBackupEntry({ AssetId: event.AssetId })
         }
