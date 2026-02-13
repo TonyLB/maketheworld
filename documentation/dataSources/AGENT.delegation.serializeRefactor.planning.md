@@ -1,6 +1,6 @@
 ## DataSource Serialize/Deserialize Refactor Planning
 
-**Status**: IN PROGRESS (Steps 1-2 complete)  
+**Status**: IN PROGRESS (Steps 1-2 complete; Step 3 pilot complete)  
 **Scope**: `DataSourceEventSerializer` interface and all concrete serializers that participate in DataSource pipelines (lambdas + client), plus minimal wiring changes where they are called.  
 **Related**: `AGENT.delegation.header-content.planning.md`, `packages/mtw-lambda-patterns/ts/dataSource/baseClasses.ts`, serializers in `mtw-interfaces/ts/**`, client reducers in `charcoal-client/src/slices/dataSource/reducers.ts`.
 
@@ -160,6 +160,8 @@ Files:
 ---
 
 ## Step 3: Migrate Serializers to Use Header (Incremental, One Family at a Time)
+
+**Completed (pilot)**: CoordinationEventSerializer now prefers `header?.type` with fallback to `externalUpdate.type`. New unit tests in [lambda/wml/dataSource/coordinationSerializer.test.ts](../../lambda/wml/dataSource/coordinationSerializer.test.ts) cover: discrimination from header when present; header wins when header and payload type disagree; backward compatibility when header is omitted; and round-trip with header.
 
 ### 3.1 Choose a pilot DataSource family
 

@@ -198,41 +198,45 @@ export class CoordinationEventSerializer implements DataSourceEventSerializer<Co
      * for messageBus processing
      */
     deserialize(params: { dataSourceKey: string; streamKey: string; externalUpdate: CoordinationEventExternal; header?: StreamingEventHeader }): CoordinationEventUpdate | null {
-        const { externalUpdate } = params
-        
-        if (externalUpdate.type === 'Canonize Asset') {
+        const { externalUpdate, header } = params
+        const eventType = header?.type ?? externalUpdate.type
+
+        if (eventType === 'Canonize Asset') {
             return {
                 type: 'Canonize Asset'
             }
-        } else if (externalUpdate.type === 'Decanonize Asset') {
+        } else if (eventType === 'Decanonize Asset') {
             return {
                 type: 'Decanonize Asset'
             }
-        } else if (externalUpdate.type === 'Move Asset') {
+        } else if (eventType === 'Move Asset') {
+            const ext = externalUpdate as MoveAssetRequestExternal
             return {
                 type: 'Move Asset',
-                fromZone: externalUpdate.fromZone!,
-                toZone: externalUpdate.toZone!,
-                player: externalUpdate.player,
-                subFolder: externalUpdate.subFolder
+                fromZone: ext.fromZone!,
+                toZone: ext.toZone!,
+                player: ext.player,
+                subFolder: ext.subFolder
             }
-        } else if (externalUpdate.type === 'Apply Edit') {
+        } else if (eventType === 'Apply Edit') {
+            const ext = externalUpdate as ApplyEditRequestExternal
             return {
                 type: 'Apply Edit',
-                RequestId: externalUpdate.RequestId,
-                schema: externalUpdate.schema,
-                createIfNeeded: externalUpdate.createIfNeeded,
-                zone: externalUpdate.zone
+                RequestId: ext.RequestId,
+                schema: ext.schema,
+                createIfNeeded: ext.createIfNeeded,
+                zone: ext.zone
             }
-        } else if (externalUpdate.type === 'Create Snapshot') {
+        } else if (eventType === 'Create Snapshot') {
             return {
                 type: 'Create Snapshot'
             }
-        } else if (externalUpdate.type === 'Purge Asset') {
+        } else if (eventType === 'Purge Asset') {
+            const ext = externalUpdate as PurgeAssetRequestExternal
             return {
                 type: 'Purge Asset',
-                expectedZone: externalUpdate.expectedZone,
-                requireExists: externalUpdate.requireExists
+                expectedZone: ext.expectedZone,
+                requireExists: ext.requireExists
             }
         } else {
             return null
