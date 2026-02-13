@@ -6,15 +6,74 @@ import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { AssetKey } from '@tonylb/mtw-utilities/ts/types'
 import { cacheAsset, decacheAsset } from './caching'
 import { AssetsEventSerializer, AssetsEventUpdate } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
-import { WMLEventUpdate } from '@tonylb/mtw-interfaces/ts/eventBridge/wml'
+import { WMLContentEvent, WMLZoneEvent, WMLPurgeEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/wml'
 import { StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { AssetUUID } from "@tonylb/mtw-base/ts/schema"
 
-/** Payload types of events mtw.assets subscribes to (from mtw.wml, mtw.diagnostics, mtw.coordination). */
-type AssetsSubscribedContent =
-    | WMLEventUpdate
-    | { type: 'Heal Global Values'; connections?: unknown; assets?: unknown }
-    | { type: 'Remove Asset'; assetId: string }
+/**
+ * Envelope-level discriminated union for events subscribed by mtw.assets DataSource.
+ * Each variant pairs a narrow header (dataSourceKey + type) with the matching content shape,
+ * enabling TypeScript to narrow content when routing on header.type.
+ */
+export type AssetsIncomingEvent =
+    | {
+          header: StreamingEventHeader & { dataSourceKey: 'mtw.wml'; type: 'Content Update' };
+          content: WMLContentEvent;
+      }
+    | {
+          header: StreamingEventHeader & { dataSourceKey: 'mtw.wml'; type: 'Zone Changed' };
+          content: WMLZoneEvent;
+      }
+    | {
+          header: StreamingEventHeader & { dataSourceKey: 'mtw.wml'; type: 'Asset Purged' };
+          content: WMLPurgeEvent;
+      }
+    | {
+          header: StreamingEventHeader & { dataSourceKey: 'mtw.diagnostics'; type: 'Heal Global Values' };
+          content: { type: 'Heal Global Values'; connections?: unknown; assets?: unknown };
+      }
+    | {
+          header: StreamingEventHeader & { dataSourceKey: 'mtw.coordination'; type: 'Remove Asset' };
+          content: { type: 'Remove Asset'; assetId: string };
+      };
+
+/** Payload types of events mtw.assets subscribes to (derived from envelope union for backward compatibility). */
+type AssetsSubscribedContent = AssetsIncomingEvent['content']
+
+//
+// Type guards for envelope-level discriminated union variants
+//
+const isWMLZoneChangedEvent = (event: AssetsIncomingEvent): event is Extract<
+    AssetsIncomingEvent,
+    { header: { dataSourceKey: 'mtw.wml'; type: 'Zone Changed' } }
+> => (
+    event.header.dataSourceKey === 'mtw.wml' &&
+    event.header.type === 'Zone Changed'
+)
+
+const isWMLAssetPurgedEvent = (event: AssetsIncomingEvent): event is Extract<
+    AssetsIncomingEvent,
+    { header: { dataSourceKey: 'mtw.wml'; type: 'Asset Purged' } }
+> => (
+    event.header.dataSourceKey === 'mtw.wml' &&
+    event.header.type === 'Asset Purged'
+)
+
+const isDiagnosticsHealGlobalValuesEvent = (event: AssetsIncomingEvent): event is Extract<
+    AssetsIncomingEvent,
+    { header: { dataSourceKey: 'mtw.diagnostics'; type: 'Heal Global Values' } }
+> => (
+    event.header.dataSourceKey === 'mtw.diagnostics' &&
+    event.header.type === 'Heal Global Values'
+)
+
+const isCoordinationRemoveAssetEvent = (event: AssetsIncomingEvent): event is Extract<
+    AssetsIncomingEvent,
+    { header: { dataSourceKey: 'mtw.coordination'; type: 'Remove Asset' } }
+> => (
+    event.header.dataSourceKey === 'mtw.coordination' &&
+    event.header.type === 'Remove Asset'
+)
 
 //
 // Non-replayable DataSource singleton for mtw.assets
@@ -43,13 +102,15 @@ export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, A
     receiveEvents: async ({ events, streamEvent }) => {
         // Process internal messageBus events from other data sources
         // Process each event in the batch independently and in parallel
+        // Cast to envelope union for TypeScript narrowing
+        const typedEvents = events as AssetsIncomingEvent[]
 
-        await Promise.all(events.map(async (event) => {
-            const { header, content } = event
+        await Promise.all(typedEvents.map(async (event) => {
+            const { header } = event
             const assetId = header.streamKey as AssetUUID
 
             // Handle mtw.wml events
-            if (header.dataSourceKey === 'mtw.wml' && content.type === 'Content Update') {
+            if (event.header.dataSourceKey === 'mtw.wml' && event.header.type === 'Content Update') {
                 if (assetId) {
                     try {
                         const { zone, player, isNewAsset } = await cacheAsset({ assetId, streamEvent })
@@ -99,8 +160,8 @@ export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, A
             }
 
             // Handle mtw.wml Zone Changed events
-            if (header.dataSourceKey === 'mtw.wml' && content.type === 'Zone Changed') {
-                const { fromZone, toZone, player, subFolder } = content
+            if (isWMLZoneChangedEvent(event)) {
+                const { fromZone, toZone, player, subFolder } = event.content
                 if (assetId) {
                     // Ensure AssetId is properly formatted as ASSET#${string}
                     const assetUUID = AssetKey(assetId)
@@ -162,7 +223,7 @@ export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, A
             }
 
             // Handle mtw.wml Asset Purged events
-            if (header.dataSourceKey === 'mtw.wml' && content.type === 'Asset Purged') {
+            if (isWMLAssetPurgedEvent(event)) {
                 if (assetId) {
                     try {
                         // Decache the asset before removing it (clean up DynamoDB cache)
@@ -173,7 +234,7 @@ export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, A
                     }
 
                     // Use zone and player from event (forwarded from Asset Purged, which gets player from S3)
-                    const { zone, player } = content
+                    const { zone, player } = event.content
                     
                     if (!zone) {
                         console.error(`Cannot emit Asset Removed for ${assetId}: zone is missing from Asset Purged event`)
@@ -204,18 +265,18 @@ export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, A
             }
 
             // Handle mtw.diagnostics events
-            if (header.dataSourceKey === 'mtw.diagnostics' && content.type === 'Heal Global Values') {
+            if (isDiagnosticsHealGlobalValuesEvent(event)) {
                 const returnVal = await healGlobalValues({
-                    shouldHealConnections: Boolean(content.connections),
-                    shouldHealGlobalAssets: typeof content.assets !== 'boolean' || content.assets
+                    shouldHealConnections: Boolean(event.content.connections),
+                    shouldHealGlobalAssets: typeof event.content.assets !== 'boolean' || event.content.assets
                 })
 
                 return
             }
 
             // Handle mtw.coordination events
-            if (header.dataSourceKey === 'mtw.coordination' && content.type === 'Remove Asset') {
-                const { assetId } = content
+            if (isCoordinationRemoveAssetEvent(event)) {
+                const { assetId } = event.content
                 if (assetId) {
                     try {
                         // Decache the asset before removing it

@@ -73,7 +73,7 @@ export class LibraryEventSerializer implements DataSourceEventSerializer<
         dataSourceKey: string;
         streamKey: string;
         update: LibraryEventUpdate;
-        header?: StreamingEventHeader;
+        header: StreamingEventHeader;
     }): LibraryExternal {
         const { update } = params
         
@@ -98,11 +98,13 @@ export class LibraryEventSerializer implements DataSourceEventSerializer<
         dataSourceKey: string
         streamKey: string
         externalUpdate: LibraryExternal 
+        header: StreamingEventHeader
     }): LibraryEventUpdate | null {
-        const { externalUpdate } = params
+        const { externalUpdate, header } = params
+        const eventType = header.type
         
         // Validate and pass through
-        if (externalUpdate.type === 'Asset Added') {
+        if (eventType === 'Asset Added') {
             if (typeof externalUpdate.assetId !== 'string') {
                 console.error('Invalid Asset Added event: assetId must be a string')
                 return null
@@ -111,7 +113,7 @@ export class LibraryEventSerializer implements DataSourceEventSerializer<
                 type: 'Asset Added',
                 assetId: externalUpdate.assetId
             }
-        } else if (externalUpdate.type === 'Asset Removed') {
+        } else if (eventType === 'Asset Removed') {
             if (typeof externalUpdate.assetId !== 'string') {
                 console.error('Invalid Asset Removed event: assetId must be a string')
                 return null

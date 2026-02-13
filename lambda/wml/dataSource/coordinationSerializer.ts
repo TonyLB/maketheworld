@@ -197,9 +197,9 @@ export class CoordinationEventSerializer implements DataSourceEventSerializer<Co
      * Deserialize an external event back to internal format
      * for messageBus processing
      */
-    deserialize(params: { dataSourceKey: string; streamKey: string; externalUpdate: CoordinationEventExternal; header?: StreamingEventHeader }): CoordinationEventUpdate | null {
+    deserialize(params: { dataSourceKey: string; streamKey: string; externalUpdate: CoordinationEventExternal; header: StreamingEventHeader }): CoordinationEventUpdate | null {
         const { externalUpdate, header } = params
-        const eventType = header?.type ?? externalUpdate.type
+        const eventType = header.type
 
         if (eventType === 'Canonize Asset') {
             return {

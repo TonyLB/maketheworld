@@ -226,7 +226,7 @@ export class AssetsEventSerializer implements DataSourceEventSerializer<AssetsEv
         dataSourceKey: string;
         streamKey: string;
         update: AssetsEventUpdate;
-        header?: StreamingEventHeader;
+        header: StreamingEventHeader;
     }): AssetsEventExternal {
         const { update } = params
         
@@ -268,18 +268,19 @@ export class AssetsEventSerializer implements DataSourceEventSerializer<AssetsEv
         detailType?: string
         streamKey: string
         externalUpdate: AssetsEventExternal
-        header?: StreamingEventHeader
+        header: StreamingEventHeader
     }): AssetsEventUpdate | null {
-        const { streamKey, externalUpdate } = params
+        const { streamKey, externalUpdate, header } = params
+        const eventType = header.type
         
-        // Use the embedded type property to determine how to deserialize
-        if (externalUpdate.type === 'Component Updated') {
+        // Use the header type to determine how to deserialize
+        if (eventType === 'Component Updated') {
             const updatedExternal = externalUpdate as ComponentUpdatedEventExternal
             return {
                 type: 'Component Updated',
                 component: this.parseWMLToComponent(updatedExternal.wml, updatedExternal.componentId)
             }
-        } else if (externalUpdate.type === 'Component Removed') {
+        } else if (eventType === 'Component Removed') {
             const removedExternal = externalUpdate as ComponentRemovedEventExternal
             return {
                 type: 'Component Removed',

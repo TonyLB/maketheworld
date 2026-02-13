@@ -68,6 +68,60 @@ This dual approach ensures efficient delivery while maintaining the correct scop
 - **Processing Foundation**: Provides the foundation for advanced event processing patterns
 - **Pattern Agnostic**: Implementation can choose the most appropriate processing approach for the use case
 
+### **Type-Safe Routing with Envelope-Level Discriminated Unions**:
+
+When using header/content separation (`StreamingEventEnvelope<{ header, content }>`), discriminants such as `type` and `dataSourceKey` live on the `header`, not on the payload. To keep routing logic type-safe without embedding redundant `type` fields in `content`, the recommended pattern is:
+
+1. **Define an envelope-level union** for subscribed events in the lambda layer:
+
+   ```ts
+   export type AssetsIncomingEvent =
+       | {
+             header: StreamingEventHeader & { dataSourceKey: 'mtw.wml'; type: 'Zone Changed' };
+             content: WMLZoneEvent;
+         }
+       | {
+             header: StreamingEventHeader & { dataSourceKey: 'mtw.wml'; type: 'Asset Purged' };
+             content: WMLPurgeEvent;
+         }
+       | {
+             header: StreamingEventHeader & { dataSourceKey: 'mtw.diagnostics'; type: 'Heal Global Values' };
+             content: { type: 'Heal Global Values'; connections?: unknown; assets?: unknown };
+         }
+       | {
+             header: StreamingEventHeader & { dataSourceKey: 'mtw.coordination'; type: 'Remove Asset' };
+             content: { type: 'Remove Asset'; assetId: string };
+         };
+   ```
+
+2. **Cast the incoming `events` array** from the generic `StreamingEventEnvelope<SubscribedContent>[]` to the envelope union where you need stronger typing:
+
+   ```ts
+   const typedEvents = events as AssetsIncomingEvent[];
+   ```
+
+3. **Use small, focused type guard functions** to route on `header` while narrowing the envelope (and therefore `content`):
+
+   ```ts
+   const isWMLZoneChangedEvent = (event: AssetsIncomingEvent): event is Extract<
+       AssetsIncomingEvent,
+       { header: { dataSourceKey: 'mtw.wml'; type: 'Zone Changed' } }
+   > => (
+       event.header.dataSourceKey === 'mtw.wml' &&
+       event.header.type === 'Zone Changed'
+   );
+
+   // In receiveEvents
+   await Promise.all(typedEvents.map(async (event) => {
+       if (isWMLZoneChangedEvent(event)) {
+           const { fromZone, toZone } = event.content; // fully narrowed
+           // ...
+       }
+   }));
+   ```
+
+This pattern works around a TypeScript limitation: the compiler does not automatically narrow a union based on checks of **nested** discriminant properties (for example, `event.header.type`) even though it does so for top-level discriminants (`event.type`). By using envelope unions plus explicit type guards, DataSource implementations can keep routing decisions based on header fields while still enjoying precise typing of the content payloads.
+
 **Benefits**:
 - **Processing Flexibility**: Supports aggregation, parallel processing, sequential processing, or mixed patterns
 - **Scalability**: Foundation for handling high-volume event streams efficiently

@@ -77,7 +77,7 @@ export class ContentHeadersEventSerializer implements DataSourceEventSerializer<
         dataSourceKey: string;
         streamKey: string;
         update: ContentHeadersEventUpdate;
-        header?: StreamingEventHeader;
+        header: StreamingEventHeader;
     }): ContentHeadersExternal {
         const { update } = params
         
@@ -98,10 +98,12 @@ export class ContentHeadersEventSerializer implements DataSourceEventSerializer<
         dataSourceKey: string
         streamKey: string
         externalUpdate: ContentHeadersExternal 
+        header: StreamingEventHeader
     }): ContentHeadersEventUpdate | null {
-        const { externalUpdate } = params
+        const { externalUpdate, header } = params
+        const eventType = header.type
         
-        if (externalUpdate.type === 'Headers Updated') {
+        if (eventType === 'Headers Updated') {
             // Convert external WML string to internal StandardForm object
             const result: ContentHeadersUpdate = {
                 type: 'Headers Updated',

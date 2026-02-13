@@ -55,7 +55,7 @@ export interface DataSourceEventSerializer<
         dataSourceKey: string;
         streamKey: string;
         update: UpdatePayload;
-        header?: StreamingEventHeader;
+        header: StreamingEventHeader;
     }): ExternalUpdatePayload;
     
     /**
@@ -66,7 +66,7 @@ export interface DataSourceEventSerializer<
         dataSourceKey: string;
         streamKey: string;
         externalUpdate: ExternalUpdatePayload;
-        header?: StreamingEventHeader;
+        header: StreamingEventHeader;
     }): UpdatePayload | null;
     
     /**

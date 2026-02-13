@@ -1,6 +1,6 @@
 ## DataSource Serialize/Deserialize Refactor Planning
 
-**Status**: IN PROGRESS (Steps 1-2 complete; Step 3 pilot complete)  
+**Status**: IN PROGRESS (Steps 1-4.5 complete; next: Step 4.3 optional / Step 5 / Step 6)  
 **Scope**: `DataSourceEventSerializer` interface and all concrete serializers that participate in DataSource pipelines (lambdas + client), plus minimal wiring changes where they are called.  
 **Related**: `AGENT.delegation.header-content.planning.md`, `packages/mtw-lambda-patterns/ts/dataSource/baseClasses.ts`, serializers in `mtw-interfaces/ts/**`, client reducers in `charcoal-client/src/slices/dataSource/reducers.ts`.
 
@@ -225,18 +225,67 @@ Files:
 
 ### 4.1 Internal code: stop reading routing fields from content
 
-- Once a serializer and its call sites consistently pass header:
-  - Audit internal code around that serializer (lambdas and client) for places that still inspect `content.type` or payload-level routing metadata.
-  - Replace those with reads from the header (`header.type`, `header.zone`, etc.) as appropriate.
-
-- This does not require any external contract changes and can be done incrementally.
+- **Completed**: Internal lambdas that receive `{ header, content }` now route on `header.type` instead of `content.type`:
+  - `lambda/assets/dataSource/index.ts` (mtw.assets DataSource receiveEvents).
+  - `lambda/assets/library/index.ts` (mtw.assets.library receiveEvents).
+  - `lambda/assets/contentHeaders/index.ts` (mtw.assets.contentHeaders receiveEvents and aggregation helpers).
+- Payload-only fields (for example, `fromZone`, `toZone`, `player`, `assetId`) are still read from `content`; only routing/discrimination moved to header.
 
 ### 4.2 Make header required in the serializer interface (after rollout)
 
-- **When**: After Step 2 and Step 3 are complete for all DataSource families (all call sites pass `header`, all serializers read from it with fallback).
-- **Change**: In `DataSourceEventSerializer`, make `header` a required parameter for both `deserialize` and `serialize` (remove the `?`).
-- **Effect**: TypeScript then enforces that every caller supplies header and every serializer can assume it is present; the fallback `header?.type ?? externalUpdate.type` pattern can be simplified to `header.type`.
-- **Prerequisite**: No call site may omit header; all serializers must be migrated first so that this change is a type-only tightening with no behavioral change.
+- **Completed**: `header` is now required on the serializer interface and all concrete serializers:
+  - In `DataSourceEventSerializer` (`packages/mtw-lambda-patterns/ts/dataSource/baseClasses.ts`), `serialize` and `deserialize` now require `header: StreamingEventHeader`.
+  - All concrete serializers in `mtw-interfaces/ts/eventBridge` (WML, assets main/contentHeaders/library/characters, ephemera, diagnostics) and `lambda/wml/dataSource/coordinationSerializer.ts` have been updated so:
+    - Method signatures require `header: StreamingEventHeader`.
+    - Deserializers use `header.type` as the discriminator instead of `externalUpdate.type`.
+- All known call sites (server DataSource core, lambdas, client reducers, and relevant tests) have been updated to pass a `StreamingEventHeader`; header is now the authoritative source for routing decisions.
+
+---
+
+## Step 4.5 (tangent): Envelope-Discriminated Unions for TypeScript Narrowing
+
+**When**: Immediately after Step 4.1/4.2. We pursue this tangent now, then return to Step 4.3 and Step 5.
+
+**Problem**: After routing on `header.type` instead of `content.type`, TypeScript no longer narrows the `content` union. For example, in `lambda/assets/dataSource/index.ts`, `if (header.dataSourceKey === 'mtw.wml' && header.type === 'Zone Changed')` does not narrow `content`, so `const { fromZone, toZone, player, subFolder } = content` is not type-safe. The union is defined on `content` alone (`AssetsSubscribedContent`), so the compiler cannot correlate `header.type` with the shape of `content`.
+
+**Solution**: Define the subscribed-event type as a **discriminated union at the envelope level**: each member is `{ header: NarrowHeader, content: NarrowContent }` where `header` carries the discriminant (e.g. `dataSourceKey` + `type`). Then branching on `event.header.type` (and optionally `event.header.dataSourceKey`) narrows the whole envelope, including `event.content`, with no need for a discriminant property inside `content`.
+
+**Implementation steps**:
+
+1. **mtw.assets DataSource** ([lambda/assets/dataSource/index.ts](lambda/assets/dataSource/index.ts)):
+   - Define an `AssetsIncomingEvent` (or similar) type: a union of envelope variants, one per (dataSourceKey, type) pair the DataSource handles:
+     - `{ header: { dataSourceKey: 'mtw.wml'; type: 'Content Update'; ... }; content: ... }` (use existing WML content type for Content Update).
+     - `{ header: { dataSourceKey: 'mtw.wml'; type: 'Zone Changed'; ... }; content: WMLZoneEvent }`.
+     - `{ header: { dataSourceKey: 'mtw.wml'; type: 'Asset Purged'; ... }; content: WMLPurgeEvent }` (or equivalent).
+     - `{ header: { dataSourceKey: 'mtw.diagnostics'; type: 'Heal Global Values'; ... }; content: { connections?: unknown; assets?: unknown } }`.
+     - `{ header: { dataSourceKey: 'mtw.coordination'; type: 'Remove Asset'; ... }; content: { assetId: string } }`.
+   - Type the `receiveEvents` callback so it receives `events: AssetsIncomingEvent[]` (either by adding a generic to `AssetsDataSource` for the envelope union and using it for `events`, or by typing/asserting the parameter inside the lambda so that inside the handler `event` is the envelope union).
+   - Remove the local `AssetsSubscribedContent` union in favor of the envelope union (or derive content from the envelope union if needed elsewhere). Branching on `event.header.dataSourceKey` and `event.header.type` will then narrow `event.content` correctly.
+
+2. **mtw.assets.library DataSource** ([lambda/assets/library/index.ts](lambda/assets/library/index.ts)):
+   - Define a library incoming envelope union for the events it subscribes to (all from mtw.assets): `Zone Updated`, `Asset Cached`, `Asset Removed`. Each variant: `{ header: StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Zone Updated' }; content: ZoneUpdatedEvent }`, and similarly for Asset Cached and Asset Removed (using the existing asset-level content types).
+   - Type `receiveEvents` so `events` is this envelope union. Then `if (header.type === 'Zone Updated')` narrows `content` to the zone-updated payload (fromZone, toZone), etc.
+
+3. **mtw.assets.contentHeaders DataSource** ([lambda/assets/contentHeaders/index.ts](lambda/assets/contentHeaders/index.ts)):
+   - Define a contentHeaders incoming envelope union: mtw.assets events (`Component Updated`, `Component Removed`, `Asset Updated`) and mtw.wml (`Zone Changed`), with content types from `SubscribedAssetsContent` and `SubscribedWMLContent`. Each variant pairs a narrow header (dataSourceKey + type) with the corresponding content type.
+   - Type `receiveEvents` (and the reduce/map that groups events) so that `events` is this envelope union. Branching on `header.type` and `header.dataSourceKey` will narrow `content` in the reduce and in `createAggregatedContentHeadersUpdate`.
+
+4. **DataSource generic (optional but recommended)**:
+   - If the base DataSource or AssetsDataSource currently types `receiveEvents` as `events: Array<StreamingEventEnvelope<SubscribedContent>>`, consider adding an optional generic (e.g. `SubscribedEnvelope`) that extends `StreamingEventEnvelope<SubscribedContent>`, so that implementors can pass an envelope union and get `events: SubscribedEnvelope[]`. If that is too invasive, typing/asserting the events parameter in each lambda to the envelope union is sufficient.
+
+5. **Where to define the types**:
+   - Envelope unions can live next to each DataSource (in the same lambda file or a sibling `types.ts`) since they describe the subscription contract for that DataSource. If multiple lambdas or packages need the same envelope shape, move the type to `mtw-interfaces` (e.g. under the relevant eventBridge slice).
+
+**Completed**: Envelope-discriminated unions have been implemented for all three target DataSources:
+- **`AssetsIncomingEvent`** in `lambda/assets/dataSource/index.ts`: Union of envelope variants for mtw.wml (Content Update, Zone Changed, Asset Purged), mtw.diagnostics (Heal Global Values), and mtw.coordination (Remove Asset). `receiveEvents` casts `events` to `AssetsIncomingEvent[]` and uses `Extract` type utilities within branches to narrow `content` based on `header.type`.
+- **`LibraryIncomingEvent`** in `lambda/assets/library/index.ts`: Union for mtw.assets events (Zone Updated, Asset Cached, Asset Removed). `receiveEvents` uses the envelope union with `Extract` utilities for narrowing.
+- **`ContentHeadersIncomingEvent`** in `lambda/assets/contentHeaders/index.ts`: Union for mtw.assets events (Component Updated, Component Removed, Asset Updated) and mtw.wml (Zone Changed). `receiveEvents` and `createAggregatedContentHeadersUpdate` use the envelope union with narrowing via `Extract`.
+
+All three implementations cast the incoming `events` array to the envelope union type (since the base `AssetsDataSource` generic still expects `StreamingEventEnvelope<SubscribedContent>[]`), then use TypeScript's `Extract` utility type within conditional branches to narrow `event.content` based on `event.header.type` and `event.header.dataSourceKey`. This provides full type safety without requiring changes to the base DataSource class generics.
+
+**After this tangent**: Step 4.5 is complete. Return to Step 4.3 (external format, optional and later), then Step 5 (rollout/validation) and Step 6 (documentation).
+
+---
 
 ### 4.3 External format (optional and later)
 
@@ -273,7 +322,8 @@ This phase is intentionally deferred until after header-aware deserialization is
      - WML, assets (main and contentHeaders/characters/library/players), ephemera, etc.
 
 5. **Make header required** (Step 4.2): Tighten the interface so `header` is required; simplify serializers to use `header` only.
-6. **Optional payload simplification** (Step 4.3), only after confidence is high.
+6. **Envelope-discriminated unions** (Step 4.5): Define subscribed-event types as envelope unions so branching on `header.type` narrows `content`; type `receiveEvents` in assets, library, and contentHeaders lambdas accordingly.
+7. **Optional payload simplification** (Step 4.3), only after confidence is high.
 
 ### 5.2 Validation
 

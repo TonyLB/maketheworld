@@ -46,11 +46,13 @@ export class CharacterEventSerializer implements DataSourceEventSerializer<Chara
         dataSourceKey: string
         streamKey: string
         externalUpdate: CharacterEventExternal 
+        header: StreamingEventHeader
     }): CharacterEventUpdate | null {
-        const { externalUpdate } = params
+        const { externalUpdate, header } = params
+        const eventType = header.type
         
         // Only handle character updated events
-        if (externalUpdate.type !== 'Character Updated') {
+        if (eventType !== 'Character Updated') {
             return null
         }
         
