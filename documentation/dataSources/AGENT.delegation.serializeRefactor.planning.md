@@ -1,6 +1,6 @@
 ## DataSource Serialize/Deserialize Refactor Planning
 
-**Status**: IN PROGRESS (Steps 1-4.5 complete; next: Step 4.3 optional / Step 5 / Step 6)  
+**Status**: IN PROGRESS (Steps 1-4 complete; next: Step 5 / Step 6)
 **Scope**: `DataSourceEventSerializer` interface and all concrete serializers that participate in DataSource pipelines (lambdas + client), plus minimal wiring changes where they are called.  
 **Related**: `AGENT.delegation.header-content.planning.md`, `packages/mtw-lambda-patterns/ts/dataSource/baseClasses.ts`, serializers in `mtw-interfaces/ts/**`, client reducers in `charcoal-client/src/slices/dataSource/reducers.ts`.
 
@@ -277,11 +277,11 @@ Files:
    - Envelope unions can live next to each DataSource (in the same lambda file or a sibling `types.ts`) since they describe the subscription contract for that DataSource. If multiple lambdas or packages need the same envelope shape, move the type to `mtw-interfaces` (e.g. under the relevant eventBridge slice).
 
 **Completed**: Envelope-discriminated unions have been implemented for all three target DataSources:
-- **`AssetsIncomingEvent`** in `lambda/assets/dataSource/index.ts`: Union of envelope variants for mtw.wml (Content Update, Zone Changed, Asset Purged), mtw.diagnostics (Heal Global Values), and mtw.coordination (Remove Asset). `receiveEvents` casts `events` to `AssetsIncomingEvent[]` and uses `Extract` type utilities within branches to narrow `content` based on `header.type`.
-- **`LibraryIncomingEvent`** in `lambda/assets/library/index.ts`: Union for mtw.assets events (Zone Updated, Asset Cached, Asset Removed). `receiveEvents` uses the envelope union with `Extract` utilities for narrowing.
-- **`ContentHeadersIncomingEvent`** in `lambda/assets/contentHeaders/index.ts`: Union for mtw.assets events (Component Updated, Component Removed, Asset Updated) and mtw.wml (Zone Changed). `receiveEvents` and `createAggregatedContentHeadersUpdate` use the envelope union with narrowing via `Extract`.
+- **`AssetsIncomingEvent`** in `lambda/assets/dataSource/index.ts`: Union of envelope variants for mtw.wml (Content Update, Zone Changed, Asset Purged), mtw.diagnostics (Heal Global Values), and mtw.coordination (Remove Asset). `receiveEvents` casts `events` to `AssetsIncomingEvent[]` and uses small type guard functions (backed by `Extract<...>` in their return types) to narrow `event`/`content` based on `header.type` and `header.dataSourceKey`.
+- **`LibraryIncomingEvent`** in `lambda/assets/library/index.ts`: Union for mtw.assets events (Zone Updated, Asset Cached, Asset Removed). `receiveEvents` casts `events` to `LibraryIncomingEvent[]` and uses dedicated type guards for each variant to narrow `content`.
+- **`ContentHeadersIncomingEvent`** in `lambda/assets/contentHeaders/index.ts`: Union for mtw.assets events (Component Updated, Component Removed, Asset Updated) and mtw.wml (Zone Changed). `receiveEvents` and `createAggregatedContentHeadersUpdate` both operate on `ContentHeadersIncomingEvent[]` and use type guards to discriminate on `header` and safely access the corresponding payload shape.
 
-All three implementations cast the incoming `events` array to the envelope union type (since the base `AssetsDataSource` generic still expects `StreamingEventEnvelope<SubscribedContent>[]`), then use TypeScript's `Extract` utility type within conditional branches to narrow `event.content` based on `event.header.type` and `event.header.dataSourceKey`. This provides full type safety without requiring changes to the base DataSource class generics.
+All three implementations cast the incoming `events` array to the envelope union type (since the base `AssetsDataSource` generic still expects `StreamingEventEnvelope<SubscribedContent>[]`), then use reusable type guards to narrow branches based on `event.header.type` and `event.header.dataSourceKey`. This provides full type safety without requiring changes to the base DataSource class generics and avoids relying on `content.type` for routing.
 
 **After this tangent**: Step 4.5 is complete. Return to Step 4.3 (external format, optional and later), then Step 5 (rollout/validation) and Step 6 (documentation).
 
@@ -289,15 +289,17 @@ All three implementations cast the incoming `events` array to the envelope union
 
 ### 4.3 External format (optional and later)
 
-- If and when we want to further simplify payloads:
-  - Consider introducing a stricter notion of payload purity for new event types:
-    - Header is required to carry `type` and routing flags.
-    - Payload formats for new events are defined without embedded `type` fields.
-  - For existing event types that must keep `type` in the external contract, treat `externalUpdate.type` as a derived or redundant field:
-    - Header remains the authoritative source for routing.
-    - Payload `type` is maintained for backward compatibility with any downstream consumers that still expect it.
+- **Completed**: External format and payload purity rules have been aligned with the header/content model:
+  - **Category A (internal-only / easily changeable)**:
+    - For internal MTW-only flows (for example, WML Content Update / Merge Conflict, many asset-level events), routing is header-only; payloads do not add extra routing flags beyond what is needed for domain semantics.
+    - Where payload `type` appears, it reflects the domain event name rather than being used for routing (routing is always via `header.type`); no new payload-only routing metadata is introduced.
+  - **Category B (externally-constrained)**:
+    - For EventBridge-facing contracts (all serializers in `mtw-interfaces/ts/eventBridge/**`), payload `type` is treated as **derived** from header.type and not used for routing:
+      - Deserializers (`WMLEventSerializer`, `AssetsEventSerializer`, diagnostics, characters, etc.) use `header.type` as the routing discriminator.
+      - In cases where the internal event type is reconstructed in `deserialize` (for example, characters), the internal `type` is now taken from `header.type` rather than re-reading payload `type`.
+    - Payload `type` fields are preserved where required for external compatibility, but they are no longer the authoritative discriminator inside MTW’s DataSource and lambda logic.
 
-This phase is intentionally deferred until after header-aware deserialization is well established.
+This keeps wire formats stable while making header the canonical source of routing data and treating any remaining payload `type` fields as redundant/derived from the header.
 
 ---
 

@@ -49,10 +49,9 @@ export class CharacterEventSerializer implements DataSourceEventSerializer<Chara
         header: StreamingEventHeader
     }): CharacterEventUpdate | null {
         const { externalUpdate, header } = params
-        const eventType = header.type
         
-        // Only handle character updated events
-        if (eventType !== 'Character Updated') {
+        // Only handle character updated events (header is authoritative for routing)
+        if (header.type !== 'Character Updated') {
             return null
         }
         
@@ -66,7 +65,8 @@ export class CharacterEventSerializer implements DataSourceEventSerializer<Chara
             }
             
             return {
-                type: externalUpdate.type,
+                // Treat payload type as derived from header.type
+                type: header.type,
                 component
             }
         } catch (error) {

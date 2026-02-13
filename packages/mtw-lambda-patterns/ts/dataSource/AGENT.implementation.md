@@ -68,9 +68,9 @@ This dual approach ensures efficient delivery while maintaining the correct scop
 - **Processing Foundation**: Provides the foundation for advanced event processing patterns
 - **Pattern Agnostic**: Implementation can choose the most appropriate processing approach for the use case
 
-### **Type-Safe Routing with Envelope-Level Discriminated Unions**:
+### **Type-Safe Routing with Envelope-Level Discriminated Unions and Payload Purity**:
 
-When using header/content separation (`StreamingEventEnvelope<{ header, content }>`), discriminants such as `type` and `dataSourceKey` live on the `header`, not on the payload. To keep routing logic type-safe without embedding redundant `type` fields in `content`, the recommended pattern is:
+When using header/content separation (`StreamingEventEnvelope<{ header, content }>`), discriminants such as `type` and `dataSourceKey` live on the `header`, not on the payload. To keep routing logic type-safe without embedding redundant `type` fields in `content`, and to keep payloads focused on domain data, the recommended pattern is:
 
 1. **Define an envelope-level union** for subscribed events in the lambda layer:
 
@@ -121,6 +121,16 @@ When using header/content separation (`StreamingEventEnvelope<{ header, content 
    ```
 
 This pattern works around a TypeScript limitation: the compiler does not automatically narrow a union based on checks of **nested** discriminant properties (for example, `event.header.type`) even though it does so for top-level discriminants (`event.type`). By using envelope unions plus explicit type guards, DataSource implementations can keep routing decisions based on header fields while still enjoying precise typing of the content payloads.
+
+**Payload Purity Guidelines**:
+
+- **Header is authoritative for routing**: `header.type`, `header.dataSourceKey`, and any small routing flags added to the header are the single source of truth for routing and discrimination. Lambdas and serializers should never rely on payload `type` for routing once header is available.
+- **Payloads focus on domain data**: Payload `content` should represent the domain event body (for example, WML edits, asset metadata), not duplicate routing metadata that already exists in the header.
+- **Compatibility with existing contracts**:
+  - For externally-constrained contracts (for example, EventBridge payloads in `mtw-interfaces/ts/eventBridge/**`), payload `type` is preserved where required, but treated as **derived** from `header.type` and not used for routing.
+  - When reconstructing internal events in `deserialize`, use `header.type` to set the internal `type` field; payload `type` is at most validated, not trusted as the primary discriminator.
+
+Following these guidelines keeps wire formats stable while making header the canonical location for routing metadata and allowing payloads to remain as pure as possible representations of domain state.
 
 **Benefits**:
 - **Processing Flexibility**: Supports aggregation, parallel processing, sequential processing, or mixed patterns
