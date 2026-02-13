@@ -1,6 +1,5 @@
-import { contentHeadersDataSource, SubscribedAssetsEvent, SubscribedWMLEvent, SubscribedEvent } from './index'
+import { contentHeadersDataSource } from './index'
 import { ContentHeadersEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/assets/contentHeaders'
-import { StreamingEventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardRoom } from '@tonylb/mtw-wml/ts/standardize/components/room'
@@ -78,53 +77,36 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
 
     describe('Event Subscription', () => {
         it('should subscribe to Component Updated events from mtw.assets', () => {
-            const componentUpdatedEvent: StreamingEventPayload = {
+            const header = {
                 dataSourceKey: 'mtw.assets',
                 streamKey: 'ASSET#asset123',
-                detailEnvelope: {
-                    type: 'Component Updated',
-                    assetId: 'ASSET#asset123',
-                    component: new StandardRoom({
-                        tag: 'Room',
-                        shortName: 'Test Room',
-                        universalKey: 'ROOM#room123'
-                    })
-                },
-                timestamp: Date.now()
-            } as const
+                timestamp: Date.now(),
+                type: 'Component Updated'
+            }
 
-            const shouldSubscribe = contentHeadersDataSource.subscribedEventTypeGuard?.(componentUpdatedEvent)
-            expect(shouldSubscribe).toBe(true)
+            expect(contentHeadersDataSource.subscribedEventTypeGuard?.(header)).toBe(true)
         })
 
         it('should not subscribe to events from other data sources', () => {
-            const otherEvent: StreamingEventPayload = {
+            const header = {
                 dataSourceKey: 'mtw.ephemera',
                 streamKey: 'CHARACTER#char123',
-                detailEnvelope: {
-                    type: 'Character Updated',
-                    characterId: 'CHARACTER#char123'
-                },
-                timestamp: Date.now()
-            } as const
+                timestamp: Date.now(),
+                type: 'Character Updated'
+            }
 
-            const shouldSubscribe = contentHeadersDataSource.subscribedEventTypeGuard?.(otherEvent)
-            expect(shouldSubscribe).toBe(false)
+            expect(contentHeadersDataSource.subscribedEventTypeGuard?.(header)).toBe(false)
         })
 
         it('should not subscribe to non-component events from mtw.assets', () => {
-            const nonComponentEvent: StreamingEventPayload = {
+            const header = {
                 dataSourceKey: 'mtw.assets',
                 streamKey: 'ASSET#asset123',
-                detailEnvelope: {
-                    type: 'CacheAsset',
-                    assetId: 'ASSET#asset123'
-                },
-                timestamp: Date.now()
-            } as const
+                timestamp: Date.now(),
+                type: 'CacheAsset'
+            }
 
-            const shouldSubscribe = contentHeadersDataSource.subscribedEventTypeGuard?.(nonComponentEvent)
-            expect(shouldSubscribe).toBe(false)
+            expect(contentHeadersDataSource.subscribedEventTypeGuard?.(header)).toBe(false)
         })
     })
 
@@ -245,14 +227,17 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                     universalKey: 'ROOM#room123'
                 })
 
-                const componentUpdatedEvent: SubscribedAssetsEvent = {
-                    dataSourceKey: 'mtw.assets',
-                    streamKey: 'ASSET#asset123',
-                    detailEnvelope: {
+                const componentUpdatedEvent = {
+                    header: {
+                        dataSourceKey: 'mtw.assets',
+                        streamKey: 'ASSET#asset123',
+                        timestamp: Date.now(),
+                        type: 'Component Updated'
+                    },
+                    content: {
                         type: 'Component Updated',
                         component: mockHeaderComponent
-                    },
-                    timestamp: Date.now()
+                    }
                 }
 
                 await contentHeadersDataSource.receiveEvents?.({
@@ -285,18 +270,21 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                 // Mock zone lookup failure
                 internalCacheMock.AssetMetaData.get.mockResolvedValue([])
 
-                const componentUpdatedEvent: SubscribedAssetsEvent = {
-                    dataSourceKey: 'mtw.assets',
-                    streamKey: 'ASSET#asset123',
-                    detailEnvelope: {
+                const componentUpdatedEvent = {
+                    header: {
+                        dataSourceKey: 'mtw.assets',
+                        streamKey: 'ASSET#asset123',
+                        timestamp: Date.now(),
+                        type: 'Component Updated'
+                    },
+                    content: {
                         type: 'Component Updated',
                         component: new StandardRoom({
                             tag: 'Room',
                             shortName: 'Test Room',
                             universalKey: 'ROOM#room123'
                         })
-                    },
-                    timestamp: Date.now()
+                    }
                 }
 
                 await contentHeadersDataSource.receiveEvents?.({
@@ -308,14 +296,17 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
             })
 
             it('should handle missing component gracefully', async () => {
-                const componentUpdatedEvent: SubscribedAssetsEvent = {
-                    dataSourceKey: 'mtw.assets',
-                    streamKey: 'ASSET#asset123',
-                    detailEnvelope: {
+                const componentUpdatedEvent = {
+                    header: {
+                        dataSourceKey: 'mtw.assets',
+                        streamKey: 'ASSET#asset123',
+                        timestamp: Date.now(),
+                        type: 'Component Updated'
+                    },
+                    content: {
                         type: 'Component Updated',
                         component: undefined as any
-                    },
-                    timestamp: Date.now()
+                    }
                 }
 
                 await contentHeadersDataSource.receiveEvents?.({
@@ -330,18 +321,21 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                 // Mock zone lookup to throw error
                 internalCacheMock.AssetMetaData.get.mockRejectedValue(new Error('Cache error'))
 
-                const componentUpdatedEvent: SubscribedAssetsEvent = {
-                    dataSourceKey: 'mtw.assets',
-                    streamKey: 'ASSET#asset123',
-                    detailEnvelope: {
+                const componentUpdatedEvent = {
+                    header: {
+                        dataSourceKey: 'mtw.assets',
+                        streamKey: 'ASSET#asset123',
+                        timestamp: Date.now(),
+                        type: 'Component Updated'
+                    },
+                    content: {
                         type: 'Component Updated',
                         component: new StandardRoom({
                             tag: 'Room',
                             shortName: 'Test Room',
                             universalKey: 'ROOM#room123'
                         })
-                    },
-                    timestamp: Date.now()
+                    }
                 }
 
                 await contentHeadersDataSource.receiveEvents?.({
@@ -361,15 +355,18 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
 
         describe('Zone Changed Event Processing', () => {
             it('should stream Zone Updated event when receiving Zone Changed from WML', async () => {
-                const zoneChangedEvent: SubscribedWMLEvent = {
-                    dataSourceKey: 'mtw.wml',
-                    streamKey: 'global',
-                    detailEnvelope: {
+                const zoneChangedEvent = {
+                    header: {
+                        dataSourceKey: 'mtw.wml',
+                        streamKey: 'global',
+                        timestamp: Date.now(),
+                        type: 'Zone Changed'
+                    },
+                    content: {
                         type: 'Zone Changed',
                         fromZone: 'Canon',
                         toZone: 'Library'
-                    },
-                    timestamp: Date.now()
+                    }
                 }
 
                 await contentHeadersDataSource.receiveEvents?.({
@@ -389,26 +386,32 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
             })
 
             it('should process multiple Zone Changed events', async () => {
-                const zoneChangedEvents: SubscribedWMLEvent[] = [
+                const zoneChangedEvents = [
                     {
-                        dataSourceKey: 'mtw.wml',
-                        streamKey: 'ASSET#test1',
-                        detailEnvelope: {
+                        header: {
+                            dataSourceKey: 'mtw.wml',
+                            streamKey: 'ASSET#test1',
+                            timestamp: Date.now(),
+                            type: 'Zone Changed'
+                        },
+                        content: {
                             type: 'Zone Changed',
                             fromZone: 'Canon',
                             toZone: 'Library'
-                        },
-                        timestamp: Date.now()
+                        }
                     },
                     {
-                        dataSourceKey: 'mtw.wml',
-                        streamKey: 'ASSET#test2',
-                        detailEnvelope: {
+                        header: {
+                            dataSourceKey: 'mtw.wml',
+                            streamKey: 'ASSET#test2',
+                            timestamp: Date.now(),
+                            type: 'Zone Changed'
+                        },
+                        content: {
                             type: 'Zone Changed',
                             fromZone: 'Library',
                             toZone: 'Personal'
-                        },
-                        timestamp: Date.now()
+                        }
                     }
                 ]
 
@@ -442,29 +445,35 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                 // Mock zone lookup for component event
                 internalCacheMock.AssetMetaData.get.mockResolvedValue([{ AssetId: 'ASSET#test1', zone: 'Canon' }])
 
-                const mixedEvents: SubscribedEvent[] = [
+                const mixedEvents = [
                     {
-                        dataSourceKey: 'mtw.wml',
-                        streamKey: 'ASSET#test1',
-                        detailEnvelope: {
+                        header: {
+                            dataSourceKey: 'mtw.wml',
+                            streamKey: 'ASSET#test1',
+                            timestamp: Date.now(),
+                            type: 'Zone Changed'
+                        },
+                        content: {
                             type: 'Zone Changed',
                             fromZone: 'Canon',
                             toZone: 'Library'
-                        },
-                        timestamp: Date.now()
+                        }
                     },
                     {
-                        dataSourceKey: 'mtw.assets',
-                        streamKey: 'ASSET#test1',
-                        detailEnvelope: {
+                        header: {
+                            dataSourceKey: 'mtw.assets',
+                            streamKey: 'ASSET#test1',
+                            timestamp: Date.now(),
+                            type: 'Component Updated'
+                        },
+                        content: {
                             type: 'Component Updated',
                             component: new StandardRoom({
                                 tag: 'Room',
                                 shortName: 'Updated Room',
                                 universalKey: 'ROOM#room123'
                             })
-                        },
-                        timestamp: Date.now()
+                        }
                     }
                 ]
 
@@ -501,32 +510,38 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                     .mockResolvedValueOnce([{ AssetId: 'ASSET#asset1', zone: 'Canon' }])
                     .mockResolvedValueOnce([{ AssetId: 'ASSET#asset2', zone: 'Library' }])
 
-                const events: SubscribedAssetsEvent[] = [
+                const events = [
                     {
-                        dataSourceKey: 'mtw.assets',
-                        streamKey: 'ASSET#asset1',
-                        detailEnvelope: {
+                        header: {
+                            dataSourceKey: 'mtw.assets',
+                            streamKey: 'ASSET#asset1',
+                            timestamp: Date.now(),
+                            type: 'Component Updated'
+                        },
+                        content: {
                             type: 'Component Updated',
                             component: new StandardRoom({
                                 tag: 'Room',
                                 shortName: 'Room 1',
                                 universalKey: 'ROOM#room1'
                             })
-                        },
-                        timestamp: Date.now()
+                        }
                     },
                     {
-                        dataSourceKey: 'mtw.assets',
-                        streamKey: 'ASSET#asset2',
-                        detailEnvelope: {
+                        header: {
+                            dataSourceKey: 'mtw.assets',
+                            streamKey: 'ASSET#asset2',
+                            timestamp: Date.now(),
+                            type: 'Component Updated'
+                        },
+                        content: {
                             type: 'Component Updated',
                             component: new StandardRoom({
                                 tag: 'Room',
                                 shortName: 'Room 2',
                                 universalKey: 'ROOM#room2'
                             })
-                        },
-                        timestamp: Date.now()
+                        }
                     }
                 ]
 
@@ -545,16 +560,19 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                 // Zone lookup
                 internalCacheMock.AssetMetaData.get.mockResolvedValue([{ AssetId: 'ASSET#assetMeta', zone: 'Canon' }])
 
-                const assetUpdatedEvent: SubscribedAssetsEvent = {
-                    dataSourceKey: 'mtw.assets',
-                    streamKey: 'ASSET#assetMeta',
-                    detailEnvelope: {
+                const assetUpdatedEvent = {
+                    header: {
+                        dataSourceKey: 'mtw.assets',
+                        streamKey: 'ASSET#assetMeta',
+                        timestamp: Date.now(),
+                        type: 'Asset Updated'
+                    },
+                    content: {
                         type: 'Asset Updated',
                         standardForm: new StandardForm(deIndentWML(`
                             <Asset uuid=(assetMeta)><ShortName>Meta Name</ShortName></Asset>
                         `))
-                    },
-                    timestamp: Date.now()
+                    }
                 }
 
                 await contentHeadersDataSource.receiveEvents?.({
@@ -582,24 +600,30 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
             it('should merge Asset Updated metadata with component header updates', async () => {
                 internalCacheMock.AssetMetaData.get.mockResolvedValue([{ AssetId: 'ASSET#mix', zone: 'Library' }])
 
-                const events: SubscribedEvent[] = [
+                const events = [
                     {
-                        dataSourceKey: 'mtw.assets',
-                        streamKey: 'ASSET#mix',
-                        detailEnvelope: {
+                        header: {
+                            dataSourceKey: 'mtw.assets',
+                            streamKey: 'ASSET#mix',
+                            timestamp: Date.now(),
+                            type: 'Asset Updated'
+                        },
+                        content: {
                             type: 'Asset Updated',
                             standardForm: new StandardForm(deIndentWML(`<Asset uuid=(mix)><ShortName>Asset Hdr</ShortName></Asset>`))
-                        },
-                        timestamp: Date.now()
+                        }
                     },
                     {
-                        dataSourceKey: 'mtw.assets',
-                        streamKey: 'ASSET#mix',
-                        detailEnvelope: {
+                        header: {
+                            dataSourceKey: 'mtw.assets',
+                            streamKey: 'ASSET#mix',
+                            timestamp: Date.now(),
+                            type: 'Component Updated'
+                        },
+                        content: {
                             type: 'Component Updated',
                             component: new StandardRoom({ tag: 'Room', shortName: 'Hdr', universalKey: 'ROOM#r1' })
-                        },
-                        timestamp: Date.now()
+                        }
                     }
                 ]
 

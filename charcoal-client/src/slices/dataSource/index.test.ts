@@ -1,10 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { createDataSourceSlice, DataSourceSliceConfig } from './index'
+import type { ClientSnapshotMessagePayload } from './baseClasses'
 import { DataSourceAggregator } from '@tonylb/mtw-lambda-patterns/ts/dataSource/aggregation'
 import { DataSourceEventSerializer } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 
 // Capture the processRawSnapshot (wrapper) passed to createInitializeAction for sidecar tests
-let capturedProcessRawSnapshot: ((payload: { streamKey: string; timestamp: number; rawSnapshot: any }) => any) | null = null
+let capturedProcessRawSnapshot: ((payload: ClientSnapshotMessagePayload<any>) => any) | null = null
 vi.mock('./index.api', async (importOriginal) => {
     const mod = await importOriginal<typeof import('./index.api')>()
     return {
@@ -210,12 +211,17 @@ describe('dataSource slice', () => {
                 const timestamp = 1000
                 const rawSnapshot = { type: 'Snapshot' as const, sidecarUrl: 'https://example.com/sidecar', createdAt: 500 }
                 const dispatch = vi.fn()
-                const result = capturedProcessRawSnapshot!({ streamKey, timestamp, rawSnapshot })
+                const result = capturedProcessRawSnapshot!({
+                    streamKey,
+                    timestamp,
+                    header: { type: 'Snapshot' },
+                    content: rawSnapshot
+                })
                 expect(typeof result).toBe('function')
                 await (result as (d: any) => Promise<void>)(dispatch)
                 expect(resolveSidecarSnapshot).toHaveBeenCalledWith(streamKey, 'https://example.com/sidecar', rawSnapshot)
                 expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({
-                    payload: { streamKey, timestamp, rawSnapshot: resolvedSnapshot }
+                    payload: { streamKey, timestamp, header: { type: 'Snapshot' }, content: resolvedSnapshot }
                 }))
             })
 
@@ -235,7 +241,8 @@ describe('dataSource slice', () => {
                 const result = capturedProcessRawSnapshot!({
                     streamKey: 'stream1',
                     timestamp: 1000,
-                    rawSnapshot: { type: 'Snapshot' as const, sidecarUrl: 'https://example.com/sidecar' }
+                    header: { type: 'Snapshot' },
+                    content: { type: 'Snapshot' as const, sidecarUrl: 'https://example.com/sidecar' }
                 })
                 expect(result).toBeUndefined()
                 expect(dispatch).not.toHaveBeenCalled()

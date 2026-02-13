@@ -48,18 +48,24 @@ export const handler = async (event: any, context: any) => {
     if (event?.source && event["detail-type"]) {
         // Initialize Subscription - mtw.wml: forward to messageBus so wmlDataSource can call initializeSubscription
         if (event.source === 'mtw.subscriptions' && event["detail-type"] === 'Initialize Subscription - mtw.wml') {
+            const streamKey = event.detail.streamKey || ''
+            const timestamp = event.time ? new Date(event.time).getTime() : Date.now()
+            const header = {
+                dataSourceKey: 'mtw.subscriptions',
+                streamKey,
+                timestamp,
+                type: event["detail-type"] as string
+            }
             const initMessage: InitializeSubscriptionEventMessage = {
                 type: 'StreamingEvent',
                 dataSourceKey: 'mtw.subscriptions',
-                streamKey: event.detail.streamKey || '',
-                detailEnvelope: {
-                    type: event["detail-type"],
-                    update: {
-                        sessionId: event.detail.sessionId,
-                        requestId: event.detail.requestId
-                    }
+                streamKey,
+                header,
+                content: {
+                    sessionId: event.detail.sessionId,
+                    requestId: event.detail.requestId
                 },
-                timestamp: event.time ? new Date(event.time).getTime() : Date.now()
+                timestamp
             }
             messageBus.send(initMessage)
             await messageBus.flush()
@@ -90,11 +96,18 @@ export const handler = async (event: any, context: any) => {
                 })
             } else {
                 // Publish deserialized event to messageBus for DataSource processing
+                const header = {
+                    dataSourceKey: coreFormat.dataSourceKey,
+                    streamKey: coreFormat.streamKey,
+                    timestamp: coreFormat.timestamp,
+                    type: internalEvent.type as string
+                }
                 const externalMessage: ExternalStreamingEventMessage = {
                     type: 'StreamingEvent',
                     dataSourceKey: coreFormat.dataSourceKey,
                     streamKey: coreFormat.streamKey,
-                    event: internalEvent,
+                    header,
+                    content: internalEvent,
                     timestamp: event.time ? new Date(event.time).getTime() : Date.now()
                 }
                 messageBus.send(externalMessage)
@@ -137,57 +150,90 @@ export const handler = async (event: any, context: any) => {
         // - lambda/wml/dataSource/mtw-wml.ts (singleFlight wrapper)
         // - packages/mtw-lambda-patterns/ts/singleFlight/ (coordination logic)
         // =============================================================================
-        case 'applyEdit':
+        case 'applyEdit': {
             // Handle WebSocket API calls and direct Lambda calls
             // Cache RequestId for connection-based tracking
             if (request.RequestId) {
                 internalCache.Connection.set({ key: 'RequestId', value: request.RequestId })
             }
+            const streamKey = request.AssetId
+            const timestamp = Date.now()
+            const content: CoordinationEventUpdate = {
+                type: 'Apply Edit',
+                RequestId: request.RequestId ?? '',
+                schema: request.schema,
+                createIfNeeded: request.createIfNeeded,
+                zone: request.zone
+            }
+            const header = {
+                dataSourceKey: 'internal',
+                streamKey,
+                timestamp,
+                type: content.type
+            }
             messageBus.send({
                 type: 'StreamingEvent',
                 dataSourceKey: 'internal',
-                streamKey: request.AssetId,
-                detailEnvelope: {
-                    type: 'Apply Edit',
-                    RequestId: request.RequestId ?? '',
-                    schema: request.schema,
-                    createIfNeeded: request.createIfNeeded,
-                    zone: request.zone
-                },
-                timestamp: Date.now()
+                streamKey,
+                header,
+                content,
+                timestamp
             })
             await messageBus.flush()
             return await extractReturnValue(messageBus)
-        case 'moveAsset':
+        }
+        case 'moveAsset': {
+            const streamKey = request.AssetId
+            const timestamp = Date.now()
+            const content: CoordinationEventUpdate = {
+                type: 'Move Asset',
+                fromZone: request.fromZone,
+                toZone: request.toZone,
+                player: request.player,
+                subFolder: request.subFolder
+            }
+            const header = {
+                dataSourceKey: 'internal',
+                streamKey,
+                timestamp,
+                type: content.type
+            }
             messageBus.send({
                 type: 'StreamingEvent',
                 dataSourceKey: 'internal',
-                streamKey: request.AssetId,
-                detailEnvelope: {
-                    type: 'Move Asset',
-                    fromZone: request.fromZone,
-                    toZone: request.toZone,
-                    player: request.player,
-                    subFolder: request.subFolder
-                },
-                timestamp: Date.now()
+                streamKey,
+                header,
+                content,
+                timestamp
             })
             await messageBus.flush()
             return await extractReturnValue(messageBus)
-        case 'purgeAsset':
+        }
+        case 'purgeAsset': {
+            const streamKey = request.AssetId
+            const timestamp = Date.now()
+            const content: CoordinationEventUpdate = {
+                type: 'Purge Asset',
+                expectedZone: request.expectedZone,
+                requireExists: request.requireExists
+            }
+            const header = {
+                dataSourceKey: 'internal',
+                streamKey,
+                timestamp,
+                type: content.type
+            }
             messageBus.send({
                 type: 'StreamingEvent',
                 dataSourceKey: 'internal',
-                streamKey: request.AssetId,
-                detailEnvelope: {
-                    type: 'Purge Asset',
-                    expectedZone: request.expectedZone,
-                    requireExists: request.requireExists
-                },
-                timestamp: Date.now()
+                streamKey,
+                header,
+                content,
+                timestamp
             })
             await messageBus.flush()
             return await extractReturnValue(messageBus)
+        }
     }
 
     // Flush messageBus and return after handling either WebSocket or direct Lambda calls

@@ -1,5 +1,4 @@
 import { charactersDataSource, CharacterEventPayload, CharacterSnapshotPayload } from './index'
-import { StreamingEventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { ComponentEventUpdate } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { eventBridgeClient } from '@tonylb/mtw-utilities/ts/eventBridge'
@@ -69,15 +68,18 @@ describe('CharactersDataSource', () => {
                 universalKey: 'CHARACTER#char123'
             })
 
-            const componentEvent: StreamingEventPayload = {
-                dataSourceKey: 'mtw.assets',
-                streamKey: 'ASSET#asset123',
-                detailEnvelope: {
+            const componentEvent = {
+                header: {
+                    dataSourceKey: 'mtw.assets',
+                    streamKey: 'ASSET#asset123',
+                    timestamp: FIXED_TS,
+                    type: 'Component Updated'
+                },
+                content: {
                     type: 'Component Updated',
                     assetId: 'ASSET#asset123',
                     component
-                },
-                timestamp: FIXED_TS
+                }
             }
 
             // Process the event
@@ -96,10 +98,14 @@ describe('CharactersDataSource', () => {
         it('should ignore non-Character component events', async () => {
             const mockStreamEvent = jest.fn()
             
-            const nonCharacterEvent: StreamingEventPayload = {
-                dataSourceKey: 'mtw.assets',
-                streamKey: 'ASSET#asset123',
-                detailEnvelope: {
+            const nonCharacterEvent = {
+                header: {
+                    dataSourceKey: 'mtw.assets',
+                    streamKey: 'ASSET#asset123',
+                    timestamp: FIXED_TS,
+                    type: 'Component Updated'
+                },
+                content: {
                     type: 'Component Updated',
                     assetId: 'ASSET#asset123',
                     component: {
@@ -107,8 +113,7 @@ describe('CharactersDataSource', () => {
                         roomId: 'ROOM#room123',
                         name: 'Test Room'
                     } as any // Non-StandardCharacter component
-                },
-                timestamp: FIXED_TS
+                }
             }
 
             await dataSource.receiveEvents?.({ events: [nonCharacterEvent], streamEvent: mockStreamEvent })
@@ -125,21 +130,23 @@ describe('CharactersDataSource', () => {
                 universalKey: 'CHARACTER#char123'
             })
 
+            // Envelope from another data source: content shape is not Component Updated at top level,
+            // so isAssetsComponentEvent(content) is false and we do not process
             const otherDataSourceEvent = {
-                dataSourceKey: 'mtw.otherDataSource',
-                detailEnvelope: {
+                header: {
+                    dataSourceKey: 'mtw.otherDataSource',
                     streamKey: 'ASSET#asset123',
-                    update: {
-                        type: 'Component Updated',
-                        assetId: 'ASSET#asset123',
-                        component
-                    },
-                    timestamp: FIXED_TS
+                    timestamp: FIXED_TS,
+                    type: 'OtherEvent'
                 },
-                timestamp: FIXED_TS
+                content: {
+                    streamKey: 'ASSET#asset123',
+                    update: { type: 'Component Updated', assetId: 'ASSET#asset123', component },
+                    timestamp: FIXED_TS
+                }
             }
 
-            await dataSource.receiveEvents?.({ events: [otherDataSourceEvent as any], streamEvent: mockStreamEvent })
+            await dataSource.receiveEvents?.({ events: [otherDataSourceEvent], streamEvent: mockStreamEvent })
 
             // Should not have called streamEvent
             expect(mockStreamEvent).not.toHaveBeenCalled()
@@ -162,24 +169,30 @@ describe('CharactersDataSource', () => {
 
             const batchEvents = [
                 {
-                    dataSourceKey: 'mtw.assets',
-                    streamKey: 'ASSET#asset1',
-                    detailEnvelope: {
+                    header: {
+                        dataSourceKey: 'mtw.assets',
+                        streamKey: 'ASSET#asset1',
+                        timestamp: FIXED_TS,
+                        type: 'Component Updated'
+                    },
+                    content: {
                         type: 'Component Updated',
                         assetId: 'ASSET#asset1',
                         component: component1
-                    },
-                    timestamp: FIXED_TS
+                    }
                 },
                 {
-                    dataSourceKey: 'mtw.assets',
-                    streamKey: 'ASSET#asset2',
-                    detailEnvelope: {
+                    header: {
+                        dataSourceKey: 'mtw.assets',
+                        streamKey: 'ASSET#asset2',
+                        timestamp: FIXED_TS,
+                        type: 'Component Updated'
+                    },
+                    content: {
                         type: 'Component Updated',
                         assetId: 'ASSET#asset2',
                         component: component2
-                    },
-                    timestamp: FIXED_TS
+                    }
                 }
             ]
 
@@ -454,15 +467,18 @@ describe('CharactersDataSource', () => {
         it('should handle invalid component events gracefully', async () => {
             const mockStreamEvent = jest.fn()
             
-            const invalidEvent: StreamingEventPayload = {
-                dataSourceKey: 'mtw.assets',
-                streamKey: 'asset123',
-                detailEnvelope: {
+            const invalidEvent = {
+                header: {
+                    dataSourceKey: 'mtw.assets',
+                    streamKey: 'asset123',
+                    timestamp: FIXED_TS,
+                    type: 'Component Updated'
+                },
+                content: {
                     type: 'Component Updated',
                     assetId: 'ASSET#asset123',
                     component: null // Invalid component
-                },
-                timestamp: FIXED_TS
+                }
             }
 
             await expect(
@@ -476,18 +492,21 @@ describe('CharactersDataSource', () => {
         it('should handle missing character data gracefully', async () => {
             const mockStreamEvent = jest.fn()
             
-            const incompleteEvent: StreamingEventPayload = {
-                dataSourceKey: 'mtw.assets',
-                streamKey: 'asset123',
-                detailEnvelope: {
+            const incompleteEvent = {
+                header: {
+                    dataSourceKey: 'mtw.assets',
+                    streamKey: 'asset123',
+                    timestamp: FIXED_TS,
+                    type: 'Component Updated'
+                },
+                content: {
                     type: 'Component Updated',
                     assetId: 'ASSET#asset123',
                     component: {
                         tag: 'Character'
                         // Missing other required data
                     } as any
-                },
-                timestamp: FIXED_TS
+                }
             }
 
             await expect(

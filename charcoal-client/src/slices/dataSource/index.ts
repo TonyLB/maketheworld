@@ -1,5 +1,5 @@
 import { singleSSM } from '../stateSeekingMachine/singleSSM'
-import { DataSourceNodes, DataSourcePublic, DataSourceInternal, DataSourceData } from './baseClasses'
+import { DataSourceNodes, DataSourcePublic, DataSourceInternal, DataSourceData, ClientSnapshotMessagePayload } from './baseClasses'
 import { backoffAction, createSubscribeAction, createUnsubscribeAction, createInitializeAction, lifelineCondition } from './index.api'
 import { PromiseCache } from '../promiseCache'
 import { heartbeat } from '../stateSeekingMachine/ssmHeartbeat'
@@ -192,17 +192,17 @@ export const createDataSourceSlice = <
         template
     })
 
-    // Sidecar-aware wrapper: when rawSnapshot has sidecarUrl and resolveSidecarSnapshot is set,
+    // Sidecar-aware wrapper: when snapshot content has sidecarUrl and resolveSidecarSnapshot is set,
     // return a thunk that fetches/resolves then dispatches processRawSnapshot with resolved payload.
-    const processRawSnapshotWithSidecar = (payload: { streamKey: string; timestamp: number; rawSnapshot: any }) => {
-        const { streamKey, timestamp, rawSnapshot } = payload
-        if (rawSnapshot?.sidecarUrl && resolveSidecarSnapshot) {
+    const processRawSnapshotWithSidecar = (payload: ClientSnapshotMessagePayload<any>) => {
+        const { streamKey, timestamp, header, content } = payload
+        if (content?.sidecarUrl && resolveSidecarSnapshot) {
             return async (dispatch: any) => {
-                const resolved = await resolveSidecarSnapshot(streamKey, rawSnapshot.sidecarUrl, rawSnapshot)
-                dispatch(result.publicActions.processRawSnapshot({ streamKey, timestamp, rawSnapshot: resolved }))
+                const resolved = await resolveSidecarSnapshot(streamKey, content.sidecarUrl, content)
+                dispatch(result.publicActions.processRawSnapshot({ streamKey, timestamp, header, content: resolved }))
             }
         }
-        if (rawSnapshot?.sidecarUrl && !resolveSidecarSnapshot) {
+        if (content?.sidecarUrl && !resolveSidecarSnapshot) {
             console.warn(`[${dataSourceKey}] Snapshot has sidecarUrl but resolveSidecarSnapshot is not configured; ignoring. streamKey=${streamKey}`)
             return
         }

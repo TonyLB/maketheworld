@@ -172,6 +172,30 @@ This mode is appropriate when:
 
 ---
 
+## Foundational step: explicit header vs content in DataSource events
+
+Before introducing lazy `getInternal`, DataSource events should explicitly distinguish **header** (small, always-inline, never-sidecarred) from **content** (the full payload that is actually recorded/transmitted in external form and may grow large or be sidecar-backed).
+
+- **Header fields**: At minimum include `type` (the discriminant for TypeScript unions) and envelope metadata (`dataSourceKey`, `streamKey`, `timestamp`), and may include a few small domain flags like `zone`. These fields:
+  - Are always present and never stored in sidecars.
+  - Are exactly what typeguards and routing logic need to inspect first.
+  - Do not require access to the heavy content body.
+- **Content fields**: Everything else that the DataSource records and transmits as its external payload (e.g. WML text, StandardFormData serialized as JSON/NDJSON, large component lists, or `{ sidecarUri: string }` references). This is the **external** representation that `getInternal` will later consume (together with the configured serializer) to produce the DataSource's internal form.
+
+Foundational re-architecture (still eager today):
+
+- **Lambda gates (assets, WML, ephemera)**: After deserializing external EventBridge events to internal objects (as today), compute a **header** and an external **content** payload and publish both to the messageBus:
+  - `{ dataSourceKey, streamKey, timestamp, header, content }`
+  - `header` contains only cheap discriminant/metadata fields (e.g. `type`, `zone`); `content` is the full external payload that will be stored or forwarded (inline or as a `{ sidecarUri: string }` reference).
+- **DataSource subscription**: `subscribedEventTypeGuard` and other filters operate on the envelope + `header` only. `receiveEvents` gets events that have both `header` and `content`, and uses:
+  - `event.header.*` for routing and union branching.
+  - `event.content` (via a later `getInternal` implementation) when it actually needs to compute or emit something based on the full semantics.
+- **Client (optional parallelism)**: The client-side DataSource slices can mirror this structure by resolving `header` + `content` eagerly when a WebSocket message arrives, then using `header` for branching in reducers and deserializing `content` for aggregation. This keeps the mental model aligned even before laziness is introduced.
+
+Once this header/content split is explicit in the DataSource contracts and call sites, the later lazy `getInternal` refactor becomes a mechanical change: replace direct access to `content` with `getInternal: () => Promise<Internal>` (which knows how to interpret `content` and any sidecar references) while leaving all header-based routing logic untouched.
+
+---
+
 ## Design direction: external by default, internal on demand
 
 To maintain the separation (metadata-only routing, no unnecessary deserialization) without special-case "when this particular condition" logic as we generalize delegated systems and sidecar:

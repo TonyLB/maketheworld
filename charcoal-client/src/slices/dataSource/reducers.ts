@@ -2,6 +2,7 @@ import { PayloadAction } from '@reduxjs/toolkit'
 import type { EventPayload, SerializableObject } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import type { DataSourceAggregator } from '@tonylb/mtw-lambda-patterns/ts/dataSource/aggregation'
 import type { DataSourceEventSerializer } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import type { ClientSnapshotMessagePayload, ClientUpdateMessagePayload } from './baseClasses'
 
 //
 // Helper function: Apply multiple update events to a baseline snapshot (reduce pattern)
@@ -98,9 +99,9 @@ export const processRawSnapshot = <
     applyEventsWithAggregator: ReturnType<typeof applyEvents<SnapshotPayload, UpdatePayload>>
     ) => (
     state: any,
-    action: PayloadAction<{ streamKey: string; timestamp: number; rawSnapshot: ExternalSnapshotPayload }>
+    action: PayloadAction<ClientSnapshotMessagePayload<ExternalSnapshotPayload>>
 ) => {
-        const { streamKey, timestamp, rawSnapshot } = action.payload
+        const { streamKey, timestamp, header, content } = action.payload
         
         // Check if stream is subscribed
         const stream = state.subscribedStreams[streamKey]
@@ -111,8 +112,8 @@ export const processRawSnapshot = <
         
         // Deserialize snapshot (if no deserializer, assume internal/external formats match)
         const snapshot = eventSerializer.deserializeSnapshot
-            ? eventSerializer.deserializeSnapshot(rawSnapshot)
-            : rawSnapshot as unknown as SnapshotPayload
+            ? eventSerializer.deserializeSnapshot(content)
+            : content as unknown as SnapshotPayload
         
         if (!snapshot) {
             console.warn(`[${dataSourceKey}] Failed to deserialize snapshot for streamKey: ${streamKey}`)
@@ -162,9 +163,9 @@ export const processRawEvent = <
     applyEventsWithAggregator: ReturnType<typeof applyEvents<SnapshotPayload, UpdatePayload>>
     ) => (
     state: any,
-    action: PayloadAction<{ streamKey: string; timestamp: number; rawEvent: ExternalUpdatePayload }>
+    action: PayloadAction<ClientUpdateMessagePayload<ExternalUpdatePayload>>
 ) => {
-        const { streamKey, timestamp, rawEvent } = action.payload
+        const { streamKey, timestamp, header, content } = action.payload
         
         // Check if stream is subscribed
         const stream = state.subscribedStreams[streamKey]
@@ -177,7 +178,7 @@ export const processRawEvent = <
         const event = eventSerializer.deserialize({
             dataSourceKey,
             streamKey,
-            externalUpdate: rawEvent
+            externalUpdate: content
         })
         if (!event) {
             console.warn(`[${dataSourceKey}] Failed to deserialize event for streamKey: ${streamKey}`)

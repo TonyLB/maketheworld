@@ -1,6 +1,11 @@
 import { InternalMessageBus } from '@tonylb/mtw-lambda-patterns/ts/messageBus'
-import { StreamingEventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import { StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { CoordinationEventUpdate } from '../dataSource/coordinationSerializer'
+
+// WML messageBus streaming messages use a header-like shape (dataSourceKey, streamKey, timestamp, type)
+// plus a content payload (detailEnvelope or event). DataSource.subscribe() maps these into
+// StreamingEventEnvelope<Content> with header: StreamingEventHeader and content. Step 4 (gates)
+// will have gates build { header, content } explicitly when sending to the bus.
 
 export type ReturnValueMessage = {
     type: 'ReturnValue';
@@ -16,12 +21,15 @@ export type ErrorMessage = {
 }
 
 
-// Constrained to only the internal events that WML dataSource actually subscribes to
+// Constrained to only the internal events that WML dataSource actually subscribes to.
+// Header part: type, dataSourceKey, streamKey, timestamp.
+// Content part: CoordinationEventUpdate.
 export type StreamingEventMessage = {
     type: 'StreamingEvent';
     dataSourceKey: 'internal';
     streamKey: string;
-    detailEnvelope: CoordinationEventUpdate;
+    header: StreamingEventHeader;
+    content: CoordinationEventUpdate;
     timestamp: number;
 }
 
@@ -30,24 +38,27 @@ export type InitializeSubscriptionEventMessage = {
     type: 'StreamingEvent';
     dataSourceKey: 'mtw.subscriptions';
     streamKey: string;
-    detailEnvelope: {
-        type: string;
-        update: {
-            sessionId: string;
-            requestId: string;
-        };
+    header: StreamingEventHeader;
+    content: {
+        sessionId: string;
+        requestId: string;
     };
     timestamp: number;
 }
 
-// EventBridge deserialized events (mtw.coordination, mtw.diagnostics) published to messageBus
+// EventBridge deserialized events (mtw.coordination, mtw.diagnostics) published to messageBus.
+// Header part: type, dataSourceKey, streamKey, timestamp. Content part: content (internal event).
 export type ExternalStreamingEventMessage = {
     type: 'StreamingEvent';
     dataSourceKey: string;
     streamKey: string;
-    event: unknown;
+    header: StreamingEventHeader;
+    content: unknown;
     timestamp: number;
 }
+
+// Re-export for use when building envelope-shaped messages (Step 4).
+export type { StreamingEventHeader }
 
 export type MessageType = ReturnValueMessage |
     ErrorMessage |

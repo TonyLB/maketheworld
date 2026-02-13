@@ -3,7 +3,7 @@ import { getCurrentTimestamp } from '../internalUtils/dateUtil'
 import { eventBridgeClient } from '@tonylb/mtw-utilities/ts/eventBridge'
 import { v4 as uuidv4 } from 'uuid'
 import { PublishCommand } from '@aws-sdk/client-sns'
-import { StreamingEvent, StreamingEventPayload, DataSourceEventSerializer, EventPayload } from './baseClasses'
+import { StreamingEvent, StreamingEventPayload, StreamingEventHeader, StreamingEventEnvelope, DataSourceEventSerializer, EventPayload } from './baseClasses'
 import { 
     CoreExternalFormat, 
     toEventBridgeFormat, 
@@ -63,11 +63,16 @@ export type SnsUtils = {
 export type StreamEventFunction<UpdatePayload = any> = 
     (params: { update: UpdatePayload, streamKey: string }) => Promise<void>
 
+/**
+ * SubscribedContent = payload type of events this DataSource subscribes *to* (incoming).
+ * UpdatePayload = payload type this DataSource publishes (streamEvent, serializer).
+ * They often differ (e.g. mtw.wml subscribes to coordination/diagnostics, publishes WMLEventUpdate).
+ */
 export class DataSource<
-    SnapshotPayload extends SerializableObject, 
-    UpdatePayload extends EventPayload, 
-    SubscribedEvent extends StreamingEventPayload | never = never, 
-    ExternalUpdatePayload extends EventPayload = EventPayload, 
+    SnapshotPayload extends SerializableObject,
+    UpdatePayload extends EventPayload,
+    SubscribedContent extends EventPayload,
+    ExternalUpdatePayload extends EventPayload = EventPayload,
     KeyType extends string = string,
     ExternalSnapshotPayload extends SerializableObject = SnapshotPayload
 > {
@@ -85,9 +90,9 @@ export class DataSource<
     readonly singleFlight?: ReturnType<typeof singleFlightFactory<SnapshotType<ExternalSnapshotPayload>>>
     readonly feedbackTopicArn: string
     readonly replayable: boolean
-    readonly subscribedEventTypeGuard?: (event: StreamingEventPayload) => event is SubscribedEvent
+    readonly subscribedEventTypeGuard?: (header: StreamingEventHeader) => boolean
     readonly receiveEvents?: (params: { 
-        events: SubscribedEvent[], 
+        events: Array<StreamingEventEnvelope<SubscribedContent>>,
         streamEvent: StreamEventFunction<UpdatePayload>
     }) => Promise<void>
     readonly eventSerializer?: DataSourceEventSerializer<UpdatePayload, ExternalUpdatePayload, SnapshotPayload, ExternalSnapshotPayload>
@@ -123,9 +128,9 @@ export class DataSource<
         feedbackTopicArn: string,
         replayable?: boolean,
         snapshotTimeoutMs?: number,
-        subscribedEventTypeGuard?: (event: StreamingEventPayload) => event is SubscribedEvent,
+        subscribedEventTypeGuard?: (header: StreamingEventHeader) => boolean,
         receiveEvents?: (params: { 
-            events: SubscribedEvent[], 
+            events: Array<StreamingEventEnvelope<SubscribedContent>>,
             streamEvent: StreamEventFunction<UpdatePayload>
         }) => Promise<void>,
         eventSerializer?: DataSourceEventSerializer<UpdatePayload, ExternalUpdatePayload, SnapshotPayload, ExternalSnapshotPayload>,
@@ -357,13 +362,20 @@ export class DataSource<
         const eventBridgeEvent = toEventBridgeFormat(coreFormat)
 
         // Create the internal messageBus event
-        // Format matches StreamingEventMessage: { type: 'StreamingEvent', dataSourceKey, streamKey, timestamp, event }
+        // Canonical in-process shape is { type: 'StreamingEvent', dataSourceKey, streamKey, timestamp, header, content }.
+        const header: StreamingEventHeader = {
+            dataSourceKey: this.dataSourceKey,
+            streamKey,
+            timestamp: now,
+            type: update.type
+        }
         const messageBusEvent = {
             type: 'StreamingEvent' as const,
             dataSourceKey: this.dataSourceKey,
             streamKey,
             timestamp: now,
-            detailEnvelope: update
+            header,
+            content: update
         }
 
         // Execute all operations in parallel
@@ -607,9 +619,16 @@ export class DataSource<
             if (message.type !== 'StreamingEvent') {
                 return false
             }
-            // Strip the type field to get StreamingEventPayload format
-            const { type, ...streamingEventPayload } = message
-            return this.subscribedEventTypeGuard(streamingEventPayload)
+            if (!message.header || typeof message.header.type !== 'string') {
+                return false
+            }
+            const header: StreamingEventHeader = {
+                dataSourceKey: message.header.dataSourceKey ?? message.dataSourceKey,
+                streamKey: message.header.streamKey ?? message.streamKey,
+                timestamp: message.header.timestamp ?? message.timestamp,
+                type: message.header.type
+            }
+            return this.subscribedEventTypeGuard(header)
         }
 
         // Subscribe to messageBus with the derived type guard and receiveEvents callback
@@ -618,11 +637,12 @@ export class DataSource<
             priority: 5, // Default priority for data source processing
             filter: streamingEventTypeGuard,
             callback: async ({ payloads }) => {
-                // Extract all StreamingEventPayload events from the batch
-                const events = payloads.map((streamingEvent) => {
-                    // Strip the type field to get StreamingEventPayload format
-                    const { type, ...streamingEventPayload } = streamingEvent
-                    return streamingEventPayload
+                // Wrap all payloads into StreamingEventEnvelope instances.
+                const events: Array<StreamingEventEnvelope<SubscribedContent>> = payloads.map((streamingEvent) => {
+                    return {
+                        header: streamingEvent.header,
+                        content: streamingEvent.content as SubscribedContent
+                    }
                 })
                 
                 // Pass all events as a batch to receiveEvents
@@ -640,21 +660,19 @@ export class DataSource<
             type: 'StreamingEvent', 
             dataSourceKey: 'mtw.subscriptions',
             streamKey: string,
-            detailEnvelope: {
-                type: string,
-                update: {
-                    sessionId: string,
-                    requestId: string
-                }
+            header: StreamingEventHeader,
+            content: {
+                sessionId: string,
+                requestId: string
             },
             timestamp: number
         } => {
             return message.type === 'StreamingEvent' &&
                    message.dataSourceKey === 'mtw.subscriptions' &&
-                   message.detailEnvelope?.type === `Initialize Subscription - ${this.dataSourceKey}` &&
+                   message.header?.type === `Initialize Subscription - ${this.dataSourceKey}` &&
                    typeof message.streamKey === 'string' &&
-                   typeof message.detailEnvelope?.update?.sessionId === 'string' &&
-                   typeof message.detailEnvelope?.update?.requestId === 'string'
+                   typeof message.content?.sessionId === 'string' &&
+                   typeof message.content?.requestId === 'string'
         }
 
         // Subscribe to Initialize Subscription events with higher priority
@@ -666,7 +684,7 @@ export class DataSource<
                 // Process each Initialize Subscription event
                 for (const payload of payloads) {
                     const { streamKey } = payload
-                    const { sessionId } = payload.detailEnvelope.update
+                    const { sessionId } = payload.content
                     
                     try {
                         // Use the existing initializeSubscription method

@@ -204,7 +204,8 @@ describe('dataSource reducers', () => {
                 payload: {
                     streamKey: 'stream1',
                     timestamp: 10000,
-                    rawSnapshot: { type: 'Snapshot' as const, items: ['new'] }
+                    header: { type: 'Snapshot' },
+                    content: { type: 'Snapshot' as const, items: ['new'] }
                 }
             }
             
@@ -234,7 +235,8 @@ describe('dataSource reducers', () => {
                 payload: {
                     streamKey: 'stream1',
                     timestamp: 15000,  // Snapshot comes BEFORE existing event
-                    rawSnapshot: { type: 'Snapshot' as const, items: ['x'] }
+                    header: { type: 'Snapshot' },
+                    content: { type: 'Snapshot' as const, items: ['x'] }
                 }
             }
             
@@ -260,7 +262,8 @@ describe('dataSource reducers', () => {
                 payload: {
                     streamKey: 'nonexistent',
                     timestamp: 10000,
-                    rawSnapshot: { type: 'Snapshot' as const, items: ['a'] }
+                    header: { type: 'Snapshot' },
+                    content: { type: 'Snapshot' as const, items: ['a'] }
                 }
             }
             
@@ -287,7 +290,8 @@ describe('dataSource reducers', () => {
                 payload: {
                     streamKey: 'stream1',
                     timestamp: 10000,
-                    rawSnapshot: { invalid: 'data' }
+                    header: { type: 'Snapshot' },
+                    content: { invalid: 'data' }
                 }
             }
             
@@ -338,7 +342,8 @@ describe('dataSource reducers', () => {
                 payload: {
                     streamKey: 'stream1',
                     timestamp: 20000,  // After existing event
-                    rawEvent: { type: 'Item Added' as const, item: 'b' }
+                    header: { type: 'Item Added' },
+                    content: { type: 'Item Added' as const, item: 'b' }
                 }
             }
             
@@ -369,7 +374,8 @@ describe('dataSource reducers', () => {
                 payload: {
                     streamKey: 'stream1',
                     timestamp: 20000,  // BETWEEN snapshot and existing event
-                    rawEvent: { type: 'Item Added' as const, item: 'b' }
+                    header: { type: 'Item Added' },
+                    content: { type: 'Item Added' as const, item: 'b' }
                 }
             }
             
@@ -396,7 +402,8 @@ describe('dataSource reducers', () => {
                 payload: {
                     streamKey: 'nonexistent',
                     timestamp: 10000,
-                    rawEvent: { type: 'Item Added' as const, item: 'a' }
+                    header: { type: 'Item Added' },
+                    content: { type: 'Item Added' as const, item: 'a' }
                 }
             }
             
@@ -423,7 +430,8 @@ describe('dataSource reducers', () => {
                 payload: {
                     streamKey: 'stream1',
                     timestamp: 10000,
-                    rawEvent: { invalid: 'data' }
+                    header: { type: 'Invalid' },
+                    content: { invalid: 'data' }
                 }
             }
             
@@ -455,7 +463,8 @@ describe('dataSource reducers', () => {
                 payload: {
                     streamKey: 'stream1',
                     timestamp: 30000,  // Out of order
-                    rawEvent: { type: 'Item Added' as const, item: 'b' }
+                    header: { type: 'Item Added' },
+                    content: { type: 'Item Added' as const, item: 'b' }
                 }
             }
             
@@ -485,7 +494,8 @@ describe('dataSource reducers', () => {
                 payload: {
                     streamKey: 'stream1',
                     timestamp: 70000,  // Much later
-                    rawEvent: { type: 'Item Added' as const, item: 'c' }
+                    header: { type: 'Item Added' },
+                    content: { type: 'Item Added' as const, item: 'c' }
                 }
             }
             
@@ -518,7 +528,8 @@ describe('dataSource reducers', () => {
                 payload: {
                     streamKey: 'stream1',
                     timestamp: 40000,  // BEFORE the snapshot at 50000
-                    rawEvent: { type: 'Item Added' as const, item: 'd' }
+                    header: { type: 'Item Added' },
+                    content: { type: 'Item Added' as const, item: 'd' }
                 }
             }
             

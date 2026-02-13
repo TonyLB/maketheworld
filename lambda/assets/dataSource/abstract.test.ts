@@ -110,13 +110,17 @@ describe('AssetsDataSource', () => {
                 })
             )
 
-            // Verify messageBus message
+            // Verify messageBus message (header/content envelope)
             expect(messageBus.send).toHaveBeenCalledWith(
                 expect.objectContaining({
                     type: 'StreamingEvent',
                     dataSourceKey: 'mtw.assets.test',
                     streamKey: 'test-stream',
-                    detailEnvelope: expect.objectContaining(update)
+                    header: expect.objectContaining({
+                        dataSourceKey: 'mtw.assets.test',
+                        streamKey: 'test-stream'
+                    }),
+                    content: expect.objectContaining(update)
                 })
             )
         })

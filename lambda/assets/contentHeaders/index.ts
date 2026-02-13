@@ -11,13 +11,13 @@ import {
     ContentHeadersSnapshotExternal
 } from '@tonylb/mtw-interfaces/ts/eventBridge/assets/contentHeaders'
 import { ComponentEventUpdate, ComponentUpdatedEvent, ComponentRemovedEvent, AssetUpdatedEventUpdate } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
-import { StreamingEventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import { StreamingEventHeader, StreamingEventEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import internalCache from '../internalCache'
 import { excludeUndefined } from '@tonylb/mtw-utilities/ts/lists'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
-import { WMLZoneEvent, isWMLZoneEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/wml'
+import { WMLZoneEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/wml'
 import { Zone } from '@tonylb/mtw-asset-workspace'
 import { standardComponentFactory } from '@tonylb/mtw-wml/ts/standardize/componentFactory'
 import { defaultComponentFromTag } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
@@ -36,52 +36,24 @@ import { ReferenceList } from '@tonylb/mtw-wml/ts/standardize/keys/referenceList
 // - Maintain zone-based organization (Canon, Library, Personal)
 // - Provide WML-serialized component metadata for Import Navigator consumption
 //
-// Type for subscribed events from mtw.assets
-export type SubscribedAssetsEvent = {
-    dataSourceKey: 'mtw.assets';
-    streamKey: string;
-    detailEnvelope: ComponentEventUpdate | AssetUpdatedEventUpdate;
-    timestamp: number;
-}
+// Content type for subscribed events from mtw.assets
+export type SubscribedAssetsContent = ComponentEventUpdate | AssetUpdatedEventUpdate
 
-// Type guard for subscribed assets events
-const isSubscribedAssetsEvent = (event: StreamingEventPayload): event is SubscribedAssetsEvent => {
-    return Boolean(
-        event.dataSourceKey === 'mtw.assets' && 
-        event.detailEnvelope && 
-        typeof event.detailEnvelope === 'object' &&
-        event.detailEnvelope !== null &&
-        'type' in event.detailEnvelope &&
-        (event.detailEnvelope as any).type &&
-        (((event.detailEnvelope as any).type === 'Component Updated') || ((event.detailEnvelope as any).type === 'Component Removed') || ((event.detailEnvelope as any).type === 'Asset Updated'))
-    )
-}
+// Content type for subscribed WML zone events
+export type SubscribedWMLContent = WMLZoneEvent
 
-// Type for subscribed WML events
-export type SubscribedWMLEvent = {
-    dataSourceKey: 'mtw.wml';
-    streamKey: string;
-    detailEnvelope: WMLZoneEvent;
-    timestamp: number;
-}
+/** Payload types of events mtw.assets.contentHeaders subscribes to. */
+type ContentHeadersSubscribedContent = SubscribedAssetsContent | SubscribedWMLContent
 
-// Union type for all subscribed events
-export type SubscribedEvent = SubscribedAssetsEvent | SubscribedWMLEvent
-
-// Type guard for subscribed WML events
-const isSubscribedWMLEvent = (event: StreamingEventPayload): event is SubscribedWMLEvent => {
-    return Boolean(
-        event.dataSourceKey === 'mtw.wml' && 
-        event.detailEnvelope && 
-        typeof event.detailEnvelope === 'object' &&
-        event.detailEnvelope !== null &&
-        isWMLZoneEvent(event.detailEnvelope as any)
-    )
-}
-
-// Type guard for subscribed events (from assets and mtw.wml Zone Changed)
-const isSubscribedEvent = (event: StreamingEventPayload): event is SubscribedEvent => {
-    return isSubscribedAssetsEvent(event) || isSubscribedWMLEvent(event)
+// Type guard for subscribed events (header-only routing)
+const isSubscribedEventHeader = (header: StreamingEventHeader): boolean => {
+    if (header.dataSourceKey === 'mtw.assets') {
+        return ['Component Updated', 'Component Removed', 'Asset Updated'].includes(header.type)
+    }
+    if (header.dataSourceKey === 'mtw.wml') {
+        return header.type === 'Zone Changed'
+    }
+    return false
 }
 
 //
@@ -165,10 +137,12 @@ const generateContentHeadersSnapshot = async (): Promise<ContentHeadersSnapshot>
     }
 }
 
+type ContentHeadersSubscribedEnvelope = StreamingEventEnvelope<ContentHeadersSubscribedContent>
+
 export const contentHeadersDataSource = new AssetsDataSource<
-    ContentHeadersSnapshot, 
-    ContentHeadersUpdate | ZoneUpdatedEvent, 
-    SubscribedEvent,
+    ContentHeadersSnapshot,
+    ContentHeadersUpdate | ZoneUpdatedEvent,
+    ContentHeadersSubscribedContent,
     ContentHeadersExternal,
     ContentHeadersSnapshotExternal
 >({
@@ -176,14 +150,15 @@ export const contentHeadersDataSource = new AssetsDataSource<
     replayable: true, // Support client subscriptions with historical data
     eventSerializer: new ContentHeadersEventSerializer(),
     snapshotContentGenerator: generateContentHeadersSnapshot,
-    subscribedEventTypeGuard: isSubscribedEvent,
+    subscribedEventTypeGuard: isSubscribedEventHeader,
     receiveEvents: async ({ events, streamEvent }) => {
         // Process mtw.assets events and generate content header and zone updates
         // Group content events by asset to enable aggregation
-        
-        const { eventsByAsset, zoneEvents } = events.reduce<{ eventsByAsset: Record<AssetUUID, SubscribedEvent[]>, zoneEvents: SubscribedWMLEvent[] }>((previous, event) => {
-            if (event.detailEnvelope.type === 'Component Updated' || event.detailEnvelope.type === 'Component Removed' || event.detailEnvelope.type === 'Asset Updated') {
-                const assetId = event.streamKey as AssetUUID
+
+        const { eventsByAsset, zoneEvents } = events.reduce<{ eventsByAsset: Record<AssetUUID, ContentHeadersSubscribedEnvelope[]>, zoneEvents: ContentHeadersSubscribedEnvelope[] }>((previous, event) => {
+            const { header, content } = event
+            if (content.type === 'Component Updated' || content.type === 'Component Removed' || content.type === 'Asset Updated') {
+                const assetId = header.streamKey as AssetUUID
                 return {
                     ...previous,
                     eventsByAsset: {
@@ -191,23 +166,23 @@ export const contentHeadersDataSource = new AssetsDataSource<
                         [assetId]: [...previous.eventsByAsset[assetId] ?? [], event]
                     }
                 }
-            } else if (event.detailEnvelope.type === 'Zone Changed') {
+            } else if (content.type === 'Zone Changed') {
                 return {
                     ...previous,
-                    zoneEvents: [...previous.zoneEvents, event as SubscribedWMLEvent]
+                    zoneEvents: [...previous.zoneEvents, event]
                 }
             }
             return previous
         }, { eventsByAsset: {}, zoneEvents: [] })
-        
 
         const zoneUpdates = zoneEvents.map(async (zoneEvent) => {
-            const { fromZone, toZone } = zoneEvent.detailEnvelope
+            if (zoneEvent.content.type !== 'Zone Changed') return
+            const { fromZone, toZone } = zoneEvent.content
             await streamEvent({
                 streamKey: 'global',
                 update: {
                     type: 'Zone Updated',
-                    assetId: zoneEvent.streamKey as AssetUUID,
+                    assetId: zoneEvent.header.streamKey as AssetUUID,
                     fromZone,
                     toZone
                 }
@@ -217,7 +192,6 @@ export const contentHeadersDataSource = new AssetsDataSource<
         // Process each asset's events as a batch
         const contentHeadersUpdates = Object.entries(eventsByAsset).map(async ([assetId, assetEvents]) => {
             try {
-                
                 // Get the asset's zone information
                 const zone = await getAssetZone(assetId as AssetUUID)
                 if (!zone) {
@@ -231,7 +205,7 @@ export const contentHeadersDataSource = new AssetsDataSource<
                     })
                     return
                 }
-                
+
                 // Create aggregated content header update for this asset
                 const contentHeadersUpdate = createAggregatedContentHeadersUpdate(assetId as AssetUUID, zone, assetEvents)
                 if (contentHeadersUpdate) {
@@ -286,18 +260,19 @@ async function getAssetZone(assetId: AssetUUID): Promise<Zone | null> {
 function createAggregatedContentHeadersUpdate(
     assetId: AssetUUID,
     zone: Zone,
-    events: SubscribedEvent[]
+    events: ContentHeadersSubscribedEnvelope[]
 ): ContentHeadersUpdate | null {
     try {
         const headerComponents: any[] = []
         let metadataAsset: StandardForm | null = null
-        
+
         // Process all events for this asset
         for (const event of events) {
-            if (event.detailEnvelope.type === 'Component Updated' || event.detailEnvelope.type === 'Component Removed') {
-                const componentUpdate = event.detailEnvelope as ComponentUpdatedEvent | ComponentRemovedEvent
+            const content = event.content
+            if (content.type === 'Component Updated' || content.type === 'Component Removed') {
+                const componentUpdate = content as ComponentUpdatedEvent | ComponentRemovedEvent
                 const { component } = componentUpdate
-                
+
                 if (!component) {
                     console.warn(`Component Updated event for asset ${assetId} missing component data, skipping`)
                     continue
@@ -307,8 +282,8 @@ function createAggregatedContentHeadersUpdate(
                 if (headerComponent) {
                     headerComponents.push(headerComponent)
                 }
-            } else if (event.detailEnvelope.type === 'Asset Updated') {
-                const assetUpdated = event.detailEnvelope as AssetUpdatedEventUpdate
+            } else if (content.type === 'Asset Updated') {
+                const assetUpdated = content as AssetUpdatedEventUpdate
                 // Consume the provided StandardForm directly
                 metadataAsset = assetUpdated.standardForm
             }

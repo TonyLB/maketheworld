@@ -79,45 +79,41 @@ describe('WML DataSource', () => {
 
     describe('Event Type Guard', () => {
         it('should recognize valid Move Asset events', () => {
-            const validEvent = {
+            const validHeader = {
                 dataSourceKey: 'internal',
                 streamKey: 'test-asset',
-                detailEnvelope: {
-                    type: 'Move Asset',
-                    fromZone: 'Library',
-                    toZone: 'Canon'
-                }
+                timestamp: 0,
+                type: 'Move Asset'
             }
 
             expect(wmlDataSource.subscribedEventTypeGuard).toBeDefined()
-            const isRecognized = wmlDataSource.subscribedEventTypeGuard!(validEvent as any)
+            const isRecognized = wmlDataSource.subscribedEventTypeGuard!(validHeader)
             expect(isRecognized).toBe(true)
         })
 
         it('should reject events with wrong dataSourceKey', () => {
-            const invalidEvent = {
+            const invalidHeader = {
                 dataSourceKey: 'mtw.assets',
-                detailEnvelope: {
-                    type: 'Move Asset',
-                    assetId: 'test-asset',
-                    fromZone: 'Library',
-                    toZone: 'Canon'
-                }
+                streamKey: 'test-asset',
+                timestamp: 0,
+                type: 'Move Asset'
             }
 
             expect(wmlDataSource.subscribedEventTypeGuard).toBeDefined()
-            const isRecognized = wmlDataSource.subscribedEventTypeGuard!(invalidEvent as any)
+            const isRecognized = wmlDataSource.subscribedEventTypeGuard!(invalidHeader)
             expect(isRecognized).toBe(false)
         })
 
-        it('should reject events with missing event structure', () => {
-            const invalidEvent = {
+        it('should reject events with non-coordination type', () => {
+            const invalidHeader = {
                 dataSourceKey: 'internal',
-                detailEnvelope: null
+                streamKey: 'test-asset',
+                timestamp: 0,
+                type: 'UnknownType'
             }
 
             expect(wmlDataSource.subscribedEventTypeGuard).toBeDefined()
-            const isRecognized = wmlDataSource.subscribedEventTypeGuard!(invalidEvent as any)
+            const isRecognized = wmlDataSource.subscribedEventTypeGuard!(invalidHeader)
             expect(isRecognized).toBe(false)
         })
     })
@@ -138,15 +134,19 @@ describe('WML DataSource', () => {
             })
 
             const event = {
-                dataSourceKey: 'internal',
-                streamKey: 'ASSET#test-asset',
-                detailEnvelope: mockMoveRequest
+                header: {
+                    dataSourceKey: 'internal',
+                    streamKey: 'ASSET#test-asset',
+                    timestamp: 0,
+                    type: 'Move Asset'
+                },
+                content: mockMoveRequest
             }
 
             // Simulate the receiveEvents processing
             expect(wmlDataSource.receiveEvents).toBeDefined()
             await wmlDataSource.receiveEvents!({
-                events: [event as any],
+                events: [event],
                 streamEvent: mockStreamEvent
             })
 
@@ -175,14 +175,18 @@ describe('WML DataSource', () => {
             })
 
             const event = {
-                dataSourceKey: 'internal',
-                streamKey: 'ASSET#test-asset',
-                detailEnvelope: mockMoveRequest
+                header: {
+                    dataSourceKey: 'internal',
+                    streamKey: 'ASSET#test-asset',
+                    timestamp: 0,
+                    type: 'Move Asset'
+                },
+                content: mockMoveRequest
             }
 
             // Simulate the receiveEvents processing
             await wmlDataSource.receiveEvents!({
-                events: [event as any],
+                events: [event],
                 streamEvent: mockStreamEvent
             })
 
@@ -207,14 +211,18 @@ describe('WML DataSource', () => {
             })
 
             const event = {
-                dataSourceKey: 'internal',
-                streamKey: 'ASSET#test-asset',
-                detailEnvelope: mockMoveRequest
+                header: {
+                    dataSourceKey: 'internal',
+                    streamKey: 'ASSET#test-asset',
+                    timestamp: 0,
+                    type: 'Move Asset'
+                },
+                content: mockMoveRequest
             }
 
             // Simulate the receiveEvents processing
             await wmlDataSource.receiveEvents!({
-                events: [event as any],
+                events: [event],
                 streamEvent: mockStreamEvent
             })
 
@@ -242,15 +250,19 @@ describe('WML DataSource', () => {
             moveAssetMock.mockRejectedValue(new Error('S3 operation failed'))
 
             const event = {
-                dataSourceKey: 'internal',
-                streamKey: 'ASSET#test-asset',
-                detailEnvelope: mockMoveRequest
+                header: {
+                    dataSourceKey: 'internal',
+                    streamKey: 'ASSET#test-asset',
+                    timestamp: 0,
+                    type: 'Move Asset'
+                },
+                content: mockMoveRequest
             }
 
             // Should not throw - errors should be caught and logged
             expect(wmlDataSource.receiveEvents).toBeDefined()
             await expect(wmlDataSource.receiveEvents!({
-                events: [event as any],
+                events: [event],
                 streamEvent: mockStreamEvent
             })).resolves.not.toThrow()
 
@@ -273,15 +285,19 @@ describe('WML DataSource', () => {
             })
 
             const event = {
-                dataSourceKey: 'internal',
-                streamKey: 'ASSET#test-asset',
-                detailEnvelope: mockMoveRequest
+                header: {
+                    dataSourceKey: 'internal',
+                    streamKey: 'ASSET#test-asset',
+                    timestamp: 0,
+                    type: 'Move Asset'
+                },
+                content: mockMoveRequest
             }
 
             // Should not throw - streaming errors should be caught and logged
             expect(wmlDataSource.receiveEvents).toBeDefined()
             await expect(wmlDataSource.receiveEvents!({
-                events: [event as any],
+                events: [event],
                 streamEvent: mockStreamEvent
             })).resolves.not.toThrow()
 
@@ -309,15 +325,19 @@ describe('WML DataSource', () => {
             applyEditMock.mockResolvedValue(mockSuccessResult)
 
             const event = {
-                dataSourceKey: 'internal',
-                streamKey: 'ASSET#test-asset',
-                detailEnvelope: mockApplyEditRequest
+                header: {
+                    dataSourceKey: 'internal',
+                    streamKey: 'ASSET#test-asset',
+                    timestamp: 0,
+                    type: 'Apply Edit'
+                },
+                content: mockApplyEditRequest
             }
 
             // Simulate the receiveEvents processing
             expect(wmlDataSource.receiveEvents).toBeDefined()
             await wmlDataSource.receiveEvents!({
-                events: [event as any],
+                events: [event],
                 streamEvent: mockStreamEvent
             })
 
@@ -357,14 +377,18 @@ describe('WML DataSource', () => {
             applyEditMock.mockResolvedValue(mockFailureResult)
 
             const event = {
-                dataSourceKey: 'internal',
-                streamKey: 'ASSET#test-asset',
-                detailEnvelope: mockApplyEditRequest
+                header: {
+                    dataSourceKey: 'internal',
+                    streamKey: 'ASSET#test-asset',
+                    timestamp: 0,
+                    type: 'Apply Edit'
+                },
+                content: mockApplyEditRequest
             }
 
             // Simulate the receiveEvents processing
             await wmlDataSource.receiveEvents!({
-                events: [event as any],
+                events: [event],
                 streamEvent: mockStreamEvent
             })
 
@@ -393,15 +417,19 @@ describe('WML DataSource', () => {
             applyEditMock.mockRejectedValue(new Error('WML processing failed'))
 
             const event = {
-                dataSourceKey: 'internal',
-                streamKey: 'ASSET#test-asset',
-                detailEnvelope: mockApplyEditRequest
+                header: {
+                    dataSourceKey: 'internal',
+                    streamKey: 'ASSET#test-asset',
+                    timestamp: 0,
+                    type: 'Apply Edit'
+                },
+                content: mockApplyEditRequest
             }
 
             // Should not throw - errors should be caught and logged
             expect(wmlDataSource.receiveEvents).toBeDefined()
             await expect(wmlDataSource.receiveEvents!({
-                events: [event as any],
+                events: [event],
                 streamEvent: mockStreamEvent
             })).resolves.not.toThrow()
 
@@ -432,15 +460,19 @@ describe('WML DataSource', () => {
             applyEditMock.mockResolvedValue(mockSuccessResult)
 
             const event = {
-                dataSourceKey: 'internal',
-                streamKey: 'ASSET#test-asset',
-                detailEnvelope: mockApplyEditRequest
+                header: {
+                    dataSourceKey: 'internal',
+                    streamKey: 'ASSET#test-asset',
+                    timestamp: 0,
+                    type: 'Apply Edit'
+                },
+                content: mockApplyEditRequest
             }
 
             // Should not throw - streaming errors should be caught and logged
             expect(wmlDataSource.receiveEvents).toBeDefined()
             await expect(wmlDataSource.receiveEvents!({
-                events: [event as any],
+                events: [event],
                 streamEvent: mockStreamEvent
             })).resolves.not.toThrow()
 
@@ -465,13 +497,17 @@ describe('WML DataSource', () => {
 
             // Test with invalid streamKey (not a valid asset UUID)
             const event = {
-                dataSourceKey: 'internal',
-                streamKey: 'invalid!stream!key',
-                detailEnvelope: mockApplyEditRequest
+                header: {
+                    dataSourceKey: 'internal',
+                    streamKey: 'invalid!stream!key',
+                    timestamp: 0,
+                    type: 'Apply Edit'
+                },
+                content: mockApplyEditRequest
             }
 
             await wmlDataSource.receiveEvents!({
-                events: [event as any],
+                events: [event],
                 streamEvent: mockStreamEvent
             })
 
@@ -496,13 +532,17 @@ describe('WML DataSource', () => {
             applyEditMock.mockResolvedValue(mockSuccessResult)
 
             const event = {
-                dataSourceKey: 'internal',
-                streamKey: 'ASSET#test-asset',
-                detailEnvelope: mockApplyEditRequest
+                header: {
+                    dataSourceKey: 'internal',
+                    streamKey: 'ASSET#test-asset',
+                    timestamp: 0,
+                    type: 'Apply Edit'
+                },
+                content: mockApplyEditRequest
             }
 
             await wmlDataSource.receiveEvents!({
-                events: [event as any],
+                events: [event],
                 streamEvent: mockStreamEvent
             })
 
@@ -542,13 +582,17 @@ describe('WML DataSource', () => {
             applyEditMock.mockResolvedValue(mockSuccessResult)
 
             const event = {
-                dataSourceKey: 'internal',
-                streamKey: 'ASSET#test-asset',
-                detailEnvelope: mockApplyEditRequest
+                header: {
+                    dataSourceKey: 'internal',
+                    streamKey: 'ASSET#test-asset',
+                    timestamp: 0,
+                    type: 'Apply Edit'
+                },
+                content: mockApplyEditRequest
             }
 
             await wmlDataSource.receiveEvents!({
-                events: [event as any],
+                events: [event],
                 streamEvent: mockStreamEvent
             })
 
@@ -567,36 +611,29 @@ describe('WML DataSource', () => {
 
     describe('Diagnostics Event Type Guard', () => {
         it('should recognize valid S3 Structure Finding events', () => {
-            const validEvent = {
+            const validHeader = {
                 dataSourceKey: 'mtw.diagnostics',
                 streamKey: 'global',
-                detailEnvelope: {
-                    type: 'S3 Structure Finding',
-                    source: 'primitives.wml',
-                    status: 'missing',
-                    diagnosticRunId: 'test-run-123',
-                    timestamp: '2025-10-18T12:00:00.000Z'
-                }
+                timestamp: 0,
+                type: 'S3 Structure Finding'
             }
 
             expect(wmlDataSource.subscribedEventTypeGuard).toBeDefined()
-            const isRecognized = wmlDataSource.subscribedEventTypeGuard!(validEvent as any)
+            const isRecognized = wmlDataSource.subscribedEventTypeGuard!(validHeader)
             expect(isRecognized).toBe(true)
         })
 
         it('should accept diagnostics events with any event structure', () => {
             // DataSource should accept mtw.diagnostics events even if we don't recognize the specific type yet
-            const unknownDiagnosticsEvent = {
+            const unknownDiagnosticsHeader = {
                 dataSourceKey: 'mtw.diagnostics',
                 streamKey: 'global',
-                detailEnvelope: {
-                    type: 'Future Event Type',
-                    someField: 'someValue'
-                }
+                timestamp: 0,
+                type: 'Future Event Type'
             }
 
             expect(wmlDataSource.subscribedEventTypeGuard).toBeDefined()
-            const isRecognized = wmlDataSource.subscribedEventTypeGuard!(unknownDiagnosticsEvent as any)
+            const isRecognized = wmlDataSource.subscribedEventTypeGuard!(unknownDiagnosticsHeader)
             expect(isRecognized).toBe(true)
         })
     })
@@ -612,9 +649,13 @@ describe('WML DataSource', () => {
             })
 
             const event = {
-                dataSourceKey: 'mtw.diagnostics',
-                streamKey: 'global',
-                detailEnvelope: {
+                header: {
+                    dataSourceKey: 'mtw.diagnostics',
+                    streamKey: 'global',
+                    timestamp: 0,
+                    type: 'S3 Structure Finding'
+                },
+                content: {
                     type: 'S3 Structure Finding',
                     source: 'primitives.wml',
                     status: 'missing',
@@ -625,7 +666,7 @@ describe('WML DataSource', () => {
 
             expect(wmlDataSource.receiveEvents).toBeDefined()
             await wmlDataSource.receiveEvents!({
-                events: [event as any],
+                events: [event],
                 streamEvent: mockStreamEvent
             })
 
@@ -636,9 +677,13 @@ describe('WML DataSource', () => {
             const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
 
             const event = {
-                dataSourceKey: 'mtw.diagnostics',
-                streamKey: 'global',
-                detailEnvelope: {
+                header: {
+                    dataSourceKey: 'mtw.diagnostics',
+                    streamKey: 'global',
+                    timestamp: 0,
+                    type: 'S3 Structure Finding'
+                },
+                content: {
                     type: 'S3 Structure Finding',
                     source: 'primitives.wml',
                     status: 'present',  // Not missing
@@ -648,7 +693,7 @@ describe('WML DataSource', () => {
             }
 
             await wmlDataSource.receiveEvents!({
-                events: [event as any],
+                events: [event],
                 streamEvent: mockStreamEvent
             })
 
@@ -659,9 +704,13 @@ describe('WML DataSource', () => {
             const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
 
             const event = {
-                dataSourceKey: 'mtw.diagnostics',
-                streamKey: 'global',
-                detailEnvelope: {
+                header: {
+                    dataSourceKey: 'mtw.diagnostics',
+                    streamKey: 'global',
+                    timestamp: 0,
+                    type: 'S3 Structure Finding'
+                },
+                content: {
                     type: 'S3 Structure Finding',
                     source: 'other-asset.wml',  // Different source
                     status: 'missing',
@@ -671,7 +720,7 @@ describe('WML DataSource', () => {
             }
 
             await wmlDataSource.receiveEvents!({
-                events: [event as any],
+                events: [event],
                 streamEvent: mockStreamEvent
             })
 
@@ -684,9 +733,13 @@ describe('WML DataSource', () => {
             initializePrimitivesMock.mockRejectedValue(new Error('Initialization failed'))
 
             const event = {
-                dataSourceKey: 'mtw.diagnostics',
-                streamKey: 'global',
-                detailEnvelope: {
+                header: {
+                    dataSourceKey: 'mtw.diagnostics',
+                    streamKey: 'global',
+                    timestamp: 0,
+                    type: 'S3 Structure Finding'
+                },
+                content: {
                     type: 'S3 Structure Finding',
                     source: 'primitives.wml',
                     status: 'missing',
@@ -697,7 +750,7 @@ describe('WML DataSource', () => {
 
             // Should not throw - errors should be caught and logged
             await expect(wmlDataSource.receiveEvents!({
-                events: [event as any],
+                events: [event],
                 streamEvent: mockStreamEvent
             })).resolves.not.toThrow()
 
@@ -725,15 +778,19 @@ describe('WML DataSource', () => {
             })
 
             const event = {
-                dataSourceKey: 'internal',
-                streamKey: 'ASSET#test-asset',
-                detailEnvelope: {
+                header: {
+                    dataSourceKey: 'internal',
+                    streamKey: 'ASSET#test-asset',
+                    timestamp: 0,
+                    type: 'Create Snapshot'
+                },
+                content: {
                     type: 'Create Snapshot'
                 }
             }
 
             await wmlDataSource.receiveEvents!({
-                events: [event as any],
+                events: [event],
                 streamEvent: mockStreamEvent
             })
 
@@ -769,16 +826,20 @@ describe('WML DataSource', () => {
             AssetWorkspaceMock.fromUUID.mockResolvedValue(undefined)
 
             const event = {
-                dataSourceKey: 'internal',
-                streamKey: 'ASSET#missing-asset',
-                detailEnvelope: {
+                header: {
+                    dataSourceKey: 'internal',
+                    streamKey: 'ASSET#missing-asset',
+                    timestamp: 0,
+                    type: 'Create Snapshot'
+                },
+                content: {
                     type: 'Create Snapshot'
                 }
             }
 
             // Should not throw - errors should be caught and logged
             await expect(wmlDataSource.receiveEvents!({
-                events: [event as any],
+                events: [event],
                 streamEvent: mockStreamEvent
             })).resolves.not.toThrow()
 
@@ -798,16 +859,20 @@ describe('WML DataSource', () => {
             createManualSnapshotMock.mockRejectedValue(new Error('S3 error'))
 
             const event = {
-                dataSourceKey: 'internal',
-                streamKey: 'ASSET#test-asset',
-                detailEnvelope: {
+                header: {
+                    dataSourceKey: 'internal',
+                    streamKey: 'ASSET#test-asset',
+                    timestamp: 0,
+                    type: 'Create Snapshot'
+                },
+                content: {
                     type: 'Create Snapshot'
                 }
             }
 
             // Should not throw - errors should be caught and logged
             await expect(wmlDataSource.receiveEvents!({
-                events: [event as any],
+                events: [event],
                 streamEvent: mockStreamEvent
             })).resolves.not.toThrow()
 
@@ -832,16 +897,20 @@ describe('WML DataSource', () => {
             })
 
             const event = {
-                dataSourceKey: 'internal',
-                streamKey: 'ASSET#test-asset',
-                detailEnvelope: {
+                header: {
+                    dataSourceKey: 'internal',
+                    streamKey: 'ASSET#test-asset',
+                    timestamp: 0,
+                    type: 'Create Snapshot'
+                },
+                content: {
                     type: 'Create Snapshot'
                 }
             }
 
             // Should not throw - streaming errors should be caught
             await expect(wmlDataSource.receiveEvents!({
-                events: [event as any],
+                events: [event],
                 streamEvent: mockStreamEvent
             })).resolves.not.toThrow()
 
@@ -870,15 +939,19 @@ describe('WML DataSource', () => {
                 })
 
                 const event = {
-                    dataSourceKey: 'internal',
-                    streamKey: 'ASSET#test-asset',
-                    detailEnvelope: {
+                    header: {
+                        dataSourceKey: 'internal',
+                        streamKey: 'ASSET#test-asset',
+                        timestamp: 0,
+                        type: 'Create Snapshot'
+                    },
+                    content: {
                         type: 'Create Snapshot'
                     }
                 }
 
                 await wmlDataSource.receiveEvents!({
-                    events: [event as any],
+                    events: [event],
                     streamEvent: mockStreamEvent
                 })
 
