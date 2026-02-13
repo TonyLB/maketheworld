@@ -32,7 +32,7 @@ The assets table uses a compound key system with `AssetId` and `DataCategory` fi
 - **DataCategory**: `Meta::Asset`
 - **Purpose**: Root metadata for an asset containing S3 address information
 - **Key Data**:
-  - `address`: S3 location information for the asset's source files (see **[Address Lookup System](../addressLookup/) for details**)
+  - `address`: S3 location information for the asset's source files (resolved by the Assets Lambda and WML Lambda using zone metadata and **Asset Workspace** utilities; see [Asset Workspace](../../packages/mtw-asset-workspace/) and WML S3 storage)
   - `fileName`: Base filename for WML and JSON files
   - `zone`: Access zone ('Personal', 'Library', 'Canon', 'Draft', 'Archive')
   - `player`: Owner player ID (for personal assets)
@@ -131,13 +131,12 @@ The lambda uses a sophisticated caching system with multiple specialized caches:
 - **EventBridge**: System event notifications
 - **WML Lambda**: Content parsing and validation
 - **Ephemera Lambda**: Real-time game state updates
-- **[Address Lookup Lambda](../addressLookup/)**: Asset address resolution and S3 path management
+- **Asset address resolution**: S3 paths and zone-based addressing are resolved within the Assets Lambda and WML Lambda using DynamoDB Meta::Asset records and the **Asset Workspace** package; there is no separate address-lookup service
 
 ### Cross-References
-- **[WML System](../wml/)**: Content parsing and standardization
+- **[WML System](../wml/)**: Content parsing and standardization (and S3 storage layout)
 - **[Ephemera System](../ephemera/)**: Real-time state management
-- **[Asset Workspace](../../packages/mtw-asset-workspace/)**: File management utilities
-- **[Address Lookup System](../addressLookup/)**: S3 address resolution and zone management
+- **[Asset Workspace](../../packages/mtw-asset-workspace/)**: File management and S3 address resolution (ReadOnlyAssetWorkspace, etc.)
 
 ### API Contracts
 - **CacheAssetMessage**: Triggers asset caching process
@@ -160,7 +159,7 @@ messageBus.send({
 })
 ```
 
-**Note**: Asset addresses are resolved through the **[Address Lookup Lambda](../addressLookup/)**, which handles zone management, draft assets, and S3 path generation.
+**Note**: Asset addresses (S3 paths, zone, and file layout) are resolved using DynamoDB Meta::Asset records and the **Asset Workspace** utilities within this lambda and the WML lambda; zone and draft metadata are stored in the assets table and used when loading or writing asset files.
 
 #### Component Range Queries
 ```typescript
