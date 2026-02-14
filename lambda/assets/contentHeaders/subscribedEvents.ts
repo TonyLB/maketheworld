@@ -2,7 +2,7 @@
  * mtw.assets.contentHeaders DataSource subscription surface: types and envelope type guards
  * for events this DataSource subscribes to (mtw.assets: Component Updated, Component Removed, Asset Updated; mtw.wml: Zone Changed).
  */
-import { StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import { StreamingEventHeader, StreamingEventEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { ComponentEventUpdate, ComponentUpdatedEvent, ComponentRemovedEvent, AssetUpdatedEventUpdate } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
 import { WMLZoneEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/wml'
 
@@ -60,6 +60,16 @@ export const isSubscribedEventHeader = (header: StreamingEventHeader): boolean =
     }
     if (header.dataSourceKey === 'mtw.wml') {
         return header.type === 'Zone Changed'
+    }
+    return false
+}
+
+export function isContentHeadersSubscribedEnvelope(e: StreamingEventEnvelope<unknown>): e is StreamingEventEnvelope<ContentHeadersSubscribedContent> {
+    if (e.header.dataSourceKey === 'mtw.assets') {
+        return ['Component Updated', 'Component Removed', 'Asset Updated'].includes(e.header.type)
+    }
+    if (e.header.dataSourceKey === 'mtw.wml') {
+        return e.header.type === 'Zone Changed'
     }
     return false
 }

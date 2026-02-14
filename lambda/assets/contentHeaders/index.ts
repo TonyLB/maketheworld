@@ -21,7 +21,7 @@ import { ReferenceList } from '@tonylb/mtw-wml/ts/standardize/keys/referenceList
 import {
     ContentHeadersIncomingEvent,
     ContentHeadersSubscribedContent,
-    isSubscribedEventHeader,
+    isContentHeadersSubscribedEnvelope,
     isZoneChangedContentHeadersEvent,
     isComponentHeadersEvent,
     isAssetUpdatedHeadersEvent,
@@ -135,7 +135,7 @@ export const contentHeadersDataSource = new AssetsDataSource<
     replayable: true, // Support client subscriptions with historical data
     eventSerializer: new ContentHeadersEventSerializer(),
     snapshotContentGenerator: generateContentHeadersSnapshot,
-    subscribedEventTypeGuard: isSubscribedEventHeader,
+    subscribedEventTypeGuard: isContentHeadersSubscribedEnvelope,
     receiveEvents: async ({ events, streamEvent }) => {
         // Process mtw.assets events and generate content header and zone updates
         // Group content events by asset to enable aggregation

@@ -17,7 +17,7 @@ import assetDB from '../utilities/mockableAssetDB'
 import { ApplyEditResult } from './applyEdit'
 import {
     WMLSubscribedPayload,
-    COORDINATION_EVENT_TYPES,
+    isWMLSubscribedEnvelope,
     isApplyEditEnvelope,
     isMoveAssetEnvelope,
     isCanonizeOrDecanonizeEnvelope,
@@ -277,40 +277,31 @@ export const wmlDataSource = new WMLDataSource<{}, WMLEventUpdate, CoordinationE
     dataSourceKey: 'mtw.wml',
     replayable: true, // Required for initializeSubscription (sidecar snapshot on subscribe)
     snapshotSidecarUrlGenerator: async (streamKey: string) => getSidecarSnapshotDescriptor(streamKey as AssetUUID),
-    subscribedEventTypeGuard: (header: StreamingEventHeader): boolean => {
-        // Subscribe to:
-        // 1. Internal coordination events (direct API calls)
-        // 2. mtw.diagnostics events (system health findings)
-        return (
-            (header.dataSourceKey === 'internal' && COORDINATION_EVENT_TYPES.has(header.type)) ||
-            header.dataSourceKey === 'mtw.diagnostics'
-        )
-    },
+    subscribedEventTypeGuard: isWMLSubscribedEnvelope,
     receiveEvents: async ({ events, streamEvent }) => {
         await Promise.all(events.map(async (event) => {
-            const e = event as StreamingEventEnvelope<WMLSubscribedPayload>
-            if (isApplyEditEnvelope(e)) {
-                await processApplyEdit(e, streamEvent)
+            if (isApplyEditEnvelope(event)) {
+                await processApplyEdit(event, streamEvent)
                 return
             }
-            if (isMoveAssetEnvelope(e)) {
-                await processMoveAsset(e, streamEvent)
+            if (isMoveAssetEnvelope(event)) {
+                await processMoveAsset(event, streamEvent)
                 return
             }
-            if (isCanonizeOrDecanonizeEnvelope(e)) {
-                await processCanonizeDecanonize(e, streamEvent)
+            if (isCanonizeOrDecanonizeEnvelope(event)) {
+                await processCanonizeDecanonize(event, streamEvent)
                 return
             }
-            if (isCreateSnapshotEnvelope(e)) {
-                await processCreateSnapshot(e, streamEvent)
+            if (isCreateSnapshotEnvelope(event)) {
+                await processCreateSnapshot(event, streamEvent)
                 return
             }
-            if (isPurgeAssetEnvelope(e)) {
-                await processPurgeAsset(e, streamEvent)
+            if (isPurgeAssetEnvelope(event)) {
+                await processPurgeAsset(event, streamEvent)
                 return
             }
-            if (isDiagnosticsEnvelope(e)) {
-                await processS3StructureFinding(e)
+            if (isDiagnosticsEnvelope(event)) {
+                await processS3StructureFinding(event)
             }
         }))
     },

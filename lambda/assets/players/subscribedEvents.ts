@@ -2,7 +2,7 @@
  * mtw.assets.players DataSource subscription surface: types, envelope type guards,
  * and typed send-helper for the internal Player Settings Updated event.
  */
-import { StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import { StreamingEventHeader, StreamingEventEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import {
     PlayerSettingsUpdatedEvent,
 } from './coordinationSerializer'
@@ -25,6 +25,12 @@ export const isPlayerSettingsEnvelope = (event: { header: StreamingEventHeader }
     event.header.dataSourceKey === 'internal' && event.header.type === PLAYER_SETTINGS_TYPE
 export const isPlayersAssetEnvelope = (event: { header: StreamingEventHeader }): event is Extract<PlayersIncomingEvent, { header: { dataSourceKey: 'mtw.assets' } }> =>
     event.header.dataSourceKey === 'mtw.assets' && PLAYERS_ASSET_EVENT_TYPES.has(event.header.type)
+
+export function isPlayersSubscribedEnvelope(e: StreamingEventEnvelope<unknown>): e is StreamingEventEnvelope<PlayersSubscribedContent> {
+    if (e.header.dataSourceKey === 'internal') return e.header.type === PLAYER_SETTINGS_TYPE
+    if (e.header.dataSourceKey === 'mtw.assets') return PLAYERS_ASSET_EVENT_TYPES.has(e.header.type)
+    return false
+}
 
 type Bus = { send: (payload: StreamingEventMessage) => void }
 

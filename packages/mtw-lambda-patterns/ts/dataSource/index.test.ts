@@ -990,7 +990,7 @@ describe('DataSource', () => {
             // Mock receiveEvents function
             mockReceiveEvents = jest.fn().mockResolvedValue(undefined)
 
-            // Mock type guard
+            // Mock envelope type guard (envelope: StreamingEventEnvelope<unknown>) => boolean
             mockSubscribedEventTypeGuard = jest.fn().mockReturnValue(true)
 
             // Reset mocks
@@ -1086,14 +1086,14 @@ describe('DataSource', () => {
                 })
             })
 
-            it('should create correct type guard that filters by messageType and uses subscribedEventTypeGuard with headers', () => {
-                // Mock the type guard to simulate real-world usage based on headers only
-                mockSubscribedEventTypeGuard.mockImplementation((header) => {
-                    if (header.dataSourceKey === 'mtw.assets') {
-                        return header.type === 'AssetUpdated' && header.streamKey.startsWith('char-')
+            it('should use structure guard for filter and envelope guard in callback', async () => {
+                // Envelope guard: same logic as before but receives envelope with .header
+                mockSubscribedEventTypeGuard.mockImplementation((envelope: { header: { dataSourceKey: string; type: string; streamKey: string } }) => {
+                    if (envelope.header.dataSourceKey === 'mtw.assets') {
+                        return envelope.header.type === 'AssetUpdated' && envelope.header.streamKey.startsWith('char-')
                     }
-                    if (header.dataSourceKey === 'mtw.ephemera') {
-                        return header.type === 'StateChanged' && header.streamKey === 'zone-123'
+                    if (envelope.header.dataSourceKey === 'mtw.ephemera') {
+                        return envelope.header.type === 'StateChanged' && envelope.header.streamKey === 'zone-123'
                     }
                     return false
                 })
@@ -1112,161 +1112,60 @@ describe('DataSource', () => {
 
                 dataSource.subscribe()
 
-                // Find the regular events subscription (not the Initialize subscription)
-                const regularSubscription = mockMessageBus.subscribe.mock.calls.find(call => 
+                const regularSubscription = mockMessageBus.subscribe.mock.calls.find((call: any) =>
                     call[0].tag === 'dataSource-mtw.testDataSource'
                 )
-                const typeGuard = regularSubscription[0].filter
+                const structureGuard = regularSubscription[0].filter
+                const callback = regularSubscription[0].callback
 
-                // Test with valid asset event that matches our filtering criteria
-                const legacyAssetEvent = {
+                // Structure guard accepts valid streaming events (does not call envelope guard)
+                const validEvent = {
                     type: 'StreamingEvent',
                     dataSourceKey: 'mtw.assets',
                     streamKey: 'char-123',
-                    header: {
-                        dataSourceKey: 'mtw.assets',
-                        streamKey: 'char-123',
-                        timestamp: 123456789,
-                        type: 'AssetUpdated'
-                    },
-                    content: { 
-                        type: 'AssetUpdated',
-                        assetId: 'char-123',
-                        name: 'Test Character'
-                    },
+                    header: { dataSourceKey: 'mtw.assets', streamKey: 'char-123', timestamp: 123456789, type: 'AssetUpdated' },
+                    content: { type: 'AssetUpdated', assetId: 'char-123' },
                     timestamp: 123456789
                 }
-                expect(typeGuard(legacyAssetEvent)).toBe(true)
-                expect(mockSubscribedEventTypeGuard).toHaveBeenCalledWith({
-                    dataSourceKey: 'mtw.assets',
-                    streamKey: 'char-123',
-                    timestamp: 123456789,
-                    type: 'AssetUpdated'
-                })
+                expect(structureGuard(validEvent)).toBe(true)
 
-                // Reset mock for next test
-                mockSubscribedEventTypeGuard.mockClear()
-
-                // Test with valid ephemera event that matches our filtering criteria
-                const legacyEphemeraEvent = {
-                    type: 'StreamingEvent',
-                    dataSourceKey: 'mtw.ephemera',
-                    streamKey: 'zone-123',
-                    header: {
-                        dataSourceKey: 'mtw.ephemera',
-                        streamKey: 'zone-123',
-                        timestamp: 123456790,
-                        type: 'StateChanged'
-                    },
-                    content: { 
-                        type: 'StateChanged',
-                        zoneId: 'zone-123',
-                        state: 'active'
-                    },
-                    timestamp: 123456790
-                }
-                expect(typeGuard(legacyEphemeraEvent)).toBe(true)
-                expect(mockSubscribedEventTypeGuard).toHaveBeenCalledWith({
-                    dataSourceKey: 'mtw.ephemera',
-                    streamKey: 'zone-123',
-                    timestamp: 123456790,
-                    type: 'StateChanged'
-                })
-
-                // Reset mock for next test
-                mockSubscribedEventTypeGuard.mockClear()
-
-                // Test with new-style asset event that carries explicit header/content
-                const headerAssetEvent = {
-                    type: 'StreamingEvent',
-                    dataSourceKey: 'mtw.assets',
-                    streamKey: 'char-999',
-                    header: {
-                        dataSourceKey: 'mtw.assets',
-                        streamKey: 'char-999',
-                        timestamp: 987654321,
-                        type: 'AssetUpdated'
-                    },
-                    content: {
-                        type: 'AssetUpdated',
-                        assetId: 'char-999',
-                        name: 'Header Character'
-                    }
-                }
-                expect(typeGuard(headerAssetEvent)).toBe(true)
-                expect(mockSubscribedEventTypeGuard).toHaveBeenCalledWith({
-                    dataSourceKey: 'mtw.assets',
-                    streamKey: 'char-999',
-                    timestamp: 987654321,
-                    type: 'AssetUpdated'
-                })
-
-                // Reset mock for next test
-                mockSubscribedEventTypeGuard.mockClear()
-
-                // Test with wrong messageType
                 const wrongMessageType = {
                     type: 'OtherEvent',
                     dataSourceKey: 'mtw.assets',
                     streamKey: 'char-123',
-                    header: {
-                        dataSourceKey: 'mtw.assets',
-                        streamKey: 'char-123',
-                        timestamp: 123456789,
-                        type: 'AssetUpdated'
-                    },
+                    header: { dataSourceKey: 'mtw.assets', streamKey: 'char-123', timestamp: 123456789, type: 'AssetUpdated' },
                     content: { type: 'AssetUpdated', assetId: 'char-123' },
                     timestamp: 123456789
                 }
-                expect(typeGuard(wrongMessageType)).toBe(false)
-                expect(mockSubscribedEventTypeGuard).not.toHaveBeenCalled()
+                expect(structureGuard(wrongMessageType)).toBe(false)
 
-                // Test with asset event that doesn't match our criteria (wrong asset type)
-                const wrongAssetType = {
-                    type: 'StreamingEvent',
-                    dataSourceKey: 'mtw.assets',
-                    streamKey: 'item-456',
-                    header: {
+                // Callback builds envelopes and filters with envelope guard; only matching events reach receiveEvents
+                const payloads = [
+                    validEvent,
+                    {
+                        type: 'StreamingEvent',
                         dataSourceKey: 'mtw.assets',
                         streamKey: 'item-456',
-                        timestamp: 123456789,
-                        type: 'AssetUpdated'
-                    },
-                    content: { type: 'AssetUpdated', assetId: 'item-456' }, // Not a character
-                    timestamp: 123456789
-                }
-                expect(typeGuard(wrongAssetType)).toBe(false)
-                expect(mockSubscribedEventTypeGuard).toHaveBeenCalledWith({
-                    dataSourceKey: 'mtw.assets',
-                    streamKey: 'item-456',
-                    timestamp: 123456789,
-                    type: 'AssetUpdated'
-                })
+                        header: { dataSourceKey: 'mtw.assets', streamKey: 'item-456', timestamp: 123456789, type: 'AssetUpdated' },
+                        content: { type: 'AssetUpdated', assetId: 'item-456' },
+                        timestamp: 123456789
+                    }
+                ]
+                await callback({ payloads })
 
-                // Reset mock for next test
-                mockSubscribedEventTypeGuard.mockClear()
-
-                // Test with ephemera event that doesn't match our criteria (wrong zone)
-                const wrongZone = {
-                    type: 'StreamingEvent',
-                    dataSourceKey: 'mtw.ephemera',
-                    streamKey: 'zone-456',
-                    header: {
-                        dataSourceKey: 'mtw.ephemera',
-                        streamKey: 'zone-456',
-                        timestamp: 123456789,
-                        type: 'StateChanged'
-                    },
-                    content: { type: 'StateChanged', zoneId: 'zone-456' }, // Wrong zone
-                    timestamp: 123456789
-                }
-                expect(typeGuard(wrongZone)).toBe(false)
-                expect(mockSubscribedEventTypeGuard).toHaveBeenCalledWith({
-                    dataSourceKey: 'mtw.ephemera',
-                    streamKey: 'zone-456',
-                    timestamp: 123456789,
-                    type: 'StateChanged'
-                })
+                expect(mockSubscribedEventTypeGuard).toHaveBeenCalledTimes(2)
+                expect(mockSubscribedEventTypeGuard).toHaveBeenNthCalledWith(1, expect.objectContaining({
+                    header: expect.objectContaining({ dataSourceKey: 'mtw.assets', streamKey: 'char-123', type: 'AssetUpdated' })
+                }))
+                expect(mockSubscribedEventTypeGuard).toHaveBeenNthCalledWith(2, expect.objectContaining({
+                    header: expect.objectContaining({ dataSourceKey: 'mtw.assets', streamKey: 'item-456', type: 'AssetUpdated' })
+                }))
+                expect(mockReceiveEvents).toHaveBeenCalledWith(expect.objectContaining({
+                    events: expect.arrayContaining([
+                        expect.objectContaining({ header: expect.objectContaining({ streamKey: 'char-123' }), getContentInternal: expect.any(Function) })
+                    ])
+                }))
+                expect(mockReceiveEvents.mock.calls[0][0].events).toHaveLength(1)
             })
 
             it('should call receiveEvents with batch of filtered events', async () => {

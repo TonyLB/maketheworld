@@ -3,7 +3,7 @@ import { getCurrentTimestamp } from '../internalUtils/dateUtil'
 import { eventBridgeClient } from '@tonylb/mtw-utilities/ts/eventBridge'
 import { v4 as uuidv4 } from 'uuid'
 import { PublishCommand } from '@aws-sdk/client-sns'
-import { StreamingEvent, StreamingEventPayload, StreamingEventHeader, StreamingEventEnvelope, DataSourceEventSerializer, EventPayload } from './baseClasses'
+import { StreamingEvent, StreamingEventPayload, StreamingEventPayloadContract, StreamingEventHeader, StreamingEventEnvelope, DataSourceEventSerializer, EventPayload } from './baseClasses'
 import { 
     CoreExternalFormat, 
     toEventBridgeFormat, 
@@ -90,7 +90,7 @@ export class DataSource<
     readonly singleFlight?: ReturnType<typeof singleFlightFactory<SnapshotType<ExternalSnapshotPayload>>>
     readonly feedbackTopicArn: string
     readonly replayable: boolean
-    readonly subscribedEventTypeGuard?: (header: StreamingEventHeader) => boolean
+    readonly subscribedEventTypeGuard?: (envelope: StreamingEventEnvelope<unknown>) => envelope is StreamingEventEnvelope<SubscribedContent>
     readonly receiveEvents?: (params: { 
         events: Array<StreamingEventEnvelope<SubscribedContent>>,
         streamEvent: StreamEventFunction<UpdatePayload>
@@ -128,7 +128,7 @@ export class DataSource<
         feedbackTopicArn: string,
         replayable?: boolean,
         snapshotTimeoutMs?: number,
-        subscribedEventTypeGuard?: (header: StreamingEventHeader) => boolean,
+        subscribedEventTypeGuard?: (envelope: StreamingEventEnvelope<unknown>) => envelope is StreamingEventEnvelope<SubscribedContent>,
         receiveEvents?: (params: { 
             events: Array<StreamingEventEnvelope<SubscribedContent>>,
             streamEvent: StreamEventFunction<UpdatePayload>
@@ -614,43 +614,37 @@ export class DataSource<
             return // No event processing configured
         }
 
-        // Create a derived type guard that works with the internal StreamingEventMessage structure
-        const streamingEventTypeGuard = (message: any): message is StreamingEventPayload => {
-            if (!this.subscribedEventTypeGuard) {
-                return false
-            }
+        // Structure guard: accept any message that looks like a streaming event envelope (payload-agnostic).
+        const streamingEventStructureGuard = (message: any): message is StreamingEventPayloadContract => {
             if (message.type !== 'StreamingEvent') {
                 return false
             }
             if (!message.header || typeof message.header.type !== 'string') {
                 return false
             }
-            const header: StreamingEventHeader = {
-                dataSourceKey: message.header.dataSourceKey ?? message.dataSourceKey,
-                streamKey: message.header.streamKey ?? message.streamKey,
-                timestamp: message.header.timestamp ?? message.timestamp,
-                type: message.header.type
-            }
-            return this.subscribedEventTypeGuard(header)
+            const hasContent = typeof message.getContentInternal === 'function' || message.content !== undefined
+            return hasContent
         }
 
-        // Subscribe to messageBus with the derived type guard and receiveEvents callback
+        // Subscribe to messageBus with structure guard; callback builds envelopes as unknown, filters with envelope guard, passes narrowed to receiveEvents.
         this.messageBus.subscribe({
             tag: `dataSource-${this.dataSourceKey}`,
             priority: 5, // Default priority for data source processing
-            filter: streamingEventTypeGuard,
+            filter: streamingEventStructureGuard,
             callback: async ({ payloads }) => {
-                // Wrap all payloads into StreamingEventEnvelope instances.
-                const events: Array<StreamingEventEnvelope<SubscribedContent>> = payloads.map((streamingEvent) => {
-                    return {
-                        header: streamingEvent.header,
-                        getContentInternal: streamingEvent.getContentInternal ?? (() => Promise.resolve(streamingEvent.content as SubscribedContent))
-                    }
+                const header = (p: any): StreamingEventHeader => ({
+                    dataSourceKey: p.header?.dataSourceKey ?? p.dataSourceKey,
+                    streamKey: p.header?.streamKey ?? p.streamKey,
+                    timestamp: p.header?.timestamp ?? p.timestamp,
+                    type: p.header?.type
                 })
-                
-                // Pass all events as a batch to receiveEvents
+                const envelopes: Array<StreamingEventEnvelope<unknown>> = payloads.map((p) => ({
+                    header: header(p),
+                    getContentInternal: p.getContentInternal ?? (() => Promise.resolve(p.content as unknown))
+                }))
+                const narrowed = envelopes.filter((e): e is StreamingEventEnvelope<SubscribedContent> => this.subscribedEventTypeGuard!(e))
                 await this.receiveEvents!({
-                    events,
+                    events: narrowed,
                     streamEvent: (params) => this.streamEvent(params)
                 })
             }

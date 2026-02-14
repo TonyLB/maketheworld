@@ -16,3 +16,7 @@ export const isCharactersComponentEnvelope = (
 ): event is StreamingEventEnvelope<ComponentEventUpdate> & { header: StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Component Updated' | 'Component Removed' } } => (
     event.header.dataSourceKey === 'mtw.assets' && CONTENT_HEADER_TYPES.has(event.header.type)
 )
+
+export function isCharactersSubscribedEnvelope(e: StreamingEventEnvelope<unknown>): e is StreamingEventEnvelope<CharactersSubscribedContent> {
+    return e.header.dataSourceKey === 'mtw.assets' && CONTENT_HEADER_TYPES.has(e.header.type)
+}

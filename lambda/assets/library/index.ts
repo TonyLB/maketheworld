@@ -13,7 +13,7 @@ import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { ZoneUpdatedEventUpdate, AssetCachedEventUpdate, AssetRemovedEventUpdate } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
 import {
     LibraryIncomingEvent,
-    isSubscribedAssetsEventHeader,
+    isLibrarySubscribedEnvelope,
     isZoneUpdatedLibraryEvent,
     isAssetCachedLibraryEvent,
     isAssetRemovedLibraryEvent,
@@ -119,7 +119,7 @@ export const libraryDataSource = new AssetsDataSource<
     replayable: true, // Support client subscriptions with historical data
     eventSerializer: new LibraryEventSerializer(),
     snapshotContentGenerator: generateLibrarySnapshot,
-    subscribedEventTypeGuard: isSubscribedAssetsEventHeader,
+    subscribedEventTypeGuard: isLibrarySubscribedEnvelope,
     receiveEvents: async ({ events, streamEvent }) => {
         const typedEvents = events as LibraryIncomingEvent[]
         await Promise.all(typedEvents.map(async (event) => {

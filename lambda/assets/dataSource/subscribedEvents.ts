@@ -2,7 +2,7 @@
  * mtw.assets DataSource subscription surface: types and envelope type guards
  * for events this DataSource subscribes to (mtw.wml, mtw.diagnostics, mtw.coordination).
  */
-import { StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import { StreamingEventHeader, StreamingEventEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { WMLContentEvent, WMLZoneEvent, WMLPurgeEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/wml'
 
 /**
@@ -35,7 +35,11 @@ export type AssetsIncomingEvent =
 /** Payload types of events mtw.assets subscribes to (derived from envelope union for backward compatibility). */
 export type AssetsSubscribedContent = WMLContentEvent | WMLZoneEvent | WMLPurgeEvent | { type: 'Heal Global Values'; connections?: unknown; assets?: unknown } | { type: 'Remove Asset'; assetId: string }
 
-export const isWMLZoneChangedEvent = (event: AssetsIncomingEvent): event is Extract<
+export function isAssetsSubscribedEnvelope(e: StreamingEventEnvelope<unknown>): e is StreamingEventEnvelope<AssetsSubscribedContent> {
+    return ['mtw.diagnostics', 'mtw.coordination', 'mtw.wml'].includes(e.header.dataSourceKey) && typeof e.header.type === 'string'
+}
+
+export const isWMLZoneChangedEvent = (event: StreamingEventEnvelope<AssetsSubscribedContent>): event is Extract<
     AssetsIncomingEvent,
     { header: { dataSourceKey: 'mtw.wml'; type: 'Zone Changed' } }
 > => (
@@ -43,7 +47,7 @@ export const isWMLZoneChangedEvent = (event: AssetsIncomingEvent): event is Extr
     event.header.type === 'Zone Changed'
 )
 
-export const isWMLAssetPurgedEvent = (event: AssetsIncomingEvent): event is Extract<
+export const isWMLAssetPurgedEvent = (event: StreamingEventEnvelope<AssetsSubscribedContent>): event is Extract<
     AssetsIncomingEvent,
     { header: { dataSourceKey: 'mtw.wml'; type: 'Asset Purged' } }
 > => (
@@ -51,7 +55,7 @@ export const isWMLAssetPurgedEvent = (event: AssetsIncomingEvent): event is Extr
     event.header.type === 'Asset Purged'
 )
 
-export const isDiagnosticsHealGlobalValuesEvent = (event: AssetsIncomingEvent): event is Extract<
+export const isDiagnosticsHealGlobalValuesEvent = (event: StreamingEventEnvelope<AssetsSubscribedContent>): event is Extract<
     AssetsIncomingEvent,
     { header: { dataSourceKey: 'mtw.diagnostics'; type: 'Heal Global Values' } }
 > => (
@@ -59,7 +63,7 @@ export const isDiagnosticsHealGlobalValuesEvent = (event: AssetsIncomingEvent): 
     event.header.type === 'Heal Global Values'
 )
 
-export const isCoordinationRemoveAssetEvent = (event: AssetsIncomingEvent): event is Extract<
+export const isCoordinationRemoveAssetEvent = (event: StreamingEventEnvelope<AssetsSubscribedContent>): event is Extract<
     AssetsIncomingEvent,
     { header: { dataSourceKey: 'mtw.coordination'; type: 'Remove Asset' } }
 > => (
@@ -67,7 +71,7 @@ export const isCoordinationRemoveAssetEvent = (event: AssetsIncomingEvent): even
     event.header.type === 'Remove Asset'
 )
 
-export const isWMLContentUpdateEvent = (event: AssetsIncomingEvent): event is Extract<
+export const isWMLContentUpdateEvent = (event: StreamingEventEnvelope<AssetsSubscribedContent>): event is Extract<
     AssetsIncomingEvent,
     { header: { dataSourceKey: 'mtw.wml'; type: 'Content Update' } }
 > => (

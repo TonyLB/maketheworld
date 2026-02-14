@@ -2,7 +2,7 @@
  * mtw.assets.library DataSource subscription surface: types and envelope type guards
  * for events this DataSource subscribes to (mtw.assets: Zone Updated, Asset Cached, Asset Removed).
  */
-import { StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import { StreamingEventHeader, StreamingEventEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { ZoneUpdatedEventUpdate, AssetCachedEventUpdate, AssetRemovedEventUpdate } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
 
 export type LibraryIncomingEvent =
@@ -47,4 +47,10 @@ export const isAssetRemovedLibraryEvent = (event: LibraryIncomingEvent): event i
 
 export const isSubscribedAssetsEventHeader = (header: StreamingEventHeader): boolean => {
     return header.dataSourceKey === 'mtw.assets' && LIBRARY_EVENT_TYPES.has(header.type)
+}
+
+export type LibrarySubscribedContent = ZoneUpdatedEventUpdate | AssetCachedEventUpdate | AssetRemovedEventUpdate
+
+export function isLibrarySubscribedEnvelope(e: StreamingEventEnvelope<unknown>): e is StreamingEventEnvelope<LibrarySubscribedContent> {
+    return e.header.dataSourceKey === 'mtw.assets' && LIBRARY_EVENT_TYPES.has(e.header.type)
 }

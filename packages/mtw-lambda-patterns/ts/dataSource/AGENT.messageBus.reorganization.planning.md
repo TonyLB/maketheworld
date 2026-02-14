@@ -145,7 +145,7 @@ A prototype of the subscribed-events pattern (types + envelope type guards + typ
 
 ### subscribedEvents as DataSource standard (rollout complete)
 
-**Current state:** The subscribedEvents pattern (types, envelope type guards, and typed send-helpers) is the **standard for DataSource implementations**. Rollout is complete: WML, ephemera, and all five assets DataSource sites have a `subscribedEvents.ts` in their directory; the pattern is documented in [AGENT.implementation.md](AGENT.implementation.md). MessageBus and DataSource contracts are unchanged (e.g. `subscribedEventTypeGuard` remains `(header) => boolean`; the "envelope-on-bus + Option A" refactor below has not been done).
+**Current state:** The subscribedEvents pattern (aggregate envelope type guard, per-event guards, and typed send-helpers) is the **standard for DataSource implementations**. Rollout is complete: WML, ephemera, and all five assets DataSource sites have a `subscribedEvents.ts` in their directory; the pattern is documented in [AGENT.implementation.md](AGENT.implementation.md). The envelope-on-bus refactor is complete: `subscribedEventTypeGuard` is an envelope type guard, and each lambda's messageBus baseClasses use a single broad `StreamingEventMessage` with `getContentInternal?: () => Promise<unknown>`.
 
 **Decisions** (as implemented):
 
@@ -161,9 +161,19 @@ A prototype of the subscribed-events pattern (types + envelope type guards + typ
 
 6. **Multiple DataSources in one lambda**: We already have **one DataSource per directory**. In the assets lambda there are five DataSources, each in its own directory (`dataSource/`, `players/`, `library/`, `contentHeaders/`, `characters/`). So one `subscribedEvents.ts` per directory is sufficient—each directory has exactly one DataSource, and that directory gets one subscribedEvents file. No need for DataSource-prefixed filenames (e.g. `mtw-wml.subscribedEvents.ts`) unless we ever introduce multiple DataSource implementations in the same directory, which we do not have today.
 
-### Possible future refactor: WML lambda types (sketch, not implemented)
+### Completed refactor: envelope-on-bus + envelope guards (implemented)
 
-How the types in `lambda/wml/messageBus/baseClasses.ts` and `lambda/wml/dataSource/mtw-wml.ts` **would** look if we later adopt envelope-on-bus + contract assurance + Option A. The codebase does **not** currently follow this sketch; it is retained for future consideration.
+The envelope-on-bus refactor has been implemented. Current state:
+
+- **Per-lambda messageBus/baseClasses**: Each lambda (WML, ephemera, assets) defines a **single** `StreamingEventMessage` with `content?: unknown` and `getContentInternal?: () => Promise<unknown>`. No imports from dataSource or subscribedEvents; baseClasses stay payload-agnostic.
+- **Patterns DataSource**: Constructor accepts an **envelope type guard** `(envelope: StreamingEventEnvelope<unknown>) => envelope is StreamingEventEnvelope<SubscribedContent>`. `subscribe()` builds envelopes as `unknown`, filters with that guard, then passes narrowed envelopes to `receiveEvents`.
+- **Per-DataSource subscribedEvents**: Each has an aggregate guard (e.g. `isWMLSubscribedEnvelope`, `isAssetsSubscribedEnvelope`) that narrows `StreamingEventEnvelope<unknown>` to `StreamingEventEnvelope<SubscribedPayload>` using header-only checks. Send-helpers accept the broad `StreamingEventMessage` from baseClasses.
+
+See [AGENT.implementation.md](AGENT.implementation.md) SubscribedEvents pattern for the envelope guard contract. The sketch below describes the same design and is retained for reference.
+
+### Possible future refactor: WML lambda types (sketch; superseded by completed refactor above)
+
+How the types in `lambda/wml/messageBus/baseClasses.ts` and `lambda/wml/dataSource/mtw-wml.ts` were envisioned. The codebase **now** follows this design (one broad type, envelope guard, no cast in receiveEvents). This sketch is retained for reference.
 
 #### messageBus/baseClasses.ts (after)
 

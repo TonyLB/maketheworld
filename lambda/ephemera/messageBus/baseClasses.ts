@@ -1,5 +1,5 @@
 import { InternalMessageBus } from '@tonylb/mtw-lambda-patterns/ts/messageBus'
-import { StreamingEventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import { StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 
 import { LegalCharacterColor, isEphemeraTaggedId, EphemeraMessageId, isEphemeraMessageId, isEphemeraRoomId, isEphemeraFeatureId, isEphemeraCharacterId, EphemeraMomentId, isEphemeraMomentId, EphemeraAssetId, EphemeraKnowledgeId, isEphemeraKnowledgeId, isEphemeraAssetId, } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import { RoomCharacterListItem } from "../internalCache/baseClasses"
@@ -279,7 +279,13 @@ export type ExecuteActionMessage = {
 
 export type StreamingEventMessage = {
     type: 'StreamingEvent';
-} & StreamingEventPayload
+    dataSourceKey: string;
+    streamKey: string;
+    header: StreamingEventHeader;
+    timestamp: number;
+    content?: unknown;
+    getContentInternal?: () => Promise<unknown>;
+}
 
 export type MessageType = PublishMessage |
     ReturnValueMessage |

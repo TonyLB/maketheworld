@@ -366,25 +366,31 @@ describe('Ephemera DataSource receiveEvents', () => {
 
     describe('Event Subscription', () => {
         it('should subscribe to events from mtw.assets', () => {
-            const header = {
-                dataSourceKey: 'mtw.assets',
-                streamKey: 'test-stream',
-                timestamp: getCurrentTimestamp(),
-                type: 'Component Updated'
+            const envelope = {
+                header: {
+                    dataSourceKey: 'mtw.assets',
+                    streamKey: 'test-stream',
+                    timestamp: getCurrentTimestamp(),
+                    type: 'Component Updated'
+                },
+                getContentInternal: () => Promise.resolve({})
             }
 
-            expect(ephemeraDataSource.subscribedEventTypeGuard?.(header)).toBe(true)
+            expect(ephemeraDataSource.subscribedEventTypeGuard?.(envelope)).toBe(true)
         })
 
         it('should not subscribe to events from other data sources', () => {
-            const otherHeader = {
-                dataSourceKey: 'mtw.other',
-                streamKey: 'test-stream',
-                timestamp: getCurrentTimestamp(),
-                type: 'Test Event'
+            const otherEnvelope = {
+                header: {
+                    dataSourceKey: 'mtw.other',
+                    streamKey: 'test-stream',
+                    timestamp: getCurrentTimestamp(),
+                    type: 'Test Event'
+                },
+                getContentInternal: () => Promise.resolve({})
             }
 
-            expect(ephemeraDataSource.subscribedEventTypeGuard?.(otherHeader)).toBe(false)
+            expect(ephemeraDataSource.subscribedEventTypeGuard?.(otherEnvelope)).toBe(false)
         })
     })
 })

@@ -2,7 +2,7 @@ import backupWML from "./backupWML";
 import internalCache from "./internalCache";
 import { S3Client } from "@aws-sdk/client-s3";
 import messageBus from "./messageBus";
-import type { InitializeSubscriptionEventMessage, ExternalStreamingEventMessage } from "./messageBus/baseClasses";
+import type { StreamingEventMessage } from "./messageBus/baseClasses";
 import { extractReturnValue } from "./returnValue/index";
 import { CoordinationEventExternal, CoordinationEventSerializer } from './dataSource/coordinationSerializer';
 import { sendApplyEdit, sendMoveAsset, sendPurgeAsset } from './dataSource/subscribedEvents';
@@ -57,15 +57,17 @@ export const handler = async (event: any, context: any) => {
                 timestamp,
                 type: event["detail-type"] as string
             }
-            const initMessage: InitializeSubscriptionEventMessage = {
+            const content = {
+                sessionId: event.detail.sessionId,
+                requestId: event.detail.requestId
+            }
+            const initMessage: StreamingEventMessage = {
                 type: 'StreamingEvent',
                 dataSourceKey: 'mtw.subscriptions',
                 streamKey,
                 header,
-                content: {
-                    sessionId: event.detail.sessionId,
-                    requestId: event.detail.requestId
-                },
+                content,
+                getContentInternal: () => Promise.resolve(content),
                 timestamp
             }
             messageBus.send(initMessage)
@@ -103,7 +105,7 @@ export const handler = async (event: any, context: any) => {
                 })
             } else {
                 // Publish deserialized event to messageBus for DataSource processing
-                const externalMessage: ExternalStreamingEventMessage = {
+                const externalMessage: StreamingEventMessage = {
                     type: 'StreamingEvent',
                     dataSourceKey: coreFormat.dataSourceKey,
                     streamKey: coreFormat.streamKey,

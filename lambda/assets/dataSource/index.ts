@@ -6,11 +6,11 @@ import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { AssetKey } from '@tonylb/mtw-utilities/ts/types'
 import { cacheAsset, decacheAsset } from './caching'
 import { AssetsEventSerializer, AssetsEventUpdate } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
-import { StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { AssetUUID } from "@tonylb/mtw-base/ts/schema"
 import {
     AssetsIncomingEvent,
     AssetsSubscribedContent,
+    isAssetsSubscribedEnvelope,
     isWMLZoneChangedEvent,
     isWMLAssetPurgedEvent,
     isDiagnosticsHealGlobalValuesEvent,
@@ -170,18 +170,9 @@ export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, A
     replayable: false, // Non-replayable - focuses on event streaming and processing
     eventSerializer: new AssetsEventSerializer(), // Handle all asset event serialization (component and asset-level)
     // No snapshotContentGenerator needed for non-replayable data sources
-    subscribedEventTypeGuard: (header: StreamingEventHeader): boolean => {
-        // Subscribe to events from other data sources that we care about
-        // These are events published by mtw.diagnostics, mtw.coordination, and mtw.wml
-        return ['mtw.diagnostics', 'mtw.coordination', 'mtw.wml'].includes(header.dataSourceKey) && typeof header.type === 'string'
-    },
+    subscribedEventTypeGuard: isAssetsSubscribedEnvelope,
     receiveEvents: async ({ events, streamEvent }) => {
-        // Process internal messageBus events from other data sources
-        // Process each event in the batch independently and in parallel
-        // Cast to envelope union for TypeScript narrowing
-        const typedEvents = events as AssetsIncomingEvent[]
-
-        await Promise.all(typedEvents.map(async (event) => {
+        await Promise.all(events.map(async (event) => {
             if (isWMLContentUpdateEvent(event)) {
                 await handleContentUpdate(event, streamEvent)
                 return

@@ -1,12 +1,11 @@
 import EphemeraDataSource from './abstract'
-import { StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { EphemeraEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/ephemera'
 import { AssetsEventUpdate } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
 import messageBus from '../messageBus'
 import { isEphemeraRoomId, isEphemeraAssetId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import {
     EphemeraIncomingEvent,
-    EPHEMERA_ASSET_EVENT_TYPES,
+    isEphemeraSubscribedEnvelope,
     isEphemeraComponentEnvelope,
     isEphemeraCanonUpdatedEnvelope,
     isEphemeraZoneUpdatedEnvelope,
@@ -46,12 +45,9 @@ export const ephemeraDataSource = new EphemeraDataSource<never, AssetsEventUpdat
     dataSourceKey: 'mtw.ephemera',
     replayable: false,
     eventSerializer: new EphemeraEventSerializer(),
-    subscribedEventTypeGuard: (header: StreamingEventHeader): boolean => {
-        return header.dataSourceKey === 'mtw.assets' && EPHEMERA_ASSET_EVENT_TYPES.has(header.type)
-    },
+    subscribedEventTypeGuard: isEphemeraSubscribedEnvelope,
     receiveEvents: async ({ events }) => {
-        const typedEvents = events as EphemeraIncomingEvent[]
-        await Promise.all(typedEvents.map(async (evt) => {
+        await Promise.all(events.map(async (evt) => {
             if (isEphemeraComponentEnvelope(evt)) {
                 await processComponentUpdated(evt)
                 return

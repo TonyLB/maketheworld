@@ -115,16 +115,18 @@ export const handler = async (event, context) => {
                 timestamp,
                 type: event["detail-type"] as string
             }
+            const initContent = {
+                type: 'Initialize Subscription',
+                sessionId: event.detail.sessionId,
+                requestId: event.detail.requestId
+            }
             messageBus.send({
                 type: 'StreamingEvent',
                 dataSourceKey: 'mtw.subscriptions',
                 streamKey,
                 header,
-                content: {
-                    type: 'Initialize Subscription',
-                    sessionId: event.detail.sessionId,
-                    requestId: event.detail.requestId
-                },
+                content: initContent,
+                getContentInternal: () => Promise.resolve(initContent),
                 timestamp
             })
         } else {

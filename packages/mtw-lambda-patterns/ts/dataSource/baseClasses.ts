@@ -24,6 +24,18 @@ export type StreamingEvent = {
     detailEnvelope: EventPayload;
 }
 
+// Contract for streaming event messages as seen on the bus (payload-agnostic).
+// Lambdas can align their StreamingEventMessage with this without importing DataSource payload types.
+export type StreamingEventPayloadContract = {
+    type: 'StreamingEvent';
+    dataSourceKey: string;
+    streamKey: string;
+    timestamp: number;
+    header: StreamingEventHeader;
+    content?: unknown;
+    getContentInternal?: () => Promise<unknown>;
+};
+
 // Internal DataSource format for StreamingEvent messages on the messageBus.
 // Canonical shape is header + content inside the process.
 // getContentInternal is optional so existing senders remain valid until updated; subscribe callback falls back to () => Promise.resolve(content).

@@ -20,6 +20,10 @@ export { COORDINATION_EVENT_TYPES }
 
 export type WMLSubscribedPayload = CoordinationEventUpdate | DiagnosticsEventUpdate
 
+export function isWMLSubscribedEnvelope(e: StreamingEventEnvelope<unknown>): e is StreamingEventEnvelope<WMLSubscribedPayload> {
+    return (e.header.dataSourceKey === 'internal' && COORDINATION_EVENT_TYPES.has(e.header.type)) || e.header.dataSourceKey === 'mtw.diagnostics'
+}
+
 const isApplyEditEnvelope = (e: StreamingEventEnvelope<WMLSubscribedPayload>): e is StreamingEventEnvelope<ApplyEditRequest> & { header: StreamingEventHeader & { dataSourceKey: 'internal'; type: 'Apply Edit' } } =>
     e.header.dataSourceKey === 'internal' && e.header.type === 'Apply Edit'
 const isMoveAssetEnvelope = (e: StreamingEventEnvelope<WMLSubscribedPayload>): e is StreamingEventEnvelope<MoveAssetRequest> & { header: StreamingEventHeader & { dataSourceKey: 'internal'; type: 'Move Asset' } } =>

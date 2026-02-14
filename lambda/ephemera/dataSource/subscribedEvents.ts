@@ -23,3 +23,7 @@ export const isEphemeraCanonUpdatedEnvelope = (evt: StreamingEventEnvelope<Asset
     evt.header.dataSourceKey === 'mtw.assets' && evt.header.type === 'Canon Updated'
 export const isEphemeraZoneUpdatedEnvelope = (evt: StreamingEventEnvelope<AssetsEventUpdate>): evt is Extract<EphemeraIncomingEvent, { header: { type: 'Zone Updated' } }> =>
     evt.header.dataSourceKey === 'mtw.assets' && evt.header.type === 'Zone Updated'
+
+export function isEphemeraSubscribedEnvelope(e: StreamingEventEnvelope<unknown>): e is StreamingEventEnvelope<AssetsEventUpdate> {
+    return e.header.dataSourceKey === 'mtw.assets' && EPHEMERA_ASSET_EVENT_TYPES.has(e.header.type)
+}

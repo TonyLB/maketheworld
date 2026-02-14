@@ -23,7 +23,7 @@ export class WMLDataSource<SnapshotPayload extends SerializableObject, UpdatePay
         snapshotSidecarUrlGenerator?: (streamKey: string) => Promise<SidecarSnapshotDescriptor>;
         snapshotTimeoutMs?: number;
         replayable?: boolean;
-        subscribedEventTypeGuard?: (header: StreamingEventHeader) => boolean;
+        subscribedEventTypeGuard?: (envelope: StreamingEventEnvelope<unknown>) => envelope is StreamingEventEnvelope<SubscribedContent>;
         receiveEvents?: (params: { 
             events: Array<StreamingEventEnvelope<SubscribedContent>>,
             streamEvent: (params: { update: UpdatePayload, streamKey: string }) => Promise<void>
