@@ -5,7 +5,7 @@
 
 import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 import { AggregationResult, DataSourceAggregator } from '@tonylb/mtw-lambda-patterns/ts/dataSource/aggregation'
-import { SerializableObject, EventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import { SerializableObject, EventPayload, StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 
 // Internal types for library events
 export type LibraryEventUpdate = LibrarySnapshot | AssetAdded | AssetRemoved
@@ -86,7 +86,8 @@ export class LibraryAggregator implements DataSourceAggregator<LibrarySnapshot, 
      */
     applyUpdate(
         snapshot: LibrarySnapshot,
-        update: LibraryEventUpdate
+        update: LibraryEventUpdate,
+        _header: StreamingEventHeader
     ): AggregationResult<LibrarySnapshot> {
         try {
             if (isAssetAdded(update)) {

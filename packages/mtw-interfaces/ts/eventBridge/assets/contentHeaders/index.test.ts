@@ -1,4 +1,4 @@
-import { 
+import {
     ContentHeadersAggregator,
     ContentHeadersEventSerializer,
     ContentHeadersSnapshotExternal,
@@ -7,6 +7,11 @@ import {
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
+import type { StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+
+function contentHeadersHeader(type: string): StreamingEventHeader {
+    return { dataSourceKey: 'mtw.assets.contentHeaders', streamKey: 'test', timestamp: 0, type }
+}
 
 describe('ContentHeaders EventBridge Contracts', () => {
     describe('ContentHeadersAggregator', () => {
@@ -42,7 +47,7 @@ describe('ContentHeaders EventBridge Contracts', () => {
                         assetId: 'ASSET#test',
                         zone: 'Canon',
                         standardForm
-                    })
+                    }, contentHeadersHeader('Headers Updated'))
 
                     expect(result.success).toBe(true)
                     if (result.success) {
@@ -84,7 +89,7 @@ describe('ContentHeaders EventBridge Contracts', () => {
                         assetId: 'ASSET#test',
                         zone: 'Canon',
                         standardForm: updateStandardForm
-                    })
+                    }, contentHeadersHeader('Headers Updated'))
 
                     expect(result.success).toBe(true)
                     if (result.success) {
@@ -129,7 +134,7 @@ describe('ContentHeaders EventBridge Contracts', () => {
                         assetId: 'ASSET#test',
                         zone: 'Canon',
                         standardForm: updateStandardForm
-                    })
+                    }, contentHeadersHeader('Headers Updated'))
 
                     expect(result.success).toBe(true)
                     if (result.success) {
@@ -170,7 +175,7 @@ describe('ContentHeaders EventBridge Contracts', () => {
                         assetId: 'ASSET#test',
                         zone: 'Library',
                         standardForm: updateStandardForm
-                    })
+                    }, contentHeadersHeader('Headers Updated'))
 
                     expect(result.success).toBe(true)
                     if (result.success) {
@@ -191,7 +196,7 @@ describe('ContentHeaders EventBridge Contracts', () => {
                                 <Room key=(room1)><ShortName>Room 1</ShortName></Room>
                             </Asset>
                         `))
-                    })
+                    }, contentHeadersHeader('Headers Updated'))
 
                     expect(result1.success).toBe(true)
                     if (!result1.success) return
@@ -206,7 +211,7 @@ describe('ContentHeaders EventBridge Contracts', () => {
                                 <Room key=(room2)><ShortName>Room 2</ShortName></Room>
                             </Asset>
                         `))
-                    })
+                    }, contentHeadersHeader('Headers Updated'))
 
                     expect(result2.success).toBe(true)
                     if (result2.success) {
@@ -239,7 +244,7 @@ describe('ContentHeaders EventBridge Contracts', () => {
                         assetId: 'ASSET#test',
                         fromZone: 'Canon',
                         toZone: 'Library'
-                    })
+                    }, contentHeadersHeader('Zone Updated'))
 
                     expect(result.success).toBe(true)
                     if (result.success) {
@@ -258,7 +263,7 @@ describe('ContentHeaders EventBridge Contracts', () => {
                         assetId: 'ASSET#nonexistent',
                         fromZone: 'Canon',
                         toZone: 'Library'
-                    })
+                    }, contentHeadersHeader('Zone Updated'))
 
                     expect(result.success).toBe(true)
                     if (result.success) {
@@ -301,7 +306,7 @@ describe('ContentHeaders EventBridge Contracts', () => {
                         assetId: 'ASSET#test1',
                         fromZone: 'Canon',
                         toZone: 'Personal'
-                    })
+                    }, contentHeadersHeader('Zone Updated'))
 
                     expect(result.success).toBe(true)
                     if (result.success) {
@@ -335,7 +340,7 @@ describe('ContentHeaders EventBridge Contracts', () => {
                         }]
                     }
                     
-                    const result = aggregator.applyUpdate(oldSnapshot, newSnapshot)
+                    const result = aggregator.applyUpdate(oldSnapshot, newSnapshot, contentHeadersHeader('Snapshot'))
 
                     expect(result.success).toBe(true)
                     if (result.success) {
@@ -375,7 +380,7 @@ describe('ContentHeaders EventBridge Contracts', () => {
                         assetId: 'ASSET#test',
                         zone: 'Canon',
                         standardForm: updateStandardForm
-                    })
+                    }, contentHeadersHeader('Headers Updated'))
 
                     // Restore original merge
                     snapshot.assets[0].standardForm.merge = originalMerge
@@ -408,7 +413,7 @@ describe('ContentHeaders EventBridge Contracts', () => {
                         assetId: 'ASSET#test',
                         zone: 'Canon',
                         standardForm: new StandardForm('<Asset uuid=(test)><Room key=(room1)></Room></Asset>')
-                    })
+                    }, contentHeadersHeader('Headers Updated'))
 
                     // Restore original merge
                     snapshot.assets[0].standardForm.merge = originalMerge
@@ -437,7 +442,7 @@ describe('ContentHeaders EventBridge Contracts', () => {
                         assetId: 'ASSET#new',
                         zone: 'Library',
                         standardForm: new StandardForm('<Asset uuid=(new)></Asset>')
-                    })
+                    }, contentHeadersHeader('Headers Updated'))
 
                     expect(originalSnapshot.assets.length).toBe(originalAssetsLength)
                 })
@@ -458,7 +463,7 @@ describe('ContentHeaders EventBridge Contracts', () => {
                         assetId: 'ASSET#test',
                         fromZone: 'Canon',
                         toZone: 'Library'
-                    })
+                    }, contentHeadersHeader('Zone Updated'))
 
                     expect(originalSnapshot.assets[0].zone).toBe(originalZone)
                 })

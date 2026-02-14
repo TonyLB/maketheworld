@@ -103,7 +103,7 @@ The envelope and serializer support an optional **extended header** shape so dat
 
 **Payload/contract/messageBus:** `StreamingEventPayload`, `StreamingEventPayloadContract`, and lambda `StreamingEventMessage` types keep `header: StreamingEventHeader` so structure guards and bus contracts stay payload-agnostic; any extended header is still assignable to the base type at runtime.
 
-**Client stored envelopes (recentEvents):** The client DataSource slice stores full envelope information per recent event via `RecentEventEnvelope<Payload, Header>` (header + event + timestamp). This aligns with the type-safe extended header support above: slices can use extended header types (e.g. `WMLStreamingEventHeader`) in stored envelopes and get correct narrowing when consuming `recentEvents`. Synthetic snapshots produced by the 30-second cleanup use a placeholder header (`type: 'Snapshot'`, empty `dataSourceKey`/`streamKey`); they are not passed to the aggregator. A follow-up step will pass the stored header into `applyUpdate` so aggregators can use header (e.g. to ignore Merge Conflict by `header.type`).
+**Client stored envelopes (recentEvents):** The client DataSource slice stores full envelope information per recent event via `RecentEventEnvelope<Payload, Header>` (header + event + timestamp). This aligns with the type-safe extended header support above: slices can use extended header types (e.g. `WMLStreamingEventHeader`) in stored envelopes and get correct narrowing when consuming `recentEvents`. Synthetic snapshots produced by the 30-second cleanup use a placeholder header (`type: 'Snapshot'`, empty `dataSourceKey`/`streamKey`); they are not passed to the aggregator. The stored header is passed into `applyUpdate(snapshot, update, header)` so aggregators can use header (e.g. to ignore Merge Conflict by `header.type`) for routing and keep payload for domain data.
 
 ### **MessageBus and streaming event contract**
 
@@ -437,7 +437,8 @@ Aggregation treats the internal snapshot format as the materialized state. An ag
 ```typescript
 export interface DataSourceAggregator<
     SnapshotPayload extends SerializableObject,
-    UpdatePayload extends EventPayload
+    UpdatePayload extends EventPayload,
+    Header extends StreamingEventHeader = StreamingEventHeader
 > {
     /**
      * Create an empty snapshot (for initialization before any data arrives)
@@ -445,12 +446,15 @@ export interface DataSourceAggregator<
     createEmpty(): SnapshotPayload
 
     /**
-     * Apply a single update event to a snapshot
-     * Returns the new snapshot (immutable pattern)
+     * Apply a single update event to a snapshot.
+     * Header is required: use header.type (and extended header fields if present) for routing
+     * (e.g. skip applying Merge Conflict); use payload for domain data.
+     * Returns the new snapshot (immutable pattern).
      */
     applyUpdate(
         snapshot: SnapshotPayload,
-        update: UpdatePayload
+        update: UpdatePayload,
+        header: Header
     ): AggregationResult<SnapshotPayload>
 }
 ```
@@ -480,15 +484,15 @@ const aggregator = dataSource.getAggregator()
 if (aggregator) {
     let currentState = aggregator.createEmpty()
     
-    // Apply snapshot
-    const snapshotResult = aggregator.applyUpdate(currentState, snapshot)
+    // Apply snapshot (with a header when from envelope)
+    const snapshotResult = aggregator.applyUpdate(currentState, snapshot, header)
     if (snapshotResult.success) {
         currentState = snapshotResult.snapshot
     }
     
-    // Apply subsequent events
-    for (const event of events) {
-        const result = aggregator.applyUpdate(currentState, event)
+    // Apply subsequent events (each envelope provides event + header)
+    for (const { event, header } of events) {
+        const result = aggregator.applyUpdate(currentState, event, header)
         if (result.success) {
             currentState = result.snapshot
         } else {

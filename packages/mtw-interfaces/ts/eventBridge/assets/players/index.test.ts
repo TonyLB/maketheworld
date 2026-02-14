@@ -1,5 +1,10 @@
 import { PlayerSnapshot, PlayerAssetAssigned, PlayerAssetRemoved, PlayerSettingsUpdated } from '.'
 import { PlayerAggregator } from './baseClasses'
+import type { StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+
+function playersHeader(type: string): StreamingEventHeader {
+    return { dataSourceKey: 'mtw.assets.players', streamKey: 'test', timestamp: 0, type }
+}
 
 describe('PlayerAggregator', () => {
     const createSnapshot = (): PlayerSnapshot => ({
@@ -21,7 +26,7 @@ describe('PlayerAggregator', () => {
             settings: { onboardCompleteTags: ['basic'] }
         }
 
-        const result = aggregator.applyUpdate(snapshot, replacement)
+        const result = aggregator.applyUpdate(snapshot, replacement, playersHeader('Snapshot'))
         expect(result.success).toBe(true)
         expect(result.snapshot.assets[0].AssetId).toBe('AssetOne')
         expect(result.snapshot.characters[0].CharacterId).toBe('CHARACTER#test')
@@ -36,7 +41,7 @@ describe('PlayerAggregator', () => {
             settings: { onboardCompleteTags: ['chapter1'], guestName: 'Guest', guestId: 'guest-123' }
         }
 
-        const result = aggregator.applyUpdate(snapshot, update)
+        const result = aggregator.applyUpdate(snapshot, update, playersHeader('Player Settings Updated'))
         expect(result.success).toBe(true)
         expect(result.snapshot.settings).toEqual(update.settings)
     })
@@ -49,7 +54,7 @@ describe('PlayerAggregator', () => {
             type: 'Player Asset Assigned',
             asset: { AssetId: 'AssetOne', zone: 'Draft' }
         }
-        const assignResult = aggregator.applyUpdate(snapshot, assign)
+        const assignResult = aggregator.applyUpdate(snapshot, assign, playersHeader('Player Asset Assigned'))
         expect(assignResult.success).toBe(true)
         expect(assignResult.snapshot.assets).toHaveLength(1)
         expect(assignResult.snapshot.assets[0]).toEqual(assign.asset)
@@ -58,7 +63,7 @@ describe('PlayerAggregator', () => {
             type: 'Player Asset Removed',
             assetId: 'AssetOne'
         }
-        const removeResult = aggregator.applyUpdate(assignResult.snapshot, remove)
+        const removeResult = aggregator.applyUpdate(assignResult.snapshot, remove, playersHeader('Player Asset Removed'))
         expect(removeResult.success).toBe(true)
         expect(removeResult.snapshot.assets).toHaveLength(0)
     })

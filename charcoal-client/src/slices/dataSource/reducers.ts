@@ -19,8 +19,8 @@ export const applyEvents = <
     baselineSnapshot: SnapshotPayload,
     events: Array<RecentEventEnvelope<UpdatePayload, Header>>
 ): SnapshotPayload => {
-    return events.reduce((snapshot, { event }) => {
-        const result = aggregator.applyUpdate(snapshot, event)
+    return events.reduce((snapshot, { event, header }) => {
+        const result = aggregator.applyUpdate(snapshot, event, header)
         return result.success ? result.snapshot : snapshot
     }, baselineSnapshot)
 }
@@ -221,7 +221,7 @@ export const processRawEvent = <
 
     if (isInOrder) {
         // FAST PATH: Simple aggregation
-        const result = aggregator.applyUpdate(stream.materializedView, event)
+        const result = aggregator.applyUpdate(stream.materializedView, event, streamingHeader)
         const newMaterializedView = result.success ? result.snapshot : stream.materializedView
         const newRecentEvents = [...cleanedRecentEvents, newEnvelope]
 

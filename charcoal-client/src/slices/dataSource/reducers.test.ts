@@ -39,7 +39,7 @@ function testUpdateEnvelope(event: TestUpdate, timestamp: number): RecentEventEn
 // Mock aggregator
 const mockAggregator: DataSourceAggregator<TestSnapshot, TestUpdate> = {
     createEmpty: () => ({ type: 'Snapshot', items: [] }),
-    applyUpdate: (snapshot, update) => {
+    applyUpdate: (snapshot, update, _header) => {
         try {
             if (update.type === 'Item Added') {
                 return {
