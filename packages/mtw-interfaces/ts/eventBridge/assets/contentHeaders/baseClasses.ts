@@ -6,6 +6,7 @@
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 import { Zone, isZone } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 
 // Internal types for content headers events (using StandardForm objects)
 export type ContentHeadersEventUpdate = ContentHeadersSnapshot | ContentHeadersUpdate | ZoneUpdatedEvent
@@ -98,7 +99,8 @@ export class ContentHeadersAggregator {
      */
     applyUpdate(
         snapshot: ContentHeadersSnapshot,
-        update: ContentHeadersEventUpdate
+        update: ContentHeadersEventUpdate,
+        _header: StreamingEventHeader
     ): { success: true; snapshot: ContentHeadersSnapshot } | { success: false; error: Error; snapshot: ContentHeadersSnapshot } {
         try {
             if (isContentHeadersUpdate(update)) {

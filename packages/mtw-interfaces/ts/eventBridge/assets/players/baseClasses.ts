@@ -1,4 +1,5 @@
 import { AggregationResult, DataSourceAggregator } from '@tonylb/mtw-lambda-patterns/ts/dataSource/aggregation'
+import type { StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import {
     PlayerSnapshot,
     PlayerEventUpdate,
@@ -24,7 +25,7 @@ export class PlayerAggregator implements DataSourceAggregator<PlayerSnapshotInte
         }
     }
 
-    applyUpdate(snapshot: PlayerSnapshotInternal, update: PlayerEventUpdate): AggregationResult<PlayerSnapshotInternal> {
+    applyUpdate(snapshot: PlayerSnapshotInternal, update: PlayerEventUpdate, _header: StreamingEventHeader): AggregationResult<PlayerSnapshotInternal> {
         if (isPlayerSnapshot(update)) {
             return {
                 success: true,

@@ -36,7 +36,7 @@ const isTestUpdate = (event: TestEvent): event is TestUpdate => event.type === '
 // Mock aggregator
 const mockAggregator: DataSourceAggregator<TestSnapshot, TestUpdate> = {
     createEmpty: () => ({ type: 'Snapshot', value: 0 }),
-    applyUpdate: (snapshot, update) => {
+    applyUpdate: (snapshot, update, _header) => {
         if (update.type === 'Increment') {
             return {
                 success: true,

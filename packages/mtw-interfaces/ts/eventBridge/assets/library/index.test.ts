@@ -1,4 +1,4 @@
-import { 
+import {
     LibraryAggregator,
     LibraryEventSerializer,
     LibrarySnapshotExternal,
@@ -7,6 +7,11 @@ import {
     isLibraryExternal
 } from './index'
 import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
+import type { StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+
+function libraryHeader(type: string): StreamingEventHeader {
+    return { dataSourceKey: 'mtw.assets.library', streamKey: 'test', timestamp: 0, type }
+}
 
 describe('Library EventBridge Contracts', () => {
     describe('LibraryAggregator', () => {
@@ -36,7 +41,7 @@ describe('Library EventBridge Contracts', () => {
                     const result = aggregator.applyUpdate(emptySnapshot, {
                         type: 'Asset Added',
                         assetId
-                    })
+                    }, libraryHeader('Asset Added'))
 
                     expect(result.success).toBe(true)
                     if (result.success) {
@@ -51,7 +56,7 @@ describe('Library EventBridge Contracts', () => {
                     const result1 = aggregator.applyUpdate(snapshot, {
                         type: 'Asset Added',
                         assetId: 'ASSET#test1' as AssetUUID
-                    })
+                    }, libraryHeader('Asset Added'))
 
                     expect(result1.success).toBe(true)
                     if (!result1.success) return
@@ -59,7 +64,7 @@ describe('Library EventBridge Contracts', () => {
                     const result2 = aggregator.applyUpdate(result1.snapshot, {
                         type: 'Asset Added',
                         assetId: 'ASSET#test2' as AssetUUID
-                    })
+                    }, libraryHeader('Asset Added'))
 
                     expect(result2.success).toBe(true)
                     if (result2.success) {
@@ -75,7 +80,7 @@ describe('Library EventBridge Contracts', () => {
                     const result1 = aggregator.applyUpdate(snapshot, {
                         type: 'Asset Added',
                         assetId: 'ASSET#test1' as AssetUUID
-                    })
+                    }, libraryHeader('Asset Added'))
 
                     expect(result1.success).toBe(true)
                     if (!result1.success) return
@@ -84,7 +89,7 @@ describe('Library EventBridge Contracts', () => {
                     const result2 = aggregator.applyUpdate(result1.snapshot, {
                         type: 'Asset Added',
                         assetId: 'ASSET#test1' as AssetUUID
-                    })
+                    }, libraryHeader('Asset Added'))
 
                     expect(result2.success).toBe(true)
                     if (result2.success) {
@@ -104,7 +109,7 @@ describe('Library EventBridge Contracts', () => {
                     const result = aggregator.applyUpdate(snapshot, {
                         type: 'Asset Removed',
                         assetId: 'ASSET#test2' as AssetUUID
-                    })
+                    }, libraryHeader('Asset Removed'))
 
                     expect(result.success).toBe(true)
                     if (result.success) {
@@ -124,7 +129,7 @@ describe('Library EventBridge Contracts', () => {
                     const result = aggregator.applyUpdate(snapshot, {
                         type: 'Asset Removed',
                         assetId: 'ASSET#nonexistent' as AssetUUID
-                    })
+                    }, libraryHeader('Asset Removed'))
 
                     expect(result.success).toBe(true)
                     if (result.success) {
@@ -142,7 +147,7 @@ describe('Library EventBridge Contracts', () => {
                     const result = aggregator.applyUpdate(snapshot, {
                         type: 'Asset Removed',
                         assetId: 'ASSET#test1' as AssetUUID
-                    })
+                    }, libraryHeader('Asset Removed'))
 
                     expect(result.success).toBe(true)
                     if (result.success) {
@@ -163,7 +168,7 @@ describe('Library EventBridge Contracts', () => {
                         assetIds: ['ASSET#new1', 'ASSET#new2', 'ASSET#new3'] as AssetUUID[]
                     }
                     
-                    const result = aggregator.applyUpdate(oldSnapshot, newSnapshot)
+                    const result = aggregator.applyUpdate(oldSnapshot, newSnapshot, libraryHeader('Snapshot'))
 
                     expect(result.success).toBe(true)
                     if (result.success) {
@@ -184,7 +189,7 @@ describe('Library EventBridge Contracts', () => {
                         assetIds: [] as AssetUUID[]
                     }
                     
-                    const result = aggregator.applyUpdate(oldSnapshot, newSnapshot)
+                    const result = aggregator.applyUpdate(oldSnapshot, newSnapshot, libraryHeader('Snapshot'))
 
                     expect(result.success).toBe(true)
                     if (result.success) {
@@ -200,7 +205,7 @@ describe('Library EventBridge Contracts', () => {
                     const result = aggregator.applyUpdate(snapshot, {
                         type: 'Unknown Event',
                         data: 'invalid'
-                    } as any)
+                    } as any, libraryHeader('Unknown Event'))
 
                     expect(result.success).toBe(false)
                     if (!result.success) {
@@ -217,7 +222,7 @@ describe('Library EventBridge Contracts', () => {
 
                     const result = aggregator.applyUpdate(snapshot, {
                         type: 'Invalid Type'
-                    } as any)
+                    } as any, libraryHeader('Invalid Type'))
 
                     expect(result.success).toBe(false)
                     if (!result.success) {
@@ -237,7 +242,7 @@ describe('Library EventBridge Contracts', () => {
                     aggregator.applyUpdate(originalSnapshot, {
                         type: 'Asset Added',
                         assetId: 'ASSET#test2' as AssetUUID
-                    })
+                    }, libraryHeader('Asset Added'))
 
                     expect(originalSnapshot.assetIds.length).toBe(originalLength)
                     expect(originalSnapshot.assetIds).toEqual(['ASSET#test1'])
@@ -253,7 +258,7 @@ describe('Library EventBridge Contracts', () => {
                     aggregator.applyUpdate(originalSnapshot, {
                         type: 'Asset Removed',
                         assetId: 'ASSET#test1' as AssetUUID
-                    })
+                    }, libraryHeader('Asset Removed'))
 
                     expect(originalSnapshot.assetIds).toEqual(originalIds)
                 })
@@ -267,7 +272,7 @@ describe('Library EventBridge Contracts', () => {
                     const result = aggregator.applyUpdate(snapshot, {
                         type: 'Asset Added',
                         assetId: 'ASSET#test2' as AssetUUID
-                    })
+                    }, libraryHeader('Asset Added'))
 
                     expect(result.success).toBe(true)
                     if (result.success) {

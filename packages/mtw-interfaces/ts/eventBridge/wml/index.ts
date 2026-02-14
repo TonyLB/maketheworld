@@ -187,9 +187,12 @@ export class WMLAggregator implements DataSourceAggregator<StandardFormData, WML
         return JSON.parse(JSON.stringify(EMPTY_WML_VIEW))
     }
 
-    applyUpdate(view: StandardFormData, event: WMLContentEvent): { success: true; snapshot: StandardFormData } | { success: false; error: Error; snapshot: StandardFormData } {
-        if (event.type === 'Merge Conflict') {
-            return { success: false, error: new Error(event.error ?? 'Merge conflict'), snapshot: view }
+    applyUpdate(view: StandardFormData, event: WMLContentEvent, header: StreamingEventHeader): { success: true; snapshot: StandardFormData } | { success: false; error: Error; snapshot: StandardFormData } {
+        if (header.type === 'Merge Conflict') {
+            return { success: false, error: new Error(event.type === 'Merge Conflict' ? (event.error ?? 'Merge conflict') : 'Merge conflict'), snapshot: view }
+        }
+        if (!isWMLContentUpdateEvent(event)) {
+            return { success: false, error: new Error('Expected Content Update when header is not Merge Conflict'), snapshot: view }
         }
         const current = new StandardForm(view)
         const merged = current.merge(event.schema)
