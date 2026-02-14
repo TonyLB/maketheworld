@@ -622,8 +622,7 @@ export class DataSource<
             if (!message.header || typeof message.header.type !== 'string') {
                 return false
             }
-            const hasContent = typeof message.getContentInternal === 'function' || message.content !== undefined
-            return hasContent
+            return typeof message.getContentInternal === 'function'
         }
 
         // Subscribe to messageBus with structure guard; callback builds envelopes as unknown, filters with envelope guard, passes narrowed to receiveEvents.

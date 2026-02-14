@@ -284,7 +284,7 @@ export type StreamingEventMessage = {
     header: StreamingEventHeader;
     timestamp: number;
     content?: unknown;
-    getContentInternal?: () => Promise<unknown>;
+    getContentInternal: () => Promise<unknown>;
 }
 
 export type MessageType = PublishMessage |

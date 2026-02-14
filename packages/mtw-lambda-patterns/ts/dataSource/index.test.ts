@@ -1125,6 +1125,7 @@ describe('DataSource', () => {
                     streamKey: 'char-123',
                     header: { dataSourceKey: 'mtw.assets', streamKey: 'char-123', timestamp: 123456789, type: 'AssetUpdated' },
                     content: { type: 'AssetUpdated', assetId: 'char-123' },
+                    getContentInternal: () => Promise.resolve({ type: 'AssetUpdated', assetId: 'char-123' }),
                     timestamp: 123456789
                 }
                 expect(structureGuard(validEvent)).toBe(true)
@@ -1148,6 +1149,7 @@ describe('DataSource', () => {
                         streamKey: 'item-456',
                         header: { dataSourceKey: 'mtw.assets', streamKey: 'item-456', timestamp: 123456789, type: 'AssetUpdated' },
                         content: { type: 'AssetUpdated', assetId: 'item-456' },
+                        getContentInternal: () => Promise.resolve({ type: 'AssetUpdated', assetId: 'item-456' }),
                         timestamp: 123456789
                     }
                 ]
@@ -1205,6 +1207,7 @@ describe('DataSource', () => {
                             type: 'event1'
                         },
                         content: { type: 'event1', data: 'test1' },
+                        getContentInternal: () => Promise.resolve({ type: 'event1', data: 'test1' }),
                         timestamp: 123456789
                     },
                     {
@@ -1218,6 +1221,7 @@ describe('DataSource', () => {
                             type: 'event2'
                         },
                         content: { type: 'event2', data: 'test2' },
+                        getContentInternal: () => Promise.resolve({ type: 'event2', data: 'test2' }),
                         timestamp: 123456790
                     }
                 ]
@@ -1304,6 +1308,7 @@ describe('DataSource', () => {
                             type: 'event1'
                         },
                         content: { type: 'event1' },
+                        getContentInternal: () => Promise.resolve({ type: 'event1' }),
                         timestamp: 123456789
                     }
                 ]
@@ -1392,6 +1397,7 @@ describe('DataSource', () => {
                             type: 'singleEvent'
                         },
                         content: { type: 'singleEvent', data: 'test' },
+                        getContentInternal: () => Promise.resolve({ type: 'singleEvent', data: 'test' }),
                         timestamp: 123456789
                     }
                 ]
@@ -1501,6 +1507,7 @@ describe('DataSource', () => {
                         sessionId: 'SESSION#test-session',
                         requestId: 'test-request-123'
                     },
+                    getContentInternal: () => Promise.resolve({ sessionId: 'SESSION#test-session', requestId: 'test-request-123' }),
                     timestamp: 123456789
                 }
                 expect(typeGuard(validEvent)).toBe(true)
@@ -1575,6 +1582,7 @@ describe('DataSource', () => {
                         sessionId: 'SESSION#test-session',
                         requestId: 'test-request-123'
                     },
+                    getContentInternal: () => Promise.resolve({ sessionId: 'SESSION#test-session', requestId: 'test-request-123' }),
                     timestamp: 123456789
                 }
 
@@ -1623,6 +1631,7 @@ describe('DataSource', () => {
                             sessionId: 'SESSION#test-session-1',
                             requestId: 'test-request-123'
                         },
+                        getContentInternal: () => Promise.resolve({ sessionId: 'SESSION#test-session-1', requestId: 'test-request-123' }),
                         timestamp: 123456789
                     },
                     {
@@ -1639,6 +1648,7 @@ describe('DataSource', () => {
                             sessionId: 'SESSION#test-session-2',
                             requestId: 'test-request-456'
                         },
+                        getContentInternal: () => Promise.resolve({ sessionId: 'SESSION#test-session-2', requestId: 'test-request-456' }),
                         timestamp: 123456790
                     }
                 ]
@@ -1695,6 +1705,7 @@ describe('DataSource', () => {
                         sessionId: 'SESSION#test-session',
                         requestId: 'test-request-123'
                     },
+                    getContentInternal: () => Promise.resolve({ sessionId: 'SESSION#test-session', requestId: 'test-request-123' }),
                     timestamp: 123456789
                 }
 
