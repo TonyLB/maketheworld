@@ -1,4 +1,5 @@
 import { ISSMAttemptNode, ISSMChoiceNode, ISSMRedirectNode, ISSMDataLayout, ISSMDataReturn, ISSMAction, ISSMHoldNode } from '../stateSeekingMachine/baseClasses'
+import type { StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 
 //
 // Generic base classes for data source state machines
@@ -13,32 +14,43 @@ export interface DataSourceInternal {
     lifeLineSubscription?: string;  // Subscription ID for LifeLinePubSub
 }
 
-export interface DataSourcePublic<SnapshotPayload, UpdatePayload> {
+/**
+ * Stored envelope for one entry in recentEvents. Generic in Payload and Header so slices
+ * can use extended header types (e.g. WMLStreamingEventHeader) for type-safe narrowing.
+ */
+export type RecentEventEnvelope<Payload, Header extends StreamingEventHeader = StreamingEventHeader> = {
+    header: Header;
+    event: Payload;
+    timestamp: number;
+}
+
+export interface DataSourcePublic<
+    SnapshotPayload,
+    UpdatePayload,
+    Header extends StreamingEventHeader = StreamingEventHeader
+> {
     // Active stream keys that are currently subscribed
     // Used to track which streams should be displayed/used by the UI
     activeStreamKeys: string[];
-    
+
     // All stream data, including inactive streams that may still receive events
     // Keeps data structure around even after unsubscribe to handle async events
     subscribedStreams: {
         [streamKey: string]: {
             materializedView: SnapshotPayload;
-            recentEvents: Array<{
-                event: UpdatePayload | SnapshotPayload;
-                timestamp: number;
-            }>;
+            recentEvents: Array<RecentEventEnvelope<UpdatePayload | SnapshotPayload, Header>>;
         }
     }
 }
 
-export type DataSourceData<SnapshotPayload, UpdatePayload> = {
+export type DataSourceData<SnapshotPayload, UpdatePayload, Header extends StreamingEventHeader = StreamingEventHeader> = {
     internalData: DataSourceInternal;
-    publicData: DataSourcePublic<SnapshotPayload, UpdatePayload>;
+    publicData: DataSourcePublic<SnapshotPayload, UpdatePayload, Header>;
 }
 
-export type DataSourceRecord<SnapshotPayload, UpdatePayload> = ISSMDataLayout<DataSourceInternal, DataSourcePublic<SnapshotPayload, UpdatePayload>>
-export type DataSourceReturn<SnapshotPayload, UpdatePayload> = ISSMDataReturn<DataSourceInternal, DataSourcePublic<SnapshotPayload, UpdatePayload>>
-export type DataSourceAction<SnapshotPayload, UpdatePayload> = ISSMAction<DataSourceInternal, DataSourcePublic<SnapshotPayload, UpdatePayload>>
+export type DataSourceRecord<SnapshotPayload, UpdatePayload, Header extends StreamingEventHeader = StreamingEventHeader> = ISSMDataLayout<DataSourceInternal, DataSourcePublic<SnapshotPayload, UpdatePayload, Header>>
+export type DataSourceReturn<SnapshotPayload, UpdatePayload, Header extends StreamingEventHeader = StreamingEventHeader> = ISSMDataReturn<DataSourceInternal, DataSourcePublic<SnapshotPayload, UpdatePayload, Header>>
+export type DataSourceAction<SnapshotPayload, UpdatePayload, Header extends StreamingEventHeader = StreamingEventHeader> = ISSMAction<DataSourceInternal, DataSourcePublic<SnapshotPayload, UpdatePayload, Header>>
 
 //
 // Snapshot event shape from backend: may have inline payload or sidecarUrl.
@@ -89,17 +101,17 @@ export type ClientUpdateMessagePayload<ExternalUpdatePayload> = {
     timestamp: number;
 } & ClientStreamingEnvelope<ExternalUpdatePayload>
 
-export interface DataSourceNodes<SnapshotPayload, UpdatePayload> {
-    INITIAL: ISSMHoldNode<DataSourceInternal, DataSourcePublic<SnapshotPayload, UpdatePayload>>;
-    INITIALIZE: ISSMAttemptNode<DataSourceInternal, DataSourcePublic<SnapshotPayload, UpdatePayload>>;
+export interface DataSourceNodes<SnapshotPayload, UpdatePayload, Header extends StreamingEventHeader = StreamingEventHeader> {
+    INITIAL: ISSMHoldNode<DataSourceInternal, DataSourcePublic<SnapshotPayload, UpdatePayload, Header>>;
+    INITIALIZE: ISSMAttemptNode<DataSourceInternal, DataSourcePublic<SnapshotPayload, UpdatePayload, Header>>;
     INITIALIZEERROR: ISSMChoiceNode;
     READY: ISSMChoiceNode;
-    SUBSCRIBE: ISSMAttemptNode<DataSourceInternal, DataSourcePublic<SnapshotPayload, UpdatePayload>>;
-    SUBSCRIBEBACKOFF: ISSMAttemptNode<DataSourceInternal, DataSourcePublic<SnapshotPayload, UpdatePayload>>;
+    SUBSCRIBE: ISSMAttemptNode<DataSourceInternal, DataSourcePublic<SnapshotPayload, UpdatePayload, Header>>;
+    SUBSCRIBEBACKOFF: ISSMAttemptNode<DataSourceInternal, DataSourcePublic<SnapshotPayload, UpdatePayload, Header>>;
     SUBSCRIBEERROR: ISSMChoiceNode;
     SUBSCRIBED: ISSMRedirectNode;     // REDIRECT back to READY after subscription
-    UNSUBSCRIBE: ISSMAttemptNode<DataSourceInternal, DataSourcePublic<SnapshotPayload, UpdatePayload>>;
-    UNSUBSCRIBEBACKOFF: ISSMAttemptNode<DataSourceInternal, DataSourcePublic<SnapshotPayload, UpdatePayload>>;
+    UNSUBSCRIBE: ISSMAttemptNode<DataSourceInternal, DataSourcePublic<SnapshotPayload, UpdatePayload, Header>>;
+    UNSUBSCRIBEBACKOFF: ISSMAttemptNode<DataSourceInternal, DataSourcePublic<SnapshotPayload, UpdatePayload, Header>>;
     UNSUBSCRIBED: ISSMRedirectNode;   // REDIRECT back to READY after unsubscription
 }
 

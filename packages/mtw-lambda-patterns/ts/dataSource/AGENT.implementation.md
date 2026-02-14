@@ -103,6 +103,8 @@ The envelope and serializer support an optional **extended header** shape so dat
 
 **Payload/contract/messageBus:** `StreamingEventPayload`, `StreamingEventPayloadContract`, and lambda `StreamingEventMessage` types keep `header: StreamingEventHeader` so structure guards and bus contracts stay payload-agnostic; any extended header is still assignable to the base type at runtime.
 
+**Client stored envelopes (recentEvents):** The client DataSource slice stores full envelope information per recent event via `RecentEventEnvelope<Payload, Header>` (header + event + timestamp). This aligns with the type-safe extended header support above: slices can use extended header types (e.g. `WMLStreamingEventHeader`) in stored envelopes and get correct narrowing when consuming `recentEvents`. Synthetic snapshots produced by the 30-second cleanup use a placeholder header (`type: 'Snapshot'`, empty `dataSourceKey`/`streamKey`); they are not passed to the aggregator. A follow-up step will pass the stored header into `applyUpdate` so aggregators can use header (e.g. to ignore Merge Conflict by `header.type`).
+
 ### **MessageBus and streaming event contract**
 
 Streaming events on the messageBus follow a single contract so that baseClasses stay payload-agnostic and DataSources own their narrow view.
