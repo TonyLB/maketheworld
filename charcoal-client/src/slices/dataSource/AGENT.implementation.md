@@ -221,6 +221,15 @@ The pattern operates under specific assumptions and provides corresponding guara
 
 **Why This Matters**: Violating assumptions (e.g., extreme delays, missing timestamps) may break guarantees. When developing the pattern or backend integration, keep these contracts in mind.
 
+#### **5. Header/Content Envelope Shape**
+
+The client mirrors the server-side header/content split:
+
+- LifeLine delivers `StreamEvent` messages with `streamKey`, `timestamp`, and `update`.
+- The client derives a `ClientStreamingHeader` from `update.type` (and optional `zone`) and treats `update` as `content`.
+- `processRawSnapshot` and `processRawEvent` receive payloads shaped as `{ streamKey, timestamp, header, content }` (see [baseClasses.ts](./baseClasses.ts): `ClientSnapshotMessagePayload`, `ClientUpdateMessagePayload`).
+- Routing (Snapshot vs event) uses `header.type === 'Snapshot'`; the reducer deserializes `content` via the event serializer.
+
 ### **Key Implementation Areas**
 
 When extending the pattern, you'll likely work in these areas:

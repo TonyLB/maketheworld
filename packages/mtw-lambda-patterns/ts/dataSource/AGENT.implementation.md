@@ -68,6 +68,16 @@ This dual approach ensures efficient delivery while maintaining the correct scop
 - **Processing Foundation**: Provides the foundation for advanced event processing patterns
 - **Pattern Agnostic**: Implementation can choose the most appropriate processing approach for the use case
 
+### **Header/Content Envelope Model**
+
+DataSource events use a header/content split:
+
+- **Header**: Always present, never sidecarred. Contains `dataSourceKey`, `streamKey`, `timestamp`, `type`, and optional domain flags (e.g. `zone`). Used for routing and type guards.
+- **Content**: The full payload (inline or sidecar reference). What serializers and aggregators operate on.
+- **`subscribedEventTypeGuard`**: Receives `(header: StreamingEventHeader) => boolean` only; routing and filtering use header, not full content.
+- **`receiveEvents`**: Receives `events: Array<StreamingEventEnvelope<UpdatePayload>>`; use `event.header` for branching and `event.content` for payload semantics.
+- **Initialize Subscription**: DataSource instances type-guard on `header.type === "Initialize Subscription - ${this.dataSourceKey}"` to determine which DataSource handles a given Initialize Subscription event. See [lambda/subscriptions/AGENT.eventBridge.md](../../../../lambda/subscriptions/AGENT.eventBridge.md) for the EventBridge event format.
+
 ### **Type-Safe Routing with Envelope-Level Discriminated Unions and Payload Purity**:
 
 When using header/content separation (`StreamingEventEnvelope<{ header, content }>`), discriminants such as `type` and `dataSourceKey` live on the `header`, not on the payload. To keep routing logic type-safe without embedding redundant `type` fields in `content`, and to keep payloads focused on domain data, the recommended pattern is:
