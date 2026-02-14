@@ -174,11 +174,19 @@ export const processRawEvent = <
             return
         }
         
+        // Build header for serializer (StreamingEventHeader shape)
+        const streamingHeader = {
+            dataSourceKey,
+            streamKey,
+            timestamp,
+            type: header.type
+        }
         // Deserialize event
         const event = eventSerializer.deserialize({
             dataSourceKey,
             streamKey,
-            externalUpdate: content
+            externalUpdate: content,
+            header: streamingHeader
         })
         if (!event) {
             console.warn(`[${dataSourceKey}] Failed to deserialize event for streamKey: ${streamKey}`)

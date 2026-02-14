@@ -337,9 +337,17 @@ export class DataSource<
         const { update, streamKey } = params
         const now = getCurrentTimestamp()
         const uuid = uuidv4()  // Just the UUID part (timestamp is in coreFormat)
-        
+
+        // Build header once for both serialize and messageBus routing
+        const header: StreamingEventHeader = {
+            dataSourceKey: this.dataSourceKey,
+            streamKey,
+            timestamp: now,
+            type: update.type
+        }
+
         // Create CoreExternalFormat - use serializer if available, otherwise use update directly
-        const coreFormat: CoreExternalFormat = this.eventSerializer 
+        const coreFormat: CoreExternalFormat = this.eventSerializer
             ? {
                 dataSourceKey: this.dataSourceKey,
                 streamKey,
@@ -347,7 +355,8 @@ export class DataSource<
                 update: this.eventSerializer.serialize({
                     dataSourceKey: this.dataSourceKey,
                     streamKey,
-                    update
+                    update,
+                    header
                 })
             }
             : {
@@ -361,14 +370,7 @@ export class DataSource<
         const eventRecord = toDynamoDBFormat(coreFormat, this.primaryKeyName, uuid)
         const eventBridgeEvent = toEventBridgeFormat(coreFormat)
 
-        // Create the internal messageBus event
-        // Canonical in-process shape is { type: 'StreamingEvent', dataSourceKey, streamKey, timestamp, header, content }.
-        const header: StreamingEventHeader = {
-            dataSourceKey: this.dataSourceKey,
-            streamKey,
-            timestamp: now,
-            type: update.type
-        }
+        // Create the internal messageBus event (reuse header built above)
         const messageBusEvent = {
             type: 'StreamingEvent' as const,
             dataSourceKey: this.dataSourceKey,

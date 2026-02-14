@@ -3,7 +3,7 @@
 // This file contains event types, type guards, and serializers for the Assets data source.
 // Migrated from lambda/assets/dataSource/serializers.ts
 
-import { DataSourceEventSerializer } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import { DataSourceEventSerializer, StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { isStandardComponent, StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 import { standardComponentFactory } from '@tonylb/mtw-wml/ts/standardize/componentFactory'
@@ -226,6 +226,7 @@ export class AssetsEventSerializer implements DataSourceEventSerializer<AssetsEv
         dataSourceKey: string;
         streamKey: string;
         update: AssetsEventUpdate;
+        header: StreamingEventHeader;
     }): AssetsEventExternal {
         const { update } = params
         
@@ -264,20 +265,22 @@ export class AssetsEventSerializer implements DataSourceEventSerializer<AssetsEv
     
     deserialize(params: { 
         dataSourceKey: string
-        detailType: string
+        detailType?: string
         streamKey: string
-        externalUpdate: AssetsEventExternal 
+        externalUpdate: AssetsEventExternal
+        header: StreamingEventHeader
     }): AssetsEventUpdate | null {
-        const { streamKey, externalUpdate } = params
+        const { streamKey, externalUpdate, header } = params
+        const eventType = header.type
         
-        // Use the embedded type property to determine how to deserialize
-        if (externalUpdate.type === 'Component Updated') {
+        // Use the header type to determine how to deserialize
+        if (eventType === 'Component Updated') {
             const updatedExternal = externalUpdate as ComponentUpdatedEventExternal
             return {
                 type: 'Component Updated',
                 component: this.parseWMLToComponent(updatedExternal.wml, updatedExternal.componentId)
             }
-        } else if (externalUpdate.type === 'Component Removed') {
+        } else if (eventType === 'Component Removed') {
             const removedExternal = externalUpdate as ComponentRemovedEventExternal
             return {
                 type: 'Component Removed',

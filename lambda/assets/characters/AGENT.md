@@ -48,6 +48,8 @@ The characters data source uses `assetId` as the stream key, enabling:
 #### **Outgoing Events** (to EventBridge)
 - **Character Updated**: Published when character data changes within an asset, including removals
 
+**Header vs Payload Authority**: Event type is header-owned. Payload fields `characterId` and `wml` carry domain data. The deserializer uses `header.type` for discrimination.
+
 ## Implementation Design
 
 ### **Data Source Class**

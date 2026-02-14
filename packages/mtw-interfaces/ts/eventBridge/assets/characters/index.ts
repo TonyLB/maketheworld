@@ -3,7 +3,7 @@
 // This file contains event types, type guards, and serializers for the Characters sub-source.
 // Migrated from lambda/assets/characters/serializers.ts
 
-import { DataSourceEventSerializer } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import { DataSourceEventSerializer, StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 import { schemaToWML, nodeFromWML } from '@tonylb/mtw-wml/ts/schema'
 import { standardComponentFactory } from '@tonylb/mtw-wml/ts/standardize/componentFactory'
@@ -46,11 +46,12 @@ export class CharacterEventSerializer implements DataSourceEventSerializer<Chara
         dataSourceKey: string
         streamKey: string
         externalUpdate: CharacterEventExternal 
+        header: StreamingEventHeader
     }): CharacterEventUpdate | null {
-        const { externalUpdate } = params
+        const { externalUpdate, header } = params
         
-        // Only handle character updated events
-        if (externalUpdate.type !== 'Character Updated') {
+        // Only handle character updated events (header is authoritative for routing)
+        if (header.type !== 'Character Updated') {
             return null
         }
         
@@ -64,7 +65,8 @@ export class CharacterEventSerializer implements DataSourceEventSerializer<Chara
             }
             
             return {
-                type: externalUpdate.type,
+                // Treat payload type as derived from header.type
+                type: header.type,
                 component
             }
         } catch (error) {

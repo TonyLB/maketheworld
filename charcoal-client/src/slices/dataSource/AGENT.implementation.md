@@ -20,6 +20,8 @@ Before creating the frontend slice, ensure the backend DataSource work is comple
 
 **See**: [`packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md`](../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md) for backend implementation guide.
 
+**Discovering existing implementations**: To find frontend slices, use `rg "createDataSourceSlice"` or `rg "dataSourceKey:"` in `src/slices/`. For backend and EventBridge discovery (envelope unions, serializers, lambda DataSources), see [mtw-lambda-patterns AGENT.implementation.md](../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md) and [mtw-interfaces EventBridge AGENT.implementation.md](../../../packages/mtw-interfaces/ts/eventBridge/AGENT.implementation.md).
+
 ### **Step 1: Import Shared Logic**
 
 Import the aggregator, serializer, and types from `mtw-interfaces`:
@@ -218,6 +220,15 @@ The pattern operates under specific assumptions and provides corresponding guara
 - Efficient processing for common in-order case (O(1) fast path)
 
 **Why This Matters**: Violating assumptions (e.g., extreme delays, missing timestamps) may break guarantees. When developing the pattern or backend integration, keep these contracts in mind.
+
+#### **5. Header/Content Envelope Shape**
+
+The client mirrors the server-side header/content split:
+
+- LifeLine delivers `StreamEvent` messages with `streamKey`, `timestamp`, and `update`.
+- The client derives a `ClientStreamingHeader` from `update.type` (and optional `zone`) and treats `update` as `content`.
+- `processRawSnapshot` and `processRawEvent` receive payloads shaped as `{ streamKey, timestamp, header, content }` (see [baseClasses.ts](./baseClasses.ts): `ClientSnapshotMessagePayload`, `ClientUpdateMessagePayload`).
+- Routing (Snapshot vs event) uses `header.type === 'Snapshot'`; the reducer deserializes `content` via the event serializer.
 
 ### **Key Implementation Areas**
 

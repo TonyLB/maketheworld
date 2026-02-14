@@ -17,8 +17,17 @@ import {
     isAssetsComponentEvent,
     isAssetsLevelEvent
 } from './index'
+import type { StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { StandardCharacter } from '@tonylb/mtw-wml/ts/standardize/components/character'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
+
+const assetsDataSourceKey = 'mtw.assets'
+const assetsStreamKey = 'ASSET#test-asset'
+const assetsTimestamp = 0
+
+function makeAssetsHeader(type: string): StreamingEventHeader {
+    return { dataSourceKey: assetsDataSourceKey, streamKey: assetsStreamKey, timestamp: assetsTimestamp, type }
+}
 
 describe('AssetsEventSerializer', () => {
     let serializer: AssetsEventSerializer
@@ -41,9 +50,10 @@ describe('AssetsEventSerializer', () => {
             }
 
             const externalEvent = serializer.serialize({
-                dataSourceKey: 'mtw.assets',
-                streamKey: 'ASSET#test-asset',
-                update: componentEvent
+                dataSourceKey: assetsDataSourceKey,
+                streamKey: assetsStreamKey,
+                update: componentEvent,
+                header: makeAssetsHeader('Component Updated')
             })
 
             expect(externalEvent.type).toBe('Component Updated')
@@ -69,10 +79,10 @@ describe('AssetsEventSerializer', () => {
             }
 
             const internalEvent = serializer.deserialize({
-                dataSourceKey: 'mtw.assets',
-                detailType: 'Component Updated',
-                streamKey: 'ASSET#test-asset',
-                externalUpdate: externalEvent
+                dataSourceKey: assetsDataSourceKey,
+                streamKey: assetsStreamKey,
+                externalUpdate: externalEvent,
+                header: makeAssetsHeader('Component Updated')
             })
 
             expect(internalEvent).not.toBeNull()
@@ -97,17 +107,18 @@ describe('AssetsEventSerializer', () => {
 
             // Serialize to external format
             const externalEvent = serializer.serialize({
-                dataSourceKey: 'mtw.assets',
-                streamKey: 'ASSET#test-asset',
-                update: originalEvent
+                dataSourceKey: assetsDataSourceKey,
+                streamKey: assetsStreamKey,
+                update: originalEvent,
+                header: makeAssetsHeader('Component Updated')
             })
 
             // Deserialize back to internal format
             const deserializedEvent = serializer.deserialize({
-                dataSourceKey: 'mtw.assets',
-                detailType: 'Component Updated',
-                streamKey: 'ASSET#test-asset',
-                externalUpdate: externalEvent
+                dataSourceKey: assetsDataSourceKey,
+                streamKey: assetsStreamKey,
+                externalUpdate: externalEvent,
+                header: makeAssetsHeader('Component Updated')
             })
 
             // Verify the component is preserved
@@ -132,9 +143,10 @@ describe('AssetsEventSerializer', () => {
             }
 
             const externalEvent = serializer.serialize({
-                dataSourceKey: 'mtw.assets',
-                streamKey: 'ASSET#test-asset',
-                update: componentEvent
+                dataSourceKey: assetsDataSourceKey,
+                streamKey: assetsStreamKey,
+                update: componentEvent,
+                header: makeAssetsHeader('Component Removed')
             })
 
             expect(externalEvent.type).toBe('Component Removed')
@@ -160,10 +172,10 @@ describe('AssetsEventSerializer', () => {
             }
 
             const internalEvent = serializer.deserialize({
-                dataSourceKey: 'mtw.assets',
-                detailType: 'Component Removed',
-                streamKey: 'ASSET#test-asset',
-                externalUpdate: externalEvent
+                dataSourceKey: assetsDataSourceKey,
+                streamKey: assetsStreamKey,
+                externalUpdate: externalEvent,
+                header: makeAssetsHeader('Component Removed')
             })
 
             expect(internalEvent).not.toBeNull()
@@ -188,17 +200,18 @@ describe('AssetsEventSerializer', () => {
 
             // Serialize to external format
             const externalEvent = serializer.serialize({
-                dataSourceKey: 'mtw.assets',
-                streamKey: 'ASSET#test-asset',
-                update: originalEvent
+                dataSourceKey: assetsDataSourceKey,
+                streamKey: assetsStreamKey,
+                update: originalEvent,
+                header: makeAssetsHeader('Component Removed')
             })
 
             // Deserialize back to internal format
             const deserializedEvent = serializer.deserialize({
-                dataSourceKey: 'mtw.assets',
-                detailType: 'Component Removed',
-                streamKey: 'ASSET#test-asset',
-                externalUpdate: externalEvent
+                dataSourceKey: assetsDataSourceKey,
+                streamKey: assetsStreamKey,
+                externalUpdate: externalEvent,
+                header: makeAssetsHeader('Component Removed')
             })
 
             // Verify the component is preserved
@@ -219,9 +232,10 @@ describe('AssetsEventSerializer', () => {
             }
 
             const externalEvent = serializer.serialize({
-                dataSourceKey: 'mtw.assets',
-                streamKey: 'ASSET#test-asset',
-                update: assetEvent
+                dataSourceKey: assetsDataSourceKey,
+                streamKey: assetsStreamKey,
+                update: assetEvent,
+                header: makeAssetsHeader('Asset Cached')
             })
 
             expect(externalEvent.type).toBe('Asset Cached')
@@ -236,9 +250,10 @@ describe('AssetsEventSerializer', () => {
             }
 
             const externalEvent = serializer.serialize({
-                dataSourceKey: 'mtw.assets',
-                streamKey: 'ASSET#test-asset',
-                update: assetEvent
+                dataSourceKey: assetsDataSourceKey,
+                streamKey: assetsStreamKey,
+                update: assetEvent,
+                header: makeAssetsHeader('Asset Decached')
             })
 
             expect(externalEvent.type).toBe('Asset Decached')
@@ -251,9 +266,10 @@ describe('AssetsEventSerializer', () => {
             }
 
             const externalEvent = serializer.serialize({
-                dataSourceKey: 'mtw.assets',
-                streamKey: 'ASSET#test-asset',
-                update: assetEvent
+                dataSourceKey: assetsDataSourceKey,
+                streamKey: assetsStreamKey,
+                update: assetEvent,
+                header: makeAssetsHeader('Asset Removed')
             })
 
             expect(externalEvent.type).toBe('Asset Removed')
@@ -269,9 +285,10 @@ describe('AssetsEventSerializer', () => {
             }
 
             const externalEvent = serializer.serialize({
-                dataSourceKey: 'mtw.assets',
-                streamKey: 'ASSET#test-asset',
-                update: assetEvent
+                dataSourceKey: assetsDataSourceKey,
+                streamKey: assetsStreamKey,
+                update: assetEvent,
+                header: makeAssetsHeader('Canon Updated')
             })
 
             expect(externalEvent.type).toBe('Canon Updated')
@@ -287,10 +304,10 @@ describe('AssetsEventSerializer', () => {
             }
 
             const internalEvent = serializer.deserialize({
-                dataSourceKey: 'mtw.assets',
-                detailType: 'Asset Cached',
-                streamKey: 'ASSET#test-asset',
-                externalUpdate: externalEvent
+                dataSourceKey: assetsDataSourceKey,
+                streamKey: assetsStreamKey,
+                externalUpdate: externalEvent,
+                header: makeAssetsHeader('Asset Cached')
             })
 
             expect(internalEvent).not.toBeNull()
@@ -309,17 +326,18 @@ describe('AssetsEventSerializer', () => {
 
             // Serialize to external format
             const externalEvent = serializer.serialize({
-                dataSourceKey: 'mtw.assets',
-                streamKey: 'ASSET#test-asset',
-                update: originalEvent
+                dataSourceKey: assetsDataSourceKey,
+                streamKey: assetsStreamKey,
+                update: originalEvent,
+                header: makeAssetsHeader('Asset Cached')
             })
 
             // Deserialize back to internal format
             const deserializedEvent = serializer.deserialize({
-                dataSourceKey: 'mtw.assets',
-                detailType: 'Asset Cached',
-                streamKey: 'ASSET#test-asset',
-                externalUpdate: externalEvent
+                dataSourceKey: assetsDataSourceKey,
+                streamKey: assetsStreamKey,
+                externalUpdate: externalEvent,
+                header: makeAssetsHeader('Asset Cached')
             })
 
             // Verify the event is preserved
@@ -328,6 +346,33 @@ describe('AssetsEventSerializer', () => {
             if (deserializedEvent!.type === 'Asset Cached') {
                 const assetEvent = deserializedEvent as AssetCachedEventUpdate
                 expect(assetEvent.zone).toBe('Canon')
+            }
+        })
+    })
+
+    describe('deserialize when header and payload type disagree - header wins', () => {
+        it('should deserialize as Component Removed when header says Component Removed but payload has Component Updated shape', () => {
+            const externalEvent: AssetsEventExternal = {
+                type: 'Component Updated',
+                componentId: 'CHARACTER#testcharacter',
+                wml: deIndentWML(`
+                    <Character key=(testcharacter) uuid=(testcharacter)>
+                        <DisplayName>Test Character</DisplayName>
+                    </Character>
+                `)
+            }
+
+            const internalEvent = serializer.deserialize({
+                dataSourceKey: assetsDataSourceKey,
+                streamKey: assetsStreamKey,
+                externalUpdate: externalEvent,
+                header: makeAssetsHeader('Component Removed')
+            })
+
+            expect(internalEvent).not.toBeNull()
+            expect(internalEvent!.type).toBe('Component Removed')
+            if (isAssetsComponentRemovedEvent(internalEvent!)) {
+                expect(internalEvent.component.universalKey).toBe('CHARACTER#testcharacter')
             }
         })
     })
@@ -341,9 +386,10 @@ describe('AssetsEventSerializer', () => {
 
             expect(() => {
                 serializer.serialize({
-                    dataSourceKey: 'mtw.assets',
-                    streamKey: 'ASSET#test-asset',
-                    update: unknownEvent
+                    dataSourceKey: assetsDataSourceKey,
+                    streamKey: assetsStreamKey,
+                    update: unknownEvent,
+                    header: makeAssetsHeader('Unknown Event')
                 })
             }).toThrow('Unknown event type in AssetsEventUpdate')
         })
@@ -357,10 +403,10 @@ describe('AssetsEventSerializer', () => {
 
             expect(() => {
                 serializer.deserialize({
-                    dataSourceKey: 'mtw.assets',
-                    detailType: 'Component Updated',
-                    streamKey: 'ASSET#test-asset',
-                    externalUpdate: externalEvent
+                    dataSourceKey: assetsDataSourceKey,
+                    streamKey: assetsStreamKey,
+                    externalUpdate: externalEvent,
+                    header: makeAssetsHeader('Component Updated')
                 })
             }).toThrow()
         })
@@ -378,10 +424,10 @@ describe('AssetsEventSerializer', () => {
 
             expect(() => {
                 serializer.deserialize({
-                    dataSourceKey: 'mtw.assets',
-                    detailType: 'Component Updated',
-                    streamKey: 'ASSET#test-asset',
-                    externalUpdate: externalEvent
+                    dataSourceKey: assetsDataSourceKey,
+                    streamKey: assetsStreamKey,
+                    externalUpdate: externalEvent,
+                    header: makeAssetsHeader('Component Updated')
                 })
             }).toThrow('Component ID mismatch: expected CHARACTER#missing-character')
         })

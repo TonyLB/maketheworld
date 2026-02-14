@@ -3,7 +3,7 @@
 // This file contains event types, type guards, and serializers for the ContentHeaders sub-source.
 // Migrated from lambda/assets/contentHeaders/serializers.ts
 
-import { DataSourceEventSerializer } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import { DataSourceEventSerializer, StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
 import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
@@ -77,6 +77,7 @@ export class ContentHeadersEventSerializer implements DataSourceEventSerializer<
         dataSourceKey: string;
         streamKey: string;
         update: ContentHeadersEventUpdate;
+        header: StreamingEventHeader;
     }): ContentHeadersExternal {
         const { update } = params
         
@@ -97,16 +98,19 @@ export class ContentHeadersEventSerializer implements DataSourceEventSerializer<
         dataSourceKey: string
         streamKey: string
         externalUpdate: ContentHeadersExternal 
+        header: StreamingEventHeader
     }): ContentHeadersEventUpdate | null {
-        const { externalUpdate } = params
+        const { externalUpdate, header } = params
+        const eventType = header.type
         
-        if (externalUpdate.type === 'Headers Updated') {
-            // Convert external WML string to internal StandardForm object
+        if (eventType === 'Headers Updated') {
+            // Convert external WML string to internal StandardForm object (header.type narrows payload shape)
+            const updateExternal = externalUpdate as ContentHeadersUpdateExternal
             const result: ContentHeadersUpdate = {
                 type: 'Headers Updated',
-                assetId: externalUpdate.assetId,
-                zone: externalUpdate.zone,
-                standardForm: new StandardForm(externalUpdate.wml)
+                assetId: updateExternal.assetId,
+                zone: updateExternal.zone,
+                standardForm: new StandardForm(updateExternal.wml)
             }
             return result
         } else {

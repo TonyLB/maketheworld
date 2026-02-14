@@ -132,12 +132,18 @@ export const handler = async (event, context) => {
             if (deserializer) {
                 // Convert EventBridge event to CoreExternalFormat using format transformer
                 const coreFormat = fromEventBridgeFormat(event)
-                
+                const header = {
+                    dataSourceKey: coreFormat.dataSourceKey,
+                    streamKey: coreFormat.streamKey,
+                    timestamp: coreFormat.timestamp,
+                    type: coreFormat.update.type as string
+                }
                 // Deserialize the external event to internal format using the serializer
                 const internalEvent = deserializer.deserialize({
                     dataSourceKey: coreFormat.dataSourceKey,
                     streamKey: coreFormat.streamKey,
-                    externalUpdate: coreFormat.update as any
+                    externalUpdate: coreFormat.update as any,
+                    header
                 })
                 
                 // If deserialization failed, log error and skip this event
@@ -150,12 +156,6 @@ export const handler = async (event, context) => {
                     })
                 } else {
                     // Publish deserialized event to messageBus for DataSource processing, using header/content.
-                    const header = {
-                        dataSourceKey: coreFormat.dataSourceKey,
-                        streamKey: coreFormat.streamKey,
-                        timestamp: coreFormat.timestamp,
-                        type: internalEvent.type as string
-                    }
                     messageBus.send({
                         type: 'StreamingEvent',
                         dataSourceKey: event.source,

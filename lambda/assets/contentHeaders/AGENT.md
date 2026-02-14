@@ -66,6 +66,10 @@ Incremental changes for existing subscribers:
 - **WML Serialization**: StandardForm objects serialized to WML strings for component metadata
 - **Diff Strategy**: Update events provide incremental changes to be merged client-side
 
+### Header vs Payload Authority
+
+Event routing uses `StreamingEventHeader` for discrimination. **Header-owned** (authoritative): `type`, `dataSourceKey`, `streamKey`, `timestamp`. **Payload** (domain data): `assetId`, `zone`, `wml` for Headers Updated events. Payload `type` is derived from header for wire compatibility only and is not used for routing.
+
 ## Integration Points
 
 ### Dependencies

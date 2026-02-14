@@ -17,3 +17,5 @@ Here are the base Data Sources of Make The World:
 - [Messages](messages/index.md)
 - [WML](wml/index.md)
 - [Diagnostics](diagnostics/index.md)
+
+To discover all DataSource implementations (serializers, envelope unions, lambda and frontend slices), use the search patterns documented in the [EventBridge](../../packages/mtw-interfaces/ts/eventBridge/AGENT.implementation.md#discovering-implementations) and [DataSource](../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md) implementation guides.

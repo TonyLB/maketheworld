@@ -5,7 +5,7 @@
 // and streaming updates that keep the client synchronized with a player's
 // currently accessible assets, characters, and related library state.
 
-import { DataSourceEventSerializer } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import { DataSourceEventSerializer, StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { LibraryAsset, LibraryCharacter } from '../../../library'
 import { Zone, isZone } from '../../../baseClasses'
 import { AssetClientPlayerSettings } from '../../../asset'
@@ -178,6 +178,7 @@ export class PlayerEventSerializer implements DataSourceEventSerializer<
         dataSourceKey: string
         streamKey: string
         update: PlayerEventUpdate
+        header?: StreamingEventHeader
     }): PlayerExternal {
         const { update } = params
         if (isPlayerSnapshot(update)) {

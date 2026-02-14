@@ -285,6 +285,8 @@ describe('Library EventBridge Contracts', () => {
             serializer = new LibraryEventSerializer()
         })
 
+        const libraryHeader = (type: string) => ({ dataSourceKey: 'mtw.assets.library', streamKey: 'global', timestamp: 0, type })
+
         describe('serialize', () => {
             it('should serialize Asset Added event', () => {
                 const result = serializer.serialize({
@@ -293,7 +295,8 @@ describe('Library EventBridge Contracts', () => {
                     update: {
                         type: 'Asset Added',
                         assetId: 'ASSET#test1' as AssetUUID
-                    }
+                    },
+                    header: libraryHeader('Asset Added')
                 })
 
                 expect(result).toEqual({
@@ -309,7 +312,8 @@ describe('Library EventBridge Contracts', () => {
                     update: {
                         type: 'Asset Removed',
                         assetId: 'ASSET#test2' as AssetUUID
-                    }
+                    },
+                    header: libraryHeader('Asset Removed')
                 })
 
                 expect(result).toEqual({
@@ -326,7 +330,8 @@ describe('Library EventBridge Contracts', () => {
                         update: {
                             type: 'Invalid',
                             data: 'bad'
-                        } as any
+                        } as any,
+                        header: libraryHeader('Invalid')
                     })
                 }).toThrow('Unknown streaming event type')
             })
@@ -342,7 +347,8 @@ describe('Library EventBridge Contracts', () => {
                 const result = serializer.deserialize({
                     dataSourceKey: 'mtw.assets.library',
                     streamKey: 'global',
-                    externalUpdate
+                    externalUpdate,
+                    header: libraryHeader('Asset Added')
                 })
 
                 expect(result).toEqual({
@@ -360,7 +366,8 @@ describe('Library EventBridge Contracts', () => {
                 const result = serializer.deserialize({
                     dataSourceKey: 'mtw.assets.library',
                     streamKey: 'global',
-                    externalUpdate
+                    externalUpdate,
+                    header: libraryHeader('Asset Removed')
                 })
 
                 expect(result).toEqual({
@@ -378,7 +385,8 @@ describe('Library EventBridge Contracts', () => {
                 const result = serializer.deserialize({
                     dataSourceKey: 'mtw.assets.library',
                     streamKey: 'global',
-                    externalUpdate
+                    externalUpdate,
+                    header: libraryHeader('Asset Added')
                 })
 
                 expect(result).toBeNull()
@@ -393,7 +401,8 @@ describe('Library EventBridge Contracts', () => {
                 const result = serializer.deserialize({
                     dataSourceKey: 'mtw.assets.library',
                     streamKey: 'global',
-                    externalUpdate
+                    externalUpdate,
+                    header: libraryHeader('Asset Removed')
                 })
 
                 expect(result).toBeNull()
@@ -408,10 +417,32 @@ describe('Library EventBridge Contracts', () => {
                 const result = serializer.deserialize({
                     dataSourceKey: 'mtw.assets.library',
                     streamKey: 'global',
-                    externalUpdate
+                    externalUpdate,
+                    header: libraryHeader('Unknown Type')
                 })
 
                 expect(result).toBeNull()
+            })
+        })
+
+        describe('deserialize when header and payload type disagree - header wins', () => {
+            it('should deserialize as Asset Removed when header says Asset Removed but payload has Asset Added shape', () => {
+                const externalUpdate: AssetAddedExternal = {
+                    type: 'Asset Added',
+                    assetId: 'ASSET#test1' as AssetUUID
+                }
+
+                const result = serializer.deserialize({
+                    dataSourceKey: 'mtw.assets.library',
+                    streamKey: 'global',
+                    externalUpdate,
+                    header: libraryHeader('Asset Removed')
+                })
+
+                expect(result).toEqual({
+                    type: 'Asset Removed',
+                    assetId: 'ASSET#test1'
+                })
             })
         })
 

@@ -3,7 +3,7 @@
 // This file contains event types, type guards, and serializers for the Library data source.
 // The Library data source provides a simple list of asset IDs in the Library zone.
 
-import { DataSourceEventSerializer } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import { DataSourceEventSerializer, StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 
 // Import and re-export the base classes
@@ -57,6 +57,25 @@ export type AssetRemovedExternal = {
 
 export type LibraryExternal = LibrarySnapshotExternal | AssetAddedExternal | AssetRemovedExternal
 
+// Deserialize params envelope - header discriminates content shape
+type LibraryDeserializeParams = {
+    dataSourceKey: string
+    streamKey: string
+    externalUpdate: LibraryExternal
+    header: StreamingEventHeader
+}
+
+// Envelope-level type guards (header.type narrows content)
+const isAssetAddedLibraryEnvelope = (
+    params: LibraryDeserializeParams
+): params is LibraryDeserializeParams & { header: StreamingEventHeader & { type: 'Asset Added' }; externalUpdate: AssetAddedExternal } =>
+    params.header.type === 'Asset Added'
+
+const isAssetRemovedLibraryEnvelope = (
+    params: LibraryDeserializeParams
+): params is LibraryDeserializeParams & { header: StreamingEventHeader & { type: 'Asset Removed' }; externalUpdate: AssetRemovedExternal } =>
+    params.header.type === 'Asset Removed'
+
 /**
  * Event serializer for the mtw.assets.library data source.
  * 
@@ -73,6 +92,7 @@ export class LibraryEventSerializer implements DataSourceEventSerializer<
         dataSourceKey: string;
         streamKey: string;
         update: LibraryEventUpdate;
+        header: StreamingEventHeader;
     }): LibraryExternal {
         const { update } = params
         
@@ -93,36 +113,29 @@ export class LibraryEventSerializer implements DataSourceEventSerializer<
         }
     }
     
-    deserialize(params: { 
-        dataSourceKey: string
-        streamKey: string
-        externalUpdate: LibraryExternal 
-    }): LibraryEventUpdate | null {
-        const { externalUpdate } = params
-        
-        // Validate and pass through
-        if (externalUpdate.type === 'Asset Added') {
-            if (typeof externalUpdate.assetId !== 'string') {
+    deserialize(params: LibraryDeserializeParams): LibraryEventUpdate | null {
+        if (isAssetAddedLibraryEnvelope(params)) {
+            if (typeof params.externalUpdate.assetId !== 'string') {
                 console.error('Invalid Asset Added event: assetId must be a string')
                 return null
             }
             return {
                 type: 'Asset Added',
-                assetId: externalUpdate.assetId
+                assetId: params.externalUpdate.assetId
             }
-        } else if (externalUpdate.type === 'Asset Removed') {
-            if (typeof externalUpdate.assetId !== 'string') {
+        }
+        if (isAssetRemovedLibraryEnvelope(params)) {
+            if (typeof params.externalUpdate.assetId !== 'string') {
                 console.error('Invalid Asset Removed event: assetId must be a string')
                 return null
             }
             return {
                 type: 'Asset Removed',
-                assetId: externalUpdate.assetId
+                assetId: params.externalUpdate.assetId
             }
-        } else {
-            console.error(`Unknown external streaming event type: ${(externalUpdate as any).type}`)
-            return null
         }
+        console.error(`Unknown external streaming event type: ${(params.externalUpdate as any).type}`)
+        return null
     }
     
     serializeSnapshot(snapshot: LibrarySnapshot): LibrarySnapshotExternal {

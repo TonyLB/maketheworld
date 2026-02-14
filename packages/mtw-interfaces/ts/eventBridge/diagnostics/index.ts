@@ -1,4 +1,4 @@
-import { DataSourceEventSerializer } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import { DataSourceEventSerializer, StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 
 //
 // Internal types for diagnostics events
@@ -85,11 +85,13 @@ export class DiagnosticsEventSerializer implements DataSourceEventSerializer<Dia
         dataSourceKey: string
         streamKey: string
         externalUpdate: any  // Will have type field from EventBridge detail-type
+        header: StreamingEventHeader
     }): DiagnosticsEventUpdate | null {
-        const { externalUpdate } = params
+        const { externalUpdate, header } = params
+        const eventType = header.type
         
         // The type field comes from EventBridge detail-type
-        if (externalUpdate.type === 'S3 Structure Finding') {
+        if (eventType === 'S3 Structure Finding') {
             // Validate required fields
             if (typeof externalUpdate.source !== 'string' || typeof externalUpdate.status !== 'string') {
                 return null

@@ -66,12 +66,19 @@ export const handler = async (event: any, context: any) => {
         const deserializer = eventDeserializers[event.source as keyof typeof eventDeserializers]
         
         if (deserializer) {
+            const header = {
+                dataSourceKey: event.source,
+                streamKey: event.detail.streamKey || '',
+                timestamp: event.time ? new Date(event.time).getTime() : getCurrentTimestamp(),
+                type: event["detail-type"] as string
+            }
             // Deserialize the external EventBridge event to internal format
             const internalEvent = deserializer.deserialize({
                 dataSourceKey: event.source,
                 detailType: event["detail-type"],
                 streamKey: event.detail.streamKey || '', // Extract streamKey from detail
-                externalUpdate: event.detail
+                externalUpdate: event.detail,
+                header
             })
             
             // If deserialization failed, log error and skip this event
@@ -84,12 +91,6 @@ export const handler = async (event: any, context: any) => {
                 })
             } else {
                 // Publish deserialized event to messageBus for DataSource processing, using header/content.
-                const header = {
-                    dataSourceKey: event.source,
-                    streamKey: event.detail.streamKey || '',
-                    timestamp: event.time ? new Date(event.time).getTime() : getCurrentTimestamp(),
-                    type: internalEvent.type as string
-                }
                 messageBus.send({
                     type: 'StreamingEvent',
                     dataSourceKey: event.source,

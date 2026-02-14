@@ -3,7 +3,7 @@
 // This file contains event types, type guards, and serializers for the WML data source.
 // Migrated from lambda/wml/dataSource/serializers.ts
 
-import { DataSourceEventSerializer } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import { DataSourceEventSerializer, StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { DataSourceAggregator } from '@tonylb/mtw-lambda-patterns/ts/dataSource/aggregation'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes'
@@ -228,7 +228,7 @@ export class WMLEventSerializer implements DataSourceEventSerializer<WMLEventUpd
      * Serialize an internal event to external format
      * for EventBridge transmission
      */
-    serialize(params: { dataSourceKey: string; streamKey: string; update: WMLEventUpdate }): WMLEventExternal {
+    serialize(params: { dataSourceKey: string; streamKey: string; update: WMLEventUpdate; header?: StreamingEventHeader }): WMLEventExternal {
         const { update } = params
         if (isWMLZoneEvent(update)) {
             // Zone events pass through as-is (they're already structured data)
@@ -267,15 +267,16 @@ export class WMLEventSerializer implements DataSourceEventSerializer<WMLEventUpd
      * Deserialize an external event back to internal format
      * for messageBus processing
      */
-    deserialize(params: { dataSourceKey: string; streamKey: string; externalUpdate: WMLEventExternal }): WMLEventUpdate | null {
-        const { externalUpdate } = params
-        if (externalUpdate.type === 'Zone Changed') {
-            // Zone events pass through as-is
-            return externalUpdate as WMLZoneEvent
-        } else if (externalUpdate.type === 'Snapshot Created') {
+    deserialize(params: { dataSourceKey: string; streamKey: string; externalUpdate: WMLEventExternal; header: StreamingEventHeader }): WMLEventUpdate | null {
+        const { externalUpdate, header } = params
+        const eventType = header.type
+        if (eventType === 'Zone Changed') {
+            // Zone events pass through with header.type authoritative
+            return { ...externalUpdate, type: 'Zone Changed' } as WMLZoneEvent
+        } else if (eventType === 'Snapshot Created') {
             // Snapshot events pass through as-is
             return externalUpdate as WMLSnapshotEvent
-        } else if (externalUpdate.type === 'Content Update') {
+        } else if (eventType === 'Content Update') {
             if ('wml' in externalUpdate && externalUpdate.wml) {
                 try {
                     // Parse WML string back to StandardForm
@@ -292,14 +293,15 @@ export class WMLEventSerializer implements DataSourceEventSerializer<WMLEventUpd
             } else {
                 throw new Error(`Content Update event missing required 'wml' property`)
             }
-        } else if (externalUpdate.type === 'Merge Conflict') {
-            // Merge Conflict events pass through with error information
+        } else if (eventType === 'Merge Conflict') {
+            // Merge Conflict events pass through with error information (header.type narrows payload shape)
+            const mergeExternal = externalUpdate as { type: 'Merge Conflict'; error: string; RequestIds?: string[] }
             return {
                 type: 'Merge Conflict',
-                error: externalUpdate.error,
-                ...(externalUpdate.RequestIds != null ? { RequestIds: externalUpdate.RequestIds } : {})
+                error: mergeExternal.error,
+                ...(mergeExternal.RequestIds != null ? { RequestIds: mergeExternal.RequestIds } : {})
             }
-        } else if (externalUpdate.type === 'Asset Purged') {
+        } else if (eventType === 'Asset Purged') {
             // Purge events pass through as-is
             return externalUpdate as WMLPurgeEvent
         } else {
@@ -319,11 +321,11 @@ export class WMLEventSerializer implements DataSourceEventSerializer<WMLEventUpd
 export class WMLDataSourceEventSerializer implements DataSourceEventSerializer<WMLContentEvent, WMLContentEventExternal, StandardFormData, StandardFormData> {
     private readonly baseSerializer = new WMLEventSerializer()
 
-    serialize(params: { dataSourceKey: string; streamKey: string; update: WMLContentEvent }): WMLContentEventExternal {
+    serialize(params: { dataSourceKey: string; streamKey: string; update: WMLContentEvent; header: StreamingEventHeader }): WMLContentEventExternal {
         return this.baseSerializer.serialize(params) as WMLContentEventExternal
     }
 
-    deserialize(params: { dataSourceKey: string; streamKey: string; externalUpdate: WMLContentEventExternal }): WMLContentEvent | null {
+    deserialize(params: { dataSourceKey: string; streamKey: string; externalUpdate: WMLContentEventExternal; header: StreamingEventHeader }): WMLContentEvent | null {
         if (!isWMLContentEventExternal(params.externalUpdate)) {
             return null
         }

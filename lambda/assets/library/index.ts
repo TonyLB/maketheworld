@@ -11,7 +11,45 @@ import {
 import { StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
-import { AssetLevelEventUpdate } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
+import { ZoneUpdatedEventUpdate, AssetCachedEventUpdate, AssetRemovedEventUpdate } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
+
+/**
+ * Envelope-level discriminated union for events subscribed by mtw.assets.library DataSource.
+ * Each variant pairs a narrow header (dataSourceKey + type) with the matching content shape,
+ * enabling TypeScript to narrow content when routing on header.type.
+ */
+export type LibraryIncomingEvent =
+    | {
+          header: StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Zone Updated' };
+          content: ZoneUpdatedEventUpdate;
+      }
+    | {
+          header: StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Asset Cached' };
+          content: AssetCachedEventUpdate;
+      }
+    | {
+          header: StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Asset Removed' };
+          content: AssetRemovedEventUpdate;
+      };
+
+//
+// Type guards for LibraryIncomingEvent variants
+//
+const isZoneUpdatedLibraryEvent = (event: LibraryIncomingEvent): event is Extract<
+    LibraryIncomingEvent,
+    { header: { type: 'Zone Updated' } }
+> => (
+    event.header.dataSourceKey === 'mtw.assets' &&
+    event.header.type === 'Zone Updated'
+)
+
+const isAssetCachedLibraryEvent = (event: LibraryIncomingEvent): event is Extract<
+    LibraryIncomingEvent,
+    { header: { type: 'Asset Cached' } }
+> => (
+    event.header.dataSourceKey === 'mtw.assets' &&
+    event.header.type === 'Asset Cached'
+)
 
 //
 // Replayable DataSource singleton for mtw.assets.library
@@ -78,7 +116,7 @@ const generateLibrarySnapshot = async (): Promise<LibrarySnapshot> => {
 export const libraryDataSource = new AssetsDataSource<
     LibrarySnapshot,
     AssetAdded | AssetRemoved,
-    AssetLevelEventUpdate,
+    LibraryIncomingEvent['content'],
     LibraryExternal,
     LibrarySnapshotExternal
 >({
@@ -90,14 +128,16 @@ export const libraryDataSource = new AssetsDataSource<
     receiveEvents: async ({ events, streamEvent }) => {
         // Process mtw.assets events and generate library updates
         // We only care about events that affect the Library zone
+        // Cast to envelope union for TypeScript narrowing
+        const typedEvents = events as LibraryIncomingEvent[]
 
-        await Promise.all(events.map(async (event) => {
-            const assetId = event.header.streamKey as AssetUUID
-            const content = event.content
+        await Promise.all(typedEvents.map(async (event) => {
+            const { header } = event
+            const assetId = header.streamKey as AssetUUID
 
             try {
-                if (content.type === 'Zone Updated') {
-                    const { fromZone, toZone } = content
+                if (isZoneUpdatedLibraryEvent(event)) {
+                    const { fromZone, toZone } = event.content
 
                     // Asset entering Library zone
                     if (toZone === 'Library' && fromZone !== 'Library') {
@@ -121,8 +161,8 @@ export const libraryDataSource = new AssetsDataSource<
                     }
                     // Ignore zone changes that don't involve Library
                 }
-                else if (content.type === 'Asset Cached') {
-                    const { zone } = content
+                else if (isAssetCachedLibraryEvent(event)) {
+                    const { zone } = event.content
 
                     // Asset cached in Library zone (new asset or recache)
                     if (zone === 'Library') {
@@ -135,7 +175,7 @@ export const libraryDataSource = new AssetsDataSource<
                         })
                     }
                 }
-                else if (content.type === 'Asset Removed') {
+                else if (event.header.type === 'Asset Removed') {
                     // Asset removed - we don't know its zone, but remove from library just in case
                     // The aggregator will handle idempotent removal (no-op if not present)
                     await streamEvent({
