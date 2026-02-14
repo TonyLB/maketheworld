@@ -16,6 +16,7 @@ import {
 
 import messageBus from "./messageBus/index.js"
 import { sendPlayerSettingsUpdated } from './players/subscribedEvents'
+import { sendInitializeSubscription } from './dataSource/initSubscription'
 import { sfnClient, snsClient } from "./clients"
 import { ConnectionKey } from "@tonylb/mtw-utilities/ts/types"
 import { StartExecutionCommand } from "@aws-sdk/client-sfn"
@@ -106,29 +107,10 @@ export const handler = async (event, context) => {
         // Special handling for Initialize Subscription events from mtw.subscriptions
         if (event.source === 'mtw.subscriptions' && event["detail-type"].startsWith('Initialize Subscription -')) {
             // Publish Initialize Subscription event directly to messageBus (no deserialization needed).
-            // The target DataSource is encoded in header.type, e.g. "Initialize Subscription - mtw.assets.contentHeaders".
+            // The target DataSource is encoded in detail-type, e.g. "Initialize Subscription - mtw.assets.contentHeaders".
             const streamKey = event.detail.streamKey || ''
-            const timestamp = event.time ? new Date(event.time).getTime() : Date.now()
-            const header = {
-                dataSourceKey: 'mtw.subscriptions',
-                streamKey,
-                timestamp,
-                type: event["detail-type"] as string
-            }
-            const initContent = {
-                type: 'Initialize Subscription',
-                sessionId: event.detail.sessionId,
-                requestId: event.detail.requestId
-            }
-            messageBus.send({
-                type: 'StreamingEvent',
-                dataSourceKey: 'mtw.subscriptions',
-                streamKey,
-                header,
-                content: initContent,
-                getContentInternal: () => Promise.resolve(initContent),
-                timestamp
-            })
+            const dataSourceKey = (event["detail-type"] as string).replace(/^Initialize Subscription - /, '')
+            sendInitializeSubscription(messageBus, dataSourceKey, streamKey, event.detail.sessionId, event.detail.requestId)
         } else {
             // Find the appropriate deserializer for this data source
             const deserializer = eventDeserializers[event.source as keyof typeof eventDeserializers]

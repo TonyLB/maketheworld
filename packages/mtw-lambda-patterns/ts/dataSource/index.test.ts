@@ -1536,14 +1536,12 @@ describe('DataSource', () => {
                 }
                 expect(typeGuard(wrongMessageType)).toBe(false)
 
-                // Test missing required fields
-                const missingFields = {
+                // Test missing getContentInternal
+                const missingGetContentInternal = {
                     ...validEvent,
-                    content: {
-                        // Missing sessionId and requestId
-                    }
+                    getContentInternal: undefined
                 }
-                expect(typeGuard(missingFields)).toBe(false)
+                expect(typeGuard(missingGetContentInternal)).toBe(false)
             })
 
             it('should call initializeSubscription when Initialize Subscription event is received', async () => {

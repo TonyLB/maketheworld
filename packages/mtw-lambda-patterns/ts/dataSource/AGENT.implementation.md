@@ -76,7 +76,7 @@ DataSource events use a header/content split:
 - **Content**: The full payload (inline or sidecar reference). What serializers and aggregators operate on.
 - **`subscribedEventTypeGuard`**: An **envelope type guard** `(envelope: StreamingEventEnvelope<unknown>) => envelope is StreamingEventEnvelope<SubscribedContent>`. The DataSource supplies this; the patterns package builds envelopes as `unknown`, filters with it, and passes only narrowed envelopes to `receiveEvents`. The guard inspects only `envelope.header` (no `getContentInternal()` call); the bus uses `content?: unknown` and required `getContentInternal: () => Promise<unknown>` so messageBus baseClasses stay free of DataSource payload imports.
 - **`receiveEvents`**: Receives `events: Array<StreamingEventEnvelope<SubscribedContent>>`; use `event.header` for branching and `event.getContentInternal()` for payload semantics.
-- **Initialize Subscription**: DataSource instances type-guard on `header.type === "Initialize Subscription - ${this.dataSourceKey}"` to determine which DataSource handles a given Initialize Subscription event. See [lambda/subscriptions/AGENT.eventBridge.md](../../../../lambda/subscriptions/AGENT.eventBridge.md) for the EventBridge event format.
+- **Initialize Subscription**: DataSource instances type-guard on `header.type === "Initialize Subscription - ${this.dataSourceKey}"` to determine which DataSource handles a given Initialize Subscription event. Init uses the same streaming-event contract: senders provide `getContentInternal` (and may omit `content`); the init subscription callback obtains the payload via `await payload.getContentInternal()`. See [lambda/subscriptions/AGENT.eventBridge.md](../../../../lambda/subscriptions/AGENT.eventBridge.md) for the EventBridge event format.
 
 ### **MessageBus and streaming event contract**
 
@@ -95,7 +95,7 @@ Streaming events on the messageBus follow a single contract so that baseClasses 
 
 **Trade-off:** The bus does not enforce compile-time alignment between header (e.g. `dataSourceKey`, `type`) and the payload returned by `getContentInternal()`. Sending sites must get it right; mistakes show up at runtime. We accept this so that baseClasses stay dumb and DataSources own their subscription types. Typed send-helpers in subscribedEvents recover sender-side compile-time safety without coupling the bus to payload types.
 
-**Initialize Subscription** uses a separate subscription path (e.g. `dataSourceKey === 'mtw.subscriptions'`); it is not part of the envelope type guard flow and is out of scope for subscribedEvents.
+**Initialize Subscription** uses a separate subscription path (e.g. `dataSourceKey === 'mtw.subscriptions'`); it is not part of the envelope type guard flow and is out of scope for subscribedEvents. Lambdas that forward init from EventBridge can use a dedicated send-helper (e.g. `dataSource/initSubscription.ts`) with `sendInitializeSubscription(bus, dataSourceKey, streamKey, sessionId, requestId)` so the init message is built with `getContentInternal` only.
 
 ### **SubscribedEvents pattern**
 

@@ -6,6 +6,7 @@ import type { StreamingEventMessage } from "./messageBus/baseClasses";
 import { extractReturnValue } from "./returnValue/index";
 import { CoordinationEventExternal, CoordinationEventSerializer } from './dataSource/coordinationSerializer';
 import { sendApplyEdit, sendMoveAsset, sendPurgeAsset } from './dataSource/subscribedEvents';
+import { sendInitializeSubscription } from './dataSource/initSubscription';
 import { fromEventBridgeFormat } from '@tonylb/mtw-lambda-patterns/ts/dataSource/formatTransform';
 import { DiagnosticsEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics';
 import { WMLAPIMessage } from '@tonylb/mtw-interfaces/ts/wml';
@@ -50,27 +51,7 @@ export const handler = async (event: any, context: any) => {
         // Initialize Subscription - mtw.wml: forward to messageBus so wmlDataSource can call initializeSubscription
         if (event.source === 'mtw.subscriptions' && event["detail-type"] === 'Initialize Subscription - mtw.wml') {
             const streamKey = event.detail.streamKey || ''
-            const timestamp = event.time ? new Date(event.time).getTime() : Date.now()
-            const header = {
-                dataSourceKey: 'mtw.subscriptions',
-                streamKey,
-                timestamp,
-                type: event["detail-type"] as string
-            }
-            const content = {
-                sessionId: event.detail.sessionId,
-                requestId: event.detail.requestId
-            }
-            const initMessage: StreamingEventMessage = {
-                type: 'StreamingEvent',
-                dataSourceKey: 'mtw.subscriptions',
-                streamKey,
-                header,
-                content,
-                getContentInternal: () => Promise.resolve(content),
-                timestamp
-            }
-            messageBus.send(initMessage)
+            sendInitializeSubscription(messageBus, 'mtw.wml', streamKey, event.detail.sessionId, event.detail.requestId)
             await messageBus.flush()
             return
         }
