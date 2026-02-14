@@ -3,6 +3,7 @@ import produce from 'immer'
 import { applyEvents, performCleanup, processRawSnapshot, processRawEvent } from './reducers'
 import { DataSourceAggregator } from '@tonylb/mtw-lambda-patterns/ts/dataSource/aggregation'
 import { DataSourceEventSerializer } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import type { RecentEventEnvelope } from './baseClasses'
 
 // Test types
 type TestSnapshot = {
@@ -20,6 +21,20 @@ type TestEvent = TestSnapshot | TestUpdate
 // Type guards
 const isTestSnapshot = (event: TestEvent): event is TestSnapshot => event.type === 'Snapshot'
 const isTestUpdate = (event: TestEvent): event is TestUpdate => event.type === 'Item Added' || event.type === 'Item Removed'
+
+// Helper to build envelope for tests (header + event + timestamp)
+function testEnvelope(event: TestEvent, timestamp: number, streamKey = 'stream1'): RecentEventEnvelope<TestEvent> {
+    return {
+        header: { dataSourceKey: 'test', streamKey, timestamp, type: event.type },
+        event,
+        timestamp
+    }
+}
+
+// Helper for update-only arrays (applyEvents accepts only UpdatePayload)
+function testUpdateEnvelope(event: TestUpdate, timestamp: number): RecentEventEnvelope<TestUpdate> {
+    return testEnvelope(event, timestamp) as RecentEventEnvelope<TestUpdate>
+}
 
 // Mock aggregator
 const mockAggregator: DataSourceAggregator<TestSnapshot, TestUpdate> = {
@@ -70,32 +85,32 @@ describe('dataSource reducers', () => {
         it('should apply multiple updates in order', () => {
             const baseline: TestSnapshot = { type: 'Snapshot', items: ['a'] }
             const updates = [
-                { event: { type: 'Item Added' as const, item: 'b' }, timestamp: 1000 },
-                { event: { type: 'Item Added' as const, item: 'c' }, timestamp: 2000 }
+                testUpdateEnvelope({ type: 'Item Added' as const, item: 'b' }, 1000),
+                testUpdateEnvelope({ type: 'Item Added' as const, item: 'c' }, 2000)
             ]
-            
+
             const result = applyEventsWithAggregator(baseline, updates)
-            
+
             expect(result.items).toEqual(['a', 'b', 'c'])
         })
-        
+
         it('should handle empty events array', () => {
             const baseline: TestSnapshot = { type: 'Snapshot', items: ['a'] }
             const result = applyEventsWithAggregator(baseline, [])
-            
+
             expect(result.items).toEqual(['a'])
         })
-        
+
         it('should continue on aggregation failure', () => {
             const baseline: TestSnapshot = { type: 'Snapshot', items: ['a'] }
             const updates = [
-                { event: { type: 'Item Added' as const, item: 'b' }, timestamp: 1000 },
-                { event: { type: 'Invalid' as any, item: 'bad' }, timestamp: 2000 },  // This will fail
-                { event: { type: 'Item Added' as const, item: 'c' }, timestamp: 3000 }
+                testUpdateEnvelope({ type: 'Item Added' as const, item: 'b' }, 1000),
+                testUpdateEnvelope({ type: 'Invalid' as any, item: 'bad' }, 2000),  // This will fail
+                testUpdateEnvelope({ type: 'Item Added' as const, item: 'c' }, 3000)
             ]
-            
+
             const result = applyEventsWithAggregator(baseline, updates)
-            
+
             // Should have 'b' and 'c', but skip the failed update
             expect(result.items).toEqual(['a', 'b', 'c'])
         })
@@ -107,65 +122,65 @@ describe('dataSource reducers', () => {
         
         it('should keep all events when nothing is old', () => {
             const recentEvents = [
-                { event: { type: 'Snapshot' as const, items: ['a'] }, timestamp: 50000 },
-                { event: { type: 'Item Added' as const, item: 'b' }, timestamp: 60000 }
+                testEnvelope({ type: 'Snapshot' as const, items: ['a'] }, 50000),
+                testEnvelope({ type: 'Item Added' as const, item: 'b' }, 60000)
             ]
-            
+
             const result = performCleanupWithConfig(recentEvents, 70000)
-            
+
             // 30 seconds ago from 70000 is 40000, so all events are recent
             expect(result).toHaveLength(2)
             expect(result[0].event).toEqual({ type: 'Snapshot', items: ['a'] })
             expect(result[1].event).toEqual({ type: 'Item Added', item: 'b' })
         })
-        
+
         it('should consolidate old events into synthetic snapshot', () => {
             const recentEvents = [
-                { event: { type: 'Snapshot' as const, items: [] }, timestamp: 10000 },
-                { event: { type: 'Item Added' as const, item: 'a' }, timestamp: 20000 },
-                { event: { type: 'Item Added' as const, item: 'b' }, timestamp: 30000 },
-                { event: { type: 'Item Added' as const, item: 'c' }, timestamp: 50000 }
+                testEnvelope({ type: 'Snapshot' as const, items: [] }, 10000),
+                testEnvelope({ type: 'Item Added' as const, item: 'a' }, 20000),
+                testEnvelope({ type: 'Item Added' as const, item: 'b' }, 30000),
+                testEnvelope({ type: 'Item Added' as const, item: 'c' }, 50000)
             ]
-            
+
             const result = performCleanupWithConfig(recentEvents, 60000)
-            
+
             // 30 seconds ago from 60000 is 30000
             // Events at 10000, 20000, 30000 are old (<=30000)
             // Event at 50000 is recent (>30000)
             // Should consolidate old events into synthetic snapshot at 30000
             expect(result).toHaveLength(2)
-            
+
             // First event should be synthetic snapshot at 30-second boundary
             expect(result[0].timestamp).toBe(30000)
             expect(result[0].event).toEqual({ type: 'Snapshot', items: ['a', 'b'] })
-            
+
             // Second event should be the recent event
             expect(result[1].timestamp).toBe(50000)
             expect(result[1].event).toEqual({ type: 'Item Added', item: 'c' })
         })
-        
+
         it('should use createEmpty when no snapshot in old events', () => {
             const recentEvents = [
-                { event: { type: 'Item Added' as const, item: 'a' }, timestamp: 10000 },
-                { event: { type: 'Item Added' as const, item: 'b' }, timestamp: 20000 },
-                { event: { type: 'Item Added' as const, item: 'c' }, timestamp: 50000 }
+                testEnvelope({ type: 'Item Added' as const, item: 'a' }, 10000),
+                testEnvelope({ type: 'Item Added' as const, item: 'b' }, 20000),
+                testEnvelope({ type: 'Item Added' as const, item: 'c' }, 50000)
             ]
-            
+
             const result = performCleanupWithConfig(recentEvents, 60000)
-            
+
             // Should create empty baseline and consolidate old events
             expect(result).toHaveLength(2)
             expect(result[0].event).toEqual({ type: 'Snapshot', items: ['a', 'b'] })
             expect(result[1].event).toEqual({ type: 'Item Added', item: 'c' })
         })
-        
+
         it('should handle incoming timestamp as latest when greater than all events', () => {
             const recentEvents = [
-                { event: { type: 'Snapshot' as const, items: [] }, timestamp: 10000 }
+                testEnvelope({ type: 'Snapshot' as const, items: [] }, 10000)
             ]
-            
+
             const result = performCleanupWithConfig(recentEvents, 100000)
-            
+
             // 30 seconds ago from 100000 is 70000
             // Event at 10000 is old
             // Should consolidate to synthetic snapshot
@@ -195,7 +210,7 @@ describe('dataSource reducers', () => {
                 subscribedStreams: {
                     'stream1': {
                         materializedView: { type: 'Snapshot' as const, items: ['old'] },
-                        recentEvents: [] as Array<{ event: TestSnapshot | TestUpdate; timestamp: number }>
+                        recentEvents: [] as Array<RecentEventEnvelope<TestEvent>>
                     }
                 }
             }
@@ -218,14 +233,14 @@ describe('dataSource reducers', () => {
             expect(newState.subscribedStreams['stream1'].recentEvents).toHaveLength(1)
             expect(newState.subscribedStreams['stream1'].recentEvents[0].event).toEqual({ type: 'Snapshot', items: ['new'] })
         })
-        
+
         it('should handle events that happened after snapshot', () => {
             const initialPublicData = {
                 subscribedStreams: {
                     'stream1': {
                         materializedView: { type: 'Snapshot' as const, items: ['a'] },
                         recentEvents: [
-                            { event: { type: 'Item Added' as const, item: 'b' }, timestamp: 20000 }
+                            testEnvelope({ type: 'Item Added' as const, item: 'b' }, 20000)
                         ]
                     }
                 }
@@ -281,11 +296,11 @@ describe('dataSource reducers', () => {
                 subscribedStreams: {
                     'stream1': {
                         materializedView: { type: 'Snapshot' as const, items: ['a'] },
-                        recentEvents: [] as Array<{ event: TestSnapshot | TestUpdate; timestamp: number }>
+                        recentEvents: [] as Array<RecentEventEnvelope<TestEvent>>
                     }
                 }
             }
-            
+
             const action = {
                 payload: {
                     streamKey: 'stream1',
@@ -294,19 +309,19 @@ describe('dataSource reducers', () => {
                     content: { invalid: 'data' }
                 }
             }
-            
+
             // Mock deserialize to return null
             mockSerializer.deserializeSnapshot = vi.fn(() => null)
-            
+
             const newState = produce(initialPublicData, (draft) => {
                 processSnapshot(draft, action as any)
             })
-            
+
             // State should be unchanged
             expect(newState).toEqual(initialPublicData)
         })
     })
-    
+
     describe('processRawEvent', () => {
         const applyEventsWithAggregator = applyEvents(mockAggregator)
         const performCleanupWithConfig = performCleanup(mockAggregator, isTestSnapshot, isTestUpdate, applyEventsWithAggregator)
@@ -332,7 +347,7 @@ describe('dataSource reducers', () => {
                     'stream1': {
                         materializedView: { type: 'Snapshot' as const, items: ['a'] },
                         recentEvents: [
-                            { event: { type: 'Item Added' as const, item: 'a' }, timestamp: 10000 }
+                            testEnvelope({ type: 'Item Added' as const, item: 'a' }, 10000)
                         ]
                     }
                 }
@@ -363,8 +378,8 @@ describe('dataSource reducers', () => {
                     'stream1': {
                         materializedView: { type: 'Snapshot' as const, items: ['a', 'c'] },
                         recentEvents: [
-                            { event: { type: 'Snapshot' as const, items: ['a'] }, timestamp: 10000 },
-                            { event: { type: 'Item Added' as const, item: 'c' }, timestamp: 30000 }
+                            testEnvelope({ type: 'Snapshot' as const, items: ['a'] }, 10000),
+                            testEnvelope({ type: 'Item Added' as const, item: 'c' }, 30000)
                         ]
                     }
                 }
@@ -421,11 +436,11 @@ describe('dataSource reducers', () => {
                 subscribedStreams: {
                     'stream1': {
                         materializedView: { type: 'Snapshot' as const, items: ['a'] },
-                        recentEvents: [] as Array<{ event: TestSnapshot | TestUpdate; timestamp: number }>
+                        recentEvents: [] as Array<RecentEventEnvelope<TestEvent>>
                     }
                 }
             }
-            
+
             const action = {
                 payload: {
                     streamKey: 'stream1',
@@ -434,26 +449,26 @@ describe('dataSource reducers', () => {
                     content: { invalid: 'data' }
                 }
             }
-            
+
             // Mock deserialize to return null
             mockSerializer.deserialize = vi.fn(() => null)
-            
+
             const newState = produce(initialPublicData, (draft) => {
                 processEvent(draft, action as any)
             })
-            
+
             // State should be unchanged
             expect(newState).toEqual(initialPublicData)
         })
-        
+
         it('should re-aggregate from createEmpty when no baseline snapshot', () => {
             const initialPublicData = {
                 subscribedStreams: {
                     'stream1': {
                         materializedView: { type: 'Snapshot' as const, items: ['a', 'c'] },
                         recentEvents: [
-                            { event: { type: 'Item Added' as const, item: 'a' }, timestamp: 20000 },
-                            { event: { type: 'Item Added' as const, item: 'c' }, timestamp: 40000 }
+                            testEnvelope({ type: 'Item Added' as const, item: 'a' }, 20000),
+                            testEnvelope({ type: 'Item Added' as const, item: 'c' }, 40000)
                         ]
                     }
                 }
@@ -482,9 +497,9 @@ describe('dataSource reducers', () => {
                     'stream1': {
                         materializedView: { type: 'Snapshot' as const, items: ['a', 'b'] },
                         recentEvents: [
-                            { event: { type: 'Snapshot' as const, items: [] }, timestamp: 10000 },
-                            { event: { type: 'Item Added' as const, item: 'a' }, timestamp: 20000 },
-                            { event: { type: 'Item Added' as const, item: 'b' }, timestamp: 30000 }
+                            testEnvelope({ type: 'Snapshot' as const, items: [] }, 10000),
+                            testEnvelope({ type: 'Item Added' as const, item: 'a' }, 20000),
+                            testEnvelope({ type: 'Item Added' as const, item: 'b' }, 30000)
                         ]
                     }
                 }
@@ -518,7 +533,7 @@ describe('dataSource reducers', () => {
                     'stream1': {
                         materializedView: { type: 'Snapshot' as const, items: ['a', 'b', 'c'] },
                         recentEvents: [
-                            { event: { type: 'Snapshot' as const, items: ['a', 'b', 'c'] }, timestamp: 50000 }
+                            testEnvelope({ type: 'Snapshot' as const, items: ['a', 'b', 'c'] }, 50000)
                         ]
                     }
                 }
