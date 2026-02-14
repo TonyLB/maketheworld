@@ -457,7 +457,7 @@ describe('WMLAggregator', () => {
                     </Room>
                 </Asset>
             `))
-            const result = aggregator.applyUpdate(view, { type: 'Content Update', schema: delta }, makeWmlHeader('Content Update'))
+            const result = aggregator.applyUpdate(view, { header: makeWmlHeader('Content Update'), content: { type: 'Content Update', schema: delta } })
             expect(result.success).toBe(true)
             if (result.success) {
                 expect(result.snapshot).toBeDefined()
@@ -468,7 +468,7 @@ describe('WMLAggregator', () => {
 
         it('should return success false and unchanged snapshot for Merge Conflict', () => {
             const view = aggregator.createEmpty()
-            const result = aggregator.applyUpdate(view, { type: 'Merge Conflict', error: 'conflict' }, makeWmlHeader('Merge Conflict'))
+            const result = aggregator.applyUpdate(view, { header: makeWmlHeader('Merge Conflict'), content: { type: 'Merge Conflict', error: 'conflict' } })
             expect(result.success).toBe(false)
             expect(result.snapshot).toBe(view)
         })

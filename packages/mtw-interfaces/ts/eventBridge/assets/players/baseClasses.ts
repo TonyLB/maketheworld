@@ -1,17 +1,55 @@
 import { AggregationResult, DataSourceAggregator } from '@tonylb/mtw-lambda-patterns/ts/dataSource/aggregation'
-import type { StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import type { ResolvedStreamingEnvelope, StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import {
     PlayerSnapshot,
     PlayerEventUpdate,
-    isPlayerSnapshot,
-    isPlayerSettingsUpdated,
-    isPlayerAssetAssigned,
-    isPlayerAssetRemoved,
-    isPlayerCharacterAssigned,
-    isPlayerCharacterRemoved
+    PlayerSettingsUpdated,
+    PlayerAssetAssigned,
+    PlayerAssetRemoved,
+    PlayerCharacterAssigned,
+    PlayerCharacterRemoved
 } from '.'
 
 type PlayerSnapshotInternal = PlayerSnapshot
+
+// Envelope type guards: narrow both header and content so aggregator needs no casts
+export type PlayerEnvelope = ResolvedStreamingEnvelope<PlayerEventUpdate, StreamingEventHeader>
+
+export function isPlayerSnapshotEnvelope(
+    envelope: PlayerEnvelope
+): envelope is ResolvedStreamingEnvelope<PlayerSnapshot, StreamingEventHeader & { type: 'Snapshot' }> {
+    return envelope.header.type === 'Snapshot'
+}
+
+export function isPlayerSettingsUpdatedEnvelope(
+    envelope: PlayerEnvelope
+): envelope is ResolvedStreamingEnvelope<PlayerSettingsUpdated, StreamingEventHeader & { type: 'Player Settings Updated' }> {
+    return envelope.header.type === 'Player Settings Updated'
+}
+
+export function isPlayerAssetAssignedEnvelope(
+    envelope: PlayerEnvelope
+): envelope is ResolvedStreamingEnvelope<PlayerAssetAssigned, StreamingEventHeader & { type: 'Player Asset Assigned' }> {
+    return envelope.header.type === 'Player Asset Assigned'
+}
+
+export function isPlayerAssetRemovedEnvelope(
+    envelope: PlayerEnvelope
+): envelope is ResolvedStreamingEnvelope<PlayerAssetRemoved, StreamingEventHeader & { type: 'Player Asset Removed' }> {
+    return envelope.header.type === 'Player Asset Removed'
+}
+
+export function isPlayerCharacterAssignedEnvelope(
+    envelope: PlayerEnvelope
+): envelope is ResolvedStreamingEnvelope<PlayerCharacterAssigned, StreamingEventHeader & { type: 'Player Character Assigned' }> {
+    return envelope.header.type === 'Player Character Assigned'
+}
+
+export function isPlayerCharacterRemovedEnvelope(
+    envelope: PlayerEnvelope
+): envelope is ResolvedStreamingEnvelope<PlayerCharacterRemoved, StreamingEventHeader & { type: 'Player Character Removed' }> {
+    return envelope.header.type === 'Player Character Removed'
+}
 
 export class PlayerAggregator implements DataSourceAggregator<PlayerSnapshotInternal, PlayerEventUpdate> {
     createEmpty(): PlayerSnapshotInternal {
@@ -25,15 +63,16 @@ export class PlayerAggregator implements DataSourceAggregator<PlayerSnapshotInte
         }
     }
 
-    applyUpdate(snapshot: PlayerSnapshotInternal, update: PlayerEventUpdate, _header: StreamingEventHeader): AggregationResult<PlayerSnapshotInternal> {
-        if (isPlayerSnapshot(update)) {
+    applyUpdate(snapshot: PlayerSnapshotInternal, envelope: PlayerEnvelope): AggregationResult<PlayerSnapshotInternal> {
+        if (isPlayerSnapshotEnvelope(envelope)) {
+            const { assets, characters, settings } = envelope.content
             return {
                 success: true,
                 snapshot: {
                     type: 'Snapshot',
-                    assets: update.assets.map((asset) => ({ ...asset })),
-                    characters: update.characters.map((character) => ({ ...character })),
-                    settings: { ...update.settings }
+                    assets: assets.map((asset) => ({ ...asset })),
+                    characters: characters.map((character) => ({ ...character })),
+                    settings: { ...settings }
                 }
             }
         }
@@ -45,13 +84,13 @@ export class PlayerAggregator implements DataSourceAggregator<PlayerSnapshotInte
             settings: { ...snapshot.settings }
         }
 
-        if (isPlayerSettingsUpdated(update)) {
-            next.settings = { ...update.settings }
+        if (isPlayerSettingsUpdatedEnvelope(envelope)) {
+            next.settings = { ...envelope.content.settings }
             return { success: true, snapshot: next }
         }
 
-        if (isPlayerAssetAssigned(update)) {
-            const updatedAsset = { ...update.asset }
+        if (isPlayerAssetAssignedEnvelope(envelope)) {
+            const updatedAsset = { ...envelope.content.asset }
             next.assets = [
                 ...next.assets.filter(({ AssetId }) => AssetId !== updatedAsset.AssetId),
                 updatedAsset
@@ -59,13 +98,13 @@ export class PlayerAggregator implements DataSourceAggregator<PlayerSnapshotInte
             return { success: true, snapshot: next }
         }
 
-        if (isPlayerAssetRemoved(update)) {
-            next.assets = next.assets.filter(({ AssetId }) => AssetId !== update.assetId)
+        if (isPlayerAssetRemovedEnvelope(envelope)) {
+            next.assets = next.assets.filter(({ AssetId }) => AssetId !== envelope.content.assetId)
             return { success: true, snapshot: next }
         }
 
-        if (isPlayerCharacterAssigned(update)) {
-            const updatedCharacter = { ...update.character }
+        if (isPlayerCharacterAssignedEnvelope(envelope)) {
+            const updatedCharacter = { ...envelope.content.character }
             next.characters = [
                 ...next.characters.filter(({ CharacterId }) => CharacterId !== updatedCharacter.CharacterId),
                 updatedCharacter
@@ -73,14 +112,14 @@ export class PlayerAggregator implements DataSourceAggregator<PlayerSnapshotInte
             return { success: true, snapshot: next }
         }
 
-        if (isPlayerCharacterRemoved(update)) {
-            next.characters = next.characters.filter(({ CharacterId }) => CharacterId !== update.characterId)
+        if (isPlayerCharacterRemovedEnvelope(envelope)) {
+            next.characters = next.characters.filter(({ CharacterId }) => CharacterId !== envelope.content.characterId)
             return { success: true, snapshot: next }
         }
 
         return {
             success: false,
-            error: new Error(`Unknown player update: ${JSON.stringify(update)}`),
+            error: new Error(`Unknown player update: ${envelope.header.type}`),
             snapshot
         }
     }

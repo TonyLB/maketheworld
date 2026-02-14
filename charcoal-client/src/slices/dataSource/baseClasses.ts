@@ -20,7 +20,7 @@ export interface DataSourceInternal {
  */
 export type RecentEventEnvelope<Payload, Header extends StreamingEventHeader = StreamingEventHeader> = {
     header: Header;
-    event: Payload;
+    content: Payload;
     timestamp: number;
 }
 

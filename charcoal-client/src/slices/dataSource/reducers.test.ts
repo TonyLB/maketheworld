@@ -22,11 +22,11 @@ type TestEvent = TestSnapshot | TestUpdate
 const isTestSnapshot = (event: TestEvent): event is TestSnapshot => event.type === 'Snapshot'
 const isTestUpdate = (event: TestEvent): event is TestUpdate => event.type === 'Item Added' || event.type === 'Item Removed'
 
-// Helper to build envelope for tests (header + event + timestamp)
+// Helper to build envelope for tests (header + content + timestamp)
 function testEnvelope(event: TestEvent, timestamp: number, streamKey = 'stream1'): RecentEventEnvelope<TestEvent> {
     return {
         header: { dataSourceKey: 'test', streamKey, timestamp, type: event.type },
-        event,
+        content: event,
         timestamp
     }
 }
@@ -39,8 +39,9 @@ function testUpdateEnvelope(event: TestUpdate, timestamp: number): RecentEventEn
 // Mock aggregator
 const mockAggregator: DataSourceAggregator<TestSnapshot, TestUpdate> = {
     createEmpty: () => ({ type: 'Snapshot', items: [] }),
-    applyUpdate: (snapshot, update, _header) => {
+    applyUpdate: (snapshot, envelope) => {
         try {
+            const update = envelope.content
             if (update.type === 'Item Added') {
                 return {
                     success: true,
@@ -130,8 +131,8 @@ describe('dataSource reducers', () => {
 
             // 30 seconds ago from 70000 is 40000, so all events are recent
             expect(result).toHaveLength(2)
-            expect(result[0].event).toEqual({ type: 'Snapshot', items: ['a'] })
-            expect(result[1].event).toEqual({ type: 'Item Added', item: 'b' })
+            expect(result[0].content).toEqual({ type: 'Snapshot', items: ['a'] })
+            expect(result[1].content).toEqual({ type: 'Item Added', item: 'b' })
         })
 
         it('should consolidate old events into synthetic snapshot', () => {
@@ -152,11 +153,11 @@ describe('dataSource reducers', () => {
 
             // First event should be synthetic snapshot at 30-second boundary
             expect(result[0].timestamp).toBe(30000)
-            expect(result[0].event).toEqual({ type: 'Snapshot', items: ['a', 'b'] })
+            expect(result[0].content).toEqual({ type: 'Snapshot', items: ['a', 'b'] })
 
             // Second event should be the recent event
             expect(result[1].timestamp).toBe(50000)
-            expect(result[1].event).toEqual({ type: 'Item Added', item: 'c' })
+            expect(result[1].content).toEqual({ type: 'Item Added', item: 'c' })
         })
 
         it('should use createEmpty when no snapshot in old events', () => {
@@ -170,8 +171,8 @@ describe('dataSource reducers', () => {
 
             // Should create empty baseline and consolidate old events
             expect(result).toHaveLength(2)
-            expect(result[0].event).toEqual({ type: 'Snapshot', items: ['a', 'b'] })
-            expect(result[1].event).toEqual({ type: 'Item Added', item: 'c' })
+            expect(result[0].content).toEqual({ type: 'Snapshot', items: ['a', 'b'] })
+            expect(result[1].content).toEqual({ type: 'Item Added', item: 'c' })
         })
 
         it('should handle incoming timestamp as latest when greater than all events', () => {
@@ -186,7 +187,7 @@ describe('dataSource reducers', () => {
             // Should consolidate to synthetic snapshot
             expect(result).toHaveLength(1)
             expect(result[0].timestamp).toBe(70000)
-            expect(result[0].event).toEqual({ type: 'Snapshot', items: [] })
+            expect(result[0].content).toEqual({ type: 'Snapshot', items: [] })
         })
     })
     
@@ -231,7 +232,7 @@ describe('dataSource reducers', () => {
             expect(mockSerializer.deserializeSnapshot).toHaveBeenCalledWith({ type: 'Snapshot', items: ['new'] })
             expect(newState.subscribedStreams['stream1'].materializedView.items).toEqual(['new'])
             expect(newState.subscribedStreams['stream1'].recentEvents).toHaveLength(1)
-            expect(newState.subscribedStreams['stream1'].recentEvents[0].event).toEqual({ type: 'Snapshot', items: ['new'] })
+            expect(newState.subscribedStreams['stream1'].recentEvents[0].content).toEqual({ type: 'Snapshot', items: ['new'] })
         })
 
         it('should handle events that happened after snapshot', () => {
@@ -369,7 +370,7 @@ describe('dataSource reducers', () => {
             // Should use fast path
             expect(newState.subscribedStreams['stream1'].materializedView.items).toEqual(['a', 'b'])
             expect(newState.subscribedStreams['stream1'].recentEvents).toHaveLength(2)
-            expect(newState.subscribedStreams['stream1'].recentEvents[1].event).toEqual({ type: 'Item Added', item: 'b' })
+            expect(newState.subscribedStreams['stream1'].recentEvents[1].content).toEqual({ type: 'Item Added', item: 'b' })
         })
         
         it('should process out-of-order event with re-aggregation', () => {
