@@ -1,3 +1,4 @@
+import { StreamingEventEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { AssetsDataSource } from '../dataSource/abstract'
 import messageBus from '../messageBus'
 import { 
@@ -26,6 +27,12 @@ import {
     isComponentHeadersEvent,
     isAssetUpdatedHeadersEvent,
 } from './subscribedEvents'
+
+type ContentHeadersStreamEvent = (params: {
+    update: ContentHeadersUpdate | ZoneUpdatedEvent
+    streamKey: string
+    header: { type: string }
+}) => Promise<void>
 
 // Re-export for consumers that imported from this file
 export type { SubscribedAssetsContent, SubscribedWMLContent } from './subscribedEvents'
@@ -136,7 +143,7 @@ export const contentHeadersDataSource = new AssetsDataSource<
     eventSerializer: new ContentHeadersEventSerializer(),
     snapshotContentGenerator: generateContentHeadersSnapshot,
     subscribedEventTypeGuard: isContentHeadersSubscribedEnvelope,
-    receiveEvents: async ({ events, streamEvent }) => {
+    receiveEvents: async ({ events, streamEvent }: { events: Array<StreamingEventEnvelope<ContentHeadersSubscribedContent>>; streamEvent: ContentHeadersStreamEvent }) => {
         // Process mtw.assets events and generate content header and zone updates
         // Group content events by asset to enable aggregation
         // Cast to envelope union for TypeScript narrowing
@@ -173,7 +180,8 @@ export const contentHeadersDataSource = new AssetsDataSource<
                     assetId: zoneEvent.header.streamKey as AssetUUID,
                     fromZone,
                     toZone
-                }
+                },
+                header: { type: 'Zone Updated' }
             })
         })
 
@@ -199,7 +207,8 @@ export const contentHeadersDataSource = new AssetsDataSource<
                 if (contentHeadersUpdate) {
                     await streamEvent({
                         update: contentHeadersUpdate,
-                        streamKey: 'global'
+                        streamKey: 'global',
+                        header: { type: contentHeadersUpdate.type }
                     })
                 } else {
                     console.log(`No content header update generated for asset ${assetId} (no suitable components for headers)`)

@@ -36,36 +36,36 @@ import {
 
 const processZoneUpdated = async (
     event: Extract<LibraryIncomingEvent, { header: { type: 'Zone Updated' } }>,
-    streamEvent: (params: { update: AssetAdded | AssetRemoved; streamKey: string }) => Promise<void>
+    streamEvent: (params: { update: AssetAdded | AssetRemoved; streamKey: string; header: { type: string } }) => Promise<void>
 ): Promise<void> => {
     const content = await event.getContentInternal()
     const { fromZone, toZone } = content
     const assetId = event.header.streamKey as AssetUUID
     if (toZone === 'Library' && fromZone !== 'Library') {
-        await streamEvent({ update: { type: 'Asset Added', assetId }, streamKey: 'global' })
+        await streamEvent({ update: { type: 'Asset Added', assetId }, streamKey: 'global', header: { type: 'Asset Added' } })
     } else if (fromZone === 'Library' && toZone !== 'Library') {
-        await streamEvent({ update: { type: 'Asset Removed', assetId }, streamKey: 'global' })
+        await streamEvent({ update: { type: 'Asset Removed', assetId }, streamKey: 'global', header: { type: 'Asset Removed' } })
     }
 }
 
 const processAssetCached = async (
     event: Extract<LibraryIncomingEvent, { header: { type: 'Asset Cached' } }>,
-    streamEvent: (params: { update: AssetAdded | AssetRemoved; streamKey: string }) => Promise<void>
+    streamEvent: (params: { update: AssetAdded | AssetRemoved; streamKey: string; header: { type: string } }) => Promise<void>
 ): Promise<void> => {
     const content = await event.getContentInternal()
     const { zone } = content
     const assetId = event.header.streamKey as AssetUUID
     if (zone === 'Library') {
-        await streamEvent({ update: { type: 'Asset Added', assetId }, streamKey: 'global' })
+        await streamEvent({ update: { type: 'Asset Added', assetId }, streamKey: 'global', header: { type: 'Asset Added' } })
     }
 }
 
 const processAssetRemoved = async (
     event: Extract<LibraryIncomingEvent, { header: { type: 'Asset Removed' } }>,
-    streamEvent: (params: { update: AssetAdded | AssetRemoved; streamKey: string }) => Promise<void>
+    streamEvent: (params: { update: AssetAdded | AssetRemoved; streamKey: string; header: { type: string } }) => Promise<void>
 ): Promise<void> => {
     const assetId = event.header.streamKey as AssetUUID
-    await streamEvent({ update: { type: 'Asset Removed', assetId }, streamKey: 'global' })
+    await streamEvent({ update: { type: 'Asset Removed', assetId }, streamKey: 'global', header: { type: 'Asset Removed' } })
 }
 
 /**

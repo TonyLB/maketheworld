@@ -262,7 +262,8 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                         zone: 'Canon',
                         standardForm: expect.any(Object)
                     }),
-                    streamKey: 'global'
+                    streamKey: 'global',
+                    header: { type: 'Headers Updated' }
                 })
 
                 // Verify the actual WML content
@@ -391,7 +392,8 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                         assetId: 'global',
                         fromZone: 'Canon',
                         toZone: 'Library'
-                    }
+                    },
+                    header: { type: 'Zone Updated' }
                 })
             })
 
@@ -438,7 +440,8 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                         assetId: 'ASSET#test1',
                         fromZone: 'Canon',
                         toZone: 'Library'
-                    }
+                    },
+                    header: { type: 'Zone Updated' }
                 })
                 expect(mockStreamEvent).toHaveBeenNthCalledWith(2, {
                     streamKey: 'global',
@@ -447,7 +450,8 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                         assetId: 'ASSET#test2',
                         fromZone: 'Library',
                         toZone: 'Personal'
-                    }
+                    },
+                    header: { type: 'Zone Updated' }
                 })
             })
 
@@ -500,7 +504,8 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                         assetId: 'ASSET#test1',
                         fromZone: 'Canon',
                         toZone: 'Library'
-                    }
+                    },
+                    header: { type: 'Zone Updated' }
                 })
                 expect(mockStreamEvent).toHaveBeenCalledWith({
                     update: expect.objectContaining({
@@ -508,7 +513,8 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                         assetId: 'ASSET#test1',
                         zone: 'Canon'
                     }),
-                    streamKey: 'global'
+                    streamKey: 'global',
+                    header: { type: 'Headers Updated' }
                 })
             })
         })
@@ -597,6 +603,7 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                         zone: 'Canon',
                         standardForm: expect.any(Object)
                     }),
+                    header: { type: 'Headers Updated' },
                     streamKey: 'global'
                 })
 

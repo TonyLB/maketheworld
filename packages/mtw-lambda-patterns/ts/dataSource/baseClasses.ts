@@ -15,6 +15,10 @@ export type StreamingEventHeader = {
     // Optional small domain flags like zone can be added per DataSource
 }
 
+/** Subset of Header that streamEvent callers may supply; DataSource fills dataSourceKey, streamKey, timestamp. */
+export type StreamEventHeaderFragment<Header extends StreamingEventHeader = StreamingEventHeader> =
+    Omit<Header, 'dataSourceKey' | 'streamKey' | 'timestamp'>
+
 // External EventBridge format (still uses detailEnvelope on the wire)
 export type StreamingEvent = {
     messageType: 'StreamingEvent';

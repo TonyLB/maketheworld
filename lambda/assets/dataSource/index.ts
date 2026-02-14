@@ -18,7 +18,7 @@ import {
     isWMLContentUpdateEvent,
 } from './subscribedEvents'
 
-type StreamEventFn = (params: { update: AssetsEventUpdate; streamKey: string }) => Promise<void>
+type StreamEventFn = (params: { update: AssetsEventUpdate; streamKey: string; header: { type: string } }) => Promise<void>
 
 const handleContentUpdate = async (
     event: Extract<AssetsIncomingEvent, { header: { type: 'Content Update' } }>,
@@ -34,12 +34,14 @@ const handleContentUpdate = async (
         if (isNewAsset) {
             await streamEvent({
                 update: { type: 'Asset Added', zone, ...(player ? { player } : {}) },
-                streamKey: assetId
+                streamKey: assetId,
+                header: { type: 'Asset Added' }
             })
         }
         await streamEvent({
             update: { type: 'Asset Cached', zone },
             streamKey: assetId,
+            header: { type: 'Asset Cached' }
         })
     } catch (error) {
         console.error(`Error caching asset ${assetId}:`, error)
@@ -76,11 +78,12 @@ const handleZoneChanged = async (
         })
         const canonGraph = await internalCache.Graph.get(Items.map(({ AssetId }) => (AssetId)), 'back')
         const globalAssetsSorted = canonGraph.reverse().topologicalSort().flat()
-        await streamEvent({ update: { type: 'Canon Updated', assetIds: globalAssetsSorted }, streamKey: 'canon-global' })
+        await streamEvent({ update: { type: 'Canon Updated', assetIds: globalAssetsSorted }, streamKey: 'canon-global', header: { type: 'Canon Updated' } })
     }
     await streamEvent({
         update: { type: 'Zone Updated', fromZone, toZone, ...(player ? { player } : {}) },
-        streamKey: assetUUID
+        streamKey: assetUUID,
+        header: { type: 'Zone Updated' }
     })
 }
 
@@ -106,7 +109,8 @@ const handleAssetPurged = async (
     }
     await streamEvent({
         update: { type: 'Asset Removed', zone, ...(player ? { player } : {}) },
-        streamKey: assetId
+        streamKey: assetId,
+        header: { type: 'Asset Removed' }
     })
 }
 
@@ -147,7 +151,8 @@ const handleRemoveAsset = async (
     }
     await streamEvent({
         update: { type: 'Asset Removed', zone, ...(player ? { player } : {}) },
-        streamKey: assetId as string
+        streamKey: assetId as string,
+        header: { type: 'Asset Removed' }
     })
 }
 

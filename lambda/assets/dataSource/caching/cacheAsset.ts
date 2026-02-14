@@ -4,7 +4,7 @@ import ReadOnlyAssetWorkspace from "@tonylb/mtw-asset-workspace/ts/readOnly";
 import { assetDB } from "@tonylb/mtw-utilities/ts/dynamoDB";
 import { AssetKey } from "@tonylb/mtw-utilities/ts/types";
 import { AssetsEventUpdate, ComponentUpdatedEvent, ComponentRemovedEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/assets';
-import { Zone } from '@tonylb/mtw-interfaces/ts/baseClasses';
+import { Zone, isEphemeraId } from '@tonylb/mtw-interfaces/ts/baseClasses';
 
 /**
  * Cache asset content to DynamoDB storage
@@ -19,6 +19,7 @@ export const cacheAsset = async ({ assetId, streamEvent }: {
     streamEvent: (params: {
         update: AssetsEventUpdate;
         streamKey: string;
+        header: { type: string };
     }) => Promise<void>;
 }): Promise<{ zone: Zone; player?: string; isNewAsset: boolean }> => {
     const assetUUID = AssetKey(assetId)
@@ -140,11 +141,11 @@ export const cacheAsset = async ({ assetId, streamEvent }: {
                 return acc
             }, { componentsUpdated: [], componentsRemoved: [] })
         
-        // Invalidate component cache for all updated components
+        // Invalidate component cache for all updated components (cache is keyed by EphemeraId only)
         diff._components
             .filter((component) => (!!component.universalKey))
             .forEach(({ universalKey }) => {
-                if (universalKey) {
+                if (universalKey && isEphemeraId(universalKey)) {
                     internalCache.ComponentData.invalidate(universalKey)
                 }
             })
@@ -154,13 +155,15 @@ export const cacheAsset = async ({ assetId, streamEvent }: {
             ...componentsUpdated.map((componentUpdatedEvent) => (
                 streamEvent({
                     update: componentUpdatedEvent,
-                    streamKey: assetId
+                    streamKey: assetId,
+                    header: { type: componentUpdatedEvent.type }
                 })
             )),
             ...componentsRemoved.map((componentRemovedEvent) => (
                 streamEvent({
                     update: componentRemovedEvent,
-                    streamKey: assetId
+                    streamKey: assetId,
+                    header: { type: componentRemovedEvent.type }
                 })
             ))
         ])
@@ -183,12 +186,13 @@ export const cacheAsset = async ({ assetId, streamEvent }: {
             ]
             const metadataDiff = new StandardForm(metadataDiffNDJSON)
             await streamEvent({
-                update: { 
-                    type: 'Asset Updated', 
+                update: {
+                    type: 'Asset Updated',
                     standardForm: metadataDiff,
                     ...(player ? { player } : {})
                 },
-                streamKey: assetId
+                streamKey: assetId,
+                header: { type: 'Asset Updated' }
             })
         }
 
