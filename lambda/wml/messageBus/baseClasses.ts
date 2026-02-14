@@ -23,13 +23,14 @@ export type ErrorMessage = {
 
 // Constrained to only the internal events that WML dataSource actually subscribes to.
 // Header part: type, dataSourceKey, streamKey, timestamp.
-// Content part: CoordinationEventUpdate.
+// Content part: CoordinationEventUpdate. getContentInternal supports lazy evaluation (aligns with ExternalStreamingEventMessage).
 export type StreamingEventMessage = {
     type: 'StreamingEvent';
     dataSourceKey: 'internal';
     streamKey: string;
     header: StreamingEventHeader;
     content: CoordinationEventUpdate;
+    getContentInternal?: () => Promise<CoordinationEventUpdate>;
     timestamp: number;
 }
 
