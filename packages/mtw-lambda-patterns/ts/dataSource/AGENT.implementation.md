@@ -70,13 +70,32 @@ This dual approach ensures efficient delivery while maintaining the correct scop
 
 ### **Header/Content Envelope Model**
 
-DataSource events use a header/content split:
+DataSource events use a header + getContentInternal contract:
 
 - **Header**: Always present, never sidecarred. Contains `dataSourceKey`, `streamKey`, `timestamp`, `type`, and optional domain flags (e.g. `zone`). Used for routing and type guards.
-- **Content**: The full payload (inline or sidecar reference). What serializers and aggregators operate on.
-- **`subscribedEventTypeGuard`**: An **envelope type guard** `(envelope: StreamingEventEnvelope<unknown>) => envelope is StreamingEventEnvelope<SubscribedContent>`. The DataSource supplies this; the patterns package builds envelopes as `unknown`, filters with it, and passes only narrowed envelopes to `receiveEvents`. The guard inspects only `envelope.header` (no `getContentInternal()` call); the bus uses `content?: unknown` and `getContentInternal?: () => Promise<unknown>` so messageBus baseClasses stay free of DataSource payload imports.
-- **`receiveEvents`**: Receives `events: Array<StreamingEventEnvelope<UpdatePayload>>`; use `event.header` for branching and `event.content` for payload semantics.
-- **Initialize Subscription**: DataSource instances type-guard on `header.type === "Initialize Subscription - ${this.dataSourceKey}"` to determine which DataSource handles a given Initialize Subscription event. See [lambda/subscriptions/AGENT.eventBridge.md](../../../../lambda/subscriptions/AGENT.eventBridge.md) for the EventBridge event format.
+- **Payload**: Obtained via `getContentInternal()`. What serializers and aggregators operate on.
+- **`subscribedEventTypeGuard`**: An **envelope type guard** `(envelope: StreamingEventEnvelope<unknown>) => envelope is StreamingEventEnvelope<SubscribedContent>`. The DataSource supplies this; the patterns package builds envelopes as `unknown`, filters with it, and passes only narrowed envelopes to `receiveEvents`. The guard inspects only `envelope.header` (no `getContentInternal()` call); the bus uses required `getContentInternal: () => Promise<unknown>` so messageBus baseClasses stay free of DataSource payload imports.
+- **`receiveEvents`**: Receives `events: Array<StreamingEventEnvelope<SubscribedContent>>`; use `event.header` for branching and `event.getContentInternal()` for payload semantics.
+- **Initialize Subscription**: DataSource instances type-guard on `header.type === "Initialize Subscription - ${this.dataSourceKey}"` to determine which DataSource handles a given Initialize Subscription event. Init uses the same streaming-event contract: senders provide `getContentInternal`; the init subscription callback obtains the payload via `await payload.getContentInternal()`. See [lambda/subscriptions/AGENT.eventBridge.md](../../../../lambda/subscriptions/AGENT.eventBridge.md) for the EventBridge event format.
+
+### **MessageBus and streaming event contract**
+
+Streaming events on the messageBus follow a single contract so that baseClasses stay payload-agnostic and DataSources own their narrow view.
+
+**Lazy content:** DataSources receive events as `StreamingEventEnvelope<Content>` and obtain content via `getContentInternal()`. **`getContentInternal` is required** on every streaming event message. The patterns package callback uses `getContentInternal` only.
+
+**Spheres of authority:**
+
+| Layer | Responsibility |
+|-------|----------------|
+| **Publish sites** | Build envelope-shaped messages when sending streaming events: header and **required** `getContentInternal`. |
+| **messageBus / baseClasses** | Each lambda defines a single broad `StreamingEventMessage` with **required** `getContentInternal: () => Promise<unknown>`. No imports from dataSource or subscribedEvents. |
+| **Patterns subscribe()** | Structure guard validates well-formed streaming event; callback normalizes to `StreamingEventEnvelope<unknown>`, applies DataSource's envelope type guard, passes narrowed envelopes to `receiveEvents`. |
+| **subscribedEventTypeGuard** | Envelope type guard: filter and narrow to this DataSource's `SubscribedContent`; inspects only `envelope.header`. |
+
+**Trade-off:** The bus does not enforce compile-time alignment between header (e.g. `dataSourceKey`, `type`) and the payload returned by `getContentInternal()`. Sending sites must get it right; mistakes show up at runtime. We accept this so that baseClasses stay dumb and DataSources own their subscription types. Typed send-helpers in subscribedEvents recover sender-side compile-time safety without coupling the bus to payload types.
+
+**Initialize Subscription** uses a separate subscription path (e.g. `dataSourceKey === 'mtw.subscriptions'`); it is not part of the envelope type guard flow and is out of scope for subscribedEvents. Lambdas that forward init from EventBridge can use a dedicated send-helper (e.g. `dataSource/initSubscription.ts`) with `sendInitializeSubscription(bus, dataSourceKey, streamKey, sessionId, requestId)` so the init message is built with `getContentInternal` only.
 
 ### **SubscribedEvents pattern**
 
@@ -84,54 +103,52 @@ Each DataSource implementation should colocate its subscription surface in a **`
 
 **Contents of subscribedEvents.ts:**
 
-1. **Aggregate envelope type guard**: A single guard (e.g. `isWMLSubscribedEnvelope`, `isAssetsSubscribedEnvelope`) with signature `(e: StreamingEventEnvelope<unknown>) => e is StreamingEventEnvelope<SubscribedPayload>`. It inspects only `e.header` (e.g. `dataSourceKey`, `type`); no call to `getContentInternal()`. The DataSource constructor receives this as `subscribedEventTypeGuard`; the patterns package filters with it and passes narrowed envelopes to `receiveEvents`. The messageBus in each lambda uses a single broad `StreamingEventMessage` with `content?: unknown` and `getContentInternal?: () => Promise<unknown>` so baseClasses stay payload-agnostic.
+1. **Aggregate envelope type guard**: A single guard (e.g. `isWMLSubscribedEnvelope`, `isAssetsSubscribedEnvelope`) with signature `(e: StreamingEventEnvelope<unknown>) => e is StreamingEventEnvelope<SubscribedPayload>`. It inspects only `e.header` (e.g. `dataSourceKey`, `type`); no call to `getContentInternal()`. The DataSource constructor receives this as `subscribedEventTypeGuard`; the patterns package filters with it and passes narrowed envelopes to `receiveEvents`. The messageBus in each lambda uses a single broad `StreamingEventMessage` with required `getContentInternal: () => Promise<unknown>` so baseClasses stay payload-agnostic.
 
-2. **Subscribed payload type and per-event envelope guards**: A TypeScript union of the payload types this DataSource subscribes to. Functions that narrow to specific event variants (e.g. `isApplyEditEnvelope`, `isPlayerSettingsEnvelope`) for use inside `receiveEvents`. Export any constants used by the aggregate guard (e.g. event type sets).
+2. **Subscribed payload type and per-event envelope guards**: A TypeScript union of the payload types this DataSource subscribes to. Per-event guards should accept `StreamingEventEnvelope<SubscribedContent>` (the type `receiveEvents` actually receives) and narrow to the specific envelope variant (e.g. `event is Extract<AssetsIncomingEvent, { header: { type: 'Zone Changed' } }>`), so they work without casting the events array. Export any constants used by the aggregate guard (e.g. event type sets).
 
-3. **Typed send-helpers (optional)**: For each event kind that **this lambda** publishes to its own messageBus (not events it only forwards from EventBridge), add a helper `sendX(bus, streamKey, content)`. The bus is the first argument so the module stays decoupled from the messageBus singleton and tests can inject a mock. Signature pattern: `sendX(bus: { send: (payload: StreamingEventMessage) => void }, streamKey: string, content: XPayload): void`. The helper builds the envelope shape (header, content, getContentInternal) and calls `bus.send(...)`.
+3. **Typed send-helpers (optional)**: For each event kind that **this lambda** publishes to its own messageBus (not events it only forwards from EventBridge), add a helper `sendX(bus, streamKey, content)`. The bus is the first argument so the module stays decoupled from the messageBus singleton and tests can inject a mock. Signature pattern: `sendX(bus: { send: (payload: StreamingEventMessage) => void }, streamKey: string, content: XPayload): void`. The helper builds the envelope shape (header, getContentInternal) and calls `bus.send(...)`.
 
 **Conventions:**
 
 - Payload types are imported from upstream (mtw-interfaces, sibling modules, etc.); subscribedEvents owns the subscription union, envelope guards, and send-helpers only.
 - Initialize Subscription and other special/bootstrap events are out of scope for subscribedEvents; they stay on their separate subscription path.
+- Send-helpers are only for events **this lambda** publishes to its own messageBus; do not add helpers for events the lambda only forwards from EventBridge.
+- In lambdas with multiple DataSources (e.g. assets: dataSource, players, library, contentHeaders, characters), each DataSource lives in its own directory and has exactly one `subscribedEvents.ts` in that directory.
 - Reference implementation: [lambda/wml/dataSource/subscribedEvents.ts](../../../../lambda/wml/dataSource/subscribedEvents.ts).
 
 ### **Type-Safe Routing with Envelope-Level Discriminated Unions and Payload Purity**:
 
-When using header/content separation (`StreamingEventEnvelope<{ header, content }>`), discriminants such as `type` and `dataSourceKey` live on the `header`, not on the payload. To keep routing logic type-safe without embedding redundant `type` fields in `content`, and to keep payloads focused on domain data, the recommended pattern is:
+When using the header + getContentInternal envelope shape (`StreamingEventEnvelope<Content>`), discriminants such as `type` and `dataSourceKey` live on the `header`, not on the payload. To keep routing logic type-safe without embedding redundant `type` fields in `content`, and to keep payloads focused on domain data, the recommended pattern is:
 
-1. **Define an envelope-level union** for subscribed events in the lambda layer:
+1. **Define an envelope-level union** for subscribed events in the lambda layer (using `getContentInternal` to match `StreamingEventEnvelope`):
 
    ```ts
    export type AssetsIncomingEvent =
        | {
              header: StreamingEventHeader & { dataSourceKey: 'mtw.wml'; type: 'Zone Changed' };
-             content: WMLZoneEvent;
+             getContentInternal: () => Promise<WMLZoneEvent>;
          }
        | {
              header: StreamingEventHeader & { dataSourceKey: 'mtw.wml'; type: 'Asset Purged' };
-             content: WMLPurgeEvent;
+             getContentInternal: () => Promise<WMLPurgeEvent>;
          }
        | {
              header: StreamingEventHeader & { dataSourceKey: 'mtw.diagnostics'; type: 'Heal Global Values' };
-             content: { type: 'Heal Global Values'; connections?: unknown; assets?: unknown };
+             getContentInternal: () => Promise<{ type: 'Heal Global Values'; connections?: unknown; assets?: unknown }>;
          }
        | {
              header: StreamingEventHeader & { dataSourceKey: 'mtw.coordination'; type: 'Remove Asset' };
-             content: { type: 'Remove Asset'; assetId: string };
+             getContentInternal: () => Promise<{ type: 'Remove Asset'; assetId: string }>;
          };
    ```
 
-2. **Cast the incoming `events` array** from the generic `StreamingEventEnvelope<SubscribedContent>[]` to the envelope union where you need stronger typing:
+2. Either **cast the incoming `events` array** to the envelope union where you need stronger typing, or **type per-event guards** to accept `StreamingEventEnvelope<SubscribedContent>` and narrow to the union variant (preferred, so no cast is needed).
+
+3. **Use small, focused type guard functions** to route on `header` while narrowing the envelope (and therefore the return type of `getContentInternal()`). The guard should accept `StreamingEventEnvelope<SubscribedContent>` so it works with the events array without a cast:
 
    ```ts
-   const typedEvents = events as AssetsIncomingEvent[];
-   ```
-
-3. **Use small, focused type guard functions** to route on `header` while narrowing the envelope (and therefore `content`):
-
-   ```ts
-   const isWMLZoneChangedEvent = (event: AssetsIncomingEvent): event is Extract<
+   const isWMLZoneChangedEvent = (event: StreamingEventEnvelope<AssetsSubscribedContent>): event is Extract<
        AssetsIncomingEvent,
        { header: { dataSourceKey: 'mtw.wml'; type: 'Zone Changed' } }
    > => (
@@ -139,10 +156,11 @@ When using header/content separation (`StreamingEventEnvelope<{ header, content 
        event.header.type === 'Zone Changed'
    );
 
-   // In receiveEvents
-   await Promise.all(typedEvents.map(async (event) => {
+   // In receiveEvents (event is StreamingEventEnvelope<SubscribedContent>; guards narrow to union variant)
+   await Promise.all(events.map(async (event) => {
        if (isWMLZoneChangedEvent(event)) {
-           const { fromZone, toZone } = event.content; // fully narrowed
+           const content = await event.getContentInternal(); // fully narrowed
+           const { fromZone, toZone } = content;
            // ...
        }
    }));
@@ -153,7 +171,7 @@ This pattern works around a TypeScript limitation: the compiler does not automat
 **Payload Purity Guidelines**:
 
 - **Header is authoritative for routing**: `header.type`, `header.dataSourceKey`, and any small routing flags added to the header are the single source of truth for routing and discrimination. Lambdas and serializers should never rely on payload `type` for routing once header is available.
-- **Payloads focus on domain data**: Payload `content` should represent the domain event body (for example, WML edits, asset metadata), not duplicate routing metadata that already exists in the header.
+- **Payloads focus on domain data**: The payload (from `getContentInternal()`) should represent the domain event body (for example, WML edits, asset metadata), not duplicate routing metadata that already exists in the header.
 - **Compatibility with existing contracts**:
   - For externally-constrained contracts (for example, EventBridge payloads in `mtw-interfaces/ts/eventBridge/**`), payload `type` is preserved where required, but treated as **derived** from `header.type` and not used for routing.
   - When reconstructing internal events in `deserialize`, use `header.type` to set the internal `type` field; payload `type` is at most validated, not trusted as the primary discriminator.

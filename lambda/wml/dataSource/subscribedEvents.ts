@@ -54,7 +54,6 @@ export function sendApplyEdit(bus: Bus, streamKey: string, content: ApplyEditReq
         dataSourceKey: 'internal',
         streamKey,
         header,
-        content,
         getContentInternal: () => Promise.resolve(content),
         timestamp,
     })
@@ -73,7 +72,6 @@ export function sendMoveAsset(bus: Bus, streamKey: string, content: MoveAssetReq
         dataSourceKey: 'internal',
         streamKey,
         header,
-        content,
         getContentInternal: () => Promise.resolve(content),
         timestamp,
     })
@@ -92,7 +90,6 @@ export function sendPurgeAsset(bus: Bus, streamKey: string, content: PurgeAssetR
         dataSourceKey: 'internal',
         streamKey,
         header,
-        content,
         getContentInternal: () => Promise.resolve(content),
         timestamp,
     })

@@ -377,7 +377,6 @@ export class DataSource<
             streamKey,
             timestamp: now,
             header,
-            content: update,
             getContentInternal: () => Promise.resolve(update)
         }
 
@@ -622,8 +621,7 @@ export class DataSource<
             if (!message.header || typeof message.header.type !== 'string') {
                 return false
             }
-            const hasContent = typeof message.getContentInternal === 'function' || message.content !== undefined
-            return hasContent
+            return typeof message.getContentInternal === 'function'
         }
 
         // Subscribe to messageBus with structure guard; callback builds envelopes as unknown, filters with envelope guard, passes narrowed to receiveEvents.
@@ -640,7 +638,7 @@ export class DataSource<
                 })
                 const envelopes: Array<StreamingEventEnvelope<unknown>> = payloads.map((p) => ({
                     header: header(p),
-                    getContentInternal: p.getContentInternal ?? (() => Promise.resolve(p.content as unknown))
+                    getContentInternal: p.getContentInternal
                 }))
                 const narrowed = envelopes.filter((e): e is StreamingEventEnvelope<SubscribedContent> => this.subscribedEventTypeGuard!(e))
                 await this.receiveEvents!({
@@ -652,24 +650,20 @@ export class DataSource<
     }
 
     private subscribeToInitializeEvents(): void {
-        // Type guard for Initialize Subscription events in internal StreamingEvent format
-        const initializeEventTypeGuard = (message: any): message is { 
-            type: 'StreamingEvent', 
-            dataSourceKey: 'mtw.subscriptions',
-            streamKey: string,
-            header: StreamingEventHeader,
-            content: {
-                sessionId: string,
-                requestId: string
-            },
-            timestamp: number
+        // Type guard for Initialize Subscription events in internal StreamingEvent format (getContentInternal only)
+        const initializeEventTypeGuard = (message: any): message is {
+            type: 'StreamingEvent';
+            dataSourceKey: 'mtw.subscriptions';
+            streamKey: string;
+            header: StreamingEventHeader;
+            getContentInternal: () => Promise<{ sessionId: string; requestId: string }>;
+            timestamp: number;
         } => {
             return message.type === 'StreamingEvent' &&
                    message.dataSourceKey === 'mtw.subscriptions' &&
                    message.header?.type === `Initialize Subscription - ${this.dataSourceKey}` &&
                    typeof message.streamKey === 'string' &&
-                   typeof message.content?.sessionId === 'string' &&
-                   typeof message.content?.requestId === 'string'
+                   typeof message.getContentInternal === 'function'
         }
 
         // Subscribe to Initialize Subscription events with higher priority
@@ -681,8 +675,13 @@ export class DataSource<
                 // Process each Initialize Subscription event
                 for (const payload of payloads) {
                     const { streamKey } = payload
-                    const { sessionId } = payload.content
-                    
+                    const content = await payload.getContentInternal()
+                    if (typeof content?.sessionId !== 'string') {
+                        console.error(`Invalid Initialize Subscription payload for streamKey: ${streamKey}: missing sessionId`)
+                        continue
+                    }
+                    const { sessionId } = content
+
                     try {
                         // Use the existing initializeSubscription method
                         await this.initializeSubscription({ sessionId, streamKey })

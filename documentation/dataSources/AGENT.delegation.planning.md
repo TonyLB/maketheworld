@@ -172,31 +172,29 @@ This mode is appropriate when:
 
 ---
 
-## Foundational step: explicit header vs content in DataSource events (implemented)
+## Foundational step: explicit header + getContentInternal (implemented)
 
-DataSource events **now** explicitly distinguish **header** (small, always-inline, never-sidecarred) from **content** (the full payload that is actually recorded/transmitted in external form and may grow large or be sidecar-backed). This is implemented in `mtw-lambda-patterns` (e.g. `StreamingEventHeader`, `StreamingEventEnvelope`), the lambda gates (assets, WML, ephemera), and the client DataSource slices (`ClientStreamingHeader`, `ClientStreamingEnvelope`). The **next step** is to introduce lazy `getContentInternal`.
+DataSource events **now** use a **header** (small, always-inline, never-sidecarred) plus **getContentInternal** (lazy access to the payload). There is no `content` property on the contract. This is implemented in `mtw-lambda-patterns` (e.g. `StreamingEventHeader`, `StreamingEventEnvelope`), the lambda gates (assets, WML, ephemera), and the client DataSource slices (`ClientStreamingHeader`, `ClientStreamingEnvelope`).
 
 - **Header fields (implemented)**: At minimum include `type` (the discriminant for TypeScript unions) and envelope metadata (`dataSourceKey`, `streamKey`, `timestamp`), and may include a few small domain flags like `zone`. These fields:
   - Are always present and never stored in sidecars.
   - Are exactly what typeguards and routing logic need to inspect first.
-  - Do not require access to the heavy content body.
-- **Content fields (implemented)**: Everything else that the DataSource records and transmits as its external payload (e.g. WML text, StandardFormData serialized as JSON/NDJSON, large component lists, or `{ sidecarUri: string }` references). Today content is passed eagerly (and in some paths is still internal). When we add lazy resolution, we will add a function `getContentInternal` **constructed** from this representation (external inline, sidecar ref, or already-internal) that when executed produces the internal form; handlers will call that function when they need it.
+  - Do not require access to the heavy payload.
+- **Payload (implemented)**: Obtained only via **getContentInternal**: an async function on the envelope that, when called, returns the internal representation of the payload. It is constructed at event creation from whatever representation we have (inline external, sidecar ref, or already-internal). Handlers that need the payload call `await event.getContentInternal()`; routing and filters use only header.
 
-Current implementation (eager content today):
+Current implementation:
 
-- **Lambda gates (assets, WML, ephemera)**: Build a **header** and publish `{ dataSourceKey, streamKey, timestamp, header, content }` to the messageBus. `header` contains only cheap discriminant/metadata fields; `content` is the payload (today often internal after deserialization at the gate).
-- **DataSource subscription**: `subscribedEventTypeGuard(header: StreamingEventHeader)` and the messageBus filter operate on **header** only. `receiveEvents` receives `events: Array<StreamingEventEnvelope<SubscribedContent>>` and uses `event.header.*` for routing and `event.content` when it needs to compute or emit.
-- **Client**: DataSource slices use `ClientStreamingHeader` and `ClientStreamingEnvelope`; reducers branch on `header` and deserialize `content` for aggregation.
+- **Lambda gates (assets, WML, ephemera)**: Build **header** and **getContentInternal**, and publish `{ type, dataSourceKey, streamKey, timestamp, header, getContentInternal }` to the messageBus. No `content` property.
+- **DataSource subscription**: `subscribedEventTypeGuard` and the messageBus filter operate on **header** only. `receiveEvents` receives `events: Array<StreamingEventEnvelope<SubscribedContent>>` and uses `event.header.*` for routing and `await event.getContentInternal()` when it needs the payload.
+- **Client**: DataSource slices use `ClientStreamingHeader` and `ClientStreamingEnvelope`; reducers branch on `header` and obtain payload via the envelope's lazy resolution (e.g. getContentInternal or equivalent).
 
-The lazy `getContentInternal` refactor is a mechanical next step: add a function `getContentInternal: () => Promise<Internal>` (or sync) to the envelope, constructed at event creation from the current `content` (or from external/sidecar when we carry that), and have handlers call it when they need internal form while leaving all header-based routing unchanged.
+### getContentInternal as the single payload accessor
 
-### Bridge to lazy resolution: getContentInternal as a constructed function
-
-- We add an async (or sync) function on the envelope that **when executed** returns the internal representation of the content. Call it `getContentInternal`; the important part is that it is **constructed at event creation time** from whatever we have.
-- **Inline external content:** The function simply deserializes the inline payload when called.
-- **Sidecarred content:** The function fetches the sidecar, interprets the response into external content (e.g. JSON parse), then deserializes to internal.
-- **Already-internal content (e.g. same-process messageBus today):** The function returns the content as-is (identity). No fetch, no deserialize.
-- Handlers and routing: routing uses only header; handlers that need the payload call this function. No need to first migrate the entire pipeline to "external only on the bus"—we can introduce this lazy function alongside current content (internal or external) and have the constructor choose the right implementation.
+- The envelope carries **getContentInternal: () => Promise<Internal>**, constructed at event creation.
+- **Inline external content:** The function deserializes the inline payload when called.
+- **Sidecarred content:** The function fetches the sidecar, interprets to external (e.g. JSON parse), then deserializes to internal.
+- **Already-internal (e.g. same-process messageBus):** The function returns the payload as-is (identity).
+- Routing uses only header; handlers that need the payload call this function.
 
 ---
 

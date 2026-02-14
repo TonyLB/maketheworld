@@ -47,7 +47,6 @@ export function sendPlayerSettingsUpdated(bus: Bus, streamKey: string, content: 
         dataSourceKey: 'internal',
         streamKey,
         header,
-        content,
         getContentInternal: () => Promise.resolve(content),
         timestamp,
     })
