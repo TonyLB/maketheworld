@@ -33,8 +33,6 @@ describe('EphemeraEventSerializer', () => {
             }
 
             const externalEvent = serializer.serialize({
-                dataSourceKey: 'mtw.ephemera',
-                streamKey: 'EPHEMERA#test',
                 update: eventPayload,
                 header: ephemeraHeader(eventPayload.type)
             })
@@ -50,8 +48,6 @@ describe('EphemeraEventSerializer', () => {
             }
 
             const internalEvent = serializer.deserialize({
-                dataSourceKey: 'mtw.ephemera',
-                streamKey: 'EPHEMERA#test',
                 externalUpdate: eventPayload,
                 header: ephemeraHeader(eventPayload.type)
             })
@@ -68,16 +64,12 @@ describe('EphemeraEventSerializer', () => {
 
             // Serialize to external format
             const externalEvent = serializer.serialize({
-                dataSourceKey: 'mtw.ephemera',
-                streamKey: 'EPHEMERA#test',
                 update: originalPayload,
                 header: ephemeraHeader(originalPayload.type)
             })
 
             // Deserialize back to internal format
             const deserializedEvent = serializer.deserialize({
-                dataSourceKey: 'mtw.ephemera',
-                streamKey: 'EPHEMERA#test',
                 externalUpdate: externalEvent,
                 header: ephemeraHeader(externalEvent.type)
             })
@@ -88,8 +80,6 @@ describe('EphemeraEventSerializer', () => {
 
         it('should handle null deserialization', () => {
             const result = serializer.deserialize({
-                dataSourceKey: 'mtw.ephemera',
-                streamKey: 'EPHEMERA#test',
                 externalUpdate: null as any,
                 header: ephemeraHeader('Test Event')
             })
@@ -111,8 +101,6 @@ describe('EphemeraEventSerializer', () => {
             }
 
             const externalEvent = serializer.serialize({
-                dataSourceKey: 'mtw.ephemera',
-                streamKey: 'EPHEMERA#test',
                 update: complexPayload,
                 header: ephemeraHeader(complexPayload.type)
             })

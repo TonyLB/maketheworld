@@ -353,8 +353,6 @@ export class DataSource<
                 streamKey,
                 timestamp: now,
                 update: this.eventSerializer.serialize({
-                    dataSourceKey: this.dataSourceKey,
-                    streamKey,
                     update,
                     header
                 })

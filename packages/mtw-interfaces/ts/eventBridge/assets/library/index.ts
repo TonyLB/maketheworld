@@ -59,8 +59,6 @@ export type LibraryExternal = LibrarySnapshotExternal | AssetAddedExternal | Ass
 
 // Deserialize params envelope - header discriminates content shape
 type LibraryDeserializeParams = {
-    dataSourceKey: string
-    streamKey: string
     externalUpdate: LibraryExternal
     header: StreamingEventHeader
 }
@@ -89,27 +87,25 @@ export class LibraryEventSerializer implements DataSourceEventSerializer<
     LibrarySnapshotExternal
 > {
     serialize(params: {
-        dataSourceKey: string;
-        streamKey: string;
         update: LibraryEventUpdate;
         header: StreamingEventHeader;
     }): LibraryExternal {
-        const { update } = params
+        const { update, header } = params
         
-        if (isAssetAdded(update)) {
-            // Pass through - internal and external formats are identical
+        if (header.type === 'Asset Added') {
+            const added = update as AssetAdded
             return {
                 type: 'Asset Added',
-                assetId: update.assetId
+                assetId: added.assetId
             }
-        } else if (isAssetRemoved(update)) {
-            // Pass through - internal and external formats are identical
+        } else if (header.type === 'Asset Removed') {
+            const removed = update as AssetRemoved
             return {
                 type: 'Asset Removed',
-                assetId: update.assetId
+                assetId: removed.assetId
             }
         } else {
-            throw new Error(`Unknown streaming event type in LibraryEventUpdate: ${JSON.stringify(update)}`)
+            throw new Error(`Unknown streaming event type in LibraryEventUpdate: ${header.type}`)
         }
     }
     

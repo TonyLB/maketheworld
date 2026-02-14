@@ -290,8 +290,6 @@ describe('Library EventBridge Contracts', () => {
         describe('serialize', () => {
             it('should serialize Asset Added event', () => {
                 const result = serializer.serialize({
-                    dataSourceKey: 'mtw.assets.library',
-                    streamKey: 'global',
                     update: {
                         type: 'Asset Added',
                         assetId: 'ASSET#test1' as AssetUUID
@@ -307,8 +305,6 @@ describe('Library EventBridge Contracts', () => {
 
             it('should serialize Asset Removed event', () => {
                 const result = serializer.serialize({
-                    dataSourceKey: 'mtw.assets.library',
-                    streamKey: 'global',
                     update: {
                         type: 'Asset Removed',
                         assetId: 'ASSET#test2' as AssetUUID
@@ -325,8 +321,6 @@ describe('Library EventBridge Contracts', () => {
             it('should throw error for unknown event type', () => {
                 expect(() => {
                     serializer.serialize({
-                        dataSourceKey: 'mtw.assets.library',
-                        streamKey: 'global',
                         update: {
                             type: 'Invalid',
                             data: 'bad'
@@ -345,8 +339,6 @@ describe('Library EventBridge Contracts', () => {
                 }
 
                 const result = serializer.deserialize({
-                    dataSourceKey: 'mtw.assets.library',
-                    streamKey: 'global',
                     externalUpdate,
                     header: libraryHeader('Asset Added')
                 })
@@ -364,8 +356,6 @@ describe('Library EventBridge Contracts', () => {
                 }
 
                 const result = serializer.deserialize({
-                    dataSourceKey: 'mtw.assets.library',
-                    streamKey: 'global',
                     externalUpdate,
                     header: libraryHeader('Asset Removed')
                 })
@@ -383,8 +373,6 @@ describe('Library EventBridge Contracts', () => {
                 } as any
 
                 const result = serializer.deserialize({
-                    dataSourceKey: 'mtw.assets.library',
-                    streamKey: 'global',
                     externalUpdate,
                     header: libraryHeader('Asset Added')
                 })
@@ -399,8 +387,6 @@ describe('Library EventBridge Contracts', () => {
                 } as any
 
                 const result = serializer.deserialize({
-                    dataSourceKey: 'mtw.assets.library',
-                    streamKey: 'global',
                     externalUpdate,
                     header: libraryHeader('Asset Removed')
                 })
@@ -415,8 +401,6 @@ describe('Library EventBridge Contracts', () => {
                 } as any
 
                 const result = serializer.deserialize({
-                    dataSourceKey: 'mtw.assets.library',
-                    streamKey: 'global',
                     externalUpdate,
                     header: libraryHeader('Unknown Type')
                 })
@@ -433,8 +417,6 @@ describe('Library EventBridge Contracts', () => {
                 }
 
                 const result = serializer.deserialize({
-                    dataSourceKey: 'mtw.assets.library',
-                    streamKey: 'global',
                     externalUpdate,
                     header: libraryHeader('Asset Removed')
                 })

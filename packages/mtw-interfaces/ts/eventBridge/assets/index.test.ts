@@ -50,8 +50,6 @@ describe('AssetsEventSerializer', () => {
             }
 
             const externalEvent = serializer.serialize({
-                dataSourceKey: assetsDataSourceKey,
-                streamKey: assetsStreamKey,
                 update: componentEvent,
                 header: makeAssetsHeader('Component Updated')
             })
@@ -79,8 +77,6 @@ describe('AssetsEventSerializer', () => {
             }
 
             const internalEvent = serializer.deserialize({
-                dataSourceKey: assetsDataSourceKey,
-                streamKey: assetsStreamKey,
                 externalUpdate: externalEvent,
                 header: makeAssetsHeader('Component Updated')
             })
@@ -107,16 +103,12 @@ describe('AssetsEventSerializer', () => {
 
             // Serialize to external format
             const externalEvent = serializer.serialize({
-                dataSourceKey: assetsDataSourceKey,
-                streamKey: assetsStreamKey,
                 update: originalEvent,
                 header: makeAssetsHeader('Component Updated')
             })
 
             // Deserialize back to internal format
             const deserializedEvent = serializer.deserialize({
-                dataSourceKey: assetsDataSourceKey,
-                streamKey: assetsStreamKey,
                 externalUpdate: externalEvent,
                 header: makeAssetsHeader('Component Updated')
             })
@@ -143,8 +135,6 @@ describe('AssetsEventSerializer', () => {
             }
 
             const externalEvent = serializer.serialize({
-                dataSourceKey: assetsDataSourceKey,
-                streamKey: assetsStreamKey,
                 update: componentEvent,
                 header: makeAssetsHeader('Component Removed')
             })
@@ -172,8 +162,6 @@ describe('AssetsEventSerializer', () => {
             }
 
             const internalEvent = serializer.deserialize({
-                dataSourceKey: assetsDataSourceKey,
-                streamKey: assetsStreamKey,
                 externalUpdate: externalEvent,
                 header: makeAssetsHeader('Component Removed')
             })
@@ -200,16 +188,12 @@ describe('AssetsEventSerializer', () => {
 
             // Serialize to external format
             const externalEvent = serializer.serialize({
-                dataSourceKey: assetsDataSourceKey,
-                streamKey: assetsStreamKey,
                 update: originalEvent,
                 header: makeAssetsHeader('Component Removed')
             })
 
             // Deserialize back to internal format
             const deserializedEvent = serializer.deserialize({
-                dataSourceKey: assetsDataSourceKey,
-                streamKey: assetsStreamKey,
                 externalUpdate: externalEvent,
                 header: makeAssetsHeader('Component Removed')
             })
@@ -232,8 +216,6 @@ describe('AssetsEventSerializer', () => {
             }
 
             const externalEvent = serializer.serialize({
-                dataSourceKey: assetsDataSourceKey,
-                streamKey: assetsStreamKey,
                 update: assetEvent,
                 header: makeAssetsHeader('Asset Cached')
             })
@@ -250,8 +232,6 @@ describe('AssetsEventSerializer', () => {
             }
 
             const externalEvent = serializer.serialize({
-                dataSourceKey: assetsDataSourceKey,
-                streamKey: assetsStreamKey,
                 update: assetEvent,
                 header: makeAssetsHeader('Asset Decached')
             })
@@ -266,8 +246,6 @@ describe('AssetsEventSerializer', () => {
             }
 
             const externalEvent = serializer.serialize({
-                dataSourceKey: assetsDataSourceKey,
-                streamKey: assetsStreamKey,
                 update: assetEvent,
                 header: makeAssetsHeader('Asset Removed')
             })
@@ -285,8 +263,6 @@ describe('AssetsEventSerializer', () => {
             }
 
             const externalEvent = serializer.serialize({
-                dataSourceKey: assetsDataSourceKey,
-                streamKey: assetsStreamKey,
                 update: assetEvent,
                 header: makeAssetsHeader('Canon Updated')
             })
@@ -304,8 +280,6 @@ describe('AssetsEventSerializer', () => {
             }
 
             const internalEvent = serializer.deserialize({
-                dataSourceKey: assetsDataSourceKey,
-                streamKey: assetsStreamKey,
                 externalUpdate: externalEvent,
                 header: makeAssetsHeader('Asset Cached')
             })
@@ -326,16 +300,12 @@ describe('AssetsEventSerializer', () => {
 
             // Serialize to external format
             const externalEvent = serializer.serialize({
-                dataSourceKey: assetsDataSourceKey,
-                streamKey: assetsStreamKey,
                 update: originalEvent,
                 header: makeAssetsHeader('Asset Cached')
             })
 
             // Deserialize back to internal format
             const deserializedEvent = serializer.deserialize({
-                dataSourceKey: assetsDataSourceKey,
-                streamKey: assetsStreamKey,
                 externalUpdate: externalEvent,
                 header: makeAssetsHeader('Asset Cached')
             })
@@ -363,8 +333,6 @@ describe('AssetsEventSerializer', () => {
             }
 
             const internalEvent = serializer.deserialize({
-                dataSourceKey: assetsDataSourceKey,
-                streamKey: assetsStreamKey,
                 externalUpdate: externalEvent,
                 header: makeAssetsHeader('Component Removed')
             })
@@ -386,8 +354,6 @@ describe('AssetsEventSerializer', () => {
 
             expect(() => {
                 serializer.serialize({
-                    dataSourceKey: assetsDataSourceKey,
-                    streamKey: assetsStreamKey,
                     update: unknownEvent,
                     header: makeAssetsHeader('Unknown Event')
                 })
@@ -403,8 +369,6 @@ describe('AssetsEventSerializer', () => {
 
             expect(() => {
                 serializer.deserialize({
-                    dataSourceKey: assetsDataSourceKey,
-                    streamKey: assetsStreamKey,
                     externalUpdate: externalEvent,
                     header: makeAssetsHeader('Component Updated')
                 })
@@ -424,8 +388,6 @@ describe('AssetsEventSerializer', () => {
 
             expect(() => {
                 serializer.deserialize({
-                    dataSourceKey: assetsDataSourceKey,
-                    streamKey: assetsStreamKey,
                     externalUpdate: externalEvent,
                     header: makeAssetsHeader('Component Updated')
                 })

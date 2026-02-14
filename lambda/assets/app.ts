@@ -125,8 +125,6 @@ export const handler = async (event, context) => {
                 }
                 // Deserialize the external event to internal format using the serializer
                 const internalEvent = deserializer.deserialize({
-                    dataSourceKey: coreFormat.dataSourceKey,
-                    streamKey: coreFormat.streamKey,
                     externalUpdate: coreFormat.update as any,
                     header
                 })

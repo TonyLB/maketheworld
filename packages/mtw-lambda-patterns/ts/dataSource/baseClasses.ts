@@ -59,11 +59,10 @@ export interface DataSourceEventSerializer<
     ExternalSnapshotPayload extends SerializableObject = SerializableObject
 > {
     /**
-     * Convert internal update payload to external format for EventBridge Detail
+     * Convert internal update payload to external format for EventBridge Detail.
+     * Implementations should use header.type for discriminating event variant; update carries payload only.
      */
     serialize(params: {
-        dataSourceKey: string;
-        streamKey: string;
         update: UpdatePayload;
         header: StreamingEventHeader;
     }): ExternalUpdatePayload;
@@ -73,8 +72,6 @@ export interface DataSourceEventSerializer<
      * Returns null if the event cannot be deserialized
      */
     deserialize(params: {
-        dataSourceKey: string;
-        streamKey: string;
         externalUpdate: ExternalUpdatePayload;
         header: StreamingEventHeader;
     }): UpdatePayload | null;

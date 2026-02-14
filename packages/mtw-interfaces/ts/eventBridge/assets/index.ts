@@ -223,54 +223,52 @@ export type AssetLevelEventExternal =
  */
 export class AssetsEventSerializer implements DataSourceEventSerializer<AssetsEventUpdate, AssetsEventExternal> {
     serialize(params: {
-        dataSourceKey: string;
-        streamKey: string;
         update: AssetsEventUpdate;
         header: StreamingEventHeader;
     }): AssetsEventExternal {
-        const { update } = params
+        const { update, header } = params
         
-        // Use the embedded type property to determine what type of event we're serializing
-        if (isAssetsComponentEvent(update)) {
-            const { component } = update
+        if (header.type === 'Component Updated') {
+            const comp = update as ComponentUpdatedEvent
             const base = {
-                componentId: component.universalKey || '', // Extract componentId from component
-                wml: schemaToWML([component.schema])
-            }
-            if (update.type === 'Component Removed') {
-                return {
-                    type: 'Component Removed',
-                    ...base
-                }
+                componentId: comp.component.universalKey || '',
+                wml: schemaToWML([comp.component.schema])
             }
             return {
                 type: 'Component Updated',
                 ...base
             }
-        } else if (isAssetsLevelEvent(update)) {
-            // This is an asset-level event - pass through as-is since internal and external types are now identical
-            if ((update as any).type === 'Asset Updated') {
-                const internal = update as AssetUpdatedEventUpdate
-                return {
-                    type: 'Asset Updated',
-                    wml: schemaToWML([internal.standardForm.schema]),
-                    ...(internal.player ? { player: internal.player } : {})
-                }
+        } else if (header.type === 'Component Removed') {
+            const comp = update as ComponentRemovedEvent
+            const base = {
+                componentId: comp.component.universalKey || '',
+                wml: schemaToWML([comp.component.schema])
             }
-            return update as AssetLevelEventExternal
+            return {
+                type: 'Component Removed',
+                ...base
+            }
+        } else if (header.type === 'Asset Updated') {
+            const internal = update as AssetUpdatedEventUpdate
+            return {
+                type: 'Asset Updated',
+                wml: schemaToWML([internal.standardForm.schema]),
+                ...(internal.player ? { player: internal.player } : {})
+            }
         } else {
-            throw new Error(`Unknown event type in AssetsEventUpdate: ${JSON.stringify(update)}`)
+            const assetLevelTypes = new Set(['Asset Added', 'Asset Cached', 'Asset Decached', 'Asset Removed', 'Canon Updated', 'Zone Updated'])
+            if (assetLevelTypes.has(header.type)) {
+                return update as AssetLevelEventExternal
+            }
+            throw new Error(`Unknown event type in AssetsEventUpdate: ${header.type}`)
         }
     }
     
     deserialize(params: { 
-        dataSourceKey: string
-        detailType?: string
-        streamKey: string
         externalUpdate: AssetsEventExternal
         header: StreamingEventHeader
     }): AssetsEventUpdate | null {
-        const { streamKey, externalUpdate, header } = params
+        const { externalUpdate, header } = params
         const eventType = header.type
         
         // Use the header type to determine how to deserialize

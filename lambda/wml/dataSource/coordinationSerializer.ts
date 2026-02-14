@@ -159,37 +159,46 @@ export class CoordinationEventSerializer implements DataSourceEventSerializer<Co
      * Serialize an internal event to external format
      * for EventBridge transmission
      */
-    serialize({ update }: { update: CoordinationEventUpdate }): CoordinationEventExternal {
-        if (update.type === 'Move Asset') {
+    serialize(params: {
+        update: CoordinationEventUpdate;
+        header: StreamingEventHeader;
+    }): CoordinationEventExternal {
+        const { update, header } = params
+        if (header.type === 'Move Asset') {
+            const move = update as MoveAssetRequest
             return {
-                type: update.type,
-                fromZone: update.fromZone,
-                toZone: update.toZone,
-                player: update.player,
-                subFolder: update.subFolder
+                type: 'Move Asset',
+                fromZone: move.fromZone,
+                toZone: move.toZone,
+                player: move.player,
+                subFolder: move.subFolder
             }
-        } else if (update.type === 'Apply Edit') {
+        } else if (header.type === 'Apply Edit') {
+            const apply = update as ApplyEditRequest
             return {
-                type: update.type,
-                RequestId: update.RequestId,
-                schema: update.schema,
-                createIfNeeded: update.createIfNeeded,
-                zone: update.zone
+                type: 'Apply Edit',
+                RequestId: apply.RequestId,
+                schema: apply.schema,
+                createIfNeeded: apply.createIfNeeded,
+                zone: apply.zone
             }
-        } else if (update.type === 'Create Snapshot') {
+        } else if (header.type === 'Create Snapshot') {
             return {
-                type: update.type
+                type: 'Create Snapshot'
             }
-        } else if (update.type === 'Purge Asset') {
+        } else if (header.type === 'Purge Asset') {
+            const purge = update as PurgeAssetRequest
             return {
-                type: update.type,
-                expectedZone: update.expectedZone,
-                requireExists: update.requireExists
+                type: 'Purge Asset',
+                expectedZone: purge.expectedZone,
+                requireExists: purge.requireExists
+            }
+        } else if (header.type === 'Canonize Asset' || header.type === 'Decanonize Asset') {
+            return {
+                type: header.type
             }
         } else {
-            return {
-                type: update.type,
-            }
+            throw new Error(`Unknown coordination event type: ${header.type}`)
         }
     }
 
@@ -197,7 +206,7 @@ export class CoordinationEventSerializer implements DataSourceEventSerializer<Co
      * Deserialize an external event back to internal format
      * for messageBus processing
      */
-    deserialize(params: { dataSourceKey: string; streamKey: string; externalUpdate: CoordinationEventExternal; header: StreamingEventHeader }): CoordinationEventUpdate | null {
+    deserialize(params: { externalUpdate: CoordinationEventExternal; header: StreamingEventHeader }): CoordinationEventUpdate | null {
         const { externalUpdate, header } = params
         const eventType = header.type
 
