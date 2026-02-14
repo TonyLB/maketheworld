@@ -38,25 +38,25 @@ import { ReferenceList } from '@tonylb/mtw-wml/ts/standardize/keys/referenceList
 //
 /**
  * Envelope-level discriminated union for events subscribed by mtw.assets.contentHeaders DataSource.
- * Each variant pairs a narrow header (dataSourceKey + type) with the matching content shape,
- * enabling TypeScript to narrow content when routing on header.type.
+ * Each variant pairs a narrow header (dataSourceKey + type) with getContentInternal returning the matching content shape,
+ * enabling TypeScript to narrow when routing on header.type.
  */
 export type ContentHeadersIncomingEvent =
     | {
           header: StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Component Updated' };
-          content: ComponentUpdatedEvent;
+          getContentInternal: () => Promise<ComponentUpdatedEvent>;
       }
     | {
           header: StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Component Removed' };
-          content: ComponentRemovedEvent;
+          getContentInternal: () => Promise<ComponentRemovedEvent>;
       }
     | {
           header: StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Asset Updated' };
-          content: AssetUpdatedEventUpdate;
+          getContentInternal: () => Promise<AssetUpdatedEventUpdate>;
       }
     | {
           header: StreamingEventHeader & { dataSourceKey: 'mtw.wml'; type: 'Zone Changed' };
-          content: WMLZoneEvent;
+          getContentInternal: () => Promise<WMLZoneEvent>;
       };
 
 //
@@ -93,7 +93,7 @@ export type SubscribedAssetsContent = ComponentEventUpdate | AssetUpdatedEventUp
 export type SubscribedWMLContent = WMLZoneEvent
 
 /** Payload types of events mtw.assets.contentHeaders subscribes to (derived from envelope union). */
-type ContentHeadersSubscribedContent = ContentHeadersIncomingEvent['content']
+type ContentHeadersSubscribedContent = ComponentUpdatedEvent | ComponentRemovedEvent | AssetUpdatedEventUpdate | WMLZoneEvent
 
 // Type guard for subscribed events (header-only routing)
 const isSubscribedEventHeader = (header: StreamingEventHeader): boolean => {
@@ -227,7 +227,8 @@ export const contentHeadersDataSource = new AssetsDataSource<
 
         const zoneUpdates = zoneEvents.map(async (zoneEvent) => {
             if (!isZoneChangedContentHeadersEvent(zoneEvent)) return
-            const { fromZone, toZone } = zoneEvent.content
+            const content = await zoneEvent.getContentInternal()
+            const { fromZone, toZone } = content
             await streamEvent({
                 streamKey: 'global',
                 update: {
@@ -257,7 +258,7 @@ export const contentHeadersDataSource = new AssetsDataSource<
                 }
 
                 // Create aggregated content header update for this asset
-                const contentHeadersUpdate = createAggregatedContentHeadersUpdate(assetId as AssetUUID, zone, assetEvents)
+                const contentHeadersUpdate = await createAggregatedContentHeadersUpdate(assetId as AssetUUID, zone, assetEvents)
                 if (contentHeadersUpdate) {
                     await streamEvent({
                         update: contentHeadersUpdate,
@@ -307,20 +308,21 @@ async function getAssetZone(assetId: AssetUUID): Promise<Zone | null> {
 /**
  * Create an aggregated content header update from multiple events for the same asset
  */
-function createAggregatedContentHeadersUpdate(
+async function createAggregatedContentHeadersUpdate(
     assetId: AssetUUID,
     zone: Zone,
     events: ContentHeadersIncomingEvent[]
-): ContentHeadersUpdate | null {
+): Promise<ContentHeadersUpdate | null> {
     try {
         const headerComponents: any[] = []
         let metadataAsset: StandardForm | null = null
 
         // Process all events for this asset
         for (const event of events) {
+            const content = await event.getContentInternal()
             const { header } = event
             if (isComponentHeadersEvent(event)) {
-                const { component } = event.content
+                const component = 'component' in content ? content.component : undefined
 
                 if (!component) {
                     console.warn(`Component Updated event for asset ${assetId} missing component data, skipping`)
@@ -333,7 +335,7 @@ function createAggregatedContentHeadersUpdate(
                 }
             } else if (isAssetUpdatedHeadersEvent(event)) {
                 // Consume the provided StandardForm directly
-                metadataAsset = event.content.standardForm
+                metadataAsset = 'standardForm' in content ? content.standardForm : null
             }
         }
         

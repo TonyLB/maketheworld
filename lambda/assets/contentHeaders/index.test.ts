@@ -7,6 +7,7 @@ import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 import internalCache from '../internalCache'
 import messageBus from '../messageBus'
+import { Zone } from '@tonylb/mtw-asset-workspace'
 
 // Mock external dependencies
 jest.mock('@tonylb/mtw-utilities/ts/dynamoDB', () => ({
@@ -234,10 +235,10 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                         timestamp: Date.now(),
                         type: 'Component Updated'
                     },
-                    content: {
-                        type: 'Component Updated',
+                    getContentInternal: () => Promise.resolve({
+                        type: 'Component Updated' as const,
                         component: mockHeaderComponent
-                    }
+                    })
                 }
 
                 await contentHeadersDataSource.receiveEvents?.({
@@ -277,14 +278,14 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                         timestamp: Date.now(),
                         type: 'Component Updated'
                     },
-                    content: {
-                        type: 'Component Updated',
+                    getContentInternal: () => Promise.resolve({
+                        type: 'Component Updated' as const,
                         component: new StandardRoom({
                             tag: 'Room',
                             shortName: 'Test Room',
                             universalKey: 'ROOM#room123'
                         })
-                    }
+                    })
                 }
 
                 await contentHeadersDataSource.receiveEvents?.({
@@ -303,10 +304,10 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                         timestamp: Date.now(),
                         type: 'Component Updated'
                     },
-                    content: {
-                        type: 'Component Updated',
+                    getContentInternal: () => Promise.resolve({
+                        type: 'Component Updated' as const,
                         component: undefined as any
-                    }
+                    })
                 }
 
                 await contentHeadersDataSource.receiveEvents?.({
@@ -328,14 +329,14 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                         timestamp: Date.now(),
                         type: 'Component Updated'
                     },
-                    content: {
-                        type: 'Component Updated',
+                    getContentInternal: () => Promise.resolve({
+                        type: 'Component Updated' as const,
                         component: new StandardRoom({
                             tag: 'Room',
                             shortName: 'Test Room',
                             universalKey: 'ROOM#room123'
                         })
-                    }
+                    })
                 }
 
                 await contentHeadersDataSource.receiveEvents?.({
@@ -362,11 +363,11 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                         timestamp: Date.now(),
                         type: 'Zone Changed'
                     },
-                    content: {
-                        type: 'Zone Changed',
-                        fromZone: 'Canon',
-                        toZone: 'Library'
-                    }
+                    getContentInternal: () => Promise.resolve({
+                        type: 'Zone Changed' as const,
+                        fromZone: 'Canon' as Zone,
+                        toZone: 'Library' as Zone
+                    })
                 }
 
                 await contentHeadersDataSource.receiveEvents?.({
@@ -394,11 +395,11 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                             timestamp: Date.now(),
                             type: 'Zone Changed'
                         },
-                        content: {
-                            type: 'Zone Changed',
-                            fromZone: 'Canon',
-                            toZone: 'Library'
-                        }
+                        getContentInternal: () => Promise.resolve({
+                            type: 'Zone Changed' as const,
+                            fromZone: 'Canon' as Zone,
+                            toZone: 'Library' as Zone
+                        })
                     },
                     {
                         header: {
@@ -407,11 +408,11 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                             timestamp: Date.now(),
                             type: 'Zone Changed'
                         },
-                        content: {
-                            type: 'Zone Changed',
-                            fromZone: 'Library',
-                            toZone: 'Personal'
-                        }
+                        getContentInternal: () => Promise.resolve({
+                            type: 'Zone Changed' as const,
+                            fromZone: 'Library' as Zone,
+                            toZone: 'Personal' as Zone
+                        })
                     }
                 ]
 
@@ -453,11 +454,11 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                             timestamp: Date.now(),
                             type: 'Zone Changed'
                         },
-                        content: {
-                            type: 'Zone Changed',
-                            fromZone: 'Canon',
-                            toZone: 'Library'
-                        }
+                        getContentInternal: () => Promise.resolve({
+                            type: 'Zone Changed' as const,
+                            fromZone: 'Canon' as Zone,
+                            toZone: 'Library' as Zone
+                        })
                     },
                     {
                         header: {
@@ -466,14 +467,14 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                             timestamp: Date.now(),
                             type: 'Component Updated'
                         },
-                        content: {
-                            type: 'Component Updated',
+                        getContentInternal: () => Promise.resolve({
+                            type: 'Component Updated' as const,
                             component: new StandardRoom({
                                 tag: 'Room',
                                 shortName: 'Updated Room',
                                 universalKey: 'ROOM#room123'
                             })
-                        }
+                        })
                     }
                 ]
 
@@ -518,14 +519,14 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                             timestamp: Date.now(),
                             type: 'Component Updated'
                         },
-                        content: {
-                            type: 'Component Updated',
+                        getContentInternal: () => Promise.resolve({
+                            type: 'Component Updated' as const,
                             component: new StandardRoom({
                                 tag: 'Room',
                                 shortName: 'Room 1',
                                 universalKey: 'ROOM#room1'
                             })
-                        }
+                        })
                     },
                     {
                         header: {
@@ -534,14 +535,14 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                             timestamp: Date.now(),
                             type: 'Component Updated'
                         },
-                        content: {
-                            type: 'Component Updated',
+                        getContentInternal: () => Promise.resolve({
+                            type: 'Component Updated' as const,
                             component: new StandardRoom({
                                 tag: 'Room',
                                 shortName: 'Room 2',
                                 universalKey: 'ROOM#room2'
                             })
-                        }
+                        })
                     }
                 ]
 
@@ -567,12 +568,12 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                         timestamp: Date.now(),
                         type: 'Asset Updated'
                     },
-                    content: {
-                        type: 'Asset Updated',
+                    getContentInternal: () => Promise.resolve({
+                        type: 'Asset Updated' as const,
                         standardForm: new StandardForm(deIndentWML(`
                             <Asset uuid=(assetMeta)><ShortName>Meta Name</ShortName></Asset>
                         `))
-                    }
+                    })
                 }
 
                 await contentHeadersDataSource.receiveEvents?.({
@@ -608,10 +609,10 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                             timestamp: Date.now(),
                             type: 'Asset Updated'
                         },
-                        content: {
-                            type: 'Asset Updated',
+                        getContentInternal: () => Promise.resolve({
+                            type: 'Asset Updated' as const,
                             standardForm: new StandardForm(deIndentWML(`<Asset uuid=(mix)><ShortName>Asset Hdr</ShortName></Asset>`))
-                        }
+                        })
                     },
                     {
                         header: {
@@ -620,10 +621,10 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                             timestamp: Date.now(),
                             type: 'Component Updated'
                         },
-                        content: {
-                            type: 'Component Updated',
+                        getContentInternal: () => Promise.resolve({
+                            type: 'Component Updated' as const,
                             component: new StandardRoom({ tag: 'Room', shortName: 'Hdr', universalKey: 'ROOM#r1' })
-                        }
+                        })
                     }
                 ]
 

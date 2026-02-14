@@ -77,6 +77,7 @@ export const handler = async (event, context) => {
                     streamKey,
                     header,
                     content,
+                    getContentInternal: () => Promise.resolve(content),
                     timestamp
                 })
                 await messageBus.flush()
@@ -162,6 +163,7 @@ export const handler = async (event, context) => {
                         streamKey: event.detail.streamKey || '',
                         header,
                         content: internalEvent,
+                        getContentInternal: () => Promise.resolve(internalEvent),
                         timestamp: event.time ? new Date(event.time).getTime() : Date.now()
                     })
                 }
@@ -267,6 +269,7 @@ export const handler = async (event, context) => {
                     streamKey: player,
                     header,
                     content,
+                    getContentInternal: () => Promise.resolve(content),
                     timestamp
                 })
                 messageBus.send({

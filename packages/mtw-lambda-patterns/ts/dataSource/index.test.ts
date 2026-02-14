@@ -770,7 +770,15 @@ describe('DataSource', () => {
                     type: 'TestUpdatePayload',
                     update: 'test-update'
                 },
+                getContentInternal: expect.any(Function),
                 timestamp: 100000000
+            })
+
+            const sendCall = mockMessageBus.send.mock.calls[0][0]
+            const content = await sendCall.getContentInternal()
+            expect(content).toEqual({
+                type: 'TestUpdatePayload',
+                update: 'test-update'
             })
         })
     })
@@ -1328,7 +1336,7 @@ describe('DataSource', () => {
                                 timestamp: 123456789,
                                 type: 'event1'
                             },
-                            content: { type: 'event1', data: 'test1' }
+                            getContentInternal: expect.any(Function)
                         },
                         {
                             header: {
@@ -1337,11 +1345,15 @@ describe('DataSource', () => {
                                 timestamp: 123456790,
                                 type: 'event2'
                             },
-                            content: { type: 'event2', data: 'test2' }
+                            getContentInternal: expect.any(Function)
                         }
                     ],
                     streamEvent: expect.any(Function)
                 })
+
+                const receivedEvents = mockReceiveEvents.mock.calls[0][0].events
+                expect(await receivedEvents[0].getContentInternal()).toEqual({ type: 'event1', data: 'test1' })
+                expect(await receivedEvents[1].getContentInternal()).toEqual({ type: 'event2', data: 'test2' })
 
                 // Test that streamEvent function works
                 const streamEventFunction = mockReceiveEvents.mock.calls[0][0].streamEvent
@@ -1408,11 +1420,14 @@ describe('DataSource', () => {
                                 timestamp: 123456789,
                                 type: 'event1'
                             },
-                            content: { type: 'event1' }
+                            getContentInternal: expect.any(Function)
                         }
                     ],
                     streamEvent: expect.any(Function)
                 })
+
+                const receivedEvents = errorReceiveEvents.mock.calls[0][0].events
+                expect(await receivedEvents[0].getContentInternal()).toEqual({ type: 'event1' })
             })
 
             it('should handle empty event arrays gracefully', async () => {
@@ -1493,11 +1508,14 @@ describe('DataSource', () => {
                                 timestamp: 123456789,
                                 type: 'singleEvent'
                             },
-                            content: { type: 'singleEvent', data: 'test' }
+                            getContentInternal: expect.any(Function)
                         }
                     ],
                     streamEvent: expect.any(Function)
                 })
+
+                const receivedEvents = mockReceiveEvents.mock.calls[0][0].events
+                expect(await receivedEvents[0].getContentInternal()).toEqual({ type: 'singleEvent', data: 'test' })
             })
         })
 

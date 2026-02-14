@@ -1,5 +1,6 @@
 import { charactersDataSource, CharacterEventPayload, CharacterSnapshotPayload } from './index'
 import { ComponentEventUpdate } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
+import { StreamingEventEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { eventBridgeClient } from '@tonylb/mtw-utilities/ts/eventBridge'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
@@ -70,16 +71,16 @@ describe('CharactersDataSource', () => {
 
             const componentEvent = {
                 header: {
-                    dataSourceKey: 'mtw.assets',
+                    dataSourceKey: 'mtw.assets' as const,
                     streamKey: 'ASSET#asset123',
                     timestamp: FIXED_TS,
-                    type: 'Component Updated'
+                    type: 'Component Updated' as const
                 },
-                content: {
-                    type: 'Component Updated',
+                getContentInternal: () => Promise.resolve({
+                    type: 'Component Updated' as const,
                     assetId: 'ASSET#asset123',
                     component
-                }
+                })
             }
 
             // Process the event
@@ -98,22 +99,23 @@ describe('CharactersDataSource', () => {
         it('should ignore non-Character component events', async () => {
             const mockStreamEvent = jest.fn()
             
+            const nonCharacterContent = {
+                type: 'Component Updated' as const,
+                assetId: 'ASSET#asset123',
+                component: {
+                    tag: 'Room',
+                    roomId: 'ROOM#room123',
+                    name: 'Test Room'
+                } as any // Non-StandardCharacter component
+            }
             const nonCharacterEvent = {
                 header: {
-                    dataSourceKey: 'mtw.assets',
+                    dataSourceKey: 'mtw.assets' as const,
                     streamKey: 'ASSET#asset123',
                     timestamp: FIXED_TS,
-                    type: 'Component Updated'
+                    type: 'Component Updated' as const
                 },
-                content: {
-                    type: 'Component Updated',
-                    assetId: 'ASSET#asset123',
-                    component: {
-                        tag: 'Room',
-                        roomId: 'ROOM#room123',
-                        name: 'Test Room'
-                    } as any // Non-StandardCharacter component
-                }
+                getContentInternal: () => Promise.resolve(nonCharacterContent)
             }
 
             await dataSource.receiveEvents?.({ events: [nonCharacterEvent], streamEvent: mockStreamEvent })
@@ -139,14 +141,14 @@ describe('CharactersDataSource', () => {
                     timestamp: FIXED_TS,
                     type: 'OtherEvent'
                 },
-                content: {
+                getContentInternal: () => Promise.resolve({
                     streamKey: 'ASSET#asset123',
                     update: { type: 'Component Updated', assetId: 'ASSET#asset123', component },
                     timestamp: FIXED_TS
-                }
+                })
             }
 
-            await dataSource.receiveEvents?.({ events: [otherDataSourceEvent], streamEvent: mockStreamEvent })
+            await dataSource.receiveEvents?.({ events: [otherDataSourceEvent as unknown as StreamingEventEnvelope<ComponentEventUpdate>], streamEvent: mockStreamEvent })
 
             // Should not have called streamEvent
             expect(mockStreamEvent).not.toHaveBeenCalled()
@@ -170,36 +172,36 @@ describe('CharactersDataSource', () => {
             const batchEvents = [
                 {
                     header: {
-                        dataSourceKey: 'mtw.assets',
+                        dataSourceKey: 'mtw.assets' as const,
                         streamKey: 'ASSET#asset1',
                         timestamp: FIXED_TS,
-                        type: 'Component Updated'
+                        type: 'Component Updated' as const
                     },
-                    content: {
-                        type: 'Component Updated',
+                    getContentInternal: () => Promise.resolve({
+                        type: 'Component Updated' as const,
                         assetId: 'ASSET#asset1',
                         component: component1
-                    }
+                    })
                 },
                 {
                     header: {
-                        dataSourceKey: 'mtw.assets',
+                        dataSourceKey: 'mtw.assets' as const,
                         streamKey: 'ASSET#asset2',
                         timestamp: FIXED_TS,
-                        type: 'Component Updated'
+                        type: 'Component Updated' as const
                     },
-                    content: {
-                        type: 'Component Updated',
+                    getContentInternal: () => Promise.resolve({
+                        type: 'Component Updated' as const,
                         assetId: 'ASSET#asset2',
                         component: component2
-                    }
+                    })
                 }
             ]
 
             // Process the batch of events
-            await dataSource.receiveEvents?.({ 
-                events: batchEvents, 
-                streamEvent: mockStreamEvent 
+            await dataSource.receiveEvents?.({
+                events: batchEvents,
+                streamEvent: mockStreamEvent
             })
 
             // Should process both character events
@@ -468,22 +470,26 @@ describe('CharactersDataSource', () => {
         it('should handle invalid component events gracefully', async () => {
             const mockStreamEvent = jest.fn()
             
+            // Intentionally invalid payload (component: null) - envelope cast needed so we can pass it in
             const invalidEvent = {
                 header: {
-                    dataSourceKey: 'mtw.assets',
+                    dataSourceKey: 'mtw.assets' as const,
                     streamKey: 'asset123',
                     timestamp: FIXED_TS,
-                    type: 'Component Updated'
+                    type: 'Component Updated' as const
                 },
-                content: {
-                    type: 'Component Updated',
+                getContentInternal: () => Promise.resolve({
+                    type: 'Component Updated' as const,
                     assetId: 'ASSET#asset123',
                     component: null // Invalid component
-                }
+                })
             }
 
             await expect(
-                dataSource.receiveEvents?.({ events: [invalidEvent], streamEvent: mockStreamEvent })
+                dataSource.receiveEvents?.({
+                    events: [invalidEvent as unknown as StreamingEventEnvelope<ComponentEventUpdate>],
+                    streamEvent: mockStreamEvent
+                })
             ).resolves.not.toThrow()
 
             // Should not have called streamEvent
@@ -495,19 +501,19 @@ describe('CharactersDataSource', () => {
             
             const incompleteEvent = {
                 header: {
-                    dataSourceKey: 'mtw.assets',
+                    dataSourceKey: 'mtw.assets' as const,
                     streamKey: 'asset123',
                     timestamp: FIXED_TS,
-                    type: 'Component Updated'
+                    type: 'Component Updated' as const
                 },
-                content: {
-                    type: 'Component Updated',
+                getContentInternal: () => Promise.resolve({
+                    type: 'Component Updated' as const,
                     assetId: 'ASSET#asset123',
                     component: {
                         tag: 'Character'
                         // Missing other required data
                     } as any
-                }
+                })
             }
 
             await expect(

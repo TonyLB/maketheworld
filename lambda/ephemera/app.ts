@@ -97,6 +97,7 @@ export const handler = async (event: any, context: any) => {
                     streamKey: event.detail.streamKey || '',
                     header,
                     content: internalEvent,
+                    getContentInternal: () => Promise.resolve(internalEvent),
                     timestamp: header.timestamp
                 })
             }

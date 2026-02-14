@@ -17,7 +17,7 @@ import {
 } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
 import { splitType } from '@tonylb/mtw-utilities/ts/types'
 import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
-import { isPlayerSettingsUpdatedEvent, PlayerSettingsUpdatedEvent } from './coordinationSerializer'
+import { PlayerSettingsUpdatedEvent } from './coordinationSerializer'
 
 type PlayerLibraryView = {
     Assets: Record<string, any>
@@ -36,6 +36,71 @@ const PLAYER_SETTINGS_TYPE = 'Player Settings Updated'
 
 /** Payload types of events mtw.assets.players subscribes to (internal + mtw.assets). */
 type PlayersSubscribedContent = PlayerSettingsUpdatedEvent | AssetLevelEventUpdate
+
+type PlayersIncomingEvent =
+    | { header: StreamingEventHeader & { dataSourceKey: 'internal'; type: 'Player Settings Updated' }; getContentInternal: () => Promise<PlayerSettingsUpdatedEvent> }
+    | { header: StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Asset Added' | 'Asset Removed' | 'Asset Updated' | 'Zone Updated' }; getContentInternal: () => Promise<AssetLevelEventUpdate> }
+
+const isPlayerSettingsEnvelope = (event: { header: StreamingEventHeader }): event is Extract<PlayersIncomingEvent, { header: { dataSourceKey: 'internal' } }> =>
+    event.header.dataSourceKey === 'internal' && event.header.type === PLAYER_SETTINGS_TYPE
+const isPlayersAssetEnvelope = (event: { header: StreamingEventHeader }): event is Extract<PlayersIncomingEvent, { header: { dataSourceKey: 'mtw.assets' } }> =>
+    event.header.dataSourceKey === 'mtw.assets' && PLAYERS_ASSET_EVENT_TYPES.has(event.header.type)
+
+type StreamEventFn = (params: { update: PlayerEventUpdate; streamKey: string }) => Promise<void>
+
+const processPlayerSettings = async (
+    event: Extract<PlayersIncomingEvent, { header: { dataSourceKey: 'internal' } }>,
+    streamEvent: StreamEventFn
+): Promise<void> => {
+    await emitSettingsUpdated(streamEvent, event.header.streamKey)
+}
+
+const processAssetLevel = async (
+    event: Extract<PlayersIncomingEvent, { header: { dataSourceKey: 'mtw.assets' } }>,
+    streamEvent: StreamEventFn
+): Promise<void> => {
+    const content = await event.getContentInternal()
+    const assetId = event.header.streamKey as AssetUUID
+    if (isAssetRemovedEvent(content)) {
+        const { zone, player } = content
+        if (isPlayerZone(zone) && player) {
+            await invalidatePlayerLibrary(player)
+            await emitAssetRemoved(streamEvent, player, assetId)
+        }
+        return
+    }
+    if (isAssetAddedEvent(content)) {
+        const { zone, player } = content
+        if (isPlayerZone(zone) && player) {
+            const library = await invalidatePlayerLibrary(player)
+            await emitAssetAssigned(streamEvent, player, assetId, library)
+        }
+        return
+    }
+    if (isZoneUpdatedEvent(content)) {
+        const { fromZone, toZone, player } = content
+        const wasPlayerZone = isPlayerZone(fromZone)
+        const nowPlayerZone = isPlayerZone(toZone)
+        if (!player) return
+        if (!nowPlayerZone && wasPlayerZone) {
+            await invalidatePlayerLibrary(player)
+            await emitAssetRemoved(streamEvent, player, assetId)
+            return
+        }
+        if (nowPlayerZone) {
+            const library = await invalidatePlayerLibrary(player)
+            await emitAssetAssigned(streamEvent, player, assetId, library)
+        }
+        return
+    }
+    if (isAssetUpdatedEvent(content)) {
+        const { player } = content
+        if (player) {
+            const library = await invalidatePlayerLibrary(player)
+            await emitAssetAssigned(streamEvent, player, assetId, library)
+        }
+    }
+}
 
 const subscribedEventTypeGuard = (header: StreamingEventHeader): boolean => {
     if (header.dataSourceKey === 'internal') {
@@ -148,66 +213,16 @@ export const playersDataSource = new AssetsDataSource<PlayerSnapshot, PlayerEven
     aggregator: new PlayerAggregator(),
     subscribedEventTypeGuard,
     receiveEvents: async ({ events, streamEvent }) => {
-        await Promise.all(events.map(async (event) => {
-            const { header, content } = event
-            const streamKey = header.streamKey
+        const typedEvents = events as PlayersIncomingEvent[]
+        await Promise.all(typedEvents.map(async (event) => {
+            const streamKey = event.header.streamKey
             try {
-                if (header.dataSourceKey === 'internal' && isPlayerSettingsUpdatedEvent(content)) {
-                    await emitSettingsUpdated(streamEvent, streamKey)
+                if (isPlayerSettingsEnvelope(event)) {
+                    await processPlayerSettings(event, streamEvent)
                     return
                 }
-
-                if (header.dataSourceKey === 'mtw.assets') {
-                    const assetId = streamKey as AssetUUID
-                    const payload = content
-
-                    if (isAssetRemovedEvent(payload)) {
-                        const { zone, player } = payload
-                        if (isPlayerZone(zone) && player) {
-                            await invalidatePlayerLibrary(player)
-                            await emitAssetRemoved(streamEvent, player, assetId)
-                        }
-                        return
-                    }
-
-                    if (isAssetAddedEvent(payload)) {
-                        const { zone, player } = payload
-                        if (isPlayerZone(zone) && player) {
-                            const library = await invalidatePlayerLibrary(player)
-                            await emitAssetAssigned(streamEvent, player, assetId, library)
-                        }
-                        return
-                    }
-
-                    if (isZoneUpdatedEvent(payload)) {
-                        const { fromZone, toZone, player } = payload
-                        const wasPlayerZone = isPlayerZone(fromZone)
-                        const nowPlayerZone = isPlayerZone(toZone)
-
-                        if (!player) {
-                            return
-                        }
-
-                        if (!nowPlayerZone && wasPlayerZone) {
-                            await invalidatePlayerLibrary(player)
-                            await emitAssetRemoved(streamEvent, player, assetId)
-                            return
-                        }
-
-                        if (nowPlayerZone) {
-                            const library = await invalidatePlayerLibrary(player)
-                            await emitAssetAssigned(streamEvent, player, assetId, library)
-                        }
-                        return
-                    }
-
-                    if (isAssetUpdatedEvent(payload)) {
-                        const { player } = payload
-                        if (player) {
-                            const library = await invalidatePlayerLibrary(player)
-                            await emitAssetAssigned(streamEvent, player, assetId, library)
-                        }
-                    }
+                if (isPlayersAssetEnvelope(event)) {
+                    await processAssetLevel(event, streamEvent)
                 }
             } catch (error) {
                 console.error(`mtw.assets.players: failed to process event for stream ${streamKey}`, error)

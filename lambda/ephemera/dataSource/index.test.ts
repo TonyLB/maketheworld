@@ -45,10 +45,10 @@ describe('Ephemera DataSource receiveEvents', () => {
                         timestamp: getCurrentTimestamp(),
                         type: 'Component Updated'
                     },
-                    content: {
+                    getContentInternal: () => Promise.resolve({
                         type: 'Component Updated' as const,
                         component: roomComponent
-                    }
+                    })
                 }
             ]
 
@@ -77,10 +77,10 @@ describe('Ephemera DataSource receiveEvents', () => {
                         timestamp: getCurrentTimestamp(),
                         type: 'Component Updated'
                     },
-                    content: {
+                    getContentInternal: () => Promise.resolve({
                         type: 'Component Updated' as const,
                         component: characterComponent
-                    }
+                    })
                 }
             ]
 
@@ -105,10 +105,10 @@ describe('Ephemera DataSource receiveEvents', () => {
                         timestamp: getCurrentTimestamp(),
                         type: 'Component Updated'
                     },
-                    content: {
+                    getContentInternal: () => Promise.resolve({
                         type: 'Component Updated' as const,
                         component: roomComponent
-                    }
+                    })
                 }
             ]
 
@@ -129,10 +129,10 @@ describe('Ephemera DataSource receiveEvents', () => {
                         timestamp: getCurrentTimestamp(),
                         type: 'Canon Updated'
                     },
-                    content: {
+                    getContentInternal: () => Promise.resolve({
                         type: 'Canon Updated' as const,
                         assetIds: ['ASSET#canon1', 'ASSET#canon2', 'ASSET#canon3']
-                    }
+                    })
                 }
             ]
 
@@ -154,10 +154,10 @@ describe('Ephemera DataSource receiveEvents', () => {
                         timestamp: getCurrentTimestamp(),
                         type: 'Canon Updated'
                     },
-                    content: {
+                    getContentInternal: () => Promise.resolve({
                         type: 'Canon Updated' as const,
                         assetIds: ['ASSET#canon1', 'NON-ASSET#invalid', 'ASSET#canon2']
-                    }
+                    })
                 }
             ]
 
@@ -179,10 +179,10 @@ describe('Ephemera DataSource receiveEvents', () => {
                         timestamp: getCurrentTimestamp(),
                         type: 'Canon Updated'
                     },
-                    content: {
+                    getContentInternal: () => Promise.resolve({
                         type: 'Canon Updated' as const,
                         assetIds: []
-                    }
+                    })
                 }
             ]
 
@@ -206,11 +206,11 @@ describe('Ephemera DataSource receiveEvents', () => {
                         timestamp: getCurrentTimestamp(),
                         type: 'Zone Updated'
                     },
-                    content: {
+                    getContentInternal: () => Promise.resolve({
                         type: 'Zone Updated' as const,
                         fromZone: 'Library',
                         toZone: 'Canon'
-                    }
+                    })
                 }
             ]
 
@@ -232,11 +232,11 @@ describe('Ephemera DataSource receiveEvents', () => {
                         timestamp: getCurrentTimestamp(),
                         type: 'Zone Updated'
                     },
-                    content: {
+                    getContentInternal: () => Promise.resolve({
                         type: 'Zone Updated' as const,
                         fromZone: 'Canon',
                         toZone: 'Library'
-                    }
+                    })
                 }
             ]
 
@@ -258,11 +258,11 @@ describe('Ephemera DataSource receiveEvents', () => {
                         timestamp: getCurrentTimestamp(),
                         type: 'Zone Updated'
                     },
-                    content: {
+                    getContentInternal: () => Promise.resolve({
                         type: 'Zone Updated' as const,
                         fromZone: 'Library',
                         toZone: 'Personal'
-                    }
+                    })
                 }
             ]
 
@@ -281,11 +281,11 @@ describe('Ephemera DataSource receiveEvents', () => {
                         timestamp: getCurrentTimestamp(),
                         type: 'Zone Updated'
                     },
-                    content: {
+                    getContentInternal: () => Promise.resolve({
                         type: 'Zone Updated' as const,
                         fromZone: 'Library',
                         toZone: 'Canon'
-                    }
+                    })
                 }
             ]
 
@@ -312,10 +312,10 @@ describe('Ephemera DataSource receiveEvents', () => {
                         timestamp: getCurrentTimestamp(),
                         type: 'Component Updated'
                     },
-                    content: {
+                    getContentInternal: () => Promise.resolve({
                         type: 'Component Updated' as const,
                         component: roomComponent
-                    }
+                    })
                 },
                 {
                     header: {
@@ -324,10 +324,10 @@ describe('Ephemera DataSource receiveEvents', () => {
                         timestamp: getCurrentTimestamp(),
                         type: 'Canon Updated'
                     },
-                    content: {
+                    getContentInternal: () => Promise.resolve({
                         type: 'Canon Updated' as const,
                         assetIds: ['ASSET#canon1', 'ASSET#canon2']
-                    }
+                    })
                 },
                 {
                     header: {
@@ -336,11 +336,11 @@ describe('Ephemera DataSource receiveEvents', () => {
                         timestamp: getCurrentTimestamp(),
                         type: 'Zone Updated'
                     },
-                    content: {
+                    getContentInternal: () => Promise.resolve({
                         type: 'Zone Updated' as const,
                         fromZone: 'Library',
                         toZone: 'Canon'
-                    }
+                    })
                 }
             ]
 

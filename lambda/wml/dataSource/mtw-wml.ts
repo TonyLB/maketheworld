@@ -1,10 +1,10 @@
 import { WMLDataSource } from './abstract'
-import { StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import { StreamingEventHeader, StreamingEventEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { WMLEventSerializer, WMLEventUpdate, WMLEventExternal } from '@tonylb/mtw-interfaces/ts/eventBridge/wml'
 import { moveAsset } from './moveAsset'
 import { applyEdit } from './applyEdit'
 import { purgeAsset } from './purgeAsset'
-import { CoordinationEventUpdate, COORDINATION_EVENT_TYPES, isCoordinationCanonizeEvent, isCoordinationDecanonizeEvent, isMoveAssetRequest, isApplyEditRequest, isCreateSnapshotRequest, isPurgeAssetRequest, MoveAssetRequest } from './coordinationSerializer'
+import { CoordinationEventUpdate, COORDINATION_EVENT_TYPES, isCoordinationCanonizeEvent, isCoordinationDecanonizeEvent, MoveAssetRequest, ApplyEditRequest, CreateSnapshotRequest, PurgeAssetRequest } from './coordinationSerializer'
 import { DiagnosticsEventUpdate, isS3StructureFindingEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics'
 import { isSchemaAssetUUID, AssetUUID } from "@tonylb/mtw-base/ts/schema"
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
@@ -16,6 +16,22 @@ import { singleFlightFactory } from '@tonylb/mtw-lambda-patterns/ts/singleFlight
 import assetDB from '../utilities/mockableAssetDB'
 import { ApplyEditResult } from './applyEdit'
 
+type WMLSubscribedPayload = CoordinationEventUpdate | DiagnosticsEventUpdate
+type StreamEventFn = (params: { update: WMLEventUpdate; streamKey: string }) => Promise<void>
+
+const isApplyEditEnvelope = (e: StreamingEventEnvelope<WMLSubscribedPayload>): e is StreamingEventEnvelope<ApplyEditRequest> & { header: StreamingEventHeader & { dataSourceKey: 'internal'; type: 'Apply Edit' } } =>
+    e.header.dataSourceKey === 'internal' && e.header.type === 'Apply Edit'
+const isMoveAssetEnvelope = (e: StreamingEventEnvelope<WMLSubscribedPayload>): e is StreamingEventEnvelope<MoveAssetRequest> & { header: StreamingEventHeader & { dataSourceKey: 'internal'; type: 'Move Asset' } } =>
+    e.header.dataSourceKey === 'internal' && e.header.type === 'Move Asset'
+const isCanonizeOrDecanonizeEnvelope = (e: StreamingEventEnvelope<WMLSubscribedPayload>): e is StreamingEventEnvelope<CoordinationEventUpdate> & { header: StreamingEventHeader & { dataSourceKey: 'internal'; type: 'Canonize Asset' | 'Decanonize Asset' } } =>
+    e.header.dataSourceKey === 'internal' && (e.header.type === 'Canonize Asset' || e.header.type === 'Decanonize Asset')
+const isCreateSnapshotEnvelope = (e: StreamingEventEnvelope<WMLSubscribedPayload>): e is StreamingEventEnvelope<CreateSnapshotRequest> & { header: StreamingEventHeader & { dataSourceKey: 'internal'; type: 'Create Snapshot' } } =>
+    e.header.dataSourceKey === 'internal' && e.header.type === 'Create Snapshot'
+const isPurgeAssetEnvelope = (e: StreamingEventEnvelope<WMLSubscribedPayload>): e is StreamingEventEnvelope<PurgeAssetRequest> & { header: StreamingEventHeader & { dataSourceKey: 'internal'; type: 'Purge Asset' } } =>
+    e.header.dataSourceKey === 'internal' && e.header.type === 'Purge Asset'
+const isDiagnosticsEnvelope = (e: StreamingEventEnvelope<WMLSubscribedPayload>): e is StreamingEventEnvelope<DiagnosticsEventUpdate> =>
+    e.header.dataSourceKey === 'mtw.diagnostics'
+
 // Single-flight factory for WML edits - ensures sequential processing per asset
 const wmlEditSingleFlight = singleFlightFactory({
     primaryKey: 'AssetId',
@@ -25,6 +41,232 @@ const wmlEditSingleFlight = singleFlightFactory({
     mode: 'sequential', // Process edits sequentially, not concurrently
     timeoutMs: 10000 // 10 second timeout for WML edits
 })
+
+const processApplyEdit = async (
+    event: StreamingEventEnvelope<ApplyEditRequest> & { header: StreamingEventHeader & { streamKey: string } },
+    streamEvent: StreamEventFn
+): Promise<void> => {
+    const payload = await event.getContentInternal()
+    const AssetId = event.header.streamKey
+    if (!isSchemaAssetUUID(AssetId)) {
+        console.error(`Invalid AssetId format: ${AssetId}`)
+        return
+    }
+    try {
+        const result = await wmlEditSingleFlight({
+            category: 'wml-edit',
+            argumentHash: AssetId,
+            computation: async (): Promise<ApplyEditResult> => {
+                return await applyEdit({
+                    AssetId,
+                    RequestId: payload.RequestId,
+                    schema: payload.schema,
+                    createIfNeeded: payload.createIfNeeded,
+                    zone: payload.zone
+                })
+            }
+        }) as ApplyEditResult
+        if (result.success) {
+            try {
+                await streamEvent({
+                    update: {
+                        type: 'Content Update',
+                        schema: new StandardForm(payload.schema),
+                        RequestIds: payload.RequestId != null ? [payload.RequestId] : []
+                    },
+                    streamKey: AssetId
+                })
+            } catch (streamError) {
+                console.error(`Error streaming Content Update event for ${AssetId}:`, streamError)
+            }
+        } else {
+            try {
+                await streamEvent({
+                    update: {
+                        type: 'Merge Conflict',
+                        error: result.error,
+                        RequestIds: payload.RequestId != null ? [payload.RequestId] : []
+                    },
+                    streamKey: AssetId
+                })
+            } catch (streamError) {
+                console.error(`Error streaming Merge Conflict event for ${AssetId}:`, streamError)
+            }
+        }
+    } catch (error) {
+        console.error(`Error processing applyEdit for ${AssetId}:`, error)
+    }
+}
+
+const processMoveAsset = async (
+    event: StreamingEventEnvelope<MoveAssetRequest> & { header: StreamingEventHeader & { streamKey: string } },
+    streamEvent: StreamEventFn
+): Promise<void> => {
+    const payload = await event.getContentInternal()
+    const AssetId = event.header.streamKey
+    if (!isSchemaAssetUUID(AssetId)) {
+        console.error(`Invalid AssetId format: ${AssetId}`)
+        return
+    }
+    try {
+        const result = await wmlEditSingleFlight({
+            category: 'wml-edit',
+            argumentHash: AssetId,
+            computation: async () => {
+                return await moveAsset(AssetId, payload)
+            }
+        }) as any
+        if (result.success) {
+            try {
+                await streamEvent({
+                    update: {
+                        type: 'Zone Changed',
+                        fromZone: payload.fromZone,
+                        toZone: payload.toZone,
+                        ...(payload.player ? { player: payload.player } : {}),
+                        ...(payload.subFolder ? { subFolder: payload.subFolder } : {})
+                    },
+                    streamKey: AssetId
+                })
+            } catch (streamError) {
+                console.error(`Error streaming zone changed event for ${AssetId}:`, streamError)
+            }
+        }
+    } catch (error) {
+        console.error(`Error processing moveAsset for ${AssetId}:`, error)
+    }
+}
+
+const processCanonizeDecanonize = async (
+    event: StreamingEventEnvelope<CoordinationEventUpdate> & { header: StreamingEventHeader & { streamKey: string } },
+    streamEvent: StreamEventFn
+): Promise<void> => {
+    const payload = await event.getContentInternal()
+    const AssetId = event.header.streamKey
+    if (!isSchemaAssetUUID(AssetId)) {
+        console.error(`Invalid AssetId format: ${AssetId}`)
+        return
+    }
+    try {
+        let moveRequest: MoveAssetRequest
+        if (isCoordinationCanonizeEvent(payload)) {
+            moveRequest = { type: 'Move Asset', fromZone: 'Library', toZone: 'Canon' }
+        } else if (isCoordinationDecanonizeEvent(payload)) {
+            moveRequest = { type: 'Move Asset', fromZone: 'Canon', toZone: 'Library' }
+        } else {
+            console.error(`Unknown coordination event type: ${JSON.stringify(payload)}`)
+            return
+        }
+        const result = await moveAsset(AssetId, moveRequest)
+        if (result.success) {
+            try {
+                await streamEvent({
+                    update: { type: 'Zone Changed', fromZone: moveRequest.fromZone, toZone: moveRequest.toZone },
+                    streamKey: AssetId
+                })
+            } catch (streamError) {
+                console.error(`Error streaming zone changed event for ${AssetId}:`, streamError)
+            }
+        }
+    } catch (error) {
+        console.error(`Error processing coordination event:`, error)
+    }
+}
+
+const processCreateSnapshot = async (
+    event: StreamingEventEnvelope<CreateSnapshotRequest> & { header: StreamingEventHeader & { streamKey: string } },
+    streamEvent: StreamEventFn
+): Promise<void> => {
+    const AssetId = event.header.streamKey
+    if (!isSchemaAssetUUID(AssetId)) {
+        console.error(`Invalid AssetId format: ${AssetId}`)
+        return
+    }
+    try {
+        const assetWorkspace = await AssetWorkspace.fromUUID(AssetId)
+        if (!assetWorkspace) {
+            console.error(`Error creating snapshot: Asset ${AssetId} not found`)
+            return
+        }
+        const assetKey = AssetId.replace('ASSET#', '')
+        const contentResult = await createManualSnapshot({
+            prefix: `${assetKey}.wml/`,
+            zone: assetWorkspace.zone
+        })
+        const authResult = await createManualSnapshot({
+            prefix: `${assetKey}.auth.wml/`,
+            zone: assetWorkspace.zone
+        })
+        try {
+            await streamEvent({
+                update: {
+                    type: 'Snapshot Created',
+                    chunksBeforeSnapshot: contentResult.chunksBeforeSnapshot,
+                    snapshotSize: contentResult.snapshotReference.snapshotSize + authResult.snapshotReference.snapshotSize
+                },
+                streamKey: AssetId
+            })
+        } catch (streamError) {
+            console.error(`Error streaming Snapshot Created event for ${AssetId}:`, streamError)
+        }
+    } catch (error) {
+        console.error(`Error creating snapshot for ${AssetId}:`, error)
+    }
+}
+
+const processPurgeAsset = async (
+    event: StreamingEventEnvelope<PurgeAssetRequest> & { header: StreamingEventHeader & { streamKey: string } },
+    streamEvent: StreamEventFn
+): Promise<void> => {
+    const payload = await event.getContentInternal()
+    const AssetId = event.header.streamKey
+    if (!isSchemaAssetUUID(AssetId)) {
+        console.error(`Invalid AssetId format: ${AssetId}`)
+        return
+    }
+    try {
+        let player: string | undefined
+        if (payload.expectedZone === 'Draft') {
+            const workspace = await AssetWorkspace.fromUUID(AssetId, { preferDynamo: false, allowS3Fallback: true })
+            player = workspace?.player
+        }
+        const result = await purgeAsset(AssetId, {
+            expectedZone: payload.expectedZone,
+            requireExists: payload.requireExists
+        })
+        if (result.success) {
+            try {
+                await streamEvent({
+                    update: {
+                        type: 'Asset Purged',
+                        zone: payload.expectedZone,
+                        objectsDeleted: result.objectsDeleted ?? 0,
+                        ...(player ? { player } : {})
+                    },
+                    streamKey: AssetId
+                })
+            } catch (streamError) {
+                console.error(`Error streaming Asset Purged event for ${AssetId}:`, streamError)
+            }
+        } else {
+            console.log(`Purge failed for ${AssetId}: ${result.message}`)
+        }
+    } catch (error) {
+        console.error(`Error purging asset ${AssetId}:`, error)
+    }
+}
+
+const processS3StructureFinding = async (event: StreamingEventEnvelope<DiagnosticsEventUpdate>): Promise<void> => {
+    const payload = await event.getContentInternal()
+    if (!isS3StructureFindingEvent(payload)) return
+    if (payload.source === 'primitives.wml' && payload.status === 'missing') {
+        try {
+            await initializePrimitives()
+        } catch (error) {
+            console.error(`WML DataSource: Error initializing primitives:`, error)
+        }
+    }
+}
 
 //
 // mtw.wml DataSource: snapshot-on-subscribe via S3 sidecar, then Content Update / Merge Conflict events.
@@ -49,269 +291,30 @@ export const wmlDataSource = new WMLDataSource<{}, WMLEventUpdate, CoordinationE
         )
     },
     receiveEvents: async ({ events, streamEvent }) => {
-        // Process internal coordination events from direct API calls and EventBridge
         await Promise.all(events.map(async (event) => {
-            const payload = event.content
-            const AssetId = event.header.streamKey
-
-            // Handle Apply Edit events
-            if (isApplyEditRequest(payload)) {
-                // Validate AssetId for asset-specific operations
-                if (!isSchemaAssetUUID(AssetId)) {
-                    console.error(`Invalid AssetId format: ${AssetId}`)
-                    return
-                }
-                try {
-                    // Use singleFlight to ensure sequential processing per asset
-                    const result = await wmlEditSingleFlight({
-                        category: 'wml-edit',
-                        argumentHash: AssetId, // Gate by AssetId so all edits on same asset are sequential
-                        computation: async (): Promise<ApplyEditResult> => {
-                            return await applyEdit({
-                                AssetId,
-                                RequestId: payload.RequestId,
-                                schema: payload.schema,
-                                createIfNeeded: payload.createIfNeeded,
-                                zone: payload.zone
-                            })
-                        }
-                    }) as ApplyEditResult
-                    
-                    if (result.success) {
-                        // Stream Content Update event with delta (edit) for clients to merge onto current state
-                        try {
-                            await streamEvent({
-                                update: {
-                                    type: 'Content Update',
-                                    schema: new StandardForm(payload.schema),
-                                    RequestIds: payload.RequestId != null ? [payload.RequestId] : []
-                                },
-                                streamKey: AssetId
-                            })
-                        } catch (streamError) {
-                            console.error(`Error streaming Content Update event for ${AssetId}:`, streamError)
-                            // Don't fail the edit operation if streaming fails
-                        }
-                    } else {
-                        // Stream Merge Conflict event for failed edits so client knows the edit failed
-                        try {
-                            await streamEvent({
-                                update: {
-                                    type: 'Merge Conflict',
-                                    error: result.error,
-                                    RequestIds: payload.RequestId != null ? [payload.RequestId] : []
-                                },
-                                streamKey: AssetId
-                            })
-                        } catch (streamError) {
-                            console.error(`Error streaming Merge Conflict event for ${AssetId}:`, streamError)
-                        }
-                    }
-                } catch (error) {
-                    console.error(`Error processing applyEdit for ${AssetId}:`, error)
-                }
+            const e = event as StreamingEventEnvelope<WMLSubscribedPayload>
+            if (isApplyEditEnvelope(e)) {
+                await processApplyEdit(e, streamEvent)
+                return
             }
-            
-            // Handle Move Asset events
-            if (isMoveAssetRequest(payload)) {
-                // Validate AssetId for asset-specific operations
-                if (!isSchemaAssetUUID(AssetId)) {
-                    console.error(`Invalid AssetId format: ${AssetId}`)
-                    return
-                }
-                try {
-                    // Use singleFlight to ensure sequential processing per asset
-                    // This prevents race conditions between moveAsset and applyEdit operations
-                    const result = await wmlEditSingleFlight({
-                        category: 'wml-edit',
-                        argumentHash: AssetId, // Gate by AssetId so all operations on same asset are sequential
-                        computation: async () => {
-                            return await moveAsset(AssetId, payload)
-                        }
-                    }) as any // Type assertion for MoveAssetResponse
-                    
-                    // Stream zone changed event if move was successful
-                    if (result.success) {
-                        try {
-                            await streamEvent({
-                                update: {
-                                    type: 'Zone Changed',
-                                    fromZone: payload.fromZone,
-                                    toZone: payload.toZone,
-                                    ...(payload.player ? { player: payload.player } : {}),
-                                    ...(payload.subFolder ? { subFolder: payload.subFolder } : {})
-                                },
-                                streamKey: AssetId
-                            })
-                        } catch (streamError) {
-                            console.error(`Error streaming zone changed event for ${AssetId}:`, streamError)
-                            // Don't fail the move operation if streaming fails
-                        }
-                    }
-                } catch (error) {
-                    console.error(`Error processing moveAsset for ${AssetId}:`, error)
-                }
+            if (isMoveAssetEnvelope(e)) {
+                await processMoveAsset(e, streamEvent)
+                return
             }
-            
-            // Process coordination events for canonization/decanonization
-            if (isCoordinationCanonizeEvent(payload) || isCoordinationDecanonizeEvent(payload)) {
-                // Validate AssetId for asset-specific operations
-                if (!isSchemaAssetUUID(AssetId)) {
-                    console.error(`Invalid AssetId format: ${AssetId}`)
-                    return
-                }
-                try {
-                    const coordinationEvent = payload
-                    let moveRequest: MoveAssetRequest
-                    
-                    if (isCoordinationCanonizeEvent(coordinationEvent)) {
-                        // Canonize: move from current zone to Canon
-                        moveRequest = {
-                            type: 'Move Asset',
-                            fromZone: 'Library', // Default from zone for canonization
-                            toZone: 'Canon'
-                        }
-                    } else if (isCoordinationDecanonizeEvent(coordinationEvent)) {
-                        // Decanonize: move from Canon to Library
-                        moveRequest = {
-                            type: 'Move Asset',
-                            fromZone: 'Canon',
-                            toZone: 'Library'
-                        }
-                    } else {
-                        console.error(`Unknown coordination event type: ${JSON.stringify(coordinationEvent)}`)
-                        return
-                    }
-                    
-                    const result = await moveAsset(AssetId, moveRequest)
-                    
-                    // Stream zone changed event if move was successful
-                    if (result.success) {
-                        try {
-                            await streamEvent({
-                                update: {
-                                    type: 'Zone Changed',
-                                    fromZone: moveRequest.fromZone,
-                                    toZone: moveRequest.toZone
-                                },
-                                streamKey: AssetId
-                            })
-                        } catch (streamError) {
-                            console.error(`Error streaming zone changed event for ${AssetId}:`, streamError)
-                            // Don't fail the move operation if streaming fails
-                        }
-                    }
-                } catch (error) {
-                    console.error(`Error processing coordination event:`, error)
-                }
+            if (isCanonizeOrDecanonizeEnvelope(e)) {
+                await processCanonizeDecanonize(e, streamEvent)
+                return
             }
-            
-            // Handle Create Snapshot events
-            if (isCreateSnapshotRequest(payload)) {
-                // Validate AssetId for asset-specific operations
-                if (!isSchemaAssetUUID(AssetId)) {
-                    console.error(`Invalid AssetId format: ${AssetId}`)
-                    return
-                }
-                try {
-                    // Load AssetWorkspace to get zone
-                    const assetWorkspace = await AssetWorkspace.fromUUID(AssetId)
-                    
-                    if (!assetWorkspace) {
-                        console.error(`Error creating snapshot: Asset ${AssetId} not found`)
-                        return
-                    }
-                    
-                    // Get asset key (without ASSET# prefix) for prefixes
-                    const assetKey = AssetId.replace('ASSET#', '')
-                    
-                    // Create snapshot for content
-                    const contentResult = await createManualSnapshot({
-                        prefix: `${assetKey}.wml/`,
-                        zone: assetWorkspace.zone
-                    })
-                    
-                    // Create snapshot for authorization
-                    const authResult = await createManualSnapshot({
-                        prefix: `${assetKey}.auth.wml/`,
-                        zone: assetWorkspace.zone
-                    })
-                    
-                    // Stream Snapshot Created event
-                    try {
-                        await streamEvent({
-                            update: {
-                                type: 'Snapshot Created',
-                                chunksBeforeSnapshot: contentResult.chunksBeforeSnapshot,
-                                snapshotSize: contentResult.snapshotReference.snapshotSize + authResult.snapshotReference.snapshotSize
-                            },
-                            streamKey: AssetId
-                        })
-                    } catch (streamError) {
-                        console.error(`Error streaming Snapshot Created event for ${AssetId}:`, streamError)
-                        // Don't fail the snapshot operation if streaming fails
-                    }
-                } catch (error) {
-                    console.error(`Error creating snapshot for ${AssetId}:`, error)
-                }
+            if (isCreateSnapshotEnvelope(e)) {
+                await processCreateSnapshot(e, streamEvent)
+                return
             }
-            
-            // Handle Purge Asset events
-            if (isPurgeAssetRequest(payload)) {
-                // Validate AssetId for asset-specific operations
-                if (!isSchemaAssetUUID(AssetId)) {
-                    console.error(`Invalid AssetId format: ${AssetId}`)
-                    return
-                }
-                try {
-                    // Get player from S3 metadata (via AssetWorkspace) BEFORE purging
-                    // (files will be deleted during purge, so we need to fetch metadata first)
-                    let player: string | undefined
-                    if (payload.expectedZone === 'Draft') {
-                        const workspace = await AssetWorkspace.fromUUID(AssetId, { preferDynamo: false, allowS3Fallback: true })
-                        player = workspace?.player
-                    }
-                    
-                    const result = await purgeAsset(AssetId, {
-                        expectedZone: payload.expectedZone,
-                        requireExists: payload.requireExists
-                    })
-                    
-                    // Stream Asset Purged event if purge was successful
-                    if (result.success) {
-                        try {
-                            await streamEvent({
-                                update: {
-                                    type: 'Asset Purged',
-                                    zone: payload.expectedZone,
-                                    objectsDeleted: result.objectsDeleted ?? 0,
-                                    ...(player ? { player } : {})
-                                },
-                                streamKey: AssetId
-                            })
-                        } catch (streamError) {
-                            console.error(`Error streaming Asset Purged event for ${AssetId}:`, streamError)
-                            // Don't fail the purge operation if streaming fails
-                        }
-                    } else {
-                        console.log(`Purge failed for ${AssetId}: ${result.message}`)
-                    }
-                } catch (error) {
-                    console.error(`Error purging asset ${AssetId}:`, error)
-                }
+            if (isPurgeAssetEnvelope(e)) {
+                await processPurgeAsset(e, streamEvent)
+                return
             }
-            
-            // Handle mtw.diagnostics S3 Structure Finding events
-            if (isS3StructureFindingEvent(payload)) {
-                // Respond to missing primitives.wml
-                if (payload.source === 'primitives.wml' && payload.status === 'missing') {
-                    try {
-                        const result = await initializePrimitives()
-                    } catch (error) {
-                        console.error(`WML DataSource: Error initializing primitives:`, error)
-                    }
-                }
-                // Future: Handle other S3 Structure Finding events here
+            if (isDiagnosticsEnvelope(e)) {
+                await processS3StructureFinding(e)
             }
         }))
     },

@@ -140,7 +140,7 @@ describe('WML DataSource', () => {
                     timestamp: 0,
                     type: 'Move Asset'
                 },
-                content: mockMoveRequest
+                getContentInternal: () => Promise.resolve(mockMoveRequest)
             }
 
             // Simulate the receiveEvents processing
@@ -181,7 +181,7 @@ describe('WML DataSource', () => {
                     timestamp: 0,
                     type: 'Move Asset'
                 },
-                content: mockMoveRequest
+                getContentInternal: () => Promise.resolve(mockMoveRequest)
             }
 
             // Simulate the receiveEvents processing
@@ -217,7 +217,7 @@ describe('WML DataSource', () => {
                     timestamp: 0,
                     type: 'Move Asset'
                 },
-                content: mockMoveRequest
+                getContentInternal: () => Promise.resolve(mockMoveRequest)
             }
 
             // Simulate the receiveEvents processing
@@ -256,7 +256,7 @@ describe('WML DataSource', () => {
                     timestamp: 0,
                     type: 'Move Asset'
                 },
-                content: mockMoveRequest
+                getContentInternal: () => Promise.resolve(mockMoveRequest)
             }
 
             // Should not throw - errors should be caught and logged
@@ -291,7 +291,7 @@ describe('WML DataSource', () => {
                     timestamp: 0,
                     type: 'Move Asset'
                 },
-                content: mockMoveRequest
+                getContentInternal: () => Promise.resolve(mockMoveRequest)
             }
 
             // Should not throw - streaming errors should be caught and logged
@@ -312,7 +312,7 @@ describe('WML DataSource', () => {
         it('should process successful applyEdit events', async () => {
             const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
             const mockApplyEditRequest = {
-                type: 'Apply Edit',
+                type: 'Apply Edit' as const,
                 RequestId: 'test-request-123',
                 schema: validEditWML
             }
@@ -329,9 +329,9 @@ describe('WML DataSource', () => {
                     dataSourceKey: 'internal',
                     streamKey: 'ASSET#test-asset',
                     timestamp: 0,
-                    type: 'Apply Edit'
+                    type: 'Apply Edit' as const
                 },
-                content: mockApplyEditRequest
+                getContentInternal: () => Promise.resolve(mockApplyEditRequest)
             }
 
             // Simulate the receiveEvents processing
@@ -364,7 +364,7 @@ describe('WML DataSource', () => {
         it('should stream Merge Conflict event when applyEdit fails', async () => {
             const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
             const mockApplyEditRequest = {
-                type: 'Apply Edit',
+                type: 'Apply Edit' as const,
                 RequestId: 'test-request-456',
                 schema: '<Asset uuid=(x)></Asset>'
             }
@@ -381,9 +381,9 @@ describe('WML DataSource', () => {
                     dataSourceKey: 'internal',
                     streamKey: 'ASSET#test-asset',
                     timestamp: 0,
-                    type: 'Apply Edit'
+                    type: 'Apply Edit' as const
                 },
-                content: mockApplyEditRequest
+                getContentInternal: () => Promise.resolve(mockApplyEditRequest)
             }
 
             // Simulate the receiveEvents processing
@@ -409,7 +409,7 @@ describe('WML DataSource', () => {
         it('should handle applyEdit processing errors gracefully', async () => {
             const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
             const mockApplyEditRequest = {
-                type: 'Apply Edit',
+                type: 'Apply Edit' as const,
                 RequestId: 'test-request-789',
                 schema: validEditWML
             }
@@ -421,9 +421,9 @@ describe('WML DataSource', () => {
                     dataSourceKey: 'internal',
                     streamKey: 'ASSET#test-asset',
                     timestamp: 0,
-                    type: 'Apply Edit'
+                    type: 'Apply Edit' as const
                 },
-                content: mockApplyEditRequest
+                getContentInternal: () => Promise.resolve(mockApplyEditRequest)
             }
 
             // Should not throw - errors should be caught and logged
@@ -447,7 +447,7 @@ describe('WML DataSource', () => {
         it('should handle streaming errors gracefully', async () => {
             const mockStreamEvent = jest.fn().mockRejectedValue(new Error('Streaming failed'))
             const mockApplyEditRequest = {
-                type: 'Apply Edit',
+                type: 'Apply Edit' as const,
                 RequestId: 'test-request-999',
                 schema: validEditWML
             }
@@ -464,9 +464,9 @@ describe('WML DataSource', () => {
                     dataSourceKey: 'internal',
                     streamKey: 'ASSET#test-asset',
                     timestamp: 0,
-                    type: 'Apply Edit'
+                    type: 'Apply Edit' as const
                 },
-                content: mockApplyEditRequest
+                getContentInternal: () => Promise.resolve(mockApplyEditRequest)
             }
 
             // Should not throw - streaming errors should be caught and logged
@@ -490,7 +490,7 @@ describe('WML DataSource', () => {
         it('should only process Apply Edit events for valid asset UUIDs', async () => {
             const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
             const mockApplyEditRequest = {
-                type: 'Apply Edit',
+                type: 'Apply Edit' as const,
                 RequestId: 'test-request-000',
                 schema: validEditWML
             }
@@ -501,9 +501,9 @@ describe('WML DataSource', () => {
                     dataSourceKey: 'internal',
                     streamKey: 'invalid!stream!key',
                     timestamp: 0,
-                    type: 'Apply Edit'
+                    type: 'Apply Edit' as const
                 },
-                content: mockApplyEditRequest
+                getContentInternal: () => Promise.resolve(mockApplyEditRequest)
             }
 
             await wmlDataSource.receiveEvents!({
@@ -519,7 +519,7 @@ describe('WML DataSource', () => {
         it('should use singleFlight wrapper for applyEdit calls', async () => {
             const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
             const mockApplyEditRequest = {
-                type: 'Apply Edit',
+                type: 'Apply Edit' as const,
                 RequestId: 'test-request-singleflight',
                 schema: validEditWML
             }
@@ -536,9 +536,9 @@ describe('WML DataSource', () => {
                     dataSourceKey: 'internal',
                     streamKey: 'ASSET#test-asset',
                     timestamp: 0,
-                    type: 'Apply Edit'
+                    type: 'Apply Edit' as const
                 },
-                content: mockApplyEditRequest
+                getContentInternal: () => Promise.resolve(mockApplyEditRequest)
             }
 
             await wmlDataSource.receiveEvents!({
@@ -569,7 +569,7 @@ describe('WML DataSource', () => {
         it('should stream RequestIds empty array when Apply Edit payload has no RequestId', async () => {
             const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
             const mockApplyEditRequest = {
-                type: 'Apply Edit',
+                type: 'Apply Edit' as const,
                 schema: validEditWML
                 // No RequestId
             }
@@ -586,9 +586,9 @@ describe('WML DataSource', () => {
                     dataSourceKey: 'internal',
                     streamKey: 'ASSET#test-asset',
                     timestamp: 0,
-                    type: 'Apply Edit'
+                    type: 'Apply Edit' 
                 },
-                content: mockApplyEditRequest
+                getContentInternal: () => Promise.resolve(mockApplyEditRequest)
             }
 
             await wmlDataSource.receiveEvents!({
@@ -653,15 +653,15 @@ describe('WML DataSource', () => {
                     dataSourceKey: 'mtw.diagnostics',
                     streamKey: 'global',
                     timestamp: 0,
-                    type: 'S3 Structure Finding'
+                    type: 'S3 Structure Finding' as const
                 },
-                content: {
-                    type: 'S3 Structure Finding',
+                getContentInternal: () => Promise.resolve({
+                    type: 'S3 Structure Finding' as const,
                     source: 'primitives.wml',
-                    status: 'missing',
+                    status: 'missing' as const,
                     diagnosticRunId: 'test-run-123',
                     timestamp: '2025-10-18T12:00:00.000Z'
-                }
+                })
             }
 
             expect(wmlDataSource.receiveEvents).toBeDefined()
@@ -681,15 +681,15 @@ describe('WML DataSource', () => {
                     dataSourceKey: 'mtw.diagnostics',
                     streamKey: 'global',
                     timestamp: 0,
-                    type: 'S3 Structure Finding'
+                    type: 'S3 Structure Finding' as const
                 },
-                content: {
-                    type: 'S3 Structure Finding',
+                getContentInternal: () => Promise.resolve({
+                    type: 'S3 Structure Finding' as const,
                     source: 'primitives.wml',
-                    status: 'present',  // Not missing
+                    status: 'present' as const,  // Not missing
                     diagnosticRunId: 'test-run-123',
                     timestamp: '2025-10-18T12:00:00.000Z'
-                }
+                })
             }
 
             await wmlDataSource.receiveEvents!({
@@ -708,15 +708,15 @@ describe('WML DataSource', () => {
                     dataSourceKey: 'mtw.diagnostics',
                     streamKey: 'global',
                     timestamp: 0,
-                    type: 'S3 Structure Finding'
+                    type: 'S3 Structure Finding' as const
                 },
-                content: {
-                    type: 'S3 Structure Finding',
+                getContentInternal: () => Promise.resolve({
+                    type: 'S3 Structure Finding' as const,
                     source: 'other-asset.wml',  // Different source
-                    status: 'missing',
+                    status: 'missing' as const,
                     diagnosticRunId: 'test-run-123',
                     timestamp: '2025-10-18T12:00:00.000Z'
-                }
+                })
             }
 
             await wmlDataSource.receiveEvents!({
@@ -737,15 +737,15 @@ describe('WML DataSource', () => {
                     dataSourceKey: 'mtw.diagnostics',
                     streamKey: 'global',
                     timestamp: 0,
-                    type: 'S3 Structure Finding'
+                    type: 'S3 Structure Finding' as const
                 },
-                content: {
-                    type: 'S3 Structure Finding',
+                getContentInternal: () => Promise.resolve({
+                    type: 'S3 Structure Finding' as const,
                     source: 'primitives.wml',
-                    status: 'missing',
+                    status: 'missing' as const,
                     diagnosticRunId: 'test-run-123',
                     timestamp: '2025-10-18T12:00:00.000Z'
-                }
+                })
             }
 
             // Should not throw - errors should be caught and logged
@@ -782,11 +782,11 @@ describe('WML DataSource', () => {
                     dataSourceKey: 'internal',
                     streamKey: 'ASSET#test-asset',
                     timestamp: 0,
-                    type: 'Create Snapshot'
+                    type: 'Create Snapshot' as const
                 },
-                content: {
-                    type: 'Create Snapshot'
-                }
+                getContentInternal: () => Promise.resolve({
+                    type: 'Create Snapshot' as const
+                })
             }
 
             await wmlDataSource.receiveEvents!({
@@ -830,11 +830,11 @@ describe('WML DataSource', () => {
                     dataSourceKey: 'internal',
                     streamKey: 'ASSET#missing-asset',
                     timestamp: 0,
-                    type: 'Create Snapshot'
+                    type: 'Create Snapshot' as const
                 },
-                content: {
-                    type: 'Create Snapshot'
-                }
+                getContentInternal: () => Promise.resolve({
+                    type: 'Create Snapshot' as const
+                })
             }
 
             // Should not throw - errors should be caught and logged
@@ -863,11 +863,11 @@ describe('WML DataSource', () => {
                     dataSourceKey: 'internal',
                     streamKey: 'ASSET#test-asset',
                     timestamp: 0,
-                    type: 'Create Snapshot'
+                    type: 'Create Snapshot' as const
                 },
-                content: {
-                    type: 'Create Snapshot'
-                }
+                getContentInternal: () => Promise.resolve({
+                    type: 'Create Snapshot' as const
+                })
             }
 
             // Should not throw - errors should be caught and logged
@@ -901,11 +901,11 @@ describe('WML DataSource', () => {
                     dataSourceKey: 'internal',
                     streamKey: 'ASSET#test-asset',
                     timestamp: 0,
-                    type: 'Create Snapshot'
+                    type: 'Create Snapshot' as const
                 },
-                content: {
-                    type: 'Create Snapshot'
-                }
+                getContentInternal: () => Promise.resolve({
+                    type: 'Create Snapshot' as const
+                })
             }
 
             // Should not throw - streaming errors should be caught
@@ -943,11 +943,11 @@ describe('WML DataSource', () => {
                         dataSourceKey: 'internal',
                         streamKey: 'ASSET#test-asset',
                         timestamp: 0,
-                        type: 'Create Snapshot'
+                        type: 'Create Snapshot' as const
                     },
-                    content: {
-                        type: 'Create Snapshot'
-                    }
+                    getContentInternal: () => Promise.resolve({
+                        type: 'Create Snapshot' as const
+                    })
                 }
 
                 await wmlDataSource.receiveEvents!({

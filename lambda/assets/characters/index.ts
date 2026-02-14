@@ -9,7 +9,7 @@ import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardCharacter } from '@tonylb/mtw-wml/ts/standardize/components/character'
 import getCurrentTimestamp from '../internalUtils/dateUtil'
 import { CharacterEventSerializer, CharacterEventUpdate } from '@tonylb/mtw-interfaces/ts/eventBridge/assets/characters'
-import { isAssetsComponentEvent, ComponentEventUpdate } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
+import { ComponentEventUpdate } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
 import { StreamingEventHeader, StreamingEventEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { ReferenceList } from '@tonylb/mtw-wml/ts/standardize/keys/referenceList'
 
@@ -87,20 +87,14 @@ const generateCharacterSnapshot = async (assetId: string): Promise<CharacterSnap
 }
 
 const processComponentEvent = async (
-    event: StreamingEventEnvelope<unknown>,
+    event: StreamingEventEnvelope<ComponentEventUpdate>,
     streamEvent: (params: { update: CharacterEventUpdate, streamKey: string }) => Promise<void>
 ): Promise<void> => {
     const streamKey = event.header.streamKey
-    const update = event.content as any
+    const content = await event.getContentInternal()
 
-    // Check if this is a component event and if it's a character component
-    if (!isAssetsComponentEvent(update)) {
-        return
-    }
-
-    // For characters, both content edits and full removals are interesting.
-    // We rely on the component type, not the specific update type, to decide.
-    const component = (update as any).component
+    // Content is already narrowed by envelope (Component Updated | Component Removed). We only care about StandardCharacter.
+    const component = content.component
     if (!(component instanceof StandardCharacter)) {
         return
     }
@@ -117,6 +111,13 @@ const processComponentEvent = async (
 
 // Create the characters data source singleton
 const CONTENT_HEADER_TYPES = new Set(['Component Updated', 'Component Removed'])
+
+/** Envelope typeguard: use header only (no content resolution). Enables routing before calling getContentInternal(). */
+const isCharactersComponentEnvelope = (
+    event: StreamingEventEnvelope<unknown>
+): event is StreamingEventEnvelope<ComponentEventUpdate> & { header: StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Component Updated' | 'Component Removed' } } => (
+    event.header.dataSourceKey === 'mtw.assets' && CONTENT_HEADER_TYPES.has(event.header.type)
+)
 
 /** Payload types of events mtw.assets.characters subscribes to (mtw.assets component events). */
 type CharactersSubscribedContent = ComponentEventUpdate
@@ -135,9 +136,9 @@ export const charactersDataSource = new AssetsDataSource<
     },
     snapshotContentGenerator: generateCharacterSnapshot,
     receiveEvents: async ({ events, streamEvent }) => {
-        // Process component events in parallel - each event is independent
+        // Route on envelope (header) first; only resolve content for component events
         await Promise.all(events.map(async (event) => {
-            if (!isAssetsComponentEvent(event.content)) {
+            if (!isCharactersComponentEnvelope(event)) {
                 return
             }
             await processComponentEvent(event, streamEvent)

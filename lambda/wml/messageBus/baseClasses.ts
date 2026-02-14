@@ -54,6 +54,7 @@ export type ExternalStreamingEventMessage = {
     streamKey: string;
     header: StreamingEventHeader;
     content: unknown;
+    getContentInternal?: () => Promise<unknown>;
     timestamp: number;
 }
 

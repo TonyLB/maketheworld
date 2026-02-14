@@ -15,21 +15,21 @@ import { ZoneUpdatedEventUpdate, AssetCachedEventUpdate, AssetRemovedEventUpdate
 
 /**
  * Envelope-level discriminated union for events subscribed by mtw.assets.library DataSource.
- * Each variant pairs a narrow header (dataSourceKey + type) with the matching content shape,
- * enabling TypeScript to narrow content when routing on header.type.
+ * Each variant pairs a narrow header (dataSourceKey + type) with getContentInternal returning the matching content shape,
+ * enabling TypeScript to narrow when routing on header.type.
  */
 export type LibraryIncomingEvent =
     | {
           header: StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Zone Updated' };
-          content: ZoneUpdatedEventUpdate;
+          getContentInternal: () => Promise<ZoneUpdatedEventUpdate>;
       }
     | {
           header: StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Asset Cached' };
-          content: AssetCachedEventUpdate;
+          getContentInternal: () => Promise<AssetCachedEventUpdate>;
       }
     | {
           header: StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Asset Removed' };
-          content: AssetRemovedEventUpdate;
+          getContentInternal: () => Promise<AssetRemovedEventUpdate>;
       };
 
 //
@@ -71,6 +71,40 @@ const LIBRARY_EVENT_TYPES = new Set(['Zone Updated', 'Asset Cached', 'Asset Remo
 // Type guard for subscribed assets events we care about (header-only routing)
 const isSubscribedAssetsEventHeader = (header: StreamingEventHeader): boolean => {
     return header.dataSourceKey === 'mtw.assets' && LIBRARY_EVENT_TYPES.has(header.type)
+}
+
+const processZoneUpdated = async (
+    event: Extract<LibraryIncomingEvent, { header: { type: 'Zone Updated' } }>,
+    streamEvent: (params: { update: AssetAdded | AssetRemoved; streamKey: string }) => Promise<void>
+): Promise<void> => {
+    const content = await event.getContentInternal()
+    const { fromZone, toZone } = content
+    const assetId = event.header.streamKey as AssetUUID
+    if (toZone === 'Library' && fromZone !== 'Library') {
+        await streamEvent({ update: { type: 'Asset Added', assetId }, streamKey: 'global' })
+    } else if (fromZone === 'Library' && toZone !== 'Library') {
+        await streamEvent({ update: { type: 'Asset Removed', assetId }, streamKey: 'global' })
+    }
+}
+
+const processAssetCached = async (
+    event: Extract<LibraryIncomingEvent, { header: { type: 'Asset Cached' } }>,
+    streamEvent: (params: { update: AssetAdded | AssetRemoved; streamKey: string }) => Promise<void>
+): Promise<void> => {
+    const content = await event.getContentInternal()
+    const { zone } = content
+    const assetId = event.header.streamKey as AssetUUID
+    if (zone === 'Library') {
+        await streamEvent({ update: { type: 'Asset Added', assetId }, streamKey: 'global' })
+    }
+}
+
+const processAssetRemoved = async (
+    event: Extract<LibraryIncomingEvent, { header: { type: 'Asset Removed' } }>,
+    streamEvent: (params: { update: AssetAdded | AssetRemoved; streamKey: string }) => Promise<void>
+): Promise<void> => {
+    const assetId = event.header.streamKey as AssetUUID
+    await streamEvent({ update: { type: 'Asset Removed', assetId }, streamKey: 'global' })
 }
 
 /**
@@ -116,7 +150,7 @@ const generateLibrarySnapshot = async (): Promise<LibrarySnapshot> => {
 export const libraryDataSource = new AssetsDataSource<
     LibrarySnapshot,
     AssetAdded | AssetRemoved,
-    LibraryIncomingEvent['content'],
+    ZoneUpdatedEventUpdate | AssetCachedEventUpdate | AssetRemovedEventUpdate,
     LibraryExternal,
     LibrarySnapshotExternal
 >({
@@ -126,65 +160,16 @@ export const libraryDataSource = new AssetsDataSource<
     snapshotContentGenerator: generateLibrarySnapshot,
     subscribedEventTypeGuard: isSubscribedAssetsEventHeader,
     receiveEvents: async ({ events, streamEvent }) => {
-        // Process mtw.assets events and generate library updates
-        // We only care about events that affect the Library zone
-        // Cast to envelope union for TypeScript narrowing
         const typedEvents = events as LibraryIncomingEvent[]
-
         await Promise.all(typedEvents.map(async (event) => {
-            const { header } = event
-            const assetId = header.streamKey as AssetUUID
-
+            const assetId = event.header.streamKey as AssetUUID
             try {
                 if (isZoneUpdatedLibraryEvent(event)) {
-                    const { fromZone, toZone } = event.content
-
-                    // Asset entering Library zone
-                    if (toZone === 'Library' && fromZone !== 'Library') {
-                        await streamEvent({
-                            update: {
-                                type: 'Asset Added',
-                                assetId
-                            },
-                            streamKey: 'global'
-                        })
-                    }
-                    // Asset leaving Library zone
-                    else if (fromZone === 'Library' && toZone !== 'Library') {
-                        await streamEvent({
-                            update: {
-                                type: 'Asset Removed',
-                                assetId
-                            },
-                            streamKey: 'global'
-                        })
-                    }
-                    // Ignore zone changes that don't involve Library
-                }
-                else if (isAssetCachedLibraryEvent(event)) {
-                    const { zone } = event.content
-
-                    // Asset cached in Library zone (new asset or recache)
-                    if (zone === 'Library') {
-                        await streamEvent({
-                            update: {
-                                type: 'Asset Added',
-                                assetId
-                            },
-                            streamKey: 'global'
-                        })
-                    }
-                }
-                else if (event.header.type === 'Asset Removed') {
-                    // Asset removed - we don't know its zone, but remove from library just in case
-                    // The aggregator will handle idempotent removal (no-op if not present)
-                    await streamEvent({
-                        update: {
-                            type: 'Asset Removed',
-                            assetId
-                        },
-                        streamKey: 'global'
-                    })
+                    await processZoneUpdated(event, streamEvent)
+                } else if (isAssetCachedLibraryEvent(event)) {
+                    await processAssetCached(event, streamEvent)
+                } else if (event.header.type === 'Asset Removed') {
+                    await processAssetRemoved(event, streamEvent)
                 }
             } catch (error) {
                 console.error(`Error processing library event for asset ${assetId}:`, error)
