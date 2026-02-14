@@ -47,7 +47,7 @@ export function sendApplyEdit(bus: Bus, streamKey: string, content: ApplyEditReq
         dataSourceKey: 'internal',
         streamKey,
         timestamp,
-        type: content.type,
+        type: 'Apply Edit',
     }
     bus.send({
         type: 'StreamingEvent',
@@ -65,7 +65,7 @@ export function sendMoveAsset(bus: Bus, streamKey: string, content: MoveAssetReq
         dataSourceKey: 'internal',
         streamKey,
         timestamp,
-        type: content.type,
+        type: 'Move Asset',
     }
     bus.send({
         type: 'StreamingEvent',
@@ -83,7 +83,7 @@ export function sendPurgeAsset(bus: Bus, streamKey: string, content: PurgeAssetR
         dataSourceKey: 'internal',
         streamKey,
         timestamp,
-        type: content.type,
+        type: 'Purge Asset',
     }
     bus.send({
         type: 'StreamingEvent',

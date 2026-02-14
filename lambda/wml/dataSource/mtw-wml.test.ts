@@ -166,7 +166,8 @@ describe('WML DataSource', () => {
                     fromZone: 'Library',
                     toZone: 'Canon'
                 },
-                streamKey: 'ASSET#test-asset'
+                streamKey: 'ASSET#test-asset',
+                header: { type: 'Zone Changed' }
             })
         })
 
@@ -244,7 +245,8 @@ describe('WML DataSource', () => {
                     player: 'alice',
                     subFolder: 'test-folder'
                 },
-                streamKey: 'ASSET#test-asset'
+                streamKey: 'ASSET#test-asset',
+                header: { type: 'Zone Changed' }
             })
         })
 
@@ -364,7 +366,8 @@ describe('WML DataSource', () => {
                     schema: expect.any(StandardForm),
                     RequestIds: ['test-request-123']
                 },
-                streamKey: 'ASSET#test-asset'
+                streamKey: 'ASSET#test-asset',
+                header: { type: 'Content Update' }
             })
             const streamedSchema = mockStreamEvent.mock.calls[0][0].update.schema
             expect(schemaToWML([streamedSchema.schema])).toBe(validEditWML)
@@ -411,7 +414,8 @@ describe('WML DataSource', () => {
             // Verify Merge Conflict event was streamed so client knows the edit failed
             expect(mockStreamEvent).toHaveBeenCalledWith({
                 streamKey: 'ASSET#test-asset',
-                update: { type: 'Merge Conflict', error: 'Parse error', RequestIds: ['test-request-456'] }
+                update: { type: 'Merge Conflict', error: 'Parse error', RequestIds: ['test-request-456'] },
+                header: { type: 'Merge Conflict' }
             })
         })
 
@@ -569,7 +573,8 @@ describe('WML DataSource', () => {
                     schema: expect.any(StandardForm),
                     RequestIds: ['test-request-singleflight']
                 },
-                streamKey: 'ASSET#test-asset'
+                streamKey: 'ASSET#test-asset',
+                header: { type: 'Content Update' }
             })
             const streamedSchema = mockStreamEvent.mock.calls[0][0].update.schema
             expect(schemaToWML([streamedSchema.schema])).toBe(validEditWML)
@@ -611,7 +616,8 @@ describe('WML DataSource', () => {
                     schema: expect.any(StandardForm),
                     RequestIds: []
                 },
-                streamKey: 'ASSET#test-asset'
+                streamKey: 'ASSET#test-asset',
+                header: { type: 'Content Update' }
             })
             const streamedSchema = mockStreamEvent.mock.calls[0][0].update.schema
             expect(schemaToWML([streamedSchema.schema])).toBe(validEditWML)
@@ -829,7 +835,8 @@ describe('WML DataSource', () => {
                     chunksBeforeSnapshot: 10,
                     snapshotSize: 10000  // 5000 + 5000
                 },
-                streamKey: 'ASSET#test-asset'
+                streamKey: 'ASSET#test-asset',
+                header: { type: 'Snapshot Created' }
             })
         })
 

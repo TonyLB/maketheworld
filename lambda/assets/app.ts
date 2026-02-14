@@ -71,7 +71,7 @@ export const handler = async (event, context) => {
                     dataSourceKey: 'mtw.wml',
                     streamKey,
                     timestamp,
-                    type: content.type
+                    type: 'Content Update'
                 }
                 messageBus.send({
                     type: 'StreamingEvent',
@@ -121,7 +121,7 @@ export const handler = async (event, context) => {
                     dataSourceKey: coreFormat.dataSourceKey,
                     streamKey: coreFormat.streamKey,
                     timestamp: coreFormat.timestamp,
-                    type: coreFormat.update.type as string
+                    type: (event["detail-type"] || event.DetailType) as string
                 }
                 // Deserialize the external event to internal format using the serializer
                 const internalEvent = deserializer.deserialize({

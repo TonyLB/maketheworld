@@ -58,7 +58,7 @@ export function sendPlayerSettingsUpdated(bus: Bus, streamKey: string, content: 
         dataSourceKey: 'internal',
         streamKey,
         timestamp,
-        type: content.type,
+        type: 'Player Settings Updated',
     }
     bus.send({
         type: 'StreamingEvent',
