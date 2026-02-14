@@ -117,15 +117,7 @@ So: we trade away **header/payload compile-time safety at the bus** for **lower 
 
 ### Optional: typed send-helpers
 
-We can recover **sender-side compile-time safety** without giving up the dumb bus by introducing **typed send-helpers**:
-
-- **Where they live**: Define a helper for each subscribed event kind (e.g. `sendApplyEdit`, `sendMoveAsset`) **in or near the DataSource implementation** that subscribes to those events (e.g. next to `mtw-wml.ts` or in a sibling like `sendHelpers.ts`). The helper is not part of the DataSource class itself, but colocating with the DataSource keeps the "this header goes with this payload" contract next to the subscriber and its payload types.
-
-- **MessageBus unchanged**: The bus continues to accept only the **broad** type. It does not reference the helpers or the narrow payload types. If code somewhere constructs an envelope by hand and calls `messageBus.send(...)` without using a helper, it can still break header/payload alignment and the type system will not object. So the bus stays dumb; the risk of misuse remains for any raw send.
-
-- **Senders use the helpers**: All intended send sites (e.g. app.ts for internal events, or the EventBridge handler when building external events) call the typed helpers instead of building the message inline. The helper's signature enforces that header and `getContentInternal` match (e.g. `sendApplyEdit(streamKey, header, getContentInternal: () => Promise<ApplyEditRequest>)`). Senders get compile-time checking by going through the helper.
-
-- **Easier discipline**: The thing we need to "just get right" shifts from "correctly pair this header with this payload when you construct the object" to "use the send helper for this kind of event." The helper owns the shape, so mistakes are either "used the wrong helper" or "built a raw message instead of using a helper" — both easier to avoid and to review for. A brief note in this doc or a comment on `messageBus.send` can state that streaming events should be sent via the appropriate helper when one exists.
+We can recover **sender-side compile-time safety** without giving up the dumb bus by introducing **typed send-helpers** in a per-DataSource `subscribedEvents` module. The concrete pattern, prototype (WML), and prospective rollout are described in **Prototype: WML subscribedEvents.ts** and **Prospective change: subscribedEvents as DataSource standard** below.
 
 ### Prototype: WML subscribedEvents.ts
 
@@ -151,9 +143,27 @@ A prototype of the subscribed-events pattern (types + envelope type guards + typ
 
 - **Replication at other DataSource sites**: Add a `subscribedEvents.ts` (or equivalent name) in that DataSource's directory. Define or re-export (1) the subscribed payload type and any payload types used by guards/helpers, (2) the envelope type guards that narrow to those payloads, and (3) typed send-helpers for each event kind that send sites publish. Have the DataSource implementation import types and guards from that file; have send sites import and call the helpers, passing the messageBus (or test double) as the first argument. The same pattern gives sender-side compile-time safety without changing the bus.
 
-### WML lambda types after the refactor (sketch)
+### subscribedEvents as DataSource standard (rollout complete)
 
-How the types currently in `lambda/wml/messageBus/baseClasses.ts` and `lambda/wml/dataSource/mtw-wml.ts` would look once we adopt envelope-on-bus + contract assurance + Option A.
+**Current state:** The subscribedEvents pattern (types, envelope type guards, and typed send-helpers) is the **standard for DataSource implementations**. Rollout is complete: WML, ephemera, and all five assets DataSource sites have a `subscribedEvents.ts` in their directory; the pattern is documented in [AGENT.implementation.md](AGENT.implementation.md). MessageBus and DataSource contracts are unchanged (e.g. `subscribedEventTypeGuard` remains `(header) => boolean`; the "envelope-on-bus + Option A" refactor below has not been done).
+
+**Decisions** (as implemented):
+
+1. **Send-helper scope**: Send-helpers are needed only for events that *this lambda* publishes to its own messageBus. We do not add helpers for events this lambda only forwards from EventBridge. Before rollout we audit each lambda: where does it call messageBus.send and for which event shapes? Only those get send-helpers in that lambda's subscribedEvents.
+
+2. **Init and other special subscriptions**: Leave Initialize Subscription (and similar control/bootstrap events) out of subscribedEvents for now. They stay on their separate subscription path; no convention yet for describing them in the subscribedEvents file.
+
+3. **Naming and location**: Standardize on **`subscribedEvents.ts`** in the **same directory as the DataSource implementation** (the directory that contains the file which instantiates the DataSource). So for WML that is `lambda/wml/dataSource/subscribedEvents.ts`; for assets top-level, `lambda/assets/dataSource/subscribedEvents.ts`; for assets.players, `lambda/assets/players/subscribedEvents.ts`; and so on.
+
+4. **Payload types from upstream**: SubscribedEvents imports payload types from wherever they are defined (sibling module, mtw-interfaces, etc.); it owns the subscription union, envelope guards, and send-helpers. Implementers do not move upstream type definitions into subscribedEvents.
+
+5. **Testing**: We do not require unit tests for send-helpers; they are simple enough that requiring tests would be over-engineering. Rely on existing handler/integration tests.
+
+6. **Multiple DataSources in one lambda**: We already have **one DataSource per directory**. In the assets lambda there are five DataSources, each in its own directory (`dataSource/`, `players/`, `library/`, `contentHeaders/`, `characters/`). So one `subscribedEvents.ts` per directory is sufficient—each directory has exactly one DataSource, and that directory gets one subscribedEvents file. No need for DataSource-prefixed filenames (e.g. `mtw-wml.subscribedEvents.ts`) unless we ever introduce multiple DataSource implementations in the same directory, which we do not have today.
+
+### Possible future refactor: WML lambda types (sketch, not implemented)
+
+How the types in `lambda/wml/messageBus/baseClasses.ts` and `lambda/wml/dataSource/mtw-wml.ts` **would** look if we later adopt envelope-on-bus + contract assurance + Option A. The codebase does **not** currently follow this sketch; it is retained for future consideration.
 
 #### messageBus/baseClasses.ts (after)
 
@@ -212,7 +222,7 @@ Init vs. content: Init is just one kind of envelope on the bus (header.type / da
 | **receiveEvents events type** | Generic + cast to `WMLSubscribedPayload` | Derived from envelope type guard; no cast |
 | **Per-event guards** | In mtw-wml, narrow to Apply Edit / Move Asset / etc. | Unchanged; still in mtw-wml |
 
-### Practical implications (to be explored)
+### Practical implications (if the future refactor is done)
 
 - **Init vs. content subscriptions**: How does "Initialize Subscription" fit? Separate subscription that also receives envelope-shaped messages, or a distinct message shape that stays outside the envelope contract?
 - **Migration**: Changes to DataSource constructor (envelope type guard signature), patterns package `subscribe()` (no envelope construction; contract check + envelope guard), and all call sites (supply envelope type guard; senders already sending envelope shape).
@@ -221,10 +231,9 @@ Init vs. content: Init is just one kind of envelope on the bus (header.type / da
 
 ---
 
-## Follow-up: other call sites
+## Other call sites (audit complete)
 
-When auditing other lambdas (e.g. assets, ephemera):
+Rollout to assets and ephemera is done. For future lambdas or type-safety checks, keep in mind:
 
 - Ensure every message type that is sent **with** `getContentInternal` declares it in the type (optional where backward compatibility is desired).
 - Ensure any message that flows into DataSource `receiveEvents` is documented as producing envelopes via `getContentInternal ?? (() => Promise.resolve(content))`.
-- Reuse this document to record per-lambda findings and any type corrections.

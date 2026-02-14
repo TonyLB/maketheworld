@@ -12,6 +12,7 @@ import { CharacterEventSerializer, CharacterEventUpdate } from '@tonylb/mtw-inte
 import { ComponentEventUpdate } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
 import { StreamingEventHeader, StreamingEventEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { ReferenceList } from '@tonylb/mtw-wml/ts/standardize/keys/referenceList'
+import { CharactersSubscribedContent, CONTENT_HEADER_TYPES, isCharactersComponentEnvelope } from './subscribedEvents'
 
 // Types for the characters data source
 export type CharacterEventPayload = {
@@ -110,18 +111,6 @@ const processComponentEvent = async (
 }
 
 // Create the characters data source singleton
-const CONTENT_HEADER_TYPES = new Set(['Component Updated', 'Component Removed'])
-
-/** Envelope typeguard: use header only (no content resolution). Enables routing before calling getContentInternal(). */
-const isCharactersComponentEnvelope = (
-    event: StreamingEventEnvelope<unknown>
-): event is StreamingEventEnvelope<ComponentEventUpdate> & { header: StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Component Updated' | 'Component Removed' } } => (
-    event.header.dataSourceKey === 'mtw.assets' && CONTENT_HEADER_TYPES.has(event.header.type)
-)
-
-/** Payload types of events mtw.assets.characters subscribes to (mtw.assets component events). */
-type CharactersSubscribedContent = ComponentEventUpdate
-
 export const charactersDataSource = new AssetsDataSource<
     CharacterSnapshotPayload,
     CharacterEventUpdate,

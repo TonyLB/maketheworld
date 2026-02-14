@@ -9,7 +9,6 @@ import {
 } from '@tonylb/mtw-interfaces/ts/eventBridge/assets/players'
 import { PlayerAggregator } from '@tonylb/mtw-interfaces/ts/eventBridge/assets/players/baseClasses'
 import {
-    AssetLevelEventUpdate,
     isAssetAddedEvent,
     isAssetRemovedEvent,
     isAssetUpdatedEvent,
@@ -17,7 +16,14 @@ import {
 } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
 import { splitType } from '@tonylb/mtw-utilities/ts/types'
 import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
-import { PlayerSettingsUpdatedEvent } from './coordinationSerializer'
+import {
+    PlayersSubscribedContent,
+    PlayersIncomingEvent,
+    PLAYERS_ASSET_EVENT_TYPES,
+    PLAYER_SETTINGS_TYPE,
+    isPlayerSettingsEnvelope,
+    isPlayersAssetEnvelope,
+} from './subscribedEvents'
 
 type PlayerLibraryView = {
     Assets: Record<string, any>
@@ -30,21 +36,6 @@ type LibraryWithSettings = {
     characters: PlayerLibraryView['Characters']
     settings: PlayerSettingsUpdated['settings']
 }
-
-const PLAYERS_ASSET_EVENT_TYPES = new Set(['Asset Added', 'Asset Removed', 'Asset Updated', 'Zone Updated'])
-const PLAYER_SETTINGS_TYPE = 'Player Settings Updated'
-
-/** Payload types of events mtw.assets.players subscribes to (internal + mtw.assets). */
-type PlayersSubscribedContent = PlayerSettingsUpdatedEvent | AssetLevelEventUpdate
-
-type PlayersIncomingEvent =
-    | { header: StreamingEventHeader & { dataSourceKey: 'internal'; type: 'Player Settings Updated' }; getContentInternal: () => Promise<PlayerSettingsUpdatedEvent> }
-    | { header: StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Asset Added' | 'Asset Removed' | 'Asset Updated' | 'Zone Updated' }; getContentInternal: () => Promise<AssetLevelEventUpdate> }
-
-const isPlayerSettingsEnvelope = (event: { header: StreamingEventHeader }): event is Extract<PlayersIncomingEvent, { header: { dataSourceKey: 'internal' } }> =>
-    event.header.dataSourceKey === 'internal' && event.header.type === PLAYER_SETTINGS_TYPE
-const isPlayersAssetEnvelope = (event: { header: StreamingEventHeader }): event is Extract<PlayersIncomingEvent, { header: { dataSourceKey: 'mtw.assets' } }> =>
-    event.header.dataSourceKey === 'mtw.assets' && PLAYERS_ASSET_EVENT_TYPES.has(event.header.type)
 
 type StreamEventFn = (params: { update: PlayerEventUpdate; streamKey: string }) => Promise<void>
 

@@ -78,6 +78,24 @@ DataSource events use a header/content split:
 - **`receiveEvents`**: Receives `events: Array<StreamingEventEnvelope<UpdatePayload>>`; use `event.header` for branching and `event.content` for payload semantics.
 - **Initialize Subscription**: DataSource instances type-guard on `header.type === "Initialize Subscription - ${this.dataSourceKey}"` to determine which DataSource handles a given Initialize Subscription event. See [lambda/subscriptions/AGENT.eventBridge.md](../../../../lambda/subscriptions/AGENT.eventBridge.md) for the EventBridge event format.
 
+### **SubscribedEvents pattern**
+
+Each DataSource implementation should colocate its subscription surface in a **`subscribedEvents.ts`** file in the **same directory** as the file that instantiates the DataSource (e.g. `lambda/wml/dataSource/subscribedEvents.ts`, `lambda/assets/players/subscribedEvents.ts`). One such file per DataSource directory.
+
+**Contents of subscribedEvents.ts:**
+
+1. **Subscribed payload type and envelope union**: A TypeScript union of the payload types this DataSource subscribes to, and an envelope-level discriminated union (header + `getContentInternal`) that pairs each subscribed event variant with its content shape. This keeps header/payload alignment in one place.
+
+2. **Envelope type guards**: Functions that narrow the envelope union to specific event variants (e.g. `isApplyEditEnvelope`, `isPlayerSettingsEnvelope`). The DataSource implementation imports these and uses them in `receiveEvents` for type-safe routing. Export any constants used by `subscribedEventTypeGuard` (e.g. event type sets).
+
+3. **Typed send-helpers (optional)**: For each event kind that **this lambda** publishes to its own messageBus (not events it only forwards from EventBridge), add a helper `sendX(bus, streamKey, content)`. The bus is the first argument so the module stays decoupled from the messageBus singleton and tests can inject a mock. Signature pattern: `sendX(bus: { send: (payload: StreamingEventMessage) => void }, streamKey: string, content: XPayload): void`. The helper builds the envelope shape (header, content, getContentInternal) and calls `bus.send(...)`.
+
+**Conventions:**
+
+- Payload types are imported from upstream (mtw-interfaces, sibling modules, etc.); subscribedEvents owns the subscription union, envelope guards, and send-helpers only.
+- Initialize Subscription and other special/bootstrap events are out of scope for subscribedEvents; they stay on their separate subscription path.
+- Reference implementation: [lambda/wml/dataSource/subscribedEvents.ts](../../../../lambda/wml/dataSource/subscribedEvents.ts).
+
 ### **Type-Safe Routing with Envelope-Level Discriminated Unions and Payload Purity**:
 
 When using header/content separation (`StreamingEventEnvelope<{ header, content }>`), discriminants such as `type` and `dataSourceKey` live on the `header`, not on the payload. To keep routing logic type-safe without embedding redundant `type` fields in `content`, and to keep payloads focused on domain data, the recommended pattern is:

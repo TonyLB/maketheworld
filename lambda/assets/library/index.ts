@@ -8,48 +8,16 @@ import {
     LibraryExternal,
     LibrarySnapshotExternal
 } from '@tonylb/mtw-interfaces/ts/eventBridge/assets/library'
-import { StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { ZoneUpdatedEventUpdate, AssetCachedEventUpdate, AssetRemovedEventUpdate } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
-
-/**
- * Envelope-level discriminated union for events subscribed by mtw.assets.library DataSource.
- * Each variant pairs a narrow header (dataSourceKey + type) with getContentInternal returning the matching content shape,
- * enabling TypeScript to narrow when routing on header.type.
- */
-export type LibraryIncomingEvent =
-    | {
-          header: StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Zone Updated' };
-          getContentInternal: () => Promise<ZoneUpdatedEventUpdate>;
-      }
-    | {
-          header: StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Asset Cached' };
-          getContentInternal: () => Promise<AssetCachedEventUpdate>;
-      }
-    | {
-          header: StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Asset Removed' };
-          getContentInternal: () => Promise<AssetRemovedEventUpdate>;
-      };
-
-//
-// Type guards for LibraryIncomingEvent variants
-//
-const isZoneUpdatedLibraryEvent = (event: LibraryIncomingEvent): event is Extract<
+import {
     LibraryIncomingEvent,
-    { header: { type: 'Zone Updated' } }
-> => (
-    event.header.dataSourceKey === 'mtw.assets' &&
-    event.header.type === 'Zone Updated'
-)
-
-const isAssetCachedLibraryEvent = (event: LibraryIncomingEvent): event is Extract<
-    LibraryIncomingEvent,
-    { header: { type: 'Asset Cached' } }
-> => (
-    event.header.dataSourceKey === 'mtw.assets' &&
-    event.header.type === 'Asset Cached'
-)
+    isSubscribedAssetsEventHeader,
+    isZoneUpdatedLibraryEvent,
+    isAssetCachedLibraryEvent,
+    isAssetRemovedLibraryEvent,
+} from './subscribedEvents'
 
 //
 // Replayable DataSource singleton for mtw.assets.library
@@ -65,13 +33,6 @@ const isAssetCachedLibraryEvent = (event: LibraryIncomingEvent): event is Extrac
 // - Filter out non-Library zone changes
 // - Maintain simple list of AssetUUIDs without metadata
 //
-
-const LIBRARY_EVENT_TYPES = new Set(['Zone Updated', 'Asset Cached', 'Asset Removed'])
-
-// Type guard for subscribed assets events we care about (header-only routing)
-const isSubscribedAssetsEventHeader = (header: StreamingEventHeader): boolean => {
-    return header.dataSourceKey === 'mtw.assets' && LIBRARY_EVENT_TYPES.has(header.type)
-}
 
 const processZoneUpdated = async (
     event: Extract<LibraryIncomingEvent, { header: { type: 'Zone Updated' } }>,
@@ -168,7 +129,7 @@ export const libraryDataSource = new AssetsDataSource<
                     await processZoneUpdated(event, streamEvent)
                 } else if (isAssetCachedLibraryEvent(event)) {
                     await processAssetCached(event, streamEvent)
-                } else if (event.header.type === 'Asset Removed') {
+                } else if (isAssetRemovedLibraryEvent(event)) {
                     await processAssetRemoved(event, streamEvent)
                 }
             } catch (error) {

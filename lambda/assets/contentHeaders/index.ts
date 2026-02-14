@@ -10,18 +10,25 @@ import {
     ContentHeadersExternal,
     ContentHeadersSnapshotExternal
 } from '@tonylb/mtw-interfaces/ts/eventBridge/assets/contentHeaders'
-import { ComponentEventUpdate, ComponentUpdatedEvent, ComponentRemovedEvent, AssetUpdatedEventUpdate } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
-import { StreamingEventHeader, StreamingEventEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import internalCache from '../internalCache'
 import { excludeUndefined } from '@tonylb/mtw-utilities/ts/lists'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
-import { WMLZoneEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/wml'
 import { Zone } from '@tonylb/mtw-asset-workspace'
 import { standardComponentFactory } from '@tonylb/mtw-wml/ts/standardize/componentFactory'
-import { defaultComponentFromTag } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
 import { ReferenceList } from '@tonylb/mtw-wml/ts/standardize/keys/referenceList'
+import {
+    ContentHeadersIncomingEvent,
+    ContentHeadersSubscribedContent,
+    isSubscribedEventHeader,
+    isZoneChangedContentHeadersEvent,
+    isComponentHeadersEvent,
+    isAssetUpdatedHeadersEvent,
+} from './subscribedEvents'
+
+// Re-export for consumers that imported from this file
+export type { SubscribedAssetsContent, SubscribedWMLContent } from './subscribedEvents'
 
 //
 // Replayable DataSource singleton for mtw.assets.contentHeaders
@@ -36,76 +43,6 @@ import { ReferenceList } from '@tonylb/mtw-wml/ts/standardize/keys/referenceList
 // - Maintain zone-based organization (Canon, Library, Personal)
 // - Provide WML-serialized component metadata for Import Navigator consumption
 //
-/**
- * Envelope-level discriminated union for events subscribed by mtw.assets.contentHeaders DataSource.
- * Each variant pairs a narrow header (dataSourceKey + type) with getContentInternal returning the matching content shape,
- * enabling TypeScript to narrow when routing on header.type.
- */
-export type ContentHeadersIncomingEvent =
-    | {
-          header: StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Component Updated' };
-          getContentInternal: () => Promise<ComponentUpdatedEvent>;
-      }
-    | {
-          header: StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Component Removed' };
-          getContentInternal: () => Promise<ComponentRemovedEvent>;
-      }
-    | {
-          header: StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Asset Updated' };
-          getContentInternal: () => Promise<AssetUpdatedEventUpdate>;
-      }
-    | {
-          header: StreamingEventHeader & { dataSourceKey: 'mtw.wml'; type: 'Zone Changed' };
-          getContentInternal: () => Promise<WMLZoneEvent>;
-      };
-
-//
-// Type guards for ContentHeadersIncomingEvent variants
-//
-const isZoneChangedContentHeadersEvent = (event: ContentHeadersIncomingEvent): event is Extract<
-    ContentHeadersIncomingEvent,
-    { header: { dataSourceKey: 'mtw.wml'; type: 'Zone Changed' } }
-> => (
-    event.header.dataSourceKey === 'mtw.wml' &&
-    event.header.type === 'Zone Changed'
-)
-
-const isComponentHeadersEvent = (event: ContentHeadersIncomingEvent): event is Extract<
-    ContentHeadersIncomingEvent,
-    { header: { dataSourceKey: 'mtw.assets'; type: 'Component Updated' | 'Component Removed' } }
-> => (
-    event.header.dataSourceKey === 'mtw.assets' &&
-    (event.header.type === 'Component Updated' || event.header.type === 'Component Removed')
-)
-
-const isAssetUpdatedHeadersEvent = (event: ContentHeadersIncomingEvent): event is Extract<
-    ContentHeadersIncomingEvent,
-    { header: { dataSourceKey: 'mtw.assets'; type: 'Asset Updated' } }
-> => (
-    event.header.dataSourceKey === 'mtw.assets' &&
-    event.header.type === 'Asset Updated'
-)
-
-// Content type for subscribed events from mtw.assets (derived from envelope union for backward compatibility)
-export type SubscribedAssetsContent = ComponentEventUpdate | AssetUpdatedEventUpdate
-
-// Content type for subscribed WML zone events (derived from envelope union for backward compatibility)
-export type SubscribedWMLContent = WMLZoneEvent
-
-/** Payload types of events mtw.assets.contentHeaders subscribes to (derived from envelope union). */
-type ContentHeadersSubscribedContent = ComponentUpdatedEvent | ComponentRemovedEvent | AssetUpdatedEventUpdate | WMLZoneEvent
-
-// Type guard for subscribed events (header-only routing)
-const isSubscribedEventHeader = (header: StreamingEventHeader): boolean => {
-    if (header.dataSourceKey === 'mtw.assets') {
-        return ['Component Updated', 'Component Removed', 'Asset Updated'].includes(header.type)
-    }
-    if (header.dataSourceKey === 'mtw.wml') {
-        return header.type === 'Zone Changed'
-    }
-    return false
-}
-
 //
 // Helper to project a full component down to its "header" representation:
 // tag, keys, and shortName (if present), with all other payload stripped.
