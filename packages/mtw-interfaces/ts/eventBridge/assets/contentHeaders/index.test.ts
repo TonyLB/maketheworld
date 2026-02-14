@@ -5,7 +5,6 @@ import {
     ContentHeadersUpdateExternal
 } from './index'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
-import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 import type { StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 

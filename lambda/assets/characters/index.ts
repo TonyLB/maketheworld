@@ -89,7 +89,7 @@ const generateCharacterSnapshot = async (assetId: string): Promise<CharacterSnap
 
 const processComponentEvent = async (
     event: StreamingEventEnvelope<ComponentEventUpdate>,
-    streamEvent: (params: { update: CharacterEventUpdate, streamKey: string }) => Promise<void>
+    streamEvent: (params: { update: CharacterEventUpdate; streamKey: string; header: { type: string } }) => Promise<void>
 ): Promise<void> => {
     const streamKey = event.header.streamKey
     const content = await event.getContentInternal()
@@ -102,11 +102,9 @@ const processComponentEvent = async (
 
     // Generate character updated event with StandardComponent object
     await streamEvent({
-        update: {
-            type: 'Character Updated',
-            component
-        },
-        streamKey
+        update: { type: 'Character Updated', component },
+        streamKey,
+        header: { type: 'Character Updated' }
     })
 }
 

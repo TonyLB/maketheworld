@@ -33,7 +33,7 @@ type LibraryWithSettings = {
     settings: PlayerSettingsUpdated['settings']
 }
 
-type StreamEventFn = (params: { update: PlayerEventUpdate; streamKey: string }) => Promise<void>
+type StreamEventFn = (params: { update: PlayerEventUpdate; streamKey: string; header: { type: string } }) => Promise<void>
 
 const processPlayerSettings = async (
     event: Extract<PlayersIncomingEvent, { header: { dataSourceKey: 'internal' } }>,
@@ -144,21 +144,19 @@ const generatePlayerSnapshot = async (playerName: string): Promise<PlayerSnapsho
 }
 
 const emitSettingsUpdated = async (
-    streamEvent: (params: { update: PlayerEventUpdate; streamKey: string }) => Promise<void>,
+    streamEvent: StreamEventFn,
     player: string
 ) => {
     const { settings } = await getLibraryAndSettings(player)
     await streamEvent({
         streamKey: player,
-        update: {
-            type: 'Player Settings Updated',
-            settings
-        }
+        update: { type: 'Player Settings Updated', settings },
+        header: { type: 'Player Settings Updated' }
     })
 }
 
 const emitAssetAssigned = async (
-    streamEvent: (params: { update: PlayerEventUpdate; streamKey: string }) => Promise<void>,
+    streamEvent: StreamEventFn,
     player: string,
     assetId: AssetUUID,
     library: PlayerLibraryView
@@ -171,15 +169,13 @@ const emitAssetAssigned = async (
 
     await streamEvent({
         streamKey: player,
-        update: {
-            type: 'Player Asset Assigned',
-            asset: { ...asset }
-        }
+        update: { type: 'Player Asset Assigned', asset: { ...asset } },
+        header: { type: 'Player Asset Assigned' }
     })
 }
 
 const emitAssetRemoved = async (
-    streamEvent: (params: { update: PlayerEventUpdate; streamKey: string }) => Promise<void>,
+    streamEvent: StreamEventFn,
     player: string,
     assetId: AssetUUID
 ) => {
@@ -187,10 +183,8 @@ const emitAssetRemoved = async (
     console.log(`[emitAssetRemoved] Emitting Player Asset Removed for player=${player}, assetId=${assetId}, assetKey=${assetKey}`)
     await streamEvent({
         streamKey: player,
-        update: {
-            type: 'Player Asset Removed',
-            assetId: assetKey
-        }
+        update: { type: 'Player Asset Removed', assetId: assetKey },
+        header: { type: 'Player Asset Removed' }
     })
     console.log(`[emitAssetRemoved] Player Asset Removed event streamed for player=${player}, assetId=${assetId}`)
 }

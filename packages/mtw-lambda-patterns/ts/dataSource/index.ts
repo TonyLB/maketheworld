@@ -3,7 +3,7 @@ import { getCurrentTimestamp } from '../internalUtils/dateUtil'
 import { eventBridgeClient } from '@tonylb/mtw-utilities/ts/eventBridge'
 import { v4 as uuidv4 } from 'uuid'
 import { PublishCommand } from '@aws-sdk/client-sns'
-import { StreamingEvent, StreamingEventPayload, StreamingEventPayloadContract, StreamingEventHeader, StreamingEventEnvelope, DataSourceEventSerializer, EventPayload } from './baseClasses'
+import { StreamingEvent, StreamingEventPayload, StreamingEventPayloadContract, StreamingEventHeader, StreamEventHeaderFragment, StreamingEventEnvelope, DataSourceEventSerializer, EventPayload } from './baseClasses'
 import { 
     CoreExternalFormat, 
     toEventBridgeFormat, 
@@ -59,9 +59,15 @@ export type SnsUtils = {
     send: (command: PublishCommand) => Promise<unknown>
 }
 
-// Utility type for streamEvent function signature
-export type StreamEventFunction<UpdatePayload = any> = 
-    (params: { update: UpdatePayload, streamKey: string }) => Promise<void>
+/** Params for streamEvent; header is required fragment (type + extended fields). DataSource supplies dataSourceKey, streamKey, timestamp. */
+export type StreamEventParams<UpdatePayload = any, Header extends StreamingEventHeader = StreamingEventHeader> = {
+    update: UpdatePayload
+    streamKey: string
+    header: StreamEventHeaderFragment<Header>
+}
+
+export type StreamEventFunction<UpdatePayload = any, Header extends StreamingEventHeader = StreamingEventHeader> =
+    (params: StreamEventParams<UpdatePayload, Header>) => Promise<void>
 
 /**
  * SubscribedContent = payload type of events this DataSource subscribes *to* (incoming).
@@ -94,7 +100,7 @@ export class DataSource<
     readonly subscribedEventTypeGuard?: (envelope: StreamingEventEnvelope<unknown>) => envelope is StreamingEventEnvelope<SubscribedContent>
     readonly receiveEvents?: (params: { 
         events: Array<StreamingEventEnvelope<SubscribedContent>>,
-        streamEvent: StreamEventFunction<UpdatePayload>
+        streamEvent: StreamEventFunction<UpdatePayload, Header>
     }) => Promise<void>
     readonly eventSerializer?: DataSourceEventSerializer<UpdatePayload, ExternalUpdatePayload, SnapshotPayload, ExternalSnapshotPayload, Header>
     readonly aggregator?: DataSourceAggregator<SnapshotPayload, UpdatePayload>
@@ -134,7 +140,7 @@ export class DataSource<
         subscribedEventTypeGuard?: (envelope: StreamingEventEnvelope<unknown>) => envelope is StreamingEventEnvelope<SubscribedContent>,
         receiveEvents?: (params: { 
             events: Array<StreamingEventEnvelope<SubscribedContent>>,
-            streamEvent: StreamEventFunction<UpdatePayload>
+            streamEvent: StreamEventFunction<UpdatePayload, Header>
         }) => Promise<void>,
         eventSerializer?: DataSourceEventSerializer<UpdatePayload, ExternalUpdatePayload, SnapshotPayload, ExternalSnapshotPayload, Header>,
         aggregator?: DataSourceAggregator<SnapshotPayload, UpdatePayload>,
@@ -338,20 +344,12 @@ export class DataSource<
         return internalSnapshot
     }
 
-    async streamEvent(params: Parameters<StreamEventFunction<UpdatePayload>>[0]): Promise<void> {
-        const { update, streamKey } = params
+    async streamEvent(params: StreamEventParams<UpdatePayload, Header>): Promise<void> {
+        const { update, streamKey, header: headerFragment } = params
         const now = getCurrentTimestamp()
         const uuid = uuidv4()  // Just the UUID part (timestamp is in coreFormat)
 
-        // Build header once for both serialize and messageBus routing
-        const header: Header = this.buildHeader
-            ? this.buildHeader({ update, streamKey, timestamp: now })
-            : {
-                dataSourceKey: this.dataSourceKey,
-                streamKey,
-                timestamp: now,
-                type: update.type
-            } as Header
+        const header: Header = { dataSourceKey: this.dataSourceKey, streamKey, timestamp: now, ...headerFragment } as Header
 
         // Create CoreExternalFormat - use serializer if available, otherwise use update directly
         const coreFormat: CoreExternalFormat = this.eventSerializer

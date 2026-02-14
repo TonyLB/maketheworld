@@ -88,11 +88,9 @@ describe('CharactersDataSource', () => {
 
             // Should have called streamEvent with character event
             expect(mockStreamEvent).toHaveBeenCalledWith({
-                update: {
-                    type: 'Character Updated',
-                    component: component // Should pass the StandardCharacter object
-                },
+                update: { type: 'Character Updated', component },
                 streamKey: 'ASSET#asset123',
+                header: { type: 'Character Updated' }
             })
         })
 
@@ -207,18 +205,14 @@ describe('CharactersDataSource', () => {
             // Should process both character events
             expect(mockStreamEvent).toHaveBeenCalledTimes(2)
             expect(mockStreamEvent).toHaveBeenNthCalledWith(1, {
-                update: {
-                    type: 'Character Updated',
-                    component: component1
-                },
-                streamKey: 'ASSET#asset1'
+                update: { type: 'Character Updated', component: component1 },
+                streamKey: 'ASSET#asset1',
+                header: { type: 'Character Updated' }
             })
             expect(mockStreamEvent).toHaveBeenNthCalledWith(2, {
-                update: {
-                    type: 'Character Updated',
-                    component: component2
-                },
-                streamKey: 'ASSET#asset2'
+                update: { type: 'Character Updated', component: component2 },
+                streamKey: 'ASSET#asset2',
+                header: { type: 'Character Updated' }
             })
         })
     })
@@ -237,11 +231,9 @@ describe('CharactersDataSource', () => {
             assetDBMock.putItem.mockResolvedValue({})
 
             await dataSource.streamEvent({
-                update: {
-                    type: 'Character Updated',
-                    component
-                },
-                streamKey: 'ASSET#asset123'
+                update: { type: 'Character Updated', component },
+                streamKey: 'ASSET#asset123',
+                header: { type: 'Character Updated' }
             })
 
             // Verify EventBridge event structure and serialization
@@ -278,11 +270,9 @@ describe('CharactersDataSource', () => {
             assetDBMock.putItem.mockResolvedValue({})
 
             await dataSource.streamEvent({
-                update: {
-                    type: 'Character Updated',
-                    component
-                },
-                streamKey: 'ASSET#complex-asset'
+                update: { type: 'Character Updated', component },
+                streamKey: 'ASSET#complex-asset',
+                header: { type: 'Character Updated' }
             })
 
             // Verify the serialized WML matches expected content exactly
@@ -308,11 +298,9 @@ describe('CharactersDataSource', () => {
             assetDBMock.putItem.mockResolvedValue({})
 
             await dataSource.streamEvent({
-                update: {
-                    type: 'Character Updated',
-                    component
-                },
+                update: { type: 'Character Updated', component },
                 streamKey: 'ASSET#metadata-asset',
+                header: { type: 'Character Updated' }
             })
 
             // Verify detailType is preserved
@@ -452,11 +440,9 @@ describe('CharactersDataSource', () => {
             })
 
             await dataSource.streamEvent({
-                update: {
-                    type: 'Character Updated',
-                    component
-                },
-                streamKey: 'ASSET#asset123'
+                update: { type: 'Character Updated', component },
+                streamKey: 'ASSET#asset123',
+                header: { type: 'Character Updated' }
             })
 
             // Should not throw

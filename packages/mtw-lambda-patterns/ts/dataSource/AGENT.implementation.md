@@ -101,6 +101,13 @@ The envelope and serializer support an optional **extended header** shape so dat
 - **When present:** On each `streamEvent` call, the DataSource invokes `buildHeader({ update, streamKey, timestamp })` and uses the return value as the header for `eventSerializer.serialize({ update, header })` and for the messageBus payload. The implementation can derive extra fields from `update` (e.g. set `zone` from a Zone Changed payload).
 - **Example:** A WML DataSource that publishes Zone Changed events with `header.zone` would define `type WMLStreamingEventHeader = StreamingEventHeader & { zone?: Zone }`, instantiate `DataSource<..., WMLStreamingEventHeader>` with a serializer typed to accept that header, and pass `buildHeader` that returns the base fields plus `zone` when the update is zone-related.
 
+**streamEvent and the header fragment:**
+
+- The DataSource supplies `dataSourceKey`, `streamKey`, and `timestamp` for every streamed event; the caller need not send those.
+- Callers must pass a **header fragment** (`StreamEventHeaderFragment<Header>`): `type` and any extended header fields. Type: `Omit<Header, 'dataSourceKey' | 'streamKey' | 'timestamp'>`. The DataSource merges the fragment with the base header to form the full header.
+- **Resolution:** Full header is always `{ dataSourceKey: this.dataSourceKey, streamKey, timestamp: now, ...params.header }`.
+- Supply the fragment so routing uses `header.type` (and extended fields) explicitly; the payload need not carry `type`.
+
 **Payload/contract/messageBus:** `StreamingEventPayload`, `StreamingEventPayloadContract`, and lambda `StreamingEventMessage` types keep `header: StreamingEventHeader` so structure guards and bus contracts stay payload-agnostic; any extended header is still assignable to the base type at runtime.
 
 **Client stored envelopes (recentEvents):** The client DataSource slice stores full envelope information per recent event via `RecentEventEnvelope<Payload, Header>` (header + event + timestamp). This aligns with the type-safe extended header support above: slices can use extended header types (e.g. `WMLStreamingEventHeader`) in stored envelopes and get correct narrowing when consuming `recentEvents`. Synthetic snapshots produced by the 30-second cleanup use a placeholder header (`type: 'Snapshot'`, empty `dataSourceKey`/`streamKey`); they are not passed to the aggregator. The stored header is passed into `applyUpdate(snapshot, update, header)` so aggregators can use header (e.g. to ignore Merge Conflict by `header.type`) for routing and keep payload for domain data.

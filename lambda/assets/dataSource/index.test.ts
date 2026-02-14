@@ -88,7 +88,8 @@ describe('AssetsDataSource (mtw.assets)', () => {
 
             await assetsDataSource.streamEvent({
                 update,
-                streamKey: 'ASSET#asset123'
+                streamKey: 'ASSET#asset123',
+                header: { type: update.type }
             })
 
             // Verify EventBridge event structure and serialization
@@ -120,7 +121,8 @@ describe('AssetsDataSource (mtw.assets)', () => {
 
             await assetsDataSource.streamEvent({
                 update,
-                streamKey: 'ASSET#asset789'
+                streamKey: 'ASSET#asset789',
+                header: { type: update.type }
             })
 
             // Verify EventBridge event structure
@@ -154,7 +156,8 @@ describe('AssetsDataSource (mtw.assets)', () => {
 
             await assetsDataSource.streamEvent({
                 update,
-                streamKey: 'ASSET#complex-asset'
+                streamKey: 'ASSET#complex-asset',
+                header: { type: update.type }
             })
 
             // Verify the serialized WML matches expected content exactly
@@ -182,7 +185,8 @@ describe('AssetsDataSource (mtw.assets)', () => {
 
             await assetsDataSource.streamEvent({
                 update,
-                streamKey: 'ASSET#metadata-asset'
+                streamKey: 'ASSET#metadata-asset',
+                header: { type: update.type }
             })
 
             // Verify detailType is preserved
@@ -275,6 +279,7 @@ describe('AssetsDataSource (mtw.assets)', () => {
                     toZone: 'Library',
                     player: 'testplayer'
                 },
+                header: { type: 'Zone Updated' },
                 streamKey: 'ASSET#test123'
             })
 
@@ -338,21 +343,16 @@ describe('AssetsDataSource (mtw.assets)', () => {
 
             // Verify that canon updated event was streamed
             expect(mockStreamEvent).toHaveBeenCalledWith({
-                update: { 
-                    type: 'Canon Updated',
-                    assetIds: []
-                },
-                streamKey: 'canon-global'
+                update: { type: 'Canon Updated', assetIds: [] },
+                streamKey: 'canon-global',
+                header: { type: 'Canon Updated' }
             })
 
             // Verify that zone updated event was also streamed
             expect(mockStreamEvent).toHaveBeenCalledWith({
-                update: {
-                    type: 'Zone Updated',
-                    fromZone: 'Draft',
-                    toZone: 'Canon'
-                },
-                streamKey: 'ASSET#test456'
+                update: { type: 'Zone Updated', fromZone: 'Draft', toZone: 'Canon' },
+                streamKey: 'ASSET#test456',
+                header: { type: 'Zone Updated' }
             })
 
             expect(receiveEventsSpy).toHaveBeenCalled()
@@ -414,21 +414,16 @@ describe('AssetsDataSource (mtw.assets)', () => {
 
             // Verify that canon updated event was streamed
             expect(mockStreamEvent).toHaveBeenCalledWith({
-                update: { 
-                    type: 'Canon Updated',
-                    assetIds: []
-                },
-                streamKey: 'canon-global'
+                update: { type: 'Canon Updated', assetIds: [] },
+                streamKey: 'canon-global',
+                header: { type: 'Canon Updated' }
             })
 
             // Verify that zone updated event was also streamed
             expect(mockStreamEvent).toHaveBeenCalledWith({
-                update: {
-                    type: 'Zone Updated',
-                    fromZone: 'Canon',
-                    toZone: 'Library'
-                },
-                streamKey: 'ASSET#test789'
+                update: { type: 'Zone Updated', fromZone: 'Canon', toZone: 'Library' },
+                streamKey: 'ASSET#test789',
+                header: { type: 'Zone Updated' }
             })
 
             expect(receiveEventsSpy).toHaveBeenCalled()
@@ -464,11 +459,9 @@ describe('AssetsDataSource (mtw.assets)', () => {
             })
 
             expect(mockStreamEvent).toHaveBeenCalledWith({
-                update: {
-                    type: 'Asset Removed',
-                    zone: 'Draft'
-                },
-                streamKey: 'ASSET#purged123'
+                update: { type: 'Asset Removed', zone: 'Draft' },
+                streamKey: 'ASSET#purged123',
+                header: { type: 'Asset Removed' }
             })
         })
 

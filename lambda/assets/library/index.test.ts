@@ -159,11 +159,9 @@ describe('LibraryDataSource (mtw.assets.library)', () => {
                 })
 
                 expect(mockStreamEvent).toHaveBeenCalledWith({
-                    update: {
-                        type: 'Asset Added',
-                        assetId: 'ASSET#test1'
-                    },
-                    streamKey: 'global'
+                    update: { type: 'Asset Added', assetId: 'ASSET#test1' },
+                    streamKey: 'global',
+                    header: { type: 'Asset Added' }
                 })
             })
 
@@ -188,11 +186,9 @@ describe('LibraryDataSource (mtw.assets.library)', () => {
                 })
 
                 expect(mockStreamEvent).toHaveBeenCalledWith({
-                    update: {
-                        type: 'Asset Removed',
-                        assetId: 'ASSET#test1'
-                    },
-                    streamKey: 'global'
+                    update: { type: 'Asset Removed', assetId: 'ASSET#test1' },
+                    streamKey: 'global',
+                    header: { type: 'Asset Removed' }
                 })
             })
 
@@ -264,11 +260,9 @@ describe('LibraryDataSource (mtw.assets.library)', () => {
                 })
 
                 expect(mockStreamEvent).toHaveBeenCalledWith({
-                    update: {
-                        type: 'Asset Added',
-                        assetId: 'ASSET#test1'
-                    },
-                    streamKey: 'global'
+                    update: { type: 'Asset Added', assetId: 'ASSET#test1' },
+                    streamKey: 'global',
+                    header: { type: 'Asset Added' }
                 })
             })
 
@@ -316,11 +310,9 @@ describe('LibraryDataSource (mtw.assets.library)', () => {
                 })
 
                 expect(mockStreamEvent).toHaveBeenCalledWith({
-                    update: {
-                        type: 'Asset Removed',
-                        assetId: 'ASSET#test1'
-                    },
-                    streamKey: 'global'
+                    update: { type: 'Asset Removed', assetId: 'ASSET#test1' },
+                    streamKey: 'global',
+                    header: { type: 'Asset Removed' }
                 })
             })
         })
@@ -376,15 +368,18 @@ describe('LibraryDataSource (mtw.assets.library)', () => {
                 expect(mockStreamEvent).toHaveBeenCalledTimes(3)
                 expect(mockStreamEvent).toHaveBeenCalledWith({
                     update: { type: 'Asset Added', assetId: 'ASSET#test1' },
-                    streamKey: 'global'
+                    streamKey: 'global',
+                    header: { type: 'Asset Added' }
                 })
                 expect(mockStreamEvent).toHaveBeenCalledWith({
                     update: { type: 'Asset Added', assetId: 'ASSET#test2' },
-                    streamKey: 'global'
+                    streamKey: 'global',
+                    header: { type: 'Asset Added' }
                 })
                 expect(mockStreamEvent).toHaveBeenCalledWith({
                     update: { type: 'Asset Removed', assetId: 'ASSET#test3' },
-                    streamKey: 'global'
+                    streamKey: 'global',
+                    header: { type: 'Asset Removed' }
                 })
             })
         })

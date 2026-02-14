@@ -32,7 +32,7 @@ export class AssetsDataSource<
         subscribedEventTypeGuard?: (envelope: StreamingEventEnvelope<unknown>) => envelope is StreamingEventEnvelope<SubscribedContent>;
         receiveEvents?: (params: { 
             events: Array<StreamingEventEnvelope<SubscribedContent>>,
-            streamEvent: (params: { update: UpdatePayload, streamKey: string }) => Promise<void>
+            streamEvent: (params: { update: UpdatePayload; streamKey: string; header: { type: string } }) => Promise<void>
         }) => Promise<void>;
         eventSerializer?: any; // Pass through to parent DataSource
         aggregator?: DataSourceAggregator<SnapshotPayload, UpdatePayload>;

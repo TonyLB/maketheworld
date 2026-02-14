@@ -549,10 +549,8 @@ describe('DataSource', () => {
         it('should store event to DynamoDB and publish to EventBridge in parallel', async () => {
             await dataSource.streamEvent({
                 streamKey: 'test-stream',
-                update: {
-                    type: 'TestUpdatePayload',
-                    update: 'test-update'
-                }
+                update: { type: 'TestUpdatePayload', update: 'test-update' },
+                header: { type: 'TestUpdatePayload' }
             })
             
             // Verify DynamoDB putItem was called with correct event record
@@ -579,13 +577,10 @@ describe('DataSource', () => {
         })
 
         it('should handle object update payloads correctly', async () => {
-            
             await dataSource.streamEvent({
                 streamKey: 'test-stream',
-                update: {
-                    type: 'TestUpdatePayload',
-                    update: 'test-update'
-                }
+                update: { type: 'TestUpdatePayload', update: 'test-update' },
+                header: { type: 'TestUpdatePayload' }
             })
             
             expect(mockDynamo.putItem).toHaveBeenCalledWith({
@@ -622,10 +617,8 @@ describe('DataSource', () => {
             
             await dataSourceWithDifferentKey.streamEvent({
                 streamKey: 'test-stream',
-                update: {
-                    type: 'TestUpdatePayload',
-                    update: 'test-update'
-                }
+                update: { type: 'TestUpdatePayload', update: 'test-update' },
+                header: { type: 'TestUpdatePayload' }
             })
             
             expect(mockDynamo.putItem).toHaveBeenCalledWith({
@@ -655,10 +648,8 @@ describe('DataSource', () => {
             
             await expect(dataSource.streamEvent({
                 streamKey: 'test-stream',
-                update: {
-                    type: 'TestUpdatePayload',
-                    update: 'test-update'
-                }
+                update: { type: 'TestUpdatePayload', update: 'test-update' },
+                header: { type: 'TestUpdatePayload' }
             })).rejects.toThrow('DynamoDB error')
             
             // Verify EventBridge was still called (parallel execution)
@@ -671,10 +662,8 @@ describe('DataSource', () => {
             
             await expect(dataSource.streamEvent({
                 streamKey: 'test-stream',
-                update: {
-                    type: 'TestUpdatePayload',
-                    update: 'test-update'
-                }
+                update: { type: 'TestUpdatePayload', update: 'test-update' },
+                header: { type: 'TestUpdatePayload' }
             })).rejects.toThrow('EventBridge error')
             
             // Verify DynamoDB was still called (parallel execution)
@@ -693,8 +682,8 @@ describe('DataSource', () => {
                 .mockReturnValueOnce('uuid-1' as unknown as ReturnType<typeof uuidv4>)
                 .mockReturnValueOnce('uuid-2' as unknown as ReturnType<typeof uuidv4>)
             
-            await dataSource.streamEvent({ update, streamKey })
-            await dataSource.streamEvent({ update, streamKey })
+            await dataSource.streamEvent({ update, streamKey, header: { type: update.type } })
+            await dataSource.streamEvent({ update, streamKey, header: { type: update.type } })
             
             expect(mockDynamo.putItem).toHaveBeenNthCalledWith(1, {
                 AssetId: 'STREAM#mtw.testDataSource::test-stream',
@@ -721,10 +710,8 @@ describe('DataSource', () => {
             
             await dataSource.streamEvent({
                 streamKey: 'test-stream',
-                update: {
-                    type: 'TestUpdatePayload',
-                    update: 'test-update'
-                }
+                update: { type: 'TestUpdatePayload', update: 'test-update' },
+                header: { type: 'TestUpdatePayload' }
             })
             
             expect(mockDynamo.putItem).toHaveBeenCalledWith({
@@ -751,10 +738,8 @@ describe('DataSource', () => {
         it('should publish to messageBus for internal event coordination', async () => {
             await dataSource.streamEvent({
                 streamKey: 'test-stream',
-                update: {
-                    type: 'TestUpdatePayload',
-                    update: 'test-update'
-                }
+                update: { type: 'TestUpdatePayload', update: 'test-update' },
+                header: { type: 'TestUpdatePayload' }
             })
             
             expect(mockMessageBus.send).toHaveBeenCalledWith({
@@ -776,6 +761,23 @@ describe('DataSource', () => {
             expect(content).toEqual({
                 type: 'TestUpdatePayload',
                 update: 'test-update'
+            })
+        })
+
+        it('should merge required header fragment with DataSource-owned header', async () => {
+            await dataSource.streamEvent({
+                streamKey: 'test-stream',
+                update: { type: 'TestUpdatePayload', update: 'test-update' },
+                header: { type: 'SomeType' }
+            })
+
+            expect(mockMessageBus.send).toHaveBeenCalledTimes(1)
+            const sent = mockMessageBus.send.mock.calls[0][0]
+            expect(sent.header).toMatchObject({
+                dataSourceKey: 'mtw.testDataSource',
+                streamKey: 'test-stream',
+                timestamp: 100000000,
+                type: 'SomeType'
             })
         })
     })
@@ -999,7 +1001,8 @@ describe('DataSource', () => {
             })
             await dataSourceWithExtendedHeader.streamEvent({
                 update: { type: 'TestUpdatePayload', update: 'test' },
-                streamKey: 'stream-1'
+                streamKey: 'stream-1',
+                header: { type: 'TestUpdatePayload', zone: 'Draft' }
             })
             const sent = mockMessageBus.send.mock.calls[0][0]
             expect(sent.header).toMatchObject({
@@ -1007,6 +1010,38 @@ describe('DataSource', () => {
                 streamKey: 'stream-1',
                 type: 'TestUpdatePayload',
                 zone: 'Draft'
+            })
+        })
+
+        it('should merge header fragment with extended fields when provided', async () => {
+            type ExtendedHeader = StreamingEventHeader & { zone?: string }
+            const dataSourceWithExtendedHeader = new DataSource<
+                TestSnapshotPayload,
+                TestUpdatePayload,
+                never,
+                TestUpdatePayload,
+                'AssetId',
+                TestSnapshotPayload,
+                ExtendedHeader
+            >({
+                dynamo: mockDynamo,
+                sns: mockSns,
+                messageBus: mockMessageBus,
+                primaryKeyName: 'AssetId',
+                dataSourceKey: 'mtw.extendedHeader',
+                feedbackTopicArn: 'arn:aws:sns:us-east-1:123456789012:test-feedback'
+            })
+            await dataSourceWithExtendedHeader.streamEvent({
+                update: { type: 'TestUpdatePayload', update: 'test' },
+                streamKey: 'stream-1',
+                header: { type: 'ExplicitType', zone: 'Canon' }
+            })
+            const sent = mockMessageBus.send.mock.calls[0][0]
+            expect(sent.header).toMatchObject({
+                dataSourceKey: 'mtw.extendedHeader',
+                streamKey: 'stream-1',
+                type: 'ExplicitType',
+                zone: 'Canon'
             })
         })
     })
@@ -1293,13 +1328,13 @@ describe('DataSource', () => {
                 await streamEventFunction({
                     update: 'test-update',
                     streamKey: 'test-stream',
-                    detailType: 'Test Event'
+                    header: { type: 'Test Event' }
                 })
 
                 expect(mockStreamEvent).toHaveBeenCalledWith({
                     update: 'test-update',
                     streamKey: 'test-stream',
-                    detailType: 'Test Event'
+                    header: { type: 'Test Event' }
                 })
             })
 
@@ -1878,11 +1913,9 @@ describe('DataSource', () => {
                 })
 
                 await dataSource.streamEvent({
-                    update: {
-                        type: 'TestUpdatePayload',
-                        update: 'test-update'
-                    },
+                    update: { type: 'TestUpdatePayload', update: 'test-update' },
                     streamKey: 'test-stream',
+                    header: { type: 'TestUpdatePayload' }
                 })
 
                 expect(mockDynamo.putItem).toHaveBeenCalledWith({
@@ -1962,11 +1995,9 @@ describe('DataSource', () => {
                 })
 
                 await dataSource.streamEvent({
-                    update: {
-                        type: 'TestUpdatePayload',
-                        update: 'test-update'
-                    },
-                    streamKey: 'test-stream'
+                    update: { type: 'TestUpdatePayload', update: 'test-update' },
+                    streamKey: 'test-stream',
+                    header: { type: 'TestUpdatePayload' }
                 })
 
                 expect(mockDynamo.putItem).not.toHaveBeenCalled()

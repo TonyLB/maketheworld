@@ -26,7 +26,7 @@ import {
     isDiagnosticsEnvelope,
 } from './subscribedEvents'
 
-type StreamEventFn = (params: { update: WMLEventUpdate; streamKey: string }) => Promise<void>
+type StreamEventFn = (params: { update: WMLEventUpdate; streamKey: string; header: { type: string } }) => Promise<void>
 
 // Single-flight factory for WML edits - ensures sequential processing per asset
 const wmlEditSingleFlight = singleFlightFactory({
@@ -70,7 +70,8 @@ const processApplyEdit = async (
                         schema: new StandardForm(payload.schema),
                         RequestIds: payload.RequestId != null ? [payload.RequestId] : []
                     },
-                    streamKey: AssetId
+                    streamKey: AssetId,
+                    header: { type: 'Content Update' }
                 })
             } catch (streamError) {
                 console.error(`Error streaming Content Update event for ${AssetId}:`, streamError)
@@ -83,7 +84,8 @@ const processApplyEdit = async (
                         error: result.error,
                         RequestIds: payload.RequestId != null ? [payload.RequestId] : []
                     },
-                    streamKey: AssetId
+                    streamKey: AssetId,
+                    header: { type: 'Merge Conflict' }
                 })
             } catch (streamError) {
                 console.error(`Error streaming Merge Conflict event for ${AssetId}:`, streamError)
@@ -122,7 +124,8 @@ const processMoveAsset = async (
                         ...(payload.player ? { player: payload.player } : {}),
                         ...(payload.subFolder ? { subFolder: payload.subFolder } : {})
                     },
-                    streamKey: AssetId
+                    streamKey: AssetId,
+                    header: { type: 'Zone Changed' }
                 })
             } catch (streamError) {
                 console.error(`Error streaming zone changed event for ${AssetId}:`, streamError)
@@ -158,7 +161,8 @@ const processCanonizeDecanonize = async (
             try {
                 await streamEvent({
                     update: { type: 'Zone Changed', fromZone: moveRequest.fromZone, toZone: moveRequest.toZone },
-                    streamKey: AssetId
+                    streamKey: AssetId,
+                    header: { type: 'Zone Changed' }
                 })
             } catch (streamError) {
                 console.error(`Error streaming zone changed event for ${AssetId}:`, streamError)
@@ -200,7 +204,8 @@ const processCreateSnapshot = async (
                     chunksBeforeSnapshot: contentResult.chunksBeforeSnapshot,
                     snapshotSize: contentResult.snapshotReference.snapshotSize + authResult.snapshotReference.snapshotSize
                 },
-                streamKey: AssetId
+                streamKey: AssetId,
+                header: { type: 'Snapshot Created' }
             })
         } catch (streamError) {
             console.error(`Error streaming Snapshot Created event for ${AssetId}:`, streamError)
@@ -239,7 +244,8 @@ const processPurgeAsset = async (
                         objectsDeleted: result.objectsDeleted ?? 0,
                         ...(player ? { player } : {})
                     },
-                    streamKey: AssetId
+                    streamKey: AssetId,
+                    header: { type: 'Asset Purged' }
                 })
             } catch (streamError) {
                 console.error(`Error streaming Asset Purged event for ${AssetId}:`, streamError)
