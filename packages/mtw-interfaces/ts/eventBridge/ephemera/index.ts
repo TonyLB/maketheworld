@@ -12,12 +12,11 @@ export type EphemeraEventUpdate = EventPayload
 export type EphemeraEventExternal = EventPayload
 
 export class EphemeraEventSerializer implements DataSourceEventSerializer<EphemeraEventUpdate, EphemeraEventExternal> {
-    serialize(params: { update: EphemeraEventUpdate; header: StreamingEventHeader }): EphemeraEventExternal {
-        return params.update
+    serialize(params: { content: EphemeraEventUpdate; header: StreamingEventHeader }): EphemeraEventExternal {
+        return params.content
     }
 
-    deserialize(params: { externalUpdate: EphemeraEventExternal; header: StreamingEventHeader }): EphemeraEventUpdate | null {
-        const { externalUpdate } = params
-        return externalUpdate
+    deserialize(params: { content: EphemeraEventExternal; header: StreamingEventHeader }): EphemeraEventUpdate | null {
+        return params.content
     }
 }

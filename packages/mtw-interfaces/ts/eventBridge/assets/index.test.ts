@@ -50,7 +50,7 @@ describe('AssetsEventSerializer', () => {
             }
 
             const externalEvent = serializer.serialize({
-                update: componentEvent,
+                content: componentEvent,
                 header: makeAssetsHeader('Component Updated')
             })
 
@@ -77,7 +77,7 @@ describe('AssetsEventSerializer', () => {
             }
 
             const internalEvent = serializer.deserialize({
-                externalUpdate: externalEvent,
+                content: externalEvent,
                 header: makeAssetsHeader('Component Updated')
             })
 
@@ -103,13 +103,13 @@ describe('AssetsEventSerializer', () => {
 
             // Serialize to external format
             const externalEvent = serializer.serialize({
-                update: originalEvent,
+                content: originalEvent,
                 header: makeAssetsHeader('Component Updated')
             })
 
             // Deserialize back to internal format
             const deserializedEvent = serializer.deserialize({
-                externalUpdate: externalEvent,
+                content: externalEvent,
                 header: makeAssetsHeader('Component Updated')
             })
 
@@ -135,7 +135,7 @@ describe('AssetsEventSerializer', () => {
             }
 
             const externalEvent = serializer.serialize({
-                update: componentEvent,
+                content: componentEvent,
                 header: makeAssetsHeader('Component Removed')
             })
 
@@ -162,7 +162,7 @@ describe('AssetsEventSerializer', () => {
             }
 
             const internalEvent = serializer.deserialize({
-                externalUpdate: externalEvent,
+                content: externalEvent,
                 header: makeAssetsHeader('Component Removed')
             })
 
@@ -188,13 +188,13 @@ describe('AssetsEventSerializer', () => {
 
             // Serialize to external format
             const externalEvent = serializer.serialize({
-                update: originalEvent,
+                content: originalEvent,
                 header: makeAssetsHeader('Component Removed')
             })
 
             // Deserialize back to internal format
             const deserializedEvent = serializer.deserialize({
-                externalUpdate: externalEvent,
+                content: externalEvent,
                 header: makeAssetsHeader('Component Removed')
             })
 
@@ -216,7 +216,7 @@ describe('AssetsEventSerializer', () => {
             }
 
             const externalEvent = serializer.serialize({
-                update: assetEvent,
+                content: assetEvent,
                 header: makeAssetsHeader('Asset Cached')
             })
 
@@ -232,7 +232,7 @@ describe('AssetsEventSerializer', () => {
             }
 
             const externalEvent = serializer.serialize({
-                update: assetEvent,
+                content: assetEvent,
                 header: makeAssetsHeader('Asset Decached')
             })
 
@@ -246,7 +246,7 @@ describe('AssetsEventSerializer', () => {
             }
 
             const externalEvent = serializer.serialize({
-                update: assetEvent,
+                content: assetEvent,
                 header: makeAssetsHeader('Asset Removed')
             })
 
@@ -263,7 +263,7 @@ describe('AssetsEventSerializer', () => {
             }
 
             const externalEvent = serializer.serialize({
-                update: assetEvent,
+                content: assetEvent,
                 header: makeAssetsHeader('Canon Updated')
             })
 
@@ -280,7 +280,7 @@ describe('AssetsEventSerializer', () => {
             }
 
             const internalEvent = serializer.deserialize({
-                externalUpdate: externalEvent,
+                content: externalEvent,
                 header: makeAssetsHeader('Asset Cached')
             })
 
@@ -300,13 +300,13 @@ describe('AssetsEventSerializer', () => {
 
             // Serialize to external format
             const externalEvent = serializer.serialize({
-                update: originalEvent,
+                content: originalEvent,
                 header: makeAssetsHeader('Asset Cached')
             })
 
             // Deserialize back to internal format
             const deserializedEvent = serializer.deserialize({
-                externalUpdate: externalEvent,
+                content: externalEvent,
                 header: makeAssetsHeader('Asset Cached')
             })
 
@@ -333,7 +333,7 @@ describe('AssetsEventSerializer', () => {
             }
 
             const internalEvent = serializer.deserialize({
-                externalUpdate: externalEvent,
+                content: externalEvent,
                 header: makeAssetsHeader('Component Removed')
             })
 
@@ -354,7 +354,7 @@ describe('AssetsEventSerializer', () => {
 
             expect(() => {
                 serializer.serialize({
-                    update: unknownEvent,
+                    content: unknownEvent,
                     header: makeAssetsHeader('Unknown Event')
                 })
             }).toThrow('Unknown event type in AssetsEventUpdate')
@@ -369,7 +369,7 @@ describe('AssetsEventSerializer', () => {
 
             expect(() => {
                 serializer.deserialize({
-                    externalUpdate: externalEvent,
+                    content: externalEvent,
                     header: makeAssetsHeader('Component Updated')
                 })
             }).toThrow()
@@ -388,7 +388,7 @@ describe('AssetsEventSerializer', () => {
 
             expect(() => {
                 serializer.deserialize({
-                    externalUpdate: externalEvent,
+                    content: externalEvent,
                     header: makeAssetsHeader('Component Updated')
                 })
             }).toThrow('Component ID mismatch: expected CHARACTER#missing-character')

@@ -76,19 +76,20 @@ export interface DataSourceEventSerializer<
 > {
     /**
      * Convert internal update payload to external format for EventBridge Detail.
-     * Implementations should use header.type for discriminating event variant; update carries payload only.
+     * Params use the same shape as ResolvedStreamingEnvelope: content is the payload (internal here); routing uses header.type only.
      */
     serialize(params: {
-        update: UpdatePayload;
+        content: UpdatePayload;
         header: Header;
     }): ExternalUpdatePayload;
 
     /**
-     * Convert external update payload back to internal format
-     * Returns null if the event cannot be deserialized
+     * Convert external update payload back to internal format.
+     * Params use the same shape as ResolvedStreamingEnvelope: content is the payload (external here); routing uses header.type only.
+     * Returns null if the event cannot be deserialized.
      */
     deserialize(params: {
-        externalUpdate: ExternalUpdatePayload;
+        content: ExternalUpdatePayload;
         header: Header;
     }): UpdatePayload | null;
     

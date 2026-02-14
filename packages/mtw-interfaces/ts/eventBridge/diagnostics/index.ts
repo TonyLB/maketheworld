@@ -62,17 +62,17 @@ export class DiagnosticsEventSerializer implements DataSourceEventSerializer<Dia
      * Serialize an internal event to external format for EventBridge transmission
      */
     serialize(params: {
-        update: DiagnosticsEventUpdate;
+        content: DiagnosticsEventUpdate;
         header: StreamingEventHeader;
     }): DiagnosticsEventExternal {
-        const { update, header } = params
+        const { content, header } = params
         if (header.type === 'S3 Structure Finding') {
             return {
                 type: 'S3 Structure Finding',
-                source: update.source,
-                status: update.status,
-                diagnosticRunId: update.diagnosticRunId,
-                timestamp: update.timestamp
+                source: content.source,
+                status: content.status,
+                diagnosticRunId: content.diagnosticRunId,
+                timestamp: content.timestamp
             }
         }
         throw new Error(`Unknown diagnostics event type: ${header.type}`)
@@ -80,33 +80,33 @@ export class DiagnosticsEventSerializer implements DataSourceEventSerializer<Dia
 
     /**
      * Deserialize an external event to internal format for messageBus processing
-     * 
-     * Note: The detail-type from EventBridge becomes the 'type' field in externalUpdate
+     *
+     * Note: The detail-type from EventBridge becomes the 'type' field in content
      * via the fromEventBridgeFormat transformation
      */
-    deserialize(params: { 
-        externalUpdate: any  // Will have type field from EventBridge detail-type
+    deserialize(params: {
+        content: any  // Will have type field from EventBridge detail-type
         header: StreamingEventHeader
     }): DiagnosticsEventUpdate | null {
-        const { externalUpdate, header } = params
+        const { content, header } = params
         const eventType = header.type
-        
+
         // The type field comes from EventBridge detail-type
         if (eventType === 'S3 Structure Finding') {
             // Validate required fields
-            if (typeof externalUpdate.source !== 'string' || typeof externalUpdate.status !== 'string') {
+            if (typeof content.source !== 'string' || typeof content.status !== 'string') {
                 return null
             }
-            
+
             return {
                 type: 'S3 Structure Finding',
-                source: externalUpdate.source,
-                status: externalUpdate.status,
-                diagnosticRunId: externalUpdate.diagnosticRunId || 'unknown',
-                timestamp: externalUpdate.timestamp || new Date().toISOString()
+                source: content.source,
+                status: content.status,
+                diagnosticRunId: content.diagnosticRunId || 'unknown',
+                timestamp: content.timestamp || new Date().toISOString()
             }
         }
-        
+
         return null
     }
 }

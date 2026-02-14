@@ -86,7 +86,7 @@ const initializePrimitivesData = async (): Promise<void> => {
         timestamp: now,
         type: internalEvent.type
     }
-    const externalUpdate = serializer.serialize({ update: internalEvent, header })
+    const externalUpdate = serializer.serialize({ content: internalEvent, header })
     
     // Create CoreExternalFormat matching what DataSource.streamEvent produces
     const coreFormat: CoreExternalFormat = {

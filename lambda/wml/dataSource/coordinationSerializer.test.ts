@@ -28,7 +28,7 @@ describe('CoordinationEventSerializer', () => {
             }
             const header = makeHeader('Apply Edit')
             const result = serializer.deserialize({
-                externalUpdate,
+                content: externalUpdate,
                 header
             })
             expect(result).not.toBeNull()
@@ -45,7 +45,7 @@ describe('CoordinationEventSerializer', () => {
             }
             const header = makeHeader('Move Asset')
             const result = serializer.deserialize({
-                externalUpdate,
+                content: externalUpdate,
                 header
             })
             expect(result).not.toBeNull()
@@ -64,7 +64,7 @@ describe('CoordinationEventSerializer', () => {
             }
             const header = makeHeader('Create Snapshot')
             const result = serializer.deserialize({
-                externalUpdate,
+                content: externalUpdate,
                 header
             })
             expect(result).not.toBeNull()
@@ -83,11 +83,11 @@ describe('CoordinationEventSerializer', () => {
             }
             const header = makeHeader(internalEvent.type)
             const externalEvent = serializer.serialize({
-                update: internalEvent,
+                content: internalEvent,
                 header
             })
             const deserialized = serializer.deserialize({
-                externalUpdate: externalEvent,
+                content: externalEvent,
                 header
             })
             expect(deserialized).not.toBeNull()

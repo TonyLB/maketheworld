@@ -2165,8 +2165,8 @@ describe('DataSource', () => {
 
         beforeEach(() => {
             mockSerializer = {
-                serialize: jest.fn((params) => params.update),
-                deserialize: jest.fn((params) => params.externalUpdate),
+                serialize: jest.fn((params) => params.content),
+                deserialize: jest.fn((params) => params.content),
                 serializeSnapshot: jest.fn((snapshot: SnapshotType<TestSnapshotPayload>): ExternalTestSnapshotPayload => ({
                     externalId: snapshot.id,
                     externalName: snapshot.name,

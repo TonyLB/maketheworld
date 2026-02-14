@@ -74,7 +74,7 @@ export const handler = async (event: any, context: any) => {
             }
             // Deserialize the external EventBridge event to internal format
             const internalEvent = deserializer.deserialize({
-                externalUpdate: event.detail,
+                content: event.detail,
                 header
             })
             

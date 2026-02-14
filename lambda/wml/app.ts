@@ -70,7 +70,7 @@ export const handler = async (event: any, context: any) => {
             }
             // Deserialize the external event to internal format using the serializer
             const internalEvent = deserializer.deserialize({
-                externalUpdate: coreFormat.update as any,
+                content: coreFormat.update as any,
                 header
             })
             
