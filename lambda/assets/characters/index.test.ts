@@ -332,7 +332,8 @@ describe('CharactersDataSource', () => {
             const result = serializer.deserialize({
                 dataSourceKey: 'mtw.assets.characters',
                 streamKey: 'ASSET#asset123',
-                externalUpdate
+                externalUpdate,
+                header: { dataSourceKey: 'mtw.assets.characters', streamKey: 'ASSET#asset123', timestamp: 0, type: 'Character Updated' }
             })
             
             expect(result).not.toBeNull()

@@ -57,6 +57,25 @@ export type AssetRemovedExternal = {
 
 export type LibraryExternal = LibrarySnapshotExternal | AssetAddedExternal | AssetRemovedExternal
 
+// Deserialize params envelope - header discriminates content shape
+type LibraryDeserializeParams = {
+    dataSourceKey: string
+    streamKey: string
+    externalUpdate: LibraryExternal
+    header: StreamingEventHeader
+}
+
+// Envelope-level type guards (header.type narrows content)
+const isAssetAddedLibraryEnvelope = (
+    params: LibraryDeserializeParams
+): params is LibraryDeserializeParams & { header: StreamingEventHeader & { type: 'Asset Added' }; externalUpdate: AssetAddedExternal } =>
+    params.header.type === 'Asset Added'
+
+const isAssetRemovedLibraryEnvelope = (
+    params: LibraryDeserializeParams
+): params is LibraryDeserializeParams & { header: StreamingEventHeader & { type: 'Asset Removed' }; externalUpdate: AssetRemovedExternal } =>
+    params.header.type === 'Asset Removed'
+
 /**
  * Event serializer for the mtw.assets.library data source.
  * 
@@ -94,38 +113,29 @@ export class LibraryEventSerializer implements DataSourceEventSerializer<
         }
     }
     
-    deserialize(params: { 
-        dataSourceKey: string
-        streamKey: string
-        externalUpdate: LibraryExternal 
-        header: StreamingEventHeader
-    }): LibraryEventUpdate | null {
-        const { externalUpdate, header } = params
-        const eventType = header.type
-        
-        // Validate and pass through
-        if (eventType === 'Asset Added') {
-            if (typeof externalUpdate.assetId !== 'string') {
+    deserialize(params: LibraryDeserializeParams): LibraryEventUpdate | null {
+        if (isAssetAddedLibraryEnvelope(params)) {
+            if (typeof params.externalUpdate.assetId !== 'string') {
                 console.error('Invalid Asset Added event: assetId must be a string')
                 return null
             }
             return {
                 type: 'Asset Added',
-                assetId: externalUpdate.assetId
+                assetId: params.externalUpdate.assetId
             }
-        } else if (eventType === 'Asset Removed') {
-            if (typeof externalUpdate.assetId !== 'string') {
+        }
+        if (isAssetRemovedLibraryEnvelope(params)) {
+            if (typeof params.externalUpdate.assetId !== 'string') {
                 console.error('Invalid Asset Removed event: assetId must be a string')
                 return null
             }
             return {
                 type: 'Asset Removed',
-                assetId: externalUpdate.assetId
+                assetId: params.externalUpdate.assetId
             }
-        } else {
-            console.error(`Unknown external streaming event type: ${(externalUpdate as any).type}`)
-            return null
         }
+        console.error(`Unknown external streaming event type: ${(params.externalUpdate as any).type}`)
+        return null
     }
     
     serializeSnapshot(snapshot: LibrarySnapshot): LibrarySnapshotExternal {

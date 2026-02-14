@@ -104,12 +104,13 @@ export class ContentHeadersEventSerializer implements DataSourceEventSerializer<
         const eventType = header.type
         
         if (eventType === 'Headers Updated') {
-            // Convert external WML string to internal StandardForm object
+            // Convert external WML string to internal StandardForm object (header.type narrows payload shape)
+            const updateExternal = externalUpdate as ContentHeadersUpdateExternal
             const result: ContentHeadersUpdate = {
                 type: 'Headers Updated',
-                assetId: externalUpdate.assetId,
-                zone: externalUpdate.zone,
-                standardForm: new StandardForm(externalUpdate.wml)
+                assetId: updateExternal.assetId,
+                zone: updateExternal.zone,
+                standardForm: new StandardForm(updateExternal.wml)
             }
             return result
         } else {

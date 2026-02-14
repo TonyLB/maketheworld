@@ -8,7 +8,14 @@ import {
     EphemeraEventUpdate, 
     EphemeraEventExternal 
 } from './index'
-import { EventPayload } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import { EventPayload, StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+
+const ephemeraHeader = (type: string): StreamingEventHeader => ({
+    dataSourceKey: 'mtw.ephemera',
+    streamKey: 'EPHEMERA#test',
+    timestamp: 0,
+    type
+})
 
 describe('EphemeraEventSerializer', () => {
     let serializer: EphemeraEventSerializer
@@ -28,7 +35,8 @@ describe('EphemeraEventSerializer', () => {
             const externalEvent = serializer.serialize({
                 dataSourceKey: 'mtw.ephemera',
                 streamKey: 'EPHEMERA#test',
-                update: eventPayload
+                update: eventPayload,
+                header: ephemeraHeader(eventPayload.type)
             })
 
             expect(externalEvent).toEqual(eventPayload)
@@ -44,7 +52,8 @@ describe('EphemeraEventSerializer', () => {
             const internalEvent = serializer.deserialize({
                 dataSourceKey: 'mtw.ephemera',
                 streamKey: 'EPHEMERA#test',
-                externalUpdate: eventPayload
+                externalUpdate: eventPayload,
+                header: ephemeraHeader(eventPayload.type)
             })
 
             expect(internalEvent).toEqual(eventPayload)
@@ -61,14 +70,16 @@ describe('EphemeraEventSerializer', () => {
             const externalEvent = serializer.serialize({
                 dataSourceKey: 'mtw.ephemera',
                 streamKey: 'EPHEMERA#test',
-                update: originalPayload
+                update: originalPayload,
+                header: ephemeraHeader(originalPayload.type)
             })
 
             // Deserialize back to internal format
             const deserializedEvent = serializer.deserialize({
                 dataSourceKey: 'mtw.ephemera',
                 streamKey: 'EPHEMERA#test',
-                externalUpdate: externalEvent
+                externalUpdate: externalEvent,
+                header: ephemeraHeader(externalEvent.type)
             })
 
             // Verify the event is preserved exactly
@@ -79,7 +90,8 @@ describe('EphemeraEventSerializer', () => {
             const result = serializer.deserialize({
                 dataSourceKey: 'mtw.ephemera',
                 streamKey: 'EPHEMERA#test',
-                externalUpdate: null as any
+                externalUpdate: null as any,
+                header: ephemeraHeader('Test Event')
             })
 
             expect(result).toBeNull()
@@ -101,7 +113,8 @@ describe('EphemeraEventSerializer', () => {
             const externalEvent = serializer.serialize({
                 dataSourceKey: 'mtw.ephemera',
                 streamKey: 'EPHEMERA#test',
-                update: complexPayload
+                update: complexPayload,
+                header: ephemeraHeader(complexPayload.type)
             })
 
             expect(externalEvent).toEqual(complexPayload)

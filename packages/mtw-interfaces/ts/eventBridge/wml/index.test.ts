@@ -7,8 +7,17 @@ import {
     WMLDataSourceEventSerializer,
     isWMLMaterializedView
 } from './index'
+import type { StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
+
+const wmlDataSourceKey = 'mtw.wml'
+const wmlStreamKey = 'ASSET#test-asset'
+const wmlTimestamp = 0
+
+function makeWmlHeader(type: string): StreamingEventHeader {
+    return { dataSourceKey: wmlDataSourceKey, streamKey: wmlStreamKey, timestamp: wmlTimestamp, type }
+}
 
 describe('WMLEventSerializer', () => {
     let serializer: WMLEventSerializer
@@ -33,7 +42,7 @@ describe('WMLEventSerializer', () => {
                 schema: standardForm
             }
 
-            const externalEvent = serializer.serialize({ dataSourceKey: 'mtw.wml', streamKey: 'ASSET#test-asset', update: contentEvent })
+            const externalEvent = serializer.serialize({ dataSourceKey: wmlDataSourceKey, streamKey: wmlStreamKey, update: contentEvent, header: makeWmlHeader('Content Update') })
             expect(externalEvent.type).toBe('Content Update')
             if (externalEvent.type === 'Content Update') {
                 expect(typeof externalEvent.wml).toBe('string')
@@ -60,9 +69,10 @@ describe('WMLEventSerializer', () => {
             }
 
             const internalEvent = serializer.deserialize({
-                dataSourceKey: 'mtw.wml',
-                streamKey: 'ASSET#test-asset',
-                externalUpdate: externalEvent
+                dataSourceKey: wmlDataSourceKey,
+                streamKey: wmlStreamKey,
+                externalUpdate: externalEvent,
+                header: makeWmlHeader('Content Update')
             })
 
             expect(internalEvent).not.toBeNull()
@@ -89,13 +99,14 @@ describe('WMLEventSerializer', () => {
             }
 
             // Serialize to external format
-            const externalEvent = serializer.serialize({ dataSourceKey: 'mtw.wml', streamKey: 'ASSET#test-asset', update: contentEvent })
+            const externalEvent = serializer.serialize({ dataSourceKey: wmlDataSourceKey, streamKey: wmlStreamKey, update: contentEvent, header: makeWmlHeader('Content Update') })
             
             // Deserialize back to internal format
             const deserializedEvent = serializer.deserialize({
-                dataSourceKey: 'mtw.wml',
-                streamKey: 'ASSET#test-asset',
-                externalUpdate: externalEvent
+                dataSourceKey: wmlDataSourceKey,
+                streamKey: wmlStreamKey,
+                externalUpdate: externalEvent,
+                header: makeWmlHeader('Content Update')
             })
             
             // Verify the schema is preserved
@@ -118,7 +129,7 @@ describe('WMLEventSerializer', () => {
                 schema: standardForm,
                 RequestIds: ['req-123']
             }
-            const externalEvent = serializer.serialize({ dataSourceKey: 'mtw.wml', streamKey: 'ASSET#test-asset', update: contentEvent })
+            const externalEvent = serializer.serialize({ dataSourceKey: wmlDataSourceKey, streamKey: wmlStreamKey, update: contentEvent, header: makeWmlHeader('Content Update') })
             expect(externalEvent.type).toBe('Content Update')
             if (externalEvent.type === 'Content Update') {
                 expect(externalEvent.RequestIds).toEqual(['req-123'])
@@ -137,9 +148,10 @@ describe('WMLEventSerializer', () => {
                 RequestIds: ['req-456']
             }
             const internalEvent = serializer.deserialize({
-                dataSourceKey: 'mtw.wml',
-                streamKey: 'ASSET#test-asset',
-                externalUpdate: externalEvent
+                dataSourceKey: wmlDataSourceKey,
+                streamKey: wmlStreamKey,
+                externalUpdate: externalEvent,
+                header: makeWmlHeader('Content Update')
             })
             expect(internalEvent).not.toBeNull()
             if (internalEvent && internalEvent.type === 'Content Update') {
@@ -158,11 +170,12 @@ describe('WMLEventSerializer', () => {
                 schema: standardForm,
                 RequestIds: ['req-roundtrip']
             }
-            const externalEvent = serializer.serialize({ dataSourceKey: 'mtw.wml', streamKey: 'ASSET#test-asset', update: contentEvent })
+            const externalEvent = serializer.serialize({ dataSourceKey: wmlDataSourceKey, streamKey: wmlStreamKey, update: contentEvent, header: makeWmlHeader('Content Update') })
             const deserialized = serializer.deserialize({
-                dataSourceKey: 'mtw.wml',
-                streamKey: 'ASSET#test-asset',
-                externalUpdate: externalEvent
+                dataSourceKey: wmlDataSourceKey,
+                streamKey: wmlStreamKey,
+                externalUpdate: externalEvent,
+                header: makeWmlHeader('Content Update')
             })
             expect(deserialized).not.toBeNull()
             if (deserialized && deserialized.type === 'Content Update') {
@@ -180,7 +193,7 @@ describe('WMLEventSerializer', () => {
                 player: 'alice'
             }
 
-            const externalEvent = serializer.serialize({ dataSourceKey: 'mtw.wml', streamKey: 'ASSET#test-asset', update: zoneEvent })
+            const externalEvent = serializer.serialize({ dataSourceKey: wmlDataSourceKey, streamKey: wmlStreamKey, update: zoneEvent, header: makeWmlHeader('Zone Changed') })
             expect(externalEvent).toEqual(zoneEvent)
         })
 
@@ -193,9 +206,10 @@ describe('WMLEventSerializer', () => {
             }
 
             const internalEvent = serializer.deserialize({
-                dataSourceKey: 'mtw.wml',
-                streamKey: 'ASSET#test-asset',
-                externalUpdate: externalEvent
+                dataSourceKey: wmlDataSourceKey,
+                streamKey: wmlStreamKey,
+                externalUpdate: externalEvent,
+                header: makeWmlHeader('Zone Changed')
             })
 
             expect(internalEvent).toEqual(externalEvent)
@@ -211,13 +225,14 @@ describe('WMLEventSerializer', () => {
             }
 
             // Serialize to external format
-            const externalEvent = serializer.serialize({ dataSourceKey: 'mtw.wml', streamKey: 'ASSET#test-asset', update: originalEvent })
+            const externalEvent = serializer.serialize({ dataSourceKey: wmlDataSourceKey, streamKey: wmlStreamKey, update: originalEvent, header: makeWmlHeader('Zone Changed') })
             
             // Deserialize back to internal format
             const deserializedEvent = serializer.deserialize({
-                dataSourceKey: 'mtw.wml',
-                streamKey: 'ASSET#test-asset',
-                externalUpdate: externalEvent
+                dataSourceKey: wmlDataSourceKey,
+                streamKey: wmlStreamKey,
+                externalUpdate: externalEvent,
+                header: makeWmlHeader('Zone Changed')
             })
             
             // Verify complete round-trip
@@ -230,7 +245,7 @@ describe('WMLEventSerializer', () => {
             const unknownEvent = { type: 'Unknown', AssetId: 'ASSET#test' } as any
 
             expect(() => {
-                serializer.serialize({ dataSourceKey: 'mtw.wml', streamKey: 'ASSET#test', update: unknownEvent })
+                serializer.serialize({ dataSourceKey: wmlDataSourceKey, streamKey: 'ASSET#test', update: unknownEvent, header: makeWmlHeader('Unknown') })
             }).toThrow('Unknown WML event type')
         })
 
@@ -242,9 +257,10 @@ describe('WMLEventSerializer', () => {
 
             expect(() => {
                 serializer.deserialize({
-                    dataSourceKey: 'mtw.wml',
-                    streamKey: 'ASSET#test-asset',
-                    externalUpdate: externalEvent
+                    dataSourceKey: wmlDataSourceKey,
+                    streamKey: wmlStreamKey,
+                    externalUpdate: externalEvent,
+                    header: makeWmlHeader('Content Update')
                 })
             }).toThrow('Failed to deserialize WML')
         })
@@ -257,9 +273,10 @@ describe('WMLEventSerializer', () => {
 
             expect(() => {
                 serializer.deserialize({
-                    dataSourceKey: 'mtw.wml',
-                    streamKey: 'ASSET#test-asset',
-                    externalUpdate: externalEvent
+                    dataSourceKey: wmlDataSourceKey,
+                    streamKey: wmlStreamKey,
+                    externalUpdate: externalEvent,
+                    header: makeWmlHeader('Content Update')
                 })
             }).toThrow("Content Update event missing required 'wml' property")
         })
@@ -272,7 +289,7 @@ describe('WMLEventSerializer', () => {
                 error: 'Merge conflict occurred during edit application'
             }
 
-            const externalEvent = serializer.serialize({ dataSourceKey: 'mtw.wml', streamKey: 'ASSET#test-asset', update: mergeConflictEvent })
+            const externalEvent = serializer.serialize({ dataSourceKey: wmlDataSourceKey, streamKey: wmlStreamKey, update: mergeConflictEvent, header: makeWmlHeader('Merge Conflict') })
             expect(externalEvent.type).toBe('Merge Conflict')
             if (externalEvent.type === 'Merge Conflict') {
                 expect(externalEvent.error).toBe('Merge conflict occurred during edit application')
@@ -286,9 +303,10 @@ describe('WMLEventSerializer', () => {
             }
 
             const internalEvent = serializer.deserialize({
-                dataSourceKey: 'mtw.wml',
-                streamKey: 'ASSET#test-asset',
-                externalUpdate: externalEvent
+                dataSourceKey: wmlDataSourceKey,
+                streamKey: wmlStreamKey,
+                externalUpdate: externalEvent,
+                header: makeWmlHeader('Merge Conflict')
             })
 
             expect(internalEvent).toBeDefined()
@@ -304,14 +322,15 @@ describe('WMLEventSerializer', () => {
             }
 
             // Serialize to external format
-            const externalEvent = serializer.serialize({ dataSourceKey: 'mtw.wml', streamKey: 'ASSET#test-asset', update: originalEvent })
+            const externalEvent = serializer.serialize({ dataSourceKey: wmlDataSourceKey, streamKey: wmlStreamKey, update: originalEvent, header: makeWmlHeader('Merge Conflict') })
             expect(externalEvent.type).toBe('Merge Conflict')
 
             // Deserialize back to internal format
             const roundTripEvent = serializer.deserialize({
-                dataSourceKey: 'mtw.wml',
-                streamKey: 'ASSET#test-asset',
-                externalUpdate: externalEvent
+                dataSourceKey: wmlDataSourceKey,
+                streamKey: wmlStreamKey,
+                externalUpdate: externalEvent,
+                header: makeWmlHeader('Merge Conflict')
             })
 
             expect(roundTripEvent).toBeDefined()
@@ -326,7 +345,7 @@ describe('WMLEventSerializer', () => {
                 error: 'Conflict',
                 RequestIds: ['req-mc-1']
             }
-            const externalEvent = serializer.serialize({ dataSourceKey: 'mtw.wml', streamKey: 'ASSET#test-asset', update: mergeConflictEvent })
+            const externalEvent = serializer.serialize({ dataSourceKey: wmlDataSourceKey, streamKey: wmlStreamKey, update: mergeConflictEvent, header: makeWmlHeader('Merge Conflict') })
             expect(externalEvent.type).toBe('Merge Conflict')
             if (externalEvent.type === 'Merge Conflict') {
                 expect(externalEvent.RequestIds).toEqual(['req-mc-1'])
@@ -340,9 +359,10 @@ describe('WMLEventSerializer', () => {
                 RequestIds: ['req-mc-2']
             }
             const internalEvent = serializer.deserialize({
-                dataSourceKey: 'mtw.wml',
-                streamKey: 'ASSET#test-asset',
-                externalUpdate: externalEvent
+                dataSourceKey: wmlDataSourceKey,
+                streamKey: wmlStreamKey,
+                externalUpdate: externalEvent,
+                header: makeWmlHeader('Merge Conflict')
             })
             expect(internalEvent).toBeDefined()
             if (internalEvent && internalEvent.type === 'Merge Conflict') {
@@ -359,7 +379,7 @@ describe('WMLEventSerializer', () => {
                 objectsDeleted: 42
             }
 
-            const externalEvent = serializer.serialize({ dataSourceKey: 'mtw.wml', streamKey: 'ASSET#test-asset', update: purgeEvent })
+            const externalEvent = serializer.serialize({ dataSourceKey: wmlDataSourceKey, streamKey: wmlStreamKey, update: purgeEvent, header: makeWmlHeader('Asset Purged') })
             expect(externalEvent.type).toBe('Asset Purged')
             if (externalEvent.type === 'Asset Purged') {
                 expect(externalEvent.zone).toBe('Draft')
@@ -375,9 +395,10 @@ describe('WMLEventSerializer', () => {
             }
 
             const internalEvent = serializer.deserialize({
-                dataSourceKey: 'mtw.wml',
-                streamKey: 'ASSET#test-asset',
-                externalUpdate: externalEvent
+                dataSourceKey: wmlDataSourceKey,
+                streamKey: wmlStreamKey,
+                externalUpdate: externalEvent,
+                header: makeWmlHeader('Asset Purged')
             })
 
             expect(internalEvent).not.toBeNull()
@@ -395,14 +416,15 @@ describe('WMLEventSerializer', () => {
             }
 
             // Serialize to external format
-            const externalEvent = serializer.serialize({ dataSourceKey: 'mtw.wml', streamKey: 'ASSET#test-asset', update: originalEvent })
+            const externalEvent = serializer.serialize({ dataSourceKey: wmlDataSourceKey, streamKey: wmlStreamKey, update: originalEvent, header: makeWmlHeader('Asset Purged') })
             expect(externalEvent.type).toBe('Asset Purged')
 
             // Deserialize back to internal format
             const roundTripEvent = serializer.deserialize({
-                dataSourceKey: 'mtw.wml',
-                streamKey: 'ASSET#test-asset',
-                externalUpdate: externalEvent
+                dataSourceKey: wmlDataSourceKey,
+                streamKey: wmlStreamKey,
+                externalUpdate: externalEvent,
+                header: makeWmlHeader('Asset Purged')
             })
 
             expect(roundTripEvent).toBeDefined()
@@ -410,6 +432,30 @@ describe('WMLEventSerializer', () => {
                 expect(roundTripEvent.zone).toBe(originalEvent.zone)
                 expect(roundTripEvent.objectsDeleted).toBe(originalEvent.objectsDeleted)
             }
+        })
+    })
+
+    describe('deserialize when header and payload type disagree - header wins', () => {
+        it('should deserialize as Zone Changed when header says Zone Changed but payload has Content Update shape', () => {
+            const externalEvent = {
+                type: 'Content Update',
+                wml: deIndentWML(`<Asset uuid=(test)></Asset>`),
+                fromZone: 'Draft',
+                toZone: 'Canon'
+            } as any
+
+            const internalEvent = serializer.deserialize({
+                dataSourceKey: wmlDataSourceKey,
+                streamKey: wmlStreamKey,
+                externalUpdate: externalEvent,
+                header: makeWmlHeader('Zone Changed')
+            })
+
+            expect(internalEvent).not.toBeNull()
+            expect(internalEvent!.type).toBe('Zone Changed')
+            expect((internalEvent as any).fromZone).toBe('Draft')
+            expect((internalEvent as any).toZone).toBe('Canon')
+            expect((internalEvent as any).wml).toBeDefined()
         })
     })
 
@@ -463,9 +509,10 @@ describe('WMLDataSourceEventSerializer', () => {
     it('should deserialize Content Update external to internal', () => {
         const wml = deIndentWML(`<Asset uuid=(test)></Asset>`)
         const result = serializer.deserialize({
-            dataSourceKey: 'mtw.wml',
+            dataSourceKey: wmlDataSourceKey,
             streamKey: 'ASSET#test',
-            externalUpdate: { type: 'Content Update', wml }
+            externalUpdate: { type: 'Content Update', wml },
+            header: makeWmlHeader('Content Update')
         })
         expect(result).not.toBeNull()
         expect(result!.type).toBe('Content Update')
@@ -476,9 +523,10 @@ describe('WMLDataSourceEventSerializer', () => {
 
     it('should deserialize Merge Conflict external to internal', () => {
         const result = serializer.deserialize({
-            dataSourceKey: 'mtw.wml',
+            dataSourceKey: wmlDataSourceKey,
             streamKey: 'ASSET#test',
-            externalUpdate: { type: 'Merge Conflict', error: 'Conflict' }
+            externalUpdate: { type: 'Merge Conflict', error: 'Conflict' },
+            header: makeWmlHeader('Merge Conflict')
         })
         expect(result).not.toBeNull()
         expect(result!.type).toBe('Merge Conflict')
@@ -486,9 +534,10 @@ describe('WMLDataSourceEventSerializer', () => {
 
     it('should return null for non-content external event (Zone Changed)', () => {
         const result = serializer.deserialize({
-            dataSourceKey: 'mtw.wml',
+            dataSourceKey: wmlDataSourceKey,
             streamKey: 'ASSET#test',
-            externalUpdate: { type: 'Zone Changed', fromZone: 'Draft', toZone: 'Canon' } as any
+            externalUpdate: { type: 'Zone Changed', fromZone: 'Draft', toZone: 'Canon' } as any,
+            header: makeWmlHeader('Zone Changed')
         })
         expect(result).toBeNull()
     })

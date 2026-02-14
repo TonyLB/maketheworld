@@ -489,7 +489,8 @@ describe('ContentHeaders EventBridge Contracts', () => {
                         assetId: 'ASSET#test',
                         zone: 'Canon',
                         standardForm
-                    }
+                    },
+                    header: { dataSourceKey: 'mtw.assets.contentHeaders', streamKey: 'global', timestamp: 0, type: 'Headers Updated' }
                 })
 
                 expect(result).toEqual({
@@ -518,7 +519,8 @@ describe('ContentHeaders EventBridge Contracts', () => {
                 const result = serializer.deserialize({
                     dataSourceKey: 'mtw.assets.contentHeaders',
                     streamKey: 'global',
-                    externalUpdate
+                    externalUpdate,
+                    header: { dataSourceKey: 'mtw.assets.contentHeaders', streamKey: 'global', timestamp: 0, type: 'Headers Updated' }
                 })
 
                 expect(result).not.toBeNull()

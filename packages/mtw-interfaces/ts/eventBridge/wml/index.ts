@@ -271,8 +271,8 @@ export class WMLEventSerializer implements DataSourceEventSerializer<WMLEventUpd
         const { externalUpdate, header } = params
         const eventType = header.type
         if (eventType === 'Zone Changed') {
-            // Zone events pass through as-is
-            return externalUpdate as WMLZoneEvent
+            // Zone events pass through with header.type authoritative
+            return { ...externalUpdate, type: 'Zone Changed' } as WMLZoneEvent
         } else if (eventType === 'Snapshot Created') {
             // Snapshot events pass through as-is
             return externalUpdate as WMLSnapshotEvent
@@ -294,11 +294,12 @@ export class WMLEventSerializer implements DataSourceEventSerializer<WMLEventUpd
                 throw new Error(`Content Update event missing required 'wml' property`)
             }
         } else if (eventType === 'Merge Conflict') {
-            // Merge Conflict events pass through with error information
+            // Merge Conflict events pass through with error information (header.type narrows payload shape)
+            const mergeExternal = externalUpdate as { type: 'Merge Conflict'; error: string; RequestIds?: string[] }
             return {
                 type: 'Merge Conflict',
-                error: externalUpdate.error,
-                ...(externalUpdate.RequestIds != null ? { RequestIds: externalUpdate.RequestIds } : {})
+                error: mergeExternal.error,
+                ...(mergeExternal.RequestIds != null ? { RequestIds: mergeExternal.RequestIds } : {})
             }
         } else if (eventType === 'Asset Purged') {
             // Purge events pass through as-is

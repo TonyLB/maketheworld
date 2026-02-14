@@ -1,6 +1,6 @@
 ## DataSource Serialize/Deserialize Refactor Planning
 
-**Status**: IN PROGRESS (Steps 1-4 complete; next: Step 5 / Step 6)
+**Status**: IN PROGRESS (Steps 1-5 complete; next: Step 6)
 **Scope**: `DataSourceEventSerializer` interface and all concrete serializers that participate in DataSource pipelines (lambdas + client), plus minimal wiring changes where they are called.  
 **Related**: `AGENT.delegation.header-content.planning.md`, `packages/mtw-lambda-patterns/ts/dataSource/baseClasses.ts`, serializers in `mtw-interfaces/ts/**`, client reducers in `charcoal-client/src/slices/dataSource/reducers.ts`.
 
@@ -336,6 +336,13 @@ This keeps wire formats stable while making header the canonical source of routi
   - Add unit tests that explicitly cover:
     - `deserialize` with and without header.
     - Header and payload fields disagreeing (to ensure header wins where we want it to).
+
+**Completed**: Step 5 validation work has been implemented:
+- All serializer unit tests updated to pass `header` in both `serialize` and `deserialize` calls (WML, Assets, ContentHeaders, Library, Ephemera, Diagnostics, Characters).
+- Deprecated "deserialize without header - backward compatibility" tests removed from CoordinationEventSerializer (header is now required).
+- Header-wins tests added for WMLEventSerializer (Zone Changed when payload has Content Update shape), AssetsEventSerializer (Component Removed when payload has Component Updated shape), and LibraryEventSerializer (Asset Removed when payload has Asset Added shape).
+- Type assertions added in WML, Library, and ContentHeaders serializer implementations so TypeScript correctly narrows payload types when branching on `header.type`.
+- CoordinationEventSerializer and Characters DataSource tests pass. mtw-interfaces serializer tests (Assets, ContentHeaders, Library, Ephemera, Diagnostics) pass. WML tests have some Content Update failures related to StandardForm/converterMap initialization in the test environment; header-related changes are validated.
 
 ---
 

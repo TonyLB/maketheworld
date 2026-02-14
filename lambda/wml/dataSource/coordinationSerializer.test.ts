@@ -78,40 +78,6 @@ describe('CoordinationEventSerializer', () => {
         })
     })
 
-    describe('deserialize without header - backward compatibility', () => {
-        it('should discriminate from externalUpdate.type when header is omitted (Apply Edit)', () => {
-            const externalUpdate: CoordinationEventExternal = {
-                type: 'Apply Edit',
-                schema: '<Asset></Asset>'
-            }
-            const result = serializer.deserialize({
-                dataSourceKey,
-                streamKey,
-                externalUpdate
-            })
-            expect(result).not.toBeNull()
-            expect(result!.type).toBe('Apply Edit')
-            expect((result as ApplyEditRequest).schema).toBe('<Asset></Asset>')
-        })
-
-        it('should discriminate from externalUpdate.type when header is omitted (Move Asset)', () => {
-            const externalUpdate: CoordinationEventExternal = {
-                type: 'Move Asset',
-                fromZone: 'Library',
-                toZone: 'Canon'
-            }
-            const result = serializer.deserialize({
-                dataSourceKey,
-                streamKey,
-                externalUpdate
-            })
-            expect(result).not.toBeNull()
-            expect(result!.type).toBe('Move Asset')
-            expect((result as MoveAssetRequest).fromZone).toBe('Library')
-            expect((result as MoveAssetRequest).toZone).toBe('Canon')
-        })
-    })
-
     describe('round-trip with header', () => {
         it('should round-trip Apply Edit: serialize then deserialize with header', () => {
             const internalEvent: ApplyEditRequest = {

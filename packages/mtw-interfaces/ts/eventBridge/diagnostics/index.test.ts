@@ -5,6 +5,14 @@ import {
     isS3StructureFindingEvent,
     isDiagnosticsEventUpdate
 } from './index'
+import type { StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+
+const diagnosticsHeader = (type: string): StreamingEventHeader => ({
+    dataSourceKey: 'mtw.diagnostics',
+    streamKey: 'global',
+    timestamp: 0,
+    type
+})
 
 describe('DiagnosticsEventSerializer', () => {
     const serializer = new DiagnosticsEventSerializer()
@@ -63,7 +71,8 @@ describe('DiagnosticsEventSerializer', () => {
             const internal = serializer.deserialize({
                 dataSourceKey: 'mtw.diagnostics',
                 streamKey: 'global',
-                externalUpdate: externalEvent
+                externalUpdate: externalEvent,
+                header: diagnosticsHeader('S3 Structure Finding')
             })
 
             expect(internal).toEqual({
@@ -86,7 +95,8 @@ describe('DiagnosticsEventSerializer', () => {
             const internal = serializer.deserialize({
                 dataSourceKey: 'mtw.diagnostics',
                 streamKey: 'global',
-                externalUpdate: externalEvent
+                externalUpdate: externalEvent,
+                header: diagnosticsHeader('S3 Structure Finding')
             })
 
             expect(internal).toBeDefined()
@@ -105,7 +115,8 @@ describe('DiagnosticsEventSerializer', () => {
                 const internal = serializer.deserialize({
                     dataSourceKey: 'mtw.diagnostics',
                     streamKey: 'global',
-                    externalUpdate: event
+                    externalUpdate: event,
+                    header: diagnosticsHeader('S3 Structure Finding')
                 })
 
                 expect(internal).toBeNull()
@@ -121,7 +132,8 @@ describe('DiagnosticsEventSerializer', () => {
             const internal = serializer.deserialize({
                 dataSourceKey: 'mtw.diagnostics',
                 streamKey: 'global',
-                externalUpdate: unknownEvent
+                externalUpdate: unknownEvent,
+                header: diagnosticsHeader('Unknown Event Type')
             })
 
             expect(internal).toBeNull()
@@ -193,7 +205,8 @@ describe('DiagnosticsEventSerializer', () => {
             const deserialized = serializer.deserialize({
                 dataSourceKey: 'mtw.diagnostics',
                 streamKey: 'global',
-                externalUpdate: external
+                externalUpdate: external,
+                header: diagnosticsHeader('S3 Structure Finding')
             })
 
             expect(deserialized).toEqual(original)
