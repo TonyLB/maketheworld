@@ -441,5 +441,7 @@ Once the header/content split is fully implemented:
   - `getInternal` implemented per DataSource using existing serializers and sidecar loaders.
 - Routing/typeguards will continue to use `header` only, so the lazy step focuses purely on how handlers obtain internal payloads, not on how they decide which events to handle.
 
+The **serialize/deserialize refactor** has been completed as a follow-up. Serializers now receive `header` in both `serialize` and `deserialize`, use `header.type` for discrimination, and treat payload `type` as derived/redundant for wire compatibility. See [EventBridge AGENT.implementation.md](../../packages/mtw-interfaces/ts/eventBridge/AGENT.implementation.md) (Header-Authoritative Serialization) and [DataSource AGENT.implementation.md](../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md) (Type-Safe Routing).
+
 This document is intentionally scoped to the **structural header/content refactor**; lazy evaluation and sidecar semantics are handled in `AGENT.delegation.planning.md` and future implementation docs.
 

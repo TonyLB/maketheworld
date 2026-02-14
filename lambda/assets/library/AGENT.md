@@ -57,6 +57,8 @@ The Library data source publishes three event types:
 
 **Type Definitions**: See [`packages/mtw-interfaces/ts/eventBridge/assets/library/baseClasses.ts`](../../../packages/mtw-interfaces/ts/eventBridge/assets/library/baseClasses.ts) for complete type definitions and type guards.
 
+**Header vs Payload Authority**: Event type is header-owned. Payload `assetId` carries domain data. The serializer uses envelope-level type guards on `header.type` for discrimination.
+
 ### Snapshot Generation
 
 Queries AssetDB using the `ZoneIndex` for assets where `zone === 'Library'` and `DataCategory` begins with `Meta::Asset`. Returns only asset IDs (minimal projection) for efficient performance.

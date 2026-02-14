@@ -34,6 +34,8 @@ The WML Lambda serves as the domain authority for WML source files and their Sta
 
 **Event Contracts**: [`../../packages/mtw-interfaces/ts/eventBridge/wml/`](../../packages/mtw-interfaces/ts/eventBridge/wml/index.ts)
 
+**Header vs Payload Authority**: Routing uses `StreamingEventHeader` (type, dataSourceKey, streamKey, timestamp). Content carries WML, zone data, schema, and other domain payload. Payload `type` is preserved for wire compatibility but is not used for routing.
+
 ## Current Implementation Status
 
 ### ✅ Completed

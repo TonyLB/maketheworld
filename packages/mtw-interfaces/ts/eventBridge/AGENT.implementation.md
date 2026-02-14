@@ -58,6 +58,16 @@ export class MyEventSerializer implements DataSourceEventSerializer<MyEventUpdat
 }
 ```
 
+### Header-Authoritative Serialization
+
+Serializers follow the header/content model:
+
+- `serialize` and `deserialize` receive `header: StreamingEventHeader` (required).
+- Discrimination uses `header.type`; payload `type` is derived and not used for routing.
+- Use envelope-level type guards when branching on `header.type` to narrow content.
+
+For envelope unions and payload purity rules, see [mtw-lambda-patterns DataSource AGENT.implementation.md](../../../mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md) (Type-Safe Routing with Envelope-Level Discriminated Unions).
+
 ### Implementation Guidelines
 
 1. **Handle Conversion**: Convert between internal messageBus events and external EventBridge events
@@ -157,6 +167,28 @@ assets/
     ├── index.ts             # Sub-source events
     └── baseClasses.ts       # Sub-source specific types
 ```
+
+## Discovering Implementations
+
+Pattern docs do not list every call-site. Search yields the live inventory.
+
+| What to find | Grep pattern | Notes |
+|--------------|--------------|-------|
+| Serializers | `implements DataSourceEventSerializer` | In `packages/mtw-interfaces/ts/eventBridge/**` and `lambda/wml/dataSource/coordinationSerializer.ts` |
+| EventBridge contract layout | Directory `packages/mtw-interfaces/ts/eventBridge/` | One directory per data source |
+| Lambda envelope unions | `IncomingEvent` | Envelope unions for `receiveEvents` (e.g. `AssetsIncomingEvent`, `LibraryIncomingEvent`) |
+| Lambda DataSource keys | `dataSourceKey: 'mtw\.` in `lambda/` | DataSource instantiations |
+| Frontend slices | `createDataSourceSlice` | Charcoal-client data source slices |
+| Subscription routing | `lambda/subscriptions/handlerFramework/index.ts` | Central config for `dataSourceKey` to LifeLine |
+
+**Naming conventions** (follow these so implementations stay discoverable):
+
+- **Envelope unions**: Name `{Domain}IncomingEvent` (e.g. `AssetsIncomingEvent`, `LibraryIncomingEvent`).
+- **Serializers**: Implement `DataSourceEventSerializer`; class names typically `{Domain}EventSerializer` or `{Domain}DataSourceEventSerializer`.
+- **EventBridge contracts**: Place in `packages/mtw-interfaces/ts/eventBridge/[dataSource]/index.ts` (or subdir for sub-sources).
+- **dataSourceKey**: Use `'mtw.{domain}'` format; literal in constructor for grep.
+
+For lambda-side discovery (envelope unions, DataSource instantiations), see [mtw-lambda-patterns DataSource Implementation Guide](../../../mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md).
 
 ## Testing Guidelines
 

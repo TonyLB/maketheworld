@@ -21,40 +21,20 @@ Each data source file (`[dataSource].ts`) contains:
 - **Type Guards**: Functions for runtime event validation
 - **Serializers**: Classes implementing `DataSourceEventSerializer` interface
 
-## Available Data Sources
+## Discovering Data Sources
 
-### WML Events (`wml/`)
-- **File**: `wml/index.ts`
-- **Internal**: `WMLContentEvent`, `WMLZoneEvent`
-- **External**: `WMLContentEventExternal`, `WMLZoneEventExternal`
-- **Serializer**: `WMLEventSerializer`
-- **Future**: Sub-sources like `wml/coordination.ts` can be added
+Pattern documentation does not enumerate all call-sites. Use search to find a live inventory:
 
-### Assets Events (`assets/`)
-- **File**: `assets/index.ts`
-- **Internal**: `ComponentEventUpdate`, `AssetLevelEventUpdate`
-- **External**: `ComponentEventExternal`, `AssetLevelEventExternal`
-- **Serializer**: `AssetsEventSerializer`
-- **Sub-sources**:
-  - **Characters** (`assets/characters/`):
-    - Internal: `CharacterEventUpdate`
-    - External: `CharacterEventExternal`
-    - Serializer: `CharacterEventSerializer`
-  - **ContentHeaders** (`assets/contentHeaders/`):
-    - Internal: `ContentHeadersEventUpdate`
-    - External: `ContentHeadersExternal`
-    - Serializer: `ContentHeadersEventSerializer`
+| What to find | Search pattern | Notes |
+|--------------|----------------|-------|
+| EventBridge contract layout | Directory `packages/mtw-interfaces/ts/eventBridge/` | One directory per data source; structure IS the inventory |
+| Serializers | `rg "implements DataSourceEventSerializer"` | Lives in this package and `lambda/wml/dataSource/coordinationSerializer.ts` |
+| Lambda DataSource keys | `rg "dataSourceKey: 'mtw\."` in `lambda/` | DataSource instantiations (exclude test paths if desired) |
+| Lambda envelope unions | `rg "IncomingEvent"` | Envelope unions for `receiveEvents` (e.g. `AssetsIncomingEvent`) |
+| Frontend slices | `rg "createDataSourceSlice"` | Charcoal-client data source slices |
+| Subscription routing | `lambda/subscriptions/handlerFramework/index.ts` | Central routing config for `dataSourceKey` to LifeLine |
 
-### Ephemera Events (`ephemera/`)
-- **File**: `ephemera/index.ts`
-- **Internal**: `EphemeraEventUpdate` (pass-through)
-- **External**: `EphemeraEventExternal` (pass-through)
-- **Serializer**: `EphemeraEventSerializer`
-- **Future**: Sub-sources can be added as needed
-
-### Base Classes (`baseClasses.ts`)
-- **Status**: Complete
-- **Contains**: Shared types, interfaces, and utilities for all event contracts
+See [AGENT.implementation.md](./AGENT.implementation.md#discovering-implementations) for full discovery guidance.
 
 ## Usage Pattern
 
@@ -86,6 +66,7 @@ All event contracts are now centralized in the `mtw-interfaces` package:
 - **[Implementation Guide](./AGENT.implementation.md)**: Detailed technical guidelines for implementing and maintaining EventBridge contracts
 - **[DataSource Pattern](../../../mtw-lambda-patterns/ts/dataSource/AGENT.md)**: How to implement DataSources using these contracts
 - **[Base Classes](./baseClasses.ts)**: Shared event types and interfaces
+- **[Header-Authoritative Serialization](./AGENT.implementation.md)**: Serializers receive `header` in both `serialize` and `deserialize`; use `header.type` for discrimination; payload `type` is derived for wire compatibility
 
 ## Development Guidelines
 
@@ -96,7 +77,7 @@ All event contracts are now centralized in the `mtw-interfaces` package:
 3. **Implement Type Guards**: Add runtime validation functions
 4. **Build Serializer**: Create class implementing `DataSourceEventSerializer`
 5. **Export Contracts**: Add exports to `index.ts`
-6. **Update Documentation**: Add entry to this file's data source list
+6. **Follow naming conventions**: Name types and place files so your implementation remains discoverable (see [Discovering Data Sources](#discovering-data-sources))
 
 ### Event Contract Design
 

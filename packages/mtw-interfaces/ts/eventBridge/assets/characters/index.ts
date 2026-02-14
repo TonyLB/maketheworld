@@ -3,7 +3,7 @@
 // This file contains event types, type guards, and serializers for the Characters sub-source.
 // Migrated from lambda/assets/characters/serializers.ts
 
-import { DataSourceEventSerializer } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import { DataSourceEventSerializer, StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 import { schemaToWML, nodeFromWML } from '@tonylb/mtw-wml/ts/schema'
 import { standardComponentFactory } from '@tonylb/mtw-wml/ts/standardize/componentFactory'

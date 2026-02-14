@@ -194,6 +194,12 @@ This naming convention ensures that:
 - **Code Clarity**: Makes it immediately clear which service/system owns each data source
 - **Consistency**: Eliminates confusion between different naming schemes across the system
 
+**Discovering Implementations**: This pattern doc does not enumerate call-sites. Use search for a live inventory:
+
+- **Envelope unions**: `rg "IncomingEvent"` or `rg "export type \w+IncomingEvent"` (e.g. `AssetsIncomingEvent`, `LibraryIncomingEvent`) in lambda files
+- **DataSource instantiations**: `rg "dataSourceKey: 'mtw\."` in `lambda/`
+- **Serializers**: See [EventBridge AGENT.implementation.md](../../../mtw-interfaces/ts/eventBridge/AGENT.implementation.md#discovering-implementations) for serializer and contract discovery
+
 ## EventBridge Integration Patterns
 
 ### **Incoming Event Processing**
