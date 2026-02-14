@@ -377,7 +377,8 @@ export class DataSource<
             streamKey,
             timestamp: now,
             header,
-            content: update
+            content: update,
+            getContentInternal: () => Promise.resolve(update)
         }
 
         // Execute all operations in parallel
@@ -643,7 +644,7 @@ export class DataSource<
                 const events: Array<StreamingEventEnvelope<SubscribedContent>> = payloads.map((streamingEvent) => {
                     return {
                         header: streamingEvent.header,
-                        content: streamingEvent.content as SubscribedContent
+                        getContentInternal: streamingEvent.getContentInternal ?? (() => Promise.resolve(streamingEvent.content as SubscribedContent))
                     }
                 })
                 

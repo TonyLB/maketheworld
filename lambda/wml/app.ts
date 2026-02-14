@@ -108,6 +108,7 @@ export const handler = async (event: any, context: any) => {
                     streamKey: coreFormat.streamKey,
                     header,
                     content: internalEvent,
+                    getContentInternal: () => Promise.resolve(internalEvent),
                     timestamp: event.time ? new Date(event.time).getTime() : Date.now()
                 }
                 messageBus.send(externalMessage)
@@ -177,6 +178,7 @@ export const handler = async (event: any, context: any) => {
                 streamKey,
                 header,
                 content,
+                getContentInternal: () => Promise.resolve(content),
                 timestamp
             })
             await messageBus.flush()
@@ -204,6 +206,7 @@ export const handler = async (event: any, context: any) => {
                 streamKey,
                 header,
                 content,
+                getContentInternal: () => Promise.resolve(content),
                 timestamp
             })
             await messageBus.flush()
@@ -229,6 +232,7 @@ export const handler = async (event: any, context: any) => {
                 streamKey,
                 header,
                 content,
+                getContentInternal: () => Promise.resolve(content),
                 timestamp
             })
             await messageBus.flush()

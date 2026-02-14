@@ -6,6 +6,7 @@ import { StandardCharacter } from '@tonylb/mtw-wml/ts/standardize/components/cha
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { cacheAsset, decacheAsset } from './caching'
+import { Zone } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 // Mock external dependencies
 jest.mock('@tonylb/mtw-utilities/ts/dynamoDB', () => ({
@@ -205,7 +206,7 @@ describe('AssetsDataSource (mtw.assets)', () => {
                     timestamp: Date.now(),
                     type: 'Content Update'
                 },
-                content
+                getContentInternal: () => Promise.resolve(content)
             }
 
             // Mock the receiveEvents method
@@ -230,14 +231,14 @@ describe('AssetsDataSource (mtw.assets)', () => {
                     timestamp: Date.now(),
                     type: 'Zone Changed'
                 },
-                content: {
-                    type: 'Zone Changed',
+                getContentInternal: () => Promise.resolve({
+                    type: 'Zone Changed' as const,
                     AssetId: 'ASSET#test123',
-                    fromZone: 'Personal',
-                    toZone: 'Library',
+                    fromZone: 'Personal' as Zone,
+                    toZone: 'Library' as Zone,
                     player: 'testplayer',
                     subFolder: 'testfolder'
-                }
+                })
             }
 
             const receiveEventsSpy = jest.spyOn(assetsDataSource, 'receiveEvents')
@@ -288,12 +289,12 @@ describe('AssetsDataSource (mtw.assets)', () => {
                     timestamp: Date.now(),
                     type: 'Zone Changed'
                 },
-                content: {
-                    type: 'Zone Changed',
+                getContentInternal: () => Promise.resolve({
+                    type: 'Zone Changed' as const,
                     AssetId: 'ASSET#test456',
-                    fromZone: 'Draft',
-                    toZone: 'Canon'
-                }
+                    fromZone: 'Draft' as Zone,
+                    toZone: 'Canon' as Zone
+                })
             }
 
             const receiveEventsSpy = jest.spyOn(assetsDataSource, 'receiveEvents')
@@ -365,12 +366,12 @@ describe('AssetsDataSource (mtw.assets)', () => {
                     timestamp: Date.now(),
                     type: 'Zone Changed'
                 },
-                content: {
-                    type: 'Zone Changed',
+                getContentInternal: () => Promise.resolve({
+                    type: 'Zone Changed' as const,
                     AssetId: 'ASSET#test789',
-                    fromZone: 'Canon',
-                    toZone: 'Library'
-                }
+                    fromZone: 'Canon' as Zone,
+                    toZone: 'Library' as Zone
+                })
             }
 
             const receiveEventsSpy = jest.spyOn(assetsDataSource, 'receiveEvents')
@@ -443,11 +444,11 @@ describe('AssetsDataSource (mtw.assets)', () => {
                     timestamp: Date.now(),
                     type: 'Asset Purged'
                 },
-                content: {
+                getContentInternal: () => Promise.resolve({
                     type: 'Asset Purged' as const,
                     zone: 'Draft' as const,
                     objectsDeleted: 42
-                }
+                })
             }
 
             const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
@@ -482,9 +483,9 @@ describe('AssetsDataSource (mtw.assets)', () => {
                     timestamp: Date.now(),
                     type: 'Heal Global Values'
                 },
-                content: {
-                    type: 'Heal Global Values'
-                }
+                getContentInternal: () => Promise.resolve({
+                    type: 'Heal Global Values' as const
+                })
             }
 
             const receiveEventsSpy = jest.spyOn(assetsDataSource, 'receiveEvents')
@@ -513,11 +514,11 @@ describe('AssetsDataSource (mtw.assets)', () => {
                         timestamp: Date.now(),
                         type: 'Content Update'
                     },
-                    content: {
-                        type: 'Content Update',
+                    getContentInternal: () => Promise.resolve({
+                        type: 'Content Update' as const,
                         AssetId: 'ASSET#test123',
                         schema: new StandardForm(`<Asset uuid=(test123) />`)
-                    }
+                    })
                 },
                 {
                     header: {
@@ -526,9 +527,9 @@ describe('AssetsDataSource (mtw.assets)', () => {
                         timestamp: Date.now(),
                         type: 'Heal Global Values'
                     },
-                    content: {
-                        type: 'Heal Global Values'
-                    }
+                    getContentInternal: () => Promise.resolve({
+                        type: 'Heal Global Values' as const
+                    })
                 },
                 {
                     header: {
@@ -537,11 +538,11 @@ describe('AssetsDataSource (mtw.assets)', () => {
                         timestamp: Date.now(),
                         type: 'Content Update'
                     },
-                    content: {
-                        type: 'Content Update',
+                    getContentInternal: () => Promise.resolve({
+                        type: 'Content Update' as const,
                         AssetId: 'ASSET#test456',
                         schema: new StandardForm(`<Asset uuid=(test456) />`)
-                    }
+                    })
                 }
             ]
             

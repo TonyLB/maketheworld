@@ -2,7 +2,6 @@ import { libraryDataSource } from './index'
 import { LibraryEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/assets/library'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
-import { AssetLevelEventUpdate } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
 
 // Mock external dependencies
 jest.mock('@tonylb/mtw-utilities/ts/dynamoDB', () => ({
@@ -127,16 +126,16 @@ describe('LibraryDataSource (mtw.assets.library)', () => {
             it('should emit Asset Added when asset moves into Library', async () => {
                 const event = {
                     header: {
-                        dataSourceKey: 'mtw.assets',
+                        dataSourceKey: 'mtw.assets' as const,
                         streamKey: 'ASSET#test1',
                         timestamp: Date.now(),
-                        type: 'Zone Updated'
+                        type: 'Zone Updated' as const
                     },
-                    content: {
-                        type: 'Zone Updated',
+                    getContentInternal: () => Promise.resolve({
+                        type: 'Zone Updated' as const,
                         fromZone: 'Personal',
                         toZone: 'Library'
-                    } as AssetLevelEventUpdate
+                    })
                 }
 
                 await libraryDataSource.receiveEvents?.({
@@ -156,16 +155,16 @@ describe('LibraryDataSource (mtw.assets.library)', () => {
             it('should emit Asset Removed when asset moves out of Library', async () => {
                 const event = {
                     header: {
-                        dataSourceKey: 'mtw.assets',
+                        dataSourceKey: 'mtw.assets' as const,
                         streamKey: 'ASSET#test1',
                         timestamp: Date.now(),
-                        type: 'Zone Updated'
+                        type: 'Zone Updated' as const
                     },
-                    content: {
-                        type: 'Zone Updated',
+                    getContentInternal: () => Promise.resolve({
+                        type: 'Zone Updated' as const,
                         fromZone: 'Library',
                         toZone: 'Personal'
-                    } as AssetLevelEventUpdate
+                    })
                 }
 
                 await libraryDataSource.receiveEvents?.({
@@ -185,16 +184,16 @@ describe('LibraryDataSource (mtw.assets.library)', () => {
             it('should ignore zone changes not involving Library', async () => {
                 const event = {
                     header: {
-                        dataSourceKey: 'mtw.assets',
+                        dataSourceKey: 'mtw.assets' as const,
                         streamKey: 'ASSET#test1',
                         timestamp: Date.now(),
-                        type: 'Zone Updated'
+                        type: 'Zone Updated' as const
                     },
-                    content: {
-                        type: 'Zone Updated',
+                    getContentInternal: () => Promise.resolve({
+                        type: 'Zone Updated' as const,
                         fromZone: 'Canon',
                         toZone: 'Personal'
-                    } as AssetLevelEventUpdate
+                    })
                 }
 
                 await libraryDataSource.receiveEvents?.({
@@ -208,16 +207,16 @@ describe('LibraryDataSource (mtw.assets.library)', () => {
             it('should ignore zone changes within Library', async () => {
                 const event = {
                     header: {
-                        dataSourceKey: 'mtw.assets',
+                        dataSourceKey: 'mtw.assets' as const,
                         streamKey: 'ASSET#test1',
                         timestamp: Date.now(),
-                        type: 'Zone Updated'
+                        type: 'Zone Updated' as const
                     },
-                    content: {
-                        type: 'Zone Updated',
+                    getContentInternal: () => Promise.resolve({
+                        type: 'Zone Updated' as const,
                         fromZone: 'Library',
                         toZone: 'Library'
-                    } as AssetLevelEventUpdate
+                    })
                 }
 
                 await libraryDataSource.receiveEvents?.({
@@ -233,15 +232,15 @@ describe('LibraryDataSource (mtw.assets.library)', () => {
             it('should emit Asset Added when asset cached in Library zone', async () => {
                 const event = {
                     header: {
-                        dataSourceKey: 'mtw.assets',
+                        dataSourceKey: 'mtw.assets' as const,
                         streamKey: 'ASSET#test1',
                         timestamp: Date.now(),
-                        type: 'Asset Cached'
+                        type: 'Asset Cached' as const
                     },
-                    content: {
-                        type: 'Asset Cached',
+                    getContentInternal: () => Promise.resolve({
+                        type: 'Asset Cached' as const,
                         zone: 'Library'
-                    } as AssetLevelEventUpdate
+                    })
                 }
 
                 await libraryDataSource.receiveEvents?.({
@@ -261,15 +260,15 @@ describe('LibraryDataSource (mtw.assets.library)', () => {
             it('should ignore Asset Cached in non-Library zones', async () => {
                 const event = {
                     header: {
-                        dataSourceKey: 'mtw.assets',
+                        dataSourceKey: 'mtw.assets' as const,
                         streamKey: 'ASSET#test1',
                         timestamp: Date.now(),
-                        type: 'Asset Cached'
+                        type: 'Asset Cached' as const
                     },
-                    content: {
-                        type: 'Asset Cached',
+                    getContentInternal: () => Promise.resolve({
+                        type: 'Asset Cached' as const,
                         zone: 'Personal'
-                    } as AssetLevelEventUpdate
+                    })
                 }
 
                 await libraryDataSource.receiveEvents?.({
@@ -285,14 +284,15 @@ describe('LibraryDataSource (mtw.assets.library)', () => {
             it('should emit Asset Removed for any asset removal', async () => {
                 const event = {
                     header: {
-                        dataSourceKey: 'mtw.assets',
+                        dataSourceKey: 'mtw.assets' as const,
                         streamKey: 'ASSET#test1',
                         timestamp: Date.now(),
-                        type: 'Asset Removed'
+                        type: 'Asset Removed' as const
                     },
-                    content: {
-                        type: 'Asset Removed'
-                    } as AssetLevelEventUpdate
+                    getContentInternal: () => Promise.resolve({
+                        type: 'Asset Removed' as const,
+                        zone: 'Library'
+                    })
                 }
 
                 await libraryDataSource.receiveEvents?.({
@@ -315,41 +315,41 @@ describe('LibraryDataSource (mtw.assets.library)', () => {
                 const events = [
                     {
                         header: {
-                            dataSourceKey: 'mtw.assets',
+                            dataSourceKey: 'mtw.assets' as const,
                             streamKey: 'ASSET#test1',
                             timestamp: Date.now(),
-                            type: 'Zone Updated'
+                            type: 'Zone Updated' as const
                         },
-                        content: {
-                            type: 'Zone Updated',
+                        getContentInternal: () => Promise.resolve({
+                            type: 'Zone Updated' as const,
                             fromZone: 'Canon',
                             toZone: 'Library'
-                        } as AssetLevelEventUpdate
+                        })
                     },
                     {
                         header: {
-                            dataSourceKey: 'mtw.assets',
+                            dataSourceKey: 'mtw.assets' as const,
                             streamKey: 'ASSET#test2',
                             timestamp: Date.now(),
-                            type: 'Asset Cached'
+                            type: 'Asset Cached' as const
                         },
-                        content: {
-                            type: 'Asset Cached',
+                        getContentInternal: () => Promise.resolve({
+                            type: 'Asset Cached' as const,
                             zone: 'Library'
-                        } as AssetLevelEventUpdate
+                        })
                     },
                     {
                         header: {
-                            dataSourceKey: 'mtw.assets',
+                            dataSourceKey: 'mtw.assets' as const,
                             streamKey: 'ASSET#test3',
                             timestamp: Date.now(),
-                            type: 'Zone Updated'
+                            type: 'Zone Updated' as const
                         },
-                        content: {
-                            type: 'Zone Updated',
+                        getContentInternal: () => Promise.resolve({
+                            type: 'Zone Updated' as const,
                             fromZone: 'Library',
                             toZone: 'Personal'
-                        } as AssetLevelEventUpdate
+                        })
                     }
                 ]
 

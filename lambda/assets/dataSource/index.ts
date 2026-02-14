@@ -12,33 +12,33 @@ import { AssetUUID } from "@tonylb/mtw-base/ts/schema"
 
 /**
  * Envelope-level discriminated union for events subscribed by mtw.assets DataSource.
- * Each variant pairs a narrow header (dataSourceKey + type) with the matching content shape,
- * enabling TypeScript to narrow content when routing on header.type.
+ * Each variant pairs a narrow header (dataSourceKey + type) with getContentInternal returning the matching content shape,
+ * enabling TypeScript to narrow when routing on header.type.
  */
 export type AssetsIncomingEvent =
     | {
           header: StreamingEventHeader & { dataSourceKey: 'mtw.wml'; type: 'Content Update' };
-          content: WMLContentEvent;
+          getContentInternal: () => Promise<WMLContentEvent>;
       }
     | {
           header: StreamingEventHeader & { dataSourceKey: 'mtw.wml'; type: 'Zone Changed' };
-          content: WMLZoneEvent;
+          getContentInternal: () => Promise<WMLZoneEvent>;
       }
     | {
           header: StreamingEventHeader & { dataSourceKey: 'mtw.wml'; type: 'Asset Purged' };
-          content: WMLPurgeEvent;
+          getContentInternal: () => Promise<WMLPurgeEvent>;
       }
     | {
           header: StreamingEventHeader & { dataSourceKey: 'mtw.diagnostics'; type: 'Heal Global Values' };
-          content: { type: 'Heal Global Values'; connections?: unknown; assets?: unknown };
+          getContentInternal: () => Promise<{ type: 'Heal Global Values'; connections?: unknown; assets?: unknown }>;
       }
     | {
           header: StreamingEventHeader & { dataSourceKey: 'mtw.coordination'; type: 'Remove Asset' };
-          content: { type: 'Remove Asset'; assetId: string };
+          getContentInternal: () => Promise<{ type: 'Remove Asset'; assetId: string }>;
       };
 
 /** Payload types of events mtw.assets subscribes to (derived from envelope union for backward compatibility). */
-type AssetsSubscribedContent = AssetsIncomingEvent['content']
+type AssetsSubscribedContent = WMLContentEvent | WMLZoneEvent | WMLPurgeEvent | { type: 'Heal Global Values'; connections?: unknown; assets?: unknown } | { type: 'Remove Asset'; assetId: string }
 
 //
 // Type guards for envelope-level discriminated union variants
@@ -75,6 +75,147 @@ const isCoordinationRemoveAssetEvent = (event: AssetsIncomingEvent): event is Ex
     event.header.type === 'Remove Asset'
 )
 
+const isWMLContentUpdateEvent = (event: AssetsIncomingEvent): event is Extract<
+    AssetsIncomingEvent,
+    { header: { dataSourceKey: 'mtw.wml'; type: 'Content Update' } }
+> => (
+    event.header.dataSourceKey === 'mtw.wml' &&
+    event.header.type === 'Content Update'
+)
+
+type StreamEventFn = (params: { update: AssetsEventUpdate; streamKey: string }) => Promise<void>
+
+const handleContentUpdate = async (
+    event: Extract<AssetsIncomingEvent, { header: { type: 'Content Update' } }>,
+    streamEvent: StreamEventFn
+): Promise<void> => {
+    const assetId = event.header.streamKey as AssetUUID
+    if (!assetId) {
+        messageBus.send({ type: 'Error', body: { error: 'Invalid AssetId in Content Update event', statusCode: 400 } })
+        return
+    }
+    try {
+        const { zone, player, isNewAsset } = await cacheAsset({ assetId, streamEvent })
+        if (isNewAsset) {
+            await streamEvent({
+                update: { type: 'Asset Added', zone, ...(player ? { player } : {}) },
+                streamKey: assetId
+            })
+        }
+        await streamEvent({
+            update: { type: 'Asset Cached', zone },
+            streamKey: assetId,
+        })
+    } catch (error) {
+        console.error(`Error caching asset ${assetId}:`, error)
+        messageBus.send({
+            type: 'Error',
+            body: { error: `Failed to cache asset ${assetId}: ${error instanceof Error ? error.message : String(error)}`, statusCode: 500 }
+        })
+    }
+}
+
+const handleZoneChanged = async (
+    event: Extract<AssetsIncomingEvent, { header: { type: 'Zone Changed' } }>,
+    streamEvent: StreamEventFn
+): Promise<void> => {
+    const content = await event.getContentInternal()
+    const { fromZone, toZone, player, subFolder } = content
+    const assetId = event.header.streamKey as AssetUUID
+    if (!assetId) return
+    const assetUUID = AssetKey(assetId)
+    await assetDB.putItem({
+        AssetId: assetUUID,
+        DataCategory: 'Meta::Asset',
+        address: { zone: toZone, ...(player && { player }), ...(subFolder && { subFolder }) },
+        zone: toZone,
+        ...(player && { player })
+    })
+    if (toZone === 'Canon' || fromZone === 'Canon') {
+        const Items = await assetDB.query({
+            IndexName: 'DataCategoryIndex',
+            Key: { DataCategory: 'Meta::Asset' },
+            FilterExpression: "zone = :canon",
+            ExpressionAttributeValues: { ':canon': 'Canon' },
+            ProjectionFields: ['AssetId', 'zone']
+        })
+        const canonGraph = await internalCache.Graph.get(Items.map(({ AssetId }) => (AssetId)), 'back')
+        const globalAssetsSorted = canonGraph.reverse().topologicalSort().flat()
+        await streamEvent({ update: { type: 'Canon Updated', assetIds: globalAssetsSorted }, streamKey: 'canon-global' })
+    }
+    await streamEvent({
+        update: { type: 'Zone Updated', fromZone, toZone, ...(player ? { player } : {}) },
+        streamKey: assetUUID
+    })
+}
+
+const handleAssetPurged = async (
+    event: Extract<AssetsIncomingEvent, { header: { type: 'Asset Purged' } }>,
+    streamEvent: StreamEventFn
+): Promise<void> => {
+    const content = await event.getContentInternal()
+    const assetId = event.header.streamKey as AssetUUID
+    if (!assetId) {
+        messageBus.send({ type: 'Error', body: { error: 'Invalid AssetId in Asset Purged event', statusCode: 400 } })
+        return
+    }
+    try {
+        await decacheAsset({ assetId, streamEvent })
+    } catch (error) {
+        console.error(`Error decaching asset ${assetId} during purge:`, error)
+    }
+    const { zone, player } = content
+    if (!zone) {
+        console.error(`Cannot emit Asset Removed for ${assetId}: zone is missing from Asset Purged event`)
+        return
+    }
+    await streamEvent({
+        update: { type: 'Asset Removed', zone, ...(player ? { player } : {}) },
+        streamKey: assetId
+    })
+}
+
+const handleHealGlobalValues = async (
+    event: Extract<AssetsIncomingEvent, { header: { type: 'Heal Global Values' } }>
+): Promise<void> => {
+    const healContent = await event.getContentInternal()
+    await healGlobalValues({
+        shouldHealConnections: Boolean(healContent.connections),
+        shouldHealGlobalAssets: typeof healContent.assets !== 'boolean' || healContent.assets
+    })
+}
+
+const handleRemoveAsset = async (
+    event: Extract<AssetsIncomingEvent, { header: { type: 'Remove Asset' } }>,
+    streamEvent: StreamEventFn
+): Promise<void> => {
+    const content = await event.getContentInternal()
+    const { assetId } = content
+    if (!assetId) {
+        messageBus.send({
+            type: 'Error',
+            body: { error: 'Invalid arguments specified for Remove Asset event', statusCode: 400 }
+        })
+        return
+    }
+    try {
+        await decacheAsset({ assetId: assetId as string, streamEvent })
+    } catch (error) {
+        console.error(`Error decaching asset ${assetId}:`, error)
+    }
+    const assetMeta = (await internalCache.AssetMetaData.get([assetId as AssetUUID]))[0]
+    const zone = assetMeta?.zone
+    const player = assetMeta?.player
+    if (!zone) {
+        console.error(`Cannot emit Asset Removed for ${assetId}: zone not found in metadata`)
+        return
+    }
+    await streamEvent({
+        update: { type: 'Asset Removed', zone, ...(player ? { player } : {}) },
+        streamKey: assetId as string
+    })
+}
+
 //
 // Non-replayable DataSource singleton for mtw.assets
 // 
@@ -106,221 +247,26 @@ export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, A
         const typedEvents = events as AssetsIncomingEvent[]
 
         await Promise.all(typedEvents.map(async (event) => {
-            const { header } = event
-            const assetId = header.streamKey as AssetUUID
-
-            // Handle mtw.wml events
-            if (event.header.dataSourceKey === 'mtw.wml' && event.header.type === 'Content Update') {
-                if (assetId) {
-                    try {
-                        const { zone, player, isNewAsset } = await cacheAsset({ assetId, streamEvent })
-                        
-                        // Emit Asset Added event for new assets (before Asset Cached)
-                        // Consumed by mtw.assets.library DataSource for automatic Library cache updates
-                        if (isNewAsset) {
-                            await streamEvent({
-                                update: {
-                                    type: 'Asset Added',
-                                    zone,
-                                    ...(player ? { player } : {})
-                                },
-                                streamKey: assetId
-                            })
-                        }
-                        
-                        // Stream the caching event for real-time subscribers
-                        await streamEvent({
-                            update: { 
-                                type: 'Asset Cached',
-                                zone
-                            },
-                            streamKey: assetId,
-                        })
-                    } catch (error) {
-                        console.error(`Error caching asset ${assetId}:`, error)
-                        messageBus.send({
-                            type: 'Error',
-                            body: { 
-                                error: `Failed to cache asset ${assetId}: ${error instanceof Error ? error.message : String(error)}`,
-                                statusCode: 500
-                            }
-                        })
-                    }
-                    return
-                } else {
-                    messageBus.send({
-                        type: 'Error',
-                        body: { 
-                            error: 'Invalid AssetId in Content Update event',
-                            statusCode: 400
-                        }
-                    })
-                    return
-                }
-            }
-
-            // Handle mtw.wml Zone Changed events
-            if (isWMLZoneChangedEvent(event)) {
-                const { fromZone, toZone, player, subFolder } = event.content
-                if (assetId) {
-                    // Ensure AssetId is properly formatted as ASSET#${string}
-                    const assetUUID = AssetKey(assetId)
-                    
-                    // Update the Meta::Asset record with new zone information
-                    await assetDB.putItem({
-                        AssetId: assetUUID,
-                        DataCategory: 'Meta::Asset',
-                        address: {
-                            zone: toZone,
-                            ...(player && { player }),
-                            ...(subFolder && { subFolder })
-                        },
-                        zone: toZone,
-                        ...(player && { player })
-                    })
-                    
-                    // Handle canon graph management when entering/leaving Canon zone
-                    if (toZone === 'Canon' || fromZone === 'Canon') {
-                        // Query for canon assets after the move
-                        const Items = await assetDB.query({
-                            IndexName: 'DataCategoryIndex',
-                            Key: {
-                                DataCategory: 'Meta::Asset'
-                            },
-                            FilterExpression: "zone = :canon",
-                            ExpressionAttributeValues: {
-                                ':canon': 'Canon'
-                            },
-                            ProjectionFields: ['AssetId', 'zone']
-                        })
-                        const canonGraph = await internalCache.Graph.get(Items.map(({ AssetId }) => (AssetId)), 'back')
-                        const globalAssetsSorted = canonGraph.reverse().topologicalSort().flat()
-                        
-                        // Stream the canon update
-                        await streamEvent({
-                            update: { 
-                                type: 'Canon Updated',
-                                assetIds: globalAssetsSorted
-                            },
-                            streamKey: 'canon-global'
-                        })
-                    }
-                    
-                    // Stream the zone update event
-                    await streamEvent({
-                        update: {
-                            type: 'Zone Updated',
-                            fromZone,
-                            toZone,
-                            ...(player ? { player } : {})
-                        },
-                        streamKey: assetUUID
-                    })
-                    
-                    // TODO: Update internal caches - remove from old zone cache and add to new zone cache
-                    // This requires cache management logic to handle zone transitions
-                }
-            }
-
-            // Handle mtw.wml Asset Purged events
-            if (isWMLAssetPurgedEvent(event)) {
-                if (assetId) {
-                    try {
-                        // Decache the asset before removing it (clean up DynamoDB cache)
-                        await decacheAsset({ assetId, streamEvent })
-                    } catch (error) {
-                        console.error(`Error decaching asset ${assetId} during purge:`, error)
-                        // Continue with removal even if decaching fails
-                    }
-
-                    // Use zone and player from event (forwarded from Asset Purged, which gets player from S3)
-                    const { zone, player } = event.content
-                    
-                    if (!zone) {
-                        console.error(`Cannot emit Asset Removed for ${assetId}: zone is missing from Asset Purged event`)
-                        return
-                    }
-                    
-                    // Stream the removal as an asset-level event
-                    // This indicates the asset has been permanently deleted
-                    await streamEvent({
-                        update: {
-                            type: 'Asset Removed',
-                            zone,
-                            ...(player ? { player } : {})
-                        },
-                        streamKey: assetId
-                    })
-                    return
-                } else {
-                    messageBus.send({
-                        type: 'Error',
-                        body: { 
-                            error: 'Invalid AssetId in Asset Purged event',
-                            statusCode: 400
-                        }
-                    })
-                    return
-                }
-            }
-
-            // Handle mtw.diagnostics events
-            if (isDiagnosticsHealGlobalValuesEvent(event)) {
-                const returnVal = await healGlobalValues({
-                    shouldHealConnections: Boolean(event.content.connections),
-                    shouldHealGlobalAssets: typeof event.content.assets !== 'boolean' || event.content.assets
-                })
-
+            if (isWMLContentUpdateEvent(event)) {
+                await handleContentUpdate(event, streamEvent)
                 return
             }
-
-            // Handle mtw.coordination events
-            if (isCoordinationRemoveAssetEvent(event)) {
-                const { assetId } = event.content
-                if (assetId) {
-                    try {
-                        // Decache the asset before removing it
-                        await decacheAsset({ assetId: assetId as string, streamEvent })
-                    } catch (error) {
-                        console.error(`Error decaching asset ${assetId}:`, error)
-                        // Continue with removal even if decaching fails
-                    }
-                    
-                    // Get asset metadata to include zone and player in removal event
-                    const assetMeta = (await internalCache.AssetMetaData.get([assetId as AssetUUID]))[0]
-                    const zone = assetMeta?.zone
-                    const player = assetMeta?.player
-                    
-                    if (!zone) {
-                        console.error(`Cannot emit Asset Removed for ${assetId}: zone not found in metadata`)
-                        return
-                    }
-                    
-                    // Stream the removal as an asset-level event
-                    await streamEvent({
-                        update: {
-                            type: 'Asset Removed',
-                            zone,
-                            ...(player ? { player } : {})
-                        },
-                        streamKey: assetId as string
-                    })
-                    return
-                    } else {
-                    // Send error message to messageBus
-                    messageBus.send({
-                        type: 'Error',
-                        body: { 
-                            error: 'Invalid arguments specified for Remove Asset event',
-                            statusCode: 400
-                        }
-                    })
-                    return
-                }
+            if (isWMLZoneChangedEvent(event)) {
+                await handleZoneChanged(event, streamEvent)
+                return
             }
-        
-        })) // End of Promise.all processing events batch in parallel
-        
+            if (isWMLAssetPurgedEvent(event)) {
+                await handleAssetPurged(event, streamEvent)
+                return
+            }
+            if (isDiagnosticsHealGlobalValuesEvent(event)) {
+                await handleHealGlobalValues(event)
+                return
+            }
+            if (isCoordinationRemoveAssetEvent(event)) {
+                await handleRemoveAsset(event, streamEvent)
+            }
+        }))
     }
 })
 

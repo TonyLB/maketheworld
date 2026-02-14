@@ -172,27 +172,31 @@ This mode is appropriate when:
 
 ---
 
-## Foundational step: explicit header vs content in DataSource events
+## Foundational step: explicit header vs content in DataSource events (implemented)
 
-Before introducing lazy `getInternal`, DataSource events should explicitly distinguish **header** (small, always-inline, never-sidecarred) from **content** (the full payload that is actually recorded/transmitted in external form and may grow large or be sidecar-backed).
+DataSource events **now** explicitly distinguish **header** (small, always-inline, never-sidecarred) from **content** (the full payload that is actually recorded/transmitted in external form and may grow large or be sidecar-backed). This is implemented in `mtw-lambda-patterns` (e.g. `StreamingEventHeader`, `StreamingEventEnvelope`), the lambda gates (assets, WML, ephemera), and the client DataSource slices (`ClientStreamingHeader`, `ClientStreamingEnvelope`). The **next step** is to introduce lazy `getContentInternal`.
 
-- **Header fields**: At minimum include `type` (the discriminant for TypeScript unions) and envelope metadata (`dataSourceKey`, `streamKey`, `timestamp`), and may include a few small domain flags like `zone`. These fields:
+- **Header fields (implemented)**: At minimum include `type` (the discriminant for TypeScript unions) and envelope metadata (`dataSourceKey`, `streamKey`, `timestamp`), and may include a few small domain flags like `zone`. These fields:
   - Are always present and never stored in sidecars.
   - Are exactly what typeguards and routing logic need to inspect first.
   - Do not require access to the heavy content body.
-- **Content fields**: Everything else that the DataSource records and transmits as its external payload (e.g. WML text, StandardFormData serialized as JSON/NDJSON, large component lists, or `{ sidecarUri: string }` references). This is the **external** representation that `getInternal` will later consume (together with the configured serializer) to produce the DataSource's internal form.
+- **Content fields (implemented)**: Everything else that the DataSource records and transmits as its external payload (e.g. WML text, StandardFormData serialized as JSON/NDJSON, large component lists, or `{ sidecarUri: string }` references). Today content is passed eagerly (and in some paths is still internal). When we add lazy resolution, we will add a function `getContentInternal` **constructed** from this representation (external inline, sidecar ref, or already-internal) that when executed produces the internal form; handlers will call that function when they need it.
 
-Foundational re-architecture (still eager today):
+Current implementation (eager content today):
 
-- **Lambda gates (assets, WML, ephemera)**: After deserializing external EventBridge events to internal objects (as today), compute a **header** and an external **content** payload and publish both to the messageBus:
-  - `{ dataSourceKey, streamKey, timestamp, header, content }`
-  - `header` contains only cheap discriminant/metadata fields (e.g. `type`, `zone`); `content` is the full external payload that will be stored or forwarded (inline or as a `{ sidecarUri: string }` reference).
-- **DataSource subscription**: `subscribedEventTypeGuard` and other filters operate on the envelope + `header` only. `receiveEvents` gets events that have both `header` and `content`, and uses:
-  - `event.header.*` for routing and union branching.
-  - `event.content` (via a later `getInternal` implementation) when it actually needs to compute or emit something based on the full semantics.
-- **Client (optional parallelism)**: The client-side DataSource slices can mirror this structure by resolving `header` + `content` eagerly when a WebSocket message arrives, then using `header` for branching in reducers and deserializing `content` for aggregation. This keeps the mental model aligned even before laziness is introduced.
+- **Lambda gates (assets, WML, ephemera)**: Build a **header** and publish `{ dataSourceKey, streamKey, timestamp, header, content }` to the messageBus. `header` contains only cheap discriminant/metadata fields; `content` is the payload (today often internal after deserialization at the gate).
+- **DataSource subscription**: `subscribedEventTypeGuard(header: StreamingEventHeader)` and the messageBus filter operate on **header** only. `receiveEvents` receives `events: Array<StreamingEventEnvelope<SubscribedContent>>` and uses `event.header.*` for routing and `event.content` when it needs to compute or emit.
+- **Client**: DataSource slices use `ClientStreamingHeader` and `ClientStreamingEnvelope`; reducers branch on `header` and deserialize `content` for aggregation.
 
-Once this header/content split is explicit in the DataSource contracts and call sites, the later lazy `getInternal` refactor becomes a mechanical change: replace direct access to `content` with `getInternal: () => Promise<Internal>` (which knows how to interpret `content` and any sidecar references) while leaving all header-based routing logic untouched.
+The lazy `getContentInternal` refactor is a mechanical next step: add a function `getContentInternal: () => Promise<Internal>` (or sync) to the envelope, constructed at event creation from the current `content` (or from external/sidecar when we carry that), and have handlers call it when they need internal form while leaving all header-based routing unchanged.
+
+### Bridge to lazy resolution: getContentInternal as a constructed function
+
+- We add an async (or sync) function on the envelope that **when executed** returns the internal representation of the content. Call it `getContentInternal`; the important part is that it is **constructed at event creation time** from whatever we have.
+- **Inline external content:** The function simply deserializes the inline payload when called.
+- **Sidecarred content:** The function fetches the sidecar, interprets the response into external content (e.g. JSON parse), then deserializes to internal.
+- **Already-internal content (e.g. same-process messageBus today):** The function returns the content as-is (identity). No fetch, no deserialize.
+- Handlers and routing: routing uses only header; handlers that need the payload call this function. No need to first migrate the entire pipeline to "external only on the bus"—we can introduce this lazy function alongside current content (internal or external) and have the constructor choose the right implementation.
 
 ---
 
@@ -200,17 +204,17 @@ Once this header/content split is explicit in the DataSource contracts and call 
 
 To maintain the separation (metadata-only routing, no unnecessary deserialization) without special-case "when this particular condition" logic as we generalize delegated systems and sidecar:
 
-- **Pipeline contract**: Carry **external** (or a reference such as `sidecarUrl`) by default. Do not deserialize at the gate.
-- **Internal when needed**: Expose something like `getInternal()` (possibly async) that handlers call only when they need the machine-readable form (e.g. to compute, transform, or apply). Routing and filtering use only envelope + metadata; they never call `getInternal()`.
+- **Pipeline contract**: The envelope carries **header** plus a way to obtain internal on demand. That can be (a) external or sidecar ref plus a lazy `getContentInternal()` constructed at event creation, or (b) during transition, inline internal content with a lazy function that returns it. Prefer carrying external (or sidecar ref) and constructing the lazy function from that so we avoid unnecessary deserialization at the gate.
+- **Internal when needed**: The lazy function is **constructed from** the incoming representation (inline external, sidecar ref, or already-internal). Handlers call it only when they need the machine-readable form (e.g. to compute, transform, or apply). Routing and filtering use only envelope + metadata; they never call this function.
 - **One rule everywhere**: Handlers/filters do not "provide Internal by default"; they receive a payload that can be turned into Internal on demand. Delegated vs self-contained and sidecar vs inline then align to the same rule: don't deserialize by default; only when needed.
 
-This is a **structural refactor** (change gate and messageBus to pass external + optional lazy getInternal; have receiveEvents call getInternal only when it needs Internal), not a growing set of epicycles. We will loop back to what this means for the sidecar pattern as we implement it.
+This is a **structural refactor** (add lazy `getContentInternal` constructed at event creation; have receiveEvents call it only when it needs Internal), not a growing set of epicycles. We will loop back to what this means for the sidecar pattern as we implement it.
 
 ---
 
 ## Sidecar: snapshot/event level, and reuse of existing typeguards
 
-**Flexibility at snapshot/event level (not DataSource level):** Sidecar does not need to be a DataSource-level choice ("this DataSource always delivers sidecar" vs "always inline"). The external shape can express "body here" vs "body at this URI" per snapshot or per event. The translation step from external to internal then checks for a sidecar marker (e.g. `sidecarUri`), loads from that URI if present, parses the string (see format note below), and validates the result—without any new parameter on the DataSource itself. So we gain the flexibility to mix inline and sidecar at the data level.
+**Flexibility at snapshot/event level (not DataSource level):** Sidecar does not need to be a DataSource-level choice ("this DataSource always delivers sidecar" vs "always inline"). The external shape can express "body here" vs "body at this URI" per snapshot or per event. The translation step from external to internal then checks for a sidecar marker (e.g. `sidecarUri`), loads from that URI if present, parses the string (see format note below), and validates the result—without any new parameter on the DataSource itself. So we gain the flexibility to mix inline and sidecar at the data level. When content is sidecarred, the lazy function `getContentInternal` is the place that performs "fetch sidecar -> interpret to external -> deserialize to internal"; the rest of the pipeline stays sidecar-agnostic.
 
 **Validating parsed sidecar body with existing typeguards:** After parsing the sidecar response (string) into an object (or array for NDJSON), we must check that the result is the correct external/internal shape for that DataSource. We already have typeguards for exactly that purpose, applied to incoming EventBridge/wire data and keyed by dataSourceKey:
 

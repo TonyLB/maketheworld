@@ -26,19 +26,20 @@ export type StreamingEvent = {
 
 // Internal DataSource format for StreamingEvent messages on the messageBus.
 // Canonical shape is header + content inside the process.
+// getContentInternal is optional so existing senders remain valid until updated; subscribe callback falls back to () => Promise.resolve(content).
 export type StreamingEventPayload = {
     dataSourceKey: string;
     streamKey: string;
     timestamp: number;
     header: StreamingEventHeader;
     content: EventPayload;
+    getContentInternal?: () => Promise<EventPayload>;
 }
 
-// In-process envelope that clearly separates header from content
-// Note: In this initial step, Content is still the internal payload.
+// In-process envelope passed to receiveEvents. Handlers obtain internal content via getContentInternal().
 export type StreamingEventEnvelope<Content = EventPayload> = {
     header: StreamingEventHeader;
-    content: Content;
+    getContentInternal: () => Promise<Content>;
 }
 
 // EventBridge serialization interface for DataSource integration
