@@ -12,6 +12,10 @@ function contentHeadersHeader(type: string): StreamingEventHeader {
     return { dataSourceKey: 'mtw.assets.contentHeaders', streamKey: 'test', timestamp: 0, type }
 }
 
+function contentHeadersEnvelope<T>(content: T, type: string) {
+    return { header: contentHeadersHeader(type), content }
+}
+
 describe('ContentHeaders EventBridge Contracts', () => {
     describe('ContentHeadersAggregator', () => {
         let aggregator: ContentHeadersAggregator
@@ -41,12 +45,12 @@ describe('ContentHeaders EventBridge Contracts', () => {
                         </Asset>
                     `))
                     
-                    const result = aggregator.applyUpdate(emptySnapshot, {
+                    const result = aggregator.applyUpdate(emptySnapshot, contentHeadersEnvelope({
                         type: 'Headers Updated',
                         assetId: 'ASSET#test',
                         zone: 'Canon',
                         standardForm
-                    }, contentHeadersHeader('Headers Updated'))
+                    }, 'Headers Updated'))
 
                     expect(result.success).toBe(true)
                     if (result.success) {
@@ -83,12 +87,12 @@ describe('ContentHeaders EventBridge Contracts', () => {
                         </Asset>
                     `))
                     
-                    const result = aggregator.applyUpdate(snapshot, {
+                    const result = aggregator.applyUpdate(snapshot, contentHeadersEnvelope({
                         type: 'Headers Updated',
                         assetId: 'ASSET#test',
                         zone: 'Canon',
                         standardForm: updateStandardForm
-                    }, contentHeadersHeader('Headers Updated'))
+                    }, 'Headers Updated'))
 
                     expect(result.success).toBe(true)
                     if (result.success) {
@@ -128,12 +132,12 @@ describe('ContentHeaders EventBridge Contracts', () => {
                         </Asset>
                     `))
                     
-                    const result = aggregator.applyUpdate(snapshot, {
+                    const result = aggregator.applyUpdate(snapshot, contentHeadersEnvelope({
                         type: 'Headers Updated',
                         assetId: 'ASSET#test',
                         zone: 'Canon',
                         standardForm: updateStandardForm
-                    }, contentHeadersHeader('Headers Updated'))
+                    }, 'Headers Updated'))
 
                     expect(result.success).toBe(true)
                     if (result.success) {
@@ -169,12 +173,12 @@ describe('ContentHeaders EventBridge Contracts', () => {
                         </Asset>
                     `))
                     
-                    const result = aggregator.applyUpdate(snapshot, {
+                    const result = aggregator.applyUpdate(snapshot, contentHeadersEnvelope({
                         type: 'Headers Updated',
                         assetId: 'ASSET#test',
                         zone: 'Library',
                         standardForm: updateStandardForm
-                    }, contentHeadersHeader('Headers Updated'))
+                    }, 'Headers Updated'))
 
                     expect(result.success).toBe(true)
                     if (result.success) {
@@ -186,7 +190,7 @@ describe('ContentHeaders EventBridge Contracts', () => {
                     const snapshot = aggregator.createEmpty()
                     
                     // Add first asset
-                    const result1 = aggregator.applyUpdate(snapshot, {
+                    const result1 = aggregator.applyUpdate(snapshot, contentHeadersEnvelope({
                         type: 'Headers Updated',
                         assetId: 'ASSET#test1',
                         zone: 'Canon',
@@ -195,13 +199,13 @@ describe('ContentHeaders EventBridge Contracts', () => {
                                 <Room key=(room1)><ShortName>Room 1</ShortName></Room>
                             </Asset>
                         `))
-                    }, contentHeadersHeader('Headers Updated'))
+                    }, 'Headers Updated'))
 
                     expect(result1.success).toBe(true)
                     if (!result1.success) return
 
                     // Add second asset
-                    const result2 = aggregator.applyUpdate(result1.snapshot, {
+                    const result2 = aggregator.applyUpdate(result1.snapshot, contentHeadersEnvelope({
                         type: 'Headers Updated',
                         assetId: 'ASSET#test2',
                         zone: 'Library',
@@ -210,7 +214,7 @@ describe('ContentHeaders EventBridge Contracts', () => {
                                 <Room key=(room2)><ShortName>Room 2</ShortName></Room>
                             </Asset>
                         `))
-                    }, contentHeadersHeader('Headers Updated'))
+                    }, 'Headers Updated'))
 
                     expect(result2.success).toBe(true)
                     if (result2.success) {
@@ -238,12 +242,12 @@ describe('ContentHeaders EventBridge Contracts', () => {
                         }]
                     }
                     
-                    const result = aggregator.applyUpdate(snapshot, {
+                    const result = aggregator.applyUpdate(snapshot, contentHeadersEnvelope({
                         type: 'Zone Updated',
                         assetId: 'ASSET#test',
                         fromZone: 'Canon',
                         toZone: 'Library'
-                    }, contentHeadersHeader('Zone Updated'))
+                    }, 'Zone Updated'))
 
                     expect(result.success).toBe(true)
                     if (result.success) {
@@ -257,12 +261,12 @@ describe('ContentHeaders EventBridge Contracts', () => {
                 it('should create placeholder when asset does not exist', () => {
                     const snapshot = aggregator.createEmpty()
                     
-                    const result = aggregator.applyUpdate(snapshot, {
+                    const result = aggregator.applyUpdate(snapshot, contentHeadersEnvelope({
                         type: 'Zone Updated',
                         assetId: 'ASSET#nonexistent',
                         fromZone: 'Canon',
                         toZone: 'Library'
-                    }, contentHeadersHeader('Zone Updated'))
+                    }, 'Zone Updated'))
 
                     expect(result.success).toBe(true)
                     if (result.success) {
@@ -300,12 +304,12 @@ describe('ContentHeaders EventBridge Contracts', () => {
                         ]
                     }
                     
-                    const result = aggregator.applyUpdate(snapshot, {
+                    const result = aggregator.applyUpdate(snapshot, contentHeadersEnvelope({
                         type: 'Zone Updated',
                         assetId: 'ASSET#test1',
                         fromZone: 'Canon',
                         toZone: 'Personal'
-                    }, contentHeadersHeader('Zone Updated'))
+                    }, 'Zone Updated'))
 
                     expect(result.success).toBe(true)
                     if (result.success) {
@@ -339,7 +343,7 @@ describe('ContentHeaders EventBridge Contracts', () => {
                         }]
                     }
                     
-                    const result = aggregator.applyUpdate(oldSnapshot, newSnapshot, contentHeadersHeader('Snapshot'))
+                    const result = aggregator.applyUpdate(oldSnapshot, contentHeadersEnvelope(newSnapshot, 'Snapshot'))
 
                     expect(result.success).toBe(true)
                     if (result.success) {
@@ -374,12 +378,12 @@ describe('ContentHeaders EventBridge Contracts', () => {
                         throw new Error('Merge conflict')
                     })
                     
-                    const result = aggregator.applyUpdate(snapshot, {
+                    const result = aggregator.applyUpdate(snapshot, contentHeadersEnvelope({
                         type: 'Headers Updated',
                         assetId: 'ASSET#test',
                         zone: 'Canon',
                         standardForm: updateStandardForm
-                    }, contentHeadersHeader('Headers Updated'))
+                    }, 'Headers Updated'))
 
                     // Restore original merge
                     snapshot.assets[0].standardForm.merge = originalMerge
@@ -407,12 +411,12 @@ describe('ContentHeaders EventBridge Contracts', () => {
                         throw new Error('Merge error')
                     })
 
-                    const result = aggregator.applyUpdate(snapshot, {
+                    const result = aggregator.applyUpdate(snapshot, contentHeadersEnvelope({
                         type: 'Headers Updated',
                         assetId: 'ASSET#test',
                         zone: 'Canon',
                         standardForm: new StandardForm('<Asset uuid=(test)><Room key=(room1)></Room></Asset>')
-                    }, contentHeadersHeader('Headers Updated'))
+                    }, 'Headers Updated'))
 
                     // Restore original merge
                     snapshot.assets[0].standardForm.merge = originalMerge
@@ -436,12 +440,12 @@ describe('ContentHeaders EventBridge Contracts', () => {
                     }
                     const originalAssetsLength = originalSnapshot.assets.length
                     
-                    aggregator.applyUpdate(originalSnapshot, {
+                    aggregator.applyUpdate(originalSnapshot, contentHeadersEnvelope({
                         type: 'Headers Updated',
                         assetId: 'ASSET#new',
                         zone: 'Library',
                         standardForm: new StandardForm('<Asset uuid=(new)></Asset>')
-                    }, contentHeadersHeader('Headers Updated'))
+                    }, 'Headers Updated'))
 
                     expect(originalSnapshot.assets.length).toBe(originalAssetsLength)
                 })
@@ -457,12 +461,12 @@ describe('ContentHeaders EventBridge Contracts', () => {
                     }
                     const originalZone = originalSnapshot.assets[0].zone
                     
-                    aggregator.applyUpdate(originalSnapshot, {
+                    aggregator.applyUpdate(originalSnapshot, contentHeadersEnvelope({
                         type: 'Zone Updated',
                         assetId: 'ASSET#test',
                         fromZone: 'Canon',
                         toZone: 'Library'
-                    }, contentHeadersHeader('Zone Updated'))
+                    }, 'Zone Updated'))
 
                     expect(originalSnapshot.assets[0].zone).toBe(originalZone)
                 })

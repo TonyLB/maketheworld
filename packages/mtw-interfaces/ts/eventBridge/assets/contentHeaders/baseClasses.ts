@@ -6,7 +6,7 @@
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 import { Zone, isZone } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import type { ResolvedStreamingEnvelope, StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 
 // Internal types for content headers events (using StandardForm objects)
 export type ContentHeadersEventUpdate = ContentHeadersSnapshot | ContentHeadersUpdate | ZoneUpdatedEvent
@@ -76,6 +76,27 @@ export const isZoneUpdatedEvent = (event: any): event is ZoneUpdatedEvent => {
     )
 }
 
+// Envelope type guards: narrow both header and content so aggregator needs no casts
+export type ContentHeadersEnvelope = ResolvedStreamingEnvelope<ContentHeadersEventUpdate, StreamingEventHeader>
+
+export function isContentHeadersUpdateEnvelope(
+    envelope: ContentHeadersEnvelope
+): envelope is ResolvedStreamingEnvelope<ContentHeadersUpdate, StreamingEventHeader & { type: 'Headers Updated' }> {
+    return envelope.header.type === 'Headers Updated'
+}
+
+export function isZoneUpdatedContentHeadersEnvelope(
+    envelope: ContentHeadersEnvelope
+): envelope is ResolvedStreamingEnvelope<ZoneUpdatedEvent, StreamingEventHeader & { type: 'Zone Updated' }> {
+    return envelope.header.type === 'Zone Updated'
+}
+
+export function isContentHeadersSnapshotEnvelope(
+    envelope: ContentHeadersEnvelope
+): envelope is ResolvedStreamingEnvelope<ContentHeadersSnapshot, StreamingEventHeader & { type: 'Snapshot' }> {
+    return envelope.header.type === 'Snapshot'
+}
+
 /**
  * Aggregator for ContentHeaders data source
  * 
@@ -96,80 +117,53 @@ export class ContentHeadersAggregator {
     /**
      * Apply a single update event to a snapshot
      * Returns the new snapshot (immutable pattern)
+     * Routes on envelope.header.type; uses envelope.content for domain data.
      */
     applyUpdate(
         snapshot: ContentHeadersSnapshot,
-        update: ContentHeadersEventUpdate,
-        _header: StreamingEventHeader
+        envelope: ContentHeadersEnvelope
     ): { success: true; snapshot: ContentHeadersSnapshot } | { success: false; error: Error; snapshot: ContentHeadersSnapshot } {
         try {
-            if (isContentHeadersUpdate(update)) {
-                // Handle Headers Updated event
-                const { assetId, zone, standardForm } = update
-                
-                // Find existing asset if any
+            if (isContentHeadersUpdateEnvelope(envelope)) {
+                const { assetId, zone, standardForm } = envelope.content
                 const existing = snapshot.assets.find(asset => asset.assetId === assetId)
-                
-                // Merge with existing StandardForm (Edits to be Applied mode) or use incoming (Direct Representation mode)
-                const mergedStandardForm = existing 
+                const mergedStandardForm = existing
                     ? existing.standardForm.merge(standardForm)
                     : standardForm
-                
-                // Create baseline by filtering out the existing record, then add the new/merged one
                 const baselineAssets = snapshot.assets.filter(asset => asset.assetId !== assetId)
-                
                 return {
                     success: true,
                     snapshot: {
                         type: 'Snapshot',
                         assets: [
                             ...baselineAssets,
-                            {
-                                assetId,
-                                zone,
-                                standardForm: mergedStandardForm
-                            }
+                            { assetId, zone, standardForm: mergedStandardForm }
                         ]
                     }
                 }
-            } else if (isZoneUpdatedEvent(update)) {
-                // Handle Zone Updated event
-                const { assetId, toZone } = update
-                
-                // Find existing asset if any
+            }
+            if (isZoneUpdatedContentHeadersEnvelope(envelope)) {
+                const { assetId, toZone } = envelope.content
                 const existing = snapshot.assets.find(asset => asset.assetId === assetId)
-                
-                // Get the StandardForm (existing or create empty placeholder)
-                const standardForm = existing 
+                const standardForm = existing
                     ? existing.standardForm
                     : new StandardForm(`<Asset uuid=(${assetId.split('#')[1] || 'unknown'})></Asset>`)
-                
-                // Create baseline by filtering out the existing record, then add the updated one
                 const baselineAssets = snapshot.assets.filter(asset => asset.assetId !== assetId)
-                
                 return {
                     success: true,
                     snapshot: {
                         type: 'Snapshot',
                         assets: [
                             ...baselineAssets,
-                            {
-                                assetId,
-                                zone: toZone,
-                                standardForm
-                            }
+                            { assetId, zone: toZone, standardForm }
                         ]
                     }
                 }
-            } else if (isContentHeadersSnapshot(update)) {
-                // Handle Snapshot event - replace entire snapshot
-                return {
-                    success: true,
-                    snapshot: update
-                }
-            } else {
-                throw new Error(`Unknown update type: ${JSON.stringify(update)}`)
             }
+            if (isContentHeadersSnapshotEnvelope(envelope)) {
+                return { success: true, snapshot: envelope.content }
+            }
+            throw new Error(`Unknown update type: ${envelope.header.type}`)
         } catch (error) {
             return {
                 success: false,

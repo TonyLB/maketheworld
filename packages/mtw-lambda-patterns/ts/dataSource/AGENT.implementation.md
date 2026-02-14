@@ -110,7 +110,7 @@ The envelope and serializer support an optional **extended header** shape so dat
 
 **Payload/contract/messageBus:** `StreamingEventPayload`, `StreamingEventPayloadContract`, and lambda `StreamingEventMessage` types keep `header: StreamingEventHeader` so structure guards and bus contracts stay payload-agnostic; any extended header is still assignable to the base type at runtime.
 
-**Client stored envelopes (recentEvents):** The client DataSource slice stores full envelope information per recent event via `RecentEventEnvelope<Payload, Header>` (header + event + timestamp). This aligns with the type-safe extended header support above: slices can use extended header types (e.g. `WMLStreamingEventHeader`) in stored envelopes and get correct narrowing when consuming `recentEvents`. Synthetic snapshots produced by the 30-second cleanup use a placeholder header (`type: 'Snapshot'`, empty `dataSourceKey`/`streamKey`); they are not passed to the aggregator. The stored header is passed into `applyUpdate(snapshot, update, header)` so aggregators can use header (e.g. to ignore Merge Conflict by `header.type`) for routing and keep payload for domain data.
+**Client stored envelopes (recentEvents):** The client DataSource slice stores full envelope information per recent event via `RecentEventEnvelope<Payload, Header>` (header + content + timestamp). This aligns with the type-safe extended header support above: slices can use extended header types (e.g. `WMLStreamingEventHeader`) in stored envelopes and get correct narrowing when consuming `recentEvents`. Synthetic snapshots produced by the 30-second cleanup use a placeholder header (`type: 'Snapshot'`, empty `dataSourceKey`/`streamKey`); they are not passed to the aggregator. The stored envelope `{ header, content }` is passed into `applyUpdate(snapshot, envelope)` so aggregators use `envelope.header` (e.g. to ignore Merge Conflict by `header.type`) for routing and `envelope.content` for domain data.
 
 ### **MessageBus and streaming event contract**
 
@@ -439,7 +439,16 @@ Aggregation treats the internal snapshot format as the materialized state. An ag
 
 **Key Insight**: Rather than defining a separate "materialized state" type, the internal snapshot format IS the materialized state. This simplifies the type system and aligns with how snapshots are actually used.
 
-### **DataSourceAggregator Interface**
+### **ResolvedStreamingEnvelope and DataSourceAggregator Interface**
+
+Resolved envelope shape (header + content, no lazy getter). Same shape used for aggregator applyUpdate, client recentEvents, and conceptually for serialize/deserialize params:
+
+```typescript
+export type ResolvedStreamingEnvelope<Content, Header extends StreamingEventHeader = StreamingEventHeader> = {
+    header: Header;
+    content: Content;
+}
+```
 
 ```typescript
 export interface DataSourceAggregator<
@@ -454,14 +463,13 @@ export interface DataSourceAggregator<
 
     /**
      * Apply a single update event to a snapshot.
-     * Header is required: use header.type (and extended header fields if present) for routing
-     * (e.g. skip applying Merge Conflict); use payload for domain data.
+     * Use envelope.header.type (and extended header fields if present) for routing
+     * (e.g. skip applying Merge Conflict); use envelope.content for domain data.
      * Returns the new snapshot (immutable pattern).
      */
     applyUpdate(
         snapshot: SnapshotPayload,
-        update: UpdatePayload,
-        header: Header
+        envelope: ResolvedStreamingEnvelope<UpdatePayload, Header>
     ): AggregationResult<SnapshotPayload>
 }
 ```
@@ -491,15 +499,15 @@ const aggregator = dataSource.getAggregator()
 if (aggregator) {
     let currentState = aggregator.createEmpty()
     
-    // Apply snapshot (with a header when from envelope)
-    const snapshotResult = aggregator.applyUpdate(currentState, snapshot, header)
+    // Apply snapshot (envelope = { header, content })
+    const snapshotResult = aggregator.applyUpdate(currentState, { header, content: snapshot })
     if (snapshotResult.success) {
         currentState = snapshotResult.snapshot
     }
     
-    // Apply subsequent events (each envelope provides event + header)
-    for (const { event, header } of events) {
-        const result = aggregator.applyUpdate(currentState, event, header)
+    // Apply subsequent events (each envelope is { header, content })
+    for (const envelope of events) {
+        const result = aggregator.applyUpdate(currentState, envelope)
         if (result.success) {
             currentState = result.snapshot
         } else {

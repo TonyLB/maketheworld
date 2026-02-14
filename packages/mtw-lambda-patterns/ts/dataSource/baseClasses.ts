@@ -55,6 +55,17 @@ export type StreamingEventEnvelope<Content = EventPayload, Header extends Stream
     getContentInternal: () => Promise<Content>;
 }
 
+/**
+ * Resolved streaming envelope: header + content (no lazy getter).
+ * Same shape as StreamingEventEnvelope but with content in hand instead of getContentInternal().
+ * Used by: DataSourceAggregator.applyUpdate; client recentEvents; and conceptually by
+ * serialize(params) / deserialize(params) which take { header, update } or { header, externalUpdate }.
+ */
+export type ResolvedStreamingEnvelope<Content, Header extends StreamingEventHeader = StreamingEventHeader> = {
+    header: Header;
+    content: Content;
+}
+
 // EventBridge serialization interface for DataSource integration
 export interface DataSourceEventSerializer<
     UpdatePayload extends EventPayload,

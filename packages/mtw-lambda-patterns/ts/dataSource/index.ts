@@ -698,4 +698,4 @@ export class DataSource<
 }
 
 // Re-export aggregation types for convenience
-export { DataSourceAggregator, AggregationResult } from './aggregation'
+export { DataSourceAggregator, AggregationResult, ResolvedStreamingEnvelope } from './aggregation'

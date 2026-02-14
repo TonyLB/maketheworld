@@ -19,8 +19,8 @@ export const applyEvents = <
     baselineSnapshot: SnapshotPayload,
     events: Array<RecentEventEnvelope<UpdatePayload, Header>>
 ): SnapshotPayload => {
-    return events.reduce((snapshot, { event, header }) => {
-        const result = aggregator.applyUpdate(snapshot, event, header)
+    return events.reduce((snapshot, { header, content }) => {
+        const result = aggregator.applyUpdate(snapshot, { header, content })
         return result.success ? result.snapshot : snapshot
     }, baselineSnapshot)
 }
@@ -59,17 +59,17 @@ export const performCleanup = <
         }
 
         // Find the most recent snapshot in oldEvents (or use empty as baseline)
-        const snapshotEvents = oldEvents.filter((e): e is RecentEventEnvelope<SnapshotPayload, Header> => isSnapshot(e.event))
+        const snapshotEvents = oldEvents.filter((e): e is RecentEventEnvelope<SnapshotPayload, Header> => isSnapshot(e.content))
         const baselineSnapshot = snapshotEvents.length > 0
-            ? snapshotEvents[snapshotEvents.length - 1].event
+            ? snapshotEvents[snapshotEvents.length - 1].content
             : aggregator.createEmpty()
 
         // Find events after the baseline snapshot
         const baselineTimestamp = snapshotEvents.length > 0 ? snapshotEvents[snapshotEvents.length - 1].timestamp : 0
         const eventsAfterBaseline = oldEvents
-            .filter(e => e.timestamp > baselineTimestamp && isUpdate(e.event))
+            .filter(e => e.timestamp > baselineTimestamp && isUpdate(e.content))
             .sort((a, b) => a.timestamp - b.timestamp)
-            .filter((e): e is RecentEventEnvelope<UpdatePayload, Header> => isUpdate(e.event))
+            .filter((e): e is RecentEventEnvelope<UpdatePayload, Header> => isUpdate(e.content))
 
     // Consolidate by applying events to baseline
     const consolidatedSnapshot = applyEventsWithAggregator(baselineSnapshot, eventsAfterBaseline)
@@ -77,7 +77,7 @@ export const performCleanup = <
     // Create synthetic snapshot event at 30-second boundary (placeholder header; not used for aggregation)
     const syntheticSnapshot: RecentEventEnvelope<SnapshotPayload, Header> = {
         header: { dataSourceKey: '', streamKey: '', timestamp: thirtySecondsAgo, type: 'Snapshot' } as Header,
-        event: consolidatedSnapshot,
+        content: consolidatedSnapshot,
         timestamp: thirtySecondsAgo
     }
 
@@ -144,11 +144,11 @@ export const processRawSnapshot = <
     )
 
     // Create new recent events: snapshot first, then events after it (full envelope)
-    const snapshotEvent: RecentEventEnvelope<SnapshotPayload, Header> = { header: snapshotHeader, event: snapshot, timestamp: snapshotTimestamp }
+    const snapshotEvent: RecentEventEnvelope<SnapshotPayload, Header> = { header: snapshotHeader, content: snapshot, timestamp: snapshotTimestamp }
     const newRecentEvents = [snapshotEvent, ...eventsAfterSnapshot]
 
     // Re-aggregate: Start with snapshot, apply any UPDATE events that came after it
-    const updateEventsAfterSnapshot = eventsAfterSnapshot.filter((e): e is RecentEventEnvelope<UpdatePayload, Header> => isUpdate(e.event))
+    const updateEventsAfterSnapshot = eventsAfterSnapshot.filter((e): e is RecentEventEnvelope<UpdatePayload, Header> => isUpdate(e.content))
     const newMaterializedView = applyEventsWithAggregator(snapshot, updateEventsAfterSnapshot)
 
     // Mutate state directly (Immer will handle immutability)
@@ -217,11 +217,11 @@ export const processRawEvent = <
 
     const isInOrder = eventTimestamp >= latestTimestamp
 
-    const newEnvelope: RecentEventEnvelope<UpdatePayload, Header> = { header: streamingHeader, event, timestamp: eventTimestamp }
+    const newEnvelope: RecentEventEnvelope<UpdatePayload, Header> = { header: streamingHeader, content: event, timestamp: eventTimestamp }
 
     if (isInOrder) {
         // FAST PATH: Simple aggregation
-        const result = aggregator.applyUpdate(stream.materializedView, event, streamingHeader)
+        const result = aggregator.applyUpdate(stream.materializedView, { header: streamingHeader, content: event })
         const newMaterializedView = result.success ? result.snapshot : stream.materializedView
         const newRecentEvents = [...cleanedRecentEvents, newEnvelope]
 
@@ -233,9 +233,9 @@ export const processRawEvent = <
     } else {
         // OUT-OF-ORDER PATH: Re-aggregate from snapshot
         // Find most recent snapshot in recentEvents
-        const snapshotEvents = cleanedRecentEvents.filter((e): e is RecentEventEnvelope<SnapshotPayload, Header> => isSnapshot(e.event))
+        const snapshotEvents = cleanedRecentEvents.filter((e): e is RecentEventEnvelope<SnapshotPayload, Header> => isSnapshot(e.content))
         const baselineSnapshot = snapshotEvents.length > 0
-            ? snapshotEvents[snapshotEvents.length - 1].event
+            ? snapshotEvents[snapshotEvents.length - 1].content
             : aggregator.createEmpty()
         const baselineTimestamp = snapshotEvents.length > 0
             ? snapshotEvents[snapshotEvents.length - 1].timestamp
@@ -253,7 +253,7 @@ export const processRawEvent = <
         // Filter for only UPDATE events to apply (snapshots shouldn't be re-applied)
         // AND only events AFTER the baseline snapshot (events before are already in the snapshot)
         const sortedUpdateEvents = sortedEvents.filter((e): e is RecentEventEnvelope<UpdatePayload, Header> =>
-            isUpdate(e.event) && e.timestamp > baselineTimestamp
+            isUpdate(e.content) && e.timestamp > baselineTimestamp
         )
 
         // Re-aggregate in chronological order from the most recent snapshot
@@ -262,7 +262,7 @@ export const processRawEvent = <
         // Include baseline snapshot + all sorted events (updates and any intermediate snapshots)
         const baselineSnapshotEvent = snapshotEvents.length > 0 ? snapshotEvents[snapshotEvents.length - 1] : null
         const sortedEventsWithoutBaseline = baselineSnapshotEvent
-            ? sortedEvents.filter(e => !(isSnapshot(e.event) && e.timestamp === baselineTimestamp))
+            ? sortedEvents.filter(e => !(isSnapshot(e.content) && e.timestamp === baselineTimestamp))
             : sortedEvents
         const newRecentEvents = baselineSnapshotEvent
             ? [baselineSnapshotEvent, ...sortedEventsWithoutBaseline]

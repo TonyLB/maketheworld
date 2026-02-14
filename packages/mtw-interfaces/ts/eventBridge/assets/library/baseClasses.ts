@@ -6,6 +6,7 @@
 import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 import { AggregationResult, DataSourceAggregator } from '@tonylb/mtw-lambda-patterns/ts/dataSource/aggregation'
 import { SerializableObject, EventPayload, StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import type { ResolvedStreamingEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 
 // Internal types for library events
 export type LibraryEventUpdate = LibrarySnapshot | AssetAdded | AssetRemoved
@@ -63,6 +64,27 @@ export const isLibraryUpdate = (event: any): event is AssetAdded | AssetRemoved 
     return isAssetAdded(event) || isAssetRemoved(event)
 }
 
+// Envelope type guards: narrow both header and content so aggregator needs no casts
+export type LibraryEnvelope = ResolvedStreamingEnvelope<LibraryEventUpdate, StreamingEventHeader>
+
+export function isAssetAddedLibraryEnvelope(
+    envelope: LibraryEnvelope
+): envelope is ResolvedStreamingEnvelope<AssetAdded, StreamingEventHeader & { type: 'Asset Added' }> {
+    return envelope.header.type === 'Asset Added'
+}
+
+export function isAssetRemovedLibraryEnvelope(
+    envelope: LibraryEnvelope
+): envelope is ResolvedStreamingEnvelope<AssetRemoved, StreamingEventHeader & { type: 'Asset Removed' }> {
+    return envelope.header.type === 'Asset Removed'
+}
+
+export function isLibrarySnapshotEnvelope(
+    envelope: LibraryEnvelope
+): envelope is ResolvedStreamingEnvelope<LibrarySnapshot, StreamingEventHeader & { type: 'Snapshot' }> {
+    return envelope.header.type === 'Snapshot'
+}
+
 /**
  * Aggregator for Library data source
  * 
@@ -83,44 +105,37 @@ export class LibraryAggregator implements DataSourceAggregator<LibrarySnapshot, 
     /**
      * Apply a single update event to a snapshot
      * Returns the new snapshot (immutable pattern)
+     * Routes on envelope.header.type; uses envelope.content for domain data.
      */
     applyUpdate(
         snapshot: LibrarySnapshot,
-        update: LibraryEventUpdate,
-        _header: StreamingEventHeader
+        envelope: LibraryEnvelope
     ): AggregationResult<LibrarySnapshot> {
         try {
-            if (isAssetAdded(update)) {
-                // Add asset UUID if not already present (idempotent)
-                const assetIds = snapshot.assetIds.includes(update.assetId)
+            if (isAssetAddedLibraryEnvelope(envelope)) {
+                const { assetId } = envelope.content
+                const assetIds = snapshot.assetIds.includes(assetId)
                     ? snapshot.assetIds
-                    : [...snapshot.assetIds, update.assetId]
-                
+                    : [...snapshot.assetIds, assetId]
                 return {
                     success: true,
-                    snapshot: {
-                        type: 'Snapshot',
-                        assetIds
-                    }
+                    snapshot: { type: 'Snapshot', assetIds }
                 }
-            } else if (isAssetRemoved(update)) {
-                // Remove asset UUID from array (idempotent)
-                return {
-                    success: true,
-                    snapshot: {
-                        type: 'Snapshot',
-                        assetIds: snapshot.assetIds.filter(id => id !== update.assetId)
-                    }
-                }
-            } else if (isLibrarySnapshot(update)) {
-                // Replace entire snapshot
-                return {
-                    success: true,
-                    snapshot: update
-                }
-            } else {
-                throw new Error(`Unknown update type: ${JSON.stringify(update)}`)
             }
+            if (isAssetRemovedLibraryEnvelope(envelope)) {
+                const { assetId } = envelope.content
+                return {
+                    success: true,
+                    snapshot: {
+                        type: 'Snapshot',
+                        assetIds: snapshot.assetIds.filter(id => id !== assetId)
+                    }
+                }
+            }
+            if (isLibrarySnapshotEnvelope(envelope)) {
+                return { success: true, snapshot: envelope.content }
+            }
+            throw new Error(`Unknown update type: ${envelope.header.type}`)
         } catch (error) {
             return {
                 success: false,

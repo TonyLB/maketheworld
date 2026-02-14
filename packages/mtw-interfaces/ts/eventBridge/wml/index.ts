@@ -4,6 +4,7 @@
 // Migrated from lambda/wml/dataSource/serializers.ts
 
 import { DataSourceEventSerializer, StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import type { ResolvedStreamingEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { DataSourceAggregator } from '@tonylb/mtw-lambda-patterns/ts/dataSource/aggregation'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes'
@@ -131,6 +132,21 @@ export const isWMLMergeConflictEvent = (event: any): event is WMLContentEvent & 
     )
 }
 
+// Envelope type guards for WML content events (narrow both header and content; no casts in aggregator)
+export type WMLContentEnvelope = ResolvedStreamingEnvelope<WMLContentEvent, StreamingEventHeader>
+
+export function isWMLMergeConflictEnvelope(
+    envelope: WMLContentEnvelope
+): envelope is ResolvedStreamingEnvelope<WMLContentEvent & { type: 'Merge Conflict' }, StreamingEventHeader & { type: 'Merge Conflict' }> {
+    return envelope.header.type === 'Merge Conflict'
+}
+
+export function isWMLContentUpdateEnvelope(
+    envelope: WMLContentEnvelope
+): envelope is ResolvedStreamingEnvelope<WMLContentEvent & { type: 'Content Update' }, StreamingEventHeader & { type: 'Content Update' }> {
+    return envelope.header.type === 'Content Update'
+}
+
 export const isWMLZoneEvent = (event: any): event is WMLZoneEvent => {
     return Boolean(
         event &&
@@ -187,16 +203,17 @@ export class WMLAggregator implements DataSourceAggregator<StandardFormData, WML
         return JSON.parse(JSON.stringify(EMPTY_WML_VIEW))
     }
 
-    applyUpdate(view: StandardFormData, event: WMLContentEvent, header: StreamingEventHeader): { success: true; snapshot: StandardFormData } | { success: false; error: Error; snapshot: StandardFormData } {
-        if (header.type === 'Merge Conflict') {
-            return { success: false, error: new Error(event.type === 'Merge Conflict' ? (event.error ?? 'Merge conflict') : 'Merge conflict'), snapshot: view }
+    applyUpdate(view: StandardFormData, envelope: WMLContentEnvelope): { success: true; snapshot: StandardFormData } | { success: false; error: Error; snapshot: StandardFormData } {
+        if (isWMLMergeConflictEnvelope(envelope)) {
+            const errMsg = envelope.content.error ?? 'Merge conflict'
+            return { success: false, error: new Error(errMsg), snapshot: view }
         }
-        if (!isWMLContentUpdateEvent(event)) {
-            return { success: false, error: new Error('Expected Content Update when header is not Merge Conflict'), snapshot: view }
+        if (isWMLContentUpdateEnvelope(envelope)) {
+            const current = new StandardForm(view)
+            const merged = current.merge(envelope.content.schema)
+            return { success: true, snapshot: merged.toJSON() }
         }
-        const current = new StandardForm(view)
-        const merged = current.merge(event.schema)
-        return { success: true, snapshot: merged.toJSON() }
+        return { success: false, error: new Error('Expected Content Update when header is not Merge Conflict'), snapshot: view }
     }
 }
 
