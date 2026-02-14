@@ -4,7 +4,7 @@ import { WMLEventSerializer, WMLEventUpdate, WMLEventExternal } from '@tonylb/mt
 import { moveAsset } from './moveAsset'
 import { applyEdit } from './applyEdit'
 import { purgeAsset } from './purgeAsset'
-import { CoordinationEventUpdate, COORDINATION_EVENT_TYPES, isCoordinationCanonizeEvent, isCoordinationDecanonizeEvent, MoveAssetRequest, ApplyEditRequest, CreateSnapshotRequest, PurgeAssetRequest } from './coordinationSerializer'
+import { CoordinationEventUpdate, isCoordinationCanonizeEvent, isCoordinationDecanonizeEvent, MoveAssetRequest, ApplyEditRequest, CreateSnapshotRequest, PurgeAssetRequest } from './coordinationSerializer'
 import { DiagnosticsEventUpdate, isS3StructureFindingEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics'
 import { isSchemaAssetUUID, AssetUUID } from "@tonylb/mtw-base/ts/schema"
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
@@ -15,22 +15,18 @@ import { getSidecarSnapshotDescriptor } from '../s3Storage/sidecarSnapshot'
 import { singleFlightFactory } from '@tonylb/mtw-lambda-patterns/ts/singleFlight'
 import assetDB from '../utilities/mockableAssetDB'
 import { ApplyEditResult } from './applyEdit'
+import {
+    WMLSubscribedPayload,
+    isWMLSubscribedEnvelope,
+    isApplyEditEnvelope,
+    isMoveAssetEnvelope,
+    isCanonizeOrDecanonizeEnvelope,
+    isCreateSnapshotEnvelope,
+    isPurgeAssetEnvelope,
+    isDiagnosticsEnvelope,
+} from './subscribedEvents'
 
-type WMLSubscribedPayload = CoordinationEventUpdate | DiagnosticsEventUpdate
 type StreamEventFn = (params: { update: WMLEventUpdate; streamKey: string }) => Promise<void>
-
-const isApplyEditEnvelope = (e: StreamingEventEnvelope<WMLSubscribedPayload>): e is StreamingEventEnvelope<ApplyEditRequest> & { header: StreamingEventHeader & { dataSourceKey: 'internal'; type: 'Apply Edit' } } =>
-    e.header.dataSourceKey === 'internal' && e.header.type === 'Apply Edit'
-const isMoveAssetEnvelope = (e: StreamingEventEnvelope<WMLSubscribedPayload>): e is StreamingEventEnvelope<MoveAssetRequest> & { header: StreamingEventHeader & { dataSourceKey: 'internal'; type: 'Move Asset' } } =>
-    e.header.dataSourceKey === 'internal' && e.header.type === 'Move Asset'
-const isCanonizeOrDecanonizeEnvelope = (e: StreamingEventEnvelope<WMLSubscribedPayload>): e is StreamingEventEnvelope<CoordinationEventUpdate> & { header: StreamingEventHeader & { dataSourceKey: 'internal'; type: 'Canonize Asset' | 'Decanonize Asset' } } =>
-    e.header.dataSourceKey === 'internal' && (e.header.type === 'Canonize Asset' || e.header.type === 'Decanonize Asset')
-const isCreateSnapshotEnvelope = (e: StreamingEventEnvelope<WMLSubscribedPayload>): e is StreamingEventEnvelope<CreateSnapshotRequest> & { header: StreamingEventHeader & { dataSourceKey: 'internal'; type: 'Create Snapshot' } } =>
-    e.header.dataSourceKey === 'internal' && e.header.type === 'Create Snapshot'
-const isPurgeAssetEnvelope = (e: StreamingEventEnvelope<WMLSubscribedPayload>): e is StreamingEventEnvelope<PurgeAssetRequest> & { header: StreamingEventHeader & { dataSourceKey: 'internal'; type: 'Purge Asset' } } =>
-    e.header.dataSourceKey === 'internal' && e.header.type === 'Purge Asset'
-const isDiagnosticsEnvelope = (e: StreamingEventEnvelope<WMLSubscribedPayload>): e is StreamingEventEnvelope<DiagnosticsEventUpdate> =>
-    e.header.dataSourceKey === 'mtw.diagnostics'
 
 // Single-flight factory for WML edits - ensures sequential processing per asset
 const wmlEditSingleFlight = singleFlightFactory({
@@ -281,40 +277,31 @@ export const wmlDataSource = new WMLDataSource<{}, WMLEventUpdate, CoordinationE
     dataSourceKey: 'mtw.wml',
     replayable: true, // Required for initializeSubscription (sidecar snapshot on subscribe)
     snapshotSidecarUrlGenerator: async (streamKey: string) => getSidecarSnapshotDescriptor(streamKey as AssetUUID),
-    subscribedEventTypeGuard: (header: StreamingEventHeader): boolean => {
-        // Subscribe to:
-        // 1. Internal coordination events (direct API calls)
-        // 2. mtw.diagnostics events (system health findings)
-        return (
-            (header.dataSourceKey === 'internal' && COORDINATION_EVENT_TYPES.has(header.type)) ||
-            header.dataSourceKey === 'mtw.diagnostics'
-        )
-    },
+    subscribedEventTypeGuard: isWMLSubscribedEnvelope,
     receiveEvents: async ({ events, streamEvent }) => {
         await Promise.all(events.map(async (event) => {
-            const e = event as StreamingEventEnvelope<WMLSubscribedPayload>
-            if (isApplyEditEnvelope(e)) {
-                await processApplyEdit(e, streamEvent)
+            if (isApplyEditEnvelope(event)) {
+                await processApplyEdit(event, streamEvent)
                 return
             }
-            if (isMoveAssetEnvelope(e)) {
-                await processMoveAsset(e, streamEvent)
+            if (isMoveAssetEnvelope(event)) {
+                await processMoveAsset(event, streamEvent)
                 return
             }
-            if (isCanonizeOrDecanonizeEnvelope(e)) {
-                await processCanonizeDecanonize(e, streamEvent)
+            if (isCanonizeOrDecanonizeEnvelope(event)) {
+                await processCanonizeDecanonize(event, streamEvent)
                 return
             }
-            if (isCreateSnapshotEnvelope(e)) {
-                await processCreateSnapshot(e, streamEvent)
+            if (isCreateSnapshotEnvelope(event)) {
+                await processCreateSnapshot(event, streamEvent)
                 return
             }
-            if (isPurgeAssetEnvelope(e)) {
-                await processPurgeAsset(e, streamEvent)
+            if (isPurgeAssetEnvelope(event)) {
+                await processPurgeAsset(event, streamEvent)
                 return
             }
-            if (isDiagnosticsEnvelope(e)) {
-                await processS3StructureFinding(e)
+            if (isDiagnosticsEnvelope(event)) {
+                await processS3StructureFinding(event)
             }
         }))
     },

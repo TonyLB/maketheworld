@@ -74,9 +74,27 @@ DataSource events use a header/content split:
 
 - **Header**: Always present, never sidecarred. Contains `dataSourceKey`, `streamKey`, `timestamp`, `type`, and optional domain flags (e.g. `zone`). Used for routing and type guards.
 - **Content**: The full payload (inline or sidecar reference). What serializers and aggregators operate on.
-- **`subscribedEventTypeGuard`**: Receives `(header: StreamingEventHeader) => boolean` only; routing and filtering use header, not full content.
+- **`subscribedEventTypeGuard`**: An **envelope type guard** `(envelope: StreamingEventEnvelope<unknown>) => envelope is StreamingEventEnvelope<SubscribedContent>`. The DataSource supplies this; the patterns package builds envelopes as `unknown`, filters with it, and passes only narrowed envelopes to `receiveEvents`. The guard inspects only `envelope.header` (no `getContentInternal()` call); the bus uses `content?: unknown` and `getContentInternal?: () => Promise<unknown>` so messageBus baseClasses stay free of DataSource payload imports.
 - **`receiveEvents`**: Receives `events: Array<StreamingEventEnvelope<UpdatePayload>>`; use `event.header` for branching and `event.content` for payload semantics.
 - **Initialize Subscription**: DataSource instances type-guard on `header.type === "Initialize Subscription - ${this.dataSourceKey}"` to determine which DataSource handles a given Initialize Subscription event. See [lambda/subscriptions/AGENT.eventBridge.md](../../../../lambda/subscriptions/AGENT.eventBridge.md) for the EventBridge event format.
+
+### **SubscribedEvents pattern**
+
+Each DataSource implementation should colocate its subscription surface in a **`subscribedEvents.ts`** file in the **same directory** as the file that instantiates the DataSource (e.g. `lambda/wml/dataSource/subscribedEvents.ts`, `lambda/assets/players/subscribedEvents.ts`). One such file per DataSource directory.
+
+**Contents of subscribedEvents.ts:**
+
+1. **Aggregate envelope type guard**: A single guard (e.g. `isWMLSubscribedEnvelope`, `isAssetsSubscribedEnvelope`) with signature `(e: StreamingEventEnvelope<unknown>) => e is StreamingEventEnvelope<SubscribedPayload>`. It inspects only `e.header` (e.g. `dataSourceKey`, `type`); no call to `getContentInternal()`. The DataSource constructor receives this as `subscribedEventTypeGuard`; the patterns package filters with it and passes narrowed envelopes to `receiveEvents`. The messageBus in each lambda uses a single broad `StreamingEventMessage` with `content?: unknown` and `getContentInternal?: () => Promise<unknown>` so baseClasses stay payload-agnostic.
+
+2. **Subscribed payload type and per-event envelope guards**: A TypeScript union of the payload types this DataSource subscribes to. Functions that narrow to specific event variants (e.g. `isApplyEditEnvelope`, `isPlayerSettingsEnvelope`) for use inside `receiveEvents`. Export any constants used by the aggregate guard (e.g. event type sets).
+
+3. **Typed send-helpers (optional)**: For each event kind that **this lambda** publishes to its own messageBus (not events it only forwards from EventBridge), add a helper `sendX(bus, streamKey, content)`. The bus is the first argument so the module stays decoupled from the messageBus singleton and tests can inject a mock. Signature pattern: `sendX(bus: { send: (payload: StreamingEventMessage) => void }, streamKey: string, content: XPayload): void`. The helper builds the envelope shape (header, content, getContentInternal) and calls `bus.send(...)`.
+
+**Conventions:**
+
+- Payload types are imported from upstream (mtw-interfaces, sibling modules, etc.); subscribedEvents owns the subscription union, envelope guards, and send-helpers only.
+- Initialize Subscription and other special/bootstrap events are out of scope for subscribedEvents; they stay on their separate subscription path.
+- Reference implementation: [lambda/wml/dataSource/subscribedEvents.ts](../../../../lambda/wml/dataSource/subscribedEvents.ts).
 
 ### **Type-Safe Routing with Envelope-Level Discriminated Unions and Payload Purity**:
 

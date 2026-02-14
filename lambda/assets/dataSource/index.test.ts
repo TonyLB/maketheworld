@@ -564,37 +564,46 @@ describe('AssetsDataSource (mtw.assets)', () => {
             const subscribedEventTypes = ['mtw.wml', 'mtw.diagnostics', 'mtw.coordination']
             
             subscribedEventTypes.forEach(source => {
-                const header = {
-                    dataSourceKey: source,
-                    streamKey: 'test-stream',
-                    timestamp: Date.now(),
-                    type: 'Test Event'
+                const envelope = {
+                    header: {
+                        dataSourceKey: source,
+                        streamKey: 'test-stream',
+                        timestamp: Date.now(),
+                        type: 'Test Event'
+                    },
+                    getContentInternal: () => Promise.resolve({})
                 }
 
-                expect(assetsDataSource.subscribedEventTypeGuard?.(header)).toBe(true)
+                expect(assetsDataSource.subscribedEventTypeGuard?.(envelope)).toBe(true)
             })
         })
 
         it('should not subscribe to events from other data sources', () => {
-            const otherHeader = {
-                dataSourceKey: 'mtw.other',
-                streamKey: 'test-stream',
-                timestamp: Date.now(),
-                type: 'Test Event'
+            const otherEnvelope = {
+                header: {
+                    dataSourceKey: 'mtw.other',
+                    streamKey: 'test-stream',
+                    timestamp: Date.now(),
+                    type: 'Test Event'
+                },
+                getContentInternal: () => Promise.resolve({})
             }
 
-            expect(assetsDataSource.subscribedEventTypeGuard?.(otherHeader)).toBe(false)
+            expect(assetsDataSource.subscribedEventTypeGuard?.(otherEnvelope)).toBe(false)
         })
 
         it('should not subscribe to events without proper structure', () => {
-            const malformedHeader = {
-                dataSourceKey: 'mtw.wml',
-                streamKey: 'test-stream',
-                timestamp: Date.now()
-                // missing type
-            } as any
+            const malformedEnvelope = {
+                header: {
+                    dataSourceKey: 'mtw.wml',
+                    streamKey: 'test-stream',
+                    timestamp: Date.now()
+                    // missing type
+                } as any,
+                getContentInternal: () => Promise.resolve({})
+            }
 
-            expect(assetsDataSource.subscribedEventTypeGuard?.(malformedHeader)).toBe(false)
+            expect(assetsDataSource.subscribedEventTypeGuard?.(malformedEnvelope)).toBe(false)
         })
     })
 })

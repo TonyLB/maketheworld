@@ -15,6 +15,7 @@ import {
 } from '@tonylb/mtw-interfaces/ts/asset.js'
 
 import messageBus from "./messageBus/index.js"
+import { sendPlayerSettingsUpdated } from './players/subscribedEvents'
 import { sfnClient, snsClient } from "./clients"
 import { ConnectionKey } from "@tonylb/mtw-utilities/ts/types"
 import { StartExecutionCommand } from "@aws-sdk/client-sfn"
@@ -114,16 +115,18 @@ export const handler = async (event, context) => {
                 timestamp,
                 type: event["detail-type"] as string
             }
+            const initContent = {
+                type: 'Initialize Subscription',
+                sessionId: event.detail.sessionId,
+                requestId: event.detail.requestId
+            }
             messageBus.send({
                 type: 'StreamingEvent',
                 dataSourceKey: 'mtw.subscriptions',
                 streamKey,
                 header,
-                content: {
-                    type: 'Initialize Subscription',
-                    sessionId: event.detail.sessionId,
-                    requestId: event.detail.requestId
-                },
+                content: initContent,
+                getContentInternal: () => Promise.resolve(initContent),
                 timestamp
             })
         } else {
@@ -251,27 +254,12 @@ export const handler = async (event, context) => {
                 // lambda) once the mtw.assets.players data source subsumes the old flow. For now, we
                 // emit both the legacy message and a streaming event so the new player data source can
                 // subscribe without breaking existing flows.
-                const timestamp = Date.now()
                 const content = {
-                    type: 'Player Settings Updated',
+                    type: 'Player Settings Updated' as const,
                     actions: request.actions,
                     ...(request.RequestId ? { RequestId: request.RequestId } : {})
                 }
-                const header = {
-                    dataSourceKey: 'internal',
-                    streamKey: player,
-                    timestamp,
-                    type: content.type
-                }
-                messageBus.send({
-                    type: 'StreamingEvent',
-                    dataSourceKey: 'internal',
-                    streamKey: player,
-                    header,
-                    content,
-                    getContentInternal: () => Promise.resolve(content),
-                    timestamp
-                })
+                sendPlayerSettingsUpdated(messageBus, player, content)
                 messageBus.send({
                     type: 'PlayerSettings',
                     player,

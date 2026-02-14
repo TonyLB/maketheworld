@@ -10,8 +10,9 @@ import { StandardCharacter } from '@tonylb/mtw-wml/ts/standardize/components/cha
 import getCurrentTimestamp from '../internalUtils/dateUtil'
 import { CharacterEventSerializer, CharacterEventUpdate } from '@tonylb/mtw-interfaces/ts/eventBridge/assets/characters'
 import { ComponentEventUpdate } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
-import { StreamingEventHeader, StreamingEventEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import { StreamingEventEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { ReferenceList } from '@tonylb/mtw-wml/ts/standardize/keys/referenceList'
+import { CharactersSubscribedContent, isCharactersSubscribedEnvelope, isCharactersComponentEnvelope } from './subscribedEvents'
 
 // Types for the characters data source
 export type CharacterEventPayload = {
@@ -110,18 +111,6 @@ const processComponentEvent = async (
 }
 
 // Create the characters data source singleton
-const CONTENT_HEADER_TYPES = new Set(['Component Updated', 'Component Removed'])
-
-/** Envelope typeguard: use header only (no content resolution). Enables routing before calling getContentInternal(). */
-const isCharactersComponentEnvelope = (
-    event: StreamingEventEnvelope<unknown>
-): event is StreamingEventEnvelope<ComponentEventUpdate> & { header: StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Component Updated' | 'Component Removed' } } => (
-    event.header.dataSourceKey === 'mtw.assets' && CONTENT_HEADER_TYPES.has(event.header.type)
-)
-
-/** Payload types of events mtw.assets.characters subscribes to (mtw.assets component events). */
-type CharactersSubscribedContent = ComponentEventUpdate
-
 export const charactersDataSource = new AssetsDataSource<
     CharacterSnapshotPayload,
     CharacterEventUpdate,
@@ -130,10 +119,7 @@ export const charactersDataSource = new AssetsDataSource<
     dataSourceKey: 'mtw.assets.characters',
     replayable: true,
     eventSerializer: new CharacterEventSerializer(), // Handle character event serialization
-    subscribedEventTypeGuard: (header: StreamingEventHeader): boolean => {
-        // Subscribe to mtw.assets component events that might be character changes
-        return header.dataSourceKey === 'mtw.assets' && CONTENT_HEADER_TYPES.has(header.type)
-    },
+    subscribedEventTypeGuard: isCharactersSubscribedEnvelope,
     snapshotContentGenerator: generateCharacterSnapshot,
     receiveEvents: async ({ events, streamEvent }) => {
         // Route on envelope (header) first; only resolve content for component events

@@ -79,41 +79,50 @@ describe('WML DataSource', () => {
 
     describe('Event Type Guard', () => {
         it('should recognize valid Move Asset events', () => {
-            const validHeader = {
-                dataSourceKey: 'internal',
-                streamKey: 'test-asset',
-                timestamp: 0,
-                type: 'Move Asset'
+            const validEnvelope = {
+                header: {
+                    dataSourceKey: 'internal',
+                    streamKey: 'test-asset',
+                    timestamp: 0,
+                    type: 'Move Asset'
+                },
+                getContentInternal: () => Promise.resolve({})
             }
 
             expect(wmlDataSource.subscribedEventTypeGuard).toBeDefined()
-            const isRecognized = wmlDataSource.subscribedEventTypeGuard!(validHeader)
+            const isRecognized = wmlDataSource.subscribedEventTypeGuard!(validEnvelope)
             expect(isRecognized).toBe(true)
         })
 
         it('should reject events with wrong dataSourceKey', () => {
-            const invalidHeader = {
-                dataSourceKey: 'mtw.assets',
-                streamKey: 'test-asset',
-                timestamp: 0,
-                type: 'Move Asset'
+            const invalidEnvelope = {
+                header: {
+                    dataSourceKey: 'mtw.assets',
+                    streamKey: 'test-asset',
+                    timestamp: 0,
+                    type: 'Move Asset'
+                },
+                getContentInternal: () => Promise.resolve({})
             }
 
             expect(wmlDataSource.subscribedEventTypeGuard).toBeDefined()
-            const isRecognized = wmlDataSource.subscribedEventTypeGuard!(invalidHeader)
+            const isRecognized = wmlDataSource.subscribedEventTypeGuard!(invalidEnvelope)
             expect(isRecognized).toBe(false)
         })
 
         it('should reject events with non-coordination type', () => {
-            const invalidHeader = {
-                dataSourceKey: 'internal',
-                streamKey: 'test-asset',
-                timestamp: 0,
-                type: 'UnknownType'
+            const invalidEnvelope = {
+                header: {
+                    dataSourceKey: 'internal',
+                    streamKey: 'test-asset',
+                    timestamp: 0,
+                    type: 'UnknownType'
+                },
+                getContentInternal: () => Promise.resolve({})
             }
 
             expect(wmlDataSource.subscribedEventTypeGuard).toBeDefined()
-            const isRecognized = wmlDataSource.subscribedEventTypeGuard!(invalidHeader)
+            const isRecognized = wmlDataSource.subscribedEventTypeGuard!(invalidEnvelope)
             expect(isRecognized).toBe(false)
         })
     })
@@ -611,29 +620,34 @@ describe('WML DataSource', () => {
 
     describe('Diagnostics Event Type Guard', () => {
         it('should recognize valid S3 Structure Finding events', () => {
-            const validHeader = {
-                dataSourceKey: 'mtw.diagnostics',
-                streamKey: 'global',
-                timestamp: 0,
-                type: 'S3 Structure Finding'
+            const validEnvelope = {
+                header: {
+                    dataSourceKey: 'mtw.diagnostics',
+                    streamKey: 'global',
+                    timestamp: 0,
+                    type: 'S3 Structure Finding'
+                },
+                getContentInternal: () => Promise.resolve({})
             }
 
             expect(wmlDataSource.subscribedEventTypeGuard).toBeDefined()
-            const isRecognized = wmlDataSource.subscribedEventTypeGuard!(validHeader)
+            const isRecognized = wmlDataSource.subscribedEventTypeGuard!(validEnvelope)
             expect(isRecognized).toBe(true)
         })
 
         it('should accept diagnostics events with any event structure', () => {
-            // DataSource should accept mtw.diagnostics events even if we don't recognize the specific type yet
-            const unknownDiagnosticsHeader = {
-                dataSourceKey: 'mtw.diagnostics',
-                streamKey: 'global',
-                timestamp: 0,
-                type: 'Future Event Type'
+            const unknownDiagnosticsEnvelope = {
+                header: {
+                    dataSourceKey: 'mtw.diagnostics',
+                    streamKey: 'global',
+                    timestamp: 0,
+                    type: 'Future Event Type'
+                },
+                getContentInternal: () => Promise.resolve({})
             }
 
             expect(wmlDataSource.subscribedEventTypeGuard).toBeDefined()
-            const isRecognized = wmlDataSource.subscribedEventTypeGuard!(unknownDiagnosticsHeader)
+            const isRecognized = wmlDataSource.subscribedEventTypeGuard!(unknownDiagnosticsEnvelope)
             expect(isRecognized).toBe(true)
         })
     })

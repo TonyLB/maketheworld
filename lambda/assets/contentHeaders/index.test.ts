@@ -78,36 +78,45 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
 
     describe('Event Subscription', () => {
         it('should subscribe to Component Updated events from mtw.assets', () => {
-            const header = {
-                dataSourceKey: 'mtw.assets',
-                streamKey: 'ASSET#asset123',
-                timestamp: Date.now(),
-                type: 'Component Updated'
+            const envelope = {
+                header: {
+                    dataSourceKey: 'mtw.assets',
+                    streamKey: 'ASSET#asset123',
+                    timestamp: Date.now(),
+                    type: 'Component Updated'
+                },
+                getContentInternal: () => Promise.resolve({})
             }
 
-            expect(contentHeadersDataSource.subscribedEventTypeGuard?.(header)).toBe(true)
+            expect(contentHeadersDataSource.subscribedEventTypeGuard?.(envelope)).toBe(true)
         })
 
         it('should not subscribe to events from other data sources', () => {
-            const header = {
-                dataSourceKey: 'mtw.ephemera',
-                streamKey: 'CHARACTER#char123',
-                timestamp: Date.now(),
-                type: 'Character Updated'
+            const envelope = {
+                header: {
+                    dataSourceKey: 'mtw.ephemera',
+                    streamKey: 'CHARACTER#char123',
+                    timestamp: Date.now(),
+                    type: 'Character Updated'
+                },
+                getContentInternal: () => Promise.resolve({})
             }
 
-            expect(contentHeadersDataSource.subscribedEventTypeGuard?.(header)).toBe(false)
+            expect(contentHeadersDataSource.subscribedEventTypeGuard?.(envelope)).toBe(false)
         })
 
         it('should not subscribe to non-component events from mtw.assets', () => {
-            const header = {
-                dataSourceKey: 'mtw.assets',
-                streamKey: 'ASSET#asset123',
-                timestamp: Date.now(),
-                type: 'CacheAsset'
+            const envelope = {
+                header: {
+                    dataSourceKey: 'mtw.assets',
+                    streamKey: 'ASSET#asset123',
+                    timestamp: Date.now(),
+                    type: 'CacheAsset'
+                },
+                getContentInternal: () => Promise.resolve({})
             }
 
-            expect(contentHeadersDataSource.subscribedEventTypeGuard?.(header)).toBe(false)
+            expect(contentHeadersDataSource.subscribedEventTypeGuard?.(envelope)).toBe(false)
         })
     })
 

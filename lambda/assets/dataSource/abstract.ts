@@ -29,7 +29,7 @@ export class AssetsDataSource<
         snapshotContentGenerator?: (streamKey: string) => Promise<SnapshotPayload>; // Optional - not needed for non-replayable data sources
         snapshotTimeoutMs?: number;
         replayable?: boolean;
-        subscribedEventTypeGuard?: (header: StreamingEventHeader) => boolean;
+        subscribedEventTypeGuard?: (envelope: StreamingEventEnvelope<unknown>) => envelope is StreamingEventEnvelope<SubscribedContent>;
         receiveEvents?: (params: { 
             events: Array<StreamingEventEnvelope<SubscribedContent>>,
             streamEvent: (params: { update: UpdatePayload, streamKey: string }) => Promise<void>

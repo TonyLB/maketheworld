@@ -60,58 +60,73 @@ describe('LibraryDataSource (mtw.assets.library)', () => {
 
     describe('Event Subscription', () => {
         it('should subscribe to Zone Updated events from mtw.assets', () => {
-            const header = {
-                dataSourceKey: 'mtw.assets',
-                streamKey: 'ASSET#asset123',
-                timestamp: Date.now(),
-                type: 'Zone Updated'
+            const envelope = {
+                header: {
+                    dataSourceKey: 'mtw.assets',
+                    streamKey: 'ASSET#asset123',
+                    timestamp: Date.now(),
+                    type: 'Zone Updated'
+                },
+                getContentInternal: () => Promise.resolve({})
             }
 
-            expect(libraryDataSource.subscribedEventTypeGuard?.(header)).toBe(true)
+            expect(libraryDataSource.subscribedEventTypeGuard?.(envelope)).toBe(true)
         })
 
         it('should subscribe to Asset Cached events from mtw.assets', () => {
-            const header = {
-                dataSourceKey: 'mtw.assets',
-                streamKey: 'ASSET#asset123',
-                timestamp: Date.now(),
-                type: 'Asset Cached'
+            const envelope = {
+                header: {
+                    dataSourceKey: 'mtw.assets',
+                    streamKey: 'ASSET#asset123',
+                    timestamp: Date.now(),
+                    type: 'Asset Cached'
+                },
+                getContentInternal: () => Promise.resolve({})
             }
 
-            expect(libraryDataSource.subscribedEventTypeGuard?.(header)).toBe(true)
+            expect(libraryDataSource.subscribedEventTypeGuard?.(envelope)).toBe(true)
         })
 
         it('should subscribe to Asset Removed events from mtw.assets', () => {
-            const header = {
-                dataSourceKey: 'mtw.assets',
-                streamKey: 'ASSET#asset123',
-                timestamp: Date.now(),
-                type: 'Asset Removed'
+            const envelope = {
+                header: {
+                    dataSourceKey: 'mtw.assets',
+                    streamKey: 'ASSET#asset123',
+                    timestamp: Date.now(),
+                    type: 'Asset Removed'
+                },
+                getContentInternal: () => Promise.resolve({})
             }
 
-            expect(libraryDataSource.subscribedEventTypeGuard?.(header)).toBe(true)
+            expect(libraryDataSource.subscribedEventTypeGuard?.(envelope)).toBe(true)
         })
 
         it('should not subscribe to Component Updated events', () => {
-            const header = {
-                dataSourceKey: 'mtw.assets',
-                streamKey: 'ASSET#asset123',
-                timestamp: Date.now(),
-                type: 'Component Updated'
+            const envelope = {
+                header: {
+                    dataSourceKey: 'mtw.assets',
+                    streamKey: 'ASSET#asset123',
+                    timestamp: Date.now(),
+                    type: 'Component Updated'
+                },
+                getContentInternal: () => Promise.resolve({})
             }
 
-            expect(libraryDataSource.subscribedEventTypeGuard?.(header)).toBe(false)
+            expect(libraryDataSource.subscribedEventTypeGuard?.(envelope)).toBe(false)
         })
 
         it('should not subscribe to events from other data sources', () => {
-            const header = {
-                dataSourceKey: 'mtw.wml',
-                streamKey: 'ASSET#asset123',
-                timestamp: Date.now(),
-                type: 'Content Update'
+            const envelope = {
+                header: {
+                    dataSourceKey: 'mtw.wml',
+                    streamKey: 'ASSET#asset123',
+                    timestamp: Date.now(),
+                    type: 'Content Update'
+                },
+                getContentInternal: () => Promise.resolve({})
             }
 
-            expect(libraryDataSource.subscribedEventTypeGuard?.(header)).toBe(false)
+            expect(libraryDataSource.subscribedEventTypeGuard?.(envelope)).toBe(false)
         })
     })
 

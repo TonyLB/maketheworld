@@ -2,9 +2,10 @@ import backupWML from "./backupWML";
 import internalCache from "./internalCache";
 import { S3Client } from "@aws-sdk/client-s3";
 import messageBus from "./messageBus";
-import type { InitializeSubscriptionEventMessage, ExternalStreamingEventMessage } from "./messageBus/baseClasses";
+import type { StreamingEventMessage } from "./messageBus/baseClasses";
 import { extractReturnValue } from "./returnValue/index";
-import { CoordinationEventExternal, CoordinationEventSerializer, CoordinationEventUpdate } from './dataSource/coordinationSerializer';
+import { CoordinationEventExternal, CoordinationEventSerializer } from './dataSource/coordinationSerializer';
+import { sendApplyEdit, sendMoveAsset, sendPurgeAsset } from './dataSource/subscribedEvents';
 import { fromEventBridgeFormat } from '@tonylb/mtw-lambda-patterns/ts/dataSource/formatTransform';
 import { DiagnosticsEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics';
 import { WMLAPIMessage } from '@tonylb/mtw-interfaces/ts/wml';
@@ -56,15 +57,17 @@ export const handler = async (event: any, context: any) => {
                 timestamp,
                 type: event["detail-type"] as string
             }
-            const initMessage: InitializeSubscriptionEventMessage = {
+            const content = {
+                sessionId: event.detail.sessionId,
+                requestId: event.detail.requestId
+            }
+            const initMessage: StreamingEventMessage = {
                 type: 'StreamingEvent',
                 dataSourceKey: 'mtw.subscriptions',
                 streamKey,
                 header,
-                content: {
-                    sessionId: event.detail.sessionId,
-                    requestId: event.detail.requestId
-                },
+                content,
+                getContentInternal: () => Promise.resolve(content),
                 timestamp
             }
             messageBus.send(initMessage)
@@ -102,7 +105,7 @@ export const handler = async (event: any, context: any) => {
                 })
             } else {
                 // Publish deserialized event to messageBus for DataSource processing
-                const externalMessage: ExternalStreamingEventMessage = {
+                const externalMessage: StreamingEventMessage = {
                     type: 'StreamingEvent',
                     dataSourceKey: coreFormat.dataSourceKey,
                     streamKey: coreFormat.streamKey,
@@ -157,84 +160,36 @@ export const handler = async (event: any, context: any) => {
             if (request.RequestId) {
                 internalCache.Connection.set({ key: 'RequestId', value: request.RequestId })
             }
-            const streamKey = request.AssetId
-            const timestamp = Date.now()
-            const content: CoordinationEventUpdate = {
-                type: 'Apply Edit',
+            const content = {
+                type: 'Apply Edit' as const,
                 RequestId: request.RequestId ?? '',
                 schema: request.schema,
                 createIfNeeded: request.createIfNeeded,
                 zone: request.zone
             }
-            const header = {
-                dataSourceKey: 'internal',
-                streamKey,
-                timestamp,
-                type: content.type
-            }
-            messageBus.send({
-                type: 'StreamingEvent',
-                dataSourceKey: 'internal',
-                streamKey,
-                header,
-                content,
-                getContentInternal: () => Promise.resolve(content),
-                timestamp
-            })
+            sendApplyEdit(messageBus, request.AssetId, content)
             await messageBus.flush()
             return await extractReturnValue(messageBus)
         }
         case 'moveAsset': {
-            const streamKey = request.AssetId
-            const timestamp = Date.now()
-            const content: CoordinationEventUpdate = {
-                type: 'Move Asset',
+            const content = {
+                type: 'Move Asset' as const,
                 fromZone: request.fromZone,
                 toZone: request.toZone,
                 player: request.player,
                 subFolder: request.subFolder
             }
-            const header = {
-                dataSourceKey: 'internal',
-                streamKey,
-                timestamp,
-                type: content.type
-            }
-            messageBus.send({
-                type: 'StreamingEvent',
-                dataSourceKey: 'internal',
-                streamKey,
-                header,
-                content,
-                getContentInternal: () => Promise.resolve(content),
-                timestamp
-            })
+            sendMoveAsset(messageBus, request.AssetId, content)
             await messageBus.flush()
             return await extractReturnValue(messageBus)
         }
         case 'purgeAsset': {
-            const streamKey = request.AssetId
-            const timestamp = Date.now()
-            const content: CoordinationEventUpdate = {
-                type: 'Purge Asset',
+            const content = {
+                type: 'Purge Asset' as const,
                 expectedZone: request.expectedZone,
                 requireExists: request.requireExists
             }
-            const header = {
-                dataSourceKey: 'internal',
-                streamKey,
-                timestamp,
-                type: content.type
-            }
-            messageBus.send({
-                type: 'StreamingEvent',
-                dataSourceKey: 'internal',
-                streamKey,
-                header,
-                content,
-                getContentInternal: () => Promise.resolve(content),
-                timestamp
-            })
+            sendPurgeAsset(messageBus, request.AssetId, content)
             await messageBus.flush()
             return await extractReturnValue(messageBus)
         }
