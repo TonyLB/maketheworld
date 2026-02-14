@@ -31,10 +31,16 @@ export type CharacterUpdatedEventExternal = {
  * and external EventBridge-compatible event formats for character-specific events.
  */
 export class CharacterEventSerializer implements DataSourceEventSerializer<CharacterEventUpdate, CharacterEventExternal> {
-    serialize({ update }: { update: CharacterEventUpdate }): CharacterEventExternal {
+    serialize(params: {
+        update: CharacterEventUpdate;
+        header: StreamingEventHeader;
+    }): CharacterEventExternal {
+        const { update, header } = params
+        if (header.type !== 'Character Updated') {
+            throw new Error(`Unknown character event type: ${header.type}`)
+        }
         const characterId = update.component.universalKey as `CHARACTER#${string}`
         const wml = schemaToWML([update.component.schema])
-        
         return {
             type: 'Character Updated',
             characterId,
@@ -43,8 +49,6 @@ export class CharacterEventSerializer implements DataSourceEventSerializer<Chara
     }
     
     deserialize(params: { 
-        dataSourceKey: string
-        streamKey: string
         externalUpdate: CharacterEventExternal 
         header: StreamingEventHeader
     }): CharacterEventUpdate | null {

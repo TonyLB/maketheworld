@@ -61,8 +61,12 @@ export class DiagnosticsEventSerializer implements DataSourceEventSerializer<Dia
     /**
      * Serialize an internal event to external format for EventBridge transmission
      */
-    serialize({ update }: { update: DiagnosticsEventUpdate }): DiagnosticsEventExternal {
-        if (update.type === 'S3 Structure Finding') {
+    serialize(params: {
+        update: DiagnosticsEventUpdate;
+        header: StreamingEventHeader;
+    }): DiagnosticsEventExternal {
+        const { update, header } = params
+        if (header.type === 'S3 Structure Finding') {
             return {
                 type: 'S3 Structure Finding',
                 source: update.source,
@@ -71,8 +75,7 @@ export class DiagnosticsEventSerializer implements DataSourceEventSerializer<Dia
                 timestamp: update.timestamp
             }
         }
-        // Should never reach here due to type system
-        throw new Error(`Unknown diagnostics event type: ${(update as any).type}`)
+        throw new Error(`Unknown diagnostics event type: ${header.type}`)
     }
 
     /**
@@ -82,8 +85,6 @@ export class DiagnosticsEventSerializer implements DataSourceEventSerializer<Dia
      * via the fromEventBridgeFormat transformation
      */
     deserialize(params: { 
-        dataSourceKey: string
-        streamKey: string
         externalUpdate: any  // Will have type field from EventBridge detail-type
         header: StreamingEventHeader
     }): DiagnosticsEventUpdate | null {

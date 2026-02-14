@@ -28,8 +28,6 @@ describe('CoordinationEventSerializer', () => {
             }
             const header = makeHeader('Apply Edit')
             const result = serializer.deserialize({
-                dataSourceKey,
-                streamKey,
                 externalUpdate,
                 header
             })
@@ -47,8 +45,6 @@ describe('CoordinationEventSerializer', () => {
             }
             const header = makeHeader('Move Asset')
             const result = serializer.deserialize({
-                dataSourceKey,
-                streamKey,
                 externalUpdate,
                 header
             })
@@ -68,8 +64,6 @@ describe('CoordinationEventSerializer', () => {
             }
             const header = makeHeader('Create Snapshot')
             const result = serializer.deserialize({
-                dataSourceKey,
-                streamKey,
                 externalUpdate,
                 header
             })
@@ -87,13 +81,12 @@ describe('CoordinationEventSerializer', () => {
                 createIfNeeded: true,
                 zone: 'Draft'
             }
+            const header = makeHeader(internalEvent.type)
             const externalEvent = serializer.serialize({
-                update: internalEvent
+                update: internalEvent,
+                header
             })
-            const header = makeHeader(externalEvent.type)
             const deserialized = serializer.deserialize({
-                dataSourceKey,
-                streamKey,
                 externalUpdate: externalEvent,
                 header
             })

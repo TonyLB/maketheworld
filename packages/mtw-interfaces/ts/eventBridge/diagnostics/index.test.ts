@@ -27,7 +27,10 @@ describe('DiagnosticsEventSerializer', () => {
                 timestamp: '2025-10-18T12:00:00.000Z'
             }
 
-            const external = serializer.serialize({ update: internalEvent })
+            const external = serializer.serialize({
+                update: internalEvent,
+                header: diagnosticsHeader('S3 Structure Finding')
+            })
 
             expect(external).toEqual({
                 type: 'S3 Structure Finding',
@@ -52,7 +55,10 @@ describe('DiagnosticsEventSerializer', () => {
                     timestamp: '2025-10-18T12:00:00.000Z'
                 }
 
-                const external = serializer.serialize({ update: internalEvent })
+                const external = serializer.serialize({
+                    update: internalEvent,
+                    header: diagnosticsHeader('S3 Structure Finding')
+                })
                 expect(external.status).toBe(status)
             })
         })
@@ -69,8 +75,6 @@ describe('DiagnosticsEventSerializer', () => {
             }
 
             const internal = serializer.deserialize({
-                dataSourceKey: 'mtw.diagnostics',
-                streamKey: 'global',
                 externalUpdate: externalEvent,
                 header: diagnosticsHeader('S3 Structure Finding')
             })
@@ -93,8 +97,6 @@ describe('DiagnosticsEventSerializer', () => {
             }
 
             const internal = serializer.deserialize({
-                dataSourceKey: 'mtw.diagnostics',
-                streamKey: 'global',
                 externalUpdate: externalEvent,
                 header: diagnosticsHeader('S3 Structure Finding')
             })
@@ -113,8 +115,6 @@ describe('DiagnosticsEventSerializer', () => {
 
             invalidEvents.forEach(event => {
                 const internal = serializer.deserialize({
-                    dataSourceKey: 'mtw.diagnostics',
-                    streamKey: 'global',
                     externalUpdate: event,
                     header: diagnosticsHeader('S3 Structure Finding')
                 })
@@ -130,8 +130,6 @@ describe('DiagnosticsEventSerializer', () => {
             }
 
             const internal = serializer.deserialize({
-                dataSourceKey: 'mtw.diagnostics',
-                streamKey: 'global',
                 externalUpdate: unknownEvent,
                 header: diagnosticsHeader('Unknown Event Type')
             })
@@ -201,10 +199,11 @@ describe('DiagnosticsEventSerializer', () => {
                 timestamp: '2025-10-18T15:30:00.000Z'
             }
 
-            const external = serializer.serialize({ update: original })
+            const external = serializer.serialize({
+                update: original,
+                header: diagnosticsHeader('S3 Structure Finding')
+            })
             const deserialized = serializer.deserialize({
-                dataSourceKey: 'mtw.diagnostics',
-                streamKey: 'global',
                 externalUpdate: external,
                 header: diagnosticsHeader('S3 Structure Finding')
             })

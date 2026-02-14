@@ -183,8 +183,6 @@ export const processRawEvent = <
         }
         // Deserialize event
         const event = eventSerializer.deserialize({
-            dataSourceKey,
-            streamKey,
             externalUpdate: content,
             header: streamingHeader
         })

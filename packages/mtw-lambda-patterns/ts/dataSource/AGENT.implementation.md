@@ -78,6 +78,31 @@ DataSource events use a header + getContentInternal contract:
 - **`receiveEvents`**: Receives `events: Array<StreamingEventEnvelope<SubscribedContent>>`; use `event.header` for branching and `event.getContentInternal()` for payload semantics.
 - **Initialize Subscription**: DataSource instances type-guard on `header.type === "Initialize Subscription - ${this.dataSourceKey}"` to determine which DataSource handles a given Initialize Subscription event. Init uses the same streaming-event contract: senders provide `getContentInternal`; the init subscription callback obtains the payload via `await payload.getContentInternal()`. See [lambda/subscriptions/AGENT.eventBridge.md](../../../../lambda/subscriptions/AGENT.eventBridge.md) for the EventBridge event format.
 
+### **Extending the header (type-safe)**
+
+The envelope and serializer support an optional **extended header** shape so data sources can add small domain-specific fields (e.g. `zone?: Zone`) and have them type-checked and narrowable.
+
+**Generic types (defaults preserve existing behavior):**
+
+- **`StreamingEventEnvelope<Content, Header>`**: Second type param `Header extends StreamingEventHeader = StreamingEventHeader`. The envelope's `header` is typed as `Header`, so subscribed unions can use extended header types for narrowing.
+- **`DataSourceEventSerializer<..., Header>`**: Fifth type param `Header extends StreamingEventHeader = StreamingEventHeader`. `serialize` and `deserialize` accept `header: Header`, so implementations can rely on extended fields when present.
+- **`DataSource<..., Header>`**: Final type param `Header extends StreamingEventHeader = StreamingEventHeader`. When publishing via `streamEvent`, the built header is typed as `Header` and passed to the serializer and messageBus.
+
+**When to extend:**
+
+- **Subscribed events (consuming):** In your subscribed envelope union (e.g. `AssetsIncomingEvent`), use a named extended type for variants that carry domain fields, e.g. `WMLStreamingEventHeader & { dataSourceKey: 'mtw.wml'; type: 'Zone Changed' }`. After narrowing with a type guard, `event.header.zone` is typed.
+- **Publishing (producing):** When this DataSource must *emit* events whose header includes optional fields (e.g. `zone` on Zone Changed), give the DataSource that `Header` type and supply **`buildHeader`**.
+
+**`buildHeader` (optional constructor parameter):**
+
+- **Intent:** For DataSources that use an extended `Header` type and publish events with those extra fields, the framework cannot infer how to fill them (e.g. it only knows `dataSourceKey`, `streamKey`, `timestamp`, `type`). `buildHeader` is the hook that lets the data source supply the full header when publishing.
+- **Signature:** `buildHeader?: (params: { update: UpdatePayload; streamKey: string; timestamp: number }) => Header`
+- **When absent:** The DataSource builds the standard 4-field header itself. This is the default; existing DataSources do not need to change.
+- **When present:** On each `streamEvent` call, the DataSource invokes `buildHeader({ update, streamKey, timestamp })` and uses the return value as the header for `eventSerializer.serialize({ update, header })` and for the messageBus payload. The implementation can derive extra fields from `update` (e.g. set `zone` from a Zone Changed payload).
+- **Example:** A WML DataSource that publishes Zone Changed events with `header.zone` would define `type WMLStreamingEventHeader = StreamingEventHeader & { zone?: Zone }`, instantiate `DataSource<..., WMLStreamingEventHeader>` with a serializer typed to accept that header, and pass `buildHeader` that returns the base fields plus `zone` when the update is zone-related.
+
+**Payload/contract/messageBus:** `StreamingEventPayload`, `StreamingEventPayloadContract`, and lambda `StreamingEventMessage` types keep `header: StreamingEventHeader` so structure guards and bus contracts stay payload-agnostic; any extended header is still assignable to the base type at runtime.
+
 ### **MessageBus and streaming event contract**
 
 Streaming events on the messageBus follow a single contract so that baseClasses stay payload-agnostic and DataSources own their narrow view.

@@ -80,7 +80,13 @@ const initializePrimitivesData = async (): Promise<void> => {
     
     // Serialize to external format using the serializer
     const serializer = new DiagnosticsEventSerializer()
-    const externalUpdate = serializer.serialize({ update: internalEvent })
+    const header = {
+        dataSourceKey: 'mtw.diagnostics',
+        streamKey: 'global',
+        timestamp: now,
+        type: internalEvent.type
+    }
+    const externalUpdate = serializer.serialize({ update: internalEvent, header })
     
     // Create CoreExternalFormat matching what DataSource.streamEvent produces
     const coreFormat: CoreExternalFormat = {

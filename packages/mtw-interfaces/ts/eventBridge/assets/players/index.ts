@@ -175,57 +175,60 @@ export class PlayerEventSerializer implements DataSourceEventSerializer<
     PlayerSnapshotExternal
 > {
     serialize(params: {
-        dataSourceKey: string
-        streamKey: string
         update: PlayerEventUpdate
-        header?: StreamingEventHeader
+        header: StreamingEventHeader
     }): PlayerExternal {
-        const { update } = params
-        if (isPlayerSnapshot(update)) {
+        const { update, header } = params
+        if (header.type === 'Snapshot') {
+            const snap = update as PlayerSnapshot
             return {
                 type: 'Snapshot',
-                assets: update.assets.map((asset) => ({ ...asset })),
-                characters: update.characters.map((character) => ({ ...character })),
-                settings: { ...update.settings }
+                assets: snap.assets.map((asset) => ({ ...asset })),
+                characters: snap.characters.map((character) => ({ ...character })),
+                settings: { ...snap.settings }
             }
         }
-        if (isPlayerSettingsUpdated(update)) {
+        if (header.type === 'Player Settings Updated') {
+            const ev = update as PlayerSettingsUpdated
             return {
                 type: 'Player Settings Updated',
-                settings: { ...update.settings }
+                settings: { ...ev.settings }
             }
         }
-        if (isPlayerAssetAssigned(update)) {
+        if (header.type === 'Player Asset Assigned') {
+            const ev = update as PlayerAssetAssigned
             return {
                 type: 'Player Asset Assigned',
-                asset: { ...update.asset }
+                asset: { ...ev.asset }
             }
         }
-        if (isPlayerAssetRemoved(update)) {
+        if (header.type === 'Player Asset Removed') {
+            const ev = update as PlayerAssetRemoved
             return {
                 type: 'Player Asset Removed',
-                assetId: update.assetId
+                assetId: ev.assetId
             }
         }
-        if (isPlayerCharacterAssigned(update)) {
+        if (header.type === 'Player Character Assigned') {
+            const ev = update as PlayerCharacterAssigned
             return {
                 type: 'Player Character Assigned',
-                character: { ...update.character }
+                character: { ...ev.character }
             }
         }
-        if (isPlayerCharacterRemoved(update)) {
+        if (header.type === 'Player Character Removed') {
+            const ev = update as PlayerCharacterRemoved
             return {
                 type: 'Player Character Removed',
-                characterId: update.characterId
+                characterId: ev.characterId
             }
         }
-        throw new Error(`Unknown player event update: ${JSON.stringify(update)}`)
+        throw new Error(`Unknown player event type: ${header.type}`)
     }
 
     deserialize(params: {
-        dataSourceKey: string
-        streamKey: string
         externalUpdate: PlayerExternal
+        header: StreamingEventHeader
     }): PlayerEventUpdate | null {
         const { externalUpdate } = params
         if (isPlayerSnapshot(externalUpdate)) {

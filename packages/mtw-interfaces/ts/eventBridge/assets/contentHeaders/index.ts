@@ -74,29 +74,25 @@ export type ContentHeadersExternal = ContentHeadersSnapshotExternal | ContentHea
  */
 export class ContentHeadersEventSerializer implements DataSourceEventSerializer<ContentHeadersEventUpdate, ContentHeadersExternal, ContentHeadersSnapshot, ContentHeadersSnapshotExternal> {
     serialize(params: {
-        dataSourceKey: string;
-        streamKey: string;
         update: ContentHeadersEventUpdate;
         header: StreamingEventHeader;
     }): ContentHeadersExternal {
-        const { update } = params
+        const { update, header } = params
         
-        if (isContentHeadersUpdate(update)) {
-            // Convert internal StandardForm object to external WML string
+        if (header.type === 'Headers Updated') {
+            const headersUpdate = update as ContentHeadersUpdate
             return {
                 type: 'Headers Updated',
-                assetId: update.assetId,
-                zone: update.zone,
-                wml: schemaToWML([update.standardForm.schema])
+                assetId: headersUpdate.assetId,
+                zone: headersUpdate.zone,
+                wml: schemaToWML([headersUpdate.standardForm.schema])
             }
         } else {
-            throw new Error(`Unknown streaming event type in ContentHeadersEventUpdate: ${JSON.stringify(update)}`)
+            throw new Error(`Unknown streaming event type in ContentHeadersEventUpdate: ${header.type}`)
         }
     }
     
     deserialize(params: { 
-        dataSourceKey: string
-        streamKey: string
         externalUpdate: ContentHeadersExternal 
         header: StreamingEventHeader
     }): ContentHeadersEventUpdate | null {
