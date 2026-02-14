@@ -1,4 +1,5 @@
 import { DataSource, SerializableObject, SnapshotType } from './index'
+import { StreamingEventHeader } from './baseClasses'
 import { getCurrentTimestamp } from '../internalUtils/dateUtil'
 
 // Mock dateUtil
@@ -969,6 +970,44 @@ describe('DataSource', () => {
             })
             
             expect(objectUpdateDataSource).toBeDefined()
+        })
+
+        it('should support custom Header and buildHeader for extended header shape', async () => {
+            type ExtendedHeader = StreamingEventHeader & { zone?: string }
+            const dataSourceWithExtendedHeader = new DataSource<
+                TestSnapshotPayload,
+                TestUpdatePayload,
+                never,
+                TestUpdatePayload,
+                'AssetId',
+                TestSnapshotPayload,
+                ExtendedHeader
+            >({
+                dynamo: mockDynamo,
+                sns: mockSns,
+                messageBus: mockMessageBus,
+                primaryKeyName: 'AssetId',
+                dataSourceKey: 'mtw.extendedHeader',
+                feedbackTopicArn: 'arn:aws:sns:us-east-1:123456789012:test-feedback',
+                buildHeader: ({ update, streamKey, timestamp }) => ({
+                    dataSourceKey: 'mtw.extendedHeader',
+                    streamKey,
+                    timestamp,
+                    type: update.type,
+                    zone: 'Draft'
+                })
+            })
+            await dataSourceWithExtendedHeader.streamEvent({
+                update: { type: 'TestUpdatePayload', update: 'test' },
+                streamKey: 'stream-1'
+            })
+            const sent = mockMessageBus.send.mock.calls[0][0]
+            expect(sent.header).toMatchObject({
+                dataSourceKey: 'mtw.extendedHeader',
+                streamKey: 'stream-1',
+                type: 'TestUpdatePayload',
+                zone: 'Draft'
+            })
         })
     })
 

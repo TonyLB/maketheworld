@@ -237,6 +237,7 @@ Create specific DataSource instances using the lambda-specific base class:
 - **`snapshotContentGenerator`**: Function to generate snapshots for this data source
 - **`eventSerializer`**: Event serializer specific to this data source's event types
 - **`replayable`**: Whether this data source supports replay functionality
+- **`buildHeader`**: (Optional) When using an extended header type for publishing, a function that builds the full header (including optional domain fields like `zone`) from `{ update, streamKey, timestamp }`. See [Implementation: Extending the header](AGENT.implementation.md#extending-the-header-type-safe).
 
 **Usage Pattern**: 
 1. Define event contracts in `mtw-interfaces/ts/eventBridge/[dataSource].ts`

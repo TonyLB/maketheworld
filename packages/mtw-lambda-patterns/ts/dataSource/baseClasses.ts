@@ -46,17 +46,18 @@ export type StreamingEventPayload = {
 }
 
 // In-process envelope passed to receiveEvents. Handlers obtain internal content via getContentInternal().
-export type StreamingEventEnvelope<Content = EventPayload> = {
-    header: StreamingEventHeader;
+export type StreamingEventEnvelope<Content = EventPayload, Header extends StreamingEventHeader = StreamingEventHeader> = {
+    header: Header;
     getContentInternal: () => Promise<Content>;
 }
 
 // EventBridge serialization interface for DataSource integration
 export interface DataSourceEventSerializer<
-    UpdatePayload extends EventPayload, 
+    UpdatePayload extends EventPayload,
     ExternalUpdatePayload extends EventPayload,
     SnapshotPayload extends SerializableObject = SerializableObject,
-    ExternalSnapshotPayload extends SerializableObject = SerializableObject
+    ExternalSnapshotPayload extends SerializableObject = SerializableObject,
+    Header extends StreamingEventHeader = StreamingEventHeader
 > {
     /**
      * Convert internal update payload to external format for EventBridge Detail.
@@ -64,16 +65,16 @@ export interface DataSourceEventSerializer<
      */
     serialize(params: {
         update: UpdatePayload;
-        header: StreamingEventHeader;
+        header: Header;
     }): ExternalUpdatePayload;
-    
+
     /**
      * Convert external update payload back to internal format
      * Returns null if the event cannot be deserialized
      */
     deserialize(params: {
         externalUpdate: ExternalUpdatePayload;
-        header: StreamingEventHeader;
+        header: Header;
     }): UpdatePayload | null;
     
     /**

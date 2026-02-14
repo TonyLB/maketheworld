@@ -74,7 +74,8 @@ export class DataSource<
     SubscribedContent extends EventPayload,
     ExternalUpdatePayload extends EventPayload = EventPayload,
     KeyType extends string = string,
-    ExternalSnapshotPayload extends SerializableObject = SnapshotPayload
+    ExternalSnapshotPayload extends SerializableObject = SnapshotPayload,
+    Header extends StreamingEventHeader = StreamingEventHeader
 > {
     readonly dynamo: DynamoUtils<KeyType>
     readonly sns: SnsUtils
@@ -95,8 +96,9 @@ export class DataSource<
         events: Array<StreamingEventEnvelope<SubscribedContent>>,
         streamEvent: StreamEventFunction<UpdatePayload>
     }) => Promise<void>
-    readonly eventSerializer?: DataSourceEventSerializer<UpdatePayload, ExternalUpdatePayload, SnapshotPayload, ExternalSnapshotPayload>
+    readonly eventSerializer?: DataSourceEventSerializer<UpdatePayload, ExternalUpdatePayload, SnapshotPayload, ExternalSnapshotPayload, Header>
     readonly aggregator?: DataSourceAggregator<SnapshotPayload, UpdatePayload>
+    readonly buildHeader?: (params: { update: UpdatePayload; streamKey: string; timestamp: number }) => Header
     _snapshots: Record<string, SnapshotType<SnapshotPayload>> = {}
 
     constructor({ 
@@ -113,7 +115,8 @@ export class DataSource<
         subscribedEventTypeGuard,
         receiveEvents,
         eventSerializer,
-        aggregator
+        aggregator,
+        buildHeader
     }: { 
         dynamo: DynamoUtils<KeyType>,
         sns: SnsUtils,
@@ -133,8 +136,9 @@ export class DataSource<
             events: Array<StreamingEventEnvelope<SubscribedContent>>,
             streamEvent: StreamEventFunction<UpdatePayload>
         }) => Promise<void>,
-        eventSerializer?: DataSourceEventSerializer<UpdatePayload, ExternalUpdatePayload, SnapshotPayload, ExternalSnapshotPayload>,
-        aggregator?: DataSourceAggregator<SnapshotPayload, UpdatePayload>
+        eventSerializer?: DataSourceEventSerializer<UpdatePayload, ExternalUpdatePayload, SnapshotPayload, ExternalSnapshotPayload, Header>,
+        aggregator?: DataSourceAggregator<SnapshotPayload, UpdatePayload>,
+        buildHeader?: (params: { update: UpdatePayload; streamKey: string; timestamp: number }) => Header
     }) {
         this.dynamo = dynamo
         this.sns = sns
@@ -149,6 +153,7 @@ export class DataSource<
         this.receiveEvents = receiveEvents
         this.eventSerializer = eventSerializer
         this.aggregator = aggregator
+        this.buildHeader = buildHeader
 
         // Initialize singleFlight for snapshot generation coordination only if replayable
         // Note: singleFlight coordinates using external format to avoid serialization round-trips
@@ -339,12 +344,14 @@ export class DataSource<
         const uuid = uuidv4()  // Just the UUID part (timestamp is in coreFormat)
 
         // Build header once for both serialize and messageBus routing
-        const header: StreamingEventHeader = {
-            dataSourceKey: this.dataSourceKey,
-            streamKey,
-            timestamp: now,
-            type: update.type
-        }
+        const header: Header = this.buildHeader
+            ? this.buildHeader({ update, streamKey, timestamp: now })
+            : {
+                dataSourceKey: this.dataSourceKey,
+                streamKey,
+                timestamp: now,
+                type: update.type
+            } as Header
 
         // Create CoreExternalFormat - use serializer if available, otherwise use update directly
         const coreFormat: CoreExternalFormat = this.eventSerializer
@@ -395,7 +402,7 @@ export class DataSource<
      * Get the event serializer for this DataSource (if available)
      * Useful for external EventBridge event deserialization
      */
-    getSerializer(): DataSourceEventSerializer<UpdatePayload, ExternalUpdatePayload, SnapshotPayload, ExternalSnapshotPayload> | undefined {
+    getSerializer(): DataSourceEventSerializer<UpdatePayload, ExternalUpdatePayload, SnapshotPayload, ExternalSnapshotPayload, Header> | undefined {
         return this.eventSerializer
     }
 
