@@ -766,10 +766,6 @@ describe('DataSource', () => {
                     timestamp: 100000000,
                     type: 'TestUpdatePayload'
                 },
-                content: {
-                    type: 'TestUpdatePayload',
-                    update: 'test-update'
-                },
                 getContentInternal: expect.any(Function),
                 timestamp: 100000000
             })
@@ -1124,7 +1120,6 @@ describe('DataSource', () => {
                     dataSourceKey: 'mtw.assets',
                     streamKey: 'char-123',
                     header: { dataSourceKey: 'mtw.assets', streamKey: 'char-123', timestamp: 123456789, type: 'AssetUpdated' },
-                    content: { type: 'AssetUpdated', assetId: 'char-123' },
                     getContentInternal: () => Promise.resolve({ type: 'AssetUpdated', assetId: 'char-123' }),
                     timestamp: 123456789
                 }
@@ -1135,7 +1130,6 @@ describe('DataSource', () => {
                     dataSourceKey: 'mtw.assets',
                     streamKey: 'char-123',
                     header: { dataSourceKey: 'mtw.assets', streamKey: 'char-123', timestamp: 123456789, type: 'AssetUpdated' },
-                    content: { type: 'AssetUpdated', assetId: 'char-123' },
                     timestamp: 123456789
                 }
                 expect(structureGuard(wrongMessageType)).toBe(false)
@@ -1148,7 +1142,6 @@ describe('DataSource', () => {
                         dataSourceKey: 'mtw.assets',
                         streamKey: 'item-456',
                         header: { dataSourceKey: 'mtw.assets', streamKey: 'item-456', timestamp: 123456789, type: 'AssetUpdated' },
-                        content: { type: 'AssetUpdated', assetId: 'item-456' },
                         getContentInternal: () => Promise.resolve({ type: 'AssetUpdated', assetId: 'item-456' }),
                         timestamp: 123456789
                     }
@@ -1206,7 +1199,6 @@ describe('DataSource', () => {
                             timestamp: 123456789,
                             type: 'event1'
                         },
-                        content: { type: 'event1', data: 'test1' },
                         getContentInternal: () => Promise.resolve({ type: 'event1', data: 'test1' }),
                         timestamp: 123456789
                     },
@@ -1220,7 +1212,6 @@ describe('DataSource', () => {
                             timestamp: 123456790,
                             type: 'event2'
                         },
-                        content: { type: 'event2', data: 'test2' },
                         getContentInternal: () => Promise.resolve({ type: 'event2', data: 'test2' }),
                         timestamp: 123456790
                     }
@@ -1307,7 +1298,6 @@ describe('DataSource', () => {
                             timestamp: 123456789,
                             type: 'event1'
                         },
-                        content: { type: 'event1' },
                         getContentInternal: () => Promise.resolve({ type: 'event1' }),
                         timestamp: 123456789
                     }
@@ -1396,7 +1386,6 @@ describe('DataSource', () => {
                             timestamp: 123456789,
                             type: 'singleEvent'
                         },
-                        content: { type: 'singleEvent', data: 'test' },
                         getContentInternal: () => Promise.resolve({ type: 'singleEvent', data: 'test' }),
                         timestamp: 123456789
                     }
@@ -1503,10 +1492,6 @@ describe('DataSource', () => {
                         timestamp: 123456789,
                         type: 'Initialize Subscription - mtw.assets.contentHeaders'
                     },
-                    content: {
-                        sessionId: 'SESSION#test-session',
-                        requestId: 'test-request-123'
-                    },
                     getContentInternal: () => Promise.resolve({ sessionId: 'SESSION#test-session', requestId: 'test-request-123' }),
                     timestamp: 123456789
                 }
@@ -1576,10 +1561,6 @@ describe('DataSource', () => {
                         timestamp: 123456789,
                         type: 'Initialize Subscription - mtw.assets.contentHeaders'
                     },
-                    content: {
-                        sessionId: 'SESSION#test-session',
-                        requestId: 'test-request-123'
-                    },
                     getContentInternal: () => Promise.resolve({ sessionId: 'SESSION#test-session', requestId: 'test-request-123' }),
                     timestamp: 123456789
                 }
@@ -1625,10 +1606,6 @@ describe('DataSource', () => {
                             timestamp: 123456789,
                             type: 'Initialize Subscription - mtw.assets.contentHeaders'
                         },
-                        content: {
-                            sessionId: 'SESSION#test-session-1',
-                            requestId: 'test-request-123'
-                        },
                         getContentInternal: () => Promise.resolve({ sessionId: 'SESSION#test-session-1', requestId: 'test-request-123' }),
                         timestamp: 123456789
                     },
@@ -1641,10 +1618,6 @@ describe('DataSource', () => {
                             streamKey: 'test-stream-2',
                             timestamp: 123456790,
                             type: 'Initialize Subscription - mtw.assets.contentHeaders'
-                        },
-                        content: {
-                            sessionId: 'SESSION#test-session-2',
-                            requestId: 'test-request-456'
                         },
                         getContentInternal: () => Promise.resolve({ sessionId: 'SESSION#test-session-2', requestId: 'test-request-456' }),
                         timestamp: 123456790
@@ -1698,10 +1671,6 @@ describe('DataSource', () => {
                         streamKey: 'test-stream',
                         timestamp: 123456789,
                         type: 'Initialize Subscription - mtw.assets.contentHeaders'
-                    },
-                    content: {
-                        sessionId: 'SESSION#test-session',
-                        requestId: 'test-request-123'
                     },
                     getContentInternal: () => Promise.resolve({ sessionId: 'SESSION#test-session', requestId: 'test-request-123' }),
                     timestamp: 123456789

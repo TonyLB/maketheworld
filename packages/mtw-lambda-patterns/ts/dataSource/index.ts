@@ -377,7 +377,6 @@ export class DataSource<
             streamKey,
             timestamp: now,
             header,
-            content: update,
             getContentInternal: () => Promise.resolve(update)
         }
 
@@ -639,7 +638,7 @@ export class DataSource<
                 })
                 const envelopes: Array<StreamingEventEnvelope<unknown>> = payloads.map((p) => ({
                     header: header(p),
-                    getContentInternal: p.getContentInternal ?? (() => Promise.resolve(p.content as unknown))
+                    getContentInternal: p.getContentInternal
                 }))
                 const narrowed = envelopes.filter((e): e is StreamingEventEnvelope<SubscribedContent> => this.subscribedEventTypeGuard!(e))
                 await this.receiveEvents!({

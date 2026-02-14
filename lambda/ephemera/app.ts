@@ -90,13 +90,12 @@ export const handler = async (event: any, context: any) => {
                     }
                 })
             } else {
-                // Publish deserialized event to messageBus for DataSource processing, using header/content.
+                // Publish deserialized event to messageBus for DataSource processing.
                 messageBus.send({
                     type: 'StreamingEvent',
                     dataSourceKey: event.source,
                     streamKey: event.detail.streamKey || '',
                     header,
-                    content: internalEvent,
                     getContentInternal: () => Promise.resolve(internalEvent),
                     timestamp: header.timestamp
                 })

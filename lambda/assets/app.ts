@@ -78,7 +78,6 @@ export const handler = async (event, context) => {
                     dataSourceKey: 'mtw.wml',
                     streamKey,
                     header,
-                    content,
                     getContentInternal: () => Promise.resolve(content),
                     timestamp
                 })
@@ -141,13 +140,12 @@ export const handler = async (event, context) => {
                         }
                     })
                 } else {
-                    // Publish deserialized event to messageBus for DataSource processing, using header/content.
+                    // Publish deserialized event to messageBus for DataSource processing.
                     messageBus.send({
                         type: 'StreamingEvent',
                         dataSourceKey: event.source,
                         streamKey: event.detail.streamKey || '',
                         header,
-                        content: internalEvent,
                         getContentInternal: () => Promise.resolve(internalEvent),
                         timestamp: event.time ? new Date(event.time).getTime() : Date.now()
                     })

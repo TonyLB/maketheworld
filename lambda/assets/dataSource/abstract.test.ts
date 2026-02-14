@@ -41,6 +41,7 @@ type TestSnapshotPayload = {
 }
 
 type TestUpdatePayload = {
+    type: string;
     action: string;
     data: string;
 }
@@ -92,6 +93,7 @@ describe('AssetsDataSource', () => {
     describe('streamEvent', () => {
         it('should publish events to EventBridge and store in DynamoDB', async () => {
             const update: TestUpdatePayload = {
+                type: 'TestUpdate',
                 action: 'created',
                 data: 'test data'
             }
@@ -110,19 +112,19 @@ describe('AssetsDataSource', () => {
                 })
             )
 
-            // Verify messageBus message (header/content envelope)
-            expect(messageBus.send).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    type: 'StreamingEvent',
+            // Verify messageBus message (header + getContentInternal envelope)
+            const sendCall = (messageBus.send as jest.Mock).mock.calls[0][0]
+            expect(sendCall).toMatchObject({
+                type: 'StreamingEvent',
+                dataSourceKey: 'mtw.assets.test',
+                streamKey: 'test-stream',
+                header: expect.objectContaining({
                     dataSourceKey: 'mtw.assets.test',
-                    streamKey: 'test-stream',
-                    header: expect.objectContaining({
-                        dataSourceKey: 'mtw.assets.test',
-                        streamKey: 'test-stream'
-                    }),
-                    content: expect.objectContaining(update)
+                    streamKey: 'test-stream'
                 })
-            )
+            })
+            expect(sendCall.getContentInternal).toBeDefined()
+            expect(await sendCall.getContentInternal()).toEqual(expect.objectContaining(update))
         })
     })
 

@@ -91,7 +91,6 @@ export const handler = async (event: any, context: any) => {
                     dataSourceKey: coreFormat.dataSourceKey,
                     streamKey: coreFormat.streamKey,
                     header,
-                    content: internalEvent,
                     getContentInternal: () => Promise.resolve(internalEvent),
                     timestamp: event.time ? new Date(event.time).getTime() : Date.now()
                 }

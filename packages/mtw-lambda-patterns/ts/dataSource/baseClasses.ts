@@ -32,18 +32,16 @@ export type StreamingEventPayloadContract = {
     streamKey: string;
     timestamp: number;
     header: StreamingEventHeader;
-    content?: unknown;
     getContentInternal: () => Promise<unknown>;
 };
 
 // Internal DataSource format for StreamingEvent messages on the messageBus.
-// Canonical shape is header + getContentInternal (content optional for convenience).
+// Canonical shape is header + getContentInternal.
 export type StreamingEventPayload = {
     dataSourceKey: string;
     streamKey: string;
     timestamp: number;
     header: StreamingEventHeader;
-    content: EventPayload;
     getContentInternal: () => Promise<EventPayload>;
 }
 
