@@ -28,7 +28,7 @@ describe('DiagnosticsEventSerializer', () => {
             }
 
             const external = serializer.serialize({
-                update: internalEvent,
+                content: internalEvent,
                 header: diagnosticsHeader('S3 Structure Finding')
             })
 
@@ -56,7 +56,7 @@ describe('DiagnosticsEventSerializer', () => {
                 }
 
                 const external = serializer.serialize({
-                    update: internalEvent,
+                    content: internalEvent,
                     header: diagnosticsHeader('S3 Structure Finding')
                 })
                 expect(external.status).toBe(status)
@@ -75,7 +75,7 @@ describe('DiagnosticsEventSerializer', () => {
             }
 
             const internal = serializer.deserialize({
-                externalUpdate: externalEvent,
+                content: externalEvent,
                 header: diagnosticsHeader('S3 Structure Finding')
             })
 
@@ -97,7 +97,7 @@ describe('DiagnosticsEventSerializer', () => {
             }
 
             const internal = serializer.deserialize({
-                externalUpdate: externalEvent,
+                content: externalEvent,
                 header: diagnosticsHeader('S3 Structure Finding')
             })
 
@@ -115,7 +115,7 @@ describe('DiagnosticsEventSerializer', () => {
 
             invalidEvents.forEach(event => {
                 const internal = serializer.deserialize({
-                    externalUpdate: event,
+                    content: event,
                     header: diagnosticsHeader('S3 Structure Finding')
                 })
 
@@ -130,7 +130,7 @@ describe('DiagnosticsEventSerializer', () => {
             }
 
             const internal = serializer.deserialize({
-                externalUpdate: unknownEvent,
+                content: unknownEvent,
                 header: diagnosticsHeader('Unknown Event Type')
             })
 
@@ -200,11 +200,11 @@ describe('DiagnosticsEventSerializer', () => {
             }
 
             const external = serializer.serialize({
-                update: original,
+                content: original,
                 header: diagnosticsHeader('S3 Structure Finding')
             })
             const deserialized = serializer.deserialize({
-                externalUpdate: external,
+                content: external,
                 header: diagnosticsHeader('S3 Structure Finding')
             })
 

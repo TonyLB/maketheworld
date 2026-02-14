@@ -33,7 +33,7 @@ describe('EphemeraEventSerializer', () => {
             }
 
             const externalEvent = serializer.serialize({
-                update: eventPayload,
+                content: eventPayload,
                 header: ephemeraHeader(eventPayload.type)
             })
 
@@ -48,7 +48,7 @@ describe('EphemeraEventSerializer', () => {
             }
 
             const internalEvent = serializer.deserialize({
-                externalUpdate: eventPayload,
+                content: eventPayload,
                 header: ephemeraHeader(eventPayload.type)
             })
 
@@ -64,13 +64,13 @@ describe('EphemeraEventSerializer', () => {
 
             // Serialize to external format
             const externalEvent = serializer.serialize({
-                update: originalPayload,
+                content: originalPayload,
                 header: ephemeraHeader(originalPayload.type)
             })
 
             // Deserialize back to internal format
             const deserializedEvent = serializer.deserialize({
-                externalUpdate: externalEvent,
+                content: externalEvent,
                 header: ephemeraHeader(externalEvent.type)
             })
 
@@ -80,7 +80,7 @@ describe('EphemeraEventSerializer', () => {
 
         it('should handle null deserialization', () => {
             const result = serializer.deserialize({
-                externalUpdate: null as any,
+                content: null as any,
                 header: ephemeraHeader('Test Event')
             })
 
@@ -101,7 +101,7 @@ describe('EphemeraEventSerializer', () => {
             }
 
             const externalEvent = serializer.serialize({
-                update: complexPayload,
+                content: complexPayload,
                 header: ephemeraHeader(complexPayload.type)
             })
 

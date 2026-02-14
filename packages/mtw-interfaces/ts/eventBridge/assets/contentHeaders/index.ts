@@ -3,7 +3,7 @@
 // This file contains event types, type guards, and serializers for the ContentHeaders sub-source.
 // Migrated from lambda/assets/contentHeaders/serializers.ts
 
-import { DataSourceEventSerializer, StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import { DataSourceEventSerializer, ResolvedStreamingEnvelope, StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
 import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
@@ -65,6 +65,15 @@ export type ZoneUpdatedEventExternal = {
 
 export type ContentHeadersExternal = ContentHeadersSnapshotExternal | ContentHeadersUpdateExternal | ZoneUpdatedEventExternal
 
+// Serialize/deserialize params - use ResolvedStreamingEnvelope so header discriminates content shape
+type ContentHeadersSerializeParams = ResolvedStreamingEnvelope<ContentHeadersEventUpdate, StreamingEventHeader>
+type ContentHeadersDeserializeParams = ResolvedStreamingEnvelope<ContentHeadersExternal, StreamingEventHeader>
+
+const isHeadersUpdatedContentHeadersSerializeParams = (p: ContentHeadersSerializeParams): p is ContentHeadersSerializeParams & { header: StreamingEventHeader & { type: 'Headers Updated' }; content: ContentHeadersUpdate } =>
+    p.header.type === 'Headers Updated'
+const isHeadersUpdatedContentHeadersDeserializeParams = (p: ContentHeadersDeserializeParams): p is ContentHeadersDeserializeParams & { header: StreamingEventHeader & { type: 'Headers Updated' }; content: ContentHeadersUpdateExternal } =>
+    p.header.type === 'Headers Updated'
+
 /**
  * Event serializer for the mtw.assets.contentHeaders data source.
  * 
@@ -73,45 +82,30 @@ export type ContentHeadersExternal = ContentHeadersSnapshotExternal | ContentHea
  * while external transmission uses WML strings for cross-service communication.
  */
 export class ContentHeadersEventSerializer implements DataSourceEventSerializer<ContentHeadersEventUpdate, ContentHeadersExternal, ContentHeadersSnapshot, ContentHeadersSnapshotExternal> {
-    serialize(params: {
-        update: ContentHeadersEventUpdate;
-        header: StreamingEventHeader;
-    }): ContentHeadersExternal {
-        const { update, header } = params
-        
-        if (header.type === 'Headers Updated') {
-            const headersUpdate = update as ContentHeadersUpdate
+    serialize(params: ContentHeadersSerializeParams): ContentHeadersExternal {
+        if (isHeadersUpdatedContentHeadersSerializeParams(params)) {
+            const { content } = params
             return {
                 type: 'Headers Updated',
-                assetId: headersUpdate.assetId,
-                zone: headersUpdate.zone,
-                wml: schemaToWML([headersUpdate.standardForm.schema])
+                assetId: content.assetId,
+                zone: content.zone,
+                wml: schemaToWML([content.standardForm.schema])
             }
-        } else {
-            throw new Error(`Unknown streaming event type in ContentHeadersEventUpdate: ${header.type}`)
         }
+        throw new Error(`Unknown streaming event type in ContentHeadersEventUpdate: ${params.header.type}`)
     }
-    
-    deserialize(params: { 
-        externalUpdate: ContentHeadersExternal 
-        header: StreamingEventHeader
-    }): ContentHeadersEventUpdate | null {
-        const { externalUpdate, header } = params
-        const eventType = header.type
-        
-        if (eventType === 'Headers Updated') {
-            // Convert external WML string to internal StandardForm object (header.type narrows payload shape)
-            const updateExternal = externalUpdate as ContentHeadersUpdateExternal
-            const result: ContentHeadersUpdate = {
+
+    deserialize(params: ContentHeadersDeserializeParams): ContentHeadersEventUpdate | null {
+        if (isHeadersUpdatedContentHeadersDeserializeParams(params)) {
+            const { content } = params
+            return {
                 type: 'Headers Updated',
-                assetId: updateExternal.assetId,
-                zone: updateExternal.zone,
-                standardForm: new StandardForm(updateExternal.wml)
+                assetId: content.assetId,
+                zone: content.zone,
+                standardForm: new StandardForm(content.wml)
             }
-            return result
-        } else {
-            throw new Error(`Unknown external streaming event type: ${(externalUpdate as any).type}`)
         }
+        throw new Error(`Unknown external streaming event type: ${(params.content as any).type}`)
     }
     
     serializeSnapshot(snapshot: ContentHeadersSnapshot): ContentHeadersSnapshotExternal {

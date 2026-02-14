@@ -1,5 +1,5 @@
 import { Zone } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { DataSourceEventSerializer, StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import { DataSourceEventSerializer, ResolvedStreamingEnvelope, StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 
 // Internal types for coordination events
 export type CoordinationCanonizeEvent = {
@@ -154,102 +154,128 @@ export const isCoordinationEventUpdate = (event: unknown): event is Coordination
  * 
  * Coordination events are hand-created and pass through as structured data
  */
+
+// Serialize/deserialize params - use ResolvedStreamingEnvelope so header discriminates content shape
+type CoordinationSerializeParams = ResolvedStreamingEnvelope<CoordinationEventUpdate, StreamingEventHeader>
+type CoordinationDeserializeParams = ResolvedStreamingEnvelope<CoordinationEventExternal, StreamingEventHeader>
+
+// Envelope type guards for serialize (header.type narrows content)
+const isMoveAssetCoordinationSerializeParams = (p: CoordinationSerializeParams): p is CoordinationSerializeParams & { header: StreamingEventHeader & { type: 'Move Asset' }; content: MoveAssetRequest } =>
+    p.header.type === 'Move Asset'
+const isApplyEditCoordinationSerializeParams = (p: CoordinationSerializeParams): p is CoordinationSerializeParams & { header: StreamingEventHeader & { type: 'Apply Edit' }; content: ApplyEditRequest } =>
+    p.header.type === 'Apply Edit'
+const isCreateSnapshotCoordinationSerializeParams = (p: CoordinationSerializeParams): p is CoordinationSerializeParams & { header: StreamingEventHeader & { type: 'Create Snapshot' }; content: CreateSnapshotRequest } =>
+    p.header.type === 'Create Snapshot'
+const isPurgeAssetCoordinationSerializeParams = (p: CoordinationSerializeParams): p is CoordinationSerializeParams & { header: StreamingEventHeader & { type: 'Purge Asset' }; content: PurgeAssetRequest } =>
+    p.header.type === 'Purge Asset'
+const isCanonizeAssetCoordinationSerializeParams = (p: CoordinationSerializeParams): p is CoordinationSerializeParams & { header: StreamingEventHeader & { type: 'Canonize Asset' }; content: CoordinationCanonizeEvent } =>
+    p.header.type === 'Canonize Asset'
+const isDecanonizeAssetCoordinationSerializeParams = (p: CoordinationSerializeParams): p is CoordinationSerializeParams & { header: StreamingEventHeader & { type: 'Decanonize Asset' }; content: CoordinationDecanonizeEvent } =>
+    p.header.type === 'Decanonize Asset'
+
+// Envelope type guards for deserialize (header.type narrows content)
+const isMoveAssetCoordinationDeserializeParams = (p: CoordinationDeserializeParams): p is CoordinationDeserializeParams & { header: StreamingEventHeader & { type: 'Move Asset' }; content: MoveAssetRequestExternal } =>
+    p.header.type === 'Move Asset'
+const isApplyEditCoordinationDeserializeParams = (p: CoordinationDeserializeParams): p is CoordinationDeserializeParams & { header: StreamingEventHeader & { type: 'Apply Edit' }; content: ApplyEditRequestExternal } =>
+    p.header.type === 'Apply Edit'
+const isCreateSnapshotCoordinationDeserializeParams = (p: CoordinationDeserializeParams): p is CoordinationDeserializeParams & { header: StreamingEventHeader & { type: 'Create Snapshot' }; content: CreateSnapshotRequestExternal } =>
+    p.header.type === 'Create Snapshot'
+const isPurgeAssetCoordinationDeserializeParams = (p: CoordinationDeserializeParams): p is CoordinationDeserializeParams & { header: StreamingEventHeader & { type: 'Purge Asset' }; content: PurgeAssetRequestExternal } =>
+    p.header.type === 'Purge Asset'
+const isCanonizeAssetCoordinationDeserializeParams = (p: CoordinationDeserializeParams): p is CoordinationDeserializeParams & { header: StreamingEventHeader & { type: 'Canonize Asset' }; content: CoordinationCanonizeEventExternal } =>
+    p.header.type === 'Canonize Asset'
+const isDecanonizeAssetCoordinationDeserializeParams = (p: CoordinationDeserializeParams): p is CoordinationDeserializeParams & { header: StreamingEventHeader & { type: 'Decanonize Asset' }; content: CoordinationDecanonizeEventExternal } =>
+    p.header.type === 'Decanonize Asset'
+
 export class CoordinationEventSerializer implements DataSourceEventSerializer<CoordinationEventUpdate, CoordinationEventExternal> {
     /**
      * Serialize an internal event to external format
      * for EventBridge transmission
      */
-    serialize(params: {
-        update: CoordinationEventUpdate;
-        header: StreamingEventHeader;
-    }): CoordinationEventExternal {
-        const { update, header } = params
-        if (header.type === 'Move Asset') {
-            const move = update as MoveAssetRequest
+    serialize(params: CoordinationSerializeParams): CoordinationEventExternal {
+        if (isMoveAssetCoordinationSerializeParams(params)) {
+            const { content } = params
             return {
                 type: 'Move Asset',
-                fromZone: move.fromZone,
-                toZone: move.toZone,
-                player: move.player,
-                subFolder: move.subFolder
+                fromZone: content.fromZone,
+                toZone: content.toZone,
+                player: content.player,
+                subFolder: content.subFolder
             }
-        } else if (header.type === 'Apply Edit') {
-            const apply = update as ApplyEditRequest
+        }
+        if (isApplyEditCoordinationSerializeParams(params)) {
+            const { content } = params
             return {
                 type: 'Apply Edit',
-                RequestId: apply.RequestId,
-                schema: apply.schema,
-                createIfNeeded: apply.createIfNeeded,
-                zone: apply.zone
+                RequestId: content.RequestId,
+                schema: content.schema,
+                createIfNeeded: content.createIfNeeded,
+                zone: content.zone
             }
-        } else if (header.type === 'Create Snapshot') {
-            return {
-                type: 'Create Snapshot'
-            }
-        } else if (header.type === 'Purge Asset') {
-            const purge = update as PurgeAssetRequest
+        }
+        if (isCreateSnapshotCoordinationSerializeParams(params)) {
+            return { type: 'Create Snapshot' }
+        }
+        if (isPurgeAssetCoordinationSerializeParams(params)) {
+            const { content } = params
             return {
                 type: 'Purge Asset',
-                expectedZone: purge.expectedZone,
-                requireExists: purge.requireExists
+                expectedZone: content.expectedZone,
+                requireExists: content.requireExists
             }
-        } else if (header.type === 'Canonize Asset' || header.type === 'Decanonize Asset') {
-            return {
-                type: header.type
-            }
-        } else {
-            throw new Error(`Unknown coordination event type: ${header.type}`)
         }
+        if (isCanonizeAssetCoordinationSerializeParams(params)) {
+            return { type: 'Canonize Asset' }
+        }
+        if (isDecanonizeAssetCoordinationSerializeParams(params)) {
+            return { type: 'Decanonize Asset' }
+        }
+        throw new Error(`Unknown coordination event type: ${params.header.type}`)
     }
 
     /**
      * Deserialize an external event back to internal format
      * for messageBus processing
      */
-    deserialize(params: { externalUpdate: CoordinationEventExternal; header: StreamingEventHeader }): CoordinationEventUpdate | null {
-        const { externalUpdate, header } = params
-        const eventType = header.type
-
-        if (eventType === 'Canonize Asset') {
-            return {
-                type: 'Canonize Asset'
-            }
-        } else if (eventType === 'Decanonize Asset') {
-            return {
-                type: 'Decanonize Asset'
-            }
-        } else if (eventType === 'Move Asset') {
-            const ext = externalUpdate as MoveAssetRequestExternal
+    deserialize(params: CoordinationDeserializeParams): CoordinationEventUpdate | null {
+        if (isCanonizeAssetCoordinationDeserializeParams(params)) {
+            return { type: 'Canonize Asset' }
+        }
+        if (isDecanonizeAssetCoordinationDeserializeParams(params)) {
+            return { type: 'Decanonize Asset' }
+        }
+        if (isMoveAssetCoordinationDeserializeParams(params)) {
+            const { content } = params
             return {
                 type: 'Move Asset',
-                fromZone: ext.fromZone!,
-                toZone: ext.toZone!,
-                player: ext.player,
-                subFolder: ext.subFolder
+                fromZone: content.fromZone!,
+                toZone: content.toZone!,
+                player: content.player,
+                subFolder: content.subFolder
             }
-        } else if (eventType === 'Apply Edit') {
-            const ext = externalUpdate as ApplyEditRequestExternal
+        }
+        if (isApplyEditCoordinationDeserializeParams(params)) {
+            const { content } = params
             return {
                 type: 'Apply Edit',
-                RequestId: ext.RequestId,
-                schema: ext.schema,
-                createIfNeeded: ext.createIfNeeded,
-                zone: ext.zone
+                RequestId: content.RequestId,
+                schema: content.schema,
+                createIfNeeded: content.createIfNeeded,
+                zone: content.zone
             }
-        } else if (eventType === 'Create Snapshot') {
-            return {
-                type: 'Create Snapshot'
-            }
-        } else if (eventType === 'Purge Asset') {
-            const ext = externalUpdate as PurgeAssetRequestExternal
+        }
+        if (isCreateSnapshotCoordinationDeserializeParams(params)) {
+            return { type: 'Create Snapshot' }
+        }
+        if (isPurgeAssetCoordinationDeserializeParams(params)) {
+            const { content } = params
             return {
                 type: 'Purge Asset',
-                expectedZone: ext.expectedZone,
-                requireExists: ext.requireExists
+                expectedZone: content.expectedZone,
+                requireExists: content.requireExists
             }
-        } else {
-            return null
         }
+        return null
     }
     
     // Note: serializeSnapshot and deserializeSnapshot are not implemented

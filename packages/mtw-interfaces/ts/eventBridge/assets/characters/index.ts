@@ -32,15 +32,15 @@ export type CharacterUpdatedEventExternal = {
  */
 export class CharacterEventSerializer implements DataSourceEventSerializer<CharacterEventUpdate, CharacterEventExternal> {
     serialize(params: {
-        update: CharacterEventUpdate;
+        content: CharacterEventUpdate;
         header: StreamingEventHeader;
     }): CharacterEventExternal {
-        const { update, header } = params
+        const { content, header } = params
         if (header.type !== 'Character Updated') {
             throw new Error(`Unknown character event type: ${header.type}`)
         }
-        const characterId = update.component.universalKey as `CHARACTER#${string}`
-        const wml = schemaToWML([update.component.schema])
+        const characterId = content.component.universalKey as `CHARACTER#${string}`
+        const wml = schemaToWML([content.component.schema])
         return {
             type: 'Character Updated',
             characterId,
@@ -48,11 +48,11 @@ export class CharacterEventSerializer implements DataSourceEventSerializer<Chara
         }
     }
     
-    deserialize(params: { 
-        externalUpdate: CharacterEventExternal 
-        header: StreamingEventHeader
+    deserialize(params: {
+        content: CharacterEventExternal;
+        header: StreamingEventHeader;
     }): CharacterEventUpdate | null {
-        const { externalUpdate, header } = params
+        const { content, header } = params
         
         // Only handle character updated events (header is authoritative for routing)
         if (header.type !== 'Character Updated') {
@@ -61,7 +61,7 @@ export class CharacterEventSerializer implements DataSourceEventSerializer<Chara
         
         // Deserialize WML back to StandardComponent
         try {
-            const schemaNode = nodeFromWML(externalUpdate.wml)
+            const schemaNode = nodeFromWML(content.wml)
             const { component } = standardComponentFactory(schemaNode)
             
             if (!component) {

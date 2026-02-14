@@ -1,4 +1,4 @@
-import { PlayerSnapshot, PlayerAssetAssigned, PlayerAssetRemoved, PlayerSettingsUpdated } from '.'
+import { PlayerSnapshot, PlayerAssetAssigned, PlayerAssetRemoved, PlayerSettingsUpdated, PlayerEventSerializer } from '.'
 import { PlayerAggregator } from './baseClasses'
 import type { StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 
@@ -70,6 +70,31 @@ describe('PlayerAggregator', () => {
         const removeResult = aggregator.applyUpdate(assignResult.snapshot, playersEnvelope(remove, 'Player Asset Removed'))
         expect(removeResult.success).toBe(true)
         expect(removeResult.snapshot.assets).toHaveLength(0)
+    })
+})
+
+describe('PlayerEventSerializer', () => {
+    const serializer = new PlayerEventSerializer()
+
+    describe('deserialize when header and payload type disagree - header wins', () => {
+        it('should deserialize as Player Asset Removed when header says Player Asset Removed but content has Asset Assigned shape', () => {
+            const content = {
+                type: 'Player Asset Assigned',
+                asset: { AssetId: 'AssetOne', zone: 'Draft' as const }
+            }
+            const header: StreamingEventHeader = {
+                dataSourceKey: 'mtw.assets.players',
+                streamKey: 'test',
+                timestamp: 0,
+                type: 'Player Asset Removed'
+            }
+            const result = serializer.deserialize({ content: content as any, header })
+            expect(result).not.toBeNull()
+            expect(result!.type).toBe('Player Asset Removed')
+            if (result && result.type === 'Player Asset Removed') {
+                expect(result.assetId).toBeUndefined()
+            }
+        })
     })
 })
 

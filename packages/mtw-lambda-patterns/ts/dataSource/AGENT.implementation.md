@@ -380,8 +380,8 @@ The DataSource pattern uses the `eventSerializer` constructor parameter to handl
 **Purpose**: Enable DataSources to maintain clean internal event processing while supporting proper external event contracts for cross-service communication.
 
 **Method**: `eventSerializer` constructor parameter - Optional serializer for external integration
-- **`serialize(params)`**: Convert internal update payload to external format for transmission
-- **`deserialize(params)`**: Convert external update payload back to internal format
+- **`serialize(params)`**: Convert internal update payload to external format for transmission. Params: `{ content, header }` (same shape as `ResolvedStreamingEnvelope`; content = internal payload).
+- **`deserialize(params)`**: Convert external update payload back to internal format. Params: `{ content, header }` (content = external payload). Caller is responsible for building `header` from the wire (e.g. from payload.type) before calling; the deserializer routes only on `header.type`.
 
 **New Architecture**: Event serializers are now defined in `mtw-interfaces/ts/eventBridge/` and imported by lambdas:
 - **Centralized Contracts**: All event types and serializers in shared interface layer
@@ -390,23 +390,20 @@ The DataSource pattern uses the `eventSerializer` constructor parameter to handl
 
 **Implementation Guide**: For detailed technical guidelines on implementing EventBridge event contracts, see **[EventBridge Implementation Guide](../../../mtw-interfaces/ts/eventBridge/AGENT.implementation.md)**.
 
+**Serialization and envelope**: Serialize/deserialize use the same shape as `ResolvedStreamingEnvelope`: `{ content, header }`. The param is named `content` to align with `ResolvedStreamingEnvelope<Content, Header>`. Routing and discrimination use **header.type** only; the deserializer does not branch on `content.type`. External payload should include `type` so the receiving side can build the header before calling deserialize. For deserialize-params narrowing, use envelope-level type guards (see mtw-interfaces: Library, Players, WML, ContentHeaders).
+
 **Standard Pattern**: Use class-based serializers for better type safety, testability, and reusability:
 
 ```typescript
 // Define serializer as a class for better type safety and testability
 export class MyEventSerializer implements DataSourceEventSerializer<MyInternalType, MyExternalType> {
-    serialize({ update }: { update: MyInternalType }): MyExternalType {
-        // Transform internal update to external format
-        return { /* external format */ }
+    serialize({ content, header }: { content: MyInternalType; header: StreamingEventHeader }): MyExternalType {
+        // Route on header.type; transform internal content to external format (include type for far end)
+        return { type: header.type, /* domain fields */ }
     }
     
-    deserialize(params: { 
-        dataSourceKey: string; 
-        detailType: string; 
-        streamKey: string; 
-        externalUpdate: MyExternalType 
-    }): MyInternalType | null {
-        // Transform external format back to internal update
+    deserialize(params: { content: MyExternalType; header: StreamingEventHeader }): MyInternalType | null {
+        // Route on params.header.type only; do not branch on params.content.type
         return /* internal update */
     }
 }

@@ -62,9 +62,10 @@ export class MyEventSerializer implements DataSourceEventSerializer<MyEventUpdat
 
 Serializers follow the header/content model:
 
-- `serialize` and `deserialize` receive `header: StreamingEventHeader` (required).
-- Discrimination uses `header.type`; payload `type` is derived and not used for routing.
-- Use envelope-level type guards when branching on `header.type` to narrow content.
+- `serialize` and `deserialize` receive `{ content, header }` (same shape as `ResolvedStreamingEnvelope`). The param is named `content` (not `update`/`externalUpdate`) to match envelope types.
+- Discrimination uses **header.type** only. Deserializers must not use payload `type` for branching; use envelope (header) or deserialize-params envelope type guards only.
+- External payload includes `type` so the far end can build the header before calling deserialize. The deserializer routes only on `header.type`.
+- Use envelope-level type guards when branching on `header.type` to narrow content (e.g. Library, Players).
 
 For envelope unions and payload purity rules, see [mtw-lambda-patterns DataSource AGENT.implementation.md](../../../mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md) (Type-Safe Routing with Envelope-Level Discriminated Unions).
 
@@ -92,8 +93,8 @@ deserialize(params: { ... }): MyEventUpdate | null {
 
 // Good: Validation with clear error messages
 serialize(params: { ... }): MyEventExternal {
-    if (!isValidEvent(params.update)) {
-        throw new Error(`Invalid event type: ${JSON.stringify(params.update)}`)
+    if (!isValidEvent(params.content)) {
+        throw new Error(`Invalid event type: ${JSON.stringify(params.content)}`)
     }
     // ... serialize
 }

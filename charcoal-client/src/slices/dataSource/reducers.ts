@@ -198,7 +198,7 @@ export const processRawEvent = <
         } as Header
         // Deserialize event
         const event = eventSerializer.deserialize({
-            externalUpdate: content,
+            content,
             header: streamingHeader
         })
         if (!event) {

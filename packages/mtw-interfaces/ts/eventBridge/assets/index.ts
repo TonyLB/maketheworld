@@ -3,7 +3,7 @@
 // This file contains event types, type guards, and serializers for the Assets data source.
 // Migrated from lambda/assets/dataSource/serializers.ts
 
-import { DataSourceEventSerializer, StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import { DataSourceEventSerializer, ResolvedStreamingEnvelope, StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { isStandardComponent, StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 import { standardComponentFactory } from '@tonylb/mtw-wml/ts/standardize/componentFactory'
@@ -214,87 +214,122 @@ export type AssetLevelEventExternal =
     | ZoneUpdatedEventExternal
     | AssetUpdatedEventExternal
 
+// Serialize/deserialize params - use ResolvedStreamingEnvelope so header discriminates content shape
+type AssetsSerializeParams = ResolvedStreamingEnvelope<AssetsEventUpdate, StreamingEventHeader>
+type AssetsDeserializeParams = ResolvedStreamingEnvelope<AssetsEventExternal, StreamingEventHeader>
+
+// Envelope type guards for serialize (header.type narrows content)
+const isComponentUpdatedAssetsSerializeParams = (p: AssetsSerializeParams): p is AssetsSerializeParams & { header: StreamingEventHeader & { type: 'Component Updated' }; content: ComponentUpdatedEvent } =>
+    p.header.type === 'Component Updated'
+const isComponentRemovedAssetsSerializeParams = (p: AssetsSerializeParams): p is AssetsSerializeParams & { header: StreamingEventHeader & { type: 'Component Removed' }; content: ComponentRemovedEvent } =>
+    p.header.type === 'Component Removed'
+const isAssetUpdatedAssetsSerializeParams = (p: AssetsSerializeParams): p is AssetsSerializeParams & { header: StreamingEventHeader & { type: 'Asset Updated' }; content: AssetUpdatedEventUpdate } =>
+    p.header.type === 'Asset Updated'
+const isAssetAddedAssetsSerializeParams = (p: AssetsSerializeParams): p is AssetsSerializeParams & { header: StreamingEventHeader & { type: 'Asset Added' }; content: AssetAddedEventUpdate } =>
+    p.header.type === 'Asset Added'
+const isAssetCachedAssetsSerializeParams = (p: AssetsSerializeParams): p is AssetsSerializeParams & { header: StreamingEventHeader & { type: 'Asset Cached' }; content: AssetCachedEventUpdate } =>
+    p.header.type === 'Asset Cached'
+const isAssetDecachedAssetsSerializeParams = (p: AssetsSerializeParams): p is AssetsSerializeParams & { header: StreamingEventHeader & { type: 'Asset Decached' }; content: AssetDecachedEventUpdate } =>
+    p.header.type === 'Asset Decached'
+const isAssetRemovedAssetsSerializeParams = (p: AssetsSerializeParams): p is AssetsSerializeParams & { header: StreamingEventHeader & { type: 'Asset Removed' }; content: AssetRemovedEventUpdate } =>
+    p.header.type === 'Asset Removed'
+const isCanonUpdatedAssetsSerializeParams = (p: AssetsSerializeParams): p is AssetsSerializeParams & { header: StreamingEventHeader & { type: 'Canon Updated' }; content: CanonUpdatedEventUpdate } =>
+    p.header.type === 'Canon Updated'
+const isZoneUpdatedAssetsSerializeParams = (p: AssetsSerializeParams): p is AssetsSerializeParams & { header: StreamingEventHeader & { type: 'Zone Updated' }; content: ZoneUpdatedEventUpdate } =>
+    p.header.type === 'Zone Updated'
+
+// Envelope type guards for deserialize (header.type narrows content)
+const isComponentUpdatedAssetsDeserializeParams = (p: AssetsDeserializeParams): p is AssetsDeserializeParams & { header: StreamingEventHeader & { type: 'Component Updated' }; content: ComponentUpdatedEventExternal } =>
+    p.header.type === 'Component Updated'
+const isComponentRemovedAssetsDeserializeParams = (p: AssetsDeserializeParams): p is AssetsDeserializeParams & { header: StreamingEventHeader & { type: 'Component Removed' }; content: ComponentRemovedEventExternal } =>
+    p.header.type === 'Component Removed'
+const isAssetUpdatedAssetsDeserializeParams = (p: AssetsDeserializeParams): p is AssetsDeserializeParams & { header: StreamingEventHeader & { type: 'Asset Updated' }; content: AssetUpdatedEventExternal } =>
+    p.header.type === 'Asset Updated'
+const isAssetAddedAssetsDeserializeParams = (p: AssetsDeserializeParams): p is AssetsDeserializeParams & { header: StreamingEventHeader & { type: 'Asset Added' }; content: AssetAddedEventExternal } =>
+    p.header.type === 'Asset Added'
+const isAssetCachedAssetsDeserializeParams = (p: AssetsDeserializeParams): p is AssetsDeserializeParams & { header: StreamingEventHeader & { type: 'Asset Cached' }; content: AssetCachedEventExternal } =>
+    p.header.type === 'Asset Cached'
+const isAssetDecachedAssetsDeserializeParams = (p: AssetsDeserializeParams): p is AssetsDeserializeParams & { header: StreamingEventHeader & { type: 'Asset Decached' }; content: AssetDecachedEventExternal } =>
+    p.header.type === 'Asset Decached'
+const isAssetRemovedAssetsDeserializeParams = (p: AssetsDeserializeParams): p is AssetsDeserializeParams & { header: StreamingEventHeader & { type: 'Asset Removed' }; content: AssetRemovedEventExternal } =>
+    p.header.type === 'Asset Removed'
+const isCanonUpdatedAssetsDeserializeParams = (p: AssetsDeserializeParams): p is AssetsDeserializeParams & { header: StreamingEventHeader & { type: 'Canon Updated' }; content: CanonUpdatedEventExternal } =>
+    p.header.type === 'Canon Updated'
+const isZoneUpdatedAssetsDeserializeParams = (p: AssetsDeserializeParams): p is AssetsDeserializeParams & { header: StreamingEventHeader & { type: 'Zone Updated' }; content: ZoneUpdatedEventExternal } =>
+    p.header.type === 'Zone Updated'
+
 /**
  * Unified event serializer for the mtw.assets data source.
- * 
+ *
  * This serializer intelligently handles different types of events based on their detailType metadata:
  * - Component events: Converts StandardComponent objects to WML for external consumption
  * - Asset-level events: Passes through data as-is
  */
 export class AssetsEventSerializer implements DataSourceEventSerializer<AssetsEventUpdate, AssetsEventExternal> {
-    serialize(params: {
-        update: AssetsEventUpdate;
-        header: StreamingEventHeader;
-    }): AssetsEventExternal {
-        const { update, header } = params
-        
-        if (header.type === 'Component Updated') {
-            const comp = update as ComponentUpdatedEvent
+    serialize(params: AssetsSerializeParams): AssetsEventExternal {
+        if (isComponentUpdatedAssetsSerializeParams(params)) {
+            const { content } = params
             const base = {
-                componentId: comp.component.universalKey || '',
-                wml: schemaToWML([comp.component.schema])
+                componentId: content.component.universalKey || '',
+                wml: schemaToWML([content.component.schema])
             }
-            return {
-                type: 'Component Updated',
-                ...base
-            }
-        } else if (header.type === 'Component Removed') {
-            const comp = update as ComponentRemovedEvent
+            return { type: 'Component Updated', ...base }
+        }
+        if (isComponentRemovedAssetsSerializeParams(params)) {
+            const { content } = params
             const base = {
-                componentId: comp.component.universalKey || '',
-                wml: schemaToWML([comp.component.schema])
+                componentId: content.component.universalKey || '',
+                wml: schemaToWML([content.component.schema])
             }
-            return {
-                type: 'Component Removed',
-                ...base
-            }
-        } else if (header.type === 'Asset Updated') {
-            const internal = update as AssetUpdatedEventUpdate
+            return { type: 'Component Removed', ...base }
+        }
+        if (isAssetUpdatedAssetsSerializeParams(params)) {
+            const { content } = params
             return {
                 type: 'Asset Updated',
-                wml: schemaToWML([internal.standardForm.schema]),
-                ...(internal.player ? { player: internal.player } : {})
+                wml: schemaToWML([content.standardForm.schema]),
+                ...(content.player ? { player: content.player } : {})
             }
-        } else {
-            const assetLevelTypes = new Set(['Asset Added', 'Asset Cached', 'Asset Decached', 'Asset Removed', 'Canon Updated', 'Zone Updated'])
-            if (assetLevelTypes.has(header.type)) {
-                return update as AssetLevelEventExternal
-            }
-            throw new Error(`Unknown event type in AssetsEventUpdate: ${header.type}`)
         }
+        if (isAssetAddedAssetsSerializeParams(params)) return params.content
+        if (isAssetCachedAssetsSerializeParams(params)) return params.content
+        if (isAssetDecachedAssetsSerializeParams(params)) return params.content
+        if (isAssetRemovedAssetsSerializeParams(params)) return params.content
+        if (isCanonUpdatedAssetsSerializeParams(params)) return params.content
+        if (isZoneUpdatedAssetsSerializeParams(params)) return params.content
+        throw new Error(`Unknown event type in AssetsEventUpdate: ${params.header.type}`)
     }
-    
-    deserialize(params: { 
-        externalUpdate: AssetsEventExternal
-        header: StreamingEventHeader
-    }): AssetsEventUpdate | null {
-        const { externalUpdate, header } = params
-        const eventType = header.type
-        
-        // Use the header type to determine how to deserialize
-        if (eventType === 'Component Updated') {
-            const updatedExternal = externalUpdate as ComponentUpdatedEventExternal
+
+    deserialize(params: AssetsDeserializeParams): AssetsEventUpdate | null {
+        if (isComponentUpdatedAssetsDeserializeParams(params)) {
+            const { content } = params
             return {
                 type: 'Component Updated',
-                component: this.parseWMLToComponent(updatedExternal.wml, updatedExternal.componentId)
+                component: this.parseWMLToComponent(content.wml, content.componentId)
             }
-        } else if (eventType === 'Component Removed') {
-            const removedExternal = externalUpdate as ComponentRemovedEventExternal
+        }
+        if (isComponentRemovedAssetsDeserializeParams(params)) {
+            const { content } = params
             return {
                 type: 'Component Removed',
-                component: this.parseWMLToComponent(removedExternal.wml, removedExternal.componentId)
+                component: this.parseWMLToComponent(content.wml, content.componentId)
             }
-        } else {
-            // This is an asset-level event - pass through as-is since internal and external types are now identical
-            if ((externalUpdate as any).type === 'Asset Updated') {
-                const external = externalUpdate as AssetUpdatedEventExternal
-                return {
-                    type: 'Asset Updated',
-                    standardForm: new StandardForm(external.wml)
-                }
-            }
-            return externalUpdate as AssetLevelEventUpdate
         }
+        if (isAssetUpdatedAssetsDeserializeParams(params)) {
+            const { content } = params
+            return {
+                type: 'Asset Updated',
+                standardForm: new StandardForm(content.wml),
+                ...(content.player ? { player: content.player } : {})
+            }
+        }
+        if (isAssetAddedAssetsDeserializeParams(params)) return params.content
+        if (isAssetCachedAssetsDeserializeParams(params)) return params.content
+        if (isAssetDecachedAssetsDeserializeParams(params)) return params.content
+        if (isAssetRemovedAssetsDeserializeParams(params)) return params.content
+        if (isCanonUpdatedAssetsDeserializeParams(params)) return params.content
+        if (isZoneUpdatedAssetsDeserializeParams(params)) return params.content
+        return null
     }
     
     private parseWMLToComponent(wml: string, componentId: string): StandardComponent {

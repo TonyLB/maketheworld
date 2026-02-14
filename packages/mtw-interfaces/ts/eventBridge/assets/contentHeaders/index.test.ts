@@ -490,7 +490,7 @@ describe('ContentHeaders EventBridge Contracts', () => {
                 `))
 
                 const result = serializer.serialize({
-                    update: {
+                    content: {
                         type: 'Headers Updated',
                         assetId: 'ASSET#test',
                         zone: 'Canon',
@@ -523,7 +523,7 @@ describe('ContentHeaders EventBridge Contracts', () => {
                 }
 
                 const result = serializer.deserialize({
-                    externalUpdate,
+                    content: externalUpdate,
                     header: { dataSourceKey: 'mtw.assets.contentHeaders', streamKey: 'global', timestamp: 0, type: 'Headers Updated' }
                 })
 

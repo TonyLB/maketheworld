@@ -72,8 +72,8 @@ const mockAggregator: DataSourceAggregator<TestSnapshot, TestUpdate> = {
 
 // Mock serializer
 const mockSerializer: DataSourceEventSerializer<TestUpdate, any, TestSnapshot, any> = {
-    serialize: vi.fn((params) => params.update as any),
-    deserialize: vi.fn((params) => params.externalUpdate),
+    serialize: vi.fn((params) => params.content as any),
+    deserialize: vi.fn((params) => params.content),
     serializeSnapshot: vi.fn((snapshot) => snapshot),
     deserializeSnapshot: vi.fn((externalSnapshot) => externalSnapshot)
 }
@@ -339,7 +339,7 @@ describe('dataSource reducers', () => {
         beforeEach(() => {
             vi.clearAllMocks()
             // Reset to successful deserialize
-            mockSerializer.deserialize = vi.fn((params) => params.externalUpdate)
+            mockSerializer.deserialize = vi.fn((params) => params.content)
         })
         
         it('should process in-order event with fast path', () => {

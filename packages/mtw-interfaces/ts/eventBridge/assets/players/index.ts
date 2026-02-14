@@ -5,7 +5,7 @@
 // and streaming updates that keep the client synchronized with a player's
 // currently accessible assets, characters, and related library state.
 
-import { DataSourceEventSerializer, StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import { DataSourceEventSerializer, ResolvedStreamingEnvelope, StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { LibraryAsset, LibraryCharacter } from '../../../library'
 import { Zone, isZone } from '../../../baseClasses'
 import { AssetClientPlayerSettings } from '../../../asset'
@@ -165,6 +165,46 @@ export const isPlayerExternal = (value: any): value is PlayerExternal => (
 )
 
 //
+// Serialize/deserialize params - use ResolvedStreamingEnvelope so header discriminates content shape
+//
+
+type PlayerSerializeParams = ResolvedStreamingEnvelope<PlayerEventUpdate, StreamingEventHeader>
+type PlayerDeserializeParams = ResolvedStreamingEnvelope<PlayerExternal, StreamingEventHeader>
+
+// Envelope type guards for serialize (header.type narrows content)
+const isPlayerSnapshotSerializeParams = (p: PlayerSerializeParams): p is PlayerSerializeParams & { header: StreamingEventHeader & { type: 'Snapshot' }; content: PlayerSnapshot } =>
+    p.header.type === 'Snapshot'
+const isPlayerSettingsUpdatedSerializeParams = (p: PlayerSerializeParams): p is PlayerSerializeParams & { header: StreamingEventHeader & { type: 'Player Settings Updated' }; content: PlayerSettingsUpdated } =>
+    p.header.type === 'Player Settings Updated'
+const isPlayerAssetAssignedSerializeParams = (p: PlayerSerializeParams): p is PlayerSerializeParams & { header: StreamingEventHeader & { type: 'Player Asset Assigned' }; content: PlayerAssetAssigned } =>
+    p.header.type === 'Player Asset Assigned'
+const isPlayerAssetRemovedSerializeParams = (p: PlayerSerializeParams): p is PlayerSerializeParams & { header: StreamingEventHeader & { type: 'Player Asset Removed' }; content: PlayerAssetRemoved } =>
+    p.header.type === 'Player Asset Removed'
+const isPlayerCharacterAssignedSerializeParams = (p: PlayerSerializeParams): p is PlayerSerializeParams & { header: StreamingEventHeader & { type: 'Player Character Assigned' }; content: PlayerCharacterAssigned } =>
+    p.header.type === 'Player Character Assigned'
+const isPlayerCharacterRemovedSerializeParams = (p: PlayerSerializeParams): p is PlayerSerializeParams & { header: StreamingEventHeader & { type: 'Player Character Removed' }; content: PlayerCharacterRemoved } =>
+    p.header.type === 'Player Character Removed'
+
+// Envelope type guards for deserialize (header.type narrows content)
+const isPlayerSnapshotDeserializeParams = (params: PlayerDeserializeParams): params is PlayerDeserializeParams & { header: StreamingEventHeader & { type: 'Snapshot' }; content: PlayerSnapshot } =>
+    params.header.type === 'Snapshot'
+
+const isPlayerSettingsUpdatedDeserializeParams = (params: PlayerDeserializeParams): params is PlayerDeserializeParams & { header: StreamingEventHeader & { type: 'Player Settings Updated' }; content: PlayerSettingsUpdated } =>
+    params.header.type === 'Player Settings Updated'
+
+const isPlayerAssetAssignedDeserializeParams = (params: PlayerDeserializeParams): params is PlayerDeserializeParams & { header: StreamingEventHeader & { type: 'Player Asset Assigned' }; content: PlayerAssetAssigned } =>
+    params.header.type === 'Player Asset Assigned'
+
+const isPlayerAssetRemovedDeserializeParams = (params: PlayerDeserializeParams): params is PlayerDeserializeParams & { header: StreamingEventHeader & { type: 'Player Asset Removed' }; content: PlayerAssetRemoved } =>
+    params.header.type === 'Player Asset Removed'
+
+const isPlayerCharacterAssignedDeserializeParams = (params: PlayerDeserializeParams): params is PlayerDeserializeParams & { header: StreamingEventHeader & { type: 'Player Character Assigned' }; content: PlayerCharacterAssigned } =>
+    params.header.type === 'Player Character Assigned'
+
+const isPlayerCharacterRemovedDeserializeParams = (params: PlayerDeserializeParams): params is PlayerDeserializeParams & { header: StreamingEventHeader & { type: 'Player Character Removed' }; content: PlayerCharacterRemoved } =>
+    params.header.type === 'Player Character Removed'
+
+//
 // Serializer
 //
 
@@ -174,102 +214,90 @@ export class PlayerEventSerializer implements DataSourceEventSerializer<
     PlayerSnapshot,
     PlayerSnapshotExternal
 > {
-    serialize(params: {
-        update: PlayerEventUpdate
-        header: StreamingEventHeader
-    }): PlayerExternal {
-        const { update, header } = params
-        if (header.type === 'Snapshot') {
-            const snap = update as PlayerSnapshot
+    serialize(params: PlayerSerializeParams): PlayerExternal {
+        if (isPlayerSnapshotSerializeParams(params)) {
+            const { content } = params
             return {
                 type: 'Snapshot',
-                assets: snap.assets.map((asset) => ({ ...asset })),
-                characters: snap.characters.map((character) => ({ ...character })),
-                settings: { ...snap.settings }
+                assets: content.assets.map((asset) => ({ ...asset })),
+                characters: content.characters.map((character) => ({ ...character })),
+                settings: { ...content.settings }
             }
         }
-        if (header.type === 'Player Settings Updated') {
-            const ev = update as PlayerSettingsUpdated
+        if (isPlayerSettingsUpdatedSerializeParams(params)) {
+            const { content } = params
             return {
                 type: 'Player Settings Updated',
-                settings: { ...ev.settings }
+                settings: { ...content.settings }
             }
         }
-        if (header.type === 'Player Asset Assigned') {
-            const ev = update as PlayerAssetAssigned
+        if (isPlayerAssetAssignedSerializeParams(params)) {
+            const { content } = params
             return {
                 type: 'Player Asset Assigned',
-                asset: { ...ev.asset }
+                asset: { ...content.asset }
             }
         }
-        if (header.type === 'Player Asset Removed') {
-            const ev = update as PlayerAssetRemoved
+        if (isPlayerAssetRemovedSerializeParams(params)) {
+            const { content } = params
             return {
                 type: 'Player Asset Removed',
-                assetId: ev.assetId
+                assetId: content.assetId
             }
         }
-        if (header.type === 'Player Character Assigned') {
-            const ev = update as PlayerCharacterAssigned
+        if (isPlayerCharacterAssignedSerializeParams(params)) {
+            const { content } = params
             return {
                 type: 'Player Character Assigned',
-                character: { ...ev.character }
+                character: { ...content.character }
             }
         }
-        if (header.type === 'Player Character Removed') {
-            const ev = update as PlayerCharacterRemoved
+        if (isPlayerCharacterRemovedSerializeParams(params)) {
+            const { content } = params
             return {
                 type: 'Player Character Removed',
-                characterId: ev.characterId
+                characterId: content.characterId
             }
         }
-        throw new Error(`Unknown player event type: ${header.type}`)
+        throw new Error(`Unknown player event type: ${params.header.type}`)
     }
 
-    deserialize(params: {
-        externalUpdate: PlayerExternal
-        header: StreamingEventHeader
-    }): PlayerEventUpdate | null {
-        const { externalUpdate } = params
-        if (isPlayerSnapshot(externalUpdate)) {
+    deserialize(params: PlayerDeserializeParams): PlayerEventUpdate | null {
+        // Route on header.type only (envelope-authoritative); do not branch on content.type
+        if (isPlayerSnapshotDeserializeParams(params)) {
+            const c = params.content
+            if (!Array.isArray(c.assets) || !Array.isArray(c.characters) || typeof c.settings !== 'object') {
+                console.error('Invalid player snapshot payload', c)
+                return null
+            }
             return {
                 type: 'Snapshot',
-                assets: externalUpdate.assets.map((asset) => ({ ...asset })),
-                characters: externalUpdate.characters.map((character) => ({ ...character })),
-                settings: { ...externalUpdate.settings }
+                assets: c.assets.map((asset) => ({ ...asset })),
+                characters: c.characters.map((character) => ({ ...character })),
+                settings: { ...c.settings }
             }
         }
-        if (isPlayerSettingsUpdated(externalUpdate)) {
-            return {
-                type: 'Player Settings Updated',
-                settings: { ...externalUpdate.settings }
-            }
+        if (isPlayerSettingsUpdatedDeserializeParams(params)) {
+            const c = params.content
+            return { type: 'Player Settings Updated', settings: { ...c.settings } }
         }
-        if (isPlayerAssetAssigned(externalUpdate)) {
-            return {
-                type: 'Player Asset Assigned',
-                asset: { ...externalUpdate.asset }
-            }
+        if (isPlayerAssetAssignedDeserializeParams(params)) {
+            const c = params.content
+            return { type: 'Player Asset Assigned', asset: { ...c.asset } }
         }
-        if (isPlayerAssetRemoved(externalUpdate)) {
-            return {
-                type: 'Player Asset Removed',
-                assetId: externalUpdate.assetId
-            }
+        if (isPlayerAssetRemovedDeserializeParams(params)) {
+            const c = params.content
+            return { type: 'Player Asset Removed', assetId: c.assetId }
         }
-        if (isPlayerCharacterAssigned(externalUpdate)) {
-            return {
-                type: 'Player Character Assigned',
-                character: { ...externalUpdate.character }
-            }
+        if (isPlayerCharacterAssignedDeserializeParams(params)) {
+            const c = params.content
+            return { type: 'Player Character Assigned', character: { ...c.character } }
         }
-        if (isPlayerCharacterRemoved(externalUpdate)) {
-            return {
-                type: 'Player Character Removed',
-                characterId: externalUpdate.characterId
-            }
+        if (isPlayerCharacterRemovedDeserializeParams(params)) {
+            const c = params.content
+            return { type: 'Player Character Removed', characterId: c.characterId }
         }
-        console.error('Invalid player external update payload', externalUpdate)
+        console.error('Unknown player event header type', params.header)
         return null
     }
 
