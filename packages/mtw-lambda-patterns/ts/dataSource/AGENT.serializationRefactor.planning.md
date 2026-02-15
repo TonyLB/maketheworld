@@ -123,9 +123,9 @@ Use the checkboxes and "Status" lines to track progress. Add GitHub issue number
 
 ### 2. Subscription framework: match on header only
 
-- [ ] **2a. matchEvent uses header-only envelope**  
+- [x] **2a. matchEvent uses header-only envelope**  
   - **What**: Change `SubscriptionLibrary.matchEvent` (and any callers) so matching uses only header-like fields: `dataSourceKey`, `type`, `streamKey` (and optionally `timestamp`). Obtain `type` from the envelope (e.g. `coreFormat` after `fromEventBridgeFormat`, or a dedicated header object), not from `event.update?.type`. The full event can still be `CoreExternalFormat` when passed to `transform` and `publish`.  
-  - **Status**:  
+  - **Status**: Done.  
   - **Depends on**: None (can be done independently).  
   - **Files**: `lambda/subscriptions/handlerFramework/baseClasses.ts` (e.g. `matchEvent`), any tests that assert on matching behavior.
 
@@ -133,7 +133,7 @@ Use the checkboxes and "Status" lines to track progress. Add GitHub issue number
 
 *Placed here (before publisher and contracts) because it has no dependency on 4–6 and establishes "header is authoritative" early; the rest of the refactor then builds on that rule.*
 
-- [ ] **3a. matchEvent uses header only** — SubscriptionLibrary.matchEvent uses `event.header?.type` (or equivalent) for routing, not `event.update?.type`. Same change as 2a; can be done as part of 2a or tracked here.
+- [x] **3a. matchEvent uses header only** — SubscriptionLibrary.matchEvent uses `event.header?.type` (or equivalent) for routing, not `event.update?.type`. Same change as 2a; done as part of 2a.
 - [ ] **3b. toEventBridgeFormat uses header for type** — When building EventBridge Detail, take `type` from `coreFormat.header.type` (not from `update`) for DetailType. May still copy type into Detail body. No dependency on publisher (4); coreFormat already has header.
 - [ ] **3c. (Optional) Localize external types** — Where it helps, treat external content as opaque at the boundary and discriminate only by header; reduce reliance on payload type in types/guards. See Findings "Localizing external content types."
 - [ ] **3d. Tests** — Cover matchEvent and toEventBridgeFormat behavior so regressions are caught.
