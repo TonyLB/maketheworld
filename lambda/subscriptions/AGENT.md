@@ -98,7 +98,7 @@ type LibraryEntry = {
 - **Unsubscribe**: `UnsubscribeAPIMessage` - Remove event stream subscription
 
 #### Outgoing WebSocket Messages
-- **Subscription Events**: `SubscriptionClientMessage` - Transformed backend events
+- **Subscription Events**: `SubscriptionClientMessage` - Transformed backend events. For mtw.wml (Content Update, Merge Conflict), top-level `RequestIds` in the client message is sourced from the event's header (after format merge), not from the update payload.
 
 #### EventBridge Events
 - **Session Disconnect**: `mtw.connections` source - Triggers subscription cleanup

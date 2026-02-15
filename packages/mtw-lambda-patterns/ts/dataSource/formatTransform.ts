@@ -1,15 +1,24 @@
 /**
  * Format transformation utilities for DataSource multi-context serialization
- * 
+ *
  * This module provides functions to transform between CoreExternalFormat and
  * various transmission contexts (EventBridge, DynamoDB, WebSocket).
+ *
+ * In-memory: CoreExternalFormat has a single merged `header` (base four + extended properties).
+ * On the wire: the extended part is a separate field `extendedHeader`; it is merged into
+ * `header` when deserializing and split from `header` when serializing.
  */
+
+/** Base four header fields that are always present; extended props (e.g. RequestIds) live in header in memory and as extendedHeader on the wire. */
+const BASE_HEADER_KEYS = ['dataSourceKey', 'streamKey', 'timestamp', 'type'] as const;
 
 export interface CoreExternalFormat {
     dataSourceKey: string;
     streamKey: string;
     timestamp: number;  // Event timestamp (epoch milliseconds)
     RequestId?: string;
+    /** Full header (base four + extended properties merged). On the wire, extended part is written as Detail.extendedHeader. */
+    header?: { dataSourceKey: string; streamKey: string; timestamp: number; type: string; [key: string]: unknown };
     update: { type: string; [key: string]: unknown };
 }
 
@@ -20,6 +29,8 @@ export interface EventBridgeFormat {
         streamKey: string;
         timestamp: number;
         RequestId?: string;
+        /** Extended part of the header on the wire; merged into coreFormat.header when deserializing. */
+        extendedHeader?: unknown;
         [key: string]: any;
     };
 }
@@ -27,6 +38,8 @@ export interface EventBridgeFormat {
 export type DynamoDBFormat<PrimaryKey extends string = string> = {
     DataCategory: string;
     update: { type: string; [key: string]: unknown };
+    /** Extended part of header on the wire; merged into coreFormat.header when deserializing. */
+    extendedHeader?: unknown;
 } & {
     [K in PrimaryKey]: string;
 }
@@ -47,19 +60,33 @@ export interface SNSFeedbackFormat {
     dataSourceKey: string;
     streamKey: string;
     timestamp: number;
+    extendedHeader?: unknown;
     update: { type: string; [key: string]: unknown };
 }
 
 /**
- * Transform CoreExternalFormat to EventBridge event structure
+ * Transform CoreExternalFormat to EventBridge event structure.
+ * Splits coreFormat.header into base four + extended part; writes extended part as Detail.extendedHeader.
  */
 export function toEventBridgeFormat(coreFormat: CoreExternalFormat): EventBridgeFormat {
-    const { dataSourceKey, streamKey, timestamp, RequestId, update } = coreFormat;
-    
+    const { dataSourceKey, streamKey, timestamp, RequestId, header, update } = coreFormat;
+
     // Extract the type and update data from the update object
     // Exclude 'timestamp' from rest - we only use the system-assigned epoch timestamp, never EventBridge/client timestamps
     const { type, update: updateData, timestamp: _, ...rest } = update;
-    
+
+    // Extended part of header (everything except base four) goes to Detail.extendedHeader on the wire
+    let extendedHeader: unknown = undefined;
+    if (header && typeof header === 'object') {
+        const extended = { ...header };
+        for (const k of BASE_HEADER_KEYS) {
+            delete extended[k];
+        }
+        if (Object.keys(extended).length > 0) {
+            extendedHeader = extended;
+        }
+    }
+
     return {
         Source: dataSourceKey,
         DetailType: type,
@@ -67,6 +94,7 @@ export function toEventBridgeFormat(coreFormat: CoreExternalFormat): EventBridge
             streamKey,
             timestamp, // Always use epoch milliseconds from CoreExternalFormat (system-assigned, authoritative)
             RequestId,
+            ...(extendedHeader !== undefined ? { extendedHeader } : {}),
             ...rest,
             update: updateData
         }
@@ -74,75 +102,118 @@ export function toEventBridgeFormat(coreFormat: CoreExternalFormat): EventBridge
 }
 
 /**
- * Transform EventBridge event structure back to CoreExternalFormat
- * 
- * Handles both:
- * - Actual EventBridge delivery format (lowercase: source, detail-type, detail) - what AWS delivers to Lambda
- * - Serialized EventBridgeFormat (capitalized: Source, DetailType, Detail) - for internal use
+ * Transform EventBridge event structure back to CoreExternalFormat.
+ * Merges Detail.extendedHeader with base four into coreFormat.header; does not set coreFormat.extendedHeader.
+ * Legacy: if Detail.extendedHeader is absent but Detail.RequestIds is present, treat RequestIds as the extended part.
  */
 export function fromEventBridgeFormat(eventBridgeEvent: EventBridgeFormat | any): CoreExternalFormat {
     // Normalize event format - handle both lowercase (actual EventBridge) and capitalized (serialized) formats
     const dataSourceKey = eventBridgeEvent.Source || eventBridgeEvent.source;
     const type = eventBridgeEvent.DetailType || eventBridgeEvent['detail-type'];
     const Detail = eventBridgeEvent.Detail || eventBridgeEvent.detail;
-    
-    // Extract required fields from Detail
-    const { streamKey, timestamp, RequestId, ...rest } = Detail;
-    
+
+    const { streamKey, timestamp, RequestId, extendedHeader, RequestIds, ...contentRest } = Detail;
+
+    // Build full header: base four + extended part (from extendedHeader or legacy RequestIds)
+    const extendedPart =
+        extendedHeader != null && typeof extendedHeader === 'object'
+            ? { ...extendedHeader }
+            : RequestIds !== undefined
+                ? { RequestIds }
+                : {};
+    const fullHeader: CoreExternalFormat['header'] = {
+        dataSourceKey,
+        streamKey,
+        timestamp,
+        type,
+        ...extendedPart
+    };
+
     return {
         dataSourceKey,
         streamKey,
         timestamp,
         RequestId,
+        header: fullHeader,
         update: {
             type,
-            ...rest
+            ...contentRest
         }
     };
 }
 
 /**
- * Transform CoreExternalFormat to DynamoDB record structure
+ * Transform CoreExternalFormat to DynamoDB record structure.
+ * Derives extendedHeader from coreFormat.header (header minus base four).
  */
 export function toDynamoDBFormat<PrimaryKey extends string>(
-    coreFormat: CoreExternalFormat, 
+    coreFormat: CoreExternalFormat,
     primaryKeyName: PrimaryKey,
     eventId: string
 ): DynamoDBFormat<PrimaryKey> {
-    const { dataSourceKey, streamKey, timestamp, update } = coreFormat;
-    
-    // DataCategory includes timestamp for extraction by fromDynamoDBFormat
-    // Format: EVENT#${timestamp}::${uuid}
-    return {
+    const { dataSourceKey, streamKey, timestamp, header, update } = coreFormat;
+
+    let extendedHeader: unknown = undefined;
+    if (header && typeof header === 'object') {
+        const extended = { ...header };
+        for (const k of BASE_HEADER_KEYS) {
+            delete extended[k];
+        }
+        if (Object.keys(extended).length > 0) {
+            extendedHeader = extended;
+        }
+    }
+
+    const record: DynamoDBFormat<PrimaryKey> = {
         [primaryKeyName]: `STREAM#${dataSourceKey}::${streamKey}`,
         DataCategory: `EVENT#${timestamp}::${eventId}`,
         update
     } as DynamoDBFormat<PrimaryKey>;
+    if (extendedHeader !== undefined) {
+        record.extendedHeader = extendedHeader;
+    }
+    return record;
 }
 
 /**
- * Transform DynamoDB record structure back to CoreExternalFormat
+ * Transform DynamoDB record structure back to CoreExternalFormat.
+ * Merges record.extendedHeader with base four into coreFormat.header.
+ * Legacy: if record has no extendedHeader but update has RequestIds, optionally use as extended part.
  */
 export function fromDynamoDBFormat(
     dynamoRecord: DynamoDBFormat,
     dataSourceKey: string
 ): CoreExternalFormat {
-    const { update, DataCategory } = dynamoRecord;
-    
-    // Extract streamKey from the primary key
-    const primaryKeyValue = Object.values(dynamoRecord).find(value => 
-        typeof value === 'string' && value.startsWith('STREAM#')
+    const { update, DataCategory, extendedHeader } = dynamoRecord;
+
+    const primaryKeyValue = Object.values(dynamoRecord).find(
+        (value) => typeof value === 'string' && value.startsWith('STREAM#')
     ) as string;
     const streamKey = primaryKeyValue?.split('::')[1] || '';
-    
-    // Extract timestamp from DataCategory (format: EVENT#${timestamp}::${uuid})
+
     const timestampMatch = DataCategory.match(/^EVENT#(\d+)::/);
     const timestamp = timestampMatch ? parseInt(timestampMatch[1], 10) : 0;
-    
+
+    const type = update?.type ?? '';
+    const extendedPart =
+        extendedHeader != null && typeof extendedHeader === 'object'
+            ? { ...extendedHeader }
+            : update && typeof update === 'object' && 'RequestIds' in update && update.RequestIds !== undefined
+                ? { RequestIds: update.RequestIds }
+                : {};
+    const fullHeader: CoreExternalFormat['header'] = {
+        dataSourceKey,
+        streamKey,
+        timestamp,
+        type,
+        ...extendedPart
+    };
+
     return {
         dataSourceKey,
         streamKey,
         timestamp,
+        header: fullHeader,
         update
     };
 }
@@ -195,28 +266,60 @@ export function fromWebSocketFormat(webSocketMessage: WebSocketFormat): CoreExte
  *   Input: { dataSourceKey: 'mtw.assets.contentHeaders', streamKey: 'global', timestamp: 1234567890, update: { type: 'Snapshot', assets: [...] } }
  *   Output: { messageType: 'StreamEvent', dataSourceKey: 'mtw.assets.contentHeaders', streamKey: 'global', timestamp: 1234567890, update: { type: 'Snapshot', assets: [...] } }
  */
+/**
+ * Derives extendedHeader from coreFormat.header when present.
+ */
 export function toSNSFeedbackFormat(coreFormat: CoreExternalFormat): SNSFeedbackFormat {
-    const { dataSourceKey, streamKey, timestamp, update } = coreFormat;
-    
-    return {
+    const { dataSourceKey, streamKey, timestamp, header, update } = coreFormat;
+
+    let extendedHeader: unknown = undefined;
+    if (header && typeof header === 'object') {
+        const extended = { ...header };
+        for (const k of BASE_HEADER_KEYS) {
+            delete extended[k];
+        }
+        if (Object.keys(extended).length > 0) {
+            extendedHeader = extended;
+        }
+    }
+
+    const result: SNSFeedbackFormat = {
         messageType: 'StreamEvent',
         dataSourceKey,
         streamKey,
         timestamp,
         update
     };
+    if (extendedHeader !== undefined) {
+        result.extendedHeader = extendedHeader;
+    }
+    return result;
 }
 
 /**
- * Transform SNS Feedback format back to CoreExternalFormat
+ * Merges extendedHeader with base four into coreFormat.header.
  */
 export function fromSNSFeedbackFormat(snsFormat: SNSFeedbackFormat): CoreExternalFormat {
-    const { dataSourceKey, streamKey, timestamp, update } = snsFormat;
-    
+    const { dataSourceKey, streamKey, timestamp, extendedHeader, update } = snsFormat;
+
+    const type = update?.type ?? '';
+    const extendedPart =
+        extendedHeader != null && typeof extendedHeader === 'object'
+            ? { ...extendedHeader }
+            : {};
+    const fullHeader: CoreExternalFormat['header'] = {
+        dataSourceKey,
+        streamKey,
+        timestamp,
+        type,
+        ...extendedPart
+    };
+
     return {
         dataSourceKey,
         streamKey,
         timestamp,
+        header: fullHeader,
         update
     };
 }

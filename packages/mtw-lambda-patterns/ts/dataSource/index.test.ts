@@ -1044,6 +1044,40 @@ describe('DataSource', () => {
                 zone: 'Canon'
             })
         })
+
+        it('should send Detail.extendedHeader to EventBridge when header has extended fields', async () => {
+            type ExtendedHeader = StreamingEventHeader & { zone?: string }
+            const dataSourceWithExtendedHeader = new DataSource<
+                TestSnapshotPayload,
+                TestUpdatePayload,
+                never,
+                TestUpdatePayload,
+                'AssetId',
+                TestSnapshotPayload,
+                ExtendedHeader
+            >({
+                dynamo: mockDynamo,
+                sns: mockSns,
+                messageBus: mockMessageBus,
+                primaryKeyName: 'AssetId',
+                dataSourceKey: 'mtw.extendedHeader',
+                feedbackTopicArn: 'arn:aws:sns:us-east-1:123456789012:test-feedback'
+            })
+            await dataSourceWithExtendedHeader.streamEvent({
+                update: { type: 'TestUpdatePayload', update: 'test' },
+                streamKey: 'stream-1',
+                header: { type: 'TestUpdatePayload', zone: 'Draft' }
+            })
+            expect(mockEventBridgeClient.send).toHaveBeenCalledWith([expect.objectContaining({
+                Source: 'mtw.extendedHeader',
+                DetailType: 'TestUpdatePayload',
+                Detail: expect.objectContaining({
+                    streamKey: 'stream-1',
+                    extendedHeader: { zone: 'Draft' },
+                    update: 'test'
+                })
+            })])
+        })
     })
 
     describe('subscription functionality', () => {

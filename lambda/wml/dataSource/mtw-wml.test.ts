@@ -351,14 +351,11 @@ describe('WML DataSource', () => {
                 schema: validEditWML
             })
 
-            // Verify Content Update event was streamed with delta (edit WML) and RequestIds
+            // Verify Content Update event was streamed with delta (edit WML); RequestIds in header
             expect(mockStreamEvent).toHaveBeenCalledWith({
-                update: {
-                    schema: expect.any(StandardForm),
-                    RequestIds: ['test-request-123']
-                },
+                update: { schema: expect.any(StandardForm) },
                 streamKey: 'ASSET#test-asset',
-                header: { type: 'Content Update' }
+                header: { type: 'Content Update', RequestIds: ['test-request-123'] }
             })
             const streamedSchema = mockStreamEvent.mock.calls[0][0].update.schema
             expect(schemaToWML([streamedSchema.schema])).toBe(validEditWML)
@@ -401,11 +398,11 @@ describe('WML DataSource', () => {
                 schema: '<Asset uuid=(x)></Asset>'
             })
 
-            // Verify Merge Conflict event was streamed so client knows the edit failed
+            // Verify Merge Conflict event was streamed so client knows the edit failed; RequestIds in header
             expect(mockStreamEvent).toHaveBeenCalledWith({
                 streamKey: 'ASSET#test-asset',
-                update: { error: 'Parse error', RequestIds: ['test-request-456'] },
-                header: { type: 'Merge Conflict' }
+                update: { error: 'Parse error' },
+                header: { type: 'Merge Conflict', RequestIds: ['test-request-456'] }
             })
         })
 
@@ -552,14 +549,11 @@ describe('WML DataSource', () => {
                 schema: validEditWML
             })
 
-            // Verify the result was processed correctly (Content Update carries delta)
+            // Verify the result was processed correctly (Content Update carries delta); RequestIds in header
             expect(mockStreamEvent).toHaveBeenCalledWith({
-                update: {
-                    schema: expect.any(StandardForm),
-                    RequestIds: ['test-request-singleflight']
-                },
+                update: { schema: expect.any(StandardForm) },
                 streamKey: 'ASSET#test-asset',
-                header: { type: 'Content Update' }
+                header: { type: 'Content Update', RequestIds: ['test-request-singleflight'] }
             })
             const streamedSchema = mockStreamEvent.mock.calls[0][0].update.schema
             expect(schemaToWML([streamedSchema.schema])).toBe(validEditWML)
@@ -595,12 +589,9 @@ describe('WML DataSource', () => {
             })
 
             expect(mockStreamEvent).toHaveBeenCalledWith({
-                update: {
-                    schema: expect.any(StandardForm),
-                    RequestIds: []
-                },
+                update: { schema: expect.any(StandardForm) },
                 streamKey: 'ASSET#test-asset',
-                header: { type: 'Content Update' }
+                header: { type: 'Content Update', RequestIds: [] }
             })
             const streamedSchema = mockStreamEvent.mock.calls[0][0].update.schema
             expect(schemaToWML([streamedSchema.schema])).toBe(validEditWML)

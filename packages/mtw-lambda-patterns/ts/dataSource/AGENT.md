@@ -274,10 +274,50 @@ This initial implementation focuses on the four core capabilities:
 ## Navigation Tips
 
 ### Getting Started
-1. **Read This Guide**: Understand the core functionality and scope
-2. **Review Examples**: Study the usage patterns above
-3. **Check Dependencies**: Ensure required AWS services are configured
-4. **Implement Gradually**: Start with snapshot generation, then add streaming and replay
+
+Follow this structured path when working with the DataSource pattern. The header/content envelope model, multi-context serialization, and MessageBus integration are complex; "just jumping in" often misses critical context.
+
+1. **Understand Project Foundations**
+   - **Read** [root AGENT.md](../../../../AGENT.md)
+   - **Why**: Establishes documentation standards, Getting Started patterns, and project navigation
+   - **Focus**: "Getting Started" Pattern for Complex Tasks (7-step template) and AGENT.md structure
+   - **Key Insight**: This DataSource doc follows that pattern; understanding it helps you know what to expect
+
+2. **Read This Document (AGENT.md) First**
+   - **Why**: This is the usage guide; it explains *what* the pattern does and *when* to use each capability
+   - **Recommended order**: Overview → Core Purpose → Architecture Overview (including Serialization Boundary) → Development Guidelines (Three-Phase pattern)
+   - **Key Insight**: The header vs. content envelope is the central architectural concept. Pay special attention to how routing uses the header and how payloads stay domain-pure
+
+3. **Read the Implementation Guide (AGENT.implementation.md)**
+   - **Read** [AGENT.implementation.md](./AGENT.implementation.md)
+   - **Why**: The usage guide describes behavior; the implementation guide describes *how* it works (envelope contract, extended headers, format transforms, serializer contract)
+   - **Focus**: [Header/Content Envelope Model](./AGENT.implementation.md#headercontent-envelope-model), [SubscribedEvents pattern](./AGENT.implementation.md#subscribedevents-pattern), [Type-Safe Routing](./AGENT.implementation.md#type-safe-routing-with-envelope-level-discriminated-unions-and-payload-purity)
+   - **Key Insight**: `subscribedEventTypeGuard` inspects only `header`; `receiveEvents` gets content via `getContentInternal()`. Header is authoritative for routing; content is domain data only
+
+4. **Understand Core Integration Points**
+   - **MessageBus**: [messageBus AGENT.md](../messageBus/AGENT.md) - DataSource subscribes to messageBus with structure guards; the bus stays payload-agnostic via `getContentInternal: () => Promise<unknown>`
+   - **EventBridge contracts**: [mtw-interfaces EventBridge AGENT.implementation.md](../../../mtw-interfaces/ts/eventBridge/AGENT.implementation.md) - Serializers, external formats, and header-authoritative deserialization
+   - **Format transforms**: [formatTransform.ts](./formatTransform.ts) - CoreExternalFormat, base four + extendedHeader split on the wire, context-specific transforms (EventBridge, DynamoDB, SNS, WebSocket)
+   - **Key Insight**: Internal format (in-memory, messageBus) uses merged header; wire format splits extended fields into `extendedHeader`. Consumers always read full `header` after deserialize
+
+5. **Review Implemented Code**
+   - **Core types and contract**: [baseClasses.ts](./baseClasses.ts) - `StreamingEventEnvelope`, `ResolvedStreamingEnvelope`, `DataSourceEventSerializer`, `StreamEventHeaderFragment`
+   - **DataSource implementation**: [index.ts](./index.ts) - `streamEvent` (header fragment, CoreExternalFormat), `subscribe` (structure guard, envelope type guard, `receiveEvents` callback)
+   - **Reference implementations** (subscribedEvents, envelope unions, type guards):
+     - [lambda/wml/dataSource/subscribedEvents.ts](../../../../lambda/wml/dataSource/subscribedEvents.ts) - Canonical reference per implementation doc
+     - [lambda/assets/contentHeaders/subscribedEvents.ts](../../../../lambda/assets/contentHeaders/subscribedEvents.ts) - Extended headers, multiple event types
+     - [lambda/assets/library/subscribedEvents.ts](../../../../lambda/assets/library/subscribedEvents.ts) - Library event union and guards
+
+6. **Determine Your Implementation Goal**
+   - **New DataSource**: Follow the Three-Phase pattern (Phase 1: mtw-interfaces contracts; Phase 2: lambda base class; Phase 3: instantiate DataSource). Use WML or contentHeaders as the reference
+   - **Extending an existing DataSource**: Add event types to the subscribed union, update `subscribedEventTypeGuard`, extend `receiveEvents` with new branches. Use envelope-level type guards for narrowing
+   - **Adding extended headers**: Define extended header type, add `buildHeader` if publishing, pass extended fields in the header fragment to `streamEvent`. See [Extending the header](./AGENT.implementation.md#extending-the-header-type-safe). For a reference implementation that keeps content domain-only (e.g. `RequestIds` in header only), see mtw.wml (lambda/wml/dataSource, packages/mtw-interfaces/ts/eventBridge/wml).
+   - **Serializer changes**: Ensure `serialize`/`deserialize` use `{ content, header }` and route only on `header.type`. Do not branch on `content.type`
+
+7. **Run Tests Before Starting**
+   - **Command** (from repo root): `cd packages/mtw-lambda-patterns && npm run test -- --testPathPattern=dataSource --watchAll=false`
+   - **Expected baseline**: 2 test suites, 74 tests passing (`index.test.ts`, `formatTransform.test.ts`)
+   - **Why**: Establishes a known-good baseline before making changes; DataSource tests cover streamEvent, replay delivery, format transforms, and subscription flow
 
 ### Key Concepts
 - **Domain Authority**: Each data source owns its domain completely across all streams

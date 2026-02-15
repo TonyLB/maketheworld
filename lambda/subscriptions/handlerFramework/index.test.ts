@@ -320,7 +320,7 @@ describe('subscription handlerFramework', () => {
     })
 
     describe('WML subscription library (Content Update and Merge Conflict)', () => {
-        it('should transform Content Update with top-level RequestIds and wml from event.update', async () => {
+        it('should transform Content Update with top-level RequestIds from event.header', async () => {
             connectionDBMock.query.mockResolvedValue([{
                 ConnectionId: 'STREAM#mtw.wml::Content Update::ASSET#test',
                 DataCategory: 'SESSION#S1'
@@ -330,10 +330,10 @@ describe('subscription handlerFramework', () => {
                 dataSourceKey: 'mtw.wml',
                 streamKey: 'ASSET#test',
                 timestamp: 1234567890,
+                header: { dataSourceKey: 'mtw.wml', streamKey: 'ASSET#test', timestamp: 1234567890, type: 'Content Update', RequestIds: ['req-content-1'] },
                 update: {
                     type: 'Content Update',
-                    wml: '<Asset uuid=(a)><Room key=(r) uuid=(r)><Name>R1</Name></Room></Asset>',
-                    RequestIds: ['req-content-1']
+                    wml: '<Asset uuid=(a)><Room key=(r) uuid=(r)><Name>R1</Name></Room></Asset>'
                 }
             }
             const match = subscriptionLibrary.matchEvent(coreEvent as any)
@@ -352,7 +352,7 @@ describe('subscription handlerFramework', () => {
             })
         })
 
-        it('should transform Merge Conflict with top-level RequestIds', async () => {
+        it('should transform Merge Conflict with top-level RequestIds from event.header', async () => {
             connectionDBMock.query.mockResolvedValue([{
                 ConnectionId: 'STREAM#mtw.wml::Merge Conflict::ASSET#test',
                 DataCategory: 'SESSION#S2'
@@ -362,10 +362,10 @@ describe('subscription handlerFramework', () => {
                 dataSourceKey: 'mtw.wml',
                 streamKey: 'ASSET#test',
                 timestamp: 1234567890,
+                header: { dataSourceKey: 'mtw.wml', streamKey: 'ASSET#test', timestamp: 1234567890, type: 'Merge Conflict', RequestIds: ['req-merge-1'] },
                 update: {
                     type: 'Merge Conflict',
-                    error: 'Merge failed',
-                    RequestIds: ['req-merge-1']
+                    error: 'Merge failed'
                 }
             }
             const match = subscriptionLibrary.matchEvent(coreEvent as any)
@@ -384,7 +384,7 @@ describe('subscription handlerFramework', () => {
             })
         })
 
-        it('should use empty RequestIds when event.update.RequestIds is absent', async () => {
+        it('should use empty RequestIds when event.header.RequestIds is absent', async () => {
             connectionDBMock.query.mockResolvedValue([{
                 ConnectionId: 'STREAM#mtw.wml::Content Update::ASSET#test',
                 DataCategory: 'SESSION#S3'
@@ -394,6 +394,7 @@ describe('subscription handlerFramework', () => {
                 dataSourceKey: 'mtw.wml',
                 streamKey: 'ASSET#test',
                 timestamp: 1234567890,
+                header: { dataSourceKey: 'mtw.wml', streamKey: 'ASSET#test', timestamp: 1234567890, type: 'Content Update' },
                 update: {
                     type: 'Content Update',
                     wml: '<Asset uuid=(x) />'

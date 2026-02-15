@@ -26,7 +26,7 @@ import {
     isDiagnosticsEnvelope,
 } from './subscribedEvents'
 
-type StreamEventFn = (params: { update: WMLEventUpdate; streamKey: string; header: { type: string } }) => Promise<void>
+type StreamEventFn = (params: { update: WMLEventUpdate; streamKey: string; header: { type: string; RequestIds?: string[] } }) => Promise<void>
 
 // Single-flight factory for WML edits - ensures sequential processing per asset
 const wmlEditSingleFlight = singleFlightFactory({
@@ -65,12 +65,9 @@ const processApplyEdit = async (
         if (result.success) {
             try {
                 await streamEvent({
-                    update: {
-                        schema: new StandardForm(payload.schema),
-                        RequestIds: payload.RequestId != null ? [payload.RequestId] : []
-                    },
+                    update: { schema: new StandardForm(payload.schema) },
                     streamKey: AssetId,
-                    header: { type: 'Content Update' }
+                    header: { type: 'Content Update', RequestIds: payload.RequestId != null ? [payload.RequestId] : [] }
                 })
             } catch (streamError) {
                 console.error(`Error streaming Content Update event for ${AssetId}:`, streamError)
@@ -78,12 +75,9 @@ const processApplyEdit = async (
         } else {
             try {
                 await streamEvent({
-                    update: {
-                        error: result.error,
-                        RequestIds: payload.RequestId != null ? [payload.RequestId] : []
-                    },
+                    update: { error: result.error },
                     streamKey: AssetId,
-                    header: { type: 'Merge Conflict' }
+                    header: { type: 'Merge Conflict', RequestIds: payload.RequestId != null ? [payload.RequestId] : [] }
                 })
             } catch (streamError) {
                 console.error(`Error streaming Merge Conflict event for ${AssetId}:`, streamError)
