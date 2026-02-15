@@ -155,4 +155,42 @@ describe('app handler', () => {
             expect(mockMessageBus.send).not.toHaveBeenCalled()
         })
     })
+
+    describe('EventBridge messages (single path: fromEventBridgeFormat -> deserialize)', () => {
+        it('should use fromEventBridgeFormat and pass coreFormat.update + header to deserialize, then send StreamingEvent', async () => {
+            const event = {
+                source: 'mtw.assets',
+                'detail-type': 'Asset Decached',
+                detail: {
+                    streamKey: 'ASSET#test-asset',
+                    timestamp: 1600000000000
+                },
+                time: '2020-09-13T12:00:00.000Z'
+            }
+
+            await handler(event, {})
+
+            expect(mockMessageBus.send).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    type: 'StreamingEvent',
+                    dataSourceKey: 'mtw.assets',
+                    streamKey: 'ASSET#test-asset',
+                    header: expect.objectContaining({
+                        dataSourceKey: 'mtw.assets',
+                        streamKey: 'ASSET#test-asset',
+                        type: 'Asset Decached'
+                    })
+                })
+            )
+            const streamingEventCall = mockMessageBus.send.mock.calls.find(
+                (c) => c[0]?.type === 'StreamingEvent'
+            )
+            expect(streamingEventCall).toBeDefined()
+            const payload = streamingEventCall![0] as { type: 'StreamingEvent'; getContentInternal: () => Promise<unknown> }
+            expect(payload.type).toBe('StreamingEvent')
+            expect(payload.getContentInternal).toBeDefined()
+            const content = await payload.getContentInternal()
+            expect(content).toEqual({})
+        })
+    })
 })
