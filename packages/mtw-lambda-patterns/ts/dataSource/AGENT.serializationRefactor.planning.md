@@ -1,0 +1,206 @@
+# DataSource Serialization Boundary Refactor - Planning
+
+**Status**: Planning / in progress across multiple issues and sessions.  
+**Purpose**: Semi-durable tracker for refactoring the DataSource serialization boundary so it is easier to reason about, with clear separation between internal and external representations and consistent authority (header for routing).  
+**When done**: Either delete this file or replace with a short "Refactor completed; see AGENT.md / AGENT.implementation.md" note.
+
+---
+
+## Goals
+
+1. **Stop external representation from leaking** into code on the wrong side of the boundary (subscription matching, DataSource internals, initialize lambda).
+2. **Make "header is authoritative for routing" true everywhere** (including subscriptions), and avoid routing on `content.type` / `update.type`.
+3. **Single path from EventBridge to deserialize**: all lambdas use `fromEventBridgeFormat` and pass `coreFormat.update` + header to deserialize (no raw `event.detail` as content).
+4. **Single place that builds the wire envelope**: confine `CoreExternalFormat` construction to a publisher (or equivalent) so DataSource and initialize do not hand-build it.
+5. **Centralize event contracts**: all event types and serializers in mtw-interfaces (including Coordination); lambdas only import and use them.
+
+---
+
+## Already good: single header representation
+
+We already have a **single header representation** for all places. One type (`StreamingEventHeader` and extended variants like `WMLStreamingEventHeader`) is used for internal (messageBus, receiveEvents, aggregators) and external (serializer params, `CoreExternalFormat.header`). In `streamEvent` we build one `header` and pass it to the serializer, CoreExternalFormat, and the messageBus event; the same object flows to both sides of the boundary. The only "second" representation is wire encoding (EventBridge: Source, DetailType, Detail.streamKey, etc.), which is "one logical header, different layout per transport," not a different in-memory shape. Preserve this: do not introduce separate internal vs external header types or duplicate header construction.
+
+---
+
+## Background (summary)
+
+- **Documentation gap**: DataSource/serialization is harder to reason about than WML/StandardForm; docs admit "Multi-Context Serialization Challenge" and inconsistent authority. See earlier analysis in this chat for doc vs. code gaps.
+- **External leaks**: Subscriptions handlerFramework is typed and implemented in terms of `CoreExternalFormat`; it matches on `update?.type`. DataSource builds `CoreExternalFormat` inside `streamEvent`. Initialize lambda builds `CoreExternalFormat` by hand. Ephemera bypasses `fromEventBridgeFormat` and passes `event.detail` as content to deserialize.
+- **Mixed authority**: Deserializers correctly use only `header.type`; subscription `matchEvent` uses `update?.type`.
+- **Split ownership**: Coordination event contracts live in lambda/wml; others in mtw-interfaces. Wire shape (`CoreExternalFormat`) is known by DataSource, formatTransform, initialize, subscriptions, and lambda handlers.
+
+---
+
+## Envelope-typing (proposed) — typing and authority only
+
+We **propose** adopting **envelope-typing as the rule in our types and code**: header (envelope) is the single source of truth for routing and discrimination; we do not route on `content.type` or `update.type`. This refactor is about **authority and typing**, not about changing what we store or send.
+
+**Out of scope for this refactor:** Changing the **data shape** of what we persist or transmit. We do *not* propose removing `type` from the payload in EventBridge Detail, SNS bodies, DynamoDB records, or subscription client messages. Those wire/stored formats may continue to include `type` in the body for backward compatibility and self-description. Any future "payload domain-only on the wire" change would be a separate, larger change (migration, rollout, contract impact).
+
+**In scope:** (1) **Authority:** Every code path that has access to a header (or envelope) uses it for routing—e.g. `matchEvent` uses `event.header?.type`, not `event.update?.type`. (2) **Building the envelope:** When we construct outbound wire (e.g. EventBridge Detail), we take `type` from the header, not from the payload—even if we then also copy it into the payload for compatibility. (3) **Typing / localizing:** Where it helps, we can type our internal flow as header + content and treat external content as opaque at the boundary; discrimination is by header only. Deserialize already routes only on `header.type`; no change there.
+
+**Current state:** Internal is envelope-typing (header authoritative). Externally we duplicate `type` into the payload so receivers can build the header; some code (e.g. subscription `matchEvent`, client building header) reads `update.type` instead of using an envelope field.
+
+**Proposed direction (no data-shape change):** We use header/envelope for all routing and for populating type when building wire. Payloads may still contain `type`; we simply do not rely on it as the source of truth. One mental model: envelope = authoritative; content may still carry type for wire compatibility.
+
+**Benefits:** Header authoritative everywhere; no dependency on payload type for routing; clearer single source of truth; optional localizing of external types to the boundary (see Findings). No migration or wire-format change required.
+
+---
+
+## Findings: implications of envelope-typing (authority + typing; data-shape out of scope)
+
+Implications for the in-scope refactor (use header for routing and when building wire; no change to stored/sent payload shape). Historical notes about a possible future "payload domain-only on the wire" change are kept briefly where useful but are **out of scope** for this plan.
+
+### Localizing external content types (optional advantage)
+
+With header as the single authority for routing, we can **optionally** localize external content types to serializer (and wire-contract) files so that most code reasons only about internal types. Discrimination would be by header only; the only code that must "understand" external content shape is the serializer and deserialize. DataSource can stay generic over an opaque external type; client could treat the incoming message as opaque and pass it to deserialize. **Current complication:** Today external types are used in lambdas (DataSource generic params), subscription module (message union, type guards), and client slice types. The refactor (authority only, no data-shape change) still allows us to prefer header for discrimination and reduce reliance on payload type in our types and guards where we have header available.
+
+### Audit: receivers that use payload type
+
+Every place that uses payload type has the full envelope or the payload; we currently put type in the payload for SNS Feedback, DynamoDB, and subscription client message. **In scope:** subscription `matchEvent` has CoreExternalFormat (including header) but reads `update?.type`; we change it to use `event.header?.type`. Other receivers (fromSNSFeedbackFormat, fromDynamoDBFormat, client) continue to derive type from the payload as today—we are not changing those wire formats.
+
+### Format transform (mtw-lambda-patterns/ts/dataSource/formatTransform.ts)
+
+- **In scope:** **toEventBridgeFormat** should take `type` from `coreFormat.header.type` (not from `update`) when setting `DetailType`. We may still copy type into the Detail body for compatibility; the change is "authority" (header is the source when building). **fromEventBridgeFormat** already builds header from DetailType; no change required. Other toX/fromX: when we have a header, use it; when we only have payload (e.g. SNS Feedback, DynamoDB replay), we continue to derive type from payload as today.
+- **Out of scope:** Changing Detail body, SNS body, or DynamoDB record to remove `type` from the payload; adding envelope-level `type` to SNS/WebSocket/DynamoDB.
+
+### Serializers (mtw-interfaces/ts/eventBridge, lambda/wml coordinationSerializer)
+
+- **In scope:** Callers that build wire (e.g. publisher, toEventBridgeFormat) get `type` from header when building the envelope; they do not rely on serialize output containing `type`. **deserialize** already routes only on `header.type`; no change.
+- **Out of scope:** Changing serialize to return only domain fields; changing external type definitions to drop `type` from content. Serializer output and external types may continue to include `type` for wire compatibility.
+
+### EventBridge / Detail shape
+
+- **In scope:** When building Detail, we set DetailType from header (not from update). We may still include `type` in the Detail body; the change is where we *get* the value (header).
+- **Out of scope:** Removing `type` from the Detail body. Receiving path already uses DetailType for header; no change.
+
+### Subscriptions (handlerFramework, client message)
+
+- **In scope:** **matchEvent (baseClasses.ts)** should use envelope/header for routing: e.g. `event.header?.type` (or equivalent) instead of `event.update?.type`. CoreExternalFormat already has a header; we just stop reading type from update.
+- **Out of scope:** Changing SubscriptionClientMessage shape (e.g. adding top-level `type`, making `update` domain-only). Transforms and client continue to use current message shape; client may still build header from `update.type` where the message has no envelope-level type.
+
+### Client (charcoal-client dataSource slice)
+
+- **In scope:** No change required if subscription message shape is unchanged. Client continues to build header from `update.type` when the message has no envelope-level type. Reducers already use `header.type` once header is built.
+- **Out of scope:** Adding envelope-level `type` to the subscription message and changing the client to use it.
+
+### SNS Feedback / WebSocket / DynamoDB
+
+- **In scope:** When building outbound messages/records, use header for `type` when we have it (same authority rule). When reading (fromSNSFeedbackFormat, fromDynamoDBFormat), we continue to derive type from the payload as today if there is no envelope-level type.
+- **Out of scope:** Changing SNS, WebSocket, or DynamoDB payload/record shape (e.g. adding envelope-level `type`, removing `type` from `update`).
+
+### External / legacy consumers
+
+- **Out of scope:** We are not changing the wire contract, so existing consumers that expect `type` in the body are unaffected.
+
+### Remaining questions (minimal; no data-shape change)
+
+- **Tests:** Ensure changes (e.g. matchEvent using header, toEventBridgeFormat taking type from header) are covered so regressions are caught. No migration or rollout coordination required for this refactor.
+
+### Summary (in scope vs out of scope)
+
+| Layer | In scope (authority + typing) | Out of scope (data-shape) |
+|-------|------------------------------|----------------------------|
+| toEventBridgeFormat | Get type from header when setting DetailType | Removing type from Detail body |
+| matchEvent | Use `event.header?.type`, not `event.update?.type` | Changing subscription message shape |
+| Serializer / CoreExternalFormat | Callers use header for type when building wire | Serialize return shape; update type in content |
+| Subscription client message | No change (or optional: prefer header when present) | Top-level type; update domain-only |
+| SNS / DynamoDB / client | Use header when building; keep current read path | Envelope-level type; payload domain-only |
+
+---
+
+## Refactor work items
+
+Use the checkboxes and "Status" lines to track progress. Add GitHub issue numbers or PR links when created.
+
+### 1. Single path: EventBridge -> deserialize
+
+- [ ] **1a. Ephemera uses fromEventBridgeFormat**  
+  - **What**: In `lambda/ephemera/app.ts`, use `fromEventBridgeFormat(event)` and pass `coreFormat.update` and a header derived from `coreFormat` (and `event["detail-type"]`) to `deserialize`. Stop passing `event.detail` as content.  
+  - **Status**:  
+  - **Depends on**: None.  
+  - **Files**: `lambda/ephemera/app.ts`, ephemera deserializer usage.
+
+### 2. Subscription framework: match on header only
+
+- [ ] **2a. matchEvent uses header-only envelope**  
+  - **What**: Change `SubscriptionLibrary.matchEvent` (and any callers) so matching uses only header-like fields: `dataSourceKey`, `type`, `streamKey` (and optionally `timestamp`). Obtain `type` from the envelope (e.g. `coreFormat` after `fromEventBridgeFormat`, or a dedicated header object), not from `event.update?.type`. The full event can still be `CoreExternalFormat` when passed to `transform` and `publish`.  
+  - **Status**:  
+  - **Depends on**: None (can be done independently).  
+  - **Files**: `lambda/subscriptions/handlerFramework/baseClasses.ts` (e.g. `matchEvent`), any tests that assert on matching behavior.
+
+### 3. Envelope-typing — authority and typing only (proposed; data-shape change out of scope)
+
+*Placed here (before publisher and contracts) because it has no dependency on 4–6 and establishes "header is authoritative" early; the rest of the refactor then builds on that rule.*
+
+- [ ] **3a. matchEvent uses header only** — SubscriptionLibrary.matchEvent uses `event.header?.type` (or equivalent) for routing, not `event.update?.type`. Same change as 2a; can be done as part of 2a or tracked here.
+- [ ] **3b. toEventBridgeFormat uses header for type** — When building EventBridge Detail, take `type` from `coreFormat.header.type` (not from `update`) for DetailType. May still copy type into Detail body. No dependency on publisher (4); coreFormat already has header.
+- [ ] **3c. (Optional) Localize external types** — Where it helps, treat external content as opaque at the boundary and discriminate only by header; reduce reliance on payload type in types/guards. See Findings "Localizing external content types."
+- [ ] **3d. Tests** — Cover matchEvent and toEventBridgeFormat behavior so regressions are caught.
+- **Explicitly out of scope:** Changing wire/stored data shape (removing type from payloads in EventBridge, SNS, DynamoDB, subscription message); serializer return shape; migration or rollout coordination.
+
+### 4. Confine CoreExternalFormat construction (publisher)
+
+- [ ] **4a. Introduce a publisher abstraction**  
+  - **What**: Add a small component (e.g. `StreamEventPublisher` or a function in a dedicated module) that takes `(header, internalUpdate)` and optional `eventSerializer`, calls `serializer.serialize({ content, header })`, builds `CoreExternalFormat`, then calls `toEventBridgeFormat` / `toDynamoDBFormat` and performs send/store. Define where this lives (e.g. in mtw-lambda-patterns/ts/dataSource or next to formatTransform).  
+  - **Status**:  
+  - **Depends on**: None (design decision: new file vs. extend existing).
+
+- [ ] **4b. DataSource.streamEvent uses publisher**  
+  - **What**: Refactor `DataSource.streamEvent` so it only builds the header and invokes the publisher with `(header, update)`. DataSource no longer constructs `CoreExternalFormat` or calls `toEventBridgeFormat`/`toDynamoDBFormat` directly.  
+  - **Status**:  
+  - **Depends on**: 4a.
+
+- [ ] **4c. Initialize lambda uses publisher**  
+  - **What**: Replace manual `CoreExternalFormat` construction in `lambda/initialize/app.ts` with a call to the same publisher (or a helper that uses it), so the diagnostics event is built in one place.  
+  - **Status**:  
+  - **Depends on**: 4a.
+
+### 5. Event contracts in mtw-interfaces
+
+- [ ] **5a. Move Coordination event contracts to mtw-interfaces**  
+  - **What**: Move Coordination event types (e.g. `CoordinationCanonizeEventExternal`, `CoordinationEventExternal`, etc.) and `CoordinationEventSerializer` from `lambda/wml/dataSource/coordinationSerializer.ts` to a suitable module under `packages/mtw-interfaces/ts/eventBridge/` (e.g. `coordination` or under `wml` if that fits). Update lambda/wml to import from `@tonylb/mtw-interfaces/ts/eventBridge/...`.  
+  - **Status**:  
+  - **Depends on**: None (can be done independently; may want a single PR with 5b).  
+  - **Files**: New or existing file in mtw-interfaces; `lambda/wml/dataSource/coordinationSerializer.ts` (delete or re-export); `lambda/wml/app.ts`, `lambda/wml/dataSource/mtw-wml.ts`, tests.
+
+- [ ] **5b. Update EventBridge AGENT.implementation.md contract**  
+  - **What**: Fix the documented serializer contract in `packages/mtw-interfaces/ts/eventBridge/AGENT.implementation.md` so the only signature shown is `{ content, header }` (remove the old `dataSourceKey`, `streamKey`, `update`/`externalUpdate` code blocks).  
+  - **Status**:  
+  - **Depends on**: None.
+
+### 6. Documentation improvements (parallel track)
+
+- [ ] **6a. Single "Serialization data flow" section**  
+  - **What**: Add a section (e.g. in AGENT.implementation.md) that spells out the full pipeline: outbound (internal update -> streamEvent -> serializer -> CoreExternalFormat -> toEventBridgeFormat -> EventBridge) and inbound (EventBridge -> fromEventBridgeFormat -> header + coreFormat.update -> deserialize -> internal -> messageBus). Match the actual code and formatTransform.  
+  - **Status**:  
+  - **Depends on**: Optional; can be done anytime.
+
+- [ ] **6b. Division of responsibility for serialization boundary**  
+  - **What**: Add a short "Division of responsibility" (or equivalent) that states who builds the header, who builds the wire envelope, and who routes on what. With envelope-typing (authority only), document that header is authoritative for routing; payload may still carry `type` for wire compatibility.  
+  - **Status**:  
+  - **Depends on**: Optional; can be done anytime.
+
+---
+
+## Suggested ordering
+
+- **Early / quick wins (header authoritative first)**: 1a (Ephemera path), 2a (matchEvent on header), 3a (same as 2a), 3b (toEventBridgeFormat uses header for type), 3d (tests). Then 5a+5b (Coordination move + doc fix). Doing 3 before 4–6 establishes the authority rule with no new abstractions; publisher and docs can follow.
+- **Publisher refactor**: 4a -> 4b -> 4c (introduce publisher, then DataSource, then initialize).
+- **Docs**: 6a and 6b can proceed in parallel with any of the above.
+- **Optional later**: 3c (localize external types) as needed.
+
+---
+
+## References
+
+- This directory: [AGENT.md](./AGENT.md), [AGENT.implementation.md](./AGENT.implementation.md).
+- Format and types: [formatTransform.ts](./formatTransform.ts), [baseClasses.ts](./baseClasses.ts), [index.ts](./index.ts).
+- Event contracts: [mtw-interfaces/ts/eventBridge/AGENT.implementation.md](../../../mtw-interfaces/ts/eventBridge/AGENT.implementation.md).
+- Subscriptions: [lambda/subscriptions/handlerFramework/baseClasses.ts](../../../../lambda/subscriptions/handlerFramework/baseClasses.ts), [lambda/subscriptions/AGENT.md](../../../../lambda/subscriptions/AGENT.md).
+- Lambda handlers (inbound path): `lambda/wml/app.ts`, `lambda/assets/app.ts`, `lambda/ephemera/app.ts`.
+- Initialize (outbound): `lambda/initialize/app.ts`.
+
+---
+
+*Last updated: data-shape change explicitly out of scope; envelope-typing reframed as authority and typing only (no change to wire/stored payload). Findings and track 6 updated accordingly; no migration or rollout required.*
