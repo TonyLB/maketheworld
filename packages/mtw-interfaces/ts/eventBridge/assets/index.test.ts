@@ -45,7 +45,6 @@ describe('AssetsEventSerializer', () => {
             `))
 
             const componentEvent: ComponentUpdatedEvent = {
-                type: 'Component Updated',
                 component: character
             }
 
@@ -82,7 +81,7 @@ describe('AssetsEventSerializer', () => {
             })
 
             expect(internalEvent).not.toBeNull()
-            expect(internalEvent!.type).toBe('Component Updated')
+            expect(isAssetsComponentUpdatedEvent(internalEvent!)).toBe(true)
             if (isAssetsComponentUpdatedEvent(internalEvent!)) {
                 expect(internalEvent.component.universalKey).toBe('CHARACTER#testcharacter')
                 expect(internalEvent.component).toBeInstanceOf(StandardCharacter)
@@ -97,7 +96,6 @@ describe('AssetsEventSerializer', () => {
             `))
 
             const originalEvent: ComponentUpdatedEvent = {
-                type: 'Component Updated',
                 component: originalCharacter
             }
 
@@ -130,7 +128,6 @@ describe('AssetsEventSerializer', () => {
             `))
 
             const componentEvent: ComponentRemovedEvent = {
-                type: 'Component Removed',
                 component: character
             }
 
@@ -167,7 +164,7 @@ describe('AssetsEventSerializer', () => {
             })
 
             expect(internalEvent).not.toBeNull()
-            expect(internalEvent!.type).toBe('Component Removed')
+            expect(isAssetsComponentRemovedEvent(internalEvent!)).toBe(true)
             if (isAssetsComponentRemovedEvent(internalEvent!)) {
                 expect(internalEvent.component.universalKey).toBe('CHARACTER#testcharacter')
                 expect(internalEvent.component).toBeInstanceOf(StandardCharacter)
@@ -182,7 +179,6 @@ describe('AssetsEventSerializer', () => {
             `))
 
             const originalEvent: ComponentRemovedEvent = {
-                type: 'Component Removed',
                 component: originalCharacter
             }
 
@@ -211,7 +207,6 @@ describe('AssetsEventSerializer', () => {
     describe('Asset Level Events', () => {
         it('should serialize Asset Cached event (pass-through)', () => {
             const assetEvent: AssetLevelEventUpdate = {
-                type: 'Asset Cached',
                 zone: 'Canon'
             }
 
@@ -227,9 +222,7 @@ describe('AssetsEventSerializer', () => {
         })
 
         it('should serialize Asset Decached event (pass-through)', () => {
-            const assetEvent: AssetLevelEventUpdate = {
-                type: 'Asset Decached'
-            }
+            const assetEvent: AssetLevelEventUpdate = {}
 
             const externalEvent = serializer.serialize({
                 content: assetEvent,
@@ -241,7 +234,6 @@ describe('AssetsEventSerializer', () => {
 
         it('should serialize Asset Removed event (pass-through)', () => {
             const assetEvent: AssetLevelEventUpdate = {
-                type: 'Asset Removed',
                 zone: 'Canon'
             }
 
@@ -258,7 +250,6 @@ describe('AssetsEventSerializer', () => {
 
         it('should serialize Canon Updated event (pass-through)', () => {
             const assetEvent: AssetLevelEventUpdate = {
-                type: 'Canon Updated',
                 assetIds: ['ASSET#test-asset']
             }
 
@@ -285,16 +276,11 @@ describe('AssetsEventSerializer', () => {
             })
 
             expect(internalEvent).not.toBeNull()
-            expect(internalEvent!.type).toBe('Asset Cached')
-            if (internalEvent!.type === 'Asset Cached') {
-                const assetEvent = internalEvent as AssetCachedEventUpdate
-                expect(assetEvent.zone).toBe('Canon')
-            }
+            expect((internalEvent as AssetCachedEventUpdate).zone).toBe('Canon')
         })
 
         it('should handle Asset Level round-trip correctly', () => {
             const originalEvent: AssetLevelEventUpdate = {
-                type: 'Asset Cached',
                 zone: 'Canon'
             }
 
@@ -312,11 +298,7 @@ describe('AssetsEventSerializer', () => {
 
             // Verify the event is preserved
             expect(deserializedEvent).not.toBeNull()
-            expect(deserializedEvent!.type).toBe('Asset Cached')
-            if (deserializedEvent!.type === 'Asset Cached') {
-                const assetEvent = deserializedEvent as AssetCachedEventUpdate
-                expect(assetEvent.zone).toBe('Canon')
-            }
+            expect((deserializedEvent as AssetCachedEventUpdate).zone).toBe('Canon')
         })
     })
 
@@ -338,7 +320,7 @@ describe('AssetsEventSerializer', () => {
             })
 
             expect(internalEvent).not.toBeNull()
-            expect(internalEvent!.type).toBe('Component Removed')
+            expect(isAssetsComponentRemovedEvent(internalEvent!)).toBe(true)
             if (isAssetsComponentRemovedEvent(internalEvent!)) {
                 expect(internalEvent.component.universalKey).toBe('CHARACTER#testcharacter')
             }
@@ -430,7 +412,6 @@ describe('AssetsEventSerializer', () => {
                 `))
 
                 const event = {
-                    type: 'Component Updated',
                     component: character
                 }
 
@@ -447,7 +428,6 @@ describe('AssetsEventSerializer', () => {
                 `))
 
                 const event = {
-                    type: 'Component Removed',
                     component: character
                 }
 
@@ -466,7 +446,6 @@ describe('AssetsEventSerializer', () => {
         describe('isAssetsLevelEvent', () => {
             it('should return true for asset level events', () => {
                 const assetEvent: AssetLevelEventUpdate = {
-                    type: 'Asset Cached',
                     zone: 'Canon'
                 }
 
@@ -475,7 +454,6 @@ describe('AssetsEventSerializer', () => {
 
             it('should return false for component events', () => {
                 const componentEvent: ComponentUpdatedEvent = {
-                    type: 'Component Updated',
                     component: new StandardCharacter(deIndentWML(`
                         <Character key=(testcharacter) uuid=(testcharacter)>
                             <DisplayName>Test Character</DisplayName>

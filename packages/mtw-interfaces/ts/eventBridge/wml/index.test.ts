@@ -32,8 +32,7 @@ describe('WMLEventSerializer', () => {
             const standardForm = new StandardForm(deIndentWML(`
                 <Asset uuid=(test-asset)>
                     <Room key=(testroom) uuid=(testroom)>
-                        <Name>Test Room</Name>
-                        <Description>A test room for testing purposes</Description>
+                        <ShortName>Test Room</ShortName>
                     </Room>
                 </Asset>
             `))
@@ -55,8 +54,7 @@ describe('WMLEventSerializer', () => {
             const wmlString = deIndentWML(`
                 <Asset uuid=(test-asset)>
                     <Room key=(testroom) uuid=(testroom)>
-                        <Name>Test Room</Name>
-                        <Description>A test room for testing purposes</Description>
+                        <ShortName>Test Room</ShortName>
                     </Room>
                 </Asset>
             `)
@@ -83,8 +81,7 @@ describe('WMLEventSerializer', () => {
             const originalForm = new StandardForm(deIndentWML(`
                 <Asset uuid=(test-asset)>
                     <Room key=(testroom) uuid=(testroom)>
-                        <Name>Test Room</Name>
-                        <Description>A test room for testing purposes</Description>
+                        <ShortName>Test Room</ShortName>
                     </Room>
                 </Asset>
             `))
@@ -112,7 +109,7 @@ describe('WMLEventSerializer', () => {
         it('should include RequestIds in serialized Content Update when present', () => {
             const standardForm = new StandardForm(deIndentWML(`
                 <Asset uuid=(test-asset)>
-                    <Room key=(room1) uuid=(room1)><Name>R1</Name></Room>
+                    <Room key=(room1) uuid=(room1)><ShortName>R1</ShortName></Room>
                 </Asset>
             `))
             const contentEvent: WMLEventUpdate = {
@@ -129,7 +126,7 @@ describe('WMLEventSerializer', () => {
         it('should preserve RequestIds when deserializing Content Update', () => {
             const wmlString = deIndentWML(`
                 <Asset uuid=(test-asset)>
-                    <Room key=(room1) uuid=(room1)><Name>R1</Name></Room>
+                    <Room key=(room1) uuid=(room1)><ShortName>R1</ShortName></Room>
                 </Asset>
             `)
             const externalEvent: WMLEventExternal = {
@@ -150,7 +147,7 @@ describe('WMLEventSerializer', () => {
         it('should round-trip Content Update with RequestIds', () => {
             const standardForm = new StandardForm(deIndentWML(`
                 <Asset uuid=(test-asset)>
-                    <Room key=(room1) uuid=(room1)><Name>R1</Name></Room>
+                    <Room key=(room1) uuid=(room1)><ShortName>R1</ShortName></Room>
                 </Asset>
             `))
             const contentEvent: WMLEventUpdate = {

@@ -27,14 +27,13 @@ describe('EphemeraEventSerializer', () => {
     describe('Pass-through Serialization', () => {
         it('should serialize events as pass-through', () => {
             const eventPayload: EventPayload = {
-                type: 'Test Event',
                 data: { test: 'value' },
                 timestamp: Date.now()
             }
 
             const externalEvent = serializer.serialize({
                 content: eventPayload,
-                header: ephemeraHeader(eventPayload.type)
+                header: ephemeraHeader('Test Event')
             })
 
             expect(externalEvent).toEqual(eventPayload)
@@ -42,14 +41,13 @@ describe('EphemeraEventSerializer', () => {
 
         it('should deserialize events as pass-through', () => {
             const eventPayload: EventPayload = {
-                type: 'Test Event',
                 data: { test: 'value' },
                 timestamp: Date.now()
             }
 
             const internalEvent = serializer.deserialize({
                 content: eventPayload,
-                header: ephemeraHeader(eventPayload.type)
+                header: ephemeraHeader('Test Event')
             })
 
             expect(internalEvent).toEqual(eventPayload)
@@ -57,7 +55,6 @@ describe('EphemeraEventSerializer', () => {
 
         it('should handle round-trip serialization correctly', () => {
             const originalPayload: EventPayload = {
-                type: 'Test Event',
                 data: { test: 'value', nested: { key: 'value' } },
                 timestamp: Date.now()
             }
@@ -65,13 +62,13 @@ describe('EphemeraEventSerializer', () => {
             // Serialize to external format
             const externalEvent = serializer.serialize({
                 content: originalPayload,
-                header: ephemeraHeader(originalPayload.type)
+                header: ephemeraHeader('Test Event')
             })
 
             // Deserialize back to internal format
             const deserializedEvent = serializer.deserialize({
                 content: externalEvent,
-                header: ephemeraHeader(externalEvent.type)
+                header: ephemeraHeader('Test Event')
             })
 
             // Verify the event is preserved exactly
@@ -89,7 +86,6 @@ describe('EphemeraEventSerializer', () => {
 
         it('should handle complex event payloads', () => {
             const complexPayload: EventPayload = {
-                type: 'Complex Event',
                 data: {
                     array: [1, 2, 3],
                     object: { nested: { deeply: { value: 'test' } } },
@@ -102,7 +98,7 @@ describe('EphemeraEventSerializer', () => {
 
             const externalEvent = serializer.serialize({
                 content: complexPayload,
-                header: ephemeraHeader(complexPayload.type)
+                header: ephemeraHeader('Complex Event')
             })
 
             expect(externalEvent).toEqual(complexPayload)
