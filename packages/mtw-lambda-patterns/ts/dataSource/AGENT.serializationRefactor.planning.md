@@ -115,9 +115,9 @@ Use the checkboxes and "Status" lines to track progress. Add GitHub issue number
 
 ### 1. Single path: EventBridge -> deserialize
 
-- [ ] **1a. Ephemera uses fromEventBridgeFormat**  
+- [x] **1a. Ephemera uses fromEventBridgeFormat**  
   - **What**: In `lambda/ephemera/app.ts`, use `fromEventBridgeFormat(event)` and pass `coreFormat.update` and a header derived from `coreFormat` (and `event["detail-type"]`) to `deserialize`. Stop passing `event.detail` as content.  
-  - **Status**:  
+  - **Status**: Done.  
   - **Depends on**: None.  
   - **Files**: `lambda/ephemera/app.ts`, ephemera deserializer usage.
 
