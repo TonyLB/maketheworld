@@ -10,45 +10,38 @@ import { standardComponentFactory } from '@tonylb/mtw-wml/ts/standardize/compone
 import { nodeFromWML } from '@tonylb/mtw-wml/ts/schema'
 import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
 
-// Internal types for component events (using StandardComponent objects)
+// Internal types for component events (no type; discrimination by header)
 export type ComponentEventUpdate = ComponentUpdatedEvent | ComponentRemovedEvent
 
 export type ComponentUpdatedEvent = {
-    type: 'Component Updated'
-    component: StandardComponent // The actual component object for internal processing
+    component: StandardComponent
 }
 
 export type ComponentRemovedEvent = {
-    type: 'Component Removed'
-    component: StandardComponent // The component being removed from the asset
+    component: StandardComponent
 }
 
-// Type guards for component events
+// Type guards for component events (shape-based)
 export const isComponentUpdatedEvent = (event: ComponentEventUpdate): event is ComponentUpdatedEvent => {
-    return event.type === 'Component Updated'
+    return 'component' in event && isStandardComponent((event as any).component)
 }
 
 export const isComponentRemovedEvent = (event: ComponentEventUpdate): event is ComponentRemovedEvent => {
-    return event.type === 'Component Removed'
+    return 'component' in event && isStandardComponent((event as any).component)
 }
 
-// Type guards for assets events (full union type)
 export const isAssetsComponentUpdatedEvent = (event: any): event is ComponentUpdatedEvent => {
     return event != null &&
         typeof event === 'object' &&
-        'type' in event &&
-        event.type === 'Component Updated'
-        && 'component' in event
-        && isStandardComponent(event.component)
+        'component' in event &&
+        isStandardComponent(event.component)
 }
 
 export const isAssetsComponentRemovedEvent = (event: any): event is ComponentRemovedEvent => {
     return event != null &&
         typeof event === 'object' &&
-        'type' in event &&
-        event.type === 'Component Removed'
-        && 'component' in event
-        && isStandardComponent(event.component)
+        'component' in event &&
+        isStandardComponent(event.component)
 }
 
 export const isAssetsComponentEvent = (event: any): event is ComponentEventUpdate => {
@@ -56,38 +49,39 @@ export const isAssetsComponentEvent = (event: any): event is ComponentEventUpdat
 }
 
 export const isAssetsLevelEvent = (event: AssetsEventUpdate): event is AssetLevelEventUpdate => {
-    return 'type' in event && ['Asset Added', 'Asset Cached', 'Asset Decached', 'Asset Removed', 'Canon Updated', 'Zone Updated', 'Asset Updated'].includes(event.type)
+    return isAssetAddedEvent(event) || isAssetCachedEvent(event) || isAssetDecachedEvent(event) ||
+        isAssetRemovedEvent(event) || isCanonUpdatedEvent(event) || isZoneUpdatedEvent(event) || isAssetUpdatedEvent(event)
 }
 
-// Specific type guards for each asset-level event type
+// Specific type guards for each asset-level event type (shape-based; zone-only events share shape, use header to discriminate)
 export const isAssetAddedEvent = (event: any): event is AssetAddedEventUpdate => {
-    return event?.type === 'Asset Added' && typeof event.zone === 'string'
+    return event != null && typeof event === 'object' && typeof event.zone === 'string' && !('fromZone' in event) && !('assetIds' in event) && !('standardForm' in event)
 }
 
 export const isAssetCachedEvent = (event: any): event is AssetCachedEventUpdate => {
-    return event?.type === 'Asset Cached' && typeof event.zone === 'string'
+    return event != null && typeof event === 'object' && typeof event.zone === 'string' && !('fromZone' in event) && !('assetIds' in event) && !('standardForm' in event)
 }
 
 export const isAssetDecachedEvent = (event: any): event is AssetDecachedEventUpdate => {
-    return event?.type === 'Asset Decached'
+    return event != null && typeof event === 'object' && !('zone' in event) && !('fromZone' in event) && !('assetIds' in event) && !('standardForm' in event) && !('component' in event)
 }
 
 export const isAssetRemovedEvent = (event: any): event is AssetRemovedEventUpdate => {
-    return event?.type === 'Asset Removed' && typeof event.zone === 'string'
+    return event != null && typeof event === 'object' && typeof event.zone === 'string' && !('fromZone' in event) && !('assetIds' in event) && !('standardForm' in event)
 }
 
 export const isCanonUpdatedEvent = (event: any): event is CanonUpdatedEventUpdate => {
-    return event?.type === 'Canon Updated' && Array.isArray(event.assetIds)
+    return event != null && typeof event === 'object' && Array.isArray(event.assetIds)
 }
 
 export const isZoneUpdatedEvent = (event: any): event is ZoneUpdatedEventUpdate => {
-    return event?.type === 'Zone Updated' && 
-           typeof event.fromZone === 'string' && 
+    return event != null && typeof event === 'object' &&
+           typeof event.fromZone === 'string' &&
            typeof event.toZone === 'string'
 }
 
 export const isAssetUpdatedEvent = (event: any): event is AssetUpdatedEventUpdate => {
-    return event?.type === 'Asset Updated' && event.standardForm instanceof StandardForm
+    return event != null && typeof event === 'object' && event.standardForm instanceof StandardForm
 }
 
 export type ComponentEventExternal = ComponentUpdatedEventExternal | ComponentRemovedEventExternal
@@ -107,46 +101,37 @@ export type ComponentRemovedEventExternal = {
 // Union type for all internal event updates in mtw.assets
 export type AssetsEventUpdate = ComponentEventUpdate | AssetLevelEventUpdate
 
-// Specific asset-level event types (non-component events)
-// Note: assetId is available via streamKey, so we don't duplicate it in the payload
+// Specific asset-level event types (internal: no type; discrimination by header)
 export type AssetAddedEventUpdate = {
-    type: 'Asset Added'
     zone: string
-    player?: string  // Present for Personal and Draft zones
+    player?: string
 }
 
 export type AssetCachedEventUpdate = {
-    type: 'Asset Cached'
     zone: string
     wml?: string
 }
 
-export type AssetDecachedEventUpdate = {
-    type: 'Asset Decached'
-}
+export type AssetDecachedEventUpdate = Record<string, never>
 
 export type AssetRemovedEventUpdate = {
-    type: 'Asset Removed'
     zone: string
-    player?: string  // Present for Personal and Draft zones
+    player?: string
 }
 
 export type CanonUpdatedEventUpdate = {
-    type: 'Canon Updated'
     assetIds: string[]
 }
 
 export type ZoneUpdatedEventUpdate = {
-    type: 'Zone Updated'
     fromZone: string
     toZone: string
-    player?: string  // Present for Personal and Draft zones (in fromZone or toZone)
+    player?: string
 }
 
 export type AssetUpdatedEventUpdate = {
-    type: 'Asset Updated'
     standardForm: StandardForm
-    player?: string  // Present for Personal and Draft zones
+    player?: string
 }
 
 // Union type for all asset-level event updates
@@ -269,19 +254,19 @@ export class AssetsEventSerializer implements DataSourceEventSerializer<AssetsEv
     serialize(params: AssetsSerializeParams): AssetsEventExternal {
         if (isComponentUpdatedAssetsSerializeParams(params)) {
             const { content } = params
-            const base = {
+            return {
+                type: 'Component Updated',
                 componentId: content.component.universalKey || '',
                 wml: schemaToWML([content.component.schema])
             }
-            return { type: 'Component Updated', ...base }
         }
         if (isComponentRemovedAssetsSerializeParams(params)) {
             const { content } = params
-            const base = {
+            return {
+                type: 'Component Removed',
                 componentId: content.component.universalKey || '',
                 wml: schemaToWML([content.component.schema])
             }
-            return { type: 'Component Removed', ...base }
         }
         if (isAssetUpdatedAssetsSerializeParams(params)) {
             const { content } = params
@@ -291,12 +276,27 @@ export class AssetsEventSerializer implements DataSourceEventSerializer<AssetsEv
                 ...(content.player ? { player: content.player } : {})
             }
         }
-        if (isAssetAddedAssetsSerializeParams(params)) return params.content
-        if (isAssetCachedAssetsSerializeParams(params)) return params.content
-        if (isAssetDecachedAssetsSerializeParams(params)) return params.content
-        if (isAssetRemovedAssetsSerializeParams(params)) return params.content
-        if (isCanonUpdatedAssetsSerializeParams(params)) return params.content
-        if (isZoneUpdatedAssetsSerializeParams(params)) return params.content
+        if (isAssetAddedAssetsSerializeParams(params)) {
+            const { content } = params
+            return { type: 'Asset Added', zone: content.zone, ...(content.player != null ? { player: content.player } : {}) }
+        }
+        if (isAssetCachedAssetsSerializeParams(params)) {
+            const { content } = params
+            return { type: 'Asset Cached', zone: content.zone, ...(content.wml != null ? { wml: content.wml } : {}) }
+        }
+        if (isAssetDecachedAssetsSerializeParams(params)) return { type: 'Asset Decached' }
+        if (isAssetRemovedAssetsSerializeParams(params)) {
+            const { content } = params
+            return { type: 'Asset Removed', zone: content.zone, ...(content.player != null ? { player: content.player } : {}) }
+        }
+        if (isCanonUpdatedAssetsSerializeParams(params)) {
+            const { content } = params
+            return { type: 'Canon Updated', assetIds: content.assetIds }
+        }
+        if (isZoneUpdatedAssetsSerializeParams(params)) {
+            const { content } = params
+            return { type: 'Zone Updated', fromZone: content.fromZone, toZone: content.toZone, ...(content.player != null ? { player: content.player } : {}) }
+        }
         throw new Error(`Unknown event type in AssetsEventUpdate: ${params.header.type}`)
     }
 
@@ -304,31 +304,43 @@ export class AssetsEventSerializer implements DataSourceEventSerializer<AssetsEv
         if (isComponentUpdatedAssetsDeserializeParams(params)) {
             const { content } = params
             return {
-                type: 'Component Updated',
                 component: this.parseWMLToComponent(content.wml, content.componentId)
             }
         }
         if (isComponentRemovedAssetsDeserializeParams(params)) {
             const { content } = params
             return {
-                type: 'Component Removed',
                 component: this.parseWMLToComponent(content.wml, content.componentId)
             }
         }
         if (isAssetUpdatedAssetsDeserializeParams(params)) {
             const { content } = params
             return {
-                type: 'Asset Updated',
                 standardForm: new StandardForm(content.wml),
                 ...(content.player ? { player: content.player } : {})
             }
         }
-        if (isAssetAddedAssetsDeserializeParams(params)) return params.content
-        if (isAssetCachedAssetsDeserializeParams(params)) return params.content
-        if (isAssetDecachedAssetsDeserializeParams(params)) return params.content
-        if (isAssetRemovedAssetsDeserializeParams(params)) return params.content
-        if (isCanonUpdatedAssetsDeserializeParams(params)) return params.content
-        if (isZoneUpdatedAssetsDeserializeParams(params)) return params.content
+        if (isAssetAddedAssetsDeserializeParams(params)) {
+            const { content } = params
+            return { zone: content.zone, ...(content.player != null ? { player: content.player } : {}) }
+        }
+        if (isAssetCachedAssetsDeserializeParams(params)) {
+            const { content } = params
+            return { zone: content.zone, ...(content.wml != null ? { wml: content.wml } : {}) }
+        }
+        if (isAssetDecachedAssetsDeserializeParams(params)) return {}
+        if (isAssetRemovedAssetsDeserializeParams(params)) {
+            const { content } = params
+            return { zone: content.zone, ...(content.player != null ? { player: content.player } : {}) }
+        }
+        if (isCanonUpdatedAssetsDeserializeParams(params)) {
+            const { content } = params
+            return { assetIds: content.assetIds }
+        }
+        if (isZoneUpdatedAssetsDeserializeParams(params)) {
+            const { content } = params
+            return { fromZone: content.fromZone, toZone: content.toZone, ...(content.player != null ? { player: content.player } : {}) }
+        }
         return null
     }
     

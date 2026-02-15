@@ -8,31 +8,26 @@ import { AggregationResult, DataSourceAggregator } from '@tonylb/mtw-lambda-patt
 import { SerializableObject, EventPayload, StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import type { ResolvedStreamingEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 
-// Internal types for library events
+// Internal types for library events (no type; discrimination by header)
 export type LibraryEventUpdate = LibrarySnapshot | AssetAdded | AssetRemoved
 
 export type LibrarySnapshot = {
-    type: 'Snapshot'
     assetIds: AssetUUID[]
 }
 
 export type AssetAdded = {
-    type: 'Asset Added'
     assetId: AssetUUID
 }
 
 export type AssetRemoved = {
-    type: 'Asset Removed'
     assetId: AssetUUID
 }
 
-// Type guards for library events
+// Type guards (shape-based)
 export const isLibrarySnapshot = (event: any): event is LibrarySnapshot => {
     return Boolean(
         event &&
         typeof event === 'object' &&
-        'type' in event &&
-        event.type === 'Snapshot' &&
         'assetIds' in event &&
         Array.isArray(event.assetIds)
     )
@@ -42,10 +37,9 @@ export const isAssetAdded = (event: any): event is AssetAdded => {
     return Boolean(
         event &&
         typeof event === 'object' &&
-        'type' in event &&
-        event.type === 'Asset Added' &&
         'assetId' in event &&
-        typeof event.assetId === 'string'
+        typeof event.assetId === 'string' &&
+        !('assetIds' in event && Array.isArray(event.assetIds))
     )
 }
 
@@ -53,10 +47,9 @@ export const isAssetRemoved = (event: any): event is AssetRemoved => {
     return Boolean(
         event &&
         typeof event === 'object' &&
-        'type' in event &&
-        event.type === 'Asset Removed' &&
         'assetId' in event &&
-        typeof event.assetId === 'string'
+        typeof event.assetId === 'string' &&
+        !('assetIds' in event && Array.isArray(event.assetIds))
     )
 }
 
@@ -97,7 +90,6 @@ export class LibraryAggregator implements DataSourceAggregator<LibrarySnapshot, 
      */
     createEmpty(): LibrarySnapshot {
         return {
-            type: 'Snapshot',
             assetIds: []
         }
     }
@@ -119,7 +111,7 @@ export class LibraryAggregator implements DataSourceAggregator<LibrarySnapshot, 
                     : [...snapshot.assetIds, assetId]
                 return {
                     success: true,
-                    snapshot: { type: 'Snapshot', assetIds }
+                    snapshot: { assetIds }
                 }
             }
             if (isAssetRemovedLibraryEnvelope(envelope)) {
@@ -127,7 +119,6 @@ export class LibraryAggregator implements DataSourceAggregator<LibrarySnapshot, 
                 return {
                     success: true,
                     snapshot: {
-                        type: 'Snapshot',
                         assetIds: snapshot.assetIds.filter(id => id !== assetId)
                     }
                 }

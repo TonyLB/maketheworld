@@ -8,12 +8,11 @@ import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/bas
 import { schemaToWML, nodeFromWML } from '@tonylb/mtw-wml/ts/schema'
 import { standardComponentFactory } from '@tonylb/mtw-wml/ts/standardize/componentFactory'
 
-// Internal types for character events (using StandardComponent objects)
+// Internal types for character events (no type; discrimination by header)
 export type CharacterEventUpdate = CharacterUpdatedEvent
 
 export type CharacterUpdatedEvent = {
-    type: 'Character Updated'
-    component: StandardComponent // The actual component object for internal processing
+    component: StandardComponent
 }
 
 export type CharacterEventExternal = CharacterUpdatedEventExternal
@@ -69,8 +68,6 @@ export class CharacterEventSerializer implements DataSourceEventSerializer<Chara
             }
             
             return {
-                // Treat payload type as derived from header.type
-                type: header.type,
                 component
             }
         } catch (error) {

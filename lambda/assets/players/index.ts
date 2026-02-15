@@ -136,7 +136,6 @@ const generatePlayerSnapshot = async (playerName: string): Promise<PlayerSnapsho
     const { assets, characters, settings } = await getLibraryAndSettings(playerName)
     const assetArray = Object.values(assets ?? {})
     return {
-        type: 'Snapshot',
         assets: assetArray,
         characters: Object.values(characters ?? {}),
         settings
@@ -150,7 +149,7 @@ const emitSettingsUpdated = async (
     const { settings } = await getLibraryAndSettings(player)
     await streamEvent({
         streamKey: player,
-        update: { type: 'Player Settings Updated', settings },
+        update: { settings },
         header: { type: 'Player Settings Updated' }
     })
 }
@@ -169,7 +168,7 @@ const emitAssetAssigned = async (
 
     await streamEvent({
         streamKey: player,
-        update: { type: 'Player Asset Assigned', asset: { ...asset } },
+        update: { asset: { ...asset } },
         header: { type: 'Player Asset Assigned' }
     })
 }
@@ -183,7 +182,7 @@ const emitAssetRemoved = async (
     console.log(`[emitAssetRemoved] Emitting Player Asset Removed for player=${player}, assetId=${assetId}, assetKey=${assetKey}`)
     await streamEvent({
         streamKey: player,
-        update: { type: 'Player Asset Removed', assetId: assetKey },
+        update: { assetId: assetKey },
         header: { type: 'Player Asset Removed' }
     })
     console.log(`[emitAssetRemoved] Player Asset Removed event streamed for player=${player}, assetId=${assetId}`)

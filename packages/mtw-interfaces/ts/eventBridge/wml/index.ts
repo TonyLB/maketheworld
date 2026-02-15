@@ -12,22 +12,13 @@ import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
 import { nodeFromWML } from '@tonylb/mtw-wml/ts/schema'
 import { Zone, isZone } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
-// Internal types for WML events
+// Internal types for WML events (no type field; discrimination by envelope.header.type only)
 // Content Update: carries edit/delta (not full document). Consumers must merge onto current state.
-export type WMLContentEvent = 
-    | {
-        type: 'Content Update'
-        schema: StandardForm
-        RequestIds?: string[]
-    }
-    | {
-        type: 'Merge Conflict'
-        error?: string
-        RequestIds?: string[]
-    }
+export type WMLContentEvent =
+    | { schema: StandardForm; RequestIds?: string[] }
+    | { error?: string; RequestIds?: string[] }
 
 export type WMLZoneEvent = {
-    type: 'Zone Changed'
     fromZone: Zone
     toZone: Zone
     player?: string
@@ -35,13 +26,11 @@ export type WMLZoneEvent = {
 }
 
 export type WMLSnapshotEvent = {
-    type: 'Snapshot Created'
     chunksBeforeSnapshot: number
     snapshotSize: number
 }
 
 export type WMLPurgeEvent = {
-    type: 'Asset Purged'
     zone: 'Draft' | 'Archive'
     objectsDeleted: number
     player?: string  // Present for Draft zone (Personal assets are not purgeable)
@@ -88,16 +77,6 @@ export type WMLPurgeEventExternal = {
 // Union type for all external WML events
 export type WMLEventExternal = WMLContentEventExternal | WMLZoneEventExternal | WMLSnapshotEventExternal | WMLPurgeEventExternal
 
-// Type guards
-export const isWMLContentEvent = (event: any): event is WMLContentEvent => {
-    return Boolean(
-        event &&
-        typeof event === 'object' &&
-        'type' in event &&
-        (event.type === 'Content Update' || event.type === 'Merge Conflict')
-    )
-}
-
 // External type guard for WML EventBridge payloads
 export const isWMLContentEventExternal = (event: any): event is WMLContentEventExternal => {
     if (!event || typeof event !== 'object' || !('type' in event)) {
@@ -114,36 +93,39 @@ export const isWMLContentEventExternal = (event: any): event is WMLContentEventE
     }
 }
 
-export const isWMLContentUpdateEvent = (event: any): event is WMLContentEvent & { type: 'Content Update' } => {
+export const isWMLContentUpdateEvent = (event: any): event is WMLContentEvent & { schema: StandardForm } => {
     return Boolean(
         event &&
         typeof event === 'object' &&
-        event.type === 'Content Update' &&
         'schema' in event &&
         event.schema instanceof StandardForm
     )
 }
 
-export const isWMLMergeConflictEvent = (event: any): event is WMLContentEvent & { type: 'Merge Conflict' } => {
+export const isWMLMergeConflictEvent = (event: any): event is WMLContentEvent & { error?: string } => {
     return Boolean(
         event &&
         typeof event === 'object' &&
-        event.type === 'Merge Conflict'
+        !('schema' in event && event.schema instanceof StandardForm)
     )
 }
+
+// Type guard for internal content union (shape-based)
+export const isWMLContentEvent = (event: any): event is WMLContentEvent =>
+    isWMLContentUpdateEvent(event) || isWMLMergeConflictEvent(event)
 
 // Envelope type guards for WML content events (narrow both header and content; no casts in aggregator)
 export type WMLContentEnvelope = ResolvedStreamingEnvelope<WMLContentEvent, StreamingEventHeader>
 
 export function isWMLMergeConflictEnvelope(
     envelope: WMLContentEnvelope
-): envelope is ResolvedStreamingEnvelope<WMLContentEvent & { type: 'Merge Conflict' }, StreamingEventHeader & { type: 'Merge Conflict' }> {
+): envelope is ResolvedStreamingEnvelope<WMLContentEvent & { error?: string }, StreamingEventHeader & { type: 'Merge Conflict' }> {
     return envelope.header.type === 'Merge Conflict'
 }
 
 export function isWMLContentUpdateEnvelope(
     envelope: WMLContentEnvelope
-): envelope is ResolvedStreamingEnvelope<WMLContentEvent & { type: 'Content Update' }, StreamingEventHeader & { type: 'Content Update' }> {
+): envelope is ResolvedStreamingEnvelope<WMLContentEvent & { schema: StandardForm }, StreamingEventHeader & { type: 'Content Update' }> {
     return envelope.header.type === 'Content Update'
 }
 
@@ -151,8 +133,6 @@ export const isWMLZoneEvent = (event: any): event is WMLZoneEvent => {
     return Boolean(
         event &&
         typeof event === 'object' &&
-        'type' in event &&
-        event.type === 'Zone Changed' &&
         'fromZone' in event &&
         'toZone' in event &&
         typeof event.fromZone === 'string' &&
@@ -166,8 +146,6 @@ export const isWMLSnapshotEvent = (event: any): event is WMLSnapshotEvent => {
     return Boolean(
         event &&
         typeof event === 'object' &&
-        'type' in event &&
-        event.type === 'Snapshot Created' &&
         typeof event.chunksBeforeSnapshot === 'number' &&
         typeof event.snapshotSize === 'number'
     )
@@ -177,8 +155,6 @@ export const isWMLPurgeEvent = (event: any): event is WMLPurgeEvent => {
     return Boolean(
         event &&
         typeof event === 'object' &&
-        'type' in event &&
-        event.type === 'Asset Purged' &&
         typeof event.zone === 'string' &&
         (event.zone === 'Draft' || event.zone === 'Archive') &&
         typeof event.objectsDeleted === 'number'
@@ -241,9 +217,9 @@ const isZoneChangedWMLSerializeParams = (p: WMLSerializeParams): p is WMLSeriali
     p.header.type === 'Zone Changed'
 const isSnapshotCreatedWMLSerializeParams = (p: WMLSerializeParams): p is WMLSerializeParams & { header: StreamingEventHeader & { type: 'Snapshot Created' }; content: WMLSnapshotEvent } =>
     p.header.type === 'Snapshot Created'
-const isContentUpdateWMLSerializeParams = (p: WMLSerializeParams): p is WMLSerializeParams & { header: StreamingEventHeader & { type: 'Content Update' }; content: WMLContentEvent & { type: 'Content Update' } } =>
+const isContentUpdateWMLSerializeParams = (p: WMLSerializeParams): p is WMLSerializeParams & { header: StreamingEventHeader & { type: 'Content Update' }; content: WMLContentEvent & { schema: StandardForm } } =>
     p.header.type === 'Content Update'
-const isMergeConflictWMLSerializeParams = (p: WMLSerializeParams): p is WMLSerializeParams & { header: StreamingEventHeader & { type: 'Merge Conflict' }; content: WMLContentEvent & { type: 'Merge Conflict' } } =>
+const isMergeConflictWMLSerializeParams = (p: WMLSerializeParams): p is WMLSerializeParams & { header: StreamingEventHeader & { type: 'Merge Conflict' }; content: WMLContentEvent & { error?: string } } =>
     p.header.type === 'Merge Conflict'
 const isAssetPurgedWMLSerializeParams = (p: WMLSerializeParams): p is WMLSerializeParams & { header: StreamingEventHeader & { type: 'Asset Purged' }; content: WMLPurgeEvent } =>
     p.header.type === 'Asset Purged'
@@ -278,10 +254,12 @@ export class WMLEventSerializer implements DataSourceEventSerializer<WMLEventUpd
      */
     serialize(params: WMLSerializeParams): WMLEventExternal {
         if (isZoneChangedWMLSerializeParams(params)) {
-            return params.content as WMLZoneEventExternal
+            const { content } = params
+            return { type: 'Zone Changed', fromZone: content.fromZone, toZone: content.toZone, ...(content.player != null ? { player: content.player } : {}), ...(content.subFolder != null ? { subFolder: content.subFolder } : {}) }
         }
         if (isSnapshotCreatedWMLSerializeParams(params)) {
-            return params.content as WMLSnapshotEventExternal
+            const { content } = params
+            return { type: 'Snapshot Created', chunksBeforeSnapshot: content.chunksBeforeSnapshot, snapshotSize: content.snapshotSize }
         }
         if (isContentUpdateWMLSerializeParams(params)) {
             const { content } = params
@@ -311,16 +289,19 @@ export class WMLEventSerializer implements DataSourceEventSerializer<WMLEventUpd
         throw new Error(`Unknown WML event type: ${params.header.type}`)
     }
 
+
     /**
      * Deserialize an external event back to internal format
      * for messageBus processing
      */
     deserialize(params: WMLDeserializeParams): WMLEventUpdate | null {
         if (isZoneChangedWMLDeserializeParams(params)) {
-            return { ...params.content, type: 'Zone Changed' }
+            const { content } = params
+            return { fromZone: content.fromZone, toZone: content.toZone, ...(content.player != null ? { player: content.player } : {}), ...(content.subFolder != null ? { subFolder: content.subFolder } : {}) }
         }
         if (isSnapshotCreatedWMLDeserializeParams(params)) {
-            return params.content
+            const { content } = params
+            return { chunksBeforeSnapshot: content.chunksBeforeSnapshot, snapshotSize: content.snapshotSize }
         }
         if (isContentUpdateWMLDeserializeParams(params)) {
             const { content } = params
@@ -331,7 +312,6 @@ export class WMLEventSerializer implements DataSourceEventSerializer<WMLEventUpd
                 const schemaNode = nodeFromWML(content.wml)
                 const standardForm = new StandardForm(schemaNode)
                 return {
-                    type: 'Content Update',
                     schema: standardForm,
                     ...(content.RequestIds != null ? { RequestIds: content.RequestIds } : {})
                 }
@@ -342,13 +322,13 @@ export class WMLEventSerializer implements DataSourceEventSerializer<WMLEventUpd
         if (isMergeConflictWMLDeserializeParams(params)) {
             const { content } = params
             return {
-                type: 'Merge Conflict',
                 error: content.error,
                 ...(content.RequestIds != null ? { RequestIds: content.RequestIds } : {})
             }
         }
         if (isAssetPurgedWMLDeserializeParams(params)) {
-            return params.content
+            const { content } = params
+            return { zone: content.zone, objectsDeleted: content.objectsDeleted, ...(content.player != null ? { player: content.player } : {}) }
         }
         throw new Error(`Unknown external WML event type: ${JSON.stringify(params.content)}`)
     }

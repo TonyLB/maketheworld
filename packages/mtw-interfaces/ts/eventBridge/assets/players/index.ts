@@ -12,62 +12,61 @@ import { AssetClientPlayerSettings } from '../../../asset'
 import { isRenderTree } from '@tonylb/mtw-base/ts/renderTree'
 
 //
-// Player snapshot and streaming event payloads
+// Player snapshot and streaming event payloads (internal: no type; discrimination by header)
 //
 
 export type PlayerSnapshot = {
-    type: 'Snapshot'
     assets: LibraryAsset[]
     characters: LibraryCharacter[]
     settings: AssetClientPlayerSettings
 }
 
 export type PlayerSettingsUpdated = {
-    type: 'Player Settings Updated'
     settings: AssetClientPlayerSettings
 }
 
 export type PlayerAssetAssigned = {
-    type: 'Player Asset Assigned'
     asset: LibraryAsset
 }
 
 export type PlayerAssetRemoved = {
-    type: 'Player Asset Removed'
     assetId: string
 }
 
 export type PlayerCharacterAssigned = {
-    type: 'Player Character Assigned'
     character: LibraryCharacter
 }
 
 export type PlayerCharacterRemoved = {
-    type: 'Player Character Removed'
     characterId: string
 }
 
 export type PlayerEventUpdate =
-    | PlayerSnapshot // Used when the entire snapshot is recomputed (e.g. cache miss)
-    | PlayerSettingsUpdated
-    | PlayerAssetAssigned
-    | PlayerAssetRemoved
-    | PlayerCharacterAssigned
-    | PlayerCharacterRemoved
-
-//
-// External (EventBridge / Replay storage) payloads
-// Internal and external formats are currently identical pass-throughs.
-//
-
-export type PlayerSnapshotExternal = PlayerSnapshot
-export type PlayerExternal =
     | PlayerSnapshot
     | PlayerSettingsUpdated
     | PlayerAssetAssigned
     | PlayerAssetRemoved
     | PlayerCharacterAssigned
     | PlayerCharacterRemoved
+
+//
+// External (EventBridge / Replay storage) payloads - include type for wire
+//
+
+export type PlayerSnapshotExternal = { type: 'Snapshot'; assets: LibraryAsset[]; characters: LibraryCharacter[]; settings: AssetClientPlayerSettings }
+export type PlayerSettingsUpdatedExternal = { type: 'Player Settings Updated'; settings: AssetClientPlayerSettings }
+export type PlayerAssetAssignedExternal = { type: 'Player Asset Assigned'; asset: LibraryAsset }
+export type PlayerAssetRemovedExternal = { type: 'Player Asset Removed'; assetId: string }
+export type PlayerCharacterAssignedExternal = { type: 'Player Character Assigned'; character: LibraryCharacter }
+export type PlayerCharacterRemovedExternal = { type: 'Player Character Removed'; characterId: string }
+
+export type PlayerExternal =
+    | PlayerSnapshotExternal
+    | PlayerSettingsUpdatedExternal
+    | PlayerAssetAssignedExternal
+    | PlayerAssetRemovedExternal
+    | PlayerCharacterAssignedExternal
+    | PlayerCharacterRemovedExternal
 
 export { PlayerAggregator } from './baseClasses'
 
@@ -112,7 +111,6 @@ const isPlayerSettings = (value: any): value is AssetClientPlayerSettings => (
 export const isPlayerSnapshot = (value: any): value is PlayerSnapshot => (
     value &&
     typeof value === 'object' &&
-    value.type === 'Snapshot' &&
     Array.isArray(value.assets) &&
     value.assets.every(isLibraryAsset) &&
     Array.isArray(value.characters) &&
@@ -123,36 +121,38 @@ export const isPlayerSnapshot = (value: any): value is PlayerSnapshot => (
 export const isPlayerSettingsUpdated = (value: any): value is PlayerSettingsUpdated => (
     value &&
     typeof value === 'object' &&
-    value.type === 'Player Settings Updated' &&
-    isPlayerSettings(value.settings)
+    'settings' in value &&
+    isPlayerSettings(value.settings) &&
+    !('asset' in value) &&
+    !('assets' in value)
 )
 
 export const isPlayerAssetAssigned = (value: any): value is PlayerAssetAssigned => (
     value &&
     typeof value === 'object' &&
-    value.type === 'Player Asset Assigned' &&
+    'asset' in value &&
     isLibraryAsset(value.asset)
 )
 
 export const isPlayerAssetRemoved = (value: any): value is PlayerAssetRemoved => (
     value &&
     typeof value === 'object' &&
-    value.type === 'Player Asset Removed' &&
-    typeof value.assetId === 'string'
+    typeof value.assetId === 'string' &&
+    !('asset' in value)
 )
 
 export const isPlayerCharacterAssigned = (value: any): value is PlayerCharacterAssigned => (
     value &&
     typeof value === 'object' &&
-    value.type === 'Player Character Assigned' &&
+    'character' in value &&
     isLibraryCharacter(value.character)
 )
 
 export const isPlayerCharacterRemoved = (value: any): value is PlayerCharacterRemoved => (
     value &&
     typeof value === 'object' &&
-    value.type === 'Player Character Removed' &&
-    typeof value.characterId === 'string'
+    typeof value.characterId === 'string' &&
+    !('character' in value)
 )
 
 export const isPlayerExternal = (value: any): value is PlayerExternal => (
@@ -185,23 +185,23 @@ const isPlayerCharacterAssignedSerializeParams = (p: PlayerSerializeParams): p i
 const isPlayerCharacterRemovedSerializeParams = (p: PlayerSerializeParams): p is PlayerSerializeParams & { header: StreamingEventHeader & { type: 'Player Character Removed' }; content: PlayerCharacterRemoved } =>
     p.header.type === 'Player Character Removed'
 
-// Envelope type guards for deserialize (header.type narrows content)
-const isPlayerSnapshotDeserializeParams = (params: PlayerDeserializeParams): params is PlayerDeserializeParams & { header: StreamingEventHeader & { type: 'Snapshot' }; content: PlayerSnapshot } =>
+// Envelope type guards for deserialize (header.type narrows content; content is external with type)
+const isPlayerSnapshotDeserializeParams = (params: PlayerDeserializeParams): params is PlayerDeserializeParams & { header: StreamingEventHeader & { type: 'Snapshot' }; content: PlayerSnapshotExternal } =>
     params.header.type === 'Snapshot'
 
-const isPlayerSettingsUpdatedDeserializeParams = (params: PlayerDeserializeParams): params is PlayerDeserializeParams & { header: StreamingEventHeader & { type: 'Player Settings Updated' }; content: PlayerSettingsUpdated } =>
+const isPlayerSettingsUpdatedDeserializeParams = (params: PlayerDeserializeParams): params is PlayerDeserializeParams & { header: StreamingEventHeader & { type: 'Player Settings Updated' }; content: PlayerSettingsUpdatedExternal } =>
     params.header.type === 'Player Settings Updated'
 
-const isPlayerAssetAssignedDeserializeParams = (params: PlayerDeserializeParams): params is PlayerDeserializeParams & { header: StreamingEventHeader & { type: 'Player Asset Assigned' }; content: PlayerAssetAssigned } =>
+const isPlayerAssetAssignedDeserializeParams = (params: PlayerDeserializeParams): params is PlayerDeserializeParams & { header: StreamingEventHeader & { type: 'Player Asset Assigned' }; content: PlayerAssetAssignedExternal } =>
     params.header.type === 'Player Asset Assigned'
 
-const isPlayerAssetRemovedDeserializeParams = (params: PlayerDeserializeParams): params is PlayerDeserializeParams & { header: StreamingEventHeader & { type: 'Player Asset Removed' }; content: PlayerAssetRemoved } =>
+const isPlayerAssetRemovedDeserializeParams = (params: PlayerDeserializeParams): params is PlayerDeserializeParams & { header: StreamingEventHeader & { type: 'Player Asset Removed' }; content: PlayerAssetRemovedExternal } =>
     params.header.type === 'Player Asset Removed'
 
-const isPlayerCharacterAssignedDeserializeParams = (params: PlayerDeserializeParams): params is PlayerDeserializeParams & { header: StreamingEventHeader & { type: 'Player Character Assigned' }; content: PlayerCharacterAssigned } =>
+const isPlayerCharacterAssignedDeserializeParams = (params: PlayerDeserializeParams): params is PlayerDeserializeParams & { header: StreamingEventHeader & { type: 'Player Character Assigned' }; content: PlayerCharacterAssignedExternal } =>
     params.header.type === 'Player Character Assigned'
 
-const isPlayerCharacterRemovedDeserializeParams = (params: PlayerDeserializeParams): params is PlayerDeserializeParams & { header: StreamingEventHeader & { type: 'Player Character Removed' }; content: PlayerCharacterRemoved } =>
+const isPlayerCharacterRemovedDeserializeParams = (params: PlayerDeserializeParams): params is PlayerDeserializeParams & { header: StreamingEventHeader & { type: 'Player Character Removed' }; content: PlayerCharacterRemovedExternal } =>
     params.header.type === 'Player Character Removed'
 
 //
@@ -263,7 +263,7 @@ export class PlayerEventSerializer implements DataSourceEventSerializer<
     }
 
     deserialize(params: PlayerDeserializeParams): PlayerEventUpdate | null {
-        // Route on header.type only (envelope-authoritative); do not branch on content.type
+        // Route on header.type only (envelope-authoritative); return internal content without type
         if (isPlayerSnapshotDeserializeParams(params)) {
             const c = params.content
             if (!Array.isArray(c.assets) || !Array.isArray(c.characters) || typeof c.settings !== 'object') {
@@ -271,7 +271,6 @@ export class PlayerEventSerializer implements DataSourceEventSerializer<
                 return null
             }
             return {
-                type: 'Snapshot',
                 assets: c.assets.map((asset) => ({ ...asset })),
                 characters: c.characters.map((character) => ({ ...character })),
                 settings: { ...c.settings }
@@ -279,23 +278,23 @@ export class PlayerEventSerializer implements DataSourceEventSerializer<
         }
         if (isPlayerSettingsUpdatedDeserializeParams(params)) {
             const c = params.content
-            return { type: 'Player Settings Updated', settings: { ...c.settings } }
+            return { settings: { ...c.settings } }
         }
         if (isPlayerAssetAssignedDeserializeParams(params)) {
             const c = params.content
-            return { type: 'Player Asset Assigned', asset: { ...c.asset } }
+            return { asset: { ...c.asset } }
         }
         if (isPlayerAssetRemovedDeserializeParams(params)) {
             const c = params.content
-            return { type: 'Player Asset Removed', assetId: c.assetId }
+            return { assetId: c.assetId }
         }
         if (isPlayerCharacterAssignedDeserializeParams(params)) {
             const c = params.content
-            return { type: 'Player Character Assigned', character: { ...c.character } }
+            return { character: { ...c.character } }
         }
         if (isPlayerCharacterRemovedDeserializeParams(params)) {
             const c = params.content
-            return { type: 'Player Character Removed', characterId: c.characterId }
+            return { characterId: c.characterId }
         }
         console.error('Unknown player event header type', params.header)
         return null
@@ -319,7 +318,6 @@ export class PlayerEventSerializer implements DataSourceEventSerializer<
             return null
         }
         return {
-            type: 'Snapshot',
             assets: externalSnapshot.assets.map((asset) => ({ ...asset })),
             characters: externalSnapshot.characters.map((character) => ({ ...character })),
             settings: { ...externalSnapshot.settings }

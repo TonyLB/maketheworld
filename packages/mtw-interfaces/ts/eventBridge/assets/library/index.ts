@@ -116,7 +116,6 @@ export class LibraryEventSerializer implements DataSourceEventSerializer<
                 return null
             }
             return {
-                type: 'Asset Added',
                 assetId: params.content.assetId
             }
         }
@@ -126,7 +125,6 @@ export class LibraryEventSerializer implements DataSourceEventSerializer<
                 return null
             }
             return {
-                type: 'Asset Removed',
                 assetId: params.content.assetId
             }
         }
@@ -156,9 +154,7 @@ export class LibraryEventSerializer implements DataSourceEventSerializer<
                 return null
             }
             
-            // Pass through
             return {
-                type: 'Snapshot',
                 assetIds: [...externalSnapshot.assetIds]
             }
         } catch (error) {

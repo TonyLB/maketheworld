@@ -351,7 +351,8 @@ export class DataSource<
 
         const header: Header = { dataSourceKey: this.dataSourceKey, streamKey, timestamp: now, ...headerFragment } as Header
 
-        // Create CoreExternalFormat - use serializer if available, otherwise use update directly
+        // Create CoreExternalFormat - use serializer if available, otherwise use update directly.
+        // Serializer output is external format (has type); internal update may omit type.
         const coreFormat: CoreExternalFormat = this.eventSerializer
             ? {
                 dataSourceKey: this.dataSourceKey,
@@ -360,13 +361,13 @@ export class DataSource<
                 update: this.eventSerializer.serialize({
                     content: update,
                     header
-                })
+                }) as { type: string; [key: string]: unknown }
             }
             : {
                 dataSourceKey: this.dataSourceKey,
                 streamKey,
                 timestamp: now,
-                update
+                update: update as { type: string; [key: string]: unknown }
             }
 
         // Transform to context-specific formats (uuid for uniqueness in DataCategory)

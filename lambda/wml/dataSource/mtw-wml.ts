@@ -66,7 +66,6 @@ const processApplyEdit = async (
             try {
                 await streamEvent({
                     update: {
-                        type: 'Content Update',
                         schema: new StandardForm(payload.schema),
                         RequestIds: payload.RequestId != null ? [payload.RequestId] : []
                     },
@@ -80,7 +79,6 @@ const processApplyEdit = async (
             try {
                 await streamEvent({
                     update: {
-                        type: 'Merge Conflict',
                         error: result.error,
                         RequestIds: payload.RequestId != null ? [payload.RequestId] : []
                     },
@@ -118,7 +116,6 @@ const processMoveAsset = async (
             try {
                 await streamEvent({
                     update: {
-                        type: 'Zone Changed',
                         fromZone: payload.fromZone,
                         toZone: payload.toZone,
                         ...(payload.player ? { player: payload.player } : {}),
@@ -149,9 +146,9 @@ const processCanonizeDecanonize = async (
     try {
         let moveRequest: MoveAssetRequest
         if (isCoordinationCanonizeEvent(payload)) {
-            moveRequest = { type: 'Move Asset', fromZone: 'Library', toZone: 'Canon' }
+            moveRequest = { fromZone: 'Library', toZone: 'Canon' }
         } else if (isCoordinationDecanonizeEvent(payload)) {
-            moveRequest = { type: 'Move Asset', fromZone: 'Canon', toZone: 'Library' }
+            moveRequest = { fromZone: 'Canon', toZone: 'Library' }
         } else {
             console.error(`Unknown coordination event type: ${JSON.stringify(payload)}`)
             return
@@ -160,7 +157,7 @@ const processCanonizeDecanonize = async (
         if (result.success) {
             try {
                 await streamEvent({
-                    update: { type: 'Zone Changed', fromZone: moveRequest.fromZone, toZone: moveRequest.toZone },
+                    update: { fromZone: moveRequest.fromZone, toZone: moveRequest.toZone },
                     streamKey: AssetId,
                     header: { type: 'Zone Changed' }
                 })
@@ -200,7 +197,6 @@ const processCreateSnapshot = async (
         try {
             await streamEvent({
                 update: {
-                    type: 'Snapshot Created',
                     chunksBeforeSnapshot: contentResult.chunksBeforeSnapshot,
                     snapshotSize: contentResult.snapshotReference.snapshotSize + authResult.snapshotReference.snapshotSize
                 },
@@ -239,7 +235,6 @@ const processPurgeAsset = async (
             try {
                 await streamEvent({
                     update: {
-                        type: 'Asset Purged',
                         zone: payload.expectedZone,
                         objectsDeleted: result.objectsDeleted ?? 0,
                         ...(player ? { player } : {})

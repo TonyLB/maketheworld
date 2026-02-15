@@ -99,7 +99,6 @@ export class ContentHeadersEventSerializer implements DataSourceEventSerializer<
         if (isHeadersUpdatedContentHeadersDeserializeParams(params)) {
             const { content } = params
             return {
-                type: 'Headers Updated',
                 assetId: content.assetId,
                 zone: content.zone,
                 standardForm: new StandardForm(content.wml)
@@ -109,13 +108,11 @@ export class ContentHeadersEventSerializer implements DataSourceEventSerializer<
     }
     
     serializeSnapshot(snapshot: ContentHeadersSnapshot): ContentHeadersSnapshotExternal {
-        // Convert internal StandardForm objects to external WML strings
         const externalAssets = snapshot.assets.map(asset => ({
             assetId: asset.assetId,
             zone: asset.zone,
             wml: schemaToWML([asset.standardForm.schema])
         }))
-        
         return {
             type: 'Snapshot',
             assets: externalAssets
@@ -124,15 +121,12 @@ export class ContentHeadersEventSerializer implements DataSourceEventSerializer<
     
     deserializeSnapshot(externalSnapshot: ContentHeadersSnapshotExternal): ContentHeadersSnapshot | null {
         try {
-            // Convert external WML strings to internal StandardForm objects
             const internalAssets = externalSnapshot.assets.map(asset => ({
                 assetId: asset.assetId,
                 zone: asset.zone,
                 standardForm: new StandardForm(asset.wml)
             }))
-            
             return {
-                type: 'Snapshot',
                 assets: internalAssets
             }
         } catch (error) {

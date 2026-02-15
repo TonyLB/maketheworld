@@ -1,37 +1,28 @@
 import { Zone } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { DataSourceEventSerializer, ResolvedStreamingEnvelope, StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 
-// Internal types for coordination events
-export type CoordinationCanonizeEvent = {
-    type: 'Canonize Asset'
-}
+// Internal types for coordination events (no type; discrimination by header)
+export type CoordinationCanonizeEvent = Record<string, never>
 
-export type CoordinationDecanonizeEvent = {
-    type: 'Decanonize Asset'
-}
+export type CoordinationDecanonizeEvent = Record<string, never>
 
 export type MoveAssetRequest = {
-    type: 'Move Asset';
     fromZone: Zone;
     toZone: Zone;
-    player?: string;      // DEPRECATED Phase 1: No longer used (player stored in S3 metadata)
-    subFolder?: string;   // DEPRECATED Phase 1: No longer used (flat storage, no subdirectories)
+    player?: string;
+    subFolder?: string;
 }
 
 export type ApplyEditRequest = {
-    type: 'Apply Edit';
     RequestId?: string;
     schema: string;
     createIfNeeded?: boolean;
     zone?: Zone;
 }
 
-export type CreateSnapshotRequest = {
-    type: 'Create Snapshot';
-}
+export type CreateSnapshotRequest = Record<string, never>
 
 export type PurgeAssetRequest = {
-    type: 'Purge Asset';
     expectedZone: 'Draft' | 'Archive';
     requireExists?: boolean;
 }
@@ -92,46 +83,37 @@ export type CoordinationEventExternal =
     | CreateSnapshotRequestExternal
     | PurgeAssetRequestExternal
 
-// Type guards
+// Type guards (shape-based)
 export const isMoveAssetRequest = (event: any): event is MoveAssetRequest => {
-    return event && 
-        typeof event === 'object' && 
-        typeof event.type === 'string' &&
-        event.type === 'Move Asset' &&
+    return event &&
+        typeof event === 'object' &&
         typeof event.fromZone === 'string' &&
         typeof event.toZone === 'string'
 }
 
 export const isCoordinationCanonizeEvent = (event: any): event is CoordinationCanonizeEvent => {
-    return event && 
-        typeof event === 'object' && 
-        event.type === 'Canonize Asset'
+    return event && typeof event === 'object' && Object.keys(event).length === 0
 }
 
 export const isCoordinationDecanonizeEvent = (event: any): event is CoordinationDecanonizeEvent => {
-    return event && 
-        typeof event === 'object' && 
-        event.type === 'Decanonize Asset'
+    return event && typeof event === 'object' && Object.keys(event).length === 0
 }
 
 export const isApplyEditRequest = (event: any): event is ApplyEditRequest => {
-    return event && 
-        typeof event === 'object' && 
-        event.type === 'Apply Edit' &&
+    return event &&
+        typeof event === 'object' &&
         typeof event.schema === 'string' &&
-        (event.RequestId === undefined || typeof event.RequestId === 'string')
+        (event.RequestId === undefined || typeof event.RequestId === 'string') &&
+        !('fromZone' in event)
 }
 
 export const isCreateSnapshotRequest = (event: any): event is CreateSnapshotRequest => {
-    return event && 
-        typeof event === 'object' && 
-        event.type === 'Create Snapshot'
+    return event && typeof event === 'object' && Object.keys(event).length === 0
 }
 
 export const isPurgeAssetRequest = (event: any): event is PurgeAssetRequest => {
-    return event && 
-        typeof event === 'object' && 
-        event.type === 'Purge Asset' &&
+    return event &&
+        typeof event === 'object' &&
         typeof event.expectedZone === 'string' &&
         (event.expectedZone === 'Draft' || event.expectedZone === 'Archive')
 }
@@ -239,25 +221,23 @@ export class CoordinationEventSerializer implements DataSourceEventSerializer<Co
      */
     deserialize(params: CoordinationDeserializeParams): CoordinationEventUpdate | null {
         if (isCanonizeAssetCoordinationDeserializeParams(params)) {
-            return { type: 'Canonize Asset' }
+            return {}
         }
         if (isDecanonizeAssetCoordinationDeserializeParams(params)) {
-            return { type: 'Decanonize Asset' }
+            return {}
         }
         if (isMoveAssetCoordinationDeserializeParams(params)) {
             const { content } = params
             return {
-                type: 'Move Asset',
-                fromZone: content.fromZone!,
-                toZone: content.toZone!,
-                player: content.player,
-                subFolder: content.subFolder
+                fromZone: content.fromZone,
+                toZone: content.toZone,
+                ...(content.player != null ? { player: content.player } : {}),
+                ...(content.subFolder != null ? { subFolder: content.subFolder } : {})
             }
         }
         if (isApplyEditCoordinationDeserializeParams(params)) {
             const { content } = params
             return {
-                type: 'Apply Edit',
                 RequestId: content.RequestId,
                 schema: content.schema,
                 createIfNeeded: content.createIfNeeded,
@@ -265,12 +245,11 @@ export class CoordinationEventSerializer implements DataSourceEventSerializer<Co
             }
         }
         if (isCreateSnapshotCoordinationDeserializeParams(params)) {
-            return { type: 'Create Snapshot' }
+            return {}
         }
         if (isPurgeAssetCoordinationDeserializeParams(params)) {
             const { content } = params
             return {
-                type: 'Purge Asset',
                 expectedZone: content.expectedZone,
                 requireExists: content.requireExists
             }
