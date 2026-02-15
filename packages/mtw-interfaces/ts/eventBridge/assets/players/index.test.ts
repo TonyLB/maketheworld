@@ -12,7 +12,6 @@ function playersEnvelope<T>(content: T, type: string) {
 
 describe('PlayerAggregator', () => {
     const createSnapshot = (): PlayerSnapshot => ({
-        type: 'Snapshot',
         assets: [],
         characters: [],
         settings: {
@@ -24,7 +23,6 @@ describe('PlayerAggregator', () => {
         const aggregator = new PlayerAggregator()
         const snapshot = createSnapshot()
         const replacement: PlayerSnapshot = {
-            type: 'Snapshot',
             assets: [{ AssetId: 'AssetOne', zone: 'Draft' }],
             characters: [{ CharacterId: 'CHARACTER#test', DisplayName: 'Test Character', scopedId: 'test', fileName: 'test' }],
             settings: { onboardCompleteTags: ['basic'] }
@@ -41,7 +39,6 @@ describe('PlayerAggregator', () => {
         const aggregator = new PlayerAggregator()
         const snapshot = createSnapshot()
         const update: PlayerSettingsUpdated = {
-            type: 'Player Settings Updated',
             settings: { onboardCompleteTags: ['chapter1'], guestName: 'Guest', guestId: 'guest-123' }
         }
 
@@ -55,7 +52,6 @@ describe('PlayerAggregator', () => {
         const snapshot = createSnapshot()
 
         const assign: PlayerAssetAssigned = {
-            type: 'Player Asset Assigned',
             asset: { AssetId: 'AssetOne', zone: 'Draft' }
         }
         const assignResult = aggregator.applyUpdate(snapshot, playersEnvelope(assign, 'Player Asset Assigned'))
@@ -64,7 +60,6 @@ describe('PlayerAggregator', () => {
         expect(assignResult.snapshot.assets[0]).toEqual(assign.asset)
 
         const remove: PlayerAssetRemoved = {
-            type: 'Player Asset Removed',
             assetId: 'AssetOne'
         }
         const removeResult = aggregator.applyUpdate(assignResult.snapshot, playersEnvelope(remove, 'Player Asset Removed'))
@@ -90,10 +85,8 @@ describe('PlayerEventSerializer', () => {
             }
             const result = serializer.deserialize({ content: content as any, header })
             expect(result).not.toBeNull()
-            expect(result!.type).toBe('Player Asset Removed')
-            if (result && result.type === 'Player Asset Removed') {
-                expect(result.assetId).toBeUndefined()
-            }
+            expect(result && 'assetId' in result).toBe(true)
+            expect((result as any).assetId).toBeUndefined()
         })
     })
 })

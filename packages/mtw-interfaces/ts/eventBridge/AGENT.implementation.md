@@ -6,8 +6,8 @@ This document provides technical guidelines for implementing and maintaining Eve
 
 ### Internal vs External Formats
 
-- **Internal Format**: Clean, domain-specific representations optimized for manipulation
-- **External Format**: Transmittable representations optimized for cross-service communication
+- **Internal Format**: Clean, domain-specific representations optimized for manipulation. Internal content payloads do not include a `type` property; discrimination is by envelope/header only.
+- **External Format**: Transmittable representations optimized for cross-service communication. External payloads include `type` for the wire so the receiving side can build the header.
 - **Type Safety**: Full TypeScript support for both internal and external event structures
 - **Versioning**: Design for backward compatibility and future evolution
 

@@ -54,7 +54,6 @@ export function isPlayerCharacterRemovedEnvelope(
 export class PlayerAggregator implements DataSourceAggregator<PlayerSnapshotInternal, PlayerEventUpdate> {
     createEmpty(): PlayerSnapshotInternal {
         return {
-            type: 'Snapshot',
             assets: [],
             characters: [],
             settings: {
@@ -69,7 +68,6 @@ export class PlayerAggregator implements DataSourceAggregator<PlayerSnapshotInte
             return {
                 success: true,
                 snapshot: {
-                    type: 'Snapshot',
                     assets: assets.map((asset) => ({ ...asset })),
                     characters: characters.map((character) => ({ ...character })),
                     settings: { ...settings }
@@ -78,7 +76,6 @@ export class PlayerAggregator implements DataSourceAggregator<PlayerSnapshotInte
         }
 
         const next: PlayerSnapshotInternal = {
-            type: 'Snapshot',
             assets: snapshot.assets.map((asset) => ({ ...asset })),
             characters: snapshot.characters.map((character) => ({ ...character })),
             settings: { ...snapshot.settings }

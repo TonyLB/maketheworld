@@ -3,6 +3,7 @@ import {
     WMLEventUpdate,
     WMLEventExternal,
     isWMLContentUpdateEvent,
+    isWMLMergeConflictEvent,
     WMLAggregator,
     WMLDataSourceEventSerializer,
     isWMLMaterializedView
@@ -37,10 +38,7 @@ describe('WMLEventSerializer', () => {
                 </Asset>
             `))
 
-            const contentEvent: WMLEventUpdate = {
-                type: 'Content Update',
-                schema: standardForm
-            }
+            const contentEvent: WMLEventUpdate = { schema: standardForm }
 
             const externalEvent = serializer.serialize({ content: contentEvent, header: makeWmlHeader('Content Update') })
             expect(externalEvent.type).toBe('Content Update')
@@ -91,10 +89,7 @@ describe('WMLEventSerializer', () => {
                 </Asset>
             `))
 
-            const contentEvent: WMLEventUpdate = {
-                type: 'Content Update',
-                schema: originalForm
-            }
+            const contentEvent: WMLEventUpdate = { schema: originalForm }
 
             // Serialize to external format
             const externalEvent = serializer.serialize({ content: contentEvent, header: makeWmlHeader('Content Update') })
@@ -121,7 +116,6 @@ describe('WMLEventSerializer', () => {
                 </Asset>
             `))
             const contentEvent: WMLEventUpdate = {
-                type: 'Content Update',
                 schema: standardForm,
                 RequestIds: ['req-123']
             }
@@ -148,7 +142,7 @@ describe('WMLEventSerializer', () => {
                 header: makeWmlHeader('Content Update')
             })
             expect(internalEvent).not.toBeNull()
-            if (internalEvent && internalEvent.type === 'Content Update') {
+            if (internalEvent && isWMLContentUpdateEvent(internalEvent)) {
                 expect(internalEvent.RequestIds).toEqual(['req-456'])
             }
         })
@@ -160,7 +154,6 @@ describe('WMLEventSerializer', () => {
                 </Asset>
             `))
             const contentEvent: WMLEventUpdate = {
-                type: 'Content Update',
                 schema: standardForm,
                 RequestIds: ['req-roundtrip']
             }
@@ -170,7 +163,7 @@ describe('WMLEventSerializer', () => {
                 header: makeWmlHeader('Content Update')
             })
             expect(deserialized).not.toBeNull()
-            if (deserialized && deserialized.type === 'Content Update') {
+            if (deserialized && isWMLContentUpdateEvent(deserialized)) {
                 expect(deserialized.RequestIds).toEqual(['req-roundtrip'])
             }
         })
@@ -179,14 +172,18 @@ describe('WMLEventSerializer', () => {
     describe('Zone Events', () => {
         it('should serialize Zone Changed event (pass-through)', () => {
             const zoneEvent: WMLEventUpdate = {
-                type: 'Zone Changed',
                 fromZone: 'Library',
                 toZone: 'Canon',
                 player: 'alice'
             }
 
             const externalEvent = serializer.serialize({ content: zoneEvent, header: makeWmlHeader('Zone Changed') })
-            expect(externalEvent).toEqual(zoneEvent)
+            expect(externalEvent.type).toBe('Zone Changed')
+            if (externalEvent.type === 'Zone Changed') {
+                expect(externalEvent.fromZone).toBe('Library')
+                expect(externalEvent.toZone).toBe('Canon')
+                expect(externalEvent.player).toBe('alice')
+            }
         })
 
         it('should deserialize Zone Changed event (pass-through)', () => {
@@ -202,12 +199,11 @@ describe('WMLEventSerializer', () => {
                 header: makeWmlHeader('Zone Changed')
             })
 
-            expect(internalEvent).toEqual(externalEvent)
+            expect(internalEvent).toEqual({ fromZone: 'Library', toZone: 'Canon', player: 'alice' })
         })
 
         it('should handle Zone Changed round-trip correctly', () => {
             const originalEvent: WMLEventUpdate = {
-                type: 'Zone Changed',
                 fromZone: 'Library',
                 toZone: 'Canon',
                 player: 'alice',
@@ -223,7 +219,7 @@ describe('WMLEventSerializer', () => {
                 header: makeWmlHeader('Zone Changed')
             })
             
-            // Verify complete round-trip
+            // Verify complete round-trip (internal has no type)
             expect(deserializedEvent).toEqual(originalEvent)
         })
     })
@@ -268,10 +264,7 @@ describe('WMLEventSerializer', () => {
 
     describe('Merge Conflict Events', () => {
         it('should serialize Merge Conflict event to external format', () => {
-            const mergeConflictEvent: WMLEventUpdate = {
-                type: 'Merge Conflict',
-                error: 'Merge conflict occurred during edit application'
-            }
+            const mergeConflictEvent: WMLEventUpdate = { error: 'Merge conflict occurred during edit application' }
 
             const externalEvent = serializer.serialize({ content: mergeConflictEvent, header: makeWmlHeader('Merge Conflict') })
             expect(externalEvent.type).toBe('Merge Conflict')
@@ -292,16 +285,13 @@ describe('WMLEventSerializer', () => {
             })
 
             expect(internalEvent).toBeDefined()
-            if (internalEvent && internalEvent.type === 'Merge Conflict') {
+            if (internalEvent && isWMLMergeConflictEvent(internalEvent)) {
                 expect(internalEvent.error).toBe('Merge conflict occurred during edit application')
             }
         })
 
         it('should handle Merge Conflict round-trip correctly', () => {
-            const originalEvent: WMLEventUpdate = {
-                type: 'Merge Conflict',
-                error: 'Merge conflict occurred during edit application'
-            }
+            const originalEvent: WMLEventUpdate = { error: 'Merge conflict occurred during edit application' }
 
             // Serialize to external format
             const externalEvent = serializer.serialize({ content: originalEvent, header: makeWmlHeader('Merge Conflict') })
@@ -314,17 +304,13 @@ describe('WMLEventSerializer', () => {
             })
 
             expect(roundTripEvent).toBeDefined()
-            if (roundTripEvent && roundTripEvent.type === 'Merge Conflict') {
+            if (roundTripEvent && isWMLMergeConflictEvent(roundTripEvent)) {
                 expect(roundTripEvent.error).toBe(originalEvent.error)
             }
         })
 
         it('should include RequestIds in serialized Merge Conflict when present', () => {
-            const mergeConflictEvent: WMLEventUpdate = {
-                type: 'Merge Conflict',
-                error: 'Conflict',
-                RequestIds: ['req-mc-1']
-            }
+            const mergeConflictEvent: WMLEventUpdate = { error: 'Conflict', RequestIds: ['req-mc-1'] }
             const externalEvent = serializer.serialize({ content: mergeConflictEvent, header: makeWmlHeader('Merge Conflict') })
             expect(externalEvent.type).toBe('Merge Conflict')
             if (externalEvent.type === 'Merge Conflict') {
@@ -343,7 +329,7 @@ describe('WMLEventSerializer', () => {
                 header: makeWmlHeader('Merge Conflict')
             })
             expect(internalEvent).toBeDefined()
-            if (internalEvent && internalEvent.type === 'Merge Conflict') {
+            if (internalEvent && isWMLMergeConflictEvent(internalEvent)) {
                 expect(internalEvent.RequestIds).toEqual(['req-mc-2'])
             }
         })
@@ -351,11 +337,7 @@ describe('WMLEventSerializer', () => {
 
     describe('Purge Events', () => {
         it('should serialize Asset Purged event to external format', () => {
-            const purgeEvent: WMLEventUpdate = {
-                type: 'Asset Purged',
-                zone: 'Draft',
-                objectsDeleted: 42
-            }
+            const purgeEvent: WMLEventUpdate = { zone: 'Draft', objectsDeleted: 42 }
 
             const externalEvent = serializer.serialize({ content: purgeEvent, header: makeWmlHeader('Asset Purged') })
             expect(externalEvent.type).toBe('Asset Purged')
@@ -378,18 +360,14 @@ describe('WMLEventSerializer', () => {
             })
 
             expect(internalEvent).not.toBeNull()
-            if (internalEvent && internalEvent.type === 'Asset Purged') {
+            if (internalEvent && 'zone' in internalEvent) {
                 expect(internalEvent.zone).toBe('Archive')
                 expect(internalEvent.objectsDeleted).toBe(15)
             }
         })
 
         it('should handle Asset Purged round-trip correctly', () => {
-            const originalEvent: WMLEventUpdate = {
-                type: 'Asset Purged',
-                zone: 'Draft',
-                objectsDeleted: 100
-            }
+            const originalEvent: WMLEventUpdate = { zone: 'Draft', objectsDeleted: 100 }
 
             // Serialize to external format
             const externalEvent = serializer.serialize({ content: originalEvent, header: makeWmlHeader('Asset Purged') })
@@ -402,7 +380,7 @@ describe('WMLEventSerializer', () => {
             })
 
             expect(roundTripEvent).toBeDefined()
-            if (roundTripEvent && roundTripEvent.type === 'Asset Purged') {
+            if (roundTripEvent && 'zone' in roundTripEvent) {
                 expect(roundTripEvent.zone).toBe(originalEvent.zone)
                 expect(roundTripEvent.objectsDeleted).toBe(originalEvent.objectsDeleted)
             }
@@ -424,10 +402,8 @@ describe('WMLEventSerializer', () => {
             })
 
             expect(internalEvent).not.toBeNull()
-            expect(internalEvent!.type).toBe('Zone Changed')
             expect((internalEvent as any).fromZone).toBe('Draft')
             expect((internalEvent as any).toZone).toBe('Canon')
-            expect((internalEvent as any).wml).toBeDefined()
         })
     })
 
@@ -457,7 +433,7 @@ describe('WMLAggregator', () => {
                     </Room>
                 </Asset>
             `))
-            const result = aggregator.applyUpdate(view, { header: makeWmlHeader('Content Update'), content: { type: 'Content Update', schema: delta } })
+            const result = aggregator.applyUpdate(view, { header: makeWmlHeader('Content Update'), content: { schema: delta } })
             expect(result.success).toBe(true)
             if (result.success) {
                 expect(result.snapshot).toBeDefined()
@@ -468,7 +444,7 @@ describe('WMLAggregator', () => {
 
         it('should return success false and unchanged snapshot for Merge Conflict', () => {
             const view = aggregator.createEmpty()
-            const result = aggregator.applyUpdate(view, { header: makeWmlHeader('Merge Conflict'), content: { type: 'Merge Conflict', error: 'conflict' } })
+            const result = aggregator.applyUpdate(view, { header: makeWmlHeader('Merge Conflict'), content: { error: 'conflict' } })
             expect(result.success).toBe(false)
             expect(result.snapshot).toBe(view)
         })
@@ -485,8 +461,8 @@ describe('WMLDataSourceEventSerializer', () => {
             header: makeWmlHeader('Content Update')
         })
         expect(result).not.toBeNull()
-        expect(result!.type).toBe('Content Update')
-        if (result && result.type === 'Content Update') {
+        expect(isWMLContentUpdateEvent(result!)).toBe(true)
+        if (result && isWMLContentUpdateEvent(result)) {
             expect(result.schema).toBeInstanceOf(StandardForm)
         }
     })
@@ -497,7 +473,7 @@ describe('WMLDataSourceEventSerializer', () => {
             header: makeWmlHeader('Merge Conflict')
         })
         expect(result).not.toBeNull()
-        expect(result!.type).toBe('Merge Conflict')
+        expect(isWMLMergeConflictEvent(result!)).toBe(true)
     })
 
     it('should return null for non-content external event (Zone Changed)', () => {
@@ -529,6 +505,6 @@ describe('isWMLMaterializedView', () => {
     })
 
     it('should return false for Content Update event', () => {
-        expect(isWMLMaterializedView({ type: 'Content Update', schema: {} })).toBe(false)
+        expect(isWMLMaterializedView({ schema: {} })).toBe(false)
     })
 })

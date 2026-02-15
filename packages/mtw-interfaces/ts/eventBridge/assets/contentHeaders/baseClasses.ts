@@ -8,32 +8,34 @@ import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 import { Zone, isZone } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { ResolvedStreamingEnvelope, StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 
-// Internal types for content headers events (using StandardForm objects)
+// Internal types for content headers events (no type; discrimination by header)
 export type ContentHeadersEventUpdate = ContentHeadersSnapshot | ContentHeadersUpdate | ZoneUpdatedEvent
 
 export type ContentHeadersSnapshot = {
-    type: 'Snapshot'
     assets: Array<{
         assetId: AssetUUID
         zone: Zone
-        standardForm: StandardForm // Internal representation for manipulation
+        standardForm: StandardForm
     }>
 }
 
 export type ContentHeadersUpdate = {
-    type: 'Headers Updated'
     assetId: AssetUUID
     zone: Zone
-    standardForm: StandardForm // Internal representation for manipulation
+    standardForm: StandardForm
 }
 
-// Type guards for content headers events
+export type ZoneUpdatedEvent = {
+    assetId: AssetUUID
+    fromZone: Zone
+    toZone: Zone
+}
+
+// Type guards (shape-based)
 export const isContentHeadersSnapshot = (event: any): event is ContentHeadersSnapshot => {
     return Boolean(
         event &&
         typeof event === 'object' &&
-        'type' in event &&
-        event.type === 'Snapshot' &&
         'assets' in event &&
         Array.isArray(event.assets)
     )
@@ -43,30 +45,19 @@ export const isContentHeadersUpdate = (event: any): event is ContentHeadersUpdat
     return Boolean(
         event &&
         typeof event === 'object' &&
-        'type' in event &&
-        event.type === 'Headers Updated' &&
         'assetId' in event &&
         'zone' in event &&
         'standardForm' in event &&
         typeof event.assetId === 'string' &&
-        isZone(event.zone)
+        isZone(event.zone) &&
+        !('fromZone' in event)
     )
 }
 
-export type ZoneUpdatedEvent = {
-    type: 'Zone Updated'
-    assetId: AssetUUID
-    fromZone: Zone
-    toZone: Zone
-}
-
-// Type guards for zone updated events
 export const isZoneUpdatedEvent = (event: any): event is ZoneUpdatedEvent => {
     return Boolean(
         event &&
         typeof event === 'object' &&
-        'type' in event &&
-        event.type === 'Zone Updated' &&
         'assetId' in event &&
         'fromZone' in event &&
         'toZone' in event &&
@@ -109,7 +100,6 @@ export class ContentHeadersAggregator {
      */
     createEmpty(): ContentHeadersSnapshot {
         return {
-            type: 'Snapshot',
             assets: []
         }
     }
@@ -134,7 +124,6 @@ export class ContentHeadersAggregator {
                 return {
                     success: true,
                     snapshot: {
-                        type: 'Snapshot',
                         assets: [
                             ...baselineAssets,
                             { assetId, zone, standardForm: mergedStandardForm }
@@ -152,7 +141,6 @@ export class ContentHeadersAggregator {
                 return {
                     success: true,
                     snapshot: {
-                        type: 'Snapshot',
                         assets: [
                             ...baselineAssets,
                             { assetId, zone: toZone, standardForm }

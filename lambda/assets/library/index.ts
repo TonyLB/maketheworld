@@ -90,14 +90,11 @@ const generateLibrarySnapshot = async (): Promise<LibrarySnapshot> => {
         const assetIds: AssetUUID[] = Items.map(({ AssetId }) => AssetId as AssetUUID)
         
         return {
-            type: 'Snapshot',
             assetIds
         }
     } catch (error) {
         console.error('Error generating library snapshot:', error)
-        // Return empty snapshot on error
         return {
-            type: 'Snapshot',
             assetIds: []
         }
     }

@@ -2,8 +2,9 @@
 
 export type SerializableObject = Record<string, unknown>
 
+/** Payload for stream events. Internal payloads omit type (discrimination by header.type); external include type for wire. */
 export type EventPayload = {
-    type: string;
+    type?: string;
 } & Record<string, unknown>
 
 // Header for routing and discrimination (always inline, never sidecarred)

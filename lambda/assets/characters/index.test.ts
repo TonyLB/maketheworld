@@ -325,7 +325,7 @@ describe('CharactersDataSource', () => {
             })
             
             expect(result).not.toBeNull()
-            expect(result?.type).toBe('Character Updated')
+            // Internal payload omits type; discrimination is by header only.
             expect(result?.component.tag).toBe('Character')
             expect(result?.component.universalKey).toBe('CHARACTER#char123')
         })

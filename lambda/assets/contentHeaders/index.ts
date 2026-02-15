@@ -176,7 +176,6 @@ export const contentHeadersDataSource = new AssetsDataSource<
             await streamEvent({
                 streamKey: 'global',
                 update: {
-                    type: 'Zone Updated',
                     assetId: zoneEvent.header.streamKey as AssetUUID,
                     fromZone,
                     toZone
@@ -208,7 +207,7 @@ export const contentHeadersDataSource = new AssetsDataSource<
                     await streamEvent({
                         update: contentHeadersUpdate,
                         streamKey: 'global',
-                        header: { type: contentHeadersUpdate.type }
+                        header: { type: 'Headers Updated' }
                     })
                 } else {
                     console.log(`No content header update generated for asset ${assetId} (no suitable components for headers)`)

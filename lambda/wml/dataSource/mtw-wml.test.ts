@@ -131,7 +131,6 @@ describe('WML DataSource', () => {
         it('should process successful moveAsset events', async () => {
             const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
             const mockMoveRequest: MoveAssetRequest = {
-                type: 'Move Asset',
                 fromZone: 'Library',
                 toZone: 'Canon'
             }
@@ -162,7 +161,6 @@ describe('WML DataSource', () => {
             expect(moveAssetMock).toHaveBeenCalledWith('ASSET#test-asset', mockMoveRequest)
             expect(mockStreamEvent).toHaveBeenCalledWith({
                 update: {
-                    type: 'Zone Changed',
                     fromZone: 'Library',
                     toZone: 'Canon'
                 },
@@ -174,7 +172,6 @@ describe('WML DataSource', () => {
         it('should process failed moveAsset events without streaming', async () => {
             const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
             const mockMoveRequest: MoveAssetRequest = {
-                type: 'Move Asset',
                 fromZone: 'Library',
                 toZone: 'Canon'
             }
@@ -207,7 +204,6 @@ describe('WML DataSource', () => {
         it('should handle moveAsset events with optional fields', async () => {
             const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
             const mockMoveRequest: MoveAssetRequest = {
-                type: 'Move Asset',
                 fromZone: 'Personal',
                 toZone: 'Library',
                 player: 'alice',
@@ -239,7 +235,6 @@ describe('WML DataSource', () => {
             expect(moveAssetMock).toHaveBeenCalledWith('ASSET#test-asset', mockMoveRequest)
             expect(mockStreamEvent).toHaveBeenCalledWith({
                 update: {
-                    type: 'Zone Changed',
                     fromZone: 'Personal',
                     toZone: 'Library',
                     player: 'alice',
@@ -253,7 +248,6 @@ describe('WML DataSource', () => {
         it('should handle moveAsset processing errors gracefully', async () => {
             const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
             const mockMoveRequest: MoveAssetRequest = {
-                type: 'Move Asset',
                 fromZone: 'Library',
                 toZone: 'Canon'
             }
@@ -284,7 +278,6 @@ describe('WML DataSource', () => {
         it('should handle streaming errors gracefully', async () => {
             const mockStreamEvent = jest.fn().mockRejectedValue(new Error('Streaming failed'))
             const mockMoveRequest: MoveAssetRequest = {
-                type: 'Move Asset',
                 fromZone: 'Library',
                 toZone: 'Canon'
             }
@@ -323,7 +316,6 @@ describe('WML DataSource', () => {
         it('should process successful applyEdit events', async () => {
             const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
             const mockApplyEditRequest = {
-                type: 'Apply Edit' as const,
                 RequestId: 'test-request-123',
                 schema: validEditWML
             }
@@ -362,7 +354,6 @@ describe('WML DataSource', () => {
             // Verify Content Update event was streamed with delta (edit WML) and RequestIds
             expect(mockStreamEvent).toHaveBeenCalledWith({
                 update: {
-                    type: 'Content Update',
                     schema: expect.any(StandardForm),
                     RequestIds: ['test-request-123']
                 },
@@ -376,7 +367,6 @@ describe('WML DataSource', () => {
         it('should stream Merge Conflict event when applyEdit fails', async () => {
             const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
             const mockApplyEditRequest = {
-                type: 'Apply Edit' as const,
                 RequestId: 'test-request-456',
                 schema: '<Asset uuid=(x)></Asset>'
             }
@@ -414,7 +404,7 @@ describe('WML DataSource', () => {
             // Verify Merge Conflict event was streamed so client knows the edit failed
             expect(mockStreamEvent).toHaveBeenCalledWith({
                 streamKey: 'ASSET#test-asset',
-                update: { type: 'Merge Conflict', error: 'Parse error', RequestIds: ['test-request-456'] },
+                update: { error: 'Parse error', RequestIds: ['test-request-456'] },
                 header: { type: 'Merge Conflict' }
             })
         })
@@ -422,7 +412,6 @@ describe('WML DataSource', () => {
         it('should handle applyEdit processing errors gracefully', async () => {
             const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
             const mockApplyEditRequest = {
-                type: 'Apply Edit' as const,
                 RequestId: 'test-request-789',
                 schema: validEditWML
             }
@@ -460,7 +449,6 @@ describe('WML DataSource', () => {
         it('should handle streaming errors gracefully', async () => {
             const mockStreamEvent = jest.fn().mockRejectedValue(new Error('Streaming failed'))
             const mockApplyEditRequest = {
-                type: 'Apply Edit' as const,
                 RequestId: 'test-request-999',
                 schema: validEditWML
             }
@@ -503,7 +491,6 @@ describe('WML DataSource', () => {
         it('should only process Apply Edit events for valid asset UUIDs', async () => {
             const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
             const mockApplyEditRequest = {
-                type: 'Apply Edit' as const,
                 RequestId: 'test-request-000',
                 schema: validEditWML
             }
@@ -532,7 +519,6 @@ describe('WML DataSource', () => {
         it('should use singleFlight wrapper for applyEdit calls', async () => {
             const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
             const mockApplyEditRequest = {
-                type: 'Apply Edit' as const,
                 RequestId: 'test-request-singleflight',
                 schema: validEditWML
             }
@@ -569,7 +555,6 @@ describe('WML DataSource', () => {
             // Verify the result was processed correctly (Content Update carries delta)
             expect(mockStreamEvent).toHaveBeenCalledWith({
                 update: {
-                    type: 'Content Update',
                     schema: expect.any(StandardForm),
                     RequestIds: ['test-request-singleflight']
                 },
@@ -583,7 +568,6 @@ describe('WML DataSource', () => {
         it('should stream RequestIds empty array when Apply Edit payload has no RequestId', async () => {
             const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
             const mockApplyEditRequest = {
-                type: 'Apply Edit' as const,
                 schema: validEditWML
                 // No RequestId
             }
@@ -612,7 +596,6 @@ describe('WML DataSource', () => {
 
             expect(mockStreamEvent).toHaveBeenCalledWith({
                 update: {
-                    type: 'Content Update',
                     schema: expect.any(StandardForm),
                     RequestIds: []
                 },
@@ -804,9 +787,7 @@ describe('WML DataSource', () => {
                     timestamp: 0,
                     type: 'Create Snapshot' as const
                 },
-                getContentInternal: () => Promise.resolve({
-                    type: 'Create Snapshot' as const
-                })
+                getContentInternal: () => Promise.resolve({})
             }
 
             await wmlDataSource.receiveEvents!({
@@ -831,7 +812,6 @@ describe('WML DataSource', () => {
             // Should stream Snapshot Created event
             expect(mockStreamEvent).toHaveBeenCalledWith({
                 update: {
-                    type: 'Snapshot Created',
                     chunksBeforeSnapshot: 10,
                     snapshotSize: 10000  // 5000 + 5000
                 },
@@ -853,9 +833,7 @@ describe('WML DataSource', () => {
                     timestamp: 0,
                     type: 'Create Snapshot' as const
                 },
-                getContentInternal: () => Promise.resolve({
-                    type: 'Create Snapshot' as const
-                })
+                getContentInternal: () => Promise.resolve({})
             }
 
             // Should not throw - errors should be caught and logged
@@ -886,9 +864,7 @@ describe('WML DataSource', () => {
                     timestamp: 0,
                     type: 'Create Snapshot' as const
                 },
-                getContentInternal: () => Promise.resolve({
-                    type: 'Create Snapshot' as const
-                })
+                getContentInternal: () => Promise.resolve({})
             }
 
             // Should not throw - errors should be caught and logged
@@ -924,9 +900,7 @@ describe('WML DataSource', () => {
                     timestamp: 0,
                     type: 'Create Snapshot' as const
                 },
-                getContentInternal: () => Promise.resolve({
-                    type: 'Create Snapshot' as const
-                })
+                getContentInternal: () => Promise.resolve({})
             }
 
             // Should not throw - streaming errors should be caught
@@ -966,9 +940,7 @@ describe('WML DataSource', () => {
                         timestamp: 0,
                         type: 'Create Snapshot' as const
                     },
-                    getContentInternal: () => Promise.resolve({
-                        type: 'Create Snapshot' as const
-                    })
+                    getContentInternal: () => Promise.resolve({})
                 }
 
                 await wmlDataSource.receiveEvents!({

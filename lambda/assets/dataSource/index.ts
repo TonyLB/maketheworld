@@ -33,13 +33,13 @@ const handleContentUpdate = async (
         const { zone, player, isNewAsset } = await cacheAsset({ assetId, streamEvent })
         if (isNewAsset) {
             await streamEvent({
-                update: { type: 'Asset Added', zone, ...(player ? { player } : {}) },
+                update: { zone, ...(player ? { player } : {}) },
                 streamKey: assetId,
                 header: { type: 'Asset Added' }
             })
         }
         await streamEvent({
-            update: { type: 'Asset Cached', zone },
+            update: { zone },
             streamKey: assetId,
             header: { type: 'Asset Cached' }
         })
@@ -78,10 +78,10 @@ const handleZoneChanged = async (
         })
         const canonGraph = await internalCache.Graph.get(Items.map(({ AssetId }) => (AssetId)), 'back')
         const globalAssetsSorted = canonGraph.reverse().topologicalSort().flat()
-        await streamEvent({ update: { type: 'Canon Updated', assetIds: globalAssetsSorted }, streamKey: 'canon-global', header: { type: 'Canon Updated' } })
+        await streamEvent({ update: { assetIds: globalAssetsSorted }, streamKey: 'canon-global', header: { type: 'Canon Updated' } })
     }
     await streamEvent({
-        update: { type: 'Zone Updated', fromZone, toZone, ...(player ? { player } : {}) },
+        update: { fromZone, toZone, ...(player ? { player } : {}) },
         streamKey: assetUUID,
         header: { type: 'Zone Updated' }
     })
@@ -108,7 +108,7 @@ const handleAssetPurged = async (
         return
     }
     await streamEvent({
-        update: { type: 'Asset Removed', zone, ...(player ? { player } : {}) },
+        update: { zone, ...(player ? { player } : {}) },
         streamKey: assetId,
         header: { type: 'Asset Removed' }
     })
@@ -150,7 +150,7 @@ const handleRemoveAsset = async (
         return
     }
     await streamEvent({
-        update: { type: 'Asset Removed', zone, ...(player ? { player } : {}) },
+        update: { zone, ...(player ? { player } : {}) },
         streamKey: assetId as string,
         header: { type: 'Asset Removed' }
     })

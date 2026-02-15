@@ -272,9 +272,9 @@ describe('AssetsDataSource (mtw.assets)', () => {
             expect(assetDBMock.query).not.toHaveBeenCalled()
             
             // Verify that Zone Updated event was streamed (always happens for zone changes)
+            // Internal payload omits type; discrimination is by header only.
             expect(mockStreamEvent).toHaveBeenCalledWith({
                 update: {
-                    type: 'Zone Updated',
                     fromZone: 'Personal',
                     toZone: 'Library',
                     player: 'testplayer'
@@ -341,16 +341,16 @@ describe('AssetsDataSource (mtw.assets)', () => {
                 ProjectionFields: ['AssetId', 'zone']
             })
 
-            // Verify that canon updated event was streamed
+            // Verify that canon updated event was streamed (internal payload omits type)
             expect(mockStreamEvent).toHaveBeenCalledWith({
-                update: { type: 'Canon Updated', assetIds: [] },
+                update: { assetIds: [] },
                 streamKey: 'canon-global',
                 header: { type: 'Canon Updated' }
             })
 
-            // Verify that zone updated event was also streamed
+            // Verify that zone updated event was also streamed (internal payload omits type)
             expect(mockStreamEvent).toHaveBeenCalledWith({
-                update: { type: 'Zone Updated', fromZone: 'Draft', toZone: 'Canon' },
+                update: { fromZone: 'Draft', toZone: 'Canon' },
                 streamKey: 'ASSET#test456',
                 header: { type: 'Zone Updated' }
             })
@@ -412,16 +412,16 @@ describe('AssetsDataSource (mtw.assets)', () => {
                 ProjectionFields: ['AssetId', 'zone']
             })
 
-            // Verify that canon updated event was streamed
+            // Verify that canon updated event was streamed (internal payload omits type)
             expect(mockStreamEvent).toHaveBeenCalledWith({
-                update: { type: 'Canon Updated', assetIds: [] },
+                update: { assetIds: [] },
                 streamKey: 'canon-global',
                 header: { type: 'Canon Updated' }
             })
 
-            // Verify that zone updated event was also streamed
+            // Verify that zone updated event was also streamed (internal payload omits type)
             expect(mockStreamEvent).toHaveBeenCalledWith({
-                update: { type: 'Zone Updated', fromZone: 'Canon', toZone: 'Library' },
+                update: { fromZone: 'Canon', toZone: 'Library' },
                 streamKey: 'ASSET#test789',
                 header: { type: 'Zone Updated' }
             })
@@ -458,8 +458,9 @@ describe('AssetsDataSource (mtw.assets)', () => {
                 streamEvent: mockStreamEvent
             })
 
+            // Internal payload omits type; discrimination is by header only.
             expect(mockStreamEvent).toHaveBeenCalledWith({
-                update: { type: 'Asset Removed', zone: 'Draft' },
+                update: { zone: 'Draft' },
                 streamKey: 'ASSET#purged123',
                 header: { type: 'Asset Removed' }
             })
