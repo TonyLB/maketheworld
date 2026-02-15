@@ -351,13 +351,14 @@ export class DataSource<
 
         const header: Header = { dataSourceKey: this.dataSourceKey, streamKey, timestamp: now, ...headerFragment } as Header
 
-        // Create CoreExternalFormat - use serializer if available, otherwise use update directly.
+        // Create CoreExternalFormat - full header (base four + extended) so format layer can split to wire extendedHeader.
         // Serializer output is external format (has type); internal update may omit type.
         const coreFormat: CoreExternalFormat = this.eventSerializer
             ? {
                 dataSourceKey: this.dataSourceKey,
                 streamKey,
                 timestamp: now,
+                header,
                 update: this.eventSerializer.serialize({
                     content: update,
                     header
@@ -367,6 +368,7 @@ export class DataSource<
                 dataSourceKey: this.dataSourceKey,
                 streamKey,
                 timestamp: now,
+                header,
                 update: update as { type: string; [key: string]: unknown }
             }
 
@@ -439,26 +441,19 @@ export class DataSource<
         await this.deliverReplayData({ sessionId, streamKey, snapshot: externalSnapshot, events: recentEvents })
     }
 
-    protected async getRecentEvents(streamKey: string, sinceTimestamp: number): Promise<Array<{ update: ExternalUpdatePayload, timestamp: number, streamKey: string, type: string }>> {
+    protected async getRecentEvents(streamKey: string, sinceTimestamp: number): Promise<Array<{ update: ExternalUpdatePayload, timestamp: number, streamKey: string, type: string, extendedHeader?: unknown }>> {
         // For non-replayable data sources, return empty array since no events are stored
         if (!this.replayable) {
             return []
         }
 
         const primaryKey = `STREAM#${this.dataSourceKey}::${streamKey}`
-        
-        // Query for events with DataCategory starting with 'EVENT#' and timestamp >= sinceTimestamp
-        // Note: This relies on lexicographic sorting of timestamp strings, which works for epoch timestamps
-        // until year 2286 (when timestamps reach 10 digits). While lexicographic sorting doesn't guarantee
-        // numeric sorting in general (e.g., "100" < "99"), epoch timestamps will be the same length for
-        // centuries, so fixing the problem would be premature overengineering.
-        //
-        // That said, we might need to pay attention around the year 2038, when timestamps will exceed the
-        // storage space of 32-bit integers.
+
         const events = await this.dynamo.query<Record<KeyType, string> & {
             DataCategory: string;
             type: string;
             update: ExternalUpdatePayload;
+            extendedHeader?: unknown;
         }>({
             Key: { [this.primaryKeyName]: primaryKey },
             KeyConditionExpression: 'DataCategory BETWEEN :timestampPrefix AND :timestampEndRange',
@@ -468,71 +463,79 @@ export class DataSource<
             },
             allFields: true
         })
-        
-        // Extract timestamp from DataCategory and sort by timestamp to ensure chronological order
+
         return events ? events
             .map(event => ({
                 type: event.type,
                 update: event.update,
                 streamKey,
-                timestamp: event.DataCategory ? parseInt(event.DataCategory.split('::')[0].replace('EVENT#', '')) : 0
+                timestamp: event.DataCategory ? parseInt(event.DataCategory.split('::')[0].replace('EVENT#', '')) : 0,
+                ...(event.extendedHeader !== undefined ? { extendedHeader: event.extendedHeader } : {})
             }))
             .sort((a, b) => a.timestamp - b.timestamp) : []
     }
 
-    protected async deliverReplayData({ 
-        sessionId, 
-        streamKey, 
-        snapshot, 
-        events 
-    }: { 
-        sessionId: `SESSION#${string}`; 
-        streamKey: string; 
-        snapshot: SnapshotType<ExternalSnapshotPayload>; 
-        events: Array<{ update: ExternalUpdatePayload, timestamp: number, streamKey: string }> 
+    protected async deliverReplayData({
+        sessionId,
+        streamKey,
+        snapshot,
+        events
+    }: {
+        sessionId: `SESSION#${string}`;
+        streamKey: string;
+        snapshot: SnapshotType<ExternalSnapshotPayload>;
+        events: Array<{ update: ExternalUpdatePayload, timestamp: number, streamKey: string, type: string, extendedHeader?: unknown }>
     }): Promise<void> {
-        // Extract the external snapshot payload (without createdAt/expiresAt metadata)
         const { createdAt, expiresAt, ...externalSnapshotPayload } = snapshot
-        
-        // Create Core External format for the snapshot (treating it as an event)
+
         const snapshotCoreFormat: CoreExternalFormat = {
             dataSourceKey: this.dataSourceKey,
             streamKey,
-            timestamp: snapshot.createdAt,  // Use snapshot creation time
-            update: externalSnapshotPayload as any // The snapshot payload already has a 'type' field
+            timestamp: snapshot.createdAt,
+            update: externalSnapshotPayload as any
         }
-        
-        // Transform to SNS format for delivery
+
         const snapshotSNSFormat = toSNSFeedbackFormat(snapshotCoreFormat)
-        
+
         const snapshotCommand = new PublishCommand({
             TopicArn: this.feedbackTopicArn,
             Message: JSON.stringify(snapshotSNSFormat),
             MessageAttributes: {
-                Targets: { 
-                    DataType: 'String.Array', 
-                    StringValue: JSON.stringify([sessionId]) 
+                Targets: {
+                    DataType: 'String.Array',
+                    StringValue: JSON.stringify([sessionId])
                 },
-                Type: { 
-                    DataType: 'String', 
-                    StringValue: 'StreamEvent' 
+                Type: {
+                    DataType: 'String',
+                    StringValue: 'StreamEvent'
                 }
             }
         })
         await this.sns.send(snapshotCommand)
 
-        // Send events if any - each event as a separate SNS message
         if (events.length > 0) {
-            await Promise.all(events.map(({ update, timestamp, streamKey }) => {
-                // Create Core External format for each event
+            await Promise.all(events.map(({ update, timestamp, streamKey, type, extendedHeader }) => {
+                let extendedPart: Record<string, unknown> = {};
+                if (extendedHeader != null && typeof extendedHeader === 'object') {
+                    extendedPart = { ...extendedHeader } as Record<string, unknown>;
+                } else if (update && typeof update === 'object' && 'RequestIds' in update && (update as Record<string, unknown>).RequestIds !== undefined) {
+                    extendedPart = { RequestIds: (update as Record<string, unknown>).RequestIds };
+                }
+                const fullHeader: CoreExternalFormat['header'] = {
+                    dataSourceKey: this.dataSourceKey,
+                    streamKey,
+                    timestamp,
+                    type,
+                    ...extendedPart
+                };
                 const coreFormat: CoreExternalFormat = {
                     dataSourceKey: this.dataSourceKey,
                     streamKey,
                     timestamp,
+                    header: fullHeader,
                     update: update as any
-                }
-                
-                // Transform to SNS Feedback format
+                };
+
                 const snsFeedbackFormat = toSNSFeedbackFormat(coreFormat)
                 
                 const eventCommand = new PublishCommand({

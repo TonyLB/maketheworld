@@ -88,11 +88,12 @@ const initializePrimitivesData = async (): Promise<void> => {
     }
     const externalUpdate = serializer.serialize({ content: internalEvent, header })
     
-    // Create CoreExternalFormat matching what DataSource.streamEvent produces
+    // Create CoreExternalFormat matching what DataSource.streamEvent produces (full header when present)
     const coreFormat: CoreExternalFormat = {
         dataSourceKey: 'mtw.diagnostics',
         streamKey: 'global', // Diagnostics events use 'global' streamKey
         timestamp: now, // Epoch milliseconds
+        header,
         update: externalUpdate
     }
     
