@@ -153,10 +153,12 @@ export class SubscriptionLibrary {
     }
 
     matchEvent(event: CoreExternalFormat): SubscriptionEvent | undefined {
+        const dataSourceKey = event.header?.dataSourceKey ?? event.dataSourceKey
+        const streamKey = event.header?.streamKey ?? event.streamKey
+        const type = event.header?.type ?? event.update?.type
         return this._library.reduce<SubscriptionEvent | undefined>((previous, handler) => {
             if (!previous) {
-                const { update, ...rest } = event
-                const match = handler.match({ ...rest, type: update?.type })
+                const match = handler.match({ dataSourceKey, streamKey, type })
                 if (match) {
                     return match
                 }

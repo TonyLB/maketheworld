@@ -74,13 +74,32 @@ describe('subscription handlerFramework', () => {
     })
 
     it('should match an event with no details', () => {
-        expect(testLibrary.matchEvent({ dataSourceKey: 'noDetails', streamKey: '', update: { type: 'any' } })?._dataSourceKey).toEqual('noDetails')
-        expect(testLibrary.matchEvent({ dataSourceKey: 'noMatch', streamKey: '', update: { type: 'any' } })).toBeFalsy()
+        expect(testLibrary.matchEvent({ dataSourceKey: 'noDetails', streamKey: '', timestamp: 0, update: { type: 'any' } })?._dataSourceKey).toEqual('noDetails')
+        expect(testLibrary.matchEvent({ dataSourceKey: 'noMatch', streamKey: '', timestamp: 0, update: { type: 'any' } })).toBeFalsy()
     })
 
     it('should match an event with type', () => {
-        expect(testLibrary.matchEvent({ dataSourceKey: 'detailsOne', streamKey: 'ASSET#XYZ', update: { type: 'TestOne' } })?._dataSourceKey).toEqual('detailsOne')
-        expect(testLibrary.matchEvent({ dataSourceKey: 'detailsOne', streamKey: 'ASSET#XYZ', update: { type: 'NoMatch' } })).toBeFalsy()
+        expect(testLibrary.matchEvent({ dataSourceKey: 'detailsOne', streamKey: 'ASSET#XYZ', timestamp: 0, update: { type: 'TestOne' } })?._dataSourceKey).toEqual('detailsOne')
+        expect(testLibrary.matchEvent({ dataSourceKey: 'detailsOne', streamKey: 'ASSET#XYZ', timestamp: 0, update: { type: 'NoMatch' } })).toBeFalsy()
+    })
+
+    it('should match on header.type when both header and update present (header is authoritative)', () => {
+        const eventWithHeader = {
+            dataSourceKey: 'detailsOne',
+            streamKey: 'ASSET#XYZ',
+            timestamp: 1234567890,
+            header: { dataSourceKey: 'detailsOne', streamKey: 'ASSET#XYZ', timestamp: 1234567890, type: 'TestOne' },
+            update: { type: 'NoMatch' }
+        }
+        expect(testLibrary.matchEvent(eventWithHeader as any)?._dataSourceKey).toEqual('detailsOne')
+        const eventWithMismatchedHeader = {
+            dataSourceKey: 'detailsOne',
+            streamKey: 'ASSET#XYZ',
+            timestamp: 1234567890,
+            header: { dataSourceKey: 'detailsOne', streamKey: 'ASSET#XYZ', timestamp: 1234567890, type: 'NoMatch' },
+            update: { type: 'TestOne' }
+        }
+        expect(testLibrary.matchEvent(eventWithMismatchedHeader as any)).toBeFalsy()
     })
 
     it('should subscribe with no details', async () => {

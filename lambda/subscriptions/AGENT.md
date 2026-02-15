@@ -61,6 +61,8 @@ type LibraryEntry = {
 - **`SubscriptionEvent`**: Event processing with subscription lookup and message delivery
 - **`SubscriptionLibrary`**: Collection management and event routing
 
+**Event matching (header authority):** Subscription matching uses the envelope (header) for routing. When matching events to handlers, `matchEvent` uses `dataSourceKey`, `type`, and `streamKey` from the event's **header** when present; `update.type` is not the source of truth for matching. This aligns with the DataSource pattern where the header is authoritative for routing.
+
 #### Connection Management (`internalCache/`)
 - **`CacheGlobal`**: Session and connection metadata management
 - **`CacheSessionConnections`**: WebSocket connection tracking
