@@ -30,7 +30,6 @@ describe('Library EventBridge Contracts', () => {
                 const snapshot = aggregator.createEmpty()
                 
                 expect(snapshot).toEqual({
-                    type: 'Snapshot',
                     assetIds: []
                 })
             })
@@ -300,7 +299,6 @@ describe('Library EventBridge Contracts', () => {
             it('should serialize Asset Added event', () => {
                 const result = serializer.serialize({
                     content: {
-                        type: 'Asset Added',
                         assetId: 'ASSET#test1' as AssetUUID
                     },
                     header: libraryHeader('Asset Added')
@@ -315,7 +313,6 @@ describe('Library EventBridge Contracts', () => {
             it('should serialize Asset Removed event', () => {
                 const result = serializer.serialize({
                     content: {
-                        type: 'Asset Removed',
                         assetId: 'ASSET#test2' as AssetUUID
                     },
                     header: libraryHeader('Asset Removed')
@@ -353,7 +350,6 @@ describe('Library EventBridge Contracts', () => {
                 })
 
                 expect(result).toEqual({
-                    type: 'Asset Added',
                     assetId: 'ASSET#test1'
                 })
             })
@@ -370,7 +366,6 @@ describe('Library EventBridge Contracts', () => {
                 })
 
                 expect(result).toEqual({
-                    type: 'Asset Removed',
                     assetId: 'ASSET#test2'
                 })
             })
@@ -431,7 +426,6 @@ describe('Library EventBridge Contracts', () => {
                 })
 
                 expect(result).toEqual({
-                    type: 'Asset Removed',
                     assetId: 'ASSET#test1'
                 })
             })
@@ -489,7 +483,6 @@ describe('Library EventBridge Contracts', () => {
                 const result = serializer.deserializeSnapshot(externalSnapshot)
 
                 expect(result).toEqual({
-                    type: 'Snapshot',
                     assetIds: ['ASSET#test1', 'ASSET#test2', 'ASSET#test3']
                 })
             })
@@ -503,7 +496,6 @@ describe('Library EventBridge Contracts', () => {
                 const result = serializer.deserializeSnapshot(externalSnapshot)
 
                 expect(result).toEqual({
-                    type: 'Snapshot',
                     assetIds: []
                 })
             })

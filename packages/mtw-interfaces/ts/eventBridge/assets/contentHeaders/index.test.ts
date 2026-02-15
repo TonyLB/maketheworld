@@ -2,7 +2,8 @@ import {
     ContentHeadersAggregator,
     ContentHeadersEventSerializer,
     ContentHeadersSnapshotExternal,
-    ContentHeadersUpdateExternal
+    ContentHeadersUpdateExternal,
+    isContentHeadersUpdate
 } from './index'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
@@ -29,7 +30,6 @@ describe('ContentHeaders EventBridge Contracts', () => {
                 const snapshot = aggregator.createEmpty()
                 
                 expect(snapshot).toEqual({
-                    type: 'Snapshot',
                     assets: []
                 })
             })
@@ -491,7 +491,6 @@ describe('ContentHeaders EventBridge Contracts', () => {
 
                 const result = serializer.serialize({
                     content: {
-                        type: 'Headers Updated',
                         assetId: 'ASSET#test',
                         zone: 'Canon',
                         standardForm
@@ -529,9 +528,8 @@ describe('ContentHeaders EventBridge Contracts', () => {
 
                 expect(result).not.toBeNull()
                 if (!result) return
-                
-                expect(result.type).toBe('Headers Updated')
-                if (result.type === 'Headers Updated') {
+                expect(isContentHeadersUpdate(result)).toBe(true)
+                if (isContentHeadersUpdate(result)) {
                     expect(result.assetId).toBe('ASSET#test')
                     expect(result.zone).toBe('Canon')
                     expect(result.standardForm).toBeInstanceOf(StandardForm)
@@ -598,7 +596,6 @@ describe('ContentHeaders EventBridge Contracts', () => {
                 const result = serializer.deserializeSnapshot(externalSnapshot)
 
                 expect(result).not.toBeNull()
-                expect(result?.type).toBe('Snapshot')
                 expect(result?.assets).toHaveLength(2)
                 expect(result?.assets[0].assetId).toBe('ASSET#test1')
                 expect(result?.assets[0].zone).toBe('Canon')
