@@ -8,7 +8,7 @@ import {
     WMLDataSourceEventSerializer,
     isWMLMaterializedView
 } from './index'
-import type { StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import type { WMLStreamingEventHeader } from './index'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 
@@ -16,8 +16,8 @@ const wmlDataSourceKey = 'mtw.wml'
 const wmlStreamKey = 'ASSET#test-asset'
 const wmlTimestamp = 0
 
-function makeWmlHeader(type: string): StreamingEventHeader {
-    return { dataSourceKey: wmlDataSourceKey, streamKey: wmlStreamKey, timestamp: wmlTimestamp, type }
+function makeWmlHeader(type: string, RequestIds?: string[]): WMLStreamingEventHeader {
+    return { dataSourceKey: wmlDataSourceKey, streamKey: wmlStreamKey, timestamp: wmlTimestamp, type, ...(RequestIds != null ? { RequestIds } : {}) }
 }
 
 describe('WMLEventSerializer', () => {
@@ -106,24 +106,22 @@ describe('WMLEventSerializer', () => {
             }
         })
 
-        it('should include RequestIds in serialized Content Update when present', () => {
+        it('should not put RequestIds in serialized Content Update content (RequestIds is in header)', () => {
             const standardForm = new StandardForm(deIndentWML(`
                 <Asset uuid=(test-asset)>
                     <Room key=(room1) uuid=(room1)><ShortName>R1</ShortName></Room>
                 </Asset>
             `))
-            const contentEvent: WMLEventUpdate = {
-                schema: standardForm,
-                RequestIds: ['req-123']
-            }
-            const externalEvent = serializer.serialize({ content: contentEvent, header: makeWmlHeader('Content Update') })
+            const contentEvent: WMLEventUpdate = { schema: standardForm }
+            const header = makeWmlHeader('Content Update', ['req-123'])
+            const externalEvent = serializer.serialize({ content: contentEvent, header })
             expect(externalEvent.type).toBe('Content Update')
             if (externalEvent.type === 'Content Update') {
-                expect(externalEvent.RequestIds).toEqual(['req-123'])
+                expect(externalEvent).not.toHaveProperty('RequestIds')
             }
         })
 
-        it('should preserve RequestIds when deserializing Content Update', () => {
+        it('should not put RequestIds in deserialized Content Update content (caller reads from header)', () => {
             const wmlString = deIndentWML(`
                 <Asset uuid=(test-asset)>
                     <Room key=(room1) uuid=(room1)><ShortName>R1</ShortName></Room>
@@ -131,38 +129,39 @@ describe('WMLEventSerializer', () => {
             `)
             const externalEvent: WMLEventExternal = {
                 type: 'Content Update',
-                wml: wmlString,
-                RequestIds: ['req-456']
+                wml: wmlString
             }
+            const header = makeWmlHeader('Content Update', ['req-456'])
             const internalEvent = serializer.deserialize({
                 content: externalEvent,
-                header: makeWmlHeader('Content Update')
+                header
             })
             expect(internalEvent).not.toBeNull()
             if (internalEvent && isWMLContentUpdateEvent(internalEvent)) {
-                expect(internalEvent.RequestIds).toEqual(['req-456'])
+                expect(internalEvent).not.toHaveProperty('RequestIds')
             }
+            expect(header.RequestIds).toEqual(['req-456'])
         })
 
-        it('should round-trip Content Update with RequestIds', () => {
+        it('should round-trip Content Update with RequestIds in header only', () => {
             const standardForm = new StandardForm(deIndentWML(`
                 <Asset uuid=(test-asset)>
                     <Room key=(room1) uuid=(room1)><ShortName>R1</ShortName></Room>
                 </Asset>
             `))
-            const contentEvent: WMLEventUpdate = {
-                schema: standardForm,
-                RequestIds: ['req-roundtrip']
-            }
-            const externalEvent = serializer.serialize({ content: contentEvent, header: makeWmlHeader('Content Update') })
+            const contentEvent: WMLEventUpdate = { schema: standardForm }
+            const headerWithIds = makeWmlHeader('Content Update', ['req-roundtrip'])
+            const externalEvent = serializer.serialize({ content: contentEvent, header: headerWithIds })
+            expect(externalEvent.type === 'Content Update' && !('RequestIds' in externalEvent)).toBe(true)
             const deserialized = serializer.deserialize({
                 content: externalEvent,
-                header: makeWmlHeader('Content Update')
+                header: headerWithIds
             })
             expect(deserialized).not.toBeNull()
             if (deserialized && isWMLContentUpdateEvent(deserialized)) {
-                expect(deserialized.RequestIds).toEqual(['req-roundtrip'])
+                expect(deserialized).not.toHaveProperty('RequestIds')
             }
+            expect(headerWithIds.RequestIds).toEqual(['req-roundtrip'])
         })
     })
 
@@ -306,29 +305,31 @@ describe('WMLEventSerializer', () => {
             }
         })
 
-        it('should include RequestIds in serialized Merge Conflict when present', () => {
-            const mergeConflictEvent: WMLEventUpdate = { error: 'Conflict', RequestIds: ['req-mc-1'] }
-            const externalEvent = serializer.serialize({ content: mergeConflictEvent, header: makeWmlHeader('Merge Conflict') })
+        it('should not put RequestIds in serialized Merge Conflict content (RequestIds is in header)', () => {
+            const mergeConflictEvent: WMLEventUpdate = { error: 'Conflict' }
+            const header = makeWmlHeader('Merge Conflict', ['req-mc-1'])
+            const externalEvent = serializer.serialize({ content: mergeConflictEvent, header })
             expect(externalEvent.type).toBe('Merge Conflict')
             if (externalEvent.type === 'Merge Conflict') {
-                expect(externalEvent.RequestIds).toEqual(['req-mc-1'])
+                expect(externalEvent).not.toHaveProperty('RequestIds')
             }
         })
 
-        it('should preserve RequestIds when deserializing Merge Conflict', () => {
+        it('should not put RequestIds in deserialized Merge Conflict content (caller reads from header)', () => {
             const externalEvent: WMLEventExternal = {
                 type: 'Merge Conflict',
-                error: 'Conflict',
-                RequestIds: ['req-mc-2']
+                error: 'Conflict'
             }
+            const header = makeWmlHeader('Merge Conflict', ['req-mc-2'])
             const internalEvent = serializer.deserialize({
                 content: externalEvent,
-                header: makeWmlHeader('Merge Conflict')
+                header
             })
             expect(internalEvent).toBeDefined()
             if (internalEvent && isWMLMergeConflictEvent(internalEvent)) {
-                expect(internalEvent.RequestIds).toEqual(['req-mc-2'])
+                expect(internalEvent).not.toHaveProperty('RequestIds')
             }
+            expect(header.RequestIds).toEqual(['req-mc-2'])
         })
     })
 

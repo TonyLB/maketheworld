@@ -3,7 +3,7 @@
 // This file contains event types, type guards, and serializers for the WML data source.
 // Migrated from lambda/wml/dataSource/serializers.ts
 
-import { DataSourceEventSerializer, StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import { DataSourceEventSerializer, StreamingEventHeader, SerializableObject } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import type { ResolvedStreamingEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { DataSourceAggregator } from '@tonylb/mtw-lambda-patterns/ts/dataSource/aggregation'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
@@ -12,11 +12,15 @@ import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
 import { nodeFromWML } from '@tonylb/mtw-wml/ts/schema'
 import { Zone, isZone } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
-// Internal types for WML events (no type field; discrimination by envelope.header.type only)
+/** Extended header for mtw.wml: RequestIds is envelope-level only (routing/client correlation), not in content. */
+export type WMLStreamingEventHeader = StreamingEventHeader & { RequestIds?: string[] }
+
+// Internal types for WML events (no type field; discrimination by envelope.header.type only).
 // Content Update: carries edit/delta (not full document). Consumers must merge onto current state.
+// RequestIds is carried in the envelope header only (WMLStreamingEventHeader), not in content.
 export type WMLContentEvent =
-    | { schema: StandardForm; RequestIds?: string[] }
-    | { error?: string; RequestIds?: string[] }
+    | { schema: StandardForm }
+    | { error?: string }
 
 export type WMLZoneEvent = {
     fromZone: Zone
@@ -39,18 +43,17 @@ export type WMLPurgeEvent = {
 // Union type for all internal WML events
 export type WMLEventUpdate = WMLContentEvent | WMLZoneEvent | WMLSnapshotEvent | WMLPurgeEvent
 
-// External types for WML events
+// External types for WML events.
 // Content Update: wml is edit/delta WML (Replace/Remove etc.). Consumers must merge onto current state.
+// RequestIds is carried in Detail.extendedHeader (header), not in the update payload.
 export type WMLContentEventExternal = 
     | {
         type: 'Content Update'
         wml: string
-        RequestIds?: string[]
     }
     | {
         type: 'Merge Conflict'
         error?: string
-        RequestIds?: string[]
     }
 
 export type WMLZoneEventExternal = {
@@ -115,17 +118,17 @@ export const isWMLContentEvent = (event: any): event is WMLContentEvent =>
     isWMLContentUpdateEvent(event) || isWMLMergeConflictEvent(event)
 
 // Envelope type guards for WML content events (narrow both header and content; no casts in aggregator)
-export type WMLContentEnvelope = ResolvedStreamingEnvelope<WMLContentEvent, StreamingEventHeader>
+export type WMLContentEnvelope = ResolvedStreamingEnvelope<WMLContentEvent, WMLStreamingEventHeader>
 
 export function isWMLMergeConflictEnvelope(
     envelope: WMLContentEnvelope
-): envelope is ResolvedStreamingEnvelope<WMLContentEvent & { error?: string }, StreamingEventHeader & { type: 'Merge Conflict' }> {
+): envelope is ResolvedStreamingEnvelope<WMLContentEvent & { error?: string }, WMLStreamingEventHeader & { type: 'Merge Conflict' }> {
     return envelope.header.type === 'Merge Conflict'
 }
 
 export function isWMLContentUpdateEnvelope(
     envelope: WMLContentEnvelope
-): envelope is ResolvedStreamingEnvelope<WMLContentEvent & { schema: StandardForm }, StreamingEventHeader & { type: 'Content Update' }> {
+): envelope is ResolvedStreamingEnvelope<WMLContentEvent & { schema: StandardForm }, WMLStreamingEventHeader & { type: 'Content Update' }> {
     return envelope.header.type === 'Content Update'
 }
 
@@ -208,18 +211,18 @@ export const isWMLMaterializedView = (event: any): event is StandardFormData => 
     )
 }
 
-// Serialize/deserialize params - use ResolvedStreamingEnvelope so header discriminates content shape
-type WMLSerializeParams = ResolvedStreamingEnvelope<WMLEventUpdate, StreamingEventHeader>
-type WMLDeserializeParams = ResolvedStreamingEnvelope<WMLEventExternal, StreamingEventHeader>
+// Serialize/deserialize params - use ResolvedStreamingEnvelope so header discriminates content shape; header may carry RequestIds
+type WMLSerializeParams = ResolvedStreamingEnvelope<WMLEventUpdate, WMLStreamingEventHeader>
+type WMLDeserializeParams = ResolvedStreamingEnvelope<WMLEventExternal, WMLStreamingEventHeader>
 
 // Envelope type guards for serialize (header.type narrows content)
 const isZoneChangedWMLSerializeParams = (p: WMLSerializeParams): p is WMLSerializeParams & { header: StreamingEventHeader & { type: 'Zone Changed' }; content: WMLZoneEvent } =>
     p.header.type === 'Zone Changed'
 const isSnapshotCreatedWMLSerializeParams = (p: WMLSerializeParams): p is WMLSerializeParams & { header: StreamingEventHeader & { type: 'Snapshot Created' }; content: WMLSnapshotEvent } =>
     p.header.type === 'Snapshot Created'
-const isContentUpdateWMLSerializeParams = (p: WMLSerializeParams): p is WMLSerializeParams & { header: StreamingEventHeader & { type: 'Content Update' }; content: WMLContentEvent & { schema: StandardForm } } =>
+const isContentUpdateWMLSerializeParams = (p: WMLSerializeParams): p is WMLSerializeParams & { header: WMLStreamingEventHeader & { type: 'Content Update' }; content: WMLContentEvent & { schema: StandardForm } } =>
     p.header.type === 'Content Update'
-const isMergeConflictWMLSerializeParams = (p: WMLSerializeParams): p is WMLSerializeParams & { header: StreamingEventHeader & { type: 'Merge Conflict' }; content: WMLContentEvent & { error?: string } } =>
+const isMergeConflictWMLSerializeParams = (p: WMLSerializeParams): p is WMLSerializeParams & { header: WMLStreamingEventHeader & { type: 'Merge Conflict' }; content: WMLContentEvent & { error?: string } } =>
     p.header.type === 'Merge Conflict'
 const isAssetPurgedWMLSerializeParams = (p: WMLSerializeParams): p is WMLSerializeParams & { header: StreamingEventHeader & { type: 'Asset Purged' }; content: WMLPurgeEvent } =>
     p.header.type === 'Asset Purged'
@@ -229,9 +232,9 @@ const isZoneChangedWMLDeserializeParams = (p: WMLDeserializeParams): p is WMLDes
     p.header.type === 'Zone Changed'
 const isSnapshotCreatedWMLDeserializeParams = (p: WMLDeserializeParams): p is WMLDeserializeParams & { header: StreamingEventHeader & { type: 'Snapshot Created' }; content: WMLSnapshotEventExternal } =>
     p.header.type === 'Snapshot Created'
-const isContentUpdateWMLDeserializeParams = (p: WMLDeserializeParams): p is WMLDeserializeParams & { header: StreamingEventHeader & { type: 'Content Update' }; content: WMLContentEventExternal & { type: 'Content Update' } } =>
+const isContentUpdateWMLDeserializeParams = (p: WMLDeserializeParams): p is WMLDeserializeParams & { header: WMLStreamingEventHeader & { type: 'Content Update' }; content: WMLContentEventExternal & { type: 'Content Update' } } =>
     p.header.type === 'Content Update'
-const isMergeConflictWMLDeserializeParams = (p: WMLDeserializeParams): p is WMLDeserializeParams & { header: StreamingEventHeader & { type: 'Merge Conflict' }; content: WMLContentEventExternal & { type: 'Merge Conflict' } } =>
+const isMergeConflictWMLDeserializeParams = (p: WMLDeserializeParams): p is WMLDeserializeParams & { header: WMLStreamingEventHeader & { type: 'Merge Conflict' }; content: WMLContentEventExternal & { type: 'Merge Conflict' } } =>
     p.header.type === 'Merge Conflict'
 const isAssetPurgedWMLDeserializeParams = (p: WMLDeserializeParams): p is WMLDeserializeParams & { header: StreamingEventHeader & { type: 'Asset Purged' }; content: WMLPurgeEventExternal } =>
     p.header.type === 'Asset Purged'
@@ -247,7 +250,7 @@ const isAssetPurgedWMLDeserializeParams = (p: WMLDeserializeParams): p is WMLDes
  * - Content events: Convert StandardForm to/from WML strings
  * - Zone events: Pass through as structured data
  */
-export class WMLEventSerializer implements DataSourceEventSerializer<WMLEventUpdate, WMLEventExternal> {
+export class WMLEventSerializer implements DataSourceEventSerializer<WMLEventUpdate, WMLEventExternal, SerializableObject, SerializableObject, WMLStreamingEventHeader> {
     /**
      * Serialize an internal event to external format
      * for EventBridge transmission
@@ -265,16 +268,14 @@ export class WMLEventSerializer implements DataSourceEventSerializer<WMLEventUpd
             const { content } = params
             return {
                 type: 'Content Update',
-                wml: schemaToWML([content.schema.schema]),
-                ...(content.RequestIds != null ? { RequestIds: content.RequestIds } : {})
+                wml: schemaToWML([content.schema.schema])
             }
         }
         if (isMergeConflictWMLSerializeParams(params)) {
             const { content } = params
             return {
                 type: 'Merge Conflict',
-                error: content.error,
-                ...(content.RequestIds != null ? { RequestIds: content.RequestIds } : {})
+                error: content.error
             }
         }
         if (isAssetPurgedWMLSerializeParams(params)) {
@@ -311,20 +312,14 @@ export class WMLEventSerializer implements DataSourceEventSerializer<WMLEventUpd
             try {
                 const schemaNode = nodeFromWML(content.wml)
                 const standardForm = new StandardForm(schemaNode)
-                return {
-                    schema: standardForm,
-                    ...(content.RequestIds != null ? { RequestIds: content.RequestIds } : {})
-                }
+                return { schema: standardForm }
             } catch (error) {
                 throw new Error(`Failed to deserialize WML: ${error instanceof Error ? error.message : String(error)}`)
             }
         }
         if (isMergeConflictWMLDeserializeParams(params)) {
             const { content } = params
-            return {
-                error: content.error,
-                ...(content.RequestIds != null ? { RequestIds: content.RequestIds } : {})
-            }
+            return { error: content.error }
         }
         if (isAssetPurgedWMLDeserializeParams(params)) {
             const { content } = params
@@ -342,14 +337,14 @@ export class WMLEventSerializer implements DataSourceEventSerializer<WMLEventUpd
  * Only content events (Content Update, Merge Conflict) are deserialized; other event types return null.
  * Snapshot is StandardFormData; deserializeSnapshot is identity (slice receives resolved payload from sidecar).
  */
-export class WMLDataSourceEventSerializer implements DataSourceEventSerializer<WMLContentEvent, WMLContentEventExternal, StandardFormData, StandardFormData> {
+export class WMLDataSourceEventSerializer implements DataSourceEventSerializer<WMLContentEvent, WMLContentEventExternal, StandardFormData, StandardFormData, WMLStreamingEventHeader> {
     private readonly baseSerializer = new WMLEventSerializer()
 
-    serialize(params: { content: WMLContentEvent; header: StreamingEventHeader }): WMLContentEventExternal {
+    serialize(params: { content: WMLContentEvent; header: WMLStreamingEventHeader }): WMLContentEventExternal {
         return this.baseSerializer.serialize(params) as WMLContentEventExternal
     }
 
-    deserialize(params: { content: WMLContentEventExternal; header: StreamingEventHeader }): WMLContentEvent | null {
+    deserialize(params: { content: WMLContentEventExternal; header: WMLStreamingEventHeader }): WMLContentEvent | null {
         // Route on header: only Content Update and Merge Conflict are accepted for this slice
         if (params.header.type !== 'Content Update' && params.header.type !== 'Merge Conflict') {
             return null

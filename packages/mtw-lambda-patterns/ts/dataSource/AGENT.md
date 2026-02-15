@@ -311,7 +311,7 @@ Follow this structured path when working with the DataSource pattern. The header
 6. **Determine Your Implementation Goal**
    - **New DataSource**: Follow the Three-Phase pattern (Phase 1: mtw-interfaces contracts; Phase 2: lambda base class; Phase 3: instantiate DataSource). Use WML or contentHeaders as the reference
    - **Extending an existing DataSource**: Add event types to the subscribed union, update `subscribedEventTypeGuard`, extend `receiveEvents` with new branches. Use envelope-level type guards for narrowing
-   - **Adding extended headers**: Define extended header type, add `buildHeader` if publishing, pass extended fields in the header fragment to `streamEvent`. See [Extending the header](./AGENT.implementation.md#extending-the-header-type-safe)
+   - **Adding extended headers**: Define extended header type, add `buildHeader` if publishing, pass extended fields in the header fragment to `streamEvent`. See [Extending the header](./AGENT.implementation.md#extending-the-header-type-safe). For a reference implementation that keeps content domain-only (e.g. `RequestIds` in header only), see mtw.wml (lambda/wml/dataSource, packages/mtw-interfaces/ts/eventBridge/wml).
    - **Serializer changes**: Ensure `serialize`/`deserialize` use `{ content, header }` and route only on `header.type`. Do not branch on `content.type`
 
 7. **Run Tests Before Starting**

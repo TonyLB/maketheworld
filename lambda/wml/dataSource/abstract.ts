@@ -1,5 +1,6 @@
 import { DataSource, SerializableObject, SidecarSnapshotDescriptor } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import { EventPayload, StreamingEventHeader, StreamingEventEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import { WMLStreamingEventHeader } from '@tonylb/mtw-interfaces/ts/eventBridge/wml'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { snsClient } from '../clients'
 import messageBus from '../messageBus'
@@ -15,8 +16,8 @@ import messageBus from '../messageBus'
  * - Primary key name used in the WML domain
  * - Feedback topic ARN for replay data delivery
  */
-/** SubscribedContent = payload type of events we subscribe to (incoming). UpdatePayload = what we publish. */
-export class WMLDataSource<SnapshotPayload extends SerializableObject, UpdatePayload extends EventPayload, SubscribedContent extends EventPayload = UpdatePayload, ExternalUpdate extends EventPayload = EventPayload> extends DataSource<SnapshotPayload, UpdatePayload, SubscribedContent, ExternalUpdate, 'AssetId'> {
+/** SubscribedContent = payload type of events we subscribe to (incoming). UpdatePayload = what we publish. Header = extended header (e.g. WMLStreamingEventHeader for RequestIds). */
+export class WMLDataSource<SnapshotPayload extends SerializableObject, UpdatePayload extends EventPayload, SubscribedContent extends EventPayload = UpdatePayload, ExternalUpdate extends EventPayload = EventPayload, Header extends StreamingEventHeader = WMLStreamingEventHeader> extends DataSource<SnapshotPayload, UpdatePayload, SubscribedContent, ExternalUpdate, 'AssetId', SnapshotPayload, Header> {
     constructor(params: {
         dataSourceKey: string;
         snapshotContentGenerator?: (streamKey: string) => Promise<SnapshotPayload>; // Optional - not needed for non-replayable data sources
