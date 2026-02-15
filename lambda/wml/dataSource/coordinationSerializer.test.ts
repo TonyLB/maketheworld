@@ -32,7 +32,7 @@ describe('CoordinationEventSerializer', () => {
                 header
             })
             expect(result).not.toBeNull()
-            expect(result!.type).toBe('Apply Edit')
+            // Internal payload omits type; discrimination is by header only.
             expect((result as ApplyEditRequest).schema).toBe('<Asset></Asset>')
             expect((result as ApplyEditRequest).zone).toBe('Draft')
         })
@@ -49,7 +49,7 @@ describe('CoordinationEventSerializer', () => {
                 header
             })
             expect(result).not.toBeNull()
-            expect(result!.type).toBe('Move Asset')
+            // Internal payload omits type; discrimination is by header only.
             expect((result as MoveAssetRequest).fromZone).toBe('Personal')
             expect((result as MoveAssetRequest).toZone).toBe('Library')
         })
@@ -68,20 +68,19 @@ describe('CoordinationEventSerializer', () => {
                 header
             })
             expect(result).not.toBeNull()
-            expect(result!.type).toBe('Create Snapshot')
+            // Internal payload omits type; header says Create Snapshot, result has Create Snapshot shape
         })
     })
 
     describe('round-trip with header', () => {
         it('should round-trip Apply Edit: serialize then deserialize with header', () => {
             const internalEvent: ApplyEditRequest = {
-                type: 'Apply Edit',
                 RequestId: 'req-1',
                 schema: '<Asset></Asset>',
                 createIfNeeded: true,
                 zone: 'Draft'
             }
-            const header = makeHeader(internalEvent.type)
+            const header = makeHeader('Apply Edit')
             const externalEvent = serializer.serialize({
                 content: internalEvent,
                 header
@@ -91,7 +90,7 @@ describe('CoordinationEventSerializer', () => {
                 header
             })
             expect(deserialized).not.toBeNull()
-            expect(deserialized!.type).toBe('Apply Edit')
+            // Internal payload omits type; discrimination is by header only.
             expect((deserialized as ApplyEditRequest).RequestId).toBe('req-1')
             expect((deserialized as ApplyEditRequest).schema).toBe(internalEvent.schema)
             expect((deserialized as ApplyEditRequest).zone).toBe('Draft')

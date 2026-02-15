@@ -385,10 +385,10 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                     streamEvent: mockStreamEvent
                 })
 
+                // Internal payload omits type; discrimination is by header only.
                 expect(mockStreamEvent).toHaveBeenCalledWith({
                     streamKey: 'global',
                     update: {
-                        type: 'Zone Updated',
                         assetId: 'global',
                         fromZone: 'Canon',
                         toZone: 'Library'
@@ -433,10 +433,10 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                 })
 
                 expect(mockStreamEvent).toHaveBeenCalledTimes(2)
+                // Internal payload omits type; discrimination is by header only.
                 expect(mockStreamEvent).toHaveBeenNthCalledWith(1, {
                     streamKey: 'global',
                     update: {
-                        type: 'Zone Updated',
                         assetId: 'ASSET#test1',
                         fromZone: 'Canon',
                         toZone: 'Library'
@@ -446,7 +446,6 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                 expect(mockStreamEvent).toHaveBeenNthCalledWith(2, {
                     streamKey: 'global',
                     update: {
-                        type: 'Zone Updated',
                         assetId: 'ASSET#test2',
                         fromZone: 'Library',
                         toZone: 'Personal'
@@ -496,11 +495,10 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                     streamEvent: mockStreamEvent
                 })
 
-                // Should stream both Zone Updated and Headers Updated events
+                // Should stream both Zone Updated and Headers Updated events (internal payload omits type)
                 expect(mockStreamEvent).toHaveBeenCalledWith({
                     streamKey: 'global',
                     update: {
-                        type: 'Zone Updated',
                         assetId: 'ASSET#test1',
                         fromZone: 'Canon',
                         toZone: 'Library'
@@ -509,7 +507,6 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                 })
                 expect(mockStreamEvent).toHaveBeenCalledWith({
                     update: expect.objectContaining({
-                        type: 'Headers Updated',
                         assetId: 'ASSET#test1',
                         zone: 'Canon'
                     }),
