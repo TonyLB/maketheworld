@@ -220,11 +220,79 @@ This pattern works around a TypeScript limitation: the compiler does not automat
 
 Following these guidelines keeps wire formats stable while making header the canonical location for routing metadata and allowing payloads to remain as pure as possible representations of domain state.
 
-**Benefits**:
-- **Processing Flexibility**: Supports aggregation, parallel processing, sequential processing, or mixed patterns
-- **Scalability**: Foundation for handling high-volume event streams efficiently
-- **Extensibility**: Easy to implement new processing patterns as requirements evolve
-- **Performance**: Can optimize processing approach based on event characteristics and business logic
+### Serialization / resolution regimes and header predicates
+
+The same logical streaming envelope appears in three processing regimes, which differ only in how content is represented or obtained:
+
+- **External/core (`CoreExternalFormat`)**: Before deserialize, the lambda and subscriptions handler work with `CoreExternalFormat` where `update` is the external payload and `header` carries the authoritative routing metadata.
+- **Lazy internal (`StreamingEventEnvelope`)**: On the messageBus and DataSource side, `StreamingEventEnvelope<Content>` wraps the same header with `getContentInternal()` instead of an inline `content` field, so internal payload can be loaded lazily (and, in future, potentially cached internally).
+- **Resolved internal (`ResolvedStreamingEnvelope`)**: Aggregators, replay flows, and serializer params use `ResolvedStreamingEnvelope<Content, Header>` where the payload is fully realized as `content`.
+
+All three regimes share the same header semantics; the only differences between them are when and how content is obtained. To make this easier to reason about, and to avoid repeating envelope-level type guards for each regime, we centralize header-level routing logic and derive envelope guards mechanically from it.
+
+At the header level, each DataSource (or domain) should define:
+
+- A header union that describes the combinations of `dataSourceKey`, `type`, and any extended header fields it subscribes to, and/or
+- One or more header-focused predicates that accept a `StreamingEventHeader` and return a type guard for that header union (or selected subsets).
+
+Envelope-level guards for different regimes should then be built from those header predicates, not by restating the routing logic:
+
+- **StreamingEventEnvelope (lazy internal)**: a guard that accepts `StreamingEventEnvelope<unknown>` and uses only `envelope.header` to decide whether it matches, refining the header and payload type together.
+- **ResolvedStreamingEnvelope (resolved internal)**: a guard that accepts `ResolvedStreamingEnvelope<unknown, StreamingEventHeader>` (or an alias) and refines to `ResolvedStreamingEnvelope<UpdatePayload, HeaderUnion>`.
+- **CoreExternalFormat (external/core)**: a guard that accepts `CoreExternalFormat` and uses only `coreFormat.header` for routing, never `coreFormat.update.type`.
+
+Conceptually, the pattern looks like this:
+
+```ts
+// Header-level union and predicate (defined once per DataSource/domain)
+type ContentHeadersSubscribedHeader =
+    | (StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Component Updated' | 'Component Removed' | 'Asset Updated' })
+    | (StreamingEventHeader & { dataSourceKey: 'mtw.wml'; type: 'Zone Changed' })
+
+const isContentHeadersSubscribedHeader = (header: StreamingEventHeader): header is ContentHeadersSubscribedHeader => {
+    if (header.dataSourceKey === 'mtw.assets') {
+        return ['Component Updated', 'Component Removed', 'Asset Updated'].includes(header.type)
+    }
+    if (header.dataSourceKey === 'mtw.wml') {
+        return header.type === 'Zone Changed'
+    }
+    return false
+}
+
+// Helpers (defined once in the patterns package) that lift header predicates into envelope guards
+type HeaderGuard<H extends StreamingEventHeader> = (header: StreamingEventHeader) => header is H
+
+function makeStreamingEnvelopeGuardFromHeaderGuard<
+    SubscribedContent,
+    H extends StreamingEventHeader
+>(headerGuard: HeaderGuard<H>) {
+    return (
+        envelope: StreamingEventEnvelope<unknown>
+    ): envelope is StreamingEventEnvelope<SubscribedContent> & { header: H } => (
+        headerGuard(envelope.header)
+    )
+}
+
+function makeResolvedEnvelopeGuardFromHeaderGuard<
+    SubscribedContent,
+    H extends StreamingEventHeader
+>(headerGuard: HeaderGuard<H>) {
+    return (
+        envelope: ResolvedStreamingEnvelope<unknown, StreamingEventHeader>
+    ): envelope is ResolvedStreamingEnvelope<SubscribedContent, H> => (
+        headerGuard(envelope.header)
+    )
+}
+
+// Usage in a subscribedEvents module (lazy internal regime)
+export const isContentHeadersSubscribedEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<ContentHeadersSubscribedContent, ContentHeadersSubscribedHeader>(
+    isContentHeadersSubscribedHeader
+)
+```
+
+In the external/core regime, a similar helper can derive a `CoreExternalFormat` guard from the same `HeaderGuard`, keeping subscriptions routing logic aligned with DataSource and aggregator code without duplicating the header checks.
+
+Our goal is that by centralizing header-level routing predicates and using small helpers to derive envelope guards, we keep the header as the single source of routing truth across all regimes and make it easier to reason about streaming behavior without having to re-derive envelope type guards in multiple places.
 
 ## Timestamp Handling Strategy
 
