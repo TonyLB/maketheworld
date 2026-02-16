@@ -17,7 +17,9 @@ export interface CoreExternalFormat {
     streamKey: string;
     timestamp: number;  // Event timestamp (epoch milliseconds)
     RequestId?: string;
-    /** Full header (base four + extended properties merged). On the wire, extended part is written as Detail.extendedHeader. */
+    /** Full header (base four + extended properties merged). On the wire, extended part is written as Detail.extendedHeader.
+     *  header.type is authoritative for routing when present; update.type is preserved for wire compatibility and deserialization only.
+     */
     header?: { dataSourceKey: string; streamKey: string; timestamp: number; type: string; [key: string]: unknown };
     update: { type: string; [key: string]: unknown };
 }
@@ -74,6 +76,7 @@ export function toEventBridgeFormat(coreFormat: CoreExternalFormat): EventBridge
     // Extract the type and update data from the update object
     // Exclude 'timestamp' from rest - we only use the system-assigned epoch timestamp, never EventBridge/client timestamps
     const { type, update: updateData, timestamp: _, ...rest } = update;
+    const effectiveType = header?.type ?? type;
 
     // Extended part of header (everything except base four) goes to Detail.extendedHeader on the wire
     let extendedHeader: unknown = undefined;
@@ -89,7 +92,7 @@ export function toEventBridgeFormat(coreFormat: CoreExternalFormat): EventBridge
 
     return {
         Source: dataSourceKey,
-        DetailType: type,
+        DetailType: effectiveType,
         Detail: {
             streamKey,
             timestamp, // Always use epoch milliseconds from CoreExternalFormat (system-assigned, authoritative)
