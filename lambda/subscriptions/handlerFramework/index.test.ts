@@ -5,7 +5,6 @@ import { connectionDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 jest.mock('../internalCache')
 import internalCache from "../internalCache"
 import { isSubscriptionClientMessage } from '@tonylb/mtw-interfaces/ts/subscriptions'
-import { defaultSubscriptionMessageFromCoreFormat } from './baseClasses'
 import { subscriptionLibrary, subscriptionLibraryConstructor } from '.'
 
 const connectionDBMock = jest.mocked(connectionDB)
@@ -111,7 +110,7 @@ describe('subscription handlerFramework', () => {
             }
         ])
 
-        it('uses default adapter when handler has no transform and sends valid SubscriptionClientMessage', async () => {
+        it('uses webSocketFormat when handler has no transform and sends valid SubscriptionClientMessage', async () => {
             connectionDBMock.query.mockResolvedValue([{
                 ConnectionId: 'STREAM#mtw.assets.players::player99',
                 DataCategory: 'SESSION#S1'
@@ -146,29 +145,6 @@ describe('subscription handlerFramework', () => {
             })
         })
 
-        it('defaultSubscriptionMessageFromCoreFormat returns flat message with RequestIds from header', () => {
-            const coreFormat = {
-                dataSourceKey: 'mtw.wml',
-                streamKey: 'ASSET#a',
-                timestamp: 1,
-                header: {
-                    dataSourceKey: 'mtw.wml',
-                    streamKey: 'ASSET#a',
-                    timestamp: 1,
-                    type: 'Content Update',
-                    RequestIds: ['req-1']
-                },
-                update: { type: 'Content Update', wml: '<p />' }
-            }
-            const result = defaultSubscriptionMessageFromCoreFormat(coreFormat as any)
-            expect(result.messageType).toBe('StreamEvent')
-            expect(result.dataSourceKey).toBe('mtw.wml')
-            expect(result.streamKey).toBe('ASSET#a')
-            expect(result.timestamp).toBe(1)
-            expect(result.update).toEqual({ type: 'Content Update', wml: '<p />' })
-            expect(result.RequestIds).toEqual(['req-1'])
-            expect(isSubscriptionClientMessage(result)).toBe(true)
-        })
     })
 
     it('should subscribe with no details', async () => {

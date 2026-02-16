@@ -187,9 +187,10 @@ Use the checkboxes and "Status" lines to track progress. Add GitHub issue number
   - **Status**: Done. Subscription lambda uses wireFormatsFromCoreFormat and an adapter (flatten WebSocketFormat + merge header RequestIds/RequestId) as the default when no handler transform is provided; publish uses default or custom transform. Single source for CoreExternalFormat to client wire shape.  
   - **Depends on**: 4a (publisher and wireFormatsFromCoreFormat exist). Can be done after or alongside 4d. **Note**: SubscriptionClientMessage (mtw-interfaces) is flat (`messageType`, `dataSourceKey`, `streamKey`, `timestamp`, `update`); WebSocketFormat has a nested `message`. An adapter or small helper (e.g. flatten `webSocketFormat.message` into the client shape) may be needed unless the client contract is updated to match.
 
-- [ ] **4f. Unify WebSocket wire shape: flat base type in patterns, domain union in mtw-interfaces**  
+- [x] **4f. Unify WebSocket wire shape: flat base type in patterns, domain union in mtw-interfaces**  
   - **What**: (1) In patterns (formatTransform): redefine `WebSocketFormat` as the **flat** shape we actually send over the WebSocket (no nested `message`): `{ messageType: 'StreamEvent', dataSourceKey, streamKey, timestamp, update, RequestId?, RequestIds? }`. This is the canonical base type only; patterns does not define or depend on any domain-specific union. (2) Update `toWebSocketFormat` to return that flat shape (and merge `coreFormat.header?.RequestIds` / `RequestId` into the result so the flat message is complete). Update `fromWebSocketFormat` to accept the flat shape and destructure into CoreExternalFormat. (3) In mtw-interfaces (subscriptions): import the flat base type from patterns; define `SubscriptionClientMessage` as the union of narrowed variants (WMLSubscriptionClientMessage, ContentHeadersSubscriptionClientMessage, etc.) that extend or constrain that base with specific `dataSourceKey` and `update` types. All domain payload types and the full union remain in interfaces. (4) In the subscription lambda: use `wireFormatsFromCoreFormat(coreFormat).webSocketFormat` directly as the default message when no handler transform is provided; remove or reduce the adapter in baseClasses (no flatten step, only header merge if still needed).  
   - **Why**: Single source of truth for the WebSocket stream-event shape; no duplicated flat vs nested formats. Patterns stays generic (base type only); interfaces owns the domain union and type guards. Subscription lambda can send webSocketFormat as-is.  
+  - **Status**: Done. WebSocketFormat is flat in formatTransform; toWebSocketFormat/fromWebSocketFormat use it and merge RequestIds/RequestId; mtw-interfaces subscription types extend WebSocketFormat; subscription lambda uses webSocketFormat directly and adapter removed.  
   - **Depends on**: 4e (adapter and default path exist).  
   - **Files**: `packages/mtw-lambda-patterns/ts/dataSource/formatTransform.ts` (WebSocketFormat, toWebSocketFormat, fromWebSocketFormat); `packages/mtw-interfaces/ts/subscriptions.ts` (import base from patterns, define union on top); `lambda/subscriptions/handlerFramework/baseClasses.ts` (simplify or remove defaultSubscriptionMessageFromCoreFormat).
 
@@ -206,14 +207,22 @@ Use the checkboxes and "Status" lines to track progress. Add GitHub issue number
   - **Status**:  
   - **Depends on**: None.
 
-### 6. Documentation improvements (parallel track)
+### 6. Generic extended-header merge for WebSocketFormat
 
-- [ ] **6a. Single "Serialization data flow" section**  
+- [ ] **6a. Replace ad-hoc RequestId/RequestIds in toWebSocketFormat with generic extended-header merge**  
+  - **What**: Today `toWebSocketFormat` (formatTransform.ts) explicitly sets `RequestId` and `RequestIds` on the flat WebSocket message from `coreFormat.RequestId`, `coreFormat.header?.RequestId`, and `coreFormat.header?.RequestIds`. Refactor to a generic approach: define the "extended" part of the header (e.g. header minus base four: dataSourceKey, streamKey, timestamp, type) and merge that extended part into the flat WebSocket message—so any top-level fields the subscription client contract expects from the header (RequestIds, RequestId, or future extended fields) are produced by one rule (e.g. "spread header minus base four onto the message") rather than hardcoding each field. Align with how EventBridge already handles extended header generically (Detail.extendedHeader). Update `fromWebSocketFormat` if needed to reconstruct header from the flat message using the same convention.  
+  - **Why**: Removes ad-hoc handling and keeps WebSocketFormat in sync with the single "extended header" concept used elsewhere; adding a new extended header field for the client no longer requires editing toWebSocketFormat.  
+  - **Depends on**: 4f (flat WebSocketFormat and current merge exist).  
+  - **Files**: `packages/mtw-lambda-patterns/ts/dataSource/formatTransform.ts` (toWebSocketFormat, fromWebSocketFormat; possibly shared helper for "header minus base four" if not already present).
+
+### 7. Documentation improvements (parallel track)
+
+- [ ] **7a. Single "Serialization data flow" section**  
   - **What**: Add a section (e.g. in AGENT.implementation.md) that spells out the full pipeline: outbound (internal update -> streamEvent -> serializer -> CoreExternalFormat -> toEventBridgeFormat -> EventBridge) and inbound (EventBridge -> fromEventBridgeFormat -> header + coreFormat.update -> deserialize -> internal -> messageBus). Match the actual code and formatTransform.  
   - **Status**:  
   - **Depends on**: Optional; can be done anytime.
 
-- [ ] **6b. Division of responsibility for serialization boundary**  
+- [ ] **7b. Division of responsibility for serialization boundary**  
   - **What**: Add a short "Division of responsibility" (or equivalent) that states who builds the header, who builds the wire envelope, and who routes on what. With envelope-typing (authority only), document that header is authoritative for routing; payload may still carry `type` for wire compatibility.  
   - **Status**:  
   - **Depends on**: Optional; can be done anytime.
@@ -222,9 +231,10 @@ Use the checkboxes and "Status" lines to track progress. Add GitHub issue number
 
 ## Suggested ordering
 
-- **Early / quick wins (header authoritative first)**: 1a (Ephemera path), 2a (matchEvent on header), 3a (same as 2a), 3b (toEventBridgeFormat uses header for type), 3d (tests). Then 5a+5b (Coordination move + doc fix). Doing 3 before 4–6 establishes the authority rule with no new abstractions; publisher and docs can follow.
+- **Early / quick wins (header authoritative first)**: 1a (Ephemera path), 2a (matchEvent on header), 3a (same as 2a), 3b (toEventBridgeFormat uses header for type), 3d (tests). Then 5a+5b (Coordination move + doc fix). Doing 3 before 4–7 establishes the authority rule with no new abstractions; publisher and docs can follow.
 - **Publisher refactor**: 4a -> 4b -> 4c (introduce publisher, then DataSource, then initialize). **Subscription lambda (4d, 4e)**: 4d (matchEvent on header) can be done once 3e/3f/3g are in place; 4e (EventBridge-to-WebSocket via wireFormatsFromCoreFormat) is a natural follow-on now that the publisher produces all wire formats—subscription handlers can use the same abstraction for the client message instead of hand-building from CoreExternalFormat.
-- **Docs**: 6a and 6b can proceed in parallel with any of the above.
+- **Extended-header cleanup**: 6a (generic extended-header merge for WebSocketFormat) after 4f.
+- **Docs**: 7a and 7b can proceed in parallel with any of the above.
 - **Optional later**: 3c (localize external types) as needed.
 - **Header-predicate rollout (after 3e)**: 3f (complete aggregate-guard migration for assets/dataSource and assets/players) -> 3g (derive per-event guards from header predicates across all modules) -> 3h (optional narrow header union type where beneficial). Doing 3f then 3g removes the mixed state and completes the single-source-of-truth; 3h refines types if desired.
 

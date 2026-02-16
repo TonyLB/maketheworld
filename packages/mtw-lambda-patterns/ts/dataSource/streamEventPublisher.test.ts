@@ -38,10 +38,10 @@ describe('publishStreamEvent', () => {
         expect(result.snsFeedbackFormat.update).toEqual(content)
 
         expect(result.webSocketFormat.messageType).toBe('StreamEvent')
-        expect(result.webSocketFormat.message.dataSourceKey).toBe('mtw.assets')
-        expect(result.webSocketFormat.message.streamKey).toBe('ASSET#test')
-        expect(result.webSocketFormat.message.timestamp).toBe(1234567890)
-        expect(result.webSocketFormat.message.update).toEqual(content)
+        expect(result.webSocketFormat.dataSourceKey).toBe('mtw.assets')
+        expect(result.webSocketFormat.streamKey).toBe('ASSET#test')
+        expect(result.webSocketFormat.timestamp).toBe(1234567890)
+        expect(result.webSocketFormat.update).toEqual(content)
     })
 
     it('should build with mock serializer; coreFormat.update and eventBridgeEvent.Detail match serialized output', () => {
@@ -84,7 +84,7 @@ describe('publishStreamEvent', () => {
         expect(result.snsFeedbackFormat.messageType).toBe('StreamEvent')
         expect(result.snsFeedbackFormat.update).toEqual(content)
         expect(result.webSocketFormat.messageType).toBe('StreamEvent')
-        expect(result.webSocketFormat.message.update).toEqual(content)
+        expect(result.webSocketFormat.update).toEqual(content)
     })
 
     it('should omit dynamoRecord when primaryKeyName or eventId is omitted', () => {
@@ -129,10 +129,19 @@ describe('wireFormatsFromCoreFormat', () => {
         expect(result.snsFeedbackFormat.update).toEqual(coreFormat.update)
 
         expect(result.webSocketFormat.messageType).toBe('StreamEvent')
-        expect(result.webSocketFormat.message.dataSourceKey).toBe('mtw.assets')
-        expect(result.webSocketFormat.message.update).toEqual(coreFormat.update)
+        expect(result.webSocketFormat.dataSourceKey).toBe('mtw.assets')
+        expect(result.webSocketFormat.update).toEqual(coreFormat.update)
 
         expect(result.dynamoRecord).toBeUndefined()
+    })
+
+    it('should set webSocketFormat.RequestIds when coreFormat.header has RequestIds', () => {
+        const coreWithRequestIds: CoreExternalFormat = {
+            ...coreFormat,
+            header: { ...coreFormat.header!, RequestIds: ['req-1', 'req-2'] },
+        }
+        const result = wireFormatsFromCoreFormat(coreWithRequestIds)
+        expect(result.webSocketFormat.RequestIds).toEqual(['req-1', 'req-2'])
     })
 
     it('should include dynamoRecord when primaryKeyName and eventId are provided', () => {
@@ -149,5 +158,6 @@ describe('wireFormatsFromCoreFormat', () => {
         expect(result.eventBridgeEvent.Source).toBe('mtw.assets')
         expect(result.snsFeedbackFormat.messageType).toBe('StreamEvent')
         expect(result.webSocketFormat.messageType).toBe('StreamEvent')
+        expect(result.webSocketFormat.dataSourceKey).toBe('mtw.assets')
     })
 })
