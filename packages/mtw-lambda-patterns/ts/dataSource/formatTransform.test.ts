@@ -55,6 +55,36 @@ describe('formatTransform', () => {
             expect(result.Detail.extendedHeader).toBeUndefined()
             expect(result.Detail.update).toEqual('a1')
         })
+
+        it('should prefer header.type over update.type for DetailType when both are present', () => {
+            const coreFormat: CoreExternalFormat = {
+                dataSourceKey: 'mtw.wml',
+                streamKey: 'ASSET#test',
+                timestamp: 1234567890,
+                header: {
+                    dataSourceKey: 'mtw.wml',
+                    streamKey: 'ASSET#test',
+                    timestamp: 1234567890,
+                    type: 'HeaderType'
+                },
+                update: { type: 'PayloadType', update: '<Asset />' }
+            }
+            const result = toEventBridgeFormat(coreFormat)
+            expect(result.DetailType).toBe('HeaderType')
+            expect(result.Detail.update).toEqual('<Asset />')
+        })
+
+        it('should fall back to update.type for DetailType when header is absent', () => {
+            const coreFormat: CoreExternalFormat = {
+                dataSourceKey: 'mtw.assets',
+                streamKey: 'stream-2',
+                timestamp: 2000,
+                update: { type: 'PayloadType', update: 'payload' }
+            } as CoreExternalFormat
+            const result = toEventBridgeFormat(coreFormat)
+            expect(result.DetailType).toBe('PayloadType')
+            expect(result.Detail.update).toEqual('payload')
+        })
     })
 
     describe('fromEventBridgeFormat', () => {

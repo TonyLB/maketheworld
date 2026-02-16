@@ -134,9 +134,9 @@ Use the checkboxes and "Status" lines to track progress. Add GitHub issue number
 *Placed here (before publisher and contracts) because it has no dependency on 4–6 and establishes "header is authoritative" early; the rest of the refactor then builds on that rule.*
 
 - [x] **3a. matchEvent uses header only** — SubscriptionLibrary.matchEvent uses `event.header?.type` (or equivalent) for routing, not `event.update?.type`. Same change as 2a; done as part of 2a.
-- [ ] **3b. toEventBridgeFormat uses header for type** — When building EventBridge Detail, take `type` from `coreFormat.header.type` (not from `update`) for DetailType. May still copy type into Detail body. No dependency on publisher (4); coreFormat already has header.
-- [ ] **3c. (Optional) Localize external types** — Where it helps, treat external content as opaque at the boundary and discriminate only by header; reduce reliance on payload type in types/guards. See Findings "Localizing external content types."
-- [ ] **3d. Tests** — Cover matchEvent and toEventBridgeFormat behavior so regressions are caught.
+- [x] **3b. toEventBridgeFormat uses header for type** — When building EventBridge Detail, take `type` from `coreFormat.header.type` (not from `update`) for DetailType. Implemented via `effectiveType = header?.type ?? update.type`; DetailType uses `effectiveType` while payload shape remains unchanged.
+- [x] **3c. (Optional) Localize external types** — Where it helps, treat external content as opaque at the boundary and discriminate only by header; reduce reliance on payload type in types/guards. Documented in `CoreExternalFormat` and `AGENT.implementation.md` that `header.type` is authoritative for routing and `update.type` is preserved for wire compatibility and deserialization.
+- [x] **3d. Tests** — Cover matchEvent and toEventBridgeFormat behavior so regressions are caught. Added tests in `formatTransform.test.ts` for header-wins vs. no-header fallback and re-ran DataSource tests.
 - **Explicitly out of scope:** Changing wire/stored data shape (removing type from payloads in EventBridge, SNS, DynamoDB, subscription message); serializer return shape; migration or rollout coordination.
 
 ### 4. Confine CoreExternalFormat construction (publisher)
