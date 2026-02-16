@@ -110,7 +110,7 @@ export const handler = async (event: any, context: any) => {
     }
 
     // Handle legacy EventBridge messages that don't use DataSource pattern yet
-    if (['mtw.coordination', 'mtw.diagnostics', 'mtw.development', 'mtw.players', 'mtw.wml'].includes(event?.source || '')) {
+    if (['mtw.diagnostics', 'mtw.development', 'mtw.players', 'mtw.wml'].includes(event?.source || '')) {
         switch(event["detail-type"]) {
             case 'Disconnect Character':
                 console.log(`Disconnect Character: ${JSON.stringify(event.detail, null, 4)}`)

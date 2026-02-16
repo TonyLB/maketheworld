@@ -554,13 +554,12 @@ describe('AssetsDataSource (mtw.assets)', () => {
     })
 
     describe('Event Subscription', () => {
-        it('should subscribe to events from mtw.wml, mtw.diagnostics, and mtw.coordination (specific types only)', () => {
+        it('should subscribe to events from mtw.wml and mtw.diagnostics (specific types only)', () => {
             const subscribedHeaderPairs: Array<{ dataSourceKey: string; type: string }> = [
                 { dataSourceKey: 'mtw.wml', type: 'Content Update' },
                 { dataSourceKey: 'mtw.wml', type: 'Zone Changed' },
                 { dataSourceKey: 'mtw.wml', type: 'Asset Purged' },
-                { dataSourceKey: 'mtw.diagnostics', type: 'Heal Global Values' },
-                { dataSourceKey: 'mtw.coordination', type: 'Remove Asset' }
+                { dataSourceKey: 'mtw.diagnostics', type: 'Heal Global Values' }
             ]
 
             subscribedHeaderPairs.forEach(({ dataSourceKey, type }) => {

@@ -4,7 +4,6 @@ import { S3Client } from "@aws-sdk/client-s3";
 import messageBus from "./messageBus";
 import type { StreamingEventMessage } from "./messageBus/baseClasses";
 import { extractReturnValue } from "./returnValue/index";
-import { CoordinationEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/coordination';
 import { sendApplyEdit, sendMoveAsset, sendPurgeAsset } from './dataSource/subscribedEvents';
 import { sendInitializeSubscription } from './dataSource/initSubscription';
 import { fromEventBridgeFormat } from '@tonylb/mtw-lambda-patterns/ts/dataSource/formatTransform';
@@ -19,7 +18,6 @@ const s3Client = new S3Client(params)
 
 // Event deserializers for incoming EventBridge events
 const eventDeserializers = {
-    'mtw.coordination': new CoordinationEventSerializer(),
     'mtw.diagnostics': new DiagnosticsEventSerializer(),
     // Add other data source deserializers here as needed
 }

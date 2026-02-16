@@ -277,13 +277,11 @@ The following migrations must be completed in this specific order due to depende
 **Future consideration**: It may make sense to evaluate whether we still use `.address` for assets at all. If zone is fully expressed in metadata and no longer implied by directory layout, code that relies on `assetWorkspace.address` or similar may be redundant or simplifiable.
 
 #### Coordination events: remove mtw.coordination EventBridge, localize API handling
-**Status**: Future task (not part of current serialization refactor)
+**Status**: In progress (EventBridge removal done; API handling localization remaining)
 
-**Context**: Coordination commands (Apply Edit, Move Asset, Purge Asset, Canonize/Decanonize Asset, Create Snapshot) are today sent in-process via the messageBus with `dataSourceKey: 'internal'`. Nothing publishes `mtw.coordination` events to EventBridge; the EventBridge serializer and Assets' subscription to `mtw.coordination` (e.g. Remove Asset) are legacy from an earlier pattern.
+**Done so far**: EventBridge rules for `mtw.coordination` were removed from template.yaml (Ephemera, Assets, WML). CoordinationEventSerializer is no longer registered as an EventBridge deserializer in WML. Ephemera legacy allowlist no longer includes `mtw.coordination`. Assets DataSource no longer subscribes to `mtw.coordination` / Remove Asset. The Remove Asset pipeline (decacheAsset, handleRemoveAsset) is retained for future API or internal use.
 
-**Future option worth pursuing**: Remove `mtw.coordination` from EventBridge entirely and treat coordination as purely internal API handling. Each lambda would be explicitly responsible for the structure of its own API handling; no shared EventBridge coordination channel. This would mean removing the CoordinationEventSerializer registration for EventBridge, removing Assets' subscription to `mtw.coordination` (or repurposing Remove Asset if needed), and keeping coordination types and handling local to the lambdas that use them.
-
-**Recommendation**: Documented here as a possible future shift. Not part of the current DataSource serialization boundary; see `packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md` and `AGENT.md` for the pattern. Revisit when prioritizing cleanup of unused EventBridge paths or when redefining lambda API boundaries.
+**Remaining**: Standardize on the existing `dataSourceKey: 'internal'` (or equivalent) pattern for lambda API handling. When a lambda receives an API request that corresponds to a coordination-style command (Apply Edit, Move Asset, Purge Asset, Canonize/Decanonize, Create Snapshot, or Remove Asset), it should publish a streaming event to the messageBus with that internal source key so the same DataSource subscription and `receiveEvents` pipeline handles it. That way API-triggered actions are treated _as if_ they were incoming streaming events where relevant, reusing type guards, envelope shape, and existing handlers. Per-lambda responsibilities: each lambda owns how its API is structured and how it maps API calls into internal streaming events; no shared EventBridge coordination channel. Finish by repurposing the Remove Asset trigger (e.g. internal event from WML or Assets API) and optionally cleaning up unused CoordinationEventSerializer in mtw-interfaces.
 
 ---
 
