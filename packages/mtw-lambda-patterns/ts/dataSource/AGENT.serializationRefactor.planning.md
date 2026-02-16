@@ -216,11 +216,18 @@ Use the checkboxes and "Status" lines to track progress. Add GitHub issue number
 
 ### 6. Generic extended-header merge for WebSocketFormat
 
-- [ ] **6a. Replace ad-hoc RequestId/RequestIds in toWebSocketFormat with generic extended-header merge**  
+- [x] **6a. Replace ad-hoc RequestId/RequestIds in toWebSocketFormat with generic extended-header merge**  
   - **What**: Today `toWebSocketFormat` (formatTransform.ts) explicitly sets `RequestId` and `RequestIds` on the flat WebSocket message from `coreFormat.RequestId`, `coreFormat.header?.RequestId`, and `coreFormat.header?.RequestIds`. Refactor to a generic approach: define the "extended" part of the header (e.g. header minus base four: dataSourceKey, streamKey, timestamp, type) and merge that extended part into the flat WebSocket message—so any top-level fields the subscription client contract expects from the header (RequestIds, RequestId, or future extended fields) are produced by one rule (e.g. "spread header minus base four onto the message") rather than hardcoding each field. Align with how EventBridge already handles extended header generically (Detail.extendedHeader). Update `fromWebSocketFormat` if needed to reconstruct header from the flat message using the same convention.  
   - **Why**: Removes ad-hoc handling and keeps WebSocketFormat in sync with the single "extended header" concept used elsewhere; adding a new extended header field for the client no longer requires editing toWebSocketFormat.  
+  - **Status**: Done. toWebSocketFormat/fromWebSocketFormat use generic extended-header merge (header minus base four); shared getExtendedFromHeader used across all to* transforms; WebSocket tests added.  
   - **Depends on**: 4f (flat WebSocketFormat and current merge exist).  
   - **Files**: `packages/mtw-lambda-patterns/ts/dataSource/formatTransform.ts` (toWebSocketFormat, fromWebSocketFormat; possibly shared helper for "header minus base four" if not already present).
+
+- [ ] **6b. Document extended-header rule for all wire formats (close doc gap)**  
+  - **What**: Update durable documentation so the extended-header rule is stated for **all** wire formats, including WebSocket. Today [AGENT.implementation.md](./AGENT.implementation.md) "Serialization: extendedHeader" lists only EventBridge Detail, DynamoDB, and SNS; WebSocket is mentioned only in an example that describes current ad-hoc behavior. Change the Wire bullet to state that **every** wire format (EventBridge, DynamoDB, SNS, WebSocket) uses the same rule: extended header = "header minus base four," one object or one generic merge onto the message—no per-field enumeration. Add a sentence that the format layer (formatTransform) and publisher must apply this rule in every transform so that adding a new extended header field never requires editing multiple places. Optionally tighten [formatTransform.ts](./formatTransform.ts) module comment and [AGENT.md](./AGENT.md) "Format transforms" so they explicitly say all contexts follow the same rule.  
+  - **Why**: The doc gap (WebSocket omitted from the generic rule) likely contributed to toWebSocketFormat being the outlier; closing it ensures future implementers and 6a align with one stated rule.  
+  - **Depends on**: None (can be done before or with 6a).  
+  - **Files**: `packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md` (Serialization: extendedHeader); optionally `formatTransform.ts` (module comment), `AGENT.md` (Format transforms / Key Insight).
 
 ### 7. Documentation improvements (parallel track)
 
@@ -240,7 +247,7 @@ Use the checkboxes and "Status" lines to track progress. Add GitHub issue number
 
 - **Early / quick wins (header authoritative first)**: 1a (Ephemera path), 2a (matchEvent on header), 3a (same as 2a), 3b (toEventBridgeFormat uses header for type), 3d (tests). Then 5a+5c (Coordination move + doc fix). Doing 3 before 4–7 establishes the authority rule with no new abstractions; publisher and docs can follow.
 - **Publisher refactor**: 4a -> 4b -> 4c (introduce publisher, then DataSource, then initialize). **Subscription lambda (4d, 4e)**: 4d (matchEvent on header) can be done once 3e/3f/3g are in place; 4e (EventBridge-to-WebSocket via wireFormatsFromCoreFormat) is a natural follow-on now that the publisher produces all wire formats—subscription handlers can use the same abstraction for the client message instead of hand-building from CoreExternalFormat.
-- **Extended-header cleanup**: 6a (generic extended-header merge for WebSocketFormat) after 4f.
+- **Extended-header cleanup**: 6b (doc: extended-header rule for all wire formats) can be done anytime; 6a (generic extended-header merge for WebSocketFormat) after 4f.
 - **Docs**: 7a and 7b can proceed in parallel with any of the above.
 - **Optional later**: 3c (localize external types) as needed.
 - **Header-predicate rollout (after 3e)**: 3f (complete aggregate-guard migration for assets/dataSource and assets/players) -> 3g (derive per-event guards from header predicates across all modules) -> 3h (optional narrow header union type where beneficial). Doing 3f then 3g removes the mixed state and completes the single-source-of-truth; 3h refines types if desired.

@@ -14,7 +14,9 @@ import {
     toDynamoDBFormat,
     fromDynamoDBFormat,
     toSNSFeedbackFormat,
-    fromSNSFeedbackFormat
+    fromSNSFeedbackFormat,
+    toWebSocketFormat,
+    fromWebSocketFormat
 } from './formatTransform'
 
 describe('formatTransform', () => {
@@ -257,6 +259,101 @@ describe('formatTransform', () => {
                 type: 'Content Update',
                 RequestIds: ['r2']
             })
+        })
+    })
+
+    describe('toWebSocketFormat', () => {
+        it('should have no extra top-level keys when header has only base four', () => {
+            const coreFormat: CoreExternalFormat = {
+                dataSourceKey: 'mtw.assets',
+                streamKey: 'stream-1',
+                timestamp: 1000,
+                header: {
+                    dataSourceKey: 'mtw.assets',
+                    streamKey: 'stream-1',
+                    timestamp: 1000,
+                    type: 'Test'
+                },
+                update: { type: 'Test', data: 'x' }
+            }
+            const result = toWebSocketFormat(coreFormat)
+            expect(result.messageType).toBe('StreamEvent')
+            expect(result.dataSourceKey).toBe('mtw.assets')
+            expect(result.streamKey).toBe('stream-1')
+            expect(result.timestamp).toBe(1000)
+            expect(result.update).toEqual({ type: 'Test', data: 'x' })
+            expect(Object.keys(result).sort()).toEqual(['dataSourceKey', 'messageType', 'streamKey', 'timestamp', 'update'])
+        })
+
+        it('should merge extended header fields at top level (RequestIds and custom field)', () => {
+            const coreFormat: CoreExternalFormat = {
+                dataSourceKey: 'mtw.wml',
+                streamKey: 'ASSET#test',
+                timestamp: 1234567890,
+                header: {
+                    dataSourceKey: 'mtw.wml',
+                    streamKey: 'ASSET#test',
+                    timestamp: 1234567890,
+                    type: 'Content Update',
+                    RequestIds: ['req-1', 'req-2'],
+                    foo: 'bar'
+                },
+                update: { type: 'Content Update', wml: '<Asset />' }
+            }
+            const result = toWebSocketFormat(coreFormat)
+            expect(result.RequestIds).toEqual(['req-1', 'req-2'])
+            expect((result as unknown as Record<string, unknown>).foo).toBe('bar')
+        })
+
+        it('should include RequestId on message when coreFormat.RequestId is set', () => {
+            const coreFormat: CoreExternalFormat = {
+                dataSourceKey: 'mtw.assets',
+                streamKey: 'stream-1',
+                timestamp: 1000,
+                RequestId: 'top-level-req',
+                header: {
+                    dataSourceKey: 'mtw.assets',
+                    streamKey: 'stream-1',
+                    timestamp: 1000,
+                    type: 'Test'
+                },
+                update: { type: 'Test' }
+            }
+            const result = toWebSocketFormat(coreFormat)
+            expect(result.RequestId).toBe('top-level-req')
+        })
+    })
+
+    describe('fromWebSocketFormat', () => {
+        it('should reconstruct header with extended top-level fields', () => {
+            const message = {
+                messageType: 'StreamEvent' as const,
+                dataSourceKey: 'mtw.wml',
+                streamKey: 'ASSET#test',
+                timestamp: 1234567890,
+                update: { type: 'Content Update', wml: '<Asset />' },
+                RequestIds: ['req-a', 'req-b']
+            }
+            const result = fromWebSocketFormat(message)
+            expect(result.header).toBeDefined()
+            expect(result.header?.RequestIds).toEqual(['req-a', 'req-b'])
+            expect(result.header?.type).toBe('Content Update')
+            expect(result.dataSourceKey).toBe('mtw.wml')
+            expect(result.update).toEqual(message.update)
+        })
+
+        it('should set coreFormat.RequestId from message when present', () => {
+            const message = {
+                messageType: 'StreamEvent' as const,
+                dataSourceKey: 'mtw.assets',
+                streamKey: 's1',
+                timestamp: 1000,
+                update: { type: 'Test' },
+                RequestId: 'msg-request-id'
+            }
+            const result = fromWebSocketFormat(message)
+            expect(result.RequestId).toBe('msg-request-id')
+            expect(result.header?.RequestId).toBe('msg-request-id')
         })
     })
 })
