@@ -209,9 +209,9 @@ Use the checkboxes and "Status" lines to track progress. Add GitHub issue number
   - **Depends on**: None.  
   - **Files**: `AGENT.development.md` (add subsection or bullet under Future Development Considerations).
 
-- [ ] **5c. Update EventBridge AGENT.implementation.md contract**  
+- [x] **5c. Update EventBridge AGENT.implementation.md contract**  
   - **What**: Fix the documented serializer contract in `packages/mtw-interfaces/ts/eventBridge/AGENT.implementation.md` so the only signature shown is `{ content, header }` (remove the old `dataSourceKey`, `streamKey`, `update`/`externalUpdate` code blocks).  
-  - **Status**:  
+  - **Status**: Done. All serializer code blocks now use `{ content, header }`; discovery table no longer references removed coordinationSerializer path.  
   - **Depends on**: None.
 
 ### 6. Generic extended-header merge for WebSocketFormat

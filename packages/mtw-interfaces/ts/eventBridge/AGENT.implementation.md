@@ -27,8 +27,8 @@ export const isDataSourceEventType1 = (event: any): event is EventType1 => { ...
 
 // Serializer implementing the interface
 export class DataSourceEventSerializer implements DataSourceEventSerializer<DataSourceEventUpdate, DataSourceEventExternal> {
-    serialize(params: { dataSourceKey: string; streamKey: string; update: DataSourceEventUpdate }): DataSourceEventExternal
-    deserialize(params: { dataSourceKey: string; streamKey: string; externalUpdate: DataSourceEventExternal }): DataSourceEventUpdate | null
+    serialize(params: { content: DataSourceEventUpdate; header: StreamingEventHeader }): DataSourceEventExternal
+    deserialize(params: { content: DataSourceEventExternal; header: StreamingEventHeader }): DataSourceEventUpdate | null
 }
 ```
 
@@ -41,17 +41,15 @@ All serializers must implement `DataSourceEventSerializer<UpdatePayload, Externa
 ```typescript
 export class MyEventSerializer implements DataSourceEventSerializer<MyEventUpdate, MyEventExternal> {
     serialize(params: {
-        dataSourceKey: string;
-        streamKey: string;
-        update: MyEventUpdate;
+        content: MyEventUpdate;
+        header: StreamingEventHeader;
     }): MyEventExternal {
         // Convert internal format to external format
     }
-    
+
     deserialize(params: {
-        dataSourceKey: string;
-        streamKey: string;
-        externalUpdate: MyEventExternal;
+        content: MyEventExternal;
+        header: StreamingEventHeader;
     }): MyEventUpdate | null {
         // Convert external format to internal format
     }
@@ -81,7 +79,7 @@ For envelope unions and payload purity rules, see [mtw-lambda-patterns DataSourc
 
 ```typescript
 // Good: Graceful error handling
-deserialize(params: { ... }): MyEventUpdate | null {
+deserialize(params: { content: MyEventExternal; header: StreamingEventHeader }): MyEventUpdate | null {
     try {
         // Parse external event
         return parsedEvent
@@ -92,7 +90,7 @@ deserialize(params: { ... }): MyEventUpdate | null {
 }
 
 // Good: Validation with clear error messages
-serialize(params: { ... }): MyEventExternal {
+serialize(params: { content: MyEventUpdate; header: StreamingEventHeader }): MyEventExternal {
     if (!isValidEvent(params.content)) {
         throw new Error(`Invalid event type: ${JSON.stringify(params.content)}`)
     }
@@ -175,7 +173,7 @@ Pattern docs do not list every call-site. Search yields the live inventory.
 
 | What to find | Grep pattern | Notes |
 |--------------|--------------|-------|
-| Serializers | `implements DataSourceEventSerializer` | In `packages/mtw-interfaces/ts/eventBridge/**` and `lambda/wml/dataSource/coordinationSerializer.ts` |
+| Serializers | `implements DataSourceEventSerializer` | In `packages/mtw-interfaces/ts/eventBridge/**` |
 | EventBridge contract layout | Directory `packages/mtw-interfaces/ts/eventBridge/` | One directory per data source |
 | Lambda envelope unions | `IncomingEvent` | Envelope unions for `receiveEvents` (e.g. `AssetsIncomingEvent`, `LibraryIncomingEvent`) |
 | Lambda DataSource keys | `dataSourceKey: 'mtw\.` in `lambda/` | DataSource instantiations |
