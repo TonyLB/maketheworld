@@ -46,16 +46,12 @@ export function publishStreamEvent<PrimaryKey extends string = string, Header ex
     options: StreamEventPublisherOptions<PrimaryKey, Header>
 ): StreamEventPublisherResult<PrimaryKey> {
     const { header, content, serializer, primaryKeyName, eventId } = options;
-    const { dataSourceKey, streamKey, timestamp } = header;
 
     const update = serializer
         ? serializer.serialize({ content, header }) as { type: string; [key: string]: unknown }
         : (content as { type: string; [key: string]: unknown });
 
     const coreFormat: CoreExternalFormat = {
-        dataSourceKey,
-        streamKey,
-        timestamp,
         header,
         update,
     };

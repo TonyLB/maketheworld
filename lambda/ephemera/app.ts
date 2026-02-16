@@ -68,16 +68,11 @@ export const handler = async (event: any, context: any) => {
         
         if (deserializer) {
             const coreFormat = fromEventBridgeFormat(event)
-            const header = coreFormat.header ?? {
-                dataSourceKey: coreFormat.dataSourceKey,
-                streamKey: coreFormat.streamKey,
-                timestamp: coreFormat.timestamp ?? (event.time ? new Date(event.time).getTime() : getCurrentTimestamp()),
-                type: (event['detail-type'] ?? event.DetailType) as string
-            }
+            const { header, update } = coreFormat
             const timestamp = header.timestamp ?? (event.time ? new Date(event.time).getTime() : getCurrentTimestamp())
             // Deserialize the external EventBridge event to internal format (single path: coreFormat.update + header)
             const internalEvent = deserializer.deserialize({
-                content: coreFormat.update as any,
+                content: update as any,
                 header
             })
             
@@ -93,8 +88,8 @@ export const handler = async (event: any, context: any) => {
                 // Publish deserialized event to messageBus for DataSource processing.
                 messageBus.send({
                     type: 'StreamingEvent',
-                    dataSourceKey: coreFormat.dataSourceKey,
-                    streamKey: coreFormat.streamKey,
+                    dataSourceKey: header.dataSourceKey,
+                    streamKey: header.streamKey,
                     header,
                     getContentInternal: () => Promise.resolve(internalEvent),
                     timestamp

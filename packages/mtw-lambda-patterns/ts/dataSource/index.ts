@@ -468,9 +468,12 @@ export class DataSource<
         const { createdAt, expiresAt, ...externalSnapshotPayload } = snapshot
 
         const snapshotCoreFormat: CoreExternalFormat = {
-            dataSourceKey: this.dataSourceKey,
-            streamKey,
-            timestamp: snapshot.createdAt,
+            header: {
+                dataSourceKey: this.dataSourceKey,
+                streamKey,
+                timestamp: snapshot.createdAt,
+                type: (externalSnapshotPayload as { type?: string }).type ?? 'Snapshot'
+            },
             update: externalSnapshotPayload as any
         }
 
@@ -508,9 +511,6 @@ export class DataSource<
                     ...extendedPart
                 };
                 const coreFormat: CoreExternalFormat = {
-                    dataSourceKey: this.dataSourceKey,
-                    streamKey,
-                    timestamp,
                     header: fullHeader,
                     update: update as any
                 };

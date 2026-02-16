@@ -283,7 +283,7 @@ The following migrations must be completed in this specific order due to depende
 
 **Future option worth pursuing**: Remove `mtw.coordination` from EventBridge entirely and treat coordination as purely internal API handling. Each lambda would be explicitly responsible for the structure of its own API handling; no shared EventBridge coordination channel. This would mean removing the CoordinationEventSerializer registration for EventBridge, removing Assets' subscription to `mtw.coordination` (or repurposing Remove Asset if needed), and keeping coordination types and handling local to the lambdas that use them.
 
-**Recommendation**: Documented here as a possible future shift. Not part of the current DataSource serialization boundary refactor (see `packages/mtw-lambda-patterns/ts/dataSource/AGENT.serializationRefactor.planning.md`). Revisit when prioritizing cleanup of unused EventBridge paths or when redefining lambda API boundaries.
+**Recommendation**: Documented here as a possible future shift. Not part of the current DataSource serialization boundary; see `packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md` and `AGENT.md` for the pattern. Revisit when prioritizing cleanup of unused EventBridge paths or when redefining lambda API boundaries.
 
 ---
 
