@@ -4,7 +4,7 @@ import { S3Client } from "@aws-sdk/client-s3";
 import messageBus from "./messageBus";
 import type { StreamingEventMessage } from "./messageBus/baseClasses";
 import { extractReturnValue } from "./returnValue/index";
-import { CoordinationEventExternal, CoordinationEventSerializer } from './dataSource/coordinationSerializer';
+import { CoordinationEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/coordination';
 import { sendApplyEdit, sendMoveAsset, sendPurgeAsset } from './dataSource/subscribedEvents';
 import { sendInitializeSubscription } from './dataSource/initSubscription';
 import { fromEventBridgeFormat } from '@tonylb/mtw-lambda-patterns/ts/dataSource/formatTransform';

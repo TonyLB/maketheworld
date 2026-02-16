@@ -196,13 +196,20 @@ Use the checkboxes and "Status" lines to track progress. Add GitHub issue number
 
 ### 5. Event contracts in mtw-interfaces
 
-- [ ] **5a. Move Coordination event contracts to mtw-interfaces**  
+- [x] **5a. Move Coordination event contracts to mtw-interfaces**  
   - **What**: Move Coordination event types (e.g. `CoordinationCanonizeEventExternal`, `CoordinationEventExternal`, etc.) and `CoordinationEventSerializer` from `lambda/wml/dataSource/coordinationSerializer.ts` to a suitable module under `packages/mtw-interfaces/ts/eventBridge/` (e.g. `coordination` or under `wml` if that fits). Update lambda/wml to import from `@tonylb/mtw-interfaces/ts/eventBridge/...`.  
-  - **Status**:  
-  - **Depends on**: None (can be done independently; may want a single PR with 5b).  
+  - **Status**: Done. Coordination types and CoordinationEventSerializer live in `@tonylb/mtw-interfaces/ts/eventBridge/coordination`; lambda/wml imports from there. `lambda/wml/dataSource/coordinationSerializer.ts` and its test were removed.  
+  - **Depends on**: None (can be done independently; may want a single PR with 5c).  
   - **Files**: New or existing file in mtw-interfaces; `lambda/wml/dataSource/coordinationSerializer.ts` (delete or re-export); `lambda/wml/app.ts`, `lambda/wml/dataSource/mtw-wml.ts`, tests.
 
-- [ ] **5b. Update EventBridge AGENT.implementation.md contract**  
+- [x] **5b. Document future option: remove mtw.coordination EventBridge, localize coordination as internal-only**  
+  - **What**: In [AGENT.development.md](../../../../AGENT.development.md) (or equivalent master roadmap), add a short "Future task" note: the possible shift to remove `mtw.coordination` EventBridge events entirely and treat coordination (Apply Edit, Move Asset, Purge Asset, etc.) as purely internal API handling—each lambda responsible for the structure of its own API handling, no shared EventBridge coordination channel. This is a future option worth pursuing, not part of the current serialization refactor.  
+  - **Why**: Captures the option so it can be revisited; keeps current plan (5a) reversible and avoids the refactor scope expanding into coordination removal.  
+  - **Status**: Done. Documented in AGENT.development.md under "Coordination events: remove mtw.coordination EventBridge, localize API handling".  
+  - **Depends on**: None.  
+  - **Files**: `AGENT.development.md` (add subsection or bullet under Future Development Considerations).
+
+- [ ] **5c. Update EventBridge AGENT.implementation.md contract**  
   - **What**: Fix the documented serializer contract in `packages/mtw-interfaces/ts/eventBridge/AGENT.implementation.md` so the only signature shown is `{ content, header }` (remove the old `dataSourceKey`, `streamKey`, `update`/`externalUpdate` code blocks).  
   - **Status**:  
   - **Depends on**: None.
@@ -231,7 +238,7 @@ Use the checkboxes and "Status" lines to track progress. Add GitHub issue number
 
 ## Suggested ordering
 
-- **Early / quick wins (header authoritative first)**: 1a (Ephemera path), 2a (matchEvent on header), 3a (same as 2a), 3b (toEventBridgeFormat uses header for type), 3d (tests). Then 5a+5b (Coordination move + doc fix). Doing 3 before 4–7 establishes the authority rule with no new abstractions; publisher and docs can follow.
+- **Early / quick wins (header authoritative first)**: 1a (Ephemera path), 2a (matchEvent on header), 3a (same as 2a), 3b (toEventBridgeFormat uses header for type), 3d (tests). Then 5a+5c (Coordination move + doc fix). Doing 3 before 4–7 establishes the authority rule with no new abstractions; publisher and docs can follow.
 - **Publisher refactor**: 4a -> 4b -> 4c (introduce publisher, then DataSource, then initialize). **Subscription lambda (4d, 4e)**: 4d (matchEvent on header) can be done once 3e/3f/3g are in place; 4e (EventBridge-to-WebSocket via wireFormatsFromCoreFormat) is a natural follow-on now that the publisher produces all wire formats—subscription handlers can use the same abstraction for the client message instead of hand-building from CoreExternalFormat.
 - **Extended-header cleanup**: 6a (generic extended-header merge for WebSocketFormat) after 4f.
 - **Docs**: 7a and 7b can proceed in parallel with any of the above.

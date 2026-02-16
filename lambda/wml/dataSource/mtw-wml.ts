@@ -4,7 +4,7 @@ import { WMLEventSerializer, WMLEventUpdate, WMLEventExternal } from '@tonylb/mt
 import { moveAsset } from './moveAsset'
 import { applyEdit } from './applyEdit'
 import { purgeAsset } from './purgeAsset'
-import { CoordinationEventUpdate, isCoordinationCanonizeEvent, isCoordinationDecanonizeEvent, MoveAssetRequest, ApplyEditRequest, CreateSnapshotRequest, PurgeAssetRequest } from './coordinationSerializer'
+import { CoordinationEventUpdate, isCoordinationCanonizeEvent, isCoordinationDecanonizeEvent, MoveAssetRequest, ApplyEditRequest, CreateSnapshotRequest, PurgeAssetRequest } from '@tonylb/mtw-interfaces/ts/eventBridge/coordination'
 import { DiagnosticsEventUpdate, isS3StructureFindingEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics'
 import { isSchemaAssetUUID, AssetUUID } from "@tonylb/mtw-base/ts/schema"
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
