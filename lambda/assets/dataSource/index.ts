@@ -14,7 +14,6 @@ import {
     isWMLZoneChangedEvent,
     isWMLAssetPurgedEvent,
     isDiagnosticsHealGlobalValuesEvent,
-    isCoordinationRemoveAssetEvent,
     isWMLContentUpdateEvent,
 } from './subscribedEvents'
 
@@ -124,8 +123,9 @@ const handleHealGlobalValues = async (
     })
 }
 
+/** Retained for future API or internal use; no longer invoked by mtw.coordination subscription. */
 const handleRemoveAsset = async (
-    event: Extract<AssetsIncomingEvent, { header: { type: 'Remove Asset' } }>,
+    event: { header: { type: 'Remove Asset'; streamKey: string }; getContentInternal: () => Promise<{ type: 'Remove Asset'; assetId: string }> },
     streamEvent: StreamEventFn
 ): Promise<void> => {
     const content = await event.getContentInternal()
@@ -166,7 +166,7 @@ const handleRemoveAsset = async (
 // - Stream asset-level events to EventBridge for real-time subscribers
 // - Process incoming events from other data sources that affect assets
 // - Handle WML events for asset caching and decaching
-// - Handle coordination events (canonization, removal, etc.)
+// - Handle WML purge and decache (Remove Asset pipeline retained for future API/internal use)
 // - Process diagnostic events (healing, global values)
 // - Handle player and library update events
 //
@@ -193,9 +193,6 @@ export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, A
             if (isDiagnosticsHealGlobalValuesEvent(event)) {
                 await handleHealGlobalValues(event)
                 return
-            }
-            if (isCoordinationRemoveAssetEvent(event)) {
-                await handleRemoveAsset(event, streamEvent)
             }
         }))
     }

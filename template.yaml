@@ -491,17 +491,6 @@ Resources:
                   - "arn:aws:s3:::${AssetBucket}/*"
                   - AssetBucket: !Sub '${TablePrefix}-assets'
       Events:
-        Coordination:
-          Type: CloudWatchEvent
-          Properties:
-            EventBusName: !Sub ${TablePrefix}-bus
-            Pattern:
-              source:
-                - mtw.coordination
-              detail-type:
-                - Canonize Asset
-                - Decanonize Asset
-                - Disconnect Character
         Players:
           Type: CloudWatchEvent
           Properties:
@@ -1388,15 +1377,6 @@ Resources:
                     - mtw.diagnostics
                   detail-type:
                     - Heal Global Values
-            Coordination:
-              Type: CloudWatchEvent
-              Properties:
-                EventBusName: !Sub ${TablePrefix}-bus
-                Pattern:
-                  source:
-                    - mtw.coordination
-                  detail-type:
-                    - Remove Asset
             InitializeSubscriptions:
               Type: CloudWatchEvent
               Properties:
@@ -1579,16 +1559,6 @@ Resources:
                   - mtw.diagnostics
                 detail-type:
                   - S3 Structure Finding
-          Coordination:
-            Type: CloudWatchEvent
-            Properties:
-              EventBusName: !Sub ${TablePrefix}-bus
-              Pattern:
-                source:
-                  - mtw.coordination
-                detail-type:
-                  - Canonize Asset
-                  - Decanonize Asset
           InitializeSubscriptions:
             Type: CloudWatchEvent
             Properties:
