@@ -2,7 +2,7 @@
  * Ephemera DataSource subscription surface: types and envelope type guards
  * for events this DataSource subscribes to (mtw.assets: Component Updated, Canon Updated, Zone Updated).
  */
-import { StreamingEventHeader, StreamingEventEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import { StreamingEventHeader, StreamingEventEnvelope, HeaderGuard, makeStreamingEnvelopeGuardFromHeaderGuard } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import {
     AssetsEventUpdate,
     ComponentUpdatedEvent,
@@ -24,6 +24,7 @@ export const isEphemeraCanonUpdatedEnvelope = (evt: StreamingEventEnvelope<Asset
 export const isEphemeraZoneUpdatedEnvelope = (evt: StreamingEventEnvelope<AssetsEventUpdate>): evt is Extract<EphemeraIncomingEvent, { header: { type: 'Zone Updated' } }> =>
     evt.header.dataSourceKey === 'mtw.assets' && evt.header.type === 'Zone Updated'
 
-export function isEphemeraSubscribedEnvelope(e: StreamingEventEnvelope<unknown>): e is StreamingEventEnvelope<AssetsEventUpdate> {
-    return e.header.dataSourceKey === 'mtw.assets' && EPHEMERA_ASSET_EVENT_TYPES.has(e.header.type)
-}
+export const isEphemeraSubscribedEventHeader: HeaderGuard<StreamingEventHeader> = (header: StreamingEventHeader): header is StreamingEventHeader =>
+    header.dataSourceKey === 'mtw.assets' && EPHEMERA_ASSET_EVENT_TYPES.has(header.type)
+
+export const isEphemeraSubscribedEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<AssetsEventUpdate, StreamingEventHeader>(isEphemeraSubscribedEventHeader)

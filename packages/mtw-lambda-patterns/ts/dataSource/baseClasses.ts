@@ -67,6 +67,32 @@ export type ResolvedStreamingEnvelope<Content, Header extends StreamingEventHead
     content: Content;
 }
 
+// Header-level predicates and helpers for deriving envelope guards across regimes
+
+export type HeaderGuard<H extends StreamingEventHeader> = (header: StreamingEventHeader) => header is H
+
+export function makeStreamingEnvelopeGuardFromHeaderGuard<
+    Content,
+    H extends StreamingEventHeader
+>(headerGuard: HeaderGuard<H>) {
+    return (
+        envelope: StreamingEventEnvelope<unknown>
+    ): envelope is StreamingEventEnvelope<Content, H> => (
+        headerGuard(envelope.header)
+    )
+}
+
+export function makeResolvedEnvelopeGuardFromHeaderGuard<
+    Content,
+    H extends StreamingEventHeader
+>(headerGuard: HeaderGuard<H>) {
+    return (
+        envelope: ResolvedStreamingEnvelope<unknown, StreamingEventHeader>
+    ): envelope is ResolvedStreamingEnvelope<Content, H> => (
+        headerGuard(envelope.header)
+    )
+}
+
 // EventBridge serialization interface for DataSource integration
 export interface DataSourceEventSerializer<
     UpdatePayload extends EventPayload,

@@ -3,7 +3,7 @@
  * for events this DataSource subscribes to. Colocating these keeps header/payload alignment
  * in one place and gives send sites compile-time safety via the helpers.
  */
-import { StreamingEventHeader, StreamingEventEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import { StreamingEventHeader, StreamingEventEnvelope, HeaderGuard, makeStreamingEnvelopeGuardFromHeaderGuard } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import {
     CoordinationEventUpdate,
     COORDINATION_EVENT_TYPES,
@@ -20,9 +20,10 @@ export { COORDINATION_EVENT_TYPES }
 
 export type WMLSubscribedPayload = CoordinationEventUpdate | DiagnosticsEventUpdate
 
-export function isWMLSubscribedEnvelope(e: StreamingEventEnvelope<unknown>): e is StreamingEventEnvelope<WMLSubscribedPayload> {
-    return (e.header.dataSourceKey === 'internal' && COORDINATION_EVENT_TYPES.has(e.header.type)) || e.header.dataSourceKey === 'mtw.diagnostics'
-}
+export const isWMLSubscribedHeader: HeaderGuard<StreamingEventHeader> = (header: StreamingEventHeader): header is StreamingEventHeader =>
+    (header.dataSourceKey === 'internal' && COORDINATION_EVENT_TYPES.has(header.type)) || header.dataSourceKey === 'mtw.diagnostics'
+
+export const isWMLSubscribedEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<WMLSubscribedPayload, StreamingEventHeader>(isWMLSubscribedHeader)
 
 const isApplyEditEnvelope = (e: StreamingEventEnvelope<WMLSubscribedPayload>): e is StreamingEventEnvelope<ApplyEditRequest> & { header: StreamingEventHeader & { dataSourceKey: 'internal'; type: 'Apply Edit' } } =>
     e.header.dataSourceKey === 'internal' && e.header.type === 'Apply Edit'
