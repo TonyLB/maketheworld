@@ -237,9 +237,11 @@ At the header level, each DataSource (or domain) should define:
 
 Envelope-level guards for different regimes should then be built from those header predicates, not by restating the routing logic:
 
-- **StreamingEventEnvelope (lazy internal)**: a guard that accepts `StreamingEventEnvelope<unknown>` and uses only `envelope.header` to decide whether it matches, refining the header and payload type together.
+- **StreamingEventEnvelope (lazy internal)**: a guard that accepts `StreamingEventEnvelope<unknown>` and uses only `envelope.header` to decide whether it matches, refining the header and payload type together. After the guard, `envelope.header` is narrowed to the subscribed header union when the aggregate predicate is typed as `HeaderGuard<ThatUnion>` and the guard is built with that union as `H`.
 - **ResolvedStreamingEnvelope (resolved internal)**: a guard that accepts `ResolvedStreamingEnvelope<unknown, StreamingEventHeader>` (or an alias) and refines to `ResolvedStreamingEnvelope<UpdatePayload, HeaderUnion>`.
 - **CoreExternalFormat (external/core)**: a guard that accepts `CoreExternalFormat` and uses only `coreFormat.header` for routing, never `coreFormat.update.type`.
+
+When implementing a subscribedEvents module, define an exported header union type (e.g. `ContentHeadersSubscribedHeader`) and type the aggregate predicate as `HeaderGuard<ThatUnion>`, passing that union as the second type argument to `makeStreamingEnvelopeGuardFromHeaderGuard`, so that call sites get narrowed `envelope.header` after the guard.
 
 Conceptually, the pattern looks like this:
 

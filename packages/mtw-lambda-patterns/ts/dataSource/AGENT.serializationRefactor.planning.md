@@ -152,9 +152,10 @@ Use the checkboxes and "Status" lines to track progress. Add GitHub issue number
   - **What**: Introduce a pattern (and optional helper, e.g. a narrow-header predicate lifted into an envelope guard that narrows to a single union variant) so that per-event guards (e.g. "is this a Zone Changed event?") are derived from the same header-level source of truth as the aggregate guard. Refactor existing per-event guards in all subscribedEvents modules to use this pattern so "what event types we handle" is defined in one place per DataSource (no duplicated `dataSourceKey`/`type` checks in each per-event guard).
   - **Why**: Completes the single-source-of-truth story; adding or changing a subscribed event type then requires updating one header-level definition (and payload types), not N separate guard functions. Maximizes clarity gains from the header-predicate abstraction.
   - **Status**: Done. Per-event guards use the same `makeStreamingEnvelopeGuardFromHeaderGuard` with narrow `Content` and `H`; all six subscribedEvents modules refactored to use narrow header predicates plus that helper for variant guards.
-- [ ] **3h. (Optional) Narrow header union type**  
+- [x] **3h. (Optional) Narrow header union type**  
   - **What**: Where beneficial, define a proper header union type per DataSource (e.g. `ContentHeadersSubscribedHeader`) and type the aggregate header predicate as `HeaderGuard<ThatUnion>`, so TypeScript narrows the envelope's header after the guard. Align with 3f/3g so the union is the single source for both aggregate and per-event guards.
   - **Why**: Gives the type system a direct representation of "subscribed header variants" and can simplify per-event guard derivation (3g). Optional because the current predicate-only approach already centralizes logic; the union type adds type-level clarity.
+  - **Status**: Done. All six subscribedEvents modules now export a header union type (e.g. `LibrarySubscribedHeader`, `PlayersSubscribedHeader`) and use it for the aggregate predicate and for `makeStreamingEnvelopeGuardFromHeaderGuard<SubscribedContent, ThatUnion>`.
 - **Explicitly out of scope:** Changing wire/stored data shape (removing type from payloads in EventBridge, SNS, DynamoDB, subscription message); serializer return shape; migration or rollout coordination.
 
 ### 4. Confine CoreExternalFormat construction (publisher)

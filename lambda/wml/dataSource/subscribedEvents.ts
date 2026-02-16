@@ -22,7 +22,16 @@ export { COORDINATION_EVENT_TYPES }
 
 export type WMLSubscribedPayload = CoordinationEventUpdate | DiagnosticsEventUpdate
 
-export const isWMLSubscribedHeader: HeaderGuard<StreamingEventHeader> = (header): header is StreamingEventHeader =>
+/** Header union for events WML DataSource subscribes to. */
+export type WMLSubscribedHeader =
+    | (StreamingEventHeader & { dataSourceKey: 'internal'; type: 'Apply Edit' })
+    | (StreamingEventHeader & { dataSourceKey: 'internal'; type: 'Move Asset' })
+    | (StreamingEventHeader & { dataSourceKey: 'internal'; type: 'Canonize Asset' | 'Decanonize Asset' })
+    | (StreamingEventHeader & { dataSourceKey: 'internal'; type: 'Create Snapshot' })
+    | (StreamingEventHeader & { dataSourceKey: 'internal'; type: 'Purge Asset' })
+    | (StreamingEventHeader & { dataSourceKey: 'mtw.diagnostics' })
+
+export const isWMLSubscribedHeader: HeaderGuard<WMLSubscribedHeader> = (header): header is WMLSubscribedHeader =>
     isApplyEditHeader(header) ||
     isMoveAssetHeader(header) ||
     isCanonizeOrDecanonizeHeader(header) ||
@@ -30,7 +39,7 @@ export const isWMLSubscribedHeader: HeaderGuard<StreamingEventHeader> = (header)
     isPurgeAssetHeader(header) ||
     isDiagnosticsHeader(header)
 
-export const isWMLSubscribedEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<WMLSubscribedPayload, StreamingEventHeader>(isWMLSubscribedHeader)
+export const isWMLSubscribedEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<WMLSubscribedPayload, WMLSubscribedHeader>(isWMLSubscribedHeader)
 
 const isApplyEditHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey: 'internal'; type: 'Apply Edit' }> = (h): h is StreamingEventHeader & { dataSourceKey: 'internal'; type: 'Apply Edit' } =>
     h.dataSourceKey === 'internal' && h.type === 'Apply Edit'

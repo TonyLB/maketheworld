@@ -19,6 +19,12 @@ export type LibraryIncomingEvent =
           getContentInternal: () => Promise<AssetRemovedEventUpdate>;
       };
 
+/** Header union for events mtw.assets.library subscribes to. */
+export type LibrarySubscribedHeader =
+    | (StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Zone Updated' })
+    | (StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Asset Cached' })
+    | (StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Asset Removed' })
+
 const isZoneUpdatedLibraryHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Zone Updated' }> = (h): h is StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Zone Updated' } =>
     h.dataSourceKey === 'mtw.assets' && h.type === 'Zone Updated'
 const isAssetCachedLibraryHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Asset Cached' }> = (h): h is StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Asset Cached' } =>
@@ -30,11 +36,11 @@ export const isZoneUpdatedLibraryEvent = makeStreamingEnvelopeGuardFromHeaderGua
 export const isAssetCachedLibraryEvent = makeStreamingEnvelopeGuardFromHeaderGuard<AssetCachedEventUpdate, StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Asset Cached' }>(isAssetCachedLibraryHeader)
 export const isAssetRemovedLibraryEvent = makeStreamingEnvelopeGuardFromHeaderGuard<AssetRemovedEventUpdate, StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Asset Removed' }>(isAssetRemovedLibraryHeader)
 
-export const isSubscribedAssetsEventHeader: HeaderGuard<StreamingEventHeader> = (header): header is StreamingEventHeader =>
+export const isSubscribedAssetsEventHeader: HeaderGuard<LibrarySubscribedHeader> = (header): header is LibrarySubscribedHeader =>
     isZoneUpdatedLibraryHeader(header) ||
     isAssetCachedLibraryHeader(header) ||
     isAssetRemovedLibraryHeader(header)
 
 export type LibrarySubscribedContent = ZoneUpdatedEventUpdate | AssetCachedEventUpdate | AssetRemovedEventUpdate
 
-export const isLibrarySubscribedEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<LibrarySubscribedContent, StreamingEventHeader>(isSubscribedAssetsEventHeader)
+export const isLibrarySubscribedEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<LibrarySubscribedContent, LibrarySubscribedHeader>(isSubscribedAssetsEventHeader)

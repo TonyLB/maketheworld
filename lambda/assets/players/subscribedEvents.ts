@@ -18,6 +18,14 @@ import type { StreamingEventMessage } from '../messageBus/baseClasses'
 /** Payload types of events mtw.assets.players subscribes to (internal + mtw.assets). */
 export type PlayersSubscribedContent = PlayerSettingsUpdatedEvent | AssetLevelEventUpdate
 
+/** Header union for events mtw.assets.players subscribes to. */
+export type PlayersSubscribedHeader =
+    | (StreamingEventHeader & { dataSourceKey: 'internal'; type: 'Player Settings Updated' })
+    | (StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Asset Removed' })
+    | (StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Asset Added' })
+    | (StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Zone Updated' })
+    | (StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Asset Updated' })
+
 /**
  * Envelope-level discriminated union for events subscribed by mtw.assets.players.
  * Each variant pairs a narrow header (dataSourceKey + type) with getContentInternal returning the matching content shape.
@@ -46,14 +54,14 @@ export const isPlayersAssetAddedEnvelope = makeStreamingEnvelopeGuardFromHeaderG
 export const isPlayersZoneUpdatedEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<ZoneUpdatedEventUpdate, StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Zone Updated' }>(isPlayersZoneUpdatedHeader)
 export const isPlayersAssetUpdatedEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<AssetUpdatedEventUpdate, StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Asset Updated' }>(isPlayersAssetUpdatedHeader)
 
-export const isPlayersSubscribedHeader: HeaderGuard<StreamingEventHeader> = (header): header is StreamingEventHeader =>
+export const isPlayersSubscribedHeader: HeaderGuard<PlayersSubscribedHeader> = (header): header is PlayersSubscribedHeader =>
     isPlayerSettingsHeader(header) ||
     isPlayersAssetRemovedHeader(header) ||
     isPlayersAssetAddedHeader(header) ||
     isPlayersZoneUpdatedHeader(header) ||
     isPlayersAssetUpdatedHeader(header)
 
-export const isPlayersSubscribedEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<PlayersSubscribedContent, StreamingEventHeader>(isPlayersSubscribedHeader)
+export const isPlayersSubscribedEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<PlayersSubscribedContent, PlayersSubscribedHeader>(isPlayersSubscribedHeader)
 
 type Bus = { send: (payload: StreamingEventMessage) => void }
 

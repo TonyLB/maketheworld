@@ -15,6 +15,12 @@ export type EphemeraIncomingEvent =
     | { header: StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Canon Updated' }; getContentInternal: () => Promise<CanonUpdatedEventUpdate> }
     | { header: StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Zone Updated' }; getContentInternal: () => Promise<ZoneUpdatedEventUpdate> }
 
+/** Header union for events Ephemera DataSource subscribes to. */
+export type EphemeraSubscribedHeader =
+    | (StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Component Updated' })
+    | (StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Canon Updated' })
+    | (StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Zone Updated' })
+
 const isEphemeraComponentHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Component Updated' }> = (h): h is StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Component Updated' } =>
     h.dataSourceKey === 'mtw.assets' && h.type === 'Component Updated'
 const isEphemeraCanonUpdatedHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Canon Updated' }> = (h): h is StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Canon Updated' } =>
@@ -26,9 +32,9 @@ export const isEphemeraComponentEnvelope = makeStreamingEnvelopeGuardFromHeaderG
 export const isEphemeraCanonUpdatedEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<CanonUpdatedEventUpdate, StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Canon Updated' }>(isEphemeraCanonUpdatedHeader)
 export const isEphemeraZoneUpdatedEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<ZoneUpdatedEventUpdate, StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Zone Updated' }>(isEphemeraZoneUpdatedHeader)
 
-export const isEphemeraSubscribedEventHeader: HeaderGuard<StreamingEventHeader> = (header): header is StreamingEventHeader =>
+export const isEphemeraSubscribedEventHeader: HeaderGuard<EphemeraSubscribedHeader> = (header): header is EphemeraSubscribedHeader =>
     isEphemeraComponentHeader(header) ||
     isEphemeraCanonUpdatedHeader(header) ||
     isEphemeraZoneUpdatedHeader(header)
 
-export const isEphemeraSubscribedEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<AssetsEventUpdate, StreamingEventHeader>(isEphemeraSubscribedEventHeader)
+export const isEphemeraSubscribedEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<AssetsEventUpdate, EphemeraSubscribedHeader>(isEphemeraSubscribedEventHeader)

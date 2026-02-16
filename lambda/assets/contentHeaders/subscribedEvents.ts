@@ -30,6 +30,12 @@ export type SubscribedWMLContent = WMLZoneEvent
 /** Payload types of events mtw.assets.contentHeaders subscribes to (derived from envelope union). */
 export type ContentHeadersSubscribedContent = ComponentUpdatedEvent | ComponentRemovedEvent | AssetUpdatedEventUpdate | WMLZoneEvent
 
+/** Header union for events mtw.assets.contentHeaders subscribes to. */
+export type ContentHeadersSubscribedHeader =
+    | (StreamingEventHeader & { dataSourceKey: 'mtw.wml'; type: 'Zone Changed' })
+    | (StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Component Updated' | 'Component Removed' })
+    | (StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Asset Updated' })
+
 const isZoneChangedContentHeadersHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey: 'mtw.wml'; type: 'Zone Changed' }> = (h): h is StreamingEventHeader & { dataSourceKey: 'mtw.wml'; type: 'Zone Changed' } =>
     h.dataSourceKey === 'mtw.wml' && h.type === 'Zone Changed'
 const isComponentHeadersHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Component Updated' | 'Component Removed' }> = (h): h is StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Component Updated' | 'Component Removed' } =>
@@ -41,9 +47,9 @@ export const isZoneChangedContentHeadersEvent = makeStreamingEnvelopeGuardFromHe
 export const isComponentHeadersEvent = makeStreamingEnvelopeGuardFromHeaderGuard<ComponentUpdatedEvent | ComponentRemovedEvent, StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Component Updated' | 'Component Removed' }>(isComponentHeadersHeader)
 export const isAssetUpdatedHeadersEvent = makeStreamingEnvelopeGuardFromHeaderGuard<AssetUpdatedEventUpdate, StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Asset Updated' }>(isAssetUpdatedHeadersHeader)
 
-export const isSubscribedEventHeader: HeaderGuard<StreamingEventHeader> = (header): header is StreamingEventHeader =>
+export const isSubscribedEventHeader: HeaderGuard<ContentHeadersSubscribedHeader> = (header): header is ContentHeadersSubscribedHeader =>
     isZoneChangedContentHeadersHeader(header) ||
     isComponentHeadersHeader(header) ||
     isAssetUpdatedHeadersHeader(header)
 
-export const isContentHeadersSubscribedEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<ContentHeadersSubscribedContent, StreamingEventHeader>(isSubscribedEventHeader)
+export const isContentHeadersSubscribedEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<ContentHeadersSubscribedContent, ContentHeadersSubscribedHeader>(isSubscribedEventHeader)
