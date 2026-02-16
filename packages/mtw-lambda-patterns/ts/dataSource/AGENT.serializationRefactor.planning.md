@@ -158,7 +158,7 @@ Use the checkboxes and "Status" lines to track progress. Add GitHub issue number
   - **Status**: Done. All six subscribedEvents modules now export a header union type (e.g. `LibrarySubscribedHeader`, `PlayersSubscribedHeader`) and use it for the aggregate predicate and for `makeStreamingEnvelopeGuardFromHeaderGuard<SubscribedContent, ThatUnion>`.
 - **Explicitly out of scope:** Changing wire/stored data shape (removing type from payloads in EventBridge, SNS, DynamoDB, subscription message); serializer return shape; migration or rollout coordination.
 
-### 4. Confine CoreExternalFormat construction (publisher)
+### 4. CoreExternalFormat: construction (publisher) and consumption (subscription lambda)
 
 - [ ] **4a. Introduce a publisher abstraction**  
   - **What**: Add a small component (e.g. `StreamEventPublisher` or a function in a dedicated module) that takes `(header, internalUpdate)` and optional `eventSerializer`, calls `serializer.serialize({ content, header })`, builds `CoreExternalFormat`, then calls `toEventBridgeFormat` / `toDynamoDBFormat` and performs send/store. Define where this lives (e.g. in mtw-lambda-patterns/ts/dataSource or next to formatTransform).  
@@ -174,6 +174,11 @@ Use the checkboxes and "Status" lines to track progress. Add GitHub issue number
   - **What**: Replace manual `CoreExternalFormat` construction in `lambda/initialize/app.ts` with a call to the same publisher (or a helper that uses it), so the diagnostics event is built in one place.  
   - **Status**:  
   - **Depends on**: 4a.
+
+- [ ] **4d. Subscription lambda: matchEvent on header and reuse HeaderGuard (CoreExternalFormat consumption)**  
+  - **What**: (1) Add a helper in the patterns layer (e.g. `makeCoreExternalFormatGuardFromHeaderGuard`) that takes a `HeaderGuard<H>` and returns a guard `(coreFormat: CoreExternalFormat) => coreFormat is CoreExternalFormat & { header: H }`, so the same header predicates used by DataSource subscribedEvents can be reused for external/core regime. (2) Refactor subscription lambda `matchEvent` (handlerFramework/baseClasses.ts) to use `event.header` for routing (e.g. `event.header?.type`, `event.header?.dataSourceKey`) instead of `event.update?.type`, and have each subscription/DataSource supply or use the same subscribed header predicate (or the derived CoreExternalFormat guard) so "what we subscribe to" is a single source of truth across DataSource and subscription lambda.  
+  - **Why**: Completes the header-authority and single-source-of-truth story for the inbound subscription path; subscription lambda no longer duplicates routing logic or reads type from the payload. Entangled with CoreExternalFormat because matchEvent receives CoreExternalFormat.  
+  - **Depends on**: 3e/3f/3g (header predicates and guards exist in subscribedEvents); can be done before or after 4a–4c.
 
 ### 5. Event contracts in mtw-interfaces
 
@@ -205,7 +210,7 @@ Use the checkboxes and "Status" lines to track progress. Add GitHub issue number
 ## Suggested ordering
 
 - **Early / quick wins (header authoritative first)**: 1a (Ephemera path), 2a (matchEvent on header), 3a (same as 2a), 3b (toEventBridgeFormat uses header for type), 3d (tests). Then 5a+5b (Coordination move + doc fix). Doing 3 before 4–6 establishes the authority rule with no new abstractions; publisher and docs can follow.
-- **Publisher refactor**: 4a -> 4b -> 4c (introduce publisher, then DataSource, then initialize).
+- **Publisher refactor**: 4a -> 4b -> 4c (introduce publisher, then DataSource, then initialize). **Subscription lambda (4d)** can be done once 3e/3f/3g are in place (header predicates exist); 4d is independent of 4a–4c and completes single-source-of-truth for the inbound subscription path.
 - **Docs**: 6a and 6b can proceed in parallel with any of the above.
 - **Optional later**: 3c (localize external types) as needed.
 - **Header-predicate rollout (after 3e)**: 3f (complete aggregate-guard migration for assets/dataSource and assets/players) -> 3g (derive per-event guards from header predicates across all modules) -> 3h (optional narrow header union type where beneficial). Doing 3f then 3g removes the mixed state and completes the single-source-of-truth; 3h refines types if desired.
