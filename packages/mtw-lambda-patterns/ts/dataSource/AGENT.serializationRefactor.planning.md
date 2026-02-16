@@ -160,9 +160,9 @@ Use the checkboxes and "Status" lines to track progress. Add GitHub issue number
 
 ### 4. CoreExternalFormat: construction (publisher) and consumption (subscription lambda)
 
-- [ ] **4a. Introduce a publisher abstraction**  
+- [x] **4a. Introduce a publisher abstraction**  
   - **What**: Add a small component (e.g. `StreamEventPublisher` or a function in a dedicated module) that takes `(header, internalUpdate)` and optional `eventSerializer`, calls `serializer.serialize({ content, header })`, builds `CoreExternalFormat`, then calls `toEventBridgeFormat` / `toDynamoDBFormat` and performs send/store. Define where this lives (e.g. in mtw-lambda-patterns/ts/dataSource or next to formatTransform).  
-  - **Status**:  
+  - **Status**: Done. Added `streamEventPublisher.ts` with `publishStreamEvent`; builds CoreExternalFormat and returns `eventBridgeEvent` plus optional `dynamoRecord`; exported from dataSource index; unit tests added.
   - **Depends on**: None (design decision: new file vs. extend existing).
 
 - [ ] **4b. DataSource.streamEvent uses publisher**  

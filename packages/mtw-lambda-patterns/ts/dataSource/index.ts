@@ -701,5 +701,13 @@ export class DataSource<
     }
 }
 
+// Re-export stream event publisher (build CoreExternalFormat + wire formats for callers to send/store)
+export {
+    publishStreamEvent,
+    StreamEventPublisherSerializer,
+    StreamEventPublisherOptions,
+    StreamEventPublisherResult,
+} from './streamEventPublisher'
+
 // Re-export aggregation types for convenience
 export { DataSourceAggregator, AggregationResult, ResolvedStreamingEnvelope } from './aggregation'
