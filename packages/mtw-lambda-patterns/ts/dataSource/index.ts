@@ -686,6 +686,7 @@ export {
     StreamEventPublisherSerializer,
     StreamEventPublisherOptions,
     StreamEventPublisherResult,
+    wireFormatsFromCoreFormat,
 } from './streamEventPublisher'
 
 // Re-export aggregation types for convenience

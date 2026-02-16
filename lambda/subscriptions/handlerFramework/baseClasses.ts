@@ -3,7 +3,28 @@ import { connectionDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { excludeUndefined, unique } from '@tonylb/mtw-utilities/ts/lists';
 import internalCache from '../internalCache';
 import { apiClient } from '../apiClient';
+import { wireFormatsFromCoreFormat } from '@tonylb/mtw-lambda-patterns/ts/dataSource';
 import { CoreExternalFormat } from '@tonylb/mtw-lambda-patterns/ts/dataSource/formatTransform';
+
+/**
+ * Build the default subscription client message from CoreExternalFormat using the publisher
+ * wire formats (flatten WebSocketFormat and merge extended header fields for client contract).
+ */
+export function defaultSubscriptionMessageFromCoreFormat(coreFormat: CoreExternalFormat): SubscriptionClientMessage {
+    const { webSocketFormat } = wireFormatsFromCoreFormat(coreFormat);
+    const message: Record<string, unknown> = {
+        messageType: webSocketFormat.messageType,
+        ...webSocketFormat.message
+    };
+    if (coreFormat.header?.RequestIds != null) {
+        message.RequestIds = coreFormat.header.RequestIds;
+    }
+    const requestId = coreFormat.RequestId ?? (coreFormat.header as { RequestId?: string } | undefined)?.RequestId;
+    if (requestId != null) {
+        message.RequestId = requestId;
+    }
+    return message as SubscriptionClientMessage;
+}
 
 export class SubscriptionEvent {
     _dataSourceKey: string;
@@ -49,7 +70,7 @@ export class SubscriptionEvent {
             sessionConnectionEntries.filter((entry): entry is readonly [string, string[]] => entry !== null)
         )
         
-        const baseMessage = this._transform ? this._transform(event) : event
+        const baseMessage = this._transform ? this._transform(event) : defaultSubscriptionMessageFromCoreFormat(event)
         if (!isSubscriptionClientMessage(baseMessage)) {
             throw new Error('Invalid subscription transform')
         }
