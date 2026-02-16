@@ -13,6 +13,7 @@
 3. **Single path from EventBridge to deserialize**: all lambdas use `fromEventBridgeFormat` and pass `coreFormat.update` + header to deserialize (no raw `event.detail` as content).
 4. **Single place that builds the wire envelope**: confine `CoreExternalFormat` construction to a publisher (or equivalent) so DataSource and initialize do not hand-build it.
 5. **Centralize event contracts**: all event types and serializers in mtw-interfaces (including Coordination); lambdas only import and use them.
+6. **Centralize header-level routing logic**: define header-level discriminants and predicates once (per data source or domain) and derive all envelope guards (lazy, resolved, and external/core) from that single source so we do not duplicate envelope typeguards across regimes.
 
 ---
 
@@ -44,6 +45,8 @@ We **propose** adopting **envelope-typing as the rule in our types and code**: h
 **Proposed direction (no data-shape change):** We use header/envelope for all routing and for populating type when building wire. Payloads may still contain `type`; we simply do not rely on it as the source of truth. One mental model: envelope = authoritative; content may still carry type for wire compatibility.
 
 **Benefits:** Header authoritative everywhere; no dependency on payload type for routing; clearer single source of truth; optional localizing of external types to the boundary (see Findings). No migration or wire-format change required.
+
+**Three processing regimes, one semantic envelope:** The same logical streaming envelope appears in three processing regimes: (1) external/core (`CoreExternalFormat`) before deserialize, where `update` is external content; (2) lazy internal (`StreamingEventEnvelope`) on the messageBus and DataSource side, where content is behind `getContentInternal`; and (3) resolved internal (`ResolvedStreamingEnvelope`) for aggregators, replay, and serializer params, where `content` is fully realized. All three regimes share the same header semantics and should reuse the same header-level routing predicates; the only difference between them is how and when content is obtained.
 
 ---
 
@@ -137,9 +140,25 @@ Use the checkboxes and "Status" lines to track progress. Add GitHub issue number
 - [x] **3b. toEventBridgeFormat uses header for type** — When building EventBridge Detail, take `type` from `coreFormat.header.type` (not from `update`) for DetailType. Implemented via `effectiveType = header?.type ?? update.type`; DetailType uses `effectiveType` while payload shape remains unchanged.
 - [x] **3c. (Optional) Localize external types** — Where it helps, treat external content as opaque at the boundary and discriminate only by header; reduce reliance on payload type in types/guards. Documented in `CoreExternalFormat` and `AGENT.implementation.md` that `header.type` is authoritative for routing and `update.type` is preserved for wire compatibility and deserialization.
 - [x] **3d. Tests** — Cover matchEvent and toEventBridgeFormat behavior so regressions are caught. Added tests in `formatTransform.test.ts` for header-wins vs. no-header fallback and re-ran DataSource tests.
+- [x] **3e. Centralize header predicates and derive envelope guards**  
+  - **What**: For each DataSource/subscribedEvents module, define header-level discriminants (for example, a header union or small header-focused predicates) that describe the subscribed variants once, and introduce helpers (for example, `HeaderGuard`, `makeStreamingEnvelopeGuardFromHeaderGuard`, and `makeResolvedEnvelopeGuardFromHeaderGuard`) that lift those header predicates into envelope guards for each regime: lazy internal (`StreamingEventEnvelope<unknown>`), resolved internal (`ResolvedStreamingEnvelope<..., ...>`), and external/core (`CoreExternalFormat`) where needed. Initial implementation introduces `HeaderGuard`, `makeStreamingEnvelopeGuardFromHeaderGuard`, and `makeResolvedEnvelopeGuardFromHeaderGuard` in `baseClasses.ts` and refactors WML, contentHeaders, library, and ephemera `subscribedEvents.ts` modules to use header predicates plus `makeStreamingEnvelopeGuardFromHeaderGuard` for their subscribed-envelope guards.
+  - **Scope**: **In scope**: type-level refactor only; reuse of header predicates across wrappers; no behavior change intended and no changes to wire or stored data shape. **Out of scope**: introducing runtime classes, changing serializer signatures, or altering messageBus payload contracts.
+  - **Why**: Eliminates duplicated envelope-level typeguards across regimes while honoring envelope-typing; makes header semantics explicit and reusable, and keeps a future class-based representation (if ever desired) mechanically straightforward because all routing logic is already factored at the header layer. When applying this, prefer using the new helpers for any new DataSources and then refactor existing subscribedEvents modules opportunistically; the first wave has covered WML, contentHeaders, library, and ephemera.
+- [x] **3f. Complete aggregate-guard migration**  
+  - **What**: Migrate the two remaining DataSource subscribedEvents modules (mtw.assets: `lambda/assets/dataSource/subscribedEvents.ts`; mtw.assets.players: `lambda/assets/players/subscribedEvents.ts`) to use a header predicate plus `makeStreamingEnvelopeGuardFromHeaderGuard` for their subscribed-envelope guard, so every subscribedEvents module uses the same pattern for "is this envelope in our subscribed set?"
+  - **Why**: Removes the mixed state where four modules use the helper and two use hand-written envelope guards; one consistent pattern everywhere improves reasoning and ensures we get full benefit from the 3e work.
+  - **Status**: Done. Both modules now use `isAssetsSubscribedHeader` / `isPlayersSubscribedHeader` plus `makeStreamingEnvelopeGuardFromHeaderGuard`. Assets predicate restricted to (dataSourceKey, type) pairs from `AssetsIncomingEvent`; assets dataSource index test updated to assert on those types. All six subscribedEvents modules now use the same aggregate-guard pattern.
+- [x] **3g. Derive per-event envelope guards from header predicates**  
+  - **What**: Introduce a pattern (and optional helper, e.g. a narrow-header predicate lifted into an envelope guard that narrows to a single union variant) so that per-event guards (e.g. "is this a Zone Changed event?") are derived from the same header-level source of truth as the aggregate guard. Refactor existing per-event guards in all subscribedEvents modules to use this pattern so "what event types we handle" is defined in one place per DataSource (no duplicated `dataSourceKey`/`type` checks in each per-event guard).
+  - **Why**: Completes the single-source-of-truth story; adding or changing a subscribed event type then requires updating one header-level definition (and payload types), not N separate guard functions. Maximizes clarity gains from the header-predicate abstraction.
+  - **Status**: Done. Per-event guards use the same `makeStreamingEnvelopeGuardFromHeaderGuard` with narrow `Content` and `H`; all six subscribedEvents modules refactored to use narrow header predicates plus that helper for variant guards.
+- [x] **3h. (Optional) Narrow header union type**  
+  - **What**: Where beneficial, define a proper header union type per DataSource (e.g. `ContentHeadersSubscribedHeader`) and type the aggregate header predicate as `HeaderGuard<ThatUnion>`, so TypeScript narrows the envelope's header after the guard. Align with 3f/3g so the union is the single source for both aggregate and per-event guards.
+  - **Why**: Gives the type system a direct representation of "subscribed header variants" and can simplify per-event guard derivation (3g). Optional because the current predicate-only approach already centralizes logic; the union type adds type-level clarity.
+  - **Status**: Done. All six subscribedEvents modules now export a header union type (e.g. `LibrarySubscribedHeader`, `PlayersSubscribedHeader`) and use it for the aggregate predicate and for `makeStreamingEnvelopeGuardFromHeaderGuard<SubscribedContent, ThatUnion>`.
 - **Explicitly out of scope:** Changing wire/stored data shape (removing type from payloads in EventBridge, SNS, DynamoDB, subscription message); serializer return shape; migration or rollout coordination.
 
-### 4. Confine CoreExternalFormat construction (publisher)
+### 4. CoreExternalFormat: construction (publisher) and consumption (subscription lambda)
 
 - [ ] **4a. Introduce a publisher abstraction**  
   - **What**: Add a small component (e.g. `StreamEventPublisher` or a function in a dedicated module) that takes `(header, internalUpdate)` and optional `eventSerializer`, calls `serializer.serialize({ content, header })`, builds `CoreExternalFormat`, then calls `toEventBridgeFormat` / `toDynamoDBFormat` and performs send/store. Define where this lives (e.g. in mtw-lambda-patterns/ts/dataSource or next to formatTransform).  
@@ -155,6 +174,11 @@ Use the checkboxes and "Status" lines to track progress. Add GitHub issue number
   - **What**: Replace manual `CoreExternalFormat` construction in `lambda/initialize/app.ts` with a call to the same publisher (or a helper that uses it), so the diagnostics event is built in one place.  
   - **Status**:  
   - **Depends on**: 4a.
+
+- [ ] **4d. Subscription lambda: matchEvent on header and reuse HeaderGuard (CoreExternalFormat consumption)**  
+  - **What**: (1) Add a helper in the patterns layer (e.g. `makeCoreExternalFormatGuardFromHeaderGuard`) that takes a `HeaderGuard<H>` and returns a guard `(coreFormat: CoreExternalFormat) => coreFormat is CoreExternalFormat & { header: H }`, so the same header predicates used by DataSource subscribedEvents can be reused for external/core regime. (2) Refactor subscription lambda `matchEvent` (handlerFramework/baseClasses.ts) to use `event.header` for routing (e.g. `event.header?.type`, `event.header?.dataSourceKey`) instead of `event.update?.type`, and have each subscription/DataSource supply or use the same subscribed header predicate (or the derived CoreExternalFormat guard) so "what we subscribe to" is a single source of truth across DataSource and subscription lambda.  
+  - **Why**: Completes the header-authority and single-source-of-truth story for the inbound subscription path; subscription lambda no longer duplicates routing logic or reads type from the payload. Entangled with CoreExternalFormat because matchEvent receives CoreExternalFormat.  
+  - **Depends on**: 3e/3f/3g (header predicates and guards exist in subscribedEvents); can be done before or after 4a–4c.
 
 ### 5. Event contracts in mtw-interfaces
 
@@ -186,9 +210,10 @@ Use the checkboxes and "Status" lines to track progress. Add GitHub issue number
 ## Suggested ordering
 
 - **Early / quick wins (header authoritative first)**: 1a (Ephemera path), 2a (matchEvent on header), 3a (same as 2a), 3b (toEventBridgeFormat uses header for type), 3d (tests). Then 5a+5b (Coordination move + doc fix). Doing 3 before 4–6 establishes the authority rule with no new abstractions; publisher and docs can follow.
-- **Publisher refactor**: 4a -> 4b -> 4c (introduce publisher, then DataSource, then initialize).
+- **Publisher refactor**: 4a -> 4b -> 4c (introduce publisher, then DataSource, then initialize). **Subscription lambda (4d)** can be done once 3e/3f/3g are in place (header predicates exist); 4d is independent of 4a–4c and completes single-source-of-truth for the inbound subscription path.
 - **Docs**: 6a and 6b can proceed in parallel with any of the above.
 - **Optional later**: 3c (localize external types) as needed.
+- **Header-predicate rollout (after 3e)**: 3f (complete aggregate-guard migration for assets/dataSource and assets/players) -> 3g (derive per-event guards from header predicates across all modules) -> 3h (optional narrow header union type where beneficial). Doing 3f then 3g removes the mixed state and completes the single-source-of-truth; 3h refines types if desired.
 
 ---
 
@@ -203,4 +228,4 @@ Use the checkboxes and "Status" lines to track progress. Add GitHub issue number
 
 ---
 
-*Last updated: data-shape change explicitly out of scope; envelope-typing reframed as authority and typing only (no change to wire/stored payload). Findings and track 6 updated accordingly; no migration or rollout required.*
+*Last updated: 3f, 3g, 3h added for durable plan to complete header-predicate rollout (aggregate migration, per-event derivation, optional narrow header union). Data-shape change remains out of scope; no migration or rollout required.*
