@@ -4,7 +4,7 @@ import {
     type CoordinationEventExternal,
     type ApplyEditRequest,
     type MoveAssetRequest
-} from './coordinationSerializer'
+} from './index'
 import type { StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 
 const dataSourceKey = 'mtw.coordination'

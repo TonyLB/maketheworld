@@ -11,7 +11,7 @@ jest.mock('../../utilities/mockableTime', () => ({
 
 import { now } from '../../utilities/mockableTime'
 import { moveAsset } from './index'
-import { isMoveAssetRequest, MoveAssetRequest } from '../coordinationSerializer'
+import { isMoveAssetRequest, MoveAssetRequest } from '@tonylb/mtw-interfaces/ts/eventBridge/coordination'
 
 const mockChangeZone = changeZone as jest.MockedFunction<typeof changeZone>
 const mockNow = now as jest.MockedFunction<typeof now>

@@ -1,7 +1,15 @@
+// Coordination Data Source Event Contracts
+//
+// Event types, type guards, and serializer for mtw.coordination (Apply Edit, Move Asset, etc.).
+// Migrated from lambda/wml/dataSource/coordinationSerializer.ts
+
 import { Zone } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { DataSourceEventSerializer, ResolvedStreamingEnvelope, StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 
+//
 // Internal types for coordination events (no type; discrimination by header)
+//
+
 export type CoordinationCanonizeEvent = Record<string, never>
 
 export type CoordinationDecanonizeEvent = Record<string, never>
@@ -40,7 +48,10 @@ export const COORDINATION_EVENT_TYPES = new Set<string>([
     'Purge Asset'
 ])
 
-// External types for coordination events (same as internal since they're hand-created)
+//
+// External types for coordination events (EventBridge format)
+//
+
 export type CoordinationCanonizeEventExternal = {
     type: 'Canonize Asset';
 }
@@ -75,15 +86,18 @@ export type PurgeAssetRequestExternal = {
     requireExists?: boolean;
 }
 
-export type CoordinationEventExternal = 
-    | CoordinationCanonizeEventExternal 
-    | CoordinationDecanonizeEventExternal 
+export type CoordinationEventExternal =
+    | CoordinationCanonizeEventExternal
+    | CoordinationDecanonizeEventExternal
     | MoveAssetRequestExternal
     | ApplyEditRequestExternal
     | CreateSnapshotRequestExternal
     | PurgeAssetRequestExternal
 
+//
 // Type guards (shape-based)
+//
+
 export const isMoveAssetRequest = (event: any): event is MoveAssetRequest => {
     return event &&
         typeof event === 'object' &&
@@ -119,8 +133,8 @@ export const isPurgeAssetRequest = (event: any): event is PurgeAssetRequest => {
 }
 
 export const isCoordinationEventUpdate = (event: unknown): event is CoordinationEventUpdate => {
-    return isCoordinationCanonizeEvent(event) || 
-           isCoordinationDecanonizeEvent(event) || 
+    return isCoordinationCanonizeEvent(event) ||
+           isCoordinationDecanonizeEvent(event) ||
            isMoveAssetRequest(event) ||
            isApplyEditRequest(event) ||
            isCreateSnapshotRequest(event) ||
@@ -129,12 +143,12 @@ export const isCoordinationEventUpdate = (event: unknown): event is Coordination
 
 /**
  * Serializer/Deserializer for coordination format events
- * 
- * This handles the conversion between:
+ *
+ * Handles conversion between:
  * - Internal event objects (for messageBus communication)
  * - External event objects (for EventBridge transmission)
- * 
- * Coordination events are hand-created and pass through as structured data
+ *
+ * Coordination events are hand-created and pass through as structured data.
  */
 
 // Serialize/deserialize params - use ResolvedStreamingEnvelope so header discriminates content shape
@@ -171,8 +185,7 @@ const isDecanonizeAssetCoordinationDeserializeParams = (p: CoordinationDeseriali
 
 export class CoordinationEventSerializer implements DataSourceEventSerializer<CoordinationEventUpdate, CoordinationEventExternal> {
     /**
-     * Serialize an internal event to external format
-     * for EventBridge transmission
+     * Serialize an internal event to external format for EventBridge transmission
      */
     serialize(params: CoordinationSerializeParams): CoordinationEventExternal {
         if (isMoveAssetCoordinationSerializeParams(params)) {
@@ -216,8 +229,7 @@ export class CoordinationEventSerializer implements DataSourceEventSerializer<Co
     }
 
     /**
-     * Deserialize an external event back to internal format
-     * for messageBus processing
+     * Deserialize an external event back to internal format for messageBus processing
      */
     deserialize(params: CoordinationDeserializeParams): CoordinationEventUpdate | null {
         if (isCanonizeAssetCoordinationDeserializeParams(params)) {
@@ -256,7 +268,7 @@ export class CoordinationEventSerializer implements DataSourceEventSerializer<Co
         }
         return null
     }
-    
+
     // Note: serializeSnapshot and deserializeSnapshot are not implemented
     // as coordination events are for a non-replayable data source that doesn't use snapshots
 }
