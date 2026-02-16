@@ -170,15 +170,20 @@ Use the checkboxes and "Status" lines to track progress. Add GitHub issue number
   - **Status**: Done. streamEvent builds header and calls publishStreamEvent; uses returned eventBridgeEvent and dynamoRecord for send/store; no direct CoreExternalFormat/toEventBridgeFormat/toDynamoDBFormat in streamEvent. deliverReplayData uses `wireFormatsFromCoreFormat` for SNS feedback (snapshot and replay events) instead of calling `toSNSFeedbackFormat` directly; DataSource no longer imports `toSNSFeedbackFormat`.  
   - **Depends on**: 4a.
 
-- [ ] **4c. Initialize lambda uses publisher**  
+- [x] **4c. Initialize lambda uses publisher**  
   - **What**: Replace manual `CoreExternalFormat` construction in `lambda/initialize/app.ts` with a call to the same publisher (or a helper that uses it), so the diagnostics event is built in one place.  
-  - **Status**:  
+  - **Status**: Done. initializePrimitivesData calls publishStreamEvent(header, content, serializer) and uses returned eventBridgeEvent for EventBridge send; no direct CoreExternalFormat or toEventBridgeFormat in initialize lambda.  
   - **Depends on**: 4a.
 
 - [ ] **4d. Subscription lambda: matchEvent on header and reuse HeaderGuard (CoreExternalFormat consumption)**  
   - **What**: (1) Add a helper in the patterns layer (e.g. `makeCoreExternalFormatGuardFromHeaderGuard`) that takes a `HeaderGuard<H>` and returns a guard `(coreFormat: CoreExternalFormat) => coreFormat is CoreExternalFormat & { header: H }`, so the same header predicates used by DataSource subscribedEvents can be reused for external/core regime. (2) Refactor subscription lambda `matchEvent` (handlerFramework/baseClasses.ts) to use `event.header` for routing (e.g. `event.header?.type`, `event.header?.dataSourceKey`) instead of `event.update?.type`, and have each subscription/DataSource supply or use the same subscribed header predicate (or the derived CoreExternalFormat guard) so "what we subscribe to" is a single source of truth across DataSource and subscription lambda.  
   - **Why**: Completes the header-authority and single-source-of-truth story for the inbound subscription path; subscription lambda no longer duplicates routing logic or reads type from the payload. Entangled with CoreExternalFormat because matchEvent receives CoreExternalFormat.  
   - **Depends on**: 3e/3f/3g (header predicates and guards exist in subscribedEvents); can be done before or after 4a–4c.
+
+- [ ] **4e. Subscription lambda: EventBridge to WebSocket via publisher wire formats**  
+  - **What**: Use the publisher abstraction for the EventBridge-to-WebSocket translation in the subscriptions lambda. Today each subscription handler builds a `SubscriptionClientMessage` by hand via a transform `(event: CoreExternalFormat) => SubscriptionClientMessage`. Now that the publisher (and `wireFormatsFromCoreFormat`) produces `webSocketFormat`, use it as the single source for "CoreExternalFormat to client wire shape": e.g. in `SubscriptionEvent.publish`, obtain `wireFormatsFromCoreFormat(coreFormat).webSocketFormat` and adapt to `SubscriptionClientMessage` (flatten `webSocketFormat.message` if the client contract is flat), or use it as the default when no custom transform is provided. Handlers that need filtering or obfuscation can still apply an optional transform on top of that default.  
+  - **Why**: Aligns EventBridge-to-WebSocket translation with the rest of the wire-format pipeline; one place produces the client-facing message from CoreExternalFormat, reducing duplication and drift between subscription handlers and formatTransform.  
+  - **Depends on**: 4a (publisher and wireFormatsFromCoreFormat exist). Can be done after or alongside 4d. **Note**: SubscriptionClientMessage (mtw-interfaces) is flat (`messageType`, `dataSourceKey`, `streamKey`, `timestamp`, `update`); WebSocketFormat has a nested `message`. An adapter or small helper (e.g. flatten `webSocketFormat.message` into the client shape) may be needed unless the client contract is updated to match.
 
 ### 5. Event contracts in mtw-interfaces
 
@@ -210,7 +215,7 @@ Use the checkboxes and "Status" lines to track progress. Add GitHub issue number
 ## Suggested ordering
 
 - **Early / quick wins (header authoritative first)**: 1a (Ephemera path), 2a (matchEvent on header), 3a (same as 2a), 3b (toEventBridgeFormat uses header for type), 3d (tests). Then 5a+5b (Coordination move + doc fix). Doing 3 before 4–6 establishes the authority rule with no new abstractions; publisher and docs can follow.
-- **Publisher refactor**: 4a -> 4b -> 4c (introduce publisher, then DataSource, then initialize). **Subscription lambda (4d)** can be done once 3e/3f/3g are in place (header predicates exist); 4d is independent of 4a–4c and completes single-source-of-truth for the inbound subscription path.
+- **Publisher refactor**: 4a -> 4b -> 4c (introduce publisher, then DataSource, then initialize). **Subscription lambda (4d, 4e)**: 4d (matchEvent on header) can be done once 3e/3f/3g are in place; 4e (EventBridge-to-WebSocket via wireFormatsFromCoreFormat) is a natural follow-on now that the publisher produces all wire formats—subscription handlers can use the same abstraction for the client message instead of hand-building from CoreExternalFormat.
 - **Docs**: 6a and 6b can proceed in parallel with any of the above.
 - **Optional later**: 3c (localize external types) as needed.
 - **Header-predicate rollout (after 3e)**: 3f (complete aggregate-guard migration for assets/dataSource and assets/players) -> 3g (derive per-event guards from header predicates across all modules) -> 3h (optional narrow header union type where beneficial). Doing 3f then 3g removes the mixed state and completes the single-source-of-truth; 3h refines types if desired.
