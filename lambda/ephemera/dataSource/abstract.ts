@@ -1,5 +1,5 @@
-import { DataSource, SerializableObject } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
-import { EventPayload, StreamingEventEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import { DataSource, SerializableObject, StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
+import { EventPayload, StreamingEventEnvelope, StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import messageBus from '../messageBus'
 import { SNSClient, PublishCommand } from '@aws-sdk/client-sns'
@@ -21,7 +21,7 @@ export class EphemeraDataSource<
         subscribedEventTypeGuard?: (envelope: StreamingEventEnvelope<unknown>) => envelope is StreamingEventEnvelope<SubscribedContent>;
         receiveEvents?: (params: {
             events: Array<StreamingEventEnvelope<SubscribedContent>>;
-            streamEvent: (params: { update: UpdatePayload; streamKey: string }) => Promise<void>;
+            streamEvent: StreamEventFunction<UpdatePayload, StreamingEventHeader>;
         }) => Promise<void>;
         eventSerializer?: any;
     }) {

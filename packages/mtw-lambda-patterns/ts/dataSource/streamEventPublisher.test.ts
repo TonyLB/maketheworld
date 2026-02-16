@@ -1,7 +1,8 @@
 /**
  * Tests for streamEventPublisher: builds CoreExternalFormat and wire formats from header + content.
  */
-import { publishStreamEvent, StreamEventPublisherSerializer } from './streamEventPublisher'
+import { publishStreamEvent, StreamEventPublisherSerializer, wireFormatsFromCoreFormat } from './streamEventPublisher'
+import { CoreExternalFormat } from './formatTransform'
 
 const baseHeader = {
     dataSourceKey: 'mtw.assets' as const,
@@ -29,6 +30,18 @@ describe('publishStreamEvent', () => {
         expect(result.eventBridgeEvent.Detail.update).toBe('asset-1')
 
         expect(result.dynamoRecord).toBeUndefined()
+
+        expect(result.snsFeedbackFormat.messageType).toBe('StreamEvent')
+        expect(result.snsFeedbackFormat.dataSourceKey).toBe('mtw.assets')
+        expect(result.snsFeedbackFormat.streamKey).toBe('ASSET#test')
+        expect(result.snsFeedbackFormat.timestamp).toBe(1234567890)
+        expect(result.snsFeedbackFormat.update).toEqual(content)
+
+        expect(result.webSocketFormat.messageType).toBe('StreamEvent')
+        expect(result.webSocketFormat.message.dataSourceKey).toBe('mtw.assets')
+        expect(result.webSocketFormat.message.streamKey).toBe('ASSET#test')
+        expect(result.webSocketFormat.message.timestamp).toBe(1234567890)
+        expect(result.webSocketFormat.message.update).toEqual(content)
     })
 
     it('should build with mock serializer; coreFormat.update and eventBridgeEvent.Detail match serialized output', () => {
@@ -67,6 +80,11 @@ describe('publishStreamEvent', () => {
         expect(result.dynamoRecord!.AssetId).toBe('STREAM#mtw.assets::ASSET#test')
         expect(result.dynamoRecord!.DataCategory).toBe('EVENT#1234567890::uuid-123')
         expect(result.dynamoRecord!.update).toEqual(content)
+
+        expect(result.snsFeedbackFormat.messageType).toBe('StreamEvent')
+        expect(result.snsFeedbackFormat.update).toEqual(content)
+        expect(result.webSocketFormat.messageType).toBe('StreamEvent')
+        expect(result.webSocketFormat.message.update).toEqual(content)
     })
 
     it('should omit dynamoRecord when primaryKeyName or eventId is omitted', () => {
@@ -86,5 +104,50 @@ describe('publishStreamEvent', () => {
 
         const withNeither = publishStreamEvent({ header: baseHeader, content: { type: 'X' } })
         expect(withNeither.dynamoRecord).toBeUndefined()
+    })
+})
+
+describe('wireFormatsFromCoreFormat', () => {
+    const coreFormat: CoreExternalFormat = {
+        dataSourceKey: 'mtw.assets',
+        streamKey: 'ASSET#test',
+        timestamp: 1234567890,
+        header: { dataSourceKey: 'mtw.assets', streamKey: 'ASSET#test', timestamp: 1234567890, type: 'Test' },
+        update: { type: 'Test', data: 'payload' },
+    }
+
+    it('should return eventBridgeEvent, snsFeedbackFormat, webSocketFormat and no dynamoRecord when options omitted', () => {
+        const result = wireFormatsFromCoreFormat(coreFormat)
+
+        expect(result.eventBridgeEvent.Source).toBe('mtw.assets')
+        expect(result.eventBridgeEvent.DetailType).toBe('Test')
+        expect(result.eventBridgeEvent.Detail.streamKey).toBe('ASSET#test')
+        expect(result.eventBridgeEvent.Detail.timestamp).toBe(1234567890)
+
+        expect(result.snsFeedbackFormat.messageType).toBe('StreamEvent')
+        expect(result.snsFeedbackFormat.dataSourceKey).toBe('mtw.assets')
+        expect(result.snsFeedbackFormat.update).toEqual(coreFormat.update)
+
+        expect(result.webSocketFormat.messageType).toBe('StreamEvent')
+        expect(result.webSocketFormat.message.dataSourceKey).toBe('mtw.assets')
+        expect(result.webSocketFormat.message.update).toEqual(coreFormat.update)
+
+        expect(result.dynamoRecord).toBeUndefined()
+    })
+
+    it('should include dynamoRecord when primaryKeyName and eventId are provided', () => {
+        const result = wireFormatsFromCoreFormat(coreFormat, {
+            primaryKeyName: 'AssetId',
+            eventId: 'evt-1',
+        })
+
+        expect(result.dynamoRecord).toBeDefined()
+        expect(result.dynamoRecord!.AssetId).toBe('STREAM#mtw.assets::ASSET#test')
+        expect(result.dynamoRecord!.DataCategory).toBe('EVENT#1234567890::evt-1')
+        expect(result.dynamoRecord!.update).toEqual(coreFormat.update)
+
+        expect(result.eventBridgeEvent.Source).toBe('mtw.assets')
+        expect(result.snsFeedbackFormat.messageType).toBe('StreamEvent')
+        expect(result.webSocketFormat.messageType).toBe('StreamEvent')
     })
 })

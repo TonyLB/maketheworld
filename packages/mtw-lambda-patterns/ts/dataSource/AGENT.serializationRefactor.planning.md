@@ -162,12 +162,12 @@ Use the checkboxes and "Status" lines to track progress. Add GitHub issue number
 
 - [x] **4a. Introduce a publisher abstraction**  
   - **What**: Add a small component (e.g. `StreamEventPublisher` or a function in a dedicated module) that takes `(header, internalUpdate)` and optional `eventSerializer`, calls `serializer.serialize({ content, header })`, builds `CoreExternalFormat`, then calls `toEventBridgeFormat` / `toDynamoDBFormat` and performs send/store. Define where this lives (e.g. in mtw-lambda-patterns/ts/dataSource or next to formatTransform).  
-  - **Status**: Done. Added `streamEventPublisher.ts` with `publishStreamEvent`; builds CoreExternalFormat and returns `eventBridgeEvent` plus optional `dynamoRecord`; exported from dataSource index; unit tests added.
+  - **Status**: Done. Added `streamEventPublisher.ts` with `publishStreamEvent`; builds CoreExternalFormat and returns all four wire formats (eventBridgeEvent, optional dynamoRecord, snsFeedbackFormat, webSocketFormat). Helper `wireFormatsFromCoreFormat(coreFormat, options?)` is available for call sites that already have a CoreExternalFormat (e.g. deliverReplayData). Exported from dataSource index; unit tests added.
   - **Depends on**: None (design decision: new file vs. extend existing).
 
-- [ ] **4b. DataSource.streamEvent uses publisher**  
+- [x] **4b. DataSource.streamEvent uses publisher**  
   - **What**: Refactor `DataSource.streamEvent` so it only builds the header and invokes the publisher with `(header, update)`. DataSource no longer constructs `CoreExternalFormat` or calls `toEventBridgeFormat`/`toDynamoDBFormat` directly.  
-  - **Status**:  
+  - **Status**: Done. streamEvent builds header and calls publishStreamEvent; uses returned eventBridgeEvent and dynamoRecord for send/store; no direct CoreExternalFormat/toEventBridgeFormat/toDynamoDBFormat in streamEvent. deliverReplayData uses `wireFormatsFromCoreFormat` for SNS feedback (snapshot and replay events) instead of calling `toSNSFeedbackFormat` directly; DataSource no longer imports `toSNSFeedbackFormat`.  
   - **Depends on**: 4a.
 
 - [ ] **4c. Initialize lambda uses publisher**  
