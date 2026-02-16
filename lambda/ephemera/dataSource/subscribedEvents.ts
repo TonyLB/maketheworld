@@ -10,21 +10,25 @@ import {
     ZoneUpdatedEventUpdate,
 } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
 
-export const EPHEMERA_ASSET_EVENT_TYPES = new Set(['Component Updated', 'Canon Updated', 'Zone Updated'])
-
 export type EphemeraIncomingEvent =
     | { header: StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Component Updated' }; getContentInternal: () => Promise<ComponentUpdatedEvent> }
     | { header: StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Canon Updated' }; getContentInternal: () => Promise<CanonUpdatedEventUpdate> }
     | { header: StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Zone Updated' }; getContentInternal: () => Promise<ZoneUpdatedEventUpdate> }
 
-export const isEphemeraComponentEnvelope = (evt: StreamingEventEnvelope<AssetsEventUpdate>): evt is Extract<EphemeraIncomingEvent, { header: { type: 'Component Updated' } }> =>
-    evt.header.dataSourceKey === 'mtw.assets' && evt.header.type === 'Component Updated'
-export const isEphemeraCanonUpdatedEnvelope = (evt: StreamingEventEnvelope<AssetsEventUpdate>): evt is Extract<EphemeraIncomingEvent, { header: { type: 'Canon Updated' } }> =>
-    evt.header.dataSourceKey === 'mtw.assets' && evt.header.type === 'Canon Updated'
-export const isEphemeraZoneUpdatedEnvelope = (evt: StreamingEventEnvelope<AssetsEventUpdate>): evt is Extract<EphemeraIncomingEvent, { header: { type: 'Zone Updated' } }> =>
-    evt.header.dataSourceKey === 'mtw.assets' && evt.header.type === 'Zone Updated'
+const isEphemeraComponentHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Component Updated' }> = (h): h is StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Component Updated' } =>
+    h.dataSourceKey === 'mtw.assets' && h.type === 'Component Updated'
+const isEphemeraCanonUpdatedHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Canon Updated' }> = (h): h is StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Canon Updated' } =>
+    h.dataSourceKey === 'mtw.assets' && h.type === 'Canon Updated'
+const isEphemeraZoneUpdatedHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Zone Updated' }> = (h): h is StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Zone Updated' } =>
+    h.dataSourceKey === 'mtw.assets' && h.type === 'Zone Updated'
 
-export const isEphemeraSubscribedEventHeader: HeaderGuard<StreamingEventHeader> = (header: StreamingEventHeader): header is StreamingEventHeader =>
-    header.dataSourceKey === 'mtw.assets' && EPHEMERA_ASSET_EVENT_TYPES.has(header.type)
+export const isEphemeraComponentEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<ComponentUpdatedEvent, StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Component Updated' }>(isEphemeraComponentHeader)
+export const isEphemeraCanonUpdatedEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<CanonUpdatedEventUpdate, StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Canon Updated' }>(isEphemeraCanonUpdatedHeader)
+export const isEphemeraZoneUpdatedEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<ZoneUpdatedEventUpdate, StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Zone Updated' }>(isEphemeraZoneUpdatedHeader)
+
+export const isEphemeraSubscribedEventHeader: HeaderGuard<StreamingEventHeader> = (header): header is StreamingEventHeader =>
+    isEphemeraComponentHeader(header) ||
+    isEphemeraCanonUpdatedHeader(header) ||
+    isEphemeraZoneUpdatedHeader(header)
 
 export const isEphemeraSubscribedEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<AssetsEventUpdate, StreamingEventHeader>(isEphemeraSubscribedEventHeader)

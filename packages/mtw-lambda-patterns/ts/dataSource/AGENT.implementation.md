@@ -290,6 +290,8 @@ export const isContentHeadersSubscribedEnvelope = makeStreamingEnvelopeGuardFrom
 )
 ```
 
+**Variant (narrow) envelope guards.** Guards that narrow to a single event variant (e.g. "is this a Zone Changed event?") use the same `makeStreamingEnvelopeGuardFromHeaderGuard` with a **narrow** `HeaderGuard<H>` and the variant's `Content` and `H` as the two type arguments. No separate helper or regime: the aggregate guard uses the full subscribed `Content` union and broad `H`; variant guards use `VariantContent` and narrow `H` (e.g. `StreamingEventHeader & { dataSourceKey: 'mtw.wml'; type: 'Zone Changed' }`). The header predicate is the single place that defines "what is this event type?" for that variant; adding or changing a subscribed event type requires updating one header predicate (and payload types), not N separate guard functions.
+
 In the external/core regime, a similar helper can derive a `CoreExternalFormat` guard from the same `HeaderGuard`, keeping subscriptions routing logic aligned with DataSource and aggregator code without duplicating the header checks.
 
 Our goal is that by centralizing header-level routing predicates and using small helpers to derive envelope guards, we keep the header as the single source of routing truth across all regimes and make it easier to reason about streaming behavior without having to re-derive envelope type guards in multiple places.

@@ -6,6 +6,8 @@
 import { StreamingEventHeader, StreamingEventEnvelope, HeaderGuard, makeStreamingEnvelopeGuardFromHeaderGuard } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import {
     CoordinationEventUpdate,
+    CoordinationCanonizeEvent,
+    CoordinationDecanonizeEvent,
     COORDINATION_EVENT_TYPES,
     ApplyEditRequest,
     MoveAssetRequest,
@@ -20,23 +22,35 @@ export { COORDINATION_EVENT_TYPES }
 
 export type WMLSubscribedPayload = CoordinationEventUpdate | DiagnosticsEventUpdate
 
-export const isWMLSubscribedHeader: HeaderGuard<StreamingEventHeader> = (header: StreamingEventHeader): header is StreamingEventHeader =>
-    (header.dataSourceKey === 'internal' && COORDINATION_EVENT_TYPES.has(header.type)) || header.dataSourceKey === 'mtw.diagnostics'
+export const isWMLSubscribedHeader: HeaderGuard<StreamingEventHeader> = (header): header is StreamingEventHeader =>
+    isApplyEditHeader(header) ||
+    isMoveAssetHeader(header) ||
+    isCanonizeOrDecanonizeHeader(header) ||
+    isCreateSnapshotHeader(header) ||
+    isPurgeAssetHeader(header) ||
+    isDiagnosticsHeader(header)
 
 export const isWMLSubscribedEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<WMLSubscribedPayload, StreamingEventHeader>(isWMLSubscribedHeader)
 
-const isApplyEditEnvelope = (e: StreamingEventEnvelope<WMLSubscribedPayload>): e is StreamingEventEnvelope<ApplyEditRequest> & { header: StreamingEventHeader & { dataSourceKey: 'internal'; type: 'Apply Edit' } } =>
-    e.header.dataSourceKey === 'internal' && e.header.type === 'Apply Edit'
-const isMoveAssetEnvelope = (e: StreamingEventEnvelope<WMLSubscribedPayload>): e is StreamingEventEnvelope<MoveAssetRequest> & { header: StreamingEventHeader & { dataSourceKey: 'internal'; type: 'Move Asset' } } =>
-    e.header.dataSourceKey === 'internal' && e.header.type === 'Move Asset'
-const isCanonizeOrDecanonizeEnvelope = (e: StreamingEventEnvelope<WMLSubscribedPayload>): e is StreamingEventEnvelope<CoordinationEventUpdate> & { header: StreamingEventHeader & { dataSourceKey: 'internal'; type: 'Canonize Asset' | 'Decanonize Asset' } } =>
-    e.header.dataSourceKey === 'internal' && (e.header.type === 'Canonize Asset' || e.header.type === 'Decanonize Asset')
-const isCreateSnapshotEnvelope = (e: StreamingEventEnvelope<WMLSubscribedPayload>): e is StreamingEventEnvelope<CreateSnapshotRequest> & { header: StreamingEventHeader & { dataSourceKey: 'internal'; type: 'Create Snapshot' } } =>
-    e.header.dataSourceKey === 'internal' && e.header.type === 'Create Snapshot'
-const isPurgeAssetEnvelope = (e: StreamingEventEnvelope<WMLSubscribedPayload>): e is StreamingEventEnvelope<PurgeAssetRequest> & { header: StreamingEventHeader & { dataSourceKey: 'internal'; type: 'Purge Asset' } } =>
-    e.header.dataSourceKey === 'internal' && e.header.type === 'Purge Asset'
-const isDiagnosticsEnvelope = (e: StreamingEventEnvelope<WMLSubscribedPayload>): e is StreamingEventEnvelope<DiagnosticsEventUpdate> =>
-    e.header.dataSourceKey === 'mtw.diagnostics'
+const isApplyEditHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey: 'internal'; type: 'Apply Edit' }> = (h): h is StreamingEventHeader & { dataSourceKey: 'internal'; type: 'Apply Edit' } =>
+    h.dataSourceKey === 'internal' && h.type === 'Apply Edit'
+const isMoveAssetHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey: 'internal'; type: 'Move Asset' }> = (h): h is StreamingEventHeader & { dataSourceKey: 'internal'; type: 'Move Asset' } =>
+    h.dataSourceKey === 'internal' && h.type === 'Move Asset'
+const isCanonizeOrDecanonizeHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey: 'internal'; type: 'Canonize Asset' | 'Decanonize Asset' }> = (h): h is StreamingEventHeader & { dataSourceKey: 'internal'; type: 'Canonize Asset' | 'Decanonize Asset' } =>
+    h.dataSourceKey === 'internal' && (h.type === 'Canonize Asset' || h.type === 'Decanonize Asset')
+const isCreateSnapshotHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey: 'internal'; type: 'Create Snapshot' }> = (h): h is StreamingEventHeader & { dataSourceKey: 'internal'; type: 'Create Snapshot' } =>
+    h.dataSourceKey === 'internal' && h.type === 'Create Snapshot'
+const isPurgeAssetHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey: 'internal'; type: 'Purge Asset' }> = (h): h is StreamingEventHeader & { dataSourceKey: 'internal'; type: 'Purge Asset' } =>
+    h.dataSourceKey === 'internal' && h.type === 'Purge Asset'
+const isDiagnosticsHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey: 'mtw.diagnostics' }> = (h): h is StreamingEventHeader & { dataSourceKey: 'mtw.diagnostics' } =>
+    h.dataSourceKey === 'mtw.diagnostics'
+
+const isApplyEditEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<ApplyEditRequest, StreamingEventHeader & { dataSourceKey: 'internal'; type: 'Apply Edit' }>(isApplyEditHeader)
+const isMoveAssetEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<MoveAssetRequest, StreamingEventHeader & { dataSourceKey: 'internal'; type: 'Move Asset' }>(isMoveAssetHeader)
+const isCanonizeOrDecanonizeEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<CoordinationCanonizeEvent | CoordinationDecanonizeEvent, StreamingEventHeader & { dataSourceKey: 'internal'; type: 'Canonize Asset' | 'Decanonize Asset' }>(isCanonizeOrDecanonizeHeader)
+const isCreateSnapshotEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<CreateSnapshotRequest, StreamingEventHeader & { dataSourceKey: 'internal'; type: 'Create Snapshot' }>(isCreateSnapshotHeader)
+const isPurgeAssetEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<PurgeAssetRequest, StreamingEventHeader & { dataSourceKey: 'internal'; type: 'Purge Asset' }>(isPurgeAssetHeader)
+const isDiagnosticsEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<DiagnosticsEventUpdate, StreamingEventHeader & { dataSourceKey: 'mtw.diagnostics' }>(isDiagnosticsHeader)
 
 export { isApplyEditEnvelope, isMoveAssetEnvelope, isCanonizeOrDecanonizeEnvelope, isCreateSnapshotEnvelope, isPurgeAssetEnvelope, isDiagnosticsEnvelope }
 

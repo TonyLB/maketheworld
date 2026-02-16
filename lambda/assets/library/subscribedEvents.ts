@@ -19,34 +19,21 @@ export type LibraryIncomingEvent =
           getContentInternal: () => Promise<AssetRemovedEventUpdate>;
       };
 
-export const LIBRARY_EVENT_TYPES = new Set(['Zone Updated', 'Asset Cached', 'Asset Removed'])
+const isZoneUpdatedLibraryHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Zone Updated' }> = (h): h is StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Zone Updated' } =>
+    h.dataSourceKey === 'mtw.assets' && h.type === 'Zone Updated'
+const isAssetCachedLibraryHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Asset Cached' }> = (h): h is StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Asset Cached' } =>
+    h.dataSourceKey === 'mtw.assets' && h.type === 'Asset Cached'
+const isAssetRemovedLibraryHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Asset Removed' }> = (h): h is StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Asset Removed' } =>
+    h.dataSourceKey === 'mtw.assets' && h.type === 'Asset Removed'
 
-export const isZoneUpdatedLibraryEvent = (event: LibraryIncomingEvent): event is Extract<
-    LibraryIncomingEvent,
-    { header: { type: 'Zone Updated' } }
-> => (
-    event.header.dataSourceKey === 'mtw.assets' &&
-    event.header.type === 'Zone Updated'
-)
+export const isZoneUpdatedLibraryEvent = makeStreamingEnvelopeGuardFromHeaderGuard<ZoneUpdatedEventUpdate, StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Zone Updated' }>(isZoneUpdatedLibraryHeader)
+export const isAssetCachedLibraryEvent = makeStreamingEnvelopeGuardFromHeaderGuard<AssetCachedEventUpdate, StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Asset Cached' }>(isAssetCachedLibraryHeader)
+export const isAssetRemovedLibraryEvent = makeStreamingEnvelopeGuardFromHeaderGuard<AssetRemovedEventUpdate, StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Asset Removed' }>(isAssetRemovedLibraryHeader)
 
-export const isAssetCachedLibraryEvent = (event: LibraryIncomingEvent): event is Extract<
-    LibraryIncomingEvent,
-    { header: { type: 'Asset Cached' } }
-> => (
-    event.header.dataSourceKey === 'mtw.assets' &&
-    event.header.type === 'Asset Cached'
-)
-
-export const isAssetRemovedLibraryEvent = (event: LibraryIncomingEvent): event is Extract<
-    LibraryIncomingEvent,
-    { header: { type: 'Asset Removed' } }
-> => (
-    event.header.dataSourceKey === 'mtw.assets' &&
-    event.header.type === 'Asset Removed'
-)
-
-export const isSubscribedAssetsEventHeader: HeaderGuard<StreamingEventHeader> = (header: StreamingEventHeader): header is StreamingEventHeader =>
-    header.dataSourceKey === 'mtw.assets' && LIBRARY_EVENT_TYPES.has(header.type)
+export const isSubscribedAssetsEventHeader: HeaderGuard<StreamingEventHeader> = (header): header is StreamingEventHeader =>
+    isZoneUpdatedLibraryHeader(header) ||
+    isAssetCachedLibraryHeader(header) ||
+    isAssetRemovedLibraryHeader(header)
 
 export type LibrarySubscribedContent = ZoneUpdatedEventUpdate | AssetCachedEventUpdate | AssetRemovedEventUpdate
 

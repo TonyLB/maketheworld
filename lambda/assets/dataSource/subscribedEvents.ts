@@ -35,53 +35,28 @@ export type AssetsIncomingEvent =
 /** Payload types of events mtw.assets subscribes to (derived from envelope union for backward compatibility). */
 export type AssetsSubscribedContent = WMLContentEvent | WMLZoneEvent | WMLPurgeEvent | { type: 'Heal Global Values'; connections?: unknown; assets?: unknown } | { type: 'Remove Asset'; assetId: string }
 
-const ASSETS_WML_TYPES = new Set(['Content Update', 'Zone Changed', 'Asset Purged'])
+const isWMLZoneChangedHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey: 'mtw.wml'; type: 'Zone Changed' }> = (h): h is StreamingEventHeader & { dataSourceKey: 'mtw.wml'; type: 'Zone Changed' } =>
+    h.dataSourceKey === 'mtw.wml' && h.type === 'Zone Changed'
+const isWMLAssetPurgedHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey: 'mtw.wml'; type: 'Asset Purged' }> = (h): h is StreamingEventHeader & { dataSourceKey: 'mtw.wml'; type: 'Asset Purged' } =>
+    h.dataSourceKey === 'mtw.wml' && h.type === 'Asset Purged'
+const isDiagnosticsHealGlobalValuesHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey: 'mtw.diagnostics'; type: 'Heal Global Values' }> = (h): h is StreamingEventHeader & { dataSourceKey: 'mtw.diagnostics'; type: 'Heal Global Values' } =>
+    h.dataSourceKey === 'mtw.diagnostics' && h.type === 'Heal Global Values'
+const isCoordinationRemoveAssetHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey: 'mtw.coordination'; type: 'Remove Asset' }> = (h): h is StreamingEventHeader & { dataSourceKey: 'mtw.coordination'; type: 'Remove Asset' } =>
+    h.dataSourceKey === 'mtw.coordination' && h.type === 'Remove Asset'
+const isWMLContentUpdateHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey: 'mtw.wml'; type: 'Content Update' }> = (h): h is StreamingEventHeader & { dataSourceKey: 'mtw.wml'; type: 'Content Update' } =>
+    h.dataSourceKey === 'mtw.wml' && h.type === 'Content Update'
 
-export const isAssetsSubscribedHeader: HeaderGuard<StreamingEventHeader> = (header: StreamingEventHeader): header is StreamingEventHeader => {
-    if (header.dataSourceKey === 'mtw.wml') return ASSETS_WML_TYPES.has(header.type)
-    if (header.dataSourceKey === 'mtw.diagnostics') return header.type === 'Heal Global Values'
-    if (header.dataSourceKey === 'mtw.coordination') return header.type === 'Remove Asset'
-    return false
-}
+export const isAssetsSubscribedHeader: HeaderGuard<StreamingEventHeader> = (header): header is StreamingEventHeader =>
+    isWMLZoneChangedHeader(header) ||
+    isWMLAssetPurgedHeader(header) ||
+    isDiagnosticsHealGlobalValuesHeader(header) ||
+    isCoordinationRemoveAssetHeader(header) ||
+    isWMLContentUpdateHeader(header)
 
 export const isAssetsSubscribedEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<AssetsSubscribedContent, StreamingEventHeader>(isAssetsSubscribedHeader)
 
-export const isWMLZoneChangedEvent = (event: StreamingEventEnvelope<AssetsSubscribedContent>): event is Extract<
-    AssetsIncomingEvent,
-    { header: { dataSourceKey: 'mtw.wml'; type: 'Zone Changed' } }
-> => (
-    event.header.dataSourceKey === 'mtw.wml' &&
-    event.header.type === 'Zone Changed'
-)
-
-export const isWMLAssetPurgedEvent = (event: StreamingEventEnvelope<AssetsSubscribedContent>): event is Extract<
-    AssetsIncomingEvent,
-    { header: { dataSourceKey: 'mtw.wml'; type: 'Asset Purged' } }
-> => (
-    event.header.dataSourceKey === 'mtw.wml' &&
-    event.header.type === 'Asset Purged'
-)
-
-export const isDiagnosticsHealGlobalValuesEvent = (event: StreamingEventEnvelope<AssetsSubscribedContent>): event is Extract<
-    AssetsIncomingEvent,
-    { header: { dataSourceKey: 'mtw.diagnostics'; type: 'Heal Global Values' } }
-> => (
-    event.header.dataSourceKey === 'mtw.diagnostics' &&
-    event.header.type === 'Heal Global Values'
-)
-
-export const isCoordinationRemoveAssetEvent = (event: StreamingEventEnvelope<AssetsSubscribedContent>): event is Extract<
-    AssetsIncomingEvent,
-    { header: { dataSourceKey: 'mtw.coordination'; type: 'Remove Asset' } }
-> => (
-    event.header.dataSourceKey === 'mtw.coordination' &&
-    event.header.type === 'Remove Asset'
-)
-
-export const isWMLContentUpdateEvent = (event: StreamingEventEnvelope<AssetsSubscribedContent>): event is Extract<
-    AssetsIncomingEvent,
-    { header: { dataSourceKey: 'mtw.wml'; type: 'Content Update' } }
-> => (
-    event.header.dataSourceKey === 'mtw.wml' &&
-    event.header.type === 'Content Update'
-)
+export const isWMLZoneChangedEvent = makeStreamingEnvelopeGuardFromHeaderGuard<WMLZoneEvent, StreamingEventHeader & { dataSourceKey: 'mtw.wml'; type: 'Zone Changed' }>(isWMLZoneChangedHeader)
+export const isWMLAssetPurgedEvent = makeStreamingEnvelopeGuardFromHeaderGuard<WMLPurgeEvent, StreamingEventHeader & { dataSourceKey: 'mtw.wml'; type: 'Asset Purged' }>(isWMLAssetPurgedHeader)
+export const isDiagnosticsHealGlobalValuesEvent = makeStreamingEnvelopeGuardFromHeaderGuard<{ type: 'Heal Global Values'; connections?: unknown; assets?: unknown }, StreamingEventHeader & { dataSourceKey: 'mtw.diagnostics'; type: 'Heal Global Values' }>(isDiagnosticsHealGlobalValuesHeader)
+export const isCoordinationRemoveAssetEvent = makeStreamingEnvelopeGuardFromHeaderGuard<{ type: 'Remove Asset'; assetId: string }, StreamingEventHeader & { dataSourceKey: 'mtw.coordination'; type: 'Remove Asset' }>(isCoordinationRemoveAssetHeader)
+export const isWMLContentUpdateEvent = makeStreamingEnvelopeGuardFromHeaderGuard<WMLContentEvent, StreamingEventHeader & { dataSourceKey: 'mtw.wml'; type: 'Content Update' }>(isWMLContentUpdateHeader)

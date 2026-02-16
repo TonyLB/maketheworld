@@ -30,38 +30,20 @@ export type SubscribedWMLContent = WMLZoneEvent
 /** Payload types of events mtw.assets.contentHeaders subscribes to (derived from envelope union). */
 export type ContentHeadersSubscribedContent = ComponentUpdatedEvent | ComponentRemovedEvent | AssetUpdatedEventUpdate | WMLZoneEvent
 
-export const isZoneChangedContentHeadersEvent = (event: ContentHeadersIncomingEvent): event is Extract<
-    ContentHeadersIncomingEvent,
-    { header: { dataSourceKey: 'mtw.wml'; type: 'Zone Changed' } }
-> => (
-    event.header.dataSourceKey === 'mtw.wml' &&
-    event.header.type === 'Zone Changed'
-)
+const isZoneChangedContentHeadersHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey: 'mtw.wml'; type: 'Zone Changed' }> = (h): h is StreamingEventHeader & { dataSourceKey: 'mtw.wml'; type: 'Zone Changed' } =>
+    h.dataSourceKey === 'mtw.wml' && h.type === 'Zone Changed'
+const isComponentHeadersHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Component Updated' | 'Component Removed' }> = (h): h is StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Component Updated' | 'Component Removed' } =>
+    h.dataSourceKey === 'mtw.assets' && (h.type === 'Component Updated' || h.type === 'Component Removed')
+const isAssetUpdatedHeadersHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Asset Updated' }> = (h): h is StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Asset Updated' } =>
+    h.dataSourceKey === 'mtw.assets' && h.type === 'Asset Updated'
 
-export const isComponentHeadersEvent = (event: ContentHeadersIncomingEvent): event is Extract<
-    ContentHeadersIncomingEvent,
-    { header: { dataSourceKey: 'mtw.assets'; type: 'Component Updated' | 'Component Removed' } }
-> => (
-    event.header.dataSourceKey === 'mtw.assets' &&
-    (event.header.type === 'Component Updated' || event.header.type === 'Component Removed')
-)
+export const isZoneChangedContentHeadersEvent = makeStreamingEnvelopeGuardFromHeaderGuard<WMLZoneEvent, StreamingEventHeader & { dataSourceKey: 'mtw.wml'; type: 'Zone Changed' }>(isZoneChangedContentHeadersHeader)
+export const isComponentHeadersEvent = makeStreamingEnvelopeGuardFromHeaderGuard<ComponentUpdatedEvent | ComponentRemovedEvent, StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Component Updated' | 'Component Removed' }>(isComponentHeadersHeader)
+export const isAssetUpdatedHeadersEvent = makeStreamingEnvelopeGuardFromHeaderGuard<AssetUpdatedEventUpdate, StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Asset Updated' }>(isAssetUpdatedHeadersHeader)
 
-export const isAssetUpdatedHeadersEvent = (event: ContentHeadersIncomingEvent): event is Extract<
-    ContentHeadersIncomingEvent,
-    { header: { dataSourceKey: 'mtw.assets'; type: 'Asset Updated' } }
-> => (
-    event.header.dataSourceKey === 'mtw.assets' &&
-    event.header.type === 'Asset Updated'
-)
-
-export const isSubscribedEventHeader: HeaderGuard<StreamingEventHeader> = (header: StreamingEventHeader): header is StreamingEventHeader => {
-    if (header.dataSourceKey === 'mtw.assets') {
-        return ['Component Updated', 'Component Removed', 'Asset Updated'].includes(header.type)
-    }
-    if (header.dataSourceKey === 'mtw.wml') {
-        return header.type === 'Zone Changed'
-    }
-    return false
-}
+export const isSubscribedEventHeader: HeaderGuard<StreamingEventHeader> = (header): header is StreamingEventHeader =>
+    isZoneChangedContentHeadersHeader(header) ||
+    isComponentHeadersHeader(header) ||
+    isAssetUpdatedHeadersHeader(header)
 
 export const isContentHeadersSubscribedEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<ContentHeadersSubscribedContent, StreamingEventHeader>(isSubscribedEventHeader)
