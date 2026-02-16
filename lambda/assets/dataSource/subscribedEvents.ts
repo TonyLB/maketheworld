@@ -2,7 +2,7 @@
  * mtw.assets DataSource subscription surface: types and envelope type guards
  * for events this DataSource subscribes to (mtw.wml, mtw.diagnostics, mtw.coordination).
  */
-import { StreamingEventHeader, StreamingEventEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import { StreamingEventHeader, StreamingEventEnvelope, HeaderGuard, makeStreamingEnvelopeGuardFromHeaderGuard } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { WMLContentEvent, WMLZoneEvent, WMLPurgeEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/wml'
 
 /**
@@ -35,9 +35,16 @@ export type AssetsIncomingEvent =
 /** Payload types of events mtw.assets subscribes to (derived from envelope union for backward compatibility). */
 export type AssetsSubscribedContent = WMLContentEvent | WMLZoneEvent | WMLPurgeEvent | { type: 'Heal Global Values'; connections?: unknown; assets?: unknown } | { type: 'Remove Asset'; assetId: string }
 
-export function isAssetsSubscribedEnvelope(e: StreamingEventEnvelope<unknown>): e is StreamingEventEnvelope<AssetsSubscribedContent> {
-    return ['mtw.diagnostics', 'mtw.coordination', 'mtw.wml'].includes(e.header.dataSourceKey) && typeof e.header.type === 'string'
+const ASSETS_WML_TYPES = new Set(['Content Update', 'Zone Changed', 'Asset Purged'])
+
+export const isAssetsSubscribedHeader: HeaderGuard<StreamingEventHeader> = (header: StreamingEventHeader): header is StreamingEventHeader => {
+    if (header.dataSourceKey === 'mtw.wml') return ASSETS_WML_TYPES.has(header.type)
+    if (header.dataSourceKey === 'mtw.diagnostics') return header.type === 'Heal Global Values'
+    if (header.dataSourceKey === 'mtw.coordination') return header.type === 'Remove Asset'
+    return false
 }
+
+export const isAssetsSubscribedEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<AssetsSubscribedContent, StreamingEventHeader>(isAssetsSubscribedHeader)
 
 export const isWMLZoneChangedEvent = (event: StreamingEventEnvelope<AssetsSubscribedContent>): event is Extract<
     AssetsIncomingEvent,
