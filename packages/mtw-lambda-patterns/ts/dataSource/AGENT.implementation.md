@@ -4,6 +4,17 @@
 
 This document provides detailed implementation information for the DataSource pattern. For high-level usage guidance, see [AGENT.md](./AGENT.md).
 
+### **Design principles (serialization boundary)**
+
+The serialization refactor established these principles (authority and typing only; wire/stored payload shape is unchanged; `type` may remain in the body for compatibility):
+
+- **Single header representation:** One header type (`StreamingEventHeader` and extended variants) is used in memory for internal (messageBus, receiveEvents) and external (serializer params, CoreExternalFormat.header) use; only the wire encoding differs per transport.
+- **Header authoritative for routing:** All routing and type guards use `header.type` (and extended header fields). Payload may still carry `type` for wire compatibility; routing must not depend on payload `type` when header is available.
+- **Single path and single builder:** All lambdas use `fromEventBridgeFormat` and pass `coreFormat.header` + `coreFormat.update` to deserialize. Wire envelope construction is centralized in the publisher (`publishStreamEvent` / `wireFormatsFromCoreFormat`); DataSource and initialize lambda do not hand-build CoreExternalFormat.
+- **CoreExternalFormat header-only:** In-memory format is `{ header, update }` only; no duplicated top-level envelope fields.
+- **Event contracts in mtw-interfaces:** Event types and serializers (including Coordination) live in mtw-interfaces; lambdas import and use them.
+- **Header predicates centralize guards:** Per DataSource, header-level discriminants (and optional header union types) are the single source for aggregate and per-event envelope guards across regimes (lazy internal, resolved internal, external/core).
+
 ## Technical Details
 
 ### **Live vs Replay Event Delivery**
@@ -59,6 +70,36 @@ This dual approach ensures efficient delivery while maintaining the correct scop
 - **Outgoing**: DataSource → (1) internal format → messageBus for local processing, (2) serialize → EventBridge/DynamoDB for external distribution
 - **Incoming**: EventBridge → deserialize → messageBus → DataSource processing
 
+### **Serialization data flow**
+
+Full pipeline as implemented in code and formatTransform:
+
+**Outbound (publish):**
+1. **Internal update** – Caller (DataSource or initialize lambda) has internal `UpdatePayload` and a **header fragment** (e.g. `type`, extended fields).
+2. **streamEvent** – DataSource merges fragment with base header (`dataSourceKey`, `streamKey`, `timestamp`) to form full **header**.
+3. **Serializer** – `eventSerializer.serialize({ content: update, header })` produces external payload `update` (e.g. `{ type, ... }`).
+4. **CoreExternalFormat** – `publishStreamEvent` builds `{ header, update }` (no other top-level fields).
+5. **toEventBridgeFormat** – formatTransform produces EventBridge envelope (Detail from header base + extendedHeader; Source/DetailType from config).
+6. **EventBridge** – Caller sends the event (DataSource sends via AWS SDK; initialize lambda does not use EventBridge for init).
+
+**Inbound (consume):**
+1. **EventBridge** – Lambda receives raw event (source, detail-type, detail, time).
+2. **fromEventBridgeFormat** – formatTransform parses Detail + extendedHeader into `coreFormat = { header: fullHeader, update }`.
+3. **Deserialize** – Lambda calls `deserializer.deserialize({ content: coreFormat.update, header: coreFormat.header })` to get internal payload.
+4. **messageBus** – Lambda builds `StreamingEventMessage` with `header` from `coreFormat.header`, `getContentInternal` returning the deserialized payload, and sends to messageBus.
+5. **DataSource processing** – Patterns subscribe() applies envelope type guard, then passes narrowed events to DataSource `receiveEvents`.
+
+Replay path: DataSource `deliverReplayData` builds CoreExternalFormat (snapshot and replay events) with `{ header, update }` and uses `toSNSFeedbackFormat` (and optionally toWebSocketFormat) for delivery; no EventBridge on that path.
+
+### **Division of responsibility (serialization boundary)**
+
+| Responsibility | Owner |
+|----------------|--------|
+| **Build full header** | DataSource (or init sender). Merges base four (`dataSourceKey`, `streamKey`, `timestamp`, `type`) with header fragment. Extended fields come from fragment / buildHeader. |
+| **Build wire envelope** | formatTransform (`toEventBridgeFormat`, `toDynamoDBFormat`, `toSNSFeedbackFormat`, `toWebSocketFormat`). Reads from `coreFormat.header` and `coreFormat.update` only. |
+| **Serialize/deserialize payload** | DataSource event serializer. Operates on content + header; must not duplicate envelope fields in content. |
+| **Routing and discrimination** | **Header is authoritative.** Type guards and routing use `header.type` (and extended header fields). Payload may still carry `type` for wire compatibility; routing logic must not depend on payload `type` when header is available. |
+
 ### **Batch Event Processing Architecture**:
 **Flexible Event Processing**: The DataSource pattern now supports batch processing through the `receiveEvents` method, providing a flexible foundation for various event processing patterns.
 
@@ -70,7 +111,7 @@ This dual approach ensures efficient delivery while maintaining the correct scop
 
 ### **Header/Content Envelope Model**
 
-DataSource events use a header + getContentInternal contract:
+DataSource events use a header + getContentInternal contract. The same logical envelope appears in three regimes: **CoreExternalFormat** (external, before/after format transforms), **StreamingEventEnvelope** (messageBus, lazy content via getContentInternal), and **ResolvedStreamingEnvelope** (aggregators, replay, serializer params); all share the same header semantics.
 
 - **Header**: Always present, never sidecarred. Contains `dataSourceKey`, `streamKey`, `timestamp`, `type`, and optional domain flags (e.g. `zone`). Used for routing and type guards. When both header and payload carry a `type`, **header.type is authoritative for routing and discrimination**.
 - **Payload**: Obtained via `getContentInternal()`. What serializers and aggregators operate on. **Internal** content payloads do not include a `type` property; discrimination is by envelope/header only. External (wire) payloads may retain `type` for the receiving side, but routing logic must not depend on payload `type` when header is available.
@@ -110,7 +151,7 @@ The envelope and serializer support an optional **extended header** shape so dat
 
 **Serialization: extendedHeader**
 
-- **Wire:** The extended part of the header is a separate field, `extendedHeader`, on EventBridge Detail, DynamoDB, and SNS. No key enumeration; one object.
+- **Wire:** Every wire format (EventBridge Detail, DynamoDB, SNS, WebSocket) uses the same rule: extended header = "header minus base four" (dataSourceKey, streamKey, timestamp, type). On EventBridge, DynamoDB, and SNS it is a separate field `extendedHeader` (one object, no key enumeration). On WebSocket the extended part is merged at top level into the flat message. The format layer (formatTransform) applies this rule in every to* and from* transform so that adding a new extended header field does not require editing multiple places.
 - **In-memory:** Those properties are **merged into the `header` field.** CoreExternalFormat has two fields only: `header` (required, full: base four + extended properties) and `update`. There are no top-level `dataSourceKey`, `streamKey`, `timestamp`, or `RequestId`; those exist only on `header`. Producers put extended fields in the header fragment; the DataSource sets `coreFormat.header` (full). Serializers should not duplicate envelope fields in content. When serializing, the format layer derives `Detail.extendedHeader` from `coreFormat.header`; when deserializing, it merges `Detail.extendedHeader` into `coreFormat.header`.
 - **Consumers:** Read **`coreFormat.header`** (e.g. `event.header.RequestIds`); extended properties are already merged. No backward compatibility for an unextended header; we always have a full header in memory.
 - **Adding a new envelope field:** Define (or extend) the concrete extended header type and typeguard in the **data source** that uses it; ensure the DataSource passes it in the header fragment. No changes to the format layer logic.
@@ -731,5 +772,7 @@ For large snapshots or event contents, implement S3 storage with claim-check rec
 - **Event Validation**: Built-in validation for external EventBridge event formats
 
 ---
+
+**Related files:** Format and types: [formatTransform.ts](./formatTransform.ts), [baseClasses.ts](./baseClasses.ts), [index.ts](./index.ts). Event contracts: [mtw-interfaces/ts/eventBridge/AGENT.implementation.md](../../../mtw-interfaces/ts/eventBridge/AGENT.implementation.md). Subscriptions: [lambda/subscriptions/handlerFramework/baseClasses.ts](../../../../lambda/subscriptions/handlerFramework/baseClasses.ts), [lambda/subscriptions/AGENT.md](../../../../lambda/subscriptions/AGENT.md). Inbound lambdas: `lambda/wml/app.ts`, `lambda/assets/app.ts`, `lambda/ephemera/app.ts`. Initialize (outbound): `lambda/initialize/app.ts`.
 
 **For usage guidance and high-level concepts, see [AGENT.md](./AGENT.md)**

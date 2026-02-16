@@ -7,8 +7,10 @@
  * CoreExternalFormat is header-authoritative: it has two fields only, `header` (required)
  * and `update`. All envelope metadata (dataSourceKey, streamKey, timestamp, type, RequestId,
  * and any extended fields) lives on header; there are no duplicated top-level fields.
- * On the wire: the extended part of the header is a separate field `extendedHeader`;
- * it is merged into header when deserializing and split from header when serializing.
+ * On the wire: every context (EventBridge, DynamoDB, SNS, WebSocket) uses the same rule:
+ * extended = header minus base four (dataSourceKey, streamKey, timestamp, type). It is
+ * a separate field `extendedHeader` where the format supports it, or merged at top level
+ * (e.g. WebSocket); merged into header when deserializing, split from header when serializing.
  */
 
 import type { HeaderGuard } from './baseClasses'
