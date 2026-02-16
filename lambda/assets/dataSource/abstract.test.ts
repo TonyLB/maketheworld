@@ -3,6 +3,9 @@ import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { snsClient } from '../clients'
 import messageBus from '../messageBus'
 
+// Mock uuid so @tonylb/mtw-lambda-patterns resolves a defined v4 (avoids eventId=undefined in streamEvent)
+jest.mock('uuid', () => ({ v4: () => 'test-uuid-assets' }))
+
 // Mock the dependencies
 jest.mock('@tonylb/mtw-utilities/ts/dynamoDB', () => ({
     assetDB: {

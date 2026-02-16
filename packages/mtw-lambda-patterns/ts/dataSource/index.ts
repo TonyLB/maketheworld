@@ -3,15 +3,10 @@ import { getCurrentTimestamp } from '../internalUtils/dateUtil'
 import { eventBridgeClient } from '@tonylb/mtw-utilities/ts/eventBridge'
 import { v4 as uuidv4 } from 'uuid'
 import { PublishCommand } from '@aws-sdk/client-sns'
-import { StreamingEvent, StreamingEventPayload, StreamingEventPayloadContract, StreamingEventHeader, StreamEventHeaderFragment, StreamingEventEnvelope, DataSourceEventSerializer, EventPayload } from './baseClasses'
-import { 
-    CoreExternalFormat, 
-    toEventBridgeFormat, 
-    toDynamoDBFormat,
-    toWebSocketFormat,
-    toSNSFeedbackFormat
-} from './formatTransform'
+import { StreamingEventPayloadContract, StreamingEventHeader, StreamEventHeaderFragment, StreamingEventEnvelope, DataSourceEventSerializer, EventPayload } from './baseClasses'
+import { CoreExternalFormat } from './formatTransform'
 import { DataSourceAggregator } from './aggregation'
+import { publishStreamEvent, StreamEventPublisherSerializer, wireFormatsFromCoreFormat } from './streamEventPublisher'
 
 export type SerializableObject = Record<string, unknown>
 
@@ -351,31 +346,15 @@ export class DataSource<
 
         const header: Header = { dataSourceKey: this.dataSourceKey, streamKey, timestamp: now, ...headerFragment } as Header
 
-        // Create CoreExternalFormat - full header (base four + extended) so format layer can split to wire extendedHeader.
-        // Serializer output is external format (has type); internal update may omit type.
-        const coreFormat: CoreExternalFormat = this.eventSerializer
-            ? {
-                dataSourceKey: this.dataSourceKey,
-                streamKey,
-                timestamp: now,
-                header,
-                update: this.eventSerializer.serialize({
-                    content: update,
-                    header
-                }) as { type: string; [key: string]: unknown }
-            }
-            : {
-                dataSourceKey: this.dataSourceKey,
-                streamKey,
-                timestamp: now,
-                header,
-                update: update as { type: string; [key: string]: unknown }
-            }
-
-        // Transform to context-specific formats (uuid for uniqueness in DataCategory)
-        const eventRecord = toDynamoDBFormat(coreFormat, this.primaryKeyName, uuid)
-        const eventBridgeEvent = toEventBridgeFormat(coreFormat)
-
+        const primaryKeyName = this.primaryKeyName
+        const eventId = uuid
+        const { eventBridgeEvent, dynamoRecord } = publishStreamEvent({
+            header,
+            content: update,
+            serializer: this.eventSerializer as StreamEventPublisherSerializer<Header> | undefined,
+            primaryKeyName,
+            eventId,
+        })
         // Create the internal messageBus event (reuse header built above)
         const messageBusEvent = {
             type: 'StreamingEvent' as const,
@@ -389,7 +368,7 @@ export class DataSource<
         // Execute all operations in parallel
         await Promise.all([
             // Store event to DynamoDB for replay
-            (this.replayable ? this.dynamo.putItem(eventRecord) : Promise.resolve()).then(() => {
+            (this.replayable && dynamoRecord ? this.dynamo.putItem(dynamoRecord) : Promise.resolve()).then(() => {
                 // Publish to internal messageBus for other DataSources
                 this.messageBus.send(messageBusEvent)
             }),
@@ -495,7 +474,7 @@ export class DataSource<
             update: externalSnapshotPayload as any
         }
 
-        const snapshotSNSFormat = toSNSFeedbackFormat(snapshotCoreFormat)
+        const { snsFeedbackFormat: snapshotSNSFormat } = wireFormatsFromCoreFormat(snapshotCoreFormat)
 
         const snapshotCommand = new PublishCommand({
             TopicArn: this.feedbackTopicArn,
@@ -536,7 +515,7 @@ export class DataSource<
                     update: update as any
                 };
 
-                const snsFeedbackFormat = toSNSFeedbackFormat(coreFormat)
+                const { snsFeedbackFormat } = wireFormatsFromCoreFormat(coreFormat)
                 
                 const eventCommand = new PublishCommand({
                     TopicArn: this.feedbackTopicArn,
@@ -701,5 +680,17 @@ export class DataSource<
     }
 }
 
+// Re-export stream event publisher (build CoreExternalFormat + wire formats for callers to send/store)
+export {
+    publishStreamEvent,
+    StreamEventPublisherSerializer,
+    StreamEventPublisherOptions,
+    StreamEventPublisherResult,
+    wireFormatsFromCoreFormat,
+} from './streamEventPublisher'
+
 // Re-export aggregation types for convenience
 export { DataSourceAggregator, AggregationResult, ResolvedStreamingEnvelope } from './aggregation'
+
+// Re-export CoreExternalFormat guard helper for subscription lambda and other consumers
+export { makeCoreExternalFormatGuardFromHeaderGuard } from './formatTransform'

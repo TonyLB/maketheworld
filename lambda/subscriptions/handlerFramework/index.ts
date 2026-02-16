@@ -1,4 +1,6 @@
 import { SubscriptionClientMessage } from "@tonylb/mtw-interfaces/ts/subscriptions";
+import { makeCoreExternalFormatGuardFromHeaderGuard } from "@tonylb/mtw-lambda-patterns/ts/dataSource";
+import type { CoreExternalFormat, CoreExternalFormatHeader } from "@tonylb/mtw-lambda-patterns/ts/dataSource/formatTransform";
 import { SubscriptionHandler, SubscriptionLibrary } from "./baseClasses";
 
 type LibraryEntry = {
@@ -6,6 +8,7 @@ type LibraryEntry = {
     type?: string;
     detailExtract?: (event: Record<string, any>) => string;
     transform?: (event: Record<string, any>) => SubscriptionClientMessage;
+    coreFormatGuard?: (event: CoreExternalFormat) => boolean;
 }
 
 export const subscriptionLibraryConstructor = (entries: LibraryEntry[]): SubscriptionLibrary => {
@@ -13,6 +16,10 @@ export const subscriptionLibraryConstructor = (entries: LibraryEntry[]): Subscri
         library: entries.map((entry) => (new SubscriptionHandler(entry)))
     })
 }
+
+type WMLContentUpdateHeader = CoreExternalFormatHeader & { dataSourceKey: 'mtw.wml'; type: 'Content Update' };
+const isWMLContentUpdateHeader = (header: CoreExternalFormatHeader): header is WMLContentUpdateHeader =>
+    header.dataSourceKey === 'mtw.wml' && header.type === 'Content Update'
 
 export const subscriptionLibrary = subscriptionLibraryConstructor([
     {
@@ -33,6 +40,7 @@ export const subscriptionLibrary = subscriptionLibraryConstructor([
     {
         dataSourceKey: 'mtw.wml',
         type: 'Content Update',
+        coreFormatGuard: makeCoreExternalFormatGuardFromHeaderGuard(isWMLContentUpdateHeader),
         transform: (event) => ({
             messageType: 'StreamEvent',
             dataSourceKey: 'mtw.wml',

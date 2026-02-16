@@ -1,3 +1,4 @@
+import type { WebSocketFormat } from "@tonylb/mtw-lambda-patterns/ts/dataSource/formatTransform";
 import { WMLContentEventExternal, isWMLContentEventExternal } from "./eventBridge/wml";
 import { ContentHeadersExternal, isContentHeadersExternal } from "./eventBridge/assets/contentHeaders";
 import { LibraryExternal, isLibraryExternal } from "./eventBridge/assets/library";
@@ -36,42 +37,30 @@ export const isSubscriptionsAPIMessage = (message: Record<string, any>): message
     }
 }
 
-// Specific, strongly-typed subscription message types (StreamEvent)
-export type WMLSubscriptionClientMessage = {
-    messageType: 'StreamEvent';
+// Subscription client message types extend the flat WebSocket base from patterns (domain union here)
+export type WMLSubscriptionClientMessage = WebSocketFormat & {
     dataSourceKey: 'mtw.wml';
-    streamKey: string;
-    timestamp: number;
     update: WMLContentEventExternal;
     RequestIds?: string[];
-}
+};
 
-export type ContentHeadersSubscriptionClientMessage = {
-    messageType: 'StreamEvent';
+export type ContentHeadersSubscriptionClientMessage = WebSocketFormat & {
     dataSourceKey: 'mtw.assets.contentHeaders';
-    streamKey: string;
-    timestamp: number;
     update: ContentHeadersExternal;
     RequestId?: string;
-}
+};
 
-export type LibrarySubscriptionClientMessage = {
-    messageType: 'StreamEvent';
+export type LibrarySubscriptionClientMessage = WebSocketFormat & {
     dataSourceKey: 'mtw.assets.library';
-    streamKey: string;
-    timestamp: number;
     update: LibraryExternal;
     RequestId?: string;
-}
+};
 
-export type PlayerSubscriptionClientMessage = {
-    messageType: 'StreamEvent';
+export type PlayerSubscriptionClientMessage = WebSocketFormat & {
     dataSourceKey: 'mtw.assets.players';
-    streamKey: string;
-    timestamp: number;
     update: PlayerExternal;
     RequestId?: string;
-}
+};
 
 // Union of all subscription client messages
 export type SubscriptionClientMessage =

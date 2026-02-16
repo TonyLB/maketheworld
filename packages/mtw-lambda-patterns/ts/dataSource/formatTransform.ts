@@ -9,6 +9,8 @@
  * `header` when deserializing and split from `header` when serializing.
  */
 
+import type { HeaderGuard } from './baseClasses'
+
 /** Base four header fields that are always present; extended props (e.g. RequestIds) live in header in memory and as extendedHeader on the wire. */
 const BASE_HEADER_KEYS = ['dataSourceKey', 'streamKey', 'timestamp', 'type'] as const;
 
@@ -46,15 +48,15 @@ export type DynamoDBFormat<PrimaryKey extends string = string> = {
     [K in PrimaryKey]: string;
 }
 
+/** Flat WebSocket stream-event message (canonical base type; domain union lives in mtw-interfaces). */
 export interface WebSocketFormat {
     messageType: 'StreamEvent';
-    message: {
-        dataSourceKey: string;
-        streamKey: string;
-        timestamp: number;
-        RequestId?: string;
-        update: { type: string; [key: string]: unknown };
-    };
+    dataSourceKey: string;
+    streamKey: string;
+    timestamp: number;
+    update: { type: string; [key: string]: unknown };
+    RequestId?: string;
+    RequestIds?: string[];
 }
 
 export interface SNSFeedbackFormat {
@@ -64,6 +66,20 @@ export interface SNSFeedbackFormat {
     timestamp: number;
     extendedHeader?: unknown;
     update: { type: string; [key: string]: unknown };
+}
+
+/** Header type that CoreExternalFormat may carry; used to constrain makeCoreExternalFormatGuardFromHeaderGuard. */
+export type CoreExternalFormatHeader = NonNullable<CoreExternalFormat['header']>
+
+/**
+ * Build a type guard for CoreExternalFormat from a HeaderGuard so the same header predicates
+ * used by DataSource subscribedEvents can be reused for the external/core regime (e.g. subscription lambda matchEvent).
+ */
+export function makeCoreExternalFormatGuardFromHeaderGuard<H extends CoreExternalFormatHeader>(
+    headerGuard: HeaderGuard<H>
+): (coreFormat: CoreExternalFormat) => coreFormat is CoreExternalFormat & { header: H } {
+    return (coreFormat: CoreExternalFormat): coreFormat is CoreExternalFormat & { header: H } =>
+        coreFormat.header != null && headerGuard(coreFormat.header)
 }
 
 /**
@@ -222,30 +238,30 @@ export function fromDynamoDBFormat(
 }
 
 /**
- * Transform CoreExternalFormat to WebSocket message structure
+ * Transform CoreExternalFormat to flat WebSocket message structure.
+ * Merges RequestId and RequestIds from header so the message is complete for subscription client.
  */
 export function toWebSocketFormat(coreFormat: CoreExternalFormat): WebSocketFormat {
-    const { dataSourceKey, streamKey, timestamp, RequestId, update } = coreFormat;
-    
-    return {
+    const { dataSourceKey, streamKey, timestamp, update } = coreFormat;
+    const requestId = coreFormat.RequestId ?? (coreFormat.header as { RequestId?: string } | undefined)?.RequestId;
+    const requestIds = coreFormat.header?.RequestIds as string[] | undefined;
+    const result: WebSocketFormat = {
         messageType: 'StreamEvent',
-        message: {
-            dataSourceKey,
-            streamKey,
-            timestamp,
-            RequestId,
-            update
-        }
+        dataSourceKey,
+        streamKey,
+        timestamp,
+        update
     };
+    if (requestId != null) result.RequestId = requestId;
+    if (requestIds != null) result.RequestIds = requestIds;
+    return result;
 }
 
 /**
- * Transform WebSocket message structure back to CoreExternalFormat
+ * Transform flat WebSocket message structure back to CoreExternalFormat.
  */
 export function fromWebSocketFormat(webSocketMessage: WebSocketFormat): CoreExternalFormat {
-    const { message } = webSocketMessage;
-    const { dataSourceKey, streamKey, timestamp, RequestId, update } = message;
-    
+    const { dataSourceKey, streamKey, timestamp, RequestId, update } = webSocketMessage;
     return {
         dataSourceKey,
         streamKey,

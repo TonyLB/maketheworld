@@ -4,6 +4,7 @@ jest.mock('@tonylb/mtw-utilities/ts/dynamoDB')
 import { connectionDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 jest.mock('../internalCache')
 import internalCache from "../internalCache"
+import { isSubscriptionClientMessage } from '@tonylb/mtw-interfaces/ts/subscriptions'
 import { subscriptionLibrary, subscriptionLibraryConstructor } from '.'
 
 const connectionDBMock = jest.mocked(connectionDB)
@@ -100,6 +101,50 @@ describe('subscription handlerFramework', () => {
             update: { type: 'TestOne' }
         }
         expect(testLibrary.matchEvent(eventWithMismatchedHeader as any)).toBeFalsy()
+    })
+
+    describe('default subscription message (no transform, wireFormatsFromCoreFormat adapter)', () => {
+        const defaultPathLibrary = subscriptionLibraryConstructor([
+            {
+                dataSourceKey: 'mtw.assets.players'
+            }
+        ])
+
+        it('uses webSocketFormat when handler has no transform and sends valid SubscriptionClientMessage', async () => {
+            connectionDBMock.query.mockResolvedValue([{
+                ConnectionId: 'STREAM#mtw.assets.players::player99',
+                DataCategory: 'SESSION#S1'
+            }])
+            internalCacheMock.SessionConnections.get.mockResolvedValue(['CONNECTION#C1'])
+            const coreFormat = {
+                dataSourceKey: 'mtw.assets.players',
+                streamKey: 'player99',
+                timestamp: 999,
+                RequestId: 'req-default',
+                header: {
+                    dataSourceKey: 'mtw.assets.players',
+                    streamKey: 'player99',
+                    timestamp: 999,
+                    type: 'Player Settings Updated'
+                },
+                update: { type: 'Player Settings Updated', settings: { onboardCompleteTags: [] } }
+            }
+            const match = defaultPathLibrary.matchEvent(coreFormat as any)
+            expect(match).toBeDefined()
+            await match!.publish(coreFormat as any)
+            expect(apiClientMock.send).toHaveBeenCalledWith('C1', expect.any(Object))
+            const sentMessage = apiClientMock.send.mock.calls[0][1]
+            expect(isSubscriptionClientMessage(sentMessage)).toBe(true)
+            expect(sentMessage).toMatchObject({
+                messageType: 'StreamEvent',
+                dataSourceKey: 'mtw.assets.players',
+                streamKey: 'player99',
+                timestamp: 999,
+                update: { type: 'Player Settings Updated', settings: { onboardCompleteTags: [] } },
+                RequestId: 'req-default'
+            })
+        })
+
     })
 
     it('should subscribe with no details', async () => {

@@ -4,7 +4,7 @@ import { EventBridgeClient, PutEventsCommand } from "@aws-sdk/client-eventbridge
 import { readdir, stat, readFile } from 'node:fs/promises'
 import { v4 as uuidv4 } from 'uuid'
 import { DiagnosticsEventSerializer, DiagnosticsEventUpdate } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics'
-import { toEventBridgeFormat, CoreExternalFormat } from '@tonylb/mtw-lambda-patterns/ts/dataSource/formatTransform'
+import { publishStreamEvent, StreamEventPublisherSerializer } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 // Note: primitivesData import removed - WML lambda now handles primitives content
 
 const params = { region: process.env.AWS_REGION }
@@ -78,7 +78,6 @@ const initializePrimitivesData = async (): Promise<void> => {
         timestamp: nowISO
     }
     
-    // Serialize to external format using the serializer
     const serializer = new DiagnosticsEventSerializer()
     const header = {
         dataSourceKey: 'mtw.diagnostics',
@@ -86,27 +85,19 @@ const initializePrimitivesData = async (): Promise<void> => {
         timestamp: now,
         type: internalEvent.type
     }
-    const externalUpdate = serializer.serialize({ content: internalEvent, header })
-    
-    // Create CoreExternalFormat matching what DataSource.streamEvent produces (full header when present)
-    const coreFormat: CoreExternalFormat = {
-        dataSourceKey: 'mtw.diagnostics',
-        streamKey: 'global', // Diagnostics events use 'global' streamKey
-        timestamp: now, // Epoch milliseconds
+    const { eventBridgeEvent } = publishStreamEvent({
         header,
-        update: externalUpdate
-    }
-    
-    // Transform to EventBridge format
-    const eventBridgeFormat = toEventBridgeFormat(coreFormat)
-    
+        content: internalEvent,
+        serializer: serializer as StreamEventPublisherSerializer<typeof header>
+    })
+
     // Send to EventBridge (PutEventsCommand expects capitalized Source/DetailType)
     await eventBridgeClient.send(new PutEventsCommand({
         Entries: [{
-            Source: eventBridgeFormat.Source,
-            DetailType: eventBridgeFormat.DetailType,
+            Source: eventBridgeEvent.Source,
+            DetailType: eventBridgeEvent.DetailType,
             EventBusName: process.env.EVENT_BUS_NAME,
-            Detail: JSON.stringify(eventBridgeFormat.Detail)
+            Detail: JSON.stringify(eventBridgeEvent.Detail)
         }]
     }))
     

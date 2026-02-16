@@ -5,8 +5,10 @@
 
 import {
     CoreExternalFormat,
+    CoreExternalFormatHeader,
     DynamoDBFormat,
     EventBridgeFormat,
+    makeCoreExternalFormatGuardFromHeaderGuard,
     toEventBridgeFormat,
     fromEventBridgeFormat,
     toDynamoDBFormat,
@@ -161,6 +163,71 @@ describe('formatTransform', () => {
                 type: 'Content Update',
                 RequestIds: ['r1']
             })
+        })
+    })
+
+    describe('makeCoreExternalFormatGuardFromHeaderGuard', () => {
+        type WMLContentUpdateHeader = CoreExternalFormatHeader & { dataSourceKey: 'mtw.wml'; type: 'Content Update' }
+        const isWMLContentUpdateHeader = (header: CoreExternalFormatHeader): header is WMLContentUpdateHeader =>
+            header.dataSourceKey === 'mtw.wml' && header.type === 'Content Update'
+        const guard = makeCoreExternalFormatGuardFromHeaderGuard(isWMLContentUpdateHeader)
+
+        it('returns true when coreFormat.header satisfies the header predicate', () => {
+            const coreFormat: CoreExternalFormat = {
+                dataSourceKey: 'mtw.wml',
+                streamKey: 'ASSET#x',
+                timestamp: 1,
+                header: {
+                    dataSourceKey: 'mtw.wml',
+                    streamKey: 'ASSET#x',
+                    timestamp: 1,
+                    type: 'Content Update'
+                },
+                update: { type: 'Content Update', wml: '' }
+            }
+            expect(guard(coreFormat)).toBe(true)
+        })
+
+        it('returns false when header is missing', () => {
+            const coreFormat: CoreExternalFormat = {
+                dataSourceKey: 'mtw.wml',
+                streamKey: 'ASSET#x',
+                timestamp: 1,
+                update: { type: 'Content Update', wml: '' }
+            }
+            expect(guard(coreFormat)).toBe(false)
+        })
+
+        it('returns false when header does not satisfy the predicate', () => {
+            const coreFormat: CoreExternalFormat = {
+                dataSourceKey: 'mtw.wml',
+                streamKey: 'ASSET#x',
+                timestamp: 1,
+                header: {
+                    dataSourceKey: 'mtw.wml',
+                    streamKey: 'ASSET#x',
+                    timestamp: 1,
+                    type: 'Merge Conflict'
+                },
+                update: { type: 'Merge Conflict', error: 'x' }
+            }
+            expect(guard(coreFormat)).toBe(false)
+        })
+
+        it('returns false for different dataSourceKey', () => {
+            const coreFormat: CoreExternalFormat = {
+                dataSourceKey: 'mtw.assets.library',
+                streamKey: 'global',
+                timestamp: 1,
+                header: {
+                    dataSourceKey: 'mtw.assets.library',
+                    streamKey: 'global',
+                    timestamp: 1,
+                    type: 'Content Update'
+                },
+                update: { type: 'Content Update' }
+            }
+            expect(guard(coreFormat)).toBe(false)
         })
     })
 
