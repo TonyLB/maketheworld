@@ -111,7 +111,7 @@ The envelope and serializer support an optional **extended header** shape so dat
 **Serialization: extendedHeader**
 
 - **Wire:** The extended part of the header is a separate field, `extendedHeader`, on EventBridge Detail, DynamoDB, and SNS. No key enumeration; one object.
-- **In-memory:** Those properties are **merged into the `header` field.** CoreExternalFormat has `header` (full: base four + extended properties), not a separate `extendedHeader`. Producers put extended fields in the header fragment; the DataSource sets `coreFormat.header` (full). Serializers should not duplicate envelope fields in content. When serializing, the format layer derives `Detail.extendedHeader` from `coreFormat.header`; when deserializing, it merges `Detail.extendedHeader` into `coreFormat.header`.
+- **In-memory:** Those properties are **merged into the `header` field.** CoreExternalFormat has two fields only: `header` (required, full: base four + extended properties) and `update`. There are no top-level `dataSourceKey`, `streamKey`, `timestamp`, or `RequestId`; those exist only on `header`. Producers put extended fields in the header fragment; the DataSource sets `coreFormat.header` (full). Serializers should not duplicate envelope fields in content. When serializing, the format layer derives `Detail.extendedHeader` from `coreFormat.header`; when deserializing, it merges `Detail.extendedHeader` into `coreFormat.header`.
 - **Consumers:** Read **`coreFormat.header`** (e.g. `event.header.RequestIds`); extended properties are already merged. No backward compatibility for an unextended header; we always have a full header in memory.
 - **Adding a new envelope field:** Define (or extend) the concrete extended header type and typeguard in the **data source** that uses it; ensure the DataSource passes it in the header fragment. No changes to the format layer logic.
 - **Example (mtw.wml):** The mtw.wml data source uses an extended header type `WMLStreamingEventHeader` with `RequestIds?: string[]` for Content Update and Merge Conflict events. Producers pass `RequestIds` in the header fragment when calling `streamEvent`; the serializer does not put `RequestIds` in the content (payload purity). Consumers read `event.header.RequestIds`; the subscriptions handler sources top-level `RequestIds` in the WebSocket message from the event header.
@@ -418,14 +418,14 @@ The DataSource pattern currently faces a serialization complexity issue where di
 
 **Proposed Solution**: Core External Format + Context Transforms
 
-**Core External Format**: Standardized representation containing all essential metadata:
+**Core External Format**: Header-authoritative in-memory representation. Two fields only; envelope metadata lives on `header`:
 ```typescript
 interface CoreExternalFormat {
-    dataSourceKey: string;
-    streamKey: string;
-    update: any; // Contains { type: string, ...rest } - the actual content data
+    header: { dataSourceKey: string; streamKey: string; timestamp: number; type: string; [key: string]: unknown };
+    update: { type: string; [key: string]: unknown };
 }
 ```
+Header is the single source of truth for all envelope metadata (base four + extended); there are no duplicated top-level fields.
 
 **Context-Specific Transformers**: Bidirectional transforms for each transmission context:
 - **EventBridge Transformer**: 

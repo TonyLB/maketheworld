@@ -16,10 +16,10 @@ describe('publishStreamEvent', () => {
         const content = { type: 'Asset Added', update: 'asset-1' }
         const result = publishStreamEvent({ header: baseHeader, content })
 
-        expect(result.coreFormat.dataSourceKey).toBe('mtw.assets')
-        expect(result.coreFormat.streamKey).toBe('ASSET#test')
-        expect(result.coreFormat.timestamp).toBe(1234567890)
         expect(result.coreFormat.header).toEqual(baseHeader)
+        expect(result.coreFormat.header.dataSourceKey).toBe('mtw.assets')
+        expect(result.coreFormat.header.streamKey).toBe('ASSET#test')
+        expect(result.coreFormat.header.timestamp).toBe(1234567890)
         expect(result.coreFormat.update).toEqual(content)
 
         expect(result.eventBridgeEvent.Source).toBe('mtw.assets')
@@ -109,9 +109,6 @@ describe('publishStreamEvent', () => {
 
 describe('wireFormatsFromCoreFormat', () => {
     const coreFormat: CoreExternalFormat = {
-        dataSourceKey: 'mtw.assets',
-        streamKey: 'ASSET#test',
-        timestamp: 1234567890,
         header: { dataSourceKey: 'mtw.assets', streamKey: 'ASSET#test', timestamp: 1234567890, type: 'Test' },
         update: { type: 'Test', data: 'payload' },
     }
@@ -137,8 +134,8 @@ describe('wireFormatsFromCoreFormat', () => {
 
     it('should set webSocketFormat.RequestIds when coreFormat.header has RequestIds', () => {
         const coreWithRequestIds: CoreExternalFormat = {
-            ...coreFormat,
-            header: { ...coreFormat.header!, RequestIds: ['req-1', 'req-2'] },
+            header: { ...coreFormat.header, RequestIds: ['req-1', 'req-2'] },
+            update: coreFormat.update,
         }
         const result = wireFormatsFromCoreFormat(coreWithRequestIds)
         expect(result.webSocketFormat.RequestIds).toEqual(['req-1', 'req-2'])

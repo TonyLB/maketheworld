@@ -229,6 +229,13 @@ Use the checkboxes and "Status" lines to track progress. Add GitHub issue number
   - **Depends on**: None (can be done before or with 6a).  
   - **Files**: `packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md` (Serialization: extendedHeader); optionally `formatTransform.ts` (module comment), `AGENT.md` (Format transforms / Key Insight).
 
+- [x] **6c. Make CoreExternalFormat header-only (remove top-level dataSourceKey, streamKey, timestamp, RequestId)**  
+  - **What**: Refactor CoreExternalFormat to `{ header, update }` only; header is required and is the single source of truth for all envelope fields. Update all format transforms, streamEventPublisher, DataSource.deliverReplayData, and lambda apps (wml, assets, ephemera) to construct and read from header only. Update tests and durable docs.  
+  - **Why**: Removes redundant double-representation and aligns in-memory format with "header authoritative" rule.  
+  - **Status**: Done. CoreExternalFormat is `{ header, update }`; header required and authoritative. formatTransform, streamEventPublisher, DataSource, lambda apps, tests, and AGENT.implementation.md/AGENT.md updated.  
+  - **Depends on**: None.  
+  - **Files**: formatTransform.ts, streamEventPublisher.ts, index.ts (DataSource), lambda/wml/app.ts, lambda/assets/app.ts, lambda/ephemera/app.ts, formatTransform.test.ts, streamEventPublisher.test.ts, AGENT.implementation.md, AGENT.md.
+
 ### 7. Documentation improvements (parallel track)
 
 - [ ] **7a. Single "Serialization data flow" section**  
@@ -247,7 +254,7 @@ Use the checkboxes and "Status" lines to track progress. Add GitHub issue number
 
 - **Early / quick wins (header authoritative first)**: 1a (Ephemera path), 2a (matchEvent on header), 3a (same as 2a), 3b (toEventBridgeFormat uses header for type), 3d (tests). Then 5a+5c (Coordination move + doc fix). Doing 3 before 4–7 establishes the authority rule with no new abstractions; publisher and docs can follow.
 - **Publisher refactor**: 4a -> 4b -> 4c (introduce publisher, then DataSource, then initialize). **Subscription lambda (4d, 4e)**: 4d (matchEvent on header) can be done once 3e/3f/3g are in place; 4e (EventBridge-to-WebSocket via wireFormatsFromCoreFormat) is a natural follow-on now that the publisher produces all wire formats—subscription handlers can use the same abstraction for the client message instead of hand-building from CoreExternalFormat.
-- **Extended-header cleanup**: 6b (doc: extended-header rule for all wire formats) can be done anytime; 6a (generic extended-header merge for WebSocketFormat) after 4f.
+- **Extended-header cleanup**: 6b (doc: extended-header rule for all wire formats) can be done anytime; 6a (generic extended-header merge for WebSocketFormat) after 4f. **CoreExternalFormat header-only**: 6c (done).
 - **Docs**: 7a and 7b can proceed in parallel with any of the above.
 - **Optional later**: 3c (localize external types) as needed.
 - **Header-predicate rollout (after 3e)**: 3f (complete aggregate-guard migration for assets/dataSource and assets/players) -> 3g (derive per-event guards from header predicates across all modules) -> 3h (optional narrow header union type where beneficial). Doing 3f then 3g removes the mixed state and completes the single-source-of-truth; 3h refines types if desired.

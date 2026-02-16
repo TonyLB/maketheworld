@@ -4,9 +4,11 @@
  * This module provides functions to transform between CoreExternalFormat and
  * various transmission contexts (EventBridge, DynamoDB, WebSocket).
  *
- * In-memory: CoreExternalFormat has a single merged `header` (base four + extended properties).
- * On the wire: the extended part is a separate field `extendedHeader`; it is merged into
- * `header` when deserializing and split from `header` when serializing.
+ * CoreExternalFormat is header-authoritative: it has two fields only, `header` (required)
+ * and `update`. All envelope metadata (dataSourceKey, streamKey, timestamp, type, RequestId,
+ * and any extended fields) lives on header; there are no duplicated top-level fields.
+ * On the wire: the extended part of the header is a separate field `extendedHeader`;
+ * it is merged into header when deserializing and split from header when serializing.
  */
 
 import type { HeaderGuard } from './baseClasses'
@@ -22,15 +24,9 @@ function getExtendedFromHeader(header: CoreExternalFormat['header']): Record<str
     return Object.keys(extended).length > 0 ? extended : undefined;
 }
 
+/** In-memory format: header (required) is the single source of truth for all envelope metadata; update is the payload. */
 export interface CoreExternalFormat {
-    dataSourceKey: string;
-    streamKey: string;
-    timestamp: number;  // Event timestamp (epoch milliseconds)
-    RequestId?: string;
-    /** Full header (base four + extended properties merged). On the wire, extended part is written as Detail.extendedHeader.
-     *  header.type is authoritative for routing when present; update.type is preserved for wire compatibility and deserialization only.
-     */
-    header?: { dataSourceKey: string; streamKey: string; timestamp: number; type: string; [key: string]: unknown };
+    header: { dataSourceKey: string; streamKey: string; timestamp: number; type: string; [key: string]: unknown };
     update: { type: string; [key: string]: unknown };
 }
 
@@ -99,12 +95,10 @@ export function makeCoreExternalFormatGuardFromHeaderGuard<H extends CoreExterna
  * Splits coreFormat.header into base four + extended part; writes extended part as Detail.extendedHeader.
  */
 export function toEventBridgeFormat(coreFormat: CoreExternalFormat): EventBridgeFormat {
-    const { dataSourceKey, streamKey, timestamp, RequestId, header, update } = coreFormat;
+    const { header, update } = coreFormat;
+    const { dataSourceKey, streamKey, timestamp, type: effectiveType } = header;
 
-    // Extract the type and update data from the update object
-    // Exclude 'timestamp' from rest - we only use the system-assigned epoch timestamp, never EventBridge/client timestamps
-    const { type, update: updateData, timestamp: _, ...rest } = update;
-    const effectiveType = header?.type ?? type;
+    const { type: _, update: updateData, timestamp: __, ...rest } = update;
 
     const extendedHeader = getExtendedFromHeader(header);
 
@@ -113,8 +107,7 @@ export function toEventBridgeFormat(coreFormat: CoreExternalFormat): EventBridge
         DetailType: effectiveType,
         Detail: {
             streamKey,
-            timestamp, // Always use epoch milliseconds from CoreExternalFormat (system-assigned, authoritative)
-            RequestId,
+            timestamp,
             ...(extendedHeader !== undefined ? { extendedHeader } : {}),
             ...rest,
             update: updateData
@@ -135,7 +128,7 @@ export function fromEventBridgeFormat(eventBridgeEvent: EventBridgeFormat | any)
 
     const { streamKey, timestamp, RequestId, extendedHeader, RequestIds, ...contentRest } = Detail;
 
-    // Build full header: base four + extended part (from extendedHeader or legacy RequestIds)
+    // Build full header: base four + extended part (from extendedHeader or legacy RequestIds); merge Detail.RequestId into header
     const extendedPart =
         extendedHeader != null && typeof extendedHeader === 'object'
             ? { ...extendedHeader }
@@ -147,14 +140,11 @@ export function fromEventBridgeFormat(eventBridgeEvent: EventBridgeFormat | any)
         streamKey,
         timestamp,
         type,
-        ...extendedPart
+        ...extendedPart,
+        ...(RequestId != null ? { RequestId } : {})
     };
 
     return {
-        dataSourceKey,
-        streamKey,
-        timestamp,
-        RequestId,
         header: fullHeader,
         update: {
             type,
@@ -172,7 +162,8 @@ export function toDynamoDBFormat<PrimaryKey extends string>(
     primaryKeyName: PrimaryKey,
     eventId: string
 ): DynamoDBFormat<PrimaryKey> {
-    const { dataSourceKey, streamKey, timestamp, header, update } = coreFormat;
+    const { header, update } = coreFormat;
+    const { dataSourceKey, streamKey, timestamp } = header;
 
     const extendedHeader = getExtendedFromHeader(header);
 
@@ -222,9 +213,6 @@ export function fromDynamoDBFormat(
     };
 
     return {
-        dataSourceKey,
-        streamKey,
-        timestamp,
         header: fullHeader,
         update
     };
@@ -232,14 +220,12 @@ export function fromDynamoDBFormat(
 
 /**
  * Transform CoreExternalFormat to flat WebSocket message structure.
- * Merges extended part of header (header minus base four) and coreFormat.RequestId onto the message.
+ * Merges extended part of header (header minus base four) onto the message.
  */
 export function toWebSocketFormat(coreFormat: CoreExternalFormat): WebSocketFormat {
-    const { dataSourceKey, streamKey, timestamp, update } = coreFormat;
-    let extended = getExtendedFromHeader(coreFormat.header) ?? {};
-    if (coreFormat.RequestId != null) {
-        extended = { ...extended, RequestId: coreFormat.RequestId };
-    }
+    const { header, update } = coreFormat;
+    const { dataSourceKey, streamKey, timestamp } = header;
+    const extended = getExtendedFromHeader(header) ?? {};
     return {
         messageType: 'StreamEvent',
         dataSourceKey,
@@ -264,10 +250,6 @@ export function fromWebSocketFormat(webSocketMessage: WebSocketFormat): CoreExte
         ...rest
     };
     return {
-        dataSourceKey,
-        streamKey,
-        timestamp,
-        RequestId: (rest as { RequestId?: string }).RequestId,
         header: fullHeader,
         update
     };
@@ -291,7 +273,8 @@ export function fromWebSocketFormat(webSocketMessage: WebSocketFormat): CoreExte
  * Derives extendedHeader from coreFormat.header when present.
  */
 export function toSNSFeedbackFormat(coreFormat: CoreExternalFormat): SNSFeedbackFormat {
-    const { dataSourceKey, streamKey, timestamp, header, update } = coreFormat;
+    const { header, update } = coreFormat;
+    const { dataSourceKey, streamKey, timestamp } = header;
 
     const extendedHeader = getExtendedFromHeader(header);
 
@@ -328,9 +311,6 @@ export function fromSNSFeedbackFormat(snsFormat: SNSFeedbackFormat): CoreExterna
     };
 
     return {
-        dataSourceKey,
-        streamKey,
-        timestamp,
         header: fullHeader,
         update
     };
