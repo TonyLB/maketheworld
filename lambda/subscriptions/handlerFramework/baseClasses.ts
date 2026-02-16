@@ -69,14 +69,17 @@ export class SubscriptionHandler {
     _dataSourceKey: string;
     _type?: string;
     _transform?: (event: CoreExternalFormat) => SubscriptionClientMessage;
+    _coreFormatGuard?: (event: CoreExternalFormat) => boolean;
     constructor(args: {
         dataSourceKey: string;
         type?: string;
         transform?: (event: CoreExternalFormat) => SubscriptionClientMessage;
+        coreFormatGuard?: (event: CoreExternalFormat) => boolean;
     }) {
         this._dataSourceKey = args.dataSourceKey
         this._type = args.type
         this._transform = args.transform
+        this._coreFormatGuard = args.coreFormatGuard
     }
 
     match(event: { dataSourceKey: string; type?: string; streamKey?: string }): SubscriptionEvent | undefined {
@@ -152,12 +155,25 @@ export class SubscriptionLibrary {
         return this._library.filter((handler) => handler.match(event))
     }
 
+    /**
+     * Match an event (CoreExternalFormat) to a subscription handler. Routing uses the envelope header
+     * when present: event.header is authoritative for dataSourceKey, streamKey, and type;
+     * event.update?.type is only a fallback when event.header is missing.
+     */
     matchEvent(event: CoreExternalFormat): SubscriptionEvent | undefined {
         const dataSourceKey = event.header?.dataSourceKey ?? event.dataSourceKey
         const streamKey = event.header?.streamKey ?? event.streamKey
         const type = event.header?.type ?? event.update?.type
         return this._library.reduce<SubscriptionEvent | undefined>((previous, handler) => {
             if (!previous) {
+                if (handler._coreFormatGuard?.(event)) {
+                    return new SubscriptionEvent({
+                        dataSourceKey: handler._dataSourceKey,
+                        type: handler._type,
+                        streamKey,
+                        transform: handler._transform
+                    })
+                }
                 const match = handler.match({ dataSourceKey, streamKey, type })
                 if (match) {
                     return match

@@ -175,9 +175,10 @@ Use the checkboxes and "Status" lines to track progress. Add GitHub issue number
   - **Status**: Done. initializePrimitivesData calls publishStreamEvent(header, content, serializer) and uses returned eventBridgeEvent for EventBridge send; no direct CoreExternalFormat or toEventBridgeFormat in initialize lambda.  
   - **Depends on**: 4a.
 
-- [ ] **4d. Subscription lambda: matchEvent on header and reuse HeaderGuard (CoreExternalFormat consumption)**  
+- [x] **4d. Subscription lambda: matchEvent on header and reuse HeaderGuard (CoreExternalFormat consumption)**  
   - **What**: (1) Add a helper in the patterns layer (e.g. `makeCoreExternalFormatGuardFromHeaderGuard`) that takes a `HeaderGuard<H>` and returns a guard `(coreFormat: CoreExternalFormat) => coreFormat is CoreExternalFormat & { header: H }`, so the same header predicates used by DataSource subscribedEvents can be reused for external/core regime. (2) Refactor subscription lambda `matchEvent` (handlerFramework/baseClasses.ts) to use `event.header` for routing (e.g. `event.header?.type`, `event.header?.dataSourceKey`) instead of `event.update?.type`, and have each subscription/DataSource supply or use the same subscribed header predicate (or the derived CoreExternalFormat guard) so "what we subscribe to" is a single source of truth across DataSource and subscription lambda.  
   - **Why**: Completes the header-authority and single-source-of-truth story for the inbound subscription path; subscription lambda no longer duplicates routing logic or reads type from the payload. Entangled with CoreExternalFormat because matchEvent receives CoreExternalFormat.  
+  - **Status**: Done. Added makeCoreExternalFormatGuardFromHeaderGuard in formatTransform; matchEvent uses event.header for routing (with fallback); SubscriptionHandler accepts optional coreFormatGuard; at least one library entry uses the guard. Header is authoritative for routing.  
   - **Depends on**: 3e/3f/3g (header predicates and guards exist in subscribedEvents); can be done before or after 4a–4c.
 
 - [ ] **4e. Subscription lambda: EventBridge to WebSocket via publisher wire formats**  

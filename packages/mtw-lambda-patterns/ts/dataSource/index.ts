@@ -690,3 +690,6 @@ export {
 
 // Re-export aggregation types for convenience
 export { DataSourceAggregator, AggregationResult, ResolvedStreamingEnvelope } from './aggregation'
+
+// Re-export CoreExternalFormat guard helper for subscription lambda and other consumers
+export { makeCoreExternalFormatGuardFromHeaderGuard } from './formatTransform'

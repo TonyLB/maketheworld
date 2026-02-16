@@ -9,6 +9,8 @@
  * `header` when deserializing and split from `header` when serializing.
  */
 
+import type { HeaderGuard } from './baseClasses'
+
 /** Base four header fields that are always present; extended props (e.g. RequestIds) live in header in memory and as extendedHeader on the wire. */
 const BASE_HEADER_KEYS = ['dataSourceKey', 'streamKey', 'timestamp', 'type'] as const;
 
@@ -64,6 +66,20 @@ export interface SNSFeedbackFormat {
     timestamp: number;
     extendedHeader?: unknown;
     update: { type: string; [key: string]: unknown };
+}
+
+/** Header type that CoreExternalFormat may carry; used to constrain makeCoreExternalFormatGuardFromHeaderGuard. */
+export type CoreExternalFormatHeader = NonNullable<CoreExternalFormat['header']>
+
+/**
+ * Build a type guard for CoreExternalFormat from a HeaderGuard so the same header predicates
+ * used by DataSource subscribedEvents can be reused for the external/core regime (e.g. subscription lambda matchEvent).
+ */
+export function makeCoreExternalFormatGuardFromHeaderGuard<H extends CoreExternalFormatHeader>(
+    headerGuard: HeaderGuard<H>
+): (coreFormat: CoreExternalFormat) => coreFormat is CoreExternalFormat & { header: H } {
+    return (coreFormat: CoreExternalFormat): coreFormat is CoreExternalFormat & { header: H } =>
+        coreFormat.header != null && headerGuard(coreFormat.header)
 }
 
 /**
