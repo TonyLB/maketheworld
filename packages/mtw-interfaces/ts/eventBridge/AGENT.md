@@ -28,7 +28,7 @@ Pattern documentation does not enumerate all call-sites. Use search to find a li
 | What to find | Search pattern | Notes |
 |--------------|----------------|-------|
 | EventBridge contract layout | Directory `packages/mtw-interfaces/ts/eventBridge/` | One directory per data source; structure IS the inventory |
-| Serializers | `rg "implements DataSourceEventSerializer"` | Lives in this package and `lambda/wml/dataSource/coordinationSerializer.ts` |
+| Serializers | `rg "implements DataSourceEventSerializer"` | Lives in this package |
 | Lambda DataSource keys | `rg "dataSourceKey: 'mtw\."` in `lambda/` | DataSource instantiations (exclude test paths if desired) |
 | Lambda envelope unions | `rg "IncomingEvent"` | Envelope unions for `receiveEvents` (e.g. `AssetsIncomingEvent`) |
 | Frontend slices | `rg "createDataSourceSlice"` | Charcoal-client data source slices |

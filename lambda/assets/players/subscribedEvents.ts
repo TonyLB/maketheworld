@@ -5,7 +5,7 @@
 import { StreamingEventHeader, StreamingEventEnvelope, HeaderGuard, makeStreamingEnvelopeGuardFromHeaderGuard } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import {
     PlayerSettingsUpdatedEvent,
-} from './coordinationSerializer'
+} from './localApiEvents'
 import {
     AssetAddedEventUpdate,
     AssetLevelEventUpdate,
@@ -20,7 +20,7 @@ export type PlayersSubscribedContent = PlayerSettingsUpdatedEvent | AssetLevelEv
 
 /** Header union for events mtw.assets.players subscribes to. */
 export type PlayersSubscribedHeader =
-    | (StreamingEventHeader & { dataSourceKey: 'internal'; type: 'Player Settings Updated' })
+    | (StreamingEventHeader & { dataSourceKey: 'api.assets'; type: 'Player Settings Updated' })
     | (StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Asset Removed' })
     | (StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Asset Added' })
     | (StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Zone Updated' })
@@ -31,14 +31,14 @@ export type PlayersSubscribedHeader =
  * Each variant pairs a narrow header (dataSourceKey + type) with getContentInternal returning the matching content shape.
  */
 export type PlayersIncomingEvent =
-    | { header: StreamingEventHeader & { dataSourceKey: 'internal'; type: 'Player Settings Updated' }; getContentInternal: () => Promise<PlayerSettingsUpdatedEvent> }
+    | { header: StreamingEventHeader & { dataSourceKey: 'api.assets'; type: 'Player Settings Updated' }; getContentInternal: () => Promise<PlayerSettingsUpdatedEvent> }
     | { header: StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Asset Added' }; getContentInternal: () => Promise<AssetAddedEventUpdate> }
     | { header: StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Asset Removed' }; getContentInternal: () => Promise<AssetRemovedEventUpdate> }
     | { header: StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Asset Updated' }; getContentInternal: () => Promise<AssetUpdatedEventUpdate> }
     | { header: StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Zone Updated' }; getContentInternal: () => Promise<ZoneUpdatedEventUpdate> }
 
-const isPlayerSettingsHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey: 'internal'; type: 'Player Settings Updated' }> = (h): h is StreamingEventHeader & { dataSourceKey: 'internal'; type: 'Player Settings Updated' } =>
-    h.dataSourceKey === 'internal' && h.type === 'Player Settings Updated'
+const isPlayerSettingsHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey: 'api.assets'; type: 'Player Settings Updated' }> = (h): h is StreamingEventHeader & { dataSourceKey: 'api.assets'; type: 'Player Settings Updated' } =>
+    h.dataSourceKey === 'api.assets' && h.type === 'Player Settings Updated'
 const isPlayersAssetRemovedHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Asset Removed' }> = (h): h is StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Asset Removed' } =>
     h.dataSourceKey === 'mtw.assets' && h.type === 'Asset Removed'
 const isPlayersAssetAddedHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Asset Added' }> = (h): h is StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Asset Added' } =>
@@ -48,7 +48,7 @@ const isPlayersZoneUpdatedHeader: HeaderGuard<StreamingEventHeader & { dataSourc
 const isPlayersAssetUpdatedHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Asset Updated' }> = (h): h is StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Asset Updated' } =>
     h.dataSourceKey === 'mtw.assets' && h.type === 'Asset Updated'
 
-export const isPlayerSettingsEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<PlayerSettingsUpdatedEvent, StreamingEventHeader & { dataSourceKey: 'internal'; type: 'Player Settings Updated' }>(isPlayerSettingsHeader)
+export const isPlayerSettingsEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<PlayerSettingsUpdatedEvent, StreamingEventHeader & { dataSourceKey: 'api.assets'; type: 'Player Settings Updated' }>(isPlayerSettingsHeader)
 export const isPlayersAssetRemovedEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<AssetRemovedEventUpdate, StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Asset Removed' }>(isPlayersAssetRemovedHeader)
 export const isPlayersAssetAddedEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<AssetAddedEventUpdate, StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Asset Added' }>(isPlayersAssetAddedHeader)
 export const isPlayersZoneUpdatedEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<ZoneUpdatedEventUpdate, StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Zone Updated' }>(isPlayersZoneUpdatedHeader)
@@ -68,14 +68,14 @@ type Bus = { send: (payload: StreamingEventMessage) => void }
 export function sendPlayerSettingsUpdated(bus: Bus, streamKey: string, content: PlayerSettingsUpdatedEvent): void {
     const timestamp = Date.now()
     const header: StreamingEventHeader = {
-        dataSourceKey: 'internal',
+        dataSourceKey: 'api.assets',
         streamKey,
         timestamp,
         type: 'Player Settings Updated',
     }
     bus.send({
         type: 'StreamingEvent',
-        dataSourceKey: 'internal',
+        dataSourceKey: 'api.assets',
         streamKey,
         header,
         getContentInternal: () => Promise.resolve(content),

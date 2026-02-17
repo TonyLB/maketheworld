@@ -12,7 +12,7 @@ The serialization refactor established these principles (authority and typing on
 - **Header authoritative for routing:** All routing and type guards use `header.type` (and extended header fields). Payload may still carry `type` for wire compatibility; routing must not depend on payload `type` when header is available.
 - **Single path and single builder:** All lambdas use `fromEventBridgeFormat` and pass `coreFormat.header` + `coreFormat.update` to deserialize. Wire envelope construction is centralized in the publisher (`publishStreamEvent` / `wireFormatsFromCoreFormat`); DataSource and initialize lambda do not hand-build CoreExternalFormat.
 - **CoreExternalFormat header-only:** In-memory format is `{ header, update }` only; no duplicated top-level envelope fields.
-- **Event contracts in mtw-interfaces:** Event types and serializers (including Coordination) live in mtw-interfaces; lambdas import and use them.
+- **Event contracts:** Cross-lambda EventBridge contracts (types, serializers) live in mtw-interfaces; API-triggered internal events use lambda-local `localApiEvents.ts` (see below).
 - **Header predicates centralize guards:** Per DataSource, header-level discriminants (and optional header union types) are the single source for aggregate and per-event envelope guards across regimes (lazy internal, resolved internal, external/core).
 
 ## Technical Details
@@ -194,11 +194,25 @@ Each DataSource implementation should colocate its subscription surface in a **`
 
 **Conventions:**
 
-- Payload types are imported from upstream (mtw-interfaces, sibling modules, etc.); subscribedEvents owns the subscription union, envelope guards, and send-helpers only.
+- Payload types for API-triggered events (dataSourceKey: `'api.wml'` or `'api.assets'`) are imported from `./localApiEvents`; payload types for cross-lambda events (mtw.wml, mtw.assets, etc.) are imported from mtw-interfaces. subscribedEvents owns the subscription union, envelope guards, and send-helpers only.
 - Initialize Subscription and other special/bootstrap events are out of scope for subscribedEvents; they stay on their separate subscription path.
 - Send-helpers are only for events **this lambda** publishes to its own messageBus; do not add helpers for events the lambda only forwards from EventBridge.
 - In lambdas with multiple DataSources (e.g. assets: dataSource, players, library, contentHeaders, characters), each DataSource lives in its own directory and has exactly one `subscribedEvents.ts` in that directory.
 - Reference implementation: [lambda/wml/dataSource/subscribedEvents.ts](../../../../lambda/wml/dataSource/subscribedEvents.ts).
+
+### **localApiEvents.ts and API-triggered internal events**
+
+Events with `dataSourceKey: 'api.wml'` or `'api.assets'` are **in-process only**—they never cross process boundaries. They are used when a lambda's API handler maps an incoming request into a streaming event that the same lambda's DataSource `receiveEvents` processes. WML uses `'api.wml'`; Assets players use `'api.assets'`. Examples: Apply Edit, Move Asset, Purge Asset (WML); Player Settings Updated (Assets Players).
+
+**When to add `localApiEvents.ts`:** Add this file in a DataSource directory when that DataSource has API-triggered internal events. Ephemera has none today; add when needed.
+
+**Contents of `localApiEvents.ts`:** Payload types and type guards for those internal events (e.g. `ApplyEditRequest`, `MoveAssetRequest`, `PlayerSettingsUpdatedEvent`). No serializers; no EventBridge logic.
+
+**Flow:** API handler (in `app.ts`) receives request → send-helper (in `subscribedEvents.ts`) builds envelope with `dataSourceKey: 'api.wml'` or `'api.assets'` and calls `messageBus.send()` → existing `receiveEvents` handles the event via type guards and handlers.
+
+**Convention:** `subscribedEvents.ts` imports from `./localApiEvents`. This keeps internal event contracts local to the lambda rather than in mtw-interfaces, since they are in-process only and not shared across lambdas via EventBridge.
+
+**Reserved handlers (WML):** Canonize/Decanonize and Create Snapshot have handlers in WML with no current call path. They are reserved for reactivation when the publishing UI is built (see AGENT.collaboration.publishing) and when the delegation pattern is implemented (see documentation/dataSources/AGENT.delegation.planning). Do not remove them.
 
 ### **Type-Safe Routing with Envelope-Level Discriminated Unions and Payload Purity**:
 
@@ -219,10 +233,6 @@ When using the header + getContentInternal envelope shape (`StreamingEventEnvelo
        | {
              header: StreamingEventHeader & { dataSourceKey: 'mtw.diagnostics'; type: 'Heal Global Values' };
              getContentInternal: () => Promise<{ type: 'Heal Global Values'; connections?: unknown; assets?: unknown }>;
-         }
-       | {
-             header: StreamingEventHeader & { dataSourceKey: 'mtw.coordination'; type: 'Remove Asset' };
-             getContentInternal: () => Promise<{ type: 'Remove Asset'; assetId: string }>;
          };
    ```
 

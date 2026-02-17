@@ -28,10 +28,8 @@ The perception system can be triggered by several different categories of events
 - **Migration Context**: This represents the legacy direct WML → Ephemera flow; target flow is WML → Assets → Ephemera
 
 #### **Asset Canonization/Decanonization Events**
-- **Source**: `Canonize Asset` / `Decanonize Asset` EventBridge events
-- **Trigger Pattern**: Asset status changes → Characters gain/lose access to content
-- **Perception Impact**: Room headers update to reflect new available features, exits may appear/disappear
-- **Usage**: `PerceptionAssetMessage` triggers room header updates for affected areas
+- **Current state**: No active path. The former `mtw.coordination` EventBridge source for Canonize/Decanonize has been removed; no lambda subscribes to these events today.
+- **Future**: When mtw.assets (or extended data sources) are wired to canonize/decanonize, Ephemera may need to react (e.g. via mtw.wml Zone Changed or mtw.assets) so characters gain/lose access to content and room headers update.
 
 #### **Asset-Level Changes**
 - **Source**: Direct asset modifications, imports, or structural changes

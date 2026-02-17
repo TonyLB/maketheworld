@@ -66,8 +66,8 @@ if (eventData.dataSourceKey === 'mtw.wml' && eventData.event.update.type === 'Co
     })
 }
 
-// Asset removal and decaching are triggered by `Asset Purged` (WML) or
-// `Remove Asset` (coordination) events, which result in `Asset Removed`.
+// Asset removal and decaching are triggered by `Asset Purged` (WML) events,
+// which result in `Asset Removed`.
 ```
 
 ### Transitional Architecture

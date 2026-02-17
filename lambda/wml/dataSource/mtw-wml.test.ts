@@ -1,7 +1,7 @@
 import { wmlDataSource } from './index'
 import { WMLEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/wml'
 import { moveAsset } from './moveAsset'
-import { MoveAssetRequest, isApplyEditRequest } from '@tonylb/mtw-interfaces/ts/eventBridge/coordination'
+import { MoveAssetRequest, isApplyEditRequest } from './localApiEvents'
 import { initializePrimitives } from './initializePrimitives'
 import { createManualSnapshot } from '../s3Storage/manifest/orchestration'
 import AssetWorkspace from '../s3Storage/AssetWorkspace'
@@ -81,7 +81,7 @@ describe('WML DataSource', () => {
         it('should recognize valid Move Asset events', () => {
             const validEnvelope = {
                 header: {
-                    dataSourceKey: 'internal',
+                    dataSourceKey: 'api.wml',
                     streamKey: 'test-asset',
                     timestamp: 0,
                     type: 'Move Asset'
@@ -113,7 +113,7 @@ describe('WML DataSource', () => {
         it('should reject events with non-coordination type', () => {
             const invalidEnvelope = {
                 header: {
-                    dataSourceKey: 'internal',
+                    dataSourceKey: 'api.wml',
                     streamKey: 'test-asset',
                     timestamp: 0,
                     type: 'UnknownType'
@@ -143,7 +143,7 @@ describe('WML DataSource', () => {
 
             const event = {
                 header: {
-                    dataSourceKey: 'internal',
+                    dataSourceKey: 'api.wml',
                     streamKey: 'ASSET#test-asset',
                     timestamp: 0,
                     type: 'Move Asset'
@@ -183,7 +183,7 @@ describe('WML DataSource', () => {
 
             const event = {
                 header: {
-                    dataSourceKey: 'internal',
+                    dataSourceKey: 'api.wml',
                     streamKey: 'ASSET#test-asset',
                     timestamp: 0,
                     type: 'Move Asset'
@@ -218,7 +218,7 @@ describe('WML DataSource', () => {
 
             const event = {
                 header: {
-                    dataSourceKey: 'internal',
+                    dataSourceKey: 'api.wml',
                     streamKey: 'ASSET#test-asset',
                     timestamp: 0,
                     type: 'Move Asset'
@@ -256,7 +256,7 @@ describe('WML DataSource', () => {
 
             const event = {
                 header: {
-                    dataSourceKey: 'internal',
+                    dataSourceKey: 'api.wml',
                     streamKey: 'ASSET#test-asset',
                     timestamp: 0,
                     type: 'Move Asset'
@@ -290,7 +290,7 @@ describe('WML DataSource', () => {
 
             const event = {
                 header: {
-                    dataSourceKey: 'internal',
+                    dataSourceKey: 'api.wml',
                     streamKey: 'ASSET#test-asset',
                     timestamp: 0,
                     type: 'Move Asset'
@@ -329,7 +329,7 @@ describe('WML DataSource', () => {
 
             const event = {
                 header: {
-                    dataSourceKey: 'internal',
+                    dataSourceKey: 'api.wml',
                     streamKey: 'ASSET#test-asset',
                     timestamp: 0,
                     type: 'Apply Edit' as const
@@ -377,7 +377,7 @@ describe('WML DataSource', () => {
 
             const event = {
                 header: {
-                    dataSourceKey: 'internal',
+                    dataSourceKey: 'api.wml',
                     streamKey: 'ASSET#test-asset',
                     timestamp: 0,
                     type: 'Apply Edit' as const
@@ -417,7 +417,7 @@ describe('WML DataSource', () => {
 
             const event = {
                 header: {
-                    dataSourceKey: 'internal',
+                    dataSourceKey: 'api.wml',
                     streamKey: 'ASSET#test-asset',
                     timestamp: 0,
                     type: 'Apply Edit' as const
@@ -459,7 +459,7 @@ describe('WML DataSource', () => {
 
             const event = {
                 header: {
-                    dataSourceKey: 'internal',
+                    dataSourceKey: 'api.wml',
                     streamKey: 'ASSET#test-asset',
                     timestamp: 0,
                     type: 'Apply Edit' as const
@@ -495,7 +495,7 @@ describe('WML DataSource', () => {
             // Test with invalid streamKey (not a valid asset UUID)
             const event = {
                 header: {
-                    dataSourceKey: 'internal',
+                    dataSourceKey: 'api.wml',
                     streamKey: 'invalid!stream!key',
                     timestamp: 0,
                     type: 'Apply Edit' as const
@@ -529,7 +529,7 @@ describe('WML DataSource', () => {
 
             const event = {
                 header: {
-                    dataSourceKey: 'internal',
+                    dataSourceKey: 'api.wml',
                     streamKey: 'ASSET#test-asset',
                     timestamp: 0,
                     type: 'Apply Edit' as const
@@ -575,7 +575,7 @@ describe('WML DataSource', () => {
 
             const event = {
                 header: {
-                    dataSourceKey: 'internal',
+                    dataSourceKey: 'api.wml',
                     streamKey: 'ASSET#test-asset',
                     timestamp: 0,
                     type: 'Apply Edit' 
@@ -773,7 +773,7 @@ describe('WML DataSource', () => {
 
             const event = {
                 header: {
-                    dataSourceKey: 'internal',
+                    dataSourceKey: 'api.wml',
                     streamKey: 'ASSET#test-asset',
                     timestamp: 0,
                     type: 'Create Snapshot' as const
@@ -819,7 +819,7 @@ describe('WML DataSource', () => {
 
             const event = {
                 header: {
-                    dataSourceKey: 'internal',
+                    dataSourceKey: 'api.wml',
                     streamKey: 'ASSET#missing-asset',
                     timestamp: 0,
                     type: 'Create Snapshot' as const
@@ -850,7 +850,7 @@ describe('WML DataSource', () => {
 
             const event = {
                 header: {
-                    dataSourceKey: 'internal',
+                    dataSourceKey: 'api.wml',
                     streamKey: 'ASSET#test-asset',
                     timestamp: 0,
                     type: 'Create Snapshot' as const
@@ -886,7 +886,7 @@ describe('WML DataSource', () => {
 
             const event = {
                 header: {
-                    dataSourceKey: 'internal',
+                    dataSourceKey: 'api.wml',
                     streamKey: 'ASSET#test-asset',
                     timestamp: 0,
                     type: 'Create Snapshot' as const
@@ -926,7 +926,7 @@ describe('WML DataSource', () => {
 
                 const event = {
                     header: {
-                        dataSourceKey: 'internal',
+                        dataSourceKey: 'api.wml',
                         streamKey: 'ASSET#test-asset',
                         timestamp: 0,
                         type: 'Create Snapshot' as const
