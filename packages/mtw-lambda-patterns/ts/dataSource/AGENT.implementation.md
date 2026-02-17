@@ -194,7 +194,7 @@ Each DataSource implementation should colocate its subscription surface in a **`
 
 **Conventions:**
 
-- Payload types for internal events (dataSourceKey: `'internal'`) are imported from `./localApiEvents`; payload types for cross-lambda events (mtw.wml, mtw.assets, etc.) are imported from mtw-interfaces. subscribedEvents owns the subscription union, envelope guards, and send-helpers only.
+- Payload types for API-triggered events (dataSourceKey: `'api.wml'` or `'api.assets'`) are imported from `./localApiEvents`; payload types for cross-lambda events (mtw.wml, mtw.assets, etc.) are imported from mtw-interfaces. subscribedEvents owns the subscription union, envelope guards, and send-helpers only.
 - Initialize Subscription and other special/bootstrap events are out of scope for subscribedEvents; they stay on their separate subscription path.
 - Send-helpers are only for events **this lambda** publishes to its own messageBus; do not add helpers for events the lambda only forwards from EventBridge.
 - In lambdas with multiple DataSources (e.g. assets: dataSource, players, library, contentHeaders, characters), each DataSource lives in its own directory and has exactly one `subscribedEvents.ts` in that directory.
@@ -202,13 +202,13 @@ Each DataSource implementation should colocate its subscription surface in a **`
 
 ### **localApiEvents.ts and API-triggered internal events**
 
-Events with `dataSourceKey: 'internal'` are **in-process only**—they never cross process boundaries. They are used when a lambda's API handler maps an incoming request into a streaming event that the same lambda's DataSource `receiveEvents` processes. Examples: Apply Edit, Move Asset, Purge Asset (WML); Player Settings Updated (Assets Players).
+Events with `dataSourceKey: 'api.wml'` or `'api.assets'` are **in-process only**—they never cross process boundaries. They are used when a lambda's API handler maps an incoming request into a streaming event that the same lambda's DataSource `receiveEvents` processes. WML uses `'api.wml'`; Assets players use `'api.assets'`. Examples: Apply Edit, Move Asset, Purge Asset (WML); Player Settings Updated (Assets Players).
 
 **When to add `localApiEvents.ts`:** Add this file in a DataSource directory when that DataSource has API-triggered internal events. Ephemera has none today; add when needed.
 
 **Contents of `localApiEvents.ts`:** Payload types and type guards for those internal events (e.g. `ApplyEditRequest`, `MoveAssetRequest`, `PlayerSettingsUpdatedEvent`). No serializers; no EventBridge logic.
 
-**Flow:** API handler (in `app.ts`) receives request → send-helper (in `subscribedEvents.ts`) builds envelope with `dataSourceKey: 'internal'` and calls `messageBus.send()` → existing `receiveEvents` handles the event via type guards and handlers.
+**Flow:** API handler (in `app.ts`) receives request → send-helper (in `subscribedEvents.ts`) builds envelope with `dataSourceKey: 'api.wml'` or `'api.assets'` and calls `messageBus.send()` → existing `receiveEvents` handles the event via type guards and handlers.
 
 **Convention:** `subscribedEvents.ts` imports from `./localApiEvents`. This keeps internal event contracts local to the lambda rather than in mtw-interfaces, since they are in-process only and not shared across lambdas via EventBridge.
 

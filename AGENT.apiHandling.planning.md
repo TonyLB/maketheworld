@@ -39,24 +39,24 @@ Remove Asset is **legacy** from the previous architecture in which a coordinatio
 
 ## Principles (to refine)
 
-1. **Internal events are in-process only.** Events with `dataSourceKey: 'internal'` never cross process boundaries. No serialization; envelope and routing are local to the lambda that owns the API.
+1. **API-triggered events are in-process only.** Events with `dataSourceKey: 'api.wml'` or `'api.assets'` never cross process boundaries. No serialization; envelope and routing are local to the lambda that owns the API.
 2. **localApiEvents.ts pattern.** Payload types for API-triggered internal events live in the owning lambda, in a `localApiEvents.ts` file per DataSource directory. Envelope union, `dataSourceKey`, header guards, and send-helpers live in `subscribedEvents.ts`. mtw-interfaces holds only cross-lambda EventBridge contracts.
 3. **One pipeline.** Coordination-style API calls are mapped into internal streaming events so the same DataSource subscription and `receiveEvents` pipeline handles them, reusing type guards and handlers.
 4. **Per-lambda ownership.** Each lambda owns its API surface and how it maps API calls into internal events; no shared EventBridge coordination channel.
 
 ## localApiEvents.ts: Standard Pattern
 
-**Standardize on `localApiEvents.ts`** for payload types and type guards for API-triggered events (dataSourceKey: `'internal'`). This naming avoids confusion with "internal" meaning same-lambda streaming events from other data sources (e.g. mtw.assets events consumed by Library, ContentHeaders within Assets) - those have distinct dataSourceKeys and their types stay in mtw-interfaces.
+**Standardize on `localApiEvents.ts`** for payload types and type guards for API-triggered events. Use per-lambda `dataSourceKey`: `'api.wml'` (WML), `'api.assets'` (Assets players). This avoids confusion with same-lambda streaming events from other data sources (e.g. mtw.assets events consumed by Library, ContentHeaders within Assets)—those have distinct dataSourceKeys and their types stay in mtw-interfaces.
 
 ### Naming and location
 
 - **File name**: `localApiEvents.ts`
-- **Location**: Same directory as `subscribedEvents.ts` for that DataSource (e.g. `lambda/wml/dataSource/localApiEvents.ts`, `lambda/assets/players/localApiEvents.ts`)
+- **Location**: Same directory as `subscribedEvents.ts` for that DataSource (e.g. `lambda/wml/dataSource/localApiEvents.ts`, `lambda/assets/players/localApiEvents.ts`). Use `dataSourceKey: 'api.wml'` or `'api.assets'` in that lambda's subscribedEvents.
 - **When to add**: Only when a DataSource has API-triggered internal events. Ephemera has none today; add when needed.
 
 ### Contents
 
-- Payload types for events with `dataSourceKey: 'internal'` (e.g. `ApplyEditRequest`, `MoveAssetRequest`, `PlayerSettingsUpdatedEvent`)
+- Payload types for API-triggered events (e.g. `ApplyEditRequest`, `MoveAssetRequest`, `PlayerSettingsUpdatedEvent`), with `dataSourceKey: 'api.wml'` or `'api.assets'` in subscribedEvents
 - Type guards (e.g. `isApplyEditRequest`, `isPlayerSettingsUpdatedEvent`)
 - No serializers; no EventBridge logic. `subscribedEvents.ts` imports from `./localApiEvents` and uses these types for the subscription union and send-helpers.
 
@@ -74,14 +74,14 @@ Remove Asset is **legacy** from the previous architecture in which a coordinatio
 
 - **Move to lambda**: API-triggered internal payload types move from mtw-interfaces to `localApiEvents.ts` in each owning lambda (see localApiEvents.ts pattern above).
 - **Remove or deprecate**: `CoordinationEventSerializer` and coordination `*External` types in mtw-interfaces, since no EventBridge path uses them.
-- **Document**: In DataSource and EventBridge AGENT docs, that `dataSourceKey: 'internal'` events are in-process only and do not use serializers.
+- **Document**: In DataSource and EventBridge AGENT docs, that `dataSourceKey: 'api.wml'` / `'api.assets'` events are in-process only and do not use serializers.
 
 ### 2. Standardize API → internal flow
 
 For each coordination-style command that a lambda can receive via API:
 
 1. API handler (in that lambda's `app.ts`) receives the request.
-2. Send-helper (in that lambda's `subscribedEvents.ts`) builds envelope (`dataSourceKey: 'internal'`, header, `getContentInternal`) and calls `messageBus.send()`.
+2. Send-helper (in that lambda's `subscribedEvents.ts`) builds envelope (`dataSourceKey: 'api.wml'` or `'api.assets'`, header, `getContentInternal`) and calls `messageBus.send()`.
 3. Existing `receiveEvents` handles the event via type guards and handlers.
 
 No new machinery; document this as the standard pattern.
@@ -112,7 +112,7 @@ No new machinery; document this as the standard pattern.
 ## Open Questions / Refinement
 
 - **Canonize/Decanonize downstream**: No functional paths respond to canonize/decanonize today. As we extend mtw.assets data sources we may need to respond (e.g. via mtw.wml Zone Changed or mtw.assets). Documentation that claimed Ephemera or others currently react to these events has been cleaned up.
-- **Naming**: Is `dataSourceKey: 'internal'` the long-term name, or do we want a per-lambda convention (e.g. `internal.wml`, `internal.assets`)? Currently WML and Assets players use `'internal'`.
+- **Naming**: Resolved. Use per-lambda convention: `dataSourceKey: 'api.wml'` (WML), `dataSourceKey: 'api.assets'` (Assets players).
 - **Testing**: How much of the coordination flow should be covered by integration-style tests (API → messageBus → receiveEvents) vs unit tests only.
 
 ## Cross-References

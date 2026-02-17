@@ -24,11 +24,11 @@ export type WMLSubscribedPayload = CoordinationEventUpdate | DiagnosticsEventUpd
 
 /** Header union for events WML DataSource subscribes to. */
 export type WMLSubscribedHeader =
-    | (StreamingEventHeader & { dataSourceKey: 'internal'; type: 'Apply Edit' })
-    | (StreamingEventHeader & { dataSourceKey: 'internal'; type: 'Move Asset' })
-    | (StreamingEventHeader & { dataSourceKey: 'internal'; type: 'Canonize Asset' | 'Decanonize Asset' })
-    | (StreamingEventHeader & { dataSourceKey: 'internal'; type: 'Create Snapshot' })
-    | (StreamingEventHeader & { dataSourceKey: 'internal'; type: 'Purge Asset' })
+    | (StreamingEventHeader & { dataSourceKey: 'api.wml'; type: 'Apply Edit' })
+    | (StreamingEventHeader & { dataSourceKey: 'api.wml'; type: 'Move Asset' })
+    | (StreamingEventHeader & { dataSourceKey: 'api.wml'; type: 'Canonize Asset' | 'Decanonize Asset' })
+    | (StreamingEventHeader & { dataSourceKey: 'api.wml'; type: 'Create Snapshot' })
+    | (StreamingEventHeader & { dataSourceKey: 'api.wml'; type: 'Purge Asset' })
     | (StreamingEventHeader & { dataSourceKey: 'mtw.diagnostics' })
 
 export const isWMLSubscribedHeader: HeaderGuard<WMLSubscribedHeader> = (header): header is WMLSubscribedHeader =>
@@ -41,24 +41,24 @@ export const isWMLSubscribedHeader: HeaderGuard<WMLSubscribedHeader> = (header):
 
 export const isWMLSubscribedEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<WMLSubscribedPayload, WMLSubscribedHeader>(isWMLSubscribedHeader)
 
-const isApplyEditHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey: 'internal'; type: 'Apply Edit' }> = (h): h is StreamingEventHeader & { dataSourceKey: 'internal'; type: 'Apply Edit' } =>
-    h.dataSourceKey === 'internal' && h.type === 'Apply Edit'
-const isMoveAssetHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey: 'internal'; type: 'Move Asset' }> = (h): h is StreamingEventHeader & { dataSourceKey: 'internal'; type: 'Move Asset' } =>
-    h.dataSourceKey === 'internal' && h.type === 'Move Asset'
-const isCanonizeOrDecanonizeHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey: 'internal'; type: 'Canonize Asset' | 'Decanonize Asset' }> = (h): h is StreamingEventHeader & { dataSourceKey: 'internal'; type: 'Canonize Asset' | 'Decanonize Asset' } =>
-    h.dataSourceKey === 'internal' && (h.type === 'Canonize Asset' || h.type === 'Decanonize Asset')
-const isCreateSnapshotHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey: 'internal'; type: 'Create Snapshot' }> = (h): h is StreamingEventHeader & { dataSourceKey: 'internal'; type: 'Create Snapshot' } =>
-    h.dataSourceKey === 'internal' && h.type === 'Create Snapshot'
-const isPurgeAssetHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey: 'internal'; type: 'Purge Asset' }> = (h): h is StreamingEventHeader & { dataSourceKey: 'internal'; type: 'Purge Asset' } =>
-    h.dataSourceKey === 'internal' && h.type === 'Purge Asset'
+const isApplyEditHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey: 'api.wml'; type: 'Apply Edit' }> = (h): h is StreamingEventHeader & { dataSourceKey: 'api.wml'; type: 'Apply Edit' } =>
+    h.dataSourceKey === 'api.wml' && h.type === 'Apply Edit'
+const isMoveAssetHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey: 'api.wml'; type: 'Move Asset' }> = (h): h is StreamingEventHeader & { dataSourceKey: 'api.wml'; type: 'Move Asset' } =>
+    h.dataSourceKey === 'api.wml' && h.type === 'Move Asset'
+const isCanonizeOrDecanonizeHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey: 'api.wml'; type: 'Canonize Asset' | 'Decanonize Asset' }> = (h): h is StreamingEventHeader & { dataSourceKey: 'api.wml'; type: 'Canonize Asset' | 'Decanonize Asset' } =>
+    h.dataSourceKey === 'api.wml' && (h.type === 'Canonize Asset' || h.type === 'Decanonize Asset')
+const isCreateSnapshotHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey: 'api.wml'; type: 'Create Snapshot' }> = (h): h is StreamingEventHeader & { dataSourceKey: 'api.wml'; type: 'Create Snapshot' } =>
+    h.dataSourceKey === 'api.wml' && h.type === 'Create Snapshot'
+const isPurgeAssetHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey: 'api.wml'; type: 'Purge Asset' }> = (h): h is StreamingEventHeader & { dataSourceKey: 'api.wml'; type: 'Purge Asset' } =>
+    h.dataSourceKey === 'api.wml' && h.type === 'Purge Asset'
 const isDiagnosticsHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey: 'mtw.diagnostics' }> = (h): h is StreamingEventHeader & { dataSourceKey: 'mtw.diagnostics' } =>
     h.dataSourceKey === 'mtw.diagnostics'
 
-const isApplyEditEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<ApplyEditRequest, StreamingEventHeader & { dataSourceKey: 'internal'; type: 'Apply Edit' }>(isApplyEditHeader)
-const isMoveAssetEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<MoveAssetRequest, StreamingEventHeader & { dataSourceKey: 'internal'; type: 'Move Asset' }>(isMoveAssetHeader)
-const isCanonizeOrDecanonizeEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<CoordinationCanonizeEvent | CoordinationDecanonizeEvent, StreamingEventHeader & { dataSourceKey: 'internal'; type: 'Canonize Asset' | 'Decanonize Asset' }>(isCanonizeOrDecanonizeHeader)
-const isCreateSnapshotEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<CreateSnapshotRequest, StreamingEventHeader & { dataSourceKey: 'internal'; type: 'Create Snapshot' }>(isCreateSnapshotHeader)
-const isPurgeAssetEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<PurgeAssetRequest, StreamingEventHeader & { dataSourceKey: 'internal'; type: 'Purge Asset' }>(isPurgeAssetHeader)
+const isApplyEditEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<ApplyEditRequest, StreamingEventHeader & { dataSourceKey: 'api.wml'; type: 'Apply Edit' }>(isApplyEditHeader)
+const isMoveAssetEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<MoveAssetRequest, StreamingEventHeader & { dataSourceKey: 'api.wml'; type: 'Move Asset' }>(isMoveAssetHeader)
+const isCanonizeOrDecanonizeEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<CoordinationCanonizeEvent | CoordinationDecanonizeEvent, StreamingEventHeader & { dataSourceKey: 'api.wml'; type: 'Canonize Asset' | 'Decanonize Asset' }>(isCanonizeOrDecanonizeHeader)
+const isCreateSnapshotEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<CreateSnapshotRequest, StreamingEventHeader & { dataSourceKey: 'api.wml'; type: 'Create Snapshot' }>(isCreateSnapshotHeader)
+const isPurgeAssetEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<PurgeAssetRequest, StreamingEventHeader & { dataSourceKey: 'api.wml'; type: 'Purge Asset' }>(isPurgeAssetHeader)
 const isDiagnosticsEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<DiagnosticsEventUpdate, StreamingEventHeader & { dataSourceKey: 'mtw.diagnostics' }>(isDiagnosticsHeader)
 
 export { isApplyEditEnvelope, isMoveAssetEnvelope, isCanonizeOrDecanonizeEnvelope, isCreateSnapshotEnvelope, isPurgeAssetEnvelope, isDiagnosticsEnvelope }
@@ -68,14 +68,14 @@ type Bus = { send: (payload: StreamingEventMessage) => void }
 export function sendApplyEdit(bus: Bus, streamKey: string, content: ApplyEditRequest): void {
     const timestamp = Date.now()
     const header: StreamingEventHeader = {
-        dataSourceKey: 'internal',
+        dataSourceKey: 'api.wml',
         streamKey,
         timestamp,
         type: 'Apply Edit',
     }
     bus.send({
         type: 'StreamingEvent',
-        dataSourceKey: 'internal',
+        dataSourceKey: 'api.wml',
         streamKey,
         header,
         getContentInternal: () => Promise.resolve(content),
@@ -86,14 +86,14 @@ export function sendApplyEdit(bus: Bus, streamKey: string, content: ApplyEditReq
 export function sendMoveAsset(bus: Bus, streamKey: string, content: MoveAssetRequest): void {
     const timestamp = Date.now()
     const header: StreamingEventHeader = {
-        dataSourceKey: 'internal',
+        dataSourceKey: 'api.wml',
         streamKey,
         timestamp,
         type: 'Move Asset',
     }
     bus.send({
         type: 'StreamingEvent',
-        dataSourceKey: 'internal',
+        dataSourceKey: 'api.wml',
         streamKey,
         header,
         getContentInternal: () => Promise.resolve(content),
@@ -104,14 +104,14 @@ export function sendMoveAsset(bus: Bus, streamKey: string, content: MoveAssetReq
 export function sendPurgeAsset(bus: Bus, streamKey: string, content: PurgeAssetRequest): void {
     const timestamp = Date.now()
     const header: StreamingEventHeader = {
-        dataSourceKey: 'internal',
+        dataSourceKey: 'api.wml',
         streamKey,
         timestamp,
         type: 'Purge Asset',
     }
     bus.send({
         type: 'StreamingEvent',
-        dataSourceKey: 'internal',
+        dataSourceKey: 'api.wml',
         streamKey,
         header,
         getContentInternal: () => Promise.resolve(content),

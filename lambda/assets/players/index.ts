@@ -36,7 +36,7 @@ type LibraryWithSettings = {
 type StreamEventFn = (params: { update: PlayerEventUpdate; streamKey: string; header: { type: string } }) => Promise<void>
 
 const processPlayerSettings = async (
-    event: Extract<PlayersIncomingEvent, { header: { dataSourceKey: 'internal' } }>,
+    event: Extract<PlayersIncomingEvent, { header: { dataSourceKey: 'api.assets' } }>,
     streamEvent: StreamEventFn
 ): Promise<void> => {
     await emitSettingsUpdated(streamEvent, event.header.streamKey)

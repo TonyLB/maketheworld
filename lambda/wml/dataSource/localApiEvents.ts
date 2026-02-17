@@ -1,5 +1,5 @@
 /**
- * Payload types and type guards for API-triggered internal events (dataSourceKey: 'internal').
+ * Payload types and type guards for API-triggered internal events (dataSourceKey: 'api.wml').
  * Used by subscribedEvents.ts and receiveEvents handlers. No serializers; in-process only.
  */
 import { Zone } from '@tonylb/mtw-interfaces/ts/baseClasses'

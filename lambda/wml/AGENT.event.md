@@ -28,7 +28,7 @@ The WML Lambda serves as the domain authority for WML source files and their Sta
 - `Zone Changed` - Asset moved between zones (Canon, Library, Personal, Draft, Archive)
 - `Merge Conflict` - Edit application failed due to conflicts
 
-**Event Subscriptions**: Subscribes to internal events (Apply Edit, Move Asset, Purge Asset) and mtw.diagnostics; canonize/decanonize reserved (no API or EventBridge trigger)
+**Event Subscriptions**: Subscribes to api.wml events (Apply Edit, Move Asset, Purge Asset) and mtw.diagnostics; canonize/decanonize reserved (no API or EventBridge trigger)
 
 **Implementation**: [`./dataSource/mtw-wml.ts`](./dataSource/mtw-wml.ts)
 
@@ -69,7 +69,7 @@ The WML Lambda has successfully implemented the DataSource pattern with the foll
 
 The WML Lambda receives events from multiple sources:
 
-**Internal events** (dataSourceKey: `internal`, via API → messageBus):
+**API-triggered events** (dataSourceKey: `api.wml`, via API → messageBus):
 - Apply Edit, Move Asset, Purge Asset. Canonize/Decanonize reserved (no trigger).
 
 **Direct API Calls** (via Step Functions or WebSocket API):
@@ -135,7 +135,7 @@ The WML Lambda receives events from multiple sources:
 
 ### Internal event handling
 
-**Incoming internal events** (API → send-helper → messageBus → receiveEvents):
+**Incoming api.wml events** (API → send-helper → messageBus → receiveEvents):
 - `Apply Edit` - WML edit application
 - `Move Asset` - Asset zone transitions
 - `Purge Asset` - Asset purge (Draft/Archive). Canonize/Decanonize handlers are reserved (no current API or trigger); will be reactivated with publishing UI.
@@ -176,7 +176,7 @@ This document is part of a coordinated event flow documentation effort across th
 - **SNS**: Connected to feedback topic for notifications
 
 **Event Handling**:
-- Subscribes to `internal` dataSource for Apply Edit, Move Asset, Purge Asset (and mtw.diagnostics)
+- Subscribes to `api.wml` dataSource for Apply Edit, Move Asset, Purge Asset (and mtw.diagnostics)
 - Processes Apply Edit, Move Asset, Purge Asset; Canonize/Decanonize handlers reserved (no call path)
 - Streams appropriate events (Content Update, Merge Conflict, Zone Changed) on operation completion
 - Error handling with logging (operations don't fail on streaming errors)
