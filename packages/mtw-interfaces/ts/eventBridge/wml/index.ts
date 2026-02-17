@@ -327,17 +327,20 @@ export class WMLEventSerializer implements DataSourceEventSerializer<WMLEventUpd
         }
         throw new Error(`Unknown external WML event type: ${JSON.stringify(params.content)}`)
     }
-    
-    // Note: serializeSnapshot and deserializeSnapshot are not implemented
-    // as WML events are for a non-replayable data source that doesn't use snapshots
+
+    // Note: serializeSnapshot and deserializeSnapshot are intentionally not implemented.
+    // The mtw.wml DataSource is currently non-replayable; when it becomes replayable,
+    // snapshot serialization should use a WML-centric wire format consistent with
+    // Content Update events (WML text, potentially wrapped in a snapshot body object).
 }
 
 /**
  * Event serializer for the WML dataSource slice (mtw.wml).
  * Only content events (Content Update, Merge Conflict) are deserialized; other event types return null.
- * Snapshot is StandardFormData; deserializeSnapshot is identity (slice receives resolved payload from sidecar).
+ * Snapshots use a WML-centric external payload shape `{ wml: string }`, which is parsed into StandardForm
+ * and converted to StandardFormData at the snapshot boundary before being stored in Redux.
  */
-export class WMLDataSourceEventSerializer implements DataSourceEventSerializer<WMLContentEvent, WMLContentEventExternal, StandardFormData, StandardFormData, WMLStreamingEventHeader> {
+export class WMLDataSourceEventSerializer implements DataSourceEventSerializer<WMLContentEvent, WMLContentEventExternal, StandardFormData, { wml: string }, WMLStreamingEventHeader> {
     private readonly baseSerializer = new WMLEventSerializer()
 
     serialize(params: { content: WMLContentEvent; header: WMLStreamingEventHeader }): WMLContentEventExternal {
@@ -356,7 +359,17 @@ export class WMLDataSourceEventSerializer implements DataSourceEventSerializer<W
         return null
     }
 
-    deserializeSnapshot(externalSnapshot: StandardFormData): StandardFormData | null {
-        return externalSnapshot
+    /**
+     * Deserialize a snapshot from WML text into StandardFormData for client storage.
+     * External snapshot payload is `{ wml: string }`; internal snapshot payload is StandardFormData.
+     */
+    deserializeSnapshot(externalSnapshot: { wml: string }): StandardFormData | null {
+        try {
+            const standardForm = new StandardForm(externalSnapshot.wml)
+            return standardForm.toJSON()
+        } catch (error) {
+            console.error('[WMLDataSourceEventSerializer] Failed to deserialize snapshot WML', error)
+            return null
+        }
     }
 }

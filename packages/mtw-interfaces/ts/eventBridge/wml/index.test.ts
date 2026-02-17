@@ -482,14 +482,21 @@ describe('WMLDataSourceEventSerializer', () => {
         expect(result).toBeNull()
     })
 
-    it('should deserializeSnapshot as identity', () => {
-        const snapshot = {
-            universalKey: 'ASSET#test' as any,
-            components: [],
-            metaData: []
+    it('should deserializeSnapshot from WML string into StandardFormData', () => {
+        const wml = deIndentWML(`
+            <Asset uuid=(test-asset)>
+                <Room key=(room1) uuid=(room1)>
+                    <ShortName>Room One</ShortName>
+                </Room>
+            </Asset>
+        `)
+        const result = serializer.deserializeSnapshot({ wml })
+        expect(result).not.toBeNull()
+        if (result) {
+            expect(result.universalKey).toBeDefined()
+            expect(Array.isArray(result.components)).toBe(true)
+            expect(result.metaData).toBeDefined()
         }
-        const result = serializer.deserializeSnapshot(snapshot)
-        expect(result).toBe(snapshot)
     })
 })
 
