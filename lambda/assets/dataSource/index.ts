@@ -123,39 +123,6 @@ const handleHealGlobalValues = async (
     })
 }
 
-/** Retained for future API or internal use; no longer invoked by mtw.coordination subscription. */
-const handleRemoveAsset = async (
-    event: { header: { type: 'Remove Asset'; streamKey: string }; getContentInternal: () => Promise<{ type: 'Remove Asset'; assetId: string }> },
-    streamEvent: StreamEventFn
-): Promise<void> => {
-    const content = await event.getContentInternal()
-    const { assetId } = content
-    if (!assetId) {
-        messageBus.send({
-            type: 'Error',
-            body: { error: 'Invalid arguments specified for Remove Asset event', statusCode: 400 }
-        })
-        return
-    }
-    try {
-        await decacheAsset({ assetId: assetId as string, streamEvent })
-    } catch (error) {
-        console.error(`Error decaching asset ${assetId}:`, error)
-    }
-    const assetMeta = (await internalCache.AssetMetaData.get([assetId as AssetUUID]))[0]
-    const zone = assetMeta?.zone
-    const player = assetMeta?.player
-    if (!zone) {
-        console.error(`Cannot emit Asset Removed for ${assetId}: zone not found in metadata`)
-        return
-    }
-    await streamEvent({
-        update: { zone, ...(player ? { player } : {}) },
-        streamKey: assetId as string,
-        header: { type: 'Asset Removed' }
-    })
-}
-
 //
 // Non-replayable DataSource singleton for mtw.assets
 // 
@@ -166,7 +133,7 @@ const handleRemoveAsset = async (
 // - Stream asset-level events to EventBridge for real-time subscribers
 // - Process incoming events from other data sources that affect assets
 // - Handle WML events for asset caching and decaching
-// - Handle WML purge and decache (Remove Asset pipeline retained for future API/internal use)
+// - Handle WML purge and decache
 // - Process diagnostic events (healing, global values)
 // - Handle player and library update events
 //

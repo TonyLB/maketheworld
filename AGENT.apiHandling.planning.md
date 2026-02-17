@@ -16,13 +16,13 @@ This document plans how we standardize lambda API handling so that coordination-
 
 - **EventBridge removal**: `mtw.coordination` rules are removed from template.yaml. No lambda registers `CoordinationEventSerializer` as an EventBridge deserializer. Assets no longer subscribes to Remove Asset; WML no longer receives coordination from EventBridge.
 - **WML internal pattern**: For Apply Edit, Move Asset, and Purge Asset, WML already does: API handler in `app.ts` → `sendApplyEdit` / `sendMoveAsset` / `sendPurgeAsset` in `subscribedEvents.ts` → messageBus → `receiveEvents` in `mtw-wml.ts`. Payload types come from `lambda/wml/dataSource/localApiEvents.ts`; envelope and routing are defined in WML `subscribedEvents.ts`.
-- **Assets**: Subscribes to mtw.wml (Zone Changed, Content Update, Asset Purged) and mtw.diagnostics. `handleAssetPurged` does decache + emit Asset Removed. `handleRemoveAsset` exists but is legacy (no trigger); to be pruned.
+- **Assets**: Subscribes to mtw.wml (Zone Changed, Content Update, Asset Purged) and mtw.diagnostics. `handleAssetPurged` does decache + emit Asset Removed. Imperative Remove Asset path pruned; asset removal flows through WML authority only.
 - **mtw-interfaces coordination**: Removed. Internal types (e.g. `ApplyEditRequest`, `MoveAssetRequest`), type guards, and payload types now live in `lambda/wml/dataSource/localApiEvents.ts`.
 
 ### Gaps
 
 - **Canonize, Decanonize, Create Snapshot**: Handlers exist in WML `mtw-wml.ts` (`processCanonizeDecanonize`, `processCreateSnapshot`), but there are no send-helpers and no API handlers. They were previously triggered via EventBridge; that path is gone. (See "Canonize / Decanonize: Temporarily Dead" and "Create Snapshot: Temporarily Dead" below.)
-- **Remove Asset**: Legacy handler in Assets (`handleRemoveAsset`) with no trigger. The authoritative removal flow already exists: WML purge → Asset Purged → Assets `handleAssetPurged`. (See "Remove Asset: Legacy (Prune)" below.)
+- **Remove Asset**: Pruned. Asset removal flows through WML authority only: WML purge → Asset Purged → Assets handleAssetPurged.
 - **Contract mismatch**: Coordination is still modeled in mtw-interfaces as an EventBridge contract (serializer, external types), while all coordination traffic is in-process via the `internal` pattern.
 
 ### Canonize / Decanonize: Temporarily Dead (Reserved for Future Use)
@@ -105,7 +105,7 @@ No new machinery; document this as the standard pattern.
 - [x] **localApiEvents migration**: Create WML `localApiEvents.ts`, move types from mtw-interfaces; rename Assets Players `coordinationSerializer.ts` to `localApiEvents.ts`; update all imports.
 - [x] **Documentation**: Add "localApiEvents.ts" and API-triggered internal events subsection to DataSource AGENT.implementation.md.
 - [x] **Documentation**: Update mtw-interfaces EventBridge AGENT.implementation.md; remove or deprecate coordination package.
-- [ ] **Remove Asset**: Prune `handleRemoveAsset` from Assets DataSource; no imperative Remove Asset at Assets-domain level.
+- [x] **Remove Asset**: Prune `handleRemoveAsset` from Assets DataSource; no imperative Remove Asset at Assets-domain level.
 - [ ] **Canonize / Decanonize / Create Snapshot**: All documented as reserved (do not remove). Reactivate/refactor when respective planning docs proceed.
 - [ ] **AGENT.development.md**: Point coordination section to this planning doc; update status when work is done.
 
