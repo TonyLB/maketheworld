@@ -1,7 +1,7 @@
 import { wmlDataSource } from './index'
 import { WMLEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/wml'
 import { moveAsset } from './moveAsset'
-import { MoveAssetRequest, isApplyEditRequest } from '@tonylb/mtw-interfaces/ts/eventBridge/coordination'
+import { MoveAssetRequest, isApplyEditRequest } from './localApiEvents'
 import { initializePrimitives } from './initializePrimitives'
 import { createManualSnapshot } from '../s3Storage/manifest/orchestration'
 import AssetWorkspace from '../s3Storage/AssetWorkspace'

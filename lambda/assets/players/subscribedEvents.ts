@@ -5,7 +5,7 @@
 import { StreamingEventHeader, StreamingEventEnvelope, HeaderGuard, makeStreamingEnvelopeGuardFromHeaderGuard } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import {
     PlayerSettingsUpdatedEvent,
-} from './coordinationSerializer'
+} from './localApiEvents'
 import {
     AssetAddedEventUpdate,
     AssetLevelEventUpdate,

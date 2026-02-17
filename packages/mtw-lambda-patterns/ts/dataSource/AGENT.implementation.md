@@ -194,11 +194,15 @@ Each DataSource implementation should colocate its subscription surface in a **`
 
 **Conventions:**
 
-- Payload types are imported from upstream (mtw-interfaces, sibling modules, etc.); subscribedEvents owns the subscription union, envelope guards, and send-helpers only.
+- Payload types for internal events (dataSourceKey: `'internal'`) are imported from `./localApiEvents`; payload types for cross-lambda events (mtw.wml, mtw.assets, etc.) are imported from mtw-interfaces. subscribedEvents owns the subscription union, envelope guards, and send-helpers only.
 - Initialize Subscription and other special/bootstrap events are out of scope for subscribedEvents; they stay on their separate subscription path.
 - Send-helpers are only for events **this lambda** publishes to its own messageBus; do not add helpers for events the lambda only forwards from EventBridge.
 - In lambdas with multiple DataSources (e.g. assets: dataSource, players, library, contentHeaders, characters), each DataSource lives in its own directory and has exactly one `subscribedEvents.ts` in that directory.
 - Reference implementation: [lambda/wml/dataSource/subscribedEvents.ts](../../../../lambda/wml/dataSource/subscribedEvents.ts).
+
+### **localApiEvents.ts**
+
+For API-triggered internal events (dataSourceKey: `'internal'`), payload types and type guards live in `localApiEvents.ts` in the same DataSource directory. `subscribedEvents.ts` imports from `./localApiEvents`. This keeps internal event contracts local to the lambda rather than in mtw-interfaces, since they are in-process only and not shared across lambdas via EventBridge.
 
 ### **Type-Safe Routing with Envelope-Level Discriminated Unions and Payload Purity**:
 
@@ -219,10 +223,6 @@ When using the header + getContentInternal envelope shape (`StreamingEventEnvelo
        | {
              header: StreamingEventHeader & { dataSourceKey: 'mtw.diagnostics'; type: 'Heal Global Values' };
              getContentInternal: () => Promise<{ type: 'Heal Global Values'; connections?: unknown; assets?: unknown }>;
-         }
-       | {
-             header: StreamingEventHeader & { dataSourceKey: 'mtw.coordination'; type: 'Remove Asset' };
-             getContentInternal: () => Promise<{ type: 'Remove Asset'; assetId: string }>;
          };
    ```
 

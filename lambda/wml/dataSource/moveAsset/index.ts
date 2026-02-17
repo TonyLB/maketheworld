@@ -5,7 +5,7 @@
  * changeZone operation, which manages S3 tags, manifests, and self-repair.
  */
 
-import { MoveAssetRequest } from '@tonylb/mtw-interfaces/ts/eventBridge/coordination'
+import { MoveAssetRequest } from '../localApiEvents'
 import { AssetUUID } from "@tonylb/mtw-base/ts/schema"
 import { changeZone } from "../../s3Storage"
 import { now } from "../../utilities/mockableTime"

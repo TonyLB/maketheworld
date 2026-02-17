@@ -13,7 +13,7 @@ import {
     MoveAssetRequest,
     PurgeAssetRequest,
     CreateSnapshotRequest,
-} from '@tonylb/mtw-interfaces/ts/eventBridge/coordination'
+} from './localApiEvents'
 import type { DiagnosticsEventUpdate } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics'
 import type { StreamingEventMessage } from '../messageBus/baseClasses'
 

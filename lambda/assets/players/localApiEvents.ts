@@ -22,6 +22,3 @@ export const isPlayerSettingsUpdatedEvent = (value: any): value is PlayerSetting
         (value.RequestId === undefined || typeof value.RequestId === 'string')
     )
 )
-
-
-

@@ -15,9 +15,9 @@ This document plans how we standardize lambda API handling so that coordination-
 ### What exists
 
 - **EventBridge removal**: `mtw.coordination` rules are removed from template.yaml. No lambda registers `CoordinationEventSerializer` as an EventBridge deserializer. Assets no longer subscribes to Remove Asset; WML no longer receives coordination from EventBridge.
-- **WML internal pattern**: For Apply Edit, Move Asset, and Purge Asset, WML already does: API handler in `app.ts` → `sendApplyEdit` / `sendMoveAsset` / `sendPurgeAsset` in `subscribedEvents.ts` → messageBus → `receiveEvents` in `mtw-wml.ts`. Payload types come from `@tonylb/mtw-interfaces/ts/eventBridge/coordination`; envelope and routing are defined in WML `subscribedEvents.ts`.
+- **WML internal pattern**: For Apply Edit, Move Asset, and Purge Asset, WML already does: API handler in `app.ts` → `sendApplyEdit` / `sendMoveAsset` / `sendPurgeAsset` in `subscribedEvents.ts` → messageBus → `receiveEvents` in `mtw-wml.ts`. Payload types come from `lambda/wml/dataSource/localApiEvents.ts`; envelope and routing are defined in WML `subscribedEvents.ts`.
 - **Assets**: Subscribes to mtw.wml (Zone Changed, Content Update, Asset Purged) and mtw.diagnostics. `handleAssetPurged` does decache + emit Asset Removed. `handleRemoveAsset` exists but is legacy (no trigger); to be pruned.
-- **mtw-interfaces coordination**: Defines internal types (e.g. `ApplyEditRequest`, `MoveAssetRequest`), external types, type guards, and `CoordinationEventSerializer`. The serializer and external types are unused; internal types and guards are still imported by WML.
+- **mtw-interfaces coordination**: Removed. Internal types (e.g. `ApplyEditRequest`, `MoveAssetRequest`), type guards, and payload types now live in `lambda/wml/dataSource/localApiEvents.ts`.
 
 ### Gaps
 
@@ -102,7 +102,7 @@ No new machinery; document this as the standard pattern.
 
 ## Work Items (draft – reorder and split as needed)
 
-- [ ] **localApiEvents migration**: Create WML `localApiEvents.ts`, move types from mtw-interfaces; rename Assets Players `coordinationSerializer.ts` to `localApiEvents.ts`; update all imports.
+- [x] **localApiEvents migration**: Create WML `localApiEvents.ts`, move types from mtw-interfaces; rename Assets Players `coordinationSerializer.ts` to `localApiEvents.ts`; update all imports.
 - [ ] **Documentation**: Add "localApiEvents.ts" and API-triggered internal events subsection to DataSource AGENT.implementation.md.
 - [ ] **Documentation**: Update mtw-interfaces EventBridge AGENT.implementation.md; remove or deprecate coordination package.
 - [ ] **Remove Asset**: Prune `handleRemoveAsset` from Assets DataSource; no imperative Remove Asset at Assets-domain level.
@@ -123,4 +123,4 @@ No new machinery; document this as the standard pattern.
 - **[packages/mtw-lambda-patterns/ts/dataSource/AGENT.md](./packages/mtw-lambda-patterns/ts/dataSource/AGENT.md)** – DataSource usage; Getting Started and SubscribedEvents pattern.
 - **[packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md](./packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md)** – Header/content envelope, type-safe routing, send-helpers.
 - **[packages/mtw-interfaces/ts/eventBridge/AGENT.implementation.md](./packages/mtw-interfaces/ts/eventBridge/AGENT.implementation.md)** – EventBridge contracts and serializers.
-- **Reference implementations**: `lambda/wml/dataSource/subscribedEvents.ts` (internal send-helpers), `lambda/assets/players/subscribedEvents.ts` (internal Player Settings Updated). `lambda/assets/players/coordinationSerializer.ts` to be renamed to `localApiEvents.ts`.
+- **Reference implementations**: `lambda/wml/dataSource/subscribedEvents.ts` (internal send-helpers), `lambda/assets/players/subscribedEvents.ts` (internal Player Settings Updated). `lambda/assets/players/coordinationSerializer.ts` renamed to `localApiEvents.ts`.
