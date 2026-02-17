@@ -68,12 +68,12 @@ WML delegates snapshot creation. The current implementation (`getSidecarSnapshot
 
 1. **Write a short companion doc in `mtw-lambda-patterns`** describing the unified model (mirror + aggregator + snapshot source) and the delegation point (snapshot creation only).
 2. **Add WML Dynamo mirror**  
-   Mirror WML snapshots (and events) to Dynamo so replay/update uses the same path as every other DataSource.
+   Mirror WML snapshots (and events) to Dynamo so replay/update uses the same path as every other DataSource. For WML, the Dynamo mirror should store WML text (plus snapshot metadata) as the canonical snapshot body; internal replay paths deserialize from WML into `StandardForm`. `StandardFormData` remains a client/Redux concern rather than a Dynamo storage requirement.
 3. **Refine WML delegated snapshot creation**  
    Update the WML delegation adapter: reconstruct from manifest when chunks exist (never trust materialized view in that case). Align with the new delegation contract once designed.
 4. **Refactor WML snapshot representation (representation + client plumbing)**  
    Change the WML DataSource snapshot payload to use `StandardForm` as the internal in-memory shape (rather than `StandardFormData`), with wire-format snapshots as WML strings (inline or via sidecar) and `StandardFormData` as the immutable client/storage representation. Ensure deserialization / `getContentInternal` translates snapshot content (inline or sidecar-fetched) into `StandardForm` for manipulation by aggregators and downstream code, and that clients convert `StandardForm` back to `StandardFormData` when writing to Redux or other storage.  
    **Status**: Representation and client-side plumbing implemented (snapshot wire format is WML; internal operations use `StandardForm`; Redux stores `StandardFormData`).  
 5. **Adopt snapshot representation in delegated snapshot generator and mirror**  
-   Update the WML delegated snapshot generator and (future) Dynamo mirror to actually produce and store snapshots in this representation: WML text as the wire payload (inline or sidecar), deserialized into `StandardForm` for aggregation, and persisted or mirrored as `StandardFormData` where structured storage is needed.
+   Update the WML delegated snapshot generator and (future) Dynamo mirror to actually produce and store snapshots in this representation: WML text as the wire payload (inline or sidecar), deserialized into `StandardForm` for aggregation and replay. Where structured JSON is needed (e.g. client Redux state), convert `StandardForm` to `StandardFormData` at the client boundary; do not require Dynamo to store `StandardFormData` for WML snapshots.
 

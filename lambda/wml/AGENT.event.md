@@ -169,7 +169,7 @@ This document is part of a coordinated event flow documentation effort across th
 **Base Class**: `WMLDataSource` extends `DataSource` from `@tonylb/mtw-lambda-patterns`
 
 **Configuration**:
-- **Replayable**: No (event streaming only, no snapshots)
+- **Replayable**: No (event streaming only, no snapshots). Planned replayable implementation will use WML text as the canonical snapshot body in Dynamo (plus snapshot metadata), deserializing to `StandardForm` for internal aggregation and replay; `StandardFormData` will remain a client/Redux representation only.
 - **Primary Key**: `AssetId`
 - **Streams**: Per-asset (one stream per asset UUID)
 - **MessageBus**: Integrated with lambda-wide messageBus
