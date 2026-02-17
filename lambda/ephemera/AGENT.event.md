@@ -74,7 +74,7 @@ The Ephemera Lambda subscribes to events from other system components:
 
 #### **Asset Events**
 - **Asset Added/Removed**: Updates character access to new/removed content
-- **Asset Canonized/Decanonized**: Adjusts character content availability
+- **Asset Canonized/Decanonized**: No current path. May be added when mtw.assets data sources are extended to expose canonize/decanonize; would adjust character content availability.
 
 #### **Coordination Events** *(Legacy - Under Review)*
 - **Calculate Cascade**: Triggers Variable dependency cascade calculations
@@ -82,7 +82,7 @@ The Ephemera Lambda subscribes to events from other system components:
 - **Disconnect Character**: Handles character disconnection from external systems
 
 #### **Blueprint Reconciliation Events**
-- **Asset Canonized/Decanonized**: Updates character access to content and validates current character states
+- **Asset Canonized/Decanonized**: No current path (reserved for when canonize/decanonize flows are extended). Would update character access to content and validate character states.
 - **Content Update**: Incorporates WML blueprint changes into real-time state representation
 - **Authorization Update**: Adjusts character permissions and validates character positions
 

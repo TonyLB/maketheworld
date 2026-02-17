@@ -106,12 +106,12 @@ No new machinery; document this as the standard pattern.
 - [x] **Documentation**: Add "localApiEvents.ts" and API-triggered internal events subsection to DataSource AGENT.implementation.md.
 - [x] **Documentation**: Update mtw-interfaces EventBridge AGENT.implementation.md; remove or deprecate coordination package.
 - [x] **Remove Asset**: Prune `handleRemoveAsset` from Assets DataSource; no imperative Remove Asset at Assets-domain level.
-- [ ] **Canonize / Decanonize / Create Snapshot**: All documented as reserved (do not remove). Reactivate/refactor when respective planning docs proceed.
-- [ ] **AGENT.development.md**: Point coordination section to this planning doc; update status when work is done.
+- [x] **Canonize / Decanonize / Create Snapshot**: All documented as reserved (do not remove). Reactivate/refactor when respective planning docs proceed.
+- [x] **AGENT.development.md**: Point coordination section to this planning doc; update status when work is done.
 
 ## Open Questions / Refinement
 
-- **Ephemera**: Docs mentioned Canonize/Decanonize from EventBridge. Confirm whether Ephemera still needs to react to canonize/decanonize in some form (e.g. via mtw.wml Zone Changed or mtw.assets) or if that's obsolete.
+- **Canonize/Decanonize downstream**: No functional paths respond to canonize/decanonize today. As we extend mtw.assets data sources we may need to respond (e.g. via mtw.wml Zone Changed or mtw.assets). Documentation that claimed Ephemera or others currently react to these events has been cleaned up.
 - **Naming**: Is `dataSourceKey: 'internal'` the long-term name, or do we want a per-lambda convention (e.g. `internal.wml`, `internal.assets`)? Currently WML and Assets players use `'internal'`.
 - **Testing**: How much of the coordination flow should be covered by integration-style tests (API → messageBus → receiveEvents) vs unit tests only.
 

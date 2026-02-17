@@ -8,7 +8,7 @@ This document tracks the event flow architecture within the WML Lambda system, w
 
 The WML Lambda serves as the domain authority for WML source files and their StandardForm representations. It participates in the event mesh as:
 
-- **Event Consumer**: Processes coordination events (canonize/decanonize, move asset)
+- **Event Consumer**: Processes internal events (Apply Edit, Move Asset, Purge Asset); canonize/decanonize handlers reserved (no current trigger)
 - **Event Producer**: Publishes content updates, zone changes, and merge conflicts via EventBridge
 - **Source of Truth**: Maintains authoritative S3 storage for WML and NDJSON files
 - **Data Transformation Pipeline Root**: Triggers downstream caching and materialization
@@ -28,7 +28,7 @@ The WML Lambda serves as the domain authority for WML source files and their Sta
 - `Zone Changed` - Asset moved between zones (Canon, Library, Personal, Draft, Archive)
 - `Merge Conflict` - Edit application failed due to conflicts
 
-**Event Subscriptions**: Subscribes to `mtw.coordination` events for canonization and asset moves
+**Event Subscriptions**: Subscribes to internal events (Apply Edit, Move Asset, Purge Asset) and mtw.diagnostics; canonize/decanonize reserved (no API or EventBridge trigger)
 
 **Implementation**: [`./dataSource/mtw-wml.ts`](./dataSource/mtw-wml.ts)
 
@@ -46,7 +46,7 @@ The WML Lambda has successfully implemented the DataSource pattern with the foll
 2. **MessageBus Integration**: Internal event coordination fully wired and functional
 3. **Zone Changed Events**: Published via DataSource pattern when assets move between zones
 4. **Move Asset Operations**: Complete implementation with S3 file moves and event publishing
-5. **Coordination Event Processing**: Handles canonize/decanonize events from `mtw.coordination` source
+5. **Internal event processing**: Apply Edit, Move Asset, Purge Asset; canonize/decanonize handlers exist but are reserved (no call path)
 6. **EventBridge Event Ingestion**: Receives and deserializes incoming events from other data sources
 
 ### ✅ Recently Completed
@@ -69,8 +69,8 @@ The WML Lambda has successfully implemented the DataSource pattern with the foll
 
 The WML Lambda receives events from multiple sources:
 
-**EventBridge Events**:
-- `mtw.coordination` events → Move Asset, Canonize, Decanonize
+**Internal events** (dataSourceKey: `internal`, via API → messageBus):
+- Apply Edit, Move Asset, Purge Asset. Canonize/Decanonize reserved (no trigger).
 
 **Direct API Calls** (via Step Functions or WebSocket API):
 - `applyEdit` - Apply WML edit to existing content (processed via DataSource)
@@ -133,14 +133,12 @@ The WML Lambda receives events from multiple sources:
 - `Draft` - Player draft workspace
 - `Archive` - Soft-deleted content
 
-### Coordination Service Integration
+### Internal event handling
 
-**Incoming Events**: WML subscribes to `mtw.coordination` for:
-- `Move Asset` - Requested asset zone transitions
-- `Canonize` - Move asset from Library to Canon
-- `Decanonize` - Move asset from Canon to Library
-
-**Event-Driven Moves**: External services can trigger asset moves without direct API calls
+**Incoming internal events** (API → send-helper → messageBus → receiveEvents):
+- `Apply Edit` - WML edit application
+- `Move Asset` - Asset zone transitions
+- `Purge Asset` - Asset purge (Draft/Archive). Canonize/Decanonize handlers are reserved (no current API or trigger); will be reactivated with publishing UI.
 
 ## Related Event Documentation
 
@@ -178,8 +176,8 @@ This document is part of a coordinated event flow documentation effort across th
 - **SNS**: Connected to feedback topic for notifications
 
 **Event Handling**:
-- Subscribes to `internal` dataSource with `CoordinationEventUpdate` events
-- Processes Apply Edit, Move Asset, Canonize, and Decanonize events
+- Subscribes to `internal` dataSource for Apply Edit, Move Asset, Purge Asset (and mtw.diagnostics)
+- Processes Apply Edit, Move Asset, Purge Asset; Canonize/Decanonize handlers reserved (no call path)
 - Streams appropriate events (Content Update, Merge Conflict, Zone Changed) on operation completion
 - Error handling with logging (operations don't fail on streaming errors)
 
