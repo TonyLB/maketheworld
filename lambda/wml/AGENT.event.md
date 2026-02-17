@@ -138,7 +138,7 @@ The WML Lambda receives events from multiple sources:
 **Incoming api.wml events** (API → send-helper → messageBus → receiveEvents):
 - `Apply Edit` - WML edit application
 - `Move Asset` - Asset zone transitions
-- `Purge Asset` - Asset purge (Draft/Archive). Canonize/Decanonize handlers are reserved (no current API or trigger); will be reactivated with publishing UI.
+- `Purge Asset` - Asset purge (Draft/Archive). Canonize/Decanonize and Create Snapshot handlers are reserved (no current API or trigger). Canonize/Decanonize will be reactivated with publishing UI ([AGENT.collaboration.publishing](../../AGENT.collaboration.publishing.md)); Create Snapshot will be refactored with the delegation pattern ([documentation/dataSources/AGENT.delegation.planning.md](../../documentation/dataSources/AGENT.delegation.planning.md)).
 
 ## Related Event Documentation
 

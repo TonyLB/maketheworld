@@ -212,6 +212,8 @@ Events with `dataSourceKey: 'api.wml'` or `'api.assets'` are **in-process only**
 
 **Convention:** `subscribedEvents.ts` imports from `./localApiEvents`. This keeps internal event contracts local to the lambda rather than in mtw-interfaces, since they are in-process only and not shared across lambdas via EventBridge.
 
+**Reserved handlers (WML):** Canonize/Decanonize and Create Snapshot have handlers in WML with no current call path. They are reserved for reactivation when the publishing UI is built (see AGENT.collaboration.publishing) and when the delegation pattern is implemented (see documentation/dataSources/AGENT.delegation.planning). Do not remove them.
+
 ### **Type-Safe Routing with Envelope-Level Discriminated Unions and Payload Purity**:
 
 When using the header + getContentInternal envelope shape (`StreamingEventEnvelope<Content>`), discriminants such as `type` and `dataSourceKey` live on the `header`, not on the payload. To keep routing logic type-safe without embedding redundant `type` fields in `content`, and to keep payloads focused on domain data, the recommended pattern is:
