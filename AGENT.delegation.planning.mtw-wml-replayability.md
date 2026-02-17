@@ -44,6 +44,7 @@ This document focuses specifically on making `mtw.wml` **replayable** using that
 - **Delegation-compatible**:
   - The replay/mirror design does not preclude future WML delegation refactors.
   - Delegation remains a choice of **snapshot source**, not a different replay mechanism.
+  - Existing `Snapshot Created` events (with `chunksBeforeSnapshot` and `snapshotSize` from the S3 snapshot writer) are treated as diagnostic signals only; they are not part of the replay or correctness path.
 
 ## Non-Goals (for this phase)
 
