@@ -103,8 +103,8 @@ No new machinery; document this as the standard pattern.
 ## Work Items (draft – reorder and split as needed)
 
 - [x] **localApiEvents migration**: Create WML `localApiEvents.ts`, move types from mtw-interfaces; rename Assets Players `coordinationSerializer.ts` to `localApiEvents.ts`; update all imports.
-- [ ] **Documentation**: Add "localApiEvents.ts" and API-triggered internal events subsection to DataSource AGENT.implementation.md.
-- [ ] **Documentation**: Update mtw-interfaces EventBridge AGENT.implementation.md; remove or deprecate coordination package.
+- [x] **Documentation**: Add "localApiEvents.ts" and API-triggered internal events subsection to DataSource AGENT.implementation.md.
+- [x] **Documentation**: Update mtw-interfaces EventBridge AGENT.implementation.md; remove or deprecate coordination package.
 - [ ] **Remove Asset**: Prune `handleRemoveAsset` from Assets DataSource; no imperative Remove Asset at Assets-domain level.
 - [ ] **Canonize / Decanonize / Create Snapshot**: All documented as reserved (do not remove). Reactivate/refactor when respective planning docs proceed.
 - [ ] **AGENT.development.md**: Point coordination section to this planning doc; update status when work is done.

@@ -12,7 +12,7 @@ The serialization refactor established these principles (authority and typing on
 - **Header authoritative for routing:** All routing and type guards use `header.type` (and extended header fields). Payload may still carry `type` for wire compatibility; routing must not depend on payload `type` when header is available.
 - **Single path and single builder:** All lambdas use `fromEventBridgeFormat` and pass `coreFormat.header` + `coreFormat.update` to deserialize. Wire envelope construction is centralized in the publisher (`publishStreamEvent` / `wireFormatsFromCoreFormat`); DataSource and initialize lambda do not hand-build CoreExternalFormat.
 - **CoreExternalFormat header-only:** In-memory format is `{ header, update }` only; no duplicated top-level envelope fields.
-- **Event contracts in mtw-interfaces:** Event types and serializers (including Coordination) live in mtw-interfaces; lambdas import and use them.
+- **Event contracts:** Cross-lambda EventBridge contracts (types, serializers) live in mtw-interfaces; API-triggered internal events use lambda-local `localApiEvents.ts` (see below).
 - **Header predicates centralize guards:** Per DataSource, header-level discriminants (and optional header union types) are the single source for aggregate and per-event envelope guards across regimes (lazy internal, resolved internal, external/core).
 
 ## Technical Details
@@ -200,9 +200,17 @@ Each DataSource implementation should colocate its subscription surface in a **`
 - In lambdas with multiple DataSources (e.g. assets: dataSource, players, library, contentHeaders, characters), each DataSource lives in its own directory and has exactly one `subscribedEvents.ts` in that directory.
 - Reference implementation: [lambda/wml/dataSource/subscribedEvents.ts](../../../../lambda/wml/dataSource/subscribedEvents.ts).
 
-### **localApiEvents.ts**
+### **localApiEvents.ts and API-triggered internal events**
 
-For API-triggered internal events (dataSourceKey: `'internal'`), payload types and type guards live in `localApiEvents.ts` in the same DataSource directory. `subscribedEvents.ts` imports from `./localApiEvents`. This keeps internal event contracts local to the lambda rather than in mtw-interfaces, since they are in-process only and not shared across lambdas via EventBridge.
+Events with `dataSourceKey: 'internal'` are **in-process only**—they never cross process boundaries. They are used when a lambda's API handler maps an incoming request into a streaming event that the same lambda's DataSource `receiveEvents` processes. Examples: Apply Edit, Move Asset, Purge Asset (WML); Player Settings Updated (Assets Players).
+
+**When to add `localApiEvents.ts`:** Add this file in a DataSource directory when that DataSource has API-triggered internal events. Ephemera has none today; add when needed.
+
+**Contents of `localApiEvents.ts`:** Payload types and type guards for those internal events (e.g. `ApplyEditRequest`, `MoveAssetRequest`, `PlayerSettingsUpdatedEvent`). No serializers; no EventBridge logic.
+
+**Flow:** API handler (in `app.ts`) receives request → send-helper (in `subscribedEvents.ts`) builds envelope with `dataSourceKey: 'internal'` and calls `messageBus.send()` → existing `receiveEvents` handles the event via type guards and handlers.
+
+**Convention:** `subscribedEvents.ts` imports from `./localApiEvents`. This keeps internal event contracts local to the lambda rather than in mtw-interfaces, since they are in-process only and not shared across lambdas via EventBridge.
 
 ### **Type-Safe Routing with Envelope-Level Discriminated Unions and Payload Purity**:
 

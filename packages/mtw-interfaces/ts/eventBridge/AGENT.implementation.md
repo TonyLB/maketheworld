@@ -2,6 +2,15 @@
 
 This document provides technical guidelines for implementing and maintaining EventBridge event contracts in the `mtw-interfaces` package.
 
+## Scope: What mtw-interfaces EventBridge Covers
+
+mtw-interfaces EventBridge holds **cross-lambda** event contracts only. Events that never leave a single lambda process are out of scope.
+
+- **In scope:** Events with `dataSourceKey` like `'mtw.wml'`, `'mtw.assets'`, `'mtw.diagnostics'`—serialized for EventBridge transmission and consumed by other lambdas.
+- **Out of scope:** Events with `dataSourceKey: 'internal'`—API-triggered events that stay in-process (e.g. Apply Edit, Move Asset, Player Settings Updated). Their payload types and type guards live in lambda-local `localApiEvents.ts`, not in mtw-interfaces. See [mtw-lambda-patterns DataSource AGENT.implementation.md](../../../mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md) (localApiEvents.ts and API-triggered internal events).
+
+The former coordination package (Apply Edit, Move Asset, etc.) has been removed; those events are now internal-only and handled via `localApiEvents.ts` in each owning lambda.
+
 ## Event Contract Design
 
 ### Internal vs External Formats
