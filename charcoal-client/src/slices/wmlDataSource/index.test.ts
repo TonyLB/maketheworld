@@ -91,7 +91,7 @@ describe('wmlDataSource slice', () => {
       vi.stubGlobal('fetch', vi.fn())
     })
 
-    it('should fetch sidecarUrl and return parsed StandardFormData', async () => {
+    it('should fetch sidecarUrl and return WML payload object', async () => {
       const mockFetch = vi.mocked(fetch)
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -101,10 +101,7 @@ describe('wmlDataSource slice', () => {
       const result = await resolveSidecarSnapshot('ASSET#test', 'https://example.com/sidecar', {})
 
       expect(mockFetch).toHaveBeenCalledWith('https://example.com/sidecar')
-      expect(result).toBeDefined()
-      expect(result.universalKey).toBeDefined()
-      expect(Array.isArray(result.components)).toBe(true)
-      expect(result.metaData).toBeDefined()
+      expect(result).toEqual({ wml: minimalWML })
     })
 
     it('should normalize CR in WML', async () => {
@@ -116,6 +113,7 @@ describe('wmlDataSource slice', () => {
 
       const result = await resolveSidecarSnapshot('ASSET#test', 'https://example.com/sidecar', {})
       expect(result).toBeDefined()
+      expect(result.wml).not.toContain('\r')
     })
 
     it('should throw when fetch returns not ok', async () => {
