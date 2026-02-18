@@ -151,18 +151,20 @@ This section outlines the broad strokes of the refactor; exact task breakdown wi
 
 ### C. Lazy evaluation and sidecar support
 
+**Status:** Done (Step C lazy-evaluation and sidecar behavior wired into mtw-lambda-patterns; docs updated to describe inline and sidecar snapshot envelopes and how domain code should resolve sidecars behind `getContentInternal`).
+
 1. **Unify `getContentInternal` for snapshots and events**
-   - Make sure snapshot replay and initialize flows build `StreamingEventEnvelope` values for both snapshot and events, using the same contract that the messageBus uses.
-   - For sidecarred snapshots, ensure `getContentInternal` encapsulates:
-     - Fetching from S3 or other backing store.
-     - Parsing and validation (for example, WML typeguards).
-     - Deserialization into internal snapshot type.
+   - Snapshot flows share the same envelope contracts as events. The patterns package provides helpers (`createSnapshotCoreFormat`, `coreFormatToStreamingEnvelope`, `coreFormatToResolvedSnapshotEnvelope`) so domains can build `StreamingEventEnvelope` and `ResolvedStreamingEnvelope` values for both snapshots and events, using the same header semantics and lazy `getContentInternal` contract as the messageBus.
+   - For sidecarred snapshots, the snapshot body is expressed as a CoreExternalFormat update that carries a sidecar descriptor (for example, `{ sidecarUrl, contentMetadata }`). Domain code implements `getContentInternal` so that it:
+     - Fetches from S3 or other backing store.
+     - Parses and validates the fetched payload (for example, WML typeguards).
+     - Deserializes into the internal snapshot type.
 2. **Document snapshot sidecar pattern**
    - Align with the delegation and sidecar planning doc:
      - Sidecar is a transport concern, not a delegation-only feature.
      - Snapshot creators (self-contained or delegated) choose sidecar vs inline.
      - Snapshot descriptors can be "identical but newer" (fresh presigned URL with same underlying object).
-   - Make sure the DataSource pattern docs call out how to structure snapshot bodies and sidecar descriptors so `getContentInternal` can stay generic.
+   - DataSource pattern docs (`AGENT.md`, `AGENT.implementation.md`) now call out that snapshot bodies may be inline or sidecar descriptors, that routing remains header-based (`type: 'Snapshot'`), and that `getContentInternal` is the place where domains hide the details of fetching and resolving sidecar content.
 
 ### D. Aggregation and client alignment
 

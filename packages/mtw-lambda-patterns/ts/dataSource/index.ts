@@ -15,16 +15,6 @@ export type SnapshotType<SnapshotPayload extends SerializableObject> = SnapshotP
     expiresAt: number;
 }
 
-/**
- * Descriptor returned by snapshotSidecarUrlGenerator for subscription init.
- * The client receives a Snapshot event with sidecarUrl and fetches the body from that URL.
- */
-export type SidecarSnapshotDescriptor = {
-    sidecarUrl: string;
-    createdAt: number;
-    expiresAt?: number;
-}
-
 export type DynamoGetItemArgs = {
     Key: Record<string, string>
     ProjectionFields?: string[]
@@ -87,8 +77,6 @@ export class DataSource<
     readonly primaryKeyName: KeyType
     readonly dataSourceKey: string
     readonly snapshotContentGenerator?: (streamKey: string) => Promise<SnapshotPayload>
-    /** When set, subscription init delivers a Snapshot with sidecarUrl instead of inline payload. Use either this or snapshotContentGenerator, not both. */
-    readonly snapshotSidecarUrlGenerator?: (streamKey: string) => Promise<SidecarSnapshotDescriptor>
     readonly singleFlight?: ReturnType<typeof singleFlightFactory<SnapshotType<ExternalSnapshotPayload>>>
     readonly feedbackTopicArn: string
     readonly replayable: boolean
@@ -109,7 +97,6 @@ export class DataSource<
         primaryKeyName,
         dataSourceKey,
         snapshotContentGenerator,
-        snapshotSidecarUrlGenerator,
         feedbackTopicArn,
         replayable = true,
         snapshotTimeoutMs = 5000,
@@ -128,7 +115,6 @@ export class DataSource<
         primaryKeyName: KeyType,
         dataSourceKey: string,
         snapshotContentGenerator?: (streamKey: string) => Promise<SnapshotPayload>,
-        snapshotSidecarUrlGenerator?: (streamKey: string) => Promise<SidecarSnapshotDescriptor>,
         feedbackTopicArn: string,
         replayable?: boolean,
         snapshotTimeoutMs?: number,
@@ -147,7 +133,6 @@ export class DataSource<
         this.primaryKeyName = primaryKeyName
         this.dataSourceKey = dataSourceKey
         this.snapshotContentGenerator = snapshotContentGenerator
-        this.snapshotSidecarUrlGenerator = snapshotSidecarUrlGenerator
         this.feedbackTopicArn = feedbackTopicArn
         this.replayable = replayable
         this.subscribedEventTypeGuard = subscribedEventTypeGuard
@@ -400,21 +385,6 @@ export class DataSource<
             throw new Error(`DataSource '${this.dataSourceKey}' is not replayable and does not support subscription initialization`)
         }
 
-        // Sidecar path: deliver Snapshot with sidecarUrl instead of inline payload
-        if (this.snapshotSidecarUrlGenerator) {
-            const descriptor = await this.snapshotSidecarUrlGenerator(streamKey)
-            const snapshot = {
-                type: 'Snapshot' as const,
-                sidecarUrl: descriptor.sidecarUrl,
-                createdAt: descriptor.createdAt,
-                expiresAt: descriptor.expiresAt ?? descriptor.createdAt + 300000
-            }
-            const recentEvents = await this.getRecentEvents(streamKey, descriptor.createdAt)
-            await this.deliverReplayData({ sessionId, streamKey, snapshot: snapshot as unknown as SnapshotType<ExternalSnapshotPayload>, events: recentEvents })
-            return
-        }
-
-        // Inline path: get full snapshot and deliver
         const externalSnapshot = await this.getSnapshotExternal(streamKey)
         const recentEvents = await this.getRecentEvents(streamKey, externalSnapshot.createdAt)
         await this.deliverReplayData({ sessionId, streamKey, snapshot: externalSnapshot, events: recentEvents })
