@@ -31,6 +31,9 @@ This dual approach ensures efficient delivery while maintaining the correct scop
 2. **Recent Events**: Events that occurred since the snapshot was created
 3. **Complete Context**: Everything the subscriber needs to understand the current state
 
+### **Snapshot envelope conventions**
+Snapshots use the same header semantics as streaming events. A single shared `header.type: 'Snapshot'` is used for all DataSources; snapshot rows and replay payloads use the same `{ header, update }` envelope shape as events. Example: build a snapshot header as `{ dataSourceKey, streamKey, timestamp, type: 'Snapshot' }`; the `update` field carries the external snapshot payload.
+
 ### **SNS Feedback Delivery**: Replay data is delivered via the Feedback SNS topic, which allows:
 - **Targeted Delivery**: Data goes directly to the specified `sessionId`
 - **No Fan-out**: Avoids broadcasting historical data to all subscribers
@@ -90,6 +93,8 @@ Full pipeline as implemented in code and formatTransform:
 5. **DataSource processing** – Patterns subscribe() applies envelope type guard, then passes narrowed events to DataSource `receiveEvents`.
 
 Replay path: DataSource `deliverReplayData` builds CoreExternalFormat (snapshot and replay events) with `{ header, update }` and uses `toSNSFeedbackFormat` (and optionally toWebSocketFormat) for delivery; no EventBridge on that path.
+
+**Snapshot and CoreExternalFormat:** Snapshot records (e.g. Dynamo `Meta::Snapshot` rows) and replay delivery payloads are expressed as CoreExternalFormat envelopes: the same `{ header, update }` shape as streaming events. The header carries `type: 'Snapshot'` and the base four fields; `update` is the snapshot body (external payload). Existing `wireFormatsFromCoreFormat` and all format transforms (`toDynamoDBFormat`, `toSNSFeedbackFormat`, `toWebSocketFormat`, etc.) apply to snapshot envelopes without change.
 
 ### **Division of responsibility (serialization boundary)**
 

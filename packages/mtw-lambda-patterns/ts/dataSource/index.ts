@@ -687,6 +687,10 @@ export {
     StreamEventPublisherOptions,
     StreamEventPublisherResult,
     wireFormatsFromCoreFormat,
+    createSnapshotCoreFormat,
+    coreFormatToResolvedSnapshotEnvelope,
+    coreFormatToStreamingEnvelope,
+    SNAPSHOT_HEADER_TYPE,
 } from './streamEventPublisher'
 
 // Re-export aggregation types for convenience

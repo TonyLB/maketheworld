@@ -119,6 +119,8 @@ This section outlines the broad strokes of the refactor; exact task breakdown wi
 
 ### A. Core types and contracts (mtw-lambda-patterns)
 
+**Status:** Done (2025-02-17). Snapshot header conventions documented in AGENT.md and AGENT.implementation.md; CoreExternalFormat snapshot usage documented; `createSnapshotCoreFormat`, `coreFormatToResolvedSnapshotEnvelope`, and `coreFormatToStreamingEnvelope` (plus `SNAPSHOT_HEADER_TYPE`) added in streamEventPublisher and re-exported from index.
+
 1. **Define snapshot header conventions**
    - Use a single shared header `type: 'Snapshot'` for all DataSources; domain/stream come from `dataSourceKey` and `streamKey`.
    - Update documentation in `AGENT.md` and `AGENT.implementation.md` to describe snapshot header semantics and examples.

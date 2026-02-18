@@ -1,7 +1,15 @@
 /**
  * Tests for streamEventPublisher: builds CoreExternalFormat and wire formats from header + content.
  */
-import { publishStreamEvent, StreamEventPublisherSerializer, wireFormatsFromCoreFormat } from './streamEventPublisher'
+import {
+    publishStreamEvent,
+    StreamEventPublisherSerializer,
+    wireFormatsFromCoreFormat,
+    createSnapshotCoreFormat,
+    coreFormatToResolvedSnapshotEnvelope,
+    coreFormatToStreamingEnvelope,
+    SNAPSHOT_HEADER_TYPE,
+} from './streamEventPublisher'
 import { CoreExternalFormat } from './formatTransform'
 
 const baseHeader = {
@@ -156,5 +164,57 @@ describe('wireFormatsFromCoreFormat', () => {
         expect(result.snsFeedbackFormat.messageType).toBe('StreamEvent')
         expect(result.webSocketFormat.messageType).toBe('StreamEvent')
         expect(result.webSocketFormat.dataSourceKey).toBe('mtw.assets')
+    })
+})
+
+describe('createSnapshotCoreFormat', () => {
+    it('should return CoreExternalFormat with header.type Snapshot and pass through update', () => {
+        const update = { type: 'Snapshot', wml: '<Asset id="a1" />' }
+        const result = createSnapshotCoreFormat('mtw.wml', 'ASSET#a1', 999000, update)
+
+        expect(result.header.dataSourceKey).toBe('mtw.wml')
+        expect(result.header.streamKey).toBe('ASSET#a1')
+        expect(result.header.timestamp).toBe(999000)
+        expect(result.header.type).toBe(SNAPSHOT_HEADER_TYPE)
+        expect(result.update).toEqual(update)
+    })
+
+    it('should round-trip through wireFormatsFromCoreFormat for snapshot', () => {
+        const update = { type: 'Snapshot', items: ['a', 'b'] }
+        const coreFormat = createSnapshotCoreFormat('mtw.assets.contentHeaders', 'global', 1000, update)
+        const result = wireFormatsFromCoreFormat(coreFormat)
+
+        expect(result.snsFeedbackFormat.messageType).toBe('StreamEvent')
+        expect(result.snsFeedbackFormat.dataSourceKey).toBe('mtw.assets.contentHeaders')
+        expect(result.snsFeedbackFormat.streamKey).toBe('global')
+        expect(result.snsFeedbackFormat.timestamp).toBe(1000)
+        expect(result.snsFeedbackFormat.update).toEqual(update)
+
+        expect(result.eventBridgeEvent.Source).toBe('mtw.assets.contentHeaders')
+        expect(result.eventBridgeEvent.DetailType).toBe(SNAPSHOT_HEADER_TYPE)
+        expect(result.webSocketFormat.messageType).toBe('StreamEvent')
+        expect(result.webSocketFormat.update).toEqual(update)
+    })
+})
+
+describe('coreFormatToResolvedSnapshotEnvelope', () => {
+    it('should return ResolvedStreamingEnvelope with header and content from coreFormat', () => {
+        const coreFormat = createSnapshotCoreFormat('mtw.wml', 'stream-1', 5000, { type: 'Snapshot', wml: 'x' })
+        const envelope = coreFormatToResolvedSnapshotEnvelope(coreFormat)
+
+        expect(envelope.header).toBe(coreFormat.header)
+        expect(envelope.content).toBe(coreFormat.update)
+        expect(envelope.header.type).toBe(SNAPSHOT_HEADER_TYPE)
+    })
+})
+
+describe('coreFormatToStreamingEnvelope', () => {
+    it('should return StreamingEventEnvelope with header and getContentInternal', async () => {
+        const coreFormat = createSnapshotCoreFormat('mtw.assets', 'key', 1, { type: 'Snapshot', data: 'x' })
+        const content = { deserialized: true }
+        const envelope = coreFormatToStreamingEnvelope(coreFormat, () => Promise.resolve(content))
+
+        expect(envelope.header).toBe(coreFormat.header)
+        expect(await envelope.getContentInternal()).toEqual(content)
     })
 })
