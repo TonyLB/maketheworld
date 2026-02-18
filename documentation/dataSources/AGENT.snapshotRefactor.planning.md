@@ -135,6 +135,8 @@ This section outlines the broad strokes of the refactor; exact task breakdown wi
 
 ### B. Storage and replay pipeline
 
+**Status:** Done (Step B storage/replay envelope work implemented in mtw-lambda-patterns; domain migrations and client alignment continue under Workstreams D and E).
+
 1. **Dynamo snapshot representation**
    - Refactor snapshot writes to store CoreExternalFormat snapshot rows (`header`, `update`) instead of ad hoc shapes.
    - Ensure `DataCategory` and key structure stay the same (`Meta::Snapshot` plus `STREAM#${dataSourceKey}::${streamKey}`).
