@@ -104,7 +104,7 @@ describe('AssetsDataSource', () => {
             await dataSource.streamEvent({
                 update,
                 streamKey: 'test-stream',
-                header: { type: update.type }
+                header: { type: 'TestUpdate' }
             })
 
             // Verify DynamoDB storage

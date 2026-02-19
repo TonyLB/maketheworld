@@ -3,7 +3,7 @@
  * serializer, then produces all wire formats (EventBridge, DynamoDB, SNS, WebSocket).
  * Callers perform actual send/store. Used by DataSource.streamEvent (4b) and initialize lambda (4c).
  */
-import { StreamingEventHeader } from './baseClasses'
+import { StreamingEventHeader, ResolvedStreamingEnvelope, StreamingEventEnvelope } from './baseClasses'
 import {
     CoreExternalFormat,
     EventBridgeFormat,
@@ -15,6 +15,9 @@ import {
     toWebSocketFormat,
     toSNSFeedbackFormat,
 } from './formatTransform'
+
+/** Snapshot type string used in header for all DataSources. */
+export const SNAPSHOT_HEADER_TYPE = 'Snapshot' as const
 
 /** Minimal serializer interface: serialize internal content + header to external update. */
 export interface StreamEventPublisherSerializer<Header extends StreamingEventHeader = StreamingEventHeader> {
@@ -99,4 +102,53 @@ export function wireFormatsFromCoreFormat<PrimaryKey extends string = string>(
     }
 
     return { eventBridgeEvent, dynamoRecord, snsFeedbackFormat, webSocketFormat };
+}
+
+/**
+ * Build CoreExternalFormat for a snapshot envelope. Use when the caller has the external
+ * snapshot payload (e.g. after serializeSnapshot) and needs a canonical envelope for
+ * storage or replay delivery. Wire formats can be produced via wireFormatsFromCoreFormat.
+ */
+export function createSnapshotCoreFormat(
+    dataSourceKey: string,
+    streamKey: string,
+    timestamp: number,
+    update: CoreExternalFormat['update']
+): CoreExternalFormat {
+    return {
+        header: {
+            dataSourceKey,
+            streamKey,
+            timestamp,
+            type: SNAPSHOT_HEADER_TYPE,
+        },
+        update,
+    };
+}
+
+/**
+ * Lift a snapshot CoreExternalFormat to ResolvedStreamingEnvelope (header + content).
+ * Callers that need internal format deserialize the content separately.
+ */
+export function coreFormatToResolvedSnapshotEnvelope(
+    coreFormat: CoreExternalFormat
+): ResolvedStreamingEnvelope<CoreExternalFormat['update'], CoreExternalFormat['header']> {
+    return {
+        header: coreFormat.header,
+        content: coreFormat.update,
+    };
+}
+
+/**
+ * Lift a CoreExternalFormat (snapshot or event) to StreamingEventEnvelope with lazy content.
+ * Use when replay or other paths need getContentInternal (e.g. for lazy deserialize).
+ */
+export function coreFormatToStreamingEnvelope<Content>(
+    coreFormat: CoreExternalFormat,
+    getContentInternal: () => Promise<Content>
+): StreamingEventEnvelope<Content, CoreExternalFormat['header']> {
+    return {
+        header: coreFormat.header,
+        getContentInternal,
+    };
 }

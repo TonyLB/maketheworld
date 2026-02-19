@@ -87,13 +87,11 @@ export const isAssetUpdatedEvent = (event: any): event is AssetUpdatedEventUpdat
 export type ComponentEventExternal = ComponentUpdatedEventExternal | ComponentRemovedEventExternal
 
 export type ComponentUpdatedEventExternal = {
-    type: 'Component Updated'
     componentId: string
     wml: string // Serialized WML for external consumption
 }
 
 export type ComponentRemovedEventExternal = {
-    type: 'Component Removed'
     componentId: string
     wml: string // Serialized WML for external consumption
 }
@@ -150,41 +148,33 @@ export type AssetsEventExternal = ComponentEventExternal | AssetLevelEventExtern
 // Specific external asset-level event types
 // Note: assetId is available via streamKey, so we don't duplicate it in the payload
 export type AssetAddedEventExternal = {
-    type: 'Asset Added'
     zone: string
     player?: string  // Present for Personal and Draft zones
 }
 
 export type AssetCachedEventExternal = {
-    type: 'Asset Cached'
     zone: string
     wml?: string
 }
 
-export type AssetDecachedEventExternal = {
-    type: 'Asset Decached'
-}
+export type AssetDecachedEventExternal = Record<string, never>
 
 export type AssetRemovedEventExternal = {
-    type: 'Asset Removed'
     zone: string
     player?: string  // Present for Personal and Draft zones
 }
 
 export type CanonUpdatedEventExternal = {
-    type: 'Canon Updated'
     assetIds: string[]
 }
 
 export type ZoneUpdatedEventExternal = {
-    type: 'Zone Updated'
     fromZone: string
     toZone: string
     player?: string  // Present for Personal and Draft zones (in fromZone or toZone)
 }
 
 export type AssetUpdatedEventExternal = {
-    type: 'Asset Updated'
     wml: string
     player?: string  // Present for Personal and Draft zones
 }
@@ -255,7 +245,6 @@ export class AssetsEventSerializer implements DataSourceEventSerializer<AssetsEv
         if (isComponentUpdatedAssetsSerializeParams(params)) {
             const { content } = params
             return {
-                type: 'Component Updated',
                 componentId: content.component.universalKey || '',
                 wml: schemaToWML([content.component.schema])
             }
@@ -263,7 +252,6 @@ export class AssetsEventSerializer implements DataSourceEventSerializer<AssetsEv
         if (isComponentRemovedAssetsSerializeParams(params)) {
             const { content } = params
             return {
-                type: 'Component Removed',
                 componentId: content.component.universalKey || '',
                 wml: schemaToWML([content.component.schema])
             }
@@ -271,31 +259,30 @@ export class AssetsEventSerializer implements DataSourceEventSerializer<AssetsEv
         if (isAssetUpdatedAssetsSerializeParams(params)) {
             const { content } = params
             return {
-                type: 'Asset Updated',
                 wml: schemaToWML([content.standardForm.schema]),
                 ...(content.player ? { player: content.player } : {})
             }
         }
         if (isAssetAddedAssetsSerializeParams(params)) {
             const { content } = params
-            return { type: 'Asset Added', zone: content.zone, ...(content.player != null ? { player: content.player } : {}) }
+            return { zone: content.zone, ...(content.player != null ? { player: content.player } : {}) }
         }
         if (isAssetCachedAssetsSerializeParams(params)) {
             const { content } = params
-            return { type: 'Asset Cached', zone: content.zone, ...(content.wml != null ? { wml: content.wml } : {}) }
+            return { zone: content.zone, ...(content.wml != null ? { wml: content.wml } : {}) }
         }
-        if (isAssetDecachedAssetsSerializeParams(params)) return { type: 'Asset Decached' }
+        if (isAssetDecachedAssetsSerializeParams(params)) return {}
         if (isAssetRemovedAssetsSerializeParams(params)) {
             const { content } = params
-            return { type: 'Asset Removed', zone: content.zone, ...(content.player != null ? { player: content.player } : {}) }
+            return { zone: content.zone, ...(content.player != null ? { player: content.player } : {}) }
         }
         if (isCanonUpdatedAssetsSerializeParams(params)) {
             const { content } = params
-            return { type: 'Canon Updated', assetIds: content.assetIds }
+            return { assetIds: content.assetIds }
         }
         if (isZoneUpdatedAssetsSerializeParams(params)) {
             const { content } = params
-            return { type: 'Zone Updated', fromZone: content.fromZone, toZone: content.toZone, ...(content.player != null ? { player: content.player } : {}) }
+            return { fromZone: content.fromZone, toZone: content.toZone, ...(content.player != null ? { player: content.player } : {}) }
         }
         throw new Error(`Unknown event type in AssetsEventUpdate: ${params.header.type}`)
     }

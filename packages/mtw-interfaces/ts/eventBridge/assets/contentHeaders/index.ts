@@ -41,7 +41,6 @@ export {
 // External event format (EventBridge) - using WML strings
 // External snapshot uses an array for efficient JSON transmission
 export type ContentHeadersSnapshotExternal = {
-    type: 'Snapshot'
     assets: Array<{
         assetId: AssetUUID
         zone: Zone
@@ -50,14 +49,12 @@ export type ContentHeadersSnapshotExternal = {
 }
 
 export type ContentHeadersUpdateExternal = {
-    type: 'Headers Updated'
     assetId: AssetUUID
     zone: Zone
     wml: string // Serialized to WML for external consumption
 }
 
 export type ZoneUpdatedEventExternal = {
-    type: 'Zone Updated'
     assetId: AssetUUID
     fromZone: Zone
     toZone: Zone
@@ -86,7 +83,6 @@ export class ContentHeadersEventSerializer implements DataSourceEventSerializer<
         if (isHeadersUpdatedContentHeadersSerializeParams(params)) {
             const { content } = params
             return {
-                type: 'Headers Updated',
                 assetId: content.assetId,
                 zone: content.zone,
                 wml: schemaToWML([content.standardForm.schema])
@@ -104,7 +100,7 @@ export class ContentHeadersEventSerializer implements DataSourceEventSerializer<
                 standardForm: new StandardForm(content.wml)
             }
         }
-        throw new Error(`Unknown external streaming event type: ${(params.content as any).type}`)
+        throw new Error(`Unknown external streaming event type: ${params.header.type}`)
     }
     
     serializeSnapshot(snapshot: ContentHeadersSnapshot): ContentHeadersSnapshotExternal {
@@ -114,7 +110,6 @@ export class ContentHeadersEventSerializer implements DataSourceEventSerializer<
             wml: schemaToWML([asset.standardForm.schema])
         }))
         return {
-            type: 'Snapshot',
             assets: externalAssets
         }
     }
@@ -136,32 +131,24 @@ export class ContentHeadersEventSerializer implements DataSourceEventSerializer<
     }
 }
 
-// Type guard for external ContentHeaders events
+// Type guard for external ContentHeaders events (shape-based; type optional)
 export const isContentHeadersExternal = (event: any): event is ContentHeadersExternal => {
-    if (!event || typeof event !== 'object' || !('type' in event)) {
+    if (!event || typeof event !== 'object') {
         return false
     }
-    switch((event as any).type) {
-        case 'Snapshot':
-            return Boolean(
-                event.assets &&
-                Array.isArray(event.assets)
-            )
-        case 'Headers Updated':
-            return Boolean(
-                typeof event.assetId === 'string' &&
-                typeof event.zone === 'string' &&
-                typeof event.wml === 'string'
-            )
-        case 'Zone Updated':
-            return Boolean(
-                typeof event.assetId === 'string' &&
-                typeof event.fromZone === 'string' &&
-                typeof event.toZone === 'string'
-            )
-        default:
-            return false
+    // Snapshot: assets array
+    if (event.assets && Array.isArray(event.assets)) {
+        return true
     }
+    // Headers Updated: assetId, zone, wml
+    if (typeof event.assetId === 'string' && typeof event.zone === 'string' && typeof event.wml === 'string') {
+        return true
+    }
+    // Zone Updated: assetId, fromZone, toZone
+    if (typeof event.assetId === 'string' && typeof event.fromZone === 'string' && typeof event.toZone === 'string') {
+        return true
+    }
+    return false
 }
 
 // Note: Utility functions like extractComponentMetadata, createContentHeadersAsset, 

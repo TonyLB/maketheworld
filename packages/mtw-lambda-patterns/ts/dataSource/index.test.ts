@@ -388,7 +388,7 @@ describe('DataSource', () => {
     describe('storeSnapshotToStore', () => {
         it('should store snapshot with correct primary key and DataCategory', async () => {
             const streamKey = 'test-stream'
-            const snapshot = {
+            const snapshot: SnapshotType<TestSnapshotPayload> = {
                 id: 'test-id',
                 name: 'Test Snapshot',
                 value: 42,
@@ -401,7 +401,17 @@ describe('DataSource', () => {
             expect(mockDynamo.putItem).toHaveBeenCalledWith({
                 AssetId: 'STREAM#mtw.testDataSource::test-stream',
                 DataCategory: 'Meta::Snapshot',
-                snapshot
+                snapshotHeader: {
+                    dataSourceKey: 'mtw.testDataSource',
+                    streamKey: 'test-stream',
+                    timestamp: 100000000,
+                    type: 'Snapshot'
+                },
+                snapshotUpdate: {
+                    id: 'test-id',
+                    name: 'Test Snapshot',
+                    value: 42
+                }
             })
         })
 
@@ -417,7 +427,7 @@ describe('DataSource', () => {
             })
             
             const streamKey = 'test-stream'
-            const snapshot = {
+            const snapshot: SnapshotType<TestSnapshotPayload> = {
                 id: 'test-id',
                 name: 'Test Snapshot',
                 value: 42,
@@ -430,7 +440,17 @@ describe('DataSource', () => {
             expect(mockDynamo.putItem).toHaveBeenCalledWith({
                 EphemeraId: 'STREAM#mtw.differentDataSource::test-stream',
                 DataCategory: 'Meta::Snapshot',
-                snapshot
+                snapshotHeader: {
+                    dataSourceKey: 'mtw.differentDataSource',
+                    streamKey: 'test-stream',
+                    timestamp: 100000000,
+                    type: 'Snapshot'
+                },
+                snapshotUpdate: {
+                    id: 'test-id',
+                    name: 'Test Snapshot',
+                    value: 42
+                }
             })
         })
 
@@ -442,15 +462,19 @@ describe('DataSource', () => {
             const storedSnapshot = {
                 id: 'stored-id',
                 name: 'Stored Snapshot',
-                value: 200,
-                createdAt: 100000000,
-                expiresAt: 100300000
+                value: 200
             }
             
             mockDynamo.getItem.mockResolvedValue({
                 AssetId: 'STREAM#mtw.testDataSource::test-stream',
                 DataCategory: 'Meta::Snapshot',
-                snapshot: storedSnapshot
+                snapshotHeader: {
+                    dataSourceKey: 'mtw.testDataSource',
+                    streamKey: 'test-stream',
+                    timestamp: 100000000,
+                    type: 'Snapshot'
+                },
+                snapshotUpdate: storedSnapshot
             })
             
             const result = await dataSource.loadSnapshotFromStore(streamKey)
@@ -460,11 +484,13 @@ describe('DataSource', () => {
                     AssetId: 'STREAM#mtw.testDataSource::test-stream',
                     DataCategory: 'Meta::Snapshot'
                 },
-                ProjectionFields: ['snapshot']
+                ProjectionFields: ['snapshotHeader', 'snapshotUpdate', 'snapshot']
             })
             expect(result).toEqual({
                 ...storedSnapshot,
-                type: 'Snapshot'
+                type: 'Snapshot',
+                createdAt: 100000000,
+                expiresAt: 100300000
             })
         })
 
@@ -480,7 +506,7 @@ describe('DataSource', () => {
                     AssetId: 'STREAM#mtw.testDataSource::test-stream',
                     DataCategory: 'Meta::Snapshot'
                 },
-                ProjectionFields: ['snapshot']
+                ProjectionFields: ['snapshotHeader', 'snapshotUpdate', 'snapshot']
             })
             expect(result).toBeUndefined()
         })
@@ -500,15 +526,19 @@ describe('DataSource', () => {
             const storedSnapshot = {
                 id: 'stored-id',
                 name: 'Stored Snapshot',
-                value: 200,
-                createdAt: 100000000,
-                expiresAt: 100300000
+                value: 200
             }
             
             mockDynamo.getItem.mockResolvedValue({
                 EphemeraId: 'STREAM#mtw.differentDataSource::test-stream',
                 DataCategory: 'Meta::Snapshot',
-                snapshot: storedSnapshot
+                snapshotHeader: {
+                    dataSourceKey: 'mtw.differentDataSource',
+                    streamKey: 'test-stream',
+                    timestamp: 100000000,
+                    type: 'Snapshot'
+                },
+                snapshotUpdate: storedSnapshot
             })
             
             const result = await dataSourceWithDifferentKey.loadSnapshotFromStore(streamKey)
@@ -518,11 +548,13 @@ describe('DataSource', () => {
                     EphemeraId: 'STREAM#mtw.differentDataSource::test-stream',
                     DataCategory: 'Meta::Snapshot'
                 },
-                ProjectionFields: ['snapshot']
+                ProjectionFields: ['snapshotHeader', 'snapshotUpdate', 'snapshot']
             })
             expect(result).toEqual({
                 ...storedSnapshot,
-                type: 'Snapshot'
+                type: 'Snapshot',
+                createdAt: 100000000,
+                expiresAt: 100300000
             })
         })
 
@@ -557,6 +589,7 @@ describe('DataSource', () => {
             expect(mockDynamo.putItem).toHaveBeenCalledWith({
                 AssetId: 'STREAM#mtw.testDataSource::test-stream',
                 DataCategory: 'EVENT#100000000::test-uuid-123',
+                eventType: 'TestUpdatePayload',
                 update: {
                     type: 'TestUpdatePayload',
                     update: 'test-update'
@@ -570,7 +603,7 @@ describe('DataSource', () => {
                 Detail: {
                     streamKey: 'test-stream',
                     timestamp: 100000000,
-                    RequestId: undefined,
+                    type: 'TestUpdatePayload',
                     update: 'test-update'
                 }
             }])
@@ -586,6 +619,7 @@ describe('DataSource', () => {
             expect(mockDynamo.putItem).toHaveBeenCalledWith({
                 AssetId: 'STREAM#mtw.testDataSource::test-stream',
                 DataCategory: 'EVENT#100000000::test-uuid-123',
+                eventType: 'TestUpdatePayload',
                 update: {
                     type: 'TestUpdatePayload',
                     update: 'test-update'
@@ -598,7 +632,7 @@ describe('DataSource', () => {
                 Detail: {
                     streamKey: 'test-stream',
                     timestamp: 100000000,
-                    RequestId: undefined,
+                    type: 'TestUpdatePayload',
                     update: 'test-update',
                 }
             }])
@@ -624,6 +658,7 @@ describe('DataSource', () => {
             expect(mockDynamo.putItem).toHaveBeenCalledWith({
                 EphemeraId: 'STREAM#mtw.differentDataSource::test-stream',
                 DataCategory: 'EVENT#100000000::test-uuid-123',
+                eventType: 'TestUpdatePayload',
                 update: {
                     type: 'TestUpdatePayload',
                     update: 'test-update'
@@ -636,7 +671,7 @@ describe('DataSource', () => {
                 Detail: {
                     streamKey: 'test-stream',
                     timestamp: 100000000,
-                    RequestId: undefined,
+                    type: 'TestUpdatePayload',
                     update: 'test-update',
                 }
             }])
@@ -682,12 +717,13 @@ describe('DataSource', () => {
                 .mockReturnValueOnce('uuid-1' as unknown as ReturnType<typeof uuidv4>)
                 .mockReturnValueOnce('uuid-2' as unknown as ReturnType<typeof uuidv4>)
             
-            await dataSource.streamEvent({ update, streamKey, header: { type: update.type } })
-            await dataSource.streamEvent({ update, streamKey, header: { type: update.type } })
+            await dataSource.streamEvent({ update, streamKey, header: { type: 'TestUpdatePayload' } })
+            await dataSource.streamEvent({ update, streamKey, header: { type: 'TestUpdatePayload' } })
             
             expect(mockDynamo.putItem).toHaveBeenNthCalledWith(1, {
                 AssetId: 'STREAM#mtw.testDataSource::test-stream',
                 DataCategory: 'EVENT#100000000::uuid-1',
+                eventType: 'TestUpdatePayload',
                 update: {
                     type: 'TestUpdatePayload',
                     update: 'test-update'
@@ -697,6 +733,7 @@ describe('DataSource', () => {
             expect(mockDynamo.putItem).toHaveBeenNthCalledWith(2, {
                 AssetId: 'STREAM#mtw.testDataSource::test-stream',
                 DataCategory: 'EVENT#100000000::uuid-2',
+                eventType: 'TestUpdatePayload',
                 update: {
                     type: 'TestUpdatePayload',
                     update: 'test-update'
@@ -717,6 +754,7 @@ describe('DataSource', () => {
             expect(mockDynamo.putItem).toHaveBeenCalledWith({
                 AssetId: 'STREAM#mtw.testDataSource::test-stream',
                 DataCategory: 'EVENT#200000000::test-uuid-123',
+                eventType: 'TestUpdatePayload',
                 update: {
                     type: 'TestUpdatePayload',
                     update: 'test-update'
@@ -729,7 +767,7 @@ describe('DataSource', () => {
                 Detail: {
                     streamKey: 'test-stream',
                     timestamp: 200000000,
-                    RequestId: undefined,
+                    type: 'TestUpdatePayload',
                     update: 'test-update',
                 }
             }])
@@ -889,7 +927,7 @@ describe('DataSource', () => {
             })
         })
 
-        it('should deliver sidecar Snapshot when snapshotSidecarUrlGenerator is configured', async () => {
+        it('should deliver sidecar Snapshot when snapshot payload includes a sidecarUrl', async () => {
             const sessionId = 'SESSION#test-session' as const
             const streamKey = 'test-stream'
             const sidecarUrl = 'https://example.com/sidecar'
@@ -902,10 +940,17 @@ describe('DataSource', () => {
                 messageBus: mockMessageBus,
                 primaryKeyName: 'AssetId',
                 dataSourceKey: 'mtw.testDataSource',
-                snapshotSidecarUrlGenerator: jest.fn().mockResolvedValue({ sidecarUrl, createdAt, expiresAt }),
+                snapshotContentGenerator: mockSnapshotContentGenerator,
                 feedbackTopicArn: 'arn:aws:sns:us-east-1:123456789012:test-feedback',
                 replayable: true
             })
+
+            jest.spyOn(sidecarDataSource, 'getSnapshotExternal').mockResolvedValue({
+                type: 'Snapshot',
+                sidecarUrl,
+                createdAt,
+                expiresAt
+            } as any)
             mockDynamo.query.mockResolvedValue([])
 
             await sidecarDataSource.initializeSubscription({ sessionId, streamKey })
@@ -991,11 +1036,11 @@ describe('DataSource', () => {
                 primaryKeyName: 'AssetId',
                 dataSourceKey: 'mtw.extendedHeader',
                 feedbackTopicArn: 'arn:aws:sns:us-east-1:123456789012:test-feedback',
-                buildHeader: ({ update, streamKey, timestamp }) => ({
+                buildHeader: ({ streamKey, timestamp }) => ({
                     dataSourceKey: 'mtw.extendedHeader',
                     streamKey,
                     timestamp,
-                    type: update.type,
+                    type: 'TestUpdatePayload',
                     zone: 'Draft'
                 })
             })
@@ -1955,6 +2000,7 @@ describe('DataSource', () => {
                 expect(mockDynamo.putItem).toHaveBeenCalledWith({
                     AssetId: 'STREAM#mtw.testDataSource::test-stream',
                     DataCategory: 'EVENT#100000000::test-uuid-123',
+                    eventType: 'TestUpdatePayload',
                     update: {
                         type: 'TestUpdatePayload',
                         update: 'test-update'
@@ -2350,12 +2396,16 @@ describe('DataSource', () => {
                 expect(mockDynamo.putItem).toHaveBeenCalledWith({
                     AssetId: 'STREAM#mtw.testDataSource::test-stream',
                     DataCategory: 'Meta::Snapshot',
-                    snapshot: {
+                    snapshotHeader: {
+                        dataSourceKey: 'mtw.testDataSource',
+                        streamKey: 'test-stream',
+                        timestamp: 100000000,
+                        type: 'Snapshot'
+                    },
+                    snapshotUpdate: {
                         externalId: 'test-id',
                         externalName: 'Test Snapshot',
-                        externalValue: 42,
-                        createdAt: 100000000,
-                        expiresAt: 100300000
+                        externalValue: 42
                     }
                 })
             })

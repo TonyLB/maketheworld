@@ -8,6 +8,8 @@ import {
     CoreExternalFormatHeader,
     DynamoDBFormat,
     EventBridgeFormat,
+    SNSFeedbackFormat,
+    WebSocketFormat,
     makeCoreExternalFormatGuardFromHeaderGuard,
     toEventBridgeFormat,
     fromEventBridgeFormat,
@@ -91,7 +93,23 @@ describe('formatTransform', () => {
                 RequestIds: ['req-a']
             })
             expect(result.update).not.toHaveProperty('RequestIds')
-            expect(result.update).toMatchObject({ type: 'Content Update', update: '<Asset />' })
+            expect(result.update).toMatchObject({ update: '<Asset />' })
+        })
+
+        it('should work when update has no type (consumer compatibility)', () => {
+            const eventBridgeEvent: EventBridgeFormat = {
+                Source: 'mtw.wml',
+                DetailType: 'Content Update',
+                Detail: {
+                    streamKey: 'ASSET#test',
+                    timestamp: 1234567890,
+                    wml: '<Asset />'
+                }
+            }
+            const result = fromEventBridgeFormat(eventBridgeEvent)
+            expect(result.header.type).toBe('Content Update')
+            expect(result.update).toMatchObject({ wml: '<Asset />' })
+            expect(result.update).not.toHaveProperty('type')
         })
 
         it('should normalize legacy Detail.RequestIds into header when Detail.extendedHeader is absent', () => {
@@ -113,7 +131,7 @@ describe('formatTransform', () => {
                 type: 'Merge Conflict',
                 RequestIds: ['req-legacy']
             })
-            expect(result.update).toMatchObject({ type: 'Merge Conflict', error: 'Conflict' })
+            expect(result.update).toMatchObject({ error: 'Conflict' })
         })
     })
 
@@ -130,6 +148,7 @@ describe('formatTransform', () => {
                 update: { type: 'Content Update', wml: 'x' }
             }
             const record = toDynamoDBFormat(coreFormat, 'AssetId', 'uuid-1')
+            expect(record.eventType).toBe('Content Update')
             expect(record.extendedHeader).toEqual({ RequestIds: ['r1'] })
             expect(record.update).toEqual({ type: 'Content Update', wml: 'x' })
 
@@ -141,6 +160,29 @@ describe('formatTransform', () => {
                 type: 'Content Update',
                 RequestIds: ['r1']
             })
+        })
+
+        it('should work when update has no type (consumer compatibility)', () => {
+            const record = {
+                AssetId: 'STREAM#mtw.wml::ASSET#id',
+                DataCategory: 'EVENT#2000::uuid-1',
+                eventType: 'Content Update',
+                update: { wml: '<Asset />' }
+            } as unknown as DynamoDBFormat
+            const back = fromDynamoDBFormat(record, 'mtw.wml')
+            expect(back.header.type).toBe('Content Update')
+            expect(back.update).toEqual({ wml: '<Asset />' })
+        })
+
+        it('should use empty string for header.type when eventType is missing on legacy records', () => {
+            const legacyRecord: DynamoDBFormat = {
+                AssetId: 'STREAM#mtw.wml::ASSET#id',
+                DataCategory: 'EVENT#2000::uuid-1',
+                update: { type: 'Legacy Type', wml: 'x' },
+            } as unknown as DynamoDBFormat
+
+            const back = fromDynamoDBFormat(legacyRecord, 'mtw.wml')
+            expect(back.header.type).toBe('')
         })
     })
 
@@ -203,6 +245,7 @@ describe('formatTransform', () => {
                 update: { type: 'Content Update', wml: 'y' }
             }
             const snsFormat = toSNSFeedbackFormat(coreFormat)
+            expect(snsFormat.eventType).toBe('Content Update')
             expect(snsFormat.extendedHeader).toEqual({ RequestIds: ['r2'] })
 
             const back = fromSNSFeedbackFormat(snsFormat)
@@ -213,6 +256,19 @@ describe('formatTransform', () => {
                 type: 'Content Update',
                 RequestIds: ['r2']
             })
+        })
+
+        it('should use empty string for header.type when eventType is missing on legacy SNS messages', () => {
+            const snsFormat = {
+                messageType: 'StreamEvent' as const,
+                dataSourceKey: 'mtw.wml',
+                streamKey: 'ASSET#id',
+                timestamp: 3000,
+                update: { type: 'FromUpdate', wml: 'y' },
+            } as unknown as SNSFeedbackFormat
+
+            const back = fromSNSFeedbackFormat(snsFormat)
+            expect(back.header.type).toBe('')
         })
     })
 
@@ -229,11 +285,12 @@ describe('formatTransform', () => {
             }
             const result = toWebSocketFormat(coreFormat)
             expect(result.messageType).toBe('StreamEvent')
+            expect(result.eventType).toBe('Test')
             expect(result.dataSourceKey).toBe('mtw.assets')
             expect(result.streamKey).toBe('stream-1')
             expect(result.timestamp).toBe(1000)
             expect(result.update).toEqual({ type: 'Test', data: 'x' })
-            expect(Object.keys(result).sort()).toEqual(['dataSourceKey', 'messageType', 'streamKey', 'timestamp', 'update'])
+            expect(Object.keys(result).sort()).toEqual(['dataSourceKey', 'eventType', 'messageType', 'streamKey', 'timestamp', 'update'])
         })
 
         it('should merge extended header fields at top level (RequestIds and custom field)', () => {
@@ -249,6 +306,7 @@ describe('formatTransform', () => {
                 update: { type: 'Content Update', wml: '<Asset />' }
             }
             const result = toWebSocketFormat(coreFormat)
+            expect(result.eventType).toBe('Content Update')
             expect(result.RequestIds).toEqual(['req-1', 'req-2'])
             expect((result as unknown as Record<string, unknown>).foo).toBe('bar')
         })
@@ -265,6 +323,7 @@ describe('formatTransform', () => {
                 update: { type: 'Test' }
             }
             const result = toWebSocketFormat(coreFormat)
+            expect(result.eventType).toBe('Test')
             expect(result.RequestId).toBe('header-req')
         })
     })
@@ -273,6 +332,7 @@ describe('formatTransform', () => {
         it('should reconstruct header with extended top-level fields', () => {
             const message = {
                 messageType: 'StreamEvent' as const,
+                eventType: 'Content Update',
                 dataSourceKey: 'mtw.wml',
                 streamKey: 'ASSET#test',
                 timestamp: 1234567890,
@@ -290,6 +350,7 @@ describe('formatTransform', () => {
         it('should set header.RequestId from message when present', () => {
             const message = {
                 messageType: 'StreamEvent' as const,
+                eventType: 'Test',
                 dataSourceKey: 'mtw.assets',
                 streamKey: 's1',
                 timestamp: 1000,
@@ -298,6 +359,33 @@ describe('formatTransform', () => {
             }
             const result = fromWebSocketFormat(message)
             expect(result.header.RequestId).toBe('msg-request-id')
+        })
+
+        it('should work when update has no type (consumer compatibility)', () => {
+            const message = {
+                messageType: 'StreamEvent' as const,
+                eventType: 'Content Update',
+                dataSourceKey: 'mtw.wml',
+                streamKey: 'ASSET#test',
+                timestamp: 1234567890,
+                update: { wml: '<Asset />' }
+            }
+            const result = fromWebSocketFormat(message)
+            expect(result.header.type).toBe('Content Update')
+            expect(result.update).toEqual({ wml: '<Asset />' })
+        })
+
+        it('should use empty string for header.type when eventType is missing on legacy messages', () => {
+            const message = {
+                messageType: 'StreamEvent' as const,
+                dataSourceKey: 'mtw.wml',
+                streamKey: 'ASSET#legacy',
+                timestamp: 1111,
+                update: { type: 'FromUpdate', wml: '<Asset />' },
+            } as unknown as WebSocketFormat
+
+            const result = fromWebSocketFormat(message)
+            expect(result.header.type).toBe('')
         })
     })
 })

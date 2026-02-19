@@ -90,16 +90,18 @@ export type ClientStreamingEnvelope<Content> = {
 //
 // Common payload shapes for messages dispatched into dataSource reducers.
 // These are the client view of the external snapshot/update payloads.
+// Unified type for both snapshots and events; routing uses header.type.
 //
-export type ClientSnapshotMessagePayload<ExternalSnapshotPayload> = {
+export type ClientStreamingMessagePayload<Content> = {
     streamKey: string;
     timestamp: number;
-} & ClientStreamingEnvelope<ExternalSnapshotPayload>
+} & ClientStreamingEnvelope<Content>
 
-export type ClientUpdateMessagePayload<ExternalUpdatePayload> = {
-    streamKey: string;
-    timestamp: number;
-} & ClientStreamingEnvelope<ExternalUpdatePayload>
+/** @deprecated Use ClientStreamingMessagePayload */
+export type ClientSnapshotMessagePayload<ExternalSnapshotPayload> = ClientStreamingMessagePayload<ExternalSnapshotPayload>
+
+/** @deprecated Use ClientStreamingMessagePayload */
+export type ClientUpdateMessagePayload<ExternalUpdatePayload> = ClientStreamingMessagePayload<ExternalUpdatePayload>
 
 export interface DataSourceNodes<SnapshotPayload, UpdatePayload, Header extends StreamingEventHeader = StreamingEventHeader> {
     INITIAL: ISSMHoldNode<DataSourceInternal, DataSourcePublic<SnapshotPayload, UpdatePayload, Header>>;

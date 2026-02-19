@@ -42,7 +42,6 @@ describe('Library EventBridge Contracts', () => {
                     const assetId: AssetUUID = 'ASSET#test1'
                     
                     const result = aggregator.applyUpdate(emptySnapshot, libraryEnvelope({
-                        type: 'Asset Added',
                         assetId
                     }, 'Asset Added'))
 
@@ -57,7 +56,6 @@ describe('Library EventBridge Contracts', () => {
                     const snapshot = aggregator.createEmpty()
                     
                     const result1 = aggregator.applyUpdate(snapshot, libraryEnvelope({
-                        type: 'Asset Added',
                         assetId: 'ASSET#test1' as AssetUUID
                     }, 'Asset Added'))
 
@@ -65,7 +63,6 @@ describe('Library EventBridge Contracts', () => {
                     if (!result1.success) return
 
                     const result2 = aggregator.applyUpdate(result1.snapshot, libraryEnvelope({
-                        type: 'Asset Added',
                         assetId: 'ASSET#test2' as AssetUUID
                     }, 'Asset Added'))
 
@@ -81,7 +78,6 @@ describe('Library EventBridge Contracts', () => {
                     const snapshot = aggregator.createEmpty()
                     
                     const result1 = aggregator.applyUpdate(snapshot, libraryEnvelope({
-                        type: 'Asset Added',
                         assetId: 'ASSET#test1' as AssetUUID
                     }, 'Asset Added'))
 
@@ -90,7 +86,6 @@ describe('Library EventBridge Contracts', () => {
 
                     // Add same asset again
                     const result2 = aggregator.applyUpdate(result1.snapshot, libraryEnvelope({
-                        type: 'Asset Added',
                         assetId: 'ASSET#test1' as AssetUUID
                     }, 'Asset Added'))
 
@@ -110,7 +105,6 @@ describe('Library EventBridge Contracts', () => {
                     }
                     
                     const result = aggregator.applyUpdate(snapshot, libraryEnvelope({
-                        type: 'Asset Removed',
                         assetId: 'ASSET#test2' as AssetUUID
                     }, 'Asset Removed'))
 
@@ -130,7 +124,6 @@ describe('Library EventBridge Contracts', () => {
                     }
                     
                     const result = aggregator.applyUpdate(snapshot, libraryEnvelope({
-                        type: 'Asset Removed',
                         assetId: 'ASSET#nonexistent' as AssetUUID
                     }, 'Asset Removed'))
 
@@ -148,7 +141,6 @@ describe('Library EventBridge Contracts', () => {
                     }
                     
                     const result = aggregator.applyUpdate(snapshot, libraryEnvelope({
-                        type: 'Asset Removed',
                         assetId: 'ASSET#test1' as AssetUUID
                     }, 'Asset Removed'))
 
@@ -166,17 +158,16 @@ describe('Library EventBridge Contracts', () => {
                         assetIds: ['ASSET#old1', 'ASSET#old2'] as AssetUUID[]
                     }
 
-                    const newSnapshot = {
-                        type: 'Snapshot' as const,
+                    const newSnapshotContent = {
                         assetIds: ['ASSET#new1', 'ASSET#new2', 'ASSET#new3'] as AssetUUID[]
                     }
                     
-                    const result = aggregator.applyUpdate(oldSnapshot, libraryEnvelope(newSnapshot, 'Snapshot'))
+                    const result = aggregator.applyUpdate(oldSnapshot, libraryEnvelope(newSnapshotContent, 'Snapshot'))
 
                     expect(result.success).toBe(true)
                     if (result.success) {
-                        expect(result.snapshot).toEqual(newSnapshot)
                         expect(result.snapshot.assetIds).toHaveLength(3)
+                        expect(result.snapshot.assetIds).toEqual(newSnapshotContent.assetIds)
                         expect(result.snapshot.assetIds).not.toContain('ASSET#old1')
                     }
                 })
@@ -187,12 +178,11 @@ describe('Library EventBridge Contracts', () => {
                         assetIds: ['ASSET#test1', 'ASSET#test2'] as AssetUUID[]
                     }
 
-                    const newSnapshot = {
-                        type: 'Snapshot' as const,
+                    const newSnapshotContent = {
                         assetIds: [] as AssetUUID[]
                     }
                     
-                    const result = aggregator.applyUpdate(oldSnapshot, libraryEnvelope(newSnapshot, 'Snapshot'))
+                    const result = aggregator.applyUpdate(oldSnapshot, libraryEnvelope(newSnapshotContent, 'Snapshot'))
 
                     expect(result.success).toBe(true)
                     if (result.success) {
@@ -243,7 +233,6 @@ describe('Library EventBridge Contracts', () => {
                     const originalLength = originalSnapshot.assetIds.length
                     
                     aggregator.applyUpdate(originalSnapshot, libraryEnvelope({
-                        type: 'Asset Added',
                         assetId: 'ASSET#test2' as AssetUUID
                     }, 'Asset Added'))
 
@@ -259,7 +248,6 @@ describe('Library EventBridge Contracts', () => {
                     const originalIds = [...originalSnapshot.assetIds]
                     
                     aggregator.applyUpdate(originalSnapshot, libraryEnvelope({
-                        type: 'Asset Removed',
                         assetId: 'ASSET#test1' as AssetUUID
                     }, 'Asset Removed'))
 
@@ -273,7 +261,6 @@ describe('Library EventBridge Contracts', () => {
                     }
                     
                     const result = aggregator.applyUpdate(snapshot, libraryEnvelope({
-                        type: 'Asset Added',
                         assetId: 'ASSET#test2' as AssetUUID
                     }, 'Asset Added'))
 
@@ -305,7 +292,6 @@ describe('Library EventBridge Contracts', () => {
                 })
 
                 expect(result).toEqual({
-                    type: 'Asset Added',
                     assetId: 'ASSET#test1'
                 })
             })
@@ -319,7 +305,6 @@ describe('Library EventBridge Contracts', () => {
                 })
 
                 expect(result).toEqual({
-                    type: 'Asset Removed',
                     assetId: 'ASSET#test2'
                 })
             })
@@ -340,7 +325,6 @@ describe('Library EventBridge Contracts', () => {
         describe('deserialize', () => {
             it('should deserialize Asset Added event', () => {
                 const externalUpdate: AssetAddedExternal = {
-                    type: 'Asset Added',
                     assetId: 'ASSET#test1' as AssetUUID
                 }
 
@@ -356,7 +340,6 @@ describe('Library EventBridge Contracts', () => {
 
             it('should deserialize Asset Removed event', () => {
                 const externalUpdate: AssetRemovedExternal = {
-                    type: 'Asset Removed',
                     assetId: 'ASSET#test2' as AssetUUID
                 }
 
@@ -372,7 +355,6 @@ describe('Library EventBridge Contracts', () => {
 
             it('should return null for invalid Asset Added event', () => {
                 const externalUpdate = {
-                    type: 'Asset Added',
                     assetId: 123 // Invalid: not a string
                 } as any
 
@@ -386,7 +368,6 @@ describe('Library EventBridge Contracts', () => {
 
             it('should return null for invalid Asset Removed event', () => {
                 const externalUpdate = {
-                    type: 'Asset Removed',
                     assetId: null // Invalid: not a string
                 } as any
 
@@ -416,7 +397,6 @@ describe('Library EventBridge Contracts', () => {
         describe('deserialize when header and payload type disagree - header wins', () => {
             it('should deserialize as Asset Removed when header says Asset Removed but payload has Asset Added shape', () => {
                 const externalUpdate: AssetAddedExternal = {
-                    type: 'Asset Added',
                     assetId: 'ASSET#test1' as AssetUUID
                 }
 
@@ -441,7 +421,6 @@ describe('Library EventBridge Contracts', () => {
                 const result = serializer.serializeSnapshot(snapshot)
 
                 expect(result).toEqual({
-                    type: 'Snapshot',
                     assetIds: ['ASSET#test1', 'ASSET#test2', 'ASSET#test3']
                 })
             })
@@ -455,7 +434,6 @@ describe('Library EventBridge Contracts', () => {
                 const result = serializer.serializeSnapshot(snapshot)
 
                 expect(result).toEqual({
-                    type: 'Snapshot',
                     assetIds: []
                 })
             })
@@ -476,7 +454,6 @@ describe('Library EventBridge Contracts', () => {
         describe('deserializeSnapshot', () => {
             it('should deserialize snapshot with multiple assets', () => {
                 const externalSnapshot: LibrarySnapshotExternal = {
-                    type: 'Snapshot',
                     assetIds: ['ASSET#test1', 'ASSET#test2', 'ASSET#test3'] as AssetUUID[]
                 }
 
@@ -489,7 +466,6 @@ describe('Library EventBridge Contracts', () => {
 
             it('should deserialize empty snapshot', () => {
                 const externalSnapshot: LibrarySnapshotExternal = {
-                    type: 'Snapshot',
                     assetIds: [] as AssetUUID[]
                 }
 
@@ -502,7 +478,6 @@ describe('Library EventBridge Contracts', () => {
 
             it('should return null if assetIds is not an array', () => {
                 const externalSnapshot = {
-                    type: 'Snapshot',
                     assetIds: 'not-an-array'
                 } as any
 
@@ -513,7 +488,6 @@ describe('Library EventBridge Contracts', () => {
 
             it('should return null if assetIds contains non-strings', () => {
                 const externalSnapshot = {
-                    type: 'Snapshot',
                     assetIds: ['ASSET#test1', 123, 'ASSET#test2']
                 } as any
 
@@ -524,7 +498,6 @@ describe('Library EventBridge Contracts', () => {
 
             it('should return new array (not reference original)', () => {
                 const externalSnapshot: LibrarySnapshotExternal = {
-                    type: 'Snapshot',
                     assetIds: ['ASSET#test1'] as AssetUUID[]
                 }
 
@@ -540,7 +513,6 @@ describe('Library EventBridge Contracts', () => {
     describe('isLibraryExternal', () => {
         it('should return true for valid Snapshot event', () => {
             const event: LibrarySnapshotExternal = {
-                type: 'Snapshot',
                 assetIds: ['ASSET#test1', 'ASSET#test2'] as AssetUUID[]
             }
 
@@ -549,7 +521,6 @@ describe('Library EventBridge Contracts', () => {
 
         it('should return true for valid Asset Added event', () => {
             const event: AssetAddedExternal = {
-                type: 'Asset Added',
                 assetId: 'ASSET#test1' as AssetUUID
             }
 
@@ -558,7 +529,6 @@ describe('Library EventBridge Contracts', () => {
 
         it('should return true for valid Asset Removed event', () => {
             const event: AssetRemovedExternal = {
-                type: 'Asset Removed',
                 assetId: 'ASSET#test1' as AssetUUID
             }
 
@@ -567,7 +537,6 @@ describe('Library EventBridge Contracts', () => {
 
         it('should return false for Snapshot with non-array assetIds', () => {
             const event = {
-                type: 'Snapshot',
                 assetIds: 'not-an-array'
             }
 
@@ -576,7 +545,6 @@ describe('Library EventBridge Contracts', () => {
 
         it('should return false for Snapshot with non-string assetIds', () => {
             const event = {
-                type: 'Snapshot',
                 assetIds: ['ASSET#test1', 123]
             }
 
@@ -585,7 +553,6 @@ describe('Library EventBridge Contracts', () => {
 
         it('should return false for Asset Added with non-string assetId', () => {
             const event = {
-                type: 'Asset Added',
                 assetId: 123
             }
 
@@ -594,7 +561,6 @@ describe('Library EventBridge Contracts', () => {
 
         it('should return false for Asset Removed with non-string assetId', () => {
             const event = {
-                type: 'Asset Removed',
                 assetId: null
             }
 
@@ -603,7 +569,6 @@ describe('Library EventBridge Contracts', () => {
 
         it('should return false for unknown event type', () => {
             const event = {
-                type: 'Unknown',
                 data: 'invalid'
             }
 
@@ -618,12 +583,12 @@ describe('Library EventBridge Contracts', () => {
             expect(isLibraryExternal(undefined)).toBe(false)
         })
 
-        it('should return false for object without type', () => {
+        it('should return true for object without type when shape is valid (consumer compatibility)', () => {
             const event = {
                 assetIds: ['ASSET#test1']
             }
 
-            expect(isLibraryExternal(event)).toBe(false)
+            expect(isLibraryExternal(event)).toBe(true)
         })
     })
 })

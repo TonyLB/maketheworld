@@ -127,7 +127,6 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
             const snapshot = await contentHeadersDataSource.snapshotContentGenerator?.('global')
 
             expect(snapshot).toEqual({
-                type: 'Snapshot',
                 assets: []
             })
         })
@@ -156,7 +155,6 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
 
             // First, verify the overall structure
             expect(snapshot).toEqual({
-                type: 'Snapshot',
                 assets: [
                     {
                         assetId: 'ASSET#canon1',
@@ -209,7 +207,6 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
             const snapshot = await contentHeadersDataSource.snapshotContentGenerator?.('global')
 
             expect(snapshot).toEqual({
-                type: 'Snapshot',
                 assets: []
             })
         })

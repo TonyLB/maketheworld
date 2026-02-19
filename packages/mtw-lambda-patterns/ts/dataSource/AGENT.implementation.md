@@ -31,6 +31,9 @@ This dual approach ensures efficient delivery while maintaining the correct scop
 2. **Recent Events**: Events that occurred since the snapshot was created
 3. **Complete Context**: Everything the subscriber needs to understand the current state
 
+### **Snapshot envelope conventions**
+Snapshots use the same header semantics as streaming events. A single shared `header.type: 'Snapshot'` is used for all DataSources; snapshot rows and replay payloads use the same `{ header, update }` envelope shape as events. Example: build a snapshot header as `{ dataSourceKey, streamKey, timestamp, type: 'Snapshot' }`; the `update` field carries the external snapshot payload.
+
 ### **SNS Feedback Delivery**: Replay data is delivered via the Feedback SNS topic, which allows:
 - **Targeted Delivery**: Data goes directly to the specified `sessionId`
 - **No Fan-out**: Avoids broadcasting historical data to all subscribers
@@ -79,7 +82,11 @@ Full pipeline as implemented in code and formatTransform:
 2. **streamEvent** – DataSource merges fragment with base header (`dataSourceKey`, `streamKey`, `timestamp`) to form full **header**.
 3. **Serializer** – `eventSerializer.serialize({ content: update, header })` produces external payload `update` (e.g. `{ type, ... }`).
 4. **CoreExternalFormat** – `publishStreamEvent` builds `{ header, update }` (no other top-level fields).
-5. **toEventBridgeFormat** – formatTransform produces EventBridge envelope (Detail from header base + extendedHeader; Source/DetailType from config).
+5. **Context transforms** – formatTransform produces wire shapes for each transport:
+   - **EventBridge**: `toEventBridgeFormat` maps `header.type` to `DetailType` and derives `Detail.extendedHeader` from the extended part of the header.
+   - **DynamoDB**: `toDynamoDBFormat` stores `header.type` as `eventType` on the record (preferred discriminator for replay) and persists `extendedHeader` sidecarred from the header.
+   - **SNS Feedback**: `toSNSFeedbackFormat` flattens the envelope into SNS message shape, projecting `header.type` to top-level `eventType` for downstream consumers.
+   - **WebSocket**: `toWebSocketFormat` flattens the envelope into a WebSocket message, projecting `header.type` to top-level `eventType` and merging extended header fields at the top level.
 6. **EventBridge** – Caller sends the event (DataSource sends via AWS SDK; initialize lambda does not use EventBridge for init).
 
 **Inbound (consume):**
@@ -89,7 +96,9 @@ Full pipeline as implemented in code and formatTransform:
 4. **messageBus** – Lambda builds `StreamingEventMessage` with `header` from `coreFormat.header`, `getContentInternal` returning the deserialized payload, and sends to messageBus.
 5. **DataSource processing** – Patterns subscribe() applies envelope type guard, then passes narrowed events to DataSource `receiveEvents`.
 
-Replay path: DataSource `deliverReplayData` builds CoreExternalFormat (snapshot and replay events) with `{ header, update }` and uses `toSNSFeedbackFormat` (and optionally toWebSocketFormat) for delivery; no EventBridge on that path.
+Replay path: DataSource `deliverReplayData` builds CoreExternalFormat (snapshot and replay events) with `{ header, update }` and uses `toSNSFeedbackFormat` (and optionally toWebSocketFormat) for delivery; no EventBridge on that path. SNS Feedback and WebSocket both carry `eventType` as a projection of `header.type` so that downstream consumers and replay handlers can discriminate on envelope metadata rather than payload `type`.
+
+**Snapshot and CoreExternalFormat:** Snapshot records (e.g. Dynamo `Meta::Snapshot` rows) and replay delivery payloads are expressed as CoreExternalFormat envelopes: the same `{ header, update }` shape as streaming events. The header carries `type: 'Snapshot'` and the base four fields; `update` is the snapshot body (external payload). Existing `wireFormatsFromCoreFormat` and all format transforms (`toDynamoDBFormat`, `toSNSFeedbackFormat`, `toWebSocketFormat`, etc.) apply to snapshot envelopes without change.
 
 ### **Division of responsibility (serialization boundary)**
 
@@ -149,11 +158,16 @@ The envelope and serializer support an optional **extended header** shape so dat
 - **Resolution:** Full header is always `{ dataSourceKey: this.dataSourceKey, streamKey, timestamp: now, ...params.header }`.
 - Supply the fragment so routing uses `header.type` (and extended fields) explicitly; the payload need not carry `type`.
 
-**Serialization: extendedHeader**
+**Serialization: extendedHeader and wire-level eventType**
 
 - **Wire:** Every wire format (EventBridge Detail, DynamoDB, SNS, WebSocket) uses the same rule: extended header = "header minus base four" (dataSourceKey, streamKey, timestamp, type). On EventBridge, DynamoDB, and SNS it is a separate field `extendedHeader` (one object, no key enumeration). On WebSocket the extended part is merged at top level into the flat message. The format layer (formatTransform) applies this rule in every to* and from* transform so that adding a new extended header field does not require editing multiple places.
+- **Wire event type projection:** In addition to `extendedHeader`, context transforms project `header.type` onto a small, transport-specific top-level field so that external consumers can discriminate on envelope metadata:
+  - **EventBridge** uses `DetailType` / `detail-type` as the canonical wire event type.
+  - **DynamoDB** persists `eventType` on each event row as the preferred discriminator when reconstructing `header.type` during replay; legacy rows without `eventType` fall back to `update.type`.
+  - **SNS Feedback** includes `eventType` on the flat SNS message body so the feedback lambda and any downstream consumers can discriminate without inspecting `update.type`.
+  - **WebSocket** includes `eventType` on the flat WebSocket message so clients can route on envelope metadata instead of payload `type`.
 - **In-memory:** Those properties are **merged into the `header` field.** CoreExternalFormat has two fields only: `header` (required, full: base four + extended properties) and `update`. There are no top-level `dataSourceKey`, `streamKey`, `timestamp`, or `RequestId`; those exist only on `header`. Producers put extended fields in the header fragment; the DataSource sets `coreFormat.header` (full). Serializers should not duplicate envelope fields in content. When serializing, the format layer derives `Detail.extendedHeader` from `coreFormat.header`; when deserializing, it merges `Detail.extendedHeader` into `coreFormat.header`.
-- **Consumers:** Read **`coreFormat.header`** (e.g. `event.header.RequestIds`); extended properties are already merged. No backward compatibility for an unextended header; we always have a full header in memory.
+- **Consumers:** Read **`coreFormat.header`** (e.g. `event.header.RequestIds`); extended properties are already merged. No backward compatibility for an unextended header; we always have a full header in memory. When both a wire `eventType` and a payload `type` are present, `eventType` (and therefore `header.type`) is authoritative for routing; payload `type` is preserved for contract compatibility only.
 - **Adding a new envelope field:** Define (or extend) the concrete extended header type and typeguard in the **data source** that uses it; ensure the DataSource passes it in the header fragment. No changes to the format layer logic.
 - **Example (mtw.wml):** The mtw.wml data source uses an extended header type `WMLStreamingEventHeader` with `RequestIds?: string[]` for Content Update and Merge Conflict events. Producers pass `RequestIds` in the header fragment when calling `streamEvent`; the serializer does not put `RequestIds` in the content (payload purity). Consumers read `event.header.RequestIds`; the subscriptions handler sources top-level `RequestIds` in the WebSocket message from the event header.
 
@@ -271,7 +285,7 @@ This pattern works around a TypeScript limitation: the compiler does not automat
 
 Following these guidelines keeps wire formats stable while making header the canonical location for routing metadata and allowing payloads to remain as pure as possible representations of domain state.
 
-### Serialization / resolution regimes and header predicates
+### Serialization / resolution regimes and header predicates (events and snapshots, inline and sidecar)
 
 The same logical streaming envelope appears in three processing regimes, which differ only in how content is represented or obtained:
 
@@ -279,7 +293,7 @@ The same logical streaming envelope appears in three processing regimes, which d
 - **Lazy internal (`StreamingEventEnvelope`)**: On the messageBus and DataSource side, `StreamingEventEnvelope<Content>` wraps the same header with `getContentInternal()` instead of an inline `content` field, so internal payload can be loaded lazily (and, in future, potentially cached internally).
 - **Resolved internal (`ResolvedStreamingEnvelope`)**: Aggregators, replay flows, and serializer params use `ResolvedStreamingEnvelope<Content, Header>` where the payload is fully realized as `content`.
 
-All three regimes share the same header semantics; the only differences between them are when and how content is obtained. To make this easier to reason about, and to avoid repeating envelope-level type guards for each regime, we centralize header-level routing logic and derive envelope guards mechanically from it.
+All three regimes share the same header semantics; the only differences between them are when and how content is obtained. Snapshot bodies follow the same rule: they can be inline payloads (for example, JSON or WML) or sidecar descriptors (for example, `{ sidecarUrl, contentMetadata }`), but routing is always based on the header (`type: 'Snapshot'`, `dataSourceKey`, `streamKey`). To make this easier to reason about, and to avoid repeating envelope-level type guards for each regime, we centralize header-level routing logic and derive envelope guards mechanically from it. Sidecar resolution (fetching from S3, parsing, deserializing) happens behind `getContentInternal` in domain code; from the patterns package perspective, both inline and sidecar snapshots are just CoreExternalFormat updates carried in the same envelope family.
 
 At the header level, each DataSource (or domain) should define:
 

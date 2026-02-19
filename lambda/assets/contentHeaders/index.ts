@@ -116,16 +116,14 @@ const generateContentHeadersSnapshot = async (): Promise<ContentHeadersSnapshot>
                 }
             })
         ).then(results => results.filter(excludeUndefined))
-        
+
         return {
-            type: 'Snapshot',
             assets: contentHeadersAssets
         }
     } catch (error) {
         console.error('Error generating content headers snapshot:', error)
         // Return empty snapshot on error
         return {
-            type: 'Snapshot',
             assets: []
         }
     }
@@ -295,7 +293,6 @@ async function createAggregatedContentHeadersUpdate(
         standardForm._topLevel = new ReferenceList(headerComponents.map((component) => (component.referenceData)))
         
         return {
-            type: 'Headers Updated',
             assetId,
             zone,
             standardForm

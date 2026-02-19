@@ -2,7 +2,9 @@ import { PayloadAction } from '@reduxjs/toolkit'
 import type { EventPayload, SerializableObject, StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import type { DataSourceAggregator } from '@tonylb/mtw-lambda-patterns/ts/dataSource/aggregation'
 import type { DataSourceEventSerializer } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
-import type { ClientSnapshotMessagePayload, ClientUpdateMessagePayload, RecentEventEnvelope } from './baseClasses'
+import type { ClientStreamingMessagePayload, RecentEventEnvelope } from './baseClasses'
+
+const SNAPSHOT_HEADER_TYPE = 'Snapshot'
 
 //
 // Helper function: Apply multiple update events to a baseline snapshot (reduce pattern)
@@ -29,6 +31,7 @@ export const applyEvents = <
 // Helper function: Perform 30-second cleanup (consolidate old events into snapshot)
 // Returns cleaned up recentEvents array
 // Takes incomingTimestamp to ensure cleanup accounts for the event being processed
+// Uses header.type === 'Snapshot' for discrimination; no content-based type guards.
 // Curried: First apply config, then apply to (recentEvents, incomingTimestamp)
 //
 export const performCleanup = <
@@ -37,8 +40,6 @@ export const performCleanup = <
     Header extends StreamingEventHeader = StreamingEventHeader
 >(
     aggregator: DataSourceAggregator<SnapshotPayload, UpdatePayload>,
-    isSnapshot: (event: UpdatePayload | SnapshotPayload) => event is SnapshotPayload,
-    isUpdate: (event: UpdatePayload | SnapshotPayload) => event is UpdatePayload,
     applyEventsWithAggregator: ReturnType<typeof applyEvents<SnapshotPayload, UpdatePayload, Header>>
 ) => (
     recentEvents: Array<RecentEventEnvelope<UpdatePayload | SnapshotPayload, Header>>,
@@ -59,24 +60,24 @@ export const performCleanup = <
         }
 
         // Find the most recent snapshot in oldEvents (or use empty as baseline)
-        const snapshotEvents = oldEvents.filter((e): e is RecentEventEnvelope<SnapshotPayload, Header> => isSnapshot(e.content))
+        const snapshotEvents = oldEvents.filter((e): e is RecentEventEnvelope<SnapshotPayload, Header> => e.header.type === SNAPSHOT_HEADER_TYPE)
         const baselineSnapshot = snapshotEvents.length > 0
             ? snapshotEvents[snapshotEvents.length - 1].content
             : aggregator.createEmpty()
 
-        // Find events after the baseline snapshot
+        // Find events after the baseline snapshot (header.type !== 'Snapshot')
         const baselineTimestamp = snapshotEvents.length > 0 ? snapshotEvents[snapshotEvents.length - 1].timestamp : 0
         const eventsAfterBaseline = oldEvents
-            .filter(e => e.timestamp > baselineTimestamp && isUpdate(e.content))
+            .filter(e => e.timestamp > baselineTimestamp && e.header.type !== SNAPSHOT_HEADER_TYPE)
             .sort((a, b) => a.timestamp - b.timestamp)
-            .filter((e): e is RecentEventEnvelope<UpdatePayload, Header> => isUpdate(e.content))
+            .filter((e): e is RecentEventEnvelope<UpdatePayload, Header> => e.header.type !== SNAPSHOT_HEADER_TYPE)
 
     // Consolidate by applying events to baseline
     const consolidatedSnapshot = applyEventsWithAggregator(baselineSnapshot, eventsAfterBaseline)
 
     // Create synthetic snapshot event at 30-second boundary (placeholder header; not used for aggregation)
     const syntheticSnapshot: RecentEventEnvelope<SnapshotPayload, Header> = {
-        header: { dataSourceKey: '', streamKey: '', timestamp: thirtySecondsAgo, type: 'Snapshot' } as Header,
+        header: { dataSourceKey: '', streamKey: '', timestamp: thirtySecondsAgo, type: SNAPSHOT_HEADER_TYPE } as Header,
         content: consolidatedSnapshot,
         timestamp: thirtySecondsAgo
     }
@@ -86,119 +87,71 @@ export const performCleanup = <
 }
 
 //
-// Reducer: Process incoming snapshot event.
+// Reducer: Process incoming snapshot or event envelope.
+// Branches on header.type === 'Snapshot' to deserialize and apply.
 // Sidecar resolution (fetch from sidecarUrl when present) happens before this reducer runs.
 // Curried: First apply config, then return the reducer (state, action) => void
 //
-export const processRawSnapshot = <
+export const processRawEnvelope = <
     SnapshotPayload extends SerializableObject,
     UpdatePayload extends EventPayload,
-    ExternalSnapshotPayload extends SerializableObject,
+    ExternalPayload extends SerializableObject | EventPayload,
     Header extends StreamingEventHeader = StreamingEventHeader
 >(
     dataSourceKey: string,
-    eventSerializer: DataSourceEventSerializer<UpdatePayload, any, SnapshotPayload, ExternalSnapshotPayload>,
-    isUpdate: (event: UpdatePayload | SnapshotPayload) => event is UpdatePayload,
+    eventSerializer: DataSourceEventSerializer<UpdatePayload, any, SnapshotPayload, any>,
+    aggregator: DataSourceAggregator<SnapshotPayload, UpdatePayload>,
     performCleanupWithConfig: ReturnType<typeof performCleanup<SnapshotPayload, UpdatePayload, Header>>,
     applyEventsWithAggregator: ReturnType<typeof applyEvents<SnapshotPayload, UpdatePayload, Header>>
-    ) => (
+) => (
     state: any,
-    action: PayloadAction<ClientSnapshotMessagePayload<ExternalSnapshotPayload>>
+    action: PayloadAction<ClientStreamingMessagePayload<ExternalPayload>>
 ) => {
-        const { streamKey, timestamp, header, content } = action.payload
+    const { streamKey, timestamp, header, content } = action.payload
 
-        // Check if stream is subscribed
-        const stream = state.subscribedStreams[streamKey]
-        if (!stream) {
-            // Stream not subscribed, ignore
-            return
-        }
+    // Check if stream is subscribed
+    const stream = state.subscribedStreams[streamKey]
+    if (!stream) {
+        return
+    }
 
-        // Deserialize snapshot (if no deserializer, assume internal/external formats match)
+    const streamingHeader: Header = {
+        dataSourceKey,
+        streamKey,
+        timestamp,
+        type: header.type,
+        ...(Object.prototype.hasOwnProperty.call(header, 'zone') ? { zone: (header as { zone?: string }).zone } : {})
+    } as Header
+
+    if (header.type === SNAPSHOT_HEADER_TYPE) {
+        // Snapshot path
         const snapshot = eventSerializer.deserializeSnapshot
-            ? eventSerializer.deserializeSnapshot(content)
+            ? eventSerializer.deserializeSnapshot(content as any)
             : content as unknown as SnapshotPayload
 
         if (!snapshot) {
             console.warn(`[${dataSourceKey}] Failed to deserialize snapshot for streamKey: ${streamKey}`)
             return
         }
-        // Use timestamp from message (not Date.now())
+
         const snapshotTimestamp = timestamp
+        const cleanedRecentEvents = performCleanupWithConfig(stream.recentEvents, snapshotTimestamp)
+        const eventsAfterSnapshot = cleanedRecentEvents.filter(e => e.timestamp > snapshotTimestamp)
 
-        // Build full header for stored envelope
-        const snapshotHeader: Header = {
-            dataSourceKey,
-            streamKey,
-            timestamp: snapshotTimestamp,
-            type: header.type,
-            ...(Object.prototype.hasOwnProperty.call(header, 'zone') ? { zone: (header as { zone?: string }).zone } : {})
-        } as Header
+        const snapshotEvent: RecentEventEnvelope<SnapshotPayload, Header> = { header: streamingHeader, content: snapshot, timestamp: snapshotTimestamp }
+        const newRecentEvents = [snapshotEvent, ...eventsAfterSnapshot]
 
-    // Perform cleanup before processing (pass incoming timestamp for accurate window calculation)
-    const cleanedRecentEvents = performCleanupWithConfig(stream.recentEvents, snapshotTimestamp)
+        const updateEventsAfterSnapshot = eventsAfterSnapshot.filter((e): e is RecentEventEnvelope<UpdatePayload, Header> => e.header.type !== SNAPSHOT_HEADER_TYPE)
+        const newMaterializedView = applyEventsWithAggregator(snapshot, updateEventsAfterSnapshot)
 
-    // Find events that happened AFTER this snapshot
-    const eventsAfterSnapshot = cleanedRecentEvents.filter(
-        e => e.timestamp > snapshotTimestamp
-    )
-
-    // Create new recent events: snapshot first, then events after it (full envelope)
-    const snapshotEvent: RecentEventEnvelope<SnapshotPayload, Header> = { header: snapshotHeader, content: snapshot, timestamp: snapshotTimestamp }
-    const newRecentEvents = [snapshotEvent, ...eventsAfterSnapshot]
-
-    // Re-aggregate: Start with snapshot, apply any UPDATE events that came after it
-    const updateEventsAfterSnapshot = eventsAfterSnapshot.filter((e): e is RecentEventEnvelope<UpdatePayload, Header> => isUpdate(e.content))
-    const newMaterializedView = applyEventsWithAggregator(snapshot, updateEventsAfterSnapshot)
-
-    // Mutate state directly (Immer will handle immutability)
-    state.subscribedStreams[streamKey] = {
-        materializedView: newMaterializedView,
-        recentEvents: newRecentEvents
-    }
-}
-
-//
-// Reducer: Process incoming update event
-// Curried: First apply config, then return the reducer (state, action) => void
-//
-export const processRawEvent = <
-    SnapshotPayload extends SerializableObject,
-    UpdatePayload extends EventPayload,
-    ExternalUpdatePayload extends EventPayload,
-    Header extends StreamingEventHeader = StreamingEventHeader
->(
-    dataSourceKey: string,
-    eventSerializer: DataSourceEventSerializer<UpdatePayload, ExternalUpdatePayload, SnapshotPayload, any>,
-    aggregator: DataSourceAggregator<SnapshotPayload, UpdatePayload>,
-    isSnapshot: (event: UpdatePayload | SnapshotPayload) => event is SnapshotPayload,
-    isUpdate: (event: UpdatePayload | SnapshotPayload) => event is UpdatePayload,
-    performCleanupWithConfig: ReturnType<typeof performCleanup<SnapshotPayload, UpdatePayload, Header>>,
-    applyEventsWithAggregator: ReturnType<typeof applyEvents<SnapshotPayload, UpdatePayload, Header>>
-    ) => (
-    state: any,
-    action: PayloadAction<ClientUpdateMessagePayload<ExternalUpdatePayload>>
-) => {
-        const { streamKey, timestamp, header, content } = action.payload
-
-        // Check if stream is subscribed
-        const stream = state.subscribedStreams[streamKey]
-        if (!stream) {
-            // Stream not subscribed, ignore
-            return
+        state.subscribedStreams[streamKey] = {
+            materializedView: newMaterializedView,
+            recentEvents: newRecentEvents
         }
-
-        // Build header for serializer and stored envelope (include zone when present)
-        const streamingHeader: Header = {
-            dataSourceKey,
-            streamKey,
-            timestamp,
-            type: header.type,
-            ...(Object.prototype.hasOwnProperty.call(header, 'zone') ? { zone: (header as { zone?: string }).zone } : {})
-        } as Header
-        // Deserialize event
+    } else {
+        // Event path
         const event = eventSerializer.deserialize({
-            content,
+            content: content as any,
             header: streamingHeader
         })
         if (!event) {
@@ -206,73 +159,55 @@ export const processRawEvent = <
             return
         }
 
-        // Use timestamp from message (not Date.now())
         const eventTimestamp = timestamp
-
-    // Perform cleanup before processing (pass incoming timestamp for accurate window calculation)
-    const cleanedRecentEvents = performCleanupWithConfig(stream.recentEvents, eventTimestamp)
-    const latestTimestamp = cleanedRecentEvents.length > 0
-        ? Math.max(...cleanedRecentEvents.map(e => e.timestamp))
-        : 0
-
-    const isInOrder = eventTimestamp >= latestTimestamp
-
-    const newEnvelope: RecentEventEnvelope<UpdatePayload, Header> = { header: streamingHeader, content: event, timestamp: eventTimestamp }
-
-    if (isInOrder) {
-        // FAST PATH: Simple aggregation
-        const result = aggregator.applyUpdate(stream.materializedView, { header: streamingHeader, content: event })
-        const newMaterializedView = result.success ? result.snapshot : stream.materializedView
-        const newRecentEvents = [...cleanedRecentEvents, newEnvelope]
-
-        // Mutate state directly (Immer will handle immutability)
-        state.subscribedStreams[streamKey] = {
-            materializedView: newMaterializedView,
-            recentEvents: newRecentEvents
-        }
-    } else {
-        // OUT-OF-ORDER PATH: Re-aggregate from snapshot
-        // Find most recent snapshot in recentEvents
-        const snapshotEvents = cleanedRecentEvents.filter((e): e is RecentEventEnvelope<SnapshotPayload, Header> => isSnapshot(e.content))
-        const baselineSnapshot = snapshotEvents.length > 0
-            ? snapshotEvents[snapshotEvents.length - 1].content
-            : aggregator.createEmpty()
-        const baselineTimestamp = snapshotEvents.length > 0
-            ? snapshotEvents[snapshotEvents.length - 1].timestamp
+        const cleanedRecentEvents = performCleanupWithConfig(stream.recentEvents, eventTimestamp)
+        const latestTimestamp = cleanedRecentEvents.length > 0
+            ? Math.max(...cleanedRecentEvents.map(e => e.timestamp))
             : 0
 
-        // Collect ALL cached events (including the new one) that need to be considered
-        const allEvents: Array<RecentEventEnvelope<UpdatePayload | SnapshotPayload, Header>> = [
-            ...cleanedRecentEvents,
-            newEnvelope
-        ]
+        const isInOrder = eventTimestamp >= latestTimestamp
+        const newEnvelope: RecentEventEnvelope<UpdatePayload, Header> = { header: streamingHeader, content: event, timestamp: eventTimestamp }
 
-        // Sort by timestamp (first-to-last chronological order)
-        const sortedEvents = allEvents.sort((a, b) => a.timestamp - b.timestamp)
+        if (isInOrder) {
+            const result = aggregator.applyUpdate(stream.materializedView, { header: streamingHeader, content: event })
+            const newMaterializedView = result.success ? result.snapshot : stream.materializedView
+            const newRecentEvents = [...cleanedRecentEvents, newEnvelope]
 
-        // Filter for only UPDATE events to apply (snapshots shouldn't be re-applied)
-        // AND only events AFTER the baseline snapshot (events before are already in the snapshot)
-        const sortedUpdateEvents = sortedEvents.filter((e): e is RecentEventEnvelope<UpdatePayload, Header> =>
-            isUpdate(e.content) && e.timestamp > baselineTimestamp
-        )
+            state.subscribedStreams[streamKey] = {
+                materializedView: newMaterializedView,
+                recentEvents: newRecentEvents
+            }
+        } else {
+            const snapshotEvents = cleanedRecentEvents.filter((e): e is RecentEventEnvelope<SnapshotPayload, Header> => e.header.type === SNAPSHOT_HEADER_TYPE)
+            const baselineSnapshot = snapshotEvents.length > 0
+                ? snapshotEvents[snapshotEvents.length - 1].content
+                : aggregator.createEmpty()
+            const baselineTimestamp = snapshotEvents.length > 0
+                ? snapshotEvents[snapshotEvents.length - 1].timestamp
+                : 0
 
-        // Re-aggregate in chronological order from the most recent snapshot
-        const newMaterializedView = applyEventsWithAggregator(baselineSnapshot, sortedUpdateEvents)
+            const allEvents: Array<RecentEventEnvelope<UpdatePayload | SnapshotPayload, Header>> = [
+                ...cleanedRecentEvents,
+                newEnvelope
+            ]
+            const sortedEvents = allEvents.sort((a, b) => a.timestamp - b.timestamp)
+            const sortedUpdateEvents = sortedEvents.filter((e): e is RecentEventEnvelope<UpdatePayload, Header> =>
+                e.header.type !== SNAPSHOT_HEADER_TYPE && e.timestamp > baselineTimestamp
+            )
 
-        // Include baseline snapshot + all sorted events (updates and any intermediate snapshots)
-        const baselineSnapshotEvent = snapshotEvents.length > 0 ? snapshotEvents[snapshotEvents.length - 1] : null
-        const sortedEventsWithoutBaseline = baselineSnapshotEvent
-            ? sortedEvents.filter(e => !(isSnapshot(e.content) && e.timestamp === baselineTimestamp))
-            : sortedEvents
-        const newRecentEvents = baselineSnapshotEvent
-            ? [baselineSnapshotEvent, ...sortedEventsWithoutBaseline]
-            : sortedEvents
+            const newMaterializedView = applyEventsWithAggregator(baselineSnapshot, sortedUpdateEvents)
+            const baselineSnapshotEvent = snapshotEvents.length > 0 ? snapshotEvents[snapshotEvents.length - 1] : null
+            const sortedEventsWithoutBaseline = baselineSnapshotEvent
+                ? sortedEvents.filter(e => !(e.header.type === SNAPSHOT_HEADER_TYPE && e.timestamp === baselineTimestamp))
+                : sortedEvents
+            const newRecentEvents = baselineSnapshotEvent
+                ? [baselineSnapshotEvent, ...sortedEventsWithoutBaseline]
+                : sortedEvents
 
-        // Mutate state directly (Immer will handle immutability)
-        state.subscribedStreams[streamKey] = {
-            materializedView: newMaterializedView,
-            recentEvents: newRecentEvents
+            state.subscribedStreams[streamKey] = {
+                materializedView: newMaterializedView,
+                recentEvents: newRecentEvents
+            }
         }
     }
 }
-

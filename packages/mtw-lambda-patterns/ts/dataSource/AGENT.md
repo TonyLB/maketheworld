@@ -99,6 +99,9 @@ Maintain client-side state by combining snapshots with streaming events through 
 
 See [Implementation Details](AGENT.implementation.md#aggregation) for aggregator patterns and usage examples.
 
+### **Snapshot Envelope Conventions**
+Snapshots use the same `StreamingEventHeader` family as streaming events. Snapshot envelopes use a single shared `header.type: 'Snapshot'` across all DataSources; domain and stream identity come from `dataSourceKey` and `streamKey` (same as events). Routing and type guards use the header only (e.g. `header.type === 'Snapshot'`); there are no per-domain snapshot type variants.
+
 ## Core Functionality
 
 ### **1. Snapshot Generation** (Optional - when `replayable` is enabled)

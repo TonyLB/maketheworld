@@ -2,8 +2,7 @@ import { PayloadAction } from '@reduxjs/toolkit'
 import { PersonalAssetsPublic } from './baseClasses'
 import { v4 as uuidv4 } from 'uuid'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
-import { Schema } from '@tonylb/mtw-wml/ts/schema'
-import { SubscriptionClientMessage } from '@tonylb/mtw-interfaces/ts/subscriptions'
+import type { WMLStreamingEventHeader, WMLContentEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/wml'
 import { StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes'
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import StandardReference from '@tonylb/mtw-wml/ts/standardize/components/reference'
@@ -98,23 +97,24 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
     }
 }
 
-export const receiveWMLEvent = (state: PersonalAssetsPublic, action: PayloadAction<{ assetKey: string; event: SubscriptionClientMessage }>) => {
-    const { event } = action.payload
-    if (event.dataSourceKey !== 'mtw.wml') return
-    if (event.update.type === 'Content Update') {
+/** Type guard: Content Update content has schema. */
+const hasSchema = (c: WMLContentEvent): c is { schema: StandardForm } =>
+    c != null && typeof c === 'object' && 'schema' in c && c.schema instanceof StandardForm
+
+export const receiveWMLEvent = (state: PersonalAssetsPublic, action: PayloadAction<{ header: WMLStreamingEventHeader; content: WMLContentEvent }>) => {
+    const { header, content } = action.payload
+    if (header.dataSourceKey !== 'mtw.wml') return
+    if (header.type === 'Content Update' && hasSchema(content)) {
         // Subscription Content Update carries the new canonical full content; replace base, do not merge.
         // (Merge would concatenate e.g. ShortName "Test" + "Test" -> "TestTest" and repeat on each delivery.)
-        const incomingSchema = new Schema()
-        incomingSchema.loadWML(event.update.wml)
-        const incoming = new StandardForm(incomingSchema.schema[0])
         try {
-            state.base = incoming.toJSON()
+            state.base = content.schema.toJSON()
         }
         catch (err) {}
-        state.pendingEdits = state.pendingEdits.filter(({ meta }) => !event.RequestIds?.includes(meta.key))
+        state.pendingEdits = state.pendingEdits.filter(({ meta }) => !header.RequestIds?.includes(meta.key))
     }
-    if (event.update.type === 'Merge Conflict') {
-        state.pendingEdits = state.pendingEdits.filter(({ meta }) => !event.RequestIds?.includes(meta.key))
+    if (header.type === 'Merge Conflict') {
+        state.pendingEdits = state.pendingEdits.filter(({ meta }) => !header.RequestIds?.includes(meta.key))
     }
 }
 

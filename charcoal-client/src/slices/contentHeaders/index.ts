@@ -6,29 +6,8 @@
 import { createDataSourceSlice } from '../dataSource'
 import {
   ContentHeadersAggregator,
-  ContentHeadersEventSerializer,
-  ContentHeadersEventUpdate,
-  ContentHeadersSnapshot,
-  ContentHeadersExternal,
-  ContentHeadersSnapshotExternal,
-  isContentHeadersSnapshot,
-  isContentHeadersUpdate,
-  isZoneUpdatedEvent
+  ContentHeadersEventSerializer
 } from '@tonylb/mtw-interfaces/ts/eventBridge/assets/contentHeaders'
-
-// Type guards for the slice
-// These distinguish between different event types in the internal format
-export const isSnapshot = (
-  event: ContentHeadersSnapshot | ContentHeadersEventUpdate
-): event is ContentHeadersSnapshot => {
-  return isContentHeadersSnapshot(event)
-}
-
-export const isUpdate = (
-  event: ContentHeadersSnapshot | ContentHeadersEventUpdate
-): event is ContentHeadersEventUpdate => {
-  return isContentHeadersUpdate(event) || isZoneUpdatedEvent(event)
-}
 
 // Create the slice using the generic factory
 export const {
@@ -43,8 +22,6 @@ export const {
   dataSourceKey: 'mtw.assets.contentHeaders',
   aggregator: new ContentHeadersAggregator(),
   eventSerializer: new ContentHeadersEventSerializer(),
-  isSnapshot,
-  isUpdate,
   sliceSelector: (state: any) => state.contentHeaders
 })
 
@@ -55,8 +32,7 @@ export const {
 } = contentHeadersSelectors
 
 export const {
-  processRawSnapshot,
-  processRawEvent
+  processRawEnvelope
 } = contentHeadersActions
 
 // Export selectors

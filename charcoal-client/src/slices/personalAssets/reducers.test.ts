@@ -452,19 +452,15 @@ describe('personalAsset slice reducers', () => {
         } as any
 
         it('should clear pending edit when event.RequestIds contains meta.key (Content Update)', () => {
+            const schema = new Schema()
+            schema.loadWML('<Asset uuid=(test) />')
             const state = produce(baseState, (draft) => {
                 receiveWMLEvent(draft, {
                     type: 'receiveWMLEvent',
                     payload: {
                         assetKey: 'ASSET#test',
-                        event: {
-                            messageType: 'StreamEvent',
-                            dataSourceKey: 'mtw.wml',
-                            streamKey: 'ASSET#test',
-                            timestamp: 0,
-                            RequestIds: ['req-1'],
-                            update: { type: 'Content Update', wml: '<Asset uuid=(test) />' }
-                        }
+                        header: { dataSourceKey: 'mtw.wml', streamKey: 'ASSET#test', timestamp: 0, type: 'Content Update', RequestIds: ['req-1'] },
+                        content: { schema: new StandardForm(schema.schema[0]) }
                     }
                 })
             })
@@ -477,15 +473,8 @@ describe('personalAsset slice reducers', () => {
                 receiveWMLEvent(draft, {
                     type: 'receiveWMLEvent',
                     payload: {
-                        assetKey: 'ASSET#test',
-                        event: {
-                            messageType: 'StreamEvent',
-                            dataSourceKey: 'mtw.wml',
-                            streamKey: 'ASSET#test',
-                            timestamp: 0,
-                            RequestIds: ['req-2'],
-                            update: { type: 'Merge Conflict', error: 'Conflict' }
-                        }
+                        header: { dataSourceKey: 'mtw.wml', streamKey: 'ASSET#test', timestamp: 0, type: 'Merge Conflict', RequestIds: ['req-2'] },
+                        content: { error: 'Conflict' }
                     }
                 })
             })
@@ -494,18 +483,14 @@ describe('personalAsset slice reducers', () => {
         })
 
         it('should clear no pending edits when event.RequestIds is absent', () => {
+            const schema = new Schema()
+            schema.loadWML('<Asset uuid=(test) />')
             const state = produce(baseState, (draft) => {
                 receiveWMLEvent(draft, {
                     type: 'receiveWMLEvent',
                     payload: {
-                        assetKey: 'ASSET#test',
-                        event: {
-                            messageType: 'StreamEvent',
-                            dataSourceKey: 'mtw.wml',
-                            streamKey: 'ASSET#test',
-                            timestamp: 0,
-                            update: { type: 'Content Update', wml: '<Asset uuid=(test) />' }
-                        }
+                        header: { dataSourceKey: 'mtw.wml', streamKey: 'ASSET#test', timestamp: 0, type: 'Content Update' },
+                        content: { schema: new StandardForm(schema.schema[0]) }
                     }
                 })
             })
@@ -513,40 +498,30 @@ describe('personalAsset slice reducers', () => {
         })
 
         it('should clear no pending edits when event.RequestIds is empty', () => {
+            const schema = new Schema()
+            schema.loadWML('<Asset uuid=(test) />')
             const state = produce(baseState, (draft) => {
                 receiveWMLEvent(draft, {
                     type: 'receiveWMLEvent',
                     payload: {
-                        assetKey: 'ASSET#test',
-                        event: {
-                            messageType: 'StreamEvent',
-                            dataSourceKey: 'mtw.wml',
-                            streamKey: 'ASSET#test',
-                            timestamp: 0,
-                            RequestIds: [],
-                            update: { type: 'Content Update', wml: '<Asset uuid=(test) />' }
-                        }
+                        header: { dataSourceKey: 'mtw.wml', streamKey: 'ASSET#test', timestamp: 0, type: 'Content Update', RequestIds: [] },
+                        content: { schema: new StandardForm(schema.schema[0]) }
                     }
                 })
             })
             expect(state.pendingEdits).toHaveLength(2)
         })
 
-        it('should update base on Content Update using event.update.wml', () => {
-            const wml = '<Asset uuid=(test)><Room key=(roomKey) uuid=(roomKey)><Example uuid=(e)><DisplayName>Updated</DisplayName></Example></Room></Asset>'
+        it('should update base on Content Update using content.schema', () => {
+            const schema = new Schema()
+            schema.loadWML('<Asset uuid=(test)><Room key=(roomKey) uuid=(roomKey)><Example uuid=(e)><DisplayName>Updated</DisplayName></Example></Room></Asset>')
             const state = produce(baseState, (draft) => {
                 receiveWMLEvent(draft, {
                     type: 'receiveWMLEvent',
                     payload: {
                         assetKey: 'ASSET#test',
-                        event: {
-                            messageType: 'StreamEvent',
-                            dataSourceKey: 'mtw.wml',
-                            streamKey: 'ASSET#test',
-                            timestamp: 0,
-                            RequestIds: ['req-1'],
-                            update: { type: 'Content Update', wml }
-                        }
+                        header: { dataSourceKey: 'mtw.wml', streamKey: 'ASSET#test', timestamp: 0, type: 'Content Update', RequestIds: ['req-1'] },
+                        content: { schema: new StandardForm(schema.schema[0]) }
                     }
                 })
             })
@@ -557,9 +532,8 @@ describe('personalAsset slice reducers', () => {
         })
 
         it('should replace base on Content Update (not merge) so ShortName does not duplicate', () => {
-            const wml = '<Asset uuid=(test)><ShortName>Test</ShortName></Asset>'
             const schema = new Schema()
-            schema.loadWML(wml)
+            schema.loadWML('<Asset uuid=(test)><ShortName>Test</ShortName></Asset>')
             const initialForm = new StandardForm(schema.schema[0])
             const stateWithShortName = produce(baseState, (draft) => {
                 (draft as any).base = initialForm.toJSON()
@@ -568,15 +542,8 @@ describe('personalAsset slice reducers', () => {
                 receiveWMLEvent(draft, {
                     type: 'receiveWMLEvent',
                     payload: {
-                        assetKey: 'ASSET#test',
-                        event: {
-                            messageType: 'StreamEvent',
-                            dataSourceKey: 'mtw.wml',
-                            streamKey: 'ASSET#test',
-                            timestamp: 0,
-                            RequestIds: [],
-                            update: { type: 'Content Update', wml }
-                        }
+                        header: { dataSourceKey: 'mtw.wml', streamKey: 'ASSET#test', timestamp: 0, type: 'Content Update', RequestIds: [] },
+                        content: { schema: new StandardForm(schema.schema[0]) }
                     }
                 })
             })

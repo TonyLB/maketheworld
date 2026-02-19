@@ -53,8 +53,9 @@ describe('AssetsEventSerializer', () => {
                 header: makeAssetsHeader('Component Updated')
             })
 
-            expect(externalEvent.type).toBe('Component Updated')
-            if (externalEvent.type === 'Component Updated') {
+            expect('componentId' in externalEvent).toBe(true)
+            expect('wml' in externalEvent).toBe(true)
+            if ('componentId' in externalEvent) {
                 expect(externalEvent.componentId).toBe('CHARACTER#testcharacter')
                 expect(externalEvent.wml).toBe(deIndentWML(`
                 <Character uuid=(testcharacter) key=(testcharacter)>
@@ -66,7 +67,6 @@ describe('AssetsEventSerializer', () => {
 
         it('should deserialize Component Updated event from external format', () => {
             const externalEvent: AssetsEventExternal = {
-                type: 'Component Updated',
                 componentId: 'CHARACTER#testcharacter',
                 wml: deIndentWML(`
                     <Character key=(testcharacter) uuid=(testcharacter)>
@@ -136,8 +136,9 @@ describe('AssetsEventSerializer', () => {
                 header: makeAssetsHeader('Component Removed')
             })
 
-            expect(externalEvent.type).toBe('Component Removed')
-            if (externalEvent.type === 'Component Removed') {
+            expect('componentId' in externalEvent).toBe(true)
+            expect('wml' in externalEvent).toBe(true)
+            if ('componentId' in externalEvent) {
                 expect(externalEvent.componentId).toBe('CHARACTER#testcharacter')
                 expect(externalEvent.wml).toBe(deIndentWML(`
                 <Character uuid=(testcharacter) key=(testcharacter)>
@@ -149,7 +150,6 @@ describe('AssetsEventSerializer', () => {
 
         it('should deserialize Component Removed event from external format', () => {
             const externalEvent: AssetsEventExternal = {
-                type: 'Component Removed',
                 componentId: 'CHARACTER#testcharacter',
                 wml: deIndentWML(`
                     <Character key=(testcharacter) uuid=(testcharacter)>
@@ -215,8 +215,8 @@ describe('AssetsEventSerializer', () => {
                 header: makeAssetsHeader('Asset Cached')
             })
 
-            expect(externalEvent.type).toBe('Asset Cached')
-            if (externalEvent.type === 'Asset Cached') {
+            expect('zone' in externalEvent).toBe(true)
+            if ('zone' in externalEvent) {
                 expect(externalEvent.zone).toBe('Canon')
             }
         })
@@ -229,7 +229,7 @@ describe('AssetsEventSerializer', () => {
                 header: makeAssetsHeader('Asset Decached')
             })
 
-            expect(externalEvent.type).toBe('Asset Decached')
+            expect(externalEvent).toEqual({})
         })
 
         it('should serialize Asset Removed event (pass-through)', () => {
@@ -242,8 +242,8 @@ describe('AssetsEventSerializer', () => {
                 header: makeAssetsHeader('Asset Removed')
             })
 
-            expect(externalEvent.type).toBe('Asset Removed')
-            if (externalEvent.type === 'Asset Removed') {
+            expect('zone' in externalEvent).toBe(true)
+            if ('zone' in externalEvent) {
                 expect(externalEvent.zone).toBe('Canon')
             }
         })
@@ -258,15 +258,14 @@ describe('AssetsEventSerializer', () => {
                 header: makeAssetsHeader('Canon Updated')
             })
 
-            expect(externalEvent.type).toBe('Canon Updated')
-            if (externalEvent.type === 'Canon Updated') {
+            expect('assetIds' in externalEvent).toBe(true)
+            if ('assetIds' in externalEvent) {
                 expect(externalEvent.assetIds).toEqual(['ASSET#test-asset'])
             }
         })
 
         it('should deserialize Asset Level events (pass-through)', () => {
             const externalEvent: AssetsEventExternal = {
-                type: 'Asset Cached',
                 zone: 'Canon'
             }
 
@@ -305,7 +304,6 @@ describe('AssetsEventSerializer', () => {
     describe('deserialize when header and payload type disagree - header wins', () => {
         it('should deserialize as Component Removed when header says Component Removed but payload has Component Updated shape', () => {
             const externalEvent: AssetsEventExternal = {
-                type: 'Component Updated',
                 componentId: 'CHARACTER#testcharacter',
                 wml: deIndentWML(`
                     <Character key=(testcharacter) uuid=(testcharacter)>
@@ -344,7 +342,6 @@ describe('AssetsEventSerializer', () => {
 
         it('should handle invalid WML in Component Updated deserialize', () => {
             const externalEvent: AssetsEventExternal = {
-                type: 'Component Updated',
                 componentId: 'CHARACTER#testcharacter',
                 wml: 'invalid-wml-content'
             }
@@ -359,7 +356,6 @@ describe('AssetsEventSerializer', () => {
 
         it('should handle missing component in WML', () => {
             const externalEvent: AssetsEventExternal = {
-                type: 'Component Updated',
                 componentId: 'CHARACTER#missing-character',
                 wml: deIndentWML(`
                     <Character key=(testcharacter) uuid=(testcharacter)>
@@ -387,7 +383,6 @@ describe('AssetsEventSerializer', () => {
                 `))
 
                 const event = {
-                    type: 'Component Updated',
                     component: character
                 }
 
@@ -398,8 +393,8 @@ describe('AssetsEventSerializer', () => {
                 expect(isAssetsComponentUpdatedEvent(null)).toBe(false)
                 expect(isAssetsComponentUpdatedEvent(undefined)).toBe(false)
                 expect(isAssetsComponentUpdatedEvent({})).toBe(false)
-                expect(isAssetsComponentUpdatedEvent({ type: 'Asset Cached' })).toBe(false)
-                expect(isAssetsComponentUpdatedEvent({ type: 'Component Updated' })).toBe(false)
+                expect(isAssetsComponentUpdatedEvent({ zone: 'Canon' })).toBe(false)
+                expect(isAssetsComponentUpdatedEvent({ componentId: 'x', wml: 'y' })).toBe(false)
             })
         })
 
@@ -438,8 +433,8 @@ describe('AssetsEventSerializer', () => {
                 expect(isAssetsComponentRemovedEvent(null)).toBe(false)
                 expect(isAssetsComponentRemovedEvent(undefined)).toBe(false)
                 expect(isAssetsComponentRemovedEvent({})).toBe(false)
-                expect(isAssetsComponentRemovedEvent({ type: 'Asset Cached' })).toBe(false)
-                expect(isAssetsComponentRemovedEvent({ type: 'Component Removed' })).toBe(false)
+                expect(isAssetsComponentRemovedEvent({ zone: 'Canon' })).toBe(false)
+                expect(isAssetsComponentRemovedEvent({ componentId: 'x', wml: 'y' })).toBe(false)
             })
         })
 

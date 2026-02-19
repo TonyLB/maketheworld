@@ -6,23 +6,13 @@ import { PublishCommand } from '@aws-sdk/client-sns'
 import { StreamingEventPayloadContract, StreamingEventHeader, StreamEventHeaderFragment, StreamingEventEnvelope, DataSourceEventSerializer, EventPayload } from './baseClasses'
 import { CoreExternalFormat } from './formatTransform'
 import { DataSourceAggregator } from './aggregation'
-import { publishStreamEvent, StreamEventPublisherSerializer, wireFormatsFromCoreFormat } from './streamEventPublisher'
+import { publishStreamEvent, StreamEventPublisherSerializer, wireFormatsFromCoreFormat, createSnapshotCoreFormat } from './streamEventPublisher'
 
 export type SerializableObject = Record<string, unknown>
 
 export type SnapshotType<SnapshotPayload extends SerializableObject> = SnapshotPayload & {
     createdAt: number;
     expiresAt: number;
-}
-
-/**
- * Descriptor returned by snapshotSidecarUrlGenerator for subscription init.
- * The client receives a Snapshot event with sidecarUrl and fetches the body from that URL.
- */
-export type SidecarSnapshotDescriptor = {
-    sidecarUrl: string;
-    createdAt: number;
-    expiresAt?: number;
 }
 
 export type DynamoGetItemArgs = {
@@ -87,8 +77,6 @@ export class DataSource<
     readonly primaryKeyName: KeyType
     readonly dataSourceKey: string
     readonly snapshotContentGenerator?: (streamKey: string) => Promise<SnapshotPayload>
-    /** When set, subscription init delivers a Snapshot with sidecarUrl instead of inline payload. Use either this or snapshotContentGenerator, not both. */
-    readonly snapshotSidecarUrlGenerator?: (streamKey: string) => Promise<SidecarSnapshotDescriptor>
     readonly singleFlight?: ReturnType<typeof singleFlightFactory<SnapshotType<ExternalSnapshotPayload>>>
     readonly feedbackTopicArn: string
     readonly replayable: boolean
@@ -109,7 +97,6 @@ export class DataSource<
         primaryKeyName,
         dataSourceKey,
         snapshotContentGenerator,
-        snapshotSidecarUrlGenerator,
         feedbackTopicArn,
         replayable = true,
         snapshotTimeoutMs = 5000,
@@ -128,7 +115,6 @@ export class DataSource<
         primaryKeyName: KeyType,
         dataSourceKey: string,
         snapshotContentGenerator?: (streamKey: string) => Promise<SnapshotPayload>,
-        snapshotSidecarUrlGenerator?: (streamKey: string) => Promise<SidecarSnapshotDescriptor>,
         feedbackTopicArn: string,
         replayable?: boolean,
         snapshotTimeoutMs?: number,
@@ -147,7 +133,6 @@ export class DataSource<
         this.primaryKeyName = primaryKeyName
         this.dataSourceKey = dataSourceKey
         this.snapshotContentGenerator = snapshotContentGenerator
-        this.snapshotSidecarUrlGenerator = snapshotSidecarUrlGenerator
         this.feedbackTopicArn = feedbackTopicArn
         this.replayable = replayable
         this.subscribedEventTypeGuard = subscribedEventTypeGuard
@@ -400,21 +385,6 @@ export class DataSource<
             throw new Error(`DataSource '${this.dataSourceKey}' is not replayable and does not support subscription initialization`)
         }
 
-        // Sidecar path: deliver Snapshot with sidecarUrl instead of inline payload
-        if (this.snapshotSidecarUrlGenerator) {
-            const descriptor = await this.snapshotSidecarUrlGenerator(streamKey)
-            const snapshot = {
-                type: 'Snapshot' as const,
-                sidecarUrl: descriptor.sidecarUrl,
-                createdAt: descriptor.createdAt,
-                expiresAt: descriptor.expiresAt ?? descriptor.createdAt + 300000
-            }
-            const recentEvents = await this.getRecentEvents(streamKey, descriptor.createdAt)
-            await this.deliverReplayData({ sessionId, streamKey, snapshot: snapshot as unknown as SnapshotType<ExternalSnapshotPayload>, events: recentEvents })
-            return
-        }
-
-        // Inline path: get full snapshot and deliver
         const externalSnapshot = await this.getSnapshotExternal(streamKey)
         const recentEvents = await this.getRecentEvents(streamKey, externalSnapshot.createdAt)
         await this.deliverReplayData({ sessionId, streamKey, snapshot: externalSnapshot, events: recentEvents })
@@ -544,17 +514,48 @@ export class DataSource<
 
         const primaryKey = `STREAM#${this.dataSourceKey}::${streamKey}`
         
-        // Load the snapshot from storage - it's already in Core External format
-        const result = await this.dynamo.getItem<Record<KeyType, string> & { DataCategory: string; snapshot: SnapshotType<ExternalSnapshotPayload> }>({
+        // Load the snapshot from storage. Support both the new CoreExternalFormat-based shape
+        // (snapshotHeader + snapshotUpdate) and the legacy shape (snapshot blob) for migration.
+        const result = await this.dynamo.getItem<Record<KeyType, string> & {
+            DataCategory: string;
+            snapshotHeader?: CoreExternalFormat['header'];
+            snapshotUpdate?: ExternalSnapshotPayload;
+            snapshot?: SnapshotType<ExternalSnapshotPayload>;
+        }>({
             Key: { [this.primaryKeyName]: primaryKey, DataCategory: 'Meta::Snapshot' },
-            ProjectionFields: ['snapshot']
+            ProjectionFields: ['snapshotHeader', 'snapshotUpdate', 'snapshot']
         })
-        
-        // Return the Core External format directly (no deserialization needed)
-        return result?.snapshot ? {
-            ...result!.snapshot,
-            type: 'Snapshot'
-        } : undefined
+
+        if (!result) {
+            return undefined
+        }
+
+        // New envelope-based shape: snapshotHeader + snapshotUpdate
+        if (result.snapshotHeader && result.snapshotUpdate) {
+            const header = result.snapshotHeader
+            const update = result.snapshotUpdate
+            const createdAt = header.timestamp
+            const expiresAt = createdAt + 300000 // 5 minutes default expiration
+
+            const externalSnapshot: SnapshotType<ExternalSnapshotPayload> = {
+                ...(update as unknown as ExternalSnapshotPayload),
+                type: header.type ?? 'Snapshot',
+                createdAt,
+                expiresAt
+            }
+            return externalSnapshot
+        }
+
+        // Legacy shape: snapshot blob stored directly
+        if (result.snapshot) {
+            const legacySnapshot = result.snapshot as SnapshotType<ExternalSnapshotPayload> & { type?: string }
+            return {
+                ...legacySnapshot,
+                type: legacySnapshot.type ?? 'Snapshot'
+            }
+        }
+
+        return undefined
     }
 
     protected async storeSnapshotToStore({ streamKey, snapshot }: { streamKey: string, snapshot: SnapshotType<SnapshotPayload> }): Promise<void> {
@@ -563,23 +564,28 @@ export class DataSource<
             return
         }
         
-        // Serialize snapshot to Core External format
-        const externalSnapshot = this.eventSerializer?.serializeSnapshot
+        // Serialize snapshot to external format for storage (external snapshot payload)
+        const baseExternalSnapshot = this.eventSerializer?.serializeSnapshot
             ? this.eventSerializer.serializeSnapshot(snapshot)
-            : snapshot as unknown as ExternalSnapshotPayload
-        
-        // Create the snapshot record with metadata
-        const externalSnapshotWithMetadata: SnapshotType<ExternalSnapshotPayload> = {
-            ...externalSnapshot,
-            createdAt: snapshot.createdAt,
-            expiresAt: snapshot.expiresAt
-        }
-        
-        // Store as a simple DynamoDB record (no format transform needed for snapshot storage)
+            : (() => {
+                const { createdAt, expiresAt, ...rest } = snapshot as SnapshotType<SnapshotPayload> & { type?: string }
+                return rest as unknown as ExternalSnapshotPayload
+            })()
+
+        // Build CoreExternalFormat for the snapshot: header.timestamp is the creation time
+        const coreFormat: CoreExternalFormat = createSnapshotCoreFormat(
+            this.dataSourceKey,
+            streamKey,
+            snapshot.createdAt,
+            baseExternalSnapshot as unknown as CoreExternalFormat['update']
+        )
+
+        // Store as a CoreExternalFormat-shaped record under Meta::Snapshot
         await this.dynamo.putItem({
             [this.primaryKeyName]: `STREAM#${this.dataSourceKey}::${streamKey}`,
             DataCategory: 'Meta::Snapshot',
-            snapshot: externalSnapshotWithMetadata
+            snapshotHeader: coreFormat.header,
+            snapshotUpdate: coreFormat.update
         })
     }
 
@@ -687,6 +693,10 @@ export {
     StreamEventPublisherOptions,
     StreamEventPublisherResult,
     wireFormatsFromCoreFormat,
+    createSnapshotCoreFormat,
+    coreFormatToResolvedSnapshotEnvelope,
+    coreFormatToStreamingEnvelope,
+    SNAPSHOT_HEADER_TYPE,
 } from './streamEventPublisher'
 
 // Re-export aggregation types for convenience

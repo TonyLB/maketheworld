@@ -41,17 +41,14 @@ export {
 // For the Library data source, external format is identical to internal format
 // No complex serialization needed - just asset UUID arrays
 export type LibrarySnapshotExternal = {
-    type: 'Snapshot'
     assetIds: AssetUUID[]
 }
 
 export type AssetAddedExternal = {
-    type: 'Asset Added'
     assetId: AssetUUID
 }
 
 export type AssetRemovedExternal = {
-    type: 'Asset Removed'
     assetId: AssetUUID
 }
 
@@ -95,14 +92,12 @@ export class LibraryEventSerializer implements DataSourceEventSerializer<
         if (isAssetAddedLibrarySerializeParams(params)) {
             const { content } = params
             return {
-                type: 'Asset Added',
                 assetId: content.assetId
             }
         }
         if (isAssetRemovedLibrarySerializeParams(params)) {
             const { content } = params
             return {
-                type: 'Asset Removed',
                 assetId: content.assetId
             }
         }
@@ -128,14 +123,13 @@ export class LibraryEventSerializer implements DataSourceEventSerializer<
                 assetId: params.content.assetId
             }
         }
-        console.error(`Unknown external streaming event type: ${(params.content as any).type}`)
+        console.error(`Unknown external streaming event type: ${params.header.type}`)
         return null
     }
     
     serializeSnapshot(snapshot: LibrarySnapshot): LibrarySnapshotExternal {
         // Pass through - internal and external formats are identical
         return {
-            type: 'Snapshot',
             assetIds: [...snapshot.assetIds]
         }
     }
@@ -164,26 +158,19 @@ export class LibraryEventSerializer implements DataSourceEventSerializer<
     }
 }
 
-// Type guard for external Library events
+// Type guard for external Library events (shape-based; type optional)
 export const isLibraryExternal = (event: any): event is LibraryExternal => {
-    if (!event || typeof event !== 'object' || !('type' in event)) {
+    if (!event || typeof event !== 'object') {
         return false
     }
-    
-    switch((event as any).type) {
-        case 'Snapshot':
-            return Boolean(
-                event.assetIds &&
-                Array.isArray(event.assetIds) &&
-                event.assetIds.every((id: any) => typeof id === 'string')
-            )
-        case 'Asset Added':
-        case 'Asset Removed':
-            return Boolean(
-                typeof event.assetId === 'string'
-            )
-        default:
-            return false
+    // Snapshot: assetIds array
+    if (event.assetIds && Array.isArray(event.assetIds) && event.assetIds.every((id: any) => typeof id === 'string')) {
+        return true
     }
+    // Asset Added / Asset Removed: assetId string (indistinguishable by shape; both accepted)
+    if (typeof event.assetId === 'string') {
+        return true
+    }
+    return false
 }
 

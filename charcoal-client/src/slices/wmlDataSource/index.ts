@@ -7,24 +7,12 @@
 import { createDataSourceSlice } from '../dataSource'
 import {
   WMLAggregator,
-  WMLDataSourceEventSerializer,
-  isWMLMaterializedView,
-  isWMLContentEvent
+  WMLDataSourceEventSerializer
 } from '@tonylb/mtw-interfaces/ts/eventBridge/wml'
-import { StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes'
-
-// Type guards for the slice: materialized view vs content update events
-export const isSnapshot = (event: StandardFormData | import('@tonylb/mtw-interfaces/ts/eventBridge/wml').WMLContentEvent): event is StandardFormData => {
-  return isWMLMaterializedView(event)
-}
-
-export const isUpdate = (event: StandardFormData | import('@tonylb/mtw-interfaces/ts/eventBridge/wml').WMLContentEvent): event is import('@tonylb/mtw-interfaces/ts/eventBridge/wml').WMLContentEvent => {
-  return isWMLContentEvent(event)
-}
 
 /**
  * Resolve sidecar snapshot: fetch WML from presigned URL and return it as WML text payload.
- * The slice passes this to processRawSnapshot; WMLDataSourceEventSerializer.deserializeSnapshot
+ * The slice passes this to processRawEnvelope; WMLDataSourceEventSerializer.deserializeSnapshot
  * parses the WML into StandardForm and converts to StandardFormData before storing in Redux.
  * Exported for testing.
  */
@@ -55,8 +43,6 @@ export const {
   dataSourceKey: 'mtw.wml',
   aggregator: new WMLAggregator(),
   eventSerializer: new WMLDataSourceEventSerializer(),
-  isSnapshot,
-  isUpdate,
   sliceSelector: (state: any) => state.wmlDataSource,
   resolveSidecarSnapshot
 })
@@ -67,8 +53,7 @@ export const {
 } = wmlDataSourceSelectors
 
 export const {
-  processRawSnapshot,
-  processRawEvent
+  processRawEnvelope
 } = wmlDataSourceActions
 
 export * from './selectors'
