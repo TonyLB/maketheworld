@@ -96,6 +96,22 @@ describe('formatTransform', () => {
             expect(result.update).toMatchObject({ update: '<Asset />' })
         })
 
+        it('should work when update has no type (consumer compatibility)', () => {
+            const eventBridgeEvent: EventBridgeFormat = {
+                Source: 'mtw.wml',
+                DetailType: 'Content Update',
+                Detail: {
+                    streamKey: 'ASSET#test',
+                    timestamp: 1234567890,
+                    wml: '<Asset />'
+                }
+            }
+            const result = fromEventBridgeFormat(eventBridgeEvent)
+            expect(result.header.type).toBe('Content Update')
+            expect(result.update).toMatchObject({ wml: '<Asset />' })
+            expect(result.update).not.toHaveProperty('type')
+        })
+
         it('should normalize legacy Detail.RequestIds into header when Detail.extendedHeader is absent', () => {
             const eventBridgeEvent = {
                 Source: 'mtw.wml',
@@ -144,6 +160,18 @@ describe('formatTransform', () => {
                 type: 'Content Update',
                 RequestIds: ['r1']
             })
+        })
+
+        it('should work when update has no type (consumer compatibility)', () => {
+            const record = {
+                AssetId: 'STREAM#mtw.wml::ASSET#id',
+                DataCategory: 'EVENT#2000::uuid-1',
+                eventType: 'Content Update',
+                update: { wml: '<Asset />' }
+            } as unknown as DynamoDBFormat
+            const back = fromDynamoDBFormat(record, 'mtw.wml')
+            expect(back.header.type).toBe('Content Update')
+            expect(back.update).toEqual({ wml: '<Asset />' })
         })
 
         it('should use empty string for header.type when eventType is missing on legacy records', () => {
@@ -331,6 +359,20 @@ describe('formatTransform', () => {
             }
             const result = fromWebSocketFormat(message)
             expect(result.header.RequestId).toBe('msg-request-id')
+        })
+
+        it('should work when update has no type (consumer compatibility)', () => {
+            const message = {
+                messageType: 'StreamEvent' as const,
+                eventType: 'Content Update',
+                dataSourceKey: 'mtw.wml',
+                streamKey: 'ASSET#test',
+                timestamp: 1234567890,
+                update: { wml: '<Asset />' }
+            }
+            const result = fromWebSocketFormat(message)
+            expect(result.header.type).toBe('Content Update')
+            expect(result.update).toEqual({ wml: '<Asset />' })
         })
 
         it('should use empty string for header.type when eventType is missing on legacy messages', () => {

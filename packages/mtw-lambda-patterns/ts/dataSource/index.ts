@@ -533,7 +533,7 @@ export class DataSource<
         // New envelope-based shape: snapshotHeader + snapshotUpdate
         if (result.snapshotHeader && result.snapshotUpdate) {
             const header = result.snapshotHeader
-            const update = result.snapshotUpdate as ExternalSnapshotPayload
+            const update = result.snapshotUpdate
             const createdAt = header.timestamp
             const expiresAt = createdAt + 300000 // 5 minutes default expiration
 

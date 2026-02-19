@@ -6,7 +6,8 @@ import {
     isWMLMergeConflictEvent,
     WMLAggregator,
     WMLDataSourceEventSerializer,
-    isWMLMaterializedView
+    isWMLMaterializedView,
+    isWMLContentEventExternal
 } from './index'
 import type { WMLStreamingEventHeader } from './index'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
@@ -511,5 +512,23 @@ describe('isWMLMaterializedView', () => {
 
     it('should return false for Content Update event', () => {
         expect(isWMLMaterializedView({ schema: {} })).toBe(false)
+    })
+})
+
+describe('isWMLContentEventExternal', () => {
+    it('should return true for Content Update payload without type (consumer compatibility)', () => {
+        expect(isWMLContentEventExternal({ wml: '<Asset />' })).toBe(true)
+    })
+
+    it('should return true for Merge Conflict payload without type', () => {
+        expect(isWMLContentEventExternal({ error: 'Conflict' })).toBe(true)
+    })
+
+    it('should return true for Merge Conflict payload with no properties', () => {
+        expect(isWMLContentEventExternal({})).toBe(true)
+    })
+
+    it('should return false for payload with invalid wml type', () => {
+        expect(isWMLContentEventExternal({ wml: 123 })).toBe(false)
     })
 })

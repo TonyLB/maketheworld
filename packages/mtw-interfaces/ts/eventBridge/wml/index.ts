@@ -48,16 +48,16 @@ export type WMLEventUpdate = WMLContentEvent | WMLZoneEvent | WMLSnapshotEvent |
 // RequestIds is carried in Detail.extendedHeader (header), not in the update payload.
 export type WMLContentEventExternal = 
     | {
-        type: 'Content Update'
+        type?: 'Content Update'
         wml: string
     }
     | {
-        type: 'Merge Conflict'
+        type?: 'Merge Conflict'
         error?: string
     }
 
 export type WMLZoneEventExternal = {
-    type: 'Zone Changed'
+    type?: 'Zone Changed'
     fromZone: Zone
     toZone: Zone
     player?: string
@@ -65,13 +65,13 @@ export type WMLZoneEventExternal = {
 }
 
 export type WMLSnapshotEventExternal = {
-    type: 'Snapshot Created'
+    type?: 'Snapshot Created'
     chunksBeforeSnapshot: number
     snapshotSize: number
 }
 
 export type WMLPurgeEventExternal = {
-    type: 'Asset Purged'
+    type?: 'Asset Purged'
     zone: 'Draft' | 'Archive'
     objectsDeleted: number
     player?: string  // Present for Draft zone (Personal assets are not purgeable)
@@ -80,20 +80,20 @@ export type WMLPurgeEventExternal = {
 // Union type for all external WML events
 export type WMLEventExternal = WMLContentEventExternal | WMLZoneEventExternal | WMLSnapshotEventExternal | WMLPurgeEventExternal
 
-// External type guard for WML EventBridge payloads
+// External type guard for WML EventBridge payloads (shape-based; type optional)
 export const isWMLContentEventExternal = (event: any): event is WMLContentEventExternal => {
-    if (!event || typeof event !== 'object' || !('type' in event)) {
+    if (!event || typeof event !== 'object') {
         return false
     }
-    switch((event as any).type) {
-        case 'Content Update':
-            // Must include wml string
-            return typeof (event as any).wml === 'string'
-        case 'Merge Conflict':
-            return true
-        default:
-            return false
+    // Content Update: must have wml string
+    if (typeof (event as any).wml === 'string') {
+        return true
     }
+    // Merge Conflict: no wml, optional error
+    if (!('wml' in event)) {
+        return true
+    }
+    return false
 }
 
 export const isWMLContentUpdateEvent = (event: any): event is WMLContentEvent & { schema: StandardForm } => {

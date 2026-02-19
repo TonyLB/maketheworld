@@ -30,7 +30,7 @@ function getExtendedFromHeader(header: CoreExternalFormat['header']): Record<str
 /** In-memory format: header (required) is the single source of truth for all envelope metadata; update is the payload. */
 export interface CoreExternalFormat {
     header: { dataSourceKey: string; streamKey: string; timestamp: number; type: string; [key: string]: unknown };
-    update: { type: string; [key: string]: unknown };
+    update: { type?: string; [key: string]: unknown };
 }
 
 export interface EventBridgeFormat {
@@ -53,7 +53,7 @@ export type DynamoDBFormat<PrimaryKey extends string = string> = {
      * Source for reconstructing header.type; envelope metadata only (no payload type fallback).
      */
     eventType?: string;
-    update: { type: string; [key: string]: unknown };
+    update: { type?: string; [key: string]: unknown };
     /** Extended part of header on the wire; merged into coreFormat.header when deserializing. */
     extendedHeader?: unknown;
 } & {
@@ -72,7 +72,7 @@ export interface WebSocketFormat {
     dataSourceKey: string;
     streamKey: string;
     timestamp: number;
-    update: { type: string; [key: string]: unknown };
+    update: { type?: string; [key: string]: unknown };
     RequestId?: string;
     RequestIds?: string[];
 }
@@ -85,7 +85,7 @@ export interface SNSFeedbackFormat {
     streamKey: string;
     timestamp: number;
     extendedHeader?: unknown;
-    update: { type: string; [key: string]: unknown };
+    update: { type?: string; [key: string]: unknown };
 }
 
 /** Header type that CoreExternalFormat may carry; used to constrain makeCoreExternalFormatGuardFromHeaderGuard. */

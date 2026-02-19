@@ -618,12 +618,12 @@ describe('Library EventBridge Contracts', () => {
             expect(isLibraryExternal(undefined)).toBe(false)
         })
 
-        it('should return false for object without type', () => {
+        it('should return true for object without type when shape is valid (consumer compatibility)', () => {
             const event = {
                 assetIds: ['ASSET#test1']
             }
 
-            expect(isLibraryExternal(event)).toBe(false)
+            expect(isLibraryExternal(event)).toBe(true)
         })
     })
 })

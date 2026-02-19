@@ -3,7 +3,8 @@ import {
     ContentHeadersEventSerializer,
     ContentHeadersSnapshotExternal,
     ContentHeadersUpdateExternal,
-    isContentHeadersUpdate
+    isContentHeadersUpdate,
+    isContentHeadersExternal
 } from './index'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
@@ -605,5 +606,27 @@ describe('ContentHeaders EventBridge Contracts', () => {
                 expect(result?.assets[1].standardForm).toBeInstanceOf(StandardForm)
             })
         })
+    })
+})
+
+describe('isContentHeadersExternal', () => {
+    it('should return true for Snapshot payload without type (consumer compatibility)', () => {
+        expect(isContentHeadersExternal({ assets: [] })).toBe(true)
+    })
+
+    it('should return true for Headers Updated payload without type', () => {
+        expect(isContentHeadersExternal({
+            assetId: 'ASSET#test',
+            zone: 'Canon',
+            wml: '<Asset />'
+        })).toBe(true)
+    })
+
+    it('should return true for Zone Updated payload without type', () => {
+        expect(isContentHeadersExternal({
+            assetId: 'ASSET#test',
+            fromZone: 'Draft',
+            toZone: 'Library'
+        })).toBe(true)
     })
 })

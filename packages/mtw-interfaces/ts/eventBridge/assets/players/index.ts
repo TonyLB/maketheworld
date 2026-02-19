@@ -53,12 +53,12 @@ export type PlayerEventUpdate =
 // External (EventBridge / Replay storage) payloads - include type for wire
 //
 
-export type PlayerSnapshotExternal = { type: 'Snapshot'; assets: LibraryAsset[]; characters: LibraryCharacter[]; settings: AssetClientPlayerSettings }
-export type PlayerSettingsUpdatedExternal = { type: 'Player Settings Updated'; settings: AssetClientPlayerSettings }
-export type PlayerAssetAssignedExternal = { type: 'Player Asset Assigned'; asset: LibraryAsset }
-export type PlayerAssetRemovedExternal = { type: 'Player Asset Removed'; assetId: string }
-export type PlayerCharacterAssignedExternal = { type: 'Player Character Assigned'; character: LibraryCharacter }
-export type PlayerCharacterRemovedExternal = { type: 'Player Character Removed'; characterId: string }
+export type PlayerSnapshotExternal = { type?: 'Snapshot'; assets: LibraryAsset[]; characters: LibraryCharacter[]; settings: AssetClientPlayerSettings }
+export type PlayerSettingsUpdatedExternal = { type?: 'Player Settings Updated'; settings: AssetClientPlayerSettings }
+export type PlayerAssetAssignedExternal = { type?: 'Player Asset Assigned'; asset: LibraryAsset }
+export type PlayerAssetRemovedExternal = { type?: 'Player Asset Removed'; assetId: string }
+export type PlayerCharacterAssignedExternal = { type?: 'Player Character Assigned'; character: LibraryCharacter }
+export type PlayerCharacterRemovedExternal = { type?: 'Player Character Removed'; characterId: string }
 
 export type PlayerExternal =
     | PlayerSnapshotExternal

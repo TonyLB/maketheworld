@@ -9,7 +9,7 @@ export type { DataSourceEventSerializer } from '@tonylb/mtw-lambda-patterns/ts/d
 
 // Common event payload structure
 export type EventPayload = {
-    type: string;
+    type?: string;
 } & Record<string, unknown>
 
 // Common external event structure for EventBridge
@@ -34,8 +34,7 @@ export const isEventPayload = (event: unknown): event is EventPayload => {
     return Boolean(
         event &&
         typeof event === 'object' &&
-        'type' in event &&
-        typeof (event as any).type === 'string'
+        (!('type' in event) || typeof (event as Record<string, unknown>).type === 'string')
     )
 }
 
