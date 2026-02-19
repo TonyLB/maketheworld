@@ -47,7 +47,6 @@ describe('ContentHeaders EventBridge Contracts', () => {
                     `))
                     
                     const result = aggregator.applyUpdate(emptySnapshot, contentHeadersEnvelope({
-                        type: 'Headers Updated',
                         assetId: 'ASSET#test',
                         zone: 'Canon',
                         standardForm
@@ -89,7 +88,6 @@ describe('ContentHeaders EventBridge Contracts', () => {
                     `))
                     
                     const result = aggregator.applyUpdate(snapshot, contentHeadersEnvelope({
-                        type: 'Headers Updated',
                         assetId: 'ASSET#test',
                         zone: 'Canon',
                         standardForm: updateStandardForm
@@ -134,7 +132,6 @@ describe('ContentHeaders EventBridge Contracts', () => {
                     `))
                     
                     const result = aggregator.applyUpdate(snapshot, contentHeadersEnvelope({
-                        type: 'Headers Updated',
                         assetId: 'ASSET#test',
                         zone: 'Canon',
                         standardForm: updateStandardForm
@@ -175,7 +172,6 @@ describe('ContentHeaders EventBridge Contracts', () => {
                     `))
                     
                     const result = aggregator.applyUpdate(snapshot, contentHeadersEnvelope({
-                        type: 'Headers Updated',
                         assetId: 'ASSET#test',
                         zone: 'Library',
                         standardForm: updateStandardForm
@@ -192,7 +188,6 @@ describe('ContentHeaders EventBridge Contracts', () => {
                     
                     // Add first asset
                     const result1 = aggregator.applyUpdate(snapshot, contentHeadersEnvelope({
-                        type: 'Headers Updated',
                         assetId: 'ASSET#test1',
                         zone: 'Canon',
                         standardForm: new StandardForm(deIndentWML(`
@@ -207,7 +202,6 @@ describe('ContentHeaders EventBridge Contracts', () => {
 
                     // Add second asset
                     const result2 = aggregator.applyUpdate(result1.snapshot, contentHeadersEnvelope({
-                        type: 'Headers Updated',
                         assetId: 'ASSET#test2',
                         zone: 'Library',
                         standardForm: new StandardForm(deIndentWML(`
@@ -244,7 +238,6 @@ describe('ContentHeaders EventBridge Contracts', () => {
                     }
                     
                     const result = aggregator.applyUpdate(snapshot, contentHeadersEnvelope({
-                        type: 'Zone Updated',
                         assetId: 'ASSET#test',
                         fromZone: 'Canon',
                         toZone: 'Library'
@@ -263,7 +256,6 @@ describe('ContentHeaders EventBridge Contracts', () => {
                     const snapshot = aggregator.createEmpty()
                     
                     const result = aggregator.applyUpdate(snapshot, contentHeadersEnvelope({
-                        type: 'Zone Updated',
                         assetId: 'ASSET#nonexistent',
                         fromZone: 'Canon',
                         toZone: 'Library'
@@ -306,7 +298,6 @@ describe('ContentHeaders EventBridge Contracts', () => {
                     }
                     
                     const result = aggregator.applyUpdate(snapshot, contentHeadersEnvelope({
-                        type: 'Zone Updated',
                         assetId: 'ASSET#test1',
                         fromZone: 'Canon',
                         toZone: 'Personal'
@@ -380,7 +371,6 @@ describe('ContentHeaders EventBridge Contracts', () => {
                     })
                     
                     const result = aggregator.applyUpdate(snapshot, contentHeadersEnvelope({
-                        type: 'Headers Updated',
                         assetId: 'ASSET#test',
                         zone: 'Canon',
                         standardForm: updateStandardForm
@@ -413,7 +403,6 @@ describe('ContentHeaders EventBridge Contracts', () => {
                     })
 
                     const result = aggregator.applyUpdate(snapshot, contentHeadersEnvelope({
-                        type: 'Headers Updated',
                         assetId: 'ASSET#test',
                         zone: 'Canon',
                         standardForm: new StandardForm('<Asset uuid=(test)><Room key=(room1)></Room></Asset>')
@@ -442,7 +431,6 @@ describe('ContentHeaders EventBridge Contracts', () => {
                     const originalAssetsLength = originalSnapshot.assets.length
                     
                     aggregator.applyUpdate(originalSnapshot, contentHeadersEnvelope({
-                        type: 'Headers Updated',
                         assetId: 'ASSET#new',
                         zone: 'Library',
                         standardForm: new StandardForm('<Asset uuid=(new)></Asset>')
@@ -463,7 +451,6 @@ describe('ContentHeaders EventBridge Contracts', () => {
                     const originalZone = originalSnapshot.assets[0].zone
                     
                     aggregator.applyUpdate(originalSnapshot, contentHeadersEnvelope({
-                        type: 'Zone Updated',
                         assetId: 'ASSET#test',
                         fromZone: 'Canon',
                         toZone: 'Library'
@@ -500,7 +487,6 @@ describe('ContentHeaders EventBridge Contracts', () => {
                 })
 
                 expect(result).toEqual({
-                    type: 'Headers Updated',
                     assetId: 'ASSET#test',
                     zone: 'Canon',
                     wml: expect.any(String)
@@ -516,7 +502,6 @@ describe('ContentHeaders EventBridge Contracts', () => {
         describe('deserialize', () => {
             it('should deserialize Headers Updated event from external format', () => {
                 const externalUpdate: ContentHeadersUpdateExternal = {
-                    type: 'Headers Updated',
                     assetId: 'ASSET#test',
                     zone: 'Canon',
                     wml: '<Asset uuid=(test)><Room key=(room1)><ShortName>Test Room</ShortName></Room></Asset>'
@@ -559,7 +544,6 @@ describe('ContentHeaders EventBridge Contracts', () => {
                 const result = serializer.serializeSnapshot(snapshot)
 
                 expect(result).toEqual({
-                    type: 'Snapshot',
                     assets: [
                         {
                             assetId: 'ASSET#test1',
@@ -579,7 +563,6 @@ describe('ContentHeaders EventBridge Contracts', () => {
         describe('deserializeSnapshot', () => {
             it('should deserialize snapshot from external format', () => {
                 const externalSnapshot: ContentHeadersSnapshotExternal = {
-                    type: 'Snapshot',
                     assets: [
                         {
                             assetId: 'ASSET#test1',

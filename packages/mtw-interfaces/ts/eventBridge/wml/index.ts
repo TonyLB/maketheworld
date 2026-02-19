@@ -47,17 +47,10 @@ export type WMLEventUpdate = WMLContentEvent | WMLZoneEvent | WMLSnapshotEvent |
 // Content Update: wml is edit/delta WML (Replace/Remove etc.). Consumers must merge onto current state.
 // RequestIds is carried in Detail.extendedHeader (header), not in the update payload.
 export type WMLContentEventExternal = 
-    | {
-        type?: 'Content Update'
-        wml: string
-    }
-    | {
-        type?: 'Merge Conflict'
-        error?: string
-    }
+    | { wml: string }
+    | { error?: string }
 
 export type WMLZoneEventExternal = {
-    type?: 'Zone Changed'
     fromZone: Zone
     toZone: Zone
     player?: string
@@ -65,13 +58,11 @@ export type WMLZoneEventExternal = {
 }
 
 export type WMLSnapshotEventExternal = {
-    type?: 'Snapshot Created'
     chunksBeforeSnapshot: number
     snapshotSize: number
 }
 
 export type WMLPurgeEventExternal = {
-    type?: 'Asset Purged'
     zone: 'Draft' | 'Archive'
     objectsDeleted: number
     player?: string  // Present for Draft zone (Personal assets are not purgeable)
@@ -232,9 +223,9 @@ const isZoneChangedWMLDeserializeParams = (p: WMLDeserializeParams): p is WMLDes
     p.header.type === 'Zone Changed'
 const isSnapshotCreatedWMLDeserializeParams = (p: WMLDeserializeParams): p is WMLDeserializeParams & { header: StreamingEventHeader & { type: 'Snapshot Created' }; content: WMLSnapshotEventExternal } =>
     p.header.type === 'Snapshot Created'
-const isContentUpdateWMLDeserializeParams = (p: WMLDeserializeParams): p is WMLDeserializeParams & { header: WMLStreamingEventHeader & { type: 'Content Update' }; content: WMLContentEventExternal & { type: 'Content Update' } } =>
+const isContentUpdateWMLDeserializeParams = (p: WMLDeserializeParams): p is WMLDeserializeParams & { header: WMLStreamingEventHeader & { type: 'Content Update' }; content: { wml: string } } =>
     p.header.type === 'Content Update'
-const isMergeConflictWMLDeserializeParams = (p: WMLDeserializeParams): p is WMLDeserializeParams & { header: WMLStreamingEventHeader & { type: 'Merge Conflict' }; content: WMLContentEventExternal & { type: 'Merge Conflict' } } =>
+const isMergeConflictWMLDeserializeParams = (p: WMLDeserializeParams): p is WMLDeserializeParams & { header: WMLStreamingEventHeader & { type: 'Merge Conflict' }; content: { error?: string } } =>
     p.header.type === 'Merge Conflict'
 const isAssetPurgedWMLDeserializeParams = (p: WMLDeserializeParams): p is WMLDeserializeParams & { header: StreamingEventHeader & { type: 'Asset Purged' }; content: WMLPurgeEventExternal } =>
     p.header.type === 'Asset Purged'
@@ -258,30 +249,27 @@ export class WMLEventSerializer implements DataSourceEventSerializer<WMLEventUpd
     serialize(params: WMLSerializeParams): WMLEventExternal {
         if (isZoneChangedWMLSerializeParams(params)) {
             const { content } = params
-            return { type: 'Zone Changed', fromZone: content.fromZone, toZone: content.toZone, ...(content.player != null ? { player: content.player } : {}), ...(content.subFolder != null ? { subFolder: content.subFolder } : {}) }
+            return { fromZone: content.fromZone, toZone: content.toZone, ...(content.player != null ? { player: content.player } : {}), ...(content.subFolder != null ? { subFolder: content.subFolder } : {}) }
         }
         if (isSnapshotCreatedWMLSerializeParams(params)) {
             const { content } = params
-            return { type: 'Snapshot Created', chunksBeforeSnapshot: content.chunksBeforeSnapshot, snapshotSize: content.snapshotSize }
+            return { chunksBeforeSnapshot: content.chunksBeforeSnapshot, snapshotSize: content.snapshotSize }
         }
         if (isContentUpdateWMLSerializeParams(params)) {
             const { content } = params
             return {
-                type: 'Content Update',
                 wml: schemaToWML([content.schema.schema])
             }
         }
         if (isMergeConflictWMLSerializeParams(params)) {
             const { content } = params
             return {
-                type: 'Merge Conflict',
                 error: content.error
             }
         }
         if (isAssetPurgedWMLSerializeParams(params)) {
             const { content } = params
             return {
-                type: 'Asset Purged',
                 zone: content.zone,
                 objectsDeleted: content.objectsDeleted,
                 ...(content.player != null ? { player: content.player } : {})

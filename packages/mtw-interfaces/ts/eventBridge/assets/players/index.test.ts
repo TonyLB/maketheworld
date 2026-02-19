@@ -74,7 +74,6 @@ describe('PlayerEventSerializer', () => {
     describe('deserialize when header and payload type disagree - header wins', () => {
         it('should deserialize as Player Asset Removed when header says Player Asset Removed but content has Asset Assigned shape', () => {
             const content = {
-                type: 'Player Asset Assigned',
                 asset: { AssetId: 'AssetOne', zone: 'Draft' as const }
             }
             const header: StreamingEventHeader = {

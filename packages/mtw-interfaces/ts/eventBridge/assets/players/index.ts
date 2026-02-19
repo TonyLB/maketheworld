@@ -53,12 +53,12 @@ export type PlayerEventUpdate =
 // External (EventBridge / Replay storage) payloads - include type for wire
 //
 
-export type PlayerSnapshotExternal = { type?: 'Snapshot'; assets: LibraryAsset[]; characters: LibraryCharacter[]; settings: AssetClientPlayerSettings }
-export type PlayerSettingsUpdatedExternal = { type?: 'Player Settings Updated'; settings: AssetClientPlayerSettings }
-export type PlayerAssetAssignedExternal = { type?: 'Player Asset Assigned'; asset: LibraryAsset }
-export type PlayerAssetRemovedExternal = { type?: 'Player Asset Removed'; assetId: string }
-export type PlayerCharacterAssignedExternal = { type?: 'Player Character Assigned'; character: LibraryCharacter }
-export type PlayerCharacterRemovedExternal = { type?: 'Player Character Removed'; characterId: string }
+export type PlayerSnapshotExternal = { assets: LibraryAsset[]; characters: LibraryCharacter[]; settings: AssetClientPlayerSettings }
+export type PlayerSettingsUpdatedExternal = { settings: AssetClientPlayerSettings }
+export type PlayerAssetAssignedExternal = { asset: LibraryAsset }
+export type PlayerAssetRemovedExternal = { assetId: string }
+export type PlayerCharacterAssignedExternal = { character: LibraryCharacter }
+export type PlayerCharacterRemovedExternal = { characterId: string }
 
 export type PlayerExternal =
     | PlayerSnapshotExternal
@@ -218,7 +218,6 @@ export class PlayerEventSerializer implements DataSourceEventSerializer<
         if (isPlayerSnapshotSerializeParams(params)) {
             const { content } = params
             return {
-                type: 'Snapshot',
                 assets: content.assets.map((asset) => ({ ...asset })),
                 characters: content.characters.map((character) => ({ ...character })),
                 settings: { ...content.settings }
@@ -227,35 +226,30 @@ export class PlayerEventSerializer implements DataSourceEventSerializer<
         if (isPlayerSettingsUpdatedSerializeParams(params)) {
             const { content } = params
             return {
-                type: 'Player Settings Updated',
                 settings: { ...content.settings }
             }
         }
         if (isPlayerAssetAssignedSerializeParams(params)) {
             const { content } = params
             return {
-                type: 'Player Asset Assigned',
                 asset: { ...content.asset }
             }
         }
         if (isPlayerAssetRemovedSerializeParams(params)) {
             const { content } = params
             return {
-                type: 'Player Asset Removed',
                 assetId: content.assetId
             }
         }
         if (isPlayerCharacterAssignedSerializeParams(params)) {
             const { content } = params
             return {
-                type: 'Player Character Assigned',
                 character: { ...content.character }
             }
         }
         if (isPlayerCharacterRemovedSerializeParams(params)) {
             const { content } = params
             return {
-                type: 'Player Character Removed',
                 characterId: content.characterId
             }
         }
@@ -305,7 +299,6 @@ export class PlayerEventSerializer implements DataSourceEventSerializer<
             throw new Error(`Invalid player snapshot payload: ${JSON.stringify(snapshot)}`)
         }
         return {
-            type: 'Snapshot',
             assets: snapshot.assets.map((asset) => ({ ...asset })),
             characters: snapshot.characters.map((character) => ({ ...character })),
             settings: { ...snapshot.settings }
