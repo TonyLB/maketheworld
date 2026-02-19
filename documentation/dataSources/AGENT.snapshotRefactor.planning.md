@@ -14,6 +14,7 @@ We have completed the header + lazy-content envelope refactor for **streaming ev
 - External/core representation is `CoreExternalFormat = { header, update }`.
 - Resolved internal representation is `ResolvedStreamingEnvelope<Content, Header> = { header, content }`.
 - Aggregators, serializers, and subscribers operate on these consistent shapes, with **header authoritative for routing** and payloads focused on domain data.
+- **Payload type migration (complete):** We have removed the legacy pattern of embedding `type` in event content. Producers no longer emit it; consumers no longer require it. Wire formats (WebSocket, SNS Feedback, DynamoDB) carry top-level `eventType`; discrimination is exclusively envelope-based (`header.type`, `eventType`). This simplifies remaining work: no content-type guards or payload-type routing to reconcile.
 
 **Snapshots are still on the old model.** They are materialized blobs pushed through special-purpose paths (Dynamo snapshot rows, initializeSubscription wiring, client reducers) that do not use the same lazy envelope semantics or header-level routing. This limits:
 
@@ -63,7 +64,7 @@ We want snapshots to participate in the same three-regime architecture as events
 
 - **External/core (`CoreExternalFormat`)**:
   - Snapshots use the same `{ header, update }` shape as events.
-  - `update` is the external snapshot payload (string or serializable object).
+  - `update` is the external payload (string or serializable object). For events, `update` does not include a `type` field; discrimination uses `header.type` (and wire formats expose `eventType`). Snapshots use `header.type === 'Snapshot'`; their `update` is domain-shaped (e.g. JSON, WML, sidecar descriptor).
   - Context transforms (`toDynamoDBFormat`, `toSNSFeedbackFormat`, `toWebSocketFormat`) treat snapshots and events uniformly.
 - **Lazy internal (`StreamingEventEnvelope`)**:
   - Snapshot messages on the messageBus have `{ header, getContentInternal }` where `getContentInternal`:
@@ -168,13 +169,15 @@ This section outlines the broad strokes of the refactor; exact task breakdown wi
 
 ### D. Aggregation and client alignment
 
+**Status:** Done (2026-02-18). Aggregator docs updated; processRawSnapshot and processRawEvent unified into processRawEnvelope with header-based discrimination; isSnapshot/isUpdate removed from slice config; performCleanup uses header.type.
+
 1. **Treat snapshots as envelopes in aggregators**
    - Update aggregator documentation and examples so that:
      - Initial snapshot is `ResolvedStreamingEnvelope<SnapshotPayload, Header>` with `header.type` reflecting a snapshot variant.
      - Events remain `ResolvedStreamingEnvelope<UpdatePayload, Header>`.
    - Ensure `applyUpdate` examples show snapshot application as just another envelope.
 2. **Client DataSource slices**
-   - **Unify incoming envelope handling:** Replace the two reducers (`processRawSnapshot` and `processRawEvent`) with one (process incoming envelope). Use a single deserialize path (serializer branches on `header.type === 'Snapshot'`) and header-based discrimination so the client does not need domain-specific content type guards (`isSnapshot(content)`, `isUpdate(content)`). `performCleanup` and the `recentEvents` buffer remain largely unchanged; the simplification is upstream in how each incoming envelope is processed before updating the materialized view and the buffer.
+   - **Unify incoming envelope handling:** Replace the two reducers (`processRawSnapshot` and `processRawEvent`) with one (process incoming envelope). Use a single deserialize path (serializer branches on `header.type === 'Snapshot'`) and header-based discrimination. Event routing already uses `eventType`/`header.type` exclusively (payload-type migration complete); the remaining simplification is unifying how snapshot and event envelopes are processed. `performCleanup` and the `recentEvents` buffer remain largely unchanged; the change is upstream in how each incoming envelope is processed before updating the materialized view and the buffer.
    - Update client slice docs and contracts to:
      - Treat the replay stream as "one snapshot envelope plus a sequence of event envelopes."
      - Use `header` for routing (for example, skip Merge Conflict for events, branch correctly for snapshot variants).
@@ -192,7 +195,7 @@ For each replayable DataSource:
      - Emit CoreExternalFormat snapshots with correct headers (`type: 'Snapshot'`).
      - Use the same serializer and formatTransform pathways as events; serializer branches on `header.type === 'Snapshot'` inside `serialize`/`deserialize` (no dedicated snapshot methods).
    - Update replay and initialize consumers to:
-     - Rely on envelope headers for routing and type discrimination.
+     - Rely on envelope headers for routing and type discrimination. (Event consumers already do this; `eventType`/`header.type` are the sole source of routing. Snapshot consumers should follow the same pattern.)
      - Use `getContentInternal` to obtain snapshot content, not bespoke decode logic.
 3. **Testing and staged rollout**
    - Start with a non-critical or low-volume DataSource if possible.
@@ -211,6 +214,8 @@ This document is a starting point; we expect to iterate as we move closer to imp
 **Resolved:** Serializers already receive `{ content, header }` (header includes `type`). Snapshot handling does not require dedicated `serializeSnapshot`/`deserializeSnapshot` methods. Implementations can branch inside `serialize` and `deserialize` on `header.type === 'Snapshot'` to handle snapshot payloads; the same serializer class serves both events and snapshots. The refactor can deprecate/remove the optional snapshot-specific methods in favor of this single entry point.
 
 **Resolved:** We do not expose provenance (self-contained vs delegated) to the client; data sources are black boxes. We do not add a separate "snapshot freshness" API; the envelope header already carries `timestamp`, which is sufficient for ordering and for clients to derive age if they need it.
+
+**Resolved:** Payload `type` has been removed from DataSource event contracts. Producers do not emit it; consumers do not require it. Wire formats use top-level `eventType`; routing is exclusively envelope-based. Snapshots in the target model never relied on payload type; no snapshot-specific changes are needed for that.
 
 1. **Client incoming envelope handling**
    - **Resolved.** The unified envelope model simplifies incoming message handling (one reducer, one deserialize path, header-based discrimination); `performCleanup` and `recentEvents` stay. See **Workstream D.2** for the concrete task.

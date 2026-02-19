@@ -22,9 +22,7 @@ This slice uses the generic `createDataSourceSlice` factory with content-headers
 import { createDataSourceSlice } from '../dataSource'
 import { 
   ContentHeadersAggregator,
-  ContentHeadersEventSerializer,
-  isContentHeadersSnapshot,
-  isContentHeadersUpdate
+  ContentHeadersEventSerializer
 } from '@tonylb/mtw-interfaces/ts/eventBridge/contentHeaders'
 
 export const {
@@ -37,8 +35,6 @@ export const {
   dataSourceKey: 'mtw.assets.contentHeaders',
   aggregator: ContentHeadersAggregator,
   eventSerializer: ContentHeadersEventSerializer,
-  isSnapshot: isContentHeadersSnapshot,
-  isUpdate: isContentHeadersUpdate,
   sliceSelector: (state) => state.contentHeaders
 })
 ```
@@ -160,8 +156,7 @@ The content headers slice automatically integrates with `LifeLinePubSub` through
 
 - ✅ Subscribing to LifeLinePubSub during INITIALIZE state
 - ✅ Filtering messages by `dataSourceKey` (`mtw.assets.contentHeaders`)
-- ✅ Routing snapshots to `processRawSnapshot`
-- ✅ Routing events to `processRawEvent`
+- ✅ Routing all StreamEvents to `processRawEnvelope` (snapshot vs event discriminated by `header.type`)
 - ✅ Extracting timestamps from messages
 - ✅ Managing subscription lifecycle
 

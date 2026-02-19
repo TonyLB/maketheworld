@@ -6,28 +6,8 @@
 import { createDataSourceSlice } from '../dataSource'
 import {
   LibraryAggregator,
-  LibraryEventSerializer,
-  LibraryEventUpdate,
-  LibrarySnapshot,
-  LibraryExternal,
-  LibrarySnapshotExternal,
-  isLibrarySnapshot,
-  isLibraryUpdate
+  LibraryEventSerializer
 } from '@tonylb/mtw-interfaces/ts/eventBridge/assets/library'
-
-// Type guards for the slice
-// These distinguish between snapshot and update events in the internal format
-export const isSnapshot = (
-  event: LibrarySnapshot | LibraryEventUpdate
-): event is LibrarySnapshot => {
-  return isLibrarySnapshot(event)
-}
-
-export const isUpdate = (
-  event: LibrarySnapshot | LibraryEventUpdate
-): event is LibraryEventUpdate => {
-  return isLibraryUpdate(event)
-}
 
 // Create the slice using the generic factory
 export const {
@@ -42,8 +22,6 @@ export const {
   dataSourceKey: 'mtw.assets.library',
   aggregator: new LibraryAggregator(),
   eventSerializer: new LibraryEventSerializer(),
-  isSnapshot,
-  isUpdate,
   sliceSelector: (state: any) => state.libraryDataSource
 })
 
@@ -63,8 +41,7 @@ export const {
 } = libraryDataSourceSelectors
 
 export const {
-  processRawSnapshot,
-  processRawEvent
+  processRawEnvelope
 } = libraryDataSourceActions
 
 // Selector to get library asset IDs from the global stream

@@ -178,9 +178,9 @@ The event processing functions use currying to inject configuration:
 
 ```typescript
 // Pattern: Outer function takes config, returns reducer
-const processRawEvent = (aggregator, serializer, ...) => 
+const processRawEnvelope = (aggregator, serializer, ...) => 
   (state, action) => {
-    // Reducer logic with access to config
+    // Reducer logic with access to config; branches on header.type
   }
 ```
 
@@ -225,10 +225,10 @@ The pattern operates under specific assumptions and provides corresponding guara
 
 The client mirrors the server-side header/content split:
 
-- LifeLine delivers `StreamEvent` messages with `streamKey`, `timestamp`, and `update`.
-- The client derives a `ClientStreamingHeader` from `update.type` (and optional `zone`) and treats `update` as `content`.
-- `processRawSnapshot` and `processRawEvent` receive payloads shaped as `{ streamKey, timestamp, header, content }` (see [baseClasses.ts](./baseClasses.ts): `ClientSnapshotMessagePayload`, `ClientUpdateMessagePayload`).
-- Routing (Snapshot vs event) uses `header.type === 'Snapshot'`; the reducer deserializes `content` via the event serializer.
+- LifeLine delivers `StreamEvent` messages with `streamKey`, `timestamp`, `eventType`, and `update`.
+- The client derives a `ClientStreamingHeader` from `eventType` (and optional `zone`) and treats `update` as `content`.
+- `processRawEnvelope` receives payloads shaped as `{ streamKey, timestamp, header, content }` (see [baseClasses.ts](./baseClasses.ts): `ClientStreamingMessagePayload`).
+- Routing uses `header.type === 'Snapshot'` vs other types; the reducer calls `deserializeSnapshot(content)` for snapshots or `deserialize({ content, header })` for events.
 
 ### **Key Implementation Areas**
 
@@ -239,9 +239,8 @@ When extending the pattern, you'll likely work in these areas:
 Three main functions handle event processing:
 
 1. **`applyEvents`**: Helper to apply multiple updates in order
-2. **`performCleanup`**: Manages 30-second rolling window
-3. **`processRawSnapshot`**: Handles incoming snapshots
-4. **`processRawEvent`**: Handles incoming updates (in-order and out-of-order)
+2. **`performCleanup`**: Manages 30-second rolling window (uses `header.type` for snapshot vs update discrimination)
+3. **`processRawEnvelope`**: Handles incoming snapshots and events; branches on `header.type === 'Snapshot'` to deserialize and apply (in-order fast path, out-of-order re-aggregation)
 
 **Critical Algorithm**: Out-of-order event handling
 - **Fast path**: New event is later than all cached events → apply directly
@@ -263,9 +262,9 @@ Three action factories manage lifecycle:
 
 Snapshot events may carry a **`sidecarUrl`** instead of an inline payload (backend sends a presigned URL; the client fetches the body). Resolution happens **before** the reducer runs:
 
-1. **LifeLine callback** receives `update.type === 'Snapshot'`. It dispatches the **wrapper** (not the raw reducer action).
-2. **Wrapper** (in `index.ts`): If `rawSnapshot.sidecarUrl` is present and the slice config provides **`resolveSidecarSnapshot`**, the wrapper returns a **thunk** that (a) awaits `resolveSidecarSnapshot(streamKey, sidecarUrl, rawSnapshot)`, (b) dispatches `processRawSnapshot({ streamKey, timestamp, rawSnapshot: resolved })` with the same envelope `timestamp`. If `sidecarUrl` is present but no resolver is configured, the wrapper logs a warning and does not dispatch. If there is no `sidecarUrl`, the wrapper returns the normal reducer action.
-3. **Reducer** (`reducers.ts`) is unchanged: it only ever sees a resolved `rawSnapshot` (inline or produced by the resolver), so timestamp-based ordering and cleanup work as for inline snapshots.
+1. **LifeLine callback** receives `header.type === 'Snapshot'`. It dispatches the **wrapper** (not the raw reducer action).
+2. **Wrapper** (in `index.ts`): If `content.sidecarUrl` is present and the slice config provides **`resolveSidecarSnapshot`**, the wrapper returns a **thunk** that (a) awaits `resolveSidecarSnapshot(streamKey, sidecarUrl, content)`, (b) dispatches `processRawEnvelope({ streamKey, timestamp, header, content: resolved })` with the same envelope `timestamp`. If `sidecarUrl` is present but no resolver is configured, the wrapper logs a warning and does not dispatch. If there is no `sidecarUrl`, the wrapper returns the normal reducer action.
+3. **Reducer** (`reducers.ts`) only ever sees resolved content (inline or produced by the resolver), so timestamp-based ordering and cleanup work as for inline snapshots.
 
 Data sources that use sidecar (e.g. mtw.wml) set **`resolveSidecarSnapshot`** in the slice config; it should fetch the URL, parse the response (e.g. JSON or WML), and return the same `ExternalSnapshotPayload` shape that `deserializeSnapshot` expects.
 
@@ -441,7 +440,7 @@ Quick reference for what each file does:
 3. Verify timestamps are correct
 
 ### **Understanding Out-of-Order Handling**
-→ Read `reducers.ts` `processRawEvent` function
+→ Read `reducers.ts` `processRawEnvelope` function
 → See `AGENT.planning.md` lines 872-1006 for algorithm details
 
 ### **Modifying State Machine Flow**

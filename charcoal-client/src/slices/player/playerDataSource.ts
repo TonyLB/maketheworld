@@ -8,28 +8,13 @@ import { createDataSourceSlice } from '../dataSource'
 import {
   PlayerAggregator,
   PlayerEventSerializer,
-  PlayerEventUpdate,
   PlayerSnapshot,
-  isPlayerSnapshot
+  PlayerEventUpdate
 } from '@tonylb/mtw-interfaces/ts/eventBridge/assets/players'
 import { getPlayerName } from '../settings'
 import { heartbeat } from '../stateSeekingMachine/ssmHeartbeat'
 import type { DataSourceInternal, DataSourcePublic } from '../dataSource/baseClasses'
 import type { ISSMHoldCondition } from '../stateSeekingMachine/baseClasses'
-
-// Type guards for the slice
-// These distinguish between snapshot and update events in the internal format
-export const isPlayerDataSourceSnapshot = (
-  event: PlayerSnapshot | PlayerEventUpdate
-): event is PlayerSnapshot => {
-  return isPlayerSnapshot(event)
-}
-
-export const isPlayerDataSourceUpdate = (
-  event: PlayerSnapshot | PlayerEventUpdate
-): event is PlayerEventUpdate => {
-  return !isPlayerSnapshot(event)
-}
 
 // Hold condition: Wait for PlayerName to be populated from SessionInitialized message
 // This ensures we can subscribe with the actual player name instead of 'self'
@@ -85,8 +70,6 @@ export const {
   dataSourceKey: 'mtw.assets.players',
   aggregator: new PlayerAggregator(),
   eventSerializer: new PlayerEventSerializer(),
-  isSnapshot: isPlayerDataSourceSnapshot,
-  isUpdate: isPlayerDataSourceUpdate,
   sliceSelector: (state: any) => state.playerDataSource,
   holdCondition: playerNameHoldCondition,  // Wait for PlayerName before initializing
   onReady: (dispatch: any, getState: any, sliceActions: any) => {
@@ -113,7 +96,6 @@ export const {
 } = playerDataSourceSelectors
 
 export const {
-  processRawSnapshot,
-  processRawEvent
+  processRawEnvelope
 } = playerDataSourceActions
 

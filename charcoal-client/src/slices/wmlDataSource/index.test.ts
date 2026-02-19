@@ -6,8 +6,7 @@ import {
   unsubscribeFromWmlDataSource,
   getActiveStreamKeys,
   getSubscribedStreams,
-  processRawSnapshot,
-  processRawEvent,
+  processRawEnvelope,
   resolveSidecarSnapshot
 } from './index'
 import { getWMLBase } from './selectors'
@@ -39,9 +38,8 @@ describe('wmlDataSource slice', () => {
       expect(unsubscribeFromWmlDataSource).toBeDefined()
     })
 
-    it('should export processRawSnapshot and processRawEvent', () => {
-      expect(processRawSnapshot).toBeDefined()
-      expect(processRawEvent).toBeDefined()
+    it('should export processRawEnvelope', () => {
+      expect(processRawEnvelope).toBeDefined()
     })
   })
 

@@ -36,15 +36,13 @@ import { MyAggregator, MySerializer } from './my-data-source-logic'
 export const {
   slice,           // Redux slice with state machine
   selectors,       // getActiveStreamKeys, getSubscribedStreams
-  publicActions,   // processRawSnapshot, processRawEvent
+  publicActions,   // processRawEnvelope
   iterateAllSSMs   // State machine iterator
 } = createDataSourceSlice({
   name: 'myDataSource',
   dataSourceKey: 'my.data.source',
   aggregator: MyAggregator,
   eventSerializer: MySerializer,
-  isSnapshot: (event): event is MySnapshot => event.type === 'Snapshot',
-  isUpdate: (event): event is MyUpdate => event.type !== 'Snapshot',
   sliceSelector: (state) => state.myDataSource
 })
 ```
@@ -53,10 +51,8 @@ export const {
 
 - **`name`**: Unique name for the Redux slice
 - **`dataSourceKey`**: Backend data source identifier (e.g., `'mtw.assets.contentHeaders'`)
-- **`aggregator`**: Object with `createEmpty()` and `applyEvents()` methods for aggregating events
+- **`aggregator`**: Object with `createEmpty()` and `applyUpdate()` methods for aggregating events
 - **`eventSerializer`**: Object with `deserialize()` and `deserializeSnapshot()` methods
-- **`isSnapshot`**: Type guard to identify snapshot events
-- **`isUpdate`**: Type guard to identify update events
 - **`sliceSelector`**: Function to select this slice from root state
 - **`resolveSidecarSnapshot`** (optional): For data sources that receive Snapshot events with a `sidecarUrl` instead of an inline payload, provide a function `(streamKey, sidecarUrl, rawSnapshot) => Promise<ExternalSnapshotPayload>`. The client will fetch from the URL, then your function parses the response and returns the same external snapshot shape that `deserializeSnapshot` expects. Omit for inline-only data sources. The same timestamp-based ordering applies for sidecar snapshots.
 

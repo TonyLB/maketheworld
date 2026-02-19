@@ -1,11 +1,11 @@
 import { singleSSM } from '../stateSeekingMachine/singleSSM'
-import { DataSourceNodes, DataSourcePublic, DataSourceInternal, DataSourceData, ClientSnapshotMessagePayload } from './baseClasses'
+import { DataSourceNodes, DataSourcePublic, DataSourceInternal, DataSourceData, ClientStreamingMessagePayload } from './baseClasses'
 import { backoffAction, createSubscribeAction, createUnsubscribeAction, createInitializeAction, lifelineCondition } from './index.api'
 import { PromiseCache } from '../promiseCache'
 import { heartbeat } from '../stateSeekingMachine/ssmHeartbeat'
 import type { DataSourceEventSerializer, EventPayload, SerializableObject } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import type { DataSourceAggregator } from '@tonylb/mtw-lambda-patterns/ts/dataSource/aggregation'
-import { applyEvents, performCleanup, processRawSnapshot, processRawEvent } from './reducers'
+import { applyEvents, performCleanup, processRawEnvelope } from './reducers'
 import type { ISSMHoldCondition } from '../stateSeekingMachine/baseClasses'
 
 //
@@ -21,13 +21,11 @@ export interface DataSourceSliceConfig<
     dataSourceKey: string                 // DataSource key (e.g., 'mtw.assets.contentHeaders')
     aggregator: DataSourceAggregator<SnapshotPayload, UpdatePayload>  // Aggregator for combining events
     eventSerializer: DataSourceEventSerializer<UpdatePayload, ExternalUpdatePayload, SnapshotPayload, ExternalSnapshotPayload>  // Serializer for deserialization
-    isSnapshot: (event: UpdatePayload | SnapshotPayload) => event is SnapshotPayload  // Type guard to identify snapshot events
-    isUpdate: (event: UpdatePayload | SnapshotPayload) => event is UpdatePayload  // Type guard to identify update events
     sliceSelector: (state: any) => any    // Selector to access this slice in Redux store
     promiseCache?: PromiseCache<DataSourceData<SnapshotPayload, UpdatePayload>>  // Optional promise cache for state machine coordination
     onReady?: (dispatch: any, getState: any, sliceActions: any) => void  // Optional callback when slice reaches READY state (after INITIALIZE completes). Receives dispatch, getState, and slice actions for subscription management.
     holdCondition?: ISSMHoldCondition<DataSourceInternal, DataSourcePublic<SnapshotPayload, UpdatePayload>>  // Optional additional hold condition (checked alongside lifelineCondition)
-    /** When set, Snapshot events with sidecarUrl are fetched and resolved to ExternalSnapshotPayload before processRawSnapshot. Omit for inline-only data sources. */
+    /** When set, Snapshot events with sidecarUrl are fetched and resolved to ExternalSnapshotPayload before processRawEnvelope. Omit for inline-only data sources. */
     resolveSidecarSnapshot?: (streamKey: string, sidecarUrl: string, rawSnapshot: any) => Promise<ExternalSnapshotPayload>
 }
 
@@ -43,13 +41,13 @@ export const createDataSourceSlice = <
 >(
     config: DataSourceSliceConfig<SnapshotPayload, UpdatePayload, ExternalUpdatePayload, ExternalSnapshotPayload>
 ) => {
-    const { name, dataSourceKey, aggregator, eventSerializer, isSnapshot, isUpdate, sliceSelector, promiseCache: providedPromiseCache, holdCondition, resolveSidecarSnapshot } = config
+    const { name, dataSourceKey, aggregator, eventSerializer, sliceSelector, promiseCache: providedPromiseCache, holdCondition, resolveSidecarSnapshot } = config
 
     // Create a promise cache if one wasn't provided
     const promiseCache = providedPromiseCache ?? new PromiseCache<DataSourceData<SnapshotPayload, UpdatePayload>>()
 
     // We'll create the initialize action after we have access to the public action creators
-    // This is necessary because the initialize action needs to dispatch processRawSnapshot and processRawEvent
+    // This is necessary because the initialize action needs to dispatch processRawEnvelope
     let initializeAction: ReturnType<typeof createInitializeAction<SnapshotPayload, UpdatePayload>>
 
     // Create the subscribe and unsubscribe actions using factories
@@ -151,7 +149,7 @@ export const createDataSourceSlice = <
 
     // Create curried helper functions from reducers.ts
     const applyEventsWithAggregator = applyEvents(aggregator)
-    const performCleanupWithConfig = performCleanup(aggregator, isSnapshot, isUpdate, applyEventsWithAggregator)
+    const performCleanupWithConfig = performCleanup(aggregator, applyEventsWithAggregator)
     
     // Create the slice using singleSSM
     const result = singleSSM<DataSourceNodes<SnapshotPayload, UpdatePayload>, {
@@ -165,22 +163,10 @@ export const createDataSourceSlice = <
         sliceSelector,
         promiseCache,
         publicReducers: {
-            // Process incoming snapshot event
-            processRawSnapshot: processRawSnapshot(
-                dataSourceKey,
-                eventSerializer,
-                isUpdate,
-                performCleanupWithConfig,
-                applyEventsWithAggregator
-            ),
-            
-            // Process incoming update event
-            processRawEvent: processRawEvent(
+            processRawEnvelope: processRawEnvelope(
                 dataSourceKey,
                 eventSerializer,
                 aggregator,
-                isSnapshot,
-                isUpdate,
                 performCleanupWithConfig,
                 applyEventsWithAggregator
             )
@@ -193,20 +179,20 @@ export const createDataSourceSlice = <
     })
 
     // Sidecar-aware wrapper: when snapshot content has sidecarUrl and resolveSidecarSnapshot is set,
-    // return a thunk that fetches/resolves then dispatches processRawSnapshot with resolved payload.
-    const processRawSnapshotWithSidecar = (payload: ClientSnapshotMessagePayload<any>) => {
+    // return a thunk that fetches/resolves then dispatches processRawEnvelope with resolved payload.
+    const processRawEnvelopeWithSidecar = (payload: ClientStreamingMessagePayload<any>) => {
         const { streamKey, timestamp, header, content } = payload
-        if (content?.sidecarUrl && resolveSidecarSnapshot) {
+        if (header.type === 'Snapshot' && content?.sidecarUrl && resolveSidecarSnapshot) {
             return async (dispatch: any) => {
                 const resolved = await resolveSidecarSnapshot(streamKey, content.sidecarUrl, content)
-                dispatch(result.publicActions.processRawSnapshot({ streamKey, timestamp, header, content: resolved }))
+                dispatch(result.publicActions.processRawEnvelope({ streamKey, timestamp, header, content: resolved }))
             }
         }
-        if (content?.sidecarUrl && !resolveSidecarSnapshot) {
+        if (header.type === 'Snapshot' && content?.sidecarUrl && !resolveSidecarSnapshot) {
             console.warn(`[${dataSourceKey}] Snapshot has sidecarUrl but resolveSidecarSnapshot is not configured; ignoring. streamKey=${streamKey}`)
             return
         }
-        return result.publicActions.processRawSnapshot(payload)
+        return result.publicActions.processRawEnvelope(payload)
     }
 
     // Now that we have the result with publicActions, create the initialize action
@@ -224,8 +210,7 @@ export const createDataSourceSlice = <
         : undefined
     initializeAction = createInitializeAction<SnapshotPayload, UpdatePayload>(
         dataSourceKey,
-        processRawSnapshotWithSidecar,
-        result.publicActions.processRawEvent,
+        processRawEnvelopeWithSidecar,
         onReadyWrapper,
         sliceSelector  // Pass sliceSelector so we can read current state after onReady
     )

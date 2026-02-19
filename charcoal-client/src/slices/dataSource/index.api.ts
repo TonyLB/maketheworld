@@ -1,4 +1,4 @@
-import { DataSourceAction, ClientStreamingHeader, ClientSnapshotMessagePayload, ClientUpdateMessagePayload } from './baseClasses'
+import { DataSourceAction, ClientStreamingHeader, ClientStreamingMessagePayload } from './baseClasses'
 import { socketDispatchPromise, LifeLinePubSub, getStatus } from '../lifeLine'
 import delayPromise from '../../lib/delayPromise'
 import { ISSMHoldCondition } from '../stateSeekingMachine/baseClasses'
@@ -31,8 +31,7 @@ export const backoffAction: DataSourceAction<any, any> = ({ internalData: { incr
 //
 export const createInitializeAction = <SnapshotPayload, UpdatePayload>(
     dataSourceKey: string,
-    processRawSnapshot: (payload: ClientSnapshotMessagePayload<any>) => any,
-    processRawEvent: (payload: ClientUpdateMessagePayload<any>) => any,
+    processRawEnvelope: (payload: ClientStreamingMessagePayload<any>) => any,
     onReady?: (dispatch: any, getState: any, sliceActions: any) => void,
     sliceSelector?: (state: any) => any
 ): DataSourceAction<SnapshotPayload, UpdatePayload> => {
@@ -48,13 +47,10 @@ export const createInitializeAction = <SnapshotPayload, UpdatePayload>(
                         ...(Object.prototype.hasOwnProperty.call(update, 'zone') ? { zone: (update as any).zone as string } : {})
                     }
                     const content = update
-                    
-                    // Route to appropriate processor based on message type
-                    if (header.type === 'Snapshot') {
-                        dispatch(processRawSnapshot({ streamKey, timestamp, header, content }))
-                    } else {
-                        // All other update types are events
-                        dispatch(processRawEvent({ streamKey, timestamp, header, content }))
+                    const envelopePayload: ClientStreamingMessagePayload<any> = { streamKey, timestamp, header, content }
+                    const action = processRawEnvelope(envelopePayload)
+                    if (action) {
+                        dispatch(action)
                     }
                 }
             })

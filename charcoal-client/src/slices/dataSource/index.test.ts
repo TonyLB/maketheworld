@@ -4,14 +4,14 @@ import type { ClientSnapshotMessagePayload } from './baseClasses'
 import { DataSourceAggregator } from '@tonylb/mtw-lambda-patterns/ts/dataSource/aggregation'
 import { DataSourceEventSerializer } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 
-// Capture the processRawSnapshot (wrapper) passed to createInitializeAction for sidecar tests
-let capturedProcessRawSnapshot: ((payload: ClientSnapshotMessagePayload<any>) => any) | null = null
+// Capture the processRawEnvelope (wrapper) passed to createInitializeAction for sidecar tests
+let capturedProcessRawEnvelope: ((payload: ClientSnapshotMessagePayload<any>) => any) | null = null
 vi.mock('./index.api', async (importOriginal) => {
     const mod = await importOriginal<typeof import('./index.api')>()
     return {
         ...mod,
         createInitializeAction: (...args: any[]) => {
-            capturedProcessRawSnapshot = args[1]
+            capturedProcessRawEnvelope = args[1]
             return (mod.createInitializeAction as (...a: any[]) => any)(...args)
         }
     }
@@ -28,10 +28,6 @@ type TestUpdate = {
 }
 
 type TestEvent = TestSnapshot | TestUpdate
-
-// Type guards
-const isTestSnapshot = (event: TestEvent): event is TestSnapshot => event.type === 'Snapshot'
-const isTestUpdate = (event: TestEvent): event is TestUpdate => event.type === 'Increment' || event.type === 'Decrement'
 
 // Mock aggregator
 const mockAggregator: DataSourceAggregator<TestSnapshot, TestUpdate> = {
@@ -73,8 +69,6 @@ describe('dataSource slice', () => {
                 dataSourceKey: 'test.dataSource',
                 aggregator: mockAggregator,
                 eventSerializer: mockSerializer,
-                isSnapshot: isTestSnapshot,
-                isUpdate: isTestUpdate,
                 sliceSelector: (state) => state.testDataSource
             }
             
@@ -86,8 +80,7 @@ describe('dataSource slice', () => {
             expect(slice.actions).toBeDefined()
             
             // Check public actions exist
-            expect(publicActions.processRawSnapshot).toBeDefined()
-            expect(publicActions.processRawEvent).toBeDefined()
+            expect(publicActions.processRawEnvelope).toBeDefined()
             
             // Check selectors exist
             expect(selectors.getActiveStreamKeys).toBeDefined()
@@ -100,8 +93,6 @@ describe('dataSource slice', () => {
                 dataSourceKey: 'test.dataSource',
                 aggregator: mockAggregator,
                 eventSerializer: mockSerializer,
-                isSnapshot: isTestSnapshot,
-                isUpdate: isTestUpdate,
                 sliceSelector: (state) => state.testDataSource
             }
             
@@ -128,8 +119,6 @@ describe('dataSource slice', () => {
                 dataSourceKey: 'test.dataSource',
                 aggregator: mockAggregator,
                 eventSerializer: mockSerializer,
-                isSnapshot: isTestSnapshot,
-                isUpdate: isTestUpdate,
                 sliceSelector: (state) => state.testDataSource
             }
             
@@ -146,8 +135,6 @@ describe('dataSource slice', () => {
                 dataSourceKey: 'test.dataSource',
                 aggregator: mockAggregator,
                 eventSerializer: mockSerializer,
-                isSnapshot: isTestSnapshot,
-                isUpdate: isTestUpdate,
                 sliceSelector: (state) => state.testDataSource
             }
             
@@ -174,8 +161,6 @@ describe('dataSource slice', () => {
                 dataSourceKey: 'test.dataSource',
                 aggregator: mockAggregator,
                 eventSerializer: mockSerializer,
-                isSnapshot: isTestSnapshot,
-                isUpdate: isTestUpdate,
                 sliceSelector: (state) => state.testDataSource,
                 promiseCache: customCache
             }
@@ -189,10 +174,10 @@ describe('dataSource slice', () => {
 
         describe('sidecar snapshot', () => {
             beforeEach(() => {
-                capturedProcessRawSnapshot = null
+                capturedProcessRawEnvelope = null
             })
 
-            it('when resolveSidecarSnapshot is configured, invokes resolver and dispatches processRawSnapshot with resolved payload and same timestamp', async () => {
+            it('when resolveSidecarSnapshot is configured, invokes resolver and dispatches processRawEnvelope with resolved payload and same timestamp', async () => {
                 const resolvedSnapshot = { type: 'Snapshot' as const, value: 99 }
                 const resolveSidecarSnapshot = vi.fn().mockResolvedValue(resolvedSnapshot)
                 const config: DataSourceSliceConfig<TestSnapshot, TestUpdate, any, any> = {
@@ -200,18 +185,16 @@ describe('dataSource slice', () => {
                     dataSourceKey: 'test.dataSource',
                     aggregator: mockAggregator,
                     eventSerializer: mockSerializer,
-                    isSnapshot: isTestSnapshot,
-                    isUpdate: isTestUpdate,
                     sliceSelector: (state) => state.testDataSource,
                     resolveSidecarSnapshot
                 }
                 createDataSourceSlice(config)
-                expect(capturedProcessRawSnapshot).toBeDefined()
+                expect(capturedProcessRawEnvelope).toBeDefined()
                 const streamKey = 'stream1'
                 const timestamp = 1000
                 const rawSnapshot = { type: 'Snapshot' as const, sidecarUrl: 'https://example.com/sidecar', createdAt: 500 }
                 const dispatch = vi.fn()
-                const result = capturedProcessRawSnapshot!({
+                const result = capturedProcessRawEnvelope!({
                     streamKey,
                     timestamp,
                     header: { type: 'Snapshot' },
@@ -225,20 +208,18 @@ describe('dataSource slice', () => {
                 }))
             })
 
-            it('when sidecarUrl is present but resolveSidecarSnapshot is not configured, does not dispatch processRawSnapshot', () => {
+            it('when sidecarUrl is present but resolveSidecarSnapshot is not configured, does not dispatch processRawEnvelope', () => {
                 const config: DataSourceSliceConfig<TestSnapshot, TestUpdate, any, any> = {
                     name: 'testDataSource',
                     dataSourceKey: 'test.dataSource',
                     aggregator: mockAggregator,
                     eventSerializer: mockSerializer,
-                    isSnapshot: isTestSnapshot,
-                    isUpdate: isTestUpdate,
                     sliceSelector: (state) => state.testDataSource
                 }
                 createDataSourceSlice(config)
-                expect(capturedProcessRawSnapshot).toBeDefined()
+                expect(capturedProcessRawEnvelope).toBeDefined()
                 const dispatch = vi.fn()
-                const result = capturedProcessRawSnapshot!({
+                const result = capturedProcessRawEnvelope!({
                     streamKey: 'stream1',
                     timestamp: 1000,
                     header: { type: 'Snapshot' },
