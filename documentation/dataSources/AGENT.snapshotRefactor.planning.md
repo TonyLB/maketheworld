@@ -185,6 +185,8 @@ This section outlines the broad strokes of the refactor; exact task breakdown wi
 
 ### E. Domain migrations (WML, assets, ephemera, others)
 
+**Status:** Done (2026-02-19). Replayable DataSources `mtw.wml`, `mtw.assets.contentHeaders`, `mtw.assets.library`, and `mtw.assets.players` now use the shared CoreExternalFormat snapshot/event envelope model end-to-end; `mtw.ephemera` remains non-replayable (no snapshots).
+
 For each replayable DataSource:
 
 1. **Inventory**
