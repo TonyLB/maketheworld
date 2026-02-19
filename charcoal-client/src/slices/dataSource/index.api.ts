@@ -44,7 +44,7 @@ export const createInitializeAction = <SnapshotPayload, UpdatePayload>(
                 if (payload.messageType === 'StreamEvent' && payload.dataSourceKey === dataSourceKey) {
                     const { streamKey, timestamp, update } = payload
                     const header: ClientStreamingHeader = {
-                        type: update.type as string,
+                        type: payload.eventType,
                         ...(Object.prototype.hasOwnProperty.call(update, 'zone') ? { zone: (update as any).zone as string } : {})
                     }
                     const content = update

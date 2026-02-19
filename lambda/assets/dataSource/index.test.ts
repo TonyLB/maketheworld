@@ -89,7 +89,7 @@ describe('AssetsDataSource (mtw.assets)', () => {
             await assetsDataSource.streamEvent({
                 update,
                 streamKey: 'ASSET#asset123',
-                header: { type: update.type }
+                header: { type: 'Component Updated' }
             })
 
             // Verify EventBridge event structure and serialization
@@ -122,7 +122,7 @@ describe('AssetsDataSource (mtw.assets)', () => {
             await assetsDataSource.streamEvent({
                 update,
                 streamKey: 'ASSET#asset789',
-                header: { type: update.type }
+                header: { type: 'Canon Updated' }
             })
 
             // Verify EventBridge event structure
@@ -157,7 +157,7 @@ describe('AssetsDataSource (mtw.assets)', () => {
             await assetsDataSource.streamEvent({
                 update,
                 streamKey: 'ASSET#complex-asset',
-                header: { type: update.type }
+                header: { type: 'Component Updated' }
             })
 
             // Verify the serialized WML matches expected content exactly
@@ -186,7 +186,7 @@ describe('AssetsDataSource (mtw.assets)', () => {
             await assetsDataSource.streamEvent({
                 update,
                 streamKey: 'ASSET#metadata-asset',
-                header: { type: update.type }
+                header: { type: 'Component Updated' }
             })
 
             // Verify detailType is preserved

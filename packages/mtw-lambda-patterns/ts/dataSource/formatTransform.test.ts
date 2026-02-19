@@ -146,7 +146,7 @@ describe('formatTransform', () => {
             })
         })
 
-        it('should fall back to update.type when eventType is missing on legacy records', () => {
+        it('should use empty string for header.type when eventType is missing on legacy records', () => {
             const legacyRecord: DynamoDBFormat = {
                 AssetId: 'STREAM#mtw.wml::ASSET#id',
                 DataCategory: 'EVENT#2000::uuid-1',
@@ -154,7 +154,7 @@ describe('formatTransform', () => {
             } as unknown as DynamoDBFormat
 
             const back = fromDynamoDBFormat(legacyRecord, 'mtw.wml')
-            expect(back.header.type).toBe('Legacy Type')
+            expect(back.header.type).toBe('')
         })
     })
 
@@ -230,7 +230,7 @@ describe('formatTransform', () => {
             })
         })
 
-        it('should fall back to update.type when eventType is missing on legacy SNS messages', () => {
+        it('should use empty string for header.type when eventType is missing on legacy SNS messages', () => {
             const snsFormat = {
                 messageType: 'StreamEvent' as const,
                 dataSourceKey: 'mtw.wml',
@@ -240,7 +240,7 @@ describe('formatTransform', () => {
             } as unknown as SNSFeedbackFormat
 
             const back = fromSNSFeedbackFormat(snsFormat)
-            expect(back.header.type).toBe('FromUpdate')
+            expect(back.header.type).toBe('')
         })
     })
 
@@ -333,7 +333,7 @@ describe('formatTransform', () => {
             expect(result.header.RequestId).toBe('msg-request-id')
         })
 
-        it('should fall back to update.type when eventType is missing on legacy messages', () => {
+        it('should use empty string for header.type when eventType is missing on legacy messages', () => {
             const message = {
                 messageType: 'StreamEvent' as const,
                 dataSourceKey: 'mtw.wml',
@@ -343,7 +343,7 @@ describe('formatTransform', () => {
             } as unknown as WebSocketFormat
 
             const result = fromWebSocketFormat(message)
-            expect(result.header.type).toBe('FromUpdate')
+            expect(result.header.type).toBe('')
         })
     })
 })

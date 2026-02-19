@@ -72,8 +72,8 @@ describe('Decache Asset (Data Source)', () => {
 
         // Should emit Component Updated and Component Removed events for each component
         const calls = mockStreamEvent.mock.calls.map(([arg]) => arg)
-        const updatedCalls = calls.filter((arg) => arg.update.type === 'Component Updated')
-        const removedCalls = calls.filter((arg) => arg.update.type === 'Component Removed')
+        const updatedCalls = calls.filter((arg) => arg.header?.type === 'Component Updated')
+        const removedCalls = calls.filter((arg) => arg.header?.type === 'Component Removed')
         expect(updatedCalls.length).toBe(2)
         expect(removedCalls.length).toBe(2)
         const updatedKeys = updatedCalls.map((arg) => arg.update.component.universalKey)

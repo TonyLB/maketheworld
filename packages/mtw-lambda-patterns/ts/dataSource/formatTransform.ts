@@ -50,7 +50,7 @@ export type DynamoDBFormat<PrimaryKey extends string = string> = {
     DataCategory: string;
     /**
      * Projection of header.type on the wire for DynamoDB records.
-     * Preferred source for reconstructing header.type when present; falls back to update.type for legacy records.
+     * Source for reconstructing header.type; envelope metadata only (no payload type fallback).
      */
     eventType?: string;
     update: { type: string; [key: string]: unknown };
@@ -209,13 +209,8 @@ export function fromDynamoDBFormat(
     const timestampMatch = DataCategory.match(/^EVENT#(\d+)::/);
     const timestamp = timestampMatch ? parseInt(timestampMatch[1], 10) : 0;
 
+    const type = typeof eventType === 'string' && eventType.length > 0 ? eventType : '';
     const updateRecord = (update ?? {}) as Record<string, unknown>;
-    const type =
-        typeof eventType === 'string' && eventType.length > 0
-            ? eventType
-            : typeof updateRecord.type === 'string'
-                ? updateRecord.type
-                : '';
     const extendedPart =
         extendedHeader != null && typeof extendedHeader === 'object'
             ? { ...extendedHeader }
@@ -261,17 +256,12 @@ export function toWebSocketFormat(coreFormat: CoreExternalFormat): WebSocketForm
  */
 export function fromWebSocketFormat(webSocketMessage: WebSocketFormat): CoreExternalFormat {
     const { messageType, eventType, dataSourceKey, streamKey, timestamp, update, ...rest } = webSocketMessage;
-    const updateRecord = (update ?? {}) as Record<string, unknown>;
+    const type = typeof eventType === 'string' && eventType.length > 0 ? eventType : '';
     const fullHeader: CoreExternalFormat['header'] = {
         dataSourceKey,
         streamKey,
         timestamp,
-        type:
-            typeof eventType === 'string' && eventType.length > 0
-                ? eventType
-                : typeof updateRecord.type === 'string'
-                    ? updateRecord.type
-                    : '',
+        type,
         ...rest
     };
     return {
@@ -322,14 +312,8 @@ export function toSNSFeedbackFormat(coreFormat: CoreExternalFormat): SNSFeedback
  */
 export function fromSNSFeedbackFormat(snsFormat: SNSFeedbackFormat): CoreExternalFormat {
     const { dataSourceKey, streamKey, timestamp, extendedHeader, update, eventType } = snsFormat;
-    const updateRecord = (update ?? {}) as Record<string, unknown>;
 
-    const type =
-        typeof eventType === 'string' && eventType.length > 0
-            ? eventType
-            : typeof updateRecord.type === 'string'
-                ? updateRecord.type
-                : '';
+    const type = typeof eventType === 'string' && eventType.length > 0 ? eventType : '';
     const extendedPart =
         extendedHeader != null && typeof extendedHeader === 'object'
             ? { ...extendedHeader }

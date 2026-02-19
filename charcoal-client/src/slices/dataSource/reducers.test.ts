@@ -42,7 +42,7 @@ const mockAggregator: DataSourceAggregator<TestSnapshot, TestUpdate> = {
     applyUpdate: (snapshot, envelope) => {
         try {
             const update = envelope.content
-            if (update.type === 'Item Added') {
+            if (envelope.header.type === 'Item Added') {
                 return {
                     success: true,
                     snapshot: {
@@ -50,7 +50,7 @@ const mockAggregator: DataSourceAggregator<TestSnapshot, TestUpdate> = {
                         items: [...snapshot.items, update.item]
                     }
                 }
-            } else if (update.type === 'Item Removed') {
+            } else if (envelope.header.type === 'Item Removed') {
                 return {
                     success: true,
                     snapshot: {

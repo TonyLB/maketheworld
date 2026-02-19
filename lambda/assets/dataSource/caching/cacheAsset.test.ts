@@ -236,9 +236,9 @@ describe('Cache Asset (Data Source)', () => {
 
             // Should emit Component Updated streaming event
             expect(mockStreamEvent).toHaveBeenCalled()
-            const removalCall = mockStreamEvent.mock.calls.find(([arg]) => arg.update?.type === 'Component Updated' && arg.streamKey === 'primitives')?.[0]
+            const removalCall = mockStreamEvent.mock.calls.find(([arg]) => arg.header?.type === 'Component Updated' && arg.streamKey === 'primitives')?.[0]
             expect(removalCall).toBeTruthy()
-            expect(removalCall.update.type).toBe('Component Updated')
+            expect(removalCall.header.type).toBe('Component Updated')
             expect(removalCall.update.component?.tag).toBe('Knowledge')
             expect(removalCall.update.component?.universalKey).toBe('KNOWLEDGE#knowledgeRoot')
         })
@@ -314,7 +314,7 @@ describe('Cache Asset (Data Source)', () => {
             const secondCall = mockStreamEvent.mock.calls[1][0]
             
             // Validate first component (Knowledge)
-            expect(firstCall.update.type).toBe('Component Updated')
+            expect(firstCall.header.type).toBe('Component Updated')
             expect(firstCall.streamKey).toBe('primitives')
             
             // Validate that the component serializes to the expected WML
@@ -324,7 +324,7 @@ describe('Cache Asset (Data Source)', () => {
             `))
             
             // Validate second component (Room)
-            expect(secondCall.update.type).toBe('Component Updated')
+            expect(secondCall.header.type).toBe('Component Updated')
             expect(secondCall.streamKey).toBe('primitives')
             
             // Validate that the component serializes to the expected WML
@@ -365,7 +365,7 @@ describe('Cache Asset (Data Source)', () => {
             const call = mockStreamEvent.mock.calls[0][0]
             
             // Validate component structure
-            expect(call.update.type).toBe('Component Updated')
+            expect(call.header.type).toBe('Component Updated')
             expect(call.streamKey).toBe('primitives')
             
             // Validate that the component serializes to the expected WML
@@ -579,9 +579,9 @@ describe('Cache Asset (Data Source)', () => {
 
             await cacheAsset({ assetId: 'test', streamEvent: mockStreamEvent })
 
-            const assetUpdatedCall = mockStreamEvent.mock.calls.find(([arg]) => arg.update?.type === 'Asset Updated')?.[0]
+            const assetUpdatedCall = mockStreamEvent.mock.calls.find(([arg]) => arg.header?.type === 'Asset Updated')?.[0]
             expect(assetUpdatedCall).toBeTruthy()
-            expect(assetUpdatedCall.update.type).toBe('Asset Updated')
+            expect(assetUpdatedCall.header.type).toBe('Asset Updated')
             // Validate WML from provided StandardForm
             const wml = schemaToWML([assetUpdatedCall.update.standardForm.schema])
             expect(wml).toEqual(deIndentWML(`
@@ -609,7 +609,7 @@ describe('Cache Asset (Data Source)', () => {
 
             await cacheAsset({ assetId: 'test2', streamEvent: mockStreamEvent })
 
-            const assetUpdatedCall = mockStreamEvent.mock.calls.find(([arg]) => arg.update?.type === 'Asset Updated')?.[0]
+            const assetUpdatedCall = mockStreamEvent.mock.calls.find(([arg]) => arg.header?.type === 'Asset Updated')?.[0]
             expect(assetUpdatedCall).toBeTruthy()
             const wml = schemaToWML([assetUpdatedCall.update.standardForm.schema])
             expect(wml).toEqual(deIndentWML(`

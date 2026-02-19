@@ -28,7 +28,7 @@ import { heartbeat } from '../stateSeekingMachine/ssmHeartbeat'
 import { socketDispatchPromise } from '../lifeLine'
 import { isStandardRoomData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes'
 import { treeNodeTypeguard } from '@tonylb/mtw-base/ts/genericTree'
-import { SubscriptionClientMessage } from '@tonylb/mtw-interfaces/ts/subscriptions'
+import type { WMLStreamingEventHeader, WMLContentEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/wml'
 import { push } from '../UI/feedback'
 import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
@@ -247,10 +247,10 @@ export const newAsset = (assetId: AssetUUID) => (dispatch: any) => {
     dispatch(addItem({ key: assetId, options: { initialState: 'NEW' }}))
 }
 
-export const receiveWMLEvent = (key: string) => (args: { event: SubscriptionClientMessage }) => (dispatch: any, getState: any) => {
+export const receiveWMLEvent = (key: string) => (args: { header: WMLStreamingEventHeader; content: WMLContentEvent }) => (dispatch: any, getState: any) => {
     const pendingEdits = getPendingEdits(key)(getState())
     dispatch(publicActions.receiveWMLEvent(key)(args))
-    if (args.event.update.type === 'Merge Conflict' && args.event.RequestIds?.some(id => pendingEdits.some(p => p.meta.key === id))) {
+    if (args.header.type === 'Merge Conflict' && args.header.RequestIds?.some(id => pendingEdits.some(p => p.meta.key === id))) {
         push('Merge conflict prevented saving your changes')
     }
 }

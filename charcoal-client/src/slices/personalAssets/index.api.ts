@@ -18,6 +18,8 @@ import { publicSelectors } from './selectors'
 import { isSchemaImport } from '@tonylb/mtw-base/ts/schema/metaData'
 import { isImportable, ComponentUUID, AssetUUID, isSchemaAssetUUID } from '@tonylb/mtw-base/ts/schema'
 import { isSubscriptionClientMessage, WMLSubscriptionClientMessage } from '@tonylb/mtw-interfaces/ts/subscriptions'
+import { fromWebSocketFormat } from '@tonylb/mtw-lambda-patterns/ts/dataSource/formatTransform'
+import { WMLDataSourceEventSerializer, WMLContentEventExternal, WMLStreamingEventHeader } from '@tonylb/mtw-interfaces/ts/eventBridge/wml'
 import { subscribeToWmlDataSource, unsubscribeFromWmlDataSource } from '../wmlDataSource'
 
 export const lifelineCondition: PersonalAssetsCondition = ({}, getState) => {
@@ -41,15 +43,21 @@ export const fetchAction: PersonalAssetsAction = ({ internalData: { id, fetchURL
     }
     // Subscribe to LifeLinePubSub to receive WML StreamEvent messages for this asset
     // This allows us to receive Content Update events that clear pendingEdits
+    const wmlSerializer = new WMLDataSourceEventSerializer()
     const subscription = id ? LifeLinePubSub.subscribe(({ payload }) => {
         // Filter for StreamEvent messages from mtw.wml data source
-        if (isSubscriptionClientMessage(payload) && 
-            payload.messageType === 'StreamEvent' && 
+        if (isSubscriptionClientMessage(payload) &&
+            payload.messageType === 'StreamEvent' &&
             payload.dataSourceKey === 'mtw.wml' &&
             payload.streamKey === id) {
-            const wmlEvent = payload as WMLSubscriptionClientMessage
-            // Route the event to receiveWMLEvent to handle Content Update and Merge Conflict events
-            dispatch(receiveWMLEvent(id)({ event: wmlEvent }))
+            const coreFormat = fromWebSocketFormat(payload as WMLSubscriptionClientMessage)
+            const content = wmlSerializer.deserialize({
+                content: coreFormat.update as WMLContentEventExternal,
+                header: coreFormat.header as WMLStreamingEventHeader
+            })
+            if (content) {
+                dispatch(receiveWMLEvent(id)({ header: coreFormat.header, content }))
+            }
         }
     }) : undefined
 

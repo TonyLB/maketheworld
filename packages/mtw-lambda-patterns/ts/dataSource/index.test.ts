@@ -717,8 +717,8 @@ describe('DataSource', () => {
                 .mockReturnValueOnce('uuid-1' as unknown as ReturnType<typeof uuidv4>)
                 .mockReturnValueOnce('uuid-2' as unknown as ReturnType<typeof uuidv4>)
             
-            await dataSource.streamEvent({ update, streamKey, header: { type: update.type } })
-            await dataSource.streamEvent({ update, streamKey, header: { type: update.type } })
+            await dataSource.streamEvent({ update, streamKey, header: { type: 'TestUpdatePayload' } })
+            await dataSource.streamEvent({ update, streamKey, header: { type: 'TestUpdatePayload' } })
             
             expect(mockDynamo.putItem).toHaveBeenNthCalledWith(1, {
                 AssetId: 'STREAM#mtw.testDataSource::test-stream',
@@ -1036,11 +1036,11 @@ describe('DataSource', () => {
                 primaryKeyName: 'AssetId',
                 dataSourceKey: 'mtw.extendedHeader',
                 feedbackTopicArn: 'arn:aws:sns:us-east-1:123456789012:test-feedback',
-                buildHeader: ({ update, streamKey, timestamp }) => ({
+                buildHeader: ({ streamKey, timestamp }) => ({
                     dataSourceKey: 'mtw.extendedHeader',
                     streamKey,
                     timestamp,
-                    type: update.type,
+                    type: 'TestUpdatePayload',
                     zone: 'Draft'
                 })
             })
