@@ -6,7 +6,14 @@ related:
   - documentation/dataSources/AGENT.delegation.planning.md
   - lambda/wml/AGENT.event.md
   - packages/mtw-lambda-patterns/ts/dataSource/AGENT.md
+  - packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md (Serialization resolution architecture)
   - packages/mtw-interfaces/ts/eventBridge/wml/index.ts
+---
+
+## Recent changes (environment-agnostic serializer)
+
+The client slice passes raw `content` to the serializer; the WML serializer (configured with `createBrowserDataSourceEnvironment()`) performs sidecar resolution internally. There is no separate `resolveSidecarSnapshot` callback. Snapshots must use **domain-shaped payloads**: `{ wml: string }` (inline) or `{ wml: { sidecarUrl: string } }` (per-field sidecar). Full-content `{ sidecarUrl }` is not supported. See `AGENT.implementation.md` (Serialization resolution architecture).
+
 ---
 
 ## Context
@@ -15,14 +22,13 @@ The `mtw.wml` DataSource currently:
 
 - Publishes streaming events (Content Update, Merge Conflict, Zone Changed, Snapshot Created size metrics).
 - Uses delegated snapshot creation plus sidecar URLs to deliver initial state to clients.
-- Sets `replayable: true` so it participates in `InitializeSubscription`, but instead of using a Dynamo mirror it responds with a one-off sidecar snapshot (via `snapshotSidecarUrlGenerator`) and `getRecentEvents` for WML effectively returns `[]` (no stored history).
+- Sets `replayable: true` so it participates in `InitializeSubscription`, but instead of using a Dynamo mirror it responds with a one-off sidecar snapshot and `getRecentEvents` for WML effectively returns `[]` (no stored history). Snapshot delivery should use domain-shaped payloads (e.g. `{ wml: { sidecarUrl } }`).
 
 We have now:
 
 - Standardized **event contracts** around `StandardForm` internally and WML strings on the wire.
 - Implemented a **client WML dataSource slice** that:
-  - Receives snapshots as WML text (via sidecar).
-  - Deserializes WML to `StandardForm`, then to `StandardFormData` for Redux.
+  - Passes raw snapshot `content` to `WMLDataSourceEventSerializer.deserializeSnapshot`; the serializer (with browser `DataSourceEnvironment`) resolves sidecars and deserializes WML to `StandardForm`, then to `StandardFormData` for Redux.
 - Documented that:
   - **Internal operations** (server and client aggregators) use `StandardForm`.
   - **Wire and mirror** should use **WML strings** plus metadata, not `StandardFormData`.
@@ -75,16 +81,13 @@ This document focuses specifically on making `mtw.wml` **replayable** using that
   - Read events after that snapshot timestamp for the same streamKey.
   - For the snapshot:
     - Internal replay path deserializes from WML → `StandardForm`.
-    - Either:
-      - Emits a **Snapshot** message with inline WML content to the client, or
-      - Emits a Snapshot with a sidecar URL pointing to the WML S3 object, consistent with other sidecar usage.
+    - Emits a **Snapshot** message with a **domain-shaped** payload: either `{ wml: string }` (inline) or `{ wml: { sidecarUrl: string } }` (per-field sidecar). Full-content `{ sidecarUrl }` is not supported on the client.
   - For events:
     - Use the existing WML event serializer to deserialize to `StandardForm`-based events where needed.
 
 - **Client behavior**:
   - WML dataSource slice:
-    - Receives snapshot payload with WML text (or sidecar URL resolved to WML).
-    - Uses `WMLDataSourceEventSerializer.deserializeSnapshot` to convert WML → `StandardForm` → `StandardFormData`.
+    - Passes raw snapshot `content` to `WMLDataSourceEventSerializer.deserializeSnapshot`. The serializer (with browser env) resolves any sidecar descriptor and converts WML → `StandardForm` → `StandardFormData`.
     - Stores `StandardFormData` as `materializedView` in Redux and uses `WMLAggregator` for subsequent events.
 
 ### 3. Relationship to delegation
@@ -104,10 +107,7 @@ This document focuses specifically on making `mtw.wml` **replayable** using that
    - How much metadata (zone, chunk counts, etc.) lives alongside WML in the snapshot item.
 
 2. **Snapshot wire shape to client**  
-   - Should the client see:
-     - `{ type: 'Snapshot', payload: { wml: string } }`, or
-     - `{ type: 'Snapshot', payload: { sidecarUrl: string } }` where the sidecar content is WML?
-   - Current slice already supports sidecar snapshots; we should decide whether initializeSubscription uses inline WML, sidecars, or both (depending on size).
+   - Use **domain-shaped** payloads: `{ wml: string }` (inline) or `{ wml: { sidecarUrl: string } }` (per-field sidecar). Full-content `{ sidecarUrl }` is not supported. The slice passes raw `content` to the serializer, which resolves sidecars internally.
 
 3. **Cut-over strategy**  
    - How to migrate from the existing snapshot-on-subscribe behavior (purely delegated sidecar) to replay-backed initializeSubscription without breaking existing clients.
@@ -121,7 +121,7 @@ This document focuses specifically on making `mtw.wml` **replayable** using that
 
 ## Next Steps (before tactical plan)
 
-1. **Confirm desired snapshot wire shape to client** (inline WML vs sidecar vs both).
+1. **Confirm desired snapshot wire shape to client** (inline WML vs domain-shaped sidecar; both supported as `{ wml: string }` or `{ wml: { sidecarUrl } }`).
 2. **Decide Dynamo keying strategy for WML** (align with other DataSources where possible).
 3. **Outline replay call path for mtw.wml**:
    - Where `snapshotContentGenerator` will live.
