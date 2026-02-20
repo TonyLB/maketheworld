@@ -300,3 +300,14 @@ This section is here explicitly to help us "pop the stack" and remember **why** 
 
 If the answer to those is "yes," then this refactor achieved its purpose in the larger architecture; if not, treat that as a signal to adjust the environment abstraction or its call sites before moving on to the next rabbit-hole.
 
+## 9. Post-completion: revisit serializer-envelope rubric
+
+When this environment-agnostic refactor is complete, **revisit [AGENT.serializerEnvelope.planning.md](./AGENT.serializerEnvelope.planning.md)** (Section 3, "How to use this when you finish") and decide whether its context-anchor rubric has been satisfied. That rubric checks:
+
+- Do EventBridge handlers build envelopes with `getContentInternal` that delegates to the serializer?
+- Does the client resolve via the serializer (not a separate `resolveSidecarSnapshot`)?
+- Is Initialize Subscription still the only envelope type that bypasses the serializer?
+- Can you change "how WML resolves sidecar + deserialize" by editing the serializer only?
+
+**Do this assessment before cleaning up or archiving the serializer-envelope planning document.** If the rubric is satisfied, the planning doc can be archived or folded into implementation docs; if not, address the remaining gaps first.
+
