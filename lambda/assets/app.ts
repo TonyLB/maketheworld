@@ -25,6 +25,7 @@ import { createBackupEntry } from "./backups"
 import { extractReturnValue } from './returnValue'
 import { WMLEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/wml'
 import { fromEventBridgeFormat } from '@tonylb/mtw-lambda-patterns/ts/dataSource/formatTransform'
+import { createNodeDataSourceEnvironment } from '@tonylb/mtw-lambda-patterns/ts/dataSource/nodeEnvironment'
 
 // Import DataSources to trigger their messageBus subscriptions (side-effect imports)
 import './dataSource'  // mtw.assets DataSource
@@ -39,7 +40,7 @@ const s3Client = new S3Client(params)
 
 // Event deserializers for incoming EventBridge events
 const eventDeserializers = {
-    'mtw.wml': new WMLEventSerializer(),
+    'mtw.wml': new WMLEventSerializer(createNodeDataSourceEnvironment()),
     // Add other data source deserializers here as needed
 }
 

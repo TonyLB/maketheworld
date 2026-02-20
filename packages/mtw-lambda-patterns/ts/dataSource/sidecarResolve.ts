@@ -18,13 +18,14 @@
  *
  * @param value - Inline string or sidecar descriptor `{ sidecarUrl: string }`
  * @param fetchFn - Optional fetch implementation (default: global fetch). Use for
- *   tests or when injecting DataSourceEnvironment.
+ *   tests or when injecting DataSourceEnvironment. Accepts (url: string, init?) so
+ *   DataSourceEnvironment.fetch is compatible.
  * @returns Promise resolving to the string content
  * @throws Re-throws fetch errors (network failures, non-2xx responses, etc.)
  */
 export async function maybeFetchSidecarString(
     value: unknown,
-    fetchFn: typeof fetch = fetch
+    fetchFn: (url: string, init?: RequestInit) => Promise<Response> = fetch
 ): Promise<string> {
     if (
         value != null &&

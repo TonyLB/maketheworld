@@ -1,6 +1,7 @@
 import { WMLDataSource } from './abstract'
 import { StreamingEventHeader, StreamingEventEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { WMLEventSerializer, WMLEventUpdate, WMLEventExternal } from '@tonylb/mtw-interfaces/ts/eventBridge/wml'
+import { createNodeDataSourceEnvironment } from '@tonylb/mtw-lambda-patterns/ts/dataSource/nodeEnvironment'
 import { moveAsset } from './moveAsset'
 import { applyEdit } from './applyEdit'
 import { purgeAsset } from './purgeAsset'
@@ -304,7 +305,7 @@ export const wmlDataSource = new WMLDataSource<{}, WMLEventUpdate, CoordinationE
             }
         }))
     },
-    eventSerializer: new WMLEventSerializer()
+    eventSerializer: new WMLEventSerializer(createNodeDataSourceEnvironment())
 })
 
 // Subscribe the DataSource to the messageBus for event processing

@@ -4,7 +4,7 @@
 // backend WML view (materializedView) per subscribed asset. Initial state comes from
 // Snapshot events (sidecar URL); Content Update and Merge Conflict events update the view.
 
-import { createDataSourceSlice } from '../dataSource'
+import { createDataSourceSlice, createBrowserDataSourceEnvironment } from '../dataSource'
 import {
   WMLAggregator,
   WMLDataSourceEventSerializer
@@ -42,7 +42,7 @@ export const {
   name: 'wmlDataSource',
   dataSourceKey: 'mtw.wml',
   aggregator: new WMLAggregator(),
-  eventSerializer: new WMLDataSourceEventSerializer(),
+  eventSerializer: new WMLDataSourceEventSerializer(createBrowserDataSourceEnvironment()),
   sliceSelector: (state: any) => state.wmlDataSource,
   resolveSidecarSnapshot
 })

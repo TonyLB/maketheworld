@@ -29,6 +29,8 @@ const wmlDataSourceKey = 'mtw.wml'
 const wmlStreamKey = 'ASSET#test-asset'
 const wmlTimestamp = 0
 
+const testEnv = { fetch: global.fetch }
+
 function makeWmlHeader(type: string, RequestIds?: string[]): WMLStreamingEventHeader {
     return { dataSourceKey: wmlDataSourceKey, streamKey: wmlStreamKey, timestamp: wmlTimestamp, type, ...(RequestIds != null ? { RequestIds } : {}) }
 }
@@ -37,7 +39,7 @@ describe('WMLEventSerializer', () => {
     let serializer: WMLEventSerializer
 
     beforeEach(() => {
-        serializer = new WMLEventSerializer()
+        serializer = new WMLEventSerializer(testEnv)
     })
 
     describe('Content Events', () => {
@@ -168,7 +170,7 @@ describe('WMLEventSerializer', () => {
                 header: makeWmlHeader('Content Update')
             })
 
-            expect(maybeFetchSidecarString).toHaveBeenCalledWith({ sidecarUrl: 'https://example.com/sidecar.wml' })
+            expect(maybeFetchSidecarString).toHaveBeenCalledWith({ sidecarUrl: 'https://example.com/sidecar.wml' }, testEnv.fetch)
             expect(internalEvent).not.toBeNull()
             expect(isWMLContentUpdateEvent(internalEvent!)).toBe(true)
             if (isWMLContentUpdateEvent(internalEvent!)) {
@@ -459,7 +461,7 @@ describe('WMLAggregator', () => {
 })
 
 describe('WMLDataSourceEventSerializer', () => {
-    const serializer = new WMLDataSourceEventSerializer()
+    const serializer = new WMLDataSourceEventSerializer(testEnv)
 
     it('should deserialize Content Update external to internal', async () => {
         const wml = deIndentWML(`<Asset uuid=(test)></Asset>`)
@@ -522,7 +524,7 @@ describe('WMLDataSourceEventSerializer', () => {
             wml: { sidecarUrl: 'https://example.com/snapshot.wml' }
         })
 
-        expect(maybeFetchSidecarString).toHaveBeenCalledWith({ sidecarUrl: 'https://example.com/snapshot.wml' })
+        expect(maybeFetchSidecarString).toHaveBeenCalledWith({ sidecarUrl: 'https://example.com/snapshot.wml' }, testEnv.fetch)
         expect(result).not.toBeNull()
         if (result) {
             expect(result.universalKey).toBeDefined()

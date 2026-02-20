@@ -10,7 +10,7 @@ This document captures a follow-up refinement to the DataSource pattern: **make 
 The goal is to:
 
 - Keep **header/content envelope semantics** exactly as described in `AGENT.md` and `AGENT.implementation.md`.
-- **Parameterize the serializer** with a `DataSourceEnvironment` (fetch, now, log) so that resolution (e.g. `maybeFetchSidecarString`) does not assume Node. The serializer already owns resolution (see [AGENT.serializerEnvelope.planning.md](./AGENT.serializerEnvelope.planning.md)); we only inject the environment.
+- **Parameterize the serializer** with a `DataSourceEnvironment` (fetch only) so that resolution (e.g. `maybeFetchSidecarString`) does not assume Node. The serializer already owns resolution (see [AGENT.serializerEnvelope.planning.md](./AGENT.serializerEnvelope.planning.md)); we only inject the environment.
 - Allow both backend and frontend to **evolve how snapshots and events are resolved** by touching the serializer (and its env contract), not N call sites or separate client wrappers.
 
 This is a planning doc only; it does not describe current behavior as already implemented.
@@ -82,14 +82,11 @@ We would prefer:
 
 ### 4.1 Environment interface
 
-Introduce a small, explicit "environment" interface that captures the operations the serializer needs when resolving sidecars, without tying them to Node vs browser:
+Introduce a small, explicit "environment" interface that captures the one capability that meaningfully differs between Node and browser when resolving sidecars: fetch.
 
 ```ts
 type DataSourceEnvironment = {
   fetch: (url: string, init?: RequestInit) => Promise<Response>
-  now: () => number
-  log: (level: 'info' | 'warn' | 'error', message: string, meta?: unknown) => void
-  // Optional: metrics, S3 helpers, caching hooks, etc.
 }
 ```
 
@@ -125,7 +122,7 @@ Key properties:
 
 On the client, we do not need to expose `getContentInternal` in Redux state. The slice already receives `{ header, content }` and calls the serializer. The change:
 
-1. **Configure the serializer with a browser environment.** When creating the slice, pass a serializer instance that was constructed with a client `DataSourceEnvironment` (e.g. `fetch`: browser `fetch`, `now`: `Date.now()`, `log`: console).
+1. **Configure the serializer with a browser environment.** When creating the slice, pass a serializer instance that was constructed with a client `DataSourceEnvironment` (e.g. `fetch`: browser `fetch`).
 2. When a message arrives (including snapshots with `content.sidecarUrl` or per-field sidecars), the slice calls `eventSerializer.deserialize({ content, header })` or `eventSerializer.deserializeSnapshot(content)` as today. The serializer performs sidecar resolution internally using `env.fetch`.
 3. Remove the ad-hoc `resolveSidecarSnapshot` callback; the serializer handles sidecars because it has an env.
 
@@ -135,7 +132,7 @@ So: same flow (incoming payload -> serializer -> internal content -> reducer), w
 
 On the backend, envelope construction already is `getContentInternal: () => deserializer.deserialize({ content, header })`. With an environment-agnostic serializer:
 
-- Construct the deserializer with a Node (or lambda) `DataSourceEnvironment` (e.g. `fetch`: Node `fetch` or AWS SDK as needed, `now`: `getCurrentTimestamp`, `log`: lambda logger).
+- Construct the deserializer with a Node (or lambda) `DataSourceEnvironment` (e.g. `fetch`: Node `fetch` or AWS SDK as needed).
 - No change to EventBridge handlers or messageBus send code; they already pass the deserializer. Only the deserializer's construction (or configuration) gains an `env` argument.
 
 ## 5. Plan of work (incremental)
@@ -151,10 +148,10 @@ On the backend, envelope construction already is `getContentInternal: () => dese
 ### Step 1: Define a minimal `DataSourceEnvironment` contract (DONE)
 
 - ~~Add a small, well-documented `DataSourceEnvironment` type in `mtw-lambda-patterns` or `mtw-interfaces` (TBD)~~ **Done.** Type lives in **mtw-interfaces** at [ts/DataSourceEnvironment.ts](../../../mtw-interfaces/ts/DataSourceEnvironment.ts). Export for use by serializers and by Step 3 environment implementations. Import path: `@tonylb/mtw-interfaces/ts/DataSourceEnvironment`.
-  - Minimal: `fetch`, `now`, `log`. JSDoc describes the contract and gives backend vs client implementation notes (no Node-only APIs on the type).
+  - Minimal: `fetch` only. JSDoc describes the contract and gives backend vs client implementation notes (no Node-only APIs on the type).
 - Do **not** wire it into existing code yet; treat this as a contract definition step. **Contract defined; not yet wired into serializers.**
 
-### Step 2: Make DataSourceEventSerializer environment-agnostic for one reference DataSource (mtw.wml)
+### Step 2: Make DataSourceEventSerializer environment-agnostic for one reference DataSource (mtw.wml) (DONE)
 
 For WML (`WMLEventSerializer`, `WMLDataSourceEventSerializer` in mtw-interfaces):
 
@@ -162,24 +159,24 @@ For WML (`WMLEventSerializer`, `WMLDataSourceEventSerializer` in mtw-interfaces)
 - **Strongly recommend**: Add a **constructor to each class** that accepts a `DataSourceEnvironment` and **store it on the instance** (e.g. `private readonly env`). When the serializer (or `maybeFetchSidecarString`) needs to fetch a sidecar, use `this.env.fetch`. Apply this pattern for both `WMLEventSerializer` and `WMLDataSourceEventSerializer`; use it as the standard pattern for all serializers we refactor.
 - Update backend: construct the WML deserializer with a Node/lambda `DataSourceEnvironment` (e.g. `new WMLDataSourceEventSerializer(nodeEnv)`) so EventBridge handlers continue to use `getContentInternal: () => deserializer.deserialize(...)` with an env-aware deserializer.
 
+**Implementation note (done):** WML serializers now take a required `DataSourceEnvironment` constructor argument (fetch only). Minimal Node env added in mtw-lambda-patterns (`createNodeDataSourceEnvironment` in `ts/dataSource/nodeEnvironment.ts`, exported from dataSource index); minimal browser env added in charcoal-client (`createBrowserDataSourceEnvironment` in `src/slices/dataSource/browserEnvironment.ts`). Backend (lambda/wml/dataSource/mtw-wml.ts, lambda/assets/app.ts) and client (wmlDataSource slice, personalAssets index.api.ts) construct serializers with the appropriate env. WML unit tests (mtw-interfaces/ts/eventBridge/wml/index.test.ts) use a test env. `maybeFetchSidecarString` in sidecarResolve.ts was updated to accept `(url: string, init?) => Promise<Response>` for the fetch parameter so `DataSourceEnvironment.fetch` is type-compatible. Step 3 can replace the minimal Node/browser envs with fuller implementations (e.g. AWS SDK for fetch) without changing serializer call patterns.
+
 Success criteria:
 
 - No change in wire format (`CoreExternalFormat`) or header semantics.
 - No change in public behavior; only the serializer's internal resolution path uses `env.fetch`.
 - Backend still builds envelopes the same way; the deserializer instance is simply configured with an env.
 
-### Step 3: Add environment implementations for backend and client
+### Step 3: Add environment implementations for backend and client (DONE)
 
 - **Backend environment**:
   - Implement `DataSourceEnvironment` in mtw-lambda-patterns or a lambda-local helper:
     - `fetch`: wraps Node fetch or AWS SDK S3 operations as needed.
-    - `now`: uses existing `getCurrentTimestamp`.
-    - `log`: routes to lambda logger / console.
 - **Client environment**:
   - Implement `DataSourceEnvironment` in `charcoal-client`:
     - `fetch`: browser `fetch`.
-    - `now`: `Date.now()`.
-    - `log`: console or a client logging abstraction.
+
+**Implementation note (done):** Step 2 added these implementations: `createNodeDataSourceEnvironment()` in mtw-lambda-patterns (Node global fetch) and `createBrowserDataSourceEnvironment()` in charcoal-client (browser fetch). Both satisfy Step 3. Presigned sidecar URLs work with standard fetch; an AWS SDK-based fetch can be added later if a use case requires it.
 
 ### Step 4: Teach client slices to resolve via the serializer (one domain)
 

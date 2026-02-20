@@ -1,5 +1,7 @@
 import { singleSSM } from '../stateSeekingMachine/singleSSM'
 import { DataSourceNodes, DataSourcePublic, DataSourceInternal, DataSourceData, ClientStreamingMessagePayload, ClientStreamingHeader } from './baseClasses'
+
+export { createBrowserDataSourceEnvironment } from './browserEnvironment'
 import { backoffAction, createSubscribeAction, createUnsubscribeAction, createInitializeAction, lifelineCondition } from './index.api'
 import { PromiseCache } from '../promiseCache'
 import { heartbeat } from '../stateSeekingMachine/ssmHeartbeat'
