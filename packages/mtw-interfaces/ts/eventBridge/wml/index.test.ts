@@ -9,6 +9,18 @@ import {
     isWMLMaterializedView,
     isWMLContentEventExternal
 } from './index'
+import { maybeFetchSidecarString } from '@tonylb/mtw-lambda-patterns/ts/dataSource/sidecarResolve'
+
+jest.mock('@tonylb/mtw-lambda-patterns/ts/dataSource/sidecarResolve', () => {
+    const actual = jest.requireActual<typeof import('@tonylb/mtw-lambda-patterns/ts/dataSource/sidecarResolve')>(
+        '@tonylb/mtw-lambda-patterns/ts/dataSource/sidecarResolve'
+    )
+    return {
+        maybeFetchSidecarString: jest.fn((value: unknown, fetchFn?: typeof fetch) =>
+            actual.maybeFetchSidecarString(value, fetchFn)
+        )
+    }
+})
 import type { WMLStreamingEventHeader } from './index'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
@@ -135,6 +147,34 @@ describe('WMLEventSerializer', () => {
                 expect(internalEvent).not.toHaveProperty('RequestIds')
             }
             expect(header.RequestIds).toEqual(['req-456'])
+        })
+
+        it('should deserialize Content Update from sidecar when wml is { sidecarUrl }', async () => {
+            const wmlString = deIndentWML(`
+                <Asset uuid=(test-asset)>
+                    <Room key=(testroom) uuid=(testroom)>
+                        <ShortName>Test Room</ShortName>
+                    </Room>
+                </Asset>
+            `)
+            ;(maybeFetchSidecarString as jest.Mock).mockImplementationOnce(() => Promise.resolve(wmlString))
+
+            const externalEvent: WMLEventExternal = {
+                wml: { sidecarUrl: 'https://example.com/sidecar.wml' }
+            }
+
+            const internalEvent = await serializer.deserialize({
+                content: externalEvent,
+                header: makeWmlHeader('Content Update')
+            })
+
+            expect(maybeFetchSidecarString).toHaveBeenCalledWith({ sidecarUrl: 'https://example.com/sidecar.wml' })
+            expect(internalEvent).not.toBeNull()
+            expect(isWMLContentUpdateEvent(internalEvent!)).toBe(true)
+            if (isWMLContentUpdateEvent(internalEvent!)) {
+                expect(internalEvent.schema).toBeDefined()
+                expect(internalEvent.schema).toBeInstanceOf(StandardForm)
+            }
         })
 
         it('should round-trip Content Update with RequestIds in header only', async () => {
@@ -467,6 +507,29 @@ describe('WMLDataSourceEventSerializer', () => {
             expect(result.metaData).toBeDefined()
         }
     })
+
+    it('should deserializeSnapshot from sidecar when wml is { sidecarUrl }', async () => {
+        const wml = deIndentWML(`
+            <Asset uuid=(test-asset)>
+                <Room key=(room1) uuid=(room1)>
+                    <ShortName>Room One</ShortName>
+                </Room>
+            </Asset>
+        `)
+        ;(maybeFetchSidecarString as jest.Mock).mockImplementationOnce(() => Promise.resolve(wml))
+
+        const result = await serializer.deserializeSnapshot({
+            wml: { sidecarUrl: 'https://example.com/snapshot.wml' }
+        })
+
+        expect(maybeFetchSidecarString).toHaveBeenCalledWith({ sidecarUrl: 'https://example.com/snapshot.wml' })
+        expect(result).not.toBeNull()
+        if (result) {
+            expect(result.universalKey).toBeDefined()
+            expect(Array.isArray(result.components)).toBe(true)
+            expect(result.metaData).toBeDefined()
+        }
+    })
 })
 
 describe('isWMLMaterializedView', () => {
@@ -498,5 +561,9 @@ describe('isWMLContentEventExternal', () => {
 
     it('should return false for payload with invalid wml type', () => {
         expect(isWMLContentEventExternal({ wml: 123 })).toBe(false)
+    })
+
+    it('should return true for Content Update payload with sidecar descriptor', () => {
+        expect(isWMLContentEventExternal({ wml: { sidecarUrl: 'https://example.com/sidecar.wml' } })).toBe(true)
     })
 })

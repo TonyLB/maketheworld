@@ -704,3 +704,6 @@ export { DataSourceAggregator, AggregationResult, ResolvedStreamingEnvelope } fr
 
 // Re-export CoreExternalFormat guard helper for subscription lambda and other consumers
 export { makeCoreExternalFormatGuardFromHeaderGuard } from './formatTransform'
+
+// Re-export sidecar resolution helper for serializer use
+export { maybeFetchSidecarString } from './sidecarResolve'

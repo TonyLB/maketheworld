@@ -5,6 +5,7 @@
 
 import { DataSourceEventSerializer, StreamingEventHeader, SerializableObject } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import type { ResolvedStreamingEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import { maybeFetchSidecarString } from '@tonylb/mtw-lambda-patterns/ts/dataSource/sidecarResolve'
 import { DataSourceAggregator } from '@tonylb/mtw-lambda-patterns/ts/dataSource/aggregation'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes'
@@ -44,10 +45,11 @@ export type WMLPurgeEvent = {
 export type WMLEventUpdate = WMLContentEvent | WMLZoneEvent | WMLSnapshotEvent | WMLPurgeEvent
 
 // External types for WML events.
-// Content Update: wml is edit/delta WML (Replace/Remove etc.). Consumers must merge onto current state.
-// RequestIds is carried in Detail.extendedHeader (header), not in the update payload.
-export type WMLContentEventExternal = 
+// Content Update: wml is edit/delta WML (inline string) or sidecar descriptor { sidecarUrl: string }.
+// Consumers must merge onto current state. RequestIds is in Detail.extendedHeader (header), not in payload.
+export type WMLContentEventExternal =
     | { wml: string }
+    | { wml: { sidecarUrl: string } }
     | { error?: string }
 
 export type WMLZoneEventExternal = {
@@ -76,8 +78,17 @@ export const isWMLContentEventExternal = (event: any): event is WMLContentEventE
     if (!event || typeof event !== 'object') {
         return false
     }
-    // Content Update: must have wml string
+    // Content Update: wml is inline string
     if (typeof (event as any).wml === 'string') {
+        return true
+    }
+    // Content Update: wml is sidecar descriptor
+    if (
+        typeof (event as any).wml === 'object' &&
+        (event as any).wml != null &&
+        'sidecarUrl' in (event as any).wml &&
+        typeof (event as any).wml.sidecarUrl === 'string'
+    ) {
         return true
     }
     // Merge Conflict: no wml, optional error
@@ -223,7 +234,7 @@ const isZoneChangedWMLDeserializeParams = (p: WMLDeserializeParams): p is WMLDes
     p.header.type === 'Zone Changed'
 const isSnapshotCreatedWMLDeserializeParams = (p: WMLDeserializeParams): p is WMLDeserializeParams & { header: StreamingEventHeader & { type: 'Snapshot Created' }; content: WMLSnapshotEventExternal } =>
     p.header.type === 'Snapshot Created'
-const isContentUpdateWMLDeserializeParams = (p: WMLDeserializeParams): p is WMLDeserializeParams & { header: WMLStreamingEventHeader & { type: 'Content Update' }; content: { wml: string } } =>
+const isContentUpdateWMLDeserializeParams = (p: WMLDeserializeParams): p is WMLDeserializeParams & { header: WMLStreamingEventHeader & { type: 'Content Update' }; content: { wml: string | { sidecarUrl: string } } } =>
     p.header.type === 'Content Update'
 const isMergeConflictWMLDeserializeParams = (p: WMLDeserializeParams): p is WMLDeserializeParams & { header: WMLStreamingEventHeader & { type: 'Merge Conflict' }; content: { error?: string } } =>
     p.header.type === 'Merge Conflict'
@@ -294,11 +305,12 @@ export class WMLEventSerializer implements DataSourceEventSerializer<WMLEventUpd
         }
         if (isContentUpdateWMLDeserializeParams(params)) {
             const { content } = params
-            if (!content.wml) {
+            if (content.wml === undefined || content.wml === null) {
                 throw new Error(`Content Update event missing required 'wml' property`)
             }
             try {
-                const schemaNode = nodeFromWML(content.wml)
+                const wml = await maybeFetchSidecarString(content.wml)
+                const schemaNode = nodeFromWML(wml)
                 const standardForm = new StandardForm(schemaNode)
                 return { schema: standardForm }
             } catch (error) {
@@ -328,7 +340,7 @@ export class WMLEventSerializer implements DataSourceEventSerializer<WMLEventUpd
  * Snapshots use a WML-centric external payload shape `{ wml: string }`, which is parsed into StandardForm
  * and converted to StandardFormData at the snapshot boundary before being stored in Redux.
  */
-export class WMLDataSourceEventSerializer implements DataSourceEventSerializer<WMLContentEvent, WMLContentEventExternal, StandardFormData, { wml: string }, WMLStreamingEventHeader> {
+export class WMLDataSourceEventSerializer implements DataSourceEventSerializer<WMLContentEvent, WMLContentEventExternal, StandardFormData, { wml: string | { sidecarUrl: string } }, WMLStreamingEventHeader> {
     private readonly baseSerializer = new WMLEventSerializer()
 
     serialize(params: { content: WMLContentEvent; header: WMLStreamingEventHeader }): WMLContentEventExternal {
@@ -349,11 +361,13 @@ export class WMLDataSourceEventSerializer implements DataSourceEventSerializer<W
 
     /**
      * Deserialize a snapshot from WML text into StandardFormData for client storage.
-     * External snapshot payload is `{ wml: string }`; internal snapshot payload is StandardFormData.
+     * External snapshot payload is `{ wml: string }` or `{ wml: { sidecarUrl: string } }`;
+     * internal snapshot payload is StandardFormData.
      */
-    async deserializeSnapshot(externalSnapshot: { wml: string }): Promise<StandardFormData | null> {
+    async deserializeSnapshot(externalSnapshot: { wml: string | { sidecarUrl: string } }): Promise<StandardFormData | null> {
         try {
-            const standardForm = new StandardForm(externalSnapshot.wml)
+            const wml = await maybeFetchSidecarString(externalSnapshot.wml)
+            const standardForm = new StandardForm(wml)
             return standardForm.toJSON()
         } catch (error) {
             console.error('[WMLDataSourceEventSerializer] Failed to deserialize snapshot WML', error)

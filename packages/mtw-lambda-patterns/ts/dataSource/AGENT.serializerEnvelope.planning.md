@@ -68,10 +68,33 @@ This is a planning doc; it does not describe current behavior as already impleme
 
 ---
 
-### Phase 2 (planned later): Backend sidecar resolution
+### Phase 2: Backend sidecar resolution (DONE)
 
-- **To be planned** once Phase 1 is done. We need concrete deserializer code in the right place before we can design how sidecar resolution fits in.
-- Likely touchpoints: `deserialize` will gain awareness of `update.sidecarUrl` and, when present, fetch and parse before converting to internal format. Because `deserialize` already returns `Promise<...>`, call sites need no change; the implementation inside `deserialize` becomes async when sidecar is present.
+**Items**:
+
+1. ~~**Add `maybeFetchSidecarString` helper**~~ (DONE): `packages/mtw-lambda-patterns/ts/dataSource/sidecarResolve.ts`
+   - If value is an object with `sidecarUrl: string`, fetch the URL and return response text; else coerce value to string.
+   - Uses Node's native `fetch` by default; allows injection for tests and future `DataSourceEnvironment`.
+
+2. ~~**Update WMLEventSerializer deserialize (Content Update branch)**~~ (DONE): `packages/mtw-interfaces/ts/eventBridge/wml/index.ts`
+   - Before parsing: `const wml = await maybeFetchSidecarString(content.wml)`. Call sites need no change.
+
+3. ~~**Update WMLDataSourceEventSerializer deserializeSnapshot**~~ (DONE): Same file.
+   - External snapshot `{ wml: string | { sidecarUrl: string } }`; resolve via `maybeFetchSidecarString` before parsing.
+
+4. ~~**Extend WML external types**~~ (DONE): `WMLContentEventExternal` and snapshot payload document sidecar shape; `isWMLContentEventExternal` accepts sidecar descriptor.
+
+5. ~~**Unit tests**~~ (DONE): `sidecarResolve.test.ts` for helper; WML serializer tests for Content Update and deserializeSnapshot sidecar paths.
+
+**Phase 2 completion notes** (done):
+- Per-field sidecars on `content.wml` and snapshot `wml`: inline string or `{ sidecarUrl: string }`.
+- Resolution is internal to `deserialize` and `deserializeSnapshot`; EventBridge handlers, DataSource, and client slice unchanged.
+- Next: environment-agnostic refactor (`AGENT.environmentAgnostic.planning.md`) to parameterize fetch via `DataSourceEnvironment`.
+
+**Phase 2 implementation summary**:
+- **New files**: `sidecarResolve.ts`, `sidecarResolve.test.ts`
+- **Modified**: `packages/mtw-interfaces/ts/eventBridge/wml/index.ts` (WMLEventSerializer, WMLDataSourceEventSerializer, types, isWMLContentEventExternal)
+- **Exported**: `maybeFetchSidecarString` from `packages/mtw-lambda-patterns/ts/dataSource`
 
 ## 3. Context anchor: why this work exists and what comes next
 
@@ -138,10 +161,9 @@ This section guides AI agents (and human collaborators) through context gatherin
    - **mtw-lambda-patterns dataSource**: [index.test.ts](./index.test.ts) – streamEvent, initializeSubscription, format transforms
 
 6. **Identify Next Task**
-   - **Why**: Phase 1 items are ordered; starting elsewhere risks unblocking work or duplicating effort.
-   - **Current focus**: Phase 2 – Backend sidecar resolution (to be planned)
-   - **Progress**: Phase 1 complete (items 1–6)
-   - **Phase 2**: Backend sidecar resolution – to be planned; `deserialize` already returns `Promise<...>`, so call sites need no change when sidecar logic is added
+   - **Why**: Phase 1 and Phase 2 items are ordered; starting elsewhere risks unblocking work or duplicating effort.
+   - **Current focus**: Environment-agnostic refactor (see `AGENT.environmentAgnostic.planning.md`)
+   - **Progress**: Phase 1 complete (items 1–6); Phase 2 complete (backend per-field sidecar resolution in WML serializer)
 
 7. **Run Tests Before Starting**
    - **Why**: Establish a known-good baseline before making changes; both client slice and DataSource tests are affected. Failures later can then be attributed to your edits, not pre-existing issues.
