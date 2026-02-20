@@ -363,6 +363,18 @@ In the external/core regime, a similar helper can derive a `CoreExternalFormat` 
 
 Our goal is that by centralizing header-level routing predicates and using small helpers to derive envelope guards, we keep the header as the single source of routing truth across all regimes and make it easier to reason about streaming behavior without having to re-derive envelope type guards in multiple places.
 
+### Serialization resolution architecture (sidecars and environment)
+
+Resolution (sidecar fetch, parse, deserialize) is centralized in the **DataSourceEventSerializer**. EventBridge handlers pass `getContentInternal: () => deserializer.deserialize({ content: update, header })`; the serializer owns resolution. **Initialize Subscription** is the only envelope type that bypasses the serializer (control payload `{ sessionId, requestId }` with `getContentInternal: () => Promise.resolve(payload)`).
+
+**Environment-agnostic serializers:** Serializers that need to fetch sidecars (e.g. WML) accept a `DataSourceEnvironment` in their constructor and store it on the instance. The interface (in `mtw-interfaces/ts/DataSourceEnvironment.ts`) provides `fetch: (url: string, init?: RequestInit) => Promise<Response>`. Backend uses `createNodeDataSourceEnvironment()` (Node fetch); client uses `createBrowserDataSourceEnvironment()` (browser fetch). Inside `deserialize` and `deserializeSnapshot`, when resolving a sidecar (e.g. via `maybeFetchSidecarString`), the serializer uses `this.env.fetch`.
+
+**Client slice flow:** The slice always passes raw `content` to `eventSerializer.deserializeSnapshot(content)` or `eventSerializer.deserialize({ content, header })`. The serializer performs sidecar resolution internally when configured with a `DataSourceEnvironment`. There is no separate `resolveSidecarSnapshot` callback.
+
+**Domain-shaped payloads:** For sidecars, use per-field descriptors (e.g. `{ wml: { sidecarUrl: string } }`) rather than full-content `{ sidecarUrl }`. Full-content sidecar is not supported on the client. Snapshots should use domain-shaped payloads: `{ wml: string }` (inline) or `{ wml: { sidecarUrl: string } }` (per-field sidecar). The `maybeFetchSidecarString` helper in `sidecarResolve.ts` resolves inline string or `{ sidecarUrl }` to string; serializers call it with `this.env.fetch`.
+
+**Rubric (all satisfied):** (1) EventBridge handlers build envelopes with `getContentInternal` that delegates to the serializer. (2) Client resolves via the serializer only. (3) Initialize Subscription is the only envelope that bypasses the serializer. (4) Changing "how WML resolves sidecar + deserialize" requires editing only the WML serializer.
+
 ## Timestamp Handling Strategy
 
 The DataSource pattern uses a consistent timestamp strategy across all event and storage operations.

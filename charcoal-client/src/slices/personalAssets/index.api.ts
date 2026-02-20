@@ -20,6 +20,7 @@ import { isImportable, ComponentUUID, AssetUUID, isSchemaAssetUUID } from '@tony
 import { isSubscriptionClientMessage, WMLSubscriptionClientMessage } from '@tonylb/mtw-interfaces/ts/subscriptions'
 import { fromWebSocketFormat } from '@tonylb/mtw-lambda-patterns/ts/dataSource/formatTransform'
 import { WMLDataSourceEventSerializer, WMLContentEventExternal, WMLStreamingEventHeader } from '@tonylb/mtw-interfaces/ts/eventBridge/wml'
+import { createBrowserDataSourceEnvironment } from '../dataSource'
 import { subscribeToWmlDataSource, unsubscribeFromWmlDataSource } from '../wmlDataSource'
 
 export const lifelineCondition: PersonalAssetsCondition = ({}, getState) => {
@@ -43,7 +44,7 @@ export const fetchAction: PersonalAssetsAction = ({ internalData: { id, fetchURL
     }
     // Subscribe to LifeLinePubSub to receive WML StreamEvent messages for this asset
     // This allows us to receive Content Update events that clear pendingEdits
-    const wmlSerializer = new WMLDataSourceEventSerializer()
+    const wmlSerializer = new WMLDataSourceEventSerializer(createBrowserDataSourceEnvironment())
     const subscription = id ? LifeLinePubSub.subscribe(async ({ payload }) => {
         // Filter for StreamEvent messages from mtw.wml data source
         if (isSubscriptionClientMessage(payload) &&

@@ -4,31 +4,11 @@
 // backend WML view (materializedView) per subscribed asset. Initial state comes from
 // Snapshot events (sidecar URL); Content Update and Merge Conflict events update the view.
 
-import { createDataSourceSlice } from '../dataSource'
+import { createDataSourceSlice, createBrowserDataSourceEnvironment } from '../dataSource'
 import {
   WMLAggregator,
   WMLDataSourceEventSerializer
 } from '@tonylb/mtw-interfaces/ts/eventBridge/wml'
-
-/**
- * Resolve sidecar snapshot: fetch WML from presigned URL and return it as WML text payload.
- * The slice passes this to processRawEnvelope; WMLDataSourceEventSerializer.deserializeSnapshot
- * parses the WML into StandardForm and converts to StandardFormData before storing in Redux.
- * Exported for testing.
- */
-export async function resolveSidecarSnapshot(
-  _streamKey: string,
-  sidecarUrl: string,
-  _rawSnapshot: any
-): Promise<{ wml: string }> {
-  const response = await fetch(sidecarUrl)
-  if (!response.ok) {
-    throw new Error(`[wmlDataSource] Sidecar fetch failed: ${response.status} ${response.statusText}`)
-  }
-  const rawWml = await response.text()
-  const wml = rawWml.replace(/\r/g, '')
-  return { wml }
-}
 
 // Create the slice using the generic factory
 export const {
@@ -42,9 +22,8 @@ export const {
   name: 'wmlDataSource',
   dataSourceKey: 'mtw.wml',
   aggregator: new WMLAggregator(),
-  eventSerializer: new WMLDataSourceEventSerializer(),
-  sliceSelector: (state: any) => state.wmlDataSource,
-  resolveSidecarSnapshot
+  eventSerializer: new WMLDataSourceEventSerializer(createBrowserDataSourceEnvironment()),
+  sliceSelector: (state: any) => state.wmlDataSource
 })
 
 export const {

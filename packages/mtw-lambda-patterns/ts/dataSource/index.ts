@@ -707,3 +707,6 @@ export { makeCoreExternalFormatGuardFromHeaderGuard } from './formatTransform'
 
 // Re-export sidecar resolution helper for serializer use
 export { maybeFetchSidecarString } from './sidecarResolve'
+
+// Node/lambda DataSourceEnvironment for backend serializers (Step 2 env-agnostic refactor)
+export { createNodeDataSourceEnvironment } from './nodeEnvironment'

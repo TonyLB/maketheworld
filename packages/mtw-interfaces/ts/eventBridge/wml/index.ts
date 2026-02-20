@@ -6,6 +6,7 @@
 import { DataSourceEventSerializer, StreamingEventHeader, SerializableObject } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import type { ResolvedStreamingEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { maybeFetchSidecarString } from '@tonylb/mtw-lambda-patterns/ts/dataSource/sidecarResolve'
+import type { DataSourceEnvironment } from '@tonylb/mtw-interfaces/ts/DataSourceEnvironment'
 import { DataSourceAggregator } from '@tonylb/mtw-lambda-patterns/ts/dataSource/aggregation'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes'
@@ -253,6 +254,8 @@ const isAssetPurgedWMLDeserializeParams = (p: WMLDeserializeParams): p is WMLDes
  * - Zone events: Pass through as structured data
  */
 export class WMLEventSerializer implements DataSourceEventSerializer<WMLEventUpdate, WMLEventExternal, SerializableObject, SerializableObject, WMLStreamingEventHeader> {
+    constructor(private readonly env: DataSourceEnvironment) {}
+
     /**
      * Serialize an internal event to external format
      * for EventBridge transmission
@@ -309,7 +312,7 @@ export class WMLEventSerializer implements DataSourceEventSerializer<WMLEventUpd
                 throw new Error(`Content Update event missing required 'wml' property`)
             }
             try {
-                const wml = await maybeFetchSidecarString(content.wml)
+                const wml = await maybeFetchSidecarString(content.wml, this.env.fetch)
                 const schemaNode = nodeFromWML(wml)
                 const standardForm = new StandardForm(schemaNode)
                 return { schema: standardForm }
@@ -341,7 +344,11 @@ export class WMLEventSerializer implements DataSourceEventSerializer<WMLEventUpd
  * and converted to StandardFormData at the snapshot boundary before being stored in Redux.
  */
 export class WMLDataSourceEventSerializer implements DataSourceEventSerializer<WMLContentEvent, WMLContentEventExternal, StandardFormData, { wml: string | { sidecarUrl: string } }, WMLStreamingEventHeader> {
-    private readonly baseSerializer = new WMLEventSerializer()
+    private readonly baseSerializer: WMLEventSerializer
+
+    constructor(private readonly env: DataSourceEnvironment) {
+        this.baseSerializer = new WMLEventSerializer(env)
+    }
 
     serialize(params: { content: WMLContentEvent; header: WMLStreamingEventHeader }): WMLContentEventExternal {
         return this.baseSerializer.serialize(params) as WMLContentEventExternal
@@ -366,7 +373,7 @@ export class WMLDataSourceEventSerializer implements DataSourceEventSerializer<W
      */
     async deserializeSnapshot(externalSnapshot: { wml: string | { sidecarUrl: string } }): Promise<StandardFormData | null> {
         try {
-            const wml = await maybeFetchSidecarString(externalSnapshot.wml)
+            const wml = await maybeFetchSidecarString(externalSnapshot.wml, this.env.fetch)
             const standardForm = new StandardForm(wml)
             return standardForm.toJSON()
         } catch (error) {

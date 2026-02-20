@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import {
   wmlDataSourceSlice,
   wmlDataSourceSelectors,
@@ -6,8 +6,7 @@ import {
   unsubscribeFromWmlDataSource,
   getActiveStreamKeys,
   getSubscribedStreams,
-  processRawEnvelope,
-  resolveSidecarSnapshot
+  processRawEnvelope
 } from './index'
 import { getWMLBase } from './selectors'
 import { StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes'
@@ -82,49 +81,4 @@ describe('wmlDataSource slice', () => {
     })
   })
 
-  describe('resolveSidecarSnapshot', () => {
-    const minimalWML = '<Asset uuid=(test)></Asset>'
-
-    beforeEach(() => {
-      vi.stubGlobal('fetch', vi.fn())
-    })
-
-    it('should fetch sidecarUrl and return WML payload object', async () => {
-      const mockFetch = vi.mocked(fetch)
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        text: () => Promise.resolve(minimalWML)
-      } as Response)
-
-      const result = await resolveSidecarSnapshot('ASSET#test', 'https://example.com/sidecar', {})
-
-      expect(mockFetch).toHaveBeenCalledWith('https://example.com/sidecar')
-      expect(result).toEqual({ wml: minimalWML })
-    })
-
-    it('should normalize CR in WML', async () => {
-      const mockFetch = vi.mocked(fetch)
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        text: () => Promise.resolve(minimalWML.replace('\n', '\r\n'))
-      } as Response)
-
-      const result = await resolveSidecarSnapshot('ASSET#test', 'https://example.com/sidecar', {})
-      expect(result).toBeDefined()
-      expect(result.wml).not.toContain('\r')
-    })
-
-    it('should throw when fetch returns not ok', async () => {
-      const mockFetch = vi.mocked(fetch)
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 404,
-        statusText: 'Not Found'
-      } as Response)
-
-      await expect(
-        resolveSidecarSnapshot('ASSET#test', 'https://example.com/sidecar', {})
-      ).rejects.toThrow(/Sidecar fetch failed: 404/)
-    })
-  })
 })
