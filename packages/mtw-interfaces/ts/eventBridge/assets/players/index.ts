@@ -256,7 +256,7 @@ export class PlayerEventSerializer implements DataSourceEventSerializer<
         throw new Error(`Unknown player event type: ${params.header.type}`)
     }
 
-    deserialize(params: PlayerDeserializeParams): PlayerEventUpdate | null {
+    async deserialize(params: PlayerDeserializeParams): Promise<PlayerEventUpdate | null> {
         // Route on header.type only (envelope-authoritative); return internal content without type
         if (isPlayerSnapshotDeserializeParams(params)) {
             const c = params.content
@@ -305,7 +305,7 @@ export class PlayerEventSerializer implements DataSourceEventSerializer<
         }
     }
 
-    deserializeSnapshot(externalSnapshot: PlayerSnapshotExternal): PlayerSnapshot | null {
+    async deserializeSnapshot(externalSnapshot: PlayerSnapshotExternal): Promise<PlayerSnapshot | null> {
         if (!isPlayerSnapshot(externalSnapshot)) {
             console.error('Invalid player snapshot external payload', externalSnapshot)
             return null

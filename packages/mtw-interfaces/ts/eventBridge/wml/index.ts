@@ -283,7 +283,7 @@ export class WMLEventSerializer implements DataSourceEventSerializer<WMLEventUpd
      * Deserialize an external event back to internal format
      * for messageBus processing
      */
-    deserialize(params: WMLDeserializeParams): WMLEventUpdate | null {
+    async deserialize(params: WMLDeserializeParams): Promise<WMLEventUpdate | null> {
         if (isZoneChangedWMLDeserializeParams(params)) {
             const { content } = params
             return { fromZone: content.fromZone, toZone: content.toZone, ...(content.player != null ? { player: content.player } : {}), ...(content.subFolder != null ? { subFolder: content.subFolder } : {}) }
@@ -335,12 +335,12 @@ export class WMLDataSourceEventSerializer implements DataSourceEventSerializer<W
         return this.baseSerializer.serialize(params) as WMLContentEventExternal
     }
 
-    deserialize(params: { content: WMLContentEventExternal; header: WMLStreamingEventHeader }): WMLContentEvent | null {
+    async deserialize(params: { content: WMLContentEventExternal; header: WMLStreamingEventHeader }): Promise<WMLContentEvent | null> {
         // Route on header: only Content Update and Merge Conflict are accepted for this slice
         if (params.header.type !== 'Content Update' && params.header.type !== 'Merge Conflict') {
             return null
         }
-        const result = this.baseSerializer.deserialize(params)
+        const result = await this.baseSerializer.deserialize(params)
         if (result && isWMLContentEvent(result)) {
             return result
         }
@@ -351,7 +351,7 @@ export class WMLDataSourceEventSerializer implements DataSourceEventSerializer<W
      * Deserialize a snapshot from WML text into StandardFormData for client storage.
      * External snapshot payload is `{ wml: string }`; internal snapshot payload is StandardFormData.
      */
-    deserializeSnapshot(externalSnapshot: { wml: string }): StandardFormData | null {
+    async deserializeSnapshot(externalSnapshot: { wml: string }): Promise<StandardFormData | null> {
         try {
             const standardForm = new StandardForm(externalSnapshot.wml)
             return standardForm.toJSON()

@@ -323,12 +323,12 @@ describe('Library EventBridge Contracts', () => {
         })
 
         describe('deserialize', () => {
-            it('should deserialize Asset Added event', () => {
+            it('should deserialize Asset Added event', async () => {
                 const externalUpdate: AssetAddedExternal = {
                     assetId: 'ASSET#test1' as AssetUUID
                 }
 
-                const result = serializer.deserialize({
+                const result = await serializer.deserialize({
                     content: externalUpdate,
                     header: libraryHeader('Asset Added')
                 })
@@ -338,12 +338,12 @@ describe('Library EventBridge Contracts', () => {
                 })
             })
 
-            it('should deserialize Asset Removed event', () => {
+            it('should deserialize Asset Removed event', async () => {
                 const externalUpdate: AssetRemovedExternal = {
                     assetId: 'ASSET#test2' as AssetUUID
                 }
 
-                const result = serializer.deserialize({
+                const result = await serializer.deserialize({
                     content: externalUpdate,
                     header: libraryHeader('Asset Removed')
                 })
@@ -353,12 +353,12 @@ describe('Library EventBridge Contracts', () => {
                 })
             })
 
-            it('should return null for invalid Asset Added event', () => {
+            it('should return null for invalid Asset Added event', async () => {
                 const externalUpdate = {
                     assetId: 123 // Invalid: not a string
                 } as any
 
-                const result = serializer.deserialize({
+                const result = await serializer.deserialize({
                     content: externalUpdate,
                     header: libraryHeader('Asset Added')
                 })
@@ -366,12 +366,12 @@ describe('Library EventBridge Contracts', () => {
                 expect(result).toBeNull()
             })
 
-            it('should return null for invalid Asset Removed event', () => {
+            it('should return null for invalid Asset Removed event', async () => {
                 const externalUpdate = {
                     assetId: null // Invalid: not a string
                 } as any
 
-                const result = serializer.deserialize({
+                const result = await serializer.deserialize({
                     content: externalUpdate,
                     header: libraryHeader('Asset Removed')
                 })
@@ -379,13 +379,13 @@ describe('Library EventBridge Contracts', () => {
                 expect(result).toBeNull()
             })
 
-            it('should return null for unknown event type', () => {
+            it('should return null for unknown event type', async () => {
                 const externalUpdate = {
                     type: 'Unknown Type',
                     data: 'invalid'
                 } as any
 
-                const result = serializer.deserialize({
+                const result = await serializer.deserialize({
                     content: externalUpdate,
                     header: libraryHeader('Unknown Type')
                 })
@@ -395,12 +395,12 @@ describe('Library EventBridge Contracts', () => {
         })
 
         describe('deserialize when header and payload type disagree - header wins', () => {
-            it('should deserialize as Asset Removed when header says Asset Removed but payload has Asset Added shape', () => {
+            it('should deserialize as Asset Removed when header says Asset Removed but payload has Asset Added shape', async () => {
                 const externalUpdate: AssetAddedExternal = {
                     assetId: 'ASSET#test1' as AssetUUID
                 }
 
-                const result = serializer.deserialize({
+                const result = await serializer.deserialize({
                     content: externalUpdate,
                     header: libraryHeader('Asset Removed')
                 })
@@ -452,56 +452,56 @@ describe('Library EventBridge Contracts', () => {
         })
 
         describe('deserializeSnapshot', () => {
-            it('should deserialize snapshot with multiple assets', () => {
+            it('should deserialize snapshot with multiple assets', async () => {
                 const externalSnapshot: LibrarySnapshotExternal = {
                     assetIds: ['ASSET#test1', 'ASSET#test2', 'ASSET#test3'] as AssetUUID[]
                 }
 
-                const result = serializer.deserializeSnapshot(externalSnapshot)
+                const result = await serializer.deserializeSnapshot(externalSnapshot)
 
                 expect(result).toEqual({
                     assetIds: ['ASSET#test1', 'ASSET#test2', 'ASSET#test3']
                 })
             })
 
-            it('should deserialize empty snapshot', () => {
+            it('should deserialize empty snapshot', async () => {
                 const externalSnapshot: LibrarySnapshotExternal = {
                     assetIds: [] as AssetUUID[]
                 }
 
-                const result = serializer.deserializeSnapshot(externalSnapshot)
+                const result = await serializer.deserializeSnapshot(externalSnapshot)
 
                 expect(result).toEqual({
                     assetIds: []
                 })
             })
 
-            it('should return null if assetIds is not an array', () => {
+            it('should return null if assetIds is not an array', async () => {
                 const externalSnapshot = {
                     assetIds: 'not-an-array'
                 } as any
 
-                const result = serializer.deserializeSnapshot(externalSnapshot)
+                const result = await serializer.deserializeSnapshot(externalSnapshot)
 
                 expect(result).toBeNull()
             })
 
-            it('should return null if assetIds contains non-strings', () => {
+            it('should return null if assetIds contains non-strings', async () => {
                 const externalSnapshot = {
                     assetIds: ['ASSET#test1', 123, 'ASSET#test2']
                 } as any
 
-                const result = serializer.deserializeSnapshot(externalSnapshot)
+                const result = await serializer.deserializeSnapshot(externalSnapshot)
 
                 expect(result).toBeNull()
             })
 
-            it('should return new array (not reference original)', () => {
+            it('should return new array (not reference original)', async () => {
                 const externalSnapshot: LibrarySnapshotExternal = {
                     assetIds: ['ASSET#test1'] as AssetUUID[]
                 }
 
-                const result = serializer.deserializeSnapshot(externalSnapshot)
+                const result = await serializer.deserializeSnapshot(externalSnapshot)
 
                 expect(result).not.toBeNull()
                 expect(result!.assetIds).not.toBe(externalSnapshot.assetIds)

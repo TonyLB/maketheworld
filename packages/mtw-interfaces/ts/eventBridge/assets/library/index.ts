@@ -104,7 +104,7 @@ export class LibraryEventSerializer implements DataSourceEventSerializer<
         throw new Error(`Unknown streaming event type in LibraryEventUpdate: ${params.header.type}`)
     }
     
-    deserialize(params: LibraryDeserializeParams): LibraryEventUpdate | null {
+    async deserialize(params: LibraryDeserializeParams): Promise<LibraryEventUpdate | null> {
         if (isAssetAddedLibraryEnvelope(params)) {
             if (typeof params.content.assetId !== 'string') {
                 console.error('Invalid Asset Added event: assetId must be a string')
@@ -134,7 +134,7 @@ export class LibraryEventSerializer implements DataSourceEventSerializer<
         }
     }
     
-    deserializeSnapshot(externalSnapshot: LibrarySnapshotExternal): LibrarySnapshot | null {
+    async deserializeSnapshot(externalSnapshot: LibrarySnapshotExternal): Promise<LibrarySnapshot | null> {
         try {
             // Validate structure
             if (!Array.isArray(externalSnapshot.assetIds)) {

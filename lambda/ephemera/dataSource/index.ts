@@ -13,6 +13,7 @@ import {
 
 const processComponentUpdated = async (evt: Extract<EphemeraIncomingEvent, { header: { type: 'Component Updated' } }>): Promise<void> => {
     const content = await evt.getContentInternal()
+    if (!content) return
     const componentId = content.component.universalKey || ''
     if (isEphemeraRoomId(componentId)) {
         messageBus.send({ type: 'Perception', ephemeraId: componentId, header: true })
@@ -21,6 +22,7 @@ const processComponentUpdated = async (evt: Extract<EphemeraIncomingEvent, { hea
 
 const processCanonUpdated = async (evt: Extract<EphemeraIncomingEvent, { header: { type: 'Canon Updated' } }>): Promise<void> => {
     const content = await evt.getContentInternal()
+    if (!content) return
     messageBus.send({
         type: 'CanonSet',
         assetIds: content.assetIds.filter(isEphemeraAssetId)
@@ -29,6 +31,7 @@ const processCanonUpdated = async (evt: Extract<EphemeraIncomingEvent, { header:
 
 const processZoneUpdated = async (evt: Extract<EphemeraIncomingEvent, { header: { type: 'Zone Updated' } }>): Promise<void> => {
     const content = await evt.getContentInternal()
+    if (!content) return
     const { fromZone, toZone } = content
     const assetId = evt.header.streamKey as string
     if (isEphemeraAssetId(assetId)) {

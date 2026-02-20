@@ -55,9 +55,9 @@ const mockAggregator: DataSourceAggregator<TestSnapshot, TestUpdate> = {
 // Mock serializer
 const mockSerializer: DataSourceEventSerializer<TestUpdate, any, TestSnapshot, any> = {
     serialize: (params) => params.content as any,
-    deserialize: (params) => params.content,
+    deserialize: async (params) => params.content,
     serializeSnapshot: (snapshot) => snapshot,
-    deserializeSnapshot: (externalSnapshot) => externalSnapshot
+    deserializeSnapshot: async (externalSnapshot) => externalSnapshot
 }
 
 describe('dataSource slice', () => {

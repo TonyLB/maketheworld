@@ -16,7 +16,7 @@ export class EphemeraEventSerializer implements DataSourceEventSerializer<Epheme
         return params.content
     }
 
-    deserialize(params: { content: EphemeraEventExternal; header: StreamingEventHeader }): EphemeraEventUpdate | null {
+    async deserialize(params: { content: EphemeraEventExternal; header: StreamingEventHeader }): Promise<EphemeraEventUpdate | null> {
         return params.content
     }
 }

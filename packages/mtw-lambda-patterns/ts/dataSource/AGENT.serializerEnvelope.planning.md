@@ -28,34 +28,42 @@ This is a planning doc; it does not describe current behavior as already impleme
    - Generate the right kind of thunk to await the deserialize and then call the reducer on the returned values.
    - Audit the LifeLine subscription process to confirm that subscriptions can *execute* that kind of thunk (suspected yes, but verify).
 
-2. **Extend `DataSourceEventSerializer`** (in `packages/mtw-lambda-patterns/ts/dataSource/baseClasses.ts`):
-   - Add a method that produces `getContentInternal` given `{ header, update }` in external/core format.
-   - Signature concept: `createGetContentInternal(params: { header; update }): () => Promise<InternalContent>`.
-   - For Phase 1, the implementation delegates to existing `deserialize({ content: update, header })`; no sidecar, no fetch. The important change is that the *caller* no longer invokes deserialize directly; the deserializer returns a thunk that will do so when `getContentInternal()` is called.
+2. ~~**Refactor `DataSourceEventSerializer.deserialize` and `deserializeSnapshot` to return `Promise<InternalContent | null>`**~~ (DONE) (in `packages/mtw-lambda-patterns/ts/dataSource/baseClasses.ts`):
+   - Change interface: `deserialize(params): Promise<UpdatePayload | null>` and `deserializeSnapshot?(externalSnapshot): Promise<SnapshotPayload | null>`.
+   - For Phase 1, implementations remain synchronous internally; they can `return Promise.resolve(existingSyncResult)`. The important change is that *callers* pass `getContentInternal: () => deserializer.deserialize({ content: update, header })` instead of eagerly awaiting deserialize and wrapping the result. This sets up Phase 2, when deserialize may need to fetch a sidecar before parsing.
+   - No new method (`createGetContentInternal`) is needed; the thunk is simply `() => deserializer.deserialize(...)`.
 
-3. **Implement on each backend serializer class**:
-   - WML: `WMLEventSerializer` (or equivalent in `mtw-interfaces/ts/eventBridge/wml`)
-   - contentHeaders: `ContentHeadersEventSerializer` (or equivalent in `mtw-interfaces`)
-   - ephemera: whichever deserializer the ephemera lambda uses
-   - Any other DataSources that receive EventBridge events and build messageBus envelopes
+3. ~~**Implement async `deserialize` on each serializer class**~~ (DONE):
+   - **baseClasses.ts**: Update the `DataSourceEventSerializer` interface signatures for `deserialize` and `deserializeSnapshot` to return `Promise<...>`.
+   - **WML** (`packages/mtw-interfaces/ts/eventBridge/wml/index.ts`): `WMLDataSourceEventSerializer.deserialize` awaits `baseSerializer.deserialize`; return `Promise<WMLContentEvent | null>`. `deserializeSnapshot` can return `Promise.resolve(syncResult)`.
+   - **contentHeaders**, **library**, **players**, **characters** (mtw-interfaces assets): Same pattern; `deserialize` / `deserializeSnapshot` return `Promise<...>`.
+   - **ephemera**: Whichever deserializer the ephemera lambda uses; update to async return.
 
-4. **Update EventBridge handler call sites** (WML, assets, ephemera app handlers):
-   - Stop eagerly calling `deserializer.deserialize({ content: update, header })` before building the messageBus payload.
-   - Instead: call `deserializer.createGetContentInternal({ header, update })` and pass the returned function as `getContentInternal` on the StreamingEvent message.
-   - Ensure error handling (deserialize returns null) is preserved, but moved into the thunk or the consumer.
+4. ~~**Update EventBridge handler call sites**~~ (DONE) (WML, assets, ephemera app handlers):
+   - Stop eagerly calling `deserializer.deserialize({ content: update, header })` and passing `getContentInternal: () => Promise.resolve(internalEvent)`.
+   - Instead: pass `getContentInternal: () => deserializer.deserialize({ content: update, header })` directly. The consumer awaits `getContentInternal()` and receives `Promise<InternalContent | null>`; error handling (null) moves into the consumer.
+   - Files: `lambda/wml/app.ts`, `lambda/ephemera/app.ts`, `lambda/assets/app.ts`.
 
-5. **Adjust `DataSource.streamEvent`**: No change. It already builds `getContentInternal: () => Promise.resolve(update)` where `update` is internal content; the publisher owns that payload. This path does not go through a deserializer.
+5. ~~**Adjust `DataSource.streamEvent`**~~ (DONE – no change needed): It already builds `getContentInternal: () => Promise.resolve(update)` where `update` is internal content; the publisher owns that payload. This path does not go through a deserializer.
 
-**Phase 1 Item 1 completion notes** (done):
-- Slice always provides an async thunk that awaits deserialize (or `createGetContentInternal` when available) before dispatching.
-- Reducer accepts `__contentResolved: true` for pre-deserialized content; skips deserialize and uses content directly.
+6. ~~**Update remaining `deserialize` / `deserializeSnapshot` call sites**~~ (DONE):
+   - **charcoal-client/slices/dataSource/index.ts**: Already uses `await Promise.resolve(serializer.deserialize(...))` and `await Promise.resolve(serializer.deserializeSnapshot(...))`; no change needed once deserialize returns Promise.
+   - **charcoal-client/slices/personalAssets/index.api.ts**: LifeLine subscription callback calls `wmlSerializer.deserialize(...)` synchronously. Refactor callback to `async` and `await wmlSerializer.deserialize(...)` before dispatching.
+   - **packages/mtw-lambda-patterns/ts/dataSource/index.ts**: `loadSnapshotFromStore`, `getSnapshotExternal`, `getSnapshot` call `deserializeSnapshot`; add `await` (methods are already async).
+   - **Unit tests** (mtw-interfaces wml, assets, contentHeaders, library, players; lambda/assets/characters): Add `await` to all `serializer.deserialize(...)` and `serializer.deserializeSnapshot(...)` calls.
+
+**Phase 1 completion notes** (done):
+- Slice always provides an async thunk that awaits deserialize before dispatching.
+- Reducer accepts pre-resolved content; skips deserialize and uses content directly.
 - LifeLine and payload shape unchanged; resolution stays inside the slice boundary.
 - LifeLine audit: Redux Thunk middleware executes async thunks; subscriptions can run them.
+- **receiveEvents null handling**: When EventBridge passes `getContentInternal: () => deserializer.deserialize(...)`, consumers (receiveEvents implementations) await `getContentInternal()` and may receive null. Each receiveEvents handler must add a null check after `const content = await event.getContentInternal()` (e.g. `if (!content) return` or `if (!content) continue`). Updated: contentHeaders, assets dataSource, ephemera dataSource, WML mtw-wml.
 
 **Success criteria for Phase 1**:
 - Client dataSource slice expects and can execute thunks that await `deserialize` (or equivalent) before calling the reducer; LifeLine subscription can run those thunks. (Item 1: done)
-- All EventBridge handlers that build StreamingEvent messages use the deserializer's `createGetContentInternal` (or equivalent) instead of eagerly deserializing.
-- No behavioral change for inline payloads; only the *location* of the deserialize call moves into the thunk.
+- All EventBridge handlers pass `getContentInternal: () => deserializer.deserialize({ content: update, header })` instead of eagerly deserializing.
+- `deserialize` and `deserializeSnapshot` return `Promise<...>`; all call sites await them.
+- No behavioral change for inline payloads; only the *location* of the deserialize call moves into the thunk (or, for EventBridge, into the lazy getter).
 - We can point at concrete deserializer code as the single place where resolution (and, later, sidecar) will live.
 
 ---
@@ -63,7 +71,7 @@ This is a planning doc; it does not describe current behavior as already impleme
 ### Phase 2 (planned later): Backend sidecar resolution
 
 - **To be planned** once Phase 1 is done. We need concrete deserializer code in the right place before we can design how sidecar resolution fits in.
-- Likely touchpoints: `createGetContentInternal` (or equivalent) would gain awareness of `update.sidecarUrl` and, when present, fetch and parse before deserializing. That logic will live in the serializer.
+- Likely touchpoints: `deserialize` will gain awareness of `update.sidecarUrl` and, when present, fetch and parse before converting to internal format. Because `deserialize` already returns `Promise<...>`, call sites need no change; the implementation inside `deserialize` becomes async when sidecar is present.
 
 ## 3. Context anchor: why this work exists and what comes next
 
@@ -107,14 +115,14 @@ This section guides AI agents (and human collaborators) through context gatherin
 2. **Read This Planning Document**
    - **Why**: Orients you within the refactor; the Context anchor explains how this work fits into the larger environment-agnostic effort.
    - **Structure**: Purpose → Scope and plan (Phase 1 items, Phase 2 placeholder) → Context anchor
-   - **Recommended order**: Purpose → Section 2 (Phase 1 items 1–5) → Section 3 (Context anchor)
+   - **Recommended order**: Purpose → Section 2 (Phase 1 items 1–6) → Section 3 (Context anchor)
    - **Key insight**: Phase 1 starts with the *client* (Item 1) so the slice can handle async deserialize before we change the backend interface
 
 3. **Understand Core Integration Points**
    - **Why**: Knowing where resolution lives today (call sites) vs where it will live (serializer) prevents wasted edits in the wrong place.
-   - **Client slice** ([charcoal-client/src/slices/dataSource/](../../../../charcoal-client/src/slices/dataSource/)): `processRawEnvelope`, `processRawEnvelopeWithSidecar`, `createDataSourceSlice`; always returns async thunk that awaits deserialize before dispatching (Item 1 done)
-   - **baseClasses** ([baseClasses.ts](./baseClasses.ts)): `DataSourceEventSerializer` with `deserialize`, `deserializeSnapshot`; will gain `createGetContentInternal` (or equivalent)
-   - **EventBridge handlers** (WML, assets, ephemera app.ts): Eagerly call `deserializer.deserialize`, then pass result via `getContentInternal: () => Promise.resolve(internalEvent)`; will instead pass serializer-produced thunk
+   - **Client slice** ([charcoal-client/src/slices/dataSource/](../../../../charcoal-client/src/slices/dataSource/)): `processRawEnvelope`, `processRawEnvelopeWithSidecar`, `createDataSourceSlice`; always returns async thunk that awaits deserialize before dispatching (Phase 1 done)
+   - **baseClasses** ([baseClasses.ts](./baseClasses.ts)): `DataSourceEventSerializer` with `deserialize`, `deserializeSnapshot`; both return `Promise<...>` (Phase 1 done)
+   - **EventBridge handlers** (WML, assets, ephemera app.ts): Pass `getContentInternal: () => deserializer.deserialize({ content: update, header })` directly; consumer handles null (Phase 1 done)
    - **LifeLine subscription**: Dispatches to processRawEnvelope; must be able to execute async thunks (audit in Item 1)
 
 4. **Review Implemented Code**
@@ -131,9 +139,9 @@ This section guides AI agents (and human collaborators) through context gatherin
 
 6. **Identify Next Task**
    - **Why**: Phase 1 items are ordered; starting elsewhere risks unblocking work or duplicating effort.
-   - **Current focus**: Phase 1, Item 2 – Extend DataSourceEventSerializer with createGetContentInternal
-   - **Progress**: Item 1 complete; work through Phase 1 items 2–5 in order
-   - **Phase 2**: Backend sidecar resolution – to be planned after Phase 1 is done
+   - **Current focus**: Phase 2 – Backend sidecar resolution (to be planned)
+   - **Progress**: Phase 1 complete (items 1–6)
+   - **Phase 2**: Backend sidecar resolution – to be planned; `deserialize` already returns `Promise<...>`, so call sites need no change when sidecar logic is added
 
 7. **Run Tests Before Starting**
    - **Why**: Establish a known-good baseline before making changes; both client slice and DataSource tests are affected. Failures later can then be attributed to your edits, not pre-existing issues.

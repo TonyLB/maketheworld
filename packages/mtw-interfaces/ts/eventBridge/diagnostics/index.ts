@@ -84,10 +84,10 @@ export class DiagnosticsEventSerializer implements DataSourceEventSerializer<Dia
      * Note: The detail-type from EventBridge becomes the 'type' field in content
      * via the fromEventBridgeFormat transformation
      */
-    deserialize(params: {
+    async deserialize(params: {
         content: any  // Will have type field from EventBridge detail-type
         header: StreamingEventHeader
-    }): DiagnosticsEventUpdate | null {
+    }): Promise<DiagnosticsEventUpdate | null> {
         const { content, header } = params
         const eventType = header.type
 

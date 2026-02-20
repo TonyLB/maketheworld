@@ -500,14 +500,14 @@ describe('ContentHeaders EventBridge Contracts', () => {
         })
 
         describe('deserialize', () => {
-            it('should deserialize Headers Updated event from external format', () => {
+            it('should deserialize Headers Updated event from external format', async () => {
                 const externalUpdate: ContentHeadersUpdateExternal = {
                     assetId: 'ASSET#test',
                     zone: 'Canon',
                     wml: '<Asset uuid=(test)><Room key=(room1)><ShortName>Test Room</ShortName></Room></Asset>'
                 }
 
-                const result = serializer.deserialize({
+                const result = await serializer.deserialize({
                     content: externalUpdate,
                     header: { dataSourceKey: 'mtw.assets.contentHeaders', streamKey: 'global', timestamp: 0, type: 'Headers Updated' }
                 })
@@ -561,7 +561,7 @@ describe('ContentHeaders EventBridge Contracts', () => {
         })
 
         describe('deserializeSnapshot', () => {
-            it('should deserialize snapshot from external format', () => {
+            it('should deserialize snapshot from external format', async () => {
                 const externalSnapshot: ContentHeadersSnapshotExternal = {
                     assets: [
                         {
@@ -577,7 +577,7 @@ describe('ContentHeaders EventBridge Contracts', () => {
                     ]
                 }
 
-                const result = serializer.deserializeSnapshot(externalSnapshot)
+                const result = await serializer.deserializeSnapshot(externalSnapshot)
 
                 expect(result).not.toBeNull()
                 expect(result?.assets).toHaveLength(2)

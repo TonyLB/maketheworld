@@ -44,14 +44,14 @@ export const fetchAction: PersonalAssetsAction = ({ internalData: { id, fetchURL
     // Subscribe to LifeLinePubSub to receive WML StreamEvent messages for this asset
     // This allows us to receive Content Update events that clear pendingEdits
     const wmlSerializer = new WMLDataSourceEventSerializer()
-    const subscription = id ? LifeLinePubSub.subscribe(({ payload }) => {
+    const subscription = id ? LifeLinePubSub.subscribe(async ({ payload }) => {
         // Filter for StreamEvent messages from mtw.wml data source
         if (isSubscriptionClientMessage(payload) &&
             payload.messageType === 'StreamEvent' &&
             payload.dataSourceKey === 'mtw.wml' &&
             payload.streamKey === id) {
             const coreFormat = fromWebSocketFormat(payload as WMLSubscriptionClientMessage)
-            const content = wmlSerializer.deserialize({
+            const content = await wmlSerializer.deserialize({
                 content: coreFormat.update as WMLContentEventExternal,
                 header: coreFormat.header as WMLStreamingEventHeader
             })

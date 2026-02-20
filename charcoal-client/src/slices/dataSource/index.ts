@@ -177,32 +177,27 @@ export const createDataSourceSlice = <
         template
     })
 
-    // Always return an async thunk that awaits deserialize (or createGetContentInternal when available),
-    // then dispatches the reducer with resolved content. Supports both inline and sidecar payloads.
+    // Always return an async thunk that awaits deserialize, then dispatches the reducer with resolved content.
+    // Supports both inline and sidecar payloads.
     const processRawEnvelopeWithSidecar = (payload: ClientStreamingMessagePayload<any>) => {
         const { streamKey, timestamp, header, content } = payload
         if (header.type === 'Snapshot' && content?.sidecarUrl && !resolveSidecarSnapshot) {
             console.warn(`[${dataSourceKey}] Snapshot has sidecarUrl but resolveSidecarSnapshot is not configured; ignoring. streamKey=${streamKey}`)
             return
         }
-        const serializerWithCreate = eventSerializer as DataSourceEventSerializer<UpdatePayload, any, SnapshotPayload, any> & {
-            createGetContentInternal?: (params: { header: ClientStreamingHeader; update: any }) => () => Promise<SnapshotPayload | UpdatePayload>
-        }
         return async (dispatch: any) => {
             let internalContent: SnapshotPayload | UpdatePayload | null
             if (header.type === 'Snapshot' && content?.sidecarUrl && resolveSidecarSnapshot) {
                 const resolvedExternal = await resolveSidecarSnapshot(streamKey, content.sidecarUrl, content)
-                internalContent = serializerWithCreate.deserializeSnapshot
-                    ? (await Promise.resolve(serializerWithCreate.deserializeSnapshot!(resolvedExternal as any)))
+                internalContent = eventSerializer.deserializeSnapshot
+                    ? await eventSerializer.deserializeSnapshot!(resolvedExternal as any)
                     : (resolvedExternal as unknown as SnapshotPayload)
-            } else if (serializerWithCreate.createGetContentInternal) {
-                internalContent = await serializerWithCreate.createGetContentInternal({ header, update: content })()
             } else if (header.type === 'Snapshot') {
-                internalContent = serializerWithCreate.deserializeSnapshot
-                    ? (await Promise.resolve(serializerWithCreate.deserializeSnapshot(content as any)))
+                internalContent = eventSerializer.deserializeSnapshot
+                    ? await eventSerializer.deserializeSnapshot(content as any)
                     : (content as unknown as SnapshotPayload)
             } else {
-                internalContent = await Promise.resolve(serializerWithCreate.deserialize({ content: content as any, header: { ...header, dataSourceKey, streamKey, timestamp } }))
+                internalContent = await eventSerializer.deserialize({ content: content as any, header: { ...header, dataSourceKey, streamKey, timestamp } })
             }
             if (!internalContent) {
                 if (header.type === 'Snapshot') {

@@ -254,7 +254,6 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
 
                 expect(mockStreamEvent).toHaveBeenCalledWith({
                     update: expect.objectContaining({
-                        type: 'Headers Updated',
                         assetId: 'ASSET#asset123',
                         zone: 'Canon',
                         standardForm: expect.any(Object)
@@ -592,7 +591,6 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
 
                 expect(mockStreamEvent).toHaveBeenCalledWith({
                     update: expect.objectContaining({
-                        type: 'Headers Updated',
                         assetId: 'ASSET#assetMeta',
                         zone: 'Canon',
                         standardForm: expect.any(Object)

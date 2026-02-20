@@ -212,7 +212,7 @@ export class DataSource<
             // Deserialize and cache the internal format for future calls
             if (this.eventSerializer?.deserializeSnapshot) {
                 const { createdAt, expiresAt, ...externalPayload } = loaded
-                const internalPayload = this.eventSerializer.deserializeSnapshot(externalPayload as unknown as ExternalSnapshotPayload)
+                const internalPayload = await this.eventSerializer.deserializeSnapshot(externalPayload as unknown as ExternalSnapshotPayload)
                 if (internalPayload) {
                     const internalSnapshot: SnapshotType<SnapshotPayload> = {
                         ...internalPayload,
@@ -267,7 +267,7 @@ export class DataSource<
         // Deserialize and cache the internal format for future calls
         if (this.eventSerializer?.deserializeSnapshot) {
             const { createdAt, expiresAt, ...externalPayload } = generated
-            const internalPayload = this.eventSerializer.deserializeSnapshot(externalPayload as unknown as ExternalSnapshotPayload)
+            const internalPayload = await this.eventSerializer.deserializeSnapshot(externalPayload as unknown as ExternalSnapshotPayload)
             if (internalPayload) {
                 const internalSnapshot: SnapshotType<SnapshotPayload> = {
                     ...internalPayload,
@@ -305,7 +305,7 @@ export class DataSource<
         // Deserialize to internal format
         if (this.eventSerializer?.deserializeSnapshot) {
             const { createdAt, expiresAt, ...externalPayload } = externalSnapshot
-            const internalPayload = this.eventSerializer.deserializeSnapshot(externalPayload as unknown as ExternalSnapshotPayload)
+            const internalPayload = await this.eventSerializer.deserializeSnapshot(externalPayload as unknown as ExternalSnapshotPayload)
             if (internalPayload) {
                 const internalSnapshot: SnapshotType<SnapshotPayload> = {
                     ...internalPayload,
