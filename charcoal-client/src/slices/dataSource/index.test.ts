@@ -177,36 +177,33 @@ describe('dataSource slice', () => {
                 capturedProcessRawEnvelope = null
             })
 
-            it('when resolveSidecarSnapshot is configured, invokes resolver and dispatches processRawEnvelope with resolved payload and same timestamp', async () => {
+            it('when Snapshot is passed, passes raw content to deserializeSnapshot and dispatches with serializer result', async () => {
                 const resolvedSnapshot = { type: 'Snapshot' as const, value: 99 }
-                const resolveSidecarSnapshot = vi.fn().mockResolvedValue(resolvedSnapshot)
+                const deserializeSnapshot = vi.fn().mockResolvedValue(resolvedSnapshot)
                 const config: DataSourceSliceConfig<TestSnapshot, TestUpdate, any, any> = {
                     name: 'testDataSource',
                     dataSourceKey: 'test.dataSource',
                     aggregator: mockAggregator,
-                    eventSerializer: mockSerializer,
-                    sliceSelector: (state) => state.testDataSource,
-                    resolveSidecarSnapshot
+                    eventSerializer: { ...mockSerializer, deserializeSnapshot },
+                    sliceSelector: (state) => state.testDataSource
                 }
                 createDataSourceSlice(config)
                 expect(capturedProcessRawEnvelope).toBeDefined()
-                const streamKey = 'stream1'
-                const timestamp = 1000
-                const rawSnapshot = { type: 'Snapshot' as const, sidecarUrl: 'https://example.com/sidecar', createdAt: 500 }
+                const rawContent = { type: 'Snapshot' as const, sidecarUrl: 'https://example.com/sidecar', createdAt: 500 }
                 const dispatch = vi.fn()
                 const result = capturedProcessRawEnvelope!({
-                    streamKey,
-                    timestamp,
+                    streamKey: 'stream1',
+                    timestamp: 1000,
                     header: { type: 'Snapshot' },
-                    content: rawSnapshot
+                    content: rawContent
                 })
                 expect(typeof result).toBe('function')
                 await (result as (d: any) => Promise<void>)(dispatch)
-                expect(resolveSidecarSnapshot).toHaveBeenCalledWith(streamKey, 'https://example.com/sidecar', rawSnapshot)
+                expect(deserializeSnapshot).toHaveBeenCalledWith(rawContent)
                 expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({
                     payload: expect.objectContaining({
-                        streamKey,
-                        timestamp,
+                        streamKey: 'stream1',
+                        timestamp: 1000,
                         header: { type: 'Snapshot' },
                         content: resolvedSnapshot
                     })
@@ -321,12 +318,12 @@ describe('dataSource slice', () => {
                 expect(dispatch).not.toHaveBeenCalled()
             })
 
-            it('when sidecarUrl is present but resolveSidecarSnapshot is not configured, does not dispatch processRawEnvelope', () => {
+            it('when Snapshot content is passed and deserializeSnapshot returns null, thunk does not dispatch', async () => {
                 const config: DataSourceSliceConfig<TestSnapshot, TestUpdate, any, any> = {
                     name: 'testDataSource',
                     dataSourceKey: 'test.dataSource',
                     aggregator: mockAggregator,
-                    eventSerializer: mockSerializer,
+                    eventSerializer: { ...mockSerializer, deserializeSnapshot: async () => null },
                     sliceSelector: (state) => state.testDataSource
                 }
                 createDataSourceSlice(config)
@@ -338,7 +335,8 @@ describe('dataSource slice', () => {
                     header: { type: 'Snapshot' },
                     content: { type: 'Snapshot' as const, sidecarUrl: 'https://example.com/sidecar' }
                 })
-                expect(result).toBeUndefined()
+                expect(typeof result).toBe('function')
+                await (result as (d: any) => Promise<void>)(dispatch)
                 expect(dispatch).not.toHaveBeenCalled()
             })
         })

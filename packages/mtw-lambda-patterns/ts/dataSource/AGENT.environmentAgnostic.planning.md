@@ -178,7 +178,7 @@ Success criteria:
 
 **Implementation note (done):** Step 2 added these implementations: `createNodeDataSourceEnvironment()` in mtw-lambda-patterns (Node global fetch) and `createBrowserDataSourceEnvironment()` in charcoal-client (browser fetch). Both satisfy Step 3. Presigned sidecar URLs work with standard fetch; an AWS SDK-based fetch can be added later if a use case requires it.
 
-### Step 4: Teach client slices to resolve via the serializer (one domain)
+### Step 4: Teach client slices to resolve via the serializer (one domain) (DONE)
 
 For WML on the client:
 
@@ -186,17 +186,21 @@ For WML on the client:
 - Remove the generic "if sidecarUrl then call resolveSidecarSnapshot" branch from the slice; the slice always passes the raw payload to the serializer, and the serializer resolves sidecars when present.
 - Keep Redux slice public API and state shape unchanged.
 
+**Implementation note (done):** Client slice no longer takes or uses `resolveSidecarSnapshot`; the slice always passes raw `content` to `eventSerializer.deserializeSnapshot` / `eventSerializer.deserialize`. The WML serializer handles domain-shaped snapshot payloads only (e.g. `{ wml: string }` or `{ wml: { sidecarUrl } }`); full-content sidecars are no longer supported on the client. The WML slice no longer exports or passes `resolveSidecarSnapshot`.
+
 Success criteria:
 
 - All parsing/sidecar concerns live in the WML serializer (shared with backend), which is configured with a client `env`.
 - The slice sees only `{ header, content }` as today; no new public concepts for consumers. No separate `resolveSidecarSnapshot` callback.
 
-### Step 5: Generalize pattern for other DataSources as needed
+### Step 5: Generalize pattern for other DataSources as needed (DONE)
 
 - Once WML is stable and tested, consider making other serializers environment-agnostic using the same pattern (constructor that accepts `DataSourceEnvironment`, store on instance, use `this.env.fetch` in resolution paths) for:
   - `mtw.assets.contentHeaders` (if we ever add sidecars there).
   - Future DataSources that want claim-check semantics.
 - For DataSources that only ever use inline payloads, no change is required; their serializers need no env until they add sidecar resolution.
+
+**Implementation note (done):** No other DataSource currently uses or has been considered for sidecar storage. `mtw.assets.contentHeaders`, `mtw.assets.library`, and `mtw.assets.players` use serializers without a `DataSourceEnvironment` and have inline-only payloads. The pattern is established with WML; when another DataSource needs claim-check/sidecar semantics, apply the same approach (env in constructor, `this.env.fetch` in resolution paths). No further work required until then.
 
 ## 6. Non-goals / constraints
 

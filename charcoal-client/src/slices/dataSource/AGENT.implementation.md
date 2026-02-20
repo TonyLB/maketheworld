@@ -260,13 +260,11 @@ Three action factories manage lifecycle:
 
 #### **Sidecar Snapshot Handling**
 
-Snapshot events may carry a **`sidecarUrl`** instead of an inline payload (backend sends a presigned URL; the client fetches the body). Resolution happens **before** the reducer runs:
+Snapshot events may carry inline payloads or domain-shaped sidecar descriptors (e.g. a field whose value is `{ sidecarUrl: string }`). Resolution happens inside the serializer when it is configured with a `DataSourceEnvironment`:
 
 1. **LifeLine callback** receives the StreamEvent, builds `envelopePayload`, and dispatches whatever `processRawEnvelope` (the wrapper) returns. Redux Thunk middleware executes async thunks.
-2. **Wrapper** (in `index.ts`): Always returns an async thunk that (a) awaits deserialize or `createGetContentInternal` when available, (b) dispatches `processRawEnvelope` with resolved internal content. For sidecar snapshots, the thunk first awaits `resolveSidecarSnapshot`, then deserializes the external payload. If `sidecarUrl` is present but no resolver is configured, the wrapper logs a warning and returns undefined.
-3. **Reducer** (`reducers.ts`) expects pre-resolved internal content; deserialization happens only in the thunk.
-
-Data sources that use sidecar (e.g. mtw.wml) set **`resolveSidecarSnapshot`** in the slice config; it should fetch the URL, parse the response (e.g. JSON or WML), and return the same `ExternalSnapshotPayload` shape that `deserializeSnapshot` expects.
+2. **Wrapper** (in `index.ts`): Always returns an async thunk that (a) calls `eventSerializer.deserializeSnapshot(content)` for Snapshot messages or `eventSerializer.deserialize({ content, header })` for events, (b) dispatches `processRawEnvelope` with the resolved internal content. The slice passes raw `content` to the serializer; the serializer performs sidecar fetch and resolution when configured with a `DataSourceEnvironment` (e.g. mtw.wml uses `WMLDataSourceEventSerializer(createBrowserDataSourceEnvironment())`).
+3. **Reducer** (`reducers.ts`) expects pre-resolved internal content; deserialization (and sidecar resolution) happens only in the thunk, inside the serializer.
 
 #### **Slice Factory (`index.ts`)**
 

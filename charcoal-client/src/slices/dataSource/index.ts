@@ -27,8 +27,6 @@ export interface DataSourceSliceConfig<
     promiseCache?: PromiseCache<DataSourceData<SnapshotPayload, UpdatePayload>>  // Optional promise cache for state machine coordination
     onReady?: (dispatch: any, getState: any, sliceActions: any) => void  // Optional callback when slice reaches READY state (after INITIALIZE completes). Receives dispatch, getState, and slice actions for subscription management.
     holdCondition?: ISSMHoldCondition<DataSourceInternal, DataSourcePublic<SnapshotPayload, UpdatePayload>>  // Optional additional hold condition (checked alongside lifelineCondition)
-    /** When set, Snapshot events with sidecarUrl are fetched and resolved to ExternalSnapshotPayload before processRawEnvelope. Omit for inline-only data sources. */
-    resolveSidecarSnapshot?: (streamKey: string, sidecarUrl: string, rawSnapshot: any) => Promise<ExternalSnapshotPayload>
 }
 
 //
@@ -43,7 +41,7 @@ export const createDataSourceSlice = <
 >(
     config: DataSourceSliceConfig<SnapshotPayload, UpdatePayload, ExternalUpdatePayload, ExternalSnapshotPayload>
 ) => {
-    const { name, dataSourceKey, aggregator, eventSerializer, sliceSelector, promiseCache: providedPromiseCache, holdCondition, resolveSidecarSnapshot } = config
+    const { name, dataSourceKey, aggregator, eventSerializer, sliceSelector, promiseCache: providedPromiseCache, holdCondition } = config
 
     // Create a promise cache if one wasn't provided
     const promiseCache = providedPromiseCache ?? new PromiseCache<DataSourceData<SnapshotPayload, UpdatePayload>>()
@@ -180,21 +178,12 @@ export const createDataSourceSlice = <
     })
 
     // Always return an async thunk that awaits deserialize, then dispatches the reducer with resolved content.
-    // Supports both inline and sidecar payloads.
+    // Slice passes raw content to the serializer; the serializer performs sidecar resolution when configured with a DataSourceEnvironment.
     const processRawEnvelopeWithSidecar = (payload: ClientStreamingMessagePayload<any>) => {
         const { streamKey, timestamp, header, content } = payload
-        if (header.type === 'Snapshot' && content?.sidecarUrl && !resolveSidecarSnapshot) {
-            console.warn(`[${dataSourceKey}] Snapshot has sidecarUrl but resolveSidecarSnapshot is not configured; ignoring. streamKey=${streamKey}`)
-            return
-        }
         return async (dispatch: any) => {
             let internalContent: SnapshotPayload | UpdatePayload | null
-            if (header.type === 'Snapshot' && content?.sidecarUrl && resolveSidecarSnapshot) {
-                const resolvedExternal = await resolveSidecarSnapshot(streamKey, content.sidecarUrl, content)
-                internalContent = eventSerializer.deserializeSnapshot
-                    ? await eventSerializer.deserializeSnapshot!(resolvedExternal as any)
-                    : (resolvedExternal as unknown as SnapshotPayload)
-            } else if (header.type === 'Snapshot') {
+            if (header.type === 'Snapshot') {
                 internalContent = eventSerializer.deserializeSnapshot
                     ? await eventSerializer.deserializeSnapshot(content as any)
                     : (content as unknown as SnapshotPayload)
