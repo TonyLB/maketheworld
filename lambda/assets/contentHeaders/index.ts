@@ -170,6 +170,7 @@ export const contentHeadersDataSource = new AssetsDataSource<
         const zoneUpdates = zoneEvents.map(async (zoneEvent) => {
             if (!isZoneChangedContentHeadersEvent(zoneEvent)) return
             const content = await zoneEvent.getContentInternal()
+            if (!content) return
             const { fromZone, toZone } = content
             await streamEvent({
                 streamKey: 'global',
@@ -263,6 +264,7 @@ async function createAggregatedContentHeadersUpdate(
         // Process all events for this asset
         for (const event of events) {
             const content = await event.getContentInternal()
+            if (!content) continue
             const { header } = event
             if (isComponentHeadersEvent(event)) {
                 const component = 'component' in content ? content.component : undefined

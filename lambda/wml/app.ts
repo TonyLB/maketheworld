@@ -61,32 +61,16 @@ export const handler = async (event: any, context: any) => {
             // Convert EventBridge event to CoreExternalFormat using format transformer
             const coreFormat = fromEventBridgeFormat(event)
             const { header, update } = coreFormat
-            // Deserialize the external event to internal format using the serializer
-            const internalEvent = deserializer.deserialize({
-                content: update as any,
-                header
-            })
-            
-            // If deserialization failed, log error and skip this event
-            if (!internalEvent) {
-                messageBus.send({
-                    type: 'Error',
-                    body: {
-                        error: `Failed to deserialize event from ${event.source}: ${event["detail-type"]}`
-                    }
-                })
-            } else {
-                // Publish deserialized event to messageBus for DataSource processing
-                const externalMessage: StreamingEventMessage = {
-                    type: 'StreamingEvent',
-                    dataSourceKey: header.dataSourceKey,
-                    streamKey: header.streamKey,
-                    header,
-                    getContentInternal: () => Promise.resolve(internalEvent),
-                    timestamp: event.time ? new Date(event.time).getTime() : header.timestamp
-                }
-                messageBus.send(externalMessage)
+            // Publish to messageBus with lazy deserialize; consumer awaits getContentInternal() and handles null
+            const externalMessage: StreamingEventMessage = {
+                type: 'StreamingEvent',
+                dataSourceKey: header.dataSourceKey,
+                streamKey: header.streamKey,
+                header,
+                getContentInternal: () => deserializer.deserialize({ content: update as any, header }),
+                timestamp: event.time ? new Date(event.time).getTime() : header.timestamp
             }
+            messageBus.send(externalMessage)
         } else {
             // No deserializer available - this is an error condition
             messageBus.send({

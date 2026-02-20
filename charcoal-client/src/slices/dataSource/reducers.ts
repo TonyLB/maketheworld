@@ -1,7 +1,6 @@
 import { PayloadAction } from '@reduxjs/toolkit'
 import type { EventPayload, SerializableObject, StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import type { DataSourceAggregator } from '@tonylb/mtw-lambda-patterns/ts/dataSource/aggregation'
-import type { DataSourceEventSerializer } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import type { ClientStreamingMessagePayload, RecentEventEnvelope } from './baseClasses'
 
 const SNAPSHOT_HEADER_TYPE = 'Snapshot'
@@ -87,25 +86,24 @@ export const performCleanup = <
 }
 
 //
-// Reducer: Process incoming snapshot or event envelope.
-// Branches on header.type === 'Snapshot' to deserialize and apply.
-// Sidecar resolution (fetch from sidecarUrl when present) happens before this reducer runs.
+// Reducer: Process incoming snapshot or event envelope with pre-resolved internal content.
+// Expects content to already be deserialized (the thunk handles resolution before dispatch).
+// Branches on header.type === 'Snapshot' to apply aggregator logic.
 // Curried: First apply config, then return the reducer (state, action) => void
 //
 export const processRawEnvelope = <
     SnapshotPayload extends SerializableObject,
     UpdatePayload extends EventPayload,
-    ExternalPayload extends SerializableObject | EventPayload,
+    InternalPayload extends SnapshotPayload | UpdatePayload,
     Header extends StreamingEventHeader = StreamingEventHeader
 >(
     dataSourceKey: string,
-    eventSerializer: DataSourceEventSerializer<UpdatePayload, any, SnapshotPayload, any>,
     aggregator: DataSourceAggregator<SnapshotPayload, UpdatePayload>,
     performCleanupWithConfig: ReturnType<typeof performCleanup<SnapshotPayload, UpdatePayload, Header>>,
     applyEventsWithAggregator: ReturnType<typeof applyEvents<SnapshotPayload, UpdatePayload, Header>>
 ) => (
     state: any,
-    action: PayloadAction<ClientStreamingMessagePayload<ExternalPayload>>
+    action: PayloadAction<ClientStreamingMessagePayload<InternalPayload>>
 ) => {
     const { streamKey, timestamp, header, content } = action.payload
 
@@ -123,17 +121,13 @@ export const processRawEnvelope = <
         ...(Object.prototype.hasOwnProperty.call(header, 'zone') ? { zone: (header as { zone?: string }).zone } : {})
     } as Header
 
+    // NOTE: We pass InternalPayload and Header as separate type params; the action payload is
+    // ClientStreamingMessagePayload<InternalPayload>, which is not a discriminated union on
+    // header.type. So we cannot use an envelope type guard to narrow content—we must cast.
+    // Future refactor: define the payload as a discriminated union so header.type narrows content.
     if (header.type === SNAPSHOT_HEADER_TYPE) {
-        // Snapshot path
-        const snapshot = eventSerializer.deserializeSnapshot
-            ? eventSerializer.deserializeSnapshot(content as any)
-            : content as unknown as SnapshotPayload
-
-        if (!snapshot) {
-            console.warn(`[${dataSourceKey}] Failed to deserialize snapshot for streamKey: ${streamKey}`)
-            return
-        }
-
+        // Snapshot path - content is already internal
+        const snapshot = content as SnapshotPayload
         const snapshotTimestamp = timestamp
         const cleanedRecentEvents = performCleanupWithConfig(stream.recentEvents, snapshotTimestamp)
         const eventsAfterSnapshot = cleanedRecentEvents.filter(e => e.timestamp > snapshotTimestamp)
@@ -149,16 +143,8 @@ export const processRawEnvelope = <
             recentEvents: newRecentEvents
         }
     } else {
-        // Event path
-        const event = eventSerializer.deserialize({
-            content: content as any,
-            header: streamingHeader
-        })
-        if (!event) {
-            console.warn(`[${dataSourceKey}] Failed to deserialize event for streamKey: ${streamKey}`)
-            return
-        }
-
+        // Event path - content is already internal
+        const event = content as UpdatePayload
         const eventTimestamp = timestamp
         const cleanedRecentEvents = performCleanupWithConfig(stream.recentEvents, eventTimestamp)
         const latestTimestamp = cleanedRecentEvents.length > 0

@@ -65,7 +65,7 @@ describe('AssetsEventSerializer', () => {
             }
         })
 
-        it('should deserialize Component Updated event from external format', () => {
+        it('should deserialize Component Updated event from external format', async () => {
             const externalEvent: AssetsEventExternal = {
                 componentId: 'CHARACTER#testcharacter',
                 wml: deIndentWML(`
@@ -75,7 +75,7 @@ describe('AssetsEventSerializer', () => {
                 `)
             }
 
-            const internalEvent = serializer.deserialize({
+            const internalEvent = await serializer.deserialize({
                 content: externalEvent,
                 header: makeAssetsHeader('Component Updated')
             })
@@ -88,7 +88,7 @@ describe('AssetsEventSerializer', () => {
             }
         })
 
-        it('should handle Component Updated round-trip correctly', () => {
+        it('should handle Component Updated round-trip correctly', async () => {
             const originalCharacter = new StandardCharacter(deIndentWML(`
                 <Character key=(testcharacter) uuid=(testcharacter)>
                     <DisplayName>Test Character</DisplayName>
@@ -106,7 +106,7 @@ describe('AssetsEventSerializer', () => {
             })
 
             // Deserialize back to internal format
-            const deserializedEvent = serializer.deserialize({
+            const deserializedEvent = await serializer.deserialize({
                 content: externalEvent,
                 header: makeAssetsHeader('Component Updated')
             })
@@ -148,7 +148,7 @@ describe('AssetsEventSerializer', () => {
             }
         })
 
-        it('should deserialize Component Removed event from external format', () => {
+        it('should deserialize Component Removed event from external format', async () => {
             const externalEvent: AssetsEventExternal = {
                 componentId: 'CHARACTER#testcharacter',
                 wml: deIndentWML(`
@@ -158,7 +158,7 @@ describe('AssetsEventSerializer', () => {
                 `)
             }
 
-            const internalEvent = serializer.deserialize({
+            const internalEvent = await serializer.deserialize({
                 content: externalEvent,
                 header: makeAssetsHeader('Component Removed')
             })
@@ -171,7 +171,7 @@ describe('AssetsEventSerializer', () => {
             }
         })
 
-        it('should handle Component Removed round-trip correctly', () => {
+        it('should handle Component Removed round-trip correctly', async () => {
             const originalCharacter = new StandardCharacter(deIndentWML(`
                 <Character key=(testcharacter) uuid=(testcharacter)>
                     <DisplayName>Test Character</DisplayName>
@@ -189,7 +189,7 @@ describe('AssetsEventSerializer', () => {
             })
 
             // Deserialize back to internal format
-            const deserializedEvent = serializer.deserialize({
+            const deserializedEvent = await serializer.deserialize({
                 content: externalEvent,
                 header: makeAssetsHeader('Component Removed')
             })
@@ -264,12 +264,12 @@ describe('AssetsEventSerializer', () => {
             }
         })
 
-        it('should deserialize Asset Level events (pass-through)', () => {
+        it('should deserialize Asset Level events (pass-through)', async () => {
             const externalEvent: AssetsEventExternal = {
                 zone: 'Canon'
             }
 
-            const internalEvent = serializer.deserialize({
+            const internalEvent = await serializer.deserialize({
                 content: externalEvent,
                 header: makeAssetsHeader('Asset Cached')
             })
@@ -278,7 +278,7 @@ describe('AssetsEventSerializer', () => {
             expect((internalEvent as AssetCachedEventUpdate).zone).toBe('Canon')
         })
 
-        it('should handle Asset Level round-trip correctly', () => {
+        it('should handle Asset Level round-trip correctly', async () => {
             const originalEvent: AssetLevelEventUpdate = {
                 zone: 'Canon'
             }
@@ -290,7 +290,7 @@ describe('AssetsEventSerializer', () => {
             })
 
             // Deserialize back to internal format
-            const deserializedEvent = serializer.deserialize({
+            const deserializedEvent = await serializer.deserialize({
                 content: externalEvent,
                 header: makeAssetsHeader('Asset Cached')
             })
@@ -302,7 +302,7 @@ describe('AssetsEventSerializer', () => {
     })
 
     describe('deserialize when header and payload type disagree - header wins', () => {
-        it('should deserialize as Component Removed when header says Component Removed but payload has Component Updated shape', () => {
+        it('should deserialize as Component Removed when header says Component Removed but payload has Component Updated shape', async () => {
             const externalEvent: AssetsEventExternal = {
                 componentId: 'CHARACTER#testcharacter',
                 wml: deIndentWML(`
@@ -312,7 +312,7 @@ describe('AssetsEventSerializer', () => {
                 `)
             }
 
-            const internalEvent = serializer.deserialize({
+            const internalEvent = await serializer.deserialize({
                 content: externalEvent,
                 header: makeAssetsHeader('Component Removed')
             })
@@ -340,21 +340,19 @@ describe('AssetsEventSerializer', () => {
             }).toThrow('Unknown event type in AssetsEventUpdate')
         })
 
-        it('should handle invalid WML in Component Updated deserialize', () => {
+        it('should handle invalid WML in Component Updated deserialize', async () => {
             const externalEvent: AssetsEventExternal = {
                 componentId: 'CHARACTER#testcharacter',
                 wml: 'invalid-wml-content'
             }
 
-            expect(() => {
-                serializer.deserialize({
-                    content: externalEvent,
-                    header: makeAssetsHeader('Component Updated')
-                })
-            }).toThrow()
+            await expect(serializer.deserialize({
+                content: externalEvent,
+                header: makeAssetsHeader('Component Updated')
+            })).rejects.toThrow()
         })
 
-        it('should handle missing component in WML', () => {
+        it('should handle missing component in WML', async () => {
             const externalEvent: AssetsEventExternal = {
                 componentId: 'CHARACTER#missing-character',
                 wml: deIndentWML(`
@@ -364,12 +362,10 @@ describe('AssetsEventSerializer', () => {
                 `)
             }
 
-            expect(() => {
-                serializer.deserialize({
-                    content: externalEvent,
-                    header: makeAssetsHeader('Component Updated')
-                })
-            }).toThrow('Component ID mismatch: expected CHARACTER#missing-character')
+            await expect(serializer.deserialize({
+                content: externalEvent,
+                header: makeAssetsHeader('Component Updated')
+            })).rejects.toThrow('Component ID mismatch: expected CHARACTER#missing-character')
         })
     })
 

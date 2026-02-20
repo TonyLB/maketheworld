@@ -91,7 +91,7 @@ export class ContentHeadersEventSerializer implements DataSourceEventSerializer<
         throw new Error(`Unknown streaming event type in ContentHeadersEventUpdate: ${params.header.type}`)
     }
 
-    deserialize(params: ContentHeadersDeserializeParams): ContentHeadersEventUpdate | null {
+    async deserialize(params: ContentHeadersDeserializeParams): Promise<ContentHeadersEventUpdate | null> {
         if (isHeadersUpdatedContentHeadersDeserializeParams(params)) {
             const { content } = params
             return {
@@ -114,7 +114,7 @@ export class ContentHeadersEventSerializer implements DataSourceEventSerializer<
         }
     }
     
-    deserializeSnapshot(externalSnapshot: ContentHeadersSnapshotExternal): ContentHeadersSnapshot | null {
+    async deserializeSnapshot(externalSnapshot: ContentHeadersSnapshotExternal): Promise<ContentHeadersSnapshot | null> {
         try {
             const internalAssets = externalSnapshot.assets.map(asset => ({
                 assetId: asset.assetId,

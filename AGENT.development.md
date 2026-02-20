@@ -269,6 +269,17 @@ The following migrations must be completed in this specific order due to depende
 
 **Recommendation**: Address as needed based on content organization requirements. No immediate action required.
 
+#### DataSource client slice: envelope payload discriminated union
+**Status**: Deferred refactor
+
+**Context**: In `charcoal-client/src/slices/dataSource/reducers.ts`, `processRawEnvelope` receives an action payload `ClientStreamingMessagePayload<InternalPayload>` with `InternalPayload = SnapshotPayload | UpdatePayload`. We branch on `header.type === 'Snapshot'` but TypeScript cannot narrow `content` because the payload is not a discriminated union on `header.type`—we pass `InternalPayload` and `Header` as separate type params.
+
+**Problem**: We must cast `content as SnapshotPayload` and `content as UpdatePayload` in each branch; we cannot use an envelope type guard (e.g. `isSnapshotEnvelope`) to narrow without changing the payload shape.
+
+**Future refactor**: Define the action payload as a discriminated union (e.g. snapshot variant with `header: { type: 'Snapshot' }` and `content: SnapshotPayload`, event variant with `header: { type: string }` and `content: UpdatePayload`) so that branching on `header.type` narrows `content` and removes the need for casts. Requires changing the payload type and ensuring all dispatch sites provide the correct shape.
+
+---
+
 #### Asset address (`.address`) usage
 **Status**: Future evaluation
 

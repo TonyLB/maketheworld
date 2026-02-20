@@ -47,10 +47,10 @@ export class CharacterEventSerializer implements DataSourceEventSerializer<Chara
         }
     }
     
-    deserialize(params: {
+    async deserialize(params: {
         content: CharacterEventExternal;
         header: StreamingEventHeader;
-    }): CharacterEventUpdate | null {
+    }): Promise<CharacterEventUpdate | null> {
         const { content, header } = params
         
         // Only handle character updated events (header is authoritative for routing)

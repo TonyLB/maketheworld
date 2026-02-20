@@ -287,7 +287,7 @@ export class AssetsEventSerializer implements DataSourceEventSerializer<AssetsEv
         throw new Error(`Unknown event type in AssetsEventUpdate: ${params.header.type}`)
     }
 
-    deserialize(params: AssetsDeserializeParams): AssetsEventUpdate | null {
+    async deserialize(params: AssetsDeserializeParams): Promise<AssetsEventUpdate | null> {
         if (isComponentUpdatedAssetsDeserializeParams(params)) {
             const { content } = params
             return {

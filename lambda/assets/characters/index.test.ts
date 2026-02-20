@@ -319,7 +319,7 @@ describe('CharactersDataSource', () => {
                 wml: testWML
             }
             
-            const result = serializer.deserialize({
+            const result = await serializer.deserialize({
                 content: externalUpdate,
                 header: { dataSourceKey: 'mtw.assets.characters', streamKey: 'ASSET#asset123', timestamp: 0, type: 'Character Updated' }
             })

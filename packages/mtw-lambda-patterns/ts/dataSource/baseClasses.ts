@@ -118,7 +118,7 @@ export interface DataSourceEventSerializer<
     deserialize(params: {
         content: ExternalUpdatePayload;
         header: Header;
-    }): UpdatePayload | null;
+    }): Promise<UpdatePayload | null>;
     
     /**
      * Convert internal snapshot payload to external format for storage/transmission
@@ -134,5 +134,5 @@ export interface DataSourceEventSerializer<
      * 
      * Optional: Only required for replayable data sources that support snapshots
      */
-    deserializeSnapshot?(externalSnapshot: ExternalSnapshotPayload): SnapshotPayload | null;
+    deserializeSnapshot?(externalSnapshot: ExternalSnapshotPayload): Promise<SnapshotPayload | null>;
 }

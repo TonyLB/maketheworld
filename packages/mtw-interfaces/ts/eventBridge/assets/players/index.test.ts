@@ -72,7 +72,7 @@ describe('PlayerEventSerializer', () => {
     const serializer = new PlayerEventSerializer()
 
     describe('deserialize when header and payload type disagree - header wins', () => {
-        it('should deserialize as Player Asset Removed when header says Player Asset Removed but content has Asset Assigned shape', () => {
+        it('should deserialize as Player Asset Removed when header says Player Asset Removed but content has Asset Assigned shape', async () => {
             const content = {
                 asset: { AssetId: 'AssetOne', zone: 'Draft' as const }
             }
@@ -82,7 +82,7 @@ describe('PlayerEventSerializer', () => {
                 timestamp: 0,
                 type: 'Player Asset Removed'
             }
-            const result = serializer.deserialize({ content: content as any, header })
+            const result = await serializer.deserialize({ content: content as any, header })
             expect(result).not.toBeNull()
             expect(result && 'assetId' in result).toBe(true)
             expect((result as any).assetId).toBeUndefined()

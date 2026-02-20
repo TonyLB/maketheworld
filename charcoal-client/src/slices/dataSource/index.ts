@@ -1,5 +1,5 @@
 import { singleSSM } from '../stateSeekingMachine/singleSSM'
-import { DataSourceNodes, DataSourcePublic, DataSourceInternal, DataSourceData, ClientStreamingMessagePayload } from './baseClasses'
+import { DataSourceNodes, DataSourcePublic, DataSourceInternal, DataSourceData, ClientStreamingMessagePayload, ClientStreamingHeader } from './baseClasses'
 import { backoffAction, createSubscribeAction, createUnsubscribeAction, createInitializeAction, lifelineCondition } from './index.api'
 import { PromiseCache } from '../promiseCache'
 import { heartbeat } from '../stateSeekingMachine/ssmHeartbeat'
@@ -165,7 +165,6 @@ export const createDataSourceSlice = <
         publicReducers: {
             processRawEnvelope: processRawEnvelope(
                 dataSourceKey,
-                eventSerializer,
                 aggregator,
                 performCleanupWithConfig,
                 applyEventsWithAggregator
@@ -178,21 +177,43 @@ export const createDataSourceSlice = <
         template
     })
 
-    // Sidecar-aware wrapper: when snapshot content has sidecarUrl and resolveSidecarSnapshot is set,
-    // return a thunk that fetches/resolves then dispatches processRawEnvelope with resolved payload.
+    // Always return an async thunk that awaits deserialize, then dispatches the reducer with resolved content.
+    // Supports both inline and sidecar payloads.
     const processRawEnvelopeWithSidecar = (payload: ClientStreamingMessagePayload<any>) => {
         const { streamKey, timestamp, header, content } = payload
-        if (header.type === 'Snapshot' && content?.sidecarUrl && resolveSidecarSnapshot) {
-            return async (dispatch: any) => {
-                const resolved = await resolveSidecarSnapshot(streamKey, content.sidecarUrl, content)
-                dispatch(result.publicActions.processRawEnvelope({ streamKey, timestamp, header, content: resolved }))
-            }
-        }
         if (header.type === 'Snapshot' && content?.sidecarUrl && !resolveSidecarSnapshot) {
             console.warn(`[${dataSourceKey}] Snapshot has sidecarUrl but resolveSidecarSnapshot is not configured; ignoring. streamKey=${streamKey}`)
             return
         }
-        return result.publicActions.processRawEnvelope(payload)
+        return async (dispatch: any) => {
+            let internalContent: SnapshotPayload | UpdatePayload | null
+            if (header.type === 'Snapshot' && content?.sidecarUrl && resolveSidecarSnapshot) {
+                const resolvedExternal = await resolveSidecarSnapshot(streamKey, content.sidecarUrl, content)
+                internalContent = eventSerializer.deserializeSnapshot
+                    ? await eventSerializer.deserializeSnapshot!(resolvedExternal as any)
+                    : (resolvedExternal as unknown as SnapshotPayload)
+            } else if (header.type === 'Snapshot') {
+                internalContent = eventSerializer.deserializeSnapshot
+                    ? await eventSerializer.deserializeSnapshot(content as any)
+                    : (content as unknown as SnapshotPayload)
+            } else {
+                internalContent = await eventSerializer.deserialize({ content: content as any, header: { ...header, dataSourceKey, streamKey, timestamp } })
+            }
+            if (!internalContent) {
+                if (header.type === 'Snapshot') {
+                    console.warn(`[${dataSourceKey}] Failed to deserialize snapshot for streamKey: ${streamKey}`)
+                } else {
+                    console.warn(`[${dataSourceKey}] Failed to deserialize event for streamKey: ${streamKey}`)
+                }
+                return
+            }
+            dispatch(result.publicActions.processRawEnvelope({
+                streamKey,
+                timestamp,
+                header,
+                content: internalContent
+            }))
+        }
     }
 
     // Now that we have the result with publicActions, create the initialize action

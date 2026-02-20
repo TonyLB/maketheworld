@@ -9,6 +9,18 @@ import {
     isWMLMaterializedView,
     isWMLContentEventExternal
 } from './index'
+import { maybeFetchSidecarString } from '@tonylb/mtw-lambda-patterns/ts/dataSource/sidecarResolve'
+
+jest.mock('@tonylb/mtw-lambda-patterns/ts/dataSource/sidecarResolve', () => {
+    const actual = jest.requireActual<typeof import('@tonylb/mtw-lambda-patterns/ts/dataSource/sidecarResolve')>(
+        '@tonylb/mtw-lambda-patterns/ts/dataSource/sidecarResolve'
+    )
+    return {
+        maybeFetchSidecarString: jest.fn((value: unknown, fetchFn?: typeof fetch) =>
+            actual.maybeFetchSidecarString(value, fetchFn)
+        )
+    }
+})
 import type { WMLStreamingEventHeader } from './index'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
@@ -49,7 +61,7 @@ describe('WMLEventSerializer', () => {
 
 
 
-        it('should deserialize Content Update event from WML string', () => {
+        it('should deserialize Content Update event from WML string', async () => {
             const wmlString = deIndentWML(`
                 <Asset uuid=(test-asset)>
                     <Room key=(testroom) uuid=(testroom)>
@@ -62,7 +74,7 @@ describe('WMLEventSerializer', () => {
                 wml: wmlString
             }
 
-            const internalEvent = serializer.deserialize({
+            const internalEvent = await serializer.deserialize({
                 content: externalEvent,
                 header: makeWmlHeader('Content Update')
             })
@@ -75,7 +87,7 @@ describe('WMLEventSerializer', () => {
             }
         })
 
-        it('should handle Content Update round-trip correctly', () => {
+        it('should handle Content Update round-trip correctly', async () => {
             const originalForm = new StandardForm(deIndentWML(`
                 <Asset uuid=(test-asset)>
                     <Room key=(testroom) uuid=(testroom)>
@@ -90,7 +102,7 @@ describe('WMLEventSerializer', () => {
             const externalEvent = serializer.serialize({ content: contentEvent, header: makeWmlHeader('Content Update') })
             
             // Deserialize back to internal format
-            const deserializedEvent = serializer.deserialize({
+            const deserializedEvent = await serializer.deserialize({
                 content: externalEvent,
                 header: makeWmlHeader('Content Update')
             })
@@ -116,7 +128,7 @@ describe('WMLEventSerializer', () => {
             expect(externalEvent).not.toHaveProperty('RequestIds')
         })
 
-        it('should not put RequestIds in deserialized Content Update content (caller reads from header)', () => {
+        it('should not put RequestIds in deserialized Content Update content (caller reads from header)', async () => {
             const wmlString = deIndentWML(`
                 <Asset uuid=(test-asset)>
                     <Room key=(room1) uuid=(room1)><ShortName>R1</ShortName></Room>
@@ -126,7 +138,7 @@ describe('WMLEventSerializer', () => {
                 wml: wmlString
             }
             const header = makeWmlHeader('Content Update', ['req-456'])
-            const internalEvent = serializer.deserialize({
+            const internalEvent = await serializer.deserialize({
                 content: externalEvent,
                 header
             })
@@ -137,7 +149,35 @@ describe('WMLEventSerializer', () => {
             expect(header.RequestIds).toEqual(['req-456'])
         })
 
-        it('should round-trip Content Update with RequestIds in header only', () => {
+        it('should deserialize Content Update from sidecar when wml is { sidecarUrl }', async () => {
+            const wmlString = deIndentWML(`
+                <Asset uuid=(test-asset)>
+                    <Room key=(testroom) uuid=(testroom)>
+                        <ShortName>Test Room</ShortName>
+                    </Room>
+                </Asset>
+            `)
+            ;(maybeFetchSidecarString as jest.Mock).mockImplementationOnce(() => Promise.resolve(wmlString))
+
+            const externalEvent: WMLEventExternal = {
+                wml: { sidecarUrl: 'https://example.com/sidecar.wml' }
+            }
+
+            const internalEvent = await serializer.deserialize({
+                content: externalEvent,
+                header: makeWmlHeader('Content Update')
+            })
+
+            expect(maybeFetchSidecarString).toHaveBeenCalledWith({ sidecarUrl: 'https://example.com/sidecar.wml' })
+            expect(internalEvent).not.toBeNull()
+            expect(isWMLContentUpdateEvent(internalEvent!)).toBe(true)
+            if (isWMLContentUpdateEvent(internalEvent!)) {
+                expect(internalEvent.schema).toBeDefined()
+                expect(internalEvent.schema).toBeInstanceOf(StandardForm)
+            }
+        })
+
+        it('should round-trip Content Update with RequestIds in header only', async () => {
             const standardForm = new StandardForm(deIndentWML(`
                 <Asset uuid=(test-asset)>
                     <Room key=(room1) uuid=(room1)><ShortName>R1</ShortName></Room>
@@ -147,7 +187,7 @@ describe('WMLEventSerializer', () => {
             const headerWithIds = makeWmlHeader('Content Update', ['req-roundtrip'])
             const externalEvent = serializer.serialize({ content: contentEvent, header: headerWithIds })
             expect(!('RequestIds' in externalEvent) && 'wml' in externalEvent).toBe(true)
-            const deserialized = serializer.deserialize({
+            const deserialized = await serializer.deserialize({
                 content: externalEvent,
                 header: headerWithIds
             })
@@ -173,14 +213,14 @@ describe('WMLEventSerializer', () => {
             expect(externalEvent.player).toBe('alice')
         })
 
-        it('should deserialize Zone Changed event (pass-through)', () => {
+        it('should deserialize Zone Changed event (pass-through)', async () => {
             const externalEvent: WMLEventExternal = {
                 fromZone: 'Library',
                 toZone: 'Canon',
                 player: 'alice'
             }
 
-            const internalEvent = serializer.deserialize({
+            const internalEvent = await serializer.deserialize({
                 content: externalEvent,
                 header: makeWmlHeader('Zone Changed')
             })
@@ -188,7 +228,7 @@ describe('WMLEventSerializer', () => {
             expect(internalEvent).toEqual({ fromZone: 'Library', toZone: 'Canon', player: 'alice' })
         })
 
-        it('should handle Zone Changed round-trip correctly', () => {
+        it('should handle Zone Changed round-trip correctly', async () => {
             const originalEvent: WMLEventUpdate = {
                 fromZone: 'Library',
                 toZone: 'Canon',
@@ -200,7 +240,7 @@ describe('WMLEventSerializer', () => {
             const externalEvent = serializer.serialize({ content: originalEvent, header: makeWmlHeader('Zone Changed') })
             
             // Deserialize back to internal format
-            const deserializedEvent = serializer.deserialize({
+            const deserializedEvent = await serializer.deserialize({
                 content: externalEvent,
                 header: makeWmlHeader('Zone Changed')
             })
@@ -219,30 +259,26 @@ describe('WMLEventSerializer', () => {
             }).toThrow('Unknown WML event type')
         })
 
-        it('should handle invalid WML in Content Update', () => {
+        it('should handle invalid WML in Content Update', async () => {
             const externalEvent: WMLEventExternal = {
                 wml: 'invalid-wml-content'
             }
 
-            expect(() => {
-                serializer.deserialize({
-                    content: externalEvent,
-                    header: makeWmlHeader('Content Update')
-                })
-            }).toThrow('Failed to deserialize WML')
+            await expect(serializer.deserialize({
+                content: externalEvent,
+                header: makeWmlHeader('Content Update')
+            })).rejects.toThrow('Failed to deserialize WML')
         })
 
-        it('should handle Content Update event missing wml property', () => {
+        it('should handle Content Update event missing wml property', async () => {
             const externalEvent = {
                 // Missing wml property
             } as any
 
-            expect(() => {
-                serializer.deserialize({
-                    content: externalEvent,
-                    header: makeWmlHeader('Content Update')
-                })
-            }).toThrow("Content Update event missing required 'wml' property")
+            await expect(serializer.deserialize({
+                content: externalEvent,
+                header: makeWmlHeader('Content Update')
+            })).rejects.toThrow("Content Update event missing required 'wml' property")
         })
     })
 
@@ -254,12 +290,12 @@ describe('WMLEventSerializer', () => {
             expect(externalEvent.error).toBe('Merge conflict occurred during edit application')
         })
 
-        it('should deserialize Merge Conflict event from external format', () => {
+        it('should deserialize Merge Conflict event from external format', async () => {
             const externalEvent: WMLEventExternal = {
                 error: 'Merge conflict occurred during edit application'
             }
 
-            const internalEvent = serializer.deserialize({
+            const internalEvent = await serializer.deserialize({
                 content: externalEvent,
                 header: makeWmlHeader('Merge Conflict')
             })
@@ -270,14 +306,14 @@ describe('WMLEventSerializer', () => {
             }
         })
 
-        it('should handle Merge Conflict round-trip correctly', () => {
+        it('should handle Merge Conflict round-trip correctly', async () => {
             const originalEvent: WMLEventUpdate = { error: 'Merge conflict occurred during edit application' }
 
             // Serialize to external format
             const externalEvent = serializer.serialize({ content: originalEvent, header: makeWmlHeader('Merge Conflict') })
 
             // Deserialize back to internal format
-            const roundTripEvent = serializer.deserialize({
+            const roundTripEvent = await serializer.deserialize({
                 content: externalEvent,
                 header: makeWmlHeader('Merge Conflict')
             })
@@ -295,12 +331,12 @@ describe('WMLEventSerializer', () => {
             expect(externalEvent).not.toHaveProperty('RequestIds')
         })
 
-        it('should not put RequestIds in deserialized Merge Conflict content (caller reads from header)', () => {
+        it('should not put RequestIds in deserialized Merge Conflict content (caller reads from header)', async () => {
             const externalEvent: WMLEventExternal = {
                 error: 'Conflict'
             }
             const header = makeWmlHeader('Merge Conflict', ['req-mc-2'])
-            const internalEvent = serializer.deserialize({
+            const internalEvent = await serializer.deserialize({
                 content: externalEvent,
                 header
             })
@@ -321,13 +357,13 @@ describe('WMLEventSerializer', () => {
             expect(externalEvent.objectsDeleted).toBe(42)
         })
 
-        it('should deserialize Asset Purged event from external format', () => {
+        it('should deserialize Asset Purged event from external format', async () => {
             const externalEvent: WMLEventExternal = {
                 zone: 'Archive',
                 objectsDeleted: 15
             }
 
-            const internalEvent = serializer.deserialize({
+            const internalEvent = await serializer.deserialize({
                 content: externalEvent,
                 header: makeWmlHeader('Asset Purged')
             })
@@ -339,14 +375,14 @@ describe('WMLEventSerializer', () => {
             }
         })
 
-        it('should handle Asset Purged round-trip correctly', () => {
+        it('should handle Asset Purged round-trip correctly', async () => {
             const originalEvent: WMLEventUpdate = { zone: 'Draft', objectsDeleted: 100 }
 
             // Serialize to external format
             const externalEvent = serializer.serialize({ content: originalEvent, header: makeWmlHeader('Asset Purged') })
 
             // Deserialize back to internal format
-            const roundTripEvent = serializer.deserialize({
+            const roundTripEvent = await serializer.deserialize({
                 content: externalEvent,
                 header: makeWmlHeader('Asset Purged')
             })
@@ -360,14 +396,14 @@ describe('WMLEventSerializer', () => {
     })
 
     describe('deserialize when header and payload type disagree - header wins', () => {
-        it('should deserialize as Zone Changed when header says Zone Changed but payload has Content Update shape', () => {
+        it('should deserialize as Zone Changed when header says Zone Changed but payload has Content Update shape', async () => {
             const externalEvent = {
                 wml: deIndentWML(`<Asset uuid=(test)></Asset>`),
                 fromZone: 'Draft',
                 toZone: 'Canon'
             } as any
 
-            const internalEvent = serializer.deserialize({
+            const internalEvent = await serializer.deserialize({
                 content: externalEvent,
                 header: makeWmlHeader('Zone Changed')
             })
@@ -425,9 +461,9 @@ describe('WMLAggregator', () => {
 describe('WMLDataSourceEventSerializer', () => {
     const serializer = new WMLDataSourceEventSerializer()
 
-    it('should deserialize Content Update external to internal', () => {
+    it('should deserialize Content Update external to internal', async () => {
         const wml = deIndentWML(`<Asset uuid=(test)></Asset>`)
-        const result = serializer.deserialize({
+        const result = await serializer.deserialize({
             content: { wml },
             header: makeWmlHeader('Content Update')
         })
@@ -438,8 +474,8 @@ describe('WMLDataSourceEventSerializer', () => {
         }
     })
 
-    it('should deserialize Merge Conflict external to internal', () => {
-        const result = serializer.deserialize({
+    it('should deserialize Merge Conflict external to internal', async () => {
+        const result = await serializer.deserialize({
             content: { error: 'Conflict' },
             header: makeWmlHeader('Merge Conflict')
         })
@@ -447,15 +483,15 @@ describe('WMLDataSourceEventSerializer', () => {
         expect(isWMLMergeConflictEvent(result!)).toBe(true)
     })
 
-    it('should return null for non-content external event (Zone Changed)', () => {
-        const result = serializer.deserialize({
+    it('should return null for non-content external event (Zone Changed)', async () => {
+        const result = await serializer.deserialize({
             content: { fromZone: 'Draft', toZone: 'Canon' } as any,
             header: makeWmlHeader('Zone Changed')
         })
         expect(result).toBeNull()
     })
 
-    it('should deserializeSnapshot from WML string into StandardFormData', () => {
+    it('should deserializeSnapshot from WML string into StandardFormData', async () => {
         const wml = deIndentWML(`
             <Asset uuid=(test-asset)>
                 <Room key=(room1) uuid=(room1)>
@@ -463,7 +499,30 @@ describe('WMLDataSourceEventSerializer', () => {
                 </Room>
             </Asset>
         `)
-        const result = serializer.deserializeSnapshot({ wml })
+        const result = await serializer.deserializeSnapshot({ wml })
+        expect(result).not.toBeNull()
+        if (result) {
+            expect(result.universalKey).toBeDefined()
+            expect(Array.isArray(result.components)).toBe(true)
+            expect(result.metaData).toBeDefined()
+        }
+    })
+
+    it('should deserializeSnapshot from sidecar when wml is { sidecarUrl }', async () => {
+        const wml = deIndentWML(`
+            <Asset uuid=(test-asset)>
+                <Room key=(room1) uuid=(room1)>
+                    <ShortName>Room One</ShortName>
+                </Room>
+            </Asset>
+        `)
+        ;(maybeFetchSidecarString as jest.Mock).mockImplementationOnce(() => Promise.resolve(wml))
+
+        const result = await serializer.deserializeSnapshot({
+            wml: { sidecarUrl: 'https://example.com/snapshot.wml' }
+        })
+
+        expect(maybeFetchSidecarString).toHaveBeenCalledWith({ sidecarUrl: 'https://example.com/snapshot.wml' })
         expect(result).not.toBeNull()
         if (result) {
             expect(result.universalKey).toBeDefined()
@@ -502,5 +561,9 @@ describe('isWMLContentEventExternal', () => {
 
     it('should return false for payload with invalid wml type', () => {
         expect(isWMLContentEventExternal({ wml: 123 })).toBe(false)
+    })
+
+    it('should return true for Content Update payload with sidecar descriptor', () => {
+        expect(isWMLContentEventExternal({ wml: { sidecarUrl: 'https://example.com/sidecar.wml' } })).toBe(true)
     })
 })

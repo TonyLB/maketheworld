@@ -70,31 +70,15 @@ export const handler = async (event: any, context: any) => {
             const coreFormat = fromEventBridgeFormat(event)
             const { header, update } = coreFormat
             const timestamp = header.timestamp ?? (event.time ? new Date(event.time).getTime() : getCurrentTimestamp())
-            // Deserialize the external EventBridge event to internal format (single path: coreFormat.update + header)
-            const internalEvent = deserializer.deserialize({
-                content: update as any,
-                header
+            // Publish to messageBus with lazy deserialize; consumer awaits getContentInternal() and handles null
+            messageBus.send({
+                type: 'StreamingEvent',
+                dataSourceKey: header.dataSourceKey,
+                streamKey: header.streamKey,
+                header,
+                getContentInternal: () => deserializer.deserialize({ content: update as any, header }),
+                timestamp
             })
-            
-            // If deserialization failed, log error and skip this event
-            if (!internalEvent) {
-                messageBus.send({
-                    type: 'Error',
-                    body: {
-                        error: `Failed to deserialize event from ${event.source}: ${event["detail-type"]}`
-                    }
-                })
-            } else {
-                // Publish deserialized event to messageBus for DataSource processing.
-                messageBus.send({
-                    type: 'StreamingEvent',
-                    dataSourceKey: header.dataSourceKey,
-                    streamKey: header.streamKey,
-                    header,
-                    getContentInternal: () => Promise.resolve(internalEvent),
-                    timestamp
-                })
-            }
         } else {
             // No deserializer available - this is an error condition
             messageBus.send({

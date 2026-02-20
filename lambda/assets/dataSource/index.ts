@@ -56,6 +56,7 @@ const handleZoneChanged = async (
     streamEvent: StreamEventFn
 ): Promise<void> => {
     const content = await event.getContentInternal()
+    if (!content) return
     const { fromZone, toZone, player, subFolder } = content
     const assetId = event.header.streamKey as AssetUUID
     if (!assetId) return
@@ -91,6 +92,7 @@ const handleAssetPurged = async (
     streamEvent: StreamEventFn
 ): Promise<void> => {
     const content = await event.getContentInternal()
+    if (!content) return
     const assetId = event.header.streamKey as AssetUUID
     if (!assetId) {
         messageBus.send({ type: 'Error', body: { error: 'Invalid AssetId in Asset Purged event', statusCode: 400 } })
@@ -117,6 +119,7 @@ const handleHealGlobalValues = async (
     event: Extract<AssetsIncomingEvent, { header: { type: 'Heal Global Values' } }>
 ): Promise<void> => {
     const healContent = await event.getContentInternal()
+    if (!healContent) return
     await healGlobalValues({
         shouldHealConnections: Boolean(healContent.connections),
         shouldHealGlobalAssets: typeof healContent.assets !== 'boolean' || healContent.assets

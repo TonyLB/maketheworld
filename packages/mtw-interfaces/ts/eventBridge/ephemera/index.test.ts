@@ -39,13 +39,13 @@ describe('EphemeraEventSerializer', () => {
             expect(externalEvent).toEqual(eventPayload)
         })
 
-        it('should deserialize events as pass-through', () => {
+        it('should deserialize events as pass-through', async () => {
             const eventPayload: EventPayload = {
                 data: { test: 'value' },
                 timestamp: Date.now()
             }
 
-            const internalEvent = serializer.deserialize({
+            const internalEvent = await serializer.deserialize({
                 content: eventPayload,
                 header: ephemeraHeader('Test Event')
             })
@@ -53,7 +53,7 @@ describe('EphemeraEventSerializer', () => {
             expect(internalEvent).toEqual(eventPayload)
         })
 
-        it('should handle round-trip serialization correctly', () => {
+        it('should handle round-trip serialization correctly', async () => {
             const originalPayload: EventPayload = {
                 data: { test: 'value', nested: { key: 'value' } },
                 timestamp: Date.now()
@@ -66,7 +66,7 @@ describe('EphemeraEventSerializer', () => {
             })
 
             // Deserialize back to internal format
-            const deserializedEvent = serializer.deserialize({
+            const deserializedEvent = await serializer.deserialize({
                 content: externalEvent,
                 header: ephemeraHeader('Test Event')
             })
@@ -75,8 +75,8 @@ describe('EphemeraEventSerializer', () => {
             expect(deserializedEvent).toEqual(originalPayload)
         })
 
-        it('should handle null deserialization', () => {
-            const result = serializer.deserialize({
+        it('should handle null deserialization', async () => {
+            const result = await serializer.deserialize({
                 content: null as any,
                 header: ephemeraHeader('Test Event')
             })

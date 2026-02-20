@@ -50,6 +50,7 @@ export const createInitializeAction = <SnapshotPayload, UpdatePayload>(
                     const envelopePayload: ClientStreamingMessagePayload<any> = { streamKey, timestamp, header, content }
                     const action = processRawEnvelope(envelopePayload)
                     if (action) {
+                        // processRawEnvelope returns an async thunk; Redux Thunk middleware executes it
                         dispatch(action)
                     }
                 }

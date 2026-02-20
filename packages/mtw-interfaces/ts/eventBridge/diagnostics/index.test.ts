@@ -65,7 +65,7 @@ describe('DiagnosticsEventSerializer', () => {
     })
 
     describe('deserialize', () => {
-        it('should deserialize S3 Structure Finding event from EventBridge format', () => {
+        it('should deserialize S3 Structure Finding event from EventBridge format', async () => {
             const externalEvent: any = {
                 type: 'S3 Structure Finding',
                 source: 'primitives.wml',
@@ -74,7 +74,7 @@ describe('DiagnosticsEventSerializer', () => {
                 timestamp: '2025-10-18T12:00:00.000Z'
             }
 
-            const internal = serializer.deserialize({
+            const internal = await serializer.deserialize({
                 content: externalEvent,
                 header: diagnosticsHeader('S3 Structure Finding')
             })
@@ -88,7 +88,7 @@ describe('DiagnosticsEventSerializer', () => {
             })
         })
 
-        it('should provide defaults for missing optional fields', () => {
+        it('should provide defaults for missing optional fields', async () => {
             const externalEvent: any = {
                 type: 'S3 Structure Finding',
                 source: 'test.wml',
@@ -96,7 +96,7 @@ describe('DiagnosticsEventSerializer', () => {
                 // diagnosticRunId and timestamp omitted
             }
 
-            const internal = serializer.deserialize({
+            const internal = await serializer.deserialize({
                 content: externalEvent,
                 header: diagnosticsHeader('S3 Structure Finding')
             })
@@ -106,30 +106,30 @@ describe('DiagnosticsEventSerializer', () => {
             expect(internal?.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T/)  // ISO 8601 format
         })
 
-        it('should return null for missing required fields', () => {
+        it('should return null for missing required fields', async () => {
             const invalidEvents = [
                 { type: 'S3 Structure Finding', status: 'missing' },  // missing source
                 { type: 'S3 Structure Finding', source: 'test.wml' }, // missing status
                 { type: 'S3 Structure Finding' }                      // missing both
             ]
 
-            invalidEvents.forEach(event => {
-                const internal = serializer.deserialize({
+            for (const event of invalidEvents) {
+                const internal = await serializer.deserialize({
                     content: event,
                     header: diagnosticsHeader('S3 Structure Finding')
                 })
 
                 expect(internal).toBeNull()
-            })
+            }
         })
 
-        it('should return null for unknown event types', () => {
+        it('should return null for unknown event types', async () => {
             const unknownEvent: any = {
                 type: 'Unknown Event Type',
                 someField: 'someValue'
             }
 
-            const internal = serializer.deserialize({
+            const internal = await serializer.deserialize({
                 content: unknownEvent,
                 header: diagnosticsHeader('Unknown Event Type')
             })
@@ -190,7 +190,7 @@ describe('DiagnosticsEventSerializer', () => {
     })
 
     describe('round-trip serialization', () => {
-        it('should maintain data integrity through serialize → deserialize', () => {
+        it('should maintain data integrity through serialize → deserialize', async () => {
             const original: DiagnosticsEventUpdate = {
                 type: 'S3 Structure Finding',
                 source: 'primitives.wml',
@@ -203,7 +203,7 @@ describe('DiagnosticsEventSerializer', () => {
                 content: original,
                 header: diagnosticsHeader('S3 Structure Finding')
             })
-            const deserialized = serializer.deserialize({
+            const deserialized = await serializer.deserialize({
                 content: external,
                 header: diagnosticsHeader('S3 Structure Finding')
             })

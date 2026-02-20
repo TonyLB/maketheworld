@@ -43,6 +43,7 @@ const processApplyEdit = async (
     streamEvent: StreamEventFn
 ): Promise<void> => {
     const payload = await event.getContentInternal()
+    if (!payload) return
     const AssetId = event.header.streamKey
     if (!isSchemaAssetUUID(AssetId)) {
         console.error(`Invalid AssetId format: ${AssetId}`)
@@ -93,6 +94,7 @@ const processMoveAsset = async (
     streamEvent: StreamEventFn
 ): Promise<void> => {
     const payload = await event.getContentInternal()
+    if (!payload) return
     const AssetId = event.header.streamKey
     if (!isSchemaAssetUUID(AssetId)) {
         console.error(`Invalid AssetId format: ${AssetId}`)
@@ -132,6 +134,7 @@ const processCanonizeDecanonize = async (
     streamEvent: StreamEventFn
 ): Promise<void> => {
     const payload = await event.getContentInternal()
+    if (!payload) return
     const AssetId = event.header.streamKey
     if (!isSchemaAssetUUID(AssetId)) {
         console.error(`Invalid AssetId format: ${AssetId}`)
@@ -210,6 +213,7 @@ const processPurgeAsset = async (
     streamEvent: StreamEventFn
 ): Promise<void> => {
     const payload = await event.getContentInternal()
+    if (!payload) return
     const AssetId = event.header.streamKey
     if (!isSchemaAssetUUID(AssetId)) {
         console.error(`Invalid AssetId format: ${AssetId}`)
@@ -249,7 +253,7 @@ const processPurgeAsset = async (
 
 const processS3StructureFinding = async (event: StreamingEventEnvelope<DiagnosticsEventUpdate>): Promise<void> => {
     const payload = await event.getContentInternal()
-    if (!isS3StructureFindingEvent(payload)) return
+    if (!payload || !isS3StructureFindingEvent(payload)) return
     if (payload.source === 'primitives.wml' && payload.status === 'missing') {
         try {
             await initializePrimitives()
