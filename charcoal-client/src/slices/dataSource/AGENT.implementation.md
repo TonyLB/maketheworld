@@ -262,9 +262,9 @@ Three action factories manage lifecycle:
 
 Snapshot events may carry a **`sidecarUrl`** instead of an inline payload (backend sends a presigned URL; the client fetches the body). Resolution happens **before** the reducer runs:
 
-1. **LifeLine callback** receives `header.type === 'Snapshot'`. It dispatches the **wrapper** (not the raw reducer action).
-2. **Wrapper** (in `index.ts`): If `content.sidecarUrl` is present and the slice config provides **`resolveSidecarSnapshot`**, the wrapper returns a **thunk** that (a) awaits `resolveSidecarSnapshot(streamKey, sidecarUrl, content)`, (b) dispatches `processRawEnvelope({ streamKey, timestamp, header, content: resolved })` with the same envelope `timestamp`. If `sidecarUrl` is present but no resolver is configured, the wrapper logs a warning and does not dispatch. If there is no `sidecarUrl`, the wrapper returns the normal reducer action.
-3. **Reducer** (`reducers.ts`) only ever sees resolved content (inline or produced by the resolver), so timestamp-based ordering and cleanup work as for inline snapshots.
+1. **LifeLine callback** receives the StreamEvent, builds `envelopePayload`, and dispatches whatever `processRawEnvelope` (the wrapper) returns. Redux Thunk middleware executes async thunks.
+2. **Wrapper** (in `index.ts`): Always returns an async thunk that (a) awaits deserialize or `createGetContentInternal` when available, (b) dispatches `processRawEnvelope` with resolved internal content. For sidecar snapshots, the thunk first awaits `resolveSidecarSnapshot`, then deserializes the external payload. If `sidecarUrl` is present but no resolver is configured, the wrapper logs a warning and returns undefined.
+3. **Reducer** (`reducers.ts`) expects pre-resolved internal content; deserialization happens only in the thunk.
 
 Data sources that use sidecar (e.g. mtw.wml) set **`resolveSidecarSnapshot`** in the slice config; it should fetch the URL, parse the response (e.g. JSON or WML), and return the same `ExternalSnapshotPayload` shape that `deserializeSnapshot` expects.
 

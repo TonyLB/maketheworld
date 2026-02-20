@@ -24,7 +24,7 @@ This is a planning doc; it does not describe current behavior as already impleme
 
 **Items**:
 
-1. **Refactor dataSource client-side slice to expect a possibly asynchronous `deserialize`**:
+1. ~~**Refactor dataSource client-side slice to expect a possibly asynchronous `deserialize`**~~ (DONE):
    - Generate the right kind of thunk to await the deserialize and then call the reducer on the returned values.
    - Audit the LifeLine subscription process to confirm that subscriptions can *execute* that kind of thunk (suspected yes, but verify).
 
@@ -46,8 +46,14 @@ This is a planning doc; it does not describe current behavior as already impleme
 
 5. **Adjust `DataSource.streamEvent`**: No change. It already builds `getContentInternal: () => Promise.resolve(update)` where `update` is internal content; the publisher owns that payload. This path does not go through a deserializer.
 
+**Phase 1 Item 1 completion notes** (done):
+- Slice always provides an async thunk that awaits deserialize (or `createGetContentInternal` when available) before dispatching.
+- Reducer accepts `__contentResolved: true` for pre-deserialized content; skips deserialize and uses content directly.
+- LifeLine and payload shape unchanged; resolution stays inside the slice boundary.
+- LifeLine audit: Redux Thunk middleware executes async thunks; subscriptions can run them.
+
 **Success criteria for Phase 1**:
-- Client dataSource slice expects and can execute thunks that await `deserialize` (or equivalent) before calling the reducer; LifeLine subscription can run those thunks.
+- Client dataSource slice expects and can execute thunks that await `deserialize` (or equivalent) before calling the reducer; LifeLine subscription can run those thunks. (Item 1: done)
 - All EventBridge handlers that build StreamingEvent messages use the deserializer's `createGetContentInternal` (or equivalent) instead of eagerly deserializing.
 - No behavioral change for inline payloads; only the *location* of the deserialize call moves into the thunk.
 - We can point at concrete deserializer code as the single place where resolution (and, later, sidecar) will live.
@@ -106,7 +112,7 @@ This section guides AI agents (and human collaborators) through context gatherin
 
 3. **Understand Core Integration Points**
    - **Why**: Knowing where resolution lives today (call sites) vs where it will live (serializer) prevents wasted edits in the wrong place.
-   - **Client slice** ([charcoal-client/src/slices/dataSource/](../../../../charcoal-client/src/slices/dataSource/)): `processRawEnvelope`, `processRawEnvelopeWithSidecar`, `createDataSourceSlice`; currently assumes sync `deserialize`
+   - **Client slice** ([charcoal-client/src/slices/dataSource/](../../../../charcoal-client/src/slices/dataSource/)): `processRawEnvelope`, `processRawEnvelopeWithSidecar`, `createDataSourceSlice`; always returns async thunk that awaits deserialize before dispatching (Item 1 done)
    - **baseClasses** ([baseClasses.ts](./baseClasses.ts)): `DataSourceEventSerializer` with `deserialize`, `deserializeSnapshot`; will gain `createGetContentInternal` (or equivalent)
    - **EventBridge handlers** (WML, assets, ephemera app.ts): Eagerly call `deserializer.deserialize`, then pass result via `getContentInternal: () => Promise.resolve(internalEvent)`; will instead pass serializer-produced thunk
    - **LifeLine subscription**: Dispatches to processRawEnvelope; must be able to execute async thunks (audit in Item 1)
@@ -125,8 +131,8 @@ This section guides AI agents (and human collaborators) through context gatherin
 
 6. **Identify Next Task**
    - **Why**: Phase 1 items are ordered; starting elsewhere risks unblocking work or duplicating effort.
-   - **Current focus**: Phase 1, Item 1 – Refactor client slice to expect possibly async deserialize
-   - **Progress**: Work through Phase 1 items 1–5 in order; Item 1 unblocks changing the deserializer interface
+   - **Current focus**: Phase 1, Item 2 – Extend DataSourceEventSerializer with createGetContentInternal
+   - **Progress**: Item 1 complete; work through Phase 1 items 2–5 in order
    - **Phase 2**: Backend sidecar resolution – to be planned after Phase 1 is done
 
 7. **Run Tests Before Starting**

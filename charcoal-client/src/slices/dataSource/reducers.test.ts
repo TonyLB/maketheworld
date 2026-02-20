@@ -1,8 +1,7 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import produce from 'immer'
 import { applyEvents, performCleanup, processRawEnvelope } from './reducers'
 import { DataSourceAggregator } from '@tonylb/mtw-lambda-patterns/ts/dataSource/aggregation'
-import { DataSourceEventSerializer } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import type { RecentEventEnvelope } from './baseClasses'
 
 // Test types
@@ -68,14 +67,6 @@ const mockAggregator: DataSourceAggregator<TestSnapshot, TestUpdate> = {
             }
         }
     }
-}
-
-// Mock serializer
-const mockSerializer: DataSourceEventSerializer<TestUpdate, any, TestSnapshot, any> = {
-    serialize: vi.fn((params) => params.content as any),
-    deserialize: vi.fn((params) => params.content),
-    serializeSnapshot: vi.fn((snapshot) => snapshot),
-    deserializeSnapshot: vi.fn((externalSnapshot) => externalSnapshot)
 }
 
 describe('dataSource reducers', () => {
@@ -196,15 +187,10 @@ describe('dataSource reducers', () => {
         const performCleanupWithConfig = performCleanup(mockAggregator, applyEventsWithAggregator)
         const processEnvelope = processRawEnvelope(
             'test.dataSource',
-            mockSerializer,
             mockAggregator,
             performCleanupWithConfig,
             applyEventsWithAggregator
         )
-        
-        beforeEach(() => {
-            vi.clearAllMocks()
-        })
         
         it('should process snapshot and replace materialized view', () => {
             const initialPublicData = {
@@ -229,7 +215,6 @@ describe('dataSource reducers', () => {
                 processEnvelope(draft, action as any)
             })
             
-            expect(mockSerializer.deserializeSnapshot).toHaveBeenCalledWith({ type: 'Snapshot', items: ['new'] })
             expect(newState.subscribedStreams['stream1'].materializedView.items).toEqual(['new'])
             expect(newState.subscribedStreams['stream1'].recentEvents).toHaveLength(1)
             expect(newState.subscribedStreams['stream1'].recentEvents[0].content).toEqual({ type: 'Snapshot', items: ['new'] })
@@ -289,37 +274,6 @@ describe('dataSource reducers', () => {
             
             // State should be unchanged (no mutation)
             expect(newState).toEqual(initialPublicData)
-            expect(mockSerializer.deserializeSnapshot).not.toHaveBeenCalled()
-        })
-        
-        it('should handle deserialization failures gracefully', () => {
-            const initialPublicData = {
-                subscribedStreams: {
-                    'stream1': {
-                        materializedView: { type: 'Snapshot' as const, items: ['a'] },
-                        recentEvents: [] as Array<RecentEventEnvelope<TestEvent>>
-                    }
-                }
-            }
-
-            const action = {
-                payload: {
-                    streamKey: 'stream1',
-                    timestamp: 10000,
-                    header: { type: 'Snapshot' },
-                    content: { invalid: 'data' }
-                }
-            }
-
-            // Mock deserialize to return null
-            mockSerializer.deserializeSnapshot = vi.fn(() => null)
-
-            const newState = produce(initialPublicData, (draft) => {
-                processEnvelope(draft, action as any)
-            })
-
-            // State should be unchanged
-            expect(newState).toEqual(initialPublicData)
         })
     })
 
@@ -328,17 +282,10 @@ describe('dataSource reducers', () => {
         const performCleanupWithConfig = performCleanup(mockAggregator, applyEventsWithAggregator)
         const processEnvelope = processRawEnvelope(
             'test.dataSource',
-            mockSerializer,
             mockAggregator,
             performCleanupWithConfig,
             applyEventsWithAggregator
         )
-        
-        beforeEach(() => {
-            vi.clearAllMocks()
-            // Reset to successful deserialize
-            mockSerializer.deserialize = vi.fn((params) => params.content)
-        })
         
         it('should process in-order event with fast path', () => {
             const initialPublicData = {
@@ -425,37 +372,6 @@ describe('dataSource reducers', () => {
                 processEnvelope(draft, action as any)
             })
             
-            // State should be unchanged
-            expect(newState).toEqual(initialPublicData)
-            expect(mockSerializer.deserialize).not.toHaveBeenCalled()
-        })
-        
-        it('should handle deserialization failures gracefully', () => {
-            const initialPublicData = {
-                subscribedStreams: {
-                    'stream1': {
-                        materializedView: { type: 'Snapshot' as const, items: ['a'] },
-                        recentEvents: [] as Array<RecentEventEnvelope<TestEvent>>
-                    }
-                }
-            }
-
-            const action = {
-                payload: {
-                    streamKey: 'stream1',
-                    timestamp: 10000,
-                    header: { type: 'Invalid' },
-                    content: { invalid: 'data' }
-                }
-            }
-
-            // Mock deserialize to return null
-            mockSerializer.deserialize = vi.fn(() => null)
-
-            const newState = produce(initialPublicData, (draft) => {
-                processEnvelope(draft, action as any)
-            })
-
             // State should be unchanged
             expect(newState).toEqual(initialPublicData)
         })

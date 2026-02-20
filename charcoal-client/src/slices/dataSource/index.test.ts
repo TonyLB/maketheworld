@@ -54,8 +54,8 @@ const mockAggregator: DataSourceAggregator<TestSnapshot, TestUpdate> = {
 
 // Mock serializer
 const mockSerializer: DataSourceEventSerializer<TestUpdate, any, TestSnapshot, any> = {
-    serialize: (params) => params.update as any,
-    deserialize: (params) => params.externalUpdate,
+    serialize: (params) => params.content as any,
+    deserialize: (params) => params.content,
     serializeSnapshot: (snapshot) => snapshot,
     deserializeSnapshot: (externalSnapshot) => externalSnapshot
 }
@@ -204,8 +204,121 @@ describe('dataSource slice', () => {
                 await (result as (d: any) => Promise<void>)(dispatch)
                 expect(resolveSidecarSnapshot).toHaveBeenCalledWith(streamKey, 'https://example.com/sidecar', rawSnapshot)
                 expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({
-                    payload: { streamKey, timestamp, header: { type: 'Snapshot' }, content: resolvedSnapshot }
+                    payload: expect.objectContaining({
+                        streamKey,
+                        timestamp,
+                        header: { type: 'Snapshot' },
+                        content: resolvedSnapshot
+                    })
                 }))
+            })
+
+            it('when inline payload is passed, returns async thunk that awaits deserialize and dispatches resolved content', async () => {
+                const config: DataSourceSliceConfig<TestSnapshot, TestUpdate, any, any> = {
+                    name: 'testDataSource',
+                    dataSourceKey: 'test.dataSource',
+                    aggregator: mockAggregator,
+                    eventSerializer: mockSerializer,
+                    sliceSelector: (state) => state.testDataSource
+                }
+                createDataSourceSlice(config)
+                expect(capturedProcessRawEnvelope).toBeDefined()
+                const inlinePayload = { streamKey: 'stream1', timestamp: 1000, header: { type: 'Increment' }, content: { type: 'Increment' as const } }
+                const dispatch = vi.fn()
+                const result = capturedProcessRawEnvelope!(inlinePayload)
+                expect(typeof result).toBe('function')
+                await (result as (d: any) => Promise<void>)(dispatch)
+                expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({
+                    payload: expect.objectContaining({
+                        streamKey: 'stream1',
+                        timestamp: 1000,
+                        header: { type: 'Increment' },
+                        content: { type: 'Increment' }
+                    })
+                }))
+            })
+
+            it('when inline event is passed, thunk calls deserialize with correct params', async () => {
+                const deserialize = vi.fn((params: any) => params.content)
+                const config: DataSourceSliceConfig<TestSnapshot, TestUpdate, any, any> = {
+                    name: 'testDataSource',
+                    dataSourceKey: 'test.dataSource',
+                    aggregator: mockAggregator,
+                    eventSerializer: { ...mockSerializer, deserialize },
+                    sliceSelector: (state) => state.testDataSource
+                }
+                createDataSourceSlice(config)
+                expect(capturedProcessRawEnvelope).toBeDefined()
+                const externalContent = { type: 'Increment' as const }
+                const payload = { streamKey: 'stream1', timestamp: 1000, header: { type: 'Increment' }, content: externalContent }
+                const dispatch = vi.fn()
+                const result = capturedProcessRawEnvelope!(payload)
+                await (result as (d: any) => Promise<void>)(dispatch)
+                expect(deserialize).toHaveBeenCalledWith(expect.objectContaining({
+                    content: externalContent,
+                    header: expect.objectContaining({ type: 'Increment', dataSourceKey: 'test.dataSource', streamKey: 'stream1', timestamp: 1000 })
+                }))
+            })
+
+            it('when inline snapshot is passed, thunk calls deserializeSnapshot with correct params', async () => {
+                const deserializeSnapshot = vi.fn((external: any) => external)
+                const config: DataSourceSliceConfig<TestSnapshot, TestUpdate, any, any> = {
+                    name: 'testDataSource',
+                    dataSourceKey: 'test.dataSource',
+                    aggregator: mockAggregator,
+                    eventSerializer: { ...mockSerializer, deserializeSnapshot },
+                    sliceSelector: (state) => state.testDataSource
+                }
+                createDataSourceSlice(config)
+                expect(capturedProcessRawEnvelope).toBeDefined()
+                const externalSnapshot = { type: 'Snapshot' as const, value: 42 }
+                const payload = { streamKey: 'stream1', timestamp: 1000, header: { type: 'Snapshot' }, content: externalSnapshot }
+                const dispatch = vi.fn()
+                const result = capturedProcessRawEnvelope!(payload)
+                await (result as (d: any) => Promise<void>)(dispatch)
+                expect(deserializeSnapshot).toHaveBeenCalledWith(externalSnapshot)
+            })
+
+            it('when deserialize returns null, thunk does not dispatch', async () => {
+                const config: DataSourceSliceConfig<TestSnapshot, TestUpdate, any, any> = {
+                    name: 'testDataSource',
+                    dataSourceKey: 'test.dataSource',
+                    aggregator: mockAggregator,
+                    eventSerializer: { ...mockSerializer, deserialize: () => null },
+                    sliceSelector: (state) => state.testDataSource
+                }
+                createDataSourceSlice(config)
+                expect(capturedProcessRawEnvelope).toBeDefined()
+                const dispatch = vi.fn()
+                const result = capturedProcessRawEnvelope!({
+                    streamKey: 'stream1',
+                    timestamp: 1000,
+                    header: { type: 'Increment' },
+                    content: { type: 'Increment' as const }
+                })
+                await (result as (d: any) => Promise<void>)(dispatch)
+                expect(dispatch).not.toHaveBeenCalled()
+            })
+
+            it('when deserializeSnapshot returns null, thunk does not dispatch', async () => {
+                const config: DataSourceSliceConfig<TestSnapshot, TestUpdate, any, any> = {
+                    name: 'testDataSource',
+                    dataSourceKey: 'test.dataSource',
+                    aggregator: mockAggregator,
+                    eventSerializer: { ...mockSerializer, deserializeSnapshot: () => null },
+                    sliceSelector: (state) => state.testDataSource
+                }
+                createDataSourceSlice(config)
+                expect(capturedProcessRawEnvelope).toBeDefined()
+                const dispatch = vi.fn()
+                const result = capturedProcessRawEnvelope!({
+                    streamKey: 'stream1',
+                    timestamp: 1000,
+                    header: { type: 'Snapshot' },
+                    content: { type: 'Snapshot' as const, value: 1 }
+                })
+                await (result as (d: any) => Promise<void>)(dispatch)
+                expect(dispatch).not.toHaveBeenCalled()
             })
 
             it('when sidecarUrl is present but resolveSidecarSnapshot is not configured, does not dispatch processRawEnvelope', () => {
