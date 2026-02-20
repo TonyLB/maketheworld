@@ -89,6 +89,9 @@ export class LibraryEventSerializer implements DataSourceEventSerializer<
     LibrarySnapshotExternal
 > {
     serialize(params: LibrarySerializeParams): LibraryExternal {
+        if (params.header?.type === 'Snapshot' && this.serializeSnapshot) {
+            return this.serializeSnapshot(params.content as LibrarySnapshot) as LibraryExternal
+        }
         if (isAssetAddedLibrarySerializeParams(params)) {
             const { content } = params
             return {
@@ -105,6 +108,9 @@ export class LibraryEventSerializer implements DataSourceEventSerializer<
     }
     
     async deserialize(params: LibraryDeserializeParams): Promise<LibraryEventUpdate | null> {
+        if (params.header?.type === 'Snapshot' && this.deserializeSnapshot) {
+            return this.deserializeSnapshot(params.content as LibrarySnapshotExternal)
+        }
         if (isAssetAddedLibraryEnvelope(params)) {
             if (typeof params.content.assetId !== 'string') {
                 console.error('Invalid Asset Added event: assetId must be a string')

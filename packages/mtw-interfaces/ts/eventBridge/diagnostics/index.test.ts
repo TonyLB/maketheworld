@@ -64,6 +64,29 @@ describe('DiagnosticsEventSerializer', () => {
         })
     })
 
+    describe('Snapshot handling (defensive)', () => {
+        it('should throw when serialize receives Snapshot header', () => {
+            expect(() => serializer.serialize({
+                content: {
+                    type: 'S3 Structure Finding',
+                    source: 'test.wml',
+                    status: 'missing',
+                    diagnosticRunId: 'test',
+                    timestamp: '2025-01-01T00:00:00Z'
+                },
+                header: diagnosticsHeader('Snapshot')
+            })).toThrow('DiagnosticsEventSerializer does not support snapshot serialization')
+        })
+
+        it('should return null when deserialize receives Snapshot header', async () => {
+            const result = await serializer.deserialize({
+                content: {},
+                header: diagnosticsHeader('Snapshot')
+            })
+            expect(result).toBeNull()
+        })
+    })
+
     describe('deserialize', () => {
         it('should deserialize S3 Structure Finding event from EventBridge format', async () => {
             const externalEvent: any = {

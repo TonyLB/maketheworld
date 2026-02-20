@@ -66,6 +66,9 @@ export class DiagnosticsEventSerializer implements DataSourceEventSerializer<Dia
         header: StreamingEventHeader;
     }): DiagnosticsEventExternal {
         const { content, header } = params
+        if (header?.type === 'Snapshot') {
+            throw new Error('DiagnosticsEventSerializer does not support snapshot serialization')
+        }
         if (header.type === 'S3 Structure Finding') {
             return {
                 type: 'S3 Structure Finding',
@@ -89,6 +92,9 @@ export class DiagnosticsEventSerializer implements DataSourceEventSerializer<Dia
         header: StreamingEventHeader
     }): Promise<DiagnosticsEventUpdate | null> {
         const { content, header } = params
+        if (header?.type === 'Snapshot') {
+            return null
+        }
         const eventType = header.type
 
         // The type field comes from EventBridge detail-type

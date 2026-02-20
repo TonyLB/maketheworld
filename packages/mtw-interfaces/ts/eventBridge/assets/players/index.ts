@@ -216,12 +216,7 @@ export class PlayerEventSerializer implements DataSourceEventSerializer<
 > {
     serialize(params: PlayerSerializeParams): PlayerExternal {
         if (isPlayerSnapshotSerializeParams(params)) {
-            const { content } = params
-            return {
-                assets: content.assets.map((asset) => ({ ...asset })),
-                characters: content.characters.map((character) => ({ ...character })),
-                settings: { ...content.settings }
-            }
+            return this.serializeSnapshot(params.content) as PlayerExternal
         }
         if (isPlayerSettingsUpdatedSerializeParams(params)) {
             const { content } = params
@@ -259,16 +254,7 @@ export class PlayerEventSerializer implements DataSourceEventSerializer<
     async deserialize(params: PlayerDeserializeParams): Promise<PlayerEventUpdate | null> {
         // Route on header.type only (envelope-authoritative); return internal content without type
         if (isPlayerSnapshotDeserializeParams(params)) {
-            const c = params.content
-            if (!Array.isArray(c.assets) || !Array.isArray(c.characters) || typeof c.settings !== 'object') {
-                console.error('Invalid player snapshot payload', c)
-                return null
-            }
-            return {
-                assets: c.assets.map((asset) => ({ ...asset })),
-                characters: c.characters.map((character) => ({ ...character })),
-                settings: { ...c.settings }
-            }
+            return this.deserializeSnapshot(params.content)
         }
         if (isPlayerSettingsUpdatedDeserializeParams(params)) {
             const c = params.content

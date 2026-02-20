@@ -493,6 +493,29 @@ describe('WMLDataSourceEventSerializer', () => {
         expect(result).toBeNull()
     })
 
+    it('should deserialize Snapshot via main deserialize when header.type is Snapshot', async () => {
+        const wml = deIndentWML(`
+            <Asset uuid=(test-asset)>
+                <Room key=(room1) uuid=(room1)>
+                    <ShortName>Room One</ShortName>
+                </Room>
+            </Asset>
+        `)
+        const result = await serializer.deserialize({
+            content: { wml },
+            header: { dataSourceKey: 'mtw.wml', streamKey: 'test', timestamp: 0, type: 'Snapshot' }
+        })
+        const expected = await serializer.deserializeSnapshot({ wml })
+        expect(result).toEqual(expected)
+    })
+
+    it('should throw when serialize receives Snapshot header', () => {
+        expect(() => serializer.serialize({
+            content: { schema: {} } as any,
+            header: { dataSourceKey: 'mtw.wml', streamKey: 'test', timestamp: 0, type: 'Snapshot' }
+        })).toThrow('WMLDataSourceEventSerializer does not support snapshot serialization')
+    })
+
     it('should deserializeSnapshot from WML string into StandardFormData', async () => {
         const wml = deIndentWML(`
             <Asset uuid=(test-asset)>

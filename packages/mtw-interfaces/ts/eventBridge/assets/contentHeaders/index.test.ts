@@ -1,6 +1,7 @@
 import {
     ContentHeadersAggregator,
     ContentHeadersEventSerializer,
+    ContentHeadersSnapshot,
     ContentHeadersSnapshotExternal,
     ContentHeadersUpdateExternal,
     isContentHeadersUpdate,
@@ -520,6 +521,45 @@ describe('ContentHeaders EventBridge Contracts', () => {
                     expect(result.zone).toBe('Canon')
                     expect(result.standardForm).toBeInstanceOf(StandardForm)
                 }
+            })
+        })
+
+        describe('serialize/deserialize routes Snapshot to serializeSnapshot/deserializeSnapshot', () => {
+            it('should serialize Snapshot via main serialize when header.type is Snapshot', () => {
+                const snapshot = {
+                    type: 'Snapshot' as const,
+                    assets: [
+                        {
+                            assetId: 'ASSET#test1' as const,
+                            zone: 'Canon' as const,
+                            standardForm: new StandardForm('<Asset uuid=(test1)><Room key=(room1)><ShortName>Room 1</ShortName></Room></Asset>')
+                        }
+                    ]
+                }
+                const header = { dataSourceKey: 'mtw.assets.contentHeaders', streamKey: 'test', timestamp: 0, type: 'Snapshot' as const }
+                const result = serializer.serialize({ content: snapshot, header })
+                expect(result).toEqual(serializer.serializeSnapshot!(snapshot))
+            })
+
+            it('should deserialize Snapshot via main deserialize when header.type is Snapshot', async () => {
+                const externalSnapshot: ContentHeadersSnapshotExternal = {
+                    assets: [
+                        {
+                            assetId: 'ASSET#test1',
+                            zone: 'Canon',
+                            wml: '<Asset uuid=(test1)><Room key=(room1)><ShortName>Room 1</ShortName></Room></Asset>'
+                        }
+                    ]
+                }
+                const header = { dataSourceKey: 'mtw.assets.contentHeaders', streamKey: 'test', timestamp: 0, type: 'Snapshot' as const }
+                const result = await serializer.deserialize({ content: externalSnapshot, header }) as ContentHeadersSnapshot | null
+                const expected = await serializer.deserializeSnapshot!(externalSnapshot)
+                expect(result).not.toBeNull()
+                expect(expected).not.toBeNull()
+                expect(result!.assets).toHaveLength(expected!.assets.length)
+                expect(result!.assets[0].assetId).toBe(expected!.assets[0].assetId)
+                expect(result!.assets[0].zone).toBe(expected!.assets[0].zone)
+                expect(result!.assets[0].standardForm).toBeInstanceOf(StandardForm)
             })
         })
 

@@ -261,6 +261,9 @@ export class WMLEventSerializer implements DataSourceEventSerializer<WMLEventUpd
      * for EventBridge transmission
      */
     serialize(params: WMLSerializeParams): WMLEventExternal {
+        if (params.header?.type === 'Snapshot') {
+            throw new Error('WMLEventSerializer does not support snapshot serialization')
+        }
         if (isZoneChangedWMLSerializeParams(params)) {
             const { content } = params
             return { fromZone: content.fromZone, toZone: content.toZone, ...(content.player != null ? { player: content.player } : {}), ...(content.subFolder != null ? { subFolder: content.subFolder } : {}) }
@@ -298,6 +301,9 @@ export class WMLEventSerializer implements DataSourceEventSerializer<WMLEventUpd
      * for messageBus processing
      */
     async deserialize(params: WMLDeserializeParams): Promise<WMLEventUpdate | null> {
+        if (params.header?.type === 'Snapshot') {
+            return null
+        }
         if (isZoneChangedWMLDeserializeParams(params)) {
             const { content } = params
             return { fromZone: content.fromZone, toZone: content.toZone, ...(content.player != null ? { player: content.player } : {}), ...(content.subFolder != null ? { subFolder: content.subFolder } : {}) }
@@ -351,10 +357,16 @@ export class WMLDataSourceEventSerializer implements DataSourceEventSerializer<W
     }
 
     serialize(params: { content: WMLContentEvent; header: WMLStreamingEventHeader }): WMLContentEventExternal {
+        if (params.header?.type === 'Snapshot') {
+            throw new Error('WMLDataSourceEventSerializer does not support snapshot serialization')
+        }
         return this.baseSerializer.serialize(params) as WMLContentEventExternal
     }
 
     async deserialize(params: { content: WMLContentEventExternal; header: WMLStreamingEventHeader }): Promise<WMLContentEvent | null> {
+        if (params.header?.type === 'Snapshot') {
+            return this.deserializeSnapshot(params.content as { wml: string | { sidecarUrl: string } }) as Promise<WMLContentEvent | null>
+        }
         // Route on header: only Content Update and Merge Conflict are accepted for this slice
         if (params.header.type !== 'Content Update' && params.header.type !== 'Merge Conflict') {
             return null

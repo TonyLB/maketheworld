@@ -80,6 +80,9 @@ const isHeadersUpdatedContentHeadersDeserializeParams = (p: ContentHeadersDeseri
  */
 export class ContentHeadersEventSerializer implements DataSourceEventSerializer<ContentHeadersEventUpdate, ContentHeadersExternal, ContentHeadersSnapshot, ContentHeadersSnapshotExternal> {
     serialize(params: ContentHeadersSerializeParams): ContentHeadersExternal {
+        if (params.header?.type === 'Snapshot' && this.serializeSnapshot) {
+            return this.serializeSnapshot(params.content as ContentHeadersSnapshot) as ContentHeadersExternal
+        }
         if (isHeadersUpdatedContentHeadersSerializeParams(params)) {
             const { content } = params
             return {
@@ -92,6 +95,9 @@ export class ContentHeadersEventSerializer implements DataSourceEventSerializer<
     }
 
     async deserialize(params: ContentHeadersDeserializeParams): Promise<ContentHeadersEventUpdate | null> {
+        if (params.header?.type === 'Snapshot' && this.deserializeSnapshot) {
+            return this.deserializeSnapshot(params.content as ContentHeadersSnapshotExternal)
+        }
         if (isHeadersUpdatedContentHeadersDeserializeParams(params)) {
             const { content } = params
             return {

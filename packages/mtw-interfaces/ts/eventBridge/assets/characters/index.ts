@@ -35,6 +35,9 @@ export class CharacterEventSerializer implements DataSourceEventSerializer<Chara
         header: StreamingEventHeader;
     }): CharacterEventExternal {
         const { content, header } = params
+        if (header?.type === 'Snapshot') {
+            throw new Error('CharacterEventSerializer does not support snapshot serialization')
+        }
         if (header.type !== 'Character Updated') {
             throw new Error(`Unknown character event type: ${header.type}`)
         }
@@ -52,7 +55,9 @@ export class CharacterEventSerializer implements DataSourceEventSerializer<Chara
         header: StreamingEventHeader;
     }): Promise<CharacterEventUpdate | null> {
         const { content, header } = params
-        
+        if (header?.type === 'Snapshot') {
+            return null
+        }
         // Only handle character updated events (header is authoritative for routing)
         if (header.type !== 'Character Updated') {
             return null

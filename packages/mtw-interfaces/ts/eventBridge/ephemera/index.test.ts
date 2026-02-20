@@ -105,6 +105,23 @@ describe('EphemeraEventSerializer', () => {
         })
     })
 
+    describe('Snapshot handling (defensive)', () => {
+        it('should throw when serialize receives Snapshot header', () => {
+            expect(() => serializer.serialize({
+                content: { data: {} } as EphemeraEventUpdate,
+                header: ephemeraHeader('Snapshot')
+            })).toThrow('EphemeraEventSerializer does not support snapshot serialization')
+        })
+
+        it('should return null when deserialize receives Snapshot header', async () => {
+            const result = await serializer.deserialize({
+                content: { data: {} } as EphemeraEventExternal,
+                header: ephemeraHeader('Snapshot')
+            })
+            expect(result).toBeNull()
+        })
+    })
+
     describe('Future-proofing', () => {
         it('should be ready for concrete event types when they are added', () => {
             // This test documents that the current pass-through implementation
