@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-This document captures a follow-up refinement to the DataSource pattern: **make lazy-evaluation envelopes environment-agnostic**, so the same DataSource-centric logic for resolving content (including sidecars/claim-checks) can be applied consistently in:
+This document captures a follow-up refinement to the DataSource pattern: **make DataSourceEventSerializer environment-agnostic**, so the same serializer logic for resolving content (including sidecars/claim-checks) can be used in:
 
 - **Backend lambdas** (Node / AWS SDK)
 - **Client dataSource slices** in `charcoal-client` (browser / Redux)
@@ -10,8 +10,8 @@ This document captures a follow-up refinement to the DataSource pattern: **make 
 The goal is to:
 
 - Keep **header/content envelope semantics** exactly as described in `AGENT.md` and `AGENT.implementation.md`.
-- Move **sidecar/claim-check and content-resolution behavior** into a single, DataSource-owned abstraction that is **parameterized by an environment** rather than hard-coded to Node.
-- Allow both backend and frontend to **evolve how snapshots and events are resolved** (inline vs sidecar, validation, parsing) by touching *one* implementation per DataSource, not N call sites.
+- **Parameterize the serializer** with a `DataSourceEnvironment` (fetch, now, log) so that resolution (e.g. `maybeFetchSidecarString`) does not assume Node. The serializer already owns resolution (see [AGENT.serializerEnvelope.planning.md](./AGENT.serializerEnvelope.planning.md)); we only inject the environment.
+- Allow both backend and frontend to **evolve how snapshots and events are resolved** by touching the serializer (and its env contract), not N call sites or separate client wrappers.
 
 This is a planning doc only; it does not describe current behavior as already implemented.
 
@@ -28,7 +28,8 @@ Backend DataSources already use a **three-regime envelope model** (see `AGENT.im
 Key points:
 
 - **Header authoritative**: `StreamingEventHeader` (and extended variants) drive routing and discrimination; payloads are domain data only.
-- **Lazy content** on the messageBus: DataSources subscribe with envelope type guards and receive `StreamingEventEnvelope` values; they call `await event.getContentInternal()` to obtain payloads. Sidecar resolution is intended to live behind `getContentInternal`.
+- **Lazy content** on the messageBus: DataSources subscribe with envelope type guards and receive `StreamingEventEnvelope` values; they call `await event.getContentInternal()` to obtain payloads.
+- **After serializer-envelope refactor**: Resolution already lives in the serializer. EventBridge handlers pass `getContentInternal: () => deserializer.deserialize({ content: update, header })`. The serializer's `deserialize` and `deserializeSnapshot` perform sidecar resolution (e.g. `maybeFetchSidecarString`) before parsing. The only remaining coupling: the serializer uses global `fetch` (Node) when resolving sidecars.
 - **Snapshots**: Use the same envelope family as events:
   - Storage and replay use `CoreExternalFormat` with `header.type === 'Snapshot'`.
   - `createSnapshotCoreFormat` builds the CoreExternalFormat snapshot; `coreFormatToStreamingEnvelope` can build lazy envelopes for snapshots.
@@ -60,38 +61,28 @@ Important:
 
 ## 3. Problem statement / opportunity
 
-The snapshot refactor established a clean, envelope-based architecture:
+The serializer-envelope refactor (see [AGENT.serializerEnvelope.planning.md](./AGENT.serializerEnvelope.planning.md)) centralized resolution in the **DataSourceEventSerializer**: `getContentInternal` is simply `() => deserializer.deserialize({ content, header })`, and the serializer's `deserialize` / `deserializeSnapshot` perform sidecar resolution (e.g. `maybeFetchSidecarString`) before parsing.
 
-- Header is authoritative for routing.
-- Snapshots and events share the same envelope family.
-- Sidecar descriptors are intended to be treated as just another `update` shape; the *how* of fetching and resolving is a domain concern hidden behind `getContentInternal`.
+The remaining issue: the **serializer is Node-bound**:
 
-However, the **lazy-evaluation contract is currently bound to the backend environment**:
-
-- Backend `getContentInternal` implementations assume Node/lambda context (Node fetch or AWS SDK, internal caches, etc.).
-- Client slices implement sidecar handling with an **ad-hoc thunk wrapper** that:
-  - Knows about `content.sidecarUrl` shape.
-  - Uses browser `fetch` directly.
-  - Then feeds the resolved payload into the serializer.
+- Resolution helpers (e.g. `maybeFetchSidecarString`) use global `fetch` or an optional injected fetch. When used in the backend, that's Node fetch; the serializer never receives an explicit "environment."
+- Client slices cannot reuse the same serializer for sidecar resolution, because the client runs in the browser. Instead, the client uses an **ad-hoc** `resolveSidecarSnapshot` that fetches from the URL, then passes the resolved payload to `deserializeSnapshot`. So the serializer's built-in sidecar logic is never exercised on the client.
 
 This has two consequences:
 
 1. **Environment coupling**: Lazy envelopes exist only on the backend; the client has to reinvent sidecar semantics in a different shape.
-2. **Evolution cost**: Changing the sidecar/claim-check pattern (for example, richer descriptors, caching, retries, metrics) requires touching:
-   - Backend DataSource code.
-   - Client slice wrappers.
-   - Potentially more call sites as we add new domains or transports.
+2. **Evolution cost**: Changing the sidecar/claim-check pattern (e.g. richer descriptors, caching, retries) currently requires touching the serializer (backend) and the client's `resolveSidecarSnapshot` (client). After this refactor, only the serializer (and its use of `env`) needs to change; backend and client both use the same serializer configured with their env.
 
 We would prefer:
 
-- A **single, DataSource-owned definition** of "how this domain resolves content (including sidecars)," written once, and
-- The ability to **re-use that definition in both backend and frontend** by injecting an environment, without refactoring call sites.
+- **DataSourceEventSerializer** to be **environment-agnostic**: it receives a `DataSourceEnvironment` (or at least a fetch) and uses it inside `deserialize` / `deserializeSnapshot` when resolving sidecars. No new "envelope constructor" layer; the serializer already owns resolution.
+- Backend and client each construct (or configure) the serializer with their environment; envelope construction stays as today: `getContentInternal: () => deserializer.deserialize(...)`.
 
-## 4. Target model: environment-agnostic lazy envelopes
+## 4. Target model: environment-agnostic DataSourceEventSerializer
 
 ### 4.1 Environment interface
 
-Introduce a small, explicit "environment" interface that captures the operations lazy envelopes need, without tying them to Node vs browser:
+Introduce a small, explicit "environment" interface that captures the operations the serializer needs when resolving sidecars, without tying them to Node vs browser:
 
 ```ts
 type DataSourceEnvironment = {
@@ -102,83 +93,50 @@ type DataSourceEnvironment = {
 }
 ```
 
-Backends and clients would each provide an implementation of `DataSourceEnvironment` appropriate to their runtime, but **DataSource-centric logic would only depend on this interface**, not on concrete global APIs.
+Backends and clients each provide an implementation appropriate to their runtime. **DataSourceEventSerializer** (and any resolution helper it uses, e.g. `maybeFetchSidecarString`) depends only on this interface, not on global `fetch` or Node APIs.
 
-### 4.2 Environment-aware lazy envelope constructors
+### 4.2 Environment-agnostic serializer
 
-For each DataSource (or shared helper in mtw-interfaces), we can define **environment-aware constructors** that take:
+**No new "envelope constructor" layer.** The serializer already owns resolution; we only make it **parameterized by environment**:
 
-- A `DataSourceEnvironment`.
-- A `CoreExternalFormat` or `{ header, externalPayload }` pair.
+- **Recommended pattern (across the board)**: Give each serializer class a **constructor that accepts a `DataSourceEnvironment`** and **store it at the class-instance level** (e.g. `private readonly env: DataSourceEnvironment`). Inside `deserialize` and `deserializeSnapshot`, when resolving a sidecar (e.g. via `maybeFetchSidecarString`), the serializer uses `this.env.fetch`. This keeps call sites simple (no per-call env passing) and makes the dependency explicit.
 
-And produce a `StreamingEventEnvelope<InternalContent, Header>`:
+Example shape (conceptual): constructor takes env; instance uses it in resolution:
 
 ```ts
-function makeWmlLazyEnvelope(
-  env: DataSourceEnvironment,
-  coreFormat: CoreExternalFormat
-): StreamingEventEnvelope<WmlInternalPayload, CoreExternalFormat['header']> {
-  return {
-    header: coreFormat.header,
-    getContentInternal: async () => {
-      const update = coreFormat.update as any
-      if (update.sidecarUrl) {
-        const res = await env.fetch(update.sidecarUrl)
-        const raw = await res.text()
-        // parse + validate + convert to internal snapshot/update
-        return deserializeWmlFromSnapshotBody(raw, coreFormat.header)
-      }
-      // Inline payload path
-      return deserializeWmlFromInline(update, coreFormat.header)
-    }
-  }
-}
+// Constructor (e.g. WMLEventSerializer, WMLDataSourceEventSerializer):
+constructor(private readonly env: DataSourceEnvironment) { ... }
+
+// In deserialize (e.g. WML Content Update branch):
+const wml = await maybeFetchSidecarString(content.wml, this.env.fetch)
+
+// In deserializeSnapshot:
+const wml = await maybeFetchSidecarString(externalSnapshot.wml, this.env.fetch)
 ```
+
+Envelope construction stays unchanged: `getContentInternal: () => deserializer.deserialize({ content, header })`.
 
 Key properties:
 
-- Sidecar detection, fetching, parsing, and validation all live **inside** `getContentInternal`.
-- The implementation uses only `env.fetch`, `env.log`, etc., and pure helper functions (parsers, type guards).
-- This function can be used in **both**:
-  - Backend lambdas (with a Node/AWS-flavored `env`).
-  - Client code (with a browser/Redux-flavored `env`).
+- Sidecar detection, fetching, parsing, and validation remain **inside** the serializer; no duplicate "constructor" that builds `getContentInternal`.
+- One implementation per DataSource (the serializer) is used in both backend and client by configuring it with the appropriate `env`.
 
 ### 4.3 Client-side usage pattern
 
-On the client, we do not necessarily want to keep `getContentInternal` around inside Redux state, but we can:
+On the client, we do not need to expose `getContentInternal` in Redux state. The slice already receives `{ header, content }` and calls the serializer. The change:
 
-1. Construct a lazy envelope with an environment-aware helper.
-2. Immediately resolve it once per incoming message.
-3. Feed the resulting `{ header, content }` into the existing `processRawEnvelope` / aggregator pipeline.
+1. **Configure the serializer with a browser environment.** When creating the slice, pass a serializer instance that was constructed with a client `DataSourceEnvironment` (e.g. `fetch`: browser `fetch`, `now`: `Date.now()`, `log`: console).
+2. When a message arrives (including snapshots with `content.sidecarUrl` or per-field sidecars), the slice calls `eventSerializer.deserialize({ content, header })` or `eventSerializer.deserializeSnapshot(content)` as today. The serializer performs sidecar resolution internally using `env.fetch`.
+3. Remove the ad-hoc `resolveSidecarSnapshot` callback; the serializer handles sidecars because it has an env.
 
-Conceptually:
-
-```ts
-// WebSocket handler -> build CoreExternalFormat-equivalent payload
-const coreFormat = { header, update }
-
-// Use environment-aware helper to get lazy envelope
-const lazyEnvelope = makeWmlLazyEnvelope(browserEnv, coreFormat)
-
-// Resolve once, then call existing serializer/aggregator-friendly path
-const internalContent = await lazyEnvelope.getContentInternal()
-dispatch(processResolvedEnvelope({ header: lazyEnvelope.header, content: internalContent }))
-```
-
-This gives us:
-
-- A **single DataSource-specific implementation** of sidecar and inline payload handling.
-- The ability to **change sidecar semantics once** (for example, retries, shaping metadata, metrics) and have both backend and client pick it up.
-- A clear separation between:
-  - Environment-agnostic domain logic (lazy envelope constructors, serializers, aggregators).
-  - Environment-specific plumbing (how `env` is implemented and where envelopes are resolved).
+So: same flow (incoming payload -> serializer -> internal content -> reducer), with the serializer now responsible for fetching when it sees a sidecar descriptor, using the injected env.
 
 ### 4.4 Backend usage pattern
 
-On the backend, we already construct lazy envelopes close to the messageBus, but they are currently bound to Node. With an environment interface:
+On the backend, envelope construction already is `getContentInternal: () => deserializer.deserialize({ content, header })`. With an environment-agnostic serializer:
 
-- The send-helpers in `subscribedEvents.ts` and the DataSource subscription handlers can also call environment-aware constructors.
-- This lets WML, contentHeaders, library, players, etc. share envelope-construction logic with clients.
+- Construct the deserializer with a Node (or lambda) `DataSourceEnvironment` (e.g. `fetch`: Node `fetch` or AWS SDK as needed, `now`: `getCurrentTimestamp`, `log`: lambda logger).
+- No change to EventBridge handlers or messageBus send code; they already pass the deserializer. Only the deserializer's construction (or configuration) gains an `env` argument.
 
 ## 5. Plan of work (incremental)
 
@@ -190,31 +148,25 @@ On the backend, we already construct lazy envelopes close to the messageBus, but
   - Aggregator and serializer contracts **must remain header-driven** and domain-payload-pure.
   - We are not changing client materialized state shape; only how internal content is obtained.
 
-### Step 1: Define a minimal `DataSourceEnvironment` contract
+### Step 1: Define a minimal `DataSourceEnvironment` contract (DONE)
 
-- Add a small, well-documented `DataSourceEnvironment` type in `mtw-lambda-patterns` or `mtw-interfaces` (TBD):
-  - Keep it minimal: `fetch`, `now`, `log` to start.
-  - Document how backends and clients should implement it (no Node-only APIs on the type).
-- Do **not** wire it into existing code yet; treat this as a contract definition step.
+- ~~Add a small, well-documented `DataSourceEnvironment` type in `mtw-lambda-patterns` or `mtw-interfaces` (TBD)~~ **Done.** Type lives in **mtw-interfaces** at [ts/DataSourceEnvironment.ts](../../../mtw-interfaces/ts/DataSourceEnvironment.ts). Export for use by serializers and by Step 3 environment implementations. Import path: `@tonylb/mtw-interfaces/ts/DataSourceEnvironment`.
+  - Minimal: `fetch`, `now`, `log`. JSDoc describes the contract and gives backend vs client implementation notes (no Node-only APIs on the type).
+- Do **not** wire it into existing code yet; treat this as a contract definition step. **Contract defined; not yet wired into serializers.**
 
-### Step 2: Extract environment-agnostic helpers for one reference DataSource (mtw.wml)
+### Step 2: Make DataSourceEventSerializer environment-agnostic for one reference DataSource (mtw.wml)
 
-For `mtw.wml`:
+For WML (`WMLEventSerializer`, `WMLDataSourceEventSerializer` in mtw-interfaces):
 
-- Identify current snapshot and event resolution paths that:
-  - Detect sidecar descriptors.
-  - Fetch and parse WML.
-  - Build internal snapshot/update types.
-- Extract that logic into environment-agnostic helpers that take a `DataSourceEnvironment` and `{ header, externalPayload }`, and return either:
-  - A `StreamingEventEnvelope` with `getContentInternal` using `env`, or
-  - A simple `() => Promise<InternalPayload>` thunk that can be plugged into `coreFormatToStreamingEnvelope`.
-- Update backend send-helpers and callbacks to use these helpers, still in the lambda layer only.
+- Resolution already lives in the serializer (Phase 2 of serializer-envelope refactor: `maybeFetchSidecarString` inside `deserialize` and `deserializeSnapshot`). Do **not** extract new helpers; **parameterize** the existing ones.
+- **Strongly recommend**: Add a **constructor to each class** that accepts a `DataSourceEnvironment` and **store it on the instance** (e.g. `private readonly env`). When the serializer (or `maybeFetchSidecarString`) needs to fetch a sidecar, use `this.env.fetch`. Apply this pattern for both `WMLEventSerializer` and `WMLDataSourceEventSerializer`; use it as the standard pattern for all serializers we refactor.
+- Update backend: construct the WML deserializer with a Node/lambda `DataSourceEnvironment` (e.g. `new WMLDataSourceEventSerializer(nodeEnv)`) so EventBridge handlers continue to use `getContentInternal: () => deserializer.deserialize(...)` with an env-aware deserializer.
 
 Success criteria:
 
-- No change in wire format (`CoreExternalFormat`).
-- No change in header semantics.
-- No change in public behavior; only internal construction of `getContentInternal` moves to the helper.
+- No change in wire format (`CoreExternalFormat`) or header semantics.
+- No change in public behavior; only the serializer's internal resolution path uses `env.fetch`.
+- Backend still builds envelopes the same way; the deserializer instance is simply configured with an env.
 
 ### Step 3: Add environment implementations for backend and client
 
@@ -229,25 +181,25 @@ Success criteria:
     - `now`: `Date.now()`.
     - `log`: console or a client logging abstraction.
 
-### Step 4: Teach client slices to resolve via environment-aware helpers (one domain)
+### Step 4: Teach client slices to resolve via the serializer (one domain)
 
 For WML on the client:
 
-- Replace the ad-hoc `resolveSidecarSnapshot` wrapper with a **call into the environment-aware helper**:
-  - WebSocket message → `CoreExternalFormat`-equivalent → environment-aware lazy envelope (using client `env`) → resolve once → feed `{ header, content }` into reducers.
+- Replace the ad-hoc `resolveSidecarSnapshot` callback with a **serializer instance configured with a browser DataSourceEnvironment**. When the slice receives a message (including snapshots with `content.sidecarUrl` or per-field sidecars), it calls `eventSerializer.deserializeSnapshot(content)` or `eventSerializer.deserialize({ content, header })` as today. The serializer performs sidecar resolution internally using `env.fetch`.
+- Remove the generic "if sidecarUrl then call resolveSidecarSnapshot" branch from the slice; the slice always passes the raw payload to the serializer, and the serializer resolves sidecars when present.
 - Keep Redux slice public API and state shape unchanged.
 
 Success criteria:
 
-- All parsing/sidecar concerns live in WML-specific, environment-aware code that is shared with backend.
-- The slice sees only `{ header, content }` as today; no new public concepts for consumers.
+- All parsing/sidecar concerns live in the WML serializer (shared with backend), which is configured with a client `env`.
+- The slice sees only `{ header, content }` as today; no new public concepts for consumers. No separate `resolveSidecarSnapshot` callback.
 
 ### Step 5: Generalize pattern for other DataSources as needed
 
-- Once WML is stable and tested, consider applying the same approach to:
+- Once WML is stable and tested, consider making other serializers environment-agnostic using the same pattern (constructor that accepts `DataSourceEnvironment`, store on instance, use `this.env.fetch` in resolution paths) for:
   - `mtw.assets.contentHeaders` (if we ever add sidecars there).
   - Future DataSources that want claim-check semantics.
-- For DataSources that only ever use inline payloads, no change is required; they can continue to deserialize content directly in the aggregator/serializer path.
+- For DataSources that only ever use inline payloads, no change is required; their serializers need no env until they add sidecar resolution.
 
 ## 6. Non-goals / constraints
 
@@ -265,8 +217,7 @@ Success criteria:
    - How much of the environment API do we want to standardize now vs later (just `fetch`/`now`/`log` or more)?
 
 2. **Client-side lazy envelopes vs eager resolution**:
-   - Do we want to expose `{ header, getContentInternal }` as a first-class type on the client, or keep the pattern "construct lazy envelopes, resolve once, then work only with `{ header, content }`"?
-   - The current client pattern favors resolved state; this plan assumes we keep that and only refactor *how* we obtain `content`.
+   - The client does not need to expose `{ header, getContentInternal }` in state. The slice receives a payload and calls the serializer (configured with browser env); the serializer resolves sidecars internally and returns internal content. So we keep "resolve once, then work only with `{ header, content }`" with resolution happening inside the serializer.
 
 3. **Caching and retries**:
    - Should sidecar fetch and content resolution include built-in retries, caching, or metrics in the environment?
@@ -293,8 +244,8 @@ This section is here explicitly to help us "pop the stack" and remember **why** 
   This environment-agnostic lazy-envelope work is the **next layer**, making it practical to evolve sidecar and lazy-resolution behavior without duplicated logic.
 
 - **How to use this when you finish**:
-  - When the first implementation of environment-agnostic lazy envelopes is done (likely for WML first), come back to this section and check:
-    - Are we now able to change "how WML sidecars work" by editing one or two helpers, rather than 4–6 scattered places?
+  - When the first implementation of environment-agnostic serializers is done (likely for WML first), come back to this section and check:
+    - Are we now able to change "how WML sidecars work" by editing the WML serializer (and its env usage) only, rather than serializer + client `resolveSidecarSnapshot`?
     - Did we actually flip authority in `personalAssets` so that it reads base WML from the WML dataSource slice instead of maintaining its own backend view?
     - Does this make it *easier* to reason about future changes like WML replayability, new DataSources using sidecars, or richer snapshot metadata?
 
