@@ -11,7 +11,7 @@
 As of the environment-agnostic serializer refactor (see `packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md` "Serialization resolution architecture"):
 
 - **Sidecar resolution lives in the serializer**, configured with a `DataSourceEnvironment` (browser fetch on client, Node fetch on backend). The slice no longer has or uses a separate `resolveSidecarSnapshot` callback.
-- **The slice always passes raw `content`** to `eventSerializer.deserializeSnapshot(content)` or `eventSerializer.deserialize({ content, header })`. The serializer performs fetch and resolution when it sees a sidecar descriptor.
+- **The slice always passes raw `content` and `header`** to `eventSerializer.deserialize({ content, header })`. The serializer routes on `header.type` and performs fetch and resolution for snapshots when it sees a sidecar descriptor.
 - **WML snapshots must be domain-shaped**: `{ wml: string }` or `{ wml: { sidecarUrl: string } }`. Full-content sidecar (`{ sidecarUrl: string }`) is **no longer supported** on the client; the backend (or future delegation) should send domain-shaped payloads when using sidecars.
 - The WML slice constructs `new WMLDataSourceEventSerializer(createBrowserDataSourceEnvironment())`; resolution is handled inside the serializer.
 
@@ -95,7 +95,7 @@ We use **generalized sidecar snapshot delivery** so initial state is not in the 
    - The WML storage layout (materialized-view + chunk structure) already supports snapshots: under each asset prefix we have a materialized view (e.g. `{uuid}.wml`) and a `snapshots/` directory (e.g. `{prefix}snapshots/{timestamp}.wml`). Either the current materialized view or the latest snapshot in that directory can serve as the S3 object to presign for the sidecar. The WML lambda already has access to this layout via its s3Storage layer (AssetWorkspace, snapshots, etc.), so it can generate or locate the object and issue a presigned GET URL.
 
 3. **Frontend: sidecar snapshot handling**  
-   - The slice passes raw `content` to `eventSerializer.deserializeSnapshot(content)`. The WML serializer (configured with `createBrowserDataSourceEnvironment()`) performs fetch and resolution when it sees a domain-shaped descriptor (e.g. `{ wml: { sidecarUrl } }`). No separate `resolveSidecarSnapshot` callback.  
+   - The slice passes raw `content` and `header` to `eventSerializer.deserialize({ content, header })`. The WML serializer (configured with `createBrowserDataSourceEnvironment()`) routes on `header.type` and performs fetch and resolution for snapshots when it sees a domain-shaped descriptor (e.g. `{ wml: { sidecarUrl } }`). No separate `resolveSidecarSnapshot` callback.  
    - **Ordering by timestamp**: The snapshot is delivered with a timestamp (in the StreamEvent envelope, as today). The client dataSource already orders by timestamp: it ignores events with timestamp before the snapshot, applies the snapshot as the baseline, then applies events with timestamp after the snapshot in order.
 
 4. **Deprecate or keep legacy `message: 'fetch'`?**  

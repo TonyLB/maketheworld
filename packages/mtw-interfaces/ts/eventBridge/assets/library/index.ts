@@ -89,6 +89,10 @@ export class LibraryEventSerializer implements DataSourceEventSerializer<
     LibrarySnapshotExternal
 > {
     serialize(params: LibrarySerializeParams): LibraryExternal {
+        if (params.header?.type === 'Snapshot') {
+            const snapshot = params.content as LibrarySnapshot
+            return { assetIds: [...snapshot.assetIds] }
+        }
         if (isAssetAddedLibrarySerializeParams(params)) {
             const { content } = params
             return {
@@ -105,6 +109,23 @@ export class LibraryEventSerializer implements DataSourceEventSerializer<
     }
     
     async deserialize(params: LibraryDeserializeParams): Promise<LibraryEventUpdate | null> {
+        if (params.header?.type === 'Snapshot') {
+            const content = params.content as LibrarySnapshotExternal
+            try {
+                if (!Array.isArray(content.assetIds)) {
+                    console.error('Invalid Library snapshot: assetIds must be an array')
+                    return null
+                }
+                if (!content.assetIds.every(id => typeof id === 'string')) {
+                    console.error('Invalid Library snapshot: all assetIds must be strings')
+                    return null
+                }
+                return { assetIds: [...content.assetIds] }
+            } catch (error) {
+                console.error('Failed to deserialize Library snapshot:', error)
+                return null
+            }
+        }
         if (isAssetAddedLibraryEnvelope(params)) {
             if (typeof params.content.assetId !== 'string') {
                 console.error('Invalid Asset Added event: assetId must be a string')
@@ -125,36 +146,6 @@ export class LibraryEventSerializer implements DataSourceEventSerializer<
         }
         console.error(`Unknown external streaming event type: ${params.header.type}`)
         return null
-    }
-    
-    serializeSnapshot(snapshot: LibrarySnapshot): LibrarySnapshotExternal {
-        // Pass through - internal and external formats are identical
-        return {
-            assetIds: [...snapshot.assetIds]
-        }
-    }
-    
-    async deserializeSnapshot(externalSnapshot: LibrarySnapshotExternal): Promise<LibrarySnapshot | null> {
-        try {
-            // Validate structure
-            if (!Array.isArray(externalSnapshot.assetIds)) {
-                console.error('Invalid Library snapshot: assetIds must be an array')
-                return null
-            }
-            
-            // Validate all items are strings
-            if (!externalSnapshot.assetIds.every(id => typeof id === 'string')) {
-                console.error('Invalid Library snapshot: all assetIds must be strings')
-                return null
-            }
-            
-            return {
-                assetIds: [...externalSnapshot.assetIds]
-            }
-        } catch (error) {
-            console.error('Failed to deserialize Library snapshot:', error)
-            return null
-        }
     }
 }
 

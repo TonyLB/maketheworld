@@ -52,7 +52,7 @@ export const {
 - **`name`**: Unique name for the Redux slice
 - **`dataSourceKey`**: Backend data source identifier (e.g., `'mtw.assets.contentHeaders'`)
 - **`aggregator`**: Object with `createEmpty()` and `applyUpdate()` methods for aggregating events
-- **`eventSerializer`**: Object with `deserialize()` and `deserializeSnapshot()` methods
+- **`eventSerializer`**: Object with `serialize()` and `deserialize()` methods (handles both events and snapshots via `header.type`)
 - **`sliceSelector`**: Function to select this slice from root state
 
 ### **Using the Slice**
@@ -147,7 +147,7 @@ The pattern enforces strict lifecycle ordering through multiple safety mechanism
 
 ### **Sidecar Snapshot Handling**
 
-Snapshot events from the backend may contain inline payloads or domain-shaped sidecar descriptors (e.g. a field whose value is `{ sidecarUrl: string }`). The slice always passes the raw `content` to `eventSerializer.deserializeSnapshot(content)`. When the serializer is configured with a `DataSourceEnvironment` (e.g. browser fetch), it performs any sidecar fetch and resolution internally before returning the internal snapshot. Timestamp-based ordering (ignore events before snapshot, apply events after) works unchanged.
+Snapshot events from the backend may contain inline payloads or domain-shaped sidecar descriptors (e.g. a field whose value is `{ sidecarUrl: string }`). The slice passes raw `content` and `header` to `eventSerializer.deserialize({ content, header })`; the serializer routes on `header.type` and for snapshots performs any sidecar fetch and resolution internally when configured with a `DataSourceEnvironment` (e.g. browser fetch). Timestamp-based ordering (ignore events before snapshot, apply events after) works unchanged.
 
 ### **Out-of-Order Event Handling**
 

@@ -193,16 +193,17 @@ export class DataSource<
         if (cached && now <= cached.expiresAt) {
             const internalSnapshot = cached
             // Serialize to external format for storage
-            const externalPayload = this.eventSerializer?.serializeSnapshot
-                ? this.eventSerializer.serializeSnapshot(internalSnapshot)
+            const snapshotHeader = { dataSourceKey: this.dataSourceKey, streamKey, timestamp: internalSnapshot.createdAt, type: 'Snapshot' as const }
+            const externalPayload = this.eventSerializer
+                ? this.eventSerializer.serialize({ content: internalSnapshot as any, header: snapshotHeader as Header })
                 : internalSnapshot as unknown as ExternalSnapshotPayload
-            
-            const externalSnapshot: SnapshotType<ExternalSnapshotPayload> = {
+
+            const externalSnapshot = {
                 ...externalPayload,
                 type: 'Snapshot',
                 createdAt: internalSnapshot.createdAt,
                 expiresAt: internalSnapshot.expiresAt
-            }
+            } as SnapshotType<ExternalSnapshotPayload>
             return externalSnapshot
         }
         
@@ -210,15 +211,16 @@ export class DataSource<
         const loaded = await this.loadSnapshotFromStore(streamKey).catch(() => undefined)
         if (loaded && now <= loaded.expiresAt) {
             // Deserialize and cache the internal format for future calls
-            if (this.eventSerializer?.deserializeSnapshot) {
+            if (this.eventSerializer) {
                 const { createdAt, expiresAt, ...externalPayload } = loaded
-                const internalPayload = await this.eventSerializer.deserializeSnapshot(externalPayload as unknown as ExternalSnapshotPayload)
+                const snapshotHeader = { dataSourceKey: this.dataSourceKey, streamKey, timestamp: loaded.createdAt, type: 'Snapshot' as const }
+                const internalPayload = await this.eventSerializer.deserialize({ content: externalPayload as any, header: snapshotHeader as Header })
                 if (internalPayload) {
-                    const internalSnapshot: SnapshotType<SnapshotPayload> = {
+                    const internalSnapshot = {
                         ...internalPayload,
                         createdAt,
                         expiresAt
-                    }
+                    } as unknown as SnapshotType<SnapshotPayload>
                     this._snapshots[streamKey] = internalSnapshot
                 }
             } else {
@@ -236,19 +238,20 @@ export class DataSource<
             computation: async () => {
                 // Generate snapshot in internal format
                 const internalSnapshot = await this.generateSnapshot(streamKey)
-                
+
                 // Serialize to external format for storage
-                const externalPayload = this.eventSerializer?.serializeSnapshot
-                    ? this.eventSerializer.serializeSnapshot(internalSnapshot)
+                const snapshotHeader = { dataSourceKey: this.dataSourceKey, streamKey, timestamp: internalSnapshot.createdAt, type: 'Snapshot' as const }
+                const externalPayload = this.eventSerializer
+                    ? this.eventSerializer.serialize({ content: internalSnapshot as any, header: snapshotHeader as Header })
                     : internalSnapshot as unknown as ExternalSnapshotPayload
-                
-                const externalSnapshot: SnapshotType<ExternalSnapshotPayload> = {
+
+                const externalSnapshot = {
                     ...externalPayload,
                     type: 'Snapshot',
                     createdAt: internalSnapshot.createdAt,
                     expiresAt: internalSnapshot.expiresAt
-                }
-                
+                } as SnapshotType<ExternalSnapshotPayload>
+
                 // Store the external format
                 await this.storeSnapshotToStore({ streamKey, snapshot: internalSnapshot }).catch(() => undefined)
                 
@@ -265,15 +268,16 @@ export class DataSource<
         })
         
         // Deserialize and cache the internal format for future calls
-        if (this.eventSerializer?.deserializeSnapshot) {
+        if (this.eventSerializer) {
             const { createdAt, expiresAt, ...externalPayload } = generated
-            const internalPayload = await this.eventSerializer.deserializeSnapshot(externalPayload as unknown as ExternalSnapshotPayload)
+            const snapshotHeader = { dataSourceKey: this.dataSourceKey, streamKey, timestamp: generated.createdAt, type: 'Snapshot' as const }
+            const internalPayload = await this.eventSerializer.deserialize({ content: externalPayload as any, header: snapshotHeader as Header })
             if (internalPayload) {
-                const internalSnapshot: SnapshotType<SnapshotPayload> = {
+                const internalSnapshot = {
                     ...internalPayload,
                     createdAt,
                     expiresAt
-                }
+                } as unknown as SnapshotType<SnapshotPayload>
                 this._snapshots[streamKey] = internalSnapshot
             }
         } else {
@@ -301,23 +305,24 @@ export class DataSource<
 
         // Get external snapshot
         const externalSnapshot = await this.getSnapshotExternal(streamKey)
-        
+
         // Deserialize to internal format
-        if (this.eventSerializer?.deserializeSnapshot) {
+        if (this.eventSerializer) {
             const { createdAt, expiresAt, ...externalPayload } = externalSnapshot
-            const internalPayload = await this.eventSerializer.deserializeSnapshot(externalPayload as unknown as ExternalSnapshotPayload)
+            const snapshotHeader = { dataSourceKey: this.dataSourceKey, streamKey, timestamp: externalSnapshot.createdAt, type: 'Snapshot' as const }
+            const internalPayload = await this.eventSerializer.deserialize({ content: externalPayload as any, header: snapshotHeader as Header })
             if (internalPayload) {
-                const internalSnapshot: SnapshotType<SnapshotPayload> = {
+                const internalSnapshot = {
                     ...internalPayload,
                     createdAt,
                     expiresAt
-                }
+                } as unknown as SnapshotType<SnapshotPayload>
                 // Cache the internal snapshot
                 this._snapshots[streamKey] = internalSnapshot
                 return internalSnapshot
             }
         }
-        
+
         // No serializer - assume internal and external are the same
         const internalSnapshot = externalSnapshot as unknown as SnapshotType<SnapshotPayload>
         this._snapshots[streamKey] = internalSnapshot
@@ -565,8 +570,9 @@ export class DataSource<
         }
         
         // Serialize snapshot to external format for storage (external snapshot payload)
-        const baseExternalSnapshot = this.eventSerializer?.serializeSnapshot
-            ? this.eventSerializer.serializeSnapshot(snapshot)
+        const snapshotHeader = { dataSourceKey: this.dataSourceKey, streamKey, timestamp: snapshot.createdAt, type: 'Snapshot' as const }
+        const baseExternalSnapshot = this.eventSerializer
+            ? this.eventSerializer.serialize({ content: snapshot as any, header: snapshotHeader as Header })
             : (() => {
                 const { createdAt, expiresAt, ...rest } = snapshot as SnapshotType<SnapshotPayload> & { type?: string }
                 return rest as unknown as ExternalSnapshotPayload

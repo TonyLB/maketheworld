@@ -1,4 +1,4 @@
-import { PlayerSnapshot, PlayerAssetAssigned, PlayerAssetRemoved, PlayerSettingsUpdated, PlayerEventSerializer } from '.'
+import { PlayerSnapshot, PlayerAssetAssigned, PlayerAssetRemoved, PlayerSettingsUpdated, PlayerEventSerializer, PlayerSnapshotExternal } from '.'
 import { PlayerAggregator } from './baseClasses'
 import type { StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 
@@ -70,6 +70,38 @@ describe('PlayerAggregator', () => {
 
 describe('PlayerEventSerializer', () => {
     const serializer = new PlayerEventSerializer()
+
+    describe('serialize/deserialize handle Snapshot when header.type is Snapshot', () => {
+        it('should serialize Snapshot via main serialize when header.type is Snapshot', () => {
+            const snapshot: PlayerSnapshot = {
+                assets: [{ AssetId: 'AssetOne', zone: 'Draft' }],
+                characters: [{ CharacterId: 'CHARACTER#test', DisplayName: 'Test', scopedId: 'test', fileName: 'test' }],
+                settings: { onboardCompleteTags: [] }
+            }
+            const header = { dataSourceKey: 'mtw.assets.players', streamKey: 'test', timestamp: 0, type: 'Snapshot' as const }
+            const result = serializer.serialize({ content: snapshot, header })
+            expect(result).toEqual({
+                assets: [{ AssetId: 'AssetOne', zone: 'Draft' }],
+                characters: [{ CharacterId: 'CHARACTER#test', DisplayName: 'Test', scopedId: 'test', fileName: 'test' }],
+                settings: { onboardCompleteTags: [] }
+            })
+        })
+
+        it('should deserialize Snapshot via main deserialize when header.type is Snapshot', async () => {
+            const externalSnapshot: PlayerSnapshotExternal = {
+                assets: [{ AssetId: 'AssetOne', zone: 'Draft' as const }],
+                characters: [{ CharacterId: 'CHARACTER#test', DisplayName: 'Test', scopedId: 'test', fileName: 'test' }],
+                settings: { onboardCompleteTags: [] }
+            }
+            const header = { dataSourceKey: 'mtw.assets.players', streamKey: 'test', timestamp: 0, type: 'Snapshot' as const }
+            const result = await serializer.deserialize({ content: externalSnapshot, header })
+            expect(result).toEqual({
+                assets: [{ AssetId: 'AssetOne', zone: 'Draft' }],
+                characters: [{ CharacterId: 'CHARACTER#test', DisplayName: 'Test', scopedId: 'test', fileName: 'test' }],
+                settings: { onboardCompleteTags: [] }
+            })
+        })
+    })
 
     describe('deserialize when header and payload type disagree - header wins', () => {
         it('should deserialize as Player Asset Removed when header says Player Asset Removed but content has Asset Assigned shape', async () => {

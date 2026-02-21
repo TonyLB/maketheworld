@@ -23,23 +23,43 @@ export type CharacterUpdatedEventExternal = {
     wml: string // WML string containing character data
 }
 
+// Snapshot types for mtw.assets.characters replayable data source
+export type CharacterSnapshotPayload = {
+    streamKey: string
+    characters: string // WML string containing character listings for this asset
+    timestamp: number
+}
+
+export type CharacterSnapshotExternal = {
+    characters: string
+}
+
 /**
  * Event serializer for character events in the mtw.assets.characters data source.
  * 
  * This serializer handles the conversion between internal StandardComponent objects
  * and external EventBridge-compatible event formats for character-specific events.
+ * Also supports snapshot serialize/deserialize for replayable character streams.
  */
-export class CharacterEventSerializer implements DataSourceEventSerializer<CharacterEventUpdate, CharacterEventExternal> {
+export class CharacterEventSerializer implements DataSourceEventSerializer<
+    CharacterEventUpdate,
+    CharacterEventExternal,
+    CharacterSnapshotPayload,
+    CharacterSnapshotExternal
+> {
     serialize(params: {
-        content: CharacterEventUpdate;
+        content: CharacterEventUpdate | CharacterSnapshotPayload;
         header: StreamingEventHeader;
-    }): CharacterEventExternal {
+    }): CharacterEventExternal | CharacterSnapshotExternal {
         const { content, header } = params
+        if (header?.type === 'Snapshot') {
+            return { characters: (content as CharacterSnapshotPayload).characters }
+        }
         if (header.type !== 'Character Updated') {
             throw new Error(`Unknown character event type: ${header.type}`)
         }
-        const characterId = content.component.universalKey as `CHARACTER#${string}`
-        const wml = schemaToWML([content.component.schema])
+        const characterId = (content as CharacterEventUpdate).component.universalKey as `CHARACTER#${string}`
+        const wml = schemaToWML([(content as CharacterEventUpdate).component.schema])
         return {
             type: 'Character Updated',
             characterId,
@@ -48,11 +68,21 @@ export class CharacterEventSerializer implements DataSourceEventSerializer<Chara
     }
     
     async deserialize(params: {
-        content: CharacterEventExternal;
+        content: CharacterEventExternal | CharacterSnapshotExternal;
         header: StreamingEventHeader;
-    }): Promise<CharacterEventUpdate | null> {
+    }): Promise<CharacterEventUpdate | CharacterSnapshotPayload | null> {
         const { content, header } = params
-        
+        if (header?.type === 'Snapshot') {
+            const external = content as CharacterSnapshotExternal
+            if (typeof external.characters !== 'string') {
+                return null
+            }
+            return {
+                streamKey: header.streamKey,
+                characters: external.characters,
+                timestamp: header.timestamp
+            }
+        }
         // Only handle character updated events (header is authoritative for routing)
         if (header.type !== 'Character Updated') {
             return null
@@ -60,7 +90,8 @@ export class CharacterEventSerializer implements DataSourceEventSerializer<Chara
         
         // Deserialize WML back to StandardComponent
         try {
-            const schemaNode = nodeFromWML(content.wml)
+            const eventContent = content as CharacterEventExternal
+            const schemaNode = nodeFromWML(eventContent.wml)
             const { component } = standardComponentFactory(schemaNode)
             
             if (!component) {

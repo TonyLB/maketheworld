@@ -13,10 +13,16 @@ export type EphemeraEventExternal = EventPayload
 
 export class EphemeraEventSerializer implements DataSourceEventSerializer<EphemeraEventUpdate, EphemeraEventExternal> {
     serialize(params: { content: EphemeraEventUpdate; header: StreamingEventHeader }): EphemeraEventExternal {
+        if (params.header?.type === 'Snapshot') {
+            throw new Error('EphemeraEventSerializer does not support snapshot serialization')
+        }
         return params.content
     }
 
     async deserialize(params: { content: EphemeraEventExternal; header: StreamingEventHeader }): Promise<EphemeraEventUpdate | null> {
+        if (params.header?.type === 'Snapshot') {
+            return null
+        }
         return params.content
     }
 }

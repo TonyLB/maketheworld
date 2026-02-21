@@ -8,7 +8,7 @@ import { excludeUndefined } from '@tonylb/mtw-utilities/ts/lists'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardCharacter } from '@tonylb/mtw-wml/ts/standardize/components/character'
 import getCurrentTimestamp from '../internalUtils/dateUtil'
-import { CharacterEventSerializer, CharacterEventUpdate } from '@tonylb/mtw-interfaces/ts/eventBridge/assets/characters'
+import { CharacterEventSerializer, CharacterEventUpdate, CharacterSnapshotPayload } from '@tonylb/mtw-interfaces/ts/eventBridge/assets/characters'
 import { ComponentEventUpdate } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
 import { StreamingEventEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { ReferenceList } from '@tonylb/mtw-wml/ts/standardize/keys/referenceList'
@@ -20,11 +20,7 @@ export type CharacterEventPayload = {
     wml: string // WML string containing character data
 }
 
-export type CharacterSnapshotPayload = {
-    streamKey: string // assetId for this character stream
-    characters: string // WML string containing character listings for this asset
-    timestamp: number
-}
+export type { CharacterSnapshotPayload } from '@tonylb/mtw-interfaces/ts/eventBridge/assets/characters'
 
 // The characters data source subscribes to ComponentEventUpdate events from mtw.assets
 // These come wrapped in StreamingEventPayload format on the messageBus

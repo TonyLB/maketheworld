@@ -216,11 +216,14 @@ export class PlayerEventSerializer implements DataSourceEventSerializer<
 > {
     serialize(params: PlayerSerializeParams): PlayerExternal {
         if (isPlayerSnapshotSerializeParams(params)) {
-            const { content } = params
+            const snapshot = params.content
+            if (!isPlayerSnapshot(snapshot)) {
+                throw new Error(`Invalid player snapshot payload: ${JSON.stringify(snapshot)}`)
+            }
             return {
-                assets: content.assets.map((asset) => ({ ...asset })),
-                characters: content.characters.map((character) => ({ ...character })),
-                settings: { ...content.settings }
+                assets: snapshot.assets.map((asset) => ({ ...asset })),
+                characters: snapshot.characters.map((character) => ({ ...character })),
+                settings: { ...snapshot.settings }
             }
         }
         if (isPlayerSettingsUpdatedSerializeParams(params)) {
@@ -259,15 +262,15 @@ export class PlayerEventSerializer implements DataSourceEventSerializer<
     async deserialize(params: PlayerDeserializeParams): Promise<PlayerEventUpdate | null> {
         // Route on header.type only (envelope-authoritative); return internal content without type
         if (isPlayerSnapshotDeserializeParams(params)) {
-            const c = params.content
-            if (!Array.isArray(c.assets) || !Array.isArray(c.characters) || typeof c.settings !== 'object') {
-                console.error('Invalid player snapshot payload', c)
+            const externalSnapshot = params.content
+            if (!isPlayerSnapshot(externalSnapshot)) {
+                console.error('Invalid player snapshot external payload', externalSnapshot)
                 return null
             }
             return {
-                assets: c.assets.map((asset) => ({ ...asset })),
-                characters: c.characters.map((character) => ({ ...character })),
-                settings: { ...c.settings }
+                assets: externalSnapshot.assets.map((asset) => ({ ...asset })),
+                characters: externalSnapshot.characters.map((character) => ({ ...character })),
+                settings: { ...externalSnapshot.settings }
             }
         }
         if (isPlayerSettingsUpdatedDeserializeParams(params)) {
@@ -292,29 +295,6 @@ export class PlayerEventSerializer implements DataSourceEventSerializer<
         }
         console.error('Unknown player event header type', params.header)
         return null
-    }
-
-    serializeSnapshot(snapshot: PlayerSnapshot): PlayerSnapshotExternal {
-        if (!isPlayerSnapshot(snapshot)) {
-            throw new Error(`Invalid player snapshot payload: ${JSON.stringify(snapshot)}`)
-        }
-        return {
-            assets: snapshot.assets.map((asset) => ({ ...asset })),
-            characters: snapshot.characters.map((character) => ({ ...character })),
-            settings: { ...snapshot.settings }
-        }
-    }
-
-    async deserializeSnapshot(externalSnapshot: PlayerSnapshotExternal): Promise<PlayerSnapshot | null> {
-        if (!isPlayerSnapshot(externalSnapshot)) {
-            console.error('Invalid player snapshot external payload', externalSnapshot)
-            return null
-        }
-        return {
-            assets: externalSnapshot.assets.map((asset) => ({ ...asset })),
-            characters: externalSnapshot.characters.map((character) => ({ ...character })),
-            settings: { ...externalSnapshot.settings }
-        }
     }
 }
 

@@ -242,6 +242,9 @@ const isZoneUpdatedAssetsDeserializeParams = (p: AssetsDeserializeParams): p is 
  */
 export class AssetsEventSerializer implements DataSourceEventSerializer<AssetsEventUpdate, AssetsEventExternal> {
     serialize(params: AssetsSerializeParams): AssetsEventExternal {
+        if (params.header?.type === 'Snapshot') {
+            throw new Error('AssetsEventSerializer does not support snapshot serialization')
+        }
         if (isComponentUpdatedAssetsSerializeParams(params)) {
             const { content } = params
             return {
@@ -288,6 +291,9 @@ export class AssetsEventSerializer implements DataSourceEventSerializer<AssetsEv
     }
 
     async deserialize(params: AssetsDeserializeParams): Promise<AssetsEventUpdate | null> {
+        if (params.header?.type === 'Snapshot') {
+            return null
+        }
         if (isComponentUpdatedAssetsDeserializeParams(params)) {
             const { content } = params
             return {

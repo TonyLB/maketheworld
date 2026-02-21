@@ -104,35 +104,21 @@ export interface DataSourceEventSerializer<
     /**
      * Convert internal update payload to external format for EventBridge Detail.
      * Params use the same shape as ResolvedStreamingEnvelope: content is the payload (internal here); routing uses header.type only.
+     * Handles both streaming events and snapshots (when header.type === 'Snapshot').
      */
     serialize(params: {
-        content: UpdatePayload;
+        content: UpdatePayload | SnapshotPayload;
         header: Header;
-    }): ExternalUpdatePayload;
+    }): ExternalUpdatePayload | ExternalSnapshotPayload;
 
     /**
      * Convert external update payload back to internal format.
      * Params use the same shape as ResolvedStreamingEnvelope: content is the payload (external here); routing uses header.type only.
      * Returns null if the event cannot be deserialized.
+     * Handles both streaming events and snapshots (when header.type === 'Snapshot').
      */
     deserialize(params: {
-        content: ExternalUpdatePayload;
+        content: ExternalUpdatePayload | ExternalSnapshotPayload;
         header: Header;
-    }): Promise<UpdatePayload | null>;
-    
-    /**
-     * Convert internal snapshot payload to external format for storage/transmission
-     * Returns the Core External format suitable for DynamoDB storage and SNS delivery
-     * 
-     * Optional: Only required for replayable data sources that support snapshots
-     */
-    serializeSnapshot?(snapshot: SnapshotPayload): ExternalSnapshotPayload;
-    
-    /**
-     * Convert external snapshot payload back to internal format
-     * Returns null if the snapshot cannot be deserialized
-     * 
-     * Optional: Only required for replayable data sources that support snapshots
-     */
-    deserializeSnapshot?(externalSnapshot: ExternalSnapshotPayload): Promise<SnapshotPayload | null>;
+    }): Promise<UpdatePayload | SnapshotPayload | null>;
 }

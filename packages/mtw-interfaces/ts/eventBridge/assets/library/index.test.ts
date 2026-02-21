@@ -411,14 +411,34 @@ describe('Library EventBridge Contracts', () => {
             })
         })
 
-        describe('serializeSnapshot', () => {
+        describe('serialize/deserialize handle Snapshot when header.type is Snapshot', () => {
+            it('should serialize Snapshot via main serialize when header.type is Snapshot', () => {
+                const snapshot = {
+                    type: 'Snapshot' as const,
+                    assetIds: ['ASSET#test1', 'ASSET#test2'] as AssetUUID[]
+                }
+                const header = { dataSourceKey: 'mtw.assets.library', streamKey: 'test', timestamp: 0, type: 'Snapshot' as const }
+                const result = serializer.serialize({ content: snapshot, header })
+                expect(result).toEqual({ assetIds: ['ASSET#test1', 'ASSET#test2'] })
+            })
+
+            it('should deserialize Snapshot via main deserialize when header.type is Snapshot', async () => {
+                const externalSnapshot = { assetIds: ['ASSET#test1', 'ASSET#test2'] as AssetUUID[] }
+                const header = { dataSourceKey: 'mtw.assets.library', streamKey: 'test', timestamp: 0, type: 'Snapshot' as const }
+                const result = await serializer.deserialize({ content: externalSnapshot, header })
+                expect(result).toEqual({ assetIds: ['ASSET#test1', 'ASSET#test2'] })
+            })
+        })
+
+        describe('serialize Snapshot', () => {
             it('should serialize snapshot with multiple assets', () => {
                 const snapshot = {
                     type: 'Snapshot' as const,
                     assetIds: ['ASSET#test1', 'ASSET#test2', 'ASSET#test3'] as AssetUUID[]
                 }
+                const header = { dataSourceKey: 'mtw.assets.library', streamKey: 'test', timestamp: 0, type: 'Snapshot' as const }
 
-                const result = serializer.serializeSnapshot(snapshot)
+                const result = serializer.serialize({ content: snapshot, header })
 
                 expect(result).toEqual({
                     assetIds: ['ASSET#test1', 'ASSET#test2', 'ASSET#test3']
@@ -430,8 +450,9 @@ describe('Library EventBridge Contracts', () => {
                     type: 'Snapshot' as const,
                     assetIds: [] as AssetUUID[]
                 }
+                const header = { dataSourceKey: 'mtw.assets.library', streamKey: 'test', timestamp: 0, type: 'Snapshot' as const }
 
-                const result = serializer.serializeSnapshot(snapshot)
+                const result = serializer.serialize({ content: snapshot, header })
 
                 expect(result).toEqual({
                     assetIds: []
@@ -443,21 +464,23 @@ describe('Library EventBridge Contracts', () => {
                     type: 'Snapshot' as const,
                     assetIds: ['ASSET#test1'] as AssetUUID[]
                 }
+                const header = { dataSourceKey: 'mtw.assets.library', streamKey: 'test', timestamp: 0, type: 'Snapshot' as const }
 
-                const result = serializer.serializeSnapshot(snapshot)
+                const result = serializer.serialize({ content: snapshot, header }) as LibrarySnapshotExternal
 
                 expect(result.assetIds).not.toBe(snapshot.assetIds)
                 expect(result.assetIds).toEqual(snapshot.assetIds)
             })
         })
 
-        describe('deserializeSnapshot', () => {
+        describe('deserialize Snapshot', () => {
             it('should deserialize snapshot with multiple assets', async () => {
                 const externalSnapshot: LibrarySnapshotExternal = {
                     assetIds: ['ASSET#test1', 'ASSET#test2', 'ASSET#test3'] as AssetUUID[]
                 }
+                const header = { dataSourceKey: 'mtw.assets.library', streamKey: 'test', timestamp: 0, type: 'Snapshot' as const }
 
-                const result = await serializer.deserializeSnapshot(externalSnapshot)
+                const result = await serializer.deserialize({ content: externalSnapshot, header })
 
                 expect(result).toEqual({
                     assetIds: ['ASSET#test1', 'ASSET#test2', 'ASSET#test3']
@@ -468,8 +491,9 @@ describe('Library EventBridge Contracts', () => {
                 const externalSnapshot: LibrarySnapshotExternal = {
                     assetIds: [] as AssetUUID[]
                 }
+                const header = { dataSourceKey: 'mtw.assets.library', streamKey: 'test', timestamp: 0, type: 'Snapshot' as const }
 
-                const result = await serializer.deserializeSnapshot(externalSnapshot)
+                const result = await serializer.deserialize({ content: externalSnapshot, header })
 
                 expect(result).toEqual({
                     assetIds: []
@@ -480,8 +504,9 @@ describe('Library EventBridge Contracts', () => {
                 const externalSnapshot = {
                     assetIds: 'not-an-array'
                 } as any
+                const header = { dataSourceKey: 'mtw.assets.library', streamKey: 'test', timestamp: 0, type: 'Snapshot' as const }
 
-                const result = await serializer.deserializeSnapshot(externalSnapshot)
+                const result = await serializer.deserialize({ content: externalSnapshot, header })
 
                 expect(result).toBeNull()
             })
@@ -490,8 +515,9 @@ describe('Library EventBridge Contracts', () => {
                 const externalSnapshot = {
                     assetIds: ['ASSET#test1', 123, 'ASSET#test2']
                 } as any
+                const header = { dataSourceKey: 'mtw.assets.library', streamKey: 'test', timestamp: 0, type: 'Snapshot' as const }
 
-                const result = await serializer.deserializeSnapshot(externalSnapshot)
+                const result = await serializer.deserialize({ content: externalSnapshot, header })
 
                 expect(result).toBeNull()
             })
@@ -500,8 +526,9 @@ describe('Library EventBridge Contracts', () => {
                 const externalSnapshot: LibrarySnapshotExternal = {
                     assetIds: ['ASSET#test1'] as AssetUUID[]
                 }
+                const header = { dataSourceKey: 'mtw.assets.library', streamKey: 'test', timestamp: 0, type: 'Snapshot' as const }
 
-                const result = await serializer.deserializeSnapshot(externalSnapshot)
+                const result = await serializer.deserialize({ content: externalSnapshot, header }) as { assetIds: AssetUUID[] } | null
 
                 expect(result).not.toBeNull()
                 expect(result!.assetIds).not.toBe(externalSnapshot.assetIds)

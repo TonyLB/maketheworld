@@ -493,7 +493,7 @@ describe('WMLDataSourceEventSerializer', () => {
         expect(result).toBeNull()
     })
 
-    it('should deserializeSnapshot from WML string into StandardFormData', async () => {
+    it('should deserialize Snapshot via main deserialize when header.type is Snapshot', async () => {
         const wml = deIndentWML(`
             <Asset uuid=(test-asset)>
                 <Room key=(room1) uuid=(room1)>
@@ -501,16 +501,46 @@ describe('WMLDataSourceEventSerializer', () => {
                 </Room>
             </Asset>
         `)
-        const result = await serializer.deserializeSnapshot({ wml })
+        const result = await serializer.deserialize({
+            content: { wml },
+            header: { dataSourceKey: 'mtw.wml', streamKey: 'test', timestamp: 0, type: 'Snapshot' }
+        })
         expect(result).not.toBeNull()
-        if (result) {
+        if (result && typeof result === 'object' && 'universalKey' in result) {
             expect(result.universalKey).toBeDefined()
-            expect(Array.isArray(result.components)).toBe(true)
-            expect(result.metaData).toBeDefined()
+            expect(Array.isArray((result as any).components)).toBe(true)
+            expect((result as any).metaData).toBeDefined()
         }
     })
 
-    it('should deserializeSnapshot from sidecar when wml is { sidecarUrl }', async () => {
+    it('should throw when serialize receives Snapshot header', () => {
+        expect(() => serializer.serialize({
+            content: { schema: {} } as any,
+            header: { dataSourceKey: 'mtw.wml', streamKey: 'test', timestamp: 0, type: 'Snapshot' }
+        })).toThrow('WMLDataSourceEventSerializer does not support snapshot serialization')
+    })
+
+    it('should deserialize Snapshot from WML string into StandardFormData', async () => {
+        const wml = deIndentWML(`
+            <Asset uuid=(test-asset)>
+                <Room key=(room1) uuid=(room1)>
+                    <ShortName>Room One</ShortName>
+                </Room>
+            </Asset>
+        `)
+        const result = await serializer.deserialize({
+            content: { wml },
+            header: { dataSourceKey: 'mtw.wml', streamKey: 'test', timestamp: 0, type: 'Snapshot' }
+        })
+        expect(result).not.toBeNull()
+        if (result) {
+            expect((result as any).universalKey).toBeDefined()
+            expect(Array.isArray((result as any).components)).toBe(true)
+            expect((result as any).metaData).toBeDefined()
+        }
+    })
+
+    it('should deserialize Snapshot from sidecar when wml is { sidecarUrl }', async () => {
         const wml = deIndentWML(`
             <Asset uuid=(test-asset)>
                 <Room key=(room1) uuid=(room1)>
@@ -520,16 +550,17 @@ describe('WMLDataSourceEventSerializer', () => {
         `)
         ;(maybeFetchSidecarString as jest.Mock).mockImplementationOnce(() => Promise.resolve(wml))
 
-        const result = await serializer.deserializeSnapshot({
-            wml: { sidecarUrl: 'https://example.com/snapshot.wml' }
+        const result = await serializer.deserialize({
+            content: { wml: { sidecarUrl: 'https://example.com/snapshot.wml' } },
+            header: { dataSourceKey: 'mtw.wml', streamKey: 'test', timestamp: 0, type: 'Snapshot' }
         })
 
         expect(maybeFetchSidecarString).toHaveBeenCalledWith({ sidecarUrl: 'https://example.com/snapshot.wml' }, testEnv.fetch)
         expect(result).not.toBeNull()
         if (result) {
-            expect(result.universalKey).toBeDefined()
-            expect(Array.isArray(result.components)).toBe(true)
-            expect(result.metaData).toBeDefined()
+            expect((result as any).universalKey).toBeDefined()
+            expect(Array.isArray((result as any).components)).toBe(true)
+            expect((result as any).metaData).toBeDefined()
         }
     })
 })

@@ -261,6 +261,9 @@ export class WMLEventSerializer implements DataSourceEventSerializer<WMLEventUpd
      * for EventBridge transmission
      */
     serialize(params: WMLSerializeParams): WMLEventExternal {
+        if (params.header?.type === 'Snapshot') {
+            throw new Error('WMLEventSerializer does not support snapshot serialization')
+        }
         if (isZoneChangedWMLSerializeParams(params)) {
             const { content } = params
             return { fromZone: content.fromZone, toZone: content.toZone, ...(content.player != null ? { player: content.player } : {}), ...(content.subFolder != null ? { subFolder: content.subFolder } : {}) }
@@ -298,6 +301,9 @@ export class WMLEventSerializer implements DataSourceEventSerializer<WMLEventUpd
      * for messageBus processing
      */
     async deserialize(params: WMLDeserializeParams): Promise<WMLEventUpdate | null> {
+        if (params.header?.type === 'Snapshot') {
+            return null
+        }
         if (isZoneChangedWMLDeserializeParams(params)) {
             const { content } = params
             return { fromZone: content.fromZone, toZone: content.toZone, ...(content.player != null ? { player: content.player } : {}), ...(content.subFolder != null ? { subFolder: content.subFolder } : {}) }
@@ -331,10 +337,10 @@ export class WMLEventSerializer implements DataSourceEventSerializer<WMLEventUpd
         throw new Error(`Unknown external WML event type: ${JSON.stringify(params.content)}`)
     }
 
-    // Note: serializeSnapshot and deserializeSnapshot are intentionally not implemented.
+    // Snapshot handling: serialize throws, deserialize returns null when header.type === 'Snapshot'.
     // The mtw.wml DataSource is currently non-replayable; when it becomes replayable,
-    // snapshot serialization should use a WML-centric wire format consistent with
-    // Content Update events (WML text, potentially wrapped in a snapshot body object).
+    // add a Snapshot branch in serialize/deserialize using a WML-centric wire format
+    // consistent with Content Update events (WML text, potentially wrapped in a snapshot body object).
 }
 
 /**
@@ -351,10 +357,24 @@ export class WMLDataSourceEventSerializer implements DataSourceEventSerializer<W
     }
 
     serialize(params: { content: WMLContentEvent; header: WMLStreamingEventHeader }): WMLContentEventExternal {
+        if (params.header?.type === 'Snapshot') {
+            throw new Error('WMLDataSourceEventSerializer does not support snapshot serialization')
+        }
         return this.baseSerializer.serialize(params) as WMLContentEventExternal
     }
 
     async deserialize(params: { content: WMLContentEventExternal; header: WMLStreamingEventHeader }): Promise<WMLContentEvent | null> {
+        if (params.header?.type === 'Snapshot') {
+            const externalSnapshot = params.content as { wml: string | { sidecarUrl: string } }
+            try {
+                const wml = await maybeFetchSidecarString(externalSnapshot.wml, this.env.fetch)
+                const standardForm = new StandardForm(wml)
+                return standardForm.toJSON() as WMLContentEvent
+            } catch (error) {
+                console.error('[WMLDataSourceEventSerializer] Failed to deserialize snapshot WML', error)
+                return null
+            }
+        }
         // Route on header: only Content Update and Merge Conflict are accepted for this slice
         if (params.header.type !== 'Content Update' && params.header.type !== 'Merge Conflict') {
             return null
@@ -364,21 +384,5 @@ export class WMLDataSourceEventSerializer implements DataSourceEventSerializer<W
             return result
         }
         return null
-    }
-
-    /**
-     * Deserialize a snapshot from WML text into StandardFormData for client storage.
-     * External snapshot payload is `{ wml: string }` or `{ wml: { sidecarUrl: string } }`;
-     * internal snapshot payload is StandardFormData.
-     */
-    async deserializeSnapshot(externalSnapshot: { wml: string | { sidecarUrl: string } }): Promise<StandardFormData | null> {
-        try {
-            const wml = await maybeFetchSidecarString(externalSnapshot.wml, this.env.fetch)
-            const standardForm = new StandardForm(wml)
-            return standardForm.toJSON()
-        } catch (error) {
-            console.error('[WMLDataSourceEventSerializer] Failed to deserialize snapshot WML', error)
-            return null
-        }
     }
 }
