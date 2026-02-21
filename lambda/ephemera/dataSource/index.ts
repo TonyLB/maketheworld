@@ -49,7 +49,7 @@ export const ephemeraDataSource = new EphemeraDataSource<never, AssetsEventUpdat
     replayable: false,
     eventSerializer: new EphemeraEventSerializer(),
     subscribedEventTypeGuard: isEphemeraSubscribedEnvelope,
-    receiveEvents: async ({ events }) => {
+    receiveEvents: async ({ events, streamEvent, streamEnvelope }) => {
         await Promise.all(events.map(async (evt) => {
             if (isEphemeraComponentEnvelope(evt)) {
                 await processComponentUpdated(evt)

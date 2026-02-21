@@ -1,8 +1,8 @@
 # Streaming Envelope Reversability (Homology Restoration)
 
-**Status**: PLANNING (Phase 1: COMPLETE, Phase 2a: COMPLETE, Phase 2b: COMPLETE, Phase 2c: COMPLETE)  
+**Status**: READY FOR PHASE 3 (Phase 1: COMPLETE, Phase 2a: COMPLETE, Phase 2b: COMPLETE, Phase 2c: COMPLETE)  
 **Scope**: `StreamingEventEnvelope` / `getContent` contract in mtw-lambda-patterns and lambda apps.  
-**Related**: `packages/mtw-lambda-patterns/ts/dataSource/`, [AGENT.streamEvent.alignment.planning.md](AGENT.streamEvent.alignment.planning.md) (side-quest before Phase 3), `AGENT.delegation.planning.mtw-wml-replayability.md`, `documentation/dataSources/AGENT.delegation.planning.md`
+**Related**: `packages/mtw-lambda-patterns/ts/dataSource/`, `AGENT.delegation.planning.mtw-wml-replayability.md`, `documentation/dataSources/AGENT.delegation.planning.md`
 
 ---
 
@@ -38,6 +38,7 @@ This blocks:
 |-----------------------------|----------|------------------------------|---------------------|----------------------------------|
 | EventBridge handlers        | External | Preserved `update`           | Via deserialize     | `coreFormatToStreamingEnvelope` / `createEventBridgeEnvelope` |
 | DataSource `streamEvent`    | External | Preserved `coreFormat.update`| Caller's update     | `coreFormatToStreamingEnvelope`  |
+| DataSource `streamEnvelope` | Envelope | `await envelope.getContent('external')` | Caller passes envelope | Caller constructs envelope; DataSource uses `getContent('external')` for storage |
 | subscribedEvents send-helpers | Internal | Derived via serialize     | Caller's content    | `createInternalOriginEnvelope`   |
 
 **Internal-origin envelopes**: Events synthesized locally (API handlers, messageBus send) have internal content only. Use `createInternalOriginEnvelope` so `getContent('external')` runs `serializer.serialize({ content, header })` on demand. Uniform contract: `getContent('external')` always returns external-shaped data.
@@ -105,11 +106,12 @@ Incremental changes, each tested against the full pipeline. No parallel APIs; no
 - Uniform contract: `getContent('external')` always returns external-shaped data across all envelope types.
 - Verification: Full test run. Internal-origin envelopes now support `getContent('external')` via serialize.
 
-### Phase 3: Wire `getContent('external')` for Storage Paths
+### Phase 3: Wire `getContent('external')` for Storage Paths — READY TO START
 
-- **Side-quest**: Consider [AGENT.streamEvent.alignment.planning.md](AGENT.streamEvent.alignment.planning.md) first — align `streamEvent` to accept envelopes so Phase 3 uses `getContent('external')` for storage via envelope-aligned streamEvent.
-- Identify call sites that need external for Dynamo storage (e.g. streamEvent storage path).
-- Call `await envelope.getContent('external')` and pass to `toDynamoDBFormat({ header, update }, ...)`.
+**Prerequisites (complete):** `streamEnvelope(envelope)` was added as a parallel API to `streamEvent(params)`. It accepts `StreamingEventEnvelope` and uses `await envelope.getContent('external')` for DynamoDB and EventBridge. `receiveEvents` receives both `streamEvent` and `streamEnvelope`. See [AGENT.implementation.md](packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md#choosing-streamevent-vs-streamenvelope) for when to use each.
+
+- Identify call sites that need external for Dynamo storage (e.g. forward/replay flows that must preserve sidecars).
+- Wire those flows to use `streamEnvelope(envelope)` instead of `streamEvent(params)` when they have an envelope to preserve.
 - Add tests for sidecar preservation (external → store → load → external unchanged).
 - Verification: End-to-end test of storage path with sidecarred payload.
 
@@ -121,7 +123,7 @@ Incremental changes, each tested against the full pipeline. No parallel APIs; no
 | 2a | `baseClasses.ts` (StreamingEventEnvelope, envelope guards), `streamEventPublisher.ts` (signatures), `subscribedEvents.ts` (envelope unions) |
 | 2b | `baseClasses.ts`, `streamEventPublisher.ts` (`coreFormatToStreamingEnvelope`), lambda `app.ts`, `index.ts` (streamEvent), `subscribedEvents.ts` (getContent format arg + throw for `external`) |
 | 2c | `streamEventPublisher.ts` (`createInternalOriginEnvelope`), `subscribedEvents.ts` (send-helpers) |
-| 3 | DataSource storage logic (e.g. `deliverReplayData`, `streamEvent` storage path) |
+| 3 | DataSource storage logic; `receiveEvents` call sites that should use `streamEnvelope` for preservation (e.g. forward/replay flows) |
 
 ### Dynamo Usage
 
@@ -196,8 +198,7 @@ Incremental changes, each tested against the full pipeline. No parallel APIs; no
 - The current envelope only exposes internal content via `getContent`; the original external (sidecar) is discarded after deserialize.
 - We cannot store what we do not have: the homology gap blocks storage to Dynamo for sidecarred payloads.
 
-**Where to return ("pop the stack") after finishing:**
+**Where to return ("pop the stack") after finishing Phase 3:**
 
 1. Return to **mtw.wml replayability** — [AGENT.delegation.planning.mtw-wml-replayability.md](AGENT.delegation.planning.mtw-wml-replayability.md).
-2. Use `getContent('external')` (or equivalent) when building Dynamo records for replay storage so sidecarred payloads are preserved.
-3. Continue with delegation and DataSource planning as needed — [documentation/dataSources/AGENT.delegation.planning.md](documentation/dataSources/AGENT.delegation.planning.md).
+2. Continue with delegation and DataSource planning as needed — [documentation/dataSources/AGENT.delegation.planning.md](documentation/dataSources/AGENT.delegation.planning.md).

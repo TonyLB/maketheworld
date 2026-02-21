@@ -1,4 +1,4 @@
-import { DataSource, SerializableObject } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
+import { DataSource, SerializableObject, StreamEnvelopeFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import { EventPayload, StreamingEventHeader, StreamingEventEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { DataSourceAggregator } from '@tonylb/mtw-lambda-patterns/ts/dataSource/aggregation'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
@@ -32,7 +32,8 @@ export class AssetsDataSource<
         subscribedEventTypeGuard?: (envelope: StreamingEventEnvelope<unknown>) => envelope is StreamingEventEnvelope<SubscribedContent>;
         receiveEvents?: (params: { 
             events: Array<StreamingEventEnvelope<SubscribedContent>>,
-            streamEvent: (params: { update: UpdatePayload; streamKey: string; header: { type: string } }) => Promise<void>
+            streamEvent: (params: { update: UpdatePayload; streamKey: string; header: { type: string } }) => Promise<void>,
+            streamEnvelope: StreamEnvelopeFunction
         }) => Promise<void>;
         eventSerializer?: any; // Pass through to parent DataSource
         aggregator?: DataSourceAggregator<SnapshotPayload, UpdatePayload>;

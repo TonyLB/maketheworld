@@ -155,7 +155,8 @@ describe('WML DataSource', () => {
             expect(wmlDataSource.receiveEvents).toBeDefined()
             await wmlDataSource.receiveEvents!({
                 events: [event],
-                streamEvent: mockStreamEvent
+                streamEvent: mockStreamEvent,
+                streamEnvelope: jest.fn().mockResolvedValue(undefined)
             })
 
             expect(moveAssetMock).toHaveBeenCalledWith('ASSET#test-asset', mockMoveRequest)
@@ -194,7 +195,8 @@ describe('WML DataSource', () => {
             // Simulate the receiveEvents processing
             await wmlDataSource.receiveEvents!({
                 events: [event],
-                streamEvent: mockStreamEvent
+                streamEvent: mockStreamEvent,
+                streamEnvelope: jest.fn().mockResolvedValue(undefined)
             })
 
             expect(moveAssetMock).toHaveBeenCalledWith('ASSET#test-asset', mockMoveRequest)
@@ -229,7 +231,8 @@ describe('WML DataSource', () => {
             // Simulate the receiveEvents processing
             await wmlDataSource.receiveEvents!({
                 events: [event],
-                streamEvent: mockStreamEvent
+                streamEvent: mockStreamEvent,
+                streamEnvelope: jest.fn().mockResolvedValue(undefined)
             })
 
             expect(moveAssetMock).toHaveBeenCalledWith('ASSET#test-asset', mockMoveRequest)
@@ -268,7 +271,8 @@ describe('WML DataSource', () => {
             expect(wmlDataSource.receiveEvents).toBeDefined()
             await expect(wmlDataSource.receiveEvents!({
                 events: [event],
-                streamEvent: mockStreamEvent
+                streamEvent: mockStreamEvent,
+                streamEnvelope: jest.fn().mockResolvedValue(undefined)
             })).resolves.not.toThrow()
 
             expect(moveAssetMock).toHaveBeenCalledWith('ASSET#test-asset', mockMoveRequest)
@@ -302,7 +306,8 @@ describe('WML DataSource', () => {
             expect(wmlDataSource.receiveEvents).toBeDefined()
             await expect(wmlDataSource.receiveEvents!({
                 events: [event],
-                streamEvent: mockStreamEvent
+                streamEvent: mockStreamEvent,
+                streamEnvelope: jest.fn().mockResolvedValue(undefined)
             })).resolves.not.toThrow()
 
             expect(moveAssetMock).toHaveBeenCalledWith('ASSET#test-asset', mockMoveRequest)
@@ -341,7 +346,8 @@ describe('WML DataSource', () => {
             expect(wmlDataSource.receiveEvents).toBeDefined()
             await wmlDataSource.receiveEvents!({
                 events: [event],
-                streamEvent: mockStreamEvent
+                streamEvent: mockStreamEvent,
+                streamEnvelope: jest.fn().mockResolvedValue(undefined)
             })
 
             // Verify applyEdit was called with correct parameters
@@ -388,7 +394,8 @@ describe('WML DataSource', () => {
             // Simulate the receiveEvents processing
             await wmlDataSource.receiveEvents!({
                 events: [event],
-                streamEvent: mockStreamEvent
+                streamEvent: mockStreamEvent,
+                streamEnvelope: jest.fn().mockResolvedValue(undefined)
             })
 
             // Verify applyEdit was called
@@ -429,7 +436,8 @@ describe('WML DataSource', () => {
             expect(wmlDataSource.receiveEvents).toBeDefined()
             await expect(wmlDataSource.receiveEvents!({
                 events: [event],
-                streamEvent: mockStreamEvent
+                streamEvent: mockStreamEvent,
+                streamEnvelope: jest.fn().mockResolvedValue(undefined)
             })).resolves.not.toThrow()
 
             // Verify applyEdit was called
@@ -471,7 +479,8 @@ describe('WML DataSource', () => {
             expect(wmlDataSource.receiveEvents).toBeDefined()
             await expect(wmlDataSource.receiveEvents!({
                 events: [event],
-                streamEvent: mockStreamEvent
+                streamEvent: mockStreamEvent,
+                streamEnvelope: jest.fn().mockResolvedValue(undefined)
             })).resolves.not.toThrow()
 
             // Verify applyEdit was called
@@ -505,7 +514,8 @@ describe('WML DataSource', () => {
 
             await wmlDataSource.receiveEvents!({
                 events: [event],
-                streamEvent: mockStreamEvent
+                streamEvent: mockStreamEvent,
+                streamEnvelope: jest.fn().mockResolvedValue(undefined)
             })
 
             // Verify applyEdit was NOT called for invalid streamKey
@@ -539,7 +549,8 @@ describe('WML DataSource', () => {
 
             await wmlDataSource.receiveEvents!({
                 events: [event],
-                streamEvent: mockStreamEvent
+                streamEvent: mockStreamEvent,
+                streamEnvelope: jest.fn().mockResolvedValue(undefined)
             })
 
             // Verify that singleFlight was used (the mock passthrough should have called applyEdit)
@@ -585,7 +596,8 @@ describe('WML DataSource', () => {
 
             await wmlDataSource.receiveEvents!({
                 events: [event],
-                streamEvent: mockStreamEvent
+                streamEvent: mockStreamEvent,
+                streamEnvelope: jest.fn().mockResolvedValue(undefined)
             })
 
             expect(mockStreamEvent).toHaveBeenCalledWith({
@@ -661,7 +673,8 @@ describe('WML DataSource', () => {
             expect(wmlDataSource.receiveEvents).toBeDefined()
             await wmlDataSource.receiveEvents!({
                 events: [event],
-                streamEvent: mockStreamEvent
+                streamEvent: mockStreamEvent,
+                streamEnvelope: jest.fn().mockResolvedValue(undefined)
             })
 
             expect(initializePrimitivesMock).toHaveBeenCalled()
@@ -688,7 +701,8 @@ describe('WML DataSource', () => {
 
             await wmlDataSource.receiveEvents!({
                 events: [event],
-                streamEvent: mockStreamEvent
+                streamEvent: mockStreamEvent,
+                streamEnvelope: jest.fn().mockResolvedValue(undefined)
             })
 
             expect(initializePrimitivesMock).not.toHaveBeenCalled()
@@ -715,7 +729,8 @@ describe('WML DataSource', () => {
 
             await wmlDataSource.receiveEvents!({
                 events: [event],
-                streamEvent: mockStreamEvent
+                streamEvent: mockStreamEvent,
+                streamEnvelope: jest.fn().mockResolvedValue(undefined)
             })
 
             expect(initializePrimitivesMock).not.toHaveBeenCalled()
@@ -745,7 +760,8 @@ describe('WML DataSource', () => {
             // Should not throw - errors should be caught and logged
             await expect(wmlDataSource.receiveEvents!({
                 events: [event],
-                streamEvent: mockStreamEvent
+                streamEvent: mockStreamEvent,
+                streamEnvelope: jest.fn().mockResolvedValue(undefined)
             })).resolves.not.toThrow()
 
             expect(initializePrimitivesMock).toHaveBeenCalled()
@@ -783,7 +799,8 @@ describe('WML DataSource', () => {
 
             await wmlDataSource.receiveEvents!({
                 events: [event],
-                streamEvent: mockStreamEvent
+                streamEvent: mockStreamEvent,
+                streamEnvelope: jest.fn().mockResolvedValue(undefined)
             })
 
             // Should load asset workspace
@@ -830,7 +847,8 @@ describe('WML DataSource', () => {
             // Should not throw - errors should be caught and logged
             await expect(wmlDataSource.receiveEvents!({
                 events: [event],
-                streamEvent: mockStreamEvent
+                streamEvent: mockStreamEvent,
+                streamEnvelope: jest.fn().mockResolvedValue(undefined)
             })).resolves.not.toThrow()
 
             expect(AssetWorkspaceMock.fromUUID).toHaveBeenCalledWith('ASSET#missing-asset')
@@ -861,7 +879,8 @@ describe('WML DataSource', () => {
             // Should not throw - errors should be caught and logged
             await expect(wmlDataSource.receiveEvents!({
                 events: [event],
-                streamEvent: mockStreamEvent
+                streamEvent: mockStreamEvent,
+                streamEnvelope: jest.fn().mockResolvedValue(undefined)
             })).resolves.not.toThrow()
 
             expect(createManualSnapshotMock).toHaveBeenCalled()
@@ -897,7 +916,8 @@ describe('WML DataSource', () => {
             // Should not throw - streaming errors should be caught
             await expect(wmlDataSource.receiveEvents!({
                 events: [event],
-                streamEvent: mockStreamEvent
+                streamEvent: mockStreamEvent,
+                streamEnvelope: jest.fn().mockResolvedValue(undefined)
             })).resolves.not.toThrow()
 
             expect(createManualSnapshotMock).toHaveBeenCalled()
@@ -936,7 +956,8 @@ describe('WML DataSource', () => {
 
                 await wmlDataSource.receiveEvents!({
                     events: [event],
-                    streamEvent: mockStreamEvent
+                    streamEvent: mockStreamEvent,
+                streamEnvelope: jest.fn().mockResolvedValue(undefined)
                 })
 
                 // Should pass the correct zone to createManualSnapshot

@@ -146,7 +146,7 @@ export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, A
     eventSerializer: new AssetsEventSerializer(), // Handle all asset event serialization (component and asset-level)
     // No snapshotContentGenerator needed for non-replayable data sources
     subscribedEventTypeGuard: isAssetsSubscribedEnvelope,
-    receiveEvents: async ({ events, streamEvent }) => {
+    receiveEvents: async ({ events, streamEvent, streamEnvelope }) => {
         await Promise.all(events.map(async (event) => {
             if (isWMLContentUpdateEvent(event)) {
                 await handleContentUpdate(event, streamEvent)

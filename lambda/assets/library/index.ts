@@ -117,7 +117,7 @@ export const libraryDataSource = new AssetsDataSource<
     eventSerializer: new LibraryEventSerializer(),
     snapshotContentGenerator: generateLibrarySnapshot,
     subscribedEventTypeGuard: isLibrarySubscribedEnvelope,
-    receiveEvents: async ({ events, streamEvent }) => {
+    receiveEvents: async ({ events, streamEvent, streamEnvelope }) => {
         const typedEvents = events as LibraryIncomingEvent[]
         await Promise.all(typedEvents.map(async (event) => {
             const assetId = event.header.streamKey as AssetUUID

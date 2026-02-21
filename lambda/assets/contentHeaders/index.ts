@@ -1,4 +1,5 @@
 import { StreamingEventEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import { StreamEnvelopeFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import { AssetsDataSource } from '../dataSource/abstract'
 import messageBus from '../messageBus'
 import { 
@@ -141,7 +142,7 @@ export const contentHeadersDataSource = new AssetsDataSource<
     eventSerializer: new ContentHeadersEventSerializer(),
     snapshotContentGenerator: generateContentHeadersSnapshot,
     subscribedEventTypeGuard: isContentHeadersSubscribedEnvelope,
-    receiveEvents: async ({ events, streamEvent }: { events: Array<StreamingEventEnvelope<ContentHeadersSubscribedContent>>; streamEvent: ContentHeadersStreamEvent }) => {
+    receiveEvents: async ({ events, streamEvent, streamEnvelope }: { events: Array<StreamingEventEnvelope<ContentHeadersSubscribedContent>>; streamEvent: ContentHeadersStreamEvent; streamEnvelope: StreamEnvelopeFunction }) => {
         // Process mtw.assets events and generate content header and zone updates
         // Group content events by asset to enable aggregation
         // Cast to envelope union for TypeScript narrowing

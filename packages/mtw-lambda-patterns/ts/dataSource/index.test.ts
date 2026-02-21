@@ -1,4 +1,4 @@
-import { DataSource, SerializableObject, SnapshotType } from './index'
+import { DataSource, SerializableObject, SnapshotType, coreFormatToStreamingEnvelope } from './index'
 import { StreamingEventHeader } from './baseClasses'
 import { getCurrentTimestamp } from '../internalUtils/dateUtil'
 
@@ -826,6 +826,116 @@ describe('DataSource', () => {
         })
     })
 
+    describe('streamEnvelope', () => {
+        beforeEach(() => {
+            mockUuidv4.mockReturnValue('test-uuid-123' as unknown as ReturnType<typeof uuidv4>)
+        })
+
+        afterEach(() => {
+            jest.clearAllMocks()
+        })
+
+        it('should store external-origin envelope with sidecarred payload and preserve sidecar', async () => {
+            const externalPayloadWithSidecar = {
+                type: 'Content Update' as const,
+                wml: { sidecarUrl: 's3://bucket/key' },
+            }
+            const coreFormat = {
+                header: {
+                    dataSourceKey: 'mtw.wml' as const,
+                    streamKey: 'ZONE#test-zone',
+                    timestamp: 100000000,
+                    type: 'Content Update' as const,
+                },
+                update: externalPayloadWithSidecar,
+            }
+            const envelope = coreFormatToStreamingEnvelope(coreFormat, () => Promise.resolve({ internal: 'content' }))
+
+            await dataSource.streamEnvelope(envelope)
+
+            expect(mockDynamo.putItem).toHaveBeenCalledWith({
+                AssetId: 'STREAM#mtw.wml::ZONE#test-zone',
+                DataCategory: 'EVENT#100000000::test-uuid-123',
+                eventType: 'Content Update',
+                update: externalPayloadWithSidecar,
+            })
+            expect(mockEventBridgeClient.send).toHaveBeenCalledWith([{
+                Source: 'mtw.wml',
+                DetailType: 'Content Update',
+                Detail: expect.objectContaining({
+                    streamKey: 'ZONE#test-zone',
+                    timestamp: 100000000,
+                    wml: { sidecarUrl: 's3://bucket/key' },
+                }),
+            }])
+            expect(mockMessageBus.send).toHaveBeenCalledWith(expect.objectContaining({
+                type: 'StreamingEvent',
+                dataSourceKey: 'mtw.wml',
+                streamKey: 'ZONE#test-zone',
+                timestamp: 100000000,
+                header: coreFormat.header,
+            }))
+            const messageBusPayload = mockMessageBus.send.mock.calls[0][0]
+            expect(messageBusPayload.getContent).toBe(envelope.getContent)
+        })
+
+        it('should not call putItem when DataSource is non-replayable', async () => {
+            const nonReplayableDataSource = new TestDataSource({
+                dynamo: mockDynamo,
+                sns: mockSns,
+                messageBus: mockMessageBus,
+                primaryKeyName: 'AssetId',
+                dataSourceKey: 'mtw.testDataSource',
+                snapshotContentGenerator: mockSnapshotContentGenerator,
+                feedbackTopicArn: 'arn:aws:sns:us-east-1:123456789012:test-feedback',
+                replayable: false,
+            })
+            const coreFormat = {
+                header: {
+                    dataSourceKey: 'mtw.testDataSource' as const,
+                    streamKey: 'test-stream',
+                    timestamp: 100000000,
+                    type: 'TestUpdatePayload' as const,
+                },
+                update: { type: 'TestUpdatePayload', update: 'test-update' },
+            }
+            const envelope = coreFormatToStreamingEnvelope(coreFormat, () => Promise.resolve({ type: 'TestUpdatePayload', update: 'test-update' }))
+
+            await nonReplayableDataSource.streamEnvelope(envelope)
+
+            expect(mockDynamo.putItem).not.toHaveBeenCalled()
+            expect(mockEventBridgeClient.send).toHaveBeenCalledTimes(1)
+            expect(mockMessageBus.send).toHaveBeenCalledTimes(1)
+        })
+
+        it('should generate unique event IDs for different streamEnvelope calls', async () => {
+            const coreFormat = {
+                header: {
+                    dataSourceKey: 'mtw.testDataSource' as const,
+                    streamKey: 'test-stream',
+                    timestamp: 100000000,
+                    type: 'TestUpdatePayload' as const,
+                },
+                update: { type: 'TestUpdatePayload', update: 'test-update' },
+            }
+            const envelope = coreFormatToStreamingEnvelope(coreFormat, () => Promise.resolve({ type: 'TestUpdatePayload', update: 'test-update' }))
+
+            mockUuidv4
+                .mockReturnValueOnce('uuid-a' as unknown as ReturnType<typeof uuidv4>)
+                .mockReturnValueOnce('uuid-b' as unknown as ReturnType<typeof uuidv4>)
+
+            await dataSource.streamEnvelope(envelope)
+            await dataSource.streamEnvelope(envelope)
+
+            expect(mockDynamo.putItem).toHaveBeenNthCalledWith(1, expect.objectContaining({
+                DataCategory: 'EVENT#100000000::uuid-a',
+            }))
+            expect(mockDynamo.putItem).toHaveBeenNthCalledWith(2, expect.objectContaining({
+                DataCategory: 'EVENT#100000000::uuid-b',
+            }))
+        })
+    })
+
     describe('initializeSubscription', () => {
         it('should deliver snapshot and events via SNS', async () => {
             const sessionId = 'SESSION#test-session' as const
@@ -1317,7 +1427,9 @@ describe('DataSource', () => {
                 expect(mockReceiveEvents).toHaveBeenCalledWith(expect.objectContaining({
                     events: expect.arrayContaining([
                         expect.objectContaining({ header: expect.objectContaining({ streamKey: 'char-123' }), getContent: expect.any(Function) })
-                    ])
+                    ]),
+                    streamEvent: expect.any(Function),
+                    streamEnvelope: expect.any(Function)
                 }))
                 expect(mockReceiveEvents.mock.calls[0][0].events).toHaveLength(1)
             })
@@ -1401,7 +1513,8 @@ describe('DataSource', () => {
                             getContent: expect.any(Function)
                         }
                     ],
-                    streamEvent: expect.any(Function)
+                    streamEvent: expect.any(Function),
+                    streamEnvelope: expect.any(Function)
                 })
 
                 const receivedEvents = mockReceiveEvents.mock.calls[0][0].events
@@ -1421,6 +1534,53 @@ describe('DataSource', () => {
                     streamKey: 'test-stream',
                     header: { type: 'Test Event' }
                 })
+            })
+
+            it('should pass streamEnvelope to receiveEvents and forward to dataSource.streamEnvelope', async () => {
+                const dataSourceWithSpy = new TestDataSource({
+                    dynamo: mockDynamo,
+                    sns: mockSns,
+                    messageBus: mockMessageBus,
+                    primaryKeyName: 'AssetId',
+                    dataSourceKey: 'mtw.testDataSource',
+                    snapshotContentGenerator: mockSnapshotContentGenerator,
+                    feedbackTopicArn: 'arn:aws:sns:us-east-1:123456789012:test-feedback',
+                    subscribedEventTypeGuard: mockSubscribedEventTypeGuard,
+                    receiveEvents: mockReceiveEvents
+                })
+                const streamEnvelopeSpy = jest.spyOn(dataSourceWithSpy, 'streamEnvelope').mockResolvedValue(undefined)
+
+                dataSourceWithSpy.subscribe()
+
+                const regularSubscription = mockMessageBus.subscribe.mock.calls.find((call: any) =>
+                    call[0].tag === 'dataSource-mtw.testDataSource'
+                )
+                const callback = regularSubscription[0].callback
+
+                const testEvent = {
+                    type: 'StreamingEvent',
+                    dataSourceKey: 'mtw.test',
+                    streamKey: 'test-stream',
+                    header: {
+                        dataSourceKey: 'mtw.test',
+                        streamKey: 'test-stream',
+                        timestamp: 123456789,
+                        type: 'event1'
+                    },
+                    getContent: () => Promise.resolve({ type: 'event1', data: 'test1' }),
+                    timestamp: 123456789
+                }
+
+                await callback({ payloads: [testEvent] })
+
+                const streamEnvelopeFn = mockReceiveEvents.mock.calls[0][0].streamEnvelope
+                const envelope = {
+                    header: testEvent.header,
+                    getContent: testEvent.getContent
+                }
+                await streamEnvelopeFn(envelope)
+
+                expect(streamEnvelopeSpy).toHaveBeenCalledWith(envelope)
             })
 
             it('should handle receiveEvents errors gracefully', async () => {
@@ -1476,7 +1636,8 @@ describe('DataSource', () => {
                             getContent: expect.any(Function)
                         }
                     ],
-                    streamEvent: expect.any(Function)
+                    streamEvent: expect.any(Function),
+                    streamEnvelope: expect.any(Function)
                 })
 
                 const receivedEvents = errorReceiveEvents.mock.calls[0][0].events
@@ -1509,7 +1670,8 @@ describe('DataSource', () => {
 
                 expect(mockReceiveEvents).toHaveBeenCalledWith({
                     events: [],
-                    streamEvent: expect.any(Function)
+                    streamEvent: expect.any(Function),
+                    streamEnvelope: expect.any(Function)
                 })
             })
 
@@ -1564,7 +1726,8 @@ describe('DataSource', () => {
                             getContent: expect.any(Function)
                         }
                     ],
-                    streamEvent: expect.any(Function)
+                    streamEvent: expect.any(Function),
+                    streamEnvelope: expect.any(Function)
                 })
 
                 const receivedEvents = mockReceiveEvents.mock.calls[0][0].events

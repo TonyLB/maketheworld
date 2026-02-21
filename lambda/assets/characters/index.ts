@@ -115,7 +115,7 @@ export const charactersDataSource = new AssetsDataSource<
     eventSerializer: new CharacterEventSerializer(), // Handle character event serialization
     subscribedEventTypeGuard: isCharactersSubscribedEnvelope,
     snapshotContentGenerator: generateCharacterSnapshot,
-    receiveEvents: async ({ events, streamEvent }) => {
+    receiveEvents: async ({ events, streamEvent, streamEnvelope }) => {
         // Route on envelope (header) first; only resolve content for component events
         await Promise.all(events.map(async (event) => {
             if (!isCharactersComponentEnvelope(event)) {
