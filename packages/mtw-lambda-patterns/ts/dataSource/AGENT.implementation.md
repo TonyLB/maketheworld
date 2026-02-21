@@ -34,6 +34,8 @@ This dual approach ensures efficient delivery while maintaining the correct scop
 ### **Snapshot envelope conventions**
 Snapshots use the same header semantics as streaming events. A single shared `header.type: 'Snapshot'` is used for all DataSources; snapshot rows and replay payloads use the same `{ header, update }` envelope shape as events. Example: build a snapshot header as `{ dataSourceKey, streamKey, timestamp, type: 'Snapshot' }`; the `update` field carries the external snapshot payload.
 
+`snapshotContentGenerator` is the hook for snapshot creation; it may recapitulate from the Dynamo mirror or call an external system (e.g. mtw.wml calls S3Storage). Sidecar (inline vs URL) is a transport choice orthogonal to where content comes from. Returning a fresh presigned URL for the same S3 object ("identical but newer") is fine—it extends the access window without redundant writes.
+
 ### **SNS Feedback Delivery**: Replay data is delivered via the Feedback SNS topic, which allows:
 - **Targeted Delivery**: Data goes directly to the specified `sessionId`
 - **No Fan-out**: Avoids broadcasting historical data to all subscribers
@@ -173,6 +175,8 @@ The DataSource provides two publishing APIs. Both use the same wire format and s
 
 **receiveEvents** receives both `streamEvent` and `streamEnvelope`. Use `streamEvent` for golden-path (resolved-in, resolved-out); use `streamEnvelope` when forwarding or preserving envelopes, publishing envelope-shaped output, or doing partial preservation plus partial transform.
 
+**Future work (sidecarred event payloads):** When Content Update or other events gain field-level sidecarred payloads (e.g. `{ wml: { sidecarUrl } }`), identify the storage call sites in `receiveEvents` that produce those events and switch them to `streamEnvelope(envelope)` instead of `streamEvent(params)`. Construct an envelope with external content and pass it to `streamEnvelope` so `getContent('external')` preserves the sidecar to Dynamo and EventBridge. Add tests for sidecar preservation (external → store → load → external unchanged).
+
 **Serialization: extendedHeader and wire-level eventType**
 
 - **Wire:** Every wire format (EventBridge Detail, DynamoDB, SNS, WebSocket) uses the same rule: extended header = "header minus base four" (dataSourceKey, streamKey, timestamp, type). On EventBridge, DynamoDB, and SNS it is a separate field `extendedHeader` (one object, no key enumeration). On WebSocket the extended part is merged at top level into the flat message. The format layer (formatTransform) applies this rule in every to* and from* transform so that adding a new extended header field does not require editing multiple places.
@@ -241,7 +245,7 @@ Events with `dataSourceKey: 'api.wml'` or `'api.assets'` are **in-process only**
 
 **Convention:** `subscribedEvents.ts` imports from `./localApiEvents`. This keeps internal event contracts local to the lambda rather than in mtw-interfaces, since they are in-process only and not shared across lambdas via EventBridge.
 
-**Reserved handlers (WML):** Canonize/Decanonize and Create Snapshot have handlers in WML with no current call path. They are reserved for reactivation when the publishing UI is built (see AGENT.collaboration.publishing) and when the delegation pattern is implemented (see documentation/dataSources/AGENT.delegation.planning). Do not remove them.
+**Reserved handlers (WML):** Canonize/Decanonize and Create Snapshot have handlers in WML with no current call path. They are reserved for reactivation when the publishing UI is built (see AGENT.collaboration.publishing). Do not remove them.
 
 ### **Type-Safe Routing with Envelope-Level Discriminated Unions and Payload Purity**:
 
