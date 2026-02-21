@@ -416,6 +416,25 @@ describe('WMLEventSerializer', () => {
         })
     })
 
+    describe('Snapshot events', () => {
+        it('should serialize Snapshot with sidecar to domain-shaped payload', () => {
+            const content = { wml: { sidecarUrl: 'https://example.com/snapshot.wml' } }
+            const result = serializer.serialize({
+                content: content as any,
+                header: { dataSourceKey: 'mtw.wml', streamKey: 'test', timestamp: 0, type: 'Snapshot' }
+            })
+            expect(result).toEqual({ wml: { sidecarUrl: 'https://example.com/snapshot.wml' } })
+        })
+
+        it('should deserialize Snapshot with sidecar as identity for backend caching', async () => {
+            const content = { wml: { sidecarUrl: 'https://example.com/snapshot.wml' } }
+            const result = await serializer.deserialize({
+                content,
+                header: { dataSourceKey: 'mtw.wml', streamKey: 'test', timestamp: 0, type: 'Snapshot' }
+            })
+            expect(result).toEqual(content)
+        })
+    })
 })
 
 describe('WMLAggregator', () => {

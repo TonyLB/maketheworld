@@ -12,7 +12,7 @@ import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { initializePrimitives } from './initializePrimitives'
 import { createManualSnapshot } from '../s3Storage/manifest/orchestration'
 import AssetWorkspace from '../s3Storage/AssetWorkspace'
-import { getSidecarSnapshotDescriptor } from '../s3Storage/sidecarSnapshot'
+import { generateWmlSnapshotContent } from './snapshotContent'
 import { singleFlightFactory } from '@tonylb/mtw-lambda-patterns/ts/singleFlight'
 import assetDB from '../utilities/mockableAssetDB'
 import { ApplyEditResult } from './applyEdit'
@@ -276,7 +276,7 @@ const processS3StructureFinding = async (event: StreamingEventEnvelope<Diagnosti
 export const wmlDataSource = new WMLDataSource<{}, WMLEventUpdate, CoordinationEventUpdate | DiagnosticsEventUpdate, WMLEventExternal>({
     dataSourceKey: 'mtw.wml',
     replayable: true, // Required for initializeSubscription (sidecar snapshot on subscribe)
-    snapshotSidecarUrlGenerator: async (streamKey: string) => getSidecarSnapshotDescriptor(streamKey as AssetUUID),
+    snapshotContentGenerator: async (streamKey: string) => generateWmlSnapshotContent(streamKey as AssetUUID),
     subscribedEventTypeGuard: isWMLSubscribedEnvelope,
     receiveEvents: async ({ events, streamEvent, streamEnvelope }) => {
         await Promise.all(events.map(async (event) => {
