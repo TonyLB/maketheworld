@@ -78,7 +78,7 @@ export function sendApplyEdit(bus: Bus, streamKey: string, content: ApplyEditReq
         dataSourceKey: 'api.wml',
         streamKey,
         header,
-        getContentInternal: () => Promise.resolve(content),
+        getContent: () => Promise.resolve(content),
         timestamp,
     })
 }
@@ -96,7 +96,7 @@ export function sendMoveAsset(bus: Bus, streamKey: string, content: MoveAssetReq
         dataSourceKey: 'api.wml',
         streamKey,
         header,
-        getContentInternal: () => Promise.resolve(content),
+        getContent: () => Promise.resolve(content),
         timestamp,
     })
 }
@@ -114,7 +114,7 @@ export function sendPurgeAsset(bus: Bus, streamKey: string, content: PurgeAssetR
         dataSourceKey: 'api.wml',
         streamKey,
         header,
-        getContentInternal: () => Promise.resolve(content),
+        getContent: () => Promise.resolve(content),
         timestamp,
     })
 }

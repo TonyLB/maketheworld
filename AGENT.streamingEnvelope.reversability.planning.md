@@ -1,6 +1,6 @@
 # Streaming Envelope Reversability (Homology Restoration)
 
-**Status**: PLANNING  
+**Status**: PLANNING (Phase 1: COMPLETE)  
 **Scope**: `StreamingEventEnvelope` / `getContentInternal` contract in mtw-lambda-patterns and lambda apps.  
 **Related**: `packages/mtw-lambda-patterns/ts/dataSource/`, `AGENT.delegation.planning.mtw-wml-replayability.md`, `documentation/dataSources/AGENT.delegation.planning.md`
 
@@ -125,6 +125,12 @@ Incremental changes, each tested against the full pipeline. No parallel APIs; no
 ### Dynamo Usage
 
 - `getContent('external')` plus `toDynamoDBFormat({ header, update }, primaryKeyName, eventId)` — no `getContent('Dynamo')` needed.
+
+### Phase 1 Completed (2025-02-21)
+
+- Renamed `getContentInternal` -> `getContent` across all types, base classes, lambda messageBus contracts, construction sites, call sites, tests, and documentation.
+- Verification: DataSource tests (110 passed), WML lambda (242 passed), Assets lambda (120 passed), Ephemera lambda (104 passed).
+- `getContentInternal` now appears only in this document (problem/solution framing for Phase 2).
 
 ---
 

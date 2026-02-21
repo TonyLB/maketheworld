@@ -79,7 +79,7 @@ export const handler = async (event, context) => {
                     dataSourceKey: 'mtw.wml',
                     streamKey,
                     header,
-                    getContentInternal: () => Promise.resolve(content),
+                    getContent: () => Promise.resolve(content),
                     timestamp
                 })
                 await messageBus.flush()
@@ -119,13 +119,13 @@ export const handler = async (event, context) => {
                 // Convert EventBridge event to CoreExternalFormat using format transformer
                 const coreFormat = fromEventBridgeFormat(event)
                 const { header, update } = coreFormat
-                // Publish to messageBus with lazy deserialize; consumer awaits getContentInternal() and handles null
+                // Publish to messageBus with lazy deserialize; consumer awaits getContent() and handles null
                 messageBus.send({
                     type: 'StreamingEvent',
                     dataSourceKey: header.dataSourceKey,
                     streamKey: header.streamKey,
                     header,
-                    getContentInternal: () => deserializer.deserialize({ content: update as any, header }),
+                    getContent: () => deserializer.deserialize({ content: update as any, header }),
                     timestamp: event.time ? new Date(event.time).getTime() : header.timestamp
                 })
             } else {

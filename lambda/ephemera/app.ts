@@ -70,13 +70,13 @@ export const handler = async (event: any, context: any) => {
             const coreFormat = fromEventBridgeFormat(event)
             const { header, update } = coreFormat
             const timestamp = header.timestamp ?? (event.time ? new Date(event.time).getTime() : getCurrentTimestamp())
-            // Publish to messageBus with lazy deserialize; consumer awaits getContentInternal() and handles null
+            // Publish to messageBus with lazy deserialize; consumer awaits getContent() and handles null
             messageBus.send({
                 type: 'StreamingEvent',
                 dataSourceKey: header.dataSourceKey,
                 streamKey: header.streamKey,
                 header,
-                getContentInternal: () => deserializer.deserialize({ content: update as any, header }),
+                getContent: () => deserializer.deserialize({ content: update as any, header }),
                 timestamp
             })
         } else {

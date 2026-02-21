@@ -28,14 +28,14 @@ export type PlayersSubscribedHeader =
 
 /**
  * Envelope-level discriminated union for events subscribed by mtw.assets.players.
- * Each variant pairs a narrow header (dataSourceKey + type) with getContentInternal returning the matching content shape.
+ * Each variant pairs a narrow header (dataSourceKey + type) with getContent returning the matching content shape.
  */
 export type PlayersIncomingEvent =
-    | { header: StreamingEventHeader & { dataSourceKey: 'api.assets'; type: 'Player Settings Updated' }; getContentInternal: () => Promise<PlayerSettingsUpdatedEvent> }
-    | { header: StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Asset Added' }; getContentInternal: () => Promise<AssetAddedEventUpdate> }
-    | { header: StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Asset Removed' }; getContentInternal: () => Promise<AssetRemovedEventUpdate> }
-    | { header: StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Asset Updated' }; getContentInternal: () => Promise<AssetUpdatedEventUpdate> }
-    | { header: StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Zone Updated' }; getContentInternal: () => Promise<ZoneUpdatedEventUpdate> }
+    | { header: StreamingEventHeader & { dataSourceKey: 'api.assets'; type: 'Player Settings Updated' }; getContent: () => Promise<PlayerSettingsUpdatedEvent> }
+    | { header: StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Asset Added' }; getContent: () => Promise<AssetAddedEventUpdate> }
+    | { header: StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Asset Removed' }; getContent: () => Promise<AssetRemovedEventUpdate> }
+    | { header: StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Asset Updated' }; getContent: () => Promise<AssetUpdatedEventUpdate> }
+    | { header: StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Zone Updated' }; getContent: () => Promise<ZoneUpdatedEventUpdate> }
 
 const isPlayerSettingsHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey: 'api.assets'; type: 'Player Settings Updated' }> = (h): h is StreamingEventHeader & { dataSourceKey: 'api.assets'; type: 'Player Settings Updated' } =>
     h.dataSourceKey === 'api.assets' && h.type === 'Player Settings Updated'
@@ -78,7 +78,7 @@ export function sendPlayerSettingsUpdated(bus: Bus, streamKey: string, content: 
         dataSourceKey: 'api.assets',
         streamKey,
         header,
-        getContentInternal: () => Promise.resolve(content),
+        getContent: () => Promise.resolve(content),
         timestamp,
     })
 }

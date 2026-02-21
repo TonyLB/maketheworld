@@ -283,7 +283,7 @@ export type StreamingEventMessage = {
     streamKey: string;
     header: StreamingEventHeader;
     timestamp: number;
-    getContentInternal: () => Promise<unknown>;
+    getContent: () => Promise<unknown>;
 }
 
 export type MessageType = PublishMessage |

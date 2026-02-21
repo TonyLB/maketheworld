@@ -43,7 +43,7 @@ const processApplyEdit = async (
     event: StreamingEventEnvelope<ApplyEditRequest> & { header: StreamingEventHeader & { streamKey: string } },
     streamEvent: StreamEventFn
 ): Promise<void> => {
-    const payload = await event.getContentInternal()
+    const payload = await event.getContent()
     if (!payload) return
     const AssetId = event.header.streamKey
     if (!isSchemaAssetUUID(AssetId)) {
@@ -94,7 +94,7 @@ const processMoveAsset = async (
     event: StreamingEventEnvelope<MoveAssetRequest> & { header: StreamingEventHeader & { streamKey: string } },
     streamEvent: StreamEventFn
 ): Promise<void> => {
-    const payload = await event.getContentInternal()
+    const payload = await event.getContent()
     if (!payload) return
     const AssetId = event.header.streamKey
     if (!isSchemaAssetUUID(AssetId)) {
@@ -134,7 +134,7 @@ const processCanonizeDecanonize = async (
     event: StreamingEventEnvelope<CoordinationEventUpdate> & { header: StreamingEventHeader & { streamKey: string } },
     streamEvent: StreamEventFn
 ): Promise<void> => {
-    const payload = await event.getContentInternal()
+    const payload = await event.getContent()
     if (!payload) return
     const AssetId = event.header.streamKey
     if (!isSchemaAssetUUID(AssetId)) {
@@ -213,7 +213,7 @@ const processPurgeAsset = async (
     event: StreamingEventEnvelope<PurgeAssetRequest> & { header: StreamingEventHeader & { streamKey: string } },
     streamEvent: StreamEventFn
 ): Promise<void> => {
-    const payload = await event.getContentInternal()
+    const payload = await event.getContent()
     if (!payload) return
     const AssetId = event.header.streamKey
     if (!isSchemaAssetUUID(AssetId)) {
@@ -253,7 +253,7 @@ const processPurgeAsset = async (
 }
 
 const processS3StructureFinding = async (event: StreamingEventEnvelope<DiagnosticsEventUpdate>): Promise<void> => {
-    const payload = await event.getContentInternal()
+    const payload = await event.getContent()
     if (!payload || !isS3StructureFindingEvent(payload)) return
     if (payload.source === 'primitives.wml' && payload.status === 'missing') {
         try {

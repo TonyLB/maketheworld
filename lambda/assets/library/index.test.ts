@@ -67,7 +67,7 @@ describe('LibraryDataSource (mtw.assets.library)', () => {
                     timestamp: Date.now(),
                     type: 'Zone Updated'
                 },
-                getContentInternal: () => Promise.resolve({})
+                getContent: () => Promise.resolve({})
             }
 
             expect(libraryDataSource.subscribedEventTypeGuard?.(envelope)).toBe(true)
@@ -81,7 +81,7 @@ describe('LibraryDataSource (mtw.assets.library)', () => {
                     timestamp: Date.now(),
                     type: 'Asset Cached'
                 },
-                getContentInternal: () => Promise.resolve({})
+                getContent: () => Promise.resolve({})
             }
 
             expect(libraryDataSource.subscribedEventTypeGuard?.(envelope)).toBe(true)
@@ -95,7 +95,7 @@ describe('LibraryDataSource (mtw.assets.library)', () => {
                     timestamp: Date.now(),
                     type: 'Asset Removed'
                 },
-                getContentInternal: () => Promise.resolve({})
+                getContent: () => Promise.resolve({})
             }
 
             expect(libraryDataSource.subscribedEventTypeGuard?.(envelope)).toBe(true)
@@ -109,7 +109,7 @@ describe('LibraryDataSource (mtw.assets.library)', () => {
                     timestamp: Date.now(),
                     type: 'Component Updated'
                 },
-                getContentInternal: () => Promise.resolve({})
+                getContent: () => Promise.resolve({})
             }
 
             expect(libraryDataSource.subscribedEventTypeGuard?.(envelope)).toBe(false)
@@ -123,7 +123,7 @@ describe('LibraryDataSource (mtw.assets.library)', () => {
                     timestamp: Date.now(),
                     type: 'Content Update'
                 },
-                getContentInternal: () => Promise.resolve({})
+                getContent: () => Promise.resolve({})
             }
 
             expect(libraryDataSource.subscribedEventTypeGuard?.(envelope)).toBe(false)
@@ -146,7 +146,7 @@ describe('LibraryDataSource (mtw.assets.library)', () => {
                         timestamp: Date.now(),
                         type: 'Zone Updated' as const
                     },
-                    getContentInternal: () => Promise.resolve({
+                    getContent: () => Promise.resolve({
                         type: 'Zone Updated' as const,
                         fromZone: 'Personal',
                         toZone: 'Library'
@@ -173,7 +173,7 @@ describe('LibraryDataSource (mtw.assets.library)', () => {
                         timestamp: Date.now(),
                         type: 'Zone Updated' as const
                     },
-                    getContentInternal: () => Promise.resolve({
+                    getContent: () => Promise.resolve({
                         type: 'Zone Updated' as const,
                         fromZone: 'Library',
                         toZone: 'Personal'
@@ -200,7 +200,7 @@ describe('LibraryDataSource (mtw.assets.library)', () => {
                         timestamp: Date.now(),
                         type: 'Zone Updated' as const
                     },
-                    getContentInternal: () => Promise.resolve({
+                    getContent: () => Promise.resolve({
                         type: 'Zone Updated' as const,
                         fromZone: 'Canon',
                         toZone: 'Personal'
@@ -223,7 +223,7 @@ describe('LibraryDataSource (mtw.assets.library)', () => {
                         timestamp: Date.now(),
                         type: 'Zone Updated' as const
                     },
-                    getContentInternal: () => Promise.resolve({
+                    getContent: () => Promise.resolve({
                         type: 'Zone Updated' as const,
                         fromZone: 'Library',
                         toZone: 'Library'
@@ -248,7 +248,7 @@ describe('LibraryDataSource (mtw.assets.library)', () => {
                         timestamp: Date.now(),
                         type: 'Asset Cached' as const
                     },
-                    getContentInternal: () => Promise.resolve({
+                    getContent: () => Promise.resolve({
                         type: 'Asset Cached' as const,
                         zone: 'Library'
                     })
@@ -274,7 +274,7 @@ describe('LibraryDataSource (mtw.assets.library)', () => {
                         timestamp: Date.now(),
                         type: 'Asset Cached' as const
                     },
-                    getContentInternal: () => Promise.resolve({
+                    getContent: () => Promise.resolve({
                         type: 'Asset Cached' as const,
                         zone: 'Personal'
                     })
@@ -298,7 +298,7 @@ describe('LibraryDataSource (mtw.assets.library)', () => {
                         timestamp: Date.now(),
                         type: 'Asset Removed' as const
                     },
-                    getContentInternal: () => Promise.resolve({
+                    getContent: () => Promise.resolve({
                         type: 'Asset Removed' as const,
                         zone: 'Library'
                     })
@@ -327,7 +327,7 @@ describe('LibraryDataSource (mtw.assets.library)', () => {
                             timestamp: Date.now(),
                             type: 'Zone Updated' as const
                         },
-                        getContentInternal: () => Promise.resolve({
+                        getContent: () => Promise.resolve({
                             type: 'Zone Updated' as const,
                             fromZone: 'Canon',
                             toZone: 'Library'
@@ -340,7 +340,7 @@ describe('LibraryDataSource (mtw.assets.library)', () => {
                             timestamp: Date.now(),
                             type: 'Asset Cached' as const
                         },
-                        getContentInternal: () => Promise.resolve({
+                        getContent: () => Promise.resolve({
                             type: 'Asset Cached' as const,
                             zone: 'Library'
                         })
@@ -352,7 +352,7 @@ describe('LibraryDataSource (mtw.assets.library)', () => {
                             timestamp: Date.now(),
                             type: 'Zone Updated' as const
                         },
-                        getContentInternal: () => Promise.resolve({
+                        getContent: () => Promise.resolve({
                             type: 'Zone Updated' as const,
                             fromZone: 'Library',
                             toZone: 'Personal'

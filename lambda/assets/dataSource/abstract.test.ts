@@ -116,7 +116,7 @@ describe('AssetsDataSource', () => {
                 })
             )
 
-            // Verify messageBus message (header + getContentInternal envelope)
+            // Verify messageBus message (header + getContent envelope)
             const sendCall = (messageBus.send as jest.Mock).mock.calls[0][0]
             expect(sendCall).toMatchObject({
                 type: 'StreamingEvent',
@@ -127,8 +127,8 @@ describe('AssetsDataSource', () => {
                     streamKey: 'test-stream'
                 })
             })
-            expect(sendCall.getContentInternal).toBeDefined()
-            expect(await sendCall.getContentInternal()).toEqual(expect.objectContaining(update))
+            expect(sendCall.getContent).toBeDefined()
+            expect(await sendCall.getContent()).toEqual(expect.objectContaining(update))
         })
     })
 

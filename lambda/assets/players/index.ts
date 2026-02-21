@@ -46,7 +46,7 @@ const handleAssetRemoved = async (
     event: Extract<PlayersIncomingEvent, { header: { type: 'Asset Removed' } }>,
     streamEvent: StreamEventFn
 ): Promise<void> => {
-    const content = await event.getContentInternal()
+    const content = await event.getContent()
     const assetId = event.header.streamKey as AssetUUID
     const { zone, player } = content
     if (isPlayerZone(zone) && player) {
@@ -59,7 +59,7 @@ const handleAssetAdded = async (
     event: Extract<PlayersIncomingEvent, { header: { type: 'Asset Added' } }>,
     streamEvent: StreamEventFn
 ): Promise<void> => {
-    const content = await event.getContentInternal()
+    const content = await event.getContent()
     const assetId = event.header.streamKey as AssetUUID
     const { zone, player } = content
     if (isPlayerZone(zone) && player) {
@@ -72,7 +72,7 @@ const handleZoneUpdated = async (
     event: Extract<PlayersIncomingEvent, { header: { type: 'Zone Updated' } }>,
     streamEvent: StreamEventFn
 ): Promise<void> => {
-    const content = await event.getContentInternal()
+    const content = await event.getContent()
     const assetId = event.header.streamKey as AssetUUID
     const { fromZone, toZone, player } = content
     const wasPlayerZone = isPlayerZone(fromZone)
@@ -93,7 +93,7 @@ const handleAssetUpdated = async (
     event: Extract<PlayersIncomingEvent, { header: { type: 'Asset Updated' } }>,
     streamEvent: StreamEventFn
 ): Promise<void> => {
-    const content = await event.getContentInternal()
+    const content = await event.getContent()
     const assetId = event.header.streamKey as AssetUUID
     const { player } = content
     if (player) {

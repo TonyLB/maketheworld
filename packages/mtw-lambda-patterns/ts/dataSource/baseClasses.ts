@@ -37,28 +37,28 @@ export type StreamingEventPayloadContract = {
     streamKey: string;
     timestamp: number;
     header: StreamingEventHeader;
-    getContentInternal: () => Promise<unknown>;
+    getContent: () => Promise<unknown>;
 };
 
 // Internal DataSource format for StreamingEvent messages on the messageBus.
-// Canonical shape is header + getContentInternal.
+// Canonical shape is header + getContent.
 export type StreamingEventPayload = {
     dataSourceKey: string;
     streamKey: string;
     timestamp: number;
     header: StreamingEventHeader;
-    getContentInternal: () => Promise<EventPayload>;
+    getContent: () => Promise<EventPayload>;
 }
 
-// In-process envelope passed to receiveEvents. Handlers obtain internal content via getContentInternal().
+// In-process envelope passed to receiveEvents. Handlers obtain internal content via getContent().
 export type StreamingEventEnvelope<Content = EventPayload, Header extends StreamingEventHeader = StreamingEventHeader> = {
     header: Header;
-    getContentInternal: () => Promise<Content>;
+    getContent: () => Promise<Content>;
 }
 
 /**
  * Resolved streaming envelope: header + content (no lazy getter).
- * Same shape as StreamingEventEnvelope but with content in hand instead of getContentInternal().
+ * Same shape as StreamingEventEnvelope but with content in hand instead of getContent().
  * Used by: DataSourceAggregator.applyUpdate; client recentEvents; and conceptually by
  * serialize(params) / deserialize(params) which take { header, update } or { header, externalUpdate }.
  */

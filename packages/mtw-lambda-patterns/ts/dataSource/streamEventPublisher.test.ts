@@ -237,12 +237,12 @@ describe('coreFormatToResolvedSnapshotEnvelope', () => {
 })
 
 describe('coreFormatToStreamingEnvelope', () => {
-    it('should return StreamingEventEnvelope with header and getContentInternal', async () => {
+    it('should return StreamingEventEnvelope with header and getContent', async () => {
         const coreFormat = createSnapshotCoreFormat('mtw.assets', 'key', 1, { type: 'Snapshot', data: 'x' })
         const content = { deserialized: true }
         const envelope = coreFormatToStreamingEnvelope(coreFormat, () => Promise.resolve(content))
 
         expect(envelope.header).toBe(coreFormat.header)
-        expect(await envelope.getContentInternal()).toEqual(content)
+        expect(await envelope.getContent()).toEqual(content)
     })
 })

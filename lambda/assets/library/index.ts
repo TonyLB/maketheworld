@@ -38,7 +38,7 @@ const processZoneUpdated = async (
     event: Extract<LibraryIncomingEvent, { header: { type: 'Zone Updated' } }>,
     streamEvent: (params: { update: AssetAdded | AssetRemoved; streamKey: string; header: { type: string } }) => Promise<void>
 ): Promise<void> => {
-    const content = await event.getContentInternal()
+    const content = await event.getContent()
     const { fromZone, toZone } = content
     const assetId = event.header.streamKey as AssetUUID
     if (toZone === 'Library' && fromZone !== 'Library') {
@@ -52,7 +52,7 @@ const processAssetCached = async (
     event: Extract<LibraryIncomingEvent, { header: { type: 'Asset Cached' } }>,
     streamEvent: (params: { update: AssetAdded | AssetRemoved; streamKey: string; header: { type: string } }) => Promise<void>
 ): Promise<void> => {
-    const content = await event.getContentInternal()
+    const content = await event.getContent()
     const { zone } = content
     const assetId = event.header.streamKey as AssetUUID
     if (zone === 'Library') {

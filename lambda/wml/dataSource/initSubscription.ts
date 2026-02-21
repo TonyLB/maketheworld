@@ -27,7 +27,7 @@ export function sendInitializeSubscription(
         dataSourceKey: 'mtw.subscriptions',
         streamKey,
         header,
-        getContentInternal: () => Promise.resolve(payload),
+        getContent: () => Promise.resolve(payload),
         timestamp
     })
 }

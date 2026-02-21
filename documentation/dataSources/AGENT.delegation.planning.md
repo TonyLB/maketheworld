@@ -37,16 +37,16 @@ WML delegates snapshot creation. The current implementation (`getSidecarSnapshot
 
 ## What we did (completed)
 
-### Header + getContentInternal
+### Header + getContent
 
-- DataSource events use a **header** (always-inline: `type`, `dataSourceKey`, `streamKey`, `timestamp`, optional domain flags) plus **getContentInternal** (lazy access to payload). No `content` property on the contract.
-- Lambda gates (assets, WML, ephemera) build `{ header, getContentInternal }` for the messageBus. `subscribedEventTypeGuard` and filters use header only; `receiveEvents` calls `await event.getContentInternal()` when it needs the payload.
+- DataSource events use a **header** (always-inline: `type`, `dataSourceKey`, `streamKey`, `timestamp`, optional domain flags) plus **getContent** (lazy access to payload). No `content` property on the contract.
+- Lambda gates (assets, WML, ephemera) build `{ header, getContent }` for the messageBus. `subscribedEventTypeGuard` and filters use header only; `receiveEvents` calls `await event.getContent()` when it needs the payload.
 - Client DataSource slices use `ClientStreamingHeader` and `ClientStreamingEnvelope`; reducers branch on header and obtain payload via the envelope's lazy resolution.
-- Payload access is centralized: inline external deserializes on demand; sidecarred content fetches -> parses -> deserializes; same-process messageBus returns as-is. Routing never calls getContentInternal.
+- Payload access is centralized: inline external deserializes on demand; sidecarred content fetches -> parses -> deserializes; same-process messageBus returns as-is. Routing never calls getContent.
 
 ### Sidecar at snapshot/event level
 
-- External shape can express "body here" vs "body at URI" per snapshot or per event. When sidecarred, `getContentInternal` does fetch -> interpret -> deserialize; the pipeline stays sidecar-agnostic.
+- External shape can express "body here" vs "body at URI" per snapshot or per event. When sidecarred, `getContent` does fetch -> interpret -> deserialize; the pipeline stays sidecar-agnostic.
 - Existing typeguards (e.g. `isWMLMaterializedView`, `isWMLContentEventExternal`) validate parsed sidecar bodies. No new DataSource parameters needed; document convention for snapshot-body vs event-payload guards when they differ.
 
 ---
@@ -72,7 +72,7 @@ WML delegates snapshot creation. The current implementation (`getSidecarSnapshot
 3. **Refine WML delegated snapshot creation**  
    Implement `snapshotContentGenerator` for WML that calls the manifest/chunk system (e.g. `getSidecarSnapshotDescriptor` or future `getDelegatedSnapshot`) and returns domain-shaped payload `{ wml: string }` or `{ wml: { sidecarUrl } }`. Reconstruct from manifest when chunks exist (never trust materialized view in that case).
 4. **Refactor WML snapshot representation (representation + client plumbing)**  
-   Change the WML DataSource snapshot payload to use `StandardForm` as the internal in-memory shape (rather than `StandardFormData`), with wire-format snapshots as WML strings (inline or via sidecar) and `StandardFormData` as the immutable client/storage representation. Ensure deserialization / `getContentInternal` translates snapshot content (inline or sidecar-fetched) into `StandardForm` for manipulation by aggregators and downstream code, and that clients convert `StandardForm` back to `StandardFormData` when writing to Redux or other storage.  
+   Change the WML DataSource snapshot payload to use `StandardForm` as the internal in-memory shape (rather than `StandardFormData`), with wire-format snapshots as WML strings (inline or via sidecar) and `StandardFormData` as the immutable client/storage representation. Ensure deserialization / `getContent` translates snapshot content (inline or sidecar-fetched) into `StandardForm` for manipulation by aggregators and downstream code, and that clients convert `StandardForm` back to `StandardFormData` when writing to Redux or other storage.  
    **Status**: Representation and client-side plumbing implemented (snapshot wire format is WML; internal operations use `StandardForm`; Redux stores `StandardFormData`).  
 5. **Adopt snapshot representation in delegated snapshot generator and mirror**  
    Update the WML delegated snapshot generator and (future) Dynamo mirror to actually produce and store snapshots in this representation: WML text as the wire payload (inline or sidecar), deserialized into `StandardForm` for aggregation and replay. Where structured JSON is needed (e.g. client Redux state), convert `StandardForm` to `StandardFormData` at the client boundary; do not require Dynamo to store `StandardFormData` for WML snapshots.

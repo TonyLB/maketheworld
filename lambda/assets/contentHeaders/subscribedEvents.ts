@@ -9,19 +9,19 @@ import { WMLZoneEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/wml'
 export type ContentHeadersIncomingEvent =
     | {
           header: StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Component Updated' };
-          getContentInternal: () => Promise<ComponentUpdatedEvent>;
+          getContent: () => Promise<ComponentUpdatedEvent>;
       }
     | {
           header: StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Component Removed' };
-          getContentInternal: () => Promise<ComponentRemovedEvent>;
+          getContent: () => Promise<ComponentRemovedEvent>;
       }
     | {
           header: StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Asset Updated' };
-          getContentInternal: () => Promise<AssetUpdatedEventUpdate>;
+          getContent: () => Promise<AssetUpdatedEventUpdate>;
       }
     | {
           header: StreamingEventHeader & { dataSourceKey: 'mtw.wml'; type: 'Zone Changed' };
-          getContentInternal: () => Promise<WMLZoneEvent>;
+          getContent: () => Promise<WMLZoneEvent>;
       };
 
 export type SubscribedAssetsContent = ComponentEventUpdate | AssetUpdatedEventUpdate

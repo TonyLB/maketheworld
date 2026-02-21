@@ -2,7 +2,7 @@ import { InternalMessageBus } from '@tonylb/mtw-lambda-patterns/ts/messageBus'
 import { StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 
 // WML messageBus streaming messages use a header-like shape (dataSourceKey, streamKey, timestamp, type)
-// plus content (or getContentInternal). DataSource.subscribe() builds envelopes and filters with
+// plus content (or getContent). DataSource.subscribe() builds envelopes and filters with
 // subscribedEvents envelope guards. Payload types stay in dataSource/subscribedEvents; baseClasses is payload-agnostic.
 
 export type ReturnValueMessage = {
@@ -24,7 +24,7 @@ export type StreamingEventMessage = {
     streamKey: string;
     header: StreamingEventHeader;
     timestamp: number;
-    getContentInternal: () => Promise<unknown>;
+    getContent: () => Promise<unknown>;
 }
 
 export type { StreamingEventHeader }
