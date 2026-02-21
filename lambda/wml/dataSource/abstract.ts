@@ -1,6 +1,5 @@
 import { DataSource, SerializableObject, StreamEventFunction, StreamEnvelopeFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import { EventPayload, StreamingEventHeader, StreamingEventEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
-import type { SidecarSnapshotDescriptor } from '../s3Storage/sidecarSnapshot'
 import { WMLStreamingEventHeader } from '@tonylb/mtw-interfaces/ts/eventBridge/wml'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { snsClient } from '../clients'
@@ -22,7 +21,6 @@ export class WMLDataSource<SnapshotPayload extends SerializableObject, UpdatePay
     constructor(params: {
         dataSourceKey: string;
         snapshotContentGenerator?: (streamKey: string) => Promise<SnapshotPayload>; // Optional - not needed for non-replayable data sources
-        snapshotSidecarUrlGenerator?: (streamKey: string) => Promise<SidecarSnapshotDescriptor>;
         snapshotTimeoutMs?: number;
         replayable?: boolean;
         subscribedEventTypeGuard?: (envelope: StreamingEventEnvelope<unknown>) => envelope is StreamingEventEnvelope<SubscribedContent>;

@@ -117,15 +117,12 @@ describe('subscription handlerFramework', () => {
             }])
             internalCacheMock.SessionConnections.get.mockResolvedValue(['CONNECTION#C1'])
             const coreFormat = {
-                dataSourceKey: 'mtw.assets.players',
-                streamKey: 'player99',
-                timestamp: 999,
-                RequestId: 'req-default',
                 header: {
                     dataSourceKey: 'mtw.assets.players',
                     streamKey: 'player99',
                     timestamp: 999,
-                    type: 'Player Settings Updated'
+                    type: 'Player Settings Updated',
+                    RequestId: 'req-default'
                 },
                 update: { type: 'Player Settings Updated', settings: { onboardCompleteTags: [] } }
             }

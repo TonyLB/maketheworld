@@ -262,7 +262,9 @@ export class WMLEventSerializer implements DataSourceEventSerializer<WMLEventUpd
      */
     serialize(params: WMLSerializeParams): WMLEventExternal {
         if (params.header?.type === 'Snapshot') {
-            throw new Error('WMLEventSerializer does not support snapshot serialization')
+            const { content } = params
+            const snapshotContent = content as { wml: string | { sidecarUrl: string } }
+            return { wml: snapshotContent.wml } as WMLEventExternal
         }
         if (isZoneChangedWMLSerializeParams(params)) {
             const { content } = params
@@ -302,7 +304,13 @@ export class WMLEventSerializer implements DataSourceEventSerializer<WMLEventUpd
      */
     async deserialize(params: WMLDeserializeParams): Promise<WMLEventUpdate | null> {
         if (params.header?.type === 'Snapshot') {
-            return null
+            // Temporary expedient until mtw.wml refactor with streamEnvelope for storing snapshots into Dynamo.
+            // Today the backend loads from store and passes through the claim-check (identity) since it does not
+            // need the fetched WML. Once we use streamEnvelope for snapshot storage, the only callers of
+            // deserialize will be those that actually want the fetched data (e.g. client slice); those will
+            // resolve sidecars via maybeFetchSidecarString. This backend path can then be removed or updated.
+            const { content } = params
+            return content as unknown as WMLEventUpdate
         }
         if (isZoneChangedWMLDeserializeParams(params)) {
             const { content } = params
@@ -337,10 +345,8 @@ export class WMLEventSerializer implements DataSourceEventSerializer<WMLEventUpd
         throw new Error(`Unknown external WML event type: ${JSON.stringify(params.content)}`)
     }
 
-    // Snapshot handling: serialize throws, deserialize returns null when header.type === 'Snapshot'.
-    // The mtw.wml DataSource is currently non-replayable; when it becomes replayable,
-    // add a Snapshot branch in serialize/deserialize using a WML-centric wire format
-    // consistent with Content Update events (WML text, potentially wrapped in a snapshot body object).
+    // Snapshot handling: serialize/deserialize pass through domain-shaped { wml: string | { sidecarUrl } }.
+    // Backend uses identity for store load/caching; client slice uses WMLDataSourceEventSerializer.
 }
 
 /**
