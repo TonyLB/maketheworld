@@ -372,6 +372,39 @@ export class DataSource<
     }
 
     /**
+     * Stream an envelope-shaped event. Use when forwarding or storing external-origin events,
+     * publishing envelope-shaped results (e.g. S3 snapshotting), or doing partial preservation
+     * plus partial transform. Uses getContent('external') for DynamoDB and EventBridge; passes
+     * envelope to messageBus.
+     */
+    async streamEnvelope(envelope: StreamingEventEnvelope<unknown, StreamingEventHeader, unknown>): Promise<void> {
+        const coreFormat: CoreExternalFormat = {
+            header: envelope.header,
+            update: await envelope.getContent('external') as CoreExternalFormat['update'],
+        }
+        const eventId = uuidv4()
+        const { eventBridgeEvent, dynamoRecord } = wireFormatsFromCoreFormat(coreFormat, {
+            primaryKeyName: this.primaryKeyName,
+            eventId,
+        })
+        const messageBusPayload: StreamingEventPayloadContract = {
+            type: 'StreamingEvent',
+            dataSourceKey: envelope.header.dataSourceKey,
+            streamKey: envelope.header.streamKey,
+            timestamp: envelope.header.timestamp,
+            header: envelope.header,
+            getContent: envelope.getContent,
+        }
+
+        await Promise.all([
+            (this.replayable && dynamoRecord ? this.dynamo.putItem(dynamoRecord) : Promise.resolve()).then(() => {
+                this.messageBus.send(messageBusPayload)
+            }),
+            eventBridgeClient.send([eventBridgeEvent as any])
+        ])
+    }
+
+    /**
      * Get the event serializer for this DataSource (if available)
      * Useful for external EventBridge event deserialization
      */

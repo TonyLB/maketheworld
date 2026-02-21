@@ -1,4 +1,4 @@
-import { DataSource, SerializableObject, SnapshotType } from './index'
+import { DataSource, SerializableObject, SnapshotType, coreFormatToStreamingEnvelope } from './index'
 import { StreamingEventHeader } from './baseClasses'
 import { getCurrentTimestamp } from '../internalUtils/dateUtil'
 
@@ -823,6 +823,116 @@ describe('DataSource', () => {
                 timestamp: 100000000,
                 type: 'SomeType'
             })
+        })
+    })
+
+    describe('streamEnvelope', () => {
+        beforeEach(() => {
+            mockUuidv4.mockReturnValue('test-uuid-123' as unknown as ReturnType<typeof uuidv4>)
+        })
+
+        afterEach(() => {
+            jest.clearAllMocks()
+        })
+
+        it('should store external-origin envelope with sidecarred payload and preserve sidecar', async () => {
+            const externalPayloadWithSidecar = {
+                type: 'Content Update' as const,
+                wml: { sidecarUrl: 's3://bucket/key' },
+            }
+            const coreFormat = {
+                header: {
+                    dataSourceKey: 'mtw.wml' as const,
+                    streamKey: 'ZONE#test-zone',
+                    timestamp: 100000000,
+                    type: 'Content Update' as const,
+                },
+                update: externalPayloadWithSidecar,
+            }
+            const envelope = coreFormatToStreamingEnvelope(coreFormat, () => Promise.resolve({ internal: 'content' }))
+
+            await dataSource.streamEnvelope(envelope)
+
+            expect(mockDynamo.putItem).toHaveBeenCalledWith({
+                AssetId: 'STREAM#mtw.wml::ZONE#test-zone',
+                DataCategory: 'EVENT#100000000::test-uuid-123',
+                eventType: 'Content Update',
+                update: externalPayloadWithSidecar,
+            })
+            expect(mockEventBridgeClient.send).toHaveBeenCalledWith([{
+                Source: 'mtw.wml',
+                DetailType: 'Content Update',
+                Detail: expect.objectContaining({
+                    streamKey: 'ZONE#test-zone',
+                    timestamp: 100000000,
+                    wml: { sidecarUrl: 's3://bucket/key' },
+                }),
+            }])
+            expect(mockMessageBus.send).toHaveBeenCalledWith(expect.objectContaining({
+                type: 'StreamingEvent',
+                dataSourceKey: 'mtw.wml',
+                streamKey: 'ZONE#test-zone',
+                timestamp: 100000000,
+                header: coreFormat.header,
+            }))
+            const messageBusPayload = mockMessageBus.send.mock.calls[0][0]
+            expect(messageBusPayload.getContent).toBe(envelope.getContent)
+        })
+
+        it('should not call putItem when DataSource is non-replayable', async () => {
+            const nonReplayableDataSource = new TestDataSource({
+                dynamo: mockDynamo,
+                sns: mockSns,
+                messageBus: mockMessageBus,
+                primaryKeyName: 'AssetId',
+                dataSourceKey: 'mtw.testDataSource',
+                snapshotContentGenerator: mockSnapshotContentGenerator,
+                feedbackTopicArn: 'arn:aws:sns:us-east-1:123456789012:test-feedback',
+                replayable: false,
+            })
+            const coreFormat = {
+                header: {
+                    dataSourceKey: 'mtw.testDataSource' as const,
+                    streamKey: 'test-stream',
+                    timestamp: 100000000,
+                    type: 'TestUpdatePayload' as const,
+                },
+                update: { type: 'TestUpdatePayload', update: 'test-update' },
+            }
+            const envelope = coreFormatToStreamingEnvelope(coreFormat, () => Promise.resolve({ type: 'TestUpdatePayload', update: 'test-update' }))
+
+            await nonReplayableDataSource.streamEnvelope(envelope)
+
+            expect(mockDynamo.putItem).not.toHaveBeenCalled()
+            expect(mockEventBridgeClient.send).toHaveBeenCalledTimes(1)
+            expect(mockMessageBus.send).toHaveBeenCalledTimes(1)
+        })
+
+        it('should generate unique event IDs for different streamEnvelope calls', async () => {
+            const coreFormat = {
+                header: {
+                    dataSourceKey: 'mtw.testDataSource' as const,
+                    streamKey: 'test-stream',
+                    timestamp: 100000000,
+                    type: 'TestUpdatePayload' as const,
+                },
+                update: { type: 'TestUpdatePayload', update: 'test-update' },
+            }
+            const envelope = coreFormatToStreamingEnvelope(coreFormat, () => Promise.resolve({ type: 'TestUpdatePayload', update: 'test-update' }))
+
+            mockUuidv4
+                .mockReturnValueOnce('uuid-a' as unknown as ReturnType<typeof uuidv4>)
+                .mockReturnValueOnce('uuid-b' as unknown as ReturnType<typeof uuidv4>)
+
+            await dataSource.streamEnvelope(envelope)
+            await dataSource.streamEnvelope(envelope)
+
+            expect(mockDynamo.putItem).toHaveBeenNthCalledWith(1, expect.objectContaining({
+                DataCategory: 'EVENT#100000000::uuid-a',
+            }))
+            expect(mockDynamo.putItem).toHaveBeenNthCalledWith(2, expect.objectContaining({
+                DataCategory: 'EVENT#100000000::uuid-b',
+            }))
         })
     })
 

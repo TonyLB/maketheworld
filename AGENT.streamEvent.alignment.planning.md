@@ -1,6 +1,6 @@
 # streamEnvelope: Envelope-Accepting Publishing API
 
-**Status**: PLANNING
+**Status**: IN PROGRESS (Step 1: COMPLETE)
 **Scope**: Add `streamEnvelope(envelope)` alongside `streamEvent(params)`. Enables more sophisticated transform and filter patterns: preserve sidecars, forward external-origin events, publish sidecar-bearing results (e.g. S3 snapshotting). Not about mirroring subscriber data; about having the right tools for how we transform and filter.
 **Related**: [AGENT.streamingEnvelope.reversability.planning.md](AGENT.streamingEnvelope.reversability.planning.md), `packages/mtw-lambda-patterns/ts/dataSource/`
 
@@ -34,19 +34,26 @@ Both share the same wire format and storage behavior (unresolved envelopes, `get
 
 ## High-Level Implementation Steps
 
-1. **Add streamEnvelope implementation**
+1. **Add streamEnvelope implementation** (DONE)
    - Add `streamEnvelope(envelope: StreamingEventEnvelope)` on DataSource.
-   - Use `coreFormat = { header: envelope.header, update: await envelope.getContent('external') }`; `toDynamoDBFormat`; `putItem`; EventBridge; messageBus.
-   - Extract shared storage primitive if helpful; both streamEvent and streamEnvelope use `getContent('external')` for the stored payload.
+   - Use `coreFormat = { header: envelope.header, update: await envelope.getContent('external') }`; `wireFormatsFromCoreFormat`; `putItem`; EventBridge; messageBus.
+   - Shared storage primitive deferred (user has thoughts that will implicate whether/how to extract).
 
-2. **Wire receiveEvents with streamEnvelope**
+2. **Wire receiveEvents with streamEnvelope** (deferred)
    - Pass `streamEnvelope` alongside `streamEvent` to `receiveEvents` callback (e.g. `{ streamEvent, streamEnvelope }`).
    - Call sites that forward or preserve envelopes use `streamEnvelope`; golden-path flows keep using `streamEvent`.
 
-3. **Add tests**
+3. **Add tests** (DONE for streamEnvelope)
    - streamEnvelope: external-origin envelope with sidecarred payload → verify stored `update` preserves original sidecar.
    - streamEvent: unchanged behavior; existing tests pass.
-   - Document when to use each API in AGENT.implementation.md.
+   - Document when to use each API in AGENT.implementation.md (deferred to Step 2).
+
+## Step 1 Completed (2025-02-21)
+
+- Added `streamEnvelope(envelope: StreamingEventEnvelope)` on DataSource in `packages/mtw-lambda-patterns/ts/dataSource/index.ts`.
+- Uses `coreFormat = { header: envelope.header, update: await envelope.getContent('external') }`; `wireFormatsFromCoreFormat`; parallel putItem + EventBridge + messageBus.
+- Tests: external-origin envelope with sidecarred payload (sidecar preserved in DynamoDB/EventBridge); non-replayable DataSource skips putItem; unique event IDs per call.
+- Verification: DataSource tests 118 passed (index.test.ts, formatTransform.test.ts, streamEventPublisher.test.ts, sidecarResolve.test.ts).
 
 ## Key Files
 
