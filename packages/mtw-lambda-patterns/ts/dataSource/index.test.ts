@@ -1427,7 +1427,9 @@ describe('DataSource', () => {
                 expect(mockReceiveEvents).toHaveBeenCalledWith(expect.objectContaining({
                     events: expect.arrayContaining([
                         expect.objectContaining({ header: expect.objectContaining({ streamKey: 'char-123' }), getContent: expect.any(Function) })
-                    ])
+                    ]),
+                    streamEvent: expect.any(Function),
+                    streamEnvelope: expect.any(Function)
                 }))
                 expect(mockReceiveEvents.mock.calls[0][0].events).toHaveLength(1)
             })
@@ -1511,7 +1513,8 @@ describe('DataSource', () => {
                             getContent: expect.any(Function)
                         }
                     ],
-                    streamEvent: expect.any(Function)
+                    streamEvent: expect.any(Function),
+                    streamEnvelope: expect.any(Function)
                 })
 
                 const receivedEvents = mockReceiveEvents.mock.calls[0][0].events
@@ -1531,6 +1534,53 @@ describe('DataSource', () => {
                     streamKey: 'test-stream',
                     header: { type: 'Test Event' }
                 })
+            })
+
+            it('should pass streamEnvelope to receiveEvents and forward to dataSource.streamEnvelope', async () => {
+                const dataSourceWithSpy = new TestDataSource({
+                    dynamo: mockDynamo,
+                    sns: mockSns,
+                    messageBus: mockMessageBus,
+                    primaryKeyName: 'AssetId',
+                    dataSourceKey: 'mtw.testDataSource',
+                    snapshotContentGenerator: mockSnapshotContentGenerator,
+                    feedbackTopicArn: 'arn:aws:sns:us-east-1:123456789012:test-feedback',
+                    subscribedEventTypeGuard: mockSubscribedEventTypeGuard,
+                    receiveEvents: mockReceiveEvents
+                })
+                const streamEnvelopeSpy = jest.spyOn(dataSourceWithSpy, 'streamEnvelope').mockResolvedValue(undefined)
+
+                dataSourceWithSpy.subscribe()
+
+                const regularSubscription = mockMessageBus.subscribe.mock.calls.find((call: any) =>
+                    call[0].tag === 'dataSource-mtw.testDataSource'
+                )
+                const callback = regularSubscription[0].callback
+
+                const testEvent = {
+                    type: 'StreamingEvent',
+                    dataSourceKey: 'mtw.test',
+                    streamKey: 'test-stream',
+                    header: {
+                        dataSourceKey: 'mtw.test',
+                        streamKey: 'test-stream',
+                        timestamp: 123456789,
+                        type: 'event1'
+                    },
+                    getContent: () => Promise.resolve({ type: 'event1', data: 'test1' }),
+                    timestamp: 123456789
+                }
+
+                await callback({ payloads: [testEvent] })
+
+                const streamEnvelopeFn = mockReceiveEvents.mock.calls[0][0].streamEnvelope
+                const envelope = {
+                    header: testEvent.header,
+                    getContent: testEvent.getContent
+                }
+                await streamEnvelopeFn(envelope)
+
+                expect(streamEnvelopeSpy).toHaveBeenCalledWith(envelope)
             })
 
             it('should handle receiveEvents errors gracefully', async () => {
@@ -1586,7 +1636,8 @@ describe('DataSource', () => {
                             getContent: expect.any(Function)
                         }
                     ],
-                    streamEvent: expect.any(Function)
+                    streamEvent: expect.any(Function),
+                    streamEnvelope: expect.any(Function)
                 })
 
                 const receivedEvents = errorReceiveEvents.mock.calls[0][0].events
@@ -1619,7 +1670,8 @@ describe('DataSource', () => {
 
                 expect(mockReceiveEvents).toHaveBeenCalledWith({
                     events: [],
-                    streamEvent: expect.any(Function)
+                    streamEvent: expect.any(Function),
+                    streamEnvelope: expect.any(Function)
                 })
             })
 
@@ -1674,7 +1726,8 @@ describe('DataSource', () => {
                             getContent: expect.any(Function)
                         }
                     ],
-                    streamEvent: expect.any(Function)
+                    streamEvent: expect.any(Function),
+                    streamEnvelope: expect.any(Function)
                 })
 
                 const receivedEvents = mockReceiveEvents.mock.calls[0][0].events

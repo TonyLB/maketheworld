@@ -278,7 +278,7 @@ export const wmlDataSource = new WMLDataSource<{}, WMLEventUpdate, CoordinationE
     replayable: true, // Required for initializeSubscription (sidecar snapshot on subscribe)
     snapshotSidecarUrlGenerator: async (streamKey: string) => getSidecarSnapshotDescriptor(streamKey as AssetUUID),
     subscribedEventTypeGuard: isWMLSubscribedEnvelope,
-    receiveEvents: async ({ events, streamEvent }) => {
+    receiveEvents: async ({ events, streamEvent, streamEnvelope }) => {
         await Promise.all(events.map(async (event) => {
             if (isApplyEditEnvelope(event)) {
                 await processApplyEdit(event, streamEvent)

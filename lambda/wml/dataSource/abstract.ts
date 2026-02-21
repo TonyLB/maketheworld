@@ -1,5 +1,6 @@
-import { DataSource, SerializableObject, SidecarSnapshotDescriptor } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
+import { DataSource, SerializableObject, StreamEventFunction, StreamEnvelopeFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import { EventPayload, StreamingEventHeader, StreamingEventEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import type { SidecarSnapshotDescriptor } from '../s3Storage/sidecarSnapshot'
 import { WMLStreamingEventHeader } from '@tonylb/mtw-interfaces/ts/eventBridge/wml'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { snsClient } from '../clients'
@@ -27,7 +28,8 @@ export class WMLDataSource<SnapshotPayload extends SerializableObject, UpdatePay
         subscribedEventTypeGuard?: (envelope: StreamingEventEnvelope<unknown>) => envelope is StreamingEventEnvelope<SubscribedContent>;
         receiveEvents?: (params: { 
             events: Array<StreamingEventEnvelope<SubscribedContent>>,
-            streamEvent: (params: { update: UpdatePayload, streamKey: string }) => Promise<void>
+            streamEvent: StreamEventFunction<UpdatePayload, Header>,
+            streamEnvelope: StreamEnvelopeFunction
         }) => Promise<void>;
         eventSerializer?: any; // Will be properly typed when we implement the serializer
     }) {

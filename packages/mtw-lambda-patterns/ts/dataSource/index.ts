@@ -54,6 +54,9 @@ export type StreamEventParams<UpdatePayload = any, Header extends StreamingEvent
 export type StreamEventFunction<UpdatePayload = any, Header extends StreamingEventHeader = StreamingEventHeader> =
     (params: StreamEventParams<UpdatePayload, Header>) => Promise<void>
 
+export type StreamEnvelopeFunction =
+    (envelope: StreamingEventEnvelope<unknown, StreamingEventHeader, unknown>) => Promise<void>
+
 /**
  * SubscribedContent = payload type of events this DataSource subscribes *to* (incoming).
  * UpdatePayload = payload type this DataSource publishes (streamEvent, serializer).
@@ -83,7 +86,8 @@ export class DataSource<
     readonly subscribedEventTypeGuard?: (envelope: StreamingEventEnvelope<unknown>) => envelope is StreamingEventEnvelope<SubscribedContent>
     readonly receiveEvents?: (params: { 
         events: Array<StreamingEventEnvelope<SubscribedContent>>,
-        streamEvent: StreamEventFunction<UpdatePayload, Header>
+        streamEvent: StreamEventFunction<UpdatePayload, Header>,
+        streamEnvelope: StreamEnvelopeFunction
     }) => Promise<void>
     readonly eventSerializer?: DataSourceEventSerializer<UpdatePayload, ExternalUpdatePayload, SnapshotPayload, ExternalSnapshotPayload, Header>
     readonly aggregator?: DataSourceAggregator<SnapshotPayload, UpdatePayload>
@@ -121,7 +125,8 @@ export class DataSource<
         subscribedEventTypeGuard?: (envelope: StreamingEventEnvelope<unknown>) => envelope is StreamingEventEnvelope<SubscribedContent>,
         receiveEvents?: (params: { 
             events: Array<StreamingEventEnvelope<SubscribedContent>>,
-            streamEvent: StreamEventFunction<UpdatePayload, Header>
+            streamEvent: StreamEventFunction<UpdatePayload, Header>,
+            streamEnvelope: StreamEnvelopeFunction
         }) => Promise<void>,
         eventSerializer?: DataSourceEventSerializer<UpdatePayload, ExternalUpdatePayload, SnapshotPayload, ExternalSnapshotPayload, Header>,
         aggregator?: DataSourceAggregator<SnapshotPayload, UpdatePayload>,
@@ -677,7 +682,8 @@ export class DataSource<
                 const narrowed = envelopes.filter((e): e is StreamingEventEnvelope<SubscribedContent> => this.subscribedEventTypeGuard!(e))
                 await this.receiveEvents!({
                     events: narrowed,
-                    streamEvent: (params) => this.streamEvent(params)
+                    streamEvent: (params) => this.streamEvent(params),
+                    streamEnvelope: (envelope) => this.streamEnvelope(envelope)
                 })
             }
         })

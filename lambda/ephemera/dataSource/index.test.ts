@@ -53,7 +53,7 @@ describe('Ephemera DataSource receiveEvents', () => {
             ]
 
             const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
-            await ephemeraDataSource.receiveEvents?.({ events, streamEvent: mockStreamEvent })
+            await ephemeraDataSource.receiveEvents?.({ events, streamEvent: mockStreamEvent, streamEnvelope: jest.fn().mockResolvedValue(undefined) })
 
             expect(mockMessageBus.send).toHaveBeenCalledWith({
                 type: 'Perception',
@@ -85,7 +85,7 @@ describe('Ephemera DataSource receiveEvents', () => {
             ]
 
             const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
-            await ephemeraDataSource.receiveEvents?.({ events, streamEvent: mockStreamEvent })
+            await ephemeraDataSource.receiveEvents?.({ events, streamEvent: mockStreamEvent, streamEnvelope: jest.fn().mockResolvedValue(undefined) })
 
             expect(mockMessageBus.send).not.toHaveBeenCalled()
         })
@@ -113,7 +113,7 @@ describe('Ephemera DataSource receiveEvents', () => {
             ]
 
             const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
-            await ephemeraDataSource.receiveEvents?.({ events, streamEvent: mockStreamEvent })
+            await ephemeraDataSource.receiveEvents?.({ events, streamEvent: mockStreamEvent, streamEnvelope: jest.fn().mockResolvedValue(undefined) })
 
             expect(mockMessageBus.send).not.toHaveBeenCalled()
         })
@@ -137,7 +137,7 @@ describe('Ephemera DataSource receiveEvents', () => {
             ]
 
             const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
-            await ephemeraDataSource.receiveEvents?.({ events, streamEvent: mockStreamEvent })
+            await ephemeraDataSource.receiveEvents?.({ events, streamEvent: mockStreamEvent, streamEnvelope: jest.fn().mockResolvedValue(undefined) })
 
             expect(mockMessageBus.send).toHaveBeenCalledWith({
                 type: 'CanonSet',
@@ -162,7 +162,7 @@ describe('Ephemera DataSource receiveEvents', () => {
             ]
 
             const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
-            await ephemeraDataSource.receiveEvents?.({ events, streamEvent: mockStreamEvent })
+            await ephemeraDataSource.receiveEvents?.({ events, streamEvent: mockStreamEvent, streamEnvelope: jest.fn().mockResolvedValue(undefined) })
 
             expect(mockMessageBus.send).toHaveBeenCalledWith({
                 type: 'CanonSet',
@@ -187,7 +187,7 @@ describe('Ephemera DataSource receiveEvents', () => {
             ]
 
             const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
-            await ephemeraDataSource.receiveEvents?.({ events, streamEvent: mockStreamEvent })
+            await ephemeraDataSource.receiveEvents?.({ events, streamEvent: mockStreamEvent, streamEnvelope: jest.fn().mockResolvedValue(undefined) })
 
             expect(mockMessageBus.send).toHaveBeenCalledWith({
                 type: 'CanonSet',
@@ -215,7 +215,7 @@ describe('Ephemera DataSource receiveEvents', () => {
             ]
 
             const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
-            await ephemeraDataSource.receiveEvents?.({ events, streamEvent: mockStreamEvent })
+            await ephemeraDataSource.receiveEvents?.({ events, streamEvent: mockStreamEvent, streamEnvelope: jest.fn().mockResolvedValue(undefined) })
 
             expect(mockMessageBus.send).toHaveBeenCalledWith({
                 type: 'CanonAdd',
@@ -241,7 +241,7 @@ describe('Ephemera DataSource receiveEvents', () => {
             ]
 
             const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
-            await ephemeraDataSource.receiveEvents?.({ events, streamEvent: mockStreamEvent })
+            await ephemeraDataSource.receiveEvents?.({ events, streamEvent: mockStreamEvent, streamEnvelope: jest.fn().mockResolvedValue(undefined) })
 
             expect(mockMessageBus.send).toHaveBeenCalledWith({
                 type: 'CanonRemove',
@@ -267,7 +267,7 @@ describe('Ephemera DataSource receiveEvents', () => {
             ]
 
             const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
-            await ephemeraDataSource.receiveEvents?.({ events, streamEvent: mockStreamEvent })
+            await ephemeraDataSource.receiveEvents?.({ events, streamEvent: mockStreamEvent, streamEnvelope: jest.fn().mockResolvedValue(undefined) })
 
             expect(mockMessageBus.send).not.toHaveBeenCalled()
         })
@@ -290,7 +290,7 @@ describe('Ephemera DataSource receiveEvents', () => {
             ]
 
             const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
-            await ephemeraDataSource.receiveEvents?.({ events, streamEvent: mockStreamEvent })
+            await ephemeraDataSource.receiveEvents?.({ events, streamEvent: mockStreamEvent, streamEnvelope: jest.fn().mockResolvedValue(undefined) })
 
             expect(mockMessageBus.send).not.toHaveBeenCalled()
         })
@@ -345,7 +345,7 @@ describe('Ephemera DataSource receiveEvents', () => {
             ]
 
             const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
-            await ephemeraDataSource.receiveEvents?.({ events, streamEvent: mockStreamEvent })
+            await ephemeraDataSource.receiveEvents?.({ events, streamEvent: mockStreamEvent, streamEnvelope: jest.fn().mockResolvedValue(undefined) })
 
             expect(mockMessageBus.send).toHaveBeenCalledTimes(3)
             expect(mockMessageBus.send).toHaveBeenCalledWith({

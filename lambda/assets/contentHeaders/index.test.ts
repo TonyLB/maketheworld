@@ -636,7 +636,7 @@ describe('ContentHeadersDataSource (mtw.assets.contentHeaders)', () => {
                     }
                 ]
 
-                await contentHeadersDataSource.receiveEvents?.({ events, streamEvent: mockStreamEvent })
+                await contentHeadersDataSource.receiveEvents?.({ events, streamEvent: mockStreamEvent, streamEnvelope: jest.fn().mockResolvedValue(undefined) })
 
                 const call = mockStreamEvent.mock.calls[0][0]
                 const wml = schemaToWML([call.update.standardForm.schema])

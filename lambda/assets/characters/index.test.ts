@@ -84,7 +84,7 @@ describe('CharactersDataSource', () => {
             }
 
             // Process the event
-            await dataSource.receiveEvents?.({ events: [componentEvent], streamEvent: mockStreamEvent })
+            await dataSource.receiveEvents?.({ events: [componentEvent], streamEvent: mockStreamEvent, streamEnvelope: jest.fn().mockResolvedValue(undefined) })
 
             // Should have called streamEvent with character event
             expect(mockStreamEvent).toHaveBeenCalledWith({
@@ -116,7 +116,7 @@ describe('CharactersDataSource', () => {
                 getContent: () => Promise.resolve(nonCharacterContent)
             }
 
-            await dataSource.receiveEvents?.({ events: [nonCharacterEvent], streamEvent: mockStreamEvent })
+            await dataSource.receiveEvents?.({ events: [nonCharacterEvent], streamEvent: mockStreamEvent, streamEnvelope: jest.fn().mockResolvedValue(undefined) })
 
             // Should not have called streamEvent
             expect(mockStreamEvent).not.toHaveBeenCalled()
@@ -146,7 +146,7 @@ describe('CharactersDataSource', () => {
                 })
             }
 
-            await dataSource.receiveEvents?.({ events: [otherDataSourceEvent as unknown as StreamingEventEnvelope<ComponentEventUpdate>], streamEvent: mockStreamEvent })
+            await dataSource.receiveEvents?.({ events: [otherDataSourceEvent as unknown as StreamingEventEnvelope<ComponentEventUpdate>], streamEvent: mockStreamEvent, streamEnvelope: jest.fn().mockResolvedValue(undefined) })
 
             // Should not have called streamEvent
             expect(mockStreamEvent).not.toHaveBeenCalled()
@@ -199,7 +199,8 @@ describe('CharactersDataSource', () => {
             // Process the batch of events
             await dataSource.receiveEvents?.({
                 events: batchEvents,
-                streamEvent: mockStreamEvent
+                streamEvent: mockStreamEvent,
+                streamEnvelope: jest.fn().mockResolvedValue(undefined)
             })
 
             // Should process both character events
@@ -472,7 +473,8 @@ describe('CharactersDataSource', () => {
             await expect(
                 dataSource.receiveEvents?.({
                     events: [invalidEvent as unknown as StreamingEventEnvelope<ComponentEventUpdate>],
-                    streamEvent: mockStreamEvent
+                    streamEvent: mockStreamEvent,
+                    streamEnvelope: jest.fn().mockResolvedValue(undefined)
                 })
             ).resolves.not.toThrow()
 
@@ -501,7 +503,7 @@ describe('CharactersDataSource', () => {
             }
 
             await expect(
-                dataSource.receiveEvents?.({ events: [incompleteEvent], streamEvent: mockStreamEvent })
+                dataSource.receiveEvents?.({ events: [incompleteEvent], streamEvent: mockStreamEvent, streamEnvelope: jest.fn().mockResolvedValue(undefined) })
             ).resolves.not.toThrow()
 
             // Should not call streamEvent since component is not a valid StandardCharacter

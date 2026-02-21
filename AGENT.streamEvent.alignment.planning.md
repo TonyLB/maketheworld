@@ -1,6 +1,6 @@
 # streamEnvelope: Envelope-Accepting Publishing API
 
-**Status**: IN PROGRESS (Step 1: COMPLETE)
+**Status**: IN PROGRESS (Step 1: COMPLETE, Step 2: COMPLETE)
 **Scope**: Add `streamEnvelope(envelope)` alongside `streamEvent(params)`. Enables more sophisticated transform and filter patterns: preserve sidecars, forward external-origin events, publish sidecar-bearing results (e.g. S3 snapshotting). Not about mirroring subscriber data; about having the right tools for how we transform and filter.
 **Related**: [AGENT.streamingEnvelope.reversability.planning.md](AGENT.streamingEnvelope.reversability.planning.md), `packages/mtw-lambda-patterns/ts/dataSource/`
 
@@ -39,7 +39,7 @@ Both share the same wire format and storage behavior (unresolved envelopes, `get
    - Use `coreFormat = { header: envelope.header, update: await envelope.getContent('external') }`; `wireFormatsFromCoreFormat`; `putItem`; EventBridge; messageBus.
    - Shared storage primitive deferred (user has thoughts that will implicate whether/how to extract).
 
-2. **Wire receiveEvents with streamEnvelope** (deferred)
+2. **Wire receiveEvents with streamEnvelope** (DONE)
    - Pass `streamEnvelope` alongside `streamEvent` to `receiveEvents` callback (e.g. `{ streamEvent, streamEnvelope }`).
    - Call sites that forward or preserve envelopes use `streamEnvelope`; golden-path flows keep using `streamEvent`.
 
@@ -54,6 +54,15 @@ Both share the same wire format and storage behavior (unresolved envelopes, `get
 - Uses `coreFormat = { header: envelope.header, update: await envelope.getContent('external') }`; `wireFormatsFromCoreFormat`; parallel putItem + EventBridge + messageBus.
 - Tests: external-origin envelope with sidecarred payload (sidecar preserved in DynamoDB/EventBridge); non-replayable DataSource skips putItem; unique event IDs per call.
 - Verification: DataSource tests 118 passed (index.test.ts, formatTransform.test.ts, streamEventPublisher.test.ts, sidecarResolve.test.ts).
+
+## Step 2 Completed (2025-02-21)
+
+- Passed `streamEnvelope` alongside `streamEvent` to `receiveEvents` callback in `packages/mtw-lambda-patterns/ts/dataSource/index.ts`.
+- Added `StreamEnvelopeFunction` type; updated DataSource `receiveEvents` param type in class and constructor.
+- Updated lambda abstract classes: AssetsDataSource, WMLDataSource, EphemeraDataSource.
+- Updated all receiveEvents implementations (contentHeaders, characters, dataSource, players, library, mtw-wml, ephemera) to accept `streamEnvelope` in params.
+- Updated mtw-lambda-patterns and lambda tests to pass `streamEnvelope` where receiveEvents is called.
+- Verification: DataSource tests 119 passed; WML 242 passed; Assets 120 passed; Ephemera 104 passed.
 
 ## Key Files
 

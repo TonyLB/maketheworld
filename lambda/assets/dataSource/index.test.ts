@@ -221,7 +221,8 @@ describe('AssetsDataSource (mtw.assets)', () => {
             
             await assetsDataSource.receiveEvents?.({ 
                 events: [wmlEvent], 
-                streamEvent: mockStreamEvent 
+                streamEvent: mockStreamEvent,
+                streamEnvelope: jest.fn().mockResolvedValue(undefined)
             })
 
             expect(receiveEventsSpy).toHaveBeenCalled()
@@ -252,7 +253,8 @@ describe('AssetsDataSource (mtw.assets)', () => {
             
             await assetsDataSource.receiveEvents?.({ 
                 events: [zoneChangedEvent], 
-                streamEvent: mockStreamEvent 
+                streamEvent: mockStreamEvent,
+                streamEnvelope: jest.fn().mockResolvedValue(undefined)
             })
 
             // Verify that assetDB.putItem was called to update the Meta::Asset record
@@ -315,7 +317,8 @@ describe('AssetsDataSource (mtw.assets)', () => {
             
             await assetsDataSource.receiveEvents?.({ 
                 events: [zoneChangedEvent], 
-                streamEvent: mockStreamEvent 
+                streamEvent: mockStreamEvent,
+                streamEnvelope: jest.fn().mockResolvedValue(undefined)
             })
 
             // Verify that assetDB.putItem was called with minimal fields
@@ -386,7 +389,8 @@ describe('AssetsDataSource (mtw.assets)', () => {
             
             await assetsDataSource.receiveEvents?.({ 
                 events: [zoneChangedEvent], 
-                streamEvent: mockStreamEvent 
+                streamEvent: mockStreamEvent,
+                streamEnvelope: jest.fn().mockResolvedValue(undefined)
             })
 
             // Verify that assetDB.putItem was called
@@ -450,7 +454,8 @@ describe('AssetsDataSource (mtw.assets)', () => {
 
             await assetsDataSource.receiveEvents?.({
                 events: [assetPurgedEvent],
-                streamEvent: mockStreamEvent
+                streamEvent: mockStreamEvent,
+                streamEnvelope: jest.fn().mockResolvedValue(undefined)
             })
 
             expect(decacheAssetMock).toHaveBeenCalledWith({
@@ -489,7 +494,8 @@ describe('AssetsDataSource (mtw.assets)', () => {
             
             await assetsDataSource.receiveEvents?.({ 
                 events: [diagnosticEvent], 
-                streamEvent: mockStreamEvent 
+                streamEvent: mockStreamEvent,
+                streamEnvelope: jest.fn().mockResolvedValue(undefined)
             })
 
             expect(receiveEventsSpy).toHaveBeenCalled()
@@ -543,7 +549,8 @@ describe('AssetsDataSource (mtw.assets)', () => {
             // Process the batch of events
             await assetsDataSource.receiveEvents?.({ 
                 events: batchEvents, 
-                streamEvent: mockStreamEvent 
+                streamEvent: mockStreamEvent,
+                streamEnvelope: jest.fn().mockResolvedValue(undefined)
             })
 
             // The key test: verify that receiveEvents can handle an array of events

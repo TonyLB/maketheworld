@@ -195,7 +195,7 @@ export const playersDataSource = new AssetsDataSource<PlayerSnapshot, PlayerEven
     eventSerializer: new PlayerEventSerializer(),
     aggregator: new PlayerAggregator(),
     subscribedEventTypeGuard: isPlayersSubscribedEnvelope,
-    receiveEvents: async ({ events, streamEvent }) => {
+    receiveEvents: async ({ events, streamEvent, streamEnvelope }) => {
         await Promise.all(events.map(async (event) => {
             const streamKey = event.header.streamKey
             try {
