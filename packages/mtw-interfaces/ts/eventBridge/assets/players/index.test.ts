@@ -71,7 +71,7 @@ describe('PlayerAggregator', () => {
 describe('PlayerEventSerializer', () => {
     const serializer = new PlayerEventSerializer()
 
-    describe('serialize/deserialize routes Snapshot to serializeSnapshot/deserializeSnapshot', () => {
+    describe('serialize/deserialize handle Snapshot when header.type is Snapshot', () => {
         it('should serialize Snapshot via main serialize when header.type is Snapshot', () => {
             const snapshot: PlayerSnapshot = {
                 assets: [{ AssetId: 'AssetOne', zone: 'Draft' }],
@@ -80,7 +80,11 @@ describe('PlayerEventSerializer', () => {
             }
             const header = { dataSourceKey: 'mtw.assets.players', streamKey: 'test', timestamp: 0, type: 'Snapshot' as const }
             const result = serializer.serialize({ content: snapshot, header })
-            expect(result).toEqual(serializer.serializeSnapshot(snapshot))
+            expect(result).toEqual({
+                assets: [{ AssetId: 'AssetOne', zone: 'Draft' }],
+                characters: [{ CharacterId: 'CHARACTER#test', DisplayName: 'Test', scopedId: 'test', fileName: 'test' }],
+                settings: { onboardCompleteTags: [] }
+            })
         })
 
         it('should deserialize Snapshot via main deserialize when header.type is Snapshot', async () => {
@@ -91,8 +95,11 @@ describe('PlayerEventSerializer', () => {
             }
             const header = { dataSourceKey: 'mtw.assets.players', streamKey: 'test', timestamp: 0, type: 'Snapshot' as const }
             const result = await serializer.deserialize({ content: externalSnapshot, header })
-            const expected = await serializer.deserializeSnapshot(externalSnapshot)
-            expect(result).toEqual(expected)
+            expect(result).toEqual({
+                assets: [{ AssetId: 'AssetOne', zone: 'Draft' }],
+                characters: [{ CharacterId: 'CHARACTER#test', DisplayName: 'Test', scopedId: 'test', fileName: 'test' }],
+                settings: { onboardCompleteTags: [] }
+            })
         })
     })
 

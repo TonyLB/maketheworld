@@ -53,7 +53,7 @@ export class CharacterEventSerializer implements DataSourceEventSerializer<
     }): CharacterEventExternal | CharacterSnapshotExternal {
         const { content, header } = params
         if (header?.type === 'Snapshot') {
-            return this.serializeSnapshot(content as CharacterSnapshotPayload)
+            return { characters: (content as CharacterSnapshotPayload).characters }
         }
         if (header.type !== 'Character Updated') {
             throw new Error(`Unknown character event type: ${header.type}`)
@@ -66,21 +66,6 @@ export class CharacterEventSerializer implements DataSourceEventSerializer<
             wml
         }
     }
-
-    serializeSnapshot(snapshot: CharacterSnapshotPayload): CharacterSnapshotExternal {
-        return { characters: snapshot.characters }
-    }
-
-    async deserializeSnapshot(externalSnapshot: CharacterSnapshotExternal): Promise<CharacterSnapshotPayload | null> {
-        if (typeof externalSnapshot.characters !== 'string') {
-            return null
-        }
-        return {
-            streamKey: '', // Caller supplies from header
-            characters: externalSnapshot.characters,
-            timestamp: 0 // Caller supplies from header
-        }
-    }
     
     async deserialize(params: {
         content: CharacterEventExternal | CharacterSnapshotExternal;
@@ -88,11 +73,13 @@ export class CharacterEventSerializer implements DataSourceEventSerializer<
     }): Promise<CharacterEventUpdate | CharacterSnapshotPayload | null> {
         const { content, header } = params
         if (header?.type === 'Snapshot') {
-            const result = await this.deserializeSnapshot(content as CharacterSnapshotExternal)
-            if (!result) return null
+            const external = content as CharacterSnapshotExternal
+            if (typeof external.characters !== 'string') {
+                return null
+            }
             return {
-                ...result,
                 streamKey: header.streamKey,
+                characters: external.characters,
                 timestamp: header.timestamp
             }
         }
@@ -103,7 +90,8 @@ export class CharacterEventSerializer implements DataSourceEventSerializer<
         
         // Deserialize WML back to StandardComponent
         try {
-            const schemaNode = nodeFromWML(content.wml)
+            const eventContent = content as CharacterEventExternal
+            const schemaNode = nodeFromWML(eventContent.wml)
             const { component } = standardComponentFactory(schemaNode)
             
             if (!component) {

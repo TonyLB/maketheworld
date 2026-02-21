@@ -365,7 +365,15 @@ export class WMLDataSourceEventSerializer implements DataSourceEventSerializer<W
 
     async deserialize(params: { content: WMLContentEventExternal; header: WMLStreamingEventHeader }): Promise<WMLContentEvent | null> {
         if (params.header?.type === 'Snapshot') {
-            return this.deserializeSnapshot(params.content as { wml: string | { sidecarUrl: string } }) as Promise<WMLContentEvent | null>
+            const externalSnapshot = params.content as { wml: string | { sidecarUrl: string } }
+            try {
+                const wml = await maybeFetchSidecarString(externalSnapshot.wml, this.env.fetch)
+                const standardForm = new StandardForm(wml)
+                return standardForm.toJSON() as WMLContentEvent
+            } catch (error) {
+                console.error('[WMLDataSourceEventSerializer] Failed to deserialize snapshot WML', error)
+                return null
+            }
         }
         // Route on header: only Content Update and Merge Conflict are accepted for this slice
         if (params.header.type !== 'Content Update' && params.header.type !== 'Merge Conflict') {
@@ -376,21 +384,5 @@ export class WMLDataSourceEventSerializer implements DataSourceEventSerializer<W
             return result
         }
         return null
-    }
-
-    /**
-     * Deserialize a snapshot from WML text into StandardFormData for client storage.
-     * External snapshot payload is `{ wml: string }` or `{ wml: { sidecarUrl: string } }`;
-     * internal snapshot payload is StandardFormData.
-     */
-    async deserializeSnapshot(externalSnapshot: { wml: string | { sidecarUrl: string } }): Promise<StandardFormData | null> {
-        try {
-            const wml = await maybeFetchSidecarString(externalSnapshot.wml, this.env.fetch)
-            const standardForm = new StandardForm(wml)
-            return standardForm.toJSON()
-        } catch (error) {
-            console.error('[WMLDataSourceEventSerializer] Failed to deserialize snapshot WML', error)
-            return null
-        }
     }
 }

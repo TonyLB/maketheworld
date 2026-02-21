@@ -80,8 +80,14 @@ const isHeadersUpdatedContentHeadersDeserializeParams = (p: ContentHeadersDeseri
  */
 export class ContentHeadersEventSerializer implements DataSourceEventSerializer<ContentHeadersEventUpdate, ContentHeadersExternal, ContentHeadersSnapshot, ContentHeadersSnapshotExternal> {
     serialize(params: ContentHeadersSerializeParams): ContentHeadersExternal {
-        if (params.header?.type === 'Snapshot' && this.serializeSnapshot) {
-            return this.serializeSnapshot(params.content as ContentHeadersSnapshot) as ContentHeadersExternal
+        if (params.header?.type === 'Snapshot') {
+            const snapshot = params.content as ContentHeadersSnapshot
+            const externalAssets = snapshot.assets.map(asset => ({
+                assetId: asset.assetId,
+                zone: asset.zone,
+                wml: schemaToWML([asset.standardForm.schema])
+            }))
+            return { assets: externalAssets }
         }
         if (isHeadersUpdatedContentHeadersSerializeParams(params)) {
             const { content } = params
@@ -95,8 +101,19 @@ export class ContentHeadersEventSerializer implements DataSourceEventSerializer<
     }
 
     async deserialize(params: ContentHeadersDeserializeParams): Promise<ContentHeadersEventUpdate | null> {
-        if (params.header?.type === 'Snapshot' && this.deserializeSnapshot) {
-            return this.deserializeSnapshot(params.content as ContentHeadersSnapshotExternal)
+        if (params.header?.type === 'Snapshot') {
+            const externalSnapshot = params.content as ContentHeadersSnapshotExternal
+            try {
+                const internalAssets = externalSnapshot.assets.map(asset => ({
+                    assetId: asset.assetId,
+                    zone: asset.zone,
+                    standardForm: new StandardForm(asset.wml)
+                }))
+                return { assets: internalAssets }
+            } catch (error) {
+                console.error('Failed to deserialize ContentHeaders snapshot:', error)
+                return null
+            }
         }
         if (isHeadersUpdatedContentHeadersDeserializeParams(params)) {
             const { content } = params
@@ -107,33 +124,6 @@ export class ContentHeadersEventSerializer implements DataSourceEventSerializer<
             }
         }
         throw new Error(`Unknown external streaming event type: ${params.header.type}`)
-    }
-    
-    serializeSnapshot(snapshot: ContentHeadersSnapshot): ContentHeadersSnapshotExternal {
-        const externalAssets = snapshot.assets.map(asset => ({
-            assetId: asset.assetId,
-            zone: asset.zone,
-            wml: schemaToWML([asset.standardForm.schema])
-        }))
-        return {
-            assets: externalAssets
-        }
-    }
-    
-    async deserializeSnapshot(externalSnapshot: ContentHeadersSnapshotExternal): Promise<ContentHeadersSnapshot | null> {
-        try {
-            const internalAssets = externalSnapshot.assets.map(asset => ({
-                assetId: asset.assetId,
-                zone: asset.zone,
-                standardForm: new StandardForm(asset.wml)
-            }))
-            return {
-                assets: internalAssets
-            }
-        } catch (error) {
-            console.error('Failed to deserialize ContentHeaders snapshot:', error)
-            return null
-        }
     }
 }
 

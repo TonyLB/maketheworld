@@ -2258,17 +2258,7 @@ describe('DataSource', () => {
                         return { id: external.externalId, name: external.externalName, value: external.externalValue }
                     }
                     return params.content
-                }),
-                serializeSnapshot: jest.fn((snapshot: SnapshotType<TestSnapshotPayload>): ExternalTestSnapshotPayload => ({
-                    externalId: snapshot.id,
-                    externalName: snapshot.name,
-                    externalValue: snapshot.value
-                })),
-                deserializeSnapshot: jest.fn((external: ExternalTestSnapshotPayload): TestSnapshotPayload => ({
-                    id: external.externalId,
-                    name: external.externalName,
-                    value: external.externalValue
-                }))
+                })
             }
 
             dataSourceWithSerializer = new TestDataSource({

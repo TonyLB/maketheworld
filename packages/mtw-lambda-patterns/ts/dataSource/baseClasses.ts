@@ -107,9 +107,9 @@ export interface DataSourceEventSerializer<
      * Handles both streaming events and snapshots (when header.type === 'Snapshot').
      */
     serialize(params: {
-        content: UpdatePayload;
+        content: UpdatePayload | SnapshotPayload;
         header: Header;
-    }): ExternalUpdatePayload;
+    }): ExternalUpdatePayload | ExternalSnapshotPayload;
 
     /**
      * Convert external update payload back to internal format.
@@ -118,7 +118,7 @@ export interface DataSourceEventSerializer<
      * Handles both streaming events and snapshots (when header.type === 'Snapshot').
      */
     deserialize(params: {
-        content: ExternalUpdatePayload;
+        content: ExternalUpdatePayload | ExternalSnapshotPayload;
         header: Header;
-    }): Promise<UpdatePayload | null>;
+    }): Promise<UpdatePayload | SnapshotPayload | null>;
 }
