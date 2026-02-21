@@ -28,7 +28,7 @@ We have now:
 
 - Standardized **event contracts** around `StandardForm` internally and WML strings on the wire.
 - Implemented a **client WML dataSource slice** that:
-  - Passes raw snapshot `content` to `WMLDataSourceEventSerializer.deserializeSnapshot`; the serializer (with browser `DataSourceEnvironment`) resolves sidecars and deserializes WML to `StandardForm`, then to `StandardFormData` for Redux.
+  - Passes raw `content` and `header` to `WMLDataSourceEventSerializer.deserialize({ content, header })`; the serializer routes on `header.type` and for snapshots resolves sidecars and deserializes WML to `StandardForm`, then to `StandardFormData` for Redux.
 - Documented that:
   - **Internal operations** (server and client aggregators) use `StandardForm`.
   - **Wire and mirror** should use **WML strings** plus metadata, not `StandardFormData`.
@@ -87,7 +87,7 @@ This document focuses specifically on making `mtw.wml` **replayable** using that
 
 - **Client behavior**:
   - WML dataSource slice:
-    - Passes raw snapshot `content` to `WMLDataSourceEventSerializer.deserializeSnapshot`. The serializer (with browser env) resolves any sidecar descriptor and converts WML → `StandardForm` → `StandardFormData`.
+    - Passes raw `content` and `header` to `deserialize({ content, header })`. The serializer routes on `header.type` and for snapshots resolves any sidecar descriptor and converts WML → `StandardForm` → `StandardFormData`.
     - Stores `StandardFormData` as `materializedView` in Redux and uses `WMLAggregator` for subsequent events.
 
 ### 3. Relationship to delegation

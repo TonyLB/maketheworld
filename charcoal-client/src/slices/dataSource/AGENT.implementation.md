@@ -228,7 +228,7 @@ The client mirrors the server-side header/content split:
 - LifeLine delivers `StreamEvent` messages with `streamKey`, `timestamp`, `eventType`, and `update`.
 - The client derives a `ClientStreamingHeader` from `eventType` (and optional `zone`) and treats `update` as `content`.
 - `processRawEnvelope` receives payloads shaped as `{ streamKey, timestamp, header, content }` (see [baseClasses.ts](./baseClasses.ts): `ClientStreamingMessagePayload`).
-- Routing uses `header.type === 'Snapshot'` vs other types; the reducer calls `deserializeSnapshot(content)` for snapshots or `deserialize({ content, header })` for events.
+- Routing uses `header.type`; the slice calls `deserialize({ content, header })` for all message types; the serializer routes on `header.type` internally (e.g. Snapshot vs events).
 
 ### **Key Implementation Areas**
 
@@ -263,7 +263,7 @@ Three action factories manage lifecycle:
 Snapshot events may carry inline payloads or domain-shaped sidecar descriptors (e.g. a field whose value is `{ sidecarUrl: string }`). Resolution happens inside the serializer when it is configured with a `DataSourceEnvironment`:
 
 1. **LifeLine callback** receives the StreamEvent, builds `envelopePayload`, and dispatches whatever `processRawEnvelope` (the wrapper) returns. Redux Thunk middleware executes async thunks.
-2. **Wrapper** (in `index.ts`): Always returns an async thunk that (a) calls `eventSerializer.deserializeSnapshot(content)` for Snapshot messages or `eventSerializer.deserialize({ content, header })` for events, (b) dispatches `processRawEnvelope` with the resolved internal content. The slice passes raw `content` to the serializer; the serializer performs sidecar fetch and resolution when configured with a `DataSourceEnvironment` (e.g. mtw.wml uses `WMLDataSourceEventSerializer(createBrowserDataSourceEnvironment())`).
+2. **Wrapper** (in `index.ts`): Always returns an async thunk that (a) calls `eventSerializer.deserialize({ content, header })` for all messages, (b) dispatches `processRawEnvelope` with the resolved internal content. The slice passes raw `content` and `header`; the serializer routes on `header.type` and performs sidecar fetch and resolution for snapshots when configured with a `DataSourceEnvironment` (e.g. mtw.wml uses `WMLDataSourceEventSerializer(createBrowserDataSourceEnvironment())`).
 3. **Reducer** (`reducers.ts`) expects pre-resolved internal content; deserialization (and sidecar resolution) happens only in the thunk, inside the serializer.
 
 #### **Slice Factory (`index.ts`)**
