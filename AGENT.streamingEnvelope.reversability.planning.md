@@ -1,6 +1,6 @@
 # Streaming Envelope Reversability (Homology Restoration)
 
-**Status**: PLANNING (Phase 1: COMPLETE, Phase 2a: COMPLETE)  
+**Status**: PLANNING (Phase 1: COMPLETE, Phase 2a: COMPLETE, Phase 2b: COMPLETE)  
 **Scope**: `StreamingEventEnvelope` / `getContent` contract in mtw-lambda-patterns and lambda apps.  
 **Related**: `packages/mtw-lambda-patterns/ts/dataSource/`, `AGENT.delegation.planning.mtw-wml-replayability.md`, `documentation/dataSources/AGENT.delegation.planning.md`
 
@@ -139,6 +139,16 @@ Incremental changes, each tested against the full pipeline. No parallel APIs; no
 - Updated `coreFormatToStreamingEnvelope` in streamEventPublisher.ts to accept `External` generic defaulting to `CoreExternalFormat['update']`.
 - SubscribedEvents envelope guards use implicit `External = unknown` (no changes required).
 - Verification: DataSource tests (110 passed), WML lambda (242 passed), Assets lambda (120 passed), Ephemera lambda (104 passed), mtw-interfaces (251 passed). No runtime behavior change; type definitions only.
+
+### Phase 2b Completed (2025-02-21)
+
+- Added `getContent(format?: 'internal' | 'external')` overloads to `StreamingEventEnvelope`, `StreamingEventPayloadContract`, `StreamingEventPayload` in baseClasses.ts.
+- Extended `coreFormatToStreamingEnvelope` to return `getContent` that branches on format; `getContent('external')` returns `coreFormat.update`.
+- Refactored EventBridge handlers (lambda/wml, assets, ephemera app.ts) to use `coreFormatToStreamingEnvelope` for envelope construction.
+- Extended DataSource `streamEvent` in index.ts to support `getContent('external')` via `coreFormat.update`.
+- Extended internal-origin send-helpers (subscribedEvents, initSubscription, assets/app cacheAsset) to accept format arg; `getContent('external')` throws until Phase 2c.
+- Updated lambda messageBus `StreamingEventMessage` contract to `getContent(format?: 'internal' | 'external')`.
+- Verification: DataSource tests (112 passed), WML lambda (242 passed), Assets lambda (120 passed), Ephemera lambda (104 passed). External-origin envelopes support `getContent('external')`; internal-origin throw until Phase 2c.
 
 ---
 

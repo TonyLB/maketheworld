@@ -338,7 +338,7 @@ export class DataSource<
 
         const primaryKeyName = this.primaryKeyName
         const eventId = uuid
-        const { eventBridgeEvent, dynamoRecord } = publishStreamEvent({
+        const { coreFormat, eventBridgeEvent, dynamoRecord } = publishStreamEvent({
             header,
             content: update,
             serializer: this.eventSerializer as StreamEventPublisherSerializer<Header> | undefined,
@@ -352,7 +352,10 @@ export class DataSource<
             streamKey,
             timestamp: now,
             header,
-            getContent: () => Promise.resolve(update)
+            getContent: (format?: 'internal' | 'external') =>
+                format === 'external'
+                    ? Promise.resolve(coreFormat.update)
+                    : Promise.resolve(update)
         }
 
         // Execute all operations in parallel
@@ -654,7 +657,7 @@ export class DataSource<
             dataSourceKey: 'mtw.subscriptions';
             streamKey: string;
             header: StreamingEventHeader;
-            getContent: () => Promise<{ sessionId: string; requestId: string }>;
+            getContent: (format?: 'internal' | 'external') => Promise<{ sessionId: string; requestId: string }>;
             timestamp: number;
         } => {
             return message.type === 'StreamingEvent' &&

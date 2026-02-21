@@ -142,13 +142,18 @@ export function coreFormatToResolvedSnapshotEnvelope(
 /**
  * Lift a CoreExternalFormat (snapshot or event) to StreamingEventEnvelope with lazy content.
  * Use when replay or other paths need getContent (e.g. for lazy deserialize).
+ * getContent(format?) branches: 'external' returns coreFormat.update; otherwise delegates to getInternalContent.
  */
 export function coreFormatToStreamingEnvelope<Content, External = CoreExternalFormat['update']>(
     coreFormat: CoreExternalFormat,
-    getContent: () => Promise<Content>
+    getInternalContent: () => Promise<Content>
 ): StreamingEventEnvelope<Content, CoreExternalFormat['header'], External> {
+    const getContent = (format?: 'internal' | 'external'): Promise<Content | External> =>
+        format === 'external'
+            ? Promise.resolve(coreFormat.update as External)
+            : getInternalContent();
     return {
         header: coreFormat.header,
-        getContent,
+        getContent: getContent as StreamingEventEnvelope<Content, CoreExternalFormat['header'], External>['getContent'],
     };
 }

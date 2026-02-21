@@ -245,4 +245,20 @@ describe('coreFormatToStreamingEnvelope', () => {
         expect(envelope.header).toBe(coreFormat.header)
         expect(await envelope.getContent()).toEqual(content)
     })
+    it('getContent() and getContent("internal") return internal content', async () => {
+        const coreFormat = createSnapshotCoreFormat('mtw.assets', 'key', 1, { type: 'Snapshot', data: 'x' })
+        const content = { deserialized: true }
+        const envelope = coreFormatToStreamingEnvelope(coreFormat, () => Promise.resolve(content))
+
+        expect(await envelope.getContent()).toEqual(content)
+        expect(await envelope.getContent('internal')).toEqual(content)
+    })
+    it('getContent("external") returns coreFormat.update', async () => {
+        const externalUpdate = { type: 'Snapshot', data: 'x' }
+        const coreFormat = createSnapshotCoreFormat('mtw.assets', 'key', 1, externalUpdate)
+        const content = { deserialized: true }
+        const envelope = coreFormatToStreamingEnvelope(coreFormat, () => Promise.resolve(content))
+
+        expect(await envelope.getContent('external')).toEqual(externalUpdate)
+    })
 })

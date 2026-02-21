@@ -78,7 +78,12 @@ export function sendApplyEdit(bus: Bus, streamKey: string, content: ApplyEditReq
         dataSourceKey: 'api.wml',
         streamKey,
         header,
-        getContent: () => Promise.resolve(content),
+        getContent: (format?: 'internal' | 'external') => {
+            if (format === 'external') {
+                throw new Error('getContent("external") not supported for internal-origin envelopes until Phase 2c')
+            }
+            return Promise.resolve(content)
+        },
         timestamp,
     })
 }
@@ -96,7 +101,12 @@ export function sendMoveAsset(bus: Bus, streamKey: string, content: MoveAssetReq
         dataSourceKey: 'api.wml',
         streamKey,
         header,
-        getContent: () => Promise.resolve(content),
+        getContent: (format?: 'internal' | 'external') => {
+            if (format === 'external') {
+                throw new Error('getContent("external") not supported for internal-origin envelopes until Phase 2c')
+            }
+            return Promise.resolve(content)
+        },
         timestamp,
     })
 }
@@ -114,7 +124,12 @@ export function sendPurgeAsset(bus: Bus, streamKey: string, content: PurgeAssetR
         dataSourceKey: 'api.wml',
         streamKey,
         header,
-        getContent: () => Promise.resolve(content),
+        getContent: (format?: 'internal' | 'external') => {
+            if (format === 'external') {
+                throw new Error('getContent("external") not supported for internal-origin envelopes until Phase 2c')
+            }
+            return Promise.resolve(content)
+        },
         timestamp,
     })
 }

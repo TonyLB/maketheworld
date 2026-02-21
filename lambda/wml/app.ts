@@ -7,6 +7,7 @@ import { extractReturnValue } from "./returnValue/index";
 import { sendApplyEdit, sendMoveAsset, sendPurgeAsset } from './dataSource/subscribedEvents';
 import { sendInitializeSubscription } from './dataSource/initSubscription';
 import { fromEventBridgeFormat } from '@tonylb/mtw-lambda-patterns/ts/dataSource/formatTransform';
+import { coreFormatToStreamingEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource';
 import { DiagnosticsEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics';
 import { WMLAPIMessage } from '@tonylb/mtw-interfaces/ts/wml';
 
@@ -60,17 +61,17 @@ export const handler = async (event: any, context: any) => {
         if (deserializer) {
             // Convert EventBridge event to CoreExternalFormat using format transformer
             const coreFormat = fromEventBridgeFormat(event)
-            const { header, update } = coreFormat
-            // Publish to messageBus with lazy deserialize; consumer awaits getContent() and handles null
-            const externalMessage: StreamingEventMessage = {
+            const envelope = coreFormatToStreamingEnvelope(coreFormat, () =>
+                deserializer.deserialize({ content: coreFormat.update as any, header: coreFormat.header })
+            )
+            messageBus.send({
                 type: 'StreamingEvent',
-                dataSourceKey: header.dataSourceKey,
-                streamKey: header.streamKey,
-                header,
-                getContent: () => deserializer.deserialize({ content: update as any, header }),
-                timestamp: event.time ? new Date(event.time).getTime() : header.timestamp
-            }
-            messageBus.send(externalMessage)
+                dataSourceKey: envelope.header.dataSourceKey,
+                streamKey: envelope.header.streamKey,
+                header: envelope.header,
+                getContent: envelope.getContent,
+                timestamp: event.time ? new Date(event.time).getTime() : envelope.header.timestamp
+            })
         } else {
             // No deserializer available - this is an error condition
             messageBus.send({

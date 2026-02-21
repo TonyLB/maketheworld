@@ -25,6 +25,7 @@ import { createBackupEntry } from "./backups"
 import { extractReturnValue } from './returnValue'
 import { WMLEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/wml'
 import { fromEventBridgeFormat } from '@tonylb/mtw-lambda-patterns/ts/dataSource/formatTransform'
+import { coreFormatToStreamingEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import { createNodeDataSourceEnvironment } from '@tonylb/mtw-lambda-patterns/ts/dataSource/nodeEnvironment'
 
 // Import DataSources to trigger their messageBus subscriptions (side-effect imports)
@@ -79,7 +80,12 @@ export const handler = async (event, context) => {
                     dataSourceKey: 'mtw.wml',
                     streamKey,
                     header,
-                    getContent: () => Promise.resolve(content),
+                    getContent: (format?: 'internal' | 'external') => {
+                        if (format === 'external') {
+                            throw new Error('getContent("external") not supported for internal-origin envelopes until Phase 2c')
+                        }
+                        return Promise.resolve(content)
+                    },
                     timestamp
                 })
                 await messageBus.flush()
@@ -118,15 +124,16 @@ export const handler = async (event, context) => {
             if (deserializer) {
                 // Convert EventBridge event to CoreExternalFormat using format transformer
                 const coreFormat = fromEventBridgeFormat(event)
-                const { header, update } = coreFormat
-                // Publish to messageBus with lazy deserialize; consumer awaits getContent() and handles null
+                const envelope = coreFormatToStreamingEnvelope(coreFormat, () =>
+                    deserializer.deserialize({ content: coreFormat.update as any, header: coreFormat.header })
+                )
                 messageBus.send({
                     type: 'StreamingEvent',
-                    dataSourceKey: header.dataSourceKey,
-                    streamKey: header.streamKey,
-                    header,
-                    getContent: () => deserializer.deserialize({ content: update as any, header }),
-                    timestamp: event.time ? new Date(event.time).getTime() : header.timestamp
+                    dataSourceKey: envelope.header.dataSourceKey,
+                    streamKey: envelope.header.streamKey,
+                    header: envelope.header,
+                    getContent: envelope.getContent,
+                    timestamp: event.time ? new Date(event.time).getTime() : envelope.header.timestamp
                 })
             } else {
                 // No deserializer available - this is an error condition

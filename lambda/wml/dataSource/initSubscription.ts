@@ -27,7 +27,12 @@ export function sendInitializeSubscription(
         dataSourceKey: 'mtw.subscriptions',
         streamKey,
         header,
-        getContent: () => Promise.resolve(payload),
+        getContent: (format?: 'internal' | 'external') => {
+            if (format === 'external') {
+                throw new Error('getContent("external") not supported for internal-origin envelopes until Phase 2c')
+            }
+            return Promise.resolve(payload)
+        },
         timestamp
     })
 }

@@ -37,7 +37,7 @@ export type StreamingEventPayloadContract = {
     streamKey: string;
     timestamp: number;
     header: StreamingEventHeader;
-    getContent: () => Promise<unknown>;
+    getContent: (format?: 'internal' | 'external') => Promise<unknown>;
 };
 
 // Internal DataSource format for StreamingEvent messages on the messageBus.
@@ -47,14 +47,18 @@ export type StreamingEventPayload = {
     streamKey: string;
     timestamp: number;
     header: StreamingEventHeader;
-    getContent: () => Promise<EventPayload>;
+    getContent: (format?: 'internal' | 'external') => Promise<EventPayload>;
 }
 
 // In-process envelope passed to receiveEvents. Handlers obtain internal content via getContent().
 // External = type of payload returned by getContent('external') when format arg is added (Phase 2b).
 export type StreamingEventEnvelope<Content = EventPayload, Header extends StreamingEventHeader = StreamingEventHeader, External = unknown> = {
     header: Header;
-    getContent: () => Promise<Content>;
+    getContent: {
+        (): Promise<Content>;
+        (format: 'internal'): Promise<Content>;
+        (format: 'external'): Promise<External>;
+    };
 }
 
 /**

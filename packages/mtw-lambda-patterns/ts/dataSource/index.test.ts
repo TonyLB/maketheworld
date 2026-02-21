@@ -800,6 +800,12 @@ describe('DataSource', () => {
                 type: 'TestUpdatePayload',
                 update: 'test-update'
             })
+            // getContent('external') returns coreFormat.update (external format)
+            const external = await sendCall.getContent('external')
+            expect(external).toEqual({
+                type: 'TestUpdatePayload',
+                update: 'test-update'
+            })
         })
 
         it('should merge required header fragment with DataSource-owned header', async () => {

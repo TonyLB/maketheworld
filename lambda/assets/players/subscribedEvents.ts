@@ -78,7 +78,12 @@ export function sendPlayerSettingsUpdated(bus: Bus, streamKey: string, content: 
         dataSourceKey: 'api.assets',
         streamKey,
         header,
-        getContent: () => Promise.resolve(content),
+        getContent: (format?: 'internal' | 'external') => {
+            if (format === 'external') {
+                throw new Error('getContent("external") not supported for internal-origin envelopes until Phase 2c')
+            }
+            return Promise.resolve(content)
+        },
         timestamp,
     })
 }
