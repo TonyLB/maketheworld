@@ -8,7 +8,7 @@
 
 ## Unified model: mirror + aggregator + snapshot source
 
-**All DataSources** mirror snapshots and streaming events in DynamoDB. When updating state (e.g. replay, subscription init with existing state), we take the most recent snapshot from Dynamo and apply the DataSource's aggregator to merge in events. The delegated system never overrides aggregation for those updates.
+**All DataSources** mirror snapshots and streaming events in DynamoDB (i.e. each DataSource stores its own published events and snapshots to Dynamo for replay; we do not store events received from other sources). When updating state (e.g. replay, subscription init with existing state), we take the most recent snapshot from Dynamo and apply the DataSource's aggregator to merge in events. The delegated system never overrides aggregation for those updates.
 
 **Delegation applies only to snapshot creation.** When we need a *new* snapshot (e.g. for initialize subscription), where does it come from?
 

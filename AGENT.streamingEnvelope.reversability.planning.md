@@ -2,7 +2,7 @@
 
 **Status**: PLANNING (Phase 1: COMPLETE, Phase 2a: COMPLETE, Phase 2b: COMPLETE, Phase 2c: COMPLETE)  
 **Scope**: `StreamingEventEnvelope` / `getContent` contract in mtw-lambda-patterns and lambda apps.  
-**Related**: `packages/mtw-lambda-patterns/ts/dataSource/`, `AGENT.delegation.planning.mtw-wml-replayability.md`, `documentation/dataSources/AGENT.delegation.planning.md`
+**Related**: `packages/mtw-lambda-patterns/ts/dataSource/`, [AGENT.streamEvent.alignment.planning.md](AGENT.streamEvent.alignment.planning.md) (side-quest before Phase 3), `AGENT.delegation.planning.mtw-wml-replayability.md`, `documentation/dataSources/AGENT.delegation.planning.md`
 
 ---
 
@@ -20,8 +20,8 @@ With sidecar storage, that breaks:
 
 This blocks:
 
-- **Receive-then-store**: An EventBridge event with sidecar is deserialized for handling; later we want to mirror to Dynamo. We cannot — we only have internal.
-- **mtw.wml replayability**: When making `mtw.wml` replayable, we need to store snapshots (and possibly events) that may be sidecarred. Without access to the original external format, we cannot preserve the sidecar in Dynamo.
+- **Storage for replay**: When we store events to Dynamo (e.g. via `streamEvent`), we need external format for sidecar preservation. If we only have internal and re-serialize, we may lose the sidecar. The fix: use `getContent('external')` for storage when we have an envelope.
+- **mtw.wml replayability**: When making `mtw.wml` replayable, we need to store snapshots and events that may be sidecarred. Without access to external format at storage time, we cannot preserve the sidecar in Dynamo.
 
 ---
 
@@ -107,7 +107,8 @@ Incremental changes, each tested against the full pipeline. No parallel APIs; no
 
 ### Phase 3: Wire `getContent('external')` for Storage Paths
 
-- Identify call sites that need external for Dynamo storage (e.g. receive-then-store, replay mirror).
+- **Side-quest**: Consider [AGENT.streamEvent.alignment.planning.md](AGENT.streamEvent.alignment.planning.md) first — align `streamEvent` to accept envelopes so Phase 3 uses `getContent('external')` for storage via envelope-aligned streamEvent.
+- Identify call sites that need external for Dynamo storage (e.g. streamEvent storage path).
 - Call `await envelope.getContent('external')` and pass to `toDynamoDBFormat({ header, update }, ...)`.
 - Add tests for sidecar preservation (external → store → load → external unchanged).
 - Verification: End-to-end test of storage path with sidecarred payload.
@@ -120,7 +121,7 @@ Incremental changes, each tested against the full pipeline. No parallel APIs; no
 | 2a | `baseClasses.ts` (StreamingEventEnvelope, envelope guards), `streamEventPublisher.ts` (signatures), `subscribedEvents.ts` (envelope unions) |
 | 2b | `baseClasses.ts`, `streamEventPublisher.ts` (`coreFormatToStreamingEnvelope`), lambda `app.ts`, `index.ts` (streamEvent), `subscribedEvents.ts` (getContent format arg + throw for `external`) |
 | 2c | `streamEventPublisher.ts` (`createInternalOriginEnvelope`), `subscribedEvents.ts` (send-helpers) |
-| 3 | DataSource storage/mirror logic (e.g. `deliverReplayData`, receive-then-store paths) |
+| 3 | DataSource storage logic (e.g. `deliverReplayData`, `streamEvent` storage path) |
 
 ### Dynamo Usage
 
@@ -193,7 +194,7 @@ Incremental changes, each tested against the full pipeline. No parallel APIs; no
 - Making `mtw.wml` replayable (see [AGENT.delegation.planning.mtw-wml-replayability.md](AGENT.delegation.planning.mtw-wml-replayability.md)).
 - Replayability requires storing snapshots and events to Dynamo, including sidecarred payloads.
 - The current envelope only exposes internal content via `getContent`; the original external (sidecar) is discarded after deserialize.
-- We cannot store what we do not have: the homology gap blocks mirror-to-Dynamo for sidecarred payloads.
+- We cannot store what we do not have: the homology gap blocks storage to Dynamo for sidecarred payloads.
 
 **Where to return ("pop the stack") after finishing:**
 
