@@ -113,7 +113,7 @@ Replay path: DataSource `deliverReplayData` builds CoreExternalFormat (snapshot 
 **Flexible Event Processing**: The DataSource pattern now supports batch processing through the `receiveEvents` method, providing a flexible foundation for various event processing patterns.
 
 **Key Features**:
-- **Batch Input**: `receiveEvents({ events, streamEvent })` accepts an array of events for processing
+- **Batch Input**: `receiveEvents({ events, streamEvent, streamEnvelope })` accepts an array of events for processing and two publishing helpers (see [Choosing streamEvent vs streamEnvelope](#choosing-streamevent-vs-streamenvelope)).
 - **Flexible Processing**: Supports any processing pattern - aggregation, parallel processing, or sequential processing as needed
 - **Processing Foundation**: Provides the foundation for advanced event processing patterns
 - **Pattern Agnostic**: Implementation can choose the most appropriate processing approach for the use case
@@ -157,6 +157,21 @@ The envelope and serializer support an optional **extended header** shape so dat
 - Callers must pass a **header fragment** (`StreamEventHeaderFragment<Header>`): `type` and any extended header fields. Type: `Omit<Header, 'dataSourceKey' | 'streamKey' | 'timestamp'>`. The DataSource merges the fragment with the base header to form the full header.
 - **Resolution:** Full header is always `{ dataSourceKey: this.dataSourceKey, streamKey, timestamp: now, ...params.header }`.
 - Supply the fragment so routing uses `header.type` (and extended fields) explicitly; the payload need not carry `type`.
+
+### **Choosing streamEvent vs streamEnvelope**
+
+The DataSource provides two publishing APIs. Both use the same wire format and storage behavior (unresolved envelopes, `getContent('external')` for storage). The distinction is the calling pattern.
+
+| API | Use when |
+|-----|----------|
+| **`streamEvent(params)`** | Golden path: DataSource receives resolved event, computes resolved result, publishes. Simple params interface `{ update, streamKey, header }`. External payload is derived via `serialize(internal)`. |
+| **`streamEnvelope(envelope)`** | Envelope-accepting flows: forwarding or storing external-origin events (preserve sidecars), publishing envelope-shaped results (e.g. S3 snapshotting), or any flow where the caller has or constructs an envelope. Uses `await envelope.getContent('external')` for DynamoDB and EventBridge; passes envelope to messageBus. |
+
+**Avoid a false binary**: "Preserve" (pass-through) and "derive via serialize(internal)" are endpoints, not the full spectrum. With field-level sidecar possibilities, flows may do custom surgery on the structure: e.g. a payload with `spreadSheet: sidecarrable` and `flags: JSON`; a derived DataSource alters spreadSheet when a flag is set, passes it unchanged otherwise, and always transforms flags. That result is neither pure preserve nor pure derive. `streamEnvelope` accepts envelopes however they were produced: preserve, derive, custom surgery, or hybrid.
+
+**Not about mirroring**: This is not about mirroring or replaying subscriber data unchanged. It is about having the right primitives for transform and filter pipelines that may need to preserve, forward, or emit envelope-shaped payloads (including sidecars).
+
+**receiveEvents** receives both `streamEvent` and `streamEnvelope`. Use `streamEvent` for golden-path (resolved-in, resolved-out); use `streamEnvelope` when forwarding or preserving envelopes, publishing envelope-shaped output, or doing partial preservation plus partial transform.
 
 **Serialization: extendedHeader and wire-level eventType**
 
