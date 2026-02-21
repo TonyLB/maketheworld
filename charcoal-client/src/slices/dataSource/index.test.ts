@@ -177,14 +177,14 @@ describe('dataSource slice', () => {
                 capturedProcessRawEnvelope = null
             })
 
-            it('when Snapshot is passed, passes raw content to deserializeSnapshot and dispatches with serializer result', async () => {
+            it('when Snapshot is passed, passes raw content to deserialize and dispatches with serializer result', async () => {
                 const resolvedSnapshot = { type: 'Snapshot' as const, value: 99 }
-                const deserializeSnapshot = vi.fn().mockResolvedValue(resolvedSnapshot)
+                const deserialize = vi.fn().mockResolvedValue(resolvedSnapshot)
                 const config: DataSourceSliceConfig<TestSnapshot, TestUpdate, any, any> = {
                     name: 'testDataSource',
                     dataSourceKey: 'test.dataSource',
                     aggregator: mockAggregator,
-                    eventSerializer: { ...mockSerializer, deserializeSnapshot },
+                    eventSerializer: { ...mockSerializer, deserialize },
                     sliceSelector: (state) => state.testDataSource
                 }
                 createDataSourceSlice(config)
@@ -199,7 +199,10 @@ describe('dataSource slice', () => {
                 })
                 expect(typeof result).toBe('function')
                 await (result as (d: any) => Promise<void>)(dispatch)
-                expect(deserializeSnapshot).toHaveBeenCalledWith(rawContent)
+                expect(deserialize).toHaveBeenCalledWith(expect.objectContaining({
+                    content: rawContent,
+                    header: expect.objectContaining({ type: 'Snapshot', dataSourceKey: 'test.dataSource', streamKey: 'stream1', timestamp: 1000 })
+                }))
                 expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({
                     payload: expect.objectContaining({
                         streamKey: 'stream1',
@@ -257,13 +260,13 @@ describe('dataSource slice', () => {
                 }))
             })
 
-            it('when inline snapshot is passed, thunk calls deserializeSnapshot with correct params', async () => {
-                const deserializeSnapshot = vi.fn((external: any) => external)
+            it('when inline snapshot is passed, thunk calls deserialize with correct params', async () => {
+                const deserialize = vi.fn((params: any) => params.content)
                 const config: DataSourceSliceConfig<TestSnapshot, TestUpdate, any, any> = {
                     name: 'testDataSource',
                     dataSourceKey: 'test.dataSource',
                     aggregator: mockAggregator,
-                    eventSerializer: { ...mockSerializer, deserializeSnapshot },
+                    eventSerializer: { ...mockSerializer, deserialize },
                     sliceSelector: (state) => state.testDataSource
                 }
                 createDataSourceSlice(config)
@@ -273,7 +276,10 @@ describe('dataSource slice', () => {
                 const dispatch = vi.fn()
                 const result = capturedProcessRawEnvelope!(payload)
                 await (result as (d: any) => Promise<void>)(dispatch)
-                expect(deserializeSnapshot).toHaveBeenCalledWith(externalSnapshot)
+                expect(deserialize).toHaveBeenCalledWith(expect.objectContaining({
+                    content: externalSnapshot,
+                    header: expect.objectContaining({ type: 'Snapshot', dataSourceKey: 'test.dataSource', streamKey: 'stream1', timestamp: 1000 })
+                }))
             })
 
             it('when deserialize returns null, thunk does not dispatch', async () => {
@@ -297,12 +303,12 @@ describe('dataSource slice', () => {
                 expect(dispatch).not.toHaveBeenCalled()
             })
 
-            it('when deserializeSnapshot returns null, thunk does not dispatch', async () => {
+            it('when deserialize returns null for Snapshot, thunk does not dispatch', async () => {
                 const config: DataSourceSliceConfig<TestSnapshot, TestUpdate, any, any> = {
                     name: 'testDataSource',
                     dataSourceKey: 'test.dataSource',
                     aggregator: mockAggregator,
-                    eventSerializer: { ...mockSerializer, deserializeSnapshot: () => null },
+                    eventSerializer: { ...mockSerializer, deserialize: async () => null },
                     sliceSelector: (state) => state.testDataSource
                 }
                 createDataSourceSlice(config)
@@ -318,12 +324,12 @@ describe('dataSource slice', () => {
                 expect(dispatch).not.toHaveBeenCalled()
             })
 
-            it('when Snapshot content is passed and deserializeSnapshot returns null, thunk does not dispatch', async () => {
+            it('when Snapshot content is passed and deserialize returns null, thunk does not dispatch', async () => {
                 const config: DataSourceSliceConfig<TestSnapshot, TestUpdate, any, any> = {
                     name: 'testDataSource',
                     dataSourceKey: 'test.dataSource',
                     aggregator: mockAggregator,
-                    eventSerializer: { ...mockSerializer, deserializeSnapshot: async () => null },
+                    eventSerializer: { ...mockSerializer, deserialize: async () => null },
                     sliceSelector: (state) => state.testDataSource
                 }
                 createDataSourceSlice(config)

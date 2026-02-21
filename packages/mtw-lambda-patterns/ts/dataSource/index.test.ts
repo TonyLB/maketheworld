@@ -2245,8 +2245,20 @@ describe('DataSource', () => {
 
         beforeEach(() => {
             mockSerializer = {
-                serialize: jest.fn((params) => params.content),
-                deserialize: jest.fn((params) => params.content),
+                serialize: jest.fn((params: { content: any; header: { type: string } }) => {
+                    if (params.header?.type === 'Snapshot') {
+                        const snapshot = params.content as SnapshotType<TestSnapshotPayload>
+                        return { externalId: snapshot.id, externalName: snapshot.name, externalValue: snapshot.value }
+                    }
+                    return params.content
+                }),
+                deserialize: jest.fn(async (params: { content: any; header: { type: string } }) => {
+                    if (params.header?.type === 'Snapshot') {
+                        const external = params.content as ExternalTestSnapshotPayload
+                        return { id: external.externalId, name: external.externalName, value: external.externalValue }
+                    }
+                    return params.content
+                }),
                 serializeSnapshot: jest.fn((snapshot: SnapshotType<TestSnapshotPayload>): ExternalTestSnapshotPayload => ({
                     externalId: snapshot.id,
                     externalName: snapshot.name,
@@ -2298,7 +2310,10 @@ describe('DataSource', () => {
 
                 const result = await dataSourceWithSerializer.getSnapshotExternal(streamKey)
 
-                expect(mockSerializer.serializeSnapshot).toHaveBeenCalledWith(internalSnapshot)
+                expect(mockSerializer.serialize).toHaveBeenCalledWith({
+                    content: internalSnapshot,
+                    header: expect.objectContaining({ dataSourceKey: 'mtw.testDataSource', streamKey, timestamp: 100000000, type: 'Snapshot' })
+                })
                 expect(result).toEqual({
                     type: 'Snapshot',
                     externalId: 'test-id',
@@ -2325,7 +2340,7 @@ describe('DataSource', () => {
                 const result = await dataSourceWithSerializer.getSnapshotExternal(streamKey)
 
                 expect(result).toBe(externalSnapshot)
-                expect(mockSerializer.serializeSnapshot).not.toHaveBeenCalled()
+                expect(mockSerializer.serialize).not.toHaveBeenCalled()
             })
         })
 
@@ -2345,11 +2360,9 @@ describe('DataSource', () => {
 
                 const result = await dataSourceWithSerializer.getSnapshot(streamKey)
 
-                expect(mockSerializer.deserializeSnapshot).toHaveBeenCalledWith({
-                    type: 'Snapshot',
-                    externalId: 'test-id',
-                    externalName: 'Test Snapshot',
-                    externalValue: 42
+                expect(mockSerializer.deserialize).toHaveBeenCalledWith({
+                    content: { type: 'Snapshot', externalId: 'test-id', externalName: 'Test Snapshot', externalValue: 42 },
+                    header: expect.objectContaining({ dataSourceKey: 'mtw.testDataSource', streamKey, timestamp: 100000000, type: 'Snapshot' })
                 })
                 expect(result).toEqual({
                     id: 'test-id',
@@ -2375,7 +2388,7 @@ describe('DataSource', () => {
                 const result = await dataSourceWithSerializer.getSnapshot(streamKey)
 
                 expect(result).toBe(cachedSnapshot)
-                expect(mockSerializer.deserializeSnapshot).not.toHaveBeenCalled()
+                expect(mockSerializer.deserialize).not.toHaveBeenCalled()
             })
         })
 
@@ -2392,7 +2405,10 @@ describe('DataSource', () => {
 
                 await dataSourceWithSerializer.storeSnapshotToStore({ streamKey, snapshot: internalSnapshot })
 
-                expect(mockSerializer.serializeSnapshot).toHaveBeenCalledWith(internalSnapshot)
+                expect(mockSerializer.serialize).toHaveBeenCalledWith({
+                    content: internalSnapshot,
+                    header: expect.objectContaining({ dataSourceKey: 'mtw.testDataSource', streamKey, timestamp: 100000000, type: 'Snapshot' })
+                })
                 expect(mockDynamo.putItem).toHaveBeenCalledWith({
                     AssetId: 'STREAM#mtw.testDataSource::test-stream',
                     DataCategory: 'Meta::Snapshot',

@@ -182,20 +182,9 @@ export const createDataSourceSlice = <
     const processRawEnvelopeWithSidecar = (payload: ClientStreamingMessagePayload<any>) => {
         const { streamKey, timestamp, header, content } = payload
         return async (dispatch: any) => {
-            let internalContent: SnapshotPayload | UpdatePayload | null
-            if (header.type === 'Snapshot') {
-                internalContent = eventSerializer.deserializeSnapshot
-                    ? await eventSerializer.deserializeSnapshot(content as any)
-                    : (content as unknown as SnapshotPayload)
-            } else {
-                internalContent = await eventSerializer.deserialize({ content: content as any, header: { ...header, dataSourceKey, streamKey, timestamp } })
-            }
+            const internalContent = await eventSerializer.deserialize({ content: content as any, header: { ...header, dataSourceKey, streamKey, timestamp } })
             if (!internalContent) {
-                if (header.type === 'Snapshot') {
-                    console.warn(`[${dataSourceKey}] Failed to deserialize snapshot for streamKey: ${streamKey}`)
-                } else {
-                    console.warn(`[${dataSourceKey}] Failed to deserialize event for streamKey: ${streamKey}`)
-                }
+                console.warn(`[${dataSourceKey}] Failed to deserialize for streamKey: ${streamKey}, header.type: ${header.type}`)
                 return
             }
             dispatch(result.publicActions.processRawEnvelope({
