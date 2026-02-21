@@ -92,6 +92,7 @@ This document focuses specifically on making `mtw.wml` **replayable** using that
 
 ### 3. Relationship to delegation
 
+- **Delegation = different implementation of `snapshotContentGenerator`.** No separate architectural pattern is needed. The base DataSource already uses `snapshotContentGenerator` as the single plug point; self-contained sources read from Dynamo, delegated sources (WML) call into the manifest/chunk system and return domain-shaped payloads. See `documentation/dataSources/AGENT.delegation.planning.md`.
 - Delegation remains responsible for providing a **current WML snapshot** for an asset:
   - That WML snapshot is written both:
     - To S3 (for sidecar or materialized view).
@@ -124,8 +125,7 @@ This document focuses specifically on making `mtw.wml` **replayable** using that
 1. **Confirm desired snapshot wire shape to client** (inline WML vs domain-shaped sidecar; both supported as `{ wml: string }` or `{ wml: { sidecarUrl } }`).
 2. **Decide Dynamo keying strategy for WML** (align with other DataSources where possible).
 3. **Outline replay call path for mtw.wml**:
-   - Where `snapshotContentGenerator` will live.
-   - How it will call into the WML mirror/Dynamo layer.
+   - `snapshotContentGenerator` is the existing DataSource hook; no new framework wiring needed. For WML: when Dynamo mirror exists, `getSnapshotExternal` loads from Dynamo first; when no snapshot in Dynamo for that stream, `generateSnapshot` calls `snapshotContentGenerator`, which for WML calls the manifest/chunk system (e.g. `getSidecarSnapshotDescriptor`) and returns domain-shaped payload `{ wml: string }` or `{ wml: { sidecarUrl } }`.
 4. **Identify any tests that must be added or adapted**:
    - Lambda-level: initializeSubscription for mtw.wml.
    - Interface-level: snapshot-related contracts in `mtw-interfaces/ts/eventBridge/wml`.
