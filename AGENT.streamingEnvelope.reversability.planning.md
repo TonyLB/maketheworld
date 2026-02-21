@@ -1,7 +1,7 @@
 # Streaming Envelope Reversability (Homology Restoration)
 
-**Status**: PLANNING (Phase 1: COMPLETE)  
-**Scope**: `StreamingEventEnvelope` / `getContentInternal` contract in mtw-lambda-patterns and lambda apps.  
+**Status**: PLANNING (Phase 1: COMPLETE, Phase 2a: COMPLETE)  
+**Scope**: `StreamingEventEnvelope` / `getContent` contract in mtw-lambda-patterns and lambda apps.  
 **Related**: `packages/mtw-lambda-patterns/ts/dataSource/`, `AGENT.delegation.planning.mtw-wml-replayability.md`, `documentation/dataSources/AGENT.delegation.planning.md`
 
 ---
@@ -13,9 +13,9 @@ We used to have homologous external and internal representations: round-trips in
 With sidecar storage, that breaks:
 
 - **External** (e.g. `{ wml: { sidecarUrl: string } }`) is deserialized to **internal** (e.g. `StandardFormData`).
-- The envelope exposes only `getContentInternal()` — internal content only.
+- The envelope exposes only `getContent()` — internal content only.
 - The original external payload (including sidecar) is closed over but never exposed.
-- There is **no way** to recover the original sidecar from `getContentInternal()` after deserialization.
+- There is **no way** to recover the original sidecar from `getContent()` after deserialization.
 - Round-trip: external sidecar → internal → serialize → external inline (sidecar lost).
 
 This blocks:
@@ -27,7 +27,7 @@ This blocks:
 
 ## Proposed Solution: `getContent(format?)`
 
-- Rename `getContentInternal` → `getContent` with an optional format argument.
+- Extend `getContent` (Phase 1 rename complete) with an optional format argument.
 - `getContent()` (or `getContent('internal')`) — lazy evaluation of internal format (current behavior).
 - `getContent('external')` — return the original external payload (including sidecar, when available).
 - Localize construction and typing in the existing utility `coreFormatToStreamingEnvelope` (and/or new `createEventBridgeEnvelope`).
@@ -61,7 +61,7 @@ createInternalOriginEnvelope<Content, Header, External = unknown>(
 
 Incremental changes, each tested against the full pipeline. No parallel APIs; no backward-compat alias (internal repo only).
 
-### Phase 1: Rename (No Behavior Change)
+### Phase 1: Rename (No Behavior Change) — DONE
 
 - Rename `getContentInternal` → `getContent` everywhere:
   - Types: `StreamingEventEnvelope`, `StreamingEventPayloadContract`, `StreamingEventPayload`, lambda `StreamingEventMessage`.
@@ -132,6 +132,14 @@ Incremental changes, each tested against the full pipeline. No parallel APIs; no
 - Verification: DataSource tests (110 passed), WML lambda (242 passed), Assets lambda (120 passed), Ephemera lambda (104 passed).
 - `getContentInternal` now appears only in this document (problem/solution framing for Phase 2).
 
+### Phase 2a Completed (2025-02-21)
+
+- Added third generic `External = unknown` to `StreamingEventEnvelope<Content, Header, External>` in baseClasses.ts.
+- Extended `makeStreamingEnvelopeGuardFromHeaderGuard` and `makeResolvedEnvelopeGuardFromHeaderGuard` with optional `External` type; narrow to `StreamingEventEnvelope<Content, H, External>`.
+- Updated `coreFormatToStreamingEnvelope` in streamEventPublisher.ts to accept `External` generic defaulting to `CoreExternalFormat['update']`.
+- SubscribedEvents envelope guards use implicit `External = unknown` (no changes required).
+- Verification: DataSource tests (110 passed), WML lambda (242 passed), Assets lambda (120 passed), Ephemera lambda (104 passed), mtw-interfaces (251 passed). No runtime behavior change; type definitions only.
+
 ---
 
 ## Getting Started
@@ -165,7 +173,7 @@ Incremental changes, each tested against the full pipeline. No parallel APIs; no
 
 - Making `mtw.wml` replayable (see [AGENT.delegation.planning.mtw-wml-replayability.md](AGENT.delegation.planning.mtw-wml-replayability.md)).
 - Replayability requires storing snapshots and events to Dynamo, including sidecarred payloads.
-- The current envelope only exposes internal content via `getContentInternal`; the original external (sidecar) is discarded after deserialize.
+- The current envelope only exposes internal content via `getContent`; the original external (sidecar) is discarded after deserialize.
 - We cannot store what we do not have: the homology gap blocks mirror-to-Dynamo for sidecarred payloads.
 
 **Where to return ("pop the stack") after finishing:**

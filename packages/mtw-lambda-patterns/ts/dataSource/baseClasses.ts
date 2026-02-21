@@ -51,7 +51,8 @@ export type StreamingEventPayload = {
 }
 
 // In-process envelope passed to receiveEvents. Handlers obtain internal content via getContent().
-export type StreamingEventEnvelope<Content = EventPayload, Header extends StreamingEventHeader = StreamingEventHeader> = {
+// External = type of payload returned by getContent('external') when format arg is added (Phase 2b).
+export type StreamingEventEnvelope<Content = EventPayload, Header extends StreamingEventHeader = StreamingEventHeader, External = unknown> = {
     header: Header;
     getContent: () => Promise<Content>;
 }
@@ -73,18 +74,20 @@ export type HeaderGuard<H extends StreamingEventHeader> = (header: StreamingEven
 
 export function makeStreamingEnvelopeGuardFromHeaderGuard<
     Content,
-    H extends StreamingEventHeader
+    H extends StreamingEventHeader,
+    External = unknown
 >(headerGuard: HeaderGuard<H>) {
     return (
-        envelope: StreamingEventEnvelope<unknown>
-    ): envelope is StreamingEventEnvelope<Content, H> => (
+        envelope: StreamingEventEnvelope<unknown, StreamingEventHeader, unknown>
+    ): envelope is StreamingEventEnvelope<Content, H, External> => (
         headerGuard(envelope.header)
     )
 }
 
 export function makeResolvedEnvelopeGuardFromHeaderGuard<
     Content,
-    H extends StreamingEventHeader
+    H extends StreamingEventHeader,
+    _External = unknown
 >(headerGuard: HeaderGuard<H>) {
     return (
         envelope: ResolvedStreamingEnvelope<unknown, StreamingEventHeader>
