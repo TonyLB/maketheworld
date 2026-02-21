@@ -1,6 +1,6 @@
 # Streaming Envelope Reversability (Homology Restoration)
 
-**Status**: PLANNING (Phase 1: COMPLETE, Phase 2a: COMPLETE, Phase 2b: COMPLETE)  
+**Status**: PLANNING (Phase 1: COMPLETE, Phase 2a: COMPLETE, Phase 2b: COMPLETE, Phase 2c: COMPLETE)  
 **Scope**: `StreamingEventEnvelope` / `getContent` contract in mtw-lambda-patterns and lambda apps.  
 **Related**: `packages/mtw-lambda-patterns/ts/dataSource/`, `AGENT.delegation.planning.mtw-wml-replayability.md`, `documentation/dataSources/AGENT.delegation.planning.md`
 
@@ -149,6 +149,15 @@ Incremental changes, each tested against the full pipeline. No parallel APIs; no
 - Extended internal-origin send-helpers (subscribedEvents, initSubscription, assets/app cacheAsset) to accept format arg; `getContent('external')` throws until Phase 2c.
 - Updated lambda messageBus `StreamingEventMessage` contract to `getContent(format?: 'internal' | 'external')`.
 - Verification: DataSource tests (112 passed), WML lambda (242 passed), Assets lambda (120 passed), Ephemera lambda (104 passed). External-origin envelopes support `getContent('external')`; internal-origin throw until Phase 2c.
+
+### Phase 2c Completed (2025-02-21)
+
+- Added `createInternalOriginEnvelope(header, content, serializer)` in streamEventPublisher.ts.
+- Migrated subscribedEvents send-helpers (WML: sendApplyEdit, sendMoveAsset, sendPurgeAsset; Assets players: sendPlayerSettingsUpdated) to use `createInternalOriginEnvelope`.
+- Migrated initSubscription send-helpers (WML, Assets) to use `createInternalOriginEnvelope`.
+- Migrated assets/app.ts cacheAsset case to use `createInternalOriginEnvelope`.
+- Uniform contract: `getContent('external')` returns external-shaped data across all envelope types.
+- Verification: DataSource tests (115 passed), WML lambda (242 passed), Assets lambda (120 passed), Ephemera lambda (104 passed). Internal-origin envelopes now support `getContent('external')` via serialize.
 
 ---
 

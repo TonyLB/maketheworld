@@ -3,6 +3,7 @@
  * and typed send-helper for the internal Player Settings Updated event.
  */
 import { StreamingEventHeader, StreamingEventEnvelope, HeaderGuard, makeStreamingEnvelopeGuardFromHeaderGuard } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import { createInternalOriginEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import {
     PlayerSettingsUpdatedEvent,
 } from './localApiEvents'
@@ -65,6 +66,8 @@ export const isPlayersSubscribedEnvelope = makeStreamingEnvelopeGuardFromHeaderG
 
 type Bus = { send: (payload: StreamingEventMessage) => void }
 
+const apiAssetsSerializer = { serialize: ({ content, header }: { content: object; header: StreamingEventHeader }) => ({ type: header.type, ...content }) }
+
 export function sendPlayerSettingsUpdated(bus: Bus, streamKey: string, content: PlayerSettingsUpdatedEvent): void {
     const timestamp = Date.now()
     const header: StreamingEventHeader = {
@@ -73,17 +76,13 @@ export function sendPlayerSettingsUpdated(bus: Bus, streamKey: string, content: 
         timestamp,
         type: 'Player Settings Updated',
     }
+    const envelope = createInternalOriginEnvelope(header, content, apiAssetsSerializer)
     bus.send({
         type: 'StreamingEvent',
         dataSourceKey: 'api.assets',
         streamKey,
-        header,
-        getContent: (format?: 'internal' | 'external') => {
-            if (format === 'external') {
-                throw new Error('getContent("external") not supported for internal-origin envelopes until Phase 2c')
-            }
-            return Promise.resolve(content)
-        },
+        header: envelope.header,
+        getContent: envelope.getContent,
         timestamp,
     })
 }

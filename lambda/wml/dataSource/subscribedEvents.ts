@@ -4,6 +4,7 @@
  * in one place and gives send sites compile-time safety via the helpers.
  */
 import { StreamingEventHeader, StreamingEventEnvelope, HeaderGuard, makeStreamingEnvelopeGuardFromHeaderGuard } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import { createInternalOriginEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import {
     CoordinationEventUpdate,
     CoordinationCanonizeEvent,
@@ -65,6 +66,8 @@ export { isApplyEditEnvelope, isMoveAssetEnvelope, isCanonizeOrDecanonizeEnvelop
 
 type Bus = { send: (payload: StreamingEventMessage) => void }
 
+const apiWmlSerializer = { serialize: ({ content, header }: { content: object; header: StreamingEventHeader }) => ({ type: header.type, ...content }) }
+
 export function sendApplyEdit(bus: Bus, streamKey: string, content: ApplyEditRequest): void {
     const timestamp = Date.now()
     const header: StreamingEventHeader = {
@@ -73,17 +76,13 @@ export function sendApplyEdit(bus: Bus, streamKey: string, content: ApplyEditReq
         timestamp,
         type: 'Apply Edit',
     }
+    const envelope = createInternalOriginEnvelope(header, content, apiWmlSerializer)
     bus.send({
         type: 'StreamingEvent',
         dataSourceKey: 'api.wml',
         streamKey,
-        header,
-        getContent: (format?: 'internal' | 'external') => {
-            if (format === 'external') {
-                throw new Error('getContent("external") not supported for internal-origin envelopes until Phase 2c')
-            }
-            return Promise.resolve(content)
-        },
+        header: envelope.header,
+        getContent: envelope.getContent,
         timestamp,
     })
 }
@@ -96,17 +95,13 @@ export function sendMoveAsset(bus: Bus, streamKey: string, content: MoveAssetReq
         timestamp,
         type: 'Move Asset',
     }
+    const envelope = createInternalOriginEnvelope(header, content, apiWmlSerializer)
     bus.send({
         type: 'StreamingEvent',
         dataSourceKey: 'api.wml',
         streamKey,
-        header,
-        getContent: (format?: 'internal' | 'external') => {
-            if (format === 'external') {
-                throw new Error('getContent("external") not supported for internal-origin envelopes until Phase 2c')
-            }
-            return Promise.resolve(content)
-        },
+        header: envelope.header,
+        getContent: envelope.getContent,
         timestamp,
     })
 }
@@ -119,17 +114,13 @@ export function sendPurgeAsset(bus: Bus, streamKey: string, content: PurgeAssetR
         timestamp,
         type: 'Purge Asset',
     }
+    const envelope = createInternalOriginEnvelope(header, content, apiWmlSerializer)
     bus.send({
         type: 'StreamingEvent',
         dataSourceKey: 'api.wml',
         streamKey,
-        header,
-        getContent: (format?: 'internal' | 'external') => {
-            if (format === 'external') {
-                throw new Error('getContent("external") not supported for internal-origin envelopes until Phase 2c')
-            }
-            return Promise.resolve(content)
-        },
+        header: envelope.header,
+        getContent: envelope.getContent,
         timestamp,
     })
 }

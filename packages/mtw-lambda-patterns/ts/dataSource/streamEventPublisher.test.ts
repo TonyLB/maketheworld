@@ -8,6 +8,7 @@ import {
     createSnapshotCoreFormat,
     coreFormatToResolvedSnapshotEnvelope,
     coreFormatToStreamingEnvelope,
+    createInternalOriginEnvelope,
     SNAPSHOT_HEADER_TYPE,
 } from './streamEventPublisher'
 import { CoreExternalFormat } from './formatTransform'
@@ -260,5 +261,35 @@ describe('coreFormatToStreamingEnvelope', () => {
         const envelope = coreFormatToStreamingEnvelope(coreFormat, () => Promise.resolve(content))
 
         expect(await envelope.getContent('external')).toEqual(externalUpdate)
+    })
+})
+
+describe('createInternalOriginEnvelope', () => {
+    const header = { dataSourceKey: 'api.wml', streamKey: 'key', timestamp: 1000, type: 'Apply Edit' }
+
+    it('should return StreamingEventEnvelope with header and getContent', async () => {
+        const content = { schema: 'wml', createIfNeeded: true }
+        const serializer = { serialize: ({ content: c, header: h }: { content: typeof content; header: typeof header }) => ({ type: h.type, ...c }) }
+        const envelope = createInternalOriginEnvelope(header, content, serializer)
+
+        expect(envelope.header).toBe(header)
+        expect(await envelope.getContent()).toEqual(content)
+    })
+    it('getContent() and getContent("internal") return internal content', async () => {
+        const content = { schema: 'wml' }
+        const serializer = { serialize: ({ content: c, header: h }: { content: typeof content; header: typeof header }) => ({ type: h.type, ...c }) }
+        const envelope = createInternalOriginEnvelope(header, content, serializer)
+
+        expect(await envelope.getContent()).toEqual(content)
+        expect(await envelope.getContent('internal')).toEqual(content)
+    })
+    it('getContent("external") returns serializer.serialize output', async () => {
+        const content = { schema: 'wml' }
+        const externalOutput = { type: 'Apply Edit', schema: 'wml' }
+        const serializer = { serialize: jest.fn().mockReturnValue(externalOutput) }
+        const envelope = createInternalOriginEnvelope(header, content, serializer)
+
+        expect(await envelope.getContent('external')).toEqual(externalOutput)
+        expect(serializer.serialize).toHaveBeenCalledWith({ content, header })
     })
 })

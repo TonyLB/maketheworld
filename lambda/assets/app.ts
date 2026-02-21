@@ -25,7 +25,7 @@ import { createBackupEntry } from "./backups"
 import { extractReturnValue } from './returnValue'
 import { WMLEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/wml'
 import { fromEventBridgeFormat } from '@tonylb/mtw-lambda-patterns/ts/dataSource/formatTransform'
-import { coreFormatToStreamingEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
+import { coreFormatToStreamingEnvelope, createInternalOriginEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import { createNodeDataSourceEnvironment } from '@tonylb/mtw-lambda-patterns/ts/dataSource/nodeEnvironment'
 
 // Import DataSources to trigger their messageBus subscriptions (side-effect imports)
@@ -75,17 +75,14 @@ export const handler = async (event, context) => {
                     timestamp,
                     type: 'Content Update'
                 }
+                const identitySerializer = { serialize: ({ content: c }: { content: typeof content }) => c }
+                const envelope = createInternalOriginEnvelope(header, content, identitySerializer)
                 messageBus.send({
                     type: 'StreamingEvent',
                     dataSourceKey: 'mtw.wml',
                     streamKey,
-                    header,
-                    getContent: (format?: 'internal' | 'external') => {
-                        if (format === 'external') {
-                            throw new Error('getContent("external") not supported for internal-origin envelopes until Phase 2c')
-                        }
-                        return Promise.resolve(content)
-                    },
+                    header: envelope.header,
+                    getContent: envelope.getContent,
                     timestamp
                 })
                 await messageBus.flush()

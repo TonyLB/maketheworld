@@ -157,3 +157,27 @@ export function coreFormatToStreamingEnvelope<Content, External = CoreExternalFo
         getContent: getContent as StreamingEventEnvelope<Content, CoreExternalFormat['header'], External>['getContent'],
     };
 }
+
+/**
+ * Build StreamingEventEnvelope for internal-origin events (API handlers, messageBus send).
+ * Content is in hand; external format is derived on demand via serializer.serialize.
+ * getContent() / getContent('internal') return content; getContent('external') returns serializer output.
+ */
+export function createInternalOriginEnvelope<
+    Content,
+    Header extends StreamingEventHeader,
+    External = CoreExternalFormat['update']
+>(
+    header: Header,
+    content: Content,
+    serializer: { serialize(params: { content: Content; header: Header }): External }
+): StreamingEventEnvelope<Content, Header, External> {
+    const getContent = (format?: 'internal' | 'external'): Promise<Content | External> =>
+        format === 'external'
+            ? Promise.resolve(serializer.serialize({ content, header }))
+            : Promise.resolve(content);
+    return {
+        header,
+        getContent: getContent as StreamingEventEnvelope<Content, Header, External>['getContent'],
+    };
+}

@@ -705,6 +705,7 @@ export {
     createSnapshotCoreFormat,
     coreFormatToResolvedSnapshotEnvelope,
     coreFormatToStreamingEnvelope,
+    createInternalOriginEnvelope,
     SNAPSHOT_HEADER_TYPE,
 } from './streamEventPublisher'
 
