@@ -1,8 +1,10 @@
 # Streaming Envelope Reversability (Homology Restoration)
 
-**Status**: READY FOR PHASE 3 (Phase 1: COMPLETE, Phase 2a: COMPLETE, Phase 2b: COMPLETE, Phase 2c: COMPLETE)  
+**Status**: PHASE 3 DEFERRED — returning to mtw.wml replayability (Phase 1: COMPLETE, Phase 2a: COMPLETE, Phase 2b: COMPLETE, Phase 2c: COMPLETE)  
 **Scope**: `StreamingEventEnvelope` / `getContent` contract in mtw-lambda-patterns and lambda apps.  
 **Related**: `packages/mtw-lambda-patterns/ts/dataSource/`, `AGENT.delegation.planning.mtw-wml-replayability.md`, `documentation/dataSources/AGENT.delegation.planning.md`
+
+**Note**: Phase 3 (wire `streamEnvelope` at storage call sites) is deferred. The homology machinery (Phases 1–2) is complete and unblocks mtw.wml replayability. Phase 3 will be addressed when storage paths are added as part of that work. This document will be **revisited and likely removed** after mtw.wml replayability is complete.
 
 ---
 
@@ -202,3 +204,5 @@ Incremental changes, each tested against the full pipeline. No parallel APIs; no
 
 1. Return to **mtw.wml replayability** — [AGENT.delegation.planning.mtw-wml-replayability.md](AGENT.delegation.planning.mtw-wml-replayability.md).
 2. Continue with delegation and DataSource planning as needed — [documentation/dataSources/AGENT.delegation.planning.md](documentation/dataSources/AGENT.delegation.planning.md).
+
+**Current state (2025-02-21):** Returning to mtw.wml replayability now. Phase 3 deferred; will be completed when wiring storage paths for mtw.wml. See mtw.wml replayability doc for post-completion step to revisit this document.

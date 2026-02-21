@@ -3,6 +3,7 @@ title: mtw.wml Replayability Planning
 status: DRAFT
 scope: mtw.wml DataSource replayability and WML Dynamo mirror
 related:
+  - AGENT.streamingEnvelope.reversability.planning.md (homology restoration; Phase 3 deferred, revisit after completion)
   - documentation/dataSources/AGENT.delegation.planning.md
   - lambda/wml/AGENT.event.md
   - packages/mtw-lambda-patterns/ts/dataSource/AGENT.md
@@ -63,7 +64,7 @@ This document focuses specifically on making `mtw.wml` **replayable** using that
 ### 1. Snapshot storage model
 
 - **Snapshot body in Dynamo**:
-  - Primary content: **WML string** for the asset.
+  - Primary content: **WML** for the asset — semantically a string, but in practice we are far more likely to store `{ sidecarUrl: string }` claim-checks into the S3 Storage system's `snapshots` storage than inline WML text.
   - Additional metadata fields:
     - AssetId (partition key).
     - Snapshot timestamp / version marker.
@@ -132,4 +133,10 @@ This document focuses specifically on making `mtw.wml` **replayable** using that
    - Client-level: WML dataSource slice receiving replay snapshots.
 
 Once these are sketched out and stable, we can switch to Plan mode and derive a concrete, executable task plan from this document.
+
+## Post-completion
+
+After mtw.wml replayability is complete:
+
+- **Revisit [AGENT.streamingEnvelope.reversability.planning.md](AGENT.streamingEnvelope.reversability.planning.md)**: Mark Phase 3 complete, verify all storage paths use `streamEnvelope` where needed for sidecar preservation, and likely remove or archive that planning doc once the work is fully absorbed.
 
