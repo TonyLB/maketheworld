@@ -12,7 +12,7 @@ import {
 } from './subscribedEvents'
 
 const processComponentUpdated = async (evt: Extract<EphemeraIncomingEvent, { header: { type: 'Component Updated' } }>): Promise<void> => {
-    const content = await evt.getContentInternal()
+    const content = await evt.getContent()
     if (!content) return
     const componentId = content.component.universalKey || ''
     if (isEphemeraRoomId(componentId)) {
@@ -21,7 +21,7 @@ const processComponentUpdated = async (evt: Extract<EphemeraIncomingEvent, { hea
 }
 
 const processCanonUpdated = async (evt: Extract<EphemeraIncomingEvent, { header: { type: 'Canon Updated' } }>): Promise<void> => {
-    const content = await evt.getContentInternal()
+    const content = await evt.getContent()
     if (!content) return
     messageBus.send({
         type: 'CanonSet',
@@ -30,7 +30,7 @@ const processCanonUpdated = async (evt: Extract<EphemeraIncomingEvent, { header:
 }
 
 const processZoneUpdated = async (evt: Extract<EphemeraIncomingEvent, { header: { type: 'Zone Updated' } }>): Promise<void> => {
-    const content = await evt.getContentInternal()
+    const content = await evt.getContent()
     if (!content) return
     const { fromZone, toZone } = content
     const assetId = evt.header.streamKey as string

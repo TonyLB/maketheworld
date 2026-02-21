@@ -55,7 +55,7 @@ const handleZoneChanged = async (
     event: Extract<AssetsIncomingEvent, { header: { type: 'Zone Changed' } }>,
     streamEvent: StreamEventFn
 ): Promise<void> => {
-    const content = await event.getContentInternal()
+    const content = await event.getContent()
     if (!content) return
     const { fromZone, toZone, player, subFolder } = content
     const assetId = event.header.streamKey as AssetUUID
@@ -91,7 +91,7 @@ const handleAssetPurged = async (
     event: Extract<AssetsIncomingEvent, { header: { type: 'Asset Purged' } }>,
     streamEvent: StreamEventFn
 ): Promise<void> => {
-    const content = await event.getContentInternal()
+    const content = await event.getContent()
     if (!content) return
     const assetId = event.header.streamKey as AssetUUID
     if (!assetId) {
@@ -118,7 +118,7 @@ const handleAssetPurged = async (
 const handleHealGlobalValues = async (
     event: Extract<AssetsIncomingEvent, { header: { type: 'Heal Global Values' } }>
 ): Promise<void> => {
-    const healContent = await event.getContentInternal()
+    const healContent = await event.getContent()
     if (!healContent) return
     await healGlobalValues({
         shouldHealConnections: Boolean(healContent.connections),

@@ -790,13 +790,19 @@ describe('DataSource', () => {
                     timestamp: 100000000,
                     type: 'TestUpdatePayload'
                 },
-                getContentInternal: expect.any(Function),
+                getContent: expect.any(Function),
                 timestamp: 100000000
             })
 
             const sendCall = mockMessageBus.send.mock.calls[0][0]
-            const content = await sendCall.getContentInternal()
+            const content = await sendCall.getContent()
             expect(content).toEqual({
+                type: 'TestUpdatePayload',
+                update: 'test-update'
+            })
+            // getContent('external') returns coreFormat.update (external format)
+            const external = await sendCall.getContent('external')
+            expect(external).toEqual({
                 type: 'TestUpdatePayload',
                 update: 'test-update'
             })
@@ -1273,7 +1279,7 @@ describe('DataSource', () => {
                     dataSourceKey: 'mtw.assets',
                     streamKey: 'char-123',
                     header: { dataSourceKey: 'mtw.assets', streamKey: 'char-123', timestamp: 123456789, type: 'AssetUpdated' },
-                    getContentInternal: () => Promise.resolve({ type: 'AssetUpdated', assetId: 'char-123' }),
+                    getContent: () => Promise.resolve({ type: 'AssetUpdated', assetId: 'char-123' }),
                     timestamp: 123456789
                 }
                 expect(structureGuard(validEvent)).toBe(true)
@@ -1295,7 +1301,7 @@ describe('DataSource', () => {
                         dataSourceKey: 'mtw.assets',
                         streamKey: 'item-456',
                         header: { dataSourceKey: 'mtw.assets', streamKey: 'item-456', timestamp: 123456789, type: 'AssetUpdated' },
-                        getContentInternal: () => Promise.resolve({ type: 'AssetUpdated', assetId: 'item-456' }),
+                        getContent: () => Promise.resolve({ type: 'AssetUpdated', assetId: 'item-456' }),
                         timestamp: 123456789
                     }
                 ]
@@ -1310,7 +1316,7 @@ describe('DataSource', () => {
                 }))
                 expect(mockReceiveEvents).toHaveBeenCalledWith(expect.objectContaining({
                     events: expect.arrayContaining([
-                        expect.objectContaining({ header: expect.objectContaining({ streamKey: 'char-123' }), getContentInternal: expect.any(Function) })
+                        expect.objectContaining({ header: expect.objectContaining({ streamKey: 'char-123' }), getContent: expect.any(Function) })
                     ])
                 }))
                 expect(mockReceiveEvents.mock.calls[0][0].events).toHaveLength(1)
@@ -1352,7 +1358,7 @@ describe('DataSource', () => {
                             timestamp: 123456789,
                             type: 'event1'
                         },
-                        getContentInternal: () => Promise.resolve({ type: 'event1', data: 'test1' }),
+                        getContent: () => Promise.resolve({ type: 'event1', data: 'test1' }),
                         timestamp: 123456789
                     },
                     {
@@ -1365,7 +1371,7 @@ describe('DataSource', () => {
                             timestamp: 123456790,
                             type: 'event2'
                         },
-                        getContentInternal: () => Promise.resolve({ type: 'event2', data: 'test2' }),
+                        getContent: () => Promise.resolve({ type: 'event2', data: 'test2' }),
                         timestamp: 123456790
                     }
                 ]
@@ -1383,7 +1389,7 @@ describe('DataSource', () => {
                                 timestamp: 123456789,
                                 type: 'event1'
                             },
-                            getContentInternal: expect.any(Function)
+                            getContent: expect.any(Function)
                         },
                         {
                             header: {
@@ -1392,15 +1398,15 @@ describe('DataSource', () => {
                                 timestamp: 123456790,
                                 type: 'event2'
                             },
-                            getContentInternal: expect.any(Function)
+                            getContent: expect.any(Function)
                         }
                     ],
                     streamEvent: expect.any(Function)
                 })
 
                 const receivedEvents = mockReceiveEvents.mock.calls[0][0].events
-                expect(await receivedEvents[0].getContentInternal()).toEqual({ type: 'event1', data: 'test1' })
-                expect(await receivedEvents[1].getContentInternal()).toEqual({ type: 'event2', data: 'test2' })
+                expect(await receivedEvents[0].getContent()).toEqual({ type: 'event1', data: 'test1' })
+                expect(await receivedEvents[1].getContent()).toEqual({ type: 'event2', data: 'test2' })
 
                 // Test that streamEvent function works
                 const streamEventFunction = mockReceiveEvents.mock.calls[0][0].streamEvent
@@ -1451,7 +1457,7 @@ describe('DataSource', () => {
                             timestamp: 123456789,
                             type: 'event1'
                         },
-                        getContentInternal: () => Promise.resolve({ type: 'event1' }),
+                        getContent: () => Promise.resolve({ type: 'event1' }),
                         timestamp: 123456789
                     }
                 ]
@@ -1467,14 +1473,14 @@ describe('DataSource', () => {
                                 timestamp: 123456789,
                                 type: 'event1'
                             },
-                            getContentInternal: expect.any(Function)
+                            getContent: expect.any(Function)
                         }
                     ],
                     streamEvent: expect.any(Function)
                 })
 
                 const receivedEvents = errorReceiveEvents.mock.calls[0][0].events
-                expect(await receivedEvents[0].getContentInternal()).toEqual({ type: 'event1' })
+                expect(await receivedEvents[0].getContent()).toEqual({ type: 'event1' })
             })
 
             it('should handle empty event arrays gracefully', async () => {
@@ -1539,7 +1545,7 @@ describe('DataSource', () => {
                             timestamp: 123456789,
                             type: 'singleEvent'
                         },
-                        getContentInternal: () => Promise.resolve({ type: 'singleEvent', data: 'test' }),
+                        getContent: () => Promise.resolve({ type: 'singleEvent', data: 'test' }),
                         timestamp: 123456789
                     }
                 ]
@@ -1555,14 +1561,14 @@ describe('DataSource', () => {
                                 timestamp: 123456789,
                                 type: 'singleEvent'
                             },
-                            getContentInternal: expect.any(Function)
+                            getContent: expect.any(Function)
                         }
                     ],
                     streamEvent: expect.any(Function)
                 })
 
                 const receivedEvents = mockReceiveEvents.mock.calls[0][0].events
-                expect(await receivedEvents[0].getContentInternal()).toEqual({ type: 'singleEvent', data: 'test' })
+                expect(await receivedEvents[0].getContent()).toEqual({ type: 'singleEvent', data: 'test' })
             })
         })
 
@@ -1645,7 +1651,7 @@ describe('DataSource', () => {
                         timestamp: 123456789,
                         type: 'Initialize Subscription - mtw.assets.contentHeaders'
                     },
-                    getContentInternal: () => Promise.resolve({ sessionId: 'SESSION#test-session', requestId: 'test-request-123' }),
+                    getContent: () => Promise.resolve({ sessionId: 'SESSION#test-session', requestId: 'test-request-123' }),
                     timestamp: 123456789
                 }
                 expect(typeGuard(validEvent)).toBe(true)
@@ -1674,10 +1680,10 @@ describe('DataSource', () => {
                 }
                 expect(typeGuard(wrongMessageType)).toBe(false)
 
-                // Test missing getContentInternal
+                // Test missing getContent
                 const missingGetContentInternal = {
                     ...validEvent,
-                    getContentInternal: undefined
+                    getContent: undefined
                 }
                 expect(typeGuard(missingGetContentInternal)).toBe(false)
             })
@@ -1714,7 +1720,7 @@ describe('DataSource', () => {
                         timestamp: 123456789,
                         type: 'Initialize Subscription - mtw.assets.contentHeaders'
                     },
-                    getContentInternal: () => Promise.resolve({ sessionId: 'SESSION#test-session', requestId: 'test-request-123' }),
+                    getContent: () => Promise.resolve({ sessionId: 'SESSION#test-session', requestId: 'test-request-123' }),
                     timestamp: 123456789
                 }
 
@@ -1759,7 +1765,7 @@ describe('DataSource', () => {
                             timestamp: 123456789,
                             type: 'Initialize Subscription - mtw.assets.contentHeaders'
                         },
-                        getContentInternal: () => Promise.resolve({ sessionId: 'SESSION#test-session-1', requestId: 'test-request-123' }),
+                        getContent: () => Promise.resolve({ sessionId: 'SESSION#test-session-1', requestId: 'test-request-123' }),
                         timestamp: 123456789
                     },
                     {
@@ -1772,7 +1778,7 @@ describe('DataSource', () => {
                             timestamp: 123456790,
                             type: 'Initialize Subscription - mtw.assets.contentHeaders'
                         },
-                        getContentInternal: () => Promise.resolve({ sessionId: 'SESSION#test-session-2', requestId: 'test-request-456' }),
+                        getContent: () => Promise.resolve({ sessionId: 'SESSION#test-session-2', requestId: 'test-request-456' }),
                         timestamp: 123456790
                     }
                 ]
@@ -1825,7 +1831,7 @@ describe('DataSource', () => {
                         timestamp: 123456789,
                         type: 'Initialize Subscription - mtw.assets.contentHeaders'
                     },
-                    getContentInternal: () => Promise.resolve({ sessionId: 'SESSION#test-session', requestId: 'test-request-123' }),
+                    getContent: () => Promise.resolve({ sessionId: 'SESSION#test-session', requestId: 'test-request-123' }),
                     timestamp: 123456789
                 }
 

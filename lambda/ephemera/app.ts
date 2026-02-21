@@ -31,6 +31,7 @@ import { sfnClient } from './clients'
 import { confirmGuestCharacter } from './guestCharacter'
 import { AssetsEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
 import { fromEventBridgeFormat } from '@tonylb/mtw-lambda-patterns/ts/dataSource/formatTransform'
+import { coreFormatToStreamingEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 
 // Import DataSources to trigger their messageBus subscriptions (side-effect imports)
 import './dataSource'  // mtw.ephemera DataSource
@@ -68,15 +69,16 @@ export const handler = async (event: any, context: any) => {
         
         if (deserializer) {
             const coreFormat = fromEventBridgeFormat(event)
-            const { header, update } = coreFormat
-            const timestamp = header.timestamp ?? (event.time ? new Date(event.time).getTime() : getCurrentTimestamp())
-            // Publish to messageBus with lazy deserialize; consumer awaits getContentInternal() and handles null
+            const envelope = coreFormatToStreamingEnvelope(coreFormat, () =>
+                deserializer.deserialize({ content: coreFormat.update as any, header: coreFormat.header })
+            )
+            const timestamp = envelope.header.timestamp ?? (event.time ? new Date(event.time).getTime() : getCurrentTimestamp())
             messageBus.send({
                 type: 'StreamingEvent',
-                dataSourceKey: header.dataSourceKey,
-                streamKey: header.streamKey,
-                header,
-                getContentInternal: () => deserializer.deserialize({ content: update as any, header }),
+                dataSourceKey: envelope.header.dataSourceKey,
+                streamKey: envelope.header.streamKey,
+                header: envelope.header,
+                getContent: envelope.getContent,
                 timestamp
             })
         } else {

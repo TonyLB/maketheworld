@@ -8,15 +8,15 @@ import { ZoneUpdatedEventUpdate, AssetCachedEventUpdate, AssetRemovedEventUpdate
 export type LibraryIncomingEvent =
     | {
           header: StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Zone Updated' };
-          getContentInternal: () => Promise<ZoneUpdatedEventUpdate>;
+          getContent: () => Promise<ZoneUpdatedEventUpdate>;
       }
     | {
           header: StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Asset Cached' };
-          getContentInternal: () => Promise<AssetCachedEventUpdate>;
+          getContent: () => Promise<AssetCachedEventUpdate>;
       }
     | {
           header: StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Asset Removed' };
-          getContentInternal: () => Promise<AssetRemovedEventUpdate>;
+          getContent: () => Promise<AssetRemovedEventUpdate>;
       };
 
 /** Header union for events mtw.assets.library subscribes to. */

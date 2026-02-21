@@ -7,25 +7,25 @@ import { WMLContentEvent, WMLZoneEvent, WMLPurgeEvent } from '@tonylb/mtw-interf
 
 /**
  * Envelope-level discriminated union for events subscribed by mtw.assets DataSource.
- * Each variant pairs a narrow header (dataSourceKey + type) with getContentInternal returning the matching content shape,
+ * Each variant pairs a narrow header (dataSourceKey + type) with getContent returning the matching content shape,
  * enabling TypeScript to narrow when routing on header.type.
  */
 export type AssetsIncomingEvent =
     | {
           header: StreamingEventHeader & { dataSourceKey: 'mtw.wml'; type: 'Content Update' };
-          getContentInternal: () => Promise<WMLContentEvent>;
+          getContent: () => Promise<WMLContentEvent>;
       }
     | {
           header: StreamingEventHeader & { dataSourceKey: 'mtw.wml'; type: 'Zone Changed' };
-          getContentInternal: () => Promise<WMLZoneEvent>;
+          getContent: () => Promise<WMLZoneEvent>;
       }
     | {
           header: StreamingEventHeader & { dataSourceKey: 'mtw.wml'; type: 'Asset Purged' };
-          getContentInternal: () => Promise<WMLPurgeEvent>;
+          getContent: () => Promise<WMLPurgeEvent>;
       }
     | {
           header: StreamingEventHeader & { dataSourceKey: 'mtw.diagnostics'; type: 'Heal Global Values' };
-          getContentInternal: () => Promise<{ type: 'Heal Global Values'; connections?: unknown; assets?: unknown }>;
+          getContent: () => Promise<{ type: 'Heal Global Values'; connections?: unknown; assets?: unknown }>;
       };
 
 /** Payload types of events mtw.assets subscribes to (derived from envelope union for backward compatibility). */

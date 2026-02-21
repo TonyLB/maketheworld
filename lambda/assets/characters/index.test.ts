@@ -76,7 +76,7 @@ describe('CharactersDataSource', () => {
                     timestamp: FIXED_TS,
                     type: 'Component Updated' as const
                 },
-                getContentInternal: () => Promise.resolve({
+                getContent: () => Promise.resolve({
                     type: 'Component Updated' as const,
                     assetId: 'ASSET#asset123',
                     component
@@ -113,7 +113,7 @@ describe('CharactersDataSource', () => {
                     timestamp: FIXED_TS,
                     type: 'Component Updated' as const
                 },
-                getContentInternal: () => Promise.resolve(nonCharacterContent)
+                getContent: () => Promise.resolve(nonCharacterContent)
             }
 
             await dataSource.receiveEvents?.({ events: [nonCharacterEvent], streamEvent: mockStreamEvent })
@@ -139,7 +139,7 @@ describe('CharactersDataSource', () => {
                     timestamp: FIXED_TS,
                     type: 'OtherEvent'
                 },
-                getContentInternal: () => Promise.resolve({
+                getContent: () => Promise.resolve({
                     streamKey: 'ASSET#asset123',
                     update: { type: 'Component Updated', assetId: 'ASSET#asset123', component },
                     timestamp: FIXED_TS
@@ -175,7 +175,7 @@ describe('CharactersDataSource', () => {
                         timestamp: FIXED_TS,
                         type: 'Component Updated' as const
                     },
-                    getContentInternal: () => Promise.resolve({
+                    getContent: () => Promise.resolve({
                         type: 'Component Updated' as const,
                         assetId: 'ASSET#asset1',
                         component: component1
@@ -188,7 +188,7 @@ describe('CharactersDataSource', () => {
                         timestamp: FIXED_TS,
                         type: 'Component Updated' as const
                     },
-                    getContentInternal: () => Promise.resolve({
+                    getContent: () => Promise.resolve({
                         type: 'Component Updated' as const,
                         assetId: 'ASSET#asset2',
                         component: component2
@@ -462,7 +462,7 @@ describe('CharactersDataSource', () => {
                     timestamp: FIXED_TS,
                     type: 'Component Updated' as const
                 },
-                getContentInternal: () => Promise.resolve({
+                getContent: () => Promise.resolve({
                     type: 'Component Updated' as const,
                     assetId: 'ASSET#asset123',
                     component: null // Invalid component
@@ -490,7 +490,7 @@ describe('CharactersDataSource', () => {
                     timestamp: FIXED_TS,
                     type: 'Component Updated' as const
                 },
-                getContentInternal: () => Promise.resolve({
+                getContent: () => Promise.resolve({
                     type: 'Component Updated' as const,
                     assetId: 'ASSET#asset123',
                     component: {

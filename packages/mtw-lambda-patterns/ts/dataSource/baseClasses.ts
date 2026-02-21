@@ -37,28 +37,33 @@ export type StreamingEventPayloadContract = {
     streamKey: string;
     timestamp: number;
     header: StreamingEventHeader;
-    getContentInternal: () => Promise<unknown>;
+    getContent: (format?: 'internal' | 'external') => Promise<unknown>;
 };
 
 // Internal DataSource format for StreamingEvent messages on the messageBus.
-// Canonical shape is header + getContentInternal.
+// Canonical shape is header + getContent.
 export type StreamingEventPayload = {
     dataSourceKey: string;
     streamKey: string;
     timestamp: number;
     header: StreamingEventHeader;
-    getContentInternal: () => Promise<EventPayload>;
+    getContent: (format?: 'internal' | 'external') => Promise<EventPayload>;
 }
 
-// In-process envelope passed to receiveEvents. Handlers obtain internal content via getContentInternal().
-export type StreamingEventEnvelope<Content = EventPayload, Header extends StreamingEventHeader = StreamingEventHeader> = {
+// In-process envelope passed to receiveEvents. Handlers obtain internal content via getContent().
+// External = type of payload returned by getContent('external') when format arg is added (Phase 2b).
+export type StreamingEventEnvelope<Content = EventPayload, Header extends StreamingEventHeader = StreamingEventHeader, External = unknown> = {
     header: Header;
-    getContentInternal: () => Promise<Content>;
+    getContent: {
+        (): Promise<Content>;
+        (format: 'internal'): Promise<Content>;
+        (format: 'external'): Promise<External>;
+    };
 }
 
 /**
  * Resolved streaming envelope: header + content (no lazy getter).
- * Same shape as StreamingEventEnvelope but with content in hand instead of getContentInternal().
+ * Same shape as StreamingEventEnvelope but with content in hand instead of getContent().
  * Used by: DataSourceAggregator.applyUpdate; client recentEvents; and conceptually by
  * serialize(params) / deserialize(params) which take { header, update } or { header, externalUpdate }.
  */
@@ -73,18 +78,20 @@ export type HeaderGuard<H extends StreamingEventHeader> = (header: StreamingEven
 
 export function makeStreamingEnvelopeGuardFromHeaderGuard<
     Content,
-    H extends StreamingEventHeader
+    H extends StreamingEventHeader,
+    External = unknown
 >(headerGuard: HeaderGuard<H>) {
     return (
-        envelope: StreamingEventEnvelope<unknown>
-    ): envelope is StreamingEventEnvelope<Content, H> => (
+        envelope: StreamingEventEnvelope<unknown, StreamingEventHeader, unknown>
+    ): envelope is StreamingEventEnvelope<Content, H, External> => (
         headerGuard(envelope.header)
     )
 }
 
 export function makeResolvedEnvelopeGuardFromHeaderGuard<
     Content,
-    H extends StreamingEventHeader
+    H extends StreamingEventHeader,
+    _External = unknown
 >(headerGuard: HeaderGuard<H>) {
     return (
         envelope: ResolvedStreamingEnvelope<unknown, StreamingEventHeader>

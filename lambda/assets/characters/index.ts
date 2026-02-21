@@ -88,7 +88,7 @@ const processComponentEvent = async (
     streamEvent: (params: { update: CharacterEventUpdate; streamKey: string; header: { type: string } }) => Promise<void>
 ): Promise<void> => {
     const streamKey = event.header.streamKey
-    const content = await event.getContentInternal()
+    const content = await event.getContent()
 
     // Content is already narrowed by envelope (Component Updated | Component Removed). We only care about StandardCharacter.
     const component = content.component

@@ -11,9 +11,9 @@ import {
 } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
 
 export type EphemeraIncomingEvent =
-    | { header: StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Component Updated' }; getContentInternal: () => Promise<ComponentUpdatedEvent> }
-    | { header: StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Canon Updated' }; getContentInternal: () => Promise<CanonUpdatedEventUpdate> }
-    | { header: StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Zone Updated' }; getContentInternal: () => Promise<ZoneUpdatedEventUpdate> }
+    | { header: StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Component Updated' }; getContent: () => Promise<ComponentUpdatedEvent> }
+    | { header: StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Canon Updated' }; getContent: () => Promise<CanonUpdatedEventUpdate> }
+    | { header: StreamingEventHeader & { dataSourceKey: 'mtw.assets'; type: 'Zone Updated' }; getContent: () => Promise<ZoneUpdatedEventUpdate> }
 
 /** Header union for events Ephemera DataSource subscribes to. */
 export type EphemeraSubscribedHeader =

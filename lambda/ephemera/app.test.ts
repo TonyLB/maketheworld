@@ -186,10 +186,10 @@ describe('app handler', () => {
                 (c) => c[0]?.type === 'StreamingEvent'
             )
             expect(streamingEventCall).toBeDefined()
-            const payload = streamingEventCall![0] as { type: 'StreamingEvent'; getContentInternal: () => Promise<unknown> }
+            const payload = streamingEventCall![0] as { type: 'StreamingEvent'; getContent: () => Promise<unknown> }
             expect(payload.type).toBe('StreamingEvent')
-            expect(payload.getContentInternal).toBeDefined()
-            const content = await payload.getContentInternal()
+            expect(payload.getContent).toBeDefined()
+            const content = await payload.getContent()
             expect(content).toEqual({})
         })
     })

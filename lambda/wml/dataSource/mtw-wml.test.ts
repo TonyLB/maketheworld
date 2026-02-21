@@ -86,7 +86,7 @@ describe('WML DataSource', () => {
                     timestamp: 0,
                     type: 'Move Asset'
                 },
-                getContentInternal: () => Promise.resolve({})
+                getContent: () => Promise.resolve({})
             }
 
             expect(wmlDataSource.subscribedEventTypeGuard).toBeDefined()
@@ -102,7 +102,7 @@ describe('WML DataSource', () => {
                     timestamp: 0,
                     type: 'Move Asset'
                 },
-                getContentInternal: () => Promise.resolve({})
+                getContent: () => Promise.resolve({})
             }
 
             expect(wmlDataSource.subscribedEventTypeGuard).toBeDefined()
@@ -118,7 +118,7 @@ describe('WML DataSource', () => {
                     timestamp: 0,
                     type: 'UnknownType'
                 },
-                getContentInternal: () => Promise.resolve({})
+                getContent: () => Promise.resolve({})
             }
 
             expect(wmlDataSource.subscribedEventTypeGuard).toBeDefined()
@@ -148,7 +148,7 @@ describe('WML DataSource', () => {
                     timestamp: 0,
                     type: 'Move Asset'
                 },
-                getContentInternal: () => Promise.resolve(mockMoveRequest)
+                getContent: () => Promise.resolve(mockMoveRequest)
             }
 
             // Simulate the receiveEvents processing
@@ -188,7 +188,7 @@ describe('WML DataSource', () => {
                     timestamp: 0,
                     type: 'Move Asset'
                 },
-                getContentInternal: () => Promise.resolve(mockMoveRequest)
+                getContent: () => Promise.resolve(mockMoveRequest)
             }
 
             // Simulate the receiveEvents processing
@@ -223,7 +223,7 @@ describe('WML DataSource', () => {
                     timestamp: 0,
                     type: 'Move Asset'
                 },
-                getContentInternal: () => Promise.resolve(mockMoveRequest)
+                getContent: () => Promise.resolve(mockMoveRequest)
             }
 
             // Simulate the receiveEvents processing
@@ -261,7 +261,7 @@ describe('WML DataSource', () => {
                     timestamp: 0,
                     type: 'Move Asset'
                 },
-                getContentInternal: () => Promise.resolve(mockMoveRequest)
+                getContent: () => Promise.resolve(mockMoveRequest)
             }
 
             // Should not throw - errors should be caught and logged
@@ -295,7 +295,7 @@ describe('WML DataSource', () => {
                     timestamp: 0,
                     type: 'Move Asset'
                 },
-                getContentInternal: () => Promise.resolve(mockMoveRequest)
+                getContent: () => Promise.resolve(mockMoveRequest)
             }
 
             // Should not throw - streaming errors should be caught and logged
@@ -334,7 +334,7 @@ describe('WML DataSource', () => {
                     timestamp: 0,
                     type: 'Apply Edit' as const
                 },
-                getContentInternal: () => Promise.resolve(mockApplyEditRequest)
+                getContent: () => Promise.resolve(mockApplyEditRequest)
             }
 
             // Simulate the receiveEvents processing
@@ -382,7 +382,7 @@ describe('WML DataSource', () => {
                     timestamp: 0,
                     type: 'Apply Edit' as const
                 },
-                getContentInternal: () => Promise.resolve(mockApplyEditRequest)
+                getContent: () => Promise.resolve(mockApplyEditRequest)
             }
 
             // Simulate the receiveEvents processing
@@ -422,7 +422,7 @@ describe('WML DataSource', () => {
                     timestamp: 0,
                     type: 'Apply Edit' as const
                 },
-                getContentInternal: () => Promise.resolve(mockApplyEditRequest)
+                getContent: () => Promise.resolve(mockApplyEditRequest)
             }
 
             // Should not throw - errors should be caught and logged
@@ -464,7 +464,7 @@ describe('WML DataSource', () => {
                     timestamp: 0,
                     type: 'Apply Edit' as const
                 },
-                getContentInternal: () => Promise.resolve(mockApplyEditRequest)
+                getContent: () => Promise.resolve(mockApplyEditRequest)
             }
 
             // Should not throw - streaming errors should be caught and logged
@@ -500,7 +500,7 @@ describe('WML DataSource', () => {
                     timestamp: 0,
                     type: 'Apply Edit' as const
                 },
-                getContentInternal: () => Promise.resolve(mockApplyEditRequest)
+                getContent: () => Promise.resolve(mockApplyEditRequest)
             }
 
             await wmlDataSource.receiveEvents!({
@@ -534,7 +534,7 @@ describe('WML DataSource', () => {
                     timestamp: 0,
                     type: 'Apply Edit' as const
                 },
-                getContentInternal: () => Promise.resolve(mockApplyEditRequest)
+                getContent: () => Promise.resolve(mockApplyEditRequest)
             }
 
             await wmlDataSource.receiveEvents!({
@@ -580,7 +580,7 @@ describe('WML DataSource', () => {
                     timestamp: 0,
                     type: 'Apply Edit' 
                 },
-                getContentInternal: () => Promise.resolve(mockApplyEditRequest)
+                getContent: () => Promise.resolve(mockApplyEditRequest)
             }
 
             await wmlDataSource.receiveEvents!({
@@ -607,7 +607,7 @@ describe('WML DataSource', () => {
                     timestamp: 0,
                     type: 'S3 Structure Finding'
                 },
-                getContentInternal: () => Promise.resolve({})
+                getContent: () => Promise.resolve({})
             }
 
             expect(wmlDataSource.subscribedEventTypeGuard).toBeDefined()
@@ -623,7 +623,7 @@ describe('WML DataSource', () => {
                     timestamp: 0,
                     type: 'Future Event Type'
                 },
-                getContentInternal: () => Promise.resolve({})
+                getContent: () => Promise.resolve({})
             }
 
             expect(wmlDataSource.subscribedEventTypeGuard).toBeDefined()
@@ -649,7 +649,7 @@ describe('WML DataSource', () => {
                     timestamp: 0,
                     type: 'S3 Structure Finding' as const
                 },
-                getContentInternal: () => Promise.resolve({
+                getContent: () => Promise.resolve({
                     type: 'S3 Structure Finding' as const,
                     source: 'primitives.wml',
                     status: 'missing' as const,
@@ -677,7 +677,7 @@ describe('WML DataSource', () => {
                     timestamp: 0,
                     type: 'S3 Structure Finding' as const
                 },
-                getContentInternal: () => Promise.resolve({
+                getContent: () => Promise.resolve({
                     type: 'S3 Structure Finding' as const,
                     source: 'primitives.wml',
                     status: 'present' as const,  // Not missing
@@ -704,7 +704,7 @@ describe('WML DataSource', () => {
                     timestamp: 0,
                     type: 'S3 Structure Finding' as const
                 },
-                getContentInternal: () => Promise.resolve({
+                getContent: () => Promise.resolve({
                     type: 'S3 Structure Finding' as const,
                     source: 'other-asset.wml',  // Different source
                     status: 'missing' as const,
@@ -733,7 +733,7 @@ describe('WML DataSource', () => {
                     timestamp: 0,
                     type: 'S3 Structure Finding' as const
                 },
-                getContentInternal: () => Promise.resolve({
+                getContent: () => Promise.resolve({
                     type: 'S3 Structure Finding' as const,
                     source: 'primitives.wml',
                     status: 'missing' as const,
@@ -778,7 +778,7 @@ describe('WML DataSource', () => {
                     timestamp: 0,
                     type: 'Create Snapshot' as const
                 },
-                getContentInternal: () => Promise.resolve({})
+                getContent: () => Promise.resolve({})
             }
 
             await wmlDataSource.receiveEvents!({
@@ -824,7 +824,7 @@ describe('WML DataSource', () => {
                     timestamp: 0,
                     type: 'Create Snapshot' as const
                 },
-                getContentInternal: () => Promise.resolve({})
+                getContent: () => Promise.resolve({})
             }
 
             // Should not throw - errors should be caught and logged
@@ -855,7 +855,7 @@ describe('WML DataSource', () => {
                     timestamp: 0,
                     type: 'Create Snapshot' as const
                 },
-                getContentInternal: () => Promise.resolve({})
+                getContent: () => Promise.resolve({})
             }
 
             // Should not throw - errors should be caught and logged
@@ -891,7 +891,7 @@ describe('WML DataSource', () => {
                     timestamp: 0,
                     type: 'Create Snapshot' as const
                 },
-                getContentInternal: () => Promise.resolve({})
+                getContent: () => Promise.resolve({})
             }
 
             // Should not throw - streaming errors should be caught
@@ -931,7 +931,7 @@ describe('WML DataSource', () => {
                         timestamp: 0,
                         type: 'Create Snapshot' as const
                     },
-                    getContentInternal: () => Promise.resolve({})
+                    getContent: () => Promise.resolve({})
                 }
 
                 await wmlDataSource.receiveEvents!({

@@ -210,7 +210,7 @@ describe('AssetsDataSource (mtw.assets)', () => {
                     timestamp: Date.now(),
                     type: 'Content Update'
                 },
-                getContentInternal: () => Promise.resolve(content)
+                getContent: () => Promise.resolve(content)
             }
 
             // Mock the receiveEvents method
@@ -235,7 +235,7 @@ describe('AssetsDataSource (mtw.assets)', () => {
                     timestamp: Date.now(),
                     type: 'Zone Changed'
                 },
-                getContentInternal: () => Promise.resolve({
+                getContent: () => Promise.resolve({
                     type: 'Zone Changed' as const,
                     AssetId: 'ASSET#test123',
                     fromZone: 'Personal' as Zone,
@@ -294,7 +294,7 @@ describe('AssetsDataSource (mtw.assets)', () => {
                     timestamp: Date.now(),
                     type: 'Zone Changed'
                 },
-                getContentInternal: () => Promise.resolve({
+                getContent: () => Promise.resolve({
                     type: 'Zone Changed' as const,
                     AssetId: 'ASSET#test456',
                     fromZone: 'Draft' as Zone,
@@ -366,7 +366,7 @@ describe('AssetsDataSource (mtw.assets)', () => {
                     timestamp: Date.now(),
                     type: 'Zone Changed'
                 },
-                getContentInternal: () => Promise.resolve({
+                getContent: () => Promise.resolve({
                     type: 'Zone Changed' as const,
                     AssetId: 'ASSET#test789',
                     fromZone: 'Canon' as Zone,
@@ -439,7 +439,7 @@ describe('AssetsDataSource (mtw.assets)', () => {
                     timestamp: Date.now(),
                     type: 'Asset Purged'
                 },
-                getContentInternal: () => Promise.resolve({
+                getContent: () => Promise.resolve({
                     type: 'Asset Purged' as const,
                     zone: 'Draft' as const,
                     objectsDeleted: 42
@@ -477,7 +477,7 @@ describe('AssetsDataSource (mtw.assets)', () => {
                     timestamp: Date.now(),
                     type: 'Heal Global Values'
                 },
-                getContentInternal: () => Promise.resolve({
+                getContent: () => Promise.resolve({
                     type: 'Heal Global Values' as const
                 })
             }
@@ -508,7 +508,7 @@ describe('AssetsDataSource (mtw.assets)', () => {
                         timestamp: Date.now(),
                         type: 'Content Update'
                     },
-                    getContentInternal: () => Promise.resolve({
+                    getContent: () => Promise.resolve({
                         type: 'Content Update' as const,
                         AssetId: 'ASSET#test123',
                         schema: new StandardForm(`<Asset uuid=(test123) />`)
@@ -521,7 +521,7 @@ describe('AssetsDataSource (mtw.assets)', () => {
                         timestamp: Date.now(),
                         type: 'Heal Global Values'
                     },
-                    getContentInternal: () => Promise.resolve({
+                    getContent: () => Promise.resolve({
                         type: 'Heal Global Values' as const
                     })
                 },
@@ -532,7 +532,7 @@ describe('AssetsDataSource (mtw.assets)', () => {
                         timestamp: Date.now(),
                         type: 'Content Update'
                     },
-                    getContentInternal: () => Promise.resolve({
+                    getContent: () => Promise.resolve({
                         type: 'Content Update' as const,
                         AssetId: 'ASSET#test456',
                         schema: new StandardForm(`<Asset uuid=(test456) />`)
@@ -570,7 +570,7 @@ describe('AssetsDataSource (mtw.assets)', () => {
                         timestamp: Date.now(),
                         type
                     },
-                    getContentInternal: () => Promise.resolve({})
+                    getContent: () => Promise.resolve({})
                 }
 
                 expect(assetsDataSource.subscribedEventTypeGuard?.(envelope)).toBe(true)
@@ -585,7 +585,7 @@ describe('AssetsDataSource (mtw.assets)', () => {
                     timestamp: Date.now(),
                     type: 'Test Event'
                 },
-                getContentInternal: () => Promise.resolve({})
+                getContent: () => Promise.resolve({})
             }
 
             expect(assetsDataSource.subscribedEventTypeGuard?.(otherEnvelope)).toBe(false)
@@ -599,7 +599,7 @@ describe('AssetsDataSource (mtw.assets)', () => {
                     timestamp: Date.now()
                     // missing type
                 } as any,
-                getContentInternal: () => Promise.resolve({})
+                getContent: () => Promise.resolve({})
             }
 
             expect(assetsDataSource.subscribedEventTypeGuard?.(malformedEnvelope)).toBe(false)

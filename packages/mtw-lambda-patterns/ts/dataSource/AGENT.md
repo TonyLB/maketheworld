@@ -295,10 +295,10 @@ Follow this structured path when working with the DataSource pattern. The header
    - **Read** [AGENT.implementation.md](./AGENT.implementation.md)
    - **Why**: The usage guide describes behavior; the implementation guide describes *how* it works (envelope contract, extended headers, format transforms, serializer contract)
    - **Focus**: [Header/Content Envelope Model](./AGENT.implementation.md#headercontent-envelope-model), [SubscribedEvents pattern](./AGENT.implementation.md#subscribedevents-pattern), [Type-Safe Routing](./AGENT.implementation.md#type-safe-routing-with-envelope-level-discriminated-unions-and-payload-purity)
-   - **Key Insight**: `subscribedEventTypeGuard` inspects only `header`; `receiveEvents` gets content via `getContentInternal()`. Header is authoritative for routing; content is domain data only
+   - **Key Insight**: `subscribedEventTypeGuard` inspects only `header`; `receiveEvents` gets content via `getContent()`. Header is authoritative for routing; content is domain data only
 
 4. **Understand Core Integration Points**
-   - **MessageBus**: [messageBus AGENT.md](../messageBus/AGENT.md) - DataSource subscribes to messageBus with structure guards; the bus stays payload-agnostic via `getContentInternal: () => Promise<unknown>`
+   - **MessageBus**: [messageBus AGENT.md](../messageBus/AGENT.md) - DataSource subscribes to messageBus with structure guards; the bus stays payload-agnostic via `getContent: () => Promise<unknown>`
    - **EventBridge contracts**: [mtw-interfaces EventBridge AGENT.implementation.md](../../../mtw-interfaces/ts/eventBridge/AGENT.implementation.md) - Serializers, external formats, and header-authoritative deserialization
    - **Format transforms**: [formatTransform.ts](./formatTransform.ts) - CoreExternalFormat, base four + extendedHeader split on the wire, context-specific transforms (EventBridge, DynamoDB, SNS, WebSocket)
    - **Key Insight**: CoreExternalFormat is `{ header, update }` only (no duplicated top-level envelope fields). Every wire format (EventBridge, DynamoDB, SNS, WebSocket) uses the same extended-header rule (header minus base four); the format layer applies it in every transform. Consumers always read full `header` after deserialize.

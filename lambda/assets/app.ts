@@ -25,6 +25,7 @@ import { createBackupEntry } from "./backups"
 import { extractReturnValue } from './returnValue'
 import { WMLEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/wml'
 import { fromEventBridgeFormat } from '@tonylb/mtw-lambda-patterns/ts/dataSource/formatTransform'
+import { coreFormatToStreamingEnvelope, createInternalOriginEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import { createNodeDataSourceEnvironment } from '@tonylb/mtw-lambda-patterns/ts/dataSource/nodeEnvironment'
 
 // Import DataSources to trigger their messageBus subscriptions (side-effect imports)
@@ -74,12 +75,14 @@ export const handler = async (event, context) => {
                     timestamp,
                     type: 'Content Update'
                 }
+                const identitySerializer = { serialize: ({ content: c }: { content: typeof content }) => c }
+                const envelope = createInternalOriginEnvelope(header, content, identitySerializer)
                 messageBus.send({
                     type: 'StreamingEvent',
                     dataSourceKey: 'mtw.wml',
                     streamKey,
-                    header,
-                    getContentInternal: () => Promise.resolve(content),
+                    header: envelope.header,
+                    getContent: envelope.getContent,
                     timestamp
                 })
                 await messageBus.flush()
@@ -118,15 +121,16 @@ export const handler = async (event, context) => {
             if (deserializer) {
                 // Convert EventBridge event to CoreExternalFormat using format transformer
                 const coreFormat = fromEventBridgeFormat(event)
-                const { header, update } = coreFormat
-                // Publish to messageBus with lazy deserialize; consumer awaits getContentInternal() and handles null
+                const envelope = coreFormatToStreamingEnvelope(coreFormat, () =>
+                    deserializer.deserialize({ content: coreFormat.update as any, header: coreFormat.header })
+                )
                 messageBus.send({
                     type: 'StreamingEvent',
-                    dataSourceKey: header.dataSourceKey,
-                    streamKey: header.streamKey,
-                    header,
-                    getContentInternal: () => deserializer.deserialize({ content: update as any, header }),
-                    timestamp: event.time ? new Date(event.time).getTime() : header.timestamp
+                    dataSourceKey: envelope.header.dataSourceKey,
+                    streamKey: envelope.header.streamKey,
+                    header: envelope.header,
+                    getContent: envelope.getContent,
+                    timestamp: event.time ? new Date(event.time).getTime() : envelope.header.timestamp
                 })
             } else {
                 // No deserializer available - this is an error condition

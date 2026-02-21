@@ -141,14 +141,43 @@ export function coreFormatToResolvedSnapshotEnvelope(
 
 /**
  * Lift a CoreExternalFormat (snapshot or event) to StreamingEventEnvelope with lazy content.
- * Use when replay or other paths need getContentInternal (e.g. for lazy deserialize).
+ * Use when replay or other paths need getContent (e.g. for lazy deserialize).
+ * getContent(format?) branches: 'external' returns coreFormat.update; otherwise delegates to getInternalContent.
  */
-export function coreFormatToStreamingEnvelope<Content>(
+export function coreFormatToStreamingEnvelope<Content, External = CoreExternalFormat['update']>(
     coreFormat: CoreExternalFormat,
-    getContentInternal: () => Promise<Content>
-): StreamingEventEnvelope<Content, CoreExternalFormat['header']> {
+    getInternalContent: () => Promise<Content>
+): StreamingEventEnvelope<Content, CoreExternalFormat['header'], External> {
+    const getContent = (format?: 'internal' | 'external'): Promise<Content | External> =>
+        format === 'external'
+            ? Promise.resolve(coreFormat.update as External)
+            : getInternalContent();
     return {
         header: coreFormat.header,
-        getContentInternal,
+        getContent: getContent as StreamingEventEnvelope<Content, CoreExternalFormat['header'], External>['getContent'],
+    };
+}
+
+/**
+ * Build StreamingEventEnvelope for internal-origin events (API handlers, messageBus send).
+ * Content is in hand; external format is derived on demand via serializer.serialize.
+ * getContent() / getContent('internal') return content; getContent('external') returns serializer output.
+ */
+export function createInternalOriginEnvelope<
+    Content,
+    Header extends StreamingEventHeader,
+    External = CoreExternalFormat['update']
+>(
+    header: Header,
+    content: Content,
+    serializer: { serialize(params: { content: Content; header: Header }): External }
+): StreamingEventEnvelope<Content, Header, External> {
+    const getContent = (format?: 'internal' | 'external'): Promise<Content | External> =>
+        format === 'external'
+            ? Promise.resolve(serializer.serialize({ content, header }))
+            : Promise.resolve(content);
+    return {
+        header,
+        getContent: getContent as StreamingEventEnvelope<Content, Header, External>['getContent'],
     };
 }
