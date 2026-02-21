@@ -106,7 +106,7 @@ export function wireFormatsFromCoreFormat<PrimaryKey extends string = string>(
 
 /**
  * Build CoreExternalFormat for a snapshot envelope. Use when the caller has the external
- * snapshot payload (e.g. after serializeSnapshot) and needs a canonical envelope for
+ * snapshot payload (e.g. after serialize with header.type 'Snapshot') and needs a canonical envelope for
  * storage or replay delivery. Wire formats can be produced via wireFormatsFromCoreFormat.
  */
 export function createSnapshotCoreFormat(
