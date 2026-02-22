@@ -1,6 +1,6 @@
 # Subscriber Sync Refactor: WML DataSource as Single Source of Truth
 
-**Status**: PLANNING (backend generic sidecar: implemented; front-end sidecar handling: implemented; WML dataSource slice: implemented)  
+**Status**: PLANNING (backend generic sidecar: implemented; front-end sidecar handling: implemented; WML dataSource slice: implemented; personalAssets refactor: complete)  
 **Scope**: Client (charcoal-client) and backend (generalized sidecar snapshot support; mtw.wml snapshot on subscribe).  
 **Related**: [AGENT.event.md](./AGENT.event.md), RequestIds pipeline, optimistic updates in personalAssets
 
@@ -72,7 +72,10 @@ npm test -- --run
 - Replaced `fetchAction` with `subscribeAction`: no fetch for WML body; calls getFetchURL internally for properties only; dispatches `subscribeToWmlDataSource([id])` (wmlDataSource owns subscribe); registers LifeLine subscription for clearPendingEditsByRequestIds and Merge Conflict toast.
 - SSM restructure: SUBSCRIBE -> SUBSCRIBED (HOLD until getWMLBase defined) -> FETCHIMPORTS -> FRESH. Removed FETCHURL, FETCH, FETCHURLBACKOFF, FETCHBACKOFF; added SUBSCRIBE, SUBSCRIBEBACKOFF, SUBSCRIBED.
 - personalAssets no longer sends direct socket subscribe; wmlDataSource owns subscribe. Base comes from dataSource Snapshot (sidecar) after subscribe. Workbench uses form-based editing via standardForm (derived from base + edit + pendingEdits); originalWML and currentWML are legacy and not consumed.
-- 2.5 (clearAction unsubscribe cleanup) remains separate; clearAction still has both personalAssets socket unsubscribe and wmlDataSource unsubscribe.
+
+### Client Work Item 2.5 (clearAction unsubscribe cleanup)
+
+- Removed redundant personalAssets socket unsubscribe; wmlDataSource owns mtw.wml unsubscribe via its UNSUBSCRIBE state. clearAction now only unsubscribes the LifeLine listener and dispatches `unsubscribeFromWmlDataSource([id])`.
 
 ### Client Work Item 2.2 and 2.3 (remove base, derive from dataSource)
 
@@ -218,7 +221,7 @@ We address these in implementation order. As decisions are made, record them her
 2. **Remove** `base` from personalAssets public state; derive base from dataSource everywhere. **Done.**
 3. **Selectors**: Add `getBase(state, assetId)` that reads from WML dataSource slice (`subscribedStreams[assetId]?.materializedView`). Use it wherever current code reads `state.personalAssets.base` for the open asset. **Done.**
 4. **fetchAction (open asset)**: **Done.** Replaced with subscribeAction. No longer calls getFetchURL + fetch for WML body. Subscribe to mtw.wml via WML dataSource slice (subscribeToStreams([id])). Backend sends Snapshot with sidecarUrl; client dataSource fetches URL and applies as initial materializedView. personalAssets sets edit/pendingEdits/initial UI state; registers LifeLine subscription for clearPendingEditsByRequestIds and toast. Base comes from dataSource after Snapshot. getFetchURL kept for properties (metadata) only.
-5. **clearAction**: Unsubscribe from mtw.wml (via dataSource unsubscribe for that streamKey). Unsubscribe personalAssets LifeLine listener. Clear personalAssets edit state.
+5. **clearAction**: **Done.** Unsubscribe personalAssets LifeLine listener; delegate mtw.wml unsubscribe to wmlDataSource (no personalAssets socket unsubscribe). Clear personalAssets edit state.
 6. **SSM restructure**: **Done.** Collapsed the fetch chain into SUBSCRIBE -> SUBSCRIBED (HOLD until getWMLBase defined) -> FETCHIMPORTS -> FRESH. (1) **SUBSCRIBE** — add asset to mtw.wml dataSource, get metadata (properties), set up LifeLine listener. (2) **SUBSCRIBED** — HOLD until dataSource has materialized the Snapshot (getWMLBase defined). Editing states (FRESH, WMLDIRTY, SCHEMADIRTY, etc.) unchanged.
 
 ### 3. Who subscribes to mtw.wml
@@ -252,7 +255,7 @@ We address these in implementation order. As decisions are made, record them her
 | charcoal-client | `src/slices/personalAssets/reducers.ts` | **Done.** Replaced receiveWMLEvent with clearPendingEditsByRequestIds; updateStandard uses action.payload.base (supplied by thunk). |
 | charcoal-client | `src/slices/personalAssets/baseClasses.ts` | **Done.** Removed `base` from PersonalAssetsPublic. PersonalAssetsNodes: SUBSCRIBE, SUBSCRIBEBACKOFF, SUBSCRIBED replace FETCHURL, FETCH, FETCHURLBACKOFF, FETCHBACKOFF. |
 | charcoal-client | `src/slices/personalAssets/selectors.ts` | **Done.** getBase(assetId) derives from wmlDataSource via augmentPublicDataForSelect; PersonalAssetsPublicAugmented type. |
-| charcoal-client | `src/slices/personalAssets/index.api.ts` | **Done.** subscribeAction replaces fetchAction; no WML fetch; getFetchURL for properties only; wmlDataSource.subscribeToStreams([id]); LifeLine subscription for RequestIds + toast. clearAction: dataSource unsubscribe (2.5: remove redundant personalAssets socket unsubscribe). |
+| charcoal-client | `src/slices/personalAssets/index.api.ts` | **Done.** subscribeAction replaces fetchAction; no WML fetch; getFetchURL for properties only; wmlDataSource.subscribeToStreams([id]); LifeLine subscription for RequestIds + toast. clearAction: LifeLine unsubscribe + wmlDataSource unsubscribe only (2.5 done; no personalAssets socket unsubscribe). |
 | charcoal-client | `src/slices/personalAssets/index.ts` | **Done.** SSM: SUBSCRIBE -> SUBSCRIBED -> FETCHIMPORTS; wire subscribeAction; clearPendingEditsByRequestIds; components use derived base selector. |
 | charcoal-client | Tests | **Done.** personalAssets: reducer tests for clearPendingEditsByRequestIds; updateStandard uses payload.base; selector tests for derived base. wmlDataSource: aggregator/serializer and slice tests; sidecar Snapshot fetch path. |
 
@@ -282,5 +285,5 @@ We address these in implementation order. As decisions are made, record them her
 4. **Backend – subscriptions**: **Done.** mtw.wml is in the snapshot-on-subscribe (replayable) list; subscriptions lambda emits "Initialize Subscription - mtw.wml" and EventBridge rule routes it to the WML lambda.
 5. **Frontend – sidecar snapshot handling**: **Done.** Slice passes raw `content` to serializer; WML serializer (with browser env) performs fetch and resolution for domain-shaped payloads (e.g. `{ wml: { sidecarUrl } }`). Timestamp-based ordering unchanged.
 6. **Frontend – WML dataSource slice**: **Done.** Add slice (aggregator, serializer, createDataSourceSlice); handle Snapshot (sidecar or inline) and Content Update / Merge Conflict; store registration and INITIALIZE.
-7. **Frontend – personalAssets**: Derive base from dataSource **(2.2, 2.3 Done)**; refactor receiveWMLEvent to only clearPendingEditsByRequestIds (Done); open-asset flow triggers subscribe (no fetch for WML body) **(2.4, 2.6 Done)**; clearAction unsubscribes (2.5 pending).
+7. **Frontend – personalAssets**: Derive base from dataSource **(2.2, 2.3 Done)**; refactor receiveWMLEvent to only clearPendingEditsByRequestIds (Done); open-asset flow triggers subscribe (no fetch for WML body) **(2.4, 2.6 Done)**; clearAction unsubscribes **(2.5 Done)**. Client Work Item 2 complete.
 8. **Tests and cleanup**: WML dataSource tests (implemented); personalAssets reducer tests; optional deprecation of getFetchURL for WML.

@@ -3,8 +3,7 @@ import { PersonalAssetsCondition, PersonalAssetsAction, PersonalAssetsPublic } f
 import {
     socketDispatchPromise,
     getStatus,
-    LifeLinePubSub,
-    socketDispatch
+    LifeLinePubSub
 } from '../lifeLine'
 import delayPromise from '../../lib/delayPromise'
 import { Token, TokenizeException } from '@tonylb/mtw-wml/ts/parser/tokenizer/baseClasses'
@@ -165,17 +164,8 @@ export const clearAction: PersonalAssetsAction = ({ internalData: { id, subscrip
     if (subscription) {
         LifeLinePubSub.unsubscribe(subscription)
     }
-    // Tell the backend to stop delivering mtw.wml events for this asset
+    // wmlDataSource owns mtw.wml unsubscribe; triggers socket unsubscribe via UNSUBSCRIBE state
     if (id) {
-        dispatch(socketDispatch({ message: 'unsubscribe', dataSourceKey: 'mtw.wml', streamKeys: [id] }, { service: 'subscriptions' }))
-        //
-        // TEMPORARY: Mirror the personalAssets unsubscribe into the WML dataSource
-        // ------------------------------------------------------------------------
-        // Keep the wmlDataSource slice subscription lifecycle aligned with the
-        // legacy personalAssets subscription so we can safely compare states
-        // during migration. This will be removed when wmlDataSource owns the
-        // mtw.wml subscribe/unsubscribe responsibility.
-        //
         dispatch(unsubscribeFromWmlDataSource([id]))
     }
     return { 

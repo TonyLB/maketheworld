@@ -206,14 +206,14 @@ const standardForm = useSelector(getStandardForm(assetId))
 
 - Base is derived from wmlDataSource (2.2, 2.3 done)
 - subscribeAction replaces fetchAction; no WML fetch; getFetchURL for properties only; wmlDataSource owns subscribe
-- clearAction unsubscribes from mtw.wml and wmlDataSource
-- Items 4–6 of Client Work Item 2 (fetch/clear refactor, SSM restructure) are pending
+- clearAction unsubscribes LifeLine listener and delegates mtw.wml unsubscribe to wmlDataSource (2.5 done)
+- Client Work Item 2 (personalAssets refactor) complete
 
 ### Future Plans
 
 - **fetchAction refactor** (Work Item 2.4): Done. subscribeAction subscribes via wmlDataSource; initial state from Snapshot (sidecar); no direct fetch for WML body
-- **clearAction** (2.5): Unsubscribe from wmlDataSource; personalAssets LifeLine listener only
-- **SSM restructure** (2.6): Collapse to Subscribe -> HOLD (until getWMLBase defined) -> FETCHIMPORTS/FRESH
+- **clearAction** (2.5): Done. Unsubscribe LifeLine listener; delegate mtw.wml unsubscribe to wmlDataSource (no personalAssets socket unsubscribe)
+- **SSM restructure** (2.6): Done. Collapse to Subscribe -> HOLD (until getWMLBase defined) -> FETCHIMPORTS/FRESH
 
 ### Technical Debt
 

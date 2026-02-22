@@ -9,7 +9,6 @@ import { AssetUUID } from '@tonylb/mtw-base/ts/schema';
 export interface PersonalAssetsInternal {
     id?: AssetUUID;
     incrementalBackoff: number;
-    /** @deprecated No longer used; WML comes from dataSource Snapshot. Kept for getFetchURL helper. */
     fetchURL?: string;
     saveURL?: string;
     s3Object?: string;
