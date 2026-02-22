@@ -106,7 +106,7 @@ export const createSubscribeAction = <SnapshotPayload, UpdatePayload>(
 ): DataSourceAction<SnapshotPayload, UpdatePayload> => {
     return ({ internalData, publicData }) => async (dispatch) => {
         const { subscribeStreamKeys, lifeLineSubscription } = internalData
-        
+
         // Safety check: Ensure INITIALIZE has completed before attempting backend subscription
         if (!lifeLineSubscription) {
             throw new Error(`[${dataSourceKey}] Cannot subscribe to backend before INITIALIZE completes (LifeLinePubSub not set up)`)
@@ -115,7 +115,7 @@ export const createSubscribeAction = <SnapshotPayload, UpdatePayload>(
         if (!subscribeStreamKeys || subscribeStreamKeys.length === 0) {
             return { internalData, publicData }
         }
-        
+
         try {
             // Subscribe to stream keys via the subscriptions API (single batch call)
             await dispatch(socketDispatchPromise({
