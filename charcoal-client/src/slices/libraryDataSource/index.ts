@@ -41,7 +41,7 @@ export const {
 } = libraryDataSourceSelectors
 
 export const {
-  processRawEnvelope
+  processEnvelope
 } = libraryDataSourceActions
 
 // Selector to get library asset IDs from the global stream

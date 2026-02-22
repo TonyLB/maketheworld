@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import produce from 'immer'
-import { applyEvents, performCleanup, processRawEnvelope } from './reducers'
+import { applyEvents, performCleanup, processEnvelope } from './reducers'
 import { DataSourceAggregator } from '@tonylb/mtw-lambda-patterns/ts/dataSource/aggregation'
 import type { RecentEventEnvelope } from './baseClasses'
 
@@ -182,10 +182,10 @@ describe('dataSource reducers', () => {
         })
     })
     
-    describe('processRawEnvelope (snapshot path)', () => {
+    describe('processEnvelope (snapshot path)', () => {
         const applyEventsWithAggregator = applyEvents(mockAggregator)
         const performCleanupWithConfig = performCleanup(mockAggregator, applyEventsWithAggregator)
-        const processEnvelope = processRawEnvelope(
+        const processEnvelopeReducer = processEnvelope(
             'test.dataSource',
             mockAggregator,
             performCleanupWithConfig,
@@ -212,7 +212,7 @@ describe('dataSource reducers', () => {
             }
             
             const newState = produce(initialPublicData, (draft) => {
-                processEnvelope(draft, action as any)
+                processEnvelopeReducer(draft, action as any)
             })
             
             expect(newState.subscribedStreams['stream1'].materializedView.items).toEqual(['new'])
@@ -242,7 +242,7 @@ describe('dataSource reducers', () => {
             }
             
             const newState = produce(initialPublicData, (draft) => {
-                processEnvelope(draft, action as any)
+                processEnvelopeReducer(draft, action as any)
             })
             
             // Should have snapshot + event after it
@@ -269,7 +269,7 @@ describe('dataSource reducers', () => {
             }
             
             const newState = produce(initialPublicData, (draft) => {
-                processEnvelope(draft, action as any)
+                processEnvelopeReducer(draft, action as any)
             })
             
             // State should be unchanged (no mutation)
@@ -277,10 +277,10 @@ describe('dataSource reducers', () => {
         })
     })
 
-    describe('processRawEnvelope (event path)', () => {
+    describe('processEnvelope (event path)', () => {
         const applyEventsWithAggregator = applyEvents(mockAggregator)
         const performCleanupWithConfig = performCleanup(mockAggregator, applyEventsWithAggregator)
-        const processEnvelope = processRawEnvelope(
+        const processEnvelopeReducer = processEnvelope(
             'test.dataSource',
             mockAggregator,
             performCleanupWithConfig,
@@ -309,7 +309,7 @@ describe('dataSource reducers', () => {
             }
             
             const newState = produce(initialPublicData, (draft) => {
-                processEnvelope(draft, action as any)
+                processEnvelopeReducer(draft, action as any)
             })
             
             // Should use fast path
@@ -341,7 +341,7 @@ describe('dataSource reducers', () => {
             }
             
             const newState = produce(initialPublicData, (draft) => {
-                processEnvelope(draft, action as any)
+                processEnvelopeReducer(draft, action as any)
             })
             
             // Should re-aggregate in correct order: snapshot -> b (new) -> c (existing)
@@ -369,7 +369,7 @@ describe('dataSource reducers', () => {
             }
             
             const newState = produce(initialPublicData, (draft) => {
-                processEnvelope(draft, action as any)
+                processEnvelopeReducer(draft, action as any)
             })
             
             // State should be unchanged
@@ -399,7 +399,7 @@ describe('dataSource reducers', () => {
             }
             
             const newState = produce(initialPublicData, (draft) => {
-                processEnvelope(draft, action as any)
+                processEnvelopeReducer(draft, action as any)
             })
             
             // Should re-aggregate from empty: a, b, c
@@ -430,7 +430,7 @@ describe('dataSource reducers', () => {
             }
             
             const newState = produce(initialPublicData, (draft) => {
-                processEnvelope(draft, action as any)
+                processEnvelopeReducer(draft, action as any)
             })
             
             // Old events should have been cleaned up
@@ -464,7 +464,7 @@ describe('dataSource reducers', () => {
             }
             
             const newState = produce(initialPublicData, (draft) => {
-                processEnvelope(draft, action as any)
+                processEnvelopeReducer(draft, action as any)
             })
             
             // The event timestamp (40000) is before the most recent snapshot (50000)

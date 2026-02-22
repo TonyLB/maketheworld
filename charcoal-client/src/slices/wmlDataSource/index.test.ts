@@ -6,7 +6,7 @@ import {
   unsubscribeFromWmlDataSource,
   getActiveStreamKeys,
   getSubscribedStreams,
-  processRawEnvelope
+  processEnvelope
 } from './index'
 import { getWMLBase } from './selectors'
 import { StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes'
@@ -37,8 +37,8 @@ describe('wmlDataSource slice', () => {
       expect(unsubscribeFromWmlDataSource).toBeDefined()
     })
 
-    it('should export processRawEnvelope', () => {
-      expect(processRawEnvelope).toBeDefined()
+    it('should export processEnvelope', () => {
+      expect(processEnvelope).toBeDefined()
     })
   })
 

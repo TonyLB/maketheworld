@@ -32,7 +32,7 @@ export const {
 } = contentHeadersSelectors
 
 export const {
-  processRawEnvelope
+  processEnvelope
 } = contentHeadersActions
 
 // Export selectors

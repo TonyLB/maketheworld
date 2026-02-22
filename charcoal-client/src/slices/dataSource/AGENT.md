@@ -36,7 +36,7 @@ import { MyAggregator, MySerializer } from './my-data-source-logic'
 export const {
   slice,           // Redux slice with state machine
   selectors,       // getActiveStreamKeys, getSubscribedStreams
-  publicActions,   // processRawEnvelope
+  publicActions,   // processEnvelope
   iterateAllSSMs   // State machine iterator
 } = createDataSourceSlice({
   name: 'myDataSource',

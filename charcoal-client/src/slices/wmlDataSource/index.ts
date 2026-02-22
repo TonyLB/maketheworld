@@ -32,7 +32,7 @@ export const {
 } = wmlDataSourceSelectors
 
 export const {
-  processRawEnvelope
+  processEnvelope
 } = wmlDataSourceActions
 
 export * from './selectors'

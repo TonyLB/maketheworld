@@ -156,7 +156,7 @@ The content headers slice automatically integrates with `LifeLinePubSub` through
 
 - ✅ Subscribing to LifeLinePubSub during INITIALIZE state
 - ✅ Filtering messages by `dataSourceKey` (`mtw.assets.contentHeaders`)
-- ✅ Routing all StreamEvents to `processRawEnvelope` (snapshot vs event discriminated by `header.type`)
+- ✅ Routing all StreamEvents to `processEnvelope` (snapshot vs event discriminated by `header.type`)
 - ✅ Extracting timestamps from messages
 - ✅ Managing subscription lifecycle
 

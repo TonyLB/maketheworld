@@ -178,7 +178,7 @@ The event processing functions use currying to inject configuration:
 
 ```typescript
 // Pattern: Outer function takes config, returns reducer
-const processRawEnvelope = (aggregator, serializer, ...) => 
+const processEnvelope = (aggregator, serializer, ...) => 
   (state, action) => {
     // Reducer logic with access to config; branches on header.type
   }
@@ -227,7 +227,7 @@ The client mirrors the server-side header/content split:
 
 - LifeLine delivers `StreamEvent` messages with `streamKey`, `timestamp`, `eventType`, and `update`.
 - The client derives a `ClientStreamingHeader` from `eventType` (and optional `zone`) and treats `update` as `content`.
-- `processRawEnvelope` receives payloads shaped as `{ streamKey, timestamp, header, content }` (see [baseClasses.ts](./baseClasses.ts): `ClientStreamingMessagePayload`).
+- `processEnvelope` receives payloads shaped as `{ streamKey, timestamp, header, content }` (see [baseClasses.ts](./baseClasses.ts): `ClientStreamingMessagePayload`).
 - Routing uses `header.type`; the slice calls `deserialize({ content, header })` for all message types; the serializer routes on `header.type` internally (e.g. Snapshot vs events).
 
 ### **Key Implementation Areas**
@@ -240,7 +240,7 @@ Three main functions handle event processing:
 
 1. **`applyEvents`**: Helper to apply multiple updates in order
 2. **`performCleanup`**: Manages 30-second rolling window (uses `header.type` for snapshot vs update discrimination)
-3. **`processRawEnvelope`**: Handles incoming snapshots and events; branches on `header.type === 'Snapshot'` to deserialize and apply (in-order fast path, out-of-order re-aggregation)
+3. **`processEnvelope`**: Handles incoming snapshots and events; branches on `header.type === 'Snapshot'` to apply (in-order fast path, out-of-order re-aggregation). Content is pre-deserialized by StreamEventPubSub.
 
 **Critical Algorithm**: Out-of-order event handling
 - **Fast path**: New event is later than all cached events → apply directly
@@ -252,7 +252,7 @@ Three main functions handle event processing:
 
 Three action factories manage lifecycle:
 
-1. **`createInitializeAction`**: Subscribe to LifeLinePubSub
+1. **`createInitializeAction`**: Subscribe to StreamEventPubSub
 2. **`createSubscribeAction`**: Call backend API to subscribe
 3. **`createUnsubscribeAction`**: Call backend API to unsubscribe
 
@@ -262,9 +262,9 @@ Three action factories manage lifecycle:
 
 Snapshot events may carry inline payloads or domain-shaped sidecar descriptors (e.g. a field whose value is `{ sidecarUrl: string }`). Resolution happens inside the serializer when it is configured with a `DataSourceEnvironment`:
 
-1. **LifeLine callback** receives the StreamEvent, builds `envelopePayload`, and dispatches whatever `processRawEnvelope` (the wrapper) returns. Redux Thunk middleware executes async thunks.
-2. **Wrapper** (in `index.ts`): Always returns an async thunk that (a) calls `eventSerializer.deserialize({ content, header })` for all messages, (b) dispatches `processRawEnvelope` with the resolved internal content. The slice passes raw `content` and `header`; the serializer routes on `header.type` and performs sidecar fetch and resolution for snapshots when configured with a `DataSourceEnvironment` (e.g. mtw.wml uses `WMLDataSourceEventSerializer(createBrowserDataSourceEnvironment())`).
-3. **Reducer** (`reducers.ts`) expects pre-resolved internal content; deserialization (and sidecar resolution) happens only in the thunk, inside the serializer.
+1. **StreamEventPubSub** subscribes to LifeLinePubSub, filters StreamEvents, looks up the deserializer by `dataSourceKey`, deserializes via `fromWebSocketFormat` + `eventSerializer.deserialize`, and publishes pre-deserialized payloads.
+2. **dataSource INITIALIZE** subscribes to StreamEventPubSub, filters by `dataSourceKey`, maps payload to `ClientStreamingMessagePayload`, and dispatches `processEnvelope` directly (content is already deserialized). Deserializers are registered via `registerDeserializer(dataSourceKey, eventSerializer)` when slices are created.
+3. **Reducer** (`reducers.ts`) expects pre-resolved internal content; deserialization happens in StreamEventPubSub before publish.
 
 #### **Slice Factory (`index.ts`)**
 
@@ -438,7 +438,7 @@ Quick reference for what each file does:
 3. Verify timestamps are correct
 
 ### **Understanding Out-of-Order Handling**
-→ Read `reducers.ts` `processRawEnvelope` function
+→ Read `reducers.ts` `processEnvelope` function
 → See `AGENT.planning.md` lines 872-1006 for algorithm details
 
 ### **Modifying State Machine Flow**

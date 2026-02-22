@@ -96,6 +96,6 @@ export const {
 } = playerDataSourceSelectors
 
 export const {
-  processRawEnvelope
+  processEnvelope
 } = playerDataSourceActions
 

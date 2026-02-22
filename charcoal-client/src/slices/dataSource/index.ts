@@ -1,13 +1,14 @@
 import { singleSSM } from '../stateSeekingMachine/singleSSM'
-import { DataSourceNodes, DataSourcePublic, DataSourceInternal, DataSourceData, ClientStreamingMessagePayload, ClientStreamingHeader } from './baseClasses'
+import { DataSourceNodes, DataSourcePublic, DataSourceInternal, DataSourceData, ClientStreamingMessagePayload } from './baseClasses'
 
 export { createBrowserDataSourceEnvironment } from './browserEnvironment'
+import { registerDeserializer } from './streamEventPubSub'
 import { backoffAction, createSubscribeAction, createUnsubscribeAction, createInitializeAction, lifelineCondition } from './index.api'
 import { PromiseCache } from '../promiseCache'
 import { heartbeat } from '../stateSeekingMachine/ssmHeartbeat'
 import type { DataSourceEventSerializer, EventPayload, SerializableObject } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import type { DataSourceAggregator } from '@tonylb/mtw-lambda-patterns/ts/dataSource/aggregation'
-import { applyEvents, performCleanup, processRawEnvelope } from './reducers'
+import { applyEvents, performCleanup, processEnvelope } from './reducers'
 import type { ISSMHoldCondition } from '../stateSeekingMachine/baseClasses'
 
 //
@@ -47,7 +48,7 @@ export const createDataSourceSlice = <
     const promiseCache = providedPromiseCache ?? new PromiseCache<DataSourceData<SnapshotPayload, UpdatePayload>>()
 
     // We'll create the initialize action after we have access to the public action creators
-    // This is necessary because the initialize action needs to dispatch processRawEnvelope
+    // This is necessary because the initialize action needs to dispatch processEnvelope
     let initializeAction: ReturnType<typeof createInitializeAction<SnapshotPayload, UpdatePayload>>
 
     // Create the subscribe and unsubscribe actions using factories
@@ -163,7 +164,7 @@ export const createDataSourceSlice = <
         sliceSelector,
         promiseCache,
         publicReducers: {
-            processRawEnvelope: processRawEnvelope(
+            processEnvelope: processEnvelope(
                 dataSourceKey,
                 aggregator,
                 performCleanupWithConfig,
@@ -177,24 +178,11 @@ export const createDataSourceSlice = <
         template
     })
 
-    // Always return an async thunk that awaits deserialize, then dispatches the reducer with resolved content.
-    // Slice passes raw content to the serializer; the serializer performs sidecar resolution when configured with a DataSourceEnvironment.
-    const processRawEnvelopeWithSidecar = (payload: ClientStreamingMessagePayload<any>) => {
-        const { streamKey, timestamp, header, content } = payload
-        return async (dispatch: any) => {
-            const internalContent = await eventSerializer.deserialize({ content: content as any, header: { ...header, dataSourceKey, streamKey, timestamp } })
-            if (!internalContent) {
-                console.warn(`[${dataSourceKey}] Failed to deserialize for streamKey: ${streamKey}, header.type: ${header.type}`)
-                return
-            }
-            dispatch(result.publicActions.processRawEnvelope({
-                streamKey,
-                timestamp,
-                header,
-                content: internalContent
-            }))
-        }
-    }
+    // StreamEventPubSub delivers pre-deserialized content; we pass the action creator directly.
+    const processEnvelopeAction = result.publicActions.processEnvelope
+
+    // Register deserializer so StreamEventPubSub can deserialize incoming StreamEvents for this data source
+    registerDeserializer(dataSourceKey, eventSerializer)
 
     // Now that we have the result with publicActions, create the initialize action
     // This needs to be done after singleSSM call because we need access to the action creators
@@ -211,7 +199,7 @@ export const createDataSourceSlice = <
         : undefined
     initializeAction = createInitializeAction<SnapshotPayload, UpdatePayload>(
         dataSourceKey,
-        processRawEnvelopeWithSidecar,
+        processEnvelopeAction,
         onReadyWrapper,
         sliceSelector  // Pass sliceSelector so we can read current state after onReady
     )
