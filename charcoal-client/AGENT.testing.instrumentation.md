@@ -2,8 +2,6 @@
 
 This document describes the **patterns** and tools we use in the charcoal client to instrument behavior for debugging and diagnosis. It is updated as we adopt new patterns and add tools.
 
-<!-- Stub: contents will be filled in progressively as we implement instrumentation. -->
-
 ## Conventions
 
 - **Use `console.log` for instrumentation output.** Do not use `console.debug`. In browser DevTools, `console.debug` is treated as "Verbose" and is often hidden by default; instrumentation logs would not appear until the user enables Verbose level. Using `console.log` ensures logs are visible with default console settings.
@@ -26,8 +24,6 @@ Leaving the key or the options in place without the log means dead config and co
 
 ## Available tools
 
-*(None yet.)*
+### Scoped instrumentation via options threading (updateStandard)
 
-## Usage
-
-*(To be added per pattern/tool.)*
+Thread `options.instrumentation` through the `updateStandard` flow so that instrumentation can be scoped by call-tree. The plumbing is permanent: `UpdateStandardPayload` includes optional `options?: ScopedInstrumentationOptions`; the thunk passes `options` through; the reducer receives it. When debugging a specific flow, pass `options: { instrumentation: ['key'] }` at the call site; add the key to `INSTRUMENTATION_KEYS` in `src/testing/scopedInstrumentation.ts`; add logging in the reducer (or other instrumented sites) gated by `payload.options?.instrumentation?.includes(yourKey)`. Activation and logging are temporary and removed when the bug is fixed; the plumbing remains for future debugging.

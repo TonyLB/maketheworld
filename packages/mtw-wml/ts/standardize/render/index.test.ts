@@ -119,6 +119,17 @@ describe('StandardRenderSimple', () => {
                 })
             })
 
+            // Regression: Asset Summary jitter - diff from "Test asset" to "Test asset (debug)" must return
+            // the added portion " (debug)", not [")"]. Bug was using slice(-1) when firstDifferingIndex === -1
+            // and base is a prefix of incoming. Leading space normalizes to Space element.
+            it('should return added suffix when base string is prefix of target string', () => {
+                const base = StandardRenderSimple.create(['Test asset'])
+                const target = StandardRenderSimple.create(['Test asset (debug)'])
+                const diff = base.diff(target)
+                const wrappedDiff = diff ? new StandardRender(diff) : undefined
+                expect(wrappedDiff?.toJSON()).toEqual([{ data: { tag: 'Space' }, children: [] }, '(debug)'])
+            })
+
         })
     })
 

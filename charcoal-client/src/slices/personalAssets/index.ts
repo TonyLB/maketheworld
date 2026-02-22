@@ -194,6 +194,7 @@ export const {
 export const {
     getStatus,
     getBase,
+    getEdit,
     getLocalStandardForm,
     getStandardForm,
     getInherited,
@@ -228,7 +229,7 @@ export const updateStandard = (key: string) => (payload: UpdateStandardPayload, 
     }
     const base = getWMLBase(getState(), key) ?? EMPTY_BASE
     const previousImports = selectors.getLocalStandardForm(key)(getState()).metaData.filter(treeNodeTypeguard(isSchemaImport))
-    dispatch(publicActions.updateStandard(key)({ ...payload, base }))
+    dispatch(publicActions.updateStandard(key)({ ...payload, base, options }))
     const newImports = selectors.getLocalStandardForm(key)(getState()).metaData.filter(treeNodeTypeguard(isSchemaImport))
     if (!deepEqual(previousImports, newImports)) {
         dispatch(fetchImports(key))

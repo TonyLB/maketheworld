@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes'
 import StandardReference from '@tonylb/mtw-wml/ts/standardize/components/reference'
+import type { ScopedInstrumentationOptions } from '../../testing/scopedInstrumentation'
 
 export const setLoadedImage = (state: PersonalAssetsPublic, action: PayloadAction<{ itemId: string; file: File }>) => {
     state.loadedImages[action.payload.itemId] = {
@@ -16,24 +17,28 @@ export type UpdateStandardPayloadSetInherited = {
     type: 'setInherited';
     inherited: StandardFormData;
     base?: StandardFormData;
+    options?: ScopedInstrumentationOptions;
 }
 
 export type UpdateStandardPayloadUpdateComponent = {
     type: 'update';
     update: (draft: StandardForm) => StandardForm;
     base?: StandardFormData;
+    options?: ScopedInstrumentationOptions;
 }
 
 export type UpdateStandardPayloadUpdateLocal = {
     type: 'updateLocal';
     update: (draft: StandardForm) => StandardForm;
     base?: StandardFormData;
+    options?: ScopedInstrumentationOptions;
 }
 
 export type UpdateStandardPayloadRemoveComponent = {
     type: 'removeComponent';
     componentKey: string;
     base?: StandardFormData;
+    options?: ScopedInstrumentationOptions;
 }
 
 export type UpdateStandardPayload = UpdateStandardPayloadSetInherited | UpdateStandardPayloadUpdateComponent | UpdateStandardPayloadUpdateLocal | UpdateStandardPayloadRemoveComponent

@@ -45,7 +45,9 @@ export const AssetEditForm: FunctionComponent = () => {
     useEffect(() => {
         const newSummary = standardForm.summary ?? new StandardRender([])
         const currentSummary = summaryRef.current
-        if (newSummary.toJSON() !== currentSummary.toJSON()) {
+        const newJson = newSummary.toJSON()
+        const currentJson = currentSummary.toJSON()
+        if (newJson !== currentJson) {
             setSummary(newSummary)
         }
     }, [standardForm.summary])

@@ -23,7 +23,7 @@ import {
     addItem
 } from '../../../slices/personalAssets'
 import { heartbeat } from '../../../slices/stateSeekingMachine/ssmHeartbeat'
-import { PersonalAssetsLoadedImage, PersonalAssetsNodes } from '../../../slices/personalAssets/baseClasses'
+import { PersonalAssetsLoadedImage, PersonalAssetsNodes, PersonalAssetsPublic } from '../../../slices/personalAssets/baseClasses'
 import { UpdateStandardPayload } from '../../../slices/personalAssets/reducers'
 import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 import { StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes'
@@ -50,6 +50,7 @@ type WorkbenchAssetContextType = {
     serialized?: boolean;
     status?: keyof PersonalAssetsNodes;
     saving: boolean;
+    pendingEdits: PersonalAssetsPublic['pendingEdits'];
 }
 
 // Uninitialized values matching LibraryAssetContext default context
@@ -65,7 +66,8 @@ const uninitializedValues: WorkbenchAssetContextType = {
     loadedImages: {},
     readonly: true,
     serialized: false,
-    saving: false
+    saving: false,
+    pendingEdits: []
 }
 
 export const useWorkbenchAsset = (): WorkbenchAssetContextType => {
@@ -173,7 +175,8 @@ export const useWorkbenchAsset = (): WorkbenchAssetContextType => {
         readonly,
         serialized,
         status,
-        saving: (pendingEdits?.length ?? 0) > 0
+        saving: (pendingEdits?.length ?? 0) > 0,
+        pendingEdits
     }
 }
 
