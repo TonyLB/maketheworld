@@ -36,10 +36,10 @@ describe('personalAssets slice', () => {
                 tag: 'Room',
                 addToReferenceList: getTopLevelAddToReferenceList
             }, { overrideUpdateStandard })(dispatch, getState)
-            expect(overrideUpdateStandardInternal).toHaveBeenCalledWith({
+            expect(overrideUpdateStandardInternal).toHaveBeenCalledWith(expect.objectContaining({
                 type: 'update',
                 update: expect.any(Function)
-            })
+            }))
             const base = new StandardForm(`
                 <Asset uuid=(testAsset)>
                     <Room uuid=(testRoom) from=(ASSET#testImport) />
@@ -58,10 +58,10 @@ describe('personalAssets slice', () => {
                 tag: 'Room',
                 addToReferenceList: getTopLevelAddToReferenceList
             }, { overrideUpdateStandard })(dispatch, getState)
-            expect(overrideUpdateStandardInternal).toHaveBeenCalledWith({
+            expect(overrideUpdateStandardInternal).toHaveBeenCalledWith(expect.objectContaining({
                 type: 'update',
                 update: expect.any(Function)
-            })
+            }))
             const base = new StandardForm(`
                 <Asset uuid=(testAsset)>
                     <Import from=(testImport)><Room key=(testRoom) /></Import>
@@ -87,10 +87,10 @@ describe('personalAssets slice', () => {
                 tag: 'Room',
                 addToReferenceList: getTopLevelAddToReferenceList
             }, { overrideUpdateStandard })(dispatch, getState)
-            expect(overrideUpdateStandardInternal).toHaveBeenCalledWith({
+            expect(overrideUpdateStandardInternal).toHaveBeenCalledWith(expect.objectContaining({
                 type: 'update',
                 update: expect.any(Function)
-            })
+            }))
             const base = new StandardForm(`
                 <Asset uuid=(testAsset)>
                     <Import from=(testImport)><Room key=(testRoom) /></Import>

@@ -23,21 +23,25 @@ export const setLoadedImage = (state: PersonalAssetsPublic, action: PayloadActio
 export type UpdateStandardPayloadSetInherited = {
     type: 'setInherited';
     inherited: StandardFormData;
+    base?: StandardFormData;
 }
 
 export type UpdateStandardPayloadUpdateComponent = {
     type: 'update';
     update: (draft: StandardForm) => StandardForm;
+    base?: StandardFormData;
 }
 
 export type UpdateStandardPayloadUpdateLocal = {
     type: 'updateLocal';
     update: (draft: StandardForm) => StandardForm;
+    base?: StandardFormData;
 }
 
 export type UpdateStandardPayloadRemoveComponent = {
     type: 'removeComponent';
     componentKey: string;
+    base?: StandardFormData;
 }
 
 export type UpdateStandardPayload = UpdateStandardPayloadSetInherited | UpdateStandardPayloadUpdateComponent | UpdateStandardPayloadUpdateLocal | UpdateStandardPayloadRemoveComponent
@@ -47,15 +51,18 @@ const isUpdateStandardPayloadUpdateComponent = (payload: UpdateStandardPayload):
 const isUpdateStandardPayloadUpdateLocal = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadUpdateLocal => (payload.type === 'updateLocal')
 const isUpdateStandardPayloadRemoveComponent = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadRemoveComponent => (payload.type === 'removeComponent')
 
+const EMPTY_BASE: StandardFormData = { universalKey: 'ASSET#uninitialized', components: [], metaData: [] }
+
 export const updateStandard = (state: PersonalAssetsPublic, action: PayloadAction<UpdateStandardPayload>) => {
     const { payload } = action
+    const baseData = payload.base ?? EMPTY_BASE
     const mergeToEdit = (delta: StandardForm): void => {
         const editStandardized = new StandardForm(state.edit)
         const merged = editStandardized.merge(delta)
         // Ensure the edit has the correct universalKey from the base
         // (it may be 'ASSET#uninitialized' if never properly initialized)
-        if (merged.universalKey === 'ASSET#uninitialized' && state.base.universalKey !== 'ASSET#uninitialized') {
-            merged._universalKey = state.base.universalKey
+        if (merged.universalKey === 'ASSET#uninitialized' && baseData.universalKey !== 'ASSET#uninitialized') {
+            merged._universalKey = baseData.universalKey
         }
         state.edit = merged.toJSON()
     }
@@ -63,7 +70,7 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
         state.inherited = payload.inherited
         return
     }
-    const base = new StandardForm(state.base)
+    const base = new StandardForm(baseData)
     const localStandardForm = state.pendingEdits.reduce<StandardForm>((previous, pendingEdit) => {
         const editStandardized = new StandardForm(pendingEdit.edit)
         return previous.merge(editStandardized)

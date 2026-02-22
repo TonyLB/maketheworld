@@ -5,9 +5,15 @@ import { StandardForm } from '@tonylb/mtw-wml/ts/standardize';
 import { StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes';
 import { SchemaTag } from '@tonylb/mtw-base/ts/schema';
 
+/** Augmented public data includes base derived from wmlDataSource (injected by augmentPublicDataForSelect). */
+export type PersonalAssetsPublicAugmented = PersonalAssetsPublic & { base: StandardFormData };
+
+const EMPTY_BASE: StandardFormData = { universalKey: 'ASSET#uninitialized', components: [], metaData: [] }
+
 export type PublicSelectors = {
     getCurrentWML: (state: PersonalAssetsPublic) => string;
     getDraftWML: (state: PersonalAssetsPublic) => string;
+    getBase: (state: PersonalAssetsPublic & { key: string }) => StandardFormData;
     getLocalStandardForm: (state: PersonalAssetsPublic & { key: string }) => StandardFormData;
     getStandardForm: (state: PersonalAssetsPublic & { key: string }) => StandardFormData;
     getInherited: (state: PersonalAssetsPublic & { key: string }) => StandardFormData;
@@ -24,7 +30,8 @@ const getCurrentWML = (state: PersonalAssetsPublic) => (state.currentWML || '')
 
 const getDraftWML = (state: PersonalAssetsPublic) => (state.draftWML || '')
 
-const getBase = ({ base }: PersonalAssetsPublic) => (base)
+const getBase = (state: PersonalAssetsPublic & { key: string }): StandardFormData =>
+    (state as unknown as PersonalAssetsPublicAugmented).base ?? EMPTY_BASE
 export const getEdit = ({ edit }: PersonalAssetsPublic) => (edit)
 const getPendingEdits = ({ pendingEdits }: PersonalAssetsPublic) => (pendingEdits)
 
@@ -86,6 +93,7 @@ const getSerialized = ({ serialized }: PersonalAssetsPublic): boolean | undefine
 export const publicSelectors: PublicSelectors = {
     getCurrentWML,
     getDraftWML,
+    getBase,
     getLocalStandardForm,
     getStandardForm,
     getInherited,

@@ -21,6 +21,9 @@ describe('personalAsset slice reducers', () => {
         editSchema.loadWML(editWML)
         const editStandardized = new StandardForm(editSchema.schema[0])
         const standardizedJSON = standardized.toJSON()
+        const payloadWithBase = payload.type === 'update' || payload.type === 'updateLocal' || payload.type === 'removeComponent'
+            ? { ...payload, base: standardizedJSON }
+            : payload
         const newState = produce(
             {
                 inherited: {
@@ -28,17 +31,16 @@ describe('personalAsset slice reducers', () => {
                     components: [],
                     metaData: standardizedJSON.metaData || []
                 },
-                base: standardizedJSON,
                 standard: standardizedJSON,
                 edit: editStandardized.toJSON(),
                 pendingEdits: []
             },
-            (state) => { updateStandard(state as any, { type: 'updateStandard', payload }) }
+            (state) => { updateStandard(state as any, { type: 'updateStandard', payload: payloadWithBase }) }
         )
-        const base = new StandardForm(newState.base)
+        const base = new StandardForm(standardizedJSON)
         const newEdit = new StandardForm(newState.edit)
         const combinedStandardizer = base.merge(newEdit)
-        const newStandardized = new StandardForm(publicSelectors.getStandardForm(newState as any))
+        const newStandardized = new StandardForm(publicSelectors.getStandardForm({ ...newState, base: standardizedJSON, key: '' } as any))
         return {
             base: schemaToWML([base.schema]),
             standard: schemaToWML([newStandardized.schema]),
@@ -443,7 +445,6 @@ describe('personalAsset slice reducers', () => {
 
     describe('clearPendingEditsByRequestIds', () => {
         const baseState = {
-            base: { universalKey: 'ASSET#test', components: [], metaData: [] },
             edit: { universalKey: 'ASSET#test', components: [], metaData: [] },
             pendingEdits: [
                 { meta: { tag: 'Meta', key: 'req-1', time: 1 }, edit: { universalKey: 'ASSET#test', components: [], metaData: [] } },

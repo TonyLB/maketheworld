@@ -15,6 +15,7 @@ import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes'
 import { treeNodeTypeguard } from '@tonylb/mtw-base/ts/genericTree'
 import { publicSelectors } from './selectors'
+import { getWMLBase } from '../wmlDataSource/selectors'
 import { isSchemaImport } from '@tonylb/mtw-base/ts/schema/metaData'
 import { isImportable, ComponentUUID, AssetUUID, isSchemaAssetUUID } from '@tonylb/mtw-base/ts/schema'
 import { isSubscriptionClientMessage, WMLSubscriptionClientMessage } from '@tonylb/mtw-interfaces/ts/subscriptions'
@@ -106,7 +107,6 @@ export const fetchAction: PersonalAssetsAction = ({ internalData: { id, fetchURL
         publicData: {
             originalWML: assetWML,
             currentWML: assetWML,
-            base: standardForm.toJSON(),
             standard: standardForm.toJSON(),
             edit: editData,
             serialized: true
@@ -172,8 +172,11 @@ export const fetchImports = (id: string) => async (dispatch: any, getState: () =
 
 }
 
-export const fetchImportsStateAction: PersonalAssetsAction = ({ internalData: { id }, publicData }) => async (dispatch) => {
-    const standardForm = publicSelectors.getStandardForm({ ...(publicData as PersonalAssetsPublic), key: '' })
+const EMPTY_BASE: StandardFormData = { universalKey: 'ASSET#uninitialized', components: [], metaData: [] }
+
+export const fetchImportsStateAction: PersonalAssetsAction = ({ internalData: { id }, publicData }) => async (dispatch, getState) => {
+    const base = (id && getWMLBase(getState(), id)) ?? EMPTY_BASE
+    const standardForm = publicSelectors.getStandardForm({ ...(publicData as PersonalAssetsPublic), base, key: id ?? '' })
 
     if (id && isSchemaAssetUUID(id) && standardForm.metaData.filter(treeNodeTypeguard(isSchemaImport))) {
         await dispatch(fetchImports(id))
@@ -250,8 +253,9 @@ export const locallyParseWMLAction: PersonalAssetsAction = ({ publicData }) => a
     }
 }
 
-export const regenerateWMLAction: PersonalAssetsAction = ({ publicData }) => async(dispatch) => {
-    const standardForm = publicSelectors.getStandardForm({ ...(publicData as PersonalAssetsPublic), key: '' })
+export const regenerateWMLAction: PersonalAssetsAction = ({ internalData: { id }, publicData }) => async(dispatch, getState) => {
+    const base = (id && getWMLBase(getState(), id)) ?? EMPTY_BASE
+    const standardForm = publicSelectors.getStandardForm({ ...(publicData as PersonalAssetsPublic), base, key: id ?? '' })
     try {
         const newStandard = new StandardForm(standardForm)
         const newWML = schemaToWML([newStandard.schema])

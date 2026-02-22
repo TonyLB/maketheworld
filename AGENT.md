@@ -132,6 +132,7 @@ Include specific guidance for AI assistants:
 - **[Authoring Workbench](charcoal-client/src/components/Workbench/AGENT.md)**: Form-based WML editing, component navigation, reference lists, layered context patterns
 - **[Client Testing Standards](charcoal-client/AGENT.testing.md)**: Vitest patterns and React component testing guidelines
 - **[Message Persistence](charcoal-client/src/slices/messages/AGENT.md)**: Dual-layer client/server message storage, IndexedDB caching, synchronization
+- **[personalAssets](charcoal-client/src/slices/personalAssets/AGENT.md)**: Per-asset WML editing state, optimistic edits, base derivation from wmlDataSource
 
 ### **Architectural Philosophy**
 

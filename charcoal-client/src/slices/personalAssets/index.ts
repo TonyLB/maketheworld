@@ -32,6 +32,7 @@ import type { WMLStreamingEventHeader, WMLContentEvent } from '@tonylb/mtw-inter
 import { push } from '../UI/feedback'
 import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
+import { StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes'
 import Debounce from '../../lib/keyedDebounce'
 import { isSchemaImport, SchemaImportMapping } from '@tonylb/mtw-base/ts/schema/metaData'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
@@ -43,8 +44,11 @@ import { standardComponentFactory } from '@tonylb/mtw-wml/ts/standardize/compone
 import { ReferenceList } from '@tonylb/mtw-wml/ts/standardize/keys/referenceList'
 import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 import type { ScopedInstrumentationOptions } from '../../testing/scopedInstrumentation'
+import { getWMLBase } from '../wmlDataSource/selectors'
 
 const autoSaveDebounce = new Debounce()
+
+const EMPTY_BASE: StandardFormData = { universalKey: 'ASSET#uninitialized', components: [], metaData: [] }
 
 const personalAssetsPromiseCache = new PromiseCache<PersonalAssetsData>()
 
@@ -86,13 +90,13 @@ export const {
             importData: {},
             properties: {},
             loadedImages: {},
-            base: { universalKey: 'ASSET#uninitialized', components: [], metaData: [] },
             pendingEdits: [],
             edit: { universalKey: 'ASSET#uninitialized', components: [], metaData: [] },
             inherited: { universalKey: 'ASSET#uninitialized', components: [], metaData: [] }
         }
     },
     sliceSelector: ({ personalAssets }) => (personalAssets),
+    augmentPublicDataForSelect: (state, key, publicData) => ({ ...publicData, base: getWMLBase(state, key) ?? EMPTY_BASE }),
     publicReducers: {
         setDraftWML: setDraftWMLReducer,
         revertDraftWML: revertDraftWMLReducer,
@@ -112,7 +116,6 @@ export const {
                 importData: {},
                 properties: {},
                 loadedImages: {},
-                base: { universalKey: 'ASSET#uninitialized', components: [], metaData: [] },
                 pendingEdits: [],
                 edit: { universalKey: 'ASSET#uninitialized', components: [], metaData: [] },
                 inherited: { universalKey: 'ASSET#uninitialized', components: [], metaData: [] }
@@ -231,6 +234,7 @@ export const {
     getStatus,
     getCurrentWML,
     getDraftWML,
+    getBase,
     getLocalStandardForm,
     getStandardForm,
     getInherited,
@@ -263,8 +267,9 @@ export const updateStandard = (key: string) => (payload: UpdateStandardPayload, 
     if (!isSchemaAssetUUID(key)) {
         return
     }
+    const base = getWMLBase(getState(), key) ?? EMPTY_BASE
     const previousImports = selectors.getLocalStandardForm(key)(getState()).metaData.filter(treeNodeTypeguard(isSchemaImport))
-    dispatch(publicActions.updateStandard(key)(payload))
+    dispatch(publicActions.updateStandard(key)({ ...payload, base }))
     const newImports = selectors.getLocalStandardForm(key)(getState()).metaData.filter(treeNodeTypeguard(isSchemaImport))
     if (!deepEqual(previousImports, newImports)) {
         dispatch(fetchImports(key))
@@ -316,6 +321,7 @@ export const addImport = ({
     uuid: ComponentUUID
     addToReferenceList: (draft: StandardForm) => ReferenceListDescriptor | null
 }, options?: { overrideUpdateStandard?: typeof updateStandard }) => (dispatch: any, getState: any) => {
+    const base = getWMLBase(getState(), assetId) ?? EMPTY_BASE
     dispatch((options?.overrideUpdateStandard ?? publicActions.updateStandard)(assetId)({
         type: 'update',
         update: (draft: StandardForm) => {
@@ -345,7 +351,8 @@ export const addImport = ({
             }
 
             return draft
-        }
+        },
+        base
     }))
     dispatch(fetchImports(assetId))
     dispatch(setIntent({ key: assetId, intent: ['SCHEMADIRTY', 'WMLDIRTY'] }))
