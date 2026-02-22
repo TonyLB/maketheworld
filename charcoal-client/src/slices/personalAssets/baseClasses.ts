@@ -9,7 +9,6 @@ import { AssetUUID } from '@tonylb/mtw-base/ts/schema';
 export interface PersonalAssetsInternal {
     id?: AssetUUID;
     incrementalBackoff: number;
-    fetchURL?: string;
     saveURL?: string;
     s3Object?: string;
     saveImages?: AssetClientUploadURL["images"];

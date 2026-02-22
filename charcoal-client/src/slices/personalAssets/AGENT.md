@@ -62,7 +62,7 @@ Manage per-asset editing state and lifecycle so the Workbench can:
 
 **Note**: `base` is **not** in PersonalAssetsPublic. It is derived from wmlDataSource and injected at runtime.
 
-**PersonalAssetsInternal**: fetchURL, subscription, error, incrementalBackoff, etc. (SSM internal state)
+**PersonalAssetsInternal**: subscription, error, incrementalBackoff, etc. (SSM internal state)
 
 **PersonalAssetsNodes**: SSM states (INITIAL, INACTIVE, SUBSCRIBE, SUBSCRIBED, SUBSCRIBEBACKOFF, FETCHIMPORTS, FRESH, WMLDIRTY, SCHEMADIRTY, CLEAR, etc.)
 
@@ -99,6 +99,14 @@ Manage per-asset editing state and lifecycle so the Workbench can:
 - **lifeLine** ([../lifeLine.ts](../lifeLine.ts)): LifeLinePubSub for mtw.wml StreamEvents; socketDispatch for subscribe/fetch/applyEdit
 - **player** slice: `getAssetZone` for Draft vs published (readonly)
 - **StandardForm** ([packages/mtw-wml/ts/standardize/](../../../packages/mtw-wml/ts/standardize/AGENT.md)): Merge, diff, toJSON
+
+### Deprecated: Image properties (fetch)
+
+As of the properties deprecation, personalAssets no longer fetches properties via `message: 'fetch'`.
+Image metadata (filenames) is stubbed as `{}`. Character icons and ImageHeader display broken until the
+image uuid-as-filename refactor. To restore: (1) Add source for properties (new API or derived from WML
+image uuid); (2) Populate properties in subscribeAction or equivalent; (3) `useLibraryImageURL` will
+resume working once `properties[key]` is set. See subscribeAction deprecation comment in index.api.ts.
 
 ### Cross-References
 
@@ -205,7 +213,7 @@ const standardForm = useSelector(getStandardForm(assetId))
 ### Current State
 
 - Base is derived from wmlDataSource (2.2, 2.3 done)
-- subscribeAction replaces fetchAction; no WML fetch; getFetchURL for properties only; wmlDataSource owns subscribe
+- subscribeAction replaces fetchAction; no WML fetch; wmlDataSource owns subscribe. Properties (image metadata) deprecated and stubbed as {} until image uuid-as-filename refactor.
 - clearAction unsubscribes LifeLine listener and delegates mtw.wml unsubscribe to wmlDataSource (2.5 done)
 - Client Work Item 2 (personalAssets refactor) complete
 

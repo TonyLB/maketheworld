@@ -29,25 +29,18 @@ export const lifelineCondition: PersonalAssetsCondition = ({}, getState) => {
     return (status === 'CONNECTED')
 }
 
-export const getFetchURL: PersonalAssetsAction = ({ internalData: { id } }) => async (dispatch) => {
-    const { url, properties } = await dispatch(socketDispatchPromise({
-        message: 'fetch',
-        AssetId: id || ''
-    }, { service: 'asset' }))
-
-    return { internalData: { fetchURL: url }, publicData: { properties: properties || {} } }
-}
-
 /**
- * Subscribe to mtw.wml via WML dataSource slice; get metadata (properties); register LifeLine
- * listener for clearPendingEditsByRequestIds and Merge Conflict toast. Base comes from dataSource
+ * Subscribe to mtw.wml via WML dataSource slice; register LifeLine listener for
+ * clearPendingEditsByRequestIds and Merge Conflict toast. Base comes from dataSource
  * Snapshot (no fetch for WML body). See AGENT.subscriberSync.refactor.planning.md.
+ *
+ * DEPRECATED: getFetchURL (message: 'fetch') previously returned properties (image filenames).
+ * Image items will use uuid-as-filename; restore a getProperties flow when that refactor lands.
+ * See personalAssets AGENT.md "Deprecated: Image properties (fetch)".
  */
 export const subscribeAction: PersonalAssetsAction = (data) => async (dispatch) => {
     const { internalData: { id }, publicData } = data
-    // Get metadata (properties) only; URL is unused (WML comes from dataSource Snapshot)
-    const { publicData: fetchResult } = await dispatch(getFetchURL(data))
-    const properties = fetchResult?.properties || {}
+    const properties = {}
 
     // Subscribe to LifeLinePubSub to receive WML StreamEvent messages for this asset
     const wmlSerializer = new WMLDataSourceEventSerializer(createBrowserDataSourceEnvironment())
