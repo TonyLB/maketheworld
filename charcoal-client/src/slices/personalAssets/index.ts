@@ -7,16 +7,12 @@ import {
     subscribeAction,
     clearAction,
     backoffAction,
-    locallyParseWMLAction,
-    regenerateWMLAction,
     initializeNewAction,
     fetchImports,
     fetchImportsStateAction
 } from './index.api'
 import { publicSelectors, PublicSelectors } from './selectors'
 import {
-    setDraftWML as setDraftWMLReducer,
-    revertDraftWML as revertDraftWMLReducer,
     setLoadedImage as setLoadedImageReducer,
     updateStandard as updateStandardReducer,
     clearPendingEditsByRequestIds as clearPendingEditsByRequestIdsReducer,
@@ -80,7 +76,7 @@ export const {
 } = multipleSSM<PersonalAssetsNodes, PublicSelectors>({
     name: 'personalAssets',
     initialSSMState: 'INITIAL',
-    initialSSMDesired: ['FRESH', 'WMLDIRTY', 'SCHEMADIRTY'],
+    initialSSMDesired: ['FRESH', 'SCHEMADIRTY'],
     promiseCache: personalAssetsPromiseCache,
     initialData: {
         internalData: {
@@ -98,8 +94,6 @@ export const {
     sliceSelector: ({ personalAssets }) => (personalAssets),
     augmentPublicDataForSelect: (state, key, publicData) => ({ ...publicData, base: getWMLBase(state, key) ?? EMPTY_BASE }),
     publicReducers: {
-        setDraftWML: setDraftWMLReducer,
-        revertDraftWML: revertDraftWMLReducer,
         setLoadedImage: setLoadedImageReducer,
         updateStandard: updateStandardReducer,
         clearPendingEditsByRequestIds: clearPendingEditsByRequestIdsReducer,
@@ -165,31 +159,7 @@ export const {
             },
             FRESH: {
                 stateType: 'CHOICE',
-                choices: ['CLEAR', 'WMLDIRTY', 'SCHEMADIRTY']
-            },
-            WMLDIRTY: {
-                stateType: 'CHOICE',
-                choices: ['CLEAR', 'SCHEMADIRTY', 'NEEDPARSE']
-            },
-            NEEDPARSE: {
-                stateType: 'REDIRECT',
-                newIntent: ['WMLDIRTY'],
-                choices: ['PARSEDRAFT']
-            },
-            PARSEDRAFT: {
-                stateType: 'ATTEMPT',
-                action: locallyParseWMLAction,
-                resolve: 'WMLDIRTY',
-                reject: 'NEEDERROR'
-            },
-            NEEDERROR: {
-                stateType: 'REDIRECT',
-                newIntent: ['DRAFTERROR'],
-                choices: ['DRAFTERROR']
-            },
-            DRAFTERROR: {
-                stateType: 'CHOICE',
-                choices: ['CLEAR', 'NEEDPARSE']
+                choices: ['CLEAR', 'SCHEMADIRTY']
             },
             NEW: {
                 stateType: 'ATTEMPT',
@@ -198,14 +168,9 @@ export const {
                 reject: 'WMLERROR',
             },
             SCHEMADIRTY: {
-                stateType: 'CHOICE',
-                choices: ['REGENERATEWML']
-            },
-            REGENERATEWML: {
-                stateType: 'ATTEMPT',
-                action: regenerateWMLAction,
-                resolve: 'WMLDIRTY',
-                reject: 'WMLERROR'
+                stateType: 'HOLD',
+                next: 'FRESH',
+                condition: () => true
             },
             WMLERROR: {
                 stateType: 'CHOICE',
@@ -223,15 +188,11 @@ export const {
 
 export const { addItem, setIntent, clear } = personalAssetsSlice.actions
 export const {
-    setDraftWML,
-    revertDraftWML,
     setLoadedImage,
     onEnter
 } = publicActions
 export const {
     getStatus,
-    getCurrentWML,
-    getDraftWML,
     getBase,
     getLocalStandardForm,
     getStandardForm,
@@ -353,7 +314,7 @@ export const addImport = ({
         base
     }))
     dispatch(fetchImports(assetId))
-    dispatch(setIntent({ key: assetId, intent: ['SCHEMADIRTY', 'WMLDIRTY'] }))
+    dispatch(setIntent({ key: assetId, intent: ['SCHEMADIRTY'] }))
     dispatch(heartbeat)
 }
 

@@ -2,7 +2,6 @@ import React, { FunctionComponent, useMemo, useCallback } from 'react'
 import { Box } from '@mui/material'
 
 import { useWorkbenchAsset } from '../foundations/useWorkbenchAsset'
-import DraftLockout from '../DraftLockout'
 import ExitEditor from './ExitEditor'
 import LensEditor from './LensEditor'
 import FeatureListEditor from './FeatureListEditor'
@@ -144,7 +143,6 @@ export const RoomEditor: FunctionComponent = () => {
                         </Box>
                     </Box>
                 </Box>
-                <DraftLockout />
             </Box>
         </Box>
     )

@@ -1,6 +1,6 @@
 import { AssetClientFetchURL, AssetClientUploadURL } from '@tonylb/mtw-interfaces/ts/asset';
 import { GenericTree } from '@tonylb/mtw-base/ts/genericTree'
-import { ISSMAttemptNode, ISSMChoiceNode, ISSMHoldNode, ISSMHoldCondition, ISSMRedirectNode, ISSMDataLayout, ISSMDataReturn, ISSMAction } from '../stateSeekingMachine/baseClasses'
+import { ISSMAttemptNode, ISSMChoiceNode, ISSMHoldNode, ISSMHoldCondition, ISSMDataLayout, ISSMDataReturn, ISSMAction } from '../stateSeekingMachine/baseClasses'
 import { StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes';
 import { SchemaTag } from '@tonylb/mtw-base/ts/schema';
 import { SchemaMetaTag } from '@tonylb/mtw-base/ts/schema/metaData';
@@ -27,9 +27,6 @@ export type PersonalAssetsLoadedImage = {
 }
 
 export interface PersonalAssetsPublic {
-    originalWML?: string;
-    currentWML?: string;
-    draftWML?: string;
     //
     // importData is the set of schemata that are inherited from imports
     //
@@ -80,14 +77,8 @@ export interface PersonalAssetsNodes {
     FETCHERROR: ISSMChoiceNode;
     FETCHIMPORTS: ISSMAttemptNode<PersonalAssetsInternal, PersonalAssetsPublic>;
     FRESH: ISSMChoiceNode;
-    WMLDIRTY: ISSMChoiceNode;
-    NEEDPARSE: ISSMRedirectNode;
-    PARSEDRAFT: ISSMAttemptNode<PersonalAssetsInternal, PersonalAssetsPublic>;
-    NEEDERROR: ISSMRedirectNode;
-    DRAFTERROR: ISSMChoiceNode;
     WMLERROR: ISSMChoiceNode;
     NEW: ISSMAttemptNode<PersonalAssetsInternal, PersonalAssetsPublic>;
-    SCHEMADIRTY: ISSMChoiceNode;
-    REGENERATEWML: ISSMAttemptNode<PersonalAssetsInternal, PersonalAssetsPublic>;
+    SCHEMADIRTY: ISSMHoldNode<PersonalAssetsInternal, PersonalAssetsPublic>;
     CLEAR: ISSMAttemptNode<PersonalAssetsInternal, PersonalAssetsPublic>;
 }

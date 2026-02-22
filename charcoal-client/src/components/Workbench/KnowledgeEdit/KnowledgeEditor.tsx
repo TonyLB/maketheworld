@@ -2,8 +2,6 @@ import React, { FunctionComponent, useMemo, useCallback } from 'react'
 import { Box } from '@mui/material'
 
 import { useWorkbenchAsset } from '../foundations/useWorkbenchAsset'
-import DraftLockout from '../DraftLockout'
-
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import { useSelector, useDispatch } from 'react-redux'
 import { getCurrentComponentId, pushBreadcrumb } from '../../../slices/UI/workbench'
@@ -100,7 +98,6 @@ export const KnowledgeEditor: FunctionComponent = () => {
                         </Box>
                     </Box>
                 </Box>
-                <DraftLockout />
             </Box>
         </Box>
     )

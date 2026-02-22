@@ -6,9 +6,8 @@ import {
     LifeLinePubSub
 } from '../lifeLine'
 import delayPromise from '../../lib/delayPromise'
-import { Token, TokenizeException } from '@tonylb/mtw-wml/ts/parser/tokenizer/baseClasses'
 import { AssetClientFetchImports } from '@tonylb/mtw-interfaces/ts/asset'
-import { Schema, schemaToWML } from '@tonylb/mtw-wml/ts/schema'
+import { Schema } from '@tonylb/mtw-wml/ts/schema'
 import { getStandardForm, updateStandard, receiveWMLEvent } from '.'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes'
@@ -167,7 +166,6 @@ export const clearAction: PersonalAssetsAction = ({ internalData: { id, subscrip
         dispatch(unsubscribeFromWmlDataSource([id]))
     }
     return { 
-        publicData: { originalWML: undefined, currentWML: undefined },
         internalData: { subscription: undefined }
     }
 }
@@ -178,59 +176,6 @@ export const backoffAction: PersonalAssetsAction = ({ internalData: { incrementa
     }
     await delayPromise(incrementalBackoff * 1000)
     return { internalData: { incrementalBackoff: Math.min(incrementalBackoff * 2, 30) } }
-}
-
-export const locallyParseWMLAction: PersonalAssetsAction = ({ publicData }) => async(dispatch) => {
-    const { draftWML } = publicData
-    if (!draftWML) {
-        return {}
-    }
-    let tokens: Token[] = []
-    try {
-        const schema = new Schema()
-        schema.loadWML(draftWML)
-        const standardForm = new StandardForm(schema.schema[0])
-        return {
-            publicData: {
-                standard: standardForm.toJSON(),
-                currentWML: draftWML,
-                draftWML: undefined
-            },
-            internalData: {
-                error: undefined
-            }
-        }
-    }
-    catch (err) {
-        if (err instanceof TokenizeException) {
-            throw {
-                error: err.message,
-                errorStart: err.startIdx,
-                errorEnd: err.endIdx
-            }
-        }
-        else {
-            throw {
-                error: 'Unknown exception'
-            }
-        }
-    }
-}
-
-export const regenerateWMLAction: PersonalAssetsAction = ({ internalData: { id }, publicData }) => async(dispatch, getState) => {
-    const base = (id && getWMLBase(getState(), id)) ?? EMPTY_BASE
-    const standardForm = publicSelectors.getStandardForm({ ...(publicData as PersonalAssetsPublic), base, key: id ?? '' } as PersonalAssetsPublicAugmented & { key: string })
-    try {
-        const newStandard = new StandardForm(standardForm)
-        const newWML = schemaToWML([newStandard.schema])
-        return {
-            publicData: { currentWML: newWML }
-        }
-    }
-    catch (err) {
-        console.log(err)
-        throw err
-    }
 }
 
 export const initializeNewAction: PersonalAssetsAction = ({ internalData: { id } }) => async(dispatch) => {
@@ -246,13 +191,11 @@ export const initializeNewAction: PersonalAssetsAction = ({ internalData: { id }
         },
         children: []
     }]
-    const newWML = schemaToWML(schema.schema)
     const standardForm = new StandardForm(schema.schema[0])
     return {
         publicData: {
             standard: standardForm.toJSON(),
             schema: schema.schema,
-            currentWML: newWML,
             properties: {},
             importDefaults: {},
             importData: {},

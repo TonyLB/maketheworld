@@ -57,14 +57,13 @@ Manage per-asset editing state and lifecycle so the Workbench can:
 | importData | `Record<string, GenericTree<SchemaTag>>` | Import schemata by asset |
 | properties | `Record<string, { fileName: string }>` | Asset metadata (e.g. image filenames) |
 | loadedImages | `Record<string, PersonalAssetsLoadedImage>` | In-memory image uploads |
-| currentWML, draftWML, originalWML | string? | WML text for parse/draft flows |
 | serialized | boolean? | Whether current state is serialized |
 
 **Note**: `base` is **not** in PersonalAssetsPublic. It is derived from wmlDataSource and injected at runtime.
 
 **PersonalAssetsInternal**: subscription, error, incrementalBackoff, etc. (SSM internal state)
 
-**PersonalAssetsNodes**: SSM states (INITIAL, INACTIVE, SUBSCRIBE, SUBSCRIBED, SUBSCRIBEBACKOFF, FETCHIMPORTS, FRESH, WMLDIRTY, SCHEMADIRTY, CLEAR, etc.)
+**PersonalAssetsNodes**: SSM states (INITIAL, INACTIVE, SUBSCRIBE, SUBSCRIBED, SUBSCRIBEBACKOFF, FETCHIMPORTS, FRESH, SCHEMADIRTY, CLEAR, etc.)
 
 ### Core Methods
 

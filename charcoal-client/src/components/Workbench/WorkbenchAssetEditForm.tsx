@@ -11,7 +11,6 @@ import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
 import { StandardRender } from '@tonylb/mtw-wml/ts/standardize/render'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { useDebouncedOnChange } from '../../hooks/useDebounce'
-import DraftLockout from './DraftLockout'
 import { MakeTheWorldAccordion } from '../UI'
 import { TopLevelEditor } from './foundations/ReferenceList'
 
@@ -114,7 +113,6 @@ export const AssetEditForm: FunctionComponent = () => {
                     
                     <TopLevelEditor title="Components" defaultExpanded={true} />
                 </Box>
-                <DraftLockout />
             </Box>
         </Box>
     )

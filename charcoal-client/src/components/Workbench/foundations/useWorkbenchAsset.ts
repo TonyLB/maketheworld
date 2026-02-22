@@ -9,12 +9,10 @@ import { useMemo, useCallback, useEffect, useState } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 
 import {
-    getCurrentWML,
     getLoadedImages,
     setIntent,
     getProperties,
     updateStandard as updateStandardAction,
-    getDraftWML,
     getStatus,
     getSerialized,
     getStandardForm,
@@ -41,8 +39,6 @@ import type { ScopedInstrumentationOptions } from '../../../testing/scopedInstru
 type WorkbenchAssetContextType = {
     assetKey: string;
     AssetId: AssetUUID;
-    currentWML: string;
-    draftWML: string;
     standardForm: StandardForm;
     localStandardForm: StandardForm;
     inheritedStandardForm: StandardForm;
@@ -60,8 +56,6 @@ type WorkbenchAssetContextType = {
 const uninitializedValues: WorkbenchAssetContextType = {
     assetKey: '',
     AssetId: 'ASSET#uninitialized',
-    currentWML: '',
-    draftWML: '',
     standardForm: new StandardForm({ universalKey: 'ASSET#uninitialized', components: [], metaData: [] }),
     localStandardForm: new StandardForm({ universalKey: 'ASSET#uninitialized', components: [], metaData: [] }),
     inheritedStandardForm: new StandardForm({ universalKey: 'ASSET#uninitialized', components: [], metaData: [] }),
@@ -97,7 +91,7 @@ export const useWorkbenchAsset = (): WorkbenchAssetContextType => {
     
     // Load asset if it doesn't exist (idempotent - won't create duplicates)
     // Start in INITIAL state (default) which will wait for lifeline connection
-    // The default desired states (FRESH, WMLDIRTY, SCHEMADIRTY) will trigger the fetch path
+    // The default desired states (FRESH, SCHEMADIRTY) will trigger the fetch path
     // This lets the state machine handle the lifeline condition naturally when transitioning from INITIAL
     useEffect(() => {
         if (currentAssetId && !assetExists) {
@@ -119,8 +113,6 @@ export const useWorkbenchAsset = (): WorkbenchAssetContextType => {
     
     // Always call all hooks unconditionally (Rules of Hooks)
     // Use AssetId even when currentAssetId is null (will use default 'ASSET#uninitialized')
-    const currentWML = useSelector(getCurrentWML(AssetId))
-    const draftWML = useSelector(getDraftWML(AssetId))
     const localStandardFormData = useSelector(getLocalStandardForm(AssetId))
     const localStandardForm = useMemo(() => {
         // Handle undefined from selectors when asset doesn't exist (unlike LibraryAsset which always has a valid AssetId)
@@ -171,8 +163,6 @@ export const useWorkbenchAsset = (): WorkbenchAssetContextType => {
     return {
         assetKey,
         AssetId,
-        currentWML,
-        draftWML,
         localStandardForm,
         standardForm,
         inheritedStandardForm,

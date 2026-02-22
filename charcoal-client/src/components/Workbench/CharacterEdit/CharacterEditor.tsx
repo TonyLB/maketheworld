@@ -134,7 +134,6 @@ export const CharacterEditor: FunctionComponent = () => {
     const onDrop = useCallback((file: File) => {
         if (character?.key && universalKey) {
             const characterIconKey = `${character.key}Icon`
-            let SCHEMADIRTY = false
             const unwrappedImage = unwrapSubject<SchemaImageTag>(character?.image)
             if (unwrappedImage && treeNodeTypeguard(isSchemaImage)(unwrappedImage) && unwrappedImage.data.key) {
                 dispatch(setLoadedImage(AssetId)({ itemId: unwrappedImage.data.key, file }))
@@ -150,10 +149,9 @@ export const CharacterEditor: FunctionComponent = () => {
                         return incoming
                     }
                 })
-                SCHEMADIRTY = true
                 dispatch(setLoadedImage(AssetId)({ itemId: characterIconKey, file }))
             }
-            dispatch(setIntent({ key: AssetId, intent: SCHEMADIRTY ? ['SCHEMADIRTY'] : ['WMLDIRTY', 'SCHEMADIRTY']}))
+            dispatch(setIntent({ key: AssetId, intent: ['SCHEMADIRTY'] }))
             dispatch(heartbeat)
         }
     }, [dispatch, character, universalKey, updateStandard, AssetId])
