@@ -449,6 +449,16 @@ describe('WMLAggregator', () => {
             expect(empty.components).toHaveLength(0)
             expect(empty.metaData).toBeDefined()
         })
+
+        it('should set universalKey from streamKey', () => {
+            const empty = aggregator.createEmpty('ASSET#test-asset')
+            expect(empty.universalKey).toBe('ASSET#test-asset')
+        })
+
+        it('should normalize streamKey without ASSET# prefix to universalKey', () => {
+            const empty = aggregator.createEmpty('test-uuid')
+            expect(empty.universalKey).toBe('ASSET#test-uuid')
+        })
     })
 
     describe('applyUpdate', () => {

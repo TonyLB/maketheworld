@@ -13,6 +13,7 @@ import { StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/data
 import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
 import { nodeFromWML } from '@tonylb/mtw-wml/ts/schema'
 import { Zone, isZone } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { AssetKey } from '@tonylb/mtw-utilities/ts/types'
 
 /** Extended header for mtw.wml: RequestIds is envelope-level only (routing/client correlation), not in content. */
 export type WMLStreamingEventHeader = StreamingEventHeader & { RequestIds?: string[] }
@@ -168,21 +169,17 @@ export const isWMLPurgeEvent = (event: any): event is WMLPurgeEvent => {
 }
 
 /**
- * Empty StandardFormData for WML dataSource materialized view before any snapshot/events.
- */
-const EMPTY_WML_VIEW: StandardFormData = {
-    universalKey: 'ASSET#uninitialized' as any,
-    components: [],
-    metaData: []
-}
-
-/**
  * Aggregator for WML dataSource slice: materialized view is StandardFormData;
  * Content Update events merge delta onto view; Merge Conflict leaves view unchanged.
  */
 export class WMLAggregator implements DataSourceAggregator<StandardFormData, WMLContentEvent> {
     createEmpty(streamKey: string): StandardFormData {
-        return JSON.parse(JSON.stringify(EMPTY_WML_VIEW))
+        const universalKey = AssetKey(streamKey)
+        return {
+            universalKey,
+            components: [],
+            metaData: []
+        }
     }
 
     applyUpdate(view: StandardFormData, envelope: WMLContentEnvelope): { success: true; snapshot: StandardFormData } | { success: false; error: Error; snapshot: StandardFormData } {
