@@ -2,9 +2,7 @@ import { PayloadAction } from '@reduxjs/toolkit'
 import { PersonalAssetsPublic } from './baseClasses'
 import { v4 as uuidv4 } from 'uuid'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
-import type { WMLStreamingEventHeader, WMLContentEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/wml'
 import { StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes'
-import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import StandardReference from '@tonylb/mtw-wml/ts/standardize/components/reference'
 
 export const setDraftWML = (state: PersonalAssetsPublic, newDraft: PayloadAction<{ value: string }>) => {
@@ -97,25 +95,10 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
     }
 }
 
-/** Type guard: Content Update content has schema. */
-const hasSchema = (c: WMLContentEvent): c is { schema: StandardForm } =>
-    c != null && typeof c === 'object' && 'schema' in c && c.schema instanceof StandardForm
-
-export const receiveWMLEvent = (state: PersonalAssetsPublic, action: PayloadAction<{ header: WMLStreamingEventHeader; content: WMLContentEvent }>) => {
-    const { header, content } = action.payload
-    if (header.dataSourceKey !== 'mtw.wml') return
-    if (header.type === 'Content Update' && hasSchema(content)) {
-        // Subscription Content Update carries the new canonical full content; replace base, do not merge.
-        // (Merge would concatenate e.g. ShortName "Test" + "Test" -> "TestTest" and repeat on each delivery.)
-        try {
-            state.base = content.schema.toJSON()
-        }
-        catch (err) {}
-        state.pendingEdits = state.pendingEdits.filter(({ meta }) => !header.RequestIds?.includes(meta.key))
-    }
-    if (header.type === 'Merge Conflict') {
-        state.pendingEdits = state.pendingEdits.filter(({ meta }) => !header.RequestIds?.includes(meta.key))
-    }
+export const clearPendingEditsByRequestIds = (state: PersonalAssetsPublic, action: PayloadAction<{ assetKey: string; RequestIds: string[] }>) => {
+    const { RequestIds } = action.payload
+    if (!RequestIds || RequestIds.length === 0) return
+    state.pendingEdits = state.pendingEdits.filter(({ meta }) => !RequestIds.includes(meta.key))
 }
 
 export const saveEdit = (state: PersonalAssetsPublic, action: PayloadAction<{ requestId: string }>) => {

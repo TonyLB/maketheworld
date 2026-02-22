@@ -1,5 +1,5 @@
 import produce from "immer"
-import { updateStandard, UpdateStandardPayload, receiveWMLEvent } from "./reducers"
+import { updateStandard, UpdateStandardPayload, clearPendingEditsByRequestIds } from "./reducers"
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
 import { Schema, schemaToWML } from "@tonylb/mtw-wml/ts/schema"
 import { deIndentWML } from "@tonylb/mtw-wml/ts/schema/utils"
@@ -441,7 +441,7 @@ describe('personalAsset slice reducers', () => {
         })        
     })
 
-    describe('receiveWMLEvent', () => {
+    describe('clearPendingEditsByRequestIds', () => {
         const baseState = {
             base: { universalKey: 'ASSET#test', components: [], metaData: [] },
             edit: { universalKey: 'ASSET#test', components: [], metaData: [] },
@@ -451,104 +451,46 @@ describe('personalAsset slice reducers', () => {
             ]
         } as any
 
-        it('should clear pending edit when event.RequestIds contains meta.key (Content Update)', () => {
-            const schema = new Schema()
-            schema.loadWML('<Asset uuid=(test) />')
+        it('should clear pending edit when RequestIds contains meta.key', () => {
             const state = produce(baseState, (draft) => {
-                receiveWMLEvent(draft, {
-                    type: 'receiveWMLEvent',
-                    payload: {
-                        assetKey: 'ASSET#test',
-                        header: { dataSourceKey: 'mtw.wml', streamKey: 'ASSET#test', timestamp: 0, type: 'Content Update', RequestIds: ['req-1'] },
-                        content: { schema: new StandardForm(schema.schema[0]) }
-                    }
+                clearPendingEditsByRequestIds(draft, {
+                    type: 'clearPendingEditsByRequestIds',
+                    payload: { assetKey: 'ASSET#test', RequestIds: ['req-1'] }
                 })
             })
             expect(state.pendingEdits).toHaveLength(1)
             expect(state.pendingEdits[0].meta.key).toBe('req-2')
         })
 
-        it('should clear pending edit when event.RequestIds contains meta.key (Merge Conflict)', () => {
+        it('should clear pending edit when RequestIds contains meta.key for Merge Conflict scenario', () => {
             const state = produce(baseState, (draft) => {
-                receiveWMLEvent(draft, {
-                    type: 'receiveWMLEvent',
-                    payload: {
-                        header: { dataSourceKey: 'mtw.wml', streamKey: 'ASSET#test', timestamp: 0, type: 'Merge Conflict', RequestIds: ['req-2'] },
-                        content: { error: 'Conflict' }
-                    }
+                clearPendingEditsByRequestIds(draft, {
+                    type: 'clearPendingEditsByRequestIds',
+                    payload: { assetKey: 'ASSET#test', RequestIds: ['req-2'] }
                 })
             })
             expect(state.pendingEdits).toHaveLength(1)
             expect(state.pendingEdits[0].meta.key).toBe('req-1')
         })
 
-        it('should clear no pending edits when event.RequestIds is absent', () => {
-            const schema = new Schema()
-            schema.loadWML('<Asset uuid=(test) />')
+        it('should clear no pending edits when RequestIds is absent', () => {
             const state = produce(baseState, (draft) => {
-                receiveWMLEvent(draft, {
-                    type: 'receiveWMLEvent',
-                    payload: {
-                        header: { dataSourceKey: 'mtw.wml', streamKey: 'ASSET#test', timestamp: 0, type: 'Content Update' },
-                        content: { schema: new StandardForm(schema.schema[0]) }
-                    }
+                clearPendingEditsByRequestIds(draft, {
+                    type: 'clearPendingEditsByRequestIds',
+                    payload: { assetKey: 'ASSET#test', RequestIds: undefined as unknown as string[] }
                 })
             })
             expect(state.pendingEdits).toHaveLength(2)
         })
 
-        it('should clear no pending edits when event.RequestIds is empty', () => {
-            const schema = new Schema()
-            schema.loadWML('<Asset uuid=(test) />')
+        it('should clear no pending edits when RequestIds is empty', () => {
             const state = produce(baseState, (draft) => {
-                receiveWMLEvent(draft, {
-                    type: 'receiveWMLEvent',
-                    payload: {
-                        header: { dataSourceKey: 'mtw.wml', streamKey: 'ASSET#test', timestamp: 0, type: 'Content Update', RequestIds: [] },
-                        content: { schema: new StandardForm(schema.schema[0]) }
-                    }
+                clearPendingEditsByRequestIds(draft, {
+                    type: 'clearPendingEditsByRequestIds',
+                    payload: { assetKey: 'ASSET#test', RequestIds: [] }
                 })
             })
             expect(state.pendingEdits).toHaveLength(2)
-        })
-
-        it('should update base on Content Update using content.schema', () => {
-            const schema = new Schema()
-            schema.loadWML('<Asset uuid=(test)><Room key=(roomKey) uuid=(roomKey)><Example uuid=(e)><DisplayName>Updated</DisplayName></Example></Room></Asset>')
-            const state = produce(baseState, (draft) => {
-                receiveWMLEvent(draft, {
-                    type: 'receiveWMLEvent',
-                    payload: {
-                        assetKey: 'ASSET#test',
-                        header: { dataSourceKey: 'mtw.wml', streamKey: 'ASSET#test', timestamp: 0, type: 'Content Update', RequestIds: ['req-1'] },
-                        content: { schema: new StandardForm(schema.schema[0]) }
-                    }
-                })
-            })
-            const form = new StandardForm(state.base)
-            const room = form.byUniversalId['ROOM#roomKey']
-            expect(room).toBeDefined()
-            expect(state.base).not.toEqual(baseState.base)
-        })
-
-        it('should replace base on Content Update (not merge) so ShortName does not duplicate', () => {
-            const schema = new Schema()
-            schema.loadWML('<Asset uuid=(test)><ShortName>Test</ShortName></Asset>')
-            const initialForm = new StandardForm(schema.schema[0])
-            const stateWithShortName = produce(baseState, (draft) => {
-                (draft as any).base = initialForm.toJSON()
-            })
-            const state = produce(stateWithShortName, (draft) => {
-                receiveWMLEvent(draft, {
-                    type: 'receiveWMLEvent',
-                    payload: {
-                        header: { dataSourceKey: 'mtw.wml', streamKey: 'ASSET#test', timestamp: 0, type: 'Content Update', RequestIds: [] },
-                        content: { schema: new StandardForm(schema.schema[0]) }
-                    }
-                })
-            })
-            const form = new StandardForm(state.base)
-            expect(form.shortName?.toJSON()).toBe('Test')
         })
     })
 })

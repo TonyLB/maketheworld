@@ -45,7 +45,7 @@ Use this section when starting work on this refactor. Follow in order; each step
 ### 5. Check Testing Patterns
 
 - **wmlDataSource** (`charcoal-client/src/slices/wmlDataSource/index.test.ts`): Aggregator, serializer, getWMLBase selector tests.
-- **personalAssets** (`charcoal-client/src/slices/personalAssets/reducers.test.ts`): receiveWMLEvent tests; these will need updates for clearPendingEditsByRequestIds and removal of base-update assertions.
+- **personalAssets** (`charcoal-client/src/slices/personalAssets/reducers.test.ts`): clearPendingEditsByRequestIds tests (base-update assertions removed).
 - **Why**: Tests encode expected behavior. Updating reducer tests first clarifies the new contract; selector tests for getBase-from-dataSource will validate derivation.
 
 ### 6. Identify Next Task
@@ -65,7 +65,15 @@ npm test -- --run
 
 ---
 
-## Recent changes (environment-agnostic serializer)
+## Recent changes
+
+### Client Work Item 2.1 (clearPendingEditsByRequestIds)
+
+- Replaced `receiveWMLEvent` reducer with `clearPendingEditsByRequestIds` (payload: `{ assetKey, RequestIds }`). Reducer only mutates `pendingEdits`; base is no longer updated by incoming events.
+- Thunk `receiveWMLEvent(key)` remains the public API: guards on `dataSourceKey === 'mtw.wml'`, extracts RequestIds, dispatches `clearPendingEditsByRequestIds`, preserves Merge Conflict toast logic.
+- Tests updated: base-update assertions removed; `clearPendingEditsByRequestIds` tests for RequestIds-based clearing only.
+
+### Environment-agnostic serializer
 
 As of the environment-agnostic serializer refactor (see `packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md` "Serialization resolution architecture"):
 
@@ -190,7 +198,7 @@ We address these in implementation order. As decisions are made, record them her
 
 ### 2. personalAssets refactor
 
-1. **receiveWMLEvent**: Remove Content Update branch that updates `base`. Keep only: guard for `dataSourceKey === 'mtw.wml'`, then clear `pendingEdits` by `event.RequestIds` for both Content Update and Merge Conflict. Rename or split to `clearPendingEditsByRequestIds` (payload: `{ assetKey, RequestIds }`) so the reducer only mutates `pendingEdits`.
+1. **receiveWMLEvent** → **clearPendingEditsByRequestIds**: **Done.** Removed Content Update branch that updated `base`. Thunk `receiveWMLEvent(key)` remains the public API; it guards on `dataSourceKey === 'mtw.wml'`, extracts RequestIds, and dispatches `clearPendingEditsByRequestIds` (payload: `{ assetKey, RequestIds }`). Reducer only mutates `pendingEdits`. Merge Conflict toast logic preserved.
 2. **Remove** `base` from personalAssets public state; derive base from dataSource everywhere.
 3. **Selectors**: Add `getBase(state, assetId)` that reads from WML dataSource slice (`subscribedStreams[assetId]?.materializedView`). Use it wherever current code reads `state.personalAssets.base` for the open asset.
 4. **fetchAction (open asset)**: No longer calls getFetchURL + fetch for WML body. Instead: (1) Subscribe to mtw.wml via WML dataSource slice (subscribeToStreams([id])). Backend sends Snapshot with sidecarUrl; client dataSource fetches URL and applies as initial materializedView. (2) personalAssets sets edit/pendingEdits/initial UI state; register LifeLine subscription for mtw.wml that only dispatches `clearPendingEditsByRequestIds` and toast logic. (3) Base comes from dataSource after Snapshot is applied. If we need a fetch URL for other reasons (e.g. properties), we can keep getFetchURL for metadata only or fold into a single "open asset" flow that gets URL only when sidecar is not used.
@@ -225,7 +233,7 @@ We address these in implementation order. As decisions are made, record them her
 | charcoal-client | `src/slices/wmlDataSource/index.ts` (new) | **Done.** Slice with aggregator, `WMLDataSourceEventSerializer(createBrowserDataSourceEnvironment())`, createDataSourceSlice for mtw.wml; supports Snapshot (domain-shaped, inline or per-field sidecar) and Content Update / Merge Conflict. |
 | charcoal-client | `src/slices/wmlDataSource/selectors.ts` (new, optional) | **Done.** Selector for getWMLBase(state, assetId). |
 | charcoal-client | `src/store/index.ts` | **Done.** Register wmlDataSource reducer; ensure INITIALIZE. |
-| charcoal-client | `src/slices/personalAssets/reducers.ts` | receiveWMLEvent: only clear pendingEdits by RequestIds; remove base update. Optionally rename to clearPendingEditsByRequestIds. |
+| charcoal-client | `src/slices/personalAssets/reducers.ts` | **Done.** Replaced receiveWMLEvent with clearPendingEditsByRequestIds; reducer only clears pendingEdits by RequestIds (no base update). Thunk receiveWMLEvent remains public API. |
 | charcoal-client | `src/slices/personalAssets/selectors.ts` (or baseClasses) | getBase(assetId) derives from wmlDataSource.subscribedStreams[assetId].materializedView. |
 | charcoal-client | `src/slices/personalAssets/index.api.ts` | fetchAction: stop getFetchURL + fetch for WML; trigger wmlDataSource.subscribeToStreams([id]); keep lightweight LifeLine subscription for RequestIds + toast. clearAction: dataSource unsubscribe. |
 | charcoal-client | `src/slices/personalAssets/index.ts` | Wire clearPendingEditsByRequestIds; ensure components use derived base selector. |

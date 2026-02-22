@@ -19,7 +19,7 @@ import {
     revertDraftWML as revertDraftWMLReducer,
     setLoadedImage as setLoadedImageReducer,
     updateStandard as updateStandardReducer,
-    receiveWMLEvent as receiveWMLEventReducer,
+    clearPendingEditsByRequestIds as clearPendingEditsByRequestIdsReducer,
     saveEdit as saveEditReducer,
     UpdateStandardPayload
 } from './reducers'
@@ -98,7 +98,7 @@ export const {
         revertDraftWML: revertDraftWMLReducer,
         setLoadedImage: setLoadedImageReducer,
         updateStandard: updateStandardReducer,
-        receiveWMLEvent: receiveWMLEventReducer,
+        clearPendingEditsByRequestIds: clearPendingEditsByRequestIdsReducer,
         saveEdit: saveEditReducer
     },
     publicSelectors,
@@ -248,9 +248,13 @@ export const newAsset = (assetId: AssetUUID) => (dispatch: any) => {
 }
 
 export const receiveWMLEvent = (key: string) => (args: { header: WMLStreamingEventHeader; content: WMLContentEvent }) => (dispatch: any, getState: any) => {
+    const { header } = args
+    if (header.dataSourceKey !== 'mtw.wml') return
+    const RequestIds = header.RequestIds
+    if (!RequestIds || RequestIds.length === 0) return
     const pendingEdits = getPendingEdits(key)(getState())
-    dispatch(publicActions.receiveWMLEvent(key)(args))
-    if (args.header.type === 'Merge Conflict' && args.header.RequestIds?.some(id => pendingEdits.some(p => p.meta.key === id))) {
+    dispatch(publicActions.clearPendingEditsByRequestIds(key)({ assetKey: key, RequestIds }))
+    if (header.type === 'Merge Conflict' && RequestIds.some(id => pendingEdits.some(p => p.meta.key === id))) {
         push('Merge conflict prevented saving your changes')
     }
 }
