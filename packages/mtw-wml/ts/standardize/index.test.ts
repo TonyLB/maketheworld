@@ -154,37 +154,6 @@ describe('StandardForm', () => {
         })
     })
 
-    it('should accept meta tags', () => {
-        const test = new StandardForm(`<Asset uuid=(Test)>
-            <Meta key=(ABC) time="1234" />
-            <Room uuid=(testRoom) key=(testRoom)>
-                <Example uuid=(testRoomBase) key=(base)>
-                    <Description>Test Description</Description>
-                </Example>
-            </Room>
-        </Asset>`)
-
-        expect(test.toJSON()).toEqual({
-            universalKey: 'ASSET#Test',
-            metaData: [{ data: { tag: 'Meta', key: 'ABC', time: 1234 }, children: [] }],
-            topLevel: ['ROOM#testRoom'],
-            components: [
-                {
-                    tag: 'Room',
-                    key: 'testRoom',
-                    universalKey: 'ROOM#testRoom',
-                    examples: ['EXAMPLE#testRoomBase']
-                },
-                {
-                    tag: 'Example',
-                    key: 'base',
-                    universalKey: 'EXAMPLE#testRoomBase',
-                    description: ['Test Description']
-                }
-            ]
-        })
-    })
-
     it('should accept parsed schema', () => {
         const testSource = deIndentWML(`
             <Asset uuid=(Test)>

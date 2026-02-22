@@ -1,4 +1,4 @@
-import { isSchemaImport, isSchemaMeta, SchemaImportTag, SchemaMetaTag } from "@tonylb/mtw-base/ts/schema/metaData"
+import { isSchemaImport, SchemaImportTag } from "@tonylb/mtw-base/ts/schema/metaData"
 import { ParsePropertyTypes } from "../../simpleParser/baseClasses"
 import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./baseClasses"
 import { tagRender } from "./tagRender"
@@ -13,10 +13,6 @@ import { PrintMode } from "@tonylb/mtw-base/ts/schema/printMap"
 const importExportTemplates = {
     Import: {
         from: { required: true, type: ParsePropertyTypes.Key },
-    },
-    Meta: {
-        key: { required: true, type: ParsePropertyTypes.Key },
-        time: { required: true, type: ParsePropertyTypes.Literal }
     },
     Image: {
         key: { required: true, type: ParsePropertyTypes.Key },
@@ -50,19 +46,6 @@ export const importExportConverters: Record<string, ConverterMapEntry> = {
             }
         }
     },
-    Meta: {
-        initialize: ({ parseOpen }): SchemaMetaTag => {
-            const { time, ...rest } = validateProperties(importExportTemplates.Meta)(parseOpen)
-            if (typeof time === 'undefined' || Number.isNaN(parseInt(time))) {
-                throw new Error(`Property 'time' must be a number`)
-            }
-            return {
-                tag: 'Meta',
-                ...rest,
-                time: parseInt(time)
-            }
-        }
-    },
     Image: {
         initialize: ({ parseOpen }): SchemaImageTag => {
             const { ref, ...rest } = validateProperties(importExportTemplates.Image)(parseOpen)
@@ -93,19 +76,6 @@ export const importExportPrintMap: Record<string, PrintMapEntry> = {
                 tag: 'Import',
                 properties: [
                     { key: 'from', type: 'key', value: tag.from },
-                ],
-                node: { data: tag, children }
-            })
-            : [{ printMode: PrintMode.naive, output: '' }]
-    ),
-    Meta: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => (
-        isSchemaMeta(tag)
-            ? tagRender({
-                ...args,
-                tag: 'Meta',
-                properties: [
-                    { key: 'key', type: 'key', value: tag.key },
-                    { key: 'time', type: 'literal', value: `${tag.time}` }
                 ],
                 node: { data: tag, children }
             })

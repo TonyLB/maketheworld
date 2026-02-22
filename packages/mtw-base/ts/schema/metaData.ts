@@ -22,12 +22,6 @@ export type SchemaImportTag = {
     mapping: Record<string, SchemaImportMapping>;
 } & SchemaBase
 
-export type SchemaMetaTag = {
-    tag: 'Meta';
-    key: string;
-    time: number;
-} & SchemaBase
-
 export const isSchemaImport = (schema: any): schema is SchemaImportTag => (
     checkTypes({
         required: { tag: CheckTypes.STRING, from: CheckTypes.STRING, mapping: CheckTypes.OBJECT },
@@ -35,12 +29,5 @@ export const isSchemaImport = (schema: any): schema is SchemaImportTag => (
         values: {
             tag: 'Import'
         }
-    })(schema)
-)
-
-export const isSchemaMeta = (schema: any): schema is SchemaMetaTag => (
-    checkTypes({
-        required: { tag: CheckTypes.STRING, key: CheckTypes.STRING, time: CheckTypes.NUMBER },
-        values: { tag: 'Meta' }
     })(schema)
 )

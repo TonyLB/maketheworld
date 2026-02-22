@@ -7,7 +7,6 @@ export type SchemaTagType =
     'Computed' |
     'Action' |
     'Import' |
-    'Meta' |
     'Selected' |
     'If' |
     'ElseIf' |
@@ -49,7 +48,6 @@ export const isLegalSchemaTag = (value: any): value is SchemaTagType => (
         'Computed',
         'Action',
         'Import',
-        'Meta',
         'Selected',
         'If',
         'ElseIf',

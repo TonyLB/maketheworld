@@ -52,7 +52,7 @@ Manage per-asset editing state and lifecycle so the Workbench can:
 | Field | Type | Description |
 |-------|------|-------------|
 | edit | StandardFormData | Current in-memory edits (delta since last save) |
-| pendingEdits | `{ meta: SchemaMetaTag; edit: StandardFormData }[]` | Edits sent to backend, awaiting RequestIds confirmation |
+| pendingEdits | `{ meta: PendingEditMeta; edit: StandardFormData }[]` | Edits sent to backend, awaiting RequestIds confirmation |
 | inherited | StandardFormData | Data inherited from imports |
 | importData | `Record<string, GenericTree<SchemaTag>>` | Import schemata by asset |
 | properties | `Record<string, { fileName: string }>` | Asset metadata (e.g. image filenames) |

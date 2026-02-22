@@ -17,7 +17,7 @@ import processComponents from "./processComponents"
 import { standardComponentFactory } from "./componentFactory"
 import { StandardToJSONOptions } from "./components/baseClasses"
 import { AssetUUID, ComponentUUID, isSchemaAsset, isSchemaAssetUUID, isSchemaOutputTag, isSchemaWithKey, SchemaTag } from "@tonylb/mtw-base/ts/schema"
-import { isSchemaImport, isSchemaMeta } from "@tonylb/mtw-base/ts/schema/metaData"
+import { isSchemaImport } from "@tonylb/mtw-base/ts/schema/metaData"
 import { isSchemaExit } from "@tonylb/mtw-base/ts/schema/components"
 import { isSchemaLink } from "@tonylb/mtw-base/ts/schema/renderTree"
 import StandardCharacter from "./components/character"
@@ -195,7 +195,7 @@ export class StandardForm {
             if (treeNodeTypeguard(isSchemaAsset)(node)) {
                 this._universalKey = node.data.uuid
 
-                this._metaData = node.children.filter(wrappedNodeTypeGuard(isSchemaMeta))
+                this._metaData = []
 
                 //
                 // Extract ShortName and Summary from Asset children.
@@ -439,8 +439,6 @@ export class StandardForm {
     }
 
     get schema(): GenericTreeNode<SchemaTag> {
-        const metaData = this.metaData
-
         // Get or create SchemaOrganization and create OrganizationContext
         const organization = this._getSchemaOrganization()
         const organizationContext = createOrganizationContext(organization)
@@ -488,7 +486,6 @@ export class StandardForm {
         return {
             data: { tag: 'Asset', uuid: this._universalKey, Story: undefined },
             children: [
-                ...metaData.filter(treeNodeTypeguard(isSchemaMeta)),
                 ...[this._shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema())).flat(1),
                 ...(this._summary?.nestedSchema({ tag: 'Summary', mappings: mapKeys }) ?? []),
                 ...children
