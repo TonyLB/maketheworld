@@ -1,4 +1,4 @@
-import { loadManifest, appendManifestEvents } from '.'
+import { loadManifest, appendManifestEvents, getChunksAfterLatestSnapshot } from '.'
 import { ManifestEvent, ManifestChunkEvent, ManifestSnapshotEvent, ManifestZoneChangeEvent } from './baseClasses'
 import { s3Client } from '@tonylb/mtw-asset-workspace/ts/clients'
 
@@ -168,6 +168,98 @@ describe('Manifest Operations', () => {
             mockS3Client.get.mockRejectedValue(error)
 
             await expect(loadManifest('test.wml/')).rejects.toThrow('Network error')
+        })
+    })
+
+    describe('getChunksAfterLatestSnapshot', () => {
+        it('returns 0 when no manifest', async () => {
+            mockS3Client.get.mockRejectedValue({ Code: 'NoSuchKey' })
+
+            const result = await getChunksAfterLatestSnapshot('test.wml/')
+
+            expect(result).toBe(0)
+        })
+
+        it('returns 0 when snapshot is current (no chunks after it)', async () => {
+            const events: ManifestEvent[] = [
+                {
+                    type: 'chunk',
+                    timestamp: '2025-10-18T10:00:00.000Z',
+                    eventId: 'event-1',
+                    s3Key: 'test.wml/chunks/1729249200000-abc.wml'
+                },
+                {
+                    type: 'snapshot',
+                    timestamp: '2025-10-18T12:00:00.000Z',
+                    eventId: 'event-2',
+                    s3Key: 'test.wml/snapshots/1729256400000.wml',
+                    snapshotType: 'manual',
+                    chunksBeforeSnapshot: 1
+                }
+            ]
+            mockS3Client.get.mockResolvedValue(events.map(e => JSON.stringify(e)).join('\n'))
+
+            const result = await getChunksAfterLatestSnapshot('test.wml/')
+
+            expect(result).toBe(0)
+        })
+
+        it('returns count of chunks after latest snapshot', async () => {
+            const events: ManifestEvent[] = [
+                {
+                    type: 'chunk',
+                    timestamp: '2025-10-18T10:00:00.000Z',
+                    eventId: 'event-1',
+                    s3Key: 'test.wml/chunks/1729249200000-abc.wml'
+                },
+                {
+                    type: 'snapshot',
+                    timestamp: '2025-10-18T12:00:00.000Z',
+                    eventId: 'event-2',
+                    s3Key: 'test.wml/snapshots/1729256400000.wml',
+                    snapshotType: 'manual',
+                    chunksBeforeSnapshot: 1
+                },
+                {
+                    type: 'chunk',
+                    timestamp: '2025-10-18T13:00:00.000Z',
+                    eventId: 'event-3',
+                    s3Key: 'test.wml/chunks/1729260000000-def.wml'
+                },
+                {
+                    type: 'chunk',
+                    timestamp: '2025-10-18T14:00:00.000Z',
+                    eventId: 'event-4',
+                    s3Key: 'test.wml/chunks/1729263600000-ghi.wml'
+                }
+            ]
+            mockS3Client.get.mockResolvedValue(events.map(e => JSON.stringify(e)).join('\n'))
+
+            const result = await getChunksAfterLatestSnapshot('test.wml/')
+
+            expect(result).toBe(2)
+        })
+
+        it('returns all chunks when no snapshot exists', async () => {
+            const events: ManifestEvent[] = [
+                {
+                    type: 'chunk',
+                    timestamp: '2025-10-18T10:00:00.000Z',
+                    eventId: 'event-1',
+                    s3Key: 'test.wml/chunks/1729249200000-abc.wml'
+                },
+                {
+                    type: 'chunk',
+                    timestamp: '2025-10-18T11:00:00.000Z',
+                    eventId: 'event-2',
+                    s3Key: 'test.wml/chunks/1729252800000-def.wml'
+                }
+            ]
+            mockS3Client.get.mockResolvedValue(events.map(e => JSON.stringify(e)).join('\n'))
+
+            const result = await getChunksAfterLatestSnapshot('test.wml/')
+
+            expect(result).toBe(2)
         })
     })
 

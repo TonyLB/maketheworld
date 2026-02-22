@@ -9,7 +9,7 @@
  */
 
 import { s3Client } from '@tonylb/mtw-asset-workspace/ts/clients'
-import { ManifestEvent, isManifestEvent } from './baseClasses'
+import { ManifestEvent, isManifestEvent, isManifestSnapshotEvent, isManifestChunkEvent } from './baseClasses'
 
 /**
  * Load and parse a manifest file
@@ -59,6 +59,26 @@ export const loadManifest = async (prefix: string): Promise<ManifestEvent[]> => 
         .filter((event): event is ManifestEvent => event !== null)
     
     return events
+}
+
+/**
+ * Count chunk events after the latest snapshot in a manifest.
+ * Used as manifest fallback when Dynamo may be missing events.
+ *
+ * @param prefix - S3 prefix without ASSET# (e.g., "uuid.wml/" or "uuid.auth.wml/")
+ * @returns Number of chunk events after the latest snapshot (or all chunks if no snapshot)
+ */
+export const getChunksAfterLatestSnapshot = async (prefix: string): Promise<number> => {
+    const events = await loadManifest(prefix)
+    const snapshotEvents = events.filter(isManifestSnapshotEvent)
+    const latestSnapshot = snapshotEvents.length > 0 ? snapshotEvents[snapshotEvents.length - 1] : undefined
+    const snapshotTimestamp = latestSnapshot?.timestamp
+
+    const chunksAfterSnapshot = events
+        .filter(isManifestChunkEvent)
+        .filter((e) => !snapshotTimestamp || e.timestamp > snapshotTimestamp)
+
+    return chunksAfterSnapshot.length
 }
 
 /**
