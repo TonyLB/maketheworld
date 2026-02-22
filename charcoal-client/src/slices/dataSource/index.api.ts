@@ -102,7 +102,7 @@ export const createInitializeAction = <SnapshotPayload, UpdatePayload>(
 //
 export const createSubscribeAction = <SnapshotPayload, UpdatePayload>(
     dataSourceKey: string,
-    createEmptyView: () => SnapshotPayload
+    createEmptyView: (streamKey: string) => SnapshotPayload
 ): DataSourceAction<SnapshotPayload, UpdatePayload> => {
     return ({ internalData, publicData }) => async (dispatch) => {
         const { subscribeStreamKeys, streamEventSubscription } = internalData
@@ -131,7 +131,7 @@ export const createSubscribeAction = <SnapshotPayload, UpdatePayload>(
             subscribeStreamKeys.forEach(streamKey => {
                 if (!newSubscribedStreams[streamKey]) {
                     newSubscribedStreams[streamKey] = {
-                        materializedView: createEmptyView(),
+                        materializedView: createEmptyView(streamKey),
                         recentEvents: []
                     }
                 }

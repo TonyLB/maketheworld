@@ -29,7 +29,7 @@ describe('ContentHeaders EventBridge Contracts', () => {
 
         describe('createEmpty', () => {
             it('should create an empty snapshot', () => {
-                const snapshot = aggregator.createEmpty()
+                const snapshot = aggregator.createEmpty('test')
                 
                 expect(snapshot).toEqual({
                     assets: []
@@ -40,7 +40,7 @@ describe('ContentHeaders EventBridge Contracts', () => {
         describe('applyUpdate', () => {
             describe('Headers Updated events', () => {
                 it('should add a new asset when it does not exist', () => {
-                    const emptySnapshot = aggregator.createEmpty()
+                    const emptySnapshot = aggregator.createEmpty('test')
                     const standardForm = new StandardForm(deIndentWML(`
                         <Asset uuid=(test)>
                             <Room key=(room1)><ShortName>Test Room</ShortName></Room>
@@ -185,7 +185,7 @@ describe('ContentHeaders EventBridge Contracts', () => {
                 })
 
                 it('should handle multiple different assets', () => {
-                    const snapshot = aggregator.createEmpty()
+                    const snapshot = aggregator.createEmpty('test')
                     
                     // Add first asset
                     const result1 = aggregator.applyUpdate(snapshot, contentHeadersEnvelope({
@@ -254,7 +254,7 @@ describe('ContentHeaders EventBridge Contracts', () => {
                 })
 
                 it('should create placeholder when asset does not exist', () => {
-                    const snapshot = aggregator.createEmpty()
+                    const snapshot = aggregator.createEmpty('test')
                     
                     const result = aggregator.applyUpdate(snapshot, contentHeadersEnvelope({
                         assetId: 'ASSET#nonexistent',

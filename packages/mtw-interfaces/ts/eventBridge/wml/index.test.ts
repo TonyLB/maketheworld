@@ -442,7 +442,7 @@ describe('WMLAggregator', () => {
 
     describe('createEmpty', () => {
         it('should return empty StandardFormData shape', () => {
-            const empty = aggregator.createEmpty()
+            const empty = aggregator.createEmpty('ASSET#test-asset')
             expect(empty).toBeDefined()
             expect(empty.universalKey).toBeDefined()
             expect(Array.isArray(empty.components)).toBe(true)
@@ -453,7 +453,7 @@ describe('WMLAggregator', () => {
 
     describe('applyUpdate', () => {
         it('should merge Content Update onto view and return new snapshot', () => {
-            const view = aggregator.createEmpty()
+            const view = aggregator.createEmpty('ASSET#test-asset')
             const delta = new StandardForm(deIndentWML(`
                 <Asset uuid=(test-asset)>
                     <Room key=(room1) uuid=(room1)>
@@ -471,7 +471,7 @@ describe('WMLAggregator', () => {
         })
 
         it('should return success false and unchanged snapshot for Merge Conflict', () => {
-            const view = aggregator.createEmpty()
+            const view = aggregator.createEmpty('ASSET#test-asset')
             const result = aggregator.applyUpdate(view, { header: makeWmlHeader('Merge Conflict'), content: { error: 'conflict' } })
             expect(result.success).toBe(false)
             expect(result.snapshot).toBe(view)

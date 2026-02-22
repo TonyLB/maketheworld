@@ -31,7 +31,7 @@ type TestEvent = TestSnapshot | TestUpdate
 
 // Mock aggregator
 const mockAggregator: DataSourceAggregator<TestSnapshot, TestUpdate> = {
-    createEmpty: () => ({ type: 'Snapshot', value: 0 }),
+    createEmpty: (_streamKey) => ({ type: 'Snapshot', value: 0 }),
     applyUpdate: (snapshot, envelope) => {
         if (envelope.header.type === 'Increment') {
             return {

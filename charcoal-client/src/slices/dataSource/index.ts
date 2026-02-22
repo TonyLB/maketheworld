@@ -54,7 +54,7 @@ export const createDataSourceSlice = <
     // Create the subscribe and unsubscribe actions using factories
     const subscribeAction = createSubscribeAction<SnapshotPayload, UpdatePayload>(
         dataSourceKey,
-        () => aggregator.createEmpty()
+        (streamKey) => aggregator.createEmpty(streamKey)
     )
     const unsubscribeAction = createUnsubscribeAction<SnapshotPayload, UpdatePayload>(
         dataSourceKey

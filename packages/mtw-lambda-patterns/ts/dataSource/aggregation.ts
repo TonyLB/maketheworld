@@ -34,9 +34,10 @@ export interface DataSourceAggregator<
     Header extends StreamingEventHeader = StreamingEventHeader
 > {
     /**
-     * Create an empty snapshot (for initialization before any data arrives)
+     * Create an empty snapshot (for initialization before any data arrives).
+     * @param streamKey - Identifies the stream; may be used to tune empty data per stream (e.g. asset ID).
      */
-    createEmpty(): SnapshotPayload
+    createEmpty(streamKey: string): SnapshotPayload
 
     /**
      * Apply a single update or snapshot envelope to a snapshot.

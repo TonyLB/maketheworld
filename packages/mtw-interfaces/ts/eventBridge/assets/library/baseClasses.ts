@@ -88,7 +88,7 @@ export class LibraryAggregator implements DataSourceAggregator<LibrarySnapshot, 
     /**
      * Create an empty snapshot (before any data arrives)
      */
-    createEmpty(): LibrarySnapshot {
+    createEmpty(_streamKey: string): LibrarySnapshot {
         return {
             assetIds: []
         }

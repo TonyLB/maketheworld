@@ -626,9 +626,10 @@ export interface DataSourceAggregator<
     Header extends StreamingEventHeader = StreamingEventHeader
 > {
     /**
-     * Create an empty snapshot (for initialization before any data arrives)
+     * Create an empty snapshot (for initialization before any data arrives).
+     * @param streamKey - Identifies the stream; may be used to tune empty data per stream (e.g. asset ID).
      */
-    createEmpty(): SnapshotPayload
+    createEmpty(streamKey: string): SnapshotPayload
 
     /**
      * Apply a single update event to a snapshot.
@@ -666,7 +667,7 @@ const dataSource = new DataSource({
 // Later, clients can access the aggregator
 const aggregator = dataSource.getAggregator()
 if (aggregator) {
-    let currentState = aggregator.createEmpty()
+    let currentState = aggregator.createEmpty(streamKey)
     
     // Apply snapshot (envelope = { header, content })
     const snapshotResult = aggregator.applyUpdate(currentState, { header, content: snapshot })

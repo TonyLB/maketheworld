@@ -181,7 +181,7 @@ const EMPTY_WML_VIEW: StandardFormData = {
  * Content Update events merge delta onto view; Merge Conflict leaves view unchanged.
  */
 export class WMLAggregator implements DataSourceAggregator<StandardFormData, WMLContentEvent> {
-    createEmpty(): StandardFormData {
+    createEmpty(streamKey: string): StandardFormData {
         return JSON.parse(JSON.stringify(EMPTY_WML_VIEW))
     }
 
