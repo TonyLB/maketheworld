@@ -6,6 +6,65 @@
 
 ---
 
+## Getting Started
+
+Use this section when starting work on this refactor. Follow in order; each step explains **why** it matters.
+
+### 1. Understand Project Foundations
+
+- **[Root AGENT.md](../../AGENT.md)**
+  - **Why**: Establishes the "Getting Started" pattern, documentation standards, and project navigation. The "Getting Started" Pattern for Complex Tasks section describes the 7-step structure and the importance of explicit "Why" for each context piece.
+- **[packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md](../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md)**
+  - **Why**: Defines the dataSource pattern, serialization resolution (including sidecar fetch), `createDataSourceSlice`, and Snapshot envelope conventions. The WML dataSource slice and personalAssets refactor both depend on this contract.
+- **[AGENT.event.md](./AGENT.event.md)**
+  - **Why**: Describes mtw.wml events (Content Update, Merge Conflict, Snapshot), RequestIds flow, and how the WML lambda publishes to EventBridge. You need this to understand what the client receives and how to route/handle it.
+- **[charcoal-client/src/components/Workbench/AGENT.md](../../charcoal-client/src/components/Workbench/AGENT.md)** (optional)
+  - **Why**: Documents the workbench and how personalAssets feeds the editing UI. Useful when tracing selector usage and component dependencies.
+
+### 2. Read This Document
+
+- **Order**: Goals → Current State → Target Architecture → Client Work Items (especially item 2, the 6 numbered bullets) → Order of Work → File-Level Summary.
+- **Why**: The Goals explain the "single source of truth" objective. Current vs Target makes the migration direction clear. Client Work Item 2 is the remaining work; the numbered bullets (1–6) are the concrete tasks. Order of Work shows what is done vs pending.
+- **Focus**: Pay attention to the separation between WML dataSource (owns materializedView) and personalAssets (owns edit, pendingEdits, and only clears pendingEdits by RequestIds).
+
+### 3. Understand Core Integration Points
+
+- **personalAssets** (`charcoal-client/src/slices/personalAssets/`): Today it owns base, fetch, subscribe, and receiveWMLEvent. After refactor it derives base from wmlDataSource, keeps only optimistic state and RequestIds clearing.
+- **wmlDataSource** (`charcoal-client/src/slices/wmlDataSource/`): Owns subscribe, materializedView, and processes Snapshot/Content Update/Merge Conflict. personalAssets triggers subscribe via `subscribeToStreams`; both listen to LifeLine for mtw.wml events.
+- **LifeLine**: Delivers StreamEvents. WML dataSource processes all mtw.wml events; personalAssets listens only for RequestIds and toast logic.
+- **Why**: The refactor shifts ownership. Understanding who owns what now vs target prevents regressions (e.g. personalAssets updating base) and ensures the same re-render behavior (dataSource + clearPendingEdits in one tick).
+
+### 4. Review Implemented Code
+
+- **wmlDataSource** (`charcoal-client/src/slices/wmlDataSource/index.ts`, `selectors.ts`): Reference implementation. Shows `createDataSourceSlice`, `getWMLBase`, subscribe/unsubscribe.
+- **contentHeaders** (`charcoal-client/src/slices/contentHeaders/`): Pattern for dataSource slice with INITIALIZE, LifeLine subscription.
+- **createDataSourceSlice** (`charcoal-client/src/slices/dataSource/`): Factory used by wmlDataSource; understand how processRawEnvelope routes events.
+- **personalAssets** (`charcoal-client/src/slices/personalAssets/index.ts`, `index.api.ts`, `reducers.ts`): The slice to refactor. Note the current fetch chain (FETCHURL → FETCH → FETCHIMPORTS) and receiveWMLEvent behavior.
+- **Why**: Concrete code anchors the abstract plan. The wmlDataSource slice is the pattern personalAssets will align with for subscribe and base derivation.
+
+### 5. Check Testing Patterns
+
+- **wmlDataSource** (`charcoal-client/src/slices/wmlDataSource/index.test.ts`): Aggregator, serializer, getWMLBase selector tests.
+- **personalAssets** (`charcoal-client/src/slices/personalAssets/reducers.test.ts`): receiveWMLEvent tests; these will need updates for clearPendingEditsByRequestIds and removal of base-update assertions.
+- **Why**: Tests encode expected behavior. Updating reducer tests first clarifies the new contract; selector tests for getBase-from-dataSource will validate derivation.
+
+### 6. Identify Next Task
+
+- **Progress**: See **Order of Work** (bottom of this doc). Steps 1–6 are done; step 7 (Frontend – personalAssets) is pending.
+- **Task list**: **Client Work Item 2** (personalAssets refactor) has 6 numbered items. Tackle in order: (1) receiveWMLEvent → clearPendingEditsByRequestIds, (2) remove base from state, (3) selectors derive from dataSource, (4) fetchAction/clearAction refactor, (5) clearAction unsubscribe, (6) SSM restructure. Items 1–3 can proceed independently of 4–6; 4–6 depend on the SSM and open-asset flow.
+- **Why**: Clear task ordering avoids circular dependencies. Reducer/selector changes (1–3) are lower risk; action and SSM changes (4–6) touch the lifecycle.
+
+### 7. Run Tests Before Starting
+
+```bash
+# Client tests (from repo root)
+npm test -- --run
+```
+
+- **Why**: Establish a baseline. All tests should pass before changes. Re-run after each significant edit to catch regressions early.
+
+---
+
 ## Recent changes (environment-agnostic serializer)
 
 As of the environment-agnostic serializer refactor (see `packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md` "Serialization resolution architecture"):
