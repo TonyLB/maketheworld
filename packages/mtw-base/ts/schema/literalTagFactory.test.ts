@@ -47,11 +47,12 @@ describe('literalTagFactory - printMap', () => {
             options: { indent: 3 }
         })
 
+        // Implementation returns a single PrintMapResult with multiline output (not multiple results per line)
         expect(result).toEqual([
-            { printMode: PrintMode.nested, output: '<ShortName>' },
-            { printMode: PrintMode.nested, output: '    This is a very long content that should be pretty printed because it' },
-            { printMode: PrintMode.nested, output: '    exceeds the 80 characters limit when considering indentation.' },
-            { printMode: PrintMode.nested, output: '</ShortName>' }
+            {
+                printMode: PrintMode.nested,
+                output: '<ShortName>\n    This is a very long content that should be pretty printed because it\n    exceeds the 80 characters limit when considering indentation.\n</ShortName>'
+            }
         ])
     })
 
