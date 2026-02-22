@@ -51,7 +51,7 @@ export const {
 
 - **`name`**: Unique name for the Redux slice
 - **`dataSourceKey`**: Backend data source identifier (e.g., `'mtw.assets.contentHeaders'`)
-- **`aggregator`**: Object with `createEmpty()` and `applyUpdate()` methods for aggregating events
+- **`aggregator`**: Object with `createEmpty(streamKey)` and `applyUpdate()` methods for aggregating events
 - **`eventSerializer`**: Object with `serialize()` and `deserialize()` methods (handles both events and snapshots via `header.type`)
 - **`sliceSelector`**: Function to select this slice from root state
 

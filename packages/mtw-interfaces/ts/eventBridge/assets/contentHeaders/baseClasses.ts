@@ -98,7 +98,7 @@ export class ContentHeadersAggregator {
     /**
      * Create an empty snapshot (before any data arrives)
      */
-    createEmpty(): ContentHeadersSnapshot {
+    createEmpty(_streamKey: string): ContentHeadersSnapshot {
         return {
             assets: []
         }

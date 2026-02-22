@@ -27,7 +27,7 @@ describe('Library EventBridge Contracts', () => {
 
         describe('createEmpty', () => {
             it('should create an empty snapshot', () => {
-                const snapshot = aggregator.createEmpty()
+                const snapshot = aggregator.createEmpty('test')
                 
                 expect(snapshot).toEqual({
                     assetIds: []
@@ -38,7 +38,7 @@ describe('Library EventBridge Contracts', () => {
         describe('applyUpdate', () => {
             describe('Asset Added events', () => {
                 it('should add a new asset to an empty snapshot', () => {
-                    const emptySnapshot = aggregator.createEmpty()
+                    const emptySnapshot = aggregator.createEmpty('test')
                     const assetId: AssetUUID = 'ASSET#test1'
                     
                     const result = aggregator.applyUpdate(emptySnapshot, libraryEnvelope({
@@ -53,7 +53,7 @@ describe('Library EventBridge Contracts', () => {
                 })
 
                 it('should add multiple assets sequentially', () => {
-                    const snapshot = aggregator.createEmpty()
+                    const snapshot = aggregator.createEmpty('test')
                     
                     const result1 = aggregator.applyUpdate(snapshot, libraryEnvelope({
                         assetId: 'ASSET#test1' as AssetUUID
@@ -75,7 +75,7 @@ describe('Library EventBridge Contracts', () => {
                 })
 
                 it('should be idempotent (adding same asset twice does nothing)', () => {
-                    const snapshot = aggregator.createEmpty()
+                    const snapshot = aggregator.createEmpty('test')
                     
                     const result1 = aggregator.applyUpdate(snapshot, libraryEnvelope({
                         assetId: 'ASSET#test1' as AssetUUID
@@ -193,7 +193,7 @@ describe('Library EventBridge Contracts', () => {
 
             describe('Error handling', () => {
                 it('should return error for unknown event type', () => {
-                    const snapshot = aggregator.createEmpty()
+                    const snapshot = aggregator.createEmpty('test')
                     
                     const result = aggregator.applyUpdate(snapshot, libraryEnvelope({
                         type: 'Unknown Event',

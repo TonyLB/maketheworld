@@ -31,7 +31,7 @@ export const applyEvents = <
 // Returns cleaned up recentEvents array
 // Takes incomingTimestamp to ensure cleanup accounts for the event being processed
 // Uses header.type === 'Snapshot' for discrimination; no content-based type guards.
-// Curried: First apply config, then apply to (recentEvents, incomingTimestamp)
+// Curried: First apply config, then apply to (recentEvents, incomingTimestamp, streamKey)
 //
 export const performCleanup = <
     SnapshotPayload extends SerializableObject,
@@ -42,7 +42,8 @@ export const performCleanup = <
     applyEventsWithAggregator: ReturnType<typeof applyEvents<SnapshotPayload, UpdatePayload, Header>>
 ) => (
     recentEvents: Array<RecentEventEnvelope<UpdatePayload | SnapshotPayload, Header>>,
-    incomingTimestamp: number
+    incomingTimestamp: number,
+    streamKey: string
 ): Array<RecentEventEnvelope<UpdatePayload | SnapshotPayload, Header>> => {
         // Use the latest timestamp (including incoming event) as "now" (pure function - no Date.now())
         // If recentEvents is empty, the spread becomes no-op and Math.max(incomingTimestamp) = incomingTimestamp
@@ -62,7 +63,7 @@ export const performCleanup = <
         const snapshotEvents = oldEvents.filter((e): e is RecentEventEnvelope<SnapshotPayload, Header> => e.header.type === SNAPSHOT_HEADER_TYPE)
         const baselineSnapshot = snapshotEvents.length > 0
             ? snapshotEvents[snapshotEvents.length - 1].content
-            : aggregator.createEmpty()
+            : aggregator.createEmpty(streamKey)
 
         // Find events after the baseline snapshot (header.type !== 'Snapshot')
         const baselineTimestamp = snapshotEvents.length > 0 ? snapshotEvents[snapshotEvents.length - 1].timestamp : 0
@@ -129,7 +130,7 @@ export const processEnvelope = <
         // Snapshot path - content is already internal
         const snapshot = content as SnapshotPayload
         const snapshotTimestamp = timestamp
-        const cleanedRecentEvents = performCleanupWithConfig(stream.recentEvents, snapshotTimestamp)
+        const cleanedRecentEvents = performCleanupWithConfig(stream.recentEvents, snapshotTimestamp, streamKey)
         const eventsAfterSnapshot = cleanedRecentEvents.filter(e => e.timestamp > snapshotTimestamp)
 
         const snapshotEvent: RecentEventEnvelope<SnapshotPayload, Header> = { header: streamingHeader, content: snapshot, timestamp: snapshotTimestamp }
@@ -146,7 +147,7 @@ export const processEnvelope = <
         // Event path - content is already internal
         const event = content as UpdatePayload
         const eventTimestamp = timestamp
-        const cleanedRecentEvents = performCleanupWithConfig(stream.recentEvents, eventTimestamp)
+        const cleanedRecentEvents = performCleanupWithConfig(stream.recentEvents, eventTimestamp, streamKey)
         const latestTimestamp = cleanedRecentEvents.length > 0
             ? Math.max(...cleanedRecentEvents.map(e => e.timestamp))
             : 0
@@ -167,7 +168,7 @@ export const processEnvelope = <
             const snapshotEvents = cleanedRecentEvents.filter((e): e is RecentEventEnvelope<SnapshotPayload, Header> => e.header.type === SNAPSHOT_HEADER_TYPE)
             const baselineSnapshot = snapshotEvents.length > 0
                 ? snapshotEvents[snapshotEvents.length - 1].content
-                : aggregator.createEmpty()
+                : aggregator.createEmpty(streamKey)
             const baselineTimestamp = snapshotEvents.length > 0
                 ? snapshotEvents[snapshotEvents.length - 1].timestamp
                 : 0

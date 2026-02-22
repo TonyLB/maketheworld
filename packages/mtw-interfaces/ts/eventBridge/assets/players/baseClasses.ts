@@ -52,7 +52,7 @@ export function isPlayerCharacterRemovedEnvelope(
 }
 
 export class PlayerAggregator implements DataSourceAggregator<PlayerSnapshotInternal, PlayerEventUpdate> {
-    createEmpty(): PlayerSnapshotInternal {
+    createEmpty(_streamKey: string): PlayerSnapshotInternal {
         return {
             assets: [],
             characters: [],

@@ -37,7 +37,7 @@ function testUpdateEnvelope(event: TestUpdate, timestamp: number): RecentEventEn
 
 // Mock aggregator
 const mockAggregator: DataSourceAggregator<TestSnapshot, TestUpdate> = {
-    createEmpty: () => ({ type: 'Snapshot', items: [] }),
+    createEmpty: (_streamKey) => ({ type: 'Snapshot', items: [] }),
     applyUpdate: (snapshot, envelope) => {
         try {
             const update = envelope.content
@@ -118,7 +118,7 @@ describe('dataSource reducers', () => {
                 testEnvelope({ type: 'Item Added' as const, item: 'b' }, 60000)
             ]
 
-            const result = performCleanupWithConfig(recentEvents, 70000)
+            const result = performCleanupWithConfig(recentEvents, 70000, 'stream1')
 
             // 30 seconds ago from 70000 is 40000, so all events are recent
             expect(result).toHaveLength(2)
@@ -134,7 +134,7 @@ describe('dataSource reducers', () => {
                 testEnvelope({ type: 'Item Added' as const, item: 'c' }, 50000)
             ]
 
-            const result = performCleanupWithConfig(recentEvents, 60000)
+            const result = performCleanupWithConfig(recentEvents, 60000, 'stream1')
 
             // 30 seconds ago from 60000 is 30000
             // Events at 10000, 20000, 30000 are old (<=30000)
@@ -158,7 +158,7 @@ describe('dataSource reducers', () => {
                 testEnvelope({ type: 'Item Added' as const, item: 'c' }, 50000)
             ]
 
-            const result = performCleanupWithConfig(recentEvents, 60000)
+            const result = performCleanupWithConfig(recentEvents, 60000, 'stream1')
 
             // Should create empty baseline and consolidate old events
             expect(result).toHaveLength(2)
@@ -171,7 +171,7 @@ describe('dataSource reducers', () => {
                 testEnvelope({ type: 'Snapshot' as const, items: [] }, 10000)
             ]
 
-            const result = performCleanupWithConfig(recentEvents, 100000)
+            const result = performCleanupWithConfig(recentEvents, 100000, 'stream1')
 
             // 30 seconds ago from 100000 is 70000
             // Event at 10000 is old
