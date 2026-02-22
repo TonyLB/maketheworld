@@ -8,7 +8,7 @@ import { PromiseCache } from '../promiseCache'
 import { heartbeat } from '../stateSeekingMachine/ssmHeartbeat'
 import type { DataSourceEventSerializer, EventPayload, SerializableObject } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import type { DataSourceAggregator } from '@tonylb/mtw-lambda-patterns/ts/dataSource/aggregation'
-import { applyEvents, performCleanup, processRawEnvelope } from './reducers'
+import { applyEvents, performCleanup, processEnvelope } from './reducers'
 import type { ISSMHoldCondition } from '../stateSeekingMachine/baseClasses'
 
 //
@@ -48,7 +48,7 @@ export const createDataSourceSlice = <
     const promiseCache = providedPromiseCache ?? new PromiseCache<DataSourceData<SnapshotPayload, UpdatePayload>>()
 
     // We'll create the initialize action after we have access to the public action creators
-    // This is necessary because the initialize action needs to dispatch processRawEnvelope
+    // This is necessary because the initialize action needs to dispatch processEnvelope
     let initializeAction: ReturnType<typeof createInitializeAction<SnapshotPayload, UpdatePayload>>
 
     // Create the subscribe and unsubscribe actions using factories
@@ -164,7 +164,7 @@ export const createDataSourceSlice = <
         sliceSelector,
         promiseCache,
         publicReducers: {
-            processRawEnvelope: processRawEnvelope(
+            processEnvelope: processEnvelope(
                 dataSourceKey,
                 aggregator,
                 performCleanupWithConfig,
@@ -179,7 +179,7 @@ export const createDataSourceSlice = <
     })
 
     // StreamEventPubSub delivers pre-deserialized content; we pass the action creator directly.
-    const processRawEnvelopeAction = result.publicActions.processRawEnvelope
+    const processEnvelopeAction = result.publicActions.processEnvelope
 
     // Register deserializer so StreamEventPubSub can deserialize incoming StreamEvents for this data source
     registerDeserializer(dataSourceKey, eventSerializer)
@@ -199,7 +199,7 @@ export const createDataSourceSlice = <
         : undefined
     initializeAction = createInitializeAction<SnapshotPayload, UpdatePayload>(
         dataSourceKey,
-        processRawEnvelopeAction,
+        processEnvelopeAction,
         onReadyWrapper,
         sliceSelector  // Pass sliceSelector so we can read current state after onReady
     )

@@ -91,7 +91,7 @@ export const performCleanup = <
 // Branches on header.type === 'Snapshot' to apply aggregator logic.
 // Curried: First apply config, then return the reducer (state, action) => void
 //
-export const processRawEnvelope = <
+export const processEnvelope = <
     SnapshotPayload extends SerializableObject,
     UpdatePayload extends EventPayload,
     InternalPayload extends SnapshotPayload | UpdatePayload,

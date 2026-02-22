@@ -4,14 +4,14 @@ import type { ClientSnapshotMessagePayload } from './baseClasses'
 import { DataSourceAggregator } from '@tonylb/mtw-lambda-patterns/ts/dataSource/aggregation'
 import { DataSourceEventSerializer } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 
-// Capture the processRawEnvelope (wrapper) passed to createInitializeAction for sidecar tests
-let capturedProcessRawEnvelope: ((payload: ClientSnapshotMessagePayload<any>) => any) | null = null
+// Capture the processEnvelope (action creator) passed to createInitializeAction
+let capturedProcessEnvelope: ((payload: ClientSnapshotMessagePayload<any>) => any) | null = null
 vi.mock('./index.api', async (importOriginal) => {
     const mod = await importOriginal<typeof import('./index.api')>()
     return {
         ...mod,
         createInitializeAction: (...args: any[]) => {
-            capturedProcessRawEnvelope = args[1]
+            capturedProcessEnvelope = args[1]
             return (mod.createInitializeAction as (...a: any[]) => any)(...args)
         }
     }
@@ -78,7 +78,7 @@ describe('dataSource slice', () => {
             expect(slice.actions).toBeDefined()
             
             // Check public actions exist
-            expect(publicActions.processRawEnvelope).toBeDefined()
+            expect(publicActions.processEnvelope).toBeDefined()
             
             // Check selectors exist
             expect(selectors.getActiveStreamKeys).toBeDefined()
@@ -170,9 +170,9 @@ describe('dataSource slice', () => {
             expect(slice.reducer).toBeDefined()
         })
 
-        describe('processRawEnvelope action creator', () => {
+        describe('processEnvelope action creator', () => {
             beforeEach(() => {
-                capturedProcessRawEnvelope = null
+                capturedProcessEnvelope = null
             })
 
             it('when Snapshot is passed, returns action object with correct payload', () => {
@@ -184,7 +184,7 @@ describe('dataSource slice', () => {
                     sliceSelector: (state) => state.testDataSource
                 }
                 createDataSourceSlice(config)
-                expect(capturedProcessRawEnvelope).toBeDefined()
+                expect(capturedProcessEnvelope).toBeDefined()
                 const resolvedSnapshot = { type: 'Snapshot' as const, value: 99 }
                 const payload = {
                     streamKey: 'stream1',
@@ -192,7 +192,7 @@ describe('dataSource slice', () => {
                     header: { type: 'Snapshot' },
                     content: resolvedSnapshot
                 }
-                const action = capturedProcessRawEnvelope!(payload)
+                const action = capturedProcessEnvelope!(payload)
                 expect(action).toHaveProperty('type')
                 expect(action).toHaveProperty('payload')
                 expect(action.payload).toEqual(payload)
@@ -207,14 +207,14 @@ describe('dataSource slice', () => {
                     sliceSelector: (state) => state.testDataSource
                 }
                 createDataSourceSlice(config)
-                expect(capturedProcessRawEnvelope).toBeDefined()
+                expect(capturedProcessEnvelope).toBeDefined()
                 const inlinePayload = {
                     streamKey: 'stream1',
                     timestamp: 1000,
                     header: { type: 'Increment' },
                     content: { type: 'Increment' as const }
                 }
-                const action = capturedProcessRawEnvelope!(inlinePayload)
+                const action = capturedProcessEnvelope!(inlinePayload)
                 expect(action).toHaveProperty('type')
                 expect(action.payload).toEqual(inlinePayload)
             })

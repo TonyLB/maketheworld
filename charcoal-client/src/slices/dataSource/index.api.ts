@@ -32,7 +32,7 @@ export const backoffAction: DataSourceAction<any, any> = ({ internalData: { incr
 //
 export const createInitializeAction = <SnapshotPayload, UpdatePayload>(
     dataSourceKey: string,
-    processRawEnvelope: (payload: ClientStreamingMessagePayload<any>) => any,
+    processEnvelope: (payload: ClientStreamingMessagePayload<any>) => any,
     onReady?: (dispatch: any, getState: any, sliceActions: any) => void,
     sliceSelector?: (state: any) => any
 ): DataSourceAction<SnapshotPayload, UpdatePayload> => {
@@ -53,7 +53,7 @@ export const createInitializeAction = <SnapshotPayload, UpdatePayload>(
                     header,
                     content: payload.content
                 }
-                dispatch(processRawEnvelope(envelopePayload))
+                dispatch(processEnvelope(envelopePayload))
             })
             
             // Call onReady callback if provided (after successful initialization)
@@ -85,7 +85,7 @@ export const createInitializeAction = <SnapshotPayload, UpdatePayload>(
             return {
                 internalData: {
                     ...currentInternalData,
-                    lifeLineSubscription: streamEventSubscription
+                    streamEventSubscription
                 },
                 publicData
             }
@@ -105,10 +105,10 @@ export const createSubscribeAction = <SnapshotPayload, UpdatePayload>(
     createEmptyView: () => SnapshotPayload
 ): DataSourceAction<SnapshotPayload, UpdatePayload> => {
     return ({ internalData, publicData }) => async (dispatch) => {
-        const { subscribeStreamKeys, lifeLineSubscription } = internalData
+        const { subscribeStreamKeys, streamEventSubscription } = internalData
 
         // Safety check: Ensure INITIALIZE has completed before attempting backend subscription
-        if (!lifeLineSubscription) {
+        if (!streamEventSubscription) {
             throw new Error(`[${dataSourceKey}] Cannot subscribe to backend before INITIALIZE completes (LifeLinePubSub not set up)`)
         }
         
@@ -172,10 +172,10 @@ export const createUnsubscribeAction = <SnapshotPayload, UpdatePayload>(
     dataSourceKey: string
 ): DataSourceAction<SnapshotPayload, UpdatePayload> => {
     return ({ internalData, publicData }) => async (dispatch) => {
-        const { unsubscribeStreamKeys, lifeLineSubscription } = internalData
-        
+        const { unsubscribeStreamKeys, streamEventSubscription } = internalData
+
         // Safety check: Ensure INITIALIZE has completed before attempting backend unsubscription
-        if (!lifeLineSubscription) {
+        if (!streamEventSubscription) {
             throw new Error(`[${dataSourceKey}] Cannot unsubscribe from backend before INITIALIZE completes (LifeLinePubSub not set up)`)
         }
         

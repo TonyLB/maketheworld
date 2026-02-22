@@ -26,7 +26,7 @@ describe('contentHeaders slice', () => {
   })
 
   it('should provide public actions', () => {
-    expect(contentHeadersActions.processRawEnvelope).toBeDefined()
+    expect(contentHeadersActions.processEnvelope).toBeDefined()
   })
 
   it('should provide iterator', () => {
