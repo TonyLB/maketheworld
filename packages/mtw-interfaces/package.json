@@ -11,7 +11,8 @@
   "license": "MIT",
   "dependencies": {
     "@tonylb/mtw-base": "file:../mtw-base",
-    "@tonylb/mtw-lambda-patterns": "file:../mtw-lambda-patterns"
+    "@tonylb/mtw-lambda-patterns": "file:../mtw-lambda-patterns",
+    "@tonylb/mtw-utilities": "file:../mtw-utilities"
   },
   "devDependencies": {
     "@types/jest": "^29.1.2",
