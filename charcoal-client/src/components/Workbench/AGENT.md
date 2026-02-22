@@ -38,7 +38,7 @@ Provide a form-based, component-centric editing experience for WML assets that:
 - **Navigation**: Maintain breadcrumb stack and route to asset, component, or component-layer views
 - **Data Binding**: Connect `StandardForm` (from `personalAssets` slice) to form controls via `useWorkbenchAsset`
 - **Reference List Management**: Add/remove/reorder components in reference lists (Examples, Features, Exits, Lenses, Marks)
-- **Draft Lockout**: Enforce read-only behavior for non-Draft assets via `DraftLockout` and `readonly` from `useWorkbenchAsset`
+- **Read-only for non-Draft assets**: Enforce via `readonly` from `useWorkbenchAsset`
 
 ---
 
@@ -104,7 +104,7 @@ type WorkbenchBreadcrumbEntry = {
 
 ### API Contracts
 
-- **useWorkbenchAsset**: Returns `{ assetKey, AssetId, standardForm, localStandardForm, inheritedStandardForm, updateStandard, readonly, ... }`; matches `LibraryAssetContext` interface for migration compatibility
+- **useWorkbenchAsset**: Returns `{ assetKey, AssetId, standardForm, localStandardForm, inheritedStandardForm, updateStandard, readonly, ... }`; matches `LibraryAssetContext` interface for migration compatibility (excludes removed currentWML/draftWML)
 - **updateStandard(UpdateStandardPayload)**: Dispatches to `personalAssets`; triggers `setIntent` and `heartbeat` for persistence
 
 ### System Relationships
@@ -177,8 +177,7 @@ updateStandard({
 ### Error Handling
 
 - `useWorkbenchAsset` returns uninitialized values when `currentAssetId` is null; `AssetId` becomes `'ASSET#uninitialized'`
-- Loading state: `WorkbenchAssetEditor` shows `CircularProgress` until asset status is `FRESH`, `WMLDIRTY`, `SCHEMADIRTY`, etc.
-- `DraftLockout` displays when zone is not `Draft`, preventing edits
+- Loading state: `WorkbenchAssetEditor` shows `CircularProgress` until asset status is `FRESH` or `SCHEMADIRTY`
 
 ---
 
@@ -226,7 +225,7 @@ updateStandard({
 - **Responsive**: Drawer on desktop, full-screen on mobile
 - **Reference Lists**: `ReferenceListEditor` and `InlineReferenceList` with adapter
 - **Layered Examples/Guidance**: `LayeredTabs` (MUI Tabs) for sibling Example or Guidance navigation
-- **Draft Lockout**: Non-Draft assets are read-only
+- **Read-only for non-Draft assets**: Enforced via `readonly` from `useWorkbenchAsset`
 
 ### Future Plans
 

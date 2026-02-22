@@ -11,8 +11,6 @@ export type PersonalAssetsPublicAugmented = PersonalAssetsPublic & { base: Stand
 const EMPTY_BASE: StandardFormData = { universalKey: 'ASSET#uninitialized', components: [], metaData: [] }
 
 export type PublicSelectors = {
-    getCurrentWML: (state: PersonalAssetsPublic) => string;
-    getDraftWML: (state: PersonalAssetsPublic) => string;
     getBase: (state: PersonalAssetsPublic & { key: string }) => StandardFormData;
     getLocalStandardForm: (state: PersonalAssetsPublic & { key: string }) => StandardFormData;
     getStandardForm: (state: PersonalAssetsPublic & { key: string }) => StandardFormData;
@@ -25,10 +23,6 @@ export type PublicSelectors = {
     getEdit: (state: PersonalAssetsPublic) => PersonalAssetsPublic["edit"];
     getPendingEdits: (state: PersonalAssetsPublic) => PersonalAssetsPublic["pendingEdits"];
 }
-
-const getCurrentWML = (state: PersonalAssetsPublic) => (state.currentWML || '')
-
-const getDraftWML = (state: PersonalAssetsPublic) => (state.draftWML || '')
 
 const getBase = (state: PersonalAssetsPublic & { key: string }): StandardFormData =>
     (state as unknown as PersonalAssetsPublicAugmented).base ?? EMPTY_BASE
@@ -91,8 +85,6 @@ const getSerialized = ({ serialized }: PersonalAssetsPublic): boolean | undefine
 }
 
 export const publicSelectors: PublicSelectors = {
-    getCurrentWML,
-    getDraftWML,
     getBase,
     getLocalStandardForm,
     getStandardForm,

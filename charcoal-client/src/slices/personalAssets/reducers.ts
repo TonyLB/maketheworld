@@ -5,14 +5,6 @@ import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes'
 import StandardReference from '@tonylb/mtw-wml/ts/standardize/components/reference'
 
-export const setDraftWML = (state: PersonalAssetsPublic, newDraft: PayloadAction<{ value: string }>) => {
-    state.draftWML = newDraft.payload.value
-}
-
-export const revertDraftWML = (state: PersonalAssetsPublic, _action: PayloadAction<{}>) => {
-    state.draftWML = undefined
-}
-
 export const setLoadedImage = (state: PersonalAssetsPublic, action: PayloadAction<{ itemId: string; file: File }>) => {
     state.loadedImages[action.payload.itemId] = {
         loadId: uuidv4(),

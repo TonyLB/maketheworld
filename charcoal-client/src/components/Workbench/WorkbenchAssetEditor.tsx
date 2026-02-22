@@ -41,7 +41,7 @@ export const WorkbenchAssetEditor: FunctionComponent = () => {
 
     // Handle loading states - same pattern as EditAsset
     const isReady = useMemo(() => {
-        return ['FRESH', 'WMLDIRTY', 'SCHEMADIRTY', 'NEEDERROR', 'DRAFTERROR', 'NEEDPARSE', 'PARSEDRAFT'].includes(currentStatus || '')
+        return ['FRESH', 'SCHEMADIRTY'].includes(currentStatus || '')
     }, [currentStatus])
 
     if (!isReady) {
