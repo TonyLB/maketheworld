@@ -3,8 +3,7 @@ import { PersonalAssetsCondition, PersonalAssetsAction, PersonalAssetsPublic } f
 import {
     socketDispatchPromise,
     getStatus,
-    LifeLinePubSub,
-    socketDispatch
+    LifeLinePubSub
 } from '../lifeLine'
 import delayPromise from '../../lib/delayPromise'
 import { Token, TokenizeException } from '@tonylb/mtw-wml/ts/parser/tokenizer/baseClasses'
@@ -14,7 +13,8 @@ import { getStandardForm, updateStandard, receiveWMLEvent } from '.'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes'
 import { treeNodeTypeguard } from '@tonylb/mtw-base/ts/genericTree'
-import { publicSelectors } from './selectors'
+import { publicSelectors, PersonalAssetsPublicAugmented } from './selectors'
+import { getWMLBase } from '../wmlDataSource/selectors'
 import { isSchemaImport } from '@tonylb/mtw-base/ts/schema/metaData'
 import { isImportable, ComponentUUID, AssetUUID, isSchemaAssetUUID } from '@tonylb/mtw-base/ts/schema'
 import { isSubscriptionClientMessage, WMLSubscriptionClientMessage } from '@tonylb/mtw-interfaces/ts/subscriptions'
@@ -29,24 +29,22 @@ export const lifelineCondition: PersonalAssetsCondition = ({}, getState) => {
     return (status === 'CONNECTED')
 }
 
-export const getFetchURL: PersonalAssetsAction = ({ internalData: { id } }) => async (dispatch) => {
-    const { url, properties } = await dispatch(socketDispatchPromise({
-        message: 'fetch',
-        AssetId: id || ''
-    }, { service: 'asset' }))
+/**
+ * Subscribe to mtw.wml via WML dataSource slice; register LifeLine listener for
+ * clearPendingEditsByRequestIds and Merge Conflict toast. Base comes from dataSource
+ * Snapshot (no fetch for WML body). See personalAssets AGENT.md "WML dataSource integration".
+ *
+ * DEPRECATED: getFetchURL (message: 'fetch') previously returned properties (image filenames).
+ * Image items will use uuid-as-filename; restore a getProperties flow when that refactor lands.
+ * See personalAssets AGENT.md "Deprecated: Image properties (fetch)".
+ */
+export const subscribeAction: PersonalAssetsAction = (data) => async (dispatch) => {
+    const { internalData: { id }, publicData } = data
+    const properties = {}
 
-    return { internalData: { fetchURL: url }, publicData: { properties: properties || {} } }
-}
-
-export const fetchAction: PersonalAssetsAction = ({ internalData: { id, fetchURL } }) => async (dispatch, getState) => {
-    if (!fetchURL) {
-        throw new Error()
-    }
     // Subscribe to LifeLinePubSub to receive WML StreamEvent messages for this asset
-    // This allows us to receive Content Update events that clear pendingEdits
     const wmlSerializer = new WMLDataSourceEventSerializer(createBrowserDataSourceEnvironment())
     const subscription = id ? LifeLinePubSub.subscribe(async ({ payload }) => {
-        // Filter for StreamEvent messages from mtw.wml data source
         if (isSubscriptionClientMessage(payload) &&
             payload.messageType === 'StreamEvent' &&
             payload.dataSourceKey === 'mtw.wml' &&
@@ -62,54 +60,24 @@ export const fetchAction: PersonalAssetsAction = ({ internalData: { id, fetchURL
         }
     }) : undefined
 
-    // Tell the backend to deliver mtw.wml events for this asset (Content Update / Merge Conflict)
+    // WML dataSource owns subscribe; backend sends Snapshot with sidecarUrl
     if (id && isSchemaAssetUUID(id)) {
-        dispatch(socketDispatch({ message: 'subscribe', dataSourceKey: 'mtw.wml', streamKeys: [id] }, { service: 'subscriptions' }))
-        //
-        // TEMPORARY: Parallel subscription into the WML dataSource slice
-        // -----------------------------------------------------------------
-        // While personalAssets still owns the direct mtw.wml subscription and
-        // base application, also subscribe the generic wmlDataSource slice to
-        // the same stream so we can compare materializedView with the legacy
-        // personalAssets.base for validation during the migration.
-        //
-        // This call should be removed once WML dataSource fully owns
-        // subscribe/unsubscribe and personalAssets stops fetching/applying
-        // WML directly (see AGENT.subscriberSync.refactor.planning.md).
-        //
         dispatch(subscribeToWmlDataSource([id]))
     }
-    
-    const fetchedAssetWML = await fetch(fetchURL, { method: 'GET' }).then((response) => (response.text()))
-    const assetWML = fetchedAssetWML.replace(/\r/g, '')
-    const schemaConverter = new Schema()
-    if (id) {
-        try {
-            schemaConverter.loadWML(assetWML)
-        }
-        catch (err) {
-            if (err instanceof TokenizeException) {
-                console.log(`Token: Error message: ${err.message}`)
-            }
-            throw err
-        }
-    }
-    const standardForm = new StandardForm(schemaConverter.schema[0])
-    // Initialize edit with the correct universalKey from the base
+
     const editUniversalKey: AssetUUID = (id && isSchemaAssetUUID(id)) ? id : 'ASSET#uninitialized' as AssetUUID
-    const editData: StandardFormData = { 
-        universalKey: editUniversalKey, 
-        components: [], 
-        metaData: [] 
+    const editData: StandardFormData = {
+        universalKey: editUniversalKey,
+        components: [],
+        metaData: []
     }
+
     return {
         publicData: {
-            originalWML: assetWML,
-            currentWML: assetWML,
-            base: standardForm.toJSON(),
-            standard: standardForm.toJSON(),
+            properties,
             edit: editData,
-            serialized: true
+            pendingEdits: [],
+            serialized: false
         },
         internalData: { subscription }
     }
@@ -172,8 +140,11 @@ export const fetchImports = (id: string) => async (dispatch: any, getState: () =
 
 }
 
-export const fetchImportsStateAction: PersonalAssetsAction = ({ internalData: { id }, publicData }) => async (dispatch) => {
-    const standardForm = publicSelectors.getStandardForm({ ...(publicData as PersonalAssetsPublic), key: '' })
+const EMPTY_BASE: StandardFormData = { universalKey: 'ASSET#uninitialized', components: [], metaData: [] }
+
+export const fetchImportsStateAction: PersonalAssetsAction = ({ internalData: { id }, publicData }) => async (dispatch, getState) => {
+    const base = (id && getWMLBase(getState(), id)) ?? EMPTY_BASE
+    const standardForm = publicSelectors.getStandardForm({ ...(publicData as PersonalAssetsPublic), base, key: id ?? '' } as PersonalAssetsPublicAugmented & { key: string })
 
     if (id && isSchemaAssetUUID(id) && standardForm.metaData.filter(treeNodeTypeguard(isSchemaImport))) {
         await dispatch(fetchImports(id))
@@ -186,17 +157,8 @@ export const clearAction: PersonalAssetsAction = ({ internalData: { id, subscrip
     if (subscription) {
         LifeLinePubSub.unsubscribe(subscription)
     }
-    // Tell the backend to stop delivering mtw.wml events for this asset
+    // wmlDataSource owns mtw.wml unsubscribe; triggers socket unsubscribe via UNSUBSCRIBE state
     if (id) {
-        dispatch(socketDispatch({ message: 'unsubscribe', dataSourceKey: 'mtw.wml', streamKeys: [id] }, { service: 'subscriptions' }))
-        //
-        // TEMPORARY: Mirror the personalAssets unsubscribe into the WML dataSource
-        // ------------------------------------------------------------------------
-        // Keep the wmlDataSource slice subscription lifecycle aligned with the
-        // legacy personalAssets subscription so we can safely compare states
-        // during migration. This will be removed when wmlDataSource owns the
-        // mtw.wml subscribe/unsubscribe responsibility.
-        //
         dispatch(unsubscribeFromWmlDataSource([id]))
     }
     return { 
@@ -250,8 +212,9 @@ export const locallyParseWMLAction: PersonalAssetsAction = ({ publicData }) => a
     }
 }
 
-export const regenerateWMLAction: PersonalAssetsAction = ({ publicData }) => async(dispatch) => {
-    const standardForm = publicSelectors.getStandardForm({ ...(publicData as PersonalAssetsPublic), key: '' })
+export const regenerateWMLAction: PersonalAssetsAction = ({ internalData: { id }, publicData }) => async(dispatch, getState) => {
+    const base = (id && getWMLBase(getState(), id)) ?? EMPTY_BASE
+    const standardForm = publicSelectors.getStandardForm({ ...(publicData as PersonalAssetsPublic), base, key: id ?? '' } as PersonalAssetsPublicAugmented & { key: string })
     try {
         const newStandard = new StandardForm(standardForm)
         const newWML = schemaToWML([newStandard.schema])

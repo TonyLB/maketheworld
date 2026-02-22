@@ -7,7 +7,7 @@ import { StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/data
  * Used when personalAssets derives base from dataSource (post-refactor).
  */
 export function getWMLBase(state: any, assetId: string): StandardFormData | undefined {
-  const streams = state.wmlDataSource?.publicData?.subscribedStreams
+  const streams = state?.wmlDataSource?.publicData?.subscribedStreams
   return streams?.[assetId]?.materializedView
 }
 

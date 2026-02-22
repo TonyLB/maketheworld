@@ -53,7 +53,8 @@ type multipleSSMArguments<Nodes extends Record<string, any>, PublicSelectorsType
     publicReducers?: Record<string, multipleSSMPublicReducer<Nodes, any>>;
     publicSelectors: PublicSelectorsType;
     template: TemplateFromNodes<Nodes>;
-    promiseCache: PromiseCache<InferredDataTypeAggregateFromNodes<Nodes>>
+    promiseCache: PromiseCache<InferredDataTypeAggregateFromNodes<Nodes>>;
+    augmentPublicDataForSelect?: (state: any, key: string, publicData: InferredPublicDataTypeAggregateFromNodes<Nodes>) => InferredPublicDataTypeAggregateFromNodes<Nodes>;
 }
 
 export const corePublicReducer =
@@ -79,13 +80,16 @@ export const publicAction = <D>(func: corePublicAction<D>): wrappedPublicReducer
 
 const wrapPublicSelector =
     <Nodes extends Record<string, any>, D>
-        (sliceSelector: (state: any) => multipleSSMSlice<Nodes>) =>
+        (sliceSelector: (state: any) => multipleSSMSlice<Nodes>, augmentPublicDataForSelect?: (state: any, key: string, publicData: InferredPublicDataTypeAggregateFromNodes<Nodes>) => InferredPublicDataTypeAggregateFromNodes<Nodes>) =>
         (select: multipleSSMPublicSelector<Nodes, D>): resultPublicSelector<D> =>
     {
         const wrapper = (key: string) => (state: any): D | undefined => {
             const focus = sliceSelector(state).byId[key]
             if (focus) {
-                return select({ key, ...focus.publicData })
+                const augmented = augmentPublicDataForSelect
+                    ? augmentPublicDataForSelect(state, key, focus.publicData)
+                    : focus.publicData
+                return select({ key, ...augmented })
             }
             return undefined
         }
@@ -109,7 +113,8 @@ export const multipleSSM = <Nodes extends Record<string, any>, PublicSelectorsTy
     publicReducers = {},
     publicSelectors,
     template,
-    promiseCache
+    promiseCache,
+    augmentPublicDataForSelect
 }: multipleSSMArguments<Nodes, PublicSelectorsType>) => {
     const slice = createSlice({
         name,
@@ -312,7 +317,7 @@ export const multipleSSM = <Nodes extends Record<string, any>, PublicSelectorsTy
         ...(Object.entries(publicSelectors) as Entries<typeof publicSelectors>)
             .reduce((previous, [name, selector]) => ({
                 ...previous,
-                [name]: wrapPublicSelector(sliceSelector)(selector)
+                [name]: wrapPublicSelector(sliceSelector, augmentPublicDataForSelect)(selector)
             }), {} as Partial<SelectorAggregate>) as SelectorAggregate,
         getStatus,
         getIntent,

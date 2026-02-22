@@ -3,8 +3,7 @@ import { PersonalAssetsData, PersonalAssetsNodes } from './baseClasses'
 import { multipleSSM } from '../stateSeekingMachine/multipleSSM'
 import {
     lifelineCondition,
-    getFetchURL,
-    fetchAction,
+    subscribeAction,
     clearAction,
     backoffAction,
     locallyParseWMLAction,
@@ -19,7 +18,7 @@ import {
     revertDraftWML as revertDraftWMLReducer,
     setLoadedImage as setLoadedImageReducer,
     updateStandard as updateStandardReducer,
-    receiveWMLEvent as receiveWMLEventReducer,
+    clearPendingEditsByRequestIds as clearPendingEditsByRequestIdsReducer,
     saveEdit as saveEditReducer,
     UpdateStandardPayload
 } from './reducers'
@@ -32,6 +31,7 @@ import type { WMLStreamingEventHeader, WMLContentEvent } from '@tonylb/mtw-inter
 import { push } from '../UI/feedback'
 import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
+import { StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes'
 import Debounce from '../../lib/keyedDebounce'
 import { isSchemaImport, SchemaImportMapping } from '@tonylb/mtw-base/ts/schema/metaData'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
@@ -43,8 +43,11 @@ import { standardComponentFactory } from '@tonylb/mtw-wml/ts/standardize/compone
 import { ReferenceList } from '@tonylb/mtw-wml/ts/standardize/keys/referenceList'
 import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 import type { ScopedInstrumentationOptions } from '../../testing/scopedInstrumentation'
+import { getWMLBase } from '../wmlDataSource/selectors'
 
 const autoSaveDebounce = new Debounce()
+
+const EMPTY_BASE: StandardFormData = { universalKey: 'ASSET#uninitialized', components: [], metaData: [] }
 
 const personalAssetsPromiseCache = new PromiseCache<PersonalAssetsData>()
 
@@ -86,19 +89,19 @@ export const {
             importData: {},
             properties: {},
             loadedImages: {},
-            base: { universalKey: 'ASSET#uninitialized', components: [], metaData: [] },
             pendingEdits: [],
             edit: { universalKey: 'ASSET#uninitialized', components: [], metaData: [] },
             inherited: { universalKey: 'ASSET#uninitialized', components: [], metaData: [] }
         }
     },
     sliceSelector: ({ personalAssets }) => (personalAssets),
+    augmentPublicDataForSelect: (state, key, publicData) => ({ ...publicData, base: getWMLBase(state, key) ?? EMPTY_BASE }),
     publicReducers: {
         setDraftWML: setDraftWMLReducer,
         revertDraftWML: revertDraftWMLReducer,
         setLoadedImage: setLoadedImageReducer,
         updateStandard: updateStandardReducer,
-        receiveWMLEvent: receiveWMLEventReducer,
+        clearPendingEditsByRequestIds: clearPendingEditsByRequestIdsReducer,
         saveEdit: saveEditReducer
     },
     publicSelectors,
@@ -112,7 +115,6 @@ export const {
                 importData: {},
                 properties: {},
                 loadedImages: {},
-                base: { universalKey: 'ASSET#uninitialized', components: [], metaData: [] },
                 pendingEdits: [],
                 edit: { universalKey: 'ASSET#uninitialized', components: [], metaData: [] },
                 inherited: { universalKey: 'ASSET#uninitialized', components: [], metaData: [] }
@@ -126,37 +128,30 @@ export const {
             },
             INACTIVE: {
                 stateType: 'CHOICE',
-                choices: ['FETCHURL']
+                choices: ['SUBSCRIBE']
             },
-            FETCHURL: {
+            SUBSCRIBE: {
                 stateType: 'ATTEMPT',
-                action: getFetchURL,
-                resolve: 'FETCH',
-                reject: 'FETCHURLBACKOFF'
+                action: subscribeAction,
+                resolve: 'SUBSCRIBED',
+                reject: 'SUBSCRIBEBACKOFF'
             },
-            FETCHURLBACKOFF: {
+            SUBSCRIBEBACKOFF: {
                 stateType: 'ATTEMPT',
                 action: backoffAction,
-                resolve: 'FETCHURL',
+                resolve: 'SUBSCRIBE',
                 reject: 'FETCHERROR'
             },
-            FETCH: {
-                stateType: 'ATTEMPT',
-                action: fetchAction,
-                resolve: 'FETCHIMPORTS',
-                reject: 'FETCHBACKOFF'
+            SUBSCRIBED: {
+                stateType: 'HOLD',
+                next: 'FETCHIMPORTS',
+                condition: ({ internalData: { id } }, getState) => !!(id && getWMLBase(getState(), id))
             },
             FETCHIMPORTS: {
                 stateType: 'ATTEMPT',
                 action: fetchImportsStateAction,
                 resolve: 'FRESH',
                 reject: 'FRESH'
-            },
-            FETCHBACKOFF: {
-                stateType: 'ATTEMPT',
-                action: backoffAction,
-                resolve: 'FETCH',
-                reject: 'FETCHERROR'
             },
             FETCHERROR: {
                 stateType: 'CHOICE',
@@ -231,6 +226,7 @@ export const {
     getStatus,
     getCurrentWML,
     getDraftWML,
+    getBase,
     getLocalStandardForm,
     getStandardForm,
     getInherited,
@@ -248,9 +244,13 @@ export const newAsset = (assetId: AssetUUID) => (dispatch: any) => {
 }
 
 export const receiveWMLEvent = (key: string) => (args: { header: WMLStreamingEventHeader; content: WMLContentEvent }) => (dispatch: any, getState: any) => {
+    const { header } = args
+    if (header.dataSourceKey !== 'mtw.wml') return
+    const RequestIds = header.RequestIds
+    if (!RequestIds || RequestIds.length === 0) return
     const pendingEdits = getPendingEdits(key)(getState())
-    dispatch(publicActions.receiveWMLEvent(key)(args))
-    if (args.header.type === 'Merge Conflict' && args.header.RequestIds?.some(id => pendingEdits.some(p => p.meta.key === id))) {
+    dispatch(publicActions.clearPendingEditsByRequestIds(key)({ assetKey: key, RequestIds }))
+    if (header.type === 'Merge Conflict' && RequestIds.some(id => pendingEdits.some(p => p.meta.key === id))) {
         push('Merge conflict prevented saving your changes')
     }
 }
@@ -259,8 +259,9 @@ export const updateStandard = (key: string) => (payload: UpdateStandardPayload, 
     if (!isSchemaAssetUUID(key)) {
         return
     }
+    const base = getWMLBase(getState(), key) ?? EMPTY_BASE
     const previousImports = selectors.getLocalStandardForm(key)(getState()).metaData.filter(treeNodeTypeguard(isSchemaImport))
-    dispatch(publicActions.updateStandard(key)(payload))
+    dispatch(publicActions.updateStandard(key)({ ...payload, base }))
     const newImports = selectors.getLocalStandardForm(key)(getState()).metaData.filter(treeNodeTypeguard(isSchemaImport))
     if (!deepEqual(previousImports, newImports)) {
         dispatch(fetchImports(key))
@@ -312,6 +313,7 @@ export const addImport = ({
     uuid: ComponentUUID
     addToReferenceList: (draft: StandardForm) => ReferenceListDescriptor | null
 }, options?: { overrideUpdateStandard?: typeof updateStandard }) => (dispatch: any, getState: any) => {
+    const base = getWMLBase(getState(), assetId) ?? EMPTY_BASE
     dispatch((options?.overrideUpdateStandard ?? publicActions.updateStandard)(assetId)({
         type: 'update',
         update: (draft: StandardForm) => {
@@ -341,7 +343,8 @@ export const addImport = ({
             }
 
             return draft
-        }
+        },
+        base
     }))
     dispatch(fetchImports(assetId))
     dispatch(setIntent({ key: assetId, intent: ['SCHEMADIRTY', 'WMLDIRTY'] }))

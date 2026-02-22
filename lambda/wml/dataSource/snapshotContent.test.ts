@@ -49,7 +49,7 @@ describe('generateWmlSnapshotContent', () => {
     it('passes createSnapshotFirst true when Dynamo has events after snapshot', async () => {
         mockAssetDBGetItem.mockResolvedValue({ snapshotHeader: { timestamp: 1729252800000 } })
         mockAssetDBQuery.mockResolvedValue([
-            { DataCategory: 'EVENT#1729252900000::uuid-1', type: 'Content Update', update: {} }
+            { AssetId: 'ASSET#room', DataCategory: 'EVENT#1729252900000::uuid-1', type: 'Content Update', update: {} }
         ])
 
         await generateWmlSnapshotContent('ASSET#room')

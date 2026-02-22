@@ -9,7 +9,6 @@ import { AssetUUID } from '@tonylb/mtw-base/ts/schema';
 export interface PersonalAssetsInternal {
     id?: AssetUUID;
     incrementalBackoff: number;
-    fetchURL?: string;
     saveURL?: string;
     s3Object?: string;
     saveImages?: AssetClientUploadURL["images"];
@@ -40,11 +39,6 @@ export interface PersonalAssetsPublic {
     // inherited is the standard form of data inherited from imports
     //
     inherited: StandardFormData;
-     //
-    // base is the standard form of the pre-existing data to be edited (either or both of an asset being
-    // updated, or inherited data from imports)
-    //
-    base: StandardFormData;
     //
     // pendingEdits holds the edit assets that have been streamed out to WML for update into the
     // relevant personalAsset (but which have not yet been reflected back through the asset
@@ -79,10 +73,9 @@ export type PersonalAssetsCondition = ISSMHoldCondition<PersonalAssetsInternal, 
 export interface PersonalAssetsNodes {
     INITIAL: ISSMHoldNode<PersonalAssetsInternal, PersonalAssetsPublic>;
     INACTIVE: ISSMChoiceNode;
-    FETCHURL: ISSMAttemptNode<PersonalAssetsInternal, PersonalAssetsPublic>;
-    FETCHURLBACKOFF: ISSMAttemptNode<PersonalAssetsInternal, PersonalAssetsPublic>;
-    FETCH: ISSMAttemptNode<PersonalAssetsInternal, PersonalAssetsPublic>;
-    FETCHBACKOFF: ISSMAttemptNode<PersonalAssetsInternal, PersonalAssetsPublic>;
+    SUBSCRIBE: ISSMAttemptNode<PersonalAssetsInternal, PersonalAssetsPublic>;
+    SUBSCRIBEBACKOFF: ISSMAttemptNode<PersonalAssetsInternal, PersonalAssetsPublic>;
+    SUBSCRIBED: ISSMHoldNode<PersonalAssetsInternal, PersonalAssetsPublic>;
     FETCHERROR: ISSMChoiceNode;
     FETCHIMPORTS: ISSMAttemptNode<PersonalAssetsInternal, PersonalAssetsPublic>;
     FRESH: ISSMChoiceNode;

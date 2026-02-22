@@ -2,9 +2,7 @@ import { PayloadAction } from '@reduxjs/toolkit'
 import { PersonalAssetsPublic } from './baseClasses'
 import { v4 as uuidv4 } from 'uuid'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
-import type { WMLStreamingEventHeader, WMLContentEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/wml'
 import { StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes'
-import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import StandardReference from '@tonylb/mtw-wml/ts/standardize/components/reference'
 
 export const setDraftWML = (state: PersonalAssetsPublic, newDraft: PayloadAction<{ value: string }>) => {
@@ -25,21 +23,25 @@ export const setLoadedImage = (state: PersonalAssetsPublic, action: PayloadActio
 export type UpdateStandardPayloadSetInherited = {
     type: 'setInherited';
     inherited: StandardFormData;
+    base?: StandardFormData;
 }
 
 export type UpdateStandardPayloadUpdateComponent = {
     type: 'update';
     update: (draft: StandardForm) => StandardForm;
+    base?: StandardFormData;
 }
 
 export type UpdateStandardPayloadUpdateLocal = {
     type: 'updateLocal';
     update: (draft: StandardForm) => StandardForm;
+    base?: StandardFormData;
 }
 
 export type UpdateStandardPayloadRemoveComponent = {
     type: 'removeComponent';
     componentKey: string;
+    base?: StandardFormData;
 }
 
 export type UpdateStandardPayload = UpdateStandardPayloadSetInherited | UpdateStandardPayloadUpdateComponent | UpdateStandardPayloadUpdateLocal | UpdateStandardPayloadRemoveComponent
@@ -49,15 +51,18 @@ const isUpdateStandardPayloadUpdateComponent = (payload: UpdateStandardPayload):
 const isUpdateStandardPayloadUpdateLocal = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadUpdateLocal => (payload.type === 'updateLocal')
 const isUpdateStandardPayloadRemoveComponent = (payload: UpdateStandardPayload): payload is UpdateStandardPayloadRemoveComponent => (payload.type === 'removeComponent')
 
+const EMPTY_BASE: StandardFormData = { universalKey: 'ASSET#uninitialized', components: [], metaData: [] }
+
 export const updateStandard = (state: PersonalAssetsPublic, action: PayloadAction<UpdateStandardPayload>) => {
     const { payload } = action
+    const baseData = payload.base ?? EMPTY_BASE
     const mergeToEdit = (delta: StandardForm): void => {
         const editStandardized = new StandardForm(state.edit)
         const merged = editStandardized.merge(delta)
         // Ensure the edit has the correct universalKey from the base
         // (it may be 'ASSET#uninitialized' if never properly initialized)
-        if (merged.universalKey === 'ASSET#uninitialized' && state.base.universalKey !== 'ASSET#uninitialized') {
-            merged._universalKey = state.base.universalKey
+        if (merged.universalKey === 'ASSET#uninitialized' && baseData.universalKey !== 'ASSET#uninitialized') {
+            merged._universalKey = baseData.universalKey
         }
         state.edit = merged.toJSON()
     }
@@ -65,7 +70,7 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
         state.inherited = payload.inherited
         return
     }
-    const base = new StandardForm(state.base)
+    const base = new StandardForm(baseData)
     const localStandardForm = state.pendingEdits.reduce<StandardForm>((previous, pendingEdit) => {
         const editStandardized = new StandardForm(pendingEdit.edit)
         return previous.merge(editStandardized)
@@ -97,25 +102,10 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
     }
 }
 
-/** Type guard: Content Update content has schema. */
-const hasSchema = (c: WMLContentEvent): c is { schema: StandardForm } =>
-    c != null && typeof c === 'object' && 'schema' in c && c.schema instanceof StandardForm
-
-export const receiveWMLEvent = (state: PersonalAssetsPublic, action: PayloadAction<{ header: WMLStreamingEventHeader; content: WMLContentEvent }>) => {
-    const { header, content } = action.payload
-    if (header.dataSourceKey !== 'mtw.wml') return
-    if (header.type === 'Content Update' && hasSchema(content)) {
-        // Subscription Content Update carries the new canonical full content; replace base, do not merge.
-        // (Merge would concatenate e.g. ShortName "Test" + "Test" -> "TestTest" and repeat on each delivery.)
-        try {
-            state.base = content.schema.toJSON()
-        }
-        catch (err) {}
-        state.pendingEdits = state.pendingEdits.filter(({ meta }) => !header.RequestIds?.includes(meta.key))
-    }
-    if (header.type === 'Merge Conflict') {
-        state.pendingEdits = state.pendingEdits.filter(({ meta }) => !header.RequestIds?.includes(meta.key))
-    }
+export const clearPendingEditsByRequestIds = (state: PersonalAssetsPublic, action: PayloadAction<{ assetKey: string; RequestIds: string[] }>) => {
+    const { RequestIds } = action.payload
+    if (!RequestIds || RequestIds.length === 0) return
+    state.pendingEdits = state.pendingEdits.filter(({ meta }) => !RequestIds.includes(meta.key))
 }
 
 export const saveEdit = (state: PersonalAssetsPublic, action: PayloadAction<{ requestId: string }>) => {

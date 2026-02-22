@@ -224,6 +224,8 @@ export const useLibraryImageURL = (key: string): string => {
 
     const fileURL = useMemo(() => {
         const appBaseURL = DevEnvironment ? `https://${AppBaseURL}` : ''
+        // TODO: Restore when image uuid-as-filename refactor lands. properties[key].fileName
+        // will become properties[key] or derived from image uuid. See personalAssets AGENT.md "Deprecated: Image properties (fetch)".
         return syntheticURL ? syntheticURL.fileURL : properties[key] ? `${appBaseURL}/images/${properties[key].fileName}.png` : ''
     }, [syntheticURL, properties, key, AppBaseURL])
 
