@@ -226,8 +226,8 @@ The pattern operates under specific assumptions and provides corresponding guara
 The client mirrors the server-side header/content split:
 
 - LifeLine delivers `StreamEvent` messages with `streamKey`, `timestamp`, `eventType`, and `update`.
-- The client derives a `ClientStreamingHeader` from `eventType` (and optional `zone`) and treats `update` as `content`.
-- `processEnvelope` receives payloads shaped as `{ streamKey, timestamp, header, content }` (see [baseClasses.ts](./baseClasses.ts): `ClientStreamingMessagePayload`).
+- StreamEventPubSub deserializes and publishes `StreamEventDeserializedPayload` with full `StreamingEventHeader` (dataSourceKey, streamKey, timestamp, type, optional zone).
+- `processEnvelope` receives payloads shaped as `StreamEventDeserializedPayload` (see [streamEventPubSub/index.ts](./streamEventPubSub/index.ts)).
 - Routing uses `header.type`; the slice calls `deserialize({ content, header })` for all message types; the serializer routes on `header.type` internally (e.g. Snapshot vs events).
 
 ### **Key Implementation Areas**
@@ -263,7 +263,7 @@ Three action factories manage lifecycle:
 Snapshot events may carry inline payloads or domain-shaped sidecar descriptors (e.g. a field whose value is `{ sidecarUrl: string }`). Resolution happens inside the serializer when it is configured with a `DataSourceEnvironment`:
 
 1. **StreamEventPubSub** subscribes to LifeLinePubSub, filters StreamEvents, looks up the deserializer by `dataSourceKey`, deserializes via `fromWebSocketFormat` + `eventSerializer.deserialize`, and publishes pre-deserialized payloads.
-2. **dataSource INITIALIZE** subscribes to StreamEventPubSub, filters by `dataSourceKey`, maps payload to `ClientStreamingMessagePayload`, and dispatches `processEnvelope` directly (content is already deserialized). Deserializers are registered via `registerDeserializer(dataSourceKey, eventSerializer)` when slices are created.
+2. **dataSource INITIALIZE** subscribes to StreamEventPubSub, filters by `dataSourceKey`, and passes payload directly to `processEnvelope` (content is already deserialized). Deserializers are registered via `registerDeserializer(dataSourceKey, eventSerializer)` when slices are created.
 3. **Reducer** (`reducers.ts`) expects pre-resolved internal content; deserialization happens in StreamEventPubSub before publish.
 
 #### **Slice Factory (`index.ts`)**

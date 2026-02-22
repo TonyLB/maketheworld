@@ -1,4 +1,5 @@
-import { DataSourceAction, ClientStreamingHeader, ClientStreamingMessagePayload } from './baseClasses'
+import { DataSourceAction } from './baseClasses'
+import type { StreamEventDeserializedPayload } from './streamEventPubSub'
 import { socketDispatchPromise, getStatus } from '../lifeLine'
 import { StreamEventPubSub, makeStreamEventGuardForDataSource } from './streamEventPubSub'
 import delayPromise from '../../lib/delayPromise'
@@ -32,7 +33,7 @@ export const backoffAction: DataSourceAction<any, any> = ({ internalData: { incr
 //
 export const createInitializeAction = <SnapshotPayload, UpdatePayload>(
     dataSourceKey: string,
-    processEnvelope: (payload: ClientStreamingMessagePayload<any>) => any,
+    processEnvelope: (payload: StreamEventDeserializedPayload) => any,
     onReady?: (dispatch: any, getState: any, sliceActions: any) => void,
     sliceSelector?: (state: any) => any
 ): DataSourceAction<SnapshotPayload, UpdatePayload> => {
@@ -43,17 +44,7 @@ export const createInitializeAction = <SnapshotPayload, UpdatePayload>(
             const streamEventSubscription = StreamEventPubSub.subscribe(({ payload }) => {
                 const envelope = { header: payload.header, content: payload.content }
                 if (!isForThisDataSource(envelope)) return
-                const header: ClientStreamingHeader = {
-                    type: payload.header.type,
-                    ...(Object.prototype.hasOwnProperty.call(payload.header, 'zone') ? { zone: (payload.header as { zone?: string }).zone } : {})
-                }
-                const envelopePayload: ClientStreamingMessagePayload<any> = {
-                    streamKey: payload.streamKey,
-                    timestamp: payload.timestamp,
-                    header,
-                    content: payload.content
-                }
-                dispatch(processEnvelope(envelopePayload))
+                dispatch(processEnvelope(payload))
             })
             
             // Call onReady callback if provided (after successful initialization)

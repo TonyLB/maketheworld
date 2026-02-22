@@ -1,7 +1,8 @@
 import { PayloadAction } from '@reduxjs/toolkit'
 import type { EventPayload, SerializableObject, StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import type { DataSourceAggregator } from '@tonylb/mtw-lambda-patterns/ts/dataSource/aggregation'
-import type { ClientStreamingMessagePayload, RecentEventEnvelope } from './baseClasses'
+import type { RecentEventEnvelope } from './baseClasses'
+import type { StreamEventDeserializedPayload } from './streamEventPubSub'
 
 const SNAPSHOT_HEADER_TYPE = 'Snapshot'
 
@@ -104,7 +105,7 @@ export const processEnvelope = <
     applyEventsWithAggregator: ReturnType<typeof applyEvents<SnapshotPayload, UpdatePayload, Header>>
 ) => (
     state: any,
-    action: PayloadAction<ClientStreamingMessagePayload<InternalPayload>>
+    action: PayloadAction<StreamEventDeserializedPayload>
 ) => {
     const { streamKey, timestamp, header, content } = action.payload
 
@@ -114,16 +115,10 @@ export const processEnvelope = <
         return
     }
 
-    const streamingHeader: Header = {
-        dataSourceKey,
-        streamKey,
-        timestamp,
-        type: header.type,
-        ...(Object.prototype.hasOwnProperty.call(header, 'zone') ? { zone: (header as { zone?: string }).zone } : {})
-    } as Header
+    const streamingHeader = header as Header
 
     // NOTE: We pass InternalPayload and Header as separate type params; the action payload is
-    // ClientStreamingMessagePayload<InternalPayload>, which is not a discriminated union on
+    // StreamEventDeserializedPayload, which is not a discriminated union on
     // header.type. So we cannot use an envelope type guard to narrow content—we must cast.
     // Future refactor: define the payload as a discriminated union so header.type narrows content.
     if (header.type === SNAPSHOT_HEADER_TYPE) {

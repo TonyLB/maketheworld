@@ -204,9 +204,10 @@ describe('dataSource reducers', () => {
             
             const action = {
                 payload: {
+                    dataSourceKey: 'test.dataSource',
                     streamKey: 'stream1',
                     timestamp: 10000,
-                    header: { type: 'Snapshot' },
+                    header: { dataSourceKey: 'test.dataSource', streamKey: 'stream1', timestamp: 10000, type: 'Snapshot' },
                     content: { type: 'Snapshot' as const, items: ['new'] }
                 }
             }
@@ -234,9 +235,10 @@ describe('dataSource reducers', () => {
             
             const action = {
                 payload: {
+                    dataSourceKey: 'test.dataSource',
                     streamKey: 'stream1',
                     timestamp: 15000,  // Snapshot comes BEFORE existing event
-                    header: { type: 'Snapshot' },
+                    header: { dataSourceKey: 'test.dataSource', streamKey: 'stream1', timestamp: 15000, type: 'Snapshot' },
                     content: { type: 'Snapshot' as const, items: ['x'] }
                 }
             }
@@ -261,9 +263,10 @@ describe('dataSource reducers', () => {
             
             const action = {
                 payload: {
+                    dataSourceKey: 'test.dataSource',
                     streamKey: 'nonexistent',
                     timestamp: 10000,
-                    header: { type: 'Snapshot' },
+                    header: { dataSourceKey: 'test.dataSource', streamKey: 'nonexistent', timestamp: 10000, type: 'Snapshot' },
                     content: { type: 'Snapshot' as const, items: ['a'] }
                 }
             }
@@ -301,9 +304,10 @@ describe('dataSource reducers', () => {
             
             const action = {
                 payload: {
+                    dataSourceKey: 'test.dataSource',
                     streamKey: 'stream1',
                     timestamp: 20000,  // After existing event
-                    header: { type: 'Item Added' },
+                    header: { dataSourceKey: 'test.dataSource', streamKey: 'stream1', timestamp: 20000, type: 'Item Added' },
                     content: { type: 'Item Added' as const, item: 'b' }
                 }
             }
@@ -333,9 +337,10 @@ describe('dataSource reducers', () => {
             
             const action = {
                 payload: {
+                    dataSourceKey: 'test.dataSource',
                     streamKey: 'stream1',
                     timestamp: 20000,  // BETWEEN snapshot and existing event
-                    header: { type: 'Item Added' },
+                    header: { dataSourceKey: 'test.dataSource', streamKey: 'stream1', timestamp: 20000, type: 'Item Added' },
                     content: { type: 'Item Added' as const, item: 'b' }
                 }
             }
@@ -361,9 +366,10 @@ describe('dataSource reducers', () => {
             
             const action = {
                 payload: {
+                    dataSourceKey: 'test.dataSource',
                     streamKey: 'nonexistent',
                     timestamp: 10000,
-                    header: { type: 'Item Added' },
+                    header: { dataSourceKey: 'test.dataSource', streamKey: 'nonexistent', timestamp: 10000, type: 'Item Added' },
                     content: { type: 'Item Added' as const, item: 'a' }
                 }
             }
@@ -391,9 +397,10 @@ describe('dataSource reducers', () => {
             
             const action = {
                 payload: {
+                    dataSourceKey: 'test.dataSource',
                     streamKey: 'stream1',
                     timestamp: 30000,  // Out of order
-                    header: { type: 'Item Added' },
+                    header: { dataSourceKey: 'test.dataSource', streamKey: 'stream1', timestamp: 30000, type: 'Item Added' },
                     content: { type: 'Item Added' as const, item: 'b' }
                 }
             }
@@ -422,9 +429,10 @@ describe('dataSource reducers', () => {
             
             const action = {
                 payload: {
+                    dataSourceKey: 'test.dataSource',
                     streamKey: 'stream1',
                     timestamp: 70000,  // Much later
-                    header: { type: 'Item Added' },
+                    header: { dataSourceKey: 'test.dataSource', streamKey: 'stream1', timestamp: 70000, type: 'Item Added' },
                     content: { type: 'Item Added' as const, item: 'c' }
                 }
             }
@@ -456,9 +464,10 @@ describe('dataSource reducers', () => {
             
             const action = {
                 payload: {
+                    dataSourceKey: 'test.dataSource',
                     streamKey: 'stream1',
                     timestamp: 40000,  // BEFORE the snapshot at 50000
-                    header: { type: 'Item Added' },
+                    header: { dataSourceKey: 'test.dataSource', streamKey: 'stream1', timestamp: 40000, type: 'Item Added' },
                     content: { type: 'Item Added' as const, item: 'd' }
                 }
             }
