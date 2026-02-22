@@ -97,12 +97,6 @@ export type ClientStreamingMessagePayload<Content> = {
     timestamp: number;
 } & ClientStreamingEnvelope<Content>
 
-/** @deprecated Use ClientStreamingMessagePayload */
-export type ClientSnapshotMessagePayload<ExternalSnapshotPayload> = ClientStreamingMessagePayload<ExternalSnapshotPayload>
-
-/** @deprecated Use ClientStreamingMessagePayload */
-export type ClientUpdateMessagePayload<ExternalUpdatePayload> = ClientStreamingMessagePayload<ExternalUpdatePayload>
-
 export interface DataSourceNodes<SnapshotPayload, UpdatePayload, Header extends StreamingEventHeader = StreamingEventHeader> {
     INITIAL: ISSMHoldNode<DataSourceInternal, DataSourcePublic<SnapshotPayload, UpdatePayload, Header>>;
     INITIALIZE: ISSMAttemptNode<DataSourceInternal, DataSourcePublic<SnapshotPayload, UpdatePayload, Header>>;

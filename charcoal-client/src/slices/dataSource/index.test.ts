@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { createDataSourceSlice, DataSourceSliceConfig } from './index'
-import type { ClientSnapshotMessagePayload } from './baseClasses'
+import type { ClientStreamingMessagePayload } from './baseClasses'
 import { DataSourceAggregator } from '@tonylb/mtw-lambda-patterns/ts/dataSource/aggregation'
 import { DataSourceEventSerializer } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 
 // Capture the processEnvelope (action creator) passed to createInitializeAction
-let capturedProcessEnvelope: ((payload: ClientSnapshotMessagePayload<any>) => any) | null = null
+let capturedProcessEnvelope: ((payload: ClientStreamingMessagePayload<any>) => any) | null = null
 vi.mock('./index.api', async (importOriginal) => {
     const mod = await importOriginal<typeof import('./index.api')>()
     return {
