@@ -32,7 +32,7 @@ export const lifelineCondition: PersonalAssetsCondition = ({}, getState) => {
 /**
  * Subscribe to mtw.wml via WML dataSource slice; register LifeLine listener for
  * clearPendingEditsByRequestIds and Merge Conflict toast. Base comes from dataSource
- * Snapshot (no fetch for WML body). See AGENT.subscriberSync.refactor.planning.md.
+ * Snapshot (no fetch for WML body). See personalAssets AGENT.md "WML dataSource integration".
  *
  * DEPRECATED: getFetchURL (message: 'fetch') previously returned properties (image filenames).
  * Image items will use uuid-as-filename; restore a getProperties flow when that refactor lands.

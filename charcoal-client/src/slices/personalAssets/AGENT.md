@@ -96,9 +96,15 @@ Manage per-asset editing state and lifecycle so the Workbench can:
 
 - **wmlDataSource** ([../wmlDataSource/](../wmlDataSource/)): Owns `materializedView` (backend WML); personalAssets derives base via `getWMLBase`
 - **multipleSSM** ([../stateSeekingMachine/multipleSSM.ts](../stateSeekingMachine/multipleSSM.ts)): SSM factory; `augmentPublicDataForSelect` for base injection
-- **lifeLine** ([../lifeLine.ts](../lifeLine.ts)): LifeLinePubSub for mtw.wml StreamEvents; socketDispatch for subscribe/fetch/applyEdit
+- **lifeLine** ([../lifeLine.ts](../lifeLine.ts)): LifeLinePubSub for mtw.wml StreamEvents; socketDispatch for applyEdit
 - **player** slice: `getAssetZone` for Draft vs published (readonly)
 - **StandardForm** ([packages/mtw-wml/ts/standardize/](../../../packages/mtw-wml/ts/standardize/AGENT.md)): Merge, diff, toJSON
+
+### WML dataSource integration
+
+- **Subscribe/unsubscribe ownership**: wmlDataSource owns mtw.wml subscribe/unsubscribe. personalAssets triggers via `subscribeToStreams([id])` / `unsubscribeFromStreams([id])`; personalAssets does **not** send subscribe/unsubscribe messages itself.
+- **Same-tick re-render**: One StreamEvent arrives. wmlDataSource updates `materializedView`; personalAssets clears `pendingEdits` by RequestIds. Both run in the same tick; components see consistent base and pendingEdits in one re-render.
+- **Merge Conflict**: personalAssets keeps a lightweight LifeLine listener that receives mtw.wml events and runs toast logic + `clearPendingEditsByRequestIds`. No dataSource-dispatched Merge Conflict action.
 
 ### Deprecated: Image properties (fetch)
 
@@ -111,7 +117,7 @@ resume working once `properties[key]` is set. See subscribeAction deprecation co
 ### Cross-References
 
 - **Workbench**: [charcoal-client/src/components/Workbench/AGENT.md](../components/Workbench/AGENT.md) - Consumes `getStandardForm`, `updateStandard`, `getStatus` via `useWorkbenchAsset`
-- **Subscriber Sync Refactor**: [lambda/wml/AGENT.subscriberSync.refactor.planning.md](../../../lambda/wml/AGENT.subscriberSync.refactor.planning.md) - Migration plan; items 2.2/2.3 done (base derived from dataSource)
+- **wmlDataSource**: [../wmlDataSource/AGENT.md](../wmlDataSource/AGENT.md) - Canonical backend WML view; owns subscribe/unsubscribe
 - **Root AGENT.md**: [AGENT.md](../../../AGENT.md) - Documentation standards, navigation
 
 ### API Contracts
@@ -203,7 +209,7 @@ const standardForm = useSelector(getStandardForm(assetId))
 ### Related Documentation
 
 - [Workbench AGENT.md](../components/Workbench/AGENT.md)
-- [AGENT.subscriberSync.refactor.planning.md](../../../lambda/wml/AGENT.subscriberSync.refactor.planning.md)
+- [wmlDataSource AGENT.md](../wmlDataSource/AGENT.md)
 - [Standard Form AGENT.md](../../../packages/mtw-wml/ts/standardize/AGENT.md)
 
 ---
@@ -212,16 +218,12 @@ const standardForm = useSelector(getStandardForm(assetId))
 
 ### Current State
 
-- Base is derived from wmlDataSource (2.2, 2.3 done)
-- subscribeAction replaces fetchAction; no WML fetch; wmlDataSource owns subscribe. Properties (image metadata) deprecated and stubbed as {} until image uuid-as-filename refactor.
-- clearAction unsubscribes LifeLine listener and delegates mtw.wml unsubscribe to wmlDataSource (2.5 done)
-- Client Work Item 2 (personalAssets refactor) complete
+- Base derived from wmlDataSource; subscribeAction triggers wmlDataSource subscribe; clearAction delegates mtw.wml unsubscribe to wmlDataSource
+- Properties (image metadata) deprecated and stubbed as `{}` until image uuid-as-filename refactor
 
 ### Future Plans
 
-- **fetchAction refactor** (Work Item 2.4): Done. subscribeAction subscribes via wmlDataSource; initial state from Snapshot (sidecar); no direct fetch for WML body
-- **clearAction** (2.5): Done. Unsubscribe LifeLine listener; delegate mtw.wml unsubscribe to wmlDataSource (no personalAssets socket unsubscribe)
-- **SSM restructure** (2.6): Done. Collapse to Subscribe -> HOLD (until getWMLBase defined) -> FETCHIMPORTS/FRESH
+- **Restore image properties**: When image uuid-as-filename refactor lands, add properties source and populate in subscribeAction; useLibraryImageURL will resume
 
 ### Technical Debt
 
