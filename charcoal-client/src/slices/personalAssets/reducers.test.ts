@@ -447,8 +447,8 @@ describe('personalAsset slice reducers', () => {
         const baseState = {
             edit: { universalKey: 'ASSET#test', components: [], metaData: [] },
             pendingEdits: [
-                { meta: { tag: 'Meta', key: 'req-1', time: 1 }, edit: { universalKey: 'ASSET#test', components: [], metaData: [] } },
-                { meta: { tag: 'Meta', key: 'req-2', time: 2 }, edit: { universalKey: 'ASSET#test', components: [], metaData: [] } }
+                { meta: { key: 'req-1', time: 1 }, edit: { universalKey: 'ASSET#test', components: [], metaData: [] } },
+                { meta: { key: 'req-2', time: 2 }, edit: { universalKey: 'ASSET#test', components: [], metaData: [] } }
             ]
         } as any
 

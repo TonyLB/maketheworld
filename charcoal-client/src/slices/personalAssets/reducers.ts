@@ -106,7 +106,7 @@ export const clearPendingEditsByRequestIds = (state: PersonalAssetsPublic, actio
 }
 
 export const saveEdit = (state: PersonalAssetsPublic, action: PayloadAction<{ requestId: string }>) => {
-    state.pendingEdits = [...state.pendingEdits, { meta: { tag: 'Meta', key: action.payload.requestId, time: Date.now() }, edit: JSON.parse(JSON.stringify(state.edit)) }]
+    state.pendingEdits = [...state.pendingEdits, { meta: { key: action.payload.requestId, time: Date.now() }, edit: JSON.parse(JSON.stringify(state.edit)) }]
     state.edit.components = []
     state.edit.metaData = []
     // Clear Asset-level metadata after saving to pendingEdits

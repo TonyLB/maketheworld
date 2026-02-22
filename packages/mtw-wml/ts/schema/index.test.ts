@@ -25,7 +25,6 @@ describe('schemaFromParse', () => {
     it('should make a schema from parse elements correctly', () => {
         const testParse = parse(tokenizer(new SourceStream(`
             <Asset uuid=(Test)>
-                <Meta key=(ABC) time="1234" />
                 <Import from=(BASE)>
                     <Room key=(overview) />
                     <Knowledge key=(baseInfo) />
@@ -70,10 +69,6 @@ describe('schemaFromParse', () => {
                 tag: "Asset"
             },
             children: [
-                {
-                    data: { tag: 'Meta', key: "ABC", time: 1234 },
-                    children: []
-                },
                 {
                     data: {
                         from: "BASE",

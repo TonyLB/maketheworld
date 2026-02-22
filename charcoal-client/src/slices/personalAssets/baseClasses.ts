@@ -3,7 +3,8 @@ import { GenericTree } from '@tonylb/mtw-base/ts/genericTree'
 import { ISSMAttemptNode, ISSMChoiceNode, ISSMHoldNode, ISSMHoldCondition, ISSMDataLayout, ISSMDataReturn, ISSMAction } from '../stateSeekingMachine/baseClasses'
 import { StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes';
 import { SchemaTag } from '@tonylb/mtw-base/ts/schema';
-import { SchemaMetaTag } from '@tonylb/mtw-base/ts/schema/metaData';
+
+export type PendingEditMeta = { key: string; time: number };
 import { AssetUUID } from '@tonylb/mtw-base/ts/schema';
 
 export interface PersonalAssetsInternal {
@@ -42,7 +43,7 @@ export interface PersonalAssetsPublic {
     // subscription)
     //
     pendingEdits: {
-        meta: SchemaMetaTag;
+        meta: PendingEditMeta;
         edit: StandardFormData;
     }[];
 

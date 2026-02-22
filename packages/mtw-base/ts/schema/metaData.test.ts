@@ -1,4 +1,4 @@
-import { isSchemaImportMapping, isSchemaImport, isSchemaMeta } from './metaData'
+import { isSchemaImportMapping, isSchemaImport } from './metaData'
 
 describe('metaData tags', () => {
     describe('isSchemaImportMapping', () => {
@@ -24,27 +24,5 @@ describe('metaData tags', () => {
             expect(isSchemaImport(schema)).toBe(false)
         })
 
-    })
-
-    describe('isSchemaMeta', () => {
-        it('should return true for valid SchemaMetaTag', () => {
-            const schema = { tag: 'Meta', key: 'exampleKey', time: 123456789 }
-            expect(isSchemaMeta(schema)).toBe(true)
-        })
-
-        it('should return false for invalid SchemaMetaTag', () => {
-            const schema = { tag: 'Invalid', key: 'exampleKey', time: 123456789 }
-            expect(isSchemaMeta(schema)).toBe(false)
-        })
-
-        it('should return false for SchemaMetaTag missing key', () => {
-            const schema = { tag: 'Meta', time: 123456789 }
-            expect(isSchemaMeta(schema)).toBe(false)
-        })
-
-        it('should return false for SchemaMetaTag missing time', () => {
-            const schema = { tag: 'Meta', key: 'exampleKey' }
-            expect(isSchemaMeta(schema)).toBe(false)
-        })
     })
 })
