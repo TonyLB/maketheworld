@@ -276,8 +276,11 @@ const standardRenderDiff = (base: RenderTree, incoming: RenderTree): { add?: Ren
                 if (baseElement.length === incomingElement.length) {
                     return standardRenderDiff(base.slice(1), incoming.slice(1))
                 }
+                else if (baseElement.length < incomingElement.length) {
+                    return standardRenderDiff(base.slice(1), [incomingElement.slice(baseElement.length), ...incoming.slice(1)])
+                }
                 else {
-                    return standardRenderDiff(base.slice(1), [incomingElement.slice(firstDifferingIndex), ...incoming.slice(1)])
+                    return standardRenderDiff([baseElement.slice(incomingElement.length), ...base.slice(1)], incoming.slice(1))
                 }
             }
             else {

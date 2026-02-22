@@ -12,3 +12,6 @@ export interface ScopedInstrumentationOptions {
   /** Activation keys: when present, instrumented sites may emit logs/traces for matching keys. */
   instrumentation?: string[];
 }
+
+/** Instrumentation keys for discoverability and to avoid string typos. Add keys here when adding new scoped instrumentation. */
+export const INSTRUMENTATION_KEYS = {} as const
