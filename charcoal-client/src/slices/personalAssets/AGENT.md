@@ -8,7 +8,7 @@ The **personalAssets** slice manages per-asset WML editing state for the authori
 
 ### Context
 
-personalAssets sits between the [Workbench](../components/Workbench/AGENT.md) (form-based editing UI) and the [wmlDataSource](../wmlDataSource/index.ts) (canonical backend view). It uses the [multipleSSM](../stateSeekingMachine/multipleSSM.ts) pattern: each asset is a separate state machine instance (byId keyed by assetId) with an SSM-driven lifecycle (INITIAL -> FETCHURL -> FETCH -> FETCHIMPORTS -> FRESH, etc.). The slice does **not** own the backend WML view; base is derived from `wmlDataSource.subscribedStreams[assetId]?.materializedView` via `augmentPublicDataForSelect`.
+personalAssets sits between the [Workbench](../components/Workbench/AGENT.md) (form-based editing UI) and the [wmlDataSource](../wmlDataSource/index.ts) (canonical backend view). It uses the [multipleSSM](../stateSeekingMachine/multipleSSM.ts) pattern: each asset is a separate state machine instance (byId keyed by assetId) with an SSM-driven lifecycle (INITIAL -> SUBSCRIBE -> SUBSCRIBED -> FETCHIMPORTS -> FRESH, etc.). The slice does **not** own the backend WML view; base is derived from `wmlDataSource.subscribedStreams[assetId]?.materializedView` via `augmentPublicDataForSelect`.
 
 ### Key Concepts
 
@@ -35,7 +35,7 @@ Manage per-asset editing state and lifecycle so the Workbench can:
 
 ### Key Responsibilities
 
-- **Lifecycle**: SSM-driven fetch (FETCHURL -> FETCH -> FETCHIMPORTS -> FRESH), clear, and error/backoff states
+- **Lifecycle**: SSM-driven subscribe (SUBSCRIBE -> SUBSCRIBED -> FETCHIMPORTS -> FRESH), clear, and error/backoff states
 - **Optimistic state**: `edit`, `pendingEdits`; diff-based merge via `updateStandard` reducer
 - **Base derivation**: Base comes from wmlDataSource; selectors receive it via `augmentPublicDataForSelect`, reducer via thunk-supplied `payload.base`
 - **RequestIds clearing**: `receiveWMLEvent` thunk listens to mtw.wml events, extracts RequestIds, dispatches `clearPendingEditsByRequestIds`
@@ -64,7 +64,7 @@ Manage per-asset editing state and lifecycle so the Workbench can:
 
 **PersonalAssetsInternal**: fetchURL, subscription, error, incrementalBackoff, etc. (SSM internal state)
 
-**PersonalAssetsNodes**: SSM states (INITIAL, INACTIVE, FETCHURL, FETCH, FETCHIMPORTS, FRESH, WMLDIRTY, SCHEMADIRTY, CLEAR, etc.)
+**PersonalAssetsNodes**: SSM states (INITIAL, INACTIVE, SUBSCRIBE, SUBSCRIBED, SUBSCRIBEBACKOFF, FETCHIMPORTS, FRESH, WMLDIRTY, SCHEMADIRTY, CLEAR, etc.)
 
 ### Core Methods
 
@@ -167,7 +167,7 @@ const standardForm = useSelector(getStandardForm(assetId))
 
 ### Error Handling
 
-- `FETCHERROR`, `FETCHURLBACKOFF`, `FETCHBACKOFF`: SSM handles retries with incremental backoff
+- `FETCHERROR`, `SUBSCRIBEBACKOFF`: SSM handles retries with incremental backoff
 - Merge Conflict: Toast shown when `receiveWMLEvent` sees Merge Conflict with matching RequestIds
 
 ---
@@ -180,7 +180,7 @@ const standardForm = useSelector(getStandardForm(assetId))
 2. **Read [index.ts](./index.ts)** - Public API, multipleSSM config, thunks
 3. **Read [reducers.ts](./reducers.ts)** - updateStandard reducer logic (diff/merge)
 4. **Read [selectors.ts](./selectors.ts)** - getBase, getLocalStandardForm, getStandardForm
-5. **Read [index.api.ts](./index.api.ts)** - SSM actions (fetchAction, clearAction, etc.)
+5. **Read [index.api.ts](./index.api.ts)** - SSM actions (subscribeAction, clearAction, etc.)
 
 ### Key Files
 
@@ -205,13 +205,13 @@ const standardForm = useSelector(getStandardForm(assetId))
 ### Current State
 
 - Base is derived from wmlDataSource (2.2, 2.3 done)
-- fetchAction still fetches WML via getFetchURL + fetch; parallel wmlDataSource subscribe for migration
+- subscribeAction replaces fetchAction; no WML fetch; getFetchURL for properties only; wmlDataSource owns subscribe
 - clearAction unsubscribes from mtw.wml and wmlDataSource
 - Items 4–6 of Client Work Item 2 (fetch/clear refactor, SSM restructure) are pending
 
 ### Future Plans
 
-- **fetchAction refactor** (Work Item 2.4): Subscribe first, get initial state from Snapshot (sidecar); remove direct fetch for WML body
+- **fetchAction refactor** (Work Item 2.4): Done. subscribeAction subscribes via wmlDataSource; initial state from Snapshot (sidecar); no direct fetch for WML body
 - **clearAction** (2.5): Unsubscribe from wmlDataSource; personalAssets LifeLine listener only
 - **SSM restructure** (2.6): Collapse to Subscribe -> HOLD (until getWMLBase defined) -> FETCHIMPORTS/FRESH
 

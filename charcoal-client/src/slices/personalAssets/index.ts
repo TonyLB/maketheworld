@@ -3,8 +3,7 @@ import { PersonalAssetsData, PersonalAssetsNodes } from './baseClasses'
 import { multipleSSM } from '../stateSeekingMachine/multipleSSM'
 import {
     lifelineCondition,
-    getFetchURL,
-    fetchAction,
+    subscribeAction,
     clearAction,
     backoffAction,
     locallyParseWMLAction,
@@ -129,37 +128,30 @@ export const {
             },
             INACTIVE: {
                 stateType: 'CHOICE',
-                choices: ['FETCHURL']
+                choices: ['SUBSCRIBE']
             },
-            FETCHURL: {
+            SUBSCRIBE: {
                 stateType: 'ATTEMPT',
-                action: getFetchURL,
-                resolve: 'FETCH',
-                reject: 'FETCHURLBACKOFF'
+                action: subscribeAction,
+                resolve: 'SUBSCRIBED',
+                reject: 'SUBSCRIBEBACKOFF'
             },
-            FETCHURLBACKOFF: {
+            SUBSCRIBEBACKOFF: {
                 stateType: 'ATTEMPT',
                 action: backoffAction,
-                resolve: 'FETCHURL',
+                resolve: 'SUBSCRIBE',
                 reject: 'FETCHERROR'
             },
-            FETCH: {
-                stateType: 'ATTEMPT',
-                action: fetchAction,
-                resolve: 'FETCHIMPORTS',
-                reject: 'FETCHBACKOFF'
+            SUBSCRIBED: {
+                stateType: 'HOLD',
+                next: 'FETCHIMPORTS',
+                condition: ({ internalData: { id } }, getState) => !!(id && getWMLBase(getState(), id))
             },
             FETCHIMPORTS: {
                 stateType: 'ATTEMPT',
                 action: fetchImportsStateAction,
                 resolve: 'FRESH',
                 reject: 'FRESH'
-            },
-            FETCHBACKOFF: {
-                stateType: 'ATTEMPT',
-                action: backoffAction,
-                resolve: 'FETCH',
-                reject: 'FETCHERROR'
             },
             FETCHERROR: {
                 stateType: 'CHOICE',

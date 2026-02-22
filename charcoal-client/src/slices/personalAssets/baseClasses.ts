@@ -9,6 +9,7 @@ import { AssetUUID } from '@tonylb/mtw-base/ts/schema';
 export interface PersonalAssetsInternal {
     id?: AssetUUID;
     incrementalBackoff: number;
+    /** @deprecated No longer used; WML comes from dataSource Snapshot. Kept for getFetchURL helper. */
     fetchURL?: string;
     saveURL?: string;
     s3Object?: string;
@@ -74,10 +75,9 @@ export type PersonalAssetsCondition = ISSMHoldCondition<PersonalAssetsInternal, 
 export interface PersonalAssetsNodes {
     INITIAL: ISSMHoldNode<PersonalAssetsInternal, PersonalAssetsPublic>;
     INACTIVE: ISSMChoiceNode;
-    FETCHURL: ISSMAttemptNode<PersonalAssetsInternal, PersonalAssetsPublic>;
-    FETCHURLBACKOFF: ISSMAttemptNode<PersonalAssetsInternal, PersonalAssetsPublic>;
-    FETCH: ISSMAttemptNode<PersonalAssetsInternal, PersonalAssetsPublic>;
-    FETCHBACKOFF: ISSMAttemptNode<PersonalAssetsInternal, PersonalAssetsPublic>;
+    SUBSCRIBE: ISSMAttemptNode<PersonalAssetsInternal, PersonalAssetsPublic>;
+    SUBSCRIBEBACKOFF: ISSMAttemptNode<PersonalAssetsInternal, PersonalAssetsPublic>;
+    SUBSCRIBED: ISSMHoldNode<PersonalAssetsInternal, PersonalAssetsPublic>;
     FETCHERROR: ISSMChoiceNode;
     FETCHIMPORTS: ISSMAttemptNode<PersonalAssetsInternal, PersonalAssetsPublic>;
     FRESH: ISSMChoiceNode;

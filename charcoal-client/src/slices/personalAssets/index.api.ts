@@ -14,7 +14,7 @@ import { getStandardForm, updateStandard, receiveWMLEvent } from '.'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes'
 import { treeNodeTypeguard } from '@tonylb/mtw-base/ts/genericTree'
-import { publicSelectors } from './selectors'
+import { publicSelectors, PersonalAssetsPublicAugmented } from './selectors'
 import { getWMLBase } from '../wmlDataSource/selectors'
 import { isSchemaImport } from '@tonylb/mtw-base/ts/schema/metaData'
 import { isImportable, ComponentUUID, AssetUUID, isSchemaAssetUUID } from '@tonylb/mtw-base/ts/schema'
@@ -39,15 +39,20 @@ export const getFetchURL: PersonalAssetsAction = ({ internalData: { id } }) => a
     return { internalData: { fetchURL: url }, publicData: { properties: properties || {} } }
 }
 
-export const fetchAction: PersonalAssetsAction = ({ internalData: { id, fetchURL } }) => async (dispatch, getState) => {
-    if (!fetchURL) {
-        throw new Error()
-    }
+/**
+ * Subscribe to mtw.wml via WML dataSource slice; get metadata (properties); register LifeLine
+ * listener for clearPendingEditsByRequestIds and Merge Conflict toast. Base comes from dataSource
+ * Snapshot (no fetch for WML body). See AGENT.subscriberSync.refactor.planning.md.
+ */
+export const subscribeAction: PersonalAssetsAction = (data) => async (dispatch) => {
+    const { internalData: { id }, publicData } = data
+    // Get metadata (properties) only; URL is unused (WML comes from dataSource Snapshot)
+    const { publicData: fetchResult } = await dispatch(getFetchURL(data))
+    const properties = fetchResult?.properties || {}
+
     // Subscribe to LifeLinePubSub to receive WML StreamEvent messages for this asset
-    // This allows us to receive Content Update events that clear pendingEdits
     const wmlSerializer = new WMLDataSourceEventSerializer(createBrowserDataSourceEnvironment())
     const subscription = id ? LifeLinePubSub.subscribe(async ({ payload }) => {
-        // Filter for StreamEvent messages from mtw.wml data source
         if (isSubscriptionClientMessage(payload) &&
             payload.messageType === 'StreamEvent' &&
             payload.dataSourceKey === 'mtw.wml' &&
@@ -63,53 +68,24 @@ export const fetchAction: PersonalAssetsAction = ({ internalData: { id, fetchURL
         }
     }) : undefined
 
-    // Tell the backend to deliver mtw.wml events for this asset (Content Update / Merge Conflict)
+    // WML dataSource owns subscribe; backend sends Snapshot with sidecarUrl
     if (id && isSchemaAssetUUID(id)) {
-        dispatch(socketDispatch({ message: 'subscribe', dataSourceKey: 'mtw.wml', streamKeys: [id] }, { service: 'subscriptions' }))
-        //
-        // TEMPORARY: Parallel subscription into the WML dataSource slice
-        // -----------------------------------------------------------------
-        // While personalAssets still owns the direct mtw.wml subscription and
-        // base application, also subscribe the generic wmlDataSource slice to
-        // the same stream so we can compare materializedView with the legacy
-        // personalAssets.base for validation during the migration.
-        //
-        // This call should be removed once WML dataSource fully owns
-        // subscribe/unsubscribe and personalAssets stops fetching/applying
-        // WML directly (see AGENT.subscriberSync.refactor.planning.md).
-        //
         dispatch(subscribeToWmlDataSource([id]))
     }
-    
-    const fetchedAssetWML = await fetch(fetchURL, { method: 'GET' }).then((response) => (response.text()))
-    const assetWML = fetchedAssetWML.replace(/\r/g, '')
-    const schemaConverter = new Schema()
-    if (id) {
-        try {
-            schemaConverter.loadWML(assetWML)
-        }
-        catch (err) {
-            if (err instanceof TokenizeException) {
-                console.log(`Token: Error message: ${err.message}`)
-            }
-            throw err
-        }
-    }
-    const standardForm = new StandardForm(schemaConverter.schema[0])
-    // Initialize edit with the correct universalKey from the base
+
     const editUniversalKey: AssetUUID = (id && isSchemaAssetUUID(id)) ? id : 'ASSET#uninitialized' as AssetUUID
-    const editData: StandardFormData = { 
-        universalKey: editUniversalKey, 
-        components: [], 
-        metaData: [] 
+    const editData: StandardFormData = {
+        universalKey: editUniversalKey,
+        components: [],
+        metaData: []
     }
+
     return {
         publicData: {
-            originalWML: assetWML,
-            currentWML: assetWML,
-            standard: standardForm.toJSON(),
+            properties,
             edit: editData,
-            serialized: true
+            pendingEdits: [],
+            serialized: false
         },
         internalData: { subscription }
     }
@@ -176,7 +152,7 @@ const EMPTY_BASE: StandardFormData = { universalKey: 'ASSET#uninitialized', comp
 
 export const fetchImportsStateAction: PersonalAssetsAction = ({ internalData: { id }, publicData }) => async (dispatch, getState) => {
     const base = (id && getWMLBase(getState(), id)) ?? EMPTY_BASE
-    const standardForm = publicSelectors.getStandardForm({ ...(publicData as PersonalAssetsPublic), base, key: id ?? '' })
+    const standardForm = publicSelectors.getStandardForm({ ...(publicData as PersonalAssetsPublic), base, key: id ?? '' } as PersonalAssetsPublicAugmented & { key: string })
 
     if (id && isSchemaAssetUUID(id) && standardForm.metaData.filter(treeNodeTypeguard(isSchemaImport))) {
         await dispatch(fetchImports(id))
@@ -255,7 +231,7 @@ export const locallyParseWMLAction: PersonalAssetsAction = ({ publicData }) => a
 
 export const regenerateWMLAction: PersonalAssetsAction = ({ internalData: { id }, publicData }) => async(dispatch, getState) => {
     const base = (id && getWMLBase(getState(), id)) ?? EMPTY_BASE
-    const standardForm = publicSelectors.getStandardForm({ ...(publicData as PersonalAssetsPublic), base, key: id ?? '' })
+    const standardForm = publicSelectors.getStandardForm({ ...(publicData as PersonalAssetsPublic), base, key: id ?? '' } as PersonalAssetsPublicAugmented & { key: string })
     try {
         const newStandard = new StandardForm(standardForm)
         const newWML = schemaToWML([newStandard.schema])
