@@ -220,10 +220,10 @@ export const createDataSourceSlice = <
     const subscribeToStreams = (streamKeys: string[]) => (dispatch: any, getState: any) => {
         const currentState = sliceSelector(getState())
         const existingQueue: string[] = currentState.internalData.subscribeStreamKeys || []
-        
+
         // Add to queue (deduplicate)
         const newQueue = [...new Set([...existingQueue, ...streamKeys])]
-        
+
         // Update internal data with new queue
         dispatch(result.slice.actions.internalStateChange({
             newState: currentState.meta.currentState,  // Don't change state

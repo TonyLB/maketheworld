@@ -73,6 +73,7 @@ export type PersonalAssetsCondition = ISSMHoldCondition<PersonalAssetsInternal, 
 export interface PersonalAssetsNodes {
     INITIAL: ISSMHoldNode<PersonalAssetsInternal, PersonalAssetsPublic>;
     INACTIVE: ISSMChoiceNode;
+    WAIT_WML_READY: ISSMHoldNode<PersonalAssetsInternal, PersonalAssetsPublic>;
     SUBSCRIBE: ISSMAttemptNode<PersonalAssetsInternal, PersonalAssetsPublic>;
     SUBSCRIBEBACKOFF: ISSMAttemptNode<PersonalAssetsInternal, PersonalAssetsPublic>;
     SUBSCRIBED: ISSMHoldNode<PersonalAssetsInternal, PersonalAssetsPublic>;

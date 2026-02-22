@@ -3,6 +3,7 @@ import { PersonalAssetsData, PersonalAssetsNodes } from './baseClasses'
 import { multipleSSM } from '../stateSeekingMachine/multipleSSM'
 import {
     lifelineCondition,
+    wmlDataSourceReadyCondition,
     subscribeAction,
     clearAction,
     backoffAction,
@@ -128,7 +129,12 @@ export const {
             },
             INACTIVE: {
                 stateType: 'CHOICE',
-                choices: ['SUBSCRIBE']
+                choices: ['WAIT_WML_READY']
+            },
+            WAIT_WML_READY: {
+                stateType: 'HOLD',
+                next: 'SUBSCRIBE',
+                condition: wmlDataSourceReadyCondition
             },
             SUBSCRIBE: {
                 stateType: 'ATTEMPT',

@@ -29,6 +29,11 @@ export const lifelineCondition: PersonalAssetsCondition = ({}, getState) => {
     return (status === 'CONNECTED')
 }
 
+export const wmlDataSourceReadyCondition: PersonalAssetsCondition = (_data, getState) => {
+    const state = getState()
+    return state?.wmlDataSource?.meta?.currentState === 'READY'
+}
+
 /**
  * Subscribe to mtw.wml via WML dataSource slice; register LifeLine listener for
  * clearPendingEditsByRequestIds and Merge Conflict toast. Base comes from dataSource
