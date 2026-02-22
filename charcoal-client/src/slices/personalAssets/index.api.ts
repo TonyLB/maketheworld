@@ -2,9 +2,9 @@ import { v4 as uuidv4 } from 'uuid'
 import { PersonalAssetsCondition, PersonalAssetsAction, PersonalAssetsPublic } from './baseClasses'
 import {
     socketDispatchPromise,
-    getStatus,
-    LifeLinePubSub
+    getStatus
 } from '../lifeLine'
+import { StreamEventPubSub } from '../dataSource/streamEventPubSub'
 import delayPromise from '../../lib/delayPromise'
 import { AssetClientFetchImports } from '@tonylb/mtw-interfaces/ts/asset'
 import { Schema } from '@tonylb/mtw-wml/ts/schema'
@@ -16,10 +16,7 @@ import { publicSelectors, PersonalAssetsPublicAugmented } from './selectors'
 import { getWMLBase } from '../wmlDataSource/selectors'
 import { isSchemaImport } from '@tonylb/mtw-base/ts/schema/metaData'
 import { isImportable, ComponentUUID, AssetUUID, isSchemaAssetUUID } from '@tonylb/mtw-base/ts/schema'
-import { isSubscriptionClientMessage, WMLSubscriptionClientMessage } from '@tonylb/mtw-interfaces/ts/subscriptions'
-import { fromWebSocketFormat } from '@tonylb/mtw-lambda-patterns/ts/dataSource/formatTransform'
-import { WMLDataSourceEventSerializer, WMLContentEventExternal, WMLStreamingEventHeader } from '@tonylb/mtw-interfaces/ts/eventBridge/wml'
-import { createBrowserDataSourceEnvironment } from '../dataSource'
+import type { WMLStreamingEventHeader, WMLContentEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/wml'
 import { subscribeToWmlDataSource, unsubscribeFromWmlDataSource } from '../wmlDataSource'
 
 export const lifelineCondition: PersonalAssetsCondition = ({}, getState) => {
@@ -46,21 +43,10 @@ export const subscribeAction: PersonalAssetsAction = (data) => async (dispatch) 
     const { internalData: { id }, publicData } = data
     const properties = {}
 
-    // Subscribe to LifeLinePubSub to receive WML StreamEvent messages for this asset
-    const wmlSerializer = new WMLDataSourceEventSerializer(createBrowserDataSourceEnvironment())
-    const subscription = id ? LifeLinePubSub.subscribe(async ({ payload }) => {
-        if (isSubscriptionClientMessage(payload) &&
-            payload.messageType === 'StreamEvent' &&
-            payload.dataSourceKey === 'mtw.wml' &&
-            payload.streamKey === id) {
-            const coreFormat = fromWebSocketFormat(payload as WMLSubscriptionClientMessage)
-            const content = await wmlSerializer.deserialize({
-                content: coreFormat.update as WMLContentEventExternal,
-                header: coreFormat.header as WMLStreamingEventHeader
-            })
-            if (content) {
-                dispatch(receiveWMLEvent(id)({ header: coreFormat.header, content }))
-            }
+    // Subscribe to StreamEventPubSub to receive pre-deserialized mtw.wml StreamEvent messages for this asset
+    const subscription = id ? StreamEventPubSub.subscribe(({ payload }) => {
+        if (payload.dataSourceKey === 'mtw.wml' && payload.streamKey === id) {
+            dispatch(receiveWMLEvent(id)({ header: payload.header as WMLStreamingEventHeader, content: payload.content as WMLContentEvent }))
         }
     }) : undefined
 
@@ -157,9 +143,9 @@ export const fetchImportsStateAction: PersonalAssetsAction = ({ internalData: { 
 }
 
 export const clearAction: PersonalAssetsAction = ({ internalData: { id, subscription } }) => async (dispatch) => {
-    // Unsubscribe from LifeLinePubSub when clearing the asset
+    // Unsubscribe from StreamEventPubSub when clearing the asset
     if (subscription) {
-        LifeLinePubSub.unsubscribe(subscription)
+        StreamEventPubSub.unsubscribe(subscription)
     }
     // wmlDataSource owns mtw.wml unsubscribe; triggers socket unsubscribe via UNSUBSCRIBE state
     if (id) {

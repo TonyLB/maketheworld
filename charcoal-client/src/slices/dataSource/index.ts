@@ -1,7 +1,8 @@
 import { singleSSM } from '../stateSeekingMachine/singleSSM'
-import { DataSourceNodes, DataSourcePublic, DataSourceInternal, DataSourceData, ClientStreamingMessagePayload, ClientStreamingHeader } from './baseClasses'
+import { DataSourceNodes, DataSourcePublic, DataSourceInternal, DataSourceData, ClientStreamingMessagePayload } from './baseClasses'
 
 export { createBrowserDataSourceEnvironment } from './browserEnvironment'
+import { registerDeserializer } from './streamEventPubSub'
 import { backoffAction, createSubscribeAction, createUnsubscribeAction, createInitializeAction, lifelineCondition } from './index.api'
 import { PromiseCache } from '../promiseCache'
 import { heartbeat } from '../stateSeekingMachine/ssmHeartbeat'
@@ -177,24 +178,11 @@ export const createDataSourceSlice = <
         template
     })
 
-    // Always return an async thunk that awaits deserialize, then dispatches the reducer with resolved content.
-    // Slice passes raw content to the serializer; the serializer performs sidecar resolution when configured with a DataSourceEnvironment.
-    const processRawEnvelopeWithSidecar = (payload: ClientStreamingMessagePayload<any>) => {
-        const { streamKey, timestamp, header, content } = payload
-        return async (dispatch: any) => {
-            const internalContent = await eventSerializer.deserialize({ content: content as any, header: { ...header, dataSourceKey, streamKey, timestamp } })
-            if (!internalContent) {
-                console.warn(`[${dataSourceKey}] Failed to deserialize for streamKey: ${streamKey}, header.type: ${header.type}`)
-                return
-            }
-            dispatch(result.publicActions.processRawEnvelope({
-                streamKey,
-                timestamp,
-                header,
-                content: internalContent
-            }))
-        }
-    }
+    // StreamEventPubSub delivers pre-deserialized content; we pass the action creator directly.
+    const processRawEnvelopeAction = result.publicActions.processRawEnvelope
+
+    // Register deserializer so StreamEventPubSub can deserialize incoming StreamEvents for this data source
+    registerDeserializer(dataSourceKey, eventSerializer)
 
     // Now that we have the result with publicActions, create the initialize action
     // This needs to be done after singleSSM call because we need access to the action creators
@@ -211,7 +199,7 @@ export const createDataSourceSlice = <
         : undefined
     initializeAction = createInitializeAction<SnapshotPayload, UpdatePayload>(
         dataSourceKey,
-        processRawEnvelopeWithSidecar,
+        processRawEnvelopeAction,
         onReadyWrapper,
         sliceSelector  // Pass sliceSelector so we can read current state after onReady
     )

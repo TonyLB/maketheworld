@@ -95,7 +95,8 @@ Manage per-asset editing state and lifecycle so the Workbench can:
 
 - **wmlDataSource** ([../wmlDataSource/](../wmlDataSource/)): Owns `materializedView` (backend WML); personalAssets derives base via `getWMLBase`
 - **multipleSSM** ([../stateSeekingMachine/multipleSSM.ts](../stateSeekingMachine/multipleSSM.ts)): SSM factory; `augmentPublicDataForSelect` for base injection
-- **lifeLine** ([../lifeLine.ts](../lifeLine.ts)): LifeLinePubSub for mtw.wml StreamEvents; socketDispatch for applyEdit
+- **lifeLine** ([../lifeLine.ts](../lifeLine.ts)): socketDispatch for applyEdit
+- **streamEventPubSub** ([../dataSource/streamEventPubSub/](../dataSource/streamEventPubSub/)): Pre-deserialized mtw.wml StreamEvents for receiveWMLEvent
 - **player** slice: `getAssetZone` for Draft vs published (readonly)
 - **StandardForm** ([packages/mtw-wml/ts/standardize/](../../../packages/mtw-wml/ts/standardize/AGENT.md)): Merge, diff, toJSON
 
@@ -103,7 +104,7 @@ Manage per-asset editing state and lifecycle so the Workbench can:
 
 - **Subscribe/unsubscribe ownership**: wmlDataSource owns mtw.wml subscribe/unsubscribe. personalAssets triggers via `subscribeToStreams([id])` / `unsubscribeFromStreams([id])`; personalAssets does **not** send subscribe/unsubscribe messages itself.
 - **Same-tick re-render**: One StreamEvent arrives. wmlDataSource updates `materializedView`; personalAssets clears `pendingEdits` by RequestIds. Both run in the same tick; components see consistent base and pendingEdits in one re-render.
-- **Merge Conflict**: personalAssets keeps a lightweight LifeLine listener that receives mtw.wml events and runs toast logic + `clearPendingEditsByRequestIds`. No dataSource-dispatched Merge Conflict action.
+- **Merge Conflict**: personalAssets keeps a StreamEventPubSub subscription that receives pre-deserialized mtw.wml events and runs toast logic + `clearPendingEditsByRequestIds`. No dataSource-dispatched Merge Conflict action.
 
 ### Deprecated: Image properties (fetch)
 

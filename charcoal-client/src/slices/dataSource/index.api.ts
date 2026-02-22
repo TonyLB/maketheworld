@@ -1,5 +1,6 @@
 import { DataSourceAction, ClientStreamingHeader, ClientStreamingMessagePayload } from './baseClasses'
-import { socketDispatchPromise, LifeLinePubSub, getStatus } from '../lifeLine'
+import { socketDispatchPromise, getStatus } from '../lifeLine'
+import { StreamEventPubSub, makeStreamEventGuardForDataSource } from './streamEventPubSub'
 import delayPromise from '../../lib/delayPromise'
 import { ISSMHoldCondition } from '../stateSeekingMachine/baseClasses'
 import { DataSourceInternal, DataSourcePublic } from './baseClasses'
@@ -27,7 +28,7 @@ export const backoffAction: DataSourceAction<any, any> = ({ internalData: { incr
 
 //
 // Factory function to create initialize action for a specific data source
-// Sets up LifeLinePubSub subscription to route incoming events to the data source
+// Sets up StreamEventPubSub subscription to route incoming pre-deserialized events to the data source
 //
 export const createInitializeAction = <SnapshotPayload, UpdatePayload>(
     dataSourceKey: string,
@@ -37,23 +38,22 @@ export const createInitializeAction = <SnapshotPayload, UpdatePayload>(
 ): DataSourceAction<SnapshotPayload, UpdatePayload> => {
     return ({ internalData, publicData }) => async (dispatch, getState) => {
         try {
-            // Subscribe to LifeLinePubSub to receive incoming WebSocket messages
-            const lifeLineSubscription = LifeLinePubSub.subscribe(({ payload }) => {
-                // Filter for StreamEvent messages from this data source
-                if (payload.messageType === 'StreamEvent' && payload.dataSourceKey === dataSourceKey) {
-                    const { streamKey, timestamp, update } = payload
-                    const header: ClientStreamingHeader = {
-                        type: payload.eventType,
-                        ...(Object.prototype.hasOwnProperty.call(update, 'zone') ? { zone: (update as any).zone as string } : {})
-                    }
-                    const content = update
-                    const envelopePayload: ClientStreamingMessagePayload<any> = { streamKey, timestamp, header, content }
-                    const action = processRawEnvelope(envelopePayload)
-                    if (action) {
-                        // processRawEnvelope returns an async thunk; Redux Thunk middleware executes it
-                        dispatch(action)
-                    }
+            // Subscribe to StreamEventPubSub to receive pre-deserialized StreamEvent messages
+            const isForThisDataSource = makeStreamEventGuardForDataSource(dataSourceKey)
+            const streamEventSubscription = StreamEventPubSub.subscribe(({ payload }) => {
+                const envelope = { header: payload.header, content: payload.content }
+                if (!isForThisDataSource(envelope)) return
+                const header: ClientStreamingHeader = {
+                    type: payload.header.type,
+                    ...(Object.prototype.hasOwnProperty.call(payload.header, 'zone') ? { zone: (payload.header as { zone?: string }).zone } : {})
                 }
+                const envelopePayload: ClientStreamingMessagePayload<any> = {
+                    streamKey: payload.streamKey,
+                    timestamp: payload.timestamp,
+                    header,
+                    content: payload.content
+                }
+                dispatch(processRawEnvelope(envelopePayload))
             })
             
             // Call onReady callback if provided (after successful initialization)
@@ -85,13 +85,13 @@ export const createInitializeAction = <SnapshotPayload, UpdatePayload>(
             return {
                 internalData: {
                     ...currentInternalData,
-                    lifeLineSubscription
+                    lifeLineSubscription: streamEventSubscription
                 },
                 publicData
             }
         } catch (error) {
-            // Critical infrastructure failure - cannot proceed without LifeLinePubSub
-            throw new Error(`Failed to initialize LifeLinePubSub subscription: ${error instanceof Error ? error.message : 'Unknown error'}`)
+            // Critical infrastructure failure - cannot proceed without StreamEventPubSub
+            throw new Error(`Failed to initialize StreamEventPubSub subscription: ${error instanceof Error ? error.message : 'Unknown error'}`)
         }
     }
 }

@@ -11,7 +11,7 @@ export interface DataSourceInternal {
     subscribeStreamKeys: string[];      // Queue of stream keys to subscribe
     unsubscribeStreamKeys: string[];    // Queue of stream keys to unsubscribe
     error?: string;
-    lifeLineSubscription?: string;  // Subscription ID for LifeLinePubSub
+    lifeLineSubscription?: string;  // Subscription ID for StreamEventPubSub (legacy name kept for compatibility)
 }
 
 /**
