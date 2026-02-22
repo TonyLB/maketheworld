@@ -1,5 +1,5 @@
 import { singleSSM } from '../stateSeekingMachine/singleSSM'
-import { DataSourceNodes, DataSourcePublic, DataSourceInternal, DataSourceData, ClientStreamingMessagePayload } from './baseClasses'
+import { DataSourceNodes, DataSourcePublic, DataSourceInternal, DataSourceData } from './baseClasses'
 
 export { createBrowserDataSourceEnvironment } from './browserEnvironment'
 import { registerDeserializer } from './streamEventPubSub'

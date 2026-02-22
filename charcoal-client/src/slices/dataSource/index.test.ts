@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { createDataSourceSlice, DataSourceSliceConfig } from './index'
-import type { ClientSnapshotMessagePayload } from './baseClasses'
+import type { StreamEventDeserializedPayload } from './streamEventPubSub'
 import { DataSourceAggregator } from '@tonylb/mtw-lambda-patterns/ts/dataSource/aggregation'
 import { DataSourceEventSerializer } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 
 // Capture the processEnvelope (action creator) passed to createInitializeAction
-let capturedProcessEnvelope: ((payload: ClientSnapshotMessagePayload<any>) => any) | null = null
+let capturedProcessEnvelope: ((payload: StreamEventDeserializedPayload) => any) | null = null
 vi.mock('./index.api', async (importOriginal) => {
     const mod = await importOriginal<typeof import('./index.api')>()
     return {
@@ -186,10 +186,11 @@ describe('dataSource slice', () => {
                 createDataSourceSlice(config)
                 expect(capturedProcessEnvelope).toBeDefined()
                 const resolvedSnapshot = { type: 'Snapshot' as const, value: 99 }
-                const payload = {
+                const payload: StreamEventDeserializedPayload = {
+                    dataSourceKey: 'test.dataSource',
                     streamKey: 'stream1',
                     timestamp: 1000,
-                    header: { type: 'Snapshot' },
+                    header: { dataSourceKey: 'test.dataSource', streamKey: 'stream1', timestamp: 1000, type: 'Snapshot' },
                     content: resolvedSnapshot
                 }
                 const action = capturedProcessEnvelope!(payload)
@@ -208,10 +209,11 @@ describe('dataSource slice', () => {
                 }
                 createDataSourceSlice(config)
                 expect(capturedProcessEnvelope).toBeDefined()
-                const inlinePayload = {
+                const inlinePayload: StreamEventDeserializedPayload = {
+                    dataSourceKey: 'test.dataSource',
                     streamKey: 'stream1',
                     timestamp: 1000,
-                    header: { type: 'Increment' },
+                    header: { dataSourceKey: 'test.dataSource', streamKey: 'stream1', timestamp: 1000, type: 'Increment' },
                     content: { type: 'Increment' as const }
                 }
                 const action = capturedProcessEnvelope!(inlinePayload)
