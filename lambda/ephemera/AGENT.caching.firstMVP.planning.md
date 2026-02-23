@@ -1,6 +1,6 @@
 # Ephemera Caching - First MVP Implementation Plan
 
-**Status: PLANNING**
+**Status: IN PROGRESS** (Phase 1 complete)
 
 This document lays out concrete steps from the current state (no caching code in Ephemera) to a working first MVP that:
 
@@ -14,8 +14,8 @@ Prerequisite reading: [AGENT.caching.planning.md](./AGENT.caching.planning.md).
 
 ## Current State
 
-- **Ephemera**: No code for the description caching system. `internalCache/ExamplesData` fetches authored Examples from the Assets table (assetDB) for perception; it does not read or write the new Ephemera cache (CACHE#) records.
-- **Ephemera DynamoDB** (ephemeraDB): Uses `EphemeraId` and `DataCategory` as keys. No `ROOM#...` / `CACHE#...` records yet.
+- **Ephemera**: Phase 1 complete. `renderCache/` provides types (baseClasses.ts), cache access layer (cacheAccess.ts: queryCacheRecordsForComponent, putCacheRecord, deleteCacheRecord), and unit tests. `internalCache/ExamplesData` still fetches authored Examples from the Assets table (assetDB) for perception; it does not yet read or write the Ephemera cache (CACHE#) records.
+- **Ephemera DynamoDB** (ephemeraDB): Uses `EphemeraId` and `DataCategory` as keys. Cache access layer is ready to read/write `CACHE#uuid` records; no records yet until mirroring (Phase 2) or preview writes.
 - **WebSocket**: Ephemera handles `EphemeraAPIMessage` types (fetchEphemera, registercharacter, action, link, etc.). No `generateRoomPreview` (or equivalent) message.
 - **Client**: Room editor has LensEditor, Example editors, Guidance editors. No Preview section. No WebSocket dispatch for preview generation.
 - **Example data**: Authored Examples live in the Assets table. StandardExample has marks (MarkFacets) for world-state; Assets query may need extension to include marks for comparison.
@@ -40,10 +40,12 @@ Prerequisite reading: [AGENT.caching.planning.md](./AGENT.caching.planning.md).
 1. **Define types and constants** for the cache record shape (markState, renderedContent, provenance, **perspectiveId**) per [AGENT.caching.planning.md](./AGENT.caching.planning.md).
    - **Status**: Implemented in `lambda/ephemera/renderCache/baseClasses.ts`.
 2. **Implement Ephemera cache access layer** (use `componentId` throughout - Room, Feature, or Knowledge):
+   - **Status**: Implemented in `lambda/ephemera/renderCache/cacheAccess.ts`. Exported via `lambda/ephemera/renderCache/index.ts`.
    - `queryCacheRecordsForComponent(componentId)`: Query ephemeraDB where `EphemeraId = componentId` and `DataCategory begins_with 'CACHE#'`. Return array of records (markState, renderedContent, provenance, perspectiveId, DataCategory for delete). No lookup by Example ID.
    - `putCacheRecord(componentId, record)`: Generate a new UUID, put a single record with `DataCategory = 'CACHE#' + uuid`. Record must include perspectiveId (hash of ordered asset stack). For records from the mirror (authored), include `authoredExampleId` (blueprint Example UUID) so we can target delete on ExampleRemoved.
    - `deleteCacheRecord(componentId, dataCategory)`: Delete the record with the given DataCategory (e.g. `CACHE#uuid`). For mirror "ExampleRemoved": query by componentId, filter by `authoredExampleId`, delete matching record(s).
 3. **Unit tests** for query, put, and delete, with mocked ephemeraDB.
+   - **Status**: Implemented in `lambda/ephemera/renderCache/cacheAccess.test.ts`.
 
 *Deliverable*: Ephemera can store and retrieve cache records by component; each record has a synthetic CACHE#uuid and a perspectiveId.
 
@@ -185,6 +187,7 @@ When enriching Example events we currently search **all possible parent componen
 
 - [AGENT.caching.planning.md](./AGENT.caching.planning.md) - Schema, key design, future direction
 - [AGENT.event.md](./AGENT.event.md) - WebSocket events and message bus
+- [renderCache/](./renderCache/) - Cache types, access layer (query/put/delete), and tests (Phase 1)
 - [internalCache/examples.AGENT.md](./internalCache/examples.AGENT.md) - Current ExamplesData and storage
 - [packages/mtw-interfaces/ts/ephemera.ts](../../packages/mtw-interfaces/ts/ephemera.ts) - EphemeraAPIMessage types
 - [lambda/assets/AGENT.event.md](../assets/AGENT.event.md) - Assets data sources (pattern for mtw.assets.componentExamples)
