@@ -45,18 +45,20 @@ The final system will have many cooperating parts. We start with a minimal slice
 
 Create a representation in the Ephemera table that supports cached Room descriptions. Key structure and metadata design follow.
 
+##### Layered resolution and perspective
+
+Examples are not authored in a single asset; they are **resolved from an ordered stack of assets** (e.g. Asset A contributes description, Asset B overrides summary, Asset C overrides description). Merge order matters. The same logical Example can therefore produce different **rendered** content depending on which assets (and in what order) are in the resolution stack. We do not key or look up by Example ID alone; we store one cache record per distinct **render**, and identify that render by a **perspective**: the ordered asset stack that produced it.
+
 ##### Key Schema
 
 - **EphemeraId**: `componentId` (e.g. `ROOM#...`, `FEATURE#...`, `KNOWLEDGE#...` - any component that can have Example references)
-- **DataCategory**: `EXAMPLE#${uuid of example}`
+- **DataCategory**: `CACHE#${uuid}`
 
-The Example UUID is either:
-- **Author-provided**: The UUID defined in WML for that Example (canonical identity from the blueprint)
-- **Synthesized**: A new UUID generated when we (later) create in-play Examples via LLM or other generation
+Use a **synthetic UUID** for each cache record (new UUID per put). Do not use the blueprint Example UUID in the key. Lookup is never "by Example ID"; we Query by componentId and filter in memory (exact match on markState; optionally by perspectiveId when the client sends an asset stack). This avoids assuming one unique render per (component, example) and supports multiple perspectives (asset stacks) and future constellation search.
 
 This gives us:
-- **Partition by component**: All Examples for a component (Room, Feature, Knowledge) share `EphemeraId`, so we can Query to fetch all candidates for exhaustive/constellation search
-- **Sort by Example identity**: Each Example is a distinct record; UUID is stable and first-class (see First Iteration Schema Implications)
+- **Partition by component**: All cache records for a component share `EphemeraId`; Query fetches all candidates for exhaustive (and later constellation) search.
+- **Opaque sort key**: Each record has a distinct `CACHE#uuid`; no searchable key by example or mark state at this point.
 
 ##### Record Metadata
 
@@ -79,6 +81,8 @@ Initial shape; allows adding a `remainder` field at a future juncture.
 ```
 
 For now, `type` alone is sufficient. Future fields (e.g. `confidence` for generated Examples) can extend this object without disturbing the overall data shape.
+
+**perspectiveId** - Deterministic value identifying the **ordered asset stack** for which this cache item was generated. Compute as a hash (or canonical string) of the ordered list of asset IDs (e.g. `hash(assetStack.join(separator))`). Merge order is significant: the inheritance data on the client and backend deliberately preserves ordering. Stored on every record so we can later key or filter by perspective without schema change. Enables "show only cache entries relevant to this asset stack" and supports invalidation when an asset in the stack changes.
 
 **Still to refine**:
 - **Future**: Guidance-relevance scores, bucket membership for constellation search
@@ -145,20 +149,20 @@ The number of Examples (including cached renders) is not large enough to justify
 
 Given this direction, we are unlikely ever to search by `RoomId + canonical Mark state`. We are far more likely to:
 
-- **UUID each Example** (both authored and cached)
-- **Search exhaustively** in early iterations (fetch candidates, compare in memory)
-- **Search by Guidance-constellation** in later iterations (buckets, vector comparison)
+- **Use a synthetic UUID per cache record** (`CACHE#uuid`); do not key by Example ID or Mark state.
+- **Search exhaustively** in early iterations (fetch by componentId, compare Mark patterns and optionally perspectiveId in memory).
+- **Search by Guidance-constellation** in later iterations (buckets, vector comparison); **filter by perspectiveId** when the client sends an asset stack.
 
 ## First Iteration Schema Implications
 
-Given the Guidance-constellation future direction, the first-iteration schema should:
+Given the Guidance-constellation future direction and layered asset resolution:
 
-- **Use UUID as primary identifier** for each cached Example. Do not use `RoomId + Mark state` as the DynamoDB key.
-- **Store rich metadata** on each record: RoomId (or component reference), Mark state (Mark:Match pairs), rendered content. This supports both exhaustive exact-match in v1 and future constellation-based search.
-- **v1 lookup**: Fetch all Examples for the Room (authored from Assets + cached from Ephemera), compare Mark patterns in memory for exact match. Acceptable while counts are small.
-- **Leave room** for future fields: e.g. precomputed guidance-relevance scores, bucket membership for top-N Guidance, if we want to seed them early.
+- **Use a synthetic UUID per cache record** (`DataCategory: CACHE#${uuid}`). Do not use `RoomId + Mark state` or Example ID as the DynamoDB key.
+- **Store rich metadata** on each record: component reference, Mark state (Mark:Match pairs), rendered content, **perspectiveId** (hash of ordered asset stack). This supports exhaustive exact-match in v1 and future keying/filtering by perspective or constellation.
+- **v1 lookup**: Fetch all cache records for the component, compare Mark patterns (and optionally perspectiveId when request includes asset stack) in memory. Acceptable while counts are small.
+- **Leave room** for future fields: e.g. precomputed guidance-relevance scores, bucket membership for top-N Guidance; perspectiveId is already present for perspective-scoped search.
 
-The schema should support "each Example is a first-class thing with a UUID" rather than "lookup by composite state key." That keeps options open.
+The schema supports "one cache row per distinct render" with perspectiveId and synthetic key, not "lookup by example or state key." That keeps options open.
 
 ## Design Notes
 
