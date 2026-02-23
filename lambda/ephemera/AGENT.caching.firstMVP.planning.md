@@ -38,6 +38,7 @@ Prerequisite reading: [AGENT.caching.planning.md](./AGENT.caching.planning.md).
 **Goal**: Ephemera can read and write cache records (CACHE#uuid, with perspectiveId).
 
 1. **Define types and constants** for the cache record shape (markState, renderedContent, provenance, **perspectiveId**) per [AGENT.caching.planning.md](./AGENT.caching.planning.md).
+   - **Status**: Implemented in `lambda/ephemera/renderCache/baseClasses.ts`.
 2. **Implement Ephemera cache access layer** (use `componentId` throughout - Room, Feature, or Knowledge):
    - `queryCacheRecordsForComponent(componentId)`: Query ephemeraDB where `EphemeraId = componentId` and `DataCategory begins_with 'CACHE#'`. Return array of records (markState, renderedContent, provenance, perspectiveId, DataCategory for delete). No lookup by Example ID.
    - `putCacheRecord(componentId, record)`: Generate a new UUID, put a single record with `DataCategory = 'CACHE#' + uuid`. Record must include perspectiveId (hash of ordered asset stack). For records from the mirror (authored), include `authoredExampleId` (blueprint Example UUID) so we can target delete on ExampleRemoved.
