@@ -47,7 +47,7 @@ Create a representation in the Ephemera table that supports cached Room descript
 
 ##### Key Schema
 
-- **EphemeraId**: `ROOM#${uuid of room}`
+- **EphemeraId**: `componentId` (e.g. `ROOM#...`, `FEATURE#...`, `KNOWLEDGE#...` - any component that can have Example references)
 - **DataCategory**: `EXAMPLE#${uuid of example}`
 
 The Example UUID is either:
@@ -55,7 +55,7 @@ The Example UUID is either:
 - **Synthesized**: A new UUID generated when we (later) create in-play Examples via LLM or other generation
 
 This gives us:
-- **Partition by Room**: All Examples for a Room share `EphemeraId`, so we can Query to fetch all candidates for exhaustive/constellation search
+- **Partition by component**: All Examples for a component (Room, Feature, Knowledge) share `EphemeraId`, so we can Query to fetch all candidates for exhaustive/constellation search
 - **Sort by Example identity**: Each Example is a distinct record; UUID is stable and first-class (see First Iteration Schema Implications)
 
 ##### Record Metadata
