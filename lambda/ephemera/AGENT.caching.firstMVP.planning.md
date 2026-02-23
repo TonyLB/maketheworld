@@ -1,6 +1,6 @@
 # Ephemera Caching - First MVP Implementation Plan
 
-**Status: IN PROGRESS** (Phase 1 complete)
+**Status: IN PROGRESS** (Phase 1 complete; Phase 2a Task 1 complete)
 
 This document lays out concrete steps from the current state (no caching code in Ephemera) to a working first MVP that:
 
@@ -19,6 +19,7 @@ Prerequisite reading: [AGENT.caching.planning.md](./AGENT.caching.planning.md).
 - **WebSocket**: Ephemera handles `EphemeraAPIMessage` types (fetchEphemera, registercharacter, action, link, etc.). No `generateRoomPreview` (or equivalent) message.
 - **Client**: Room editor has LensEditor, Example editors, Guidance editors. No Preview section. No WebSocket dispatch for preview generation.
 - **Example data**: Authored Examples live in the Assets table. StandardExample has marks (MarkFacets) for world-state; Assets query may need extension to include marks for comparison.
+- **Assets Lambda**: `mtw.assets.componentExamples` data-source stub exists: non-replayable, subscribed to `mtw.assets` Component Updated / Component Removed; `receiveEvents` is a no-op (no enrichment or publishing yet). Implementation: `lambda/assets/componentExamples/`.
 
 ---
 
@@ -60,6 +61,7 @@ Prerequisite reading: [AGENT.caching.planning.md](./AGENT.caching.planning.md).
 A new data source in the Assets hierarchy that publishes Example lifecycle events for any component that can have Example references (Room, Feature, Knowledge). It has access to the Assets table and **enriches** each event with parent `componentId` and asset stack before publishing.
 
 1. **Subscribe to mtw.assets** Component Updated / Component Removed events.
+   - **Status**: Implemented in `lambda/assets/componentExamples/` (subscribedEvents.ts, index.ts). Data source is non-replayable; `receiveEvents` is a stub (no-op). Wired in Assets app and documented in `lambda/assets/AGENT.event.md`.
 2. **Detect Example-associated changes**:
    - (a) Example reference **added** to a parent component
    - (b) Example reference **removed** from a parent component
@@ -191,3 +193,4 @@ When enriching Example events we currently search **all possible parent componen
 - [internalCache/examples.AGENT.md](./internalCache/examples.AGENT.md) - Current ExamplesData and storage
 - [packages/mtw-interfaces/ts/ephemera.ts](../../packages/mtw-interfaces/ts/ephemera.ts) - EphemeraAPIMessage types
 - [lambda/assets/AGENT.event.md](../assets/AGENT.event.md) - Assets data sources (pattern for mtw.assets.componentExamples)
+- [lambda/assets/componentExamples/](../assets/componentExamples/) - mtw.assets.componentExamples stub (Phase 2a Task 1)

@@ -34,6 +34,7 @@ import './contentHeaders'  // mtw.assets.contentHeaders DataSource
 import './characters'  // mtw.assets.characters DataSource
 import './library'  // mtw.assets.library DataSource
 import './players'  // mtw.assets.players DataSource
+import './componentExamples'  // mtw.assets.componentExamples DataSource
 
 const { FEEDBACK_TOPIC } = process.env
 const params = { region: process.env.AWS_REGION }
