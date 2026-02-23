@@ -112,11 +112,14 @@ export const isEphemeraCacheDynamoItem = (item: any): item is EphemeraCacheDynam
     if (!item || typeof item !== 'object') {
         return false
     }
-    const { EphemeraId, DataCategory, markState, renderedContent, provenance } = item
+    const { EphemeraId, DataCategory, markState, renderedContent, provenance, perspectiveId } = item
     if (typeof EphemeraId !== 'string' || typeof DataCategory !== 'string') {
         return false
     }
     if (!DataCategory.startsWith(EPHEMERA_CACHE_DATA_CATEGORY_PREFIX)) {
+        return false
+    }
+    if (typeof perspectiveId !== 'string') {
         return false
     }
     if (!markState || typeof markState !== 'object' || !Array.isArray(markState.markValue)) {
