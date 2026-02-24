@@ -1,12 +1,13 @@
 //
-// Non-replayable DataSource stub for mtw.assets.componentExamples
+// Non-replayable DataSource for mtw.assets.componentExamples
 //
-// This DataSource will eventually publish Example lifecycle events (ExampleAdded, ExampleRemoved,
-// ExampleUpdated) for Ephemera mirroring. For Phase 2a Task 1 it only subscribes to mtw.assets
-// Component Updated / Component Removed and does nothing with events (stub receiveEvents).
+// Subscribes to mtw.assets Component Updated / Component Removed and filters to
+// Example-associated components only (Example, Room, Feature, Knowledge).
+// Phase 2a Task 2: filter only; no enrichment or publishing yet.
 //
 import { AssetsDataSource } from '../dataSource/abstract'
 import { ComponentEventUpdate } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
+import { isExampleAssociatedComponent } from './exampleAssociatedFilter'
 import {
     ComponentExamplesSubscribedContent,
     isComponentExamplesSubscribedEnvelope,
@@ -20,8 +21,19 @@ export const componentExamplesDataSource = new AssetsDataSource<
     dataSourceKey: 'mtw.assets.componentExamples',
     replayable: false,
     subscribedEventTypeGuard: isComponentExamplesSubscribedEnvelope,
-    receiveEvents: async () => {
-        // Stub: no enrichment or publishing yet. Events are received and ignored.
+    receiveEvents: async ({ events }) => {
+        await Promise.all(
+            events.map(async (event) => {
+                if (!isComponentExamplesSubscribedEnvelope(event)) {
+                    return
+                }
+                const content = await event.getContent()
+                if (!isExampleAssociatedComponent(content.component)) {
+                    return
+                }
+                // Example-associated event; no enrichment or publishing yet (Phase 2a Task 3+).
+            })
+        )
     },
 })
 

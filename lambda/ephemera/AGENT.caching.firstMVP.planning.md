@@ -1,6 +1,6 @@
 # Ephemera Caching - First MVP Implementation Plan
 
-**Status: IN PROGRESS** (Phase 1 complete; Phase 2a Task 1 complete)
+**Status: IN PROGRESS** (Phase 1 complete; Phase 2a Task 1 and Task 2 complete)
 
 This document lays out concrete steps from the current state (no caching code in Ephemera) to a working first MVP that:
 
@@ -19,7 +19,7 @@ Prerequisite reading: [AGENT.caching.planning.md](./AGENT.caching.planning.md).
 - **WebSocket**: Ephemera handles `EphemeraAPIMessage` types (fetchEphemera, registercharacter, action, link, etc.). No `generateRoomPreview` (or equivalent) message.
 - **Client**: Room editor has LensEditor, Example editors, Guidance editors. No Preview section. No WebSocket dispatch for preview generation.
 - **Example data**: Authored Examples live in the Assets table. StandardExample has marks (MarkFacets) for world-state; Assets query may need extension to include marks for comparison.
-- **Assets Lambda**: `mtw.assets.componentExamples` data-source stub exists: non-replayable, subscribed to `mtw.assets` Component Updated / Component Removed; `receiveEvents` is a no-op (no enrichment or publishing yet). Implementation: `lambda/assets/componentExamples/`.
+- **Assets Lambda**: `mtw.assets.componentExamples` data source exists: non-replayable, subscribed to `mtw.assets` Component Updated / Component Removed. **Task 2 complete**: receiveEvents filters to Example-associated events only—Example (always) and Room/Feature/Knowledge when `examples` has non-zero length (diff or current state). No enrichment or publishing yet. Implementation: `lambda/assets/componentExamples/` (exampleAssociatedFilter.ts, index.ts).
 
 ---
 
@@ -61,8 +61,9 @@ Prerequisite reading: [AGENT.caching.planning.md](./AGENT.caching.planning.md).
 A new data source in the Assets hierarchy that publishes Example lifecycle events for any component that can have Example references (Room, Feature, Knowledge). It has access to the Assets table and **enriches** each event with parent `componentId` and asset stack before publishing.
 
 1. **Subscribe to mtw.assets** Component Updated / Component Removed events.
-   - **Status**: Implemented in `lambda/assets/componentExamples/` (subscribedEvents.ts, index.ts). Data source is non-replayable; `receiveEvents` is a stub (no-op). Wired in Assets app and documented in `lambda/assets/AGENT.event.md`.
-2. **Detect Example-associated changes**:
+   - **Status**: Implemented in `lambda/assets/componentExamples/` (subscribedEvents.ts, index.ts). Data source is non-replayable; receiveEvents filters then no-op. Wired in Assets app and documented in `lambda/assets/AGENT.event.md`.
+2. **Detect Example-associated changes** (Task 2 complete: filter to example-related only; (a)/(b)/(c) detection and enrichment are Task 3+):
+   - **Filter (done)**: Example always passes; Room/Feature/Knowledge pass only when `component.examples?.payload?.length > 0` (accurately indicates example-related change on diff or removed component). See exampleAssociatedFilter.ts.
    - (a) Example reference **added** to a parent component
    - (b) Example reference **removed** from a parent component
    - (c) Example **content changed** (displayName, summary, description, marks)
@@ -74,6 +75,9 @@ A new data source in the Assets hierarchy that publishes Example lifecycle event
 5. **Stream key**: Use `exampleId` (or assetId) as the streamKey; `parentIds` labels which parents this Example event affects.
 
 *Deliverable*: mtw.assets.componentExamples publishes Example lifecycle events enriched with parentIds and asset stack for perspectiveId computation.
+
+**Component Updated event semantics (for Example-changed derivation)**  
+When subscribing to `Component Updated` from mtw.assets, the payload is a **component-level diff** (edit-mode representation), not the new state. The event carries the result of `previousComponent.diff(incomingComponent)` from StandardForm.diff(): a `StandardComponent` whose fields encode the *change* (e.g. ReferenceList with inverted refs for removals, new refs for adds). For **Room, Feature, and Knowledge**, the `examples` field on that diff is the change to the examples list. Checking that `examples` exists and has **non-zero length** (`component.examples?.payload?.length > 0`) accurately filters for updates that have example-related change (add and/or remove of example refs). Use this when adding (a)/(b)/(c) detection and deriving ExampleAdded/ExampleRemoved/ExampleUpdated. For **Example** components, any Component Updated is by definition example-related. See packages/mtw-wml standardize/edit algebra docs for diff semantics.
 
 #### Phase 2b: mtw.ephemera.examples
 

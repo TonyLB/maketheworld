@@ -128,7 +128,7 @@ The Assets Lambda hosts six data sources, each serving a specific purpose:
 
 **Events Published** (future): ExampleAdded, ExampleRemoved, ExampleUpdated (with parentIds, exampleId, assetStack, and example payload where applicable).
 
-**Event Subscription**: Subscribes to `mtw.assets` Component Updated and Component Removed events.
+**Event Subscription**: Subscribes to `mtw.assets` Component Updated and Component Removed events. The data source filters to **Example-associated** component events only: Example, Room, Feature, and Knowledge (components that reference or are Examples). Other component types (Character, Message, Guidance, etc.) are ignored.
 
 **Implementation**: [`./componentExamples/index.ts`](./componentExamples/index.ts)
 
@@ -222,7 +222,7 @@ Each downstream data source applies its own filtering:
 - **characters**: Filters for character component changes only
 - **library**: Filters for zone changes involving Library zone
 - **players**: Filters for zone changes involving Personal/Draft zones and player settings updates
-- **componentExamples**: Filters for Component Updated and Component Removed (for future Example lifecycle publishing)
+- **componentExamples**: Filters for Component Updated and Component Removed, then to Example-associated components only (Example, Room, Feature, Knowledge)
 
 This cascading pattern enables:
 - Specialized views of asset data
