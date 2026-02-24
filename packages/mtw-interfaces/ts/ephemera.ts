@@ -106,6 +106,22 @@ export type CommandAPIMessage = {
     command: string;
 }
 
+export type GenerateRoomPreviewAPIMarkStateEntry = {
+    mark: string;
+    value: string;
+}
+
+export type GenerateRoomPreviewAPIMarkState = {
+    markValue: GenerateRoomPreviewAPIMarkStateEntry[];
+}
+
+export type GenerateRoomPreviewAPIMessage = {
+    message: 'generateRoomPreview';
+    RoomId: EphemeraRoomId;
+    markState: GenerateRoomPreviewAPIMarkState;
+    assetStack: string[];
+}
+
 export type EphemeraAPIMessage = { RequestId?: string } & (
     RegisterCharacterAPIMessage |
     UnregisterCharacterAPIMessage |
@@ -116,7 +132,8 @@ export type EphemeraAPIMessage = { RequestId?: string } & (
     MapUnsubscribeAPIMessage |
     ActionAPIMessage |
     LinkAPIMessage |
-    CommandAPIMessage
+    CommandAPIMessage |
+    GenerateRoomPreviewAPIMessage
 )
 
 export const isRegisterCharacterAPIMessage = (message: EphemeraAPIMessage): message is RegisterCharacterAPIMessage => (message.message === 'registercharacter')
@@ -129,6 +146,7 @@ export const isMapUnsubscribeAPIMessage = (message: EphemeraAPIMessage): message
 export const isActionAPIMessage = (message: EphemeraAPIMessage): message is ActionAPIMessage => (message.message === 'action')
 export const isLinkAPIMessage = (message: EphemeraAPIMessage): message is LinkAPIMessage => (message.message === 'link')
 export const isCommandAPIMessage = (message: EphemeraAPIMessage): message is CommandAPIMessage => (message.message === 'command')
+export const isGenerateRoomPreviewAPIMessage = (message: EphemeraAPIMessage): message is GenerateRoomPreviewAPIMessage => (message.message === 'generateRoomPreview')
 
 export const isEphemeraAPIMessage = (message: any): message is EphemeraAPIMessage => {
     if (typeof message !== 'object') {
@@ -169,6 +187,35 @@ export const isEphemeraAPIMessage = (message: any): message is EphemeraAPIMessag
                 checkTypes(message, { CharacterId: 'string', command: 'string' })
                 && isEphemeraCharacterId(message.CharacterId)
             )
+        case 'generateRoomPreview':
+            if (!(
+                'RoomId' in message
+                && typeof message.RoomId === 'string'
+                && isEphemeraRoomId(message.RoomId)
+            )) {
+                return false
+            }
+            if (!message.markState || typeof message.markState !== 'object') {
+                return false
+            }
+            if (!Array.isArray(message.markState.markValue)) {
+                return false
+            }
+            if (!message.markState.markValue.every((entry: any) =>
+                entry
+                && typeof entry === 'object'
+                && typeof entry.mark === 'string'
+                && typeof entry.value === 'string'
+            )) {
+                return false
+            }
+            if (!Array.isArray(message.assetStack)) {
+                return false
+            }
+            if (!message.assetStack.every((entry: any) => typeof entry === 'string')) {
+                return false
+            }
+            return true
         case 'action':
             if (!('actionType' in message && 'payload' in message && typeof message.payload === 'object')) {
                 return false

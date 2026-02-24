@@ -18,7 +18,8 @@ import {
     isMapUnsubscribeAPIMessage,
     isUnregisterCharacterAPIMessage,
     isCommandAPIMessage,
-    isActionAPIMessage
+    isActionAPIMessage,
+    isGenerateRoomPreviewAPIMessage
 } from '@tonylb/mtw-interfaces/ts/ephemera'
 import { EphemeraAssetId, EphemeraCharacterId, isEphemeraAssetId, isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraKnowledgeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
@@ -32,6 +33,7 @@ import { confirmGuestCharacter } from './guestCharacter'
 import { AssetsEventSerializer, ComponentExamplesEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
 import { fromEventBridgeFormat } from '@tonylb/mtw-lambda-patterns/ts/dataSource/formatTransform'
 import { coreFormatToStreamingEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
+import { generateRoomPreview } from './renderCache'
 
 // Import DataSources to trigger their messageBus subscriptions (side-effect imports)
 import './dataSource'  // mtw.ephemera DataSource
@@ -227,6 +229,20 @@ export const handler = async (event: any, context: any) => {
                 messageBus.send({
                     type: 'ExecuteAction',
                     action: request
+                })
+            }
+
+            if (isGenerateRoomPreviewAPIMessage(request)) {
+                const result = await generateRoomPreview({
+                    roomId: request.RoomId,
+                    markState: request.markState,
+                    assetStack: request.assetStack
+                })
+                messageBus.send({
+                    type: 'ReturnValue',
+                    body: {
+                        generateRoomPreview: result
+                    }
                 })
             }
 

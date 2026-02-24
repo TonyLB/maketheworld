@@ -1,6 +1,6 @@
 # Ephemera Caching - First MVP Implementation Plan
 
-**Status: IN PROGRESS** (Phase 1 complete; Phase 2a Task 1–5 complete; Phase 2b complete; Phase 3 complete)
+**Status: IN PROGRESS** (Phase 1 complete; Phase 2a Task 1–5 complete; Phase 2b complete; Phase 3 complete; Phase 4 complete)
 
 This document lays out concrete steps from the current state (no caching code in Ephemera) to a working first MVP that:
 
@@ -122,21 +122,19 @@ A data source (or receive handler) in Ephemera that subscribes to `mtw.assets.co
 **Goal**: Ephemera responds to a new WebSocket message with either success (rendered content) or error (no match).
 
 1. **Define API message** in `mtw-interfaces`:
-   - `GenerateRoomPreviewAPIMessage`: `{ message: 'generateRoomPreview'; RoomId: EphemeraRoomId; markState: { markValue: Array<{ mark: string; value: string }> }; assetStack: AssetUUID[] }` (assetStack = ordered list of asset IDs for resolution context; client sends workbench's current asset + inherited assets in order).
-   - Add to `EphemeraAPIMessage` union and `isEphemeraAPIMessage` (or add `isGenerateRoomPreviewAPIMessage`).
+   - **Status**: Implemented in `packages/mtw-interfaces/ts/ephemera.ts` as `GenerateRoomPreviewAPIMessage` (`message: 'generateRoomPreview'; RoomId: EphemeraRoomId; markState: { markValue: Array<{ mark: string; value: string }> }; assetStack: string[]`), with runtime validation via the new `isGenerateRoomPreviewAPIMessage` and an added `generateRoomPreview` branch in `isEphemeraAPIMessage`.
 2. **Wire handler in `app.ts`**:
-   - When `isGenerateRoomPreviewAPIMessage(request)`:
-     - Call `generateRoomPreview({ roomId, markState, assetStack })`
-     - On match: `messageBus.send({ type: 'ReturnValue', body: { generateRoomPreview: { success: true, renderedContent } } })`
-     - On no match: `messageBus.send({ type: 'ReturnValue', body: { generateRoomPreview: { success: false, error: 'No exact match for proposed state' } } })`
+   - **Status**: Implemented in `lambda/ephemera/app.ts`. When `isGenerateRoomPreviewAPIMessage(request)` is true, the handler calls `generateRoomPreview({ roomId: request.RoomId, markState: request.markState, assetStack: request.assetStack })` from `lambda/ephemera/renderCache/`, then sends a `ReturnValue` payload of the form `{ generateRoomPreview: { success: true, renderedContent } }` or `{ generateRoomPreview: { success: false, errorCode: 'NO_EXACT_MATCH', errorMessage: 'No exact match for proposed state' } }`.
 3. **Implement `generateRoomPreview`**:
-   - Compute `perspectiveId = hash(ordered assetStack)` (same canonical form as when writing records).
-   - Fetch cache records for Room via `queryCacheRecordsForComponent(roomId)`.
-   - Find exact match via `findExactMatch(roomId, markState, records, perspectiveId)` (filter by perspectiveId so only records for this asset stack are considered).
-   - If match: return record's renderedContent (displayName, summary, description).
-   - If no match: return error.
+   - **Status**: Implemented in `lambda/ephemera/renderCache/generateRoomPreview.ts` and exported via `lambda/ephemera/renderCache/index.ts`. The helper:
+     - Computes `perspectiveId = computePerspectiveId(assetStack)` using `lambda/ephemera/internalUtils/perspectiveId.ts`.
+     - Delegates to `findExactMatchForComponent({ componentId: roomId, proposedMarkState: markState, perspectiveId })` from `lambda/ephemera/renderCache/exampleComparison.ts`.
+     - Returns `{ success: true, renderedContent }` when an exact cache record match is found, or `{ success: false, errorCode: 'NO_EXACT_MATCH', errorMessage: 'No exact match for proposed state' }` when no match exists.
+   - **Tests**: Covered by `lambda/ephemera/renderCache/generateRoomPreview.test.ts` (perspectiveId wiring, success/failure paths) and `lambda/ephemera/app.generateRoomPreview.test.ts` (WebSocket handler integration and ReturnValue shape).
+4. **Document WebSocket contract**:
+   - **Status**: Implemented. `lambda/ephemera/AGENT.event.md` now lists `generateRoomPreview` under Character Interaction Events and describes it as an authoring/development WebSocket message that returns either cached rendered content or a structured "no exact match" error wrapped in a `ReturnValue`.
 
-*Deliverable*: Client can send `generateRoomPreview` with roomId, markState, and assetStack and receive a structured response (success + content, or error).
+*Deliverable*: Client can send `generateRoomPreview` with roomId, markState, and assetStack and receive a structured response (success + content, or error). Phase 4 is complete on the backend; Phase 5 will add the corresponding Room editor Preview UI and client-side WebSocket wiring.
 
 ---
 
