@@ -1,6 +1,6 @@
 # Ephemera Caching - First MVP Implementation Plan
 
-**Status: IN PROGRESS** (Phase 1 complete; Phase 2a Task 1 and Task 2 complete)
+**Status: IN PROGRESS** (Phase 1 complete; Phase 2a Task 1–3 complete)
 
 This document lays out concrete steps from the current state (no caching code in Ephemera) to a working first MVP that:
 
@@ -19,7 +19,7 @@ Prerequisite reading: [AGENT.caching.planning.md](./AGENT.caching.planning.md).
 - **WebSocket**: Ephemera handles `EphemeraAPIMessage` types (fetchEphemera, registercharacter, action, link, etc.). No `generateRoomPreview` (or equivalent) message.
 - **Client**: Room editor has LensEditor, Example editors, Guidance editors. No Preview section. No WebSocket dispatch for preview generation.
 - **Example data**: Authored Examples live in the Assets table. StandardExample has marks (MarkFacets) for world-state; Assets query may need extension to include marks for comparison.
-- **Assets Lambda**: `mtw.assets.componentExamples` data source exists: non-replayable, subscribed to `mtw.assets` Component Updated / Component Removed. **Task 2 complete**: receiveEvents filters to Example-associated events only—Example (always) and Room/Feature/Knowledge when `examples` has non-zero length (diff or current state). No enrichment or publishing yet. Implementation: `lambda/assets/componentExamples/` (exampleAssociatedFilter.ts, index.ts).
+- **Assets Lambda**: `mtw.assets.componentExamples` data source exists: non-replayable, subscribed to `mtw.assets` Component Updated / Component Removed. **Task 2 complete**: receiveEvents filters to Example-associated events only—Example (always) and Room/Feature/Knowledge when `examples` has non-zero length (diff or current state). **Task 3 complete**: Example-tagged events are enriched in-place with full parentage (parent componentIds for Rooms/Features/Knowledge) and ordered asset stack, plus fully merged Example payload (markState and renderedContent) suitable for cache mirroring. No publishing yet. Implementation: `lambda/assets/componentExamples/` (exampleAssociatedFilter.ts, exampleEnrichment.ts, index.ts and tests).
 
 ---
 
@@ -67,14 +67,19 @@ A new data source in the Assets hierarchy that publishes Example lifecycle event
    - (a) Example reference **added** to a parent component
    - (b) Example reference **removed** from a parent component
    - (c) Example **content changed** (displayName, summary, description, marks)
-3. **Enrich in this data source** (using the Assets table): For each change, the parent component(s) (Rooms/Features/Knowledge) and the ordered **asset stack** are not guaranteed to be in the asset where the edit occurred (the Example may be inherited; the parent reference may live in an earlier asset). So we (a) reconstruct the Example's inheritance chain via `from` links across the Assets table to get the ordered asset stack, and (b) for each asset in that chain, search **all possible parent components** (Rooms, Features, Knowledge) to find which ones reference this Example. Inefficient (scan candidates per asset in the chain), but acceptable for first MVP.
+3. **Enrich in this data source** (using the Assets table): For each Example-associated change, the parent component(s) (Rooms/Features/Knowledge) and the ordered **asset stack** are not guaranteed to be in the asset where the edit occurred (the Example may be inherited; the parent reference may live in an earlier asset). So we (a) reconstruct the Example's inheritance chain via `from` links across the Assets table to get the ordered asset stack, and (b) for each asset in that chain, search **all possible parent components** (Rooms, Features, Knowledge) to find which ones reference this Example. Inefficient (scan candidates per asset in the chain), but acceptable for first MVP.
+   - **Status (Task 3 complete)**: Implemented in `lambda/assets/componentExamples/exampleEnrichment.ts` and wired into `index.ts`. For Example-tagged Component Updated / Component Removed events, we now:
+     - Compute the ordered asset stack for the Example by combining `ComponentData.byAssets` with each component's `_from` links (base-first, event asset last).
+     - Resolve `parentIds` by loading each asset's `StandardForm` via `internalCache.AssetData` and scanning all Room/Feature/Knowledge components whose `examples` reference the Example.
+     - For Component Updated, merge the Example across the asset stack and convert it into a cache-shaped payload `{ markState, renderedContent, provenance: { type: 'authored' } }` that matches the Ephemera cache schema (mark UUID + Match string pairs, RenderTree description).
+     - For Component Removed, compute `assetStack` and `parentIds` without writing a new example payload.
 4. **Publish events** with `parentIds` (array of parent componentIds: Room, Feature, or Knowledge), `exampleId`, Example data, and **asset stack** (ordered list of asset IDs; merge order is significant):
    - `ExampleAdded`: { parentIds, exampleId, assetStack, example: { markState, renderedContent, provenance: { type: 'authored' } } }
    - `ExampleRemoved`: { parentIds, exampleId }
    - `ExampleUpdated`: { parentIds, exampleId, assetStack, example: { markState, renderedContent, provenance: { type: 'authored' } } }
 5. **Stream key**: Use `exampleId` (or assetId) as the streamKey; `parentIds` labels which parents this Example event affects.
 
-*Deliverable*: mtw.assets.componentExamples publishes Example lifecycle events enriched with parentIds and asset stack for perspectiveId computation.
+*Deliverable*: mtw.assets.componentExamples publishes Example lifecycle events enriched with parentIds, asset stack, and full Example payload for perspectiveId computation and cache mirroring.
 
 **Component Updated event semantics (for Example-changed derivation)**  
 When subscribing to `Component Updated` from mtw.assets, the payload is a **component-level diff** (edit-mode representation), not the new state. The event carries the result of `previousComponent.diff(incomingComponent)` from StandardForm.diff(): a `StandardComponent` whose fields encode the *change* (e.g. ReferenceList with inverted refs for removals, new refs for adds). For **Room, Feature, and Knowledge**, the `examples` field on that diff is the change to the examples list. Checking that `examples` exists and has **non-zero length** (`component.examples?.payload?.length > 0`) accurately filters for updates that have example-related change (add and/or remove of example refs). Use this when adding (a)/(b)/(c) detection and deriving ExampleAdded/ExampleRemoved/ExampleUpdated. For **Example** components, any Component Updated is by definition example-related. See packages/mtw-wml standardize/edit algebra docs for diff semantics.
@@ -178,7 +183,7 @@ A data source (or receive handler) in Ephemera that subscribes to `mtw.assets.co
 
 - **Authoring session context**: For this first MVP, `generateRoomPreview` is a pure development/authoring tool; we assume it does not require character/session context for permissions, and that RoomId + markState + assetStack is sufficient for any Room the client can access.
 - **Parent resolution in componentExamples (resolved)**: We enrich in **mtw.assets.componentExamples**, which has access to the Assets table. Reconstruct the Example's inheritance chain via `from` links; then for each asset in that chain, search all possible parent components (Room/Feature/Knowledge) to see which reference this Example. Inefficient but acceptable for first MVP. See Phase 2a and "Future: referencedBy denormalization" below.
-- **Asset stack in mirroring (resolved)**: mtw.assets.componentExamples obtains the ordered asset stack by reconstructing the **inheritance chain of the Example component** from the place in the assets store where the change occurred. Use the `from` link in the data to walk backward (or through) the component's ancestry; that walk over the Assets DynamoDB table yields the ordered context stack for perspectiveId. Expected to be a straightforward DynamoDB traversal.
+- **Asset stack in mirroring (resolved)**: mtw.assets.componentExamples obtains the ordered asset stack by reconstructing the **inheritance chain of the Example component** from the place in the assets store where the change occurred. Use the `from` link in the data (via `ComponentData.byAssets` and each Example instance's `_from`) to walk backward (or through) the component's ancestry; that walk over the Assets DynamoDB table yields the ordered context stack for perspectiveId. For this MVP we derive ordering from component-level `_from` links and avoid depending on the global asset graph.
 - **ExampleRemoved and delete (resolved)**: Store an optional attribute on each cache record (e.g. `authoredExampleId`) that links the record back to the blueprint Example that generated it. When mirroring sends ExampleRemoved(componentId, exampleId), Ephemera queries by componentId, filters by that attribute, and deletes the matching record(s). Without this attribute we could not reasonably maintain the link from example to cache items for removal.
 
 ---
@@ -197,4 +202,4 @@ When enriching Example events we currently search **all possible parent componen
 - [internalCache/examples.AGENT.md](./internalCache/examples.AGENT.md) - Current ExamplesData and storage
 - [packages/mtw-interfaces/ts/ephemera.ts](../../packages/mtw-interfaces/ts/ephemera.ts) - EphemeraAPIMessage types
 - [lambda/assets/AGENT.event.md](../assets/AGENT.event.md) - Assets data sources (pattern for mtw.assets.componentExamples)
-- [lambda/assets/componentExamples/](../assets/componentExamples/) - mtw.assets.componentExamples stub (Phase 2a Task 1)
+- [lambda/assets/componentExamples/](../assets/componentExamples/) - mtw.assets.componentExamples (Phase 2a Tasks 1–3: filter + enrichment helpers and tests)
