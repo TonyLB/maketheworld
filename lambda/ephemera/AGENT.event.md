@@ -71,6 +71,7 @@ The Ephemera Lambda subscribes to events from other system components:
 #### **EventBridge Events from Multiple Sources**
 - **Content Update**: Triggers asset re-caching when content changes (source varies - may include WML, direct editing, etc.)
 - **Authorization Update**: Updates character access permissions
+- **Example Lifecycle (mtw.assets.componentExamples → mtw.ephemera.examples)**: Mirrors authored Example renders into the Ephemera cache via the `mtw.ephemera.examples` data source. `ExampleUpdated` (and future `ExampleAdded`) events write cache rows keyed by component and perspectiveId; `ExampleRemoved` deletes cache rows linked by authoredExampleId.
 
 #### **Asset Events**
 - **Asset Added/Removed**: Updates character access to new/removed content
