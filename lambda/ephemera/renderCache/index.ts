@@ -34,3 +34,11 @@ export {
     EPHEMERA_CACHE_PROVENANCE_GENERATED,
     isEphemeraCacheDynamoItem
 } from './baseClasses'
+
+export {
+    generateRoomPreview,
+    type GenerateRoomPreviewInput,
+    type GenerateRoomPreviewResult,
+    type GenerateRoomPreviewSuccess,
+    type GenerateRoomPreviewFailure
+} from './generateRoomPreview'

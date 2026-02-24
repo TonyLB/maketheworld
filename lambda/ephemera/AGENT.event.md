@@ -29,6 +29,7 @@ The Ephemera Lambda serves as the primary WebSocket handler for real-time client
 - **`action`**: Executes character actions in the game world
 - **`command`**: Parses and executes text-based character commands
 - **`link`**: Handles character interaction with game elements
+- **`generateRoomPreview`**: For authoring and development, computes a room content preview for a proposed Mark state and asset stack, returning either cached rendered content or a structured \"no exact match\" error.
 
 #### **State Synchronization Events**
 - **`fetchEphemera`**: Provides initial state synchronization for new connections
