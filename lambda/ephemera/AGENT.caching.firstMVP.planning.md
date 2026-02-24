@@ -1,6 +1,6 @@
 # Ephemera Caching - First MVP Implementation Plan
 
-**Status: IN PROGRESS** (Phase 1 complete; Phase 2a Task 1–3 complete)
+**Status: IN PROGRESS** (Phase 1 complete; Phase 2a Task 1–5 complete)
 
 This document lays out concrete steps from the current state (no caching code in Ephemera) to a working first MVP that:
 
@@ -19,7 +19,7 @@ Prerequisite reading: [AGENT.caching.planning.md](./AGENT.caching.planning.md).
 - **WebSocket**: Ephemera handles `EphemeraAPIMessage` types (fetchEphemera, registercharacter, action, link, etc.). No `generateRoomPreview` (or equivalent) message.
 - **Client**: Room editor has LensEditor, Example editors, Guidance editors. No Preview section. No WebSocket dispatch for preview generation.
 - **Example data**: Authored Examples live in the Assets table. StandardExample has marks (MarkFacets) for world-state; Assets query may need extension to include marks for comparison.
-- **Assets Lambda**: `mtw.assets.componentExamples` data source exists: non-replayable, subscribed to `mtw.assets` Component Updated / Component Removed. **Task 2 complete**: receiveEvents filters to Example-associated events only—Example (always) and Room/Feature/Knowledge when `examples` has non-zero length (diff or current state). **Task 3 complete**: Example-tagged events are enriched in-place with full parentage (parent componentIds for Rooms/Features/Knowledge) and ordered asset stack, plus fully merged Example payload (markState and renderedContent) suitable for cache mirroring. No publishing yet. Implementation: `lambda/assets/componentExamples/` (exampleAssociatedFilter.ts, exampleEnrichment.ts, index.ts and tests).
+- **Assets Lambda**: `mtw.assets.componentExamples` data source exists: non-replayable, subscribed to `mtw.assets` Component Updated / Component Removed. **Task 2 complete**: receiveEvents filters to Example-associated events only—Example (always) and Room/Feature/Knowledge when `examples` has non-zero length (diff or current state). **Task 3 complete**: Example-tagged events are enriched in-place with full parentage (parent componentIds for Rooms/Features/Knowledge) and ordered asset stack, plus fully merged Example payload (markState and renderedContent) suitable for cache mirroring. **Tasks 4–5 complete**: enriched Example lifecycle events (ExampleUpdated, ExampleRemoved; ExampleAdded deferred) are now published from `mtw.assets.componentExamples` with `exampleId` as streamKey and payloads matching the Ephemera cache shape for mirroring. Implementation: `lambda/assets/componentExamples/` (exampleAssociatedFilter.ts, exampleEnrichment.ts, events.ts, index.ts and tests).
 
 ---
 
@@ -74,10 +74,10 @@ A new data source in the Assets hierarchy that publishes Example lifecycle event
      - For Component Updated, merge the Example across the asset stack and convert it into a cache-shaped payload `{ markState, renderedContent, provenance: { type: 'authored' } }` that matches the Ephemera cache schema (mark UUID + Match string pairs, RenderTree description).
      - For Component Removed, compute `assetStack` and `parentIds` without writing a new example payload.
 4. **Publish events** with `parentIds` (array of parent componentIds: Room, Feature, or Knowledge), `exampleId`, Example data, and **asset stack** (ordered list of asset IDs; merge order is significant):
-   - `ExampleAdded`: { parentIds, exampleId, assetStack, example: { markState, renderedContent, provenance: { type: 'authored' } } }
-   - `ExampleRemoved`: { parentIds, exampleId }
-   - `ExampleUpdated`: { parentIds, exampleId, assetStack, example: { markState, renderedContent, provenance: { type: 'authored' } } }
-5. **Stream key**: Use `exampleId` (or assetId) as the streamKey; `parentIds` labels which parents this Example event affects.
+   - `ExampleAdded`: { type: 'ExampleAdded'; parentIds, exampleId, assetStack, example: { markState, renderedContent, provenance: { type: 'authored' } } } (**planned**, not yet emitted in first MVP)
+   - `ExampleRemoved`: { type: 'ExampleRemoved'; parentIds, exampleId, assetStack } (**implemented**)
+   - `ExampleUpdated`: { type: 'ExampleUpdated'; parentIds, exampleId, assetStack, example: { markState, renderedContent, provenance: { type: 'authored' } } } (**implemented**)
+5. **Stream key**: Use `exampleId` as the streamKey for mtw.assets.componentExamples; `parentIds` labels which parents this Example event affects. (**implemented**)
 
 *Deliverable*: mtw.assets.componentExamples publishes Example lifecycle events enriched with parentIds, asset stack, and full Example payload for perspectiveId computation and cache mirroring.
 

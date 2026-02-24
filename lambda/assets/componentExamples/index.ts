@@ -3,27 +3,32 @@
 //
 // Subscribes to mtw.assets Component Updated / Component Removed and filters to
 // Example-associated components only (Example, Room, Feature, Knowledge).
-// Phase 2a Task 2: filter only; Phase 2a Task 3 adds enrichment but no publishing yet.
+// Phase 2a Tasks 2–3: filter and enrichment; Phase 2a Task 4 adds publishing
+// of Example lifecycle events (ExampleAdded, ExampleRemoved, ExampleUpdated).
 //
 import { AssetsDataSource } from '../dataSource/abstract'
-import { ComponentEventUpdate } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
 import { isExampleAssociatedComponent } from './exampleAssociatedFilter'
-import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
+import { AssetUUID, ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import {
     ComponentExamplesSubscribedContent,
     isComponentExamplesSubscribedEnvelope,
 } from './subscribedEvents'
 import { enrichExampleEvent } from './exampleEnrichment'
+import {
+    ComponentExamplesEventUpdate,
+    ExampleRemoved,
+    ExampleUpdated,
+} from './events'
 
 export const componentExamplesDataSource = new AssetsDataSource<
     never,
-    ComponentEventUpdate,
+    ComponentExamplesEventUpdate,
     ComponentExamplesSubscribedContent
 >({
     dataSourceKey: 'mtw.assets.componentExamples',
     replayable: false,
     subscribedEventTypeGuard: isComponentExamplesSubscribedEnvelope,
-    receiveEvents: async ({ events }) => {
+    receiveEvents: async ({ events, streamEvent }) => {
         await Promise.all(
             events.map(async (event) => {
                 if (!isComponentExamplesSubscribedEnvelope(event)) {
@@ -33,21 +38,54 @@ export const componentExamplesDataSource = new AssetsDataSource<
                 if (!isExampleAssociatedComponent(content.component)) {
                     return
                 }
-                //
-                // Example-associated event. For Phase 2a Task 3, enrich
-                // Example-tagged events with parentIds, assetStack, and
-                // merged Example payload. Publishing remains out of scope;
-                // enrichment is computed but not streamed.
-                //
-                if (content.component.tag === 'Example' && content.component.universalKey) {
-                    const assetId = event.header.streamKey as `ASSET#${string}`
-                    const eventType = event.header.type
-                    await enrichExampleEvent({
-                        exampleId: content.component.universalKey as ComponentUUID,
-                        eventAssetId: assetId,
-                        component: content.component,
-                        eventType,
+                if (content.component.tag !== 'Example' || !content.component.universalKey) {
+                    return
+                }
+
+                const assetId = event.header.streamKey as AssetUUID
+                const eventType = event.header.type
+
+                const enriched = await enrichExampleEvent({
+                    exampleId: content.component.universalKey as ComponentUUID,
+                    eventAssetId: assetId,
+                    component: content.component,
+                    eventType,
+                })
+
+                const streamKey = enriched.exampleId
+
+                if (eventType === 'Component Removed') {
+                    const update: ExampleRemoved = {
+                        type: 'ExampleRemoved',
+                        exampleId: enriched.exampleId,
+                        parentIds: enriched.parentIds,
+                        assetStack: enriched.assetStack,
+                    }
+                    await streamEvent({
+                        update,
+                        streamKey,
+                        header: { type: 'ExampleRemoved' },
                     })
+                    return
+                }
+
+                if (eventType === 'Component Updated') {
+                    if (!enriched.example) {
+                        return
+                    }
+                    const update: ExampleUpdated = {
+                        type: 'ExampleUpdated',
+                        exampleId: enriched.exampleId,
+                        parentIds: enriched.parentIds,
+                        assetStack: enriched.assetStack,
+                        example: enriched.example,
+                    }
+                    await streamEvent({
+                        update,
+                        streamKey,
+                        header: { type: 'ExampleUpdated' },
+                    })
+                    return
                 }
             })
         )

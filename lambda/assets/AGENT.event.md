@@ -124,9 +124,18 @@ The Assets Lambda hosts six data sources, each serving a specific purpose:
 
 **Type**: Non-replayable (no external client subscribes to this data source)
 
-**Streams**: TBD; streamKey will be e.g. exampleId or assetId per planning (Phase 2a).
+**Streams**: Per-example streams using `exampleId` as streamKey.
 
-**Events Published** (future): ExampleAdded, ExampleRemoved, ExampleUpdated (with parentIds, exampleId, assetStack, and example payload where applicable).
+**Events Published**:
+- `ExampleAdded`: `{ type: 'ExampleAdded'; exampleId; parentIds; assetStack; example }`
+- `ExampleUpdated`: `{ type: 'ExampleUpdated'; exampleId; parentIds; assetStack; example }`
+- `ExampleRemoved`: `{ type: 'ExampleRemoved'; exampleId; parentIds; assetStack }`
+
+Where:
+- `exampleId`: Example component UUID (blueprint Example)
+- `parentIds`: Component UUIDs of parent Room/Feature/Knowledge that reference the Example
+- `assetStack`: Ordered list of AssetUUIDs in the Example's inheritance chain (base-first, event asset last)
+- `example`: Cache-shaped payload `{ markState, renderedContent, provenance: { type: 'authored' } }` matching Ephemera cache schema
 
 **Event Subscription**: Subscribes to `mtw.assets` Component Updated and Component Removed events. The data source filters to **Example-associated** component events only: Example, Room, Feature, and Knowledge (components that reference or are Examples). Other component types (Character, Message, Guidance, etc.) are ignored.
 
