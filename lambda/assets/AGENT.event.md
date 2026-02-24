@@ -9,12 +9,12 @@ The Assets Lambda serves as a domain authority for asset storage, caching, and m
 The Assets Lambda participates in the event mesh as:
 - **Event Consumer**: Processes WML content updates, diagnostic events, and coordination events
 - **Event Producer**: Publishes asset-level events to EventBridge for downstream subscribers
-- **Data Source Host**: Hosts 5 specialized data sources with different responsibilities
+- **Data Source Host**: Hosts 6 specialized data sources with different responsibilities
 - **Materialized View Authority**: Maintains cached component and asset metadata
 
 ## Data Sources
 
-The Assets Lambda hosts five data sources, each serving a specific purpose:
+The Assets Lambda hosts six data sources, each serving a specific purpose:
 
 ### 1. **mtw.assets** (Main Assets DataSource)
 
@@ -118,6 +118,31 @@ The Assets Lambda hosts five data sources, each serving a specific purpose:
 - Emits granular deltas derived directly from `mtw.assets` events—no in-memory ownership cache
 - Subscribes to legacy `PlayerSettings` messageBus type for now (long-term goal: fold into unified data-source handler pattern)
 
+### 6. **mtw.assets.componentExamples** (Component Examples)
+
+**Purpose**: Publishes Example lifecycle events (ExampleAdded, ExampleRemoved, ExampleUpdated) for Ephemera mirroring. Downstream (e.g. mtw.ephemera.examples) will subscribe and write cache records with perspectiveId.
+
+**Type**: Non-replayable (no external client subscribes to this data source)
+
+**Streams**: Per-example streams using `exampleId` as streamKey.
+
+**Events Published**:
+- `ExampleAdded`: `{ type: 'ExampleAdded'; exampleId; parentIds; assetStack; example }`
+- `ExampleUpdated`: `{ type: 'ExampleUpdated'; exampleId; parentIds; assetStack; example }`
+- `ExampleRemoved`: `{ type: 'ExampleRemoved'; exampleId; parentIds; assetStack }`
+
+Where:
+- `exampleId`: Example component UUID (blueprint Example)
+- `parentIds`: Component UUIDs of parent Room/Feature/Knowledge that reference the Example
+- `assetStack`: Ordered list of AssetUUIDs in the Example's inheritance chain (base-first, event asset last)
+- `example`: Cache-shaped payload `{ markState, renderedContent, provenance: { type: 'authored' } }` matching Ephemera cache schema
+
+**Event Subscription**: Subscribes to `mtw.assets` Component Updated and Component Removed events. The data source filters to **Example-associated** component events only: Example, Room, Feature, and Knowledge (components that reference or are Examples). Other component types (Character, Message, Guidance, etc.) are ignored.
+
+**Implementation**: [`./componentExamples/index.ts`](./componentExamples/index.ts)
+
+**Future**: Phase 2a will add enrichment (parentIds, asset stack from inheritance chain) and publishing of Example lifecycle events.
+
 ## Event Flow Patterns
 
 ### Incoming Events
@@ -127,7 +152,7 @@ The Assets Lambda receives events from multiple sources:
 **EventBridge Events**:
 - `mtw.wml` events → Content Update, Zone Changed, Asset Purged
 - `mtw.diagnostics` events → Heal Global Values
-- `mtw.subscriptions` events → Initialize Subscription (for all 5 data sources)
+- `mtw.subscriptions` events → Initialize Subscription (for replayable data sources)
 
 **WebSocket API Messages**:
 - Asset fetch requests
@@ -190,11 +215,12 @@ Data sources subscribe to the internal message bus (`dataSource.subscribe()`) an
 mtw.wml (WML Lambda)
   ↓ Content Update events
 mtw.assets (Assets Lambda)
-  ↓ Asset-level events (Zone Updated, Asset Cached, Asset Removed)
+  ↓ Asset-level events (Zone Updated, Asset Cached, Asset Removed, Component Updated, Component Removed)
 ├─→ mtw.assets.contentHeaders (subscribes for metadata updates)
 ├─→ mtw.assets.characters (subscribes for character component updates)
 ├─→ mtw.assets.library (subscribes for Library zone filtering)
-└─→ mtw.assets.players (subscribes for Personal/Draft zone changes)
+├─→ mtw.assets.players (subscribes for Personal/Draft zone changes)
+└─→ mtw.assets.componentExamples (subscribes for Component Updated/Removed; publishes Example lifecycle for Ephemera mirroring)
 ```
 
 ### Event Filtering
@@ -205,6 +231,7 @@ Each downstream data source applies its own filtering:
 - **characters**: Filters for character component changes only
 - **library**: Filters for zone changes involving Library zone
 - **players**: Filters for zone changes involving Personal/Draft zones and player settings updates
+- **componentExamples**: Filters for Component Updated and Component Removed, then to Example-associated components only (Example, Room, Feature, Knowledge)
 
 This cascading pattern enables:
 - Specialized views of asset data
