@@ -9,6 +9,13 @@ export {
     type PutCacheRecordInput
 } from './cacheAccess'
 
+export {
+    findExactMatch,
+    findExactMatchForComponent,
+    type FindExactMatchInput,
+    type FindExactMatchForComponentInput
+} from './exampleComparison'
+
 export type {
     EphemeraCacheComponentId,
     EphemeraCacheMarkValue,

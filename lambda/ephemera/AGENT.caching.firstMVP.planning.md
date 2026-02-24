@@ -1,6 +1,6 @@
 # Ephemera Caching - First MVP Implementation Plan
 
-**Status: IN PROGRESS** (Phase 1 complete; Phase 2a Task 1–5 complete)
+**Status: IN PROGRESS** (Phase 1 complete; Phase 2a Task 1–5 complete; Phase 2b complete; Phase 3 complete)
 
 This document lays out concrete steps from the current state (no caching code in Ephemera) to a working first MVP that:
 
@@ -15,7 +15,7 @@ Prerequisite reading: [AGENT.caching.planning.md](./AGENT.caching.planning.md).
 ## Current State
 
 - **Ephemera**: Phase 1 complete. `renderCache/` provides types (baseClasses.ts), cache access layer (cacheAccess.ts: queryCacheRecordsForComponent, putCacheRecord, deleteCacheRecord), and unit tests. `internalCache/ExamplesData` still fetches authored Examples from the Assets table (assetDB) for perception; it does not yet read or write the Ephemera cache (CACHE#) records.
-- **Ephemera DynamoDB** (ephemeraDB): Uses `EphemeraId` and `DataCategory` as keys. Cache access layer is ready to read/write `CACHE#uuid` records; no records yet until mirroring (Phase 2) or preview writes.
+- **Ephemera DynamoDB** (ephemeraDB): Uses `EphemeraId` and `DataCategory` as keys. Cache access layer is ready to read/write `CACHE#uuid` records; authored records can now be mirrored in via Phase 2b (below), and preview writes will add additional generated records.
 - **WebSocket**: Ephemera handles `EphemeraAPIMessage` types (fetchEphemera, registercharacter, action, link, etc.). No `generateRoomPreview` (or equivalent) message.
 - **Client**: Room editor has LensEditor, Example editors, Guidance editors. No Preview section. No WebSocket dispatch for preview generation.
 - **Example data**: Authored Examples live in the Assets table. StandardExample has marks (MarkFacets) for world-state; Assets query may need extension to include marks for comparison.
@@ -89,11 +89,16 @@ When subscribing to `Component Updated` from mtw.assets, the payload is a **comp
 A data source (or receive handler) in Ephemera that subscribes to `mtw.assets.componentExamples` and keeps the Ephemera cache in sync.
 
 1. **Subscribe to mtw.assets.componentExamples** (via EventBridge subscription and deserializer).
+   - **Status**: Implemented. `template.yaml` wires `EphemeraFunction` to the `mtw.assets.componentExamples` source with a CloudWatchEvent pattern on `detail-type` = `ExampleUpdated` / `ExampleRemoved`. `lambda/ephemera/app.ts` adds an `eventDeserializers` entry for `mtw.assets.componentExamples` using `ComponentExamplesEventSerializer` from `packages/mtw-interfaces/ts/eventBridge/assets`.
 2. **On ExampleAdded / ExampleUpdated**: Compute `perspectiveId = hash(ordered assetStack)`. For each `parentId` in `parentIds`, call `putCacheRecord(parentId, { ...record, perspectiveId, authoredExampleId: exampleId })` to write a new cache record (CACHE#uuid) for that parent component. Store `authoredExampleId` so ExampleRemoved can target the right record(s).
+   - **Status**: Implemented for `ExampleUpdated` in `lambda/ephemera/dataSource/componentExamples.ts` via `handleComponentExamplesEvent`. Perspective hashing is provided by `lambda/ephemera/internalUtils/perspectiveId.ts` (`computePerspectiveId`), and writes use `putCacheRecord` from `lambda/ephemera/renderCache/`. Support for `ExampleAdded` can be enabled when Phase 2a begins emitting that event.
 3. **On ExampleRemoved**: For each `parentId` in `parentIds`, query cache by `componentId = parentId`, filter by `authoredExampleId === exampleId`, delete matching record(s).
+   - **Status**: Implemented in `handleComponentExamplesEvent` by calling `queryCacheRecordsForComponent` and `deleteCacheRecord` for each parent, filtering by `authoredExampleId`.
 4. **No parent resolution in Ephemera**: The componentExamples payload provides parentIds and assetStack; Ephemera only reads/writes.
+   - **Status**: Implemented as designed; Ephemera never queries Assets for parentIds or asset stacks and treats componentExamples events as authoritative.
 
 *Deliverable*: Authored Examples are mirrored into the Ephemera cache with perspectiveId for each parent component; Ephemera has a single source of truth for cache at render time.
+  - **Status**: Achieved for `ExampleUpdated` and `ExampleRemoved`. Example lifecycle contracts are shared via `packages/mtw-interfaces/ts/eventBridge/assets/componentExamples.ts`, and the `mtw.ephemera.examples` DataSource (`lambda/ephemera/dataSource/componentExamples.ts`) subscribes and mirrors records into the Ephemera cache.
 
 ---
 
@@ -105,6 +110,8 @@ A data source (or receive handler) in Ephemera that subscribes to `mtw.assets.co
 2. **Implement exact-match logic**:
    - `findExactMatch(componentId, proposedMarkState, records, perspectiveId?)`: Normalize proposed state and each record's markState (e.g. sorted Mark UUID + value pairs), compare. If `perspectiveId` is provided (from the request's asset stack), filter candidates to that perspective first. Return matching record or null.
 3. **Normalize markState format** for comparison: canonical form (e.g. `[{ mark, value }]` sorted by mark) so that ordering does not affect match.
+
+- **Status**: Implemented in `lambda/ephemera/renderCache/exampleComparison.ts` and exported via `lambda/ephemera/renderCache/index.ts`. Normalization, equality, and exact-match behavior (including perspective-aware filtering and the `findExactMatchForComponent` wrapper) are covered by unit tests in `lambda/ephemera/renderCache/exampleComparison.test.ts`.
 
 *Deliverable*: Given componentId + proposed markState + optional assetStack (for perspectiveId), we can deterministically find an exact match among cache records, or conclude none exists.
 
@@ -198,7 +205,7 @@ When enriching Example events we currently search **all possible parent componen
 
 - [AGENT.caching.planning.md](./AGENT.caching.planning.md) - Schema, key design, future direction
 - [AGENT.event.md](./AGENT.event.md) - WebSocket events and message bus
-- [renderCache/](./renderCache/) - Cache types, access layer (query/put/delete), and tests (Phase 1)
+- [renderCache/](./renderCache/) - Cache types, access layer (query/put/delete), comparison helpers (Phase 3), and tests
 - [internalCache/examples.AGENT.md](./internalCache/examples.AGENT.md) - Current ExamplesData and storage
 - [packages/mtw-interfaces/ts/ephemera.ts](../../packages/mtw-interfaces/ts/ephemera.ts) - EphemeraAPIMessage types
 - [lambda/assets/AGENT.event.md](../assets/AGENT.event.md) - Assets data sources (pattern for mtw.assets.componentExamples)
