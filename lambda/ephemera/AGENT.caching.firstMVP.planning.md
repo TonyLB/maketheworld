@@ -1,6 +1,6 @@
 # Ephemera Caching - First MVP Implementation Plan
 
-**Status: IN PROGRESS** (Phase 1 complete; Phase 2a Task 1–5 complete; Phase 2b complete)
+**Status: IN PROGRESS** (Phase 1 complete; Phase 2a Task 1–5 complete; Phase 2b complete; Phase 3 complete)
 
 This document lays out concrete steps from the current state (no caching code in Ephemera) to a working first MVP that:
 
@@ -111,6 +111,8 @@ A data source (or receive handler) in Ephemera that subscribes to `mtw.assets.co
    - `findExactMatch(componentId, proposedMarkState, records, perspectiveId?)`: Normalize proposed state and each record's markState (e.g. sorted Mark UUID + value pairs), compare. If `perspectiveId` is provided (from the request's asset stack), filter candidates to that perspective first. Return matching record or null.
 3. **Normalize markState format** for comparison: canonical form (e.g. `[{ mark, value }]` sorted by mark) so that ordering does not affect match.
 
+- **Status**: Implemented in `lambda/ephemera/renderCache/exampleComparison.ts` and exported via `lambda/ephemera/renderCache/index.ts`. Normalization, equality, and exact-match behavior (including perspective-aware filtering and the `findExactMatchForComponent` wrapper) are covered by unit tests in `lambda/ephemera/renderCache/exampleComparison.test.ts`.
+
 *Deliverable*: Given componentId + proposed markState + optional assetStack (for perspectiveId), we can deterministically find an exact match among cache records, or conclude none exists.
 
 ---
@@ -203,7 +205,7 @@ When enriching Example events we currently search **all possible parent componen
 
 - [AGENT.caching.planning.md](./AGENT.caching.planning.md) - Schema, key design, future direction
 - [AGENT.event.md](./AGENT.event.md) - WebSocket events and message bus
-- [renderCache/](./renderCache/) - Cache types, access layer (query/put/delete), and tests (Phase 1)
+- [renderCache/](./renderCache/) - Cache types, access layer (query/put/delete), comparison helpers (Phase 3), and tests
 - [internalCache/examples.AGENT.md](./internalCache/examples.AGENT.md) - Current ExamplesData and storage
 - [packages/mtw-interfaces/ts/ephemera.ts](../../packages/mtw-interfaces/ts/ephemera.ts) - EphemeraAPIMessage types
 - [lambda/assets/AGENT.event.md](../assets/AGENT.event.md) - Assets data sources (pattern for mtw.assets.componentExamples)
