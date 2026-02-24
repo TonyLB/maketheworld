@@ -153,6 +153,20 @@ Given this direction, we are unlikely ever to search by `RoomId + canonical Mark
 - **Search exhaustively** in early iterations (fetch by componentId, compare Mark patterns and optionally perspectiveId in memory).
 - **Search by Guidance-constellation** in later iterations (buckets, vector comparison); **filter by perspectiveId** when the client sends an asset stack.
 
+### Relationship to Future Example/Situation Iteration
+
+A separate conceptual document, `packages/mtw-wml/ts/AGENT.exampleIteration.planning.md`, explores a possible second-iteration model in which:
+
+- `Situation` components represent world-state slices (MarkFacetLists only, no render fields).
+- Parent components (Room, Feature, Map, etc.) carry **situation facets** whose payloads define how that parent renders in a given Situation.
+
+This caching plan is intentionally compatible with that direction:
+
+- Cache keys already use synthetic `CACHE#uuid` values and store Mark:Match pairs directly, rather than relying on Example IDs or a canonical `RoomId + Mark state` key.
+- Each cache record is "one row per distinct render" identified by component, Mark state, and perspective, which can later be augmented with a `situationId` or derived Mark state from Situation components without changing the fundamental strategy.
+
+The first MVP should therefore proceed assuming Examples as they exist today, knowing that the cache schema does not prevent a later shift to a Situation + facet-based model for world-state dependent renders.
+
 ## First Iteration Schema Implications
 
 Given the Guidance-constellation future direction and layered asset resolution:
