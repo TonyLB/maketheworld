@@ -120,7 +120,7 @@ The Assets Lambda hosts six data sources, each serving a specific purpose:
 
 ### 6. **mtw.assets.componentExamples** (Component Examples)
 
-**Purpose**: Publishes Example lifecycle events (ExampleAdded, ExampleRemoved, ExampleUpdated) for Ephemera mirroring. Downstream (e.g. mtw.ephemera.examples) will subscribe and write cache records with perspectiveId.
+**Purpose**: Publishes Example lifecycle events (ExampleAdded, ExampleRemoved, ExampleUpdated) for Ephemera mirroring. Downstream (e.g. `mtw.ephemera.examples`) subscribes and writes render-cache records keyed by component and `perspectiveId`, using these events as the **authoritative bridge** between Assets blueprints and Ephemera's render cache.
 
 **Type**: Non-replayable (no external client subscribes to this data source)
 
@@ -135,13 +135,25 @@ Where:
 - `exampleId`: Example component UUID (blueprint Example)
 - `parentIds`: Component UUIDs of parent Room/Feature/Knowledge that reference the Example
 - `assetStack`: Ordered list of AssetUUIDs in the Example's inheritance chain (base-first, event asset last)
-- `example`: Cache-shaped payload `{ markState, renderedContent, provenance: { type: 'authored' } }` matching Ephemera cache schema
+- `example`: Cache-shaped payload `{ markState, renderedContent, provenance: { type: 'authored' } }` matching Ephemera render-cache schema
 
-**Event Subscription**: Subscribes to `mtw.assets` Component Updated and Component Removed events. The data source filters to **Example-associated** component events only: Example, Room, Feature, and Knowledge (components that reference or are Examples). Other component types (Character, Message, Guidance, etc.) are ignored.
+**Event Subscription and Enrichment**:
+
+- Subscribes to `mtw.assets` **Component Updated** and **Component Removed** events.
+- Filters to **Example-associated** component events only:
+  - All `Example` components.
+  - `Room`, `Feature`, and `Knowledge` components whose `examples` field on the **diff** has non-zero length (`component.examples?.payload?.length > 0`), which reliably indicates example-related changes (add/remove of example refs or example content).
+- For each Example-associated change, this data source:
+  - Reconstructs the Example's **inheritance chain** via `_from` links across the Assets table to build the ordered `assetStack` (base-first, event asset last).
+  - For each asset in that chain, scans all candidate parent components (Rooms/Features/Knowledge) to find those whose `examples` lists reference the Example, yielding `parentIds`.
+  - For `ExampleUpdated` (and eventually `ExampleAdded`), merges the Example across the asset stack into a single payload shaped for Ephemera's render cache (`{ markState, renderedContent, provenance: { type: 'authored' } }`).
+  - For `ExampleRemoved`, computes `assetStack` and `parentIds` without emitting a new example payload.
+
+Other component types (Character, Message, Guidance, etc.) are ignored by this data source.
 
 **Implementation**: [`./componentExamples/index.ts`](./componentExamples/index.ts)
 
-**Future**: Phase 2a will add enrichment (parentIds, asset stack from inheritance chain) and publishing of Example lifecycle events.
+For more on how these events are consumed to populate Ephemera's render cache, see `lambda/ephemera/AGENT.caching.planning.md` and `lambda/ephemera/renderCache/AGENT.md`.
 
 ## Event Flow Patterns
 

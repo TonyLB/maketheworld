@@ -39,6 +39,16 @@ The final system will have many cooperating parts. We start with a minimal slice
 - **Exact match first** - Find Example where Mark-pattern exactly matches proposed state. No fuzzy/semantic search yet.
 - **Explicit generation** - Author triggers generation from Preview UI; no background/automatic generation.
 
+### Open questions and assumptions (authoring tools)
+
+- **Authoring-only WebSocket messages**:
+  - For this MVP, `generateRoomPreview` is treated as a **development/authoring tool**, not a gameplay action:
+    - We assume it does not require character/session context for permissions.
+    - RoomId + markState + assetStack is considered sufficient for any Room the client can access in authoring mode.
+  - Future iterations may tighten this:
+    - E.g. restricting Preview to certain zones (Draft), assets owned by the player, or explicit authoring sessions.
+    - Integrating `generateRoomPreview` with a more general “authoring API” permission model.
+
 ### Components
 
 #### 1. Ephemera DynamoDB Schema
