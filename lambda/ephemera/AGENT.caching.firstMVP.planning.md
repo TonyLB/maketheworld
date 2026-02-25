@@ -140,21 +140,20 @@ A data source (or receive handler) in Ephemera that subscribes to `mtw.assets.co
 
 ### Phase 5: Preview UI in Room Workbench
 
-**Goal**: Authors can propose a state, trigger generation, and see the result or error in the Room editor.
+**Goal**: Authors can propose a state, trigger generation, and see the result or error. Preview is a **separate section that authors navigate down into from the Room** (not an inline accordion inside the Room editor).
 
-1. **Add Preview section** to Room editor (e.g. new accordion or section below Lens/Examples):
-   - One input per Mark in the Room's Lens (Mark shortName/label + text input for Match value).
-   - "Generate" button.
-   - Result area: display rendered content (DisplayName, Summary, Description) or error message.
+1. **Preview as a navigable view**:
+   - From the Room editor, provide an entry point (e.g. "Preview" link or button) that **navigates** to a dedicated Preview view. The workbench breadcrumb becomes e.g. Asset > Room > Preview, so the Preview is a full content view the user has navigated into, consistent with how Examples and Guidance are reached by navigating from the Room.
+   - In the Preview view: one input per Mark in the Room's Lens (Mark shortName/label + text input for Match value), a "Generate" button, and a result area (display rendered content or error). Room context (which Room, which Lens/Marks) is derived from the navigation context (e.g. the Room is the previous breadcrumb or encoded in the Preview entry).
 2. **Wire to WebSocket**:
    - On Generate: build `markState` from current inputs; build **assetStack** from workbench context (current asset + inherited assets in order, e.g. from `useWorkbenchAsset().inheritedByAssetId` and currentAssetId). Send `generateRoomPreview` with roomId, markState, and assetStack to Ephemera (using the client's existing WebSocket/lifeline API).
    - Handle response: update UI with result or error. Match response shape to `{ generateRoomPreview: { success, renderedContent?, error? } }`.
 3. **Edge cases**:
-   - Room has no Lens / no Marks: disable Preview or show "Add a Lens with Marks to use Preview."
+   - Room has no Lens / no Marks: in the Room, disable or hide the Preview entry point; in the Preview view, show "Add a Lens with Marks to use Preview" if reached without a valid Lens.
    - Loading state while waiting for Ephemera response.
    - RequestId correlation if client sends multiple requests.
 
-*Deliverable*: Full authoring flow: propose state -> Generate -> see exact match or "no exact match" error in Preview pane.
+*Deliverable*: Full authoring flow: Room -> navigate to Preview -> propose state -> Generate -> see exact match or "no exact match" error in the Preview pane.
 
 ---
 
