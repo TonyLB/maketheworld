@@ -1,6 +1,6 @@
 # Ephemera Caching - First MVP Implementation Plan
 
-**Status: IN PROGRESS** (Phase 1 complete; Phase 2a Task 1–5 complete; Phase 2b complete; Phase 3 complete; Phase 4 complete)
+**Status: IN PROGRESS** (Phase 1 complete; Phase 2a Task 1–5 complete; Phase 2b complete; Phase 3 complete; Phase 4 complete; Phase 5 complete)
 
 This document lays out concrete steps from the current state (no caching code in Ephemera) to a working first MVP that:
 
@@ -17,7 +17,7 @@ Prerequisite reading: [AGENT.caching.planning.md](./AGENT.caching.planning.md).
 - **Ephemera**: Phase 1 complete. `renderCache/` provides types (baseClasses.ts), cache access layer (cacheAccess.ts: queryCacheRecordsForComponent, putCacheRecord, deleteCacheRecord), and unit tests. `internalCache/ExamplesData` still fetches authored Examples from the Assets table (assetDB) for perception; it does not yet read or write the Ephemera cache (CACHE#) records.
 - **Ephemera DynamoDB** (ephemeraDB): Uses `EphemeraId` and `DataCategory` as keys. Cache access layer is ready to read/write `CACHE#uuid` records; authored records can now be mirrored in via Phase 2b (below), and preview writes will add additional generated records.
 - **WebSocket**: Ephemera handles `EphemeraAPIMessage` types (fetchEphemera, registercharacter, action, link, etc.). No `generateRoomPreview` (or equivalent) message.
-- **Client**: Room editor has LensEditor, Example editors, Guidance editors. No Preview section. No WebSocket dispatch for preview generation.
+- **Client**: Room editor has LensEditor, Example editors, Guidance editors. **Phase 5 complete**: Preview is a separate navigable view (Asset > Room > Preview); Room editor has "Open Preview" entry when Room has one Lens with at least one Mark; RoomPreviewEditor provides Mark inputs, Generate, and result/error; WebSocket dispatch via `socketDispatchPromise`; lifeLine parses Lambda `{ statusCode, body }` responses and re-publishes so RequestId correlation works.
 - **Example data**: Authored Examples live in the Assets table. StandardExample has marks (MarkFacets) for world-state; Assets query may need extension to include marks for comparison.
 - **Assets Lambda**: `mtw.assets.componentExamples` data source exists: non-replayable, subscribed to `mtw.assets` Component Updated / Component Removed. **Task 2 complete**: receiveEvents filters to Example-associated events only—Example (always) and Room/Feature/Knowledge when `examples` has non-zero length (diff or current state). **Task 3 complete**: Example-tagged events are enriched in-place with full parentage (parent componentIds for Rooms/Features/Knowledge) and ordered asset stack, plus fully merged Example payload (markState and renderedContent) suitable for cache mirroring. **Tasks 4–5 complete**: enriched Example lifecycle events (ExampleUpdated, ExampleRemoved; ExampleAdded deferred) are now published from `mtw.assets.componentExamples` with `exampleId` as streamKey and payloads matching the Ephemera cache shape for mirroring. Implementation: `lambda/assets/componentExamples/` (exampleAssociatedFilter.ts, exampleEnrichment.ts, events.ts, index.ts and tests).
 
@@ -144,16 +144,23 @@ A data source (or receive handler) in Ephemera that subscribes to `mtw.assets.co
 
 1. **Preview as a navigable view**:
    - From the Room editor, provide an entry point (e.g. "Preview" link or button) that **navigates** to a dedicated Preview view. The workbench breadcrumb becomes e.g. Asset > Room > Preview, so the Preview is a full content view the user has navigated into, consistent with how Examples and Guidance are reached by navigating from the Room.
+   - **Status**: Implemented. Synthetic breadcrumb id `preview:${roomId}`; RoomEditor has "Preview" section with "Open Preview" (enabled when exactly one Lens with at least one Mark); WorkbenchAssetEditor routes `preview:*` to `RoomPreviewEditor`; WorkbenchContainer shows breadcrumb label "Preview" for the synthetic id.
    - In the Preview view: one input per Mark in the Room's Lens (Mark shortName/label + text input for Match value), a "Generate" button, and a result area (display rendered content or error). Room context (which Room, which Lens/Marks) is derived from the navigation context (e.g. the Room is the previous breadcrumb or encoded in the Preview entry).
+   - **Status**: Implemented in `charcoal-client/src/components/Workbench/RoomEdit/RoomPreviewEditor.tsx`. Resolves Room/single Lens/Marks from `useWorkbenchAsset().standardForm`; Mark inputs keyed by Mark UUID; result area shows displayName/summary/description (plain text via renderTreeToPlainText-style helper) or error Alert.
 2. **Wire to WebSocket**:
    - On Generate: build `markState` from current inputs; build **assetStack** from workbench context (current asset + inherited assets in order, e.g. from `useWorkbenchAsset().inheritedByAssetId` and currentAssetId). Send `generateRoomPreview` with roomId, markState, and assetStack to Ephemera (using the client's existing WebSocket/lifeline API).
+   - **Status**: Implemented. RoomPreviewEditor builds `assetStack = [...inheritedByAssetId.map(({ assetId }) => assetId), AssetId]` and dispatches `socketDispatchPromise({ message: 'generateRoomPreview', RoomId, markState, assetStack }, { service: 'ephemera' })`.
    - Handle response: update UI with result or error. Match response shape to `{ generateRoomPreview: { success, renderedContent?, error? } }`.
+   - **Status**: Backend includes `RequestId` in the ReturnValue body (`lambda/ephemera/app.ts`). Client lifeLine in `charcoal-client/src/slices/lifeLine/index.api.ts` parses WebSocket messages with `statusCode` and string `body`, re-publishes parsed body as `LifeLinePubSubData` so `socketDispatchPromise` subscribers see top-level `RequestId` and resolve; RoomPreviewEditor reads `payload.generateRoomPreview` and updates result/error state.
 3. **Edge cases**:
    - Room has no Lens / no Marks: in the Room, disable or hide the Preview entry point; in the Preview view, show "Add a Lens with Marks to use Preview" if reached without a valid Lens.
+   - **Status**: Room shows "Add a Lens with Marks to use Preview" when `!canOpenPreview`; RoomPreviewEditor shows same message when no single Lens or no Marks.
    - Loading state while waiting for Ephemera response.
+   - **Status**: Generate button disabled and shows "Generating..." / spinner while request in flight.
    - RequestId correlation if client sends multiple requests.
+   - **Status**: RequestId in response body and lifeLine parse-and-publish ensure correlation.
 
-*Deliverable*: Full authoring flow: Room -> navigate to Preview -> propose state -> Generate -> see exact match or "no exact match" error in the Preview pane.
+*Deliverable*: Full authoring flow: Room -> navigate to Preview -> propose state -> Generate -> see exact match or "no exact match" error in the Preview pane. **Achieved.**
 
 ---
 
