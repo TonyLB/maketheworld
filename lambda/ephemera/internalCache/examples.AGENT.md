@@ -110,19 +110,44 @@ const examples = await ephemeraDB.query({
 ## Integration Points
 
 ### **ComponentRender System**
-- `ComponentRender` calls `ExamplesData.get()` to retrieve examples
-- Currently renders the first available example
-- Future: Will implement state-based example selection
+- `ComponentRender` calls `ExamplesData.get()` to retrieve examples.
+- Currently renders the first available example.
+- Future: Will implement state-based example selection.
 
 ### **WML StandardExample System**
-- Uses `StandardExample` for example creation and validation
-- Integrates with `StandardRoom`, `StandardFeature`, `StandardKnowledge`
-- Supports rich text content via `RenderTree`
+- Uses `StandardExample` for example creation and validation.
+- Integrates with `StandardRoom`, `StandardFeature`, `StandardKnowledge`.
+- Supports rich text content via `RenderTree`.
 
 ### **EphemeraDB**
-- Queries example data by component ID
-- Uses `EXAMPLE#` prefix for data categorization
-- Handles multiple examples per component
+- Queries example data by component ID.
+- Uses `EXAMPLE#` prefix for data categorization.
+- Handles multiple examples per component.
+
+## Relationship to Render Cache (Current vs Future)
+
+The `ExamplesData` handler represents the **legacy perception path** for examples:
+
+- Perception flows (e.g. `internalCache/componentRender`) currently:
+  - Query `ephemeraDB` `EXAMPLE#` items via `ExamplesData`.
+  - Render the first available Example for a component, without Mark-state matching.
+- The newer **render cache** lives in `lambda/ephemera/renderCache/`:
+  - Receives authored Example lifecycle events from `mtw.assets.componentExamples` via the `mtw.ephemera.examples` DataSource.
+  - Stores per-render cache rows under `DataCategory: 'CACHE#...'`, keyed by component and `perspectiveId`, with explicit `markState` and `renderedContent`.
+  - Is used today by the Room authoring **Preview** flow (`generateRoomPreview` + `RoomPreviewEditor`) to perform exact-match lookups from proposed Mark state + asset stack.
+
+As of the first caching MVP:
+
+- Perception remains wired to `ExamplesData` and `EXAMPLE#` records.
+- The render cache is **not yet** used for live character perception; it is scoped to authoring tools (Preview) and future LLM-based generation.
+
+Future work will migrate perception rendering off `ExamplesData` and onto the render cache so that both authoring and in-play descriptions share:
+
+- The same Mark-state model (`markState`).
+- The same perspective model (`assetStack` / `perspectiveId`).
+- The same mirroring pipeline from Assets.
+
+For cache schema and flow details, see `lambda/ephemera/renderCache/AGENT.md` and `lambda/ephemera/AGENT.caching.planning.md`.
 
 ## Future Development
 
