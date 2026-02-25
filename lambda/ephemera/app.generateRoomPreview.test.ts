@@ -74,7 +74,8 @@ describe('app handler - generateRoomPreview', () => {
                 generateRoomPreview: {
                     success: true,
                     renderedContent: { description: [{ type: 'Text', value: 'Preview content' }] }
-                }
+                },
+                RequestId: 'request-123'
             }
         })
     })

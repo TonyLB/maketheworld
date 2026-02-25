@@ -1,5 +1,6 @@
 import React, { FunctionComponent, useMemo, useCallback } from 'react'
-import { Box } from '@mui/material'
+import { Box, ListItemButton, ListItemIcon, ListItemText, Typography } from '@mui/material'
+import VisibilityIcon from '@mui/icons-material/Visibility'
 
 import { useWorkbenchAsset } from '../foundations/useWorkbenchAsset'
 import ExitEditor from './ExitEditor'
@@ -11,6 +12,7 @@ import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import { useSelector, useDispatch } from 'react-redux'
 import { getCurrentComponentId, pushBreadcrumb } from '../../../slices/UI/workbench'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
+import { StandardLens } from '@tonylb/mtw-wml/ts/standardize/components/worldState'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
 import { ReferenceList } from '@tonylb/mtw-wml/ts/standardize/keys/referenceList'
@@ -34,6 +36,32 @@ export const RoomEditor: FunctionComponent = () => {
         if (c && c instanceof StandardRoom) return c
         return undefined
     }, [universalKey, standardForm])
+
+    const singleLens = useMemo(() => {
+        if (!room) return null
+        const lensRefs = room.lenses.payload || []
+        if (lensRefs.length !== 1) return null
+        const ref = lensRefs[0]
+        if (!ref?.universalKey) return null
+        const c = standardForm.byUniversalId[ref.universalKey]
+        if (c && c instanceof StandardLens) return c
+        return null
+    }, [room, standardForm])
+
+    const canOpenPreview = useMemo(() => {
+        if (!singleLens) return false
+        const markRefs = singleLens.marks.payload || []
+        return markRefs.length >= 1
+    }, [singleLens])
+
+    const handlePreviewClick = useCallback(() => {
+        if (!universalKey || !canOpenPreview || readonly) return
+        dispatch(pushBreadcrumb({
+            id: `preview:${universalKey}`,
+            kind: 'component',
+            componentId: `preview:${universalKey}`
+        }))
+    }, [universalKey, canOpenPreview, readonly, dispatch])
 
     useOnboardingCheckpoint('navigateRoom', { requireSequence: true })
     useOnboardingCheckpoint('navigateAssetWithImport', { requireSequence: true })
@@ -140,6 +168,25 @@ export const RoomEditor: FunctionComponent = () => {
                                 disabled={readonly}
                                 onItemClick={handleGuidanceItemClick}
                             />
+                        </Box>
+                        <Box sx={{ marginTop: '0.5em' }}>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>Preview</Typography>
+                            {canOpenPreview ? (
+                                <ListItemButton
+                                    onClick={handlePreviewClick}
+                                    disabled={readonly}
+                                    sx={{ borderRadius: 1, border: '1px solid', borderColor: 'divider' }}
+                                >
+                                    <ListItemIcon sx={{ minWidth: 36 }}>
+                                        <VisibilityIcon fontSize="small" />
+                                    </ListItemIcon>
+                                    <ListItemText primary="Open Preview" secondary="Propose mark state and see cached result" />
+                                </ListItemButton>
+                            ) : (
+                                <Typography variant="body2" color="text.secondary">
+                                    Add a Lens with Marks to use Preview.
+                                </Typography>
+                            )}
                         </Box>
                     </Box>
                 </Box>

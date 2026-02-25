@@ -208,6 +208,18 @@ export const establishWebSocket: LifeLineAction = (arg) => async (dispatch, getS
             if (isEphemeraClientMessage(payload) || isAssetClientMessage(payload) || isCoordinationClientMessage(payload) || isSubscriptionClientMessage(payload)) {
                 LifeLinePubSub.publish(payload)
             }
+            else if (typeof payload?.statusCode === 'number' && typeof payload?.body === 'string') {
+                // Lambda return value: { statusCode: 200, body: JSON.stringify(body) }. Parse body so
+                // subscribers (e.g. socketDispatchPromise) see RequestId and result at top level.
+                try {
+                    const parsed = JSON.parse(payload.body) as LifeLinePubSubData
+                    LifeLinePubSub.publish(parsed)
+                } catch (_) {
+                    if (!(isEmptyClientMessage(payload) || isPongMessage(payload))) {
+                        console.log(`INVALID MESSAGE: ${JSON.stringify(payload, null, 4)}`)
+                    }
+                }
+            }
             else {
                 if (!(isEmptyClientMessage(payload) || isPongMessage(payload))) {
                     console.log(`INVALID MESSAGE: ${JSON.stringify(payload, null, 4)}`)
