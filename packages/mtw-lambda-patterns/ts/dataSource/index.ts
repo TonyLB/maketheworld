@@ -4,7 +4,7 @@ import { eventBridgeClient } from '@tonylb/mtw-utilities/ts/eventBridge'
 import { v4 as uuidv4 } from 'uuid'
 import { PublishCommand } from '@aws-sdk/client-sns'
 import { StreamingEventPayloadContract, StreamingEventHeader, StreamEventHeaderFragment, StreamingEventEnvelope, DataSourceEventSerializer, EventPayload } from './baseClasses'
-import { CoreExternalFormat } from './formatTransform'
+import { CoreExternalFormat, fromDynamoDBFormat, DynamoDBFormat } from './formatTransform'
 import { DataSourceAggregator } from './aggregation'
 import { publishStreamEvent, StreamEventPublisherSerializer, wireFormatsFromCoreFormat, createSnapshotCoreFormat } from './streamEventPublisher'
 
@@ -444,12 +444,7 @@ export class DataSource<
 
         const primaryKey = `STREAM#${this.dataSourceKey}::${streamKey}`
 
-        const events = await this.dynamo.query<Record<KeyType, string> & {
-            DataCategory: string;
-            type: string;
-            update: ExternalUpdatePayload;
-            extendedHeader?: unknown;
-        }>({
+        const events = await this.dynamo.query<DynamoDBFormat<KeyType>>({
             Key: { [this.primaryKeyName]: primaryKey },
             KeyConditionExpression: 'DataCategory BETWEEN :timestampPrefix AND :timestampEndRange',
             ExpressionAttributeValues: {
@@ -460,13 +455,19 @@ export class DataSource<
         })
 
         return events ? events
-            .map(event => ({
-                type: event.type,
-                update: event.update,
-                streamKey,
-                timestamp: event.DataCategory ? parseInt(event.DataCategory.split('::')[0].replace('EVENT#', '')) : 0,
-                ...(event.extendedHeader !== undefined ? { extendedHeader: event.extendedHeader } : {})
-            }))
+            .map(record => {
+                // Use canonical transformer to reconstruct CoreExternalFormat (header + update)
+                const core = fromDynamoDBFormat(record, this.dataSourceKey)
+                return {
+                    type: core.header.type,
+                    update: core.update as ExternalUpdatePayload,
+                    // We already know the streamKey we queried for; prefer the function argument
+                    // to avoid depending on primary-key encoding in tests or alternate stores.
+                    streamKey,
+                    timestamp: core.header.timestamp,
+                    ...(record.extendedHeader !== undefined ? { extendedHeader: record.extendedHeader } : {})
+                }
+            })
             .sort((a, b) => a.timestamp - b.timestamp) : []
     }
 
@@ -519,6 +520,7 @@ export class DataSource<
                 } else if (update && typeof update === 'object' && 'RequestIds' in update && (update as Record<string, unknown>).RequestIds !== undefined) {
                     extendedPart = { RequestIds: (update as Record<string, unknown>).RequestIds };
                 }
+
                 const fullHeader: CoreExternalFormat['header'] = {
                     dataSourceKey: this.dataSourceKey,
                     streamKey,
