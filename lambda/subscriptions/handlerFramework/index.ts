@@ -76,34 +76,10 @@ export const subscriptionLibrary = subscriptionLibraryConstructor([
     {
         dataSourceKey: 'mtw.assets.library',
         type: 'Asset Added',
-        transform: (event) => ({
-            messageType: 'StreamEvent',
-            eventType: event.header.type,
-            dataSourceKey: 'mtw.assets.library',
-            streamKey: event.streamKey,
-            timestamp: event.timestamp,
-            update: {
-                type: 'Asset Added',
-                assetId: event.assetId,
-                RequestId: event.RequestId
-            }
-        })
     },
     {
         dataSourceKey: 'mtw.assets.library',
-        type: 'Asset Removed',
-        transform: (event) => ({
-            messageType: 'StreamEvent',
-            eventType: event.header.type,
-            dataSourceKey: 'mtw.assets.library',
-            streamKey: event.streamKey,
-            timestamp: event.timestamp,
-            update: {
-                type: 'Asset Removed',
-                assetId: event.assetId,
-                RequestId: event.RequestId
-            }
-        })
+        type: 'Asset Removed'
     },
     {
         dataSourceKey: 'mtw.assets.players',

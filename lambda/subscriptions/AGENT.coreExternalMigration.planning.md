@@ -76,6 +76,8 @@ Status: **COMPLETED** – transforms and tests have been updated to set `eventTy
   - Exercise the end-to-end path `EventBridge -> subscriptions -> WebSocket -> fromWebSocketFormat -> DataSourceEventSerializer.deserialize` for the pilot data source.
   - Assert on both header fields (`dataSourceKey`, `streamKey`, `timestamp`, `type`) and the external `update` payload.
 
+Status: **COMPLETED** – `mtw.assets.library` now uses the default `wireFormatsFromCoreFormat(coreFormat).webSocketFormat` path in `subscriptionLibrary`, and tests in `lambda/subscriptions/handlerFramework/index.test.ts` cover `EventBridge -> subscriptions -> WebSocket -> fromWebSocketFormat -> LibraryEventSerializer.deserialize` for this data source.
+
 #### 3. Roll out to remaining data sources
 
 - For each remaining data source (`mtw.wml`, `mtw.assets.contentHeaders`, `mtw.assets.players`):
