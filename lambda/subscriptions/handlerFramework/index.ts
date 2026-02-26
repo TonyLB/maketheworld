@@ -27,6 +27,7 @@ export const subscriptionLibrary = subscriptionLibraryConstructor([
         type: 'Merge Conflict',
         transform: (event) => ({
             messageType: 'StreamEvent',
+            eventType: event.header.type,
             dataSourceKey: 'mtw.wml',
             streamKey: event.streamKey,
             timestamp: event.timestamp,
@@ -43,6 +44,7 @@ export const subscriptionLibrary = subscriptionLibraryConstructor([
         coreFormatGuard: makeCoreExternalFormatGuardFromHeaderGuard(isWMLContentUpdateHeader),
         transform: (event) => ({
             messageType: 'StreamEvent',
+            eventType: event.header.type,
             dataSourceKey: 'mtw.wml',
             streamKey: event.streamKey,
             timestamp: event.timestamp,
@@ -58,6 +60,7 @@ export const subscriptionLibrary = subscriptionLibraryConstructor([
         type: 'Headers Updated',
         transform: (event) => ({
             messageType: 'StreamEvent',
+            eventType: event.header.type,
             dataSourceKey: 'mtw.assets.contentHeaders',
             streamKey: event.streamKey,
             timestamp: event.timestamp,
@@ -75,6 +78,7 @@ export const subscriptionLibrary = subscriptionLibraryConstructor([
         type: 'Asset Added',
         transform: (event) => ({
             messageType: 'StreamEvent',
+            eventType: event.header.type,
             dataSourceKey: 'mtw.assets.library',
             streamKey: event.streamKey,
             timestamp: event.timestamp,
@@ -90,6 +94,7 @@ export const subscriptionLibrary = subscriptionLibraryConstructor([
         type: 'Asset Removed',
         transform: (event) => ({
             messageType: 'StreamEvent',
+            eventType: event.header.type,
             dataSourceKey: 'mtw.assets.library',
             streamKey: event.streamKey,
             timestamp: event.timestamp,
@@ -104,6 +109,7 @@ export const subscriptionLibrary = subscriptionLibraryConstructor([
         dataSourceKey: 'mtw.assets.players',
         transform: (event) => ({
             messageType: 'StreamEvent',
+            eventType: event.header.type,
             dataSourceKey: 'mtw.assets.players',
             streamKey: event.streamKey,
             timestamp: event.timestamp,

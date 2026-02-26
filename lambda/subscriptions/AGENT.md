@@ -182,6 +182,8 @@ type LibraryEntry = {
 - **Resilient**: Handles WebSocket failures and connection cleanup gracefully
 - **Provisional Player Stream Support**: When clients subscribe to `mtw.assets.players`, the lambda rewrites a sentinel stream key of `self` to the authenticated `PlayerName`. This shim lets the front-end adopt the new replayable player data source without first performing an explicit `whoAmI` call. Once subscription authorization gains richer context awareness, replace this rewrite with a generalized, policy-driven mechanism.
 
+For details on the planned migration to the unified `CoreExternalFormat` and `WebSocketFormat` pipeline for subscription messages, see `AGENT.coreExternalMigration.planning.md`.
+
 ### Future Plans
 - **Asset Event Integration**: Add handlers for Assets Lambda events
 - **Ephemera Event Integration**: Support real-time game state events

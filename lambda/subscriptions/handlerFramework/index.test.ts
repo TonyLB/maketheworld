@@ -18,6 +18,7 @@ describe('subscription handlerFramework', () => {
             dataSourceKey: 'noDetails',
             transform: (event) => ({
                 messageType: 'StreamEvent',
+                eventType: 'Content Update',
                 dataSourceKey: 'mtw.wml',
                 streamKey: 'ASSET#TEST',
                 timestamp: event.timestamp,
@@ -29,6 +30,7 @@ describe('subscription handlerFramework', () => {
             type: 'TestOne',
             transform: (event) => ({
                 messageType: 'StreamEvent',
+                eventType: 'Merge Conflict',
                 dataSourceKey: 'mtw.wml',
                 streamKey: event.streamKey,
                 timestamp: event.timestamp,
@@ -43,6 +45,7 @@ describe('subscription handlerFramework', () => {
             type: 'Headers Updated',
             transform: (event) => ({
                 messageType: 'StreamEvent',
+                eventType: 'Headers Updated',
                 dataSourceKey: 'mtw.assets.contentHeaders' as any,
                 streamKey: event.streamKey,
                 timestamp: event.timestamp,
@@ -58,6 +61,7 @@ describe('subscription handlerFramework', () => {
             dataSourceKey: 'mtw.assets.players',
             transform: (event) => ({
                 messageType: 'StreamEvent',
+                eventType: (event as any).update?.type || '',
                 dataSourceKey: 'mtw.assets.players',
                 streamKey: event.streamKey,
                 timestamp: event.timestamp,
@@ -75,13 +79,49 @@ describe('subscription handlerFramework', () => {
     })
 
     it('should match an event with no details', () => {
-        expect(testLibrary.matchEvent({ dataSourceKey: 'noDetails', streamKey: '', timestamp: 0, update: { type: 'any' } })?._dataSourceKey).toEqual('noDetails')
-        expect(testLibrary.matchEvent({ dataSourceKey: 'noMatch', streamKey: '', timestamp: 0, update: { type: 'any' } })).toBeFalsy()
+        const coreNoDetails = {
+            header: {
+                dataSourceKey: 'noDetails',
+                streamKey: '',
+                timestamp: 0,
+                type: 'any'
+            },
+            update: { type: 'any' }
+        } as any
+        const coreNoMatch = {
+            header: {
+                dataSourceKey: 'noMatch',
+                streamKey: '',
+                timestamp: 0,
+                type: 'any'
+            },
+            update: { type: 'any' }
+        } as any
+        expect(testLibrary.matchEvent(coreNoDetails)?._dataSourceKey).toEqual('noDetails')
+        expect(testLibrary.matchEvent(coreNoMatch)).toBeFalsy()
     })
 
     it('should match an event with type', () => {
-        expect(testLibrary.matchEvent({ dataSourceKey: 'detailsOne', streamKey: 'ASSET#XYZ', timestamp: 0, update: { type: 'TestOne' } })?._dataSourceKey).toEqual('detailsOne')
-        expect(testLibrary.matchEvent({ dataSourceKey: 'detailsOne', streamKey: 'ASSET#XYZ', timestamp: 0, update: { type: 'NoMatch' } })).toBeFalsy()
+        const coreMatch = {
+            header: {
+                dataSourceKey: 'detailsOne',
+                streamKey: 'ASSET#XYZ',
+                timestamp: 0,
+                type: 'TestOne'
+            },
+            update: { type: 'TestOne' }
+        } as any
+        const coreNoMatch = {
+            header: {
+                dataSourceKey: 'detailsOne',
+                streamKey: 'ASSET#XYZ',
+                timestamp: 0,
+                type: 'NoMatch'
+            },
+            update: { type: 'NoMatch' }
+        } as any
+        expect(testLibrary.matchEvent(coreMatch)?._dataSourceKey).toEqual('detailsOne')
+        expect(testLibrary.matchEvent(coreNoMatch)).toBeFalsy()
     })
 
     it('should match on header.type when both header and update present (header is authoritative)', () => {
@@ -179,7 +219,14 @@ describe('subscription handlerFramework', () => {
             Key: { ConnectionId: 'STREAM#noDetails::testStream' },
             ProjectionFields: ["DataCategory"]
         })
-        expect(apiClientMock.send).toHaveBeenCalledWith('QRST', { messageType: 'StreamEvent', dataSourceKey: 'mtw.wml', streamKey: 'ASSET#TEST', timestamp: 1234567890, update: { type: 'Content Update', RequestId: 'req-no-details', wml: '' } })
+        expect(apiClientMock.send).toHaveBeenCalledWith('QRST', {
+            messageType: 'StreamEvent',
+            eventType: 'Content Update',
+            dataSourceKey: 'mtw.wml',
+            streamKey: 'ASSET#TEST',
+            timestamp: 1234567890,
+            update: { type: 'Content Update', RequestId: 'req-no-details', wml: '' }
+        })
     })
 
     it('should publish to subscription with details', async () => {
@@ -194,7 +241,14 @@ describe('subscription handlerFramework', () => {
             Key: { ConnectionId: 'STREAM#detailsOne::TestOne::ASSET#XYZ' },
             ProjectionFields: ["DataCategory"]
         })
-        expect(apiClientMock.send).toHaveBeenCalledWith('QRST', { messageType: 'StreamEvent', dataSourceKey: 'mtw.wml', streamKey: 'ASSET#XYZ', timestamp: 1234567890, update: { type: 'Merge Conflict', RequestId: 'qrstuv' } })
+        expect(apiClientMock.send).toHaveBeenCalledWith('QRST', {
+            messageType: 'StreamEvent',
+            eventType: 'Merge Conflict',
+            dataSourceKey: 'mtw.wml',
+            streamKey: 'ASSET#XYZ',
+            timestamp: 1234567890,
+            update: { type: 'Merge Conflict', RequestId: 'qrstuv' }
+        })
     })
 
     it('should handle content headers events', async () => {
@@ -210,7 +264,8 @@ describe('subscription handlerFramework', () => {
             ProjectionFields: ["DataCategory"]
         })
         expect(apiClientMock.send).toHaveBeenCalledWith('WXYZ', { 
-            messageType: 'StreamEvent', 
+            messageType: 'StreamEvent',
+            eventType: 'Headers Updated',
             dataSourceKey: 'mtw.assets.contentHeaders', 
             streamKey: 'ASSET#456', 
             timestamp: 1234567890,
@@ -247,6 +302,7 @@ describe('subscription handlerFramework', () => {
         expect(internalCacheMock.SessionConnections.get).toHaveBeenCalledWith('SESSION123')
         expect(apiClientMock.send).toHaveBeenCalledWith('CONN456', {
             messageType: 'StreamEvent',
+            eventType: 'Player Settings Updated',
             dataSourceKey: 'mtw.assets.players',
             streamKey: 'player123',
             timestamp: 1234567890,
@@ -402,6 +458,7 @@ describe('subscription handlerFramework', () => {
             await match!.publish(coreEvent as any)
             expect(apiClientMock.send).toHaveBeenCalledWith('C1', {
                 messageType: 'StreamEvent',
+                eventType: 'Content Update',
                 dataSourceKey: 'mtw.wml',
                 streamKey: 'ASSET#test',
                 timestamp: 1234567890,
@@ -434,6 +491,7 @@ describe('subscription handlerFramework', () => {
             await match!.publish(coreEvent as any)
             expect(apiClientMock.send).toHaveBeenCalledWith('C2', {
                 messageType: 'StreamEvent',
+                eventType: 'Merge Conflict',
                 dataSourceKey: 'mtw.wml',
                 streamKey: 'ASSET#test',
                 timestamp: 1234567890,
