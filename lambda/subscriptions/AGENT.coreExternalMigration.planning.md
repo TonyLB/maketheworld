@@ -60,6 +60,8 @@ This refactor should be staged to avoid breaking working subscriptions or coupli
 
 This step unblocks client correctness without changing the overall subscriptions architecture.
 
+Status: **COMPLETED** – transforms and tests have been updated to set `eventType` consistently, and client behavior has been verified (WML replay events now appear in `recentEvents` and in the UI after reload).
+
 #### 2. Pilot unified pipeline for a low-risk data source
 
 - Choose a relatively simple data source (for example `mtw.assets.library` or `mtw.assets.contentHeaders`) as a pilot for the new pattern.
@@ -111,3 +113,13 @@ This step unblocks client correctness without changing the overall subscriptions
   - Reduce bespoke surface area over time.
   - Preserve the flexibility of the subscription library while aligning with system-wide format standards.
 
+### Post-completion context
+
+This subscriptions refactor plan emerged while preparing caching work in `lambda/ephemera/AGENT.caching.planning.md`. That ephemera planning doc is part of a broader effort to make it possible to **enter and cache the data needed to exercise the Room Preview UI** end-to-end.
+
+During that prep work, we discovered that:
+
+- The WML DataSource replay path (Initialize Subscription for `mtw.wml`, via `DataSource.initializeSubscription` and `deliverReplayData`) was delivering SNS/WebSocket `StreamEvent` messages without `eventType`, causing the `mtw.wml` client slice to treat replayed updates as having `header.type === ''` and drop them from `recentEvents`.
+- The same drift affected `mtw.assets.players`, producing client-side "Unknown player event header type" warnings and dropping those updates.
+
+Fixing the minimal `eventType` issues in subscriptions and the shared DataSource replay logic was a prerequisite to reliably seeing recent WML and player changes on reload, which in turn is required to validate Room Preview behavior against live editing flows. Once the next ephemera caching migration step is complete, this document should serve as the "stack frame" that explains why subscriptions work was interleaved with that effort and where to resume if further CoreExternalFormat/WebSocket alignment is needed.
