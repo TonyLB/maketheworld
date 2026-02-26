@@ -8,6 +8,7 @@ import { isSubscriptionClientMessage } from '@tonylb/mtw-interfaces/ts/subscript
 import { subscriptionLibrary, subscriptionLibraryConstructor } from '.'
 import { toEventBridgeFormat, fromEventBridgeFormat, fromWebSocketFormat } from '@tonylb/mtw-lambda-patterns/ts/dataSource/formatTransform'
 import { LibraryEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/assets/library'
+import { PlayerEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/assets/players'
 
 const connectionDBMock = jest.mocked(connectionDB)
 const apiClientMock = apiClient as jest.Mocked<typeof apiClient>
@@ -642,6 +643,84 @@ describe('subscription handlerFramework', () => {
             content: coreAtClient.update as any
         })
         expect(deserialized).toEqual({ assetId: 'ASSET#123' })
+    })
+
+    it('should send mtw.assets.players events using unified WebSocketFormat pipeline', async () => {
+        connectionDBMock.query.mockResolvedValue([{
+            ConnectionId: 'STREAM#mtw.assets.players::player123',
+            DataCategory: 'SESSION#SESSION123'
+        }])
+        internalCacheMock.SessionConnections.get.mockResolvedValue(['CONNECTION#CONN123'])
+        const coreEvent = {
+            header: {
+                dataSourceKey: 'mtw.assets.players',
+                streamKey: 'player123',
+                timestamp: 1234567890,
+                type: 'Player Settings Updated',
+                RequestId: 'req-player-1'
+            },
+            update: {
+                settings: { onboardCompleteTags: [] }
+            }
+        }
+        const match = subscriptionLibrary.matchEvent(coreEvent as any)
+        expect(match).toBeDefined()
+        await match!.publish(coreEvent as any)
+        expect(connectionDBMock.query).toHaveBeenCalledWith({
+            Key: { ConnectionId: 'STREAM#mtw.assets.players::player123' },
+            ProjectionFields: ["DataCategory"]
+        })
+        expect(internalCacheMock.SessionConnections.get).toHaveBeenCalledWith('SESSION123')
+        expect(apiClientMock.send).toHaveBeenCalledWith('CONN123', expect.any(Object))
+        const sentMessage = apiClientMock.send.mock.calls[0][1]
+        expect(isSubscriptionClientMessage(sentMessage)).toBe(true)
+        expect(sentMessage).toMatchObject({
+            messageType: 'StreamEvent',
+            dataSourceKey: 'mtw.assets.players',
+            streamKey: 'player123',
+            timestamp: 1234567890,
+            eventType: 'Player Settings Updated',
+            update: {
+                settings: { onboardCompleteTags: [] }
+            },
+            RequestId: 'req-player-1'
+        })
+    })
+
+    it('should round-trip mtw.assets.players events through EventBridge, subscriptions, WebSocket, and PlayerEventSerializer', async () => {
+        const coreAtSource = {
+            header: {
+                dataSourceKey: 'mtw.assets.players',
+                streamKey: 'player123',
+                timestamp: 1234567890,
+                type: 'Player Settings Updated',
+                RequestId: 'req-player-2'
+            },
+            update: {
+                settings: { onboardCompleteTags: [] }
+            }
+        }
+        const eventBridgeEvent = toEventBridgeFormat(coreAtSource as any)
+        const coreAtSubscriptions = fromEventBridgeFormat(eventBridgeEvent)
+        connectionDBMock.query.mockResolvedValue([{
+            ConnectionId: 'STREAM#mtw.assets.players::player123',
+            DataCategory: 'SESSION#SESSION123'
+        }])
+        internalCacheMock.SessionConnections.get.mockResolvedValue(['CONNECTION#CONN456'])
+        const match = subscriptionLibrary.matchEvent(coreAtSubscriptions as any)
+        expect(match).toBeDefined()
+        await match!.publish(coreAtSubscriptions as any)
+        const webSocketMessage = apiClientMock.send.mock.calls[0][1]
+        expect(isSubscriptionClientMessage(webSocketMessage)).toBe(true)
+        const coreAtClient = fromWebSocketFormat(webSocketMessage as any)
+        const serializer = new PlayerEventSerializer()
+        const deserialized = await serializer.deserialize({
+            header: coreAtClient.header as any,
+            content: coreAtClient.update as any
+        })
+        expect(deserialized).toEqual({
+            settings: { onboardCompleteTags: [] }
+        })
     })
 
 })
