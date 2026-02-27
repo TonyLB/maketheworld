@@ -72,8 +72,8 @@ type LibraryEntry = {
 ### Configuration
 
 #### Current Event Handlers
-- **WML Merge Conflicts**: Routes merge conflict events to subscribed clients
-- **WML Content Updates**: Transforms content updates with address obfuscation for client delivery
+- **WML (Merge Conflict, Content Update)**: Use the unified CoreExternalFormat/WebSocketFormat pipeline (`wireFormatsFromCoreFormat(coreFormat).webSocketFormat`). See `AGENT.coreExternalMigration.planning.md` for details.
+- **mtw.assets.contentHeaders, mtw.assets.library, mtw.assets.players**: Library and players use the unified pipeline; contentHeaders still uses a bespoke transform.
 
 #### API Client (`apiClient.ts`)
 - **WebSocket Delivery**: Manages message sending to connected clients

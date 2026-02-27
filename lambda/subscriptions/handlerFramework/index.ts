@@ -25,35 +25,11 @@ export const subscriptionLibrary = subscriptionLibraryConstructor([
     {
         dataSourceKey: 'mtw.wml',
         type: 'Merge Conflict',
-        transform: (event) => ({
-            messageType: 'StreamEvent',
-            eventType: event.header.type,
-            dataSourceKey: 'mtw.wml',
-            streamKey: event.streamKey,
-            timestamp: event.timestamp,
-            RequestIds: event.header?.RequestIds ?? [],
-            update: {
-                type: 'Merge Conflict',
-                error: event.update.error
-            }
-        })
     },
     {
         dataSourceKey: 'mtw.wml',
         type: 'Content Update',
         coreFormatGuard: makeCoreExternalFormatGuardFromHeaderGuard(isWMLContentUpdateHeader),
-        transform: (event) => ({
-            messageType: 'StreamEvent',
-            eventType: event.header.type,
-            dataSourceKey: 'mtw.wml',
-            streamKey: event.streamKey,
-            timestamp: event.timestamp,
-            RequestIds: event.header?.RequestIds ?? [],
-            update: {
-                type: 'Content Update',
-                wml: event.update.wml
-            }
-        })
     },
     {
         dataSourceKey: 'mtw.assets.contentHeaders',

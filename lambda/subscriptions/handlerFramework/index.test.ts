@@ -4,7 +4,13 @@ jest.mock('@tonylb/mtw-utilities/ts/dynamoDB')
 import { connectionDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 jest.mock('../internalCache')
 import internalCache from "../internalCache"
-import { isSubscriptionClientMessage } from '@tonylb/mtw-interfaces/ts/subscriptions'
+import { isSubscriptionClientMessage, type SubscriptionClientMessage } from '@tonylb/mtw-interfaces/ts/subscriptions'
+import {
+    isWMLContentEventExternal,
+    WMLDataSourceEventSerializer,
+    isWMLContentUpdateEvent,
+    isWMLMergeConflictEvent,
+} from '@tonylb/mtw-interfaces/ts/eventBridge/wml'
 import { subscriptionLibrary, subscriptionLibraryConstructor } from '.'
 import { toEventBridgeFormat, fromEventBridgeFormat, fromWebSocketFormat } from '@tonylb/mtw-lambda-patterns/ts/dataSource/formatTransform'
 import { LibraryEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/assets/library'
@@ -497,6 +503,10 @@ describe('subscription handlerFramework', () => {
             const match = subscriptionLibrary.matchEvent(coreEvent)
             expect(match).toBeDefined()
             await match!.publish(coreEvent)
+            const sent = apiClientMock.send.mock.calls[0][1] as SubscriptionClientMessage
+            expect(isSubscriptionClientMessage(sent)).toBe(true)
+            expect(isWMLContentEventExternal(sent.update)).toBe(true)
+            expect(sent.eventType).toBe(coreEvent.header.type)
             expect(apiClientMock.send).toHaveBeenCalledWith('C1', {
                 messageType: 'StreamEvent',
                 eventType: 'Content Update',
@@ -530,6 +540,10 @@ describe('subscription handlerFramework', () => {
             const match = subscriptionLibrary.matchEvent(coreEvent)
             expect(match).toBeDefined()
             await match!.publish(coreEvent)
+            const sent = apiClientMock.send.mock.calls[0][1] as SubscriptionClientMessage
+            expect(isSubscriptionClientMessage(sent)).toBe(true)
+            expect(isWMLContentEventExternal(sent.update)).toBe(true)
+            expect(sent.eventType).toBe(coreEvent.header.type)
             expect(apiClientMock.send).toHaveBeenCalledWith('C2', {
                 messageType: 'StreamEvent',
                 eventType: 'Merge Conflict',
@@ -544,7 +558,7 @@ describe('subscription handlerFramework', () => {
             })
         })
 
-        it('should use empty RequestIds when event.header.RequestIds is absent', async () => {
+        it('should use canonical WebSocket format when event.header.RequestIds is absent (no top-level RequestIds)', async () => {
             connectionDBMock.query.mockResolvedValue([{
                 ConnectionId: 'STREAM#mtw.wml::Content Update::ASSET#test',
                 DataCategory: 'SESSION#S3'
@@ -562,10 +576,18 @@ describe('subscription handlerFramework', () => {
             }
             const match = subscriptionLibrary.matchEvent(coreEvent)
             await match!.publish(coreEvent)
-            expect(apiClientMock.send).toHaveBeenCalledWith('C3', expect.objectContaining({
-                RequestIds: [],
-                update: expect.objectContaining({ type: 'Content Update', wml: '<Asset uuid=(x) />' })
-            }))
+            const sent = apiClientMock.send.mock.calls[0][1] as SubscriptionClientMessage
+            expect(isSubscriptionClientMessage(sent)).toBe(true)
+            expect(isWMLContentEventExternal(sent.update)).toBe(true)
+            expect(sent.eventType).toBe(coreEvent.header.type)
+            expect(sent).toMatchObject({
+                dataSourceKey: 'mtw.wml',
+                streamKey: 'ASSET#test',
+                timestamp: 1234567890,
+                update: { wml: '<Asset uuid=(x) />' }
+            })
+            // Canonical path: RequestIds only when present in header; not required in update
+            expect(sent.RequestIds).toBeUndefined()
         })
     })
 
@@ -720,6 +742,95 @@ describe('subscription handlerFramework', () => {
         })
         expect(deserialized).toEqual({
             settings: { onboardCompleteTags: [] }
+        })
+    })
+
+    describe('WML round-trip (EventBridge -> subscriptions -> WebSocket -> fromWebSocketFormat -> WMLDataSourceEventSerializer)', () => {
+        const testWmlEnv = { fetch: global.fetch }
+        const wmlSerializer = new WMLDataSourceEventSerializer(testWmlEnv)
+
+        it('should round-trip WML Content Update through pipeline and deserialize to WMLContentEvent with schema', async () => {
+            const coreAtSource = {
+                header: {
+                    dataSourceKey: 'mtw.wml',
+                    streamKey: 'ASSET#test',
+                    timestamp: 1234567890,
+                    type: 'Content Update',
+                    RequestIds: ['req-wml-1'],
+                },
+                update: {
+                    wml: '<Asset uuid=(test-asset)><Room key=(room1) uuid=(room1)><ShortName>R1</ShortName></Room></Asset>',
+                },
+            }
+            const eventBridgeEvent = toEventBridgeFormat(coreAtSource as any)
+            const coreAtSubscriptions = fromEventBridgeFormat(eventBridgeEvent)
+            connectionDBMock.query.mockResolvedValue([{
+                ConnectionId: 'STREAM#mtw.wml::Content Update::ASSET#test',
+                DataCategory: 'SESSION#S1',
+            }])
+            internalCacheMock.SessionConnections.get.mockResolvedValue(['CONNECTION#C1'])
+            const match = subscriptionLibrary.matchEvent(coreAtSubscriptions as any)
+            expect(match).toBeDefined()
+            await match!.publish(coreAtSubscriptions as any)
+            const webSocketMessage = apiClientMock.send.mock.calls[0][1] as SubscriptionClientMessage
+            expect(isSubscriptionClientMessage(webSocketMessage)).toBe(true)
+            expect(isWMLContentEventExternal(webSocketMessage.update)).toBe(true)
+            const coreAtClient = fromWebSocketFormat(webSocketMessage)
+            expect(coreAtClient.header.dataSourceKey).toBe('mtw.wml')
+            expect(coreAtClient.header.streamKey).toBe('ASSET#test')
+            expect(coreAtClient.header.timestamp).toBe(1234567890)
+            expect(coreAtClient.header.type).toBe('Content Update')
+            expect(coreAtClient.header.RequestIds).toEqual(['req-wml-1'])
+            const deserialized = await wmlSerializer.deserialize({
+                content: coreAtClient.update as any,
+                header: coreAtClient.header as any,
+            })
+            expect(deserialized).not.toBeNull()
+            expect(isWMLContentUpdateEvent(deserialized!)).toBe(true)
+            if (isWMLContentUpdateEvent(deserialized!)) {
+                expect(deserialized!.schema).toBeDefined()
+            }
+        })
+
+        it('should round-trip WML Merge Conflict through pipeline and deserialize to WMLContentEvent with error', async () => {
+            const coreAtSource = {
+                header: {
+                    dataSourceKey: 'mtw.wml',
+                    streamKey: 'ASSET#test',
+                    timestamp: 1234567890,
+                    type: 'Merge Conflict',
+                    RequestIds: ['req-merge-1'],
+                },
+                update: { error: 'Merge failed' },
+            }
+            const eventBridgeEvent = toEventBridgeFormat(coreAtSource as any)
+            const coreAtSubscriptions = fromEventBridgeFormat(eventBridgeEvent)
+            connectionDBMock.query.mockResolvedValue([{
+                ConnectionId: 'STREAM#mtw.wml::Merge Conflict::ASSET#test',
+                DataCategory: 'SESSION#S2',
+            }])
+            internalCacheMock.SessionConnections.get.mockResolvedValue(['CONNECTION#C2'])
+            const match = subscriptionLibrary.matchEvent(coreAtSubscriptions as any)
+            expect(match).toBeDefined()
+            await match!.publish(coreAtSubscriptions as any)
+            const webSocketMessage = apiClientMock.send.mock.calls[0][1] as SubscriptionClientMessage
+            expect(isSubscriptionClientMessage(webSocketMessage)).toBe(true)
+            expect(isWMLContentEventExternal(webSocketMessage.update)).toBe(true)
+            const coreAtClient = fromWebSocketFormat(webSocketMessage)
+            expect(coreAtClient.header.dataSourceKey).toBe('mtw.wml')
+            expect(coreAtClient.header.streamKey).toBe('ASSET#test')
+            expect(coreAtClient.header.timestamp).toBe(1234567890)
+            expect(coreAtClient.header.type).toBe('Merge Conflict')
+            expect(coreAtClient.header.RequestIds).toEqual(['req-merge-1'])
+            const deserialized = await wmlSerializer.deserialize({
+                content: coreAtClient.update as any,
+                header: coreAtClient.header as any,
+            })
+            expect(deserialized).not.toBeNull()
+            expect(isWMLMergeConflictEvent(deserialized!)).toBe(true)
+            if (isWMLMergeConflictEvent(deserialized!)) {
+                expect(deserialized!.error).toBe('Merge failed')
+            }
         })
     })
 

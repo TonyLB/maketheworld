@@ -88,6 +88,8 @@ Status: **COMPLETED** – `mtw.assets.library` now uses the default `wireFormats
   - Keep or document any truly necessary bespoke behavior (for example, address obfuscation).
 - For each migration step, re-run the same end-to-end tests used for the pilot to confirm behavior.
 
+**mtw.wml pilot (completed):** `mtw.wml` has been piloted on the unified pipeline. Merge Conflict and Content Update handlers no longer use bespoke transforms; they use the default path so that `SubscriptionEvent.publish` sends `wireFormatsFromCoreFormat(coreFormat).webSocketFormat`. WML WebSocket messages therefore get `eventType`, `dataSourceKey`, `streamKey`, `timestamp`, and extended header fields (e.g. `RequestIds`) from the canonical `toWebSocketFormat` merge. End-to-end tests in `handlerFramework/index.test.ts` cover the full path: EventBridge -> subscriptions -> WebSocket -> `fromWebSocketFormat` -> `WMLDataSourceEventSerializer.deserialize` for both Content Update and Merge Conflict.
+
 #### 4. Update documentation and contracts
 
 - Update `lambda/subscriptions/AGENT.md` to:
