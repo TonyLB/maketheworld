@@ -89,7 +89,7 @@ Defines the display protocol for different types of game messages:
 
 ### 4. **Subscription System** (`subscriptions.ts`)
 
-Defines interfaces for real-time event subscriptions:
+Defines interfaces for real-time event subscriptions. Subscription WebSocket messages follow the same `WebSocketFormat` contract as other WebSocket paths (see `@tonylb/mtw-lambda-patterns` formatTransform). Per-data-source external payload shapes and validation are defined by the corresponding `DataSourceEventSerializer` and type guards (e.g. `isWMLContentEventExternal`, `isPlayerExternal`) in the `eventBridge/` modules.
 
 #### **API Messages**
 - **`SubscribeAPIMessage`**: Subscribe to event sources

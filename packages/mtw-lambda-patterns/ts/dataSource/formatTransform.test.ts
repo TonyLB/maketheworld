@@ -388,4 +388,37 @@ describe('formatTransform', () => {
             expect(result.header.type).toBe('')
         })
     })
+
+    describe('WebSocket format invariants (subscription pipeline guardrails)', () => {
+        it('toWebSocketFormat always projects header.type into eventType', () => {
+            const coreFormat: CoreExternalFormat = {
+                header: {
+                    dataSourceKey: 'mtw.assets.players',
+                    streamKey: 'player123',
+                    timestamp: 1234567890,
+                    type: 'Player Settings Updated',
+                    RequestId: 'req-1'
+                },
+                update: { settings: {} }
+            }
+            const ws = toWebSocketFormat(coreFormat)
+            expect(ws.eventType).toBe(coreFormat.header.type)
+        })
+
+        it('fromWebSocketFormat reconstructs header.type from eventType (round-trip)', () => {
+            const coreFormat: CoreExternalFormat = {
+                header: {
+                    dataSourceKey: 'mtw.wml',
+                    streamKey: 'ASSET#test',
+                    timestamp: 1234567890,
+                    type: 'Merge Conflict',
+                    RequestIds: ['req-a']
+                },
+                update: { error: 'Conflict' }
+            }
+            const ws = toWebSocketFormat(coreFormat)
+            const roundTrip = fromWebSocketFormat(ws)
+            expect(roundTrip.header.type).toBe(coreFormat.header.type)
+        })
+    })
 })
