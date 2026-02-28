@@ -221,30 +221,30 @@ The following steps focus on **Phase 1: creating the `<Situation>` tag and compo
 
 Situation is a component that carries **only** a `MarkFacetList` (world-state slice). It does **not** store DisplayName, Summary, or Description. The implementation pattern is closest to **StandardGuidance** (marks-only, with `StandardizeConsumerFacetListMark` and `StandardizeConsumerInline` for hosted Mark children). Reference: [`standardize/components/AGENT.implementation.md`](./standardize/components/AGENT.implementation.md) "Adding a New Component Type" and the existing Guidance/Example implementations that use `MarkFacetList`.
 
-#### Step 1: Schema layer support (`@tonylb/mtw-base`)
+#### Step 1: Schema layer support (`@tonylb/mtw-base`) **(DONE)**
 
 **Location**: `packages/mtw-base/ts/schema/` (in the `@tonylb/mtw-base` package)
 
-- Add schema type (e.g. `SchemaSituationTag`) to schema type definitions.
-- Add `isSchemaSituation` type guard.
-- Add `'Situation'` to:
+- [x] Add schema type (e.g. `SchemaSituationTag`) to schema type definitions.
+- [x] Add `isSchemaSituation` type guard.
+- [x] Add `'Situation'` to:
   - `SchemaComponent` union type
   - `isSchemaComponentTag()`
   - `isSchemaComponent()`
   - `isSchemaTag()`
-- Ensure the WML parser can parse `<Situation>` from WML strings.
+- [x] Ensure the WML parser can parse `<Situation>` from WML strings. (Schema layer in mtw-base is complete; converter registration in Step 2 completes parsing.)
 
 **Reference**: Same pattern as `SchemaMark`, `SchemaGuidance`, or `SchemaExample` in `@tonylb/mtw-base/ts/schema/`.
 
-#### Step 2: Schema converter registration (`schema/converters/components.ts`)
+#### Step 2: Schema converter registration (`schema/converters/components.ts`) **(DONE)**
 
 **Location**: `packages/mtw-wml/ts/schema/converters/components.ts`
 
-- **Prefix key**: Add `'SITUATION'` to `PrefixKey` in `packages/mtw-utilities/ts/types.ts` (for typed UUIDs and `enforceTypedKey` / `stripTypedKey`).
-- **Imports**: Import `isSchemaSituation` and `SchemaSituationTag` from the appropriate schema module.
-- **componentTemplates**: Add `Situation` entry with `uuid`, `key`, `from`, `origin`, `ref` (and any other standard component properties).
-- **componentConverters**: Add `Situation` with `initialize` that validates properties and returns `SchemaSituationTag`; handle `uuid` with `enforceTypedKey('SITUATION')`, and `ref` with `validateExpressionAsNonNegativeInteger` if present.
-- **componentPrintMap**: Add `Situation` entry to render the tag and properties (use `tagRender()` and `stripTypedKey('SITUATION')` for `uuid`).
+- [x] **Prefix key**: Add `'SITUATION'` to `PrefixKey` in `packages/mtw-utilities/ts/types.ts` (for typed UUIDs and `enforceTypedKey` / `stripTypedKey`).
+- [x] **Imports**: Import `isSchemaSituation` and `SchemaSituationTag` from the appropriate schema module.
+- [x] **componentTemplates**: Add `Situation` entry with `uuid`, `key`, `from`, `origin`, `ref` (and any other standard component properties).
+- [x] **componentConverters**: Add `Situation` with `initialize` that validates properties and returns `SchemaSituationTag`; handle `uuid` with `enforceTypedKey('SITUATION')`, and `ref` with `validateExpressionAsNonNegativeInteger` if present.
+- [x] **componentPrintMap**: Add `Situation` entry to render the tag and properties (use `tagRender()` and `stripTypedKey('SITUATION')` for `uuid`).
 
 **Reference**: Same pattern as `Mark`, `Guidance`, or `Example` in `components.ts`.
 
