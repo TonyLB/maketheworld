@@ -1,5 +1,5 @@
 import { GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree"
-import { ComponentUUID, SchemaTag, SchemaWithKey, AssetUUID } from "@tonylb/mtw-base/ts/schema";
+import { ComponentUUID, SchemaTag, SchemaWithKey, AssetUUID, isSchemaComponentTag } from "@tonylb/mtw-base/ts/schema";
 import { SchemaRemoveTag, SchemaReplaceMatchTag, SchemaReplacePayloadTag, SchemaReplaceTag } from "@tonylb/mtw-base/ts/schema/edit";
 import { StandardKeyData } from "../../keys/dataTypes/reference";
 import { StandardEditablePayload } from "../../../generics/editable";
@@ -26,19 +26,7 @@ export type EditWrappedStandardNode<T extends SchemaTag, ChildType extends Schem
 
 export type ComponentTag = Exclude<SchemaWithKey["tag"], 'Asset' | 'Story'>
 export const componentTagFromUpperCase = (tag: Uppercase<ComponentTag>): ComponentTag => {
-    switch (tag) {
-        case 'CHARACTER': return 'Character'
-        case 'EXAMPLE': return 'Example'
-        case 'GUIDANCE': return 'Guidance'
-        case 'ROOM': return 'Room'
-        case 'FEATURE': return 'Feature'
-        case 'KNOWLEDGE': return 'Knowledge'
-        case 'MESSAGE': return 'Message'
-        case 'MOMENT': return 'Moment'
-        case 'IMAGE': return 'Image'
-        case 'MAP': return 'Map'
-        case 'MARK': return 'Mark'
-        case 'LENS': return 'Lens'
-        default: throw new Error(`Unknown tag: ${tag}`)
-    }
+    const result = (tag.charAt(0) + tag.slice(1).toLowerCase()) as ComponentTag
+    if (!isSchemaComponentTag(result)) throw new Error(`Unknown tag: ${tag}`)
+    return result
 }

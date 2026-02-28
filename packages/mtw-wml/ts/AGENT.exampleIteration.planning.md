@@ -248,12 +248,12 @@ Situation is a component that carries **only** a `MarkFacetList` (world-state sl
 
 **Reference**: Same pattern as `Mark`, `Guidance`, or `Example` in `components.ts`.
 
-#### Step 3: Component type system (`standardize/components/dataTypes/abstract.ts`)
+#### Step 3: Component type system (`standardize/components/dataTypes/abstract.ts`) **(DONE)**
 
 **Location**: `packages/mtw-wml/ts/standardize/components/dataTypes/abstract.ts`
 
-- Add `'Situation'` to the `ComponentTag` type union (if not already included via schema).
-- Add case to `componentTagFromUpperCase()`: `case 'SITUATION': return 'Situation'`.
+- [x] Add `'Situation'` to the `ComponentTag` type union (if not already included via schema).
+- [x] Add case to `componentTagFromUpperCase()`: `case 'SITUATION': return 'Situation'`.
 
 #### Step 4: Component data types (`standardize/components/dataTypes/situation.ts`)
 
