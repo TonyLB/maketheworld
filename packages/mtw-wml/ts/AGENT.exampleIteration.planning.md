@@ -277,19 +277,19 @@ Situation is a component that carries **only** a `MarkFacetList` (world-state sl
 
 **Reference**: `guidance.ts` for marks-only + facet-list consumer + inline remainder; `AGENT.implementation.md` for fromSchema pipeline and two-remainder shape.
 
-#### Step 6: Factory integration (`standardize/componentFactory.ts`)
+#### Step 6: Factory integration (`standardize/componentFactory.ts`) **(DONE)**
 
 **Location**: `packages/mtw-wml/ts/standardize/componentFactory.ts`
 
-- Import `StandardSituation`, `isStandardSituationData`, and `isSchemaSituation`.
-- In `standardComponentFactory()`, add a case: when argument is JSON with `isStandardSituationData(arg)` or is a schema node with `treeNodeTypeguard(isSchemaSituation)(arg)`, return `new StandardSituation(arg)`.
+- [x] Import `StandardSituation`, `isStandardSituationData`, and `isSchemaSituation`.
+- [x] In `standardComponentFactory()`: data branch — when `isStandardSituationData(arg)`, return `{ component: new StandardSituation(arg), remainder: [] }`; schema branch — when `treeNodeTypeguard(isSchemaSituation)(node)`, build instance, call `fromSchema(node)`, return `{ component: instance, remainder }`.
 
-#### Step 7: Processing integration (`standardize/index.ts`)
+#### Step 7: Processing integration (`standardize/index.ts`) **(DONE)**
 
 **Location**: `packages/mtw-wml/ts/standardize/index.ts`
 
-- Add `'Situation'` to `COMPONENT_ORDER`.
-- Add `(value instanceof StandardSituation) ||` to `isStandardComponent()`.
+- [x] Add `'Situation'` to `COMPONENT_ORDER` (after `'Guidance'`, before `'Mark'`).
+- [x] Add `(value instanceof StandardSituation) ||` to `isStandardComponent()`.
 
 #### Step 8: Unit tests (`standardize/components/situation.test.ts`) **(DONE)**
 
@@ -303,12 +303,12 @@ Situation is a component that carries **only** a `MarkFacetList` (world-state sl
 
 After Phase 1, the following should hold:
 
-- [ ] `<Situation key=(...) uuid=(...)>` with nested `<Mark>`/`<Match>` children parses from WML.
-- [ ] Situation can be created from JSON and via `standardComponentFactory` from schema.
-- [ ] Situation is in `COMPONENT_ORDER` and passes `isStandardComponent()`.
-- [ ] Situation can be stored in `StandardForm` and serialized/deserialized (round-trip).
-- [ ] Situation has no ReferenceLists; Marks under Situation are consumed into `MarkFacetList` and do not create a reference list on Situation.
-- [ ] All new unit tests pass.
+- [x] `<Situation key=(...) uuid=(...)>` with nested `<Mark>`/`<Match>` children parses from WML.
+- [x] Situation can be created from JSON and via `standardComponentFactory` from schema.
+- [x] Situation is in `COMPONENT_ORDER` and passes `isStandardComponent()`.
+- [x] Situation can be stored in `StandardForm` and serialized/deserialized (round-trip).
+- [x] Situation has no ReferenceLists; Marks under Situation are consumed into `MarkFacetList` and do not create a reference list on Situation.
+- [x] All new unit tests pass.
 
 ### Phase 2: Situation facets in StandardForm
 

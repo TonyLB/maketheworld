@@ -33,6 +33,7 @@ import StandardMessage from "./components/message"
 import StandardMoment from "./components/moment"
 import StandardExample from "./components/example"
 import StandardGuidance from "./components/guidance"
+import StandardSituation from "./components/situation"
 import StandardMark, { StandardLens } from "./components/worldState"
 import { StandardLiteral } from "./literal"
 import { StandardRender } from "./render"
@@ -56,6 +57,7 @@ const COMPONENT_ORDER: string[] = [
     'Moment',
     'Example',
     'Guidance',
+    'Situation',
     'Mark',
     'Lens'
 ]
@@ -71,6 +73,7 @@ export const isStandardComponent = (value: any): value is StandardComponent => {
         (value instanceof StandardRoom) ||
         (value instanceof StandardExample) ||
         (value instanceof StandardGuidance) ||
+        (value instanceof StandardSituation) ||
         (value instanceof StandardMark) ||
         (value instanceof StandardLens)
 }
