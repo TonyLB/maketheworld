@@ -1,8 +1,8 @@
  # Example / Situation Iteration - Conceptual Notes
 
- **Status: CONCEPT ONLY (no implementation work started)**
+ **Status: PLANNING (implementation plan in place; no implementation work started)**
 
- This document captures a possible **second-iteration** direction for how Examples and world-state dependent descriptions might be modeled in WML and the standardization system. It is intentionally conceptual only:
+ This document captures a **second-iteration** direction for how Examples and world-state dependent descriptions might be modeled in WML and the standardization system. It is intentionally conceptual only:
 
  - It does **not** describe committed schema changes.
  - It does **not** prescribe specific migration steps or timelines.
@@ -195,4 +195,192 @@
  - Migration strategies for existing assets and Examples.
  - Detailed changes to componentExamples enrichment, StandardComponent implementations, and ephemera caching.
  - UI and authoring flows for editing Situations and situation facets.
+
+---
+
+## Implementation
+
+**Status: PLANNING (phased approach)**
+
+This section outlines a phased plan to implement the Situation + situation-facets model. The playbook for adding a new component type is documented in [`standardize/components/AGENT.implementation.md`](./standardize/components/AGENT.implementation.md) under "Adding a New Component Type." Each phase below maps to that playbook where applicable.
+
+### Phased Overview
+
+1. **Phase 1: Situation component only** – Introduce `<Situation>` as a first-class component (world-state slice only). Establishes the new tag in the WML schema and StandardForm storage without changing Room/Feature/Knowledge references. *Steps detailed below.*
+2. **Phase 2: Situation facets in StandardForm** – Refactor `examples` on Room, Feature, Knowledge from a ReferenceList of Examples to a SituationFacetList with situation-specific rendering payloads. Data model and WML/serialization only; no UI or lambda changes yet.
+3. **Phase 3: Lambdas (non–render cache)** – Refactor `assets` and `ephemera` lambdas to replace special handling of Example data with Situation and situation-facet handling where applicable. Leaves renderCache for Phase 4.
+4. **Phase 4: Render cache** – Larger refactor of the render cache (and any related systems) to key and store by Situation/situation-facet model instead of Example.
+5. **Phase 5: Client UI** – Remove Example from the components payload and as an editable component in the client; add a Situation component editor; add a SituationFacetList editor at least for the Room component (Feature/Knowledge later if desired).
+6. **Phase 6: Example deprecation (evaluate)** – Decide whether to deprecate and remove the `<Example>` tag and `StandardExample` component type; if so, define migration path and removal steps.
+
+**Execution approach**: We plan to **build Phase 1 first** (the `<Situation>` tag and component), then **return to this document** to iterate and refine the planning for Phases 2–6. Having Situation concretely implemented will anchor discussion on migration, situation facets, lambdas, render cache, and UI: we can reason from a real component and schema rather than from outline alone. The steps below are therefore fully specified only for Phase 1; later phases remain high-level until we revisit after Phase 1 is done.
+
+The following steps focus on **Phase 1: creating the `<Situation>` tag and component**.
+
+### Phase 1: Create the `<Situation>` Tag and Component
+
+Situation is a component that carries **only** a `MarkFacetList` (world-state slice). It does **not** store DisplayName, Summary, or Description. The implementation pattern is closest to **StandardGuidance** (marks-only, with `StandardizeConsumerFacetListMark` and `StandardizeConsumerInline` for hosted Mark children). Reference: [`standardize/components/AGENT.implementation.md`](./standardize/components/AGENT.implementation.md) "Adding a New Component Type" and the existing Guidance/Example implementations that use `MarkFacetList`.
+
+#### Step 1: Schema layer support (`@tonylb/mtw-base`)
+
+**Location**: `packages/mtw-base/ts/schema/` (in the `@tonylb/mtw-base` package)
+
+- Add schema type (e.g. `SchemaSituationTag`) to schema type definitions.
+- Add `isSchemaSituation` type guard.
+- Add `'Situation'` to:
+  - `SchemaComponent` union type
+  - `isSchemaComponentTag()`
+  - `isSchemaComponent()`
+  - `isSchemaTag()`
+- Ensure the WML parser can parse `<Situation>` from WML strings.
+
+**Reference**: Same pattern as `SchemaMark`, `SchemaGuidance`, or `SchemaExample` in `@tonylb/mtw-base/ts/schema/`.
+
+#### Step 2: Schema converter registration (`schema/converters/components.ts`)
+
+**Location**: `packages/mtw-wml/ts/schema/converters/components.ts`
+
+- **Prefix key**: Add `'SITUATION'` to `PrefixKey` in `packages/mtw-utilities/ts/types.ts` (for typed UUIDs and `enforceTypedKey` / `stripTypedKey`).
+- **Imports**: Import `isSchemaSituation` and `SchemaSituationTag` from the appropriate schema module.
+- **componentTemplates**: Add `Situation` entry with `uuid`, `key`, `from`, `origin`, `ref` (and any other standard component properties).
+- **componentConverters**: Add `Situation` with `initialize` that validates properties and returns `SchemaSituationTag`; handle `uuid` with `enforceTypedKey('SITUATION')`, and `ref` with `validateExpressionAsNonNegativeInteger` if present.
+- **componentPrintMap**: Add `Situation` entry to render the tag and properties (use `tagRender()` and `stripTypedKey('SITUATION')` for `uuid`).
+
+**Reference**: Same pattern as `Mark`, `Guidance`, or `Example` in `components.ts`.
+
+#### Step 3: Component type system (`standardize/components/dataTypes/abstract.ts`)
+
+**Location**: `packages/mtw-wml/ts/standardize/components/dataTypes/abstract.ts`
+
+- Add `'Situation'` to the `ComponentTag` type union (if not already included via schema).
+- Add case to `componentTagFromUpperCase()`: `case 'SITUATION': return 'Situation'`.
+
+#### Step 4: Component data types (`standardize/components/dataTypes/situation.ts`)
+
+**Location**: `packages/mtw-wml/ts/standardize/components/dataTypes/situation.ts` (new file)
+
+- Define `StandardSituationData` extending `StandardBaseData`:
+  - `tag: 'Situation'`
+  - Optional `marks?: FacetListData<string>` for the MarkFacetList serialization (same pattern as `StandardGuidanceData` in `guidance.ts`).
+- Add `isStandardSituationData` type guard using `checkAll()` and `checkTypes()`.
+- Export from `dataTypes/index.ts`: export type and type guard; add to `StandardComponentNonEditData` union and to `isStandardComponentData()`.
+
+**Reference**: For marks-only structure, see `guidance.ts` (or `example.ts`) data type and how `MarkFacetList` is represented in serialization.
+
+#### Step 5: Component implementation (`standardize/components/situation.ts`)
+
+**Location**: `packages/mtw-wml/ts/standardize/components/situation.ts` (new file)
+
+- **Payload** (`StandardSituationPayload`):
+  - Store only `_marks: MarkFacetList` (no name/summary/description).
+  - Implement `ComponentConstructorMethods<StandardSituationData>`: constructor, `fromJSON`, `fromSchema`, getters, `toJSON`, `schema`, `nestedSchema`, `merge`, `subset`, `referencedKeys`, `isEmpty`, `invert`; implement `mapContents` / `remapReferences` / `withChild` if needed. No `assureReferences` (Situation has no ReferenceLists); hosted Mark children are handled via **inline remainder** (Marks under Situation are hosted, not referenced in a list on Situation—they are consumed by `StandardizeConsumerFacetListMark` and contribute to `MarkFacetList`).
+  - **fromSchema**: Use the process-and-remainder pipeline. Entry typeguard: `treeNodeTypeguard(isSchemaSituation)`. Consumers: `StandardizeConsumerFacetListMark` (to build `_marks` from Mark children with Match payloads), then `StandardizeConsumerInline` as last step to pass through any hosted Mark nodes for recursion. No `StandardizeConsumerReferenceList` (no reference lists).
+- **Component class** (`StandardSituation`): Use `componentClassFactory(StandardSituationPayload, 'StandardSituation')`; expose getters that delegate to payload; override `_wrap`, `clone`, `equals` as needed.
+
+**Reference**: `guidance.ts` for marks-only + facet-list consumer + inline remainder; `AGENT.implementation.md` for fromSchema pipeline and two-remainder shape.
+
+#### Step 6: Factory integration (`standardize/componentFactory.ts`)
+
+**Location**: `packages/mtw-wml/ts/standardize/componentFactory.ts`
+
+- Import `StandardSituation`, `isStandardSituationData`, and `isSchemaSituation`.
+- In `standardComponentFactory()`, add a case: when argument is JSON with `isStandardSituationData(arg)` or is a schema node with `treeNodeTypeguard(isSchemaSituation)(arg)`, return `new StandardSituation(arg)`.
+
+#### Step 7: Processing integration (`standardize/index.ts`)
+
+**Location**: `packages/mtw-wml/ts/standardize/index.ts`
+
+- Add `'Situation'` to `COMPONENT_ORDER`.
+- Add `(value instanceof StandardSituation) ||` to `isStandardComponent()`.
+
+#### Step 8: Unit tests (`standardize/components/situation.test.ts`)
+
+**Location**: `packages/mtw-wml/ts/standardize/components/situation.test.ts` (new file)
+
+- Construction from JSON; construction from WML schema (string); `toJSON` and round-trip; `schema` and `nestedSchema`; merge; diff/equals; `isEmpty`; `invert`; behavior of `MarkFacetList` (parsing Mark + Match children, serialization).
+
+**Reference**: `guidance.test.ts` and `example.test.ts` for MarkFacetList and fromSchema tests.
+
+### Verification (Phase 1)
+
+After Phase 1, the following should hold:
+
+- [ ] `<Situation key=(...) uuid=(...)>` with nested `<Mark>`/`<Match>` children parses from WML.
+- [ ] Situation can be created from JSON and via `standardComponentFactory` from schema.
+- [ ] Situation is in `COMPONENT_ORDER` and passes `isStandardComponent()`.
+- [ ] Situation can be stored in `StandardForm` and serialized/deserialized (round-trip).
+- [ ] Situation has no ReferenceLists; Marks under Situation are consumed into `MarkFacetList` and do not create a reference list on Situation.
+- [ ] All new unit tests pass.
+
+### Phase 2: Situation facets in StandardForm
+
+**Goal**: Change the internal representation of "examples" on Room, Feature, and Knowledge from a ReferenceList of Example components to a **SituationFacetList** whose facets reference Situations and carry the relevant rendering payload (e.g. DisplayName/Summary/Description for Room; Description for Feature/Knowledge).
+
+**Scope** (data model and standardization only; no client UI or lambda behavior yet):
+
+- Define situation-facet payload types and list types (e.g. `SituationRoomFacetList`, `SituationRoomFacet` with payload `{ name?, summary?, description? }`; analogous for Feature and Knowledge).
+- Refactor `StandardRoom`, `StandardFeature`, `StandardKnowledge` to replace `examples: ReferenceList` with `examples: SituationRoomFacetList` (or the appropriate type per component). Follow existing facet-list patterns (e.g. `StandardizeConsumerFacetList*`, `assureReferences` / hosting as needed).
+- Update WML schema and serialization: define how situation facets are represented in WML (e.g. `<Situation ref=(...)><DisplayName>...</DisplayName></Situation>` or equivalent) and ensure round-trip with StandardForm.
+- StandardForm merge/diff/subset and component factory must work with the new facet lists; any code that today reads Room/Feature/Knowledge `examples` as a list of Example references must be updated to the new shape (within mtw-wml and any direct consumers).
+
+**Depends on**: Phase 1 (Situation component exists).
+
+---
+
+### Phase 3: Lambdas (non–render cache)
+
+**Goal**: Replace Example-specific logic in the **assets** and **ephemera** lambdas with logic that operates on Situations and situation facets. Excludes the render cache; that is Phase 4.
+
+**Scope**:
+
+- Identify all places in `lambda/assets` and `lambda/ephemera` (and any shared lambda patterns they use) that special-case Example data (e.g. enumerating Examples, keying by Example id, or interpreting Example content).
+- Refactor those codepaths to use Situation and situation-facet data: e.g. enumerate Situations referenced by a Room’s situation-facet list; key or attribute data by situation id and component id where appropriate.
+- Preserve existing behavior where it is equivalent (e.g. “list of world-state-specific descriptions for this room”); change only the data source from Example components to situation facets.
+- Do **not** yet change how the render cache is keyed or populated; that is the larger refactor in Phase 4.
+
+**Depends on**: Phase 2 (StandardForm and WML use situation facets).
+
+---
+
+### Phase 4: Render cache
+
+**Goal**: Refactor the render cache (and any systems that depend on it) so that cache keys and stored data align with the Situation/situation-facet model instead of the Example model.
+
+**Scope**:
+
+- Redefine cache keys/records so they are expressed in terms of component + Situation (or equivalent), not component + Example. Align with the ephemera cache design notes in the conceptual section of this document (e.g. optional `situationId`, `markState` derived from Situation).
+- Update cache read/write and invalidation to use the new keying and payload shape. Ensure enrichment and event logic that depend on the cache are updated.
+- This phase is intentionally called out separately because it is a “bigger refactor” with broad impact; it may be broken into sub-steps (e.g. dual-write, then cutover) as needed.
+
+**Depends on**: Phase 3 (lambdas already use Situation/situation facets where applicable).
+
+---
+
+### Phase 5: Client UI
+
+**Goal**: Remove Example from the client as an editable component and from the components payload; add editors for Situation and for situation facets (at least on Room).
+
+**Scope**:
+
+- **Remove Example from client**:
+  - Stop treating Example as an editable component in the UI (no Example-specific editor, no “add Example” flows that create Example components).
+  - Remove or refactor any client code that puts Example components in the components payload or that relies on Example as a first-class editable entity. After Phase 2, the payload for “examples” is situation facets on Room/Feature/Knowledge, not a list of Example components.
+- **Situation component editor**: Add a dedicated editor in the client UI for the Situation component (create/edit Situations: edit MarkFacetList / world-state slice). Situations remain first-class components in StandardForm and in the asset; the client must be able to create and edit them.
+- **SituationFacetList editor**: Add an editor for the situation-facet list on at least the **Room** component UI (view/edit which Situations a Room has facets for, and edit the rendering payload per Situation—e.g. DisplayName, Summary, Description). Feature and Knowledge can be added later if desired.
+
+**Depends on**: Phases 2–4 (data model, lambdas, and render cache all use Situation/situation facets so the UI can rely on them).
+
+---
+
+### Phase 6: Example deprecation (evaluate)
+
+**Goal**: Decide whether to deprecate and remove the `<Example>` tag and the `StandardExample` component type, and if so, how.
+
+**Scope**:
+
+- **Evaluation**: Assess whether any remaining WML or code still uses `<Example>` or StandardExample after Phases 1–5 (e.g. legacy assets, imports, or tools). If usage is zero or migration is complete, deprecation may be feasible.
+- **If deprecating**: Define a deprecation path (e.g. parser still accepts `<Example>` but emits a warning; or one-time migration script from Example to Situation + situation facets). Then define removal steps: remove from schema, from StandardForm/component factory, from any remaining lambda or UI references, and delete the Example component implementation and tests.
+- **If retaining**: Document that Example is retained for backward compatibility and under what conditions it is used. Avoid adding new features to Example.
+
+**Depends on**: Phase 5 complete; no client or lambdas rely on Example as the primary model for world-state-specific prose.
 
