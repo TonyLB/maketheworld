@@ -267,15 +267,13 @@ Situation is a component that carries **only** a `MarkFacetList` (world-state sl
 
 **Reference**: For marks-only structure, see `guidance.ts` (or `example.ts`) data type and how `MarkFacetList` is represented in serialization.
 
-#### Step 5: Component implementation (`standardize/components/situation.ts`)
+#### Step 5: Component implementation (`standardize/components/situation.ts`) **(DONE)**
 
 **Location**: `packages/mtw-wml/ts/standardize/components/situation.ts` (new file)
 
-- **Payload** (`StandardSituationPayload`):
-  - Store only `_marks: MarkFacetList` (no name/summary/description).
-  - Implement `ComponentConstructorMethods<StandardSituationData>`: constructor, `fromJSON`, `fromSchema`, getters, `toJSON`, `schema`, `nestedSchema`, `merge`, `subset`, `referencedKeys`, `isEmpty`, `invert`; implement `mapContents` / `remapReferences` / `withChild` if needed. No `assureReferences` (Situation has no ReferenceLists); hosted Mark children are handled via **inline remainder** (Marks under Situation are hosted, not referenced in a list on Situation—they are consumed by `StandardizeConsumerFacetListMark` and contribute to `MarkFacetList`).
-  - **fromSchema**: Use the process-and-remainder pipeline. Entry typeguard: `treeNodeTypeguard(isSchemaSituation)`. Consumers: `StandardizeConsumerFacetListMark` (to build `_marks` from Mark children with Match payloads), then `StandardizeConsumerInline` as last step to pass through any hosted Mark nodes for recursion. No `StandardizeConsumerReferenceList` (no reference lists).
-- **Component class** (`StandardSituation`): Use `componentClassFactory(StandardSituationPayload, 'StandardSituation')`; expose getters that delegate to payload; override `_wrap`, `clone`, `equals` as needed.
+- [x] **Payload** (`StandardSituationPayload`): Store only `_marks: MarkFacetList` (no name/summary/description). Implement `ComponentConstructorMethods<StandardSituationData>`: constructor, `fromJSON`, `fromSchema`, getters, `toJSON`, `schema`, `nestedSchema`, `merge`, `subset`, `referencedKeys`, `isEmpty`, `invert`, `mapContents`, `remapReferences`. No `assureReferences` or `withChild` (Situation has no ReferenceLists); hosted Mark children are handled via **inline remainder**.
+- [x] **fromSchema**: Process-and-remainder pipeline with entry typeguard `treeNodeTypeguard(isSchemaSituation)`; consumers `StandardizeConsumerFacetListMark` then `StandardizeConsumerInline`. No `StandardizeConsumerReferenceList`.
+- [x] **Component class** (`StandardSituation`): `componentClassFactory(StandardSituationPayload, 'StandardSituation')`; getters delegate to payload; overrides `_wrap`, `clone`, `equals`.
 
 **Reference**: `guidance.ts` for marks-only + facet-list consumer + inline remainder; `AGENT.implementation.md` for fromSchema pipeline and two-remainder shape.
 
@@ -293,11 +291,11 @@ Situation is a component that carries **only** a `MarkFacetList` (world-state sl
 - Add `'Situation'` to `COMPONENT_ORDER`.
 - Add `(value instanceof StandardSituation) ||` to `isStandardComponent()`.
 
-#### Step 8: Unit tests (`standardize/components/situation.test.ts`)
+#### Step 8: Unit tests (`standardize/components/situation.test.ts`) **(DONE)**
 
 **Location**: `packages/mtw-wml/ts/standardize/components/situation.test.ts` (new file)
 
-- Construction from JSON; construction from WML schema (string); `toJSON` and round-trip; `schema` and `nestedSchema`; merge; diff/equals; `isEmpty`; `invert`; behavior of `MarkFacetList` (parsing Mark + Match children, serialization).
+- [x] Construction from JSON; construction from WML schema (string); construction from schema node; `toJSON` and round-trip (empty marks and WML with marks); `schema`; merge; equals; `isEmpty`; `invert`; `MarkFacetList` (parsing Mark + Match children, multiple facets, zero marks); clone.
 
 **Reference**: `guidance.test.ts` and `example.test.ts` for MarkFacetList and fromSchema tests.
 
