@@ -207,11 +207,11 @@ This section outlines a phased plan to implement the Situation + situation-facet
 ### Phased Overview
 
 1. **Phase 1: Situation component only** – Introduce `<Situation>` as a first-class component (world-state slice only). Establishes the new tag in the WML schema and StandardForm storage without changing Room/Feature/Knowledge references. *Steps detailed below.*
-2. **Phase 2: Situation facets in StandardForm** – Refactor `examples` on Room, Feature, Knowledge from a ReferenceList of Examples to a SituationFacetList with situation-specific rendering payloads. Data model and WML/serialization only; no UI or lambda changes yet.
-3. **Phase 3: Lambdas (non–render cache)** – Refactor `assets` and `ephemera` lambdas to replace special handling of Example data with Situation and situation-facet handling where applicable. Leaves renderCache for Phase 4.
+2. **Phase 2: Situation facets in StandardForm** – **Add** a new `situations` property (SituationFacetList) to Room, Feature, and Knowledge alongside existing `examples`. Data model and WML/serialization only; no UI or lambda changes yet. Do not remove or replace `examples` in this phase.
+3. **Phase 3: Lambdas (non–render cache)** – Migrate `assets` and `ephemera` lambdas to use `situations` (Situation/situation-facet data) as the primary source; optionally keep `examples` as fallback. Leaves renderCache for Phase 4.
 4. **Phase 4: Render cache** – Larger refactor of the render cache (and any related systems) to key and store by Situation/situation-facet model instead of Example.
-5. **Phase 5: Client UI** – Remove Example from the components payload and as an editable component in the client; add a Situation component editor; add a SituationFacetList editor at least for the Room component (Feature/Knowledge later if desired).
-6. **Phase 6: Example deprecation (evaluate)** – Decide whether to deprecate and remove the `<Example>` tag and `StandardExample` component type; if so, define migration path and removal steps.
+5. **Phase 5: Client UI** – Add Situation component editor and SituationFacetList editor (at least for Room); migrate client to use `situations`. Example remains supported until Phase 6 optional cleanup.
+6. **Phase 6: Example deprecation (optional tech-debt cleanup)** – Optionally remove `examples`, `<Example>`, and `StandardExample` once migration to `situations` is complete. Can be deferred or skipped.
 
 **Execution approach**: We plan to **build Phase 1 first** (the `<Situation>` tag and component), then **return to this document** to iterate and refine the planning for Phases 2–6. Having Situation concretely implemented will anchor discussion on migration, situation facets, lambdas, render cache, and UI: we can reason from a real component and schema rather than from outline alone. The steps below are therefore fully specified only for Phase 1; later phases remain high-level until we revisit after Phase 1 is done.
 
@@ -312,14 +312,14 @@ After Phase 1, the following should hold:
 
 ### Phase 2: Situation facets in StandardForm
 
-**Goal**: Change the internal representation of "examples" on Room, Feature, and Knowledge from a ReferenceList of Example components to a **SituationFacetList** whose facets reference Situations and carry the relevant rendering payload (e.g. DisplayName/Summary/Description for Room; Description for Feature/Knowledge).
+**Goal**: **Add** a new `situations` property (SituationFacetList) to Room, Feature, and Knowledge alongside the existing `examples` (ReferenceList). Facets reference Situations and carry the relevant rendering payload (e.g. DisplayName/Summary/Description for Room; Description for Feature/Knowledge). Do **not** replace or remove `examples` in this phase; migration of call sites from `examples` to `situations` is incremental in later phases. Cleanup of `examples` and StandardExample is deferred to Phase 6 (optional tech-debt).
 
 **Scope** (data model and standardization only; no client UI or lambda behavior yet):
 
 - Define situation-facet payload types and list types (e.g. `SituationRoomFacetList`, `SituationRoomFacet` with payload `{ name?, summary?, description? }`; analogous for Feature and Knowledge).
-- Refactor `StandardRoom`, `StandardFeature`, `StandardKnowledge` to replace `examples: ReferenceList` with `examples: SituationRoomFacetList` (or the appropriate type per component). Follow existing facet-list patterns (e.g. `StandardizeConsumerFacetList*`, `assureReferences` / hosting as needed).
+- Add `situations: SituationRoomFacetList` (or the appropriate type per component) to `StandardRoom`, and analogously to `StandardFeature` and `StandardKnowledge` if desired. Keep existing `examples: ReferenceList` unchanged. Follow existing facet-list patterns (e.g. `StandardizeConsumerFacetList*`, `assureReferences` / hosting as needed).
 - Update WML schema and serialization: define how situation facets are represented in WML (e.g. `<Situation ref=(...)><DisplayName>...</DisplayName></Situation>` or equivalent) and ensure round-trip with StandardForm.
-- StandardForm merge/diff/subset and component factory must work with the new facet lists; any code that today reads Room/Feature/Knowledge `examples` as a list of Example references must be updated to the new shape (within mtw-wml and any direct consumers).
+- StandardForm merge/diff/subset and component factory must work with the new `situations` facet lists. No requirement in Phase 2 to migrate existing code that reads `examples`; that migration is incremental in Phases 3–5.
 
 **Depends on**: Phase 1 (Situation component exists).
 
@@ -327,16 +327,16 @@ After Phase 1, the following should hold:
 
 ### Phase 3: Lambdas (non–render cache)
 
-**Goal**: Replace Example-specific logic in the **assets** and **ephemera** lambdas with logic that operates on Situations and situation facets. Excludes the render cache; that is Phase 4.
+**Goal**: Migrate **assets** and **ephemera** lambdas to use `situations` (Situation/situation-facet data) as the primary source for world-state-specific content. Excludes the render cache; that is Phase 4. During and after migration, `examples` can remain supported (e.g. fallback or legacy) until Phase 6 cleanup.
 
 **Scope**:
 
-- Identify all places in `lambda/assets` and `lambda/ephemera` (and any shared lambda patterns they use) that special-case Example data (e.g. enumerating Examples, keying by Example id, or interpreting Example content).
-- Refactor those codepaths to use Situation and situation-facet data: e.g. enumerate Situations referenced by a Room’s situation-facet list; key or attribute data by situation id and component id where appropriate.
-- Preserve existing behavior where it is equivalent (e.g. “list of world-state-specific descriptions for this room”); change only the data source from Example components to situation facets.
+- Identify all places in `lambda/assets` and `lambda/ephemera` (and any shared lambda patterns they use) that read Room/Feature/Knowledge `examples` or otherwise special-case Example data.
+- Refactor those codepaths to read from `situations` (e.g. enumerate Situations referenced by a Room’s situation-facet list; key or attribute data by situation id and component id). Optionally support fallback to `examples` during transition.
+- Preserve existing behavior where it is equivalent (e.g. “list of world-state-specific descriptions for this room”); change only the data source to situation facets.
 - Do **not** yet change how the render cache is keyed or populated; that is the larger refactor in Phase 4.
 
-**Depends on**: Phase 2 (StandardForm and WML use situation facets).
+**Depends on**: Phase 2 (StandardForm and WML have `situations` facet lists).
 
 ---
 
@@ -356,29 +356,27 @@ After Phase 1, the following should hold:
 
 ### Phase 5: Client UI
 
-**Goal**: Remove Example from the client as an editable component and from the components payload; add editors for Situation and for situation facets (at least on Room).
+**Goal**: Add editors for Situation and for situation facets (at least on Room); migrate client to use `situations` as the primary source for world-state-specific content. Example remains supported until Phase 6 cleanup (no requirement to remove Example from client in this phase).
 
 **Scope**:
 
-- **Remove Example from client**:
-  - Stop treating Example as an editable component in the UI (no Example-specific editor, no “add Example” flows that create Example components).
-  - Remove or refactor any client code that puts Example components in the components payload or that relies on Example as a first-class editable entity. After Phase 2, the payload for “examples” is situation facets on Room/Feature/Knowledge, not a list of Example components.
 - **Situation component editor**: Add a dedicated editor in the client UI for the Situation component (create/edit Situations: edit MarkFacetList / world-state slice). Situations remain first-class components in StandardForm and in the asset; the client must be able to create and edit them.
-- **SituationFacetList editor**: Add an editor for the situation-facet list on at least the **Room** component UI (view/edit which Situations a Room has facets for, and edit the rendering payload per Situation—e.g. DisplayName, Summary, Description). Feature and Knowledge can be added later if desired.
+- **SituationFacetList editor**: Add an editor for the `situations` facet list on at least the **Room** component UI (view/edit which Situations a Room has facets for, and edit the rendering payload per Situation—e.g. DisplayName, Summary, Description). Feature and Knowledge can be added later if desired.
+- **Migrate to situations**: Prefer or use `situations` when reading/writing world-state-specific content for Room (and Feature/Knowledge if in scope). Client may still show or edit `examples` during transition; removal of Example from the client is deferred to Phase 6 (optional cleanup).
 
-**Depends on**: Phases 2–4 (data model, lambdas, and render cache all use Situation/situation facets so the UI can rely on them).
+**Depends on**: Phases 2–4 (data model, lambdas, and render cache support `situations` so the UI can rely on them).
 
 ---
 
-### Phase 6: Example deprecation (evaluate)
+### Phase 6: Example deprecation (optional tech-debt cleanup)
 
-**Goal**: Decide whether to deprecate and remove the `<Example>` tag and the `StandardExample` component type, and if so, how.
+**Goal**: Optionally deprecate and remove the `examples` property, the `<Example>` tag, and the `StandardExample` component type once migration to `situations` is complete. This phase is **optional** and can be deferred or skipped; the system operates correctly with both `examples` and `situations` present.
 
 **Scope**:
 
-- **Evaluation**: Assess whether any remaining WML or code still uses `<Example>` or StandardExample after Phases 1–5 (e.g. legacy assets, imports, or tools). If usage is zero or migration is complete, deprecation may be feasible.
-- **If deprecating**: Define a deprecation path (e.g. parser still accepts `<Example>` but emits a warning; or one-time migration script from Example to Situation + situation facets). Then define removal steps: remove from schema, from StandardForm/component factory, from any remaining lambda or UI references, and delete the Example component implementation and tests.
-- **If retaining**: Document that Example is retained for backward compatibility and under what conditions it is used. Avoid adding new features to Example.
+- **Evaluation**: Assess whether any remaining WML or code still uses `examples`, `<Example>`, or StandardExample after Phases 1–5 (e.g. legacy assets, imports, or tools). If usage is zero or migration is complete, cleanup may be feasible.
+- **If deprecating**: Define a deprecation path (e.g. parser still accepts `<Example>` but emits a warning; or one-time migration script from Example to Situation + situation facets). Then define removal steps: remove `examples` from Room/Feature/Knowledge data types and payloads; remove `<Example>` from schema and StandardForm/component factory; remove from any remaining lambda or UI references; delete the Example component implementation and tests.
+- **If retaining**: Document that `examples` and Example are retained for backward compatibility and under what conditions they are used. Avoid adding new features to Example.
 
-**Depends on**: Phase 5 complete; no client or lambdas rely on Example as the primary model for world-state-specific prose.
+**Depends on**: Phase 5 complete; client and lambdas use `situations` as the primary model for world-state-specific prose.
 
