@@ -512,6 +512,24 @@ describe('schemaFromParse', () => {
         }])
     })
 
+    it('should parse Situation tag with key and uuid', () => {
+        const testParse = parse(tokenizer(new SourceStream(`
+            <Asset uuid=(Test)>
+                <Situation key=(bright) uuid=(my-sit) />
+            </Asset>
+        `)))
+        const schema = schemaFromParse(testParse)
+        const asset = schema[0]
+        expect(asset.data.tag).toBe('Asset')
+        const situationNode = asset.children.find((node) => node.data.tag === 'Situation')
+        expect(situationNode).toBeDefined()
+        expect(situationNode!.data).toMatchObject({
+            tag: 'Situation',
+            key: 'bright',
+            uuid: 'SITUATION#my-sit'
+        })
+    })
+
 })
 
 //
@@ -523,6 +541,18 @@ describe('schemaToWML', () => {
     it('should correctly round-trip the simplest asset', () => {
         const testWML = `<Asset uuid=(Test)><Room key=(VORTEX) /></Asset>`
         expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
+    })
+
+    it('should correctly round-trip Situation', () => {
+        const testWML = deIndentWML(`
+            <Asset uuid=(Test)>
+                <Situation key=(bright) uuid=(my-sit) />
+            </Asset>
+        `)
+        const roundTripped = schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))
+        const schemaAgain = schemaFromParse(parse(tokenizer(new SourceStream(roundTripped))))
+        const situationAgain = schemaAgain[0]?.children?.find((n) => n.data.tag === 'Situation')
+        expect(situationAgain?.data).toMatchObject({ tag: 'Situation', key: 'bright', uuid: 'SITUATION#my-sit' })
     })
 
     it('should correctly round-trip all components with uuid', () => {

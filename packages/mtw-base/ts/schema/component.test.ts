@@ -7,7 +7,8 @@ import {
     isSchemaPosition, 
     isSchemaMap, 
     isSchemaMessage, 
-    isSchemaMoment 
+    isSchemaMoment,
+    isSchemaSituation
 } from './components'
 
 describe('components tags', () => {
@@ -193,5 +194,37 @@ describe('components tags', () => {
             expect(isSchemaMoment(schema)).toBe(false)
         })
 
+    })
+
+    describe('isSchemaSituation', () => {
+        it('should return true for valid SchemaSituationTag', () => {
+            const schema = { tag: 'Situation', key: 'situationKey' }
+            expect(isSchemaSituation(schema)).toBe(true)
+        })
+
+        it('should return true for valid SchemaSituationTag with optional props', () => {
+            const schema = { tag: 'Situation', key: 'situationKey', uuid: 'SITUATION#abc', ref: 0 }
+            expect(isSchemaSituation(schema)).toBe(true)
+        })
+
+        it('should return true for valid SchemaSituationTag with origin', () => {
+            const schema = { tag: 'Situation', key: 'situationKey', origin: ['ASSET#123', 'ASSET#456'] }
+            expect(isSchemaSituation(schema)).toBe(true)
+        })
+
+        it('should return true for valid SchemaSituationTag with empty origin array', () => {
+            const schema = { tag: 'Situation', key: 'situationKey', origin: [] }
+            expect(isSchemaSituation(schema)).toBe(true)
+        })
+
+        it('should return false for invalid SchemaSituationTag', () => {
+            const schema = { tag: 'Invalid', key: 'situationKey' }
+            expect(isSchemaSituation(schema)).toBe(false)
+        })
+
+        it('should return false for wrong tag', () => {
+            const schema = { tag: 'Guidance', key: 'key' }
+            expect(isSchemaSituation(schema)).toBe(false)
+        })
     })
 })
