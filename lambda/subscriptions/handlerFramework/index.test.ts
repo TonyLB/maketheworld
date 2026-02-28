@@ -15,6 +15,10 @@ import { subscriptionLibrary, subscriptionLibraryConstructor } from '.'
 import { toEventBridgeFormat, fromEventBridgeFormat, fromWebSocketFormat } from '@tonylb/mtw-lambda-patterns/ts/dataSource/formatTransform'
 import { LibraryEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/assets/library'
 import { PlayerEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/assets/players'
+import {
+    isContentHeadersExternal,
+    ContentHeadersEventSerializer,
+} from '@tonylb/mtw-interfaces/ts/eventBridge/assets/contentHeaders'
 
 const connectionDBMock = jest.mocked(connectionDB)
 const apiClientMock = apiClient as jest.Mocked<typeof apiClient>
@@ -665,6 +669,83 @@ describe('subscription handlerFramework', () => {
             content: coreAtClient.update as any
         })
         expect(deserialized).toEqual({ assetId: 'ASSET#123' })
+    })
+
+    it('should send mtw.assets.contentHeaders events using unified WebSocketFormat pipeline', async () => {
+        connectionDBMock.query.mockResolvedValue([{
+            ConnectionId: 'STREAM#mtw.assets.contentHeaders::Headers Updated::ASSET#456',
+            DataCategory: 'SESSION#SESSION123'
+        }])
+        internalCacheMock.SessionConnections.get.mockResolvedValue(['CONNECTION#CONN456'])
+        const coreEvent = {
+            header: {
+                dataSourceKey: 'mtw.assets.contentHeaders',
+                streamKey: 'ASSET#456',
+                timestamp: 1234567890,
+                type: 'Headers Updated',
+                RequestId: 'req-headers-1',
+            },
+            update: { assetId: 'ASSET#456', zone: 'Canon', wml: '<Asset uuid=(test)></Asset>' },
+        }
+        const match = subscriptionLibrary.matchEvent(coreEvent)
+        expect(match).toBeDefined()
+        await match!.publish(coreEvent)
+        const sent = apiClientMock.send.mock.calls[0][1] as SubscriptionClientMessage
+        expect(isSubscriptionClientMessage(sent)).toBe(true)
+        expect(isContentHeadersExternal(sent.update)).toBe(true)
+        expect(sent.eventType).toBe(coreEvent.header.type)
+        expect(sent).toMatchObject({
+            messageType: 'StreamEvent',
+            dataSourceKey: 'mtw.assets.contentHeaders',
+            streamKey: 'ASSET#456',
+            timestamp: 1234567890,
+            eventType: 'Headers Updated',
+            RequestId: 'req-headers-1',
+            update: { assetId: 'ASSET#456', zone: 'Canon', wml: '<Asset uuid=(test)></Asset>' },
+        })
+    })
+
+    it('should round-trip mtw.assets.contentHeaders events through EventBridge, subscriptions, WebSocket, and ContentHeadersEventSerializer', async () => {
+        const coreAtSource = {
+            header: {
+                dataSourceKey: 'mtw.assets.contentHeaders',
+                streamKey: 'ASSET#456',
+                timestamp: 1234567890,
+                type: 'Headers Updated',
+                RequestId: 'req-headers-2',
+            },
+            update: { assetId: 'ASSET#456', zone: 'Canon', wml: '<Asset uuid=(test)></Asset>' },
+        }
+        const eventBridgeEvent = toEventBridgeFormat(coreAtSource)
+        const coreAtSubscriptions = fromEventBridgeFormat(eventBridgeEvent)
+        connectionDBMock.query.mockResolvedValue([{
+            ConnectionId: 'STREAM#mtw.assets.contentHeaders::Headers Updated::ASSET#456',
+            DataCategory: 'SESSION#SESSION123'
+        }])
+        internalCacheMock.SessionConnections.get.mockResolvedValue(['CONNECTION#CONN456'])
+        const match = subscriptionLibrary.matchEvent(coreAtSubscriptions)
+        expect(match).toBeDefined()
+        await match!.publish(coreAtSubscriptions)
+        const webSocketMessage = apiClientMock.send.mock.calls[0][1] as SubscriptionClientMessage
+        expect(isSubscriptionClientMessage(webSocketMessage)).toBe(true)
+        expect(isContentHeadersExternal(webSocketMessage.update)).toBe(true)
+        const coreAtClient = fromWebSocketFormat(webSocketMessage)
+        expect(coreAtClient.header.dataSourceKey).toBe('mtw.assets.contentHeaders')
+        expect(coreAtClient.header.streamKey).toBe('ASSET#456')
+        expect(coreAtClient.header.timestamp).toBe(1234567890)
+        expect(coreAtClient.header.type).toBe('Headers Updated')
+        expect(coreAtClient.header.RequestId).toBe('req-headers-2')
+        const serializer = new ContentHeadersEventSerializer()
+        const deserialized = await serializer.deserialize({
+            header: coreAtClient.header,
+            content: coreAtClient.update as Parameters<ContentHeadersEventSerializer['deserialize']>[0]['content'],
+        })
+        expect(deserialized).not.toBeNull()
+        expect(deserialized).toMatchObject({
+            assetId: 'ASSET#456',
+            zone: 'Canon',
+        })
+        expect(deserialized).toHaveProperty('standardForm')
     })
 
     it('should send mtw.assets.players events using unified WebSocketFormat pipeline', async () => {

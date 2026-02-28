@@ -73,7 +73,7 @@ type LibraryEntry = {
 
 #### Current Event Handlers
 - **WML (Merge Conflict, Content Update)**: Use the unified CoreExternalFormat/WebSocketFormat pipeline (`wireFormatsFromCoreFormat(coreFormat).webSocketFormat`). See `AGENT.coreExternalMigration.planning.md` for details.
-- **mtw.assets.contentHeaders, mtw.assets.library, mtw.assets.players**: Library and players use the unified pipeline; contentHeaders still uses a bespoke transform.
+- **mtw.assets.contentHeaders, mtw.assets.library, mtw.assets.players**: All use the unified CoreExternalFormat/WebSocketFormat pipeline; no bespoke transforms remain for these data sources.
 
 #### API Client (`apiClient.ts`)
 - **WebSocket Delivery**: Manages message sending to connected clients

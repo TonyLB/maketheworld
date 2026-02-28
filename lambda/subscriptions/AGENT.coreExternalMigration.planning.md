@@ -90,6 +90,10 @@ Status: **COMPLETED** – `mtw.assets.library` now uses the default `wireFormats
 
 **mtw.wml pilot (completed):** `mtw.wml` has been piloted on the unified pipeline. Merge Conflict and Content Update handlers no longer use bespoke transforms; they use the default path so that `SubscriptionEvent.publish` sends `wireFormatsFromCoreFormat(coreFormat).webSocketFormat`. WML WebSocket messages therefore get `eventType`, `dataSourceKey`, `streamKey`, `timestamp`, and extended header fields (e.g. `RequestIds`) from the canonical `toWebSocketFormat` merge. End-to-end tests in `handlerFramework/index.test.ts` cover the full path: EventBridge -> subscriptions -> WebSocket -> `fromWebSocketFormat` -> `WMLDataSourceEventSerializer.deserialize` for both Content Update and Merge Conflict.
 
+**mtw.assets.contentHeaders (completed):** The Headers Updated handler now uses the default `wireFormatsFromCoreFormat(coreFormat).webSocketFormat` path; the bespoke transform has been removed. RequestId remains at top level via the extended-header merge in `toWebSocketFormat`. Tests in `handlerFramework/index.test.ts` cover the unified pipeline for contentHeaders and the full round-trip through `ContentHeadersEventSerializer.deserialize`.
+
+**Step 3 rollout complete:** All data sources listed in step 3 (`mtw.wml`, `mtw.assets.contentHeaders`, `mtw.assets.players`) now use the unified pipeline; no handlers retain bespoke transforms for these sources.
+
 #### 4. Update documentation and contracts
 
 - Update `lambda/subscriptions/AGENT.md` to:

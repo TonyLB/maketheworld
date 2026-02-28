@@ -34,20 +34,6 @@ export const subscriptionLibrary = subscriptionLibraryConstructor([
     {
         dataSourceKey: 'mtw.assets.contentHeaders',
         type: 'Headers Updated',
-        transform: (event) => ({
-            messageType: 'StreamEvent',
-            eventType: event.header.type,
-            dataSourceKey: 'mtw.assets.contentHeaders',
-            streamKey: event.streamKey,
-            timestamp: event.timestamp,
-            update: {
-                type: 'Headers Updated',
-                assetId: event.assetId,
-                zone: event.zone,
-                RequestId: event.RequestId,
-                wml: event.schema
-            }
-        })
     },
     {
         dataSourceKey: 'mtw.assets.library',
