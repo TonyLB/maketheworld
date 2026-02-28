@@ -255,15 +255,15 @@ Situation is a component that carries **only** a `MarkFacetList` (world-state sl
 - [x] Add `'Situation'` to the `ComponentTag` type union (if not already included via schema).
 - [x] Add case to `componentTagFromUpperCase()`: `case 'SITUATION': return 'Situation'`.
 
-#### Step 4: Component data types (`standardize/components/dataTypes/situation.ts`)
+#### Step 4: Component data types (`standardize/components/dataTypes/situation.ts`) **(DONE)**
 
 **Location**: `packages/mtw-wml/ts/standardize/components/dataTypes/situation.ts` (new file)
 
-- Define `StandardSituationData` extending `StandardBaseData`:
+- [x] Define `StandardSituationData` extending `StandardBaseData`:
   - `tag: 'Situation'`
   - Optional `marks?: FacetListData<string>` for the MarkFacetList serialization (same pattern as `StandardGuidanceData` in `guidance.ts`).
-- Add `isStandardSituationData` type guard using `checkAll()` and `checkTypes()`.
-- Export from `dataTypes/index.ts`: export type and type guard; add to `StandardComponentNonEditData` union and to `isStandardComponentData()`.
+- [x] Add `isStandardSituationData` type guard using `checkAll()` and `checkTypes()`.
+- [x] Export from `dataTypes/index.ts`: export type and type guard; add to `StandardComponentNonEditData` union and to `isStandardComponentData()`.
 
 **Reference**: For marks-only structure, see `guidance.ts` (or `example.ts`) data type and how `MarkFacetList` is represented in serialization.
 
