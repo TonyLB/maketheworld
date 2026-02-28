@@ -72,8 +72,15 @@ type LibraryEntry = {
 ### Configuration
 
 #### Current Event Handlers
-- **WML Merge Conflicts**: Routes merge conflict events to subscribed clients
-- **WML Content Updates**: Transforms content updates with address obfuscation for client delivery
+- **WML (Merge Conflict, Content Update)**: Use the unified CoreExternalFormat/WebSocketFormat pipeline (`wireFormatsFromCoreFormat(coreFormat).webSocketFormat`).
+- **mtw.assets.contentHeaders, mtw.assets.library, mtw.assets.players**: All use the unified CoreExternalFormat/WebSocketFormat pipeline; no bespoke transforms remain for these data sources.
+
+#### Wire format (CoreExternalFormat / WebSocketFormat)
+
+- EventBridge events are converted with `fromEventBridgeFormat` to `CoreExternalFormat`; handlers are matched via `matchEvent(coreFormat)` on the header (`dataSourceKey`, `type`, `streamKey`).
+- Outgoing WebSocket messages are produced by `wireFormatsFromCoreFormat(coreFormat).webSocketFormat` (see `handlerFramework/baseClasses.ts` and `@tonylb/mtw-lambda-patterns/ts/dataSource`). No bespoke transforms remain for the current data sources.
+- `eventType` on the wire is the projection of `header.type`; extended header fields (e.g. `RequestIds`, `RequestId`) are merged to the top level of the WebSocket message.
+- Format types: `CoreExternalFormat`, `WebSocketFormat`, and transforms live in `packages/mtw-lambda-patterns/ts/dataSource/formatTransform.ts`; `SubscriptionClientMessage` and per-data-source external shapes live in `packages/mtw-interfaces/ts/subscriptions.ts` and the relevant `eventBridge` modules.
 
 #### API Client (`apiClient.ts`)
 - **WebSocket Delivery**: Manages message sending to connected clients
@@ -176,13 +183,20 @@ type LibraryEntry = {
 
 ## Development Notes
 
+### Migration context (unified pipeline)
+
+The subscriptions lambda was migrated to a unified CoreExternalFormat-to-WebSocketFormat pipeline. That migration fixed client-visible bugs (missing `eventType` on StreamEvent messages, deserializers dropping events) and aligned subscriptions with the rest of the system: one pipeline produces WebSocket messages from `CoreExternalFormat`, and the client uses `fromWebSocketFormat` plus DataSource serializers. Header is authoritative for routing; when adding new handlers, use the default path (see Wire format above and `handlerFramework/index.ts`, `baseClasses.ts`, `mtw-lambda-patterns` formatTransform, `mtw-interfaces` subscriptions and eventBridge).
+
+### Guardrails
+
+- When adding new handlers, use the default `wireFormatsFromCoreFormat` path and ensure messages pass `isSubscriptionClientMessage`; avoid hand-rolling WebSocket message shapes so `eventType` and extended header fields stay in sync with the canonical format.
+- Invariant tests in `packages/mtw-lambda-patterns` assert that `toWebSocketFormat` projects `header.type` into `eventType` and that `fromWebSocketFormat` reconstructs `header.type` from `eventType`; see that package's test suite.
+
 ### Current State
 - **Functional**: Successfully routes WML events to subscribed clients
 - **Configurable**: Library-based handler system supports easy event type addition
 - **Resilient**: Handles WebSocket failures and connection cleanup gracefully
 - **Provisional Player Stream Support**: When clients subscribe to `mtw.assets.players`, the lambda rewrites a sentinel stream key of `self` to the authenticated `PlayerName`. This shim lets the front-end adopt the new replayable player data source without first performing an explicit `whoAmI` call. Once subscription authorization gains richer context awareness, replace this rewrite with a generalized, policy-driven mechanism.
-
-For details on the planned migration to the unified `CoreExternalFormat` and `WebSocketFormat` pipeline for subscription messages, see `AGENT.coreExternalMigration.planning.md`.
 
 ### Future Plans
 - **Asset Event Integration**: Add handlers for Assets Lambda events
