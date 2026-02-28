@@ -17,6 +17,7 @@ import { StandardRoomData, isStandardRoomData } from "./room"
 import { StandardMarkData, isStandardMarkData } from "./mark"
 import { StandardLensData, isStandardLensData } from "./lens"
 import { StandardGuidanceData, isStandardGuidanceData } from "./guidance"
+import { StandardSituationData, isStandardSituationData } from "./situation"
 
 import { checkAll } from "./typeguards"
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
@@ -24,7 +25,7 @@ import { StandardEditableData } from "@tonylb/mtw-base/ts/editable"
 import { RenderTree } from "@tonylb/mtw-base/ts/renderTree"
 import { ReferenceListData } from "../../keys/dataTypes/reference"
 
-export { isStandardCharacterData, isStandardExampleData, isStandardRoomData, isStandardFeatureData, isStandardKnowledgeData, isStandardMapData, isStandardMessageData, isStandardMomentData, isStandardImageData, isStandardMarkData, isStandardLensData, isStandardGuidanceData }
+export { isStandardCharacterData, isStandardExampleData, isStandardRoomData, isStandardFeatureData, isStandardKnowledgeData, isStandardMapData, isStandardMessageData, isStandardMomentData, isStandardImageData, isStandardMarkData, isStandardLensData, isStandardGuidanceData, isStandardSituationData }
 
 export type StandardComponentNonEditData =
     StandardCharacterData |
@@ -38,7 +39,8 @@ export type StandardComponentNonEditData =
     StandardImageData |
     StandardMarkData |
     StandardLensData |
-    StandardGuidanceData
+    StandardGuidanceData |
+    StandardSituationData
 
 
 export const isStandardFactory = <T extends StandardComponentData>(tag: StandardComponentTag) => (value: StandardComponentData): value is T => (typeof value !== 'string' && value.tag === tag)
@@ -55,7 +57,8 @@ export const isStandardComponentData = (value: any): value is StandardComponentD
     isStandardImageData(value) ||
     isStandardMarkData(value) ||
     isStandardLensData(value) ||
-    isStandardGuidanceData(value)
+    isStandardGuidanceData(value) ||
+    isStandardSituationData(value)
 )
 
 

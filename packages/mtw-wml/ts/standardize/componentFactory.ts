@@ -4,6 +4,7 @@ import StandardCharacter from "./components/character"
 import StandardFeature from "./components/feature"
 import StandardExample from "./components/example"
 import StandardGuidance from "./components/guidance"
+import StandardSituation from "./components/situation"
 import StandardImage from "./components/image"
 import StandardKnowledge from "./components/knowledge"
 import StandardMap from "./components/map"
@@ -14,9 +15,9 @@ import StandardMark, { StandardLens } from "./components/worldState"
 import { isSchemaCharacter, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaTreeNode } from "../schema"
 import { StandardComponentData } from "./baseClasses"
-import { isStandardCharacterData, isStandardExampleData, isStandardFeatureData, isStandardGuidanceData, isStandardImageData, isStandardKnowledgeData, isStandardMapData, isStandardMessageData, isStandardMomentData, isStandardRoomData, isStandardMarkData, isStandardLensData } from "./components/dataTypes"
+import { isStandardCharacterData, isStandardExampleData, isStandardFeatureData, isStandardGuidanceData, isStandardImageData, isStandardKnowledgeData, isStandardMapData, isStandardMessageData, isStandardMomentData, isStandardRoomData, isStandardMarkData, isStandardLensData, isStandardSituationData } from "./components/dataTypes"
 import { isSchemaExample } from "@tonylb/mtw-base/ts/schema/example"
-import { isSchemaFeature, isSchemaGuidance, isSchemaKnowledge, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components"
+import { isSchemaFeature, isSchemaGuidance, isSchemaKnowledge, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaRoom, isSchemaSituation } from "@tonylb/mtw-base/ts/schema/components"
 import { isSchemaImage } from "@tonylb/mtw-base/ts/schema/image"
 import { isSchemaMark, isSchemaLens } from "@tonylb/mtw-base/ts/schema/worldState"
 
@@ -44,6 +45,9 @@ export const standardComponentFactory = (arg: StandardComponentData | GenericTre
         }
         if (isStandardGuidanceData(arg)) {
             return { component: new StandardGuidance(arg), remainder: [] }
+        }
+        if (isStandardSituationData(arg)) {
+            return { component: new StandardSituation(arg), remainder: [] }
         }
         if (isStandardRoomData(arg)) {
             return { component: new StandardRoom(arg), remainder: [] }
@@ -94,6 +98,11 @@ export const standardComponentFactory = (arg: StandardComponentData | GenericTre
     }
     if (treeNodeTypeguard(isSchemaGuidance)(node)) {
         const instance = new StandardGuidance(undefined as any)
+        const remainder = instance.fromSchema(node)
+        return { component: instance, remainder }
+    }
+    if (treeNodeTypeguard(isSchemaSituation)(node)) {
+        const instance = new StandardSituation(undefined as any)
         const remainder = instance.fromSchema(node)
         return { component: instance, remainder }
     }
