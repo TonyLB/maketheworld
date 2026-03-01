@@ -1,7 +1,8 @@
 import {
     EphemeraFeatureId,
     EphemeraKnowledgeId,
-    EphemeraRoomId
+    EphemeraRoomId,
+    EphemeraSituationId
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { RenderTree } from '@tonylb/mtw-base/ts/renderTree'
 
@@ -72,9 +73,14 @@ export const EPHEMERA_CACHE_PROVENANCE_GENERATED = 'generated' as const
 export type EphemeraPerspectiveId = string
 
 //
+// situationId: Optional link to the Situation UUID for Room cache records.
+// Used to target delete on ExampleRemoved when exampleId is SITUATION#.
+//
+
+//
 // authoredExampleId: Optional link back to the blueprint Example UUID
-// that generated this cache record. Used to target delete on
-// ExampleRemoved events.
+// that generated this cache record (Feature/Knowledge). Used to target
+// delete on ExampleRemoved events when exampleId is EXAMPLE#.
 //
 
 export type EphemeraAuthoredExampleId = string
@@ -89,6 +95,7 @@ export type EphemeraCacheRecord = {
     renderedContent: EphemeraCacheRenderedContent;
     provenance: EphemeraCacheProvenance;
     perspectiveId: EphemeraPerspectiveId;
+    situationId?: EphemeraSituationId;
     authoredExampleId?: EphemeraAuthoredExampleId;
 }
 
@@ -105,6 +112,7 @@ export type EphemeraCacheDynamoItem = {
     renderedContent: EphemeraCacheRenderedContent;
     provenance: EphemeraCacheProvenance;
     perspectiveId: EphemeraPerspectiveId;
+    situationId?: EphemeraSituationId;
     authoredExampleId?: EphemeraAuthoredExampleId;
 }
 

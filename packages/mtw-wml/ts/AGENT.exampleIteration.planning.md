@@ -1,6 +1,6 @@
  # Example / Situation Iteration - Conceptual Notes
 
- **Status: IN PROGRESS (Phases 1–3 implemented; Phases 4–6 planned)**
+ **Status: IN PROGRESS (Phases 1–4 implemented; Phases 5–6 planned)**
 
  This document captures a **second-iteration** direction for how Examples and world-state dependent descriptions might be modeled in WML and the standardization system. It is intentionally conceptual only:
 
@@ -200,7 +200,7 @@
 
 ## Implementation
 
-**Status: PLANNING (phased approach)**
+**Status: PLANNING (phased approach; Phases 1–4 done)**
 
 This section outlines a phased plan to implement the Situation + situation-facets model. The playbook for adding a new component type is documented in [`standardize/components/AGENT.implementation.md`](./standardize/components/AGENT.implementation.md) under "Adding a New Component Type." Each phase below maps to that playbook where applicable.
 
@@ -376,7 +376,7 @@ After Phase 3, the following hold:
 
 ---
 
-### Phase 4: Render cache
+### Phase 4: Render cache **(DONE)**
 
 **Goal**: Refactor the render cache (and any systems that depend on it) so that cache keys and stored data align with the Situation/situation-facet model instead of the Example model.
 
@@ -387,6 +387,25 @@ After Phase 3, the following hold:
 - This phase is intentionally called out separately because it is a “bigger refactor” with broad impact; it may be broken into sub-steps (e.g. dual-write, then cutover) as needed.
 
 **Depends on**: Phase 3 (lambdas already use Situation/situation facets where applicable).
+
+#### Implementation (Phase 4) **(DONE)**
+
+- [x] **Room-only**: Feature and Knowledge remain on `authoredExampleId`; StandardForm output unchanged (Option B).
+- [x] **baseClasses.ts**: Add optional `situationId?: EphemeraSituationId` to `EphemeraCacheRecord` and `EphemeraCacheDynamoItem`; keep `authoredExampleId` for Feature/Knowledge.
+- [x] **cacheAccess.ts**: Add `situationId` to `PutCacheRecordInput`; include in put item when provided.
+- [x] **Ephemera dataSource (componentExamples.ts)**: Write path set `situationId` when `isEphemeraSituationId(exampleId)`, else `authoredExampleId`. Invalidation filter by `situationId === exampleId || authoredExampleId === exampleId`.
+- [x] **componentRender.ts**: Room branch use `stateSliceId = firstRecord.situationId ?? firstRecord.authoredExampleId ?? 'EXAMPLE#rendered'` in all three places.
+- [x] **Tests**: cacheAccess (situationId include/omit), componentExamples (Room path situationId write, ExampleRemoved by situationId), componentRender (situationId on mock, prefer situationId over authoredExampleId).
+- [x] **Documentation**: renderCache/AGENT.md updated; planning doc checklist added.
+
+#### Verification (Phase 4)
+
+- [x] Room path writes cache records with `situationId` (not `authoredExampleId`).
+- [x] Feature/Knowledge path continues writing `authoredExampleId`.
+- [x] ExampleRemoved deletes Room records when `situationId === exampleId`.
+- [x] ExampleRemoved deletes Feature/Knowledge records when `authoredExampleId === exampleId`.
+- [x] componentRender Room branch uses `situationId ?? authoredExampleId` for state slice id.
+- [x] StandardForm output unchanged: Room.examples + StandardExample.
 
 ---
 

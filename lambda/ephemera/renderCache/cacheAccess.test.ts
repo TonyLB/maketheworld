@@ -133,6 +133,32 @@ describe('renderCache/cacheAccess', () => {
             const call = ephemeraDBMock.putItem.mock.calls[0][0]
             expect(call).not.toHaveProperty('authoredExampleId')
         })
+
+        it('includes situationId when provided', async () => {
+            ephemeraDBMock.putItem.mockResolvedValue(undefined)
+
+            await putCacheRecord(componentId, {
+                ...minimalRecord,
+                situationId: 'SITUATION#situation-uuid'
+            })
+
+            expect(ephemeraDBMock.putItem).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    EphemeraId: componentId,
+                    DataCategory: 'CACHE#new-uuid-1234',
+                    situationId: 'SITUATION#situation-uuid'
+                })
+            )
+        })
+
+        it('omits situationId when not provided', async () => {
+            ephemeraDBMock.putItem.mockResolvedValue(undefined)
+
+            await putCacheRecord(componentId, minimalRecord)
+
+            const call = ephemeraDBMock.putItem.mock.calls[0][0]
+            expect(call).not.toHaveProperty('situationId')
+        })
     })
 
     describe('deleteCacheRecord', () => {

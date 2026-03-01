@@ -63,9 +63,10 @@ There is no “cache per Example ID” or “RoomId + Mark state” key; this ke
 - `perspectiveId`: string
   - Deterministic id for the **ordered asset stack** that produced this render.
   - Computed from the assetStack (see below).
+- `situationId?: string`
+  - Optional link to the Situation UUID for **Room** cache records (Phase 4). Used to target delete on ExampleRemoved when `exampleId` is SITUATION#.
 - `authoredExampleId?: string`
-  - Optional link back to the blueprint Example UUID that produced this cache entry.
-  - Used to precisely delete cache entries when Examples are removed.
+  - Optional link back to the blueprint Example UUID for **Feature/Knowledge** cache records. Used to precisely delete cache entries when Examples are removed (exampleId is EXAMPLE#).
 
 #### EphemeraCacheDynamoItem (storage model)
 
@@ -73,7 +74,7 @@ Stored directly in DynamoDB:
 
 - `EphemeraId`: component id (Room/Feature/Knowledge).
 - `DataCategory`: `CACHE#${uuid}`.
-- `markState`, `renderedContent`, `provenance`, `perspectiveId`, `authoredExampleId?`.
+- `markState`, `renderedContent`, `provenance`, `perspectiveId`, `situationId?`, `authoredExampleId?`.
 
 `isEphemeraCacheDynamoItem` in `baseClasses.ts` enforces the expected shape at read time.
 
@@ -129,7 +130,7 @@ The `perspectiveId` computation is centralized in `lambda/ephemera/internalUtils
 - Write a single Dynamo item with:
   - `EphemeraId = componentId`
   - `DataCategory = 'CACHE#' + uuid`
-  - `record.markState`, `record.renderedContent`, `record.provenance`, `record.perspectiveId`, `record.authoredExampleId?`
+  - `record.markState`, `record.renderedContent`, `record.provenance`, `record.perspectiveId`, `record.situationId?`, `record.authoredExampleId?`
 - Used by:
   - `mtw.ephemera.examples` DataSource when mirroring authored Examples.
   - Future generation flows (e.g. LLM-based renders) to store generated content under `provenance.type = 'generated'`.
@@ -139,19 +140,19 @@ The `perspectiveId` computation is centralized in `lambda/ephemera/internalUtils
 - Delete the item with:
   - `EphemeraId = componentId`
   - `DataCategory = dataCategory`
-- Typically used after an in-memory filter step to select the correct records to delete (e.g. by `authoredExampleId`).
+- Typically used after an in-memory filter step to select the correct records to delete (e.g. by `situationId` or `authoredExampleId`).
 
 ### ExampleRemoved handling
 
-For Example removal, Ephemera:
+For Example/Situation removal, Ephemera:
 
 1. Receives an `ExampleRemoved` event from `mtw.assets.componentExamples` with `parentIds` and `exampleId`.
 2. For each parent:
    - Calls `queryCacheRecordsForComponent(parentId)`.
-   - Filters to records where `authoredExampleId === exampleId`.
+   - Filters to records where `situationId === exampleId` or `authoredExampleId === exampleId` (Room path uses situationId/SITUATION#; Feature/Knowledge use authoredExampleId/EXAMPLE#).
    - Calls `deleteCacheRecord(parentId, DataCategory)` for each match.
 
-This pattern keeps cache rows in sync with blueprint lifecycles without needing Example IDs in the primary key.
+This pattern keeps cache rows in sync with blueprint lifecycles without needing Example or Situation IDs in the primary key.
 
 ---
 

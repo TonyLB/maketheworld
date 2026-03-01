@@ -3,8 +3,8 @@
 //
 // Query, put, and delete CACHE# records in ephemeraDB. Each record is keyed by
 // EphemeraId (componentId) and DataCategory (CACHE#uuid). For ExampleRemoved:
-// call queryCacheRecordsForComponent(componentId), filter by authoredExampleId,
-// then deleteCacheRecord(componentId, item.DataCategory) for each match.
+// call queryCacheRecordsForComponent(componentId), filter by situationId or
+// authoredExampleId (depending on event exampleId), then deleteCacheRecord for each match.
 //
 
 import { v4 as uuidv4 } from 'uuid'
@@ -20,13 +20,14 @@ export type PutCacheRecordInput = {
     renderedContent: EphemeraCacheDynamoItem['renderedContent'];
     provenance: EphemeraCacheDynamoItem['provenance'];
     perspectiveId: EphemeraCacheDynamoItem['perspectiveId'];
+    situationId?: EphemeraCacheDynamoItem['situationId'];
     authoredExampleId?: EphemeraCacheDynamoItem['authoredExampleId'];
 };
 
 /**
  * Query all cache records for a component (Room, Feature, or Knowledge).
  * Returns items including DataCategory for use with deleteCacheRecord.
- * Filtering by authoredExampleId is done by callers (e.g. Phase 2b ExampleRemoved).
+ * Filtering by situationId or authoredExampleId is done by callers (e.g. ExampleRemoved).
  */
 export async function queryCacheRecordsForComponent(
     componentId: EphemeraCacheComponentId
@@ -56,6 +57,7 @@ export async function putCacheRecord(
         renderedContent: record.renderedContent,
         provenance: record.provenance,
         perspectiveId: record.perspectiveId,
+        ...(record.situationId !== undefined && { situationId: record.situationId }),
         ...(record.authoredExampleId !== undefined && { authoredExampleId: record.authoredExampleId })
     }
     await ephemeraDB.putItem(item)
