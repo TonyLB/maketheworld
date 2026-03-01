@@ -97,7 +97,7 @@ describe("SituationRoomFacet and SituationRoomFacetList", () => {
                 description: ["Desc"],
             })
             const facet = new StandardSituationRoomFacet(data)
-            const json = facet.toJSON()
+            const json = facet.toJSON() as StandardFacetData<SituationRoomFacetPayloadType>
             const facet2 = new StandardSituationRoomFacet(json)
             expect(facet2.reference.sameKey(facet.reference)).toBe(true)
             expect(facet2.payload.toJSON()).toEqual(facet.payload.toJSON())

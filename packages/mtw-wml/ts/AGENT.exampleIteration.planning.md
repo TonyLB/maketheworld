@@ -1,6 +1,6 @@
  # Example / Situation Iteration - Conceptual Notes
 
- **Status: PLANNING (implementation plan in place; no implementation work started)**
+ **Status: IN PROGRESS (Phase 1 and Phase 2 implemented; Phases 3–6 planned)**
 
  This document captures a **second-iteration** direction for how Examples and world-state dependent descriptions might be modeled in WML and the standardization system. It is intentionally conceptual only:
 
@@ -316,12 +316,31 @@ After Phase 1, the following should hold:
 
 **Scope** (data model and standardization only; no client UI or lambda behavior yet):
 
-- Define situation-facet payload types and list types for **Room only**: `SituationRoomFacetList`, `SituationRoomFacet` with payload `{ name?, summary?, description? }` (or equivalent; align with StandardRender/DisplayName/Summary/Description). Analogous types for Feature and Knowledge can be added in a later iteration.
+- Define situation-facet payload types and list types for **Room only**: `SituationRoomFacetList`, `StandardSituationRoomFacet` with payload `{ displayName?, summary?, description? }` (StandardRender/DisplayName/Summary/Description). Analogous types for Feature and Knowledge can be added in a later iteration.
 - Add `situations: SituationRoomFacetList` to `StandardRoom` only. Keep existing `examples: ReferenceList` unchanged. Follow existing facet-list patterns (e.g. `StandardizeConsumerFacetList*`; no change to `assureReferences` for situation facets).
 - Update WML schema and serialization: define how situation facets are represented in WML (e.g. `<Situation ref=(...)><DisplayName>...</DisplayName></Situation>` or equivalent) and ensure round-trip with StandardForm.
 - StandardForm merge/diff/subset and component factory must work with the new `situations` facet list on Room. No requirement in Phase 2 to migrate existing code that reads `examples`; that migration is incremental in Phases 3–5.
 
 **Depends on**: Phase 1 (Situation component exists).
+
+#### Implementation (Phase 2) **(DONE)**
+
+- [x] **Situation room facet** ([`standardize/keys/facets/situationRoom.ts`](./standardize/keys/facets/situationRoom.ts)): Define `SituationRoomFacetPayloadType`, `SituationRoomFacetPayload` class, `StandardSituationRoomFacet`, `SituationRoomFacetList`, `isSituationRoomFacetPayload`; implement fromSchema (parse DisplayName/Summary/Description from Situation node children), renderFacet, merge/diff/invert; export from keys index.
+- [x] **Room data type** ([`standardize/components/dataTypes/room.ts`](./standardize/components/dataTypes/room.ts)): Add `situations?: FacetListData<SituationRoomFacetPayloadType>` and `situations: 'facetList'` in type guard; add `features: 'referenceList'` for consistency.
+- [x] **fromSchema consumer** ([`standardize/components/fromSchemaPipeline.ts`](./standardize/components/fromSchemaPipeline.ts)): Add `StandardizeConsumerFacetListSituation`; match Situation children, build SituationRoomFacetList, strip DisplayName/Summary/Description for return remainder.
+- [x] **Room payload and component** ([`standardize/components/room.ts`](./standardize/components/room.ts)): Add `_situations`, constructor/fromJSON/toJSON/getter; insert Situation consumer before Example in fromSchema; wire merge, invert, referencedKeys, remapReferences, isEmpty, schema(), nestedSchema(), equals.
+- [x] **Tests**: [`standardize/keys/facets/situationRoom.test.ts`](./standardize/keys/facets/situationRoom.test.ts) (payload, facet, list, round-trip toJSON); [`standardize/components/room.test.ts`](./standardize/components/room.test.ts) (Room with situations from JSON, Room with Situation facet from WML and round-trip).
+
+#### Verification (Phase 2)
+
+After Phase 2, the following hold:
+
+- [x] Room has `situations: SituationRoomFacetList` alongside `examples`; both coexist.
+- [x] Room from JSON with `situations` round-trips; Room from WML with `<Situation ref=(...)><DisplayName>...</DisplayName></Situation>` under Room parses and emits Situation in schema (facet reference and key preserved).
+- [x] StandardForm merge/diff/subset and component factory work with Room's `situations`; no change to `assureReferences` for situation facets.
+- [x] All new unit tests pass.
+
+**Note**: Full WML round-trip of situation-facet payload (DisplayName/Summary/Description) from parse can be refined in a follow-up if the aggregator does not populate Situation node children in all parse paths; JSON round-trip and schema emission are correct.
 
 ---
 
