@@ -87,6 +87,43 @@ describe('handleComponentExamplesEvent (mtw.ephemera.examples)', () => {
         )
     })
 
+    it('writes cache records with situationId when exampleId is SITUATION# (Room path)', async () => {
+        const {
+            deps,
+            putCacheRecord,
+            computePerspectiveId
+        } = makeDeps()
+
+        const event: ComponentExamplesMirrorEvent = {
+            type: 'ExampleUpdated',
+            exampleId: 'SITUATION#situation-one',
+            parentIds: ['ROOM#room-one'],
+            assetStack: ['ASSET#one'],
+            example: {
+                markState: { markValue: [] },
+                renderedContent: { description: [] },
+                provenance: { type: 'authored' }
+            }
+        }
+
+        await handleComponentExamplesEvent(event, deps)
+
+        expect(computePerspectiveId).toHaveBeenCalledWith(['ASSET#one'])
+        expect(putCacheRecord).toHaveBeenCalledTimes(1)
+        expect(putCacheRecord).toHaveBeenCalledWith(
+            'ROOM#room-one',
+            expect.objectContaining({
+                markState: event.example.markState,
+                renderedContent: event.example.renderedContent,
+                provenance: event.example.provenance,
+                perspectiveId: 'PERSPECTIVE#abc123',
+                situationId: 'SITUATION#situation-one'
+            })
+        )
+        const putArg = putCacheRecord.mock.calls[0][1]
+        expect(putArg).not.toHaveProperty('authoredExampleId')
+    })
+
     it('deletes cache records for ExampleRemoved across all parents', async () => {
         const {
             deps,
@@ -133,6 +170,50 @@ describe('handleComponentExamplesEvent (mtw.ephemera.examples)', () => {
         expect(deleteCacheRecord).toHaveBeenCalledTimes(2)
         expect(deleteCacheRecord).toHaveBeenCalledWith('ROOM#one', 'CACHE#one')
         expect(deleteCacheRecord).toHaveBeenCalledWith('FEATURE#two', 'CACHE#one')
+    })
+
+    it('deletes cache records by situationId when exampleId is SITUATION#', async () => {
+        const {
+            deps,
+            queryCacheRecordsForComponent,
+            deleteCacheRecord
+        } = makeDeps()
+
+        const records: EphemeraCacheDynamoItem[] = [
+            {
+                EphemeraId: 'ROOM#one' as any,
+                DataCategory: 'CACHE#one',
+                markState: { markValue: [] },
+                renderedContent: { description: [] },
+                provenance: { type: 'authored' },
+                perspectiveId: 'PERSPECTIVE#abc123',
+                situationId: 'SITUATION#situation-one'
+            },
+            {
+                EphemeraId: 'ROOM#one' as any,
+                DataCategory: 'CACHE#two',
+                markState: { markValue: [] },
+                renderedContent: { description: [] },
+                provenance: { type: 'authored' },
+                perspectiveId: 'PERSPECTIVE#def456',
+                situationId: 'SITUATION#situation-two'
+            }
+        ]
+
+        queryCacheRecordsForComponent.mockResolvedValue(records)
+
+        const event: ComponentExamplesMirrorEvent = {
+            type: 'ExampleRemoved',
+            exampleId: 'SITUATION#situation-one',
+            parentIds: ['ROOM#one'],
+            assetStack: ['ASSET#one']
+        }
+
+        await handleComponentExamplesEvent(event, deps)
+
+        expect(queryCacheRecordsForComponent).toHaveBeenCalledWith('ROOM#one')
+        expect(deleteCacheRecord).toHaveBeenCalledTimes(1)
+        expect(deleteCacheRecord).toHaveBeenCalledWith('ROOM#one', 'CACHE#one')
     })
 })
 

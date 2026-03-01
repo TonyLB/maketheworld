@@ -163,7 +163,7 @@ export class ComponentRenderData {
                 : undefined;
             let naiveFirstExample: StandardExample | undefined;
             if (firstRecord) {
-                const stateSliceId = (firstRecord.authoredExampleId ?? 'EXAMPLE#rendered') as ComponentUUID;
+                const stateSliceId = (firstRecord.situationId ?? firstRecord.authoredExampleId ?? 'EXAMPLE#rendered') as ComponentUUID;
                 const { renderedContent } = firstRecord;
                 naiveFirstExample = new StandardExample({
                     tag: 'Example',
@@ -201,7 +201,7 @@ export class ComponentRenderData {
                 universalKey: EphemeraId,
                 ...(exits.length ? { exits } : {}),
                 examples: (naiveFirstExample
-                    ? [firstRecord?.authoredExampleId ?? 'EXAMPLE#rendered']
+                    ? [firstRecord?.situationId ?? firstRecord?.authoredExampleId ?? 'EXAMPLE#rendered']
                     : []) as StandardRoomData['examples'],
                 characters: roomCharacterList.map(char => char.EphemeraId),
                 shortName: shortName?.toJSON()
@@ -229,7 +229,7 @@ export class ComponentRenderData {
 
             if (naiveFirstExample) {
                 const example = naiveFirstExample.clone();
-                example._universalKey = (firstRecord?.authoredExampleId ?? 'EXAMPLE#rendered') as ComponentUUID;
+                example._universalKey = (firstRecord?.situationId ?? firstRecord?.authoredExampleId ?? 'EXAMPLE#rendered') as ComponentUUID;
                 formComponents.push(example.toJSON());
             }
 

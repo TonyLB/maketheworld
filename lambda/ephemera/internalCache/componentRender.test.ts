@@ -86,7 +86,7 @@ describe('ComponentRender cache handler', () => {
             },
             provenance: { type: 'authored' as const },
             perspectiveId: 'PERSPECTIVE#test',
-            authoredExampleId: 'SITUATION#situation-one',
+            situationId: 'SITUATION#situation-one',
         }
         ;(internalCache.ComponentRender as any)._queryCacheRecordsForComponent = jest.fn().mockResolvedValue([cacheRecord])
         jest.spyOn(internalCache.Examples, "get")
@@ -115,6 +115,49 @@ describe('ComponentRender cache handler', () => {
         expect(schemaToWML([descriptionOutput.schema])).toContain('Cache Summary')
         expect(schemaToWML([descriptionOutput.schema])).toContain('Cache description content')
         expect(schemaToWML([descriptionOutput.schema])).toContain('SITUATION#situation-one')
+        expect(internalCache.Examples.get).not.toHaveBeenCalled()
+    })
+
+    it('should prefer situationId over authoredExampleId when both present (Phase 4)', async () => {
+        const cacheRecord = {
+            EphemeraId: 'ROOM#TestOne',
+            DataCategory: 'CACHE#test-uuid',
+            markState: { markValue: [] },
+            renderedContent: {
+                displayName: ['From situationId'],
+                summary: ['Summary'],
+                description: ['Description'],
+            },
+            provenance: { type: 'authored' as const },
+            perspectiveId: 'PERSPECTIVE#test',
+            situationId: 'SITUATION#primary',
+            authoredExampleId: 'EXAMPLE#legacy',
+        }
+        ;(internalCache.ComponentRender as any)._queryCacheRecordsForComponent = jest.fn().mockResolvedValue([cacheRecord])
+        jest.spyOn(internalCache.Examples, "get")
+        jest.spyOn(internalCache.Global, "get").mockResolvedValue(['Base'])
+        jest.spyOn(internalCache.CharacterMeta, "get").mockResolvedValue({
+            EphemeraId: 'CHARACTER#Test',
+            Name: 'Tess',
+            assets: [],
+            RoomId: 'ROOM#VORTEX',
+            RoomStack: [],
+            HomeId: 'ROOM#VORTEX',
+            Pronouns: 'she/her',
+        })
+        jest.spyOn(internalCache.ComponentMeta, "getAcrossAssets").mockResolvedValue({
+            [`ASSET#Base`]: new StandardRoom({
+                universalKey: 'ROOM#TestOne',
+                tag: 'Room',
+                shortName: 'TestRoom',
+                exits: [],
+                examples: [],
+            }),
+        })
+        jest.spyOn(internalCache.RoomCharacterList, "get").mockResolvedValue([])
+        const descriptionOutput = await internalCache.ComponentRender.get('CHARACTER#TESS', 'ROOM#TestOne')
+        expect(schemaToWML([descriptionOutput.schema])).toContain('SITUATION#primary')
+        expect(schemaToWML([descriptionOutput.schema])).not.toContain('EXAMPLE#legacy')
         expect(internalCache.Examples.get).not.toHaveBeenCalled()
     })
 

@@ -19,7 +19,8 @@ import {
 import {
     isEphemeraFeatureId,
     isEphemeraKnowledgeId,
-    isEphemeraRoomId
+    isEphemeraRoomId,
+    isEphemeraSituationId
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { computePerspectiveId } from '../internalUtils/perspectiveId'
 
@@ -98,7 +99,7 @@ export const handleComponentExamplesEvent = async (
             renderedContent: example.renderedContent,
             provenance: example.provenance,
             perspectiveId,
-            authoredExampleId: exampleId
+            ...(isEphemeraSituationId(exampleId) ? { situationId: exampleId } : { authoredExampleId: exampleId })
         }
 
         await Promise.all(
@@ -130,7 +131,8 @@ export const handleComponentExamplesEvent = async (
                     try {
                         const records = await queryRecords(parentId)
                         const matches = records.filter(
-                            (item: EphemeraCacheDynamoItem) => item.authoredExampleId === exampleId
+                            (item: EphemeraCacheDynamoItem) =>
+                                item.situationId === exampleId || item.authoredExampleId === exampleId
                         )
                         await Promise.all(
                             matches.map((item) => deleteRecord(parentId, item.DataCategory))
