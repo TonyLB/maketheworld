@@ -35,6 +35,8 @@ export type { ExitPayload } from "./facets/dataTypes/facet";
 export { StandardPositionFacet, PositionFacetList } from "./facets/position";
 export { StandardMarkFacet, MarkFacetList } from "./facets/mark";
 export { StandardExitFacet, ExitFacetList } from "./facets/exit";
+export { StandardSituationRoomFacet, SituationRoomFacetList, SituationRoomFacetPayload, isSituationRoomFacetPayload } from "./facets/situationRoom";
+export type { SituationRoomFacetPayloadType } from "./facets/situationRoom";
 
 // Export abstract interfaces
 export type { StandardFacet as StandardFacetInterface, FacetList as FacetListInterface, FacetListData } from "./abstract";

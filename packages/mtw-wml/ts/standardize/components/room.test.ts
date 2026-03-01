@@ -94,6 +94,44 @@ describe('StandardRoom class', () => {
         expect(testRoom.toJSON()).toEqual(testRoomData)
     })
 
+    it('should construct StandardRoom from StandardRoomData with situations', () => {
+        const testRoomData: StandardRoomData = {
+            key: 'test',
+            tag: 'Room',
+            situations: [
+                {
+                    reference: { tag: 'Situation', key: 'bright', universalKey: 'SITUATION#bright' },
+                    payload: { displayName: ['Bright Lobby'] }
+                }
+            ]
+        }
+        const testRoom = new StandardRoom(testRoomData)
+        expect(testRoom.situations).toBeDefined()
+        expect(testRoom.situations.length).toBe(1)
+        expect(testRoom.situations.items[0].reference.key).toBe('bright')
+        expect(testRoom.situations.items[0].payload.toJSON()).toMatchObject({ displayName: ['Bright Lobby'] })
+        expect(testRoom.toJSON().situations).toBeDefined()
+        expect(testRoom.toJSON().situations).toHaveLength(1)
+    })
+
+    it('should parse Room with Situation facet from WML and round-trip', () => {
+        const testSource = deIndentWML(`
+            <Room key=(lobby) uuid=(123)>
+                <ShortName>Lobby</ShortName>
+                <Situation key=(bright) ref={0}>
+                    <DisplayName>Bright Lobby</DisplayName>
+                </Situation>
+            </Room>
+        `)
+        const testRoom = new StandardRoom(testSource)
+        expect(testRoom.key).toBe('lobby')
+        expect(testRoom.situations.length).toBe(1)
+        expect(testRoom.situations.items[0].reference.key).toBe('bright')
+        const roundTrip = schemaToWML([testRoom.schema])
+        expect(roundTrip).toContain('Situation')
+        expect(roundTrip).toContain('key=(bright)')
+    })
+
     it('should construct StandardRoom from StandardRoomData with missing exits', () => {
         const testRoomDataWithoutExits: StandardRoomData = {
             key: 'test',
