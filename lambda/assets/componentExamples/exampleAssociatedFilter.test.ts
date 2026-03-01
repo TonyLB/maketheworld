@@ -28,50 +28,56 @@ describe('exampleAssociatedFilter', () => {
 
     describe('isExampleAssociatedComponent', () => {
         it('should return true for Example regardless of examples field', () => {
-            expect(isExampleAssociatedComponent({ tag: 'Example' } as StandardComponent)).toBe(true)
-            expect(isExampleAssociatedComponent({ tag: 'Example', examples: { payload: [] } } as StandardComponent)).toBe(true)
+            expect(isExampleAssociatedComponent({ tag: 'Example' } as unknown as StandardComponent)).toBe(true)
+            expect(isExampleAssociatedComponent({ tag: 'Example', examples: { payload: [] } } as unknown as StandardComponent)).toBe(true)
         })
 
-        it('should return true for Room, Feature, Knowledge when examples has non-zero length', () => {
+        it('should return true for Room only when situations has non-zero length (Phase 3: situations-only)', () => {
+            const withSituations = { items: [{ reference: { universalKey: 'SITUATION#x' }, payload: {} }] }
+            expect(isExampleAssociatedComponent({ tag: 'Room', situations: withSituations } as unknown as StandardComponent)).toBe(true)
+            expect(isExampleAssociatedComponent({ tag: 'Room', examples: { payload: [{ tag: 'Example', universalKey: 'EXAMPLE#x' }] } } as unknown as StandardComponent)).toBe(false)
+        })
+
+        it('should return true for Feature, Knowledge when examples has non-zero length', () => {
             const withExamples = { payload: [{ tag: 'Example', universalKey: 'EXAMPLE#x' }] }
-            expect(isExampleAssociatedComponent({ tag: 'Room', examples: withExamples } as StandardComponent)).toBe(true)
-            expect(isExampleAssociatedComponent({ tag: 'Feature', examples: withExamples } as StandardComponent)).toBe(true)
-            expect(isExampleAssociatedComponent({ tag: 'Knowledge', examples: withExamples } as StandardComponent)).toBe(true)
+            expect(isExampleAssociatedComponent({ tag: 'Feature', examples: withExamples } as unknown as StandardComponent)).toBe(true)
+            expect(isExampleAssociatedComponent({ tag: 'Knowledge', examples: withExamples } as unknown as StandardComponent)).toBe(true)
         })
 
-        it('should return false for Room, Feature, Knowledge when examples is missing', () => {
-            expect(isExampleAssociatedComponent({ tag: 'Room' } as StandardComponent)).toBe(false)
-            expect(isExampleAssociatedComponent({ tag: 'Feature' } as StandardComponent)).toBe(false)
-            expect(isExampleAssociatedComponent({ tag: 'Knowledge' } as StandardComponent)).toBe(false)
+        it('should return false for Room, Feature, Knowledge when examples/situations is missing', () => {
+            expect(isExampleAssociatedComponent({ tag: 'Room' } as unknown as StandardComponent)).toBe(false)
+            expect(isExampleAssociatedComponent({ tag: 'Feature' } as unknown as StandardComponent)).toBe(false)
+            expect(isExampleAssociatedComponent({ tag: 'Knowledge' } as unknown as StandardComponent)).toBe(false)
         })
 
-        it('should return false for Room, Feature, Knowledge when examples.payload is empty', () => {
-            expect(isExampleAssociatedComponent({ tag: 'Room', examples: { payload: [] } } as StandardComponent)).toBe(false)
-            expect(isExampleAssociatedComponent({ tag: 'Feature', examples: { payload: [] } } as StandardComponent)).toBe(false)
-            expect(isExampleAssociatedComponent({ tag: 'Knowledge', examples: { payload: [] } } as StandardComponent)).toBe(false)
+        it('should return false for Room when situations.items is empty; Feature, Knowledge when examples.payload is empty', () => {
+            expect(isExampleAssociatedComponent({ tag: 'Room', situations: { items: [] } } as unknown as StandardComponent)).toBe(false)
+            expect(isExampleAssociatedComponent({ tag: 'Room', examples: { payload: [] } } as unknown as StandardComponent)).toBe(false)
+            expect(isExampleAssociatedComponent({ tag: 'Feature', examples: { payload: [] } } as unknown as StandardComponent)).toBe(false)
+            expect(isExampleAssociatedComponent({ tag: 'Knowledge', examples: { payload: [] } } as unknown as StandardComponent)).toBe(false)
         })
 
         it('should return false for Room, Feature, Knowledge when examples.payload is undefined', () => {
-            expect(isExampleAssociatedComponent({ tag: 'Room', examples: {} } as StandardComponent)).toBe(false)
+            expect(isExampleAssociatedComponent({ tag: 'Room', examples: {} } as unknown as StandardComponent)).toBe(false)
         })
 
         it('should return false for Character, Message, Guidance, Lens, Mark', () => {
-            expect(isExampleAssociatedComponent({ tag: 'Character' } as StandardComponent)).toBe(false)
-            expect(isExampleAssociatedComponent({ tag: 'Message' } as StandardComponent)).toBe(false)
-            expect(isExampleAssociatedComponent({ tag: 'Guidance' } as StandardComponent)).toBe(false)
-            expect(isExampleAssociatedComponent({ tag: 'Lens' } as StandardComponent)).toBe(false)
-            expect(isExampleAssociatedComponent({ tag: 'Mark' } as StandardComponent)).toBe(false)
+            expect(isExampleAssociatedComponent({ tag: 'Character' } as unknown as StandardComponent)).toBe(false)
+            expect(isExampleAssociatedComponent({ tag: 'Message' } as unknown as StandardComponent)).toBe(false)
+            expect(isExampleAssociatedComponent({ tag: 'Guidance' } as unknown as StandardComponent)).toBe(false)
+            expect(isExampleAssociatedComponent({ tag: 'Lens' } as unknown as StandardComponent)).toBe(false)
+            expect(isExampleAssociatedComponent({ tag: 'Mark' } as unknown as StandardComponent)).toBe(false)
         })
 
         it('should return false for other component tags', () => {
-            expect(isExampleAssociatedComponent({ tag: 'Map' } as StandardComponent)).toBe(false)
-            expect(isExampleAssociatedComponent({ tag: 'Image' } as StandardComponent)).toBe(false)
-            expect(isExampleAssociatedComponent({ tag: 'Moment' } as StandardComponent)).toBe(false)
+            expect(isExampleAssociatedComponent({ tag: 'Map' } as unknown as StandardComponent)).toBe(false)
+            expect(isExampleAssociatedComponent({ tag: 'Image' } as unknown as StandardComponent)).toBe(false)
+            expect(isExampleAssociatedComponent({ tag: 'Moment' } as unknown as StandardComponent)).toBe(false)
         })
 
         it('should return false when tag is missing or not in set', () => {
-            expect(isExampleAssociatedComponent({} as StandardComponent)).toBe(false)
-            expect(isExampleAssociatedComponent({ tag: 'Other' } as StandardComponent)).toBe(false)
+            expect(isExampleAssociatedComponent({} as unknown as StandardComponent)).toBe(false)
+            expect(isExampleAssociatedComponent({ tag: 'Other' } as unknown as StandardComponent)).toBe(false)
         })
     })
 })

@@ -1,6 +1,6 @@
  # Example / Situation Iteration - Conceptual Notes
 
- **Status: IN PROGRESS (Phase 1 and Phase 2 implemented; Phases 3–6 planned)**
+ **Status: IN PROGRESS (Phases 1–3 implemented; Phases 4–6 planned)**
 
  This document captures a **second-iteration** direction for how Examples and world-state dependent descriptions might be modeled in WML and the standardization system. It is intentionally conceptual only:
 
@@ -344,7 +344,7 @@ After Phase 2, the following hold:
 
 ---
 
-### Phase 3: Lambdas (non–render cache)
+### Phase 3: Lambdas (non–render cache) **(DONE)**
 
 **Goal**: Migrate **assets** and **ephemera** lambdas to use `situations` (Situation/situation-facet data) as the primary source for world-state-specific content. Excludes the render cache; that is Phase 4. During and after migration, `examples` can remain supported (e.g. fallback or legacy) until Phase 6 cleanup.
 
@@ -356,6 +356,23 @@ After Phase 2, the following hold:
 - Do **not** yet change how the render cache is keyed or populated; that is the larger refactor in Phase 4.
 
 **Depends on**: Phase 2 (StandardForm and WML have `situations` facet lists).
+
+#### Implementation (Phase 3) **(DONE)**
+
+- [x] **Scope**: Room-only; Feature and Knowledge remain on `examples`. Stream and event names unchanged (`mtw.assets.componentExamples`, ExampleAdded/Updated/Removed). `exampleId` may be an Example uuid or a Situation uuid; situation-facet payload uses the same shape as Example payload. Render cache keying/population unchanged (Phase 4).
+- [x] **Event contract** (`packages/mtw-interfaces/ts/eventBridge/assets/componentExamples.ts`): Migration comments (e.g. `exampleId` may be Example or Situation uuid).
+- [x] **Assets**: `exampleAssociatedFilter` (Room associated only when `situations`; not `examples`); `exampleEnrichment.situationFacetToCacheShape`; `componentExamples/index` Room path emits situation-facet events on `mtw.assets.componentExamples`.
+- [x] **Ephemera**: `componentRender` Room branch prefers `queryCacheRecordsForComponent` then falls back to ExamplesData; wiring in `internalCache/index.ts`.
+- [x] **EphemeraId** (`packages/mtw-interfaces/ts/baseClasses.ts`): Added `SITUATION` to EphemeraId, `EphemeraSituationId`, `isEphemeraSituationId` so `ComponentData.get` accepts Situation ids.
+
+#### Verification (Phase 3)
+
+After Phase 3, the following hold:
+
+- [x] Room is Example-associated only when it has non-empty `situations`; `examples` does not drive Room association.
+- [x] Assets Room path emits situation-facet events (exampleId = situation uuid); Feature/Knowledge paths unchanged.
+- [x] Ephemera componentRender Room branch prefers render cache, then falls back to ExamplesData.
+- [x] Render cache keying/population unchanged (Phase 4).
 
 ---
 
