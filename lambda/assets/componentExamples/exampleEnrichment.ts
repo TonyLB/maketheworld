@@ -1,12 +1,16 @@
 import internalCache from '../internalCache'
+import type { EphemeraId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { AssetUUID, ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 import StandardExample from '@tonylb/mtw-wml/ts/standardize/components/example'
+import { isStandardExampleData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/example'
+import StandardSituation from '@tonylb/mtw-wml/ts/standardize/components/situation'
 import { StandardRoom } from '@tonylb/mtw-wml/ts/standardize/components/room'
 import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
 import StandardKnowledge from '@tonylb/mtw-wml/ts/standardize/components/knowledge'
 import { ReferenceList } from '@tonylb/mtw-wml/ts/standardize/keys/referenceList'
 import { StandardMarkFacet } from '@tonylb/mtw-wml/ts/standardize/keys/facets/mark'
+import { SituationRoomFacetPayload } from '@tonylb/mtw-wml/ts/standardize/keys/facets/situationRoom'
 import { RenderTree } from '@tonylb/mtw-base/ts/renderTree'
 import { StandardEditableData, extractFromEditableData } from '@tonylb/mtw-base/ts/editable'
 import { excludeUndefined } from '@tonylb/mtw-utilities/ts/lists'
@@ -205,32 +209,23 @@ export const mergeExampleAcrossStack = (
         {}
     )
 
-    const examplesInOrder = byAssets
+    const withIndex = byAssets
         .map(({ AssetId, component }) => {
-            if (!(component instanceof StandardExample)) {
-                return undefined
-            }
+            if (!(component instanceof StandardExample)) return undefined
             const index = indexByAsset[AssetId]
-            if (typeof index === 'number') {
-                return {
-                    index,
-                    example: component,
-                }
-            }
-            return undefined
+            if (typeof index !== 'number') return undefined
+            return { index, example: component } as { index: number; example: StandardExample }
         })
         .filter(excludeUndefined)
         .sort((a, b) => a.index - b.index)
-        .map(({ example }) => example)
 
-    if (!examplesInOrder.length) {
-        return undefined
+    if (!withIndex.length) return undefined
+
+    let merged: StandardExample = withIndex[0].example as StandardExample
+    for (let i = 1; i < withIndex.length; i++) {
+        merged = merged.merge(withIndex[i].example) as StandardExample
     }
-
-    return examplesInOrder.slice(1).reduce(
-        (merged, next) => merged.merge(next),
-        examplesInOrder[0]
-    )
+    return merged
 }
 
 export const exampleToCacheShape = (example: StandardExample): ComponentExamplesPayload => {
@@ -240,7 +235,7 @@ export const exampleToCacheShape = (example: StandardExample): ComponentExamples
     const markValue: ComponentExamplesMarkValue[] =
         example.marks.items.map((facet) => {
             const markFacet = facet as StandardMarkFacet
-            const mark = markFacet.reference.universalKey
+            const mark = String(markFacet.reference.universalKey ?? '')
             const payload = markFacet.payload as any
 
             let value = ''
@@ -268,19 +263,19 @@ export const exampleToCacheShape = (example: StandardExample): ComponentExamples
     // Extract RenderTree content from StandardRender / StandardEditableData
     //
     const json = example.toJSON()
+    if (!isStandardExampleData(json)) {
+        throw new Error('Expected StandardExampleData from example.toJSON()')
+    }
 
     const toRenderTree = (editable?: StandardEditableData<RenderTree>): RenderTree | undefined => {
-        if (!editable) {
-            return undefined
-        }
+        if (!editable) return undefined
         const trees = extractFromEditableData<RenderTree>(editable)
         return trees[0]
     }
 
-    const displayName = toRenderTree(json.displayName as StandardEditableData<RenderTree> | undefined)
-    const summary = toRenderTree(json.summary as StandardEditableData<RenderTree> | undefined)
-    const description =
-        toRenderTree(json.description as StandardEditableData<RenderTree> | undefined) ?? []
+    const displayName = toRenderTree(json.displayName)
+    const summary = toRenderTree(json.summary)
+    const description = toRenderTree(json.description) ?? []
 
     const renderedContent: ComponentExamplesRenderedContent = {
         ...(displayName ? { displayName } : {}),
@@ -299,6 +294,55 @@ export const exampleToCacheShape = (example: StandardExample): ComponentExamples
     }
 }
 
+/**
+ * Build ComponentExamplesPayload from a Situation and its Room facet payload.
+ * Same shape as exampleToCacheShape so situation-facet events can reuse the stream.
+ */
+export const situationFacetToCacheShape = (
+    situation: StandardSituation,
+    facetPayload: SituationRoomFacetPayload
+): ComponentExamplesPayload => {
+    const markValue: ComponentExamplesMarkValue[] = situation.marks.items.map((facet) => {
+        const markFacet = facet as StandardMarkFacet
+        const mark = String(markFacet.reference.universalKey ?? '')
+        const payload = markFacet.payload as any
+        let value = ''
+        if (payload && typeof payload === 'object' && typeof payload.toJSON === 'function') {
+            const editable = payload.toJSON() as StandardEditableData<string>
+            const values = extractFromEditableData<string>(editable)
+            value = values[0] ?? ''
+        } else if (typeof payload === 'string') {
+            value = payload
+        }
+        return { mark, value }
+    })
+    const markState: ComponentExamplesMarkState = { markValue }
+
+    const toRenderTree = (editable?: StandardEditableData<RenderTree>): RenderTree | undefined => {
+        if (!editable) return undefined
+        const trees = extractFromEditableData<RenderTree>(editable)
+        return trees[0]
+    }
+    const displayName = facetPayload._displayName
+        ? toRenderTree(facetPayload._displayName.toJSON() as StandardEditableData<RenderTree>)
+        : undefined
+    const summary = facetPayload._summary
+        ? toRenderTree(facetPayload._summary.toJSON() as StandardEditableData<RenderTree>)
+        : undefined
+    const description =
+        facetPayload._description != null
+            ? (toRenderTree(facetPayload._description.toJSON() as StandardEditableData<RenderTree>) ?? [])
+            : []
+
+    const renderedContent: ComponentExamplesRenderedContent = {
+        ...(displayName ? { displayName } : {}),
+        ...(summary ? { summary } : {}),
+        description,
+    }
+    const provenance: ComponentExamplesProvenance = { type: 'authored' }
+    return { markState, renderedContent, provenance }
+}
+
 export const enrichExampleEvent = async (params: {
     exampleId: ComponentUUID;
     eventAssetId: AssetUUID;
@@ -307,7 +351,7 @@ export const enrichExampleEvent = async (params: {
 }): Promise<EnrichedExampleEvent> => {
     const { exampleId, eventAssetId, eventType } = params
 
-    const [componentData] = await internalCache.ComponentData.get([exampleId])
+    const [componentData] = await internalCache.ComponentData.get([exampleId as EphemeraId])
     const byAssets = componentData?.byAssets ?? []
 
     const assetStack = getOrderedAssetStack(exampleId, eventAssetId, byAssets)

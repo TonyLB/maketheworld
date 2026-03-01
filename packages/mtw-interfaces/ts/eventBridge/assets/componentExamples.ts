@@ -8,6 +8,10 @@ import { RenderTree } from '@tonylb/mtw-base/ts/renderTree'
 // but live in the interfaces package so Ephemera and other consumers can
 // depend on a stable shape without importing lambda code.
 //
+// During migration (Phase 3+): exampleId may be an Example uuid (EXAMPLE#...)
+// or a Situation uuid (SITUATION#...). The payload shape (marks + render + provenance)
+// is the same for both. Phase 6 may rename for clarity (e.g. stateSliceId).
+//
 
 export type ComponentExamplesMarkValue = {
     mark: string;

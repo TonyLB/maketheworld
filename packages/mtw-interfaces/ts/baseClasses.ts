@@ -59,8 +59,18 @@ export const isEphemeraMomentId = isEphemeraTaggedId<'MOMENT'>('MOMENT')
 export type EphemeraImageId = EphemeraWrappedId<'IMAGE'>
 export const isEphemeraImageId = isEphemeraTaggedId<'IMAGE'>('IMAGE')
 
+export type EphemeraSituationId = EphemeraWrappedId<'SITUATION'>
+export const isEphemeraSituationId = isEphemeraTaggedId<'SITUATION'>('SITUATION')
 
-export type EphemeraId = EphemeraWrappedId<'ASSET' | 'EXAMPLE' | 'FEATURE' | 'KNOWLEDGE' | 'ROOM' | 'MAP' | 'CHARACTER' | 'MESSAGE' | 'MOMENT' | 'IMAGE'>
+//
+// EphemeraId is the set of id tags that the ephemera/messaging layer treats as first-class
+// (cache keys, message targets, etc.). It is a subset of ComponentUUID (mtw-base/schema),
+// which is driven by SchemaComponent and includes additional tags (e.g. MARK, LENS, GUIDANCE).
+// When a new component type needs to be referenced in ephemera, add it here.
+// Redundancy: this union is maintained by hand; consider re-evaluating whether to derive
+// from ComponentUUID or a shared tag union in future.
+//
+export type EphemeraId = EphemeraWrappedId<'ASSET' | 'EXAMPLE' | 'FEATURE' | 'KNOWLEDGE' | 'ROOM' | 'MAP' | 'CHARACTER' | 'MESSAGE' | 'MOMENT' | 'IMAGE' | 'SITUATION'>
 export const isEphemeraId = (value: string): value is EphemeraId => (
     isEphemeraAssetId(value) ||
     isEphemeraExampleId(value) ||
@@ -71,7 +81,8 @@ export const isEphemeraId = (value: string): value is EphemeraId => (
     isEphemeraCharacterId(value) ||
     isEphemeraMessageId(value) ||
     isEphemeraMomentId(value) ||
-    isEphemeraImageId(value)
+    isEphemeraImageId(value) ||
+    isEphemeraSituationId(value)
 )
 
 export type LegalCharacterColor = 'blue' | 'pink' | 'purple' | 'green' | 'grey'

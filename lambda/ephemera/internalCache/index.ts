@@ -20,6 +20,7 @@ import withGetOperations from '@tonylb/mtw-utilities/ts/dynamoDB/mixins/get';
 import { DBHandlerBase } from '@tonylb/mtw-utilities/ts/dynamoDB/baseClasses';
 import ExamplesData from './examples';
 import ComponentRenderData from './componentRender';
+import { queryCacheRecordsForComponent } from '../renderCache/cacheAccess';
 import CacheCharacterPossibleMapsData from './characterPossibleMaps';
 import CachePlayerMetaData from './playerMeta';
 import CacheGlobalData from './global';
@@ -70,7 +71,8 @@ export class InternalCache {
             this.ComponentMeta,
             this.RoomCharacterList,
             this.Global,
-            this.CharacterMeta
+            this.CharacterMeta,
+            queryCacheRecordsForComponent
         )
         this.CharacterPossibleMaps = new CacheCharacterPossibleMapsData(this.CharacterMeta, this.Graph)
         this._invalidateAssetCallback = (EphemeraId) => {
