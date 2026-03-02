@@ -1,6 +1,8 @@
-import React, { FunctionComponent, useMemo, useCallback } from 'react'
-import { Box, ListItemButton, ListItemIcon, ListItemText, Typography } from '@mui/material'
+import React, { FunctionComponent, useMemo, useCallback, useState } from 'react'
+import { Box, ListItemButton, ListItemIcon, ListItemText, Typography, ListItem } from '@mui/material'
 import VisibilityIcon from '@mui/icons-material/Visibility'
+import AddIcon from '@mui/icons-material/Add'
+import LinkIcon from '@mui/icons-material/Link'
 
 import { useWorkbenchAsset } from '../foundations/useWorkbenchAsset'
 import ExitEditor from './ExitEditor'
@@ -16,9 +18,20 @@ import { StandardLens } from '@tonylb/mtw-wml/ts/standardize/components/worldSta
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
 import { ReferenceList } from '@tonylb/mtw-wml/ts/standardize/keys/referenceList'
+import StandardReference from '@tonylb/mtw-wml/ts/standardize/components/reference'
+import {
+    SituationRoomFacetList,
+    StandardSituationRoomFacet
+} from '@tonylb/mtw-wml/ts/standardize/keys/facets/situationRoom'
+import { standardComponentFactory } from '@tonylb/mtw-wml/ts/standardize/componentFactory'
+import { enforceTypedKey } from '@tonylb/mtw-utilities/ts/types'
+import { v4 as uuidv4 } from 'uuid'
 import { TopLevelStandardLiteralEditor } from '../foundations/StandardLiteral'
 import Spacer from '../WorkbenchSpacer'
 import { ReferenceListEditor } from '../foundations/ReferenceList'
+import { ReferenceListEditorGeneric } from '../foundations/ReferenceList/ReferenceListEditorGeneric'
+import { ComponentSelectorDialog } from '../foundations/ComponentSelector'
+import { situationIdToLabel } from '../../../lib/situationLabel'
 
 export const RoomEditor: FunctionComponent = () => {
     const dispatch = useDispatch()
@@ -49,10 +62,11 @@ export const RoomEditor: FunctionComponent = () => {
     }, [room, standardForm])
 
     const canOpenPreview = useMemo(() => {
+        if (room?.situations.length) return true
         if (!singleLens) return false
         const markRefs = singleLens.marks.payload || []
         return markRefs.length >= 1
-    }, [singleLens])
+    }, [room, singleLens])
 
     const handlePreviewClick = useCallback(() => {
         if (!universalKey || !canOpenPreview || readonly) return
@@ -112,6 +126,117 @@ export const RoomEditor: FunctionComponent = () => {
         [room, readonly, dispatch, universalKey]
     )
 
+    const [situationSelectorOpen, setSituationSelectorOpen] = useState(false)
+
+    const situationItems = useMemo(() => {
+        if (!room) return []
+        return room.situations.items
+            .map((facet) => {
+                const situationId = facet.reference?.universalKey as ComponentUUID | undefined
+                if (!situationId) return null
+                return {
+                    id: situationId,
+                    title: situationIdToLabel(situationId, standardForm)
+                }
+            })
+            .filter((x): x is { id: ComponentUUID; title: string } => x !== null)
+    }, [room, standardForm])
+
+    const handleSituationItemClick = useCallback(
+        (id: string) => {
+            if (!room || readonly) return
+            dispatch(pushBreadcrumb({ id: id as ComponentUUID, kind: 'component', componentId: id as ComponentUUID }))
+        },
+        [room, readonly, dispatch]
+    )
+
+    const handleSituationRemove = useCallback(
+        (situationId: string) => {
+            if (!universalKey || !room || readonly) return
+            updateStandard({
+                type: 'update',
+                update: (draft: StandardForm) => {
+                    const base = draft.byUniversalId[universalKey]
+                    if (!base || !(base instanceof StandardRoom)) return draft
+                    const newItems = base.situations.items.filter(
+                        (f) => f.reference?.universalKey !== situationId
+                    )
+                    base._payload._situations = new SituationRoomFacetList(newItems)
+                    return draft
+                }
+            })
+        },
+        [universalKey, room, updateStandard, readonly]
+    )
+
+    const handleAddExistingSituation = useCallback(
+        (selectedId: ComponentUUID) => {
+            if (!universalKey || !room || readonly) return
+            updateStandard({
+                type: 'update',
+                update: (draft: StandardForm) => {
+                    const base = draft.byUniversalId[universalKey]
+                    if (!base || !(base instanceof StandardRoom)) return draft
+                    const already = base.situations.items.some((f) => f.reference?.universalKey === selectedId)
+                    if (already) return draft
+                    const newFacet = new StandardSituationRoomFacet({
+                        reference: new StandardReference({ universalKey: selectedId, tag: 'Situation' }),
+                        payload: {}
+                    })
+                    base._payload._situations = new SituationRoomFacetList([
+                        ...base.situations.items,
+                        newFacet
+                    ])
+                    return draft
+                }
+            })
+            setSituationSelectorOpen(false)
+        },
+        [universalKey, room, updateStandard, readonly]
+    )
+
+    const handleCreateNewSituation = useCallback(() => {
+        if (!universalKey || !room || readonly) return
+        const situationKey = enforceTypedKey('SITUATION')
+        const uuid = `situation-${Date.now()}`
+        const newSituationId = situationKey(uuid) as ComponentUUID
+        updateStandard({
+            type: 'update',
+            update: (draft: StandardForm) => {
+                const { component } = standardComponentFactory({ tag: 'Situation', universalKey: newSituationId })
+                if (component) {
+                    draft.byUniversalId[newSituationId] = component
+                    const ref = new StandardReference({ universalKey: newSituationId, tag: 'Situation' })
+                    if (draft._topLevel) {
+                        draft._topLevel = draft._topLevel.assureItem(ref)
+                    } else {
+                        draft._topLevel = new ReferenceList([ref])
+                    }
+                }
+                const base = draft.byUniversalId[universalKey]
+                if (base && base instanceof StandardRoom) {
+                    const newFacet = new StandardSituationRoomFacet({
+                        reference: new StandardReference({ universalKey: newSituationId, tag: 'Situation' }),
+                        payload: {}
+                    })
+                    base._payload._situations = new SituationRoomFacetList([
+                        ...base.situations.items,
+                        newFacet
+                    ])
+                }
+                return draft
+            }
+        })
+        setSituationSelectorOpen(false)
+        dispatch(pushBreadcrumb({ id: newSituationId, kind: 'component', componentId: newSituationId }))
+    }, [universalKey, room, updateStandard, readonly, dispatch])
+
+    const isSituationExcluded = useCallback(
+        (id: ComponentUUID) =>
+            room?.situations.items.some((f) => f.reference?.universalKey === id) ?? false,
+        [room]
+    )
+
     if (!universalKey || !(universalKey in standardForm.byUniversalId) || !room) {
         return <Box />
     }
@@ -168,6 +293,54 @@ export const RoomEditor: FunctionComponent = () => {
                                 disabled={readonly}
                                 onItemClick={handleGuidanceItemClick}
                             />
+                        </Box>
+                        <Box sx={{ marginTop: '0.5em' }}>
+                            <ReferenceListEditorGeneric
+                                title="Situations"
+                                items={situationItems}
+                                defaultExpanded={!!situationItems.length}
+                                disabled={readonly}
+                                variant="table"
+                                onItemClick={handleSituationItemClick}
+                                onItemRemove={handleSituationRemove}
+                                actionAffordances={
+                                    <>
+                                        <ListItem>
+                                            <ListItemButton
+                                                onClick={() => setSituationSelectorOpen(true)}
+                                                disabled={readonly}
+                                                sx={{ justifyContent: 'center' }}
+                                            >
+                                                <ListItemIcon>
+                                                    <LinkIcon />
+                                                </ListItemIcon>
+                                                <ListItemText primary="Reference existing Situation" />
+                                            </ListItemButton>
+                                        </ListItem>
+                                        <ListItem>
+                                            <ListItemButton
+                                                onClick={handleCreateNewSituation}
+                                                disabled={readonly}
+                                                sx={{ justifyContent: 'center' }}
+                                            >
+                                                <ListItemIcon>
+                                                    <AddIcon />
+                                                </ListItemIcon>
+                                                <ListItemText primary="Create new Situation" />
+                                            </ListItemButton>
+                                        </ListItem>
+                                    </>
+                                }
+                            />
+                            {situationSelectorOpen && (
+                                <ComponentSelectorDialog
+                                    open={situationSelectorOpen}
+                                    onClose={() => setSituationSelectorOpen(false)}
+                                    tag="Situation"
+                                    onSelect={handleAddExistingSituation}
+                                    isExcluded={isSituationExcluded}
+                                />
+                            )}
                         </Box>
                         <Box sx={{ marginTop: '0.5em' }}>
                             <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>Preview</Typography>

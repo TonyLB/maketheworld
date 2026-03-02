@@ -6,16 +6,22 @@ import {
     TextField,
     Typography,
     CircularProgress,
-    Alert
+    Alert,
+    FormControl,
+    InputLabel,
+    Select,
+    MenuItem
 } from '@mui/material'
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { useWorkbenchAsset } from '../foundations/useWorkbenchAsset'
 import { socketDispatchPromise } from '../../../slices/lifeLine'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
+import StandardSituation from '@tonylb/mtw-wml/ts/standardize/components/situation'
 import { StandardLens } from '@tonylb/mtw-wml/ts/standardize/components/worldState'
 import StandardMark from '@tonylb/mtw-wml/ts/standardize/components/worldState'
 import { isSchemaString } from '@tonylb/mtw-base/ts/schema/renderTree'
+import { situationIdToLabel, situationMarksToMarkState } from '../../../lib/situationLabel'
 
 type RoomPreviewEditorProps = {
     roomId: ComponentUUID
@@ -87,8 +93,26 @@ export const RoomPreviewEditor: FunctionComponent<RoomPreviewEditorProps> = ({ r
     }, [singleLens, standardForm])
 
     const [markValues, setMarkValues] = useState<Record<string, string>>({})
+    const [selectedSituationId, setSelectedSituationId] = useState<ComponentUUID | ''>('')
     const [loading, setLoading] = useState(false)
     const [result, setResult] = useState<PreviewResult>(null)
+
+    const situationOptions = useMemo(() => {
+        if (!room || room.situations.length === 0) return []
+        return room.situations.items
+            .map((facet) => {
+                const id = facet.reference?.universalKey as ComponentUUID | undefined
+                if (!id) return null
+                return { id, label: situationIdToLabel(id, standardForm) }
+            })
+            .filter((x): x is { id: ComponentUUID; label: string } => x !== null)
+    }, [room, standardForm])
+
+    const canUseManualMarks = Boolean(singleLens && marks.length > 0)
+    const canUseSituations = situationOptions.length > 0
+    const canGenerate =
+        (canUseSituations && (selectedSituationId || situationOptions[0]?.id)) ||
+        (canUseManualMarks && !selectedSituationId)
 
     const assetStack = useMemo(() => {
         const inherited = (inheritedByAssetId || []).map(({ assetId }) => assetId)
@@ -100,15 +124,28 @@ export const RoomPreviewEditor: FunctionComponent<RoomPreviewEditorProps> = ({ r
     }, [])
 
     const handleGenerate = useCallback(() => {
-        if (!roomId || marks.length === 0) return
+        if (!roomId) return
+        let markState: { markValue: { mark: string; value: string }[] }
+        const situationIdToUse = selectedSituationId || (canUseSituations && !canUseManualMarks ? situationOptions[0]?.id : null)
+        if (situationIdToUse && canUseSituations) {
+            const situation = standardForm.byUniversalId[situationIdToUse]
+            if (situation && situation instanceof StandardSituation) {
+                markState = situationMarksToMarkState(situation)
+            } else {
+                return
+            }
+        } else if (canUseManualMarks) {
+            markState = {
+                markValue: marks.map((m) => ({
+                    mark: m.universalKey!,
+                    value: markValues[m.universalKey!] ?? ''
+                }))
+            }
+        } else {
+            return
+        }
         setLoading(true)
         setResult(null)
-        const markState = {
-            markValue: marks.map((m) => ({
-                mark: m.universalKey!,
-                value: markValues[m.universalKey!] ?? ''
-            }))
-        }
         const promise = dispatch(
             socketDispatchPromise(
                 {
@@ -133,7 +170,7 @@ export const RoomPreviewEditor: FunctionComponent<RoomPreviewEditorProps> = ({ r
                 setResult({ success: false, errorCode: 'REQUEST_FAILED', errorMessage: 'Request failed' })
             })
             .finally(() => setLoading(false))
-    }, [dispatch, roomId, marks, markValues, assetStack])
+    }, [dispatch, roomId, marks, markValues, assetStack, selectedSituationId, canUseSituations, canUseManualMarks, standardForm, situationOptions])
 
     if (!room) {
         return (
@@ -143,10 +180,12 @@ export const RoomPreviewEditor: FunctionComponent<RoomPreviewEditorProps> = ({ r
         )
     }
 
-    if (!singleLens || marks.length === 0) {
+    if (!canUseSituations && !canUseManualMarks) {
         return (
             <Box sx={{ p: 2 }}>
-                <Typography color="text.secondary">Add a Lens with Marks to use Preview.</Typography>
+                <Typography color="text.secondary">
+                    Add Situations to this Room or a Lens with Marks to use Preview.
+                </Typography>
             </Box>
         )
     }
@@ -155,11 +194,37 @@ export const RoomPreviewEditor: FunctionComponent<RoomPreviewEditorProps> = ({ r
         <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
             <Typography variant="h6">Preview</Typography>
             <Typography variant="body2" color="text.secondary">
-                Enter a value for each Mark and click Generate to see cached rendered content for that state.
+                {canUseSituations && canUseManualMarks
+                    ? 'Choose a Situation or enter Mark values manually, then click Generate.'
+                    : canUseSituations
+                        ? 'Choose a Situation and click Generate to see cached rendered content.'
+                        : 'Enter a value for each Mark and click Generate to see cached rendered content for that state.'}
             </Typography>
 
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                {marks.map((mark) => {
+            {canUseSituations && (
+                <FormControl size="small" fullWidth>
+                    <InputLabel id="preview-situation-label">Preview by situation</InputLabel>
+                    <Select
+                        labelId="preview-situation-label"
+                        value={selectedSituationId || (canUseManualMarks ? 'manual' : situationOptions[0]?.id ?? '')}
+                        label="Preview by situation"
+                        onChange={(e) => setSelectedSituationId(e.target.value === 'manual' ? '' : (e.target.value as ComponentUUID))}
+                    >
+                        {canUseManualMarks && (
+                            <MenuItem value="manual">Manual (Lens marks)</MenuItem>
+                        )}
+                        {situationOptions.map(({ id, label }) => (
+                            <MenuItem key={id} value={id}>
+                                {label}
+                            </MenuItem>
+                        ))}
+                    </Select>
+                </FormControl>
+            )}
+
+            {canUseManualMarks && !selectedSituationId && (
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                    {marks.map((mark) => {
                     const label = mark.shortName?._payload?.plain?.toJSON()
                     const shortName = typeof label === 'string' && label.trim() ? label : 'Untitled'
                     const markId = mark.universalKey!
@@ -176,12 +241,13 @@ export const RoomPreviewEditor: FunctionComponent<RoomPreviewEditorProps> = ({ r
                         />
                     )
                 })}
-            </Box>
+                </Box>
+            )}
 
             <Button
                 variant="contained"
                 onClick={handleGenerate}
-                disabled={loading}
+                disabled={loading || !canGenerate}
                 startIcon={loading ? <CircularProgress size={16} color="inherit" /> : null}
             >
                 {loading ? 'Generating...' : 'Generate'}

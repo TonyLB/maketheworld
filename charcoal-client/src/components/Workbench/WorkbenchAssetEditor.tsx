@@ -17,6 +17,7 @@ import KnowledgeEditor from './KnowledgeEdit/KnowledgeEditor'
 import { LayeredContextView } from './foundations/LayeredContext'
 import ExampleEditor from './ExampleEdit/ExampleEditor'
 import GuidanceEditor from './GuidanceEdit/GuidanceEditor'
+import SituationEditor from './SituationEdit/SituationEditor'
 import MarkEditor from './MarkEdit/MarkEditor'
 import MapEditor from './MapEdit/MapEditor'
 import CharacterEditor from './CharacterEdit/CharacterEditor'
@@ -28,6 +29,7 @@ import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
 import StandardKnowledge from '@tonylb/mtw-wml/ts/standardize/components/knowledge'
 import StandardExample from '@tonylb/mtw-wml/ts/standardize/components/example'
 import StandardGuidance from '@tonylb/mtw-wml/ts/standardize/components/guidance'
+import StandardSituation from '@tonylb/mtw-wml/ts/standardize/components/situation'
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 
 /**
@@ -96,6 +98,10 @@ export const WorkbenchAssetEditor: FunctionComponent = () => {
 
         if (component instanceof StandardGuidance) {
             return <GuidanceEditor />
+        }
+
+        if (component instanceof StandardSituation) {
+            return <SituationEditor />
         }
 
         return <Box />

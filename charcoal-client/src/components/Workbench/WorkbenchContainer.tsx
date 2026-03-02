@@ -21,7 +21,8 @@ import { getAssetZone } from '../../slices/player'
 import { createWorkbenchTheme } from './workbenchTheme'
 import StandardGuidance from '@tonylb/mtw-wml/ts/standardize/components/guidance'
 import StandardExample from '@tonylb/mtw-wml/ts/standardize/components/example'
-import { isReferenceListChild } from './foundations/LayeredContext/layeredContextUtils'
+import { isReferenceListChild, isSituationFacetChild } from './foundations/LayeredContext/layeredContextUtils'
+import { situationIdToLabel } from '../../lib/situationLabel'
 import { hasDisplayName } from '@tonylb/mtw-wml/ts/standardize'
 import { schemaOutputToString } from '@tonylb/mtw-wml/ts/schema/utils/schemaOutput/schemaOutputToString'
 import { GenericTree } from '@tonylb/mtw-base/ts/genericTree'
@@ -159,6 +160,20 @@ export const WorkbenchContainer: FunctionComponent<WorkbenchContainerProps> = ({
             }
 
             const prevComponentId = index >= 1 ? (navigationTrail[index - 1].componentId as ComponentUUID | null) : null
+            const isSituationFacetLayer = isSituationFacetChild(assetData.standardForm, prevComponentId, entry.componentId as ComponentUUID | null)
+            if (isSituationFacetLayer) {
+                const layerId = entry.componentId as ComponentUUID | null
+                // Future: if Situation had shortName, prefer it here with Marks-summary as fallback.
+                const name = layerId ? situationIdToLabel(layerId, assetData.standardForm) : 'Situation'
+                return {
+                    universalKey: (layerId || assetData.AssetId) as ComponentUUID,
+                    name,
+                    isLast,
+                    isAsset: false,
+                    icon: <LayersIcon sx={{ fontSize: '1rem', verticalAlign: 'middle', mr: 0.5 }} />,
+                    index
+                }
+            }
             const isLayerCrumb = isReferenceListChild(assetData.standardForm, prevComponentId, entry.componentId as ComponentUUID | null)
             if (isLayerCrumb) {
                 const layerId = entry.componentId as ComponentUUID | null

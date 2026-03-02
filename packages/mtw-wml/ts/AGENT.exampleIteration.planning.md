@@ -411,13 +411,22 @@ After Phase 3, the following hold:
 
 ### Phase 5: Client UI
 
-**Goal**: Add editors for Situation and for situation facets (at least on Room); migrate client to use `situations` as the primary source for world-state-specific content. Example remains supported until Phase 6 cleanup (no requirement to remove Example from client in this phase).
+**Goal**: Add editors for Situation and for situation facets (at least on Room); migrate the **Workbench** to use `situations` as the primary source for world-state-specific content. Short-term aim is to get **Preview** working with Situations. Playing-side (e.g. RoomDescription, message panel) is out of scope for this phase; Example remains supported until Phase 6 cleanup (no requirement to remove Example from client in this phase).
 
 **Scope**:
 
 - **Situation component editor**: Add a dedicated editor in the client UI for the Situation component (create/edit Situations: edit MarkFacetList / world-state slice). Situations remain first-class components in StandardForm and in the asset; the client must be able to create and edit them.
 - **SituationFacetList editor**: Add an editor for the `situations` facet list on at least the **Room** component UI (view/edit which Situations a Room has facets for, and edit the rendering payload per Situation—e.g. DisplayName, Summary, Description). Feature and Knowledge can be added later if desired.
-- **Migrate to situations**: Prefer or use `situations` when reading/writing world-state-specific content for Room (and Feature/Knowledge if in scope). Client may still show or edit `examples` during transition; removal of Example from the client is deferred to Phase 6 (optional cleanup).
+- **Migrate to situations (Workbench only)**: Prefer or use `situations` when reading/writing world-state-specific content for Room within the Workbench (including Preview). Playing-side consumers (e.g. RoomDescription) are unchanged in Phase 5. Client may still show or edit `examples` in the Workbench during transition; removal of Example from the client is deferred to Phase 6 (optional cleanup).
+
+**Decisions** (for implementation planning):
+
+- **Situation label in lists**: Use a **Marks-summary** to label Situations in lists (component selector, Room's situation list, breadcrumbs). Situation has no shortName; derive a human-readable label from the Situation's MarkFacetList. Prefer the format `"markKey: matchValue, markKey: matchValue"` (e.g. "illumination: bright, mood: somber"). Use a fallback (e.g. "Situation" or key) when marks are empty or unavailable.
+- **Breadcrumb stack for situation-facet layered context**: Use stack shape **`[RoomId, SituationId]`** when editing a Room's situation-facet payload. The user navigates from the Room into the layered view; keeping RoomId as the second-from-top entry makes it easy to navigate back to the Room they came from. (Top-level Situation component editor remains a single entry `[SituationId]`.)
+- **Situation creation**: Support a **create+add** pattern. From the Room editor, "add situation facet" may either pick an existing Situation (selector) or **create a new Situation and add a facet** in one flow. Situations are also createable at asset level (add component) as first-class components.
+- **SituationFacetList editing UX**: When editing facet payload (DisplayName, Summary, Description) from the Room editor, use the **layered-tab pattern**: one tab per situation facet, with LayeredContext doing the UI heavy lifting (tabs + single payload editor for the selected facet). Siblings are derived from `room.situations.payload`; the selected "layer" is one situation facet (e.g. by situationId). Add/remove/reorder facets stays in the Room editor (list management); the layered view is for payload-only editing, consistent with Examples/Guidance.
+- **Migration scope**: Phase 5 migrates **Workbench only**. Goal is Preview working with Situations; no revamp of playing-side or entire system in this phase.
+- **Future shortName on Situation**: Many places (lists, breadcrumbs, selector) need a compact label for a Situation. For Phase 5 we use Marks-summary with fallbacks. Where relevant, add **comments** in code or docs noting the possible future value of adding `shortName` to the Situation component payload: it would allow an author-defined label with Marks-summary (or key) as fallback, simplifying UX and consistency across the Workbench.
 
 **Depends on**: Phases 2–4 (data model, lambdas, and render cache support `situations` so the UI can rely on them).
 
