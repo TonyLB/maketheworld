@@ -8,6 +8,7 @@ import { getLayeredContext } from './layeredContextUtils'
 import { LayeredTabs } from './LayeredTabs'
 import ExampleEditor from '../../ExampleEdit/ExampleEditor'
 import GuidanceEditor from '../../GuidanceEdit/GuidanceEditor'
+import SituationFacetPayloadEditor from '../../RoomEdit/SituationFacetPayloadEditor'
 
 /**
  * Renders the layered tab UI (tabs + editor) when the breadcrumb stack represents
@@ -27,7 +28,9 @@ export const LayeredContextView: FunctionComponent = () => {
         const message =
             context.tag === 'Guidance'
                 ? 'No guidance defined. Add guidance in the Room editor.'
-                : 'This component has no Examples yet.'
+                : context.tag === 'SituationFacet'
+                    ? 'No situations defined. Add situations in the Room editor.'
+                    : 'This component has no Examples yet.'
         return (
             <Box sx={{ p: 2 }}>
                 <Typography variant="body2" color="text.secondary">
@@ -46,8 +49,10 @@ export const LayeredContextView: FunctionComponent = () => {
             <Box sx={{ padding: 2 }}>
                 {context.tag === 'Example' ? (
                     <ExampleEditor />
-                ) : (
+                ) : context.tag === 'Guidance' ? (
                     <GuidanceEditor />
+                ) : (
+                    <SituationFacetPayloadEditor />
                 )}
             </Box>
         </LayeredTabs>

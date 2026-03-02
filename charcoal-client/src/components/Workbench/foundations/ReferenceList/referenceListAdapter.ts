@@ -1,5 +1,7 @@
 import { ReferenceList } from "@tonylb/mtw-wml/ts/standardize/keys/referenceList"
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
+import StandardSituation from "@tonylb/mtw-wml/ts/standardize/components/situation"
+import { situationToMarksSummary } from "../../../../lib/situationLabel"
 import { ReferenceListItem } from "./ReferenceListEditorGeneric"
 
 type ComponentTag =
@@ -10,6 +12,7 @@ type ComponentTag =
     | "Knowledge"
     | "Example"
     | "Guidance"
+    | "Situation"
     | "Lens"
     | "Mark"
     | "Message"
@@ -38,7 +41,10 @@ export const referenceListToItems = ({
 
             let title = "Untitled"
 
-            if (component && (component as any).shortName) {
+            if (component && component instanceof StandardSituation) {
+                // Future: if Situation had shortName, prefer it here with Marks-summary as fallback.
+                title = situationToMarksSummary(component, standardForm)
+            } else if (component && (component as any).shortName) {
                 const shortNameData = (component as any).shortName?._payload?.plain?.toJSON()
                 if (typeof shortNameData === "string" && shortNameData.trim().length) {
                     title = shortNameData

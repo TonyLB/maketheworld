@@ -32,6 +32,7 @@ export type ComponentTag =
     | "Knowledge"
     | "Example"
     | "Guidance"
+    | "Situation"
     | "Lens"
     | "Mark"
     | "Message"
@@ -131,9 +132,9 @@ export const ReferenceListEditor: FunctionComponent<ReferenceListEditorProps> = 
     const handleCreateNew = useCallback(() => {
         if (disabled) return
         const enforceKey = enforceTypedKey(
-            tag.toUpperCase() as "ASSET" | "CHARACTER" | "ROOM" | "EXAMPLE" | "FEATURE" | "KNOWLEDGE" | "MAP" | "MESSAGE" | "MOMENT" | "IMAGE" | "MARK" | "LENS"
+            tag.toUpperCase() as "ASSET" | "CHARACTER" | "ROOM" | "EXAMPLE" | "FEATURE" | "KNOWLEDGE" | "MAP" | "MESSAGE" | "MOMENT" | "IMAGE" | "MARK" | "LENS" | "SITUATION"
         )
-        const uuid = tag === "Example" ? `example-${Date.now()}` : uuidv4()
+        const uuid = tag === "Example" ? `example-${Date.now()}` : tag === "Situation" ? `situation-${Date.now()}` : uuidv4()
         const universalKey = enforceKey(uuid) as ComponentUUID
 
         updateStandard({

@@ -17,8 +17,6 @@ import { useWorkbenchAsset } from '../useWorkbenchAsset'
 import { getComponentIconByTag } from '../../../../lib/componentIcons'
 import type { ComponentTag } from '../ReferenceList/ReferenceListEditor'
 
-/** ComponentTag plus Image (supported in selector but not in ReferenceListEditor tag). */
-type DialogComponentTag = ComponentTag | 'Image'
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
@@ -28,8 +26,14 @@ import StandardMap from '@tonylb/mtw-wml/ts/standardize/components/map'
 import StandardCharacter from '@tonylb/mtw-wml/ts/standardize/components/character'
 import StandardImage from '@tonylb/mtw-wml/ts/standardize/components/image'
 import StandardExample from '@tonylb/mtw-wml/ts/standardize/components/example'
+import StandardSituation from '@tonylb/mtw-wml/ts/standardize/components/situation'
 import { StandardLens, StandardMark } from '@tonylb/mtw-wml/ts/standardize/components/worldState'
 import StandardMessage from '@tonylb/mtw-wml/ts/standardize/components/message'
+import { situationToMarksSummary } from '../../../../lib/situationLabel'
+import type { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
+
+/** ComponentTag plus Image (supported in selector). */
+type DialogComponentTag = ComponentTag | 'Image'
 
 const SECTION_ORDER: DialogComponentTag[] = [
     'Room',
@@ -40,6 +44,7 @@ const SECTION_ORDER: DialogComponentTag[] = [
     'Image',
     'Lens',
     'Example',
+    'Situation',
     'Mark',
     'Message'
 ]
@@ -55,10 +60,15 @@ function componentToTag(component: StandardComponent): DialogComponentTag | null
     if (component instanceof StandardExample) return 'Example'
     if (component instanceof StandardMark) return 'Mark'
     if (component instanceof StandardMessage) return 'Message'
+    if (component instanceof StandardSituation) return 'Situation'
     return null
 }
 
-function getDisplayName(component: StandardComponent): string {
+function getDisplayName(component: StandardComponent, standardForm?: StandardForm | null): string {
+    if (component instanceof StandardSituation) {
+        // Future: if Situation had shortName, prefer it here with Marks-summary as fallback.
+        return situationToMarksSummary(component, standardForm ?? null)
+    }
     const plain = (component as { shortName?: { _payload?: { plain?: { toJSON?: () => unknown } } } }).shortName?._payload?.plain
     const shortName = plain?.toJSON?.()
     const str = typeof shortName === 'string' ? shortName : undefined
@@ -108,7 +118,7 @@ export const ComponentSelectorDialog: FunctionComponent<ComponentSelectorDialogP
                     typeof localKey === 'string' && localKey.trim() ? localKey : undefined
                 return {
                     universalKey: c.universalKey as ComponentUUID,
-                    displayName: getDisplayName(c),
+                    displayName: getDisplayName(c, standardForm),
                     secondaryKey,
                     tag: componentTag!
                 } as ListItem | null

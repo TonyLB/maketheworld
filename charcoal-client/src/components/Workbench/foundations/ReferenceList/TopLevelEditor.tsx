@@ -12,6 +12,7 @@ import MapIcon from "@mui/icons-material/Map"
 import PersonIcon from "@mui/icons-material/Person"
 import HomeIcon from "@mui/icons-material/Home"
 import ImageIcon from "@mui/icons-material/Image"
+import TextSnippetIcon from "@mui/icons-material/TextSnippet"
 import CallMadeIcon from "@mui/icons-material/CallMade"
 
 import { useWorkbenchAsset } from "../useWorkbenchAsset"
@@ -39,7 +40,7 @@ import { enforceTypedKey } from "@tonylb/mtw-utilities/ts/types"
 import { v4 as uuidv4 } from "uuid"
 import { AssetUUID, ComponentUUID } from "@tonylb/mtw-base/ts/schema"
 
-type AddComponentTag = "Character" | "Map" | "Room" | "Feature" | "Knowledge" | "Image"
+type AddComponentTag = "Character" | "Map" | "Room" | "Feature" | "Knowledge" | "Image" | "Situation"
 
 const ADD_OPTIONS: { tag: AddComponentTag; icon: React.ReactNode; label: string }[] = [
     { tag: "Character", icon: <PersonIcon sx={{ fontSize: "1rem" }} />, label: "Character" },
@@ -47,7 +48,8 @@ const ADD_OPTIONS: { tag: AddComponentTag; icon: React.ReactNode; label: string 
     { tag: "Room", icon: <HomeIcon sx={{ fontSize: "1rem" }} />, label: "Room" },
     { tag: "Feature", icon: <FeatureIcon sx={{ fontSize: "1rem" }} />, label: "Feature" },
     { tag: "Knowledge", icon: <KnowledgeIcon sx={{ fontSize: "1rem" }} />, label: "Knowledge" },
-    { tag: "Image", icon: <ImageIcon sx={{ fontSize: "1rem" }} />, label: "Image" }
+    { tag: "Image", icon: <ImageIcon sx={{ fontSize: "1rem" }} />, label: "Image" },
+    { tag: "Situation", icon: <TextSnippetIcon sx={{ fontSize: "1rem" }} />, label: "Situation" }
 ]
 
 const TAG_ICONS: Record<string, React.ReactNode> = {
@@ -56,7 +58,8 @@ const TAG_ICONS: Record<string, React.ReactNode> = {
     Room: <HomeIcon sx={{ fontSize: "1.25rem" }} />,
     Feature: <FeatureIcon sx={{ fontSize: "1.25rem" }} />,
     Knowledge: <KnowledgeIcon sx={{ fontSize: "1.25rem" }} />,
-    Image: <ImageIcon sx={{ fontSize: "1.25rem" }} />
+    Image: <ImageIcon sx={{ fontSize: "1.25rem" }} />,
+    Situation: <TextSnippetIcon sx={{ fontSize: "1.25rem" }} />
 }
 
 export interface TopLevelEditorProps {
@@ -161,6 +164,7 @@ export const TopLevelEditor: FunctionComponent<TopLevelEditorProps> = ({
                         | "CHARACTER"
                         | "MAP"
                         | "IMAGE"
+                        | "SITUATION"
                     const enforceKey = enforceTypedKey(tagUpper)
                     const uuid = uuidv4()
                     const universalKey = enforceKey(uuid) as ComponentUUID

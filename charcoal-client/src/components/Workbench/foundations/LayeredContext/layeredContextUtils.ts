@@ -14,10 +14,11 @@ import StandardReference from '@tonylb/mtw-wml/ts/standardize/components/referen
 import StandardMark from '@tonylb/mtw-wml/ts/standardize/components/worldState'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { excludeUndefined } from '../../../../lib/lists'
+import { situationIdToLabel } from '../../../../lib/situationLabel'
 
-export const COMPONENT_TAGS_WITH_LAYERED_TABS = ['EXAMPLE', 'GUIDANCE'] as const
+export const COMPONENT_TAGS_WITH_LAYERED_TABS = ['EXAMPLE', 'GUIDANCE', 'SITUATION_FACET'] as const
 
-export type LayeredChildTag = 'Example' | 'Guidance'
+export type LayeredChildTag = 'Example' | 'Guidance' | 'SituationFacet'
 
 export type LayeredContextResult = {
     parentId: ComponentUUID
@@ -52,9 +53,44 @@ function getReferenceList(
 }
 
 function isTagInLayeredTabs(tag: LayeredChildTag): boolean {
-    return tag === 'Example'
-        ? COMPONENT_TAGS_WITH_LAYERED_TABS.includes('EXAMPLE')
-        : COMPONENT_TAGS_WITH_LAYERED_TABS.includes('GUIDANCE')
+    if (tag === 'Example') return COMPONENT_TAGS_WITH_LAYERED_TABS.includes('EXAMPLE')
+    if (tag === 'Guidance') return COMPONENT_TAGS_WITH_LAYERED_TABS.includes('GUIDANCE')
+    if (tag === 'SituationFacet') return COMPONENT_TAGS_WITH_LAYERED_TABS.includes('SITUATION_FACET')
+    return false
+}
+
+/**
+ * Returns siblings { id, label }[] for a Room's situation facets (stack [RoomId, SituationId]).
+ */
+export function findSituationFacetSiblings(
+    standardForm: StandardForm,
+    room: StandardRoom
+): { id: ComponentUUID; label: string | null }[] {
+    const mapped = room.situations.items
+        .map((facet) => {
+            const situationId = facet.reference?.universalKey as ComponentUUID | undefined
+            if (!situationId) return null
+            const label = situationIdToLabel(situationId, standardForm)
+            return { id: situationId, label }
+        })
+        .filter((x): x is { id: ComponentUUID; label: string } => x !== null)
+    return mapped
+}
+
+/**
+ * Returns true if parent is Room and childId is a situation id in that Room's situations facet list.
+ */
+export function isSituationFacetChild(
+    standardForm: StandardForm,
+    parentId: ComponentUUID | null,
+    childId: ComponentUUID | null
+): boolean {
+    if (!parentId || !childId) return false
+    const parent = standardForm.byUniversalId[parentId]
+    if (!(parent instanceof StandardRoom)) return false
+    return parent.situations.items.some(
+        (facet) => facet.reference?.universalKey === childId
+    )
 }
 
 /**
@@ -110,8 +146,8 @@ export function isReferenceListChild(
 
 /**
  * If the stack represents a layered tab context (parent + child where child is in parent's
- * examples or guidance and tag is in COMPONENT_TAGS_WITH_LAYERED_TABS), return context;
- * else null.
+ * examples, guidance, or situation facets and tag is in COMPONENT_TAGS_WITH_LAYERED_TABS),
+ * return context; else null.
  */
 export function getLayeredContext(
     standardForm: StandardForm | null,
@@ -126,8 +162,17 @@ export function getLayeredContext(
     if (!parentId || !currentId) return null
 
     const parent = standardForm.byUniversalId[parentId]
+    if (!parent) return null
+
+    if (parent instanceof StandardRoom && isSituationFacetChild(standardForm, parentId, currentId)) {
+        const tag: LayeredChildTag = 'SituationFacet'
+        if (!isTagInLayeredTabs(tag)) return null
+        const siblings = findSituationFacetSiblings(standardForm, parent)
+        return { parentId, currentId, tag, siblings }
+    }
+
     const child = standardForm.byUniversalId[currentId]
-    if (!parent || !child) return null
+    if (!child) return null
 
     if (!(parent instanceof StandardRoom) && !(parent instanceof StandardFeature) && !(parent instanceof StandardKnowledge)) {
         return null
