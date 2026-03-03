@@ -31,6 +31,7 @@ import { RenderTree } from '@tonylb/mtw-base/ts/renderTree';
 import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses';
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room';
 import StandardExample from '@tonylb/mtw-wml/ts/standardize/components/example';
+import StandardSituation from '@tonylb/mtw-wml/ts/standardize/components/situation';
 import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal';
 import { ExitFacetList } from '@tonylb/mtw-wml/ts/standardize/keys/facets/exit';
 import { StandardRender } from '@tonylb/mtw-wml/ts/standardize/render';
@@ -162,17 +163,49 @@ export class ComponentRenderData {
                 ? cacheRecords[0]
                 : undefined;
             let naiveFirstExample: StandardExample | undefined;
+            let situationComponent: StandardSituation | undefined;
+            let situationFacets: StandardRoomData['situations'];
+
             if (firstRecord) {
-                const stateSliceId = (firstRecord.situationId ?? firstRecord.authoredExampleId ?? 'EXAMPLE#rendered') as ComponentUUID;
-                const { renderedContent } = firstRecord;
-                naiveFirstExample = new StandardExample({
-                    tag: 'Example',
-                    universalKey: stateSliceId,
-                    displayName: renderedContent.displayName,
-                    summary: renderedContent.summary,
-                    description: renderedContent.description ?? [],
-                    marks: [],
-                });
+                const { situationId, authoredExampleId, renderedContent, markState } = firstRecord;
+
+                if (situationId) {
+                    // Situation-backed cache record: synthesize StandardSituation and SituationRoom facet.
+                    const marks = (markState.markValue ?? []).map(({ mark, value }) => ({
+                        reference: mark as ComponentUUID,
+                        payload: value
+                    }));
+
+                    situationComponent = new StandardSituation({
+                        tag: 'Situation',
+                        universalKey: situationId as ComponentUUID,
+                        marks
+                    });
+
+                    situationFacets = [{
+                        reference: {
+                            tag: 'Situation',
+                            universalKey: situationId as ComponentUUID
+                        },
+                        payload: {
+                            ...(renderedContent.displayName ? { displayName: renderedContent.displayName } : {}),
+                            ...(renderedContent.summary ? { summary: renderedContent.summary } : {}),
+                            description: renderedContent.description
+                        }
+                    }];
+                }
+                else {
+                    // Example-backed cache record: preserve existing Example synthesis behavior.
+                    const stateSliceId = (authoredExampleId ?? 'EXAMPLE#rendered') as ComponentUUID;
+                    naiveFirstExample = new StandardExample({
+                        tag: 'Example',
+                        universalKey: stateSliceId,
+                        displayName: renderedContent.displayName,
+                        summary: renderedContent.summary,
+                        description: renderedContent.description ?? [],
+                        marks: [],
+                    });
+                }
             } else {
                 const exampleMap = await this._examples([EphemeraId]);
                 naiveFirstExample = exampleMap[EphemeraId]?.[0]?.examples?.[0];
@@ -196,13 +229,16 @@ export class ComponentRenderData {
                     .reduce<StandardLiteral | undefined>((previous, current: StandardLiteral) => (previous ? previous.merge(current) : current), undefined)
             ]);
 
+            const examples = (naiveFirstExample
+                ? [firstRecord?.authoredExampleId ?? 'EXAMPLE#rendered']
+                : []) as StandardRoomData['examples'];
+
             const roomRow: StandardRoomData = {
                 tag: 'Room',
                 universalKey: EphemeraId,
                 ...(exits.length ? { exits } : {}),
-                examples: (naiveFirstExample
-                    ? [firstRecord?.situationId ?? firstRecord?.authoredExampleId ?? 'EXAMPLE#rendered']
-                    : []) as StandardRoomData['examples'],
+                ...(situationFacets && situationFacets.length ? { situations: situationFacets } : {}),
+                ...(examples && examples.length ? { examples } : {}),
                 characters: roomCharacterList.map(char => char.EphemeraId),
                 shortName: shortName?.toJSON()
             };
@@ -227,9 +263,13 @@ export class ComponentRenderData {
                 ...characterComponents
             ];
 
+            if (situationComponent) {
+                formComponents.push(situationComponent.toJSON());
+            }
+
             if (naiveFirstExample) {
                 const example = naiveFirstExample.clone();
-                example._universalKey = (firstRecord?.situationId ?? firstRecord?.authoredExampleId ?? 'EXAMPLE#rendered') as ComponentUUID;
+                example._universalKey = (firstRecord?.authoredExampleId ?? 'EXAMPLE#rendered') as ComponentUUID;
                 formComponents.push(example.toJSON());
             }
 

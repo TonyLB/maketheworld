@@ -118,6 +118,39 @@ describe('RoomDescription', () => {
             expect(screen.getByText('Untitled')).toBeDefined()
         })
 
+        it('should render room from Situation facet when present', () => {
+            const standardForm = new StandardForm(deIndentWML(`
+                <Asset uuid=(test)>
+                    <Situation key=(bright) uuid=(SITUATION#bright)>
+                        <Mark key=(illumination) uuid=(MARK#illumination)>
+                            <Match>bright</Match>
+                        </Mark>
+                    </Situation>
+                    <Room key=(testRoom) uuid=(ROOM#testRoom)>
+                        <Situation key=(bright) uuid=(SITUATION#bright)>
+                            <DisplayName>Situation Room</DisplayName>
+                            <Description>A room rendered from a Situation facet</Description>
+                            <Summary>Situation summary</Summary>
+                        </Situation>
+                    </Room>
+                </Asset>
+            `))
+
+            const metaData: PerceptionRoomMetaData = {
+                componentUUID: 'ROOM#testRoom',
+                displayMode: 'full'
+            }
+
+            render(
+                <Provider store={store}>
+                    <RoomDescription parsedWML={standardForm} metaData={metaData} />
+                </Provider>
+            )
+
+            expect(screen.getByText('Situation Room')).toBeDefined()
+            expect(screen.getByText('A room rendered from a Situation facet')).toBeDefined()
+        })
+
         it('should render room with StandardForm data', () => {
             const standardForm = new StandardForm(deIndentWML(`
                 <Asset uuid=(test)>

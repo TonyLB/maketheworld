@@ -448,6 +448,7 @@ After Phase 3, the following hold:
     - Emit WML where:
       - The Situation appears as a top-level `<Situation>` component in the asset (with marks rendered from its `MarkFacetList`).
       - The Room contains a situation facet (e.g. `<SituationFacet>` in schema terms) that links the Room to the Situation and carries the world-state-specific prose payload.
+    - Note: This section specifies which `StandardSituation` components and SituationRoom facets must exist in the StandardForm. The result will be accomplished by adding a reference to StandardForm.topLevel. The exact WML nesting (whether `Situation` appears at asset level, under `Room`, or both) is determined by SchemaOrganization/TagTree from the reference graph and implicitParent rules, and should not be manually overridden here.
 - **PerceptionMessage WML contract**:
   - For Room PerceptionMessages, `wmlContent` always contains a StandardForm-derived tree where:
     - Situation-backed cache records emit `Situation` + situation facets (no `<Example uuid=(SITUATION#...)>`).
