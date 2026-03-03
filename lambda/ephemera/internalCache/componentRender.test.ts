@@ -111,10 +111,19 @@ describe('ComponentRender cache handler', () => {
         })
         jest.spyOn(internalCache.RoomCharacterList, "get").mockResolvedValue([])
         const descriptionOutput = await internalCache.ComponentRender.get('CHARACTER#TESS', 'ROOM#TestOne')
-        expect(schemaToWML([descriptionOutput.schema])).toContain('From Cache')
-        expect(schemaToWML([descriptionOutput.schema])).toContain('Cache Summary')
-        expect(schemaToWML([descriptionOutput.schema])).toContain('Cache description content')
-        expect(schemaToWML([descriptionOutput.schema])).toContain('SITUATION#situation-one')
+        expect(schemaToWML([descriptionOutput.schema])).toEqual(deIndentWML(`
+            <Asset uuid=(render)>
+                <Situation uuid=(situation-one) ref={0} />
+                <Room uuid=(TestOne) ref={0}>
+                    <ShortName>TestRoom</ShortName>
+                    <Situation uuid=(situation-one)>
+                        <DisplayName>From Cache</DisplayName>
+                        <Summary>Cache Summary</Summary>
+                        <Description>Cache description content</Description>
+                    </Situation>
+                </Room>
+            </Asset>
+        `))
         expect(internalCache.Examples.get).not.toHaveBeenCalled()
     })
 
@@ -156,8 +165,19 @@ describe('ComponentRender cache handler', () => {
         })
         jest.spyOn(internalCache.RoomCharacterList, "get").mockResolvedValue([])
         const descriptionOutput = await internalCache.ComponentRender.get('CHARACTER#TESS', 'ROOM#TestOne')
-        expect(schemaToWML([descriptionOutput.schema])).toContain('SITUATION#primary')
-        expect(schemaToWML([descriptionOutput.schema])).not.toContain('EXAMPLE#legacy')
+        expect(schemaToWML([descriptionOutput.schema])).toEqual(deIndentWML(`
+            <Asset uuid=(render)>
+                <Situation uuid=(primary) ref={0} />
+                <Room uuid=(TestOne) ref={0}>
+                    <ShortName>TestRoom</ShortName>
+                    <Situation uuid=(primary)>
+                        <DisplayName>From situationId</DisplayName>
+                        <Summary>Summary</Summary>
+                        <Description>Description</Description>
+                    </Situation>
+                </Room>
+            </Asset>
+        `))
         expect(internalCache.Examples.get).not.toHaveBeenCalled()
     })
 

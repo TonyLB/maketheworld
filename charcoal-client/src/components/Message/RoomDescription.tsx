@@ -29,6 +29,7 @@ import { StandardRoom } from '@tonylb/mtw-wml/ts/standardize/components/room'
 import { StandardExample } from '@tonylb/mtw-wml/ts/standardize/components/example'
 import { StandardExitFacet } from '@tonylb/mtw-wml/ts/standardize/keys/facets/exit'
 import { StandardCharacter } from '@tonylb/mtw-wml/ts/standardize/components/character'
+import { SituationRoomFacetPayload } from '@tonylb/mtw-wml/ts/standardize/keys/facets/situationRoom'
 
 interface RoomDescriptionProps {
     parsedWML?: StandardForm;
@@ -55,19 +56,29 @@ export const RoomDescription = ({ parsedWML, metaData, header, currentHeader }: 
         const component = parsedWML.byUniversalId[componentUUID]
         
         if (component instanceof StandardRoom) {
-            // Extract room data from Standard format structure - handle missing examples gracefully
-            const firstExampleRef = component.examples.payload[0]
-            if (firstExampleRef) {
-                const firstExample = parsedWML._lookup(firstExampleRef.standardKey.toJSON())
-                
-                if (firstExample && firstExample.universalKey) {
-                    const exampleComponent = parsedWML.byUniversalId[firstExample.universalKey as any]
+            // Prefer Situation facets (if any), fall back to Example-based prose
+            const firstSituationFacet = component.situations.items[0]
+            if (firstSituationFacet) {
+                const payload = firstSituationFacet.payload as SituationRoomFacetPayload
+                name = payload._displayName || new StandardRender(['Untitled'])
+                description = payload._description || new StandardRender([])
+                summary = payload._summary || new StandardRender([])
+            }
+            else {
+                // Extract room data from Standard format structure - handle missing examples gracefully
+                const firstExampleRef = component.examples.payload[0]
+                if (firstExampleRef) {
+                    const firstExample = parsedWML._lookup(firstExampleRef.standardKey.toJSON())
                     
-                    if (exampleComponent instanceof StandardExample) {
-                        // StandardExample properties now return StandardRender objects directly
-                        name = exampleComponent.displayName || new StandardRender(['Untitled'])
-                        description = exampleComponent.description || new StandardRender([])
-                        summary = exampleComponent.summary || new StandardRender([])
+                    if (firstExample && firstExample.universalKey) {
+                        const exampleComponent = parsedWML.byUniversalId[firstExample.universalKey as any]
+                        
+                        if (exampleComponent instanceof StandardExample) {
+                            // StandardExample properties now return StandardRender objects directly
+                            name = exampleComponent.displayName || new StandardRender(['Untitled'])
+                            description = exampleComponent.description || new StandardRender([])
+                            summary = exampleComponent.summary || new StandardRender([])
+                        }
                     }
                 }
             }
