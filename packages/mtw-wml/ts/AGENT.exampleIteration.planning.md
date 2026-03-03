@@ -432,6 +432,45 @@ After Phase 3, the following hold:
 
 ---
 
+### Phase 5.5: Perception messages alignment
+
+**Goal**: Align server-side perception rendering and client-side Room perception display with the Situation-first model, so that WML emitted in PerceptionMessage is schema-valid and prefers `Situation`/situation facets over `Example` where available.
+
+**Scope**:
+
+- **Server-side Room perception (componentRender.ts, Room branch)**:
+  - When the render cache record is **Example-backed** (has `authoredExampleId = EXAMPLE#...` and no `situationId`):
+    - Continue to construct a `StandardExample` with `universalKey = EXAMPLE#...`.
+    - Continue to emit Room WML that references that Example (e.g. via `examples` ReferenceList) so existing Example-based perception remains supported.
+  - When the render cache record is **Situation-backed** (has `situationId = SITUATION#...`):
+    - Construct a `StandardSituation` with `universalKey = SITUATION#...` and `marks` derived from the cache `markState`.
+    - Attach a **SituationRoomFacet** to the Room (via `situations`), whose payload carries the rendered prose for that Situation (DisplayName/Summary/Description) and whose reference points at the `StandardSituation` by `SITUATION#...`.
+    - Emit WML where:
+      - The Situation appears as a top-level `<Situation>` component in the asset (with marks rendered from its `MarkFacetList`).
+      - The Room contains a situation facet (e.g. `<SituationFacet>` in schema terms) that links the Room to the Situation and carries the world-state-specific prose payload.
+- **PerceptionMessage WML contract**:
+  - For Room PerceptionMessages, `wmlContent` always contains a StandardForm-derived tree where:
+    - Situation-backed cache records emit `Situation` + situation facets (no `<Example uuid=(SITUATION#...)>`).
+    - Legacy Example-backed cache records continue to emit `Example` components and Room `examples` references as before.
+  - This preserves schema validity: `<Example>` `uuid` values remain `EXAMPLE#...` only; `SITUATION#...` ids appear on `Situation` components and SituationRoom facets.
+- **Client-side Room perception (RoomDescription + selectors)**:
+  - When rendering a Room from PerceptionMessage WML, prefer **Situation-first**:
+    - Check for a SituationRoom facet and its payload (DisplayName/Summary/Description) for the active world-state slice; use it when present.
+    - Fall back to Example-based content only when there is no matching Situation facet (e.g. legacy rooms or before migration is complete).
+  - Keep the overall RoomDescription UI unchanged in Phase 5.5; the change is in where it sources prose (Situation facets first, Examples as fallback).
+
+**Decisions**:
+
+- **No generalization of Example uuids**: Do not relax the Example WML converter to accept `SITUATION#...`. Instead, generate the "right" component for each id:
+  - `EXAMPLE#...` → `StandardExample` + Room `examples` reference.
+  - `SITUATION#...` → `StandardSituation` + Room SituationRoom facet.
+- **Single state-slice abstraction**: On the ephemera/render-cache side, continue to treat `stateSliceId` as a `ComponentUUID` (`EXAMPLE#...` or `SITUATION#...`) when reading from cache. The distinction between Example vs Situation is handled when constructing the StandardForm (which component type to synthesize and how to attach it to the Room).
+- **Client precedence order**: Document that Situation facets are the canonical source of world-state-specific prose for Room in perception; Example-based content is explicitly treated as a compatibility path and may be removed or further de-emphasized in Phase 6.
+
+**Depends on**: Phases 2–5 (Situation component, SituationRoom facets, and Workbench support for `situations` are in place so the perception path can rely on them).
+
+---
+
 ### Phase 6: Example deprecation (optional tech-debt cleanup)
 
 **Goal**: Optionally deprecate and remove the `examples` property, the `<Example>` tag, and the `StandardExample` component type once migration to `situations` is complete. This phase is **optional** and can be deferred or skipped; the system operates correctly with both `examples` and `situations` present.
