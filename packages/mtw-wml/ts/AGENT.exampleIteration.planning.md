@@ -474,6 +474,27 @@ After Phase 3, the following hold:
 
 ---
 
+### Phase 5.6: Situation ShortName and UI labels
+
+**Goal**: Add a `ShortName` field to the Situation component and update Situation-related UI to use it as the primary label, falling back (when ShortName is absent) to a label of the form `"Untitled (<aggregate>)"`, where `<aggregate>` is the same marks-summary string that is currently used as the primary label.
+
+**Scope**:
+
+- **Situation data model and WML**:
+  - Extend the Situation component payload to include an optional `ShortName` (parallel to Room shortName), with a corresponding `<ShortName>` tag in WML and StandardForm serialization.
+  - Ensure StandardForm and schema round-trip support for Situation shortName, including parsing from WML and emitting to WML.
+- **Workbench and selectors**:
+  - Update `situationIdToLabel` and any Situation pickers/selectors to **prefer** Situation shortName as the label.
+  - When no shortName is present, build the label as `"Untitled (<aggregate>)"`, where `<aggregate>` is the existing marks-summary aggregate (or a generic `"Situation"` placeholder when no marks are available), so that the label always communicates both "no short name" and the underlying aggregate.
+  - Audit Workbench components that list or reference Situations (e.g. Room editor, component selectors, breadcrumbs) to ensure consistent use of the new label precedence.
+- **Perception and previews**:
+  - Where Situation labels are surfaced in perception or preview UIs (e.g. tabs, headers, debugging views), adopt the same precedence and fallback rules for Situation display labels.
+  - Keep RoomDescription behavior for Room names unchanged; this phase only affects how Situations themselves are named and displayed.
+
+**Depends on**: Phases 1–5.5 (Situation component, SituationRoom facets, Workbench Situation editing, and perception alignment are in place so ShortName becomes an additive refinement rather than a structural change).
+
+---
+
 ### Phase 6: Example deprecation (optional tech-debt cleanup)
 
 **Goal**: Optionally deprecate and remove the `examples` property, the `<Example>` tag, and the `StandardExample` component type once migration to `situations` is complete. This phase is **optional** and can be deferred or skipped; the system operates correctly with both `examples` and `situations` present.
