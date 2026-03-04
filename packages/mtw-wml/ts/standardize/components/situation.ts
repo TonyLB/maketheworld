@@ -159,6 +159,7 @@ export class StandardSituationPayload implements HasShortName, ComponentConstruc
 }
 
 export class StandardSituation extends componentClassFactory(StandardSituationPayload, 'StandardSituation') {
+    get shortName() { return this._payload.shortName }
     get marks() { return this._payload.marks }
 
     constructor(props: string | StandardSituationData | GenericTreeNode<SchemaTag> | StandardSituation) {
