@@ -24,6 +24,20 @@ describe('StandardSituation class', () => {
         const situation = new StandardSituation(data)
         expect(situation.key).toBe('testSituation')
         expect(situation.marks.length).toBe(0)
+        expect(situation.shortName).toBeUndefined()
+    })
+
+    it('should construct from JSON data with shortName', () => {
+        const data: StandardSituationData = {
+            tag: 'Situation',
+            key: 'testSituation',
+            shortName: { tag: 'Literal', value: 'Test Short', source: 'ui' },
+            marks: []
+        }
+        const situation = new StandardSituation(data)
+        expect(situation.key).toBe('testSituation')
+        expect(situation.marks.length).toBe(0)
+        expect(situation.shortName?._payload?.plain?.toJSON()).toBe('Test Short')
     })
 
     it('should construct from WML with Mark children', () => {
@@ -51,8 +65,10 @@ describe('StandardSituation class', () => {
 
     it('should serialize to JSON with omission-over-empty', () => {
         const empty = new StandardSituation({ tag: 'Situation', key: 'test' })
-        expect(empty.toJSON().tag).toBe('Situation')
-        expect('marks' in empty.toJSON()).toBe(false)
+        const emptyJSON = empty.toJSON()
+        expect(emptyJSON.tag).toBe('Situation')
+        expect('marks' in emptyJSON).toBe(false)
+        expect('shortName' in emptyJSON).toBe(false)
 
         const withMarks = new StandardSituation(deIndentWML(`
             <Situation key=(testKey)>
@@ -62,6 +78,7 @@ describe('StandardSituation class', () => {
         const json = withMarks.toJSON()
         expect(json.tag).toBe('Situation')
         expect((json as any).marks).toBeDefined()
+        expect('shortName' in json).toBe(false)
     })
 
     it('should round-trip JSON to Component to JSON (empty marks)', () => {
@@ -97,6 +114,19 @@ describe('StandardSituation class', () => {
         const schema = situation.schema
         expect(schema.data.tag).toBe('Situation')
         expect((schema.data as any).key).toBe('test')
+    })
+
+    it('should round-trip WML with ShortName to schema and back', () => {
+        const wml = deIndentWML(`
+            <Situation key=(test)>
+                <ShortName>Cozy Evening</ShortName>
+                <Mark uuid=(MARK#m1)><Match>Val</Match></Mark>
+            </Situation>
+        `)
+        const situation = new StandardSituation(wml)
+        expect(situation.shortName?._payload?.plain?.toJSON()).toBe('Cozy Evening')
+        const roundTripped = schemaToWML([situation.schema])
+        expect(roundTripped).toEqual(wml)
     })
 
     it('should merge two situation components with marks', () => {
@@ -154,8 +184,10 @@ describe('StandardSituation class', () => {
             key: 'empty'
         })
         expect(situation.marks.length).toBe(0)
-        expect(situation.toJSON().tag).toBe('Situation')
-        expect('marks' in situation.toJSON()).toBe(false)
+        const json = situation.toJSON()
+        expect(json.tag).toBe('Situation')
+        expect('marks' in json).toBe(false)
+        expect('shortName' in json).toBe(false)
     })
 
     it('should report equals for same content', () => {

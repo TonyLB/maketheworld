@@ -11,14 +11,19 @@ import { StandardKey } from "../keys/key"
 import StandardReference from "../keys/reference"
 import { MarkFacetList } from "../keys/facets/mark"
 import { StandardFormSubsetRequest } from "../baseClasses"
-import { processWithConsumers, StandardizeConsumerFacetListMark, StandardizeConsumerInline } from "./fromSchemaPipeline"
+import { StandardLiteral } from "../literal"
+import { HasShortName } from "./abstract"
+import { excludeUndefined } from "../../lib/lists"
+import { processWithConsumers, StandardizeConsumerFacetListMark, StandardizeConsumerInline, StandardizeConsumerStandardLiteral } from "./fromSchemaPipeline"
 
-export class StandardSituationPayload implements ComponentConstructorMethods<StandardSituationData> {
+export class StandardSituationPayload implements HasShortName, ComponentConstructorMethods<StandardSituationData> {
+    _shortName?: StandardLiteral;
     _marks: MarkFacetList;
     tag = 'Situation' as const
 
     constructor(previous?: StandardSituationPayload) {
         if (previous) {
+            this._shortName = previous._shortName
             this._marks = previous._marks.clone()
         }
         else {
@@ -27,12 +32,20 @@ export class StandardSituationPayload implements ComponentConstructorMethods<Sta
     }
 
     fromJSON(props: StandardSituationData) {
+        const { shortName } = props
+        this._shortName = shortName ? new StandardLiteral(shortName, { tag: 'ShortName' }) : undefined
         this._marks = new MarkFacetList(props.marks ?? [])
     }
 
     fromSchema(node: GenericTreeNode<SchemaTag>): GenericTree<SchemaTag> {
         if (treeNodeTypeguard(isSchemaSituation)(node)) {
             const consumers = [
+                new StandardizeConsumerStandardLiteral(this, {
+                    tag: "ShortName",
+                    update(literal) {
+                        this._shortName = literal
+                    },
+                }),
                 new StandardizeConsumerFacetListMark<StandardSituationPayload>(this, {
                     update(list) {
                         this._marks = list
@@ -47,11 +60,16 @@ export class StandardSituationPayload implements ComponentConstructorMethods<Sta
         throw new Error('Schema mismatch in StandardSituation constructor')
     }
 
+    get shortName() {
+        return this._shortName
+    }
+
     get marks() { return this._marks }
 
     toJSON(options?: StandardToJSONOptions): Omit<StandardSituationData, 'key' | 'universalKey'> {
         return {
             tag: 'Situation',
+            shortName: this?.shortName?.toJSON(),
             ...(this.marks.length ? { marks: this.marks.toJSON() } : {})
         }
     }
@@ -64,7 +82,10 @@ export class StandardSituationPayload implements ComponentConstructorMethods<Sta
         })
         return {
             data: { tag: 'Situation', key, uuid: universalKey },
-            children: markNodes
+            children: [
+                ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema())).flat(1),
+                ...markNodes
+            ]
         }
     }
 
@@ -77,6 +98,7 @@ export class StandardSituationPayload implements ComponentConstructorMethods<Sta
 
     merge(incoming: this): this {
         const returnValue = new StandardSituationPayload()
+        returnValue._shortName = this._shortName ?? incoming._shortName
         const mergedMarks = (this._marks && incoming._marks)
             ? this._marks.merge(incoming._marks)
             : this._marks ?? incoming._marks ?? new MarkFacetList([])
@@ -92,7 +114,7 @@ export class StandardSituationPayload implements ComponentConstructorMethods<Sta
     }
 
     isEmpty(): boolean {
-        return this._marks.length === 0
+        return (typeof this._shortName === 'undefined') && this._marks.length === 0
     }
 
     invert(): this {
@@ -128,7 +150,10 @@ export class StandardSituationPayload implements ComponentConstructorMethods<Sta
 
         return {
             data: { tag: 'Situation', key: key.key ?? '', uuid: key.universalKey },
-            children: markNodes
+            children: [
+                ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema())).flat(1),
+                ...markNodes
+            ]
         }
     }
 }

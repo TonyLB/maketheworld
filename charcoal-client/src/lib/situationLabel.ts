@@ -34,9 +34,11 @@ function markFacetValue(facet: StandardMarkFacet): string {
 }
 
 /**
- * Returns a human-readable label for a Situation from its MarkFacetList.
+ * Returns a human-readable label fragment for a Situation from its MarkFacetList.
  * Format: "markKey: matchValue, markKey: matchValue" (e.g. "illumination: bright, mood: somber").
  * Fallback: situation.key if set, else "Situation".
+ * This function intentionally does not consider Situation.shortName; callers can
+ * build composite labels like "Untitled (<aggregate>)" on top of this summary.
  */
 export function situationToMarksSummary(
     situation: StandardSituation,
@@ -83,8 +85,21 @@ export function situationIdToLabel(
     situationId: ComponentUUID,
     standardForm: StandardForm | null | undefined
 ): string {
-    if (!standardForm) return 'Situation'
+    if (!standardForm) return 'Untitled (Situation)'
     const component = standardForm.byUniversalId[situationId]
-    if (!component || !(component instanceof StandardSituation)) return 'Situation'
-    return situationToMarksSummary(component, standardForm)
+    if (!component || !(component instanceof StandardSituation)) return 'Untitled (Situation)'
+
+    //
+    // Precedence:
+    // 1. Situation shortName when present and non-empty.
+    // 2. "Untitled (<aggregate>)" where <aggregate> is the marks-summary (or "Situation" fallback).
+    //
+    const shortNameLiteral = component.shortName
+    const shortNamePlain = shortNameLiteral?._payload?.plain?.toJSON()
+    if (typeof shortNamePlain === 'string' && shortNamePlain.trim()) {
+        return shortNamePlain
+    }
+
+    const aggregate = situationToMarksSummary(component, standardForm)
+    return `Untitled (${aggregate})`
 }
