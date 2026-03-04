@@ -200,7 +200,7 @@
 
 ## Implementation
 
-**Status: PLANNING (phased approach; Phases 1–5.5 done)**
+**Status: PLANNING (phased approach; Phases 1–5.6 done)**
 
 This section outlines a phased plan to implement the Situation + situation-facets model. The playbook for adding a new component type is documented in [`standardize/components/AGENT.implementation.md`](./standardize/components/AGENT.implementation.md) under "Adding a New Component Type." Each phase below maps to that playbook where applicable.
 
@@ -261,21 +261,22 @@ Situation is a component that carries **only** a `MarkFacetList` (world-state sl
 
 - [x] Define `StandardSituationData` extending `StandardBaseData`:
   - `tag: 'Situation'`
+  - Optional `shortName?: StandardEditableData<string>` for a Situation short name (parallel to Room `shortName`).
   - Optional `marks?: FacetListData<string>` for the MarkFacetList serialization (same pattern as `StandardGuidanceData` in `guidance.ts`).
 - [x] Add `isStandardSituationData` type guard using `checkAll()` and `checkTypes()`.
 - [x] Export from `dataTypes/index.ts`: export type and type guard; add to `StandardComponentNonEditData` union and to `isStandardComponentData()`.
 
-**Reference**: For marks-only structure, see `guidance.ts` (or `example.ts`) data type and how `MarkFacetList` is represented in serialization.
+**Reference**: For marks-only structure, see `guidance.ts` (or `example.ts`) data type and how `MarkFacetList` is represented in serialization; Situation extends this with optional `shortName`.
 
 #### Step 5: Component implementation (`standardize/components/situation.ts`) **(DONE)**
 
 **Location**: `packages/mtw-wml/ts/standardize/components/situation.ts` (new file)
 
-- [x] **Payload** (`StandardSituationPayload`): Store only `_marks: MarkFacetList` (no name/summary/description). Implement `ComponentConstructorMethods<StandardSituationData>`: constructor, `fromJSON`, `fromSchema`, getters, `toJSON`, `schema`, `nestedSchema`, `merge`, `subset`, `referencedKeys`, `isEmpty`, `invert`, `mapContents`, `remapReferences`. No `assureReferences` or `withChild` (Situation has no ReferenceLists); hosted Mark children are handled via **inline remainder**.
-- [x] **fromSchema**: Process-and-remainder pipeline with entry typeguard `treeNodeTypeguard(isSchemaSituation)`; consumers `StandardizeConsumerFacetListMark` then `StandardizeConsumerInline`. No `StandardizeConsumerReferenceList`.
+- [x] **Payload** (`StandardSituationPayload`): Store `_shortName?: StandardLiteral` and `_marks: MarkFacetList` (no summary/description). Implement `ComponentConstructorMethods<StandardSituationData>`: constructor, `fromJSON`, `fromSchema`, getters, `toJSON`, `schema`, `nestedSchema`, `merge`, `subset`, `referencedKeys`, `isEmpty`, `invert`, `mapContents`, `remapReferences`. No `assureReferences` or `withChild` (Situation has no ReferenceLists); hosted Mark children are handled via **inline remainder**.
+- [x] **fromSchema**: Process-and-remainder pipeline with entry typeguard `treeNodeTypeguard(isSchemaSituation)`; consumers `StandardizeConsumerStandardLiteral` for `<ShortName>`, then `StandardizeConsumerFacetListMark` for Mark facets, then `StandardizeConsumerInline`. No `StandardizeConsumerReferenceList`.
 - [x] **Component class** (`StandardSituation`): `componentClassFactory(StandardSituationPayload, 'StandardSituation')`; getters delegate to payload; overrides `_wrap`, `clone`, `equals`.
 
-**Reference**: `guidance.ts` for marks-only + facet-list consumer + inline remainder; `AGENT.implementation.md` for fromSchema pipeline and two-remainder shape.
+**Reference**: `guidance.ts` for marks-only + facet-list consumer + inline remainder; `AGENT.implementation.md` for fromSchema pipeline and two-remainder shape; Situation extends this with optional `shortName`.
 
 #### Step 6: Factory integration (`standardize/componentFactory.ts`) **(DONE)**
 
@@ -474,15 +475,38 @@ After Phase 3, the following hold:
 
 ---
 
+### Phase 5.6: Situation ShortName and UI labels
+
+**Status**: DONE (Situation ShortName data + Workbench labels implemented)
+
+**Goal**: Add a `ShortName` field to the Situation component and update Situation-related UI to use it as the primary label, falling back (when ShortName is absent) to a label of the form `"Untitled (<aggregate>)"`, where `<aggregate>` is the same marks-summary string that is currently used as the primary label.
+
+**Scope**:
+
+- **Situation data model and WML**:
+  - Extend the Situation component payload to include an optional `ShortName` (parallel to Room shortName), with a corresponding `<ShortName>` tag in WML and StandardForm serialization.
+  - Ensure StandardForm and schema round-trip support for Situation shortName, including parsing from WML and emitting to WML.
+- **Workbench and selectors**:
+  - Update `situationIdToLabel` and any Situation pickers/selectors to **prefer** Situation shortName as the label.
+  - When no shortName is present, build the label as `"Untitled (<aggregate>)"`, where `<aggregate>` is the existing marks-summary aggregate (or a generic `"Situation"` placeholder when no marks are available), so that the label always communicates both "no short name" and the underlying aggregate.
+  - Audit Workbench components that list or reference Situations (e.g. Room editor, component selectors, breadcrumbs) to ensure consistent use of the new label precedence.
+- **Perception and previews**:
+  - Where Situation labels are surfaced in perception or preview UIs (e.g. tabs, headers, debugging views), adopt the same precedence and fallback rules for Situation display labels.
+  - Keep RoomDescription behavior for Room names unchanged; this phase only affects how Situations themselves are named and displayed.
+
+**Depends on**: Phases 1–5.5 (Situation component, SituationRoom facets, Workbench Situation editing, and perception alignment are in place so ShortName becomes an additive refinement rather than a structural change).
+
+---
+
 ### Phase 6: Example deprecation (optional tech-debt cleanup)
 
 **Goal**: Optionally deprecate and remove the `examples` property, the `<Example>` tag, and the `StandardExample` component type once migration to `situations` is complete. This phase is **optional** and can be deferred or skipped; the system operates correctly with both `examples` and `situations` present.
 
 **Scope**:
 
-- **Evaluation**: Assess whether any remaining WML or code still uses `examples`, `<Example>`, or StandardExample after Phases 1–5 (e.g. legacy assets, imports, or tools). If usage is zero or migration is complete, cleanup may be feasible.
+- **Evaluation**: Assess whether any remaining WML or code still uses `examples`, `<Example>`, or StandardExample after Phases 1–5.6 (e.g. legacy assets, imports, or tools). If usage is zero or migration is complete, cleanup may be feasible.
 - **If deprecating**: Define a deprecation path (e.g. parser still accepts `<Example>` but emits a warning; or one-time migration script from Example to Situation + situation facets). Then define removal steps: remove `examples` from Room/Feature/Knowledge data types and payloads; remove `<Example>` from schema and StandardForm/component factory; remove from any remaining lambda or UI references; delete the Example component implementation and tests.
 - **If retaining**: Document that `examples` and Example are retained for backward compatibility and under what conditions they are used. Avoid adding new features to Example.
 
-**Depends on**: Phase 5 complete; client and lambdas use `situations` as the primary model for world-state-specific prose.
+**Depends on**: Phase 5.6 complete; client and lambdas use `situations` (with ShortName support) as the primary model for world-state-specific prose.
 
