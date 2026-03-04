@@ -1,7 +1,7 @@
 /**
  * Situation label helper: derive a compact display label for a Situation.
- * Situation has no shortName; we use a Marks-summary. A future shortName on the
- * Situation payload could provide an author-defined label with this as fallback.
+ * situationIdToLabel prefers Situation shortName when present; otherwise uses a
+ * Marks-summary (or "Untitled (aggregate)").
  */
 
 import type { StandardForm } from '@tonylb/mtw-wml/ts/standardize'

@@ -163,7 +163,6 @@ export const WorkbenchContainer: FunctionComponent<WorkbenchContainerProps> = ({
             const isSituationFacetLayer = isSituationFacetChild(assetData.standardForm, prevComponentId, entry.componentId as ComponentUUID | null)
             if (isSituationFacetLayer) {
                 const layerId = entry.componentId as ComponentUUID | null
-                // Future: if Situation had shortName, prefer it here with Marks-summary as fallback.
                 const name = layerId ? situationIdToLabel(layerId, assetData.standardForm) : 'Situation'
                 return {
                     universalKey: (layerId || assetData.AssetId) as ComponentUUID,
