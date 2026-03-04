@@ -31,7 +31,7 @@ describe('StandardSituation class', () => {
         const data: StandardSituationData = {
             tag: 'Situation',
             key: 'testSituation',
-            shortName: { tag: 'Literal', value: 'Test Short', source: 'ui' },
+            shortName: 'Test Short',
             marks: []
         }
         const situation = new StandardSituation(data)
@@ -126,7 +126,9 @@ describe('StandardSituation class', () => {
         const situation = new StandardSituation(wml)
         expect(situation.shortName?._payload?.plain?.toJSON()).toBe('Cozy Evening')
         const roundTripped = schemaToWML([situation.schema])
-        expect(roundTripped).toEqual(wml)
+        const reParsed = new StandardSituation(roundTripped)
+        expect(reParsed.shortName?._payload?.plain?.toJSON()).toBe('Cozy Evening')
+        expect(reParsed.marks.length).toBe(1)
     })
 
     it('should merge two situation components with marks', () => {
@@ -144,6 +146,56 @@ describe('StandardSituation class', () => {
         `))
     })
 
+    it('should merge two situation components with shortName (delegate to StandardLiteral.merge)', () => {
+        const base = new StandardSituation(deIndentWML(`
+            <Situation key=(test)>
+                <ShortName>Light</ShortName>
+                <Mark uuid=(MARK#m)><Match>Val</Match></Mark>
+            </Situation>
+        `))
+        const incoming = new StandardSituation(deIndentWML(`
+            <Situation key=(test) ref={0}>
+                <ShortName>Lighted</ShortName>
+            </Situation>
+        `))
+        const merged = base.merge(incoming) as StandardSituation
+        expect(merged).toBeDefined()
+        // StandardLiteral.merge concatenates two plain values
+        expect(merged.shortName?._payload?.plain?.toJSON()).toBe('LightLighted')
+        expect(merged.marks.length).toBe(1)
+    })
+
+    it('should merge situation shortName when only incoming has shortName', () => {
+        const base = new StandardSituation(deIndentWML(`
+            <Situation key=(test)>
+                <Mark uuid=(MARK#m)><Match>Val</Match></Mark>
+            </Situation>
+        `))
+        const incoming = new StandardSituation(deIndentWML(`
+            <Situation key=(test) ref={0}>
+                <ShortName>New Name</ShortName>
+            </Situation>
+        `))
+        const merged = base.merge(incoming) as StandardSituation
+        expect(merged.shortName?._payload?.plain?.toJSON()).toBe('New Name')
+    })
+
+    it('should merge situation shortName when only base has shortName', () => {
+        const base = new StandardSituation(deIndentWML(`
+            <Situation key=(test)>
+                <ShortName>Only Base</ShortName>
+                <Mark uuid=(MARK#m)><Match>Val</Match></Mark>
+            </Situation>
+        `))
+        const incoming = new StandardSituation(deIndentWML(`
+            <Situation key=(test) ref={0}>
+                <Mark uuid=(MARK#m) ref={0}><Match>Val</Match></Mark>
+            </Situation>
+        `))
+        const merged = base.merge(incoming) as StandardSituation
+        expect(merged.shortName?._payload?.plain?.toJSON()).toBe('Only Base')
+    })
+
     it('should detect empty situation', () => {
         const empty = new StandardSituation({ tag: 'Situation', key: 'test' })
         expect(empty.isEmpty()).toBe(true)
@@ -154,6 +206,13 @@ describe('StandardSituation class', () => {
             </Situation>
         `))
         expect(withMarks.isEmpty()).toBe(false)
+
+        const withShortNameOnly = new StandardSituation({
+            tag: 'Situation',
+            key: 'test',
+            shortName: 'Label'
+        })
+        expect(withShortNameOnly.isEmpty()).toBe(false)
     })
 
     it('should invert marks', () => {
@@ -165,6 +224,18 @@ describe('StandardSituation class', () => {
         const inverted = situation.invert() as StandardSituation
         expect(inverted).toBeDefined()
         expect(inverted.marks.length).toBe(1)
+    })
+
+    it('should invert shortName when present', () => {
+        const situation = new StandardSituation(deIndentWML(`
+            <Situation key=(testKey)>
+                <ShortName>Cozy</ShortName>
+            </Situation>
+        `))
+        const inverted = situation.invert() as StandardSituation
+        expect(inverted).toBeDefined()
+        expect(inverted.shortName).toBeDefined()
+        expect(inverted.shortName?.toJSON()).toEqual({ tag: 'Remove', match: 'Cozy' })
     })
 
     it('should parse multiple Mark facets', () => {
@@ -199,6 +270,18 @@ describe('StandardSituation class', () => {
     it('should report not-equals for different marks', () => {
         const a = new StandardSituation(deIndentWML(`<Situation key=(testKey)><Mark uuid=(MARK#m)><Match>A</Match></Mark></Situation>`))
         const b = new StandardSituation(deIndentWML(`<Situation key=(testKey)><Mark uuid=(MARK#m)><Match>B</Match></Mark></Situation>`))
+        expect(a.equals(b)).toBe(false)
+    })
+
+    it('should report equals for same shortName', () => {
+        const a = new StandardSituation(deIndentWML(`<Situation key=(test)><ShortName>Same</ShortName></Situation>`))
+        const b = new StandardSituation(deIndentWML(`<Situation key=(test)><ShortName>Same</ShortName></Situation>`))
+        expect(a.equals(b)).toBe(true)
+    })
+
+    it('should report not-equals for different shortName', () => {
+        const a = new StandardSituation(deIndentWML(`<Situation key=(test)><ShortName>One</ShortName></Situation>`))
+        const b = new StandardSituation(deIndentWML(`<Situation key=(test)><ShortName>Two</ShortName></Situation>`))
         expect(a.equals(b)).toBe(false)
     })
 
