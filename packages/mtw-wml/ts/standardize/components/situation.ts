@@ -69,7 +69,7 @@ export class StandardSituationPayload implements HasShortName, ComponentConstruc
     toJSON(options?: StandardToJSONOptions): Omit<StandardSituationData, 'key' | 'universalKey'> {
         return {
             tag: 'Situation',
-            shortName: this?.shortName?.toJSON(),
+            ...(this.shortName ? { shortName: this.shortName.toJSON() } : {}),
             ...(this.marks.length ? { marks: this.marks.toJSON() } : {})
         }
     }
@@ -98,7 +98,15 @@ export class StandardSituationPayload implements HasShortName, ComponentConstruc
 
     merge(incoming: this): this {
         const returnValue = new StandardSituationPayload()
-        returnValue._shortName = this._shortName ?? incoming._shortName
+        //
+        // For shortName, follow the same merge pattern as Guidance:
+        // - When both sides have a shortName, delegate to StandardLiteral.merge
+        //   so that diff/overlay semantics are respected.
+        // - Otherwise, take whichever side has a value.
+        //
+        returnValue._shortName = (this._shortName && incoming._shortName)
+            ? (this._shortName.merge(incoming._shortName) as StandardLiteral | undefined)
+            : this._shortName ?? incoming._shortName
         const mergedMarks = (this._marks && incoming._marks)
             ? this._marks.merge(incoming._marks)
             : this._marks ?? incoming._marks ?? new MarkFacetList([])
@@ -119,6 +127,7 @@ export class StandardSituationPayload implements HasShortName, ComponentConstruc
 
     invert(): this {
         const returnValue = new StandardSituationPayload()
+        returnValue._shortName = this._shortName ? this._shortName.invert() as StandardLiteral : undefined
         returnValue._marks = this._marks.invert()
         return returnValue as this
     }
