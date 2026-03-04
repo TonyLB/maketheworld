@@ -200,7 +200,7 @@
 
 ## Implementation
 
-**Status: PLANNING (phased approach; Phases 1–4 done)**
+**Status: PLANNING (phased approach; Phases 1–5.5 done)**
 
 This section outlines a phased plan to implement the Situation + situation-facets model. The playbook for adding a new component type is documented in [`standardize/components/AGENT.implementation.md`](./standardize/components/AGENT.implementation.md) under "Adding a New Component Type." Each phase below maps to that playbook where applicable.
 
@@ -433,6 +433,8 @@ After Phase 3, the following hold:
 ---
 
 ### Phase 5.5: Perception messages alignment
+
+**Status**: DONE (implemented in componentRender, perception WML, and RoomDescription)
 
 **Goal**: Align server-side perception rendering and client-side Room perception display with the Situation-first model, so that WML emitted in PerceptionMessage is schema-valid and prefers `Situation`/situation facets over `Example` where available.
 
