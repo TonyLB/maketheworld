@@ -241,6 +241,7 @@ export const handler = async (event: any, context: any) => {
                 messageBus.send({
                     type: 'ReturnValue',
                     body: {
+                        messageType: 'GenerateRoomPreview',
                         generateRoomPreview: result,
                         ...(request.RequestId && { RequestId: request.RequestId })
                     }
