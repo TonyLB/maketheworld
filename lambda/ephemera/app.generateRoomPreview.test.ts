@@ -71,6 +71,7 @@ describe('app handler - generateRoomPreview', () => {
         expect(messageBus.send).toHaveBeenCalledWith({
             type: 'ReturnValue',
             body: {
+                messageType: 'GenerateRoomPreview',
                 generateRoomPreview: {
                     success: true,
                     renderedContent: { description: [{ type: 'Text', value: 'Preview content' }] }
