@@ -198,8 +198,7 @@ export const RoomEditor: FunctionComponent = () => {
     const handleCreateNewSituation = useCallback(() => {
         if (!universalKey || !room || readonly) return
         const situationKey = enforceTypedKey('SITUATION')
-        const uuid = `situation-${Date.now()}`
-        const newSituationId = situationKey(uuid) as ComponentUUID
+        const newSituationId = situationKey(uuidv4()) as ComponentUUID
         updateStandard({
             type: 'update',
             update: (draft: StandardForm) => {
