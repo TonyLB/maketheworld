@@ -12,7 +12,7 @@ describe('situation label helpers', () => {
             </Situation>
         `))
         const aggregate = situationToMarksSummary(withMarks, null)
-        expect(aggregate).toBe('illumination_mark: Bright, mood_mark: Cheerful')
+        expect(aggregate).toBe('Untitled: Bright, Untitled: Cheerful')
 
         const noMarks = new StandardSituation({ tag: 'Situation', key: 'byKey' } as any)
         expect(situationToMarksSummary(noMarks, null)).toBe('byKey')
@@ -22,32 +22,44 @@ describe('situation label helpers', () => {
     })
 
     it('situationIdToLabel should prefer Situation shortName when present', () => {
-        const situation = new StandardSituation(deIndentWML(`
-            <Situation key=(test)>
-                <ShortName>Stormy Night</ShortName>
-                <Mark uuid=(illumination_mark)><Match>Dark</Match></Mark>
-            </Situation>
-        `))
-        const form = new StandardForm([situation.toJSON()])
+        const wml = deIndentWML(`
+            <Asset uuid=(ASSET#test-asset)>
+                <Situation key=(test) uuid=(SITUATION#test-situation-shortname)>
+                    <ShortName>Stormy Night</ShortName>
+                    <Mark uuid=(illumination_mark)><Match>Dark</Match></Mark>
+                </Situation>
+            </Asset>
+        `)
+        const form = new StandardForm(wml)
+        const situation = form.components.find((c) => c instanceof StandardSituation) as StandardSituation
         const label = situationIdToLabel(situation.universalKey!, form)
         expect(label).toBe('Stormy Night')
     })
 
     it('situationIdToLabel should fall back to "Untitled (<aggregate-from-marks>)" when no shortName', () => {
-        const situation = new StandardSituation(deIndentWML(`
-            <Situation key=(test)>
-                <Mark uuid=(illumination_mark)><Match>Dark</Match></Mark>
-                <Mark uuid=(mood_mark)><Match>Somber</Match></Mark>
-            </Situation>
-        `))
-        const form = new StandardForm([situation.toJSON()])
+        const wml = deIndentWML(`
+            <Asset uuid=(ASSET#test-asset)>
+                <Situation key=(test) uuid=(SITUATION#test-situation-aggregate)>
+                    <Mark uuid=(illumination_mark)><Match>Dark</Match></Mark>
+                    <Mark uuid=(mood_mark)><Match>Somber</Match></Mark>
+                </Situation>
+            </Asset>
+        `)
+        const form = new StandardForm(wml)
+        const situation = form.components.find((c) => c instanceof StandardSituation) as StandardSituation
         const label = situationIdToLabel(situation.universalKey!, form)
-        expect(label).toBe('Untitled (illumination_mark: Dark, mood_mark: Somber)')
+        expect(label).toBe('Untitled (Untitled: Dark, Untitled: Somber)')
     })
 
     it('situationIdToLabel should fall back to "Untitled (Situation)" when no marks or key and no shortName', () => {
-        const situation = new StandardSituation({ tag: 'Situation' } as any)
-        const form = new StandardForm([situation.toJSON()])
+        const wml = deIndentWML(`
+            <Asset uuid=(ASSET#test-asset)>
+                <Situation uuid=(SITUATION#test-situation-empty)>
+                </Situation>
+            </Asset>
+        `)
+        const form = new StandardForm(wml)
+        const situation = form.components.find((c) => c instanceof StandardSituation) as StandardSituation
         const label = situationIdToLabel(situation.universalKey!, form)
         expect(label).toBe('Untitled (Situation)')
     })

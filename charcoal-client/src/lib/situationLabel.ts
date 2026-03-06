@@ -5,23 +5,22 @@
  */
 
 import type { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
+import type { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import StandardSituation from '@tonylb/mtw-wml/ts/standardize/components/situation'
 import type { StandardMarkFacet } from '@tonylb/mtw-wml/ts/standardize/keys/facets/mark'
-import type { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import StandardMark from '@tonylb/mtw-wml/ts/standardize/components/worldState'
 
 function markFacetKey(facet: StandardMarkFacet, standardForm: StandardForm | null | undefined): string {
-    const universalKey = facet.reference?.universalKey
-    if (!universalKey) return facet.reference?.standardKey?.key ?? 'mark'
-    if (standardForm) {
-        const component = standardForm.byUniversalId[universalKey as ComponentUUID]
+    if (standardForm && facet.reference) {
+        const keyData = facet.reference.standardKey.toJSON()
+        const component = (standardForm as any)._lookup?.(keyData) as unknown
         if (component && component instanceof StandardMark && component.shortName) {
             const plain = (component.shortName as { _payload?: { plain?: { toJSON?: () => unknown } } })._payload?.plain?.toJSON?.()
             if (typeof plain === 'string' && plain.trim()) return plain
         }
         if (component && (component as { key?: string }).key) return (component as { key: string }).key
     }
-    return facet.reference?.standardKey?.key ?? String(universalKey)
+    return facet.reference?.standardKey?.key ?? 'Untitled'
 }
 
 function markFacetValue(facet: StandardMarkFacet): string {
