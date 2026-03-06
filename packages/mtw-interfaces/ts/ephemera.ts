@@ -401,12 +401,52 @@ export type EphemeraClientMessageUnsubscribeFromMapsMessage = {
     RequestId?: string;
 }
 
+export type EphemeraClientMessageGenerateRoomPreview = {
+    messageType: 'GenerateRoomPreview';
+    RequestId?: string;
+    generateRoomPreview: {
+        success: boolean;
+        renderedContent?: unknown;
+        errorCode?: string;
+        errorMessage?: string;
+    };
+}
+
+export const isEphemeraClientMessageGenerateRoomPreview = (message: any): message is EphemeraClientMessageGenerateRoomPreview => {
+    if (!checkTypes(message, { messageType: 'string' }, { RequestId: 'string' })) {
+        return false
+    }
+    if (message.messageType !== 'GenerateRoomPreview') {
+        return false
+    }
+    if (!('generateRoomPreview' in message)) {
+        return false
+    }
+    const generateRoomPreview = message.generateRoomPreview
+    if (!generateRoomPreview || typeof generateRoomPreview !== 'object') {
+        return false
+    }
+    if (!('success' in generateRoomPreview) || typeof generateRoomPreview.success !== 'boolean') {
+        return false
+    }
+    if (!generateRoomPreview.success) {
+        if (!('errorMessage' in generateRoomPreview) || typeof generateRoomPreview.errorMessage !== 'string') {
+            return false
+        }
+        if ('errorCode' in generateRoomPreview && typeof generateRoomPreview.errorCode !== 'string') {
+            return false
+        }
+    }
+    return true
+}
+
 export type EphemeraClientMessage = EphemeraClientMessageEphemeraUpdate |
     EphemeraClientMessagePublishMessages |
     EphemeraClientMessageRegisterMessage |
     EphemeraClientMessageUnregisterMessage |
     EphemeraClientMessageSubscribeToMapsMessage |
-    EphemeraClientMessageUnsubscribeFromMapsMessage
+    EphemeraClientMessageUnsubscribeFromMapsMessage |
+    EphemeraClientMessageGenerateRoomPreview
 
 export const isEphemeraClientMessage = (message: any): message is EphemeraClientMessage => {
     if (!('messageType' in message && typeof message.messageType === 'string')) {
@@ -448,6 +488,8 @@ export const isEphemeraClientMessage = (message: any): message is EphemeraClient
             return messages.reduce<boolean>((previous, subMessage) => (
                 previous && isMessage(subMessage)
             ), true)
+        case 'GenerateRoomPreview':
+            return isEphemeraClientMessageGenerateRoomPreview(message)
         default: return false
     }
 }
