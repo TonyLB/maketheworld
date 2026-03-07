@@ -42,14 +42,19 @@ export async function queryCacheRecordsForComponent(
 }
 
 /**
- * Write a single cache record. Assigns a new CACHE#uuid as DataCategory.
- * Returns the assigned dataCategory for use with deleteCacheRecord if needed.
+ * Write a single cache record. If existingDataCategory is provided and starts
+ * with CACHE#, that key is used (overwrite in place). Otherwise a new
+ * CACHE#uuid is assigned. Returns the DataCategory used.
  */
 export async function putCacheRecord(
     componentId: EphemeraCacheComponentId,
-    record: PutCacheRecordInput
+    record: PutCacheRecordInput,
+    existingDataCategory?: string
 ): Promise<string> {
-    const dataCategory = EPHEMERA_CACHE_DATA_CATEGORY_PREFIX + uuidv4()
+    const dataCategory =
+        existingDataCategory?.startsWith(EPHEMERA_CACHE_DATA_CATEGORY_PREFIX) === true
+            ? existingDataCategory
+            : EPHEMERA_CACHE_DATA_CATEGORY_PREFIX + uuidv4()
     const item: EphemeraCacheDynamoItem = {
         EphemeraId: componentId,
         DataCategory: dataCategory,

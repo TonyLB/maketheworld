@@ -45,9 +45,11 @@ describe('handleComponentExamplesEvent (mtw.ephemera.examples)', () => {
     it('writes cache records for ExampleUpdated for each parent component', async () => {
         const {
             deps,
+            queryCacheRecordsForComponent,
             putCacheRecord,
             computePerspectiveId
         } = makeDeps()
+        queryCacheRecordsForComponent.mockResolvedValue([])
 
         const event: ComponentExamplesMirrorEvent = {
             type: 'ExampleUpdated',
@@ -73,7 +75,8 @@ describe('handleComponentExamplesEvent (mtw.ephemera.examples)', () => {
                 provenance: event.example.provenance,
                 perspectiveId: 'PERSPECTIVE#abc123',
                 authoredExampleId: 'EXAMPLE#one'
-            })
+            }),
+            undefined
         )
         expect(putCacheRecord).toHaveBeenCalledWith(
             'FEATURE#two',
@@ -83,16 +86,19 @@ describe('handleComponentExamplesEvent (mtw.ephemera.examples)', () => {
                 provenance: event.example.provenance,
                 perspectiveId: 'PERSPECTIVE#abc123',
                 authoredExampleId: 'EXAMPLE#one'
-            })
+            }),
+            undefined
         )
     })
 
     it('writes cache records with situationId when exampleId is SITUATION# (Room path)', async () => {
         const {
             deps,
+            queryCacheRecordsForComponent,
             putCacheRecord,
             computePerspectiveId
         } = makeDeps()
+        queryCacheRecordsForComponent.mockResolvedValue([])
 
         const event: ComponentExamplesMirrorEvent = {
             type: 'ExampleUpdated',
@@ -118,7 +124,8 @@ describe('handleComponentExamplesEvent (mtw.ephemera.examples)', () => {
                 provenance: event.example.provenance,
                 perspectiveId: 'PERSPECTIVE#abc123',
                 situationId: 'SITUATION#situation-one'
-            })
+            }),
+            undefined
         )
         const putArg = putCacheRecord.mock.calls[0][1]
         expect(putArg).not.toHaveProperty('authoredExampleId')

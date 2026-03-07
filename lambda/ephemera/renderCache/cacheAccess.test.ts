@@ -159,6 +159,40 @@ describe('renderCache/cacheAccess', () => {
             const call = ephemeraDBMock.putItem.mock.calls[0][0]
             expect(call).not.toHaveProperty('situationId')
         })
+
+        it('uses existingDataCategory when provided (overwrite in place)', async () => {
+            ephemeraDBMock.putItem.mockResolvedValue(undefined)
+
+            const dataCategory = await putCacheRecord(
+                componentId,
+                minimalRecord,
+                'CACHE#existing-uuid'
+            )
+
+            expect(uuidv4Mock).not.toHaveBeenCalled()
+            expect(dataCategory).toBe('CACHE#existing-uuid')
+            expect(ephemeraDBMock.putItem).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    EphemeraId: componentId,
+                    DataCategory: 'CACHE#existing-uuid',
+                    markState: minimalRecord.markState,
+                    renderedContent: minimalRecord.renderedContent
+                })
+            )
+        })
+
+        it('ignores invalid existingDataCategory and generates new key', async () => {
+            ephemeraDBMock.putItem.mockResolvedValue(undefined)
+
+            const dataCategory = await putCacheRecord(
+                componentId,
+                minimalRecord,
+                'OTHER#not-cache'
+            )
+
+            expect(uuidv4Mock).toHaveBeenCalled()
+            expect(dataCategory).toBe('CACHE#new-uuid-1234')
+        })
     })
 
     describe('deleteCacheRecord', () => {
