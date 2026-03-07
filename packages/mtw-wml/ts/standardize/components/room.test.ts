@@ -110,8 +110,9 @@ describe('StandardRoom class', () => {
         expect(testRoom.situations.length).toBe(1)
         expect(testRoom.situations.items[0].reference.key).toBe('bright')
         expect(testRoom.situations.items[0].payload.toJSON()).toMatchObject({ displayName: ['Bright Lobby'] })
-        expect(testRoom.toJSON().situations).toBeDefined()
-        expect(testRoom.toJSON().situations).toHaveLength(1)
+        const roomJSON = testRoom.toJSON() as StandardRoomData
+        expect(roomJSON.situations).toBeDefined()
+        expect(roomJSON.situations).toHaveLength(1)
     })
 
     it('should parse Room with Situation facet from WML and round-trip', () => {
@@ -130,6 +131,41 @@ describe('StandardRoom class', () => {
         const roundTrip = schemaToWML([testRoom.schema])
         expect(roundTrip).toContain('Situation')
         expect(roundTrip).toContain('key=(bright)')
+    })
+
+    it('should produce a non-no-op diff when SituationFacet summary has content removed', () => {
+        const baseRoom = new StandardRoom(deIndentWML(`
+            <Room uuid=(123) key=(tavern)>
+                <Situation key=(daylight)>
+                    <Summary>A cheery tavern by daylight</Summary>
+                </Situation>
+            </Room>
+        `))
+
+        const incomingRoom = new StandardRoom(deIndentWML(`
+            <Room uuid=(123) key=(tavern)>
+                <Situation key=(daylight)>
+                    <Summary>A cheery tavern</Summary>
+                </Situation>
+            </Room>
+        `))
+
+        const diff = baseRoom.diff(incomingRoom) as StandardRoom | undefined
+
+        expect(diff).toBeDefined()
+        expect(diff!.situations.length).toBe(1)
+        expect(diff!.situations.items[0].reference.key).toBe('daylight')
+
+        const facetPayloadJSON = diff!.situations.items[0].payload.toJSON()
+        expect(facetPayloadJSON.summary).toBeDefined()
+        // The diff should represent removal of content; summary should be a Remove edit (object with tag: 'Remove').
+        // If the round-trip is misinterpreted as no-op, the issue may be that summary is not in the expected
+        // shape (e.g. single-element array containing the Remove record) for downstream apply/merge.
+        expect(facetPayloadJSON.summary).toMatchObject({ tag: 'Remove' })
+        expect((facetPayloadJSON.summary as { tag: string; match?: unknown }).match).toBeDefined()
+
+        const merged = baseRoom.merge(diff!) as StandardRoom
+        expect(merged.equals(incomingRoom)).toBe(true)
     })
 
     it('should construct StandardRoom from StandardRoomData with missing exits', () => {
