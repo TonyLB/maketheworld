@@ -14,7 +14,8 @@ import {
     deleteCacheRecord,
     type EphemeraCacheDynamoItem,
     type EphemeraCacheComponentId,
-    type PutCacheRecordInput
+    type PutCacheRecordInput,
+    findExactMatch
 } from '../renderCache'
 import {
     isEphemeraFeatureId,
@@ -107,7 +108,14 @@ export const handleComponentExamplesEvent = async (
                 .filter(isEphemeraCacheComponentId)
                 .map(async (parentId) => {
                     try {
-                        await putRecord(parentId, record)
+                        const existingRecords = await queryRecords(parentId)
+                        const existing = findExactMatch({
+                            componentId: parentId,
+                            proposedMarkState: example.markState,
+                            records: existingRecords,
+                            perspectiveId
+                        })
+                        await putRecord(parentId, record, existing?.DataCategory)
                     } catch (error) {
                         if (logger?.error) {
                             logger.error('Failed to write ephemera cache record from ComponentExamples event', {

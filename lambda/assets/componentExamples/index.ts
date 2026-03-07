@@ -53,15 +53,19 @@ export const componentExamplesDataSource = new AssetsDataSource<
                 // Room with situations: emit one event per situation facet (exampleId = situation uuid).
                 if (content.component.tag === 'Room') {
                     const room = content.component as StandardRoom
-                    const situationsList = room.situations?.items ?? []
-                    if (situationsList.length === 0) {
-                        return
-                    }
                     const roomId = room.universalKey as ComponentUUID
                     const [roomData] = await internalCache.ComponentData.get([roomId as EphemeraId])
                     const byAssets = roomData?.byAssets ?? []
+                    // Use content-mode Room from cache for this asset when available (post-write state),
+                    // so we publish full render payloads instead of edit fragments from the diff.
+                    const contentRoom = byAssets.find((a) => a.AssetId === assetId)?.component as StandardRoom | undefined
+                    const roomForPayload = contentRoom ?? room
+                    const situationsListForPayload = roomForPayload.situations?.items ?? []
+                    if (situationsListForPayload.length === 0) {
+                        return
+                    }
                     const assetStack = getOrderedAssetStack(roomId, assetId, byAssets)
-                    const situationIds = situationsList.map(
+                    const situationIds = situationsListForPayload.map(
                         (f) => (f as StandardSituationRoomFacet).reference.universalKey
                     )
                     const situationCaches = await internalCache.ComponentData.get(situationIds as EphemeraId[])
@@ -83,8 +87,8 @@ export const componentExamplesDataSource = new AssetsDataSource<
                         return
                     }
 
-                    for (let i = 0; i < situationsList.length; i++) {
-                        const facet = situationsList[i] as StandardSituationRoomFacet
+                    for (let i = 0; i < situationsListForPayload.length; i++) {
+                        const facet = situationsListForPayload[i] as StandardSituationRoomFacet
                         const situationId = facet.reference.universalKey as ComponentUUID
                         const cache = situationCaches[i]
                         const situationComponent = cache?.byAssets?.find(

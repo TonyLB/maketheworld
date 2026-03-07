@@ -124,13 +124,14 @@ The `perspectiveId` computation is centralized in `lambda/ephemera/internalUtils
 - Map the resulting items into `EphemeraCacheRecord` instances.
 - Returns **all** records (authored and generated) for that component.
 
-### `putCacheRecord(componentId, record)`
+### `putCacheRecord(componentId, record, existingDataCategory?)`
 
-- Generate a new UUID.
+- If `existingDataCategory` is provided and starts with `CACHE#`, use it as `DataCategory` (overwrite in place). Otherwise generate a new UUID and use `DataCategory = 'CACHE#' + uuid`.
 - Write a single Dynamo item with:
   - `EphemeraId = componentId`
-  - `DataCategory = 'CACHE#' + uuid`
+  - `DataCategory` as above
   - `record.markState`, `record.renderedContent`, `record.provenance`, `record.perspectiveId`, `record.situationId?`, `record.authoredExampleId?`
+- Returns the `DataCategory` used.
 - Used by:
   - `mtw.ephemera.examples` DataSource when mirroring authored Examples.
   - Future generation flows (e.g. LLM-based renders) to store generated content under `provenance.type = 'generated'`.
