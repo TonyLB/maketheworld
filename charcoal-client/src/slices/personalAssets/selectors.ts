@@ -1,4 +1,5 @@
 import { PersonalAssetsLoadedImage, PersonalAssetsPublic } from './baseClasses'
+import type { ScopedInstrumentationOptions } from '../../testing/scopedInstrumentation'
 import { GenericTree } from '@tonylb/mtw-base/ts/genericTree';
 import { createSelector } from '@reduxjs/toolkit';
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize';
@@ -22,12 +23,14 @@ export type PublicSelectors = {
     getSerialized: (state: PersonalAssetsPublic) => boolean | undefined;
     getEdit: (state: PersonalAssetsPublic) => PersonalAssetsPublic["edit"];
     getPendingEdits: (state: PersonalAssetsPublic) => PersonalAssetsPublic["pendingEdits"];
+    getInstrumentationOptionsForCurrentEdit: (state: PersonalAssetsPublic) => ScopedInstrumentationOptions | undefined;
 }
 
 const getBase = (state: PersonalAssetsPublic & { key: string }): StandardFormData =>
     (state as unknown as PersonalAssetsPublicAugmented).base ?? EMPTY_BASE
 export const getEdit = ({ edit }: PersonalAssetsPublic) => (edit)
 const getPendingEdits = ({ pendingEdits }: PersonalAssetsPublic) => (pendingEdits)
+const getInstrumentationOptionsForCurrentEdit = ({ instrumentationOptionsForCurrentEdit }: PersonalAssetsPublic): ScopedInstrumentationOptions | undefined => instrumentationOptionsForCurrentEdit
 
 const getInherited = ({ inherited }: PersonalAssetsPublic) => (inherited)
 
@@ -95,5 +98,6 @@ export const publicSelectors: PublicSelectors = {
     getLoadedImages,
     getSerialized,
     getPendingEdits,
-    getEdit
+    getEdit,
+    getInstrumentationOptionsForCurrentEdit
 }

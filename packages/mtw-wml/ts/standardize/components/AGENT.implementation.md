@@ -706,7 +706,7 @@ export const isStandardComponent = (value: any): value is StandardComponent => {
 **Common Pitfalls**:
 - Incorrect `StandardRender` reconstruction in `schema()` - use `StandardRender.nestedSchema({ tag, mappings })` and spread or take `[0]` as needed
 - Missing mapping parameter handling in `schema()` and `nestedSchema()` for Link remapping
-- Not handling edit wrappers (Remove/Replace) correctly in `fromSchema()`
+- Not handling edit wrappers (Remove/Replace) correctly in `fromSchema()`: when parsing payload or content tags that may be wrapped in Remove/Replace, use `splitTaggedChildren` (or `findTaggedChildren`) from `schema/utils` and use the **matched** result; do not use direct `children.find(...)` by tag.
 
 #### General Pitfalls
 

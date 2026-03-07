@@ -21,7 +21,59 @@ import { ExitFacetList, StandardExitFacet } from "../keys/facets/exit"
 import { SituationRoomFacetList } from "../keys/facets/situationRoom"
 import { StandardExplicitParent } from "../explicit"
 import { StandardFormSubsetRequest } from "../baseClasses"
-import { processWithConsumers, StandardizeConsumerFacetListSituation, StandardizeConsumerInline, StandardizeConsumerReferenceList, StandardizeConsumerSimple, StandardizeConsumerStandardLiteral } from "./fromSchemaPipeline"
+import { processWithConsumers, StandardizeConsumerInline, StandardizeConsumerReferenceList, StandardizeConsumerSimple, StandardizeConsumerStandardLiteral, type StandardizeConsumer } from "./fromSchemaPipeline"
+import { splitTaggedChildren } from "../../schema/utils"
+import { isSchemaSituation } from "@tonylb/mtw-base/ts/schema/components"
+import { StandardSituationRoomFacet } from "../keys/facets/situationRoom"
+import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
+
+/**
+ * Facet-list consumer for Situation facets under Room.
+ * Parses Situation children (with DisplayName/Summary/Description payload) into SituationRoomFacetList.
+ * Cleaned Situation nodes (render tags stripped) go to returnRemainderAddition for processComponents recursion.
+ */
+class StandardizeConsumerFacetListSituation<D extends object = object> implements StandardizeConsumer {
+    constructor(
+        private readonly context: D,
+        private readonly options: {
+            update: (this: D, list: SituationRoomFacetList) => void
+        }
+    ) {}
+
+    process(children: GenericTree<SchemaTag>): { parsingRemainder: GenericTree<SchemaTag>; returnRemainderAddition: GenericTree<SchemaTag> } {
+        const situationNodes: GenericTreeNode<SchemaTag>[] = children.filter(treeNodeTypeguard(isSchemaSituation))
+
+        const facets = situationNodes
+            .map((situationNode) => {
+                try {
+                    return new StandardSituationRoomFacet([situationNode])
+                } catch {
+                    return undefined
+                }
+            })
+            .filter((facet): facet is StandardSituationRoomFacet => Boolean(facet))
+
+        const list = new SituationRoomFacetList(facets)
+        this.options.update.call(this.context, list)
+
+        const cleanedSituations: GenericTree<SchemaTag> = situationNodes.map((situationNode) => {
+            let remainder = situationNode.children ?? []
+            for (const tag of ["DisplayName", "Summary", "Description"] as const) {
+                remainder = splitTaggedChildren({ children: remainder, tag }).remainder
+            }
+            return {
+                ...situationNode,
+                children: remainder
+            }
+        })
+
+        const parsingRemainder: GenericTree<SchemaTag> = children.filter((child) => !treeNodeTypeguard(isSchemaSituation)(child))
+        return {
+            parsingRemainder,
+            returnRemainderAddition: cleanedSituations
+        }
+    }
+}
 
 export class StandardRoomPayload implements HasShortName, ComponentConstructorMethods<StandardRoomData> {
     _shortName?: StandardLiteral;
