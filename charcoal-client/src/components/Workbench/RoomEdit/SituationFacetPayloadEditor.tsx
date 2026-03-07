@@ -15,6 +15,7 @@ import {
 import StandardReference from '@tonylb/mtw-wml/ts/standardize/components/reference'
 import StandardRenderEditor from '../foundations/StandardRender/StandardRenderEditor'
 import { MakeTheWorldAccordion } from '../../UI'
+import type { ScopedInstrumentationOptions } from '../../../testing/scopedInstrumentation'
 
 /**
  * Edits the situation-facet payload (displayName, summary, description) for one Situation
@@ -38,7 +39,7 @@ export const SituationFacetPayloadEditor: FunctionComponent = () => {
     }, [room, situationId])
 
     const updateFacetPayload = useCallback(
-        (updatePayload: (prev: SituationRoomFacetPayload) => SituationRoomFacetPayload) => {
+        (updatePayload: (prev: SituationRoomFacetPayload) => SituationRoomFacetPayload, options?: ScopedInstrumentationOptions) => {
             if (!roomId || !situationId || !room || !facet || readonly) return
             updateStandard({
                 type: 'update',
@@ -56,7 +57,7 @@ export const SituationFacetPayloadEditor: FunctionComponent = () => {
                     draftRoom._payload._situations = new SituationRoomFacetList(newItems)
                     return draft
                 }
-            })
+            }, options)
         },
         [roomId, situationId, room, facet, updateStandard, readonly]
     )

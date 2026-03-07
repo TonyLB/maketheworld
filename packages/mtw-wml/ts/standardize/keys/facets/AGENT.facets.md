@@ -161,6 +161,8 @@ Facets support three levels of edit operations with clear separation of concerns
 
 - **Payload Replace**: Payload can contain its own Replace operations independent of facet-level operations
 
+**Payload `fromSchema` and content tags**: When implementing `fromSchema()` for a facet payload that consumes content tags (e.g. DisplayName, Summary, Description, Match), use `splitTaggedChildren` from `schema/utils` so that content wrapped in Remove/Replace is found. Use the **matched** node(s) and pass them to StandardRender (or equivalent); do not use direct `children.find(...)` by tag, or edits will be lost on round-trip.
+
 ### Separation of Concerns
 
 This separation ensures:

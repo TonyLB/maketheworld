@@ -5,6 +5,7 @@ import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes'
 import StandardReference from '@tonylb/mtw-wml/ts/standardize/components/reference'
 import type { ScopedInstrumentationOptions } from '../../testing/scopedInstrumentation'
+import { unique } from '../../lib/lists'
 
 export const setLoadedImage = (state: PersonalAssetsPublic, action: PayloadAction<{ itemId: string; file: File }>) => {
     state.loadedImages[action.payload.itemId] = {
@@ -50,8 +51,21 @@ const isUpdateStandardPayloadRemoveComponent = (payload: UpdateStandardPayload):
 
 const EMPTY_BASE: StandardFormData = { universalKey: 'ASSET#uninitialized', components: [], metaData: [] }
 
+function mergeInstrumentationOptions(
+    existing: ScopedInstrumentationOptions | undefined,
+    incoming: ScopedInstrumentationOptions
+): ScopedInstrumentationOptions {
+    const existingList = existing?.instrumentation ?? []
+    const incomingList = incoming?.instrumentation ?? []
+    const merged = unique(existingList, incomingList)
+    return merged.length ? { instrumentation: merged } : {}
+}
+
 export const updateStandard = (state: PersonalAssetsPublic, action: PayloadAction<UpdateStandardPayload>) => {
     const { payload } = action
+    if (payload.options?.instrumentation?.length) {
+        state.instrumentationOptionsForCurrentEdit = mergeInstrumentationOptions(state.instrumentationOptionsForCurrentEdit, payload.options)
+    }
     const baseData = payload.base ?? EMPTY_BASE
     const mergeToEdit = (delta: StandardForm): void => {
         const editStandardized = new StandardForm(state.edit)
@@ -106,10 +120,22 @@ export const clearPendingEditsByRequestIds = (state: PersonalAssetsPublic, actio
 }
 
 export const saveEdit = (state: PersonalAssetsPublic, action: PayloadAction<{ requestId: string }>) => {
-    state.pendingEdits = [...state.pendingEdits, { meta: { key: action.payload.requestId, time: Date.now() }, edit: JSON.parse(JSON.stringify(state.edit)) }]
+    const instrumentationOptions = state.instrumentationOptionsForCurrentEdit
+    state.pendingEdits = [
+        ...state.pendingEdits,
+        {
+            meta: {
+                key: action.payload.requestId,
+                time: Date.now(),
+                ...(instrumentationOptions?.instrumentation?.length ? { instrumentationOptions } : {})
+            },
+            edit: JSON.parse(JSON.stringify(state.edit))
+        }
+    ]
     state.edit.components = []
     state.edit.metaData = []
     // Clear Asset-level metadata after saving to pendingEdits
     delete state.edit.shortName
     delete state.edit.summary
+    delete state.instrumentationOptionsForCurrentEdit
 }

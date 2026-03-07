@@ -10,11 +10,11 @@ import type { StandardFacetData } from "./dataTypes/facet";
 import { isStandardFacetData } from "./dataTypes/facet";
 import { isSchemaSituation } from "@tonylb/mtw-base/ts/schema/components";
 import { isSchemaRemove } from "@tonylb/mtw-base/ts/schema/edit";
-import { isSchemaDisplayName, isSchemaSummary, isSchemaDescription, SchemaDisplayNameTag, SchemaSummaryTag, SchemaDescriptionTag } from "@tonylb/mtw-base/ts/schema/example";
+import { isSchemaDisplayName, isSchemaSummary, isSchemaDescription } from "@tonylb/mtw-base/ts/schema/example";
 import { facetClassFactory } from "./facetFactory";
 import { isSchemaTreeNode, treeFromWML } from "../../../schema";
-import { splitTaggedChildren } from "../../../schema/utils";
 import { StandardRender } from "../../render";
+import { processWithConsumers, StandardizeConsumerRender } from "../../components/fromSchemaPipeline";
 import { StandardKey } from "../key";
 import { StandardComponent } from "../../components/baseClasses";
 import { RenderTree } from "@tonylb/mtw-base/ts/renderTree";
@@ -114,27 +114,34 @@ export class SituationRoomFacetPayload {
         if (!treeNodeTypeguard(isSchemaSituation)(first)) throw new Error("Invalid schema: expected Situation node");
         const children: GenericTree<SchemaTag> = Array.isArray(first.children) ? first.children : [];
         const result: SituationRoomFacetPayloadType = {};
-        const displayNameNode = children.find((c) => c.data.tag === "DisplayName");
-        const summaryNode = children.find((c) => c.data.tag === "Summary");
-        const descriptionNode = children.find((c) => c.data.tag === "Description");
-        if (displayNameNode && treeNodeTypeguard(isSchemaDisplayName)(displayNameNode))
-            result.displayName = new StandardRender(displayNameNode, {
+        const context = { result };
+        const consumers = [
+            new StandardizeConsumerRender(context, {
                 tag: "DisplayName",
                 nodeTypeGuard: isSchemaDisplayName,
                 errorMessage: "Schema mismatch",
-            }).toJSON();
-        if (summaryNode && treeNodeTypeguard(isSchemaSummary)(summaryNode))
-            result.summary = new StandardRender(summaryNode, {
+                update(render) {
+                    if (render) this.result.displayName = render.toJSON();
+                },
+            }),
+            new StandardizeConsumerRender(context, {
                 tag: "Summary",
                 nodeTypeGuard: isSchemaSummary,
                 errorMessage: "Schema mismatch",
-            }).toJSON();
-        if (descriptionNode && treeNodeTypeguard(isSchemaDescription)(descriptionNode))
-            result.description = new StandardRender(descriptionNode, {
+                update(render) {
+                    if (render) this.result.summary = render.toJSON();
+                },
+            }),
+            new StandardizeConsumerRender(context, {
                 tag: "Description",
                 nodeTypeGuard: isSchemaDescription,
                 errorMessage: "Schema mismatch",
-            }).toJSON();
+                update(render) {
+                    if (render) this.result.description = render.toJSON();
+                },
+            }),
+        ];
+        processWithConsumers(context, consumers, children, { allowUnconsumed: true });
         return result;
     }
 

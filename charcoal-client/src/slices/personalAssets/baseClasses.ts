@@ -3,8 +3,9 @@ import { GenericTree } from '@tonylb/mtw-base/ts/genericTree'
 import { ISSMAttemptNode, ISSMChoiceNode, ISSMHoldNode, ISSMHoldCondition, ISSMDataLayout, ISSMDataReturn, ISSMAction } from '../stateSeekingMachine/baseClasses'
 import { StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes';
 import { SchemaTag } from '@tonylb/mtw-base/ts/schema';
+import type { ScopedInstrumentationOptions } from '../../testing/scopedInstrumentation';
 
-export type PendingEditMeta = { key: string; time: number };
+export type PendingEditMeta = { key: string; time: number; instrumentationOptions?: ScopedInstrumentationOptions };
 import { AssetUUID } from '@tonylb/mtw-base/ts/schema';
 
 export interface PersonalAssetsInternal {
@@ -52,6 +53,9 @@ export interface PersonalAssetsPublic {
     // stream edits out to the WML back end.
     //
     edit: StandardFormData;
+
+    /** Aggregate of instrumentation options from all updateStandard calls in the current edit slice; used when converting edit to pendingEdit and for gating applyEdit logs. Cleared on save. */
+    instrumentationOptionsForCurrentEdit?: ScopedInstrumentationOptions;
 
    properties: AssetClientFetchURL["properties"];
     loadedImages: Record<string, PersonalAssetsLoadedImage>;

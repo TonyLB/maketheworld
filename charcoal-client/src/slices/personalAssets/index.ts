@@ -88,7 +88,8 @@ export const {
             loadedImages: {},
             pendingEdits: [],
             edit: { universalKey: 'ASSET#uninitialized', components: [], metaData: [] },
-            inherited: { universalKey: 'ASSET#uninitialized', components: [], metaData: [] }
+            inherited: { universalKey: 'ASSET#uninitialized', components: [], metaData: [] },
+            instrumentationOptionsForCurrentEdit: undefined
         }
     },
     sliceSelector: ({ personalAssets }) => (personalAssets),
@@ -212,13 +213,13 @@ export const newAsset = (assetId: AssetUUID) => (dispatch: any) => {
 }
 
 export const receiveWMLEvent = (key: string) => (args: { header: WMLStreamingEventHeader; content: WMLContentEvent }) => (dispatch: any, getState: any) => {
-    const { header } = args
+    const { header, content } = args
     if (header.dataSourceKey !== 'mtw.wml') return
     const RequestIds = header.RequestIds
     if (!RequestIds || RequestIds.length === 0) return
     const pendingEdits = getPendingEdits(key)(getState())
     dispatch(publicActions.clearPendingEditsByRequestIds(key)({ assetKey: key, RequestIds }))
-    if (header.type === 'Merge Conflict' && RequestIds.some(id => pendingEdits.some(p => p.meta.key === id))) {
+    if (header.type === 'Merge Conflict' && RequestIds.some(id => pendingEdits.some((p) => p.meta.key === id))) {
         push('Merge conflict prevented saving your changes')
     }
 }
