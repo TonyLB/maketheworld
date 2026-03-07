@@ -1,12 +1,11 @@
 import { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 import type {
     EphemeraCacheMarkState,
     EphemeraCacheRenderedContent,
     EphemeraCacheDynamoItem
 } from './baseClasses'
 import { findExactMatchForComponent } from './exampleComparison'
-import { computePerspectiveId } from '../internalUtils/perspectiveId'
-import type { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 
 export type GenerateRoomPreviewInput = {
     roomId: EphemeraRoomId;
@@ -30,25 +29,25 @@ export type GenerateRoomPreviewResult =
     | GenerateRoomPreviewFailure
 
 type FindExactMatchForComponent = typeof findExactMatchForComponent
-type ComputePerspectiveId = typeof computePerspectiveId
 
-export const generateRoomPreview = async ({
-    roomId,
-    markState,
-    assetStack
-}: GenerateRoomPreviewInput, {
-    findExactMatchForComponentImpl = findExactMatchForComponent,
-    computePerspectiveIdImpl = computePerspectiveId
-}: {
-    findExactMatchForComponentImpl?: FindExactMatchForComponent;
-    computePerspectiveIdImpl?: ComputePerspectiveId;
-} = {}): Promise<GenerateRoomPreviewResult> => {
-    const perspectiveId = computePerspectiveIdImpl(assetStack as AssetUUID[])
+export const generateRoomPreview = async (
+    {
+        roomId,
+        markState,
+        assetStack
+    }: GenerateRoomPreviewInput,
+    {
+        findExactMatchForComponentImpl = findExactMatchForComponent
+    }: {
+        findExactMatchForComponentImpl?: FindExactMatchForComponent;
+    } = {}
+): Promise<GenerateRoomPreviewResult> => {
+    const perspective = { assetStack: assetStack as AssetUUID[] }
 
     const match: EphemeraCacheDynamoItem | null = await findExactMatchForComponentImpl({
         componentId: roomId,
         proposedMarkState: markState,
-        perspectiveId
+        perspective
     })
 
     if (match) {

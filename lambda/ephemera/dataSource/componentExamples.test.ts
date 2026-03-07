@@ -56,6 +56,7 @@ describe('handleComponentExamplesEvent (mtw.ephemera.examples)', () => {
             exampleId: 'EXAMPLE#one',
             parentIds: ['ROOM#one', 'FEATURE#two', 'NOT#VALID'] as any,
             assetStack: ['ASSET#one', 'ASSET#two'],
+            perspectiveMatcher: { requiredAssetIds: ['ASSET#one', 'ASSET#two'], forbiddenAssetIds: [] },
             example: {
                 markState: { markValue: [{ mark: 'MARK#one', value: 'value' }] },
                 renderedContent: { description: [] },
@@ -74,6 +75,7 @@ describe('handleComponentExamplesEvent (mtw.ephemera.examples)', () => {
                 renderedContent: event.example.renderedContent,
                 provenance: event.example.provenance,
                 perspectiveId: 'PERSPECTIVE#abc123',
+                perspectiveMatcher: event.perspectiveMatcher,
                 authoredExampleId: 'EXAMPLE#one'
             }),
             undefined
@@ -85,6 +87,7 @@ describe('handleComponentExamplesEvent (mtw.ephemera.examples)', () => {
                 renderedContent: event.example.renderedContent,
                 provenance: event.example.provenance,
                 perspectiveId: 'PERSPECTIVE#abc123',
+                perspectiveMatcher: event.perspectiveMatcher,
                 authoredExampleId: 'EXAMPLE#one'
             }),
             undefined
@@ -105,6 +108,7 @@ describe('handleComponentExamplesEvent (mtw.ephemera.examples)', () => {
             exampleId: 'SITUATION#situation-one',
             parentIds: ['ROOM#room-one'],
             assetStack: ['ASSET#one'],
+            perspectiveMatcher: { requiredAssetIds: ['ASSET#one'], forbiddenAssetIds: [] },
             example: {
                 markState: { markValue: [] },
                 renderedContent: { description: [] },
@@ -123,6 +127,7 @@ describe('handleComponentExamplesEvent (mtw.ephemera.examples)', () => {
                 renderedContent: event.example.renderedContent,
                 provenance: event.example.provenance,
                 perspectiveId: 'PERSPECTIVE#abc123',
+                perspectiveMatcher: event.perspectiveMatcher,
                 situationId: 'SITUATION#situation-one'
             }),
             undefined
@@ -146,6 +151,7 @@ describe('handleComponentExamplesEvent (mtw.ephemera.examples)', () => {
                 renderedContent: { description: [] },
                 provenance: { type: 'authored' },
                 perspectiveId: 'PERSPECTIVE#abc123',
+                perspectiveMatcher: { requiredAssetIds: [], forbiddenAssetIds: [] },
                 authoredExampleId: 'EXAMPLE#one'
             },
             {
@@ -155,6 +161,7 @@ describe('handleComponentExamplesEvent (mtw.ephemera.examples)', () => {
                 renderedContent: { description: [] },
                 provenance: { type: 'authored' },
                 perspectiveId: 'PERSPECTIVE#def456',
+                perspectiveMatcher: { requiredAssetIds: [], forbiddenAssetIds: [] },
                 authoredExampleId: 'EXAMPLE#two'
             }
         ]
@@ -165,7 +172,8 @@ describe('handleComponentExamplesEvent (mtw.ephemera.examples)', () => {
             type: 'ExampleRemoved',
             exampleId: 'EXAMPLE#one',
             parentIds: ['ROOM#one', 'FEATURE#two'] as any,
-            assetStack: ['ASSET#one']
+            assetStack: ['ASSET#one'],
+            perspectiveMatcher: { requiredAssetIds: ['ASSET#one'], forbiddenAssetIds: [] }
         }
 
         await handleComponentExamplesEvent(event, deps)
@@ -194,6 +202,7 @@ describe('handleComponentExamplesEvent (mtw.ephemera.examples)', () => {
                 renderedContent: { description: [] },
                 provenance: { type: 'authored' },
                 perspectiveId: 'PERSPECTIVE#abc123',
+                perspectiveMatcher: { requiredAssetIds: [], forbiddenAssetIds: [] },
                 situationId: 'SITUATION#situation-one'
             },
             {
@@ -203,6 +212,7 @@ describe('handleComponentExamplesEvent (mtw.ephemera.examples)', () => {
                 renderedContent: { description: [] },
                 provenance: { type: 'authored' },
                 perspectiveId: 'PERSPECTIVE#def456',
+                perspectiveMatcher: { requiredAssetIds: [], forbiddenAssetIds: [] },
                 situationId: 'SITUATION#situation-two'
             }
         ]
@@ -213,7 +223,8 @@ describe('handleComponentExamplesEvent (mtw.ephemera.examples)', () => {
             type: 'ExampleRemoved',
             exampleId: 'SITUATION#situation-one',
             parentIds: ['ROOM#one'],
-            assetStack: ['ASSET#one']
+            assetStack: ['ASSET#one'],
+            perspectiveMatcher: { requiredAssetIds: ['ASSET#one'], forbiddenAssetIds: [] }
         }
 
         await handleComponentExamplesEvent(event, deps)

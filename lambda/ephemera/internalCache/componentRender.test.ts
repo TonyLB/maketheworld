@@ -86,6 +86,7 @@ describe('ComponentRender cache handler', () => {
             },
             provenance: { type: 'authored' as const },
             perspectiveId: 'PERSPECTIVE#test',
+            perspectiveMatcher: { requiredAssetIds: [], forbiddenAssetIds: [] },
             situationId: 'SITUATION#situation-one',
         }
         ;(internalCache.ComponentRender as any)._queryCacheRecordsForComponent = jest.fn().mockResolvedValue([cacheRecord])
@@ -139,6 +140,7 @@ describe('ComponentRender cache handler', () => {
             },
             provenance: { type: 'authored' as const },
             perspectiveId: 'PERSPECTIVE#test',
+            perspectiveMatcher: { requiredAssetIds: [], forbiddenAssetIds: [] },
             situationId: 'SITUATION#primary',
             authoredExampleId: 'EXAMPLE#legacy',
         }

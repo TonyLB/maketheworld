@@ -14,6 +14,7 @@ import {
     isComponentExamplesSubscribedEnvelope,
 } from './subscribedEvents'
 import {
+    computePerspectiveMatcherForRoomSituation,
     enrichExampleEvent,
     getOrderedAssetStack,
     situationFacetToCacheShape,
@@ -71,14 +72,24 @@ export const componentExamplesDataSource = new AssetsDataSource<
                     const situationCaches = await internalCache.ComponentData.get(situationIds as EphemeraId[])
 
                     if (eventType === 'Component Removed') {
-                        for (const situationId of situationIds) {
+                        for (let idx = 0; idx < situationIds.length; idx++) {
+                            const situationId = situationIds[idx]
                             if (!situationId) continue
+                            const situationCache = situationCaches[idx]
+                            const perspectiveMatcher = computePerspectiveMatcherForRoomSituation({
+                                roomId,
+                                situationId: situationId as ComponentUUID,
+                                assetStack,
+                                roomByAssets: byAssets,
+                                situationByAssets: situationCache?.byAssets ?? [],
+                            })
                             await streamEvent({
                                 update: {
                                     type: 'ExampleRemoved',
                                     exampleId: situationId as ComponentUUID,
                                     parentIds: [roomId],
                                     assetStack,
+                                    perspectiveMatcher,
                                 },
                                 streamKey: situationId,
                                 header: { type: 'ExampleRemoved' },
@@ -97,6 +108,13 @@ export const componentExamplesDataSource = new AssetsDataSource<
                         if (!situationComponent) {
                             continue
                         }
+                        const perspectiveMatcher = computePerspectiveMatcherForRoomSituation({
+                            roomId,
+                            situationId,
+                            assetStack,
+                            roomByAssets: byAssets,
+                            situationByAssets: cache?.byAssets ?? [],
+                        })
                         const examplePayload = situationFacetToCacheShape(
                             situationComponent,
                             facet.payload
@@ -107,6 +125,7 @@ export const componentExamplesDataSource = new AssetsDataSource<
                                 exampleId: situationId,
                                 parentIds: [roomId],
                                 assetStack,
+                                perspectiveMatcher,
                                 example: examplePayload,
                             },
                             streamKey: situationId,
@@ -131,11 +150,17 @@ export const componentExamplesDataSource = new AssetsDataSource<
                 const streamKey = enriched.exampleId
 
                 if (eventType === 'Component Removed') {
+                    // Temporary band-aid until Feature/Knowledge are refactored to Situations; edge-cases acceptable for the interim.
+                    const perspectiveMatcher: { requiredAssetIds: AssetUUID[]; forbiddenAssetIds: AssetUUID[] } = {
+                        requiredAssetIds: enriched.assetStack,
+                        forbiddenAssetIds: [],
+                    }
                     const update: ExampleRemoved = {
                         type: 'ExampleRemoved',
                         exampleId: enriched.exampleId,
                         parentIds: enriched.parentIds,
                         assetStack: enriched.assetStack,
+                        perspectiveMatcher,
                     }
                     await streamEvent({
                         update,
@@ -149,11 +174,17 @@ export const componentExamplesDataSource = new AssetsDataSource<
                     if (!enriched.example) {
                         return
                     }
+                    // Temporary band-aid until Feature/Knowledge are refactored to Situations; edge-cases acceptable for the interim.
+                    const perspectiveMatcher: { requiredAssetIds: AssetUUID[]; forbiddenAssetIds: AssetUUID[] } = {
+                        requiredAssetIds: enriched.assetStack,
+                        forbiddenAssetIds: [],
+                    }
                     const update: ExampleUpdated = {
                         type: 'ExampleUpdated',
                         exampleId: enriched.exampleId,
                         parentIds: enriched.parentIds,
                         assetStack: enriched.assetStack,
+                        perspectiveMatcher,
                         example: enriched.example,
                     }
                     await streamEvent({

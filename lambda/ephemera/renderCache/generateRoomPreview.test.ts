@@ -5,10 +5,6 @@ import type {
     EphemeraCacheRenderedContent
 } from './baseClasses'
 
-jest.mock('../internalUtils/perspectiveId', () => ({
-    computePerspectiveId: jest.fn().mockReturnValue('PERSPECTIVE#mocked')
-}))
-
 jest.mock('./exampleComparison', () => ({
     findExactMatchForComponent: jest.fn()
 }))
@@ -24,6 +20,7 @@ const baseRecord = (overrides: Partial<EphemeraCacheDynamoItem> = {}): EphemeraC
     renderedContent: { description: [] },
     provenance: { type: 'authored' },
     perspectiveId: 'PERSPECTIVE#mocked',
+    perspectiveMatcher: { requiredAssetIds: [], forbiddenAssetIds: [] },
     ...overrides
 })
 
@@ -34,10 +31,7 @@ describe('renderCache/generateRoomPreview', () => {
         jest.clearAllMocks()
     })
 
-    it('computes perspectiveId from assetStack and passes it to findExactMatchForComponent', async () => {
-        const { computePerspectiveId } = jest.requireMock('../internalUtils/perspectiveId') as {
-            computePerspectiveId: jest.Mock
-        }
+    it('builds perspective from assetStack and passes it to findExactMatchForComponent', async () => {
         const { findExactMatchForComponent } = jest.requireMock('./exampleComparison') as {
             findExactMatchForComponent: jest.Mock
         }
@@ -53,11 +47,10 @@ describe('renderCache/generateRoomPreview', () => {
             assetStack
         })
 
-        expect(computePerspectiveId).toHaveBeenCalledWith(assetStack)
         expect(findExactMatchForComponent).toHaveBeenCalledWith({
             componentId: roomId,
             proposedMarkState: markState,
-            perspectiveId: 'PERSPECTIVE#mocked'
+            perspective: { assetStack }
         })
     })
 

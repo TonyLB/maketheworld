@@ -15,12 +15,13 @@ const uuidv4Mock = uuidv4 as jest.Mock
 
 const componentId = 'ROOM#test-room-uuid' as const
 
-const minimalRecord = {
+const minimalRecord: PutCacheRecordInput = {
     markState: { markValue: [{ mark: 'MARK#mark-uuid', value: 'sunny' }] },
     renderedContent: { description: [] },
     provenance: { type: 'authored' as const },
-    perspectiveId: 'test-perspective'
-} as PutCacheRecordInput
+    perspectiveId: 'test-perspective',
+    perspectiveMatcher: { requiredAssetIds: ['ASSET#a'], forbiddenAssetIds: [] }
+}
 
 describe('renderCache/cacheAccess', () => {
     beforeEach(() => {
@@ -37,7 +38,8 @@ describe('renderCache/cacheAccess', () => {
                     markState: minimalRecord.markState,
                     renderedContent: minimalRecord.renderedContent,
                     provenance: minimalRecord.provenance,
-                    perspectiveId: minimalRecord.perspectiveId
+                    perspectiveId: minimalRecord.perspectiveId,
+                    perspectiveMatcher: minimalRecord.perspectiveMatcher
                 }
             ]
             ephemeraDBMock.query.mockResolvedValue(items)
@@ -75,7 +77,8 @@ describe('renderCache/cacheAccess', () => {
                 markState: minimalRecord.markState,
                 renderedContent: minimalRecord.renderedContent,
                 provenance: minimalRecord.provenance,
-                perspectiveId: minimalRecord.perspectiveId
+                perspectiveId: minimalRecord.perspectiveId,
+                perspectiveMatcher: minimalRecord.perspectiveMatcher
             }
             ephemeraDBMock.query.mockResolvedValue([
                 valid,
@@ -104,7 +107,8 @@ describe('renderCache/cacheAccess', () => {
                 markState: minimalRecord.markState,
                 renderedContent: minimalRecord.renderedContent,
                 provenance: minimalRecord.provenance,
-                perspectiveId: minimalRecord.perspectiveId
+                perspectiveId: minimalRecord.perspectiveId,
+                perspectiveMatcher: minimalRecord.perspectiveMatcher
             })
         })
 

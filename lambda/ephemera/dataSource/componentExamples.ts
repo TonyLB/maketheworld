@@ -100,6 +100,7 @@ export const handleComponentExamplesEvent = async (
             renderedContent: example.renderedContent,
             provenance: example.provenance,
             perspectiveId,
+            perspectiveMatcher: event.perspectiveMatcher,
             ...(isEphemeraSituationId(exampleId) ? { situationId: exampleId } : { authoredExampleId: exampleId })
         }
 
@@ -109,11 +110,12 @@ export const handleComponentExamplesEvent = async (
                 .map(async (parentId) => {
                     try {
                         const existingRecords = await queryRecords(parentId)
+                                        const perspective = { assetStack }
                         const existing = findExactMatch({
                             componentId: parentId,
                             proposedMarkState: example.markState,
                             records: existingRecords,
-                            perspectiveId
+                            perspective
                         })
                         await putRecord(parentId, record, existing?.DataCategory)
                     } catch (error) {

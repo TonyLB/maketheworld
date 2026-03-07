@@ -2,9 +2,9 @@ import {
     type EphemeraCacheComponentId,
     type EphemeraCacheMarkState,
     type EphemeraCacheDynamoItem,
-    type EphemeraPerspectiveId
 } from './baseClasses'
 import { queryCacheRecordsForComponent } from './cacheAccess'
+import { perspectiveMatches, type Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
 
 //
 // Mark state normalization and comparison helpers
@@ -66,19 +66,22 @@ export type FindExactMatchInput = {
     componentId: EphemeraCacheComponentId;
     proposedMarkState: EphemeraCacheMarkState;
     records: EphemeraCacheDynamoItem[];
-    perspectiveId?: EphemeraPerspectiveId;
+    perspective: Perspective;
 }
 
 export const findExactMatch = ({
     proposedMarkState,
     records,
-    perspectiveId
+    perspective
 }: FindExactMatchInput): EphemeraCacheDynamoItem | null => {
     const normalizedProposed = normalizeMarkState(proposedMarkState)
 
-    const candidates = perspectiveId
-        ? records.filter((record) => record.perspectiveId === perspectiveId)
-        : records
+    const candidates = records.filter((record) => {
+        if (!record.perspectiveMatcher) {
+            return false
+        }
+        return perspectiveMatches(record.perspectiveMatcher, perspective)
+    })
 
     for (const record of candidates) {
         if (markStatesEqual(normalizedProposed, record.markState)) {
@@ -92,14 +95,14 @@ export const findExactMatch = ({
 export type FindExactMatchForComponentInput = {
     componentId: EphemeraCacheComponentId;
     proposedMarkState: EphemeraCacheMarkState;
-    perspectiveId?: EphemeraPerspectiveId;
+    perspective: Perspective;
     query?: typeof queryCacheRecordsForComponent;
 }
 
 export const findExactMatchForComponent = async ({
     componentId,
     proposedMarkState,
-    perspectiveId,
+    perspective,
     query = queryCacheRecordsForComponent
 }: FindExactMatchForComponentInput): Promise<EphemeraCacheDynamoItem | null> => {
     const records = await query(componentId)
@@ -107,7 +110,7 @@ export const findExactMatchForComponent = async ({
         componentId,
         proposedMarkState,
         records,
-        perspectiveId
+        perspective
     })
 }
 

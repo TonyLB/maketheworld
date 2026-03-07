@@ -7,6 +7,7 @@ import type {
     EphemeraCacheDynamoItem,
     EphemeraCacheMarkState
 } from './baseClasses'
+import type { Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
 
 const { normalizeMarkState, markStatesEqual } = testing
 
@@ -21,6 +22,7 @@ const baseRecord = (overrides: Partial<EphemeraCacheDynamoItem> = {}): EphemeraC
     renderedContent: { description: [] },
     provenance: { type: 'authored' },
     perspectiveId: 'PERSPECTIVE#abc',
+    perspectiveMatcher: { requiredAssetIds: ['ASSET#a'], forbiddenAssetIds: [] },
     ...overrides
 })
 
@@ -126,7 +128,7 @@ describe('renderCache/exampleComparison', () => {
                 componentId: 'ROOM#test-room',
                 proposedMarkState: proposed,
                 records: [],
-                perspectiveId: undefined
+                perspective: { assetStack: ['ASSET#a'] } as Perspective
             })
 
             expect(match).toBeNull()
@@ -144,27 +146,30 @@ describe('renderCache/exampleComparison', () => {
                 componentId: 'ROOM#test-room',
                 proposedMarkState: proposed,
                 records,
-                perspectiveId: undefined
+                perspective: { assetStack: ['ASSET#a'] } as Perspective
             })
 
             expect(match).toBeNull()
         })
 
-        it('returns a record that exactly matches the proposed state (no perspective)', () => {
+        it('returns a record that matches proposed state when perspectiveMatches', () => {
             const proposed = makeMarkState([
                 { mark: 'MARK#a', value: 'one' },
                 { mark: 'MARK#b', value: 'two' }
             ])
+            const perspective: Perspective = { assetStack: ['ASSET#a'] }
             const records = [
                 baseRecord({
-                    markState: makeMarkState([{ mark: 'MARK#a', value: 'one' }])
+                    markState: makeMarkState([{ mark: 'MARK#a', value: 'one' }]),
+                    perspectiveMatcher: { requiredAssetIds: ['ASSET#other'], forbiddenAssetIds: [] }
                 }),
                 baseRecord({
                     DataCategory: 'CACHE#match',
                     markState: makeMarkState([
                         { mark: 'MARK#b', value: 'two' },
                         { mark: 'MARK#a', value: 'one' }
-                    ])
+                    ]),
+                    perspectiveMatcher: { requiredAssetIds: ['ASSET#a'], forbiddenAssetIds: [] }
                 })
             ]
 
@@ -172,7 +177,7 @@ describe('renderCache/exampleComparison', () => {
                 componentId: 'ROOM#test-room',
                 proposedMarkState: proposed,
                 records,
-                perspectiveId: undefined
+                perspective
             })
 
             expect(match).toEqual(
@@ -182,18 +187,19 @@ describe('renderCache/exampleComparison', () => {
             )
         })
 
-        it('respects perspectiveId when provided', () => {
+        it('respects perspective when provided (filters by perspectiveMatches)', () => {
             const proposed = makeMarkState([{ mark: 'MARK#a', value: 'one' }])
+            const perspective: Perspective = { assetStack: ['ASSET#a', 'ASSET#b'] }
             const records = [
                 baseRecord({
-                    DataCategory: 'CACHE#different-perspective',
+                    DataCategory: 'CACHE#no-match',
                     markState: proposed,
-                    perspectiveId: 'PERSPECTIVE#other'
+                    perspectiveMatcher: { requiredAssetIds: ['ASSET#other'], forbiddenAssetIds: [] }
                 }),
                 baseRecord({
                     DataCategory: 'CACHE#correct-perspective',
                     markState: proposed,
-                    perspectiveId: 'PERSPECTIVE#target'
+                    perspectiveMatcher: { requiredAssetIds: ['ASSET#a', 'ASSET#b'], forbiddenAssetIds: [] }
                 })
             ]
 
@@ -201,55 +207,53 @@ describe('renderCache/exampleComparison', () => {
                 componentId: 'ROOM#test-room',
                 proposedMarkState: proposed,
                 records,
-                perspectiveId: 'PERSPECTIVE#target'
+                perspective
             })
 
             expect(match).toEqual(
                 expect.objectContaining({
-                    DataCategory: 'CACHE#correct-perspective',
-                    perspectiveId: 'PERSPECTIVE#target'
+                    DataCategory: 'CACHE#correct-perspective'
                 })
             )
         })
 
-        it('can match any perspective when perspectiveId is undefined', () => {
+        it('skips records without perspectiveMatcher', () => {
             const proposed = makeMarkState([{ mark: 'MARK#a', value: 'one' }])
             const records = [
+                {
+                    ...baseRecord({ DataCategory: 'CACHE#legacy', markState: proposed }),
+                    perspectiveMatcher: undefined
+                } as unknown as EphemeraCacheDynamoItem,
                 baseRecord({
-                    DataCategory: 'CACHE#one',
+                    DataCategory: 'CACHE#with-matcher',
                     markState: proposed,
-                    perspectiveId: 'PERSPECTIVE#one'
-                }),
-                baseRecord({
-                    DataCategory: 'CACHE#two',
-                    markState: proposed,
-                    perspectiveId: 'PERSPECTIVE#two'
+                    perspectiveMatcher: { requiredAssetIds: ['ASSET#a'], forbiddenAssetIds: [] }
                 })
             ]
+            const perspective: Perspective = { assetStack: ['ASSET#a'] }
 
             const match = findExactMatch({
                 componentId: 'ROOM#test-room',
                 proposedMarkState: proposed,
                 records,
-                perspectiveId: undefined
+                perspective
             })
 
-            expect(match).not.toBeNull()
-            if (!match) {
-                return
-            }
-            expect(['CACHE#one', 'CACHE#two']).toContain(match.DataCategory)
+            expect(match).toEqual(
+                expect.objectContaining({ DataCategory: 'CACHE#with-matcher' })
+            )
         })
     })
 
     describe('findExactMatchForComponent', () => {
         it('queries cache records and delegates to findExactMatch', async () => {
             const proposed = makeMarkState([{ mark: 'MARK#a', value: 'one' }])
+            const perspective: Perspective = { assetStack: ['ASSET#a'] }
             const records = [
                 baseRecord({
                     DataCategory: 'CACHE#match',
                     markState: proposed,
-                    perspectiveId: 'PERSPECTIVE#abc'
+                    perspectiveMatcher: { requiredAssetIds: ['ASSET#a'], forbiddenAssetIds: [] }
                 })
             ]
 
@@ -258,7 +262,7 @@ describe('renderCache/exampleComparison', () => {
             const match = await findExactMatchForComponent({
                 componentId: 'ROOM#test-room',
                 proposedMarkState: proposed,
-                perspectiveId: 'PERSPECTIVE#abc',
+                perspective,
                 query
             })
 
