@@ -110,7 +110,7 @@ export const handleComponentExamplesEvent = async (
                 .map(async (parentId) => {
                     try {
                         const existingRecords = await queryRecords(parentId)
-                                        const perspective = { assetStack }
+                        const perspective = { assetStack }
                         const existing = findExactMatch({
                             componentId: parentId,
                             proposedMarkState: example.markState,
