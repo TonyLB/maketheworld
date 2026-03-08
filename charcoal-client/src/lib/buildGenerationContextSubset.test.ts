@@ -15,8 +15,9 @@ describe('buildGenerationContextSubset', () => {
                         <Mark uuid=(mark1)><ShortName>Illumination</ShortName></Mark>
                     </Lens>
                     <Guidance uuid=(guid1) key=(guid1)>
-                        <ShortName>Mood</ShortName>
-                        <Instructions>Be descriptive.</Instructions>
+                        <ShortName>Bright mood</ShortName>
+                        <Instructions>Be descriptive; emphasize light and clarity.</Instructions>
+                        <Mark uuid=(mark1)><Match>Bright</Match></Mark>
                     </Guidance>
                 </Room>
             </Asset>
@@ -33,8 +34,11 @@ describe('buildGenerationContextSubset', () => {
                         <Mark uuid=(mark1)><ShortName>Illumination</ShortName></Mark>
                     </Lens>
                     <Guidance uuid=(guid1) key=(guid1)>
-                        <ShortName>Mood</ShortName>
-                        <Instructions>Be descriptive.</Instructions>
+                        <ShortName>Bright mood</ShortName>
+                        <Instructions>
+                            Be descriptive; emphasize light and clarity.
+                        </Instructions>
+                        <Mark uuid=(mark1)><Match>Bright</Match></Mark>
                     </Guidance>
                 </Room>
             </Asset>
@@ -51,8 +55,16 @@ describe('buildGenerationContextSubset', () => {
                         <ShortName>Test Lens</ShortName>
                         <Mark uuid=(mark1)><ShortName>Weather</ShortName></Mark>
                     </Lens>
-                    <Guidance uuid=(guid1) key=(guid1)><ShortName>Mood</ShortName></Guidance>
-                    <Guidance uuid=(guid2) key=(guid2)><ShortName>Tone</ShortName></Guidance>
+                    <Guidance uuid=(guid1) key=(guid1)>
+                        <ShortName>Sunny mood</ShortName>
+                        <Instructions>Emphasize warmth and visibility.</Instructions>
+                        <Mark uuid=(mark1)><Match>Sunny</Match></Mark>
+                    </Guidance>
+                    <Guidance uuid=(guid2) key=(guid2)>
+                        <ShortName>Cloudy tone</ShortName>
+                        <Instructions>Softer light, subdued atmosphere.</Instructions>
+                        <Mark uuid=(mark1)><Match>Cloudy</Match></Mark>
+                    </Guidance>
                 </Room>
             </Asset>
         `)
@@ -67,8 +79,16 @@ describe('buildGenerationContextSubset', () => {
                         <ShortName>Test Lens</ShortName>
                         <Mark uuid=(mark1)><ShortName>Weather</ShortName></Mark>
                     </Lens>
-                    <Guidance uuid=(guid1) key=(guid1)><ShortName>Mood</ShortName></Guidance>
-                    <Guidance uuid=(guid2) key=(guid2)><ShortName>Tone</ShortName></Guidance>
+                    <Guidance uuid=(guid1) key=(guid1)>
+                        <ShortName>Sunny mood</ShortName>
+                        <Instructions>Emphasize warmth and visibility.</Instructions>
+                        <Mark uuid=(mark1)><Match>Sunny</Match></Mark>
+                    </Guidance>
+                    <Guidance uuid=(guid2) key=(guid2)>
+                        <ShortName>Cloudy tone</ShortName>
+                        <Instructions>Softer light, subdued atmosphere.</Instructions>
+                        <Mark uuid=(mark1)><Match>Cloudy</Match></Mark>
+                    </Guidance>
                 </Room>
             </Asset>
         `)
@@ -85,7 +105,12 @@ describe('buildGenerationContextSubset', () => {
                         <Mark uuid=(mark1)><ShortName>Illumination</ShortName></Mark>
                         <Mark uuid=(mark2)><ShortName>Weather</ShortName></Mark>
                     </Lens>
-                    <Guidance uuid=(guid1) key=(guid1)><ShortName>Mood</ShortName></Guidance>
+                    <Guidance uuid=(guid1) key=(guid1)>
+                        <ShortName>Default mood</ShortName>
+                        <Instructions>Neutral tone for mixed conditions.</Instructions>
+                        <Mark uuid=(mark1)><Match>Dim</Match></Mark>
+                        <Mark uuid=(mark2)><Match>Calm</Match></Mark>
+                    </Guidance>
                 </Room>
             </Asset>
         `)
@@ -101,7 +126,12 @@ describe('buildGenerationContextSubset', () => {
                         <Mark uuid=(mark1)><ShortName>Illumination</ShortName></Mark>
                         <Mark uuid=(mark2)><ShortName>Weather</ShortName></Mark>
                     </Lens>
-                    <Guidance uuid=(guid1) key=(guid1)><ShortName>Mood</ShortName></Guidance>
+                    <Guidance uuid=(guid1) key=(guid1)>
+                        <ShortName>Default mood</ShortName>
+                        <Instructions>Neutral tone for mixed conditions.</Instructions>
+                        <Mark uuid=(mark1)><Match>Dim</Match></Mark>
+                        <Mark uuid=(mark2)><Match>Calm</Match></Mark>
+                    </Guidance>
                 </Room>
             </Asset>
         `)
@@ -117,7 +147,11 @@ describe('buildGenerationContextSubset', () => {
                         <ShortName>Test Lens</ShortName>
                         <Mark uuid=(mark1)><ShortName>Illumination</ShortName></Mark>
                     </Lens>
-                    <Guidance uuid=(guid1) key=(guid1)><ShortName>Mood</ShortName></Guidance>
+                    <Guidance uuid=(guid1) key=(guid1)>
+                        <ShortName>Bright mood</ShortName>
+                        <Instructions>Emphasize light.</Instructions>
+                        <Mark uuid=(mark1)><Match>Bright</Match></Mark>
+                    </Guidance>
                 </Room>
                 <Room uuid=(room2) key=(room2)>
                     <ShortName>Other Room</ShortName>
@@ -136,7 +170,11 @@ describe('buildGenerationContextSubset', () => {
                         <ShortName>Test Lens</ShortName>
                         <Mark uuid=(mark1)><ShortName>Illumination</ShortName></Mark>
                     </Lens>
-                    <Guidance uuid=(guid1) key=(guid1)><ShortName>Mood</ShortName></Guidance>
+                    <Guidance uuid=(guid1) key=(guid1)>
+                        <ShortName>Bright mood</ShortName>
+                        <Instructions>Emphasize light.</Instructions>
+                        <Mark uuid=(mark1)><Match>Bright</Match></Mark>
+                    </Guidance>
                 </Room>
             </Asset>
         `)
@@ -155,7 +193,11 @@ describe('buildGenerationContextSubset', () => {
                         <ShortName>Test Lens</ShortName>
                         <Mark uuid=(mark1)><ShortName>Illumination</ShortName></Mark>
                     </Lens>
-                    <Guidance uuid=(guid1) key=(guid1)><ShortName>Mood</ShortName></Guidance>
+                    <Guidance uuid=(guid1) key=(guid1)>
+                        <ShortName>Mood</ShortName>
+                        <Instructions>Be descriptive.</Instructions>
+                        <Mark uuid=(mark1)><Match>Clear</Match></Mark>
+                    </Guidance>
                 </Room>
                 <Knowledge uuid=(k1) key=(lore)><ShortName>Lore</ShortName></Knowledge>
             </Asset>
@@ -171,7 +213,11 @@ describe('buildGenerationContextSubset', () => {
                         <ShortName>Test Lens</ShortName>
                         <Mark uuid=(mark1)><ShortName>Illumination</ShortName></Mark>
                     </Lens>
-                    <Guidance uuid=(guid1) key=(guid1)><ShortName>Mood</ShortName></Guidance>
+                    <Guidance uuid=(guid1) key=(guid1)>
+                        <ShortName>Mood</ShortName>
+                        <Instructions>Be descriptive.</Instructions>
+                        <Mark uuid=(mark1)><Match>Clear</Match></Mark>
+                    </Guidance>
                 </Room>
             </Asset>
         `)
@@ -190,7 +236,11 @@ describe('buildGenerationContextSubset', () => {
                         <ShortName>Test Lens</ShortName>
                         <Mark uuid=(mark1)><ShortName>Illumination</ShortName></Mark>
                     </Lens>
-                    <Guidance uuid=(guid1) key=(guid1)><ShortName>Mood</ShortName></Guidance>
+                    <Guidance uuid=(guid1) key=(guid1)>
+                        <ShortName>Bright mood</ShortName>
+                        <Instructions>Mood is spooky, play up shadows.</Instructions>
+                        <Mark uuid=(mark1)><Match>Bright</Match></Mark>
+                    </Guidance>
                     <Example uuid=(ex1) key=(base)><Description>Default</Description></Example>
                 </Room>
             </Asset>
@@ -206,7 +256,11 @@ describe('buildGenerationContextSubset', () => {
                         <ShortName>Test Lens</ShortName>
                         <Mark uuid=(mark1)><ShortName>Illumination</ShortName></Mark>
                     </Lens>
-                    <Guidance uuid=(guid1) key=(guid1)><ShortName>Mood</ShortName></Guidance>
+                    <Guidance uuid=(guid1) key=(guid1)>
+                        <ShortName>Bright mood</ShortName>
+                        <Instructions>Mood is spooky, play up shadows.</Instructions>
+                        <Mark uuid=(mark1)><Match>Bright</Match></Mark>
+                    </Guidance>
                 </Room>
             </Asset>
         `)
