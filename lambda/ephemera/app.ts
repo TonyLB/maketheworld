@@ -236,7 +236,8 @@ export const handler = async (event: any, context: any) => {
                 const result = await generateRoomPreview({
                     roomId: request.RoomId,
                     markState: request.markState,
-                    assetStack: request.assetStack
+                    assetStack: request.assetStack,
+                    generationContextWml: request.generationContextWml
                 })
                 messageBus.send({
                     type: 'ReturnValue',

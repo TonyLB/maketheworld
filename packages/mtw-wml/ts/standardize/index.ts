@@ -555,6 +555,17 @@ export class StandardForm {
         return returnValue
     }
 
+    /**
+     * Returns a clone of this form with components replaced by the given array.
+     * Use when you have a filtered/mapped list of component instances (e.g. after trimming Rooms).
+     */
+    withComponents(components: StandardComponent[]): StandardForm {
+        const returnValue = this._clone()
+        returnValue._components = components
+        returnValue.invalidateCache()
+        return returnValue
+    }
+
     _getSchemaOrganization(): SchemaOrganization {
         if (!this._schemaOrganizationCache) {
             // Ensure _keyLookupCache is instantiated

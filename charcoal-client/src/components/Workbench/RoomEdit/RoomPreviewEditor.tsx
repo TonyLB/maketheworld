@@ -23,6 +23,8 @@ import { StandardLens } from '@tonylb/mtw-wml/ts/standardize/components/worldSta
 import StandardMark from '@tonylb/mtw-wml/ts/standardize/components/worldState'
 import { isSchemaString } from '@tonylb/mtw-base/ts/schema/renderTree'
 import { situationIdToLabel, situationMarksToMarkState } from '../../../lib/situationLabel'
+import { buildGenerationContextSubset } from '../../../lib/buildGenerationContextSubset'
+import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
 
 type RoomPreviewEditorProps = {
     roomId: ComponentUUID
@@ -126,7 +128,7 @@ export const RoomPreviewEditor: FunctionComponent<RoomPreviewEditorProps> = ({ r
     }, [])
 
     const handleGenerate = useCallback(() => {
-        if (!roomId) return
+        if (!roomId || !room) return
         let markState: { markValue: { mark: string; value: string }[] }
         const situationIdToUse = selectedSituationId || (canUseSituations && !canUseManualMarks ? situationOptions[0]?.id : null)
         if (situationIdToUse && canUseSituations) {
@@ -148,13 +150,17 @@ export const RoomPreviewEditor: FunctionComponent<RoomPreviewEditorProps> = ({ r
         }
         setLoading(true)
         setResult(null)
+        // Expedient client-supplied context for generation (Ephemera caching plan item 1).
+        const subsetForm = buildGenerationContextSubset(standardForm, room.standardKey)
+        const generationContextWml = schemaToWML([subsetForm.schema])
         const promise = dispatch(
             socketDispatchPromise(
                 {
                     message: 'generateRoomPreview',
                     RoomId: roomId as EphemeraRoomId,
                     markState,
-                    assetStack
+                    assetStack,
+                    ...(generationContextWml && { generationContextWml })
                 },
                 { service: 'ephemera' }
             )
@@ -172,7 +178,7 @@ export const RoomPreviewEditor: FunctionComponent<RoomPreviewEditorProps> = ({ r
                 setResult({ success: false, errorCode: 'REQUEST_FAILED', errorMessage: 'Request failed' })
             })
             .finally(() => setLoading(false))
-    }, [dispatch, roomId, marks, markValues, assetStack, selectedSituationId, canUseSituations, canUseManualMarks, standardForm, situationOptions])
+    }, [dispatch, roomId, room, marks, markValues, assetStack, selectedSituationId, canUseSituations, canUseManualMarks, standardForm, situationOptions])
 
     if (!room) {
         return (

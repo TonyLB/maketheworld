@@ -76,7 +76,7 @@ describe('renderCache/generateRoomPreview', () => {
         })
     })
 
-    it('returns failure when no exact match is found', async () => {
+    it('returns CONTEXT_REQUIRED when no exact match and no generationContextWml', async () => {
         const { findExactMatchForComponent } = jest.requireMock('./exampleComparison') as {
             findExactMatchForComponent: jest.Mock
         }
@@ -89,6 +89,65 @@ describe('renderCache/generateRoomPreview', () => {
             assetStack: ['ASSET#one']
         })
 
+        expect(result).toEqual({
+            success: false,
+            errorCode: 'CONTEXT_REQUIRED',
+            errorMessage: 'Generation context required'
+        })
+    })
+
+    it('returns CONTEXT_REQUIRED when no exact match and invalid generationContextWml', async () => {
+        const { findExactMatchForComponent } = jest.requireMock('./exampleComparison') as {
+            findExactMatchForComponent: jest.Mock
+        }
+
+        findExactMatchForComponent.mockResolvedValue(null)
+
+        const result = await generateRoomPreview({
+            roomId,
+            markState: makeMarkState([{ mark: 'MARK#a', value: 'one' }]),
+            assetStack: ['ASSET#one'],
+            generationContextWml: '<not valid wml<<'
+        })
+
+        expect(result).toEqual({
+            success: false,
+            errorCode: 'CONTEXT_REQUIRED',
+            errorMessage: 'Generation context required'
+        })
+    })
+
+    it('returns NO_EXACT_MATCH from stub when no exact match but valid generationContextWml', async () => {
+        const { findExactMatchForComponent } = jest.requireMock('./exampleComparison') as {
+            findExactMatchForComponent: jest.Mock
+        }
+
+        findExactMatchForComponent.mockResolvedValue(null)
+
+        const generateRoomDescriptionImpl = jest.fn().mockResolvedValue({
+            success: false,
+            errorCode: 'NO_EXACT_MATCH',
+            errorMessage: 'No exact match for proposed state'
+        })
+
+        const validWml = '<Asset uuid=(test)><Room uuid=(room1) key=(room1)><ShortName>Test</ShortName></Room></Asset>'
+        const result = await generateRoomPreview(
+            {
+                roomId,
+                markState: makeMarkState([{ mark: 'MARK#a', value: 'one' }]),
+                assetStack: ['ASSET#one'],
+                generationContextWml: validWml
+            },
+            { generateRoomDescriptionImpl }
+        )
+
+        expect(generateRoomDescriptionImpl).toHaveBeenCalledWith(
+            expect.objectContaining({
+                roomId,
+                markState: makeMarkState([{ mark: 'MARK#a', value: 'one' }]),
+                perspective: { assetStack: ['ASSET#one'] }
+            })
+        )
         expect(result).toEqual({
             success: false,
             errorCode: 'NO_EXACT_MATCH',
