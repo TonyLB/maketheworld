@@ -130,6 +130,7 @@ describe('renderCache/generateRoomPreview', () => {
             errorMessage: 'No exact match for proposed state'
         })
 
+        const queryCacheRecordsForComponentImpl = jest.fn().mockResolvedValue([])
         const validWml = '<Asset uuid=(test)><Room uuid=(room1) key=(room1)><ShortName>Test</ShortName></Room></Asset>'
         const result = await generateRoomPreview(
             {
@@ -138,14 +139,16 @@ describe('renderCache/generateRoomPreview', () => {
                 assetStack: ['ASSET#one'],
                 generationContextWml: validWml
             },
-            { generateRoomDescriptionImpl }
+            { generateRoomDescriptionImpl, queryCacheRecordsForComponentImpl }
         )
 
+        expect(queryCacheRecordsForComponentImpl).toHaveBeenCalledWith(roomId)
         expect(generateRoomDescriptionImpl).toHaveBeenCalledWith(
             expect.objectContaining({
                 roomId,
                 markState: makeMarkState([{ mark: 'MARK#a', value: 'one' }]),
-                perspective: { assetStack: ['ASSET#one'] }
+                perspective: { assetStack: ['ASSET#one'] },
+                cachedExamples: []
             })
         )
         expect(result).toEqual({
@@ -153,6 +156,55 @@ describe('renderCache/generateRoomPreview', () => {
             errorCode: 'NO_EXACT_MATCH',
             errorMessage: 'No exact match for proposed state'
         })
+    })
+
+    it('calls putCacheRecord with generated provenance when LLM returns success', async () => {
+        const { findExactMatchForComponent } = jest.requireMock('./exampleComparison') as {
+            findExactMatchForComponent: jest.Mock
+        }
+        findExactMatchForComponent.mockResolvedValue(null)
+
+        const renderedContent: EphemeraCacheRenderedContent = {
+            displayName: ['Generated Name'],
+            summary: ['Generated summary.'],
+            description: ['Generated description.']
+        }
+        const generateRoomDescriptionImpl = jest.fn().mockResolvedValue({
+            success: true,
+            renderedContent
+        })
+        const queryCacheRecordsForComponentImpl = jest.fn().mockResolvedValue([])
+        const putCacheRecordImpl = jest.fn().mockResolvedValue('CACHE#new')
+
+        const validWml = '<Asset uuid=(test)><Room uuid=(room1) key=(room1)><ShortName>Test</ShortName></Room></Asset>'
+        const markState = makeMarkState([{ mark: 'MARK#a', value: 'one' }])
+        const assetStack = ['ASSET#one']
+
+        const result = await generateRoomPreview(
+            {
+                roomId,
+                markState,
+                assetStack,
+                generationContextWml: validWml
+            },
+            {
+                generateRoomDescriptionImpl,
+                queryCacheRecordsForComponentImpl,
+                putCacheRecordImpl
+            }
+        )
+
+        expect(result).toEqual({ success: true, renderedContent })
+        expect(putCacheRecordImpl).toHaveBeenCalledTimes(1)
+        expect(putCacheRecordImpl).toHaveBeenCalledWith(
+            roomId,
+            expect.objectContaining({
+                markState,
+                renderedContent,
+                provenance: { type: 'generated' },
+                perspectiveMatcher: { requiredAssetIds: assetStack, forbiddenAssetIds: [] }
+            })
+        )
     })
 })
 

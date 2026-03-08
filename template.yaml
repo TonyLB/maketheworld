@@ -446,7 +446,8 @@ Resources:
       Handler: lambda.handler
       MemorySize: 512
       Runtime: nodejs18.x
-      Timeout: 20
+      # 60s to accommodate Bedrock room-description call (30s) plus prompt build and cache write
+      Timeout: 60
       Environment:
         Variables:
           TABLE_PREFIX: !Ref TablePrefix
@@ -482,6 +483,16 @@ Resources:
           - Effect: Allow
             Action: execute-api:ManageConnections
             Resource: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:**/@connections/*'
+        # Nova 2 Lite via US cross-region inference profile (us.amazon.nova-2-lite-v1:0).
+        # Requires: inference profile in source region + foundation model in source and each destination region.
+        - Statement:
+          - Effect: Allow
+            Action:
+              - bedrock:InvokeModel
+              - bedrock:InvokeModelWithResponseStream
+            Resource:
+              - !Sub 'arn:aws:bedrock:${AWS::Region}:${AWS::AccountId}:inference-profile/us.amazon.nova-2-lite-v1:0'
+              - 'arn:aws:bedrock:*::foundation-model/amazon.nova-2-lite-v1:0'
         - Statement:
           - Effect: Allow
             Action:

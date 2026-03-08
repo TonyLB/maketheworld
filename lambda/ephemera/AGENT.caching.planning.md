@@ -1,6 +1,6 @@
 # Ephemera Caching - Planning Document
 
-**Status: First iteration complete; second iteration in planning**
+**Status: First iteration complete; second iteration complete (steps 1-8).**
 
 This document records the plan for the Ephemera-side caching and generation system for moment-to-moment descriptions, building on the Assets/WML blueprints.
 
@@ -197,7 +197,7 @@ The schema supports "one cache row per distinct render" with perspectiveId and s
 
 ---
 
-## Second Iteration (Stub) - LLM for non-authored situations
+## Second Iteration - LLM for non-authored situations (complete)
 
 **Goal:** When the author (or later, runtime) requests a description for a proposed Mark state and there is **no exact match** in the cache, use an LLM to produce one, then cache and return it. Naive first swing; avoid overengineering.
 
@@ -256,8 +256,12 @@ Review and refine this before moving to Plan mode. Order is approximate; some st
    - **Output:** Expect a JSON object with three string fields: `displayName`, `summary`, `description`. Parse and validate; if missing or malformed, return failure (no cache write).
    - **Lambda timeout:** The Ephemera Lambda is now synchronously blocked on the LLM call for the generation path. Increase the Lambda's configured timeout so it is longer than the worst-case LLM duration; e.g. 60 seconds (Bedrock timeout plus buffer for prompt build and cache write). Document the chosen value in code or config.
 
+   **Done.** `buildRoomDescriptionPrompt.ts` builds the prompt from StandardForm + markState + cachedExamples. `invokeBedrockRoomDescription.ts` calls Bedrock Converse API with model `us.amazon.nova-2-lite-v1:0`, 30s timeout, maxTokens 1024; client uses `AWS_REGION`. Parse/validate in `generateRoomDescription.ts` with resilient extraction (strip markdown code fences, take first `{`..`}`). Lambda timeout 60s and Bedrock IAM (inference profile + foundation model, region wildcard for cross-region routing) in template.yaml.
+
 4. **RenderTree wrapping**  
    Add a small helper that turns a plain string into the minimal RenderTree form accepted by the cache and UI. Use the same RenderTree shape as existing cache and UI (e.g. a single text segment per field, consistent with how authored content is stored and with existing tests). Use it for all three fields before building the cache record.
+
+   **Done.** Inlined in `generateRoomDescription.ts` as `toRenderTree(s)` (returns `s == null || s === '' ? [] : [s]`).
 
 5. **Writing the generated result to the cache**  
    In `generateRoomPreview`, when the LLM step (item 3) returns success, call this before returning `renderedContent`. Step 2 does not add this branch (the stub never returns success). Technically we could return the render without caching; the write should follow shortly after step 3 so generated descriptions are reused. Reuse `putCacheRecord` with:
@@ -267,19 +271,27 @@ Review and refine this before moving to Plan mode. Order is approximate; some st
    - `perspectiveId` = compute from request `assetStack` (existing `computePerspectiveId`)
    - `perspectiveMatcher` = derive from request `assetStack` (e.g. `{ requiredAssetIds: assetStack, forbiddenAssetIds: [] }`) so future lookups for the same perspective match this record.
 
+   **Done.** In `generateRoomPreview`, on LLM success we call `putCacheRecord` with provenance `generated`, `computePerspectiveId(assetStack)`, and `perspectiveMatcher: { requiredAssetIds: assetStack, forbiddenAssetIds: [] }`, then return `renderedContent`.
+
 6. **Result and error surface**  
    Use these error codes consistently: **`NO_EXACT_MATCH`** (unchanged; no cached Example matches the proposed state, and we are not attempting generation, e.g. missing context). **`CONTEXT_REQUIRED`** (no or invalid `generationContext`; client should send context to enable LLM generation). **`GENERATION_FAILED`** (LLM timeout or malformed output; do not write to cache). Extend client types so the Preview UI can show the message for each.
    - Exact match: same as today (`success: true`, `renderedContent`) in a single response.
    - No exact match, generation succeeded: `success: true`, `renderedContent` (client does not need to know it was generated). Response is sent when the LLM completes.
    - No exact match, generation failed: `success: false` with `errorCode: 'GENERATION_FAILED'` and `errorMessage`. Do not write to cache.
 
-7. **Client (Room Preview)**  
-   When the author triggers Generate and we have no exact match, the client assembles the generation-context WML using `StandardForm.subset()` (request the Room with cascadeConditions so Lens, Mark, and Guidance are included), then `schemaToWML([subsetForm.schema])`. Send that string in the same request (e.g. `generationContext` or `generationContextWml`), then show "Generating..." from send until the single response arrives. On response, display the description or error. For `CONTEXT_REQUIRED`, show "No exact match; add generation context and retry" or similar; for `GENERATION_FAILED`, show the `errorMessage`. Minimal client change: add the WML assembly and sending (field name per `GenerateRoomPreviewAPIMessage`), a "Generating..." wait state while the promise is pending, and handle `NO_EXACT_MATCH`, `CONTEXT_REQUIRED`, and `GENERATION_FAILED` in the response.
+   **Done.** Lambda returns `NO_EXACT_MATCH`, `CONTEXT_REQUIRED`, and `GENERATION_FAILED` with `errorMessage`; client can surface these in the Preview UI.
 
-8. **Testing and guardrails**  
+7. **Client (Room Preview)**  
+   When the author triggers Generate and we have no exact match, the client assembles the generation-context WML using `StandardForm.subset()` (request the Room with cascadeConditions so Lens, Mark, and Guidance are included), then `schemaToWML([subsetForm.schema])`. Send that string in the same request (e.g. `generationContext` or `generationContextWml`), then show "Generating..." from send until the single response arrives. On response, display the description or error. For `CONTEXT_REQUIRED`, show "No exact match; add generation context and retry" or similar; for `GENERATION_FAILED`, show the `errorMessage`.    Minimal client change: add the WML assembly and sending (field name per `GenerateRoomPreviewAPIMessage`), a "Generating..." wait state while the promise is pending, and handle `NO_EXACT_MATCH`, `CONTEXT_REQUIRED`, and `GENERATION_FAILED` in the response.
+
+   **Done.** Client uses `buildGenerationContextSubset` and `schemaToWML`, sends `generationContextWml`; flow works end-to-end.
+
+8. **Testing and guardrails**
    - Unit tests: prompt building (with mocked context and cached Examples), JSON parsing and validation, RenderTree wrapping, and the "no write on failure" path.
    - Integration-style test: mock Bedrock to return valid JSON or timeout; assert cache write only on success.
    - Manually: run Preview with a few Rooms and non-matching states; confirm Nova 2 Lite output is acceptable and latency/cost are within reason. Trim test data (Examples) as needed to keep context size manageable.
+
+   **Done.** Unit tests: `buildRoomDescriptionPrompt.test.ts` (prompt sections and examples), `generateRoomDescription.test.ts` (valid JSON, markdown-wrapped JSON, Bedrock failure, malformed/missing fields), `generateRoomPreview.test.ts` (cachedExamples passed, putCacheRecord on success). Manual run confirmed.
 
 ---
 
