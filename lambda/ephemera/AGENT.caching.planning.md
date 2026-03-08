@@ -238,10 +238,14 @@ Review and refine this before moving to Plan mode. Order is approximate; some st
    **API contract:** Extend `GenerateRoomPreviewAPIMessage` in `packages/mtw-interfaces/ts/ephemera.ts` with an optional field (e.g. `generationContextWml: string` or `generationContext: string`) holding the WML string. The proposed Mark state stays in the request as `markState`. Ephemera uses the parsed generation-context structure plus cached Examples to build the prompt.
    - **Expedient for this prototype:** Client-supplied context is manual but sufficient. When implementing (API and client), add a comment that this is an expedient step. For future, less-manual generation we will likely want either: **(a)** a streaming data source *out of* `mtw.assets` to which the Ephemera lambda can subscribe, materializing a local mirror of relevant blueprint information; or **(b)** a read-only access pattern by which Ephemera can couple to the Asset data domain in certain specified situations (e.g. generation requests). Defer choosing between (a) and (b) until we need it.
 
+   **Done.** Optional `generationContextWml` on `GenerateRoomPreviewAPIMessage`. Client: `buildGenerationContextSubset(form, roomKey)` in `charcoal-client/src/lib`, then `schemaToWML([subsetForm.schema])` in RoomPreviewEditor; sends WML in the request. Ephemera: app passes `request.generationContextWml` to `generateRoomPreview`; it parses with `new StandardForm(generationContextWml)` and holds `parsedContext` for the prompt builder (steps 2/3).
+
 2. **Extend `generateRoomPreview` flow**  
-   Keep the existing exact-match path unchanged. When there is no exact match:
+   **Done.** Keep the existing exact-match path unchanged. When there is no exact match:
    - If we do not have enough context to call the LLM (no or invalid `generationContext`), return a clear error with `errorCode: 'CONTEXT_REQUIRED'`.
-   - Otherwise: call the new LLM generation step (see below), then on success write to cache and return `renderedContent`; on failure return an error and do not write.
+   - Otherwise: call the new LLM generation step (see item 3), then on success return `renderedContent`; on failure return an error and do not write. **Step 2 does not add write-to-cache on success** (the stub never returns success); the write is step 5.
+
+   This item **calls** the LLM step; it does **not** implement the full LLM module (that is item 3). As part of item 2, introduce a **stub** LLM generation function with the same signature/contract that the real implementation will have. Until the stub is replaced (item 3), the stub can return the same "no exact match" result we return today (`NO_EXACT_MATCH`); the front-end already handles that, so the flow is wired and testable with no UI change.
 
    **Single response when LLM is involved:** Do not return an "accepted" message first. Returning "accepted" would resolve the client's `dispatchWebSocket` promise immediately, forcing the client to add a separate pub-sub subscription to the lifeline to match follow-up messages by RequestId. For the prototype, leave the request unresponded-to until the LLM finishes its work, then return the single result (or error). The client can show "Generating..." optimistically from send until the response arrives; the existing promise-based flow continues to work. **Future iteration:** Consider a WebSocket pattern that acts more like a stream or generator (multiple messages per logical request) so we can support "accepted" then "result" without overloading the current request-response promise. Document that when we revisit.
 
@@ -256,7 +260,7 @@ Review and refine this before moving to Plan mode. Order is approximate; some st
    Add a small helper that turns a plain string into the minimal RenderTree form accepted by the cache and UI. Use the same RenderTree shape as existing cache and UI (e.g. a single text segment per field, consistent with how authored content is stored and with existing tests). Use it for all three fields before building the cache record.
 
 5. **Writing the generated result to the cache**  
-   Reuse `putCacheRecord` with:
+   In `generateRoomPreview`, when the LLM step (item 3) returns success, call this before returning `renderedContent`. Step 2 does not add this branch (the stub never returns success). Technically we could return the render without caching; the write should follow shortly after step 3 so generated descriptions are reused. Reuse `putCacheRecord` with:
    - `provenance.type: 'generated'`
    - `markState` = proposed state from the request
    - `renderedContent` = the wrapped displayName/summary/description

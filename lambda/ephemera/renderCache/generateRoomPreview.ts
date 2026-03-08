@@ -7,6 +7,7 @@ import type {
     EphemeraCacheDynamoItem
 } from './baseClasses'
 import { findExactMatchForComponent } from './exampleComparison'
+import { generateRoomDescription } from './generateRoomDescription'
 
 export type GenerateRoomPreviewInput = {
     roomId: EphemeraRoomId;
@@ -20,17 +21,17 @@ export type GenerateRoomPreviewSuccess = {
     renderedContent: EphemeraCacheRenderedContent;
 }
 
-export type GenerateRoomPreviewFailure = {
-    success: false;
-    errorCode: 'NO_EXACT_MATCH';
-    errorMessage: string;
-}
+export type GenerateRoomPreviewFailure =
+    | { success: false; errorCode: 'NO_EXACT_MATCH'; errorMessage: string }
+    | { success: false; errorCode: 'CONTEXT_REQUIRED'; errorMessage: string }
+    | { success: false; errorCode: 'GENERATION_FAILED'; errorMessage: string }
 
 export type GenerateRoomPreviewResult =
     | GenerateRoomPreviewSuccess
     | GenerateRoomPreviewFailure
 
 type FindExactMatchForComponent = typeof findExactMatchForComponent
+type GenerateRoomDescription = typeof generateRoomDescription
 
 export const generateRoomPreview = async (
     {
@@ -40,9 +41,11 @@ export const generateRoomPreview = async (
         generationContextWml
     }: GenerateRoomPreviewInput,
     {
-        findExactMatchForComponentImpl = findExactMatchForComponent
+        findExactMatchForComponentImpl = findExactMatchForComponent,
+        generateRoomDescriptionImpl = generateRoomDescription
     }: {
         findExactMatchForComponentImpl?: FindExactMatchForComponent;
+        generateRoomDescriptionImpl?: GenerateRoomDescription;
     } = {}
 ): Promise<GenerateRoomPreviewResult> => {
     let parsedContext: StandardForm | null = null
@@ -69,10 +72,20 @@ export const generateRoomPreview = async (
         }
     }
 
-    return {
-        success: false,
-        errorCode: 'NO_EXACT_MATCH',
-        errorMessage: 'No exact match for proposed state'
+    if (!parsedContext) {
+        return {
+            success: false,
+            errorCode: 'CONTEXT_REQUIRED',
+            errorMessage: 'Generation context required'
+        }
     }
+
+    const descriptionResult = await generateRoomDescriptionImpl({
+        roomId,
+        markState,
+        perspective,
+        generationContext: parsedContext
+    })
+    return descriptionResult
 }
 
