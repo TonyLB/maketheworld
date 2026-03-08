@@ -1,13 +1,17 @@
 import { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { AssetUUID } from '@tonylb/mtw-base/ts/schema'
+import { perspectiveMatches } from '@tonylb/mtw-interfaces/ts/perspective'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import type {
     EphemeraCacheMarkState,
     EphemeraCacheRenderedContent,
     EphemeraCacheDynamoItem
 } from './baseClasses'
+import { EPHEMERA_CACHE_PROVENANCE_GENERATED } from './baseClasses'
+import { queryCacheRecordsForComponent, putCacheRecord } from './cacheAccess'
 import { findExactMatchForComponent } from './exampleComparison'
 import { generateRoomDescription } from './generateRoomDescription'
+import { computePerspectiveId } from '../internalUtils/perspectiveId'
 
 export type GenerateRoomPreviewInput = {
     roomId: EphemeraRoomId;
@@ -32,6 +36,8 @@ export type GenerateRoomPreviewResult =
 
 type FindExactMatchForComponent = typeof findExactMatchForComponent
 type GenerateRoomDescription = typeof generateRoomDescription
+type QueryCacheRecordsForComponent = typeof queryCacheRecordsForComponent
+type PutCacheRecord = typeof putCacheRecord
 
 export const generateRoomPreview = async (
     {
@@ -42,10 +48,14 @@ export const generateRoomPreview = async (
     }: GenerateRoomPreviewInput,
     {
         findExactMatchForComponentImpl = findExactMatchForComponent,
-        generateRoomDescriptionImpl = generateRoomDescription
+        generateRoomDescriptionImpl = generateRoomDescription,
+        queryCacheRecordsForComponentImpl = queryCacheRecordsForComponent,
+        putCacheRecordImpl = putCacheRecord
     }: {
         findExactMatchForComponentImpl?: FindExactMatchForComponent;
         generateRoomDescriptionImpl?: GenerateRoomDescription;
+        queryCacheRecordsForComponentImpl?: QueryCacheRecordsForComponent;
+        putCacheRecordImpl?: PutCacheRecord;
     } = {}
 ): Promise<GenerateRoomPreviewResult> => {
     let parsedContext: StandardForm | null = null
@@ -80,12 +90,39 @@ export const generateRoomPreview = async (
         }
     }
 
+    const allRecords = await queryCacheRecordsForComponentImpl(roomId)
+    const cachedExamples = allRecords.filter(
+        (record) => record.perspectiveMatcher && perspectiveMatches(record.perspectiveMatcher, perspective)
+    )
+
     const descriptionResult = await generateRoomDescriptionImpl({
         roomId,
         markState,
         perspective,
-        generationContext: parsedContext
+        generationContext: parsedContext,
+        cachedExamples
     })
-    return descriptionResult
+
+    if (!descriptionResult.success) {
+        return descriptionResult
+    }
+
+    const perspectiveId = computePerspectiveId(perspective.assetStack)
+    const perspectiveMatcher = {
+        requiredAssetIds: perspective.assetStack,
+        forbiddenAssetIds: [] as AssetUUID[]
+    }
+    await putCacheRecordImpl(roomId, {
+        markState,
+        renderedContent: descriptionResult.renderedContent,
+        provenance: { type: EPHEMERA_CACHE_PROVENANCE_GENERATED },
+        perspectiveId,
+        perspectiveMatcher
+    })
+
+    return {
+        success: true,
+        renderedContent: descriptionResult.renderedContent
+    }
 }
 
