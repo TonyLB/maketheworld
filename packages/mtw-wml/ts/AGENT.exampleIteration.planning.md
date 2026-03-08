@@ -1,6 +1,6 @@
  # Example / Situation Iteration - Conceptual Notes
 
- **Status: IN PROGRESS (Phases 1–4 implemented; Phases 5–5.6 done where noted; Phases 5.7 and 6 planned)**
+ **Status: IN PROGRESS (Phases 1–4 implemented; Phases 5–5.7 done where noted; Phase 6 planned)**
 
  This document captures a **second-iteration** direction for how Examples and world-state dependent descriptions might be modeled in WML and the standardization system. It is intentionally conceptual only:
 
@@ -500,7 +500,7 @@ After Phase 3, the following hold:
 
 ### Phase 5.7: Perspective refactoring (cache matching and event contract)
 
-**Status**: PLANNED (high-level; details to be refined when implementing).
+**Status**: DONE (implemented).
 
 **Goal**: Align how we represent and match "perspective" (the set of assets in play and their relevance) across client, Assets lambda, and Ephemera render cache, so that Preview and cache lookups use a consistent, domain-correct notion of when a cache record applies to a given request. This phase introduces first-class Perspective and PerspectiveMatcher shapes and moves "what invalidates a match" into the Assets domain.
 
@@ -540,6 +540,14 @@ After Phase 3, the following hold:
 6. **ExampleRemoved:** Include perspectiveMatcher in the payload (may be needed for invalidation or matching; rationale TBD). Resolved.
 
 **Depends on**: Phases 2–5.6 (Situation component, SituationRoom facets, mirroring pipeline, and client perspective derivation are in place). Client-side perspective-from-origins and getPerspective selector are already implemented; this phase focuses on the event contract and backend handling.
+
+**Implementation (Phase 5.7) (DONE)**:
+
+- [x] **mtw-interfaces:** Add `perspectiveMatcher: PerspectiveMatcher` to ComponentExamplesLifecycleBase (event contract).
+- [x] **Assets:** Add perspectiveMatcher to ExampleLifecycleBase; implement `roomHasFacetForSituation`, `situationHasMarks`, `computePerspectiveMatcherForRoomSituation` in exampleEnrichment; Room path emits perspectiveMatcher on ExampleUpdated and ExampleRemoved; Example path emits conservative matcher (requiredAssetIds = assetStack, forbiddenAssetIds = []) with band-aid comment.
+- [x] **Ephemera:** Add perspectiveMatcher to EphemeraCacheRecord/EphemeraCacheDynamoItem and PutCacheRecordInput; comment perspectiveId as known inactive; dataSource sets perspectiveMatcher from event; findExactMatch/findExactMatchForComponent use perspective and perspectiveMatches; generateRoomPreview builds perspective from assetStack.
+- [x] **Tests:** Assets (perspective matcher helpers, Room/Example path payloads); Ephemera (componentExamples, cacheAccess, exampleComparison, generateRoomPreview, componentRender); mtw-interfaces event shape.
+- [x] **Documentation:** renderCache/AGENT.md updated for perspectiveMatcher and matcher-based matching.
 
 ---
 
