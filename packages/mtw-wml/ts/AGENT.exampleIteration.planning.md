@@ -1,6 +1,6 @@
  # Example / Situation Iteration - Conceptual Notes
 
- **Status: IN PROGRESS (Phases 1–4 implemented; Phases 5–6 planned)**
+ **Status: IN PROGRESS (Phases 1–4 implemented; Phases 5–5.7 done where noted; Phase 6 planned)**
 
  This document captures a **second-iteration** direction for how Examples and world-state dependent descriptions might be modeled in WML and the standardization system. It is intentionally conceptual only:
 
@@ -495,6 +495,59 @@ After Phase 3, the following hold:
   - Keep RoomDescription behavior for Room names unchanged; this phase only affects how Situations themselves are named and displayed.
 
 **Depends on**: Phases 1–5.5 (Situation component, SituationRoom facets, Workbench Situation editing, and perception alignment are in place so ShortName becomes an additive refinement rather than a structural change).
+
+---
+
+### Phase 5.7: Perspective refactoring (cache matching and event contract)
+
+**Status**: DONE (implemented).
+
+**Goal**: Align how we represent and match "perspective" (the set of assets in play and their relevance) across client, Assets lambda, and Ephemera render cache, so that Preview and cache lookups use a consistent, domain-correct notion of when a cache record applies to a given request. This phase introduces first-class Perspective and PerspectiveMatcher shapes and moves "what invalidates a match" into the Assets domain.
+
+**Context**:
+
+- The client already derives a room-scoped perspective from Room + Situations + Marks origin chains (mergeOriginChainsToOrderedAssets, derivePerspectiveForRoom) and passes it as assetStack to generateRoomPreview. The Ephemera lambda hashes assetStack to perspectiveId and filters cache records by exact perspectiveId match.
+- To support matcher-based matching (e.g. "this cache record is valid for any perspective that includes assets A,B and does not include asset E"), we need: (1) a shared data shape for perspective and matcher; (2) the Assets lambda to publish a PerspectiveMatcher (requiredAssetIds, optional forbiddenAssetIds) with each mirroring event, since only Assets can answer "which assets not in the stack would invalidate this render if included?"; (3) Ephemera to store and match using that matcher.
+
+**Scope** (high-level; refinable):
+
+- **Data shapes (mtw-interfaces)**:
+  - Perspective: `{ assetStack: AssetUUID[] }` (exact ordered list). PerspectiveMatcher: `{ requiredAssetIds: AssetUUID[]; forbiddenAssetIds?: AssetUUID[] }`. Helper: `perspectiveMatches(matcher, perspective): boolean`. These already exist in mtw-interfaces/ts/perspective.ts; no change required in this phase unless we extend them.
+- **Outgoing event contract (mtw.assets.componentExamples)**:
+  - Extend the mirroring event payload (in mtw-interfaces and Assets publisher) to include a perspective matcher: e.g. `perspectiveMatcher: PerspectiveMatcher` (or equivalent required/forbidden fields). Required set: minimal assets that must be in the stack for this merged example to be valid. Forbidden set: assets that, if added to the stack, would change the merged Room/Situation or situation-facet payload and thus invalidate this cache record.
+  - **Bounded forbidden computation**: The Assets DynamoDB structure already encodes, per component (AssetId = ROOM#... or SITUATION#...), one row per asset where that component is edited (DataCategory = ASSET#...). So the set of assets that have a stake in this Room/Situation is exactly the byAssets set (or Meta::Room / Meta::Situation cached list). Forbidden candidates are therefore bounded to (byAssets \ assetStack). Only those assets need to be considered for "would including this asset change the merge?"; no need to reason about every asset in the system.
+- **Assets lambda**:
+  - When building ExampleAdded/ExampleUpdated (and optionally ExampleRemoved) events, compute requiredAssetIds (from the ancestry used for this example) and forbiddenAssetIds (from the bounded set above, e.g. by what-if merge or a cheaper heuristic). Emit perspectiveMatcher (or equivalent) in the event. Details (e.g. when to omit forbidden, performance of what-if merges) to be refined at implementation time.
+- **Ephemera lambda**:
+  - Consume the new perspectiveMatcher from the event. Store it on cache records (or a stable id derived from it, e.g. hash of canonical matcher encoding). When servicing generateRoomPreview (and mirroring lookups), use perspectiveMatches(matcher, requestPerspective) instead of (or in addition to) exact perspectiveId equality. Centralize perspectiveId/computePerspectiveId in internalUtils to support both legacy exact match and matcher-based match during transition if needed.
+- **Optional future**: Refactor Ephemera so that we can cheaply list perspective matchers (or perspective ids) per component (e.g. index or secondary structure), then cascade to cache records only for matching perspectives, instead of querying all cache records for the component and filtering in memory.
+- **Migration**: If the semantics or encoding of perspectiveId change (e.g. from exact-stack hash to matcher-based id), existing render-cache records may be invalid. Options: version the id (e.g. PERSPECTIVE#v2#...) and support both during transition, or delete existing render-cache records and repopulate via mirroring. For a single existing record, deletion is acceptable.
+
+**Decisions** (to be confirmed when implementing):
+
+- **Switch fully to matcher-based storage and matching** (do not retain exact perspectiveId / hash of assetStack for backward compatibility). The one existing test cache record will be deleted manually; no migration path for old records.
+- **Send the full PerspectiveMatcher object** in the event (and at API boundaries). In Ephemera, store the full matcher so we can evaluate perspectiveMatches at request time. We may **also** store a stable hash of the matcher in Ephemera to optimize searches, since we cannot index on the full object in DynamoDB.
+- **Forbidden calculation in Assets:** We only consider candidates in (byAssets \ assetStack); the first-origin asset for a component is always already in the perspective (the root). So we never ask this question about the root — any candidate we evaluate is a layer. Therefore we do not need to distinguish edit vs content mode: any Situation marks or Room situation facets present in a candidate's component are edit-mode by definition. **Structural test:** include a candidate in forbiddenAssetIds iff its component has the relevant content types — Situation with marks, or Room with situation facets. No what-if merge and no mode inspection.
+- **requiredAssetIds computation:** requiredAssetIds = assetStack filtered to those assets that have the structural content (Room facet for this situationId, or Situation marks), using the same predicates as the forbidden test. So we compute required by applying the structural test to each asset in the stack and keeping only those that pass.
+
+**Implementation questions** (to address one by one before or during implementation):
+
+1. **requiredAssetIds:** Use the **minimal contributing subset** of the stack: only assets that have edit-mode content (Room situation facets or Situation marks). Those are the same assets that would be in the forbidden set if they were candidates; content-only assets (e.g. root that only defines the Room with no facets) need not be in required. That yields a better hit rate (e.g. request [A,B,C] and [B,C] both match when required = [B,C]). Resolved: requiredAssetIds = assets in assetStack that have the structural "forbidden" content (situation facets or marks).
+2. **byAssets for forbidden (Room + Situation):** Yes. byAssets = **union** of `ComponentData.get(roomId).byAssets` and `ComponentData.get(situationId).byAssets` (by AssetId); candidates = that set \ assetStack. For each candidate, include in forbiddenAssetIds iff **either or both**: (a) the Room (for this roomId) is in that asset and has situation-facet content **for the given situation** (facet referencing this situationId), and/or (b) the Situation (for this situationId) is in that asset and has an update to mark facets. Resolved.
+3. **Example path (Feature/Knowledge):** Emit perspectiveMatcher with requiredAssetIds = assetStack and forbiddenAssetIds = [] (conservative band-aid). Comment in code that this is temporary until Feature/Knowledge are refactored to Situations; edge-cases are acceptable for the interim. Resolved.
+4. **Ephemera schema and lookup:** Add `perspectiveMatcher: PerspectiveMatcher` to EphemeraCacheRecord/EphemeraCacheDynamoItem; change findExactMatchForComponent/generateRoomPreview to take `perspective: Perspective` (or assetStack) and filter by `perspectiveMatches(record.perspectiveMatcher, perspective)`. **Keep** perspectiveId on the record for now; comment that it is **known inactive** (not used for matching), kept pending possible later use for search optimization. Resolved.
+5. **Concrete predicates for structural test:** Pin exact APIs: **Room** = has a situation facet **for the situation under consideration** (facet referencing this situationId), not just "any situation facets" (e.g. find in `room.situations?.items` a facet whose reference.universalKey === situationId). **Situation** = has marks (e.g. `situation.marks?.items?.length > 0` or the actual StandardSituation getter). Resolved.
+6. **ExampleRemoved:** Include perspectiveMatcher in the payload (may be needed for invalidation or matching; rationale TBD). Resolved.
+
+**Depends on**: Phases 2–5.6 (Situation component, SituationRoom facets, mirroring pipeline, and client perspective derivation are in place). Client-side perspective-from-origins and getPerspective selector are already implemented; this phase focuses on the event contract and backend handling.
+
+**Implementation (Phase 5.7) (DONE)**:
+
+- [x] **mtw-interfaces:** Add `perspectiveMatcher: PerspectiveMatcher` to ComponentExamplesLifecycleBase (event contract).
+- [x] **Assets:** Add perspectiveMatcher to ExampleLifecycleBase; implement `roomHasFacetForSituation`, `situationHasMarks`, `computePerspectiveMatcherForRoomSituation` in exampleEnrichment; Room path emits perspectiveMatcher on ExampleUpdated and ExampleRemoved; Example path emits conservative matcher (requiredAssetIds = assetStack, forbiddenAssetIds = []) with band-aid comment.
+- [x] **Ephemera:** Add perspectiveMatcher to EphemeraCacheRecord/EphemeraCacheDynamoItem and PutCacheRecordInput; comment perspectiveId as known inactive; dataSource sets perspectiveMatcher from event; findExactMatch/findExactMatchForComponent use perspective and perspectiveMatches; generateRoomPreview builds perspective from assetStack.
+- [x] **Tests:** Assets (perspective matcher helpers, Room/Example path payloads); Ephemera (componentExamples, cacheAccess, exampleComparison, generateRoomPreview, componentRender); mtw-interfaces event shape.
+- [x] **Documentation:** renderCache/AGENT.md updated for perspectiveMatcher and matcher-based matching.
 
 ---
 

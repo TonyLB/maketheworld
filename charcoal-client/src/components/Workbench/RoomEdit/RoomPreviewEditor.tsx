@@ -1,5 +1,5 @@
 import React, { FunctionComponent, useMemo, useState, useCallback } from 'react'
-import { useDispatch } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import {
     Box,
     Button,
@@ -15,6 +15,7 @@ import {
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { useWorkbenchAsset } from '../foundations/useWorkbenchAsset'
+import { getPerspective } from '../../../slices/personalAssets'
 import { socketDispatchPromise } from '../../../slices/lifeLine'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import StandardSituation from '@tonylb/mtw-wml/ts/standardize/components/situation'
@@ -114,10 +115,11 @@ export const RoomPreviewEditor: FunctionComponent<RoomPreviewEditorProps> = ({ r
         (canUseSituations && (selectedSituationId || situationOptions[0]?.id)) ||
         (canUseManualMarks && !selectedSituationId)
 
+    const perspective = useSelector((state) => getPerspective(state, AssetId, roomId))
     const assetStack = useMemo(() => {
         const inherited = (inheritedByAssetId || []).map(({ assetId }) => assetId)
-        return [...inherited, AssetId]
-    }, [inheritedByAssetId, AssetId])
+        return perspective?.assetStack ?? [...inherited, AssetId]
+    }, [perspective?.assetStack, inheritedByAssetId, AssetId])
 
     const handleMarkChange = useCallback((markId: string, value: string) => {
         setMarkValues((prev) => ({ ...prev, [markId]: value }))

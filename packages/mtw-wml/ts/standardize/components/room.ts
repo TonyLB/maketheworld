@@ -25,7 +25,6 @@ import { processWithConsumers, StandardizeConsumerInline, StandardizeConsumerRef
 import { splitTaggedChildren } from "../../schema/utils"
 import { isSchemaSituation } from "@tonylb/mtw-base/ts/schema/components"
 import { StandardSituationRoomFacet } from "../keys/facets/situationRoom"
-import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
 
 /**
  * Facet-list consumer for Situation facets under Room.

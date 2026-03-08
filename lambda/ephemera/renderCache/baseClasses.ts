@@ -4,6 +4,7 @@ import {
     EphemeraRoomId,
     EphemeraSituationId
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { PerspectiveMatcher } from '@tonylb/mtw-interfaces/ts/perspective'
 import { RenderTree } from '@tonylb/mtw-base/ts/renderTree'
 
 //
@@ -64,10 +65,8 @@ export const EPHEMERA_CACHE_PROVENANCE_AUTHORED = 'authored' as const
 export const EPHEMERA_CACHE_PROVENANCE_GENERATED = 'generated' as const
 
 //
-// perspectiveId: Deterministic identifier for the ordered asset stack
-// that produced this render. Compute as a hash or canonical string of
-// the assetStack (ordered list of asset IDs) and use the same algorithm
-// wherever perspectiveId is generated.
+// perspectiveId: Known inactive (not used for matching). Kept on the record
+// pending possible later use for search optimization.
 //
 
 export type EphemeraPerspectiveId = string
@@ -95,6 +94,7 @@ export type EphemeraCacheRecord = {
     renderedContent: EphemeraCacheRenderedContent;
     provenance: EphemeraCacheProvenance;
     perspectiveId: EphemeraPerspectiveId;
+    perspectiveMatcher: PerspectiveMatcher;
     situationId?: EphemeraSituationId;
     authoredExampleId?: EphemeraAuthoredExampleId;
 }
@@ -112,6 +112,7 @@ export type EphemeraCacheDynamoItem = {
     renderedContent: EphemeraCacheRenderedContent;
     provenance: EphemeraCacheProvenance;
     perspectiveId: EphemeraPerspectiveId;
+    perspectiveMatcher: PerspectiveMatcher;
     situationId?: EphemeraSituationId;
     authoredExampleId?: EphemeraAuthoredExampleId;
 }
@@ -120,7 +121,7 @@ export const isEphemeraCacheDynamoItem = (item: any): item is EphemeraCacheDynam
     if (!item || typeof item !== 'object') {
         return false
     }
-    const { EphemeraId, DataCategory, markState, renderedContent, provenance, perspectiveId } = item
+    const { EphemeraId, DataCategory, markState, renderedContent, provenance, perspectiveId, perspectiveMatcher } = item
     if (typeof EphemeraId !== 'string' || typeof DataCategory !== 'string') {
         return false
     }
@@ -128,6 +129,9 @@ export const isEphemeraCacheDynamoItem = (item: any): item is EphemeraCacheDynam
         return false
     }
     if (typeof perspectiveId !== 'string') {
+        return false
+    }
+    if (!perspectiveMatcher || typeof perspectiveMatcher !== 'object' || !Array.isArray(perspectiveMatcher.requiredAssetIds)) {
         return false
     }
     if (!markState || typeof markState !== 'object' || !Array.isArray(markState.markValue)) {

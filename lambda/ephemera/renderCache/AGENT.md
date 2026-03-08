@@ -61,8 +61,9 @@ There is no “cache per Example ID” or “RoomId + Mark state” key; this ke
   - `{ type: 'authored' | 'generated' }`
   - Distinguishes mirrored authored Examples from future generated renders.
 - `perspectiveId`: string
-  - Deterministic id for the **ordered asset stack** that produced this render.
-  - Computed from the assetStack (see below).
+  - **Known inactive** (not used for matching). Kept on the record pending possible later use for search optimization.
+- `perspectiveMatcher`: PerspectiveMatcher
+  - Required and forbidden asset ids for matcher-based matching. Used by `perspectiveMatches(matcher, requestPerspective)` at lookup time.
 - `situationId?: string`
   - Optional link to the Situation UUID for **Room** cache records (Phase 4). Used to target delete on ExampleRemoved when `exampleId` is SITUATION#.
 - `authoredExampleId?: string`
@@ -74,7 +75,7 @@ Stored directly in DynamoDB:
 
 - `EphemeraId`: component id (Room/Feature/Knowledge).
 - `DataCategory`: `CACHE#${uuid}`.
-- `markState`, `renderedContent`, `provenance`, `perspectiveId`, `situationId?`, `authoredExampleId?`.
+- `markState`, `renderedContent`, `provenance`, `perspectiveId`, `perspectiveMatcher`, `situationId?`, `authoredExampleId?`.
 
 `isEphemeraCacheDynamoItem` in `baseClasses.ts` enforces the expected shape at read time.
 
@@ -82,19 +83,13 @@ Stored directly in DynamoDB:
 
 ## Perspective and Asset Stacks
 
-### Why perspectiveId?
+### Perspective and matcher-based matching (Phase 5.7)
 
-Examples are authored against a **stack of assets** (inheritance chain). The same logical Example can render differently depending on:
-
-- Which assets are present in the stack.
-- In what order they are merged (base-first, overrides later).
-
-Rather than keying by Example id, we treat each **distinct render** as a separate cache record and identify the context by a **perspective**:
+Examples are authored against a **stack of assets** (inheritance chain). The same logical Example can render differently depending on which assets are in the stack and in what order. We treat each **distinct render** as a separate cache record and identify the context by a **perspective**:
 
 - `assetStack`: ordered list of asset ids that produced the render.
-- `perspectiveId`: deterministic hash/canonical encoding of `assetStack`.
-
-In v1, `perspectiveId` is stored on every record and used as a filter; in future it may also participate in keying or secondary indexes.
+- `perspectiveMatcher`: `{ requiredAssetIds, forbiddenAssetIds? }` published by the Assets lambda with each mirroring event. Lookup uses `perspectiveMatches(matcher, requestPerspective)` so a cache record matches when the request's asset stack contains all required and none of the forbidden assets.
+- `perspectiveId`: stored on every record but **not used for matching** (known inactive); kept pending possible later use for search optimization.
 
 ### Asset stack sources
 
@@ -102,13 +97,13 @@ In v1, `perspectiveId` is stored on every record and used as a filter; in future
   - Reconstructs `assetStack` by following Example `_from` links across Assets (base-first, event asset last).
   - Emits events with `assetStack` in payload.
 - **Ephemera DataSource (`mtw.ephemera.examples`)**:
-  - Receives `assetStack`, computes `perspectiveId = computePerspectiveId(assetStack)`, and writes cache records via `putCacheRecord`.
+  - Receives events with `perspectiveMatcher` and `assetStack`, writes cache records via `putCacheRecord` (including `perspectiveMatcher`; `perspectiveId` is still computed and stored but not used for matching).
 - **Authoring Preview (RoomPreviewEditor)**:
   - On the client, `assetStack` is built from `useWorkbenchAsset()`:
     - `assetStack = [...inheritedByAssetId.map(({ assetId }) => assetId), AssetId]`
   - This mirrors the same “base-first, current-asset-last” ordering.
 
-The `perspectiveId` computation is centralized in `lambda/ephemera/internalUtils/perspectiveId.ts` and used consistently both when mirroring authored Examples and when servicing preview requests.
+Preview request sends `assetStack`; Ephemera builds `perspective = { assetStack }` and filters records with `perspectiveMatches(record.perspectiveMatcher, perspective)`.
 
 ---
 
@@ -130,7 +125,7 @@ The `perspectiveId` computation is centralized in `lambda/ephemera/internalUtils
 - Write a single Dynamo item with:
   - `EphemeraId = componentId`
   - `DataCategory` as above
-  - `record.markState`, `record.renderedContent`, `record.provenance`, `record.perspectiveId`, `record.situationId?`, `record.authoredExampleId?`
+  - `record.markState`, `record.renderedContent`, `record.provenance`, `record.perspectiveId`, `record.perspectiveMatcher`, `record.situationId?`, `record.authoredExampleId?`
 - Returns the `DataCategory` used.
 - Used by:
   - `mtw.ephemera.examples` DataSource when mirroring authored Examples.
@@ -178,11 +173,11 @@ The proposed mark state and each record’s markState are normalized before comp
 
 Core helper (conceptually):
 
-- `findExactMatchForComponent({ componentId, proposedMarkState, perspectiveId? })`
+- `findExactMatchForComponent({ componentId, proposedMarkState, perspective })`
   - Calls `queryCacheRecordsForComponent(componentId)`.
-  - Optionally filters records by `perspectiveId` first when supplied.
+  - Filters records by `perspectiveMatches(record.perspectiveMatcher, perspective)` (records without `perspectiveMatcher` are skipped).
   - Normalizes both proposed and stored markState.
-  - Returns the first record whose normalized markState equals the proposed one (and matches perspective when applicable), or `null` when none match.
+  - Returns the first record whose normalized markState equals the proposed one and whose matcher matches the request perspective, or `null` when none match.
 
 This is the canonical “does this state exist in cache?” check, used by `generateRoomPreview` and ready for reuse in future flows.
 
@@ -199,8 +194,8 @@ This is the canonical “does this state exist in cache?” check, used by `gene
   - `markState: EphemeraCacheMarkState`
   - `assetStack: string[]`
 - Steps:
-  1. Compute `perspectiveId = computePerspectiveId(assetStack)`.
-  2. Call `findExactMatchForComponent({ componentId: roomId, proposedMarkState: markState, perspectiveId })`.
+  1. Build `perspective = { assetStack }`.
+  2. Call `findExactMatchForComponent({ componentId: roomId, proposedMarkState: markState, perspective })`.
   3. If a match exists:
      - Return `{ success: true, renderedContent }`.
   4. If no match exists:
@@ -255,7 +250,7 @@ The UI layer is intentionally thin; all state semantics and matching live in the
 
 - **Exact match first, extensible later**:
   - v1 only uses exact Mark-state equality.
-  - The same record shape (markState, renderedContent, perspectiveId, provenance) is intended to support:
+  - The same record shape (markState, renderedContent, perspectiveId, perspectiveMatcher, provenance) is intended to support:
     - Later fuzzy/semantic search (constellation by Guidance).
     - LLM-based generation pipelines that treat existing records as prompts or neighbors.
 

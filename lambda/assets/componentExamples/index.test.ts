@@ -202,6 +202,7 @@ describe('ComponentExamplesDataSource (mtw.assets.componentExamples)', () => {
                     exampleId: 'EXAMPLE#one',
                     parentIds: ['ROOM#one'],
                     assetStack: ['ASSET#asset1'],
+                    perspectiveMatcher: { requiredAssetIds: ['ASSET#asset1'], forbiddenAssetIds: [] },
                     example: {
                         markState: { markValue: [] },
                         renderedContent: { description: [] },
@@ -266,6 +267,7 @@ describe('ComponentExamplesDataSource (mtw.assets.componentExamples)', () => {
                     exampleId: 'EXAMPLE#one',
                     parentIds: ['ROOM#one'],
                     assetStack: ['ASSET#asset1'],
+                    perspectiveMatcher: { requiredAssetIds: ['ASSET#asset1'], forbiddenAssetIds: [] },
                 },
                 header: { type: 'ExampleRemoved' },
             })

@@ -20,6 +20,7 @@ export type PutCacheRecordInput = {
     renderedContent: EphemeraCacheDynamoItem['renderedContent'];
     provenance: EphemeraCacheDynamoItem['provenance'];
     perspectiveId: EphemeraCacheDynamoItem['perspectiveId'];
+    perspectiveMatcher: EphemeraCacheDynamoItem['perspectiveMatcher'];
     situationId?: EphemeraCacheDynamoItem['situationId'];
     authoredExampleId?: EphemeraCacheDynamoItem['authoredExampleId'];
 };
@@ -62,6 +63,7 @@ export async function putCacheRecord(
         renderedContent: record.renderedContent,
         provenance: record.provenance,
         perspectiveId: record.perspectiveId,
+        perspectiveMatcher: record.perspectiveMatcher,
         ...(record.situationId !== undefined && { situationId: record.situationId }),
         ...(record.authoredExampleId !== undefined && { authoredExampleId: record.authoredExampleId })
     }

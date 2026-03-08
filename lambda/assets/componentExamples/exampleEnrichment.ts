@@ -10,10 +10,11 @@ import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
 import StandardKnowledge from '@tonylb/mtw-wml/ts/standardize/components/knowledge'
 import { ReferenceList } from '@tonylb/mtw-wml/ts/standardize/keys/referenceList'
 import { StandardMarkFacet } from '@tonylb/mtw-wml/ts/standardize/keys/facets/mark'
-import { SituationRoomFacetPayload } from '@tonylb/mtw-wml/ts/standardize/keys/facets/situationRoom'
+import { StandardSituationRoomFacet, SituationRoomFacetPayload } from '@tonylb/mtw-wml/ts/standardize/keys/facets/situationRoom'
 import { RenderTree } from '@tonylb/mtw-base/ts/renderTree'
 import { StandardEditableData, extractFromEditableData } from '@tonylb/mtw-base/ts/editable'
 import { excludeUndefined } from '@tonylb/mtw-utilities/ts/lists'
+import type { PerspectiveMatcher } from '@tonylb/mtw-interfaces/ts/perspective'
 
 //
 // Minimal cache-shaped payload used for Example mirroring events.
@@ -383,5 +384,58 @@ export const enrichExampleEvent = async (params: {
         parentIds,
         example,
     }
+}
+
+//
+// Perspective matcher for Room + Situation (Phase 5.7).
+// Structural test: Room has facet for this situationId; Situation has marks.
+//
+
+export const roomHasFacetForSituation = (
+    room: StandardRoom | undefined,
+    situationId: ComponentUUID
+): boolean =>
+    (room?.situations?.items?.some(
+        (f) => (f as StandardSituationRoomFacet).reference?.universalKey === situationId
+    )) === true
+
+export const situationHasMarks = (situation: StandardSituation | undefined): boolean =>
+    (situation?.marks?.length ?? 0) > 0
+
+export type ComputePerspectiveMatcherForRoomSituationParams = {
+    roomId: ComponentUUID;
+    situationId: ComponentUUID;
+    assetStack: AssetUUID[];
+    roomByAssets: ComponentDataByAsset;
+    situationByAssets: ComponentDataByAsset;
+}
+
+export const computePerspectiveMatcherForRoomSituation = ({
+    roomId,
+    situationId,
+    assetStack,
+    roomByAssets,
+    situationByAssets,
+}: ComputePerspectiveMatcherForRoomSituationParams): PerspectiveMatcher => {
+    const stackSet = new Set(assetStack)
+    const requiredAssetIds: AssetUUID[] = assetStack.filter((assetId) => {
+        const roomEntry = roomByAssets.find((a) => a.AssetId === assetId)
+        const situationEntry = situationByAssets.find((a) => a.AssetId === assetId)
+        const room = roomEntry?.component as StandardRoom | undefined
+        const situation = situationEntry?.component as StandardSituation | undefined
+        return roomHasFacetForSituation(room, situationId) || situationHasMarks(situation)
+    })
+    const allAssetIds = new Set<AssetUUID>(
+        roomByAssets.map((a) => a.AssetId).concat(situationByAssets.map((a) => a.AssetId))
+    )
+    const candidates = [...allAssetIds].filter((id) => !stackSet.has(id))
+    const forbiddenAssetIds: AssetUUID[] = candidates.filter((assetId) => {
+        const roomEntry = roomByAssets.find((a) => a.AssetId === assetId)
+        const situationEntry = situationByAssets.find((a) => a.AssetId === assetId)
+        const room = roomEntry?.component as StandardRoom | undefined
+        const situation = situationEntry?.component as StandardSituation | undefined
+        return roomHasFacetForSituation(room, situationId) || situationHasMarks(situation)
+    })
+    return { requiredAssetIds, forbiddenAssetIds }
 }
 

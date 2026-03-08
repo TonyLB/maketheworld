@@ -1,12 +1,16 @@
 import internalCache from '../internalCache'
 import StandardExample from '@tonylb/mtw-wml/ts/standardize/components/example'
 import { StandardRoom } from '@tonylb/mtw-wml/ts/standardize/components/room'
+import StandardSituation from '@tonylb/mtw-wml/ts/standardize/components/situation'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 import {
+    computePerspectiveMatcherForRoomSituation,
     enrichExampleEvent,
     exampleToCacheShape,
     getOrderedAssetStack,
+    roomHasFacetForSituation,
+    situationHasMarks,
 } from './exampleEnrichment'
 
 jest.mock('../internalCache', () => ({
@@ -131,6 +135,63 @@ describe('exampleEnrichment helpers', () => {
         expect(result.parentIds).toEqual(['ROOM#one'])
         expect(result.example).toBeDefined()
         expect(result.example?.renderedContent.description.length).toBeGreaterThan(0)
+    })
+
+    describe('perspective matcher (Phase 5.7)', () => {
+        const situationId = 'SITUATION#s1' as const
+
+        it('roomHasFacetForSituation returns true when room has facet for situation', () => {
+            const room = {
+                situations: {
+                    items: [{ reference: { universalKey: situationId } }],
+                },
+            } as unknown as StandardRoom
+            expect(roomHasFacetForSituation(room, situationId)).toBe(true)
+        })
+
+        it('roomHasFacetForSituation returns false when room has no facet for situation', () => {
+            const room = {
+                situations: {
+                    items: [{ reference: { universalKey: 'SITUATION#other' } }],
+                },
+            } as unknown as StandardRoom
+            expect(roomHasFacetForSituation(room, situationId)).toBe(false)
+        })
+
+        it('situationHasMarks returns true when situation has marks', () => {
+            const situation = { marks: { length: 1 } } as unknown as StandardSituation
+            expect(situationHasMarks(situation)).toBe(true)
+        })
+
+        it('situationHasMarks returns false when situation has no marks', () => {
+            const situation = new StandardSituation({ tag: 'Situation', universalKey: 'SITUATION#s1' } as any)
+            expect(situationHasMarks(situation)).toBe(false)
+        })
+
+        it('computePerspectiveMatcherForRoomSituation returns required and forbidden', () => {
+            const roomWithFacet = {
+                situations: { items: [{ reference: { universalKey: 'SITUATION#s1' } }] },
+            } as unknown as StandardRoom
+            const situationWithMarks = { marks: { length: 1 } } as unknown as StandardSituation
+            const roomByAssets = [
+                { AssetId: 'ASSET#a' as const, component: new StandardRoom({ tag: 'Room', universalKey: 'ROOM#one' } as any) },
+                { AssetId: 'ASSET#b' as const, component: roomWithFacet },
+            ]
+            const situationByAssets = [
+                { AssetId: 'ASSET#a' as const, component: new StandardSituation({ tag: 'Situation', universalKey: 'SITUATION#s1' } as any) },
+                { AssetId: 'ASSET#b' as const, component: situationWithMarks },
+            ]
+            const matcher = computePerspectiveMatcherForRoomSituation({
+                roomId: 'ROOM#one',
+                situationId: 'SITUATION#s1',
+                assetStack: ['ASSET#a', 'ASSET#b'],
+                roomByAssets,
+                situationByAssets,
+            })
+            expect(matcher.requiredAssetIds).toContain('ASSET#b')
+            expect(matcher.requiredAssetIds).not.toContain('ASSET#a')
+            expect(matcher.forbiddenAssetIds).toEqual([])
+        })
     })
 })
 

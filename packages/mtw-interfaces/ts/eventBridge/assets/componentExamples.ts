@@ -1,5 +1,6 @@
 import { AssetUUID, ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import { RenderTree } from '@tonylb/mtw-base/ts/renderTree'
+import type { PerspectiveMatcher } from '../../perspective'
 
 //
 // Shared event contracts for the mtw.assets.componentExamples data source.
@@ -42,6 +43,7 @@ export type ComponentExamplesLifecycleBase = {
     exampleId: ComponentUUID;
     parentIds: ComponentUUID[];
     assetStack: AssetUUID[];
+    perspectiveMatcher: PerspectiveMatcher;
 }
 
 export type ComponentExamplesAddedEvent = ComponentExamplesLifecycleBase & {

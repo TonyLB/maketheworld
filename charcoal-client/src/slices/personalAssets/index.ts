@@ -41,6 +41,9 @@ import { ReferenceList } from '@tonylb/mtw-wml/ts/standardize/keys/referenceList
 import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 import type { ScopedInstrumentationOptions } from '../../testing/scopedInstrumentation'
 import { getWMLBase } from '../wmlDataSource/selectors'
+import { createSelector } from '@reduxjs/toolkit'
+import { derivePerspectiveForRoom } from '../../lib/perspectiveFromOrigins'
+import type { Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
 
 const autoSaveDebounce = new Debounce()
 
@@ -207,6 +210,23 @@ export const {
     getAll,
     getPendingEdits
 } = selectors
+
+/**
+ * Selector that derives room-scoped Perspective for (assetId, roomId) from standardForm
+ * (no perspective stored in Redux). Memoization is handled by createSelector.
+ * Use with useSelector: useSelector(state => getPerspective(state, assetId, roomId))
+ */
+export const getPerspective = createSelector(
+    [
+        (state: any, assetId: string) => selectors.getStandardForm(assetId)(state),
+        (_state: any, _assetId: string, roomId: string) => roomId,
+        (_state: any, assetId: string) => assetId
+    ],
+    (standardFormData: StandardFormData | undefined, roomId: string, assetId: string) => {
+        if (standardFormData === undefined) return null
+        return derivePerspectiveForRoom(new StandardForm(standardFormData), roomId as ComponentUUID, assetId as AssetUUID)
+    }
+)
 
 export const newAsset = (assetId: AssetUUID) => (dispatch: any) => {
     dispatch(addItem({ key: assetId, options: { initialState: 'NEW' }}))
