@@ -62,11 +62,13 @@ describe('app handler - generateRoomPreview', () => {
 
         await handler(event as any, {} as any)
 
-        expect(generateRoomPreviewMock).toHaveBeenCalledWith({
-            roomId: 'ROOM#test-room',
-            markState: { markValue: [{ mark: 'MARK#a', value: 'one' }] },
-            assetStack: ['ASSET#one']
-        })
+        expect(generateRoomPreviewMock).toHaveBeenCalledWith(
+            expect.objectContaining({
+                roomId: 'ROOM#test-room',
+                markState: { markValue: [{ mark: 'MARK#a', value: 'one' }] },
+                assetStack: ['ASSET#one']
+            })
+        )
 
         expect(messageBus.send).toHaveBeenCalledWith({
             type: 'ReturnValue',
@@ -79,6 +81,35 @@ describe('app handler - generateRoomPreview', () => {
                 RequestId: 'request-123'
             }
         })
+    })
+
+    it('passes generationContextWml to generateRoomPreview when present', async () => {
+        const generateRoomPreviewMock = renderCache.generateRoomPreview as jest.Mock
+        generateRoomPreviewMock.mockResolvedValue({
+            success: false,
+            errorCode: 'NO_EXACT_MATCH',
+            errorMessage: 'No exact match for proposed state'
+        })
+
+        const wml = '<Asset uuid=(test)><Room uuid=(room1) key=(room1)><ShortName>Test</ShortName></Room></Asset>'
+        const event = makeEvent({
+            message: 'generateRoomPreview',
+            RoomId: 'ROOM#test-room',
+            markState: { markValue: [] },
+            assetStack: ['ASSET#one'],
+            generationContextWml: wml
+        })
+
+        await handler(event as any, {} as any)
+
+        expect(generateRoomPreviewMock).toHaveBeenCalledWith(
+            expect.objectContaining({
+                roomId: 'ROOM#test-room',
+                markState: { markValue: [] },
+                assetStack: ['ASSET#one'],
+                generationContextWml: wml
+            })
+        )
     })
 })
 

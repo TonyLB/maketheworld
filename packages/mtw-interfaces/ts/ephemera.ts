@@ -120,6 +120,8 @@ export type GenerateRoomPreviewAPIMessage = {
     RoomId: EphemeraRoomId;
     markState: GenerateRoomPreviewAPIMarkState;
     assetStack: string[];
+    /** Expedient client-supplied context for LLM generation; see Ephemera caching plan item 1. */
+    generationContextWml?: string;
 }
 
 export type EphemeraAPIMessage = { RequestId?: string } & (
