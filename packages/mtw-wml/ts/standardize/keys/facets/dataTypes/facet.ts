@@ -101,6 +101,40 @@ export const isExitPayload = (arg: any): arg is ExitPayload => {
 }
 
 /**
+ * LensMarkFacetPayloadType: Payload for Lens Mark Facets
+ * Contains optional default string for a Mark scoped to a Lens
+ *
+ * Note: Type is inferred from list context (LensMarkFacetList), not from a discriminator field.
+ */
+export type LensMarkFacetPayloadType = {
+    default?: StandardEditableData<string>;
+};
+
+/**
+ * Type guard for LensMarkFacetPayloadType
+ * Checks that only the `default` key may appear and that its shape is acceptable
+ */
+export const isLensMarkFacetPayload = (arg: any): arg is LensMarkFacetPayloadType => {
+    if (typeof arg !== 'object' || arg === null) {
+        return false;
+    }
+    const keys = Object.keys(arg);
+    const allowed = ['default'];
+    if (!keys.every((k) => allowed.includes(k))) {
+        return false;
+    }
+    if ('default' in arg && arg.default !== undefined) {
+        const d = arg.default;
+        if (typeof d === 'string') return true;
+        if (typeof d === 'object' && d !== null && 'tag' in d) {
+            return d.tag === 'Remove' || (d.tag === 'Replace' && 'match' in d && 'payload' in d);
+        }
+        return false;
+    }
+    return true;
+};
+
+/**
  * Type guard for StandardFacetData
  * Validates structure only (has reference and payload properties with valid reference)
  * Payload type validation is done by specific payload constructors based on context

@@ -18,12 +18,13 @@ import StandardReference from "../keys/reference"
 import { HasShortName } from "./abstract"
 import { StandardLiteral } from "../literal"
 import { ReferenceList } from "../keys/referenceList"
+import { LensMarkFacetList, StandardLensMarkFacet } from "../keys/facets/lensMark"
 import { renderReference } from "./utils/schema"
 import { StandardEditableData, extractFromEditableData } from "@tonylb/mtw-base/ts/editable"
 import {
     processWithConsumers,
     StandardizeConsumerInline,
-    StandardizeConsumerReferenceList,
+    StandardizeConsumerFacetListLensMark,
     StandardizeConsumerRender,
     StandardizeConsumerStandardLiteral,
 } from "./fromSchemaPipeline"
@@ -177,17 +178,17 @@ export default StandardMark
 export class StandardLensPayload implements HasShortName, ComponentConstructorMethods<StandardLensData> {
     _shortName?: StandardLiteral;
     _description?: StandardRender;
-    _marks: ReferenceList;
+    _marks: LensMarkFacetList;
     tag = 'Lens' as const
 
     constructor(previous?: StandardLensPayload) {
         if (previous) {
             this._shortName = previous._shortName
             this._description = previous._description
-            this._marks = previous._marks.clone()
+            this._marks = previous._marks.clone() as LensMarkFacetList
         }
         else {
-            this._marks = new ReferenceList([])
+            this._marks = new LensMarkFacetList([])
         }
     }
 
@@ -195,7 +196,13 @@ export class StandardLensPayload implements HasShortName, ComponentConstructorMe
         const { shortName, description, marks } = props
         this._shortName = shortName ? new StandardLiteral(shortName, { tag: 'ShortName' }) : undefined
         this._description = description ? new StandardRender(description) : undefined
-        this._marks = new ReferenceList(marks?.map((reference) => (new StandardReference(reference))) ?? [])
+        const normalizedMarks = (marks ?? []).map((item) => {
+            if (item && typeof item === 'object' && 'reference' in item && 'payload' in item) {
+                return item
+            }
+            return { reference: item as any, payload: {} }
+        })
+        this._marks = new LensMarkFacetList(normalizedMarks)
     }
 
     fromSchema(node: GenericTreeNode<SchemaTag>): GenericTree<SchemaTag> {
@@ -215,8 +222,7 @@ export class StandardLensPayload implements HasShortName, ComponentConstructorMe
                         this._description = render
                     },
                 }),
-                new StandardizeConsumerReferenceList<StandardLensPayload>(this, {
-                    tag: "Mark",
+                new StandardizeConsumerFacetListLensMark<StandardLensPayload>(this, {
                     update(list) {
                         this._marks = list
                     },
@@ -238,17 +244,21 @@ export class StandardLensPayload implements HasShortName, ComponentConstructorMe
             tag: 'Lens' as const,
             ...(this?.shortName ? { shortName: this.shortName.toJSON() } : {}),
             ...(this?.description ? { description: this.description.toJSON() } : {}),
-            ...(this.marks.payload.length ? { marks: this.marks.toJSON() } : {})
+            ...(this.marks.length ? { marks: this.marks.toJSON() } : {})
         }
     }
 
     schema(key: string, universalKey?: ComponentUUID, mappings?: StandardReference[]): GenericTreeNode<SchemaTag> {
+        const markSchemas = this._marks.items.map((facet) => {
+            const result = facet.renderFacet(undefined)
+            return result.aggregatedNode ?? result.newNode
+        }).filter(excludeUndefined)
         return {
             data: { tag: 'Lens', key, uuid: universalKey },
             children: [
                 ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema())).flat(1),
                 ...(this._description?.nestedSchema({ tag: 'Description', mappings }) ?? []),
-                ...this.marks.schema
+                ...markSchemas
             ].filter(excludeUndefined)
         }
     }
@@ -269,12 +279,19 @@ export class StandardLensPayload implements HasShortName, ComponentConstructorMe
             inlineRemainder = remainder
         }
 
+        const markSchemas = marksToRender.items.map((facet) => {
+            const markSchema = renderReference({ lookup, options: { ...options, parent: key } })(facet.reference)
+            if (!markSchema) return undefined
+            const result = facet.renderFacet(markSchema, lookup)
+            return result.aggregatedNode ?? result.newNode ?? markSchema
+        }).filter(excludeUndefined)
+
         return {
             data: { tag: 'Lens', key: key.key ?? '', uuid: key.universalKey },
             children: [
                 ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema())).flat(1),
                 ...(this._description?.nestedSchema({ tag: 'Description', mappings: options.mappings }) ?? []),
-                ...marksToRender.payload.map(renderReference({ lookup, options: { ...options, parent: key } })).filter(excludeUndefined),
+                ...markSchemas,
                 ...inlineRemainder.map(renderReference({ lookup, options: { ...options, parent: key } })).filter(excludeUndefined)
             ].filter(excludeUndefined)
         }
@@ -288,7 +305,7 @@ export class StandardLensPayload implements HasShortName, ComponentConstructorMe
         const returnValue = new StandardLensPayload()
         returnValue._shortName = (this._shortName && incoming._shortName) ? this._shortName.merge(incoming._shortName) : this._shortName ?? incoming._shortName
         returnValue._description = (this._description && incoming._description) ? this._description.merge(incoming._description) : this._description ?? incoming._description
-        returnValue._marks = this._marks.merge(incoming._marks) ?? new ReferenceList([])
+        returnValue._marks = (this._marks.merge(incoming._marks) ?? new LensMarkFacetList([])) as LensMarkFacetList
         return returnValue as this
     }
 
@@ -297,7 +314,7 @@ export class StandardLensPayload implements HasShortName, ComponentConstructorMe
         const editableData = [this._description?.toJSON()].filter(excludeUndefined) as StandardEditableData<RenderTree>[]
         const renderTrees = editableData.flatMap(extractFromEditableData<RenderTree>)
         return [
-            ...this._marks.payload.map((reference) => ({ referenceType: 'Direct' as const, reference })),
+            ...this._marks.items.map((facet) => ({ referenceType: 'Direct' as const, reference: facet.reference })),
             ...linkReferenceKeys(mapping)(renderTreeToSchema(renderTrees.flat(1)))
                 .map((reference) => ({ referenceType: 'Link' as const, reference }))
         ]
@@ -315,14 +332,16 @@ export class StandardLensPayload implements HasShortName, ComponentConstructorMe
     remapReferences(props: { mappings: StandardReference[]; mapTo: ReferenceFormat }): this {
         const returnValue = new StandardLensPayload(this)
         returnValue._description = returnValue._description?.remapReferences({ mapping: props.mappings, mapTo: props.mapTo })
-        returnValue._marks = returnValue._marks.lookup(props.mappings).toFormat(props.mapTo)
+        returnValue._marks = returnValue._marks.lookup(props.mappings).toFormat(props.mapTo) as LensMarkFacetList
         return returnValue as this
     }
 
     withChild(child: StandardReference): this {
         const returnValue = new StandardLensPayload(this)
         if (child.tag === 'Mark') {
-            returnValue._marks = returnValue._marks.assureItem(child)
+            const newFacet = new StandardLensMarkFacet({ reference: child.withRef(0).toJSON(), payload: {} })
+            const merged = returnValue._marks.merge(new LensMarkFacetList([newFacet])) as LensMarkFacetList | undefined
+            returnValue._marks = (merged ?? returnValue._marks) as LensMarkFacetList
         }
         else {
             throw new Error(`Invalid child type ${child.tag} for StandardLens`)
@@ -336,10 +355,12 @@ export class StandardLensPayload implements HasShortName, ComponentConstructorMe
         const remainder = children.filter(c => !BUCKET_TAGS.includes(c.tag as (typeof BUCKET_TAGS)[number]))
 
         const returnValue = new StandardLensPayload(this)
-        const markReferences = new ReferenceList(
-            bucketChildren.filter(child => child.tag === 'Mark').map(child => child.withRef(0))
-        )
-        returnValue._marks = this._marks.merge(markReferences, { cleanEmptyReferences: false }) ?? this._marks
+        const markFacets = bucketChildren
+            .filter(child => child.tag === 'Mark')
+            .map(child => new StandardLensMarkFacet({ reference: child.withRef(0).toJSON(), payload: {} }))
+        const markList = new LensMarkFacetList(markFacets)
+        const merged = this._marks.merge(markList) as LensMarkFacetList | undefined
+        returnValue._marks = (merged ?? this._marks) as LensMarkFacetList
 
         return {
             payload: returnValue as this,
@@ -351,7 +372,7 @@ export class StandardLensPayload implements HasShortName, ComponentConstructorMe
         const returnValue = new StandardLensPayload()
         returnValue._shortName = this._shortName ? this._shortName.invert() as StandardLiteral : undefined
         returnValue._description = this._description ? this._description.invert() : undefined
-        returnValue._marks = this._marks.invert()
+        returnValue._marks = this._marks.invert() as LensMarkFacetList
         return returnValue as this
     }
 
@@ -359,7 +380,7 @@ export class StandardLensPayload implements HasShortName, ComponentConstructorMe
         // A lens is empty if it has no shortName, no description, and no marks
         const hasShortName = Boolean(this._shortName)
         const hasDescription = Boolean(this._description)
-        const hasMarks = this._marks.payload.length > 0
+        const hasMarks = this._marks.length > 0
         return !(hasShortName || hasDescription || hasMarks)
     }
 }

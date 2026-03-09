@@ -31,12 +31,21 @@ Together, Guidance and Examples form a "multi-shot example teaching" plus "layer
 ### Lenses
 
 - **Role**: Rooms (and potentially other parents) reference Lenses via `lenses: ReferenceList`. Lenses participate in the rendering framework; exact semantics for how they filter or combine with Marks/Guidance/Examples can be expanded as the pipeline is implemented.
+- **Lens Mark facets**: A Lens hosts Mark references via `LensMarkFacetList`. Each facet carries an optional `Default` literal—a Lens-specific default value for that Mark when viewed through this Lens. The same Mark can appear elsewhere (e.g. in Guidance or Examples) without a default; the default is scoped to the Lens.
+
+**Lens with Mark and Default (WML):**
+```xml
+<Lens key=(illumination)>
+    <ShortName>Illumination</ShortName>
+    <Mark key=(illumination)><Default>light</Default></Mark>
+</Lens>
+```
 
 ### Default literal fields
 
-- **Role**: Provide a simple literal fallback or default value for a given context (for example, a future Lens Mark default like `illumination: light`).
+- **Role**: Provide a simple literal fallback or default value for a given context (e.g. `illumination: light` on a Lens).
 - **Syntax**: `<Default>...</Default>` is a simple literal tag, parsed via the same literal-tag infrastructure as `ShortName` and `Instructions` and consumable as a `StandardLiteral`.
-- **Usage pattern**: Components that need a default literal field can wire `Default` into their `fromSchema` pipelines with `StandardizeConsumerStandardLiteral` (`tag: 'Default'`), allowing `StandardLiteral.nestedSchema()` to round-trip back to `<Default>...</Default>`.
+- **Usage pattern**: Under a Lens, each `Mark` can have an optional `<Default>` child. The `LensMarkFacetList` consumer parses Mark children and extracts `Default` into the facet payload; `StandardLiteral.nestedSchema()` round-trips back to `<Default>...</Default>`.
 
 ### World-state
 

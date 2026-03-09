@@ -14,6 +14,7 @@ import { StandardLiteral } from "../literal"
 import { StandardRender } from "../render"
 import { PositionFacetList, StandardPositionFacet } from "../keys/facets/position"
 import { MarkFacetList, StandardMarkFacet } from "../keys/facets/mark"
+import { LensMarkFacetList, StandardLensMarkFacet } from "../keys/facets/lensMark"
 
 export interface StandardizeConsumer {
     /**
@@ -260,6 +261,61 @@ export class StandardizeConsumerFacetListMark<D extends object = object> impleme
             return {
                 ...markNode,
                 children: childrenWithoutMatch
+            }
+        })
+
+        const parsingRemainder: GenericTree<SchemaTag> = children.filter((child) => !treeNodeTypeguard(isSchemaMark)(child))
+
+        return {
+            parsingRemainder,
+            returnRemainderAddition: cleanedMarks
+        }
+    }
+}
+
+/**
+ * Facet-list consumer for Lens Mark facets (Mark reference + optional Default).
+ *
+ * - Parses Mark children with optional Default payloads into a LensMarkFacetList and updates
+ *   the payload via options.update(list).
+ * - Returns Mark nodes (with Default children stripped where present) in
+ *   returnRemainderAddition so that processComponents can recurse into cleaned
+ *   Mark components.
+ * - Non-Mark children are passed through as parsingRemainder for subsequent consumers.
+ */
+export class StandardizeConsumerFacetListLensMark<D extends object = object> implements StandardizeConsumer {
+    constructor(
+        private readonly context: D,
+        private readonly options: {
+            update: (this: D, list: LensMarkFacetList) => void
+        }
+    ) {}
+
+    process(children: GenericTree<SchemaTag>): { parsingRemainder: GenericTree<SchemaTag>; returnRemainderAddition: GenericTree<SchemaTag> } {
+        const markNodes: GenericTreeNode<SchemaTag>[] = children.filter(treeNodeTypeguard(isSchemaMark))
+
+        const facets = markNodes
+            .map((markNode) => {
+                try {
+                    return new StandardLensMarkFacet([markNode])
+                }
+                catch {
+                    return undefined
+                }
+            })
+            .filter((facet): facet is StandardLensMarkFacet => Boolean(facet))
+
+        const list = new LensMarkFacetList(facets)
+        this.options.update.call(this.context, list)
+
+        const cleanedMarks: GenericTree<SchemaTag> = markNodes.map((markNode) => {
+            const { remainder: childrenWithoutDefault } = splitTaggedChildren({
+                children: markNode.children,
+                tag: 'Default',
+            })
+            return {
+                ...markNode,
+                children: childrenWithoutDefault
             }
         })
 
