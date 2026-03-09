@@ -304,9 +304,9 @@ describe('StandardForm', () => {
         const lens = test.byUniversalId['LENS#lens1'] as StandardLens
         expect(lens).toBeDefined()
         expect(lens).toBeInstanceOf(StandardLens)
-        expect(lens.marks.payload.length).toEqual(2)
-        expect(lens.marks.payload[0].universalKey).toEqual('MARK#mark1')
-        expect(lens.marks.payload[1].universalKey).toEqual('MARK#mark2')
+        expect(lens.marks.items.length).toEqual(2)
+        expect(lens.marks.items[0].reference.universalKey).toEqual('MARK#mark1')
+        expect(lens.marks.items[1].reference.universalKey).toEqual('MARK#mark2')
     })
 
     it('should correctly round-trip a standalone Lens component', () => {
@@ -337,9 +337,9 @@ describe('StandardForm', () => {
         expect(lens.description?.toJSON()).toEqual(['This is a test lens.'])
         
         // Verify the lens has the mark references
-        expect(lens.marks.payload.length).toEqual(2)
-        expect(lens.marks.payload[0].universalKey).toEqual('MARK#mark1')
-        expect(lens.marks.payload[1].universalKey).toEqual('MARK#mark2')
+        expect(lens.marks.items.length).toEqual(2)
+        expect(lens.marks.items[0].reference.universalKey).toEqual('MARK#mark1')
+        expect(lens.marks.items[1].reference.universalKey).toEqual('MARK#mark2')
         
         // Verify the mark components exist
         const mark1 = test.byUniversalId['MARK#mark1'] as StandardMark
