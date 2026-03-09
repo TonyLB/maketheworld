@@ -4,7 +4,7 @@ import SourceStream from '../../parser/tokenizer/sourceStream'
 
 import { schemaFromParse, schemaToWML } from '../index'
 import { deIndentWML } from '../utils'
-import { isSchemaParent, isSchemaKey } from '@tonylb/mtw-base/ts/schema/components'
+import { isSchemaParent, isSchemaKey, isSchemaDefault } from '@tonylb/mtw-base/ts/schema/components'
 import { isSchemaReplaceMatch, isSchemaReplacePayload } from '@tonylb/mtw-base/ts/schema/edit'
 
 describe('Parent tag', () => {
@@ -244,6 +244,39 @@ describe('Parent tag', () => {
             expect(isSchemaParent(parentNode?.data)).toBe(true)
             expect(parentNode?.children.length).toBe(0)
         })
+    })
+})
+
+describe('Default literal tag', () => {
+    beforeEach(() => {
+        jest.clearAllMocks()
+        jest.resetAllMocks()
+    })
+
+    it('should parse Default tag with string content', () => {
+        const testParse = parse(tokenizer(new SourceStream(deIndentWML(`
+            <Asset uuid=(Test)>
+                <Room key=(room1)>
+                    <Default>fallback illumination</Default>
+                </Room>
+            </Asset>
+        `))))
+        const schema = schemaFromParse(testParse)
+        const roomNode = schema[0].children.find(({ data }) => data.tag === 'Room')
+        expect(roomNode).toBeDefined()
+        const defaultNode = roomNode?.children.find(({ data }) => data.tag === 'Default')
+        expect(defaultNode).toBeDefined()
+        expect(isSchemaDefault(defaultNode?.data)).toBe(true)
+        expect(defaultNode?.children[0].data).toEqual({ tag: 'String', value: 'fallback illumination' })
+    })
+
+    it('should round-trip Default tag correctly', () => {
+        const testWML = deIndentWML(`
+            <Asset uuid=(Test)>
+                <Room key=(room1)><Default>fallback illumination</Default></Room>
+            </Asset>
+        `)
+        expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
     })
 })
 

@@ -21,6 +21,7 @@ const componentTemplates = {
     DisplayName: {},
     ShortName: {},
     Instructions: {},
+    Default: {},
     Parent: {},
     Key: {},
     Room: {
@@ -73,6 +74,7 @@ const componentTemplates = {
 
 const { converter: shortNameConverter, printMap: shortNamePrintMap } = literalTagFactory('ShortName')
 const { converter: instructionsConverter, printMap: instructionsPrintMap } = literalTagFactory('Instructions')
+const { converter: defaultConverter, printMap: defaultPrintMap } = literalTagFactory('Default')
 
 // Parent tag converter - similar to Literal but constrained to ComponentUUID content
 // and can only be placed inside ComponentUUID tags
@@ -141,6 +143,7 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
     },
     ShortName: shortNameConverter,
     Instructions: instructionsConverter,
+    Default: defaultConverter,
     Parent: {
         initialize: ({ parseOpen, contextStack }): SchemaParentTag => {
             // Validate that Parent tag is inside a ComponentUUID
@@ -344,6 +347,7 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
     },
     ShortName: shortNamePrintMap,
     Instructions: instructionsPrintMap,
+    Default: defaultPrintMap,
     Parent: parentTagRenderLiteral,
     Key: keyTagRenderLiteral,
     Room: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => {

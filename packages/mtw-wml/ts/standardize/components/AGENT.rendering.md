@@ -32,6 +32,12 @@ Together, Guidance and Examples form a "multi-shot example teaching" plus "layer
 
 - **Role**: Rooms (and potentially other parents) reference Lenses via `lenses: ReferenceList`. Lenses participate in the rendering framework; exact semantics for how they filter or combine with Marks/Guidance/Examples can be expanded as the pipeline is implemented.
 
+### Default literal fields
+
+- **Role**: Provide a simple literal fallback or default value for a given context (for example, a future Lens Mark default like `illumination: light`).
+- **Syntax**: `<Default>...</Default>` is a simple literal tag, parsed via the same literal-tag infrastructure as `ShortName` and `Instructions` and consumable as a `StandardLiteral`.
+- **Usage pattern**: Components that need a default literal field can wire `Default` into their `fromSchema` pipelines with `StandardizeConsumerStandardLiteral` (`tag: 'Default'`), allowing `StandardLiteral.nestedSchema()` to round-trip back to `<Default>...</Default>`.
+
 ### World-state
 
 - **Definition**: The combination of Mark values (and any other dimensions) that describes a particular situation. A rendering algorithm uses world-state to select which Guidance and which Example(s) apply for a given render.
