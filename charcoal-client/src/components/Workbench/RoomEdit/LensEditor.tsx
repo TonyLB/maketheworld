@@ -8,26 +8,23 @@ import ListItemText from "@mui/material/ListItemText"
 import IconButton from "@mui/material/IconButton"
 import Typography from "@mui/material/Typography"
 import Alert from "@mui/material/Alert"
-import { useDispatch } from "react-redux"
-import { pushBreadcrumb } from "../../../slices/UI/workbench"
 import { useWorkbenchAsset } from "../foundations/useWorkbenchAsset"
 import AddIcon from '@mui/icons-material/Add'
 import DeleteIcon from '@mui/icons-material/Delete'
 import LinkIcon from '@mui/icons-material/Link'
 import { MakeTheWorldAccordion } from "../../UI"
 import StandardRoom from "@tonylb/mtw-wml/ts/standardize/components/room"
-import StandardMark, { StandardLens } from "@tonylb/mtw-wml/ts/standardize/components/worldState"
+import { StandardLens } from "@tonylb/mtw-wml/ts/standardize/components/worldState"
 import StandardReference from "@tonylb/mtw-wml/ts/standardize/components/reference"
 import { ReferenceList } from "@tonylb/mtw-wml/ts/standardize/keys/referenceList"
+import { LensMarkFacetList } from "@tonylb/mtw-wml/ts/standardize/keys/facets/lensMark"
 import { StandardLiteral } from "@tonylb/mtw-wml/ts/standardize/literal"
 import { StandardRender, PlainClass } from "@tonylb/mtw-wml/ts/standardize/render"
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
 import { StandardLiteralEditor } from "../foundations/StandardLiteral"
 import { StandardRenderEditor } from "../foundations/StandardRender"
 import { ComponentSelectorDialog } from "../foundations/ComponentSelector"
-import { InlineReferenceList } from "../foundations/ReferenceList"
-import { MarkInlineEditor } from "../MarkEdit/InlineEditor"
-import { referenceListToItems } from "../foundations/ReferenceList"
+import { LensMarkFacetsEditor } from "../LensMarkFacetsEditor"
 import { ComponentUUID } from "@tonylb/mtw-base/ts/schema"
 import { v4 as uuidv4 } from 'uuid'
 import { RenderTree } from "@tonylb/mtw-base/ts/renderTree"
@@ -61,7 +58,6 @@ const renderTreeToPlainText = (tree: RenderTree): string => {
 }
 
 export const LensEditor: FunctionComponent<LensEditorProps> = ({ RoomId }) => {
-    const dispatch = useDispatch()
     const { standardForm, updateStandard, readonly } = useWorkbenchAsset()
     const [lensSelectorOpen, setLensSelectorOpen] = useState(false)
 
@@ -225,95 +221,21 @@ export const LensEditor: FunctionComponent<LensEditorProps> = ({ RoomId }) => {
         })
     }, [lensUniversalKey, singleLens?.description, updateStandard, readonly])
 
-    const addMarkToLens = useCallback(() => {
-        if (!singleLens || readonly || !singleLens.universalKey) return
-
-        const MarkKey = enforceTypedKey('MARK')
-        const uuid = uuidv4()
-        const markUniversalKey = MarkKey(uuid) as ComponentUUID
-        updateStandard({
-            type: 'update',
-            update: (draft: StandardForm) => {
-                const lens = draft.byUniversalId[singleLens.universalKey!]
-                if (lens && lens instanceof StandardLens) {
-                    const newMark = new StandardMark({
-                        tag: 'Mark',
-                        universalKey: markUniversalKey
-                    })
-                    draft.byUniversalId[markUniversalKey] = newMark
-
-                    const markReference = new StandardReference({
-                        universalKey: markUniversalKey,
-                        tag: 'Mark'
-                    })
-                    lens._payload._marks = lens._payload._marks.assureItem(markReference)
+    const handleLensMarksChange = useCallback(
+        (newMarks: LensMarkFacetList) => {
+            if (!lensUniversalKey || readonly) return
+            updateStandard({
+                type: "update",
+                update: (draft: StandardForm) => {
+                    const lens = draft.byUniversalId[lensUniversalKey]
+                    if (lens && lens instanceof StandardLens) {
+                        lens._payload._marks = newMarks
+                    }
+                    return draft
                 }
-                return draft
-            }
-        })
-    }, [singleLens, standardForm, updateStandard, readonly])
-
-    const removeMarkFromLens = useCallback((index: number) => {
-        if (!singleLens || readonly || !singleLens.universalKey) return
-        updateStandard({
-            type: 'update',
-            update: (draft: StandardForm) => {
-                const lens = draft.byUniversalId[singleLens.universalKey!]
-                if (lens && lens instanceof StandardLens) {
-                    const newPayload = lens._payload._marks.payload.filter((_, i) => i !== index)
-                    lens._payload._marks = new ReferenceList(newPayload)
-                }
-                return draft
-            }
-        })
-    }, [singleLens, updateStandard, readonly])
-
-    const marks = useMemo(() => {
-        if (!singleLens) return []
-        return singleLens.marks.payload
-            .map(ref => {
-                if (!ref.universalKey) return null
-                const component = standardForm.byUniversalId[ref.universalKey]
-                if (component && component instanceof StandardMark) {
-                    return component
-                }
-                return null
             })
-            .filter((mark): mark is StandardMark => mark !== null)
-    }, [singleLens, standardForm])
-
-    const markItems = useMemo(() => {
-        if (!singleLens) return []
-        return referenceListToItems({
-            referenceList: singleLens.marks,
-            standardForm,
-            tag: 'Mark'
-        })
-    }, [singleLens, standardForm])
-
-    const handleMarkRemove = useCallback(
-        (id: string) => {
-            if (!singleLens) return
-            const index = singleLens.marks.payload.findIndex(ref => ref.universalKey === id)
-            if (index >= 0) removeMarkFromLens(index)
         },
-        [singleLens, removeMarkFromLens]
-    )
-
-    const renderMarkEditor = useCallback(
-        (id: string) => {
-            const mark = marks.find(m => m.universalKey === id)
-            if (!mark) return null
-            return <MarkInlineEditor mark={mark} />
-        },
-        [marks]
-    )
-
-    const handleMarkClick = useCallback(
-        (id: string) => {
-            dispatch(pushBreadcrumb({ id: id as ComponentUUID, kind: 'component', componentId: id as ComponentUUID }))
-        },
-        [dispatch, RoomId]
+        [lensUniversalKey, updateStandard, readonly]
     )
 
     if (!room) {
@@ -381,17 +303,10 @@ export const LensEditor: FunctionComponent<LensEditorProps> = ({ RoomId }) => {
                         variant="outlined"
                     />
 
-                    <InlineReferenceList
-                        title="Marks"
-                        items={markItems}
-                        defaultExpanded
-                        onItemRemove={handleMarkRemove}
-                        onAddClick={addMarkToLens}
-                        addLabel="Add Mark"
-                        emptyStateText="No marks. Add one to describe points of interest."
-                        renderItemEditor={renderMarkEditor}
-                        onItemClick={handleMarkClick}
-                        disabled={readonly}
+                    <LensMarkFacetsEditor
+                        marks={singleLens.marks}
+                        onChange={handleLensMarksChange}
+                        readonly={readonly}
                     />
 
                     <StandardRenderEditor
