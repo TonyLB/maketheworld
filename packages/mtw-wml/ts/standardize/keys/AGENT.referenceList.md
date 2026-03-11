@@ -56,6 +56,64 @@ This provides O(1) lookups by both `universalKey` and local `key`, making it sui
 
 This optimization is documented here for future consideration but is not currently implemented, as the current `ReferenceList` implementation is sufficient for current use cases.
 
+## SingleReference: 0-or-1 reference pattern
+
+### Purpose
+
+Some reference slots are semantically "single optional" rather than "0..n" lists (for example, `StandardRoom.lenses` conceptually expects at most one Lens). The **SingleReference** pattern captures this 0-or-1 semantics while keeping the underlying data shape (`ReferenceListData`) and machinery (`ReferenceList`, `StandardReference`) unchanged.
+
+SingleReference is implemented as:
+
+- A **runtime pattern** for "at most one" reference, not a new serialized shape
+- A **subclass of `ReferenceList`** (`SingleReference extends ReferenceList`) that enforces a narrow envelope on what shapes are valid
+- A small, focused API for reading/writing the single value while still interoperating with list-based pipelines (merge, diff, schema, fromSchema)
+
+### Data shape and class relationship
+
+- **Data shape**: Serialized fields remain `ReferenceListData` (arrays of `StandardReferenceData`), including `StandardRoomData.lenses`.
+- **Runtime type**: `SingleReference` wraps the same items as `ReferenceList` but constrains how many and of what sign:
+  - At most **one positive** reference (`ref > 0` or default 1).
+  - At most **one negative** reference (`ref < 0`).
+- Because `SingleReference` **extends `ReferenceList`**, it can be passed anywhere a `ReferenceList` is expected and still participate in existing operations (`schema`, `toJSON`, `lookup`, `toFormat`, etc.).
+
+### Core API surface
+
+- **Construction**:
+  - `new SingleReference(args)` – accepts the same constructor shapes as `ReferenceList` (arrays of `StandardReference`, schema nodes, or `StandardReferenceData`) and enforces the envelope.
+  - `SingleReference.fromReferenceList(list)` – converts an existing `ReferenceList` into a `SingleReference`, throwing if the list cannot be reconciled to 0-or-1 semantics.
+  - `SingleReference.fromData(data?: ReferenceListData)` – convenience for payload `fromJSON` / `fromSchema` when fields are stored as `ReferenceListData`.
+  - `SingleReference.fromValue(value: StandardReference | StandardReferenceData | undefined)` – builds a state-style instance directly from a single value.
+
+- **Value accessors**:
+  - `get value(): StandardReference | undefined` – returns the single positive reference (or `undefined` when empty).
+  - `set value(StandardReference | StandardReferenceData | undefined)` – sets the single value (represented as empty list or single positive reference) and re-applies invariants.
+
+### Invariant enforcement
+
+SingleReference adds envelope checks on top of the normal ReferenceList behavior:
+
+- At most **one positive** reference in the payload.
+- At most **one negative** reference in the payload.
+- Shapes with 2+ positives or 2+ negatives are rejected.
+- Trivial cancellation (e.g. `+A` and `-A` with matching keys and `ref` magnitudes) is normalized to an empty list.
+
+These rules are local to SingleReference; plain ReferenceList instances remain unconstrained and can still represent more complex multi-reference edits.
+
+### Relationship to components (example: Room.lenses)
+
+The SingleReference pattern is designed so that components like `StandardRoom` can:
+
+- Keep their serialized fields as `ReferenceListData` (e.g. `lenses?: ReferenceListData`).
+- Use `SingleReference` in their payloads for 0-or-1 slots (e.g. `_lenses: SingleReference`) to:
+  - Enforce "at most one" at construction and during merge/diff.
+  - Offer a simple `lens` getter (via `value`) returning `StandardReference | undefined`.
+- Continue to interoperate with:
+  - **fromSchema** pipelines that parse lists of child tags (still list-shaped under the hood).
+  - **Schema generation** that expects list-shaped reference collections.
+  - **StandardForm merge/diff** operations that remain list-based at the component/asset level.
+
+This keeps the **data shape and global pipelines stable** while localizing the 0-or-1 semantics and validation to the SingleReference wrapper.
+
 ## Usage in Component Payloads
 
 ### Storage

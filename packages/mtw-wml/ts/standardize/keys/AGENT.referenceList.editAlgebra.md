@@ -125,6 +125,59 @@ Result: `<Room key=(feat1) ref={-1}>`, `<Room key=(feat2) ref={-1}>`, `<Room key
 
 **Mathematical relationship**: If `a.diff(b) = x` such that `a.merge(x) = b`, then `x = b - a` (where subtraction is applied to each matched reference's `ref` value). This means we can express diffing in terms of merging and inversion: `a.diff(b)` is equivalent to computing `b - a` for each reference.
 
+## SingleReference envelope
+
+`SingleReference` is a constrained wrapper around `ReferenceList` that applies the same numeric `ref` algebra but within a much smaller envelope suitable for "0-or-1" slots.
+
+### Envelope definition
+
+For a SingleReference slot, we consider `ref` sign as:
+
+- **Positive** (`ref > 0` or default 1): "add/set this reference".
+- **Negative** (`ref < 0`): "remove this reference".
+- **Zero** (`ref = 0`): neutral.
+
+The envelope enforced on any SingleReference instance is:
+
+- At most **one positive** reference in the list.
+- At most **one negative** reference in the list.
+
+In the common **diff interpretation** (when a SingleReference is being used as a per-slot diff), we can think of it in terms of states:
+
+- Base value `A`, incoming value `B`.
+- Diff is expressed as a tiny `ReferenceList` (wrapped by `SingleReference`) that obeys:
+  - **No-op**: `A = B` (including both undefined) → empty diff.
+  - **Set**: `undefined → B` → a single positive item `+B`.
+  - **Clear**: `A → undefined` → a single negative item `-A`.
+  - **Swap**: `A → B` with `A` and `B` different keys → two items: `-A` and `+B`.
+
+This envelope is implemented by constructing a SingleReference from the two state values while still representing the diff as a list of `StandardReference` values with signed `ref` fields.
+
+### Merge semantics for SingleReference
+
+Applying a SingleReference diff to a SingleReference state follows the same numeric algebra, but with additional constraints:
+
+- The base state is interpreted as the current **single value** (0 or 1 positive ref).
+- The diff is interpreted as a tiny `ReferenceList` within the envelope above.
+- Semantics:
+  - **Negative only (-A)**:
+    - If the base value is `A`, the slot is cleared.
+    - If the base value is not `A` (including undefined), the diff is a no-op.
+  - **Positive only (+B)**:
+    - The slot is set to `B`, regardless of the current value.
+  - **Negative A and positive B (-A, +B)**:
+    - Equivalent to "swap A → B": clear A (if present), then set B.
+
+Mathematically, this is a specialization of the general `ReferenceList` algebra to the 0-or-1 case, where:
+
+- Each key can appear at most once in the diff.
+- At most two keys participate (the outgoing A and the incoming B).
+- The visible operations correspond exactly to:
+  - `b - a` at the per-key level (for A and B).
+  - Merging `a` with that tiny diff to obtain `b`.
+
+The SingleReference implementation keeps all of this algebra **list-shaped** so it composes cleanly with the rest of the system, while ensuring that single-reference slots never accidentally drift into multi-reference states.
+
 ## Related Documentation
 
 - [`AGENT.referenceList.md`](./AGENT.referenceList.md) - General ReferenceList overview and usage

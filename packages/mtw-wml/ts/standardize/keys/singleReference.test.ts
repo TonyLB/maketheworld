@@ -16,15 +16,10 @@ describe("SingleReference construction and invariants", () => {
         expect(single.toJSON()).toEqual([{ tag: "Room", key: "room1" }])
     })
 
-    it("throws when constructed state has more than one positive ref", () => {
+    it("throws when constructed list has more than one positive ref", () => {
         const refA = new StandardReference({ tag: "Room", key: "roomA" })
         const refB = new StandardReference({ tag: "Room", key: "roomB" })
-        expect(() => new SingleReference([refA, refB])).toThrow("SingleReference state must not contain more than one positive ref")
-    })
-
-    it("throws when constructed state has a negative ref", () => {
-        const ref = new StandardReference({ tag: "Room", key: "room1", ref: -1 })
-        expect(() => new SingleReference([ref])).toThrow("SingleReference state must not contain negative refs")
+        expect(() => new SingleReference([refA, refB])).toThrow("SingleReference must not contain more than one positive ref")
     })
 
     it("value setter sets and clears correctly", () => {
@@ -54,7 +49,7 @@ describe("SingleReference helpers", () => {
     })
 
     it("fromData constructs state from ReferenceListData", () => {
-        const data = [{ tag: "Room", key: "room1" as const }]
+        const data = [{ tag: "Room" as const, key: "room1" as const }]
         const single = SingleReference.fromData(data)
         expect(single.value?.tag).toBe("Room")
         expect(single.value?.key).toBe("room1")
@@ -110,30 +105,30 @@ describe("SingleReference merge behavior", () => {
     const roomA = new StandardReference({ tag: "Room", key: "roomA" })
     const roomB = new StandardReference({ tag: "Room", key: "roomB" })
 
-    it("merge no-op diff leaves value unchanged", () => {
+    it("merge no-op (empty) diff leaves value unchanged", () => {
         const base = SingleReference.fromValue(roomA)
-        const diff = new SingleReference([], { mode: "diff" })
+        const diff = new SingleReference([])
         const merged = base.merge(diff)
         expect(merged.value?.sameKey(roomA)).toBe(true)
     })
 
     it("merge positive-only diff sets value", () => {
         const base = SingleReference.fromValue(undefined)
-        const diff = new SingleReference([roomB.withRef(1)], { mode: "diff" })
+        const diff = new SingleReference([roomB.withRef(1)])
         const merged = base.merge(diff)
         expect(merged.value?.sameKey(roomB)).toBe(true)
     })
 
     it("merge negative-only diff clears matching base value", () => {
         const base = SingleReference.fromValue(roomA)
-        const diff = new SingleReference([roomA.withRef(-1)], { mode: "diff" })
+        const diff = new SingleReference([roomA.withRef(-1)])
         const merged = base.merge(diff)
         expect(merged.value).toBeUndefined()
     })
 
     it("merge negative-only diff that does not match base is a no-op", () => {
         const base = SingleReference.fromValue(roomA)
-        const diff = new SingleReference([roomB.withRef(-1)], { mode: "diff" })
+        const diff = new SingleReference([roomB.withRef(-1)])
         const merged = base.merge(diff)
         expect(merged.value?.sameKey(roomA)).toBe(true)
     })
@@ -141,7 +136,7 @@ describe("SingleReference merge behavior", () => {
     it("merge swap diff replaces base with incoming", () => {
         const base = SingleReference.fromValue(roomA)
         const diffItems = [roomA.withRef(-1), roomB.withRef(1)]
-        const diff = new SingleReference(diffItems, { mode: "diff" })
+        const diff = new SingleReference(diffItems)
         const merged = base.merge(diff)
         expect(merged.value?.sameKey(roomB)).toBe(true)
     })
