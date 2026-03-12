@@ -76,6 +76,27 @@ export class ReferenceList {
         throw new Error('Invalid argument type for ReferenceList constructor')
     }
 
+    //
+    // _wrap(list):
+    //  - Hook for subclasses that want ReferenceList operations (clone, merge,
+    //    diff, map, filter, etc.) to return a more specific list type.
+    //  - Base implementations in this class always:
+    //      * build a new ReferenceList instance, then
+    //      * return this._wrap(new ReferenceList(...)).
+    //  - Subclasses can override _wrap to construct their own type from that
+    //    intermediate ReferenceList payload.
+    //
+    // Important: _wrap only affects the runtime instance that is returned. It
+    // does not change the static TypeScript return types of these methods.
+    // When a subclass needs narrower return types (for example, methods that
+    // are typed as returning SingleReference instead of ReferenceList), that
+    // subclass must still declare explicit overrides with the desired
+    // signatures.
+    //
+    protected _wrap(list: ReferenceList): ReferenceList {
+        return list
+    }
+
     toJSON(): StandardEditableData<StandardReferenceData>[] {
         return this._items.map((item) => item.toJSON())
     }
@@ -85,7 +106,7 @@ export class ReferenceList {
     }
 
     clone(): ReferenceList {
-        return new ReferenceList(this)
+        return this._wrap(new ReferenceList(this))
     }
 
     get payload(): StandardReference[] {
@@ -122,8 +143,8 @@ export class ReferenceList {
             ...matchedOtherItems.map(({ base, incoming }) => base.merge(incoming, options)),
             ...filteredUnmatchedOtherItems
         ].filter(excludeUndefined)
-        
-        return new ReferenceList(mergedItems)
+        const mergedList = new ReferenceList(mergedItems)
+        return this._wrap(mergedList)
     }
 
     diff(other: ReferenceList): ReferenceList | undefined {
@@ -147,27 +168,27 @@ export class ReferenceList {
             ...matchedOtherItems.map(({ base, incoming }) => base.diff(incoming)),
             ...unmatchedOtherItems
         ].filter(excludeUndefined)
-        
-        return new ReferenceList(diffedItems)
+        const diffList = new ReferenceList(diffedItems)
+        return this._wrap(diffList)
     }
 
     assureItem(item: StandardReference): ReferenceList {
         if (!this._items.some(existingItem => existingItem.sameKey(item))) {
-            const returnValue = this.clone()
-            returnValue._items = [...returnValue._items, item]
-            return returnValue
+            const next = new ReferenceList([...this._items, item])
+            return this._wrap(next)
         }
         return this
     }
 
     map(callback: (item: StandardReference) => StandardReference): ReferenceList {
-        const returnValue = this.clone()
-        returnValue._items = this._items.map(callback)
-        return returnValue
+        const mapped = this._items.map(callback)
+        const next = new ReferenceList(mapped)
+        return this._wrap(next)
     }
 
     filter(predicate: (item: StandardReference) => boolean): ReferenceList {
-        return new ReferenceList(this._items.filter(predicate))
+        const next = new ReferenceList(this._items.filter(predicate))
+        return this._wrap(next)
     }
 
     toFormat(format: ReferenceFormat, mappings?: LookupMappings): ReferenceList {
@@ -175,16 +196,19 @@ export class ReferenceList {
         const list = mappings ? this.lookup(mappings) : this
         // Then format all items (don't pass mappings again, already looked up)
         const formatted = list.payload.map((item) => item.toFormat(format, undefined));
-        
-        return new ReferenceList(formatted)
+
+        const next = new ReferenceList(formatted)
+        return this._wrap(next)
     }
 
     lookup(arg: LookupMappings): ReferenceList {
-        return new ReferenceList(this.payload.map((item) => item.lookup(arg)))
+        const next = new ReferenceList(this.payload.map((item) => item.lookup(arg)))
+        return this._wrap(next)
     }
 
     invert(): ReferenceList {
-        return new ReferenceList(this.payload.map((item) => item.invert()))
+        const next = new ReferenceList(this.payload.map((item) => item.invert()))
+        return this._wrap(next)
     }
 
 }

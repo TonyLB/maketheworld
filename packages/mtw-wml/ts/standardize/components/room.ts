@@ -25,6 +25,7 @@ import { processWithConsumers, StandardizeConsumerInline, StandardizeConsumerRef
 import { splitTaggedChildren } from "../../schema/utils"
 import { isSchemaSituation } from "@tonylb/mtw-base/ts/schema/components"
 import { StandardSituationRoomFacet } from "../keys/facets/situationRoom"
+import { SingleReference } from "../keys/singleReference"
 
 /**
  * Facet-list consumer for Situation facets under Room.
@@ -78,7 +79,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
     _shortName?: StandardLiteral;
     _exits: ExitFacetList;
     _situations: SituationRoomFacetList;
-    _lenses: ReferenceList;
+    _lenses: SingleReference;
     _features: ReferenceList;
     _examples: ReferenceList;
     _guidance: ReferenceList;
@@ -99,7 +100,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         else {
             this._exits = new ExitFacetList([])
             this._situations = new SituationRoomFacetList([])
-            this._lenses = new ReferenceList([])
+            this._lenses = new SingleReference([])
             this._examples = new ReferenceList([])
             this._guidance = new ReferenceList([])
             this._features = new ReferenceList([])
@@ -112,7 +113,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         this._shortName = shortName ? new StandardLiteral(shortName, { tag: 'ShortName' }) : undefined
         this._exits = new ExitFacetList(props.exits ?? [])
         this._situations = new SituationRoomFacetList(props.situations ?? [])
-        this._lenses = new ReferenceList(props.lenses?.map((reference) => (new StandardReference(reference))) ?? [])
+        this._lenses = SingleReference.fromData(props.lenses)
         this._features = new ReferenceList(props.features?.map((reference) => (new StandardReference(reference))) ?? [])
         this._examples = new ReferenceList(props.examples?.map((reference) => (new StandardReference(reference))) ?? [])
         this._guidance = new ReferenceList(props.guidance?.map((reference) => (new StandardReference(reference))) ?? [])
@@ -143,7 +144,12 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
                         this._exits = new ExitFacetList(parsedFacets)
                     },
                 }),
-                new StandardizeConsumerReferenceList(this, { tag: "Lens", update(list) { this._lenses = list } }),
+                new StandardizeConsumerReferenceList(this, {
+                    tag: "Lens",
+                    update(list) {
+                        this._lenses = SingleReference.fromReferenceList(list)
+                    }
+                }),
                 new StandardizeConsumerReferenceList(this, { tag: "Feature", update(list) { this._features = list } }),
                 new StandardizeConsumerFacetListSituation(this, { update(list) { this._situations = list } }),
                 new StandardizeConsumerReferenceList(this, { tag: "Example", update(list) { this._examples = list } }),
@@ -294,7 +300,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         returnValue._exits = mergedExits ?? new ExitFacetList([])
         const mergedSituations = this._situations.merge(incoming._situations)
         returnValue._situations = mergedSituations ?? new SituationRoomFacetList([])
-        returnValue._lenses = this._lenses.merge(incoming._lenses) ?? new ReferenceList([])
+        returnValue._lenses = this._lenses.merge(incoming._lenses)
         returnValue._features = this._features.merge(incoming._features) ?? new ReferenceList([])
         returnValue._examples = this._examples.merge(incoming._examples) ?? new ReferenceList([])
         returnValue._guidance = this._guidance.merge(incoming._guidance) ?? new ReferenceList([])
@@ -341,7 +347,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
             bucketChildren.filter(child => child.tag === 'Character').map(child => child.withRef(0))
         )
 
-        returnValue._lenses = this._lenses.merge(lensReferences, { cleanEmptyReferences: false }) ?? this._lenses
+        returnValue._lenses = this._lenses.merge(SingleReference.fromReferenceList(lensReferences))
         returnValue._features = this._features.merge(featureReferences, { cleanEmptyReferences: false }) ?? this._features
         returnValue._examples = this._examples.merge(exampleReferences, { cleanEmptyReferences: false }) ?? this._examples
         returnValue._guidance = this._guidance.merge(guidanceReferences, { cleanEmptyReferences: false }) ?? this._guidance

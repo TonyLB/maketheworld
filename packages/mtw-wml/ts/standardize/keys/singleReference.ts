@@ -72,6 +72,30 @@ export class SingleReference extends ReferenceList {
     }
 
     //
+    // Integration with ReferenceList._wrap
+    //
+    // Ensure that ReferenceList operations which construct new lists and call
+    // this._wrap(list) will preserve the SingleReference type.
+    //
+
+    protected override _wrap(list: ReferenceList): SingleReference {
+        return new SingleReference(list.payload)
+    }
+
+    //
+    // Cloning and inversion
+    //
+
+    override clone(): SingleReference {
+        return new SingleReference(this.payload)
+    }
+
+    override invert(): SingleReference {
+        const inverted = super.invert()
+        return new SingleReference(inverted.payload)
+    }
+
+    //
     // Merge and diff
     //
 
@@ -83,6 +107,35 @@ export class SingleReference extends ReferenceList {
     override merge(diff: SingleReference): SingleReference {
         const raw = super.merge(diff)
         return new SingleReference(raw ? raw.payload : [])
+    }
+
+    //
+    // Other list-producing helpers
+    //
+
+    override assureItem(item: StandardReference): SingleReference {
+        const next = super.assureItem(item)
+        return new SingleReference(next.payload)
+    }
+
+    override map(callback: (item: StandardReference) => StandardReference): SingleReference {
+        const next = super.map(callback)
+        return new SingleReference(next.payload)
+    }
+
+    override filter(predicate: (item: StandardReference) => boolean): SingleReference {
+        const next = super.filter(predicate)
+        return new SingleReference(next.payload)
+    }
+
+    override toFormat(format: any, mappings?: any): SingleReference {
+        const next = super.toFormat(format as any, mappings as any)
+        return new SingleReference(next.payload)
+    }
+
+    override lookup(arg: any): SingleReference {
+        const next = super.lookup(arg as any)
+        return new SingleReference(next.payload)
     }
 
     //

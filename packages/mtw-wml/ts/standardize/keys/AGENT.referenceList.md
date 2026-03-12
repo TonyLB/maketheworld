@@ -99,6 +99,8 @@ SingleReference adds envelope checks on top of the normal ReferenceList behavior
 
 These rules are local to SingleReference; plain ReferenceList instances remain unconstrained and can still represent more complex multi-reference edits.
 
+Internally, `ReferenceList` uses a protected `wrap(items: StandardReference[])` hook for all list-producing operations (`merge`, `diff`, `invert`, `clone`, `map`, `filter`, `lookup`, `toFormat`). The base implementation returns a plain `ReferenceList`, but subclasses like `SingleReference` override `wrap` to return their own type. This mirrors the `StandardComponent._wrap` pattern and ensures that higher-level algebra stays in `ReferenceList` while subclasses can preserve their concrete type without re-implementing the core logic.
+
 ### Relationship to components (example: Room.lenses)
 
 The SingleReference pattern is designed so that components like `StandardRoom` can:
