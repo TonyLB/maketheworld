@@ -13,6 +13,7 @@ export type { LookupMappings } from "./reference";
 
 // Export reference list types
 export { ReferenceList, default as ReferenceListDefault } from "./referenceList";
+export { SingleReference } from "./singleReference";
 
 // Export facet types
 export { facetClassFactory } from "./facets/facetFactory";

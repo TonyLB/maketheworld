@@ -16,7 +16,7 @@ import { MakeTheWorldAccordion } from "../../UI"
 import StandardRoom from "@tonylb/mtw-wml/ts/standardize/components/room"
 import { StandardLens } from "@tonylb/mtw-wml/ts/standardize/components/worldState"
 import StandardReference from "@tonylb/mtw-wml/ts/standardize/components/reference"
-import { ReferenceList } from "@tonylb/mtw-wml/ts/standardize/keys/referenceList"
+import { SingleReference } from "@tonylb/mtw-wml/ts/standardize/keys/singleReference"
 import { LensMarkFacetList } from "@tonylb/mtw-wml/ts/standardize/keys/facets/lensMark"
 import { StandardLiteral } from "@tonylb/mtw-wml/ts/standardize/literal"
 import { StandardRender, PlainClass } from "@tonylb/mtw-wml/ts/standardize/render"
@@ -85,20 +85,6 @@ export const LensEditor: FunctionComponent<LensEditorProps> = ({ RoomId }) => {
         return null
     }, [lensCount, lensReferences, standardForm])
 
-    const multipleLenses = useMemo(() => {
-        if (lensCount <= 1) return []
-        return lensReferences
-            .map(ref => {
-                if (!ref.universalKey) return null
-                const component = standardForm.byUniversalId[ref.universalKey]
-                if (component && component instanceof StandardLens) {
-                    return component
-                }
-                return null
-            })
-            .filter((lens): lens is StandardLens => lens !== null)
-    }, [lensCount, lensReferences, standardForm])
-
     const createAndAddLens = useCallback(() => {
         if (!room || readonly) return
 
@@ -159,7 +145,7 @@ export const LensEditor: FunctionComponent<LensEditorProps> = ({ RoomId }) => {
                 const base = draft.byUniversalId[RoomId]
                 if (base instanceof StandardRoom) {
                     const newPayload = base._payload._lenses.payload.filter((_, i) => i !== index)
-                    base._payload._lenses = new ReferenceList(newPayload)
+                    base._payload._lenses = new SingleReference(newPayload)
                 }
                 return draft
             }
@@ -290,7 +276,7 @@ export const LensEditor: FunctionComponent<LensEditorProps> = ({ RoomId }) => {
         )
     }
 
-    if (lensCount === 1 && singleLens) {
+    if (singleLens) {
         return (
             <MakeTheWorldAccordion title="Lens" defaultExpanded>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, p: 2 }}>
@@ -325,65 +311,8 @@ export const LensEditor: FunctionComponent<LensEditorProps> = ({ RoomId }) => {
 
     return (
         <MakeTheWorldAccordion title="Lens" defaultExpanded>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, p: 2 }}>
-                <Alert severity="warning" sx={{ mb: 2 }}>
-                    <Typography variant="body2" fontWeight="bold" gutterBottom>
-                        Multiple Lenses Detected
-                    </Typography>
-                    <Typography variant="body2">
-                        This room has multiple lenses. Multiple lenses are not currently editable.
-                        We recommend removing all but one lens. You can delete lenses below to get down to a single lens for full editing.
-                    </Typography>
-                </Alert>
-
-                <List>
-                    {multipleLenses.map((lens, index) => {
-                        const lensRef = lensReferences[index]
-                        if (!lensRef) return null
-
-                        const shortName = lens.shortName?._payload?.plain?.toJSON()
-                        const shortNameStr = typeof shortName === 'string' ? shortName : 'Untitled Lens'
-                        const plain = lens.description?.plain ?? []
-                        if (lens.description && lens.description._payload && !(lens.description._payload instanceof PlainClass)) {
-                            console.error('Expected PlainClass but got', lens.description._payload.constructor.name, lens.description)
-                        }
-                        const descriptionText = renderTreeToPlainText(plain)
-
-                        return (
-                            <ListItem
-                                key={lensRef.universalKey || index}
-                                sx={{
-                                    border: '1px solid #e0e0e0',
-                                    borderRadius: '8px',
-                                    marginBottom: '8px',
-                                    backgroundColor: 'white'
-                                }}
-                                secondaryAction={
-                                    <IconButton
-                                        edge="end"
-                                        aria-label="delete lens"
-                                        onClick={() => removeLensReference(index)}
-                                        disabled={readonly}
-                                        color="error"
-                                    >
-                                        <DeleteIcon />
-                                    </IconButton>
-                                }
-                            >
-                                <Box sx={{ display: 'flex', flexDirection: 'column', width: '100%', gap: 1 }}>
-                                    <Typography variant="body1" fontWeight="bold">
-                                        {shortNameStr}
-                                    </Typography>
-                                    {descriptionText && (
-                                        <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-                                            {descriptionText}
-                                        </Typography>
-                                    )}
-                                </Box>
-                            </ListItem>
-                        )
-                    })}
-                </List>
+            <Box sx={{ p: 2, textAlign: 'center', color: 'text.secondary' }}>
+                Lens data is in an unexpected state for this room.
             </Box>
         </MakeTheWorldAccordion>
     )
