@@ -23,6 +23,13 @@ export class SingleReference extends ReferenceList {
     //
     // Core value API
     //
+    // NOTE: This getter/setter pair is a convenience experiment for SingleReference.
+    // Other payload types in this codebase generally expose methods (merge, diff,
+    // fromJSON, etc.) rather than a direct "value" setter that replaces internal
+    // structure. When adopting SingleReference in components, prefer whatever usage
+    // keeps the code simplest and most readable; do not contort call sites just to
+    // use the setter by preference.
+    //
 
     get value(): StandardReference | undefined {
         const positives = this._items.filter((item) => isPositiveRef(item.ref))
@@ -68,90 +75,14 @@ export class SingleReference extends ReferenceList {
     // Merge and diff
     //
 
-    /**
-     * Diff between two SingleReference states.
-     *
-     * Returns a SingleReference in "diff" mode whose payload is:
-     * - empty when values are equal (including both undefined)
-     * - [+B] when base is undefined and incoming is B
-     * - [-A] when base is A and incoming is undefined
-     * - [-A, +B] when base is A and incoming is B (A != B)
-     */
     override diff(incoming: SingleReference): SingleReference {
-        const baseValue = this.value
-        const incomingValue = incoming.value
-
-        if (!baseValue && !incomingValue) {
-            return new SingleReference([])
-        }
-
-        if (!baseValue && incomingValue) {
-            const positive = isPositiveRef(incomingValue.ref) ? incomingValue : incomingValue.withRef(1)
-            return new SingleReference([positive])
-        }
-
-        if (baseValue && !incomingValue) {
-            const negative = isNegativeRef(baseValue.ref) ? baseValue : baseValue.withRef(-1)
-            return new SingleReference([negative])
-        }
-
-        if (!baseValue || !incomingValue) {
-            return new SingleReference([])
-        }
-
-        if (baseValue.sameKey(incomingValue)) {
-            if (baseValue.ref === incomingValue.ref) {
-                return new SingleReference([])
-            }
-            const diffRef = incomingValue.ref - baseValue.ref
-            if (diffRef === 0) {
-                return new SingleReference([])
-            }
-            const diffItem = baseValue.withRef(diffRef)
-            return new SingleReference([diffItem])
-        }
-
-        const negative = isNegativeRef(baseValue.ref) ? baseValue : baseValue.withRef(-1)
-        const positive = isPositiveRef(incomingValue.ref) ? incomingValue : incomingValue.withRef(1)
-        return new SingleReference([negative, positive])
+        const raw = super.diff(incoming)
+        return new SingleReference(raw ? raw.payload : [])
     }
 
-    /**
-     * Merge a diff SingleReference into this state SingleReference.
-     *
-     * The diff instance must satisfy the SingleReference diff envelope:
-     * - at most one positive item
-     * - at most one negative item
-     *
-     * Semantics:
-     * - Negative only (-A): clear the slot if current value is A; otherwise no-op.
-     * - Positive only (+B): set the slot to B, regardless of current value.
-     * - Negative A and positive B (-A, +B): replace A with B (swap).
-     */
     override merge(diff: SingleReference): SingleReference {
-        const baseValue = this.value
-        const items = diff._items
-        const positives = items.filter((item) => isPositiveRef(item.ref))
-        const negatives = items.filter((item) => isNegativeRef(item.ref))
-
-        if (!positives.length && !negatives.length) {
-            return SingleReference.fromValue(baseValue)
-        }
-
-        let result: StandardReference | undefined = baseValue
-
-        const negative = negatives[0]
-        if (negative && baseValue && negative.sameKey(baseValue)) {
-            result = undefined
-        }
-
-        const positive = positives[0]
-        if (positive) {
-            const normalizedPositive = isPositiveRef(positive.ref) ? positive : positive.withRef(1)
-            result = normalizedPositive
-        }
-
-        return SingleReference.fromValue(result)
+        const raw = super.merge(diff)
+        return new SingleReference(raw ? raw.payload : [])
     }
 
     //
