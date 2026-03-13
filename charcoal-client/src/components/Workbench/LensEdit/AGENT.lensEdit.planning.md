@@ -8,6 +8,17 @@
   - **LensDetail**: Full-screen-ish editor, navigated-to child of Room with breadcrumb `.. > (Room Name) > (Lens Name)`.
 - **Reuse existing foundations**: Continue to use `useWorkbenchAsset`, `StandardForm` update patterns, and existing literal/render/facet editors (`StandardLiteralEditor`, `StandardRenderEditor`, `LensMarkFacetsEditor`, etc.).
 
+### Implementation status
+
+- **Done**
+  - **LensHeader** ([LensHeader.tsx](LensHeader.tsx)): Implemented. Handles no-Lens state (Create New, Reference Existing, Import Lens) and Lens-present state (summary with ShortName/description excerpt/marks count, Edit and Delete). Uses `SingleReference.fromValue` / payload for derive; `ComponentSelectorDialog` and `ImportComponentDialog` wired with `tag="Lens"` and Room-specific `addToReferenceList` for import.
+  - **Import Lens**: Lens added to `SchemaImportMapping` (mtw-base) and to `ImportComponentDialog` (componentToImportTag, SECTION_ORDER, handleImport); LensHeader opens the dialog and sets the Room's SingleReference after import via `addImport` with a custom `addToReferenceList` descriptor.
+  - **Room edit integration**: RoomEditor uses LensHeader in place of LensEditor; `onEditLens` dispatches `pushBreadcrumb` so the workbench navigates to the Lens. WorkbenchAssetEditor routes `StandardLens` to LensDetail.
+  - **LensDetail** ([LensDetail.tsx](LensDetail.tsx)): Full editor implemented. Derives lens from `getCurrentComponentId` and `standardForm.byUniversalId`. Provides ShortName (`StandardLiteralEditor`), Mark facets (`LensMarkFacetsEditor`), and Description (`StandardRenderEditor`), with Back button and title (ShortName or fallback). Uses same `updateStandard` mutation style as LensEditor; all callbacks respect `readonly`. "Lens not found" + Back when lens missing. No props; optional `RoomId`/`LensId` for breadcrumb context left for later.
+- **Not done (planned)**
+  - Deprecation/removal of `LensEditor` now that LensDetail is complete (LensEditor remains in codebase but is no longer used in RoomEditor).
+  - "Referenced By" and last-reference deletion behavior (explicitly out of scope; see Orphaned Lens clean-up below).
+
 ### Shape overview
 
 - **Directory**: `components/Workbench/LensEdit`
@@ -26,13 +37,10 @@
       - Buttons/links:
         - Edit (navigates to `LensDetail`)
         - Delete (clears `SingleReference` and may orphan or delete the Lens, depending on strategy).
-  - `LensDetail`
+  - `LensDetail` (implemented)
     - Routed as a nested Workbench view under Room.
-    - Breadcrumb: `.. > (Room Name) > (Lens ShortName or Lens ID)`.
-    - Fields:
-      - Lens ShortName (literal)
-      - Lens Mark facet list
-      - Optional description/render content (depending on scope of this iteration).
+    - Breadcrumb: `.. > (Room Name) > (Lens ShortName or Lens ID)` (shell).
+    - Fields: Lens ShortName (literal), Lens Mark facet list, Description (StandardRenderEditor). Back button at top.
     - Uses same `updateStandard` mutation style as the existing inline `LensEditor`.
 
 ### Data model and SingleReference integration
@@ -147,6 +155,16 @@
 
 ### LensDetail: behavior and navigation
 
+#### Current implementation: full editor
+
+- **LensDetail** is implemented as a full editor. Rendered when the workbench top component is a `StandardLens` (WorkbenchAssetEditor returns `<LensDetail />` with no props).
+- Behavior:
+  - Derives `lensId` from `getCurrentComponentId` and resolves `lens` via `standardForm.byUniversalId`; shows "Lens not found." plus Back if missing.
+  - Back button calls `navigateViaBreadcrumbIndex(stack.length - 1)` to return to the previous breadcrumb (e.g. Room).
+  - Title: lens ShortName or fallback "Lens (no short name)".
+  - Editors: `StandardLiteralEditor` (Short Name), `LensMarkFacetsEditor` (marks), `StandardRenderEditor` (Description). All use `updateStandard` with draft mutations; ShortName and Description short-circuit no-op; readonly is respected.
+- Optional `RoomId`/`LensId` props for breadcrumb context are left for a later revision; the component currently relies entirely on workbench state.
+
 #### Route and entry points
 
 - **Entry from LensHeader**
@@ -223,12 +241,9 @@
     - Lens creation, reference addition, mark editing, description editing.
   - Uses `MakeTheWorldAccordion` to present inline within Room edit.
 - **Migration strategy**
-  - Phase 1 (prototype):
-    - Implement `LensHeader` and `LensDetail` alongside existing `LensEditor`.
-    - Wire `LensHeader` into Room edit in place of or immediately above the old inline `LensEditor` behind a feature flag or local toggle.
-    - Keep `LensEditor` around as a fallback until the new flow is stable.
+  - Phase 1 (prototype): **Done.** `LensHeader` and full `LensDetail` are implemented. RoomEditor uses LensHeader; Edit navigates to LensDetail, which provides ShortName, Marks, and Description editing. `LensEditor` remains in the codebase but is no longer rendered from RoomEditor.
   - Phase 2:
-    - Once `LensHeader` plus `LensDetail` cover all needed behavior, deprecate and remove `LensEditor`.
+    - Deprecate and remove `LensEditor` now that LensHeader plus LensDetail cover all needed behavior.
     - Consolidate any shared helpers (e.g. `renderTreeToPlainText`) into a small utility module under `LensEdit` or a shared `foundations` folder.
 
 ### Open questions and future enhancements
