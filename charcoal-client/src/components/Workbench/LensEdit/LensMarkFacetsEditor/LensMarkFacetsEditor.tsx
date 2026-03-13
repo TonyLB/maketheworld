@@ -14,9 +14,9 @@ import {
     FacetListEditorGeneric,
     FacetRowHandlers,
     SingleLineFacetRow
-} from "../foundations/FacetList"
-import { useWorkbenchAsset } from "../foundations/useWorkbenchAsset"
-import { pushBreadcrumb } from "../../../slices/UI/workbench"
+} from "../../foundations/FacetList"
+import { useWorkbenchAsset } from "../../foundations/useWorkbenchAsset"
+import { pushBreadcrumb } from "../../../../slices/UI/workbench"
 import { LensMarkFacetPayloadEditor } from "./LensMarkFacetPayloadEditor"
 
 function lensMarkDisplayName(facet: StandardLensMarkFacet, standardForm: StandardForm): string | undefined {

@@ -13,7 +13,7 @@ import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
 import { LensMarkFacetList } from "@tonylb/mtw-wml/ts/standardize/keys/facets/lensMark"
 import { StandardLiteralEditor } from "../foundations/StandardLiteral"
 import { StandardRenderEditor } from "../foundations/StandardRender"
-import { LensMarkFacetsEditor } from "../LensMarkFacetsEditor"
+import { LensMarkFacetsEditor } from "./LensMarkFacetsEditor"
 import { ComponentUUID } from "@tonylb/mtw-base/ts/schema"
 
 /**
