@@ -367,6 +367,25 @@ export class StandardForm {
             }))
     }
 
+    /**
+     * Returns references to all components in this StandardForm that reference the given component.
+     * This is the inverse of per-component referencedKeys(): it finds who references the target.
+     *
+     * @param component - StandardReference identifying the component to look up
+     * @returns Array of StandardReferences to referrer components (each referrer appears once)
+     */
+    referencedBy(component: StandardReference): StandardReference[] {
+        const mappings = this._components.map((c) => c.reference)
+        return this._components.reduce<StandardReference[]>((referrers, comp) => {
+            const refs = comp.withMapping(mappings).referencedKeys()
+            const mentions = refs.some(({ reference }) => reference.sameKey(component))
+            if (mentions && !referrers.some((r) => r.sameKey(comp.reference))) {
+                return [...referrers, comp.reference]
+            }
+            return referrers
+        }, [])
+    }
+
     get byUniversalId(): Record<ComponentUUID, StandardComponent> {
         const returnProxy = new Proxy(this, {
             get: (target, prop: ComponentUUID) => {
