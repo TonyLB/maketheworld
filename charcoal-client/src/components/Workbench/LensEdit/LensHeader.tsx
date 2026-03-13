@@ -26,9 +26,8 @@ import { ComponentSelectorDialog } from "../foundations/ComponentSelector"
 import ImportComponentDialog from "../ImportComponentDialog"
 import { ComponentUUID } from "@tonylb/mtw-base/ts/schema"
 import { v4 as uuidv4 } from "uuid"
-import { RenderTree } from "@tonylb/mtw-base/ts/renderTree"
-import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { enforceTypedKey } from "@tonylb/mtw-utilities/ts/types"
+import { renderTreeToPlainText } from "../foundations/renderTreeToPlainText"
 import { addImport } from "../../../slices/personalAssets"
 import type { ReferenceListDescriptor } from "../../../slices/personalAssets"
 import { AssetUUID } from "@tonylb/mtw-base/ts/schema"
@@ -36,28 +35,6 @@ import { AssetUUID } from "@tonylb/mtw-base/ts/schema"
 export type LensHeaderProps = {
     RoomId: ComponentUUID
     onEditLens?: (lensId: ComponentUUID) => void
-}
-
-const renderTreeToPlainText = (tree: RenderTree): string => {
-    if (!tree || tree.length === 0) return ""
-    return tree
-        .map((item) => {
-            if (typeof item === "string") {
-                return item
-            }
-            if (isSchemaString(item.data)) {
-                return item.data.value
-            }
-            if (item.children && item.children.length > 0) {
-                return item.children
-                    .filter((child): child is string => typeof child === "string")
-                    .join("")
-            }
-            return ""
-        })
-        .filter(Boolean)
-        .join(" ")
-        .trim()
 }
 
 function getLensSummaryLabel(lens: StandardLens): string {
@@ -205,7 +182,7 @@ export const LensHeader: FunctionComponent<LensHeaderProps> = ({ RoomId, onEditL
 
     const descriptionExcerpt = useMemo(() => {
         if (!singleLens?.description) return undefined
-        const tree = singleLens.description.toJSON?.() as RenderTree | undefined
+        const tree = singleLens.description.toJSON?.()
         if (!tree) return undefined
         const text = renderTreeToPlainText(tree)
         return text.slice(0, 80) + (text.length > 80 ? "..." : "")

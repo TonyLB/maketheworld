@@ -188,7 +188,7 @@ updateStandard({
 1. **Workbench Flow**: Start at [`WorkbenchContainer.tsx`](./WorkbenchContainer.tsx) for layout and breadcrumb header; then [`WorkbenchAssetEditor.tsx`](./WorkbenchAssetEditor.tsx) for view routing
 2. **Asset Context**: Read [`foundations/useWorkbenchAsset.ts`](./foundations/useWorkbenchAsset.ts) to understand how asset data flows from `personalAssets` into Workbench components
 3. **Navigation State**: Read [`src/slices/UI/workbench/index.ts`](../../slices/UI/workbench/index.ts) for breadcrumb model and selectors
-4. **Component Editing**: One editor per component type, each under its own `{Component}Edit` directory (e.g. `RoomEdit/RoomEditor.tsx`, `FeatureEdit/FeatureEditor.tsx`, `KnowledgeEdit/KnowledgeEditor.tsx`). RoomEditor composes `ExitEditor`, `LensEditor`, `FeatureListEditor`, and Examples `ReferenceListEditor`; FeatureEditor and KnowledgeEditor show shortName + Examples only.
+4. **Component Editing**: One editor per component type, each under its own `{Component}Edit` directory (e.g. `RoomEdit/RoomEditor.tsx`, `FeatureEdit/FeatureEditor.tsx`, `KnowledgeEdit/KnowledgeEditor.tsx`). RoomEditor composes `ExitEditor`, `LensHeader` (from LensEdit), `FeatureListEditor`, and Examples `ReferenceListEditor`; FeatureEditor and KnowledgeEditor show shortName + Examples only.
 
 ### Key Files
 
@@ -197,12 +197,12 @@ updateStandard({
 | `WorkbenchContainer.tsx` | Responsive layout, breadcrumbs, AssetSelector, theme |
 | `WorkbenchAssetEditor.tsx` | View routing (asset / component / componentLayer) |
 | `WorkbenchAssetEditForm.tsx` | Asset-level metadata, component list, imports |
-| `RoomEdit/` | RoomEditor, ExitEditor, LensEditor, FeatureListEditor |
+| `RoomEdit/` | RoomEditor, ExitEditor, FeatureListEditor (Lens via LensEdit/LensHeader) |
 | `FeatureEdit/` | FeatureEditor (shortName + Examples) |
 | `KnowledgeEdit/` | KnowledgeEditor (shortName + Examples) |
 | `ExampleEdit/` | ExampleEditor |
 | `foundations/LayeredContext/` | LayeredContextView (layered Examples/Guidance tabs), LayeredTabs |
-| `MarkEdit/` | MarkEditor (full), InlineEditor (shortName only; used in LensEditor) |
+| `MarkEdit/` | MarkEditor (full), InlineEditor (shortName only; used in LensMarkFacetsEditor) |
 | `MapEdit/` | MapEditor, MapArea, MapController, MapLayers, UnshownRooms |
 | `CharacterEdit/` | CharacterEditor |
 | `foundations/StandardRender/StandardRenderEditor.tsx` | Rich text (Slate); shared with Editor components |
