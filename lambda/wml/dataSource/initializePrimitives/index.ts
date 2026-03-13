@@ -1,10 +1,11 @@
 /**
  * Initialize Primitives - Idempotent System Bootstrap
- * 
+ *
  * This function ensures the primitives asset exists with required system components:
  * - VORTEX room (the initial game location)
  * - knowledgeRoot knowledge (the root of the knowledge graph)
- * 
+ * - DEFAULT situation (default facet for room rendering, ShortName Default)
+ *
  * IDEMPOTENCY GUARANTEE:
  * - If primitives is fully initialized, this function does nothing (no chunk created)
  * - If primitives is missing components, it applies a repair edit (creates chunk)
@@ -21,6 +22,9 @@ const PRIMITIVES_ASSET_ID = 'ASSET#primitives'
 const FULL_PRIMITIVES_WML = `<Asset uuid=(primitives)>
     <Room uuid=(VORTEX) />
     <Knowledge uuid=(knowledgeRoot) />
+    <Situation uuid=(DEFAULT)>
+        <ShortName>Default</ShortName>
+    </Situation>
 </Asset>`
 
 export async function initializePrimitives(): Promise<{
@@ -63,9 +67,10 @@ export async function initializePrimitives(): Promise<{
         // Check for required components using byUniversalId
         const hasVortex = Boolean(existing.byUniversalId['ROOM#VORTEX'])
         const hasKnowledgeRoot = Boolean(existing.byUniversalId['KNOWLEDGE#knowledgeRoot'])
-        
+        const hasDefaultSituation = Boolean(existing.byUniversalId['SITUATION#DEFAULT'])
+
         // Case 2a: Already properly initialized
-        if (hasVortex && hasKnowledgeRoot) {
+        if (hasVortex && hasKnowledgeRoot && hasDefaultSituation) {
             return {
                 success: true,
                 action: 'skipped',
@@ -81,7 +86,10 @@ export async function initializePrimitives(): Promise<{
         if (!hasKnowledgeRoot) {
             repairComponents.push('    <Knowledge uuid=(knowledgeRoot) />')
         }
-        
+        if (!hasDefaultSituation) {
+            repairComponents.push('    <Situation uuid=(DEFAULT)>\n        <ShortName>Default</ShortName>\n    </Situation>')
+        }
+
         const repairWML = `<Asset uuid=(primitives)>\n${repairComponents.join('\n')}\n</Asset>`
         
         const result = await applyEdit({

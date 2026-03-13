@@ -10,6 +10,8 @@ jest.mock('../applyEdit')
 const MockAssetWorkspace = ReadOnlyAssetWorkspace as jest.MockedClass<typeof ReadOnlyAssetWorkspace>
 const applyEditMock = applyEdit as jest.MockedFunction<typeof applyEdit>
 
+const FULL_PRIMITIVES_WML_SINGLE_LINE = '<Asset uuid=(primitives)><Room uuid=(VORTEX) /><Knowledge uuid=(knowledgeRoot) /><Situation uuid=(DEFAULT)><ShortName>Default</ShortName></Situation></Asset>'
+
 describe('initializePrimitives', () => {
     beforeEach(() => {
         jest.clearAllMocks()
@@ -27,7 +29,7 @@ describe('initializePrimitives', () => {
             
             applyEditMock.mockResolvedValue({
                 success: true,
-                schema: new StandardForm('<Asset uuid=(primitives)><Room uuid=(VORTEX) /><Knowledge uuid=(knowledgeRoot) /></Asset>')
+                schema: new StandardForm(FULL_PRIMITIVES_WML_SINGLE_LINE)
             })
 
             const result = await initializePrimitives()
@@ -85,7 +87,7 @@ describe('initializePrimitives', () => {
             
             applyEditMock.mockResolvedValue({
                 success: true,
-                schema: new StandardForm('<Asset uuid=(primitives)><Room uuid=(VORTEX) /><Knowledge uuid=(knowledgeRoot) /></Asset>')
+                schema: new StandardForm(FULL_PRIMITIVES_WML_SINGLE_LINE)
             })
 
             const result = await initializePrimitives()
@@ -102,7 +104,7 @@ describe('initializePrimitives', () => {
 
     describe('when primitives is fully initialized', () => {
         it('should skip initialization (idempotent)', async () => {
-            const fullPrimitivesWML = '<Asset uuid=(primitives)><Room uuid=(VORTEX) /><Knowledge uuid=(knowledgeRoot) /></Asset>'
+            const fullPrimitivesWML = FULL_PRIMITIVES_WML_SINGLE_LINE
             const existingStandard = new StandardForm(fullPrimitivesWML)
 
             const mockWorkspace = {
@@ -141,7 +143,7 @@ describe('initializePrimitives', () => {
             
             applyEditMock.mockResolvedValue({
                 success: true,
-                schema: new StandardForm('<Asset uuid=(primitives)><Room uuid=(VORTEX) /><Knowledge uuid=(knowledgeRoot) /></Asset>')
+                schema: new StandardForm(FULL_PRIMITIVES_WML_SINGLE_LINE)
             })
 
             const result = await initializePrimitives()
@@ -149,10 +151,10 @@ describe('initializePrimitives', () => {
             expect(result).toEqual({
                 success: true,
                 action: 'repaired',
-                message: 'Primitives repaired (added 1 missing component(s))'
+                message: 'Primitives repaired (added 2 missing component(s))'
             })
             
-            // Should call applyEdit with repair schema containing only VORTEX
+            // Should call applyEdit with repair schema containing VORTEX and DEFAULT situation
             expect(applyEditMock).toHaveBeenCalledWith(
                 expect.objectContaining({
                     AssetId: 'ASSET#primitives',
@@ -179,7 +181,7 @@ describe('initializePrimitives', () => {
             
             applyEditMock.mockResolvedValue({
                 success: true,
-                schema: new StandardForm('<Asset uuid=(primitives)><Room uuid=(VORTEX) /><Knowledge uuid=(knowledgeRoot) /></Asset>')
+                schema: new StandardForm(FULL_PRIMITIVES_WML_SINGLE_LINE)
             })
 
             const result = await initializePrimitives()
@@ -187,10 +189,10 @@ describe('initializePrimitives', () => {
             expect(result).toEqual({
                 success: true,
                 action: 'repaired',
-                message: 'Primitives repaired (added 1 missing component(s))'
+                message: 'Primitives repaired (added 2 missing component(s))'
             })
             
-            // Should call applyEdit with repair schema containing only knowledgeRoot
+            // Should call applyEdit with repair schema containing knowledgeRoot and DEFAULT situation
             const call = applyEditMock.mock.calls[0][0]
             expect(call.schema).toContain('<Knowledge uuid=(knowledgeRoot) />')
             expect(call.schema).not.toContain('VORTEX')
@@ -210,7 +212,7 @@ describe('initializePrimitives', () => {
             
             applyEditMock.mockResolvedValue({
                 success: true,
-                schema: new StandardForm('<Asset uuid=(primitives)><Room uuid=(VORTEX) /><Knowledge uuid=(knowledgeRoot) /></Asset>')
+                schema: new StandardForm(FULL_PRIMITIVES_WML_SINGLE_LINE)
             })
 
             const result = await initializePrimitives()
@@ -226,7 +228,41 @@ describe('initializePrimitives', () => {
             const call = applyEditMock.mock.calls[0][0]
             expect(call.schema).toContain('<Room uuid=(VORTEX) />')
             expect(call.schema).toContain('<Knowledge uuid=(knowledgeRoot) />')
+            expect(call.schema).toContain('Situation uuid=(DEFAULT)')
+            expect(call.schema).toContain('ShortName')
             expect(call.createIfNeeded).toBe(true)
+        })
+
+        it('should repair when missing DEFAULT situation', async () => {
+            const partialWML = '<Asset uuid=(primitives)><Room uuid=(VORTEX) /><Knowledge uuid=(knowledgeRoot) /></Asset>'
+            const existingStandard = new StandardForm(partialWML)
+
+            const mockWorkspace = {
+                loadJSON: jest.fn().mockResolvedValue(undefined),
+                status: { json: 'Clean' },
+                standard: existingStandard
+            }
+
+            MockAssetWorkspace.mockImplementation(() => mockWorkspace as any)
+
+            applyEditMock.mockResolvedValue({
+                success: true,
+                schema: new StandardForm(FULL_PRIMITIVES_WML_SINGLE_LINE)
+            })
+
+            const result = await initializePrimitives()
+
+            expect(result).toEqual({
+                success: true,
+                action: 'repaired',
+                message: 'Primitives repaired (added 1 missing component(s))'
+            })
+
+            const call = applyEditMock.mock.calls[0][0]
+            expect(call.schema).toContain('Situation uuid=(DEFAULT)')
+            expect(call.schema).toContain('ShortName')
+            expect(call.schema).not.toContain('<Room uuid=(VORTEX) />')
+            expect(call.schema).not.toContain('<Knowledge uuid=(knowledgeRoot) />')
         })
 
         it('should report failure if repair fails', async () => {
