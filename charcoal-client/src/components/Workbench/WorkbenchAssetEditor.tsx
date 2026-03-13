@@ -21,9 +21,10 @@ import SituationEditor from './SituationEdit/SituationEditor'
 import MarkEditor from './MarkEdit/MarkEditor'
 import MapEditor from './MapEdit/MapEditor'
 import CharacterEditor from './CharacterEdit/CharacterEditor'
+import LensDetail from './LensEdit/LensDetail'
 import StandardCharacter from '@tonylb/mtw-wml/ts/standardize/components/character'
 import StandardMap from '@tonylb/mtw-wml/ts/standardize/components/map'
-import StandardMark from '@tonylb/mtw-wml/ts/standardize/components/worldState'
+import StandardMark, { StandardLens } from '@tonylb/mtw-wml/ts/standardize/components/worldState'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
 import StandardKnowledge from '@tonylb/mtw-wml/ts/standardize/components/knowledge'
@@ -102,6 +103,10 @@ export const WorkbenchAssetEditor: FunctionComponent = () => {
 
         if (component instanceof StandardSituation) {
             return <SituationEditor />
+        }
+
+        if (component instanceof StandardLens) {
+            return <LensDetail />
         }
 
         return <Box />

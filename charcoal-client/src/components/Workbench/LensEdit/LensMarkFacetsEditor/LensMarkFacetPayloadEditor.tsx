@@ -6,7 +6,7 @@ import {
     LensMarkFacetPayload
 } from "@tonylb/mtw-wml/ts/standardize/keys/facets/lensMark"
 import { StandardLiteral } from "@tonylb/mtw-wml/ts/standardize/literal"
-import { StandardLiteralEditor } from "../foundations/StandardLiteral"
+import { StandardLiteralEditor } from "../../foundations/StandardLiteral"
 
 export interface LensMarkFacetPayloadEditorProps {
     facet: StandardLensMarkFacet

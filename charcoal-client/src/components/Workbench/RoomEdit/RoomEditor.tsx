@@ -6,7 +6,7 @@ import LinkIcon from '@mui/icons-material/Link'
 
 import { useWorkbenchAsset } from '../foundations/useWorkbenchAsset'
 import ExitEditor from './ExitEditor'
-import LensEditor from './LensEditor'
+import LensHeader from '../LensEdit/LensHeader'
 import FeatureListEditor from './FeatureListEditor'
 import { useOnboardingCheckpoint } from '../../Onboarding/useOnboarding'
 
@@ -273,7 +273,12 @@ export const RoomEditor: FunctionComponent = () => {
                         />
                         <Spacer />
                         <ExitEditor RoomId={universalKey} />
-                        <LensEditor RoomId={universalKey} />
+                        <LensHeader
+                            RoomId={universalKey}
+                            onEditLens={(lensId) =>
+                                dispatch(pushBreadcrumb({ id: lensId, kind: 'component', componentId: lensId }))
+                            }
+                        />
                         <FeatureListEditor RoomId={universalKey} />
                         <Box sx={{ marginTop: '0.5em' }}>
                             <ReferenceListEditor
