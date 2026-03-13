@@ -44,6 +44,7 @@ import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
 import StandardKnowledge from '@tonylb/mtw-wml/ts/standardize/components/knowledge'
 import StandardMap from '@tonylb/mtw-wml/ts/standardize/components/map'
 import StandardImage from '@tonylb/mtw-wml/ts/standardize/components/image'
+import { StandardLens } from '@tonylb/mtw-wml/ts/standardize/components/worldState'
 import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 
 type ImportTab = 'RecentlyVisited' | Zone
@@ -65,6 +66,7 @@ function componentToImportTag(component: StandardComponent): SchemaImportMapping
     if (component instanceof StandardFeature) return 'Feature'
     if (component instanceof StandardKnowledge) return 'Knowledge'
     if (component instanceof StandardMap) return 'Map'
+    if (component instanceof StandardLens) return 'Lens'
     return null
 }
 
@@ -72,7 +74,8 @@ const SECTION_ORDER: SchemaImportMapping['type'][] = [
     'Room',
     'Feature',
     'Knowledge',
-    'Map'
+    'Map',
+    'Lens'
 ]
 
 export const ImportComponentDialog: FunctionComponent<ImportComponentDialogProps> = ({
@@ -202,6 +205,8 @@ export const ImportComponentDialog: FunctionComponent<ImportComponentDialogProps
                 tag = 'Knowledge'
             } else if (component instanceof StandardMap) {
                 tag = 'Map'
+            } else if (component instanceof StandardLens) {
+                tag = 'Lens'
             } else {
                 return
             }
