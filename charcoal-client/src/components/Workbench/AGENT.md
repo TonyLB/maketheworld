@@ -18,7 +18,7 @@ The Workbench sits within the Charcoal Client's [dual-mode architecture](../../.
 ### Key Concepts
 
 - **Breadcrumb Stack**: Within-asset navigation history; `component` entries for parent components, `componentLayer` for layered sibling views (e.g., Examples, Marks within a Lens)
-- **Reference Lists**: WML `ReferenceList` fields (e.g. `examples`, `features`, `lenses`, `marks`) rendered as accordion lists with add/remove; see [AGENT.reference-lists.md](./foundations/ReferenceList/AGENT.reference-lists.md)
+- **Reference Lists**: WML `ReferenceList` fields (e.g. `examples`, `features`, `lens`, `marks`) rendered as accordion lists with add/remove; see [AGENT.reference-lists.md](./foundations/ReferenceList/AGENT.reference-lists.md)
 - **Layered Context**: Sibling-in-context editing for groups like Examples (Photoshop-layer style); see [AGENT.layered-context-patterns.md](./foundations/LayeredContext/AGENT.layered-context-patterns.md)
 - **StandardForm**: WML asset representation; the Workbench reads and mutates `StandardForm` via `updateStandard` from `useWorkbenchAsset`
 

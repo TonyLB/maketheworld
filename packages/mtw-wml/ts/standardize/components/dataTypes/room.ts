@@ -11,7 +11,7 @@ export type StandardRoomData = {
     shortName?: StandardEditableData<string>;
     exits?: FacetListData<ExitPayload>;
     situations?: FacetListData<SituationRoomFacetPayloadType>;
-    lenses?: ReferenceListData;
+    lens?: ReferenceListData;
     features?: ReferenceListData;
     examples?: ReferenceListData;
     guidance?: ReferenceListData;
@@ -32,7 +32,7 @@ export const isStandardRoomData = (arg: any): arg is StandardRoomData => {
             shortName: 'literal',
             exits: 'facetList',
             situations: 'facetList',
-            lenses: 'referenceList',
+            lens: 'referenceList',
             features: 'referenceList',
             examples: 'referenceList',
             guidance: 'referenceList',

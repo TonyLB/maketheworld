@@ -296,9 +296,9 @@ describe('StandardForm', () => {
         // Verify the room has the lens reference
         const room = test.byUniversalId['ROOM#testRoom'] as StandardRoom
         expect(room).toBeDefined()
-        expect(room.lenses.payload.length).toEqual(1)
-        expect(room.lenses.payload[0].universalKey).toEqual('LENS#lens1')
-        expect(room.lenses.payload[0].tag).toEqual('Lens')
+        expect(room.lens.payload.length).toEqual(1)
+        expect(room.lens.payload[0].universalKey).toEqual('LENS#lens1')
+        expect(room.lens.payload[0].tag).toEqual('Lens')
         
         // Verify the lens has the mark references
         const lens = test.byUniversalId['LENS#lens1'] as StandardLens

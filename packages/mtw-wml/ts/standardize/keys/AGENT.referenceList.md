@@ -60,7 +60,7 @@ This optimization is documented here for future consideration but is not current
 
 ### Purpose
 
-Some reference slots are semantically "single optional" rather than "0..n" lists (for example, `StandardRoom.lenses` conceptually expects at most one Lens). The **SingleReference** pattern captures this 0-or-1 semantics while keeping the underlying data shape (`ReferenceListData`) and machinery (`ReferenceList`, `StandardReference`) unchanged.
+Some reference slots are semantically "single optional" rather than "0..n" lists (for example, `StandardRoom.lens` conceptually expects at most one Lens). The **SingleReference** pattern captures this 0-or-1 semantics while keeping the underlying data shape (`ReferenceListData`) and machinery (`ReferenceList`, `StandardReference`) unchanged.
 
 SingleReference is implemented as:
 
@@ -70,7 +70,7 @@ SingleReference is implemented as:
 
 ### Data shape and class relationship
 
-- **Data shape**: Serialized fields remain `ReferenceListData` (arrays of `StandardReferenceData`), including `StandardRoomData.lenses`.
+- **Data shape**: Serialized fields remain `ReferenceListData` (arrays of `StandardReferenceData`), including `StandardRoomData.lens`.
 - **Runtime type**: `SingleReference` wraps the same items as `ReferenceList` but constrains how many and of what sign:
   - At most **one positive** reference (`ref > 0` or default 1).
   - At most **one negative** reference (`ref < 0`).
@@ -101,12 +101,12 @@ These rules are local to SingleReference; plain ReferenceList instances remain u
 
 Internally, `ReferenceList` uses a protected `wrap(items: StandardReference[])` hook for all list-producing operations (`merge`, `diff`, `invert`, `clone`, `map`, `filter`, `lookup`, `toFormat`). The base implementation returns a plain `ReferenceList`, but subclasses like `SingleReference` override `wrap` to return their own type. This mirrors the `StandardComponent._wrap` pattern and ensures that higher-level algebra stays in `ReferenceList` while subclasses can preserve their concrete type without re-implementing the core logic.
 
-### Relationship to components (example: Room.lenses)
+### Relationship to components (example: Room.lens)
 
 The SingleReference pattern is designed so that components like `StandardRoom` can:
 
-- Keep their serialized fields as `ReferenceListData` (e.g. `lenses?: ReferenceListData`).
-- Use `SingleReference` in their payloads for 0-or-1 slots (e.g. `_lenses: SingleReference`) to:
+- Keep their serialized fields as `ReferenceListData` (e.g. `lens?: ReferenceListData`).
+- Use `SingleReference` in their payloads for 0-or-1 slots (e.g. `_lens: SingleReference`) to:
   - Enforce "at most one" at construction and during merge/diff.
   - Offer a simple `lens` getter (via `value`) returning `StandardReference | undefined`.
 - Continue to interoperate with:

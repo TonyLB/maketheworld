@@ -51,7 +51,7 @@ export const RoomPreviewEditor: FunctionComponent<RoomPreviewEditorProps> = ({ r
 
     const singleLens = useMemo(() => {
         if (!room) return null
-        const lensRefs = room.lenses.payload || []
+        const lensRefs = room.lens.payload || []
         if (lensRefs.length !== 1) return null
         const ref = lensRefs[0]
         if (!ref?.universalKey) return null

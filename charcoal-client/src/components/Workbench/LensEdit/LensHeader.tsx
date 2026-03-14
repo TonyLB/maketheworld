@@ -60,7 +60,7 @@ export const LensHeader: FunctionComponent<LensHeaderProps> = ({ RoomId, onEditL
         return null
     }, [RoomId, standardForm])
 
-    const lensPayload = useMemo(() => room?.lenses.payload ?? [], [room])
+    const lensPayload = useMemo(() => room?.lens.payload ?? [], [room])
     const singleLensRef = useMemo(() => {
         if (lensPayload.length !== 1) return undefined
         const ref = lensPayload[0]
@@ -100,7 +100,7 @@ export const LensHeader: FunctionComponent<LensHeaderProps> = ({ RoomId, onEditL
                         universalKey: lensUniversalKey,
                         tag: "Lens"
                     })
-                    base._payload._lenses = SingleReference.fromValue(lensReference)
+                    base._payload._lens = SingleReference.fromValue(lensReference)
                 }
                 return draft
             }
@@ -119,7 +119,7 @@ export const LensHeader: FunctionComponent<LensHeaderProps> = ({ RoomId, onEditL
                             universalKey,
                             tag: "Lens"
                         })
-                        base._payload._lenses = SingleReference.fromValue(lensReference)
+                        base._payload._lens = SingleReference.fromValue(lensReference)
                     }
                     return draft
                 }
@@ -156,7 +156,7 @@ export const LensHeader: FunctionComponent<LensHeaderProps> = ({ RoomId, onEditL
                     referrers.some((r) => r.universalKey === RoomId) &&
                     !isInTopLevel
 
-                base._payload._lenses = new SingleReference([])
+                base._payload._lens = new SingleReference([])
 
                 if (isLastReferrer) {
                     return draft.removeComponent(lensRef)
@@ -171,9 +171,9 @@ export const LensHeader: FunctionComponent<LensHeaderProps> = ({ RoomId, onEditL
             const roomDraft = draft.byUniversalId[RoomId]
             if (!roomDraft || !(roomDraft instanceof StandardRoom)) return null
             return {
-                referenceList: roomDraft.lenses,
+                referenceList: roomDraft.lens,
                 setReferenceList: (list) => {
-                    ;(roomDraft as StandardRoom)._payload._lenses =
+                    ;(roomDraft as StandardRoom)._payload._lens =
                         list instanceof SingleReference ? list : SingleReference.fromReferenceList(list)
                 }
             }
