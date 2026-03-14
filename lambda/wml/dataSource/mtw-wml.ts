@@ -252,12 +252,28 @@ const processPurgeAsset = async (
     }
 }
 
-const processS3StructureFinding = async (event: StreamingEventEnvelope<DiagnosticsEventUpdate>): Promise<void> => {
+const PRIMITIVES_ASSET_ID = 'ASSET#primitives'
+
+const processS3StructureFinding = async (
+    event: StreamingEventEnvelope<DiagnosticsEventUpdate>,
+    streamEvent: StreamEventFn
+): Promise<void> => {
     const payload = await event.getContent()
     if (!payload || !isS3StructureFindingEvent(payload)) return
     if (payload.source === 'primitives.wml' && payload.status === 'missing') {
         try {
-            await initializePrimitives()
+            const result = await initializePrimitives()
+            if (result.success && (result.action === 'created' || result.action === 'repaired') && result.schema) {
+                try {
+                    await streamEvent({
+                        update: { schema: result.schema },
+                        streamKey: PRIMITIVES_ASSET_ID,
+                        header: { type: 'Content Update', RequestIds: [] }
+                    })
+                } catch (streamError) {
+                    console.error(`WML DataSource: Error streaming Content Update for primitives:`, streamError)
+                }
+            }
         } catch (error) {
             console.error(`WML DataSource: Error initializing primitives:`, error)
         }
@@ -301,7 +317,7 @@ export const wmlDataSource = new WMLDataSource<{}, WMLEventUpdate, CoordinationE
                 return
             }
             if (isDiagnosticsEnvelope(event)) {
-                await processS3StructureFinding(event)
+                await processS3StructureFinding(event, streamEvent)
             }
         }))
     },

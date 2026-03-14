@@ -15,9 +15,10 @@
  */
 
 import ReadOnlyAssetWorkspace from "@tonylb/mtw-asset-workspace/ts/readOnly"
+import type { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
 import { applyEdit } from "../applyEdit"
 
-const PRIMITIVES_ASSET_ID = 'ASSET#primitives'
+export const PRIMITIVES_ASSET_ID = 'ASSET#primitives'
 
 const FULL_PRIMITIVES_WML = `<Asset uuid=(primitives)>
     <Room uuid=(VORTEX) />
@@ -31,6 +32,8 @@ export async function initializePrimitives(): Promise<{
     success: boolean
     action: 'skipped' | 'created' | 'repaired'
     message: string
+    /** Merged schema when action is 'created' or 'repaired' (for publishing Content Update) */
+    schema?: StandardForm
 }> {
     // Primitives must be in Canon zone - construct workspace directly
     const assetWorkspace = new ReadOnlyAssetWorkspace(PRIMITIVES_ASSET_ID, 'Canon')
@@ -55,7 +58,8 @@ export async function initializePrimitives(): Promise<{
                 ? {
                     success: true,
                     action: 'created' as const,
-                    message: 'Primitives asset created'
+                    message: 'Primitives asset created',
+                    schema: result.schema
                 }
                 : {
                     success: false,
@@ -102,7 +106,8 @@ export async function initializePrimitives(): Promise<{
             return {
                 success: true,
                 action: 'repaired',
-                message: `Primitives repaired (added ${repairComponents.length} missing component(s))`
+                message: `Primitives repaired (added ${repairComponents.length} missing component(s))`,
+                schema: result.schema
             }
         } else {
             console.error('Initialize Primitives: Repair failed', result)

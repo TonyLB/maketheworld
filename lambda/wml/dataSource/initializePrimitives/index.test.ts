@@ -37,7 +37,8 @@ describe('initializePrimitives', () => {
             expect(result).toEqual({
                 success: true,
                 action: 'created',
-                message: 'Primitives asset created'
+                message: 'Primitives asset created',
+                schema: expect.any(StandardForm)
             })
             
             expect(MockAssetWorkspace).toHaveBeenCalledWith('ASSET#primitives', 'Canon')
@@ -95,7 +96,8 @@ describe('initializePrimitives', () => {
             expect(result).toEqual({
                 success: true,
                 action: 'created',
-                message: 'Primitives asset created'
+                message: 'Primitives asset created',
+                schema: expect.any(StandardForm)
             })
             
             expect(applyEditMock).toHaveBeenCalled()
@@ -151,7 +153,8 @@ describe('initializePrimitives', () => {
             expect(result).toEqual({
                 success: true,
                 action: 'repaired',
-                message: 'Primitives repaired (added 2 missing component(s))'
+                message: 'Primitives repaired (added 2 missing component(s))',
+                schema: expect.any(StandardForm)
             })
             
             // Should call applyEdit with repair schema containing VORTEX and DEFAULT situation
@@ -189,7 +192,8 @@ describe('initializePrimitives', () => {
             expect(result).toEqual({
                 success: true,
                 action: 'repaired',
-                message: 'Primitives repaired (added 2 missing component(s))'
+                message: 'Primitives repaired (added 2 missing component(s))',
+                schema: expect.any(StandardForm)
             })
             
             // Should call applyEdit with repair schema containing knowledgeRoot and DEFAULT situation
@@ -221,7 +225,8 @@ describe('initializePrimitives', () => {
             expect(result).toEqual({
                 success: true,
                 action: 'created',
-                message: 'Primitives asset created'
+                message: 'Primitives asset created',
+                schema: expect.any(StandardForm)
             })
             
             // Should call applyEdit with full primitives WML
@@ -255,7 +260,8 @@ describe('initializePrimitives', () => {
             expect(result).toEqual({
                 success: true,
                 action: 'repaired',
-                message: 'Primitives repaired (added 1 missing component(s))'
+                message: 'Primitives repaired (added 1 missing component(s))',
+                schema: expect.any(StandardForm)
             })
 
             const call = applyEditMock.mock.calls[0][0]
