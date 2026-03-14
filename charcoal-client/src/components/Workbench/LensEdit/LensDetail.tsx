@@ -1,7 +1,8 @@
 import React, { FunctionComponent, useCallback, useMemo } from "react"
 import Box from "@mui/material/Box"
-import Typography from "@mui/material/Typography"
 import Button from "@mui/material/Button"
+import Chip from "@mui/material/Chip"
+import Typography from "@mui/material/Typography"
 import ArrowBackIcon from "@mui/icons-material/ArrowBack"
 import { useDispatch, useSelector } from "react-redux"
 import { useWorkbenchAsset } from "../foundations/useWorkbenchAsset"
@@ -39,6 +40,16 @@ export const LensDetail: FunctionComponent = () => {
         () => (lens?.universalKey ?? currentComponentId) as ComponentUUID | null,
         [lens?.universalKey, currentComponentId]
     )
+
+    const otherReferrers = useMemo(() => {
+        if (!lens) return []
+        const referrers = standardForm.referencedBy(lens.reference)
+        const parentComponentId =
+            stack.length >= 2 ? stack[stack.length - 2]?.componentId ?? null : null
+        return parentComponentId
+            ? referrers.filter((ref) => ref.universalKey !== parentComponentId)
+            : referrers
+    }, [standardForm, lens, stack])
 
     const handleBack = () => {
         const targetIndex = Math.max(0, stack.length - 1)
@@ -121,6 +132,17 @@ export const LensDetail: FunctionComponent = () => {
             : ""
     const title = shortName.trim() || "Lens (no short name)"
 
+    const getReferrerDisplayName = (universalKey: string | undefined): string => {
+        if (!universalKey) return "Untitled"
+        const comp = standardForm.byUniversalId[universalKey as ComponentUUID]
+        if (!comp) return "Untitled"
+        const sn = (comp as { shortName?: { _payload?: { plain?: { toJSON?: () => unknown } } } }).shortName?._payload?.plain?.toJSON?.()
+        const str = typeof sn === "string" && sn.trim() ? sn : undefined
+        if (str) return str
+        const k = comp.key
+        return typeof k === "string" ? k : "Untitled"
+    }
+
     return (
         <Box sx={{ p: 2, display: "flex", flexDirection: "column", gap: 2 }}>
             <Button
@@ -131,6 +153,39 @@ export const LensDetail: FunctionComponent = () => {
             >
                 Back
             </Button>
+            {otherReferrers.length > 0 && (
+                <Box
+                    sx={{
+                        py: 1,
+                        px: 1.5,
+                        backgroundColor: (theme) => theme.palette.grey[100],
+                        borderRadius: 1,
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 0.75,
+                    }}
+                    role="region"
+                    aria-label="Other referrers"
+                >
+                    <Typography variant="body2" color="text.secondary">
+                        Also referenced by:
+                    </Typography>
+                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                        {/*
+                         * FUTURE: Linking from chips to navigate to that component's context
+                         * (cross-hierarchy) is out of scope. Add onClick/onKeyDown when implementing.
+                         */}
+                        {otherReferrers.map((ref, index) => (
+                            <Chip
+                                key={ref.universalKey ?? ref.key ?? `ref-${index}`}
+                                label={getReferrerDisplayName(ref.universalKey)}
+                                size="small"
+                                variant="outlined"
+                            />
+                        ))}
+                    </Box>
+                </Box>
+            )}
             <Typography variant="h6">{title}</Typography>
 
             <StandardLiteralEditor
