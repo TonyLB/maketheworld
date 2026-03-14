@@ -1,6 +1,6 @@
 # Workbench reference list patterns
 
-Reference lists in the Workbench (WML `ReferenceList` on a component—e.g. `examples`, `features`, `lenses`, `marks`) are rendered as accordion lists with add/remove affordances. Two UI patterns exist: **typical** (list-only, click navigates or opens a dialog) and **inline** (list plus a per-item editing pane for small, lightweight fields, with optional navigation to a detailed editor).
+Reference lists in the Workbench (WML `ReferenceList` on a component—e.g. `examples`, `features`, `lens`, `marks`) are rendered as accordion lists with add/remove affordances. Two UI patterns exist: **typical** (list-only, click navigates or opens a dialog) and **inline** (list plus a per-item editing pane for small, lightweight fields, with optional navigation to a detailed editor).
 
 ---
 

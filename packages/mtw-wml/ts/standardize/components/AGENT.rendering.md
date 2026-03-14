@@ -30,7 +30,7 @@ Together, Guidance and Examples form a "multi-shot example teaching" plus "layer
 
 ### Lenses
 
-- **Role**: Rooms (and potentially other parents) reference Lenses via `lenses: ReferenceList`. Lenses participate in the rendering framework; exact semantics for how they filter or combine with Marks/Guidance/Examples can be expanded as the pipeline is implemented.
+- **Role**: Rooms (and potentially other parents) reference Lenses via `lens: SingleReference`. Lenses participate in the rendering framework; exact semantics for how they filter or combine with Marks/Guidance/Examples can be expanded as the pipeline is implemented.
 - **Lens Mark facets**: A Lens hosts Mark references via `LensMarkFacetList`. Each facet carries an optional `Default` literal—a Lens-specific default value for that Mark when viewed through this Lens. The same Mark can appear elsewhere (e.g. in Guidance or Examples) without a default; the default is scoped to the Lens.
 
 **Lens with Mark and Default (WML):**

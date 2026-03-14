@@ -126,7 +126,7 @@ Add a Preview section to the Room editor in the Authoring Workbench that:
 
 From `packages/mtw-wml/ts/standardize/components/AGENT.rendering.md`:
 
-- **Lens**: References Marks via `marks: ReferenceList`. Room has `lenses: ReferenceList`.
+- **Lens**: References Marks via `marks: ReferenceList`. Room has `lens: SingleReference`.
 - **Marks**: World-state dimensions. Each Mark has a Match value (MarkFacet payload string).
 - **Examples**: Dense Mark coverage - values for all relevant Marks. DisplayName, Summary, Description.
 - **Proposed state**: One Match value per Mark in the Room's Lens. This is what we compare against for exact Example lookup (not necessarily the storage key).

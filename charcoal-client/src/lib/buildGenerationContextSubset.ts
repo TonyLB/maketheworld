@@ -43,7 +43,7 @@ function trimRoomForGenerationContext(room: StandardRoom): StandardRoom {
 /**
  * Builds the generation-context subset for a Room: Room plus Direct-referenced Lens, Mark, and Guidance.
  * The caller serializes with schemaToWML([result.schema]) to get the WML string to send in generateRoomPreview.
- * The Room in the result is trimmed to only shortName, lenses, and guidance (no situations, examples, exits, features, characters).
+ * The Room in the result is trimmed to only shortName, lens, and guidance (no situations, examples, exits, features, characters).
  */
 export const buildGenerationContextSubset = (form: StandardForm, roomKey: StandardKey): StandardForm => {
     const subsetForm = form.subset([{

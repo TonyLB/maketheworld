@@ -148,7 +148,7 @@ Even if we fix the parsing gap (by adding a Room-level consumer that forwards `M
   - `organization.getChildrenOfParent(key)` to obtain children.
   - `this.assureReferences(children)` to ensure that the Room’s **reference lists** contain `ref={0}` entries for children that should be rendered in the Room’s subtree.
   - Rendering logic that walks only:
-    - `lenses`, `features`, `guidance`, `examples`, `characters`, and exits.
+    - `lens`, `features`, `guidance`, `examples`, `characters`, and exits.
 - `StandardRoomPayload.assureReferences` **only dispatches Lens / Feature / Example / Guidance / Character** based on the child’s `tag`. There is **no bucket for `Mark`**, and Mark references are effectively ignored at this stage.
 
 Consequences:
