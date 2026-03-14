@@ -3,6 +3,7 @@ import {
     DiagnosticsEventUpdate,
     DiagnosticsEventExternal,
     isS3StructureFindingEvent,
+    isCacheConsistencyFindingEvent,
     isDiagnosticsEventUpdate
 } from './index'
 import type { StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
@@ -65,6 +66,29 @@ describe('DiagnosticsEventSerializer', () => {
     })
 
     describe('Snapshot handling (defensive)', () => {
+        it('should serialize Cache Consistency Finding event', () => {
+            const internalEvent: DiagnosticsEventUpdate = {
+                type: 'Cache Consistency Finding',
+                assetId: 'ASSET#primitives',
+                status: 'stale',
+                diagnosticRunId: 'run-789',
+                timestamp: '2025-10-18T14:00:00.000Z'
+            }
+
+            const external = serializer.serialize({
+                content: internalEvent,
+                header: diagnosticsHeader('Cache Consistency Finding')
+            })
+
+            expect(external).toEqual({
+                type: 'Cache Consistency Finding',
+                assetId: 'ASSET#primitives',
+                status: 'stale',
+                diagnosticRunId: 'run-789',
+                timestamp: '2025-10-18T14:00:00.000Z'
+            })
+        })
+
         it('should throw when serialize receives Snapshot header', () => {
             expect(() => serializer.serialize({
                 content: {
@@ -125,8 +149,11 @@ describe('DiagnosticsEventSerializer', () => {
             })
 
             expect(internal).toBeDefined()
-            expect(internal?.diagnosticRunId).toBe('unknown')
-            expect(internal?.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T/)  // ISO 8601 format
+            expect(isS3StructureFindingEvent(internal)).toBe(true)
+            if (internal && isS3StructureFindingEvent(internal)) {
+                expect(internal.diagnosticRunId).toBe('unknown')
+                expect(internal.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T/)
+            }
         })
 
         it('should return null for missing required fields', async () => {
@@ -144,6 +171,88 @@ describe('DiagnosticsEventSerializer', () => {
 
                 expect(internal).toBeNull()
             }
+        })
+
+        it('should deserialize Cache Consistency Finding event from EventBridge format', async () => {
+            const externalEvent: any = {
+                type: 'Cache Consistency Finding',
+                assetId: 'ASSET#primitives',
+                status: 'stale',
+                diagnosticRunId: 'run-456',
+                timestamp: '2025-10-18T14:00:00.000Z'
+            }
+
+            const internal = await serializer.deserialize({
+                content: externalEvent,
+                header: diagnosticsHeader('Cache Consistency Finding')
+            })
+
+            expect(internal).toEqual({
+                type: 'Cache Consistency Finding',
+                assetId: 'ASSET#primitives',
+                status: 'stale',
+                diagnosticRunId: 'run-456',
+                timestamp: '2025-10-18T14:00:00.000Z'
+            })
+        })
+
+        it('should deserialize Cache Consistency Finding with defaults for optional fields', async () => {
+            const externalEvent: any = {
+                type: 'Cache Consistency Finding',
+                assetId: 'ASSET#test-asset',
+                status: 'missing'
+            }
+
+            const internal = await serializer.deserialize({
+                content: externalEvent,
+                header: diagnosticsHeader('Cache Consistency Finding')
+            })
+
+            expect(internal).toBeDefined()
+            expect(internal).toMatchObject({
+                type: 'Cache Consistency Finding',
+                assetId: 'ASSET#test-asset',
+                status: 'missing'
+            })
+            if (internal && internal.type === 'Cache Consistency Finding') {
+                expect(internal.diagnosticRunId).toBe('unknown')
+                expect(internal.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T/)
+            }
+        })
+
+        it('should return null for Cache Consistency Finding with missing required fields', async () => {
+            const invalidEvents = [
+                { type: 'Cache Consistency Finding', status: 'stale' },
+                { type: 'Cache Consistency Finding', assetId: 'ASSET#x' },
+                { type: 'Cache Consistency Finding', assetId: 'x', status: 'invalid' }
+            ]
+
+            for (const event of invalidEvents) {
+                const internal = await serializer.deserialize({
+                    content: event,
+                    header: diagnosticsHeader('Cache Consistency Finding')
+                })
+                expect(internal).toBeNull()
+            }
+        })
+
+        it('should deserialize Heal Global Values for assets lambda', async () => {
+            const externalEvent: any = {
+                type: 'Heal Global Values',
+                connections: true,
+                assets: true
+            }
+
+            const internal = await serializer.deserialize({
+                content: externalEvent,
+                header: diagnosticsHeader('Heal Global Values')
+            })
+
+            expect(internal).toEqual({
+                type: 'Heal Global Values',
+                connections: true,
+                assets: true
+            })
         })
 
         it('should return null for unknown event types', async () => {
@@ -210,6 +319,38 @@ describe('DiagnosticsEventSerializer', () => {
                 expect(isDiagnosticsEventUpdate({})).toBe(false)
             })
         })
+
+        describe('isCacheConsistencyFindingEvent', () => {
+            it('should return true for valid Cache Consistency Finding event', () => {
+                const event = {
+                    type: 'Cache Consistency Finding',
+                    assetId: 'ASSET#primitives',
+                    status: 'stale',
+                    diagnosticRunId: 'run-1',
+                    timestamp: '2025-10-18T12:00:00.000Z'
+                }
+                expect(isCacheConsistencyFindingEvent(event)).toBe(true)
+            })
+
+            it('should return true for status missing', () => {
+                const event = {
+                    type: 'Cache Consistency Finding',
+                    assetId: 'ASSET#x',
+                    status: 'missing',
+                    diagnosticRunId: 'r',
+                    timestamp: '2025-01-01T00:00:00Z'
+                }
+                expect(isCacheConsistencyFindingEvent(event)).toBe(true)
+            })
+
+            it('should return false for invalid events', () => {
+                expect(isCacheConsistencyFindingEvent(null)).toBe(false)
+                expect(isCacheConsistencyFindingEvent(undefined)).toBe(false)
+                expect(isCacheConsistencyFindingEvent({})).toBe(false)
+                expect(isCacheConsistencyFindingEvent({ type: 'Cache Consistency Finding' })).toBe(false)
+                expect(isCacheConsistencyFindingEvent({ type: 'Cache Consistency Finding', assetId: 'x', status: 'repaired' })).toBe(false)
+            })
+        })
     })
 
     describe('round-trip serialization', () => {
@@ -229,6 +370,27 @@ describe('DiagnosticsEventSerializer', () => {
             const deserialized = await serializer.deserialize({
                 content: external,
                 header: diagnosticsHeader('S3 Structure Finding')
+            })
+
+            expect(deserialized).toEqual(original)
+        })
+
+        it('should round-trip Cache Consistency Finding', async () => {
+            const original: DiagnosticsEventUpdate = {
+                type: 'Cache Consistency Finding',
+                assetId: 'ASSET#primitives',
+                status: 'missing',
+                diagnosticRunId: 'run-999',
+                timestamp: '2025-10-18T16:00:00.000Z'
+            }
+
+            const external = serializer.serialize({
+                content: original,
+                header: diagnosticsHeader('Cache Consistency Finding')
+            })
+            const deserialized = await serializer.deserialize({
+                content: external,
+                header: diagnosticsHeader('Cache Consistency Finding')
             })
 
             expect(deserialized).toEqual(original)

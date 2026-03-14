@@ -12,8 +12,26 @@ export type DiagnosticsS3StructureFindingEvent = {
     timestamp: string
 }
 
+export type DiagnosticsCacheConsistencyFindingEvent = {
+    type: 'Cache Consistency Finding'
+    assetId: string             // e.g., "ASSET#primitives"
+    status: 'stale' | 'missing'
+    diagnosticRunId: string
+    timestamp: string
+}
+
+/** Heal Global Values content shape (for deserialize only; produced elsewhere) */
+export type DiagnosticsHealGlobalValuesContent = {
+    type: 'Heal Global Values'
+    connections?: unknown
+    assets?: unknown
+}
+
 // Union type for all internal diagnostics events
-export type DiagnosticsEventUpdate = DiagnosticsS3StructureFindingEvent
+export type DiagnosticsEventUpdate =
+    | DiagnosticsS3StructureFindingEvent
+    | DiagnosticsCacheConsistencyFindingEvent
+    | DiagnosticsHealGlobalValuesContent
 
 //
 // External types for diagnostics events (EventBridge format)
@@ -27,7 +45,17 @@ export type DiagnosticsS3StructureFindingEventExternal = {
     timestamp?: string
 }
 
-export type DiagnosticsEventExternal = DiagnosticsS3StructureFindingEventExternal
+export type DiagnosticsCacheConsistencyFindingEventExternal = {
+    type: 'Cache Consistency Finding'
+    assetId: string
+    status: 'stale' | 'missing'
+    diagnosticRunId?: string
+    timestamp?: string
+}
+
+export type DiagnosticsEventExternal =
+    | DiagnosticsS3StructureFindingEventExternal
+    | DiagnosticsCacheConsistencyFindingEventExternal
 
 //
 // Type guards
@@ -44,8 +72,20 @@ export const isS3StructureFindingEvent = (event: any): event is DiagnosticsS3Str
     )
 }
 
+export const isCacheConsistencyFindingEvent = (event: any): event is DiagnosticsCacheConsistencyFindingEvent => {
+    return Boolean(
+        event &&
+        typeof event === 'object' &&
+        event.type === 'Cache Consistency Finding' &&
+        typeof event.assetId === 'string' &&
+        typeof event.status === 'string' &&
+        ['stale', 'missing'].includes(event.status)
+    )
+}
+
 export const isDiagnosticsEventUpdate = (event: unknown): event is DiagnosticsEventUpdate => {
-    return isS3StructureFindingEvent(event)
+    return isS3StructureFindingEvent(event) || isCacheConsistencyFindingEvent(event) ||
+        (typeof event === 'object' && event !== null && (event as any).type === 'Heal Global Values')
 }
 
 /**
@@ -69,10 +109,19 @@ export class DiagnosticsEventSerializer implements DataSourceEventSerializer<Dia
         if (header?.type === 'Snapshot') {
             throw new Error('DiagnosticsEventSerializer does not support snapshot serialization')
         }
-        if (header.type === 'S3 Structure Finding') {
+        if (header.type === 'S3 Structure Finding' && isS3StructureFindingEvent(content)) {
             return {
                 type: 'S3 Structure Finding',
                 source: content.source,
+                status: content.status,
+                diagnosticRunId: content.diagnosticRunId,
+                timestamp: content.timestamp
+            }
+        }
+        if (header.type === 'Cache Consistency Finding' && isCacheConsistencyFindingEvent(content)) {
+            return {
+                type: 'Cache Consistency Finding',
+                assetId: content.assetId,
                 status: content.status,
                 diagnosticRunId: content.diagnosticRunId,
                 timestamp: content.timestamp
@@ -110,6 +159,30 @@ export class DiagnosticsEventSerializer implements DataSourceEventSerializer<Dia
                 status: content.status,
                 diagnosticRunId: content.diagnosticRunId || 'unknown',
                 timestamp: content.timestamp || new Date().toISOString()
+            }
+        }
+
+        if (eventType === 'Cache Consistency Finding') {
+            if (typeof content.assetId !== 'string' || typeof content.status !== 'string') {
+                return null
+            }
+            if (!['stale', 'missing'].includes(content.status)) {
+                return null
+            }
+            return {
+                type: 'Cache Consistency Finding',
+                assetId: content.assetId,
+                status: content.status as 'stale' | 'missing',
+                diagnosticRunId: content.diagnosticRunId || 'unknown',
+                timestamp: content.timestamp || new Date().toISOString()
+            }
+        }
+
+        if (eventType === 'Heal Global Values') {
+            return {
+                type: 'Heal Global Values',
+                connections: content.connections,
+                assets: content.assets
             }
         }
 

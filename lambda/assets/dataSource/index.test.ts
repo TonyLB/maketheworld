@@ -501,6 +501,66 @@ describe('AssetsDataSource (mtw.assets)', () => {
             expect(receiveEventsSpy).toHaveBeenCalled()
         })
 
+        it('should process Cache Consistency Finding by calling cacheAsset', async () => {
+            const cacheConsistencyEvent = {
+                header: {
+                    dataSourceKey: 'mtw.diagnostics' as const,
+                    streamKey: 'test-stream',
+                    timestamp: Date.now(),
+                    type: 'Cache Consistency Finding'
+                },
+                getContent: () => Promise.resolve({
+                    type: 'Cache Consistency Finding' as const,
+                    assetId: 'ASSET#primitives',
+                    status: 'stale' as const,
+                    diagnosticRunId: 'run-1',
+                    timestamp: new Date().toISOString()
+                })
+            }
+
+            const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
+
+            await assetsDataSource.receiveEvents?.({
+                events: [cacheConsistencyEvent],
+                streamEvent: mockStreamEvent,
+                streamEnvelope: jest.fn().mockResolvedValue(undefined)
+            })
+
+            expect(cacheAssetMock).toHaveBeenCalledWith({
+                assetId: 'ASSET#primitives',
+                streamEvent: mockStreamEvent
+            })
+        })
+
+        it('should normalize short assetId to ASSET# prefix in Cache Consistency Finding', async () => {
+            const cacheConsistencyEvent = {
+                header: {
+                    dataSourceKey: 'mtw.diagnostics' as const,
+                    streamKey: 'test-stream',
+                    timestamp: Date.now(),
+                    type: 'Cache Consistency Finding'
+                },
+                getContent: () => Promise.resolve({
+                    type: 'Cache Consistency Finding' as const,
+                    assetId: 'primitives',
+                    status: 'missing' as const
+                })
+            }
+
+            const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
+
+            await assetsDataSource.receiveEvents?.({
+                events: [cacheConsistencyEvent],
+                streamEvent: mockStreamEvent,
+                streamEnvelope: jest.fn().mockResolvedValue(undefined)
+            })
+
+            expect(cacheAssetMock).toHaveBeenCalledWith({
+                assetId: 'ASSET#primitives',
+                streamEvent: mockStreamEvent
+            })
+        })
+
         it('should process multiple events in batch independently', async () => {
             // Mock streamEvent function
             const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
@@ -566,7 +626,8 @@ describe('AssetsDataSource (mtw.assets)', () => {
                 { dataSourceKey: 'mtw.wml', type: 'Content Update' },
                 { dataSourceKey: 'mtw.wml', type: 'Zone Changed' },
                 { dataSourceKey: 'mtw.wml', type: 'Asset Purged' },
-                { dataSourceKey: 'mtw.diagnostics', type: 'Heal Global Values' }
+                { dataSourceKey: 'mtw.diagnostics', type: 'Heal Global Values' },
+                { dataSourceKey: 'mtw.diagnostics', type: 'Cache Consistency Finding' }
             ]
 
             subscribedHeaderPairs.forEach(({ dataSourceKey, type }) => {

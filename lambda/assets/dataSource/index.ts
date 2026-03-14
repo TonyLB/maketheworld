@@ -14,6 +14,7 @@ import {
     isWMLZoneChangedEvent,
     isWMLAssetPurgedEvent,
     isDiagnosticsHealGlobalValuesEvent,
+    isDiagnosticsCacheConsistencyFindingEvent,
     isWMLContentUpdateEvent,
 } from './subscribedEvents'
 
@@ -126,6 +127,24 @@ const handleHealGlobalValues = async (
     })
 }
 
+const handleCacheConsistencyFinding = async (
+    event: Extract<AssetsIncomingEvent, { header: { type: 'Cache Consistency Finding' } }>,
+    streamEvent: StreamEventFn
+): Promise<void> => {
+    const content = await event.getContent()
+    if (!content?.assetId || typeof content.assetId !== 'string') return
+    const assetId = AssetKey(content.assetId)
+    try {
+        await cacheAsset({ assetId, streamEvent })
+    } catch (error) {
+        console.error(`Error caching asset ${assetId} from Cache Consistency Finding:`, error)
+        messageBus.send({
+            type: 'Error',
+            body: { error: `Failed to cache asset ${assetId}: ${error instanceof Error ? error.message : String(error)}`, statusCode: 500 }
+        })
+    }
+}
+
 //
 // Non-replayable DataSource singleton for mtw.assets
 // 
@@ -162,6 +181,10 @@ export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, A
             }
             if (isDiagnosticsHealGlobalValuesEvent(event)) {
                 await handleHealGlobalValues(event)
+                return
+            }
+            if (isDiagnosticsCacheConsistencyFindingEvent(event)) {
+                await handleCacheConsistencyFinding(event, streamEvent)
                 return
             }
         }))

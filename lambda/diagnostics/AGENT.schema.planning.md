@@ -116,6 +116,20 @@ interface CacheConsistencyFinding {
 - In assets DataSource `receiveEvents`, handle the new finding and call `cacheAsset(assetId)`.
 - Emit event manually via AWS CLI (or small script) when operator knows an asset needs re-cache (e.g. after primitives init without a Content Update).
 
+**Manual emission**: Operators can re-cache a single asset (e.g. after primitives init) by sending a Cache Consistency Finding via EventBridge. Example using AWS CLI (replace `YOUR_EVENT_BUS_NAME` and region as needed):
+
+```bash
+aws events put-events --entries '[
+  {
+    "Source": "mtw.diagnostics",
+    "DetailType": "Cache Consistency Finding",
+    "Detail": "{\"assetId\": \"ASSET#primitives\", \"status\": \"stale\", \"diagnosticRunId\": \"manual-1\", \"timestamp\": \"2025-10-18T12:00:00.000Z\"}"
+  }
+]' --event-bus-name YOUR_EVENT_BUS_NAME --region us-east-1
+```
+
+The assets lambda will receive the event and call `cacheAsset({ assetId, streamEvent })`. `assetId` can be full form (`ASSET#primitives`) or short form (`primitives`); the handler normalizes to full form. `diagnosticRunId` and `timestamp` are optional in the detail payload.
+
 ---
 
 ### Future design possibilities
