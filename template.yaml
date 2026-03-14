@@ -1398,6 +1398,7 @@ Resources:
                     - mtw.diagnostics
                   detail-type:
                     - Heal Global Values
+                    - Cache Consistency Finding
             InitializeSubscriptions:
               Type: CloudWatchEvent
               Properties:
