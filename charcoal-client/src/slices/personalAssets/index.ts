@@ -289,6 +289,8 @@ export const saveEdit = (key: string) => async (dispatch: any, getState: any) =>
     }
 }
 
+export { assureDefaultSituationFromPrimitives } from './assureDefaultSituationFromPrimitives'
+
 export const addImport = ({
     assetId,
     fromAsset,
