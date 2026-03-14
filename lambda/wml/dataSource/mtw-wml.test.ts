@@ -647,11 +647,13 @@ describe('WML DataSource', () => {
     describe('S3 Structure Finding Event Processing', () => {
         it('should call initializePrimitives for missing primitives.wml', async () => {
             const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
-            
+            const mockSchema = new StandardForm('<Asset uuid=(primitives)><Room uuid=(VORTEX) /><Knowledge uuid=(knowledgeRoot) /><Situation uuid=(DEFAULT)><ShortName>Default</ShortName></Situation></Asset>')
+
             initializePrimitivesMock.mockResolvedValue({
                 success: true,
                 action: 'created',
-                message: 'Primitives asset created'
+                message: 'Primitives asset created',
+                schema: mockSchema
             })
 
             const event = {
@@ -678,6 +680,11 @@ describe('WML DataSource', () => {
             })
 
             expect(initializePrimitivesMock).toHaveBeenCalled()
+            expect(mockStreamEvent).toHaveBeenCalledWith({
+                update: { schema: mockSchema },
+                streamKey: 'ASSET#primitives',
+                header: { type: 'Content Update', RequestIds: [] }
+            })
         })
 
         it('should not call initializePrimitives for present primitives.wml', async () => {
