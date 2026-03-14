@@ -1,23 +1,25 @@
 # Diagnostics Event Schema - Planning Document
 
-**Status**: 🚧 **INCOMPLETE - PLANNING IN PROGRESS**  
+**Status**: 🚧 **IN PROGRESS** - First finding type implemented; schema and further findings in development  
 **Created**: October 18, 2025  
 **Purpose**: Define proper event-driven architecture for diagnostics events
 
 ---
 
-## Current State (Ad Hoc)
+## Current State
 
-The diagnostics system currently uses imperative, command-style events:
-- `detail-type: "Initialize"` - Command to initialize the system
-- Events are action requests rather than state change notifications
-- No consistent schema or semantic patterns
+**Implemented (findings-based)**:
+- **S3 Structure Finding** - Emitted by initialize lambda (for `primitives.wml`); consumed by WML lambda to trigger idempotent primitives init. Contract lives in `packages/mtw-interfaces/ts/eventBridge/diagnostics`. EventBridge routes `mtw.diagnostics` / `S3 Structure Finding` to WML lambda.
 
-**Problems with Current Approach**:
-- Violates event-sourcing principles (events should describe what happened, not what to do)
-- Tight coupling between event producers and consumers
-- Difficult to add new listeners without changing event structure
-- No clear ownership of diagnostic state
+**Still imperative / ad hoc**:
+- `detail-type: "Initialize"` - Command to run full client + primitives init (initialize lambda)
+- Heal Global Values - Command-style trigger for assets lambda (session map + canon list)
+- No consistent schema yet for cache/consistency findings; assets lambda has no diagnostic path that triggers `cacheAsset`
+
+**Remaining problems**:
+- Mixed patterns (some findings, some commands)
+- Assets DynamoDB cache can get out of sync with S3 (e.g. after primitives init) with no diagnostic finding to trigger re-cache
+- Further finding types (Cache Consistency, Player State, etc.) not yet designed or implemented
 
 ---
 
@@ -46,56 +48,82 @@ Diagnostics events should report **findings** from diagnostic processes, not **c
 }
 ```
 
-Consumers (like WML lambda) decide how to **respond** to findings:
-- WML lambda sees `source: "primitives.wml", status: "missing"` → initializes primitives
-- Future consumers might log, alert, or take different actions
+Consumers decide how to **respond** to findings:
+- WML lambda: `source: "primitives.wml", status: "missing"` → initializes primitives, then publishes Content Update for primitives so assets can re-cache
+- Assets lambda: today only re-caches on Content Update; Cache Consistency Finding (planned) will add a diagnostic path to trigger `cacheAsset` when DB is out of sync with S3
+- Future: additional consumers (alerting, dashboards) can subscribe to the same findings
 
 ---
 
-## Planned Event Types
+## Event Types
 
 ### 1. S3 Structure Finding
 
-**Purpose**: Reports the presence/absence of expected S3 objects
+**Purpose**: Reports the presence/absence of expected S3 objects.
 
-**Status**: ✅ **KNOWN REQUIREMENT** (needed for primitives initialization)
+**Status**: ✅ **IMPLEMENTED**
 
-**Detail Schema**:
+**Producers**: Initialize lambda emits for `primitives.wml` when running full init (so WML can ensure primitives exist). Can also be sent manually via EventBridge for on-demand primitives init/repair.
+
+**Detail Schema** (see `packages/mtw-interfaces/ts/eventBridge/diagnostics`):
 ```typescript
 interface S3StructureFinding {
   source: string;              // S3 key or logical identifier (e.g., "primitives.wml")
   status: "missing" | "present" | "corrupted" | "unexpected";
   diagnosticRunId: string;     // Correlation ID
   timestamp: string;           // ISO 8601 timestamp
-
-  //
-  // The following are potential future expansions of this finding
-  //
-  zone?: Zone;                 // Expected zone (if applicable)
-  expectedPath?: string;       // Expected S3 key
-  actualPath?: string;         // Actual S3 key (if different)
-  issues?: string[];           // List of specific problems found
+  // Optional future: zone?, expectedPath?, actualPath?, issues?
 }
 ```
 
-**Known Use Cases**:
-- Missing `primitives.wml` → WML lambda initializes primitives
-- Missing zone metadata on assets → Triggers zone repair
-- Potential: Unexpected objects in Canon → Alerts for manual review
+**Use Cases**:
+- Missing `primitives.wml` → WML lambda runs `initializePrimitives()` (create/repair); on success WML publishes Content Update so assets lambda can re-cache.
+- Manual EventBridge event with `source: "primitives.wml", status: "missing"` → same flow.
 
 **Listeners**:
-- `mtw.wml` - Responds to missing/corrupted primitives
-- Future: `mtw.assets` - Responds to metadata issues
-- Future: Monitoring/alerting systems
+- `mtw.wml` - Listens for `source === "primitives.wml" && status === "missing"`; runs init and optionally publishes Content Update for primitives.
+
+---
+
+### 2. Cache Consistency Finding (Planned)
+
+**Purpose**: Reports that an asset's DynamoDB cache (e.g. assets table component rows) may be out of sync with the authoritative source (e.g. S3 materialized view). Allows self-healing by triggering a re-cache without requiring a Content Update from the content owner.
+
+**Status**: 📋 **PLANNED** - Next finding type to implement for the "DB out of sync with S3" scenario.
+
+**Use Cases**:
+- Primitives (or any asset) was updated in S3 (e.g. by init, repair, or manual write) but the assets lambda never received a Content Update, so component rows (e.g. `SITUATION#DEFAULT`) are missing or stale in DynamoDB.
+- Manual remediation: operator sends a Cache Consistency Finding for a specific asset to force `cacheAsset(assetId)`.
+- Future: assets lambda (or another validator) performs self-diagnostic, compares DynamoDB to S3, and emits findings for out-of-sync assets; same event type can trigger re-cache.
+
+**Proposed Detail Schema**:
+```typescript
+interface CacheConsistencyFinding {
+  assetId: string;             // e.g. "ASSET#primitives"
+  status: "stale" | "missing"; // what the diagnostic found: cache out of date or absent
+  diagnosticRunId: string;
+  timestamp: string;           // ISO 8601
+  // Optional: componentIds?: string[]  // if only specific components are known stale
+}
+```
+
+**Listeners** (to implement):
+- `mtw.assets` - On Cache Consistency Finding for an asset, call `cacheAsset({ assetId, streamEvent })` to re-sync S3 → DynamoDB. Idempotent; safe to run manually or in response to a finding.
+
+**Implementation scope** (minimal for "fix this one inconsistency"):
+- Add event contract (type, serializer, type guard) in `packages/mtw-interfaces/ts/eventBridge/diagnostics` (or a dedicated slice if preferred).
+- Add EventBridge rule: `mtw.diagnostics` / `Cache Consistency Finding` → assets lambda.
+- In assets DataSource `receiveEvents`, handle the new finding and call `cacheAsset(assetId)`.
+- Emit event manually via AWS CLI (or small script) when operator knows an asset needs re-cache (e.g. after primitives init without a Content Update).
 
 ---
 
 ### Future design possibilities
 
-- **Diagnostic Run Started** - Trigger coordinated self-diagnostics
+- **Diagnostic Run Started** - Trigger coordinated self-diagnostics across lambdas
 - **Diagnostic Run Completed** - Summary of findings from a run
-- **DynamoDB Consistency Finding** - Cache inconsistencies, orphaned records
 - **Player State Finding** - Player data corruption, permission mismatches
+- **S3 Structure Finding** - Additional listeners (e.g. `mtw.assets` for metadata issues)
 
 ---
 
@@ -262,21 +290,23 @@ Domain lambdas should:
 ## Related Documentation
 
 - **[Event Architecture](../../AGENT.architecture.events.md)**: System-wide event patterns
-- **[WML Lambda](../wml/README.md)**: Consumer of S3 Structure Finding events
-- **[Initialize Lambda](../initialize/app.ts)**: Currently emits imperative events (to be migrated)
+- **[WML Lambda](../wml/README.md)**: Consumer of S3 Structure Finding events; runs `initializePrimitives` and publishes Content Update for primitives on create/repair
+- **[Initialize Lambda](../initialize/app.ts)**: Emits S3 Structure Finding for `primitives.wml` during full init; still uses imperative `Initialize` for the overall run
+- **[Event contracts](../../packages/mtw-interfaces/ts/eventBridge/diagnostics/)**: Diagnostics event types and serializers
 
 ---
 
 ## Next Steps
 
-- [ ] Implement `S3 Structure Finding` event emission in diagnostics lambda
-- [ ] Update WML lambda to listen for `S3 Structure Finding` events
-- [ ] Update initialize lambda to emit findings instead of commands
-- [ ] Design remaining event types (DynamoDB Consistency, Player State, etc.)
+- [x] Implement S3 Structure Finding event emission (initialize lambda emits for primitives.wml)
+- [x] WML lambda listens for S3 Structure Finding and runs primitives init; publishes Content Update on create/repair
+- [ ] **Cache Consistency Finding**: Add contract, EventBridge rule, and assets handler; enable manual (or future automated) re-cache of a single asset
+- [ ] Migrate initialize lambda to emit findings instead of/in addition to imperative Initialize where appropriate
 - [ ] Document diagnostic run triggers and scheduling
 - [ ] Consider adding diagnostic dashboard/UI
+- [ ] Design remaining event types (Player State Finding, etc.)
 
 ---
 
-**Document Status**: This is a planning document. Implementation should follow the patterns described here, but details may evolve as we learn from implementation.
+**Document Status**: Living document. S3 Structure Finding is implemented; Cache Consistency Finding is the next target to address DB/S3 sync; other details may evolve.
 
