@@ -74,6 +74,7 @@ Manage per-asset editing state and lifecycle so the Workbench can:
 - `saveEdit(key)` - Send edit to backend via applyEdit, move to pendingEdits
 - `receiveWMLEvent(key)({ header, content })` - Thunk. Handle mtw.wml events: clear pendingEdits by RequestIds, show Merge Conflict toast
 - `addImport({ assetId, fromAsset, uuid, tag, addToReferenceList })` - Add import; orchestrates base, dispatches updateStandard
+- `assureDefaultSituationFromPrimitives(draft, fromAsset?)` - Pure helper: ensures draft has SITUATION#DEFAULT imported from primitives; mutates draft, returns true if it made a change. See below.
 - `getStandardForm(key)(state)`, `getLocalStandardForm(key)(state)`, `getBase(key)(state)` - Selectors (key-scoped)
 
 **Reducers** (from [reducers.ts](./reducers.ts)):
@@ -81,6 +82,14 @@ Manage per-asset editing state and lifecycle so the Workbench can:
 - `updateStandard` - Merges payload.update diffs into edit; uses `payload.base` (from thunk)
 - `clearPendingEditsByRequestIds` - Filters pendingEdits by RequestIds
 - `saveEdit` - Moves edit to pendingEdits, clears edit
+
+### assureDefaultSituationFromPrimitives
+
+- **What it does**: Ensures the given StandardForm draft has a `SITUATION#DEFAULT` component imported from the primitives asset (so situation facets referencing it can be edited). Mutates the draft in place; returns `true` if the draft was modified (component added or import updated), `false` if it already had the correct import.
+- **When to use it**: Before editing default situation facets (e.g. default description) in Room edit, so that the component exists and is marked as from primitives. Supports the two-tier Room edit model (default render "above the fold," Lens/Guidance/Situations "below the fold").
+- **Usage pattern (Option 2)**: Call it at the start of the `update` callback inside `updateStandard(assetId)({ type: 'update', update: (draft) => { ... } })`. Use the boolean return to decide whether to dispatch `fetchImports(assetId)` after dispatching `updateStandard`. The component may appear with fallback shortName ("Untitled") until import defaults arrive; that eventual consistency is expected.
+
+Defined in [assureDefaultSituationFromPrimitives.ts](./assureDefaultSituationFromPrimitives.ts); tests in [assureDefaultSituationFromPrimitives.test.ts](./assureDefaultSituationFromPrimitives.test.ts).
 
 ### Configuration
 
