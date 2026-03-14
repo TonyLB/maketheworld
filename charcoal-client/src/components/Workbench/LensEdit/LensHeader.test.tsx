@@ -131,4 +131,64 @@ describe("LensHeader", () => {
         const createButton = screen.getByRole("button", { name: /Create New Lens/i })
         expect(createButton.getAttribute("aria-disabled")).toBe("true")
     })
+
+    it("removes Lens component when Delete Lens reference is clicked and Lens is pure child of Room", () => {
+        const formWithNestedLens = new StandardForm(`
+            <Asset uuid=(test)>
+                <Room uuid=(room1)><ShortName>R1</ShortName><Lens uuid=(lens1)><ShortName>My Lens</ShortName></Lens></Room>
+            </Asset>
+        `)
+        mockWorkbenchReturn.standardForm = formWithNestedLens
+        renderWithStore(<LensHeader RoomId={ROOM_ID} />)
+        fireEvent.click(screen.getByLabelText("Delete Lens reference"))
+
+        expect(updateStandardMock).toHaveBeenCalledWith(
+            expect.objectContaining({
+                type: "update",
+                update: expect.any(Function)
+            })
+        )
+        const updateFn = updateStandardMock.mock.calls[0][0].update
+        const draft = formWithNestedLens._clone()
+        const result = updateFn(draft)
+
+        expect(result._components.find((c) => c.universalKey === LENS_ID)).toBeUndefined()
+    })
+
+    it("keeps Lens component when Delete Lens reference is clicked and Lens is in topLevel", () => {
+        const formWithTopLevelLens = new StandardForm(`
+            <Asset uuid=(test)>
+                <Room uuid=(room1)><ShortName>R1</ShortName><Lens uuid=(lens1)/></Room>
+                <Lens uuid=(lens1)><ShortName>My Lens</ShortName></Lens>
+            </Asset>
+        `)
+        mockWorkbenchReturn.standardForm = formWithTopLevelLens
+        renderWithStore(<LensHeader RoomId={ROOM_ID} />)
+        fireEvent.click(screen.getByLabelText("Delete Lens reference"))
+
+        const updateFn = updateStandardMock.mock.calls[0][0].update
+        const draft = formWithTopLevelLens._clone()
+        const result = updateFn(draft)
+
+        expect(result._components.find((c) => c.universalKey === LENS_ID)).toBeDefined()
+    })
+
+    it("keeps Lens component when Delete Lens reference is clicked but Lens has another referrer", () => {
+        const formWithSharedLens = new StandardForm(`
+            <Asset uuid=(test)>
+                <Room uuid=(room1)><ShortName>R1</ShortName><Lens uuid=(lens1)/></Room>
+                <Room uuid=(room2)><ShortName>R2</ShortName><Lens uuid=(lens1)/></Room>
+                <Lens uuid=(lens1)><ShortName>Shared Lens</ShortName></Lens>
+            </Asset>
+        `)
+        mockWorkbenchReturn.standardForm = formWithSharedLens
+        renderWithStore(<LensHeader RoomId={ROOM_ID} />)
+        fireEvent.click(screen.getByLabelText("Delete Lens reference"))
+
+        const updateFn = updateStandardMock.mock.calls[0][0].update
+        const draft = formWithSharedLens._clone()
+        const result = updateFn(draft)
+
+        expect(result._components.find((c) => c.universalKey === LENS_ID)).toBeDefined()
+    })
 })

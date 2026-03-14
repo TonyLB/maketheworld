@@ -136,17 +136,35 @@ export const LensHeader: FunctionComponent<LensHeaderProps> = ({ RoomId, onEditL
 
     const clearLensReference = useCallback(() => {
         if (!room || readonly) return
+        if (!lensUniversalKey) return
         updateStandard({
             type: "update",
             update: (draft: StandardForm) => {
                 const base = draft.byUniversalId[RoomId]
-                if (base instanceof StandardRoom) {
-                    base._payload._lenses = new SingleReference([])
+                if (!(base instanceof StandardRoom)) return draft
+
+                const lensRef = new StandardReference({
+                    universalKey: lensUniversalKey,
+                    tag: "Lens"
+                })
+                const referrers = draft.referencedBy(lensRef)
+                const isInTopLevel =
+                    (draft._topLevel?.payload.some((r) => r.sameKey(lensRef)) ??
+                        false)
+                const isLastReferrer =
+                    referrers.length === 1 &&
+                    referrers.some((r) => r.universalKey === RoomId) &&
+                    !isInTopLevel
+
+                base._payload._lenses = new SingleReference([])
+
+                if (isLastReferrer) {
+                    return draft.removeComponent(lensRef)
                 }
                 return draft
             }
         })
-    }, [room, RoomId, updateStandard, readonly])
+    }, [room, RoomId, lensUniversalKey, updateStandard, readonly])
 
     const addToReferenceListForRoom = useCallback(
         (draft: StandardForm): ReferenceListDescriptor | null => {
