@@ -44,8 +44,8 @@ const s3Client = new S3Client(params)
 // Event deserializers for incoming EventBridge events
 const eventDeserializers = {
     'mtw.wml': new WMLEventSerializer(createNodeDataSourceEnvironment()),
-    'mtw.diagnostics': new DiagnosticsEventSerializer(),
-}
+    'mtw.diagnostics': new DiagnosticsEventSerializer(createNodeDataSourceEnvironment()),
+} as const
 
 export const handler = async (event, context) => {
 

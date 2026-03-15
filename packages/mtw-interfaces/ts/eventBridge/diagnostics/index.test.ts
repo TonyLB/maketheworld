@@ -6,6 +6,7 @@ import {
     isCacheConsistencyFindingEvent,
     isDiagnosticsEventUpdate
 } from './index'
+import type { DataSourceEnvironment } from '@tonylb/mtw-interfaces/ts/DataSourceEnvironment'
 import type { StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 
 const diagnosticsHeader = (type: string): StreamingEventHeader => ({
@@ -16,7 +17,10 @@ const diagnosticsHeader = (type: string): StreamingEventHeader => ({
 })
 
 describe('DiagnosticsEventSerializer', () => {
-    const serializer = new DiagnosticsEventSerializer()
+    const testEnv: DataSourceEnvironment = {
+        fetch: jest.fn() as any
+    }
+    const serializer = new DiagnosticsEventSerializer(testEnv)
 
     describe('serialize', () => {
         it('should serialize S3 Structure Finding event', () => {
