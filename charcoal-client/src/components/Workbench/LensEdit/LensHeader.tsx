@@ -247,45 +247,50 @@ export const LensHeader: FunctionComponent<LensHeaderProps> = ({ RoomId, onEditL
     if (!singleLens) {
         return (
             <>
-                <MakeTheWorldAccordion title="Lens" defaultExpanded>
-                    <List>
-                        <ListItem>
-                            <ListItemButton
-                                onClick={createAndAddLens}
-                                disabled={readonly}
-                                sx={{ justifyContent: "center" }}
-                            >
-                                <ListItemIcon>
-                                    <AddIcon />
-                                </ListItemIcon>
-                                <ListItemText primary="Create New Lens" />
-                            </ListItemButton>
-                        </ListItem>
-                        <ListItem>
-                            <ListItemButton
-                                onClick={() => setLensSelectorOpen(true)}
-                                disabled={readonly}
-                                sx={{ justifyContent: "center" }}
-                            >
-                                <ListItemIcon>
-                                    <LinkIcon />
-                                </ListItemIcon>
-                                <ListItemText primary="Reference Existing Lens" />
-                            </ListItemButton>
-                        </ListItem>
-                        <ListItem>
-                            <ListItemButton
-                                onClick={() => setImportDialogOpen(true)}
-                                disabled={readonly}
-                                sx={{ justifyContent: "center" }}
-                            >
-                                <ListItemIcon>
-                                    <ImportExportIcon />
-                                </ListItemIcon>
-                                <ListItemText primary="Import Lens" />
-                            </ListItemButton>
-                        </ListItem>
-                    </List>
+                <MakeTheWorldAccordion title="Dynamic Rendering" defaultExpanded={false}>
+                    <Box sx={{ p: 2, pt: 0 }}>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+                            To unlock dynamic rendering on this room, associate a Lens.
+                        </Typography>
+                        <List>
+                            <ListItem>
+                                <ListItemButton
+                                    onClick={createAndAddLens}
+                                    disabled={readonly}
+                                    sx={{ justifyContent: "center" }}
+                                >
+                                    <ListItemIcon>
+                                        <AddIcon />
+                                    </ListItemIcon>
+                                    <ListItemText primary="Create New Lens" />
+                                </ListItemButton>
+                            </ListItem>
+                            <ListItem>
+                                <ListItemButton
+                                    onClick={() => setLensSelectorOpen(true)}
+                                    disabled={readonly}
+                                    sx={{ justifyContent: "center" }}
+                                >
+                                    <ListItemIcon>
+                                        <LinkIcon />
+                                    </ListItemIcon>
+                                    <ListItemText primary="Reference Existing Lens" />
+                                </ListItemButton>
+                            </ListItem>
+                            <ListItem>
+                                <ListItemButton
+                                    onClick={() => setImportDialogOpen(true)}
+                                    disabled={readonly}
+                                    sx={{ justifyContent: "center" }}
+                                >
+                                    <ListItemIcon>
+                                        <ImportExportIcon />
+                                    </ListItemIcon>
+                                    <ListItemText primary="Import Lens" />
+                                </ListItemButton>
+                            </ListItem>
+                        </List>
+                    </Box>
                 </MakeTheWorldAccordion>
                 <ComponentSelectorDialog
                     open={lensSelectorOpen}

@@ -73,6 +73,7 @@ describe("LensHeader", () => {
             </Asset>
         `)
         renderWithStore(<LensHeader RoomId={ROOM_ID} />)
+        fireEvent.click(screen.getByRole("button", { name: /Dynamic Rendering/i }))
         expect(screen.getByText("Create New Lens")).toBeTruthy()
         expect(screen.getByText("Reference Existing Lens")).toBeTruthy()
         expect(screen.getByText("Import Lens")).toBeTruthy()
@@ -85,7 +86,8 @@ describe("LensHeader", () => {
             </Asset>
         `)
         renderWithStore(<LensHeader RoomId={ROOM_ID} />)
-        fireEvent.click(screen.getByText("Create New Lens"))
+        fireEvent.click(screen.getByRole("button", { name: /Dynamic Rendering/i }))
+        fireEvent.click(screen.getByRole("button", { name: /Create New Lens/i }))
         expect(updateStandardMock).toHaveBeenCalledWith(
             expect.objectContaining({
                 type: "update",
@@ -128,6 +130,7 @@ describe("LensHeader", () => {
         `)
         mockWorkbenchReturn.readonly = true
         renderWithStore(<LensHeader RoomId={ROOM_ID} />)
+        fireEvent.click(screen.getByRole("button", { name: /Dynamic Rendering/i }))
         const createButton = screen.getByRole("button", { name: /Create New Lens/i })
         expect(createButton.getAttribute("aria-disabled")).toBe("true")
     })
