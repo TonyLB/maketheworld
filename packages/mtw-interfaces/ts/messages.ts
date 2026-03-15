@@ -81,7 +81,8 @@ const validateRoomCharacterList = (items: any) => {
 export type RoomDescribeData = {
     Description: RenderTree;
     ShortName?: string;
-    DisplayName: RenderTree;
+    /** Plain-text display name (no render semantics). */
+    DisplayName: string;
     Summary: RenderTree;
     RoomId: EphemeraRoomId;
     Exits: RoomExit[];

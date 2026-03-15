@@ -101,7 +101,7 @@ describe('StandardRoom class', () => {
             situations: [
                 {
                     reference: { tag: 'Situation', key: 'bright', universalKey: 'SITUATION#bright' },
-                    payload: { displayName: ['Bright Lobby'] }
+                    payload: { displayName: 'Bright Lobby' }
                 }
             ]
         }
@@ -109,7 +109,7 @@ describe('StandardRoom class', () => {
         expect(testRoom.situations).toBeDefined()
         expect(testRoom.situations.length).toBe(1)
         expect(testRoom.situations.items[0].reference.key).toBe('bright')
-        expect(testRoom.situations.items[0].payload.toJSON()).toMatchObject({ displayName: ['Bright Lobby'] })
+        expect(testRoom.situations.items[0].payload.toJSON()).toMatchObject({ displayName: 'Bright Lobby' })
         const roomJSON = testRoom.toJSON() as StandardRoomData
         expect(roomJSON.situations).toBeDefined()
         expect(roomJSON.situations).toHaveLength(1)

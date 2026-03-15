@@ -141,8 +141,8 @@ describe('StandardForm', () => {
                     universalKey: 'EXAMPLE#testRoomBase',
                     displayName: {
                         tag: 'Replace',
-                        match: ['Lobby'],
-                        payload: ['Foyer']
+                        match: 'Lobby',
+                        payload: 'Foyer'
                     }
                 },
                 {
@@ -406,7 +406,7 @@ describe('StandardForm', () => {
         expect(facet.payload.toJSON()).toEqual('Condition narrative')
         
         // Verify example content
-        expect(example.displayName?.toJSON()).toEqual(['Example Name'])
+        expect(example.displayName?.toJSON()).toEqual('Example Name')
         expect(example.summary?.toJSON()).toEqual(['Example Summary'])
         expect(example.description?.toJSON()).toEqual(['Example Description'])
     })
@@ -431,7 +431,7 @@ describe('StandardForm', () => {
         expect(example).toBeInstanceOf(StandardExample)
         expect(hasShortName(example)).toBe(true)
         expect(example.shortName?.toJSON()).toEqual('Tab label')
-        expect(example.displayName?.toJSON()).toEqual(['Example Name'])
+        expect(example.displayName?.toJSON()).toEqual('Example Name')
     })
 
     it('should correctly construct classes', () => {
@@ -1658,7 +1658,8 @@ describe('StandardForm', () => {
                 {
                     tag: 'Example',
                     universalKey: 'EXAMPLE#testRoomOneBase',
-                    displayName: [{ data: { tag: 'String', value: ': Night' }, children: [] }],
+                    // With StandardLiteral, a string here represents an additive literal (': Night')
+                    displayName: ': Night',
                 },
             ],
             metaData: []
@@ -3119,7 +3120,10 @@ describe('StandardForm', () => {
             {
                 tag: 'Example',
                 universalKey: 'EXAMPLE#003b',
-                description: ['Global']
+                description: ['Global'],
+                displayName: undefined,
+                summary: undefined,
+                key: undefined
             },
             {
                 tag: 'Room',
@@ -3131,7 +3135,10 @@ describe('StandardForm', () => {
             {
                 tag: 'Example',
                 universalKey: 'EXAMPLE#001b',
-                displayName:['Vortex']
+                displayName: 'Vortex',
+                description: undefined,
+                summary: undefined,
+                key: undefined
             },
             {
                 tag: 'Feature',
@@ -3143,7 +3150,9 @@ describe('StandardForm', () => {
                 tag: 'Example',
                 universalKey: 'EXAMPLE#004b',
                 description: ['A tower built of white sandstone blocks, with an ornate clock set on the northern face.'],
-                displayName: ['Clocktower']
+                displayName: 'Clocktower',
+                summary: undefined,
+                key: undefined
             },
             { tag: 'Room', key: 'testRoomTwo', universalKey: 'ROOM#002' }
         ])
@@ -3768,7 +3777,7 @@ describe('StandardForm', () => {
         
         // Verify the merge actually happened correctly
         const example = mergedForm._lookup('EXAMPLE#room-example') as StandardExample
-        expect(example.displayName?.toJSON()).toEqual(['Grand Foyer'])
+        expect(example.displayName?.toJSON()).toEqual('Grand Foyer')
         expect(example.description?.toJSON()).toEqual(['A sterile corporate lobby.'])
     })
 

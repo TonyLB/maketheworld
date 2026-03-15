@@ -10,20 +10,23 @@ import type { StandardFacetData } from "./dataTypes/facet";
 import { isStandardFacetData } from "./dataTypes/facet";
 import { isSchemaSituation } from "@tonylb/mtw-base/ts/schema/components";
 import { isSchemaRemove } from "@tonylb/mtw-base/ts/schema/edit";
-import { isSchemaDisplayName, isSchemaSummary, isSchemaDescription } from "@tonylb/mtw-base/ts/schema/example";
+import { isSchemaSummary, isSchemaDescription } from "@tonylb/mtw-base/ts/schema/example";
 import { facetClassFactory } from "./facetFactory";
 import { isSchemaTreeNode, treeFromWML } from "../../../schema";
+import { StandardLiteral } from "../../literal";
 import { StandardRender } from "../../render";
-import { processWithConsumers, StandardizeConsumerRender } from "../../components/fromSchemaPipeline";
+import { processWithConsumers, StandardizeConsumerRender, StandardizeConsumerStandardLiteral } from "../../components/fromSchemaPipeline";
 import { StandardKey } from "../key";
 import { StandardComponent } from "../../components/baseClasses";
 import { RenderTree } from "@tonylb/mtw-base/ts/renderTree";
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";
 import { excludeUndefined } from "@tonylb/mtw-base/ts/utils/lists";
 
-/** Payload shape: optional displayName/summary/description (RenderTree or StandardEditableData for serialization). */
+/** Payload shape: optional displayName/summary/description.
+ *  displayName is a StandardLiteral (string-based), while summary/description remain StandardRender (RenderTree-based).
+ */
 export type SituationRoomFacetPayloadType = {
-    displayName?: StandardEditableData<RenderTree>;
+    displayName?: StandardEditableData<string>;
     summary?: StandardEditableData<RenderTree>;
     description?: StandardEditableData<RenderTree>;
 };
@@ -36,9 +39,9 @@ export const isSituationRoomFacetPayload = (arg: any): arg is SituationRoomFacet
     return keys.every((k) => allowed.includes(k));
 };
 
-/** Payload class: holds optional StandardRender for displayName, summary, description. */
+/** Payload class: holds optional StandardLiteral for displayName, and StandardRender for summary/description. */
 export class SituationRoomFacetPayload {
-    _displayName?: StandardRender;
+    _displayName?: StandardLiteral;
     _summary?: StandardRender;
     _description?: StandardRender;
 
@@ -50,7 +53,7 @@ export class SituationRoomFacetPayload {
             return;
         }
         const obj = arg as SituationRoomFacetPayloadType;
-        this._displayName = obj.displayName !== undefined ? new StandardRender(obj.displayName) : undefined;
+        this._displayName = obj.displayName !== undefined ? new StandardLiteral(obj.displayName, { tag: "DisplayName" }) : undefined;
         this._summary = obj.summary !== undefined ? new StandardRender(obj.summary) : undefined;
         this._description = obj.description !== undefined ? new StandardRender(obj.description) : undefined;
     }
@@ -61,9 +64,10 @@ export class SituationRoomFacetPayload {
 
     /** Returns true if all displayName, summary, and description are absent or empty. */
     static isEmpty(payload: SituationRoomFacetPayload): boolean {
-        const emptyRender = (r?: StandardRender) => !r || !String(r.plainString ?? '').trim();
+        const emptyLiteral = (l?: StandardLiteral) => !l || !String((l as any).plainString ?? (l as any)._payload?.plain?.data ?? "").trim();
+        const emptyRender = (r?: StandardRender) => !r || !String(r.plainString ?? "").trim();
         return (
-            emptyRender(payload._displayName) &&
+            emptyLiteral(payload._displayName) &&
             emptyRender(payload._summary) &&
             emptyRender(payload._description)
         );
@@ -126,12 +130,10 @@ export class SituationRoomFacetPayload {
         const result: SituationRoomFacetPayloadType = {};
         const context = { result };
         const consumers = [
-            new StandardizeConsumerRender(context, {
+            new StandardizeConsumerStandardLiteral<typeof context>(context, {
                 tag: "DisplayName",
-                nodeTypeGuard: isSchemaDisplayName,
-                errorMessage: "Schema mismatch",
-                update(render) {
-                    if (render) this.result.displayName = render.toJSON();
+                update(literal) {
+                    if (literal) this.result.displayName = literal.toJSON();
                 },
             }),
             new StandardizeConsumerRender(context, {

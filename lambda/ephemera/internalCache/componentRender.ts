@@ -43,6 +43,7 @@ import { StandardKnowledgeData } from '@tonylb/mtw-wml/ts/standardize/components
 import { StandardMapData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/map';
 import { StandardFeatureData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/feature';
 import { StandardCharacterData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/character';
+import { StandardEditableData } from '@tonylb/mtw-base/ts/editable';
 
 type MessageDescribeData = {
     MessageId: EphemeraMessageId;
@@ -187,8 +188,12 @@ export class ComponentRenderData {
                             tag: 'Situation',
                             universalKey: situationId as ComponentUUID
                         },
+                        // SituationRoomFacetPayloadType.displayName is a StandardEditableData<string>;
+                        // summary/description remain RenderTree-based.
                         payload: {
-                            ...(renderedContent.displayName ? { displayName: renderedContent.displayName } : {}),
+                            ...(renderedContent.displayName
+                                ? { displayName: renderedContent.displayName as unknown as StandardEditableData<string> }
+                                : {}),
                             ...(renderedContent.summary ? { summary: renderedContent.summary } : {}),
                             description: renderedContent.description
                         }
@@ -200,7 +205,10 @@ export class ComponentRenderData {
                     naiveFirstExample = new StandardExample({
                         tag: 'Example',
                         universalKey: stateSliceId,
-                        displayName: renderedContent.displayName,
+                        // Example displayName is a StandardLiteral (string-based); convert RenderTree to string.
+                        displayName: renderedContent.displayName
+                            ? (renderedContent.displayName as RenderTree).join('')
+                            : undefined,
                         summary: renderedContent.summary,
                         description: renderedContent.description ?? [],
                         marks: [],
@@ -248,7 +256,8 @@ export class ComponentRenderData {
                 const characterData: StandardCharacterData = {
                     tag: 'Character',
                     universalKey: char.EphemeraId,
-                    displayName: char.DisplayName ? [char.DisplayName] : undefined,
+                    // DisplayName is now a StandardLiteral (string-based) in StandardCharacterData
+                    displayName: char.DisplayName ?? undefined,
                     image: char.fileURL ? { 
                         data: { tag: 'Image', key: '', fileURL: char.fileURL }, 
                         children: [] 

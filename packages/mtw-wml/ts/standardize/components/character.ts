@@ -20,7 +20,7 @@ import {
 } from "./fromSchemaPipeline"
 
 export class StandardCharacterPayload implements ComponentConstructorMethods<StandardCharacterData> {
-    _displayName?: StandardRender;
+    _displayName?: StandardLiteral;
     _shortName?: StandardLiteral;
     _pronouns?: StandardLiteral;
     _image?: EditWrappedStandardNode<SchemaImageTag, SchemaTag>;
@@ -39,7 +39,7 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
         const { shortName, pronouns, displayName } = props
         this._shortName = shortName ? new StandardLiteral(shortName, { tag: 'ShortName' }) : undefined
         this._pronouns = pronouns ? new StandardLiteral(pronouns, { tag: 'Pronouns' }) : undefined
-        this._displayName = displayName ? new StandardRender(displayName) : undefined
+        this._displayName = displayName ? new StandardLiteral(displayName, { tag: 'DisplayName' }) : undefined
         this._image = props.image
     }
 
@@ -58,12 +58,10 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
                         this._pronouns = literal
                     },
                 }),
-                new StandardizeConsumerRender<StandardCharacterPayload, SchemaDisplayNameTag>(this, {
+                new StandardizeConsumerStandardLiteral(this, {
                     tag: "DisplayName",
-                    nodeTypeGuard: isSchemaDisplayName,
-                    errorMessage: 'Schema mismatch in StandardCharacter constructor',
-                    update(render) {
-                        this._displayName = render
+                    update(literal) {
+                        this._displayName = literal
                     },
                 }),
                 new StandardizeConsumerSimple(this, {
@@ -112,7 +110,7 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
             children: [
                 ...[this.shortName].filter(excludeUndefined).map((shortName) => (shortName.nestedSchema())).flat(1),
                 ...[this.pronouns].filter(excludeUndefined).map((pronouns) => (pronouns.nestedSchema())).flat(1),
-                ...(this._displayName?.nestedSchema({ tag: 'DisplayName', mappings }) ?? []),
+                ...(this._displayName?.nestedSchema({ tag: 'DisplayName' }) ?? []),
                 this.image
             ].filter(excludeUndefined).flat(1)
         }
@@ -157,8 +155,8 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
         returnValue._shortName = this._shortName ? this._shortName.invert() as StandardLiteral : undefined
         // Invert pronouns if it exists (StandardLiteral has invert() from standardEditableFactory)
         returnValue._pronouns = this._pronouns ? this._pronouns.invert() as StandardLiteral : undefined
-        // Invert displayName if it exists (StandardRender has invert())
-        returnValue._displayName = this._displayName ? this._displayName.invert() : undefined
+        // Invert displayName if it exists (StandardLiteral has invert())
+        returnValue._displayName = this._displayName ? this._displayName.invert() as StandardLiteral : undefined
         // Leave _image unchanged (EditWrappedStandardNode doesn't have invert support)
         returnValue._image = this._image
         return returnValue as this

@@ -37,7 +37,7 @@ describe('ComponentRender cache handler', () => {
                     new StandardExample({
                         tag: 'Example',
                         universalKey: 'EXAMPLE#Base',
-                        displayName: ['Example Name'],
+                        displayName: 'Example Name',
                         description: ['Description'],
                         summary: ['Summary']
                     })
@@ -211,7 +211,7 @@ describe('ComponentRender cache handler', () => {
                     new StandardExample({
                         tag: 'Example',
                         universalKey: 'EXAMPLE#Base',
-                        displayName: ['Example Name'],
+                        displayName: 'Example Name',
                         description: ['Description'],
                         summary: []
                     })
@@ -263,7 +263,7 @@ describe('ComponentRender cache handler', () => {
                         tag: 'Example',
                         key: 'example1',
                         universalKey: 'EXAMPLE#Base',
-                        displayName: ['Example Name'],
+                        displayName: 'Example Name',
                         description: ['Description'],
                         summary: ['Summary']
                     })

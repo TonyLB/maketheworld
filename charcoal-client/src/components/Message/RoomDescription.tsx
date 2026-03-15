@@ -30,6 +30,7 @@ import { StandardExample } from '@tonylb/mtw-wml/ts/standardize/components/examp
 import { StandardExitFacet } from '@tonylb/mtw-wml/ts/standardize/keys/facets/exit'
 import { StandardCharacter } from '@tonylb/mtw-wml/ts/standardize/components/character'
 import { SituationRoomFacetPayload } from '@tonylb/mtw-wml/ts/standardize/keys/facets/situationRoom'
+import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
 
 interface RoomDescriptionProps {
     parsedWML?: StandardForm;
@@ -45,7 +46,7 @@ export const RoomDescription = ({ parsedWML, metaData, header, currentHeader }: 
     const componentUUID = metaData.componentUUID
 
     // Initialize with proper types
-    let name: StandardRender = new StandardRender(['Untitled'])
+    let name: StandardLiteral = new StandardLiteral('Untitled', { tag: 'DisplayName' })
     let description: StandardRender = new StandardRender([])
     let summary: StandardRender = new StandardRender([])
     let exits: StandardExitFacet[] = []
@@ -60,7 +61,7 @@ export const RoomDescription = ({ parsedWML, metaData, header, currentHeader }: 
             const firstSituationFacet = component.situations.items[0]
             if (firstSituationFacet) {
                 const payload = firstSituationFacet.payload as SituationRoomFacetPayload
-                name = payload._displayName || new StandardRender(['Untitled'])
+                name = payload._displayName || new StandardLiteral('Untitled', { tag: 'DisplayName' })
                 description = payload._description || new StandardRender([])
                 summary = payload._summary || new StandardRender([])
             }
@@ -74,8 +75,8 @@ export const RoomDescription = ({ parsedWML, metaData, header, currentHeader }: 
                         const exampleComponent = parsedWML.byUniversalId[firstExample.universalKey as any]
                         
                         if (exampleComponent instanceof StandardExample) {
-                            // StandardExample properties now return StandardRender objects directly
-                            name = exampleComponent.displayName || new StandardRender(['Untitled'])
+                            // StandardExample displayName is a StandardLiteral
+                            name = exampleComponent.displayName || new StandardLiteral('Untitled', { tag: 'DisplayName' })
                             description = exampleComponent.description || new StandardRender([])
                             summary = exampleComponent.summary || new StandardRender([])
                         }
@@ -166,7 +167,7 @@ export const RoomDescription = ({ parsedWML, metaData, header, currentHeader }: 
                     }}
                 >
                     <Typography variant='h5' align='left'>
-                        { name.plainString ?? 'Untitled' }
+                        { (name as any).plainString ?? 'Untitled' }
                         { currentHeader && <MiniChip text="Live" /> }
                     </Typography>
                     <Box sx={{ overflow: 'hidden' }}>

@@ -28,7 +28,7 @@ describe("SituationRoomFacet and SituationRoomFacetList", () => {
     describe("SituationRoomFacetPayload", () => {
         it("should construct from plain object with displayName", () => {
             const payload = new SituationRoomFacetPayload({ displayName: ["Lobby"] })
-            expect(payload.toJSON()).toMatchObject({ displayName: ["Lobby"] })
+            expect(payload.toJSON()).toMatchObject({ displayName: "Lobby" })
         })
 
         it("should construct from plain object with summary and description", () => {
@@ -55,7 +55,6 @@ describe("SituationRoomFacet and SituationRoomFacetList", () => {
             const merged = a.merge(b)
             expect(merged).toBeDefined()
             expect(merged!.toJSON().displayName).toBeDefined()
-            expect(Array.isArray(merged!.toJSON().displayName)).toBe(true)
         })
 
         it("should invert", () => {
@@ -67,10 +66,10 @@ describe("SituationRoomFacet and SituationRoomFacetList", () => {
 
     describe("StandardSituationRoomFacet", () => {
         it("should construct from StandardFacetData (JSON)", () => {
-            const data = createFacetData("bright", { displayName: ["Bright Lobby"] })
+            const data = createFacetData("bright", { displayName: "Bright Lobby" })
             const facet = new StandardSituationRoomFacet(data)
             expect(facet.reference.key).toBe("bright")
-            expect(facet.payload.toJSON()).toMatchObject({ displayName: ["Bright Lobby"] })
+            expect(facet.payload.toJSON()).toMatchObject({ displayName: "Bright Lobby" })
         })
 
         it("should construct from schema node (Situation under Room)", () => {
@@ -92,7 +91,7 @@ describe("SituationRoomFacet and SituationRoomFacetList", () => {
 
         it("should round-trip toJSON", () => {
             const data = createFacetData("sit1", {
-                displayName: ["Name"],
+                displayName: "Name",
                 summary: ["Sum"],
                 description: ["Desc"],
             })
@@ -104,7 +103,7 @@ describe("SituationRoomFacet and SituationRoomFacetList", () => {
         })
 
         it("should render facet with aggregatedNode (Situation tag and children)", () => {
-            const data = createFacetData("bright", { displayName: ["Lobby"] })
+            const data = createFacetData("bright", { displayName: "Lobby" })
             const facet = new StandardSituationRoomFacet(data)
             const result = facet.renderFacet()
             expect(result.aggregatedNode).toBeDefined()
@@ -116,7 +115,7 @@ describe("SituationRoomFacet and SituationRoomFacetList", () => {
         })
 
         it("should clone", () => {
-            const facet = new StandardSituationRoomFacet(createFacetData("x", { displayName: ["Y"] }))
+            const facet = new StandardSituationRoomFacet(createFacetData("x", { displayName: "Y" }))
             const cloned = facet.clone()
             expect(cloned.sameKey(facet)).toBe(true)
             expect(cloned.payload.toJSON()).toEqual(facet.payload.toJSON())
@@ -132,7 +131,7 @@ describe("SituationRoomFacet and SituationRoomFacetList", () => {
 
         it("should construct from array of facet data", () => {
             const list = new SituationRoomFacetList([
-                createFacetData("bright", { displayName: ["Bright"] }),
+                createFacetData("bright", { displayName: "Bright" }),
                 createFacetData("dark", { description: ["Dark room"] }),
             ])
             expect(list.length).toBe(2)
@@ -141,21 +140,21 @@ describe("SituationRoomFacet and SituationRoomFacetList", () => {
         })
 
         it("should merge two lists", () => {
-            const list1 = new SituationRoomFacetList([createFacetData("a", { displayName: ["A"] })])
-            const list2 = new SituationRoomFacetList([createFacetData("b", { displayName: ["B"] })])
+            const list1 = new SituationRoomFacetList([createFacetData("a", { displayName: "A" })])
+            const list2 = new SituationRoomFacetList([createFacetData("b", { displayName: "B" })])
             const merged = list1.merge(list2)
             expect(merged).toBeDefined()
             expect(merged!.length).toBe(2)
         })
 
         it("should invert", () => {
-            const list = new SituationRoomFacetList([createFacetData("x", { displayName: ["X"] })])
+            const list = new SituationRoomFacetList([createFacetData("x", { displayName: "X" })])
             const inv = list.invert()
             expect(inv.length).toBe(1)
         })
 
         it("should clone", () => {
-            const list = new SituationRoomFacetList([createFacetData("x", { displayName: ["X"] })])
+            const list = new SituationRoomFacetList([createFacetData("x", { displayName: "X" })])
             const cloned = list.clone()
             expect(cloned.length).toBe(list.length)
             expect(cloned).not.toBe(list)

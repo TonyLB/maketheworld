@@ -635,9 +635,7 @@ exports[`large WML test should standardize properly 1`] = `
     "description": [
       "Light streams in from the entrance. On one side of the cave is an old firepit and comfortably tamped-down earth floor. At the opposite end, a jumbled pile of jagged rocks against the wall make a far less hospitable space.",
     ],
-    "displayName": [
-      "Shallow cave",
-    ],
+    "displayName": "Shallow cave",
     "key": undefined,
     "summary": undefined,
     "tag": "Example",
@@ -647,9 +645,7 @@ exports[`large WML test should standardize properly 1`] = `
     "description": [
       "Light streams in from the entrance. On one side of the cave is an old firepit and comfortably tamped-down earth floor. At the opposite end, rocks have been cleared revealing a passage further underground.",
     ],
-    "displayName": [
-      "Shallow cave",
-    ],
+    "displayName": "Shallow cave",
     "key": undefined,
     "summary": undefined,
     "tag": "Example",
@@ -773,9 +769,7 @@ exports[`large WML test should standardize properly 1`] = `
     "description": [
       "Walls smoothly cut from the bedrock curve in a long arc, lit every few yards by a small sconce mounted above eye-level.",
     ],
-    "displayName": [
-      "Curving Passage",
-    ],
+    "displayName": "Curving Passage",
     "key": undefined,
     "summary": undefined,
     "tag": "Example",
@@ -877,9 +871,7 @@ exports[`large WML test should standardize properly 1`] = `
       },
       "(You could also go literally anywhere else in the world, if any of it had been created. But it hasn't)",
     ],
-    "displayName": [
-      "Cave entrance",
-    ],
+    "displayName": "Cave entrance",
     "key": undefined,
     "summary": undefined,
     "tag": "Example",
