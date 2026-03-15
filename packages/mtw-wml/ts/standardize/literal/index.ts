@@ -4,17 +4,29 @@ import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { MergeConflictError } from "@tonylb/mtw-base/ts/standardize"
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable"
 import { isRenderTree, renderTreeToSchema } from "@tonylb/mtw-base/ts/renderTree"
-import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
+import { isSchemaString, isSchemaSpacer } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { isSchemaTreeNode } from "../../schema"
 import { stripWrapperTag } from "../../schema/utils"
 
 //
 // StandardLiteralSimpleBase holds the contents for a simple StandardLiteral
 //
+const SPACE_NODE = { data: { tag: 'Space' as const }, children: [] as GenericTree<SchemaTag> }
+
 export class StandardLiteralSimpleBase implements StandardEditablePayload<string> {
     data: string
-    get schema() {
-        return [{ data: { tag: 'String' as const, value: this.data }, children: [] }]
+    get schema(): GenericTree<SchemaTag> {
+        const s = this.data
+        const hasLeading = /^\s/.test(s)
+        const hasTrailing = /\s$/.test(s)
+        const middle = s.trim()
+        const leadingNodes: GenericTree<SchemaTag> = hasLeading ? [SPACE_NODE] : []
+        const trailingNodes: GenericTree<SchemaTag> = hasTrailing ? [SPACE_NODE] : []
+        if (middle.length === 0) {
+            if (leadingNodes.length > 0 || trailingNodes.length > 0) return [SPACE_NODE]
+            return [{ data: { tag: 'String' as const, value: '' }, children: [] }]
+        }
+        return [...leadingNodes, { data: { tag: 'String' as const, value: middle }, children: [] }, ...trailingNodes]
     }
     constructor(data: string) {
         this.data = data
@@ -23,6 +35,17 @@ export class StandardLiteralSimpleBase implements StandardEditablePayload<string
         return new StandardLiteralSimpleBase(`${this.data}`)
     }
     toJSON: () => string = () => this.data
+}
+
+function literalChildrenToString(children: GenericTree<SchemaTag>): string {
+    return children
+        .map((node) => {
+            const data = node.data
+            if (isSchemaString(data)) return data.value
+            if (isSchemaSpacer(data)) return ' '
+            return ''
+        })
+        .join('')
 }
 
 const payloadFactory = (props: string | GenericTree<SchemaTag>): StandardLiteralSimpleBase | undefined => {
@@ -36,7 +59,8 @@ const payloadFactory = (props: string | GenericTree<SchemaTag>): StandardLiteral
     if (props.length === 1 && isSchemaString(props[0].data)) {
         return new StandardLiteralSimpleBase(props[0].data.value)
     }
-    throw new Error('Invalid argument in StandardLiteralSimpleBase constructor')
+    const asString = literalChildrenToString(props)
+    return new StandardLiteralSimpleBase(asString)
 }
 
 const standardLiteralAdd = (base: string, incoming: string): string => {
@@ -144,7 +168,11 @@ export class StandardLiteral {
         if (options?.tag && Array.isArray(convertedArg) && convertedArg.every(isSchemaTreeNode)) {
             convertedArg = stripWrapperTag(convertedArg, options.tag)
         }
-        
+        // Single node with matching wrapper tag (e.g. treeFromWML(wml)[0]) - pass children to create
+        if (options?.tag && !Array.isArray(convertedArg) && convertedArg?.data?.tag === options.tag && Array.isArray((convertedArg as any).children)) {
+            convertedArg = (convertedArg as any).children
+        }
+
         // Use EditableClass.create() for dispatch
         // Handles: string, StandardEditableData, GenericTree<SchemaTag>
         this._payload = EditableClass.create(convertedArg)
