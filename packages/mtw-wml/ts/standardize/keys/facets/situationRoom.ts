@@ -59,6 +59,16 @@ export class SituationRoomFacetPayload {
         return new SituationRoomFacetPayload(this.toJSON());
     }
 
+    /** Returns true if all displayName, summary, and description are absent or empty. */
+    static isEmpty(payload: SituationRoomFacetPayload): boolean {
+        const emptyRender = (r?: StandardRender) => !r || !String(r.plainString ?? '').trim();
+        return (
+            emptyRender(payload._displayName) &&
+            emptyRender(payload._summary) &&
+            emptyRender(payload._description)
+        );
+    }
+
     toJSON(): SituationRoomFacetPayloadType {
         return {
             ...(this._displayName ? { displayName: this._displayName.toJSON() } : {}),

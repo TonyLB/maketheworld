@@ -5,6 +5,7 @@ import AddIcon from '@mui/icons-material/Add'
 import LinkIcon from '@mui/icons-material/Link'
 
 import { useWorkbenchAsset } from '../foundations/useWorkbenchAsset'
+import DefaultRenderEditor from './DefaultRenderEditor'
 import ExitEditor from './ExitEditor'
 import LensHeader from '../LensEdit/LensHeader'
 import FeatureListEditor from './FeatureListEditor'
@@ -32,6 +33,7 @@ import { ReferenceListEditor } from '../foundations/ReferenceList'
 import { ReferenceListEditorGeneric } from '../foundations/ReferenceList/ReferenceListEditorGeneric'
 import { ComponentSelectorDialog } from '../foundations/ComponentSelector'
 import { situationIdToLabel } from '../../../lib/situationLabel'
+import { DEFAULT_SITUATION_ID } from '../../../slices/personalAssets'
 
 export const RoomEditor: FunctionComponent = () => {
     const dispatch = useDispatch()
@@ -131,6 +133,7 @@ export const RoomEditor: FunctionComponent = () => {
     const situationItems = useMemo(() => {
         if (!room) return []
         return room.situations.items
+            .filter((f) => f.reference?.universalKey !== DEFAULT_SITUATION_ID)
             .map((facet) => {
                 const situationId = facet.reference?.universalKey as ComponentUUID | undefined
                 if (!situationId) return null
@@ -232,7 +235,8 @@ export const RoomEditor: FunctionComponent = () => {
 
     const isSituationExcluded = useCallback(
         (id: ComponentUUID) =>
-            room?.situations.items.some((f) => f.reference?.universalKey === id) ?? false,
+            id === DEFAULT_SITUATION_ID ||
+            (room?.situations.items.some((f) => f.reference?.universalKey === id) ?? false),
         [room]
     )
 
@@ -272,6 +276,7 @@ export const RoomEditor: FunctionComponent = () => {
                             size="small"
                         />
                         <Spacer />
+                        <DefaultRenderEditor roomId={universalKey} />
                         <ExitEditor RoomId={universalKey} />
                         <LensHeader
                             RoomId={universalKey}
