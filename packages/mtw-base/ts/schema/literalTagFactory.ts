@@ -1,7 +1,7 @@
 import { GenericTree, GenericTreeNodeFiltered } from "../genericTree";
 import checkTypes, { CheckTypes } from "../utils/checkTypes";
 import { PrintMapResult, PrintMode } from "./printMap";
-import { isSchemaString, SchemaStringTag } from "./renderTree";
+import { isSchemaString, isSchemaSpacer, SchemaStringTag } from "./renderTree";
 import { SchemaTagType } from "./tagType";
 
 export type SchemaLiteralTag<D extends SchemaTagType> = {
@@ -38,13 +38,17 @@ export const literalTagFactory = <D extends SchemaTagType>(tag: D): LiteralTagFa
         if (!typeGuard(tag.data)) {
             return [{ printMode: PrintMode.naive, output: '' }]
         }
-        const textValue = tag.children
+        const innerContent = tag.children
             .map(({ data }) => data)
-            .filter(isSchemaString)
-            .map(({ value }) => value)
-            .join('') as string
-        const naive = `<${tag.data.tag}>${textValue}</${tag.data.tag}>`
+            .map((d) => (isSchemaString(d) ? d.value : isSchemaSpacer(d) ? '<Space />' : ''))
+            .join('')
+        const naive = `<${tag.data.tag}>${innerContent}</${tag.data.tag}>`
         if (naive.length + Math.min(10, options.indent * 4) > 80) {
+            const textValue = tag.children
+                .map(({ data }) => data)
+                .filter(isSchemaString)
+                .map(({ value }) => value)
+                .join('') as string
             const prettyPrintedLines = textValue.split('\n').join(' ').split(' ').reduce<string[]>((previous, word) => {
                 if (previous.length === 0) {
                     return [word]
@@ -66,7 +70,7 @@ export const literalTagFactory = <D extends SchemaTagType>(tag: D): LiteralTagFa
             ]
         }
         else {
-            return [{ printMode: PrintMode.naive, output: `<${tag.data.tag}>${textValue}</${tag.data.tag}>` }]
+            return [{ printMode: PrintMode.naive, output: naive }]
         }
     }
     return {
@@ -82,7 +86,7 @@ export const literalTagFactory = <D extends SchemaTagType>(tag: D): LiteralTagFa
                 }            
                 return { tag }
             },
-            typeCheckContents: isSchemaString,
+            typeCheckContents: (value: any) => isSchemaString(value) || isSchemaSpacer(value),
             finalize: (initialTag: any, children: GenericTree<any>): GenericTreeNodeFiltered<SchemaLiteralTag<D>, SchemaStringTag> => {
                 return {
                     data: { tag },
