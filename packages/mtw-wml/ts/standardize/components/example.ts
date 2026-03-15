@@ -22,7 +22,7 @@ import { HasShortName } from "./abstract"
 import { processWithConsumers, StandardizeConsumerFacetListMark, StandardizeConsumerInline, StandardizeConsumerRender, StandardizeConsumerStandardLiteral } from "./fromSchemaPipeline"
 
 export class StandardExamplePayload implements HasShortName, ComponentConstructorMethods<StandardExampleNDJSONData | StandardExampleData> {
-    _displayName?: StandardRender;
+    _displayName?: StandardLiteral;
     _summary?: StandardRender;
     _description?: StandardRender;
     _shortName?: StandardLiteral;
@@ -44,7 +44,7 @@ export class StandardExamplePayload implements HasShortName, ComponentConstructo
 
     fromJSON(props: StandardExampleData | StandardExampleNDJSONData) {
         const { displayName, summary, description, marks, shortName } = props
-        this._displayName = displayName ? new StandardRender(displayName) : undefined
+        this._displayName = displayName ? new StandardLiteral(displayName, { tag: 'DisplayName' }) : undefined
         this._summary = summary ? new StandardRender(summary) : undefined
         this._description = description ? new StandardRender(description) : undefined
         this._shortName = shortName ? new StandardLiteral(shortName, { tag: 'ShortName' }) : undefined
@@ -60,12 +60,10 @@ export class StandardExamplePayload implements HasShortName, ComponentConstructo
                         this._shortName = literal
                     },
                 }),
-                new StandardizeConsumerRender<StandardExamplePayload, SchemaDisplayNameTag>(this, {
+                new StandardizeConsumerStandardLiteral<StandardExamplePayload>(this, {
                     tag: "DisplayName",
-                    nodeTypeGuard: isSchemaDisplayName,
-                    errorMessage: "Schema mismatch in StandardExample constructor",
-                    update(render) {
-                        this._displayName = render
+                    update(literal) {
+                        this._displayName = literal
                     },
                 }),
                 new StandardizeConsumerRender<StandardExamplePayload, SchemaSummaryTag>(this, {
@@ -130,7 +128,7 @@ export class StandardExamplePayload implements HasShortName, ComponentConstructo
     schema(key: string, universalKey?: ComponentUUID, mappings?: StandardReference[]): GenericTreeNode<SchemaTag> {
         const children = [
             ...[this._shortName].filter(excludeUndefined).map((s) => s.nestedSchema()).flat(1),
-            ...(this._displayName?.nestedSchema({ tag: 'DisplayName', mappings }) ?? []),
+            ...(this._displayName?.nestedSchema({ tag: 'DisplayName' }) ?? []),
             ...(this._summary?.nestedSchema({ tag: 'Summary', mappings }) ?? []),
             ...(this._description?.nestedSchema({ tag: 'Description', mappings }) ?? []),
             ...this.marks.items.map(facet => {
@@ -165,8 +163,8 @@ export class StandardExamplePayload implements HasShortName, ComponentConstructo
     }
 
     referencedKeys(mapping: StandardReference[]): StandardComponentReferenceKey[] {
-        // Extract all RenderTree values from StandardEditableData<RenderTree>
-        const editableData = [this._displayName?.toJSON(), this._summary?.toJSON(), this._description?.toJSON()].filter(excludeUndefined) as StandardEditableData<RenderTree>[]
+        // Extract all RenderTree values from StandardEditableData<RenderTree> (summary/description only; displayName is a StandardLiteral)
+        const editableData = [this._summary?.toJSON(), this._description?.toJSON()].filter(excludeUndefined) as StandardEditableData<RenderTree>[]
         const renderTrees = editableData.flatMap(extractFromEditableData<RenderTree>)
         return [
             ...linkReferenceKeys(mapping)(renderTreeToSchema(renderTrees.flat(1)))
@@ -191,9 +189,7 @@ export class StandardExamplePayload implements HasShortName, ComponentConstructo
                     return first.data.value
                 })
         }
-        if (returnValue._displayName) {
-            returnValue._displayName = returnValue._displayName.mapContents((renderTree) => (schemaToRenderTree(callback(renderTreeToSchema(renderTree)))))
-        }
+        // _displayName is a StandardLiteral; mapContents is not applied to it here.
         if (returnValue._summary) {
             returnValue._summary = returnValue._summary.mapContents((renderTree) => (schemaToRenderTree(callback(renderTreeToSchema(renderTree)))))
         }
@@ -206,7 +202,7 @@ export class StandardExamplePayload implements HasShortName, ComponentConstructo
     
     remapReferences(props: { mappings: StandardReference[]; mapTo: ReferenceFormat }): this {
         const returnValue = new StandardExamplePayload(this)
-        returnValue._displayName = returnValue._displayName?.remapReferences({ mapping: props.mappings, mapTo: props.mapTo })
+        // DisplayName is a StandardLiteral (string-based) and should not participate in link remapping.
         returnValue._summary = returnValue._summary?.remapReferences({ mapping: props.mappings, mapTo: props.mapTo })
         returnValue._description = returnValue._description?.remapReferences({ mapping: props.mappings, mapTo: props.mapTo })
         returnValue._marks = this._marks.lookup(props.mappings).toFormat(props.mapTo)
@@ -253,7 +249,7 @@ export class StandardExamplePayload implements HasShortName, ComponentConstructo
         // Combine with other Example content
         const children = [
             ...[this._shortName].filter(excludeUndefined).map((s) => s.nestedSchema()).flat(1),
-            ...(this._displayName?.nestedSchema({ tag: 'DisplayName', mappings: options.mappings }) ?? []),
+            ...(this._displayName?.nestedSchema({ tag: 'DisplayName' }) ?? []),
             ...(this._summary?.nestedSchema({ tag: 'Summary', mappings: options.mappings }) ?? []),
             ...(this._description?.nestedSchema({ tag: 'Description', mappings: options.mappings }) ?? []),
             ...markNodes

@@ -13,6 +13,8 @@ import {
 } from '@tonylb/mtw-wml/ts/standardize/keys/facets/situationRoom'
 import StandardReference from '@tonylb/mtw-wml/ts/standardize/components/reference'
 import StandardRenderEditor from './StandardRender/StandardRenderEditor'
+import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
+import { TopLevelStandardLiteralEditor } from './StandardLiteral'
 import { MakeTheWorldAccordion } from '../../UI'
 import type { ScopedInstrumentationOptions } from '../../../testing/scopedInstrumentation'
 import {
@@ -146,7 +148,7 @@ export const SituationFacetRenderFieldsEditor: FunctionComponent<SituationFacetR
     )
 
     const handleDisplayNameChange = useCallback(
-        (newDisplayName: StandardRender) => {
+        (newDisplayName: StandardLiteral) => {
             if (facet) {
                 updateFacetPayload((prev) =>
                     new SituationRoomFacetPayload({
@@ -227,14 +229,13 @@ export const SituationFacetRenderFieldsEditor: FunctionComponent<SituationFacetR
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <MakeTheWorldAccordion title="Appearance" defaultExpanded>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, p: 2 }}>
-                    <StandardRenderEditor
-                        title="Display Name"
-                        value={payload?._displayName ?? emptyRender}
+                    <TopLevelStandardLiteralEditor
+                        value={payload?._displayName ?? new StandardLiteral('')}
                         onChange={handleDisplayNameChange}
-                        validLinkTags={['Feature', 'Knowledge']}
-                        toolbar={true}
+                        label="Display Name"
                         placeholder="Enter a Display Name"
-                        tag="DisplayName"
+                        size="small"
+                        readonly={readonly}
                     />
                     <StandardRenderEditor
                         title="Summary"

@@ -34,7 +34,7 @@ describe('StandardExample class', () => {
         `)
         const testExample = new StandardExample(testSource)
         expect(testExample.key).toEqual('test')
-        expect(testExample.displayName?.toJSON()).toEqual(['Name Test'])
+        expect(testExample.displayName?.toJSON()).toEqual('Name Test')
         expect(testExample.summary?.toJSON()).toEqual(['Summary Test'])
         expect(testExample.description?.toJSON()).toEqual(['Description Test'])
         expect(schemaToWML([testExample.schema])).toEqual(testSource)
@@ -52,7 +52,7 @@ describe('StandardExample class', () => {
         schema.loadWML(testSource)
         const testExample = new StandardExample(schema.schema[0])
         expect(testExample.key).toEqual('test')
-        expect(testExample.displayName?.toJSON()).toEqual(['Name Test'])
+        expect(testExample.displayName?.toJSON()).toEqual('Name Test')
         expect(testExample.summary?.toJSON()).toEqual(['Summary Test'])
         expect(testExample.description?.toJSON()).toEqual(['Description Test'])
         expect(schemaToWML([testExample.schema])).toEqual(testSource)
@@ -62,13 +62,13 @@ describe('StandardExample class', () => {
         const testExampleData: StandardExampleData = {
             key: 'test',
             tag: 'Example',
-            displayName: ['Name Test'],
+            displayName: 'Name Test',
             summary: ['Summary Test'],
             description: ['Description Test'],
         }
         const testExample = new StandardExample(testExampleData)
         expect(testExample.key).toEqual('test')
-        expect(testExample.displayName?.toJSON()).toEqual(['Name Test'])
+        expect(testExample.displayName?.toJSON()).toEqual('Name Test')
         expect(testExample.summary?.toJSON()).toEqual(['Summary Test'])
         expect(testExample.description?.toJSON()).toEqual(['Description Test'])
         expect(testExample.toJSON()).toEqual(testExampleData)
@@ -120,7 +120,7 @@ describe('StandardExample class', () => {
         }
         expect(schemaToWML([test.mapContents(callback).schema])).toEqual(deIndentWML(`
             <Example key=(testExample)>
-                <DisplayName>LobbyNarf!</DisplayName>
+                <DisplayName>Lobby</DisplayName>
                 <Summary>SummaryNarf!</Summary>
                 <Description>A plain lobby.Narf!</Description>
             </Example>
@@ -138,7 +138,7 @@ describe('StandardExample class', () => {
         expect(test.toJSON()).toEqual({
             key: 'testExample',
             tag: 'Example',
-            displayName: ['Lobby (lit)'],
+            displayName: 'Lobby (lit)',
             summary: ['Summary'],
             description: ['A plain lobby.']
         })
@@ -148,7 +148,7 @@ describe('StandardExample class', () => {
         const testExample = new StandardExample({
             key: 'test',
             tag: 'Example',
-            displayName: ['Name Test'],
+            displayName: 'Name Test',
             summary: ['Summary Test'],
             description: ['Description Test'],
         })
@@ -159,14 +159,14 @@ describe('StandardExample class', () => {
         const testExample = new StandardExample({
             key: 'test',
             tag: 'Example',
-            displayName: ['Name Test'],
+            displayName: 'Name Test',
             summary: ['Summary Test'],
             description: ['Description Test'],
         })
         const testExample2 = new StandardExample({
             key: 'test',
             tag: 'Example',
-            displayName: ['Name Test'],
+            displayName: 'Name Test',
             summary: ['Summary Test'],
         })
         expect(testExample.diff(testExample2)?.toJSON()).toEqual({
@@ -180,13 +180,13 @@ describe('StandardExample class', () => {
         const testExample = new StandardExample({
             key: 'test',
             tag: 'Example',
-            displayName: ['Name Test'],
+            displayName: 'Name Test',
             summary: ['Summary Test'],
         })
         const testExample2 = new StandardExample({
             key: 'test',
             tag: 'Example',
-            displayName: ['Name Test'],
+            displayName: 'Name Test',
             summary: ['Summary Test'],
             description: ['Description Test'],
         })
@@ -201,14 +201,14 @@ describe('StandardExample class', () => {
         const testExample = new StandardExample({
             key: 'test',
             tag: 'Example',
-            displayName: ['Name Test'],
+            displayName: 'Name Test',
             summary: ['Summary Test'],
             description: ['Description', { data: { tag: 'Space' }, children: [] }, 'Test'],
         })
         const testExample2 = new StandardExample({
             key: 'test',
             tag: 'Example',
-            displayName: ['Name Test'],
+            displayName: 'Name Test',
             summary: ['Summary Test'],
             description: ['Description', { data: { tag: 'Space' }, children: [] }, 'Changed'],
         })
@@ -264,7 +264,7 @@ describe('StandardExample class', () => {
             const testExampleData: StandardExampleData = {
                 key: 'test',
                 tag: 'Example',
-                displayName: ['Name Test'],
+                displayName: 'Name Test',
                 marks: [{
                     reference: { tag: 'Mark', key: 'mark1', universalKey: 'MARK#mark1' },
                     payload: 'Condition narrative'
@@ -282,7 +282,7 @@ describe('StandardExample class', () => {
             const testExampleData: StandardExampleData = {
                 key: 'test',
                 tag: 'Example',
-                displayName: ['Name Test'],
+                displayName: 'Name Test',
                 marks: []
             }
             const testExample = new StandardExample(testExampleData)
@@ -293,7 +293,7 @@ describe('StandardExample class', () => {
             const testExampleData: StandardExampleData = {
                 key: 'test',
                 tag: 'Example',
-                displayName: ['Name Test']
+                displayName: 'Name Test'
             }
             const testExample = new StandardExample(testExampleData)
             expect(testExample.marks.length).toEqual(0)
@@ -303,7 +303,7 @@ describe('StandardExample class', () => {
             const testExample = new StandardExample({
                 key: 'test',
                 tag: 'Example',
-                displayName: ['Name Test'],
+                displayName: 'Name Test',
                 marks: [{
                     reference: { tag: 'Mark', key: 'mark1', universalKey: 'MARK#mark1' },
                     payload: 'Condition narrative'
@@ -318,7 +318,7 @@ describe('StandardExample class', () => {
             const testExample = new StandardExample({
                 key: 'test',
                 tag: 'Example',
-                displayName: ['Name Test']
+                displayName: 'Name Test'
             })
             const json = testExample.toJSON() as StandardExampleData
             expect(json.marks).toBeUndefined()
@@ -346,7 +346,7 @@ describe('StandardExample class', () => {
             const base = new StandardExample({
                 key: 'test',
                 tag: 'Example',
-                displayName: ['Name Test'],
+                displayName: 'Name Test',
                 marks: [{
                     reference: { tag: 'Mark', key: 'mark1', universalKey: 'MARK#mark1' },
                     payload: 'Base narrative'
@@ -355,7 +355,7 @@ describe('StandardExample class', () => {
             const incoming = new StandardExample({
                 key: 'test',
                 tag: 'Example',
-                displayName: ['Name Test'],
+                displayName: 'Name Test',
                 marks: [{
                     reference: { tag: 'Mark', key: 'mark2', universalKey: 'MARK#mark2' },
                     payload: 'Incoming narrative'
@@ -369,12 +369,12 @@ describe('StandardExample class', () => {
             const base = new StandardExample({
                 key: 'test',
                 tag: 'Example',
-                displayName: ['Name Test']
+                displayName: 'Name Test'
             })
             const incoming = new StandardExample({
                 key: 'test',
                 tag: 'Example',
-                displayName: ['Name Test'],
+                displayName: 'Name Test',
                 marks: [{
                     reference: { tag: 'Mark', key: 'mark1', universalKey: 'MARK#mark1' },
                     payload: 'Incoming narrative'
@@ -388,7 +388,7 @@ describe('StandardExample class', () => {
             const base = new StandardExample({
                 key: 'test',
                 tag: 'Example',
-                displayName: ['Name Test'],
+                displayName: 'Name Test',
                 marks: [{
                     reference: { tag: 'Mark', key: 'mark1', universalKey: 'MARK#mark1' },
                     payload: 'Base narrative'
@@ -397,7 +397,7 @@ describe('StandardExample class', () => {
             const incoming = new StandardExample({
                 key: 'test',
                 tag: 'Example',
-                displayName: ['Name Test']
+                displayName: 'Name Test'
             })
             const merged = base.merge(incoming) as StandardExample
             expect(merged?.marks.length).toEqual(1)
@@ -407,7 +407,7 @@ describe('StandardExample class', () => {
             const base = new StandardExample({
                 key: 'test',
                 tag: 'Example',
-                displayName: ['Name Test'],
+                displayName: 'Name Test',
                 marks: [{
                     reference: { tag: 'Mark', key: 'mark1', universalKey: 'MARK#mark1' },
                     payload: 'Base narrative'
@@ -416,7 +416,7 @@ describe('StandardExample class', () => {
             const incoming = new StandardExample({
                 key: 'test',
                 tag: 'Example',
-                displayName: ['Name Test'],
+                displayName: 'Name Test',
                 marks: [{
                     reference: { tag: 'Mark', key: 'mark2', universalKey: 'MARK#mark2' },
                     payload: 'Incoming narrative'
@@ -434,7 +434,7 @@ describe('StandardExample class', () => {
             const base = new StandardExample({
                 key: 'test',
                 tag: 'Example',
-                displayName: ['Name Test'],
+                displayName: 'Name Test',
                 marks: [{
                     reference: { tag: 'Mark', key: 'mark1', universalKey: 'MARK#mark1' },
                     payload: 'Base narrative'
@@ -443,7 +443,7 @@ describe('StandardExample class', () => {
             const incoming = new StandardExample({
                 key: 'test',
                 tag: 'Example',
-                displayName: ['Name Test']
+                displayName: 'Name Test'
             })
             const diff = base.diff(incoming) as StandardExample | undefined
             expect(diff).toBeDefined()
@@ -453,7 +453,7 @@ describe('StandardExample class', () => {
             const base = new StandardExample({
                 key: 'test',
                 tag: 'Example',
-                displayName: ['Name Test'],
+                displayName: 'Name Test',
                 marks: [{
                     reference: { tag: 'Mark', key: 'mark1', universalKey: 'MARK#mark1' },
                     payload: 'Same narrative'
@@ -462,7 +462,7 @@ describe('StandardExample class', () => {
             const incoming = new StandardExample({
                 key: 'test',
                 tag: 'Example',
-                displayName: ['Name Test'],
+                displayName: 'Name Test',
                 marks: [{
                     reference: { tag: 'Mark', key: 'mark1', universalKey: 'MARK#mark1' },
                     payload: 'Same narrative'
@@ -482,7 +482,7 @@ describe('StandardExample class', () => {
             const testExample = new StandardExample({
                 key: 'test',
                 tag: 'Example',
-                displayName: ['Name Test'],
+                displayName: 'Name Test',
                 marks: [{
                     reference: { tag: 'Mark', key: 'mark1', universalKey: 'MARK#mark1' },
                     payload: 'Condition narrative'
@@ -499,7 +499,7 @@ describe('StandardExample class', () => {
             const testExample = new StandardExample({
                 key: 'test',
                 tag: 'Example',
-                displayName: ['Name Test'],
+                displayName: 'Name Test',
                 marks: [{
                     reference: { tag: 'Mark', key: 'mark1', universalKey: 'MARK#mark1' },
                     payload: 'Condition narrative'
@@ -514,7 +514,7 @@ describe('StandardExample class', () => {
             const testExample = new StandardExample({
                 key: 'test',
                 tag: 'Example',
-                displayName: ['Name Test'],
+                displayName: 'Name Test',
                 marks: [{
                     reference: { tag: 'Mark', key: 'mark1' },
                     payload: 'Condition narrative'
@@ -530,7 +530,7 @@ describe('StandardExample class', () => {
             const testExample = new StandardExample({
                 key: 'test',
                 tag: 'Example',
-                displayName: ['Name Test'],
+                displayName: 'Name Test',
                 marks: [{
                     reference: { tag: 'Mark', key: 'mark1', universalKey: 'MARK#mark1' },
                     payload: 'Condition narrative'
@@ -574,7 +574,7 @@ describe('StandardExample class', () => {
             const testExample = new StandardExample({
                 key: 'test',
                 tag: 'Example',
-                displayName: ['Name Test'],
+                displayName: 'Name Test',
                 summary: ['Summary Test'],
                 description: ['Description Test'],
                 marks: [{
@@ -582,7 +582,7 @@ describe('StandardExample class', () => {
                     payload: 'Condition narrative'
                 }]
             })
-            expect(testExample.displayName?.toJSON()).toEqual(['Name Test'])
+            expect(testExample.displayName?.toJSON()).toEqual('Name Test')
             expect(testExample.summary?.toJSON()).toEqual(['Summary Test'])
             expect(testExample.description?.toJSON()).toEqual(['Description Test'])
             expect(testExample.marks.length).toEqual(1)
@@ -617,7 +617,7 @@ describe('StandardExample class', () => {
                 const testExample = new StandardExample({
                     key: 'test',
                     tag: 'Example',
-                    displayName: ['Name Test'],
+                    displayName: 'Name Test',
                     marks: [{
                         reference: { tag: 'Mark', key: 'mark1', universalKey: 'MARK#mark1' },
                         payload: 'Condition narrative'
@@ -662,7 +662,7 @@ describe('StandardExample class', () => {
                 const testExample = new StandardExample({
                     key: 'test',
                     tag: 'Example',
-                    displayName: ['Name Test'],
+                    displayName: 'Name Test',
                     summary: ['Summary Test'],
                     description: ['Description Test'],
                     marks: [{
@@ -692,7 +692,7 @@ describe('StandardExample class', () => {
                 const testExample = new StandardExample({
                     key: 'test',
                     tag: 'Example',
-                    displayName: ['Name Test'],
+                    displayName: 'Name Test',
                 marks: [{
                     reference: { tag: 'Mark', key: 'mark1', universalKey: 'MARK#mark1' },
                     payload: 'First condition'
@@ -718,7 +718,7 @@ describe('StandardExample class', () => {
                 const testExample = new StandardExample({
                     key: 'test',
                     tag: 'Example',
-                    displayName: ['Name Test']
+                    displayName: 'Name Test'
                 })
 
                 const options = {
@@ -782,7 +782,7 @@ describe('StandardExample class', () => {
                 const testExample = new StandardExample({
                     key: 'test',
                     tag: 'Example',
-                    displayName: ['Name Test'],
+                    displayName: 'Name Test',
                     marks: [{
                         reference: { tag: 'Mark', key: 'mark1', universalKey: 'MARK#mark1' },
                         payload: 'Condition narrative'
@@ -870,7 +870,7 @@ describe('StandardExample class', () => {
             `)
             const testExample = new StandardExample(testSource)
             expect(testExample.shortName?.toJSON()).toEqual('Tab label')
-            expect(testExample.displayName?.toJSON()).toEqual(['Name Test'])
+            expect(testExample.displayName?.toJSON()).toEqual('Name Test')
             const resultWML = schemaToWML([testExample.schema])
             expect(resultWML).toContain('<ShortName>Tab label</ShortName>')
             expect(resultWML).toContain('<DisplayName>Name Test</DisplayName>')
@@ -883,7 +883,7 @@ describe('StandardExample class', () => {
                 key: 'test',
                 tag: 'Example',
                 shortName: 'Example label',
-                displayName: ['Name Test'],
+                displayName: 'Name Test',
                 summary: ['Summary Test'],
                 description: ['Description Test'],
             }
@@ -896,13 +896,13 @@ describe('StandardExample class', () => {
             const base = new StandardExample({
                 key: 'test',
                 tag: 'Example',
-                displayName: ['Name Test'],
+                displayName: 'Name Test',
                 shortName: 'Base',
             })
             const incoming = new StandardExample({
                 key: 'test',
                 tag: 'Example',
-                displayName: ['Name Test'],
+                displayName: 'Name Test',
                 shortName: 'Incoming',
             })
             const merged = base.merge(incoming) as StandardExample
@@ -913,7 +913,7 @@ describe('StandardExample class', () => {
             const testExample = new StandardExample({
                 key: 'test',
                 tag: 'Example',
-                displayName: ['Name Test'],
+                displayName: 'Name Test',
                 shortName: 'Label',
             })
             const inverted = testExample.invert() as StandardExample
@@ -937,7 +937,7 @@ describe('StandardExample class', () => {
                 key: 'test',
                 tag: 'Example',
                 shortName: 'Tab label',
-                displayName: ['Name Test'],
+                displayName: 'Name Test',
             })
             const schema = testExample.schema
             const shortNameNode = schema.children.find((c: any) => c.data?.tag === 'ShortName')
@@ -955,7 +955,7 @@ describe('StandardExample class', () => {
                 key: 'test',
                 tag: 'Example',
                 shortName: 'Original',
-                displayName: ['Name Test'],
+                displayName: 'Name Test',
             })
             const mapped = testExample.mapContents((tree) =>
                 tree.map((node) => {

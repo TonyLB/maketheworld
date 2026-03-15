@@ -4,10 +4,9 @@ import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
 import { Schema, schemaToWML } from "@tonylb/mtw-wml/ts/schema"
 import { deIndentWML } from "@tonylb/mtw-wml/ts/schema/utils"
 import { publicSelectors } from "./selectors"
-import { StandardRender } from "@tonylb/mtw-wml/ts/standardize/render"
 import StandardExample from "@tonylb/mtw-wml/ts/standardize/components/example"
+import { StandardLiteral } from "@tonylb/mtw-wml/ts/standardize/literal"
 import { StandardExplicitKey } from "@tonylb/mtw-wml/ts/standardize/explicit"
-import { StandardComponent } from "@tonylb/mtw-wml/ts/standardize/components/baseClasses"
 import ReferenceList from "@tonylb/mtw-wml/ts/standardize/keys/referenceList"
 import StandardReference from "@tonylb/mtw-wml/ts/standardize/keys/reference"
 
@@ -71,7 +70,7 @@ describe('personalAsset slice reducers', () => {
                         const exampleComponent = draft.byUniversalId['EXAMPLE#base']
                         if (exampleComponent instanceof StandardExample) {
                             const newExample = exampleComponent.clone()
-                            newExample._payload._displayName = new StandardRender(['Test Update'])
+                            newExample._payload._displayName = new StandardLiteral('Test Update', { tag: 'DisplayName' })
                             draft.byUniversalId['EXAMPLE#base'] = newExample
                         }
                         return draft

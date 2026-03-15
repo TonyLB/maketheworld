@@ -34,7 +34,7 @@ describe('ExamplesData', () => {
         expect(output['ROOM#TestOne'][0].examples[0].toJSON()).toEqual({
             tag: 'Example',
             universalKey: 'EXAMPLE#Base',
-            displayName: ['Example Name'],
+            displayName: 'Example Name',
             description: ['Example Description'],
             summary: ['Example Summary']
         })
@@ -71,7 +71,7 @@ describe('ExamplesData', () => {
         const example = new StandardExample({
             tag: 'Example',
             universalKey: 'EXAMPLE#Base',
-            displayName: ['Example Name'],
+            displayName: 'Example Name',
             description: ['Example Description'],
             summary: ['Example Summary']
         })
@@ -95,7 +95,7 @@ describe('ExamplesData', () => {
         const example = new StandardExample({
             tag: 'Example',
             universalKey: 'EXAMPLE#Base',
-            displayName: ['Example Name'],
+            displayName: 'Example Name',
             description: ['Example Description'],
             summary: ['Example Summary']
         })

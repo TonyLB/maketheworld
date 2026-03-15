@@ -56,20 +56,19 @@ export const ExampleEditor: FunctionComponent = () => {
     )
 
     const handleDisplayNameChange = useCallback(
-        (newDisplayName: StandardRender) => {
+        (newDisplayName: StandardLiteral) => {
             if (!componentId || readonly) return
             const currentExample = standardForm.byUniversalId[componentId]
             if (!currentExample || !(currentExample instanceof StandardExample)) return
-            const newValue = newDisplayName.toJSON() ?? []
-            const currentValue = currentExample.displayName?.toJSON() ?? []
-            if (JSON.stringify(currentValue) === JSON.stringify(newValue)) return
+            const newValue = newDisplayName._payload?.plain?.toJSON() ?? ''
+            const currentValue = currentExample.displayName?._payload?.plain?.toJSON() ?? ''
+            if (currentValue === newValue || (!currentValue && !newValue)) return
             updateStandard({
                 type: 'update',
                 update: (draft: StandardForm) => {
                     const ex = draft.byUniversalId[componentId]
                     if (ex && ex instanceof StandardExample) {
-                        const isEmpty = !newValue || (Array.isArray(newValue) && newValue.length === 0)
-                        ex._payload._displayName = isEmpty ? undefined : newDisplayName
+                        ex._payload._displayName = newValue ? newDisplayName : undefined
                     }
                     return draft
                 }
@@ -151,14 +150,13 @@ export const ExampleEditor: FunctionComponent = () => {
             </MakeTheWorldAccordion>
             <MakeTheWorldAccordion title="Appearance" defaultExpanded>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, p: 2 }}>
-                    <StandardRenderEditor
-                        title="Display Name"
-                        value={component.displayName ?? new StandardRender([])}
+                    <TopLevelStandardLiteralEditor
+                        value={component.displayName ?? new StandardLiteral('')}
                         onChange={handleDisplayNameChange}
-                        validLinkTags={['Feature', 'Knowledge']}
-                        toolbar={true}
+                        label="Display Name"
                         placeholder="Enter a Display Name"
-                        tag="DisplayName"
+                        size="small"
+                        readonly={readonly}
                     />
                     <StandardRenderEditor
                         title="Summary"

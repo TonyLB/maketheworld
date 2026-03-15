@@ -261,7 +261,9 @@ export const exampleToCacheShape = (example: StandardExample): ComponentExamples
     }
 
     //
-    // Extract RenderTree content from StandardRender / StandardEditableData
+    // Extract RenderTree-compatible content from StandardEditableData
+    // DisplayName is now a StandardLiteral (string-based) represented as StandardEditableData<string>
+    // Summary/description remain RenderTree-based.
     //
     const json = example.toJSON()
     if (!isStandardExampleData(json)) {
@@ -274,12 +276,14 @@ export const exampleToCacheShape = (example: StandardExample): ComponentExamples
         return trees[0]
     }
 
-    const displayName = toRenderTree(json.displayName)
+    const displayName = json.displayName
+        ? (extractFromEditableData<string>(json.displayName as unknown as StandardEditableData<string>) as unknown as RenderTree)
+        : undefined
     const summary = toRenderTree(json.summary)
     const description = toRenderTree(json.description) ?? []
 
     const renderedContent: ComponentExamplesRenderedContent = {
-        ...(displayName ? { displayName } : {}),
+        ...(displayName && (displayName as RenderTree).length ? { displayName } : {}),
         ...(summary ? { summary } : {}),
         description,
     }
@@ -324,8 +328,9 @@ export const situationFacetToCacheShape = (
         const trees = extractFromEditableData<RenderTree>(editable)
         return trees[0]
     }
+    // DisplayName is now a StandardLiteral (string-based); convert to RenderTree-compatible array of strings.
     const displayName = facetPayload._displayName
-        ? toRenderTree(facetPayload._displayName.toJSON() as StandardEditableData<RenderTree>)
+        ? (extractFromEditableData<string>(facetPayload._displayName.toJSON() as StandardEditableData<string>) as RenderTree)
         : undefined
     const summary = facetPayload._summary
         ? toRenderTree(facetPayload._summary.toJSON() as StandardEditableData<RenderTree>)
@@ -336,7 +341,7 @@ export const situationFacetToCacheShape = (
             : []
 
     const renderedContent: ComponentExamplesRenderedContent = {
-        ...(displayName ? { displayName } : {}),
+        ...(displayName && (displayName as RenderTree).length ? { displayName } : {}),
         ...(summary ? { summary } : {}),
         description,
     }

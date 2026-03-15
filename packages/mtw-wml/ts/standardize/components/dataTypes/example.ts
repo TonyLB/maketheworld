@@ -6,7 +6,7 @@ import { StandardEditableData } from "@tonylb/mtw-base/ts/editable"
 
 export type StandardExampleData = {
     tag: 'Example';
-    displayName?: StandardEditableData<RenderTree>;
+    displayName?: StandardEditableData<string>;
     summary?: StandardEditableData<RenderTree>;
     description?: StandardEditableData<RenderTree>;
     marks?: FacetListData<string>;  // MarkFacet uses string payload (Remove/Replace handled via StandardFacetData)
@@ -15,7 +15,7 @@ export type StandardExampleData = {
 
 export type StandardExampleNDJSONData = {
     tag: 'Example';
-    displayName?: StandardEditableData<RenderTree>;
+    displayName?: StandardEditableData<string>;
     summary?: StandardEditableData<RenderTree>;
     description?: StandardEditableData<RenderTree>;
     marks?: FacetListData<string>;  // MarkFacet uses string payload (Remove/Replace handled via StandardFacetData)
@@ -33,7 +33,7 @@ export const isStandardExampleData = (arg: any): arg is StandardExampleData => {
         {
             key: 'key',
             universalKey: 'string',
-            displayName: 'renderTree',
+            displayName: 'literal',
             summary: 'renderTree',
             description: 'renderTree',
             marks: 'facetList',
