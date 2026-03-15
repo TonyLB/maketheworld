@@ -123,6 +123,8 @@ export const RoomDescription = ({ parsedWML, metaData, header, currentHeader }: 
     const inPersonalRoom = useMemo(() => (currentHeader && Boolean(Object.keys(currentAssets).map((assetId) => (assetId.split('#')[1])).find((key) => (Assets?.map(({ AssetId }) => (AssetId))?.includes(key) || false)))), [currentHeader, Assets, currentAssets])
     useOnboardingCheckpoint('navigatePersonalRoom', { requireSequence: true, condition: inPersonalRoom })
 
+    const nameText = (name?._payload?.plain?.toJSON?.() as string) ?? 'Untitled'
+
     return <MessageComponent
             flush={header}
             sx={{
@@ -167,7 +169,7 @@ export const RoomDescription = ({ parsedWML, metaData, header, currentHeader }: 
                     }}
                 >
                     <Typography variant='h5' align='left'>
-                        { (name as any).plainString ?? 'Untitled' }
+                        { nameText }
                         { currentHeader && <MiniChip text="Live" /> }
                     </Typography>
                     <Box sx={{ overflow: 'hidden' }}>

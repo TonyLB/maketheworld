@@ -8,7 +8,6 @@ import { useActiveCharacter } from '../ActiveCharacter'
 
 import CharacterChip from '../CharacterChip'
 import { StandardCharacter } from '@tonylb/mtw-wml/ts/standardize/components/character'
-import { StandardRender } from '@tonylb/mtw-wml/ts/standardize/render'
 
 interface RoomCharacterProps {
     character: StandardCharacter;  // Only accept Standard format
@@ -16,8 +15,8 @@ interface RoomCharacterProps {
 }
 
 export const RoomCharacter = ({ character }: RoomCharacterProps) => {
-    // Access data through StandardCharacter getters - name is already StandardRender
-    const characterName = character.displayName ? character.displayName.plainString : 'Unknown Character'
+    // Access data through StandardCharacter getters - displayName is now a StandardLiteral
+    const characterName = character.displayName ? (character.displayName._payload?.plain?.toJSON?.() as string) : 'Unknown Character'
     const characterId = character.universalKey || character.key as any
     const characterImage = (character.image?.data && 'fileURL' in character.image.data) ? character.image.data.fileURL || '' : ''
 
