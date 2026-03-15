@@ -16,6 +16,7 @@ import {
     setLoadedImage as setLoadedImageReducer,
     updateStandard as updateStandardReducer,
     clearPendingEditsByRequestIds as clearPendingEditsByRequestIdsReducer,
+    clearLastUpdateDiff as clearLastUpdateDiffReducer,
     saveEdit as saveEditReducer,
     UpdateStandardPayload
 } from './reducers'
@@ -92,7 +93,8 @@ export const {
             pendingEdits: [],
             edit: { universalKey: 'ASSET#uninitialized', components: [], metaData: [] },
             inherited: { universalKey: 'ASSET#uninitialized', components: [], metaData: [] },
-            instrumentationOptionsForCurrentEdit: undefined
+            instrumentationOptionsForCurrentEdit: undefined,
+            lastUpdateDiff: undefined
         }
     },
     sliceSelector: ({ personalAssets }) => (personalAssets),
@@ -101,6 +103,7 @@ export const {
         setLoadedImage: setLoadedImageReducer,
         updateStandard: updateStandardReducer,
         clearPendingEditsByRequestIds: clearPendingEditsByRequestIdsReducer,
+        clearLastUpdateDiff: clearLastUpdateDiffReducer,
         saveEdit: saveEditReducer
     },
     publicSelectors,
@@ -116,7 +119,8 @@ export const {
                 loadedImages: {},
                 pendingEdits: [],
                 edit: { universalKey: 'ASSET#uninitialized', components: [], metaData: [] },
-                inherited: { universalKey: 'ASSET#uninitialized', components: [], metaData: [] }
+                inherited: { universalKey: 'ASSET#uninitialized', components: [], metaData: [] },
+                lastUpdateDiff: undefined
             }
         },
         states: {
