@@ -70,6 +70,8 @@ export const RoomEditor: FunctionComponent = () => {
         return markRefs.length >= 1
     }, [room, singleLens])
 
+    const hasLens = !!singleLens
+
     const handlePreviewClick = useCallback(() => {
         if (!universalKey || !canOpenPreview || readonly) return
         dispatch(pushBreadcrumb({
@@ -255,90 +257,94 @@ export const RoomEditor: FunctionComponent = () => {
                         <Spacer />
                         <DefaultRenderEditor roomId={universalKey} />
                         <ExitEditor RoomId={universalKey} />
+                        <FeatureListEditor RoomId={universalKey} />
                         <LensHeader
                             RoomId={universalKey}
                             onEditLens={(lensId) =>
                                 dispatch(pushBreadcrumb({ id: lensId, kind: 'component', componentId: lensId }))
                             }
                         />
-                        <FeatureListEditor RoomId={universalKey} />
-                        {/* Room Examples are not shown in the UI; supplanted by Situation facets. */}
-                        <Box sx={{ marginTop: '0.5em' }}>
-                            <ReferenceListEditor
-                                title="Guidance"
-                                listContext={guidanceListContext}
-                                tag="Guidance"
-                                disabled={readonly}
-                                onItemClick={handleGuidanceItemClick}
-                            />
-                        </Box>
-                        <Box sx={{ marginTop: '0.5em' }}>
-                            <ReferenceListEditorGeneric
-                                title="Situations"
-                                items={situationItems}
-                                defaultExpanded={!!situationItems.length}
-                                disabled={readonly}
-                                variant="table"
-                                onItemClick={handleSituationItemClick}
-                                onItemRemove={handleSituationRemove}
-                                actionAffordances={
-                                    <>
-                                        <ListItem>
-                                            <ListItemButton
-                                                onClick={() => setSituationSelectorOpen(true)}
-                                                disabled={readonly}
-                                                sx={{ justifyContent: 'center' }}
-                                            >
-                                                <ListItemIcon>
-                                                    <LinkIcon />
-                                                </ListItemIcon>
-                                                <ListItemText primary="Reference existing Situation" />
-                                            </ListItemButton>
-                                        </ListItem>
-                                        <ListItem>
-                                            <ListItemButton
-                                                onClick={handleCreateNewSituation}
-                                                disabled={readonly}
-                                                sx={{ justifyContent: 'center' }}
-                                            >
-                                                <ListItemIcon>
-                                                    <AddIcon />
-                                                </ListItemIcon>
-                                                <ListItemText primary="Create new Situation" />
-                                            </ListItemButton>
-                                        </ListItem>
-                                    </>
-                                }
-                            />
-                            {situationSelectorOpen && (
-                                <ComponentSelectorDialog
-                                    open={situationSelectorOpen}
-                                    onClose={() => setSituationSelectorOpen(false)}
-                                    tag="Situation"
-                                    onSelect={handleAddExistingSituation}
-                                    isExcluded={isSituationExcluded}
-                                />
-                            )}
-                        </Box>
-                        <Box sx={{ marginTop: '0.5em' }}>
-                            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>Preview</Typography>
-                            {canOpenPreview ? (
-                                <ListItemButton
-                                    onClick={handlePreviewClick}
-                                    disabled={readonly}
-                                    sx={{ borderRadius: 1, border: '1px solid', borderColor: 'divider' }}
-                                >
-                                    <ListItemIcon sx={{ minWidth: 36 }}>
-                                        <VisibilityIcon fontSize="small" />
-                                    </ListItemIcon>
-                                    <ListItemText primary="Open Preview" secondary="Propose mark state and see cached result" />
-                                </ListItemButton>
-                            ) : (
-                                <Typography variant="body2" color="text.secondary">
-                                    Add a Lens with Marks to use Preview.
-                                </Typography>
-                            )}
-                        </Box>
+                        {hasLens && (
+                            <>
+                                {/* Room Examples are not shown in the UI; supplanted by Situation facets. */}
+                                <Box sx={{ marginTop: '0.5em' }}>
+                                    <ReferenceListEditor
+                                        title="Guidance"
+                                        listContext={guidanceListContext}
+                                        tag="Guidance"
+                                        disabled={readonly}
+                                        onItemClick={handleGuidanceItemClick}
+                                    />
+                                </Box>
+                                <Box sx={{ marginTop: '0.5em' }}>
+                                    <ReferenceListEditorGeneric
+                                        title="Situations"
+                                        items={situationItems}
+                                        defaultExpanded={!!situationItems.length}
+                                        disabled={readonly}
+                                        variant="table"
+                                        onItemClick={handleSituationItemClick}
+                                        onItemRemove={handleSituationRemove}
+                                        actionAffordances={
+                                            <>
+                                                <ListItem>
+                                                    <ListItemButton
+                                                        onClick={() => setSituationSelectorOpen(true)}
+                                                        disabled={readonly}
+                                                        sx={{ justifyContent: 'center' }}
+                                                    >
+                                                        <ListItemIcon>
+                                                            <LinkIcon />
+                                                        </ListItemIcon>
+                                                        <ListItemText primary="Reference existing Situation" />
+                                                    </ListItemButton>
+                                                </ListItem>
+                                                <ListItem>
+                                                    <ListItemButton
+                                                        onClick={handleCreateNewSituation}
+                                                        disabled={readonly}
+                                                        sx={{ justifyContent: 'center' }}
+                                                    >
+                                                        <ListItemIcon>
+                                                            <AddIcon />
+                                                        </ListItemIcon>
+                                                        <ListItemText primary="Create new Situation" />
+                                                    </ListItemButton>
+                                                </ListItem>
+                                            </>
+                                        }
+                                    />
+                                    {situationSelectorOpen && (
+                                        <ComponentSelectorDialog
+                                            open={situationSelectorOpen}
+                                            onClose={() => setSituationSelectorOpen(false)}
+                                            tag="Situation"
+                                            onSelect={handleAddExistingSituation}
+                                            isExcluded={isSituationExcluded}
+                                        />
+                                    )}
+                                </Box>
+                                <Box sx={{ marginTop: '0.5em' }}>
+                                    <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>Preview</Typography>
+                                    {canOpenPreview ? (
+                                        <ListItemButton
+                                            onClick={handlePreviewClick}
+                                            disabled={readonly}
+                                            sx={{ borderRadius: 1, border: '1px solid', borderColor: 'divider' }}
+                                        >
+                                            <ListItemIcon sx={{ minWidth: 36 }}>
+                                                <VisibilityIcon fontSize="small" />
+                                            </ListItemIcon>
+                                            <ListItemText primary="Open Preview" secondary="Propose mark state and see cached result" />
+                                        </ListItemButton>
+                                    ) : (
+                                        <Typography variant="body2" color="text.secondary">
+                                            Add a Lens with Marks to use Preview.
+                                        </Typography>
+                                    )}
+                                </Box>
+                            </>
+                        )}
                     </Box>
                 </Box>
             </Box>
