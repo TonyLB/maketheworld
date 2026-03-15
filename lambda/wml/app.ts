@@ -2,7 +2,6 @@ import backupWML from "./backupWML";
 import internalCache from "./internalCache";
 import { S3Client } from "@aws-sdk/client-s3";
 import messageBus from "./messageBus";
-import type { StreamingEventMessage } from "./messageBus/baseClasses";
 import { extractReturnValue } from "./returnValue/index";
 import { sendApplyEdit, sendMoveAsset, sendPurgeAsset } from './dataSource/subscribedEvents';
 import { sendInitializeSubscription } from './dataSource/initSubscription';

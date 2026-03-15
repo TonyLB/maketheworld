@@ -82,29 +82,6 @@ export const RoomEditor: FunctionComponent = () => {
     useOnboardingCheckpoint('navigateRoom', { requireSequence: true })
     useOnboardingCheckpoint('navigateAssetWithImport', { requireSequence: true })
 
-    const examplesListContext = useCallback(
-        (form: StandardForm) => {
-            const base = form.byUniversalId[universalKey!]
-            if (!base || !(base instanceof StandardRoom)) return null
-            const examples = base._payload._examples ?? new ReferenceList([])
-            return {
-                referenceList: examples,
-                setReferenceList: (list: ReferenceList) => {
-                    base._payload._examples = list
-                }
-            }
-        },
-        [universalKey]
-    )
-
-    const handleExamplesItemClick = useCallback(
-        (id: string) => {
-            if (!room || readonly) return
-            dispatch(pushBreadcrumb({ id: id as ComponentUUID, kind: 'component', componentId: id as ComponentUUID }))
-        },
-        [room, readonly, dispatch, universalKey]
-    )
-
     const guidanceListContext = useCallback(
         (form: StandardForm) => {
             const base = form.byUniversalId[universalKey!]
@@ -285,15 +262,7 @@ export const RoomEditor: FunctionComponent = () => {
                             }
                         />
                         <FeatureListEditor RoomId={universalKey} />
-                        <Box sx={{ marginTop: '0.5em' }}>
-                            <ReferenceListEditor
-                                title="Examples"
-                                listContext={examplesListContext}
-                                tag="Example"
-                                disabled={readonly}
-                                onItemClick={handleExamplesItemClick}
-                            />
-                        </Box>
+                        {/* Room Examples are not shown in the UI; supplanted by Situation facets. */}
                         <Box sx={{ marginTop: '0.5em' }}>
                             <ReferenceListEditor
                                 title="Guidance"

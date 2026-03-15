@@ -1,7 +1,6 @@
 import { 
     DiagnosticsEventSerializer,
     DiagnosticsEventUpdate,
-    DiagnosticsEventExternal,
     isS3StructureFindingEvent,
     isCacheConsistencyFindingEvent,
     isDiagnosticsEventUpdate

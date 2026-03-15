@@ -23,8 +23,8 @@ import { StartExecutionCommand } from "@aws-sdk/client-sfn"
 import { PublishCommand } from "@aws-sdk/client-sns"
 import { createBackupEntry } from "./backups"
 import { extractReturnValue } from './returnValue'
-import { WMLEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/wml'
-import { DiagnosticsEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics'
+import { WMLEventSerializer, WMLEventUpdate } from '@tonylb/mtw-interfaces/ts/eventBridge/wml'
+import { DiagnosticsEventSerializer, DiagnosticsEventUpdate } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics'
 import { fromEventBridgeFormat } from '@tonylb/mtw-lambda-patterns/ts/dataSource/formatTransform'
 import { coreFormatToStreamingEnvelope, createInternalOriginEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import { createNodeDataSourceEnvironment } from '@tonylb/mtw-lambda-patterns/ts/dataSource/nodeEnvironment'
@@ -123,7 +123,7 @@ export const handler = async (event, context) => {
             if (deserializer) {
                 // Convert EventBridge event to CoreExternalFormat using format transformer
                 const coreFormat = fromEventBridgeFormat(event)
-                const envelope = coreFormatToStreamingEnvelope(coreFormat, () =>
+                const envelope = coreFormatToStreamingEnvelope<WMLEventUpdate | DiagnosticsEventUpdate | null>(coreFormat, () =>
                     deserializer.deserialize({ content: coreFormat.update as any, header: coreFormat.header })
                 )
                 messageBus.send({
