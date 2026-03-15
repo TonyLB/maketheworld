@@ -1,8 +1,8 @@
 import type { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { standardComponentFactory } from '@tonylb/mtw-wml/ts/standardize/componentFactory'
-import type { AssetUUID } from '@tonylb/mtw-base/ts/schema'
+import type { AssetUUID, ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 
-const DEFAULT_SITUATION_ID = 'SITUATION#DEFAULT'
+export const DEFAULT_SITUATION_ID: ComponentUUID = 'SITUATION#DEFAULT'
 const PRIMITIVES_ASSET_ID: AssetUUID = 'ASSET#primitives'
 
 /**
