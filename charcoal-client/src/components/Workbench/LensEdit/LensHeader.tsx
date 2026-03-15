@@ -1,36 +1,25 @@
-import React, { FunctionComponent, useCallback, useMemo, useState } from "react"
+import React, { FunctionComponent, useCallback, useMemo } from "react"
 import Box from "@mui/material/Box"
 import List from "@mui/material/List"
-import ListItem from "@mui/material/ListItem"
-import ListItemButton from "@mui/material/ListItemButton"
-import ListItemIcon from "@mui/material/ListItemIcon"
-import ListItemText from "@mui/material/ListItemText"
 import IconButton from "@mui/material/IconButton"
 import Typography from "@mui/material/Typography"
 import Alert from "@mui/material/Alert"
 import Button from "@mui/material/Button"
-import { useDispatch } from "react-redux"
 import { useWorkbenchAsset } from "../foundations/useWorkbenchAsset"
-import AddIcon from "@mui/icons-material/Add"
 import DeleteIcon from "@mui/icons-material/Delete"
-import LinkIcon from "@mui/icons-material/Link"
 import EditIcon from "@mui/icons-material/Edit"
-import ImportExportIcon from "@mui/icons-material/ImportExport"
 import { MakeTheWorldAccordion } from "../../UI"
 import StandardRoom from "@tonylb/mtw-wml/ts/standardize/components/room"
 import { StandardLens } from "@tonylb/mtw-wml/ts/standardize/components/worldState"
 import StandardReference from "@tonylb/mtw-wml/ts/standardize/components/reference"
 import { SingleReference } from "@tonylb/mtw-wml/ts/standardize/keys/singleReference"
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
-import { ComponentSelectorDialog } from "../foundations/ComponentSelector"
-import ImportComponentDialog from "../ImportComponentDialog"
 import { ComponentUUID } from "@tonylb/mtw-base/ts/schema"
 import { v4 as uuidv4 } from "uuid"
 import { enforceTypedKey } from "@tonylb/mtw-utilities/ts/types"
 import { renderTreeToPlainText } from "../foundations/renderTreeToPlainText"
-import { addImport } from "../../../slices/personalAssets"
 import type { ReferenceListDescriptor } from "../../../slices/personalAssets"
-import { AssetUUID } from "@tonylb/mtw-base/ts/schema"
+import { useAddReferenceImport } from "../foundations/ReferenceList/AddReferenceImportControl"
 
 export type LensHeaderProps = {
     RoomId: ComponentUUID
@@ -45,10 +34,7 @@ function getLensSummaryLabel(lens: StandardLens): string {
 }
 
 export const LensHeader: FunctionComponent<LensHeaderProps> = ({ RoomId, onEditLens }) => {
-    const dispatch = useDispatch()
-    const { standardForm, updateStandard, readonly, AssetId } = useWorkbenchAsset()
-    const [lensSelectorOpen, setLensSelectorOpen] = useState(false)
-    const [importDialogOpen, setImportDialogOpen] = useState(false)
+    const { standardForm, updateStandard, readonly } = useWorkbenchAsset()
 
     const room = useMemo(() => {
         if (RoomId) {
@@ -80,53 +66,6 @@ export const LensHeader: FunctionComponent<LensHeaderProps> = ({ RoomId, onEditL
         }
         return null
     }, [lensUniversalKey, standardForm])
-
-    const createAndAddLens = useCallback(() => {
-        if (!room || readonly) return
-        const LensKey = enforceTypedKey("LENS")
-        const uuid = uuidv4()
-        const lensUniversalKey = LensKey(uuid) as ComponentUUID
-        updateStandard({
-            type: "update",
-            update: (draft: StandardForm) => {
-                const base = draft.byUniversalId[RoomId]
-                if (base instanceof StandardRoom) {
-                    const newLens = new StandardLens({
-                        tag: "Lens",
-                        universalKey: lensUniversalKey
-                    })
-                    draft.byUniversalId[lensUniversalKey] = newLens
-                    const lensReference = new StandardReference({
-                        universalKey: lensUniversalKey,
-                        tag: "Lens"
-                    })
-                    base._payload._lens = SingleReference.fromValue(lensReference)
-                }
-                return draft
-            }
-        })
-    }, [room, RoomId, updateStandard, readonly])
-
-    const setLensReference = useCallback(
-        (universalKey: ComponentUUID) => {
-            if (!room || readonly) return
-            updateStandard({
-                type: "update",
-                update: (draft: StandardForm) => {
-                    const base = draft.byUniversalId[RoomId]
-                    if (base instanceof StandardRoom) {
-                        const lensReference = new StandardReference({
-                            universalKey,
-                            tag: "Lens"
-                        })
-                        base._payload._lens = SingleReference.fromValue(lensReference)
-                    }
-                    return draft
-                }
-            })
-        },
-        [room, RoomId, updateStandard, readonly]
-    )
 
     const isLensExcluded = useCallback(
         (universalKey: ComponentUUID) =>
@@ -181,22 +120,59 @@ export const LensHeader: FunctionComponent<LensHeaderProps> = ({ RoomId, onEditL
         [RoomId]
     )
 
-    const handleImportSelect = useCallback(
-        (fromAsset: AssetUUID, uuid: ComponentUUID, tag: "Room" | "Feature" | "Knowledge" | "Map" | "Moment" | "Message" | "Lens") => {
-            if (readonly) return
-            dispatch(
-                addImport({
-                    assetId: AssetId,
-                    fromAsset,
-                    uuid,
-                    tag,
-                    addToReferenceList: addToReferenceListForRoom
-                })
-            )
-            setImportDialogOpen(false)
+    const association = useCallback(
+        (ref: StandardReference, context) => {
+            context.updateStandard({
+                type: "update",
+                update: (draft: StandardForm) => {
+                    const base = draft.byUniversalId[RoomId]
+                    if (base instanceof StandardRoom) {
+                        base._payload._lens = SingleReference.fromValue(ref)
+                    }
+                    return draft
+                }
+            })
         },
-        [readonly, dispatch, AssetId, addToReferenceListForRoom]
+        [RoomId]
     )
+
+    const requestCreate = useCallback(
+        (onCreated: (ref: StandardReference) => void) => {
+            if (!room || readonly) return
+            const LensKey = enforceTypedKey("LENS")
+            const lensUniversalKey = LensKey(uuidv4()) as ComponentUUID
+            const ref = new StandardReference({ universalKey: lensUniversalKey, tag: "Lens" })
+            updateStandard({
+                type: "update",
+                update: (draft: StandardForm) => {
+                    const newLens = new StandardLens({
+                        tag: "Lens",
+                        universalKey: lensUniversalKey
+                    })
+                    draft.byUniversalId[lensUniversalKey] = newLens
+                    return draft
+                }
+            })
+            onCreated(ref)
+        },
+        [room, updateStandard, readonly]
+    )
+
+    const { actionRows, selectorDialog, importDialog } = useAddReferenceImport({
+        tag: "Lens",
+        isExcluded: isLensExcluded,
+        association,
+        requestCreate,
+        addToReferenceList: addToReferenceListForRoom,
+        labels: {
+            add: "Create New Lens",
+            referenceExisting: "Reference Existing Lens",
+            import: "Import Lens"
+        },
+        enableReferenceExisting: true,
+        enableImport: true,
+        disabled: readonly
+    })
 
     const descriptionExcerpt = useMemo(() => {
         if (!singleLens?.description) return undefined
@@ -252,61 +228,11 @@ export const LensHeader: FunctionComponent<LensHeaderProps> = ({ RoomId, onEditL
                         <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
                             To unlock dynamic rendering on this room, associate a Lens.
                         </Typography>
-                        <List>
-                            <ListItem>
-                                <ListItemButton
-                                    onClick={createAndAddLens}
-                                    disabled={readonly}
-                                    sx={{ justifyContent: "center" }}
-                                >
-                                    <ListItemIcon>
-                                        <AddIcon />
-                                    </ListItemIcon>
-                                    <ListItemText primary="Create New Lens" />
-                                </ListItemButton>
-                            </ListItem>
-                            <ListItem>
-                                <ListItemButton
-                                    onClick={() => setLensSelectorOpen(true)}
-                                    disabled={readonly}
-                                    sx={{ justifyContent: "center" }}
-                                >
-                                    <ListItemIcon>
-                                        <LinkIcon />
-                                    </ListItemIcon>
-                                    <ListItemText primary="Reference Existing Lens" />
-                                </ListItemButton>
-                            </ListItem>
-                            <ListItem>
-                                <ListItemButton
-                                    onClick={() => setImportDialogOpen(true)}
-                                    disabled={readonly}
-                                    sx={{ justifyContent: "center" }}
-                                >
-                                    <ListItemIcon>
-                                        <ImportExportIcon />
-                                    </ListItemIcon>
-                                    <ListItemText primary="Import Lens" />
-                                </ListItemButton>
-                            </ListItem>
-                        </List>
+                        <List>{actionRows}</List>
                     </Box>
                 </MakeTheWorldAccordion>
-                <ComponentSelectorDialog
-                    open={lensSelectorOpen}
-                    onClose={() => setLensSelectorOpen(false)}
-                    tag="Lens"
-                    onSelect={setLensReference}
-                    isExcluded={isLensExcluded}
-                />
-                <ImportComponentDialog
-                    open={importDialogOpen}
-                    onClose={() => setImportDialogOpen(false)}
-                    assetId={AssetId}
-                    onImportSelect={handleImportSelect}
-                    tag="Lens"
-                    isExcluded={isLensExcluded}
-                />
+                {selectorDialog}
+                {importDialog}
             </>
         )
     }
