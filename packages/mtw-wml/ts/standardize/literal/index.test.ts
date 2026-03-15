@@ -1,4 +1,4 @@
-import { schemaToWML } from '../../schema'
+import { schemaToWML, treeFromWML } from '../../schema'
 import { deIndentWML } from '../../schema/utils'
 import { StandardLiteral, PlainClass, RemoveClass, ReplaceClass } from './index'
 
@@ -244,6 +244,35 @@ describe('StandardLiteral', () => {
             expect(literal.toJSON()).toBe('test')
             expect(literal._wrapperTag).toBe('ShortName')
         })
+    })
+
+    describe('round-trip with leading space (StandardLiteral WML gap)', () => {
+        it('should serialize leading space as <Space /> and round-trip to the same string', () => {
+            const original = ' test'
+            const literal = new StandardLiteral(original, { tag: 'ShortName' })
+            const schema = literal.nestedSchema()
+            const wml = schemaToWML(schema)
+
+            expect(wml).toEqual('<ShortName><Space />test</ShortName>')
+
+            const schemaFromWML = treeFromWML(wml)
+            const roundTrippedLiteral = new StandardLiteral(schemaFromWML[0], { tag: 'ShortName' })
+            expect(roundTrippedLiteral.toJSON()).toEqual(original)
+        })
+
+        it('should serialize trailing space as <Space /> and round-trip to the same string', () => {
+            const original = 'test '
+            const literal = new StandardLiteral(original, { tag: 'ShortName' })
+            const schema = literal.nestedSchema()
+            const wml = schemaToWML(schema)
+
+            expect(wml).toEqual('<ShortName>test<Space /></ShortName>')
+
+            const schemaFromWML = treeFromWML(wml)
+            const roundTrippedLiteral = new StandardLiteral(schemaFromWML[0], { tag: 'ShortName' })
+            expect(roundTrippedLiteral.toJSON()).toEqual(original)
+        })
+
     })
 
     describe('multi-line render', () => {
