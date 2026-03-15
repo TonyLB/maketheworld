@@ -1,10 +1,9 @@
-import React, { FunctionComponent, useMemo, useCallback, useState } from 'react'
-import { Box, ListItemButton, ListItemIcon, ListItemText, Typography, ListItem } from '@mui/material'
+import React, { FunctionComponent, useMemo, useCallback } from 'react'
+import { Box, ListItemButton, ListItemIcon, ListItemText, Typography } from '@mui/material'
 import VisibilityIcon from '@mui/icons-material/Visibility'
-import AddIcon from '@mui/icons-material/Add'
-import LinkIcon from '@mui/icons-material/Link'
 
 import { useWorkbenchAsset } from '../foundations/useWorkbenchAsset'
+import { useAddReferenceImport, type AddReferenceImportContext } from '../foundations/ReferenceList/AddReferenceImportControl'
 import DefaultRenderEditor from './DefaultRenderEditor'
 import ExitEditor from './ExitEditor'
 import LensHeader from '../LensEdit/LensHeader'
@@ -31,7 +30,6 @@ import { TopLevelStandardLiteralEditor } from '../foundations/StandardLiteral'
 import Spacer from '../WorkbenchSpacer'
 import { ReferenceListEditor } from '../foundations/ReferenceList'
 import { ReferenceListEditorGeneric } from '../foundations/ReferenceList/ReferenceListEditorGeneric'
-import { ComponentSelectorDialog } from '../foundations/ComponentSelector'
 import { situationIdToLabel } from '../../../lib/situationLabel'
 import { DEFAULT_SITUATION_ID } from '../../../slices/personalAssets'
 
@@ -107,8 +105,6 @@ export const RoomEditor: FunctionComponent = () => {
         [room, readonly, dispatch, universalKey]
     )
 
-    const [situationSelectorOpen, setSituationSelectorOpen] = useState(false)
-
     const situationItems = useMemo(() => {
         if (!room) return []
         return room.situations.items
@@ -151,18 +147,25 @@ export const RoomEditor: FunctionComponent = () => {
         [universalKey, room, updateStandard, readonly]
     )
 
-    const handleAddExistingSituation = useCallback(
-        (selectedId: ComponentUUID) => {
-            if (!universalKey || !room || readonly) return
-            updateStandard({
+    const isSituationExcluded = useCallback(
+        (id: ComponentUUID) =>
+            id === DEFAULT_SITUATION_ID ||
+            (room?.situations.items.some((f) => f.reference?.universalKey === id) ?? false),
+        [room]
+    )
+
+    const situationAssociation = useCallback(
+        (ref: StandardReference, context: AddReferenceImportContext) => {
+            context.updateStandard({
                 type: 'update',
                 update: (draft: StandardForm) => {
-                    const base = draft.byUniversalId[universalKey]
+                    const base = draft.byUniversalId[universalKey!]
                     if (!base || !(base instanceof StandardRoom)) return draft
-                    const already = base.situations.items.some((f) => f.reference?.universalKey === selectedId)
+                    const universalKeyFromRef = ref.universalKey as ComponentUUID
+                    const already = base.situations.items.some((f) => f.reference?.universalKey === universalKeyFromRef)
                     if (already) return draft
                     const newFacet = new StandardSituationRoomFacet({
-                        reference: new StandardReference({ universalKey: selectedId, tag: 'Situation' }),
+                        reference: ref,
                         payload: {}
                     })
                     base._payload._situations = new SituationRoomFacetList([
@@ -172,52 +175,50 @@ export const RoomEditor: FunctionComponent = () => {
                     return draft
                 }
             })
-            setSituationSelectorOpen(false)
         },
-        [universalKey, room, updateStandard, readonly]
+        [universalKey]
     )
 
-    const handleCreateNewSituation = useCallback(() => {
-        if (!universalKey || !room || readonly) return
-        const situationKey = enforceTypedKey('SITUATION')
-        const newSituationId = situationKey(uuidv4()) as ComponentUUID
-        updateStandard({
-            type: 'update',
-            update: (draft: StandardForm) => {
-                const { component } = standardComponentFactory({ tag: 'Situation', universalKey: newSituationId })
-                if (component) {
-                    draft.byUniversalId[newSituationId] = component
-                    const ref = new StandardReference({ universalKey: newSituationId, tag: 'Situation' })
-                    if (draft._topLevel) {
-                        draft._topLevel = draft._topLevel.assureItem(ref)
-                    } else {
-                        draft._topLevel = new ReferenceList([ref])
+    const situationRequestCreate = useCallback(
+        (onCreated: (ref: StandardReference) => void) => {
+            if (!universalKey || !room || readonly) return
+            const situationKey = enforceTypedKey('SITUATION')
+            const newSituationId = situationKey(uuidv4()) as ComponentUUID
+            const ref = new StandardReference({ universalKey: newSituationId, tag: 'Situation' })
+            updateStandard({
+                type: 'update',
+                update: (draft: StandardForm) => {
+                    const { component } = standardComponentFactory({ tag: 'Situation', universalKey: newSituationId })
+                    if (component) {
+                        draft.byUniversalId[newSituationId] = component
+                        if (draft._topLevel) {
+                            draft._topLevel = draft._topLevel.assureItem(ref)
+                        } else {
+                            draft._topLevel = new ReferenceList([ref])
+                        }
                     }
+                    return draft
                 }
-                const base = draft.byUniversalId[universalKey]
-                if (base && base instanceof StandardRoom) {
-                    const newFacet = new StandardSituationRoomFacet({
-                        reference: new StandardReference({ universalKey: newSituationId, tag: 'Situation' }),
-                        payload: {}
-                    })
-                    base._payload._situations = new SituationRoomFacetList([
-                        ...base.situations.items,
-                        newFacet
-                    ])
-                }
-                return draft
-            }
-        })
-        setSituationSelectorOpen(false)
-        dispatch(pushBreadcrumb({ id: newSituationId, kind: 'component', componentId: newSituationId }))
-    }, [universalKey, room, updateStandard, readonly, dispatch])
-
-    const isSituationExcluded = useCallback(
-        (id: ComponentUUID) =>
-            id === DEFAULT_SITUATION_ID ||
-            (room?.situations.items.some((f) => f.reference?.universalKey === id) ?? false),
-        [room]
+            })
+            onCreated(ref)
+            dispatch(pushBreadcrumb({ id: newSituationId, kind: 'component', componentId: newSituationId }))
+        },
+        [universalKey, room, updateStandard, readonly, dispatch]
     )
+
+    const { actionRows: situationActionRows, selectorDialog: situationSelectorDialog } = useAddReferenceImport({
+        tag: 'Situation',
+        isExcluded: isSituationExcluded,
+        association: situationAssociation,
+        requestCreate: situationRequestCreate,
+        labels: {
+            add: 'Create new Situation',
+            referenceExisting: 'Reference existing Situation'
+        },
+        enableReferenceExisting: true,
+        enableImport: false,
+        disabled: readonly
+    })
 
     if (!universalKey || !(universalKey in standardForm.byUniversalId) || !room) {
         return <Box />
@@ -285,44 +286,9 @@ export const RoomEditor: FunctionComponent = () => {
                                         variant="table"
                                         onItemClick={handleSituationItemClick}
                                         onItemRemove={handleSituationRemove}
-                                        actionAffordances={
-                                            <>
-                                                <ListItem>
-                                                    <ListItemButton
-                                                        onClick={() => setSituationSelectorOpen(true)}
-                                                        disabled={readonly}
-                                                        sx={{ justifyContent: 'center' }}
-                                                    >
-                                                        <ListItemIcon>
-                                                            <LinkIcon />
-                                                        </ListItemIcon>
-                                                        <ListItemText primary="Reference existing Situation" />
-                                                    </ListItemButton>
-                                                </ListItem>
-                                                <ListItem>
-                                                    <ListItemButton
-                                                        onClick={handleCreateNewSituation}
-                                                        disabled={readonly}
-                                                        sx={{ justifyContent: 'center' }}
-                                                    >
-                                                        <ListItemIcon>
-                                                            <AddIcon />
-                                                        </ListItemIcon>
-                                                        <ListItemText primary="Create new Situation" />
-                                                    </ListItemButton>
-                                                </ListItem>
-                                            </>
-                                        }
+                                        actionAffordances={situationActionRows}
                                     />
-                                    {situationSelectorOpen && (
-                                        <ComponentSelectorDialog
-                                            open={situationSelectorOpen}
-                                            onClose={() => setSituationSelectorOpen(false)}
-                                            tag="Situation"
-                                            onSelect={handleAddExistingSituation}
-                                            isExcluded={isSituationExcluded}
-                                        />
-                                    )}
+                                    {situationSelectorDialog}
                                 </Box>
                                 <Box sx={{ marginTop: '0.5em' }}>
                                     <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>Preview</Typography>
