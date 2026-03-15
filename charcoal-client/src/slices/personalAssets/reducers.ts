@@ -92,6 +92,7 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
         const diff = standardForm.diff(modified)
         if (diff && !diff.isEmpty()) {
             mergeToEdit(diff)
+            state.lastUpdateDiff = diff.toJSON()
         }
     }
     if (isUpdateStandardPayloadUpdateLocal(payload)) {
@@ -99,6 +100,7 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
         const diff = localStandardForm.diff(modified)
         if (diff) {
             mergeToEdit(diff)
+            state.lastUpdateDiff = diff.toJSON()
         }
     }
     if (isUpdateStandardPayloadRemoveComponent(payload)) {
@@ -109,6 +111,7 @@ export const updateStandard = (state: PersonalAssetsPublic, action: PayloadActio
         const diff = localStandardForm.diff(componentRemoved)
         if (diff) {
             mergeToEdit(diff)
+            state.lastUpdateDiff = diff.toJSON()
         }
     }
 }
@@ -117,6 +120,10 @@ export const clearPendingEditsByRequestIds = (state: PersonalAssetsPublic, actio
     const { RequestIds } = action.payload
     if (!RequestIds || RequestIds.length === 0) return
     state.pendingEdits = state.pendingEdits.filter(({ meta }) => !RequestIds.includes(meta.key))
+}
+
+export const clearLastUpdateDiff = (state: PersonalAssetsPublic, _action: PayloadAction<void>) => {
+    state.lastUpdateDiff = undefined
 }
 
 export const saveEdit = (state: PersonalAssetsPublic, action: PayloadAction<{ requestId: string }>) => {

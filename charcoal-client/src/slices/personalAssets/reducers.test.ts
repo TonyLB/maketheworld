@@ -1,5 +1,6 @@
 import produce from "immer"
-import { updateStandard, UpdateStandardPayload, clearPendingEditsByRequestIds } from "./reducers"
+import type { PersonalAssetsPublic } from "./baseClasses"
+import { updateStandard, UpdateStandardPayload, clearPendingEditsByRequestIds, clearLastUpdateDiff } from "./reducers"
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
 import { Schema, schemaToWML } from "@tonylb/mtw-wml/ts/schema"
 import { deIndentWML } from "@tonylb/mtw-wml/ts/schema/utils"
@@ -439,7 +440,80 @@ describe('personalAsset slice reducers', () => {
                     </Asset>
                 `)
             })
-        })        
+        })
+
+        it('should set lastUpdateDiff when a non-empty diff is merged (type update)', () => {
+            const baseWML = `<Asset uuid=(test)><Room uuid=(testRoom) key=(testRoom) /></Asset>`
+            const schema = new Schema()
+            schema.loadWML(baseWML)
+            const standardizedJSON = new StandardForm(schema.schema[0]).toJSON()
+            const initialState = {
+                inherited: { universalKey: standardizedJSON.universalKey, components: [], metaData: [] },
+                edit: { universalKey: standardizedJSON.universalKey, components: [], metaData: [] },
+                pendingEdits: []
+            } as any
+            const newState = produce(initialState, (state) => {
+                updateStandard(state, {
+                    type: 'updateStandard',
+                    payload: {
+                        type: 'update',
+                        base: standardizedJSON,
+                        update: (draft) => {
+                            const room = draft.byUniversalId['ROOM#testRoom']
+                            if (room && '_payload' in room) {
+                                (room as { _payload: { _shortName?: unknown } })._payload._shortName = new StandardLiteral('Updated', { tag: 'ShortName' })
+                            }
+                            return draft
+                        }
+                    }
+                })
+            }) as unknown as PersonalAssetsPublic
+            expect(newState.lastUpdateDiff).toBeDefined()
+            expect(newState.lastUpdateDiff).toHaveProperty('universalKey')
+            expect(newState.lastUpdateDiff).toHaveProperty('components')
+            expect(Array.isArray(newState.lastUpdateDiff?.components)).toBe(true)
+        })
+
+        it('should not set lastUpdateDiff when payload is setInherited', () => {
+            const baseWML = `<Asset uuid=(test)><Room uuid=(testRoom) key=(testRoom) /></Asset>`
+            const schema = new Schema()
+            schema.loadWML(baseWML)
+            const standardizedJSON = new StandardForm(schema.schema[0]).toJSON()
+            const initialState = {
+                inherited: { universalKey: standardizedJSON.universalKey, components: [], metaData: [] },
+                edit: { universalKey: standardizedJSON.universalKey, components: [], metaData: [] },
+                pendingEdits: [],
+                lastUpdateDiff: undefined
+            } as any
+            const newState = produce(initialState, (state) => {
+                updateStandard(state, {
+                    type: 'updateStandard',
+                    payload: {
+                        type: 'setInherited',
+                        inherited: { universalKey: standardizedJSON.universalKey, components: [], metaData: [] }
+                    }
+                })
+            }) as unknown as PersonalAssetsPublic
+            expect(newState.lastUpdateDiff).toBeUndefined()
+        })
+    })
+
+    describe('clearLastUpdateDiff', () => {
+        it('should set lastUpdateDiff to undefined', () => {
+            const stateWithDiff = {
+                edit: { universalKey: 'ASSET#test', components: [], metaData: [] },
+                pendingEdits: [],
+                lastUpdateDiff: {
+                    universalKey: 'ASSET#test',
+                    components: [{ tag: 'Room', universalKey: 'ROOM#x' }],
+                    metaData: []
+                }
+            } as any
+            const state = produce(stateWithDiff, (draft) => {
+                clearLastUpdateDiff(draft, { type: 'clearLastUpdateDiff', payload: undefined })
+            }) as unknown as PersonalAssetsPublic
+            expect(state.lastUpdateDiff).toBeUndefined()
+        })
     })
 
     describe('clearPendingEditsByRequestIds', () => {
@@ -457,7 +531,7 @@ describe('personalAsset slice reducers', () => {
                     type: 'clearPendingEditsByRequestIds',
                     payload: { assetKey: 'ASSET#test', RequestIds: ['req-1'] }
                 })
-            })
+            }) as unknown as PersonalAssetsPublic
             expect(state.pendingEdits).toHaveLength(1)
             expect(state.pendingEdits[0].meta.key).toBe('req-2')
         })
@@ -468,7 +542,7 @@ describe('personalAsset slice reducers', () => {
                     type: 'clearPendingEditsByRequestIds',
                     payload: { assetKey: 'ASSET#test', RequestIds: ['req-2'] }
                 })
-            })
+            }) as unknown as PersonalAssetsPublic
             expect(state.pendingEdits).toHaveLength(1)
             expect(state.pendingEdits[0].meta.key).toBe('req-1')
         })
@@ -479,7 +553,7 @@ describe('personalAsset slice reducers', () => {
                     type: 'clearPendingEditsByRequestIds',
                     payload: { assetKey: 'ASSET#test', RequestIds: undefined as unknown as string[] }
                 })
-            })
+            }) as unknown as PersonalAssetsPublic
             expect(state.pendingEdits).toHaveLength(2)
         })
 
@@ -489,7 +563,7 @@ describe('personalAsset slice reducers', () => {
                     type: 'clearPendingEditsByRequestIds',
                     payload: { assetKey: 'ASSET#test', RequestIds: [] }
                 })
-            })
+            }) as unknown as PersonalAssetsPublic
             expect(state.pendingEdits).toHaveLength(2)
         })
     })

@@ -57,6 +57,9 @@ export interface PersonalAssetsPublic {
     /** Aggregate of instrumentation options from all updateStandard calls in the current edit slice; used when converting edit to pendingEdit and for gating applyEdit logs. Cleared on save. */
     instrumentationOptionsForCurrentEdit?: ScopedInstrumentationOptions;
 
+    /** JSON form of the diff last merged into edit by updateStandard; used for client-driven side-effects (e.g. fetchImports when diff has `from`). Cleared by clearLastUpdateDiff. */
+    lastUpdateDiff?: StandardFormData;
+
    properties: AssetClientFetchURL["properties"];
     loadedImages: Record<string, PersonalAssetsLoadedImage>;
     serialized?: boolean;
