@@ -4,6 +4,7 @@ import { EventBridgeClient, PutEventsCommand } from "@aws-sdk/client-eventbridge
 import { readdir, stat, readFile } from 'node:fs/promises'
 import { v4 as uuidv4 } from 'uuid'
 import { DiagnosticsEventSerializer, DiagnosticsEventUpdate } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics'
+import { createNodeDataSourceEnvironment } from '@tonylb/mtw-lambda-patterns/ts/dataSource/nodeEnvironment'
 import { publishStreamEvent, StreamEventPublisherSerializer } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 // Note: primitivesData import removed - WML lambda now handles primitives content
 
@@ -78,7 +79,7 @@ const initializePrimitivesData = async (): Promise<void> => {
         timestamp: nowISO
     }
     
-    const serializer = new DiagnosticsEventSerializer()
+    const serializer = new DiagnosticsEventSerializer(createNodeDataSourceEnvironment())
     const header = {
         dataSourceKey: 'mtw.diagnostics',
         streamKey: 'global',

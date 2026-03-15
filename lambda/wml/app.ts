@@ -9,6 +9,7 @@ import { sendInitializeSubscription } from './dataSource/initSubscription';
 import { fromEventBridgeFormat } from '@tonylb/mtw-lambda-patterns/ts/dataSource/formatTransform';
 import { coreFormatToStreamingEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource';
 import { DiagnosticsEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics';
+import { createNodeDataSourceEnvironment } from '@tonylb/mtw-lambda-patterns/ts/dataSource/nodeEnvironment';
 import { WMLAPIMessage } from '@tonylb/mtw-interfaces/ts/wml';
 
 // Import DataSources to trigger their messageBus subscriptions (side-effect imports)
@@ -19,7 +20,7 @@ const s3Client = new S3Client(params)
 
 // Event deserializers for incoming EventBridge events
 const eventDeserializers = {
-    'mtw.diagnostics': new DiagnosticsEventSerializer(),
+    'mtw.diagnostics': new DiagnosticsEventSerializer(createNodeDataSourceEnvironment()),
     // Add other data source deserializers here as needed
 }
 

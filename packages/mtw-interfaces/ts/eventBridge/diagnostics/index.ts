@@ -1,4 +1,5 @@
 import { DataSourceEventSerializer, StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import type { DataSourceEnvironment } from '@tonylb/mtw-interfaces/ts/DataSourceEnvironment'
 
 //
 // Internal types for diagnostics events
@@ -98,6 +99,7 @@ export const isDiagnosticsEventUpdate = (event: unknown): event is DiagnosticsEv
  * The detail-type field from EventBridge becomes the 'type' field internally
  */
 export class DiagnosticsEventSerializer implements DataSourceEventSerializer<DiagnosticsEventUpdate, DiagnosticsEventExternal> {
+    constructor(private readonly env: DataSourceEnvironment) {}
     /**
      * Serialize an internal event to external format for EventBridge transmission
      */
