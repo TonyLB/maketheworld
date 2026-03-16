@@ -8,7 +8,7 @@ import { addExitFactory } from "../../Maps/Controller/addExit"
 import { addRoomFactory } from "../../Maps/Controller/addRoom"
 import { useDispatch } from "react-redux"
 
-import { addImport, getTopLevelAddToReferenceList } from "../../../slices/personalAssets"
+import { addImportToDraft, getTopLevelAddToReferenceList } from "../../../slices/personalAssets"
 import { addOnboardingComplete } from "../../../slices/player/index.api"
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
 import { StandardMap } from "@tonylb/mtw-wml/ts/standardize/components/map"
@@ -137,12 +137,20 @@ export const MapController: FunctionComponent<{ mapId: `MAP#${string}`; children
         if (inheritedAsset) {
             const originAssetId = (inheritedAsset.origin ?? []).slice(-1)[0]
             if (originAssetId) {
-                dispatch(addImport({ assetId: AssetId, fromAsset: originAssetId, tag: 'Room', uuid: roomId, addToReferenceList: getTopLevelAddToReferenceList }))
+                updateStandard({
+                    type: 'update',
+                    update: (draft) => {
+                        const ref = addImportToDraft(draft, { fromAsset: originAssetId, uuid: roomId, tag: 'Room' })
+                        const descriptor = getTopLevelAddToReferenceList(draft)
+                        if (ref && descriptor) descriptor.setReferenceList(descriptor.referenceList.assureItem(ref))
+                        return draft
+                    }
+                })
                 return 'added'
             }
         }
         return 'notFound'
-    }, [inherited, dispatch, AssetId, editable])
+    }, [inherited, editable, updateStandard])
 
     const mapDispatch = useCallback((action: MapDispatchAction) => {
         switch(action.type) {
