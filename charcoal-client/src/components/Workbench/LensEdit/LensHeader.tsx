@@ -18,7 +18,6 @@ import { ComponentUUID } from "@tonylb/mtw-base/ts/schema"
 import { v4 as uuidv4 } from "uuid"
 import { enforceTypedKey } from "@tonylb/mtw-utilities/ts/types"
 import { renderTreeToPlainText } from "../foundations/renderTreeToPlainText"
-import type { ReferenceListDescriptor } from "../../../slices/personalAssets"
 import { useAddReferenceImport } from "../foundations/ReferenceList/AddReferenceImportControl"
 
 export type LensHeaderProps = {
@@ -105,33 +104,12 @@ export const LensHeader: FunctionComponent<LensHeaderProps> = ({ RoomId, onEditL
         })
     }, [room, RoomId, lensUniversalKey, updateStandard, readonly])
 
-    const addToReferenceListForRoom = useCallback(
-        (draft: StandardForm): ReferenceListDescriptor | null => {
-            const roomDraft = draft.byUniversalId[RoomId]
-            if (!roomDraft || !(roomDraft instanceof StandardRoom)) return null
-            return {
-                referenceList: roomDraft.lens,
-                setReferenceList: (list) => {
-                    ;(roomDraft as StandardRoom)._payload._lens =
-                        list instanceof SingleReference ? list : SingleReference.fromReferenceList(list)
-                }
-            }
-        },
-        [RoomId]
-    )
-
     const association = useCallback(
-        (ref: StandardReference, context) => {
-            context.updateStandard({
-                type: "update",
-                update: (draft: StandardForm) => {
-                    const base = draft.byUniversalId[RoomId]
-                    if (base instanceof StandardRoom) {
-                        base._payload._lens = SingleReference.fromValue(ref)
-                    }
-                    return draft
-                }
-            })
+        (ref: StandardReference, draft: StandardForm) => {
+            const base = draft.byUniversalId[RoomId]
+            if (base instanceof StandardRoom) {
+                base._payload._lens = SingleReference.fromValue(ref)
+            }
         },
         [RoomId]
     )
@@ -163,7 +141,6 @@ export const LensHeader: FunctionComponent<LensHeaderProps> = ({ RoomId, onEditL
         isExcluded: isLensExcluded,
         association,
         requestCreate,
-        addToReferenceList: addToReferenceListForRoom,
         labels: {
             add: "Create New Lens",
             referenceExisting: "Reference Existing Lens",
