@@ -124,17 +124,9 @@ export const ReferenceListEditor: FunctionComponent<ReferenceListEditorProps> = 
     )
 
     const association = useCallback(
-        (ref: StandardReference, context) => {
-            context.updateStandard({
-                type: "update",
-                update: (draft: StandardForm) => {
-                    const descriptor = listContext(draft)
-                    if (!descriptor) return draft
-                    const { referenceList: refList, setReferenceList } = descriptor
-                    setReferenceList(refList.assureItem(ref))
-                    return draft
-                }
-            })
+        (ref: StandardReference, draft: StandardForm) => {
+            const descriptor = listContext(draft)
+            if (descriptor) descriptor.setReferenceList(descriptor.referenceList.assureItem(ref))
         },
         [listContext]
     )
@@ -168,7 +160,6 @@ export const ReferenceListEditor: FunctionComponent<ReferenceListEditorProps> = 
         isExcluded,
         association,
         requestCreate,
-        addToReferenceList: listContext,
         labels: { add: addButtonLabel, referenceExisting: refExistingLabel },
         enableReferenceExisting,
         enableImport,

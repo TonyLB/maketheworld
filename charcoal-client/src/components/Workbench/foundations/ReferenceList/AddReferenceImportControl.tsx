@@ -7,16 +7,14 @@ import AddIcon from "@mui/icons-material/Add"
 import LinkIcon from "@mui/icons-material/Link"
 import ImportExportIcon from "@mui/icons-material/ImportExport"
 
-import { useDispatch } from "react-redux"
 import { useWorkbenchAsset } from "../useWorkbenchAsset"
-import { addImport } from "../../../../slices/personalAssets"
+import { addImportToDraft } from "../../../../slices/personalAssets"
 import { ComponentSelectorDialog } from "../ComponentSelector"
 import ImportComponentDialog from "../../ImportComponentDialog"
 import StandardReference from "@tonylb/mtw-wml/ts/standardize/components/reference"
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
 import { AssetUUID, ComponentUUID } from "@tonylb/mtw-base/ts/schema"
 import type { SchemaImportMapping } from "@tonylb/mtw-base/ts/schema/metaData"
-import type { ReferenceListDescriptor } from "../../../../slices/personalAssets"
 
 export type ComponentTag =
     | "Character"
@@ -33,11 +31,6 @@ export type ComponentTag =
 
 export type ImportTag = SchemaImportMapping["type"]
 
-/** Context passed to association(); built from useWorkbenchAsset. */
-export interface AddReferenceImportContext {
-    updateStandard: ReturnType<typeof useWorkbenchAsset>["updateStandard"]
-}
-
 export interface AddReferenceImportLabels {
     add?: string
     referenceExisting?: string
@@ -47,12 +40,10 @@ export interface AddReferenceImportLabels {
 export interface AddReferenceImportProps {
     tag: ComponentTag
     isExcluded: (universalKey: ComponentUUID) => boolean
-    /** Called with the ref and context to associate it (Ref existing + Create new). */
-    association: (ref: StandardReference, context: AddReferenceImportContext) => void
+    /** Called with the ref and draft to place the ref on the draft. Control always provides the draft. */
+    association: (ref: StandardReference, draft: StandardForm) => void
     /** When user clicks Create new, the control calls requestCreate(onCreated). Creating pattern calls onCreated(ref) when done. */
     requestCreate: (onCreated: (ref: StandardReference) => void) => void
-    /** Required when enableImport is true. Used by control to dispatch addImport. */
-    addToReferenceList?: (draft: StandardForm) => ReferenceListDescriptor | null
     labels?: AddReferenceImportLabels
     enableReferenceExisting?: boolean
     enableImport?: boolean
@@ -84,7 +75,6 @@ export function useAddReferenceImport(props: AddReferenceImportProps): {
         isExcluded,
         association,
         requestCreate,
-        addToReferenceList,
         labels,
         enableReferenceExisting = true,
         enableImport = defaultEnableImport(tag),
@@ -92,17 +82,11 @@ export function useAddReferenceImport(props: AddReferenceImportProps): {
         importTag
     } = props
 
-    const dispatch = useDispatch()
     const { updateStandard, readonly, AssetId } = useWorkbenchAsset()
     const disabled = disabledProp ?? readonly
 
     const [selectorOpen, setSelectorOpen] = useState(false)
     const [importDialogOpen, setImportDialogOpen] = useState(false)
-
-    const context: AddReferenceImportContext = useMemo(
-        () => ({ updateStandard }),
-        [updateStandard]
-    )
 
     const effectiveImportTag = importTag ?? (tag as ImportTag)
     const addLabel = labels?.add ?? `Add ${tag}`
@@ -111,34 +95,47 @@ export function useAddReferenceImport(props: AddReferenceImportProps): {
 
     const handleCreateNew = useCallback(() => {
         if (disabled) return
-        requestCreate((ref) => association(ref, context))
-    }, [disabled, requestCreate, association, context])
+        requestCreate((ref) =>
+            updateStandard({
+                type: "update",
+                update: (draft) => {
+                    association(ref, draft)
+                    return draft
+                }
+            })
+        )
+    }, [disabled, requestCreate, association, updateStandard])
 
     const handleReferenceSelect = useCallback(
         (universalKey: ComponentUUID) => {
             if (disabled) return
-            const ref = new StandardReference({ universalKey, tag })
-            association(ref, context)
+            updateStandard({
+                type: "update",
+                update: (draft) => {
+                    const ref = new StandardReference({ universalKey, tag })
+                    association(ref, draft)
+                    return draft
+                }
+            })
             setSelectorOpen(false)
         },
-        [disabled, tag, association, context]
+        [disabled, tag, association, updateStandard]
     )
 
     const handleImportSelect = useCallback(
         (fromAsset: AssetUUID, uuid: ComponentUUID, tagParam: ImportTag) => {
-            if (disabled || !addToReferenceList) return
-            dispatch(
-                addImport({
-                    assetId: AssetId,
-                    fromAsset,
-                    uuid,
-                    tag: tagParam,
-                    addToReferenceList
-                })
-            )
+            if (disabled) return
+            updateStandard({
+                type: "update",
+                update: (draft) => {
+                    const ref = addImportToDraft(draft, { fromAsset, uuid, tag: tagParam })
+                    if (ref) association(ref, draft)
+                    return draft
+                }
+            })
             setImportDialogOpen(false)
         },
-        [disabled, dispatch, AssetId, addToReferenceList]
+        [disabled, updateStandard, association]
     )
 
     const actionRows = useMemo(
@@ -170,7 +167,7 @@ export function useAddReferenceImport(props: AddReferenceImportProps): {
                         </ListItemButton>
                     </ListItem>
                 )}
-                {enableImport && addToReferenceList && (
+                {enableImport && (
                     <ListItem>
                         <ListItemButton
                             onClick={() => setImportDialogOpen(true)}
@@ -193,7 +190,6 @@ export function useAddReferenceImport(props: AddReferenceImportProps): {
             enableReferenceExisting,
             refExistingLabel,
             enableImport,
-            addToReferenceList,
             importLabel
         ]
     )
@@ -210,7 +206,7 @@ export function useAddReferenceImport(props: AddReferenceImportProps): {
         ) : null
 
     const importDialog =
-        enableImport && addToReferenceList ? (
+        enableImport ? (
             <ImportComponentDialog
                 open={importDialogOpen}
                 onClose={() => setImportDialogOpen(false)}

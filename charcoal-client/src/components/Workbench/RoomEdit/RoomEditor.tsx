@@ -3,7 +3,7 @@ import { Box, ListItemButton, ListItemIcon, ListItemText, Typography } from '@mu
 import VisibilityIcon from '@mui/icons-material/Visibility'
 
 import { useWorkbenchAsset } from '../foundations/useWorkbenchAsset'
-import { useAddReferenceImport, type AddReferenceImportContext } from '../foundations/ReferenceList/AddReferenceImportControl'
+import { useAddReferenceImport } from '../foundations/ReferenceList/AddReferenceImportControl'
 import DefaultRenderEditor from './DefaultRenderEditor'
 import ExitEditor from './ExitEditor'
 import LensHeader from '../LensEdit/LensHeader'
@@ -155,26 +155,20 @@ export const RoomEditor: FunctionComponent = () => {
     )
 
     const situationAssociation = useCallback(
-        (ref: StandardReference, context: AddReferenceImportContext) => {
-            context.updateStandard({
-                type: 'update',
-                update: (draft: StandardForm) => {
-                    const base = draft.byUniversalId[universalKey!]
-                    if (!base || !(base instanceof StandardRoom)) return draft
-                    const universalKeyFromRef = ref.universalKey as ComponentUUID
-                    const already = base.situations.items.some((f) => f.reference?.universalKey === universalKeyFromRef)
-                    if (already) return draft
-                    const newFacet = new StandardSituationRoomFacet({
-                        reference: ref,
-                        payload: {}
-                    })
-                    base._payload._situations = new SituationRoomFacetList([
-                        ...base.situations.items,
-                        newFacet
-                    ])
-                    return draft
-                }
+        (ref: StandardReference, draft: StandardForm) => {
+            const base = draft.byUniversalId[universalKey!]
+            if (!base || !(base instanceof StandardRoom)) return
+            const universalKeyFromRef = ref.universalKey as ComponentUUID
+            const already = base.situations.items.some((f) => f.reference?.universalKey === universalKeyFromRef)
+            if (already) return
+            const newFacet = new StandardSituationRoomFacet({
+                reference: ref,
+                payload: {}
             })
+            base._payload._situations = new SituationRoomFacetList([
+                ...base.situations.items,
+                newFacet
+            ])
         },
         [universalKey]
     )
