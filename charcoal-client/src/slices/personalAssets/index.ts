@@ -37,10 +37,9 @@ import { StandardRender } from '@tonylb/mtw-wml/ts/standardize/render'
 import { deepEqual } from '../../lib/objects'
 import StandardExample from '@tonylb/mtw-wml/ts/standardize/components/example'
 import { AssetUUID, ComponentUUID, isSchemaComponentUUID, isSchemaAssetUUID } from '@tonylb/mtw-base/ts/schema'
-import { standardComponentFactory } from '@tonylb/mtw-wml/ts/standardize/componentFactory'
 import { ReferenceList } from '@tonylb/mtw-wml/ts/standardize/keys/referenceList'
-import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 import type { ScopedInstrumentationOptions } from '../../testing/scopedInstrumentation'
+import { addImportToDraft } from './addImportToDraft'
 import { getWMLBase } from '../wmlDataSource/selectors'
 import { createSelector } from '@reduxjs/toolkit'
 import { derivePerspectiveForRoom } from '../../lib/perspectiveFromOrigins'
@@ -298,6 +297,9 @@ export {
     DEFAULT_SITUATION_ID
 } from './assureDefaultSituationFromPrimitives'
 
+export { addImportToDraft } from './addImportToDraft'
+export type { AddImportToDraftParams } from './addImportToDraft'
+
 export const addImport = ({
     assetId,
     fromAsset,
@@ -315,31 +317,11 @@ export const addImport = ({
     dispatch((options?.overrideUpdateStandard ?? publicActions.updateStandard)(assetId)({
         type: 'update',
         update: (draft: StandardForm) => {
-            let component: StandardComponent
-
-            if (uuid in draft.byUniversalId) {
-                const existingComponent = draft.byUniversalId[uuid]
-                component = existingComponent.clone().withImport(fromAsset)
-                draft.byUniversalId[uuid] = component
-            } else {
-                const { component: newComponent } = standardComponentFactory({ tag, universalKey: uuid })
-                if (!newComponent) {
-                    throw new Error(`Could not create component for tag ${tag}`)
-                }
-                component = newComponent.withImport(fromAsset)
-                draft.byUniversalId[uuid] = component
-            }
-
+            const ref = addImportToDraft(draft, { fromAsset, uuid, tag })
             const descriptor = addToReferenceList(draft)
-            if (descriptor != null) {
-                const componentReference = component.reference
-                if (componentReference) {
-                    descriptor.setReferenceList(
-                        descriptor.referenceList.assureItem(componentReference)
-                    )
-                }
+            if (descriptor != null && ref) {
+                descriptor.setReferenceList(descriptor.referenceList.assureItem(ref))
             }
-
             return draft
         },
         base
