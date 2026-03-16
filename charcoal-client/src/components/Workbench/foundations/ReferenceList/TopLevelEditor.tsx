@@ -18,7 +18,7 @@ import CallMadeIcon from "@mui/icons-material/CallMade"
 import { useWorkbenchAsset } from "../useWorkbenchAsset"
 import { useDispatch } from "react-redux"
 import { addOnboardingComplete } from "../../../../slices/player/index.api"
-import { addImport, getTopLevelAddToReferenceList } from "../../../../slices/personalAssets"
+import { addImportToDraft, getTopLevelAddToReferenceList } from "../../../../slices/personalAssets"
 import { navigateToComponent } from "../../../../slices/UI/workbench"
 import { ReferenceListEditorGeneric } from "./ReferenceListEditorGeneric"
 import { referenceListToItems } from "./referenceListAdapter"
@@ -194,10 +194,18 @@ export const TopLevelEditor: FunctionComponent<TopLevelEditorProps> = ({
 
     const handleImportSelect = useCallback(
         (fromAsset: AssetUUID, uuid: ComponentUUID, tag: "Room" | "Feature" | "Knowledge" | "Map" | "Message" | "Moment") => {
-            dispatch(addImport({ assetId: AssetId, fromAsset, uuid, tag, addToReferenceList: getTopLevelAddToReferenceList }))
+            updateStandard({
+                type: "update",
+                update: (draft) => {
+                    const ref = addImportToDraft(draft, { fromAsset, uuid, tag })
+                    const descriptor = getTopLevelAddToReferenceList(draft)
+                    if (ref && descriptor) descriptor.setReferenceList(descriptor.referenceList.assureItem(ref))
+                    return draft
+                }
+            })
             setImportDialogOpen(false)
         },
-        [dispatch, AssetId]
+        [updateStandard]
     )
 
     const isTopLevelExcluded = useCallback(
