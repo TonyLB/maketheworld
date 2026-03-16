@@ -14,13 +14,19 @@ export interface LensMarkFacetPayloadEditorProps {
     readonly?: boolean
     /** Human-readable label for the referenced Mark (e.g. shortName). Falls back to key/universalKey when absent. */
     referenceDisplayName?: string
+    /** Optional inline editor value for the Mark component's shortName. */
+    markShortName?: StandardLiteral
+    /** When provided, renders an inline editor for the Mark shortName. */
+    onChangeMarkShortName?: (value: StandardLiteral) => void
 }
 
 export const LensMarkFacetPayloadEditor: FunctionComponent<LensMarkFacetPayloadEditorProps> = ({
     facet,
     onChange,
     readonly = false,
-    referenceDisplayName
+    referenceDisplayName,
+    markShortName,
+    onChangeMarkShortName
 }) => {
     const ref = facet.reference
     const label = referenceDisplayName ?? ref.key ?? ref.universalKey ?? "Mark"
@@ -28,9 +34,23 @@ export const LensMarkFacetPayloadEditor: FunctionComponent<LensMarkFacetPayloadE
 
     return (
         <Box sx={{ display: "flex", alignItems: "center", gap: 1, minWidth: 0 }}>
-            <Typography variant="body2" color="text.secondary" sx={{ flexShrink: 0 }}>
-                {label}:
-            </Typography>
+            {markShortName && onChangeMarkShortName ? (
+                <Box sx={{ minWidth: 0, flexShrink: 0, maxWidth: "40%" }}>
+                    <StandardLiteralEditor
+                        value={markShortName}
+                        onChange={onChangeMarkShortName}
+                        placeholder={label}
+                        readonly={readonly}
+                        fullWidth
+                        size="small"
+                        variant="outlined"
+                    />
+                </Box>
+            ) : (
+                <Typography variant="body2" color="text.secondary" sx={{ flexShrink: 0 }}>
+                    {label}:
+                </Typography>
+            )}
             <StandardLiteralEditor
                 value={value}
                 onChange={(newLiteral: StandardLiteral) => {

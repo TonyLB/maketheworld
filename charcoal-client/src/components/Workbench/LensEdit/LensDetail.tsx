@@ -199,6 +199,7 @@ export const LensDetail: FunctionComponent = () => {
             />
 
             <LensMarkFacetsEditor
+                lensId={lensId as ComponentUUID}
                 marks={lens.marks}
                 onChange={handleLensMarksChange}
                 readonly={readonly}
