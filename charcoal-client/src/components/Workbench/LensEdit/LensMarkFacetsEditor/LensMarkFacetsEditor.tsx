@@ -1,21 +1,27 @@
-import React, { FunctionComponent } from "react"
+import React, { FunctionComponent, useCallback } from "react"
 import Box from "@mui/material/Box"
 import IconButton from "@mui/material/IconButton"
 import LinkIcon from "@mui/icons-material/Link"
 import { useDispatch } from "react-redux"
 import { ComponentUUID } from "@tonylb/mtw-base/ts/schema"
+import { v4 as uuidv4 } from "uuid"
+import { enforceTypedKey } from "@tonylb/mtw-utilities/ts/types"
 import {
     LensMarkFacetList,
     StandardLensMarkFacet,
     LensMarkFacetPayload
 } from "@tonylb/mtw-wml/ts/standardize/keys/facets/lensMark"
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
+import StandardReference from "@tonylb/mtw-wml/ts/standardize/components/reference"
+import StandardMark, { StandardLens } from "@tonylb/mtw-wml/ts/standardize/components/worldState"
+import { StandardLiteral } from "@tonylb/mtw-wml/ts/standardize/literal"
 import {
     FacetListEditorGeneric,
     FacetRowHandlers,
     SingleLineFacetRow
 } from "../../foundations/FacetList"
 import { useWorkbenchAsset } from "../../foundations/useWorkbenchAsset"
+import { standardComponentFactory } from "@tonylb/mtw-wml/ts/standardize/componentFactory"
 import { pushBreadcrumb } from "../../../../slices/UI/workbench"
 import { LensMarkFacetPayloadEditor } from "./LensMarkFacetPayloadEditor"
 
@@ -31,78 +37,228 @@ function lensMarkDisplayName(facet: StandardLensMarkFacet, standardForm: Standar
 }
 
 export interface LensMarkFacetsEditorProps {
+    lensId: ComponentUUID
     marks: LensMarkFacetList
     onChange?: (marks: LensMarkFacetList) => void
     readonly?: boolean
 }
 
 export const LensMarkFacetsEditor: FunctionComponent<LensMarkFacetsEditorProps> = ({
+    lensId,
     marks,
     onChange,
     readonly = false
 }) => {
-    const { standardForm } = useWorkbenchAsset()
+    const { standardForm, updateStandard } = useWorkbenchAsset()
     const dispatch = useDispatch()
 
-    return (
-        <FacetListEditorGeneric<StandardLensMarkFacet>
-            title="Marks"
-            facets={marks.items}
-            onFacetsChange={(newItems: StandardLensMarkFacet[]) => onChange?.(new LensMarkFacetList(newItems))}
-            createEmptyFacet={(universalKey: ComponentUUID) =>
-                new StandardLensMarkFacet({
-                    reference: { tag: "Mark", universalKey },
-                    payload: {}
-                })
+    const isMarkExcluded = useCallback(
+        (id: ComponentUUID) => marks.items.some((f) => f.reference.universalKey === id),
+        [marks.items]
+    )
+
+    const markAssociation = useCallback(
+        (ref: StandardReference, draft: StandardForm) => {
+            const base = draft.byUniversalId[lensId]
+            if (!base || !(base instanceof StandardLens)) {
+                return
             }
-            createFacetWithPayload={(facet: StandardLensMarkFacet, newPayload: unknown) =>
-                new StandardLensMarkFacet({
-                    reference: facet.reference.toJSON(),
-                    payload:
-                        (newPayload as LensMarkFacetPayload).toJSON?.() ??
-                        (newPayload as Record<string, unknown>)
-                })
+            const universalKeyFromRef = ref.universalKey as ComponentUUID
+            const already = base.marks.items.some(
+                (f) => f.reference.universalKey === universalKeyFromRef
+            )
+            if (already) {
+                return
             }
-            tag="Mark"
-            renderFacetRow={(facet: StandardLensMarkFacet, index: number, handlers: FacetRowHandlers) => (
-                <SingleLineFacetRow
-                    payloadSlot={
-                        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, minWidth: 0, width: "100%" }}>
-                            {facet.reference.universalKey && (
-                                <IconButton
-                                    size="small"
-                                    aria-label="Open Mark"
-                                    onClick={() =>
-                                        dispatch(
-                                            pushBreadcrumb({
-                                                id: facet.reference.universalKey as ComponentUUID,
-                                                kind: "component",
-                                                componentId: facet.reference.universalKey as ComponentUUID
-                                            })
-                                        )
-                                    }
-                                    disabled={readonly}
-                                    sx={{ flexShrink: 0 }}
-                                >
-                                    <LinkIcon fontSize="small" />
-                                </IconButton>
-                            )}
-                            <LensMarkFacetPayloadEditor
-                                facet={facet}
-                                onChange={handlers.onChangePayload}
-                                readonly={handlers.readonly}
-                                referenceDisplayName={lensMarkDisplayName(facet, standardForm)}
-                            />
-                        </Box>
+            const newFacet = new StandardLensMarkFacet({
+                reference: ref.toJSON(),
+                payload: {}
+            })
+            base._payload._marks = new LensMarkFacetList([...base.marks.items, newFacet])
+        },
+        [lensId]
+    )
+
+    const requestCreate = useCallback(
+        (onCreated: (ref: StandardReference) => void) => {
+            if (readonly) {
+                return
+            }
+            const markKey = enforceTypedKey("MARK")
+            const newMarkId = markKey(uuidv4()) as ComponentUUID
+            const ref = new StandardReference({ universalKey: newMarkId, tag: "Mark" })
+
+            updateStandard({
+                type: "update",
+                update: (draft: StandardForm) => {
+                    const { component } = standardComponentFactory({
+                        tag: "Mark",
+                        universalKey: newMarkId
+                    })
+                    if (!component) {
+                        return draft
                     }
-                    onRemove={handlers.onRemove}
-                    readonly={handlers.readonly}
-                />
-            )}
-            readonly={readonly}
-            emptyStateText="No marks. Add one to describe points of interest."
-            isExcluded={(id: ComponentUUID) => marks.items.some((f) => f.reference.universalKey === id)}
-        />
+                    draft.byUniversalId[newMarkId] = component
+                    markAssociation(ref, draft)
+                    return draft
+                }
+            })
+
+            onCreated(ref)
+        },
+        [markAssociation, readonly, updateStandard]
+    )
+
+    const getMarkShortName = useCallback(
+        (facet: StandardLensMarkFacet): StandardLiteral | undefined => {
+            const universalKey = facet.reference.universalKey as ComponentUUID | undefined
+            if (!universalKey) {
+                return undefined
+            }
+            const component = standardForm.byUniversalId[universalKey]
+            if (!component || !(component instanceof StandardMark)) {
+                return undefined
+            }
+            return component.shortName ?? new StandardLiteral("", { tag: "ShortName" })
+        },
+        [standardForm]
+    )
+
+    const updateMarkShortName = useCallback(
+        (markId: ComponentUUID, newShortName: StandardLiteral) => {
+            if (readonly) {
+                return
+            }
+            const newValue = newShortName._payload?.plain?.toJSON() ?? ""
+            const currentComponent = standardForm.byUniversalId[markId]
+            if (!currentComponent || !(currentComponent instanceof StandardMark)) {
+                return
+            }
+            const currentValue =
+                currentComponent.shortName?._payload?.plain?.toJSON() ?? ""
+            if (currentValue === newValue || (!currentValue && !newValue)) {
+                return
+            }
+            updateStandard({
+                type: "update",
+                update: (draft: StandardForm) => {
+                    const target = draft.byUniversalId[markId]
+                    if (target && target instanceof StandardMark) {
+                        target._payload._shortName = newValue ? newShortName : undefined
+                    }
+                    return draft
+                }
+            })
+        },
+        [readonly, standardForm, updateStandard]
+    )
+
+    return (
+        <>
+            <FacetListEditorGeneric<StandardLensMarkFacet>
+                title="Marks"
+                facets={marks.items}
+                onFacetsChange={(newItems: StandardLensMarkFacet[]) =>
+                    onChange?.(new LensMarkFacetList(newItems))
+                }
+                createEmptyFacet={(universalKey: ComponentUUID) =>
+                    new StandardLensMarkFacet({
+                        reference: { tag: "Mark", universalKey },
+                        payload: {}
+                    })
+                }
+                createFacetWithPayload={(
+                    facet: StandardLensMarkFacet,
+                    newPayload: unknown
+                ) =>
+                    new StandardLensMarkFacet({
+                        reference: facet.reference.toJSON(),
+                        payload:
+                            (newPayload as LensMarkFacetPayload).toJSON?.() ??
+                            (newPayload as Record<string, unknown>)
+                    })
+                }
+                tag="Mark"
+                association={markAssociation}
+                requestCreate={requestCreate}
+                affordance={{
+                    addLabel: "Create new Mark",
+                    referenceExistingLabel: "Reference existing Mark",
+                    enableReferenceExisting: false,
+                    enableImport: true
+                }}
+                renderFacetRow={(
+                    facet: StandardLensMarkFacet,
+                    index: number,
+                    handlers: FacetRowHandlers
+                ) => {
+                    const universalKey = facet.reference.universalKey as
+                        | ComponentUUID
+                        | undefined
+                    const markShortName = getMarkShortName(facet)
+
+                    return (
+                        <SingleLineFacetRow
+                            payloadSlot={
+                                <Box
+                                    sx={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: 0.5,
+                                        minWidth: 0,
+                                        width: "100%"
+                                    }}
+                                >
+                                    {universalKey && (
+                                        <IconButton
+                                            size="small"
+                                            aria-label="Open Mark"
+                                            onClick={() =>
+                                                dispatch(
+                                                    pushBreadcrumb({
+                                                        id: universalKey,
+                                                        kind: "component",
+                                                        componentId: universalKey
+                                                    })
+                                                )
+                                            }
+                                            disabled={readonly}
+                                            sx={{ flexShrink: 0 }}
+                                        >
+                                            <LinkIcon fontSize="small" />
+                                        </IconButton>
+                                    )}
+                                    <LensMarkFacetPayloadEditor
+                                        facet={facet}
+                                        onChange={handlers.onChangePayload}
+                                        readonly={handlers.readonly}
+                                        referenceDisplayName={lensMarkDisplayName(
+                                            facet,
+                                            standardForm
+                                        )}
+                                        markShortName={markShortName}
+                                        onChangeMarkShortName={
+                                            universalKey
+                                                ? (newLiteral: StandardLiteral) =>
+                                                      updateMarkShortName(
+                                                          universalKey,
+                                                          newLiteral
+                                                      )
+                                                : undefined
+                                        }
+                                    />
+                                </Box>
+                            }
+                            onRemove={handlers.onRemove}
+                            readonly={handlers.readonly}
+                        />
+                    )
+                }}
+                readonly={readonly}
+                emptyStateText="No marks. Add one to describe points of interest."
+                isExcluded={isMarkExcluded}
+            />
+        </>
     )
 }
 
