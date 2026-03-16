@@ -23,7 +23,7 @@ import { AssetUUID, ComponentUUID } from '@tonylb/mtw-base/ts/schema';
 import { MapDisplayController } from '../Controller';
 import { AssetPicker } from '../../AssetPicker';
 import { openWorkbench, setCurrentAssetId, setBreadcrumbStack, putWorkbenchSettings } from '../../../slices/UI/workbench';
-import { addImport, getTopLevelAddToReferenceList } from '../../../slices/personalAssets';
+import { addImportToDraft, getTopLevelAddToReferenceList, updateStandard } from '../../../slices/personalAssets';
 import { useOnboardingCheckpoint } from '../../Onboarding/useOnboarding';
 import TutorialPopover from '../../Onboarding/TutorialPopover';
 import { getPlayer, getMyDraftAssets } from '../../../slices/player';
@@ -36,7 +36,7 @@ export const MapView: FunctionComponent<MapViewProps> = () => {
     const medium = useMediaQuery('(min-width: 600px)')
     const large = useMediaQuery('(min-width: 1200px)')
     const iconSize = large ? 50 : medium ? 40 : 30
-    const { maps, CharacterId, scopedId, info: { Name = '???' } = {} } = useActiveCharacter()
+    const { maps, CharacterId } = useActiveCharacter()
     const draftAssets = useSelector(getMyDraftAssets)
     // Get first draft asset for import target (or undefined if no drafts)
     const firstDraftAsset = draftAssets.length > 0 ? draftAssets[0] : undefined
@@ -82,7 +82,17 @@ export const MapView: FunctionComponent<MapViewProps> = () => {
         if (firstDraftAssetId) {
             const fromAssetKey = asset.split('#')[1]
             if (asset !== firstDraftAssetId && fromAssetKey) {
-                dispatch(addImport({ assetId: firstDraftAssetId, fromAsset: `ASSET#${fromAssetKey}` as AssetUUID, tag: 'Map', uuid: key as ComponentUUID, addToReferenceList: getTopLevelAddToReferenceList }))
+                const fromAsset = `ASSET#${fromAssetKey}` as AssetUUID
+                const uuid = key.startsWith('MAP#') ? (key as ComponentUUID) : (`MAP#${key}` as ComponentUUID)
+                dispatch(updateStandard(firstDraftAssetId)({
+                    type: 'update',
+                    update: (draft) => {
+                        const ref = addImportToDraft(draft, { fromAsset, uuid, tag: 'Map' })
+                        const descriptor = getTopLevelAddToReferenceList(draft)
+                        if (ref && descriptor) descriptor.setReferenceList(descriptor.referenceList.assureItem(ref))
+                        return draft
+                    }
+                }))
             }
             const mapComponentId = key.startsWith('MAP#') ? (key as ComponentUUID) : (`MAP#${key}` as ComponentUUID)
             dispatch(setCurrentAssetId(firstDraftAssetId))
@@ -123,7 +133,7 @@ export const MapView: FunctionComponent<MapViewProps> = () => {
                         {
                             Object.entries({ ...maps, ...(MapId ? {} : { none: { name: 'None selected', MapId: 'MAP#none' as EphemeraMapId, description: '', rooms: [], assets: {} }}) })
                                 .map(([key, map]) => (
-                                    <MenuItem key={key} value={key}>{map.shortName || 'Unnamed map'}</MenuItem>
+                                    <MenuItem key={key} value={key}>{map.name || 'Unnamed map'}</MenuItem>
                                 ))
                         }
                     </Select>
