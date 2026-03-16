@@ -1,4 +1,4 @@
-import React, { FunctionComponent, useCallback, useState } from "react"
+import React, { FunctionComponent, useCallback, useState, useMemo } from "react"
 import Box from "@mui/material/Box"
 import List from "@mui/material/List"
 import ListItem from "@mui/material/ListItem"
@@ -12,6 +12,9 @@ import { MakeTheWorldAccordion } from "../../../UI"
 import { ComponentSelectorDialog } from "../ComponentSelector"
 import type { ComponentTag } from "../ReferenceList/ReferenceListEditor"
 import { ComponentUUID } from "@tonylb/mtw-base/ts/schema"
+import { useAddReferenceImport } from "../ReferenceList/AddReferenceImportControl"
+import StandardReference from "@tonylb/mtw-wml/ts/standardize/components/reference"
+import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
 import "../../../../theme/extensions"
 
 export interface FacetRowHandlers {
@@ -32,6 +35,17 @@ export interface FacetListEditorGenericProps<TFacet> {
     addLabel?: string
     emptyStateText?: string
     isExcluded?: (id: ComponentUUID) => boolean
+    //
+    // Optional reference-based add/import behavior (when facets correspond to referenced components)
+    //
+    association?: (ref: StandardReference, draft: StandardForm) => void
+    requestCreate?: (onCreated: (ref: StandardReference) => void) => void
+    affordance?: {
+        addLabel?: string
+        referenceExistingLabel?: string
+        enableReferenceExisting?: boolean
+        enableImport?: boolean
+    }
 }
 
 export function FacetListEditorGeneric<TFacet>({
@@ -45,9 +59,61 @@ export function FacetListEditorGeneric<TFacet>({
     readonly = false,
     addLabel,
     emptyStateText,
-    isExcluded
+    isExcluded,
+    association,
+    requestCreate,
+    affordance
 }: FacetListEditorGenericProps<TFacet>): React.ReactElement {
     const [selectorOpen, setSelectorOpen] = useState(false)
+
+    const disabled = !!readonly
+    const useReferenceAdd = useMemo(
+        () => Boolean(association && requestCreate),
+        [association, requestCreate]
+    )
+
+    const enableReferenceExisting = affordance?.enableReferenceExisting ?? true
+    const enableImport = affordance?.enableImport ?? true
+    const addButtonLabel = affordance?.addLabel ?? addLabel ?? `Add ${tag}`
+    const refExistingLabel =
+        affordance?.referenceExistingLabel ?? `Reference existing ${tag}`
+
+    //
+    // Normalize callbacks so we can call useAddReferenceImport unconditionally
+    // without violating the Rules of Hooks. When reference-add is not in use,
+    // these become safe no-ops whose outputs we ignore.
+    //
+    const safeIsExcluded = useCallback(
+        (id: ComponentUUID) => (isExcluded ? isExcluded(id) : false),
+        [isExcluded]
+    )
+
+    const safeAssociation =
+        association ??
+        ((_: StandardReference, __: StandardForm) => {
+            return
+        })
+
+    const safeRequestCreate =
+        requestCreate ??
+        ((_: (ref: StandardReference) => void) => {
+            return
+        })
+
+    const {
+        actionRows,
+        selectorDialog: referenceSelectorDialog,
+        importDialog
+    } = useAddReferenceImport({
+        tag,
+        isExcluded: safeIsExcluded,
+        association: safeAssociation,
+        requestCreate: safeRequestCreate,
+        labels: { add: addButtonLabel, referenceExisting: refExistingLabel },
+        enableReferenceExisting,
+        enableImport,
+        disabled
+    })
 
     const handleAddClick = useCallback(() => {
         if (readonly) return
@@ -117,29 +183,39 @@ export function FacetListEditorGeneric<TFacet>({
                             </Box>
                         </ListItem>
                     )}
-                    {!readonly && (
-                        <ListItem>
-                            <ListItemButton
-                                onClick={handleAddClick}
-                                disabled={readonly}
-                                sx={{ justifyContent: "center" }}
-                            >
-                                <ListItemIcon>
-                                    <AddIcon />
-                                </ListItemIcon>
-                                <ListItemText primary={addLabel ?? defaultAddLabel} />
-                            </ListItemButton>
-                        </ListItem>
-                    )}
+                    {!readonly &&
+                        (useReferenceAdd ? (
+                            actionRows
+                        ) : (
+                            <ListItem>
+                                <ListItemButton
+                                    onClick={handleAddClick}
+                                    disabled={readonly}
+                                    sx={{ justifyContent: "center" }}
+                                >
+                                    <ListItemIcon>
+                                        <AddIcon />
+                                    </ListItemIcon>
+                                    <ListItemText primary={addLabel ?? defaultAddLabel} />
+                                </ListItemButton>
+                            </ListItem>
+                        ))}
                 </List>
             </MakeTheWorldAccordion>
-            <ComponentSelectorDialog
-                open={selectorOpen}
-                onClose={() => setSelectorOpen(false)}
-                tag={tag}
-                onSelect={handleSelect}
-                isExcluded={isExcluded}
-            />
+            {useReferenceAdd ? (
+                <>
+                    {referenceSelectorDialog}
+                    {importDialog}
+                </>
+            ) : (
+                <ComponentSelectorDialog
+                    open={selectorOpen}
+                    onClose={() => setSelectorOpen(false)}
+                    tag={tag}
+                    onSelect={handleSelect}
+                    isExcluded={isExcluded}
+                />
+            )}
         </>
     )
 }

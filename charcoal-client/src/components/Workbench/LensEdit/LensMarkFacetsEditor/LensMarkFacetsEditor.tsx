@@ -1,6 +1,5 @@
-import React, { FunctionComponent, useCallback, useMemo } from "react"
+import React, { FunctionComponent, useCallback } from "react"
 import Box from "@mui/material/Box"
-import List from "@mui/material/List"
 import IconButton from "@mui/material/IconButton"
 import LinkIcon from "@mui/icons-material/Link"
 import { useDispatch } from "react-redux"
@@ -22,7 +21,6 @@ import {
     SingleLineFacetRow
 } from "../../foundations/FacetList"
 import { useWorkbenchAsset } from "../../foundations/useWorkbenchAsset"
-import { useAddReferenceImport } from "../../foundations/ReferenceList/AddReferenceImportControl"
 import { standardComponentFactory } from "@tonylb/mtw-wml/ts/standardize/componentFactory"
 import { pushBreadcrumb } from "../../../../slices/UI/workbench"
 import { LensMarkFacetPayloadEditor } from "./LensMarkFacetPayloadEditor"
@@ -57,16 +55,6 @@ export const LensMarkFacetsEditor: FunctionComponent<LensMarkFacetsEditorProps> 
     const isMarkExcluded = useCallback(
         (id: ComponentUUID) => marks.items.some((f) => f.reference.universalKey === id),
         [marks.items]
-    )
-
-    const association = useCallback(
-        (ref: StandardReference, draft: StandardForm) => {
-            const base = draft.byUniversalId[lensId]
-            if (!base || !(base instanceof StandardMark.constructor.prototype.constructor)) {
-                return
-            }
-        },
-        [lensId]
     )
 
     const markAssociation = useCallback(
@@ -120,21 +108,6 @@ export const LensMarkFacetsEditor: FunctionComponent<LensMarkFacetsEditorProps> 
         },
         [markAssociation, readonly, updateStandard]
     )
-
-    const { actionRows, selectorDialog, importDialog } = useAddReferenceImport({
-        tag: "Mark",
-        isExcluded: isMarkExcluded,
-        association: markAssociation,
-        requestCreate,
-        labels: {
-            add: "Create new Mark",
-            referenceExisting: "Reference existing Mark",
-            import: "Import Mark"
-        },
-        enableReferenceExisting: false,
-        enableImport: true,
-        disabled: readonly
-    })
 
     const getMarkShortName = useCallback(
         (facet: StandardLensMarkFacet): StandardLiteral | undefined => {
@@ -206,6 +179,14 @@ export const LensMarkFacetsEditor: FunctionComponent<LensMarkFacetsEditorProps> 
                     })
                 }
                 tag="Mark"
+                association={markAssociation}
+                requestCreate={requestCreate}
+                affordance={{
+                    addLabel: "Create new Mark",
+                    referenceExistingLabel: "Reference existing Mark",
+                    enableReferenceExisting: false,
+                    enableImport: true
+                }}
                 renderFacetRow={(
                     facet: StandardLensMarkFacet,
                     index: number,
@@ -277,15 +258,6 @@ export const LensMarkFacetsEditor: FunctionComponent<LensMarkFacetsEditorProps> 
                 emptyStateText="No marks. Add one to describe points of interest."
                 isExcluded={isMarkExcluded}
             />
-            {!readonly && (
-                <>
-                    <Box sx={{ mt: 1 }}>
-                        <List>{actionRows}</List>
-                    </Box>
-                    {selectorDialog}
-                    {importDialog}
-                </>
-            )}
         </>
     )
 }
