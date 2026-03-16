@@ -7,9 +7,8 @@ import AddIcon from "@mui/icons-material/Add"
 import LinkIcon from "@mui/icons-material/Link"
 import ImportExportIcon from "@mui/icons-material/ImportExport"
 
-import { useDispatch } from "react-redux"
 import { useWorkbenchAsset } from "../useWorkbenchAsset"
-import { addImport } from "../../../../slices/personalAssets"
+import { addImportToDraft } from "../../../../slices/personalAssets"
 import { ComponentSelectorDialog } from "../ComponentSelector"
 import ImportComponentDialog from "../../ImportComponentDialog"
 import StandardReference from "@tonylb/mtw-wml/ts/standardize/components/reference"
@@ -51,7 +50,7 @@ export interface AddReferenceImportProps {
     association: (ref: StandardReference, context: AddReferenceImportContext) => void
     /** When user clicks Create new, the control calls requestCreate(onCreated). Creating pattern calls onCreated(ref) when done. */
     requestCreate: (onCreated: (ref: StandardReference) => void) => void
-    /** Required when enableImport is true. Used by control to dispatch addImport. */
+    /** Required when enableImport is true. Used by control to add import and place ref in the list. */
     addToReferenceList?: (draft: StandardForm) => ReferenceListDescriptor | null
     labels?: AddReferenceImportLabels
     enableReferenceExisting?: boolean
@@ -92,7 +91,6 @@ export function useAddReferenceImport(props: AddReferenceImportProps): {
         importTag
     } = props
 
-    const dispatch = useDispatch()
     const { updateStandard, readonly, AssetId } = useWorkbenchAsset()
     const disabled = disabledProp ?? readonly
 
@@ -127,18 +125,18 @@ export function useAddReferenceImport(props: AddReferenceImportProps): {
     const handleImportSelect = useCallback(
         (fromAsset: AssetUUID, uuid: ComponentUUID, tagParam: ImportTag) => {
             if (disabled || !addToReferenceList) return
-            dispatch(
-                addImport({
-                    assetId: AssetId,
-                    fromAsset,
-                    uuid,
-                    tag: tagParam,
-                    addToReferenceList
-                })
-            )
+            updateStandard({
+                type: "update",
+                update: (draft) => {
+                    const ref = addImportToDraft(draft, { fromAsset, uuid, tag: tagParam })
+                    const descriptor = addToReferenceList(draft)
+                    if (ref && descriptor) descriptor.setReferenceList(descriptor.referenceList.assureItem(ref))
+                    return draft
+                }
+            })
             setImportDialogOpen(false)
         },
-        [disabled, dispatch, AssetId, addToReferenceList]
+        [disabled, updateStandard, addToReferenceList]
     )
 
     const actionRows = useMemo(
