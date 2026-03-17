@@ -6,6 +6,7 @@ import StandardExample from '@tonylb/mtw-wml/ts/standardize/components/example'
 import { isStandardExampleData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/example'
 import StandardSituation from '@tonylb/mtw-wml/ts/standardize/components/situation'
 import { StandardRoom } from '@tonylb/mtw-wml/ts/standardize/components/room'
+import StandardMark, { StandardLens } from '@tonylb/mtw-wml/ts/standardize/components/worldState'
 import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
 import StandardKnowledge from '@tonylb/mtw-wml/ts/standardize/components/knowledge'
 import { ReferenceList } from '@tonylb/mtw-wml/ts/standardize/keys/referenceList'
@@ -14,6 +15,7 @@ import { StandardSituationRoomFacet, SituationRoomFacetPayload } from '@tonylb/m
 import { RenderTree } from '@tonylb/mtw-base/ts/renderTree'
 import { StandardEditableData, extractFromEditableData } from '@tonylb/mtw-base/ts/editable'
 import { excludeUndefined } from '@tonylb/mtw-utilities/ts/lists'
+import { LensMarkFacetList, LensMarkFacetPayload, StandardLensMarkFacet } from '@tonylb/mtw-wml/ts/standardize/keys'
 import type { PerspectiveMatcher } from '@tonylb/mtw-interfaces/ts/perspective'
 
 //
@@ -229,6 +231,103 @@ export const mergeExampleAcrossStack = (
     return merged
 }
 
+export const mergeRoomAcrossStack = (
+    byAssets: ComponentDataByAsset,
+    assetStack: AssetUUID[]
+): StandardRoom | undefined => {
+    if (!byAssets.length || !assetStack.length) {
+        return undefined
+    }
+
+    const indexByAsset = assetStack.reduce<Record<AssetUUID, number>>(
+        (previous, assetId, index) => ({
+            ...previous,
+            [assetId]: index,
+        }),
+        {}
+    )
+
+    const withIndex = byAssets
+        .map(({ AssetId, component }) => {
+            if (!(component instanceof StandardRoom)) return undefined
+            const index = indexByAsset[AssetId]
+            if (typeof index !== 'number') return undefined
+            return { index, room: component } as { index: number; room: StandardRoom }
+        })
+        .filter(excludeUndefined)
+        .sort((a, b) => a.index - b.index)
+
+    if (!withIndex.length) return undefined
+
+    let merged: StandardRoom = withIndex[0].room as StandardRoom
+    for (let i = 1; i < withIndex.length; i++) {
+        merged = merged.merge(withIndex[i].room) as StandardRoom
+    }
+    return merged
+}
+
+export const mergeLensAcrossStack = (
+    byAssets: ComponentDataByAsset,
+    assetStack: AssetUUID[]
+): StandardLens | undefined => {
+    if (!byAssets.length || !assetStack.length) {
+        return undefined
+    }
+
+    const indexByAsset = assetStack.reduce<Record<AssetUUID, number>>(
+        (previous, assetId, index) => ({
+            ...previous,
+            [assetId]: index,
+        }),
+        {}
+    )
+
+    const withIndex = byAssets
+        .map(({ AssetId, component }) => {
+            if (!(component instanceof StandardLens)) return undefined
+            const index = indexByAsset[AssetId]
+            if (typeof index !== 'number') return undefined
+            return { index, lens: component } as { index: number; lens: StandardLens }
+        })
+        .filter(excludeUndefined)
+        .sort((a, b) => a.index - b.index)
+
+    if (!withIndex.length) return undefined
+
+    let merged: StandardLens = withIndex[0].lens as StandardLens
+    for (let i = 1; i < withIndex.length; i++) {
+        merged = merged.merge(withIndex[i].lens) as StandardLens
+    }
+    return merged
+}
+
+export type LensMarkWithDefault = {
+    markId: string;
+    default: string;
+}
+
+export const getLensMarksWithDefaults = (lens: StandardLens): LensMarkWithDefault[] => {
+    if (!lens.marks || !(lens.marks instanceof LensMarkFacetList)) {
+        return []
+    }
+    return lens.marks.items.map((facet) => {
+        const lensFacet = facet as StandardLensMarkFacet
+        const markId = String(lensFacet.reference.universalKey ?? '')
+        const payload = lensFacet.payload as unknown as LensMarkFacetPayload
+        let defaultValue = ''
+        const literal = payload.default
+        if (literal && typeof (literal as any).toJSON === 'function') {
+            const editable = (literal as any).toJSON() as StandardEditableData<string>
+            const values = extractFromEditableData<string>(editable)
+            defaultValue = values[0] ?? ''
+        }
+        return {
+            markId,
+            default: defaultValue,
+        }
+    })
+}
+
 export const exampleToCacheShape = (example: StandardExample): ComponentExamplesPayload => {
     //
     // Extract markState from MarkFacetList
@@ -299,15 +398,24 @@ export const exampleToCacheShape = (example: StandardExample): ComponentExamples
     }
 }
 
+export type SituationFacetToCacheShapeOptions = {
+    lensMarks?: LensMarkWithDefault[];
+}
+
 /**
  * Build ComponentExamplesPayload from a Situation and its Room facet payload.
  * Same shape as exampleToCacheShape so situation-facet events can reuse the stream.
+ *
+ * When options.lensMarks is provided, limit marks to those defined on the lens and
+ * use lens defaults for any mark not explicitly set on the situation.
  */
 export const situationFacetToCacheShape = (
     situation: StandardSituation,
-    facetPayload: SituationRoomFacetPayload
+    facetPayload: SituationRoomFacetPayload,
+    options?: SituationFacetToCacheShapeOptions
 ): ComponentExamplesPayload => {
-    const markValue: ComponentExamplesMarkValue[] = situation.marks.items.map((facet) => {
+    const situationMarkValues = new Map<string, string>()
+    situation.marks.items.forEach((facet) => {
         const markFacet = facet as StandardMarkFacet
         const mark = String(markFacet.reference.universalKey ?? '')
         const payload = markFacet.payload as any
@@ -319,8 +427,21 @@ export const situationFacetToCacheShape = (
         } else if (typeof payload === 'string') {
             value = payload
         }
-        return { mark, value }
+        situationMarkValues.set(mark, value)
     })
+
+    let markValue: ComponentExamplesMarkValue[]
+    if (options && options.lensMarks) {
+        markValue = options.lensMarks.map(({ markId, default: defaultValue }) => {
+            const value = situationMarkValues.get(markId) ?? defaultValue ?? ''
+            return { mark: markId, value }
+        })
+    } else {
+        markValue = Array.from(situationMarkValues.entries()).map(([mark, value]) => ({
+            mark,
+            value,
+        }))
+    }
     const markState: ComponentExamplesMarkState = { markValue }
 
     const toRenderTree = (editable?: StandardEditableData<RenderTree>): RenderTree | undefined => {

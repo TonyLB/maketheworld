@@ -2,6 +2,11 @@ import { componentExamplesDataSource } from './index'
 import { enrichExampleEvent } from './exampleEnrichment'
 import { ComponentExamplesIncomingEvent } from './subscribedEvents'
 import { StandardExample } from '@tonylb/mtw-wml/ts/standardize/components/example'
+import { StandardRoom } from '@tonylb/mtw-wml/ts/standardize/components/room'
+import StandardSituation from '@tonylb/mtw-wml/ts/standardize/components/situation'
+import { StandardLens } from '@tonylb/mtw-wml/ts/standardize/components/worldState'
+import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
+import internalCache from '../internalCache'
 
 jest.mock('@tonylb/mtw-utilities/ts/dynamoDB', () => ({
     assetDB: {
@@ -32,13 +37,24 @@ jest.mock('../messageBus', () => ({
 
 jest.mock('../internalCache', () => ({
     AssetMetaData: { get: jest.fn() },
+    ComponentData: { get: jest.fn() },
 }))
 
-jest.mock('./exampleEnrichment', () => ({
-    enrichExampleEvent: jest.fn(),
-}))
+jest.mock('./exampleEnrichment', () => {
+    const actual = jest.requireActual('./exampleEnrichment')
+    return {
+        __esModule: true,
+        ...actual,
+        enrichExampleEvent: jest.fn(),
+    }
+})
 
 describe('ComponentExamplesDataSource (mtw.assets.componentExamples)', () => {
+    const mockInternalCache = internalCache as unknown as {
+        AssetMetaData: { get: jest.Mock };
+        ComponentData: { get: jest.Mock };
+    }
+
     beforeEach(() => {
         jest.clearAllMocks()
     })
@@ -271,6 +287,115 @@ describe('ComponentExamplesDataSource (mtw.assets.componentExamples)', () => {
                 },
                 header: { type: 'ExampleRemoved' },
             })
+        })
+
+        it('should apply lens defaults and scoping for Room situations', async () => {
+            const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
+            const mockStreamEnvelope = jest.fn().mockResolvedValue(undefined)
+
+            const roomId = 'ROOM#one' as const
+            const situationId = 'SITUATION#s1' as const
+            const lensId = 'LENS#lens1' as const
+
+            const room = new StandardRoom({
+                tag: 'Room',
+                universalKey: roomId,
+                lens: [
+                    { universalKey: lensId, key: 'roomLens', tag: 'Lens' } as any,
+                ],
+                situations: [
+                    {
+                        reference: { universalKey: situationId },
+                        payload: {} as any,
+                    } as any,
+                ],
+            } as any)
+
+            const lens = new StandardLens(deIndentWML(`
+                <Lens key=(illumination) uuid=(LENS#lens1)>
+                    <Mark key=(illumination) uuid=(MARK#illumination)>
+                        <Default>lighted</Default>
+                    </Mark>
+                    <Mark key=(timeofday) uuid=(MARK#timeofday)>
+                        <Default>Afternoon</Default>
+                    </Mark>
+                </Lens>
+            `))
+
+            const situation = new StandardSituation(deIndentWML(`
+                <Situation key=(s1) uuid=(SITUATION#s1)>
+                    <Mark key=(illumination) uuid=(MARK#illumination)>
+                        <Match>dim</Match>
+                    </Mark>
+                    <Mark key=(extraneous) uuid=(MARK#other)>
+                        <Match>ignored</Match>
+                    </Mark>
+                </Situation>
+            `))
+
+            const roomComponentData = {
+                ComponentId: roomId,
+                byAssets: [
+                    {
+                        AssetId: 'ASSET#room1',
+                        component: room as any,
+                    },
+                ],
+            }
+            const lensComponentData = {
+                ComponentId: lensId,
+                byAssets: [
+                    {
+                        AssetId: 'ASSET#lens1',
+                        component: lens as any,
+                    },
+                ],
+            }
+            const situationComponentData = {
+                ComponentId: situationId,
+                byAssets: [
+                    {
+                        AssetId: 'ASSET#situation1',
+                        component: situation as any,
+                    },
+                ],
+            }
+
+            mockInternalCache.ComponentData.get
+                .mockResolvedValueOnce([roomComponentData])
+                .mockResolvedValueOnce([lensComponentData])
+                .mockResolvedValueOnce([situationComponentData])
+
+            const events: ComponentExamplesIncomingEvent[] = [
+                {
+                    header: {
+                        dataSourceKey: 'mtw.assets',
+                        streamKey: 'ASSET#room1',
+                        timestamp: 123,
+                        type: 'Component Updated',
+                    },
+                    getContent: () =>
+                        Promise.resolve({
+                            type: 'Component Updated',
+                            component: room as any,
+                        } as any),
+                },
+            ]
+
+            await componentExamplesDataSource.receiveEvents?.({
+                events,
+                streamEvent: mockStreamEvent,
+                streamEnvelope: mockStreamEnvelope,
+            })
+
+            expect(mockStreamEvent).toHaveBeenCalledTimes(1)
+            const call = mockStreamEvent.mock.calls[0][0]
+            expect(call.update.exampleId).toBe(situationId)
+            const markState = call.update.example.markState.markValue
+            expect(markState).toEqual([
+                { mark: 'MARK#illumination', value: 'dim' },
+                { mark: 'MARK#timeofday', value: 'Afternoon' },
+            ])
         })
     })
 })
