@@ -72,26 +72,79 @@ v1 will primarily exercise the authoring path: an author using the Room State Da
 This section will capture concrete decisions as they are made. Initial placeholders (to be refined and filled as we design and implement):
 
 1. **State representation**
-   - What is the durable Ephemera representation of world state per component?
-   - For Rooms in v1:
-     - Do we store state as a canonical `markState` (Mark/Match pairs), a `situationId`, or both?
-     - Is state global per Room, per character, or per session?
+   - **Decision (Rooms, v1):** World state is **global per Room** and represented as a canonical `markState` (Mark/Match pairs) derived from the Room's Lens/Marks/Situations.
+   - **Storage target:** A `state` property on the existing or new `Meta::Room` record in the Ephemera table (`EphemeraId: ROOM#...`, `DataCategory: 'Meta::Room'`), so that:
+     - Each Room has a single authoritative world-state snapshot.
+     - The `state` object can hold:
+       - `marks`: the canonical `markState` (Mark/Match pairs) used for cache lookup and generation.
+       - Optional `situationId`: for debugging and author-facing introspection, indicating which Situation (if any) this state is most closely associated with.
+     - A `currentCacheId` field on `Meta::Room` can point at the most recently used cache entry (e.g., `DataCategory` for a `CACHE#...` row), and is **invalidated whenever `state` changes**.
+     - Future iterations can extend the same pattern to other components (e.g., `Meta::Feature`, `Meta::Map`) without changing the basic representation.
+   - Open follow-up questions (explicitly **out of v1 scope**, and possibly unnecessary long-term):
+     - Do we ever need per-character or per-session overrides in addition to the global Room state, and if so, where would those live if we decide to add them?
 2. **APIs between state and perception**
-   - How does perception query the current state for a Room when generating a perception event?
-   - How does it translate that state into a cache lookup (or generation) for renders?
+   - **High-level contract (Rooms, v1):**
+     - Perception, when preparing a Room perception event, first reads `Meta::Room` for that Room to obtain:
+       - `state.marks` (canonical markState) and optional `state.situationId`.
+       - `currentCacheId`, if present.
+     - If `currentCacheId` is present:
+       - Attempt a fast read of that specific cache record (validate that its `markState` still matches `state.marks` and that it is otherwise valid); if valid, use it directly for the render.
+       - If invalid (state mismatch, missing record, etc.), clear `currentCacheId` and fall through to the search/generation path.
+     - If `currentCacheId` is not present or was invalidated:
+       - Use `state.marks` plus the current perspective (asset stack) to:
+         - Search `renderCache` for an exact match.
+         - If none exists and generation is allowed in this context, invoke the existing generate-and-cache flow (same semantics as `generateRoomPreview`), then update `Meta::Room.currentCacheId` and use that result.
+   - This answers question 2 for Rooms in v1: perception always goes through `Meta::Room` → (optional fast cache hit by `currentCacheId`) → cache search/generation by `state.marks` and perspective to obtain a render.
 3. **Authoring integration**
-   - What WebSocket/API contracts allow a Room State Dashboard to:
-     - Propose a new state.
-     - Commit that state as "current" for the Room.
-     - Observe the resulting perception messages in the chat spine.
+   - **v1 contract:** Introduce a **bespoke, temporary/development WebSocket API** for the Room State Dashboard, parallel in spirit to `generateRoomPreview`:
+     - Request shape (conceptual):
+       - Message type specific to authoring (e.g., `SetRoomStateForPreview`), clearly documented as **authoring-only** and **non-gameplay**.
+       - Includes `RoomId`, proposed `state.marks` (and optional `state.situationId`), and any authoring context needed to validate permissions.
+     - Behavior:
+       - Writes the proposed state into `Meta::Room.state` for that Room and clears `currentCacheId`.
+       - Optionally triggers an immediate Room-perception event for the author’s session/character so they see the updated state reflected in the chat spine.
+     - Response:
+       - Returns a simple success/failure result over the authoring WebSocket flow (similar to Preview), with clear documentation that this contract is **experimental and subject to change** as we converge on a more general state API.
 4. **Cache usage policy**
-   - In v1, are Room perceptions:
-     - Cache-first with fallback to `ComponentRender`?
-     - Cache-required (and we surface "no state render exists" errors)?
-   - When and where is LLM-based generation allowed to write new cache rows?
+   - **Rooms, v1:** Room perceptions are **cache-required** for state-driven renders; we do not silently fall back to `ComponentRender` for stateful Room descriptions.
+   - **Two-phase user feedback pattern (authoring, Room State Dashboard):**
+     - When a state change or perception request comes in over WebSocket (with a `RequestId`):
+       1. Call a **state+cache orchestration helper** (conceptual name: `getOrStartRoomRenderForState(roomId, perspective, options)`), which:
+          - Reads `Meta::Room` to obtain `state.marks`, optional `state.situationId`, and `currentCacheId`.
+          - Attempts a cache lookup via `currentCacheId` and, if needed, a search/generation path using `state.marks` + perspective.
+          - Returns either:
+            - `{ status: 'ready', cacheRecord }` when a matching cache record exists (either from prior work or immediate generation), or
+            - `{ status: 'generating', placeholderMessageId }` when an LLM round-trip has been started and no ready record exists yet.
+       2. Perception reacts to the helper’s status:
+          - **Case (a) `status: 'ready'`:**
+            - Call `componentRender.get(...)` as a synchronous enrichment step around the chosen cache record (exits, characters, short name, etc.).
+            - Send a `RoomUpdate` message for the Room (with a new `MessageId`) carrying the final description.
+            - Return success on the original WebSocket `RequestId` once that `RoomUpdate` has been sent.
+          - **Case (b) `status: 'generating'`:**
+            - Immediately send a `RoomUpdate` message with:
+              - A dedicated `MessageId` (from `placeholderMessageId`).
+              - A **first-class "generating" variant** in the `RoomUpdate` payload (e.g., a discriminated union branch such as `{ kind: 'Generating', RoomId, meta: ... }`), rather than a string like "Generating..." that a naive client might render directly.
+            - Resolve the WebSocket request as success as soon as this placeholder `RoomUpdate` is sent (the author sees that something is happening).
+            - Allow the generation function, owned by the state+cache helper, to continue asynchronously. When generation completes and the helper has written the new cache row and updated `Meta::Room.currentCacheId`:
+              - Invalidate the relevant `componentRender` cache entry for that `(characterId, RoomId, header?)`.
+              - Call `componentRender.get(...)` to rebuild the enriched `StandardForm`.
+              - Send a follow-up `RoomUpdate` that **overwrites** the previous one by reusing the same `MessageId`, replacing the "Generating" variant with the final description from cache.
+    - In this design, `componentRender` remains a single-shot, synchronous enrichment step, while the **two-phase UX and LLM orchestration** live in the state+cache helper and perception layer. This preserves a cache-required model while giving the author immediate feedback and a clean overwrite mechanism once generation finishes.
 5. **Extensibility to Features and Maps**
-   - What parts of the data model and APIs are intentionally generic (component-agnostic)?
-   - What Room-only shortcuts do we accept in v1, and how will we unroll them later?
+   - **Intentionally generic patterns (expected to carry over):**
+     - `Meta::<ComponentType>.state` with:
+       - `marks` (canonical Mark/Match pairs for that component’s Lens/Marks/Situations).
+       - Optional `situationId` for introspection.
+     - `Meta::<ComponentType>.currentCacheId` pointing at the active `CACHE#...` record for that component, invalidated whenever `state` changes.
+     - Perception flow of:
+       - Read `Meta::<ComponentType>` → get `state` and `currentCacheId`.
+       - Try fast cache hit via `currentCacheId`; on failure, search/generate via `state.marks` + perspective and update `currentCacheId`.
+       - Emit a component-specific perception/update message (`RoomUpdate`, `FeatureUpdate`, `MapUpdate`, etc.) using the resulting cached render.
+     - Cache-required policy plus the two-phase “generating” feedback pattern (with a first-class `kind: 'Generating'` variant and overwrite by `MessageId`) apply equally well to Features and Maps.
+   - **Room-only shortcuts in v1 (to be unrolled later if needed):**
+     - The only concrete meta record we plan to touch initially is `Meta::Room`; `Meta::Feature` and `Meta::Map` will not yet have `state`/`currentCacheId` fields wired into perception.
+     - The bespoke authoring WebSocket contract is **Room-specific** (Room State Dashboard) rather than a fully generic “SetComponentState” API.
+     - Perception entrypoints and update message types we are touching in v1 are `PerceptionRoomMessage` and `RoomUpdate`; Feature/Map perception will continue using existing flows until we explicitly migrate them onto this pattern.
 
 As v1 design solidifies, we will convert these bullets into concrete decisions, diagrams, and type signatures, and mirror the results into `AGENT.md` as implementation lands.
 
