@@ -1,9 +1,9 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`fetchImportsMessage should follow dynamic renames in imports 1`] = `
-{
-  "importsByAsset": [
-    {
+Object {
+  "importsByAsset": Array [
+    Object {
       "assetId": "ASSET#testFinal",
       "wml": "<Asset uuid=(testFinal)>
     <Room
@@ -28,9 +28,9 @@ exports[`fetchImportsMessage should follow dynamic renames in imports 1`] = `
 `;
 
 exports[`fetchImportsMessage should import multilevel and avoid colliding stub names 1`] = `
-{
-  "importsByAsset": [
-    {
+Object {
+  "importsByAsset": Array [
+    Object {
       "assetId": "ASSET#testFinal",
       "wml": "<Asset uuid=(testFinal)>
     <Room uuid=(stub) origin=(ASSET#testImportAssetThree) ref={0}>
@@ -62,9 +62,9 @@ exports[`fetchImportsMessage should import multilevel and avoid colliding stub n
 `;
 
 exports[`fetchImportsMessage should properly stub out features in room description 1`] = `
-{
-  "importsByAsset": [
-    {
+Object {
+  "importsByAsset": Array [
+    Object {
       "assetId": "ASSET#testFinal",
       "wml": "<Asset uuid=(testFinal)>
     <Feature
@@ -87,9 +87,9 @@ exports[`fetchImportsMessage should properly stub out features in room descripti
 `;
 
 exports[`fetchImportsMessage should recursive fetch one level of element and stubs when passed import key 1`] = `
-{
-  "importsByAsset": [
-    {
+Object {
+  "importsByAsset": Array [
+    Object {
       "assetId": "ASSET#testFinal",
       "wml": "<Asset uuid=(testFinal)>
     <Room
@@ -121,9 +121,9 @@ exports[`fetchImportsMessage should recursive fetch one level of element and stu
 `;
 
 exports[`fetchImportsMessage should return element and stubs when passed non-import key 1`] = `
-{
-  "importsByAsset": [
-    {
+Object {
+  "importsByAsset": Array [
+    Object {
       "assetId": "ASSET#testFinal",
       "wml": "<Asset uuid=(testFinal)>
     <Room uuid=(testNonImport) key=(testNonImport) origin=(ASSET#testFinal)>
@@ -147,9 +147,9 @@ exports[`fetchImportsMessage should return element and stubs when passed non-imp
 `;
 
 exports[`fetchImportsMessage should return empty when passed no keys 1`] = `
-{
-  "importsByAsset": [
-    {
+Object {
+  "importsByAsset": Array [
+    Object {
       "assetId": "ASSET#testFinal",
       "wml": "<Asset uuid=(testFinal) />",
     },

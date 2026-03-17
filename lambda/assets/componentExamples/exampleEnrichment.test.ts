@@ -4,12 +4,17 @@ import { StandardRoom } from '@tonylb/mtw-wml/ts/standardize/components/room'
 import StandardSituation from '@tonylb/mtw-wml/ts/standardize/components/situation'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
+import { StandardLens } from '@tonylb/mtw-wml/ts/standardize/components/worldState'
 import {
     computePerspectiveMatcherForRoomSituation,
     enrichExampleEvent,
     exampleToCacheShape,
+    getLensMarksWithDefaults,
     getOrderedAssetStack,
+    mergeLensAcrossStack,
+    mergeRoomAcrossStack,
     roomHasFacetForSituation,
+    situationFacetToCacheShape,
     situationHasMarks,
 } from './exampleEnrichment'
 
@@ -135,6 +140,137 @@ describe('exampleEnrichment helpers', () => {
         expect(result.parentIds).toEqual(['ROOM#one'])
         expect(result.example).toBeDefined()
         expect(result.example?.renderedContent.description.length).toBeGreaterThan(0)
+    })
+
+    it('mergeRoomAcrossStack should merge rooms in assetStack order', () => {
+        const roomId = 'ROOM#one' as const
+        const baseRoom = new StandardRoom(deIndentWML(`
+            <Room key=(one) uuid=(ROOM#one)>
+                <Situation key=(base) uuid=(SITUATION#base) />
+            </Room>
+        `))
+        const overrideRoom = new StandardRoom(deIndentWML(`
+            <Room key=(one) uuid=(ROOM#one)>
+                <Situation key=(override) uuid=(SITUATION#override) />
+            </Room>
+        `))
+
+        const assetStack = ['ASSET#base', 'ASSET#override'] as (`ASSET#${string}`)[]
+        const byAssets = [
+            { AssetId: 'ASSET#base' as const, component: baseRoom as any },
+            { AssetId: 'ASSET#override' as const, component: overrideRoom as any },
+        ]
+
+        const merged = mergeRoomAcrossStack(byAssets, assetStack)
+        expect(merged).toBeDefined()
+        const situationIds = merged?.situations.items.map(
+            (f: any) => f.reference.universalKey
+        )
+        expect(situationIds).toEqual(
+            expect.arrayContaining(['SITUATION#base', 'SITUATION#override'])
+        )
+    })
+
+    it('mergeLensAcrossStack and getLensMarksWithDefaults should honor last-write defaults', () => {
+        const baseLens = new StandardLens(deIndentWML(`
+            <Lens key=(illumination) uuid=(LENS#one)>
+                <Mark key=(illumination) uuid=(MARK#illumination)>
+                    <Default>light</Default>
+                </Mark>
+            </Lens>
+        `))
+        const overrideLens = new StandardLens(deIndentWML(`
+            <Lens key=(illumination) uuid=(LENS#one)>
+                <Mark key=(illumination) uuid=(MARK#illumination)>
+                    <Default>dark</Default>
+                </Mark>
+            </Lens>
+        `))
+
+        const assetStack = ['ASSET#base' as const, 'ASSET#override' as const]
+        const byAssets = [
+            { AssetId: 'ASSET#base' as const, component: baseLens as any },
+            { AssetId: 'ASSET#override' as const, component: overrideLens as any },
+        ]
+
+        const merged = mergeLensAcrossStack(byAssets, assetStack)
+        expect(merged).toBeDefined()
+        const marks = getLensMarksWithDefaults(merged as StandardLens)
+        expect(marks).toHaveLength(1)
+        expect(marks[0]).toEqual(
+            expect.objectContaining({
+                markId: 'MARK#illumination',
+                default: 'dark',
+            })
+        )
+    })
+
+    describe('situationFacetToCacheShape with lens marks', () => {
+        it('should scope to lens marks and apply defaults', () => {
+            const lens = new StandardLens(deIndentWML(`
+                <Lens key=(illumination) uuid=(LENS#lens1)>
+                    <Mark key=(illumination) uuid=(MARK#illumination)>
+                        <Default>lighted</Default>
+                    </Mark>
+                    <Mark key=(timeofday) uuid=(MARK#timeofday)>
+                        <Default>Afternoon</Default>
+                    </Mark>
+                </Lens>
+            `))
+            const lensMarks = getLensMarksWithDefaults(lens)
+
+            const situation = new StandardSituation(deIndentWML(`
+                <Situation key=(s1) uuid=(SITUATION#s1)>
+                    <Mark key=(illumination) uuid=(MARK#illumination)>
+                        <Match>dim</Match>
+                    </Mark>
+                    <Mark key=(extraneous) uuid=(MARK#other)>
+                        <Match>ignored</Match>
+                    </Mark>
+                </Situation>
+            `))
+
+            const payload = situationFacetToCacheShape(situation, {} as any, {
+                lensMarks,
+            })
+
+            expect(payload.markState.markValue).toEqual([
+                { mark: 'MARK#illumination', value: 'dim' },
+                { mark: 'MARK#timeofday', value: 'Afternoon' },
+            ])
+        })
+
+        it('should emit no marks when lensMarks is empty even if situation has marks', () => {
+            const situation = new StandardSituation(deIndentWML(`
+                <Situation key=(s1) uuid=(SITUATION#s1)>
+                    <Mark key=(illumination) uuid=(MARK#illumination)>
+                        <Match>dim</Match>
+                    </Mark>
+                </Situation>
+            `))
+
+            const payload = situationFacetToCacheShape(situation, {} as any, {
+                lensMarks: [],
+            })
+
+            expect(payload.markState.markValue).toEqual([])
+        })
+
+        it('should preserve existing behavior when lensMarks is undefined', () => {
+            const situation = new StandardSituation(deIndentWML(`
+                <Situation key=(s1) uuid=(SITUATION#s1)>
+                    <Mark key=(illumination) uuid=(MARK#illumination)>
+                        <Match>dim</Match>
+                    </Mark>
+                </Situation>
+            `))
+
+            const payload = situationFacetToCacheShape(situation, {} as any)
+
+            expect(payload.markState.markValue).toEqual([
+                { mark: 'MARK#illumination', value: 'dim' },
+            ])
+        })
     })
 
     describe('perspective matcher (Phase 5.7)', () => {

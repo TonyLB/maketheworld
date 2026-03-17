@@ -17,6 +17,9 @@ import {
     computePerspectiveMatcherForRoomSituation,
     enrichExampleEvent,
     getOrderedAssetStack,
+    getLensMarksWithDefaults,
+    mergeLensAcrossStack,
+    mergeRoomAcrossStack,
     situationFacetToCacheShape,
 } from './exampleEnrichment'
 import type { EphemeraId } from '@tonylb/mtw-interfaces/ts/baseClasses'
@@ -61,11 +64,32 @@ export const componentExamplesDataSource = new AssetsDataSource<
                     // so we publish full render payloads instead of edit fragments from the diff.
                     const contentRoom = byAssets.find((a) => a.AssetId === assetId)?.component as StandardRoom | undefined
                     const roomForPayload = contentRoom ?? room
+                    const assetStack = getOrderedAssetStack(roomId, assetId, byAssets)
+
+                    const mergedRoom = mergeRoomAcrossStack(byAssets, assetStack) ?? roomForPayload
+                    const lensRef = mergedRoom?.lens?.payload?.[0]
+                    const lensId = lensRef?.universalKey as ComponentUUID | undefined
+                    let lensMarksWithDefaults = undefined as
+                        | ReturnType<typeof getLensMarksWithDefaults>
+                        | undefined
+
+                    if (lensId) {
+                        const [lensData] = await internalCache.ComponentData.get([lensId as EphemeraId])
+                        const lensByAssets = lensData?.byAssets ?? []
+                        if (lensByAssets.length) {
+                            const eventLensAssetId = lensByAssets[lensByAssets.length - 1]?.AssetId as AssetUUID
+                            const lensAssetStack = getOrderedAssetStack(lensId, eventLensAssetId, lensByAssets)
+                            const mergedLens = mergeLensAcrossStack(lensByAssets, lensAssetStack)
+                            if (mergedLens) {
+                                lensMarksWithDefaults = getLensMarksWithDefaults(mergedLens)
+                            }
+                        }
+                    }
+
                     const situationsListForPayload = roomForPayload.situations?.items ?? []
                     if (situationsListForPayload.length === 0) {
                         return
                     }
-                    const assetStack = getOrderedAssetStack(roomId, assetId, byAssets)
                     const situationIds = situationsListForPayload.map(
                         (f) => (f as StandardSituationRoomFacet).reference.universalKey
                     )
@@ -117,7 +141,8 @@ export const componentExamplesDataSource = new AssetsDataSource<
                         })
                         const examplePayload = situationFacetToCacheShape(
                             situationComponent,
-                            facet.payload
+                            facet.payload,
+                            lensMarksWithDefaults ? { lensMarks: lensMarksWithDefaults } : undefined
                         )
                         await streamEvent({
                             update: {
