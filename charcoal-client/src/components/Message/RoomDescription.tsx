@@ -38,11 +38,12 @@ interface RoomDescriptionProps {
     children?: ReactChild | ReactChildren;
     header?: boolean;
     currentHeader?: boolean;
+    isGenerating?: boolean;
 }
 
 
 
-export const RoomDescription = ({ parsedWML, metaData, header, currentHeader }: RoomDescriptionProps) => {
+export const RoomDescription = ({ parsedWML, metaData, header, currentHeader, isGenerating }: RoomDescriptionProps) => {
     const componentUUID = metaData.componentUUID
 
     // Initialize with proper types
@@ -124,6 +125,42 @@ export const RoomDescription = ({ parsedWML, metaData, header, currentHeader }: 
     useOnboardingCheckpoint('navigatePersonalRoom', { requireSequence: true, condition: inPersonalRoom })
 
     const nameText = (name?._payload?.plain?.toJSON?.() as string) ?? 'Untitled'
+
+    if (isGenerating) {
+        return <MessageComponent
+            flush={header}
+            sx={{
+                paddingTop: "10px",
+                paddingBottom: "10px",
+                background: `linear-gradient(75deg, ${blue[200]}, #ffffff)`,
+                color: (theme) => (theme.palette.getContrastText(blue[200])),
+                ...(header
+                    ? {
+                        marginLeft: 0,
+                        marginRight: 0
+                    }
+                    : {
+                        marginLeft: "70px",
+                        marginRight: "70px"
+                    }
+                )
+            }}
+            leftIcon={<HouseIcon />}
+        >
+            <Box
+                sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    minHeight: '6rem'
+                }}
+            >
+                <Typography variant='h5' align='center'>
+                    Generating...
+                </Typography>
+            </Box>
+        </MessageComponent>
+    }
 
     return <MessageComponent
             flush={header}

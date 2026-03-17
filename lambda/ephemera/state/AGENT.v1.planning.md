@@ -114,22 +114,21 @@ This section will capture concrete decisions as they are made. Initial placehold
           - Attempts a cache lookup via `currentCacheId` and, if needed, a search/generation path using `state.marks` + perspective.
           - Returns either:
             - `{ status: 'ready', cacheRecord }` when a matching cache record exists (either from prior work or immediate generation), or
-            - `{ status: 'generating', placeholderMessageId }` when an LLM round-trip has been started and no ready record exists yet.
+            - `{ status: 'generating' }` when an LLM round-trip has been started and no ready record exists yet.
        2. Perception reacts to the helper’s status:
           - **Case (a) `status: 'ready'`:**
             - Call `componentRender.get(...)` as a synchronous enrichment step around the chosen cache record (exits, characters, short name, etc.).
-            - Send a `RoomUpdate` message for the Room (with a new `MessageId`) carrying the final description.
-            - Return success on the original WebSocket `RequestId` once that `RoomUpdate` has been sent.
+            - Send a normal `PerceptionRoomMessage` (with `header: true` and/or full description as appropriate) whose resulting `PerceptionMessage` room header reflects the new cached render.
+            - Return success on the original WebSocket `RequestId` once that perception has been sent.
           - **Case (b) `status: 'generating'`:**
-            - Immediately send a `RoomUpdate` message with:
-              - A dedicated `MessageId` (from `placeholderMessageId`).
-              - A **first-class "generating" variant** in the `RoomUpdate` payload (e.g., a discriminated union branch such as `{ kind: 'Generating', RoomId, meta: ... }`), rather than a string like "Generating..." that a naive client might render directly.
-            - Resolve the WebSocket request as success as soon as this placeholder `RoomUpdate` is sent (the author sees that something is happening).
+            - Immediately send a **placeholder room header** via `PerceptionRoomMessage` with `header: true`, whose WML and metadata clearly indicate a transient "Generating..." state for that Room (e.g., a header description that renders as a centered "Generating..." summary, and the usual `PerceptionRoomMetaData` for the Room).
+            - Treat this as just another header for the same Room: on the client, `getMessagesByRoom` will treat the newest header as the current sticky header, so the placeholder naturally replaces any prior header for that Room without needing message overwrites.
+            - Resolve the WebSocket request as success as soon as this placeholder header perception is sent (the author sees that something is happening).
             - Allow the generation function, owned by the state+cache helper, to continue asynchronously. When generation completes and the helper has written the new cache row and updated `Meta::Room.currentCacheId`:
               - Invalidate the relevant `componentRender` cache entry for that `(characterId, RoomId, header?)`.
               - Call `componentRender.get(...)` to rebuild the enriched `StandardForm`.
-              - Send a follow-up `RoomUpdate` that **overwrites** the previous one by reusing the same `MessageId`, replacing the "Generating" variant with the final description from cache.
-    - In this design, `componentRender` remains a single-shot, synchronous enrichment step, while the **two-phase UX and LLM orchestration** live in the state+cache helper and perception layer. This preserves a cache-required model while giving the author immediate feedback and a clean overwrite mechanism once generation finishes.
+              - Send a follow-up `PerceptionRoomMessage` (again with `header: true`) whose header content reflects the final rendered description. On the client, this new header will simply replace the placeholder header as the current sticky room context for that Room.
+    - In this design, `componentRender` remains a single-shot, synchronous enrichment step, while the **two-phase UX and LLM orchestration** live in the state+cache helper and perception layer. We rely on the existing Perception header semantics (newest header per Room becomes the sticky header) rather than adding any new "overwrite by MessageId" behavior.
 5. **Extensibility to Features and Maps**
    - **Intentionally generic patterns (expected to carry over):**
      - `Meta::<ComponentType>.state` with:

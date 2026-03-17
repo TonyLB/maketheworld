@@ -11,6 +11,7 @@ type EphemeraCharacter = {
 }
 import { ephemeraDB } from "@tonylb/mtw-utilities/ts/dynamoDB"
 import {
+    EphemeraCharacterId,
     EphemeraMessageId,
     EphemeraRoomId,
     isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraKnowledgeId, isEphemeraRoomId
@@ -271,6 +272,39 @@ export const perceptionMessage = async ({
         body: {
             messageType: "Success"
         }
+    })
+}
+
+type SendRoomGeneratingHeaderArgs = {
+    roomId: EphemeraRoomId;
+    characterIds: EphemeraCharacterId[];
+    messageBus: MessageBus;
+    messageGroupId?: string;
+}
+
+export const sendRoomGeneratingHeader = ({ roomId, characterIds, messageBus, messageGroupId }: SendRoomGeneratingHeaderArgs): void => {
+    if (!characterIds.length) {
+        return
+    }
+    const wmlContent = `<Asset uuid=(render)>
+    <Room uuid=(${roomId})>
+        <Example key=(generatingHeader) uuid=(EXAMPLE#generatingHeader)>
+            <DisplayName>Generating...</DisplayName>
+        </Example>
+    </Room>
+</Asset>`
+
+    messageBus.send({
+        type: 'PublishMessage',
+        targets: characterIds,
+        displayProtocol: 'PerceptionMessage',
+        wmlContent,
+        metaData: {
+            componentUUID: roomId,
+            displayMode: 'header',
+            status: 'generating'
+        },
+        messageGroupId
     })
 }
 
