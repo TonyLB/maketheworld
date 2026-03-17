@@ -1,4 +1,4 @@
-import React, { ReactChild, ReactChildren, ReactFragment } from 'react'
+import React, { ReactChild, ReactChildren, ReactFragment, ReactNode } from 'react'
 
 import {
     Box,
@@ -13,7 +13,7 @@ import RenderTreeContent from './RenderTreeContent'
 
 interface WorldMessageProps {
     message: WorldMessageType;
-    children?: ReactChild | ReactChildren;
+    children?: ReactNode;
 }
 
 export const WorldMessage = ({ message, ...rest }: WorldMessageProps) => {

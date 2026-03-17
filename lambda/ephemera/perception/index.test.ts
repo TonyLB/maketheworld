@@ -3,7 +3,7 @@ import messageBus from '../messageBus'
 jest.mock('@tonylb/mtw-utilities/ts/dynamoDB')
 import { ephemeraDB } from "@tonylb/mtw-utilities/ts/dynamoDB"
 
-import perceptionMessage from '.'
+import perceptionMessage, { sendRoomGeneratingHeader } from '.'
 import StandardMessage from "@tonylb/mtw-wml/ts/standardize/components/message"
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
 import { StandardReference } from "@tonylb/mtw-wml/ts/standardize/components/reference"
@@ -250,6 +250,45 @@ describe('Perception message', () => {
             })
             expect(messageBusMock.send).toHaveBeenCalledTimes(1)
         })
+    })
 
+    describe('sendRoomGeneratingHeader', () => {
+        it('should send a PerceptionMessage with generating status for room headers', () => {
+            sendRoomGeneratingHeader({
+                roomId: 'ROOM#TEST',
+                characterIds: ['CHARACTER#TESS'],
+                messageBus: messageBusMock as any,
+                messageGroupId: 'UUID#group'
+            })
+
+            expect(messageBusMock.send).toHaveBeenCalledWith({
+                type: 'PublishMessage',
+                targets: ['CHARACTER#TESS'],
+                displayProtocol: 'PerceptionMessage',
+                wmlContent: `<Asset uuid=(render)>
+    <Room uuid=(ROOM#TEST)>
+        <Example key=(generatingHeader) uuid=(EXAMPLE#generatingHeader)>
+            <DisplayName>Generating...</DisplayName>
+        </Example>
+    </Room>
+</Asset>`,
+                metaData: {
+                    componentUUID: 'ROOM#TEST',
+                    displayMode: 'header',
+                    status: 'generating'
+                },
+                messageGroupId: 'UUID#group'
+            })
+        })
+
+        it('should be a no-op when characterIds is empty', () => {
+            sendRoomGeneratingHeader({
+                roomId: 'ROOM#TEST',
+                characterIds: [],
+                messageBus: messageBusMock as any
+            })
+
+            expect(messageBusMock.send).not.toHaveBeenCalled()
+        })
     })
 })

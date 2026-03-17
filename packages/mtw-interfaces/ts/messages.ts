@@ -188,6 +188,12 @@ type PerceptionMessageMetaDataBase = {
 export type PerceptionRoomMetaData = PerceptionMessageMetaDataBase & {
     componentUUID: `ROOM#${string}`;
     displayMode: 'header' | 'full';
+    //
+    // status: Optional state indicator for Room perception messages.
+    // - 'ready' (default): Room header/full description is fully rendered.
+    // - 'generating': Placeholder header indicating that a new render is being generated.
+    //
+    status?: 'ready' | 'generating';
 }
 
 export type PerceptionFeatureMetaData = PerceptionMessageMetaDataBase & {

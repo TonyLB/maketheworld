@@ -176,6 +176,7 @@ describe('PerceptionMessage MetaData System', () => {
         it('should accept valid room metadata with header displayMode', () => {
             expect(roomMetaData.componentUUID).toBe('ROOM#mainHall')
             expect(roomMetaData.displayMode).toBe('header')
+            expect(roomMetaData.status).toBeUndefined()
         })
 
         it('should accept valid room metadata with full displayMode', () => {
@@ -184,6 +185,22 @@ describe('PerceptionMessage MetaData System', () => {
                 displayMode: 'full'
             }
             expect(fullRoomMetaData.displayMode).toBe('full')
+            expect(fullRoomMetaData.status).toBeUndefined()
+        })
+
+        it('should allow status to be set to ready or generating', () => {
+            const readyMetaData: PerceptionRoomMetaData = {
+                componentUUID: 'ROOM#readyRoom',
+                displayMode: 'header',
+                status: 'ready'
+            }
+            const generatingMetaData: PerceptionRoomMetaData = {
+                componentUUID: 'ROOM#generatingRoom',
+                displayMode: 'header',
+                status: 'generating'
+            }
+            expect(readyMetaData.status).toBe('ready')
+            expect(generatingMetaData.status).toBe('generating')
         })
 
         it('should be identified by type guard', () => {

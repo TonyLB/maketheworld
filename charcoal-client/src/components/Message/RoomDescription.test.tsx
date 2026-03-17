@@ -285,6 +285,27 @@ describe('RoomDescription', () => {
 
             expect(screen.queryByText('Live')).toBeNull()
         })
+
+        it('should render generating placeholder when isGenerating is true', () => {
+            const metaData: PerceptionRoomMetaData = {
+                componentUUID: 'ROOM#test-room',
+                displayMode: 'header',
+                status: 'generating'
+            }
+
+            render(
+                <Provider store={store}>
+                    <RoomDescription 
+                        metaData={metaData} 
+                        header 
+                        isGenerating
+                    />
+                </Provider>
+            )
+
+            expect(screen.getByText('Generating...')).toBeDefined()
+            expect(screen.queryByText('No description')).toBeNull()
+        })
     })
 
     describe('Edge Cases', () => {

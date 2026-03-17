@@ -1,4 +1,4 @@
-import React, { ReactChild, ReactChildren, ReactElement } from 'react'
+import React, { ReactElement, ReactNode } from 'react'
 
 import {
     Box,
@@ -22,11 +22,12 @@ import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import { StandardFeature } from '@tonylb/mtw-wml/ts/standardize/components/feature'
 import { StandardKnowledge } from '@tonylb/mtw-wml/ts/standardize/components/knowledge'
 import { StandardExample } from '@tonylb/mtw-wml/ts/standardize/components/example'
+import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
 
 type ComponentDescriptionProps = {
     parsedWML: StandardForm;
     metaData: PerceptionMessageMetaData;
-    children?: ReactChild | ReactChildren;
+    children?: ReactNode;
     icon: ReactElement;
     bevel?: string;
     onClickLink: (to: EphemeraFeatureId | EphemeraKnowledgeId | EphemeraCharacterId) => void;
@@ -42,7 +43,7 @@ export const ComponentDescription = ({
     toolActions
 }: ComponentDescriptionProps) => {
     // Extract content from WML format using metaData
-    let name: StandardRender = new StandardRender(['Unknown'])
+    let name: StandardLiteral = new StandardLiteral('Unknown', { tag: 'DisplayName' })
     let description: StandardRender = new StandardRender([])
     
     const componentUUID = metaData.componentUUID
@@ -54,7 +55,7 @@ export const ComponentDescription = ({
             if (firstExample && firstExample.universalKey) {
                 const exampleComponent = parsedWML.byUniversalId[firstExample.universalKey as ComponentUUID]
                 if (exampleComponent && exampleComponent instanceof StandardExample) {
-                    name = exampleComponent.displayName || new StandardRender(['Unknown'])
+                    name = exampleComponent.displayName || new StandardLiteral('Unknown', { tag: 'DisplayName' })
                     description = exampleComponent.description || new StandardRender([])
                 }
             }
@@ -93,7 +94,7 @@ export const ComponentDescription = ({
                 }}
             >
                 <Typography variant='h5' align='left'>
-                    { name.plainString }
+                    { name._payload?.plain?.toJSON() ?? 'Unknown' }
                 </Typography>
                 <Divider />
                 {

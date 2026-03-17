@@ -1,4 +1,4 @@
-import React, { ReactChild, ReactChildren, useCallback } from 'react'
+import React, { ReactChild, ReactChildren, ReactNode, useCallback } from 'react'
 
 import FeatureIcon from '@mui/icons-material/Search'
 import KnowledgeIcon from '@mui/icons-material/School'
@@ -30,7 +30,7 @@ import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 
 interface MessageProps {
     message: MessageType;
-    children?: ReactChild | ReactChildren;
+    children?: ReactNode;
 }
 
 export const Message = ({ message, ...rest }: MessageProps) => {
@@ -63,10 +63,12 @@ export const Message = ({ message, ...rest }: MessageProps) => {
             if (perceptionMessage.parsedWML) {
                 // Use metaData-based routing with type guards for enhanced type safety
                 if (metaData && isPerceptionRoomMetaData(metaData)) {
+                    const isGeneratingHeader = metaData.status === 'generating' && metaData.displayMode === 'header'
                     return <RoomDescription 
                         parsedWML={perceptionMessage.parsedWML}
                         metaData={metaData}
                         header={metaData.displayMode === 'header'}
+                        isGenerating={isGeneratingHeader}
                         {...rest} 
                     />
                 }
