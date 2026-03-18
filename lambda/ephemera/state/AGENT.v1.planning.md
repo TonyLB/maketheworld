@@ -145,5 +145,16 @@ This section will capture concrete decisions as they are made. Initial placehold
      - The bespoke authoring WebSocket contract is **Room-specific** (Room State Dashboard) rather than a fully generic “SetComponentState” API.
      - Perception entrypoints and update message types we are touching in v1 are `PerceptionRoomMessage` and `RoomUpdate`; Feature/Map perception will continue using existing flows until we explicitly migrate them onto this pattern.
 
+6. **Default state when none is specified**
+   - **Rooms, v1:** When no explicit `Meta::Room.state` has been set, Ephemera should still treat the Room as having a well-defined **default world state**, rather than falling back to legacy `componentRender` room handling.
+   - **Helper function:** Introduce a `computeDefaultMarksForRoom(roomId, perspective)` helper in the Ephemera lambda that:
+     - Reads the Room's Lens/Marks/Situations from the **Assets/WML dataSource** (using the same standardization/lookup pathways as existing `componentRender` behavior).
+     - Computes the canonical `markState` corresponding to the Room's default Lens configuration for the given perspective.
+     - Returns that `markState` so it can be written into `Meta::Room.state.marks` and used as the lookup key for cache search/generation.
+   - **Coupling note (intentional, to be revisited):**
+     - This helper **explicitly couples Ephemera state logic to the internals of the Assets dataSource** in a read-only way.
+     - For v1, this is acceptable and mirrors existing read-only uses of Assets/WML in `componentRender`, but we expect to **migrate away from this coupling over time** as more state-related data flows are pushed into Assets-to-Ephemera pipelines.
+     - The helper and its call sites should be clearly documented as such, to make future decoupling and refactors straightforward.
+
 As v1 design solidifies, we will convert these bullets into concrete decisions, diagrams, and type signatures, and mirror the results into `AGENT.md` as implementation lands.
 

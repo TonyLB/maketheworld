@@ -1,4 +1,4 @@
-import React, { ReactChild, ReactChildren, useMemo, useCallback } from 'react'
+import React, { ReactChild, ReactChildren, useMemo, useCallback, ReactNode } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
 import {
@@ -35,7 +35,7 @@ import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
 interface RoomDescriptionProps {
     parsedWML?: StandardForm;
     metaData: PerceptionRoomMetaData;
-    children?: ReactChild | ReactChildren;
+    children?: ReactNode;
     header?: boolean;
     currentHeader?: boolean;
     isGenerating?: boolean;
