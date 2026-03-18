@@ -9,7 +9,6 @@ import {
     computePerspectiveMatcherForRoomSituation,
     enrichExampleEvent,
     exampleToCacheShape,
-    getLensMarksWithDefaults,
     getOrderedAssetStack,
     mergeLensAcrossStack,
     mergeRoomAcrossStack,
@@ -17,6 +16,7 @@ import {
     situationFacetToCacheShape,
     situationHasMarks,
 } from './exampleEnrichment'
+import { getLensMarksWithDefaults } from '@tonylb/mtw-wml/ts/standardize/worldState/lensMarks'
 
 jest.mock('../internalCache', () => ({
     __esModule: true,

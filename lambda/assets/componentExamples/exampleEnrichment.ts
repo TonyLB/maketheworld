@@ -16,6 +16,7 @@ import { RenderTree } from '@tonylb/mtw-base/ts/renderTree'
 import { StandardEditableData, extractFromEditableData } from '@tonylb/mtw-base/ts/editable'
 import { excludeUndefined } from '@tonylb/mtw-utilities/ts/lists'
 import { LensMarkFacetList, LensMarkFacetPayload, StandardLensMarkFacet } from '@tonylb/mtw-wml/ts/standardize/keys'
+import { getLensMarksWithDefaults, LensMarkWithDefault } from '@tonylb/mtw-wml/ts/standardize/worldState/lensMarks'
 import type { PerspectiveMatcher } from '@tonylb/mtw-interfaces/ts/perspective'
 
 //
@@ -299,33 +300,6 @@ export const mergeLensAcrossStack = (
         merged = merged.merge(withIndex[i].lens) as StandardLens
     }
     return merged
-}
-
-export type LensMarkWithDefault = {
-    markId: string;
-    default: string;
-}
-
-export const getLensMarksWithDefaults = (lens: StandardLens): LensMarkWithDefault[] => {
-    if (!lens.marks || !(lens.marks instanceof LensMarkFacetList)) {
-        return []
-    }
-    return lens.marks.items.map((facet) => {
-        const lensFacet = facet as StandardLensMarkFacet
-        const markId = String(lensFacet.reference.universalKey ?? '')
-        const payload = lensFacet.payload as unknown as LensMarkFacetPayload
-        let defaultValue = ''
-        const literal = payload.default
-        if (literal && typeof (literal as any).toJSON === 'function') {
-            const editable = (literal as any).toJSON() as StandardEditableData<string>
-            const values = extractFromEditableData<string>(editable)
-            defaultValue = values[0] ?? ''
-        }
-        return {
-            markId,
-            default: defaultValue,
-        }
-    })
 }
 
 export const exampleToCacheShape = (example: StandardExample): ComponentExamplesPayload => {

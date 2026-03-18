@@ -3,6 +3,35 @@ import { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { InternalCache } from '../internalCache'
 import { computeDefaultMarksForRoom, PerspectiveSpec } from './computeDefaultMarksForRoom'
 
+jest.mock('./mergeComponentsAcrossStack', () => {
+    return {
+        //
+        // For these tests, we only need minimal behavior:
+        // - A "room" exists whenever any component has tag === 'Room'
+        // - A "lens" exists whenever any component has tag === 'Lens'
+        //
+        mergeRoomAcrossStack: (byAssets: { component: { tag?: string } }[]) => {
+            const hasRoom = byAssets.some(({ component }) => component.tag === 'Room')
+            return hasRoom ? ({ tag: 'Room' } as any) : undefined
+        },
+        mergeLensAcrossStack: (byAssets: { component: { tag?: string } }[]) => {
+            const hasLens = byAssets.some(({ component }) => component.tag === 'Lens')
+            return hasLens ? ({ tag: 'Lens' } as any) : undefined
+        },
+    }
+})
+
+jest.mock('@tonylb/mtw-wml/ts/standardize/worldState/lensMarks', () => {
+    return {
+        getLensMarksWithDefaults: () => [
+            {
+                markId: 'MARK#mood',
+                default: 'calm',
+            },
+        ],
+    }
+})
+
 describe('computeDefaultMarksForRoom', () => {
     const roomId = 'ROOM#TEST' as EphemeraRoomId
     const assetStack: AssetUUID[] = ['ASSET#Base' as AssetUUID, 'ASSET#Overlay' as AssetUUID]
@@ -72,7 +101,7 @@ describe('computeDefaultMarksForRoom', () => {
 
     it('computes markState from a Lens with defaults', async () => {
         const mockCache = makeMockInternalCache()
-        const perspective: PerspectiveSpec = { assetStack: ['ASSET#Base' as AssetUUID] }
+        const perspective: PerspectiveSpec = { assetStack }
 
         const standardRoomInstance = {
             tag: 'Room'

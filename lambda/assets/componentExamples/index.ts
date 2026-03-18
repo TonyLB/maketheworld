@@ -17,11 +17,11 @@ import {
     computePerspectiveMatcherForRoomSituation,
     enrichExampleEvent,
     getOrderedAssetStack,
-    getLensMarksWithDefaults,
     mergeLensAcrossStack,
     mergeRoomAcrossStack,
     situationFacetToCacheShape,
 } from './exampleEnrichment'
+import { getLensMarksWithDefaults } from '@tonylb/mtw-wml/ts/standardize/worldState/lensMarks'
 import type { EphemeraId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import internalCache from '../internalCache'
 import { StandardRoom } from '@tonylb/mtw-wml/ts/standardize/components/room'

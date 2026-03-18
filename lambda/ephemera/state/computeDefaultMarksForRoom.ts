@@ -1,7 +1,8 @@
 import { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { AssetUUID, ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import { internalCache, InternalCache } from '../internalCache'
-import { mergeRoomAcrossStack, mergeLensAcrossStack, getLensMarksWithDefaults } from '../../assets/componentExamples/exampleEnrichment'
+import { mergeRoomAcrossStack, mergeLensAcrossStack } from './mergeComponentsAcrossStack'
+import { getLensMarksWithDefaults } from '@tonylb/mtw-wml/ts/standardize/worldState/lensMarks'
 import type { EphemeraCacheMarkState, EphemeraCacheMarkValue } from '../renderCache/baseClasses'
 
 export type PerspectiveSpec = {
