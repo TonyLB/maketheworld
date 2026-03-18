@@ -56,9 +56,9 @@ export class ExamplesData {
                                 example: new StandardExample({
                                     tag: 'Example',
                                     universalKey,
-                                    displayName: displayName ?? name,
-                                    description,
-                                    summary
+                                    displayName: (displayName ?? name) as unknown as any,
+                                    description: description as unknown as any,
+                                    summary: summary as unknown as any
                                 })
                             }
                         })
