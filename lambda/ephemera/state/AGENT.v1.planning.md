@@ -80,6 +80,8 @@ This section will capture concrete decisions as they are made. Initial placehold
        - Optional `situationId`: for debugging and author-facing introspection, indicating which Situation (if any) this state is most closely associated with.
      - A `currentCacheId` field on `Meta::Room` can point at the most recently used cache entry (e.g., `DataCategory` for a `CACHE#...` row), and is **invalidated whenever `state` changes**.
      - Future iterations can extend the same pattern to other components (e.g., `Meta::Feature`, `Meta::Map`) without changing the basic representation.
+   - **Shared type definition:** The Ephemera-table `Meta::Room` record shape (including `state` and `currentCacheId`) is defined in `packages/mtw-interfaces/ts/ephemeraMeta.ts` as `EphemeraMetaRoom`.
+     - This is intentionally distinct from `assetDB`'s `Meta::Room` record shape (used for cross-asset indexing, e.g. the `cached` asset list).
    - Open follow-up questions (explicitly **out of v1 scope**, and possibly unnecessary long-term):
      - Do we ever need per-character or per-session overrides in addition to the global Room state, and if so, where would those live if we decide to add them?
 2. **APIs between state and perception**
@@ -155,6 +157,65 @@ This section will capture concrete decisions as they are made. Initial placehold
      - This helper **explicitly couples Ephemera state logic to the internals of the Assets dataSource** in a read-only way.
      - For v1, this is acceptable and mirrors existing read-only uses of Assets/WML in `componentRender`, but we expect to **migrate away from this coupling over time** as more state-related data flows are pushed into Assets-to-Ephemera pipelines.
      - The helper and its call sites should be clearly documented as such, to make future decoupling and refactors straightforward.
+
+## High-level task list: migrate Room perception onto renderCache (state-driven)
+
+This section is a concrete checklist for the "state-driven Room render selection via renderCache" refactor described above.
+
+It intentionally **excludes** the later task of "Create any way in which Room State can be updated" (authoring/gameplay APIs). The goal here is to make perception capable of selecting a Room render via:
+
+`Meta::Room` (state + currentCacheId) -> renderCache lookup/generation -> componentRender enrichment -> PerceptionRoomMessage.
+
+### Tasks (minimum viable migration)
+
+- [x] **Define/confirm `Meta::Room` schema additions (type-level)**
+  - [x] Confirm shared type: `EphemeraMetaRoom` in `packages/mtw-interfaces/ts/ephemeraMeta.ts`
+  - [x] Define `Meta::Room.state` with:
+    - [x] `marks` (canonical markState used for cache lookup, stored as `EphemeraCacheMarkState`)
+    - [x] optional `situationId` (introspection/debug)
+  - [x] Define `Meta::Room.currentCacheId` (points at `DataCategory` of active `CACHE#...` row)
+  - [x] Document invalidation rule: any change to `state` clears `currentCacheId`
+
+- [ ] **Implement a state+cache orchestration helper for Rooms**
+  - [ ] Create helper (conceptual name: `getOrStartRoomRenderForState(roomId, perspective, options)`)
+  - [ ] Read `Meta::Room` and ensure a well-defined markState:
+    - [ ] If `Meta::Room.state.marks` exists, use it
+    - [x] Else compute defaults via `computeDefaultMarksForRoom` and (optionally) write them into `Meta::Room.state.marks` (helper exists; persistence is part of orchestration)
+  - [ ] Fast path: if `currentCacheId` exists, load that cache record and validate:
+    - [ ] record exists
+    - [ ] record.markState matches `state.marks`
+    - [ ] record perspective matches the requested perspective
+  - [x] Slow path: search renderCache for exact match on (`state.marks`, perspective) (implemented and tested via `findExactMatchForComponent` / preview flow)
+  - [ ] Generation policy (authoring-only for v1):
+    - [ ] If no match exists and generation allowed, start generate-and-cache (same semantics as `generateRoomPreview`)
+    - [ ] Update `Meta::Room.currentCacheId` on success
+  - [ ] Return a discriminated status:
+    - [ ] `{ status: 'ready', cacheRecord }`
+    - [ ] `{ status: 'generating' }`
+    - [ ] `{ status: 'error', ... }` (optional but useful)
+
+- [ ] **Make `componentRender` capable of enriching a chosen cache record**
+  - [ ] Add an entrypoint that accepts the selected cache record (or at least the renderedContent/situation facet payload) rather than selecting an arbitrary cache record internally
+  - [ ] Ensure enrichment remains synchronous: exits, characters, shortName, etc.
+  - [ ] Ensure header/full differences are handled without reintroducing legacy "pick first cache row" behavior
+
+- [ ] **Wire `perception` Room branch to the new flow**
+  - [ ] Replace direct `ComponentRender.get(characterId, roomId, ...)` selection logic with:
+    - [ ] call orchestration helper
+    - [ ] if `ready`: enrich via componentRender around the chosen cache record and send `PerceptionRoomMessage`
+    - [ ] if `generating`: send placeholder header using `sendRoomGeneratingHeader`, then async follow-up when generation completes
+  - [ ] Invalidate per-character `componentRender` cache entries after generation completes (and/or when `currentCacheId` changes)
+
+- [ ] **Add/adjust tests around the new state-driven perception path**
+  - [ ] Unit tests for orchestration helper:
+    - [ ] default marks when no `Meta::Room.state`
+    - [ ] `currentCacheId` fast path and mismatch invalidation
+    - [ ] exact-match search path
+    - [ ] generation-start and follow-up behavior (mock generation)
+  - [ ] Integration-ish test for perception Room message:
+    - [ ] sends placeholder header while generating
+    - [ ] sends final header when ready
+    - [ ] sends full description when requested and ready
 
 As v1 design solidifies, we will convert these bullets into concrete decisions, diagrams, and type signatures, and mirror the results into `AGENT.md` as implementation lands.
 

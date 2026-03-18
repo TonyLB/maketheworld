@@ -4,6 +4,7 @@ import {
     EphemeraRoomId,
     EphemeraSituationId
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraCacheMarkState, EphemeraCacheMarkValue } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { PerspectiveMatcher } from '@tonylb/mtw-interfaces/ts/perspective'
 import { RenderTree } from '@tonylb/mtw-base/ts/renderTree'
 
@@ -21,27 +22,9 @@ export type EphemeraCacheComponentId =
     | EphemeraKnowledgeId
 
 //
-// markState: Mark UUID to Match string pairs
+// markState: Mark UUID to Match string pairs (shared via mtw-interfaces)
 //
-
-export type EphemeraCacheMarkValue = {
-    //
-    // Mark UUID from the Assets/WML schema
-    //
-    mark: string;
-    //
-    // Match string associated with the Mark in this state
-    //
-    value: string;
-}
-
-export type EphemeraCacheMarkState = {
-    //
-    // Canonical container for Mark values; callers should
-    // normalize ordering when comparing for exact match.
-    //
-    markValue: EphemeraCacheMarkValue[];
-}
+export type { EphemeraCacheMarkValue, EphemeraCacheMarkState }
 
 //
 // renderedContent: Cached description parallel to StandardExample

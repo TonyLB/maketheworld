@@ -2,6 +2,7 @@ import { EphemeraCharacterId, EphemeraFeatureId, EphemeraKnowledgeId, EphemeraMa
 import { LegalCharacterColor } from './baseClasses'
 import { isMapDescribeData, isMessage, MapDescribeData, Message } from "./messages"
 import { checkAll, checkTypes } from "./utils";
+import { isEphemeraCacheMarkState, type EphemeraCacheMarkState, type EphemeraCacheMarkValue } from './ephemeraMeta'
 
 export type RegisterCharacterAPIMessage = {
     message: 'registercharacter';
@@ -106,14 +107,8 @@ export type CommandAPIMessage = {
     command: string;
 }
 
-export type GenerateRoomPreviewAPIMarkStateEntry = {
-    mark: string;
-    value: string;
-}
-
-export type GenerateRoomPreviewAPIMarkState = {
-    markValue: GenerateRoomPreviewAPIMarkStateEntry[];
-}
+export type GenerateRoomPreviewAPIMarkStateEntry = EphemeraCacheMarkValue
+export type GenerateRoomPreviewAPIMarkState = EphemeraCacheMarkState
 
 export type GenerateRoomPreviewAPIMessage = {
     message: 'generateRoomPreview';
@@ -197,18 +192,7 @@ export const isEphemeraAPIMessage = (message: any): message is EphemeraAPIMessag
             )) {
                 return false
             }
-            if (!message.markState || typeof message.markState !== 'object') {
-                return false
-            }
-            if (!Array.isArray(message.markState.markValue)) {
-                return false
-            }
-            if (!message.markState.markValue.every((entry: any) =>
-                entry
-                && typeof entry === 'object'
-                && typeof entry.mark === 'string'
-                && typeof entry.value === 'string'
-            )) {
+            if (!isEphemeraCacheMarkState(message.markState)) {
                 return false
             }
             if (!Array.isArray(message.assetStack)) {

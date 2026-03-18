@@ -1,4 +1,5 @@
 import { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses';
+import type { EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { RoomCharacterListItem } from './baseClasses'
 
@@ -10,9 +11,7 @@ export class CacheRoomCharacterListsData {
 
     async get(roomId: EphemeraRoomId): Promise<RoomCharacterListItem[]> {
         if (!this.CharacterListByRoom[roomId]) {
-            const { activeCharacters = [] } = (await ephemeraDB.getItem<{
-                    activeCharacters: (Omit<RoomCharacterListItem, 'DisplayName' | 'SessionIds'> & { Name?: string; DisplayName?: string; SessionIds?: string[]; sessions?: string[] })[]
-                }>({
+            const { activeCharacters = [] } = (await ephemeraDB.getItem<Pick<EphemeraMetaRoom, 'activeCharacters'>>({
                     Key: {
                         EphemeraId: roomId,
                         DataCategory: 'Meta::Room'
