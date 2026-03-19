@@ -14,6 +14,7 @@ import { EphemeraClientMessageEphemeraUpdateCharacterInPlayActive, EphemeraClien
 
 import { MessageGroupId } from "../internalCache/orchestrateMessages"
 import { RenderTree } from '@tonylb/mtw-base/ts/renderTree'
+import type { RenderOrchestrationMessage } from '../renderOrchestration/events'
 
 export type PublishTargetRoom = `ROOM#${string}`
 
@@ -306,7 +307,8 @@ export type MessageType = PublishMessage |
     MapUpdateMessage |
     CanonUpdateMessage |
     ExecuteActionMessage |
-    StreamingEventMessage
+    StreamingEventMessage |
+    RenderOrchestrationMessage
 
 export const isPublishMessage = (prop: MessageType): prop is PublishMessage => (prop.type === 'PublishMessage')
 export const isWorldMessage = (prop: PublishMessage): prop is PublishWorldMessage => (prop.displayProtocol === 'WorldMessage')

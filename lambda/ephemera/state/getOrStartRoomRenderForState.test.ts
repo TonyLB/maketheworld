@@ -1,6 +1,6 @@
 import { getOrStartRoomRenderForState } from './getOrStartRoomRenderForState'
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraMetaRoom, EphemeraCacheId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraCacheDynamoItem } from '../renderCache/baseClasses'
 import type { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 
@@ -29,7 +29,7 @@ describe('state/getOrStartRoomRenderForState (TDD scaffold)', () => {
         const cacheRecord = baseCacheRecord()
         const metaRoom = baseMetaRoom({
             state: { marks: cacheRecord.markState },
-            currentCacheId: cacheRecord.DataCategory
+            currentCacheId: cacheRecord.DataCategory as EphemeraCacheId
         })
 
         const getMetaRoom = jest.fn().mockResolvedValue(metaRoom)
@@ -49,7 +49,7 @@ describe('state/getOrStartRoomRenderForState (TDD scaffold)', () => {
         const cacheRecord = baseCacheRecord()
         const metaRoom = baseMetaRoom({
             state: { marks: cacheRecord.markState },
-            currentCacheId: cacheRecord.DataCategory
+            currentCacheId: cacheRecord.DataCategory as EphemeraCacheId
         })
 
         const getMetaRoom = jest.fn().mockResolvedValue(metaRoom)
@@ -71,7 +71,7 @@ describe('state/getOrStartRoomRenderForState (TDD scaffold)', () => {
         })
         const metaRoom = baseMetaRoom({
             state: { marks: { markValue: [{ mark: 'MARK#a', value: 'one' }] } },
-            currentCacheId: cacheRecord.DataCategory
+            currentCacheId: cacheRecord.DataCategory as EphemeraCacheId
         })
 
         const getMetaRoom = jest.fn().mockResolvedValue(metaRoom)
@@ -93,7 +93,7 @@ describe('state/getOrStartRoomRenderForState (TDD scaffold)', () => {
         })
         const metaRoom = baseMetaRoom({
             state: { marks: cacheRecord.markState },
-            currentCacheId: cacheRecord.DataCategory
+            currentCacheId: cacheRecord.DataCategory as EphemeraCacheId
         })
 
         const getMetaRoom = jest.fn().mockResolvedValue(metaRoom)

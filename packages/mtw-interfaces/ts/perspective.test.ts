@@ -3,7 +3,9 @@ import {
     PerspectiveMatcher,
     perspectiveMatches,
     isPerspective,
-    isPerspectiveMatcher
+    isPerspectiveMatcher,
+    canonicalizePerspectiveAssetStack,
+    computePerspectiveKey
 } from './perspective'
 
 const A = 'ASSET#a' as const
@@ -130,5 +132,49 @@ describe('perspectiveMatches', () => {
             { requiredAssetIds: [A] },
             { assetStack: [A, B, C] }
         )).toBe(true)
+    })
+})
+
+describe('canonicalizePerspectiveAssetStack', () => {
+    it('returns identical array for already-canonical stack', () => {
+        expect(canonicalizePerspectiveAssetStack([A, B, C])).toEqual([A, B, C])
+    })
+
+    it('deduplicates while preserving first occurrence order', () => {
+        expect(canonicalizePerspectiveAssetStack([A, B, A, C, B])).toEqual([A, B, C])
+    })
+
+    it('throws on invalid ids', () => {
+        expect(() => canonicalizePerspectiveAssetStack([A, 'ROOM#x' as any])).toThrow('Invalid asset id')
+    })
+})
+
+describe('computePerspectiveKey', () => {
+    it('returns stable key for same stack', () => {
+        const first = computePerspectiveKey([A, B, C])
+        const second = computePerspectiveKey([A, B, C])
+        expect(first).toBe(second)
+    })
+
+    it('is sensitive to asset ordering', () => {
+        const forward = computePerspectiveKey([A, B])
+        const reverse = computePerspectiveKey([B, A])
+        expect(forward).not.toBe(reverse)
+    })
+
+    it('normalizes duplicates before keying', () => {
+        const canonical = computePerspectiveKey([A, B, C])
+        const withDuplicates = computePerspectiveKey([A, B, A, C, B])
+        expect(canonical).toBe(withDuplicates)
+    })
+
+    it('handles empty stack deterministically', () => {
+        const first = computePerspectiveKey([])
+        const second = computePerspectiveKey([])
+        expect(first).toBe(second)
+    })
+
+    it('includes v1 prefix', () => {
+        expect(computePerspectiveKey([A])).toContain('PERSPECTIVE#v1#')
     })
 })

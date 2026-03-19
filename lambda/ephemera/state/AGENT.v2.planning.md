@@ -7,7 +7,7 @@ This document picks up where v1 left off.
 - v1 planning and implementation status remain tracked in:
   - `lambda/ephemera/state/AGENT.v1.planning.md`
 - v1 established core foundations:
-  - `Meta::Room` state shape (`state.marks`, optional `situationId`, `currentCacheId`)
+- `Meta::Room` state shape foundations (`state.marks`, optional `situationId`)
   - default mark derivation (`computeDefaultMarksForRoom`)
   - renderCache exact-match primitives
   - initial helper with fast-path cache validation
@@ -33,7 +33,7 @@ v2 formalizes these subsystem responsibilities:
 
 2. `state`
    - Lookup and mutation of world-state (`Meta::Room.state`).
-   - Ownership of state-level invariants (`currentCacheId` invalidation on state changes).
+   - Ownership of state-level invariants (perspective-scoped cache pointer invalidation on state changes).
 
 3. `renderOrchestration` (new subsystem)
    - Policy and lifecycle orchestration:
@@ -81,7 +81,7 @@ Each event should include enough context to avoid hidden coupling:
 Implement handlers in ordered cascade:
 
 1. Request handler
-   - Reads `Meta::Room`, validates fast-path `currentCacheId`, and branches.
+   - Reads `Meta::Room`, derives perspective key, validates fast-path pointer in `currentCacheByPerspective`, and branches.
 
 2. Slow-path lookup handler
    - Ensures markState (`state.marks` or computed default).
@@ -109,7 +109,7 @@ Perception subscribes to orchestrator lifecycle events:
 Add targeted tests for lifecycle ordering and UX semantics:
 
 1. Emits generation-start before generation completion.
-2. Emits ready only after cache row write + `Meta::Room.currentCacheId` update.
+2. Emits ready only after cache row write + `Meta::Room.currentCacheByPerspective` update.
 3. Sends placeholder then final header in correct order.
 4. Handles generation failure with deterministic fallback messaging.
 
@@ -123,6 +123,9 @@ Add targeted tests for lifecycle ordering and UX semantics:
 
 3. Scope boundaries:
    - Rooms-only in v2 implementation; Maps as first candidate extension.
+
+4. Perspective pointer storage shape:
+   - prefer `Meta::Room.currentCacheByPerspective: Record<string, cacheId>` over list pairs for deterministic lookup/update.
 
 ## Out of scope for v2
 
@@ -138,4 +141,26 @@ v2 should be implemented incrementally:
 2. Introduce event contracts and handlers behind the same entrypoints.
 3. Move call sites from direct helper returns to cascade events.
 4. Remove legacy direct orchestration only after parity tests pass.
+
+## Data-model update note (v2 decision)
+
+`currentCacheId` is insufficient because cache rows are perspective-constrained.
+
+v2 planning assumes perspective-scoped pointers on `Meta::Room`, e.g.:
+
+- `currentCacheByPerspective: Record<string, string>`
+  - key: normalized perspective identifier/fingerprint
+  - value: `CACHE#...` data category id
+
+Invalidation policy on state change:
+
+- clear all entries in `currentCacheByPerspective` (or use equivalent versioning to mark all entries stale).
+
+Migration guidance:
+
+1. Add `currentCacheByPerspective` as additive schema.
+2. Treat legacy `currentCacheId` as optional backward-compatible fallback while call sites migrate.
+3. Remove `currentCacheId` once orchestration and tests are fully perspective-scoped.
+4. Use shared, versioned perspective keys (`PERSPECTIVE#v1#...`) for pointer-map keys.
+5. During perspective-key rollout, keep legacy reads where needed and dual-read until writers are fully migrated.
 

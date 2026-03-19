@@ -11,20 +11,20 @@ describe('handleComponentExamplesEvent (mtw.ephemera.examples)', () => {
         queryCacheRecordsForComponent: jest.Mock;
         putCacheRecord: jest.Mock;
         deleteCacheRecord: jest.Mock;
-        computePerspectiveId: jest.Mock;
+        computePerspectiveKey: jest.Mock;
         logger: { error: jest.Mock };
     } => {
         const queryCacheRecordsForComponent = jest.fn()
         const putCacheRecord = jest.fn()
         const deleteCacheRecord = jest.fn()
-        const computePerspectiveId = jest.fn().mockReturnValue('PERSPECTIVE#abc123')
+        const computePerspectiveKey = jest.fn().mockReturnValue('PERSPECTIVE#v1#abc123')
         const logger = { error: jest.fn() }
 
         const deps: HandleComponentExamplesDependencies = {
             queryCacheRecordsForComponent,
             putCacheRecord,
             deleteCacheRecord,
-            computePerspectiveId,
+            computePerspectiveKey,
             logger
         }
 
@@ -33,7 +33,7 @@ describe('handleComponentExamplesEvent (mtw.ephemera.examples)', () => {
             queryCacheRecordsForComponent,
             putCacheRecord,
             deleteCacheRecord,
-            computePerspectiveId,
+            computePerspectiveKey,
             logger
         }
     }
@@ -47,7 +47,7 @@ describe('handleComponentExamplesEvent (mtw.ephemera.examples)', () => {
             deps,
             queryCacheRecordsForComponent,
             putCacheRecord,
-            computePerspectiveId
+            computePerspectiveKey
         } = makeDeps()
         queryCacheRecordsForComponent.mockResolvedValue([])
 
@@ -66,7 +66,7 @@ describe('handleComponentExamplesEvent (mtw.ephemera.examples)', () => {
 
         await handleComponentExamplesEvent(event, deps)
 
-        expect(computePerspectiveId).toHaveBeenCalledWith(['ASSET#one', 'ASSET#two'])
+        expect(computePerspectiveKey).toHaveBeenCalledWith(['ASSET#one', 'ASSET#two'])
         expect(putCacheRecord).toHaveBeenCalledTimes(2)
         expect(putCacheRecord).toHaveBeenCalledWith(
             'ROOM#one',
@@ -74,7 +74,7 @@ describe('handleComponentExamplesEvent (mtw.ephemera.examples)', () => {
                 markState: event.example.markState,
                 renderedContent: event.example.renderedContent,
                 provenance: event.example.provenance,
-                perspectiveId: 'PERSPECTIVE#abc123',
+                perspectiveId: 'PERSPECTIVE#v1#abc123',
                 perspectiveMatcher: event.perspectiveMatcher,
                 authoredExampleId: 'EXAMPLE#one'
             }),
@@ -86,7 +86,7 @@ describe('handleComponentExamplesEvent (mtw.ephemera.examples)', () => {
                 markState: event.example.markState,
                 renderedContent: event.example.renderedContent,
                 provenance: event.example.provenance,
-                perspectiveId: 'PERSPECTIVE#abc123',
+                perspectiveId: 'PERSPECTIVE#v1#abc123',
                 perspectiveMatcher: event.perspectiveMatcher,
                 authoredExampleId: 'EXAMPLE#one'
             }),
@@ -99,7 +99,7 @@ describe('handleComponentExamplesEvent (mtw.ephemera.examples)', () => {
             deps,
             queryCacheRecordsForComponent,
             putCacheRecord,
-            computePerspectiveId
+            computePerspectiveKey
         } = makeDeps()
         queryCacheRecordsForComponent.mockResolvedValue([])
 
@@ -118,7 +118,7 @@ describe('handleComponentExamplesEvent (mtw.ephemera.examples)', () => {
 
         await handleComponentExamplesEvent(event, deps)
 
-        expect(computePerspectiveId).toHaveBeenCalledWith(['ASSET#one'])
+        expect(computePerspectiveKey).toHaveBeenCalledWith(['ASSET#one'])
         expect(putCacheRecord).toHaveBeenCalledTimes(1)
         expect(putCacheRecord).toHaveBeenCalledWith(
             'ROOM#room-one',
@@ -126,7 +126,7 @@ describe('handleComponentExamplesEvent (mtw.ephemera.examples)', () => {
                 markState: event.example.markState,
                 renderedContent: event.example.renderedContent,
                 provenance: event.example.provenance,
-                perspectiveId: 'PERSPECTIVE#abc123',
+                perspectiveId: 'PERSPECTIVE#v1#abc123',
                 perspectiveMatcher: event.perspectiveMatcher,
                 situationId: 'SITUATION#situation-one'
             }),

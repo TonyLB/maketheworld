@@ -1,6 +1,6 @@
 import { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { AssetUUID } from '@tonylb/mtw-base/ts/schema'
-import { perspectiveMatches } from '@tonylb/mtw-interfaces/ts/perspective'
+import { perspectiveMatches, computePerspectiveKey } from '@tonylb/mtw-interfaces/ts/perspective'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import type {
     EphemeraCacheMarkState,
@@ -11,7 +11,6 @@ import { EPHEMERA_CACHE_PROVENANCE_GENERATED } from './baseClasses'
 import { queryCacheRecordsForComponent, putCacheRecord } from './cacheAccess'
 import { findExactMatchForComponent } from './exampleComparison'
 import { generateRoomDescription } from './generateRoomDescription'
-import { computePerspectiveId } from '../internalUtils/perspectiveId'
 
 export type GenerateRoomPreviewInput = {
     roomId: EphemeraRoomId;
@@ -107,7 +106,7 @@ export const generateRoomPreview = async (
         return descriptionResult
     }
 
-    const perspectiveId = computePerspectiveId(perspective.assetStack)
+    const perspectiveId = computePerspectiveKey(perspective.assetStack)
     const perspectiveMatcher = {
         requiredAssetIds: perspective.assetStack,
         forbiddenAssetIds: [] as AssetUUID[]
