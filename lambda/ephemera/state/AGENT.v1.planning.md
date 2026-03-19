@@ -158,7 +158,32 @@ This section will capture concrete decisions as they are made. Initial placehold
      - For v1, this is acceptable and mirrors existing read-only uses of Assets/WML in `componentRender`, but we expect to **migrate away from this coupling over time** as more state-related data flows are pushed into Assets-to-Ephemera pipelines.
      - The helper and its call sites should be clearly documented as such, to make future decoupling and refactors straightforward.
 
-## High-level task list: migrate Room perception onto renderCache (state-driven)
+## v1 First Iteration (what is already implemented)
+
+v1 implemented the core foundations for a cache-backed, state-driven Room description selection flow. This includes:
+
+1. **Room state shape in Ephemera table (type-level)**
+   - Shared Ephemera-table `Meta::Room` record shape is defined as `EphemeraMetaRoom` in `packages/mtw-interfaces/ts/ephemeraMeta.ts`.
+   - It includes `state.marks` (stored as `EphemeraCacheMarkState`), optional `state.situationId`, and optional `currentCacheId` (a `CACHE#...` `DataCategory` pointer).
+   - The intended invalidation rule is documented: any `state` change clears `currentCacheId`.
+
+2. **Default mark derivation**
+   - Implemented `computeDefaultMarksForRoom(roomId, perspective)` in `lambda/ephemera/state/computeDefaultMarksForRoom.ts`.
+
+3. **renderCache exact-match primitives**
+   - Exact-match semantics (normalized Mark-state equality + perspective matcher filtering) are implemented and tested via `findExactMatchForComponent` and `generateRoomPreview` in `lambda/ephemera/renderCache/`.
+
+4. **Room state -> cache selection helper (fast path only)**
+   - Added a DI-friendly orchestration entrypoint `getOrStartRoomRenderForState(roomId, perspective, options)` in `lambda/ephemera/state/getOrStartRoomRenderForState.ts`.
+   - Implemented and test-driven the `currentCacheId` fast path:
+     - load pointed cache record
+     - validate it matches `state.marks` and the requested perspective
+     - on mismatch, clear `Meta::Room.currentCacheId` (best-effort).
+   - The slow-path orchestration (exact-match search after a fast-path miss, and optional generation lifecycle) remains pending in the helper itself.
+
+Perception wiring and `componentRender` enrichment around a chosen cache record are also still pending in v1.
+
+## v1 Remaining Work Checklist: migrate Room perception onto renderCache (state-driven)
 
 This section is a concrete checklist for the "state-driven Room render selection via renderCache" refactor described above.
 
@@ -166,7 +191,9 @@ It intentionally **excludes** the later task of "Create any way in which Room St
 
 `Meta::Room` (state + currentCacheId) -> renderCache lookup/generation -> componentRender enrichment -> PerceptionRoomMessage.
 
-### Tasks (minimum viable migration)
+### Phased Tasks (linear progression)
+
+#### Phase 1: Data model + cache primitives (foundations)
 
 - [x] **Define/confirm `Meta::Room` schema additions (type-level)**
   - [x] Confirm shared type: `EphemeraMetaRoom` in `packages/mtw-interfaces/ts/ephemeraMeta.ts`
@@ -176,46 +203,105 @@ It intentionally **excludes** the later task of "Create any way in which Room St
   - [x] Define `Meta::Room.currentCacheId` (points at `DataCategory` of active `CACHE#...` row)
   - [x] Document invalidation rule: any change to `state` clears `currentCacheId`
 
-- [ ] **Implement a state+cache orchestration helper for Rooms**
-  - [ ] Create helper (conceptual name: `getOrStartRoomRenderForState(roomId, perspective, options)`)
-  - [ ] Read `Meta::Room` and ensure a well-defined markState:
-    - [ ] If `Meta::Room.state.marks` exists, use it
-    - [x] Else compute defaults via `computeDefaultMarksForRoom` and (optionally) write them into `Meta::Room.state.marks` (helper exists; persistence is part of orchestration)
-  - [ ] Fast path: if `currentCacheId` exists, load that cache record and validate:
-    - [ ] record exists
-    - [ ] record.markState matches `state.marks`
-    - [ ] record perspective matches the requested perspective
-  - [x] Slow path: search renderCache for exact match on (`state.marks`, perspective) (implemented and tested via `findExactMatchForComponent` / preview flow)
-  - [ ] Generation policy (authoring-only for v1):
-    - [ ] If no match exists and generation allowed, start generate-and-cache (same semantics as `generateRoomPreview`)
-    - [ ] Update `Meta::Room.currentCacheId` on success
-  - [ ] Return a discriminated status:
+- [x] **Default marks primitive exists**
+  - [x] `computeDefaultMarksForRoom(roomId, perspective)` implemented
+
+- [x] **Exact-match cache primitive exists**
+  - [x] `findExactMatchForComponent` and `generateRoomPreview` semantics implemented and tested (preview branch + renderCache tests)
+
+#### Phase 2: Room state -> renderCache selection helper
+
+- [x] **Create helper**
+  - [x] `getOrStartRoomRenderForState(roomId, perspective, options)` exists (DI-friendly)
+
+- [x] **Fast path (implemented)**
+  - [x] If `currentCacheId` exists:
+    - [x] fetch cache record
+    - [x] validate record existence
+    - [x] validate `record.markState` matches `state.marks`
+    - [x] validate perspective match (`perspectiveMatches(record.perspectiveMatcher, perspective)`)
+    - [x] on mismatch, clear `Meta::Room.currentCacheId` (best-effort)
+
+- [ ] **Slow path orchestration (still missing in helper)**
+  - [ ] When `currentCacheId` is missing/invalidated:
+    - [ ] ensure a well-defined markState (use `Meta::Room.state.marks` or compute defaults)
+    - [ ] search `renderCache` for an exact match on (`state.marks`, perspective)
+    - [ ] return `{ status: 'ready', cacheRecord }` when found
+  - [ ] When no exact match exists:
+    - [ ] if `allowGeneration` is true, start generate-and-cache (same semantics as `generateRoomPreview`)
+    - [ ] return `{ status: 'generating' }` (helper-side initiation)
+    - [ ] update `Meta::Room.currentCacheId` on success
+
+- [ ] **Return status contract**
+  - [ ] Implement discriminated returns:
     - [ ] `{ status: 'ready', cacheRecord }`
     - [ ] `{ status: 'generating' }`
-    - [ ] `{ status: 'error', ... }` (optional but useful)
+    - [ ] `{ status: 'error', ... }`
 
-- [ ] **Make `componentRender` capable of enriching a chosen cache record**
-  - [ ] Add an entrypoint that accepts the selected cache record (or at least the renderedContent/situation facet payload) rather than selecting an arbitrary cache record internally
-  - [ ] Ensure enrichment remains synchronous: exits, characters, shortName, etc.
-  - [ ] Ensure header/full differences are handled without reintroducing legacy "pick first cache row" behavior
+#### Phase 3: Enrichment + perception wiring
 
-- [ ] **Wire `perception` Room branch to the new flow**
-  - [ ] Replace direct `ComponentRender.get(characterId, roomId, ...)` selection logic with:
+- [ ] **Update `componentRender` to enrich a chosen cache record**
+  - [ ] Provide an entrypoint that accepts the selected cache record payload (or renderedContent/situation facet), instead of selecting an arbitrary cache row internally
+  - [ ] Keep enrichment synchronous: exits, characters, shortName, header/full selection
+
+- [ ] **Wire `perception` Room branch**
+  - [ ] Replace direct `ComponentRender.get(characterId, roomId, ...)` selection with:
     - [ ] call orchestration helper
-    - [ ] if `ready`: enrich via componentRender around the chosen cache record and send `PerceptionRoomMessage`
-    - [ ] if `generating`: send placeholder header using `sendRoomGeneratingHeader`, then async follow-up when generation completes
-  - [ ] Invalidate per-character `componentRender` cache entries after generation completes (and/or when `currentCacheId` changes)
+    - [ ] on `{ status: 'ready' }`: enrich around chosen cache record and send `PerceptionRoomMessage`
+    - [ ] on `{ status: 'generating' }`: send placeholder header (`sendRoomGeneratingHeader`) and arrange async follow-up
+  - [ ] Cache invalidation after generation completes (and/or when `currentCacheId` changes)
 
-- [ ] **Add/adjust tests around the new state-driven perception path**
-  - [ ] Unit tests for orchestration helper:
-    - [ ] default marks when no `Meta::Room.state`
-    - [ ] `currentCacheId` fast path and mismatch invalidation
-    - [ ] exact-match search path
-    - [ ] generation-start and follow-up behavior (mock generation)
-  - [ ] Integration-ish test for perception Room message:
-    - [ ] sends placeholder header while generating
-    - [ ] sends final header when ready
-    - [ ] sends full description when requested and ready
+#### Phase 4: Tests
+
+- [ ] **Unit tests for helper orchestration**
+  - [ ] default marks when `Meta::Room.state` missing
+  - [x] `currentCacheId` fast path + mismatch invalidation (already test-driven)
+  - [ ] exact-match search path via helper (not just preview)
+  - [ ] generation-start and follow-up behavior (mock generation)
+
+- [ ] **Perception wiring tests**
+  - [ ] placeholder header while generating
+  - [ ] final header when ready
+  - [ ] full description when requested and ready
 
 As v1 design solidifies, we will convert these bullets into concrete decisions, diagrams, and type signatures, and mirror the results into `AGENT.md` as implementation lands.
+
+## v2 Second Iteration (messageBus-based event-cascade + early feedback)
+
+v2 is the migration from an imperative "helper returns next step" orchestration into an event-cascade that better matches the asynchronous lifecycle we need for authoring and generation UX.
+
+### v2 motivation
+
+Generation is not a single synchronous decision; it is a multi-step lifecycle:
+
+- decide which cached render to use (or decide to generate)
+- publish immediate feedback to the author ("something is happening")
+- publish final feedback when generation completes ("ready" header/content replacement)
+
+The `messageBus` cascade already provides the mechanism for this sort of lifecycle without forcing everything through a single return value.
+
+### v2 high-level task-list
+
+1. **Define messageBus event contracts for the cascade**
+   - Room render request
+   - Room render ready (cache hit)
+   - Room render generation started (early feedback)
+   - Room render generation completed (final ready feedback)
+
+2. **Implement cascade handlers in messageBus priority order**
+   - State handler: reads `Meta::Room`, validates `currentCacheId` fast path, and emits the next cascade event.
+   - Cache selection handler: performs exact-match lookup; on miss, starts generation.
+   - Generation handler: kicks off the existing render-cache generation flow and publishes generation-start feedback immediately.
+   - Completion handler: writes/upgrades cache rows and `Meta::Room.currentCacheId`, then emits "ready".
+   - Perception handler: subscribes to "generation started" and "ready" events, sending:
+     - placeholder room header when generation starts
+     - final header/full description when ready.
+
+3. **Publish "generated" early during generation**
+   - In v2, the feedback event that drives the UI should be emitted when generation starts (not only after it completes).
+   - This ensures that the client sees the "generated" (or placeholder) state while the LLM round-trip is still running.
+
+4. **Update tests to validate feedback timeline**
+   - Ensure "generation started" events are published before generation completes.
+   - Ensure "ready" events are published after cache row write + `currentCacheId` update.
 
