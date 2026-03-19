@@ -177,8 +177,14 @@ Transition note:
      - `Meta::Room.currentCacheByPerspective: Record<string, string>`
    - Keep `currentCacheId` as temporary optional fallback during migration.
 2. **Perspective key utility**
-   - Define one canonical function for deriving a stable perspective key/fingerprint from perspective input.
-   - Document normalization rules so all producers/consumers use the same key.
+   - Define one shared, versioned function for deriving a stable perspective key/fingerprint from perspective input.
+   - Reuse existing perspective-id semantics where valid, but move toward a shared package utility used across lambdas.
+   - Add a canonicalization step before keying to keep semantics stable across call sites:
+     - preserve base->leaf order
+     - remove exact duplicate asset ids while preserving first occurrence
+     - validate all ids as `ASSET#...`
+   - Encode version in the key (`PERSPECTIVE#v1#...`) so future ordering/canonicalization changes can ship as `v2` without ambiguous collisions.
+   - Document that v1 canonicalization is intentionally conservative (mostly no-op on well-formed stacks) and exists to prevent accidental key fragmentation.
 3. **Event contract file**
    - Create `renderOrchestration/events.ts` with `RenderRequested`, `RenderGenerationStarted`, `RenderReady`, and optional completion/failure message types + type guards.
 4. **Request intake handler (fast path)**
