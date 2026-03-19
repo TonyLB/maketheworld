@@ -24,6 +24,7 @@ import { queryCacheRecordsForComponent } from '../renderCache/cacheAccess';
 import CacheCharacterPossibleMapsData from './characterPossibleMaps';
 import CachePlayerMetaData from './playerMeta';
 import CacheGlobalData from './global';
+import { PreviewGenerationRequestsData } from './previewGenerationRequests';
 
 const graphDBHandler: GraphDBHandler = new (withPrimitives<'PrimaryKey', string>()(withGetOperations<'PrimaryKey', string>()(DBHandlerBase)))({
     client: assetDB._client,
@@ -35,6 +36,7 @@ const graphDBHandler: GraphDBHandler = new (withPrimitives<'PrimaryKey', string>
 
 export class InternalCache {
     Global: CacheGlobalData = new CacheGlobalData()
+    PreviewGenerationRequests: PreviewGenerationRequestsData = new PreviewGenerationRequestsData()
     PlayerMeta: CachePlayerMetaData;
     OrchestrateMessages: OrchestrateMessagesData = new OrchestrateMessagesData()
     RoomCharacterList: CacheRoomCharacterListsData = new CacheRoomCharacterListsData()
@@ -97,6 +99,7 @@ export class InternalCache {
         this.Examples.clear()
         this.ComponentRender.clear()
         this.CharacterPossibleMaps.clear()
+        this.PreviewGenerationRequests.clear()
     }
 
     async flush() {
