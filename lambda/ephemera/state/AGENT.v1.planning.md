@@ -1,4 +1,15 @@
-*Status: ACTIVE PLANNING DOCUMENT - v1 world state system (Room-focused prototype).*
+*Status: HISTORICAL PLANNING DOCUMENT - v1 world state system (Room-focused prototype).*
+
+## Historical status note
+
+This document is retained as the historical planning/decision record for v1.
+
+- It remains useful for understanding v1 assumptions, delivered foundations, and unresolved v1-era gaps.
+- It is no longer the active planning document for ongoing architecture work.
+
+For active planning moving forward, see:
+
+- `lambda/ephemera/state/AGENT.v2.planning.md`
 
 ## Purpose and Scope of v1
 
