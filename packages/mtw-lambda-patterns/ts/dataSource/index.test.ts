@@ -2397,6 +2397,141 @@ describe('DataSource', () => {
         })
     })
 
+    describe('publisher strategy functionality', () => {
+        it('should default to eventBridge+bus when strategy is not provided', () => {
+            const strategyDefaultDataSource = new TestDataSource({
+                dynamo: mockDynamo,
+                sns: mockSns,
+                messageBus: mockMessageBus,
+                primaryKeyName: 'AssetId',
+                dataSourceKey: 'mtw.testDataSource',
+                snapshotContentGenerator: mockSnapshotContentGenerator,
+                feedbackTopicArn: 'arn:aws:sns:us-east-1:123456789012:test-feedback'
+            })
+
+            expect(strategyDefaultDataSource.publisherStrategy).toBe('eventBridge+bus')
+        })
+
+        it('should publish to EventBridge and messageBus by default in streamEvent', async () => {
+            const strategyDefaultDataSource = new TestDataSource({
+                dynamo: mockDynamo,
+                sns: mockSns,
+                messageBus: mockMessageBus,
+                primaryKeyName: 'AssetId',
+                dataSourceKey: 'mtw.testDataSource',
+                snapshotContentGenerator: mockSnapshotContentGenerator,
+                feedbackTopicArn: 'arn:aws:sns:us-east-1:123456789012:test-feedback'
+            })
+
+            await strategyDefaultDataSource.streamEvent({
+                update: { type: 'TestUpdatePayload', update: 'test-update' },
+                streamKey: 'test-stream',
+                header: { type: 'TestUpdatePayload' }
+            })
+
+            expect(mockEventBridgeClient.send).toHaveBeenCalledTimes(1)
+            expect(mockMessageBus.send).toHaveBeenCalledTimes(1)
+        })
+
+        it('should skip EventBridge and still publish to messageBus in streamEvent for busOnly strategy', async () => {
+            const busOnlyDataSource = new TestDataSource({
+                dynamo: mockDynamo,
+                sns: mockSns,
+                messageBus: mockMessageBus,
+                primaryKeyName: 'AssetId',
+                dataSourceKey: 'mtw.testDataSource',
+                snapshotContentGenerator: mockSnapshotContentGenerator,
+                feedbackTopicArn: 'arn:aws:sns:us-east-1:123456789012:test-feedback',
+                publisherStrategy: 'busOnly'
+            })
+
+            await busOnlyDataSource.streamEvent({
+                update: { type: 'TestUpdatePayload', update: 'test-update' },
+                streamKey: 'test-stream',
+                header: { type: 'TestUpdatePayload' }
+            })
+
+            expect(mockEventBridgeClient.send).not.toHaveBeenCalled()
+            expect(mockMessageBus.send).toHaveBeenCalledTimes(1)
+        })
+
+        it('should skip EventBridge and still publish to messageBus in streamEnvelope for busOnly strategy', async () => {
+            const busOnlyDataSource = new TestDataSource({
+                dynamo: mockDynamo,
+                sns: mockSns,
+                messageBus: mockMessageBus,
+                primaryKeyName: 'AssetId',
+                dataSourceKey: 'mtw.testDataSource',
+                snapshotContentGenerator: mockSnapshotContentGenerator,
+                feedbackTopicArn: 'arn:aws:sns:us-east-1:123456789012:test-feedback',
+                publisherStrategy: 'busOnly'
+            })
+            const coreFormat = {
+                header: {
+                    dataSourceKey: 'mtw.testDataSource' as const,
+                    streamKey: 'test-stream',
+                    timestamp: 100000000,
+                    type: 'TestUpdatePayload' as const,
+                },
+                update: { type: 'TestUpdatePayload', update: 'test-update' },
+            }
+            const envelope = coreFormatToStreamingEnvelope(coreFormat, () => Promise.resolve({ type: 'TestUpdatePayload', update: 'test-update' }))
+
+            await busOnlyDataSource.streamEnvelope(envelope)
+
+            expect(mockEventBridgeClient.send).not.toHaveBeenCalled()
+            expect(mockMessageBus.send).toHaveBeenCalledTimes(1)
+        })
+
+        it('should keep replayable Dynamo writes when strategy is busOnly', async () => {
+            const replayableBusOnlyDataSource = new TestDataSource({
+                dynamo: mockDynamo,
+                sns: mockSns,
+                messageBus: mockMessageBus,
+                primaryKeyName: 'AssetId',
+                dataSourceKey: 'mtw.testDataSource',
+                snapshotContentGenerator: mockSnapshotContentGenerator,
+                feedbackTopicArn: 'arn:aws:sns:us-east-1:123456789012:test-feedback',
+                replayable: true,
+                publisherStrategy: 'busOnly'
+            })
+
+            await replayableBusOnlyDataSource.streamEvent({
+                update: { type: 'TestUpdatePayload', update: 'test-update' },
+                streamKey: 'test-stream',
+                header: { type: 'TestUpdatePayload' }
+            })
+
+            expect(mockDynamo.putItem).toHaveBeenCalledTimes(1)
+            expect(mockEventBridgeClient.send).not.toHaveBeenCalled()
+            expect(mockMessageBus.send).toHaveBeenCalledTimes(1)
+        })
+
+        it('should not write Dynamo and should still publish to messageBus when non-replayable + busOnly', async () => {
+            const nonReplayableBusOnlyDataSource = new TestDataSource({
+                dynamo: mockDynamo,
+                sns: mockSns,
+                messageBus: mockMessageBus,
+                primaryKeyName: 'AssetId',
+                dataSourceKey: 'mtw.testDataSource',
+                snapshotContentGenerator: mockSnapshotContentGenerator,
+                feedbackTopicArn: 'arn:aws:sns:us-east-1:123456789012:test-feedback',
+                replayable: false,
+                publisherStrategy: 'busOnly'
+            })
+
+            await nonReplayableBusOnlyDataSource.streamEvent({
+                update: { type: 'TestUpdatePayload', update: 'test-update' },
+                streamKey: 'test-stream',
+                header: { type: 'TestUpdatePayload' }
+            })
+
+            expect(mockDynamo.putItem).not.toHaveBeenCalled()
+            expect(mockEventBridgeClient.send).not.toHaveBeenCalled()
+            expect(mockMessageBus.send).toHaveBeenCalledTimes(1)
+        })
+    })
+
     describe('Snapshot Serialization', () => {
         type ExternalTestSnapshotPayload = {
             externalId: string
