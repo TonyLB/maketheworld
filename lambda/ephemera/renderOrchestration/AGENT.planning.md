@@ -51,7 +51,8 @@ All messages use `componentId` so the same lifecycle can extend beyond Rooms lat
 - **When**: a cache-backed render is available (cache hit or generation completion).
 - **Payload**:
   - `componentId`
-  - either `cacheRecord` or `cacheId` (decision pending)
+  - `cacheId` (first-cut default for compact payloads)
+  - optional `cacheRecord` (allowed fast-path to avoid immediate fetch when producer already has the full record)
   - request-scoped `characterId` (optional)
   - update-scoped targets (optional)
   - `messageGroupId` (optional)
@@ -189,7 +190,7 @@ Transition note:
      - keep legacy perspective id readers during transition
      - switch all new writes to shared `computePerspectiveKey` output
      - if/when key semantics change, dual-read legacy + new keys until backfill completes
-3. **Event contract file**
+3. [x] **Event contract file**
    - Create `renderOrchestration/events.ts` with `RenderRequested`, `RenderGenerationStarted`, `RenderReady`, and optional completion/failure message types + type guards.
 4. **Request intake handler (fast path)**
    - Implement handler A to read `Meta::Room`, resolve perspective key, validate `currentCacheByPerspective[perspectiveKey]`, and publish `RenderReady` on hit.
@@ -233,4 +234,10 @@ Transition note:
 13. **Generalization beyond Rooms**
    - Unknown: whether Maps/Features can share identical invalidation + passive-observer rules.
    - Expect contract reuse, but policy likely diverges by component type.
+
+## Integration follow-up after event contracts land
+
+- Add render orchestration event types to `lambda/ephemera/messageBus/baseClasses.ts` union types.
+- Register `renderOrchestration` subscriptions in `lambda/ephemera/messageBus/index.ts`.
+- Add perception-side lifecycle consumers for `RenderGenerationStarted` and `RenderReady`.
 
