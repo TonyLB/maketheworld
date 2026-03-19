@@ -45,6 +45,70 @@ describe('state/getOrStartRoomRenderForState (TDD scaffold)', () => {
         expect(result).toEqual({ status: 'ready', cacheRecord })
     })
 
+    it('clears currentCacheId when cache record is missing', async () => {
+        const cacheRecord = baseCacheRecord()
+        const metaRoom = baseMetaRoom({
+            state: { marks: cacheRecord.markState },
+            currentCacheId: cacheRecord.DataCategory
+        })
+
+        const getMetaRoom = jest.fn().mockResolvedValue(metaRoom)
+        const getCacheRecordById = jest.fn().mockResolvedValue(undefined)
+        const setMetaRoomState = jest.fn().mockResolvedValue(undefined)
+
+        const result = await getOrStartRoomRenderForState(
+            { roomId, perspective },
+            { getMetaRoom, getCacheRecordById, setMetaRoomState }
+        )
+
+        expect(setMetaRoomState).toHaveBeenCalledWith(roomId, { state: metaRoom.state, currentCacheId: undefined })
+        expect(result).toEqual(expect.objectContaining({ status: 'error', errorCode: 'FAST_PATH_INVALID' }))
+    })
+
+    it('clears currentCacheId when markState mismatches state.marks', async () => {
+        const cacheRecord = baseCacheRecord({
+            markState: { markValue: [{ mark: 'MARK#a', value: 'different' }] }
+        })
+        const metaRoom = baseMetaRoom({
+            state: { marks: { markValue: [{ mark: 'MARK#a', value: 'one' }] } },
+            currentCacheId: cacheRecord.DataCategory
+        })
+
+        const getMetaRoom = jest.fn().mockResolvedValue(metaRoom)
+        const getCacheRecordById = jest.fn().mockResolvedValue(cacheRecord)
+        const setMetaRoomState = jest.fn().mockResolvedValue(undefined)
+
+        const result = await getOrStartRoomRenderForState(
+            { roomId, perspective },
+            { getMetaRoom, getCacheRecordById, setMetaRoomState }
+        )
+
+        expect(setMetaRoomState).toHaveBeenCalledWith(roomId, { state: metaRoom.state, currentCacheId: undefined })
+        expect(result).toEqual(expect.objectContaining({ status: 'error', errorCode: 'FAST_PATH_INVALID' }))
+    })
+
+    it('clears currentCacheId when cache record does not match perspective', async () => {
+        const cacheRecord = baseCacheRecord({
+            perspectiveMatcher: { requiredAssetIds: ['ASSET#other'], forbiddenAssetIds: [] }
+        })
+        const metaRoom = baseMetaRoom({
+            state: { marks: cacheRecord.markState },
+            currentCacheId: cacheRecord.DataCategory
+        })
+
+        const getMetaRoom = jest.fn().mockResolvedValue(metaRoom)
+        const getCacheRecordById = jest.fn().mockResolvedValue(cacheRecord)
+        const setMetaRoomState = jest.fn().mockResolvedValue(undefined)
+
+        const result = await getOrStartRoomRenderForState(
+            { roomId, perspective },
+            { getMetaRoom, getCacheRecordById, setMetaRoomState }
+        )
+
+        expect(setMetaRoomState).toHaveBeenCalledWith(roomId, { state: metaRoom.state, currentCacheId: undefined })
+        expect(result).toEqual(expect.objectContaining({ status: 'error', errorCode: 'FAST_PATH_INVALID' }))
+    })
+
     it('falls back to exact-match search when currentCacheId missing', async () => {
         const metaRoom = baseMetaRoom({
             state: { marks: { markValue: [{ mark: 'MARK#a', value: 'one' }] } }
