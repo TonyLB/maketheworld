@@ -57,6 +57,8 @@ export type StreamEventFunction<UpdatePayload = any, Header extends StreamingEve
 export type StreamEnvelopeFunction =
     (envelope: StreamingEventEnvelope<unknown, StreamingEventHeader, unknown>) => Promise<void>
 
+export type DataSourcePublisherStrategy = 'eventBridge+bus' | 'busOnly'
+
 /**
  * SubscribedContent = payload type of events this DataSource subscribes *to* (incoming).
  * UpdatePayload = payload type this DataSource publishes (streamEvent, serializer).
@@ -83,6 +85,7 @@ export class DataSource<
     readonly singleFlight?: ReturnType<typeof singleFlightFactory<SnapshotType<ExternalSnapshotPayload>>>
     readonly feedbackTopicArn: string
     readonly replayable: boolean
+    readonly publisherStrategy: DataSourcePublisherStrategy
     readonly subscribedEventTypeGuard?: (envelope: StreamingEventEnvelope<unknown>) => envelope is StreamingEventEnvelope<SubscribedContent>
     readonly receiveEvents?: (params: { 
         events: Array<StreamingEventEnvelope<SubscribedContent>>,
@@ -103,6 +106,7 @@ export class DataSource<
         snapshotContentGenerator,
         feedbackTopicArn,
         replayable = true,
+        publisherStrategy = 'eventBridge+bus',
         snapshotTimeoutMs = 5000,
         subscribedEventTypeGuard,
         receiveEvents,
@@ -121,6 +125,7 @@ export class DataSource<
         snapshotContentGenerator?: (streamKey: string) => Promise<SnapshotPayload>,
         feedbackTopicArn: string,
         replayable?: boolean,
+        publisherStrategy?: DataSourcePublisherStrategy,
         snapshotTimeoutMs?: number,
         subscribedEventTypeGuard?: (envelope: StreamingEventEnvelope<unknown>) => envelope is StreamingEventEnvelope<SubscribedContent>,
         receiveEvents?: (params: { 
@@ -140,6 +145,7 @@ export class DataSource<
         this.snapshotContentGenerator = snapshotContentGenerator
         this.feedbackTopicArn = feedbackTopicArn
         this.replayable = replayable
+        this.publisherStrategy = publisherStrategy
         this.subscribedEventTypeGuard = subscribedEventTypeGuard
         this.receiveEvents = receiveEvents
         this.eventSerializer = eventSerializer
@@ -371,7 +377,9 @@ export class DataSource<
                 this.messageBus.send(messageBusEvent)
             }),
             // Publish to EventBridge for real-time subscribers
-            eventBridgeClient.send([eventBridgeEvent as any])
+            (this.publisherStrategy === 'eventBridge+bus'
+                ? eventBridgeClient.send([eventBridgeEvent as any])
+                : Promise.resolve())
         ])
         
     }
@@ -405,7 +413,9 @@ export class DataSource<
             (this.replayable && dynamoRecord ? this.dynamo.putItem(dynamoRecord) : Promise.resolve()).then(() => {
                 this.messageBus.send(messageBusPayload)
             }),
-            eventBridgeClient.send([eventBridgeEvent as any])
+            (this.publisherStrategy === 'eventBridge+bus'
+                ? eventBridgeClient.send([eventBridgeEvent as any])
+                : Promise.resolve())
         ])
     }
 
