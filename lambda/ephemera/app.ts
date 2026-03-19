@@ -21,7 +21,9 @@ import {
     isActionAPIMessage,
     isGenerateRoomPreviewAPIMessage
 } from '@tonylb/mtw-interfaces/ts/ephemera'
-import { EphemeraAssetId, EphemeraCharacterId, isEphemeraAssetId, isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraKnowledgeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { EphemeraAssetId, EphemeraCharacterId, EphemeraRoomId, isEphemeraAssetId, isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraKnowledgeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { computePerspectiveKey } from '@tonylb/mtw-interfaces/ts/perspective'
+import type { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 
 import { fetchEphemeraForCharacter } from './fetchEphemera'
 import internalCache from './internalCache'
@@ -233,6 +235,12 @@ export const handler = async (event: any, context: any) => {
             }
 
             if (isGenerateRoomPreviewAPIMessage(request)) {
+                const perspectiveId = computePerspectiveKey(request.assetStack as AssetUUID[])
+                internalCache.PreviewGenerationRequests.registerPending({
+                    roomId: request.RoomId as EphemeraRoomId,
+                    perspectiveId,
+                    requestId: request.RequestId
+                })
                 const result = await generateRoomPreview({
                     roomId: request.RoomId,
                     markState: request.markState,

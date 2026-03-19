@@ -2,6 +2,7 @@ import { handler } from './app'
 import * as renderCache from './renderCache'
 import messageBus from './messageBus'
 import internalCache from './internalCache'
+import { computePerspectiveKey } from '@tonylb/mtw-interfaces/ts/perspective'
 
 jest.mock('./renderCache')
 jest.mock('./messageBus', () => ({
@@ -20,6 +21,9 @@ jest.mock('./internalCache', () => ({
         clear: jest.fn(),
         Global: {
             set: jest.fn()
+        },
+        PreviewGenerationRequests: {
+            registerPending: jest.fn()
         }
     }
 }))
@@ -62,6 +66,16 @@ describe('app handler - generateRoomPreview', () => {
 
         await handler(event as any, {} as any)
 
+        const expectedPerspectiveId = computePerspectiveKey(['ASSET#one'] as any)
+        expect(internalCache.PreviewGenerationRequests.registerPending).toHaveBeenCalledWith({
+            roomId: 'ROOM#test-room',
+            perspectiveId: expectedPerspectiveId,
+            requestId: 'request-123'
+        })
+        expect(
+            (internalCache.PreviewGenerationRequests.registerPending as jest.Mock).mock.invocationCallOrder[0]
+        ).toBeLessThan(generateRoomPreviewMock.mock.invocationCallOrder[0])
+
         expect(generateRoomPreviewMock).toHaveBeenCalledWith(
             expect.objectContaining({
                 roomId: 'ROOM#test-room',
@@ -101,6 +115,13 @@ describe('app handler - generateRoomPreview', () => {
         })
 
         await handler(event as any, {} as any)
+
+        const expectedPerspectiveId = computePerspectiveKey(['ASSET#one'] as any)
+        expect(internalCache.PreviewGenerationRequests.registerPending).toHaveBeenCalledWith({
+            roomId: 'ROOM#test-room',
+            perspectiveId: expectedPerspectiveId,
+            requestId: undefined
+        })
 
         expect(generateRoomPreviewMock).toHaveBeenCalledWith(
             expect.objectContaining({
