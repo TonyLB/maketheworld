@@ -27,6 +27,14 @@ export type RenderGenerationStarted = RenderTargetContext & {
     perspective: Perspective;
 }
 
+export type RenderLookupRequested = RenderTargetContext & {
+    type: 'RenderLookupRequested';
+    componentId: RenderComponentId;
+    perspective: Perspective;
+    allowGeneration?: boolean;
+    generationContextWml?: string;
+}
+
 export type RenderReady = RenderTargetContext & {
     type: 'RenderReady';
     componentId: RenderComponentId;
@@ -52,6 +60,7 @@ export type RenderGenerationFailed = RenderTargetContext & {
 
 export type RenderOrchestrationMessage =
     | RenderRequested
+    | RenderLookupRequested
     | RenderGenerationStarted
     | RenderReady
     | RenderGenerationCompleted
@@ -118,6 +127,29 @@ export const isRenderGenerationStarted = (value: unknown): value is RenderGenera
     )
 }
 
+export const isRenderLookupRequested = (value: unknown): value is RenderLookupRequested => {
+    if (!value || typeof value !== 'object') {
+        return false
+    }
+    const castValue = value as Record<string, unknown>
+    if (castValue.type !== 'RenderLookupRequested') {
+        return false
+    }
+    if (!isRenderComponentId(castValue.componentId)) {
+        return false
+    }
+    if (!isPerspective(castValue.perspective)) {
+        return false
+    }
+    if ('allowGeneration' in castValue && castValue.allowGeneration !== undefined && typeof castValue.allowGeneration !== 'boolean') {
+        return false
+    }
+    if ('generationContextWml' in castValue && castValue.generationContextWml !== undefined && typeof castValue.generationContextWml !== 'string') {
+        return false
+    }
+    return hasValidTargetContext(castValue)
+}
+
 const isCacheId = (value: unknown): value is EphemeraCacheId => (
     typeof value === 'string' && value.startsWith('CACHE#')
 )
@@ -174,6 +206,7 @@ export const isRenderGenerationFailed = (value: unknown): value is RenderGenerat
 
 export const isRenderOrchestrationMessage = (value: unknown): value is RenderOrchestrationMessage => (
     isRenderRequested(value)
+    || isRenderLookupRequested(value)
     || isRenderGenerationStarted(value)
     || isRenderReady(value)
     || isRenderGenerationCompleted(value)

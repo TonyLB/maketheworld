@@ -192,7 +192,7 @@ Transition note:
      - if/when key semantics change, dual-read legacy + new keys until backfill completes
 3. [x] **Event contract file**
    - Create `renderOrchestration/events.ts` with `RenderRequested`, `RenderGenerationStarted`, `RenderReady`, and optional completion/failure message types + type guards.
-4. **Request intake handler (fast path)**
+4. [x] **Request intake handler (fast path)**
    - Implement handler A to read `Meta::Room`, resolve perspective key, validate `currentCacheByPerspective[perspectiveKey]`, and publish `RenderReady` on hit.
    - On invalid pointer, clear that pointer entry and continue.
 5. **Exact-match handler (slow path)**
@@ -240,4 +240,5 @@ Transition note:
 - Add render orchestration event types to `lambda/ephemera/messageBus/baseClasses.ts` union types.
 - Register `renderOrchestration` subscriptions in `lambda/ephemera/messageBus/index.ts`.
 - Add perception-side lifecycle consumers for `RenderGenerationStarted` and `RenderReady`.
+- Wire `requestIntake` handler to consume `RenderRequested` and emit `RenderLookupRequested`/`RenderReady`.
 
