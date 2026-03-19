@@ -161,4 +161,6 @@ Migration guidance:
 1. Add `currentCacheByPerspective` as additive schema.
 2. Treat legacy `currentCacheId` as optional backward-compatible fallback while call sites migrate.
 3. Remove `currentCacheId` once orchestration and tests are fully perspective-scoped.
+4. Use shared, versioned perspective keys (`PERSPECTIVE#v1#...`) for pointer-map keys.
+5. During perspective-key rollout, keep legacy reads where needed and dual-read until writers are fully migrated.
 

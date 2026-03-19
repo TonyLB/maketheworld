@@ -23,7 +23,7 @@ import {
     isEphemeraRoomId,
     isEphemeraSituationId
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { computePerspectiveId } from '../internalUtils/perspectiveId'
+import { computePerspectiveKey } from '@tonylb/mtw-interfaces/ts/perspective'
 
 export type EphemeraExamplesIncomingEvent = StreamingEventEnvelope<ComponentExamplesMirrorEvent> & {
     header: StreamingEventHeader & {
@@ -55,7 +55,7 @@ export type HandleComponentExamplesDependencies = {
     queryCacheRecordsForComponent: typeof queryCacheRecordsForComponent;
     putCacheRecord: typeof putCacheRecord;
     deleteCacheRecord: typeof deleteCacheRecord;
-    computePerspectiveId: typeof computePerspectiveId;
+    computePerspectiveKey: typeof computePerspectiveKey;
     logger?: Logger;
 }
 
@@ -66,7 +66,7 @@ const defaultDependencies: HandleComponentExamplesDependencies = {
     queryCacheRecordsForComponent,
     putCacheRecord,
     deleteCacheRecord,
-    computePerspectiveId,
+    computePerspectiveKey,
     logger: console
 }
 
@@ -78,7 +78,7 @@ export const handleComponentExamplesEvent = async (
         queryCacheRecordsForComponent: queryRecords,
         putCacheRecord: putRecord,
         deleteCacheRecord: deleteRecord,
-        computePerspectiveId: computeId,
+        computePerspectiveKey: computeKey,
         logger
     } = dependencies
 
@@ -89,7 +89,7 @@ export const handleComponentExamplesEvent = async (
     }
 
     if (event.type === 'ExampleAdded' || event.type === 'ExampleUpdated') {
-        const perspectiveId = computeId(assetStack)
+        const perspectiveId = computeKey(assetStack)
         const { example } = event
         if (!example) {
             return

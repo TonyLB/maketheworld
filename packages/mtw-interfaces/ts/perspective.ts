@@ -20,6 +20,40 @@ export type PerspectiveMatcher = {
     forbiddenAssetIds?: AssetUUID[]
 }
 
+export type PerspectiveKeyVersion = 'v1'
+
+const PERSPECTIVE_KEY_PREFIX = 'PERSPECTIVE#' as const
+
+export const canonicalizePerspectiveAssetStack = (assetStack: AssetUUID[]): AssetUUID[] => {
+    const seen = new Set<string>()
+    const canonical: AssetUUID[] = []
+    for (const entry of assetStack) {
+        if (!isSchemaAssetUUID(entry)) {
+            throw new Error(`Invalid asset id in perspective assetStack: ${String(entry)}`)
+        }
+        if (!seen.has(entry)) {
+            seen.add(entry)
+            canonical.push(entry)
+        }
+    }
+    return canonical
+}
+
+export const computePerspectiveKey = (
+    assetStack: AssetUUID[],
+    { version = 'v1' }: { version?: PerspectiveKeyVersion } = {}
+): string => {
+    const canonical = canonicalizePerspectiveAssetStack(assetStack)
+    const base = `${version}|${canonical.join('|')}`
+    let hash = 0
+    for (let index = 0; index < base.length; index += 1) {
+        const charCode = base.charCodeAt(index)
+        hash = ((hash << 5) - hash + charCode) | 0
+    }
+    const hex = (hash >>> 0).toString(16)
+    return `${PERSPECTIVE_KEY_PREFIX}${version}#${hex}`
+}
+
 /**
  * Returns true iff the perspective's assetStack contains every required asset
  * and none of the forbidden assets. Undefined forbiddenAssetIds is treated as [].
