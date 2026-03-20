@@ -65,6 +65,17 @@ The message bus enables complex workflows such as:
 3. Perception rendering triggering WebSocket message delivery
 4. All while maintaining character presence filtering
 
+#### **api.ephemera (internal API stream)**
+
+Parallel to **`api.wml`** and **`api.assets`** in other lambdas: **`dataSourceKey: 'api.ephemera'`** identifies **in-process** commands injected onto the message bus from the ephemera handler (or tests). These events are **not** produced by EventBridge and are **not** deserialized in `app.ts` from external `source` / `detail-type`.
+
+- **Definitions**: [`lambda/ephemera/dataSource/localApiEvents.ts`](dataSource/localApiEvents.ts) (payload types and shape guards), [`lambda/ephemera/dataSource/apiEphemera.ts`](dataSource/apiEphemera.ts) (header/envelope guards, `sendPutCacheRecord`, `sendGenerateRoomPreview`).
+- **Initial event types**:
+  - **`Put Cache Record`**: Payload aligns with `putCacheRecord(componentId, record, existingDataCategory?)` in the render cache layer.
+  - **`Generate Room Preview`**: Payload mirrors room preview input plus optional `RequestId` for correlation.
+
+Future work: subscribe a render-cache (or top-level ephemera) `DataSource` to these envelopes and replace direct calls from `app.ts` where appropriate.
+
 ### **EventBridge Event Subscription**
 
 The Ephemera Lambda subscribes to events from other system components:
