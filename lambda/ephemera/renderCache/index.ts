@@ -34,8 +34,11 @@ export {
 
 export {
     generateRoomPreview,
+    defaultPublishPutCacheRecord,
     type GenerateRoomPreviewInput,
+    type GenerateRoomPreviewOptions,
     type GenerateRoomPreviewResult,
     type GenerateRoomPreviewSuccess,
-    type GenerateRoomPreviewFailure
+    type GenerateRoomPreviewFailure,
+    type PublishPutCacheRecord,
 } from './generateRoomPreview'

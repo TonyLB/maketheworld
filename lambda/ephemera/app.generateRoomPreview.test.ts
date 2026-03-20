@@ -81,9 +81,6 @@ describe('app handler - generateRoomPreview', () => {
                 roomId: 'ROOM#test-room',
                 markState: { markValue: [{ mark: 'MARK#a', value: 'one' }] },
                 assetStack: ['ASSET#one']
-            }),
-            expect.objectContaining({
-                publishPutCacheRecord: expect.any(Function)
             })
         )
 
@@ -132,9 +129,6 @@ describe('app handler - generateRoomPreview', () => {
                 markState: { markValue: [] },
                 assetStack: ['ASSET#one'],
                 generationContextWml: wml
-            }),
-            expect.objectContaining({
-                publishPutCacheRecord: expect.any(Function)
             })
         )
     })

@@ -264,14 +264,14 @@ Review and refine this before moving to Plan mode. Order is approximate; some st
    **Done.** Inlined in `generateRoomDescription.ts` as `toRenderTree(s)` (returns `s == null || s === '' ? [] : [s]`).
 
 5. **Writing the generated result to the cache**  
-   In `generateRoomPreview`, when the LLM step (item 3) returns success, call this before returning `renderedContent`. Step 2 does not add this branch (the stub never returns success). Technically we could return the render without caching; the write should follow shortly after step 3 so generated descriptions are reused. Reuse `putCacheRecord` with:
+   In `generateRoomPreview`, when the LLM step (item 3) returns success, call this before returning `renderedContent`. Step 2 does not add this branch (the stub never returns success). Technically we could return the render without caching; the write should follow shortly after step 3 so generated descriptions are reused. Production uses **`defaultPublishPutCacheRecord`** ( **`sendPutCacheRecord`** on **`api.ephemera`**; the WebSocket handler's terminal **`messageBus.flush()`** runs **`mtw.ephemera.renderCache`** so **`putCacheRecord`** and memo update apply) with:
    - `provenance.type: 'generated'`
    - `markState` = proposed state from the request
    - `renderedContent` = the wrapped displayName/summary/description
    - `perspectiveId` = compute from request `assetStack` (existing `computePerspectiveId`)
    - `perspectiveMatcher` = derive from request `assetStack` (e.g. `{ requiredAssetIds: assetStack, forbiddenAssetIds: [] }`) so future lookups for the same perspective match this record.
 
-   **Done.** In `generateRoomPreview`, on LLM success we call `putCacheRecord` with provenance `generated`, `computePerspectiveId(assetStack)`, and `perspectiveMatcher: { requiredAssetIds: assetStack, forbiddenAssetIds: [] }`, then return `renderedContent`.
+   **Done.** In `generateRoomPreview`, on LLM success we call **`publishPutCacheRecord`** with provenance `generated`, `computePerspectiveId(assetStack)`, and `perspectiveMatcher: { requiredAssetIds: assetStack, forbiddenAssetIds: [] }`, then return `renderedContent`.
 
 6. **Result and error surface**  
    Use these error codes consistently: **`NO_EXACT_MATCH`** (unchanged; no cached Example matches the proposed state, and we are not attempting generation, e.g. missing context). **`CONTEXT_REQUIRED`** (no or invalid `generationContext`; client should send context to enable LLM generation). **`GENERATION_FAILED`** (LLM timeout or malformed output; do not write to cache). Extend client types so the Preview UI can show the message for each.
@@ -291,7 +291,7 @@ Review and refine this before moving to Plan mode. Order is approximate; some st
    - Integration-style test: mock Bedrock to return valid JSON or timeout; assert cache write only on success.
    - Manually: run Preview with a few Rooms and non-matching states; confirm Nova 2 Lite output is acceptable and latency/cost are within reason. Trim test data (Examples) as needed to keep context size manageable.
 
-   **Done.** Unit tests: `buildRoomDescriptionPrompt.test.ts` (prompt sections and examples), `generateRoomDescription.test.ts` (valid JSON, markdown-wrapped JSON, Bedrock failure, malformed/missing fields), `generateRoomPreview.test.ts` (cachedExamples passed, putCacheRecord on success). Manual run confirmed.
+   **Done.** Unit tests: `buildRoomDescriptionPrompt.test.ts` (prompt sections and examples), `generateRoomDescription.test.ts` (valid JSON, markdown-wrapped JSON, Bedrock failure, malformed/missing fields), `generateRoomPreview.test.ts` (cachedExamples passed, `publishPutCacheRecord` on success). Manual run confirmed.
 
 ---
 

@@ -204,6 +204,7 @@ This is the canonical “does this state exist in cache?” check, used by `gene
   - `roomId: EphemeraRoomId`
   - `markState: EphemeraCacheMarkState`
   - `assetStack: string[]`
+- Options (optional): `publishPutCacheRecord` overrides the default `defaultPublishPutCacheRecord` (`sendPutCacheRecord` only; the handler's terminal `await messageBus.flush()` drains the queue). Tests typically pass `jest.fn()` to avoid real bus I/O.
 - Steps:
   1. Build `perspective = { assetStack }`.
   2. Call `internalCache.RenderCache.getExactMatch({ componentId: roomId, proposedMarkState: markState, perspective })`.
@@ -220,7 +221,7 @@ The Ephemera Lambda handler (`lambda/ephemera/app.ts`) wires `generateRoomPrevie
   - `GenerateRoomPreviewAPIMessage` in `packages/mtw-interfaces/ts/ephemera.ts`.
 - Handler branch:
   - When `isGenerateRoomPreviewAPIMessage(request)`:
-    - Call `generateRoomPreview({ roomId: request.RoomId, markState: request.markState, assetStack: request.assetStack })`.
+    - Call `generateRoomPreview({ roomId, markState, assetStack, generationContextWml })` (default **`defaultPublishPutCacheRecord`** enqueues **`Put Cache Record`** on **`api.ephemera`**; the handler then **`await messageBus.flush()`** after **`ReturnValue`**).
     - Send a `ReturnValue` message with body:
       - `{ generateRoomPreview: result, ...(request.RequestId && { RequestId: request.RequestId }) }`.
 

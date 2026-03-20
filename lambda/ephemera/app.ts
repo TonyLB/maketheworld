@@ -36,7 +36,6 @@ import { AssetsEventSerializer, ComponentExamplesEventSerializer } from '@tonylb
 import { fromEventBridgeFormat } from '@tonylb/mtw-lambda-patterns/ts/dataSource/formatTransform'
 import { coreFormatToStreamingEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import { generateRoomPreview } from './renderCache'
-import { sendPutCacheRecord } from './dataSource/apiEphemera'
 
 // Import DataSources to trigger their messageBus subscriptions (side-effect imports)
 import './dataSource'  // mtw.ephemera DataSource
@@ -243,24 +242,12 @@ export const handler = async (event: any, context: any) => {
                     perspectiveId,
                     requestId: request.RequestId
                 })
-                const result = await generateRoomPreview(
-                    {
-                        roomId: request.RoomId,
-                        markState: request.markState,
-                        assetStack: request.assetStack,
-                        generationContextWml: request.generationContextWml,
-                    },
-                    {
-                        publishPutCacheRecord: async (componentId, record, existingDataCategory) => {
-                            sendPutCacheRecord(messageBus, componentId, {
-                                componentId,
-                                record,
-                                ...(existingDataCategory !== undefined ? { existingDataCategory } : {}),
-                            })
-                            await messageBus.flush()
-                        },
-                    }
-                )
+                const result = await generateRoomPreview({
+                    roomId: request.RoomId,
+                    markState: request.markState,
+                    assetStack: request.assetStack,
+                    generationContextWml: request.generationContextWml,
+                })
                 messageBus.send({
                     type: 'ReturnValue',
                     body: {
