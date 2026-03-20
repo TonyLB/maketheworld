@@ -5,10 +5,6 @@ import type {
     EphemeraCacheRenderedContent
 } from './baseClasses'
 
-jest.mock('./exampleComparison', () => ({
-    findExactMatchForComponent: jest.fn()
-}))
-
 const makeMarkState = (entries: Array<{ mark: string; value: string }>): EphemeraCacheMarkState => ({
     markValue: entries
 })
@@ -31,12 +27,8 @@ describe('renderCache/generateRoomPreview', () => {
         jest.clearAllMocks()
     })
 
-    it('builds perspective from assetStack and passes it to findExactMatchForComponent', async () => {
-        const { findExactMatchForComponent } = jest.requireMock('./exampleComparison') as {
-            findExactMatchForComponent: jest.Mock
-        }
-
-        findExactMatchForComponent.mockResolvedValue(null)
+    it('builds perspective from assetStack and passes it to getExactMatchImpl', async () => {
+        const getExactMatchImpl = jest.fn().mockResolvedValue(null)
 
         const markState = makeMarkState([{ mark: 'MARK#a', value: 'one' }])
         const assetStack = ['ASSET#one', 'ASSET#two']
@@ -45,9 +37,9 @@ describe('renderCache/generateRoomPreview', () => {
             roomId,
             markState,
             assetStack
-        })
+        }, { getExactMatchImpl })
 
-        expect(findExactMatchForComponent).toHaveBeenCalledWith({
+        expect(getExactMatchImpl).toHaveBeenCalledWith({
             componentId: roomId,
             proposedMarkState: markState,
             perspective: { assetStack }
@@ -55,20 +47,18 @@ describe('renderCache/generateRoomPreview', () => {
     })
 
     it('returns success with renderedContent when a match is found', async () => {
-        const { findExactMatchForComponent } = jest.requireMock('./exampleComparison') as {
-            findExactMatchForComponent: jest.Mock
-        }
+        const getExactMatchImpl = jest.fn()
 
         const renderedContent: EphemeraCacheRenderedContent = { description: [] }
         const record = baseRecord({ renderedContent })
 
-        findExactMatchForComponent.mockResolvedValue(record)
+        getExactMatchImpl.mockResolvedValue(record)
 
         const result = await generateRoomPreview({
             roomId,
             markState: makeMarkState([{ mark: 'MARK#a', value: 'one' }]),
             assetStack: ['ASSET#one']
-        })
+        }, { getExactMatchImpl })
 
         expect(result).toEqual({
             success: true,
@@ -77,17 +67,13 @@ describe('renderCache/generateRoomPreview', () => {
     })
 
     it('returns CONTEXT_REQUIRED when no exact match and no generationContextWml', async () => {
-        const { findExactMatchForComponent } = jest.requireMock('./exampleComparison') as {
-            findExactMatchForComponent: jest.Mock
-        }
-
-        findExactMatchForComponent.mockResolvedValue(null)
+        const getExactMatchImpl = jest.fn().mockResolvedValue(null)
 
         const result = await generateRoomPreview({
             roomId,
             markState: makeMarkState([{ mark: 'MARK#a', value: 'one' }]),
             assetStack: ['ASSET#one']
-        })
+        }, { getExactMatchImpl })
 
         expect(result).toEqual({
             success: false,
@@ -97,18 +83,14 @@ describe('renderCache/generateRoomPreview', () => {
     })
 
     it('returns CONTEXT_REQUIRED when no exact match and invalid generationContextWml', async () => {
-        const { findExactMatchForComponent } = jest.requireMock('./exampleComparison') as {
-            findExactMatchForComponent: jest.Mock
-        }
-
-        findExactMatchForComponent.mockResolvedValue(null)
+        const getExactMatchImpl = jest.fn().mockResolvedValue(null)
 
         const result = await generateRoomPreview({
             roomId,
             markState: makeMarkState([{ mark: 'MARK#a', value: 'one' }]),
             assetStack: ['ASSET#one'],
             generationContextWml: '<not valid wml<<'
-        })
+        }, { getExactMatchImpl })
 
         expect(result).toEqual({
             success: false,
@@ -118,11 +100,7 @@ describe('renderCache/generateRoomPreview', () => {
     })
 
     it('returns NO_EXACT_MATCH from stub when no exact match but valid generationContextWml', async () => {
-        const { findExactMatchForComponent } = jest.requireMock('./exampleComparison') as {
-            findExactMatchForComponent: jest.Mock
-        }
-
-        findExactMatchForComponent.mockResolvedValue(null)
+        const getExactMatchImpl = jest.fn().mockResolvedValue(null)
 
         const generateRoomDescriptionImpl = jest.fn().mockResolvedValue({
             success: false,
@@ -139,7 +117,7 @@ describe('renderCache/generateRoomPreview', () => {
                 assetStack: ['ASSET#one'],
                 generationContextWml: validWml
             },
-            { generateRoomDescriptionImpl, queryCacheRecordsForComponentImpl }
+            { getExactMatchImpl, generateRoomDescriptionImpl, queryCacheRecordsForComponentImpl }
         )
 
         expect(queryCacheRecordsForComponentImpl).toHaveBeenCalledWith(roomId)
@@ -159,10 +137,7 @@ describe('renderCache/generateRoomPreview', () => {
     })
 
     it('calls putCacheRecord with generated provenance when LLM returns success', async () => {
-        const { findExactMatchForComponent } = jest.requireMock('./exampleComparison') as {
-            findExactMatchForComponent: jest.Mock
-        }
-        findExactMatchForComponent.mockResolvedValue(null)
+        const getExactMatchImpl = jest.fn().mockResolvedValue(null)
 
         const renderedContent: EphemeraCacheRenderedContent = {
             displayName: ['Generated Name'],
@@ -188,6 +163,7 @@ describe('renderCache/generateRoomPreview', () => {
                 generationContextWml: validWml
             },
             {
+                getExactMatchImpl,
                 generateRoomDescriptionImpl,
                 queryCacheRecordsForComponentImpl,
                 putCacheRecordImpl
