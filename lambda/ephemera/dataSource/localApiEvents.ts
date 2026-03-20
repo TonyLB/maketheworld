@@ -1,0 +1,71 @@
+/**
+ * Payload types and type guards for API-triggered internal events (dataSourceKey: 'api.ephemera').
+ * Used by apiEphemera.ts send helpers and future DataSource receiveEvents. In-process only; no EventBridge.
+ */
+import type { EphemeraCacheComponentId } from '../renderCache/baseClasses'
+import type { PutCacheRecordInput } from '../renderCache/cacheAccess'
+import type { GenerateRoomPreviewInput } from '../renderCache/generateRoomPreview'
+
+export type PutCacheRecordCommand = {
+    componentId: EphemeraCacheComponentId;
+    record: PutCacheRecordInput;
+    existingDataCategory?: string;
+};
+
+export type GenerateRoomPreviewCommand = GenerateRoomPreviewInput & {
+    RequestId?: string;
+};
+
+export const isPutCacheRecordCommand = (value: unknown): value is PutCacheRecordCommand => {
+    if (!value || typeof value !== 'object') {
+        return false
+    }
+    const v = value as Record<string, unknown>
+    if (typeof v.componentId !== 'string') {
+        return false
+    }
+    if (!v.record || typeof v.record !== 'object') {
+        return false
+    }
+    const record = v.record as Record<string, unknown>
+    if (record.markState === undefined || record.renderedContent === undefined || record.provenance === undefined) {
+        return false
+    }
+    const prov = record.provenance as Record<string, unknown>
+    if (typeof prov !== 'object' || prov === null || typeof prov.type !== 'string') {
+        return false
+    }
+    if (typeof record.perspectiveId !== 'string' || record.perspectiveMatcher === undefined) {
+        return false
+    }
+    if (v.existingDataCategory !== undefined && typeof v.existingDataCategory !== 'string') {
+        return false
+    }
+    return true
+}
+
+export const isGenerateRoomPreviewCommand = (value: unknown): value is GenerateRoomPreviewCommand => {
+    if (!value || typeof value !== 'object') {
+        return false
+    }
+    const v = value as Record<string, unknown>
+    if (typeof v.roomId !== 'string') {
+        return false
+    }
+    if (!v.markState || typeof v.markState !== 'object') {
+        return false
+    }
+    if (!Array.isArray(v.assetStack) || !v.assetStack.every((id) => typeof id === 'string')) {
+        return false
+    }
+    if (v.generationContextWml !== undefined && typeof v.generationContextWml !== 'string') {
+        return false
+    }
+    if (v.RequestId !== undefined && typeof v.RequestId !== 'string') {
+        return false
+    }
+    return true
+}
+
+/** Union of all api.ephemera command payloads (discriminated by header.type on the bus). */
+export type EphemeraApiCommandPayload = PutCacheRecordCommand | GenerateRoomPreviewCommand

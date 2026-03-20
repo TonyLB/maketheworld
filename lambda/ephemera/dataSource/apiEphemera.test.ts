@@ -1,0 +1,115 @@
+import {
+    sendPutCacheRecord,
+    sendGenerateRoomPreview,
+    isEphemeraApiSubscribedEnvelope,
+    isEphemeraApiPutCacheRecordEnvelope,
+} from './apiEphemera'
+import type { StreamingEventMessage } from '../messageBus/baseClasses'
+import type { StreamingEventEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+
+describe('apiEphemera', () => {
+    const makeBus = () => {
+        const sent: StreamingEventMessage[] = []
+        return {
+            sent,
+            bus: {
+                send: (payload: StreamingEventMessage) => {
+                    sent.push(payload)
+                },
+            },
+        }
+    }
+
+    const minimalPutRecord = {
+        componentId: 'ROOM#room-one' as const,
+        record: {
+            markState: { markValue: [] },
+            renderedContent: { description: [] },
+            provenance: { type: 'authored' as const },
+            perspectiveId: 'PERSPECTIVE#v1#abc',
+            perspectiveMatcher: { requiredAssetIds: ['ASSET#one'] as `ASSET#${string}`[], forbiddenAssetIds: [] },
+        },
+    }
+
+    it('sendPutCacheRecord posts StreamingEvent with api.ephemera header and streamKey', () => {
+        const { sent, bus } = makeBus()
+        sendPutCacheRecord(bus, 'ROOM#room-one', minimalPutRecord)
+
+        expect(sent).toHaveLength(1)
+        const msg = sent[0]
+        expect(msg.type).toBe('StreamingEvent')
+        expect(msg.dataSourceKey).toBe('api.ephemera')
+        expect(msg.streamKey).toBe('ROOM#room-one')
+        expect(msg.header.dataSourceKey).toBe('api.ephemera')
+        expect(msg.header.type).toBe('Put Cache Record')
+        expect(msg.header.streamKey).toBe('ROOM#room-one')
+    })
+
+    it('sendPutCacheRecord getContent returns internal payload', async () => {
+        const { sent } = makeBus()
+        sendPutCacheRecord({ send: (p) => sent.push(p) }, 'ROOM#room-one', minimalPutRecord)
+
+        const msg = sent[0]
+        const internal = await msg.getContent()
+        expect(internal).toMatchObject({
+            componentId: 'ROOM#room-one',
+            record: expect.objectContaining({
+                perspectiveId: 'PERSPECTIVE#v1#abc',
+                provenance: { type: 'authored' },
+            }),
+        })
+        const internalAgain = await msg.getContent('internal')
+        expect(internalAgain).toEqual(internal)
+    })
+
+    it('sendGenerateRoomPreview posts StreamingEvent with Generate Room Preview type', () => {
+        const { sent, bus } = makeBus()
+        sendGenerateRoomPreview(bus, 'ROOM#r2', {
+            roomId: 'ROOM#r2',
+            markState: { markValue: [] },
+            assetStack: ['ASSET#a'],
+            RequestId: 'req-1',
+        })
+
+        expect(sent[0].header.type).toBe('Generate Room Preview')
+        expect(sent[0].streamKey).toBe('ROOM#r2')
+    })
+
+    it('isEphemeraApiSubscribedEnvelope accepts api.ephemera Put Cache Record envelope', async () => {
+        const { sent, bus } = makeBus()
+        sendPutCacheRecord(bus, 'ROOM#x', minimalPutRecord)
+        const msg = sent[0]
+        const envelope: StreamingEventEnvelope<unknown> = {
+            header: msg.header,
+            getContent: msg.getContent,
+        }
+        expect(isEphemeraApiSubscribedEnvelope(envelope)).toBe(true)
+        expect(isEphemeraApiPutCacheRecordEnvelope(envelope)).toBe(true)
+    })
+
+    it('isEphemeraApiSubscribedEnvelope rejects wrong dataSourceKey', () => {
+        const envelope: StreamingEventEnvelope<unknown> = {
+            header: {
+                dataSourceKey: 'mtw.assets',
+                streamKey: 'ROOM#x',
+                timestamp: 1,
+                type: 'Put Cache Record',
+            },
+            getContent: async () => minimalPutRecord,
+        }
+        expect(isEphemeraApiSubscribedEnvelope(envelope)).toBe(false)
+    })
+
+    it('isEphemeraApiSubscribedEnvelope rejects wrong type for api.ephemera', () => {
+        const envelope: StreamingEventEnvelope<unknown> = {
+            header: {
+                dataSourceKey: 'api.ephemera',
+                streamKey: 'ROOM#x',
+                timestamp: 1,
+                type: 'Unknown',
+            },
+            getContent: async () => minimalPutRecord,
+        }
+        expect(isEphemeraApiSubscribedEnvelope(envelope)).toBe(false)
+    })
+})
