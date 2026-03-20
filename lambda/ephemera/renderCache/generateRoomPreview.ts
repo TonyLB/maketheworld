@@ -3,10 +3,12 @@ import type { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 import { perspectiveMatches, computePerspectiveKey } from '@tonylb/mtw-interfaces/ts/perspective'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import type {
+    EphemeraCacheComponentId,
     EphemeraCacheMarkState,
     EphemeraCacheRenderedContent,
     EphemeraCacheDynamoItem
 } from './baseClasses'
+import type { PutCacheRecordInput } from './cacheAccess'
 import { EPHEMERA_CACHE_PROVENANCE_GENERATED } from './baseClasses'
 import { queryCacheRecordsForComponent, putCacheRecord } from './cacheAccess'
 import { findExactMatchForComponent } from './exampleComparison'
@@ -38,6 +40,12 @@ type GenerateRoomDescription = typeof generateRoomDescription
 type QueryCacheRecordsForComponent = typeof queryCacheRecordsForComponent
 type PutCacheRecord = typeof putCacheRecord
 
+export type PublishPutCacheRecord = (
+    componentId: EphemeraCacheComponentId,
+    record: PutCacheRecordInput,
+    existingDataCategory?: string
+) => Promise<void>
+
 export const generateRoomPreview = async (
     {
         roomId,
@@ -49,12 +57,15 @@ export const generateRoomPreview = async (
         findExactMatchForComponentImpl = findExactMatchForComponent,
         generateRoomDescriptionImpl = generateRoomDescription,
         queryCacheRecordsForComponentImpl = queryCacheRecordsForComponent,
-        putCacheRecordImpl = putCacheRecord
+        putCacheRecordImpl = putCacheRecord,
+        publishPutCacheRecord,
     }: {
         findExactMatchForComponentImpl?: FindExactMatchForComponent;
         generateRoomDescriptionImpl?: GenerateRoomDescription;
         queryCacheRecordsForComponentImpl?: QueryCacheRecordsForComponent;
         putCacheRecordImpl?: PutCacheRecord;
+        /** When set (e.g. app handler), writes go through api.ephemera + mtw.ephemera.renderCache instead of putCacheRecordImpl. */
+        publishPutCacheRecord?: PublishPutCacheRecord;
     } = {}
 ): Promise<GenerateRoomPreviewResult> => {
     let parsedContext: StandardForm | null = null
@@ -111,13 +122,18 @@ export const generateRoomPreview = async (
         requiredAssetIds: perspective.assetStack,
         forbiddenAssetIds: [] as AssetUUID[]
     }
-    await putCacheRecordImpl(roomId, {
+    const record = {
         markState,
         renderedContent: descriptionResult.renderedContent,
         provenance: { type: EPHEMERA_CACHE_PROVENANCE_GENERATED },
         perspectiveId,
-        perspectiveMatcher
-    })
+        perspectiveMatcher,
+    }
+    if (publishPutCacheRecord) {
+        await publishPutCacheRecord(roomId, record)
+    } else {
+        await putCacheRecordImpl(roomId, record)
+    }
 
     return {
         success: true,
