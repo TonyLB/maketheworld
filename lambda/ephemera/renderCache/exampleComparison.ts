@@ -3,64 +3,12 @@ import {
     type EphemeraCacheMarkState,
     type EphemeraCacheDynamoItem,
 } from './baseClasses'
-import { queryCacheRecordsForComponent } from './cacheAccess'
+import type { QueryCacheRecordsForComponentFn } from './cacheAccess'
 import { perspectiveMatches, type Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
+import { normalizeMarkState, markStatesEqual } from './markStateUtils'
+import internalCache from '../internalCache'
 
-//
-// Mark state normalization and comparison helpers
-//
-
-const normalizeMarkState = (markState: EphemeraCacheMarkState): EphemeraCacheMarkState => {
-    const deduped = new Map<string, string>()
-
-    for (const entry of markState.markValue) {
-        if (!entry || typeof entry.mark !== 'string' || typeof entry.value !== 'string') {
-            continue
-        }
-        const mark = entry.mark.trim()
-        const value = entry.value.trim()
-        if (!mark || !value) {
-            continue
-        }
-        deduped.set(mark, value)
-    }
-
-    const markValue = Array.from(deduped.entries())
-        .sort(([markA], [markB]) => {
-            if (markA < markB) {
-                return -1
-            }
-            if (markA > markB) {
-                return 1
-            }
-            return 0
-        })
-        .map(([mark, value]) => ({ mark, value }))
-
-    return { markValue }
-}
-
-const markStatesEqual = (
-    a: EphemeraCacheMarkState,
-    b: EphemeraCacheMarkState
-): boolean => {
-    const normalizedA = normalizeMarkState(a)
-    const normalizedB = normalizeMarkState(b)
-
-    if (normalizedA.markValue.length !== normalizedB.markValue.length) {
-        return false
-    }
-
-    for (let index = 0; index < normalizedA.markValue.length; index += 1) {
-        const entryA = normalizedA.markValue[index]
-        const entryB = normalizedB.markValue[index]
-        if (entryA.mark !== entryB.mark || entryA.value !== entryB.value) {
-            return false
-        }
-    }
-
-    return true
-}
+export { normalizeMarkState, markStatesEqual } from './markStateUtils'
 
 export type FindExactMatchInput = {
     componentId: EphemeraCacheComponentId;
@@ -96,14 +44,14 @@ export type FindExactMatchForComponentInput = {
     componentId: EphemeraCacheComponentId;
     proposedMarkState: EphemeraCacheMarkState;
     perspective: Perspective;
-    query?: typeof queryCacheRecordsForComponent;
+    query?: QueryCacheRecordsForComponentFn;
 }
 
 export const findExactMatchForComponent = async ({
     componentId,
     proposedMarkState,
     perspective,
-    query = queryCacheRecordsForComponent
+    query = (id) => internalCache.RenderCache.get(id)
 }: FindExactMatchForComponentInput): Promise<EphemeraCacheDynamoItem | null> => {
     const records = await query(componentId)
     return findExactMatch({
@@ -118,4 +66,3 @@ export const testing = {
     normalizeMarkState,
     markStatesEqual
 }
-

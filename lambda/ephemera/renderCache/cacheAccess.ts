@@ -15,6 +15,11 @@ import {
     isEphemeraCacheDynamoItem
 } from './baseClasses'
 
+/** Dynamo query for all CACHE# rows under a component. Prefer `internalCache.RenderCache.get` in the ephemera lambda to dedupe reads per invocation. */
+export type QueryCacheRecordsForComponentFn = (
+    componentId: EphemeraCacheComponentId
+) => Promise<EphemeraCacheDynamoItem[]>
+
 export type PutCacheRecordInput = {
     markState: EphemeraCacheDynamoItem['markState'];
     renderedContent: EphemeraCacheDynamoItem['renderedContent'];

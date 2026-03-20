@@ -6,14 +6,17 @@ export {
     queryCacheRecordsForComponent,
     putCacheRecord,
     deleteCacheRecord,
-    type PutCacheRecordInput
+    type PutCacheRecordInput,
+    type QueryCacheRecordsForComponentFn,
 } from './cacheAccess'
 
 export {
     findExactMatch,
     findExactMatchForComponent,
     type FindExactMatchInput,
-    type FindExactMatchForComponentInput
+    type FindExactMatchForComponentInput,
+    normalizeMarkState,
+    markStatesEqual,
 } from './exampleComparison'
 
 export type {

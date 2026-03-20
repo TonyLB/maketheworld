@@ -1,6 +1,6 @@
 # Ephemera Render Cache - AGENT
 
-This document describes how Ephemera caches rendered descriptions in the Ephemera DynamoDB table, centered around the `renderCache/` module (`baseClasses.ts`, `cacheAccess.ts`, `exampleComparison.ts`, `generateRoomPreview.ts` and tests).
+This document describes how Ephemera caches rendered descriptions in the Ephemera DynamoDB table, centered around the `renderCache/` module (`baseClasses.ts`, `cacheAccess.ts`, `markStateUtils.ts`, `exampleComparison.ts`, `generateRoomPreview.ts` and tests).
 
 It is the concrete realization of the schema and flow outlined in:
 
@@ -119,6 +119,14 @@ Preview request sends `assetStack`; Ephemera builds `perspective = { assetStack 
 - Map the resulting items into `EphemeraCacheRecord` instances.
 - Returns **all** records (authored and generated) for that component.
 
+### Request-scoped read memo: `internalCache.RenderCache`
+
+[`lambda/ephemera/internalCache/renderCache.ts`](../internalCache/renderCache.ts) provides **`InternalCache.RenderCache`** (cleared with [`InternalCache.clear()`](../internalCache/index.ts) each handler run):
+
+- **`get(componentId)`** – First call in an invocation runs the underlying Dynamo `queryCacheRecordsForComponent` and stores the result; later calls return the **same array reference** for that `componentId`. **Ephemera production paths** (`findExactMatchForComponent`, `generateRoomPreview`, `ComponentRender` for Rooms, `mtw.ephemera.examples` handlers) should use **`internalCache.RenderCache.get`** instead of calling `queryCacheRecordsForComponent` directly so reads dedupe within a handler.
+- **`set(...)`** – **No-op** until `get` has run for that `componentId`. Upserts into the in-memory array: with optional **`cacheId`** (`DataCategory`), replace matching row or append; without `cacheId`, replace first row whose **`markState` matches** via `markStatesEqual` from [`markStateUtils.ts`](markStateUtils.ts), else append (new `CACHE#` uuid).
+- **Consistency**: After in-process writes (e.g. **`mtw.ephemera.renderCache`** after `putCacheRecord`), call **`RenderCache.set`** so same-invocation readers see the new row without re-querying. Other writers should call `set` when practical, or readers may see stale memo until the next cold read.
+
 ### `putCacheRecord(componentId, record, existingDataCategory?)`
 
 - If `existingDataCategory` is provided and starts with `CACHE#`, use it as `DataCategory` (overwrite in place). Otherwise generate a new UUID and use `DataCategory = 'CACHE#' + uuid`.
@@ -173,7 +181,7 @@ The proposed mark state and each record’s markState are normalized before comp
 
 Core helper (conceptually):
 
-- `findExactMatchForComponent({ componentId, proposedMarkState, perspective })`
+- `findExactMatchForComponent({ componentId, proposedMarkState, perspective })` (default query: `internalCache.RenderCache.get`)
   - Calls `queryCacheRecordsForComponent(componentId)`.
   - Filters records by `perspectiveMatches(record.perspectiveMatcher, perspective)` (records without `perspectiveMatcher` are skipped).
   - Normalizes both proposed and stored markState.

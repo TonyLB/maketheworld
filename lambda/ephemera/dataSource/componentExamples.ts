@@ -9,14 +9,15 @@ import {
     makeStreamingEnvelopeGuardFromHeaderGuard
 } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import {
-    queryCacheRecordsForComponent,
     putCacheRecord,
     deleteCacheRecord,
     type EphemeraCacheDynamoItem,
     type EphemeraCacheComponentId,
     type PutCacheRecordInput,
+    type QueryCacheRecordsForComponentFn,
     findExactMatch
 } from '../renderCache'
+import internalCache from '../internalCache'
 import {
     isEphemeraFeatureId,
     isEphemeraKnowledgeId,
@@ -52,7 +53,7 @@ type Logger = {
 }
 
 export type HandleComponentExamplesDependencies = {
-    queryCacheRecordsForComponent: typeof queryCacheRecordsForComponent;
+    queryCacheRecordsForComponent: QueryCacheRecordsForComponentFn;
     putCacheRecord: typeof putCacheRecord;
     deleteCacheRecord: typeof deleteCacheRecord;
     computePerspectiveKey: typeof computePerspectiveKey;
@@ -63,7 +64,7 @@ const isEphemeraCacheComponentId = (value: string): value is EphemeraCacheCompon
     isEphemeraRoomId(value) || isEphemeraFeatureId(value) || isEphemeraKnowledgeId(value)
 
 const defaultDependencies: HandleComponentExamplesDependencies = {
-    queryCacheRecordsForComponent,
+    queryCacheRecordsForComponent: (componentId) => internalCache.RenderCache.get(componentId),
     putCacheRecord,
     deleteCacheRecord,
     computePerspectiveKey,
