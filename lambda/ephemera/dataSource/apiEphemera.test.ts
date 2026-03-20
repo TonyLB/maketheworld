@@ -1,8 +1,10 @@
 import {
     sendPutCacheRecord,
+    sendDeleteCacheRecords,
     sendGenerateRoomPreview,
     isEphemeraApiSubscribedEnvelope,
     isEphemeraApiPutCacheRecordEnvelope,
+    isEphemeraApiDeleteCacheRecordsEnvelope,
 } from './apiEphemera'
 import type { StreamingEventMessage } from '../messageBus/baseClasses'
 import type { StreamingEventEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
@@ -31,6 +33,11 @@ describe('apiEphemera', () => {
         },
     }
 
+    const minimalDeleteRecords = {
+        componentId: 'ROOM#room-one' as const,
+        dataCategories: ['CACHE#one', 'CACHE#two'],
+    }
+
     it('sendPutCacheRecord posts StreamingEvent with api.ephemera header and streamKey', () => {
         const { sent, bus } = makeBus()
         sendPutCacheRecord(bus, 'ROOM#room-one', minimalPutRecord)
@@ -42,6 +49,20 @@ describe('apiEphemera', () => {
         expect(msg.streamKey).toBe('ROOM#room-one')
         expect(msg.header.dataSourceKey).toBe('api.ephemera')
         expect(msg.header.type).toBe('Put Cache Record')
+        expect(msg.header.streamKey).toBe('ROOM#room-one')
+    })
+
+    it('sendDeleteCacheRecords posts StreamingEvent with api.ephemera header and streamKey', () => {
+        const { sent, bus } = makeBus()
+        sendDeleteCacheRecords(bus, 'ROOM#room-one', minimalDeleteRecords)
+
+        expect(sent).toHaveLength(1)
+        const msg = sent[0]
+        expect(msg.type).toBe('StreamingEvent')
+        expect(msg.dataSourceKey).toBe('api.ephemera')
+        expect(msg.streamKey).toBe('ROOM#room-one')
+        expect(msg.header.dataSourceKey).toBe('api.ephemera')
+        expect(msg.header.type).toBe('Delete Cache Records')
         expect(msg.header.streamKey).toBe('ROOM#room-one')
     })
 
@@ -85,6 +106,18 @@ describe('apiEphemera', () => {
         }
         expect(isEphemeraApiSubscribedEnvelope(envelope)).toBe(true)
         expect(isEphemeraApiPutCacheRecordEnvelope(envelope)).toBe(true)
+    })
+
+    it('isEphemeraApiSubscribedEnvelope accepts api.ephemera Delete Cache Records envelope', async () => {
+        const { sent, bus } = makeBus()
+        sendDeleteCacheRecords(bus, 'ROOM#x', minimalDeleteRecords)
+        const msg = sent[0]
+        const envelope: StreamingEventEnvelope<unknown> = {
+            header: msg.header,
+            getContent: msg.getContent,
+        }
+        expect(isEphemeraApiSubscribedEnvelope(envelope)).toBe(true)
+        expect(isEphemeraApiDeleteCacheRecordsEnvelope(envelope)).toBe(true)
     })
 
     it('isEphemeraApiSubscribedEnvelope rejects wrong dataSourceKey', () => {

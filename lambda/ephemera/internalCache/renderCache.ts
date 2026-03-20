@@ -97,6 +97,31 @@ export class RenderCacheData {
         }
     }
 
+    /**
+     * Remove specific memo rows from the invocation-scoped cache.
+     * No-op unless `get(componentId)` has already populated the memo.
+     *
+     * Important: this mutates the existing array in-place so any callers holding
+     * the memo reference observe the updated contents.
+     */
+    deleteCacheRecords(componentId: EphemeraCacheComponentId, cacheIds: string[]): void {
+        const rows = this.rowsByComponent.get(componentId)
+        if (rows === undefined) {
+            return
+        }
+
+        if (!cacheIds.length) {
+            return
+        }
+
+        const idSet = new Set(cacheIds)
+        const next = rows.filter((r) => !idSet.has(r.DataCategory))
+        if (next.length === rows.length) {
+            return
+        }
+        rows.splice(0, rows.length, ...next)
+    }
+
     clear(): void {
         this.rowsByComponent.clear()
     }
