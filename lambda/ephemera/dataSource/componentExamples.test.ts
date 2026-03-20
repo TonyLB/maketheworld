@@ -8,20 +8,28 @@ import type { EphemeraCacheDynamoItem } from '../renderCache'
 describe('handleComponentExamplesEvent (mtw.ephemera.examples)', () => {
     const makeDeps = (): {
         deps: HandleComponentExamplesDependencies;
-        queryCacheRecordsForComponent: jest.Mock;
+        internalCacheOverride: any;
         putCacheRecord: jest.Mock;
         deleteCacheRecord: jest.Mock;
         computePerspectiveKey: jest.Mock;
         logger: { error: jest.Mock };
     } => {
-        const queryCacheRecordsForComponent = jest.fn()
+        const getExactMatch = jest.fn().mockResolvedValue(null)
+        const get = jest.fn().mockResolvedValue([])
         const putCacheRecord = jest.fn()
         const deleteCacheRecord = jest.fn()
         const computePerspectiveKey = jest.fn().mockReturnValue('PERSPECTIVE#v1#abc123')
         const logger = { error: jest.fn() }
 
+        const internalCacheOverride = {
+            RenderCache: {
+                getExactMatch,
+                get
+            }
+        } as any
+
         const deps: HandleComponentExamplesDependencies = {
-            queryCacheRecordsForComponent,
+            internalCacheOverride,
             putCacheRecord,
             deleteCacheRecord,
             computePerspectiveKey,
@@ -30,7 +38,7 @@ describe('handleComponentExamplesEvent (mtw.ephemera.examples)', () => {
 
         return {
             deps,
-            queryCacheRecordsForComponent,
+            internalCacheOverride,
             putCacheRecord,
             deleteCacheRecord,
             computePerspectiveKey,
@@ -45,11 +53,11 @@ describe('handleComponentExamplesEvent (mtw.ephemera.examples)', () => {
     it('writes cache records for ExampleUpdated for each parent component', async () => {
         const {
             deps,
-            queryCacheRecordsForComponent,
+            internalCacheOverride,
             putCacheRecord,
             computePerspectiveKey
         } = makeDeps()
-        queryCacheRecordsForComponent.mockResolvedValue([])
+        ;(internalCacheOverride.RenderCache.getExactMatch as jest.Mock).mockResolvedValue(null)
 
         const event: ComponentExamplesMirrorEvent = {
             type: 'ExampleUpdated',
@@ -97,11 +105,11 @@ describe('handleComponentExamplesEvent (mtw.ephemera.examples)', () => {
     it('writes cache records with situationId when exampleId is SITUATION# (Room path)', async () => {
         const {
             deps,
-            queryCacheRecordsForComponent,
+            internalCacheOverride,
             putCacheRecord,
             computePerspectiveKey
         } = makeDeps()
-        queryCacheRecordsForComponent.mockResolvedValue([])
+        ;(internalCacheOverride.RenderCache.getExactMatch as jest.Mock).mockResolvedValue(null)
 
         const event: ComponentExamplesMirrorEvent = {
             type: 'ExampleUpdated',
@@ -139,7 +147,7 @@ describe('handleComponentExamplesEvent (mtw.ephemera.examples)', () => {
     it('deletes cache records for ExampleRemoved across all parents', async () => {
         const {
             deps,
-            queryCacheRecordsForComponent,
+            internalCacheOverride,
             deleteCacheRecord
         } = makeDeps()
 
@@ -166,7 +174,7 @@ describe('handleComponentExamplesEvent (mtw.ephemera.examples)', () => {
             }
         ]
 
-        queryCacheRecordsForComponent.mockResolvedValue(records)
+        ;(internalCacheOverride.RenderCache.get as jest.Mock).mockResolvedValue(records)
 
         const event: ComponentExamplesMirrorEvent = {
             type: 'ExampleRemoved',
@@ -178,9 +186,9 @@ describe('handleComponentExamplesEvent (mtw.ephemera.examples)', () => {
 
         await handleComponentExamplesEvent(event, deps)
 
-        expect(queryCacheRecordsForComponent).toHaveBeenCalledTimes(2)
-        expect(queryCacheRecordsForComponent).toHaveBeenCalledWith('ROOM#one')
-        expect(queryCacheRecordsForComponent).toHaveBeenCalledWith('FEATURE#two')
+        expect(internalCacheOverride.RenderCache.get).toHaveBeenCalledTimes(2)
+        expect(internalCacheOverride.RenderCache.get).toHaveBeenCalledWith('ROOM#one')
+        expect(internalCacheOverride.RenderCache.get).toHaveBeenCalledWith('FEATURE#two')
 
         expect(deleteCacheRecord).toHaveBeenCalledTimes(2)
         expect(deleteCacheRecord).toHaveBeenCalledWith('ROOM#one', 'CACHE#one')
@@ -190,7 +198,7 @@ describe('handleComponentExamplesEvent (mtw.ephemera.examples)', () => {
     it('deletes cache records by situationId when exampleId is SITUATION#', async () => {
         const {
             deps,
-            queryCacheRecordsForComponent,
+            internalCacheOverride,
             deleteCacheRecord
         } = makeDeps()
 
@@ -217,7 +225,7 @@ describe('handleComponentExamplesEvent (mtw.ephemera.examples)', () => {
             }
         ]
 
-        queryCacheRecordsForComponent.mockResolvedValue(records)
+        ;(internalCacheOverride.RenderCache.get as jest.Mock).mockResolvedValue(records)
 
         const event: ComponentExamplesMirrorEvent = {
             type: 'ExampleRemoved',
@@ -229,7 +237,7 @@ describe('handleComponentExamplesEvent (mtw.ephemera.examples)', () => {
 
         await handleComponentExamplesEvent(event, deps)
 
-        expect(queryCacheRecordsForComponent).toHaveBeenCalledWith('ROOM#one')
+        expect(internalCacheOverride.RenderCache.get).toHaveBeenCalledWith('ROOM#one')
         expect(deleteCacheRecord).toHaveBeenCalledTimes(1)
         expect(deleteCacheRecord).toHaveBeenCalledWith('ROOM#one', 'CACHE#one')
     })
