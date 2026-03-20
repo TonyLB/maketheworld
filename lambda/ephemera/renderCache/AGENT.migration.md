@@ -56,6 +56,7 @@ Acceptance gate:
 - Switch:
   - `mtw.ephemera.renderCache` to call the DataSource-owned `putCacheRecord`
   - `internalCache.RenderCache` to obtain its initial memo via DataSource-owned query
+- Status: COMPLETED (query side)
 
 Acceptance gate:
 - Production dependencies no longer require `lambda/ephemera/renderCache/cacheAccess.ts` for reads/writes.

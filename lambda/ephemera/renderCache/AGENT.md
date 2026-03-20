@@ -107,11 +107,13 @@ Preview request sends `assetStack`; Ephemera builds `perspective = { assetStack 
 
 ---
 
-## Access Layer: `cacheAccess.ts`
+## Persistence Primitives
 
-`renderCache/cacheAccess.ts` provides low-level operations over the Ephemera table. It operates strictly in terms of component ids and cache records (no knowledge of Events or WebSockets).
+`renderCache/cacheAccess.ts` provides low-level write primitives (put/delete) over the Ephemera table. It operates strictly in terms of component ids and cache records (no knowledge of Events or WebSockets).
 
-### `queryCacheRecordsForComponent(componentId)`
+### DataSource-owned `queryCacheRecordsForComponent(componentId)`
+
+[`lambda/ephemera/dataSource/renderCache/queryCacheRecordsForComponent.ts`](../dataSource/renderCache/queryCacheRecordsForComponent.ts) provides the Dynamo query used by request-scoped read memoization.
 
 - Query Ephemera table where:
   - `EphemeraId = componentId`
@@ -125,7 +127,8 @@ Preview request sends `assetStack`; Ephemera builds `perspective = { assetStack 
 
 - **`get(componentId)`** – First call in an invocation runs the underlying Dynamo `queryCacheRecordsForComponent` and stores the result; later calls return the **same array reference** for that `componentId`. **Ephemera production paths** (`generateRoomPreview`, `ComponentRender` for Rooms, `mtw.ephemera.examples` handlers) should use **`internalCache.RenderCache.get`** instead of calling `queryCacheRecordsForComponent` directly so reads dedupe within a handler.
 - **`set(...)`** – **No-op** until `get` has run for that `componentId`. Upserts into the in-memory array: with optional **`cacheId`** (`DataCategory`), replace matching row or append; without `cacheId`, replace first row whose **`markState` matches** via `markStatesEqual` from [`markStateUtils.ts`](markStateUtils.ts), else append (new `CACHE#` uuid).
-- **Consistency**: After in-process writes (e.g. **`mtw.ephemera.renderCache`** after `putCacheRecord`), call **`RenderCache.set`** so same-invocation readers see the new row without re-querying. Other writers should call `set` when practical, or readers may see stale memo until the next cold read.
+- **Consistency**: After successful DataSource-owned persistence writes (e.g. **`mtw.ephemera.renderCache`** after `putCacheRecord`), call **`RenderCache.set`** so same-invocation readers see the new row without re-querying.
+- **Boundary aspiration (read-only coupling)**: `internalCache` should couple to DataSource materialized state in a read-only way, and memo updates should come from DataSource write outcomes (stream/bus), not from performing persistence writes inside `internalCache` (which would effectively create a shadow data-source). This is currently prototyped in `ephemera`; if it proves valuable across more lambdas, we plan to promote the invariant to [`packages/mtw-lambda-patterns/ts/internalCache/AGENT.md`](../../../packages/mtw-lambda-patterns/ts/internalCache/AGENT.md).
 
 ### `putCacheRecord(componentId, record, existingDataCategory?)`
 
@@ -152,7 +155,7 @@ For Example/Situation removal, Ephemera:
 
 1. Receives an `ExampleRemoved` event from `mtw.assets.componentExamples` with `parentIds` and `exampleId`.
 2. For each parent:
-   - Calls `queryCacheRecordsForComponent(parentId)`.
+   - Calls `internalCache.RenderCache.get(parentId)`.
    - Filters to records where `situationId === exampleId` or `authoredExampleId === exampleId` (Room path uses situationId/SITUATION#; Feature/Knowledge use authoredExampleId/EXAMPLE#).
    - Calls `deleteCacheRecord(parentId, DataCategory)` for each match.
 

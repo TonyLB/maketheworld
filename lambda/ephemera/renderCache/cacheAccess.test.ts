@@ -4,7 +4,6 @@ jest.mock('uuid')
 import { v4 as uuidv4 } from 'uuid'
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import {
-    queryCacheRecordsForComponent,
     putCacheRecord,
     deleteCacheRecord,
     type PutCacheRecordInput
@@ -23,73 +22,10 @@ const minimalRecord: PutCacheRecordInput = {
     perspectiveMatcher: { requiredAssetIds: ['ASSET#a'], forbiddenAssetIds: [] }
 }
 
-describe('renderCache/cacheAccess', () => {
+describe('renderCache/cacheAccess (put/delete)', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         uuidv4Mock.mockReturnValue('new-uuid-1234')
-    })
-
-    describe('queryCacheRecordsForComponent', () => {
-        it('returns cache-shaped items from ephemeraDB.query', async () => {
-            const items = [
-                {
-                    EphemeraId: componentId,
-                    DataCategory: 'CACHE#abc',
-                    markState: minimalRecord.markState,
-                    renderedContent: minimalRecord.renderedContent,
-                    provenance: minimalRecord.provenance,
-                    perspectiveId: minimalRecord.perspectiveId,
-                    perspectiveMatcher: minimalRecord.perspectiveMatcher
-                }
-            ]
-            ephemeraDBMock.query.mockResolvedValue(items)
-
-            const result = await queryCacheRecordsForComponent(componentId)
-
-            expect(ephemeraDBMock.query).toHaveBeenCalledTimes(1)
-            expect(ephemeraDBMock.query).toHaveBeenCalledWith({
-                Key: { EphemeraId: componentId },
-                KeyConditionExpression: 'begins_with(DataCategory, :dcPrefix)',
-                ExpressionAttributeValues: { ':dcPrefix': 'CACHE#' },
-                allFields: true
-            })
-            expect(result).toEqual(items)
-        })
-
-        it('returns empty array when query returns no items', async () => {
-            ephemeraDBMock.query.mockResolvedValue([])
-
-            const result = await queryCacheRecordsForComponent(componentId)
-
-            expect(ephemeraDBMock.query).toHaveBeenCalledWith({
-                Key: { EphemeraId: componentId },
-                KeyConditionExpression: 'begins_with(DataCategory, :dcPrefix)',
-                ExpressionAttributeValues: { ':dcPrefix': 'CACHE#' },
-                allFields: true
-            })
-            expect(result).toEqual([])
-        })
-
-        it('filters out items that fail isEphemeraCacheDynamoItem', async () => {
-            const valid = {
-                EphemeraId: componentId,
-                DataCategory: 'CACHE#valid',
-                markState: minimalRecord.markState,
-                renderedContent: minimalRecord.renderedContent,
-                provenance: minimalRecord.provenance,
-                perspectiveId: minimalRecord.perspectiveId,
-                perspectiveMatcher: minimalRecord.perspectiveMatcher
-            }
-            ephemeraDBMock.query.mockResolvedValue([
-                valid,
-                { EphemeraId: componentId, DataCategory: 'OTHER#x' } as any,
-                { EphemeraId: componentId, DataCategory: 'CACHE#bad', markState: null } as any
-            ])
-
-            const result = await queryCacheRecordsForComponent(componentId)
-
-            expect(result).toEqual([valid])
-        })
     })
 
     describe('putCacheRecord', () => {

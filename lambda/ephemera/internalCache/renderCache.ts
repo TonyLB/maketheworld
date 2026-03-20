@@ -8,7 +8,8 @@ import type { EphemeraCacheMarkState } from '../renderCache/baseClasses'
 import {
     EPHEMERA_CACHE_DATA_CATEGORY_PREFIX,
 } from '../renderCache/baseClasses'
-import type { PutCacheRecordInput, QueryCacheRecordsForComponentFn } from '../renderCache/cacheAccess'
+import type { PutCacheRecordInput } from '../renderCache/cacheAccess'
+import type { QueryCacheRecordsForComponentFn } from '../dataSource/renderCache/queryCacheRecordsForComponent'
 import { perspectiveMatches, type Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
 import { markStatesEqual } from '../renderCache/markStateUtils'
 
