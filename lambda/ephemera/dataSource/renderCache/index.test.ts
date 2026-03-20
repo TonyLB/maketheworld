@@ -1,6 +1,7 @@
 import { sendPutCacheRecord } from '../apiEphemera'
 import messageBus from '../../messageBus'
-import { putCacheRecord, deleteCacheRecord } from '../../renderCache/cacheAccess'
+import { putCacheRecord } from './putCacheRecord'
+import { deleteCacheRecord } from './deleteCacheRecord'
 import {
     isRenderCacheCacheUpdatedPayload,
     isRenderCacheCacheErrorPayload,
@@ -8,8 +9,10 @@ import {
 import { sendDeleteCacheRecords } from '../apiEphemera'
 import { isRenderCacheCacheDeletedPayload } from './baseClasses'
 
-jest.mock('../../renderCache/cacheAccess', () => ({
+jest.mock('./putCacheRecord', () => ({
     putCacheRecord: jest.fn(),
+}))
+jest.mock('./deleteCacheRecord', () => ({
     deleteCacheRecord: jest.fn(),
 }))
 

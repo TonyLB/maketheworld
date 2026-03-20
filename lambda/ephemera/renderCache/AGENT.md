@@ -1,6 +1,6 @@
 # Ephemera Render Cache - AGENT
 
-This document describes how Ephemera caches rendered descriptions in the Ephemera DynamoDB table, centered around the `renderCache/` module (`baseClasses.ts`, `cacheAccess.ts`, `markStateUtils.ts`, `generateRoomPreview.ts` and tests).
+This document describes how Ephemera caches rendered descriptions in the Ephemera DynamoDB table, centered around the `renderCache/` module (`baseClasses.ts`, `markStateUtils.ts`, `generateRoomPreview.ts` and tests) plus DataSource-owned Dynamo helpers under `dataSource/renderCache/`.
 
 It is the concrete realization of the schema and flow outlined in:
 
@@ -109,7 +109,7 @@ Preview request sends `assetStack`; Ephemera builds `perspective = { assetStack 
 
 ## Persistence Primitives
 
-`renderCache/cacheAccess.ts` provides low-level write primitives (put/delete) over the Ephemera table. It operates strictly in terms of component ids and cache records (no knowledge of Events or WebSockets).
+[`lambda/ephemera/dataSource/renderCache/putCacheRecord.ts`](../dataSource/renderCache/putCacheRecord.ts) and [`deleteCacheRecord.ts`](../dataSource/renderCache/deleteCacheRecord.ts) provide low-level write primitives (put/delete) over the Ephemera table. They operate strictly in terms of component ids and cache records (no knowledge of Events or WebSockets). `mtw.ephemera.renderCache` is the production entry that calls them after `api.ephemera` commands.
 
 ### DataSource-owned `queryCacheRecordsForComponent(componentId)`
 

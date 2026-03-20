@@ -4,9 +4,10 @@
 
 export {
     putCacheRecord,
-    deleteCacheRecord,
     type PutCacheRecordInput,
-} from './cacheAccess'
+} from '../dataSource/renderCache/putCacheRecord'
+
+export { deleteCacheRecord } from '../dataSource/renderCache/deleteCacheRecord'
 
 export {
     normalizeMarkState,

@@ -8,8 +8,8 @@ Goal: make it hard (by design) for orchestration/policy and other systems to cou
 2. Reads/lookups through the bounded, invocation-scoped memo: `internalCache.RenderCache`
 
 ## Current coupling (known)
-1. `mtw.ephemera.renderCache` currently writes by importing `putCacheRecord` from `lambda/ephemera/renderCache/cacheAccess.ts`.
-2. `internalCache.RenderCache` currently instantiates its memo by importing `queryCacheRecordsForComponent` from `lambda/ephemera/renderCache/cacheAccess.ts`.
+1. `mtw.ephemera.renderCache` writes via `lambda/ephemera/dataSource/renderCache/putCacheRecord.ts` and `deleteCacheRecord.ts` (invoked from the DataSource subscriber).
+2. `internalCache.RenderCache` instantiates its memo by importing `queryCacheRecordsForComponent` from `lambda/ephemera/dataSource/renderCache/queryCacheRecordsForComponent.ts`.
 3. Exact-match logic currently lives in `lambda/ephemera/internalCache/renderCache.ts` (via `internalCache.RenderCache.getExactMatch`).
 
 These couplings can create self-reinforcing migration lock-in: the legacy module keeps being treated as the only "objectively correct" source of truth.
@@ -21,7 +21,7 @@ These couplings can create self-reinforcing migration lock-in: the legacy module
 - `putCacheRecord` (write model + bus publication: `Cache Updated` / `Cache Error`)
 - `deleteCacheRecord` (eventual)
 
-No production code should import legacy `lambda/ephemera/renderCache/cacheAccess.ts` except for explicit, temporary adapters during migration.
+The legacy `renderCache/cacheAccess.ts` module has been removed; persistence primitives live under `lambda/ephemera/dataSource/renderCache/`.
 
 ### Lookup (exact-match) lives inside `internalCache.RenderCache`
 Instead of call-sites performing "memo fetch + matching computations" or calling legacy comparison helpers, the bounded API becomes the only way to query exact-match state.
@@ -59,9 +59,9 @@ Acceptance gate:
 - Status: COMPLETED (query side)
 
 Acceptance gate:
-- Production dependencies no longer require `lambda/ephemera/renderCache/cacheAccess.ts` for reads/writes.
+- Production dependencies no longer use a monolithic `cacheAccess.ts`; reads/writes are DataSource-owned modules under `lambda/ephemera/dataSource/renderCache/`.
 
-**Call-site alignment (examples mirroring)**: `mtw.ephemera.examples` ([`lambda/ephemera/dataSource/componentExamples.ts`](../dataSource/componentExamples.ts)) routes cache puts and deletes through **`api.ephemera`** (`sendPutCacheRecord`, `sendDeleteCacheRecords`) instead of calling `cacheAccess` directly, so **`Cache Updated`**, **`Cache Deleted`**, and **`Cache Error`** stay unified with **`mtw.ephemera.renderCache`** (nested bus traffic is drained by the active **`flush()`** recursion).
+**Call-site alignment (examples mirroring)**: `mtw.ephemera.examples` ([`lambda/ephemera/dataSource/componentExamples.ts`](../dataSource/componentExamples.ts)) routes cache puts and deletes through **`api.ephemera`** (`sendPutCacheRecord`, `sendDeleteCacheRecords`) instead of calling Dynamo helpers directly, so **`Cache Updated`**, **`Cache Deleted`**, and **`Cache Error`** stay unified with **`mtw.ephemera.renderCache`** (nested bus traffic is drained by the active **`flush()`** recursion).
 
 ### Step 4: Remove or isolate legacy modules
 - Once no production code imports legacy persistence modules, either:
@@ -69,7 +69,7 @@ Acceptance gate:
   - keep them only as compatibility/test helpers with a clear temporary label.
 
 Acceptance gate:
-- A repo-wide search for `renderCache/cacheAccess` shows only migration adapters or tests.
+- A repo-wide search for `cacheAccess` shows no stale imports (docs may mention history only).
 
 ## Testing / equivalence checks
 For any behavior change, validate equivalence between old and new paths:

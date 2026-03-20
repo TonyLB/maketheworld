@@ -3,7 +3,7 @@
  * Used by apiEphemera.ts send helpers and future DataSource receiveEvents. In-process only; no EventBridge.
  */
 import type { EphemeraCacheComponentId } from '../renderCache/baseClasses'
-import type { PutCacheRecordInput } from '../renderCache/cacheAccess'
+import type { PutCacheRecordInput } from './renderCache/putCacheRecord'
 import type { GenerateRoomPreviewInput } from '../renderCache/generateRoomPreview'
 
 export type PutCacheRecordCommand = {

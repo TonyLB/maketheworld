@@ -8,7 +8,7 @@ import type {
     EphemeraCacheRenderedContent,
     EphemeraCacheDynamoItem
 } from './baseClasses'
-import type { PutCacheRecordInput } from './cacheAccess'
+import type { PutCacheRecordInput } from '../dataSource/renderCache/putCacheRecord'
 import type { QueryCacheRecordsForComponentFn } from '../dataSource/renderCache/queryCacheRecordsForComponent'
 import { EPHEMERA_CACHE_PROVENANCE_GENERATED } from './baseClasses'
 import internalCache from '../internalCache'
