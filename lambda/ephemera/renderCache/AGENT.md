@@ -1,6 +1,6 @@
 # Ephemera Render Cache - AGENT
 
-This document describes how Ephemera caches rendered descriptions in the Ephemera DynamoDB table, centered around the `renderCache/` module (`baseClasses.ts`, `cacheAccess.ts`, `markStateUtils.ts`, `generateRoomPreview.ts` and tests).
+This document describes how Ephemera caches rendered descriptions in the Ephemera DynamoDB table, centered around the `renderCache/` module (`baseClasses.ts`, `markStateUtils.ts`, `generateRoomPreview.ts` and tests) plus DataSource-owned Dynamo helpers under `dataSource/renderCache/`.
 
 It is the concrete realization of the schema and flow outlined in:
 
@@ -97,7 +97,7 @@ Examples are authored against a **stack of assets** (inheritance chain). The sam
   - Reconstructs `assetStack` by following Example `_from` links across Assets (base-first, event asset last).
   - Emits events with `assetStack` in payload.
 - **Ephemera DataSource (`mtw.ephemera.examples`)**:
-  - Receives events with `perspectiveMatcher` and `assetStack`, writes cache records via `putCacheRecord` (including `perspectiveMatcher`; `perspectiveId` is still computed and stored but not used for matching).
+  - Receives events with `perspectiveMatcher` and `assetStack`, enqueues **`Put Cache Record`** / **`Delete Cache Records`** on **`api.ephemera`** via **`sendPutCacheRecord`** / **`sendDeleteCacheRecords`**. No separate **`flush()`** in this module: the in-progress **`messageBus.flush()`** that invoked the DataSource recurses until nested **`send()`** traffic (including **`mtw.ephemera.renderCache`**) is drained (including `perspectiveMatcher`; `perspectiveId` is still computed and stored but not used for matching).
 - **Authoring Preview (RoomPreviewEditor)**:
   - On the client, `assetStack` is built from `useWorkbenchAsset()`:
     - `assetStack = [...inheritedByAssetId.map(({ assetId }) => assetId), AssetId]`
@@ -109,7 +109,7 @@ Preview request sends `assetStack`; Ephemera builds `perspective = { assetStack 
 
 ## Persistence Primitives
 
-`renderCache/cacheAccess.ts` provides low-level write primitives (put/delete) over the Ephemera table. It operates strictly in terms of component ids and cache records (no knowledge of Events or WebSockets).
+[`lambda/ephemera/dataSource/renderCache/putCacheRecord.ts`](../dataSource/renderCache/putCacheRecord.ts) and [`deleteCacheRecord.ts`](../dataSource/renderCache/deleteCacheRecord.ts) provide low-level write primitives (put/delete) over the Ephemera table. They operate strictly in terms of component ids and cache records (no knowledge of Events or WebSockets). `mtw.ephemera.renderCache` is the production entry that calls them after `api.ephemera` commands.
 
 ### DataSource-owned `queryCacheRecordsForComponent(componentId)`
 
@@ -204,6 +204,7 @@ This is the canonical “does this state exist in cache?” check, used by `gene
   - `roomId: EphemeraRoomId`
   - `markState: EphemeraCacheMarkState`
   - `assetStack: string[]`
+- Options (optional): `publishPutCacheRecord` overrides the default `defaultPublishPutCacheRecord` (`sendPutCacheRecord` only; the handler's terminal `await messageBus.flush()` drains the queue). Tests typically pass `jest.fn()` to avoid real bus I/O.
 - Steps:
   1. Build `perspective = { assetStack }`.
   2. Call `internalCache.RenderCache.getExactMatch({ componentId: roomId, proposedMarkState: markState, perspective })`.
@@ -220,7 +221,7 @@ The Ephemera Lambda handler (`lambda/ephemera/app.ts`) wires `generateRoomPrevie
   - `GenerateRoomPreviewAPIMessage` in `packages/mtw-interfaces/ts/ephemera.ts`.
 - Handler branch:
   - When `isGenerateRoomPreviewAPIMessage(request)`:
-    - Call `generateRoomPreview({ roomId: request.RoomId, markState: request.markState, assetStack: request.assetStack })`.
+    - Call `generateRoomPreview({ roomId, markState, assetStack, generationContextWml })` (default **`defaultPublishPutCacheRecord`** enqueues **`Put Cache Record`** on **`api.ephemera`**; the handler then **`await messageBus.flush()`** after **`ReturnValue`**).
     - Send a `ReturnValue` message with body:
       - `{ generateRoomPreview: result, ...(request.RequestId && { RequestId: request.RequestId }) }`.
 

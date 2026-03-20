@@ -69,19 +69,21 @@ The message bus enables complex workflows such as:
 
 Parallel to **`api.wml`** and **`api.assets`** in other lambdas: **`dataSourceKey: 'api.ephemera'`** identifies **in-process** commands injected onto the message bus from the ephemera handler (or tests). These events are **not** produced by EventBridge and are **not** deserialized in `app.ts` from external `source` / `detail-type`.
 
-- **Definitions**: [`lambda/ephemera/dataSource/localApiEvents.ts`](dataSource/localApiEvents.ts) (payload types and shape guards), [`lambda/ephemera/dataSource/apiEphemera.ts`](dataSource/apiEphemera.ts) (header/envelope guards, `sendPutCacheRecord`, `sendGenerateRoomPreview`).
+- **Definitions**: [`lambda/ephemera/dataSource/localApiEvents.ts`](dataSource/localApiEvents.ts) (payload types and shape guards), [`lambda/ephemera/dataSource/apiEphemera.ts`](dataSource/apiEphemera.ts) (header/envelope guards, `sendPutCacheRecord`, `sendDeleteCacheRecords`, `sendGenerateRoomPreview`).
 - **Initial event types**:
   - **`Put Cache Record`**: Payload aligns with `putCacheRecord(componentId, record, existingDataCategory?)` in the render cache layer. Consumed by **`mtw.ephemera.renderCache`** (see below). Production paths that participate in this thread should use **`sendPutCacheRecord`** from [`lambda/ephemera/dataSource/apiEphemera.ts`](dataSource/apiEphemera.ts) so the write and outbound signals stay consistent.
+  - **`Delete Cache Records`**: Payload is `{ componentId, dataCategories }`. Consumed by **`mtw.ephemera.renderCache`**. Production paths should use **`sendDeleteCacheRecords`** (same pattern as `Put Cache Record`). When the handler is already inside an active **`messageBus.flush()`** (e.g. DataSource `receiveEvents`), nested **`send()`** calls are processed by that flush's recursion; top-level code paths may still **`await messageBus.flush()`** so work finishes before returning.
   - **`Generate Room Preview`**: Payload mirrors room preview input plus optional `RequestId` for correlation.
 
 #### **mtw.ephemera.renderCache (render cache write + outbound signals)**
 
 - **Implementation**: [`lambda/ephemera/dataSource/renderCache/index.ts`](dataSource/renderCache/index.ts); payload types in [`lambda/ephemera/dataSource/renderCache/baseClasses.ts`](dataSource/renderCache/baseClasses.ts).
-- **Inbound**: Subscribes to **`api.ephemera`** streaming envelopes whose header type is **`Put Cache Record`** (same shape as `sendPutCacheRecord`).
-- **Behavior**: Calls **`putCacheRecord`** in the render cache layer; on success updates **`internalCache.RenderCache`** via **`set`** (so memoized reads stay consistent in the same invocation), then publishes **`Cache Updated`** on the internal message bus; on validation or Dynamo failure publishes **`Cache Error`**.
+- **Inbound**: Subscribes to **`api.ephemera`** streaming envelopes whose header type is **`Put Cache Record`** or **`Delete Cache Records`** (same shapes as `sendPutCacheRecord` / `sendDeleteCacheRecords`).
+- **Behavior**: Calls **`putCacheRecord`** or **`deleteCacheRecord`** in the render cache layer; on success updates **`internalCache.RenderCache`** via **`set`** or **`deleteCacheRecords`** (so memoized reads stay consistent in the same invocation), then publishes **`Cache Updated`** or **`Cache Deleted`** on the internal message bus; on validation or Dynamo failure publishes **`Cache Error`** (also logged with **`console.error`** for operations visibility).
 - **Outbound payloads** (internal `getContent()` on the bus `StreamingEvent`):
   - **`Cache Updated`**: `componentId`, `dataCategory` (assigned key), `perspectiveId`.
-  - **`Cache Error`**: `componentId`, `errorCode` (`INVALID_PAYLOAD` | `PUT_FAILED`), `errorMessage`, optional `perspectiveId`.
+  - **`Cache Deleted`**: `componentId`, `dataCategories`.
+  - **`Cache Error`**: `componentId`, `errorCode` (`INVALID_PAYLOAD` | `PUT_FAILED` | `DELETE_FAILED`), `errorMessage`, optional `perspectiveId`.
 - **Publishing**: **`publisherStrategy: 'busOnly'`**, **`replayable: false`** (no EventBridge, no replay rows for this source).
 
 ### **EventBridge Event Subscription**
@@ -91,7 +93,7 @@ The Ephemera Lambda subscribes to events from other system components:
 #### **EventBridge Events from Multiple Sources**
 - **Content Update**: Triggers asset re-caching when content changes (source varies - may include WML, direct editing, etc.)
 - **Authorization Update**: Updates character access permissions
-- **Example Lifecycle (mtw.assets.componentExamples → mtw.ephemera.examples)**: Mirrors authored Example renders into the Ephemera cache via the `mtw.ephemera.examples` data source. `ExampleUpdated` (and future `ExampleAdded`) events write cache rows keyed by component and perspectiveId; `ExampleRemoved` deletes cache rows linked by authoredExampleId.
+- **Example Lifecycle (mtw.assets.componentExamples → mtw.ephemera.examples)**: Mirrors authored Example renders into the Ephemera cache via the `mtw.ephemera.examples` data source. `ExampleUpdated` (and future `ExampleAdded`) enqueue **`Put Cache Record`** via **`sendPutCacheRecord`**; `ExampleRemoved` enqueues **`Delete Cache Records`** via **`sendDeleteCacheRecords`**. Those run while the bus is already flushing EventBridge-originated work, so **`mtw.ephemera.renderCache`** is reached via recursive **`flush()`** without an extra flush in the examples handler.
 
 #### **Asset Events**
 - **Asset Added/Removed**: Updates character access to new/removed content

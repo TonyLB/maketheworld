@@ -10,16 +10,21 @@ import {
 } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { createInternalOriginEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import type { StreamingEventMessage } from '../messageBus/baseClasses'
-import type { PutCacheRecordCommand, GenerateRoomPreviewCommand, EphemeraApiCommandPayload } from './localApiEvents'
+import type { PutCacheRecordCommand, DeleteCacheRecordsCommand, GenerateRoomPreviewCommand, EphemeraApiCommandPayload } from './localApiEvents'
 
 export type EphemeraApiSubscribedHeader =
     | (StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Put Cache Record' })
+    | (StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Delete Cache Records' })
     | (StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Generate Room Preview' })
 
 export type EphemeraApiIncomingEvent =
     | {
           header: StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Put Cache Record' };
           getContent: () => Promise<PutCacheRecordCommand>;
+      }
+    | {
+          header: StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Delete Cache Records' };
+          getContent: () => Promise<DeleteCacheRecordsCommand>;
       }
     | {
           header: StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Generate Room Preview' };
@@ -36,10 +41,20 @@ const isGenerateRoomPreviewHeader: HeaderGuard<StreamingEventHeader & { dataSour
 ): h is StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Generate Room Preview' } =>
     h.dataSourceKey === 'api.ephemera' && h.type === 'Generate Room Preview'
 
+const isDeleteCacheRecordsHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Delete Cache Records' }> = (
+    h
+): h is StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Delete Cache Records' } =>
+    h.dataSourceKey === 'api.ephemera' && h.type === 'Delete Cache Records'
+
 export const isEphemeraApiPutCacheRecordEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
     PutCacheRecordCommand,
     StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Put Cache Record' }
 >(isPutCacheRecordHeader)
+
+export const isEphemeraApiDeleteCacheRecordsEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
+    DeleteCacheRecordsCommand,
+    StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Delete Cache Records' }
+>(isDeleteCacheRecordsHeader)
 
 export const isEphemeraApiGenerateRoomPreviewEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
     GenerateRoomPreviewCommand,
@@ -48,7 +63,8 @@ export const isEphemeraApiGenerateRoomPreviewEnvelope = makeStreamingEnvelopeGua
 
 export const isEphemeraApiSubscribedHeader: HeaderGuard<EphemeraApiSubscribedHeader> = (
     header
-): header is EphemeraApiSubscribedHeader => isPutCacheRecordHeader(header) || isGenerateRoomPreviewHeader(header)
+): header is EphemeraApiSubscribedHeader =>
+    isPutCacheRecordHeader(header) || isDeleteCacheRecordsHeader(header) || isGenerateRoomPreviewHeader(header)
 
 export const isEphemeraApiSubscribedEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
     EphemeraApiCommandPayload,
@@ -71,6 +87,25 @@ export function sendPutCacheRecord(bus: Bus, streamKey: string, content: PutCach
         streamKey,
         timestamp,
         type: 'Put Cache Record',
+    }
+    const envelope = createInternalOriginEnvelope(header, content, apiEphemeraSerializer)
+    bus.send({
+        type: 'StreamingEvent',
+        dataSourceKey: 'api.ephemera',
+        streamKey,
+        header: envelope.header,
+        getContent: envelope.getContent,
+        timestamp,
+    })
+}
+
+export function sendDeleteCacheRecords(bus: Bus, streamKey: string, content: DeleteCacheRecordsCommand): void {
+    const timestamp = Date.now()
+    const header: StreamingEventHeader = {
+        dataSourceKey: 'api.ephemera',
+        streamKey,
+        timestamp,
+        type: 'Delete Cache Records',
     }
     const envelope = createInternalOriginEnvelope(header, content, apiEphemeraSerializer)
     bus.send({

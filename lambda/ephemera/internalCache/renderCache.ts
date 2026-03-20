@@ -8,7 +8,7 @@ import type { EphemeraCacheMarkState } from '../renderCache/baseClasses'
 import {
     EPHEMERA_CACHE_DATA_CATEGORY_PREFIX,
 } from '../renderCache/baseClasses'
-import type { PutCacheRecordInput } from '../renderCache/cacheAccess'
+import type { PutCacheRecordInput } from '../dataSource/renderCache/putCacheRecord'
 import type { QueryCacheRecordsForComponentFn } from '../dataSource/renderCache/queryCacheRecordsForComponent'
 import { perspectiveMatches, type Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
 import { markStatesEqual } from '../renderCache/markStateUtils'
@@ -95,6 +95,31 @@ export class RenderCacheData {
         } else {
             rows.push(item)
         }
+    }
+
+    /**
+     * Remove specific memo rows from the invocation-scoped cache.
+     * No-op unless `get(componentId)` has already populated the memo.
+     *
+     * Important: this mutates the existing array in-place so any callers holding
+     * the memo reference observe the updated contents.
+     */
+    deleteCacheRecords(componentId: EphemeraCacheComponentId, cacheIds: string[]): void {
+        const rows = this.rowsByComponent.get(componentId)
+        if (rows === undefined) {
+            return
+        }
+
+        if (!cacheIds.length) {
+            return
+        }
+
+        const idSet = new Set(cacheIds)
+        const next = rows.filter((r) => !idSet.has(r.DataCategory))
+        if (next.length === rows.length) {
+            return
+        }
+        rows.splice(0, rows.length, ...next)
     }
 
     clear(): void {

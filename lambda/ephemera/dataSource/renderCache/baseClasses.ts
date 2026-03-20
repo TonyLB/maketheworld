@@ -20,7 +20,26 @@ export type RenderCacheCacheErrorPayload = {
     perspectiveId?: string;
 }
 
-export type RenderCacheUpdatePayload = RenderCacheCacheUpdatedPayload | RenderCacheCacheErrorPayload
+export type RenderCacheCacheDeletedPayload = {
+    type: 'Cache Deleted';
+    componentId: EphemeraCacheComponentId;
+    dataCategories: string[];
+}
+
+export const isRenderCacheCacheDeletedPayload = (value: unknown): value is RenderCacheCacheDeletedPayload => {
+    if (!value || typeof value !== 'object') {
+        return false
+    }
+    const v = value as Record<string, unknown>
+    return (
+        v.type === 'Cache Deleted' &&
+        typeof v.componentId === 'string' &&
+        Array.isArray(v.dataCategories) &&
+        v.dataCategories.every((x) => typeof x === 'string')
+    )
+}
+
+export type RenderCacheUpdatePayload = RenderCacheCacheUpdatedPayload | RenderCacheCacheDeletedPayload | RenderCacheCacheErrorPayload
 
 export const isRenderCacheCacheUpdatedPayload = (value: unknown): value is RenderCacheCacheUpdatedPayload => {
     if (!value || typeof value !== 'object') {

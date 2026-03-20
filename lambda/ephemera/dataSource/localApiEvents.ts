@@ -3,13 +3,18 @@
  * Used by apiEphemera.ts send helpers and future DataSource receiveEvents. In-process only; no EventBridge.
  */
 import type { EphemeraCacheComponentId } from '../renderCache/baseClasses'
-import type { PutCacheRecordInput } from '../renderCache/cacheAccess'
+import type { PutCacheRecordInput } from './renderCache/putCacheRecord'
 import type { GenerateRoomPreviewInput } from '../renderCache/generateRoomPreview'
 
 export type PutCacheRecordCommand = {
     componentId: EphemeraCacheComponentId;
     record: PutCacheRecordInput;
     existingDataCategory?: string;
+};
+
+export type DeleteCacheRecordsCommand = {
+    componentId: EphemeraCacheComponentId;
+    dataCategories: string[];
 };
 
 export type GenerateRoomPreviewCommand = GenerateRoomPreviewInput & {
@@ -44,6 +49,23 @@ export const isPutCacheRecordCommand = (value: unknown): value is PutCacheRecord
     return true
 }
 
+export const isDeleteCacheRecordsCommand = (value: unknown): value is DeleteCacheRecordsCommand => {
+    if (!value || typeof value !== 'object') {
+        return false
+    }
+    const v = value as Record<string, unknown>
+    if (typeof v.componentId !== 'string') {
+        return false
+    }
+    if (!Array.isArray(v.dataCategories)) {
+        return false
+    }
+    if (!v.dataCategories.every((x) => typeof x === 'string')) {
+        return false
+    }
+    return true
+}
+
 export const isGenerateRoomPreviewCommand = (value: unknown): value is GenerateRoomPreviewCommand => {
     if (!value || typeof value !== 'object') {
         return false
@@ -68,4 +90,4 @@ export const isGenerateRoomPreviewCommand = (value: unknown): value is GenerateR
 }
 
 /** Union of all api.ephemera command payloads (discriminated by header.type on the bus). */
-export type EphemeraApiCommandPayload = PutCacheRecordCommand | GenerateRoomPreviewCommand
+export type EphemeraApiCommandPayload = PutCacheRecordCommand | DeleteCacheRecordsCommand | GenerateRoomPreviewCommand

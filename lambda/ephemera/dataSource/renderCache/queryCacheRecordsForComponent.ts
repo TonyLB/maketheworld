@@ -14,7 +14,7 @@ export type QueryCacheRecordsForComponentFn = (
 
 /**
  * Query all cache records for a component (Room, Feature, or Knowledge).
- * Returns items including DataCategory for use with deleteCacheRecord.
+ * Returns items including DataCategory for use with [`deleteCacheRecord`](./deleteCacheRecord.ts).
  */
 export async function queryCacheRecordsForComponent(
     componentId: EphemeraCacheComponentId

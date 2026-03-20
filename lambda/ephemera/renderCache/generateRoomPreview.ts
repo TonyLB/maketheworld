@@ -8,13 +8,14 @@ import type {
     EphemeraCacheRenderedContent,
     EphemeraCacheDynamoItem
 } from './baseClasses'
-import type { PutCacheRecordInput } from './cacheAccess'
+import type { PutCacheRecordInput } from '../dataSource/renderCache/putCacheRecord'
 import type { QueryCacheRecordsForComponentFn } from '../dataSource/renderCache/queryCacheRecordsForComponent'
 import { EPHEMERA_CACHE_PROVENANCE_GENERATED } from './baseClasses'
-import { putCacheRecord } from './cacheAccess'
 import internalCache from '../internalCache'
 import { generateRoomDescription } from './generateRoomDescription'
 import type { RenderCacheGetExactMatchParams } from '../internalCache/renderCache'
+import { sendPutCacheRecord } from '../dataSource/apiEphemera'
+import messageBus from '../messageBus'
 
 export type GenerateRoomPreviewInput = {
     roomId: EphemeraRoomId;
@@ -41,13 +42,37 @@ type GetExactMatchImpl = (
     input: RenderCacheGetExactMatchParams
 ) => Promise<EphemeraCacheDynamoItem | null>
 type GenerateRoomDescription = typeof generateRoomDescription
-type PutCacheRecord = typeof putCacheRecord
 
 export type PublishPutCacheRecord = (
     componentId: EphemeraCacheComponentId,
     record: PutCacheRecordInput,
     existingDataCategory?: string
 ) => Promise<void>
+
+/**
+ * Default write path: enqueue `Put Cache Record` on `api.ephemera`.
+ * Do not flush here: production callers (e.g. `app.ts`) already `await messageBus.flush()` after
+ * queueing `ReturnValue`, and nested `send()` during an active flush is drained recursively.
+ */
+export const defaultPublishPutCacheRecord: PublishPutCacheRecord = async (
+    componentId,
+    record,
+    existingDataCategory
+) => {
+    sendPutCacheRecord(messageBus, componentId, {
+        componentId,
+        record,
+        ...(existingDataCategory !== undefined ? { existingDataCategory } : {}),
+    })
+}
+
+export type GenerateRoomPreviewOptions = {
+    /** Override for tests; default is `defaultPublishPutCacheRecord` (`sendPutCacheRecord` on process `messageBus`). */
+    publishPutCacheRecord?: PublishPutCacheRecord;
+    getExactMatchImpl?: GetExactMatchImpl;
+    generateRoomDescriptionImpl?: GenerateRoomDescription;
+    queryCacheRecordsForComponentImpl?: QueryCacheRecordsForComponentFn;
+}
 
 export const generateRoomPreview = async (
     {
@@ -57,19 +82,11 @@ export const generateRoomPreview = async (
         generationContextWml
     }: GenerateRoomPreviewInput,
     {
+        publishPutCacheRecord = defaultPublishPutCacheRecord,
         getExactMatchImpl = (input) => internalCache.RenderCache.getExactMatch(input),
         generateRoomDescriptionImpl = generateRoomDescription,
         queryCacheRecordsForComponentImpl = (componentId) => internalCache.RenderCache.get(componentId),
-        putCacheRecordImpl = putCacheRecord,
-        publishPutCacheRecord,
-    }: {
-        getExactMatchImpl?: GetExactMatchImpl;
-        generateRoomDescriptionImpl?: GenerateRoomDescription;
-        queryCacheRecordsForComponentImpl?: QueryCacheRecordsForComponentFn;
-        putCacheRecordImpl?: PutCacheRecord;
-        /** When set (e.g. app handler), writes go through api.ephemera + mtw.ephemera.renderCache instead of putCacheRecordImpl. */
-        publishPutCacheRecord?: PublishPutCacheRecord;
-    } = {}
+    }: GenerateRoomPreviewOptions = {}
 ): Promise<GenerateRoomPreviewResult> => {
     let parsedContext: StandardForm | null = null
     if (generationContextWml) {
@@ -132,15 +149,10 @@ export const generateRoomPreview = async (
         perspectiveId,
         perspectiveMatcher,
     }
-    if (publishPutCacheRecord) {
-        await publishPutCacheRecord(roomId, record)
-    } else {
-        await putCacheRecordImpl(roomId, record)
-    }
+    await publishPutCacheRecord(roomId, record)
 
     return {
         success: true,
         renderedContent: descriptionResult.renderedContent
     }
 }
-

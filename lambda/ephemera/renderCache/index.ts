@@ -4,9 +4,10 @@
 
 export {
     putCacheRecord,
-    deleteCacheRecord,
     type PutCacheRecordInput,
-} from './cacheAccess'
+} from '../dataSource/renderCache/putCacheRecord'
+
+export { deleteCacheRecord } from '../dataSource/renderCache/deleteCacheRecord'
 
 export {
     normalizeMarkState,
@@ -34,8 +35,11 @@ export {
 
 export {
     generateRoomPreview,
+    defaultPublishPutCacheRecord,
     type GenerateRoomPreviewInput,
+    type GenerateRoomPreviewOptions,
     type GenerateRoomPreviewResult,
     type GenerateRoomPreviewSuccess,
-    type GenerateRoomPreviewFailure
+    type GenerateRoomPreviewFailure,
+    type PublishPutCacheRecord,
 } from './generateRoomPreview'

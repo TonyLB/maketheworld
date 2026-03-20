@@ -1,19 +1,26 @@
 import { sendPutCacheRecord } from '../apiEphemera'
 import messageBus from '../../messageBus'
-import { putCacheRecord } from '../../renderCache/cacheAccess'
+import { putCacheRecord } from './putCacheRecord'
+import { deleteCacheRecord } from './deleteCacheRecord'
 import {
     isRenderCacheCacheUpdatedPayload,
     isRenderCacheCacheErrorPayload,
 } from './baseClasses'
+import { sendDeleteCacheRecords } from '../apiEphemera'
+import { isRenderCacheCacheDeletedPayload } from './baseClasses'
 
-jest.mock('../../renderCache/cacheAccess', () => ({
+jest.mock('./putCacheRecord', () => ({
     putCacheRecord: jest.fn(),
+}))
+jest.mock('./deleteCacheRecord', () => ({
+    deleteCacheRecord: jest.fn(),
 }))
 
 // Side-effect: registers mtw.ephemera.renderCache subscription on messageBus
 import './index'
 
 const putCacheRecordMock = putCacheRecord as jest.MockedFunction<typeof putCacheRecord>
+const deleteCacheRecordMock = deleteCacheRecord as jest.MockedFunction<typeof deleteCacheRecord>
 
 describe('mtw.ephemera.renderCache DataSource', () => {
     const minimalPutRecord = {
@@ -97,6 +104,40 @@ describe('mtw.ephemera.renderCache DataSource', () => {
             errorCode: 'PUT_FAILED',
             errorMessage: 'dynamo failed',
             perspectiveId: 'PERSPECTIVE#v1#abc',
+        })
+    })
+
+    it('deleteCacheRecord then emits Cache Deleted on the bus', async () => {
+        const received: unknown[] = []
+        messageBus.subscribe({
+            tag: 'test-render-cache-del',
+            priority: 20,
+            filter: (m: any) =>
+                m.type === 'StreamingEvent' &&
+                m.dataSourceKey === 'mtw.ephemera.renderCache' &&
+                m.header?.type === 'Cache Deleted',
+            callback: async ({ payloads }) => {
+                for (const p of payloads) {
+                    received.push(await p.getContent())
+                }
+            },
+        })
+
+        sendDeleteCacheRecords(messageBus, 'ROOM#room-one', {
+            componentId: 'ROOM#room-one' as const,
+            dataCategories: ['CACHE#one', 'CACHE#two'],
+        })
+        await messageBus.flush()
+
+        expect(deleteCacheRecordMock).toHaveBeenCalledTimes(2)
+        expect(deleteCacheRecordMock).toHaveBeenCalledWith('ROOM#room-one', 'CACHE#one')
+        expect(deleteCacheRecordMock).toHaveBeenCalledWith('ROOM#room-one', 'CACHE#two')
+        expect(received).toHaveLength(1)
+        expect(isRenderCacheCacheDeletedPayload(received[0])).toBe(true)
+        expect(received[0]).toMatchObject({
+            type: 'Cache Deleted',
+            componentId: 'ROOM#room-one',
+            dataCategories: ['CACHE#one', 'CACHE#two'],
         })
     })
 })

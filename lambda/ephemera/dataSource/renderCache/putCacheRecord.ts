@@ -1,18 +1,13 @@
 //
-// Ephemera render cache access layer
+// DataSource-owned Dynamo write: put CACHE# rows in ephemeraDB.
 //
-// Put and delete CACHE# records in ephemeraDB. Each record is keyed by
-// EphemeraId (componentId) and DataCategory (CACHE#uuid). For ExampleRemoved:
-// read matching rows via `internalCache.RenderCache` (invocation memo), then
-// deleteCacheRecord for each match.
-//
-
 import { v4 as uuidv4 } from 'uuid'
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
-import type { EphemeraCacheComponentId, EphemeraCacheDynamoItem } from './baseClasses'
 import {
-    EPHEMERA_CACHE_DATA_CATEGORY_PREFIX
-} from './baseClasses'
+    EPHEMERA_CACHE_DATA_CATEGORY_PREFIX,
+    type EphemeraCacheComponentId,
+    type EphemeraCacheDynamoItem,
+} from '../../renderCache/baseClasses'
 
 export type PutCacheRecordInput = {
     markState: EphemeraCacheDynamoItem['markState'];
@@ -22,7 +17,7 @@ export type PutCacheRecordInput = {
     perspectiveMatcher: EphemeraCacheDynamoItem['perspectiveMatcher'];
     situationId?: EphemeraCacheDynamoItem['situationId'];
     authoredExampleId?: EphemeraCacheDynamoItem['authoredExampleId'];
-};
+}
 
 /**
  * Write a single cache record. If existingDataCategory is provided and starts
@@ -51,14 +46,4 @@ export async function putCacheRecord(
     }
     await ephemeraDB.putItem(item)
     return dataCategory
-}
-
-/**
- * Delete the cache record with the given key. Idempotent.
- */
-export async function deleteCacheRecord(
-    componentId: EphemeraCacheComponentId,
-    dataCategory: string
-): Promise<void> {
-    await ephemeraDB.deleteItem({ EphemeraId: componentId, DataCategory: dataCategory })
 }

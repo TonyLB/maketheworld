@@ -22,9 +22,11 @@ const baseRecord = (overrides: Partial<EphemeraCacheDynamoItem> = {}): EphemeraC
 
 describe('renderCache/generateRoomPreview', () => {
     const roomId = 'ROOM#test-room' as const
+    const noopPublishPutCacheRecord = jest.fn().mockResolvedValue(undefined)
 
     beforeEach(() => {
         jest.clearAllMocks()
+        noopPublishPutCacheRecord.mockResolvedValue(undefined)
     })
 
     it('builds perspective from assetStack and passes it to getExactMatchImpl', async () => {
@@ -37,7 +39,7 @@ describe('renderCache/generateRoomPreview', () => {
             roomId,
             markState,
             assetStack
-        }, { getExactMatchImpl })
+        }, { getExactMatchImpl, publishPutCacheRecord: noopPublishPutCacheRecord })
 
         expect(getExactMatchImpl).toHaveBeenCalledWith({
             componentId: roomId,
@@ -58,7 +60,7 @@ describe('renderCache/generateRoomPreview', () => {
             roomId,
             markState: makeMarkState([{ mark: 'MARK#a', value: 'one' }]),
             assetStack: ['ASSET#one']
-        }, { getExactMatchImpl })
+        }, { getExactMatchImpl, publishPutCacheRecord: noopPublishPutCacheRecord })
 
         expect(result).toEqual({
             success: true,
@@ -73,7 +75,7 @@ describe('renderCache/generateRoomPreview', () => {
             roomId,
             markState: makeMarkState([{ mark: 'MARK#a', value: 'one' }]),
             assetStack: ['ASSET#one']
-        }, { getExactMatchImpl })
+        }, { getExactMatchImpl, publishPutCacheRecord: noopPublishPutCacheRecord })
 
         expect(result).toEqual({
             success: false,
@@ -90,7 +92,7 @@ describe('renderCache/generateRoomPreview', () => {
             markState: makeMarkState([{ mark: 'MARK#a', value: 'one' }]),
             assetStack: ['ASSET#one'],
             generationContextWml: '<not valid wml<<'
-        }, { getExactMatchImpl })
+        }, { getExactMatchImpl, publishPutCacheRecord: noopPublishPutCacheRecord })
 
         expect(result).toEqual({
             success: false,
@@ -117,7 +119,12 @@ describe('renderCache/generateRoomPreview', () => {
                 assetStack: ['ASSET#one'],
                 generationContextWml: validWml
             },
-            { getExactMatchImpl, generateRoomDescriptionImpl, queryCacheRecordsForComponentImpl }
+            {
+                getExactMatchImpl,
+                generateRoomDescriptionImpl,
+                queryCacheRecordsForComponentImpl,
+                publishPutCacheRecord: noopPublishPutCacheRecord
+            }
         )
 
         expect(queryCacheRecordsForComponentImpl).toHaveBeenCalledWith(roomId)
@@ -136,7 +143,7 @@ describe('renderCache/generateRoomPreview', () => {
         })
     })
 
-    it('calls putCacheRecord with generated provenance when LLM returns success', async () => {
+    it('calls publishPutCacheRecord with generated provenance when LLM returns success', async () => {
         const getExactMatchImpl = jest.fn().mockResolvedValue(null)
 
         const renderedContent: EphemeraCacheRenderedContent = {
@@ -149,7 +156,7 @@ describe('renderCache/generateRoomPreview', () => {
             renderedContent
         })
         const queryCacheRecordsForComponentImpl = jest.fn().mockResolvedValue([])
-        const putCacheRecordImpl = jest.fn().mockResolvedValue('CACHE#new')
+        const publishPutCacheRecord = jest.fn().mockResolvedValue(undefined)
 
         const validWml = '<Asset uuid=(test)><Room uuid=(room1) key=(room1)><ShortName>Test</ShortName></Room></Asset>'
         const markState = makeMarkState([{ mark: 'MARK#a', value: 'one' }])
@@ -166,13 +173,13 @@ describe('renderCache/generateRoomPreview', () => {
                 getExactMatchImpl,
                 generateRoomDescriptionImpl,
                 queryCacheRecordsForComponentImpl,
-                putCacheRecordImpl
+                publishPutCacheRecord
             }
         )
 
         expect(result).toEqual({ success: true, renderedContent })
-        expect(putCacheRecordImpl).toHaveBeenCalledTimes(1)
-        expect(putCacheRecordImpl).toHaveBeenCalledWith(
+        expect(publishPutCacheRecord).toHaveBeenCalledTimes(1)
+        expect(publishPutCacheRecord).toHaveBeenCalledWith(
             roomId,
             expect.objectContaining({
                 markState,
@@ -183,4 +190,3 @@ describe('renderCache/generateRoomPreview', () => {
         )
     })
 })
-

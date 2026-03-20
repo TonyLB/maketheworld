@@ -8,12 +8,10 @@ import {
     StreamingEventHeader,
     makeStreamingEnvelopeGuardFromHeaderGuard
 } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
-import {
-    putCacheRecord,
-    deleteCacheRecord,
-    type EphemeraCacheDynamoItem,
-    type EphemeraCacheComponentId,
-    type PutCacheRecordInput,
+import type {
+    EphemeraCacheDynamoItem,
+    EphemeraCacheComponentId,
+    PutCacheRecordInput,
 } from '../renderCache'
 import internalCache, { type InternalCache } from '../internalCache'
 import {
@@ -23,6 +21,9 @@ import {
     isEphemeraSituationId
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { computePerspectiveKey } from '@tonylb/mtw-interfaces/ts/perspective'
+import { sendPutCacheRecord, sendDeleteCacheRecords } from './apiEphemera'
+import messageBus from '../messageBus'
+import type { StreamingEventMessage } from '../messageBus/baseClasses'
 
 export type EphemeraExamplesIncomingEvent = StreamingEventEnvelope<ComponentExamplesMirrorEvent> & {
     header: StreamingEventHeader & {
@@ -50,10 +51,14 @@ type Logger = {
     error?: (message: string, details?: Record<string, unknown>) => void;
 }
 
+/** Only `send` is required: nested `StreamingEvent` posts are drained by the in-progress `flush()` recursion. */
+export type ComponentExamplesMessageBus = {
+    send: (payload: StreamingEventMessage) => void;
+}
+
 export type HandleComponentExamplesDependencies = {
     internalCacheOverride?: InternalCache;
-    putCacheRecord: typeof putCacheRecord;
-    deleteCacheRecord: typeof deleteCacheRecord;
+    messageBus: ComponentExamplesMessageBus;
     computePerspectiveKey: typeof computePerspectiveKey;
     logger?: Logger;
 }
@@ -62,8 +67,7 @@ const isEphemeraCacheComponentId = (value: string): value is EphemeraCacheCompon
     isEphemeraRoomId(value) || isEphemeraFeatureId(value) || isEphemeraKnowledgeId(value)
 
 const defaultDependencies: HandleComponentExamplesDependencies = {
-    putCacheRecord,
-    deleteCacheRecord,
+    messageBus,
     computePerspectiveKey,
     logger: console
 }
@@ -74,8 +78,7 @@ export const handleComponentExamplesEvent = async (
 ): Promise<void> => {
     const {
         internalCacheOverride,
-        putCacheRecord: putRecord,
-        deleteCacheRecord: deleteRecord,
+        messageBus: bus,
         computePerspectiveKey: computeKey,
         logger
     } = dependencies
@@ -114,7 +117,13 @@ export const handleComponentExamplesEvent = async (
                             proposedMarkState: example.markState,
                             perspective
                         })
-                        await putRecord(parentId, record, existing?.DataCategory)
+                        sendPutCacheRecord(bus, parentId, {
+                            componentId: parentId,
+                            record,
+                            ...(existing?.DataCategory !== undefined
+                                ? { existingDataCategory: existing.DataCategory }
+                                : {}),
+                        })
                     } catch (error) {
                         if (logger?.error) {
                             logger.error('Failed to write ephemera cache record from ComponentExamples event', {
@@ -141,9 +150,13 @@ export const handleComponentExamplesEvent = async (
                             (item: EphemeraCacheDynamoItem) =>
                                 item.situationId === exampleId || item.authoredExampleId === exampleId
                         )
-                        await Promise.all(
-                            matches.map((item) => deleteRecord(parentId, item.DataCategory))
-                        )
+                        const dataCategories = matches.map((item) => item.DataCategory)
+                        if (dataCategories.length > 0) {
+                            sendDeleteCacheRecords(bus, parentId, {
+                                componentId: parentId,
+                                dataCategories,
+                            })
+                        }
                     } catch (error) {
                         if (logger?.error) {
                             logger.error('Failed to delete ephemera cache records from ExampleRemoved event', {
@@ -182,4 +195,3 @@ ComponentExamplesMirrorEvent
 ephemeraExamplesDataSource.subscribe()
 
 export default ephemeraExamplesDataSource
-
