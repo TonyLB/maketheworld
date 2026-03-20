@@ -10,7 +10,7 @@ Goal: make it hard (by design) for orchestration/policy and other systems to cou
 ## Current coupling (known)
 1. `mtw.ephemera.renderCache` currently writes by importing `putCacheRecord` from `lambda/ephemera/renderCache/cacheAccess.ts`.
 2. `internalCache.RenderCache` currently instantiates its memo by importing `queryCacheRecordsForComponent` from `lambda/ephemera/renderCache/cacheAccess.ts`.
-3. Exact-match logic currently lives in `lambda/ephemera/renderCache/exampleComparison.ts` (used by callers and helpers).
+3. Exact-match logic currently lives in `lambda/ephemera/internalCache/renderCache.ts` (via `internalCache.RenderCache.getExactMatch`).
 
 These couplings can create self-reinforcing migration lock-in: the legacy module keeps being treated as the only "objectively correct" source of truth.
 
@@ -42,6 +42,7 @@ Acceptance gate:
 - No orchestration/policy code performs exact-match by calling `await internalCache.RenderCache.get(componentId)` and then doing separate matcher/mark computations; it should call `internalCache.RenderCache.getExactMatch(...)` instead.
 
 ### Step 2: Move the exact-match helper out of call-sites
+- Status: COMPLETED
 - Update any remaining callers to use `internalCache.RenderCache.getExactMatch(...)`.
 - Keep the matching semantics stable (same markState normalization + same matcher/perspective behavior).
 

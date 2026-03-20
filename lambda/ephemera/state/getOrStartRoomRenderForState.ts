@@ -4,7 +4,7 @@ import type { EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { isEphemeraCacheDynamoItem, type EphemeraCacheDynamoItem } from '../renderCache/baseClasses'
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { perspectiveMatches } from '@tonylb/mtw-interfaces/ts/perspective'
-import { testing as exampleComparisonTesting } from '../renderCache/exampleComparison'
+import { markStatesEqual } from '../renderCache/markStateUtils'
 
 export type GetOrStartRoomRenderForStateReady = {
     status: 'ready';
@@ -124,7 +124,7 @@ export const getOrStartRoomRenderForState = async ({
         }
 
         const cacheRecord = await deps.getCacheRecordById(roomId, currentCacheId)
-        const markStateMatches = cacheRecord ? exampleComparisonTesting.markStatesEqual(stateMarks, cacheRecord.markState) : false
+        const markStateMatches = cacheRecord ? markStatesEqual(stateMarks, cacheRecord.markState) : false
         const perspectiveMatchesRequest = cacheRecord ? perspectiveMatches(cacheRecord.perspectiveMatcher, perspective as any) : false
 
         if (cacheRecord && markStateMatches && perspectiveMatchesRequest) {

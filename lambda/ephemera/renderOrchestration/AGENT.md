@@ -80,7 +80,7 @@ In v2, `renderOrchestration` is implemented as a **messageBus-driven event casca
 2. Read state v2 plan: `../state/AGENT.v2.planning.md` (system-level plan).
 3. Review messageBus patterns: `../messageBus/baseClasses.ts` and `../messageBus/index.ts`.
 4. Review perception placeholders: `../perception/index.ts` (look for `sendRoomGeneratingHeader`).
-5. Review cache primitives: `../renderCache/exampleComparison.ts` and `../renderCache/generateRoomPreview.ts`.
+5. Review cache primitives: `../renderCache/markStateUtils.ts` and `../renderCache/generateRoomPreview.ts`.
 
 ### Key files (expected in this directory as v2 is implemented)
 

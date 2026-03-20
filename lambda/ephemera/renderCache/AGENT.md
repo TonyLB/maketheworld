@@ -1,6 +1,6 @@
 # Ephemera Render Cache - AGENT
 
-This document describes how Ephemera caches rendered descriptions in the Ephemera DynamoDB table, centered around the `renderCache/` module (`baseClasses.ts`, `cacheAccess.ts`, `markStateUtils.ts`, `exampleComparison.ts`, `generateRoomPreview.ts` and tests).
+This document describes how Ephemera caches rendered descriptions in the Ephemera DynamoDB table, centered around the `renderCache/` module (`baseClasses.ts`, `cacheAccess.ts`, `markStateUtils.ts`, `generateRoomPreview.ts` and tests).
 
 It is the concrete realization of the schema and flow outlined in:
 
@@ -160,9 +160,9 @@ This pattern keeps cache rows in sync with blueprint lifecycles without needing 
 
 ---
 
-## Comparison Logic: `exampleComparison.ts`
+## Exact-match Lookup: `internalCache.RenderCache.getExactMatch`
 
-All exact-match semantics are implemented in `renderCache/exampleComparison.ts`.
+Exact-match lookup is implemented in `lambda/ephemera/internalCache/renderCache.ts` via `internalCache.RenderCache.getExactMatch`.
 
 ### Normalization
 

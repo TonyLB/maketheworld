@@ -545,8 +545,8 @@ After Phase 3, the following hold:
 
 - [x] **mtw-interfaces:** Add `perspectiveMatcher: PerspectiveMatcher` to ComponentExamplesLifecycleBase (event contract).
 - [x] **Assets:** Add perspectiveMatcher to ExampleLifecycleBase; implement `roomHasFacetForSituation`, `situationHasMarks`, `computePerspectiveMatcherForRoomSituation` in exampleEnrichment; Room path emits perspectiveMatcher on ExampleUpdated and ExampleRemoved; Example path emits conservative matcher (requiredAssetIds = assetStack, forbiddenAssetIds = []) with band-aid comment.
-- [x] **Ephemera:** Add perspectiveMatcher to EphemeraCacheRecord/EphemeraCacheDynamoItem and PutCacheRecordInput; comment perspectiveId as known inactive; dataSource sets perspectiveMatcher from event; findExactMatch and internalCache.RenderCache.getExactMatch use perspective and perspectiveMatches; generateRoomPreview builds perspective from assetStack.
-- [x] **Tests:** Assets (perspective matcher helpers, Room/Example path payloads); Ephemera (componentExamples, cacheAccess, exampleComparison, generateRoomPreview, componentRender); mtw-interfaces event shape.
+- [x] **Ephemera:** Add perspectiveMatcher to EphemeraCacheRecord/EphemeraCacheDynamoItem and PutCacheRecordInput; comment perspectiveId as known inactive; dataSource sets perspectiveMatcher from event; internalCache.RenderCache.getExactMatch uses perspective and perspectiveMatches; generateRoomPreview builds perspective from assetStack.
+- [x] **Tests:** Assets (perspective matcher helpers, Room/Example path payloads); Ephemera (componentExamples, cacheAccess, markStateUtils, generateRoomPreview, componentRender); mtw-interfaces event shape.
 - [x] **Documentation:** renderCache/AGENT.md updated for perspectiveMatcher and matcher-based matching.
 
 ---
