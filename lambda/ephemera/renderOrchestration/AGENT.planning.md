@@ -278,6 +278,8 @@ With `internalCache.RenderCache`, render orchestration can:
 13. **Generalization beyond Rooms**
    - Unknown: whether Maps/Features can share identical invalidation + passive-observer rules.
    - Expect contract reuse, but policy likely diverges by component type.
+14. **RenderCache migration checklist**
+    - Track the long-term RenderCache decoupling steps in `../renderCache/AGENT.migration.md` (lookup moves into `internalCache.RenderCache`, persistence moves behind `mtw.ephemera.renderCache`).
 
 ## Integration follow-up after event contracts land
 
