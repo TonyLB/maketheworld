@@ -11,9 +11,9 @@ import type {
 import type { PutCacheRecordInput, QueryCacheRecordsForComponentFn } from './cacheAccess'
 import { EPHEMERA_CACHE_PROVENANCE_GENERATED } from './baseClasses'
 import { putCacheRecord } from './cacheAccess'
-import { findExactMatchForComponent } from './exampleComparison'
 import internalCache from '../internalCache'
 import { generateRoomDescription } from './generateRoomDescription'
+import type { RenderCacheGetExactMatchParams } from '../internalCache/renderCache'
 
 export type GenerateRoomPreviewInput = {
     roomId: EphemeraRoomId;
@@ -36,7 +36,9 @@ export type GenerateRoomPreviewResult =
     | GenerateRoomPreviewSuccess
     | GenerateRoomPreviewFailure
 
-type FindExactMatchForComponent = typeof findExactMatchForComponent
+type GetExactMatchImpl = (
+    input: RenderCacheGetExactMatchParams
+) => Promise<EphemeraCacheDynamoItem | null>
 type GenerateRoomDescription = typeof generateRoomDescription
 type PutCacheRecord = typeof putCacheRecord
 
@@ -54,13 +56,13 @@ export const generateRoomPreview = async (
         generationContextWml
     }: GenerateRoomPreviewInput,
     {
-        findExactMatchForComponentImpl = findExactMatchForComponent,
+        getExactMatchImpl = (input) => internalCache.RenderCache.getExactMatch(input),
         generateRoomDescriptionImpl = generateRoomDescription,
         queryCacheRecordsForComponentImpl = (componentId) => internalCache.RenderCache.get(componentId),
         putCacheRecordImpl = putCacheRecord,
         publishPutCacheRecord,
     }: {
-        findExactMatchForComponentImpl?: FindExactMatchForComponent;
+        getExactMatchImpl?: GetExactMatchImpl;
         generateRoomDescriptionImpl?: GenerateRoomDescription;
         queryCacheRecordsForComponentImpl?: QueryCacheRecordsForComponentFn;
         putCacheRecordImpl?: PutCacheRecord;
@@ -79,7 +81,7 @@ export const generateRoomPreview = async (
 
     const perspective = { assetStack: assetStack as AssetUUID[] }
 
-    const match: EphemeraCacheDynamoItem | null = await findExactMatchForComponentImpl({
+    const match: EphemeraCacheDynamoItem | null = await getExactMatchImpl({
         componentId: roomId,
         proposedMarkState: markState,
         perspective

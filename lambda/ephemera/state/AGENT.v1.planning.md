@@ -182,7 +182,7 @@ v1 implemented the core foundations for a cache-backed, state-driven Room descri
    - Implemented `computeDefaultMarksForRoom(roomId, perspective)` in `lambda/ephemera/state/computeDefaultMarksForRoom.ts`.
 
 3. **renderCache exact-match primitives**
-   - Exact-match semantics (normalized Mark-state equality + perspective matcher filtering) are implemented and tested via `findExactMatchForComponent` and `generateRoomPreview` in `lambda/ephemera/renderCache/`.
+   - Exact-match semantics (normalized Mark-state equality + perspective matcher filtering) are implemented and tested via `internalCache.RenderCache.getExactMatch` and `generateRoomPreview` in `lambda/ephemera/renderCache/`.
 
 4. **Room state -> cache selection helper (fast path only)**
    - Added a DI-friendly orchestration entrypoint `getOrStartRoomRenderForState(roomId, perspective, options)` in `lambda/ephemera/state/getOrStartRoomRenderForState.ts`.
@@ -218,7 +218,7 @@ It intentionally **excludes** the later task of "Create any way in which Room St
   - [x] `computeDefaultMarksForRoom(roomId, perspective)` implemented
 
 - [x] **Exact-match cache primitive exists**
-  - [x] `findExactMatchForComponent` and `generateRoomPreview` semantics implemented and tested (preview branch + renderCache tests)
+  - [x] `internalCache.RenderCache.getExactMatch` and `generateRoomPreview` semantics implemented and tested (preview branch + renderCache tests)
 
 #### Phase 2: Room state -> renderCache selection helper
 

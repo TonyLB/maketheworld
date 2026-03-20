@@ -14,10 +14,8 @@ import {
     type EphemeraCacheDynamoItem,
     type EphemeraCacheComponentId,
     type PutCacheRecordInput,
-    type QueryCacheRecordsForComponentFn,
-    findExactMatch
 } from '../renderCache'
-import internalCache from '../internalCache'
+import internalCache, { type InternalCache } from '../internalCache'
 import {
     isEphemeraFeatureId,
     isEphemeraKnowledgeId,
@@ -53,7 +51,7 @@ type Logger = {
 }
 
 export type HandleComponentExamplesDependencies = {
-    queryCacheRecordsForComponent: QueryCacheRecordsForComponentFn;
+    internalCacheOverride?: InternalCache;
     putCacheRecord: typeof putCacheRecord;
     deleteCacheRecord: typeof deleteCacheRecord;
     computePerspectiveKey: typeof computePerspectiveKey;
@@ -64,7 +62,6 @@ const isEphemeraCacheComponentId = (value: string): value is EphemeraCacheCompon
     isEphemeraRoomId(value) || isEphemeraFeatureId(value) || isEphemeraKnowledgeId(value)
 
 const defaultDependencies: HandleComponentExamplesDependencies = {
-    queryCacheRecordsForComponent: (componentId) => internalCache.RenderCache.get(componentId),
     putCacheRecord,
     deleteCacheRecord,
     computePerspectiveKey,
@@ -76,7 +73,7 @@ export const handleComponentExamplesEvent = async (
     dependencies: HandleComponentExamplesDependencies = defaultDependencies
 ): Promise<void> => {
     const {
-        queryCacheRecordsForComponent: queryRecords,
+        internalCacheOverride,
         putCacheRecord: putRecord,
         deleteCacheRecord: deleteRecord,
         computePerspectiveKey: computeKey,
@@ -84,6 +81,7 @@ export const handleComponentExamplesEvent = async (
     } = dependencies
 
     const { exampleId, parentIds, assetStack } = event
+    const getCache = () => internalCacheOverride ?? internalCache
 
     if (!parentIds.length) {
         return
@@ -110,12 +108,10 @@ export const handleComponentExamplesEvent = async (
                 .filter(isEphemeraCacheComponentId)
                 .map(async (parentId) => {
                     try {
-                        const existingRecords = await queryRecords(parentId)
                         const perspective = { assetStack }
-                        const existing = findExactMatch({
+                        const existing = await getCache().RenderCache.getExactMatch({
                             componentId: parentId,
                             proposedMarkState: example.markState,
-                            records: existingRecords,
                             perspective
                         })
                         await putRecord(parentId, record, existing?.DataCategory)
@@ -140,7 +136,7 @@ export const handleComponentExamplesEvent = async (
                 .filter(isEphemeraCacheComponentId)
                 .map(async (parentId) => {
                     try {
-                        const records = await queryRecords(parentId)
+                        const records = await getCache().RenderCache.get(parentId)
                         const matches = records.filter(
                             (item: EphemeraCacheDynamoItem) =>
                                 item.situationId === exampleId || item.authoredExampleId === exampleId

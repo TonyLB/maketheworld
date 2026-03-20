@@ -169,6 +169,39 @@ Transition note:
 - During migration, handlers may read legacy `currentCacheId` as fallback.
 - New writes should target `currentCacheByPerspective`.
 
+## InternalCache RenderCache (request-scoped memo + upsert overlay)
+
+To reduce duplicate Dynamo reads and to make render orchestration decisions more consistent within a single handler invocation, the ephemera lambda now includes a request-scoped memo for render-cache rows:
+
+- **`internalCache.RenderCache`** lives in [`lambda/ephemera/internalCache/renderCache.ts`](internalCache/renderCache.ts) and is instantiated/cleared via [`lambda/ephemera/internalCache/index.ts`](internalCache/index.ts).
+- **Lifecycle**: `internalCache.clear()` is called at the start of the handler run, so the memo is **invocation-scoped** (no cross-invocation caching).
+
+### API summary
+
+- **`internalCache.RenderCache.get(componentId)`**
+  - Memoizes the full list of Dynamo `CACHE#...` rows for `componentId`.
+  - First call loads via the underlying `queryCacheRecordsForComponent` implementation.
+  - Subsequent calls return the same cached array for that `componentId`, avoiding double-queries within the same invocation.
+
+- **`internalCache.RenderCache.set(...)`**
+  - Intended to keep the memo coherent after in-process writes.
+  - **No-op** if `get(componentId)` has not run yet for that `componentId` (prevents creating a half-initialized view).
+  - Upsert semantics into the memoized array (in-memory only):
+    - If `cacheId` (Dynamo `DataCategory`) is provided: replace the entry with that `DataCategory` or append if missing.
+    - If `cacheId` is omitted: match/replace based on `markState` equality semantics (via `markStatesEqual`), or append if none match.
+
+### How this integrates with `mtw.ephemera.renderCache`
+
+- The `mtw.ephemera.renderCache` DataSource write path calls `internalCache.RenderCache.set(...)` after a successful `putCacheRecord`, using the returned `DataCategory` as the memo `cacheId`.
+- As a result, subsequent reads through `internalCache.RenderCache.get` during the same invocation can observe the just-written cache row without another Dynamo query.
+
+### Why this matters for `renderOrchestration`
+
+With `internalCache.RenderCache`, render orchestration can:
+
+- run “does a matching render already exist?” checks using `internalCache.RenderCache.get` without triggering multiple Dynamo queries for the same component in one handler run
+- align fast-path/slow-path decisions with a coherent view of the cache memo after successful writes (provided the write uses the `mtw.ephemera.renderCache` DataSource path)
+
 ## Next task list (near-term clear -> longer-term foggy)
 
 ### Tier 1: Clear, immediate tasks (implement now)
@@ -202,13 +235,20 @@ Transition note:
 
 6. **Generation path + completion updates**
    - Emit `RenderGenerationStarted` on miss when generation is allowed.
-   - Run generation worker, persist cache row, update `currentCacheByPerspective[perspectiveKey]`, then emit `RenderReady`.
-   - Decide whether to also emit `RenderGenerationCompleted`.
+   - Run generation worker, produce the prospective cache record fields (markState, renderedContent, provenance, perspectiveId, perspectiveMatcher, optional situation/authoredExample ids).
+   - Instead of calling `putCacheRecord` directly, emit the internal API command:
+     - `api.ephemera` streaming envelope type `Put Cache Record` (via `sendPutCacheRecord`)
+     - This routes to `mtw.ephemera.renderCache` DataSource, which performs the Dynamo write.
+   - Subscribe/react to `mtw.ephemera.renderCache` outcomes:
+     - On `Cache Updated`: update `currentCacheByPerspective[perspectiveKey]` to the returned `CACHE#...` id, then emit `RenderReady`.
+     - On `Cache Error`: clear/invalidate the perspective pointer entry and emit `RenderGenerationFailed` (or defer rerender based on policy).
+   - Decide whether to also emit `RenderGenerationCompleted` after `RenderReady` (only if clients/metrics need it).
 7. **State-change subscription wiring**
    - Subscribe renderOrchestration to state change messages.
    - Implement passive-observer check (presence/subscription aware).
    - If no observers: invalidate perspective cache pointers only; defer rerender.
    - If observers: publish one-or-more `RenderRequested` messages with derived perspective(s).
+   - During the remainder of the invocation, treat `internalCache.RenderCache` as the coherent memoized view after successful cache writes, and rely on `mtw.ephemera.renderCache` to keep that memo aligned when it can.
 8. **Perception handler refactor for clean DAG**
    - Split current perception responsibilities into at least two handler roles:
      - intake/request handlers (translate user/system intents into `RenderRequested`)
@@ -217,7 +257,10 @@ Transition note:
    - Preserve existing behavior for non-render-orchestration perception paths during migration.
 9. **Foundational test coverage**
    - Add unit tests for fast-path hit/miss/invalid-pointer behavior.
-   - Add ordering tests (`RenderGenerationStarted` before `RenderReady`).
+   - Add ordering tests:
+     - `RenderGenerationStarted` before any terminal completion (success/failure)
+     - `Cache Updated` before pointer update and `RenderReady`
+     - `Cache Error` before `RenderGenerationFailed`
    - Add state-triggered tests for observer/no-observer branching.
 
 ### Tier 3: Intentionally foggy tasks (documented unknowns)
@@ -226,14 +269,17 @@ Transition note:
    - Unknown: one render per observing perspective vs consolidation heuristics.
    - Unknown: cap/batching strategy when many distinct passive perspectives exist.
 11. **Ready payload strategy**
-   - Unknown: `RenderReady` carries full `cacheRecord` vs `(componentId, cacheId)` fetch-on-consumer.
-   - Trade-off: larger bus payloads vs extra DB/cache reads downstream.
+   - Prefer compact `RenderReady` payloads: include `cacheId` (and enough identity to resolve records).
+   - Downstream consumers can fetch the full record from `internalCache.RenderCache.get(componentId)` (deduped within the invocation) and select by `DataCategory === cacheId` when needed.
+   - Only carry full `cacheRecord` on the bus if you can justify the bus payload size saving more than any memoized fetch cost.
 12. **Cross-domain subscription boundaries with `perception`**
-   - Unknown: how much targeting logic remains in `renderOrchestration` vs deferred to `perception`.
-   - Need explicit contract for request-scoped vs update-scoped ownership.
+   - Clarify that `perception` is responsible for delivery and user-facing message construction, while `renderOrchestration` is responsible for render policy and cache lifecycle coordination (including reacting to `mtw.ephemera.renderCache` outcomes).
+   - Still unknown: the exact split of targeting/derivation logic between `renderOrchestration` vs `perception`; capture the decision as a contract in the message types.
 13. **Generalization beyond Rooms**
    - Unknown: whether Maps/Features can share identical invalidation + passive-observer rules.
    - Expect contract reuse, but policy likely diverges by component type.
+14. **RenderCache migration checklist**
+    - Track the long-term RenderCache decoupling steps in `../renderCache/AGENT.migration.md` (lookup moves into `internalCache.RenderCache`, persistence moves behind `mtw.ephemera.renderCache`).
 
 ## Integration follow-up after event contracts land
 

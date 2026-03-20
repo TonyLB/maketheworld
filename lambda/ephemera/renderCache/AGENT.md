@@ -1,6 +1,6 @@
 # Ephemera Render Cache - AGENT
 
-This document describes how Ephemera caches rendered descriptions in the Ephemera DynamoDB table, centered around the `renderCache/` module (`baseClasses.ts`, `cacheAccess.ts`, `markStateUtils.ts`, `exampleComparison.ts`, `generateRoomPreview.ts` and tests).
+This document describes how Ephemera caches rendered descriptions in the Ephemera DynamoDB table, centered around the `renderCache/` module (`baseClasses.ts`, `cacheAccess.ts`, `markStateUtils.ts`, `generateRoomPreview.ts` and tests).
 
 It is the concrete realization of the schema and flow outlined in:
 
@@ -123,7 +123,7 @@ Preview request sends `assetStack`; Ephemera builds `perspective = { assetStack 
 
 [`lambda/ephemera/internalCache/renderCache.ts`](../internalCache/renderCache.ts) provides **`InternalCache.RenderCache`** (cleared with [`InternalCache.clear()`](../internalCache/index.ts) each handler run):
 
-- **`get(componentId)`** – First call in an invocation runs the underlying Dynamo `queryCacheRecordsForComponent` and stores the result; later calls return the **same array reference** for that `componentId`. **Ephemera production paths** (`findExactMatchForComponent`, `generateRoomPreview`, `ComponentRender` for Rooms, `mtw.ephemera.examples` handlers) should use **`internalCache.RenderCache.get`** instead of calling `queryCacheRecordsForComponent` directly so reads dedupe within a handler.
+- **`get(componentId)`** – First call in an invocation runs the underlying Dynamo `queryCacheRecordsForComponent` and stores the result; later calls return the **same array reference** for that `componentId`. **Ephemera production paths** (`generateRoomPreview`, `ComponentRender` for Rooms, `mtw.ephemera.examples` handlers) should use **`internalCache.RenderCache.get`** instead of calling `queryCacheRecordsForComponent` directly so reads dedupe within a handler.
 - **`set(...)`** – **No-op** until `get` has run for that `componentId`. Upserts into the in-memory array: with optional **`cacheId`** (`DataCategory`), replace matching row or append; without `cacheId`, replace first row whose **`markState` matches** via `markStatesEqual` from [`markStateUtils.ts`](markStateUtils.ts), else append (new `CACHE#` uuid).
 - **Consistency**: After in-process writes (e.g. **`mtw.ephemera.renderCache`** after `putCacheRecord`), call **`RenderCache.set`** so same-invocation readers see the new row without re-querying. Other writers should call `set` when practical, or readers may see stale memo until the next cold read.
 
@@ -160,9 +160,9 @@ This pattern keeps cache rows in sync with blueprint lifecycles without needing 
 
 ---
 
-## Comparison Logic: `exampleComparison.ts`
+## Exact-match Lookup: `internalCache.RenderCache.getExactMatch`
 
-All exact-match semantics are implemented in `renderCache/exampleComparison.ts`.
+Exact-match lookup is implemented in `lambda/ephemera/internalCache/renderCache.ts` via `internalCache.RenderCache.getExactMatch`.
 
 ### Normalization
 
@@ -181,11 +181,11 @@ The proposed mark state and each record’s markState are normalized before comp
 
 Core helper (conceptually):
 
-- `findExactMatchForComponent({ componentId, proposedMarkState, perspective })` (default query: `internalCache.RenderCache.get`)
-  - Calls `queryCacheRecordsForComponent(componentId)`.
+- `internalCache.RenderCache.getExactMatch({ componentId, proposedMarkState, perspective })`
+  - Memoizes Dynamo rows via `get(componentId)`.
   - Filters records by `perspectiveMatches(record.perspectiveMatcher, perspective)` (records without `perspectiveMatcher` are skipped).
-  - Normalizes both proposed and stored markState.
-  - Returns the first record whose normalized markState equals the proposed one and whose matcher matches the request perspective, or `null` when none match.
+  - Matches by Mark-state equality semantics (`markStatesEqual` over normalized markState).
+  - Returns the first matching record, or `null` when none match.
 
 This is the canonical “does this state exist in cache?” check, used by `generateRoomPreview` and ready for reuse in future flows.
 
@@ -203,7 +203,7 @@ This is the canonical “does this state exist in cache?” check, used by `gene
   - `assetStack: string[]`
 - Steps:
   1. Build `perspective = { assetStack }`.
-  2. Call `findExactMatchForComponent({ componentId: roomId, proposedMarkState: markState, perspective })`.
+  2. Call `internalCache.RenderCache.getExactMatch({ componentId: roomId, proposedMarkState: markState, perspective })`.
   3. If a match exists:
      - Return `{ success: true, renderedContent }`.
   4. If no match exists:

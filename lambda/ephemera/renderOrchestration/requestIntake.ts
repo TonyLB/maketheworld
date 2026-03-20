@@ -4,7 +4,7 @@ import { perspectiveMatches, computePerspectiveKey } from '@tonylb/mtw-interface
 import type { EphemeraCacheId, EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { MessageBus } from '../messageBus/baseClasses'
 import { isEphemeraCacheDynamoItem, type EphemeraCacheDynamoItem } from '../renderCache/baseClasses'
-import { testing as exampleComparisonTesting } from '../renderCache/exampleComparison'
+import { markStatesEqual } from '../renderCache/markStateUtils'
 import type { RenderLookupRequested, RenderReady, RenderRequested } from './events'
 
 export type RequestIntakeDependencies = {
@@ -12,7 +12,7 @@ export type RequestIntakeDependencies = {
     getCacheRecordById?: (roomId: EphemeraRoomId, cacheId: EphemeraCacheId) => Promise<EphemeraCacheDynamoItem | undefined>;
     clearPerspectivePointer?: (roomId: EphemeraRoomId, perspectiveKey: string) => Promise<void>;
     computePerspectiveKey?: typeof computePerspectiveKey;
-    markStatesEqual?: typeof exampleComparisonTesting.markStatesEqual;
+    markStatesEqual?: typeof markStatesEqual;
 }
 
 const defaultGetMetaRoom = async (roomId: EphemeraRoomId): Promise<EphemeraMetaRoom | undefined> => (
@@ -76,7 +76,7 @@ export const requestIntakeMessage = async (
         getCacheRecordById: _deps?.getCacheRecordById ?? defaultGetCacheRecordById,
         clearPerspectivePointer: _deps?.clearPerspectivePointer ?? defaultClearPerspectivePointer,
         computePerspectiveKey: _deps?.computePerspectiveKey ?? computePerspectiveKey,
-        markStatesEqual: _deps?.markStatesEqual ?? exampleComparisonTesting.markStatesEqual
+        markStatesEqual: _deps?.markStatesEqual ?? markStatesEqual
     }
 
     await Promise.all(payloads.map(async (payload) => {

@@ -11,13 +11,9 @@ export {
 } from './cacheAccess'
 
 export {
-    findExactMatch,
-    findExactMatchForComponent,
-    type FindExactMatchInput,
-    type FindExactMatchForComponentInput,
     normalizeMarkState,
     markStatesEqual,
-} from './exampleComparison'
+} from './markStateUtils'
 
 export type {
     EphemeraCacheComponentId,
