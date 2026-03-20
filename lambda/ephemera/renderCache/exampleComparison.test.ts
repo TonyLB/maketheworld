@@ -1,7 +1,6 @@
 import {
     testing,
     findExactMatch,
-    findExactMatchForComponent
 } from './exampleComparison'
 import type {
     EphemeraCacheDynamoItem,
@@ -245,34 +244,5 @@ describe('renderCache/exampleComparison', () => {
         })
     })
 
-    describe('findExactMatchForComponent', () => {
-        it('queries cache records and delegates to findExactMatch', async () => {
-            const proposed = makeMarkState([{ mark: 'MARK#a', value: 'one' }])
-            const perspective: Perspective = { assetStack: ['ASSET#a'] }
-            const records = [
-                baseRecord({
-                    DataCategory: 'CACHE#match',
-                    markState: proposed,
-                    perspectiveMatcher: { requiredAssetIds: ['ASSET#a'], forbiddenAssetIds: [] }
-                })
-            ]
-
-            const query = jest.fn().mockResolvedValue(records)
-
-            const match = await findExactMatchForComponent({
-                componentId: 'ROOM#test-room',
-                proposedMarkState: proposed,
-                perspective,
-                query
-            })
-
-            expect(query).toHaveBeenCalledWith('ROOM#test-room')
-            expect(match).toEqual(
-                expect.objectContaining({
-                    DataCategory: 'CACHE#match'
-                })
-            )
-        })
-    })
 })
 

@@ -12,9 +12,7 @@ export {
 
 export {
     findExactMatch,
-    findExactMatchForComponent,
     type FindExactMatchInput,
-    type FindExactMatchForComponentInput,
     normalizeMarkState,
     markStatesEqual,
 } from './exampleComparison'

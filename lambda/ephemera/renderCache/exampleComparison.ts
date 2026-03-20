@@ -3,10 +3,8 @@ import {
     type EphemeraCacheMarkState,
     type EphemeraCacheDynamoItem,
 } from './baseClasses'
-import type { QueryCacheRecordsForComponentFn } from './cacheAccess'
 import { perspectiveMatches, type Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
 import { normalizeMarkState, markStatesEqual } from './markStateUtils'
-import internalCache from '../internalCache'
 
 export { normalizeMarkState, markStatesEqual } from './markStateUtils'
 
@@ -38,28 +36,6 @@ export const findExactMatch = ({
     }
 
     return null
-}
-
-export type FindExactMatchForComponentInput = {
-    componentId: EphemeraCacheComponentId;
-    proposedMarkState: EphemeraCacheMarkState;
-    perspective: Perspective;
-    query?: QueryCacheRecordsForComponentFn;
-}
-
-export const findExactMatchForComponent = async ({
-    componentId,
-    proposedMarkState,
-    perspective,
-    query = (id) => internalCache.RenderCache.get(id)
-}: FindExactMatchForComponentInput): Promise<EphemeraCacheDynamoItem | null> => {
-    const records = await query(componentId)
-    return findExactMatch({
-        componentId,
-        proposedMarkState,
-        records,
-        perspective
-    })
 }
 
 export const testing = {
