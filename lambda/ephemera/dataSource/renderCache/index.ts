@@ -8,6 +8,7 @@ import type { PutCacheRecordCommand } from '../localApiEvents'
 import { isPutCacheRecordCommand } from '../localApiEvents'
 import { putCacheRecord } from '../../renderCache/cacheAccess'
 import type { EphemeraCacheComponentId } from '../../renderCache/baseClasses'
+import internalCache from '../../internalCache'
 import type { RenderCacheUpdatePayload } from './baseClasses'
 
 export const ephemeraRenderCacheDataSource = new EphemeraDataSource<never, RenderCacheUpdatePayload, PutCacheRecordCommand>({
@@ -39,6 +40,18 @@ export const ephemeraRenderCacheDataSource = new EphemeraDataSource<never, Rende
                     componentId = cmd.componentId
                     perspectiveId = cmd.record.perspectiveId
                     const dataCategory = await putCacheRecord(cmd.componentId, cmd.record, cmd.existingDataCategory)
+                    const { record } = cmd
+                    internalCache.RenderCache.set({
+                        componentId: cmd.componentId,
+                        markState: record.markState,
+                        cacheId: dataCategory,
+                        renderedContent: record.renderedContent,
+                        provenance: record.provenance,
+                        perspectiveId: record.perspectiveId,
+                        perspectiveMatcher: record.perspectiveMatcher,
+                        ...(record.situationId !== undefined ? { situationId: record.situationId } : {}),
+                        ...(record.authoredExampleId !== undefined ? { authoredExampleId: record.authoredExampleId } : {}),
+                    })
                     await streamEvent({
                         streamKey: cmd.componentId,
                         header: { type: 'Cache Updated' },

@@ -8,10 +8,11 @@ import type {
     EphemeraCacheRenderedContent,
     EphemeraCacheDynamoItem
 } from './baseClasses'
-import type { PutCacheRecordInput } from './cacheAccess'
+import type { PutCacheRecordInput, QueryCacheRecordsForComponentFn } from './cacheAccess'
 import { EPHEMERA_CACHE_PROVENANCE_GENERATED } from './baseClasses'
-import { queryCacheRecordsForComponent, putCacheRecord } from './cacheAccess'
+import { putCacheRecord } from './cacheAccess'
 import { findExactMatchForComponent } from './exampleComparison'
+import internalCache from '../internalCache'
 import { generateRoomDescription } from './generateRoomDescription'
 
 export type GenerateRoomPreviewInput = {
@@ -37,7 +38,6 @@ export type GenerateRoomPreviewResult =
 
 type FindExactMatchForComponent = typeof findExactMatchForComponent
 type GenerateRoomDescription = typeof generateRoomDescription
-type QueryCacheRecordsForComponent = typeof queryCacheRecordsForComponent
 type PutCacheRecord = typeof putCacheRecord
 
 export type PublishPutCacheRecord = (
@@ -56,13 +56,13 @@ export const generateRoomPreview = async (
     {
         findExactMatchForComponentImpl = findExactMatchForComponent,
         generateRoomDescriptionImpl = generateRoomDescription,
-        queryCacheRecordsForComponentImpl = queryCacheRecordsForComponent,
+        queryCacheRecordsForComponentImpl = (componentId) => internalCache.RenderCache.get(componentId),
         putCacheRecordImpl = putCacheRecord,
         publishPutCacheRecord,
     }: {
         findExactMatchForComponentImpl?: FindExactMatchForComponent;
         generateRoomDescriptionImpl?: GenerateRoomDescription;
-        queryCacheRecordsForComponentImpl?: QueryCacheRecordsForComponent;
+        queryCacheRecordsForComponentImpl?: QueryCacheRecordsForComponentFn;
         putCacheRecordImpl?: PutCacheRecord;
         /** When set (e.g. app handler), writes go through api.ephemera + mtw.ephemera.renderCache instead of putCacheRecordImpl. */
         publishPutCacheRecord?: PublishPutCacheRecord;

@@ -25,6 +25,7 @@ import CacheCharacterPossibleMapsData from './characterPossibleMaps';
 import CachePlayerMetaData from './playerMeta';
 import CacheGlobalData from './global';
 import { PreviewGenerationRequestsData } from './previewGenerationRequests';
+import { RenderCacheData } from './renderCache';
 
 const graphDBHandler: GraphDBHandler = new (withPrimitives<'PrimaryKey', string>()(withGetOperations<'PrimaryKey', string>()(DBHandlerBase)))({
     client: assetDB._client,
@@ -37,6 +38,7 @@ const graphDBHandler: GraphDBHandler = new (withPrimitives<'PrimaryKey', string>
 export class InternalCache {
     Global: CacheGlobalData = new CacheGlobalData()
     PreviewGenerationRequests: PreviewGenerationRequestsData = new PreviewGenerationRequestsData()
+    RenderCache: RenderCacheData = new RenderCacheData(queryCacheRecordsForComponent)
     PlayerMeta: CachePlayerMetaData;
     OrchestrateMessages: OrchestrateMessagesData = new OrchestrateMessagesData()
     RoomCharacterList: CacheRoomCharacterListsData = new CacheRoomCharacterListsData()
@@ -74,7 +76,7 @@ export class InternalCache {
             this.RoomCharacterList,
             this.Global,
             this.CharacterMeta,
-            queryCacheRecordsForComponent
+            (componentId) => this.RenderCache.get(componentId)
         )
         this.CharacterPossibleMaps = new CacheCharacterPossibleMapsData(this.CharacterMeta, this.Graph)
         this._invalidateAssetCallback = (EphemeraId) => {
@@ -100,6 +102,7 @@ export class InternalCache {
         this.ComponentRender.clear()
         this.CharacterPossibleMaps.clear()
         this.PreviewGenerationRequests.clear()
+        this.RenderCache.clear()
     }
 
     async flush() {

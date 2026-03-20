@@ -78,7 +78,7 @@ Parallel to **`api.wml`** and **`api.assets`** in other lambdas: **`dataSourceKe
 
 - **Implementation**: [`lambda/ephemera/dataSource/renderCache/index.ts`](dataSource/renderCache/index.ts); payload types in [`lambda/ephemera/dataSource/renderCache/baseClasses.ts`](dataSource/renderCache/baseClasses.ts).
 - **Inbound**: Subscribes to **`api.ephemera`** streaming envelopes whose header type is **`Put Cache Record`** (same shape as `sendPutCacheRecord`).
-- **Behavior**: Calls **`putCacheRecord`** in the render cache layer; on success publishes **`Cache Updated`** on the internal message bus; on validation or Dynamo failure publishes **`Cache Error`**.
+- **Behavior**: Calls **`putCacheRecord`** in the render cache layer; on success updates **`internalCache.RenderCache`** via **`set`** (so memoized reads stay consistent in the same invocation), then publishes **`Cache Updated`** on the internal message bus; on validation or Dynamo failure publishes **`Cache Error`**.
 - **Outbound payloads** (internal `getContent()` on the bus `StreamingEvent`):
   - **`Cache Updated`**: `componentId`, `dataCategory` (assigned key), `perspectiveId`.
   - **`Cache Error`**: `componentId`, `errorCode` (`INVALID_PAYLOAD` | `PUT_FAILED`), `errorMessage`, optional `perspectiveId`.
