@@ -34,11 +34,12 @@ Component-scoped API (the form we want):
 
 ## Migration sequence (recommended, low-regret)
 ### Step 1: Put the lookup computation behind an internal method
+- Status: COMPLETED
 - Add `internalCache.RenderCache.getExactMatch(...)` as the component-scoped lookup API.
 - Internally it may, temporarily, reuse legacy comparison helpers (or duplicate their pure logic) as long as call-sites no longer depend on legacy modules for lookup.
 
 Acceptance gate:
-- No orchestration/policy code performs matching computations by pulling `internalCache.RenderCache.get` and then applying separate comparison logic.
+- No orchestration/policy code performs exact-match by calling `await internalCache.RenderCache.get(componentId)` and then doing separate matcher/mark computations; it should call `internalCache.RenderCache.getExactMatch(...)` instead.
 
 ### Step 2: Move the exact-match helper out of call-sites
 - Update any remaining callers to use `internalCache.RenderCache.getExactMatch(...)`.

@@ -1,5 +1,6 @@
 import { RenderCacheData } from './renderCache'
 import type { EphemeraCacheDynamoItem } from '../renderCache/baseClasses'
+import type { Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
 
 const roomId = 'ROOM#r1' as const
 
@@ -153,5 +154,76 @@ describe('RenderCacheData', () => {
         const rows = await cache.get(roomId)
         expect(query).toHaveBeenCalledTimes(2)
         expect(rows[0].DataCategory).toBe('CACHE#after')
+    })
+
+    describe('getExactMatch', () => {
+        const perspective: Perspective = { assetStack: ['ASSET#a'] }
+
+        it('returns a record when markState and perspective match', async () => {
+            const row = makeRow()
+            const query = jest.fn().mockResolvedValue([row])
+            const cache = new RenderCacheData(query)
+
+            const result = await cache.getExactMatch({
+                componentId: roomId,
+                proposedMarkState: row.markState,
+                perspective,
+            })
+
+            expect(result).not.toBeNull()
+            expect(result).toEqual(expect.objectContaining({ DataCategory: row.DataCategory }))
+            expect(query).toHaveBeenCalledTimes(1)
+        })
+
+        it('returns null when markState mismatches', async () => {
+            const row = makeRow()
+            const query = jest.fn().mockResolvedValue([row])
+            const cache = new RenderCacheData(query)
+
+            const result = await cache.getExactMatch({
+                componentId: roomId,
+                proposedMarkState: { markValue: [{ mark: 'MARK#a', value: 'different' }] },
+                perspective,
+            })
+
+            expect(result).toBeNull()
+            expect(query).toHaveBeenCalledTimes(1)
+        })
+
+        it('returns null when perspective mismatches', async () => {
+            const row = makeRow({ perspectiveMatcher: { requiredAssetIds: ['ASSET#other'], forbiddenAssetIds: [] } })
+            const query = jest.fn().mockResolvedValue([row])
+            const cache = new RenderCacheData(query)
+
+            const result = await cache.getExactMatch({
+                componentId: roomId,
+                proposedMarkState: row.markState,
+                perspective,
+            })
+
+            expect(result).toBeNull()
+            expect(query).toHaveBeenCalledTimes(1)
+        })
+
+        it('memoizes get(componentId) so query runs once', async () => {
+            const row = makeRow()
+            const query = jest.fn().mockResolvedValue([row])
+            const cache = new RenderCacheData(query)
+
+            const a = await cache.getExactMatch({
+                componentId: roomId,
+                proposedMarkState: row.markState,
+                perspective,
+            })
+            const b = await cache.getExactMatch({
+                componentId: roomId,
+                proposedMarkState: { markValue: [{ mark: 'MARK#a', value: 'different' }] },
+                perspective,
+            })
+
+            expect(a).not.toBeNull()
+            expect(b).toBeNull()
+            expect(query).toHaveBeenCalledTimes(1)
+        })
     })
 })
