@@ -19,7 +19,7 @@ describe('ComponentRender cache handler', () => {
 
     it('should render room descriptions and headers differently', async () => {
         // No render-cache records: fall back to ExamplesData (Phase 3: prefer cache, then fallback).
-        (internalCache.ComponentRender as any)._queryCacheRecordsForComponent = jest.fn().mockResolvedValue([])
+        jest.spyOn(internalCache.RenderCache, "get").mockResolvedValue([])
         jest.spyOn(internalCache.Global, "get").mockResolvedValue(['Base'])
         jest.spyOn(internalCache.CharacterMeta, "get").mockResolvedValue({
             EphemeraId: 'CHARACTER#Test',
@@ -89,7 +89,7 @@ describe('ComponentRender cache handler', () => {
             perspectiveMatcher: { requiredAssetIds: [], forbiddenAssetIds: [] },
             situationId: 'SITUATION#situation-one',
         }
-        ;(internalCache.ComponentRender as any)._queryCacheRecordsForComponent = jest.fn().mockResolvedValue([cacheRecord])
+        ;(jest.spyOn(internalCache.RenderCache, "get").mockResolvedValue([cacheRecord as any]))
         jest.spyOn(internalCache.Examples, "get")
         jest.spyOn(internalCache.Global, "get").mockResolvedValue(['Base'])
         jest.spyOn(internalCache.CharacterMeta, "get").mockResolvedValue({
@@ -144,7 +144,7 @@ describe('ComponentRender cache handler', () => {
             situationId: 'SITUATION#primary',
             authoredExampleId: 'EXAMPLE#legacy',
         }
-        ;(internalCache.ComponentRender as any)._queryCacheRecordsForComponent = jest.fn().mockResolvedValue([cacheRecord])
+        ;(jest.spyOn(internalCache.RenderCache, "get").mockResolvedValue([cacheRecord as any]))
         jest.spyOn(internalCache.Examples, "get")
         jest.spyOn(internalCache.Global, "get").mockResolvedValue(['Base'])
         jest.spyOn(internalCache.CharacterMeta, "get").mockResolvedValue({

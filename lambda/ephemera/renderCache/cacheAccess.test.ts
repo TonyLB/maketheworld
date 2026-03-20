@@ -4,11 +4,11 @@ jest.mock('uuid')
 import { v4 as uuidv4 } from 'uuid'
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import {
-    queryCacheRecordsForComponent,
     putCacheRecord,
     deleteCacheRecord,
     type PutCacheRecordInput
 } from './cacheAccess'
+import { queryCacheRecordsForComponent } from '../dataSource/renderCache/queryCacheRecordsForComponent'
 
 const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 const uuidv4Mock = uuidv4 as jest.Mock
@@ -23,13 +23,13 @@ const minimalRecord: PutCacheRecordInput = {
     perspectiveMatcher: { requiredAssetIds: ['ASSET#a'], forbiddenAssetIds: [] }
 }
 
-describe('renderCache/cacheAccess', () => {
+describe('renderCache/cacheAccess (put/delete) + renderCache query module', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         uuidv4Mock.mockReturnValue('new-uuid-1234')
     })
 
-    describe('queryCacheRecordsForComponent', () => {
+    describe('dataSource/renderCache/queryCacheRecordsForComponent', () => {
         it('returns cache-shaped items from ephemeraDB.query', async () => {
             const items = [
                 {

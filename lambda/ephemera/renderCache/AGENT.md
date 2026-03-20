@@ -107,11 +107,13 @@ Preview request sends `assetStack`; Ephemera builds `perspective = { assetStack 
 
 ---
 
-## Access Layer: `cacheAccess.ts`
+## Persistence Primitives
 
-`renderCache/cacheAccess.ts` provides low-level operations over the Ephemera table. It operates strictly in terms of component ids and cache records (no knowledge of Events or WebSockets).
+`renderCache/cacheAccess.ts` provides low-level write primitives (put/delete) over the Ephemera table. It operates strictly in terms of component ids and cache records (no knowledge of Events or WebSockets).
 
-### `queryCacheRecordsForComponent(componentId)`
+### DataSource-owned `queryCacheRecordsForComponent(componentId)`
+
+[`lambda/ephemera/dataSource/renderCache/queryCacheRecordsForComponent.ts`](../dataSource/renderCache/queryCacheRecordsForComponent.ts) provides the Dynamo query used by request-scoped read memoization.
 
 - Query Ephemera table where:
   - `EphemeraId = componentId`
@@ -153,7 +155,7 @@ For Example/Situation removal, Ephemera:
 
 1. Receives an `ExampleRemoved` event from `mtw.assets.componentExamples` with `parentIds` and `exampleId`.
 2. For each parent:
-   - Calls `queryCacheRecordsForComponent(parentId)`.
+   - Calls `internalCache.RenderCache.get(parentId)`.
    - Filters to records where `situationId === exampleId` or `authoredExampleId === exampleId` (Room path uses situationId/SITUATION#; Feature/Knowledge use authoredExampleId/EXAMPLE#).
    - Calls `deleteCacheRecord(parentId, DataCategory)` for each match.
 

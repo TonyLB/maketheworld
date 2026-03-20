@@ -1,6 +1,7 @@
 import { ComponentMetaData } from './componentMeta'
 import { DeferredCache } from '@tonylb/mtw-lambda-patterns/ts/internalCache'
-import type { EphemeraCacheComponentId, EphemeraCacheDynamoItem } from '../renderCache/baseClasses'
+import type { EphemeraCacheDynamoItem } from '../renderCache/baseClasses'
+import type { RenderCacheData } from './renderCache'
 
 import { RoomDescribeData, MapDescribeData, RoomExit } from '@tonylb/mtw-interfaces/ts/messages'
 import CacheGlobalData from './global';
@@ -69,13 +70,9 @@ export const isComponentTag = (tag) => (['Room', 'Feature'].includes(tag))
 
 export const isComponentKey = (key) => (['ROOM', 'FEATURE'].includes(splitType(key)[0]))
 
-export type QueryCacheRecordsForComponent = (
-    componentId: EphemeraCacheComponentId
-) => Promise<EphemeraCacheDynamoItem[]>;
-
 export class ComponentRenderData {
     _examples: (keys: ExampleComponentId[]) => Promise<Record<ExampleComponentId, ExamplesReturn[]>>;
-    _queryCacheRecordsForComponent: QueryCacheRecordsForComponent;
+    _renderCache: RenderCacheData;
     // _evaluateCode removed - Variable/Computed evaluation no longer needed
     _componentMeta: (EphemeraId: ComponentUUID, assetList: AssetUUID[]) => Promise<Record<AssetUUID, StandardComponent>>;
     _roomCharacterList: (roomId: EphemeraRoomId) => Promise<RoomCharacterListItem[]>;
@@ -90,10 +87,10 @@ export class ComponentRenderData {
         roomCharacterList: CacheRoomCharacterListsData,
         globalCache: CacheGlobalData,
         characterMeta: CacheCharacterMetaData,
-        queryCacheRecordsForComponent: QueryCacheRecordsForComponent
+        renderCache: RenderCacheData
     ) {
         this._examples = (keys) => (examples.get(keys))
-        this._queryCacheRecordsForComponent = queryCacheRecordsForComponent
+        this._renderCache = renderCache
         // _evaluateCode removed - Variable/Computed evaluation no longer needed
         this._componentMeta = (EphemeraId, assetList) => (componentMeta.getAcrossAssets(EphemeraId, assetList))
         this._roomCharacterList = (RoomId) => (roomCharacterList.get(RoomId))
@@ -159,7 +156,7 @@ export class ComponentRenderData {
             const assetData = allAssets.map((assetId) => (appearancesByAsset[assetId] ? [appearancesByAsset[assetId]] : [])).flat(1) as StandardRoom[];
 
             // Prefer render cache for Room (may contain situation-facet records); fall back to ExamplesData.
-            const cacheRecords = await this._queryCacheRecordsForComponent(EphemeraId);
+            const cacheRecords = await this._renderCache.get(EphemeraId);
             const firstRecord: EphemeraCacheDynamoItem | undefined = cacheRecords.length > 0
                 ? cacheRecords[0]
                 : undefined;

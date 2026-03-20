@@ -3,11 +3,9 @@
 //
 
 export {
-    queryCacheRecordsForComponent,
     putCacheRecord,
     deleteCacheRecord,
     type PutCacheRecordInput,
-    type QueryCacheRecordsForComponentFn,
 } from './cacheAccess'
 
 export {
