@@ -1,4 +1,10 @@
-import { DataSource, SerializableObject, StreamEventFunction, StreamEnvelopeFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
+import {
+    DataSource,
+    DataSourcePublisherStrategy,
+    SerializableObject,
+    StreamEventFunction,
+    StreamEnvelopeFunction,
+} from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import { EventPayload, StreamingEventEnvelope, StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import messageBus from '../messageBus'
@@ -25,6 +31,7 @@ export class EphemeraDataSource<
             streamEnvelope: StreamEnvelopeFunction;
         }) => Promise<void>;
         eventSerializer?: any;
+        publisherStrategy?: DataSourcePublisherStrategy;
     }) {
         super({
             dynamo: ephemeraDB,

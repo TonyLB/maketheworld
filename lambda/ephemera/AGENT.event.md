@@ -71,10 +71,18 @@ Parallel to **`api.wml`** and **`api.assets`** in other lambdas: **`dataSourceKe
 
 - **Definitions**: [`lambda/ephemera/dataSource/localApiEvents.ts`](dataSource/localApiEvents.ts) (payload types and shape guards), [`lambda/ephemera/dataSource/apiEphemera.ts`](dataSource/apiEphemera.ts) (header/envelope guards, `sendPutCacheRecord`, `sendGenerateRoomPreview`).
 - **Initial event types**:
-  - **`Put Cache Record`**: Payload aligns with `putCacheRecord(componentId, record, existingDataCategory?)` in the render cache layer.
+  - **`Put Cache Record`**: Payload aligns with `putCacheRecord(componentId, record, existingDataCategory?)` in the render cache layer. Consumed by **`mtw.ephemera.renderCache`** (see below). Production paths that participate in this thread should use **`sendPutCacheRecord`** from [`lambda/ephemera/dataSource/apiEphemera.ts`](dataSource/apiEphemera.ts) so the write and outbound signals stay consistent.
   - **`Generate Room Preview`**: Payload mirrors room preview input plus optional `RequestId` for correlation.
 
-Future work: subscribe a render-cache (or top-level ephemera) `DataSource` to these envelopes and replace direct calls from `app.ts` where appropriate.
+#### **mtw.ephemera.renderCache (render cache write + outbound signals)**
+
+- **Implementation**: [`lambda/ephemera/dataSource/renderCache/index.ts`](dataSource/renderCache/index.ts); payload types in [`lambda/ephemera/dataSource/renderCache/baseClasses.ts`](dataSource/renderCache/baseClasses.ts).
+- **Inbound**: Subscribes to **`api.ephemera`** streaming envelopes whose header type is **`Put Cache Record`** (same shape as `sendPutCacheRecord`).
+- **Behavior**: Calls **`putCacheRecord`** in the render cache layer; on success publishes **`Cache Updated`** on the internal message bus; on validation or Dynamo failure publishes **`Cache Error`**.
+- **Outbound payloads** (internal `getContent()` on the bus `StreamingEvent`):
+  - **`Cache Updated`**: `componentId`, `dataCategory` (assigned key), `perspectiveId`.
+  - **`Cache Error`**: `componentId`, `errorCode` (`INVALID_PAYLOAD` | `PUT_FAILED`), `errorMessage`, optional `perspectiveId`.
+- **Publishing**: **`publisherStrategy: 'busOnly'`**, **`replayable: false`** (no EventBridge, no replay rows for this source).
 
 ### **EventBridge Event Subscription**
 
