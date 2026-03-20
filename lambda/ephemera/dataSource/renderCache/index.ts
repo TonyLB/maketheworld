@@ -1,6 +1,7 @@
 /**
- * mtw.ephemera.renderCache: consumes api.ephemera Put Cache Record, writes via putCacheRecord,
- * publishes Cache Updated / Cache Error on the internal bus (bus-only, non-replayable).
+ * mtw.ephemera.renderCache: consumes api.ephemera Put Cache Record and Delete Cache Records,
+ * writes via putCacheRecord / deleteCacheRecord, publishes Cache Updated / Cache Deleted / Cache Error
+ * on the internal bus (bus-only, non-replayable).
  */
 import EphemeraDataSource from '../abstract'
 import {
@@ -85,6 +86,12 @@ export const ephemeraRenderCacheDataSource = new EphemeraDataSource<never, Rende
                         return
                     }
 
+                    const invalidPayloadMessage = 'api.ephemera cache command failed validation'
+                    console.error('[mtw.ephemera.renderCache] Cache Error', {
+                        componentId,
+                        errorCode: 'INVALID_PAYLOAD',
+                        errorMessage: invalidPayloadMessage,
+                    })
                     await streamEvent({
                         streamKey,
                         header: { type: 'Cache Error' },
@@ -92,18 +99,25 @@ export const ephemeraRenderCacheDataSource = new EphemeraDataSource<never, Rende
                             type: 'Cache Error',
                             componentId,
                             errorCode: 'INVALID_PAYLOAD',
-                            errorMessage: 'api.ephemera cache command failed validation',
+                            errorMessage: invalidPayloadMessage,
                         },
                     })
                 } catch (error) {
                     const errorMessage = error instanceof Error ? error.message : String(error)
+                    const errorCode = opErrorCode ?? 'CACHE_COMMAND_FAILED'
+                    console.error('[mtw.ephemera.renderCache] Cache Error', {
+                        componentId,
+                        errorCode,
+                        errorMessage,
+                        ...(perspectiveId !== undefined ? { perspectiveId } : {}),
+                    })
                     await streamEvent({
                         streamKey: componentId,
                         header: { type: 'Cache Error' },
                         update: {
                             type: 'Cache Error',
                             componentId,
-                            errorCode: opErrorCode ?? 'CACHE_COMMAND_FAILED',
+                            errorCode,
                             errorMessage,
                             ...(perspectiveId !== undefined ? { perspectiveId } : {}),
                         },

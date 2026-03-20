@@ -4,20 +4,19 @@ import {
 } from './componentExamples'
 import type { ComponentExamplesMirrorEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
 import type { EphemeraCacheDynamoItem } from '../renderCache'
+import type { StreamingEventMessage } from '../messageBus/baseClasses'
 
 describe('handleComponentExamplesEvent (mtw.ephemera.examples)', () => {
     const makeDeps = (): {
         deps: HandleComponentExamplesDependencies;
         internalCacheOverride: any;
-        putCacheRecord: jest.Mock;
-        deleteCacheRecord: jest.Mock;
+        messageBus: { send: jest.Mock };
         computePerspectiveKey: jest.Mock;
         logger: { error: jest.Mock };
     } => {
         const getExactMatch = jest.fn().mockResolvedValue(null)
         const get = jest.fn().mockResolvedValue([])
-        const putCacheRecord = jest.fn()
-        const deleteCacheRecord = jest.fn()
+        const send = jest.fn()
         const computePerspectiveKey = jest.fn().mockReturnValue('PERSPECTIVE#v1#abc123')
         const logger = { error: jest.fn() }
 
@@ -30,8 +29,7 @@ describe('handleComponentExamplesEvent (mtw.ephemera.examples)', () => {
 
         const deps: HandleComponentExamplesDependencies = {
             internalCacheOverride,
-            putCacheRecord,
-            deleteCacheRecord,
+            messageBus: { send },
             computePerspectiveKey,
             logger
         }
@@ -39,8 +37,7 @@ describe('handleComponentExamplesEvent (mtw.ephemera.examples)', () => {
         return {
             deps,
             internalCacheOverride,
-            putCacheRecord,
-            deleteCacheRecord,
+            messageBus: { send },
             computePerspectiveKey,
             logger
         }
@@ -54,7 +51,7 @@ describe('handleComponentExamplesEvent (mtw.ephemera.examples)', () => {
         const {
             deps,
             internalCacheOverride,
-            putCacheRecord,
+            messageBus,
             computePerspectiveKey
         } = makeDeps()
         ;(internalCacheOverride.RenderCache.getExactMatch as jest.Mock).mockResolvedValue(null)
@@ -75,38 +72,51 @@ describe('handleComponentExamplesEvent (mtw.ephemera.examples)', () => {
         await handleComponentExamplesEvent(event, deps)
 
         expect(computePerspectiveKey).toHaveBeenCalledWith(['ASSET#one', 'ASSET#two'])
-        expect(putCacheRecord).toHaveBeenCalledTimes(2)
-        expect(putCacheRecord).toHaveBeenCalledWith(
-            'ROOM#one',
-            expect.objectContaining({
-                markState: event.example.markState,
-                renderedContent: event.example.renderedContent,
-                provenance: event.example.provenance,
-                perspectiveId: 'PERSPECTIVE#v1#abc123',
-                perspectiveMatcher: event.perspectiveMatcher,
-                authoredExampleId: 'EXAMPLE#one'
-            }),
-            undefined
+        expect(messageBus.send).toHaveBeenCalledTimes(2)
+
+        const payloads = messageBus.send.mock.calls.map((c) => c[0] as StreamingEventMessage)
+        for (const msg of payloads) {
+            expect(msg.type).toBe('StreamingEvent')
+            expect(msg.dataSourceKey).toBe('api.ephemera')
+            expect(msg.header.type).toBe('Put Cache Record')
+        }
+
+        const contents = await Promise.all(payloads.map((m) => m.getContent()))
+        expect(contents).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    componentId: 'ROOM#one',
+                    record: expect.objectContaining({
+                        markState: event.example.markState,
+                        renderedContent: event.example.renderedContent,
+                        provenance: event.example.provenance,
+                        perspectiveId: 'PERSPECTIVE#v1#abc123',
+                        perspectiveMatcher: event.perspectiveMatcher,
+                        authoredExampleId: 'EXAMPLE#one'
+                    })
+                }),
+                expect.objectContaining({
+                    componentId: 'FEATURE#two',
+                    record: expect.objectContaining({
+                        markState: event.example.markState,
+                        renderedContent: event.example.renderedContent,
+                        provenance: event.example.provenance,
+                        perspectiveId: 'PERSPECTIVE#v1#abc123',
+                        perspectiveMatcher: event.perspectiveMatcher,
+                        authoredExampleId: 'EXAMPLE#one'
+                    })
+                })
+            ])
         )
-        expect(putCacheRecord).toHaveBeenCalledWith(
-            'FEATURE#two',
-            expect.objectContaining({
-                markState: event.example.markState,
-                renderedContent: event.example.renderedContent,
-                provenance: event.example.provenance,
-                perspectiveId: 'PERSPECTIVE#v1#abc123',
-                perspectiveMatcher: event.perspectiveMatcher,
-                authoredExampleId: 'EXAMPLE#one'
-            }),
-            undefined
-        )
+        const putCommands = contents as Array<{ existingDataCategory?: string }>
+        expect(putCommands.every((c) => c.existingDataCategory === undefined)).toBe(true)
     })
 
     it('writes cache records with situationId when exampleId is SITUATION# (Room path)', async () => {
         const {
             deps,
             internalCacheOverride,
-            putCacheRecord,
+            messageBus,
             computePerspectiveKey
         } = makeDeps()
         ;(internalCacheOverride.RenderCache.getExactMatch as jest.Mock).mockResolvedValue(null)
@@ -127,20 +137,22 @@ describe('handleComponentExamplesEvent (mtw.ephemera.examples)', () => {
         await handleComponentExamplesEvent(event, deps)
 
         expect(computePerspectiveKey).toHaveBeenCalledWith(['ASSET#one'])
-        expect(putCacheRecord).toHaveBeenCalledTimes(1)
-        expect(putCacheRecord).toHaveBeenCalledWith(
-            'ROOM#room-one',
-            expect.objectContaining({
+        expect(messageBus.send).toHaveBeenCalledTimes(1)
+
+        const msg = messageBus.send.mock.calls[0][0] as StreamingEventMessage
+        const content = await msg.getContent()
+        expect(content).toMatchObject({
+            componentId: 'ROOM#room-one',
+            record: expect.objectContaining({
                 markState: event.example.markState,
                 renderedContent: event.example.renderedContent,
                 provenance: event.example.provenance,
                 perspectiveId: 'PERSPECTIVE#v1#abc123',
                 perspectiveMatcher: event.perspectiveMatcher,
                 situationId: 'SITUATION#situation-one'
-            }),
-            undefined
-        )
-        const putArg = putCacheRecord.mock.calls[0][1]
+            })
+        })
+        const putArg = (content as { record: Record<string, unknown> }).record
         expect(putArg).not.toHaveProperty('authoredExampleId')
     })
 
@@ -148,7 +160,7 @@ describe('handleComponentExamplesEvent (mtw.ephemera.examples)', () => {
         const {
             deps,
             internalCacheOverride,
-            deleteCacheRecord
+            messageBus
         } = makeDeps()
 
         const records: EphemeraCacheDynamoItem[] = [
@@ -190,16 +202,33 @@ describe('handleComponentExamplesEvent (mtw.ephemera.examples)', () => {
         expect(internalCacheOverride.RenderCache.get).toHaveBeenCalledWith('ROOM#one')
         expect(internalCacheOverride.RenderCache.get).toHaveBeenCalledWith('FEATURE#two')
 
-        expect(deleteCacheRecord).toHaveBeenCalledTimes(2)
-        expect(deleteCacheRecord).toHaveBeenCalledWith('ROOM#one', 'CACHE#one')
-        expect(deleteCacheRecord).toHaveBeenCalledWith('FEATURE#two', 'CACHE#one')
+        expect(messageBus.send).toHaveBeenCalledTimes(2)
+
+        const payloads = messageBus.send.mock.calls.map((c) => c[0] as StreamingEventMessage)
+        for (const msg of payloads) {
+            expect(msg.header.type).toBe('Delete Cache Records')
+        }
+
+        const contents = await Promise.all(payloads.map((m) => m.getContent()))
+        expect(contents).toEqual(
+            expect.arrayContaining([
+                {
+                    componentId: 'ROOM#one',
+                    dataCategories: ['CACHE#one']
+                },
+                {
+                    componentId: 'FEATURE#two',
+                    dataCategories: ['CACHE#one']
+                }
+            ])
+        )
     })
 
     it('deletes cache records by situationId when exampleId is SITUATION#', async () => {
         const {
             deps,
             internalCacheOverride,
-            deleteCacheRecord
+            messageBus
         } = makeDeps()
 
         const records: EphemeraCacheDynamoItem[] = [
@@ -238,8 +267,13 @@ describe('handleComponentExamplesEvent (mtw.ephemera.examples)', () => {
         await handleComponentExamplesEvent(event, deps)
 
         expect(internalCacheOverride.RenderCache.get).toHaveBeenCalledWith('ROOM#one')
-        expect(deleteCacheRecord).toHaveBeenCalledTimes(1)
-        expect(deleteCacheRecord).toHaveBeenCalledWith('ROOM#one', 'CACHE#one')
+        expect(messageBus.send).toHaveBeenCalledTimes(1)
+
+        const msg = messageBus.send.mock.calls[0][0] as StreamingEventMessage
+        expect(msg.header.type).toBe('Delete Cache Records')
+        expect(await msg.getContent()).toEqual({
+            componentId: 'ROOM#one',
+            dataCategories: ['CACHE#one']
+        })
     })
 })
-

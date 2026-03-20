@@ -61,6 +61,8 @@ Acceptance gate:
 Acceptance gate:
 - Production dependencies no longer require `lambda/ephemera/renderCache/cacheAccess.ts` for reads/writes.
 
+**Call-site alignment (examples mirroring)**: `mtw.ephemera.examples` ([`lambda/ephemera/dataSource/componentExamples.ts`](../dataSource/componentExamples.ts)) routes cache puts and deletes through **`api.ephemera`** (`sendPutCacheRecord`, `sendDeleteCacheRecords`) instead of calling `cacheAccess` directly, so **`Cache Updated`**, **`Cache Deleted`**, and **`Cache Error`** stay unified with **`mtw.ephemera.renderCache`** (nested bus traffic is drained by the active **`flush()`** recursion).
+
 ### Step 4: Remove or isolate legacy modules
 - Once no production code imports legacy persistence modules, either:
   - delete them, or

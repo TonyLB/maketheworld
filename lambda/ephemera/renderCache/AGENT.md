@@ -97,7 +97,7 @@ Examples are authored against a **stack of assets** (inheritance chain). The sam
   - Reconstructs `assetStack` by following Example `_from` links across Assets (base-first, event asset last).
   - Emits events with `assetStack` in payload.
 - **Ephemera DataSource (`mtw.ephemera.examples`)**:
-  - Receives events with `perspectiveMatcher` and `assetStack`, writes cache records via `putCacheRecord` (including `perspectiveMatcher`; `perspectiveId` is still computed and stored but not used for matching).
+  - Receives events with `perspectiveMatcher` and `assetStack`, enqueues **`Put Cache Record`** / **`Delete Cache Records`** on **`api.ephemera`** via **`sendPutCacheRecord`** / **`sendDeleteCacheRecords`**. No separate **`flush()`** in this module: the in-progress **`messageBus.flush()`** that invoked the DataSource recurses until nested **`send()`** traffic (including **`mtw.ephemera.renderCache`**) is drained (including `perspectiveMatcher`; `perspectiveId` is still computed and stored but not used for matching).
 - **Authoring Preview (RoomPreviewEditor)**:
   - On the client, `assetStack` is built from `useWorkbenchAsset()`:
     - `assetStack = [...inheritedByAssetId.map(({ assetId }) => assetId), AssetId]`
