@@ -7,12 +7,12 @@ import type {
     EphemeraCacheMarkState,
     EphemeraCacheRenderedContent,
     EphemeraCacheDynamoItem
-} from './baseClasses'
+} from '../renderCache/baseClasses'
 import type { PutCacheRecordInput } from '../dataSource/renderCache/putCacheRecord'
 import type { QueryCacheRecordsForComponentFn } from '../dataSource/renderCache/queryCacheRecordsForComponent'
-import { EPHEMERA_CACHE_PROVENANCE_GENERATED } from './baseClasses'
+import { EPHEMERA_CACHE_PROVENANCE_GENERATED } from '../renderCache/baseClasses'
 import internalCache from '../internalCache'
-import { generateRoomDescription } from './generateRoomDescription'
+import { generateRoomDescription } from '../generateExample'
 import type { RenderCacheGetExactMatchParams } from '../internalCache/renderCache'
 import { sendPutCacheRecord } from '../dataSource/apiEphemera'
 import messageBus from '../messageBus'

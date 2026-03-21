@@ -71,6 +71,16 @@ Acceptance gate:
 Acceptance gate:
 - A repo-wide search for `cacheAccess` shows no stale imports (docs may mention history only).
 
+### Step 5: Domain lift (generate-centric code)
+- Status: COMPLETED
+- Move LLM room-description generation into `lambda/ephemera/generateExample/`:
+  - `generateRoomDescription.ts`, `buildRoomDescriptionPrompt.ts`, `invokeBedrockRoomDescription.ts` (and tests).
+- Move `generateRoomPreview` orchestration into `lambda/ephemera/renderOrchestration/`.
+- Slim `renderCache/` to types (`baseClasses`), mark helpers (`markStateUtils`), and barrel re-exporting DataSource primitives.
+
+Acceptance gate:
+- `renderCache` no longer contains generate-centric code; orchestration and generation live in `renderOrchestration` and `generateExample` respectively.
+
 ## Testing / equivalence checks
 For any behavior change, validate equivalence between old and new paths:
 - Exact-match correctness:

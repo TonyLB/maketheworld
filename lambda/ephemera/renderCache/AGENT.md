@@ -1,6 +1,6 @@
 # Ephemera Render Cache - AGENT
 
-This document describes how Ephemera caches rendered descriptions in the Ephemera DynamoDB table, centered around the `renderCache/` module (`baseClasses.ts`, `markStateUtils.ts`, `generateRoomPreview.ts` and tests) plus DataSource-owned Dynamo helpers under `dataSource/renderCache/`.
+This document describes how Ephemera caches rendered descriptions in the Ephemera DynamoDB table. The `renderCache/` module now provides **types** (`baseClasses.ts`), **mark-state helpers** (`markStateUtils.ts`), and a thin barrel re-exporting DataSource persistence primitives. LLM generation lives in `generateExample/`; cache-miss orchestration lives in `renderOrchestration/generateRoomPreview.ts`. DataSource-owned Dynamo helpers live under `dataSource/renderCache/`.
 
 It is the concrete realization of the schema and flow outlined in:
 
@@ -190,15 +190,15 @@ Core helper (conceptually):
   - Matches by Mark-state equality semantics (`markStatesEqual` over normalized markState).
   - Returns the first matching record, or `null` when none match.
 
-This is the canonical “does this state exist in cache?” check, used by `generateRoomPreview` and ready for reuse in future flows.
+This is the canonical “does this state exist in cache?” check, used by `renderOrchestration/generateRoomPreview` and ready for reuse in future flows.
 
 ---
 
-## Preview Flow: `generateRoomPreview.ts` and WebSocket handler
+## Preview Flow: `generateRoomPreview` and WebSocket handler
 
-### `generateRoomPreview` (renderCache)
+### `generateRoomPreview` (renderOrchestration)
 
-`renderCache/generateRoomPreview.ts` packages the comparison logic for the Room Preview use case:
+`renderOrchestration/generateRoomPreview.ts` orchestrates the Room Preview flow (exact match, LLM generation on miss). It depends on `generateExample` for Bedrock-backed generation and `renderCache` for record types:
 
 - Input:
   - `roomId: EphemeraRoomId`

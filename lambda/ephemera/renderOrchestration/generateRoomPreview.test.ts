@@ -3,7 +3,7 @@ import type {
     EphemeraCacheMarkState,
     EphemeraCacheDynamoItem,
     EphemeraCacheRenderedContent
-} from './baseClasses'
+} from '../renderCache/baseClasses'
 
 const makeMarkState = (entries: Array<{ mark: string; value: string }>): EphemeraCacheMarkState => ({
     markValue: entries
@@ -20,7 +20,7 @@ const baseRecord = (overrides: Partial<EphemeraCacheDynamoItem> = {}): EphemeraC
     ...overrides
 })
 
-describe('renderCache/generateRoomPreview', () => {
+describe('renderOrchestration/generateRoomPreview', () => {
     const roomId = 'ROOM#test-room' as const
     const noopPublishPutCacheRecord = jest.fn().mockResolvedValue(undefined)
 

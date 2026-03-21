@@ -44,7 +44,7 @@ In v2, `renderOrchestration` is implemented as a **messageBus-driven event casca
 
 - **Message bus**: `lambda/ephemera/messageBus/` is the execution engine for the cascade.
 - **State storage**: `Meta::Room` (`packages/mtw-interfaces/ts/ephemeraMeta.ts` + ephemeraDB).
-- **Cache primitives**: `lambda/ephemera/renderCache/` (exact match + generation primitives).
+- **Cache primitives**: `lambda/ephemera/renderCache/` (record types, mark helpers, exact match via `internalCache.RenderCache`). LLM generation: `lambda/ephemera/generateExample/`.
 - **Perception**: `lambda/ephemera/perception/` subscribes to orchestration lifecycle events to send placeholder and final messages.
 
 ### Cross-references
@@ -80,14 +80,13 @@ In v2, `renderOrchestration` is implemented as a **messageBus-driven event casca
 2. Read state v2 plan: `../state/AGENT.v2.planning.md` (system-level plan).
 3. Review messageBus patterns: `../messageBus/baseClasses.ts` and `../messageBus/index.ts`.
 4. Review perception placeholders: `../perception/index.ts` (look for `sendRoomGeneratingHeader`).
-5. Review cache primitives: `../renderCache/markStateUtils.ts` and `../renderCache/generateRoomPreview.ts`.
+5. Review cache primitives: `../renderCache/markStateUtils.ts`. Room cache-miss orchestration: `generateRoomPreview.ts` (this directory). LLM generation: `../generateExample/`.
 
-### Key files (expected in this directory as v2 is implemented)
+### Key files
 
-- `AGENT.planning.md`: local plan and message contract drafts
-- `events.ts` (expected): messageBus event type definitions and type guards
-- `index.ts` (expected): handler registration and orchestration entrypoints
-- `*.ts` handler modules (expected): request handler, lookup handler, generation handler, completion handler
+- `events.ts`: messageBus event type definitions and type guards
+- `requestIntake.ts`: request intake and cache decisioning
+- `generateRoomPreview.ts`: room cache-miss orchestration (exact match, then `generateExample` on miss; used by WebSocket API)
 
 ## Development Notes
 
