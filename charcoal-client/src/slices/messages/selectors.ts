@@ -52,13 +52,12 @@ const messageStateProxy = (branch: MessageState): MessageState =>
         }
     }) as MessageState
 
-/** Authoritative time-ordered log (all revisions). `Message.CreatedTime` is wire time. */
+/** Full revision log (`history`). Use for audit/debug; default UI uses `getPresentation`. */
 export const getMessages: Selector<MessageState> = (state) => messageStateProxy(state.messages.history)
 
 /**
- * Alternate-timeline transcript for UI (one row per `MessageId`). `Message.CreatedTime`
- * is transcript position (`earliestCreatedTime`), not necessarily the latest revision time;
- * see `toPresentationRow` in `index.ts`.
+ * Transcript view for UI (one row per `MessageId`). `Message.CreatedTime` is transcript
+ * position (`earliestCreatedTime`), not necessarily the latest revision time; see `toPresentationRow` in `index.ts`.
  */
 export const getPresentation: Selector<MessageState> = (state) => messageStateProxy(state.messages.presentation)
 
@@ -118,8 +117,9 @@ const combineCurrentHeader = ({ Messages, Groups, currentGroup }: MessageRoomInP
     }
 }
 
+/** Room-grouped timeline for the main transcript. Reads `presentation`, not full `history`. */
 export const getMessagesByRoom: (CharacterId: EphemeraCharacterId) => Selector<MessageRoomBreakdown> = (CharacterId) => createSelector(
-    getMessages,
+    getPresentation,
     (allMessages) => {
         let messages = [] as Message[]
         let initialHeader = undefined as MessageRoomBreakdownHeader | undefined
@@ -227,8 +227,9 @@ type MessageRecentVisit = {
     tag: SchemaImportMapping["type"];
 }
 
+/** Recent room visits from the same collapsed transcript as the main UI (`presentation`). */
 export const getRecentlyVisited: (fromTime: number) => Selector<MessageRecentVisit[]> = (fromTime) => createSelector(
-    getMessages,
+    getPresentation,
     (allMessages) => {
         const recentlyVisited: MessageRecentVisit[] = Object.values(allMessages)
             .map((messages) => {

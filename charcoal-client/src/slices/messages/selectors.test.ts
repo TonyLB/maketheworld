@@ -93,9 +93,7 @@ describe('messages selectors', () => {
 
     describe('getMessagesByRoom', () => {
 
-        const testState = {
-            messages: {
-                history: {
+        const historyForRoom = {
                 'CHARACTER#TESS': [{
                     DisplayProtocol: 'PerceptionMessage',
                     MessageId: 'Test1',
@@ -168,9 +166,13 @@ describe('messages selectors', () => {
                     CreatedTime: 4,
                     Target: 'CHARACTER#MARCO'
                 }]
-                } as MessageState,
+        } as MessageState
+
+        const testState = {
+            messages: {
+                history: historyForRoom,
                 aggregates: {},
-                presentation: {}
+                presentation: structuredClone(historyForRoom)
             }
         } as unknown as RootState
 
@@ -267,9 +269,7 @@ describe('messages selectors', () => {
 
     describe('getRecentlyVisited', () => {
 
-        const testState = {
-            messages: {
-                history: {
+        const historyForRecent = {
                 'CHARACTER#TESS': [{
                     DisplayProtocol: 'PerceptionMessage',
                     MessageId: 'Test1',
@@ -327,9 +327,13 @@ describe('messages selectors', () => {
                     CreatedTime: 5,
                     Target: 'CHARACTER#TESS'
                 }]
-                } as MessageState,
+        } as MessageState
+
+        const testState = {
+            messages: {
+                history: historyForRecent,
                 aggregates: {},
-                presentation: {}
+                presentation: structuredClone(historyForRecent)
             }
         } as unknown as RootState
 

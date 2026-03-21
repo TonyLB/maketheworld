@@ -44,15 +44,19 @@
 
 ## 4. Cold load / rehydration
 
-- [ ] On character activation, load from `cacheDB` as today (**by `Target`**), then **replay** messages through the **same** ingest path used for WebSocket so **history + aggregates + presentation** rebuild together.
-- [ ] Confirm **server sync** path still merges into the same pipeline (no duplicate logic).
+**Implemented:** `fetchAction` in `activeCharacters/index.api.ts` dispatches **`receiveMessages`** after loading from `cacheDB` (same reducer as live traffic). Server deltas arrive via WebSocket **`cacheMessages`** -> **`receiveMessages`** (`lifeLine/index.api.ts`). No separate rebuild pass.
+
+- [x] On character activation, load from `cacheDB` as today (**by `Target`**), then **replay** messages through the **same** ingest path used for WebSocket so **history + aggregates + presentation** rebuild together.
+- [x] Confirm **server sync** path still merges into the same pipeline (no duplicate logic).
 
 ---
 
 ## 5. Redirect UI to presentation
 
-- [ ] Identify selectors / components that currently read **raw** `Message[]` for the main transcript; switch default path to **presentation** (or selectors built on it).
-- [ ] Keep escape hatches for **debug / audit** views that may still read full **history** (optional).
+**Implemented:** `getMessagesByRoom` and `getRecentlyVisited` use `getPresentation` in [`selectors.ts`](selectors.ts). `getMessages` remains the `history` selector. [`ThreadView.js`](../../components/Threads/ThreadView.js) imports `getPresentation` for future thread UI.
+
+- [x] Identify selectors / components that currently read **raw** `Message[]` for the main transcript; switch default path to **presentation** (or selectors built on it).
+- [x] Keep escape hatches for **debug / audit** views that may still read full **history** (optional).
 
 ---
 

@@ -141,7 +141,7 @@ All messages are targeted to specific characters via the `message.Target` field 
 ### **State Management Integration**
 
 #### **Message Processing**
-The `getMessagesByRoom` selector transforms raw chronological messages into the room-organized timeline structure. This processing creates the grouped message layout while preserving temporal ordering within each room section.
+The `getMessagesByRoom` selector takes the presentation transcript (one row per logical `MessageId` from `getPresentation`) and builds the room-organized timeline structure. This processing creates the grouped message layout while preserving transcript order within each room section.
 
 #### **Character Context**
 The `useActiveCharacter` hook provides:

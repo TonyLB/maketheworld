@@ -40,7 +40,7 @@ Redux state for this slice has three parts, all keyed by character like before:
 | **aggregates** | Per logical message id, the earliest and latest timestamps seen in that log. |
 | **presentation** | A separate view for the UI: one row per logical message, latest text, ordered as if each line appeared when it first mattered in the stream. |
 
-**Selectors:** [`getMessages`](selectors.ts) reads `history`; [`getPresentation`](selectors.ts) reads `presentation`. Room grouping ([`getMessagesByRoom`](selectors.ts)) is built on the full log, not on `presentation`.
+**Selectors:** [`getMessages`](selectors.ts) reads `history` (audit / full revision log). [`getPresentation`](selectors.ts) reads `presentation` (default transcript). Room grouping ([`getMessagesByRoom`](selectors.ts)) and [`getRecentlyVisited`](selectors.ts) are built on `presentation`.
 
 **Where to read more:** Exact types live in [`baseClasses.ts`](baseClasses.ts). How `presentation` stays in sync with `history`, and how `CreatedTime` is interpreted on presentation rows, is documented in comments and helpers in [`index.ts`](index.ts) (for example `toPresentationRow` and `applyPresentationIfLatest`).
 
@@ -62,7 +62,7 @@ Redux state for this slice has three parts, all keyed by character like before:
 
 #### **Message Retrieval** (`selectors`)
 - `getMessages` / `getPresentation`: Character-scoped arrays (see State Structure above)
-- `getMessagesByRoom`: Room headers and grouping; uses the full log via `getMessages`
+- `getMessagesByRoom` / `getRecentlyVisited`: Room visits and grouped transcript; use `presentation` via `getPresentation`
 
 ### **Message Synchronization Flow**
 
@@ -90,7 +90,7 @@ Redux state for this slice has three parts, all keyed by character like before:
 
 - **Room Header Messages**: Must be properly stored and retrieved from both IndexedDB and DynamoDB
 - **Message Format Migration**: `PerceptionMessage` format must be compatible with both persistence layers
-- **Selector Dependencies**: `getMessagesByRoom` relies on complete message history for proper header grouping
+- **Selector Dependencies**: `getMessagesByRoom` reads the presentation transcript so room sections follow the same collapsed timeline as the main UI
 - **Sync Consistency**: Room headers from different clients must merge correctly for sticky header logic
 
 **Potential Issues:**
@@ -270,7 +270,7 @@ case 'PerceptionMessage':
 - **Message Storage**: `history` holds the full revision log; `aggregates` tracks per-`MessageId` time bounds; `presentation` holds the alternate transcript for UI (one row per id, overloaded `CreatedTime` for position)
 - **Cache Integration**: Complete IndexedDB synchronization with safe storage (original messages only)
 - **Message Ordering**: Efficient binary search insertion for `history` and `presentation`
-- **Selector System**: `getMessages` / `getPresentation` plus room breakdown on `getMessages`
+- **Selector System**: `getPresentation` for default transcript (`getMessagesByRoom`, `getRecentlyVisited`); `getMessages` for full `history` when needed
 - **WML Processing**: Implemented with fallback strategy and type safety
 - **Clear**: `clear` resets `history`, `aggregates`, and `presentation` together
 
