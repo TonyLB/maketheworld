@@ -2,7 +2,7 @@
 
 ## Overview
 
-The `messages` slice manages the Redux state for all game messages received via WebSocket. It handles message storage, retrieval, and synchronization with the local cache database.
+The `messages` slice manages the Redux state for all game messages received via WebSocket. It handles message storage, retrieval, and synchronization with the local cache database. The same logical `MessageId` can receive multiple revisions over time; the slice keeps a full **history** log and a separate **presentation** view for the default transcript (see **Transcript model** below).
 
 ## Core Purpose
 
@@ -19,7 +19,7 @@ The message system uses a **two-tier persistence architecture**:
 
 #### **1. Client-Side IndexedDB Cache** 
 - **Database**: `maketheworlddb` (Dexie-based IndexedDB)
-- **Table**: `messages` with indexes on `MessageId`, `CreatedTime`, `Target`
+- **Table**: `messages` uses primary key **`deltaPk`** (synthetic, typically `${CreatedTime}::${MessageId}`) with indexes on `Target`, `MessageId`, `CreatedTime` so multiple revisions per logical id can be stored
 - **Purpose**: Local message history persistence for offline access and performance
 - **Scope**: Character-specific message history for current client
 - **Sync Tracking**: `characterSync` table tracks last sync timestamp per character
@@ -30,9 +30,30 @@ The message system uses a **two-tier persistence architecture**:
 - **Scope**: Complete message history for cross-device synchronization
 - **Structure**: `Target`, `DeltaId` (`CreatedTime::MessageId`), `RowId` (MessageId), message content
 
+### **Transcript model (revisions and three layers)**
+
+The wire protocol can send **revisions**: the same **`MessageId`** with a new **`CreatedTime`** should not multiply bubbles in the main UI. The slice separates **what we store** from **what we show by default**.
+
+**Goals**
+
+1. **Authoritative log**: Retain every inbound revision in **`history`** for sync, debugging, and any future audit UI.
+2. **Single bubble by default**: **`presentation`** holds one row per logical `MessageId`, with **latest** body and a stable transcript position (first-seen / `earliestCreatedTime`). On presentation rows, **`Message.CreatedTime` is overloaded** as that position key; see [`index.ts`](index.ts) (`toPresentationRow`, `applyPresentationIfLatest`).
+3. **Incremental updates**: Per-id **`aggregates`** track `earliestCreatedTime` and `latestCreatedTime` with O(1) merges on ingest; avoid rescanning all of `history` on each packet.
+4. **New lines**: A genuinely new **`MessageId`** still behaves as a new line; revision semantics apply only to **same-id** traffic.
+
+**The three layers**
+
+| Layer | Role |
+|-------|------|
+| **`history`** | Time-ordered `Message[]` per character: every revision is a row, sorted by `(CreatedTime, MessageId)`. A revision with the **same** id and **new** time is **inserted**; the **same** `(CreatedTime, MessageId)` **replaces** that slot. |
+| **`aggregates`** | Per `(Target, MessageId)`, only **earliest** and **latest** timestamps. **Do not** cache raw indices into `history` (indices move when rows insert mid-array). To find a row, use **binary search** on `history` by `(CreatedTime, MessageId)`. |
+| **`presentation`** | Same array shape as `history`, but **one row per `MessageId`**, updated in **`receiveMessages`** alongside the other branches. Default selectors (`getPresentation`, `getMessagesByRoom`, etc.) read here; **`getMessages`** exposes full **`history`**. |
+
+**Ingest and cold load**: Live traffic and cache replay both dispatch **`receiveMessages`**, so **`history`**, **`aggregates`**, and **`presentation`** stay aligned. **`aggregates`** and **`presentation`** are not persisted separately; reloading from IndexedDB replays through the same path.
+
 ### **State Structure**
 
-Redux state for this slice has three parts, all keyed by character like before:
+Redux state for this slice has three parts, all keyed by character (see **Transcript model** above):
 
 | Branch | Role |
 |--------|------|
