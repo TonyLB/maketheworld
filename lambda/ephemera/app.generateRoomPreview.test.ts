@@ -1,10 +1,10 @@
 import { handler } from './app'
-import * as renderCache from './renderCache'
+import { generateRoomPreview } from './renderOrchestration/generateRoomPreview'
 import messageBus from './messageBus'
 import internalCache from './internalCache'
 import { computePerspectiveKey } from '@tonylb/mtw-interfaces/ts/perspective'
 
-jest.mock('./renderCache')
+jest.mock('./renderOrchestration/generateRoomPreview')
 jest.mock('./messageBus', () => ({
     __esModule: true,
     default: {
@@ -50,8 +50,7 @@ describe('app handler - generateRoomPreview', () => {
     })
 
     it('calls generateRoomPreview and sends ReturnValue with result body', async () => {
-        const generateRoomPreviewMock = renderCache.generateRoomPreview as jest.Mock
-        generateRoomPreviewMock.mockResolvedValue({
+        (generateRoomPreview as jest.Mock).mockResolvedValue({
             success: true,
             renderedContent: { description: [{ type: 'Text', value: 'Preview content' }] }
         })
@@ -74,9 +73,9 @@ describe('app handler - generateRoomPreview', () => {
         })
         expect(
             (internalCache.PreviewGenerationRequests.registerPending as jest.Mock).mock.invocationCallOrder[0]
-        ).toBeLessThan(generateRoomPreviewMock.mock.invocationCallOrder[0])
+        ).toBeLessThan((generateRoomPreview as jest.Mock).mock.invocationCallOrder[0])
 
-        expect(generateRoomPreviewMock).toHaveBeenCalledWith(
+        expect(generateRoomPreview).toHaveBeenCalledWith(
             expect.objectContaining({
                 roomId: 'ROOM#test-room',
                 markState: { markValue: [{ mark: 'MARK#a', value: 'one' }] },
@@ -98,8 +97,7 @@ describe('app handler - generateRoomPreview', () => {
     })
 
     it('passes generationContextWml to generateRoomPreview when present', async () => {
-        const generateRoomPreviewMock = renderCache.generateRoomPreview as jest.Mock
-        generateRoomPreviewMock.mockResolvedValue({
+        (generateRoomPreview as jest.Mock).mockResolvedValue({
             success: false,
             errorCode: 'NO_EXACT_MATCH',
             errorMessage: 'No exact match for proposed state'
@@ -123,7 +121,7 @@ describe('app handler - generateRoomPreview', () => {
             requestId: undefined
         })
 
-        expect(generateRoomPreviewMock).toHaveBeenCalledWith(
+        expect(generateRoomPreview).toHaveBeenCalledWith(
             expect.objectContaining({
                 roomId: 'ROOM#test-room',
                 markState: { markValue: [] },
