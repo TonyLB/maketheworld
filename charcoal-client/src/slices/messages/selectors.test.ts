@@ -24,7 +24,8 @@ const testState = {
                 Target: 'CHARACTER#TESS'
             }]
         } as MessageState,
-        aggregates: {}
+        aggregates: {},
+        presentation: {}
     }
 } as unknown as RootState
 Object.preventExtensions(testState)
@@ -168,7 +169,8 @@ describe('messages selectors', () => {
                     Target: 'CHARACTER#MARCO'
                 }]
                 } as MessageState,
-                aggregates: {}
+                aggregates: {},
+                presentation: {}
             }
         } as unknown as RootState
 
@@ -326,7 +328,8 @@ describe('messages selectors', () => {
                     Target: 'CHARACTER#TESS'
                 }]
                 } as MessageState,
-                aggregates: {}
+                aggregates: {},
+                presentation: {}
             }
         } as unknown as RootState
 

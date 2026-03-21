@@ -46,8 +46,20 @@ We expect to separate concerns into **three** interacting pieces. Exact naming a
 ### 3. Presentation storage (derived "what we render")
 
 - **Role**: Materialized view consumed by UI: ordered list of **logical** messages (one per `MessageId` for default transcript), each holding **current** body (latest revision) and a **display sort key** (typically **`earliestCreatedTime`** for stable position in the stream).
-- **Derivation**: computed from history + per-`MessageId` aggregates (Redux selector with memoization, or maintained slice updated incrementally — **TBD**).
 - **This layer** enforces "latest wins" and stable ordering rules without forcing the raw history reducer to pretend each `MessageId` is unique.
+
+#### Decision: how presentation is represented (pick one; do not implement both as sources of truth)
+
+Two valid approaches were considered:
+
+| Approach | What it is | Tradeoffs |
+|----------|------------|-----------|
+| **A. Selector-only** | `createSelector` derives a `Message[]` per `Target` from **`history` + `aggregates`** (e.g. first-seen order, pick latest row per `MessageId` via `binarySearch`). | **Pros:** No second Redux branch; cannot desync from history. **Cons:** Recomputes **O(n)** over history when inputs change (acceptable for v1, weaker vs "efficient updates" for huge logs). |
+| **B. Redux `presentation` branch** | Same shape as **`history`**: `Record<Target, Message[]>` (or equivalent), but each logical `MessageId` appears **once**, with **latest** body and ordering by **first appearance** / **`earliestCreatedTime`**. Updated **incrementally** in **`receiveMessages`** alongside `history` and `aggregates`. | **Pros:** Incremental ingest; **step 5** can point **`getMessagesByRoom`** (and similar) at **`presentation`** instead of **`history`** without deriving a full list in a selector. **Cons:** Must keep **`receiveMessages`** the single writer; any new ingest path must update all three. |
+
+**Chosen direction for this codebase: B — Redux-stored `presentation`**, maintained in the same reducer/ingest as `history` and `aggregates`. Selector-only (A) remains a documented fallback if we later need to simplify state at the cost of per-render work.
+
+**Read path:** UI and room-breakdown selectors should eventually use **`presentation`** as their default input (see task list section 5); **history** remains for audit/debug and sync.
 
 ## Interaction sketch (refinement later)
 
@@ -57,7 +69,7 @@ We expect to separate concerns into **three** interacting pieces. Exact naming a
 ### Persistence (`cacheDB` / IndexedDB)
 
 - **Recommendation**: keep storing the **verbatim** message log **as we do today** (same shape as what goes into Redux `history`). That remains the **source of truth** on disk.
-- **Implication**: **per-`MessageId` aggregates** and **presentation** are **derived**; after a cold load they must be **reconstructed** from the log (or left empty and filled as messages are replayed). If startup **replays** rows from `cacheDB` through the **same** ingest path / reducer we use for live WebSocket messages, aggregates and presentation **rebuild for free** alongside `history` — no separate "recompute index from log" pass unless we optimize later.
+- **Implication**: **per-`MessageId` aggregates** and **presentation** (see **Decision** under section 3 above) must be **reconstructed** after a cold load: replay through the **same** `receiveMessages` path so **`history`**, **`aggregates`**, and **`presentation`** stay aligned — no separate "recompute from log" pass unless we optimize later.
 - **Confirmed** (`charcoal-client/src/cacheDB/index.ts`): the `messages` store is **`MessageId` as primary key** (Dexie: first field in `'MessageId,CreatedTime,Target'`), with **`CreatedTime`** and **`Target`** as secondary indexes — **not** `MessageId::Timestamp`. So IndexedDB currently holds **at most one row per `MessageId`**; a revision with the same id and a new `CreatedTime` **overwrites** the prior row on `bulkPut`. Storing a **verbatim multi-revision** log **requires** a schema change (e.g. compound primary key `MessageId` + `CreatedTime`, or a synthetic delta id), plus migration from v1.
 
 ## Relationship to server concepts

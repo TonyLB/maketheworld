@@ -43,7 +43,8 @@ export const normalizeCharacterMessageDisplayName = (message: Message): Message 
 
 const initialState: MessagesSliceState = {
     history: {},
-    aggregates: {}
+    aggregates: {},
+    presentation: {}
 }
 
 const mergeMessageIdAggregate = (
@@ -66,6 +67,100 @@ const mergeMessageIdAggregate = (
             earliestCreatedTime: Math.min(prev.earliestCreatedTime, createdTime),
             latestCreatedTime: Math.max(prev.latestCreatedTime, createdTime)
         }
+    }
+}
+
+/**
+ * Presentation = "alternate timeline" transcript
+ *
+ * Real `history` keeps every revision. For the main UI we want one bubble per logical
+ * `MessageId` whose text is the latest revision, while the bubble stays where the line
+ * *first* mattered in the stream. Imagine a fictional log where each line was posted
+ * once, at first-send time, already in its final form (no later edits).
+ *
+ * The wire `Message` type does not have a separate field for "sort position vs payload
+ * revision time", so we deliberately overload `Message.CreatedTime` on rows stored only
+ * in `presentation`: it is the sort key for this fictional transcript (matches
+ * `earliestCreatedTime` for that id), not the server timestamp of the revision whose
+ * body we are showing (that is `latestCreatedTime` when it differs). Payload fields
+ * such as `Message` come from the latest revision when we have applied one.
+ */
+const toPresentationRow = (
+    message: EnhancedMessage,
+    transcriptPositionTime: number
+): EnhancedMessage => ({
+    ...message,
+    CreatedTime: transcriptPositionTime
+})
+
+/**
+ * When the ingested row is the latest revision for its `MessageId`, upsert into
+ * `presentation` sorted by `(CreatedTime, MessageId)` using the same comparator as
+ * `history` — but `CreatedTime` on stored rows is `earliestCreatedTime` (see above).
+ *
+ * @param priorEarliestCreatedTime — aggregate `earliestCreatedTime` **before** the merge
+ *   that accompanied this ingest (only passed from the new-insert path). New history rows
+ *   can only move `earliest` backward; the old presentation row sits at
+ *   `(priorEarliestCreatedTime, MessageId)` and can be removed with `binarySearch` in O(log n).
+ */
+const applyPresentationIfLatest = (
+    state: MessagesSliceState,
+    target: EphemeraCharacterId,
+    message: EnhancedMessage,
+    priorEarliestCreatedTime?: number
+) => {
+    const agg = state.aggregates[target]?.[message.MessageId]
+    if (!agg) {
+        return
+    }
+    if (message.CreatedTime !== agg.latestCreatedTime) {
+        return
+    }
+    const row = toPresentationRow(message, agg.earliestCreatedTime)
+    if (!state.presentation[target]) {
+        state.presentation[target] = []
+    }
+    const pres = state.presentation[target]
+    if (
+        priorEarliestCreatedTime !== undefined &&
+        priorEarliestCreatedTime !== agg.earliestCreatedTime
+    ) {
+        const { exactMatch: atPriorKey, index: priorIdx } = binarySearch(
+            pres,
+            priorEarliestCreatedTime,
+            row.MessageId
+        )
+        if (atPriorKey) {
+            pres.splice(priorIdx, 1)
+        }
+    }
+    const { exactMatch, index } = binarySearch(pres, row.CreatedTime, row.MessageId)
+    if (exactMatch) {
+        pres[index] = row
+        return
+    }
+    pres.splice(index, 0, row)
+}
+
+/**
+ * After a new row is inserted into `history`, the ingested payload may be an older
+ * revision; presentation must always reflect the **latest** body and **earliest**
+ * transcript position, so we re-resolve the canonical row from `history` + aggregates.
+ */
+const refreshPresentationFromLatestHistory = (
+    state: MessagesSliceState,
+    target: EphemeraCharacterId,
+    messageId: string,
+    priorEarliestCreatedTime?: number
+) => {
+    const agg = state.aggregates[target]?.[messageId]
+    if (!agg) {
+        return
+    }
+    const hist = state.history[target]
+    const { exactMatch, index } = binarySearch(hist, agg.latestCreatedTime, messageId)
+    if (exactMatch) {
+        applyPresentationIfLatest(state, target, hist[index], priorEarliestCreatedTime)
     }
 }
 
@@ -93,23 +188,36 @@ const messagesSlice = createSlice({
                     )
                     if (exactMatch) {
                         state.history[target][index] = message
+                        applyPresentationIfLatest(state, target, message)
                     } else {
+                        const priorEarliest =
+                            state.aggregates[target]?.[message.MessageId]?.earliestCreatedTime
                         if (index >= state.history[target].length) {
                             state.history[target].push(message)
                         } else {
                             state.history[target].splice(index, 0, message)
                         }
                         mergeMessageIdAggregate(state.aggregates, target, message.MessageId, message.CreatedTime)
+                        refreshPresentationFromLatestHistory(
+                            state,
+                            target,
+                            message.MessageId,
+                            priorEarliest
+                        )
                     }
                 } else {
+                    const priorEarliest =
+                        state.aggregates[target]?.[message.MessageId]?.earliestCreatedTime
                     state.history[target] = [message]
                     mergeMessageIdAggregate(state.aggregates, target, message.MessageId, message.CreatedTime)
+                    refreshPresentationFromLatestHistory(state, target, message.MessageId, priorEarliest)
                 }
             })
         },
         clear(state) {
             state.history = {}
             state.aggregates = {}
+            state.presentation = {}
         }
     }
 })
@@ -192,6 +300,7 @@ export const cacheMessages = (payload: EphemeraClientMessagePublishMessages) => 
 
 export {
     getMessages,
+    getPresentation,
     getMessagesByRoom
 } from './selectors'
 

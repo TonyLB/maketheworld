@@ -33,11 +33,11 @@ const getRoomId = (message: PerceptionMessage): string => {
 }
 
 
+const handlerLookup = (obj: Record<string | symbol, Message[]>, prop: string | symbol): Message[] =>
+    (obj[prop] || [])
 
-
-export const getMessages: Selector<MessageState> = (state) => {
-    const handlerLookup = (obj: Record<string | symbol, Message[]>, prop: string | symbol): Message[] => (obj[prop] || [])
-    return new Proxy(state.messages.history, {
+const messageStateProxy = (branch: MessageState): MessageState =>
+    new Proxy(branch, {
         get: (target: MessageState, property: string | symbol) => (handlerLookup(target, property.toString())),
         ownKeys: (messages: MessageState) => {
             return (Object.keys(messages) as string[]).sort()
@@ -50,9 +50,17 @@ export const getMessages: Selector<MessageState> = (state) => {
                 value
             }
         }
-    })
+    }) as MessageState
 
-}
+/** Authoritative time-ordered log (all revisions). `Message.CreatedTime` is wire time. */
+export const getMessages: Selector<MessageState> = (state) => messageStateProxy(state.messages.history)
+
+/**
+ * Alternate-timeline transcript for UI (one row per `MessageId`). `Message.CreatedTime`
+ * is transcript position (`earliestCreatedTime`), not necessarily the latest revision time;
+ * see `toPresentationRow` in `index.ts`.
+ */
+export const getPresentation: Selector<MessageState> = (state) => messageStateProxy(state.messages.presentation)
 
 type MessageRoomBreakdownHeader = {
     header: PerceptionMessage & { parsedWML?: StandardForm };

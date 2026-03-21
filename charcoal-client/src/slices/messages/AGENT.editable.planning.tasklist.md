@@ -32,9 +32,13 @@
 
 ## 3. Presentation storage (parallel derived view)
 
-- [ ] Add **presentation** slice or selector-only materialization: one logical row per `MessageId` with **latest body** + **display sort key** (`earliestCreatedTime`).
-- [ ] Derive updates from ingest + aggregates (incremental preferred; full memoized reduce acceptable for v1 prototype).
-- [ ] Tests: two revisions same `MessageId` -> **one** presentation row with latest content; sort position stable when only latest changes.
+**Implemented:** `presentation` branch plus ingest-time updates and tests (`index.test.ts`). Redirecting the main transcript UI to `presentation` remains section 5.
+
+**Decision:** See **`AGENT.editable.planning.md` section 3 ("Decision")** — we are implementing **`presentation` as Redux state** (same `Message[]`-per-`Target` shape as `history`, collapsed to one row per `MessageId`, updated in `receiveMessages`), not selector-only derivation. Step 5 will switch `getMessagesByRoom` (etc.) to read from **`presentation`** instead of **`history`**.
+
+- [x] Add **`presentation`** in the `messages` slice (parallel to `history`): one logical row per `MessageId` with **latest body** + stable order by **`earliestCreatedTime`** / first-seen (per planning doc).
+- [x] Derive updates from ingest + aggregates (incremental preferred; full memoized reduce acceptable for v1 prototype).
+- [x] Tests: two revisions same `MessageId` -> **one** presentation row with latest content; sort position stable when only latest changes.
 
 ---
 

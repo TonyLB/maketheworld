@@ -1,7 +1,8 @@
 import { vi } from 'vitest'
 import reducer, {
     receiveMessages,
-    getMessages
+    getMessages,
+    getPresentation
 } from './index'
 import {
     WorldMessage
@@ -34,11 +35,16 @@ describe('messages reducer', () => {
             }
         }
 
+        const testPresentation = {
+            'CHARACTER#TESS': [...testArray]
+        }
+
         const state = {
             history: {
                 'CHARACTER#TESS': testArray
             },
-            aggregates: testAggregates
+            aggregates: testAggregates,
+            presentation: testPresentation
         }
 
         it('should accept message in empty state', () => {
@@ -62,6 +68,15 @@ describe('messages reducer', () => {
                     'CHARACTER#TESS': {
                         Test: { earliestCreatedTime: 1, latestCreatedTime: 1 }
                     }
+                },
+                presentation: {
+                    'CHARACTER#TESS': [{
+                        DisplayProtocol: 'WorldMessage',
+                        CreatedTime: 1,
+                        Message: ['Test message'],
+                        MessageId: 'Test',
+                        Target: 'CHARACTER#TESS'
+                    }]
                 }
             })
         })
@@ -89,6 +104,16 @@ describe('messages reducer', () => {
                     'CHARACTER#MARCO': {
                         Test: { earliestCreatedTime: 1, latestCreatedTime: 1 }
                     }
+                },
+                presentation: {
+                    ...testPresentation,
+                    'CHARACTER#MARCO': [{
+                        DisplayProtocol: 'WorldMessage',
+                        CreatedTime: 1,
+                        Message: ['Test message'],
+                        MessageId: 'Test',
+                        Target: 'CHARACTER#MARCO'
+                    }]
                 }
             })
         })
@@ -118,6 +143,17 @@ describe('messages reducer', () => {
                         ...testAggregates['CHARACTER#TESS'],
                         Test: { earliestCreatedTime: 1, latestCreatedTime: 1 }
                     }
+                },
+                presentation: {
+                    'CHARACTER#TESS': [{
+                        DisplayProtocol: 'WorldMessage',
+                        CreatedTime: 1,
+                        Message: ['Test message'],
+                        MessageId: 'Test',
+                        Target: 'CHARACTER#TESS'
+                    },
+                    ...testArray
+                    ]
                 }
             })
         })
@@ -148,6 +184,18 @@ describe('messages reducer', () => {
                         ...testAggregates['CHARACTER#TESS'],
                         Test: { earliestCreatedTime: 200000, latestCreatedTime: 200000 }
                     }
+                },
+                presentation: {
+                    'CHARACTER#TESS': [
+                        ...testArray,
+                        {
+                            DisplayProtocol: 'WorldMessage',
+                            CreatedTime: 200000,
+                            Message: ['Test message'],
+                            MessageId: 'Test',
+                            Target: 'CHARACTER#TESS'
+                        }
+                    ]
                 }
             })
         })
@@ -191,6 +239,15 @@ describe('messages reducer', () => {
                     'CHARACTER#TESS': {
                         'MESSAGE#rev': { earliestCreatedTime: 100, latestCreatedTime: 200 }
                     }
+                },
+                presentation: {
+                    'CHARACTER#TESS': [{
+                        DisplayProtocol: 'WorldMessage',
+                        CreatedTime: 100,
+                        Message: ['second'],
+                        MessageId: 'MESSAGE#rev',
+                        Target: 'CHARACTER#TESS'
+                    }]
                 }
             })
         })
@@ -234,6 +291,15 @@ describe('messages reducer', () => {
                     'CHARACTER#TESS': {
                         'MESSAGE#rev': { earliestCreatedTime: 50, latestCreatedTime: 100 }
                     }
+                },
+                presentation: {
+                    'CHARACTER#TESS': [{
+                        DisplayProtocol: 'WorldMessage',
+                        CreatedTime: 50,
+                        Message: ['first'],
+                        MessageId: 'MESSAGE#rev',
+                        Target: 'CHARACTER#TESS'
+                    }]
                 }
             })
         })
@@ -257,6 +323,9 @@ describe('messages reducer', () => {
                     'CHARACTER#TESS': {
                         'MESSAGE#same': { earliestCreatedTime: 100, latestCreatedTime: 100 }
                     }
+                },
+                presentation: {
+                    'CHARACTER#TESS': [{ ...msg, Message: ['replaced'] }]
                 }
             })
         })
@@ -279,7 +348,8 @@ describe('messages reducer', () => {
         const state = {
             messages: {
                 history: { 'CHARACTER#TESS': testArray },
-                aggregates: {}
+                aggregates: {},
+                presentation: {}
             }
         } as any
 
@@ -293,6 +363,36 @@ describe('messages reducer', () => {
 
         it('should handle object.entries correctly', () => {
             expect(Object.entries(getMessages(state))).toEqual([['CHARACTER#TESS', testArray]])
+        })
+    })
+
+    describe('getPresentation proxy selector', () => {
+        const pres = [{
+            DisplayProtocol: 'WorldMessage',
+            MessageId: 'M1',
+            Message: ['x'],
+            CreatedTime: 1,
+            Target: 'CHARACTER#TESS'
+        }] as WorldMessage[]
+
+        const state = {
+            messages: {
+                history: {},
+                aggregates: {},
+                presentation: { 'CHARACTER#TESS': pres }
+            }
+        } as any
+
+        it('should return values when available', () => {
+            expect(getPresentation(state)['CHARACTER#TESS']).toEqual(pres)
+        })
+
+        it('should return empty array when target not available', () => {
+            expect(getPresentation(state)['CHARACTER#MARCO']).toEqual([])
+        })
+
+        it('should handle object.entries correctly', () => {
+            expect(Object.entries(getPresentation(state))).toEqual([['CHARACTER#TESS', pres]])
         })
     })
 })
