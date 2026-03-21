@@ -1,5 +1,7 @@
 *Status: ACTIVE PLANNING DOCUMENT - conversations registry (routing + fragment staging, v1 in-memory).*
 
+**Prototype notice:** The **first** fragment shapes and aggregation rules we implement are intentionally a **prototype**. They should be **documented as such in code** (comments or adjacent README), not treated as stable public API. Expect **iteration** once we have real usage; see **Prototype fragment shape** and **Evolving fragment kinds** below.
+
 ## Purpose
 
 This document tracks the design for a **conversation registry** under `lambda/ephemera/conversations/`, backed by **in-memory** storage on `internalCache.Conversations`.
@@ -81,10 +83,31 @@ Several different mechanisms show up next to each other in orchestration types (
 The registry cannot store a real **`sendMessage` function** (not JSON-safe, not Dynamo-safe). The intended pattern is:
 
 1. Store a **serializable delivery-routing record** keyed by `conversationId`.
-2. Store **named intermediate fragments** on the same record (or a linked sub-structure), each **typed** and **serializable** (e.g. presence snapshot for a room move, WML/header payload from perception, leave/arrive text specs — exact kinds TBD per pipeline).
+2. Store **named intermediate fragments** on the same record (or a linked sub-structure), each **typed** and **serializable**. The **first** cut is a **single prototype shape** (see below); later we generalize.
 3. Expose **small helpers**: **writers** append fragments; **assemblers** (or `deliver` for streaming-only flows) **`get`** the record and call `messageBus.send(...)` (e.g. `PublishMessage`, `Perception`, `ReturnValue`).
 
 So the design work is to pin down **routing fields**, **fragment kinds**, and **completeness rules** (when assembly is allowed to run) so any code that runs mid-flight can contribute or consume **without** the original closure and **without** undocumented cache side effects.
+
+### Prototype fragment shape (move / character-location style)
+
+For the **initial** implementation we are **prototyping** one concrete merged structure, not a final taxonomy:
+
+- Treat fragments as a **`Partial`** record of three conceptual slots aligned with existing move/perception orchestration:
+  - **`leaveMessage`** — whatever serialized data is needed to emit the leave-side `WorldMessage` (and targets / suppression flags as needed).
+  - **`arriveMessage`** — same for the arrive-side `WorldMessage`.
+  - **`roomHeader`** — whatever serialized data is needed for the room header / `Perception` leg (e.g. WML or references produced by perception).
+- **Aggregation**: **writers** (e.g. character-location path, perception path) each **merge** their contribution into this partial record as pieces become available (same keys overwritten or deep-merged per field rules we define for the prototype). The **assembler** runs when the record satisfies **completeness** for that pipeline (all required keys present, or explicit partial rules).
+
+This **single-record partial** is a **learning vehicle**: it keeps the first assembler small and makes cross-domain handoffs visible. It is **not** the long-term shape for every future pipeline (preview streaming, knowledge, etc.).
+
+### Evolving fragment kinds (post-prototype)
+
+After we have **a few real examples** of fragment payloads and merge behavior, it is **almost inevitable** that we will:
+
+- Replace the flat prototype with a **discriminated union** of fragment payload types (per domain or per message kind), and/or
+- Introduce a **registration** pattern for new fragment kinds — **analogous to** stream event serializers or similar factories — so adding a new variant is **one** well-scoped change (type + serializer + merge rule + assembler hook) instead of ad-hoc edits across the registry.
+
+Until then, **prefer** keeping the prototype **localized** (one module or one union branch) and **label** it **prototype** so the follow-up generalization is a planned refactor, not a surprise breaking change.
 
 **Assembly and races**
 
@@ -140,7 +163,7 @@ The **internalCache gateway** pattern (memory mirror + future durable store) sti
 ## Implementation checklist (when we build)
 
 - [ ] `internalCache/conversations.ts` (or equivalent) + wire into `InternalCache` constructor and `clear()`.
-- [ ] `lambda/ephemera/conversations/` module: types for **routing + fragment map**, registry implementation, tests.
+- [ ] `lambda/ephemera/conversations/` module: types for **routing + fragment map** (prototype `Partial` of `leaveMessage` / `arriveMessage` / `roomHeader` for first pipeline), registry implementation, tests; **comment or doc** that fragment types are **prototype**.
 - [ ] Thread `conversationId` through orchestration events and WebSocket responses where needed.
 - [ ] First **assembler** (or inline equivalent) for one end-to-end pipeline; document **required fragment kinds** for that pipeline.
 - [ ] Short `AGENT.md` in this directory once behavior stabilizes (optional follow-up).
