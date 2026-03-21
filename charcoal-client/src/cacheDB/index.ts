@@ -1,4 +1,4 @@
-import Dexie, { Transaction } from 'dexie'
+import Dexie from 'dexie'
 
 import { Message } from '@tonylb/mtw-interfaces/ts/messages'
 import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses';
@@ -41,9 +41,12 @@ export type CharacterSyncType = {
     lastSync: number;
 }
 
+/** Cached message row: server Message plus Dexie primary key `deltaPk` (see makeMessageDeltaPk). */
+export type CachedMessage = Message & { deltaPk: string }
+
 class ClientCache extends Dexie {
 
-    messages!: Dexie.Table<Message, string>;
+    messages!: Dexie.Table<CachedMessage, string>;
     clientSettings!: Dexie.Table<ClientSettingType, string>;
     characterSync!: Dexie.Table<CharacterSyncType, EphemeraCharacterId>;
 
@@ -54,8 +57,15 @@ class ClientCache extends Dexie {
             messages: 'MessageId,CreatedTime,Target',
             characterSync: 'CharacterId'
         })
+        this.version(2).stores({
+            clientSettings: 'key,value',
+            messages: 'deltaPk, Target, MessageId, CreatedTime',
+            characterSync: 'CharacterId'
+        })
     }
 }
 
 export var cacheDB = new ClientCache()
 export default cacheDB
+
+export { makeMessageDeltaPk, stripMessageDeltaPk } from './makeMessageDeltaPk'

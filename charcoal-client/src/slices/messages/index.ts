@@ -1,6 +1,6 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 
-import cacheDB, { LastSyncType } from '../../cacheDB'
+import cacheDB, { LastSyncType, makeMessageDeltaPk } from '../../cacheDB'
 import { Message, PerceptionMessage } from '@tonylb/mtw-interfaces/ts/messages'
 import { EphemeraClientMessagePublishMessages } from '@tonylb/mtw-interfaces/ts/ephemera'
 import { unique } from '../../lib/lists'
@@ -105,9 +105,13 @@ export const cacheMessages = (payload: EphemeraClientMessagePublishMessages) => 
             })
         )))
         : Promise.resolve({})
+    const messagesForCache = messages.map((message) => ({
+        ...message,
+        deltaPk: makeMessageDeltaPk(message)
+    }))
     await Promise.all([
         updateLastSync,
-        cacheDB.messages.bulkPut(messages) // Store original messages
+        cacheDB.messages.bulkPut(messagesForCache)
     ])
 
     //

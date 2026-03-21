@@ -9,11 +9,13 @@
 
 ## 1. Dexie / `cacheDB.messages` schema (do first)
 
-- [ ] Choose primary key for multi-revision rows: e.g. **compound** `[MessageId+CreatedTime]` or **synthetic** `deltaKey` mirroring server `${CreatedTime}::${MessageId}` (aligns with `lambda/ephemera/publishMessage` / Dynamo).
-- [ ] Add Dexie **version bump** + **migration** from v1 (single `MessageId` PK): copy or drop legacy rows per product decision.
-- [ ] Preserve **indexed access** for rehydration: today `where("Target").equals(characterId)` in `activeCharacters/index.api.ts` — keep **`Target`** (or equivalent) indexable so load remains "bucket for character, then replay."
-- [ ] Update **`cacheMessages`** / **`bulkPut`** call sites to write rows compatible with the new PK (no silent overwrite of prior revision).
-- [ ] **Tests** or manual checklist for migration + `where("Target")` load path.
+**Easy path (implemented):** Dexie **v2** uses synthetic PK **`deltaPk`** = ``${CreatedTime}::${MessageId}`` with indexes **`Target`**, **`MessageId`**, **`CreatedTime`**. There is **no** staging migration: upgrading from v1 **drops** existing `messages` rows (same effect as clearing that store); the app **re-fetches** from the server / WebSocket. If an upgrade error appears in dev, delete IndexedDB **`maketheworlddb`** once. `clientSettings` and `characterSync` are unchanged.
+
+- [x] Choose primary key for multi-revision rows: e.g. **compound** `[MessageId+CreatedTime]` or **synthetic** `deltaKey` mirroring server `${CreatedTime}::${MessageId}` (aligns with `lambda/ephemera/publishMessage` / Dynamo).
+- [x] Add Dexie **version bump** + **migration** from v1 (single `MessageId` PK): copy or drop legacy rows per product decision.
+- [x] Preserve **indexed access** for rehydration: today `where("Target").equals(characterId)` in `activeCharacters/index.api.ts` — keep **`Target`** (or equivalent) indexable so load remains "bucket for character, then replay."
+- [x] Update **`cacheMessages`** / **`bulkPut`** call sites to write rows compatible with the new PK (no silent overwrite of prior revision).
+- [x] **Tests** or manual checklist for migration + `where("Target")` load path.
 
 ---
 

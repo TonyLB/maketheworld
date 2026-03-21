@@ -1,5 +1,5 @@
 import { ActiveCharacterCondition, ActiveCharacterAction } from './baseClasses'
-import cacheDB, { CharacterSyncType, LastSyncType } from '../../cacheDB'
+import cacheDB, { CharacterSyncType, LastSyncType, stripMessageDeltaPk } from '../../cacheDB'
 import {
     socketDispatchPromise,
     LifeLinePubSub,
@@ -33,7 +33,8 @@ export const getLastMessageSync = (CharacterId: EphemeraCharacterId | undefined)
 export const fetchAction: ActiveCharacterAction = ({ internalData: { id } }) => async (dispatch) => {
 
     const LastMessageSync = await getLastMessageSync(id)
-    const messages = await cacheDB.messages.where("Target").equals(id || '').toArray()
+    const cachedRows = await cacheDB.messages.where("Target").equals(id || '').toArray()
+    const messages = cachedRows.map(stripMessageDeltaPk)
 
     dispatch(receiveMessages(messages))
     return { internalData: { LastMessageSync } }
