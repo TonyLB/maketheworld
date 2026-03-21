@@ -1,7 +1,15 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 
 import cacheDB, { LastSyncType, makeMessageDeltaPk } from '../../cacheDB'
-import { Message, PerceptionMessage } from '@tonylb/mtw-interfaces/ts/messages'
+import {
+    Message,
+    PerceptionMessage,
+    CharacterSpeech,
+    CharacterNarration,
+    OutOfCharacterMessage
+} from '@tonylb/mtw-interfaces/ts/messages'
+
+type CharacterLineMessage = CharacterSpeech | CharacterNarration | OutOfCharacterMessage
 import { EphemeraClientMessagePublishMessages } from '@tonylb/mtw-interfaces/ts/ephemera'
 import { unique } from '../../lib/lists'
 import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
@@ -14,6 +22,24 @@ import { splitType } from '@tonylb/mtw-utilities/ts/types'
 // Enhanced message type with parsed WML
 type EnhancedMessage = Message | (PerceptionMessage & { parsedWML: StandardForm })
 
+/** Ephemera historically published `Name`; client `CharacterSpeech` uses `DisplayName`. */
+export const normalizeCharacterMessageDisplayName = (message: Message): Message => {
+    switch (message.DisplayProtocol) {
+        case 'SayMessage':
+        case 'NarrateMessage':
+        case 'OOCMessage': {
+            const m = message as CharacterLineMessage & { Name?: string }
+            if (m.DisplayName === undefined && typeof m.Name === 'string') {
+                const { Name: _legacy, ...rest } = m
+                return { ...rest, DisplayName: m.Name } as Message
+            }
+            return message
+        }
+        default:
+            return message
+    }
+}
+
 const initialState = {} as Record<string, EnhancedMessage[]>
 
 const messagesSlice = createSlice({
@@ -23,7 +49,9 @@ const messagesSlice = createSlice({
         receiveMessages(state: any, action: PayloadAction<EnhancedMessage[]>) {
             action.payload.forEach((rawMessage) => {
                 // Process the message with WML parsing if needed
-                const message = processPerceptionMessage(rawMessage)
+                const message = processPerceptionMessage(
+                    normalizeCharacterMessageDisplayName(rawMessage as Message) as Message
+                )
                 
                 if (message.Target && state[message.Target]) {
                     const { exactMatch, index } = binarySearch(state[message.Target], message.CreatedTime, message.MessageId)
@@ -105,10 +133,13 @@ export const cacheMessages = (payload: EphemeraClientMessagePublishMessages) => 
             })
         )))
         : Promise.resolve({})
-    const messagesForCache = messages.map((message) => ({
-        ...message,
-        deltaPk: makeMessageDeltaPk(message)
-    }))
+    const messagesForCache = messages.map((message) => {
+        const normalized = normalizeCharacterMessageDisplayName(message)
+        return {
+            ...normalized,
+            deltaPk: makeMessageDeltaPk(normalized)
+        }
+    })
     await Promise.all([
         updateLastSync,
         cacheDB.messages.bulkPut(messagesForCache)
@@ -117,7 +148,9 @@ export const cacheMessages = (payload: EphemeraClientMessagePublishMessages) => 
     //
     // Push processed messages to Redux
     //
-    const processedMessages = messages.map(processPerceptionMessage)
+    const processedMessages = messages.map((m) =>
+        processPerceptionMessage(normalizeCharacterMessageDisplayName(m))
+    )
     dispatch(receiveMessages(processedMessages))
 }
 

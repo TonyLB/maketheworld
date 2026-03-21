@@ -336,12 +336,17 @@ export const isMessage = (message: any): message is Message => {
             return isRenderTree(message.Message)
         case 'SayMessage':
         case 'NarrateMessage':
-        case 'OOCMessage':
+        case 'OOCMessage': {
+            const legacyName = (message as { Name?: string }).Name
+            const hasDisplayLabel = typeof message.DisplayName === 'string'
+                || typeof legacyName === 'string'
             return checkAll(
-                checkTypes(message, { CharacterId: 'string', Name: 'string' }),
+                checkTypes(message, { CharacterId: 'string' }),
+                hasDisplayLabel,
                 ['blue', 'pink', 'purple', 'green', 'grey'].includes(message.Color),
                 isRenderTree(message.Message)
             ) && isEphemeraCharacterId(message.CharacterId)
+        }
 
         case 'RoomUpdate':
             return checkAll(

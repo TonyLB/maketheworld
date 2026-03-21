@@ -25,7 +25,7 @@ export const DirectMessage = React.forwardRef(({ message, ...rest }, ref) => {
     const charactersInPlay = useSelector(getCharactersInPlay)
     const targetCharacterId = (FromCharacterId === myCharacterId) ? ToCharacterId : FromCharacterId
     const targetCharacter = charactersInPlay && charactersInPlay[targetCharacterId]
-    const Name = charactersInPlay && charactersInPlay[FromCharacterId] && charactersInPlay[FromCharacterId].Name
+    const Name = charactersInPlay && charactersInPlay[FromCharacterId] && charactersInPlay[FromCharacterId].DisplayName
     const replyCharacterId = (FromCharacterId === myCharacterId) ? (ToCharacterId === myCharacterId) ? null : ToCharacterId : FromCharacterId
     return (
         <CharacterStyleWrapper CharacterId={FromCharacterId} Name={Name}>
@@ -39,7 +39,7 @@ export const DirectMessage = React.forwardRef(({ message, ...rest }, ref) => {
                 </ListItemAvatar>
                 <ListItemText>
                     <Typography variant='overline' align='left'>
-                        Direct message { FromCharacterId === myCharacterId ? 'to' : 'from'}: { (FromCharacterId === ToCharacterId) ? 'Yourself' : ((targetCharacter && targetCharacter.Name) || 'Someone') }
+                        Direct message { FromCharacterId === myCharacterId ? 'to' : 'from'}: { (FromCharacterId === ToCharacterId) ? 'Yourself' : ((targetCharacter && targetCharacter.DisplayName) || 'Someone') }
                     </Typography>
                     <Typography variant='body1' align='left'>
                         { message.Message }

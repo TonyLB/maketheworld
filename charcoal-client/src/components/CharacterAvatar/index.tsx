@@ -13,7 +13,7 @@ import { DevEnvironment } from '../../environment'
 
 interface CharacterAvatarDirectProps {
     CharacterId: EphemeraCharacterId;
-    Name: string;
+    Name?: string;
     fileURL?: string;
     width?: string;
     height?: string;
@@ -30,9 +30,10 @@ export const CharacterAvatarDirect: FunctionComponent<CharacterAvatarDirectProps
             return fileURL && `${appBaseURL}/images/${fileURL}.png`
         }
     }, [appBaseURL, fileURL])
+    const initial = (Name?.trim()?.[0] ?? '?').toUpperCase()
     return <CharacterStyleWrapper key={CharacterId} CharacterId={CharacterId}>
-        <Avatar sx={fileURL ? { borderColor: "primary.main", borderWidth: '2px', borderStyle: "solid", width, height } : { bgcolor: 'primary.main', width, height }} alt={Name} src={dressedFileURL}>
-            { (Name[0] || '?').toUpperCase() }
+        <Avatar sx={fileURL ? { borderColor: "primary.main", borderWidth: '2px', borderStyle: "solid", width, height } : { bgcolor: 'primary.main', width, height }} alt={Name?.trim() || '?'} src={dressedFileURL}>
+            { initial }
         </Avatar>
     </CharacterStyleWrapper>
 }
@@ -47,8 +48,8 @@ interface CharacterAvatarProps {
 export const CharacterAvatar: FunctionComponent<CharacterAvatarProps> = ({ CharacterId, fileURL, width, height }) => {
     const charactersInPlay = useSelector(getCharactersInPlay)
 
-    const { Name, fileURL: fileURLCurrent } = charactersInPlay[CharacterId]
-    return <CharacterAvatarDirect CharacterId={CharacterId} Name={Name} fileURL={fileURL ?? fileURLCurrent} width={width} height={height} />
+    const { DisplayName = '?', fileURL: fileURLCurrent } = charactersInPlay[CharacterId]
+    return <CharacterAvatarDirect CharacterId={CharacterId} Name={DisplayName} fileURL={fileURL ?? fileURLCurrent} width={width} height={height} />
 }
 
 export default CharacterAvatar

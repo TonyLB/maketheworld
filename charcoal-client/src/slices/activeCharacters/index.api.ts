@@ -6,7 +6,7 @@ import {
     getStatus
 } from '../lifeLine'
 import { getMyCharacterById } from '../player'
-import { receiveMessages } from '../messages'
+import { receiveMessages, normalizeCharacterMessageDisplayName } from '../messages'
 import { push as pushFeedback } from '../../slices/UI/feedback'
 import delayPromise from '../../lib/delayPromise'
 import { isEphemeraClientMessageEphemeraUpdateMapItem } from '@tonylb/mtw-interfaces/ts/ephemera'
@@ -34,7 +34,7 @@ export const fetchAction: ActiveCharacterAction = ({ internalData: { id } }) => 
 
     const LastMessageSync = await getLastMessageSync(id)
     const cachedRows = await cacheDB.messages.where("Target").equals(id || '').toArray()
-    const messages = cachedRows.map(stripMessageDeltaPk)
+    const messages = cachedRows.map(stripMessageDeltaPk).map(normalizeCharacterMessageDisplayName)
 
     dispatch(receiveMessages(messages))
     return { internalData: { LastMessageSync } }

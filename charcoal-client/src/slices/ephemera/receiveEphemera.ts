@@ -20,10 +20,10 @@ export const receiveEphemera = (state: any, action: PayloadAction<EphemeraChange
     if (action.payload.type === 'CharacterInPlay') {
         const { CharacterId, Connected } = action.payload
         if (Connected) {
-            const { Name, RoomId, fileURL, Color } = action.payload
+            const { DisplayName, RoomId, fileURL, Color } = action.payload
             state.charactersInPlay[CharacterId] = {
                 CharacterId,
-                Name,
+                DisplayName,
                 RoomId,
                 fileURL,
                 color: colorTranslate(Color)
