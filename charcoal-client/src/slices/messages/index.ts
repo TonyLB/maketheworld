@@ -14,6 +14,7 @@ import { EphemeraClientMessagePublishMessages } from '@tonylb/mtw-interfaces/ts/
 import { unique } from '../../lib/lists'
 import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import binarySearch from './binarySearch'
+import type { MessageAggregatesState, MessagesSliceState } from './baseClasses'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { defaultComponentFromTag } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
 import { standardComponentFactory } from '@tonylb/mtw-wml/ts/standardize/componentFactory'
@@ -40,40 +41,75 @@ export const normalizeCharacterMessageDisplayName = (message: Message): Message 
     }
 }
 
-const initialState = {} as Record<string, EnhancedMessage[]>
+const initialState: MessagesSliceState = {
+    history: {},
+    aggregates: {}
+}
+
+const mergeMessageIdAggregate = (
+    aggregates: MessageAggregatesState,
+    target: EphemeraCharacterId,
+    messageId: string,
+    createdTime: number
+) => {
+    if (!aggregates[target]) {
+        aggregates[target] = {}
+    }
+    const prev = aggregates[target][messageId]
+    if (!prev) {
+        aggregates[target][messageId] = {
+            earliestCreatedTime: createdTime,
+            latestCreatedTime: createdTime
+        }
+    } else {
+        aggregates[target][messageId] = {
+            earliestCreatedTime: Math.min(prev.earliestCreatedTime, createdTime),
+            latestCreatedTime: Math.max(prev.latestCreatedTime, createdTime)
+        }
+    }
+}
 
 const messagesSlice = createSlice({
     name: 'messages',
     initialState,
     reducers: {
-        receiveMessages(state: any, action: PayloadAction<EnhancedMessage[]>) {
+        receiveMessages(state, action: PayloadAction<EnhancedMessage[]>) {
             action.payload.forEach((rawMessage) => {
-                // Process the message with WML parsing if needed
                 const message = processPerceptionMessage(
                     normalizeCharacterMessageDisplayName(rawMessage as Message) as Message
                 )
-                
-                if (message.Target && state[message.Target]) {
-                    const { exactMatch, index } = binarySearch(state[message.Target], message.CreatedTime, message.MessageId)
-                    if (exactMatch) {
-                        state[message.Target][index] = message
-                    }
-                    else {
-                        if (index >= state[message.Target].length) {
-                            state[message.Target].push(message)
-                        }
-                        else {
-                            state[message.Target].splice(index, 0, message)
-                        }
-                    }    
+
+                if (!message.Target) {
+                    return
                 }
-                else if (message.Target) {
-                    state[message.Target] = [message]
+
+                const target = message.Target as EphemeraCharacterId
+
+                if (state.history[target]) {
+                    const { exactMatch, index } = binarySearch(
+                        state.history[target],
+                        message.CreatedTime,
+                        message.MessageId
+                    )
+                    if (exactMatch) {
+                        state.history[target][index] = message
+                    } else {
+                        if (index >= state.history[target].length) {
+                            state.history[target].push(message)
+                        } else {
+                            state.history[target].splice(index, 0, message)
+                        }
+                        mergeMessageIdAggregate(state.aggregates, target, message.MessageId, message.CreatedTime)
+                    }
+                } else {
+                    state.history[target] = [message]
+                    mergeMessageIdAggregate(state.aggregates, target, message.MessageId, message.CreatedTime)
                 }
             })
         },
-        clear(state: any) {
-            state = {}
+        clear(state) {
+            state.history = {}
+            state.aggregates = {}
         }
     }
 })

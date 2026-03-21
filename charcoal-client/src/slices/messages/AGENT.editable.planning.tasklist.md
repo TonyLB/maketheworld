@@ -21,10 +21,12 @@
 
 ## 2. Redux history + per-`MessageId` aggregates (indexes)
 
-- [ ] Add state for **`earliestCreatedTime` / `latestCreatedTime`** (or equivalent) per `MessageId` per `Target` — shape TBD (nested maps vs normalized store).
-- [ ] Extend **ingest** (`receiveMessages` or dedicated handler): after each message applied to sorted `history`, **update aggregates** for touched `MessageId` (**O(1)** compare to bounds).
-- [ ] Handle **idempotent** duplicate `(CreatedTime, MessageId)` if it ever arrives (replace in history; aggregates unchanged unless content semantics require it).
-- [ ] Unit tests for aggregate updates across insert / mid-array insert / same-id revision.
+**Implemented:** The `messages` slice holds **`history`** plus **`aggregates`**: `Record<Target, Record<MessageId, { earliestCreatedTime, latestCreatedTime }>>`. `receiveMessages` updates bounds on **new** inserts only (`mergeMessageIdAggregate`); **`exactMatch`** replaces the row and leaves aggregates unchanged. Tests live in `index.test.ts` (second revision, out-of-order same id, idempotent replace).
+
+- [x] Add state for **`earliestCreatedTime` / `latestCreatedTime`** (or equivalent) per `MessageId` per `Target` — shape TBD (nested maps vs normalized store).
+- [x] Extend **ingest** (`receiveMessages` or dedicated handler): after each message applied to sorted `history`, **update aggregates** for touched `MessageId` (**O(1)** compare to bounds).
+- [x] Handle **idempotent** duplicate `(CreatedTime, MessageId)` if it ever arrives (replace in history; aggregates unchanged unless content semantics require it).
+- [x] Unit tests for aggregate updates across insert / mid-array insert / same-id revision.
 
 ---
 

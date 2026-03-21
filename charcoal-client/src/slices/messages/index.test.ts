@@ -25,25 +25,44 @@ describe('messages reducer', () => {
             Target: 'CHARACTER#Test'
         })) as WorldMessage[]
 
+        const testAggregates = {
+            'CHARACTER#TESS': {
+                'Test-2': { earliestCreatedTime: 2, latestCreatedTime: 2 },
+                'Test-B': { earliestCreatedTime: 100, latestCreatedTime: 100 },
+                'Test-H': { earliestCreatedTime: 100, latestCreatedTime: 100 },
+                'Test-10000': { earliestCreatedTime: 10000, latestCreatedTime: 10000 }
+            }
+        }
+
         const state = {
-            'CHARACTER#TESS': testArray
+            history: {
+                'CHARACTER#TESS': testArray
+            },
+            aggregates: testAggregates
         }
 
         it('should accept message in empty state', () => {
-            expect(reducer({}, receiveMessages([{
+            expect(reducer(undefined, receiveMessages([{
                 DisplayProtocol: 'WorldMessage',
                 CreatedTime: 1,
                 Message: ['Test message'],
                 MessageId: 'Test',
                 Target: 'CHARACTER#TESS'
             }]))).toEqual({
-                'CHARACTER#TESS': [{
-                    DisplayProtocol: 'WorldMessage',
-                    CreatedTime: 1,
-                    Message: ['Test message'],
-                    MessageId: 'Test',
-                    Target: 'CHARACTER#TESS'
-                }]
+                history: {
+                    'CHARACTER#TESS': [{
+                        DisplayProtocol: 'WorldMessage',
+                        CreatedTime: 1,
+                        Message: ['Test message'],
+                        MessageId: 'Test',
+                        Target: 'CHARACTER#TESS'
+                    }]
+                },
+                aggregates: {
+                    'CHARACTER#TESS': {
+                        Test: { earliestCreatedTime: 1, latestCreatedTime: 1 }
+                    }
+                }
             })
         })
 
@@ -55,14 +74,22 @@ describe('messages reducer', () => {
                 MessageId: 'Test',
                 Target: 'CHARACTER#MARCO'
             }]))).toEqual({
-                'CHARACTER#MARCO': [{
-                    DisplayProtocol: 'WorldMessage',
-                    CreatedTime: 1,
-                    Message: ['Test message'],
-                    MessageId: 'Test',
-                    Target: 'CHARACTER#MARCO'
-                }],
-                'CHARACTER#TESS': testArray
+                history: {
+                    'CHARACTER#MARCO': [{
+                        DisplayProtocol: 'WorldMessage',
+                        CreatedTime: 1,
+                        Message: ['Test message'],
+                        MessageId: 'Test',
+                        Target: 'CHARACTER#MARCO'
+                    }],
+                    'CHARACTER#TESS': testArray
+                },
+                aggregates: {
+                    ...testAggregates,
+                    'CHARACTER#MARCO': {
+                        Test: { earliestCreatedTime: 1, latestCreatedTime: 1 }
+                    }
+                }
             })
         })
 
@@ -74,7 +101,8 @@ describe('messages reducer', () => {
                 MessageId: 'Test',
                 Target: 'CHARACTER#TESS'
             }]))).toEqual({
-                'CHARACTER#TESS': [{
+                history: {
+                    'CHARACTER#TESS': [{
                         DisplayProtocol: 'WorldMessage',
                         CreatedTime: 1,
                         Message: ['Test message'],
@@ -83,6 +111,14 @@ describe('messages reducer', () => {
                     },
                     ...testArray
                 ]
+                },
+                aggregates: {
+                    ...testAggregates,
+                    'CHARACTER#TESS': {
+                        ...testAggregates['CHARACTER#TESS'],
+                        Test: { earliestCreatedTime: 1, latestCreatedTime: 1 }
+                    }
+                }
             })
         })
 
@@ -94,16 +130,134 @@ describe('messages reducer', () => {
                 MessageId: 'Test',
                 Target: 'CHARACTER#TESS'
             }]))).toEqual({
-                'CHARACTER#TESS': [
-                    ...testArray,
-                    {
-                        DisplayProtocol: 'WorldMessage',
-                        CreatedTime: 200000,
-                        Message: ['Test message'],
-                        MessageId: 'Test',
-                        Target: 'CHARACTER#TESS'
+                history: {
+                    'CHARACTER#TESS': [
+                        ...testArray,
+                        {
+                            DisplayProtocol: 'WorldMessage',
+                            CreatedTime: 200000,
+                            Message: ['Test message'],
+                            MessageId: 'Test',
+                            Target: 'CHARACTER#TESS'
+                        }
+                    ]
+                },
+                aggregates: {
+                    ...testAggregates,
+                    'CHARACTER#TESS': {
+                        ...testAggregates['CHARACTER#TESS'],
+                        Test: { earliestCreatedTime: 200000, latestCreatedTime: 200000 }
                     }
-                ]
+                }
+            })
+        })
+
+        it('should extend aggregate when second revision shares MessageId', () => {
+            const base = reducer(undefined, receiveMessages([{
+                DisplayProtocol: 'WorldMessage',
+                CreatedTime: 100,
+                Message: ['first'],
+                MessageId: 'MESSAGE#rev',
+                Target: 'CHARACTER#TESS'
+            }]))
+            expect(
+                reducer(base, receiveMessages([{
+                    DisplayProtocol: 'WorldMessage',
+                    CreatedTime: 200,
+                    Message: ['second'],
+                    MessageId: 'MESSAGE#rev',
+                    Target: 'CHARACTER#TESS'
+                }]))
+            ).toEqual({
+                history: {
+                    'CHARACTER#TESS': [
+                        {
+                            DisplayProtocol: 'WorldMessage',
+                            CreatedTime: 100,
+                            Message: ['first'],
+                            MessageId: 'MESSAGE#rev',
+                            Target: 'CHARACTER#TESS'
+                        },
+                        {
+                            DisplayProtocol: 'WorldMessage',
+                            CreatedTime: 200,
+                            Message: ['second'],
+                            MessageId: 'MESSAGE#rev',
+                            Target: 'CHARACTER#TESS'
+                        }
+                    ]
+                },
+                aggregates: {
+                    'CHARACTER#TESS': {
+                        'MESSAGE#rev': { earliestCreatedTime: 100, latestCreatedTime: 200 }
+                    }
+                }
+            })
+        })
+
+        it('should update earliest when later insert has earlier CreatedTime for same MessageId', () => {
+            const base = reducer(undefined, receiveMessages([{
+                DisplayProtocol: 'WorldMessage',
+                CreatedTime: 100,
+                Message: ['first'],
+                MessageId: 'MESSAGE#rev',
+                Target: 'CHARACTER#TESS'
+            }]))
+            expect(
+                reducer(base, receiveMessages([{
+                    DisplayProtocol: 'WorldMessage',
+                    CreatedTime: 50,
+                    Message: ['older'],
+                    MessageId: 'MESSAGE#rev',
+                    Target: 'CHARACTER#TESS'
+                }]))
+            ).toEqual({
+                history: {
+                    'CHARACTER#TESS': [
+                        {
+                            DisplayProtocol: 'WorldMessage',
+                            CreatedTime: 50,
+                            Message: ['older'],
+                            MessageId: 'MESSAGE#rev',
+                            Target: 'CHARACTER#TESS'
+                        },
+                        {
+                            DisplayProtocol: 'WorldMessage',
+                            CreatedTime: 100,
+                            Message: ['first'],
+                            MessageId: 'MESSAGE#rev',
+                            Target: 'CHARACTER#TESS'
+                        }
+                    ]
+                },
+                aggregates: {
+                    'CHARACTER#TESS': {
+                        'MESSAGE#rev': { earliestCreatedTime: 50, latestCreatedTime: 100 }
+                    }
+                }
+            })
+        })
+
+        it('should not change aggregates on idempotent replace of same CreatedTime and MessageId', () => {
+            const msg = {
+                DisplayProtocol: 'WorldMessage' as const,
+                CreatedTime: 100,
+                Message: ['first'],
+                MessageId: 'MESSAGE#same',
+                Target: 'CHARACTER#TESS' as const
+            }
+            const base = reducer(undefined, receiveMessages([msg]))
+            expect(
+                reducer(base, receiveMessages([{ ...msg, Message: ['replaced'] }]))
+            ).toEqual({
+                history: {
+                    'CHARACTER#TESS': [{ ...msg, Message: ['replaced'] }]
+                },
+                aggregates: {
+                    'CHARACTER#TESS': {
+                        'MESSAGE#same': { earliestCreatedTime: 100, latestCreatedTime: 100 }
+                    }
+                }
             })
         })
     })
@@ -122,7 +276,12 @@ describe('messages reducer', () => {
             Target: 'CHARACTER#Test'
         })) as WorldMessage[]
 
-        const state = { messages: { 'CHARACTER#TESS': testArray } } as any
+        const state = {
+            messages: {
+                history: { 'CHARACTER#TESS': testArray },
+                aggregates: {}
+            }
+        } as any
 
         it('should return values when available', () => {
             expect(getMessages(state)['CHARACTER#TESS']).toEqual(testArray)

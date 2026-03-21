@@ -9,20 +9,23 @@ import {
 
 const testState = {
     messages: {
-        'CHARACTER#TESS': [{
-            DisplayProtocol: 'WorldMessage',
-            MessageId: 'Test1',
-            Message: ['Test1'],
-            CreatedTime: 0,
-            Target: 'CHARACTER#TESS'
-        }, {
-            DisplayProtocol: 'WorldMessage',
-            MessageId: 'Test2',
-            Message: ['Test2'],
-            CreatedTime: 1,
-            Target: 'CHARACTER#TESS'
-        }]
-    } as MessageState
+        history: {
+            'CHARACTER#TESS': [{
+                DisplayProtocol: 'WorldMessage',
+                MessageId: 'Test1',
+                Message: ['Test1'],
+                CreatedTime: 0,
+                Target: 'CHARACTER#TESS'
+            }, {
+                DisplayProtocol: 'WorldMessage',
+                MessageId: 'Test2',
+                Message: ['Test2'],
+                CreatedTime: 1,
+                Target: 'CHARACTER#TESS'
+            }]
+        } as MessageState,
+        aggregates: {}
+    }
 } as unknown as RootState
 Object.preventExtensions(testState)
 
@@ -91,6 +94,7 @@ describe('messages selectors', () => {
 
         const testState = {
             messages: {
+                history: {
                 'CHARACTER#TESS': [{
                     DisplayProtocol: 'PerceptionMessage',
                     MessageId: 'Test1',
@@ -163,7 +167,9 @@ describe('messages selectors', () => {
                     CreatedTime: 4,
                     Target: 'CHARACTER#MARCO'
                 }]
-            } as MessageState
+                } as MessageState,
+                aggregates: {}
+            }
         } as unknown as RootState
 
         it('should return empty when no messages exist', () => {
@@ -261,6 +267,7 @@ describe('messages selectors', () => {
 
         const testState = {
             messages: {
+                history: {
                 'CHARACTER#TESS': [{
                     DisplayProtocol: 'PerceptionMessage',
                     MessageId: 'Test1',
@@ -318,7 +325,9 @@ describe('messages selectors', () => {
                     CreatedTime: 5,
                     Target: 'CHARACTER#TESS'
                 }]
-            } as MessageState
+                } as MessageState,
+                aggregates: {}
+            }
         } as unknown as RootState
 
         it('should return empty when no messages exist', () => {

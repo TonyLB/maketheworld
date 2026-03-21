@@ -37,7 +37,7 @@ const getRoomId = (message: PerceptionMessage): string => {
 
 export const getMessages: Selector<MessageState> = (state) => {
     const handlerLookup = (obj: Record<string | symbol, Message[]>, prop: string | symbol): Message[] => (obj[prop] || [])
-    return new Proxy(state.messages, {
+    return new Proxy(state.messages.history, {
         get: (target: MessageState, property: string | symbol) => (handlerLookup(target, property.toString())),
         ownKeys: (messages: MessageState) => {
             return (Object.keys(messages) as string[]).sort()
