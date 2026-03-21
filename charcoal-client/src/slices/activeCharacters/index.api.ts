@@ -1,12 +1,12 @@
 import { ActiveCharacterCondition, ActiveCharacterAction } from './baseClasses'
-import cacheDB, { CharacterSyncType, LastSyncType } from '../../cacheDB'
+import cacheDB, { CharacterSyncType, LastSyncType, stripMessageDeltaPk } from '../../cacheDB'
 import {
     socketDispatchPromise,
     LifeLinePubSub,
     getStatus
 } from '../lifeLine'
 import { getMyCharacterById } from '../player'
-import { receiveMessages } from '../messages'
+import { receiveMessages, normalizeCharacterMessageDisplayName } from '../messages'
 import { push as pushFeedback } from '../../slices/UI/feedback'
 import delayPromise from '../../lib/delayPromise'
 import { isEphemeraClientMessageEphemeraUpdateMapItem } from '@tonylb/mtw-interfaces/ts/ephemera'
@@ -33,7 +33,8 @@ export const getLastMessageSync = (CharacterId: EphemeraCharacterId | undefined)
 export const fetchAction: ActiveCharacterAction = ({ internalData: { id } }) => async (dispatch) => {
 
     const LastMessageSync = await getLastMessageSync(id)
-    const messages = await cacheDB.messages.where("Target").equals(id || '').toArray()
+    const cachedRows = await cacheDB.messages.where("Target").equals(id || '').toArray()
+    const messages = cachedRows.map(stripMessageDeltaPk).map(normalizeCharacterMessageDisplayName)
 
     dispatch(receiveMessages(messages))
     return { internalData: { LastMessageSync } }

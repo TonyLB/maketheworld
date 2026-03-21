@@ -47,7 +47,7 @@ const store = mockStore({
             playerName: 'test-player'
         }
     },
-    messages: [],
+    messages: { history: {}, aggregates: {}, presentation: {} },
     characters: {},
     UI: {
         lineEntry: {

@@ -9,7 +9,7 @@ export type PublicSelectorType = {
 export const getCharactersInPlay = (state: EphemeraPublic) => {
     const { charactersInPlay } = state
     const defaultValues = {
-        Name: '??????',
+        DisplayName: '??????',
         RoomId: 'ROOM#VORTEX' as const,
         color: {
             name: 'grey' as const,

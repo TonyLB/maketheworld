@@ -2,7 +2,7 @@
 
 ## Overview
 
-The `messages` slice manages the Redux state for all game messages received via WebSocket. It handles message storage, retrieval, and synchronization with the local cache database.
+The `messages` slice manages the Redux state for all game messages received via WebSocket. It handles message storage, retrieval, and synchronization with the local cache database. The same logical `MessageId` can receive multiple revisions over time; the slice keeps a full **history** log and a separate **presentation** view for the default transcript (see **Transcript model** below).
 
 ## Core Purpose
 
@@ -19,7 +19,7 @@ The message system uses a **two-tier persistence architecture**:
 
 #### **1. Client-Side IndexedDB Cache** 
 - **Database**: `maketheworlddb` (Dexie-based IndexedDB)
-- **Table**: `messages` with indexes on `MessageId`, `CreatedTime`, `Target`
+- **Table**: `messages` uses primary key **`deltaPk`** (synthetic, typically `${CreatedTime}::${MessageId}`) with indexes on `Target`, `MessageId`, `CreatedTime` so multiple revisions per logical id can be stored
 - **Purpose**: Local message history persistence for offline access and performance
 - **Scope**: Character-specific message history for current client
 - **Sync Tracking**: `characterSync` table tracks last sync timestamp per character
@@ -30,20 +30,46 @@ The message system uses a **two-tier persistence architecture**:
 - **Scope**: Complete message history for cross-device synchronization
 - **Structure**: `Target`, `DeltaId` (`CreatedTime::MessageId`), `RowId` (MessageId), message content
 
-### **State Structure**
-```typescript
-type MessageState = Record<EphemeraCharacterId, Message[]>
-```
+### **Transcript model (revisions and three layers)**
 
-Messages are organized by target character ID, with each character having an array of messages sorted by creation time.
+The wire protocol can send **revisions**: the same **`MessageId`** with a new **`CreatedTime`** should not multiply bubbles in the main UI. The slice separates **what we store** from **what we show by default**.
+
+**Goals**
+
+1. **Authoritative log**: Retain every inbound revision in **`history`** for sync, debugging, and any future audit UI.
+2. **Single bubble by default**: **`presentation`** holds one row per logical `MessageId`, with **latest** body and a stable transcript position (first-seen / `earliestCreatedTime`). On presentation rows, **`Message.CreatedTime` is overloaded** as that position key; see [`index.ts`](index.ts) (`toPresentationRow`, `applyPresentationIfLatest`).
+3. **Incremental updates**: Per-id **`aggregates`** track `earliestCreatedTime` and `latestCreatedTime` with O(1) merges on ingest; avoid rescanning all of `history` on each packet.
+4. **New lines**: A genuinely new **`MessageId`** still behaves as a new line; revision semantics apply only to **same-id** traffic.
+
+**The three layers**
+
+| Layer | Role |
+|-------|------|
+| **`history`** | Time-ordered `Message[]` per character: every revision is a row, sorted by `(CreatedTime, MessageId)`. A revision with the **same** id and **new** time is **inserted**; the **same** `(CreatedTime, MessageId)` **replaces** that slot. |
+| **`aggregates`** | Per `(Target, MessageId)`, only **earliest** and **latest** timestamps. **Do not** cache raw indices into `history` (indices move when rows insert mid-array). To find a row, use **binary search** on `history` by `(CreatedTime, MessageId)`. |
+| **`presentation`** | Same array shape as `history`, but **one row per `MessageId`**, updated in **`receiveMessages`** alongside the other branches. Default selectors (`getPresentation`, `getMessagesByRoom`, etc.) read here; **`getMessages`** exposes full **`history`**. |
+
+**Ingest and cold load**: Live traffic and cache replay both dispatch **`receiveMessages`**, so **`history`**, **`aggregates`**, and **`presentation`** stay aligned. **`aggregates`** and **`presentation`** are not persisted separately; reloading from IndexedDB replays through the same path.
+
+### **State Structure**
+
+Redux state for this slice has three parts, all keyed by character (see **Transcript model** above):
+
+| Branch | Role |
+|--------|------|
+| **history** | Full log of what arrived from the server (including multiple revisions of the same logical message). |
+| **aggregates** | Per logical message id, the earliest and latest timestamps seen in that log. |
+| **presentation** | A separate view for the UI: one row per logical message, latest text, ordered as if each line appeared when it first mattered in the stream. |
+
+**Selectors:** [`getMessages`](selectors.ts) reads `history` (audit / full revision log). [`getPresentation`](selectors.ts) reads `presentation` (default transcript). Room grouping ([`getMessagesByRoom`](selectors.ts)) and [`getRecentlyVisited`](selectors.ts) are built on `presentation`.
+
+**Where to read more:** Exact types live in [`baseClasses.ts`](baseClasses.ts). How `presentation` stays in sync with `history`, and how `CreatedTime` is interpreted on presentation rows, is documented in comments and helpers in [`index.ts`](index.ts) (for example `toPresentationRow` and `applyPresentationIfLatest`).
 
 ### **Core Operations**
 
 #### **Message Reception** (`receiveMessages`)
-- Receives new messages from WebSocket
-- Uses binary search for efficient insertion
-- Maintains chronological ordering
-- Handles message updates and duplicates
+- Applies incoming batches after [`cacheMessages`](index.ts) has persisted originals and dispatched processed messages.
+- Updates `history`, `aggregates`, and `presentation` together so the UI view stays consistent with the log.
 
 #### **Cache Synchronization** (`cacheMessages`)
 - **Dual Storage**: Stores original messages in IndexedDB and processed messages in Redux
@@ -56,8 +82,8 @@ Messages are organized by target character ID, with each character having an arr
   4. Dispatch processed messages to Redux state
 
 #### **Message Retrieval** (`selectors`)
-- `getMessages`: Retrieves messages for a specific character
-- `getMessagesByRoom`: Filters messages by room context
+- `getMessages` / `getPresentation`: Character-scoped arrays (see State Structure above)
+- `getMessagesByRoom` / `getRecentlyVisited`: Room visits and grouped transcript; use `presentation` via `getPresentation`
 
 ### **Message Synchronization Flow**
 
@@ -85,7 +111,7 @@ Messages are organized by target character ID, with each character having an arr
 
 - **Room Header Messages**: Must be properly stored and retrieved from both IndexedDB and DynamoDB
 - **Message Format Migration**: `PerceptionMessage` format must be compatible with both persistence layers
-- **Selector Dependencies**: `getMessagesByRoom` relies on complete message history for proper header grouping
+- **Selector Dependencies**: `getMessagesByRoom` reads the presentation transcript so room sections follow the same collapsed timeline as the main UI
 - **Sync Consistency**: Room headers from different clients must merge correctly for sticky header logic
 
 **Potential Issues:**
@@ -171,10 +197,10 @@ const processedMessages = messages.map(processPerceptionMessage)
 
 ##### **Phase 2: No Special Selectors Needed**
 ```typescript
-// Use existing getMessages selector - components handle routing
+// Use existing getMessages (history) or getPresentation (one row per MessageId)
 // No need for getPerceptionMessages - components filter by DisplayProtocol
 export const getMessages = (state: RootState, characterId: EphemeraCharacterId) => {
-    return state.messages[characterId] || []
+    return state.messages.history[characterId] || []
 }
 ```
 
@@ -252,20 +278,22 @@ case 'PerceptionMessage':
 
 ## Navigation Tips
 
-1. **Start with Index**: Understand the main slice logic in `index.ts`
-2. **Check Selectors**: Review existing message retrieval patterns in `selectors.ts`
-3. **Review Binary Search**: Understand message ordering in `binarySearch.ts`
-4. **Examine Cache Integration**: See how messages sync with IndexedDB
-5. **Plan WML Integration**: Focus on component-level parsing strategy
+1. **Start with Index**: Main reducer, `receiveMessages`, `applyPresentationIfLatest`, `refreshPresentationFromLatestHistory`, and `cacheMessages` live in `index.ts`
+2. **Types**: `MessagesSliceState`, aggregates, and presentation aliases are in `baseClasses.ts`
+3. **Check Selectors**: `getMessages`, `getPresentation`, and `getMessagesByRoom` in `selectors.ts`
+4. **Review Binary Search**: Message ordering and insertion points in `binarySearch.ts`
+5. **Examine Cache Integration**: How messages sync with IndexedDB (original wire rows; Redux may add `parsedWML` after read)
+6. **Tests**: `index.test.ts` covers history, aggregates, and presentation behavior
 
 ## Development Notes
 
 ### **Current State**
-- **Message Storage**: Fully functional Redux state management with enhanced message types
+- **Message Storage**: `history` holds the full revision log; `aggregates` tracks per-`MessageId` time bounds; `presentation` holds the alternate transcript for UI (one row per id, overloaded `CreatedTime` for position)
 - **Cache Integration**: Complete IndexedDB synchronization with safe storage (original messages only)
-- **Message Ordering**: Efficient binary search insertion
-- **Selector System**: Optimized message retrieval
-- **WML Processing**: ✅ Implemented with fallback strategy and type safety
+- **Message Ordering**: Efficient binary search insertion for `history` and `presentation`
+- **Selector System**: `getPresentation` for default transcript (`getMessagesByRoom`, `getRecentlyVisited`); `getMessages` for full `history` when needed
+- **WML Processing**: Implemented with fallback strategy and type safety
+- **Clear**: `clear` resets `history`, `aggregates`, and `presentation` together
 
 ### **Testing Patterns**
 - **Watch Mode**: `npm test` - Runs Vitest in watch mode (default)

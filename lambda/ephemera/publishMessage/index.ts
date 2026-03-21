@@ -265,8 +265,8 @@ export const publishMessage = async ({ payloads }: { payloads: PublishMessage[],
             })
         }
         //
-        // TODO: Deprecate Name and possibly Color from data that needs to be sent on a
-        // CharacterMessage, and pull it instead from the internalCache along with fileURL
+        // Character name on the wire matches MessageCharacterInfo (`DisplayName` in
+        // @tonylb/mtw-interfaces) and the internal publish payload field `name`.
         //
         if (isCharacterMessage(payload)) {
             const { fileURL } = await internalCache.CharacterMeta.get(payload.characterId)
@@ -276,7 +276,7 @@ export const publishMessage = async ({ payloads }: { payloads: PublishMessage[],
                 CreatedTime,
                 Message: payload.message,
                 DisplayProtocol: payload.displayProtocol,
-                Name: payload.name,
+                DisplayName: payload.name,
                 CharacterId: payload.characterId,
                 Color: payload.color,
                 fileURL

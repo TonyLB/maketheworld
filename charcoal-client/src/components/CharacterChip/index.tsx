@@ -24,15 +24,15 @@ export const CharacterChip: FunctionComponent<CharacterChipProps> = ({ Character
     const { AppBaseURL = '' } = useSelector(getConfiguration)
     const appBaseURL = DevEnvironment ? `https://${AppBaseURL}` : ''
     const charactersInPlay = useSelector(getCharactersInPlay)
-    const { Name: defaultName, fileURL: fileURLCurrent } = charactersInPlay[CharacterId]
+    const { DisplayName: defaultName, fileURL: fileURLCurrent } = charactersInPlay[CharacterId]
     return (
         <CharacterStyleWrapper CharacterId={CharacterId} nested>
             <Chip
                 label={Name || defaultName}
                 onClick={onClick}
                 avatar={fileURL
-                    ? <Avatar sx={fileURL ? { borderColor: "primary.main", borderWidth: '2px', borderStyle: "solid" } : { bgcolor: 'primary.main' }} alt={Name} src={(fileURL ?? fileURLCurrent) && `${appBaseURL}/images/${fileURL ?? fileURLCurrent}.png`}>
-                        { (Name || '')[0].toUpperCase() }
+                    ? <Avatar sx={fileURL ? { borderColor: "primary.main", borderWidth: '2px', borderStyle: "solid" } : { bgcolor: 'primary.main' }} alt={Name || defaultName || '?'} src={(fileURL ?? fileURLCurrent) && `${appBaseURL}/images/${fileURL ?? fileURLCurrent}.png`}>
+                        { ((Name || defaultName || '?')[0] || '?').toUpperCase() }
                     </Avatar>
                     : undefined
                 }

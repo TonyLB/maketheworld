@@ -7,13 +7,13 @@ import VirtualMessageList from '../Message/VirtualMessageList'
 //
 // TODO: Refactor messages slice to handle threads
 //
-import { getMessages } from '../../slices/messages'
+import { getPresentation } from '../../slices/messages'
 
 export const ThreadView = ({
         ThreadId,
         viewAsCharacterId,
     }) => {
-    const messages = useSelector(getMessages)
+    const messages = useSelector(getPresentation)
     const threadMessages = useMemo(() => (messages.threads.filter((message) => (message.ThreadId === ThreadId))), [messages, ThreadId])
     return null
     // return <VirtualMessageList key={ThreadId} messages={threadMessages} viewAsCharacterId={viewAsCharacterId} />

@@ -26,7 +26,7 @@ export const WhoDrawer = () => {
             </TableHead>
             <TableBody>
                 {
-                    whoIsActive.map(({ CharacterId, Name }) => {
+                    whoIsActive.map(({ CharacterId, DisplayName }) => {
                         //
                         // TODO: Figure out how to present a workable room/area name using the new WML Asset
                         // system.
@@ -41,7 +41,7 @@ export const WhoDrawer = () => {
                                 <TableCell>
                                     <CharacterAvatar CharacterId={CharacterId} />
                                 </TableCell>
-                                <TableCell>{ Name.length > 20 ? `${Name.slice(0,17)}...` : Name }</TableCell>
+                                <TableCell>{ DisplayName.length > 20 ? `${DisplayName.slice(0,17)}...` : DisplayName }</TableCell>
                                 <TableCell>{ neighborhoodName }</TableCell>
                             </TableRow>
                         )

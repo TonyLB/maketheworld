@@ -9,20 +9,24 @@ import {
 
 const testState = {
     messages: {
-        'CHARACTER#TESS': [{
-            DisplayProtocol: 'WorldMessage',
-            MessageId: 'Test1',
-            Message: ['Test1'],
-            CreatedTime: 0,
-            Target: 'CHARACTER#TESS'
-        }, {
-            DisplayProtocol: 'WorldMessage',
-            MessageId: 'Test2',
-            Message: ['Test2'],
-            CreatedTime: 1,
-            Target: 'CHARACTER#TESS'
-        }]
-    } as MessageState
+        history: {
+            'CHARACTER#TESS': [{
+                DisplayProtocol: 'WorldMessage',
+                MessageId: 'Test1',
+                Message: ['Test1'],
+                CreatedTime: 0,
+                Target: 'CHARACTER#TESS'
+            }, {
+                DisplayProtocol: 'WorldMessage',
+                MessageId: 'Test2',
+                Message: ['Test2'],
+                CreatedTime: 1,
+                Target: 'CHARACTER#TESS'
+            }]
+        } as MessageState,
+        aggregates: {},
+        presentation: {}
+    }
 } as unknown as RootState
 Object.preventExtensions(testState)
 
@@ -89,8 +93,7 @@ describe('messages selectors', () => {
 
     describe('getMessagesByRoom', () => {
 
-        const testState = {
-            messages: {
+        const historyForRoom = {
                 'CHARACTER#TESS': [{
                     DisplayProtocol: 'PerceptionMessage',
                     MessageId: 'Test1',
@@ -163,7 +166,14 @@ describe('messages selectors', () => {
                     CreatedTime: 4,
                     Target: 'CHARACTER#MARCO'
                 }]
-            } as MessageState
+        } as MessageState
+
+        const testState = {
+            messages: {
+                history: historyForRoom,
+                aggregates: {},
+                presentation: structuredClone(historyForRoom)
+            }
         } as unknown as RootState
 
         it('should return empty when no messages exist', () => {
@@ -259,8 +269,7 @@ describe('messages selectors', () => {
 
     describe('getRecentlyVisited', () => {
 
-        const testState = {
-            messages: {
+        const historyForRecent = {
                 'CHARACTER#TESS': [{
                     DisplayProtocol: 'PerceptionMessage',
                     MessageId: 'Test1',
@@ -318,7 +327,14 @@ describe('messages selectors', () => {
                     CreatedTime: 5,
                     Target: 'CHARACTER#TESS'
                 }]
-            } as MessageState
+        } as MessageState
+
+        const testState = {
+            messages: {
+                history: historyForRecent,
+                aggregates: {},
+                presentation: structuredClone(historyForRecent)
+            }
         } as unknown as RootState
 
         it('should return empty when no messages exist', () => {

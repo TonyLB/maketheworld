@@ -33,11 +33,11 @@ const getRoomId = (message: PerceptionMessage): string => {
 }
 
 
+const handlerLookup = (obj: Record<string | symbol, Message[]>, prop: string | symbol): Message[] =>
+    (obj[prop] || [])
 
-
-export const getMessages: Selector<MessageState> = (state) => {
-    const handlerLookup = (obj: Record<string | symbol, Message[]>, prop: string | symbol): Message[] => (obj[prop] || [])
-    return new Proxy(state.messages, {
+const messageStateProxy = (branch: MessageState): MessageState =>
+    new Proxy(branch, {
         get: (target: MessageState, property: string | symbol) => (handlerLookup(target, property.toString())),
         ownKeys: (messages: MessageState) => {
             return (Object.keys(messages) as string[]).sort()
@@ -50,9 +50,16 @@ export const getMessages: Selector<MessageState> = (state) => {
                 value
             }
         }
-    })
+    }) as MessageState
 
-}
+/** Full revision log (`history`). Use for audit/debug; default UI uses `getPresentation`. */
+export const getMessages: Selector<MessageState> = (state) => messageStateProxy(state.messages.history)
+
+/**
+ * Transcript view for UI (one row per `MessageId`). `Message.CreatedTime` is transcript
+ * position (`earliestCreatedTime`), not necessarily the latest revision time; see `toPresentationRow` in `index.ts`.
+ */
+export const getPresentation: Selector<MessageState> = (state) => messageStateProxy(state.messages.presentation)
 
 type MessageRoomBreakdownHeader = {
     header: PerceptionMessage & { parsedWML?: StandardForm };
@@ -110,8 +117,9 @@ const combineCurrentHeader = ({ Messages, Groups, currentGroup }: MessageRoomInP
     }
 }
 
+/** Room-grouped timeline for the main transcript. Reads `presentation`, not full `history`. */
 export const getMessagesByRoom: (CharacterId: EphemeraCharacterId) => Selector<MessageRoomBreakdown> = (CharacterId) => createSelector(
-    getMessages,
+    getPresentation,
     (allMessages) => {
         let messages = [] as Message[]
         let initialHeader = undefined as MessageRoomBreakdownHeader | undefined
@@ -219,8 +227,9 @@ type MessageRecentVisit = {
     tag: SchemaImportMapping["type"];
 }
 
+/** Recent room visits from the same collapsed transcript as the main UI (`presentation`). */
 export const getRecentlyVisited: (fromTime: number) => Selector<MessageRecentVisit[]> = (fromTime) => createSelector(
-    getMessages,
+    getPresentation,
     (allMessages) => {
         const recentlyVisited: MessageRecentVisit[] = Object.values(allMessages)
             .map((messages) => {
