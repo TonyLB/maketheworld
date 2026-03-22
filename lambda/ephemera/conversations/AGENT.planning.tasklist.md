@@ -10,7 +10,7 @@
 
 `AGENT.planning.md` describes **two** registry jobs: **(1) delivery routing** via `conversationId`, and **(2) intermediate fragment storage** for multi-step / cross-domain merge before assembly. We do **not** have to implement both in the first PR.
 
-Work proceeds in **two typing passes** (sections 2 and 4) and **two prototype passes** (sections 3 and 5): first establish a **full-record discriminant** (e.g. top-level **`type`**) with a **stub payload** on the first member, then rehearse a **narrow API pipeline**; later add union members and rehearse **fragments + assembly**.
+Work proceeds in **two typing passes** (sections 2 and 5) and **two prototype passes** (sections 3 and 6): first establish a **full-record discriminant** (e.g. top-level **`type`**) with a **stub payload** on the first member, then rehearse a **narrow API pipeline**; later add union members and rehearse **fragments + assembly**.
 
 A **narrow, API-driven** flow (for example **GenerateRoomPreview** from the UI button) is a good **first partial rehearsal**: one cohesive async pipeline can lean on a **serializable routing record** (who/what to address, `RequestId`, room/perspective, etc.) so later code can resolve delivery **without** threading ad-hoc context, while **not** yet requiring named **fragments** from multiple writers. That still exercises registration, lookup, and the **shape** of durable-friendly routing fields.
 
@@ -31,10 +31,10 @@ A **second prototype pass** then adds the **fragment** map, merge rules, complet
 **Goal:** A **full-record discriminant** (e.g. a top-level **`type`** field) so each variant of `ConversationRecord` narrows **both** routing-related fields **and** payload **together**. First variant only in this pass; use a **placeholder payload** (prefer a **named** empty type, e.g. `Record<string, never>`, over a bare `{}`). No meaningful fragment types yet.
 
 - [x] Define **`conversationId`** as opaque string; generation via **`uuidv4()`** at registration only (see `AGENT.planning.md`).
-- [x] Define the **first union member**: one **`type`** tag (full-record discriminant) plus **serializable** routing fields and a **stub payload** for that member only (empty / unused for now). **Comment** that additional union members and payload shapes land in **section 4**.
-- [x] Implement minimal registry operations: e.g. `register`, `get`, `delete` (exact names TBD). Defer `mergeFragments` / `putFragment` to **section 4** unless a no-op stub is useful.
+- [x] Define the **first union member**: one **`type`** tag (full-record discriminant) plus **serializable** routing fields and a **stub payload** for that member only (empty / unused for now). **Comment** that additional union members and payload shapes land in **section 5**.
+- [x] Implement minimal registry operations: e.g. `register`, `get`, `delete` (exact names TBD). Defer `mergeFragments` / `putFragment` to **section 5** unless a no-op stub is useful.
 - [x] Prefer **async** method signatures on the registry (`get` returns `Promise<...>`) even when v1 uses in-memory sync internals.
-- [x] Unit tests for register, get, delete, idempotency rules where applicable, and clear behavior (narrow scope; extend in **section 4** / **section 5** as merge and fragments land).
+- [x] Unit tests for register, get, delete, idempotency rules where applicable, and clear behavior (narrow scope; extend in **section 5** / **section 6** as merge and fragments land).
 
 ---
 
@@ -47,13 +47,27 @@ A **second prototype pass** then adds the **fragment** map, merge rules, complet
 Suggested candidate: **GenerateRoomPreview** (UI button): one cohesive async chain; exercises **job (1)** from `AGENT.planning.md` more than **job (2)**.
 
 - [x] Wire **registration + lookup** for the chosen API path; align `ConversationRecord` with the **section 2** union for that path.
-- [x] Thread **`conversationId`** through the request handler and any helpers that need delivery context (minimal surface; prototype bus threading is temporary; **section 6** removes it from the renderCache DS).
-- [x] Keep **WebSocket** / `ReturnValue` / `RequestId` coherent with the registered record (**section 6** picks up renderCache correlation without DS-threaded `conversationId`).
+- [x] Thread **`conversationId`** through the request handler and any helpers that need delivery context (minimal surface; prototype bus threading is temporary; **section 7** removes it from the renderCache DS).
+- [x] Keep **WebSocket** / `ReturnValue` / `RequestId` coherent with the registered record (**section 7** picks up renderCache correlation without DS-threaded `conversationId`).
 - [x] Tests scoped to routing + registry behavior for this path (bus mocks as needed).
 
 ---
 
-## 4. Second-pass typing (payload union + second routing variant)
+## 4. Multi-stage WebSocket contract (preview; next after section 3)
+
+**Goal:** Break the **single-ReturnValue** coordination lock for authoring **preview** (and similar flows) so the client and server can support **multiple correlated** messages per logical operation. Full rationale: [`AGENT.planning.md`](AGENT.planning.md) section **Multi-stage WebSocket delivery and coordination trap (preview path)**. Client patterns: [`charcoal-client/src/slices/lifeLine/AGENT.md`](../../../charcoal-client/src/slices/lifeLine/AGENT.md).
+
+**Wedge:** Ship a **vertical slice** first (same lambda invocation may emit **generating** then **result** before async multi-DataSource work is required). Wire shape names (**`ConversationStep`**, **`socketDispatchConversation`**) are **working names** until implementation locks them.
+
+- [ ] **Client:** Add **`socketDispatchConversation`** (or equivalent): subscribe to **multiple** `LifeLinePubSub` payloads sharing **`RequestId`** (and/or **`conversationId`** per contract), expose **`onEvent`** / **unsubscribe**; drop subscription on unmount, navigation, or superseding run.
+- [ ] **Shared types:** Discriminated **step** union (e.g. generating vs terminal result vs error); align with Ephemera **`ReturnValue`** / future **`ConversationStep`** body; **`packages/mtw-interfaces`** or ephemera client types as appropriate.
+- [ ] **Server:** Extend **`sendMessage`** materialization ([`conversationTypes/generateRoomPreview/materialize.ts`](../conversationTypes/generateRoomPreview/materialize.ts)) to emit **non-terminal** steps; keep **`RequestId`** on each step where applicable.
+- [ ] **Preview UI:** Update [`RoomPreviewEditor`](../../../charcoal-client/src/components/Workbench/RoomEdit/RoomPreviewEditor.tsx) (and tests) to consume the stream; align **Generating** UX with server-driven steps where intended.
+- [ ] **Orchestration alignment:** When **`generateRoomPreview`** path emits early feedback, coordinate with [`renderOrchestration/AGENT.planning.md`](../renderOrchestration/AGENT.planning.md) (`RenderGenerationStarted`, cache lifecycle).
+
+---
+
+## 5. Second-pass typing (payload union + second routing variant)
 
 **Goal:** Extend the **same** `ConversationRecord` union: add a **second `type` variant** with a **meaningful** payload (prototype `Partial` of `{ leaveMessage, arriveMessage, roomHeader }` or equivalent). Refine the **first** variant's payload from stub to a **typed** fragment union where needed. **Comment** that fragment types are **prototype**.
 
@@ -64,7 +78,7 @@ Suggested candidate: **GenerateRoomPreview** (UI button): one cohesive async cha
 
 ---
 
-## 5. Second prototype pass: fragments + assembly
+## 6. Second prototype pass: fragments + assembly
 
 Document the chosen path in a one-line note at the top of this section when you start it.
 
@@ -77,7 +91,7 @@ Document the chosen path in a one-line note at the top of this section when you 
 
 ---
 
-## 6. Third prototype pass: correlate `renderCache` without intent inside the DS
+## 7. Third prototype pass: correlate `renderCache` without intent inside the DS
 
 **Goal:** After the routing + fragments prototypes land, **remove** the **temporary** plumbing that threads **`conversationId`** through **`api.ephemera` `Put Cache Record`** commands and **`mtw.ephemera.renderCache` `Cache Updated`** payloads (see [`AGENT.md`](AGENT.md), [`dataSource/localApiEvents.ts`](../dataSource/localApiEvents.ts), [`dataSource/renderCache/`](../dataSource/renderCache/)). **`mtw.ephemera.renderCache`** should again emit **cache-shaped** events only; **conversations** (or a dedicated orchestration module) **subscribes** to those streams and **resolves** which open conversation (if any) an event belongs to using **keys on the event** (`componentId`, `perspectiveId`, `dataCategory`, etc.) plus **registry lookup**, not a conversation id carried inside the DS envelope.
 
@@ -90,14 +104,14 @@ Document the chosen path in a one-line note at the top of this section when you 
 
 ---
 
-## 7. Documentation and cleanup
+## 8. Documentation and cleanup
 
 - [ ] Mark prototype fragment types and assembler in **code comments** (or short module README) pointing to `AGENT.planning.md`.
 - [x] Add `AGENT.md` in this directory once behavior and API are stable enough for other agents (optional; can follow first merge).
 
 ---
 
-## 8. Deferred (do not block v1 prototype)
+## 9. Deferred (do not block v1 prototype)
 
 - [ ] **Discriminated union** of fragment payloads + **serializer-style registration** for new fragment kinds (post-prototype).
 - [ ] **Durable** conversation storage (Dynamo) and cross-invocation `get`.

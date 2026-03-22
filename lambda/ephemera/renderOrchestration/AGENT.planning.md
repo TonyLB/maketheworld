@@ -287,4 +287,5 @@ With `internalCache.RenderCache`, render orchestration can:
 - Register `renderOrchestration` subscriptions in `lambda/ephemera/messageBus/index.ts`.
 - Add perception-side lifecycle consumers for `RenderGenerationStarted` and `RenderReady`.
 - Wire `requestIntake` handler to consume `RenderRequested` and emit `RenderLookupRequested`/`RenderReady`.
+- **Multi-stage WebSocket / authoring preview:** Correlated **multiple messages per request** (e.g. generating vs completion) for **`generateRoomPreview`** is planned in [`../conversations/AGENT.planning.md`](../conversations/AGENT.planning.md) (**Multi-stage WebSocket delivery and coordination trap**), [`../conversations/AGENT.planning.tasklist.md`](../conversations/AGENT.planning.tasklist.md) **section 4**, and [`../../../charcoal-client/src/slices/lifeLine/AGENT.md`](../../../charcoal-client/src/slices/lifeLine/AGENT.md). Align **`RenderGenerationStarted`** / cache lifecycle with that contract when wiring preview orchestration.
 

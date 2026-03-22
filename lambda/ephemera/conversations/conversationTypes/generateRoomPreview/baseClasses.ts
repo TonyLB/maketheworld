@@ -16,7 +16,7 @@ export type GenerateRoomPreviewConversationRouting = {
 
 /**
  * First union member: full-record discriminant; `routing` and `payload` narrow together.
- * Additional `type` variants and `payload` shapes: section 4 (task list).
+ * Additional `type` variants and `payload` shapes: task list section 5 (second-pass typing).
  */
 export const CONVERSATION_TYPE_GENERATE_ROOM_PREVIEW = 'generateRoomPreview' as const
 

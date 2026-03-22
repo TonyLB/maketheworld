@@ -7,7 +7,7 @@
 export type ConversationId = string
 
 /**
- * Placeholder payload for the first union member only. Real fragment payloads land in section 4 (task list).
+ * Placeholder payload for the first union member only. Real fragment payloads land in task list section 5 (second-pass typing).
  */
 export type ConversationPayloadStub = Record<string, never>
 

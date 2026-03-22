@@ -151,6 +151,33 @@ Prefer a **discriminated** delivery envelope (`directPreview` | `roomBroadcast` 
 - Operations might include: `register`, `get`, **`putFragment` / `mergeFragments`** (names TBD), `complete` / `delete` (optional), or idempotent terminal transitions.
 - **Assembly** might be `tryAssemble(conversationId)` or triggered when the last required fragment arrives — **TBD**.
 
+## Multi-stage WebSocket delivery and coordination trap (preview path)
+
+### The lock-in loop
+
+Today, **authoring preview** and similar flows tend to co-evolve as a **single round-trip**:
+
+- The **client** uses **`socketDispatchPromise`**, which resolves **once** when an inbound message matches **`RequestId`** (see `charcoal-client/src/slices/lifeLine/AGENT.md`).
+- The **Ephemera** handler merges **`ReturnValue`** into **one** response body ([`returnValue/extractReturnValue`](../returnValue/index.ts)).
+- **`conversation.sendMessage`** for **`generateRoomPreview`** is typed and implemented for **terminal** outcomes only ([`conversationTypes/generateRoomPreview/baseClasses.ts`](conversationTypes/generateRoomPreview/baseClasses.ts)).
+
+Together these create a **coordination trap**: moving to **event-driven** orchestration (multiple internal steps, async cache outcomes) **wants** multi-stage signaling, but the **wire** only models **one** terminal payload per request, so neither side fully commits until the other does.
+
+### Exit strategy: vertical slice
+
+Break the loop with an **end-to-end wedge** that does **not** require a full multi-DataSource cascade on day one:
+
+1. **Client:** Introduce **`socketDispatchConversation`** (name TBD): subscribe to **multiple** correlated WebSocket payloads (e.g. shared **`RequestId`**) and expose **`onEvent`** / teardown (unsubscribe when the UI unmounts or starts a new run). Documented in **`charcoal-client/src/slices/lifeLine/AGENT.md`**.
+2. **Wire shape:** Add a discriminated **step** envelope (working name **`ConversationStep`**) for progress vs completion vs error; keep **`RequestId`** (and optionally **`conversationId`**) stable across steps.
+3. **Server:** Extend **materialization** so **`sendMessage`** (or a parallel path) can emit **non-terminal** steps before the final **`ReturnValue`** (or migrate completion entirely into steps once clients exist).
+4. **Orchestration:** Emit an early **generating** signal in the same invocation **before** blocking work, then align with **`RenderGenerationStarted`** / cache outcomes as the cascade matures ([`renderOrchestration/AGENT.planning.md`](../renderOrchestration/AGENT.planning.md)).
+
+**Scope:** This section targets **direct / authoring preview** (`ReturnValue` to **one connection**). It is **orthogonal** to in-room **`PublishMessage`** / **`sendRoomGeneratingHeader`** (perception path); do not collapse those into one mechanism here.
+
+### Task sequencing
+
+Executable checklist: [`AGENT.planning.tasklist.md`](AGENT.planning.tasklist.md) **section 4** (multi-stage WebSocket contract). Cross-links: [`renderOrchestration/AGENT.planning.md`](../renderOrchestration/AGENT.planning.md) **Integration follow-up**, [`AGENT.event.md`](../AGENT.event.md).
+
 ## DataSource: `mtw.ephemera.conversations`?
 
 **v1 default: no** separate `EphemeraDataSource` for conversations unless we have:
@@ -177,3 +204,4 @@ The **internalCache gateway** pattern (memory mirror + future durable store) sti
 - `lambda/ephemera/moveCharacter/index.ts` - `messageGroupId` / `OrchestrateMessages.before` and `.after` for leave vs arrive ordering.
 - `lambda/ephemera/internalCache/index.ts` - `clear()` and cache composition.
 - `lambda/ephemera/AGENT.event.md` - WebSocket and internal bus overview.
+- `charcoal-client/src/slices/lifeLine/AGENT.md` - `socketDispatchPromise` vs proposed `socketDispatchConversation` (multi-stage preview).
