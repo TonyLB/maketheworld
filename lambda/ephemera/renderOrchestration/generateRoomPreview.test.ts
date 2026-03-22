@@ -186,7 +186,52 @@ describe('renderOrchestration/generateRoomPreview', () => {
                 renderedContent,
                 provenance: { type: 'generated' },
                 perspectiveMatcher: { requiredAssetIds: assetStack, forbiddenAssetIds: [] }
-            })
+            }),
+            undefined,
+            undefined
+        )
+    })
+
+    it('passes conversationId to publishPutCacheRecord when provided in options', async () => {
+        const getExactMatchImpl = jest.fn().mockResolvedValue(null)
+
+        const renderedContent: EphemeraCacheRenderedContent = {
+            displayName: [],
+            summary: [],
+            description: [],
+        }
+        const generateRoomDescriptionImpl = jest.fn().mockResolvedValue({
+            success: true,
+            renderedContent,
+        })
+        const queryCacheRecordsForComponentImpl = jest.fn().mockResolvedValue([])
+        const publishPutCacheRecord = jest.fn().mockResolvedValue(undefined)
+
+        const validWml = '<Asset uuid=(test)><Room uuid=(room1) key=(room1)><ShortName>Test</ShortName></Room></Asset>'
+        const markState = makeMarkState([{ mark: 'MARK#a', value: 'one' }])
+        const assetStack = ['ASSET#one']
+
+        await generateRoomPreview(
+            {
+                roomId,
+                markState,
+                assetStack,
+                generationContextWml: validWml,
+            },
+            {
+                getExactMatchImpl,
+                generateRoomDescriptionImpl,
+                queryCacheRecordsForComponentImpl,
+                publishPutCacheRecord,
+                conversationId: 'conv-thread-1',
+            }
+        )
+
+        expect(publishPutCacheRecord).toHaveBeenCalledWith(
+            roomId,
+            expect.objectContaining({ provenance: { type: 'generated' } }),
+            undefined,
+            'conv-thread-1'
         )
     })
 })

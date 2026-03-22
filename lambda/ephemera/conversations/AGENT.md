@@ -12,6 +12,10 @@ Use `getStorableConversationRecord` when you only need the data; use `getConvers
 
 **`GenerateRoomPreviewResult`** (and **`GenerateRoomPreviewSuccess`** / **`GenerateRoomPreviewFailure`**) live in [`conversationTypes/generateRoomPreview/baseClasses.ts`](conversationTypes/generateRoomPreview/baseClasses.ts) next to the storable row and handle for that path; per-variant **`materialize.ts`** builds the live handle. [`renderOrchestration/generateRoomPreview.ts`](../renderOrchestration/generateRoomPreview.ts) **implements** that contract; orchestration does not own the wire result shapes.
 
+## Temporary: `conversationId` on renderCache bus traffic
+
+For the prototype, **`conversationId`** may be set on **`api.ephemera`** **`Put Cache Record`** commands and echoed on **`mtw.ephemera.renderCache`** **`Cache Updated`** payloads (see [`dataSource/localApiEvents.ts`](../dataSource/localApiEvents.ts), [`dataSource/renderCache/index.ts`](../dataSource/renderCache/index.ts)). **Dynamo** cache rows are unchanged. Remove this plumbing once orchestration can correlate cache events to conversations **without** carrying intent inside the DS envelope (see [AGENT.planning.tasklist.md](AGENT.planning.tasklist.md)).
+
 ## Discriminant
 
 A single top-level **`type`** field identifies the variant. Narrowing on **`type`** narrows **`routing`**, **`payload`**, and **`sendMessage`** together. Type guards live next to the variant (e.g. `isStorableConversationRecordGenerateRoomPreview`).
@@ -29,7 +33,7 @@ Persisted storage always uses **storable** types only.
 
 ## Streaming / progress (future)
 
-Today, **`sendMessage`** for `generateRoomPreview` sends a single **`ReturnValue`** (completion), matching [`app.ts`](../app.ts) until wiring moves to this module. When intermediate feedback is needed ("Generating..."), extend the **argument type** of **`sendMessage`** to a discriminated union (e.g. progress vs completion) or add methods; see [AGENT.planning.md](AGENT.planning.md).
+The WebSocket **`generateRoomPreview`** path in [`app.ts`](../app.ts) uses **`registerConversation`**, **`generateRoomPreview`**, then **`getConversationHandle`** **`sendMessage`** (single **`ReturnValue`** completion). When intermediate feedback is needed ("Generating..."), extend the **argument type** of **`sendMessage`** to a discriminated union (e.g. progress vs completion) or add methods; see [AGENT.planning.md](AGENT.planning.md).
 
 ## Design reference
 

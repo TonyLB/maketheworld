@@ -30,26 +30,26 @@ A **second prototype pass** then adds the **fragment** map, merge rules, complet
 
 **Goal:** A **full-record discriminant** (e.g. a top-level **`type`** field) so each variant of `ConversationRecord` narrows **both** routing-related fields **and** payload **together**. First variant only in this pass; use a **placeholder payload** (prefer a **named** empty type, e.g. `Record<string, never>`, over a bare `{}`). No meaningful fragment types yet.
 
-- [ ] Define **`conversationId`** as opaque string; generation via **`uuidv4()`** at registration only (see `AGENT.planning.md`).
-- [ ] Define the **first union member**: one **`type`** tag (full-record discriminant) plus **serializable** routing fields and a **stub payload** for that member only (empty / unused for now). **Comment** that additional union members and payload shapes land in **section 4**.
-- [ ] Implement minimal registry operations: e.g. `register`, `get`, `delete` (exact names TBD). Defer `mergeFragments` / `putFragment` to **section 4** unless a no-op stub is useful.
-- [ ] Prefer **async** method signatures on the registry (`get` returns `Promise<...>`) even when v1 uses in-memory sync internals.
-- [ ] Unit tests for register, get, delete, idempotency rules where applicable, and clear behavior (narrow scope; extend in **section 4** / **section 5** as merge and fragments land).
+- [x] Define **`conversationId`** as opaque string; generation via **`uuidv4()`** at registration only (see `AGENT.planning.md`).
+- [x] Define the **first union member**: one **`type`** tag (full-record discriminant) plus **serializable** routing fields and a **stub payload** for that member only (empty / unused for now). **Comment** that additional union members and payload shapes land in **section 4**.
+- [x] Implement minimal registry operations: e.g. `register`, `get`, `delete` (exact names TBD). Defer `mergeFragments` / `putFragment` to **section 4** unless a no-op stub is useful.
+- [x] Prefer **async** method signatures on the registry (`get` returns `Promise<...>`) even when v1 uses in-memory sync internals.
+- [x] Unit tests for register, get, delete, idempotency rules where applicable, and clear behavior (narrow scope; extend in **section 4** / **section 5** as merge and fragments land).
 
 ---
 
 ## 3. First prototype pass: routing-first pipeline (e.g. API-activated preview)
 
-Document the chosen path in a one-line note at the top of this section when you start it.
+**Chosen path:** WebSocket **`generateRoomPreview`** in [`app.ts`](../app.ts): register row, **`generateRoomPreview`** with optional **`conversationId`** on orchestration, completion via **`getConversationHandle`** **`sendMessage`**; optional **`conversationId`** on **`Put Cache Record`** / **`Cache Updated`** for prototype correlation.
 
 **Goal:** Register a `conversationId`, persist **routing** for the run, and thread that id through the handler so delivery stays coherent (e.g. `ReturnValue` / `RequestId`). **No requirement** yet for multiple fragment writers or a full assembler beyond whatever the single pipeline already does.
 
 Suggested candidate: **GenerateRoomPreview** (UI button): one cohesive async chain; exercises **job (1)** from `AGENT.planning.md` more than **job (2)**.
 
-- [ ] Wire **registration + lookup** for the chosen API path; align `ConversationRecord` with the **section 2** union for that path.
-- [ ] Thread **`conversationId`** through the request handler and any helpers that need delivery context (minimal surface; see **section 6** for cross-cutting threading).
-- [ ] Keep **WebSocket** / `ReturnValue` / `RequestId` coherent with the registered record (see **section 6**).
-- [ ] Tests scoped to routing + registry behavior for this path (bus mocks as needed).
+- [x] Wire **registration + lookup** for the chosen API path; align `ConversationRecord` with the **section 2** union for that path.
+- [x] Thread **`conversationId`** through the request handler and any helpers that need delivery context (minimal surface; prototype bus threading is temporary; **section 6** removes it from the renderCache DS).
+- [x] Keep **WebSocket** / `ReturnValue` / `RequestId` coherent with the registered record (**section 6** picks up renderCache correlation without DS-threaded `conversationId`).
+- [x] Tests scoped to routing + registry behavior for this path (bus mocks as needed).
 
 ---
 
@@ -77,17 +77,23 @@ Document the chosen path in a one-line note at the top of this section when you 
 
 ---
 
-## 6. Threading `conversationId` through the system
+## 6. Third prototype pass: correlate `renderCache` without intent inside the DS
 
-- [ ] Add `conversationId` to **orchestration** and/or **API** messages for the pipeline you are wiring (the **first** prototype can start API-only; the **second** extends orchestration types as needed). Minimal surface; avoid megablob types.
-- [ ] Ensure **WebSocket** `ReturnValue` / `RequestId` story stays coherent where the pipeline returns to a client.
+**Goal:** After the routing + fragments prototypes land, **remove** the **temporary** plumbing that threads **`conversationId`** through **`api.ephemera` `Put Cache Record`** commands and **`mtw.ephemera.renderCache` `Cache Updated`** payloads (see [`AGENT.md`](AGENT.md), [`dataSource/localApiEvents.ts`](../dataSource/localApiEvents.ts), [`dataSource/renderCache/`](../dataSource/renderCache/)). **`mtw.ephemera.renderCache`** should again emit **cache-shaped** events only; **conversations** (or a dedicated orchestration module) **subscribes** to those streams and **resolves** which open conversation (if any) an event belongs to using **keys on the event** (`componentId`, `perspectiveId`, `dataCategory`, etc.) plus **registry lookup**, not a conversation id carried inside the DS envelope.
+
+**Rationale:** This matches the original intent behind **`PreviewGenerationRequests`**: match **outputs** of the cache pipeline back to **waiters** without stuffing **original intent** into the data source implementation.
+
+- [ ] **Subscribe** to the relevant internal bus output(s) (e.g. `mtw.ephemera.renderCache` **`Cache Updated`**, errors as needed) from a **single orchestration layer** that can consult **`internalCache.Conversations`** (or future durable rows).
+- [ ] **Define match rules** (e.g. room + perspective, optional request token, merge keys) so a **`Cache Updated`** can be tied to an **extant** `generateRoomPreview` (or other) conversation **without** `conversationId` on the event.
+- [ ] **Delete** prototype fields and parameters: strip **`conversationId`** from **`PutCacheRecordCommand`**, **`RenderCacheCacheUpdatedPayload`**, **`PublishPutCacheRecord`**, **`GenerateRoomPreviewOptions`**, and any call sites/tests that exist only for DS-threaded correlation; keep behavior that still makes sense (e.g. synchronous preview completion in **`app.ts`** unchanged aside from removing the bus pass-through).
+- [ ] **Tests:** orchestration resolves the correct conversation (or none) from a realistic **`Cache Updated`** payload; renderCache DS tests do **not** require `conversationId` on the stream.
 
 ---
 
 ## 7. Documentation and cleanup
 
 - [ ] Mark prototype fragment types and assembler in **code comments** (or short module README) pointing to `AGENT.planning.md`.
-- [ ] Add `AGENT.md` in this directory once behavior and API are stable enough for other agents (optional; can follow first merge).
+- [x] Add `AGENT.md` in this directory once behavior and API are stable enough for other agents (optional; can follow first merge).
 
 ---
 

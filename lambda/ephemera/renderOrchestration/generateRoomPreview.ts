@@ -7,6 +7,7 @@ import type {
     EphemeraCacheMarkState,
     EphemeraCacheDynamoItem
 } from '../renderCache/baseClasses'
+import type { ConversationId } from '../conversations'
 import type { GenerateRoomPreviewResult } from '../conversations/conversationTypes/generateRoomPreview'
 import type { PutCacheRecordInput } from '../dataSource/renderCache/putCacheRecord'
 import type { QueryCacheRecordsForComponentFn } from '../dataSource/renderCache/queryCacheRecordsForComponent'
@@ -32,7 +33,8 @@ type GenerateRoomDescription = typeof generateRoomDescription
 export type PublishPutCacheRecord = (
     componentId: EphemeraCacheComponentId,
     record: PutCacheRecordInput,
-    existingDataCategory?: string
+    existingDataCategory?: string,
+    conversationId?: ConversationId
 ) => Promise<void>
 
 /**
@@ -43,12 +45,14 @@ export type PublishPutCacheRecord = (
 export const defaultPublishPutCacheRecord: PublishPutCacheRecord = async (
     componentId,
     record,
-    existingDataCategory
+    existingDataCategory,
+    conversationId
 ) => {
     sendPutCacheRecord(messageBus, componentId, {
         componentId,
         record,
         ...(existingDataCategory !== undefined ? { existingDataCategory } : {}),
+        ...(conversationId !== undefined ? { conversationId } : {}),
     })
 }
 
@@ -58,6 +62,8 @@ export type GenerateRoomPreviewOptions = {
     getExactMatchImpl?: GetExactMatchImpl;
     generateRoomDescriptionImpl?: GenerateRoomDescription;
     queryCacheRecordsForComponentImpl?: QueryCacheRecordsForComponentFn;
+    /** When set, forwarded on Put Cache Record / Cache Updated for prototype correlation (see conversations/AGENT.md). */
+    conversationId?: ConversationId;
 }
 
 export const generateRoomPreview = async (
@@ -72,6 +78,7 @@ export const generateRoomPreview = async (
         getExactMatchImpl = (input) => internalCache.RenderCache.getExactMatch(input),
         generateRoomDescriptionImpl = generateRoomDescription,
         queryCacheRecordsForComponentImpl = (componentId) => internalCache.RenderCache.get(componentId),
+        conversationId,
     }: GenerateRoomPreviewOptions = {}
 ): Promise<GenerateRoomPreviewResult> => {
     let parsedContext: StandardForm | null = null
@@ -135,7 +142,7 @@ export const generateRoomPreview = async (
         perspectiveId,
         perspectiveMatcher,
     }
-    await publishPutCacheRecord(roomId, record)
+    await publishPutCacheRecord(roomId, record, undefined, conversationId)
 
     return {
         success: true,

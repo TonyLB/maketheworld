@@ -10,6 +10,8 @@ export type RenderCacheCacheUpdatedPayload = {
     componentId: EphemeraCacheComponentId;
     dataCategory: string;
     perspectiveId: string;
+    /** Prototype: echoed from Put Cache Record command; remove when external orchestration correlates without DS plumbing (see conversations/AGENT.md). */
+    conversationId?: string;
 }
 
 export type RenderCacheCacheErrorPayload = {
@@ -46,12 +48,18 @@ export const isRenderCacheCacheUpdatedPayload = (value: unknown): value is Rende
         return false
     }
     const v = value as Record<string, unknown>
-    return (
-        v.type === 'Cache Updated' &&
-        typeof v.componentId === 'string' &&
-        typeof v.dataCategory === 'string' &&
-        typeof v.perspectiveId === 'string'
-    )
+    if (
+        v.type !== 'Cache Updated' ||
+        typeof v.componentId !== 'string' ||
+        typeof v.dataCategory !== 'string' ||
+        typeof v.perspectiveId !== 'string'
+    ) {
+        return false
+    }
+    if (v.conversationId !== undefined && typeof v.conversationId !== 'string') {
+        return false
+    }
+    return true
 }
 
 export const isRenderCacheCacheErrorPayload = (value: unknown): value is RenderCacheCacheErrorPayload => {
