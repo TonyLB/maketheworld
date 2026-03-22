@@ -135,4 +135,69 @@ describe('socketDispatchConversation', () => {
             message: 'fetchEphemera',
         })
     })
+
+    it('treats legacy GenerateRoomPreview result as terminal by default', async () => {
+        const onEvent = vi.fn()
+        const mockSend = vi.fn()
+        const conversationId = 'dddddddd-dddd-dddd-dddd-dddddddddddd'
+        const getState = () => ({
+            lifeLine: {
+                meta: { currentState: 'CONNECTED' },
+                publicData: { webSocket: { send: mockSend } },
+            },
+        })
+        const dispatch = vi.fn()
+        const thunk = socketDispatchConversation(
+            { message: 'fetchEphemera', conversationId } as EphemeraAPIMessage & { conversationId?: string },
+            { onEvent, service: 'ephemera' }
+        )
+        await thunk(dispatch as any, getState as any, undefined as any)
+        const legacy = {
+            messageType: 'GenerateRoomPreview' as const,
+            conversationId,
+            generateRoomPreview: { success: true, renderedContent: 'x' },
+        } as unknown as LifeLinePubSubData
+        LifeLinePubSub.publish(legacy)
+        expect(onEvent).toHaveBeenCalledTimes(1)
+        LifeLinePubSub.publish(legacy)
+        expect(onEvent).toHaveBeenCalledTimes(1)
+    })
+
+    it('keeps subscription open on generating step; terminal on complete step', async () => {
+        const onEvent = vi.fn()
+        const onTerminal = vi.fn()
+        const mockSend = vi.fn()
+        const conversationId = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee'
+        const getState = () => ({
+            lifeLine: {
+                meta: { currentState: 'CONNECTED' },
+                publicData: { webSocket: { send: mockSend } },
+            },
+        })
+        const dispatch = vi.fn()
+        const thunk = socketDispatchConversation(
+            { message: 'fetchEphemera', conversationId } as EphemeraAPIMessage & { conversationId?: string },
+            { onEvent, onTerminal, service: 'ephemera' }
+        )
+        await thunk(dispatch as any, getState as any, undefined as any)
+        const generating = {
+            messageType: 'GenerateRoomPreview' as const,
+            conversationId,
+            conversationStep: 'generating' as const,
+        } as unknown as LifeLinePubSubData
+        LifeLinePubSub.publish(generating)
+        expect(onEvent).toHaveBeenCalledTimes(1)
+        expect(onTerminal).not.toHaveBeenCalled()
+        const complete = {
+            messageType: 'GenerateRoomPreview' as const,
+            conversationId,
+            conversationStep: 'complete' as const,
+            generateRoomPreview: { success: true, renderedContent: 'y' },
+        } as unknown as LifeLinePubSubData
+        LifeLinePubSub.publish(complete)
+        expect(onEvent).toHaveBeenCalledTimes(2)
+        expect(onTerminal).toHaveBeenCalledWith(complete)
+        LifeLinePubSub.publish(complete)
+        expect(onEvent).toHaveBeenCalledTimes(2)
+    })
 })

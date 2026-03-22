@@ -387,28 +387,56 @@ export type EphemeraClientMessageUnsubscribeFromMapsMessage = {
     RequestId?: string;
 }
 
-export type EphemeraClientMessageGenerateRoomPreview = {
-    messageType: 'GenerateRoomPreview';
-    RequestId?: string;
-    generateRoomPreview: {
-        success: boolean;
-        renderedContent?: unknown;
-        errorCode?: string;
-        errorMessage?: string;
-    };
+/** Discriminant for multi-message preview / conversation flows (WebSocket `ReturnValue` bodies). */
+export type ConversationStepKind = 'generating' | 'complete' | 'error'
+
+export type GenerateRoomPreviewBody = {
+    success: boolean;
+    renderedContent?: unknown;
+    errorCode?: string;
+    errorMessage?: string;
 }
 
-export const isEphemeraClientMessageGenerateRoomPreview = (message: any): message is EphemeraClientMessageGenerateRoomPreview => {
-    if (!checkTypes(message, { messageType: 'string' }, { RequestId: 'string' })) {
-        return false
-    }
-    if (message.messageType !== 'GenerateRoomPreview') {
-        return false
-    }
-    if (!('generateRoomPreview' in message)) {
-        return false
-    }
-    const generateRoomPreview = message.generateRoomPreview
+/** Legacy single-response preview (no `conversationStep`). */
+export type EphemeraClientMessageGenerateRoomPreviewLegacy = {
+    messageType: 'GenerateRoomPreview';
+    RequestId?: string;
+    generateRoomPreview: GenerateRoomPreviewBody;
+}
+
+export type EphemeraClientMessageGenerateRoomPreviewGenerating = {
+    messageType: 'GenerateRoomPreview';
+    RequestId?: string;
+    conversationId: string;
+    conversationStep: 'generating';
+}
+
+export type EphemeraClientMessageGenerateRoomPreviewComplete = {
+    messageType: 'GenerateRoomPreview';
+    RequestId?: string;
+    conversationId: string;
+    conversationStep: 'complete';
+    generateRoomPreview: GenerateRoomPreviewBody;
+}
+
+export type EphemeraClientMessageGenerateRoomPreviewErrorStep = {
+    messageType: 'GenerateRoomPreview';
+    RequestId?: string;
+    conversationId: string;
+    conversationStep: 'error';
+    generateRoomPreview: GenerateRoomPreviewBody;
+}
+
+export type EphemeraClientMessageGenerateRoomPreview =
+    | EphemeraClientMessageGenerateRoomPreviewLegacy
+    | EphemeraClientMessageGenerateRoomPreviewGenerating
+    | EphemeraClientMessageGenerateRoomPreviewComplete
+    | EphemeraClientMessageGenerateRoomPreviewErrorStep
+
+/** Working name: multi-step preview payloads on the WebSocket (`ReturnValue` bodies). Same union as {@link EphemeraClientMessageGenerateRoomPreview}. */
+export type ConversationStep = EphemeraClientMessageGenerateRoomPreview
+
+const isValidGenerateRoomPreviewBody = (generateRoomPreview: any): boolean => {
     if (!generateRoomPreview || typeof generateRoomPreview !== 'object') {
         return false
     }
@@ -424,6 +452,97 @@ export const isEphemeraClientMessageGenerateRoomPreview = (message: any): messag
         }
     }
     return true
+}
+
+export const isEphemeraClientMessageGenerateRoomPreview = (message: any): message is EphemeraClientMessageGenerateRoomPreview => {
+    if (!checkTypes(message, { messageType: 'string' }, { RequestId: 'string' })) {
+        return false
+    }
+    if (message.messageType !== 'GenerateRoomPreview') {
+        return false
+    }
+    const step = message.conversationStep as ConversationStepKind | undefined
+    if (step === 'generating') {
+        if (typeof message.conversationId !== 'string' || message.conversationId.length === 0) {
+            return false
+        }
+        if ('generateRoomPreview' in message && message.generateRoomPreview !== undefined) {
+            return false
+        }
+        return true
+    }
+    if (step === 'complete' || step === 'error') {
+        if (typeof message.conversationId !== 'string' || message.conversationId.length === 0) {
+            return false
+        }
+        if (!('generateRoomPreview' in message)) {
+            return false
+        }
+        return isValidGenerateRoomPreviewBody(message.generateRoomPreview)
+    }
+    if (step !== undefined) {
+        return false
+    }
+    if (!('generateRoomPreview' in message)) {
+        return false
+    }
+    return isValidGenerateRoomPreviewBody(message.generateRoomPreview)
+}
+
+export const isGenerateRoomPreviewConversationStep = (
+    message: unknown
+): message is
+    | EphemeraClientMessageGenerateRoomPreviewGenerating
+    | EphemeraClientMessageGenerateRoomPreviewComplete
+    | EphemeraClientMessageGenerateRoomPreviewErrorStep => {
+    if (!message || typeof message !== 'object') {
+        return false
+    }
+    const m = message as Record<string, unknown>
+    if (m.messageType !== 'GenerateRoomPreview') {
+        return false
+    }
+    if (!('conversationStep' in m) || m.conversationStep === undefined) {
+        return false
+    }
+    return isEphemeraClientMessageGenerateRoomPreview(message)
+}
+
+export const isConversationCorrelatedPayload = (
+    payload: unknown
+): payload is { conversationId: string; RequestId?: string } & Record<string, unknown> => {
+    if (!payload || typeof payload !== 'object') {
+        return false
+    }
+    const p = payload as Record<string, unknown>
+    return typeof p.conversationId === 'string' && p.conversationId.length > 0
+}
+
+/**
+ * Whether a LifeLine / Ephemera inbound payload should end a `socketDispatchConversation` stream
+ * by default (Error, terminal preview step, or legacy one-shot GenerateRoomPreview).
+ */
+export const isTerminalConversationStep = (payload: unknown): boolean => {
+    if (!payload || typeof payload !== 'object') {
+        return false
+    }
+    const p = payload as Record<string, unknown>
+    if (p.messageType === 'Error') {
+        return true
+    }
+    if (p.messageType !== 'GenerateRoomPreview') {
+        return false
+    }
+    if (!('conversationStep' in p) || p.conversationStep === undefined) {
+        return isValidGenerateRoomPreviewBody((p as { generateRoomPreview?: unknown }).generateRoomPreview)
+    }
+    if (p.conversationStep === 'generating') {
+        return false
+    }
+    if (p.conversationStep === 'complete' || p.conversationStep === 'error') {
+        return true
+    }
+    return false
 }
 
 export type EphemeraClientMessage = EphemeraClientMessageEphemeraUpdate |

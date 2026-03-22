@@ -18,7 +18,7 @@ import delayPromise from '../../lib/delayPromise'
 import { cacheMessages } from '../messages'
 import { receiveMessages as perceptionCacheReceiveMessages } from '../perceptionCache'
 
-import { EphemeraAPIMessage, isEphemeraClientMessage } from '@tonylb/mtw-interfaces/ts/ephemera'
+import { EphemeraAPIMessage, isEphemeraClientMessage, isTerminalConversationStep } from '@tonylb/mtw-interfaces/ts/ephemera'
 import { AssetAPIMessage, isAssetClientMessage } from '@tonylb/mtw-interfaces/ts/asset'
 import { isSubscriptionClientMessage, SubscriptionsAPIMessage } from '@tonylb/mtw-interfaces/ts/subscriptions'
 import { WMLAPIMessage } from '@tonylb/mtw-interfaces/ts/wml'
@@ -365,7 +365,7 @@ export function socketDispatchConversation(
         onEvent,
         onTerminal,
         matchRequestIdFallback = false,
-        isTerminal = (p) => p.messageType === 'Error',
+        isTerminal = isTerminalConversationStep,
     }: SocketDispatchConversationOptions & { service?: 'ephemera' | 'asset' | 'wml' | 'subscriptions' | 'ping' }
 ): ThunkAction<Promise<{ unsubscribe: () => void; conversationId: string }>, RootState, unknown, AnyAction> {
     return (dispatch, getState) => {
