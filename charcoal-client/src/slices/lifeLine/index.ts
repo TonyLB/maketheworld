@@ -13,10 +13,16 @@ import { PayloadAction } from '@reduxjs/toolkit'
 export {
     socketDispatch,
     socketDispatchPromise,
+    socketDispatchConversation,
+    matchesCorrelationPayload,
     apiDispatchPromise,
     moveCharacter,
     parseCommand,
     LifeLinePubSub
+} from './index.api'
+export type {
+    ConversationCorrelationParams,
+    SocketDispatchConversationOptions,
 } from './index.api'
 
 const lifeLinePromiseCache = new PromiseCache<LifeLineData>()

@@ -2,7 +2,7 @@
 
 ## Role
 
-**lifeLine** owns the WebSocket connection to Ephemera (and related services), publishes inbound payloads to **`LifeLinePubSub`**, and exposes thunks for **request/response** patterns over the socket. See [`index.api.ts`](index.api.ts) for implementation.
+**lifeLine** owns the WebSocket connection to Ephemera (and related services), publishes inbound payloads to **`LifeLinePubSub`**, and exposes thunks for **request/response** and **multi-message (conversation)** patterns over the socket. See [`index.api.ts`](index.api.ts) for implementation.
 
 ## `socketDispatchPromise` (current)
 
@@ -18,24 +18,26 @@
 
 **Typical call sites:** [`RoomPreviewEditor`](../../components/Workbench/RoomEdit/RoomPreviewEditor.tsx), [`RoomDescription`](../../components/Message/RoomDescription.tsx), and other `dispatch(socketDispatchPromise({ ... }))` usages.
 
-## `socketDispatchConversation` (proposed)
+## `socketDispatchConversation` (implemented)
 
-**Status:** Not implemented; design and task list live under Ephemera **conversations** planning.
+**Location:** [`index.api.ts`](index.api.ts) (`socketDispatchConversation`), pure filter **`matchesCorrelationPayload`** (exported for tests).
 
-**Goal:** Support **multiple** correlated inbound messages for **one** user action (e.g. **Generating** then **final preview result**), without losing correlation. **Preferred:** a client-generated **`conversationId`** (UUID) passed to Ephemera and replayed on each step; **`RequestId`** may still appear during migration alongside **`conversationId`**.
+**Goal:** Support **multiple** correlated inbound messages for **one** user action (e.g. **Generating** then **final preview result**), without losing correlation. **Preferred:** a client-generated **`conversationId`** (UUID) passed on the wire and echoed on each step; **`RequestId`** may still appear during migration alongside **`conversationId`**.
 
-**Sketch:**
+**Behavior:**
 
-- Client generates **`conversationId`** and includes it on the WebSocket request; Ephemera **`registerConversation`** accepts that id (see task list **section 4**, registry task).
-- Dispatch the initial message with the same **service** pattern as today; include **`conversationId`** on the payload per contract.
-- Subscribe to **`LifeLinePubSub`** for **all** payloads matching **`conversationId`** (or **`RequestId`** during migration) until:
-  - a **terminal** step arrives (success/failure), or
-  - the caller **unsubscribes** (component unmount, navigation, or a newer preview run superseding the old id).
-- Expose an API shaped like **observable** / **callback** semantics: e.g. **`onEvent(step)`**, **`onComplete`**, **`dispose()`** — exact names TBD when implemented.
+- Ensures **`conversationId`** ( **`uuidv4()`** if omitted on the payload) and **`RequestId`** ( **`uuidv4()`** if omitted), same as **`socketDispatchPromise`** for **`RequestId`**.
+- Subscribes to **`LifeLinePubSub`** **before** **`webSocket.send`**. Outbound JSON is **`{ service, ...payload, RequestId, conversationId }`** ( **`service`** defaults to **`ephemera`**; overloads match **`socketDispatchPromise`** for asset / subscriptions / WML / ping).
+- Delivers **every** matching inbound payload to **`onEvent`**. A payload matches when **`payload.conversationId === conversationId`**, or when **`matchRequestIdFallback: true`** and **`payload.RequestId === RequestId`** (migration before the server echoes **`conversationId`** on every **`ReturnValue`**).
+- **Terminal (default):** **`isTerminal`** defaults to **`(p) => p.messageType === 'Error'`**. When terminal, invokes optional **`onTerminal`** after **`onEvent`**, then **unsubscribes**. **`messageType === 'Error'`** with **`error`** also **`dispatch`**es **`push(error)`** like **`socketDispatchPromise`**.
+- **Return value:** **`Promise<{ conversationId, unsubscribe }>`**. **`unsubscribe`** is idempotent and detaches without waiting for another publish (uses the subscription id from **`LifeLinePubSub.subscribe`**). Use **`unsubscribe`** on unmount, navigation, or superseding a run with a new **`conversationId`**.
+- **Disconnected socket:** **`Promise.reject`** with **`{ message: payload.message }`** (same shape as **`socketDispatchPromise`**).
 
-**Wire types:** A discriminated **step** union (working name **`ConversationStep`**: generating vs result vs error) should align with Ephemera materialization and [`mtw-interfaces`](../../../../packages/mtw-interfaces) client shapes once defined.
+**Wire types:** Shared discriminated **`ConversationStep`** and tighter **`LifeLinePubSub`** rules are **not** in this slice yet; see Ephemera conversations task list **section 4** follow-ups.
 
 **Server-side design:** [`lambda/ephemera/conversations/AGENT.planning.md`](../../../../lambda/ephemera/conversations/AGENT.planning.md) (**Multi-stage WebSocket delivery and coordination trap**), task list [`AGENT.planning.tasklist.md`](../../../../lambda/ephemera/conversations/AGENT.planning.tasklist.md) **section 4**.
+
+**Tests:** [`socketDispatchConversation.test.ts`](socketDispatchConversation.test.ts).
 
 ## References
 

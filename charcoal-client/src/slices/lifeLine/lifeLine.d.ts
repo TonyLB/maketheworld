@@ -6,7 +6,7 @@ import { SubscriptionClientMessage } from '@tonylb/mtw-interfaces/ts/subscriptio
 export type LifeLinePubSubData = (EphemeraClientMessage
     | AssetClientMessage
     | CoordinationClientMessage
-    | SubscriptionClientMessage) & { RequestId?: string }
+    | SubscriptionClientMessage) & { RequestId?: string; conversationId?: string }
 
 interface LifeLineSubscribeAction {
     (next: (incoming: { payload: LifeLinePubSubData, unsubscribe: () => void }) => void): {
