@@ -5,9 +5,9 @@ import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import type {
     EphemeraCacheComponentId,
     EphemeraCacheMarkState,
-    EphemeraCacheRenderedContent,
     EphemeraCacheDynamoItem
 } from '../renderCache/baseClasses'
+import type { GenerateRoomPreviewResult } from '../conversations/conversationTypes/generateRoomPreview'
 import type { PutCacheRecordInput } from '../dataSource/renderCache/putCacheRecord'
 import type { QueryCacheRecordsForComponentFn } from '../dataSource/renderCache/queryCacheRecordsForComponent'
 import { EPHEMERA_CACHE_PROVENANCE_GENERATED } from '../renderCache/baseClasses'
@@ -23,20 +23,6 @@ export type GenerateRoomPreviewInput = {
     assetStack: string[];
     generationContextWml?: string;
 }
-
-export type GenerateRoomPreviewSuccess = {
-    success: true;
-    renderedContent: EphemeraCacheRenderedContent;
-}
-
-export type GenerateRoomPreviewFailure =
-    | { success: false; errorCode: 'NO_EXACT_MATCH'; errorMessage: string }
-    | { success: false; errorCode: 'CONTEXT_REQUIRED'; errorMessage: string }
-    | { success: false; errorCode: 'GENERATION_FAILED'; errorMessage: string }
-
-export type GenerateRoomPreviewResult =
-    | GenerateRoomPreviewSuccess
-    | GenerateRoomPreviewFailure
 
 type GetExactMatchImpl = (
     input: RenderCacheGetExactMatchParams

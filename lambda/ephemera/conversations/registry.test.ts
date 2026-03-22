@@ -1,10 +1,11 @@
 import { v4 as uuidv4 } from 'uuid'
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import internalCache from '../internalCache'
-import { CONVERSATION_PAYLOAD_STUB } from './baseClasses'
+import { CONVERSATION_PAYLOAD_STUB } from './conversationTypes'
 import {
     deleteConversationRecord,
-    getConversationRecord,
+    getConversationHandle,
+    getStorableConversationRecord,
     registerConversation,
 } from './registry'
 
@@ -23,7 +24,7 @@ describe('conversations registry', () => {
         uuidv4Mock.mockReturnValue('fixed-uuid-1234')
     })
 
-    it('registerConversation returns new id and getConversationRecord round-trips', async () => {
+    it('registerConversation returns new id and getStorableConversationRecord round-trips', async () => {
         const id = await registerConversation({
             type: 'generateRoomPreview',
             routing: {
@@ -36,7 +37,7 @@ describe('conversations registry', () => {
         expect(id).toBe('fixed-uuid-1234')
         expect(uuidv4Mock).toHaveBeenCalledTimes(1)
 
-        const row = await getConversationRecord(id)
+        const row = await getStorableConversationRecord(id)
         expect(row).toEqual({
             conversationId: id,
             type: 'generateRoomPreview',
@@ -65,8 +66,8 @@ describe('conversations registry', () => {
 
         expect(a).toBe('id-a')
         expect(b).toBe('id-b')
-        expect(await getConversationRecord(a)).toMatchObject({ conversationId: a, type: 'generateRoomPreview' })
-        expect(await getConversationRecord(b)).toMatchObject({ conversationId: b, type: 'generateRoomPreview' })
+        expect(await getStorableConversationRecord(a)).toMatchObject({ conversationId: a, type: 'generateRoomPreview' })
+        expect(await getStorableConversationRecord(b)).toMatchObject({ conversationId: b, type: 'generateRoomPreview' })
     })
 
     it('deleteConversationRecord removes the row', async () => {
@@ -76,10 +77,36 @@ describe('conversations registry', () => {
             payload: CONVERSATION_PAYLOAD_STUB,
         })
         expect(await deleteConversationRecord(id)).toBe(true)
-        expect(await getConversationRecord(id)).toBeUndefined()
+        expect(await getStorableConversationRecord(id)).toBeUndefined()
     })
 
     it('deleteConversationRecord returns false for unknown id', async () => {
         expect(await deleteConversationRecord('unknown-id')).toBe(false)
+    })
+
+    it('getConversationHandle attaches sendMessage that delegates to injected messageBus', async () => {
+        const send = jest.fn()
+        const id = await registerConversation({
+            type: 'generateRoomPreview',
+            routing: { roomId, perspectiveId: 'PH', requestId: 'rid-1' },
+            payload: CONVERSATION_PAYLOAD_STUB,
+        })
+        const handle = await getConversationHandle(id, { messageBus: { send } as never })
+        expect(handle).toBeDefined()
+        if (!handle) {
+            throw new Error('expected handle')
+        }
+        expect(handle.sendMessage).toEqual(expect.any(Function))
+
+        handle.sendMessage({ success: true, renderedContent: {} as never })
+        expect(send).toHaveBeenCalledWith(
+            expect.objectContaining({
+                type: 'ReturnValue',
+                body: expect.objectContaining({
+                    messageType: 'GenerateRoomPreview',
+                    RequestId: 'rid-1',
+                }),
+            })
+        )
     })
 })

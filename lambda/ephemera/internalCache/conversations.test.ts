@@ -1,13 +1,13 @@
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import {
     CONVERSATION_PAYLOAD_STUB,
-    type ConversationRecord,
-} from '../conversations/baseClasses'
+    type StorableConversationRecord,
+} from '../conversations/conversationTypes'
 import ConversationsData from './conversations'
 
 const testRoomId = 'ROOM#test-room' as EphemeraRoomId
 
-const makeRecord = (conversationId: string): ConversationRecord => ({
+const makeRecord = (conversationId: string): StorableConversationRecord => ({
     conversationId,
     type: 'generateRoomPreview',
     routing: {
@@ -36,7 +36,7 @@ describe('ConversationsData', () => {
         const cache = new ConversationsData()
         const id = 'conv-002'
         const first = makeRecord(id)
-        const second: ConversationRecord = {
+        const second: StorableConversationRecord = {
             ...first,
             routing: { ...first.routing, requestId: 'req-2' },
         }

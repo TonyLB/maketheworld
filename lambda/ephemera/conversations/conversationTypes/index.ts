@@ -1,17 +1,21 @@
 export type { ConversationId, ConversationPayloadStub } from './baseClasses'
 export { CONVERSATION_PAYLOAD_STUB } from './baseClasses'
 export type {
-    ConversationRecordGenerateRoomPreview,
+    ConversationHandleGenerateRoomPreview,
     GenerateRoomPreviewConversationRouting,
+    GenerateRoomPreviewFailure,
+    GenerateRoomPreviewResult,
+    GenerateRoomPreviewSuccess,
+    StorableConversationRecord,
+    StorableConversationRecordGenerateRoomPreview,
 } from './generateRoomPreview'
 export {
     CONVERSATION_TYPE_GENERATE_ROOM_PREVIEW,
-    isConversationRecordGenerateRoomPreview,
+    isStorableConversationRecordGenerateRoomPreview,
 } from './generateRoomPreview'
+export type { ConversationHandle } from './handle'
 
-import type { ConversationRecordGenerateRoomPreview } from './generateRoomPreview'
+import type { StorableConversationRecord } from './generateRoomPreview'
 
-export type ConversationRecord = ConversationRecordGenerateRoomPreview
-
-/** Discriminant tag on stored rows (grows with section 4 union members). */
-export type ConversationRecordType = ConversationRecord['type']
+/** Discriminant tag on stored rows (aligned with `ConversationHandle['type']`). */
+export type ConversationRecordType = StorableConversationRecord['type']
