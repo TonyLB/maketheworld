@@ -1,6 +1,27 @@
-export type { ConversationId, ConversationRecord } from './baseClasses'
+export type {
+    ConversationId,
+    ConversationHandle,
+    ConversationHandleGenerateRoomPreview,
+    ConversationRecordType,
+    ConversationPayloadStub,
+    GenerateRoomPreviewConversationRouting,
+    GenerateRoomPreviewFailure,
+    GenerateRoomPreviewResult,
+    GenerateRoomPreviewSuccess,
+    StorableConversationRecord,
+    StorableConversationRecordGenerateRoomPreview,
+} from './conversationTypes'
 export {
-    getConversationRecord,
-    saveConversationRecord,
+    CONVERSATION_PAYLOAD_STUB,
+    CONVERSATION_TYPE_GENERATE_ROOM_PREVIEW,
+    isStorableConversationRecordGenerateRoomPreview,
+} from './conversationTypes'
+export type { RegisterConversationInput } from './registry'
+export type { ConversationMaterializeDeps } from './materializeConversationHandle'
+export { materializeConversationHandle } from './materializeConversationHandle'
+export {
+    registerConversation,
+    getStorableConversationRecord,
+    getConversationHandle,
     deleteConversationRecord,
 } from './registry'

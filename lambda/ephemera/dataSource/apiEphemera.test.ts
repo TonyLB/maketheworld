@@ -83,6 +83,20 @@ describe('apiEphemera', () => {
         expect(internalAgain).toEqual(internal)
     })
 
+    it('sendPutCacheRecord getContent includes optional conversationId when provided', async () => {
+        const { sent } = makeBus()
+        sendPutCacheRecord({ send: (p) => sent.push(p) }, 'ROOM#room-one', {
+            ...minimalPutRecord,
+            conversationId: 'conv-abc',
+        })
+
+        const internal = await sent[0].getContent()
+        expect(internal).toMatchObject({
+            componentId: 'ROOM#room-one',
+            conversationId: 'conv-abc',
+        })
+    })
+
     it('sendGenerateRoomPreview posts StreamingEvent with Generate Room Preview type', () => {
         const { sent, bus } = makeBus()
         sendGenerateRoomPreview(bus, 'ROOM#r2', {

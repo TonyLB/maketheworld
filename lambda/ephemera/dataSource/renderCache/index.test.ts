@@ -75,6 +75,40 @@ describe('mtw.ephemera.renderCache DataSource', () => {
         })
     })
 
+    it('echoes conversationId on Cache Updated when present on Put Cache Record command', async () => {
+        const received: unknown[] = []
+        messageBus.subscribe({
+            tag: 'test-render-cache-out-conv',
+            priority: 20,
+            filter: (m: any) =>
+                m.type === 'StreamingEvent' &&
+                m.dataSourceKey === 'mtw.ephemera.renderCache' &&
+                m.header?.type === 'Cache Updated',
+            callback: async ({ payloads }) => {
+                for (const p of payloads) {
+                    received.push(await p.getContent())
+                }
+            },
+        })
+
+        const withConv = {
+            ...minimalPutRecord,
+            conversationId: 'conv-prototype-1',
+        }
+        sendPutCacheRecord(messageBus, 'ROOM#room-one', withConv)
+        await messageBus.flush()
+
+        expect(received).toHaveLength(1)
+        expect(isRenderCacheCacheUpdatedPayload(received[0])).toBe(true)
+        expect(received[0]).toMatchObject({
+            type: 'Cache Updated',
+            componentId: 'ROOM#room-one',
+            dataCategory: 'CACHE#written',
+            perspectiveId: 'PERSPECTIVE#v1#abc',
+            conversationId: 'conv-prototype-1',
+        })
+    })
+
     it('emits Cache Error when putCacheRecord rejects', async () => {
         putCacheRecordMock.mockRejectedValue(new Error('dynamo failed'))
 

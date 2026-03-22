@@ -61,6 +61,7 @@ export const ephemeraRenderCacheDataSource = new EphemeraDataSource<never, Rende
                                 componentId: cmd.componentId,
                                 dataCategory,
                                 perspectiveId: cmd.record.perspectiveId,
+                                ...(cmd.conversationId !== undefined ? { conversationId: cmd.conversationId } : {}),
                             },
                         })
                         return

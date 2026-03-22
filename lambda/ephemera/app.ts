@@ -36,6 +36,12 @@ import { AssetsEventSerializer, ComponentExamplesEventSerializer } from '@tonylb
 import { fromEventBridgeFormat } from '@tonylb/mtw-lambda-patterns/ts/dataSource/formatTransform'
 import { coreFormatToStreamingEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import { generateRoomPreview } from './renderOrchestration/generateRoomPreview'
+import {
+    CONVERSATION_PAYLOAD_STUB,
+    CONVERSATION_TYPE_GENERATE_ROOM_PREVIEW,
+    getConversationHandle,
+    registerConversation,
+} from './conversations'
 
 // Import DataSources to trigger their messageBus subscriptions (side-effect imports)
 import './dataSource'  // mtw.ephemera DataSource
@@ -237,25 +243,32 @@ export const handler = async (event: any, context: any) => {
 
             if (isGenerateRoomPreviewAPIMessage(request)) {
                 const perspectiveId = computePerspectiveKey(request.assetStack as AssetUUID[])
-                internalCache.PreviewGenerationRequests.registerPending({
-                    roomId: request.RoomId as EphemeraRoomId,
-                    perspectiveId,
-                    requestId: request.RequestId
+                const conversationId = await registerConversation({
+                    type: CONVERSATION_TYPE_GENERATE_ROOM_PREVIEW,
+                    routing: {
+                        roomId: request.RoomId as EphemeraRoomId,
+                        perspectiveId,
+                        ...(request.RequestId !== undefined ? { requestId: request.RequestId } : {}),
+                    },
+                    payload: CONVERSATION_PAYLOAD_STUB,
                 })
-                const result = await generateRoomPreview({
-                    roomId: request.RoomId,
-                    markState: request.markState,
-                    assetStack: request.assetStack,
-                    generationContextWml: request.generationContextWml,
-                })
-                messageBus.send({
-                    type: 'ReturnValue',
-                    body: {
-                        messageType: 'GenerateRoomPreview',
-                        generateRoomPreview: result,
-                        ...(request.RequestId && { RequestId: request.RequestId })
-                    }
-                })
+                const result = await generateRoomPreview(
+                    {
+                        roomId: request.RoomId,
+                        markState: request.markState,
+                        assetStack: request.assetStack,
+                        generationContextWml: request.generationContextWml,
+                    },
+                    { conversationId }
+                )
+                const handle = await getConversationHandle(conversationId, { messageBus })
+                if (handle === undefined) {
+                    console.error('getConversationHandle: missing conversation after registerConversation', {
+                        conversationId,
+                    })
+                } else {
+                    handle.sendMessage(result)
+                }
             }
 
         }

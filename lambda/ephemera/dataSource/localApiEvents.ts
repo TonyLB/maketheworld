@@ -10,6 +10,8 @@ export type PutCacheRecordCommand = {
     componentId: EphemeraCacheComponentId;
     record: PutCacheRecordInput;
     existingDataCategory?: string;
+    /** Prototype: correlate cache updates to a conversations row; remove when orchestration matches events without DS plumbing (see conversations/AGENT.md). */
+    conversationId?: string;
 };
 
 export type DeleteCacheRecordsCommand = {
@@ -44,6 +46,9 @@ export const isPutCacheRecordCommand = (value: unknown): value is PutCacheRecord
         return false
     }
     if (v.existingDataCategory !== undefined && typeof v.existingDataCategory !== 'string') {
+        return false
+    }
+    if (v.conversationId !== undefined && typeof v.conversationId !== 'string') {
         return false
     }
     return true
