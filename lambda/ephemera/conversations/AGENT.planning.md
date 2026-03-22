@@ -167,10 +167,11 @@ Together these create a **coordination trap**: moving to **event-driven** orches
 
 Break the loop with an **end-to-end wedge** that does **not** require a full multi-DataSource cascade on day one:
 
-1. **Client:** Introduce **`socketDispatchConversation`** (name TBD): subscribe to **multiple** correlated WebSocket payloads (e.g. shared **`RequestId`**) and expose **`onEvent`** / teardown (unsubscribe when the UI unmounts or starts a new run). Documented in **`charcoal-client/src/slices/lifeLine/AGENT.md`**.
-2. **Wire shape:** Add a discriminated **step** envelope (working name **`ConversationStep`**) for progress vs completion vs error; keep **`RequestId`** (and optionally **`conversationId`**) stable across steps.
-3. **Server:** Extend **materialization** so **`sendMessage`** (or a parallel path) can emit **non-terminal** steps before the final **`ReturnValue`** (or migrate completion entirely into steps once clients exist).
-4. **Orchestration:** Emit an early **generating** signal in the same invocation **before** blocking work, then align with **`RenderGenerationStarted`** / cache outcomes as the cascade matures ([`renderOrchestration/AGENT.planning.md`](../renderOrchestration/AGENT.planning.md)).
+1. **Registry:** Allow **`registerConversation`** to accept an **optional** client-supplied **`conversationId`** (validated UUID; reject duplicates) so the same id can label the registry row and every streaming message; when omitted, keep **server-generated** ids for backward compatibility. Detailed checklist: [`AGENT.planning.tasklist.md`](AGENT.planning.tasklist.md) **section 4** (first task under that section).
+2. **Client:** Introduce **`socketDispatchConversation`** (name TBD): subscribe to **multiple** correlated WebSocket payloads (e.g. shared **`conversationId`**, with **`RequestId`** optional during migration) and expose **`onEvent`** / teardown (unsubscribe when the UI unmounts or starts a new run). Documented in **`charcoal-client/src/slices/lifeLine/AGENT.md`**.
+3. **Wire shape:** Add a discriminated **step** envelope (working name **`ConversationStep`**) for progress vs completion vs error; keep **`conversationId`** (and optionally **`RequestId`**) stable across steps.
+4. **Server:** Extend **materialization** so **`sendMessage`** (or a parallel path) can emit **non-terminal** steps before the final **`ReturnValue`** (or migrate completion entirely into steps once clients exist).
+5. **Orchestration:** Emit an early **generating** signal in the same invocation **before** blocking work, then align with **`RenderGenerationStarted`** / cache outcomes as the cascade matures ([`renderOrchestration/AGENT.planning.md`](../renderOrchestration/AGENT.planning.md)).
 
 **Scope:** This section targets **direct / authoring preview** (`ReturnValue` to **one connection**). It is **orthogonal** to in-room **`PublishMessage`** / **`sendRoomGeneratingHeader`** (perception path); do not collapse those into one mechanism here.
 

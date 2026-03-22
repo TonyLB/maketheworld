@@ -22,12 +22,13 @@
 
 **Status:** Not implemented; design and task list live under Ephemera **conversations** planning.
 
-**Goal:** Support **multiple** correlated inbound messages for **one** user action (e.g. **Generating** then **final preview result**), without losing **`RequestId`** (and optionally **`conversationId`**) correlation.
+**Goal:** Support **multiple** correlated inbound messages for **one** user action (e.g. **Generating** then **final preview result**), without losing correlation. **Preferred:** a client-generated **`conversationId`** (UUID) passed to Ephemera and replayed on each step; **`RequestId`** may still appear during migration alongside **`conversationId`**.
 
 **Sketch:**
 
-- Dispatch the initial message with the same **`RequestId`** / service pattern as today.
-- Subscribe to **`LifeLinePubSub`** for **all** payloads matching that **`RequestId`** until:
+- Client generates **`conversationId`** and includes it on the WebSocket request; Ephemera **`registerConversation`** accepts that id (see task list **section 4**, registry task).
+- Dispatch the initial message with the same **service** pattern as today; include **`conversationId`** on the payload per contract.
+- Subscribe to **`LifeLinePubSub`** for **all** payloads matching **`conversationId`** (or **`RequestId`** during migration) until:
   - a **terminal** step arrives (success/failure), or
   - the caller **unsubscribes** (component unmount, navigation, or a newer preview run superseding the old id).
 - Expose an API shaped like **observable** / **callback** semantics: e.g. **`onEvent(step)`**, **`onComplete`**, **`dispose()`** — exact names TBD when implemented.

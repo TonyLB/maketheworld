@@ -3,7 +3,7 @@
  * See AGENT.planning.md and AGENT.planning.tasklist.md; expect iteration before stabilizing.
  */
 
-/** Opaque id for a coordinated run; generate with uuidv4() at registration (not derived from domain keys). */
+/** Opaque id for a coordinated run (RFC 4122 UUID string). Server may generate with uuidv4(), or caller may supply at registration (not derived from domain keys). */
 export type ConversationId = string
 
 /**

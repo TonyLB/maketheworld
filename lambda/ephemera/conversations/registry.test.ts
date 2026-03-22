@@ -9,11 +9,17 @@ import {
     registerConversation,
 } from './registry'
 
-jest.mock('uuid', () => ({
-    v4: jest.fn(),
-}))
+jest.mock('uuid', () => {
+    const actual = jest.requireActual<typeof import('uuid')>('uuid')
+    return {
+        ...actual,
+        v4: jest.fn(),
+    }
+})
 
 const uuidv4Mock = uuidv4 as jest.Mock
+
+const CLIENT_SUPPLIED_CONVERSATION_ID = '550e8400-e29b-41d4-a716-446655440000'
 
 const roomId = 'ROOM#registry-test' as EphemeraRoomId
 
@@ -107,6 +113,61 @@ describe('conversations registry', () => {
                     RequestId: 'rid-1',
                 }),
             })
+        )
+    })
+
+    it('registerConversation uses caller-supplied conversationId without calling uuidv4', async () => {
+        const id = await registerConversation({
+            conversationId: CLIENT_SUPPLIED_CONVERSATION_ID,
+            type: 'generateRoomPreview',
+            routing: { roomId, perspectiveId: 'P-client' },
+            payload: CONVERSATION_PAYLOAD_STUB,
+        })
+        expect(id).toBe(CLIENT_SUPPLIED_CONVERSATION_ID)
+        expect(uuidv4Mock).not.toHaveBeenCalled()
+
+        const row = await getStorableConversationRecord(id)
+        expect(row).toEqual({
+            conversationId: CLIENT_SUPPLIED_CONVERSATION_ID,
+            type: 'generateRoomPreview',
+            routing: { roomId, perspectiveId: 'P-client' },
+            payload: CONVERSATION_PAYLOAD_STUB,
+        })
+    })
+
+    it('registerConversation throws when conversationId is not a valid UUID', async () => {
+        await expect(
+            registerConversation({
+                conversationId: 'not-a-uuid',
+                type: 'generateRoomPreview',
+                routing: { roomId, perspectiveId: 'P1' },
+                payload: CONVERSATION_PAYLOAD_STUB,
+            })
+        ).rejects.toThrow('Conversation id must be a valid UUID')
+
+        expect(await getStorableConversationRecord('not-a-uuid')).toBeUndefined()
+    })
+
+    it('registerConversation throws when conversationId is already registered', async () => {
+        await registerConversation({
+            conversationId: CLIENT_SUPPLIED_CONVERSATION_ID,
+            type: 'generateRoomPreview',
+            routing: { roomId, perspectiveId: 'first' },
+            payload: CONVERSATION_PAYLOAD_STUB,
+        })
+
+        await expect(
+            registerConversation({
+                conversationId: CLIENT_SUPPLIED_CONVERSATION_ID,
+                type: 'generateRoomPreview',
+                routing: { roomId, perspectiveId: 'second' },
+                payload: CONVERSATION_PAYLOAD_STUB,
+            })
+        ).rejects.toThrow('Conversation id already registered')
+
+        const row = await getStorableConversationRecord(CLIENT_SUPPLIED_CONVERSATION_ID)
+        expect(row?.routing).toEqual(
+            expect.objectContaining({ perspectiveId: 'first' })
         )
     })
 })
