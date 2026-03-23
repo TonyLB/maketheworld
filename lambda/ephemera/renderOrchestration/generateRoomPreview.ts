@@ -64,6 +64,11 @@ export type GenerateRoomPreviewOptions = {
     queryCacheRecordsForComponentImpl?: QueryCacheRecordsForComponentFn;
     /** When set, forwarded on Put Cache Record / Cache Updated for prototype correlation (see conversations/AGENT.md). */
     conversationId?: ConversationId;
+    /**
+     * Optional callback for streaming the non-terminal `step: 'generating'`.
+     * Must only be invoked on the slow path (no exact cache match and valid/parseable generation context).
+     */
+    onGenerating?: () => Promise<void>;
 }
 
 export const generateRoomPreview = async (
@@ -79,6 +84,7 @@ export const generateRoomPreview = async (
         generateRoomDescriptionImpl = generateRoomDescription,
         queryCacheRecordsForComponentImpl = (componentId) => internalCache.RenderCache.get(componentId),
         conversationId,
+        onGenerating,
     }: GenerateRoomPreviewOptions = {}
 ): Promise<GenerateRoomPreviewResult> => {
     let parsedContext: StandardForm | null = null
@@ -112,6 +118,9 @@ export const generateRoomPreview = async (
             errorMessage: 'Generation context required'
         }
     }
+
+    // slow path only: we have no exact cache match and we have valid generation context
+    await onGenerating?.()
 
     const allRecords = await queryCacheRecordsForComponentImpl(roomId)
     const cachedExamples = allRecords.filter(

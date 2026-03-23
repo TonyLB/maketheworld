@@ -2,12 +2,19 @@ import { v4 as uuidv4 } from 'uuid'
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import internalCache from '../internalCache'
 import { CONVERSATION_PAYLOAD_STUB } from './conversationTypes'
+import { apiClient } from '@tonylb/mtw-utilities/ts/apiManagement/apiManagementClient'
 import {
     deleteConversationRecord,
     getConversationHandle,
     getStorableConversationRecord,
     registerConversation,
 } from './registry'
+
+jest.mock('@tonylb/mtw-utilities/ts/apiManagement/apiManagementClient', () => ({
+    apiClient: {
+        send: jest.fn(),
+    },
+}))
 
 jest.mock('uuid', () => {
     const actual = jest.requireActual<typeof import('uuid')>('uuid')
@@ -90,33 +97,35 @@ describe('conversations registry', () => {
         expect(await deleteConversationRecord('unknown-id')).toBe(false)
     })
 
-    it('getConversationHandle attaches sendMessage that delegates to injected messageBus', async () => {
-        const send = jest.fn()
+    it('getConversationHandle emits ConversationStep via apiClient', async () => {
         const id = await registerConversation({
             type: 'generateRoomPreview',
             routing: { roomId, perspectiveId: 'PH', requestId: 'rid-1' },
             payload: CONVERSATION_PAYLOAD_STUB,
         })
-        const handle = await getConversationHandle(id, { messageBus: { send } as never })
+
+        internalCache.Global.set({ key: 'ConnectionId', value: 'connection-1' })
+        const handle = await getConversationHandle(id, { messageBus: { send: jest.fn() } as never })
         expect(handle).toBeDefined()
         if (!handle) {
             throw new Error('expected handle')
         }
         expect(handle.sendMessage).toEqual(expect.any(Function))
 
-        handle.sendMessage({ success: true, renderedContent: {} as never })
-        expect(send).toHaveBeenCalledWith(
-            expect.objectContaining({
-                type: 'ReturnValue',
-                body: expect.objectContaining({
-                    messageType: 'ConversationStep',
-                    conversationId: id,
-                    pipeline: 'generateRoomPreview',
-                    step: 'complete',
-                    RequestId: 'rid-1',
-                }),
-            })
-        )
+        await handle.sendMessage({ success: true, renderedContent: {} as never })
+
+        expect(apiClient.send).toHaveBeenCalledTimes(1)
+        expect(apiClient.send).toHaveBeenCalledWith({
+            ConnectionId: 'connection-1',
+            Data: JSON.stringify({
+                messageType: 'ConversationStep',
+                conversationId: id,
+                pipeline: 'generateRoomPreview',
+                step: 'complete',
+                generateRoomPreview: { success: true, renderedContent: {} },
+                RequestId: 'rid-1',
+            }),
+        })
     })
 
     it('registerConversation uses caller-supplied conversationId without calling uuidv4', async () => {

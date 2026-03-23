@@ -50,6 +50,7 @@ describe('renderOrchestration/generateRoomPreview', () => {
 
     it('returns success with renderedContent when a match is found', async () => {
         const getExactMatchImpl = jest.fn()
+        const onGenerating = jest.fn().mockResolvedValue(undefined)
 
         const renderedContent: EphemeraCacheRenderedContent = { description: [] }
         const record = baseRecord({ renderedContent })
@@ -60,49 +61,55 @@ describe('renderOrchestration/generateRoomPreview', () => {
             roomId,
             markState: makeMarkState([{ mark: 'MARK#a', value: 'one' }]),
             assetStack: ['ASSET#one']
-        }, { getExactMatchImpl, publishPutCacheRecord: noopPublishPutCacheRecord })
+        }, { getExactMatchImpl, publishPutCacheRecord: noopPublishPutCacheRecord, onGenerating })
 
         expect(result).toEqual({
             success: true,
             renderedContent
         })
+        expect(onGenerating).toHaveBeenCalledTimes(0)
     })
 
     it('returns CONTEXT_REQUIRED when no exact match and no generationContextWml', async () => {
         const getExactMatchImpl = jest.fn().mockResolvedValue(null)
+        const onGenerating = jest.fn().mockResolvedValue(undefined)
 
         const result = await generateRoomPreview({
             roomId,
             markState: makeMarkState([{ mark: 'MARK#a', value: 'one' }]),
             assetStack: ['ASSET#one']
-        }, { getExactMatchImpl, publishPutCacheRecord: noopPublishPutCacheRecord })
+        }, { getExactMatchImpl, publishPutCacheRecord: noopPublishPutCacheRecord, onGenerating })
 
         expect(result).toEqual({
             success: false,
             errorCode: 'CONTEXT_REQUIRED',
             errorMessage: 'Generation context required'
         })
+        expect(onGenerating).toHaveBeenCalledTimes(0)
     })
 
     it('returns CONTEXT_REQUIRED when no exact match and invalid generationContextWml', async () => {
         const getExactMatchImpl = jest.fn().mockResolvedValue(null)
+        const onGenerating = jest.fn().mockResolvedValue(undefined)
 
         const result = await generateRoomPreview({
             roomId,
             markState: makeMarkState([{ mark: 'MARK#a', value: 'one' }]),
             assetStack: ['ASSET#one'],
             generationContextWml: '<not valid wml<<'
-        }, { getExactMatchImpl, publishPutCacheRecord: noopPublishPutCacheRecord })
+        }, { getExactMatchImpl, publishPutCacheRecord: noopPublishPutCacheRecord, onGenerating })
 
         expect(result).toEqual({
             success: false,
             errorCode: 'CONTEXT_REQUIRED',
             errorMessage: 'Generation context required'
         })
+        expect(onGenerating).toHaveBeenCalledTimes(0)
     })
 
     it('returns NO_EXACT_MATCH from stub when no exact match but valid generationContextWml', async () => {
         const getExactMatchImpl = jest.fn().mockResolvedValue(null)
+        const onGenerating = jest.fn().mockResolvedValue(undefined)
 
         const generateRoomDescriptionImpl = jest.fn().mockResolvedValue({
             success: false,
@@ -123,7 +130,8 @@ describe('renderOrchestration/generateRoomPreview', () => {
                 getExactMatchImpl,
                 generateRoomDescriptionImpl,
                 queryCacheRecordsForComponentImpl,
-                publishPutCacheRecord: noopPublishPutCacheRecord
+                publishPutCacheRecord: noopPublishPutCacheRecord,
+                onGenerating
             }
         )
 
@@ -141,6 +149,7 @@ describe('renderOrchestration/generateRoomPreview', () => {
             errorCode: 'NO_EXACT_MATCH',
             errorMessage: 'No exact match for proposed state'
         })
+        expect(onGenerating).toHaveBeenCalledTimes(1)
     })
 
     it('calls publishPutCacheRecord with generated provenance when LLM returns success', async () => {

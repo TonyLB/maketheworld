@@ -47,7 +47,14 @@ export type GenerateRoomPreviewResult = GenerateRoomPreviewSuccess | GenerateRoo
  * Future: extend `sendMessage` args to a discriminated union (progress vs completion) for streaming.
  */
 export type ConversationHandleGenerateRoomPreview = StorableConversationRecordGenerateRoomPreview & {
-    sendMessage: (result: GenerateRoomPreviewResult) => void
+    /**
+     * MVP send contract:
+     * - Progress uses local simplified `'generating'` marker.
+     * - Terminal uses the domain `GenerateRoomPreviewResult`.
+     *
+     * `materialize` enriches this into the shared `ConversationStep` wire shape.
+     */
+    sendMessage: (arg: 'generating' | GenerateRoomPreviewResult) => Promise<void>
 }
 
 /**

@@ -252,6 +252,12 @@ export const handler = async (event: any, context: any) => {
                     },
                     payload: CONVERSATION_PAYLOAD_STUB,
                 })
+                const handle = await getConversationHandle(conversationId, { messageBus })
+                if (handle === undefined) {
+                    console.error('getConversationHandle: missing conversation after registerConversation', {
+                        conversationId,
+                    })
+                }
                 const result = await generateRoomPreview(
                     {
                         roomId: request.RoomId,
@@ -259,15 +265,15 @@ export const handler = async (event: any, context: any) => {
                         assetStack: request.assetStack,
                         generationContextWml: request.generationContextWml,
                     },
-                    { conversationId }
-                )
-                const handle = await getConversationHandle(conversationId, { messageBus })
-                if (handle === undefined) {
-                    console.error('getConversationHandle: missing conversation after registerConversation', {
+                    {
                         conversationId,
-                    })
-                } else {
-                    handle.sendMessage(result)
+                        onGenerating: async () => {
+                            await handle?.sendMessage('generating')
+                        },
+                    }
+                )
+                if (handle !== undefined) {
+                    await handle.sendMessage(result)
                 }
             }
 

@@ -50,6 +50,7 @@ const getConversationHandleMock = getConversationHandle as jest.MockedFunction<t
 
 describe('app handler - generateRoomPreview', () => {
     const connectionId = 'connection-123'
+    let handleSendMessageMock: jest.Mock
 
     const makeEvent = (body: any) => ({
         requestContext: {
@@ -61,6 +62,7 @@ describe('app handler - generateRoomPreview', () => {
 
     beforeEach(() => {
         jest.clearAllMocks()
+        handleSendMessageMock = jest.fn().mockResolvedValue(undefined)
         registerConversationMock.mockResolvedValue('conv-test-id')
         let capturedRequestId: string | undefined
         registerConversationMock.mockImplementation(async (input) => {
@@ -70,27 +72,23 @@ describe('app handler - generateRoomPreview', () => {
         getConversationHandleMock.mockImplementation(async (_id, deps) => {
             const mb = deps!.messageBus
             return {
-                sendMessage: (result: unknown) => {
-                    mb.send({
-                        type: 'ReturnValue',
-                        body: {
-                            messageType: 'ConversationStep',
-                            conversationId: 'conv-test-id',
-                            pipeline: 'generateRoomPreview',
-                            step: (result as { success: boolean }).success ? 'complete' : 'error',
-                            generateRoomPreview: result,
-                            ...(capturedRequestId !== undefined ? { RequestId: capturedRequestId } : {}),
-                        },
-                    })
-                },
-            } as Awaited<ReturnType<typeof getConversationHandle>>
+                sendMessage: handleSendMessageMock,
+            } as unknown as Awaited<ReturnType<typeof getConversationHandle>>
         })
     })
 
-    it('registers conversation, calls generateRoomPreview with conversationId, and sends ReturnValue with result body', async () => {
+    it('registers conversation, calls generateRoomPreview with onGenerating, and sends generating then terminal step', async () => {
         ;(generateRoomPreview as jest.Mock).mockResolvedValue({
             success: true,
             renderedContent: { description: [{ type: 'Text', value: 'Preview content' }] },
+        })
+
+        ;(generateRoomPreview as jest.Mock).mockImplementation(async (input, options) => {
+            await options?.onGenerating?.()
+            return {
+                success: true,
+                renderedContent: { description: [{ type: 'Text', value: 'Preview content' }] },
+            }
         })
 
         const event = makeEvent({
@@ -123,24 +121,19 @@ describe('app handler - generateRoomPreview', () => {
                 markState: { markValue: [{ mark: 'MARK#a', value: 'one' }] },
                 assetStack: ['ASSET#one'],
             }),
-            { conversationId: 'conv-test-id' }
+            expect.objectContaining({
+                conversationId: 'conv-test-id',
+                onGenerating: expect.any(Function),
+            })
         )
 
         expect(getConversationHandleMock).toHaveBeenCalledWith('conv-test-id', { messageBus })
 
-        expect(messageBus.send).toHaveBeenCalledWith({
-            type: 'ReturnValue',
-            body: {
-                messageType: 'ConversationStep',
-                conversationId: 'conv-test-id',
-                pipeline: 'generateRoomPreview',
-                step: 'complete',
-                generateRoomPreview: {
-                    success: true,
-                    renderedContent: { description: [{ type: 'Text', value: 'Preview content' }] },
-                },
-                RequestId: 'request-123',
-            },
+        expect(handleSendMessageMock).toHaveBeenCalledTimes(2)
+        expect(handleSendMessageMock.mock.calls[0]?.[0]).toBe('generating')
+        expect(handleSendMessageMock.mock.calls[1]?.[0]).toEqual({
+            success: true,
+            renderedContent: { description: [{ type: 'Text', value: 'Preview content' }] },
         })
     })
 
@@ -180,7 +173,10 @@ describe('app handler - generateRoomPreview', () => {
                 assetStack: ['ASSET#one'],
                 generationContextWml: wml,
             }),
-            { conversationId: 'conv-test-id' }
+            expect.objectContaining({
+                conversationId: 'conv-test-id',
+                onGenerating: expect.any(Function),
+            })
         )
     })
 })
