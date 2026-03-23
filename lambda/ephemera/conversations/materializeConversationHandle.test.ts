@@ -18,7 +18,7 @@ describe('materializeConversationHandle', () => {
         payload: CONVERSATION_PAYLOAD_STUB,
     })
 
-    it('sendMessage enqueues ReturnValue with GenerateRoomPreview body and RequestId', () => {
+    it('sendMessage enqueues ReturnValue with ConversationStep body and RequestId', () => {
         const send = jest.fn()
         const messageBus = { send } as unknown as MessageBus
         const handle = materializeConversationHandle(makeRecord(), { messageBus })
@@ -32,7 +32,10 @@ describe('materializeConversationHandle', () => {
         expect(send).toHaveBeenCalledWith({
             type: 'ReturnValue',
             body: {
-                messageType: 'GenerateRoomPreview',
+                messageType: 'ConversationStep',
+                conversationId: 'conv-x',
+                pipeline: 'generateRoomPreview',
+                step: 'complete',
                 generateRoomPreview: { success: true, renderedContent: { test: true } },
                 RequestId: 'req-abc',
             },
@@ -51,7 +54,10 @@ describe('materializeConversationHandle', () => {
         expect(send).toHaveBeenCalledWith({
             type: 'ReturnValue',
             body: {
-                messageType: 'GenerateRoomPreview',
+                messageType: 'ConversationStep',
+                conversationId: 'conv-x',
+                pipeline: 'generateRoomPreview',
+                step: 'error',
                 generateRoomPreview: {
                     success: false,
                     errorCode: 'CONTEXT_REQUIRED',

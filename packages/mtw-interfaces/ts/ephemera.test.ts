@@ -300,7 +300,7 @@ describe('EphemeraClientMessage typeguard', () => {
 
     })
 
-    describe('GenerateRoomPreview (legacy + conversation steps)', () => {
+    describe('GenerateRoomPreview (legacy) and ConversationStep', () => {
 
         it('should accept legacy GenerateRoomPreview', () => {
             expect(isEphemeraClientMessage({
@@ -309,28 +309,39 @@ describe('EphemeraClientMessage typeguard', () => {
             })).toBe(true)
         })
 
-        it('should accept generating step', () => {
+        it('should reject legacy GenerateRoomPreview with conversation correlation fields', () => {
             expect(isEphemeraClientMessage({
                 messageType: 'GenerateRoomPreview',
                 conversationId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-                conversationStep: 'generating'
-            })).toBe(true)
-        })
-
-        it('should reject generating step with generateRoomPreview set', () => {
-            expect(isEphemeraClientMessage({
-                messageType: 'GenerateRoomPreview',
-                conversationId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-                conversationStep: 'generating',
                 generateRoomPreview: { success: true }
             })).toBe(false)
         })
 
-        it('should accept complete step', () => {
+        it('should accept ConversationStep generating', () => {
             expect(isEphemeraClientMessage({
-                messageType: 'GenerateRoomPreview',
+                messageType: 'ConversationStep',
                 conversationId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-                conversationStep: 'complete',
+                pipeline: 'generateRoomPreview',
+                step: 'generating'
+            })).toBe(true)
+        })
+
+        it('should reject generating ConversationStep with generateRoomPreview set', () => {
+            expect(isEphemeraClientMessage({
+                messageType: 'ConversationStep',
+                conversationId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+                pipeline: 'generateRoomPreview',
+                step: 'generating',
+                generateRoomPreview: { success: true }
+            })).toBe(false)
+        })
+
+        it('should accept ConversationStep complete', () => {
+            expect(isEphemeraClientMessage({
+                messageType: 'ConversationStep',
+                conversationId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+                pipeline: 'generateRoomPreview',
+                step: 'complete',
                 generateRoomPreview: { success: true, renderedContent: 'x' }
             })).toBe(true)
         })
@@ -345,11 +356,12 @@ describe('conversation correlation helpers', () => {
         expect(isConversationCorrelatedPayload({})).toBe(false)
     })
 
-    it('isGenerateRoomPreviewConversationStep', () => {
+    it('isConversationStepGenerateRoomPreview', () => {
         const gen = {
-            messageType: 'GenerateRoomPreview',
+            messageType: 'ConversationStep',
             conversationId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-            conversationStep: 'generating'
+            pipeline: 'generateRoomPreview',
+            step: 'generating'
         }
         expect(isGenerateRoomPreviewConversationStep(gen)).toBe(true)
         expect(isGenerateRoomPreviewConversationStep({
@@ -365,20 +377,23 @@ describe('conversation correlation helpers', () => {
             generateRoomPreview: { success: true }
         })).toBe(true)
         expect(isTerminalConversationStep({
-            messageType: 'GenerateRoomPreview',
+            messageType: 'ConversationStep',
             conversationId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-            conversationStep: 'generating'
+            pipeline: 'generateRoomPreview',
+            step: 'generating'
         })).toBe(false)
         expect(isTerminalConversationStep({
-            messageType: 'GenerateRoomPreview',
+            messageType: 'ConversationStep',
             conversationId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-            conversationStep: 'complete',
+            pipeline: 'generateRoomPreview',
+            step: 'complete',
             generateRoomPreview: { success: true }
         })).toBe(true)
         expect(isTerminalConversationStep({
-            messageType: 'GenerateRoomPreview',
+            messageType: 'ConversationStep',
             conversationId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-            conversationStep: 'error',
+            pipeline: 'generateRoomPreview',
+            step: 'error',
             generateRoomPreview: { success: false, errorMessage: 'e' }
         })).toBe(true)
         expect(isTerminalConversationStep({

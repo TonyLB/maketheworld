@@ -74,7 +74,10 @@ describe('app handler - generateRoomPreview', () => {
                     mb.send({
                         type: 'ReturnValue',
                         body: {
-                            messageType: 'GenerateRoomPreview',
+                            messageType: 'ConversationStep',
+                            conversationId: 'conv-test-id',
+                            pipeline: 'generateRoomPreview',
+                            step: (result as { success: boolean }).success ? 'complete' : 'error',
                             generateRoomPreview: result,
                             ...(capturedRequestId !== undefined ? { RequestId: capturedRequestId } : {}),
                         },
@@ -128,7 +131,10 @@ describe('app handler - generateRoomPreview', () => {
         expect(messageBus.send).toHaveBeenCalledWith({
             type: 'ReturnValue',
             body: {
-                messageType: 'GenerateRoomPreview',
+                messageType: 'ConversationStep',
+                conversationId: 'conv-test-id',
+                pipeline: 'generateRoomPreview',
+                step: 'complete',
                 generateRoomPreview: {
                     success: true,
                     renderedContent: { description: [{ type: 'Text', value: 'Preview content' }] },

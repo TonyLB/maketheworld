@@ -17,7 +17,10 @@ export function materializeGenerateRoomPreview(
         deps.messageBus.send({
             type: 'ReturnValue',
             body: {
-                messageType: 'GenerateRoomPreview',
+                messageType: 'ConversationStep',
+                conversationId: record.conversationId,
+                pipeline: 'generateRoomPreview',
+                step: result.success ? 'complete' : 'error',
                 generateRoomPreview: result,
                 ...(record.routing.requestId !== undefined ? { RequestId: record.routing.requestId } : {}),
             },

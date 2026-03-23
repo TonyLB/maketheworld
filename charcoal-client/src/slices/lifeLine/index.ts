@@ -25,7 +25,7 @@ export type {
     SocketDispatchConversationOptions,
 } from './index.api'
 
-export { isTerminalConversationStep } from '@tonylb/mtw-interfaces/ts/ephemera'
+export { isTerminalConversationStep, isConversationStepGenerateRoomPreview } from '@tonylb/mtw-interfaces/ts/ephemera'
 
 const lifeLinePromiseCache = new PromiseCache<LifeLineData>()
 

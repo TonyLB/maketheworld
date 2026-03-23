@@ -109,7 +109,10 @@ describe('conversations registry', () => {
             expect.objectContaining({
                 type: 'ReturnValue',
                 body: expect.objectContaining({
-                    messageType: 'GenerateRoomPreview',
+                    messageType: 'ConversationStep',
+                    conversationId: id,
+                    pipeline: 'generateRoomPreview',
+                    step: 'complete',
                     RequestId: 'rid-1',
                 }),
             })

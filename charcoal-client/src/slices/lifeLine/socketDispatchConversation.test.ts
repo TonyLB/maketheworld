@@ -140,6 +140,7 @@ describe('socketDispatchConversation', () => {
         const onEvent = vi.fn()
         const mockSend = vi.fn()
         const conversationId = 'dddddddd-dddd-dddd-dddd-dddddddddddd'
+        const requestId = 'ffffffff-ffff-ffff-ffff-ffffffffffff'
         const getState = () => ({
             lifeLine: {
                 meta: { currentState: 'CONNECTED' },
@@ -148,13 +149,16 @@ describe('socketDispatchConversation', () => {
         })
         const dispatch = vi.fn()
         const thunk = socketDispatchConversation(
-            { message: 'fetchEphemera', conversationId } as EphemeraAPIMessage & { conversationId?: string },
-            { onEvent, service: 'ephemera' }
+            { message: 'fetchEphemera', conversationId, RequestId: requestId } as EphemeraAPIMessage & {
+                conversationId?: string
+                RequestId?: string
+            },
+            { onEvent, service: 'ephemera', matchRequestIdFallback: true }
         )
         await thunk(dispatch as any, getState as any, undefined as any)
         const legacy = {
             messageType: 'GenerateRoomPreview' as const,
-            conversationId,
+            RequestId: requestId,
             generateRoomPreview: { success: true, renderedContent: 'x' },
         } as unknown as LifeLinePubSubData
         LifeLinePubSub.publish(legacy)
@@ -181,17 +185,19 @@ describe('socketDispatchConversation', () => {
         )
         await thunk(dispatch as any, getState as any, undefined as any)
         const generating = {
-            messageType: 'GenerateRoomPreview' as const,
+            messageType: 'ConversationStep' as const,
             conversationId,
-            conversationStep: 'generating' as const,
+            pipeline: 'generateRoomPreview' as const,
+            step: 'generating' as const,
         } as unknown as LifeLinePubSubData
         LifeLinePubSub.publish(generating)
         expect(onEvent).toHaveBeenCalledTimes(1)
         expect(onTerminal).not.toHaveBeenCalled()
         const complete = {
-            messageType: 'GenerateRoomPreview' as const,
+            messageType: 'ConversationStep' as const,
             conversationId,
-            conversationStep: 'complete' as const,
+            pipeline: 'generateRoomPreview' as const,
+            step: 'complete' as const,
             generateRoomPreview: { success: true, renderedContent: 'y' },
         } as unknown as LifeLinePubSubData
         LifeLinePubSub.publish(complete)

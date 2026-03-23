@@ -387,7 +387,7 @@ export type EphemeraClientMessageUnsubscribeFromMapsMessage = {
     RequestId?: string;
 }
 
-/** Discriminant for multi-message preview / conversation flows (WebSocket `ReturnValue` bodies). */
+/** Step within a `messageType: 'ConversationStep'` pipeline (e.g. preview progress vs completion). */
 export type ConversationStepKind = 'generating' | 'complete' | 'error'
 
 export type GenerateRoomPreviewBody = {
@@ -397,44 +397,55 @@ export type GenerateRoomPreviewBody = {
     errorMessage?: string;
 }
 
-/** Legacy single-response preview (no `conversationStep`). */
-export type EphemeraClientMessageGenerateRoomPreviewLegacy = {
+/** Preview pipelines on the wire (extend with more literals as new flows ship). */
+export type ConversationStepPipeline = 'generateRoomPreview'
+
+/**
+ * Shared envelope for `pipeline: 'generateRoomPreview'` conversation steps.
+ * Step-specific fields are on the discriminated union {@link EphemeraClientMessageConversationStepGenerateRoomPreview}.
+ */
+export type EphemeraClientMessageConversationStepGenerateRoomPreviewCommon = {
+    messageType: 'ConversationStep';
+    RequestId?: string;
+    conversationId: string;
+    pipeline: 'generateRoomPreview';
+}
+
+export type EphemeraClientMessageConversationStepGenerateRoomPreview =
+    | (EphemeraClientMessageConversationStepGenerateRoomPreviewCommon & { step: 'generating' })
+    | (EphemeraClientMessageConversationStepGenerateRoomPreviewCommon & {
+        step: 'complete';
+        generateRoomPreview: GenerateRoomPreviewBody;
+    })
+    | (EphemeraClientMessageConversationStepGenerateRoomPreviewCommon & {
+        step: 'error';
+        generateRoomPreview: GenerateRoomPreviewBody;
+    })
+
+export type EphemeraClientMessageConversationStep = EphemeraClientMessageConversationStepGenerateRoomPreview
+
+export type EphemeraClientMessageConversationStepGenerateRoomPreviewGenerating = Extract<
+    EphemeraClientMessageConversationStepGenerateRoomPreview,
+    { step: 'generating' }
+>
+export type EphemeraClientMessageConversationStepGenerateRoomPreviewComplete = Extract<
+    EphemeraClientMessageConversationStepGenerateRoomPreview,
+    { step: 'complete' }
+>
+export type EphemeraClientMessageConversationStepGenerateRoomPreviewError = Extract<
+    EphemeraClientMessageConversationStepGenerateRoomPreview,
+    { step: 'error' }
+>
+
+/**
+ * Legacy single-response preview (completion only, no `conversationId`).
+ * Prefer `messageType: 'ConversationStep'` for anything correlated with `conversationId`.
+ */
+export type EphemeraClientMessageGenerateRoomPreview = {
     messageType: 'GenerateRoomPreview';
     RequestId?: string;
     generateRoomPreview: GenerateRoomPreviewBody;
 }
-
-export type EphemeraClientMessageGenerateRoomPreviewGenerating = {
-    messageType: 'GenerateRoomPreview';
-    RequestId?: string;
-    conversationId: string;
-    conversationStep: 'generating';
-}
-
-export type EphemeraClientMessageGenerateRoomPreviewComplete = {
-    messageType: 'GenerateRoomPreview';
-    RequestId?: string;
-    conversationId: string;
-    conversationStep: 'complete';
-    generateRoomPreview: GenerateRoomPreviewBody;
-}
-
-export type EphemeraClientMessageGenerateRoomPreviewErrorStep = {
-    messageType: 'GenerateRoomPreview';
-    RequestId?: string;
-    conversationId: string;
-    conversationStep: 'error';
-    generateRoomPreview: GenerateRoomPreviewBody;
-}
-
-export type EphemeraClientMessageGenerateRoomPreview =
-    | EphemeraClientMessageGenerateRoomPreviewLegacy
-    | EphemeraClientMessageGenerateRoomPreviewGenerating
-    | EphemeraClientMessageGenerateRoomPreviewComplete
-    | EphemeraClientMessageGenerateRoomPreviewErrorStep
-
-/** Working name: multi-step preview payloads on the WebSocket (`ReturnValue` bodies). Same union as {@link EphemeraClientMessageGenerateRoomPreview}. */
-export type ConversationStep = EphemeraClientMessageGenerateRoomPreview
 
 const isValidGenerateRoomPreviewBody = (generateRoomPreview: any): boolean => {
     if (!generateRoomPreview || typeof generateRoomPreview !== 'object') {
@@ -461,26 +472,7 @@ export const isEphemeraClientMessageGenerateRoomPreview = (message: any): messag
     if (message.messageType !== 'GenerateRoomPreview') {
         return false
     }
-    const step = message.conversationStep as ConversationStepKind | undefined
-    if (step === 'generating') {
-        if (typeof message.conversationId !== 'string' || message.conversationId.length === 0) {
-            return false
-        }
-        if ('generateRoomPreview' in message && message.generateRoomPreview !== undefined) {
-            return false
-        }
-        return true
-    }
-    if (step === 'complete' || step === 'error') {
-        if (typeof message.conversationId !== 'string' || message.conversationId.length === 0) {
-            return false
-        }
-        if (!('generateRoomPreview' in message)) {
-            return false
-        }
-        return isValidGenerateRoomPreviewBody(message.generateRoomPreview)
-    }
-    if (step !== undefined) {
+    if ('conversationId' in message || 'conversationStep' in message || 'pipeline' in message || 'step' in message) {
         return false
     }
     if (!('generateRoomPreview' in message)) {
@@ -489,24 +481,44 @@ export const isEphemeraClientMessageGenerateRoomPreview = (message: any): messag
     return isValidGenerateRoomPreviewBody(message.generateRoomPreview)
 }
 
-export const isGenerateRoomPreviewConversationStep = (
-    message: unknown
-): message is
-    | EphemeraClientMessageGenerateRoomPreviewGenerating
-    | EphemeraClientMessageGenerateRoomPreviewComplete
-    | EphemeraClientMessageGenerateRoomPreviewErrorStep => {
-    if (!message || typeof message !== 'object') {
+export const isEphemeraClientMessageConversationStep = (message: any): message is EphemeraClientMessageConversationStep => {
+    if (!checkTypes(message, { messageType: 'string' }, { RequestId: 'string' })) {
         return false
     }
-    const m = message as Record<string, unknown>
-    if (m.messageType !== 'GenerateRoomPreview') {
+    if (message.messageType !== 'ConversationStep') {
         return false
     }
-    if (!('conversationStep' in m) || m.conversationStep === undefined) {
+    if (typeof message.conversationId !== 'string' || message.conversationId.length === 0) {
         return false
     }
-    return isEphemeraClientMessageGenerateRoomPreview(message)
+    if (message.pipeline !== 'generateRoomPreview') {
+        return false
+    }
+    const step = message.step as ConversationStepKind | undefined
+    if (step === 'generating') {
+        if ('generateRoomPreview' in message && message.generateRoomPreview !== undefined) {
+            return false
+        }
+        return true
+    }
+    if (step === 'complete' || step === 'error') {
+        if (!('generateRoomPreview' in message)) {
+            return false
+        }
+        return isValidGenerateRoomPreviewBody(message.generateRoomPreview)
+    }
+    return false
 }
+
+/** Narrows to `ConversationStep` messages for the generateRoomPreview pipeline (any step). */
+export const isConversationStepGenerateRoomPreview = (
+    message: unknown
+): message is EphemeraClientMessageConversationStepGenerateRoomPreview => {
+    return isEphemeraClientMessageConversationStep(message)
+}
+
+/** @deprecated Use {@link isConversationStepGenerateRoomPreview}. */
+export const isGenerateRoomPreviewConversationStep = isConversationStepGenerateRoomPreview
 
 export const isConversationCorrelatedPayload = (
     payload: unknown
@@ -520,7 +532,7 @@ export const isConversationCorrelatedPayload = (
 
 /**
  * Whether a LifeLine / Ephemera inbound payload should end a `socketDispatchConversation` stream
- * by default (Error, terminal preview step, or legacy one-shot GenerateRoomPreview).
+ * by default (Error, terminal `ConversationStep`, or legacy one-shot GenerateRoomPreview).
  */
 export const isTerminalConversationStep = (payload: unknown): boolean => {
     if (!payload || typeof payload !== 'object') {
@@ -530,17 +542,17 @@ export const isTerminalConversationStep = (payload: unknown): boolean => {
     if (p.messageType === 'Error') {
         return true
     }
-    if (p.messageType !== 'GenerateRoomPreview') {
+    if (p.messageType === 'ConversationStep') {
+        if (p.step === 'generating') {
+            return false
+        }
+        if (p.step === 'complete' || p.step === 'error') {
+            return isEphemeraClientMessageConversationStep(payload)
+        }
         return false
     }
-    if (!('conversationStep' in p) || p.conversationStep === undefined) {
-        return isValidGenerateRoomPreviewBody((p as { generateRoomPreview?: unknown }).generateRoomPreview)
-    }
-    if (p.conversationStep === 'generating') {
-        return false
-    }
-    if (p.conversationStep === 'complete' || p.conversationStep === 'error') {
-        return true
+    if (p.messageType === 'GenerateRoomPreview') {
+        return isEphemeraClientMessageGenerateRoomPreview(payload)
     }
     return false
 }
@@ -551,6 +563,7 @@ export type EphemeraClientMessage = EphemeraClientMessageEphemeraUpdate |
     EphemeraClientMessageUnregisterMessage |
     EphemeraClientMessageSubscribeToMapsMessage |
     EphemeraClientMessageUnsubscribeFromMapsMessage |
+    EphemeraClientMessageConversationStep |
     EphemeraClientMessageGenerateRoomPreview
 
 export const isEphemeraClientMessage = (message: any): message is EphemeraClientMessage => {
@@ -593,6 +606,8 @@ export const isEphemeraClientMessage = (message: any): message is EphemeraClient
             return messages.reduce<boolean>((previous, subMessage) => (
                 previous && isMessage(subMessage)
             ), true)
+        case 'ConversationStep':
+            return isEphemeraClientMessageConversationStep(message)
         case 'GenerateRoomPreview':
             return isEphemeraClientMessageGenerateRoomPreview(message)
         default: return false
