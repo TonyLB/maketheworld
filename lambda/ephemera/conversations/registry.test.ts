@@ -2,6 +2,7 @@ import { v4 as uuidv4 } from 'uuid'
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import internalCache from '../internalCache'
 import { CONVERSATION_PAYLOAD_STUB } from './conversationTypes'
+import { apiClient } from '@tonylb/mtw-utilities/ts/apiManagement/apiManagementClient'
 import {
     deleteConversationRecord,
     getConversationHandle,
@@ -9,11 +10,23 @@ import {
     registerConversation,
 } from './registry'
 
-jest.mock('uuid', () => ({
-    v4: jest.fn(),
+jest.mock('@tonylb/mtw-utilities/ts/apiManagement/apiManagementClient', () => ({
+    apiClient: {
+        send: jest.fn(),
+    },
 }))
 
+jest.mock('uuid', () => {
+    const actual = jest.requireActual<typeof import('uuid')>('uuid')
+    return {
+        ...actual,
+        v4: jest.fn(),
+    }
+})
+
 const uuidv4Mock = uuidv4 as jest.Mock
+
+const CLIENT_SUPPLIED_CONVERSATION_ID = '550e8400-e29b-41d4-a716-446655440000'
 
 const roomId = 'ROOM#registry-test' as EphemeraRoomId
 
@@ -84,29 +97,89 @@ describe('conversations registry', () => {
         expect(await deleteConversationRecord('unknown-id')).toBe(false)
     })
 
-    it('getConversationHandle attaches sendMessage that delegates to injected messageBus', async () => {
-        const send = jest.fn()
+    it('getConversationHandle emits ConversationStep via apiClient', async () => {
         const id = await registerConversation({
             type: 'generateRoomPreview',
             routing: { roomId, perspectiveId: 'PH', requestId: 'rid-1' },
             payload: CONVERSATION_PAYLOAD_STUB,
         })
-        const handle = await getConversationHandle(id, { messageBus: { send } as never })
+
+        internalCache.Global.set({ key: 'ConnectionId', value: 'connection-1' })
+        const handle = await getConversationHandle(id, { messageBus: { send: jest.fn() } as never })
         expect(handle).toBeDefined()
         if (!handle) {
             throw new Error('expected handle')
         }
         expect(handle.sendMessage).toEqual(expect.any(Function))
 
-        handle.sendMessage({ success: true, renderedContent: {} as never })
-        expect(send).toHaveBeenCalledWith(
-            expect.objectContaining({
-                type: 'ReturnValue',
-                body: expect.objectContaining({
-                    messageType: 'GenerateRoomPreview',
-                    RequestId: 'rid-1',
-                }),
+        await handle.sendMessage({ success: true, renderedContent: {} as never })
+
+        expect(apiClient.send).toHaveBeenCalledTimes(1)
+        expect(apiClient.send).toHaveBeenCalledWith({
+            ConnectionId: 'connection-1',
+            Data: JSON.stringify({
+                messageType: 'ConversationStep',
+                conversationId: id,
+                pipeline: 'generateRoomPreview',
+                step: 'complete',
+                generateRoomPreview: { success: true, renderedContent: {} },
+                RequestId: 'rid-1',
+            }),
+        })
+    })
+
+    it('registerConversation uses caller-supplied conversationId without calling uuidv4', async () => {
+        const id = await registerConversation({
+            conversationId: CLIENT_SUPPLIED_CONVERSATION_ID,
+            type: 'generateRoomPreview',
+            routing: { roomId, perspectiveId: 'P-client' },
+            payload: CONVERSATION_PAYLOAD_STUB,
+        })
+        expect(id).toBe(CLIENT_SUPPLIED_CONVERSATION_ID)
+        expect(uuidv4Mock).not.toHaveBeenCalled()
+
+        const row = await getStorableConversationRecord(id)
+        expect(row).toEqual({
+            conversationId: CLIENT_SUPPLIED_CONVERSATION_ID,
+            type: 'generateRoomPreview',
+            routing: { roomId, perspectiveId: 'P-client' },
+            payload: CONVERSATION_PAYLOAD_STUB,
+        })
+    })
+
+    it('registerConversation throws when conversationId is not a valid UUID', async () => {
+        await expect(
+            registerConversation({
+                conversationId: 'not-a-uuid',
+                type: 'generateRoomPreview',
+                routing: { roomId, perspectiveId: 'P1' },
+                payload: CONVERSATION_PAYLOAD_STUB,
             })
+        ).rejects.toThrow('Conversation id must be a valid UUID')
+
+        expect(await getStorableConversationRecord('not-a-uuid')).toBeUndefined()
+    })
+
+    it('registerConversation throws when conversationId is already registered', async () => {
+        await registerConversation({
+            conversationId: CLIENT_SUPPLIED_CONVERSATION_ID,
+            type: 'generateRoomPreview',
+            routing: { roomId, perspectiveId: 'first' },
+            payload: CONVERSATION_PAYLOAD_STUB,
+        })
+
+        await expect(
+            registerConversation({
+                conversationId: CLIENT_SUPPLIED_CONVERSATION_ID,
+                type: 'generateRoomPreview',
+                routing: { roomId, perspectiveId: 'second' },
+                payload: CONVERSATION_PAYLOAD_STUB,
+            })
+        ).rejects.toThrow('Conversation id already registered')
+
+        const row = await getStorableConversationRecord(CLIENT_SUPPLIED_CONVERSATION_ID)
+        expect(row?.routing).toEqual(
+            expect.objectContaining({ perspectiveId: 'first' })
         )
     })
 })

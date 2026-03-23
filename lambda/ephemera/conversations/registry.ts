@@ -1,22 +1,42 @@
-import { v4 as uuidv4 } from 'uuid'
+import { validate, v4 as uuidv4 } from 'uuid'
 import internalCache from '../internalCache'
 import messageBus from '../messageBus'
 import type { ConversationId, StorableConversationRecord } from './conversationTypes'
 import type { ConversationHandle } from './conversationTypes/handle'
 import { materializeConversationHandle, type ConversationMaterializeDeps } from './materializeConversationHandle'
 
-/** Input for `registerConversation`: full storable row shape without generated id. */
-export type RegisterConversationInput = Omit<StorableConversationRecord, 'conversationId'>
+/** Input for `registerConversation`: storable fields plus optional caller-supplied `conversationId`. */
+export type RegisterConversationInput = Omit<StorableConversationRecord, 'conversationId'> & {
+    conversationId?: ConversationId;
+}
 
 /**
- * Creates a new `conversationId`, stores the row on internalCache.Conversations, returns the id.
+ * Stores a conversation row on internalCache.Conversations and returns its `conversationId`.
+ *
+ * If **`conversationId`** is omitted, generates one with **`uuidv4()`** (legacy behavior).
+ * If provided, must be a **valid UUID** (RFC 4122); throws if invalid or if that id is **already registered** in this invocation.
  */
 export const registerConversation = async (
     input: RegisterConversationInput
 ): Promise<ConversationId> => {
-    const conversationId = uuidv4()
+    const { conversationId: requestedConversationId, ...rowFields } = input
+
+    let conversationId: ConversationId
+    if (requestedConversationId !== undefined) {
+        if (!validate(requestedConversationId)) {
+            throw new Error('Conversation id must be a valid UUID')
+        }
+        if (internalCache.Conversations.get(requestedConversationId)) {
+            throw new Error('Conversation id already registered')
+        }
+        conversationId = requestedConversationId
+    }
+    else {
+        conversationId = uuidv4()
+    }
+
     const record: StorableConversationRecord = {
-        ...input,
+        ...rowFields,
         conversationId,
     }
     internalCache.Conversations.set(record)

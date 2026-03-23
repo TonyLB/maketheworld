@@ -1,4 +1,11 @@
-import { isEphemeraAPIMessage, isEphemeraClientMessage } from './ephemera'
+import {
+    isEphemeraAPIMessage,
+    isEphemeraClientMessage,
+    isConversationCorrelatedPayload,
+    isEphemeraClientMessageGenerateRoomPreview,
+    isGenerateRoomPreviewConversationStep,
+    isTerminalConversationStep,
+} from './ephemera'
 
 describe('EphemeraAPIMessage typeguard', () => {
 
@@ -291,5 +298,114 @@ describe('EphemeraClientMessage typeguard', () => {
             })).toBe(true)
         })
 
+    })
+
+    describe('GenerateRoomPreview (legacy) and ConversationStep', () => {
+
+        it('should accept legacy GenerateRoomPreview', () => {
+            expect(isEphemeraClientMessage({
+                messageType: 'GenerateRoomPreview',
+                generateRoomPreview: { success: true, renderedContent: 'x' }
+            })).toBe(true)
+        })
+
+        it('should reject legacy GenerateRoomPreview with conversation correlation fields', () => {
+            expect(isEphemeraClientMessage({
+                messageType: 'GenerateRoomPreview',
+                conversationId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+                generateRoomPreview: { success: true }
+            })).toBe(false)
+        })
+
+        it('should accept ConversationStep generating', () => {
+            expect(isEphemeraClientMessage({
+                messageType: 'ConversationStep',
+                conversationId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+                pipeline: 'generateRoomPreview',
+                step: 'generating'
+            })).toBe(true)
+        })
+
+        it('should reject generating ConversationStep with generateRoomPreview set', () => {
+            expect(isEphemeraClientMessage({
+                messageType: 'ConversationStep',
+                conversationId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+                pipeline: 'generateRoomPreview',
+                step: 'generating',
+                generateRoomPreview: { success: true }
+            })).toBe(false)
+        })
+
+        it('should accept ConversationStep complete', () => {
+            expect(isEphemeraClientMessage({
+                messageType: 'ConversationStep',
+                conversationId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+                pipeline: 'generateRoomPreview',
+                step: 'complete',
+                generateRoomPreview: { success: true, renderedContent: 'x' }
+            })).toBe(true)
+        })
+    })
+})
+
+describe('conversation correlation helpers', () => {
+
+    it('isConversationCorrelatedPayload', () => {
+        expect(isConversationCorrelatedPayload({ conversationId: 'cid' })).toBe(true)
+        expect(isConversationCorrelatedPayload({ conversationId: '' })).toBe(false)
+        expect(isConversationCorrelatedPayload({})).toBe(false)
+    })
+
+    it('isConversationStepGenerateRoomPreview', () => {
+        const gen = {
+            messageType: 'ConversationStep',
+            conversationId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+            pipeline: 'generateRoomPreview',
+            step: 'generating'
+        }
+        expect(isGenerateRoomPreviewConversationStep(gen)).toBe(true)
+        expect(isGenerateRoomPreviewConversationStep({
+            messageType: 'GenerateRoomPreview',
+            generateRoomPreview: { success: true }
+        })).toBe(false)
+    })
+
+    it('isTerminalConversationStep', () => {
+        expect(isTerminalConversationStep({ messageType: 'Error', error: 'x' })).toBe(true)
+        expect(isTerminalConversationStep({
+            messageType: 'GenerateRoomPreview',
+            generateRoomPreview: { success: true }
+        })).toBe(true)
+        expect(isTerminalConversationStep({
+            messageType: 'ConversationStep',
+            conversationId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+            pipeline: 'generateRoomPreview',
+            step: 'generating'
+        })).toBe(false)
+        expect(isTerminalConversationStep({
+            messageType: 'ConversationStep',
+            conversationId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+            pipeline: 'generateRoomPreview',
+            step: 'complete',
+            generateRoomPreview: { success: true }
+        })).toBe(true)
+        expect(isTerminalConversationStep({
+            messageType: 'ConversationStep',
+            conversationId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+            pipeline: 'generateRoomPreview',
+            step: 'error',
+            generateRoomPreview: { success: false, errorMessage: 'e' }
+        })).toBe(true)
+        expect(isTerminalConversationStep({
+            messageType: 'Messages',
+            messages: []
+        })).toBe(false)
+    })
+
+    it('isEphemeraClientMessageGenerateRoomPreview narrows', () => {
+        expect(isEphemeraClientMessageGenerateRoomPreview({
+            messageType: 'GenerateRoomPreview',
+            generateRoomPreview: { success: true }
+        })).toBe(true)
     })
 })

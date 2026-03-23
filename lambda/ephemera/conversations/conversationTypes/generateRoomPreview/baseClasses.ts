@@ -16,7 +16,7 @@ export type GenerateRoomPreviewConversationRouting = {
 
 /**
  * First union member: full-record discriminant; `routing` and `payload` narrow together.
- * Additional `type` variants and `payload` shapes: section 4 (task list).
+ * Additional `type` variants and `payload` shapes: task list section 5 (second-pass typing).
  */
 export const CONVERSATION_TYPE_GENERATE_ROOM_PREVIEW = 'generateRoomPreview' as const
 
@@ -47,7 +47,14 @@ export type GenerateRoomPreviewResult = GenerateRoomPreviewSuccess | GenerateRoo
  * Future: extend `sendMessage` args to a discriminated union (progress vs completion) for streaming.
  */
 export type ConversationHandleGenerateRoomPreview = StorableConversationRecordGenerateRoomPreview & {
-    sendMessage: (result: GenerateRoomPreviewResult) => void
+    /**
+     * MVP send contract:
+     * - Progress uses local simplified `'generating'` marker.
+     * - Terminal uses the domain `GenerateRoomPreviewResult`.
+     *
+     * `materialize` enriches this into the shared `ConversationStep` wire shape.
+     */
+    sendMessage: (arg: 'generating' | GenerateRoomPreviewResult) => Promise<void>
 }
 
 /**

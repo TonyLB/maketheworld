@@ -18,7 +18,7 @@ import delayPromise from '../../lib/delayPromise'
 import { cacheMessages } from '../messages'
 import { receiveMessages as perceptionCacheReceiveMessages } from '../perceptionCache'
 
-import { EphemeraAPIMessage, isEphemeraClientMessage } from '@tonylb/mtw-interfaces/ts/ephemera'
+import { EphemeraAPIMessage, isEphemeraClientMessage, isTerminalConversationStep } from '@tonylb/mtw-interfaces/ts/ephemera'
 import { AssetAPIMessage, isAssetClientMessage } from '@tonylb/mtw-interfaces/ts/asset'
 import { isSubscriptionClientMessage, SubscriptionsAPIMessage } from '@tonylb/mtw-interfaces/ts/subscriptions'
 import { WMLAPIMessage } from '@tonylb/mtw-interfaces/ts/wml'
@@ -301,6 +301,120 @@ export function socketDispatchPromise(payload: (EphemeraAPIMessage | AssetAPIMes
                 message: (payload as any).message
             })
         }
+    }
+}
+
+export type ConversationCorrelationParams = {
+    conversationId: string
+    requestId: string
+    matchRequestIdFallback: boolean
+}
+
+/**
+ * Pure filter: inbound WebSocket payloads belong to this conversation when `conversationId`
+ * matches, or (migration) when `matchRequestIdFallback` is true and `RequestId` matches.
+ */
+export function matchesCorrelationPayload(
+    payload: LifeLinePubSubData,
+    { conversationId, requestId, matchRequestIdFallback }: ConversationCorrelationParams
+): boolean {
+    if (payload.conversationId === conversationId) {
+        return true
+    }
+    if (matchRequestIdFallback && payload.RequestId === requestId) {
+        return true
+    }
+    return false
+}
+
+export type SocketDispatchConversationOptions = {
+    onEvent: (payload: LifeLinePubSubData) => void
+    onTerminal?: (payload: LifeLinePubSubData) => void
+    matchRequestIdFallback?: boolean
+    isTerminal?: (payload: LifeLinePubSubData) => boolean
+}
+
+//
+// socketDispatchConversation: subscribe to LifeLinePubSub for multiple inbound payloads sharing
+// conversationId (and optionally RequestId during migration) until terminal or unsubscribe.
+//
+export function socketDispatchConversation(
+    payload: EphemeraAPIMessage & { conversationId?: string },
+    options: SocketDispatchConversationOptions & { service?: 'ephemera' }
+): ThunkAction<Promise<{ unsubscribe: () => void; conversationId: string }>, RootState, unknown, AnyAction>
+export function socketDispatchConversation(
+    payload: AssetAPIMessage & { conversationId?: string },
+    options: SocketDispatchConversationOptions & { service: 'asset' }
+): ThunkAction<Promise<{ unsubscribe: () => void; conversationId: string }>, RootState, unknown, AnyAction>
+export function socketDispatchConversation(
+    payload: SubscriptionsAPIMessage & { conversationId?: string },
+    options: SocketDispatchConversationOptions & { service: 'subscriptions' }
+): ThunkAction<Promise<{ unsubscribe: () => void; conversationId: string }>, RootState, unknown, AnyAction>
+export function socketDispatchConversation(
+    payload: WMLAPIMessage & { conversationId?: string },
+    options: SocketDispatchConversationOptions & { service: 'wml' }
+): ThunkAction<Promise<{ unsubscribe: () => void; conversationId: string }>, RootState, unknown, AnyAction>
+export function socketDispatchConversation(
+    payload: { messageType: 'ping'; RequestId?: string; conversationId?: string },
+    options: SocketDispatchConversationOptions & { service: 'ping' }
+): ThunkAction<Promise<{ unsubscribe: () => void; conversationId: string }>, RootState, unknown, AnyAction>
+export function socketDispatchConversation(
+    payload: (EphemeraAPIMessage | AssetAPIMessage | SubscriptionsAPIMessage | WMLAPIMessage | { messageType: 'ping' }) & { conversationId?: string; RequestId?: string },
+    {
+        service = 'ephemera',
+        onEvent,
+        onTerminal,
+        matchRequestIdFallback = false,
+        isTerminal = isTerminalConversationStep,
+    }: SocketDispatchConversationOptions & { service?: 'ephemera' | 'asset' | 'wml' | 'subscriptions' | 'ping' }
+): ThunkAction<Promise<{ unsubscribe: () => void; conversationId: string }>, RootState, unknown, AnyAction> {
+    return (dispatch, getState) => {
+        const { status, webSocket }: any = getLifeLine(getState()) || {}
+        if (webSocket && status === 'CONNECTED') {
+            const conversationId = (payload as { conversationId?: string }).conversationId ?? uuidv4()
+            const RequestId = payload.RequestId ?? uuidv4()
+            let closed = false
+            const cleanup = () => {
+                if (closed) {
+                    return
+                }
+                closed = true
+                LifeLinePubSub.unsubscribe(subscriptionId)
+            }
+            const subscriptionId = LifeLinePubSub.subscribe(({ payload: incoming }) => {
+                if (closed) {
+                    return
+                }
+                if (!matchesCorrelationPayload(incoming, {
+                    conversationId,
+                    requestId: RequestId,
+                    matchRequestIdFallback,
+                })) {
+                    return
+                }
+                if (incoming.messageType === 'Error' && 'error' in incoming && incoming.error) {
+                    dispatch(push((incoming as { error: string }).error))
+                }
+                onEvent(incoming)
+                if (isTerminal(incoming)) {
+                    onTerminal?.(incoming)
+                    cleanup()
+                }
+            })
+            webSocket.send(JSON.stringify({
+                service,
+                ...payload,
+                RequestId,
+                conversationId,
+            }))
+            return Promise.resolve({
+                conversationId,
+                unsubscribe: cleanup,
+            })
+        }
+        return Promise.reject({
+            message: (payload as { message?: string }).message,
+        })
     }
 }
 
