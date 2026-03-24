@@ -6,6 +6,12 @@ Document the current `sendMessage` architecture for conversations, the tensions 
 
 This is a planning input, not an implementation checklist.
 
+## Planning intent (prototype de-locking)
+
+The first vertical slice introduced useful scaffolding, but it should not be treated as a contract-locked architecture. We are explicitly willing to simplify and collapse prototype-only layering where it does not serve long-term clarity.
+
+In particular, Option C should be evaluated on current needs rather than on preserving first-pass helper boundaries. A composite cache read shape (`get(...)` returning storable record plus runtime enrichment/handle) is in scope if it reduces call-path friction while keeping storage JSON-safe.
+
 ## Current architecture (as shipped in first vertical)
 
 For `generateRoomPreview` conversations:
@@ -51,48 +57,32 @@ If enrichment is moved closer to cache reads, the API contract must clearly stat
 
 Without this explicit distinction, the API will appear inconsistent and be easy to misuse.
 
-## Concrete design options to evaluate
+## Design decision
 
-### Option A: Keep current separation (Registry as enrichment layer)
+### Chosen direction: Option C (composite `get`)
 
-- Continue using:
-  - `internalCache.Conversations.get` for storable rows
-  - `registry.getConversationHandle` for enriched runtime handles
-- Improve naming/docs/tests so this separation is obvious and intentional.
+We are choosing Option C as the migration direction.
 
-Pros:
-- Minimal churn.
-- Preserves current JSON-safe cache contract and existing call sites.
+- Keep storage JSON-safe internally.
+- Repurpose `internalCache.Conversations.get(...)` as a runtime read that can return both storable data and enrichment (for example `{ record, handle }`).
+- Treat this as a simplification from prototype layering, not a compatibility obligation to preserve first-pass helper boundaries.
 
-Cons:
-- Extra helper layer remains compared to expected internalCache-first pattern.
+Decision rationale:
 
-### Option B: Add enriched read API on `internalCache.Conversations`
-
-- Keep storage JSON-safe map unchanged.
-- Add an explicit runtime read API (for example `getHandle(...)`) that materializes on read.
-- Use that API from registry/app/orchestration glue.
-
-Pros:
-- Better alignment with "internalCache as global primitive" mental model.
-- Keeps JSON-safe storage invariant intact.
-
-Cons:
-- Requires clear naming to avoid confusion with storable `get`.
-- Requires call-site updates and test pattern migration.
-
-### Option C: Overload/repurpose `get(...)` to return enriched handles
-
-- Storage remains JSON-safe internally, but `get` return type becomes runtime handle.
-
-Pros:
 - Shortest call path at usage sites.
+- Better fit with the internalCache-first programming model used elsewhere in the codebase.
+- Current call sites do not require a separate raw-only method if storable fields remain first-class on the composite return.
 
-Cons:
-- High ambiguity and potential breakage:
-  - existing code uses `get` for existence checks and raw record reads
-  - would force new methods for raw access anyway
-- Most likely to confuse set/get symmetry.
+Required guardrails for this choice:
+
+- Preserve storable-vs-runtime distinction explicitly in naming and type docs (`record` vs `handle`).
+- Keep set/get symmetry understandable: `set(...)` writes storable rows; `get(...)` is a composite runtime read.
+- Keep materialization as the single envelope-injection point for wire messages.
+
+### Considered and not chosen
+
+- **Option A (registry-first enrichment):** kept as historical MVP layering; not chosen because the extra helper boundary no longer provides enough design value relative to call-path friction.
+- **Option B (separate enriched read method such as `getHandle(...)`):** not chosen because it keeps dual-read indirection when a single composite `get` can express both concerns.
 
 ## Invariants to preserve regardless of option
 
@@ -103,10 +93,8 @@ Cons:
 
 ## Migration prep checklist (for next planning doc)
 
-- Decide ownership boundary:
-  - registry-first enrichment (Option A), or
-  - internalCache-level enriched read API (Option B).
-- Define API naming to avoid set/get symmetry confusion.
+- Implement internalCache-level composite read API (`get` returns storable + enrichment shape).
+- Define API naming/docs to avoid set/get symmetry confusion.
 - Update tests to match chosen primitive boundary (mock registry vs mock internalCache enriched read).
 - Document the storable-vs-enriched type distinction in `conversations/AGENT.md` and type comments.
 
