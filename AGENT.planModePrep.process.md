@@ -18,9 +18,30 @@ Prepare planning work so Plan Mode can execute without inventing architecture, c
 
 ---
 
+## Pressure Relief Principle
+
+The agent must not populate a section solely because it exists.
+
+Every section must support an explicit **intentional blank state**, indicating either:
+- it is not yet in play for the current phase, or
+- it has been evaluated and contains no material entries
+
+Absence of content is not sufficient; blank sections must declare their status.
+
+---
+
 ## Material Uncertainty Standard
 
-An uncertainty is **material** if resolving it could affect:
+### Definition: Material
+
+A question, gap, or change is **material** if it would require Plan Mode to:
+
+- invent architecture, contracts, or scope
+- make a decision not already explicitly grounded in the prep artifact
+
+Non-material details may be safely improvised during execution.
+
+Resolving material uncertainty could affect:
 
 - architecture
 - code placement across modules
@@ -63,13 +84,15 @@ If unsure whether material:
 
 Prep work proceeds as a multi-pass loop:
 
-1. ASSESS — identify gaps and risks
-2. CONSULT — resolve uncertainty through exploration and human interaction
-3. REFINE — commit resolved understanding into the plan
-4. RE-ASSESS — verify that refinement actually removed risk
-5. RESOLUTION VALIDATION — confirm issues are resolved by evidence
-6. READINESS — declare readiness for Plan Mode
-7. CLEANED — prepare for next cycle
+0. INIT - establish prep artifact
+1. ACTIVATE TASK - load cycle scope
+2. ASSESS — identify gaps and risks
+3. CONSULT — resolve uncertainty through exploration and human interaction
+4. REFINE — commit resolved understanding into the plan
+5. RE-ASSESS — verify that refinement actually removed risk
+6. RESOLUTION VALIDATION — confirm issues are resolved by evidence
+7. READINESS — declare readiness for Plan Mode
+8. CLEANED — prepare for next cycle
 
 ---
 
@@ -86,7 +109,59 @@ The process continues until readiness criteria are genuinely satisfied, not mere
 
 ---
 
-## Phase 1: ASSESS
+## Phase 0: INIT (Establish Prep Artifact)
+
+**Goal:**  
+Create a new `.prep.md` artifact for the overall effort without inferring task-specific intent.
+
+**Responsibilities:**
+- Create the prep file conforming to the schema
+- Populate only **effort-level, cross-cycle context**:
+  - Prep Scope (A1)
+  - Standing Constraints (A2)
+  - Known Decisions (A5) *only if explicitly pre-existing*
+- Optionally import Established Code Context (A3) only if:
+  - It was previously inspected, and
+  - Its validity is not assumed without verification
+- Do **not** populate:
+  - Proposed Changes (B0)
+  - Canonical Intent (B3)
+  - Open Issues (B5)
+- Set Cycle Status (B2):
+  - Phase = INIT or ASSESS
+  - Readiness = NOT READY
+
+**Failure Check:**
+- Did I infer intent, architecture, or decisions from a tasklist or planning doc?
+- Did I populate active-cycle sections without performing a cycle?
+
+---
+
+## Phase 1: ACTIVATE TASK (Load Cycle Scope)
+
+**Goal:**  
+Load a specific task into the active workspace without inferring conclusions.
+
+**Responsibilities:**
+- Populate Cycle Scope (B1):
+  - Current task
+  - In-scope / Out-of-scope boundaries
+- Update Cycle Status (B2):
+  - Phase = ASSESS
+  - Readiness = NOT READY
+- Seed Code Context (B4) with **NEEDED** items (not INSPECTED)
+- Leave the following sections intentionally blank unless already grounded:
+  - Proposed Changes (B0)
+  - Canonical Intent (B3)
+  - Resolved Issues (B6)
+
+**Failure Check:**
+- Did I convert the task description into assumed design or intent?
+- Did I populate conclusions before performing ASSESS?
+
+---
+
+## Phase 2: ASSESS
 
 **Goal:** Identify all material uncertainty that would cause Plan Mode to guess.
 
@@ -98,6 +173,10 @@ The process continues until readiness criteria are genuinely satisfied, not mere
 - Identify contract risks
 - Identify abstraction risks
 - When a meaningful change appears necessary, create or update a Proposed Change entry instead of silently carrying the implication forward
+- Open Issues (B5) should include **only material uncertainties**
+- At READINESS:
+  - All material uncertainties must be resolved
+  - Remaining uncertainties must be explicitly non-material
 
 ### Code Coverage Check
 
@@ -120,7 +199,7 @@ If yes or uncertain → continue assessing
 
 ---
 
-## Phase 2: CONSULT
+## Phase 3: CONSULT
 
 **Goal:** Resolve uncertainty through exploration, inspection, and human interaction.
 
@@ -152,7 +231,7 @@ If yes or uncertain → continue assessing
 
 ---
 
-## Phase 3: REFINE
+## Phase 4: REFINE
 
 **Goal:** Commit resolved understanding into the plan and constraints.
 
@@ -213,7 +292,7 @@ When deferring edge cases:
 
 ---
 
-## Phase 4: RE-ASSESS
+## Phase 5: RE-ASSESS
 
 **Goal:** Verify that refinement actually removed risk.
 
@@ -225,7 +304,7 @@ When deferring edge cases:
 
 ---
 
-## Phase 5: RESOLUTION VALIDATION
+## Phase 6: RESOLUTION VALIDATION
 
 **Goal:** Ensure issues are resolved by evidence, not plausibility.
 
@@ -239,7 +318,7 @@ Do not resolve via plausible description alone.
 
 ---
 
-## Phase 6: READINESS
+## Phase 7: READINESS
 
 **Goal:** Ensure Plan Mode can execute without guessing.
 
@@ -250,6 +329,9 @@ READY only if:
 - no material uncertainty remains
 - implementation is grounded in inspected code
 - no open blocking issues remain
+
+**Readiness is binary.**  
+If any material uncertainty remains, the system is NOT READY.
 
 ### Readiness Failure Check
 
@@ -270,10 +352,11 @@ Reaching READINESS requires:
 
 - prior phases have converged, not merely been visited
 - no active uncertainty remains that would benefit from further CONSULT or REFINE
+- B5 should be empty or contain only explicitly non-material items
 
 ---
 
-## Phase 7: CLEANUP (CLEANED)
+## Phase 8: CLEANUP (CLEANED)
 
 **Goal:** Prepare the prep document for reuse.
 
