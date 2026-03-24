@@ -2,7 +2,9 @@
 
 ## Two layers: storable vs live handle
 
-**Storable rows** (`StorableConversationRecord`, per-variant types like `StorableConversationRecordGenerateRoomPreview`) are **JSON-safe**: `conversationId`, `type`, `routing`, `payload` fragments, etc. They are what [`internalCache/conversations.ts`](../internalCache/conversations.ts) stores and what a future Dynamo row would contain.
+**Storable rows** (`StorableConversationRecord`, per-variant types like `StorableConversationRecordGenerateRoomPreview`) are **JSON-safe**: `conversationId`, `type`, `routing`, `payload` fragments, etc. They are what [`internalCache/conversations.ts`](../internalCache/conversations.ts) **`set`** stores and what a future Dynamo row would contain.
+
+**`internalCache.Conversations.get`** is a **runtime composite read**: `{ record, handle } | undefined`. **`record`** is that same storable row. **`handle`** is currently a **task-1 placeholder** (`ConversationCompositeReadHandleStub` in [`conversationTypes/compositeRead.ts`](conversationTypes/compositeRead.ts)) with **no** real `sendMessage` or wire behavior; it exists so the read shape can grow in later tasks. **`getConversationHandle`** still **materializes** a live handle from **`record`** only and **does not** use the cache `handle` field yet.
 
 **Live handles** (`ConversationHandle`, e.g. `ConversationHandleGenerateRoomPreview`) are the **same discriminated union** at the **`type`** tag, plus **runtime-only** fields such as **`sendMessage`**. These are **not** persisted. They are built **on read** by [`materializeConversationHandle.ts`](materializeConversationHandle.ts), which closes over **`MessageBus`** (and any other process-local dependencies).
 

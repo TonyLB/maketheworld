@@ -13,11 +13,11 @@
 
 **Goal:** Shift the read contract from "storable record only" to a composite runtime read shape that can carry both storable data and handle enrichment.
 
-- [ ] Define the target `get` return shape (working shape: `{ record, handle } | undefined`) and document field semantics (`record` is canonical storable row; `handle` is runtime enrichment).
-- [ ] Implement minimal `handle` stub for first pass (no broad behavior changes yet).
-- [ ] Update immediate call-sites that currently rely on raw row reads so they access storable data via the new composite shape.
-- [ ] Keep `set(...)` contract explicitly storable-only; verify set/get docs communicate this clearly.
-- [ ] Update/extend unit tests around `internalCache.Conversations` read behavior.
+- [x] Define the target `get` return shape (working shape: `{ record, handle } | undefined`) and document field semantics (`record` is canonical storable row; `handle` is runtime enrichment).
+- [x] Implement minimal `handle` stub for first pass (no broad behavior changes yet).
+- [x] Update immediate call-sites that currently rely on raw row reads so they access storable data via the new composite shape.
+- [x] Keep `set(...)` contract explicitly storable-only; verify set/get docs communicate this clearly.
+- [x] Update/extend unit tests around `internalCache.Conversations` read behavior.
 
 ---
 

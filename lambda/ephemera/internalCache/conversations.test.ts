@@ -1,9 +1,12 @@
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import {
     CONVERSATION_PAYLOAD_STUB,
+    createConversationCompositeReadHandleStub,
     type StorableConversationRecord,
 } from '../conversations/conversationTypes'
 import ConversationsData from './conversations'
+
+const compositeReadStub = createConversationCompositeReadHandleStub()
 
 const testRoomId = 'ROOM#test-room' as EphemeraRoomId
 
@@ -24,7 +27,7 @@ describe('ConversationsData', () => {
         const id = 'conv-001'
         const record = makeRecord(id)
         cache.set(record)
-        expect(cache.get(id)).toEqual(record)
+        expect(cache.get(id)).toEqual({ record, handle: compositeReadStub })
     })
 
     it('get returns undefined for unknown id', () => {
@@ -42,7 +45,7 @@ describe('ConversationsData', () => {
         }
         cache.set(first)
         cache.set(second)
-        expect(cache.get(id)).toEqual(second)
+        expect(cache.get(id)).toEqual({ record: second, handle: compositeReadStub })
     })
 
     it('delete removes a record', () => {

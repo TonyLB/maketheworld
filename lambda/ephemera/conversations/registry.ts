@@ -26,7 +26,7 @@ export const registerConversation = async (
         if (!validate(requestedConversationId)) {
             throw new Error('Conversation id must be a valid UUID')
         }
-        if (internalCache.Conversations.get(requestedConversationId)) {
+        if (internalCache.Conversations.get(requestedConversationId) !== undefined) {
             throw new Error('Conversation id already registered')
         }
         conversationId = requestedConversationId
@@ -50,7 +50,7 @@ export const registerConversation = async (
 export const getStorableConversationRecord = async (
     conversationId: ConversationId
 ): Promise<StorableConversationRecord | undefined> => {
-    return Promise.resolve(internalCache.Conversations.get(conversationId))
+    return Promise.resolve(internalCache.Conversations.get(conversationId)?.record)
 }
 
 export const deleteConversationRecord = async (conversationId: ConversationId): Promise<boolean> => {
@@ -64,7 +64,7 @@ export const getConversationHandle = async (
     conversationId: ConversationId,
     deps: ConversationMaterializeDeps = { messageBus }
 ): Promise<ConversationHandle | undefined> => {
-    const record = internalCache.Conversations.get(conversationId)
+    const record = internalCache.Conversations.get(conversationId)?.record
     if (record === undefined) {
         return Promise.resolve(undefined)
     }
