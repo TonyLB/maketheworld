@@ -393,6 +393,7 @@ This document is part of the project's comprehensive documentation system:
 - **[Main Project Documentation](AGENT.md)**: Complete project overview, architecture guides, and navigation to all system documentation
 - **[Architectural Philosophy](AGENT.architecture.philosophy.md)**: Core principles driving this migration work
 - **[Event Architecture](AGENT.architecture.events.md)**: Technical details of current event flows being migrated
+- **[Plan Mode prep](AGENT.planModePrep.process.md)** and **[prep artifact schema](AGENT.planModePrep.schema.md)**: Workflow to prepare planning before Plan Mode, and the matching structure for `AGENT.planning.prep.md`
 
 ---
 
