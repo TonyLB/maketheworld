@@ -6,10 +6,9 @@ import {
     type ConversationsCompositeGetResult,
     type StorableConversationRecord,
 } from '../conversations/conversationTypes'
-import {
-    materializeConversationHandle,
-    type ConversationMaterializeDeps,
-} from '../conversations/materializeConversationHandle'
+import { materializeGenerateRoomPreview } from '../conversations/conversationTypes/generateRoomPreview'
+import type { MessageBus } from '../messageBus/baseClasses'
+import CacheGlobalData from './global'
 
 /**
  * Invocation-scoped conversation rows. Cleared with InternalCache.clear().
@@ -22,7 +21,10 @@ import {
 export class ConversationsData extends CacheBase {
     private readonly byId = new Map<ConversationId, StorableConversationRecord>()
 
-    constructor(private readonly materializeDeps: ConversationMaterializeDeps) {
+    constructor(
+        private readonly globals: CacheGlobalData,
+        private readonly messageBus: MessageBus
+    ) {
         super()
     }
 
@@ -32,7 +34,10 @@ export class ConversationsData extends CacheBase {
             return undefined
         }
         if (record.type === CONVERSATION_TYPE_GENERATE_ROOM_PREVIEW) {
-            const live = materializeConversationHandle(record, this.materializeDeps)
+            const live = materializeGenerateRoomPreview(record, {
+                messageBus: this.messageBus,
+                getConnectionId: () => this.globals.get('ConnectionId'),
+            })
             return {
                 record,
                 handle: {

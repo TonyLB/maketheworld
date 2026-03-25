@@ -6,16 +6,16 @@
 
 **`internalCache.Conversations.get`** is a **runtime composite read**: `{ record, handle } | undefined`. **`record`** is that same storable row. **`handle`** is a discriminated union on **`kind`** (see [`conversationTypes/compositeRead.ts`](conversationTypes/compositeRead.ts)):
 
-- **`generateRoomPreview`** rows: **`kind: 'conversationCompositeReadGenerateRoomPreview'`** with a real **`sendMessage`** — same wire behavior as materialization via [`materializeConversationHandle.ts`](materializeConversationHandle.ts) (single envelope path; deps wired from [`InternalCache`](../internalCache/index.ts)).
+- **`generateRoomPreview`** rows: **`kind: 'conversationCompositeReadGenerateRoomPreview'`** with a real **`sendMessage`** — same wire behavior as `materializeGenerateRoomPreview` (see [`conversationTypes/generateRoomPreview/materialize.ts`](conversationTypes/generateRoomPreview/materialize.ts)).
 - **Other `type` values** (until enriched): **`kind: 'conversationCompositeReadStub'`** — no `sendMessage`.
 
 Use **`isConversationCompositeReadHandleGenerateRoomPreview`** / **`isConversationCompositeReadHandleStub`** before calling **`sendMessage`**.
 
-**`getConversationHandle`** still **materializes** from **`record`** and **does not** read the cache **`handle`** field yet; that duplicates closure work until call sites migrate (see `AGENT.sendMessage.planning.prep.md` / task list). Prefer composite **`get`** + guards when you already have the cache read.
+There is no separate `getConversationHandle` helper layer anymore for this vertical; for enriched rows, the runtime `sendMessage` capability is returned directly on the composite `internalCache.Conversations.get(...).handle`.
 
-**Live handles** (`ConversationHandle`, e.g. `ConversationHandleGenerateRoomPreview`) are the **same discriminated union** at the **`type`** tag, plus **runtime-only** fields such as **`sendMessage`**. These are **not** persisted. They are built **on read** by [`materializeConversationHandle.ts`](materializeConversationHandle.ts), which closes over **`MessageBus`**, **`getConnectionId`** (for WebSocket outbound routing), and any other process-local dependencies passed as [`ConversationMaterializeDeps`](materializeConversationHandle.ts).
+**Live handles** (`ConversationHandle`, e.g. `ConversationHandleGenerateRoomPreview`) are the **same discriminated union** at the **`type`** tag, plus **runtime-only** fields such as **`sendMessage`**. These are **not** persisted. They are built **on read** by [`internalCache/conversations.ts`](../internalCache/conversations.ts) using cached dependencies from the cache instance.
 
-Use `getStorableConversationRecord` when you only need the data; use **`Conversations.get`** + **`handle`** guards when you want the enriched read in one step; use `getConversationHandle` when you need the full **`ConversationHandle`** shape from **`record`** only (legacy path until refactors land).
+Use `internalCache.Conversations.get(conversationId)?.record` when you only need the data; use `internalCache.Conversations.get(conversationId)?.handle` + guards when you want the enriched read in one step.
 
 ## Preview API result types
 
@@ -35,14 +35,14 @@ A single top-level **`type`** field identifies the variant. Narrowing on **`type
 2. Extend **`StorableConversationRecord`** with `| StorableConversationRecord...`.
 3. Add a **handle** type (storable branch + `sendMessage` with the right args).
 4. Extend **`ConversationHandle`**.
-5. Add a **`case`** in **`materializeConversationHandle`** (and optional `assertNever` in `default` when the union grows).
+5. Add a **`case`** in [`internalCache/conversations.ts`](../internalCache/conversations.ts) (and optional `assertNever` in `default` when the union grows).
 6. Register/get tests and materialization tests for the new branch.
 
 Persisted storage always uses **storable** types only.
 
 ## Streaming / progress (planned)
 
-The WebSocket **`generateRoomPreview`** path in [`app.ts`](../app.ts) uses **`registerConversation`**, **`generateRoomPreview`**, then **`getConversationHandle`** **`sendMessage`** (single **`ReturnValue`** completion). **Multi-stage** delivery (server-driven **Generating** plus final result) is specified in [AGENT.planning.md](AGENT.planning.md) (**Multi-stage WebSocket delivery and coordination trap**), task list **section 4**, and the client [lifeLine AGENT.md](../../../charcoal-client/src/slices/lifeLine/AGENT.md) (**`socketDispatchConversation`**).
+The WebSocket **`generateRoomPreview`** path in [`app.ts`](../app.ts) uses **`registerConversation`**, **`generateRoomPreview`**, then reads **`internalCache.Conversations.get(conversationId).handle`** and calls **`sendMessage`** (single **`ReturnValue`** completion). **Multi-stage** delivery (server-driven **Generating** plus final result) is specified in [AGENT.planning.md](AGENT.planning.md) (**Multi-stage WebSocket delivery and coordination trap**), task list **section 4**, and the client [lifeLine AGENT.md](../../../charcoal-client/src/slices/lifeLine/AGENT.md) (**`socketDispatchConversation`**).
 
 ## Design reference
 

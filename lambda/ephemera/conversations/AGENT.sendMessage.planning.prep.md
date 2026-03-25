@@ -38,7 +38,6 @@ Sourced only from explicit statements in `AGENT.sendMessage.planning.md` (not fr
 | `lambda/ephemera/conversations/registry.ts` | `get` for duplicate / `?.record`; `getConversationHandle` still materializes from `record` only (ignores cache `handle`); default deps include `getConnectionId`. | Unchanged task 2 behavior; task 3+ may switch callers to composite `get`. |
 | `lambda/ephemera/internalCache/conversations.test.ts` | Round-trip shape, `apiClient` mock, `sendMessage` parity vs materialized `ConversationStep` payloads. | Shipped task 2. |
 | `lambda/ephemera/conversations/registry.test.ts` | Registry + `getConversationHandle` + `sendMessage`. | Shipped; regression for task 2. |
-| `lambda/ephemera/conversations/materializeConversationHandle.ts` | Dispatch + `ConversationMaterializeDeps` (`messageBus`, `getConnectionId`). | Shared by registry and composite `get`. |
 | `lambda/ephemera/conversations/conversationTypes/generateRoomPreview/materialize.ts` | Wire `sendMessage`; no `internalCache` import (deps-injected `getConnectionId`). | Shipped Pass 7 + task 2 consumer. |
 | `lambda/ephemera/conversations/conversationTypes/handle.ts` | Live `ConversationHandle` union (generateRoomPreview today). | Distinct from composite read handle shape. |
 | `lambda/ephemera/conversations/AGENT.md` | `handle.kind`, guards, composite `get` vs `getConversationHandle` coexistence. | Shipped task 2. |
@@ -89,7 +88,7 @@ Parked Issue IDs (only) should use stable, origin-anchored semantic slugs rather
 - Decision: Registry uses an explicit adapter pattern on composite `get`: read **`record`** for storable semantics and duplicate checks; materialize handles from **`record`** as today.
 - Origin: REQUESTED (human CONSULT)
 - Supersedes: (none)
-- Rationale: Keeps `getStorableConversationRecord` JSON-safe contract and correct truthy checks.
+- Rationale: Keeps JSON-safe storable row reads via composite `internalCache.Conversations.get` and correct truthy checks.
 - Implications: All `internalCache.Conversations.get` uses in `registry.ts` must use composite shape consistently.
 
 ### [DECISION-docs-bundle-implementation-pr]
@@ -114,7 +113,7 @@ Parked Issue IDs (only) should use stable, origin-anchored semantic slugs rather
 - Origin: REQUESTED (human CONSULT, resolves `ISSUE-task2-module-graph`).
 - Supersedes: (none)
 - Rationale: Breaks the load-time cycle risk between `internalCache` construction and conversation materialization; enables `internalCache/conversations.ts` to import materialization in task 2 without pulling materializers back into the cache module graph.
-- Implications: Shipped in code (`generateRoomPreview/materialize.ts`, `materializeConversationHandle.ts`, `registry.ts`, `app.ts`, tests, `AGENT.md`).
+- Implications: Shipped in code (`generateRoomPreview/materialize.ts`, `registry.ts`, `app.ts`, tests, `AGENT.md`).
 
 ### [DECISION-composite-handle-kind-discriminant]
 

@@ -40,10 +40,7 @@ const graphDBHandler: GraphDBHandler = new (withPrimitives<'PrimaryKey', string>
 export class InternalCache {
     Global: CacheGlobalData = new CacheGlobalData()
     PreviewGenerationRequests: PreviewGenerationRequestsData = new PreviewGenerationRequestsData()
-    Conversations: ConversationsData = new ConversationsData({
-        messageBus,
-        getConnectionId: () => this.Global.get('ConnectionId'),
-    })
+    Conversations: ConversationsData = new ConversationsData(this.Global, messageBus)
     RenderCache: RenderCacheData = new RenderCacheData(queryCacheRecordsForComponent)
     PlayerMeta: CachePlayerMetaData;
     OrchestrateMessages: OrchestrateMessagesData = new OrchestrateMessagesData()

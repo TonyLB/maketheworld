@@ -1,9 +1,6 @@
 import { validate, v4 as uuidv4 } from 'uuid'
 import internalCache from '../internalCache'
-import messageBus from '../messageBus'
 import type { ConversationId, StorableConversationRecord } from './conversationTypes'
-import type { ConversationHandle } from './conversationTypes/handle'
-import { materializeConversationHandle, type ConversationMaterializeDeps } from './materializeConversationHandle'
 
 /** Input for `registerConversation`: storable fields plus optional caller-supplied `conversationId`. */
 export type RegisterConversationInput = Omit<StorableConversationRecord, 'conversationId'> & {
@@ -43,33 +40,6 @@ export const registerConversation = async (
     return Promise.resolve(conversationId)
 }
 
-/**
- * Async facade over internalCache.Conversations (v1 is in-memory; signatures stay Dynamo-ready).
- * Returns JSON-safe rows only.
- */
-export const getStorableConversationRecord = async (
-    conversationId: ConversationId
-): Promise<StorableConversationRecord | undefined> => {
-    return Promise.resolve(internalCache.Conversations.get(conversationId)?.record)
-}
-
 export const deleteConversationRecord = async (conversationId: ConversationId): Promise<boolean> => {
     return Promise.resolve(internalCache.Conversations.delete(conversationId))
-}
-
-/**
- * Storable row plus materialized `sendMessage` (and future runtime methods). Not persisted.
- */
-export const getConversationHandle = async (
-    conversationId: ConversationId,
-    deps: ConversationMaterializeDeps = {
-        messageBus,
-        getConnectionId: () => internalCache.Global.get('ConnectionId'),
-    }
-): Promise<ConversationHandle | undefined> => {
-    const record = internalCache.Conversations.get(conversationId)?.record
-    if (record === undefined) {
-        return Promise.resolve(undefined)
-    }
-    return Promise.resolve(materializeConversationHandle(record, deps))
 }

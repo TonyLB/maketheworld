@@ -102,7 +102,6 @@ Required guardrails for this choice:
 
 - `lambda/ephemera/internalCache/conversations.ts`
 - `lambda/ephemera/conversations/registry.ts`
-- `lambda/ephemera/conversations/materializeConversationHandle.ts`
 - `lambda/ephemera/conversations/conversationTypes/generateRoomPreview/materialize.ts`
 - `lambda/ephemera/renderOrchestration/generateRoomPreview.ts`
 - `lambda/ephemera/conversations/AGENT.planning.md`

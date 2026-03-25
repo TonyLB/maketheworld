@@ -48,10 +48,10 @@
 
 **Goal:** Apply the same boundary change consistently across other conversation calling patterns.
 
-- [ ] Inventory remaining conversation read/send call paths still using prior layering.
-- [ ] Migrate paths incrementally to composite `get` and enriched handle usage.
-- [ ] Update each affected test suite to the new mocking and assertion boundary.
-- [ ] Track any path-specific exceptions; document why they remain if not migrated immediately.
+- [x] Inventory remaining conversation read/send call paths still using prior layering.
+- [x] Migrate paths incrementally to composite `get` and enriched handle usage.
+- [x] Update each affected test suite to the new mocking and assertion boundary.
+- [x] Track any path-specific exceptions; document why they remain if not migrated immediately.
 
 ---
 
@@ -81,5 +81,4 @@
 - `lambda/ephemera/conversations/AGENT.planning.tasklist.md`
 - `lambda/ephemera/internalCache/conversations.ts`
 - `lambda/ephemera/conversations/registry.ts`
-- `lambda/ephemera/conversations/materializeConversationHandle.ts`
 - `lambda/ephemera/conversations/conversationTypes/generateRoomPreview/materialize.ts`

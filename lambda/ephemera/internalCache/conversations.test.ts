@@ -6,7 +6,6 @@ import {
     isConversationCompositeReadHandleGenerateRoomPreview,
     type StorableConversationRecord,
 } from '../conversations/conversationTypes'
-import type { ConversationMaterializeDeps } from '../conversations/materializeConversationHandle'
 import ConversationsData from './conversations'
 
 jest.mock('@tonylb/mtw-utilities/ts/apiManagement/apiManagementClient', () => ({
@@ -28,9 +27,8 @@ const makeRecord = (conversationId: string): StorableConversationRecord => ({
     payload: CONVERSATION_PAYLOAD_STUB,
 })
 
-const makeDeps = (send: jest.Mock): ConversationMaterializeDeps => ({
-    messageBus: { send } as unknown as MessageBus,
-    getConnectionId: async () => 'connection-1',
+const makeGlobals = () => ({
+    get: async (_key: any) => 'connection-1',
 })
 
 describe('ConversationsData', () => {
@@ -40,7 +38,10 @@ describe('ConversationsData', () => {
 
     it('set and get round-trip returns live composite handle for generateRoomPreview', () => {
         const send = jest.fn()
-        const cache = new ConversationsData(makeDeps(send))
+        const cache = new ConversationsData(
+            makeGlobals() as unknown as any,
+            { send } as unknown as MessageBus
+        )
         const id = 'conv-001'
         const record = makeRecord(id)
         cache.set(record)
@@ -57,13 +58,19 @@ describe('ConversationsData', () => {
 
     it('get returns undefined for unknown id', () => {
         const send = jest.fn()
-        const cache = new ConversationsData(makeDeps(send))
+        const cache = new ConversationsData(
+            makeGlobals() as unknown as any,
+            { send } as unknown as MessageBus
+        )
         expect(cache.get('missing')).toBeUndefined()
     })
 
     it('set replaces existing record', () => {
         const send = jest.fn()
-        const cache = new ConversationsData(makeDeps(send))
+        const cache = new ConversationsData(
+            makeGlobals() as unknown as any,
+            { send } as unknown as MessageBus
+        )
         const id = 'conv-002'
         const first = makeRecord(id)
         const second: StorableConversationRecord = {
@@ -83,7 +90,10 @@ describe('ConversationsData', () => {
 
     it('delete removes a record', () => {
         const send = jest.fn()
-        const cache = new ConversationsData(makeDeps(send))
+        const cache = new ConversationsData(
+            makeGlobals() as unknown as any,
+            { send } as unknown as MessageBus
+        )
         const id = 'conv-003'
         cache.set(makeRecord(id))
         expect(cache.delete(id)).toBe(true)
@@ -92,13 +102,19 @@ describe('ConversationsData', () => {
 
     it('delete returns false for unknown id', () => {
         const send = jest.fn()
-        const cache = new ConversationsData(makeDeps(send))
+        const cache = new ConversationsData(
+            makeGlobals() as unknown as any,
+            { send } as unknown as MessageBus
+        )
         expect(cache.delete('nope')).toBe(false)
     })
 
     it('clear removes all records', () => {
         const send = jest.fn()
-        const cache = new ConversationsData(makeDeps(send))
+        const cache = new ConversationsData(
+            makeGlobals() as unknown as any,
+            { send } as unknown as MessageBus
+        )
         cache.set(makeRecord('a'))
         cache.set(makeRecord('b'))
         cache.clear()
@@ -108,7 +124,10 @@ describe('ConversationsData', () => {
 
     it('composite handle sendMessage emits ConversationStep generating with RequestId', async () => {
         const send = jest.fn()
-        const cache = new ConversationsData(makeDeps(send))
+        const cache = new ConversationsData(
+            makeGlobals() as unknown as any,
+            { send } as unknown as MessageBus
+        )
         const id = 'conv-004'
         cache.set(makeRecord(id))
         const got = cache.get(id)
@@ -135,7 +154,10 @@ describe('ConversationsData', () => {
 
     it('composite handle sendMessage emits ConversationStep complete with generateRoomPreview and RequestId', async () => {
         const send = jest.fn()
-        const cache = new ConversationsData(makeDeps(send))
+        const cache = new ConversationsData(
+            makeGlobals() as unknown as any,
+            { send } as unknown as MessageBus
+        )
         const id = 'conv-005'
         cache.set(makeRecord(id))
         const got = cache.get(id)!
@@ -164,7 +186,10 @@ describe('ConversationsData', () => {
 
     it('composite handle sendMessage omits RequestId when routing has no requestId', async () => {
         const send = jest.fn()
-        const cache = new ConversationsData(makeDeps(send))
+        const cache = new ConversationsData(
+            makeGlobals() as unknown as any,
+            { send } as unknown as MessageBus
+        )
         const id = 'conv-006'
         const record: StorableConversationRecord = {
             conversationId: id,
