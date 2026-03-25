@@ -8,6 +8,8 @@ import type { ConversationHandle } from './conversationTypes/handle'
 
 export type ConversationMaterializeDeps = {
     messageBus: MessageBus
+    /** Supplies the active WebSocket connection id for outbound `ConversationStep` frames. */
+    getConnectionId: () => Promise<string | undefined>
 }
 
 export function materializeConversationHandle(

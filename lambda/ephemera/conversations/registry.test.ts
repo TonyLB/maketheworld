@@ -105,7 +105,10 @@ describe('conversations registry', () => {
         })
 
         internalCache.Global.set({ key: 'ConnectionId', value: 'connection-1' })
-        const handle = await getConversationHandle(id, { messageBus: { send: jest.fn() } as never })
+        const handle = await getConversationHandle(id, {
+            messageBus: { send: jest.fn() } as never,
+            getConnectionId: async () => 'connection-1',
+        })
         expect(handle).toBeDefined()
         if (!handle) {
             throw new Error('expected handle')

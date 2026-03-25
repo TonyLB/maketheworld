@@ -15,10 +15,16 @@ export {
 } from './generateRoomPreview'
 export type { ConversationHandle } from './handle'
 export type {
+    ConversationCompositeReadHandle,
+    ConversationCompositeReadHandleGenerateRoomPreview,
     ConversationCompositeReadHandleStub,
     ConversationsCompositeGetResult,
 } from './compositeRead'
-export { createConversationCompositeReadHandleStub } from './compositeRead'
+export {
+    createConversationCompositeReadHandleStub,
+    isConversationCompositeReadHandleGenerateRoomPreview,
+    isConversationCompositeReadHandleStub,
+} from './compositeRead'
 
 import type { StorableConversationRecord } from './generateRoomPreview'
 

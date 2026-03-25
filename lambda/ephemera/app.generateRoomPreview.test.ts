@@ -127,7 +127,13 @@ describe('app handler - generateRoomPreview', () => {
             })
         )
 
-        expect(getConversationHandleMock).toHaveBeenCalledWith('conv-test-id', { messageBus })
+        expect(getConversationHandleMock).toHaveBeenCalledWith(
+            'conv-test-id',
+            expect.objectContaining({
+                messageBus,
+                getConnectionId: expect.any(Function),
+            })
+        )
 
         expect(handleSendMessageMock).toHaveBeenCalledTimes(2)
         expect(handleSendMessageMock.mock.calls[0]?.[0]).toBe('generating')

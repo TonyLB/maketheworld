@@ -252,7 +252,10 @@ export const handler = async (event: any, context: any) => {
                     },
                     payload: CONVERSATION_PAYLOAD_STUB,
                 })
-                const handle = await getConversationHandle(conversationId, { messageBus })
+                const handle = await getConversationHandle(conversationId, {
+                    messageBus,
+                    getConnectionId: () => internalCache.Global.get('ConnectionId'),
+                })
                 if (handle === undefined) {
                     console.error('getConversationHandle: missing conversation after registerConversation', {
                         conversationId,

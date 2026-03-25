@@ -4,19 +4,12 @@ import {
     CONVERSATION_TYPE_GENERATE_ROOM_PREVIEW,
     type StorableConversationRecordGenerateRoomPreview,
 } from './conversationTypes/generateRoomPreview'
-import { materializeConversationHandle } from './materializeConversationHandle'
+import {
+    materializeConversationHandle,
+    type ConversationMaterializeDeps,
+} from './materializeConversationHandle'
 
-import internalCache from '../internalCache'
 import { apiClient } from '@tonylb/mtw-utilities/ts/apiManagement/apiManagementClient'
-
-jest.mock('../internalCache', () => ({
-    __esModule: true,
-    default: {
-        Global: {
-            get: jest.fn(),
-        },
-    },
-}))
 
 jest.mock('@tonylb/mtw-utilities/ts/apiManagement/apiManagementClient', () => ({
     apiClient: {
@@ -36,15 +29,18 @@ describe('materializeConversationHandle', () => {
         payload: CONVERSATION_PAYLOAD_STUB,
     })
 
+    const makeDeps = (send: jest.Mock): ConversationMaterializeDeps => ({
+        messageBus: { send } as unknown as MessageBus,
+        getConnectionId: async () => 'connection-1',
+    })
+
     beforeEach(() => {
         jest.clearAllMocks()
     })
 
     it('sendMessage emits ConversationStep generating with RequestId', async () => {
         const send = jest.fn()
-        ;(internalCache.Global.get as jest.Mock).mockResolvedValue('connection-1')
-        const messageBus = { send } as unknown as MessageBus
-        const handle = materializeConversationHandle(makeRecord(), { messageBus })
+        const handle = materializeConversationHandle(makeRecord(), makeDeps(send))
 
         await handle.sendMessage('generating')
 
@@ -64,9 +60,7 @@ describe('materializeConversationHandle', () => {
 
     it('sendMessage emits ConversationStep complete with generateRoomPreview and RequestId', async () => {
         const send = jest.fn()
-        ;(internalCache.Global.get as jest.Mock).mockResolvedValue('connection-1')
-        const messageBus = { send } as unknown as MessageBus
-        const handle = materializeConversationHandle(makeRecord(), { messageBus })
+        const handle = materializeConversationHandle(makeRecord(), makeDeps(send))
 
         await handle.sendMessage({
             success: true,
@@ -90,11 +84,9 @@ describe('materializeConversationHandle', () => {
 
     it('omits RequestId when routing has no requestId', async () => {
         const send = jest.fn()
-        ;(internalCache.Global.get as jest.Mock).mockResolvedValue('connection-1')
-        const messageBus = { send } as unknown as MessageBus
         const record = makeRecord()
         record.routing = { roomId: 'ROOM#r1', perspectiveId: 'P#1' }
-        const handle = materializeConversationHandle(record, { messageBus })
+        const handle = materializeConversationHandle(record, makeDeps(send))
 
         await handle.sendMessage({ success: false, errorCode: 'CONTEXT_REQUIRED', errorMessage: 'need context' })
 

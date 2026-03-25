@@ -25,11 +25,11 @@
 
 **Goal:** Pick one pipeline and prove end-to-end that runtime `handle.sendMessage` can replace post-read layering for that path.
 
-- [ ] Choose one prototype vertical (expected first candidate: `generateRoomPreview`).
-- [ ] Trace existing post-read chain (registry/materialize/sendMessage nesting) for that vertical and capture what logic must move into handle enrichment.
-- [ ] Update composite `get` enrichment so returned `handle.sendMessage` contains the previously nested materialization behavior for the chosen vertical.
-- [ ] Keep wire-envelope invariants intact (`ConversationStep` shape, `conversationId`, optional `RequestId`, slow-path `generating` rules).
-- [ ] Add/adjust tests for this vertical proving behavior parity (or intentional behavior changes if documented).
+- [x] Choose one prototype vertical (expected first candidate: `generateRoomPreview`).
+- [x] Trace existing post-read chain (registry/materialize/sendMessage nesting) for that vertical and capture what logic must move into handle enrichment (see `AGENT.sendMessage.planning.prep.md` B4).
+- [x] Update composite `get` enrichment so returned `handle.sendMessage` contains the previously nested materialization behavior for the chosen vertical.
+- [x] Keep wire-envelope invariants intact (`ConversationStep` shape, `conversationId`, optional `RequestId`, slow-path `generating` rules).
+- [x] Add/adjust tests for this vertical proving behavior parity (or intentional behavior changes if documented).
 
 ---
 

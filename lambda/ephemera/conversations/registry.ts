@@ -62,7 +62,10 @@ export const deleteConversationRecord = async (conversationId: ConversationId): 
  */
 export const getConversationHandle = async (
     conversationId: ConversationId,
-    deps: ConversationMaterializeDeps = { messageBus }
+    deps: ConversationMaterializeDeps = {
+        messageBus,
+        getConnectionId: () => internalCache.Global.get('ConnectionId'),
+    }
 ): Promise<ConversationHandle | undefined> => {
     const record = internalCache.Conversations.get(conversationId)?.record
     if (record === undefined) {
