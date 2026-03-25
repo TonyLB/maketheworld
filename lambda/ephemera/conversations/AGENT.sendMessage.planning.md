@@ -17,10 +17,10 @@ In particular, Option C should be evaluated on current needs rather than on pres
 For `generateRoomPreview` conversations:
 
 1. `internalCache.Conversations` stores JSON-safe records only (`StorableConversationRecord`).
-2. `registry.getConversationHandle(conversationId, deps)` reads the storable row from `internalCache.Conversations.get(...)`.
-3. `materializeConversationHandle(...)` converts that storable row into a runtime handle with `sendMessage(...)`.
+2. `internalCache.Conversations.get(conversationId)` is a composite runtime read that returns `{ record, handle }`.
+3. For `generateRoomPreview` rows, `handle` is a live capability built via `materializeGenerateRoomPreview(record, deps)` and exposes `sendMessage(...)`.
 4. `materializeGenerateRoomPreview.sendMessage(...)` enriches local simplified args into shared `ConversationStep` wire shape and sends via `apiClient.send`.
-5. `renderOrchestration/generateRoomPreview` does not call the conversation system directly; it receives `onGenerating` callback as an injected option.
+5. `renderOrchestration/generateRoomPreview` does not call the conversation system directly; it receives `onGenerating` callback as an injected option (and the caller invokes terminal `handle.sendMessage(...)` after orchestration returns).
 
 ### Why this worked for MVP
 
@@ -32,9 +32,8 @@ For `generateRoomPreview` conversations:
 
 The current calling path for conversation sending is layered:
 
-- `internalCache.Conversations.get` -> storable row only
-- `registry.getConversationHandle` -> runtime handle
-- `materialize...` -> `sendMessage` enrichment and transport
+- `internalCache.Conversations.get` -> composite `{ record, handle }`
+- `materializeGenerateRoomPreview...` -> `sendMessage` enrichment and transport
 
 This differs from the established project intuition where many functions treat `internalCache` as a global programming environment primitive and mock it directly in tests.
 
