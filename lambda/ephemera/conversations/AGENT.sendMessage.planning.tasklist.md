@@ -37,10 +37,10 @@
 
 **Goal:** Replace the previous involved calling pattern in the chosen vertical with direct use of the enriched handle returned from `Conversations.get`.
 
-- [ ] Refactor vertical call-sites to use composite `get` and `handle.sendMessage` directly.
-- [ ] Remove or bypass now-redundant intermediate access patterns for this vertical.
-- [ ] Rework unit-test mocking strategy to match the new primitive boundary (mock composite cache read/handle rather than old helper chain where appropriate).
-- [ ] Confirm this refactor keeps orchestration behavior and error handling aligned with current expectations.
+- [x] Refactor vertical call-sites to use composite `get` and `handle.sendMessage` directly.
+- [x] Remove or bypass now-redundant intermediate access patterns for this vertical.
+- [x] Rework unit-test mocking strategy to match the new primitive boundary (mock composite cache read/handle rather than old helper chain where appropriate).
+- [x] Confirm this refactor keeps orchestration behavior and error handling aligned with current expectations.
 
 ---
 

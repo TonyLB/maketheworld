@@ -39,9 +39,9 @@ import { generateRoomPreview } from './renderOrchestration/generateRoomPreview'
 import {
     CONVERSATION_PAYLOAD_STUB,
     CONVERSATION_TYPE_GENERATE_ROOM_PREVIEW,
-    getConversationHandle,
     registerConversation,
 } from './conversations'
+import { isConversationCompositeReadHandleGenerateRoomPreview } from './conversations/conversationTypes'
 
 // Import DataSources to trigger their messageBus subscriptions (side-effect imports)
 import './dataSource'  // mtw.ephemera DataSource
@@ -252,13 +252,18 @@ export const handler = async (event: any, context: any) => {
                     },
                     payload: CONVERSATION_PAYLOAD_STUB,
                 })
-                const handle = await getConversationHandle(conversationId, {
-                    messageBus,
-                    getConnectionId: () => internalCache.Global.get('ConnectionId'),
-                })
+                const composite = internalCache.Conversations.get(conversationId)
+                const rawHandle = composite?.handle
+                const handle =
+                    rawHandle !== undefined && isConversationCompositeReadHandleGenerateRoomPreview(rawHandle)
+                        ? rawHandle
+                        : undefined
+
                 if (handle === undefined) {
-                    console.error('getConversationHandle: missing conversation after registerConversation', {
+                    console.error('Conversations.get: missing or non-generateRoomPreview handle after registerConversation', {
                         conversationId,
+                        compositeFound: composite !== undefined,
+                        compositeHandleKind: rawHandle?.kind,
                     })
                 }
                 const result = await generateRoomPreview(
