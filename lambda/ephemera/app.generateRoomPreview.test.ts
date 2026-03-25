@@ -1,11 +1,9 @@
 import { handler } from './app'
 import { generateRoomPreview } from './renderOrchestration/generateRoomPreview'
-import messageBus from './messageBus'
 import internalCache from './internalCache'
 import { computePerspectiveKey } from '@tonylb/mtw-interfaces/ts/perspective'
 import {
     CONVERSATION_TYPE_GENERATE_ROOM_PREVIEW,
-    getConversationHandle,
     registerConversation,
 } from './conversations'
 
@@ -27,6 +25,9 @@ jest.mock('./internalCache', () => ({
         Global: {
             set: jest.fn(),
         },
+        Conversations: {
+            get: jest.fn(),
+        },
     },
 }))
 jest.mock('./returnValue', () => ({
@@ -41,12 +42,10 @@ jest.mock('./conversations', () => {
     return {
         ...actual,
         registerConversation: jest.fn(),
-        getConversationHandle: jest.fn(),
     }
 })
 
 const registerConversationMock = registerConversation as jest.MockedFunction<typeof registerConversation>
-const getConversationHandleMock = getConversationHandle as jest.MockedFunction<typeof getConversationHandle>
 
 describe('app handler - generateRoomPreview', () => {
     const connectionId = 'connection-123'
@@ -64,17 +63,15 @@ describe('app handler - generateRoomPreview', () => {
         jest.clearAllMocks()
         handleSendMessageMock = jest.fn().mockResolvedValue(undefined)
         registerConversationMock.mockResolvedValue('conv-test-id')
-        let capturedRequestId: string | undefined
-        registerConversationMock.mockImplementation(async (input) => {
-            capturedRequestId = input.routing.requestId
-            return 'conv-test-id'
-        })
-        getConversationHandleMock.mockImplementation(async (_id, deps) => {
-            const mb = deps!.messageBus
-            return {
+
+        const conversationsGetMock = internalCache.Conversations.get as unknown as jest.Mock
+        conversationsGetMock.mockImplementation((_id) => ({
+            record: {} as never,
+            handle: {
+                kind: 'conversationCompositeReadGenerateRoomPreview',
                 sendMessage: handleSendMessageMock,
-            } as unknown as Awaited<ReturnType<typeof getConversationHandle>>
-        })
+            },
+        }))
     })
 
     it('registers conversation, calls generateRoomPreview with onGenerating, and sends generating then terminal step', async () => {
@@ -127,7 +124,8 @@ describe('app handler - generateRoomPreview', () => {
             })
         )
 
-        expect(getConversationHandleMock).toHaveBeenCalledWith('conv-test-id', { messageBus })
+        const conversationsGetMock = internalCache.Conversations.get as unknown as jest.Mock
+        expect(conversationsGetMock).toHaveBeenCalledWith('conv-test-id')
 
         expect(handleSendMessageMock).toHaveBeenCalledTimes(2)
         expect(handleSendMessageMock.mock.calls[0]?.[0]).toBe('generating')

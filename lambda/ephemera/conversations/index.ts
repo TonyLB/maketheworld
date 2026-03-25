@@ -17,11 +17,7 @@ export {
     isStorableConversationRecordGenerateRoomPreview,
 } from './conversationTypes'
 export type { RegisterConversationInput } from './registry'
-export type { ConversationMaterializeDeps } from './materializeConversationHandle'
-export { materializeConversationHandle } from './materializeConversationHandle'
 export {
     registerConversation,
-    getStorableConversationRecord,
-    getConversationHandle,
     deleteConversationRecord,
 } from './registry'

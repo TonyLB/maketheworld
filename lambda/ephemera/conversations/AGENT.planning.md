@@ -145,6 +145,19 @@ For bus-only triggers (e.g. state-driven `RenderRequested`), the publisher of `R
 
 Prefer a **discriminated** delivery envelope (`directPreview` | `roomBroadcast` | `orderedMove` | ...) with **only the fields that path needs**, over a single superset of `RenderTargetContext` + `componentId` + `perspective` + `requestId`. First consumer wiring should drive the first variant(s), not the union of all possible render paths.
 
+### Future typing direction: correlated `record` + enriched `handle`
+
+When the registry exposes a composite read API shaped like `{ record, handle }`, it is easy for types to become an "uncorrelated product": `record` narrows by `record.type`, while enriched capability narrows separately (for example via `handle.kind`).
+
+For the long-term "single storage type, less typeguard duplication" goal, prefer a **correlated discriminated union** (or envelope) where the same discriminant ties together:
+
+- the stored row variant (`record.type`), and
+- the enriched runtime capability needed at call sites (for example `handle.sendMessage` for that same `record.type`).
+
+Revisit trigger: when we have a concrete **second** conversation `type` that is enriched via composite reads, and call sites need correlated access beyond just "call `sendMessage` on the handle".
+
+Non-goal until then: removing existing stub vs live distinctions; keep them explicit so intermediate migration steps remain safe.
+
 ### API surface (brainstorm)
 
 - Prefer an **async** registry API (`get` returns `Promise<...>`) even when v1 implements with synchronous memory, so Dynamo-backed `get` does not force a second migration.

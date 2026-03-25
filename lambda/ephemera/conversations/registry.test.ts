@@ -2,19 +2,10 @@ import { v4 as uuidv4 } from 'uuid'
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import internalCache from '../internalCache'
 import { CONVERSATION_PAYLOAD_STUB } from './conversationTypes'
-import { apiClient } from '@tonylb/mtw-utilities/ts/apiManagement/apiManagementClient'
 import {
     deleteConversationRecord,
-    getConversationHandle,
-    getStorableConversationRecord,
     registerConversation,
 } from './registry'
-
-jest.mock('@tonylb/mtw-utilities/ts/apiManagement/apiManagementClient', () => ({
-    apiClient: {
-        send: jest.fn(),
-    },
-}))
 
 jest.mock('uuid', () => {
     const actual = jest.requireActual<typeof import('uuid')>('uuid')
@@ -37,7 +28,7 @@ describe('conversations registry', () => {
         uuidv4Mock.mockReturnValue('fixed-uuid-1234')
     })
 
-    it('registerConversation returns new id and getStorableConversationRecord round-trips', async () => {
+    it('registerConversation returns new id and stores a storable row', async () => {
         const id = await registerConversation({
             type: 'generateRoomPreview',
             routing: {
@@ -50,7 +41,7 @@ describe('conversations registry', () => {
         expect(id).toBe('fixed-uuid-1234')
         expect(uuidv4Mock).toHaveBeenCalledTimes(1)
 
-        const row = await getStorableConversationRecord(id)
+        const row = internalCache.Conversations.get(id)?.record
         expect(row).toEqual({
             conversationId: id,
             type: 'generateRoomPreview',
@@ -79,8 +70,8 @@ describe('conversations registry', () => {
 
         expect(a).toBe('id-a')
         expect(b).toBe('id-b')
-        expect(await getStorableConversationRecord(a)).toMatchObject({ conversationId: a, type: 'generateRoomPreview' })
-        expect(await getStorableConversationRecord(b)).toMatchObject({ conversationId: b, type: 'generateRoomPreview' })
+        expect(internalCache.Conversations.get(a)?.record).toMatchObject({ conversationId: a, type: 'generateRoomPreview' })
+        expect(internalCache.Conversations.get(b)?.record).toMatchObject({ conversationId: b, type: 'generateRoomPreview' })
     })
 
     it('deleteConversationRecord removes the row', async () => {
@@ -90,42 +81,11 @@ describe('conversations registry', () => {
             payload: CONVERSATION_PAYLOAD_STUB,
         })
         expect(await deleteConversationRecord(id)).toBe(true)
-        expect(await getStorableConversationRecord(id)).toBeUndefined()
+        expect(internalCache.Conversations.get(id)?.record).toBeUndefined()
     })
 
     it('deleteConversationRecord returns false for unknown id', async () => {
         expect(await deleteConversationRecord('unknown-id')).toBe(false)
-    })
-
-    it('getConversationHandle emits ConversationStep via apiClient', async () => {
-        const id = await registerConversation({
-            type: 'generateRoomPreview',
-            routing: { roomId, perspectiveId: 'PH', requestId: 'rid-1' },
-            payload: CONVERSATION_PAYLOAD_STUB,
-        })
-
-        internalCache.Global.set({ key: 'ConnectionId', value: 'connection-1' })
-        const handle = await getConversationHandle(id, { messageBus: { send: jest.fn() } as never })
-        expect(handle).toBeDefined()
-        if (!handle) {
-            throw new Error('expected handle')
-        }
-        expect(handle.sendMessage).toEqual(expect.any(Function))
-
-        await handle.sendMessage({ success: true, renderedContent: {} as never })
-
-        expect(apiClient.send).toHaveBeenCalledTimes(1)
-        expect(apiClient.send).toHaveBeenCalledWith({
-            ConnectionId: 'connection-1',
-            Data: JSON.stringify({
-                messageType: 'ConversationStep',
-                conversationId: id,
-                pipeline: 'generateRoomPreview',
-                step: 'complete',
-                generateRoomPreview: { success: true, renderedContent: {} },
-                RequestId: 'rid-1',
-            }),
-        })
     })
 
     it('registerConversation uses caller-supplied conversationId without calling uuidv4', async () => {
@@ -138,7 +98,7 @@ describe('conversations registry', () => {
         expect(id).toBe(CLIENT_SUPPLIED_CONVERSATION_ID)
         expect(uuidv4Mock).not.toHaveBeenCalled()
 
-        const row = await getStorableConversationRecord(id)
+        const row = internalCache.Conversations.get(id)?.record
         expect(row).toEqual({
             conversationId: CLIENT_SUPPLIED_CONVERSATION_ID,
             type: 'generateRoomPreview',
@@ -157,7 +117,7 @@ describe('conversations registry', () => {
             })
         ).rejects.toThrow('Conversation id must be a valid UUID')
 
-        expect(await getStorableConversationRecord('not-a-uuid')).toBeUndefined()
+        expect(internalCache.Conversations.get('not-a-uuid' as any)?.record).toBeUndefined()
     })
 
     it('registerConversation throws when conversationId is already registered', async () => {
@@ -177,7 +137,7 @@ describe('conversations registry', () => {
             })
         ).rejects.toThrow('Conversation id already registered')
 
-        const row = await getStorableConversationRecord(CLIENT_SUPPLIED_CONVERSATION_ID)
+        const row = internalCache.Conversations.get(CLIENT_SUPPLIED_CONVERSATION_ID as any)?.record
         expect(row?.routing).toEqual(
             expect.objectContaining({ perspectiveId: 'first' })
         )

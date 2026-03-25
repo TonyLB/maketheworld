@@ -8,6 +8,63 @@ Canonical structure for prep artifacts driven by that process. Any `AGENT.planni
 
 ---
 
+## Initialization Rules
+
+When a new prep artifact is created (INIT phase):
+
+### A. Persistent Context
+
+- **A1 Prep Scope**: Populate from known documents or problem framing
+- **A2 Standing Constraints**: Populate only from explicit constraints
+- **A3 Established Code Context**:  
+  - Leave empty unless explicitly imported from previously inspected work
+  - Must not be assumed without verification
+- **A4 Parked Issues**: Empty
+- **A5 Decisions Ledger**:  
+  - Empty unless importing pre-existing, authoritative decisions
+
+### B. Active Prep Workspace
+
+- **B0 Proposed Changes**: INTENTIONALLY BLANK — NOT YET IN PLAY
+- **B1 Cycle Scope**: Empty
+- **B2 Cycle Status**:  
+  - Phase = INIT or ASSESS  
+  - Readiness = NOT READY
+- **B3 Canonical Intent**: INTENTIONALLY BLANK — NOT YET IN PLAY
+- **B4 Code Context**: INTENTIONALLY BLANK — NOT YET IN PLAY
+- **B5 Open Issues**: INTENTIONALLY BLANK — NOT YET IN PLAY
+- **B6 Resolved Issues**: INTENTIONALLY BLANK — NOT YET IN PLAY
+- **B7 Pass History**: Optional initial entry
+
+## Task Activation Rules (ACTIVATE TASK)
+
+When starting a new task cycle:
+
+- **B1 Cycle Scope**: Populate with current task and boundaries
+- **B2 Cycle Status**:
+  - Phase = ASSESS
+  - Readiness = NOT READY
+- **B4 Code Context**:
+  - Seed relevant files as **NEEDED**, not INSPECTED
+- **B0 / B3 / B6**:
+  - Remain INTENTIONALLY BLANK unless grounded by prior cycles
+- **B5 Open Issues**:
+  - Should remain INTENTIONALLY BLANK unless material uncertainties are already explicitly known
+  - Must not be populated by inference from the task description alone
+
+## Intentional Blank States
+
+Sections must not be left implicitly empty.  
+They must explicitly declare their blank state using one of:
+
+- **INTENTIONALLY BLANK — NOT YET IN PLAY**  
+  This section is not yet applicable for the current phase.
+
+- **INTENTIONALLY BLANK — NO MATERIAL ENTRIES**  
+  This section has been evaluated and contains no material items.
+
+This prevents the agent from inferring that content is missing or incomplete.
+
 ## Structural Overview (Aligned with Process Phases)
 
 The following mapping shows the primary write targets for each phase.  
@@ -24,6 +81,14 @@ Most phases read broadly from both Persistent Context and Active Workspace, but 
 ---
 
 # A. Persistent Context (Cross-Cycle)
+
+## Invalidation Rule (Persistent Context)
+
+Entries in A-sections (especially A3 and A5) must be actively maintained.
+
+When prior context becomes incorrect:
+- It must be explicitly updated, superseded, or marked invalid
+- It must not silently persist once known to be outdated
 
 ## A1. Prep Scope
 
@@ -43,6 +108,11 @@ Most phases read broadly from both Persistent Context and Active Workspace, but 
 
 | Artifact | Why it matters | Notes |
 | -------- | -------------- | ----- |
+
+- **NEEDED** = expected to require inspection this cycle  
+- **INSPECTED** = examined during the current cycle  
+
+Previously known files must not be treated as INSPECTED without re-examination.
 
 
 ## A4. Parked Issues (Cross-Cutting)

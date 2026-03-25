@@ -27,6 +27,7 @@ import CacheGlobalData from './global';
 import { PreviewGenerationRequestsData } from './previewGenerationRequests';
 import { RenderCacheData } from './renderCache';
 import ConversationsData from './conversations';
+import messageBus from '../messageBus';
 
 const graphDBHandler: GraphDBHandler = new (withPrimitives<'PrimaryKey', string>()(withGetOperations<'PrimaryKey', string>()(DBHandlerBase)))({
     client: assetDB._client,
@@ -39,7 +40,7 @@ const graphDBHandler: GraphDBHandler = new (withPrimitives<'PrimaryKey', string>
 export class InternalCache {
     Global: CacheGlobalData = new CacheGlobalData()
     PreviewGenerationRequests: PreviewGenerationRequestsData = new PreviewGenerationRequestsData()
-    Conversations: ConversationsData = new ConversationsData()
+    Conversations: ConversationsData = new ConversationsData(this.Global, messageBus)
     RenderCache: RenderCacheData = new RenderCacheData(queryCacheRecordsForComponent)
     PlayerMeta: CachePlayerMetaData;
     OrchestrateMessages: OrchestrateMessagesData = new OrchestrateMessagesData()

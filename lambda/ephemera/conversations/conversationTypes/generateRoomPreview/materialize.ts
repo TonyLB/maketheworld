@@ -5,11 +5,12 @@ import type {
     StorableConversationRecordGenerateRoomPreview,
 } from './baseClasses'
 
-import internalCache from '../../../internalCache'
 import { apiClient } from '@tonylb/mtw-utilities/ts/apiManagement/apiManagementClient'
 
 export type MaterializeGenerateRoomPreviewDeps = {
     messageBus: MessageBus
+    /** Process-local WebSocket connection id for `apiClient.send` (was read from `internalCache.Global` before deps refactor). */
+    getConnectionId: () => Promise<string | undefined>
 }
 
 export function materializeGenerateRoomPreview(
@@ -20,7 +21,7 @@ export function materializeGenerateRoomPreview(
     void deps.messageBus
 
     const sendMessage: ConversationHandleGenerateRoomPreview['sendMessage'] = async (arg) => {
-        const ConnectionId = await internalCache.Global.get('ConnectionId')
+        const ConnectionId = await deps.getConnectionId()
 
         if (arg === 'generating') {
             const step = {
