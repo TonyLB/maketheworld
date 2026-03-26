@@ -10,6 +10,8 @@ This module exists to keep policy and multi-step lifecycle logic out of:
 
 In v2, `renderOrchestration` is implemented as a **messageBus-driven event cascade**. It publishes early feedback events (so clients can show "Generating..." immediately) and later publishes completion/ready events when a cache-backed render is available.
 
+Important: the lifecycle events are primarily motivated by presence-based delivery (via `perception`). The authoring preview wedge (`generateRoomPreview`) is intentionally direct-to-requester and streams `ConversationStep` messages via `conversations`, so it may not exercise `RenderGenerationStarted` / `RenderReady` even when those are the correct long-term contracts. For the rationale and acceptance criteria split (preview-aligned vs presence-aligned), see `AGENT.planning.md` in this directory.
+
 ## Core Purpose
 
 `renderOrchestration` is responsible for:

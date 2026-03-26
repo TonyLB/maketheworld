@@ -19,6 +19,26 @@ It implements the v2 architecture described in:
    - `renderOrchestration` (policy + lifecycle cascade)
    - `perception` (enrichment + delivery)
 
+## Lifecycle events: why they exist (and why preview feels confusing)
+
+The `renderOrchestration` lifecycle events (e.g. `RenderRequested`, `RenderGenerationStarted`, `RenderReady`) exist to make a multi-step render lifecycle:
+
+- composable across multiple triggers (direct request, state change, cache outcomes)
+- presence-aware ("tree falls in forest"): do expensive work only when someone will observe the output
+- decoupled at the boundaries: orchestration publishes lifecycle facts; delivery systems subscribe and decide how to show them
+
+This intent is easiest to see in the presence-based delivery flow (Rooms first in v2):
+
+- `renderOrchestration` can apply early "observer policy" gates (no observers -> invalidate pointers only; do not generate)
+- `perception` can subscribe to `RenderGenerationStarted` / `RenderReady` and send placeholder vs final messages to the right recipients
+
+By contrast, the authoring preview flow (`generateRoomPreview`) is intentionally not presence-gated:
+
+- it is a request-scoped, direct-to-requester experience
+- it streams `ConversationStep` messages via the conversations subsystem (not `perception`)
+
+That means: lifecycle events may be unused in the preview wedge even when they are the correct long-term abstraction. Do not let preview-only acceptance criteria force premature presence-oriented design choices (and vice versa).
+
 ## Proposed internal message contracts (draft)
 
 These are internal messageBus messages (not EventBridge contracts).
@@ -229,25 +249,39 @@ With `internalCache.RenderCache`, render orchestration can:
    - Implement handler A to read `Meta::Room`, resolve perspective key, validate `currentCacheByPerspective[perspectiveKey]`, and publish `RenderReady` on hit.
    - On invalid pointer, clear that pointer entry and continue.
 5. **Exact-match handler (slow path)**
-   - Implement handler B to ensure marks, perform exact-match lookup, and publish `RenderReady` on hit.
+   - Implement slow-path exact-match lookup for the render lifecycle and publish `RenderReady` on hit.
+   - Acceptance criteria (preview-aligned):
+     - exact-match hit must not emit any "generating" signal (no `RenderGenerationStarted`, no preview "generating" step).
+   - Acceptance criteria (presence-aligned, later when wired):
+     - `RenderReady` is emitted for exact-match hits without starting generation.
+   - Explicitly deferred (do not solve in Task 5):
+     - presence/observer gating of whether `RenderReady` should be published at all when there are no passive observers. That policy is introduced and validated under Task 7 (state-change subscription wiring), because the preview wedge is not presence-gated.
 
 ### Tier 2: Mostly clear tasks (some implementation choices open)
 
 6. **Generation path + completion updates**
-   - Emit `RenderGenerationStarted` on miss when generation is allowed.
-   - Run generation worker, produce the prospective cache record fields (markState, renderedContent, provenance, perspectiveId, perspectiveMatcher, optional situation/authoredExample ids).
-   - Instead of calling `putCacheRecord` directly, emit the internal API command:
+   - Implement the cache-miss lifecycle (generation allowed vs not allowed), keeping preview and presence delivery distinct.
+   - On miss when generation is allowed:
+     - emit `RenderGenerationStarted` (presence-aligned) and/or stream a preview progress step (preview-aligned) only after we know we are on the slow path.
+     - enqueue/perform generation and produce cache record fields (markState, renderedContent, provenance, perspectiveId, perspectiveMatcher, optional situation/authoredExample ids).
+   - Persist via the DataSource command rather than direct Dynamo writes:
      - `api.ephemera` streaming envelope type `Put Cache Record` (via `sendPutCacheRecord`)
-     - This routes to `mtw.ephemera.renderCache` DataSource, which performs the Dynamo write.
-   - Subscribe/react to `mtw.ephemera.renderCache` outcomes:
+     - `mtw.ephemera.renderCache` performs the Dynamo write.
+   - React to `mtw.ephemera.renderCache` outcomes:
      - On `Cache Updated`: update `currentCacheByPerspective[perspectiveKey]` to the returned `CACHE#...` id, then emit `RenderReady`.
      - On `Cache Error`: clear/invalidate the perspective pointer entry and emit `RenderGenerationFailed` (or defer rerender based on policy).
-   - Decide whether to also emit `RenderGenerationCompleted` after `RenderReady` (only if clients/metrics need it).
+   - Ordering acceptance criteria (presence-aligned):
+     - `RenderGenerationStarted` before any terminal completion (success/failure).
+     - pointer update happens before `RenderReady`.
+   - Ordering acceptance criteria (preview-aligned):
+     - preview "generating" step must be slow-path-only (no progress step on exact-match hits or invalid-context errors).
+   - Explicitly deferred (do not solve in Task 6):
+     - the no-passive-observers early-exit gate for state-driven renders (invalidate pointers only; do not generate). That gate is implemented and tested under Task 7.
 7. **State-change subscription wiring**
    - Subscribe renderOrchestration to state change messages.
-   - Implement passive-observer check (presence/subscription aware).
-   - If no observers: invalidate perspective cache pointers only; defer rerender.
-   - If observers: publish one-or-more `RenderRequested` messages with derived perspective(s).
+   - Implement the passive-observer gate (presence/subscription aware). This is the first task where the "tree falls in forest" policy becomes concrete and testable:
+     - If no observers: invalidate perspective cache pointers only; do not emit `RenderRequested`, and do not emit lifecycle delivery events (`RenderGenerationStarted` / `RenderReady`).
+     - If observers: publish one-or-more `RenderRequested` messages with derived perspective(s), and allow the normal lifecycle cascade to proceed.
    - During the remainder of the invocation, treat `internalCache.RenderCache` as the coherent memoized view after successful cache writes, and rely on `mtw.ephemera.renderCache` to keep that memo aligned when it can.
 8. **Perception handler refactor for clean DAG**
    - Split current perception responsibilities into at least two handler roles:
