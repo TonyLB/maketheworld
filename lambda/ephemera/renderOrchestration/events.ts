@@ -3,7 +3,8 @@ import { EphemeraFeatureId, EphemeraMapId, EphemeraRoomId, isEphemeraFeatureId, 
 import { EphemeraCacheId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { MessageGroupId } from '../internalCache/orchestrateMessages'
 import { PublishTarget } from '../messageBus/baseClasses'
-import { EphemeraCacheDynamoItem } from '../renderCache/baseClasses'
+import { EphemeraCacheDynamoItem, type EphemeraCacheMarkState } from '../renderCache/baseClasses'
+import type { ConversationId } from '../conversations/conversationTypes/baseClasses'
 
 export type RenderComponentId = EphemeraRoomId | EphemeraFeatureId | EphemeraMapId
 
@@ -19,6 +20,26 @@ export type RenderRequested = RenderTargetContext & {
     perspective: Perspective;
     allowGeneration?: boolean;
     generationContextWml?: string;
+}
+
+/**
+ * Authoring / API preview path: proposed mark state + perspective, correlated to a conversation for
+ * `ConversationStep` streaming. This is intentionally separate from {@link RenderRequested}, which
+ * is oriented toward persisted room state and passive/presence-driven delivery (Option C split).
+ */
+export type RenderPreviewRequested = RenderTargetContext & {
+    type: 'RenderPreviewRequested';
+    /** Preview is Room-scoped today (`generateRoomPreview`). */
+    componentId: EphemeraRoomId;
+    perspective: Perspective;
+    /** Proposed mark state for this preview run (not implied to match `Meta::Room.state` yet). */
+    markState: EphemeraCacheMarkState;
+    allowGeneration?: boolean;
+    generationContextWml?: string;
+    /** Registry key for streaming terminal/progress steps via conversations materialization. */
+    conversationId: ConversationId;
+    /** Optional WebSocket correlation during migration (mirrors conversation routing `requestId`). */
+    requestId?: string;
 }
 
 export type RenderGenerationStarted = RenderTargetContext & {
@@ -58,8 +79,12 @@ export type RenderGenerationFailed = RenderTargetContext & {
     errorMessage: string;
 }
 
+/** Entry messages that start render work: passive {@link RenderRequested} vs authoring {@link RenderPreviewRequested}. */
+export type RenderOrchestrationRequestMessage = RenderRequested | RenderPreviewRequested
+
 export type RenderOrchestrationMessage =
     | RenderRequested
+    | RenderPreviewRequested
     | RenderLookupRequested
     | RenderGenerationStarted
     | RenderReady
@@ -109,6 +134,46 @@ export const isRenderRequested = (value: unknown): value is RenderRequested => {
         return false
     }
     if ('generationContextWml' in castValue && castValue.generationContextWml !== undefined && typeof castValue.generationContextWml !== 'string') {
+        return false
+    }
+    return hasValidTargetContext(castValue)
+}
+
+const isEphemeraCacheMarkStateShape = (value: unknown): value is EphemeraCacheMarkState => {
+    if (!value || typeof value !== 'object') {
+        return false
+    }
+    const o = value as Record<string, unknown>
+    return Array.isArray(o.markValue)
+}
+
+export const isRenderPreviewRequested = (value: unknown): value is RenderPreviewRequested => {
+    if (!value || typeof value !== 'object') {
+        return false
+    }
+    const castValue = value as Record<string, unknown>
+    if (castValue.type !== 'RenderPreviewRequested') {
+        return false
+    }
+    if (typeof castValue.componentId !== 'string' || !isEphemeraRoomId(castValue.componentId)) {
+        return false
+    }
+    if (!isPerspective(castValue.perspective)) {
+        return false
+    }
+    if (!isEphemeraCacheMarkStateShape(castValue.markState)) {
+        return false
+    }
+    if (typeof castValue.conversationId !== 'string' || castValue.conversationId.length === 0) {
+        return false
+    }
+    if ('allowGeneration' in castValue && castValue.allowGeneration !== undefined && typeof castValue.allowGeneration !== 'boolean') {
+        return false
+    }
+    if ('generationContextWml' in castValue && castValue.generationContextWml !== undefined && typeof castValue.generationContextWml !== 'string') {
+        return false
+    }
+    if ('requestId' in castValue && castValue.requestId !== undefined && typeof castValue.requestId !== 'string') {
         return false
     }
     return hasValidTargetContext(castValue)
@@ -206,10 +271,15 @@ export const isRenderGenerationFailed = (value: unknown): value is RenderGenerat
 
 export const isRenderOrchestrationMessage = (value: unknown): value is RenderOrchestrationMessage => (
     isRenderRequested(value)
+    || isRenderPreviewRequested(value)
     || isRenderLookupRequested(value)
     || isRenderGenerationStarted(value)
     || isRenderReady(value)
     || isRenderGenerationCompleted(value)
     || isRenderGenerationFailed(value)
+)
+
+export const isRenderOrchestrationRequestMessage = (value: unknown): value is RenderOrchestrationRequestMessage => (
+    isRenderRequested(value) || isRenderPreviewRequested(value)
 )
 

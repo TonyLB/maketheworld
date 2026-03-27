@@ -8,6 +8,10 @@ It implements the v2 architecture described in:
 
 - `lambda/ephemera/state/AGENT.v2.planning.md`
 
+Parallel-track declutter is tracked in:
+
+- `lambda/ephemera/renderOrchestration/AGENT.planning.simplification.md`
+
 ## Goals (v2)
 
 1. Implement a messageBus-based event cascade for render lifecycle orchestration.
@@ -18,6 +22,60 @@ It implements the v2 architecture described in:
    - `renderCache` (cache primitives)
    - `renderOrchestration` (policy + lifecycle cascade)
    - `perception` (enrichment + delivery)
+
+## Module layering direction: orchestration vs generation (intended)
+
+This section records **where we want the code to go**, so refactors do not accidentally reinforce the opposite split (bunching all branching inside a module named for "generation").
+
+### Orchestration (under `renderOrchestration/`)
+
+**Orchestration** means: for a given bus message or API-driven flow, decide **what happens next** --- sequencing, policy branches, and **what gets published** on the messageBus (and how conversations / correlation attach). That **includes** decisions such as:
+
+- exact-match cache hit vs need to generate
+- pointer validity vs clear-and-continue (for `RenderRequested` / intake)
+- when to emit progress vs terminal signals (preview `ConversationStep` vs lifecycle events), consistent with task acceptance criteria
+
+Putting those decisions in orchestration handlers is **not** inherently a "god module" problem. Orchestration **should** coordinate. What we avoid is **inlining** every low-level concern (raw Dynamo shapes, LLM prompts) in one file without **named helpers** or **leaf modules**. Shared cache rules can live in `renderCache` / small functions that orchestration **calls**.
+
+Registration and dispatch live in `index.ts` (and may later move to dedicated handler files); **orchestration logic** may grow there or alongside it under `renderOrchestration/`, while **implementation** of "run the model and write this cache row" stays elsewhere.
+
+### Generation (`generateRoomPreview` and friends)
+
+**Generation** means: **implement** the slow path that actually **produces** new room preview content (and the cache write that belongs with that path), when orchestration has already committed to "generate now."
+
+Over time, `generateRoomPreview` should **not** be the hiding place for the **full** preview request pipeline (exact match + branch + generate). A module named for generation should read like **generation**, not like "everything that can happen when someone asks for a preview."
+
+### Alignment with `requestIntake`
+
+**`requestIntake`** should follow the same divide: **intake** = read world/meta, evaluate pointers, and emit the next orchestration messages (`RenderReady`, `RenderLookupRequested`, pointer clears). It should **not** absorb LLM or authoring-context policy. As the passive render cascade matures, intake and preview orchestration should **look like the same pattern** at the bus layer even when the underlying checks differ (Meta pointer vs proposed mark state for preview).
+
+### Duplication guard
+
+If orchestration owns "try exact match first," **`generateRoomPreview`** must not **repeat** that check as a hidden fast path, or we get two sources of truth. Prefer: orchestration branches, then calls a **narrow** `generateRoomPreview` (or renames it to `generateRoomPreviewContent` / similar) that assumes **miss**; or both call a **single** shared helper for exact match that lives next to render-cache primitives.
+
+### Migration
+
+These boundaries can move **incrementally**. Documenting the direction does not require one big bang; each PR can nudge orchestration, intake, and generation toward the split above.
+
+## Lifecycle events: why they exist (and why preview feels confusing)
+
+The `renderOrchestration` lifecycle events (e.g. `RenderRequested`, `RenderGenerationStarted`, `RenderReady`) exist to make a multi-step render lifecycle:
+
+- composable across multiple triggers (direct request, state change, cache outcomes)
+- presence-aware ("tree falls in forest"): do expensive work only when someone will observe the output
+- decoupled at the boundaries: orchestration publishes lifecycle facts; delivery systems subscribe and decide how to show them
+
+This intent is easiest to see in the presence-based delivery flow (Rooms first in v2):
+
+- `renderOrchestration` can apply early "observer policy" gates (no observers -> invalidate pointers only; do not generate)
+- `perception` can subscribe to `RenderGenerationStarted` / `RenderReady` and send placeholder vs final messages to the right recipients
+
+By contrast, the authoring preview flow (`generateRoomPreview`) is intentionally not presence-gated:
+
+- it is a request-scoped, direct-to-requester experience
+- it streams `ConversationStep` messages via the conversations subsystem (not `perception`)
+
+That means: lifecycle events may be unused in the preview wedge even when they are the correct long-term abstraction. Do not let preview-only acceptance criteria force premature presence-oriented design choices (and vice versa).
 
 ## Proposed internal message contracts (draft)
 
@@ -228,26 +286,44 @@ With `internalCache.RenderCache`, render orchestration can:
 4. [x] **Request intake handler (fast path)**
    - Implement handler A to read `Meta::Room`, resolve perspective key, validate `currentCacheByPerspective[perspectiveKey]`, and publish `RenderReady` on hit.
    - On invalid pointer, clear that pointer entry and continue.
-5. **Exact-match handler (slow path)**
-   - Implement handler B to ensure marks, perform exact-match lookup, and publish `RenderReady` on hit.
+   - **Temporary orchestration constraint (active):** treat missing `Meta::Room.state.marks` as an error for `RenderRequested` intake. Do not invent defaults in `requestIntake` yet; state-mark resolution policy is deferred to a later orchestration-focused task.
+5. **Handler B: Exact-match lookup (post-intake, not "LLM slow path")**
+   - **Perspective shift (see "Module layering direction" above):** Task 5 is **orchestration**: after Handler A, decide whether an **exact-match** cache row already satisfies the request (using `Meta::Room` mark state or defaults + renderCache exact-match), then publish `RenderReady` on hit or hand off toward generation. That branching **belongs in the render orchestration cascade** (Handler B under **Handler plan**), not as an undocumented side effect of **`generateRoomPreview`**.
+   - Implement exact-match lookup for the **`RenderRequested` / `RenderLookupRequested`** lifecycle and publish `RenderReady` on hit.
+   - Naming note: "slow path" here means **after pointer fast-path miss** (Handler A), not the generation/LLM path. Exact-match hit is still a **fast** outcome for the user (no generation).
+   - Acceptance criteria (preview-aligned, when the same rule applies to preview orchestration):
+     - exact-match hit must not emit any "generating" signal (no `RenderGenerationStarted`, no preview "generating" step).
+   - Acceptance criteria (presence-aligned, later when wired):
+     - `RenderReady` is emitted for exact-match hits without starting generation.
+   - Explicitly deferred (do not solve in Task 5):
+     - presence/observer gating of whether `RenderReady` should be published at all when there are no passive observers. That policy is introduced and validated under Task 7 (state-change subscription wiring), because the preview wedge is not presence-gated.
+     - any fallback/default algorithm for missing room state marks; until that policy is chosen, missing marks remain an explicit intake error.
 
 ### Tier 2: Mostly clear tasks (some implementation choices open)
 
 6. **Generation path + completion updates**
-   - Emit `RenderGenerationStarted` on miss when generation is allowed.
-   - Run generation worker, produce the prospective cache record fields (markState, renderedContent, provenance, perspectiveId, perspectiveMatcher, optional situation/authoredExample ids).
-   - Instead of calling `putCacheRecord` directly, emit the internal API command:
+   - Implement the cache-miss lifecycle (generation allowed vs not allowed), keeping preview and presence delivery distinct.
+   - On miss when generation is allowed:
+     - emit `RenderGenerationStarted` (presence-aligned) and/or stream a preview progress step (preview-aligned) only after we know we are on the slow path.
+     - enqueue/perform generation and produce cache record fields (markState, renderedContent, provenance, perspectiveId, perspectiveMatcher, optional situation/authoredExample ids).
+   - Persist via the DataSource command rather than direct Dynamo writes:
      - `api.ephemera` streaming envelope type `Put Cache Record` (via `sendPutCacheRecord`)
-     - This routes to `mtw.ephemera.renderCache` DataSource, which performs the Dynamo write.
-   - Subscribe/react to `mtw.ephemera.renderCache` outcomes:
+     - `mtw.ephemera.renderCache` performs the Dynamo write.
+   - React to `mtw.ephemera.renderCache` outcomes:
      - On `Cache Updated`: update `currentCacheByPerspective[perspectiveKey]` to the returned `CACHE#...` id, then emit `RenderReady`.
      - On `Cache Error`: clear/invalidate the perspective pointer entry and emit `RenderGenerationFailed` (or defer rerender based on policy).
-   - Decide whether to also emit `RenderGenerationCompleted` after `RenderReady` (only if clients/metrics need it).
+   - Ordering acceptance criteria (presence-aligned):
+     - `RenderGenerationStarted` before any terminal completion (success/failure).
+     - pointer update happens before `RenderReady`.
+   - Ordering acceptance criteria (preview-aligned):
+     - preview "generating" step must be slow-path-only (no progress step on exact-match hits or invalid-context errors).
+   - Explicitly deferred (do not solve in Task 6):
+     - the no-passive-observers early-exit gate for state-driven renders (invalidate pointers only; do not generate). That gate is implemented and tested under Task 7.
 7. **State-change subscription wiring**
    - Subscribe renderOrchestration to state change messages.
-   - Implement passive-observer check (presence/subscription aware).
-   - If no observers: invalidate perspective cache pointers only; defer rerender.
-   - If observers: publish one-or-more `RenderRequested` messages with derived perspective(s).
+   - Implement the passive-observer gate (presence/subscription aware). This is the first task where the "tree falls in forest" policy becomes concrete and testable:
+     - If no observers: invalidate perspective cache pointers only; do not emit `RenderRequested`, and do not emit lifecycle delivery events (`RenderGenerationStarted` / `RenderReady`).
+     - If observers: publish one-or-more `RenderRequested` messages with derived perspective(s), and allow the normal lifecycle cascade to proceed.
    - During the remainder of the invocation, treat `internalCache.RenderCache` as the coherent memoized view after successful cache writes, and rely on `mtw.ephemera.renderCache` to keep that memo aligned when it can.
 8. **Perception handler refactor for clean DAG**
    - Split current perception responsibilities into at least two handler roles:

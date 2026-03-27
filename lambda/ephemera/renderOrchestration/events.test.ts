@@ -1,5 +1,7 @@
 import {
     isRenderRequested,
+    isRenderPreviewRequested,
+    isRenderOrchestrationRequestMessage,
     isRenderGenerationStarted,
     isRenderReady,
     isRenderGenerationCompleted,
@@ -29,6 +31,57 @@ describe('renderOrchestration events guards', () => {
             type: 'RenderRequested',
             ...base,
             perspective: { assetStack: ['ROOM#bad'] }
+        })).toBe(false)
+    })
+
+    it('isRenderOrchestrationRequestMessage matches RenderRequested and RenderPreviewRequested only', () => {
+        expect(isRenderOrchestrationRequestMessage({
+            type: 'RenderRequested',
+            ...base,
+        })).toBe(true)
+        expect(isRenderOrchestrationRequestMessage({
+            type: 'RenderPreviewRequested',
+            componentId: 'ROOM#room',
+            perspective: { assetStack: ['ASSET#a'] },
+            markState: { markValue: [] },
+            conversationId: '550e8400-e29b-41d4-a716-446655440000',
+        })).toBe(true)
+        expect(isRenderOrchestrationRequestMessage({
+            type: 'RenderReady',
+            componentId: 'ROOM#room',
+            perspective: { assetStack: ['ASSET#a'] },
+            cacheId: 'CACHE#x',
+        })).toBe(false)
+    })
+
+    it('accepts valid RenderPreviewRequested', () => {
+        expect(isRenderPreviewRequested({
+            type: 'RenderPreviewRequested',
+            componentId: 'ROOM#room',
+            perspective: { assetStack: ['ASSET#a', 'ASSET#b'] },
+            markState: { markValue: [{ mark: 'MARK#m', value: 'v' }] },
+            conversationId: '550e8400-e29b-41d4-a716-446655440000',
+            requestId: 'req-1',
+        })).toBe(true)
+    })
+
+    it('rejects RenderPreviewRequested without room componentId', () => {
+        expect(isRenderPreviewRequested({
+            type: 'RenderPreviewRequested',
+            componentId: 'FEATURE#x',
+            perspective: { assetStack: ['ASSET#a'] },
+            markState: { markValue: [] },
+            conversationId: '550e8400-e29b-41d4-a716-446655440000',
+        })).toBe(false)
+    })
+
+    it('rejects RenderPreviewRequested with invalid markState shape', () => {
+        expect(isRenderPreviewRequested({
+            type: 'RenderPreviewRequested',
+            componentId: 'ROOM#room',
+            perspective: { assetStack: ['ASSET#a'] },
+            markState: {} as never,
+            conversationId: '550e8400-e29b-41d4-a716-446655440000',
         })).toBe(false)
     })
 
@@ -85,6 +138,13 @@ describe('renderOrchestration events guards', () => {
         expect(isRenderOrchestrationMessage({
             type: 'RenderRequested',
             ...base
+        })).toBe(true)
+        expect(isRenderOrchestrationMessage({
+            type: 'RenderPreviewRequested',
+            componentId: 'ROOM#room',
+            perspective: { assetStack: ['ASSET#a'] },
+            markState: { markValue: [] },
+            conversationId: '550e8400-e29b-41d4-a716-446655440000',
         })).toBe(true)
         expect(isRenderOrchestrationMessage({
             type: 'RenderGenerationStarted',

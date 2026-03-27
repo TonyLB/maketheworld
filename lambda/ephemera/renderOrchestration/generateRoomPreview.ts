@@ -5,7 +5,6 @@ import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import type {
     EphemeraCacheComponentId,
     EphemeraCacheMarkState,
-    EphemeraCacheDynamoItem
 } from '../renderCache/baseClasses'
 import type { ConversationId } from '../conversations'
 import type { GenerateRoomPreviewResult } from '../conversations/conversationTypes/generateRoomPreview'
@@ -14,7 +13,6 @@ import type { QueryCacheRecordsForComponentFn } from '../dataSource/renderCache/
 import { EPHEMERA_CACHE_PROVENANCE_GENERATED } from '../renderCache/baseClasses'
 import internalCache from '../internalCache'
 import { generateRoomDescription } from '../generateExample'
-import type { RenderCacheGetExactMatchParams } from '../internalCache/renderCache'
 import { sendPutCacheRecord } from '../dataSource/apiEphemera'
 import messageBus from '../messageBus'
 
@@ -25,9 +23,6 @@ export type GenerateRoomPreviewInput = {
     generationContextWml?: string;
 }
 
-type GetExactMatchImpl = (
-    input: RenderCacheGetExactMatchParams
-) => Promise<EphemeraCacheDynamoItem | null>
 type GenerateRoomDescription = typeof generateRoomDescription
 
 export type PublishPutCacheRecord = (
@@ -59,7 +54,6 @@ export const defaultPublishPutCacheRecord: PublishPutCacheRecord = async (
 export type GenerateRoomPreviewOptions = {
     /** Override for tests; default is `defaultPublishPutCacheRecord` (`sendPutCacheRecord` on process `messageBus`). */
     publishPutCacheRecord?: PublishPutCacheRecord;
-    getExactMatchImpl?: GetExactMatchImpl;
     generateRoomDescriptionImpl?: GenerateRoomDescription;
     queryCacheRecordsForComponentImpl?: QueryCacheRecordsForComponentFn;
     /** When set, forwarded on Put Cache Record / Cache Updated for prototype correlation (see conversations/AGENT.md). */
@@ -71,6 +65,10 @@ export type GenerateRoomPreviewOptions = {
     onGenerating?: () => Promise<void>;
 }
 
+/**
+ * Slow path only: assumes exact-match was already tried by orchestration.
+ * Callers must not invoke this when a cache row already satisfies the request.
+ */
 export const generateRoomPreview = async (
     {
         roomId,
@@ -80,7 +78,6 @@ export const generateRoomPreview = async (
     }: GenerateRoomPreviewInput,
     {
         publishPutCacheRecord = defaultPublishPutCacheRecord,
-        getExactMatchImpl = (input) => internalCache.RenderCache.getExactMatch(input),
         generateRoomDescriptionImpl = generateRoomDescription,
         queryCacheRecordsForComponentImpl = (componentId) => internalCache.RenderCache.get(componentId),
         conversationId,
@@ -97,19 +94,6 @@ export const generateRoomPreview = async (
     }
 
     const perspective = { assetStack: assetStack as AssetUUID[] }
-
-    const match: EphemeraCacheDynamoItem | null = await getExactMatchImpl({
-        componentId: roomId,
-        proposedMarkState: markState,
-        perspective
-    })
-
-    if (match) {
-        return {
-            success: true,
-            renderedContent: match.renderedContent
-        }
-    }
 
     if (!parsedContext) {
         return {

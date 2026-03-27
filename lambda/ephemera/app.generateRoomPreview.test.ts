@@ -1,13 +1,11 @@
 import { handler } from './app'
-import { generateRoomPreview } from './renderOrchestration/generateRoomPreview'
-import internalCache from './internalCache'
+import messageBus from './messageBus'
 import { computePerspectiveKey } from '@tonylb/mtw-interfaces/ts/perspective'
 import {
     CONVERSATION_TYPE_GENERATE_ROOM_PREVIEW,
     registerConversation,
 } from './conversations'
 
-jest.mock('./renderOrchestration/generateRoomPreview')
 jest.mock('./messageBus', () => ({
     __esModule: true,
     default: {
@@ -16,18 +14,6 @@ jest.mock('./messageBus', () => ({
         flush: jest.fn().mockResolvedValue(undefined),
         subscribe: jest.fn(),
         publish: jest.fn(),
-    },
-}))
-jest.mock('./internalCache', () => ({
-    __esModule: true,
-    default: {
-        clear: jest.fn(),
-        Global: {
-            set: jest.fn(),
-        },
-        Conversations: {
-            get: jest.fn(),
-        },
     },
 }))
 jest.mock('./returnValue', () => ({
@@ -46,10 +32,14 @@ jest.mock('./conversations', () => {
 })
 
 const registerConversationMock = registerConversation as jest.MockedFunction<typeof registerConversation>
+const messageBusMock = messageBus as unknown as {
+    send: jest.Mock;
+    clear: jest.Mock;
+    flush: jest.Mock;
+}
 
 describe('app handler - generateRoomPreview', () => {
     const connectionId = 'connection-123'
-    let handleSendMessageMock: jest.Mock
 
     const makeEvent = (body: any) => ({
         requestContext: {
@@ -61,33 +51,10 @@ describe('app handler - generateRoomPreview', () => {
 
     beforeEach(() => {
         jest.clearAllMocks()
-        handleSendMessageMock = jest.fn().mockResolvedValue(undefined)
         registerConversationMock.mockResolvedValue('conv-test-id')
-
-        const conversationsGetMock = internalCache.Conversations.get as unknown as jest.Mock
-        conversationsGetMock.mockImplementation((_id) => ({
-            record: {} as never,
-            handle: {
-                kind: 'conversationCompositeReadGenerateRoomPreview',
-                sendMessage: handleSendMessageMock,
-            },
-        }))
     })
 
-    it('registers conversation, calls generateRoomPreview with onGenerating, and sends generating then terminal step', async () => {
-        ;(generateRoomPreview as jest.Mock).mockResolvedValue({
-            success: true,
-            renderedContent: { description: [{ type: 'Text', value: 'Preview content' }] },
-        })
-
-        ;(generateRoomPreview as jest.Mock).mockImplementation(async (input, options) => {
-            await options?.onGenerating?.()
-            return {
-                success: true,
-                renderedContent: { description: [{ type: 'Text', value: 'Preview content' }] },
-            }
-        })
-
+    it('registers conversation and publishes RenderPreviewRequested', async () => {
         const event = makeEvent({
             message: 'generateRoomPreview',
             RoomId: 'ROOM#test-room',
@@ -108,40 +75,17 @@ describe('app handler - generateRoomPreview', () => {
             },
             payload: expect.any(Object),
         })
-        expect(
-            (registerConversationMock as jest.Mock).mock.invocationCallOrder[0]
-        ).toBeLessThan((generateRoomPreview as jest.Mock).mock.invocationCallOrder[0])
-
-        expect(generateRoomPreview).toHaveBeenCalledWith(
-            expect.objectContaining({
-                roomId: 'ROOM#test-room',
-                markState: { markValue: [{ mark: 'MARK#a', value: 'one' }] },
-                assetStack: ['ASSET#one'],
-            }),
-            expect.objectContaining({
-                conversationId: 'conv-test-id',
-                onGenerating: expect.any(Function),
-            })
-        )
-
-        const conversationsGetMock = internalCache.Conversations.get as unknown as jest.Mock
-        expect(conversationsGetMock).toHaveBeenCalledWith('conv-test-id')
-
-        expect(handleSendMessageMock).toHaveBeenCalledTimes(2)
-        expect(handleSendMessageMock.mock.calls[0]?.[0]).toBe('generating')
-        expect(handleSendMessageMock.mock.calls[1]?.[0]).toEqual({
-            success: true,
-            renderedContent: { description: [{ type: 'Text', value: 'Preview content' }] },
+        expect(messageBusMock.send).toHaveBeenCalledWith({
+            type: 'RenderPreviewRequested',
+            componentId: 'ROOM#test-room',
+            perspective: { assetStack: ['ASSET#one'] },
+            markState: { markValue: [{ mark: 'MARK#a', value: 'one' }] },
+            conversationId: 'conv-test-id',
+            requestId: 'request-123',
         })
     })
 
-    it('passes generationContextWml to generateRoomPreview when present', async () => {
-        ;(generateRoomPreview as jest.Mock).mockResolvedValue({
-            success: false,
-            errorCode: 'NO_EXACT_MATCH',
-            errorMessage: 'No exact match for proposed state',
-        })
-
+    it('includes generationContextWml on RenderPreviewRequested when present', async () => {
         const wml =
             '<Asset uuid=(test)><Room uuid=(room1) key=(room1)><ShortName>Test</ShortName></Room></Asset>'
         const event = makeEvent({
@@ -164,17 +108,13 @@ describe('app handler - generateRoomPreview', () => {
             payload: expect.any(Object),
         })
 
-        expect(generateRoomPreview).toHaveBeenCalledWith(
-            expect.objectContaining({
-                roomId: 'ROOM#test-room',
-                markState: { markValue: [] },
-                assetStack: ['ASSET#one'],
-                generationContextWml: wml,
-            }),
-            expect.objectContaining({
-                conversationId: 'conv-test-id',
-                onGenerating: expect.any(Function),
-            })
-        )
+        expect(messageBusMock.send).toHaveBeenCalledWith({
+            type: 'RenderPreviewRequested',
+            componentId: 'ROOM#test-room',
+            perspective: { assetStack: ['ASSET#one'] },
+            markState: { markValue: [] },
+            generationContextWml: wml,
+            conversationId: 'conv-test-id',
+        })
     })
 })
