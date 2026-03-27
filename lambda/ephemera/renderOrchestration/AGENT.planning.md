@@ -19,6 +19,40 @@ It implements the v2 architecture described in:
    - `renderOrchestration` (policy + lifecycle cascade)
    - `perception` (enrichment + delivery)
 
+## Module layering direction: orchestration vs generation (intended)
+
+This section records **where we want the code to go**, so refactors do not accidentally reinforce the opposite split (bunching all branching inside a module named for "generation").
+
+### Orchestration (under `renderOrchestration/`)
+
+**Orchestration** means: for a given bus message or API-driven flow, decide **what happens next** --- sequencing, policy branches, and **what gets published** on the messageBus (and how conversations / correlation attach). That **includes** decisions such as:
+
+- exact-match cache hit vs need to generate
+- pointer validity vs clear-and-continue (for `RenderRequested` / intake)
+- when to emit progress vs terminal signals (preview `ConversationStep` vs lifecycle events), consistent with task acceptance criteria
+
+Putting those decisions in orchestration handlers is **not** inherently a "god module" problem. Orchestration **should** coordinate. What we avoid is **inlining** every low-level concern (raw Dynamo shapes, LLM prompts) in one file without **named helpers** or **leaf modules**. Shared cache rules can live in `renderCache` / small functions that orchestration **calls**.
+
+Registration and dispatch live in `index.ts` (and may later move to dedicated handler files); **orchestration logic** may grow there or alongside it under `renderOrchestration/`, while **implementation** of "run the model and write this cache row" stays elsewhere.
+
+### Generation (`generateRoomPreview` and friends)
+
+**Generation** means: **implement** the slow path that actually **produces** new room preview content (and the cache write that belongs with that path), when orchestration has already committed to "generate now."
+
+Over time, `generateRoomPreview` should **not** be the hiding place for the **full** preview request pipeline (exact match + branch + generate). A module named for generation should read like **generation**, not like "everything that can happen when someone asks for a preview."
+
+### Alignment with `requestIntake`
+
+**`requestIntake`** should follow the same divide: **intake** = read world/meta, evaluate pointers, and emit the next orchestration messages (`RenderReady`, `RenderLookupRequested`, pointer clears). It should **not** absorb LLM or authoring-context policy. As the passive render cascade matures, intake and preview orchestration should **look like the same pattern** at the bus layer even when the underlying checks differ (Meta pointer vs proposed mark state for preview).
+
+### Duplication guard
+
+If orchestration owns "try exact match first," **`generateRoomPreview`** must not **repeat** that check as a hidden fast path, or we get two sources of truth. Prefer: orchestration branches, then calls a **narrow** `generateRoomPreview` (or renames it to `generateRoomPreviewContent` / similar) that assumes **miss**; or both call a **single** shared helper for exact match that lives next to render-cache primitives.
+
+### Migration
+
+These boundaries can move **incrementally**. Documenting the direction does not require one big bang; each PR can nudge orchestration, intake, and generation toward the split above.
+
 ## Lifecycle events: why they exist (and why preview feels confusing)
 
 The `renderOrchestration` lifecycle events (e.g. `RenderRequested`, `RenderGenerationStarted`, `RenderReady`) exist to make a multi-step render lifecycle:
@@ -248,9 +282,11 @@ With `internalCache.RenderCache`, render orchestration can:
 4. [x] **Request intake handler (fast path)**
    - Implement handler A to read `Meta::Room`, resolve perspective key, validate `currentCacheByPerspective[perspectiveKey]`, and publish `RenderReady` on hit.
    - On invalid pointer, clear that pointer entry and continue.
-5. **Exact-match handler (slow path)**
-   - Implement slow-path exact-match lookup for the render lifecycle and publish `RenderReady` on hit.
-   - Acceptance criteria (preview-aligned):
+5. **Handler B: Exact-match lookup (post-intake, not "LLM slow path")**
+   - **Perspective shift (see "Module layering direction" above):** Task 5 is **orchestration**: after Handler A, decide whether an **exact-match** cache row already satisfies the request (using `Meta::Room` mark state or defaults + renderCache exact-match), then publish `RenderReady` on hit or hand off toward generation. That branching **belongs in the render orchestration cascade** (Handler B under **Handler plan**), not as an undocumented side effect of **`generateRoomPreview`**.
+   - Implement exact-match lookup for the **`RenderRequested` / `RenderLookupRequested`** lifecycle and publish `RenderReady` on hit.
+   - Naming note: "slow path" here means **after pointer fast-path miss** (Handler A), not the generation/LLM path. Exact-match hit is still a **fast** outcome for the user (no generation).
+   - Acceptance criteria (preview-aligned, when the same rule applies to preview orchestration):
      - exact-match hit must not emit any "generating" signal (no `RenderGenerationStarted`, no preview "generating" step).
    - Acceptance criteria (presence-aligned, later when wired):
      - `RenderReady` is emitted for exact-match hits without starting generation.

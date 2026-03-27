@@ -1,3 +1,4 @@
+import type { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 import type { MessageBus } from '../messageBus/baseClasses'
 import internalCache from '../internalCache'
 import { isConversationCompositeReadHandleGenerateRoomPreview } from '../conversations/conversationTypes'
@@ -80,6 +81,22 @@ const handleRenderPreviewRequested = async (payload: RenderPreviewRequested): Pr
             compositeFound: composite !== undefined,
             compositeHandleKind: rawHandle?.kind,
         })
+    }
+
+    const perspective = { assetStack: payload.perspective.assetStack as AssetUUID[] }
+    const exactMatch = await internalCache.RenderCache.getExactMatch({
+        componentId: payload.componentId,
+        proposedMarkState: payload.markState,
+        perspective,
+    })
+    if (exactMatch) {
+        if (handle !== undefined) {
+            await handle.sendMessage({
+                success: true,
+                renderedContent: exactMatch.renderedContent,
+            })
+        }
+        return
     }
 
     const result = await generateRoomPreview(

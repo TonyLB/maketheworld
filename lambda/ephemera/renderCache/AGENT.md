@@ -190,40 +190,40 @@ Core helper (conceptually):
   - Matches by Mark-state equality semantics (`markStatesEqual` over normalized markState).
   - Returns the first matching record, or `null` when none match.
 
-This is the canonical “does this state exist in cache?” check, used by `renderOrchestration/generateRoomPreview` and ready for reuse in future flows.
+This is the canonical “does this state exist in cache?” check. Preview orchestration calls it from `renderOrchestration/index.ts` before the slow path; `generateRoomPreview` assumes exact-match was already tried.
 
 ---
 
-## Preview Flow: `generateRoomPreview` and WebSocket handler
+## Preview Flow: orchestration, `generateRoomPreview`, and WebSocket handler
+
+### Preview orchestration (`renderOrchestration/index.ts`)
+
+For `RenderPreviewRequested`, the handler resolves the conversations `sendMessage` handle, then:
+
+1. Builds `perspective` from the request asset stack.
+2. Calls `internalCache.RenderCache.getExactMatch({ componentId, proposedMarkState, perspective })`.
+3. On hit: sends `{ success: true, renderedContent }` via the conversation handle and returns (no LLM, no `generating` step).
+4. On miss: calls `generateRoomPreview` (slow path only).
 
 ### `generateRoomPreview` (renderOrchestration)
 
-`renderOrchestration/generateRoomPreview.ts` orchestrates the Room Preview flow (exact match, LLM generation on miss). It depends on `generateExample` for Bedrock-backed generation and `renderCache` for record types:
+`renderOrchestration/generateRoomPreview.ts` implements **generation on cache miss** (parse WML context, optional Bedrock `generateRoomDescription`, `publishPutCacheRecord`). It does **not** perform exact-match; orchestration must run that first.
 
 - Input:
   - `roomId: EphemeraRoomId`
   - `markState: EphemeraCacheMarkState`
   - `assetStack: string[]`
 - Options (optional): `publishPutCacheRecord` overrides the default `defaultPublishPutCacheRecord` (`sendPutCacheRecord` only; the handler's terminal `await messageBus.flush()` drains the queue). Tests typically pass `jest.fn()` to avoid real bus I/O.
-- Steps:
-  1. Build `perspective = { assetStack }`.
-  2. Call `internalCache.RenderCache.getExactMatch({ componentId: roomId, proposedMarkState: markState, perspective })`.
-  3. If a match exists:
-     - Return `{ success: true, renderedContent }`.
-  4. If no match exists:
-     - Return `{ success: false, errorCode: 'NO_EXACT_MATCH', errorMessage: 'No exact match for proposed state' }`.
 
 ### WebSocket integration (`app.ts`)
 
-The Ephemera Lambda handler (`lambda/ephemera/app.ts`) wires `generateRoomPreview` into the WebSocket API:
+The Ephemera Lambda handler (`lambda/ephemera/app.ts`) registers the conversation, then publishes `RenderPreviewRequested` on the messageBus; `registerRenderOrchestration` handles preview work (exact match + `generateRoomPreview` on miss). Results stream via conversations `ConversationStep`, not a direct `ReturnValue` body from `generateRoomPreview` in this path.
 
 - Validated request type:
   - `GenerateRoomPreviewAPIMessage` in `packages/mtw-interfaces/ts/ephemera.ts`.
 - Handler branch:
   - When `isGenerateRoomPreviewAPIMessage(request)`:
-    - Call `generateRoomPreview({ roomId, markState, assetStack, generationContextWml })` (default **`defaultPublishPutCacheRecord`** enqueues **`Put Cache Record`** on **`api.ephemera`**; the handler then **`await messageBus.flush()`** after **`ReturnValue`**).
-    - Send a `ReturnValue` message with body:
-      - `{ generateRoomPreview: result, ...(request.RequestId && { RequestId: request.RequestId }) }`.
+    - `registerConversation` for `generateRoomPreview`, then `messageBus.send` a `RenderPreviewRequested` payload; **`await messageBus.flush()`** runs orchestration.
 
 The Lambda return value is `{ statusCode: 200, body: JSON.stringify(mergedBodies) }`. On the client, the lifeLine WebSocket layer:
 

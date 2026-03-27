@@ -1,23 +1,11 @@
 import { generateRoomPreview } from './generateRoomPreview'
 import type {
     EphemeraCacheMarkState,
-    EphemeraCacheDynamoItem,
     EphemeraCacheRenderedContent
 } from '../renderCache/baseClasses'
 
 const makeMarkState = (entries: Array<{ mark: string; value: string }>): EphemeraCacheMarkState => ({
     markValue: entries
-})
-
-const baseRecord = (overrides: Partial<EphemeraCacheDynamoItem> = {}): EphemeraCacheDynamoItem => ({
-    EphemeraId: 'ROOM#test-room' as const,
-    DataCategory: 'CACHE#test',
-    markState: makeMarkState([]),
-    renderedContent: { description: [] },
-    provenance: { type: 'authored' },
-    perspectiveId: 'PERSPECTIVE#mocked',
-    perspectiveMatcher: { requiredAssetIds: [], forbiddenAssetIds: [] },
-    ...overrides
 })
 
 describe('renderOrchestration/generateRoomPreview', () => {
@@ -29,56 +17,14 @@ describe('renderOrchestration/generateRoomPreview', () => {
         noopPublishPutCacheRecord.mockResolvedValue(undefined)
     })
 
-    it('builds perspective from assetStack and passes it to getExactMatchImpl', async () => {
-        const getExactMatchImpl = jest.fn().mockResolvedValue(null)
-
-        const markState = makeMarkState([{ mark: 'MARK#a', value: 'one' }])
-        const assetStack = ['ASSET#one', 'ASSET#two']
-
-        await generateRoomPreview({
-            roomId,
-            markState,
-            assetStack
-        }, { getExactMatchImpl, publishPutCacheRecord: noopPublishPutCacheRecord })
-
-        expect(getExactMatchImpl).toHaveBeenCalledWith({
-            componentId: roomId,
-            proposedMarkState: markState,
-            perspective: { assetStack }
-        })
-    })
-
-    it('returns success with renderedContent when a match is found', async () => {
-        const getExactMatchImpl = jest.fn()
-        const onGenerating = jest.fn().mockResolvedValue(undefined)
-
-        const renderedContent: EphemeraCacheRenderedContent = { description: [] }
-        const record = baseRecord({ renderedContent })
-
-        getExactMatchImpl.mockResolvedValue(record)
-
-        const result = await generateRoomPreview({
-            roomId,
-            markState: makeMarkState([{ mark: 'MARK#a', value: 'one' }]),
-            assetStack: ['ASSET#one']
-        }, { getExactMatchImpl, publishPutCacheRecord: noopPublishPutCacheRecord, onGenerating })
-
-        expect(result).toEqual({
-            success: true,
-            renderedContent
-        })
-        expect(onGenerating).toHaveBeenCalledTimes(0)
-    })
-
-    it('returns CONTEXT_REQUIRED when no exact match and no generationContextWml', async () => {
-        const getExactMatchImpl = jest.fn().mockResolvedValue(null)
+    it('returns CONTEXT_REQUIRED when no generationContextWml', async () => {
         const onGenerating = jest.fn().mockResolvedValue(undefined)
 
         const result = await generateRoomPreview({
             roomId,
             markState: makeMarkState([{ mark: 'MARK#a', value: 'one' }]),
             assetStack: ['ASSET#one']
-        }, { getExactMatchImpl, publishPutCacheRecord: noopPublishPutCacheRecord, onGenerating })
+        }, { publishPutCacheRecord: noopPublishPutCacheRecord, onGenerating })
 
         expect(result).toEqual({
             success: false,
@@ -88,8 +34,7 @@ describe('renderOrchestration/generateRoomPreview', () => {
         expect(onGenerating).toHaveBeenCalledTimes(0)
     })
 
-    it('returns CONTEXT_REQUIRED when no exact match and invalid generationContextWml', async () => {
-        const getExactMatchImpl = jest.fn().mockResolvedValue(null)
+    it('returns CONTEXT_REQUIRED when invalid generationContextWml', async () => {
         const onGenerating = jest.fn().mockResolvedValue(undefined)
 
         const result = await generateRoomPreview({
@@ -97,7 +42,7 @@ describe('renderOrchestration/generateRoomPreview', () => {
             markState: makeMarkState([{ mark: 'MARK#a', value: 'one' }]),
             assetStack: ['ASSET#one'],
             generationContextWml: '<not valid wml<<'
-        }, { getExactMatchImpl, publishPutCacheRecord: noopPublishPutCacheRecord, onGenerating })
+        }, { publishPutCacheRecord: noopPublishPutCacheRecord, onGenerating })
 
         expect(result).toEqual({
             success: false,
@@ -107,8 +52,7 @@ describe('renderOrchestration/generateRoomPreview', () => {
         expect(onGenerating).toHaveBeenCalledTimes(0)
     })
 
-    it('returns NO_EXACT_MATCH from stub when no exact match but valid generationContextWml', async () => {
-        const getExactMatchImpl = jest.fn().mockResolvedValue(null)
+    it('returns NO_EXACT_MATCH from stub when valid generationContextWml but generation fails', async () => {
         const onGenerating = jest.fn().mockResolvedValue(undefined)
 
         const generateRoomDescriptionImpl = jest.fn().mockResolvedValue({
@@ -127,7 +71,6 @@ describe('renderOrchestration/generateRoomPreview', () => {
                 generationContextWml: validWml
             },
             {
-                getExactMatchImpl,
                 generateRoomDescriptionImpl,
                 queryCacheRecordsForComponentImpl,
                 publishPutCacheRecord: noopPublishPutCacheRecord,
@@ -153,8 +96,6 @@ describe('renderOrchestration/generateRoomPreview', () => {
     })
 
     it('calls publishPutCacheRecord with generated provenance when LLM returns success', async () => {
-        const getExactMatchImpl = jest.fn().mockResolvedValue(null)
-
         const renderedContent: EphemeraCacheRenderedContent = {
             displayName: ['Generated Name'],
             summary: ['Generated summary.'],
@@ -179,7 +120,6 @@ describe('renderOrchestration/generateRoomPreview', () => {
                 generationContextWml: validWml
             },
             {
-                getExactMatchImpl,
                 generateRoomDescriptionImpl,
                 queryCacheRecordsForComponentImpl,
                 publishPutCacheRecord
@@ -202,8 +142,6 @@ describe('renderOrchestration/generateRoomPreview', () => {
     })
 
     it('passes conversationId to publishPutCacheRecord when provided in options', async () => {
-        const getExactMatchImpl = jest.fn().mockResolvedValue(null)
-
         const renderedContent: EphemeraCacheRenderedContent = {
             displayName: [],
             summary: [],
@@ -228,7 +166,6 @@ describe('renderOrchestration/generateRoomPreview', () => {
                 generationContextWml: validWml,
             },
             {
-                getExactMatchImpl,
                 generateRoomDescriptionImpl,
                 queryCacheRecordsForComponentImpl,
                 publishPutCacheRecord,
