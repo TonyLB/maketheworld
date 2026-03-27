@@ -22,6 +22,8 @@ Important: the lifecycle events are primarily motivated by presence-based delive
 - **Completion handoff**: when generation completes, update pointers (e.g. `Meta::Room.currentCacheId`) and publish ready events.
 - **Decoupled signaling**: publish well-scoped internal events so perception can react without coupling to generation internals.
 
+Current temporary constraint: `requestIntake` treats missing `Meta::Room.state.marks` as an explicit error for `RenderRequested` (rather than synthesizing defaults in-place). This is intentional while state-mark resolution policy is being settled at orchestration level; see `AGENT.planning.md`.
+
 ## Technical Details
 
 ### Key concepts

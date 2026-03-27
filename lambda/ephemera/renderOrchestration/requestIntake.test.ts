@@ -40,6 +40,7 @@ describe('renderOrchestration/requestIntake', () => {
                 getMetaRoom: jest.fn().mockResolvedValue(baseMetaRoom),
                 computePerspectiveKey: jest.fn().mockReturnValue('PERSPECTIVE#v1#abc'),
                 getCacheRecordById: jest.fn().mockResolvedValue(baseCacheRecord),
+                getExactMatch: jest.fn(),
                 clearPerspectivePointer: jest.fn(),
                 markStatesEqual: jest.fn().mockReturnValue(true)
             }
@@ -60,6 +61,7 @@ describe('renderOrchestration/requestIntake', () => {
                 getMetaRoom: jest.fn().mockResolvedValue({ ...baseMetaRoom, currentCacheByPerspective: {} }),
                 computePerspectiveKey: jest.fn().mockReturnValue('PERSPECTIVE#v1#abc'),
                 getCacheRecordById: jest.fn(),
+                getExactMatch: jest.fn().mockResolvedValue(null),
                 clearPerspectivePointer: jest.fn(),
                 markStatesEqual: jest.fn()
             }
@@ -76,6 +78,7 @@ describe('renderOrchestration/requestIntake', () => {
                 getMetaRoom: jest.fn().mockResolvedValue(baseMetaRoom),
                 computePerspectiveKey: jest.fn().mockReturnValue('PERSPECTIVE#v1#abc'),
                 getCacheRecordById: jest.fn().mockResolvedValue(undefined),
+                getExactMatch: jest.fn().mockResolvedValue(null),
                 clearPerspectivePointer,
                 markStatesEqual: jest.fn()
             }
@@ -84,7 +87,27 @@ describe('renderOrchestration/requestIntake', () => {
         expect(messageBus.send).toHaveBeenCalledWith(expect.objectContaining({ type: 'RenderLookupRequested' }))
     })
 
-    it('clears pointer and emits lookup handoff when state marks missing', async () => {
+    it('emits RenderReady on exact-match hit when no pointer exists', async () => {
+        const messageBus = makeBus()
+        await requestIntakeMessage(
+            { payloads: [basePayload], messageBus },
+            {
+                getMetaRoom: jest.fn().mockResolvedValue({ ...baseMetaRoom, currentCacheByPerspective: {} }),
+                computePerspectiveKey: jest.fn().mockReturnValue('PERSPECTIVE#v1#abc'),
+                getCacheRecordById: jest.fn(),
+                getExactMatch: jest.fn().mockResolvedValue(baseCacheRecord),
+                clearPerspectivePointer: jest.fn(),
+                markStatesEqual: jest.fn()
+            }
+        )
+        expect(messageBus.send).toHaveBeenCalledWith(expect.objectContaining({
+            type: 'RenderReady',
+            cacheId: 'CACHE#valid'
+        }))
+        expect(messageBus.send).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'RenderLookupRequested' }))
+    })
+
+    it('emits Error and does not clear pointer when state marks missing', async () => {
         const clearPerspectivePointer = jest.fn().mockResolvedValue(undefined)
         const messageBus = makeBus()
         await requestIntakeMessage(
@@ -93,12 +116,41 @@ describe('renderOrchestration/requestIntake', () => {
                 getMetaRoom: jest.fn().mockResolvedValue({ ...baseMetaRoom, state: undefined }),
                 computePerspectiveKey: jest.fn().mockReturnValue('PERSPECTIVE#v1#abc'),
                 getCacheRecordById: jest.fn().mockResolvedValue(baseCacheRecord),
+                getExactMatch: jest.fn(),
                 clearPerspectivePointer,
                 markStatesEqual: jest.fn().mockReturnValue(false)
             }
         )
-        expect(clearPerspectivePointer).toHaveBeenCalled()
-        expect(messageBus.send).toHaveBeenCalledWith(expect.objectContaining({ type: 'RenderLookupRequested' }))
+        expect(clearPerspectivePointer).not.toHaveBeenCalled()
+        expect(messageBus.send).toHaveBeenCalledWith(expect.objectContaining({
+            type: 'Error',
+            body: expect.objectContaining({
+                error: expect.stringContaining('Meta::Room.state.marks')
+            })
+        }))
+    })
+
+    it('emits Error when Meta::Room is missing', async () => {
+        const messageBus = makeBus()
+        const getCacheRecordById = jest.fn()
+        await requestIntakeMessage(
+            { payloads: [basePayload], messageBus },
+            {
+                getMetaRoom: jest.fn().mockResolvedValue(undefined),
+                computePerspectiveKey: jest.fn().mockReturnValue('PERSPECTIVE#v1#abc'),
+                getCacheRecordById,
+                getExactMatch: jest.fn(),
+                clearPerspectivePointer: jest.fn(),
+                markStatesEqual: jest.fn()
+            }
+        )
+        expect(getCacheRecordById).not.toHaveBeenCalled()
+        expect(messageBus.send).toHaveBeenCalledWith(expect.objectContaining({
+            type: 'Error',
+            body: expect.objectContaining({
+                error: expect.stringContaining('Meta::Room.state.marks')
+            })
+        }))
     })
 
     it('clears pointer and emits lookup handoff when markState mismatch', async () => {
@@ -110,6 +162,7 @@ describe('renderOrchestration/requestIntake', () => {
                 getMetaRoom: jest.fn().mockResolvedValue(baseMetaRoom),
                 computePerspectiveKey: jest.fn().mockReturnValue('PERSPECTIVE#v1#abc'),
                 getCacheRecordById: jest.fn().mockResolvedValue(baseCacheRecord),
+                getExactMatch: jest.fn().mockResolvedValue(null),
                 clearPerspectivePointer,
                 markStatesEqual: jest.fn().mockReturnValue(false)
             }
@@ -131,6 +184,7 @@ describe('renderOrchestration/requestIntake', () => {
                 getMetaRoom: jest.fn().mockResolvedValue(baseMetaRoom),
                 computePerspectiveKey: jest.fn().mockReturnValue('PERSPECTIVE#v1#abc'),
                 getCacheRecordById: jest.fn().mockResolvedValue(cacheRecord),
+                getExactMatch: jest.fn().mockResolvedValue(null),
                 clearPerspectivePointer,
                 markStatesEqual: jest.fn().mockReturnValue(true)
             }
@@ -147,11 +201,34 @@ describe('renderOrchestration/requestIntake', () => {
                 getMetaRoom: jest.fn().mockResolvedValue(baseMetaRoom),
                 computePerspectiveKey: jest.fn().mockReturnValue('PERSPECTIVE#v1#abc'),
                 getCacheRecordById: jest.fn().mockResolvedValue(undefined),
+                getExactMatch: jest.fn().mockResolvedValue(null),
                 clearPerspectivePointer: jest.fn().mockRejectedValue(new Error('boom')),
                 markStatesEqual: jest.fn()
             }
         )
         expect(messageBus.send).toHaveBeenCalledWith(expect.objectContaining({ type: 'RenderLookupRequested' }))
+    })
+
+    it('emits RenderReady on exact-match hit after invalid pointer', async () => {
+        const clearPerspectivePointer = jest.fn().mockResolvedValue(undefined)
+        const messageBus = makeBus()
+        await requestIntakeMessage(
+            { payloads: [basePayload], messageBus },
+            {
+                getMetaRoom: jest.fn().mockResolvedValue(baseMetaRoom),
+                computePerspectiveKey: jest.fn().mockReturnValue('PERSPECTIVE#v1#abc'),
+                getCacheRecordById: jest.fn().mockResolvedValue(undefined),
+                getExactMatch: jest.fn().mockResolvedValue(baseCacheRecord),
+                clearPerspectivePointer,
+                markStatesEqual: jest.fn()
+            }
+        )
+        expect(clearPerspectivePointer).toHaveBeenCalledWith('ROOM#one', 'PERSPECTIVE#v1#abc')
+        expect(messageBus.send).toHaveBeenCalledWith(expect.objectContaining({
+            type: 'RenderReady',
+            cacheId: 'CACHE#valid'
+        }))
+        expect(messageBus.send).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'RenderLookupRequested' }))
     })
 
     it('bypasses room fast-path for non-room componentIds', async () => {
@@ -164,6 +241,7 @@ describe('renderOrchestration/requestIntake', () => {
                 getMetaRoom,
                 computePerspectiveKey: jest.fn(),
                 getCacheRecordById: jest.fn(),
+                getExactMatch: jest.fn(),
                 clearPerspectivePointer: jest.fn(),
                 markStatesEqual: jest.fn()
             }

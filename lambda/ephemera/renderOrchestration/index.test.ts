@@ -1,4 +1,5 @@
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 import { MessageBus } from '../messageBus/baseClasses'
 import type { EphemeraCacheDynamoItem, EphemeraCacheMarkState } from '../renderCache/baseClasses'
 
@@ -68,7 +69,7 @@ const makeRenderPreviewRequested = (
     ({
         type: 'RenderPreviewRequested' as const,
         componentId: roomId,
-        perspective: { assetStack: ['ASSET#one', 'ASSET#two'] as const },
+        perspective: { assetStack: ['ASSET#one', 'ASSET#two'] as AssetUUID[] },
         markState: overrides.markState ?? makeMarkState([{ mark: 'MARK#a', value: 'x' }]),
         conversationId,
         ...(overrides.generationContextWml !== undefined
@@ -80,7 +81,7 @@ const makeRenderRequested = (): RenderRequested =>
     ({
         type: 'RenderRequested' as const,
         componentId: roomId,
-        perspective: { assetStack: ['ASSET#a', 'ASSET#b'] as const },
+        perspective: { assetStack: ['ASSET#a', 'ASSET#b'] as AssetUUID[] },
     })
 
 describe('renderOrchestration/index', () => {

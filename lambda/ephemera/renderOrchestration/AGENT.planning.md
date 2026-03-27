@@ -8,6 +8,10 @@ It implements the v2 architecture described in:
 
 - `lambda/ephemera/state/AGENT.v2.planning.md`
 
+Parallel-track declutter is tracked in:
+
+- `lambda/ephemera/renderOrchestration/AGENT.planning.simplification.md`
+
 ## Goals (v2)
 
 1. Implement a messageBus-based event cascade for render lifecycle orchestration.
@@ -282,6 +286,7 @@ With `internalCache.RenderCache`, render orchestration can:
 4. [x] **Request intake handler (fast path)**
    - Implement handler A to read `Meta::Room`, resolve perspective key, validate `currentCacheByPerspective[perspectiveKey]`, and publish `RenderReady` on hit.
    - On invalid pointer, clear that pointer entry and continue.
+   - **Temporary orchestration constraint (active):** treat missing `Meta::Room.state.marks` as an error for `RenderRequested` intake. Do not invent defaults in `requestIntake` yet; state-mark resolution policy is deferred to a later orchestration-focused task.
 5. **Handler B: Exact-match lookup (post-intake, not "LLM slow path")**
    - **Perspective shift (see "Module layering direction" above):** Task 5 is **orchestration**: after Handler A, decide whether an **exact-match** cache row already satisfies the request (using `Meta::Room` mark state or defaults + renderCache exact-match), then publish `RenderReady` on hit or hand off toward generation. That branching **belongs in the render orchestration cascade** (Handler B under **Handler plan**), not as an undocumented side effect of **`generateRoomPreview`**.
    - Implement exact-match lookup for the **`RenderRequested` / `RenderLookupRequested`** lifecycle and publish `RenderReady` on hit.
@@ -292,6 +297,7 @@ With `internalCache.RenderCache`, render orchestration can:
      - `RenderReady` is emitted for exact-match hits without starting generation.
    - Explicitly deferred (do not solve in Task 5):
      - presence/observer gating of whether `RenderReady` should be published at all when there are no passive observers. That policy is introduced and validated under Task 7 (state-change subscription wiring), because the preview wedge is not presence-gated.
+     - any fallback/default algorithm for missing room state marks; until that policy is chosen, missing marks remain an explicit intake error.
 
 ### Tier 2: Mostly clear tasks (some implementation choices open)
 

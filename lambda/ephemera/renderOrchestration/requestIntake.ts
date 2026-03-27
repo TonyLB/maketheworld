@@ -1,15 +1,21 @@
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { isEphemeraRoomId, type EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { perspectiveMatches, computePerspectiveKey } from '@tonylb/mtw-interfaces/ts/perspective'
+import { perspectiveMatches, computePerspectiveKey, type Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
 import type { EphemeraCacheId, EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { MessageBus } from '../messageBus/baseClasses'
-import { isEphemeraCacheDynamoItem, type EphemeraCacheDynamoItem } from '../renderCache/baseClasses'
+import { isEphemeraCacheDynamoItem, type EphemeraCacheDynamoItem, type EphemeraCacheMarkState } from '../renderCache/baseClasses'
 import { markStatesEqual } from '../renderCache/markStateUtils'
 import type { RenderLookupRequested, RenderReady, RenderRequested } from './events'
+import internalCache from '../internalCache'
 
 export type RequestIntakeDependencies = {
     getMetaRoom?: (roomId: EphemeraRoomId) => Promise<EphemeraMetaRoom | undefined>;
     getCacheRecordById?: (roomId: EphemeraRoomId, cacheId: EphemeraCacheId) => Promise<EphemeraCacheDynamoItem | undefined>;
+    getExactMatch?: (input: {
+        componentId: EphemeraRoomId;
+        proposedMarkState: EphemeraCacheMarkState;
+        perspective: Perspective;
+    }) => Promise<EphemeraCacheDynamoItem | null>;
     clearPerspectivePointer?: (roomId: EphemeraRoomId, perspectiveKey: string) => Promise<void>;
     computePerspectiveKey?: typeof computePerspectiveKey;
     markStatesEqual?: typeof markStatesEqual;
@@ -67,6 +73,14 @@ const toRenderReady = (payload: RenderRequested, cacheId: EphemeraCacheId, cache
     cacheRecord
 })
 
+const toMissingRoomStateError = (payload: RenderRequested) => ({
+    type: 'Error' as const,
+    body: {
+        error: `RenderRequested requires Meta::Room.state.marks for ${payload.componentId}`,
+        statusCode: 500
+    }
+})
+
 export const requestIntakeMessage = async (
     { payloads, messageBus }: { payloads: RenderRequested[]; messageBus: MessageBus },
     _deps?: RequestIntakeDependencies
@@ -74,6 +88,7 @@ export const requestIntakeMessage = async (
     const deps: Required<RequestIntakeDependencies> = {
         getMetaRoom: _deps?.getMetaRoom ?? defaultGetMetaRoom,
         getCacheRecordById: _deps?.getCacheRecordById ?? defaultGetCacheRecordById,
+        getExactMatch: _deps?.getExactMatch ?? ((input) => internalCache.RenderCache.getExactMatch(input)),
         clearPerspectivePointer: _deps?.clearPerspectivePointer ?? defaultClearPerspectivePointer,
         computePerspectiveKey: _deps?.computePerspectiveKey ?? computePerspectiveKey,
         markStatesEqual: _deps?.markStatesEqual ?? markStatesEqual
@@ -87,15 +102,31 @@ export const requestIntakeMessage = async (
 
         const roomId = payload.componentId
         const metaRoom = await deps.getMetaRoom(roomId)
-        const perspectiveKey = deps.computePerspectiveKey(payload.perspective.assetStack)
+        const stateMarks = metaRoom?.state?.marks
+        const perspective = payload.perspective
+
+        if (!stateMarks) {
+            messageBus.send(toMissingRoomStateError(payload))
+            return
+        }
+
+        const perspectiveKey = deps.computePerspectiveKey(perspective.assetStack)
         const pointerId = metaRoom?.currentCacheByPerspective?.[perspectiveKey] as EphemeraCacheId | undefined
 
         if (!pointerId) {
+            const exactMatch = await deps.getExactMatch({
+                componentId: roomId,
+                proposedMarkState: stateMarks,
+                perspective
+            })
+            if (exactMatch) {
+                messageBus.send(toRenderReady(payload, exactMatch.DataCategory as EphemeraCacheId, exactMatch))
+                return
+            }
             messageBus.send(toLookupRequested(payload))
             return
         }
 
-        const stateMarks = metaRoom?.state?.marks
         const cacheRecord = await deps.getCacheRecordById(roomId, pointerId)
 
         const isValid = !!(
@@ -116,6 +147,17 @@ export const requestIntakeMessage = async (
         catch {
             // best-effort pointer clearing; continue to slow-path handoff
         }
+
+        const exactMatch = await deps.getExactMatch({
+            componentId: roomId,
+            proposedMarkState: stateMarks,
+            perspective
+        })
+        if (exactMatch) {
+            messageBus.send(toRenderReady(payload, exactMatch.DataCategory as EphemeraCacheId, exactMatch))
+            return
+        }
+
         messageBus.send(toLookupRequested(payload))
     }))
 }
