@@ -11,6 +11,20 @@ This file tracks those parallel tracks so we can:
 
 Use this as a declutter board, not as a design brainstorm doc.
 
+## Strategic intent: two prototypes, one core (why migrate toward unity)
+
+Room generation did not start with two product pipelines. It started with a **first prototype**: preview-style flows (`generateRoomPreview` and friends) to prove that generation could work **at all**, using the roughest viable delivery. The **second prototype** is what we actually want long-term: **renders that emerge from state changes** (passive / lifecycle-driven orchestration).
+
+The **manual preview development path is intentionally disposable** once it has served its purpose. What we must **not** throw away is the **core behavior** that preview validated: exact-match vs generation, cache semantics, error and ordering properties, and the unit tests that guard them.
+
+So the high-value artifact is **not** "a refined preview pipeline and a separate optimized state-update pipeline" forever. It is **abstracting the shared core** so we:
+
+- keep everything that worked in the first prototype
+- add everything the second prototype needs (meta, pointers, lifecycle events, presence policy later)
+- **progressively migrate** preview-shaped code into that shared core while tests stay green, instead of letting two divergent definitions of "render" drift apart
+
+That is why simplification work should **move toward** a unified core (shared resolve logic + thin input/output adapters), not **away** from it. Parallel tracks in this inventory are technical debt when they duplicate that core without a clear merge or retire plan.
+
 ## Canonical direction (current)
 
 Until explicitly changed here, assume:
@@ -19,6 +33,23 @@ Until explicitly changed here, assume:
 - Preview generation implementation lives in `lambda/ephemera/renderOrchestration/generateRoomPreview.ts`.
 - Intake and exact-match for passive render requests are owned by `requestIntake.ts` and the renderOrchestration messageBus cascade.
 - Missing `Meta::Room.state.marks` in intake is a temporary explicit error constraint.
+
+## Input boundary (v1)
+
+The first shared choke-point type is `RenderResolveInput` in:
+
+- `lambda/ephemera/renderOrchestration/baseClasses.ts`
+
+It is the normalized **A-phase output** / **core input**: room, perspective, authoritative `markState`, `markProvenance` (`meta` vs `preview`), optional `pointerHint` from `Meta::Room.currentCacheByPerspective`, plus optional generation fields.
+
+**Mapping (current code, before refactor):**
+
+| Source | How it fills `RenderResolveInput` |
+|--------|-----------------------------------|
+| `RenderPreviewRequested` (`index.ts`) | `roomId` = `componentId`; `perspective` = payload; `markState` = payload; `markProvenance` = `'preview'`; `pointerHint` omitted; `allowGeneration` / `generationContextWml` from payload. |
+| `requestIntake` (after `Meta::Room` load) | `roomId` = room `componentId`; `perspective` = payload; `markState` = `metaRoom.state.marks` (or error before boundary); `markProvenance` = `'meta'`; `pointerHint` = `currentCacheByPerspective[perspectiveKey]` if set; generation fields from `RenderRequested`. |
+
+Bus-only fields (`characterId`, `targets`, `messageGroupId`, `conversationId`, `requestId`) stay **outside** this type until we define an output boundary or explicit correlation layer.
 
 ## Parallel speculative tracks inventory
 
