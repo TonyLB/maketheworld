@@ -1,4 +1,3 @@
-import type { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 import type { MessageBus } from '../messageBus/baseClasses'
 import internalCache from '../internalCache'
 import { isConversationCompositeReadHandleGenerateRoomPreview } from '../conversations/conversationTypes'
@@ -12,6 +11,7 @@ import {
 } from './events'
 import requestIntakeMessage from './requestIntake'
 import { generateRoomPreview } from './generateRoomPreview'
+import type { RenderResolveInput } from './baseClasses'
 
 /**
  * renderOrchestration public module surface
@@ -69,6 +69,16 @@ export type RenderOrchestrationSubscriptions = {
     unsubscribeAll: () => void;
 }
 
+/** A-phase adapter: bus message to shared resolve input (see AGENT.planning.simplification.md). */
+const mapRenderPreviewRequestedToResolveInput = (payload: RenderPreviewRequested): RenderResolveInput => ({
+    roomId: payload.componentId,
+    perspective: payload.perspective,
+    markState: payload.markState,
+    markProvenance: 'preview',
+    allowGeneration: payload.allowGeneration,
+    generationContextWml: payload.generationContextWml,
+})
+
 const handleRenderPreviewRequested = async (payload: RenderPreviewRequested): Promise<void> => {
     const composite = internalCache.Conversations.get(payload.conversationId)
     const rawHandle = composite?.handle
@@ -85,11 +95,11 @@ const handleRenderPreviewRequested = async (payload: RenderPreviewRequested): Pr
         })
     }
 
-    const perspective = { assetStack: payload.perspective.assetStack as AssetUUID[] }
+    const resolve = mapRenderPreviewRequestedToResolveInput(payload)
     const exactMatch = await internalCache.RenderCache.getExactMatch({
-        componentId: payload.componentId,
-        proposedMarkState: payload.markState,
-        perspective,
+        componentId: resolve.roomId,
+        proposedMarkState: resolve.markState,
+        perspective: resolve.perspective,
     })
     if (exactMatch) {
         if (handle !== undefined) {
@@ -103,10 +113,10 @@ const handleRenderPreviewRequested = async (payload: RenderPreviewRequested): Pr
 
     const result = await generateRoomPreview(
         {
-            roomId: payload.componentId,
-            markState: payload.markState,
-            assetStack: payload.perspective.assetStack,
-            generationContextWml: payload.generationContextWml,
+            roomId: resolve.roomId,
+            markState: resolve.markState,
+            assetStack: resolve.perspective.assetStack,
+            generationContextWml: resolve.generationContextWml,
         },
         {
             conversationId: payload.conversationId,
