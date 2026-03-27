@@ -1,6 +1,7 @@
 import {
     isRenderRequested,
     isRenderPreviewRequested,
+    isRenderOrchestrationRequestMessage,
     isRenderGenerationStarted,
     isRenderReady,
     isRenderGenerationCompleted,
@@ -30,6 +31,26 @@ describe('renderOrchestration events guards', () => {
             type: 'RenderRequested',
             ...base,
             perspective: { assetStack: ['ROOM#bad'] }
+        })).toBe(false)
+    })
+
+    it('isRenderOrchestrationRequestMessage matches RenderRequested and RenderPreviewRequested only', () => {
+        expect(isRenderOrchestrationRequestMessage({
+            type: 'RenderRequested',
+            ...base,
+        })).toBe(true)
+        expect(isRenderOrchestrationRequestMessage({
+            type: 'RenderPreviewRequested',
+            componentId: 'ROOM#room',
+            perspective: { assetStack: ['ASSET#a'] },
+            markState: { markValue: [] },
+            conversationId: '550e8400-e29b-41d4-a716-446655440000',
+        })).toBe(true)
+        expect(isRenderOrchestrationRequestMessage({
+            type: 'RenderReady',
+            componentId: 'ROOM#room',
+            perspective: { assetStack: ['ASSET#a'] },
+            cacheId: 'CACHE#x',
         })).toBe(false)
     })
 

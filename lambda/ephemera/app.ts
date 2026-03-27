@@ -35,18 +35,20 @@ import { confirmGuestCharacter } from './guestCharacter'
 import { AssetsEventSerializer, ComponentExamplesEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
 import { fromEventBridgeFormat } from '@tonylb/mtw-lambda-patterns/ts/dataSource/formatTransform'
 import { coreFormatToStreamingEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
-import { generateRoomPreview } from './renderOrchestration/generateRoomPreview'
+import { registerRenderOrchestration } from './renderOrchestration'
 import {
     CONVERSATION_PAYLOAD_STUB,
     CONVERSATION_TYPE_GENERATE_ROOM_PREVIEW,
     registerConversation,
 } from './conversations'
-import { isConversationCompositeReadHandleGenerateRoomPreview } from './conversations/conversationTypes'
 
 // Import DataSources to trigger their messageBus subscriptions (side-effect imports)
 import './dataSource'  // mtw.ephemera DataSource
 import './dataSource/componentExamples'  // mtw.ephemera.examples DataSource
 import './dataSource/renderCache'  // mtw.ephemera.renderCache DataSource
+
+// Wire here (not in `messageBus/index.ts`): `renderOrchestration` pulls in `internalCache`, which imports this `messageBus` module; registering after imports avoids a circular init.
+registerRenderOrchestration(messageBus)
 
 // Event deserializers for incoming EventBridge events
 const eventDeserializers = {
@@ -252,37 +254,15 @@ export const handler = async (event: any, context: any) => {
                     },
                     payload: CONVERSATION_PAYLOAD_STUB,
                 })
-                const composite = internalCache.Conversations.get(conversationId)
-                const rawHandle = composite?.handle
-                const handle =
-                    rawHandle !== undefined && isConversationCompositeReadHandleGenerateRoomPreview(rawHandle)
-                        ? rawHandle
-                        : undefined
-
-                if (handle === undefined) {
-                    console.error('Conversations.get: missing or non-generateRoomPreview handle after registerConversation', {
-                        conversationId,
-                        compositeFound: composite !== undefined,
-                        compositeHandleKind: rawHandle?.kind,
-                    })
-                }
-                const result = await generateRoomPreview(
-                    {
-                        roomId: request.RoomId,
-                        markState: request.markState,
-                        assetStack: request.assetStack,
-                        generationContextWml: request.generationContextWml,
-                    },
-                    {
-                        conversationId,
-                        onGenerating: async () => {
-                            await handle?.sendMessage('generating')
-                        },
-                    }
-                )
-                if (handle !== undefined) {
-                    await handle.sendMessage(result)
-                }
+                messageBus.send({
+                    type: 'RenderPreviewRequested',
+                    componentId: request.RoomId as EphemeraRoomId,
+                    perspective: { assetStack: request.assetStack as AssetUUID[] },
+                    markState: request.markState,
+                    generationContextWml: request.generationContextWml,
+                    conversationId,
+                    ...(request.RequestId !== undefined ? { requestId: request.RequestId } : {}),
+                })
             }
 
         }

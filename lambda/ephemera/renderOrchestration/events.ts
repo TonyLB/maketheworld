@@ -79,6 +79,9 @@ export type RenderGenerationFailed = RenderTargetContext & {
     errorMessage: string;
 }
 
+/** Entry messages that start render work: passive {@link RenderRequested} vs authoring {@link RenderPreviewRequested}. */
+export type RenderOrchestrationRequestMessage = RenderRequested | RenderPreviewRequested
+
 export type RenderOrchestrationMessage =
     | RenderRequested
     | RenderPreviewRequested
@@ -274,5 +277,9 @@ export const isRenderOrchestrationMessage = (value: unknown): value is RenderOrc
     || isRenderReady(value)
     || isRenderGenerationCompleted(value)
     || isRenderGenerationFailed(value)
+)
+
+export const isRenderOrchestrationRequestMessage = (value: unknown): value is RenderOrchestrationRequestMessage => (
+    isRenderRequested(value) || isRenderPreviewRequested(value)
 )
 
