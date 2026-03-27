@@ -57,6 +57,8 @@ export type { RequestIntakeDependencies } from './requestIntake'
 export { generateRoomPreview, defaultPublishPutCacheRecord } from './generateRoomPreview'
 export type { GenerateRoomPreviewInput, GenerateRoomPreviewOptions } from './generateRoomPreview'
 
+export type { RenderResolveInput, RenderResolveMarkProvenance } from './baseClasses'
+
 export type RenderOrchestrationSubscriptions = {
     /**
      * Unsubscribe all handlers registered by `registerRenderOrchestration`.
