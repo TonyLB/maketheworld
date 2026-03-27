@@ -6,6 +6,7 @@ import { MessageBus } from '../messageBus/baseClasses'
 import { isEphemeraCacheDynamoItem, type EphemeraCacheDynamoItem, type EphemeraCacheMarkState } from '../renderCache/baseClasses'
 import { markStatesEqual } from '../renderCache/markStateUtils'
 import type { RenderLookupRequested, RenderReady, RenderRequested } from './events'
+import type { RenderResolveInput } from './baseClasses'
 import internalCache from '../internalCache'
 
 export type RequestIntakeDependencies = {
@@ -113,11 +114,21 @@ export const requestIntakeMessage = async (
         const perspectiveKey = deps.computePerspectiveKey(perspective.assetStack)
         const pointerId = metaRoom?.currentCacheByPerspective?.[perspectiveKey] as EphemeraCacheId | undefined
 
+        const resolve: RenderResolveInput = {
+            roomId,
+            perspective,
+            markState: stateMarks,
+            markProvenance: 'meta',
+            allowGeneration: payload.allowGeneration,
+            generationContextWml: payload.generationContextWml,
+            ...(pointerId !== undefined ? { pointerHint: pointerId } : {}),
+        }
+
         if (!pointerId) {
             const exactMatch = await deps.getExactMatch({
-                componentId: roomId,
-                proposedMarkState: stateMarks,
-                perspective
+                componentId: resolve.roomId,
+                proposedMarkState: resolve.markState,
+                perspective: resolve.perspective,
             })
             if (exactMatch) {
                 messageBus.send(toRenderReady(payload, exactMatch.DataCategory as EphemeraCacheId, exactMatch))
@@ -127,13 +138,12 @@ export const requestIntakeMessage = async (
             return
         }
 
-        const cacheRecord = await deps.getCacheRecordById(roomId, pointerId)
+        const cacheRecord = await deps.getCacheRecordById(resolve.roomId, pointerId)
 
         const isValid = !!(
-            stateMarks
-            && cacheRecord
-            && deps.markStatesEqual(stateMarks, cacheRecord.markState)
-            && perspectiveMatches(cacheRecord.perspectiveMatcher, payload.perspective)
+            cacheRecord
+            && deps.markStatesEqual(resolve.markState, cacheRecord.markState)
+            && perspectiveMatches(cacheRecord.perspectiveMatcher, resolve.perspective)
         )
 
         if (isValid && cacheRecord) {
@@ -142,16 +152,16 @@ export const requestIntakeMessage = async (
         }
 
         try {
-            await deps.clearPerspectivePointer(roomId, perspectiveKey)
+            await deps.clearPerspectivePointer(resolve.roomId, perspectiveKey)
         }
         catch {
             // best-effort pointer clearing; continue to slow-path handoff
         }
 
         const exactMatch = await deps.getExactMatch({
-            componentId: roomId,
-            proposedMarkState: stateMarks,
-            perspective
+            componentId: resolve.roomId,
+            proposedMarkState: resolve.markState,
+            perspective: resolve.perspective,
         })
         if (exactMatch) {
             messageBus.send(toRenderReady(payload, exactMatch.DataCategory as EphemeraCacheId, exactMatch))
