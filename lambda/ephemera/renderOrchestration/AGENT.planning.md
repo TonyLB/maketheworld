@@ -301,23 +301,24 @@ With `internalCache.RenderCache`, render orchestration can:
 
 ### Tier 2: Mostly clear tasks (some implementation choices open)
 
-6. **Generation path + completion updates**
-   - Implement the cache-miss lifecycle (generation allowed vs not allowed), keeping preview and presence delivery distinct.
-   - On miss when generation is allowed:
-     - emit `RenderGenerationStarted` (presence-aligned) and/or stream a preview progress step (preview-aligned) only after we know we are on the slow path.
-     - enqueue/perform generation and produce cache record fields (markState, renderedContent, provenance, perspectiveId, perspectiveMatcher, optional situation/authoredExample ids).
-   - Persist via the DataSource command rather than direct Dynamo writes:
-     - `api.ephemera` streaming envelope type `Put Cache Record` (via `sendPutCacheRecord`)
-     - `mtw.ephemera.renderCache` performs the Dynamo write.
-   - React to `mtw.ephemera.renderCache` outcomes:
-     - On `Cache Updated`: update `currentCacheByPerspective[perspectiveKey]` to the returned `CACHE#...` id, then emit `RenderReady`.
-     - On `Cache Error`: clear/invalidate the perspective pointer entry and emit `RenderGenerationFailed` (or defer rerender based on policy).
+6. [x] **Generation path + completion updates (core; done)**
+   - [x] Cache-miss branching: when `RenderRequested` intake finds no satisfying row, **`allowGeneration`** selects generation in `requestIntake` vs **`RenderLookupRequested`** handoff (preview and passive paths stay distinct at the type level).
+   - [x] On miss when generation is allowed: call **`generateRoomPreview`** (shared slow path after exact-match): LLM + build cache row fields (markState, renderedContent, provenance, perspectiveId, perspectiveMatcher; optional ids remain future fields).
+   - [x] Pre-mint **`DataCategory`** / return **`cacheId`** + materialized **`cacheRecord`** from generation so orchestration can emit **`RenderReady`** with a full row without waiting on the async write round-trip.
+   - [x] Persist via the DataSource command (not ad hoc Dynamo from orchestration): **`sendPutCacheRecord`** / `Put Cache Record` on `api.ephemera`, executed by **`mtw.ephemera.renderCache`**.
+   - [x] Passive path: mint **`conversationId`**, register **`roomStateRender`** in `internalCache.Conversations`, wire **`onGenerating`** to the composite handle (progress delivery still stubbed in **`materializeRoomStateRender`** until client/stream wiring).
+   - [x] Preview-aligned ordering: preview **"generating"** step only on the slow path (exact-match and invalid-context do not emit it); unchanged from preview orchestration in **`renderOrchestration/index.ts`**.
+
+6.5. **Generation path + completion updates (cache lifecycle & presence ordering; open)**
+   - Emit **`RenderGenerationStarted`** on the passive / state-driven path when committing to the slow (generation) path (after exact-match miss), before terminal success or failure.
+   - React to **`mtw.ephemera.renderCache`** bus outcomes instead of treating the synchronous return from **`generateRoomPreview`** as the only completion signal:
+     - On **`Cache Updated`**: update **`Meta::Room.currentCacheByPerspective[perspectiveKey]`** to the persisted **`CACHE#...`** id, then emit **`RenderReady`** (reconcile with today's eager **`RenderReady`** if the product contract requires persistence-ack-first).
+     - On **`Cache Error`**: clear/invalidate the perspective pointer entry and emit **`RenderGenerationFailed`** (or defer rerender per policy).
    - Ordering acceptance criteria (presence-aligned):
-     - `RenderGenerationStarted` before any terminal completion (success/failure).
-     - pointer update happens before `RenderReady`.
-   - Ordering acceptance criteria (preview-aligned):
-     - preview "generating" step must be slow-path-only (no progress step on exact-match hits or invalid-context errors).
-   - Explicitly deferred (do not solve in Task 6):
+     - **`RenderGenerationStarted`** before any terminal completion (success/failure).
+     - pointer update aligned with **`Cache Updated`** before **`RenderReady`** when that contract is adopted.
+   - Add ordering tests (see Task 9) once the above is wired.
+   - Explicitly deferred (still not in 6.5):
      - the no-passive-observers early-exit gate for state-driven renders (invalidate pointers only; do not generate). That gate is implemented and tested under Task 7.
 7. **State-change subscription wiring**
    - Subscribe renderOrchestration to state change messages.
