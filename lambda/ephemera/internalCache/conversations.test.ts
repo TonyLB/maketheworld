@@ -1,9 +1,13 @@
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraCacheId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraCacheDynamoItem } from '../renderCache/baseClasses'
 import { apiClient } from '@tonylb/mtw-utilities/ts/apiManagement/apiManagementClient'
 import type { MessageBus } from '../messageBus/baseClasses'
 import {
     CONVERSATION_PAYLOAD_STUB,
+    CONVERSATION_TYPE_ROOM_STATE_RENDER,
     isConversationCompositeReadHandleGenerateRoomPreview,
+    isConversationCompositeReadHandleRoomStateRender,
     type StorableConversationRecord,
 } from '../conversations/conversationTypes'
 import ConversationsData from './conversations'
@@ -15,6 +19,17 @@ jest.mock('@tonylb/mtw-utilities/ts/apiManagement/apiManagementClient', () => ({
 }))
 
 const testRoomId = 'ROOM#test-room' as EphemeraRoomId
+
+const previewTerminalCacheId = 'CACHE#00000000-0000-4000-8000-000000000001' as EphemeraCacheId
+const previewTerminalCacheRecord: EphemeraCacheDynamoItem = {
+    EphemeraId: testRoomId,
+    DataCategory: previewTerminalCacheId,
+    markState: { markValue: [] },
+    renderedContent: { description: ['x'] },
+    provenance: { type: 'generated' },
+    perspectiveId: 'PERSPECTIVE#stub',
+    perspectiveMatcher: { requiredAssetIds: [], forbiddenAssetIds: [] },
+}
 
 const makeRecord = (conversationId: string): StorableConversationRecord => ({
     conversationId,
@@ -34,6 +49,35 @@ const makeGlobals = () => ({
 describe('ConversationsData', () => {
     beforeEach(() => {
         jest.clearAllMocks()
+    })
+
+    it('set and get round-trip returns live composite handle for roomStateRender', () => {
+        const send = jest.fn()
+        const cache = new ConversationsData(
+            makeGlobals() as unknown as any,
+            { send } as unknown as MessageBus
+        )
+        const id = 'conv-rsr-001'
+        const record: StorableConversationRecord = {
+            conversationId: id,
+            type: CONVERSATION_TYPE_ROOM_STATE_RENDER,
+            routing: {
+                roomId: testRoomId,
+                perspectiveId: 'PERSPECTIVE#stub',
+                requestId: 'req-rsr-1',
+            },
+            payload: CONVERSATION_PAYLOAD_STUB,
+        }
+        cache.set(record)
+        const got = cache.get(id)
+        expect(got).toMatchObject({
+            record,
+            handle: {
+                kind: 'conversationCompositeReadRoomStateRender',
+                sendMessage: expect.any(Function),
+            },
+        })
+        expect(isConversationCompositeReadHandleRoomStateRender(got!.handle)).toBe(true)
     })
 
     it('set and get round-trip returns live composite handle for generateRoomPreview', () => {
@@ -167,7 +211,9 @@ describe('ConversationsData', () => {
         }
         await handle.sendMessage({
             success: true,
-            renderedContent: { test: true } as never,
+            renderedContent: { description: ['x'] },
+            cacheId: previewTerminalCacheId,
+            cacheRecord: previewTerminalCacheRecord,
         })
 
         expect(apiClient.send).toHaveBeenCalledTimes(1)
@@ -178,7 +224,12 @@ describe('ConversationsData', () => {
                 conversationId: id,
                 pipeline: 'generateRoomPreview',
                 step: 'complete',
-                generateRoomPreview: { success: true, renderedContent: { test: true } },
+                generateRoomPreview: {
+                    success: true,
+                    renderedContent: { description: ['x'] },
+                    cacheId: previewTerminalCacheId,
+                    cacheRecord: previewTerminalCacheRecord,
+                },
                 RequestId: 'req-1',
             }),
         })

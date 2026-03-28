@@ -1,11 +1,9 @@
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import { CONVERSATION_PAYLOAD_STUB } from '../baseClasses'
-import {
-    isStorableConversationRecordGenerateRoomPreview,
-    type StorableConversationRecord,
-    type StorableConversationRecordGenerateRoomPreview,
-} from './baseClasses'
+import type { StorableConversationRecord } from '../storableConversationRecord'
+import { isStorableConversationRecordGenerateRoomPreview } from '../storableConversationRecord'
+import type { StorableConversationRecordGenerateRoomPreview } from './baseClasses'
 
 const roomId = 'ROOM#guard-test' as EphemeraRoomId
 

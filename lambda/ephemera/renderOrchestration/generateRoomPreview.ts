@@ -1,16 +1,20 @@
 import { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraCacheId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { AssetUUID } from '@tonylb/mtw-base/ts/schema'
+import { v4 as uuidv4 } from 'uuid'
 import { perspectiveMatches, computePerspectiveKey } from '@tonylb/mtw-interfaces/ts/perspective'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
-import type {
-    EphemeraCacheComponentId,
-    EphemeraCacheMarkState,
+import {
+    EPHEMERA_CACHE_DATA_CATEGORY_PREFIX,
+    EPHEMERA_CACHE_PROVENANCE_GENERATED,
+    type EphemeraCacheComponentId,
+    type EphemeraCacheDynamoItem,
+    type EphemeraCacheMarkState,
 } from '../renderCache/baseClasses'
 import type { ConversationId } from '../conversations'
 import type { GenerateRoomPreviewResult } from '../conversations/conversationTypes/generateRoomPreview'
 import type { PutCacheRecordInput } from '../dataSource/renderCache/putCacheRecord'
 import type { QueryCacheRecordsForComponentFn } from '../dataSource/renderCache/queryCacheRecordsForComponent'
-import { EPHEMERA_CACHE_PROVENANCE_GENERATED } from '../renderCache/baseClasses'
 import internalCache from '../internalCache'
 import { generateRoomDescription } from '../generateExample'
 import { sendPutCacheRecord } from '../dataSource/apiEphemera'
@@ -135,10 +139,19 @@ export const generateRoomPreview = async (
         perspectiveId,
         perspectiveMatcher,
     }
-    await publishPutCacheRecord(roomId, record, undefined, conversationId)
+    // Pre-mint `DataCategory` and pass as `existingDataCategory` so `putCacheRecord` uses this key (same as a new row) and callers get the id without waiting on the bus.
+    const cacheId = `${EPHEMERA_CACHE_DATA_CATEGORY_PREFIX}${uuidv4()}` as EphemeraCacheId
+    const cacheRecord: EphemeraCacheDynamoItem = {
+        EphemeraId: roomId,
+        DataCategory: cacheId,
+        ...record,
+    }
+    await publishPutCacheRecord(roomId, record, cacheId, conversationId)
 
     return {
         success: true,
-        renderedContent: descriptionResult.renderedContent
+        renderedContent: descriptionResult.renderedContent,
+        cacheId,
+        cacheRecord,
     }
 }

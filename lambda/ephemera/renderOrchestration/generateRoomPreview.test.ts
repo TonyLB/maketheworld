@@ -1,7 +1,12 @@
+jest.mock('uuid', () => ({
+    __esModule: true,
+    v4: () => 'aaaaaaaa-bbbb-4ccc-dddd-eeeeeeeeeeee',
+}))
+
 import { generateRoomPreview } from './generateRoomPreview'
 import type {
     EphemeraCacheMarkState,
-    EphemeraCacheRenderedContent
+    EphemeraCacheRenderedContent,
 } from '../renderCache/baseClasses'
 
 const makeMarkState = (entries: Array<{ mark: string; value: string }>): EphemeraCacheMarkState => ({
@@ -126,7 +131,21 @@ describe('renderOrchestration/generateRoomPreview', () => {
             }
         )
 
-        expect(result).toEqual({ success: true, renderedContent })
+        expect(result.success).toBe(true)
+        if (!result.success) {
+            throw new Error('expected success')
+        }
+        expect(result.renderedContent).toEqual(renderedContent)
+        expect(result.cacheId).toBe('CACHE#aaaaaaaa-bbbb-4ccc-dddd-eeeeeeeeeeee')
+        expect(result.cacheRecord).toMatchObject({
+            EphemeraId: roomId,
+            DataCategory: result.cacheId,
+            markState,
+            renderedContent,
+            provenance: { type: 'generated' },
+            perspectiveMatcher: { requiredAssetIds: assetStack, forbiddenAssetIds: [] },
+        })
+        expect(typeof result.cacheRecord.perspectiveId).toBe('string')
         expect(publishPutCacheRecord).toHaveBeenCalledTimes(1)
         expect(publishPutCacheRecord).toHaveBeenCalledWith(
             roomId,
@@ -136,7 +155,7 @@ describe('renderOrchestration/generateRoomPreview', () => {
                 provenance: { type: 'generated' },
                 perspectiveMatcher: { requiredAssetIds: assetStack, forbiddenAssetIds: [] }
             }),
-            undefined,
+            'CACHE#aaaaaaaa-bbbb-4ccc-dddd-eeeeeeeeeeee',
             undefined
         )
     })
@@ -176,7 +195,7 @@ describe('renderOrchestration/generateRoomPreview', () => {
         expect(publishPutCacheRecord).toHaveBeenCalledWith(
             roomId,
             expect.objectContaining({ provenance: { type: 'generated' } }),
-            undefined,
+            'CACHE#aaaaaaaa-bbbb-4ccc-dddd-eeeeeeeeeeee',
             'conv-thread-1'
         )
     })

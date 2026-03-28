@@ -1,6 +1,7 @@
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraCacheId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
-import type { EphemeraCacheRenderedContent } from '../../../renderCache/baseClasses'
+import type { EphemeraCacheDynamoItem, EphemeraCacheRenderedContent } from '../../../renderCache/baseClasses'
 
 import type { ConversationId, ConversationPayloadStub } from '../baseClasses'
 
@@ -32,6 +33,10 @@ export type StorableConversationRecordGenerateRoomPreview = {
 export type GenerateRoomPreviewSuccess = {
     success: true
     renderedContent: EphemeraCacheRenderedContent
+    /** Row key for the render-cache write (minted before `Put Cache Record` is enqueued; matches Dynamo `DataCategory`). */
+    cacheId: EphemeraCacheId
+    /** Materialized row matching what `putCacheRecord` persists for that `cacheId`. */
+    cacheRecord: EphemeraCacheDynamoItem
 }
 
 export type GenerateRoomPreviewFailure =
@@ -55,19 +60,4 @@ export type ConversationHandleGenerateRoomPreview = StorableConversationRecordGe
      * `materialize` enriches this into the shared `ConversationStep` wire shape.
      */
     sendMessage: (arg: 'generating' | GenerateRoomPreviewResult) => Promise<void>
-}
-
-/**
- * Serializable conversation rows only (no functions). Persisted / in-cache shape.
- * Section 4: add further `| StorableConversationRecord...` members.
- */
-export type StorableConversationRecord = StorableConversationRecordGenerateRoomPreview
-
-/**
- * Narrows `StorableConversationRecord` to the generateRoomPreview variant (`type` discriminant).
- */
-export function isStorableConversationRecordGenerateRoomPreview(
-    record: StorableConversationRecord
-): record is StorableConversationRecordGenerateRoomPreview {
-    return record.type === CONVERSATION_TYPE_GENERATE_ROOM_PREVIEW
 }

@@ -1,3 +1,13 @@
+/**
+ * Passive `RenderRequested` intake: Meta pointer, exact-match, optional generation when
+ * {@link RenderResolveInput.allowGeneration} is set.
+ *
+ * **Delivery note:** Intermediate and terminal messages are published via `messageBus` (e.g. `RenderReady`,
+ * `RenderLookupRequested`, `Error`). There may be no subscribers yet that forward these to clients; and
+ * under the current `messageBus` flush model, nested sends may not be observable until the active handler
+ * completes. See `renderOrchestration/AGENT.planning.simplification.md`.
+ */
+import { v4 as uuidv4 } from 'uuid'
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { isEphemeraRoomId, type EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { perspectiveMatches, computePerspectiveKey, type Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
@@ -5,8 +15,14 @@ import type { EphemeraCacheId, EphemeraMetaRoom } from '@tonylb/mtw-interfaces/t
 import { MessageBus } from '../messageBus/baseClasses'
 import { isEphemeraCacheDynamoItem, type EphemeraCacheDynamoItem, type EphemeraCacheMarkState } from '../renderCache/baseClasses'
 import { markStatesEqual } from '../renderCache/markStateUtils'
+import {
+    CONVERSATION_PAYLOAD_STUB,
+    CONVERSATION_TYPE_ROOM_STATE_RENDER,
+    isConversationCompositeReadHandleRoomStateRender,
+} from '../conversations/conversationTypes'
 import type { RenderLookupRequested, RenderReady, RenderRequested } from './events'
 import type { RenderResolveInput, RenderResolveOutput } from './baseClasses'
+import { generateRoomPreview } from './generateRoomPreview'
 import internalCache from '../internalCache'
 
 export type RequestIntakeDependencies = {
@@ -20,6 +36,8 @@ export type RequestIntakeDependencies = {
     clearPerspectivePointer?: (roomId: EphemeraRoomId, perspectiveKey: string) => Promise<void>;
     computePerspectiveKey?: typeof computePerspectiveKey;
     markStatesEqual?: typeof markStatesEqual;
+    /** Override for tests; default is {@link generateRoomPreview}. */
+    generateRoomPreview?: typeof generateRoomPreview;
 }
 
 const defaultGetMetaRoom = async (roomId: EphemeraRoomId): Promise<EphemeraMetaRoom | undefined> => (
@@ -82,6 +100,77 @@ const toMissingRoomStateError = (payload: RenderRequested) => ({
     }
 })
 
+const toRenderResolveFailureError = (output: Extract<RenderResolveOutput, { type: 'failed' }>) => ({
+    type: 'Error' as const,
+    body: {
+        error: `${output.errorCode}: ${output.errorMessage}`,
+        statusCode: 500
+    }
+})
+
+type RequestIntakeDepsResolved = Required<Omit<RequestIntakeDependencies, 'generateRoomPreview'>> & {
+    generateRoomPreview: typeof generateRoomPreview;
+}
+
+/**
+ * When exact-match fails and {@link RenderResolveInput.allowGeneration} is set, mint a conversation id,
+ * register `roomStateRender`, and run the shared slow-path generator (same core as preview).
+ * Returns `null` when generation is not allowed (caller should hand off to lookup).
+ */
+const tryRequestIntakeGeneration = async (
+    resolve: RenderResolveInput,
+    deps: RequestIntakeDepsResolved
+): Promise<RenderResolveOutput | null> => {
+    if (!resolve.allowGeneration) {
+        return null
+    }
+
+    const conversationId = uuidv4()
+    const perspectiveId = deps.computePerspectiveKey(resolve.perspective.assetStack)
+    internalCache.Conversations.set({
+        conversationId,
+        type: CONVERSATION_TYPE_ROOM_STATE_RENDER,
+        routing: { roomId: resolve.roomId, perspectiveId },
+        payload: CONVERSATION_PAYLOAD_STUB,
+    })
+
+    const composite = internalCache.Conversations.get(conversationId)
+    const rawHandle = composite?.handle
+    const roomStateHandle =
+        rawHandle !== undefined && isConversationCompositeReadHandleRoomStateRender(rawHandle)
+            ? rawHandle
+            : undefined
+
+    const result = await deps.generateRoomPreview(
+        {
+            roomId: resolve.roomId,
+            markState: resolve.markState,
+            assetStack: resolve.perspective.assetStack,
+            generationContextWml: resolve.generationContextWml,
+        },
+        {
+            conversationId,
+            onGenerating: async () => {
+                await roomStateHandle?.sendMessage('generating')
+            },
+        }
+    )
+
+    if (result.success) {
+        return {
+            type: 'resolved',
+            renderedContent: result.renderedContent,
+            cacheId: result.cacheId,
+            cacheRecord: result.cacheRecord,
+        }
+    }
+    return {
+        type: 'failed',
+        errorCode: result.errorCode,
+        errorMessage: result.errorMessage,
+    }
+}
+
 /**
  * Core room path: Meta::Room load, pointer validation, exact-match, pointer clear.
  * Returns {@link RenderResolveOutput} (no bus delivery). Caller must have verified `componentId` is a room.
@@ -89,7 +178,7 @@ const toMissingRoomStateError = (payload: RenderRequested) => ({
 const executeRequestIntakeResolve = async (
     payload: RenderRequested,
     roomId: EphemeraRoomId,
-    deps: Required<RequestIntakeDependencies>
+    deps: RequestIntakeDepsResolved
 ): Promise<RenderResolveOutput> => {
     const metaRoom = await deps.getMetaRoom(roomId)
     const stateMarks = metaRoom?.state?.marks
@@ -129,6 +218,10 @@ const executeRequestIntakeResolve = async (
                 cacheId: exactMatch.DataCategory as EphemeraCacheId,
                 cacheRecord: exactMatch,
             }
+        }
+        const generated = await tryRequestIntakeGeneration(resolve, deps)
+        if (generated !== null) {
+            return generated
         }
         return { type: 'lookup_handoff' }
     }
@@ -171,6 +264,10 @@ const executeRequestIntakeResolve = async (
         }
     }
 
+    const generated = await tryRequestIntakeGeneration(resolve, deps)
+    if (generated !== null) {
+        return generated
+    }
     return { type: 'lookup_handoff' }
 }
 
@@ -193,25 +290,27 @@ const deliverRequestIntakeOutput = (
         messageBus.send(toLookupRequested(payload))
         return
     }
-    if (output.errorCode === 'META_ROOM_MARKS_MISSING') {
-        messageBus.send(toMissingRoomStateError(payload))
-        return
+    if (output.type === 'failed') {
+        if (output.errorCode === 'META_ROOM_MARKS_MISSING') {
+            messageBus.send(toMissingRoomStateError(payload))
+            return
+        }
+        messageBus.send(toRenderResolveFailureError(output))
     }
-    console.error('requestIntake deliver: unexpected failure outcome', output)
-    messageBus.send(toLookupRequested(payload))
 }
 
 export const requestIntakeMessage = async (
     { payloads, messageBus }: { payloads: RenderRequested[]; messageBus: MessageBus },
     _deps?: RequestIntakeDependencies
 ): Promise<void> => {
-    const deps: Required<RequestIntakeDependencies> = {
+    const deps: RequestIntakeDepsResolved = {
         getMetaRoom: _deps?.getMetaRoom ?? defaultGetMetaRoom,
         getCacheRecordById: _deps?.getCacheRecordById ?? defaultGetCacheRecordById,
         getExactMatch: _deps?.getExactMatch ?? ((input) => internalCache.RenderCache.getExactMatch(input)),
         clearPerspectivePointer: _deps?.clearPerspectivePointer ?? defaultClearPerspectivePointer,
         computePerspectiveKey: _deps?.computePerspectiveKey ?? computePerspectiveKey,
-        markStatesEqual: _deps?.markStatesEqual ?? markStatesEqual
+        markStatesEqual: _deps?.markStatesEqual ?? markStatesEqual,
+        generateRoomPreview: _deps?.generateRoomPreview ?? generateRoomPreview,
     }
 
     await Promise.all(payloads.map(async (payload) => {

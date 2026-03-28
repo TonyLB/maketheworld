@@ -1,10 +1,14 @@
 import type { MessageBus } from '../messageBus/baseClasses'
 import type { EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraCacheDynamoItem } from '../renderCache/baseClasses'
+import internalCache from '../internalCache'
 import { requestIntakeMessage } from './requestIntake'
 import type { RenderRequested } from './events'
 
 describe('renderOrchestration/requestIntake', () => {
+    beforeEach(() => {
+        internalCache.clear()
+    })
     const basePayload: RenderRequested = {
         type: 'RenderRequested',
         componentId: 'ROOM#one',
@@ -248,6 +252,76 @@ describe('renderOrchestration/requestIntake', () => {
         )
         expect(getMetaRoom).not.toHaveBeenCalled()
         expect(messageBus.send).toHaveBeenCalledWith(expect.objectContaining({ type: 'RenderLookupRequested' }))
+    })
+
+    it('runs generation and emits RenderReady when allowGeneration and no cache hit', async () => {
+        const generatedRow: EphemeraCacheDynamoItem = {
+            ...baseCacheRecord,
+            DataCategory: 'CACHE#generated',
+            provenance: { type: 'generated' },
+        }
+        const generateRoomPreview = jest.fn().mockResolvedValue({
+            success: true,
+            renderedContent: { description: [{ tag: 'String', value: 'Generated' }] },
+            cacheId: 'CACHE#generated',
+            cacheRecord: generatedRow,
+        })
+        const messageBus = makeBus()
+        const payload: RenderRequested = {
+            ...basePayload,
+            allowGeneration: true,
+            generationContextWml: '<Asset key=(Test) />',
+        }
+        await requestIntakeMessage(
+            { payloads: [payload], messageBus },
+            {
+                getMetaRoom: jest.fn().mockResolvedValue({ ...baseMetaRoom, currentCacheByPerspective: {} }),
+                computePerspectiveKey: jest.fn().mockReturnValue('PERSPECTIVE#v1#abc'),
+                getCacheRecordById: jest.fn(),
+                getExactMatch: jest.fn().mockResolvedValue(null),
+                clearPerspectivePointer: jest.fn(),
+                markStatesEqual: jest.fn(),
+                generateRoomPreview,
+            }
+        )
+        expect(generateRoomPreview).toHaveBeenCalled()
+        expect(messageBus.send).toHaveBeenCalledWith(expect.objectContaining({
+            type: 'RenderReady',
+            cacheId: 'CACHE#generated',
+        }))
+        expect(messageBus.send).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'RenderLookupRequested' }))
+    })
+
+    it('emits Error when allowGeneration set but generation returns CONTEXT_REQUIRED', async () => {
+        const generateRoomPreview = jest.fn().mockResolvedValue({
+            success: false,
+            errorCode: 'CONTEXT_REQUIRED',
+            errorMessage: 'Generation context required',
+        })
+        const messageBus = makeBus()
+        const payload: RenderRequested = {
+            ...basePayload,
+            allowGeneration: true,
+        }
+        await requestIntakeMessage(
+            { payloads: [payload], messageBus },
+            {
+                getMetaRoom: jest.fn().mockResolvedValue({ ...baseMetaRoom, currentCacheByPerspective: {} }),
+                computePerspectiveKey: jest.fn().mockReturnValue('PERSPECTIVE#v1#abc'),
+                getCacheRecordById: jest.fn(),
+                getExactMatch: jest.fn().mockResolvedValue(null),
+                clearPerspectivePointer: jest.fn(),
+                markStatesEqual: jest.fn(),
+                generateRoomPreview,
+            }
+        )
+        expect(generateRoomPreview).toHaveBeenCalled()
+        expect(messageBus.send).toHaveBeenCalledWith(expect.objectContaining({
+            type: 'Error',
+            body: expect.objectContaining({
+                error: expect.stringContaining('CONTEXT_REQUIRED'),
+            }),
+        }))
     })
 })
 
