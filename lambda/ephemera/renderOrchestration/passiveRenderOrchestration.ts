@@ -15,6 +15,7 @@ import {
     CONVERSATION_TYPE_ROOM_STATE_RENDER,
     isConversationCompositeReadHandleRoomStateRender,
 } from '../conversations/conversationTypes'
+import type { ConversationId } from '../conversations'
 import type { RenderRequested } from './events'
 import type { RenderResolveInput, RenderResolveOutput } from './baseClasses'
 import {
@@ -78,20 +79,12 @@ export const defaultClearPerspectivePointer = async (roomId: EphemeraRoomId, per
 
 const tryPassiveRenderGeneration = async (
     resolve: RenderResolveInput,
-    deps: PassiveOrchestrationDepsResolved
+    deps: PassiveOrchestrationDepsResolved,
+    conversationId: ConversationId
 ): Promise<RenderResolveOutput | null> => {
     if (!resolve.allowGeneration) {
         return null
     }
-
-    const conversationId = uuidv4()
-    const perspectiveId = deps.computePerspectiveKey(resolve.perspective.assetStack)
-    internalCache.Conversations.set({
-        conversationId,
-        type: CONVERSATION_TYPE_ROOM_STATE_RENDER,
-        routing: { roomId: resolve.roomId, perspectiveId },
-        payload: CONVERSATION_PAYLOAD_STUB,
-    })
 
     const composite = internalCache.Conversations.get(conversationId)
     const rawHandle = composite?.handle
@@ -166,6 +159,15 @@ export const orchestratePassiveRenderRequestedBatch = async (
             return
         }
 
+        const conversationId = uuidv4() as ConversationId
+        const perspectiveId = orchDeps.computePerspectiveKey(intake.input.perspective.assetStack)
+        internalCache.Conversations.set({
+            conversationId,
+            type: CONVERSATION_TYPE_ROOM_STATE_RENDER,
+            routing: { roomId: intake.input.roomId, perspectiveId },
+            payload: CONVERSATION_PAYLOAD_STUB,
+        })
+
         const output = await findRender(intake.input, {
             getExactMatch: orchDeps.getExactMatch,
             getCacheRecordById: orchDeps.getCacheRecordById,
@@ -173,7 +175,7 @@ export const orchestratePassiveRenderRequestedBatch = async (
             computePerspectiveKey: orchDeps.computePerspectiveKey,
             markStatesEqual: orchDeps.markStatesEqual,
             perspectiveMatches,
-            tryGeneration: (r) => tryPassiveRenderGeneration(r, orchDeps),
+            tryGeneration: (r) => tryPassiveRenderGeneration(r, orchDeps, conversationId),
         })
         deliverRenderResolveForPassive(intake.payload, messageBus, output)
     }))

@@ -6,7 +6,7 @@ import { RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION, type RenderResolveInpu
 
 /**
  * Dependencies for {@link findRender}: cache lookup, Meta pointer maintenance, and optional generation.
- * Generation is injected so preview (fixed conversation) and passive (minted roomStateRender) stay outside.
+ * Generation is injected so preview (fixed conversation) and passive (pre-registered roomStateRender id) stay outside.
  */
 export type FindRenderDependencies = {
     getExactMatch: (input: {
