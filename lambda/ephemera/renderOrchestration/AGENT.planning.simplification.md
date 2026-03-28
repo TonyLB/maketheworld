@@ -103,10 +103,12 @@ When a new implementation appears for an existing responsibility:
 
 **Delivery layer (phase 1 done):** `renderOrchestration/deliverRenderResolve.ts` exports `deliverRenderResolveForPassive` and `deliverRenderResolveForPreview`; `requestIntake.ts` and `renderOrchestration/index.ts` call these after resolve.
 
+**Resolve layer (phase 2 done):** `renderOrchestration/findRender.ts` exports `findRender` (pointer validation, exact-match, `tryGeneration` hook, lookup handoff). Pointer clear on invalid hint lives only here. Passive and preview wire different `tryGeneration` implementations; `index.ts` re-exports `findRender` for other callers (e.g. Track B).
+
 **Phased sequence (recommended order)**
 
 1. **Delivery first** -- [done] Extract delivery from `requestIntake.ts` and `index.ts` into `deliverRenderResolve.ts` (paired functions), invoked from both paths **after** resolve.
-2. **findRender second** -- Implement shared resolve (`findRender` or equivalent); replace duplicated resolve behavior in `index` and `requestIntake` with calls into it.
+2. **findRender second** -- [done] Shared resolve in `findRender.ts`; `requestIntake.ts` and `index.ts` call `findRender` before delivery; generation is injected via `tryGeneration`.
 3. **Intake / shell third** -- Narrow `requestIntake` to **intake only** (return `RenderResolveInput` or errors); have `renderOrchestration/index` (or a single orchestration entry) call **findRender** then **delivery**. Optionally converge preview and passive behind one intake surface that accepts every supported request type.
 
 Do **not** add a fourth parallel implementation (e.g. a duplicate orchestration stack) as a "bridge" to a future `renderOrchestration` dataSource; **unify core + delivery**, then relocate the **caller** (messageBus registration vs dataSource) in one move when ready.
@@ -142,6 +144,13 @@ Use this mini template for each simplification decision:
 - **Canonical owner:**
 - **Tracks affected:**
 - **Follow-up tasks:**
+
+- **Date:** 2026-03-28
+- **Topic:** findRender horizontal (B-phase)
+- **Decision:** Centralize resolve in `findRender.ts`. Invalid pointer rows are cleared inside `findRender` only. Preview passes no-op `getCacheRecordById` / `clearPerspectivePointer` because `pointerHint` is never set on that path. Generation differences stay in `tryGeneration` (`tryRequestIntakeGeneration` vs preview `generateRoomPreview`).
+- **Canonical owner:** `lambda/ephemera/renderOrchestration/findRender.ts`
+- **Tracks affected:** Track A (passive + preview orchestration); Track B may call `findRender` next.
+- **Follow-up tasks:** Intake-only shell (phase 3 in this file); align `AGENT.md` / `AGENT.planning.md` if needed.
 
 ## Exit criteria for this simplification phase
 

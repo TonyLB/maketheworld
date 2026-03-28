@@ -11,6 +11,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { isEphemeraRoomId, type EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { perspectiveMatches, computePerspectiveKey, type Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
+import { findRender } from './findRender'
 import type { EphemeraCacheId, EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { MessageBus } from '../messageBus/baseClasses'
 import { isEphemeraCacheDynamoItem, type EphemeraCacheDynamoItem, type EphemeraCacheMarkState } from '../renderCache/baseClasses'
@@ -168,70 +169,15 @@ const executeRequestIntakeResolve = async (
         ...(pointerId !== undefined ? { pointerHint: pointerId } : {}),
     }
 
-    if (!pointerId) {
-        const exactMatch = await deps.getExactMatch({
-            componentId: resolve.roomId,
-            proposedMarkState: resolve.markState,
-            perspective: resolve.perspective,
-        })
-        if (exactMatch) {
-            return {
-                type: 'resolved',
-                renderedContent: exactMatch.renderedContent,
-                cacheId: exactMatch.DataCategory as EphemeraCacheId,
-                cacheRecord: exactMatch,
-            }
-        }
-        const generated = await tryRequestIntakeGeneration(resolve, deps)
-        if (generated !== null) {
-            return generated
-        }
-        return { type: 'lookup_handoff' }
-    }
-
-    const cacheRecord = await deps.getCacheRecordById(resolve.roomId, pointerId)
-
-    const isValid = !!(
-        cacheRecord
-        && deps.markStatesEqual(resolve.markState, cacheRecord.markState)
-        && perspectiveMatches(cacheRecord.perspectiveMatcher, resolve.perspective)
-    )
-
-    if (isValid && cacheRecord) {
-        return {
-            type: 'resolved',
-            renderedContent: cacheRecord.renderedContent,
-            cacheId: pointerId,
-            cacheRecord,
-        }
-    }
-
-    try {
-        await deps.clearPerspectivePointer(resolve.roomId, perspectiveKey)
-    }
-    catch {
-        // best-effort pointer clearing; continue to slow-path handoff
-    }
-
-    const exactMatch = await deps.getExactMatch({
-        componentId: resolve.roomId,
-        proposedMarkState: resolve.markState,
-        perspective: resolve.perspective,
+    return findRender(resolve, {
+        getExactMatch: deps.getExactMatch,
+        getCacheRecordById: deps.getCacheRecordById,
+        clearPerspectivePointer: deps.clearPerspectivePointer,
+        computePerspectiveKey: deps.computePerspectiveKey,
+        markStatesEqual: deps.markStatesEqual,
+        perspectiveMatches,
+        tryGeneration: (r) => tryRequestIntakeGeneration(r, deps),
     })
-    if (exactMatch) {
-        return {
-            type: 'resolved',
-            renderedContent: exactMatch.renderedContent,
-            cacheId: exactMatch.DataCategory as EphemeraCacheId,
-            cacheRecord: exactMatch,
-        }
-    }
-
-    const generated = await tryRequestIntakeGeneration(resolve, deps)
-    if (generated !== null) {
-        return generated
-    }
-    return { type: 'lookup_handoff' }
 }
 
 export const requestIntakeMessage = async (
