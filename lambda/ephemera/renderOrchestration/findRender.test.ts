@@ -3,7 +3,7 @@ import type { Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
 import { perspectiveMatches, computePerspectiveKey } from '@tonylb/mtw-interfaces/ts/perspective'
 import type { EphemeraCacheDynamoItem, EphemeraCacheMarkState } from '../renderCache/baseClasses'
 import { markStatesEqual } from '../renderCache/markStateUtils'
-import type { RenderResolveInput } from './baseClasses'
+import { RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION, type RenderResolveInput } from './baseClasses'
 import { findRender } from './findRender'
 
 describe('findRender', () => {
@@ -65,7 +65,10 @@ describe('findRender', () => {
         }
         const out = await findRender(resolve, deps)
         expect(deps.clearPerspectivePointer).toHaveBeenCalled()
-        expect(out).toEqual({ type: 'lookup_handoff' })
+        expect(out).toEqual({
+            type: 'invalidate',
+            reason: RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION,
+        })
     })
 
     it('short-circuits on exact match when no pointer', async () => {
@@ -80,11 +83,14 @@ describe('findRender', () => {
         expect(deps.tryGeneration).not.toHaveBeenCalled()
     })
 
-    it('returns lookup_handoff when tryGeneration returns null', async () => {
+    it('returns invalidate when tryGeneration returns null', async () => {
         const deps = baseDeps()
         deps.tryGeneration.mockResolvedValue(null)
         const out = await findRender(baseResolve, deps)
-        expect(out).toEqual({ type: 'lookup_handoff' })
+        expect(out).toEqual({
+            type: 'invalidate',
+            reason: RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION,
+        })
         expect(deps.tryGeneration).toHaveBeenCalled()
     })
 
@@ -135,7 +141,7 @@ describe('findRender', () => {
         }
     })
 
-    it('continues to lookup handoff if pointer clearing throws', async () => {
+    it('continues to invalidate if pointer clearing throws', async () => {
         const deps = baseDeps()
         deps.getCacheRecordById.mockResolvedValue(undefined)
         deps.clearPerspectivePointer.mockRejectedValue(new Error('boom'))
@@ -144,6 +150,9 @@ describe('findRender', () => {
             pointerHint: 'CACHE#x',
         }
         const out = await findRender(resolve, deps)
-        expect(out).toEqual({ type: 'lookup_handoff' })
+        expect(out).toEqual({
+            type: 'invalidate',
+            reason: RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION,
+        })
     })
 })

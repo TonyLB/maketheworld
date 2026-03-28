@@ -36,7 +36,6 @@ export {
     isRenderOrchestrationRequestMessage,
     isRenderRequested,
     isRenderPreviewRequested,
-    isRenderLookupRequested,
     isRenderError,
     isRenderInvalidate,
     isRenderGenerationStarted,
@@ -51,7 +50,6 @@ export type {
     RenderOrchestrationRequestMessage,
     RenderRequested,
     RenderPreviewRequested,
-    RenderLookupRequested,
     RenderError,
     RenderInvalidate,
     RenderGenerationStarted,
@@ -89,12 +87,19 @@ export type {
     RenderResolveMarkProvenance,
     RenderResolveOutput,
     RenderResolveOutputFailed,
-    RenderResolveOutputLookupHandoff,
+    RenderResolveOutputInvalidate,
     RenderResolveOutputResolved,
 } from './baseClasses'
 
+export { RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION } from './baseClasses'
+
 export { findRender } from './findRender'
 export type { FindRenderDependencies } from './findRender'
+
+export {
+    deliverRenderOrchestrationRenderError,
+    RENDER_ERROR_CODE_NOT_ROOM,
+} from './deliverRenderResolve'
 
 export type RenderOrchestrationSubscriptions = {
     /**
@@ -116,7 +121,10 @@ const intakeRenderPreviewRequested = (payload: RenderPreviewRequested): RenderRe
     generationContextWml: payload.generationContextWml,
 })
 
-const handleRenderPreviewRequested = async (payload: RenderPreviewRequested): Promise<void> => {
+const handleRenderPreviewRequested = async (
+    payload: RenderPreviewRequested,
+    messageBus: MessageBus
+): Promise<void> => {
     const composite = internalCache.Conversations.get(payload.conversationId)
     const rawHandle = composite?.handle
     const handle =
@@ -170,7 +178,7 @@ const handleRenderPreviewRequested = async (payload: RenderPreviewRequested): Pr
             }
         },
     })
-    await deliverRenderResolveForPreview(output, handle)
+    await deliverRenderResolveForPreview(output, handle, messageBus, payload)
 }
 
 /**
@@ -191,7 +199,7 @@ export const handleRenderOrchestrationMessage = async ({
 
     await Promise.all([
         renderRequested.length > 0 ? orchestratePassiveRenderRequestedBatch({ payloads: renderRequested, messageBus }) : Promise.resolve(),
-        Promise.all(renderPreviewRequested.map((p) => handleRenderPreviewRequested(p))),
+        Promise.all(renderPreviewRequested.map((p) => handleRenderPreviewRequested(p, messageBus))),
     ])
 }
 

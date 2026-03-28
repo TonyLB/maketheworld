@@ -17,7 +17,11 @@ import {
 } from '../conversations/conversationTypes'
 import type { RenderRequested } from './events'
 import type { RenderResolveInput, RenderResolveOutput } from './baseClasses'
-import { deliverRenderResolveForPassive } from './deliverRenderResolve'
+import {
+    deliverRenderOrchestrationRenderError,
+    deliverRenderResolveForPassive,
+    RENDER_ERROR_CODE_NOT_ROOM,
+} from './deliverRenderResolve'
 import { findRender } from './findRender'
 import { generateRoomPreview } from './generateRoomPreview'
 import { intakePassiveRenderRequested } from './requestIntake'
@@ -146,7 +150,10 @@ export const orchestratePassiveRenderRequestedBatch = async (
         const intake = await intakePassiveRenderRequested(payload, _deps)
 
         if (intake.type === 'not_room') {
-            deliverRenderResolveForPassive(intake.payload, messageBus, { type: 'lookup_handoff' })
+            deliverRenderOrchestrationRenderError(messageBus, intake.payload, {
+                errorCode: RENDER_ERROR_CODE_NOT_ROOM,
+                errorMessage: `RenderRequested componentId must be a room id for passive render: ${intake.payload.componentId}`,
+            })
             return
         }
 

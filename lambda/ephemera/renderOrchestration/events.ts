@@ -58,12 +58,6 @@ export type RenderGenerationStarted = RenderTargetContext & RenderComponentPersp
     type: 'RenderGenerationStarted';
 }
 
-export type RenderLookupRequested = RenderTargetContext & RenderComponentPerspective & {
-    type: 'RenderLookupRequested';
-    allowGeneration?: boolean;
-    generationContextWml?: string;
-}
-
 /**
  * Terminal render orchestration failure on the render message bus (e.g. intake invariant, resolve failure).
  * Distinct from {@link RenderGenerationFailed}, which is scoped to the generation lifecycle.
@@ -76,8 +70,7 @@ export type RenderError = RenderTargetContext & RenderComponentPerspective & {
 
 /**
  * Request that cached render hints for this component and perspective be cleared or treated stale
- * (e.g. Meta::Room `currentCacheByPerspective` entry). Carries the same correlation shell as
- * {@link RenderLookupRequested} for subscribers that may replace lookup-handoff delivery.
+ * (e.g. Meta::Room `currentCacheByPerspective` entry).
  */
 export type RenderInvalidate = RenderTargetContext & RenderComponentPerspective & {
     type: 'RenderInvalidate';
@@ -108,7 +101,6 @@ export type RenderOrchestrationRequestMessage = RenderRequested | RenderPreviewR
 export type RenderOrchestrationMessage =
     | RenderRequested
     | RenderPreviewRequested
-    | RenderLookupRequested
     | RenderError
     | RenderInvalidate
     | RenderGenerationStarted
@@ -217,29 +209,6 @@ export const isRenderGenerationStarted = (value: unknown): value is RenderGenera
     )
 }
 
-export const isRenderLookupRequested = (value: unknown): value is RenderLookupRequested => {
-    if (!value || typeof value !== 'object') {
-        return false
-    }
-    const castValue = value as Record<string, unknown>
-    if (castValue.type !== 'RenderLookupRequested') {
-        return false
-    }
-    if (!isRenderComponentId(castValue.componentId)) {
-        return false
-    }
-    if (!isPerspective(castValue.perspective)) {
-        return false
-    }
-    if ('allowGeneration' in castValue && castValue.allowGeneration !== undefined && typeof castValue.allowGeneration !== 'boolean') {
-        return false
-    }
-    if ('generationContextWml' in castValue && castValue.generationContextWml !== undefined && typeof castValue.generationContextWml !== 'string') {
-        return false
-    }
-    return hasValidTargetContext(castValue)
-}
-
 export const isRenderError = (value: unknown): value is RenderError => {
     if (!value || typeof value !== 'object') {
         return false
@@ -340,7 +309,6 @@ export const isRenderGenerationFailed = (value: unknown): value is RenderGenerat
 export const isRenderOrchestrationMessage = (value: unknown): value is RenderOrchestrationMessage => (
     isRenderRequested(value)
     || isRenderPreviewRequested(value)
-    || isRenderLookupRequested(value)
     || isRenderError(value)
     || isRenderInvalidate(value)
     || isRenderGenerationStarted(value)

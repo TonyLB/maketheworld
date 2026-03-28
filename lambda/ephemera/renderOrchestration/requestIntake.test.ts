@@ -97,7 +97,7 @@ describe('renderOrchestration/passive shell (requestIntakeMessage)', () => {
             type: 'RenderReady',
             cacheId: 'CACHE#valid'
         }))
-        expect(messageBus.send).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'RenderLookupRequested' }))
+        expect(messageBus.send).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'RenderInvalidate' }))
     })
 
     it('emits lookup handoff when no pointer exists', async () => {
@@ -113,7 +113,7 @@ describe('renderOrchestration/passive shell (requestIntakeMessage)', () => {
                 markStatesEqual: jest.fn()
             }
         )
-        expect(messageBus.send).toHaveBeenCalledWith(expect.objectContaining({ type: 'RenderLookupRequested' }))
+        expect(messageBus.send).toHaveBeenCalledWith(expect.objectContaining({ type: 'RenderInvalidate' }))
     })
 
     it('clears pointer and emits lookup handoff when record missing', async () => {
@@ -131,7 +131,7 @@ describe('renderOrchestration/passive shell (requestIntakeMessage)', () => {
             }
         )
         expect(clearPerspectivePointer).toHaveBeenCalledWith('ROOM#one', 'PERSPECTIVE#v1#abc')
-        expect(messageBus.send).toHaveBeenCalledWith(expect.objectContaining({ type: 'RenderLookupRequested' }))
+        expect(messageBus.send).toHaveBeenCalledWith(expect.objectContaining({ type: 'RenderInvalidate' }))
     })
 
     it('emits RenderReady on exact-match hit when no pointer exists', async () => {
@@ -151,7 +151,7 @@ describe('renderOrchestration/passive shell (requestIntakeMessage)', () => {
             type: 'RenderReady',
             cacheId: 'CACHE#valid'
         }))
-        expect(messageBus.send).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'RenderLookupRequested' }))
+        expect(messageBus.send).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'RenderInvalidate' }))
     })
 
     it('emits Error and does not clear pointer when state marks missing', async () => {
@@ -215,7 +215,7 @@ describe('renderOrchestration/passive shell (requestIntakeMessage)', () => {
             }
         )
         expect(clearPerspectivePointer).toHaveBeenCalled()
-        expect(messageBus.send).toHaveBeenCalledWith(expect.objectContaining({ type: 'RenderLookupRequested' }))
+        expect(messageBus.send).toHaveBeenCalledWith(expect.objectContaining({ type: 'RenderInvalidate' }))
     })
 
     it('clears pointer and emits lookup handoff when perspective mismatches', async () => {
@@ -237,7 +237,7 @@ describe('renderOrchestration/passive shell (requestIntakeMessage)', () => {
             }
         )
         expect(clearPerspectivePointer).toHaveBeenCalled()
-        expect(messageBus.send).toHaveBeenCalledWith(expect.objectContaining({ type: 'RenderLookupRequested' }))
+        expect(messageBus.send).toHaveBeenCalledWith(expect.objectContaining({ type: 'RenderInvalidate' }))
     })
 
     it('continues to lookup handoff if pointer clearing fails', async () => {
@@ -253,7 +253,7 @@ describe('renderOrchestration/passive shell (requestIntakeMessage)', () => {
                 markStatesEqual: jest.fn()
             }
         )
-        expect(messageBus.send).toHaveBeenCalledWith(expect.objectContaining({ type: 'RenderLookupRequested' }))
+        expect(messageBus.send).toHaveBeenCalledWith(expect.objectContaining({ type: 'RenderInvalidate' }))
     })
 
     it('emits RenderReady on exact-match hit after invalid pointer', async () => {
@@ -275,7 +275,7 @@ describe('renderOrchestration/passive shell (requestIntakeMessage)', () => {
             type: 'RenderReady',
             cacheId: 'CACHE#valid'
         }))
-        expect(messageBus.send).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'RenderLookupRequested' }))
+        expect(messageBus.send).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'RenderInvalidate' }))
     })
 
     it('bypasses room fast-path for non-room componentIds', async () => {
@@ -294,7 +294,10 @@ describe('renderOrchestration/passive shell (requestIntakeMessage)', () => {
             }
         )
         expect(getMetaRoom).not.toHaveBeenCalled()
-        expect(messageBus.send).toHaveBeenCalledWith(expect.objectContaining({ type: 'RenderLookupRequested' }))
+        expect(messageBus.send).toHaveBeenCalledWith(expect.objectContaining({
+            type: 'RenderError',
+            errorCode: 'RENDER_REQUESTED_NOT_ROOM',
+        }))
     })
 
     it('runs generation and emits RenderReady when allowGeneration and no cache hit', async () => {
@@ -332,7 +335,7 @@ describe('renderOrchestration/passive shell (requestIntakeMessage)', () => {
             type: 'RenderReady',
             cacheId: 'CACHE#generated',
         }))
-        expect(messageBus.send).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'RenderLookupRequested' }))
+        expect(messageBus.send).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'RenderInvalidate' }))
     })
 
     it('emits Error when allowGeneration set but generation returns CONTEXT_REQUIRED', async () => {

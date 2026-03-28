@@ -2,18 +2,55 @@ import type { EphemeraCacheId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { MessageBus } from '../messageBus/baseClasses'
 import type { EphemeraCacheDynamoItem } from '../renderCache/baseClasses'
 import type { ConversationCompositeReadHandleGenerateRoomPreview } from '../conversations/conversationTypes'
-import type { RenderLookupRequested, RenderReady, RenderRequested } from './events'
+import type {
+    RenderError,
+    RenderInvalidate,
+    RenderPreviewRequested,
+    RenderReady,
+    RenderRequested,
+} from './events'
 import type { RenderResolveOutput } from './baseClasses'
 
-const toLookupRequested = (payload: RenderRequested): RenderLookupRequested => ({
-    type: 'RenderLookupRequested',
+/** Passive {@link RenderRequested} is not a room id; Meta/cache resolve does not apply. */
+export const RENDER_ERROR_CODE_NOT_ROOM = 'RENDER_REQUESTED_NOT_ROOM'
+
+const toRenderError = (
+    payload: RenderRequested | RenderPreviewRequested,
+    errorCode: string,
+    errorMessage: string
+): RenderError => ({
+    type: 'RenderError',
     componentId: payload.componentId,
     perspective: payload.perspective,
     characterId: payload.characterId,
     targets: payload.targets,
     messageGroupId: payload.messageGroupId,
-    allowGeneration: payload.allowGeneration,
-    generationContextWml: payload.generationContextWml
+    errorCode,
+    errorMessage,
+})
+
+/**
+ * Publish {@link RenderError} on the message bus (passive not-room, preview terminal errors, etc.).
+ */
+export const deliverRenderOrchestrationRenderError = (
+    messageBus: MessageBus,
+    payload: RenderRequested | RenderPreviewRequested,
+    error: { errorCode: string; errorMessage: string }
+): void => {
+    messageBus.send(toRenderError(payload, error.errorCode, error.errorMessage))
+}
+
+const toRenderInvalidate = (
+    payload: RenderRequested | RenderPreviewRequested,
+    reason?: string
+): RenderInvalidate => ({
+    type: 'RenderInvalidate',
+    componentId: payload.componentId,
+    perspective: payload.perspective,
+    characterId: payload.characterId,
+    targets: payload.targets,
+    messageGroupId: payload.messageGroupId,
+    ...(reason !== undefined ? { reason } : {}),
 })
 
 const toRenderReady = (payload: RenderRequested, cacheId: EphemeraCacheId, cacheRecord: EphemeraCacheDynamoItem): RenderReady => ({
@@ -44,7 +81,7 @@ const toRenderResolveFailureError = (output: Extract<RenderResolveOutput, { type
 })
 
 /**
- * Passive / state-driven path: map {@link RenderResolveOutput} to `messageBus` envelopes (`RenderReady`, `RenderLookupRequested`, `Error`).
+ * Passive / state-driven path: map {@link RenderResolveOutput} to `messageBus` envelopes (`RenderReady`, `RenderInvalidate`, `RenderError`, `Error`).
  */
 export const deliverRenderResolveForPassive = (
     payload: RenderRequested,
@@ -60,8 +97,8 @@ export const deliverRenderResolveForPassive = (
         messageBus.send(toRenderReady(payload, cacheId, cacheRecord))
         return
     }
-    if (output.type === 'lookup_handoff') {
-        messageBus.send(toLookupRequested(payload))
+    if (output.type === 'invalidate') {
+        messageBus.send(toRenderInvalidate(payload, output.reason))
         return
     }
     if (output.type === 'failed') {
@@ -74,12 +111,19 @@ export const deliverRenderResolveForPassive = (
 }
 
 /**
- * Preview path: map {@link RenderResolveOutput} to the conversation `generateRoomPreview` `sendMessage` contract.
+ * Preview path: map {@link RenderResolveOutput} to the conversation `generateRoomPreview` `sendMessage` contract,
+ * and {@link RenderInvalidate} on the bus when resolve returns `invalidate` (cache miss, generation did not run).
  */
 export const deliverRenderResolveForPreview = async (
     output: RenderResolveOutput,
-    handle: ConversationCompositeReadHandleGenerateRoomPreview | undefined
+    handle: ConversationCompositeReadHandleGenerateRoomPreview | undefined,
+    messageBus: MessageBus,
+    previewPayload: RenderPreviewRequested
 ): Promise<void> => {
+    if (output.type === 'invalidate') {
+        messageBus.send(toRenderInvalidate(previewPayload, output.reason))
+        return
+    }
     if (handle === undefined) {
         return
     }
@@ -95,10 +139,6 @@ export const deliverRenderResolveForPreview = async (
             cacheId,
             cacheRecord,
         })
-        return
-    }
-    if (output.type === 'lookup_handoff') {
-        console.error('preview path produced unexpected lookup_handoff outcome')
         return
     }
     const { errorCode, errorMessage } = output

@@ -99,11 +99,11 @@ When a new implementation appears for an existing responsibility:
 |-------|------|--------|
 | **Intake** | Wire / world -> `RenderResolveInput` (A-phase) | Passive: `intakePassiveRenderRequested` + `PassiveIntakeResult` (`renderIntake.ts`). Preview: map in `index.ts`. Intake-only errors (e.g. missing marks) do not publish the bus. |
 | **findRender** (resolve) | `RenderResolveInput` -> `RenderResolveOutput` (B-phase core) | Pointer validation, exact-match, generation; single implementation shared by all pipelines. Policy for pointer clear lives in one place (intake vs findRender: pick one rule; do not split). |
-| **Delivery** | `RenderResolveOutput` + context -> side effects | Bus (`RenderReady`, `RenderLookupRequested`, `Error`), preview conversation `sendMessage`, future dataSource subscribers. Two adapters (passive vs preview) are still **one** delivery layer, not two resolve stacks. |
+| **Delivery** | `RenderResolveOutput` + context -> side effects | Bus (`RenderReady`, `RenderInvalidate`, `RenderError`, legacy `Error`), preview conversation `sendMessage`, future dataSource subscribers. Two adapters (passive vs preview) are still **one** delivery layer, not two resolve stacks. |
 
 **Delivery layer (phase 1 done):** `renderOrchestration/deliverRenderResolve.ts` exports `deliverRenderResolveForPassive` and `deliverRenderResolveForPreview`; the passive shell (`passiveRenderOrchestration.ts`) and preview handler in `index.ts` call these after resolve.
 
-**Resolve layer (phase 2 done):** `renderOrchestration/findRender.ts` exports `findRender` (pointer validation, exact-match, `tryGeneration` hook, lookup handoff). Pointer clear on invalid hint lives only here. Passive and preview wire different `tryGeneration` implementations; `index.ts` re-exports `findRender` for other callers (e.g. Track B).
+**Resolve layer (phase 2 done):** `renderOrchestration/findRender.ts` exports `findRender` (pointer validation, exact-match, `tryGeneration` hook, `invalidate` when no match and generation does not run). Pointer clear on invalid hint lives only here. Passive and preview wire different `tryGeneration` implementations; `index.ts` re-exports `findRender` for other callers (e.g. Track B).
 
 **Phased sequence (recommended order)**
 

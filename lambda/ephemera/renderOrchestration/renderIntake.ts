@@ -14,7 +14,7 @@ export type PassiveIntakeResultMarksMissing = {
     payload: RenderRequested;
 };
 
-/** `componentId` is not a room; shell maps to `lookup_handoff`. */
+/** `componentId` is not a room; shell publishes `RenderError` (`RENDER_REQUESTED_NOT_ROOM`). */
 export type PassiveIntakeResultNotRoom = {
     type: 'not_room';
     payload: RenderRequested;

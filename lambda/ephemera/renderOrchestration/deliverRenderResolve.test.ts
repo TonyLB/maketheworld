@@ -1,7 +1,8 @@
 import type { MessageBus } from '../messageBus/baseClasses'
 import type { EphemeraCacheDynamoItem } from '../renderCache/baseClasses'
 import type { ConversationCompositeReadHandleGenerateRoomPreview } from '../conversations/conversationTypes'
-import type { RenderRequested } from './events'
+import type { RenderPreviewRequested, RenderRequested } from './events'
+import { RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION } from './baseClasses'
 import { deliverRenderResolveForPassive, deliverRenderResolveForPreview } from './deliverRenderResolve'
 
 describe('deliverRenderResolve', () => {
@@ -23,6 +24,14 @@ describe('deliverRenderResolve', () => {
 
     const makeBus = (): MessageBus => ({ send: jest.fn() } as unknown as MessageBus)
 
+    const basePreviewPayload: RenderPreviewRequested = {
+        type: 'RenderPreviewRequested',
+        componentId: 'ROOM#one',
+        perspective: { assetStack: ['ASSET#base'] },
+        markState: { markValue: [] },
+        conversationId: '550e8400-e29b-41d4-a716-446655440000',
+    }
+
     describe('deliverRenderResolveForPassive', () => {
         it('sends RenderReady when resolved with cacheId and cacheRecord', () => {
             const messageBus = makeBus()
@@ -42,11 +51,15 @@ describe('deliverRenderResolve', () => {
             }))
         })
 
-        it('sends RenderLookupRequested on lookup_handoff', () => {
+        it('sends RenderInvalidate on invalidate', () => {
             const messageBus = makeBus()
-            deliverRenderResolveForPassive(basePayload, messageBus, { type: 'lookup_handoff' })
+            deliverRenderResolveForPassive(basePayload, messageBus, {
+                type: 'invalidate',
+                reason: RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION,
+            })
             expect(messageBus.send).toHaveBeenCalledWith(expect.objectContaining({
-                type: 'RenderLookupRequested',
+                type: 'RenderInvalidate',
+                reason: RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION,
             }))
         })
 
@@ -112,6 +125,7 @@ describe('deliverRenderResolve', () => {
         })
 
         it('does nothing when handle is undefined', async () => {
+            const messageBus = makeBus()
             await deliverRenderResolveForPreview(
                 {
                     type: 'resolved',
@@ -119,12 +133,15 @@ describe('deliverRenderResolve', () => {
                     cacheId: 'CACHE#valid',
                     cacheRecord: baseCacheRecord,
                 },
-                undefined
+                undefined,
+                messageBus,
+                basePreviewPayload
             )
         })
 
         it('sendMessage success payload on resolved', async () => {
             const handle = makeHandle()
+            const messageBus = makeBus()
             await deliverRenderResolveForPreview(
                 {
                     type: 'resolved',
@@ -132,7 +149,9 @@ describe('deliverRenderResolve', () => {
                     cacheId: 'CACHE#valid',
                     cacheRecord: baseCacheRecord,
                 },
-                handle
+                handle,
+                messageBus,
+                basePreviewPayload
             )
             expect(handle.sendMessage).toHaveBeenCalledWith({
                 success: true,
@@ -144,13 +163,16 @@ describe('deliverRenderResolve', () => {
 
         it('sendMessage failure payload on failed generation', async () => {
             const handle = makeHandle()
+            const messageBus = makeBus()
             await deliverRenderResolveForPreview(
                 {
                     type: 'failed',
                     errorCode: 'CONTEXT_REQUIRED',
                     errorMessage: 'Generation context required',
                 },
-                handle
+                handle,
+                messageBus,
+                basePreviewPayload
             )
             expect(handle.sendMessage).toHaveBeenCalledWith({
                 success: false,
@@ -159,25 +181,39 @@ describe('deliverRenderResolve', () => {
             })
         })
 
-        it('logs and does not sendMessage on lookup_handoff', async () => {
+        it('sends RenderInvalidate on messageBus on invalidate and does not sendMessage', async () => {
             const handle = makeHandle()
-            const err = jest.spyOn(console, 'error').mockImplementation(() => {})
-            await deliverRenderResolveForPreview({ type: 'lookup_handoff' }, handle)
+            const messageBus = makeBus()
+            await deliverRenderResolveForPreview(
+                {
+                    type: 'invalidate',
+                    reason: RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION,
+                },
+                handle,
+                messageBus,
+                basePreviewPayload
+            )
             expect(handle.sendMessage).not.toHaveBeenCalled()
-            expect(err).toHaveBeenCalled()
-            err.mockRestore()
+            expect(messageBus.send).toHaveBeenCalledWith(expect.objectContaining({
+                type: 'RenderInvalidate',
+                reason: RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION,
+                componentId: 'ROOM#one',
+            }))
         })
 
         it('logs and does not sendMessage on META_ROOM_MARKS_MISSING', async () => {
             const handle = makeHandle()
             const err = jest.spyOn(console, 'error').mockImplementation(() => {})
+            const messageBus = makeBus()
             await deliverRenderResolveForPreview(
                 {
                     type: 'failed',
                     errorCode: 'META_ROOM_MARKS_MISSING',
                     errorMessage: 'x',
                 },
-                handle
+                handle,
+                messageBus,
+                basePreviewPayload
             )
             expect(handle.sendMessage).not.toHaveBeenCalled()
             expect(err).toHaveBeenCalled()
@@ -187,12 +223,15 @@ describe('deliverRenderResolve', () => {
         it('does not send when resolved missing cacheId and logs', async () => {
             const handle = makeHandle()
             const err = jest.spyOn(console, 'error').mockImplementation(() => {})
+            const messageBus = makeBus()
             await deliverRenderResolveForPreview(
                 {
                     type: 'resolved',
                     renderedContent: baseCacheRecord.renderedContent,
                 },
-                handle
+                handle,
+                messageBus,
+                basePreviewPayload
             )
             expect(handle.sendMessage).not.toHaveBeenCalled()
             expect(err).toHaveBeenCalled()
