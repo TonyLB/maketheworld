@@ -22,7 +22,7 @@ Important: the lifecycle events are primarily motivated by presence-based delive
 - **Completion handoff**: when generation completes, update pointers (e.g. `Meta::Room.currentCacheId`) and publish ready events.
 - **Decoupled signaling**: publish well-scoped internal events so perception can react without coupling to generation internals.
 
-Current temporary constraint: `requestIntake` treats missing `Meta::Room.state.marks` as an explicit error for `RenderRequested` (rather than synthesizing defaults in-place). This is intentional while state-mark resolution policy is being settled at orchestration level; see `AGENT.planning.md`.
+Current temporary constraint: passive **intake** (`intakePassiveRenderRequested`) surfaces missing `Meta::Room.state.marks` as `marks_missing`; the **shell** (`orchestratePassiveRenderRequestedBatch`) maps that to the same bus `Error` as before (no defaults invented in intake). See `AGENT.planning.md`.
 
 ## Technical Details
 
@@ -89,7 +89,10 @@ Current temporary constraint: `requestIntake` treats missing `Meta::Room.state.m
 ### Key files
 
 - `events.ts`: messageBus event type definitions and type guards
-- `requestIntake.ts`: request intake and cache decisioning
+- `requestIntake.ts`: passive A-phase only (`intakePassiveRenderRequested`)
+- `renderIntake.ts`: `PassiveIntakeResult` types
+- `passiveRenderOrchestration.ts`: passive shell (intake -> `findRender` -> `deliverRenderResolveForPassive`; alias `requestIntakeMessage`)
+- `index.ts`: messageBus registration; preview shell; calls `orchestratePassiveRenderRequestedBatch` for `RenderRequested`
 - `generateRoomPreview.ts`: room cache-miss orchestration (exact match, then `generateExample` on miss; used by WebSocket API)
 
 ## Development Notes

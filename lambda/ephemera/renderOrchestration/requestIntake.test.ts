@@ -2,10 +2,53 @@ import type { MessageBus } from '../messageBus/baseClasses'
 import type { EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraCacheDynamoItem } from '../renderCache/baseClasses'
 import internalCache from '../internalCache'
-import { requestIntakeMessage } from './requestIntake'
+import { intakePassiveRenderRequested } from './requestIntake'
+import { requestIntakeMessage } from './passiveRenderOrchestration'
 import type { RenderRequested } from './events'
 
-describe('renderOrchestration/requestIntake', () => {
+describe('renderOrchestration/intakePassiveRenderRequested', () => {
+    const basePayload: RenderRequested = {
+        type: 'RenderRequested',
+        componentId: 'ROOM#one',
+        perspective: { assetStack: ['ASSET#base'] }
+    }
+
+    const baseMetaRoom = {
+        EphemeraId: 'ROOM#one',
+        DataCategory: 'Meta::Room' as const,
+        state: { marks: { markValue: [{ mark: 'MARK#a', value: 'one' }] } },
+        currentCacheByPerspective: { 'PERSPECTIVE#v1#abc': 'CACHE#valid' as const },
+    }
+
+    it('returns not_room for non-room componentId', async () => {
+        const payload: RenderRequested = { ...basePayload, componentId: 'FEATURE#x' }
+        const r = await intakePassiveRenderRequested(payload)
+        expect(r).toEqual({ type: 'not_room', payload })
+    })
+
+    it('returns marks_missing when Meta has no marks', async () => {
+        const r = await intakePassiveRenderRequested(basePayload, {
+            getMetaRoom: jest.fn().mockResolvedValue({ ...baseMetaRoom, state: undefined }),
+            computePerspectiveKey: jest.fn().mockReturnValue('PERSPECTIVE#v1#abc'),
+        })
+        expect(r).toEqual({ type: 'marks_missing', payload: basePayload })
+    })
+
+    it('returns ok with RenderResolveInput including pointerHint when Meta has pointer', async () => {
+        const r = await intakePassiveRenderRequested(basePayload, {
+            getMetaRoom: jest.fn().mockResolvedValue(baseMetaRoom),
+            computePerspectiveKey: jest.fn().mockReturnValue('PERSPECTIVE#v1#abc'),
+        })
+        expect(r.type).toBe('ok')
+        if (r.type === 'ok') {
+            expect(r.input.roomId).toBe('ROOM#one')
+            expect(r.input.markProvenance).toBe('meta')
+            expect(r.input.pointerHint).toBe('CACHE#valid')
+        }
+    })
+})
+
+describe('renderOrchestration/passive shell (requestIntakeMessage)', () => {
     beforeEach(() => {
         internalCache.clear()
     })

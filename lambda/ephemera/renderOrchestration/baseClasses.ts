@@ -16,8 +16,8 @@ export type RenderResolveMarkProvenance = 'meta' | 'preview'
 /**
  * Normalized input to the shared "resolve room render from cache / maybe generate" choke-point.
  *
- * Preview handling in `index.ts` and `requestIntake.ts` can converge on this shape after their
- * respective A-phase adapters.
+ * Preview handling in `index.ts` and passive intake (`requestIntake.ts`) converge on this shape via
+ * A-phase adapters; the orchestration shell chains `findRender` then delivery.
  *
  * - **Preview path:** `markProvenance` is `'preview'`; `pointerHint` is omitted (no Meta pointer).
  * - **Passive path:** `markProvenance` is `'meta'`; `pointerHint` is

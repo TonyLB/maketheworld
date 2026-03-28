@@ -11,7 +11,7 @@ import {
     type RenderPreviewRequested,
     type RenderRequested,
 } from './events'
-import requestIntakeMessage from './requestIntake'
+import { orchestratePassiveRenderRequestedBatch } from './passiveRenderOrchestration'
 import { deliverRenderResolveForPreview } from './deliverRenderResolve'
 import { findRender } from './findRender'
 import { generateRoomPreview } from './generateRoomPreview'
@@ -55,8 +55,24 @@ export type {
     RenderOrchestrationMessage,
 } from './events'
 
-export { default as requestIntakeMessage } from './requestIntake'
+export { intakePassiveRenderRequested } from './requestIntake'
 export type { RequestIntakeDependencies } from './requestIntake'
+
+export {
+    orchestratePassiveRenderRequestedBatch,
+    requestIntakeMessage,
+} from './passiveRenderOrchestration'
+export type {
+    PassiveOrchestrationDependencies,
+    PassiveRenderPipelineDependencies,
+} from './passiveRenderOrchestration'
+
+export type {
+    PassiveIntakeResult,
+    PassiveIntakeResultMarksMissing,
+    PassiveIntakeResultNotRoom,
+    PassiveIntakeResultOk,
+} from './renderIntake'
 
 export { generateRoomPreview, defaultPublishPutCacheRecord } from './generateRoomPreview'
 export type { GenerateRoomPreviewInput, GenerateRoomPreviewOptions } from './generateRoomPreview'
@@ -84,8 +100,8 @@ export type RenderOrchestrationSubscriptions = {
     unsubscribeAll: () => void;
 }
 
-/** A-phase adapter: bus message to shared resolve input (see AGENT.planning.simplification.md). */
-const mapRenderPreviewRequestedToResolveInput = (payload: RenderPreviewRequested): RenderResolveInput => ({
+/** A-phase adapter: preview bus message to shared resolve input (see AGENT.planning.simplification.md). */
+const intakeRenderPreviewRequested = (payload: RenderPreviewRequested): RenderResolveInput => ({
     roomId: payload.componentId,
     perspective: payload.perspective,
     markState: payload.markState,
@@ -110,7 +126,7 @@ const handleRenderPreviewRequested = async (payload: RenderPreviewRequested): Pr
         })
     }
 
-    const resolve = mapRenderPreviewRequestedToResolveInput(payload)
+    const resolve = intakeRenderPreviewRequested(payload)
     const output = await findRender(resolve, {
         getExactMatch: (input) => internalCache.RenderCache.getExactMatch(input),
         getCacheRecordById: async () => undefined,
@@ -168,7 +184,7 @@ export const handleRenderOrchestrationMessage = async ({
     const renderPreviewRequested = payloads.filter(isRenderPreviewRequested)
 
     await Promise.all([
-        renderRequested.length > 0 ? requestIntakeMessage({ payloads: renderRequested, messageBus }) : Promise.resolve(),
+        renderRequested.length > 0 ? orchestratePassiveRenderRequestedBatch({ payloads: renderRequested, messageBus }) : Promise.resolve(),
         Promise.all(renderPreviewRequested.map((p) => handleRenderPreviewRequested(p))),
     ])
 }

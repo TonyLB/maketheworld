@@ -5,7 +5,7 @@ import type { RenderResolveOutput } from '../../../renderOrchestration/baseClass
 import type { ConversationId, ConversationPayloadStub } from '../baseClasses'
 
 /**
- * Serializable routing for passive / Meta-aligned room render (requestIntake migration path).
+ * Serializable routing for passive / Meta-aligned room render (renderOrchestration passive shell).
  * Aligns with {@link RenderResolveInput.roomId} and perspective keying.
  */
 export type RoomStateRenderConversationRouting = {
@@ -35,7 +35,7 @@ export type RoomStateRenderProgressStep = 'resolving' | 'generating';
 export type ConversationHandleRoomStateRender = StorableConversationRecordRoomStateRender & {
     /**
      * - Progress: intake/cache phases (`resolving`) and generation (`generating`) before terminal resolve.
-     * - Terminal: {@link RenderResolveOutput} from `requestIntake` / shared orchestration core.
+     * - Terminal: {@link RenderResolveOutput} from passive orchestration / shared resolve core.
      */
     sendMessage: (arg: RoomStateRenderProgressStep | RenderResolveOutput) => Promise<void>;
 };

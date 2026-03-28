@@ -45,9 +45,9 @@ Registration and dispatch live in `index.ts` (and may later move to dedicated ha
 
 Over time, `generateRoomPreview` should **not** be the hiding place for the **full** preview request pipeline (exact match + branch + generate). A module named for generation should read like **generation**, not like "everything that can happen when someone asks for a preview."
 
-### Alignment with `requestIntake`
+### Alignment with passive intake and shell
 
-**`requestIntake`** should follow the same divide: **intake** = read world/meta, evaluate pointers, and emit the next orchestration messages (`RenderReady`, `RenderLookupRequested`, pointer clears). It should **not** absorb LLM or authoring-context policy. As the passive render cascade matures, intake and preview orchestration should **look like the same pattern** at the bus layer even when the underlying checks differ (Meta pointer vs proposed mark state for preview).
+**Intake** (`intakePassiveRenderRequested` in `requestIntake.ts`) reads world/meta and produces `RenderResolveInput` or intake-only outcomes (`PassiveIntakeResult`). It does **not** call `findRender`, publish bus messages, or run generation. The **passive shell** (`orchestratePassiveRenderRequestedBatch` in `passiveRenderOrchestration.ts`) chains intake -> `findRender` -> `deliverRenderResolveForPassive`. Preview follows the same layering in `index.ts` (preview intake map -> `findRender` -> `deliverRenderResolveForPreview`).
 
 ### Duplication guard
 
@@ -286,7 +286,7 @@ With `internalCache.RenderCache`, render orchestration can:
 4. [x] **Request intake handler (fast path)**
    - Implement handler A to read `Meta::Room`, resolve perspective key, validate `currentCacheByPerspective[perspectiveKey]`, and publish `RenderReady` on hit.
    - On invalid pointer, clear that pointer entry and continue.
-   - **Temporary orchestration constraint (active):** treat missing `Meta::Room.state.marks` as an error for `RenderRequested` intake. Do not invent defaults in `requestIntake` yet; state-mark resolution policy is deferred to a later orchestration-focused task.
+   - **Temporary orchestration constraint (active):** treat missing `Meta::Room.state.marks` as an error for `RenderRequested` intake (`marks_missing`). Do not invent defaults in intake yet; state-mark resolution policy is deferred to a later orchestration-focused task.
 5. **Handler B: Exact-match lookup (post-intake, not "LLM slow path")**
    - **Perspective shift (see "Module layering direction" above):** Task 5 is **orchestration**: after Handler A, decide whether an **exact-match** cache row already satisfies the request (using `Meta::Room` mark state or defaults + renderCache exact-match), then publish `RenderReady` on hit or hand off toward generation. That branching **belongs in the render orchestration cascade** (Handler B under **Handler plan**), not as an undocumented side effect of **`generateRoomPreview`**.
    - Implement exact-match lookup for the **`RenderRequested` / `RenderLookupRequested`** lifecycle and publish `RenderReady` on hit.
@@ -302,7 +302,7 @@ With `internalCache.RenderCache`, render orchestration can:
 ### Tier 2: Mostly clear tasks (some implementation choices open)
 
 6. [x] **Generation path + completion updates (core; done)**
-   - [x] Cache-miss branching: when `RenderRequested` intake finds no satisfying row, **`allowGeneration`** selects generation in `requestIntake` vs **`RenderLookupRequested`** handoff (preview and passive paths stay distinct at the type level).
+   - [x] Cache-miss branching: when passive resolve finds no satisfying row, **`allowGeneration`** selects generation (`tryPassiveRenderGeneration` / preview `tryGeneration`) vs **`RenderLookupRequested`** handoff (preview and passive paths stay distinct at the type level).
    - [x] On miss when generation is allowed: call **`generateRoomPreview`** (shared slow path after exact-match): LLM + build cache row fields (markState, renderedContent, provenance, perspectiveId, perspectiveMatcher; optional ids remain future fields).
    - [x] Pre-mint **`DataCategory`** / return **`cacheId`** + materialized **`cacheRecord`** from generation so orchestration can emit **`RenderReady`** with a full row without waiting on the async write round-trip.
    - [x] Persist via the DataSource command (not ad hoc Dynamo from orchestration): **`sendPutCacheRecord`** / `Put Cache Record` on `api.ephemera`, executed by **`mtw.ephemera.renderCache`**.
@@ -363,6 +363,6 @@ With `internalCache.RenderCache`, render orchestration can:
 - Add render orchestration event types to `lambda/ephemera/messageBus/baseClasses.ts` union types.
 - Register `renderOrchestration` subscriptions in `lambda/ephemera/messageBus/index.ts`.
 - Add perception-side lifecycle consumers for `RenderGenerationStarted` and `RenderReady`.
-- Wire `requestIntake` handler to consume `RenderRequested` and emit `RenderLookupRequested`/`RenderReady`.
+- Wire `handleRenderOrchestrationMessage` / `orchestratePassiveRenderRequestedBatch` to consume `RenderRequested` and emit `RenderLookupRequested`/`RenderReady` (done).
 - **Multi-stage WebSocket / authoring preview:** Correlated **multiple messages per request** (e.g. generating vs completion) for **`generateRoomPreview`** is planned in [`../conversations/AGENT.planning.md`](../conversations/AGENT.planning.md) (**Multi-stage WebSocket delivery and coordination trap**), [`../conversations/AGENT.planning.tasklist.md`](../conversations/AGENT.planning.tasklist.md) **section 4**, and [`../../../charcoal-client/src/slices/lifeLine/AGENT.md`](../../../charcoal-client/src/slices/lifeLine/AGENT.md). Align **`RenderGenerationStarted`** / cache lifecycle with that contract when wiring preview orchestration.
 
