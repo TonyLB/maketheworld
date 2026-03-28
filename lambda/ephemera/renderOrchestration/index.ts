@@ -57,7 +57,15 @@ export type { RequestIntakeDependencies } from './requestIntake'
 export { generateRoomPreview, defaultPublishPutCacheRecord } from './generateRoomPreview'
 export type { GenerateRoomPreviewInput, GenerateRoomPreviewOptions } from './generateRoomPreview'
 
-export type { RenderResolveInput, RenderResolveMarkProvenance } from './baseClasses'
+export type {
+    RenderResolveErrorCode,
+    RenderResolveInput,
+    RenderResolveMarkProvenance,
+    RenderResolveOutput,
+    RenderResolveOutputFailed,
+    RenderResolveOutputLookupHandoff,
+    RenderResolveOutputResolved,
+} from './baseClasses'
 
 export type RenderOrchestrationSubscriptions = {
     /**
