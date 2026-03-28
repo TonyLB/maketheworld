@@ -1,15 +1,14 @@
-import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-
 import type { RenderResolveOutput } from '../../../renderOrchestration/baseClasses'
+import type { RenderComponentId } from '../../../renderOrchestration/events'
 
 import type { ConversationId, ConversationPayloadStub } from '../baseClasses'
 
 /**
  * Serializable routing for passive / Meta-aligned room render (renderOrchestration passive shell).
- * Aligns with {@link RenderResolveInput.roomId} and perspective keying.
+ * Aligns with {@link RenderComponentPerspective.componentId} (room, feature, or map) and perspective keying.
  */
 export type RoomStateRenderConversationRouting = {
-    roomId: EphemeraRoomId;
+    componentId: RenderComponentId;
     perspectiveId: string;
     requestId?: string;
 };

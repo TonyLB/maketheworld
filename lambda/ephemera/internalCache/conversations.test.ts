@@ -62,7 +62,7 @@ describe('ConversationsData', () => {
             conversationId: id,
             type: CONVERSATION_TYPE_ROOM_STATE_RENDER,
             routing: {
-                roomId: testRoomId,
+                componentId: testRoomId,
                 perspectiveId: 'PERSPECTIVE#stub',
                 requestId: 'req-rsr-1',
             },
@@ -118,8 +118,14 @@ describe('ConversationsData', () => {
         const id = 'conv-002'
         const first = makeRecord(id)
         const second: StorableConversationRecord = {
-            ...first,
-            routing: { ...first.routing, requestId: 'req-2' },
+            conversationId: id,
+            type: 'generateRoomPreview',
+            routing: {
+                roomId: testRoomId,
+                perspectiveId: 'PERSPECTIVE#stub',
+                requestId: 'req-2',
+            },
+            payload: CONVERSATION_PAYLOAD_STUB,
         }
         cache.set(first)
         cache.set(second)

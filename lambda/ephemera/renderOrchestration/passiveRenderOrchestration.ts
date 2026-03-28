@@ -142,6 +142,15 @@ export const orchestratePassiveRenderRequestedBatch = async (
     await Promise.all(payloads.map(async (payload) => {
         const intake = await intakePassiveRenderRequested(payload, _deps)
 
+        const conversationId = uuidv4() as ConversationId
+        const perspectiveId = orchDeps.computePerspectiveKey(payload.perspective.assetStack)
+        internalCache.Conversations.set({
+            conversationId,
+            type: CONVERSATION_TYPE_ROOM_STATE_RENDER,
+            routing: { componentId: payload.componentId, perspectiveId },
+            payload: CONVERSATION_PAYLOAD_STUB,
+        })
+
         if (intake.type === 'not_room') {
             deliverRenderOrchestrationRenderError(messageBus, intake.payload, {
                 errorCode: RENDER_ERROR_CODE_NOT_ROOM,
@@ -158,15 +167,6 @@ export const orchestratePassiveRenderRequestedBatch = async (
             })
             return
         }
-
-        const conversationId = uuidv4() as ConversationId
-        const perspectiveId = orchDeps.computePerspectiveKey(intake.input.perspective.assetStack)
-        internalCache.Conversations.set({
-            conversationId,
-            type: CONVERSATION_TYPE_ROOM_STATE_RENDER,
-            routing: { roomId: intake.input.roomId, perspectiveId },
-            payload: CONVERSATION_PAYLOAD_STUB,
-        })
 
         const output = await findRender(intake.input, {
             getExactMatch: orchDeps.getExactMatch,
