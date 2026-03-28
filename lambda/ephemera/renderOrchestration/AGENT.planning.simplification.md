@@ -101,9 +101,11 @@ When a new implementation appears for an existing responsibility:
 | **findRender** (resolve) | `RenderResolveInput` -> `RenderResolveOutput` (B-phase core) | Pointer validation, exact-match, generation; single implementation shared by all pipelines. Policy for pointer clear lives in one place (intake vs findRender: pick one rule; do not split). |
 | **Delivery** | `RenderResolveOutput` + context -> side effects | Bus (`RenderReady`, `RenderLookupRequested`, `Error`), preview conversation `sendMessage`, future dataSource subscribers. Two adapters (passive vs preview) are still **one** delivery layer, not two resolve stacks. |
 
+**Delivery layer (phase 1 done):** `renderOrchestration/deliverRenderResolve.ts` exports `deliverRenderResolveForPassive` and `deliverRenderResolveForPreview`; `requestIntake.ts` and `renderOrchestration/index.ts` call these after resolve.
+
 **Phased sequence (recommended order)**
 
-1. **Delivery first** -- Extract delivery from `requestIntake.ts` and `index.ts` into a dedicated module (or paired functions), invoked from both paths **after** resolve. Low risk; clarifies the B-phase mapping contract before merging resolve logic.
+1. **Delivery first** -- [done] Extract delivery from `requestIntake.ts` and `index.ts` into `deliverRenderResolve.ts` (paired functions), invoked from both paths **after** resolve.
 2. **findRender second** -- Implement shared resolve (`findRender` or equivalent); replace duplicated resolve behavior in `index` and `requestIntake` with calls into it.
 3. **Intake / shell third** -- Narrow `requestIntake` to **intake only** (return `RenderResolveInput` or errors); have `renderOrchestration/index` (or a single orchestration entry) call **findRender** then **delivery**. Optionally converge preview and passive behind one intake surface that accepts every supported request type.
 
