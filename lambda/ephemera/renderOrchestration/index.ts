@@ -1,6 +1,11 @@
+import type { EphemeraCacheId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { MessageBus } from '../messageBus/baseClasses'
 import internalCache from '../internalCache'
-import { isConversationCompositeReadHandleGenerateRoomPreview } from '../conversations/conversationTypes'
+import type { ConversationId } from '../conversations/conversationTypes/baseClasses'
+import {
+    isConversationCompositeReadHandleGenerateRoomPreview,
+    type ConversationCompositeReadHandleGenerateRoomPreview,
+} from '../conversations/conversationTypes'
 
 import {
     isRenderOrchestrationRequestMessage,
@@ -11,7 +16,7 @@ import {
 } from './events'
 import requestIntakeMessage from './requestIntake'
 import { generateRoomPreview } from './generateRoomPreview'
-import type { RenderResolveInput } from './baseClasses'
+import type { RenderResolveInput, RenderResolveOutput } from './baseClasses'
 
 /**
  * renderOrchestration public module surface
@@ -87,6 +92,84 @@ const mapRenderPreviewRequestedToResolveInput = (payload: RenderPreviewRequested
     generationContextWml: payload.generationContextWml,
 })
 
+/** Core: exact-match then generation; returns {@link RenderResolveOutput} (no delivery). */
+const executePreviewRenderResolve = async (
+    resolve: RenderResolveInput,
+    options: {
+        conversationId: ConversationId;
+        onGenerating?: () => Promise<void>;
+    }
+): Promise<RenderResolveOutput> => {
+    const exactMatch = await internalCache.RenderCache.getExactMatch({
+        componentId: resolve.roomId,
+        proposedMarkState: resolve.markState,
+        perspective: resolve.perspective,
+    })
+    if (exactMatch) {
+        return {
+            type: 'resolved',
+            renderedContent: exactMatch.renderedContent,
+            cacheId: exactMatch.DataCategory as EphemeraCacheId,
+            cacheRecord: exactMatch,
+        }
+    }
+
+    const result = await generateRoomPreview(
+        {
+            roomId: resolve.roomId,
+            markState: resolve.markState,
+            assetStack: resolve.perspective.assetStack,
+            generationContextWml: resolve.generationContextWml,
+        },
+        {
+            conversationId: options.conversationId,
+            onGenerating: options.onGenerating,
+        }
+    )
+    if (result.success) {
+        return {
+            type: 'resolved',
+            renderedContent: result.renderedContent,
+        }
+    }
+    return {
+        type: 'failed',
+        errorCode: result.errorCode,
+        errorMessage: result.errorMessage,
+    }
+}
+
+/** Maps {@link RenderResolveOutput} to the conversation `GenerateRoomPreview` terminal wire shape. */
+const deliverPreviewRenderResolveOutput = async (
+    output: RenderResolveOutput,
+    handle: ConversationCompositeReadHandleGenerateRoomPreview | undefined
+): Promise<void> => {
+    if (handle === undefined) {
+        return
+    }
+    if (output.type === 'resolved') {
+        await handle.sendMessage({
+            success: true,
+            renderedContent: output.renderedContent,
+        })
+        return
+    }
+    if (output.type === 'lookup_handoff') {
+        console.error('preview path produced unexpected lookup_handoff outcome')
+        return
+    }
+    const { errorCode, errorMessage } = output
+    if (errorCode === 'META_ROOM_MARKS_MISSING') {
+        console.error('preview path produced unexpected META_ROOM_MARKS_MISSING outcome')
+        return
+    }
+    await handle.sendMessage({
+        success: false,
+        errorCode,
+        errorMessage,
+    })
+}
+
 const handleRenderPreviewRequested = async (payload: RenderPreviewRequested): Promise<void> => {
     const composite = internalCache.Conversations.get(payload.conversationId)
     const rawHandle = composite?.handle
@@ -104,38 +187,13 @@ const handleRenderPreviewRequested = async (payload: RenderPreviewRequested): Pr
     }
 
     const resolve = mapRenderPreviewRequestedToResolveInput(payload)
-    const exactMatch = await internalCache.RenderCache.getExactMatch({
-        componentId: resolve.roomId,
-        proposedMarkState: resolve.markState,
-        perspective: resolve.perspective,
-    })
-    if (exactMatch) {
-        if (handle !== undefined) {
-            await handle.sendMessage({
-                success: true,
-                renderedContent: exactMatch.renderedContent,
-            })
-        }
-        return
-    }
-
-    const result = await generateRoomPreview(
-        {
-            roomId: resolve.roomId,
-            markState: resolve.markState,
-            assetStack: resolve.perspective.assetStack,
-            generationContextWml: resolve.generationContextWml,
+    const output = await executePreviewRenderResolve(resolve, {
+        conversationId: payload.conversationId,
+        onGenerating: async () => {
+            await handle?.sendMessage('generating')
         },
-        {
-            conversationId: payload.conversationId,
-            onGenerating: async () => {
-                await handle?.sendMessage('generating')
-            },
-        }
-    )
-    if (handle !== undefined) {
-        await handle.sendMessage(result)
-    }
+    })
+    await deliverPreviewRenderResolveOutput(output, handle)
 }
 
 /**
