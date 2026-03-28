@@ -6,7 +6,7 @@ import { MessageBus } from '../messageBus/baseClasses'
 import { isEphemeraCacheDynamoItem, type EphemeraCacheDynamoItem, type EphemeraCacheMarkState } from '../renderCache/baseClasses'
 import { markStatesEqual } from '../renderCache/markStateUtils'
 import type { RenderLookupRequested, RenderReady, RenderRequested } from './events'
-import type { RenderResolveInput } from './baseClasses'
+import type { RenderResolveInput, RenderResolveOutput } from './baseClasses'
 import internalCache from '../internalCache'
 
 export type RequestIntakeDependencies = {
@@ -82,6 +82,125 @@ const toMissingRoomStateError = (payload: RenderRequested) => ({
     }
 })
 
+/**
+ * Core room path: Meta::Room load, pointer validation, exact-match, pointer clear.
+ * Returns {@link RenderResolveOutput} (no bus delivery). Caller must have verified `componentId` is a room.
+ */
+const executeRequestIntakeResolve = async (
+    payload: RenderRequested,
+    roomId: EphemeraRoomId,
+    deps: Required<RequestIntakeDependencies>
+): Promise<RenderResolveOutput> => {
+    const metaRoom = await deps.getMetaRoom(roomId)
+    const stateMarks = metaRoom?.state?.marks
+    const perspective = payload.perspective
+
+    if (!stateMarks) {
+        return {
+            type: 'failed',
+            errorCode: 'META_ROOM_MARKS_MISSING',
+            errorMessage: `RenderRequested requires Meta::Room.state.marks for ${payload.componentId}`,
+        }
+    }
+
+    const perspectiveKey = deps.computePerspectiveKey(perspective.assetStack)
+    const pointerId = metaRoom?.currentCacheByPerspective?.[perspectiveKey] as EphemeraCacheId | undefined
+
+    const resolve: RenderResolveInput = {
+        roomId,
+        perspective,
+        markState: stateMarks,
+        markProvenance: 'meta',
+        allowGeneration: payload.allowGeneration,
+        generationContextWml: payload.generationContextWml,
+        ...(pointerId !== undefined ? { pointerHint: pointerId } : {}),
+    }
+
+    if (!pointerId) {
+        const exactMatch = await deps.getExactMatch({
+            componentId: resolve.roomId,
+            proposedMarkState: resolve.markState,
+            perspective: resolve.perspective,
+        })
+        if (exactMatch) {
+            return {
+                type: 'resolved',
+                renderedContent: exactMatch.renderedContent,
+                cacheId: exactMatch.DataCategory as EphemeraCacheId,
+                cacheRecord: exactMatch,
+            }
+        }
+        return { type: 'lookup_handoff' }
+    }
+
+    const cacheRecord = await deps.getCacheRecordById(resolve.roomId, pointerId)
+
+    const isValid = !!(
+        cacheRecord
+        && deps.markStatesEqual(resolve.markState, cacheRecord.markState)
+        && perspectiveMatches(cacheRecord.perspectiveMatcher, resolve.perspective)
+    )
+
+    if (isValid && cacheRecord) {
+        return {
+            type: 'resolved',
+            renderedContent: cacheRecord.renderedContent,
+            cacheId: pointerId,
+            cacheRecord,
+        }
+    }
+
+    try {
+        await deps.clearPerspectivePointer(resolve.roomId, perspectiveKey)
+    }
+    catch {
+        // best-effort pointer clearing; continue to slow-path handoff
+    }
+
+    const exactMatch = await deps.getExactMatch({
+        componentId: resolve.roomId,
+        proposedMarkState: resolve.markState,
+        perspective: resolve.perspective,
+    })
+    if (exactMatch) {
+        return {
+            type: 'resolved',
+            renderedContent: exactMatch.renderedContent,
+            cacheId: exactMatch.DataCategory as EphemeraCacheId,
+            cacheRecord: exactMatch,
+        }
+    }
+
+    return { type: 'lookup_handoff' }
+}
+
+/** Maps {@link RenderResolveOutput} to the messageBus envelopes used by `requestIntake` today. */
+const deliverRequestIntakeOutput = (
+    payload: RenderRequested,
+    messageBus: MessageBus,
+    output: RenderResolveOutput
+): void => {
+    if (output.type === 'resolved') {
+        const { cacheId, cacheRecord } = output
+        if (cacheId === undefined || cacheRecord === undefined) {
+            console.error('requestIntake deliver: resolved outcome missing cacheId or cacheRecord')
+            return
+        }
+        messageBus.send(toRenderReady(payload, cacheId, cacheRecord))
+        return
+    }
+    if (output.type === 'lookup_handoff') {
+        messageBus.send(toLookupRequested(payload))
+        return
+    }
+    if (output.errorCode === 'META_ROOM_MARKS_MISSING') {
+        messageBus.send(toMissingRoomStateError(payload))
+        return
+    }
+    console.error('requestIntake deliver: unexpected failure outcome', output)
+    messageBus.send(toLookupRequested(payload))
+}
+
 export const requestIntakeMessage = async (
     { payloads, messageBus }: { payloads: RenderRequested[]; messageBus: MessageBus },
     _deps?: RequestIntakeDependencies
@@ -97,78 +216,12 @@ export const requestIntakeMessage = async (
 
     await Promise.all(payloads.map(async (payload) => {
         if (!isEphemeraRoomId(payload.componentId)) {
-            messageBus.send(toLookupRequested(payload))
+            deliverRequestIntakeOutput(payload, messageBus, { type: 'lookup_handoff' })
             return
         }
 
-        const roomId = payload.componentId
-        const metaRoom = await deps.getMetaRoom(roomId)
-        const stateMarks = metaRoom?.state?.marks
-        const perspective = payload.perspective
-
-        if (!stateMarks) {
-            messageBus.send(toMissingRoomStateError(payload))
-            return
-        }
-
-        const perspectiveKey = deps.computePerspectiveKey(perspective.assetStack)
-        const pointerId = metaRoom?.currentCacheByPerspective?.[perspectiveKey] as EphemeraCacheId | undefined
-
-        const resolve: RenderResolveInput = {
-            roomId,
-            perspective,
-            markState: stateMarks,
-            markProvenance: 'meta',
-            allowGeneration: payload.allowGeneration,
-            generationContextWml: payload.generationContextWml,
-            ...(pointerId !== undefined ? { pointerHint: pointerId } : {}),
-        }
-
-        if (!pointerId) {
-            const exactMatch = await deps.getExactMatch({
-                componentId: resolve.roomId,
-                proposedMarkState: resolve.markState,
-                perspective: resolve.perspective,
-            })
-            if (exactMatch) {
-                messageBus.send(toRenderReady(payload, exactMatch.DataCategory as EphemeraCacheId, exactMatch))
-                return
-            }
-            messageBus.send(toLookupRequested(payload))
-            return
-        }
-
-        const cacheRecord = await deps.getCacheRecordById(resolve.roomId, pointerId)
-
-        const isValid = !!(
-            cacheRecord
-            && deps.markStatesEqual(resolve.markState, cacheRecord.markState)
-            && perspectiveMatches(cacheRecord.perspectiveMatcher, resolve.perspective)
-        )
-
-        if (isValid && cacheRecord) {
-            messageBus.send(toRenderReady(payload, pointerId, cacheRecord))
-            return
-        }
-
-        try {
-            await deps.clearPerspectivePointer(resolve.roomId, perspectiveKey)
-        }
-        catch {
-            // best-effort pointer clearing; continue to slow-path handoff
-        }
-
-        const exactMatch = await deps.getExactMatch({
-            componentId: resolve.roomId,
-            proposedMarkState: resolve.markState,
-            perspective: resolve.perspective,
-        })
-        if (exactMatch) {
-            messageBus.send(toRenderReady(payload, exactMatch.DataCategory as EphemeraCacheId, exactMatch))
-            return
-        }
-
-        messageBus.send(toLookupRequested(payload))
+        const output = await executeRequestIntakeResolve(payload, payload.componentId, deps)
+        deliverRequestIntakeOutput(payload, messageBus, output)
     }))
 }
 
