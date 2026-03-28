@@ -37,6 +37,8 @@ export {
     isRenderRequested,
     isRenderPreviewRequested,
     isRenderLookupRequested,
+    isRenderError,
+    isRenderInvalidate,
     isRenderGenerationStarted,
     isRenderReady,
     isRenderGenerationCompleted,
@@ -44,10 +46,14 @@ export {
 } from './events'
 export type {
     RenderComponentId,
+    RenderComponentPerspective,
+    RenderRoomPerspective,
     RenderOrchestrationRequestMessage,
     RenderRequested,
     RenderPreviewRequested,
     RenderLookupRequested,
+    RenderError,
+    RenderInvalidate,
     RenderGenerationStarted,
     RenderReady,
     RenderGenerationCompleted,

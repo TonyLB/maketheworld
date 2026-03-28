@@ -14,10 +14,25 @@ type RenderTargetContext = {
     messageGroupId?: MessageGroupId;
 }
 
-export type RenderRequested = RenderTargetContext & {
-    type: 'RenderRequested';
+/**
+ * Which ephemera component and asset-stack perspective a render message refers to.
+ * Present on essentially all {@link RenderOrchestrationMessage} variants (see {@link RenderRoomPerspective} for preview).
+ */
+export type RenderComponentPerspective = {
     componentId: RenderComponentId;
     perspective: Perspective;
+}
+
+/**
+ * Room-scoped {@link RenderComponentPerspective} (preview path is room-only today).
+ */
+export type RenderRoomPerspective = {
+    componentId: EphemeraRoomId;
+    perspective: Perspective;
+}
+
+export type RenderRequested = RenderTargetContext & RenderComponentPerspective & {
+    type: 'RenderRequested';
     allowGeneration?: boolean;
     generationContextWml?: string;
 }
@@ -27,11 +42,8 @@ export type RenderRequested = RenderTargetContext & {
  * `ConversationStep` streaming. This is intentionally separate from {@link RenderRequested}, which
  * is oriented toward persisted room state and passive/presence-driven delivery (Option C split).
  */
-export type RenderPreviewRequested = RenderTargetContext & {
+export type RenderPreviewRequested = RenderTargetContext & RenderRoomPerspective & {
     type: 'RenderPreviewRequested';
-    /** Preview is Room-scoped today (`generateRoomPreview`). */
-    componentId: EphemeraRoomId;
-    perspective: Perspective;
     /** Proposed mark state for this preview run (not implied to match `Meta::Room.state` yet). */
     markState: EphemeraCacheMarkState;
     allowGeneration?: boolean;
@@ -42,39 +54,50 @@ export type RenderPreviewRequested = RenderTargetContext & {
     requestId?: string;
 }
 
-export type RenderGenerationStarted = RenderTargetContext & {
+export type RenderGenerationStarted = RenderTargetContext & RenderComponentPerspective & {
     type: 'RenderGenerationStarted';
-    componentId: RenderComponentId;
-    perspective: Perspective;
 }
 
-export type RenderLookupRequested = RenderTargetContext & {
+export type RenderLookupRequested = RenderTargetContext & RenderComponentPerspective & {
     type: 'RenderLookupRequested';
-    componentId: RenderComponentId;
-    perspective: Perspective;
     allowGeneration?: boolean;
     generationContextWml?: string;
 }
 
-export type RenderReady = RenderTargetContext & {
+/**
+ * Terminal render orchestration failure on the render message bus (e.g. intake invariant, resolve failure).
+ * Distinct from {@link RenderGenerationFailed}, which is scoped to the generation lifecycle.
+ */
+export type RenderError = RenderTargetContext & RenderComponentPerspective & {
+    type: 'RenderError';
+    errorCode: string;
+    errorMessage: string;
+}
+
+/**
+ * Request that cached render hints for this component and perspective be cleared or treated stale
+ * (e.g. Meta::Room `currentCacheByPerspective` entry). Carries the same correlation shell as
+ * {@link RenderLookupRequested} for subscribers that may replace lookup-handoff delivery.
+ */
+export type RenderInvalidate = RenderTargetContext & RenderComponentPerspective & {
+    type: 'RenderInvalidate';
+    /** Optional diagnostic; does not drive behavior in v1. */
+    reason?: string;
+}
+
+export type RenderReady = RenderTargetContext & RenderComponentPerspective & {
     type: 'RenderReady';
-    componentId: RenderComponentId;
-    perspective: Perspective;
     cacheId: EphemeraCacheId;
     cacheRecord?: EphemeraCacheDynamoItem;
 }
 
-export type RenderGenerationCompleted = RenderTargetContext & {
+export type RenderGenerationCompleted = RenderTargetContext & RenderComponentPerspective & {
     type: 'RenderGenerationCompleted';
-    componentId: RenderComponentId;
-    perspective: Perspective;
     cacheId: EphemeraCacheId;
 }
 
-export type RenderGenerationFailed = RenderTargetContext & {
+export type RenderGenerationFailed = RenderTargetContext & RenderComponentPerspective & {
     type: 'RenderGenerationFailed';
-    componentId: RenderComponentId;
-    perspective: Perspective;
     errorCode: string;
     errorMessage: string;
 }
@@ -86,6 +109,8 @@ export type RenderOrchestrationMessage =
     | RenderRequested
     | RenderPreviewRequested
     | RenderLookupRequested
+    | RenderError
+    | RenderInvalidate
     | RenderGenerationStarted
     | RenderReady
     | RenderGenerationCompleted
@@ -215,6 +240,49 @@ export const isRenderLookupRequested = (value: unknown): value is RenderLookupRe
     return hasValidTargetContext(castValue)
 }
 
+export const isRenderError = (value: unknown): value is RenderError => {
+    if (!value || typeof value !== 'object') {
+        return false
+    }
+    const castValue = value as Record<string, unknown>
+    if (castValue.type !== 'RenderError') {
+        return false
+    }
+    if (!isRenderComponentId(castValue.componentId)) {
+        return false
+    }
+    if (!isPerspective(castValue.perspective)) {
+        return false
+    }
+    if (typeof castValue.errorCode !== 'string') {
+        return false
+    }
+    if (typeof castValue.errorMessage !== 'string') {
+        return false
+    }
+    return hasValidTargetContext(castValue)
+}
+
+export const isRenderInvalidate = (value: unknown): value is RenderInvalidate => {
+    if (!value || typeof value !== 'object') {
+        return false
+    }
+    const castValue = value as Record<string, unknown>
+    if (castValue.type !== 'RenderInvalidate') {
+        return false
+    }
+    if (!isRenderComponentId(castValue.componentId)) {
+        return false
+    }
+    if (!isPerspective(castValue.perspective)) {
+        return false
+    }
+    if ('reason' in castValue && castValue.reason !== undefined && typeof castValue.reason !== 'string') {
+        return false
+    }
+    return hasValidTargetContext(castValue)
+}
+
 const isCacheId = (value: unknown): value is EphemeraCacheId => (
     typeof value === 'string' && value.startsWith('CACHE#')
 )
@@ -273,6 +341,8 @@ export const isRenderOrchestrationMessage = (value: unknown): value is RenderOrc
     isRenderRequested(value)
     || isRenderPreviewRequested(value)
     || isRenderLookupRequested(value)
+    || isRenderError(value)
+    || isRenderInvalidate(value)
     || isRenderGenerationStarted(value)
     || isRenderReady(value)
     || isRenderGenerationCompleted(value)
