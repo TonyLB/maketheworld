@@ -1,4 +1,5 @@
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraCacheId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 import { MessageBus } from '../messageBus/baseClasses'
 import type { EphemeraCacheDynamoItem, EphemeraCacheMarkState } from '../renderCache/baseClasses'
@@ -121,6 +122,8 @@ describe('renderOrchestration/index', () => {
             expect(sendMessage).toHaveBeenCalledWith({
                 success: true,
                 renderedContent: record.renderedContent,
+                cacheId: record.DataCategory as EphemeraCacheId,
+                cacheRecord: record,
             })
             expect(mockGenerateRoomPreview).not.toHaveBeenCalled()
         })
@@ -138,6 +141,19 @@ describe('renderOrchestration/index', () => {
             const genResult = {
                 success: true as const,
                 renderedContent: { description: ['generated'] },
+                cacheId: 'CACHE#gen-test-0000-4000-8000-000000000001' as EphemeraCacheId,
+                cacheRecord: {
+                    EphemeraId: roomId,
+                    DataCategory: 'CACHE#gen-test-0000-4000-8000-000000000001',
+                    markState: makeMarkState([{ mark: 'MARK#a', value: 'x' }]),
+                    renderedContent: { description: ['generated'] },
+                    provenance: { type: 'generated' as const },
+                    perspectiveId: 'P#gen',
+                    perspectiveMatcher: {
+                        requiredAssetIds: ['ASSET#one', 'ASSET#two'],
+                        forbiddenAssetIds: [] as AssetUUID[],
+                    },
+                } satisfies EphemeraCacheDynamoItem,
             }
             mockGenerateRoomPreview.mockResolvedValue(genResult)
 
@@ -180,7 +196,24 @@ describe('renderOrchestration/index', () => {
             mockGenerateRoomPreview.mockImplementation(async (_input, options) => {
                 onGeneratingCallback = options?.onGenerating
                 await options?.onGenerating?.()
-                return { success: true, renderedContent: { description: [] } }
+                const cacheId = 'CACHE#slow-path-0000-4000-8000-000000000001' as EphemeraCacheId
+                return {
+                    success: true,
+                    renderedContent: { description: [] },
+                    cacheId,
+                    cacheRecord: {
+                        EphemeraId: roomId,
+                        DataCategory: cacheId,
+                        markState: makeMarkState([{ mark: 'MARK#a', value: 'x' }]),
+                        renderedContent: { description: [] },
+                        provenance: { type: 'generated' },
+                        perspectiveId: 'P#slow',
+                        perspectiveMatcher: {
+                            requiredAssetIds: ['ASSET#one', 'ASSET#two'],
+                            forbiddenAssetIds: [],
+                        },
+                    },
+                }
             })
 
             await handleRenderOrchestrationMessage({

@@ -1,6 +1,7 @@
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraCacheId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
-import type { EphemeraCacheRenderedContent } from '../../../renderCache/baseClasses'
+import type { EphemeraCacheDynamoItem, EphemeraCacheRenderedContent } from '../../../renderCache/baseClasses'
 
 import type { ConversationId, ConversationPayloadStub } from '../baseClasses'
 
@@ -32,6 +33,10 @@ export type StorableConversationRecordGenerateRoomPreview = {
 export type GenerateRoomPreviewSuccess = {
     success: true
     renderedContent: EphemeraCacheRenderedContent
+    /** Row key for the render-cache write (minted before `Put Cache Record` is enqueued; matches Dynamo `DataCategory`). */
+    cacheId: EphemeraCacheId
+    /** Materialized row matching what `putCacheRecord` persists for that `cacheId`. */
+    cacheRecord: EphemeraCacheDynamoItem
 }
 
 export type GenerateRoomPreviewFailure =

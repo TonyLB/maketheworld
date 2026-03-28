@@ -130,6 +130,8 @@ const executePreviewRenderResolve = async (
         return {
             type: 'resolved',
             renderedContent: result.renderedContent,
+            cacheId: result.cacheId,
+            cacheRecord: result.cacheRecord,
         }
     }
     return {
@@ -148,9 +150,16 @@ const deliverPreviewRenderResolveOutput = async (
         return
     }
     if (output.type === 'resolved') {
+        const { cacheId, cacheRecord } = output
+        if (cacheId === undefined || cacheRecord === undefined) {
+            console.error('preview path: resolved outcome missing cacheId or cacheRecord')
+            return
+        }
         await handle.sendMessage({
             success: true,
             renderedContent: output.renderedContent,
+            cacheId,
+            cacheRecord,
         })
         return
     }

@@ -1,4 +1,6 @@
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraCacheId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraCacheDynamoItem } from '../renderCache/baseClasses'
 import { apiClient } from '@tonylb/mtw-utilities/ts/apiManagement/apiManagementClient'
 import type { MessageBus } from '../messageBus/baseClasses'
 import {
@@ -17,6 +19,17 @@ jest.mock('@tonylb/mtw-utilities/ts/apiManagement/apiManagementClient', () => ({
 }))
 
 const testRoomId = 'ROOM#test-room' as EphemeraRoomId
+
+const previewTerminalCacheId = 'CACHE#00000000-0000-4000-8000-000000000001' as EphemeraCacheId
+const previewTerminalCacheRecord: EphemeraCacheDynamoItem = {
+    EphemeraId: testRoomId,
+    DataCategory: previewTerminalCacheId,
+    markState: { markValue: [] },
+    renderedContent: { description: ['x'] },
+    provenance: { type: 'generated' },
+    perspectiveId: 'PERSPECTIVE#stub',
+    perspectiveMatcher: { requiredAssetIds: [], forbiddenAssetIds: [] },
+}
 
 const makeRecord = (conversationId: string): StorableConversationRecord => ({
     conversationId,
@@ -198,7 +211,9 @@ describe('ConversationsData', () => {
         }
         await handle.sendMessage({
             success: true,
-            renderedContent: { test: true } as never,
+            renderedContent: { description: ['x'] },
+            cacheId: previewTerminalCacheId,
+            cacheRecord: previewTerminalCacheRecord,
         })
 
         expect(apiClient.send).toHaveBeenCalledTimes(1)
@@ -209,7 +224,12 @@ describe('ConversationsData', () => {
                 conversationId: id,
                 pipeline: 'generateRoomPreview',
                 step: 'complete',
-                generateRoomPreview: { success: true, renderedContent: { test: true } },
+                generateRoomPreview: {
+                    success: true,
+                    renderedContent: { description: ['x'] },
+                    cacheId: previewTerminalCacheId,
+                    cacheRecord: previewTerminalCacheRecord,
+                },
                 RequestId: 'req-1',
             }),
         })
