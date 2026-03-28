@@ -31,7 +31,7 @@ Until explicitly changed here, assume:
 
 - Orchestration policy lives in `lambda/ephemera/renderOrchestration/`.
 - Preview generation implementation lives in `lambda/ephemera/renderOrchestration/generateRoomPreview.ts`.
-- Intake and exact-match for passive render requests are owned by `requestIntake.ts` and the renderOrchestration messageBus cascade.
+- Passive A-phase is `intakePassiveRenderRequested` in `requestIntake.ts`; resolve and delivery run in `passiveRenderOrchestration.ts` and `index.ts` (messageBus cascade).
 - Missing `Meta::Room.state.marks` in intake is a temporary explicit error constraint.
 
 ## Input boundary (v1)
@@ -47,7 +47,7 @@ It is the normalized **A-phase output** / **core input**: room, perspective, aut
 | Source | How it fills `RenderResolveInput` |
 |--------|-----------------------------------|
 | `RenderPreviewRequested` (`index.ts`) | `roomId` = `componentId`; `perspective` = payload; `markState` = payload; `markProvenance` = `'preview'`; `pointerHint` omitted; `allowGeneration` / `generationContextWml` from payload. |
-| `requestIntake` (after `Meta::Room` load) | `roomId` = room `componentId`; `perspective` = payload; `markState` = `metaRoom.state.marks` (or error before boundary); `markProvenance` = `'meta'`; `pointerHint` = `currentCacheByPerspective[perspectiveKey]` if set; generation fields from `RenderRequested`. |
+| `intakePassiveRenderRequested` (after `Meta::Room` load) | `roomId` = room `componentId`; `perspective` = payload; `markState` = `metaRoom.state.marks` (or `marks_missing` before resolve); `markProvenance` = `'meta'`; `pointerHint` = `currentCacheByPerspective[perspectiveKey]` if set; generation fields from `RenderRequested`. |
 
 Bus-only fields (`characterId`, `targets`, `messageGroupId`, `conversationId`, `requestId`) stay **outside** this type until we define an output boundary or explicit correlation layer.
 
@@ -97,19 +97,19 @@ When a new implementation appears for an existing responsibility:
 
 | Layer | Role | Notes |
 |-------|------|--------|
-| **Intake** | Wire / world -> `RenderResolveInput` (A-phase) | Per request kind: e.g. `RenderPreviewRequested` map, or `RenderRequested` + `Meta::Room` load, pointer keying, intake-only errors (e.g. missing marks). |
+| **Intake** | Wire / world -> `RenderResolveInput` (A-phase) | Passive: `intakePassiveRenderRequested` + `PassiveIntakeResult` (`renderIntake.ts`). Preview: map in `index.ts`. Intake-only errors (e.g. missing marks) do not publish the bus. |
 | **findRender** (resolve) | `RenderResolveInput` -> `RenderResolveOutput` (B-phase core) | Pointer validation, exact-match, generation; single implementation shared by all pipelines. Policy for pointer clear lives in one place (intake vs findRender: pick one rule; do not split). |
 | **Delivery** | `RenderResolveOutput` + context -> side effects | Bus (`RenderReady`, `RenderLookupRequested`, `Error`), preview conversation `sendMessage`, future dataSource subscribers. Two adapters (passive vs preview) are still **one** delivery layer, not two resolve stacks. |
 
-**Delivery layer (phase 1 done):** `renderOrchestration/deliverRenderResolve.ts` exports `deliverRenderResolveForPassive` and `deliverRenderResolveForPreview`; `requestIntake.ts` and `renderOrchestration/index.ts` call these after resolve.
+**Delivery layer (phase 1 done):** `renderOrchestration/deliverRenderResolve.ts` exports `deliverRenderResolveForPassive` and `deliverRenderResolveForPreview`; the passive shell (`passiveRenderOrchestration.ts`) and preview handler in `index.ts` call these after resolve.
 
 **Resolve layer (phase 2 done):** `renderOrchestration/findRender.ts` exports `findRender` (pointer validation, exact-match, `tryGeneration` hook, lookup handoff). Pointer clear on invalid hint lives only here. Passive and preview wire different `tryGeneration` implementations; `index.ts` re-exports `findRender` for other callers (e.g. Track B).
 
 **Phased sequence (recommended order)**
 
 1. **Delivery first** -- [done] Extract delivery from `requestIntake.ts` and `index.ts` into `deliverRenderResolve.ts` (paired functions), invoked from both paths **after** resolve.
-2. **findRender second** -- [done] Shared resolve in `findRender.ts`; `requestIntake.ts` and `index.ts` call `findRender` before delivery; generation is injected via `tryGeneration`.
-3. **Intake / shell third** -- Narrow `requestIntake` to **intake only** (return `RenderResolveInput` or errors); have `renderOrchestration/index` (or a single orchestration entry) call **findRender** then **delivery**. Optionally converge preview and passive behind one intake surface that accepts every supported request type.
+2. **findRender second** -- [done] Shared resolve in `findRender.ts`; passive shell (`passiveRenderOrchestration.ts`) and preview handler in `index.ts` call `findRender` before delivery; generation is injected via `tryGeneration`.
+3. **Intake / shell third** -- [done] Passive A-phase: `requestIntake.ts` (`intakePassiveRenderRequested`) + `renderIntake.ts` (`PassiveIntakeResult`). Passive shell: `passiveRenderOrchestration.ts` (`orchestratePassiveRenderRequestedBatch`, alias `requestIntakeMessage`) chains intake -> `findRender` -> `deliverRenderResolveForPassive`. `index.ts` `handleRenderOrchestrationMessage` calls that batch for `RenderRequested`; preview A-phase is `intakeRenderPreviewRequested` in `index.ts`. Optional later: one intake surface for all request types.
 
 Do **not** add a fourth parallel implementation (e.g. a duplicate orchestration stack) as a "bridge" to a future `renderOrchestration` dataSource; **unify core + delivery**, then relocate the **caller** (messageBus registration vs dataSource) in one move when ready.
 
@@ -147,10 +147,17 @@ Use this mini template for each simplification decision:
 
 - **Date:** 2026-03-28
 - **Topic:** findRender horizontal (B-phase)
-- **Decision:** Centralize resolve in `findRender.ts`. Invalid pointer rows are cleared inside `findRender` only. Preview passes no-op `getCacheRecordById` / `clearPerspectivePointer` because `pointerHint` is never set on that path. Generation differences stay in `tryGeneration` (`tryRequestIntakeGeneration` vs preview `generateRoomPreview`).
+- **Decision:** Centralize resolve in `findRender.ts`. Invalid pointer rows are cleared inside `findRender` only. Preview passes no-op `getCacheRecordById` / `clearPerspectivePointer` because `pointerHint` is never set on that path. Generation differences stay in `tryGeneration` (passive generation hook vs preview `generateRoomPreview`).
 - **Canonical owner:** `lambda/ephemera/renderOrchestration/findRender.ts`
 - **Tracks affected:** Track A (passive + preview orchestration); Track B may call `findRender` next.
-- **Follow-up tasks:** Intake-only shell (phase 3 in this file); align `AGENT.md` / `AGENT.planning.md` if needed.
+- **Follow-up tasks:** Intake/shell phase 3 (2026-03-29 entry).
+
+- **Date:** 2026-03-29
+- **Topic:** Intake / shell (phase 3)
+- **Decision:** `intakePassiveRenderRequested` returns `PassiveIntakeResult` (`ok` / `marks_missing` / `not_room`). `orchestratePassiveRenderRequestedBatch` in `passiveRenderOrchestration.ts` performs findRender + passive delivery; `tryPassiveRenderGeneration` lives there. `requestIntakeMessage` remains an alias for the batch. Preview path unchanged except renamed preview intake helper in `index.ts`.
+- **Canonical owner:** A-phase `requestIntake.ts` + `renderIntake.ts`; passive shell `passiveRenderOrchestration.ts`; bus entry `index.ts`.
+- **Tracks affected:** Track A.
+- **Follow-up tasks:** Optional unified intake API; Track B caller of `findRender` + intake.
 
 ## Exit criteria for this simplification phase
 

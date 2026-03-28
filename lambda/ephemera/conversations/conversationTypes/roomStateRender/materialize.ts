@@ -13,7 +13,7 @@ export type MaterializeRoomStateRenderDeps = {
  * Returns a live handle whose `sendMessage` is currently a **no-op stub**.
  *
  * We do not route `roomStateRender` through `apiClient` / WebSocket `ConversationStep` frames. When passive
- * `requestIntake` is integrated with this pipeline, progressive messaging (progress steps and terminal
+ * Passive render orchestration (`passiveRenderOrchestration`) is integrated with this pipeline, progressive messaging (progress steps and terminal
  * `RenderResolveOutput`-shaped delivery) should be implemented **here** or delegated from here
  * (e.g. message bus, shared orchestration), rather than copying `generateRoomPreview`'s client send path.
  */
@@ -24,7 +24,7 @@ export function materializeRoomStateRender(
     void deps.messageBus;
 
     const sendMessage: ConversationHandleRoomStateRender['sendMessage'] = async (_arg) => {
-        // Stub: no progressive or terminal side effects until requestIntake wires delivery into this contract.
+        // Stub: no progressive or terminal side effects until orchestration wires delivery into this contract.
     };
 
     return {
