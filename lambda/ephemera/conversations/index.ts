@@ -2,22 +2,28 @@ export type {
     ConversationId,
     ConversationHandle,
     ConversationHandleGenerateRoomPreview,
+    ConversationHandleRoomStateRender,
     ConversationRecordType,
     ConversationPayloadStub,
     GenerateRoomPreviewConversationRouting,
     GenerateRoomPreviewFailure,
     GenerateRoomPreviewResult,
     GenerateRoomPreviewSuccess,
+    RoomStateRenderConversationRouting,
+    RoomStateRenderProgressStep,
     StorableConversationRecord,
     StorableConversationRecordGenerateRoomPreview,
-} from './conversationTypes'
+    StorableConversationRecordRoomStateRender,
+} from './conversationTypes';
 export {
     CONVERSATION_PAYLOAD_STUB,
     CONVERSATION_TYPE_GENERATE_ROOM_PREVIEW,
+    CONVERSATION_TYPE_ROOM_STATE_RENDER,
     isStorableConversationRecordGenerateRoomPreview,
-} from './conversationTypes'
-export type { RegisterConversationInput } from './registry'
+    isStorableConversationRecordRoomStateRender,
+} from './conversationTypes';
+export type { RegisterConversationInput } from './registry';
 export {
     registerConversation,
     deleteConversationRecord,
-} from './registry'
+} from './registry';

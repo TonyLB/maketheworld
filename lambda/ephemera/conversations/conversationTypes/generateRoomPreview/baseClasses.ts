@@ -56,18 +56,3 @@ export type ConversationHandleGenerateRoomPreview = StorableConversationRecordGe
      */
     sendMessage: (arg: 'generating' | GenerateRoomPreviewResult) => Promise<void>
 }
-
-/**
- * Serializable conversation rows only (no functions). Persisted / in-cache shape.
- * Section 4: add further `| StorableConversationRecord...` members.
- */
-export type StorableConversationRecord = StorableConversationRecordGenerateRoomPreview
-
-/**
- * Narrows `StorableConversationRecord` to the generateRoomPreview variant (`type` discriminant).
- */
-export function isStorableConversationRecordGenerateRoomPreview(
-    record: StorableConversationRecord
-): record is StorableConversationRecordGenerateRoomPreview {
-    return record.type === CONVERSATION_TYPE_GENERATE_ROOM_PREVIEW
-}

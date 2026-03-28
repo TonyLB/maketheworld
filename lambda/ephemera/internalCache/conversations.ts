@@ -1,12 +1,14 @@
 import { CacheBase } from '@tonylb/mtw-lambda-patterns/ts/internalCache'
 import {
     CONVERSATION_TYPE_GENERATE_ROOM_PREVIEW,
+    CONVERSATION_TYPE_ROOM_STATE_RENDER,
     createConversationCompositeReadHandleStub,
     type ConversationId,
     type ConversationsCompositeGetResult,
     type StorableConversationRecord,
 } from '../conversations/conversationTypes'
 import { materializeGenerateRoomPreview } from '../conversations/conversationTypes/generateRoomPreview'
+import { materializeRoomStateRender } from '../conversations/conversationTypes/roomStateRender'
 import type { MessageBus } from '../messageBus/baseClasses'
 import CacheGlobalData from './global'
 
@@ -15,8 +17,8 @@ import CacheGlobalData from './global'
  *
  * **Storage (`set`):** map values are JSON-safe `StorableConversationRecord` only (no functions).
  * **Read (`get`):** runtime composite `{ record, handle }` where `record` is the stored row and
- * `handle` is discriminated by `kind`: live `sendMessage` for `generateRoomPreview`, or a stub for
- * other `type` values until enriched. See conversations/AGENT.md.
+ * `handle` is discriminated by `kind`: live `sendMessage` for known pipeline types, or a stub for
+ * unknown rows. See conversations/AGENT.md.
  */
 export class ConversationsData extends CacheBase {
     private readonly byId = new Map<ConversationId, StorableConversationRecord>()
@@ -42,6 +44,18 @@ export class ConversationsData extends CacheBase {
                 record,
                 handle: {
                     kind: 'conversationCompositeReadGenerateRoomPreview',
+                    sendMessage: live.sendMessage,
+                },
+            }
+        }
+        if (record.type === CONVERSATION_TYPE_ROOM_STATE_RENDER) {
+            const live = materializeRoomStateRender(record, {
+                messageBus: this.messageBus,
+            })
+            return {
+                record,
+                handle: {
+                    kind: 'conversationCompositeReadRoomStateRender',
                     sendMessage: live.sendMessage,
                 },
             }

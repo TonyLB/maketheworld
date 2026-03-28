@@ -3,7 +3,9 @@ import { apiClient } from '@tonylb/mtw-utilities/ts/apiManagement/apiManagementC
 import type { MessageBus } from '../messageBus/baseClasses'
 import {
     CONVERSATION_PAYLOAD_STUB,
+    CONVERSATION_TYPE_ROOM_STATE_RENDER,
     isConversationCompositeReadHandleGenerateRoomPreview,
+    isConversationCompositeReadHandleRoomStateRender,
     type StorableConversationRecord,
 } from '../conversations/conversationTypes'
 import ConversationsData from './conversations'
@@ -34,6 +36,35 @@ const makeGlobals = () => ({
 describe('ConversationsData', () => {
     beforeEach(() => {
         jest.clearAllMocks()
+    })
+
+    it('set and get round-trip returns live composite handle for roomStateRender', () => {
+        const send = jest.fn()
+        const cache = new ConversationsData(
+            makeGlobals() as unknown as any,
+            { send } as unknown as MessageBus
+        )
+        const id = 'conv-rsr-001'
+        const record: StorableConversationRecord = {
+            conversationId: id,
+            type: CONVERSATION_TYPE_ROOM_STATE_RENDER,
+            routing: {
+                roomId: testRoomId,
+                perspectiveId: 'PERSPECTIVE#stub',
+                requestId: 'req-rsr-1',
+            },
+            payload: CONVERSATION_PAYLOAD_STUB,
+        }
+        cache.set(record)
+        const got = cache.get(id)
+        expect(got).toMatchObject({
+            record,
+            handle: {
+                kind: 'conversationCompositeReadRoomStateRender',
+                sendMessage: expect.any(Function),
+            },
+        })
+        expect(isConversationCompositeReadHandleRoomStateRender(got!.handle)).toBe(true)
     })
 
     it('set and get round-trip returns live composite handle for generateRoomPreview', () => {
