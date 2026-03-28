@@ -2,10 +2,7 @@ import type { EphemeraCacheId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { MessageBus } from '../messageBus/baseClasses'
 import internalCache from '../internalCache'
 import type { ConversationId } from '../conversations/conversationTypes/baseClasses'
-import {
-    isConversationCompositeReadHandleGenerateRoomPreview,
-    type ConversationCompositeReadHandleGenerateRoomPreview,
-} from '../conversations/conversationTypes'
+import { isConversationCompositeReadHandleGenerateRoomPreview } from '../conversations/conversationTypes'
 
 import {
     isRenderOrchestrationRequestMessage,
@@ -15,6 +12,7 @@ import {
     type RenderRequested,
 } from './events'
 import requestIntakeMessage from './requestIntake'
+import { deliverRenderResolveForPreview } from './deliverRenderResolve'
 import { generateRoomPreview } from './generateRoomPreview'
 import type { RenderResolveInput, RenderResolveOutput } from './baseClasses'
 
@@ -141,44 +139,6 @@ const executePreviewRenderResolve = async (
     }
 }
 
-/** Maps {@link RenderResolveOutput} to the conversation `GenerateRoomPreview` terminal wire shape. */
-const deliverPreviewRenderResolveOutput = async (
-    output: RenderResolveOutput,
-    handle: ConversationCompositeReadHandleGenerateRoomPreview | undefined
-): Promise<void> => {
-    if (handle === undefined) {
-        return
-    }
-    if (output.type === 'resolved') {
-        const { cacheId, cacheRecord } = output
-        if (cacheId === undefined || cacheRecord === undefined) {
-            console.error('preview path: resolved outcome missing cacheId or cacheRecord')
-            return
-        }
-        await handle.sendMessage({
-            success: true,
-            renderedContent: output.renderedContent,
-            cacheId,
-            cacheRecord,
-        })
-        return
-    }
-    if (output.type === 'lookup_handoff') {
-        console.error('preview path produced unexpected lookup_handoff outcome')
-        return
-    }
-    const { errorCode, errorMessage } = output
-    if (errorCode === 'META_ROOM_MARKS_MISSING') {
-        console.error('preview path produced unexpected META_ROOM_MARKS_MISSING outcome')
-        return
-    }
-    await handle.sendMessage({
-        success: false,
-        errorCode,
-        errorMessage,
-    })
-}
-
 const handleRenderPreviewRequested = async (payload: RenderPreviewRequested): Promise<void> => {
     const composite = internalCache.Conversations.get(payload.conversationId)
     const rawHandle = composite?.handle
@@ -202,7 +162,7 @@ const handleRenderPreviewRequested = async (payload: RenderPreviewRequested): Pr
             await handle?.sendMessage('generating')
         },
     })
-    await deliverPreviewRenderResolveOutput(output, handle)
+    await deliverRenderResolveForPreview(output, handle)
 }
 
 /**

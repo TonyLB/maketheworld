@@ -89,18 +89,45 @@ When a new implementation appears for an existing responsibility:
 3. Record the owner module in one line.
 4. Do not add new features to non-canonical tracks.
 
+## Unified orchestration shape (target)
+
+**Goal:** Replace parallel vertical stacks (preview in `index.ts` vs passive in `requestIntake.ts`) with **horizontal layers**: same responsibilities, one place each.
+
+**Three horizontals**
+
+| Layer | Role | Notes |
+|-------|------|--------|
+| **Intake** | Wire / world -> `RenderResolveInput` (A-phase) | Per request kind: e.g. `RenderPreviewRequested` map, or `RenderRequested` + `Meta::Room` load, pointer keying, intake-only errors (e.g. missing marks). |
+| **findRender** (resolve) | `RenderResolveInput` -> `RenderResolveOutput` (B-phase core) | Pointer validation, exact-match, generation; single implementation shared by all pipelines. Policy for pointer clear lives in one place (intake vs findRender: pick one rule; do not split). |
+| **Delivery** | `RenderResolveOutput` + context -> side effects | Bus (`RenderReady`, `RenderLookupRequested`, `Error`), preview conversation `sendMessage`, future dataSource subscribers. Two adapters (passive vs preview) are still **one** delivery layer, not two resolve stacks. |
+
+**Delivery layer (phase 1 done):** `renderOrchestration/deliverRenderResolve.ts` exports `deliverRenderResolveForPassive` and `deliverRenderResolveForPreview`; `requestIntake.ts` and `renderOrchestration/index.ts` call these after resolve.
+
+**Phased sequence (recommended order)**
+
+1. **Delivery first** -- [done] Extract delivery from `requestIntake.ts` and `index.ts` into `deliverRenderResolve.ts` (paired functions), invoked from both paths **after** resolve.
+2. **findRender second** -- Implement shared resolve (`findRender` or equivalent); replace duplicated resolve behavior in `index` and `requestIntake` with calls into it.
+3. **Intake / shell third** -- Narrow `requestIntake` to **intake only** (return `RenderResolveInput` or errors); have `renderOrchestration/index` (or a single orchestration entry) call **findRender** then **delivery**. Optionally converge preview and passive behind one intake surface that accepts every supported request type.
+
+Do **not** add a fourth parallel implementation (e.g. a duplicate orchestration stack) as a "bridge" to a future `renderOrchestration` dataSource; **unify core + delivery**, then relocate the **caller** (messageBus registration vs dataSource) in one move when ready.
+
+**Relation to other work**
+
+- **Task 6.5** (`AGENT.planning.md`): lifecycle ordering (`RenderGenerationStarted`, `Cache Updated` -> pointer -> `RenderReady`) attaches to the **unified** resolve/delivery shell, not a second copy of policy.
+- **Track B** (`state/getOrStartRoomRenderForState.ts`): revisit **after** `findRender` exists -- integrate as a thin caller, or retire; avoid competing resolve definitions.
+
 ## Current declutter queue
 
 1. **Resolve Track B ownership**
-   - Decide if `state/getOrStartRoomRenderForState.ts` is promoted, integrated, or retired.
+   - Decide if `state/getOrStartRoomRenderForState.ts` is promoted, integrated, or retired (see **Unified orchestration shape** above).
    - If not promoted, stop treating its TDD scaffold as a blocker for renderOrchestration progress.
 
 2. **Unify acceptance criteria references**
-   - Ensure Tier 1 Task 5 references the same canonical execution path as code/tests.
-   - Avoid wording that implies two first-class implementations.
+   - Ensure Tier 1 Task 5 and related planning bullets reference the same canonical execution path as code/tests.
+   - Avoid wording that implies two first-class implementations once the three horizontals land.
 
 3. **Keep docs synchronized with runtime wiring**
-   - Any significant path move (app -> bus -> orchestration, etc.) requires same-day doc alignment in:
+   - Any significant path move (app -> bus -> orchestration, delivery extraction, `findRender`, etc.) requires same-day doc alignment in:
      - `renderOrchestration/AGENT.md`
      - `renderOrchestration/AGENT.planning.md`
      - this file

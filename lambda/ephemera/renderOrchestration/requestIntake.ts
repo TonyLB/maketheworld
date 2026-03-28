@@ -20,8 +20,9 @@ import {
     CONVERSATION_TYPE_ROOM_STATE_RENDER,
     isConversationCompositeReadHandleRoomStateRender,
 } from '../conversations/conversationTypes'
-import type { RenderLookupRequested, RenderReady, RenderRequested } from './events'
+import type { RenderRequested } from './events'
 import type { RenderResolveInput, RenderResolveOutput } from './baseClasses'
+import { deliverRenderResolveForPassive } from './deliverRenderResolve'
 import { generateRoomPreview } from './generateRoomPreview'
 import internalCache from '../internalCache'
 
@@ -69,44 +70,6 @@ const defaultClearPerspectivePointer = async (roomId: EphemeraRoomId, perspectiv
         }
     })
 }
-
-const toLookupRequested = (payload: RenderRequested): RenderLookupRequested => ({
-    type: 'RenderLookupRequested',
-    componentId: payload.componentId,
-    perspective: payload.perspective,
-    characterId: payload.characterId,
-    targets: payload.targets,
-    messageGroupId: payload.messageGroupId,
-    allowGeneration: payload.allowGeneration,
-    generationContextWml: payload.generationContextWml
-})
-
-const toRenderReady = (payload: RenderRequested, cacheId: EphemeraCacheId, cacheRecord: EphemeraCacheDynamoItem): RenderReady => ({
-    type: 'RenderReady',
-    componentId: payload.componentId,
-    perspective: payload.perspective,
-    characterId: payload.characterId,
-    targets: payload.targets,
-    messageGroupId: payload.messageGroupId,
-    cacheId,
-    cacheRecord
-})
-
-const toMissingRoomStateError = (payload: RenderRequested) => ({
-    type: 'Error' as const,
-    body: {
-        error: `RenderRequested requires Meta::Room.state.marks for ${payload.componentId}`,
-        statusCode: 500
-    }
-})
-
-const toRenderResolveFailureError = (output: Extract<RenderResolveOutput, { type: 'failed' }>) => ({
-    type: 'Error' as const,
-    body: {
-        error: `${output.errorCode}: ${output.errorMessage}`,
-        statusCode: 500
-    }
-})
 
 type RequestIntakeDepsResolved = Required<Omit<RequestIntakeDependencies, 'generateRoomPreview'>> & {
     generateRoomPreview: typeof generateRoomPreview;
@@ -271,34 +234,6 @@ const executeRequestIntakeResolve = async (
     return { type: 'lookup_handoff' }
 }
 
-/** Maps {@link RenderResolveOutput} to the messageBus envelopes used by `requestIntake` today. */
-const deliverRequestIntakeOutput = (
-    payload: RenderRequested,
-    messageBus: MessageBus,
-    output: RenderResolveOutput
-): void => {
-    if (output.type === 'resolved') {
-        const { cacheId, cacheRecord } = output
-        if (cacheId === undefined || cacheRecord === undefined) {
-            console.error('requestIntake deliver: resolved outcome missing cacheId or cacheRecord')
-            return
-        }
-        messageBus.send(toRenderReady(payload, cacheId, cacheRecord))
-        return
-    }
-    if (output.type === 'lookup_handoff') {
-        messageBus.send(toLookupRequested(payload))
-        return
-    }
-    if (output.type === 'failed') {
-        if (output.errorCode === 'META_ROOM_MARKS_MISSING') {
-            messageBus.send(toMissingRoomStateError(payload))
-            return
-        }
-        messageBus.send(toRenderResolveFailureError(output))
-    }
-}
-
 export const requestIntakeMessage = async (
     { payloads, messageBus }: { payloads: RenderRequested[]; messageBus: MessageBus },
     _deps?: RequestIntakeDependencies
@@ -315,12 +250,12 @@ export const requestIntakeMessage = async (
 
     await Promise.all(payloads.map(async (payload) => {
         if (!isEphemeraRoomId(payload.componentId)) {
-            deliverRequestIntakeOutput(payload, messageBus, { type: 'lookup_handoff' })
+            deliverRenderResolveForPassive(payload, messageBus, { type: 'lookup_handoff' })
             return
         }
 
         const output = await executeRequestIntakeResolve(payload, payload.componentId, deps)
-        deliverRequestIntakeOutput(payload, messageBus, output)
+        deliverRenderResolveForPassive(payload, messageBus, output)
     }))
 }
 
