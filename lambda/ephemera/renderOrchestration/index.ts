@@ -122,10 +122,7 @@ const intakeRenderPreviewRequested = (payload: RenderPreviewRequested): RenderRe
     generationContextWml: payload.generationContextWml,
 })
 
-const handleRenderPreviewRequested = async (
-    payload: RenderPreviewRequested,
-    messageBus: MessageBus
-): Promise<void> => {
+const handleRenderPreviewRequested = async (payload: RenderPreviewRequested): Promise<void> => {
     const composite = internalCache.Conversations.get(payload.conversationId)
     const rawHandle = composite?.handle
     const handle =
@@ -179,7 +176,7 @@ const handleRenderPreviewRequested = async (
             }
         },
     })
-    await deliverRenderResolveForPreview(output, handle, messageBus, payload)
+    await deliverRenderResolveForPreview(output, handle)
 }
 
 /**
@@ -200,7 +197,7 @@ export const handleRenderOrchestrationMessage = async ({
 
     await Promise.all([
         renderRequested.length > 0 ? orchestratePassiveRenderRequestedBatch({ payloads: renderRequested, messageBus }) : Promise.resolve(),
-        Promise.all(renderPreviewRequested.map((p) => handleRenderPreviewRequested(p, messageBus))),
+        Promise.all(renderPreviewRequested.map((p) => handleRenderPreviewRequested(p))),
     ])
 }
 
