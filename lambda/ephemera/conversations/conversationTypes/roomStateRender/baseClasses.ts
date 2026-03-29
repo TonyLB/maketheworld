@@ -1,5 +1,8 @@
 import type { RenderResolveOutput } from '../../../renderOrchestration/baseClasses'
-import type { RenderComponentId } from '../../../renderOrchestration/events'
+import type { RenderComponentId, RenderRequestedBusDeliveryFields } from '../../../renderOrchestration/events'
+
+/** Rest of {@link RenderRequestedBusDeliveryFields} when `componentId` lives on {@link RoomStateRenderConversationRouting}. */
+export type RoomStateRenderPassiveBusDeliveryFields = Omit<RenderRequestedBusDeliveryFields, 'componentId'>
 
 import type { ConversationId, ConversationPayloadStub } from '../baseClasses'
 
@@ -11,6 +14,12 @@ export type RoomStateRenderConversationRouting = {
     componentId: RenderComponentId;
     perspectiveId: string;
     requestId?: string;
+    /**
+     * When set by passive orchestration, materialized `sendMessage` forwards terminal
+     * `RenderResolveOutput` to the message bus (same mapping as `deliverRenderResolveForPassive`).
+     * `componentId` is {@link RoomStateRenderConversationRouting.componentId} above, not repeated here.
+     */
+    passiveBusDelivery?: RoomStateRenderPassiveBusDeliveryFields;
 };
 
 export const CONVERSATION_TYPE_ROOM_STATE_RENDER = 'roomStateRender' as const;

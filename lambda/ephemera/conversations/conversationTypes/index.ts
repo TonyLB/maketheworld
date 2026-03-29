@@ -18,16 +18,20 @@ export type {
 } from './generateRoomPreview';
 export {
     CONVERSATION_TYPE_GENERATE_ROOM_PREVIEW,
+    deliverRenderResolveForPreview,
 } from './generateRoomPreview';
 export type {
     ConversationHandleRoomStateRender,
     RoomStateRenderConversationRouting,
+    RoomStateRenderPassiveBusDeliveryFields,
     RoomStateRenderProgressStep,
     StorableConversationRecordRoomStateRender,
 } from './roomStateRender';
 export {
     CONVERSATION_TYPE_ROOM_STATE_RENDER,
+    deliverRenderResolveForPassive,
     materializeRoomStateRender,
+    RENDER_ERROR_CODE_NOT_ROOM,
 } from './roomStateRender';
 export type { MaterializeRoomStateRenderDeps } from './roomStateRender';
 export type { ConversationHandle } from './handle';

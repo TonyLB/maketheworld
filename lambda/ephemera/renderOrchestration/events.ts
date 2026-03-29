@@ -38,6 +38,12 @@ export type RenderRequested = RenderTargetContext & RenderComponentPerspective &
 }
 
 /**
+ * Subset of {@link RenderRequested} stored on `roomStateRender` conversation rows so materialized
+ * `sendMessage` can publish {@link RenderReady} / {@link RenderInvalidate} / `Error` to the message bus.
+ */
+export type RenderRequestedBusDeliveryFields = Pick<RenderRequested, 'componentId' | 'perspective' | 'characterId' | 'targets' | 'messageGroupId'>
+
+/**
  * Authoring / API preview path: proposed mark state + perspective, correlated to a conversation for
  * `ConversationStep` streaming. This is intentionally separate from {@link RenderRequested}, which
  * is oriented toward persisted room state and passive/presence-driven delivery (Option C split).
@@ -69,6 +75,25 @@ export type RenderError = RenderTargetContext & RenderComponentPerspective & {
 }
 
 /**
+ * Build a {@link RenderError} bus message from a request payload, reusing correlation fields
+ * (`componentId`, `perspective`, targets, etc.).
+ */
+export const toRenderError = (
+    payload: RenderRequested | RenderPreviewRequested,
+    errorCode: string,
+    errorMessage: string
+): RenderError => ({
+    type: 'RenderError',
+    componentId: payload.componentId,
+    perspective: payload.perspective,
+    characterId: payload.characterId,
+    targets: payload.targets,
+    messageGroupId: payload.messageGroupId,
+    errorCode,
+    errorMessage,
+})
+
+/**
  * Request that cached render hints for this component and perspective be cleared or treated stale
  * (e.g. Meta::Room `currentCacheByPerspective` entry).
  */
@@ -77,6 +102,22 @@ export type RenderInvalidate = RenderTargetContext & RenderComponentPerspective 
     /** Optional diagnostic; does not drive behavior in v1. */
     reason?: string;
 }
+
+/**
+ * Build a {@link RenderInvalidate} bus message from a request payload, reusing correlation fields.
+ */
+export const toRenderInvalidate = (
+    payload: RenderRequested | RenderPreviewRequested,
+    reason?: string
+): RenderInvalidate => ({
+    type: 'RenderInvalidate',
+    componentId: payload.componentId,
+    perspective: payload.perspective,
+    characterId: payload.characterId,
+    targets: payload.targets,
+    messageGroupId: payload.messageGroupId,
+    ...(reason !== undefined ? { reason } : {}),
+})
 
 export type RenderReady = RenderTargetContext & RenderComponentPerspective & {
     type: 'RenderReady';

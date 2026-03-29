@@ -1,7 +1,11 @@
+import type { RenderResolveOutput } from '../../../renderOrchestration/baseClasses'
+import { deliverRenderResolveForPassive } from './deliverRenderResolveForPassive'
+import type { RenderRequested } from '../../../renderOrchestration/events'
 import type { MessageBus } from '../../../messageBus/baseClasses'
 
 import type {
     ConversationHandleRoomStateRender,
+    RoomStateRenderProgressStep,
     StorableConversationRecordRoomStateRender,
 } from './baseClasses'
 
@@ -9,23 +13,35 @@ export type MaterializeRoomStateRenderDeps = {
     messageBus: MessageBus;
 };
 
+const isProgressStep = (arg: RoomStateRenderProgressStep | RenderResolveOutput): arg is RoomStateRenderProgressStep => (
+    arg === 'resolving' || arg === 'generating'
+)
+
 /**
- * Returns a live handle whose `sendMessage` is currently a **no-op stub**.
- *
- * We do not route `roomStateRender` through `apiClient` / WebSocket `ConversationStep` frames. When passive
- * Passive render orchestration (`passiveRenderOrchestration`) is integrated with this pipeline, progressive messaging (progress steps and terminal
- * `RenderResolveOutput`-shaped delivery) should be implemented **here** or delegated from here
- * (e.g. message bus, shared orchestration), rather than copying `generateRoomPreview`'s client send path.
+ * Live handle: progress steps are reserved for future streaming; terminal {@link RenderResolveOutput}
+ * is published on `messageBus` using the same mapping as {@link deliverRenderResolveForPassive}
+ * when `record.routing.passiveBusDelivery` is set.
  */
 export function materializeRoomStateRender(
     record: StorableConversationRecordRoomStateRender,
     deps: MaterializeRoomStateRenderDeps
 ): ConversationHandleRoomStateRender {
-    void deps.messageBus;
-
-    const sendMessage: ConversationHandleRoomStateRender['sendMessage'] = async (_arg) => {
-        // Stub: no progressive or terminal side effects until orchestration wires delivery into this contract.
-    };
+    const sendMessage: ConversationHandleRoomStateRender['sendMessage'] = async (arg) => {
+        if (isProgressStep(arg)) {
+            return
+        }
+        const fields = record.routing.passiveBusDelivery
+        if (fields === undefined) {
+            console.error('materializeRoomStateRender: terminal sendMessage without routing.passiveBusDelivery on record')
+            return
+        }
+        const payload: RenderRequested = {
+            type: 'RenderRequested',
+            componentId: record.routing.componentId,
+            ...fields,
+        }
+        deliverRenderResolveForPassive(payload, deps.messageBus, arg)
+    }
 
     return {
         ...record,

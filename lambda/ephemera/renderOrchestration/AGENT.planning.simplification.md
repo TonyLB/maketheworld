@@ -101,13 +101,13 @@ When a new implementation appears for an existing responsibility:
 | **findRender** (resolve) | `RenderResolveInput` -> `RenderResolveOutput` (B-phase core) | Pointer validation, exact-match, generation; single implementation shared by all pipelines. Policy for pointer clear lives in one place (intake vs findRender: pick one rule; do not split). |
 | **Delivery** | `RenderResolveOutput` + context -> side effects | Bus (`RenderReady`, `RenderInvalidate`, `RenderError`, legacy `Error`), preview conversation `sendMessage`, future dataSource subscribers. Two adapters (passive vs preview) are still **one** delivery layer, not two resolve stacks. |
 
-**Delivery layer (phase 1 done):** `renderOrchestration/deliverRenderResolve.ts` exports `deliverRenderResolveForPassive` and `deliverRenderResolveForPreview`; the passive shell (`passiveRenderOrchestration.ts`) and preview handler in `index.ts` call these after resolve.
+**Delivery layer (phase 1 done):** `conversationTypes/roomStateRender/deliverRenderResolveForPassive.ts` and `conversationTypes/generateRoomPreview/deliverRenderResolveForPreview.ts`; the passive shell (`passiveRenderOrchestration.ts`) and preview handler in `index.ts` call these after resolve.
 
 **Resolve layer (phase 2 done):** `renderOrchestration/findRender.ts` exports `findRender` (pointer validation, exact-match, `tryGeneration` hook, `invalidate` when no match and generation does not run). Pointer clear on invalid hint lives only here. Passive and preview wire different `tryGeneration` implementations; `index.ts` re-exports `findRender` for other callers (e.g. Track B).
 
 **Phased sequence (recommended order)**
 
-1. **Delivery first** -- [done] Extract delivery from `requestIntake.ts` and `index.ts` into `deliverRenderResolve.ts` (paired functions), invoked from both paths **after** resolve.
+1. **Delivery first** -- [done] Extract delivery from `requestIntake.ts` and `index.ts` into `deliverRenderResolveForPassive` / `deliverRenderResolveForPreview`, invoked from both paths **after** resolve.
 2. **findRender second** -- [done] Shared resolve in `findRender.ts`; passive shell (`passiveRenderOrchestration.ts`) and preview handler in `index.ts` call `findRender` before delivery; generation is injected via `tryGeneration`.
 3. **Intake / shell third** -- [done] Passive A-phase: `requestIntake.ts` (`intakePassiveRenderRequested`) + `renderIntake.ts` (`PassiveIntakeResult`). Passive shell: `passiveRenderOrchestration.ts` (`orchestratePassiveRenderRequestedBatch`, alias `requestIntakeMessage`) chains intake -> `findRender` -> `deliverRenderResolveForPassive`. `index.ts` `handleRenderOrchestrationMessage` calls that batch for `RenderRequested`; preview A-phase is `intakeRenderPreviewRequested` in `index.ts`. Optional later: one intake surface for all request types.
 

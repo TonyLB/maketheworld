@@ -12,7 +12,7 @@ import {
     type RenderRequested,
 } from './events'
 import { orchestratePassiveRenderRequestedBatch } from './passiveRenderOrchestration'
-import { deliverRenderResolveForPreview } from './deliverRenderResolve'
+import { deliverRenderResolveForPreview } from '../conversations/conversationTypes/generateRoomPreview/deliverRenderResolveForPreview'
 import { findRender } from './findRender'
 import { generateRoomPreview } from './generateRoomPreview'
 import type { RenderResolveInput } from './baseClasses'
@@ -42,6 +42,8 @@ export {
     isRenderReady,
     isRenderGenerationCompleted,
     isRenderGenerationFailed,
+    toRenderError,
+    toRenderInvalidate,
 } from './events'
 export type {
     RenderComponentId,
@@ -49,6 +51,7 @@ export type {
     RenderRoomPerspective,
     RenderOrchestrationRequestMessage,
     RenderRequested,
+    RenderRequestedBusDeliveryFields,
     RenderPreviewRequested,
     RenderError,
     RenderInvalidate,
@@ -96,10 +99,7 @@ export { RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION } from './baseClasses'
 export { findRender } from './findRender'
 export type { FindRenderDependencies } from './findRender'
 
-export {
-    deliverRenderOrchestrationRenderError,
-    RENDER_ERROR_CODE_NOT_ROOM,
-} from './deliverRenderResolve'
+export { RENDER_ERROR_CODE_NOT_ROOM } from '../conversations/conversationTypes/roomStateRender/deliverRenderResolveForPassive'
 
 export type RenderOrchestrationSubscriptions = {
     /**
