@@ -253,7 +253,7 @@ describe('ConversationsData', () => {
             throw new Error('expected live generateRoomPreview composite handle')
         }
         await handle.sendMessage({
-            success: true,
+            type: 'resolved',
             renderedContent: { description: ['x'] },
             cacheId: previewTerminalCacheId,
             cacheRecord: previewTerminalCacheRecord,
@@ -298,7 +298,7 @@ describe('ConversationsData', () => {
             throw new Error('expected live generateRoomPreview composite handle')
         }
         await handle.sendMessage({
-            success: false,
+            type: 'failed',
             errorCode: 'CONTEXT_REQUIRED',
             errorMessage: 'need context',
         })

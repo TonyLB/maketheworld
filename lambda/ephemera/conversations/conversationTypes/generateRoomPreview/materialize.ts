@@ -6,6 +6,7 @@ import type {
 } from './baseClasses'
 
 import { apiClient } from '@tonylb/mtw-utilities/ts/apiManagement/apiManagementClient'
+import { renderResolveOutputToGenerateRoomPreviewResult } from './renderResolveOutputToGenerateRoomPreviewResult'
 
 export type MaterializeGenerateRoomPreviewDeps = {
     messageBus: MessageBus
@@ -43,12 +44,14 @@ export function materializeGenerateRoomPreview(
             return
         }
 
+        const generateRoomPreview = renderResolveOutputToGenerateRoomPreviewResult(arg)
+
         const step = {
             messageType: 'ConversationStep' as const,
             conversationId: record.conversationId,
             pipeline: 'generateRoomPreview' as const,
-            step: arg.success ? 'complete' : 'error',
-            generateRoomPreview: arg,
+            step: generateRoomPreview.success ? ('complete' as const) : ('error' as const),
+            generateRoomPreview,
             ...(record.routing.requestId !== undefined ? { RequestId: record.routing.requestId } : {}),
         }
 

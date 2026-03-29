@@ -121,7 +121,7 @@ describe('renderOrchestration/index', () => {
             })
             expect(sendMessage).toHaveBeenCalledTimes(1)
             expect(sendMessage).toHaveBeenCalledWith({
-                success: true,
+                type: 'resolved',
                 renderedContent: record.renderedContent,
                 cacheId: record.DataCategory as EphemeraCacheId,
                 cacheRecord: record,
@@ -179,7 +179,12 @@ describe('renderOrchestration/index', () => {
                     onGenerating: expect.any(Function),
                 })
             )
-            expect(sendMessage).toHaveBeenCalledWith(genResult)
+            expect(sendMessage).toHaveBeenCalledWith({
+                type: 'resolved',
+                renderedContent: genResult.renderedContent,
+                cacheId: genResult.cacheId,
+                cacheRecord: genResult.cacheRecord,
+            })
         })
 
         it('on exact-match miss: invokes onGenerating before terminal sendMessage when generateRoomPreview uses slow path', async () => {
@@ -228,9 +233,10 @@ describe('renderOrchestration/index', () => {
 
             expect(onGeneratingCallback).toEqual(expect.any(Function))
             expect(sendMessage.mock.calls[0][0]).toBe('generating')
-            expect(sendMessage.mock.calls[1][0]).toEqual(
-                expect.objectContaining({ success: true })
-            )
+            expect(sendMessage.mock.calls[1][0]).toMatchObject({
+                type: 'resolved',
+                renderedContent: { description: [] },
+            })
         })
 
         it('when conversation handle is missing, exact-match hit does not throw and does not call generateRoomPreview', async () => {

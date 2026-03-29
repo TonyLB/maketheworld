@@ -13,5 +13,4 @@ export {
 export { materializeGenerateRoomPreview } from './materialize'
 export type { MaterializeGenerateRoomPreviewDeps } from './materialize'
 export { deliverRenderResolveForPreview } from './deliverRenderResolveForPreview'
-export type { ToGenerateRoomPreviewResultOutcome } from './toGenerateRoomPreviewResult'
-export { toGenerateRoomPreviewResult } from './toGenerateRoomPreviewResult'
+export { renderResolveOutputToGenerateRoomPreviewResult } from './renderResolveOutputToGenerateRoomPreviewResult'

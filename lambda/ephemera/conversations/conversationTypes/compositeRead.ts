@@ -10,8 +10,8 @@ export type ConversationCompositeReadHandleStub = {
 };
 
 /**
- * Live composite handle for `generateRoomPreview`: same `sendMessage` contract as materialized handle,
- * wrapped with a `kind` discriminant for narrowing at call sites.
+ * Live composite handle for `generateRoomPreview`: same `sendMessage` contract as materialized handle
+ * (`RenderProgress` | `RenderResolveOutput`), wrapped with a `kind` discriminant for narrowing at call sites.
  */
 export type ConversationCompositeReadHandleGenerateRoomPreview = {
     readonly kind: 'conversationCompositeReadGenerateRoomPreview';

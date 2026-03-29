@@ -20,6 +20,7 @@ export type {
 export {
     CONVERSATION_TYPE_GENERATE_ROOM_PREVIEW,
     deliverRenderResolveForPreview,
+    renderResolveOutputToGenerateRoomPreviewResult,
 } from './generateRoomPreview';
 export type {
     ConversationHandleRoomStateRender,

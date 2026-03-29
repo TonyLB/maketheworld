@@ -1,3 +1,4 @@
+import type { EphemeraCacheId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { MessageBus } from '../../../messageBus/baseClasses'
 import type { EphemeraCacheDynamoItem } from '../../../renderCache/baseClasses'
 import type { ConversationCompositeReadHandleGenerateRoomPreview } from '../compositeRead'
@@ -13,7 +14,7 @@ describe('deliverRenderResolveForPreview', () => {
         renderedContent: { description: [] },
         provenance: { type: 'authored' },
         perspectiveId: 'PERSPECTIVE#legacy',
-        perspectiveMatcher: { requiredAssetIds: ['ASSET#base'], forbiddenAssetIds: [] }
+        perspectiveMatcher: { requiredAssetIds: ['ASSET#base'], forbiddenAssetIds: [] },
     }
 
     const makeBus = (): MessageBus => ({ send: jest.fn() } as unknown as MessageBus)
@@ -37,7 +38,7 @@ describe('deliverRenderResolveForPreview', () => {
             {
                 type: 'resolved',
                 renderedContent: baseCacheRecord.renderedContent,
-                cacheId: 'CACHE#valid',
+                cacheId: 'CACHE#valid' as EphemeraCacheId,
                 cacheRecord: baseCacheRecord,
             },
             undefined,
@@ -46,61 +47,40 @@ describe('deliverRenderResolveForPreview', () => {
         )
     })
 
-    it('sendMessage success payload on resolved', async () => {
+    it('sendMessage with RenderResolveOutput resolved', async () => {
         const handle = makeHandle()
         const messageBus = makeBus()
-        await deliverRenderResolveForPreview(
-            {
-                type: 'resolved',
-                renderedContent: baseCacheRecord.renderedContent,
-                cacheId: 'CACHE#valid',
-                cacheRecord: baseCacheRecord,
-            },
-            handle,
-            messageBus,
-            basePreviewPayload
-        )
-        expect(handle.sendMessage).toHaveBeenCalledWith({
-            success: true,
+        const output = {
+            type: 'resolved' as const,
             renderedContent: baseCacheRecord.renderedContent,
-            cacheId: 'CACHE#valid',
+            cacheId: 'CACHE#valid' as EphemeraCacheId,
             cacheRecord: baseCacheRecord,
-        })
+        }
+        await deliverRenderResolveForPreview(output, handle, messageBus, basePreviewPayload)
+        expect(handle.sendMessage).toHaveBeenCalledWith(output)
     })
 
-    it('sendMessage failure payload on failed generation', async () => {
+    it('sendMessage with RenderResolveOutput failed', async () => {
         const handle = makeHandle()
         const messageBus = makeBus()
-        await deliverRenderResolveForPreview(
-            {
-                type: 'failed',
-                errorCode: 'CONTEXT_REQUIRED',
-                errorMessage: 'Generation context required',
-            },
-            handle,
-            messageBus,
-            basePreviewPayload
-        )
-        expect(handle.sendMessage).toHaveBeenCalledWith({
-            success: false,
-            errorCode: 'CONTEXT_REQUIRED',
+        const output = {
+            type: 'failed' as const,
+            errorCode: 'CONTEXT_REQUIRED' as const,
             errorMessage: 'Generation context required',
-        })
+        }
+        await deliverRenderResolveForPreview(output, handle, messageBus, basePreviewPayload)
+        expect(handle.sendMessage).toHaveBeenCalledWith(output)
     })
 
-    it('sends RenderInvalidate on messageBus on invalidate and does not sendMessage', async () => {
+    it('sends RenderInvalidate on messageBus on invalidate and forwards sendMessage with same output', async () => {
         const handle = makeHandle()
         const messageBus = makeBus()
-        await deliverRenderResolveForPreview(
-            {
-                type: 'invalidate',
-                reason: RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION,
-            },
-            handle,
-            messageBus,
-            basePreviewPayload
-        )
-        expect(handle.sendMessage).not.toHaveBeenCalled()
+        const output = {
+            type: 'invalidate' as const,
+            reason: RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION,
+        }
+        await deliverRenderResolveForPreview(output, handle, messageBus, basePreviewPayload)
+        expect(handle.sendMessage).toHaveBeenCalledWith(output)
         expect(messageBus.send).toHaveBeenCalledWith(expect.objectContaining({
             type: 'RenderInvalidate',
             reason: RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION,
@@ -108,40 +88,26 @@ describe('deliverRenderResolveForPreview', () => {
         }))
     })
 
-    it('logs and does not sendMessage on META_ROOM_MARKS_MISSING', async () => {
+    it('forwards META_ROOM_MARKS_MISSING to sendMessage', async () => {
         const handle = makeHandle()
-        const err = jest.spyOn(console, 'error').mockImplementation(() => {})
         const messageBus = makeBus()
-        await deliverRenderResolveForPreview(
-            {
-                type: 'failed',
-                errorCode: 'META_ROOM_MARKS_MISSING',
-                errorMessage: 'x',
-            },
-            handle,
-            messageBus,
-            basePreviewPayload
-        )
-        expect(handle.sendMessage).not.toHaveBeenCalled()
-        expect(err).toHaveBeenCalled()
-        err.mockRestore()
+        const output = {
+            type: 'failed' as const,
+            errorCode: 'META_ROOM_MARKS_MISSING' as const,
+            errorMessage: 'x',
+        }
+        await deliverRenderResolveForPreview(output, handle, messageBus, basePreviewPayload)
+        expect(handle.sendMessage).toHaveBeenCalledWith(output)
     })
 
-    it('does not send when resolved missing cacheId and logs', async () => {
+    it('forwards resolved missing cacheId to sendMessage', async () => {
         const handle = makeHandle()
-        const err = jest.spyOn(console, 'error').mockImplementation(() => {})
         const messageBus = makeBus()
-        await deliverRenderResolveForPreview(
-            {
-                type: 'resolved',
-                renderedContent: baseCacheRecord.renderedContent,
-            },
-            handle,
-            messageBus,
-            basePreviewPayload
-        )
-        expect(handle.sendMessage).not.toHaveBeenCalled()
-        expect(err).toHaveBeenCalled()
-        err.mockRestore()
+        const output = {
+            type: 'resolved' as const,
+            renderedContent: baseCacheRecord.renderedContent,
+        }
+        await deliverRenderResolveForPreview(output, handle, messageBus, basePreviewPayload)
+        expect(handle.sendMessage).toHaveBeenCalledWith(output)
     })
 })

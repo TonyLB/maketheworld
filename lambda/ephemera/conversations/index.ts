@@ -21,6 +21,7 @@ export {
     CONVERSATION_TYPE_ROOM_STATE_RENDER,
     isStorableConversationRecordGenerateRoomPreview,
     isStorableConversationRecordRoomStateRender,
+    renderResolveOutputToGenerateRoomPreviewResult,
 } from './conversationTypes';
 export type { RegisterConversationInput } from './registry';
 export {

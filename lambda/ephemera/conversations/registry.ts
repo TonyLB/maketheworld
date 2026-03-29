@@ -32,10 +32,11 @@ export const registerConversation = async (
         conversationId = uuidv4()
     }
 
-    const record: StorableConversationRecord = {
+    // Spread + `conversationId` widens `type`/`routing` correlation; input is already a valid variant.
+    const record = {
         ...rowFields,
         conversationId,
-    }
+    } as StorableConversationRecord
     internalCache.Conversations.set(record)
     return Promise.resolve(conversationId)
 }
