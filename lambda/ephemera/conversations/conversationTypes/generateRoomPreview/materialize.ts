@@ -4,6 +4,7 @@ import type {
     ConversationHandleGenerateRoomPreview,
     StorableConversationRecordGenerateRoomPreview,
 } from './baseClasses'
+import type { RenderResolveOutput } from '../../../renderOrchestration/baseClasses'
 
 import { apiClient } from '@tonylb/mtw-utilities/ts/apiManagement/apiManagementClient'
 import { renderResolveOutputToGenerateRoomPreviewResult } from './renderResolveOutputToGenerateRoomPreviewResult'
@@ -44,7 +45,8 @@ export function materializeGenerateRoomPreview(
             return
         }
 
-        const generateRoomPreview = renderResolveOutputToGenerateRoomPreviewResult(arg)
+        const enrichedOutput = enrichRenderResolveForPreview(arg)
+        const generateRoomPreview = renderResolveOutputToGenerateRoomPreviewResult(enrichedOutput)
 
         const step = {
             messageType: 'ConversationStep' as const,
@@ -65,4 +67,13 @@ export function materializeGenerateRoomPreview(
         ...record,
         sendMessage,
     }
+}
+
+/**
+ * Preview path: intentional identity enrichment so terminal handling matches roomStateRender materialize's
+ * enrich-then-deliver structure (`enrichRenderResolveForPassive` maps resolve output to bus payloads there).
+ * Returns `output` unchanged; {@link renderResolveOutputToGenerateRoomPreviewResult} performs wire shaping.
+ */
+function enrichRenderResolveForPreview(output: RenderResolveOutput): RenderResolveOutput {
+    return output
 }

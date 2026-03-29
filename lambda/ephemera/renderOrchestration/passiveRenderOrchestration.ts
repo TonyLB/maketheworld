@@ -18,7 +18,7 @@ import {
 import type { ConversationId } from '../conversations'
 import { toRenderError, type RenderRequested } from './events'
 import type { RenderResolveInput, RenderResolveOutput } from './baseClasses'
-import { RENDER_ERROR_CODE_NOT_ROOM } from '../conversations/conversationTypes/roomStateRender/enrichRenderResolveForPassive'
+import { RENDER_ERROR_CODE_NOT_ROOM } from '../conversations/conversationTypes/roomStateRender/baseClasses'
 import { findRender } from './findRender'
 import { generateRoomPreview } from './generateRoomPreview'
 import { intakePassiveRenderRequested } from './requestIntake'
@@ -127,7 +127,7 @@ const tryPassiveRenderGeneration = async (
 
 /**
  * Passive shell: intake -> {@link findRender} -> terminal delivery via roomStateRender `sendMessage`
- * (materializes to the same bus mapping as {@link enrichRenderResolveForPassive}).
+ * (materializes to the same bus mapping as `materializeRoomStateRender`).
  */
 export const orchestratePassiveRenderRequestedBatch = async (
     { payloads, messageBus }: { payloads: RenderRequested[]; messageBus: MessageBus },
@@ -197,9 +197,7 @@ export const orchestratePassiveRenderRequestedBatch = async (
             tryGeneration: (r) => tryPassiveRenderGeneration(r, orchDeps, conversationId, messageBus),
         })
         const terminalHandle = getRoomStateRenderHandle(conversationId, messageBus)
-        if (terminalHandle !== undefined) {
-            await terminalHandle.sendMessage(output)
-        }
+        await terminalHandle?.sendMessage(output)
     }))
 }
 

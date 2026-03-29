@@ -12,5 +12,4 @@ export {
 } from './baseClasses'
 export { materializeGenerateRoomPreview } from './materialize'
 export type { MaterializeGenerateRoomPreviewDeps } from './materialize'
-export { enrichRenderResolveForPreview } from './enrichRenderResolveForPreview'
 export { renderResolveOutputToGenerateRoomPreviewResult } from './renderResolveOutputToGenerateRoomPreviewResult'

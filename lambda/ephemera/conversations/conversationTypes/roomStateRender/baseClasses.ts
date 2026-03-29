@@ -6,6 +6,9 @@ export type RoomStateRenderPassiveBusDeliveryFields = Omit<RenderRequestedBusDel
 
 import type { ConversationId, ConversationPayloadStub } from '../baseClasses'
 
+/** Passive {@link RenderRequested} is not a room id; Meta/cache resolve does not apply. */
+export const RENDER_ERROR_CODE_NOT_ROOM = 'RENDER_REQUESTED_NOT_ROOM'
+
 /**
  * Serializable routing for passive / Meta-aligned room render (renderOrchestration passive shell).
  * Aligns with {@link RenderComponentPerspective.componentId} (room, feature, or map) and perspective keying.
@@ -15,8 +18,8 @@ export type RoomStateRenderConversationRouting = {
     perspectiveId: string;
     requestId?: string;
     /**
-     * When set by passive orchestration, materialized `sendMessage` forwards terminal
-     * `RenderResolveOutput` to the message bus (same mapping as `enrichRenderResolveForPassive`).
+     * When set by passive orchestration, materialized `sendMessage` maps terminal
+     * `RenderResolveOutput` to the render orchestration message bus (see `materializeRoomStateRender`).
      * `componentId` is {@link RoomStateRenderConversationRouting.componentId} above, not repeated here.
      */
     passiveBusDelivery?: RoomStateRenderPassiveBusDeliveryFields;

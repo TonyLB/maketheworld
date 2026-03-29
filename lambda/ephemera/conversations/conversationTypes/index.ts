@@ -19,7 +19,6 @@ export type {
 } from './generateRoomPreview';
 export {
     CONVERSATION_TYPE_GENERATE_ROOM_PREVIEW,
-    enrichRenderResolveForPreview,
     renderResolveOutputToGenerateRoomPreviewResult,
 } from './generateRoomPreview';
 export type {
@@ -30,7 +29,6 @@ export type {
 } from './roomStateRender';
 export {
     CONVERSATION_TYPE_ROOM_STATE_RENDER,
-    enrichRenderResolveForPassive,
     materializeRoomStateRender,
     RENDER_ERROR_CODE_NOT_ROOM,
 } from './roomStateRender';
