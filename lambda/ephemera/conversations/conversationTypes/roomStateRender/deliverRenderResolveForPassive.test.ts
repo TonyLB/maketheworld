@@ -53,7 +53,7 @@ describe('deliverRenderResolveForPassive', () => {
         }))
     })
 
-    it('sends Error for META_ROOM_MARKS_MISSING', () => {
+    it('sends RenderError for META_ROOM_MARKS_MISSING', () => {
         const messageBus = makeBus()
         deliverRenderResolveForPassive(
             basePayload,
@@ -61,18 +61,18 @@ describe('deliverRenderResolveForPassive', () => {
             {
                 type: 'failed',
                 errorCode: 'META_ROOM_MARKS_MISSING',
-                errorMessage: 'marks missing',
+                errorMessage: 'RenderRequested requires Meta::Room.state.marks for ROOM#one',
             }
         )
         expect(messageBus.send).toHaveBeenCalledWith(expect.objectContaining({
-            type: 'Error',
-            body: expect.objectContaining({
-                error: expect.stringContaining('Meta::Room.state.marks'),
-            }),
+            type: 'RenderError',
+            errorCode: 'META_ROOM_MARKS_MISSING',
+            errorMessage: 'RenderRequested requires Meta::Room.state.marks for ROOM#one',
+            componentId: 'ROOM#one',
         }))
     })
 
-    it('sends Error with errorCode prefix for other failures', () => {
+    it('sends RenderError for other failures', () => {
         const messageBus = makeBus()
         deliverRenderResolveForPassive(
             basePayload,
@@ -84,10 +84,10 @@ describe('deliverRenderResolveForPassive', () => {
             }
         )
         expect(messageBus.send).toHaveBeenCalledWith(expect.objectContaining({
-            type: 'Error',
-            body: expect.objectContaining({
-                error: expect.stringContaining('CONTEXT_REQUIRED'),
-            }),
+            type: 'RenderError',
+            errorCode: 'CONTEXT_REQUIRED',
+            errorMessage: 'Generation context required',
+            componentId: 'ROOM#one',
         }))
     })
 

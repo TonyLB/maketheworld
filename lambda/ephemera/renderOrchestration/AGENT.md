@@ -22,7 +22,7 @@ Important: the lifecycle events are primarily motivated by presence-based delive
 - **Completion handoff**: when generation completes, update pointers (e.g. `Meta::Room.currentCacheId`) and publish ready events.
 - **Decoupled signaling**: publish well-scoped internal events so perception can react without coupling to generation internals.
 
-Current temporary constraint: passive **intake** (`intakePassiveRenderRequested`) surfaces missing `Meta::Room.state.marks` as `marks_missing`; the **shell** (`orchestratePassiveRenderRequestedBatch`) maps that to the same bus `Error` as before (no defaults invented in intake). See `AGENT.planning.md`.
+Current temporary constraint: passive **intake** (`intakePassiveRenderRequested`) surfaces missing `Meta::Room.state.marks` as `marks_missing`; the **shell** (`orchestratePassiveRenderRequestedBatch`) maps that to bus `RenderError` (no defaults invented in intake). See `AGENT.planning.md`.
 
 ## Technical Details
 

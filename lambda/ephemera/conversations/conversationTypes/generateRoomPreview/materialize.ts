@@ -23,6 +23,10 @@ export function materializeGenerateRoomPreview(
     const sendMessage: ConversationHandleGenerateRoomPreview['sendMessage'] = async (arg) => {
         const ConnectionId = await deps.getConnectionId()
 
+        if (arg === 'resolving') {
+            return
+        }
+
         if (arg === 'generating') {
             const step = {
                 messageType: 'ConversationStep' as const,

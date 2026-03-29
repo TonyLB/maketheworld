@@ -154,7 +154,7 @@ describe('renderOrchestration/passive shell (requestIntakeMessage)', () => {
         expect(messageBus.send).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'RenderInvalidate' }))
     })
 
-    it('emits Error and does not clear pointer when state marks missing', async () => {
+    it('emits RenderError and does not clear pointer when state marks missing', async () => {
         const clearPerspectivePointer = jest.fn().mockResolvedValue(undefined)
         const messageBus = makeBus()
         await requestIntakeMessage(
@@ -170,14 +170,14 @@ describe('renderOrchestration/passive shell (requestIntakeMessage)', () => {
         )
         expect(clearPerspectivePointer).not.toHaveBeenCalled()
         expect(messageBus.send).toHaveBeenCalledWith(expect.objectContaining({
-            type: 'Error',
-            body: expect.objectContaining({
-                error: expect.stringContaining('Meta::Room.state.marks')
-            })
+            type: 'RenderError',
+            errorCode: 'META_ROOM_MARKS_MISSING',
+            errorMessage: expect.stringContaining('Meta::Room.state.marks'),
+            componentId: 'ROOM#one',
         }))
     })
 
-    it('emits Error when Meta::Room is missing', async () => {
+    it('emits RenderError when Meta::Room is missing', async () => {
         const messageBus = makeBus()
         const getCacheRecordById = jest.fn()
         await requestIntakeMessage(
@@ -193,10 +193,10 @@ describe('renderOrchestration/passive shell (requestIntakeMessage)', () => {
         )
         expect(getCacheRecordById).not.toHaveBeenCalled()
         expect(messageBus.send).toHaveBeenCalledWith(expect.objectContaining({
-            type: 'Error',
-            body: expect.objectContaining({
-                error: expect.stringContaining('Meta::Room.state.marks')
-            })
+            type: 'RenderError',
+            errorCode: 'META_ROOM_MARKS_MISSING',
+            errorMessage: expect.stringContaining('Meta::Room.state.marks'),
+            componentId: 'ROOM#one',
         }))
     })
 
@@ -338,7 +338,7 @@ describe('renderOrchestration/passive shell (requestIntakeMessage)', () => {
         expect(messageBus.send).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'RenderInvalidate' }))
     })
 
-    it('emits Error when allowGeneration set but generation returns CONTEXT_REQUIRED', async () => {
+    it('emits RenderError when allowGeneration set but generation returns CONTEXT_REQUIRED', async () => {
         const generateRoomPreview = jest.fn().mockResolvedValue({
             success: false,
             errorCode: 'CONTEXT_REQUIRED',
@@ -363,10 +363,10 @@ describe('renderOrchestration/passive shell (requestIntakeMessage)', () => {
         )
         expect(generateRoomPreview).toHaveBeenCalled()
         expect(messageBus.send).toHaveBeenCalledWith(expect.objectContaining({
-            type: 'Error',
-            body: expect.objectContaining({
-                error: expect.stringContaining('CONTEXT_REQUIRED'),
-            }),
+            type: 'RenderError',
+            errorCode: 'CONTEXT_REQUIRED',
+            errorMessage: 'Generation context required',
+            componentId: 'ROOM#one',
         }))
     })
 })

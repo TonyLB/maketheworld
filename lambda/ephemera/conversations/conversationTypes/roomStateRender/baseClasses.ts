@@ -1,4 +1,4 @@
-import type { RenderResolveOutput } from '../../../renderOrchestration/baseClasses'
+import type { RenderProgress, RenderResolveOutput } from '../../../renderOrchestration/baseClasses'
 import type { RenderComponentId, RenderRequestedBusDeliveryFields } from '../../../renderOrchestration/events'
 
 /** Rest of {@link RenderRequestedBusDeliveryFields} when `componentId` lives on {@link RoomStateRenderConversationRouting}. */
@@ -33,17 +33,12 @@ export type StorableConversationRecordRoomStateRender = {
 };
 
 /**
- * Non-terminal frames: cache/pointer work vs LLM generation (when wired), mirroring preview `generating`.
- */
-export type RoomStateRenderProgressStep = 'resolving' | 'generating';
-
-/**
  * Live handle: same progressive + terminal contract as the shared resolve core ({@link RenderResolveOutput}).
  */
 export type ConversationHandleRoomStateRender = StorableConversationRecordRoomStateRender & {
     /**
-     * - Progress: intake/cache phases (`resolving`) and generation (`generating`) before terminal resolve.
+     * - Progress: {@link RenderProgress} (intake/cache vs generation) before terminal resolve.
      * - Terminal: {@link RenderResolveOutput} from passive orchestration / shared resolve core.
      */
-    sendMessage: (arg: RoomStateRenderProgressStep | RenderResolveOutput) => Promise<void>;
+    sendMessage: (arg: RenderProgress | RenderResolveOutput) => Promise<void>;
 };

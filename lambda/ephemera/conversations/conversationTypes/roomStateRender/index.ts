@@ -2,7 +2,6 @@ export type {
     ConversationHandleRoomStateRender,
     RoomStateRenderConversationRouting,
     RoomStateRenderPassiveBusDeliveryFields,
-    RoomStateRenderProgressStep,
     StorableConversationRecordRoomStateRender,
 } from './baseClasses';
 export { CONVERSATION_TYPE_ROOM_STATE_RENDER } from './baseClasses';

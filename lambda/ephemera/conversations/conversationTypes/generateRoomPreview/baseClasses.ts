@@ -2,6 +2,7 @@ import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraCacheId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import type { EphemeraCacheDynamoItem, EphemeraCacheRenderedContent } from '../../../renderCache/baseClasses'
+import type { RenderProgress } from '../../../renderOrchestration/baseClasses'
 
 import type { ConversationId, ConversationPayloadStub } from '../baseClasses'
 
@@ -54,10 +55,10 @@ export type GenerateRoomPreviewResult = GenerateRoomPreviewSuccess | GenerateRoo
 export type ConversationHandleGenerateRoomPreview = StorableConversationRecordGenerateRoomPreview & {
     /**
      * MVP send contract:
-     * - Progress uses local simplified `'generating'` marker.
+     * - Progress uses shared {@link RenderProgress} (`generating` today; `resolving` reserved / no-op on wire until supported).
      * - Terminal uses the domain `GenerateRoomPreviewResult`.
      *
      * `materialize` enriches this into the shared `ConversationStep` wire shape.
      */
-    sendMessage: (arg: 'generating' | GenerateRoomPreviewResult) => Promise<void>
+    sendMessage: (arg: RenderProgress | GenerateRoomPreviewResult) => Promise<void>
 }

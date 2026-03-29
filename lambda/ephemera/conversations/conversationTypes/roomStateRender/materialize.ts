@@ -1,21 +1,13 @@
-import type { RenderResolveOutput } from '../../../renderOrchestration/baseClasses'
+import { isRenderProgress, type RenderResolveOutput } from '../../../renderOrchestration/baseClasses'
 import { deliverRenderResolveForPassive } from './deliverRenderResolveForPassive'
 import type { RenderRequested } from '../../../renderOrchestration/events'
 import type { MessageBus } from '../../../messageBus/baseClasses'
 
-import type {
-    ConversationHandleRoomStateRender,
-    RoomStateRenderProgressStep,
-    StorableConversationRecordRoomStateRender,
-} from './baseClasses'
+import type { ConversationHandleRoomStateRender, StorableConversationRecordRoomStateRender } from './baseClasses'
 
 export type MaterializeRoomStateRenderDeps = {
     messageBus: MessageBus;
 };
-
-const isProgressStep = (arg: RoomStateRenderProgressStep | RenderResolveOutput): arg is RoomStateRenderProgressStep => (
-    arg === 'resolving' || arg === 'generating'
-)
 
 /**
  * Live handle: progress steps are reserved for future streaming; terminal {@link RenderResolveOutput}
@@ -27,7 +19,7 @@ export function materializeRoomStateRender(
     deps: MaterializeRoomStateRenderDeps
 ): ConversationHandleRoomStateRender {
     const sendMessage: ConversationHandleRoomStateRender['sendMessage'] = async (arg) => {
-        if (isProgressStep(arg)) {
+        if (isRenderProgress(arg)) {
             return
         }
         const fields = record.routing.passiveBusDelivery

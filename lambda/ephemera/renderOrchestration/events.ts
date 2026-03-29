@@ -125,6 +125,24 @@ export type RenderReady = RenderTargetContext & RenderComponentPerspective & {
     cacheRecord?: EphemeraCacheDynamoItem;
 }
 
+/**
+ * Build a {@link RenderReady} bus message from a {@link RenderRequested} payload plus cache row fields.
+ */
+export const toRenderReady = (
+    payload: RenderRequested,
+    cacheId: EphemeraCacheId,
+    cacheRecord: EphemeraCacheDynamoItem
+): RenderReady => ({
+    type: 'RenderReady',
+    componentId: payload.componentId,
+    perspective: payload.perspective,
+    characterId: payload.characterId,
+    targets: payload.targets,
+    messageGroupId: payload.messageGroupId,
+    cacheId,
+    cacheRecord,
+})
+
 export type RenderGenerationCompleted = RenderTargetContext & RenderComponentPerspective & {
     type: 'RenderGenerationCompleted';
     cacheId: EphemeraCacheId;

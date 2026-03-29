@@ -1,3 +1,4 @@
+export type { RenderProgress } from '../../../renderOrchestration/baseClasses'
 export type {
     ConversationHandleGenerateRoomPreview,
     GenerateRoomPreviewConversationRouting,
@@ -12,3 +13,5 @@ export {
 export { materializeGenerateRoomPreview } from './materialize'
 export type { MaterializeGenerateRoomPreviewDeps } from './materialize'
 export { deliverRenderResolveForPreview } from './deliverRenderResolveForPreview'
+export type { ToGenerateRoomPreviewResultOutcome } from './toGenerateRoomPreviewResult'
+export { toGenerateRoomPreviewResult } from './toGenerateRoomPreviewResult'

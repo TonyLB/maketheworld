@@ -1,3 +1,4 @@
+export type { RenderProgress } from '../../renderOrchestration/baseClasses';
 export type { ConversationId, ConversationPayloadStub } from './baseClasses';
 export { CONVERSATION_PAYLOAD_STUB } from './baseClasses';
 export type {
@@ -24,7 +25,6 @@ export type {
     ConversationHandleRoomStateRender,
     RoomStateRenderConversationRouting,
     RoomStateRenderPassiveBusDeliveryFields,
-    RoomStateRenderProgressStep,
     StorableConversationRecordRoomStateRender,
 } from './roomStateRender';
 export {

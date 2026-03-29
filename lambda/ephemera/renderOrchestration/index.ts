@@ -44,6 +44,7 @@ export {
     isRenderGenerationFailed,
     toRenderError,
     toRenderInvalidate,
+    toRenderReady,
 } from './events'
 export type {
     RenderComponentId,

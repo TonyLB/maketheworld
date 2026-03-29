@@ -91,9 +91,22 @@ export type RenderResolveOutputFailed = {
 /**
  * Normalized **B-phase** outcome from "resolve room render from cache / maybe generate" (paired with
  * {@link RenderResolveInput}). Correlation (`conversationId`, `RenderTargetContext`, bus envelopes) stays
- * in adapters that map this to `RenderReady`, `RenderInvalidate`, `RenderError`, conversation steps, or `Error`.
+ * in adapters that map this to `RenderReady`, `RenderInvalidate`, `RenderError`, or conversation steps.
  */
 export type RenderResolveOutput =
     | RenderResolveOutputResolved
     | RenderResolveOutputInvalidate
     | RenderResolveOutputFailed;
+
+/**
+ * Non-terminal orchestration frames before a terminal {@link RenderResolveOutput}.
+ * Shared by passive `roomStateRender` and preview `generateRoomPreview` conversation handles.
+ *
+ * - `resolving` — intake / cache / pointer work (passive may emit; preview wire may ignore until supported).
+ * - `generating` — LLM or slow generation in flight.
+ */
+export type RenderProgress = 'resolving' | 'generating';
+
+export function isRenderProgress(arg: RenderProgress | RenderResolveOutput): arg is RenderProgress {
+    return arg === 'resolving' || arg === 'generating';
+}
