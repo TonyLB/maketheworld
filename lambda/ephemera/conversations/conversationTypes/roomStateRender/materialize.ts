@@ -1,5 +1,5 @@
 import { isRenderProgress, type RenderResolveOutput } from '../../../renderOrchestration/baseClasses'
-import { deliverRenderResolveForPassive } from './deliverRenderResolveForPassive'
+import { enrichRenderResolveForPassive } from './enrichRenderResolveForPassive'
 import type { RenderRequested } from '../../../renderOrchestration/events'
 import type { MessageBus } from '../../../messageBus/baseClasses'
 
@@ -11,8 +11,8 @@ export type MaterializeRoomStateRenderDeps = {
 
 /**
  * Live handle: progress steps are reserved for future streaming; terminal {@link RenderResolveOutput}
- * is published on `messageBus` using the same mapping as {@link deliverRenderResolveForPassive}
- * when `record.routing.passiveBusDelivery` is set.
+ * is published on `messageBus` via {@link enrichRenderResolveForPassive} (return value) plus
+ * `messageBus.send` when `record.routing.passiveBusDelivery` is set.
  */
 export function materializeRoomStateRender(
     record: StorableConversationRecordRoomStateRender,
@@ -32,7 +32,10 @@ export function materializeRoomStateRender(
             componentId: record.routing.componentId,
             ...fields,
         }
-        deliverRenderResolveForPassive(payload, deps.messageBus, arg)
+        const message = enrichRenderResolveForPassive(payload, arg)
+        if (message !== undefined) {
+            deps.messageBus.send(message)
+        }
     }
 
     return {

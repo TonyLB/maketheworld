@@ -1,9 +1,9 @@
 import type { EphemeraCacheId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraCacheDynamoItem } from '../../../renderCache/baseClasses'
 import type { ConversationCompositeReadHandleGenerateRoomPreview } from '../compositeRead'
-import { deliverRenderResolveForPreview } from './deliverRenderResolveForPreview'
+import { enrichRenderResolveForPreview } from './enrichRenderResolveForPreview'
 
-describe('deliverRenderResolveForPreview', () => {
+describe('enrichRenderResolveForPreview', () => {
     const baseCacheRecord: EphemeraCacheDynamoItem = {
         EphemeraId: 'ROOM#one',
         DataCategory: 'CACHE#valid',
@@ -20,7 +20,7 @@ describe('deliverRenderResolveForPreview', () => {
     })
 
     it('does nothing when handle is undefined', async () => {
-        await deliverRenderResolveForPreview(
+        await enrichRenderResolveForPreview(
             {
                 type: 'resolved',
                 renderedContent: baseCacheRecord.renderedContent,
@@ -39,7 +39,7 @@ describe('deliverRenderResolveForPreview', () => {
             cacheId: 'CACHE#valid' as EphemeraCacheId,
             cacheRecord: baseCacheRecord,
         }
-        await deliverRenderResolveForPreview(output, handle)
+        await enrichRenderResolveForPreview(output, handle)
         expect(handle.sendMessage).toHaveBeenCalledWith(output)
     })
 
@@ -50,7 +50,7 @@ describe('deliverRenderResolveForPreview', () => {
             errorCode: 'CONTEXT_REQUIRED' as const,
             errorMessage: 'Generation context required',
         }
-        await deliverRenderResolveForPreview(output, handle)
+        await enrichRenderResolveForPreview(output, handle)
         expect(handle.sendMessage).toHaveBeenCalledWith(output)
     })
 
@@ -60,7 +60,7 @@ describe('deliverRenderResolveForPreview', () => {
             type: 'invalidate' as const,
             reason: 'NO_CACHE_MATCH_AND_GENERATION_NOT_RUN',
         }
-        await deliverRenderResolveForPreview(output, handle)
+        await enrichRenderResolveForPreview(output, handle)
         expect(handle.sendMessage).toHaveBeenCalledWith(output)
     })
 
@@ -71,7 +71,7 @@ describe('deliverRenderResolveForPreview', () => {
             errorCode: 'META_ROOM_MARKS_MISSING' as const,
             errorMessage: 'x',
         }
-        await deliverRenderResolveForPreview(output, handle)
+        await enrichRenderResolveForPreview(output, handle)
         expect(handle.sendMessage).toHaveBeenCalledWith(output)
     })
 
@@ -81,7 +81,7 @@ describe('deliverRenderResolveForPreview', () => {
             type: 'resolved' as const,
             renderedContent: baseCacheRecord.renderedContent,
         }
-        await deliverRenderResolveForPreview(output, handle)
+        await enrichRenderResolveForPreview(output, handle)
         expect(handle.sendMessage).toHaveBeenCalledWith(output)
     })
 })

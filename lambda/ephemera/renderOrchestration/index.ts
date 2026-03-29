@@ -12,7 +12,7 @@ import {
     type RenderRequested,
 } from './events'
 import { orchestratePassiveRenderRequestedBatch } from './passiveRenderOrchestration'
-import { deliverRenderResolveForPreview } from '../conversations/conversationTypes/generateRoomPreview/deliverRenderResolveForPreview'
+import { enrichRenderResolveForPreview } from '../conversations/conversationTypes/generateRoomPreview/enrichRenderResolveForPreview'
 import { findRender } from './findRender'
 import { generateRoomPreview } from './generateRoomPreview'
 import type { RenderResolveInput } from './baseClasses'
@@ -100,7 +100,7 @@ export { RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION } from './baseClasses'
 export { findRender } from './findRender'
 export type { FindRenderDependencies } from './findRender'
 
-export { RENDER_ERROR_CODE_NOT_ROOM } from '../conversations/conversationTypes/roomStateRender/deliverRenderResolveForPassive'
+export { RENDER_ERROR_CODE_NOT_ROOM } from '../conversations/conversationTypes/roomStateRender/enrichRenderResolveForPassive'
 
 export type RenderOrchestrationSubscriptions = {
     /**
@@ -176,7 +176,7 @@ const handleRenderPreviewRequested = async (payload: RenderPreviewRequested): Pr
             }
         },
     })
-    await deliverRenderResolveForPreview(output, handle)
+    await enrichRenderResolveForPreview(output, handle)
 }
 
 /**

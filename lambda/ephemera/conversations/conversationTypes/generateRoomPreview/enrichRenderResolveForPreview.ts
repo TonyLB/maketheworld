@@ -2,9 +2,11 @@ import type { ConversationCompositeReadHandleGenerateRoomPreview } from '../comp
 import type { RenderResolveOutput } from '../../../renderOrchestration/baseClasses'
 
 /**
- * Preview path: forward terminal {@link RenderResolveOutput} to the conversation `generateRoomPreview` `sendMessage`.
+ * Preview path: seam after `findRender` -- forward terminal {@link RenderResolveOutput} to the
+ * `generateRoomPreview` `sendMessage`. No extra request/bus correlation here (conversationId selects the stream);
+ * `materializeGenerateRoomPreview` translates to wire.
  */
-export const deliverRenderResolveForPreview = async (
+export const enrichRenderResolveForPreview = async (
     output: RenderResolveOutput,
     handle: ConversationCompositeReadHandleGenerateRoomPreview | undefined
 ): Promise<void> => {

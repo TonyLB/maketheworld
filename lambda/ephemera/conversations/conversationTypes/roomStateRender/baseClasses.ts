@@ -16,7 +16,7 @@ export type RoomStateRenderConversationRouting = {
     requestId?: string;
     /**
      * When set by passive orchestration, materialized `sendMessage` forwards terminal
-     * `RenderResolveOutput` to the message bus (same mapping as `deliverRenderResolveForPassive`).
+     * `RenderResolveOutput` to the message bus (same mapping as `enrichRenderResolveForPassive`).
      * `componentId` is {@link RoomStateRenderConversationRouting.componentId} above, not repeated here.
      */
     passiveBusDelivery?: RoomStateRenderPassiveBusDeliveryFields;
