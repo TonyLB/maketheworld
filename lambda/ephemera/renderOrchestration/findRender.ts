@@ -25,10 +25,10 @@ export type FindRenderDependencies = {
 }
 
 /**
- * B-phase: pointer validation (when {@link RenderResolveInput.pointerHint} is set), exact-match, generation hook,
+ * B-phase: pointer validation (when `pointerHint` on the resolve input is set), exact-match, generation hook,
  * or `invalidate` when nothing matches and generation does not run. Single graph shared by passive and preview pipelines.
  *
- * Terminals are emitted only via {@link FindRenderDependencies.sendMessage}; there is no return payload.
+ * Terminals are emitted only via the `sendMessage` dependency; there is no return payload.
  */
 export const findRender = async (
     resolve: RenderResolveInput,

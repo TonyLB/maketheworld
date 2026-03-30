@@ -59,7 +59,7 @@ describe('tryGeneration', () => {
         }
         const sendMessage = jest.fn().mockResolvedValue(undefined)
         const generateRoomPreview = jest.fn().mockImplementation(async (_input, options) => {
-            await options?.onGenerating?.()
+            await options?.sendMessage?.('generating')
             return result
         })
         await tryGeneration(baseResolve, { generateRoomPreview, sendMessage })

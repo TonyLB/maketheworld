@@ -13,6 +13,7 @@ import {
 } from '../renderCache/baseClasses'
 import type { ConversationId } from '../conversations'
 import type { GenerateRoomPreviewResult } from '../conversations/conversationTypes/generateRoomPreview'
+import type { RenderProgress, RenderResolveOutput } from './baseClasses'
 import type { PutCacheRecordInput } from '../dataSource/renderCache/putCacheRecord'
 import type { QueryCacheRecordsForComponentFn } from '../dataSource/renderCache/queryCacheRecordsForComponent'
 import internalCache from '../internalCache'
@@ -63,10 +64,10 @@ export type GenerateRoomPreviewOptions = {
     /** When set, forwarded on Put Cache Record / Cache Updated for prototype correlation (see conversations/AGENT.md). */
     conversationId?: ConversationId;
     /**
-     * Optional callback for streaming the non-terminal `step: 'generating'`.
-     * Must only be invoked on the slow path (no exact cache match and valid/parseable generation context).
+     * Same contract as `ConversationHandleGenerateRoomPreview.sendMessage` (see `conversations/conversationTypes/generateRoomPreview`).
+     * When set, invoked with `generating` after valid parseable context and before room description generation (slow path only).
      */
-    onGenerating?: () => Promise<void>;
+    sendMessage?: (arg: RenderProgress | RenderResolveOutput) => Promise<void>;
 }
 
 /**
@@ -85,7 +86,7 @@ export const generateRoomPreview = async (
         generateRoomDescriptionImpl = generateRoomDescription,
         queryCacheRecordsForComponentImpl = (componentId) => internalCache.RenderCache.get(componentId),
         conversationId,
-        onGenerating,
+        sendMessage,
     }: GenerateRoomPreviewOptions = {}
 ): Promise<GenerateRoomPreviewResult> => {
     let parsedContext: StandardForm | null = null
@@ -108,7 +109,7 @@ export const generateRoomPreview = async (
     }
 
     // slow path only: we have no exact cache match and we have valid generation context
-    await onGenerating?.()
+    await sendMessage?.('generating')
 
     const allRecords = await queryCacheRecordsForComponentImpl(roomId)
     const cachedExamples = allRecords.filter(

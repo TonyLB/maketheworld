@@ -32,9 +32,7 @@ export const tryGeneration = async (
         },
         {
             conversationId: deps.conversationId,
-            onGenerating: async () => {
-                await deps.sendMessage?.('generating')
-            },
+            sendMessage: deps.sendMessage,
         }
     )
 

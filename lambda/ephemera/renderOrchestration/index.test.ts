@@ -178,7 +178,7 @@ describe('renderOrchestration/index', () => {
                 },
                 expect.objectContaining({
                     conversationId: payload.conversationId,
-                    onGenerating: expect.any(Function),
+                    sendMessage: expect.any(Function),
                 })
             )
             expect(sendMessage).toHaveBeenCalledWith({
@@ -189,7 +189,7 @@ describe('renderOrchestration/index', () => {
             })
         })
 
-        it('on exact-match miss: invokes onGenerating before terminal sendMessage when generateRoomPreview uses slow path', async () => {
+        it('on exact-match miss: invokes sendMessage with generating before terminal sendMessage when generateRoomPreview uses slow path', async () => {
             const sendMessage = jest.fn().mockResolvedValue(undefined)
             mockConversationsGet.mockReturnValue({
                 record: {} as never,
@@ -200,10 +200,8 @@ describe('renderOrchestration/index', () => {
             })
             mockGetExactMatch.mockResolvedValue(null)
 
-            let onGeneratingCallback: (() => Promise<void>) | undefined
             mockGenerateRoomPreview.mockImplementation(async (_input, options) => {
-                onGeneratingCallback = options?.onGenerating
-                await options?.onGenerating?.()
+                await options?.sendMessage?.('generating')
                 const cacheId = 'CACHE#slow-path-0000-4000-8000-000000000001' as EphemeraCacheId
                 return {
                     success: true,
@@ -233,7 +231,10 @@ describe('renderOrchestration/index', () => {
                 messageBus,
             })
 
-            expect(onGeneratingCallback).toEqual(expect.any(Function))
+            expect(mockGenerateRoomPreview).toHaveBeenCalledWith(
+                expect.anything(),
+                expect.objectContaining({ sendMessage: expect.any(Function) }),
+            )
             expect(sendMessage.mock.calls[0][0]).toBe('generating')
             expect(sendMessage.mock.calls[1][0]).toMatchObject({
                 type: 'resolved',
