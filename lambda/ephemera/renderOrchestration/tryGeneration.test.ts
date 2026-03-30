@@ -14,16 +14,15 @@ describe('tryGeneration', () => {
         generationContextWml: '<Asset key=(Test) />',
     }
 
-    it('returns skip and does not call generateRoomPreview when allowGeneration is false', async () => {
-        const generateRoomPreview = jest.fn()
+    it('delegates to generateRoomPreview even when resolve.allowGeneration is false (findRender gates policy)', async () => {
+        const generateRoomPreview = jest.fn().mockResolvedValue('fail')
         const sendMessage = jest.fn()
         const out = await tryGeneration({ ...baseResolve, allowGeneration: false }, { generateRoomPreview, sendMessage })
-        expect(out).toBe('skip')
-        expect(generateRoomPreview).not.toHaveBeenCalled()
-        expect(sendMessage).not.toHaveBeenCalled()
+        expect(out).toBe('fail')
+        expect(generateRoomPreview).toHaveBeenCalledTimes(1)
     })
 
-    it('defaults allowGeneration to true when undefined', async () => {
+    it('calls generateRoomPreview when allowGeneration is undefined', async () => {
         const generateRoomPreview = jest.fn().mockResolvedValue('fail')
         const sendMessage = jest.fn().mockResolvedValue(undefined)
         const out = await tryGeneration({ ...baseResolve, allowGeneration: undefined }, { generateRoomPreview, sendMessage })

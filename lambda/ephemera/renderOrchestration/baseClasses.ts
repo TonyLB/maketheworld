@@ -70,7 +70,7 @@ export type RenderResolveOutputResolved = {
 export const RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION = 'NO_CACHE_MATCH_AND_GENERATION_NOT_RUN' as const
 
 /**
- * No exact cache match and `tryGeneration` returned `null` (e.g. generation disabled).
+ * No exact cache match and generation did not run (e.g. `allowGeneration` false in `findRender`).
  * Delivery publishes `RenderInvalidate` so subscribers can drop stale Meta/cache hints for this perspective.
  */
 export type RenderResolveOutputInvalidate = {
@@ -111,4 +111,5 @@ export function isRenderProgress(arg: RenderProgress | RenderResolveOutput): arg
     return arg === 'resolving' || arg === 'generating';
 }
 
-export type RenderGenerationReturn = 'success' | 'skip' | 'fail';
+/** Return from `tryGeneration` / `generateRoomPreview` slow path (`findRender` handles policy before calling). */
+export type RenderGenerationReturn = 'success' | 'fail';

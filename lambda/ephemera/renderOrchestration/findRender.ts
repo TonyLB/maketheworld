@@ -7,7 +7,6 @@ import type { generateRoomPreview } from './generateRoomPreview'
 import { tryGeneration } from './tryGeneration'
 import {
     RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION,
-    type RenderGenerationReturn,
     type RenderProgress,
     type RenderResolveInput,
     type RenderResolveOutput,
@@ -92,17 +91,17 @@ export const findRender = async (
         return
     }
 
-    const generated: RenderGenerationReturn = await tryGeneration(resolve, {
+    if (resolve.allowGeneration === false) {
+        await deps.sendMessage({
+            type: 'invalidate',
+            reason: RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION,
+        })
+        return
+    }
+
+    await tryGeneration(resolve, {
         generateRoomPreview: deps.generateRoomPreview,
         conversationId: deps.conversationId,
         sendMessage: deps.sendMessage,
     })
-    if (generated === 'success' || generated === 'fail') {
-        return
-    }
-    const output: RenderResolveOutput = {
-        type: 'invalidate',
-        reason: RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION,
-    }
-    await deps.sendMessage(output)
 }
