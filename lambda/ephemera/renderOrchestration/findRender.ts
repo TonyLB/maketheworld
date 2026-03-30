@@ -4,7 +4,6 @@ import type { EphemeraCacheId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraCacheDynamoItem, EphemeraCacheMarkState } from '../renderCache/baseClasses'
 import type { ConversationId } from '../conversations'
 import type { generateRoomPreview } from './generateRoomPreview'
-import { tryGeneration } from './tryGeneration'
 import {
     RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION,
     type RenderProgress,
@@ -13,8 +12,7 @@ import {
 } from './baseClasses'
 
 /**
- * Dependencies for `findRender`: cache lookup, Meta pointer maintenance, and slow-path generation
- * (`tryGeneration` + `generateRoomPreview`).
+ * Dependencies for `findRender`: cache lookup, Meta pointer maintenance, and slow-path `generateRoomPreview`.
  */
 export type FindRenderDependencies = {
     getExactMatch: (input: {
@@ -99,9 +97,16 @@ export const findRender = async (
         return
     }
 
-    await tryGeneration(resolve, {
-        generateRoomPreview: deps.generateRoomPreview,
-        conversationId: deps.conversationId,
-        sendMessage: deps.sendMessage,
-    })
+    await deps.generateRoomPreview(
+        {
+            roomId: resolve.roomId,
+            markState: resolve.markState,
+            assetStack: resolve.perspective.assetStack,
+            generationContextWml: resolve.generationContextWml,
+        },
+        {
+            conversationId: deps.conversationId,
+            sendMessage: deps.sendMessage,
+        },
+    )
 }
