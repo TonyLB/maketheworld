@@ -12,8 +12,8 @@ export type TryGenerationDependencies = {
  * Shared slow-path generation adapter for preview and passive orchestration.
  *
  * `allowGeneration` defaults to `true`; only explicit `false` returns `skip`.
- * On non-skip paths this function emits progress/terminal steps through `sendMessage`
- * and returns control-only status (`success` / `fail`).
+ * On non-skip paths, `generateRoomPreview` emits progress/terminal steps through `sendMessage`;
+ * this function returns the same control-only status (`success` / `fail`) without duplicating delivery.
  */
 export const tryGeneration = async (
     resolve: RenderResolveInput,
@@ -23,7 +23,7 @@ export const tryGeneration = async (
         return 'skip'
     }
 
-    const result = await deps.generateRoomPreview(
+    return deps.generateRoomPreview(
         {
             roomId: resolve.roomId,
             markState: resolve.markState,
@@ -35,23 +35,4 @@ export const tryGeneration = async (
             sendMessage: deps.sendMessage,
         }
     )
-
-    if (result.success) {
-        const resolved: RenderResolveOutput = {
-            type: 'resolved',
-            renderedContent: result.renderedContent,
-            cacheId: result.cacheId,
-            cacheRecord: result.cacheRecord,
-        }
-        await deps.sendMessage?.(resolved)
-        return 'success'
-    }
-
-    const failed: RenderResolveOutput = {
-        type: 'failed',
-        errorCode: result.errorCode,
-        errorMessage: result.errorMessage,
-    }
-    await deps.sendMessage?.(failed)
-    return 'fail'
 }

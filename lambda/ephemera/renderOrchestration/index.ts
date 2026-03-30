@@ -83,7 +83,11 @@ export type {
 } from './renderIntake'
 
 export { generateRoomPreview, defaultPublishPutCacheRecord } from './generateRoomPreview'
-export type { GenerateRoomPreviewInput, GenerateRoomPreviewOptions } from './generateRoomPreview'
+export type {
+    GenerateRoomPreviewGenerationReturn,
+    GenerateRoomPreviewInput,
+    GenerateRoomPreviewOptions,
+} from './generateRoomPreview'
 
 export type {
     RenderResolveErrorCode,

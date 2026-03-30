@@ -142,7 +142,6 @@ describe('renderOrchestration/index', () => {
             })
             mockGetExactMatch.mockResolvedValue(null)
             const genResult = {
-                success: true as const,
                 renderedContent: { description: ['generated'] },
                 cacheId: 'CACHE#gen-test-0000-4000-8000-000000000001' as EphemeraCacheId,
                 cacheRecord: {
@@ -158,7 +157,16 @@ describe('renderOrchestration/index', () => {
                     },
                 } satisfies EphemeraCacheDynamoItem,
             }
-            mockGenerateRoomPreview.mockResolvedValue(genResult)
+            mockGenerateRoomPreview.mockImplementation(async (_input, options) => {
+                await options?.sendMessage?.('generating')
+                await options?.sendMessage?.({
+                    type: 'resolved',
+                    renderedContent: genResult.renderedContent,
+                    cacheId: genResult.cacheId,
+                    cacheRecord: genResult.cacheRecord,
+                })
+                return 'success'
+            })
 
             const payload = makeRenderPreviewRequested({
                 generationContextWml: '<Asset uuid=(test)><Room uuid=(r) key=(r)><ShortName>X</ShortName></Room></Asset>',
@@ -203,23 +211,25 @@ describe('renderOrchestration/index', () => {
             mockGenerateRoomPreview.mockImplementation(async (_input, options) => {
                 await options?.sendMessage?.('generating')
                 const cacheId = 'CACHE#slow-path-0000-4000-8000-000000000001' as EphemeraCacheId
-                return {
-                    success: true,
+                const cacheRecord = {
+                    EphemeraId: roomId,
+                    DataCategory: cacheId,
+                    markState: makeMarkState([{ mark: 'MARK#a', value: 'x' }]),
+                    renderedContent: { description: [] },
+                    provenance: { type: 'generated' },
+                    perspectiveId: 'P#slow',
+                    perspectiveMatcher: {
+                        requiredAssetIds: ['ASSET#one', 'ASSET#two'],
+                        forbiddenAssetIds: [],
+                    },
+                } satisfies EphemeraCacheDynamoItem
+                await options?.sendMessage?.({
+                    type: 'resolved',
                     renderedContent: { description: [] },
                     cacheId,
-                    cacheRecord: {
-                        EphemeraId: roomId,
-                        DataCategory: cacheId,
-                        markState: makeMarkState([{ mark: 'MARK#a', value: 'x' }]),
-                        renderedContent: { description: [] },
-                        provenance: { type: 'generated' },
-                        perspectiveId: 'P#slow',
-                        perspectiveMatcher: {
-                            requiredAssetIds: ['ASSET#one', 'ASSET#two'],
-                            forbiddenAssetIds: [],
-                        },
-                    },
-                }
+                    cacheRecord,
+                })
+                return 'success'
             })
 
             await handleRenderOrchestrationMessage({

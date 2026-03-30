@@ -313,11 +313,15 @@ describe('renderOrchestration/passive shell (requestIntakeMessage)', () => {
             DataCategory: 'CACHE#generated',
             provenance: { type: 'generated' },
         }
-        const generateRoomPreview = jest.fn().mockResolvedValue({
-            success: true,
-            renderedContent: { description: [{ tag: 'String', value: 'Generated' }] },
-            cacheId: 'CACHE#generated',
-            cacheRecord: generatedRow,
+        const generateRoomPreview = jest.fn().mockImplementation(async (_input, options) => {
+            await options?.sendMessage?.('generating')
+            await options?.sendMessage?.({
+                type: 'resolved',
+                renderedContent: { description: [{ tag: 'String', value: 'Generated' }] },
+                cacheId: 'CACHE#generated',
+                cacheRecord: generatedRow,
+            })
+            return 'success'
         })
         const messageBus = makeBus()
         const payload: RenderRequested = {
@@ -346,10 +350,13 @@ describe('renderOrchestration/passive shell (requestIntakeMessage)', () => {
     })
 
     it('emits RenderError when allowGeneration set but generation returns CONTEXT_REQUIRED', async () => {
-        const generateRoomPreview = jest.fn().mockResolvedValue({
-            success: false,
-            errorCode: 'CONTEXT_REQUIRED',
-            errorMessage: 'Generation context required',
+        const generateRoomPreview = jest.fn().mockImplementation(async (_input, options) => {
+            await options?.sendMessage?.({
+                type: 'failed',
+                errorCode: 'CONTEXT_REQUIRED',
+                errorMessage: 'Generation context required',
+            })
+            return 'fail'
         })
         const messageBus = makeBus()
         const payload: RenderRequested = {

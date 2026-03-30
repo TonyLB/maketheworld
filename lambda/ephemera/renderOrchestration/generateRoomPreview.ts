@@ -12,7 +12,6 @@ import {
     type EphemeraCacheMarkState,
 } from '../renderCache/baseClasses'
 import type { ConversationId } from '../conversations'
-import type { GenerateRoomPreviewResult } from '../conversations/conversationTypes/generateRoomPreview'
 import type { RenderProgress, RenderResolveOutput } from './baseClasses'
 import type { PutCacheRecordInput } from '../dataSource/renderCache/putCacheRecord'
 import type { QueryCacheRecordsForComponentFn } from '../dataSource/renderCache/queryCacheRecordsForComponent'
@@ -70,9 +69,14 @@ export type GenerateRoomPreviewOptions = {
     sendMessage?: (arg: RenderProgress | RenderResolveOutput) => Promise<void>;
 }
 
+/** Control return from `generateRoomPreview`; terminals are delivered only via `sendMessage`. */
+export type GenerateRoomPreviewGenerationReturn = 'success' | 'fail'
+
 /**
  * Slow path only: assumes exact-match was already tried by orchestration.
  * Callers must not invoke this when a cache row already satisfies the request.
+ *
+ * Emits terminal `RenderResolveOutput` through `sendMessage` (and `generating` progress on the slow path).
  */
 export const generateRoomPreview = async (
     {
@@ -88,7 +92,7 @@ export const generateRoomPreview = async (
         conversationId,
         sendMessage,
     }: GenerateRoomPreviewOptions = {}
-): Promise<GenerateRoomPreviewResult> => {
+): Promise<GenerateRoomPreviewGenerationReturn> => {
     let parsedContext: StandardForm | null = null
     if (generationContextWml) {
         try {
@@ -101,11 +105,12 @@ export const generateRoomPreview = async (
     const perspective = { assetStack: assetStack as AssetUUID[] }
 
     if (!parsedContext) {
-        return {
-            success: false,
+        await sendMessage?.({
+            type: 'failed',
             errorCode: 'CONTEXT_REQUIRED',
-            errorMessage: 'Generation context required'
-        }
+            errorMessage: 'Generation context required',
+        })
+        return 'fail'
     }
 
     // slow path only: we have no exact cache match and we have valid generation context
@@ -125,7 +130,12 @@ export const generateRoomPreview = async (
     })
 
     if (!descriptionResult.success) {
-        return descriptionResult
+        await sendMessage?.({
+            type: 'failed',
+            errorCode: descriptionResult.errorCode,
+            errorMessage: descriptionResult.errorMessage,
+        })
+        return 'fail'
     }
 
     const perspectiveId = computePerspectiveKey(perspective.assetStack)
@@ -149,10 +159,11 @@ export const generateRoomPreview = async (
     }
     await publishPutCacheRecord(roomId, record, cacheId, conversationId)
 
-    return {
-        success: true,
+    await sendMessage?.({
+        type: 'resolved',
         renderedContent: descriptionResult.renderedContent,
         cacheId,
         cacheRecord,
-    }
+    })
+    return 'success'
 }
