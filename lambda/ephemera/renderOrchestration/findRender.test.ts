@@ -36,7 +36,8 @@ describe('findRender', () => {
         markStatesEqual,
         perspectiveMatches,
         sendMessage: jest.fn().mockResolvedValue(undefined),
-        tryGeneration: jest.fn().mockResolvedValue('skip'),
+        generateRoomPreview: jest.fn().mockResolvedValue('fail'),
+        conversationId: undefined,
     })
 
     it('emits resolved on valid pointer fast-path', async () => {
@@ -54,7 +55,7 @@ describe('findRender', () => {
             cacheRecord: baseCacheRecord,
         })
         expect(deps.getExactMatch).not.toHaveBeenCalled()
-        expect(deps.tryGeneration).not.toHaveBeenCalled()
+        expect(deps.generateRoomPreview).not.toHaveBeenCalled()
     })
 
     it('clears pointer and emits invalidate when pointer row is missing', async () => {
@@ -63,6 +64,7 @@ describe('findRender', () => {
         const resolve: RenderResolveInput = {
             ...baseResolve,
             pointerHint: 'CACHE#missing',
+            allowGeneration: false,
         }
         await findRender(resolve, deps)
         expect(deps.clearPerspectivePointer).toHaveBeenCalled()
@@ -83,18 +85,17 @@ describe('findRender', () => {
             cacheRecord: baseCacheRecord,
         })
         expect(deps.getCacheRecordById).not.toHaveBeenCalled()
-        expect(deps.tryGeneration).not.toHaveBeenCalled()
+        expect(deps.generateRoomPreview).not.toHaveBeenCalled()
     })
 
-    it('emits invalidate when tryGeneration returns skip', async () => {
+    it('emits invalidate when generation is skipped (allowGeneration false)', async () => {
         const deps = baseDeps()
-        deps.tryGeneration.mockResolvedValue('skip')
-        await findRender(baseResolve, deps)
+        await findRender({ ...baseResolve, allowGeneration: false }, deps)
         expect(deps.sendMessage).toHaveBeenCalledWith({
             type: 'invalidate',
             reason: RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION,
         })
-        expect(deps.tryGeneration).toHaveBeenCalled()
+        expect(deps.generateRoomPreview).not.toHaveBeenCalled()
     })
 
     it('continues after clear when pointer markState mismatches then exact match hits', async () => {
@@ -123,6 +124,7 @@ describe('findRender', () => {
         const resolve: RenderResolveInput = {
             ...baseResolve,
             pointerHint: 'CACHE#x',
+            allowGeneration: false,
         }
         await findRender(resolve, deps)
         expect(deps.sendMessage).toHaveBeenCalledWith({

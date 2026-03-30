@@ -23,7 +23,6 @@ import { findRender } from './findRender'
 import { generateRoomPreview } from './generateRoomPreview'
 import { intakePassiveRenderRequested } from './requestIntake'
 import type { RequestIntakeDependencies } from './requestIntake'
-import { tryGeneration } from './tryGeneration'
 import internalCache from '../internalCache'
 
 export type PassiveOrchestrationDependencies = {
@@ -154,18 +153,12 @@ export const orchestratePassiveRenderRequestedBatch = async (
             computePerspectiveKey: orchDeps.computePerspectiveKey,
             markStatesEqual: orchDeps.markStatesEqual,
             perspectiveMatches,
-            sendMessage: async (output) => {
+            sendMessage: async (arg) => {
                 const roomStateHandle = getRoomStateRenderHandle(conversationId, messageBus)
-                await roomStateHandle?.sendMessage(output)
+                await roomStateHandle?.sendMessage(arg)
             },
-            tryGeneration: (r) => tryGeneration(r, {
-                generateRoomPreview: orchDeps.generateRoomPreview,
-                conversationId,
-                sendMessage: async (arg) => {
-                    const roomStateHandle = getRoomStateRenderHandle(conversationId, messageBus)
-                    await roomStateHandle?.sendMessage(arg)
-                },
-            }),
+            generateRoomPreview: orchDeps.generateRoomPreview,
+            conversationId,
         })
     }))
 }

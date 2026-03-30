@@ -12,7 +12,7 @@ import {
     type EphemeraCacheMarkState,
 } from '../renderCache/baseClasses'
 import type { ConversationId } from '../conversations'
-import type { GenerateRoomPreviewResult } from '../conversations/conversationTypes/generateRoomPreview'
+import type { RenderProgress, RenderResolveOutput } from './baseClasses'
 import type { PutCacheRecordInput } from '../dataSource/renderCache/putCacheRecord'
 import type { QueryCacheRecordsForComponentFn } from '../dataSource/renderCache/queryCacheRecordsForComponent'
 import internalCache from '../internalCache'
@@ -63,15 +63,20 @@ export type GenerateRoomPreviewOptions = {
     /** When set, forwarded on Put Cache Record / Cache Updated for prototype correlation (see conversations/AGENT.md). */
     conversationId?: ConversationId;
     /**
-     * Optional callback for streaming the non-terminal `step: 'generating'`.
-     * Must only be invoked on the slow path (no exact cache match and valid/parseable generation context).
+     * Same contract as `ConversationHandleGenerateRoomPreview.sendMessage` (see `conversations/conversationTypes/generateRoomPreview`).
+     * When set, invoked with `generating` after valid parseable context and before room description generation (slow path only).
      */
-    onGenerating?: () => Promise<void>;
+    sendMessage?: (arg: RenderProgress | RenderResolveOutput) => Promise<void>;
 }
+
+/** Control return from `generateRoomPreview`; terminals are delivered only via `sendMessage`. */
+export type GenerateRoomPreviewGenerationReturn = 'success' | 'fail'
 
 /**
  * Slow path only: assumes exact-match was already tried by orchestration.
  * Callers must not invoke this when a cache row already satisfies the request.
+ *
+ * Emits terminal `RenderResolveOutput` through `sendMessage` (and `generating` progress on the slow path).
  */
 export const generateRoomPreview = async (
     {
@@ -85,9 +90,9 @@ export const generateRoomPreview = async (
         generateRoomDescriptionImpl = generateRoomDescription,
         queryCacheRecordsForComponentImpl = (componentId) => internalCache.RenderCache.get(componentId),
         conversationId,
-        onGenerating,
+        sendMessage,
     }: GenerateRoomPreviewOptions = {}
-): Promise<GenerateRoomPreviewResult> => {
+): Promise<GenerateRoomPreviewGenerationReturn> => {
     let parsedContext: StandardForm | null = null
     if (generationContextWml) {
         try {
@@ -100,15 +105,16 @@ export const generateRoomPreview = async (
     const perspective = { assetStack: assetStack as AssetUUID[] }
 
     if (!parsedContext) {
-        return {
-            success: false,
+        await sendMessage?.({
+            type: 'failed',
             errorCode: 'CONTEXT_REQUIRED',
-            errorMessage: 'Generation context required'
-        }
+            errorMessage: 'Generation context required',
+        })
+        return 'fail'
     }
 
     // slow path only: we have no exact cache match and we have valid generation context
-    await onGenerating?.()
+    await sendMessage?.('generating')
 
     const allRecords = await queryCacheRecordsForComponentImpl(roomId)
     const cachedExamples = allRecords.filter(
@@ -124,7 +130,12 @@ export const generateRoomPreview = async (
     })
 
     if (!descriptionResult.success) {
-        return descriptionResult
+        await sendMessage?.({
+            type: 'failed',
+            errorCode: descriptionResult.errorCode,
+            errorMessage: descriptionResult.errorMessage,
+        })
+        return 'fail'
     }
 
     const perspectiveId = computePerspectiveKey(perspective.assetStack)
@@ -148,10 +159,11 @@ export const generateRoomPreview = async (
     }
     await publishPutCacheRecord(roomId, record, cacheId, conversationId)
 
-    return {
-        success: true,
+    await sendMessage?.({
+        type: 'resolved',
         renderedContent: descriptionResult.renderedContent,
         cacheId,
         cacheRecord,
-    }
+    })
+    return 'success'
 }
