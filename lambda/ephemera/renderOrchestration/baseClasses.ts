@@ -37,7 +37,7 @@ export type RenderResolveInput = {
      * Omit or undefined to skip pointer fast-path and go straight to exact-match (after any adapter rules).
      */
     pointerHint?: EphemeraCacheId;
-    /** Carried through for slow-path generation when wired. */
+    /** Carried through for slow-path generation when wired. `undefined` means default allow (true). */
     allowGeneration?: boolean;
     generationContextWml?: string;
 }

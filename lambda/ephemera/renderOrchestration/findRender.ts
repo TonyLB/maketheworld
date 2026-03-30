@@ -19,6 +19,7 @@ export type FindRenderDependencies = {
     computePerspectiveKey: typeof computePerspectiveKey;
     markStatesEqual: (a: EphemeraCacheMarkState, b: EphemeraCacheMarkState) => boolean;
     perspectiveMatches: typeof perspectiveMatches;
+    sendMessage: (output: RenderResolveOutput) => Promise<void>;
     /** Slow path after exact-match miss. Return `skip` to fall through to `invalidate`. */
     tryGeneration: (resolve: RenderResolveInput) => Promise<RenderGenerationReturn>;
 }
@@ -44,12 +45,14 @@ export const findRender = async (
         )
 
         if (isValid && cacheRecord) {
-            return {
+            const output: RenderResolveOutput = {
                 type: 'resolved',
                 renderedContent: cacheRecord.renderedContent,
                 cacheId: pointerId,
                 cacheRecord,
             }
+            await deps.sendMessage(output)
+            return output
         }
 
         try {
@@ -66,20 +69,24 @@ export const findRender = async (
         perspective: resolve.perspective,
     })
     if (exactMatch) {
-        return {
+        const output: RenderResolveOutput = {
             type: 'resolved',
             renderedContent: exactMatch.renderedContent,
             cacheId: exactMatch.DataCategory as EphemeraCacheId,
             cacheRecord: exactMatch,
         }
+        await deps.sendMessage(output)
+        return output
     }
 
     const generated = await deps.tryGeneration(resolve)
     if (generated === 'success' || generated === 'fail') {
         return undefined
     }
-    return {
+    const output: RenderResolveOutput = {
         type: 'invalidate',
         reason: RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION,
     }
+    await deps.sendMessage(output)
+    return output
 }

@@ -14,7 +14,8 @@ import {
 import { orchestratePassiveRenderRequestedBatch } from './passiveRenderOrchestration'
 import { findRender } from './findRender'
 import { generateRoomPreview } from './generateRoomPreview'
-import type { RenderResolveInput, RenderResolveOutput } from './baseClasses'
+import type { RenderResolveInput } from './baseClasses'
+import { tryGeneration } from './tryGeneration'
 
 /**
  * renderOrchestration public module surface
@@ -145,39 +146,16 @@ const handleRenderPreviewRequested = async (payload: RenderPreviewRequested): Pr
         computePerspectiveKey,
         markStatesEqual,
         perspectiveMatches,
-        tryGeneration: async (r) => {
-            const result = await generateRoomPreview(
-                {
-                    roomId: r.roomId,
-                    markState: r.markState,
-                    assetStack: r.perspective.assetStack,
-                    generationContextWml: r.generationContextWml,
-                },
-                {
-                    conversationId: payload.conversationId,
-                    onGenerating: async () => {
-                        await handle?.sendMessage('generating')
-                    },
-                }
-            )
-            if (result.success) {
-                const resolved: RenderResolveOutput = {
-                    type: 'resolved',
-                    renderedContent: result.renderedContent,
-                    cacheId: result.cacheId,
-                    cacheRecord: result.cacheRecord,
-                }
-                await handle?.sendMessage(resolved)
-                return 'success'
-            }
-            const failed: RenderResolveOutput = {
-                type: 'failed',
-                errorCode: result.errorCode,
-                errorMessage: result.errorMessage,
-            }
-            await handle?.sendMessage(failed)
-            return 'fail'
+        sendMessage: async (output) => {
+            await handle?.sendMessage(output)
         },
+        tryGeneration: (r) => tryGeneration(r, {
+            generateRoomPreview,
+            conversationId: payload.conversationId,
+            sendMessage: async (arg) => {
+                await handle?.sendMessage(arg)
+            },
+        }),
     })
 }
 

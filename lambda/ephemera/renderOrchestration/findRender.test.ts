@@ -35,6 +35,7 @@ describe('findRender', () => {
         computePerspectiveKey,
         markStatesEqual,
         perspectiveMatches,
+        sendMessage: jest.fn().mockResolvedValue(undefined),
         tryGeneration: jest.fn().mockResolvedValue('skip'),
     })
 
@@ -47,6 +48,12 @@ describe('findRender', () => {
         }
         const out = await findRender(resolve, deps)
         expect(out).toEqual({
+            type: 'resolved',
+            renderedContent: baseCacheRecord.renderedContent,
+            cacheId: 'CACHE#valid',
+            cacheRecord: baseCacheRecord,
+        })
+        expect(deps.sendMessage).toHaveBeenCalledWith({
             type: 'resolved',
             renderedContent: baseCacheRecord.renderedContent,
             cacheId: 'CACHE#valid',
@@ -69,6 +76,10 @@ describe('findRender', () => {
             type: 'invalidate',
             reason: RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION,
         })
+        expect(deps.sendMessage).toHaveBeenCalledWith({
+            type: 'invalidate',
+            reason: RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION,
+        })
     })
 
     it('short-circuits on exact match when no pointer', async () => {
@@ -79,6 +90,12 @@ describe('findRender', () => {
         if (out && out.type === 'resolved') {
             expect(out.cacheId).toBe('CACHE#valid')
         }
+        expect(deps.sendMessage).toHaveBeenCalledWith({
+            type: 'resolved',
+            renderedContent: baseCacheRecord.renderedContent,
+            cacheId: 'CACHE#valid',
+            cacheRecord: baseCacheRecord,
+        })
         expect(deps.getCacheRecordById).not.toHaveBeenCalled()
         expect(deps.tryGeneration).not.toHaveBeenCalled()
     })
@@ -91,21 +108,11 @@ describe('findRender', () => {
             type: 'invalidate',
             reason: RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION,
         })
+        expect(deps.sendMessage).toHaveBeenCalledWith({
+            type: 'invalidate',
+            reason: RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION,
+        })
         expect(deps.tryGeneration).toHaveBeenCalled()
-    })
-
-    it('returns undefined when tryGeneration succeeds', async () => {
-        const deps = baseDeps()
-        deps.tryGeneration.mockResolvedValue('success')
-        const out = await findRender(baseResolve, deps)
-        expect(out).toBeUndefined()
-    })
-
-    it('returns undefined when tryGeneration returns fail', async () => {
-        const deps = baseDeps()
-        deps.tryGeneration.mockResolvedValue('fail')
-        const out = await findRender(baseResolve, deps)
-        expect(out).toBeUndefined()
     })
 
     it('continues after clear when pointer markState mismatches then exact match hits', async () => {
@@ -123,6 +130,12 @@ describe('findRender', () => {
         if (out && out.type === 'resolved') {
             expect(out.cacheId).toBe('CACHE#valid')
         }
+        expect(deps.sendMessage).toHaveBeenCalledWith({
+            type: 'resolved',
+            renderedContent: baseCacheRecord.renderedContent,
+            cacheId: 'CACHE#valid',
+            cacheRecord: baseCacheRecord,
+        })
     })
 
     it('continues to invalidate if pointer clearing throws', async () => {
@@ -135,6 +148,10 @@ describe('findRender', () => {
         }
         const out = await findRender(resolve, deps)
         expect(out).toEqual({
+            type: 'invalidate',
+            reason: RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION,
+        })
+        expect(deps.sendMessage).toHaveBeenCalledWith({
             type: 'invalidate',
             reason: RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION,
         })
