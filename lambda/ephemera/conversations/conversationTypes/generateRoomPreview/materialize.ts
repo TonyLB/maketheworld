@@ -4,8 +4,10 @@ import type {
     ConversationHandleGenerateRoomPreview,
     StorableConversationRecordGenerateRoomPreview,
 } from './baseClasses'
+import type { RenderResolveOutput } from '../../../renderOrchestration/baseClasses'
 
 import { apiClient } from '@tonylb/mtw-utilities/ts/apiManagement/apiManagementClient'
+import { renderResolveOutputToGenerateRoomPreviewResult } from './renderResolveOutputToGenerateRoomPreviewResult'
 
 export type MaterializeGenerateRoomPreviewDeps = {
     messageBus: MessageBus
@@ -23,6 +25,10 @@ export function materializeGenerateRoomPreview(
     const sendMessage: ConversationHandleGenerateRoomPreview['sendMessage'] = async (arg) => {
         const ConnectionId = await deps.getConnectionId()
 
+        if (arg === 'resolving') {
+            return
+        }
+
         if (arg === 'generating') {
             const step = {
                 messageType: 'ConversationStep' as const,
@@ -39,12 +45,15 @@ export function materializeGenerateRoomPreview(
             return
         }
 
+        const enrichedOutput = enrichRenderResolveForPreview(arg)
+        const generateRoomPreview = renderResolveOutputToGenerateRoomPreviewResult(enrichedOutput)
+
         const step = {
             messageType: 'ConversationStep' as const,
             conversationId: record.conversationId,
             pipeline: 'generateRoomPreview' as const,
-            step: arg.success ? 'complete' : 'error',
-            generateRoomPreview: arg,
+            step: generateRoomPreview.success ? ('complete' as const) : ('error' as const),
+            generateRoomPreview,
             ...(record.routing.requestId !== undefined ? { RequestId: record.routing.requestId } : {}),
         }
 
@@ -58,4 +67,13 @@ export function materializeGenerateRoomPreview(
         ...record,
         sendMessage,
     }
+}
+
+/**
+ * Preview path: intentional identity enrichment so terminal handling matches roomStateRender materialize's
+ * enrich-then-deliver structure (`enrichRenderResolveForPassive` maps resolve output to bus payloads there).
+ * Returns `output` unchanged; {@link renderResolveOutputToGenerateRoomPreviewResult} performs wire shaping.
+ */
+function enrichRenderResolveForPreview(output: RenderResolveOutput): RenderResolveOutput {
+    return output
 }

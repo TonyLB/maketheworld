@@ -62,7 +62,7 @@ describe('ConversationsData', () => {
             conversationId: id,
             type: CONVERSATION_TYPE_ROOM_STATE_RENDER,
             routing: {
-                roomId: testRoomId,
+                componentId: testRoomId,
                 perspectiveId: 'PERSPECTIVE#stub',
                 requestId: 'req-rsr-1',
             },
@@ -78,6 +78,43 @@ describe('ConversationsData', () => {
             },
         })
         expect(isConversationCompositeReadHandleRoomStateRender(got!.handle)).toBe(true)
+    })
+
+    it('roomStateRender sendMessage publishes RenderReady via passiveBusDelivery and get() messageBus override', async () => {
+        const send = jest.fn()
+        const bus = { send } as unknown as MessageBus
+        const cache = new ConversationsData(
+            makeGlobals() as unknown as any,
+            { send: jest.fn() } as unknown as MessageBus
+        )
+        const id = 'conv-rsr-002'
+        const record: StorableConversationRecord = {
+            conversationId: id,
+            type: CONVERSATION_TYPE_ROOM_STATE_RENDER,
+            routing: {
+                componentId: testRoomId,
+                perspectiveId: 'PERSPECTIVE#stub',
+                passiveBusDelivery: {
+                    perspective: { assetStack: ['ASSET#x'] },
+                },
+            },
+            payload: CONVERSATION_PAYLOAD_STUB,
+        }
+        cache.set(record)
+        const got = cache.get(id, { messageBus: bus })
+        if (!got || !isConversationCompositeReadHandleRoomStateRender(got.handle)) {
+            throw new Error('expected room state render composite handle')
+        }
+        await got.handle.sendMessage({
+            type: 'resolved',
+            renderedContent: previewTerminalCacheRecord.renderedContent,
+            cacheId: previewTerminalCacheId,
+            cacheRecord: previewTerminalCacheRecord,
+        })
+        expect(send).toHaveBeenCalledWith(expect.objectContaining({
+            type: 'RenderReady',
+            cacheId: previewTerminalCacheId,
+        }))
     })
 
     it('set and get round-trip returns live composite handle for generateRoomPreview', () => {
@@ -118,8 +155,14 @@ describe('ConversationsData', () => {
         const id = 'conv-002'
         const first = makeRecord(id)
         const second: StorableConversationRecord = {
-            ...first,
-            routing: { ...first.routing, requestId: 'req-2' },
+            conversationId: id,
+            type: 'generateRoomPreview',
+            routing: {
+                roomId: testRoomId,
+                perspectiveId: 'PERSPECTIVE#stub',
+                requestId: 'req-2',
+            },
+            payload: CONVERSATION_PAYLOAD_STUB,
         }
         cache.set(first)
         cache.set(second)
@@ -210,7 +253,7 @@ describe('ConversationsData', () => {
             throw new Error('expected live generateRoomPreview composite handle')
         }
         await handle.sendMessage({
-            success: true,
+            type: 'resolved',
             renderedContent: { description: ['x'] },
             cacheId: previewTerminalCacheId,
             cacheRecord: previewTerminalCacheRecord,
@@ -255,7 +298,7 @@ describe('ConversationsData', () => {
             throw new Error('expected live generateRoomPreview composite handle')
         }
         await handle.sendMessage({
-            success: false,
+            type: 'failed',
             errorCode: 'CONTEXT_REQUIRED',
             errorMessage: 'need context',
         })

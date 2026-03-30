@@ -1,3 +1,4 @@
+export type { RenderProgress } from '../../renderOrchestration/baseClasses';
 export type { ConversationId, ConversationPayloadStub } from './baseClasses';
 export { CONVERSATION_PAYLOAD_STUB } from './baseClasses';
 export type {
@@ -18,16 +19,18 @@ export type {
 } from './generateRoomPreview';
 export {
     CONVERSATION_TYPE_GENERATE_ROOM_PREVIEW,
+    renderResolveOutputToGenerateRoomPreviewResult,
 } from './generateRoomPreview';
 export type {
     ConversationHandleRoomStateRender,
     RoomStateRenderConversationRouting,
-    RoomStateRenderProgressStep,
+    RoomStateRenderPassiveBusDeliveryFields,
     StorableConversationRecordRoomStateRender,
 } from './roomStateRender';
 export {
     CONVERSATION_TYPE_ROOM_STATE_RENDER,
     materializeRoomStateRender,
+    RENDER_ERROR_CODE_NOT_ROOM,
 } from './roomStateRender';
 export type { MaterializeRoomStateRenderDeps } from './roomStateRender';
 export type { ConversationHandle } from './handle';

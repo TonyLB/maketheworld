@@ -30,14 +30,18 @@ export class ConversationsData extends CacheBase {
         super()
     }
 
-    get(conversationId: ConversationId): ConversationsCompositeGetResult | undefined {
+    get(
+        conversationId: ConversationId,
+        options?: { messageBus?: MessageBus }
+    ): ConversationsCompositeGetResult | undefined {
         const record = this.byId.get(conversationId)
         if (record === undefined) {
             return undefined
         }
+        const busForMaterialize = options?.messageBus ?? this.messageBus
         if (record.type === CONVERSATION_TYPE_GENERATE_ROOM_PREVIEW) {
             const live = materializeGenerateRoomPreview(record, {
-                messageBus: this.messageBus,
+                messageBus: busForMaterialize,
                 getConnectionId: () => this.globals.get('ConnectionId'),
             })
             return {
@@ -50,7 +54,7 @@ export class ConversationsData extends CacheBase {
         }
         if (record.type === CONVERSATION_TYPE_ROOM_STATE_RENDER) {
             const live = materializeRoomStateRender(record, {
-                messageBus: this.messageBus,
+                messageBus: busForMaterialize,
             })
             return {
                 record,

@@ -2,6 +2,7 @@ import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraCacheId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import type { EphemeraCacheDynamoItem, EphemeraCacheRenderedContent } from '../../../renderCache/baseClasses'
+import type { RenderProgress, RenderResolveOutput } from '../../../renderOrchestration/baseClasses'
 
 import type { ConversationId, ConversationPayloadStub } from '../baseClasses'
 
@@ -48,16 +49,14 @@ export type GenerateRoomPreviewResult = GenerateRoomPreviewSuccess | GenerateRoo
 
 /**
  * Live handle: storable fields plus `sendMessage` (not persisted).
- * v1: completion-only `ReturnValue` to match app.ts GenerateRoomPreview path.
- * Future: extend `sendMessage` args to a discriminated union (progress vs completion) for streaming.
+ * Terminals match the shared resolve core ({@link RenderResolveOutput}), aligned with `roomStateRender`.
  */
 export type ConversationHandleGenerateRoomPreview = StorableConversationRecordGenerateRoomPreview & {
     /**
-     * MVP send contract:
-     * - Progress uses local simplified `'generating'` marker.
-     * - Terminal uses the domain `GenerateRoomPreviewResult`.
+     * - Progress: {@link RenderProgress} (`generating` on wire today; `resolving` no-op until supported).
+     * - Terminal: {@link RenderResolveOutput} from `findRender` / orchestration.
      *
-     * `materialize` enriches this into the shared `ConversationStep` wire shape.
+     * `materialize` maps terminals to `ConversationStep` / `generateRoomPreview` wire via {@link GenerateRoomPreviewResult} body shape.
      */
-    sendMessage: (arg: 'generating' | GenerateRoomPreviewResult) => Promise<void>
+    sendMessage: (arg: RenderProgress | RenderResolveOutput) => Promise<void>
 }

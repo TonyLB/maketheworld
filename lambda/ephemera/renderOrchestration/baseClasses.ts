@@ -66,12 +66,17 @@ export type RenderResolveOutputResolved = {
     cacheRecord?: EphemeraCacheDynamoItem;
 };
 
+/** Default `RenderResolveOutputInvalidate.reason` from `findRender` when cache miss and generation does not run. */
+export const RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION = 'NO_CACHE_MATCH_AND_GENERATION_NOT_RUN' as const
+
 /**
- * Passive intake: no satisfying cache row in this phase; hand off to lookup / later generation policy.
- * Maps to publishing {@link RenderLookupRequested} today.
+ * No exact cache match and `tryGeneration` returned `null` (e.g. generation disabled).
+ * Delivery publishes `RenderInvalidate` so subscribers can drop stale Meta/cache hints for this perspective.
  */
-export type RenderResolveOutputLookupHandoff = {
-    type: 'lookup_handoff';
+export type RenderResolveOutputInvalidate = {
+    type: 'invalidate';
+    /** Forwarded to `RenderInvalidate.reason`. */
+    reason?: string;
 };
 
 /**
@@ -86,9 +91,22 @@ export type RenderResolveOutputFailed = {
 /**
  * Normalized **B-phase** outcome from "resolve room render from cache / maybe generate" (paired with
  * {@link RenderResolveInput}). Correlation (`conversationId`, `RenderTargetContext`, bus envelopes) stays
- * in adapters that map this to `RenderReady`, `RenderLookupRequested`, conversation steps, or `Error`.
+ * in adapters that map this to `RenderReady`, `RenderInvalidate`, `RenderError`, or conversation steps.
  */
 export type RenderResolveOutput =
     | RenderResolveOutputResolved
-    | RenderResolveOutputLookupHandoff
+    | RenderResolveOutputInvalidate
     | RenderResolveOutputFailed;
+
+/**
+ * Non-terminal orchestration frames before a terminal {@link RenderResolveOutput}.
+ * Shared by passive `roomStateRender` and preview `generateRoomPreview` conversation handles.
+ *
+ * - `resolving` — intake / cache / pointer work (passive may emit; preview wire may ignore until supported).
+ * - `generating` — LLM or slow generation in flight.
+ */
+export type RenderProgress = 'resolving' | 'generating';
+
+export function isRenderProgress(arg: RenderProgress | RenderResolveOutput): arg is RenderProgress {
+    return arg === 'resolving' || arg === 'generating';
+}

@@ -1,17 +1,28 @@
-import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { RenderProgress, RenderResolveOutput } from '../../../renderOrchestration/baseClasses'
+import type { RenderComponentId, RenderRequestedBusDeliveryFields } from '../../../renderOrchestration/events'
 
-import type { RenderResolveOutput } from '../../../renderOrchestration/baseClasses'
+/** Rest of {@link RenderRequestedBusDeliveryFields} when `componentId` lives on {@link RoomStateRenderConversationRouting}. */
+export type RoomStateRenderPassiveBusDeliveryFields = Omit<RenderRequestedBusDeliveryFields, 'componentId'>
 
 import type { ConversationId, ConversationPayloadStub } from '../baseClasses'
 
+/** Passive {@link RenderRequested} is not a room id; Meta/cache resolve does not apply. */
+export const RENDER_ERROR_CODE_NOT_ROOM = 'RENDER_REQUESTED_NOT_ROOM'
+
 /**
  * Serializable routing for passive / Meta-aligned room render (renderOrchestration passive shell).
- * Aligns with {@link RenderResolveInput.roomId} and perspective keying.
+ * Aligns with {@link RenderComponentPerspective.componentId} (room, feature, or map) and perspective keying.
  */
 export type RoomStateRenderConversationRouting = {
-    roomId: EphemeraRoomId;
+    componentId: RenderComponentId;
     perspectiveId: string;
     requestId?: string;
+    /**
+     * When set by passive orchestration, materialized `sendMessage` maps terminal
+     * `RenderResolveOutput` to the render orchestration message bus (see `materializeRoomStateRender`).
+     * `componentId` is {@link RoomStateRenderConversationRouting.componentId} above, not repeated here.
+     */
+    passiveBusDelivery?: RoomStateRenderPassiveBusDeliveryFields;
 };
 
 export const CONVERSATION_TYPE_ROOM_STATE_RENDER = 'roomStateRender' as const;
@@ -25,17 +36,12 @@ export type StorableConversationRecordRoomStateRender = {
 };
 
 /**
- * Non-terminal frames: cache/pointer work vs LLM generation (when wired), mirroring preview `generating`.
- */
-export type RoomStateRenderProgressStep = 'resolving' | 'generating';
-
-/**
  * Live handle: same progressive + terminal contract as the shared resolve core ({@link RenderResolveOutput}).
  */
 export type ConversationHandleRoomStateRender = StorableConversationRecordRoomStateRender & {
     /**
-     * - Progress: intake/cache phases (`resolving`) and generation (`generating`) before terminal resolve.
+     * - Progress: {@link RenderProgress} (intake/cache vs generation) before terminal resolve.
      * - Terminal: {@link RenderResolveOutput} from passive orchestration / shared resolve core.
      */
-    sendMessage: (arg: RoomStateRenderProgressStep | RenderResolveOutput) => Promise<void>;
+    sendMessage: (arg: RenderProgress | RenderResolveOutput) => Promise<void>;
 };

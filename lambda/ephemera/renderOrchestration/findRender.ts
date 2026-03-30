@@ -2,11 +2,11 @@ import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { perspectiveMatches, computePerspectiveKey, type Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
 import type { EphemeraCacheId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraCacheDynamoItem, EphemeraCacheMarkState } from '../renderCache/baseClasses'
-import type { RenderResolveInput, RenderResolveOutput } from './baseClasses'
+import { RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION, type RenderResolveInput, type RenderResolveOutput } from './baseClasses'
 
 /**
  * Dependencies for {@link findRender}: cache lookup, Meta pointer maintenance, and optional generation.
- * Generation is injected so preview (fixed conversation) and passive (minted roomStateRender) stay outside.
+ * Generation is injected so preview (fixed conversation) and passive (pre-registered roomStateRender id) stay outside.
  */
 export type FindRenderDependencies = {
     getExactMatch: (input: {
@@ -20,15 +20,15 @@ export type FindRenderDependencies = {
     markStatesEqual: (a: EphemeraCacheMarkState, b: EphemeraCacheMarkState) => boolean;
     perspectiveMatches: typeof perspectiveMatches;
     /**
-     * Slow path after exact-match miss. Return `null` to fall through to `lookup_handoff` (e.g. passive when
-     * `allowGeneration` is false). Preview typically always returns `resolved` or `failed`.
+     * Slow path after exact-match miss. Return `null` to fall through to `invalidate`
+     * ({@link RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION}) when generation does not run. Preview typically returns `resolved` or `failed`.
      */
     tryGeneration: (resolve: RenderResolveInput) => Promise<RenderResolveOutput | null>;
 }
 
 /**
  * B-phase: pointer validation (when {@link RenderResolveInput.pointerHint} is set), exact-match, generation hook,
- * or lookup handoff. Single graph shared by passive and preview pipelines.
+ * or `invalidate` when nothing matches and generation does not run. Single graph shared by passive and preview pipelines.
  */
 export const findRender = async (
     resolve: RenderResolveInput,
@@ -81,5 +81,8 @@ export const findRender = async (
     if (generated !== null) {
         return generated
     }
-    return { type: 'lookup_handoff' }
+    return {
+        type: 'invalidate',
+        reason: RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION,
+    }
 }

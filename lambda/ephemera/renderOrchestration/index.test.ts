@@ -13,6 +13,8 @@ import {
     isRenderOrchestrationRequestMessage,
     registerRenderOrchestration,
 } from './index'
+import * as findRenderModule from './findRender'
+import { RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION } from './baseClasses'
 
 jest.mock('../internalCache', () => ({
     __esModule: true,
@@ -121,7 +123,7 @@ describe('renderOrchestration/index', () => {
             })
             expect(sendMessage).toHaveBeenCalledTimes(1)
             expect(sendMessage).toHaveBeenCalledWith({
-                success: true,
+                type: 'resolved',
                 renderedContent: record.renderedContent,
                 cacheId: record.DataCategory as EphemeraCacheId,
                 cacheRecord: record,
@@ -179,7 +181,12 @@ describe('renderOrchestration/index', () => {
                     onGenerating: expect.any(Function),
                 })
             )
-            expect(sendMessage).toHaveBeenCalledWith(genResult)
+            expect(sendMessage).toHaveBeenCalledWith({
+                type: 'resolved',
+                renderedContent: genResult.renderedContent,
+                cacheId: genResult.cacheId,
+                cacheRecord: genResult.cacheRecord,
+            })
         })
 
         it('on exact-match miss: invokes onGenerating before terminal sendMessage when generateRoomPreview uses slow path', async () => {
@@ -228,9 +235,10 @@ describe('renderOrchestration/index', () => {
 
             expect(onGeneratingCallback).toEqual(expect.any(Function))
             expect(sendMessage.mock.calls[0][0]).toBe('generating')
-            expect(sendMessage.mock.calls[1][0]).toEqual(
-                expect.objectContaining({ success: true })
-            )
+            expect(sendMessage.mock.calls[1][0]).toMatchObject({
+                type: 'resolved',
+                renderedContent: { description: [] },
+            })
         })
 
         it('when conversation handle is missing, exact-match hit does not throw and does not call generateRoomPreview', async () => {
@@ -309,6 +317,151 @@ describe('renderOrchestration/index', () => {
             expect(subscription.callback).toBe(handleRenderOrchestrationMessage)
             expect(typeof unsubscribeAll).toBe('function')
             subscribeSpy.mockRestore()
+        })
+    })
+
+    /**
+     * Preview terminal path after `findRender`: `handle?.sendMessage(output)` (identity enrich step is in `materializeGenerateRoomPreview`).
+     * Spies `findRender` to assert forwarding for each terminal resolve shape without depending on cache/generation setup.
+     */
+    describe('preview terminal delivery (orchestration)', () => {
+        let findRenderSpy: jest.SpiedFunction<typeof findRenderModule.findRender>
+
+        beforeEach(() => {
+            findRenderSpy = jest.spyOn(findRenderModule, 'findRender')
+        })
+
+        afterEach(() => {
+            findRenderSpy.mockRestore()
+        })
+
+        it('does nothing when handle is undefined', async () => {
+            const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {})
+            mockConversationsGet.mockReturnValue(undefined)
+            const record = baseCacheRecord()
+            findRenderSpy.mockResolvedValue({
+                type: 'resolved',
+                renderedContent: record.renderedContent,
+                cacheId: record.DataCategory as EphemeraCacheId,
+                cacheRecord: record,
+            })
+            await handleRenderOrchestrationMessage({
+                payloads: [makeRenderPreviewRequested()],
+                messageBus,
+            })
+            expect(mockGenerateRoomPreview).not.toHaveBeenCalled()
+            consoleError.mockRestore()
+        })
+
+        it('sendMessage with RenderResolveOutput resolved', async () => {
+            const sendMessage = jest.fn().mockResolvedValue(undefined)
+            mockConversationsGet.mockReturnValue({
+                record: {} as never,
+                handle: {
+                    kind: 'conversationCompositeReadGenerateRoomPreview',
+                    sendMessage,
+                },
+            })
+            const record = baseCacheRecord()
+            const output = {
+                type: 'resolved' as const,
+                renderedContent: record.renderedContent,
+                cacheId: record.DataCategory as EphemeraCacheId,
+                cacheRecord: record,
+            }
+            findRenderSpy.mockResolvedValue(output)
+            await handleRenderOrchestrationMessage({
+                payloads: [makeRenderPreviewRequested()],
+                messageBus,
+            })
+            expect(sendMessage).toHaveBeenCalledWith(output)
+        })
+
+        it('sendMessage with RenderResolveOutput failed', async () => {
+            const sendMessage = jest.fn().mockResolvedValue(undefined)
+            mockConversationsGet.mockReturnValue({
+                record: {} as never,
+                handle: {
+                    kind: 'conversationCompositeReadGenerateRoomPreview',
+                    sendMessage,
+                },
+            })
+            const output = {
+                type: 'failed' as const,
+                errorCode: 'CONTEXT_REQUIRED' as const,
+                errorMessage: 'Generation context required',
+            }
+            findRenderSpy.mockResolvedValue(output)
+            await handleRenderOrchestrationMessage({
+                payloads: [makeRenderPreviewRequested()],
+                messageBus,
+            })
+            expect(sendMessage).toHaveBeenCalledWith(output)
+        })
+
+        it('forwards invalidate to sendMessage with same output', async () => {
+            const sendMessage = jest.fn().mockResolvedValue(undefined)
+            mockConversationsGet.mockReturnValue({
+                record: {} as never,
+                handle: {
+                    kind: 'conversationCompositeReadGenerateRoomPreview',
+                    sendMessage,
+                },
+            })
+            const output = {
+                type: 'invalidate' as const,
+                reason: RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION,
+            }
+            findRenderSpy.mockResolvedValue(output)
+            await handleRenderOrchestrationMessage({
+                payloads: [makeRenderPreviewRequested()],
+                messageBus,
+            })
+            expect(sendMessage).toHaveBeenCalledWith(output)
+        })
+
+        it('forwards META_ROOM_MARKS_MISSING to sendMessage', async () => {
+            const sendMessage = jest.fn().mockResolvedValue(undefined)
+            mockConversationsGet.mockReturnValue({
+                record: {} as never,
+                handle: {
+                    kind: 'conversationCompositeReadGenerateRoomPreview',
+                    sendMessage,
+                },
+            })
+            const output = {
+                type: 'failed' as const,
+                errorCode: 'META_ROOM_MARKS_MISSING' as const,
+                errorMessage: 'x',
+            }
+            findRenderSpy.mockResolvedValue(output)
+            await handleRenderOrchestrationMessage({
+                payloads: [makeRenderPreviewRequested()],
+                messageBus,
+            })
+            expect(sendMessage).toHaveBeenCalledWith(output)
+        })
+
+        it('forwards resolved missing cacheId to sendMessage', async () => {
+            const sendMessage = jest.fn().mockResolvedValue(undefined)
+            mockConversationsGet.mockReturnValue({
+                record: {} as never,
+                handle: {
+                    kind: 'conversationCompositeReadGenerateRoomPreview',
+                    sendMessage,
+                },
+            })
+            const record = baseCacheRecord()
+            const output = {
+                type: 'resolved' as const,
+                renderedContent: record.renderedContent,
+            }
+            findRenderSpy.mockResolvedValue(output)
+            await handleRenderOrchestrationMessage({
+                payloads: [makeRenderPreviewRequested()],
+                messageBus,
+            })
+            expect(sendMessage).toHaveBeenCalledWith(output)
         })
     })
 })

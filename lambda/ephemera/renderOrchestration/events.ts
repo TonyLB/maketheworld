@@ -14,24 +14,42 @@ type RenderTargetContext = {
     messageGroupId?: MessageGroupId;
 }
 
-export type RenderRequested = RenderTargetContext & {
-    type: 'RenderRequested';
+/**
+ * Which ephemera component and asset-stack perspective a render message refers to.
+ * Present on essentially all {@link RenderOrchestrationMessage} variants (see {@link RenderRoomPerspective} for preview).
+ */
+export type RenderComponentPerspective = {
     componentId: RenderComponentId;
     perspective: Perspective;
+}
+
+/**
+ * Room-scoped {@link RenderComponentPerspective} (preview path is room-only today).
+ */
+export type RenderRoomPerspective = {
+    componentId: EphemeraRoomId;
+    perspective: Perspective;
+}
+
+export type RenderRequested = RenderTargetContext & RenderComponentPerspective & {
+    type: 'RenderRequested';
     allowGeneration?: boolean;
     generationContextWml?: string;
 }
+
+/**
+ * Subset of {@link RenderRequested} stored on `roomStateRender` conversation rows so materialized
+ * `sendMessage` can publish {@link RenderReady} / {@link RenderInvalidate} / `Error` to the message bus.
+ */
+export type RenderRequestedBusDeliveryFields = Pick<RenderRequested, 'componentId' | 'perspective' | 'characterId' | 'targets' | 'messageGroupId'>
 
 /**
  * Authoring / API preview path: proposed mark state + perspective, correlated to a conversation for
  * `ConversationStep` streaming. This is intentionally separate from {@link RenderRequested}, which
  * is oriented toward persisted room state and passive/presence-driven delivery (Option C split).
  */
-export type RenderPreviewRequested = RenderTargetContext & {
+export type RenderPreviewRequested = RenderTargetContext & RenderRoomPerspective & {
     type: 'RenderPreviewRequested';
-    /** Preview is Room-scoped today (`generateRoomPreview`). */
-    componentId: EphemeraRoomId;
-    perspective: Perspective;
     /** Proposed mark state for this preview run (not implied to match `Meta::Room.state` yet). */
     markState: EphemeraCacheMarkState;
     allowGeneration?: boolean;
@@ -42,39 +60,96 @@ export type RenderPreviewRequested = RenderTargetContext & {
     requestId?: string;
 }
 
-export type RenderGenerationStarted = RenderTargetContext & {
+export type RenderGenerationStarted = RenderTargetContext & RenderComponentPerspective & {
     type: 'RenderGenerationStarted';
-    componentId: RenderComponentId;
-    perspective: Perspective;
 }
 
-export type RenderLookupRequested = RenderTargetContext & {
-    type: 'RenderLookupRequested';
-    componentId: RenderComponentId;
-    perspective: Perspective;
-    allowGeneration?: boolean;
-    generationContextWml?: string;
+/**
+ * Terminal render orchestration failure on the render message bus (e.g. intake invariant, resolve failure).
+ * Distinct from {@link RenderGenerationFailed}, which is scoped to the generation lifecycle.
+ */
+export type RenderError = RenderTargetContext & RenderComponentPerspective & {
+    type: 'RenderError';
+    errorCode: string;
+    errorMessage: string;
 }
 
-export type RenderReady = RenderTargetContext & {
+/**
+ * Build a {@link RenderError} bus message from a request payload, reusing correlation fields
+ * (`componentId`, `perspective`, targets, etc.).
+ */
+export const toRenderError = (
+    payload: RenderRequested | RenderPreviewRequested,
+    errorCode: string,
+    errorMessage: string
+): RenderError => ({
+    type: 'RenderError',
+    componentId: payload.componentId,
+    perspective: payload.perspective,
+    characterId: payload.characterId,
+    targets: payload.targets,
+    messageGroupId: payload.messageGroupId,
+    errorCode,
+    errorMessage,
+})
+
+/**
+ * Request that cached render hints for this component and perspective be cleared or treated stale
+ * (e.g. Meta::Room `currentCacheByPerspective` entry).
+ */
+export type RenderInvalidate = RenderTargetContext & RenderComponentPerspective & {
+    type: 'RenderInvalidate';
+    /** Optional diagnostic; does not drive behavior in v1. */
+    reason?: string;
+}
+
+/**
+ * Build a {@link RenderInvalidate} bus message from a request payload, reusing correlation fields.
+ */
+export const toRenderInvalidate = (
+    payload: RenderRequested | RenderPreviewRequested,
+    reason?: string
+): RenderInvalidate => ({
+    type: 'RenderInvalidate',
+    componentId: payload.componentId,
+    perspective: payload.perspective,
+    characterId: payload.characterId,
+    targets: payload.targets,
+    messageGroupId: payload.messageGroupId,
+    ...(reason !== undefined ? { reason } : {}),
+})
+
+export type RenderReady = RenderTargetContext & RenderComponentPerspective & {
     type: 'RenderReady';
-    componentId: RenderComponentId;
-    perspective: Perspective;
     cacheId: EphemeraCacheId;
     cacheRecord?: EphemeraCacheDynamoItem;
 }
 
-export type RenderGenerationCompleted = RenderTargetContext & {
+/**
+ * Build a {@link RenderReady} bus message from a {@link RenderRequested} payload plus cache row fields.
+ */
+export const toRenderReady = (
+    payload: RenderRequested,
+    cacheId: EphemeraCacheId,
+    cacheRecord: EphemeraCacheDynamoItem
+): RenderReady => ({
+    type: 'RenderReady',
+    componentId: payload.componentId,
+    perspective: payload.perspective,
+    characterId: payload.characterId,
+    targets: payload.targets,
+    messageGroupId: payload.messageGroupId,
+    cacheId,
+    cacheRecord,
+})
+
+export type RenderGenerationCompleted = RenderTargetContext & RenderComponentPerspective & {
     type: 'RenderGenerationCompleted';
-    componentId: RenderComponentId;
-    perspective: Perspective;
     cacheId: EphemeraCacheId;
 }
 
-export type RenderGenerationFailed = RenderTargetContext & {
+export type RenderGenerationFailed = RenderTargetContext & RenderComponentPerspective & {
     type: 'RenderGenerationFailed';
-    componentId: RenderComponentId;
-    perspective: Perspective;
     errorCode: string;
     errorMessage: string;
 }
@@ -85,7 +160,8 @@ export type RenderOrchestrationRequestMessage = RenderRequested | RenderPreviewR
 export type RenderOrchestrationMessage =
     | RenderRequested
     | RenderPreviewRequested
-    | RenderLookupRequested
+    | RenderError
+    | RenderInvalidate
     | RenderGenerationStarted
     | RenderReady
     | RenderGenerationCompleted
@@ -192,12 +268,12 @@ export const isRenderGenerationStarted = (value: unknown): value is RenderGenera
     )
 }
 
-export const isRenderLookupRequested = (value: unknown): value is RenderLookupRequested => {
+export const isRenderError = (value: unknown): value is RenderError => {
     if (!value || typeof value !== 'object') {
         return false
     }
     const castValue = value as Record<string, unknown>
-    if (castValue.type !== 'RenderLookupRequested') {
+    if (castValue.type !== 'RenderError') {
         return false
     }
     if (!isRenderComponentId(castValue.componentId)) {
@@ -206,10 +282,30 @@ export const isRenderLookupRequested = (value: unknown): value is RenderLookupRe
     if (!isPerspective(castValue.perspective)) {
         return false
     }
-    if ('allowGeneration' in castValue && castValue.allowGeneration !== undefined && typeof castValue.allowGeneration !== 'boolean') {
+    if (typeof castValue.errorCode !== 'string') {
         return false
     }
-    if ('generationContextWml' in castValue && castValue.generationContextWml !== undefined && typeof castValue.generationContextWml !== 'string') {
+    if (typeof castValue.errorMessage !== 'string') {
+        return false
+    }
+    return hasValidTargetContext(castValue)
+}
+
+export const isRenderInvalidate = (value: unknown): value is RenderInvalidate => {
+    if (!value || typeof value !== 'object') {
+        return false
+    }
+    const castValue = value as Record<string, unknown>
+    if (castValue.type !== 'RenderInvalidate') {
+        return false
+    }
+    if (!isRenderComponentId(castValue.componentId)) {
+        return false
+    }
+    if (!isPerspective(castValue.perspective)) {
+        return false
+    }
+    if ('reason' in castValue && castValue.reason !== undefined && typeof castValue.reason !== 'string') {
         return false
     }
     return hasValidTargetContext(castValue)
@@ -272,7 +368,8 @@ export const isRenderGenerationFailed = (value: unknown): value is RenderGenerat
 export const isRenderOrchestrationMessage = (value: unknown): value is RenderOrchestrationMessage => (
     isRenderRequested(value)
     || isRenderPreviewRequested(value)
-    || isRenderLookupRequested(value)
+    || isRenderError(value)
+    || isRenderInvalidate(value)
     || isRenderGenerationStarted(value)
     || isRenderReady(value)
     || isRenderGenerationCompleted(value)

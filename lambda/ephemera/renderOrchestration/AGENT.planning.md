@@ -47,7 +47,7 @@ Over time, `generateRoomPreview` should **not** be the hiding place for the **fu
 
 ### Alignment with passive intake and shell
 
-**Intake** (`intakePassiveRenderRequested` in `requestIntake.ts`) reads world/meta and produces `RenderResolveInput` or intake-only outcomes (`PassiveIntakeResult`). It does **not** call `findRender`, publish bus messages, or run generation. The **passive shell** (`orchestratePassiveRenderRequestedBatch` in `passiveRenderOrchestration.ts`) chains intake -> `findRender` -> `deliverRenderResolveForPassive`. Preview follows the same layering in `index.ts` (preview intake map -> `findRender` -> `deliverRenderResolveForPreview`).
+**Intake** (`intakePassiveRenderRequested` in `requestIntake.ts`) reads world/meta and produces `RenderResolveInput` or intake-only outcomes (`PassiveIntakeResult`). It does **not** call `findRender`, publish bus messages, or run generation. The **passive shell** (`orchestratePassiveRenderRequestedBatch` in `passiveRenderOrchestration.ts`) chains intake -> `findRender` -> `enrichRenderResolveForPassive`. Preview follows the same layering in `index.ts` (preview intake map -> `findRender` -> `enrichRenderResolveForPreview`).
 
 ### Duplication guard
 
@@ -134,7 +134,7 @@ All messages use `componentId` so the same lifecycle can extend beyond Rooms lat
 
 ### Handler B: Exact-match lookup
 
-- Input: `RenderRequested` (or a derived internal message such as `RenderLookupRequested`)
+- Input: `RenderRequested` (multi-stage / future work may add derived follow-up messages; cache invalidation is `RenderInvalidate` today).
 - Responsibilities:
   - ensure markState (use `Meta::Room.state.marks` or compute defaults)
   - call renderCache exact-match lookup
@@ -289,7 +289,7 @@ With `internalCache.RenderCache`, render orchestration can:
    - **Temporary orchestration constraint (active):** treat missing `Meta::Room.state.marks` as an error for `RenderRequested` intake (`marks_missing`). Do not invent defaults in intake yet; state-mark resolution policy is deferred to a later orchestration-focused task.
 5. **Handler B: Exact-match lookup (post-intake, not "LLM slow path")**
    - **Perspective shift (see "Module layering direction" above):** Task 5 is **orchestration**: after Handler A, decide whether an **exact-match** cache row already satisfies the request (using `Meta::Room` mark state or defaults + renderCache exact-match), then publish `RenderReady` on hit or hand off toward generation. That branching **belongs in the render orchestration cascade** (Handler B under **Handler plan**), not as an undocumented side effect of **`generateRoomPreview`**.
-   - Implement exact-match lookup for the **`RenderRequested` / `RenderLookupRequested`** lifecycle and publish `RenderReady` on hit.
+   - Implement exact-match lookup in the **`RenderRequested` -> `findRender`** lifecycle and publish `RenderReady` on hit.
    - Naming note: "slow path" here means **after pointer fast-path miss** (Handler A), not the generation/LLM path. Exact-match hit is still a **fast** outcome for the user (no generation).
    - Acceptance criteria (preview-aligned, when the same rule applies to preview orchestration):
      - exact-match hit must not emit any "generating" signal (no `RenderGenerationStarted`, no preview "generating" step).
@@ -302,7 +302,7 @@ With `internalCache.RenderCache`, render orchestration can:
 ### Tier 2: Mostly clear tasks (some implementation choices open)
 
 6. [x] **Generation path + completion updates (core; done)**
-   - [x] Cache-miss branching: when passive resolve finds no satisfying row, **`allowGeneration`** selects generation (`tryPassiveRenderGeneration` / preview `tryGeneration`) vs **`RenderLookupRequested`** handoff (preview and passive paths stay distinct at the type level).
+   - [x] Cache-miss branching: when passive resolve finds no satisfying row, **`allowGeneration`** selects generation (`tryPassiveRenderGeneration` / preview `tryGeneration`) vs **`invalidate`** resolve outcome and bus **`RenderInvalidate`** (preview and passive paths stay distinct at the type level).
    - [x] On miss when generation is allowed: call **`generateRoomPreview`** (shared slow path after exact-match): LLM + build cache row fields (markState, renderedContent, provenance, perspectiveId, perspectiveMatcher; optional ids remain future fields).
    - [x] Pre-mint **`DataCategory`** / return **`cacheId`** + materialized **`cacheRecord`** from generation so orchestration can emit **`RenderReady`** with a full row without waiting on the async write round-trip.
    - [x] Persist via the DataSource command (not ad hoc Dynamo from orchestration): **`sendPutCacheRecord`** / `Put Cache Record` on `api.ephemera`, executed by **`mtw.ephemera.renderCache`**.
@@ -363,6 +363,6 @@ With `internalCache.RenderCache`, render orchestration can:
 - Add render orchestration event types to `lambda/ephemera/messageBus/baseClasses.ts` union types.
 - Register `renderOrchestration` subscriptions in `lambda/ephemera/messageBus/index.ts`.
 - Add perception-side lifecycle consumers for `RenderGenerationStarted` and `RenderReady`.
-- Wire `handleRenderOrchestrationMessage` / `orchestratePassiveRenderRequestedBatch` to consume `RenderRequested` and emit `RenderLookupRequested`/`RenderReady` (done).
+- Wire `handleRenderOrchestrationMessage` / `orchestratePassiveRenderRequestedBatch` to consume `RenderRequested` and emit `RenderReady` / `RenderInvalidate` / `RenderError` as appropriate (done).
 - **Multi-stage WebSocket / authoring preview:** Correlated **multiple messages per request** (e.g. generating vs completion) for **`generateRoomPreview`** is planned in [`../conversations/AGENT.planning.md`](../conversations/AGENT.planning.md) (**Multi-stage WebSocket delivery and coordination trap**), [`../conversations/AGENT.planning.tasklist.md`](../conversations/AGENT.planning.tasklist.md) **section 4**, and [`../../../charcoal-client/src/slices/lifeLine/AGENT.md`](../../../charcoal-client/src/slices/lifeLine/AGENT.md). Align **`RenderGenerationStarted`** / cache lifecycle with that contract when wiring preview orchestration.
 

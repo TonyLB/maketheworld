@@ -6,6 +6,8 @@ import {
     isRenderReady,
     isRenderGenerationCompleted,
     isRenderGenerationFailed,
+    isRenderError,
+    isRenderInvalidate,
     isRenderOrchestrationMessage
 } from './events'
 
@@ -134,6 +136,39 @@ describe('renderOrchestration events guards', () => {
         })).toBe(false)
     })
 
+    it('accepts valid RenderError', () => {
+        expect(isRenderError({
+            type: 'RenderError',
+            ...base,
+            errorCode: 'META_ROOM_MARKS_MISSING',
+            errorMessage: 'marks required'
+        })).toBe(true)
+    })
+
+    it('rejects RenderError with missing errorCode', () => {
+        expect(isRenderError({
+            type: 'RenderError',
+            ...base,
+            errorMessage: 'x'
+        } as unknown)).toBe(false)
+    })
+
+    it('accepts valid RenderInvalidate with optional reason', () => {
+        expect(isRenderInvalidate({
+            type: 'RenderInvalidate',
+            ...base,
+            reason: 'pointer stale after state change'
+        })).toBe(true)
+    })
+
+    it('rejects RenderInvalidate with non-string reason', () => {
+        expect(isRenderInvalidate({
+            type: 'RenderInvalidate',
+            ...base,
+            reason: 1
+        } as unknown)).toBe(false)
+    })
+
     it('umbrella guard accepts all supported events and rejects unknown', () => {
         expect(isRenderOrchestrationMessage({
             type: 'RenderRequested',
@@ -165,6 +200,16 @@ describe('renderOrchestration events guards', () => {
             ...base,
             errorCode: 'X',
             errorMessage: 'Y'
+        })).toBe(true)
+        expect(isRenderOrchestrationMessage({
+            type: 'RenderError',
+            ...base,
+            errorCode: 'E',
+            errorMessage: 'msg'
+        })).toBe(true)
+        expect(isRenderOrchestrationMessage({
+            type: 'RenderInvalidate',
+            ...base
         })).toBe(true)
         expect(isRenderOrchestrationMessage({
             type: 'NotRenderMessage',
