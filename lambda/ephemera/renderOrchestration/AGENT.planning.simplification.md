@@ -42,12 +42,12 @@ The first shared choke-point type is `RenderResolveInput` in:
 
 It is the normalized **A-phase output** / **core input**: room, perspective, authoritative `markState`, `markProvenance` (`meta` vs `preview`), optional `pointerHint` from `Meta::Room.currentCacheByPerspective`, plus optional generation fields.
 
-**Mapping (current code, before refactor):**
+**Mapping (current code):**
 
 | Source | How it fills `RenderResolveInput` |
 |--------|-----------------------------------|
 | `RenderPreviewRequested` (`index.ts`) | `roomId` = `componentId`; `perspective` = payload; `markState` = payload; `markProvenance` = `'preview'`; `pointerHint` omitted; `allowGeneration` / `generationContextWml` from payload. |
-| `intakePassiveRenderRequested` (after `Meta::Room` load) | `roomId` = room `componentId`; `perspective` = payload; `markState` = `metaRoom.state.marks` (or `marks_missing` before resolve); `markProvenance` = `'meta'`; `pointerHint` = `currentCacheByPerspective[perspectiveKey]` if set; generation fields from `RenderRequested`. |
+| `intakePassiveRenderRequested` (after `Meta::Room` load) | `roomId` = room `componentId`; `perspective` = payload; `markState` = `metaRoom.state.marks` (or `marks_missing` before resolve); `markProvenance` = `'meta'`; `pointerHint` = `currentCacheByPerspective[perspectiveKey]` if set; `allowGeneration` from payload or explicit `false` when omitted; `generationContextWml` from `RenderRequested`. |
 
 Bus-only fields (`characterId`, `targets`, `messageGroupId`, `conversationId`, `requestId`) stay **outside** this type until we define an output boundary or explicit correlation layer.
 
@@ -98,38 +98,34 @@ When a new implementation appears for an existing responsibility:
 | Layer | Role | Notes |
 |-------|------|--------|
 | **Intake** | Wire / world -> `RenderResolveInput` (A-phase) | Passive: `intakePassiveRenderRequested` + `PassiveIntakeResult` (`renderIntake.ts`). Preview: map in `index.ts`. Intake-only errors (e.g. missing marks) do not publish the bus. |
-| **findRender** (resolve) | `RenderResolveInput` -> `RenderResolveOutput` (B-phase core) | Pointer validation, exact-match, generation; single implementation shared by all pipelines. Policy for pointer clear lives in one place (intake vs findRender: pick one rule; do not split). |
-| **Delivery** | `RenderResolveOutput` + context -> side effects | Bus (`RenderReady`, `RenderInvalidate`, `RenderError`), preview conversation `sendMessage`, future dataSource subscribers. Two adapters (passive vs preview) are still **one** delivery layer, not two resolve stacks. |
+| **findRender** (resolve) | `RenderResolveInput` + `FindRenderDependencies` -> **`Promise<void>`** (B-phase core) | Terminals emit only via `deps.sendMessage(RenderResolveOutput)`. Pointer validation, exact-match, shared `tryGeneration` hook, `invalidate` when generation returns `skip`. Policy for pointer clear lives in one place. |
+| **Delivery** | `RenderResolveOutput` through conversation `sendMessage` -> materialize / bus | `materializeRoomStateRender` / `materializeGenerateRoomPreview` map terminal resolve shapes to `RenderReady` / `RenderInvalidate` / `RenderError` or WebSocket steps. Preview vs passive differ in how the handle is obtained, not in duplicate resolve stacks. |
 
-**Delivery layer (phase 1 done):** Orchestration forwards `RenderResolveOutput` with `terminalHandle?.sendMessage(output)` / `handle?.sendMessage(output)`; passive and preview **materialize** those terminals (`materializeRoomStateRender`, `materializeGenerateRoomPreview`) using local `enrichRenderResolveForPassive` / `enrichRenderResolveForPreview` helpers before bus or WebSocket shaping.
+**Delivery layer (phase 1 done):** Terminal payloads reach clients through conversation `sendMessage` (wired from `FindRenderDependencies.sendMessage` and from shared `tryGeneration`); materialize layers shape to bus or `ConversationStep`.
 
-**Resolve layer (phase 2 done):** `renderOrchestration/findRender.ts` exports `findRender` (pointer validation, exact-match, `tryGeneration` hook, `invalidate` when no match and generation does not run). Pointer clear on invalid hint lives only here. Passive and preview wire different `tryGeneration` implementations; `index.ts` re-exports `findRender` for other callers (e.g. Track B).
+**Resolve layer (phase 2 done):** `renderOrchestration/findRender.ts` exports `findRender` (pointer validation, exact-match, `tryGeneration` hook, `invalidate` when no match and generation does not run). Pointer clear on invalid hint lives only here. Shared `tryGeneration.ts` wraps `generateRoomPreview` for preview and passive; `index.ts` re-exports `findRender` for other callers (e.g. Track B).
 
 **Phased sequence (recommended order)**
 
 1. **Delivery first** -- [done] Extract delivery from `requestIntake.ts` and `index.ts`; enrich helpers now live inside materialize (`roomStateRender` / `generateRoomPreview`); both paths run **after** resolve.
-2. **findRender second** -- [done] Shared resolve in `findRender.ts`; passive shell (`passiveRenderOrchestration.ts`) and preview handler in `index.ts` call `findRender` before delivery; generation is injected via `tryGeneration`.
-3. **Intake / shell third** -- [done] Passive A-phase: `requestIntake.ts` (`intakePassiveRenderRequested`) + `renderIntake.ts` (`PassiveIntakeResult`). Passive shell: `passiveRenderOrchestration.ts` (`orchestratePassiveRenderRequestedBatch`, alias `requestIntakeMessage`) chains intake -> `findRender` -> terminal `sendMessage`. `index.ts` `handleRenderOrchestrationMessage` calls that batch for `RenderRequested`; preview A-phase is `intakeRenderPreviewRequested` in `index.ts`. Optional later: one intake surface for all request types.
+2. **findRender second** -- [done] Shared resolve in `findRender.ts`; passive shell (`passiveRenderOrchestration.ts`) and preview handler in `index.ts` call `findRender`; terminals emit via `sendMessage` (`findRender` deps + shared `tryGeneration.ts`).
+3. **Intake / shell third** -- [done] Passive A-phase: `requestIntake.ts` (`intakePassiveRenderRequested`) + `renderIntake.ts` (`PassiveIntakeResult`). Passive shell: `passiveRenderOrchestration.ts` (`orchestratePassiveRenderRequestedBatch`, alias `requestIntakeMessage`) chains intake -> `findRender`. `index.ts` `handleRenderOrchestrationMessage` calls that batch for `RenderRequested`; preview A-phase is `intakeRenderPreviewRequested` in `index.ts`. Optional later: one intake surface for all request types.
 
-### Coordination trap: `findRender` / `tryGeneration` must move together (for sendMessage-first resolve)
+### Historical: coordination trap (`findRender` / `tryGeneration` had to move together)
 
-Refactoring **only** `findRender` to push outcomes onto `sendMessage` does **not** simplify much or add general streaming capability while **`tryGeneration` stays terminal-return coded** (`Promise<RenderResolveOutput | null>`): the slow path still collapses to **one** awaited return.
+Previously, pushing terminals only through `findRender` did not help while `tryGeneration` still returned full `RenderResolveOutput`; conversely, changing only `tryGeneration` was blocked until `findRender` could branch on control (`skip` vs success/fail) and emit invalidate in one place. **This is resolved** by the two-level work below.
 
-Refactoring **only** `tryGeneration` / `generateRoomPreview` buys little and is **blocked** by the current contract: **`findRender` awaits a single result** from `tryGeneration` and branches on **`null` vs non-null** (fall through to `invalidate` when `null`). Without changing `findRender`, generation cannot become truly `sendMessage`-first end-to-end.
+### Two-level refactor (sendMessage-first resolve) -- [done]
 
-**Implication:** meaningful movement toward **event-oriented** delivery through the conversation handle (multiple steps, terminals only on the wire) requires **coordinated** changes to **both** the resolve shell (`findRender` control flow and dependencies) **and** the generation hook (`tryGeneration` / `generateRoomPreview`).
+Implemented coordinated changes so terminals are visible on **`sendMessage`**, not on the `findRender` return channel (`findRender` is **`Promise<void>`**).
 
-### Optional future: two-level refactor (beneficial; not scheduled)
+1. **`tryGeneration` (`tryGeneration.ts`):** Shared adapter calls `generateRoomPreview`, emits progress/terminals via injected `sendMessage`, returns **`RenderGenerationReturn`** (`success` | `skip` | `fail`) for control only. `allowGeneration === false` maps to **`skip`** (invalidate in `findRender`). Preview and passive both use this module.
 
-Design sketch only: a **two-level** change that avoids the trap above:
+2. **`findRender`:** `FindRenderDependencies` includes **`sendMessage`**; pointer hit, exact match, and invalidate-after-**skip** paths **`await sendMessage(output)`**. Generation success/fail terminals are emitted inside **`tryGeneration`**; `findRender` returns **`void`** in those cases.
 
-1. **`tryGeneration` / `generateRoomPreview`:** emit terminal outcomes **via** `sendMessage` (conversation handle), not a generic sink abstraction, instead of returning full `RenderResolveOutput`; completion might be **`void`** / **`Promise<void>`** when the slow path finishes. Optionally keep a **minimal return type** solely for **control** (e.g. preserve the **`null` semantic** ("generation did not run; caller should invalidate")) without carrying resolve payloads in the return channel.
+**Intentionally unchanged at this layer:** `generateRoomPreview` still returns **`GenerateRoomPreviewResult`** to the adapter; only the orchestration boundary stopped returning `RenderResolveOutput` from the generation hook.
 
-2. **`findRender`:** **Decision:** thread `sendMessage` through `FindRenderDependencies` so pointer hit, exact match, and generation paths **all** emit via the same conversation handle. Do **not** pursue the alternative of restructuring so terminal `RenderResolveOutput` values can live **outside** `findRender` in multiple places; keep one resolve shell that owns branching, including mapping **`null`/skip** from `tryGeneration` to **`invalidate`** in one place.
-
-This makes metaphorical **return values** visible on **`sendMessage`**, aligned with preview and passive streaming -- at the cost of a **coordinated** migration and tests that mock `sendMessage`.
-
-**Pattern we are not pursuing:** stacking more **`onGenerating`-style** hooks inside `generateRoomPreview` is a recognizable incremental option (it can surface **one** extra intermediate signal without touching `findRender`), but it does **not** unlock full multi-step streaming through `findRender` and would **defer** the coordinated contract change above. We are **not** investing in that direction; when we move, we expect to tackle the coordinated **two-level** refactor (`sendMessage` threaded through `findRender` and generation) described above.
+**Pattern we are still not pursuing:** stacking more **`onGenerating`-style** hooks inside `generateRoomPreview` as a substitute for unified resolve/delivery policy. That path can surface one extra signal without touching `findRender`, but it does **not** replace the coordinated shell above.
 
 Do **not** add a fourth parallel implementation (e.g. a duplicate orchestration stack) as a "bridge" to a future `renderOrchestration` dataSource; **unify core + delivery**, then relocate the **caller** (messageBus registration vs dataSource) in one move when ready.
 
@@ -174,10 +170,17 @@ Use this mini template for each simplification decision:
 
 - **Date:** 2026-03-29
 - **Topic:** Intake / shell (phase 3)
-- **Decision:** `intakePassiveRenderRequested` returns `PassiveIntakeResult` (`ok` / `marks_missing` / `not_room`). `orchestratePassiveRenderRequestedBatch` in `passiveRenderOrchestration.ts` performs findRender + passive delivery; `tryPassiveRenderGeneration` lives there. `requestIntakeMessage` remains an alias for the batch. Preview path unchanged except renamed preview intake helper in `index.ts`.
+- **Decision:** `intakePassiveRenderRequested` returns `PassiveIntakeResult` (`ok` / `marks_missing` / `not_room`). `orchestratePassiveRenderRequestedBatch` in `passiveRenderOrchestration.ts` performs `findRender` + terminal delivery via conversation `sendMessage` (shared `tryGeneration.ts` for the slow path). `requestIntakeMessage` remains an alias for the batch. Preview path unchanged except renamed preview intake helper in `index.ts`.
 - **Canonical owner:** A-phase `requestIntake.ts` + `renderIntake.ts`; passive shell `passiveRenderOrchestration.ts`; bus entry `index.ts`.
 - **Tracks affected:** Track A.
 - **Follow-up tasks:** Optional unified intake API; Track B caller of `findRender` + intake.
+
+- **Date:** 2026-03-30
+- **Topic:** Two-level sendMessage-first resolve (`findRender` + `tryGeneration`)
+- **Decision:** `findRender` is effect-only (`Promise<void>`); `FindRenderDependencies.sendMessage` emits terminals for pointer/exact/invalidate; shared `tryGeneration.ts` emits generation terminals and returns `RenderGenerationReturn`. Passive intake sets `allowGeneration` explicitly when absent on `RenderRequested` (`false`) so default-allow semantics live in `tryGeneration`. Tests assert `sendMessage` / deps rather than `findRender` return values where applicable.
+- **Canonical owner:** `findRender.ts`, `tryGeneration.ts`, `index.ts`, `passiveRenderOrchestration.ts`
+- **Tracks affected:** Track A.
+- **Follow-up tasks:** Track B integration or retire; optional `generateRoomPreview` API tightening; doc sync in `AGENT.md` / `AGENT.planning.md` if readers still assume `RenderResolveOutput` return from `findRender`.
 
 ## Exit criteria for this simplification phase
 

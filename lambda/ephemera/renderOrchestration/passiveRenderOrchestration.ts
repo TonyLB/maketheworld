@@ -17,12 +17,13 @@ import {
 } from '../conversations/conversationTypes'
 import type { ConversationId } from '../conversations'
 import { toRenderError, type RenderRequested } from './events'
-import type { RenderResolveInput, RenderResolveOutput } from './baseClasses'
+import type { RenderResolveOutput } from './baseClasses'
 import { RENDER_ERROR_CODE_NOT_ROOM } from '../conversations/conversationTypes/roomStateRender/baseClasses'
 import { findRender } from './findRender'
 import { generateRoomPreview } from './generateRoomPreview'
 import { intakePassiveRenderRequested } from './requestIntake'
 import type { RequestIntakeDependencies } from './requestIntake'
+import { tryGeneration } from './tryGeneration'
 import internalCache from '../internalCache'
 
 export type PassiveOrchestrationDependencies = {
@@ -82,47 +83,6 @@ const getRoomStateRenderHandle = (
     return rawHandle !== undefined && isConversationCompositeReadHandleRoomStateRender(rawHandle)
         ? rawHandle
         : undefined
-}
-
-const tryPassiveRenderGeneration = async (
-    resolve: RenderResolveInput,
-    deps: PassiveOrchestrationDepsResolved,
-    conversationId: ConversationId,
-    messageBus: MessageBus
-): Promise<RenderResolveOutput | null> => {
-    if (!resolve.allowGeneration) {
-        return null
-    }
-
-    const roomStateHandle = getRoomStateRenderHandle(conversationId, messageBus)
-    const result = await deps.generateRoomPreview(
-        {
-            roomId: resolve.roomId,
-            markState: resolve.markState,
-            assetStack: resolve.perspective.assetStack,
-            generationContextWml: resolve.generationContextWml,
-        },
-        {
-            conversationId,
-            onGenerating: async () => {
-                await roomStateHandle?.sendMessage('generating')
-            },
-        }
-    )
-
-    if (result.success) {
-        return {
-            type: 'resolved',
-            renderedContent: result.renderedContent,
-            cacheId: result.cacheId,
-            cacheRecord: result.cacheRecord,
-        }
-    }
-    return {
-        type: 'failed',
-        errorCode: result.errorCode,
-        errorMessage: result.errorMessage,
-    }
 }
 
 /**
@@ -187,17 +147,26 @@ export const orchestratePassiveRenderRequestedBatch = async (
             return
         }
 
-        const output = await findRender(intake.input, {
+        await findRender(intake.input, {
             getExactMatch: orchDeps.getExactMatch,
             getCacheRecordById: orchDeps.getCacheRecordById,
             clearPerspectivePointer: orchDeps.clearPerspectivePointer,
             computePerspectiveKey: orchDeps.computePerspectiveKey,
             markStatesEqual: orchDeps.markStatesEqual,
             perspectiveMatches,
-            tryGeneration: (r) => tryPassiveRenderGeneration(r, orchDeps, conversationId, messageBus),
+            sendMessage: async (output) => {
+                const roomStateHandle = getRoomStateRenderHandle(conversationId, messageBus)
+                await roomStateHandle?.sendMessage(output)
+            },
+            tryGeneration: (r) => tryGeneration(r, {
+                generateRoomPreview: orchDeps.generateRoomPreview,
+                conversationId,
+                sendMessage: async (arg) => {
+                    const roomStateHandle = getRoomStateRenderHandle(conversationId, messageBus)
+                    await roomStateHandle?.sendMessage(arg)
+                },
+            }),
         })
-        const terminalHandle = getRoomStateRenderHandle(conversationId, messageBus)
-        await terminalHandle?.sendMessage(output)
     }))
 }
 

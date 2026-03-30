@@ -81,39 +81,44 @@ describe('renderOrchestration/passive shell (requestIntakeMessage)', () => {
 
     it('emits RenderReady on valid fast-path hit', async () => {
         const messageBus = makeBus()
+        const getCacheRecordById = jest.fn().mockResolvedValue(baseCacheRecord)
+        const getExactMatch = jest.fn()
         await requestIntakeMessage(
             { payloads: [basePayload], messageBus },
             {
                 getMetaRoom: jest.fn().mockResolvedValue(baseMetaRoom),
                 computePerspectiveKey: jest.fn().mockReturnValue('PERSPECTIVE#v1#abc'),
-                getCacheRecordById: jest.fn().mockResolvedValue(baseCacheRecord),
-                getExactMatch: jest.fn(),
+                getCacheRecordById,
+                getExactMatch,
                 clearPerspectivePointer: jest.fn(),
                 markStatesEqual: jest.fn().mockReturnValue(true)
             }
         )
-
         expect(messageBus.send).toHaveBeenCalledWith(expect.objectContaining({
             type: 'RenderReady',
             cacheId: 'CACHE#valid'
         }))
         expect(messageBus.send).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'RenderInvalidate' }))
+        expect(getCacheRecordById).toHaveBeenCalledWith('ROOM#one', 'CACHE#valid')
+        expect(getExactMatch).not.toHaveBeenCalled()
     })
 
     it('emits lookup handoff when no pointer exists', async () => {
         const messageBus = makeBus()
+        const getExactMatch = jest.fn().mockResolvedValue(null)
         await requestIntakeMessage(
             { payloads: [basePayload], messageBus },
             {
                 getMetaRoom: jest.fn().mockResolvedValue({ ...baseMetaRoom, currentCacheByPerspective: {} }),
                 computePerspectiveKey: jest.fn().mockReturnValue('PERSPECTIVE#v1#abc'),
                 getCacheRecordById: jest.fn(),
-                getExactMatch: jest.fn().mockResolvedValue(null),
+                getExactMatch,
                 clearPerspectivePointer: jest.fn(),
                 markStatesEqual: jest.fn()
             }
         )
         expect(messageBus.send).toHaveBeenCalledWith(expect.objectContaining({ type: 'RenderInvalidate' }))
+        expect(getExactMatch).toHaveBeenCalled()
     })
 
     it('clears pointer and emits lookup handoff when record missing', async () => {
@@ -136,13 +141,14 @@ describe('renderOrchestration/passive shell (requestIntakeMessage)', () => {
 
     it('emits RenderReady on exact-match hit when no pointer exists', async () => {
         const messageBus = makeBus()
+        const getExactMatch = jest.fn().mockResolvedValue(baseCacheRecord)
         await requestIntakeMessage(
             { payloads: [basePayload], messageBus },
             {
                 getMetaRoom: jest.fn().mockResolvedValue({ ...baseMetaRoom, currentCacheByPerspective: {} }),
                 computePerspectiveKey: jest.fn().mockReturnValue('PERSPECTIVE#v1#abc'),
                 getCacheRecordById: jest.fn(),
-                getExactMatch: jest.fn().mockResolvedValue(baseCacheRecord),
+                getExactMatch,
                 clearPerspectivePointer: jest.fn(),
                 markStatesEqual: jest.fn()
             }
@@ -152,6 +158,7 @@ describe('renderOrchestration/passive shell (requestIntakeMessage)', () => {
             cacheId: 'CACHE#valid'
         }))
         expect(messageBus.send).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'RenderInvalidate' }))
+        expect(getExactMatch).toHaveBeenCalled()
     })
 
     it('emits RenderError and does not clear pointer when state marks missing', async () => {

@@ -321,8 +321,8 @@ describe('renderOrchestration/index', () => {
     })
 
     /**
-     * Preview terminal path after `findRender`: `handle?.sendMessage(output)` (identity enrich step is in `materializeGenerateRoomPreview`).
-     * Spies `findRender` to assert forwarding for each terminal resolve shape without depending on cache/generation setup.
+     * Preview terminal path after `findRender`: forwarded by `findRender` through `sendMessage`.
+     * Spies `findRender` to assert preview receives emitted resolve shapes.
      */
     describe('preview terminal delivery (orchestration)', () => {
         let findRenderSpy: jest.SpiedFunction<typeof findRenderModule.findRender>
@@ -338,13 +338,7 @@ describe('renderOrchestration/index', () => {
         it('does nothing when handle is undefined', async () => {
             const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {})
             mockConversationsGet.mockReturnValue(undefined)
-            const record = baseCacheRecord()
-            findRenderSpy.mockResolvedValue({
-                type: 'resolved',
-                renderedContent: record.renderedContent,
-                cacheId: record.DataCategory as EphemeraCacheId,
-                cacheRecord: record,
-            })
+            findRenderSpy.mockResolvedValue(undefined)
             await handleRenderOrchestrationMessage({
                 payloads: [makeRenderPreviewRequested()],
                 messageBus,
@@ -369,7 +363,9 @@ describe('renderOrchestration/index', () => {
                 cacheId: record.DataCategory as EphemeraCacheId,
                 cacheRecord: record,
             }
-            findRenderSpy.mockResolvedValue(output)
+            findRenderSpy.mockImplementation(async (_resolve, deps) => {
+                await deps.sendMessage(output)
+            })
             await handleRenderOrchestrationMessage({
                 payloads: [makeRenderPreviewRequested()],
                 messageBus,
@@ -391,7 +387,9 @@ describe('renderOrchestration/index', () => {
                 errorCode: 'CONTEXT_REQUIRED' as const,
                 errorMessage: 'Generation context required',
             }
-            findRenderSpy.mockResolvedValue(output)
+            findRenderSpy.mockImplementation(async (_resolve, deps) => {
+                await deps.sendMessage(output)
+            })
             await handleRenderOrchestrationMessage({
                 payloads: [makeRenderPreviewRequested()],
                 messageBus,
@@ -412,7 +410,9 @@ describe('renderOrchestration/index', () => {
                 type: 'invalidate' as const,
                 reason: RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION,
             }
-            findRenderSpy.mockResolvedValue(output)
+            findRenderSpy.mockImplementation(async (_resolve, deps) => {
+                await deps.sendMessage(output)
+            })
             await handleRenderOrchestrationMessage({
                 payloads: [makeRenderPreviewRequested()],
                 messageBus,
@@ -434,7 +434,9 @@ describe('renderOrchestration/index', () => {
                 errorCode: 'META_ROOM_MARKS_MISSING' as const,
                 errorMessage: 'x',
             }
-            findRenderSpy.mockResolvedValue(output)
+            findRenderSpy.mockImplementation(async (_resolve, deps) => {
+                await deps.sendMessage(output)
+            })
             await handleRenderOrchestrationMessage({
                 payloads: [makeRenderPreviewRequested()],
                 messageBus,
@@ -456,7 +458,9 @@ describe('renderOrchestration/index', () => {
                 type: 'resolved' as const,
                 renderedContent: record.renderedContent,
             }
-            findRenderSpy.mockResolvedValue(output)
+            findRenderSpy.mockImplementation(async (_resolve, deps) => {
+                await deps.sendMessage(output)
+            })
             await handleRenderOrchestrationMessage({
                 payloads: [makeRenderPreviewRequested()],
                 messageBus,

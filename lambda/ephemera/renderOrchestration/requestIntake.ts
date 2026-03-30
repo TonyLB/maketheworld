@@ -58,7 +58,7 @@ export const intakePassiveRenderRequested = async (
         perspective,
         markState: stateMarks,
         markProvenance: 'meta',
-        allowGeneration: payload.allowGeneration,
+        allowGeneration: payload.allowGeneration ?? false,
         generationContextWml: payload.generationContextWml,
         ...(pointerId !== undefined ? { pointerHint: pointerId } : {}),
     }

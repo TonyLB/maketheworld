@@ -15,6 +15,7 @@ import { orchestratePassiveRenderRequestedBatch } from './passiveRenderOrchestra
 import { findRender } from './findRender'
 import { generateRoomPreview } from './generateRoomPreview'
 import type { RenderResolveInput } from './baseClasses'
+import { tryGeneration } from './tryGeneration'
 
 /**
  * renderOrchestration public module surface
@@ -138,45 +139,24 @@ const handleRenderPreviewRequested = async (payload: RenderPreviewRequested): Pr
     }
 
     const resolve = intakeRenderPreviewRequested(payload)
-    const output = await findRender(resolve, {
+    await findRender(resolve, {
         getExactMatch: (input) => internalCache.RenderCache.getExactMatch(input),
         getCacheRecordById: async () => undefined,
         clearPerspectivePointer: async () => {},
         computePerspectiveKey,
         markStatesEqual,
         perspectiveMatches,
-        tryGeneration: async (r) => {
-            const result = await generateRoomPreview(
-                {
-                    roomId: r.roomId,
-                    markState: r.markState,
-                    assetStack: r.perspective.assetStack,
-                    generationContextWml: r.generationContextWml,
-                },
-                {
-                    conversationId: payload.conversationId,
-                    onGenerating: async () => {
-                        await handle?.sendMessage('generating')
-                    },
-                }
-            )
-            if (result.success) {
-                return {
-                    type: 'resolved' as const,
-                    renderedContent: result.renderedContent,
-                    cacheId: result.cacheId,
-                    cacheRecord: result.cacheRecord,
-                }
-            }
-            return {
-                type: 'failed' as const,
-                errorCode: result.errorCode,
-                errorMessage: result.errorMessage,
-            }
+        sendMessage: async (output) => {
+            await handle?.sendMessage(output)
         },
+        tryGeneration: (r) => tryGeneration(r, {
+            generateRoomPreview,
+            conversationId: payload.conversationId,
+            sendMessage: async (arg) => {
+                await handle?.sendMessage(arg)
+            },
+        }),
     })
-    // Terminal preview delivery: forward resolve to the stream; materialize maps to wire (identity enrich there).
-    await handle?.sendMessage(output)
 }
 
 /**
