@@ -15,7 +15,6 @@ import { orchestratePassiveRenderRequestedBatch } from './passiveRenderOrchestra
 import { findRender } from './findRender'
 import { generateRoomPreview } from './generateRoomPreview'
 import type { RenderResolveInput } from './baseClasses'
-import { tryGeneration } from './tryGeneration'
 
 /**
  * renderOrchestration public module surface
@@ -150,16 +149,11 @@ const handleRenderPreviewRequested = async (payload: RenderPreviewRequested): Pr
         computePerspectiveKey,
         markStatesEqual,
         perspectiveMatches,
-        sendMessage: async (output) => {
-            await handle?.sendMessage(output)
+        sendMessage: async (arg) => {
+            await handle?.sendMessage(arg)
         },
-        tryGeneration: (r) => tryGeneration(r, {
-            generateRoomPreview,
-            conversationId: payload.conversationId,
-            sendMessage: async (arg) => {
-                await handle?.sendMessage(arg)
-            },
-        }),
+        generateRoomPreview,
+        conversationId: payload.conversationId,
     })
 }
 

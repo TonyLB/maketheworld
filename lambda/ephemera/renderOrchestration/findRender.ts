@@ -2,11 +2,20 @@ import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { perspectiveMatches, computePerspectiveKey, type Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
 import type { EphemeraCacheId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraCacheDynamoItem, EphemeraCacheMarkState } from '../renderCache/baseClasses'
-import { RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION, type RenderGenerationReturn, type RenderResolveInput, type RenderResolveOutput } from './baseClasses'
+import type { ConversationId } from '../conversations'
+import type { generateRoomPreview } from './generateRoomPreview'
+import { tryGeneration } from './tryGeneration'
+import {
+    RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION,
+    type RenderGenerationReturn,
+    type RenderProgress,
+    type RenderResolveInput,
+    type RenderResolveOutput,
+} from './baseClasses'
 
 /**
- * Dependencies for {@link findRender}: cache lookup, Meta pointer maintenance, and optional generation.
- * Generation is injected so preview (fixed conversation) and passive (pre-registered roomStateRender id) stay outside.
+ * Dependencies for `findRender`: cache lookup, Meta pointer maintenance, and slow-path generation
+ * (`tryGeneration` + `generateRoomPreview`).
  */
 export type FindRenderDependencies = {
     getExactMatch: (input: {
@@ -19,9 +28,11 @@ export type FindRenderDependencies = {
     computePerspectiveKey: typeof computePerspectiveKey;
     markStatesEqual: (a: EphemeraCacheMarkState, b: EphemeraCacheMarkState) => boolean;
     perspectiveMatches: typeof perspectiveMatches;
-    sendMessage: (output: RenderResolveOutput) => Promise<void>;
-    /** Slow path after exact-match miss. Return `skip` to fall through to `invalidate`. */
-    tryGeneration: (resolve: RenderResolveInput) => Promise<RenderGenerationReturn>;
+    /** Terminals from pointer/exact/invalidate paths, and progress + terminals from generation (same handle as orchestration). */
+    sendMessage: (arg: RenderProgress | RenderResolveOutput) => Promise<void>;
+    generateRoomPreview: typeof generateRoomPreview;
+    /** Correlation for `generateRoomPreview` / cache writes; passive mints per request, preview uses payload id. */
+    conversationId?: ConversationId;
 }
 
 /**
@@ -81,7 +92,11 @@ export const findRender = async (
         return
     }
 
-    const generated = await deps.tryGeneration(resolve)
+    const generated: RenderGenerationReturn = await tryGeneration(resolve, {
+        generateRoomPreview: deps.generateRoomPreview,
+        conversationId: deps.conversationId,
+        sendMessage: deps.sendMessage,
+    })
     if (generated === 'success' || generated === 'fail') {
         return
     }
