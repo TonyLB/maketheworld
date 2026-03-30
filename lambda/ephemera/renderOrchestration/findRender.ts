@@ -27,11 +27,13 @@ export type FindRenderDependencies = {
 /**
  * B-phase: pointer validation (when {@link RenderResolveInput.pointerHint} is set), exact-match, generation hook,
  * or `invalidate` when nothing matches and generation does not run. Single graph shared by passive and preview pipelines.
+ *
+ * Terminals are emitted only via {@link FindRenderDependencies.sendMessage}; there is no return payload.
  */
 export const findRender = async (
     resolve: RenderResolveInput,
     deps: FindRenderDependencies
-): Promise<RenderResolveOutput | undefined> => {
+): Promise<void> => {
     const perspectiveKey = deps.computePerspectiveKey(resolve.perspective.assetStack)
     const pointerId = resolve.pointerHint
 
@@ -52,7 +54,7 @@ export const findRender = async (
                 cacheRecord,
             }
             await deps.sendMessage(output)
-            return output
+            return
         }
 
         try {
@@ -76,17 +78,16 @@ export const findRender = async (
             cacheRecord: exactMatch,
         }
         await deps.sendMessage(output)
-        return output
+        return
     }
 
     const generated = await deps.tryGeneration(resolve)
     if (generated === 'success' || generated === 'fail') {
-        return undefined
+        return
     }
     const output: RenderResolveOutput = {
         type: 'invalidate',
         reason: RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION,
     }
     await deps.sendMessage(output)
-    return output
 }

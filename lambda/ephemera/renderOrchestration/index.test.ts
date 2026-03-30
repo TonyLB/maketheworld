@@ -338,13 +338,7 @@ describe('renderOrchestration/index', () => {
         it('does nothing when handle is undefined', async () => {
             const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {})
             mockConversationsGet.mockReturnValue(undefined)
-            const record = baseCacheRecord()
-            findRenderSpy.mockResolvedValue({
-                type: 'resolved',
-                renderedContent: record.renderedContent,
-                cacheId: record.DataCategory as EphemeraCacheId,
-                cacheRecord: record,
-            })
+            findRenderSpy.mockResolvedValue(undefined)
             await handleRenderOrchestrationMessage({
                 payloads: [makeRenderPreviewRequested()],
                 messageBus,
@@ -371,7 +365,6 @@ describe('renderOrchestration/index', () => {
             }
             findRenderSpy.mockImplementation(async (_resolve, deps) => {
                 await deps.sendMessage(output)
-                return output
             })
             await handleRenderOrchestrationMessage({
                 payloads: [makeRenderPreviewRequested()],
@@ -396,7 +389,6 @@ describe('renderOrchestration/index', () => {
             }
             findRenderSpy.mockImplementation(async (_resolve, deps) => {
                 await deps.sendMessage(output)
-                return output
             })
             await handleRenderOrchestrationMessage({
                 payloads: [makeRenderPreviewRequested()],
@@ -420,7 +412,6 @@ describe('renderOrchestration/index', () => {
             }
             findRenderSpy.mockImplementation(async (_resolve, deps) => {
                 await deps.sendMessage(output)
-                return output
             })
             await handleRenderOrchestrationMessage({
                 payloads: [makeRenderPreviewRequested()],
@@ -445,7 +436,6 @@ describe('renderOrchestration/index', () => {
             }
             findRenderSpy.mockImplementation(async (_resolve, deps) => {
                 await deps.sendMessage(output)
-                return output
             })
             await handleRenderOrchestrationMessage({
                 payloads: [makeRenderPreviewRequested()],
@@ -470,7 +460,6 @@ describe('renderOrchestration/index', () => {
             }
             findRenderSpy.mockImplementation(async (_resolve, deps) => {
                 await deps.sendMessage(output)
-                return output
             })
             await handleRenderOrchestrationMessage({
                 payloads: [makeRenderPreviewRequested()],
