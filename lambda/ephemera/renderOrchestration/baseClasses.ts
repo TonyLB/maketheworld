@@ -110,3 +110,5 @@ export type RenderProgress = 'resolving' | 'generating';
 export function isRenderProgress(arg: RenderProgress | RenderResolveOutput): arg is RenderProgress {
     return arg === 'resolving' || arg === 'generating';
 }
+
+export type RenderGenerationReturn = 'success' | 'skip' | 'fail';

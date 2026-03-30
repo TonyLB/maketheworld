@@ -35,7 +35,7 @@ describe('findRender', () => {
         computePerspectiveKey,
         markStatesEqual,
         perspectiveMatches,
-        tryGeneration: jest.fn().mockResolvedValue(null),
+        tryGeneration: jest.fn().mockResolvedValue('skip'),
     })
 
     it('returns resolved on valid pointer fast-path', async () => {
@@ -75,17 +75,17 @@ describe('findRender', () => {
         const deps = baseDeps()
         deps.getExactMatch.mockResolvedValue(baseCacheRecord)
         const out = await findRender(baseResolve, deps)
-        expect(out.type).toBe('resolved')
-        if (out.type === 'resolved') {
+        expect(out).toBeDefined()
+        if (out && out.type === 'resolved') {
             expect(out.cacheId).toBe('CACHE#valid')
         }
         expect(deps.getCacheRecordById).not.toHaveBeenCalled()
         expect(deps.tryGeneration).not.toHaveBeenCalled()
     })
 
-    it('returns invalidate when tryGeneration returns null', async () => {
+    it('returns invalidate when tryGeneration returns skip', async () => {
         const deps = baseDeps()
-        deps.tryGeneration.mockResolvedValue(null)
+        deps.tryGeneration.mockResolvedValue('skip')
         const out = await findRender(baseResolve, deps)
         expect(out).toEqual({
             type: 'invalidate',
@@ -94,34 +94,18 @@ describe('findRender', () => {
         expect(deps.tryGeneration).toHaveBeenCalled()
     })
 
-    it('returns resolved when tryGeneration succeeds', async () => {
+    it('returns undefined when tryGeneration succeeds', async () => {
         const deps = baseDeps()
-        deps.tryGeneration.mockResolvedValue({
-            type: 'resolved',
-            renderedContent: { description: [] },
-            cacheId: 'CACHE#gen',
-            cacheRecord: baseCacheRecord,
-        })
+        deps.tryGeneration.mockResolvedValue('success')
         const out = await findRender(baseResolve, deps)
-        expect(out.type).toBe('resolved')
-        if (out.type === 'resolved') {
-            expect(out.cacheId).toBe('CACHE#gen')
-        }
+        expect(out).toBeUndefined()
     })
 
-    it('returns failed when tryGeneration returns failure', async () => {
+    it('returns undefined when tryGeneration returns fail', async () => {
         const deps = baseDeps()
-        deps.tryGeneration.mockResolvedValue({
-            type: 'failed',
-            errorCode: 'CONTEXT_REQUIRED',
-            errorMessage: 'need context',
-        })
+        deps.tryGeneration.mockResolvedValue('fail')
         const out = await findRender(baseResolve, deps)
-        expect(out).toEqual({
-            type: 'failed',
-            errorCode: 'CONTEXT_REQUIRED',
-            errorMessage: 'need context',
-        })
+        expect(out).toBeUndefined()
     })
 
     it('continues after clear when pointer markState mismatches then exact match hits', async () => {
@@ -135,8 +119,8 @@ describe('findRender', () => {
         }
         const out = await findRender(resolve, deps)
         expect(deps.clearPerspectivePointer).toHaveBeenCalled()
-        expect(out.type).toBe('resolved')
-        if (out.type === 'resolved') {
+        expect(out).toBeDefined()
+        if (out && out.type === 'resolved') {
             expect(out.cacheId).toBe('CACHE#valid')
         }
     })

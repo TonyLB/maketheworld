@@ -17,7 +17,7 @@ import {
 } from '../conversations/conversationTypes'
 import type { ConversationId } from '../conversations'
 import { toRenderError, type RenderRequested } from './events'
-import type { RenderResolveInput, RenderResolveOutput } from './baseClasses'
+import type { RenderGenerationReturn, RenderResolveInput, RenderResolveOutput } from './baseClasses'
 import { RENDER_ERROR_CODE_NOT_ROOM } from '../conversations/conversationTypes/roomStateRender/baseClasses'
 import { findRender } from './findRender'
 import { generateRoomPreview } from './generateRoomPreview'
@@ -89,9 +89,9 @@ const tryPassiveRenderGeneration = async (
     deps: PassiveOrchestrationDepsResolved,
     conversationId: ConversationId,
     messageBus: MessageBus
-): Promise<RenderResolveOutput | null> => {
+): Promise<RenderGenerationReturn> => {
     if (!resolve.allowGeneration) {
-        return null
+        return 'skip'
     }
 
     const roomStateHandle = getRoomStateRenderHandle(conversationId, messageBus)
@@ -111,18 +111,22 @@ const tryPassiveRenderGeneration = async (
     )
 
     if (result.success) {
-        return {
+        const resolved: RenderResolveOutput = {
             type: 'resolved',
             renderedContent: result.renderedContent,
             cacheId: result.cacheId,
             cacheRecord: result.cacheRecord,
         }
+        await roomStateHandle?.sendMessage(resolved)
+        return 'success'
     }
-    return {
+    const failed: RenderResolveOutput = {
         type: 'failed',
         errorCode: result.errorCode,
         errorMessage: result.errorMessage,
     }
+    await roomStateHandle?.sendMessage(failed)
+    return 'fail'
 }
 
 /**
@@ -187,7 +191,7 @@ export const orchestratePassiveRenderRequestedBatch = async (
             return
         }
 
-        const output = await findRender(intake.input, {
+        await findRender(intake.input, {
             getExactMatch: orchDeps.getExactMatch,
             getCacheRecordById: orchDeps.getCacheRecordById,
             clearPerspectivePointer: orchDeps.clearPerspectivePointer,
@@ -196,8 +200,6 @@ export const orchestratePassiveRenderRequestedBatch = async (
             perspectiveMatches,
             tryGeneration: (r) => tryPassiveRenderGeneration(r, orchDeps, conversationId, messageBus),
         })
-        const terminalHandle = getRoomStateRenderHandle(conversationId, messageBus)
-        await terminalHandle?.sendMessage(output)
     }))
 }
 

@@ -14,7 +14,7 @@ import {
 import { orchestratePassiveRenderRequestedBatch } from './passiveRenderOrchestration'
 import { findRender } from './findRender'
 import { generateRoomPreview } from './generateRoomPreview'
-import type { RenderResolveInput } from './baseClasses'
+import type { RenderResolveInput, RenderResolveOutput } from './baseClasses'
 
 /**
  * renderOrchestration public module surface
@@ -138,7 +138,7 @@ const handleRenderPreviewRequested = async (payload: RenderPreviewRequested): Pr
     }
 
     const resolve = intakeRenderPreviewRequested(payload)
-    const output = await findRender(resolve, {
+    await findRender(resolve, {
         getExactMatch: (input) => internalCache.RenderCache.getExactMatch(input),
         getCacheRecordById: async () => undefined,
         clearPerspectivePointer: async () => {},
@@ -161,22 +161,24 @@ const handleRenderPreviewRequested = async (payload: RenderPreviewRequested): Pr
                 }
             )
             if (result.success) {
-                return {
-                    type: 'resolved' as const,
+                const resolved: RenderResolveOutput = {
+                    type: 'resolved',
                     renderedContent: result.renderedContent,
                     cacheId: result.cacheId,
                     cacheRecord: result.cacheRecord,
                 }
+                await handle?.sendMessage(resolved)
+                return 'success'
             }
-            return {
-                type: 'failed' as const,
+            const failed: RenderResolveOutput = {
+                type: 'failed',
                 errorCode: result.errorCode,
                 errorMessage: result.errorMessage,
             }
+            await handle?.sendMessage(failed)
+            return 'fail'
         },
     })
-    // Terminal preview delivery: forward resolve to the stream; materialize maps to wire (identity enrich there).
-    await handle?.sendMessage(output)
 }
 
 /**
