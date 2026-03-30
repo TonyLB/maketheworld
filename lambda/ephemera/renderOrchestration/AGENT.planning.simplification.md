@@ -101,15 +101,35 @@ When a new implementation appears for an existing responsibility:
 | **findRender** (resolve) | `RenderResolveInput` -> `RenderResolveOutput` (B-phase core) | Pointer validation, exact-match, generation; single implementation shared by all pipelines. Policy for pointer clear lives in one place (intake vs findRender: pick one rule; do not split). |
 | **Delivery** | `RenderResolveOutput` + context -> side effects | Bus (`RenderReady`, `RenderInvalidate`, `RenderError`), preview conversation `sendMessage`, future dataSource subscribers. Two adapters (passive vs preview) are still **one** delivery layer, not two resolve stacks. |
 
-**Delivery layer (phase 1 done):** `conversationTypes/roomStateRender/enrichRenderResolveForPassive.ts` and `conversationTypes/generateRoomPreview/enrichRenderResolveForPreview.ts`; the passive shell (`passiveRenderOrchestration.ts`) and preview handler in `index.ts` call these after resolve.
+**Delivery layer (phase 1 done):** Orchestration forwards `RenderResolveOutput` with `terminalHandle?.sendMessage(output)` / `handle?.sendMessage(output)`; passive and preview **materialize** those terminals (`materializeRoomStateRender`, `materializeGenerateRoomPreview`) using local `enrichRenderResolveForPassive` / `enrichRenderResolveForPreview` helpers before bus or WebSocket shaping.
 
 **Resolve layer (phase 2 done):** `renderOrchestration/findRender.ts` exports `findRender` (pointer validation, exact-match, `tryGeneration` hook, `invalidate` when no match and generation does not run). Pointer clear on invalid hint lives only here. Passive and preview wire different `tryGeneration` implementations; `index.ts` re-exports `findRender` for other callers (e.g. Track B).
 
 **Phased sequence (recommended order)**
 
-1. **Delivery first** -- [done] Extract delivery from `requestIntake.ts` and `index.ts` into `enrichRenderResolveForPassive` / `enrichRenderResolveForPreview`, invoked from both paths **after** resolve.
+1. **Delivery first** -- [done] Extract delivery from `requestIntake.ts` and `index.ts`; enrich helpers now live inside materialize (`roomStateRender` / `generateRoomPreview`); both paths run **after** resolve.
 2. **findRender second** -- [done] Shared resolve in `findRender.ts`; passive shell (`passiveRenderOrchestration.ts`) and preview handler in `index.ts` call `findRender` before delivery; generation is injected via `tryGeneration`.
-3. **Intake / shell third** -- [done] Passive A-phase: `requestIntake.ts` (`intakePassiveRenderRequested`) + `renderIntake.ts` (`PassiveIntakeResult`). Passive shell: `passiveRenderOrchestration.ts` (`orchestratePassiveRenderRequestedBatch`, alias `requestIntakeMessage`) chains intake -> `findRender` -> `enrichRenderResolveForPassive`. `index.ts` `handleRenderOrchestrationMessage` calls that batch for `RenderRequested`; preview A-phase is `intakeRenderPreviewRequested` in `index.ts`. Optional later: one intake surface for all request types.
+3. **Intake / shell third** -- [done] Passive A-phase: `requestIntake.ts` (`intakePassiveRenderRequested`) + `renderIntake.ts` (`PassiveIntakeResult`). Passive shell: `passiveRenderOrchestration.ts` (`orchestratePassiveRenderRequestedBatch`, alias `requestIntakeMessage`) chains intake -> `findRender` -> terminal `sendMessage`. `index.ts` `handleRenderOrchestrationMessage` calls that batch for `RenderRequested`; preview A-phase is `intakeRenderPreviewRequested` in `index.ts`. Optional later: one intake surface for all request types.
+
+### Coordination trap: `findRender` / `tryGeneration` must move together (for sendMessage-first resolve)
+
+Refactoring **only** `findRender` to push outcomes onto `sendMessage` does **not** simplify much or add general streaming capability while **`tryGeneration` stays terminal-return coded** (`Promise<RenderResolveOutput | null>`): the slow path still collapses to **one** awaited return.
+
+Refactoring **only** `tryGeneration` / `generateRoomPreview` buys little and is **blocked** by the current contract: **`findRender` awaits a single result** from `tryGeneration` and branches on **`null` vs non-null** (fall through to `invalidate` when `null`). Without changing `findRender`, generation cannot become truly `sendMessage`-first end-to-end.
+
+**Implication:** meaningful movement toward **event-oriented** delivery through the conversation handle (multiple steps, terminals only on the wire) requires **coordinated** changes to **both** the resolve shell (`findRender` control flow and dependencies) **and** the generation hook (`tryGeneration` / `generateRoomPreview`).
+
+### Optional future: two-level refactor (beneficial; not scheduled)
+
+Design sketch only: a **two-level** change that avoids the trap above:
+
+1. **`tryGeneration` / `generateRoomPreview`:** emit terminal outcomes **via** `sendMessage` (conversation handle), not a generic sink abstraction, instead of returning full `RenderResolveOutput`; completion might be **`void`** / **`Promise<void>`** when the slow path finishes. Optionally keep a **minimal return type** solely for **control** (e.g. preserve the **`null` semantic** ("generation did not run; caller should invalidate")) without carrying resolve payloads in the return channel.
+
+2. **`findRender`:** **Decision:** thread `sendMessage` through `FindRenderDependencies` so pointer hit, exact match, and generation paths **all** emit via the same conversation handle. Do **not** pursue the alternative of restructuring so terminal `RenderResolveOutput` values can live **outside** `findRender` in multiple places; keep one resolve shell that owns branching, including mapping **`null`/skip** from `tryGeneration` to **`invalidate`** in one place.
+
+This makes metaphorical **return values** visible on **`sendMessage`**, aligned with preview and passive streaming -- at the cost of a **coordinated** migration and tests that mock `sendMessage`.
+
+**Pattern we are not pursuing:** stacking more **`onGenerating`-style** hooks inside `generateRoomPreview` is a recognizable incremental option (it can surface **one** extra intermediate signal without touching `findRender`), but it does **not** unlock full multi-step streaming through `findRender` and would **defer** the coordinated contract change above. We are **not** investing in that direction; when we move, we expect to tackle the coordinated **two-level** refactor (`sendMessage` threaded through `findRender` and generation) described above.
 
 Do **not** add a fourth parallel implementation (e.g. a duplicate orchestration stack) as a "bridge" to a future `renderOrchestration` dataSource; **unify core + delivery**, then relocate the **caller** (messageBus registration vs dataSource) in one move when ready.
 
