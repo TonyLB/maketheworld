@@ -21,8 +21,7 @@ import {
     isActionAPIMessage,
     isGenerateRoomPreviewAPIMessage
 } from '@tonylb/mtw-interfaces/ts/ephemera'
-import { EphemeraAssetId, EphemeraCharacterId, EphemeraRoomId, isEphemeraAssetId, isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraKnowledgeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { computePerspectiveKey } from '@tonylb/mtw-interfaces/ts/perspective'
+import { EphemeraRoomId, isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraKnowledgeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 
 import { fetchEphemeraForCharacter } from './fetchEphemera'
@@ -36,11 +35,6 @@ import { AssetsEventSerializer, ComponentExamplesEventSerializer } from '@tonylb
 import { fromEventBridgeFormat } from '@tonylb/mtw-lambda-patterns/ts/dataSource/formatTransform'
 import { coreFormatToStreamingEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import { registerRenderOrchestration } from './renderOrchestration'
-import {
-    CONVERSATION_PAYLOAD_STUB,
-    CONVERSATION_TYPE_GENERATE_ROOM_PREVIEW,
-    registerConversation,
-} from './conversations'
 
 // Import DataSources to trigger their messageBus subscriptions (side-effect imports)
 import './dataSource'  // mtw.ephemera DataSource
@@ -244,23 +238,12 @@ export const handler = async (event: any, context: any) => {
             }
 
             if (isGenerateRoomPreviewAPIMessage(request)) {
-                const perspectiveId = computePerspectiveKey(request.assetStack as AssetUUID[])
-                const conversationId = await registerConversation({
-                    type: CONVERSATION_TYPE_GENERATE_ROOM_PREVIEW,
-                    routing: {
-                        roomId: request.RoomId as EphemeraRoomId,
-                        perspectiveId,
-                        ...(request.RequestId !== undefined ? { requestId: request.RequestId } : {}),
-                    },
-                    payload: CONVERSATION_PAYLOAD_STUB,
-                })
                 messageBus.send({
                     type: 'RenderPreviewRequested',
                     componentId: request.RoomId as EphemeraRoomId,
                     perspective: { assetStack: request.assetStack as AssetUUID[] },
                     markState: request.markState,
                     generationContextWml: request.generationContextWml,
-                    conversationId,
                     ...(request.RequestId !== undefined ? { requestId: request.RequestId } : {}),
                 })
             }

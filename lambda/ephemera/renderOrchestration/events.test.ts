@@ -67,6 +67,15 @@ describe('renderOrchestration events guards', () => {
         })).toBe(true)
     })
 
+    it('accepts RenderPreviewRequested without conversationId', () => {
+        expect(isRenderPreviewRequested({
+            type: 'RenderPreviewRequested',
+            componentId: 'ROOM#room',
+            perspective: { assetStack: ['ASSET#a', 'ASSET#b'] },
+            markState: { markValue: [{ mark: 'MARK#m', value: 'v' }] },
+        })).toBe(true)
+    })
+
     it('rejects RenderPreviewRequested without room componentId', () => {
         expect(isRenderPreviewRequested({
             type: 'RenderPreviewRequested',

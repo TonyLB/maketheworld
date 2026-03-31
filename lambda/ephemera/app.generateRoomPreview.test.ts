@@ -1,10 +1,5 @@
 import { handler } from './app'
 import messageBus from './messageBus'
-import { computePerspectiveKey } from '@tonylb/mtw-interfaces/ts/perspective'
-import {
-    CONVERSATION_TYPE_GENERATE_ROOM_PREVIEW,
-    registerConversation,
-} from './conversations'
 
 jest.mock('./messageBus', () => ({
     __esModule: true,
@@ -23,15 +18,6 @@ jest.mock('./returnValue', () => ({
     }),
 }))
 
-jest.mock('./conversations', () => {
-    const actual = jest.requireActual('./conversations')
-    return {
-        ...actual,
-        registerConversation: jest.fn(),
-    }
-})
-
-const registerConversationMock = registerConversation as jest.MockedFunction<typeof registerConversation>
 const messageBusMock = messageBus as unknown as {
     send: jest.Mock;
     clear: jest.Mock;
@@ -51,10 +37,9 @@ describe('app handler - generateRoomPreview', () => {
 
     beforeEach(() => {
         jest.clearAllMocks()
-        registerConversationMock.mockResolvedValue('conv-test-id')
     })
 
-    it('registers conversation and publishes RenderPreviewRequested', async () => {
+    it('publishes RenderPreviewRequested without conversationId (orchestration registers)', async () => {
         const event = makeEvent({
             message: 'generateRoomPreview',
             RoomId: 'ROOM#test-room',
@@ -65,22 +50,11 @@ describe('app handler - generateRoomPreview', () => {
 
         await handler(event as any, {} as any)
 
-        const expectedPerspectiveId = computePerspectiveKey(['ASSET#one'] as any)
-        expect(registerConversationMock).toHaveBeenCalledWith({
-            type: CONVERSATION_TYPE_GENERATE_ROOM_PREVIEW,
-            routing: {
-                roomId: 'ROOM#test-room',
-                perspectiveId: expectedPerspectiveId,
-                requestId: 'request-123',
-            },
-            payload: expect.any(Object),
-        })
         expect(messageBusMock.send).toHaveBeenCalledWith({
             type: 'RenderPreviewRequested',
             componentId: 'ROOM#test-room',
             perspective: { assetStack: ['ASSET#one'] },
             markState: { markValue: [{ mark: 'MARK#a', value: 'one' }] },
-            conversationId: 'conv-test-id',
             requestId: 'request-123',
         })
     })
@@ -98,23 +72,12 @@ describe('app handler - generateRoomPreview', () => {
 
         await handler(event as any, {} as any)
 
-        const expectedPerspectiveId = computePerspectiveKey(['ASSET#one'] as any)
-        expect(registerConversationMock).toHaveBeenCalledWith({
-            type: CONVERSATION_TYPE_GENERATE_ROOM_PREVIEW,
-            routing: {
-                roomId: 'ROOM#test-room',
-                perspectiveId: expectedPerspectiveId,
-            },
-            payload: expect.any(Object),
-        })
-
         expect(messageBusMock.send).toHaveBeenCalledWith({
             type: 'RenderPreviewRequested',
             componentId: 'ROOM#test-room',
             perspective: { assetStack: ['ASSET#one'] },
             markState: { markValue: [] },
             generationContextWml: wml,
-            conversationId: 'conv-test-id',
         })
     })
 })

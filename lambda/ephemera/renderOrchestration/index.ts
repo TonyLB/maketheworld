@@ -1,5 +1,11 @@
 import type { MessageBus } from '../messageBus/baseClasses'
 import internalCache from '../internalCache'
+import {
+    CONVERSATION_PAYLOAD_STUB,
+    CONVERSATION_TYPE_GENERATE_ROOM_PREVIEW,
+    registerConversation,
+    type ConversationId,
+} from '../conversations'
 import { isConversationCompositeReadHandleGenerateRoomPreview } from '../conversations/conversationTypes'
 import { computePerspectiveKey, perspectiveMatches } from '@tonylb/mtw-interfaces/ts/perspective'
 import { markStatesEqual } from '../renderCache/markStateUtils'
@@ -126,7 +132,20 @@ const intakeRenderPreviewRequested = (payload: RenderPreviewRequested): RenderRe
 })
 
 const handleRenderPreviewRequested = async (payload: RenderPreviewRequested): Promise<void> => {
-    const composite = internalCache.Conversations.get(payload.conversationId)
+    const conversationId: ConversationId =
+        payload.conversationId !== undefined
+            ? payload.conversationId
+            : await registerConversation({
+                type: CONVERSATION_TYPE_GENERATE_ROOM_PREVIEW,
+                routing: {
+                    roomId: payload.componentId,
+                    perspectiveId: computePerspectiveKey(payload.perspective.assetStack),
+                    ...(payload.requestId !== undefined ? { requestId: payload.requestId } : {}),
+                },
+                payload: CONVERSATION_PAYLOAD_STUB,
+            })
+
+    const composite = internalCache.Conversations.get(conversationId)
     const rawHandle = composite?.handle
     const handle =
         rawHandle !== undefined && isConversationCompositeReadHandleGenerateRoomPreview(rawHandle)
@@ -135,7 +154,7 @@ const handleRenderPreviewRequested = async (payload: RenderPreviewRequested): Pr
 
     if (handle === undefined) {
         console.error('Conversations.get: missing or non-generateRoomPreview handle after registerConversation', {
-            conversationId: payload.conversationId,
+            conversationId,
             compositeFound: composite !== undefined,
             compositeHandleKind: rawHandle?.kind,
         })
@@ -153,7 +172,7 @@ const handleRenderPreviewRequested = async (payload: RenderPreviewRequested): Pr
             await handle?.sendMessage(arg)
         },
         generateRoomPreview,
-        conversationId: payload.conversationId,
+        conversationId,
     })
 }
 
