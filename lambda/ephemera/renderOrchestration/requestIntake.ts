@@ -7,7 +7,7 @@ import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { isEphemeraRoomId, type EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { computePerspectiveKey } from '@tonylb/mtw-interfaces/ts/perspective'
 import type { EphemeraCacheId, EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import type { RenderRequested } from './events'
+import { isRenderPreviewRequested, type RenderPreviewRequested, type RenderRequested } from './events'
 import type { RenderResolveInput, RenderResolveInputSuccess } from './baseClasses'
 
 export type RequestIntakeDependencies = {
@@ -28,9 +28,21 @@ type RequestIntakeDepsResolved = Required<RequestIntakeDependencies>
  * A-phase: `RenderRequested` + `Meta::Room` -> {@link RenderResolveInput} or intake-only outcomes (no I/O beyond Meta).
  */
 export const intakeRenderRequested = async (
-    payload: RenderRequested,
+    payload: RenderRequested | RenderPreviewRequested,
     _deps?: RequestIntakeDependencies
 ): Promise<RenderResolveInput> => {
+    if (isRenderPreviewRequested(payload)) {
+        return {
+            type: 'success',
+            roomId: payload.componentId,
+            perspective: payload.perspective,
+            markState: payload.markState,
+            markProvenance: 'preview',
+            allowGeneration: payload.allowGeneration,
+            generationContextWml: payload.generationContextWml,
+        }
+    }
+
     if (!isEphemeraRoomId(payload.componentId)) {
         return {
             type: 'error',
@@ -66,7 +78,7 @@ export const intakeRenderRequested = async (
         perspective,
         markState: stateMarks,
         markProvenance: 'meta',
-        allowGeneration: payload.allowGeneration ?? false,
+        allowGeneration: payload.allowGeneration,
         generationContextWml: payload.generationContextWml,
         ...(pointerId !== undefined ? { pointerHint: pointerId } : {}),
     }

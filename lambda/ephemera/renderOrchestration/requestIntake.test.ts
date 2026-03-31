@@ -4,7 +4,7 @@ import type { EphemeraCacheDynamoItem } from '../renderCache/baseClasses'
 import internalCache from '../internalCache'
 import { intakeRenderRequested } from './requestIntake'
 import { requestIntakeMessage } from './passiveRenderOrchestration'
-import type { RenderRequested } from './events'
+import type { RenderPreviewRequested, RenderRequested } from './events'
 
 describe('renderOrchestration/intakeRenderRequested', () => {
     const basePayload: RenderRequested = {
@@ -54,6 +54,26 @@ describe('renderOrchestration/intakeRenderRequested', () => {
             expect(r.pointerHint).toBe('CACHE#valid')
         }
     })
+
+    it('returns preview success directly for RenderPreviewRequested', async () => {
+        const previewPayload: RenderPreviewRequested = {
+            type: 'RenderPreviewRequested',
+            componentId: 'ROOM#one',
+            perspective: { assetStack: ['ASSET#base'] },
+            markState: { markValue: [{ mark: 'MARK#p', value: 'preview' }] },
+            allowGeneration: true,
+        }
+        const r = await intakeRenderRequested(previewPayload)
+        expect(r).toEqual({
+            type: 'success',
+            roomId: 'ROOM#one',
+            perspective: { assetStack: ['ASSET#base'] },
+            markState: { markValue: [{ mark: 'MARK#p', value: 'preview' }] },
+            markProvenance: 'preview',
+            allowGeneration: true,
+            generationContextWml: undefined,
+        })
+    })
 })
 
 describe('renderOrchestration/passive shell (requestIntakeMessage)', () => {
@@ -63,7 +83,8 @@ describe('renderOrchestration/passive shell (requestIntakeMessage)', () => {
     const basePayload: RenderRequested = {
         type: 'RenderRequested',
         componentId: 'ROOM#one',
-        perspective: { assetStack: ['ASSET#base'] }
+        perspective: { assetStack: ['ASSET#base'] },
+        allowGeneration: false,
     }
 
     const baseMetaRoom: EphemeraMetaRoom = {

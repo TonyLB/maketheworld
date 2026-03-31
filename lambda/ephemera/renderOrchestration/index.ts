@@ -18,6 +18,7 @@ import {
     type RenderRequested,
 } from './events'
 import { orchestratePassiveRenderRequestedBatch } from './passiveRenderOrchestration'
+import { intakeRenderRequested } from './requestIntake'
 import { findRender } from './findRender'
 import { generateRoomPreview } from './generateRoomPreview'
 import { isRenderResolveInputSuccess, type RenderResolveInput } from './baseClasses'
@@ -120,17 +121,6 @@ export type RenderOrchestrationSubscriptions = {
     unsubscribeAll: () => void;
 }
 
-/** A-phase adapter: preview bus message to shared resolve input (see AGENT.planning.simplification.md). */
-const intakeRenderPreviewRequested = (payload: RenderPreviewRequested): RenderResolveInput => ({
-    type: 'success',
-    roomId: payload.componentId,
-    perspective: payload.perspective,
-    markState: payload.markState,
-    markProvenance: 'preview',
-    allowGeneration: payload.allowGeneration,
-    generationContextWml: payload.generationContextWml,
-})
-
 const handleRenderPreviewRequested = async (payload: RenderPreviewRequested): Promise<void> => {
     const conversationId: ConversationId =
         payload.conversationId !== undefined
@@ -160,7 +150,7 @@ const handleRenderPreviewRequested = async (payload: RenderPreviewRequested): Pr
         })
     }
 
-    const resolve = intakeRenderPreviewRequested(payload)
+    const resolve: RenderResolveInput = await intakeRenderRequested(payload)
     if (isRenderResolveInputSuccess(resolve)) {
         await findRender(resolve, {
             getExactMatch: (input) => internalCache.RenderCache.getExactMatch(input),
