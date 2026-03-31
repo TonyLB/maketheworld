@@ -20,7 +20,7 @@ import {
 import { orchestratePassiveRenderRequestedBatch } from './passiveRenderOrchestration'
 import { findRender } from './findRender'
 import { generateRoomPreview } from './generateRoomPreview'
-import type { RenderResolveInput } from './baseClasses'
+import { isRenderResolveInputSuccess, type RenderResolveInput } from './baseClasses'
 
 /**
  * renderOrchestration public module surface
@@ -68,7 +68,7 @@ export type {
     RenderOrchestrationMessage,
 } from './events'
 
-export { intakePassiveRenderRequested } from './requestIntake'
+export { intakeRenderRequested } from './requestIntake'
 export type { RequestIntakeDependencies } from './requestIntake'
 
 export {
@@ -95,8 +95,11 @@ export type {
 } from './generateRoomPreview'
 
 export type {
+    RenderResolveInputError,
+    RenderResolveInputErrorCode,
     RenderResolveErrorCode,
     RenderResolveInput,
+    RenderResolveInputSuccess,
     RenderResolveMarkProvenance,
     RenderResolveOutput,
     RenderResolveOutputFailed,
@@ -104,7 +107,10 @@ export type {
     RenderResolveOutputResolved,
 } from './baseClasses'
 
-export { RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION } from './baseClasses'
+export {
+    isRenderResolveInputSuccess,
+    RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION,
+} from './baseClasses'
 
 export { findRender } from './findRender'
 export type { FindRenderDependencies } from './findRender'
@@ -123,6 +129,7 @@ export type RenderOrchestrationSubscriptions = {
 
 /** A-phase adapter: preview bus message to shared resolve input (see AGENT.planning.simplification.md). */
 const intakeRenderPreviewRequested = (payload: RenderPreviewRequested): RenderResolveInput => ({
+    type: 'success',
     roomId: payload.componentId,
     perspective: payload.perspective,
     markState: payload.markState,
@@ -161,19 +168,21 @@ const handleRenderPreviewRequested = async (payload: RenderPreviewRequested): Pr
     }
 
     const resolve = intakeRenderPreviewRequested(payload)
-    await findRender(resolve, {
-        getExactMatch: (input) => internalCache.RenderCache.getExactMatch(input),
-        getCacheRecordById: async () => undefined,
-        clearPerspectivePointer: async () => {},
-        computePerspectiveKey,
-        markStatesEqual,
-        perspectiveMatches,
-        sendMessage: async (arg) => {
-            await handle?.sendMessage(arg)
-        },
-        generateRoomPreview,
-        conversationId,
-    })
+    if (isRenderResolveInputSuccess(resolve)) {
+        await findRender(resolve, {
+            getExactMatch: (input) => internalCache.RenderCache.getExactMatch(input),
+            getCacheRecordById: async () => undefined,
+            clearPerspectivePointer: async () => {},
+            computePerspectiveKey,
+            markStatesEqual,
+            perspectiveMatches,
+            sendMessage: async (arg) => {
+                await handle?.sendMessage(arg)
+            },
+            generateRoomPreview,
+            conversationId,
+        })
+    }
 }
 
 /**

@@ -8,8 +8,7 @@ import { isEphemeraRoomId, type EphemeraRoomId } from '@tonylb/mtw-interfaces/ts
 import { computePerspectiveKey } from '@tonylb/mtw-interfaces/ts/perspective'
 import type { EphemeraCacheId, EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { RenderRequested } from './events'
-import type { RenderResolveInput } from './baseClasses'
-import type { PassiveIntakeResult } from './renderIntake'
+import type { RenderResolveInput, RenderResolveInputSuccess } from './baseClasses'
 
 export type RequestIntakeDependencies = {
     getMetaRoom?: (roomId: EphemeraRoomId) => Promise<EphemeraMetaRoom | undefined>;
@@ -28,12 +27,16 @@ type RequestIntakeDepsResolved = Required<RequestIntakeDependencies>
 /**
  * A-phase: `RenderRequested` + `Meta::Room` -> {@link RenderResolveInput} or intake-only outcomes (no I/O beyond Meta).
  */
-export const intakePassiveRenderRequested = async (
+export const intakeRenderRequested = async (
     payload: RenderRequested,
     _deps?: RequestIntakeDependencies
-): Promise<PassiveIntakeResult> => {
+): Promise<RenderResolveInput> => {
     if (!isEphemeraRoomId(payload.componentId)) {
-        return { type: 'not_room', payload }
+        return {
+            type: 'error',
+            errorCode: 'RENDER_REQUESTED_NOT_ROOM',
+            errorMessage: `RenderRequested componentId must be a room id for passive render: ${payload.componentId}`,
+        }
     }
 
     const deps: RequestIntakeDepsResolved = {
@@ -47,13 +50,18 @@ export const intakePassiveRenderRequested = async (
     const perspective = payload.perspective
 
     if (!stateMarks) {
-        return { type: 'marks_missing', payload }
+        return {
+            type: 'error',
+            errorCode: 'META_ROOM_MARKS_MISSING',
+            errorMessage: `RenderRequested requires Meta::Room.state.marks for ${payload.componentId}`,
+        }
     }
 
     const perspectiveKey = deps.computePerspectiveKey(perspective.assetStack)
     const pointerId = metaRoom?.currentCacheByPerspective?.[perspectiveKey] as EphemeraCacheId | undefined
 
-    const input: RenderResolveInput = {
+    const input: RenderResolveInputSuccess = {
+        type: 'success',
         roomId,
         perspective,
         markState: stateMarks,
@@ -63,5 +71,5 @@ export const intakePassiveRenderRequested = async (
         ...(pointerId !== undefined ? { pointerHint: pointerId } : {}),
     }
 
-    return { type: 'ok', input, payload }
+    return input
 }

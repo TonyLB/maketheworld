@@ -7,7 +7,7 @@ import type { generateRoomPreview } from './generateRoomPreview'
 import {
     RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION,
     type RenderProgress,
-    type RenderResolveInput,
+    type RenderResolveInputSuccess,
     type RenderResolveOutput,
 } from './baseClasses'
 
@@ -39,7 +39,7 @@ export type FindRenderDependencies = {
  * Terminals are emitted only via the `sendMessage` dependency; there is no return payload.
  */
 export const findRender = async (
-    resolve: RenderResolveInput,
+    resolve: RenderResolveInputSuccess,
     deps: FindRenderDependencies
 ): Promise<void> => {
     const perspectiveKey = deps.computePerspectiveKey(resolve.perspective.assetStack)

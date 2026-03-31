@@ -3,7 +3,7 @@ import type { Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
 import { perspectiveMatches, computePerspectiveKey } from '@tonylb/mtw-interfaces/ts/perspective'
 import type { EphemeraCacheDynamoItem, EphemeraCacheMarkState } from '../renderCache/baseClasses'
 import { markStatesEqual } from '../renderCache/markStateUtils'
-import { RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION, type RenderResolveInput } from './baseClasses'
+import { RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION, type RenderResolveInputSuccess } from './baseClasses'
 import { findRender } from './findRender'
 
 describe('findRender', () => {
@@ -11,7 +11,8 @@ describe('findRender', () => {
     const markState: EphemeraCacheMarkState = { markValue: [{ mark: 'MARK#a', value: 'one' }] }
     const perspective: Perspective = { assetStack: ['ASSET#base'] }
 
-    const baseResolve: RenderResolveInput = {
+    const baseResolve: RenderResolveInputSuccess = {
+        type: 'success',
         roomId,
         perspective,
         markState,
@@ -43,7 +44,7 @@ describe('findRender', () => {
     it('emits resolved on valid pointer fast-path', async () => {
         const deps = baseDeps()
         deps.getCacheRecordById.mockResolvedValue(baseCacheRecord)
-        const resolve: RenderResolveInput = {
+        const resolve: RenderResolveInputSuccess = {
             ...baseResolve,
             pointerHint: 'CACHE#valid',
         }
@@ -61,7 +62,7 @@ describe('findRender', () => {
     it('clears pointer and emits invalidate when pointer row is missing', async () => {
         const deps = baseDeps()
         deps.getCacheRecordById.mockResolvedValue(undefined)
-        const resolve: RenderResolveInput = {
+        const resolve: RenderResolveInputSuccess = {
             ...baseResolve,
             pointerHint: 'CACHE#missing',
             allowGeneration: false,
@@ -103,7 +104,7 @@ describe('findRender', () => {
         const badRow = { ...baseCacheRecord, markState: { markValue: [] } }
         deps.getCacheRecordById.mockResolvedValue(badRow)
         deps.getExactMatch.mockResolvedValue(baseCacheRecord)
-        const resolve: RenderResolveInput = {
+        const resolve: RenderResolveInputSuccess = {
             ...baseResolve,
             pointerHint: 'CACHE#stale',
         }
@@ -121,7 +122,7 @@ describe('findRender', () => {
         const deps = baseDeps()
         deps.getCacheRecordById.mockResolvedValue(undefined)
         deps.clearPerspectivePointer.mockRejectedValue(new Error('boom'))
-        const resolve: RenderResolveInput = {
+        const resolve: RenderResolveInputSuccess = {
             ...baseResolve,
             pointerHint: 'CACHE#x',
             allowGeneration: false,

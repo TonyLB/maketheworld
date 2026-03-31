@@ -1,10 +1,10 @@
 import type { RenderRequested } from './events'
-import type { RenderResolveInput } from './baseClasses'
+import type { RenderResolveInputSuccess } from './baseClasses'
 
-/** Successful passive A-phase: {@link RenderResolveInput} for the shared resolve step. */
+/** Successful passive A-phase: {@link RenderResolveInputSuccess} for the shared resolve step. */
 export type PassiveIntakeResultOk = {
     type: 'ok';
-    input: RenderResolveInput;
+    input: RenderResolveInputSuccess;
     payload: RenderRequested;
 };
 
