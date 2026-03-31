@@ -54,8 +54,11 @@ export type RenderPreviewRequested = RenderTargetContext & RenderRoomPerspective
     markState: EphemeraCacheMarkState;
     allowGeneration?: boolean;
     generationContextWml?: string;
-    /** Registry key for streaming terminal/progress steps via conversations materialization. */
-    conversationId: ConversationId;
+    /**
+     * Registry key for streaming terminal/progress steps via conversations materialization.
+     * Omit when publishing from the app edge; orchestration registers before resolve.
+     */
+    conversationId?: ConversationId;
     /** Optional WebSocket correlation during migration (mirrors conversation routing `requestId`). */
     requestId?: string;
 }
@@ -240,8 +243,10 @@ export const isRenderPreviewRequested = (value: unknown): value is RenderPreview
     if (!isEphemeraCacheMarkStateShape(castValue.markState)) {
         return false
     }
-    if (typeof castValue.conversationId !== 'string' || castValue.conversationId.length === 0) {
-        return false
+    if ('conversationId' in castValue && castValue.conversationId !== undefined) {
+        if (typeof castValue.conversationId !== 'string' || castValue.conversationId.length === 0) {
+            return false
+        }
     }
     if ('allowGeneration' in castValue && castValue.allowGeneration !== undefined && typeof castValue.allowGeneration !== 'boolean') {
         return false
