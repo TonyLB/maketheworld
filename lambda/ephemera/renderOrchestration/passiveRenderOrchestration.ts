@@ -1,6 +1,6 @@
 /**
  * Passive B-phase hook and orchestration shell: {@link findRender} + terminal delivery via roomStateRender
- * `sendMessage` after {@link intakePassiveRenderRequested} (see `requestIntake.ts`).
+ * `sendMessage` after {@link intakeRenderRequested} (see `requestIntake.ts`).
  */
 import { v4 as uuidv4 } from 'uuid'
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
@@ -17,11 +17,15 @@ import {
 } from '../conversations/conversationTypes'
 import type { ConversationId } from '../conversations'
 import { toRenderError, type RenderRequested } from './events'
-import type { RenderResolveOutput } from './baseClasses'
+import {
+    isRenderResolveInputError,
+    isRenderResolveInputSuccess,
+    type RenderResolveOutput,
+} from './baseClasses'
 import { RENDER_ERROR_CODE_NOT_ROOM } from '../conversations/conversationTypes/roomStateRender/baseClasses'
 import { findRender } from './findRender'
 import { generateRoomPreview } from './generateRoomPreview'
-import { intakePassiveRenderRequested } from './requestIntake'
+import { intakeRenderRequested } from './requestIntake'
 import type { RequestIntakeDependencies } from './requestIntake'
 import internalCache from '../internalCache'
 
@@ -102,7 +106,7 @@ export const orchestratePassiveRenderRequestedBatch = async (
     }
 
     await Promise.all(payloads.map(async (payload) => {
-        const intake = await intakePassiveRenderRequested(payload, _deps)
+        const intake = await intakeRenderRequested(payload, _deps)
 
         const conversationId = uuidv4() as ConversationId
         const perspectiveId = orchDeps.computePerspectiveKey(payload.perspective.assetStack)
@@ -122,23 +126,23 @@ export const orchestratePassiveRenderRequestedBatch = async (
             payload: CONVERSATION_PAYLOAD_STUB,
         })
 
-        if (intake.type === 'not_room') {
+        if (isRenderResolveInputError(intake) && intake.errorCode === 'RENDER_REQUESTED_NOT_ROOM') {
             messageBus.send(
                 toRenderError(
-                    intake.payload,
+                    payload,
                     RENDER_ERROR_CODE_NOT_ROOM,
-                    `RenderRequested componentId must be a room id for passive render: ${intake.payload.componentId}`,
+                    intake.errorMessage,
                 ),
             )
             return
         }
 
-        if (intake.type === 'marks_missing') {
+        if (isRenderResolveInputError(intake) && intake.errorCode === 'META_ROOM_MARKS_MISSING') {
             const marksHandle = getRoomStateRenderHandle(conversationId, messageBus)
             const marksOutput: RenderResolveOutput = {
                 type: 'failed',
                 errorCode: 'META_ROOM_MARKS_MISSING',
-                errorMessage: `RenderRequested requires Meta::Room.state.marks for ${intake.payload.componentId}`,
+                errorMessage: intake.errorMessage,
             }
             if (marksHandle !== undefined) {
                 await marksHandle.sendMessage(marksOutput)
@@ -146,7 +150,11 @@ export const orchestratePassiveRenderRequestedBatch = async (
             return
         }
 
-        await findRender(intake.input, {
+        if (!isRenderResolveInputSuccess(intake)) {
+            return
+        }
+
+        await findRender(intake, {
             getExactMatch: orchDeps.getExactMatch,
             getCacheRecordById: orchDeps.getCacheRecordById,
             clearPerspectivePointer: orchDeps.clearPerspectivePointer,

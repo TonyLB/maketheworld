@@ -8,13 +8,13 @@ import type {
 } from '../renderCache/baseClasses'
 
 /**
- * Where {@link RenderResolveInput.markState} came from. Same wire shape for cache math;
+ * Where {@link RenderResolveInputSuccess.markState} came from. Same wire shape for cache math;
  * semantics differ for policy and future defaults.
  */
 export type RenderResolveMarkProvenance = 'meta' | 'preview'
 
 /**
- * Normalized input to the shared "resolve room render from cache / maybe generate" choke-point.
+ * Successful normalized input to the shared "resolve room render from cache / maybe generate" choke-point.
  *
  * Preview handling in `index.ts` and passive intake (`requestIntake.ts`) converge on this shape via
  * A-phase adapters; the orchestration shell chains `findRender` then delivery.
@@ -26,7 +26,8 @@ export type RenderResolveMarkProvenance = 'meta' | 'preview'
  * This type is intentionally not identical to bus messages (`RenderRequested` / `RenderPreviewRequested`):
  * correlation, targets, and delivery stay outside until an output boundary exists.
  */
-export type RenderResolveInput = {
+export type RenderResolveInputSuccess = {
+    type: 'success';
     roomId: EphemeraRoomId;
     perspective: Perspective;
     /** Marks used for pointer validation, `getExactMatch`, and generation. */
@@ -41,6 +42,29 @@ export type RenderResolveInput = {
     allowGeneration?: boolean;
     generationContextWml?: string;
 }
+
+/** Intake-level failures before B-phase resolve runs. */
+export type RenderResolveInputErrorCode =
+    | 'RENDER_REQUESTED_NOT_ROOM'
+    | 'META_ROOM_MARKS_MISSING';
+
+/** Error branch for the intake union; mirrors current passive intake-only error outcomes. */
+export type RenderResolveInputError = {
+    type: 'error';
+    errorCode: RenderResolveInputErrorCode;
+    errorMessage: string;
+}
+
+/** Union intake surface for resolve orchestration. */
+export type RenderResolveInput =
+    | RenderResolveInputSuccess
+    | RenderResolveInputError;
+
+/** Guard for the resolve-success branch. */
+export const isRenderResolveInputSuccess = (arg: RenderResolveInput): arg is RenderResolveInputSuccess => arg.type === 'success'
+
+/** Guard for the intake-error branch. */
+export const isRenderResolveInputError = (arg: RenderResolveInput): arg is RenderResolveInputError => arg.type === 'error'
 
 /**
  * Error codes for {@link RenderResolveOutputFailed}. Preview failures mirror

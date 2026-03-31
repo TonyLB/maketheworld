@@ -22,7 +22,7 @@ Important: the lifecycle events are primarily motivated by presence-based delive
 - **Completion handoff**: when generation completes, update pointers (e.g. `Meta::Room.currentCacheId`) and publish ready events.
 - **Decoupled signaling**: publish well-scoped internal events so perception can react without coupling to generation internals.
 
-Current temporary constraint: passive **intake** (`intakePassiveRenderRequested`) surfaces missing `Meta::Room.state.marks` as `marks_missing`; the **shell** (`orchestratePassiveRenderRequestedBatch`) maps that to bus `RenderError` (no defaults invented in intake). See `AGENT.planning.md`.
+Current temporary constraint: passive **intake** (`intakeRenderRequested`) surfaces missing `Meta::Room.state.marks` as `marks_missing`; the **shell** (`orchestratePassiveRenderRequestedBatch`) maps that to bus `RenderError` (no defaults invented in intake). See `AGENT.planning.md`.
 
 ## Technical Details
 
@@ -89,8 +89,7 @@ Current temporary constraint: passive **intake** (`intakePassiveRenderRequested`
 ### Key files
 
 - `events.ts`: messageBus event type definitions and type guards
-- `requestIntake.ts`: passive A-phase only (`intakePassiveRenderRequested`)
-- `renderIntake.ts`: `PassiveIntakeResult` types
+- `requestIntake.ts`: passive A-phase only (`intakeRenderRequested`)
 - `passiveRenderOrchestration.ts`: passive shell (intake -> `findRender` -> `enrichRenderResolveForPassive`; alias `requestIntakeMessage`)
 - `index.ts`: messageBus registration; preview shell; calls `orchestratePassiveRenderRequestedBatch` for `RenderRequested`
 - `generateRoomPreview.ts`: room cache-miss orchestration (exact match, then `generateExample` on miss; used by WebSocket API)
