@@ -107,51 +107,51 @@ export const orchestratePassiveRenderRequest = async (
 
     const intake = await intakeRenderRequested(payload, _deps)
 
-        const conversationId = uuidv4() as ConversationId
-        const perspectiveId = orchDeps.computePerspectiveKey(payload.perspective.assetStack)
-        internalCache.Conversations.set({
-            conversationId,
-            type: CONVERSATION_TYPE_ROOM_STATE_RENDER,
-            routing: {
-                componentId: payload.componentId,
-                perspectiveId,
-                passiveBusDelivery: {
-                    perspective: payload.perspective,
-                    characterId: payload.characterId,
-                    targets: payload.targets,
-                    messageGroupId: payload.messageGroupId,
-                },
+    const conversationId = uuidv4() as ConversationId
+    const perspectiveId = orchDeps.computePerspectiveKey(payload.perspective.assetStack)
+    internalCache.Conversations.set({
+        conversationId,
+        type: CONVERSATION_TYPE_ROOM_STATE_RENDER,
+        routing: {
+            componentId: payload.componentId,
+            perspectiveId,
+            passiveBusDelivery: {
+                perspective: payload.perspective,
+                characterId: payload.characterId,
+                targets: payload.targets,
+                messageGroupId: payload.messageGroupId,
             },
-            payload: CONVERSATION_PAYLOAD_STUB,
-        })
+        },
+        payload: CONVERSATION_PAYLOAD_STUB,
+    })
 
-        if (isRenderResolveInputError(intake) && intake.errorCode === 'RENDER_REQUESTED_NOT_ROOM') {
-            messageBus.send(
-                toRenderError(
-                    payload,
-                    RENDER_ERROR_CODE_NOT_ROOM,
-                    intake.errorMessage,
-                ),
-            )
-            return
-        }
+    if (isRenderResolveInputError(intake) && intake.errorCode === 'RENDER_REQUESTED_NOT_ROOM') {
+        messageBus.send(
+            toRenderError(
+                payload,
+                RENDER_ERROR_CODE_NOT_ROOM,
+                intake.errorMessage,
+            ),
+        )
+        return
+    }
 
-        if (isRenderResolveInputError(intake) && intake.errorCode === 'META_ROOM_MARKS_MISSING') {
-            const marksHandle = getRoomStateRenderHandle(conversationId, messageBus)
-            const marksOutput: RenderResolveOutput = {
-                type: 'failed',
-                errorCode: 'META_ROOM_MARKS_MISSING',
-                errorMessage: intake.errorMessage,
-            }
-            if (marksHandle !== undefined) {
-                await marksHandle.sendMessage(marksOutput)
-            }
-            return
+    if (isRenderResolveInputError(intake) && intake.errorCode === 'META_ROOM_MARKS_MISSING') {
+        const marksHandle = getRoomStateRenderHandle(conversationId, messageBus)
+        const marksOutput: RenderResolveOutput = {
+            type: 'failed',
+            errorCode: 'META_ROOM_MARKS_MISSING',
+            errorMessage: intake.errorMessage,
         }
+        if (marksHandle !== undefined) {
+            await marksHandle.sendMessage(marksOutput)
+        }
+        return
+    }
 
-        if (!isRenderResolveInputSuccess(intake)) {
-            return
-        }
+    if (!isRenderResolveInputSuccess(intake)) {
+        return
+    }
 
     await findRender(intake, {
         getExactMatch: orchDeps.getExactMatch,

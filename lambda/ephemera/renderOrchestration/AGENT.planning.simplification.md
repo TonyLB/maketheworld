@@ -129,6 +129,32 @@ Implemented coordinated changes so terminals are visible on **`sendMessage`**, n
 
 Do **not** add a fourth parallel implementation (e.g. a duplicate orchestration stack) as a "bridge" to a future `renderOrchestration` dataSource; **unify core + delivery**, then relocate the **caller** (messageBus registration vs dataSource) in one move when ready.
 
+## Remaining differences: preview vs passive handlers (alignment queue)
+
+`handleRenderPreviewRequested` (`index.ts`) and `orchestratePassiveRenderRequest` (`passiveRenderOrchestration.ts`) already share the same core shape (intake -> `findRender` -> delivery handle), but still differ in a few adapter concerns:
+
+1. **Bootstrap**
+   - Preview: obtains/creates conversation via `registerConversation(CONVERSATION_TYPE_GENERATE_ROOM_PREVIEW)`.
+   - Passive: creates `CONVERSATION_TYPE_ROOM_STATE_RENDER` record directly in internal cache.
+   - **Alignment intent:** move both to one conversation-bootstrap contract (same entrypoint, type-specific routing config only).
+
+2. **Delivery target + envelope mapping**
+   - Preview: sends `findRender` output to preview conversation handle only.
+   - Passive: maps some intake failures to bus `RenderError`, and otherwise sends through roomState conversation handle for materialization.
+   - **Alignment intent:** keep one `sendMessage` surface for resolve outputs and push bus/conversation mapping to the same delivery adapter boundary.
+
+3. **Pointer/cache policy wiring**
+   - Passive: pointer-enabled (`getCacheRecordById`, `clearPerspectivePointer`, mark/perspective validation) via real deps.
+   - Preview: pointer-disabled by policy (`getCacheRecordById: async () => undefined`, `clearPerspectivePointer: async () => {}`).
+   - **Alignment intent:** keep a single pointer policy switch in resolve options (e.g. `pointerMode: enabled|disabled`) rather than separate wiring idioms.
+
+4. **Intake error policy**
+   - Passive: explicit intake error mapping (`RENDER_REQUESTED_NOT_ROOM` -> bus `RenderError`; `META_ROOM_MARKS_MISSING` -> failed terminal delivery).
+   - Preview: proceeds only on `RenderResolveInputSuccess` (no explicit intake-error handling branch today).
+   - **Alignment intent:** centralize intake-error mapping in one strategy function so passive and preview differ by policy table, not control-flow structure.
+
+These are intentionally listed as burn-down items. As each aligns, the adapter layer should shrink from "two handler shapes" toward "one handler + small policy objects."
+
 **Relation to other work**
 
 - **Task 6.5** (`AGENT.planning.md`): lifecycle ordering (`RenderGenerationStarted`, `Cache Updated` -> pointer -> `RenderReady`) attaches to the **unified** resolve/delivery shell, not a second copy of policy.
