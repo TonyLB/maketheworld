@@ -16,13 +16,12 @@ import {
     isConversationCompositeReadHandleRoomStateRender,
 } from '../conversations/conversationTypes'
 import type { ConversationId } from '../conversations'
-import { toRenderError, type RenderRequested } from './events'
+import type { RenderRequested } from './events'
 import {
     isRenderResolveInputError,
     isRenderResolveInputSuccess,
     type RenderResolveOutput,
 } from './baseClasses'
-import { RENDER_ERROR_CODE_NOT_ROOM } from '../conversations/conversationTypes/roomStateRender/baseClasses'
 import { findRender } from './findRender'
 import { generateRoomPreview } from './generateRoomPreview'
 import { intakeRenderRequested } from './requestIntake'
@@ -126,13 +125,15 @@ export const orchestratePassiveRenderRequest = async (
     })
 
     if (isRenderResolveInputError(intake) && intake.errorCode === 'RENDER_REQUESTED_NOT_ROOM') {
-        messageBus.send(
-            toRenderError(
-                payload,
-                RENDER_ERROR_CODE_NOT_ROOM,
-                intake.errorMessage,
-            ),
-        )
+        const notRoomHandle = getRoomStateRenderHandle(conversationId, messageBus)
+        const notRoomOutput: RenderResolveOutput = {
+            type: 'failed',
+            errorCode: 'NOT_ROOM',
+            errorMessage: intake.errorMessage,
+        }
+        if (notRoomHandle !== undefined) {
+            await notRoomHandle.sendMessage(notRoomOutput)
+        }
         return
     }
 

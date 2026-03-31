@@ -134,9 +134,11 @@ Do **not** add a fourth parallel implementation (e.g. a duplicate orchestration 
 `handleRenderPreviewRequested` (`index.ts`) and `orchestratePassiveRenderRequest` (`passiveRenderOrchestration.ts`) already share the same core shape (intake -> `findRender` -> delivery handle), but still differ in a few adapter concerns:
 
 1. **Bootstrap**
-   - Preview: obtains/creates conversation via `registerConversation(CONVERSATION_TYPE_GENERATE_ROOM_PREVIEW)`.
-   - Passive: creates `CONVERSATION_TYPE_ROOM_STATE_RENDER` record directly in internal cache.
-   - **Alignment intent:** move both to one conversation-bootstrap contract (same entrypoint, type-specific routing config only).
+   - Current state: both handlers already bootstrap by writing `internalCache.Conversations.set(...)` directly.
+   - Intentional preserved differences:
+     - Preview may reuse caller-provided `conversationId` (or generate one), and uses `CONVERSATION_TYPE_GENERATE_ROOM_PREVIEW` routing.
+     - Passive always generates `conversationId` internally and uses `CONVERSATION_TYPE_ROOM_STATE_RENDER` routing with passive bus-delivery fields.
+   - **Consolidation policy:** treat these differences as required routing policy inputs to a shared bootstrap helper, not cleanup targets. No additional "bootstrap unification" cleanup is needed beyond preserving these policy knobs explicitly.
 
 2. **Delivery target + envelope mapping**
    - Preview: sends `findRender` output to preview conversation handle only.
@@ -144,9 +146,10 @@ Do **not** add a fourth parallel implementation (e.g. a duplicate orchestration 
    - **Alignment intent:** keep one `sendMessage` surface for resolve outputs and push bus/conversation mapping to the same delivery adapter boundary.
 
 3. **Pointer/cache policy wiring**
-   - Passive: pointer-enabled (`getCacheRecordById`, `clearPerspectivePointer`, mark/perspective validation) via real deps.
-   - Preview: pointer-disabled by policy (`getCacheRecordById: async () => undefined`, `clearPerspectivePointer: async () => {}`).
-   - **Alignment intent:** keep a single pointer policy switch in resolve options (e.g. `pointerMode: enabled|disabled`) rather than separate wiring idioms.
+   - Intentional preserved difference:
+     - Passive is pointer-enabled (`getCacheRecordById`, `clearPerspectivePointer`, mark/perspective validation) because room-state orchestration should first ask whether the room is already in the requested state.
+     - Preview is pointer-disabled by policy (`getCacheRecordById: async () => undefined`, `clearPerspectivePointer: async () => {}`) because preview requests represent proposed state, not authoritative persisted state.
+   - **Consolidation policy:** preserve this as an explicit resolve-mode switch (e.g. `pointerMode: enabled|disabled`) in shared logic, rather than forcing both paths through the same pointer behavior.
 
 4. **Intake error policy**
    - Passive: explicit intake error mapping (`RENDER_REQUESTED_NOT_ROOM` -> bus `RenderError`; `META_ROOM_MARKS_MISSING` -> failed terminal delivery).

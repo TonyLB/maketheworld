@@ -262,7 +262,7 @@ describe('renderOrchestration/passiveRenderOrchestration', () => {
         expect(getMetaRoom).not.toHaveBeenCalled()
         expect(messageBus.send).toHaveBeenCalledWith(expect.objectContaining({
             type: 'RenderError',
-            errorCode: 'RENDER_REQUESTED_NOT_ROOM',
+            errorCode: 'NOT_ROOM',
         }))
     })
 

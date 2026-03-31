@@ -42,6 +42,7 @@ export type GenerateRoomPreviewSuccess = {
 
 export type GenerateRoomPreviewFailure =
     | { success: false; errorCode: 'NO_EXACT_MATCH'; errorMessage: string }
+    | { success: false; errorCode: 'NOT_ROOM'; errorMessage: string }
     | { success: false; errorCode: 'CONTEXT_REQUIRED'; errorMessage: string }
     | { success: false; errorCode: 'GENERATION_FAILED'; errorMessage: string }
 

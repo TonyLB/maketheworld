@@ -3,12 +3,12 @@ import internalCache from '../internalCache'
 import {
     CONVERSATION_PAYLOAD_STUB,
     CONVERSATION_TYPE_GENERATE_ROOM_PREVIEW,
-    registerConversation,
     type ConversationId,
 } from '../conversations'
 import { isConversationCompositeReadHandleGenerateRoomPreview } from '../conversations/conversationTypes'
 import { computePerspectiveKey, perspectiveMatches } from '@tonylb/mtw-interfaces/ts/perspective'
 import { markStatesEqual } from '../renderCache/markStateUtils'
+import { v4 as uuidv4 } from 'uuid'
 
 import {
     isRenderOrchestrationRequestMessage,
@@ -121,18 +121,17 @@ export type RenderOrchestrationSubscriptions = {
 }
 
 const handleRenderPreviewRequested = async (payload: RenderPreviewRequested): Promise<void> => {
-    const conversationId: ConversationId =
-        payload.conversationId !== undefined
-            ? payload.conversationId
-            : await registerConversation({
-                type: CONVERSATION_TYPE_GENERATE_ROOM_PREVIEW,
-                routing: {
-                    roomId: payload.componentId,
-                    perspectiveId: computePerspectiveKey(payload.perspective.assetStack),
-                    ...(payload.requestId !== undefined ? { requestId: payload.requestId } : {}),
-                },
-                payload: CONVERSATION_PAYLOAD_STUB,
-            })
+    const conversationId = (payload.conversationId ?? (uuidv4() as ConversationId)) as ConversationId
+    internalCache.Conversations.set({
+        conversationId,
+        type: CONVERSATION_TYPE_GENERATE_ROOM_PREVIEW,
+        routing: {
+            roomId: payload.componentId,
+            perspectiveId: computePerspectiveKey(payload.perspective.assetStack),
+            ...(payload.requestId !== undefined ? { requestId: payload.requestId } : {}),
+        },
+        payload: CONVERSATION_PAYLOAD_STUB,
+    })
 
     const composite = internalCache.Conversations.get(conversationId)
     const rawHandle = composite?.handle

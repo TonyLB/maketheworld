@@ -21,6 +21,7 @@ jest.mock('../internalCache', () => ({
     default: {
         Conversations: {
             get: jest.fn(),
+            set: jest.fn(),
         },
         RenderCache: {
             getExactMatch: jest.fn(),
