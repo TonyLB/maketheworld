@@ -92,8 +92,8 @@ const getRoomStateRenderHandle = (
  * Passive shell: intake -> {@link findRender} -> terminal delivery via roomStateRender `sendMessage`
  * (materializes to the same bus mapping as `materializeRoomStateRender`).
  */
-export const orchestratePassiveRenderRequestedBatch = async (
-    { payloads, messageBus }: { payloads: RenderRequested[]; messageBus: MessageBus },
+export const orchestratePassiveRenderRequest = async (
+    { payload, messageBus }: { payload: RenderRequested; messageBus: MessageBus },
     _deps?: PassiveRenderPipelineDependencies
 ): Promise<void> => {
     const orchDeps: PassiveOrchestrationDepsResolved = {
@@ -105,8 +105,7 @@ export const orchestratePassiveRenderRequestedBatch = async (
         generateRoomPreview: _deps?.generateRoomPreview ?? generateRoomPreview,
     }
 
-    await Promise.all(payloads.map(async (payload) => {
-        const intake = await intakeRenderRequested(payload, _deps)
+    const intake = await intakeRenderRequested(payload, _deps)
 
         const conversationId = uuidv4() as ConversationId
         const perspectiveId = orchDeps.computePerspectiveKey(payload.perspective.assetStack)
@@ -154,22 +153,19 @@ export const orchestratePassiveRenderRequestedBatch = async (
             return
         }
 
-        await findRender(intake, {
-            getExactMatch: orchDeps.getExactMatch,
-            getCacheRecordById: orchDeps.getCacheRecordById,
-            clearPerspectivePointer: orchDeps.clearPerspectivePointer,
-            computePerspectiveKey: orchDeps.computePerspectiveKey,
-            markStatesEqual: orchDeps.markStatesEqual,
-            perspectiveMatches,
-            sendMessage: async (arg) => {
-                const roomStateHandle = getRoomStateRenderHandle(conversationId, messageBus)
-                await roomStateHandle?.sendMessage(arg)
-            },
-            generateRoomPreview: orchDeps.generateRoomPreview,
-            conversationId,
-        })
-    }))
+    await findRender(intake, {
+        getExactMatch: orchDeps.getExactMatch,
+        getCacheRecordById: orchDeps.getCacheRecordById,
+        clearPerspectivePointer: orchDeps.clearPerspectivePointer,
+        computePerspectiveKey: orchDeps.computePerspectiveKey,
+        markStatesEqual: orchDeps.markStatesEqual,
+        perspectiveMatches,
+        sendMessage: async (arg) => {
+            const roomStateHandle = getRoomStateRenderHandle(conversationId, messageBus)
+            await roomStateHandle?.sendMessage(arg)
+        },
+        generateRoomPreview: orchDeps.generateRoomPreview,
+        conversationId,
+    })
 }
 
-/** Back-compat name for the passive shell batch (same signature as the former `requestIntake` default export). */
-export const requestIntakeMessage = orchestratePassiveRenderRequestedBatch

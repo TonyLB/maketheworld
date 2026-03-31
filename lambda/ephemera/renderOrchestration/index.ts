@@ -17,7 +17,7 @@ import {
     type RenderPreviewRequested,
     type RenderRequested,
 } from './events'
-import { orchestratePassiveRenderRequestedBatch } from './passiveRenderOrchestration'
+import { orchestratePassiveRenderRequest } from './passiveRenderOrchestration'
 import { intakeRenderRequested } from './requestIntake'
 import { findRender } from './findRender'
 import { generateRoomPreview } from './generateRoomPreview'
@@ -73,8 +73,7 @@ export { intakeRenderRequested } from './requestIntake'
 export type { RequestIntakeDependencies } from './requestIntake'
 
 export {
-    orchestratePassiveRenderRequestedBatch,
-    requestIntakeMessage,
+    orchestratePassiveRenderRequest,
 } from './passiveRenderOrchestration'
 export type {
     PassiveOrchestrationDependencies,
@@ -185,8 +184,8 @@ export const handleRenderOrchestrationMessage = async ({
     const renderPreviewRequested = payloads.filter(isRenderPreviewRequested)
 
     await Promise.all([
-        renderRequested.length > 0 ? orchestratePassiveRenderRequestedBatch({ payloads: renderRequested, messageBus }) : Promise.resolve(),
-        Promise.all(renderPreviewRequested.map((p) => handleRenderPreviewRequested(p))),
+        ...renderRequested.map((payload) => orchestratePassiveRenderRequest({ payload, messageBus })),
+        ...renderPreviewRequested.map((p) => handleRenderPreviewRequested(p)),
     ])
 }
 

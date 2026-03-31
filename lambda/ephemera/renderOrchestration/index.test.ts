@@ -5,7 +5,7 @@ import { MessageBus } from '../messageBus/baseClasses'
 import type { EphemeraCacheDynamoItem, EphemeraCacheMarkState } from '../renderCache/baseClasses'
 
 import internalCache from '../internalCache'
-import { orchestratePassiveRenderRequestedBatch } from './passiveRenderOrchestration'
+import { orchestratePassiveRenderRequest } from './passiveRenderOrchestration'
 import type { RenderPreviewRequested, RenderRequested } from './events'
 import { generateRoomPreview } from './generateRoomPreview'
 import {
@@ -34,14 +34,13 @@ jest.mock('./generateRoomPreview', () => ({
 
 jest.mock('./passiveRenderOrchestration', () => ({
     __esModule: true,
-    orchestratePassiveRenderRequestedBatch: jest.fn().mockResolvedValue(undefined),
-    requestIntakeMessage: jest.fn(),
+    orchestratePassiveRenderRequest: jest.fn().mockResolvedValue(undefined),
 }))
 
 const mockConversationsGet = jest.mocked(internalCache.Conversations.get)
 const mockGetExactMatch = jest.mocked(internalCache.RenderCache.getExactMatch)
 const mockGenerateRoomPreview = jest.mocked(generateRoomPreview)
-const mockOrchestratePassiveRenderRequestedBatch = jest.mocked(orchestratePassiveRenderRequestedBatch)
+const mockOrchestratePassiveRenderRequest = jest.mocked(orchestratePassiveRenderRequest)
 
 const roomId = 'ROOM#test-room' as EphemeraRoomId
 const conversationId = '550e8400-e29b-41d4-a716-446655440000'
@@ -93,7 +92,7 @@ describe('renderOrchestration/index', () => {
 
     beforeEach(() => {
         jest.clearAllMocks()
-        mockOrchestratePassiveRenderRequestedBatch.mockResolvedValue(undefined)
+        mockOrchestratePassiveRenderRequest.mockResolvedValue(undefined)
         messageBus = new MessageBus()
     })
 
@@ -268,17 +267,18 @@ describe('renderOrchestration/index', () => {
     })
 
     describe('handleRenderOrchestrationMessage (RenderRequested path)', () => {
-        it('forwards only RenderRequested payloads to orchestratePassiveRenderRequestedBatch', async () => {
+        it('forwards only RenderRequested payloads to orchestratePassiveRenderRequest', async () => {
             const rr = makeRenderRequested()
             await handleRenderOrchestrationMessage({
                 payloads: [rr],
                 messageBus,
             })
 
-            expect(mockOrchestratePassiveRenderRequestedBatch).toHaveBeenCalledWith({
-                payloads: [rr],
+            expect(mockOrchestratePassiveRenderRequest).toHaveBeenCalledWith({
+                payload: rr,
                 messageBus,
             })
+            expect(mockOrchestratePassiveRenderRequest).toHaveBeenCalledTimes(1)
             expect(mockGetExactMatch).not.toHaveBeenCalled()
             expect(mockGenerateRoomPreview).not.toHaveBeenCalled()
         })
@@ -304,10 +304,11 @@ describe('renderOrchestration/index', () => {
                 messageBus,
             })
 
-            expect(mockOrchestratePassiveRenderRequestedBatch).toHaveBeenCalledWith({
-                payloads: [rr],
+            expect(mockOrchestratePassiveRenderRequest).toHaveBeenCalledWith({
+                payload: rr,
                 messageBus,
             })
+            expect(mockOrchestratePassiveRenderRequest).toHaveBeenCalledTimes(1)
             expect(mockGetExactMatch).toHaveBeenCalled()
             expect(mockGenerateRoomPreview).not.toHaveBeenCalled()
         })
