@@ -1,27 +1,11 @@
 import type { MessageBus } from '../messageBus/baseClasses'
-import internalCache from '../internalCache'
-import {
-    CONVERSATION_PAYLOAD_STUB,
-    CONVERSATION_TYPE_GENERATE_ROOM_PREVIEW,
-    type ConversationId,
-} from '../conversations'
-import { isConversationCompositeReadHandleGenerateRoomPreview } from '../conversations/conversationTypes'
-import { computePerspectiveKey, perspectiveMatches } from '@tonylb/mtw-interfaces/ts/perspective'
-import { markStatesEqual } from '../renderCache/markStateUtils'
-import { v4 as uuidv4 } from 'uuid'
 
 import {
     isRenderOrchestrationRequestMessage,
-    isRenderPreviewRequested,
-    isRenderRequested,
     type RenderPreviewRequested,
     type RenderRequested,
 } from './events'
-import { orchestratePassiveRenderRequest } from './passiveRenderOrchestration'
-import { intakeRenderRequested } from './requestIntake'
-import { findRender } from './findRender'
-import { generateRoomPreview } from './generateRoomPreview'
-import { isRenderResolveInputSuccess, type RenderResolveInput } from './baseClasses'
+import { orchestrateRenderRequest } from './passiveRenderOrchestration'
 
 /**
  * renderOrchestration public module surface
@@ -74,6 +58,7 @@ export type { RequestIntakeDependencies } from './requestIntake'
 
 export {
     orchestratePassiveRenderRequest,
+    orchestrateRenderRequest,
 } from './passiveRenderOrchestration'
 export type {
     PassiveOrchestrationDependencies,
@@ -105,6 +90,8 @@ export {
     RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION,
 } from './baseClasses'
 
+export { deliverIntakeErrorsIfAny } from './intakeErrors'
+
 export { findRender } from './findRender'
 export type { FindRenderDependencies } from './findRender'
 
@@ -120,52 +107,6 @@ export type RenderOrchestrationSubscriptions = {
     unsubscribeAll: () => void;
 }
 
-const handleRenderPreviewRequested = async (payload: RenderPreviewRequested): Promise<void> => {
-    const conversationId = (payload.conversationId ?? (uuidv4() as ConversationId)) as ConversationId
-    internalCache.Conversations.set({
-        conversationId,
-        type: CONVERSATION_TYPE_GENERATE_ROOM_PREVIEW,
-        routing: {
-            roomId: payload.componentId,
-            perspectiveId: computePerspectiveKey(payload.perspective.assetStack),
-            ...(payload.requestId !== undefined ? { requestId: payload.requestId } : {}),
-        },
-        payload: CONVERSATION_PAYLOAD_STUB,
-    })
-
-    const composite = internalCache.Conversations.get(conversationId)
-    const rawHandle = composite?.handle
-    const handle =
-        rawHandle !== undefined && isConversationCompositeReadHandleGenerateRoomPreview(rawHandle)
-            ? rawHandle
-            : undefined
-
-    if (handle === undefined) {
-        console.error('Conversations.get: missing or non-generateRoomPreview handle after registerConversation', {
-            conversationId,
-            compositeFound: composite !== undefined,
-            compositeHandleKind: rawHandle?.kind,
-        })
-    }
-
-    const resolve: RenderResolveInput = await intakeRenderRequested(payload)
-    if (isRenderResolveInputSuccess(resolve)) {
-        await findRender(resolve, {
-            getExactMatch: (input) => internalCache.RenderCache.getExactMatch(input),
-            getCacheRecordById: async () => undefined,
-            clearPerspectivePointer: async () => {},
-            computePerspectiveKey,
-            markStatesEqual,
-            perspectiveMatches,
-            sendMessage: async (arg) => {
-                await handle?.sendMessage(arg)
-            },
-            generateRoomPreview,
-            conversationId,
-        })
-    }
-}
-
 /**
  * Central dispatch for render "request" messages: passive {@link RenderRequested} (intake / lookup)
  * and authoring {@link RenderPreviewRequested} (room preview + conversation streaming).
@@ -179,13 +120,7 @@ export const handleRenderOrchestrationMessage = async ({
     payloads: (RenderRequested | RenderPreviewRequested)[];
     messageBus: MessageBus;
 }): Promise<void> => {
-    const renderRequested = payloads.filter(isRenderRequested)
-    const renderPreviewRequested = payloads.filter(isRenderPreviewRequested)
-
-    await Promise.all([
-        ...renderRequested.map((payload) => orchestratePassiveRenderRequest({ payload, messageBus })),
-        ...renderPreviewRequested.map((p) => handleRenderPreviewRequested(p)),
-    ])
+    await Promise.all(payloads.map((payload) => orchestrateRenderRequest({ payload, messageBus })))
 }
 
 /**

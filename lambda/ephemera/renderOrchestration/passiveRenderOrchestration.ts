@@ -1,27 +1,29 @@
 /**
  * Passive B-phase hook and orchestration shell: {@link findRender} + terminal delivery via roomStateRender
  * `sendMessage` after {@link intakeRenderRequested} (see `requestIntake.ts`).
+ *
+ * {@link orchestrateRenderRequest} is the unified entry for preview + passive; {@link orchestratePassiveRenderRequest}
+ * narrows to {@link RenderRequested} only.
  */
 import { v4 as uuidv4 } from 'uuid'
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { perspectiveMatches, computePerspectiveKey as defaultComputePerspectiveKey, type Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
+import { computePerspectiveKey, perspectiveMatches, computePerspectiveKey as defaultComputePerspectiveKey, type Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
 import type { EphemeraCacheId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { MessageBus } from '../messageBus/baseClasses'
 import { isEphemeraCacheDynamoItem, type EphemeraCacheDynamoItem, type EphemeraCacheMarkState } from '../renderCache/baseClasses'
 import { markStatesEqual } from '../renderCache/markStateUtils'
 import {
     CONVERSATION_PAYLOAD_STUB,
+    CONVERSATION_TYPE_GENERATE_ROOM_PREVIEW,
     CONVERSATION_TYPE_ROOM_STATE_RENDER,
+    isConversationCompositeReadHandleGenerateRoomPreview,
     isConversationCompositeReadHandleRoomStateRender,
 } from '../conversations/conversationTypes'
 import type { ConversationId } from '../conversations'
-import type { RenderRequested } from './events'
-import {
-    isRenderResolveInputError,
-    isRenderResolveInputSuccess,
-    type RenderResolveOutput,
-} from './baseClasses'
+import { isRenderPreviewRequested, type RenderPreviewRequested, type RenderRequested } from './events'
+import { isRenderResolveInputSuccess } from './baseClasses'
+import { deliverIntakeErrorsIfAny } from './intakeErrors'
 import { findRender } from './findRender'
 import { generateRoomPreview } from './generateRoomPreview'
 import { intakeRenderRequested } from './requestIntake'
@@ -88,13 +90,67 @@ const getRoomStateRenderHandle = (
 }
 
 /**
- * Passive shell: intake -> {@link findRender} -> terminal delivery via roomStateRender `sendMessage`
- * (materializes to the same bus mapping as `materializeRoomStateRender`).
+ * Single-item orchestration: preview and passive share intake, {@link deliverIntakeErrorsIfAny}, and {@link findRender}.
+ * Ordering differs intentionally: passive runs intake before `Conversations.set`; preview sets the row first (see prior `index.ts` behavior).
  */
-export const orchestratePassiveRenderRequest = async (
-    { payload, messageBus }: { payload: RenderRequested; messageBus: MessageBus },
+export const orchestrateRenderRequest = async (
+    { payload, messageBus }: { payload: RenderRequested | RenderPreviewRequested; messageBus: MessageBus },
     _deps?: PassiveRenderPipelineDependencies
 ): Promise<void> => {
+    if (isRenderPreviewRequested(payload)) {
+        const conversationId = (payload.conversationId ?? (uuidv4() as ConversationId)) as ConversationId
+        internalCache.Conversations.set({
+            conversationId,
+            type: CONVERSATION_TYPE_GENERATE_ROOM_PREVIEW,
+            routing: {
+                roomId: payload.componentId,
+                perspectiveId: computePerspectiveKey(payload.perspective.assetStack),
+                ...(payload.requestId !== undefined ? { requestId: payload.requestId } : {}),
+            },
+            payload: CONVERSATION_PAYLOAD_STUB,
+        })
+
+        const composite = internalCache.Conversations.get(conversationId)
+        const rawHandle = composite?.handle
+        const previewHandle =
+            rawHandle !== undefined && isConversationCompositeReadHandleGenerateRoomPreview(rawHandle)
+                ? rawHandle
+                : undefined
+
+        if (previewHandle === undefined) {
+            console.error('Conversations.get: missing or non-generateRoomPreview handle after Conversations.set', {
+                conversationId,
+                compositeFound: composite !== undefined,
+                compositeHandleKind: rawHandle?.kind,
+            })
+        }
+
+        const resolve = await intakeRenderRequested(payload, _deps)
+        const intakeErrorHandled = await deliverIntakeErrorsIfAny(resolve, async (output) => {
+            await previewHandle?.sendMessage(output)
+        })
+        if (intakeErrorHandled) {
+            return
+        }
+        if (!isRenderResolveInputSuccess(resolve)) {
+            return
+        }
+        await findRender(resolve, {
+            getExactMatch: (input) => internalCache.RenderCache.getExactMatch(input),
+            getCacheRecordById: async () => undefined,
+            clearPerspectivePointer: async () => {},
+            computePerspectiveKey,
+            markStatesEqual,
+            perspectiveMatches,
+            sendMessage: async (arg) => {
+                await previewHandle?.sendMessage(arg)
+            },
+            generateRoomPreview,
+            conversationId,
+        })
+        return
+    }
+
     const orchDeps: PassiveOrchestrationDepsResolved = {
         getCacheRecordById: _deps?.getCacheRecordById ?? defaultGetCacheRecordById,
         getExactMatch: _deps?.getExactMatch ?? ((input) => internalCache.RenderCache.getExactMatch(input)),
@@ -124,29 +180,11 @@ export const orchestratePassiveRenderRequest = async (
         payload: CONVERSATION_PAYLOAD_STUB,
     })
 
-    if (isRenderResolveInputError(intake) && intake.errorCode === 'RENDER_REQUESTED_NOT_ROOM') {
-        const notRoomHandle = getRoomStateRenderHandle(conversationId, messageBus)
-        const notRoomOutput: RenderResolveOutput = {
-            type: 'failed',
-            errorCode: 'NOT_ROOM',
-            errorMessage: intake.errorMessage,
-        }
-        if (notRoomHandle !== undefined) {
-            await notRoomHandle.sendMessage(notRoomOutput)
-        }
-        return
-    }
-
-    if (isRenderResolveInputError(intake) && intake.errorCode === 'META_ROOM_MARKS_MISSING') {
-        const marksHandle = getRoomStateRenderHandle(conversationId, messageBus)
-        const marksOutput: RenderResolveOutput = {
-            type: 'failed',
-            errorCode: 'META_ROOM_MARKS_MISSING',
-            errorMessage: intake.errorMessage,
-        }
-        if (marksHandle !== undefined) {
-            await marksHandle.sendMessage(marksOutput)
-        }
+    const intakeErrorHandled = await deliverIntakeErrorsIfAny(intake, async (output) => {
+        const roomStateHandle = getRoomStateRenderHandle(conversationId, messageBus)
+        await roomStateHandle?.sendMessage(output)
+    })
+    if (intakeErrorHandled) {
         return
     }
 
@@ -169,4 +207,12 @@ export const orchestratePassiveRenderRequest = async (
         conversationId,
     })
 }
+
+/**
+ * Passive-only narrow entry; delegates to {@link orchestrateRenderRequest}.
+ */
+export const orchestratePassiveRenderRequest = async (
+    args: { payload: RenderRequested; messageBus: MessageBus },
+    _deps?: PassiveRenderPipelineDependencies
+): Promise<void> => orchestrateRenderRequest(args, _deps)
 
