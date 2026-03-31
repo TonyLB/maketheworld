@@ -97,7 +97,7 @@ When a new implementation appears for an existing responsibility:
 
 | Layer | Role | Notes |
 |-------|------|--------|
-| **Intake** | Wire / world -> `RenderResolveInput` (A-phase) | Passive: `intakeRenderRequested` + `PassiveIntakeResult` (`renderIntake.ts`). Preview: map in `index.ts`. Intake-only errors (e.g. missing marks) do not publish the bus. |
+| **Intake** | Wire / world -> `RenderResolveInput` (A-phase) | Passive: `intakeRenderRequested` returns `RenderResolveInput` (`success`/`error`). Preview: map in `index.ts` (currently success-only). Intake-only errors (e.g. missing marks) do not publish the bus. |
 | **findRender** (resolve) | `RenderResolveInput` + `FindRenderDependencies` -> **`Promise<void>`** (B-phase core) | Terminals emit only via `deps.sendMessage(RenderResolveOutput)`. Pointer validation, exact-match, shared `tryGeneration` hook, `invalidate` when generation returns `skip`. Policy for pointer clear lives in one place. |
 | **Delivery** | `RenderResolveOutput` through conversation `sendMessage` -> materialize / bus | `materializeRoomStateRender` / `materializeGenerateRoomPreview` map terminal resolve shapes to `RenderReady` / `RenderInvalidate` / `RenderError` or WebSocket steps. Preview vs passive differ in how the handle is obtained, not in duplicate resolve stacks. |
 
@@ -109,7 +109,7 @@ When a new implementation appears for an existing responsibility:
 
 1. **Delivery first** -- [done] Extract delivery from `requestIntake.ts` and `index.ts`; enrich helpers now live inside materialize (`roomStateRender` / `generateRoomPreview`); both paths run **after** resolve.
 2. **findRender second** -- [done] Shared resolve in `findRender.ts`; passive shell (`passiveRenderOrchestration.ts`) and preview handler in `index.ts` call `findRender`; terminals emit via `sendMessage` (`findRender` deps + shared `tryGeneration.ts`).
-3. **Intake / shell third** -- [done] Passive A-phase: `requestIntake.ts` (`intakeRenderRequested`) + `renderIntake.ts` (`PassiveIntakeResult`). Passive shell: `passiveRenderOrchestration.ts` (`orchestratePassiveRenderRequestedBatch`, alias `requestIntakeMessage`) chains intake -> `findRender`. `index.ts` `handleRenderOrchestrationMessage` calls that batch for `RenderRequested`; preview A-phase is `intakeRenderPreviewRequested` in `index.ts`. Optional later: one intake surface for all request types.
+3. **Intake / shell third** -- [done] Passive A-phase: `requestIntake.ts` (`intakeRenderRequested`) returning `RenderResolveInput` (`success`/`error`). Passive shell: `passiveRenderOrchestration.ts` (`orchestratePassiveRenderRequestedBatch`, alias `requestIntakeMessage`) chains intake -> `findRender`. `index.ts` `handleRenderOrchestrationMessage` calls that batch for `RenderRequested`; preview A-phase is `intakeRenderPreviewRequested` in `index.ts`. Optional later: one intake surface for all request types.
 
 ### Historical: coordination trap (`findRender` / `tryGeneration` had to move together)
 
@@ -170,8 +170,8 @@ Use this mini template for each simplification decision:
 
 - **Date:** 2026-03-29
 - **Topic:** Intake / shell (phase 3)
-- **Decision:** `intakeRenderRequested` returns `PassiveIntakeResult` (`ok` / `marks_missing` / `not_room`). `orchestratePassiveRenderRequestedBatch` in `passiveRenderOrchestration.ts` performs `findRender` + terminal delivery via conversation `sendMessage` (shared `tryGeneration.ts` for the slow path). `requestIntakeMessage` remains an alias for the batch. Preview path unchanged except renamed preview intake helper in `index.ts`.
-- **Canonical owner:** A-phase `requestIntake.ts` + `renderIntake.ts`; passive shell `passiveRenderOrchestration.ts`; bus entry `index.ts`.
+- **Decision:** `intakeRenderRequested` returns `RenderResolveInput` (`success` / `error`). `orchestratePassiveRenderRequestedBatch` in `passiveRenderOrchestration.ts` performs `findRender` + terminal delivery via conversation `sendMessage` (shared `tryGeneration.ts` for the slow path) and maps intake errors using the outer request payload. `requestIntakeMessage` remains an alias for the batch. Preview path unchanged except renamed preview intake helper in `index.ts`.
+- **Canonical owner:** A-phase `requestIntake.ts`; passive shell `passiveRenderOrchestration.ts`; bus entry `index.ts`.
 - **Tracks affected:** Track A.
 - **Follow-up tasks:** Optional unified intake API; Track B caller of `findRender` + intake.
 

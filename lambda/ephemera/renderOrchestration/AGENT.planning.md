@@ -47,7 +47,7 @@ Over time, `generateRoomPreview` should **not** be the hiding place for the **fu
 
 ### Alignment with passive intake and shell
 
-**Intake** (`intakeRenderRequested` in `requestIntake.ts`) reads world/meta and produces `RenderResolveInput` or intake-only outcomes (`PassiveIntakeResult`). It does **not** call `findRender`, publish bus messages, or run generation. The **passive shell** (`orchestratePassiveRenderRequestedBatch` in `passiveRenderOrchestration.ts`) chains intake -> `findRender` -> `enrichRenderResolveForPassive`. Preview follows the same layering in `index.ts` (preview intake map -> `findRender` -> `enrichRenderResolveForPreview`).
+**Intake** (`intakeRenderRequested` in `requestIntake.ts`) reads world/meta and produces `RenderResolveInput` (`success` | `error`). It does **not** call `findRender`, publish bus messages, or run generation. The **passive shell** (`orchestratePassiveRenderRequestedBatch` in `passiveRenderOrchestration.ts`) chains intake -> `findRender` -> `enrichRenderResolveForPassive`. Preview follows the same layering in `index.ts` (preview intake map -> `findRender` -> `enrichRenderResolveForPreview`).
 
 ### Duplication guard
 

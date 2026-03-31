@@ -80,13 +80,6 @@ export type {
     PassiveRenderPipelineDependencies,
 } from './passiveRenderOrchestration'
 
-export type {
-    PassiveIntakeResult,
-    PassiveIntakeResultMarksMissing,
-    PassiveIntakeResultNotRoom,
-    PassiveIntakeResultOk,
-} from './renderIntake'
-
 export { generateRoomPreview, defaultPublishPutCacheRecord } from './generateRoomPreview'
 export type {
     GenerateRoomPreviewGenerationReturn,
