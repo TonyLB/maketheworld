@@ -90,8 +90,8 @@ Current temporary constraint: passive **intake** (`intakeRenderRequested`) surfa
 
 - `events.ts`: messageBus event type definitions and type guards
 - `requestIntake.ts`: passive A-phase only (`intakeRenderRequested`)
-- `passiveRenderOrchestration.ts`: passive shell (intake -> `findRender` -> `enrichRenderResolveForPassive`; alias `requestIntakeMessage`)
-- `index.ts`: messageBus registration; preview shell; calls `orchestratePassiveRenderRequestedBatch` for `RenderRequested`
+- `orchestrationHandler.ts`: single-item `orchestrateRenderRequest` (preview + passive; intake -> `deliverIntakeErrorsIfAny` -> `findRender` -> conversation `sendMessage`)
+- `index.ts`: messageBus registration; `handleRenderOrchestrationMessage` maps each `RenderRequested` / `RenderPreviewRequested` to `orchestrateRenderRequest`
 - `generateRoomPreview.ts`: room cache-miss orchestration (exact match, then `generateExample` on miss; used by WebSocket API)
 
 ## Development Notes

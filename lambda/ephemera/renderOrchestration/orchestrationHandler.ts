@@ -1,9 +1,8 @@
 /**
- * Passive B-phase hook and orchestration shell: {@link findRender} + terminal delivery via roomStateRender
- * `sendMessage` after {@link intakeRenderRequested} (see `requestIntake.ts`).
+ * Render orchestration handler: {@link findRender} + terminal delivery via conversation `sendMessage`
+ * after {@link intakeRenderRequested} (see `requestIntake.ts`).
  *
- * {@link orchestrateRenderRequest} is the unified entry for preview + passive; {@link orchestratePassiveRenderRequest}
- * narrows to {@link RenderRequested} only.
+ * {@link orchestrateRenderRequest} is the unified entry for preview + passive single-item orchestration.
  */
 import { v4 as uuidv4 } from 'uuid'
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
@@ -207,12 +206,3 @@ export const orchestrateRenderRequest = async (
         conversationId,
     })
 }
-
-/**
- * Passive-only narrow entry; delegates to {@link orchestrateRenderRequest}.
- */
-export const orchestratePassiveRenderRequest = async (
-    args: { payload: RenderRequested; messageBus: MessageBus },
-    _deps?: PassiveRenderPipelineDependencies
-): Promise<void> => orchestrateRenderRequest(args, _deps)
-

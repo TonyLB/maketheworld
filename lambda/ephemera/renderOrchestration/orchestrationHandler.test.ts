@@ -2,10 +2,10 @@ import type { MessageBus } from '../messageBus/baseClasses'
 import type { EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraCacheDynamoItem } from '../renderCache/baseClasses'
 import internalCache from '../internalCache'
-import { orchestratePassiveRenderRequest } from './passiveRenderOrchestration'
+import { orchestrateRenderRequest } from './orchestrationHandler'
 import type { RenderRequested } from './events'
 
-describe('renderOrchestration/passiveRenderOrchestration', () => {
+describe('renderOrchestration/orchestrationHandler', () => {
     beforeEach(() => {
         internalCache.clear()
     })
@@ -42,7 +42,7 @@ describe('renderOrchestration/passiveRenderOrchestration', () => {
         const messageBus = makeBus()
         const getCacheRecordById = jest.fn().mockResolvedValue(baseCacheRecord)
         const getExactMatch = jest.fn()
-        await orchestratePassiveRenderRequest(
+        await orchestrateRenderRequest(
             { payload: basePayload, messageBus },
             {
                 getMetaRoom: jest.fn().mockResolvedValue(baseMetaRoom),
@@ -65,7 +65,7 @@ describe('renderOrchestration/passiveRenderOrchestration', () => {
     it('emits lookup handoff when no pointer exists', async () => {
         const messageBus = makeBus()
         const getExactMatch = jest.fn().mockResolvedValue(null)
-        await orchestratePassiveRenderRequest(
+        await orchestrateRenderRequest(
             { payload: basePayload, messageBus },
             {
                 getMetaRoom: jest.fn().mockResolvedValue({ ...baseMetaRoom, currentCacheByPerspective: {} }),
@@ -83,7 +83,7 @@ describe('renderOrchestration/passiveRenderOrchestration', () => {
     it('clears pointer and emits lookup handoff when record missing', async () => {
         const clearPerspectivePointer = jest.fn().mockResolvedValue(undefined)
         const messageBus = makeBus()
-        await orchestratePassiveRenderRequest(
+        await orchestrateRenderRequest(
             { payload: basePayload, messageBus },
             {
                 getMetaRoom: jest.fn().mockResolvedValue(baseMetaRoom),
@@ -101,7 +101,7 @@ describe('renderOrchestration/passiveRenderOrchestration', () => {
     it('emits RenderReady on exact-match hit when no pointer exists', async () => {
         const messageBus = makeBus()
         const getExactMatch = jest.fn().mockResolvedValue(baseCacheRecord)
-        await orchestratePassiveRenderRequest(
+        await orchestrateRenderRequest(
             { payload: basePayload, messageBus },
             {
                 getMetaRoom: jest.fn().mockResolvedValue({ ...baseMetaRoom, currentCacheByPerspective: {} }),
@@ -123,7 +123,7 @@ describe('renderOrchestration/passiveRenderOrchestration', () => {
     it('emits RenderError and does not clear pointer when state marks missing', async () => {
         const clearPerspectivePointer = jest.fn().mockResolvedValue(undefined)
         const messageBus = makeBus()
-        await orchestratePassiveRenderRequest(
+        await orchestrateRenderRequest(
             { payload: basePayload, messageBus },
             {
                 getMetaRoom: jest.fn().mockResolvedValue({ ...baseMetaRoom, state: undefined }),
@@ -146,7 +146,7 @@ describe('renderOrchestration/passiveRenderOrchestration', () => {
     it('emits RenderError when Meta::Room is missing', async () => {
         const messageBus = makeBus()
         const getCacheRecordById = jest.fn()
-        await orchestratePassiveRenderRequest(
+        await orchestrateRenderRequest(
             { payload: basePayload, messageBus },
             {
                 getMetaRoom: jest.fn().mockResolvedValue(undefined),
@@ -169,7 +169,7 @@ describe('renderOrchestration/passiveRenderOrchestration', () => {
     it('clears pointer and emits lookup handoff when markState mismatch', async () => {
         const clearPerspectivePointer = jest.fn().mockResolvedValue(undefined)
         const messageBus = makeBus()
-        await orchestratePassiveRenderRequest(
+        await orchestrateRenderRequest(
             { payload: basePayload, messageBus },
             {
                 getMetaRoom: jest.fn().mockResolvedValue(baseMetaRoom),
@@ -191,7 +191,7 @@ describe('renderOrchestration/passiveRenderOrchestration', () => {
             ...baseCacheRecord,
             perspectiveMatcher: { requiredAssetIds: ['ASSET#other'], forbiddenAssetIds: [] }
         }
-        await orchestratePassiveRenderRequest(
+        await orchestrateRenderRequest(
             { payload: basePayload, messageBus },
             {
                 getMetaRoom: jest.fn().mockResolvedValue(baseMetaRoom),
@@ -208,7 +208,7 @@ describe('renderOrchestration/passiveRenderOrchestration', () => {
 
     it('continues to lookup handoff if pointer clearing fails', async () => {
         const messageBus = makeBus()
-        await orchestratePassiveRenderRequest(
+        await orchestrateRenderRequest(
             { payload: basePayload, messageBus },
             {
                 getMetaRoom: jest.fn().mockResolvedValue(baseMetaRoom),
@@ -225,7 +225,7 @@ describe('renderOrchestration/passiveRenderOrchestration', () => {
     it('emits RenderReady on exact-match hit after invalid pointer', async () => {
         const clearPerspectivePointer = jest.fn().mockResolvedValue(undefined)
         const messageBus = makeBus()
-        await orchestratePassiveRenderRequest(
+        await orchestrateRenderRequest(
             { payload: basePayload, messageBus },
             {
                 getMetaRoom: jest.fn().mockResolvedValue(baseMetaRoom),
@@ -248,7 +248,7 @@ describe('renderOrchestration/passiveRenderOrchestration', () => {
         const messageBus = makeBus()
         const payload: RenderRequested = { ...basePayload, componentId: 'FEATURE#one' }
         const getMetaRoom = jest.fn()
-        await orchestratePassiveRenderRequest(
+        await orchestrateRenderRequest(
             { payload, messageBus },
             {
                 getMetaRoom,
@@ -288,7 +288,7 @@ describe('renderOrchestration/passiveRenderOrchestration', () => {
             allowGeneration: true,
             generationContextWml: '<Asset key=(Test) />',
         }
-        await orchestratePassiveRenderRequest(
+        await orchestrateRenderRequest(
             { payload, messageBus },
             {
                 getMetaRoom: jest.fn().mockResolvedValue({ ...baseMetaRoom, currentCacheByPerspective: {} }),
@@ -322,7 +322,7 @@ describe('renderOrchestration/passiveRenderOrchestration', () => {
             ...basePayload,
             allowGeneration: true,
         }
-        await orchestratePassiveRenderRequest(
+        await orchestrateRenderRequest(
             { payload, messageBus },
             {
                 getMetaRoom: jest.fn().mockResolvedValue({ ...baseMetaRoom, currentCacheByPerspective: {} }),

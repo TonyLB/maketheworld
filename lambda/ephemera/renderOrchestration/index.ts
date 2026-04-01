@@ -5,7 +5,7 @@ import {
     type RenderPreviewRequested,
     type RenderRequested,
 } from './events'
-import { orchestrateRenderRequest } from './passiveRenderOrchestration'
+import { orchestrateRenderRequest } from './orchestrationHandler'
 
 /**
  * renderOrchestration public module surface
@@ -56,14 +56,11 @@ export type {
 export { intakeRenderRequested } from './requestIntake'
 export type { RequestIntakeDependencies } from './requestIntake'
 
-export {
-    orchestratePassiveRenderRequest,
-    orchestrateRenderRequest,
-} from './passiveRenderOrchestration'
+export { orchestrateRenderRequest } from './orchestrationHandler'
 export type {
     PassiveOrchestrationDependencies,
     PassiveRenderPipelineDependencies,
-} from './passiveRenderOrchestration'
+} from './orchestrationHandler'
 
 export { generateRoomPreview, defaultPublishPutCacheRecord } from './generateRoomPreview'
 export type {

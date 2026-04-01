@@ -5,11 +5,11 @@ import { MessageBus } from '../messageBus/baseClasses'
 import type { EphemeraCacheDynamoItem, EphemeraCacheMarkState } from '../renderCache/baseClasses'
 
 import internalCache from '../internalCache'
-import * as passiveOrchestration from './passiveRenderOrchestration'
+import * as orchestrationHandler from './orchestrationHandler'
 import type { RenderPreviewRequested, RenderRequested } from './events'
 
-const actualOrchestrateRenderRequest = jest.requireActual<typeof passiveOrchestration>(
-    './passiveRenderOrchestration'
+const actualOrchestrateRenderRequest = jest.requireActual<typeof orchestrationHandler>(
+    './orchestrationHandler'
 ).orchestrateRenderRequest
 import { generateRoomPreview } from './generateRoomPreview'
 import {
@@ -88,13 +88,13 @@ const makeRenderRequested = (): RenderRequested =>
 
 describe('renderOrchestration/index', () => {
     let messageBus: MessageBus
-    let orchestrateSpy: jest.SpiedFunction<typeof passiveOrchestration.orchestrateRenderRequest>
+    let orchestrateSpy: jest.SpiedFunction<typeof orchestrationHandler.orchestrateRenderRequest>
 
     beforeEach(() => {
         jest.clearAllMocks()
         messageBus = new MessageBus()
         orchestrateSpy = jest
-            .spyOn(passiveOrchestration, 'orchestrateRenderRequest')
+            .spyOn(orchestrationHandler, 'orchestrateRenderRequest')
             .mockImplementation(actualOrchestrateRenderRequest)
     })
 
