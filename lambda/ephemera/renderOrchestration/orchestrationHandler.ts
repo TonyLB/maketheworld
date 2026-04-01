@@ -29,7 +29,7 @@ import { intakeRenderRequested } from './requestIntake'
 import type { RequestIntakeDependencies } from './requestIntake'
 import internalCache from '../internalCache'
 
-export type PassiveOrchestrationDependencies = {
+export type OrchestrationHandlerDependencies = {
     getCacheRecordById?: (roomId: EphemeraRoomId, cacheId: EphemeraCacheId) => Promise<EphemeraCacheDynamoItem | undefined>;
     getExactMatch?: (input: {
         componentId: EphemeraRoomId;
@@ -43,14 +43,14 @@ export type PassiveOrchestrationDependencies = {
     generateRoomPreview?: typeof generateRoomPreview;
 };
 
-export type PassiveRenderPipelineDependencies = RequestIntakeDependencies & PassiveOrchestrationDependencies
+export type OrchestrationPipelineDependencies = RequestIntakeDependencies & OrchestrationHandlerDependencies
 
-type PassiveOrchestrationDepsResolved = {
-    getCacheRecordById: NonNullable<PassiveOrchestrationDependencies['getCacheRecordById']>;
-    getExactMatch: NonNullable<PassiveOrchestrationDependencies['getExactMatch']>;
-    clearPerspectivePointer: NonNullable<PassiveOrchestrationDependencies['clearPerspectivePointer']>;
-    computePerspectiveKey: NonNullable<PassiveOrchestrationDependencies['computePerspectiveKey']>;
-    markStatesEqual: NonNullable<PassiveOrchestrationDependencies['markStatesEqual']>;
+type OrchestrationHandlerDepsResolved = {
+    getCacheRecordById: NonNullable<OrchestrationHandlerDependencies['getCacheRecordById']>;
+    getExactMatch: NonNullable<OrchestrationHandlerDependencies['getExactMatch']>;
+    clearPerspectivePointer: NonNullable<OrchestrationHandlerDependencies['clearPerspectivePointer']>;
+    computePerspectiveKey: NonNullable<OrchestrationHandlerDependencies['computePerspectiveKey']>;
+    markStatesEqual: NonNullable<OrchestrationHandlerDependencies['markStatesEqual']>;
     generateRoomPreview: typeof generateRoomPreview;
 };
 
@@ -94,7 +94,7 @@ const getRoomStateRenderHandle = (
  */
 export const orchestrateRenderRequest = async (
     { payload, messageBus }: { payload: RenderRequested | RenderPreviewRequested; messageBus: MessageBus },
-    _deps?: PassiveRenderPipelineDependencies
+    _deps?: OrchestrationPipelineDependencies
 ): Promise<void> => {
     if (isRenderPreviewRequested(payload)) {
         const conversationId = (payload.conversationId ?? (uuidv4() as ConversationId)) as ConversationId
@@ -150,7 +150,7 @@ export const orchestrateRenderRequest = async (
         return
     }
 
-    const orchDeps: PassiveOrchestrationDepsResolved = {
+    const orchDeps: OrchestrationHandlerDepsResolved = {
         getCacheRecordById: _deps?.getCacheRecordById ?? defaultGetCacheRecordById,
         getExactMatch: _deps?.getExactMatch ?? ((input) => internalCache.RenderCache.getExactMatch(input)),
         clearPerspectivePointer: _deps?.clearPerspectivePointer ?? defaultClearPerspectivePointer,

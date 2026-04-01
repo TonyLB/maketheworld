@@ -58,8 +58,8 @@ export type { RequestIntakeDependencies } from './requestIntake'
 
 export { orchestrateRenderRequest } from './orchestrationHandler'
 export type {
-    PassiveOrchestrationDependencies,
-    PassiveRenderPipelineDependencies,
+    OrchestrationHandlerDependencies,
+    OrchestrationPipelineDependencies,
 } from './orchestrationHandler'
 
 export { generateRoomPreview, defaultPublishPutCacheRecord } from './generateRoomPreview'
