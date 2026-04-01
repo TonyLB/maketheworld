@@ -1,10 +1,8 @@
 /**
  * Payload contracts for internal render-orchestration ingress events.
  *
- * Transitional note:
- * - These are in-process only (dataSourceKey: 'api.ephemera').
- * - This module supports an ingress adapter migration and is not a precedent
- *   for full DataSource contract design.
+ * In-process only (dataSourceKey: 'api.ephemera'). Part of the evolving DataSource
+ * under dataSource/renderOrchestration/ (see AGENT.md); contracts may expand at graduation.
  */
 import type { RenderPreviewRequested, RenderRequested } from '../../renderOrchestration/events'
 

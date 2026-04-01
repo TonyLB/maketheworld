@@ -1,10 +1,8 @@
 /**
  * renderOrchestration ingress envelope guards and typed send-helpers.
  *
- * Transitional status:
- * - This is an ingress adapter only.
- * - Internal-only, non-replayable flow using dataSourceKey 'api.ephemera'.
- * - Do not treat this as a precedent for canonical DataSource publish semantics.
+ * Part of the evolving mtw.ephemera.renderOrchestration DataSource (see ../AGENT.md).
+ * Internal-only publish path uses dataSourceKey 'api.ephemera'; replay and outbound contracts still TBD.
  */
 import {
     StreamingEventEnvelope,

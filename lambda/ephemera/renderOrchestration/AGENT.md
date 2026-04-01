@@ -8,7 +8,7 @@ This module exists to keep policy and multi-step lifecycle logic out of:
 - `state` (which should remain the owner of world-state storage and invariants)
 - `perception` (which should remain the owner of enrichment and message delivery)
 
-In v2, orchestration logic runs as a **cascade** driven by internal render messages and conversation materialization. **Ingress** for API and synthetic requests is normalized through the transitional adapter at `lambda/ephemera/dataSource/renderOrchestration/` (see that module's `AGENT.md`). The module publishes early feedback where the product contract requires it and completion/ready signals when a cache-backed render is available.
+In v2, orchestration logic runs as a **cascade** driven by internal render messages and conversation materialization. **Ingress** for API and synthetic requests is normalized through the evolving `mtw.ephemera.renderOrchestration` DataSource at `lambda/ephemera/dataSource/renderOrchestration/` (see that module's `AGENT.md` for status and graduation criteria). The module publishes early feedback where the product contract requires it and completion/ready signals when a cache-backed render is available.
 
 Important: the lifecycle events are primarily motivated by presence-based delivery (via `perception`). The authoring preview wedge (`generateRoomPreview`) is intentionally direct-to-requester and streams `ConversationStep` messages via `conversations`, so it may not exercise `RenderGenerationStarted` / `RenderReady` even when those are the correct long-term contracts. For the rationale and acceptance criteria split (preview-aligned vs presence-aligned), see `AGENT.planning.md` in this directory.
 
@@ -58,7 +58,7 @@ Current temporary constraint: passive **intake** (`intakeRenderRequested`) surfa
 - messageBus overview: `../messageBus/AGENT.md`
 - perception overview: `../perception/AGENT.md`
 - renderCache overview: `../renderCache/AGENT.md`
-- transitional ingress adapter: `../dataSource/renderOrchestration/AGENT.md`
+- evolving renderOrchestration DataSource: `../dataSource/renderOrchestration/AGENT.md`
 
 ## Usage Patterns
 

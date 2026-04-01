@@ -7,7 +7,7 @@ Local implementation plan for `lambda/ephemera/renderOrchestration/`, aligned wi
 **Related docs**
 
 - Parallel-track declutter: `AGENT.planning.simplification.md`
-- Transitional ingress adapter (non-precedent): `lambda/ephemera/dataSource/renderOrchestration/AGENT.md`
+- Evolving DataSource for render orchestration (ingress today; see graduation): `lambda/ephemera/dataSource/renderOrchestration/AGENT.md`
 
 ---
 
@@ -126,7 +126,7 @@ Tier 1--2 items that were fully described in older revisions of this file; detai
 - **Intake fast path:** `intakeRenderRequested` pointer validation + marks error policy (Tier 1 task 4).
 - **Handler B / exact-match:** `findRender` exact-match branch + shared `tryGeneration`; not duplicated inside `generateRoomPreview` as policy (Tier 1 task 5).
 - **Generation path (Tier 2 task 6):** Cache miss branching, `generateRoomPreview` on miss, pre-mint cache id, persist via `mtw.ephemera.renderCache`, passive conversation registration, preview "generating" only on slow path --- unified under `orchestrateRenderRequest`.
-- **Ingress relocation:** Request subscription moved to transitional `dataSource/renderOrchestration`; `handleRenderOrchestrationMessage` remains for batch/tests.
+- **Ingress relocation:** Request subscription moved to `dataSource/renderOrchestration` (evolving DataSource; see its `AGENT.md`); `handleRenderOrchestrationMessage` remains for batch/tests.
 
 ---
 

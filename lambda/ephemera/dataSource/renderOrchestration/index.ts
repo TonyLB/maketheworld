@@ -1,12 +1,11 @@
 /**
- * Transitional ingress-only render orchestration DataSource adapter.
+ * mtw.ephemera.renderOrchestration DataSource (evolving).
  *
- * IMPORTANT:
- * - This module is intentionally temporary.
- * - It is internal-only and non-replayable.
- * - It exists to normalize ingress into envelope-based subscriptions.
- * - It does NOT define a canonical outbound DataSource streaming contract.
- * - Do not copy this module as precedent for full DataSource implementations.
+ * Ingress is normalized here first; orchestration may consolidate into this package over time.
+ * See ./AGENT.md: "transitional" means immature contracts, not "keep this file minimal forever."
+ *
+ * Current facts: internal-only, non-replayable, envelope subscription to api.ephemera.
+ * Outbound / replay semantics are TBD until graduation criteria in AGENT.md are met.
  */
 import EphemeraDataSource from '../abstract'
 import {
@@ -43,7 +42,7 @@ const toLegacyPayload = async (event: RenderOrchestrationIngressEvent) => {
     return undefined
 }
 
-// Ingress-only adapter: subscribes to api.ephemera render request envelopes and delegates to legacy orchestration.
+// Subscribes to api.ephemera render request envelopes; delegates orchestration to renderOrchestration/ until consolidated.
 export const renderOrchestrationDataSource = new EphemeraDataSource<never, never, RenderOrchestrationIngressCommand>({
     dataSourceKey: 'mtw.ephemera.renderOrchestration',
     replayable: false,

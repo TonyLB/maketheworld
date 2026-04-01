@@ -1,7 +1,7 @@
 import { renderOrchestrationDataSource } from './index'
 import * as orchestrationHandler from '../../renderOrchestration/orchestrationHandler'
 
-describe('mtw.ephemera.renderOrchestration ingress adapter', () => {
+describe('mtw.ephemera.renderOrchestration DataSource', () => {
     beforeEach(() => {
         jest.clearAllMocks()
     })
@@ -38,7 +38,7 @@ describe('mtw.ephemera.renderOrchestration ingress adapter', () => {
         orchestrateSpy.mockRestore()
     })
 
-    it('is non-replayable ingress-only adapter', () => {
+    it('is non-replayable until replay semantics are defined (see AGENT.md graduation)', () => {
         expect(renderOrchestrationDataSource.replayable).toBe(false)
     })
 })

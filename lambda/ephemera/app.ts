@@ -40,7 +40,7 @@ import { sendRenderPreviewRequested } from './dataSource/renderOrchestration/sub
 import './dataSource'  // mtw.ephemera DataSource
 import './dataSource/componentExamples'  // mtw.ephemera.examples DataSource
 import './dataSource/renderCache'  // mtw.ephemera.renderCache DataSource
-import './dataSource/renderOrchestration'  // mtw.ephemera.renderOrchestration ingress adapter (transitional)
+import './dataSource/renderOrchestration'  // mtw.ephemera.renderOrchestration DataSource (evolving; see dataSource/renderOrchestration/AGENT.md)
 
 // Event deserializers for incoming EventBridge events
 const eventDeserializers = {
