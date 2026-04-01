@@ -8,7 +8,7 @@ This module exists to keep policy and multi-step lifecycle logic out of:
 - `state` (which should remain the owner of world-state storage and invariants)
 - `perception` (which should remain the owner of enrichment and message delivery)
 
-In v2, `renderOrchestration` is implemented as a **messageBus-driven event cascade**. It publishes early feedback events (so clients can show "Generating..." immediately) and later publishes completion/ready events when a cache-backed render is available.
+In v2, orchestration logic runs as a **cascade** driven by internal render messages and conversation materialization. **Ingress** for API and synthetic requests is normalized through the transitional adapter at `lambda/ephemera/dataSource/renderOrchestration/` (see that module's `AGENT.md`). The module publishes early feedback where the product contract requires it and completion/ready signals when a cache-backed render is available.
 
 Important: the lifecycle events are primarily motivated by presence-based delivery (via `perception`). The authoring preview wedge (`generateRoomPreview`) is intentionally direct-to-requester and streams `ConversationStep` messages via `conversations`, so it may not exercise `RenderGenerationStarted` / `RenderReady` even when those are the correct long-term contracts. For the rationale and acceptance criteria split (preview-aligned vs presence-aligned), see `AGENT.planning.md` in this directory.
 
@@ -17,9 +17,9 @@ Important: the lifecycle events are primarily motivated by presence-based delive
 `renderOrchestration` is responsible for:
 
 - **Lifecycle policy**: decide what to do when a render is requested or when state changes.
-- **Cache decisioning**: fast path via `Meta::Room.currentCacheId`, then slow path exact-match lookup.
+- **Cache decisioning**: fast path via perspective-scoped pointers in `Meta::Room.currentCacheByPerspective` (legacy `currentCacheId` may still be read as fallback during migration), then exact-match lookup.
 - **Generation orchestration**: on cache miss, start generation and publish early feedback before generation completes.
-- **Completion handoff**: when generation completes, update pointers (e.g. `Meta::Room.currentCacheId`) and publish ready events.
+- **Completion handoff**: when generation completes, update perspective pointers (and publish ready events consistent with the cache lifecycle contract; see `AGENT.planning.md` Task 6.5).
 - **Decoupled signaling**: publish well-scoped internal events so perception can react without coupling to generation internals.
 
 Current temporary constraint: passive **intake** (`intakeRenderRequested`) surfaces missing `Meta::Room.state.marks` as `marks_missing`; the **shell** (`orchestratePassiveRenderRequestedBatch`) maps that to bus `RenderError` (no defaults invented in intake). See `AGENT.planning.md`.
@@ -46,7 +46,7 @@ Current temporary constraint: passive **intake** (`intakeRenderRequested`) surfa
 
 ### Dependencies
 
-- **Message bus**: `lambda/ephemera/messageBus/` is the execution engine for the cascade.
+- **Message bus**: `lambda/ephemera/messageBus/` carries internal render lifecycle and related publishes; render **request** ingress uses the DataSource adapter above rather than a dedicated `registerRenderOrchestration` subscription in `messageBus/index.ts`.
 - **State storage**: `Meta::Room` (`packages/mtw-interfaces/ts/ephemeraMeta.ts` + ephemeraDB).
 - **Cache primitives**: `lambda/ephemera/renderCache/` (record types, mark helpers, exact match via `internalCache.RenderCache`). LLM generation: `lambda/ephemera/generateExample/`.
 - **Perception**: `lambda/ephemera/perception/` subscribes to orchestration lifecycle events to send placeholder and final messages.
@@ -58,17 +58,18 @@ Current temporary constraint: passive **intake** (`intakeRenderRequested`) surfa
 - messageBus overview: `../messageBus/AGENT.md`
 - perception overview: `../perception/AGENT.md`
 - renderCache overview: `../renderCache/AGENT.md`
+- transitional ingress adapter: `../dataSource/renderOrchestration/AGENT.md`
 
 ## Usage Patterns
 
 ### Typical scenario (Room render lifecycle)
 
-1. A trigger occurs (authoring state dashboard request, room update, explicit look).
-2. A caller publishes `RenderRequested` with:
+1. A trigger occurs (authoring API, room update, explicit look). Many paths emit `api.ephemera` envelopes that the ingress adapter turns into `RenderRequested` / `RenderPreviewRequested` for `orchestrateRenderRequest`.
+2. A caller delivers a render request (envelope or internal publish) as `RenderRequested` or `RenderPreviewRequested`, including:
    - `componentId` (Room id)
    - request-scoped `characterId` when applicable
    - `perspective`
-3. `renderOrchestration` handles `RenderRequested` and cascade handlers:
+3. `renderOrchestration` handles the request via `orchestrateRenderRequest` and the intake -> `findRender` chain:
    - attempt fast-path cache pointer, else exact-match lookup
    - on miss with generation allowed: publish `RenderGenerationStarted` immediately, then start generation
    - on completion: update cache pointer and publish `RenderReady`
@@ -82,7 +83,7 @@ Current temporary constraint: passive **intake** (`intakeRenderRequested`) surfa
 
 1. Read the active plan: `AGENT.planning.md` (this directory).
 2. Read state v2 plan: `../state/AGENT.v2.planning.md` (system-level plan).
-3. Review messageBus patterns: `../messageBus/baseClasses.ts` and `../messageBus/index.ts`.
+3. Review ingress adapter: `../dataSource/renderOrchestration/` and `../app.ts` (side-effect import). MessageBus types: `../messageBus/baseClasses.ts`.
 4. Review perception placeholders: `../perception/index.ts` (look for `sendRoomGeneratingHeader`).
 5. Review cache primitives: `../renderCache/markStateUtils.ts`. Room cache-miss orchestration: `generateRoomPreview.ts` (this directory). LLM generation: `../generateExample/`.
 
@@ -91,7 +92,7 @@ Current temporary constraint: passive **intake** (`intakeRenderRequested`) surfa
 - `events.ts`: messageBus event type definitions and type guards
 - `requestIntake.ts`: passive A-phase only (`intakeRenderRequested`)
 - `orchestrationHandler.ts`: single-item `orchestrateRenderRequest` (preview + passive; intake -> `deliverIntakeErrorsIfAny` -> `findRender` -> conversation `sendMessage`)
-- `index.ts`: messageBus registration; `handleRenderOrchestrationMessage` maps each `RenderRequested` / `RenderPreviewRequested` to `orchestrateRenderRequest`
+- `index.ts`: exports, guards, and `handleRenderOrchestrationMessage` (batches payloads to `orchestrateRenderRequest` for tests and direct callers; primary request ingress is `../dataSource/renderOrchestration/`)
 - `generateRoomPreview.ts`: room cache-miss orchestration (exact match, then `generateExample` on miss; used by WebSocket API)
 
 ## Development Notes
