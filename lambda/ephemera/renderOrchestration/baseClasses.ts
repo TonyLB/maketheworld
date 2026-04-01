@@ -72,6 +72,7 @@ export const isRenderResolveInputError = (arg: RenderResolveInput): arg is Rende
  * passive-path invariants (e.g. missing `Meta::Room.state.marks`).
  */
 export type RenderResolveErrorCode =
+    | 'NOT_ROOM'
     | 'NO_EXACT_MATCH'
     | 'CONTEXT_REQUIRED'
     | 'GENERATION_FAILED'

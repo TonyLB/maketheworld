@@ -5,8 +5,12 @@ import { MessageBus } from '../messageBus/baseClasses'
 import type { EphemeraCacheDynamoItem, EphemeraCacheMarkState } from '../renderCache/baseClasses'
 
 import internalCache from '../internalCache'
-import { orchestratePassiveRenderRequestedBatch } from './passiveRenderOrchestration'
+import * as orchestrationHandler from './orchestrationHandler'
 import type { RenderPreviewRequested, RenderRequested } from './events'
+
+const actualOrchestrateRenderRequest = jest.requireActual<typeof orchestrationHandler>(
+    './orchestrationHandler'
+).orchestrateRenderRequest
 import { generateRoomPreview } from './generateRoomPreview'
 import {
     handleRenderOrchestrationMessage,
@@ -21,6 +25,7 @@ jest.mock('../internalCache', () => ({
     default: {
         Conversations: {
             get: jest.fn(),
+            set: jest.fn(),
         },
         RenderCache: {
             getExactMatch: jest.fn(),
@@ -32,16 +37,9 @@ jest.mock('./generateRoomPreview', () => ({
     generateRoomPreview: jest.fn(),
 }))
 
-jest.mock('./passiveRenderOrchestration', () => ({
-    __esModule: true,
-    orchestratePassiveRenderRequestedBatch: jest.fn().mockResolvedValue(undefined),
-    requestIntakeMessage: jest.fn(),
-}))
-
 const mockConversationsGet = jest.mocked(internalCache.Conversations.get)
 const mockGetExactMatch = jest.mocked(internalCache.RenderCache.getExactMatch)
 const mockGenerateRoomPreview = jest.mocked(generateRoomPreview)
-const mockOrchestratePassiveRenderRequestedBatch = jest.mocked(orchestratePassiveRenderRequestedBatch)
 
 const roomId = 'ROOM#test-room' as EphemeraRoomId
 const conversationId = '550e8400-e29b-41d4-a716-446655440000'
@@ -90,11 +88,18 @@ const makeRenderRequested = (): RenderRequested =>
 
 describe('renderOrchestration/index', () => {
     let messageBus: MessageBus
+    let orchestrateSpy: jest.SpiedFunction<typeof orchestrationHandler.orchestrateRenderRequest>
 
     beforeEach(() => {
         jest.clearAllMocks()
-        mockOrchestratePassiveRenderRequestedBatch.mockResolvedValue(undefined)
         messageBus = new MessageBus()
+        orchestrateSpy = jest
+            .spyOn(orchestrationHandler, 'orchestrateRenderRequest')
+            .mockImplementation(actualOrchestrateRenderRequest)
+    })
+
+    afterEach(() => {
+        orchestrateSpy.mockRestore()
     })
 
     describe('handleRenderOrchestrationMessage (preview path)', () => {
@@ -268,24 +273,38 @@ describe('renderOrchestration/index', () => {
     })
 
     describe('handleRenderOrchestrationMessage (RenderRequested path)', () => {
-        it('forwards only RenderRequested payloads to orchestratePassiveRenderRequestedBatch', async () => {
+        beforeEach(() => {
+            orchestrateSpy.mockResolvedValue(undefined)
+        })
+
+        it('forwards RenderRequested payloads to orchestrateRenderRequest', async () => {
             const rr = makeRenderRequested()
             await handleRenderOrchestrationMessage({
                 payloads: [rr],
                 messageBus,
             })
 
-            expect(mockOrchestratePassiveRenderRequestedBatch).toHaveBeenCalledWith({
-                payloads: [rr],
+            expect(orchestrateSpy).toHaveBeenCalledWith({
+                payload: rr,
                 messageBus,
             })
+            expect(orchestrateSpy).toHaveBeenCalledTimes(1)
             expect(mockGetExactMatch).not.toHaveBeenCalled()
             expect(mockGenerateRoomPreview).not.toHaveBeenCalled()
         })
     })
 
     describe('handleRenderOrchestrationMessage (batching)', () => {
-        it('runs request intake and preview handling in parallel for mixed payloads', async () => {
+        beforeEach(() => {
+            orchestrateSpy.mockImplementation(async (args) => {
+                if (args.payload.type === 'RenderRequested') {
+                    return Promise.resolve()
+                }
+                return actualOrchestrateRenderRequest(args)
+            })
+        })
+
+        it('runs orchestrateRenderRequest once per payload in parallel for mixed payloads', async () => {
             const sendMessage = jest.fn().mockResolvedValue(undefined)
             mockConversationsGet.mockReturnValue({
                 record: {} as never,
@@ -304,10 +323,15 @@ describe('renderOrchestration/index', () => {
                 messageBus,
             })
 
-            expect(mockOrchestratePassiveRenderRequestedBatch).toHaveBeenCalledWith({
-                payloads: [rr],
+            expect(orchestrateSpy).toHaveBeenCalledWith({
+                payload: rr,
                 messageBus,
             })
+            expect(orchestrateSpy).toHaveBeenCalledWith({
+                payload: preview,
+                messageBus,
+            })
+            expect(orchestrateSpy).toHaveBeenCalledTimes(2)
             expect(mockGetExactMatch).toHaveBeenCalled()
             expect(mockGenerateRoomPreview).not.toHaveBeenCalled()
         })

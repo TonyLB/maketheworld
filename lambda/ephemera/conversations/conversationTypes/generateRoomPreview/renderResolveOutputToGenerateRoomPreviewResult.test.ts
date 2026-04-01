@@ -80,6 +80,17 @@ describe('renderResolveOutputToGenerateRoomPreviewResult', () => {
             errorCode: 'NO_EXACT_MATCH',
             errorMessage: 'm',
         })
+        expect(
+            renderResolveOutputToGenerateRoomPreviewResult({
+                type: 'failed',
+                errorCode: 'NOT_ROOM',
+                errorMessage: 'n',
+            })
+        ).toEqual({
+            success: false,
+            errorCode: 'NOT_ROOM',
+            errorMessage: 'n',
+        })
     })
 
     it('maps META_ROOM_MARKS_MISSING to GENERATION_FAILED', () => {
