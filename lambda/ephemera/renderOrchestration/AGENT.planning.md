@@ -12,6 +12,10 @@ Parallel-track declutter is tracked in:
 
 - `lambda/ephemera/renderOrchestration/AGENT.planning.simplification.md`
 
+Transitional ingress adapter status for DataSource-shape intake is documented in:
+
+- `lambda/ephemera/dataSource/renderOrchestration/AGENT.md`
+
 ## Goals (v2)
 
 1. Implement a messageBus-based event cascade for render lifecycle orchestration.

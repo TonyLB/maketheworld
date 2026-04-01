@@ -39,7 +39,7 @@ describe('app handler - generateRoomPreview', () => {
         jest.clearAllMocks()
     })
 
-    it('publishes RenderPreviewRequested without conversationId (orchestration registers)', async () => {
+    it('publishes api.ephemera StreamingEvent for render preview ingress', async () => {
         const event = makeEvent({
             message: 'generateRoomPreview',
             RoomId: 'ROOM#test-room',
@@ -50,8 +50,11 @@ describe('app handler - generateRoomPreview', () => {
 
         await handler(event as any, {} as any)
 
-        expect(messageBusMock.send).toHaveBeenCalledWith({
-            type: 'RenderPreviewRequested',
+        const sent = messageBusMock.send.mock.calls[0][0]
+        expect(sent.type).toBe('StreamingEvent')
+        expect(sent.dataSourceKey).toBe('api.ephemera')
+        expect(sent.header.type).toBe('Render Preview Requested')
+        expect(await sent.getContent()).toMatchObject({
             componentId: 'ROOM#test-room',
             perspective: { assetStack: ['ASSET#one'] },
             markState: { markValue: [{ mark: 'MARK#a', value: 'one' }] },
@@ -72,8 +75,11 @@ describe('app handler - generateRoomPreview', () => {
 
         await handler(event as any, {} as any)
 
-        expect(messageBusMock.send).toHaveBeenCalledWith({
-            type: 'RenderPreviewRequested',
+        const sent = messageBusMock.send.mock.calls[0][0]
+        expect(sent.type).toBe('StreamingEvent')
+        expect(sent.dataSourceKey).toBe('api.ephemera')
+        expect(sent.header.type).toBe('Render Preview Requested')
+        expect(await sent.getContent()).toMatchObject({
             componentId: 'ROOM#test-room',
             perspective: { assetStack: ['ASSET#one'] },
             markState: { markValue: [] },

@@ -11,6 +11,15 @@ This file tracks those parallel tracks so we can:
 
 Use this as a declutter board, not as a design brainstorm doc.
 
+## Transitional ingress adapter note
+
+Render-orchestration request ingress is normalized through the transitional DataSource adapter at:
+
+- `lambda/ephemera/dataSource/renderOrchestration/`
+
+This remains an ingress-only migration shape and is not the canonical outbound DataSource contract.
+See `lambda/ephemera/dataSource/renderOrchestration/AGENT.md` for non-precedent warnings and exit criteria.
+
 ## Strategic intent: two prototypes, one core (why migrate toward unity)
 
 Room generation did not start with two product pipelines. It started with a **first prototype**: preview-style flows (`generateRoomPreview` and friends) to prove that generation could work **at all**, using the roughest viable delivery. The **second prototype** is what we actually want long-term: **renders that emerge from state changes** (passive / lifecycle-driven orchestration).

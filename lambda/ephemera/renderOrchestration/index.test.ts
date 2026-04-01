@@ -14,8 +14,6 @@ const actualOrchestrateRenderRequest = jest.requireActual<typeof orchestrationHa
 import { generateRoomPreview } from './generateRoomPreview'
 import {
     handleRenderOrchestrationMessage,
-    isRenderOrchestrationRequestMessage,
-    registerRenderOrchestration,
 } from './index'
 import * as findRenderModule from './findRender'
 import { RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION } from './baseClasses'
@@ -334,24 +332,6 @@ describe('renderOrchestration/index', () => {
             expect(orchestrateSpy).toHaveBeenCalledTimes(2)
             expect(mockGetExactMatch).toHaveBeenCalled()
             expect(mockGenerateRoomPreview).not.toHaveBeenCalled()
-        })
-    })
-
-    describe('registerRenderOrchestration', () => {
-        it('subscribes with tag, priority, filter, and handleRenderOrchestrationMessage callback', () => {
-            const subscribeSpy = jest.spyOn(MessageBus.prototype, 'subscribe')
-            const bus = new MessageBus()
-
-            const { unsubscribeAll } = registerRenderOrchestration(bus)
-
-            expect(subscribeSpy).toHaveBeenCalledTimes(1)
-            const subscription = subscribeSpy.mock.calls[0][0]
-            expect(subscription.tag).toBe('RenderOrchestration.Requests')
-            expect(subscription.priority).toBe(5)
-            expect(subscription.filter).toBe(isRenderOrchestrationRequestMessage)
-            expect(subscription.callback).toBe(handleRenderOrchestrationMessage)
-            expect(typeof unsubscribeAll).toBe('function')
-            subscribeSpy.mockRestore()
         })
     })
 

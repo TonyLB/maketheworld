@@ -34,15 +34,13 @@ import { confirmGuestCharacter } from './guestCharacter'
 import { AssetsEventSerializer, ComponentExamplesEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
 import { fromEventBridgeFormat } from '@tonylb/mtw-lambda-patterns/ts/dataSource/formatTransform'
 import { coreFormatToStreamingEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
-import { registerRenderOrchestration } from './renderOrchestration'
+import { sendRenderPreviewRequested } from './dataSource/renderOrchestration/subscribedEvents'
 
 // Import DataSources to trigger their messageBus subscriptions (side-effect imports)
 import './dataSource'  // mtw.ephemera DataSource
 import './dataSource/componentExamples'  // mtw.ephemera.examples DataSource
 import './dataSource/renderCache'  // mtw.ephemera.renderCache DataSource
-
-// Wire here (not in `messageBus/index.ts`): `renderOrchestration` pulls in `internalCache`, which imports this `messageBus` module; registering after imports avoids a circular init.
-registerRenderOrchestration(messageBus)
+import './dataSource/renderOrchestration'  // mtw.ephemera.renderOrchestration ingress adapter (transitional)
 
 // Event deserializers for incoming EventBridge events
 const eventDeserializers = {
@@ -238,8 +236,7 @@ export const handler = async (event: any, context: any) => {
             }
 
             if (isGenerateRoomPreviewAPIMessage(request)) {
-                messageBus.send({
-                    type: 'RenderPreviewRequested',
+                sendRenderPreviewRequested(messageBus, request.RoomId as EphemeraRoomId, {
                     componentId: request.RoomId as EphemeraRoomId,
                     perspective: { assetStack: request.assetStack as AssetUUID[] },
                     markState: request.markState,
