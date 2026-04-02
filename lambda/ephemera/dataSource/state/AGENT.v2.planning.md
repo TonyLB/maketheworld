@@ -5,7 +5,7 @@
 This document picks up where v1 left off.
 
 - v1 planning and implementation status remain tracked in:
-  - `lambda/ephemera/state/AGENT.v1.planning.md`
+  - `lambda/ephemera/dataSource/state/AGENT.v1.planning.md`
 - v1 established core foundations:
 - `Meta::Room` state shape foundations (`state.marks`, optional `situationId`)
   - default mark derivation (`computeDefaultMarksForRoom`)

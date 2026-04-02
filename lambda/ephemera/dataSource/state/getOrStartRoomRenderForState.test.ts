@@ -1,10 +1,10 @@
 import { getOrStartRoomRenderForState } from './getOrStartRoomRenderForState'
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMetaRoom, EphemeraCacheId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import type { EphemeraCacheDynamoItem } from '../renderCache/baseClasses'
+import type { EphemeraCacheDynamoItem } from '../../renderCache/baseClasses'
 import type { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 
-describe('state/getOrStartRoomRenderForState (TDD scaffold)', () => {
+describe('dataSource/state/getOrStartRoomRenderForState (TDD scaffold)', () => {
     const roomId = 'ROOM#TDD' as EphemeraRoomId
     const perspective = { assetStack: ['ASSET#base' as AssetUUID] }
 

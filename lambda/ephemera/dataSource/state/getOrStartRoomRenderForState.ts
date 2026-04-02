@@ -1,10 +1,10 @@
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { PerspectiveSpec } from './computeDefaultMarksForRoom'
 import type { EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { isEphemeraCacheDynamoItem, type EphemeraCacheDynamoItem } from '../renderCache/baseClasses'
+import { isEphemeraCacheDynamoItem, type EphemeraCacheDynamoItem } from '../../renderCache/baseClasses'
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { perspectiveMatches } from '@tonylb/mtw-interfaces/ts/perspective'
-import { markStatesEqual } from '../renderCache/markStateUtils'
+import { markStatesEqual } from '../../renderCache/markStateUtils'
 
 export type GetOrStartRoomRenderForStateReady = {
     status: 'ready';

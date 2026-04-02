@@ -105,7 +105,7 @@ Until then, keep calling the status **transitional** in the sense of **evolving*
 
 **Ephemera module overviews**
 
-- `lambda/ephemera/state/AGENT.v2.planning.md` (system-level v2 plan)
+- `lambda/ephemera/dataSource/state/AGENT.v2.planning.md` (system-level v2 plan)
 - `lambda/ephemera/messageBus/AGENT.md`
 - `lambda/ephemera/perception/AGENT.md`
 - `lambda/ephemera/renderCache/AGENT.md`

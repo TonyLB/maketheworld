@@ -3,7 +3,7 @@
  *
  * Internal-only, non-replayable, bus-only publisher strategy.
  * Subscribes to api.ephemera **State Change** envelopes (componentId + markState); handler is a
- * stub until AGENT.v3 migration. See lambda/ephemera/state/AGENT.v3.planning.md.
+ * stub until AGENT.v3 migration. See ./AGENT.v3.planning.md (same package).
  */
 import EphemeraDataSource from '../abstract'
 import { isEphemeraApiStateChangeEnvelope } from '../apiEphemera'

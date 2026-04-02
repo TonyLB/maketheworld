@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Local implementation plan for `lambda/ephemera/dataSource/renderOrchestration/` (render orchestration v2), aligned with `lambda/ephemera/state/AGENT.v2.planning.md`.
+Local implementation plan for `lambda/ephemera/dataSource/renderOrchestration/` (render orchestration v2), aligned with `lambda/ephemera/dataSource/state/AGENT.v2.planning.md`.
 
 **Related docs**
 

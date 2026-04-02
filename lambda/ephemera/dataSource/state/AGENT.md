@@ -1,8 +1,8 @@
-*Status: Draft - runtime world-state helpers and types; orchestration lives under `dataSource/renderOrchestration`.*
+*Status: Draft - runtime world-state helpers and `mtw.ephemera.state` DataSource; orchestration lives under `dataSource/renderOrchestration`.*
 
 ## Overview
 
-The `lambda/ephemera/state` module owns the **runtime world-state model** for Ephemera: canonical **marks** (and related fields) for Rooms, how they are stored on `Meta::Room`, and **helpers** to derive defaults and merge WML across the asset stack (`computeDefaultMarksForRoom`, stack merge helpers, and the partial `getOrStartRoomRenderForState` scaffold).
+The `lambda/ephemera/dataSource/state` package owns the **runtime world-state model** for Ephemera: canonical **marks** (and related fields) for Rooms, how they are stored on `Meta::Room`, and **helpers** to derive defaults and merge WML across the asset stack (`computeDefaultMarksForRoom`, stack merge helpers, and the partial `getOrStartRoomRenderForState` scaffold).
 
 **In scope here**
 
