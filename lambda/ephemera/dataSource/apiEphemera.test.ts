@@ -2,9 +2,11 @@ import {
     sendPutCacheRecord,
     sendDeleteCacheRecords,
     sendGenerateRoomPreview,
+    sendStateChange,
     isEphemeraApiSubscribedEnvelope,
     isEphemeraApiPutCacheRecordEnvelope,
     isEphemeraApiDeleteCacheRecordsEnvelope,
+    isEphemeraApiStateChangeEnvelope,
 } from './apiEphemera'
 import type { StreamingEventMessage } from '../messageBus/baseClasses'
 import type { StreamingEventEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
@@ -110,6 +112,26 @@ describe('apiEphemera', () => {
         expect(sent[0].streamKey).toBe('ROOM#r2')
     })
 
+    it('sendStateChange posts StreamingEvent with State Change type and componentId + markState', async () => {
+        const { sent, bus } = makeBus()
+        sendStateChange(bus, 'ROOM#r3', {
+            componentId: 'ROOM#r3',
+            markState: { markValue: [{ mark: 'MARK#a', value: 'lit' }] },
+        })
+
+        expect(sent).toHaveLength(1)
+        const msg = sent[0]
+        expect(msg.type).toBe('StreamingEvent')
+        expect(msg.dataSourceKey).toBe('api.ephemera')
+        expect(msg.streamKey).toBe('ROOM#r3')
+        expect(msg.header.type).toBe('State Change')
+        const content = await msg.getContent()
+        expect(content).toEqual({
+            componentId: 'ROOM#r3',
+            markState: { markValue: [{ mark: 'MARK#a', value: 'lit' }] },
+        })
+    })
+
     it('isEphemeraApiSubscribedEnvelope accepts api.ephemera Put Cache Record envelope', async () => {
         const { sent, bus } = makeBus()
         sendPutCacheRecord(bus, 'ROOM#x', minimalPutRecord)
@@ -132,6 +154,21 @@ describe('apiEphemera', () => {
         }
         expect(isEphemeraApiSubscribedEnvelope(envelope)).toBe(true)
         expect(isEphemeraApiDeleteCacheRecordsEnvelope(envelope)).toBe(true)
+    })
+
+    it('isEphemeraApiSubscribedEnvelope accepts api.ephemera State Change envelope', async () => {
+        const { sent, bus } = makeBus()
+        sendStateChange(bus, 'ROOM#sc', {
+            componentId: 'ROOM#sc',
+            markState: { markValue: [] },
+        })
+        const msg = sent[0]
+        const envelope: StreamingEventEnvelope<unknown> = {
+            header: msg.header,
+            getContent: msg.getContent,
+        }
+        expect(isEphemeraApiSubscribedEnvelope(envelope)).toBe(true)
+        expect(isEphemeraApiStateChangeEnvelope(envelope)).toBe(true)
     })
 
     it('isEphemeraApiSubscribedEnvelope rejects wrong dataSourceKey', () => {

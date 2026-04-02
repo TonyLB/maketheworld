@@ -2,7 +2,7 @@
  * Payload types and type guards for API-triggered internal events (dataSourceKey: 'api.ephemera').
  * Used by apiEphemera.ts send helpers and future DataSource receiveEvents. In-process only; no EventBridge.
  */
-import type { EphemeraCacheComponentId } from '../renderCache/baseClasses'
+import type { EphemeraCacheComponentId, EphemeraCacheMarkState } from '../renderCache/baseClasses'
 import type { PutCacheRecordInput } from './renderCache/putCacheRecord'
 import type { GenerateRoomPreviewInput } from './renderOrchestration/generateRoomPreview'
 
@@ -22,6 +22,33 @@ export type DeleteCacheRecordsCommand = {
 export type GenerateRoomPreviewCommand = GenerateRoomPreviewInput & {
     RequestId?: string;
 };
+
+/** Proposed world-state marks for a component (e.g. Room); paired with header `State Change` on api.ephemera. */
+export type StateChangeCommand = {
+    componentId: EphemeraCacheComponentId;
+    markState: EphemeraCacheMarkState;
+}
+
+const isMarkStateShape = (value: unknown): value is EphemeraCacheMarkState => {
+    if (!value || typeof value !== 'object') {
+        return false
+    }
+    return Array.isArray((value as Record<string, unknown>).markValue)
+}
+
+export const isStateChangeCommand = (value: unknown): value is StateChangeCommand => {
+    if (!value || typeof value !== 'object') {
+        return false
+    }
+    const v = value as Record<string, unknown>
+    if (typeof v.componentId !== 'string') {
+        return false
+    }
+    if (!isMarkStateShape(v.markState)) {
+        return false
+    }
+    return true
+}
 
 export const isPutCacheRecordCommand = (value: unknown): value is PutCacheRecordCommand => {
     if (!value || typeof value !== 'object') {
@@ -95,4 +122,8 @@ export const isGenerateRoomPreviewCommand = (value: unknown): value is GenerateR
 }
 
 /** Union of all api.ephemera command payloads (discriminated by header.type on the bus). */
-export type EphemeraApiCommandPayload = PutCacheRecordCommand | DeleteCacheRecordsCommand | GenerateRoomPreviewCommand
+export type EphemeraApiCommandPayload =
+    | PutCacheRecordCommand
+    | DeleteCacheRecordsCommand
+    | GenerateRoomPreviewCommand
+    | StateChangeCommand
