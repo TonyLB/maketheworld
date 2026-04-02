@@ -1,4 +1,4 @@
-export type { RenderProgress } from '../../../renderOrchestration/baseClasses'
+export type { RenderProgress } from '../../../dataSource/renderOrchestration/baseClasses'
 export type {
     ConversationHandleGenerateRoomPreview,
     GenerateRoomPreviewConversationRouting,

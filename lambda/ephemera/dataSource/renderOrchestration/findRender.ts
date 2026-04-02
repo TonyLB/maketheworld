@@ -1,8 +1,8 @@
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { perspectiveMatches, computePerspectiveKey, type Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
 import type { EphemeraCacheId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import type { EphemeraCacheDynamoItem, EphemeraCacheMarkState } from '../renderCache/baseClasses'
-import type { ConversationId } from '../conversations'
+import type { EphemeraCacheDynamoItem, EphemeraCacheMarkState } from '../../renderCache/baseClasses'
+import type { ConversationId } from '../../conversations'
 import type { generateRoomPreview } from './generateRoomPreview'
 import {
     RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION,

@@ -1,5 +1,5 @@
-import type { RenderProgress, RenderResolveOutput } from '../../../renderOrchestration/baseClasses'
-import type { RenderComponentId, RenderRequestedBusDeliveryFields } from '../../../renderOrchestration/events'
+import type { RenderProgress, RenderResolveOutput } from '../../../dataSource/renderOrchestration/baseClasses'
+import type { RenderComponentId, RenderRequestedBusDeliveryFields } from '../../../dataSource/renderOrchestration/events'
 
 /** Rest of {@link RenderRequestedBusDeliveryFields} when `componentId` lives on {@link RoomStateRenderConversationRouting}. */
 export type RoomStateRenderPassiveBusDeliveryFields = Omit<RenderRequestedBusDeliveryFields, 'componentId'>

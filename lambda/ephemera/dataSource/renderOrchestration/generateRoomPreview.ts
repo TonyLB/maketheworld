@@ -10,15 +10,15 @@ import {
     type EphemeraCacheComponentId,
     type EphemeraCacheDynamoItem,
     type EphemeraCacheMarkState,
-} from '../renderCache/baseClasses'
-import type { ConversationId } from '../conversations'
+} from '../../renderCache/baseClasses'
+import type { ConversationId } from '../../conversations'
 import type { RenderProgress, RenderResolveOutput } from './baseClasses'
-import type { PutCacheRecordInput } from '../dataSource/renderCache/putCacheRecord'
-import type { QueryCacheRecordsForComponentFn } from '../dataSource/renderCache/queryCacheRecordsForComponent'
-import internalCache from '../internalCache'
-import { generateRoomDescription } from '../generateExample'
-import { sendPutCacheRecord } from '../dataSource/apiEphemera'
-import messageBus from '../messageBus'
+import type { PutCacheRecordInput } from '../renderCache/putCacheRecord'
+import type { QueryCacheRecordsForComponentFn } from '../renderCache/queryCacheRecordsForComponent'
+import internalCache from '../../internalCache'
+import { generateRoomDescription } from '../../generateExample'
+import { sendPutCacheRecord } from '../apiEphemera'
+import messageBus from '../../messageBus'
 
 export type GenerateRoomPreviewInput = {
     roomId: EphemeraRoomId;

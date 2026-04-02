@@ -1,4 +1,4 @@
-import { isRenderProgress, type RenderResolveOutput } from '../../../renderOrchestration/baseClasses'
+import { isRenderProgress, type RenderResolveOutput } from '../../../dataSource/renderOrchestration/baseClasses'
 import {
     toRenderError,
     toRenderInvalidate,
@@ -7,7 +7,7 @@ import {
     type RenderInvalidate,
     type RenderReady,
     type RenderRequested,
-} from '../../../renderOrchestration/events'
+} from '../../../dataSource/renderOrchestration/events'
 import type { MessageBus } from '../../../messageBus/baseClasses'
 
 import type { ConversationHandleRoomStateRender, StorableConversationRecordRoomStateRender } from './baseClasses'

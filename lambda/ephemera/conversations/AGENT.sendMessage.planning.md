@@ -20,7 +20,7 @@ For `generateRoomPreview` conversations:
 2. `internalCache.Conversations.get(conversationId)` is a composite runtime read that returns `{ record, handle }`.
 3. For `generateRoomPreview` rows, `handle` is a live capability built via `materializeGenerateRoomPreview(record, deps)` and exposes `sendMessage(...)`.
 4. `materializeGenerateRoomPreview.sendMessage(...)` enriches local simplified args into shared `ConversationStep` wire shape and sends via `apiClient.send`.
-5. `renderOrchestration/generateRoomPreview` does not call the conversation system directly; it receives `onGenerating` callback as an injected option (and the caller invokes terminal `handle.sendMessage(...)` after orchestration returns).
+5. `dataSource/renderOrchestration/generateRoomPreview` does not call the conversation system directly; it receives `onGenerating` callback as an injected option (and the caller invokes terminal `handle.sendMessage(...)` after orchestration returns).
 
 ### Why this worked for MVP
 
@@ -102,6 +102,6 @@ Required guardrails for this choice:
 - `lambda/ephemera/internalCache/conversations.ts`
 - `lambda/ephemera/conversations/registry.ts`
 - `lambda/ephemera/conversations/conversationTypes/generateRoomPreview/materialize.ts`
-- `lambda/ephemera/renderOrchestration/generateRoomPreview.ts`
+- `lambda/ephemera/dataSource/renderOrchestration/generateRoomPreview.ts`
 - `lambda/ephemera/conversations/AGENT.planning.md`
 - `lambda/ephemera/conversations/AGENT.planning.tasklist.md`

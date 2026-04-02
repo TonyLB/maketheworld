@@ -11,7 +11,7 @@ import {
     isRenderOrchestrationMessage
 } from './events'
 
-describe('renderOrchestration events guards', () => {
+describe('dataSource/renderOrchestration events guards', () => {
     const base = {
         componentId: 'ROOM#room' as const,
         perspective: { assetStack: ['ASSET#a', 'ASSET#b'] as const }
@@ -226,4 +226,3 @@ describe('renderOrchestration events guards', () => {
         })).toBe(false)
     })
 })
-

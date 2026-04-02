@@ -1,25 +1,28 @@
 /**
  * Render orchestration handler: {@link findRender} + terminal delivery via conversation `sendMessage`
- * after {@link intakeRenderRequested} (see `requestIntake.ts`).
+ * after {@link intakeRenderRequested} (see `./requestIntake.ts`).
  *
  * {@link orchestrateRenderRequest} is the unified entry for preview + passive single-item orchestration.
+ *
+ * Lives under `dataSource/renderOrchestration/` so ingress, intake, and orchestration (`findRender`, `generateRoomPreview`, …)
+ * stay co-located with planning docs (`AGENT.planning.md`, etc.) in this directory.
  */
 import { v4 as uuidv4 } from 'uuid'
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { computePerspectiveKey, perspectiveMatches, computePerspectiveKey as defaultComputePerspectiveKey, type Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
 import type { EphemeraCacheId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import type { MessageBus } from '../messageBus/baseClasses'
-import { isEphemeraCacheDynamoItem, type EphemeraCacheDynamoItem, type EphemeraCacheMarkState } from '../renderCache/baseClasses'
-import { markStatesEqual } from '../renderCache/markStateUtils'
+import type { MessageBus } from '../../messageBus/baseClasses'
+import { isEphemeraCacheDynamoItem, type EphemeraCacheDynamoItem, type EphemeraCacheMarkState } from '../../renderCache/baseClasses'
+import { markStatesEqual } from '../../renderCache/markStateUtils'
 import {
     CONVERSATION_PAYLOAD_STUB,
     CONVERSATION_TYPE_GENERATE_ROOM_PREVIEW,
     CONVERSATION_TYPE_ROOM_STATE_RENDER,
     isConversationCompositeReadHandleGenerateRoomPreview,
     isConversationCompositeReadHandleRoomStateRender,
-} from '../conversations/conversationTypes'
-import type { ConversationId } from '../conversations'
+} from '../../conversations/conversationTypes'
+import type { ConversationId } from '../../conversations'
 import { isRenderPreviewRequested, type RenderPreviewRequested, type RenderRequested } from './events'
 import { isRenderResolveInputSuccess } from './baseClasses'
 import { deliverIntakeErrorsIfAny } from './intakeErrors'
@@ -27,7 +30,7 @@ import { findRender } from './findRender'
 import { generateRoomPreview } from './generateRoomPreview'
 import { intakeRenderRequested } from './requestIntake'
 import type { RequestIntakeDependencies } from './requestIntake'
-import internalCache from '../internalCache'
+import internalCache from '../../internalCache'
 
 export type OrchestrationHandlerDependencies = {
     getCacheRecordById?: (roomId: EphemeraRoomId, cacheId: EphemeraCacheId) => Promise<EphemeraCacheDynamoItem | undefined>;

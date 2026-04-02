@@ -4,7 +4,7 @@
  */
 import type { EphemeraCacheComponentId } from '../renderCache/baseClasses'
 import type { PutCacheRecordInput } from './renderCache/putCacheRecord'
-import type { GenerateRoomPreviewInput } from '../renderOrchestration/generateRoomPreview'
+import type { GenerateRoomPreviewInput } from './renderOrchestration/generateRoomPreview'
 
 export type PutCacheRecordCommand = {
     componentId: EphemeraCacheComponentId;

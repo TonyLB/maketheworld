@@ -46,5 +46,5 @@
 ## References
 
 - [`lambda/ephemera/conversations/AGENT.planning.md`](../../../../lambda/ephemera/conversations/AGENT.planning.md) - coordination trap, vertical slice, orchestration alignment.
-- [`lambda/ephemera/renderOrchestration/AGENT.planning.md`](../../../../lambda/ephemera/renderOrchestration/AGENT.planning.md) - **`RenderGenerationStarted`**, cache lifecycle.
+- [`lambda/ephemera/dataSource/renderOrchestration/AGENT.planning.md`](../../../../lambda/ephemera/dataSource/renderOrchestration/AGENT.planning.md) - **`RenderGenerationStarted`**, cache lifecycle.
 - [`lambda/ephemera/AGENT.event.md`](../../../../lambda/ephemera/AGENT.event.md) - WebSocket and **`ReturnValue`** overview.

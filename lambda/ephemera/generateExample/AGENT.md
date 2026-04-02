@@ -10,4 +10,4 @@ When no exact cache match exists, this module builds a prompt from generation co
 - `buildRoomDescriptionPrompt`: converts `StandardForm` + cached examples to plain-text prompt.
 - `invokeBedrockRoomDescription`: AWS Bedrock client call with timeout.
 
-Consumers: `renderOrchestration/generateRoomPreview` (room cache-miss flow). The orchestration layer decides when to generate; this module performs the LLM work.
+Consumers: `dataSource/renderOrchestration/generateRoomPreview` (room cache-miss flow). The orchestration layer decides when to generate; this module performs the LLM work.
