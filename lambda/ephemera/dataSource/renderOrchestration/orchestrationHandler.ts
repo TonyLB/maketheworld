@@ -23,8 +23,8 @@ import {
     isConversationCompositeReadHandleRoomStateRender,
 } from '../../conversations/conversationTypes'
 import type { ConversationId } from '../../conversations'
-import { isRenderPreviewRequested, type RenderPreviewRequested, type RenderRequested } from '../../renderOrchestration/events'
-import { isRenderResolveInputSuccess } from '../../renderOrchestration/baseClasses'
+import { isRenderPreviewRequested, type RenderPreviewRequested, type RenderRequested } from './events'
+import { isRenderResolveInputSuccess } from './baseClasses'
 import { deliverIntakeErrorsIfAny } from '../../renderOrchestration/intakeErrors'
 import { findRender } from '../../renderOrchestration/findRender'
 import { generateRoomPreview } from '../../renderOrchestration/generateRoomPreview'

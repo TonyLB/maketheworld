@@ -25,7 +25,7 @@ export {
     toRenderError,
     toRenderInvalidate,
     toRenderReady,
-} from './events'
+} from '../dataSource/renderOrchestration/events'
 export type {
     RenderComponentId,
     RenderComponentPerspective,
@@ -41,7 +41,7 @@ export type {
     RenderGenerationCompleted,
     RenderGenerationFailed,
     RenderOrchestrationMessage,
-} from './events'
+} from '../dataSource/renderOrchestration/events'
 
 export { intakeRenderRequested } from './requestIntake'
 export type { RequestIntakeDependencies } from './requestIntake'
@@ -64,12 +64,12 @@ export type {
     RenderResolveOutputFailed,
     RenderResolveOutputInvalidate,
     RenderResolveOutputResolved,
-} from './baseClasses'
+} from '../dataSource/renderOrchestration/baseClasses'
 
 export {
     isRenderResolveInputSuccess,
     RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION,
-} from './baseClasses'
+} from '../dataSource/renderOrchestration/baseClasses'
 
 export { deliverIntakeErrorsIfAny } from './intakeErrors'
 

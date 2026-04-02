@@ -9,7 +9,7 @@ import {
     type RenderProgress,
     type RenderResolveInputSuccess,
     type RenderResolveOutput,
-} from './baseClasses'
+} from '../dataSource/renderOrchestration/baseClasses'
 
 /**
  * Dependencies for `findRender`: cache lookup, Meta pointer maintenance, and slow-path `generateRoomPreview`.

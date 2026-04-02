@@ -1,5 +1,5 @@
 import type { EphemeraCacheDynamoItem } from '../../../renderCache/baseClasses'
-import { RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION } from '../../../renderOrchestration/baseClasses'
+import { RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION } from '../../../dataSource/renderOrchestration/baseClasses'
 import { renderResolveOutputToGenerateRoomPreviewResult } from './renderResolveOutputToGenerateRoomPreviewResult'
 
 describe('renderResolveOutputToGenerateRoomPreviewResult', () => {

@@ -7,8 +7,8 @@ import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { isEphemeraRoomId, type EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { computePerspectiveKey } from '@tonylb/mtw-interfaces/ts/perspective'
 import type { EphemeraCacheId, EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { isRenderPreviewRequested, type RenderPreviewRequested, type RenderRequested } from './events'
-import type { RenderResolveInput, RenderResolveInputSuccess } from './baseClasses'
+import { isRenderPreviewRequested, type RenderPreviewRequested, type RenderRequested } from '../dataSource/renderOrchestration/events'
+import type { RenderResolveInput, RenderResolveInputSuccess } from '../dataSource/renderOrchestration/baseClasses'
 
 export type RequestIntakeDependencies = {
     getMetaRoom?: (roomId: EphemeraRoomId) => Promise<EphemeraMetaRoom | undefined>;

@@ -4,7 +4,7 @@
  * In-process only (dataSourceKey: 'api.ephemera'). Part of the evolving DataSource
  * under dataSource/renderOrchestration/ (see AGENT.md); contracts may expand at graduation.
  */
-import type { RenderPreviewRequested, RenderRequested } from '../../renderOrchestration/events'
+import type { RenderPreviewRequested, RenderRequested } from './events'
 
 export type RenderRequestedCommand = Omit<RenderRequested, 'type'>
 export type RenderPreviewRequestedCommand = Omit<RenderPreviewRequested, 'type'>

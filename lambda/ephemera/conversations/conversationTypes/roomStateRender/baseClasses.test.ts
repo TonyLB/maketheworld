@@ -1,5 +1,5 @@
 import { CONVERSATION_PAYLOAD_STUB } from '../baseClasses'
-import type { RenderComponentId } from '../../../renderOrchestration/events'
+import type { RenderComponentId } from '../../../dataSource/renderOrchestration/events'
 import type { StorableConversationRecord } from '../storableConversationRecord'
 import {
     CONVERSATION_TYPE_ROOM_STATE_RENDER,

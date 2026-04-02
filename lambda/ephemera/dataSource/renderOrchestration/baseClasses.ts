@@ -5,7 +5,7 @@ import type {
     EphemeraCacheDynamoItem,
     EphemeraCacheMarkState,
     EphemeraCacheRenderedContent,
-} from '../renderCache/baseClasses'
+} from '../../renderCache/baseClasses'
 
 /**
  * Where {@link RenderResolveInputSuccess.markState} came from. Same wire shape for cache math;
@@ -16,7 +16,7 @@ export type RenderResolveMarkProvenance = 'meta' | 'preview'
 /**
  * Successful normalized input to the shared "resolve room render from cache / maybe generate" choke-point.
  *
- * Preview handling in `index.ts` and passive intake (`requestIntake.ts`) converge on this shape via
+ * Preview and passive intake (`renderOrchestration/requestIntake.ts`) converge on this shape via
  * A-phase adapters; the orchestration shell chains `findRender` then delivery.
  *
  * - **Preview path:** `markProvenance` is `'preview'`; `pointerHint` is omitted (no Meta pointer).
@@ -127,8 +127,8 @@ export type RenderResolveOutput =
  * Non-terminal orchestration frames before a terminal {@link RenderResolveOutput}.
  * Shared by passive `roomStateRender` and preview `generateRoomPreview` conversation handles.
  *
- * - `resolving` — intake / cache / pointer work (passive may emit; preview wire may ignore until supported).
- * - `generating` — LLM or slow generation in flight.
+ * - `resolving` --- intake / cache / pointer work (passive may emit; preview wire may ignore until supported).
+ * - `generating` --- LLM or slow generation in flight.
  */
 export type RenderProgress = 'resolving' | 'generating';
 

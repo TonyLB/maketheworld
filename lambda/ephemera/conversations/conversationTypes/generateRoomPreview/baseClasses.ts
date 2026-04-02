@@ -2,7 +2,7 @@ import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraCacheId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import type { EphemeraCacheDynamoItem, EphemeraCacheRenderedContent } from '../../../renderCache/baseClasses'
-import type { RenderProgress, RenderResolveOutput } from '../../../renderOrchestration/baseClasses'
+import type { RenderProgress, RenderResolveOutput } from '../../../dataSource/renderOrchestration/baseClasses'
 
 import type { ConversationId, ConversationPayloadStub } from '../baseClasses'
 

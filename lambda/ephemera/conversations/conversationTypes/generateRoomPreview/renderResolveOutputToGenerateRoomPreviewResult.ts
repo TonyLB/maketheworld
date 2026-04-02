@@ -1,7 +1,7 @@
 import {
     RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION,
     type RenderResolveOutput,
-} from '../../../renderOrchestration/baseClasses'
+} from '../../../dataSource/renderOrchestration/baseClasses'
 import type { GenerateRoomPreviewResult } from './baseClasses'
 
 /**

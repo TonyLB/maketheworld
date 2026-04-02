@@ -1,10 +1,10 @@
 import { Perspective, isPerspective } from '@tonylb/mtw-interfaces/ts/perspective'
 import { EphemeraFeatureId, EphemeraMapId, EphemeraRoomId, isEphemeraFeatureId, isEphemeraMapId, isEphemeraRoomId, isEphemeraCharacterId, EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { EphemeraCacheId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { MessageGroupId } from '../internalCache/orchestrateMessages'
-import { PublishTarget } from '../messageBus/baseClasses'
-import { EphemeraCacheDynamoItem, type EphemeraCacheMarkState } from '../renderCache/baseClasses'
-import type { ConversationId } from '../conversations/conversationTypes/baseClasses'
+import { MessageGroupId } from '../../internalCache/orchestrateMessages'
+import { PublishTarget } from '../../messageBus/baseClasses'
+import { EphemeraCacheDynamoItem, type EphemeraCacheMarkState } from '../../renderCache/baseClasses'
+import type { ConversationId } from '../../conversations/conversationTypes/baseClasses'
 
 export type RenderComponentId = EphemeraRoomId | EphemeraFeatureId | EphemeraMapId
 
@@ -384,4 +384,3 @@ export const isRenderOrchestrationMessage = (value: unknown): value is RenderOrc
 export const isRenderOrchestrationRequestMessage = (value: unknown): value is RenderOrchestrationRequestMessage => (
     isRenderRequested(value) || isRenderPreviewRequested(value)
 )
-

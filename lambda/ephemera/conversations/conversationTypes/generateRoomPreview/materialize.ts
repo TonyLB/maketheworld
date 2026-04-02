@@ -4,7 +4,7 @@ import type {
     ConversationHandleGenerateRoomPreview,
     StorableConversationRecordGenerateRoomPreview,
 } from './baseClasses'
-import type { RenderResolveOutput } from '../../../renderOrchestration/baseClasses'
+import type { RenderResolveOutput } from '../../../dataSource/renderOrchestration/baseClasses'
 
 import { apiClient } from '@tonylb/mtw-utilities/ts/apiManagement/apiManagementClient'
 import { renderResolveOutputToGenerateRoomPreviewResult } from './renderResolveOutputToGenerateRoomPreviewResult'

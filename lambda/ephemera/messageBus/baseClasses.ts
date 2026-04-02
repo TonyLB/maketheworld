@@ -14,7 +14,7 @@ import { EphemeraClientMessageEphemeraUpdateCharacterInPlayActive, EphemeraClien
 
 import { MessageGroupId } from "../internalCache/orchestrateMessages"
 import { RenderTree } from '@tonylb/mtw-base/ts/renderTree'
-import type { RenderOrchestrationMessage } from '../renderOrchestration/events'
+import type { RenderOrchestrationMessage } from '../dataSource/renderOrchestration/events'
 
 export type PublishTargetRoom = `ROOM#${string}`
 

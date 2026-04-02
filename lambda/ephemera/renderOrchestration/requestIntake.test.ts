@@ -1,5 +1,5 @@
 import { intakeRenderRequested } from './requestIntake'
-import type { RenderPreviewRequested, RenderRequested } from './events'
+import type { RenderPreviewRequested, RenderRequested } from '../dataSource/renderOrchestration/events'
 
 describe('renderOrchestration/intakeRenderRequested', () => {
     const basePayload: RenderRequested = {

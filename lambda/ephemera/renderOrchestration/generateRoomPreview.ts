@@ -12,7 +12,7 @@ import {
     type EphemeraCacheMarkState,
 } from '../renderCache/baseClasses'
 import type { ConversationId } from '../conversations'
-import type { RenderProgress, RenderResolveOutput } from './baseClasses'
+import type { RenderProgress, RenderResolveOutput } from '../dataSource/renderOrchestration/baseClasses'
 import type { PutCacheRecordInput } from '../dataSource/renderCache/putCacheRecord'
 import type { QueryCacheRecordsForComponentFn } from '../dataSource/renderCache/queryCacheRecordsForComponent'
 import internalCache from '../internalCache'
