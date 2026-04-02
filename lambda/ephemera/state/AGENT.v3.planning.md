@@ -94,7 +94,7 @@ Avoid duplicating full **`markState`** in the envelope if it is always readable 
 
 ## Open decisions
 
-1. **Package layout**: `dataSource/state/` (symmetric with `renderOrchestration`) vs colocated under `lambda/ephemera/state/dataSource/`.
+1. **Package layout**: **Resolved:** implementation lives under `lambda/ephemera/dataSource/state/` (symmetric with `renderOrchestration`). Colocation under `lambda/ephemera/state/dataSource/` remains an alternative if the module grows large.
 2. **Ingress**: Does **`mtw.ephemera.state`** receive **only** internal publishes, or also **EventBridge / WebSocket** normalization for authoring? (May be incremental.)
 3. **Single vs multiple DataSource classes** if **subscribe** and **publish** need different keys (unlikely; prefer one key, multiple event types).
 4. **Fan-out policy** for **State Changed** -> **`RenderRequested`**: presence-based, all perspectives, or configurable per room --- product decision.
@@ -116,7 +116,7 @@ Avoid duplicating full **`markState`** in the envelope if it is always readable 
 ## Execution checklist (living)
 
 - [ ] Spike: internal **State Changed** emit + orchestration receipt
-- [ ] `mtw.ephemera.state` DataSource scaffold + `app.ts` import
+- [x] `mtw.ephemera.state` DataSource scaffold + `app.ts` import (`lambda/ephemera/dataSource/state/index.ts`)
 - [ ] Typed **State Changed** command + serializer/guards
 - [ ] **renderOrchestration** subscription + normalization to **`RenderRequested`**
 - [ ] Migrate first state writer; remove duplicate direct orchestration trigger
