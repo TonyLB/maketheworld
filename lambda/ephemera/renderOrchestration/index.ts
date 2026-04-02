@@ -1,11 +1,3 @@
-import type { MessageBus } from '../messageBus/baseClasses'
-
-import {
-    type RenderPreviewRequested,
-    type RenderRequested,
-} from './events'
-import { orchestrateRenderRequest } from './orchestrationHandler'
-
 /**
  * renderOrchestration public module surface
  *
@@ -54,12 +46,6 @@ export type {
 export { intakeRenderRequested } from './requestIntake'
 export type { RequestIntakeDependencies } from './requestIntake'
 
-export { orchestrateRenderRequest } from './orchestrationHandler'
-export type {
-    OrchestrationHandlerDependencies,
-    OrchestrationPipelineDependencies,
-} from './orchestrationHandler'
-
 export { generateRoomPreview, defaultPublishPutCacheRecord } from './generateRoomPreview'
 export type {
     GenerateRoomPreviewGenerationReturn,
@@ -91,19 +77,3 @@ export { findRender } from './findRender'
 export type { FindRenderDependencies } from './findRender'
 
 export { RENDER_ERROR_CODE_NOT_ROOM } from '../conversations/conversationTypes/roomStateRender/baseClasses'
-
-/**
- * Central dispatch for render "request" messages: passive {@link RenderRequested} (intake / lookup)
- * and authoring {@link RenderPreviewRequested} (room preview + conversation streaming).
- *
- * Matches the standard messageBus callback shape used elsewhere (`{ payloads, messageBus }`).
- */
-export const handleRenderOrchestrationMessage = async ({
-    payloads,
-    messageBus,
-}: {
-    payloads: (RenderRequested | RenderPreviewRequested)[];
-    messageBus: MessageBus;
-}): Promise<void> => {
-    await Promise.all(payloads.map((payload) => orchestrateRenderRequest({ payload, messageBus })))
-}

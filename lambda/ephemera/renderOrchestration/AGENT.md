@@ -91,8 +91,8 @@ Current temporary constraint: passive **intake** (`intakeRenderRequested`) surfa
 
 - `events.ts`: messageBus event type definitions and type guards
 - `requestIntake.ts`: passive A-phase only (`intakeRenderRequested`)
-- `orchestrationHandler.ts`: single-item `orchestrateRenderRequest` (preview + passive; intake -> `deliverIntakeErrorsIfAny` -> `findRender` -> conversation `sendMessage`)
-- `index.ts`: exports, guards, and `handleRenderOrchestrationMessage` (batches payloads to `orchestrateRenderRequest` for tests and direct callers; primary request ingress is `../dataSource/renderOrchestration/`)
+- `../dataSource/renderOrchestration/orchestrationHandler.ts`: single-item `orchestrateRenderRequest` (preview + passive; intake -> `deliverIntakeErrorsIfAny` -> `findRender` -> conversation `sendMessage`)
+- `index.ts`: type guards and re-exports (`orchestrateRenderRequest` lives under `../dataSource/renderOrchestration/`; primary request ingress is there)
 - `generateRoomPreview.ts`: room cache-miss orchestration (exact match, then `generateExample` on miss; used by WebSocket API)
 
 ## Development Notes

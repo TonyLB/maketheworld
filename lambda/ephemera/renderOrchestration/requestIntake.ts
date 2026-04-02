@@ -1,6 +1,6 @@
 /**
  * Passive `RenderRequested` **A-phase only**: load `Meta::Room`, validate `state.marks`, build {@link RenderResolveInput}
- * (pointer hint from `currentCacheByPerspective`). B-phase and delivery live in `orchestrationHandler.ts` and
+ * (pointer hint from `currentCacheByPerspective`). B-phase and delivery live in `dataSource/renderOrchestration/orchestrationHandler.ts` and
  * `renderOrchestration/index.ts`. See `AGENT.planning.simplification.md`.
  */
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'

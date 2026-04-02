@@ -14,7 +14,7 @@ This package is the intended **long-term owner** of the `mtw.ephemera.renderOrch
   - `Render Requested`
   - `Render Preview Requested`
 - Converts those ingress payloads into existing render-orchestration request payloads.
-- Delegates to `renderOrchestration/orchestrationHandler.ts` (`orchestrateRenderRequest`).
+- Dispatches to `orchestrationHandler.ts` in this directory (`orchestrateRenderRequest`); pipeline dependencies remain in `renderOrchestration/` until migrated.
 
 ## Current constraints (until graduation)
 

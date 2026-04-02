@@ -16,7 +16,7 @@ import {
 } from './subscribedEvents'
 import type { RenderOrchestrationIngressCommand } from './localApiEvents'
 import { isRenderPreviewRequestedCommand, isRenderRequestedCommand } from './localApiEvents'
-import { orchestrateRenderRequest } from '../../renderOrchestration/orchestrationHandler'
+import { orchestrateRenderRequest } from './orchestrationHandler'
 import messageBus from '../../messageBus'
 
 const toLegacyPayload = async (event: RenderOrchestrationIngressEvent) => {

@@ -1,5 +1,5 @@
 import { renderOrchestrationDataSource } from './index'
-import * as orchestrationHandler from '../../renderOrchestration/orchestrationHandler'
+import * as orchestrationHandler from './orchestrationHandler'
 
 describe('mtw.ephemera.renderOrchestration DataSource', () => {
     beforeEach(() => {

@@ -24,11 +24,11 @@ Local implementation plan for `lambda/ephemera/renderOrchestration/`, aligned wi
 
 | Piece | Where |
 |-------|--------|
-| Single-item orchestration (preview + passive) | `orchestrationHandler.ts` -> `orchestrateRenderRequest` |
+| Single-item orchestration (preview + passive) | `dataSource/renderOrchestration/orchestrationHandler.ts` -> `orchestrateRenderRequest` |
 | Passive batch | `orchestratePassiveRenderRequestedBatch` / `requestIntakeMessage` |
 | A-phase intake | `requestIntake.ts` (`intakeRenderRequested` -> `RenderResolveInput`) |
 | B-phase resolve | `findRender.ts` + `tryGeneration.ts` (terminals via `sendMessage`) |
-| Types, guards, `handleRenderOrchestrationMessage` | `index.ts` (batch helper for tests / direct callers) |
+| Types, guards | `index.ts` (re-exports; primary ingress is DataSource) |
 | **Ingress** | `app.ts` imports `./dataSource/renderOrchestration`; API paths emit `api.ephemera` envelopes (`sendRenderPreviewRequested`, etc.). Adapter maps to legacy `RenderRequested` / `RenderPreviewRequested` and calls `orchestrateRenderRequest`. |
 
 Preview still streams via conversations (`ConversationStep`); bridging to lifecycle events for preview is future-facing (see `index.ts` header comment).
@@ -37,7 +37,7 @@ Preview still streams via conversations (`ConversationStep`); bridging to lifecy
 
 ## Design direction (orchestration vs generation)
 
-**Orchestration** = sequencing, policy (pointer vs exact vs generate), and what gets published / materialized. It belongs in `orchestrationHandler`, `findRender`, intake --- not hidden inside `generateRoomPreview` as a second exact-match stack.
+**Orchestration** = sequencing, policy (pointer vs exact vs generate), and what gets published / materialized. It belongs in `dataSource/renderOrchestration/orchestrationHandler`, `findRender`, intake --- not hidden inside `generateRoomPreview` as a second exact-match stack.
 
 **Generation** = the slow path after orchestration commits (`generateRoomPreview` and cache write helpers).
 
@@ -126,7 +126,7 @@ Tier 1--2 items that were fully described in older revisions of this file; detai
 - **Intake fast path:** `intakeRenderRequested` pointer validation + marks error policy (Tier 1 task 4).
 - **Handler B / exact-match:** `findRender` exact-match branch + shared `tryGeneration`; not duplicated inside `generateRoomPreview` as policy (Tier 1 task 5).
 - **Generation path (Tier 2 task 6):** Cache miss branching, `generateRoomPreview` on miss, pre-mint cache id, persist via `mtw.ephemera.renderCache`, passive conversation registration, preview "generating" only on slow path --- unified under `orchestrateRenderRequest`.
-- **Ingress relocation:** Request subscription moved to `dataSource/renderOrchestration` (evolving DataSource; see its `AGENT.md`); `handleRenderOrchestrationMessage` remains for batch/tests.
+- **Ingress relocation:** Request subscription moved to `dataSource/renderOrchestration` (evolving DataSource; see its `AGENT.md`).
 
 ---
 

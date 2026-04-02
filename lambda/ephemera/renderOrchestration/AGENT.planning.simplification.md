@@ -36,10 +36,10 @@ These are the active simplification / alignment items worth attention next:
 
 | Concern | Owner |
 |---------|--------|
-| Policy + single-item orchestration | `renderOrchestration/orchestrationHandler.ts` (`orchestrateRenderRequest`) |
+| Policy + single-item orchestration | `dataSource/renderOrchestration/orchestrationHandler.ts` (`orchestrateRenderRequest`) |
 | A-phase intake | `requestIntake.ts` (`intakeRenderRequested`) |
 | B-phase resolve | `findRender.ts`, `tryGeneration.ts` |
-| Types + guards + `handleRenderOrchestrationMessage` | `renderOrchestration/index.ts` (batch helper for tests / direct callers; not the primary ingress) |
+| Types + guards | `renderOrchestration/index.ts` (re-exports; not the primary ingress) |
 | **Ingress (API and synthetic internal requests)** | `dataSource/renderOrchestration/` subscribes to `api.ephemera` envelopes (`Render Requested` / `Render Preview Requested`), maps to legacy payloads, calls `orchestrateRenderRequest`. Wired from `app.ts` via side-effect import. |
 
 Preview generation implementation: `generateRoomPreview.ts`.  
@@ -72,7 +72,7 @@ Condensed so it does not dominate this file:
 - **Unified stack:** Single-item preview and passive share `orchestrateRenderRequest`; batch passive uses `orchestratePassiveRenderRequestedBatch`.
 - **Three horizontals:** Intake (`RenderResolveInput`) -> `findRender` (effect-only, terminals via `sendMessage`) -> delivery (materialize / `ConversationStep` / bus).
 - **Coordination trap resolved:** `findRender` + `tryGeneration` use sendMessage-first terminals; no duplicate orchestration stacks for preview vs passive.
-- **Ingress relocation:** Request subscription moved from `registerRenderOrchestration` to `dataSource/renderOrchestration` (evolving DataSource; see its `AGENT.md`); `handleRenderOrchestrationMessage` remains for batch tests and any direct callers.
+- **Ingress relocation:** Request subscription moved from `registerRenderOrchestration` to `dataSource/renderOrchestration` (evolving DataSource; see its `AGENT.md`).
 
 Do **not** add a fourth parallel orchestration stack. Unify core + delivery, then evolve callers (already started with ingress adapter).
 
@@ -103,6 +103,6 @@ Use this template for new entries:
 
 - **Date:** / **Topic:** / **Decision:** / **Canonical owner:** / **Tracks affected:** / **Follow-up tasks:**
 
-**2026-03-28 through 2026-03-31** - Consolidated decisions (detail preserved in git history): centralized `findRender`; `intakeRenderRequested` success/error; passive batch shell; sendMessage-first `findRender` + `tryGeneration`; unified `orchestrateRenderRequest` with `handleRenderOrchestrationMessage` batching at the time.
+**2026-03-28 through 2026-03-31** - Consolidated decisions (detail preserved in git history): centralized `findRender`; `intakeRenderRequested` success/error; passive batch shell; sendMessage-first `findRender` + `tryGeneration`; unified `orchestrateRenderRequest` (single-item entry; batch helper on `index.ts` later removed once ingress moved to DataSource).
 
 **Ingress (post-2026-03-31)** - Render request ingress moved to `lambda/ephemera/dataSource/renderOrchestration/` (evolving DataSource; orchestration may consolidate there). App preview path emits `api.ephemera` streaming envelopes instead of raw `RenderPreviewRequested` bus messages.
