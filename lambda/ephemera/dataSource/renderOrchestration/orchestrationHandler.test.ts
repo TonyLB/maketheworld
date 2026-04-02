@@ -356,7 +356,7 @@ describe('dataSource/renderOrchestration/orchestrationHandler', () => {
     })
 
     /**
-     * RenderPreviewRequested integration (migrated from renderOrchestration/index.test.ts).
+     * RenderPreviewRequested integration (historically exercised via a renderOrchestration barrel test).
      * Calls orchestrateRenderRequest directly; uses spies on internalCache / generateRoomPreview / findRender.
      */
     describe('RenderPreviewRequested preview path', () => {

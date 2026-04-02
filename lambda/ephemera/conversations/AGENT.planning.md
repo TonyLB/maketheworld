@@ -68,7 +68,7 @@ The following are **discussion items**, not final:
 
 ### Delivery paths (orthogonal; avoid one megablob)
 
-Several different mechanisms show up next to each other in orchestration types (e.g. `RenderTargetContext` in `renderOrchestration/events.ts`). They solve **different** problems; the conversations registry should not assume one flat record must satisfy every path at once.
+Several different mechanisms show up next to each other in orchestration types (e.g. `RenderTargetContext` in `dataSource/renderOrchestration/events.ts`). They solve **different** problems; the conversations registry should not assume one flat record must satisfy every path at once.
 
 | Path | Typical need | Notes |
 |------|----------------|--------|
@@ -116,7 +116,7 @@ Until then, **prefer** keeping the prototype **localized** (one module or one un
 
 **Grounding in render orchestration (planned "Generating" path)**
 
-v2 render lifecycle messages in `renderOrchestration/events.ts` reuse **`RenderTargetContext`** (`characterId`, `targets`, `messageGroupId`) plus **`componentId`** / **`perspective`**. That type is a **convenient aggregate for bus messages**, not proof that every conversation record needs every field: see **Delivery paths** above for which axis matters when.
+v2 render lifecycle messages in `dataSource/renderOrchestration/events.ts` reuse **`RenderTargetContext`** (`characterId`, `targets`, `messageGroupId`) plus **`componentId`** / **`perspective`**. That type is a **convenient aggregate for bus messages**, not proof that every conversation record needs every field: see **Delivery paths** above for which axis matters when.
 
 For **Room** placeholders and final perception, perception still needs concrete **`characterIds`** (or equivalent) for `sendRoomGeneratingHeader`-style sends; mapping **`targets`** or room id to character ids may be **path-specific**.
 
@@ -213,7 +213,7 @@ The **internalCache gateway** pattern (memory mirror + future durable store) sti
 
 - `lambda/ephemera/renderOrchestration/AGENT.md` - orchestration responsibilities.
 - `lambda/ephemera/renderOrchestration/AGENT.planning.md` - message contracts and handler lifecycle.
-- `lambda/ephemera/renderOrchestration/events.ts` - `RenderTargetContext`, lifecycle message shapes.
+- `lambda/ephemera/dataSource/renderOrchestration/events.ts` - `RenderTargetContext`, lifecycle message shapes.
 - `lambda/ephemera/perception/index.ts` - `sendRoomGeneratingHeader` (placeholder "Generating..." path).
 - `lambda/ephemera/moveCharacter/index.ts` - `messageGroupId` / `OrchestrateMessages.before` and `.after` for leave vs arrive ordering.
 - `lambda/ephemera/internalCache/index.ts` - `clear()` and cache composition.

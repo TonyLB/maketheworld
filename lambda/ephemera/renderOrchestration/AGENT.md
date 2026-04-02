@@ -1,6 +1,6 @@
 ## Overview
 
-`lambda/ephemera/renderOrchestration/` owns the **render lifecycle orchestration** layer for Ephemera.
+`lambda/ephemera/renderOrchestration/` holds **planning and cross-links** for the render lifecycle orchestration layer; **implementation** lives in `lambda/ephemera/dataSource/renderOrchestration/`.
 
 This module exists to keep policy and multi-step lifecycle logic out of:
 
@@ -89,11 +89,10 @@ Current temporary constraint: passive **intake** (`intakeRenderRequested`) surfa
 
 ### Key files
 
-- `events.ts`: messageBus event type definitions and type guards
-- `requestIntake.ts`: passive A-phase only (`intakeRenderRequested`)
+- `../dataSource/renderOrchestration/events.ts`: messageBus event type definitions and type guards
+- `../dataSource/renderOrchestration/requestIntake.ts`: passive A-phase only (`intakeRenderRequested`)
 - `../dataSource/renderOrchestration/orchestrationHandler.ts`: single-item `orchestrateRenderRequest` (preview + passive; intake -> `deliverIntakeErrorsIfAny` -> `findRender` -> conversation `sendMessage`)
-- `index.ts`: type guards and re-exports (`orchestrateRenderRequest` lives under `../dataSource/renderOrchestration/`; primary request ingress is there)
-- `generateRoomPreview.ts`: room cache-miss orchestration (exact match, then `generateExample` on miss; used by WebSocket API)
+- `../dataSource/renderOrchestration/findRender.ts`, `../dataSource/renderOrchestration/generateRoomPreview.ts`: B-phase resolve and cache-miss generation
 
 ## Development Notes
 

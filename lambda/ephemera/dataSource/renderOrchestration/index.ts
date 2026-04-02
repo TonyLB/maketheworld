@@ -42,7 +42,7 @@ const toLegacyPayload = async (event: RenderOrchestrationIngressEvent) => {
     return undefined
 }
 
-// Subscribes to api.ephemera render request envelopes; delegates orchestration to renderOrchestration/ until consolidated.
+// Subscribes to api.ephemera render request envelopes; delegates to orchestrationHandler in this package.
 export const renderOrchestrationDataSource = new EphemeraDataSource<never, never, RenderOrchestrationIngressCommand>({
     dataSourceKey: 'mtw.ephemera.renderOrchestration',
     replayable: false,

@@ -1,7 +1,7 @@
 /**
  * Passive `RenderRequested` **A-phase only**: load `Meta::Room`, validate `state.marks`, build {@link RenderResolveInput}
- * (pointer hint from `currentCacheByPerspective`). B-phase and delivery live in `orchestrationHandler.ts`; the public barrel is
- * `renderOrchestration/index.ts`. See `renderOrchestration/AGENT.planning.simplification.md`.
+ * (pointer hint from `currentCacheByPerspective`). B-phase and delivery live in `orchestrationHandler.ts`.
+ * Planning notes: `renderOrchestration/AGENT.planning.simplification.md` (under `lambda/ephemera/renderOrchestration/`).
  */
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { isEphemeraRoomId, type EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'

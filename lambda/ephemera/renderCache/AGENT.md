@@ -1,6 +1,6 @@
 # Ephemera Render Cache - AGENT
 
-This document describes how Ephemera caches rendered descriptions in the Ephemera DynamoDB table. The `renderCache/` module now provides **types** (`baseClasses.ts`), **mark-state helpers** (`markStateUtils.ts`), and a thin barrel re-exporting DataSource persistence primitives. LLM generation lives in `generateExample/`; cache-miss orchestration lives in `renderOrchestration/generateRoomPreview.ts`. DataSource-owned Dynamo helpers live under `dataSource/renderCache/`.
+This document describes how Ephemera caches rendered descriptions in the Ephemera DynamoDB table. The `renderCache/` module now provides **types** (`baseClasses.ts`), **mark-state helpers** (`markStateUtils.ts`), and a thin barrel re-exporting DataSource persistence primitives. LLM generation lives in `generateExample/`; cache-miss generation lives in `dataSource/renderOrchestration/generateRoomPreview.ts`. DataSource-owned Dynamo helpers live under `dataSource/renderCache/`.
 
 It is the concrete realization of the schema and flow outlined in:
 
@@ -190,13 +190,13 @@ Core helper (conceptually):
   - Matches by Mark-state equality semantics (`markStatesEqual` over normalized markState).
   - Returns the first matching record, or `null` when none match.
 
-This is the canonical “does this state exist in cache?” check. Preview orchestration calls it from `renderOrchestration/index.ts` before the slow path; `generateRoomPreview` assumes exact-match was already tried.
+This is the canonical “does this state exist in cache?” check. Preview orchestration (`orchestrateRenderRequest` / `findRender`) calls it before the slow path; `generateRoomPreview` assumes exact-match was already tried.
 
 ---
 
 ## Preview Flow: orchestration, `generateRoomPreview`, and WebSocket handler
 
-### Preview orchestration (`renderOrchestration/index.ts`)
+### Preview orchestration (`dataSource/renderOrchestration/orchestrationHandler.ts`)
 
 For `RenderPreviewRequested`, the handler resolves the conversations `sendMessage` handle, then:
 
@@ -205,9 +205,9 @@ For `RenderPreviewRequested`, the handler resolves the conversations `sendMessag
 3. On hit: sends `{ success: true, renderedContent }` via the conversation handle and returns (no LLM, no `generating` step).
 4. On miss: calls `generateRoomPreview` (slow path only).
 
-### `generateRoomPreview` (renderOrchestration)
+### `generateRoomPreview` (`dataSource/renderOrchestration`)
 
-`renderOrchestration/generateRoomPreview.ts` implements **generation on cache miss** (parse WML context, optional Bedrock `generateRoomDescription`, `publishPutCacheRecord`). It does **not** perform exact-match; orchestration must run that first.
+`dataSource/renderOrchestration/generateRoomPreview.ts` implements **generation on cache miss** (parse WML context, optional Bedrock `generateRoomDescription`, `publishPutCacheRecord`). It does **not** perform exact-match; orchestration must run that first.
 
 - Input:
   - `roomId: EphemeraRoomId`

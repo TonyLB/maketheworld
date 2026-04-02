@@ -28,10 +28,10 @@ Local implementation plan for `lambda/ephemera/renderOrchestration/`, aligned wi
 | Passive batch | `orchestratePassiveRenderRequestedBatch` / `requestIntakeMessage` |
 | A-phase intake | `requestIntake.ts` (`intakeRenderRequested` -> `RenderResolveInput`) |
 | B-phase resolve | `findRender.ts` + `tryGeneration.ts` (terminals via `sendMessage`) |
-| Types, guards | `index.ts` (re-exports; primary ingress is DataSource) |
+| Types, guards | `dataSource/renderOrchestration/events.ts` (primary ingress is DataSource) |
 | **Ingress** | `app.ts` imports `./dataSource/renderOrchestration`; API paths emit `api.ephemera` envelopes (`sendRenderPreviewRequested`, etc.). Adapter maps to legacy `RenderRequested` / `RenderPreviewRequested` and calls `orchestrateRenderRequest`. |
 
-Preview still streams via conversations (`ConversationStep`); bridging to lifecycle events for preview is future-facing (see `index.ts` header comment).
+Preview still streams via conversations (`ConversationStep`); bridging to lifecycle events for preview is future-facing (see `lambda/ephemera/renderOrchestration/AGENT.md` and `dataSource/renderOrchestration/AGENT.md`).
 
 ---
 
@@ -59,7 +59,7 @@ Authoring preview is request-scoped and uses conversations, not `perception` ---
 
 ## Reference: internal message shapes
 
-Authoritative types and guards: `renderOrchestration/events.ts`. Draft intent (all use `componentId` for future non-Room use):
+Authoritative types and guards: `dataSource/renderOrchestration/events.ts`. Draft intent (all use `componentId` for future non-Room use):
 
 - **RenderRequested** --- start lifecycle (direct or derived trigger).
 - **RenderGenerationStarted** --- committed to generation; UI placeholder / "generating".
@@ -132,7 +132,7 @@ Tier 1--2 items that were fully described in older revisions of this file; detai
 
 ## Integration status (messageBus and consumers)
 
-- **Types:** `RenderOrchestrationMessage` is part of the messageBus type story (`messageBus/baseClasses.ts` imports from `renderOrchestration/events`).
+- **Types:** `RenderOrchestrationMessage` is part of the messageBus type story (`messageBus/baseClasses.ts` imports from `dataSource/renderOrchestration/events`).
 - **Ingress:** Render requests enter via the DataSource adapter + `api.ephemera` envelopes, not `registerRenderOrchestration` on the bus.
 - **Perception:** Lifecycle consumers for `RenderGenerationStarted` / `RenderReady` remain follow-up work (Tasks 7--8).
 - **Wiring:** `orchestrateRenderRequest` / passive batch consume `RenderRequested` and drive materialize + bus as implemented; further contract tightening is 6.5+.

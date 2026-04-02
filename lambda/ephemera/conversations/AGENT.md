@@ -19,7 +19,7 @@ Use `internalCache.Conversations.get(conversationId)?.record` when you only need
 
 ## Preview API result types
 
-**`GenerateRoomPreviewResult`** (and **`GenerateRoomPreviewSuccess`** / **`GenerateRoomPreviewFailure`**) live in [`conversationTypes/generateRoomPreview/baseClasses.ts`](conversationTypes/generateRoomPreview/baseClasses.ts) next to the storable row and handle for that path; per-variant **`materialize.ts`** builds the live handle. [`renderOrchestration/generateRoomPreview.ts`](../renderOrchestration/generateRoomPreview.ts) **implements** that contract; orchestration does not own the wire result shapes.
+**`GenerateRoomPreviewResult`** (and **`GenerateRoomPreviewSuccess`** / **`GenerateRoomPreviewFailure`**) live in [`conversationTypes/generateRoomPreview/baseClasses.ts`](conversationTypes/generateRoomPreview/baseClasses.ts) next to the storable row and handle for that path; per-variant **`materialize.ts`** builds the live handle. [`dataSource/renderOrchestration/generateRoomPreview.ts`](../dataSource/renderOrchestration/generateRoomPreview.ts) **implements** that contract; orchestration does not own the wire result shapes.
 
 ## Temporary: `conversationId` on renderCache bus traffic
 

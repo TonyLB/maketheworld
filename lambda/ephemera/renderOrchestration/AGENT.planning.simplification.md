@@ -39,7 +39,7 @@ These are the active simplification / alignment items worth attention next:
 | Policy + single-item orchestration | `dataSource/renderOrchestration/orchestrationHandler.ts` (`orchestrateRenderRequest`) |
 | A-phase intake | `requestIntake.ts` (`intakeRenderRequested`) |
 | B-phase resolve | `findRender.ts`, `tryGeneration.ts` |
-| Types + guards | `renderOrchestration/index.ts` (re-exports; not the primary ingress) |
+| Types + guards | `dataSource/renderOrchestration/events.ts` (primary definitions; not the primary ingress) |
 | **Ingress (API and synthetic internal requests)** | `dataSource/renderOrchestration/` subscribes to `api.ephemera` envelopes (`Render Requested` / `Render Preview Requested`), maps to legacy payloads, calls `orchestrateRenderRequest`. Wired from `app.ts` via side-effect import. |
 
 Preview generation implementation: `generateRoomPreview.ts`.  
@@ -103,6 +103,6 @@ Use this template for new entries:
 
 - **Date:** / **Topic:** / **Decision:** / **Canonical owner:** / **Tracks affected:** / **Follow-up tasks:**
 
-**2026-03-28 through 2026-03-31** - Consolidated decisions (detail preserved in git history): centralized `findRender`; `intakeRenderRequested` success/error; passive batch shell; sendMessage-first `findRender` + `tryGeneration`; unified `orchestrateRenderRequest` (single-item entry; batch helper on `index.ts` later removed once ingress moved to DataSource).
+**2026-03-28 through 2026-03-31** - Consolidated decisions (detail preserved in git history): centralized `findRender`; `intakeRenderRequested` success/error; passive batch shell; sendMessage-first `findRender` + `tryGeneration`; unified `orchestrateRenderRequest` (single-item entry; batch helper on a later-removed `renderOrchestration` barrel, then removed once ingress moved to DataSource).
 
 **Ingress (post-2026-03-31)** - Render request ingress moved to `lambda/ephemera/dataSource/renderOrchestration/` (evolving DataSource; orchestration may consolidate there). App preview path emits `api.ephemera` streaming envelopes instead of raw `RenderPreviewRequested` bus messages.

@@ -75,11 +75,11 @@ Acceptance gate:
 - Status: COMPLETED
 - Move LLM room-description generation into `lambda/ephemera/generateExample/`:
   - `generateRoomDescription.ts`, `buildRoomDescriptionPrompt.ts`, `invokeBedrockRoomDescription.ts` (and tests).
-- Move `generateRoomPreview` orchestration into `lambda/ephemera/renderOrchestration/`.
+- Move `generateRoomPreview` orchestration into `lambda/ephemera/dataSource/renderOrchestration/` (done).
 - Slim `renderCache/` to types (`baseClasses`), mark helpers (`markStateUtils`), and barrel re-exporting DataSource primitives.
 
 Acceptance gate:
-- `renderCache` no longer contains generate-centric code; orchestration and generation live in `renderOrchestration` and `generateExample` respectively.
+- `renderCache` no longer contains generate-centric code; orchestration and generation live in `dataSource/renderOrchestration` and `generateExample` respectively.
 
 ## Testing / equivalence checks
 For any behavior change, validate equivalence between old and new paths:

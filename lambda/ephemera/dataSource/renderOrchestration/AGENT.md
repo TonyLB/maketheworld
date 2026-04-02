@@ -4,7 +4,7 @@
 
 **Transitional** here means **on the path to** a canonical DataSource-shaped home for render orchestration --- not "stay as small as possible until deleted."
 
-This package is the intended **long-term owner** of the `mtw.ephemera.renderOrchestration` data domain: subscription, ingress normalization, and (as contracts mature) orchestration behavior aligned with DataSource patterns. Today it still **delegates** heavy policy to `lambda/ephemera/renderOrchestration/` (`orchestrateRenderRequest`); moving that logic **into** this tree over time is an explicit option, not a violation of the plan.
+This package is the **implementation home** for the `mtw.ephemera.renderOrchestration` data domain: subscription, ingress normalization, `orchestrateRenderRequest`, intake, `findRender`, and `generateRoomPreview`. Supplementary planning docs live in `lambda/ephemera/renderOrchestration/`.
 
 **What is immature (not what "transitional" means):** replay policy, EventBridge surface, and authoritative outbound streaming contracts are not finished. Those gaps are why the module is not yet **graduated** --- not because domain logic must forever live elsewhere.
 
@@ -20,7 +20,7 @@ This package is the intended **long-term owner** of the `mtw.ephemera.renderOrch
 
 - **Internal-only**: no EventBridge ingress/egress contract is defined yet.
 - **Non-replayable**: `replayable: false` until replay semantics are defined.
-- **Contract incomplete**: no authoritative outbound event-stream contract is established yet; conversation and messageBus side effects still flow through `renderOrchestration` for much of the pipeline.
+- **Contract incomplete**: no authoritative outbound event-stream contract is established yet; conversation and messageBus side effects still flow through this orchestration package for much of the pipeline.
 
 These describe **readiness**, not a rule against growing this package.
 
