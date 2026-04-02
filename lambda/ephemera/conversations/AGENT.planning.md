@@ -211,7 +211,7 @@ The **internalCache gateway** pattern (memory mirror + future durable store) sti
 
 ## References
 
-- `lambda/ephemera/renderOrchestration/AGENT.md` - orchestration responsibilities.
+- `lambda/ephemera/dataSource/renderOrchestration/AGENT.md` - orchestration responsibilities and status (canonical).
 - `lambda/ephemera/renderOrchestration/AGENT.planning.md` - message contracts and handler lifecycle.
 - `lambda/ephemera/dataSource/renderOrchestration/events.ts` - `RenderTargetContext`, lifecycle message shapes.
 - `lambda/ephemera/perception/index.ts` - `sendRoomGeneratingHeader` (placeholder "Generating..." path).

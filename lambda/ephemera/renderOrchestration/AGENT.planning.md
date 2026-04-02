@@ -31,7 +31,7 @@ Local implementation plan for `lambda/ephemera/renderOrchestration/`, aligned wi
 | Types, guards | `dataSource/renderOrchestration/events.ts` (primary ingress is DataSource) |
 | **Ingress** | `app.ts` imports `./dataSource/renderOrchestration`; API paths emit `api.ephemera` envelopes (`sendRenderPreviewRequested`, etc.). Adapter maps to legacy `RenderRequested` / `RenderPreviewRequested` and calls `orchestrateRenderRequest`. |
 
-Preview still streams via conversations (`ConversationStep`); bridging to lifecycle events for preview is future-facing (see `lambda/ephemera/renderOrchestration/AGENT.md` and `dataSource/renderOrchestration/AGENT.md`).
+Preview still streams via conversations (`ConversationStep`); bridging to lifecycle events for preview is future-facing (see `lambda/ephemera/dataSource/renderOrchestration/AGENT.md`).
 
 ---
 
