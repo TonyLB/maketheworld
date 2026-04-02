@@ -5,7 +5,7 @@
  * {@link orchestrateRenderRequest} is the unified entry for preview + passive single-item orchestration.
  *
  * Lives under `dataSource/renderOrchestration/` so ingress, intake, and orchestration (`findRender`, `generateRoomPreview`, …)
- * stay co-located. Supplementary planning docs live under `lambda/ephemera/renderOrchestration/`.
+ * stay co-located with planning docs (`AGENT.planning.md`, etc.) in this directory.
  */
 import { v4 as uuidv4 } from 'uuid'
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'

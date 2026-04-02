@@ -2,12 +2,12 @@
 
 ## Purpose
 
-Local implementation plan for `lambda/ephemera/renderOrchestration/`, aligned with `lambda/ephemera/state/AGENT.v2.planning.md`.
+Local implementation plan for `lambda/ephemera/dataSource/renderOrchestration/` (render orchestration v2), aligned with `lambda/ephemera/state/AGENT.v2.planning.md`.
 
 **Related docs**
 
 - Parallel-track declutter: `AGENT.planning.simplification.md`
-- Evolving DataSource for render orchestration (ingress today; see graduation): `lambda/ephemera/dataSource/renderOrchestration/AGENT.md`
+- Status, graduation criteria, product split (preview vs presence): `AGENT.md` (same directory)
 
 ---
 
@@ -16,7 +16,7 @@ Local implementation plan for `lambda/ephemera/renderOrchestration/`, aligned wi
 1. MessageBus-based lifecycle for render orchestration (where the product contract requires it).
 2. Early feedback (`RenderGenerationStarted` / preview steps) vs terminal readiness aligned with cache + pointer reality.
 3. Final readiness signals when cache write + pointer updates match the chosen contract (see open Task 6.5).
-4. Clean splits: `state`, `renderCache`, `renderOrchestration`, `perception` (see layering below).
+4. Clean splits: `state`, `renderCache`, this package (`dataSource/renderOrchestration`), `perception` (see layering below).
 
 ---
 
@@ -109,11 +109,11 @@ Ordered roughly by dependency / product unlock:
 4. **Task 9 --- Foundational tests**  
    Fast-path hit/miss/invalid-pointer; ordering (`RenderGenerationStarted` before terminals; cache outcome ordering); state-triggered observer branching.
 
-5. **Tier 3 (foggy)** --- Perspective fan-out policy (10), compact `RenderReady` payloads (11), cross-domain boundaries with `perception` (12), generalization beyond Rooms (13), RenderCache migration checklist (14) --- see `../renderCache/AGENT.migration.md` for 14.
+5. **Tier 3 (foggy)** --- Perspective fan-out policy (10), compact `RenderReady` payloads (11), cross-domain boundaries with `perception` (12), generalization beyond Rooms (13), RenderCache migration checklist (14) --- see `../../renderCache/AGENT.migration.md` for 14.
 
 6. **Docs** --- Keep `AGENT.md`, this file, and `AGENT.planning.simplification.md` aligned when wiring changes.
 
-**Client / WebSocket:** Multi-stage preview delivery remains coordinated with `../conversations/AGENT.planning.md`, `../conversations/AGENT.planning.tasklist.md` section 4, and `charcoal-client` lifeLine docs when wiring `RenderGenerationStarted` and cache lifecycle into preview UX.
+**Client / WebSocket:** Multi-stage preview delivery remains coordinated with `../../conversations/AGENT.planning.md`, `../../conversations/AGENT.planning.tasklist.md` section 4, and `charcoal-client` lifeLine docs when wiring `RenderGenerationStarted` and cache lifecycle into preview UX.
 
 ---
 

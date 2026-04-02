@@ -4,7 +4,7 @@
 
 **Transitional** here means **on the path to** a canonical DataSource-shaped home for render orchestration --- not "stay as small as possible until deleted."
 
-This package is the **implementation home** for the `mtw.ephemera.renderOrchestration` data domain: subscription, ingress normalization, `orchestrateRenderRequest`, intake, `findRender`, and `generateRoomPreview`. Supplementary planning and long-form design notes live in `lambda/ephemera/renderOrchestration/` (`AGENT.planning.md`, `AGENT.planning.simplification.md`).
+This package is the **implementation home** for the `mtw.ephemera.renderOrchestration` data domain: subscription, ingress normalization, `orchestrateRenderRequest`, intake, `findRender`, and `generateRoomPreview`. Long-form planning lives alongside code: `AGENT.planning.md`, `AGENT.planning.simplification.md`.
 
 **What is immature (not what "transitional" means):** replay policy, EventBridge surface, and authoritative outbound streaming contracts are not finished. Those gaps are why the module is not yet **graduated** --- not because domain logic must forever live elsewhere.
 
@@ -30,7 +30,7 @@ Wiring: `app.ts` side-effect imports `./dataSource/renderOrchestration` (this Da
 
 Lifecycle messages (`RenderGenerationStarted`, `RenderReady`, etc.) are primarily motivated by **presence-based** delivery: **`perception`** can react with placeholders and final content for people **in the room**.
 
-The **authoring preview** path (`RenderPreviewRequested`) is intentionally **request-scoped**: it streams **`ConversationStep`** via **`conversations`** to the requesting client and may **not** exercise the same lifecycle events even when those are the long-term abstraction. Bridging preview UX to the full lifecycle story is **future-facing**; see `lambda/ephemera/renderOrchestration/AGENT.planning.md` for task-level detail.
+The **authoring preview** path (`RenderPreviewRequested`) is intentionally **request-scoped**: it streams **`ConversationStep`** via **`conversations`** to the requesting client and may **not** exercise the same lifecycle events even when those are the long-term abstraction. Bridging preview UX to the full lifecycle story is **future-facing**; see `AGENT.planning.md` in this directory for task-level detail.
 
 ## Key concepts
 
@@ -98,10 +98,10 @@ Until then, keep calling the status **transitional** in the sense of **evolving*
 - `events.ts`, `baseClasses.ts` --- bus types and resolve shapes
 - `requestIntake.ts`, `intakeErrors.ts`, `findRender.ts`, `generateRoomPreview.ts`
 
-**Planning (sibling folder)**
+**Planning (this directory)**
 
-- `lambda/ephemera/renderOrchestration/AGENT.planning.md`
-- `lambda/ephemera/renderOrchestration/AGENT.planning.simplification.md`
+- `AGENT.planning.md` --- v2 tasks, wiring tables, integration status
+- `AGENT.planning.simplification.md` --- parallel tracks, declutter, exit criteria
 
 **Ephemera module overviews**
 

@@ -23,7 +23,7 @@ This is **not** a commitment to a full `mtw.ephemera.conversations` DataSource o
 
 ## Scope (v1)
 
-- **In-memory only**: registry state lives on `internalCache.Conversations` and is cleared with `internalCache.clear()` at handler start (same **invocation-scoped** lifecycle as other internal memoization; see `renderOrchestration/AGENT.planning.md` lifecycle notes).
+- **In-memory only**: registry state lives on `internalCache.Conversations` and is cleared with `internalCache.clear()` at handler start (same **invocation-scoped** lifecycle as other internal memoization; see `../dataSource/renderOrchestration/AGENT.planning.md` lifecycle notes).
 - **Thin API** (shape TBD): create/register a conversation record, look up by `conversationId`, **attach or merge fragments** by kind (TBD), optionally mark complete or remove (exact verbs to be decided).
 - **Serializable records**: anything stored must be safe to **persist later** (no closures, no non-JSON-friendly handles). v1 may only use memory, but the **field names and types** should assume a future Dynamo row. **Fragments** are part of that contract (each fragment kind is a **typed**, serializable blob).
 - **Assembly**: a dedicated step (module or handler TBD) reads **routing + fragments** for a `conversationId` and emits final bus messages with correct **`OrchestrateMessages`** / `messageGroupId` usage where required. v1 may **inline** assembly for the first pipeline we wire; the **shape** should still separate **fragment writers** from **assemblers** conceptually.
@@ -51,7 +51,7 @@ We use **`conversationId`** (not `operationId`) in **types and wire shapes** tha
 
 | Area | Role |
 |------|------|
-| `renderOrchestration/` | Publishes lifecycle events; should carry `conversationId` once registry exists. |
+| `dataSource/renderOrchestration/` | Publishes lifecycle events; should carry `conversationId` once registry exists. |
 | `perception/` | Uses lookup to route placeholders and final messages; may **write** perception fragments onto the conversation for assembly. |
 | `internalCache/` | Holds `Conversations` (and `clear()` integration). |
 | `dataSource/` (e.g. future `characterLocations`, `perception`) | Each emits **domain** stream events; **fragments** on the conversation record the **handoff** for cross-domain user messaging. |
@@ -184,13 +184,13 @@ Break the loop with an **end-to-end wedge** that does **not** require a full mul
 2. **Client:** Introduce **`socketDispatchConversation`** (name TBD): subscribe to **multiple** correlated WebSocket payloads (e.g. shared **`conversationId`**, with **`RequestId`** optional during migration) and expose **`onEvent`** / teardown (unsubscribe when the UI unmounts or starts a new run). Documented in **`charcoal-client/src/slices/lifeLine/AGENT.md`**.
 3. **Wire shape:** Add a discriminated **step** envelope (working name **`ConversationStep`**) for progress vs completion vs error; keep **`conversationId`** (and optionally **`RequestId`**) stable across steps.
 4. **Server:** Extend **materialization** so **`sendMessage`** (or a parallel path) can emit **non-terminal** steps before the final **`ReturnValue`** (or migrate completion entirely into steps once clients exist).
-5. **Orchestration:** Emit an early **generating** signal in the same invocation **before** blocking work, then align with **`RenderGenerationStarted`** / cache outcomes as the cascade matures ([`renderOrchestration/AGENT.planning.md`](../renderOrchestration/AGENT.planning.md)).
+5. **Orchestration:** Emit an early **generating** signal in the same invocation **before** blocking work, then align with **`RenderGenerationStarted`** / cache outcomes as the cascade matures ([`../dataSource/renderOrchestration/AGENT.planning.md`](../dataSource/renderOrchestration/AGENT.planning.md)).
 
 **Scope:** This section targets **direct / authoring preview** (`ReturnValue` to **one connection**). It is **orthogonal** to in-room **`PublishMessage`** / **`sendRoomGeneratingHeader`** (perception path); do not collapse those into one mechanism here.
 
 ### Task sequencing
 
-Executable checklist: [`AGENT.planning.tasklist.md`](AGENT.planning.tasklist.md) **section 4** (multi-stage WebSocket contract). Cross-links: [`renderOrchestration/AGENT.planning.md`](../renderOrchestration/AGENT.planning.md) **Integration follow-up**, [`AGENT.event.md`](../AGENT.event.md).
+Executable checklist: [`AGENT.planning.tasklist.md`](AGENT.planning.tasklist.md) **section 4** (multi-stage WebSocket contract). Cross-links: [`../dataSource/renderOrchestration/AGENT.planning.md`](../dataSource/renderOrchestration/AGENT.planning.md) **Integration follow-up**, [`AGENT.event.md`](../AGENT.event.md).
 
 ## DataSource: `mtw.ephemera.conversations`?
 
@@ -212,7 +212,7 @@ The **internalCache gateway** pattern (memory mirror + future durable store) sti
 ## References
 
 - `lambda/ephemera/dataSource/renderOrchestration/AGENT.md` - orchestration responsibilities and status (canonical).
-- `lambda/ephemera/renderOrchestration/AGENT.planning.md` - message contracts and handler lifecycle.
+- `lambda/ephemera/dataSource/renderOrchestration/AGENT.planning.md` - message contracts and handler lifecycle.
 - `lambda/ephemera/dataSource/renderOrchestration/events.ts` - `RenderTargetContext`, lifecycle message shapes.
 - `lambda/ephemera/perception/index.ts` - `sendRoomGeneratingHeader` (placeholder "Generating..." path).
 - `lambda/ephemera/moveCharacter/index.ts` - `messageGroupId` / `OrchestrateMessages.before` and `.after` for leave vs arrive ordering.
