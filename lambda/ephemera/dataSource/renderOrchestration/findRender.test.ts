@@ -1,12 +1,12 @@
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
 import { perspectiveMatches, computePerspectiveKey } from '@tonylb/mtw-interfaces/ts/perspective'
-import type { EphemeraCacheDynamoItem, EphemeraCacheMarkState } from '../renderCache/baseClasses'
-import { markStatesEqual } from '../renderCache/markStateUtils'
-import { RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION, type RenderResolveInputSuccess } from '../dataSource/renderOrchestration/baseClasses'
+import type { EphemeraCacheDynamoItem, EphemeraCacheMarkState } from '../../renderCache/baseClasses'
+import { markStatesEqual } from '../../renderCache/markStateUtils'
+import { RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION, type RenderResolveInputSuccess } from './baseClasses'
 import { findRender } from './findRender'
 
-describe('findRender', () => {
+describe('dataSource/renderOrchestration/findRender', () => {
     const roomId = 'ROOM#one' as EphemeraRoomId
     const markState: EphemeraCacheMarkState = { markValue: [{ mark: 'MARK#a', value: 'one' }] }
     const perspective: Perspective = { assetStack: ['ASSET#base'] }

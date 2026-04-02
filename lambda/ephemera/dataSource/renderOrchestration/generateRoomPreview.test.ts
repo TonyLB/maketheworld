@@ -7,13 +7,13 @@ import { generateRoomPreview } from './generateRoomPreview'
 import type {
     EphemeraCacheMarkState,
     EphemeraCacheRenderedContent,
-} from '../renderCache/baseClasses'
+} from '../../renderCache/baseClasses'
 
 const makeMarkState = (entries: Array<{ mark: string; value: string }>): EphemeraCacheMarkState => ({
     markValue: entries
 })
 
-describe('renderOrchestration/generateRoomPreview', () => {
+describe('dataSource/renderOrchestration/generateRoomPreview', () => {
     const roomId = 'ROOM#test-room' as const
     const noopPublishPutCacheRecord = jest.fn().mockResolvedValue(undefined)
 

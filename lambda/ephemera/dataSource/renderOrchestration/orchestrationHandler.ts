@@ -4,8 +4,8 @@
  *
  * {@link orchestrateRenderRequest} is the unified entry for preview + passive single-item orchestration.
  *
- * Lives under `dataSource/renderOrchestration/` so ingress, A-phase intake, and orchestration entry stay co-located;
- * B-phase helpers (`findRender`, `generateRoomPreview`, …) remain in `renderOrchestration/` until migrated.
+ * Lives under `dataSource/renderOrchestration/` so ingress, intake, and orchestration (`findRender`, `generateRoomPreview`, …)
+ * stay co-located; the public barrel remains `renderOrchestration/index.ts`.
  */
 import { v4 as uuidv4 } from 'uuid'
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
@@ -26,8 +26,8 @@ import type { ConversationId } from '../../conversations'
 import { isRenderPreviewRequested, type RenderPreviewRequested, type RenderRequested } from './events'
 import { isRenderResolveInputSuccess } from './baseClasses'
 import { deliverIntakeErrorsIfAny } from './intakeErrors'
-import { findRender } from '../../renderOrchestration/findRender'
-import { generateRoomPreview } from '../../renderOrchestration/generateRoomPreview'
+import { findRender } from './findRender'
+import { generateRoomPreview } from './generateRoomPreview'
 import { intakeRenderRequested } from './requestIntake'
 import type { RequestIntakeDependencies } from './requestIntake'
 import internalCache from '../../internalCache'

@@ -9,8 +9,8 @@ import internalCache from '../../internalCache'
 import * as orchestrationHandlerModule from './orchestrationHandler'
 import { orchestrateRenderRequest } from './orchestrationHandler'
 import type { RenderPreviewRequested, RenderRequested } from './events'
-import * as findRenderModule from '../../renderOrchestration/findRender'
-import * as generateRoomPreviewModule from '../../renderOrchestration/generateRoomPreview'
+import * as findRenderModule from './findRender'
+import * as generateRoomPreviewModule from './generateRoomPreview'
 import { RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION } from './baseClasses'
 
 const actualOrchestrateRenderRequest = jest.requireActual<typeof orchestrationHandlerModule>(

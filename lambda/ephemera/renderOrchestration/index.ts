@@ -46,12 +46,12 @@ export type {
 export { intakeRenderRequested } from '../dataSource/renderOrchestration/requestIntake'
 export type { RequestIntakeDependencies } from '../dataSource/renderOrchestration/requestIntake'
 
-export { generateRoomPreview, defaultPublishPutCacheRecord } from './generateRoomPreview'
+export { generateRoomPreview, defaultPublishPutCacheRecord } from '../dataSource/renderOrchestration/generateRoomPreview'
 export type {
     GenerateRoomPreviewGenerationReturn,
     GenerateRoomPreviewInput,
     GenerateRoomPreviewOptions,
-} from './generateRoomPreview'
+} from '../dataSource/renderOrchestration/generateRoomPreview'
 
 export type {
     RenderResolveInputError,
@@ -73,7 +73,7 @@ export {
 
 export { deliverIntakeErrorsIfAny } from '../dataSource/renderOrchestration/intakeErrors'
 
-export { findRender } from './findRender'
-export type { FindRenderDependencies } from './findRender'
+export { findRender } from '../dataSource/renderOrchestration/findRender'
+export type { FindRenderDependencies } from '../dataSource/renderOrchestration/findRender'
 
 export { RENDER_ERROR_CODE_NOT_ROOM } from '../conversations/conversationTypes/roomStateRender/baseClasses'
