@@ -11,6 +11,15 @@ For active planning moving forward, see:
 
 - `lambda/ephemera/state/AGENT.v2.planning.md`
 
+## Domain boundaries (current architecture)
+
+The v1 sections below were written while **state**, **perception**, and **orchestration** were still being teased apart. They sometimes describe **cache pointer invalidation** and **render selection** as responsibilities of the state layer. **Current** split:
+
+- **`lambda/ephemera/state`**: runtime world-state on `Meta::Room` (`state.marks`, etc.), default marks, merge helpers. See `AGENT.md` in this directory.
+- **`lambda/ephemera/dataSource/renderOrchestration`**: `Meta::Room` **pointer** fields (`currentCacheId` / `currentCacheByPerspective`), validation against current marks, exact match, generation, **`RenderInvalidate`**, and related lifecycle.
+
+Early v1 language often assumed **eager** invalidation (clear pointers whenever `state` changes). **Orchestration** instead **re-validates** hinted cache rows on each resolve and clears or updates pointers as needed (`findRender`). Optional eager clears on write remain a product choice, not a requirement of the state module.
+
 ## Purpose and Scope of v1
 
 ### Goal
@@ -62,8 +71,8 @@ The v1 plan should call out where we are intentionally specializing for Rooms vs
   - Owns routing descriptions into the chat spine for characters.
   - Currently uses `internalCache.ComponentRender` to build WML directly; v1 world state should begin shifting Room description selection toward the cache-backed flow.
 - **State system (this directory)**:
-  - Introduces an explicit model for **current world state**, separate from blueprints and cached renders.
-  - Provides APIs so perception can ask "What is the current state for this component (and character)?" and then select the appropriate cached render.
+  - Introduces an explicit model for **current world state**, separate from blueprints and cached renders (`Meta::Room.state`, default marks, merge helpers).
+  - **Selecting** the cached render and maintaining pointer fields is **render orchestration**; perception **enriches** and **delivers** outcomes once orchestration has resolved a cache row.
 
 ### Authoring vs Playing
 
@@ -89,13 +98,14 @@ This section will capture concrete decisions as they are made. Initial placehold
      - The `state` object can hold:
        - `marks`: the canonical `markState` (Mark/Match pairs) used for cache lookup and generation.
        - Optional `situationId`: for debugging and author-facing introspection, indicating which Situation (if any) this state is most closely associated with.
-     - A `currentCacheId` field on `Meta::Room` can point at the most recently used cache entry (e.g., `DataCategory` for a `CACHE#...` row), and is **invalidated whenever `state` changes**.
+     - A `currentCacheId` field on `Meta::Room` can point at the most recently used cache entry (e.g., `DataCategory` for a `CACHE#...` row). **Historical v1 assumption:** clear this pointer on every `state` change (eager invalidation). **Current:** pointer validity is enforced during **render orchestration** resolve, not as a separate state-layer invalidation step; see `findRender` under `dataSource/renderOrchestration`.
      - Future iterations can extend the same pattern to other components (e.g., `Meta::Feature`, `Meta::Map`) without changing the basic representation.
    - **Shared type definition:** The Ephemera-table `Meta::Room` record shape (including `state` and `currentCacheId`) is defined in `packages/mtw-interfaces/ts/ephemeraMeta.ts` as `EphemeraMetaRoom`.
      - This is intentionally distinct from `assetDB`'s `Meta::Room` record shape (used for cross-asset indexing, e.g. the `cached` asset list).
    - Open follow-up questions (explicitly **out of v1 scope**, and possibly unnecessary long-term):
      - Do we ever need per-character or per-session overrides in addition to the global Room state, and if so, where would those live if we decide to add them?
 2. **APIs between state and perception**
+   - **Note:** The concrete pipeline is now **`renderOrchestration`** (`intakeRenderRequested`, `findRender`, etc.), not ad hoc logic in `state` or perception. The bullets below describe the intended **data flow** at a high level.
    - **High-level contract (Rooms, v1):**
      - Perception, when preparing a Room perception event, first reads `Meta::Room` for that Room to obtain:
        - `state.marks` (canonical markState) and optional `state.situationId`.
@@ -114,7 +124,7 @@ This section will capture concrete decisions as they are made. Initial placehold
        - Message type specific to authoring (e.g., `SetRoomStateForPreview`), clearly documented as **authoring-only** and **non-gameplay**.
        - Includes `RoomId`, proposed `state.marks` (and optional `state.situationId`), and any authoring context needed to validate permissions.
      - Behavior:
-       - Writes the proposed state into `Meta::Room.state` for that Room and clears `currentCacheId`.
+       - Writes the proposed state into `Meta::Room.state` for that Room. (Early contract also cleared `currentCacheId` to force re-resolve; orchestration can also rely on **lazy** pointer validation without an eager clear.)
        - Optionally triggers an immediate Room-perception event for the author’s session/character so they see the updated state reflected in the chat spine.
      - Response:
        - Returns a simple success/failure result over the authoring WebSocket flow (similar to Preview), with clear documentation that this contract is **experimental and subject to change** as we converge on a more general state API.
@@ -147,7 +157,7 @@ This section will capture concrete decisions as they are made. Initial placehold
      - `Meta::<ComponentType>.state` with:
        - `marks` (canonical Mark/Match pairs for that component’s Lens/Marks/Situations).
        - Optional `situationId` for introspection.
-     - `Meta::<ComponentType>.currentCacheId` pointing at the active `CACHE#...` record for that component, invalidated whenever `state` changes.
+     - `Meta::<ComponentType>.currentCacheId` (or perspective-scoped pointers) pointing at cache rows --- **maintenance** is an **orchestration** concern; see domain note at top of this file.
      - Perception flow of:
        - Read `Meta::<ComponentType>` → get `state` and `currentCacheId`.
        - Try fast cache hit via `currentCacheId`; on failure, search/generate via `state.marks` + perspective and update `currentCacheId`.
@@ -176,7 +186,7 @@ v1 implemented the core foundations for a cache-backed, state-driven Room descri
 1. **Room state shape in Ephemera table (type-level)**
    - Shared Ephemera-table `Meta::Room` record shape is defined as `EphemeraMetaRoom` in `packages/mtw-interfaces/ts/ephemeraMeta.ts`.
    - It includes `state.marks` (stored as `EphemeraCacheMarkState`), optional `state.situationId`, and optional `currentCacheId` (a `CACHE#...` `DataCategory` pointer).
-   - The intended invalidation rule is documented: any `state` change clears `currentCacheId`.
+   - **Historical:** we documented eager clearing of `currentCacheId` on any `state` change. **Pointer lifecycle** is now owned by **render orchestration** (lazy validation on resolve); see `AGENT.md` and `AGENT.v2.planning.md`.
 
 2. **Default mark derivation**
    - Implemented `computeDefaultMarksForRoom(roomId, perspective)` in `lambda/ephemera/state/computeDefaultMarksForRoom.ts`.
@@ -212,7 +222,7 @@ It intentionally **excludes** the later task of "Create any way in which Room St
     - [x] `marks` (canonical markState used for cache lookup, stored as `EphemeraCacheMarkState`)
     - [x] optional `situationId` (introspection/debug)
   - [x] Define `Meta::Room.currentCacheId` (points at `DataCategory` of active `CACHE#...` row)
-  - [x] Document invalidation rule: any change to `state` clears `currentCacheId`
+  - [x] Document relationship of `state` to `currentCacheId` (historical: eager clear on state change; **current:** orchestration maintains pointers --- see `AGENT.md`)
 
 - [x] **Default marks primitive exists**
   - [x] `computeDefaultMarksForRoom(roomId, perspective)` implemented
@@ -260,13 +270,13 @@ It intentionally **excludes** the later task of "Create any way in which Room St
     - [ ] call orchestration helper
     - [ ] on `{ status: 'ready' }`: enrich around chosen cache record and send `PerceptionRoomMessage`
     - [ ] on `{ status: 'generating' }`: send placeholder header (`sendRoomGeneratingHeader`) and arrange async follow-up
-  - [ ] Cache invalidation after generation completes (and/or when `currentCacheId` changes)
+  - [ ] Refresh perception / `componentRender` caches after generation completes (orchestration updates Meta pointers; perception drops stale enriched views)
 
 #### Phase 4: Tests
 
 - [ ] **Unit tests for helper orchestration**
   - [ ] default marks when `Meta::Room.state` missing
-  - [x] `currentCacheId` fast path + mismatch invalidation (already test-driven)
+  - [x] `currentCacheId` fast path + mismatch pointer clear (already test-driven)
   - [ ] exact-match search path via helper (not just preview)
   - [ ] generation-start and follow-up behavior (mock generation)
 
@@ -300,7 +310,7 @@ The `messageBus` cascade already provides the mechanism for this sort of lifecyc
    - Room render generation completed (final ready feedback)
 
 2. **Implement cascade handlers in messageBus priority order**
-   - State handler: reads `Meta::Room`, validates `currentCacheId` fast path, and emits the next cascade event.
+   - Orchestration handler (not a separate `state` package): reads `Meta::Room`, validates pointer fast path, exact match, generation; see `dataSource/renderOrchestration`.
    - Cache selection handler: performs exact-match lookup; on miss, starts generation.
    - Generation handler: kicks off the existing render-cache generation flow and publishes generation-start feedback immediately.
    - Completion handler: writes/upgrades cache rows and `Meta::Room.currentCacheId`, then emits "ready".
