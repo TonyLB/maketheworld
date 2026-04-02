@@ -18,5 +18,6 @@ State **mutates** authoritative marks when product/API code updates room state; 
 
 ## Versioning and planning
 
-- **Active planning:** `AGENT.v2.planning.md`
+- **`mtw.ephemera.state` DataSource migration (draft):** `AGENT.v3.planning.md`
+- **Render orchestration cascade (v2):** `AGENT.v2.planning.md`
 - **Historical v1 decisions and checklists:** `AGENT.v1.planning.md`
