@@ -31,13 +31,14 @@ v2 formalizes these subsystem responsibilities:
    - Lookup/generation primitives and cache row persistence.
    - No event delivery ownership.
 
-2. `state`
-   - Lookup and mutation of world-state (`Meta::Room.state`).
-   - Ownership of state-level invariants (perspective-scoped cache pointer invalidation on state changes).
+2. `state` (this directory)
+   - Lookup and mutation of **world-state** (`Meta::Room.state`: marks, optional situation, etc.).
+   - Helpers for default marks and stack merge; **does not** own cache pointer lifecycle or invalidation semantics.
 
-3. `renderOrchestration` (new subsystem)
+3. `renderOrchestration`
    - Policy and lifecycle orchestration:
      - "Given this Room state and perspective, choose cache hit/miss path"
+     - Pointer **validation** and **repair** (`currentCacheId` / `currentCacheByPerspective`), exact match, generation, and **`RenderInvalidate`** when resolve cannot proceed
      - "On miss, start generation and publish early feedback"
      - "On generation completion, publish ready event"
    - Owns cascade steps and status transitions.
@@ -102,7 +103,7 @@ Perception subscribes to orchestrator lifecycle events:
 
 - On `RenderGenerationStarted`: send placeholder header/message appropriate to component type (Room first in v2).
 - On `RenderReady` (hit or completion): enrich + send final description/update for component type.
-- Invalidate relevant internal render caches when completion replaces placeholder content.
+- Drop stale **perception** / `componentRender` caches when completion replaces placeholder content (distinct from **Meta::Room** pointer maintenance, which lives in orchestration).
 
 ### Phase D: Tests
 
@@ -152,9 +153,7 @@ v2 planning assumes perspective-scoped pointers on `Meta::Room`, e.g.:
   - key: normalized perspective identifier/fingerprint
   - value: `CACHE#...` data category id
 
-Invalidation policy on state change:
-
-- clear all entries in `currentCacheByPerspective` (or use equivalent versioning to mark all entries stale).
+**Pointer staleness** is handled in **render orchestration** on each resolve: validate hinted rows against current `state.marks` and perspective; clear a perspective entry or fall through to exact match / generation as implemented in `findRender`. **Optional eager clears** of the whole map on state write (if ever desired for performance or UX) are a product choice, not part of the **state** module's domain --- correctness does not require blanket invalidation at write time.
 
 Migration guidance:
 
