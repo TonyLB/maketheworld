@@ -1,14 +1,14 @@
 /**
  * Passive `RenderRequested` **A-phase only**: load `Meta::Room`, validate `state.marks`, build {@link RenderResolveInput}
- * (pointer hint from `currentCacheByPerspective`). B-phase and delivery live in `dataSource/renderOrchestration/orchestrationHandler.ts` and
- * `renderOrchestration/index.ts`. See `AGENT.planning.simplification.md`.
+ * (pointer hint from `currentCacheByPerspective`). B-phase and delivery live in `orchestrationHandler.ts`; the public barrel is
+ * `renderOrchestration/index.ts`. See `renderOrchestration/AGENT.planning.simplification.md`.
  */
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { isEphemeraRoomId, type EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { computePerspectiveKey } from '@tonylb/mtw-interfaces/ts/perspective'
 import type { EphemeraCacheId, EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { isRenderPreviewRequested, type RenderPreviewRequested, type RenderRequested } from '../dataSource/renderOrchestration/events'
-import type { RenderResolveInput, RenderResolveInputSuccess } from '../dataSource/renderOrchestration/baseClasses'
+import { isRenderPreviewRequested, type RenderPreviewRequested, type RenderRequested } from './events'
+import type { RenderResolveInput, RenderResolveInputSuccess } from './baseClasses'
 
 export type RequestIntakeDependencies = {
     getMetaRoom?: (roomId: EphemeraRoomId) => Promise<EphemeraMetaRoom | undefined>;

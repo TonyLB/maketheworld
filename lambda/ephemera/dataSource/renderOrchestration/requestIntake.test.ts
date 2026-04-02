@@ -1,7 +1,7 @@
 import { intakeRenderRequested } from './requestIntake'
-import type { RenderPreviewRequested, RenderRequested } from '../dataSource/renderOrchestration/events'
+import type { RenderPreviewRequested, RenderRequested } from './events'
 
-describe('renderOrchestration/intakeRenderRequested', () => {
+describe('dataSource/renderOrchestration/intakeRenderRequested', () => {
     const basePayload: RenderRequested = {
         type: 'RenderRequested',
         componentId: 'ROOM#one',
@@ -70,4 +70,3 @@ describe('renderOrchestration/intakeRenderRequested', () => {
         })
     })
 })
-

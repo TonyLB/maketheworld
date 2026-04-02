@@ -1,6 +1,6 @@
 import { deliverIntakeErrorsIfAny } from './intakeErrors'
 
-describe('deliverIntakeErrorsIfAny', () => {
+describe('dataSource/renderOrchestration/deliverIntakeErrorsIfAny', () => {
     it('returns false and does not call sendMessage on success intake', async () => {
         const sendMessage = jest.fn()
         const handled = await deliverIntakeErrorsIfAny(

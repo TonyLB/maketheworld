@@ -2,7 +2,7 @@ import {
     isRenderResolveInputError,
     type RenderResolveInput,
     type RenderResolveOutput,
-} from '../dataSource/renderOrchestration/baseClasses'
+} from './baseClasses'
 
 /**
  * Maps passive {@link RenderResolveInput} intake errors to terminal {@link RenderResolveOutput}

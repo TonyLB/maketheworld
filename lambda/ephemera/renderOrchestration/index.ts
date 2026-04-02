@@ -43,8 +43,8 @@ export type {
     RenderOrchestrationMessage,
 } from '../dataSource/renderOrchestration/events'
 
-export { intakeRenderRequested } from './requestIntake'
-export type { RequestIntakeDependencies } from './requestIntake'
+export { intakeRenderRequested } from '../dataSource/renderOrchestration/requestIntake'
+export type { RequestIntakeDependencies } from '../dataSource/renderOrchestration/requestIntake'
 
 export { generateRoomPreview, defaultPublishPutCacheRecord } from './generateRoomPreview'
 export type {
@@ -71,7 +71,7 @@ export {
     RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION,
 } from '../dataSource/renderOrchestration/baseClasses'
 
-export { deliverIntakeErrorsIfAny } from './intakeErrors'
+export { deliverIntakeErrorsIfAny } from '../dataSource/renderOrchestration/intakeErrors'
 
 export { findRender } from './findRender'
 export type { FindRenderDependencies } from './findRender'

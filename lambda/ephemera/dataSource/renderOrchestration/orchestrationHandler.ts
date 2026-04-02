@@ -1,11 +1,11 @@
 /**
  * Render orchestration handler: {@link findRender} + terminal delivery via conversation `sendMessage`
- * after {@link intakeRenderRequested} (see `renderOrchestration/requestIntake.ts`).
+ * after {@link intakeRenderRequested} (see `./requestIntake.ts`).
  *
  * {@link orchestrateRenderRequest} is the unified entry for preview + passive single-item orchestration.
  *
- * Lives under `dataSource/renderOrchestration/` so ingress and orchestration entry stay co-located; dependencies
- * remain in `renderOrchestration/` until migrated.
+ * Lives under `dataSource/renderOrchestration/` so ingress, A-phase intake, and orchestration entry stay co-located;
+ * B-phase helpers (`findRender`, `generateRoomPreview`, …) remain in `renderOrchestration/` until migrated.
  */
 import { v4 as uuidv4 } from 'uuid'
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
@@ -25,11 +25,11 @@ import {
 import type { ConversationId } from '../../conversations'
 import { isRenderPreviewRequested, type RenderPreviewRequested, type RenderRequested } from './events'
 import { isRenderResolveInputSuccess } from './baseClasses'
-import { deliverIntakeErrorsIfAny } from '../../renderOrchestration/intakeErrors'
+import { deliverIntakeErrorsIfAny } from './intakeErrors'
 import { findRender } from '../../renderOrchestration/findRender'
 import { generateRoomPreview } from '../../renderOrchestration/generateRoomPreview'
-import { intakeRenderRequested } from '../../renderOrchestration/requestIntake'
-import type { RequestIntakeDependencies } from '../../renderOrchestration/requestIntake'
+import { intakeRenderRequested } from './requestIntake'
+import type { RequestIntakeDependencies } from './requestIntake'
 import internalCache from '../../internalCache'
 
 export type OrchestrationHandlerDependencies = {
