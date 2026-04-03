@@ -3,6 +3,7 @@ import type { PerspectiveSpec } from './computeDefaultMarksForRoom'
 import type { EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { isEphemeraCacheDynamoItem, type EphemeraCacheDynamoItem } from '../../renderCache/baseClasses'
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
+import internalCache from '../../internalCache'
 import { perspectiveMatches } from '@tonylb/mtw-interfaces/ts/perspective'
 import { markStatesEqual } from '../../renderCache/markStateUtils'
 
@@ -44,13 +45,9 @@ export type GetOrStartRoomRenderForStateDependencies = {
     getCacheRecordById?: (roomId: EphemeraRoomId, dataCategory: string) => Promise<EphemeraCacheDynamoItem | undefined>;
 }
 
-const defaultGetMetaRoom = async (roomId: EphemeraRoomId): Promise<EphemeraMetaRoom | undefined> => {
-    const fetched = await ephemeraDB.getItem<EphemeraMetaRoom>({
-        Key: { EphemeraId: roomId, DataCategory: 'Meta::Room' },
-        getAllFields: true
-    })
-    return fetched ?? undefined
-}
+const defaultGetMetaRoom = async (roomId: EphemeraRoomId): Promise<EphemeraMetaRoom | undefined> => (
+    internalCache.ComponentEphemeraMeta.get(roomId)
+)
 
 const defaultGetCacheRecordById = async (roomId: EphemeraRoomId, dataCategory: string): Promise<EphemeraCacheDynamoItem | undefined> => {
     const fetched = await ephemeraDB.getItem<any>({
@@ -75,6 +72,7 @@ const defaultSetMetaRoomState = async (
             draft.currentCacheId = next.currentCacheId
         }
     })
+    internalCache.ComponentEphemeraMeta.invalidate(roomId)
 }
 
 /**

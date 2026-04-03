@@ -5,6 +5,7 @@ import CacheCharacterMetaData from './characterMeta';
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB';
 
 import ComponentAssetMetaData from './componentAssetMeta';
+import ComponentEphemeraMetaData from './componentEphemeraMeta';
 import { AssetMetaData } from './assetMeta';
 import { CacheAssetRoomsData, CacheRoomAssetsData } from './assetRooms';
 import { GraphCacheType, GraphEdgeType, GraphNodeType } from './graph';
@@ -59,6 +60,7 @@ export class InternalCache {
     GraphEdges: GraphEdgeType;
     
     ComponentAssetMeta: ComponentAssetMetaData = new ComponentAssetMetaData();
+    ComponentEphemeraMeta: ComponentEphemeraMetaData = new ComponentEphemeraMetaData();
     AssetMetaData: AssetMetaData = new AssetMetaData();
 
     _invalidateAssetCallback: (EphemeraId: string) => void;
@@ -102,6 +104,7 @@ export class InternalCache {
         this.PlayerSessions.clear()
         this._graphCache.clear()
         this.ComponentAssetMeta.clear()
+        this.ComponentEphemeraMeta.clear()
         this.AssetMetaData.clear()
 
         this.Examples.clear()
