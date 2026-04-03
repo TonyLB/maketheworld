@@ -33,7 +33,11 @@ Domain boundaries in `AGENT.md` are unchanged: **state** owns authoritative worl
 ### `mtw.ephemera.state` DataSource: subscribe (stub)
 
 - [`index.ts`](./index.ts) uses **`subscribedEventTypeGuard: isEphemeraApiStateChangeEnvelope`** and a **no-op** `receiveEvents`. This is **ingress on the state DataSource** (same pattern as other domains consuming `api.ephemera`); **outbound** `mtw.ephemera.state` publishes are still **not** implemented.
-- **Next:** replace the stub with persistence (`Meta::Room.state`), optional **`streamEvent`** publishes under `mtw.ephemera.state`, and/or fan-out to **`renderOrchestration`**.
+- **Next:** replace the stub with calls to [`mergePersistMetaRoomMarks`](./mergePersistMetaRoomMarks.ts) (or thin wrappers), optional **`streamEvent`** publishes under `mtw.ephemera.state`, and/or fan-out to **`renderOrchestration`**.
+
+### Persist merged marks (helper only)
+
+- [`mergePersistMetaRoomMarks.ts`](./mergePersistMetaRoomMarks.ts): **`mergePersistMetaRoomMarks`** loads `Meta::Room`, merges **`incomingMarks`** onto existing `state.marks` or onto **`computeDefaultMarksForRoom`**, writes **`state`** via Dynamo (preserves **`situationId`**). Returns **`META_ROOM_MISSING`** if there is no row. **Not wired** from `receiveEvents` yet; no pointer-field updates in this helper.
 
 ## Architecture (target vs current)
 
@@ -138,6 +142,7 @@ Naming: use **ASCII** strings consistent with existing envelope types (`Render R
 
 - [x] **`api.ephemera` State Change:** `StateChangeCommand`, guards, `sendStateChange`, tests (`apiEphemera` / `localApiEvents`)
 - [x] **`mtw.ephemera.state`** DataSource scaffold + `app.ts` import + **subscribe** to State Change (**stub** `receiveEvents`)
+- [x] **`mergePersistMetaRoomMarks`** helper (merge + persist `state.marks`; tests; not wired from `receiveEvents` yet)
 - [ ] **`mtw.ephemera.state` outbound** events (if distinct from `api.ephemera` ingress) + publish helpers
 - [ ] **renderOrchestration** subscription + normalization to **`RenderRequested`**
 - [ ] Migrate first state writer; remove duplicate direct orchestration trigger
