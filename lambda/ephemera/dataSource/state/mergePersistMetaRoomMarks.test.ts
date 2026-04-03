@@ -5,7 +5,6 @@ import { mergeMarkState, mergePersistMetaRoomMarks } from './mergePersistMetaRoo
 
 describe('mergePersistMetaRoomMarks / mergeMarkState', () => {
     const roomId = 'ROOM#test' as EphemeraRoomId
-    const perspective = { assetStack: ['ASSET#one' as `ASSET#${string}`] }
 
     describe('mergeMarkState', () => {
         it('incoming wins on duplicate mark keys', () => {
@@ -54,7 +53,6 @@ describe('mergePersistMetaRoomMarks / mergeMarkState', () => {
                 {
                     roomId,
                     incomingMarks: { markValue: [{ mark: 'M', value: 'v' }] },
-                    perspective,
                 },
                 {
                     getMetaRoom: async () => undefined,
@@ -81,7 +79,6 @@ describe('mergePersistMetaRoomMarks / mergeMarkState', () => {
                 {
                     roomId,
                     incomingMarks: { markValue: [{ mark: 'MARK#new', value: 'new' }] },
-                    perspective,
                 },
                 {
                     getMetaRoom: async () => meta,
@@ -118,7 +115,6 @@ describe('mergePersistMetaRoomMarks / mergeMarkState', () => {
                 {
                     roomId,
                     incomingMarks: { markValue: [{ mark: 'MARK#in', value: 'in' }] },
-                    perspective,
                 },
                 {
                     getMetaRoom: async () => meta,
@@ -130,7 +126,6 @@ describe('mergePersistMetaRoomMarks / mergeMarkState', () => {
             expect(result).toEqual({ ok: true })
             expect(computeDefaultMarksForRoom).toHaveBeenCalledWith({
                 roomId,
-                perspective,
             })
 
             const call = optimisticUpdate.mock.calls[0][0]
@@ -155,7 +150,6 @@ describe('mergePersistMetaRoomMarks / mergeMarkState', () => {
                 {
                     roomId,
                     incomingMarks: { markValue: [] },
-                    perspective,
                 },
                 {
                     getMetaRoom: async () => meta,
@@ -183,7 +177,7 @@ describe('mergePersistMetaRoomMarks / mergeMarkState', () => {
             const incomingMarks = { markValue: [{ mark: 'MARK#in', value: 'in' }] }
 
             await mergePersistMetaRoomMarks(
-                { roomId, incomingMarks, perspective },
+                { roomId, incomingMarks },
                 {
                     getMetaRoom: async () => meta,
                     computeDefaultMarksForRoom,

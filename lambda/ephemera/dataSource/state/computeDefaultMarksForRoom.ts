@@ -4,6 +4,7 @@ import { internalCache, InternalCache } from '../../internalCache'
 import { mergeRoomAcrossStack, mergeLensAcrossStack } from './mergeComponentsAcrossStack'
 import { getLensMarksWithDefaults } from '@tonylb/mtw-wml/ts/standardize/worldState/lensMarks'
 import type { EphemeraCacheMarkState, EphemeraCacheMarkValue } from '../../renderCache/baseClasses'
+import { resolveCanonAssetStackForRoom } from './resolveAssetStackForRoom'
 
 export type PerspectiveSpec = {
     assetStack: AssetUUID[];
@@ -11,7 +12,6 @@ export type PerspectiveSpec = {
 
 export type ComputeDefaultMarksForRoomArgs = {
     roomId: EphemeraRoomId;
-    perspective: PerspectiveSpec;
     internalCacheOverride?: InternalCache;
 }
 
@@ -21,7 +21,8 @@ export type ComputeDefaultMarksForRoomArgs = {
  * NOTE: This helper intentionally couples Ephemera state logic to the Assets/WML
  * dataSource in a read-only way. It reaches into the standardized Room and Lens
  * components (via the internal cache and componentExamples helpers) to derive
- * the default Lens-controlled Mark/Match pairs for a Room in a given perspective.
+ * the default Lens-controlled Mark/Match pairs for a Room. Participation order and Canon filtering come from
+ * {@link resolveCanonAssetStackForRoom} (RoomAssets + AssetMetaData).
  *
  * This coupling is acceptable for v1 of the world-state system but is expected
  * to be revisited in a future iteration, likely replaced by an explicit
@@ -31,11 +32,10 @@ export type ComputeDefaultMarksForRoomArgs = {
  */
 export const computeDefaultMarksForRoom = async ({
     roomId,
-    perspective,
     internalCacheOverride
 }: ComputeDefaultMarksForRoomArgs): Promise<EphemeraCacheMarkState> => {
     const cache = internalCacheOverride || internalCache
-    const { assetStack } = perspective
+    const assetStack = await resolveCanonAssetStackForRoom(roomId, cache)
 
     if (!assetStack.length) {
         return { markValue: [] }

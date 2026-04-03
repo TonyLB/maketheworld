@@ -10,7 +10,6 @@ import {
 } from './apiEphemera'
 import type { StreamingEventMessage } from '../messageBus/baseClasses'
 import type { StreamingEventEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
-import type { StateChangeCommand } from './localApiEvents'
 
 describe('apiEphemera', () => {
     const makeBus = () => {
@@ -131,17 +130,6 @@ describe('apiEphemera', () => {
             componentId: 'ROOM#r3',
             markState: { markValue: [{ mark: 'MARK#a', value: 'lit' }] },
         })
-    })
-
-    it('sendStateChange may include optional assetStack on content (TEMPORARY State Change field)', async () => {
-        const { sent, bus } = makeBus()
-        sendStateChange(bus, 'ROOM#r4', {
-            componentId: 'ROOM#r4',
-            markState: { markValue: [] },
-            assetStack: ['ASSET#one' as `ASSET#${string}`],
-        })
-        const content = (await sent[0].getContent()) as StateChangeCommand
-        expect(content.assetStack).toEqual(['ASSET#one'])
     })
 
     it('isEphemeraApiSubscribedEnvelope accepts api.ephemera Put Cache Record envelope', async () => {

@@ -1,15 +1,15 @@
 import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 import { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { InternalCache } from '../../internalCache'
-import { computeDefaultMarksForRoom, PerspectiveSpec } from './computeDefaultMarksForRoom'
+import { computeDefaultMarksForRoom } from './computeDefaultMarksForRoom'
+import { resolveCanonAssetStackForRoom } from './resolveAssetStackForRoom'
+
+jest.mock('./resolveAssetStackForRoom', () => ({
+    resolveCanonAssetStackForRoom: jest.fn(),
+}))
 
 jest.mock('./mergeComponentsAcrossStack', () => {
     return {
-        //
-        // For these tests, we only need minimal behavior:
-        // - A "room" exists whenever any component has tag === 'Room'
-        // - A "lens" exists whenever any component has tag === 'Lens'
-        //
         mergeRoomAcrossStack: (byAssets: { component: { tag?: string } }[]) => {
             const hasRoom = byAssets.some(({ component }) => component.tag === 'Room')
             return hasRoom ? ({ tag: 'Room' } as any) : undefined
@@ -32,6 +32,10 @@ jest.mock('@tonylb/mtw-wml/ts/standardize/worldState/lensMarks', () => {
     }
 })
 
+const resolveCanonAssetStackForRoomMock = resolveCanonAssetStackForRoom as jest.MockedFunction<
+    typeof resolveCanonAssetStackForRoom
+>
+
 describe('computeDefaultMarksForRoom', () => {
     const roomId = 'ROOM#TEST' as EphemeraRoomId
     const assetStack: AssetUUID[] = ['ASSET#Base' as AssetUUID, 'ASSET#Overlay' as AssetUUID]
@@ -45,29 +49,31 @@ describe('computeDefaultMarksForRoom', () => {
         return Object.assign(base, overrides) as InternalCache
     }
 
-    it('returns empty markState when assetStack is empty', async () => {
+    beforeEach(() => {
+        resolveCanonAssetStackForRoomMock.mockReset()
+    })
+
+    it('returns empty markState when resolveCanonAssetStackForRoom returns no ids', async () => {
+        resolveCanonAssetStackForRoomMock.mockResolvedValue([])
         const mockCache = makeMockInternalCache()
-        const perspective: PerspectiveSpec = { assetStack: [] }
 
         const result = await computeDefaultMarksForRoom({
             roomId,
-            perspective,
             internalCacheOverride: mockCache
         })
 
         expect(result).toEqual({ markValue: [] })
+        expect(resolveCanonAssetStackForRoomMock).toHaveBeenCalledWith(roomId, mockCache)
         expect(mockCache.ComponentMeta.getAcrossAssets).not.toHaveBeenCalled()
     })
 
-    it('returns empty markState when room cannot be resolved in perspective', async () => {
+    it('returns empty markState when room cannot be resolved in stack', async () => {
+        resolveCanonAssetStackForRoomMock.mockResolvedValue(assetStack)
         const mockCache = makeMockInternalCache()
-        const perspective: PerspectiveSpec = { assetStack }
-
         ;(mockCache.ComponentMeta.getAcrossAssets as jest.Mock).mockResolvedValue({})
 
         const result = await computeDefaultMarksForRoom({
             roomId,
-            perspective,
             internalCacheOverride: mockCache
         })
 
@@ -79,9 +85,8 @@ describe('computeDefaultMarksForRoom', () => {
     })
 
     it('returns empty markState when no Lens is present', async () => {
+        resolveCanonAssetStackForRoomMock.mockResolvedValue(['ASSET#Base' as AssetUUID])
         const mockCache = makeMockInternalCache()
-        const perspective: PerspectiveSpec = { assetStack: ['ASSET#Base' as AssetUUID] }
-
         const standardRoomInstance = {
             tag: 'Room'
         } as any
@@ -92,7 +97,6 @@ describe('computeDefaultMarksForRoom', () => {
 
         const result = await computeDefaultMarksForRoom({
             roomId,
-            perspective,
             internalCacheOverride: mockCache
         })
 
@@ -100,9 +104,8 @@ describe('computeDefaultMarksForRoom', () => {
     })
 
     it('computes markState from a Lens with defaults', async () => {
+        resolveCanonAssetStackForRoomMock.mockResolvedValue(assetStack)
         const mockCache = makeMockInternalCache()
-        const perspective: PerspectiveSpec = { assetStack }
-
         const standardRoomInstance = {
             tag: 'Room'
         } as any
@@ -130,7 +133,6 @@ describe('computeDefaultMarksForRoom', () => {
 
         const result = await computeDefaultMarksForRoom({
             roomId,
-            perspective,
             internalCacheOverride: mockCache
         })
 
@@ -144,4 +146,3 @@ describe('computeDefaultMarksForRoom', () => {
         )
     })
 })
-

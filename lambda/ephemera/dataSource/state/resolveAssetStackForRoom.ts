@@ -9,7 +9,7 @@ export type CanonAssetStackCache = Pick<InternalCache, 'RoomAssets' | 'AssetMeta
  * ([`RoomAssets.get`](../../internalCache/assetRooms.ts)), then keep only assets whose `Meta::Asset` row has
  * `zone === 'Canon'`. Order among Canon assets matches `cached` order.
  *
- * Replaces caller-supplied `assetStack` on State Change for this path until that field is removed.
+ * Used by `computeDefaultMarksForRoom` when `Meta::Room` has no usable stored marks.
  */
 export async function resolveCanonAssetStackForRoom(
     roomId: EphemeraRoomId,
