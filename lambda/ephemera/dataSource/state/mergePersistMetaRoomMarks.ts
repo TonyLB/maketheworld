@@ -1,5 +1,5 @@
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraMetaRoom, EphemeraRoomState } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import internalCache from '../../internalCache'
 import type { EphemeraCacheMarkState } from '../../renderCache/baseClasses'
@@ -21,20 +21,24 @@ export type MergePersistMetaRoomMarksArgs = {
     incomingMarks: EphemeraCacheMarkState;
 }
 
+export type MergePersistMetaRoomMarksOptimisticUpdateParams = {
+    Key: { EphemeraId: EphemeraRoomId; DataCategory: 'Meta::Room' };
+    updateKeys: ['state'];
+    updateReducer: (draft: EphemeraMetaRoom) => void;
+    /** Same row as `getMetaRoom` avoids a duplicate `getItem` on the first optimistic attempt. */
+    priorFetch?: EphemeraMetaRoom;
+    successCallback?: (output: Partial<EphemeraMetaRoom>, prior: Partial<EphemeraMetaRoom>) => void | Promise<void>;
+}
+
 export type MergePersistMetaRoomMarksDependencies = {
     getMetaRoom?: (roomId: EphemeraRoomId) => Promise<EphemeraMetaRoom | undefined>;
     computeDefaultMarksForRoom?: typeof computeDefaultMarksForRoom;
-    optimisticUpdate?: (params: {
-        Key: { EphemeraId: EphemeraRoomId; DataCategory: 'Meta::Room' };
-        updateKeys: ['state'];
-        updateReducer: (draft: EphemeraMetaRoom) => void;
-        /** Same row as `getMetaRoom` avoids a duplicate `getItem` on the first optimistic attempt. */
-        priorFetch?: EphemeraMetaRoom;
-    }) => Promise<void>;
+    optimisticUpdate?: (params: MergePersistMetaRoomMarksOptimisticUpdateParams) => Promise<Partial<EphemeraMetaRoom> | undefined>;
 }
 
 export type MergePersistMetaRoomMarksResult =
-    | { ok: true }
+    | { ok: true; persisted: true; priorState: EphemeraRoomState; newState: EphemeraRoomState }
+    | { ok: true; persisted: false }
     | { ok: false; errorCode: 'META_ROOM_MISSING'; errorMessage: string }
 
 const defaultGetMetaRoom = async (roomId: EphemeraRoomId): Promise<EphemeraMetaRoom | undefined> => (
@@ -44,6 +48,16 @@ const defaultGetMetaRoom = async (roomId: EphemeraRoomId): Promise<EphemeraMetaR
 const hasUsableStoredMarks = (meta: EphemeraMetaRoom): boolean => {
     const marks = meta.state?.marks
     return !!marks && Array.isArray(marks.markValue) && marks.markValue.length > 0
+}
+
+/** Maps a partial meta row (projection / return value) to `EphemeraRoomState` for outbound events. */
+const toPersistedRoomState = (meta: Partial<EphemeraMetaRoom> | undefined): EphemeraRoomState => {
+    const s = meta?.state
+    const marks = s?.marks ?? { markValue: [] }
+    return {
+        marks,
+        ...(s?.situationId !== undefined ? { situationId: s.situationId } : {}),
+    }
 }
 
 /**
@@ -63,7 +77,9 @@ export const mergePersistMetaRoomMarks = async (
 ): Promise<MergePersistMetaRoomMarksResult> => {
     const getMetaRoom = _deps?.getMetaRoom ?? defaultGetMetaRoom
     const computeDefaults = _deps?.computeDefaultMarksForRoom ?? computeDefaultMarksForRoom
-    const optimisticUpdate = _deps?.optimisticUpdate ?? ((params) => ephemeraDB.optimisticUpdate(params))
+    const optimisticUpdate =
+        _deps?.optimisticUpdate
+        ?? ((params: MergePersistMetaRoomMarksOptimisticUpdateParams) => ephemeraDB.optimisticUpdate(params))
 
     const meta = await getMetaRoom(args.roomId)
     if (!meta) {
@@ -80,6 +96,8 @@ export const mergePersistMetaRoomMarks = async (
             roomId: args.roomId,
         })
 
+    let persistedSnapshot: { priorState: EphemeraRoomState; newState: EphemeraRoomState } | undefined
+
     await optimisticUpdate({
         Key: { EphemeraId: args.roomId, DataCategory: 'Meta::Room' },
         updateKeys: ['state'],
@@ -94,11 +112,20 @@ export const mergePersistMetaRoomMarks = async (
                 ...(draft.state?.situationId !== undefined ? { situationId: draft.state.situationId } : {}),
             }
         },
+        successCallback: (output, prior) => {
+            persistedSnapshot = {
+                priorState: toPersistedRoomState(prior),
+                newState: toPersistedRoomState(output),
+            }
+        },
     })
 
     internalCache.ComponentEphemeraMeta.invalidate(args.roomId)
 
-    return { ok: true }
+    if (persistedSnapshot) {
+        return { ok: true, persisted: true, ...persistedSnapshot }
+    }
+    return { ok: true, persisted: false }
 }
 
 export default mergePersistMetaRoomMarks

@@ -32,8 +32,8 @@ Domain boundaries in `AGENT.md` are unchanged: **state** owns authoritative worl
 
 ### `mtw.ephemera.state` DataSource: subscribe + persist (rooms)
 
-- [`index.ts`](./index.ts) uses **`subscribedEventTypeGuard: isEphemeraApiStateChangeEnvelope`** and **`receiveEvents`** that dispatches to [`handleApiStateChange.ts`](./handleApiStateChange.ts). Room ids merge marks into Dynamo via [`mergePersistMetaRoomMarks`](./mergePersistMetaRoomMarks.ts); non-room **`componentId`**s are ignored for now. **Outbound** `mtw.ephemera.state` publishes are still **not** implemented.
-- **Next:** optional **`streamEvent`** publishes under `mtw.ephemera.state`, and/or fan-out to **`renderOrchestration`**.
+- [`index.ts`](./index.ts) uses **`subscribedEventTypeGuard: isEphemeraApiStateChangeEnvelope`** and **`receiveEvents`** that dispatches to [`handleApiStateChange.ts`](./handleApiStateChange.ts). Room ids merge marks into Dynamo via [`mergePersistMetaRoomMarks`](./mergePersistMetaRoomMarks.ts); non-room **`componentId`**s are ignored for now. **Outbound:** after a successful conditional write, **`streamEvent`** publishes **`State Changed`** (see [`events.ts`](./events.ts)).
+- **Next:** fan-out to **`renderOrchestration`** (subscribers on `State Changed`).
 
 ### Persist merged marks
 
@@ -143,7 +143,7 @@ Naming: use **ASCII** strings consistent with existing envelope types (`Render R
 - [x] **`api.ephemera` State Change:** `StateChangeCommand`, guards, `sendStateChange`, tests (`apiEphemera` / `localApiEvents`)
 - [x] **`mtw.ephemera.state`** DataSource + `app.ts` import + **subscribe** to State Change (`receiveEvents` -> `handleApiStateChangeCommand`)
 - [x] **`mergePersistMetaRoomMarks`** helper + wired from **`handleApiStateChangeCommand`** for room State Change
-- [ ] **`mtw.ephemera.state` outbound** events (if distinct from `api.ephemera` ingress) + publish helpers
+- [x] **`mtw.ephemera.state` outbound** `State Changed` via **`streamEvent`** ([`events.ts`](./events.ts)); types + guards
 - [ ] **renderOrchestration** subscription + normalization to **`RenderRequested`**
 - [ ] Migrate first state writer; remove duplicate direct orchestration trigger
 - [ ] Update `AGENT.md` "active planning" pointer if v3 becomes the primary execution track for state
