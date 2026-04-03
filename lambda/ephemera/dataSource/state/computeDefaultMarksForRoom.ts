@@ -1,9 +1,9 @@
 import { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { AssetUUID, ComponentUUID } from '@tonylb/mtw-base/ts/schema'
-import { internalCache, InternalCache } from '../internalCache'
+import { internalCache, InternalCache } from '../../internalCache'
 import { mergeRoomAcrossStack, mergeLensAcrossStack } from './mergeComponentsAcrossStack'
 import { getLensMarksWithDefaults } from '@tonylb/mtw-wml/ts/standardize/worldState/lensMarks'
-import type { EphemeraCacheMarkState, EphemeraCacheMarkValue } from '../renderCache/baseClasses'
+import type { EphemeraCacheMarkState, EphemeraCacheMarkValue } from '../../renderCache/baseClasses'
 
 export type PerspectiveSpec = {
     assetStack: AssetUUID[];
@@ -27,7 +27,7 @@ export type ComputeDefaultMarksForRoomArgs = {
  * to be revisited in a future iteration, likely replaced by an explicit
  * Assets-to-Ephemera pipeline for world-state defaults.
  *
- * See: lambda/ephemera/state/AGENT.v1.planning.md (section on default state).
+ * See: lambda/ephemera/dataSource/state/AGENT.v1.planning.md (section on default state).
  */
 export const computeDefaultMarksForRoom = async ({
     roomId,

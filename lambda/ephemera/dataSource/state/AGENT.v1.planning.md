@@ -9,13 +9,13 @@ This document is retained as the historical planning/decision record for v1.
 
 For active planning moving forward, see:
 
-- `lambda/ephemera/state/AGENT.v2.planning.md`
+- `lambda/ephemera/dataSource/state/AGENT.v2.planning.md`
 
 ## Domain boundaries (current architecture)
 
 The v1 sections below were written while **state**, **perception**, and **orchestration** were still being teased apart. They sometimes describe **cache pointer invalidation** and **render selection** as responsibilities of the state layer. **Current** split:
 
-- **`lambda/ephemera/state`**: runtime world-state on `Meta::Room` (`state.marks`, etc.), default marks, merge helpers. See `AGENT.md` in this directory.
+- **`lambda/ephemera/dataSource/state`**: runtime world-state on `Meta::Room` (`state.marks`, etc.), default marks, merge helpers. See `AGENT.md` in this directory.
 - **`lambda/ephemera/dataSource/renderOrchestration`**: `Meta::Room` **pointer** fields (`currentCacheId` / `currentCacheByPerspective`), validation against current marks, exact match, generation, **`RenderInvalidate`**, and related lifecycle.
 
 Early v1 language often assumed **eager** invalidation (clear pointers whenever `state` changes). **Orchestration** instead **re-validates** hinted cache rows on each resolve and clears or updates pointers as needed (`findRender`). Optional eager clears on write remain a product choice, not a requirement of the state module.
@@ -189,13 +189,13 @@ v1 implemented the core foundations for a cache-backed, state-driven Room descri
    - **Historical:** we documented eager clearing of `currentCacheId` on any `state` change. **Pointer lifecycle** is now owned by **render orchestration** (lazy validation on resolve); see `AGENT.md` and `AGENT.v2.planning.md`.
 
 2. **Default mark derivation**
-   - Implemented `computeDefaultMarksForRoom(roomId, perspective)` in `lambda/ephemera/state/computeDefaultMarksForRoom.ts`.
+   - Implemented `computeDefaultMarksForRoom(roomId, perspective)` in `lambda/ephemera/dataSource/state/computeDefaultMarksForRoom.ts`.
 
 3. **renderCache exact-match primitives**
    - Exact-match semantics (normalized Mark-state equality + perspective matcher filtering) are implemented and tested via `internalCache.RenderCache.getExactMatch` and `generateRoomPreview` in `lambda/ephemera/renderCache/`.
 
 4. **Room state -> cache selection helper (fast path only)**
-   - Added a DI-friendly orchestration entrypoint `getOrStartRoomRenderForState(roomId, perspective, options)` in `lambda/ephemera/state/getOrStartRoomRenderForState.ts`.
+   - Added a DI-friendly orchestration entrypoint `getOrStartRoomRenderForState(roomId, perspective, options)` in `lambda/ephemera/dataSource/state/getOrStartRoomRenderForState.ts`.
    - Implemented and test-driven the `currentCacheId` fast path:
      - load pointed cache record
      - validate it matches `state.marks` and the requested perspective

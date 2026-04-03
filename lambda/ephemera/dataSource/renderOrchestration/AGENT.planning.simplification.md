@@ -12,7 +12,7 @@ For full render-orchestration roadmap (lifecycle, state, perception), see `AGENT
 
 These are the active simplification / alignment items worth attention next:
 
-1. **Track B (`state/getOrStartRoomRenderForState.ts`)**  
+1. **Track B (`dataSource/state/getOrStartRoomRenderForState.ts`)**  
    Decide: integrate as a thin caller of `findRender` / shared intake, or retire and stop treating its scaffold as a runtime contract.
 
 2. **Preview vs passive policy alignment** (same shell, different knobs)  
@@ -60,7 +60,7 @@ Normalized core input: `RenderResolveInput` in `baseClasses.ts` (maps from `Rend
 | Track | Status |
 |-------|--------|
 | **A** Canonical orchestration (`orchestrateRenderRequest`, intake, `findRender`, delivery) | Active - evolve in place |
-| **B** `state/getOrStartRoomRenderForState.ts` | **Open** - integrate or retire |
+| **B** `dataSource/state/getOrStartRoomRenderForState.ts` | **Open** - integrate or retire |
 | **C** App preview tests / direct `RenderPreviewRequested` bus sends | **Obsolete** - app uses `sendRenderPreviewRequested` + DataSource ingress; tests assert `StreamingEvent` envelope |
 
 ---

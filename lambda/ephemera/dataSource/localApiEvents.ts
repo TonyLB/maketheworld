@@ -2,7 +2,8 @@
  * Payload types and type guards for API-triggered internal events (dataSourceKey: 'api.ephemera').
  * Used by apiEphemera.ts send helpers and future DataSource receiveEvents. In-process only; no EventBridge.
  */
-import type { EphemeraCacheComponentId } from '../renderCache/baseClasses'
+import type { AssetUUID } from '@tonylb/mtw-base/ts/schema'
+import type { EphemeraCacheComponentId, EphemeraCacheMarkState } from '../renderCache/baseClasses'
 import type { PutCacheRecordInput } from './renderCache/putCacheRecord'
 import type { GenerateRoomPreviewInput } from './renderOrchestration/generateRoomPreview'
 
@@ -22,6 +23,49 @@ export type DeleteCacheRecordsCommand = {
 export type GenerateRoomPreviewCommand = GenerateRoomPreviewInput & {
     RequestId?: string;
 };
+
+/**
+ * Proposed world-state marks for a component (e.g. Room); paired with header `State Change` on api.ephemera.
+ *
+ * TEMPORARY (State Change assetStack): optional `assetStack` exists only to bridge the gap until we resolve the
+ * canonical participation stack (cached canon assets / server-side resolver) for default marks when `Meta::Room`
+ * has no usable stored marks. It is not a commitment to a long-term contract: prefer removing it once defaults
+ * derive from authoritative data, and do not build product features that depend on callers supplying a correct
+ * stack indefinitely.
+ */
+export type StateChangeCommand = {
+    componentId: EphemeraCacheComponentId;
+    markState: EphemeraCacheMarkState;
+    /** @see StateChangeCommand - TEMPORARY; see module comment above. */
+    assetStack?: AssetUUID[];
+}
+
+const isMarkStateShape = (value: unknown): value is EphemeraCacheMarkState => {
+    if (!value || typeof value !== 'object') {
+        return false
+    }
+    return Array.isArray((value as Record<string, unknown>).markValue)
+}
+
+export const isStateChangeCommand = (value: unknown): value is StateChangeCommand => {
+    if (!value || typeof value !== 'object') {
+        return false
+    }
+    const v = value as Record<string, unknown>
+    if (typeof v.componentId !== 'string') {
+        return false
+    }
+    if (!isMarkStateShape(v.markState)) {
+        return false
+    }
+    // TEMPORARY (State Change assetStack): optional field; see StateChangeCommand JSDoc.
+    if (v.assetStack !== undefined) {
+        if (!Array.isArray(v.assetStack) || !v.assetStack.every((id) => typeof id === 'string')) {
+            return false
+        }
+    }
+    return true
+}
 
 export const isPutCacheRecordCommand = (value: unknown): value is PutCacheRecordCommand => {
     if (!value || typeof value !== 'object') {
@@ -95,4 +139,8 @@ export const isGenerateRoomPreviewCommand = (value: unknown): value is GenerateR
 }
 
 /** Union of all api.ephemera command payloads (discriminated by header.type on the bus). */
-export type EphemeraApiCommandPayload = PutCacheRecordCommand | DeleteCacheRecordsCommand | GenerateRoomPreviewCommand
+export type EphemeraApiCommandPayload =
+    | PutCacheRecordCommand
+    | DeleteCacheRecordsCommand
+    | GenerateRoomPreviewCommand
+    | StateChangeCommand

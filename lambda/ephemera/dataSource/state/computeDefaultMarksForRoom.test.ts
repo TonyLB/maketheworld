@@ -1,6 +1,6 @@
 import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 import { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { InternalCache } from '../internalCache'
+import { InternalCache } from '../../internalCache'
 import { computeDefaultMarksForRoom, PerspectiveSpec } from './computeDefaultMarksForRoom'
 
 jest.mock('./mergeComponentsAcrossStack', () => {
