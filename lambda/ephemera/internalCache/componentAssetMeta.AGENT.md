@@ -1,19 +1,19 @@
-# Component Meta Cache - Agent Navigation Guide
+# Component Asset Meta Cache - Agent Navigation Guide
 
 ## Overview
 
-The `ComponentMetaData` class is a specialized cache handler that manages **component metadata** from the `assetDB` DynamoDB table. It provides cross-asset component lookup capabilities and integrates with the WML StandardComponent system.
+The `ComponentAssetMetaData` class is a specialized cache handler that manages **component metadata** from the `assetDB` DynamoDB table. It provides cross-asset component lookup capabilities and integrates with the WML StandardComponent system.
 
 > **Note**: This handler follows the standard `internalCache` patterns documented in [`AGENT.md`](./AGENT.md). See that file for common patterns like DeferredCache usage, dual storage, and core methods.
 
 ## Unique Features
 
 ### **Cross-Asset Component Lookup**
-Unlike other cache handlers, `ComponentMeta` specializes in finding the same component across multiple assets:
+Unlike other cache handlers, `ComponentAssetMeta` specializes in finding the same component across multiple assets:
 
 ```typescript
 // Get mainHall room across multiple assets
-const results = await componentMeta.getAcrossAssets('ROOM#mainHall-uuid', [
+const results = await componentAssetMeta.getAcrossAssets('ROOM#mainHall-uuid', [
     'ASSET#marketSquare-uuid',
     'ASSET#downtown-uuid',
     'ASSET#suburbs-uuid'
@@ -26,7 +26,7 @@ Can find ALL assets containing a specific component:
 
 ```typescript
 // Find all assets containing the mainHall room
-const allAssets = await componentMeta.getAcrossAllAssets('ROOM#mainHall-uuid')
+const allAssets = await componentAssetMeta.getAcrossAllAssets('ROOM#mainHall-uuid')
 // Returns: Record<AssetUUID, StandardComponent>
 ```
 
@@ -58,7 +58,7 @@ Each cached item contains:
 Retrieves a single component from a specific asset:
 
 ```typescript
-const result = await componentMeta.get('ROOM#mainHall-uuid', 'ASSET#marketSquare-uuid')
+const result = await componentAssetMeta.get('ROOM#mainHall-uuid', 'ASSET#marketSquare-uuid')
 // Returns: { assetId: 'ASSET#marketSquare-uuid', component: StandardRoom }
 ```
 
@@ -66,7 +66,7 @@ const result = await componentMeta.get('ROOM#mainHall-uuid', 'ASSET#marketSquare
 Retrieves the same component across multiple assets efficiently:
 
 ```typescript
-const results = await componentMeta.getAcrossAssets('ROOM#mainHall-uuid', [
+const results = await componentAssetMeta.getAcrossAssets('ROOM#mainHall-uuid', [
     'ASSET#marketSquare-uuid',
     'ASSET#downtown-uuid',
     'ASSET#suburbs-uuid'
@@ -78,7 +78,7 @@ const results = await componentMeta.getAcrossAssets('ROOM#mainHall-uuid', [
 Retrieves a component across ALL assets where it appears:
 
 ```typescript
-const allAssets = await componentMeta.getAcrossAllAssets('ROOM#mainHall-uuid')
+const allAssets = await componentAssetMeta.getAcrossAllAssets('ROOM#mainHall-uuid')
 // Returns: Record<AssetUUID, StandardComponent>
 ```
 
@@ -134,14 +134,14 @@ const metaResult = await assetDB.getItem({
 ### **Single Component Lookup**
 ```typescript
 // Get specific component from specific asset
-const room = await componentMeta.get('ROOM#mainHall-uuid', 'ASSET#marketSquare-uuid')
+const room = await componentAssetMeta.get('ROOM#mainHall-uuid', 'ASSET#marketSquare-uuid')
 console.log(room.component.name) // "Main Hall"
 ```
 
 ### **Cross-Asset Component Analysis**
 ```typescript
 // Find how a component appears across multiple assets
-const appearances = await componentMeta.getAcrossAssets('FEATURE#fountain-uuid', [
+const appearances = await componentAssetMeta.getAcrossAssets('FEATURE#fountain-uuid', [
     'ASSET#marketSquare-uuid',
     'ASSET#park-uuid'
 ])
@@ -152,7 +152,7 @@ const appearances = await componentMeta.getAcrossAssets('FEATURE#fountain-uuid',
 ### **Complete Component Discovery**
 ```typescript
 // Find all assets containing a specific component
-const allAssets = await componentMeta.getAcrossAllAssets('ROOM#mainHall-uuid')
+const allAssets = await componentAssetMeta.getAcrossAllAssets('ROOM#mainHall-uuid')
 // Useful for understanding component aggregate across the system
 ```
 
@@ -169,4 +169,4 @@ const allAssets = await componentMeta.getAcrossAllAssets('ROOM#mainHall-uuid')
 - **Cache Key Format**: Always use `generateCacheKey()` and `cacheKeyComponents()`
 - **Validation**: Always validate both assetId and EphemeraId before database calls
 - **Default Components**: Missing components get default instances, not null
-- **Batching**: Multiple requests for same component share single database call 
+- **Batching**: Multiple requests for same component share single database call

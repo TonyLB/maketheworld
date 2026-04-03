@@ -44,7 +44,7 @@ describe('ComponentRender cache handler', () => {
                 ]
             }]
         })
-        jest.spyOn(internalCache.ComponentMeta, "getAcrossAssets").mockResolvedValue({
+        jest.spyOn(internalCache.ComponentAssetMeta, "getAcrossAssets").mockResolvedValue({
             [`ASSET#Base`]: new StandardRoom({
                 universalKey: 'ROOM#TestOne',
                 tag: 'Room',
@@ -101,7 +101,7 @@ describe('ComponentRender cache handler', () => {
             HomeId: 'ROOM#VORTEX',
             Pronouns: 'she/her',
         })
-        jest.spyOn(internalCache.ComponentMeta, "getAcrossAssets").mockResolvedValue({
+        jest.spyOn(internalCache.ComponentAssetMeta, "getAcrossAssets").mockResolvedValue({
             [`ASSET#Base`]: new StandardRoom({
                 universalKey: 'ROOM#TestOne',
                 tag: 'Room',
@@ -156,7 +156,7 @@ describe('ComponentRender cache handler', () => {
             HomeId: 'ROOM#VORTEX',
             Pronouns: 'she/her',
         })
-        jest.spyOn(internalCache.ComponentMeta, "getAcrossAssets").mockResolvedValue({
+        jest.spyOn(internalCache.ComponentAssetMeta, "getAcrossAssets").mockResolvedValue({
             [`ASSET#Base`]: new StandardRoom({
                 universalKey: 'ROOM#TestOne',
                 tag: 'Room',
@@ -194,7 +194,7 @@ describe('ComponentRender cache handler', () => {
             HomeId: 'ROOM#VORTEX',
             Pronouns: 'she/her',
         })
-        jest.spyOn(internalCache.ComponentMeta, "getAcrossAssets").mockResolvedValue({
+        jest.spyOn(internalCache.ComponentAssetMeta, "getAcrossAssets").mockResolvedValue({
             [`ASSET#Base`]: new StandardFeature({
                 universalKey: 'FEATURE#TestOne',
                 tag: 'Feature',
@@ -222,7 +222,7 @@ describe('ComponentRender cache handler', () => {
             { EphemeraId: 'CHARACTER#TESS', DisplayName: 'Tess', Color: 'purple', SessionIds: [] }
         ])
         const output = await internalCache.ComponentRender.get("CHARACTER#TESS", "FEATURE#TestOne")
-        expect(internalCache.ComponentMeta.getAcrossAssets).toHaveBeenCalledWith('FEATURE#TestOne', ['ASSET#Base', 'ASSET#Personal'])
+        expect(internalCache.ComponentAssetMeta.getAcrossAssets).toHaveBeenCalledWith('FEATURE#TestOne', ['ASSET#Base', 'ASSET#Personal'])
         expect(schemaToWML([output.schema])).toEqual(deIndentWML(`
             <Asset uuid=(render)>
                 <Example uuid=(rendered) ref={0}>
@@ -245,7 +245,7 @@ describe('ComponentRender cache handler', () => {
             HomeId: 'ROOM#VORTEX',
             Pronouns: 'she/her'
         })
-        jest.spyOn(internalCache.ComponentMeta, "getAcrossAssets").mockResolvedValue({
+        jest.spyOn(internalCache.ComponentAssetMeta, "getAcrossAssets").mockResolvedValue({
             [`ASSET#Base`]: new StandardKnowledge({
                 universalKey: 'KNOWLEDGE#TestOne',
                 tag: 'Knowledge',
@@ -275,7 +275,7 @@ describe('ComponentRender cache handler', () => {
             { EphemeraId: 'CHARACTER#TESS', DisplayName: 'Tess', Color: 'purple', SessionIds: [] }
         ])
         const output = await internalCache.ComponentRender.get("CHARACTER#TESS", "KNOWLEDGE#TestOne")
-        expect(internalCache.ComponentMeta.getAcrossAssets).toHaveBeenCalledWith('KNOWLEDGE#TestOne', ['ASSET#Base', 'ASSET#Personal'])
+        expect(internalCache.ComponentAssetMeta.getAcrossAssets).toHaveBeenCalledWith('KNOWLEDGE#TestOne', ['ASSET#Base', 'ASSET#Personal'])
         expect(schemaToWML([output.schema])).toEqual(deIndentWML(`
             <Asset uuid=(render)>
                 <Example uuid=(rendered) key=(example1) ref={0}>
@@ -299,7 +299,7 @@ describe('ComponentRender cache handler', () => {
             HomeId: 'ROOM#VORTEX',
             Pronouns: 'she/her'
         })
-        jest.spyOn(internalCache.ComponentMeta, "getAcrossAssets").mockImplementation(async (ephemeraId) => {
+        jest.spyOn(internalCache.ComponentAssetMeta, "getAcrossAssets").mockImplementation(async (ephemeraId) => {
             switch(ephemeraId) {
                 case 'MAP#TestOne':
                     return {

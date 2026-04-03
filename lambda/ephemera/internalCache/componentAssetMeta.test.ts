@@ -17,7 +17,7 @@ const mapToJSON = (data: Record<AssetUUID, StandardComponent>): Record<string, S
     )
 }
 
-describe('ComponentMeta', () => {
+describe('ComponentAssetMeta', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         jest.resetAllMocks()
@@ -37,7 +37,7 @@ describe('ComponentMeta', () => {
             examples: ['EXAMPLE#ExampleTwo'],
             exits: []
         }])
-        const output = await internalCache.ComponentMeta.getAcrossAssets('ROOM#TestOne', ['ASSET#Base', 'ASSET#Layer'])
+        const output = await internalCache.ComponentAssetMeta.getAcrossAssets('ROOM#TestOne', ['ASSET#Base', 'ASSET#Layer'])
         expect(mapToJSON(output)).toEqual({
             Base: {
                 tag: 'Room',
@@ -61,7 +61,7 @@ describe('ComponentMeta', () => {
     })
 
     it('should send already cached items', async () => {
-        internalCache.ComponentMeta.set('ROOM#TestOne', 'ASSET#Layer', new StandardRoom({
+        internalCache.ComponentAssetMeta.set('ROOM#TestOne', 'ASSET#Layer', new StandardRoom({
             universalKey: 'ROOM#TestOne',
             tag: 'Room',
             examples: [{ key: 'base', tag: 'Example' }],
@@ -74,7 +74,7 @@ describe('ComponentMeta', () => {
             tag: 'Room',
             exits: []
         }])
-        const output = await internalCache.ComponentMeta.getAcrossAssets('ROOM#TestOne', ['ASSET#Base', 'ASSET#Layer'])
+        const output = await internalCache.ComponentAssetMeta.getAcrossAssets('ROOM#TestOne', ['ASSET#Base', 'ASSET#Layer'])
         expect(mapToJSON(output)).toEqual({
             Base: {
                 universalKey: 'ROOM#TestOne',
@@ -103,7 +103,7 @@ describe('ComponentMeta', () => {
             exits: [],
             AssetId: 'ROOM#TestOne'
         }])
-        const output = await internalCache.ComponentMeta.getAcrossAssets('ROOM#TestOne', ['ASSET#Base', 'ASSET#Layer'])
+        const output = await internalCache.ComponentAssetMeta.getAcrossAssets('ROOM#TestOne', ['ASSET#Base', 'ASSET#Layer'])
         expect(mapToJSON(output)).toEqual({
             Base: {
                 tag: 'Room',
@@ -151,7 +151,7 @@ describe('ComponentMeta', () => {
         ])
         
         // Should only return the valid record, filtering out invalid ones
-        const output = await internalCache.ComponentMeta.getAcrossAssets('ROOM#TestOne', ['ASSET#Base', 'ASSET#Layer'])
+        const output = await internalCache.ComponentAssetMeta.getAcrossAssets('ROOM#TestOne', ['ASSET#Base', 'ASSET#Layer'])
         expect(mapToJSON(output)).toEqual({
             Base: {
                 tag: 'Room',

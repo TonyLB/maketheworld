@@ -24,17 +24,17 @@ import { standardComponentFactory } from '@tonylb/mtw-wml/ts/standardize/compone
 import { isStandardComponentData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes';
 import { tagFromEphemeraId } from '@tonylb/mtw-utilities/ts/graphStorage/cache';
 
-type ComponentMetaMixin = { assetId: string }
-export type ComponentMetaItem<T extends StandardComponentData = StandardComponentData> = T & EphemeraKeyMappingMixin & ComponentMetaMixin
+type ComponentAssetMetaMixin = { assetId: string }
+export type ComponentAssetMetaItem<T extends StandardComponentData = StandardComponentData> = T & EphemeraKeyMappingMixin & ComponentAssetMetaMixin
 
 const generateCacheKey = (EphemeraId: ComponentUUID, assetId: AssetUUID) => (`${assetId}::${EphemeraId}`)
 const cacheKeyComponents = (cacheKey: string): { EphemeraId: ComponentUUID, assetId: AssetUUID } => {
     const [assetId, EphemeraId] = cacheKey.split('::')
     if (!(EphemeraId && isEphemeraId(EphemeraId) && isSchemaComponentUUID(EphemeraId))) {
-        throw new Error(`CacheKey error in ComponentMeta internalCache (${cacheKey})`)
+        throw new Error(`CacheKey error in ComponentAssetMeta internalCache (${cacheKey})`)
     }
     if (!assetId || typeof assetId !== 'string' || !isSchemaAssetUUID(assetId)) {
-        throw new Error(`CacheKey error in ComponentMeta internalCache (${cacheKey})`)
+        throw new Error(`CacheKey error in ComponentAssetMeta internalCache (${cacheKey})`)
     }
     return {
         EphemeraId,
@@ -42,7 +42,7 @@ const cacheKeyComponents = (cacheKey: string): { EphemeraId: ComponentUUID, asse
     }
 }
 
-export class ComponentMetaData {
+export class ComponentAssetMetaData {
     _Cache: DeferredCache<{ assetId: AssetUUID; component: StandardComponent }>;
     _Store: Record<string, { assetId: AssetUUID; component: StandardComponent }> = {}
     
@@ -51,14 +51,14 @@ export class ComponentMetaData {
             callback: (key, value) => { this._setStore(key, value) },
             defaultValue: (cacheKey) => {
                 if (typeof cacheKey !== 'string' || !cacheKey.includes('::')) {
-                    throw new Error('Invalid cache key format in ComponentMeta internalCache')
+                    throw new Error('Invalid cache key format in ComponentAssetMeta internalCache')
                 }
                 const { assetId, EphemeraId } = cacheKeyComponents(cacheKey as `${AssetUUID}::${ComponentUUID}`)
                 if (!isSchemaComponentUUID(EphemeraId)) {
-                    throw new Error('Invalid EphemeraId in ComponentMeta internalCache')
+                    throw new Error('Invalid EphemeraId in ComponentAssetMeta internalCache')
                 }
                 if (!isSchemaAssetUUID(assetId)) {
-                    throw new Error('Invalid assetId in ComponentMeta internalCache')
+                    throw new Error('Invalid assetId in ComponentAssetMeta internalCache')
                 }
                 const tag = tagFromEphemeraWrappedId(EphemeraId)
                 const defaultData = defaultComponentFromTag(tag, undefined, EphemeraId)
@@ -205,4 +205,4 @@ export class ComponentMetaData {
     }
 }
 
-export default ComponentMetaData
+export default ComponentAssetMetaData

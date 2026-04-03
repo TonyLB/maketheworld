@@ -48,7 +48,7 @@ export const perceptionMessage = async ({
 
             if (!characterId) {
                 const internalCache = getCache()
-                const messageMetaByAsset = await internalCache.ComponentMeta.getAcrossAllAssets(ephemeraId) as Record<AssetUUID, StandardComponent>
+                const messageMetaByAsset = await internalCache.ComponentAssetMeta.getAcrossAllAssets(ephemeraId) as Record<AssetUUID, StandardComponent>
                 const roomsForMessage = (Object.values(messageMetaByAsset) as StandardComponentData[]).filter(isStandardMessageData).reduce<EphemeraRoomId[]>((previous, { rooms }) => ([ ...previous, ...(rooms ?? []) as `ROOM#${string}`[] ]), [])
                 const roomCharacterLists = await Promise.all(roomsForMessage.map(async (roomId) => (internalCache.RoomCharacterList.get(roomId))))
 
@@ -78,7 +78,7 @@ export const perceptionMessage = async ({
                     internalCache.Global.get('assets')
                 ])
                 const assetList = [ ...(globalAssets || []), ...characterMeta.assets ].map((key) => (AssetKey(key)))
-                const messageMetaForCharacter = await internalCache.ComponentMeta.getAcrossAssets(ephemeraId, assetList) as Record<AssetUUID, StandardComponent>
+                const messageMetaForCharacter = await internalCache.ComponentAssetMeta.getAcrossAssets(ephemeraId, assetList) as Record<AssetUUID, StandardComponent>
                 const roomsForMessage = Object.values(messageMetaForCharacter).filter((component): component is StandardMessage => component instanceof StandardMessage).reduce<EphemeraRoomId[]>((previous, component) => ([ ...previous, ...(component.rooms.payload ?? []).map((reference) => (reference.universalKey)) as `ROOM#${string}`[] ]), [])
                 if (roomsForMessage.includes(characterMeta.RoomId)) {
                     const messageForm = await internalCache.ComponentRender.get(characterId, ephemeraId)
@@ -106,7 +106,7 @@ export const perceptionMessage = async ({
             const internalCache = getCache()
 
             const [momentMetaByAsset, globalAssets = []] = await Promise.all([
-                internalCache.ComponentMeta.getAcrossAllAssets(ephemeraId),
+                internalCache.ComponentAssetMeta.getAcrossAllAssets(ephemeraId),
                 internalCache.Global.get('assets')
             ])
             const assetsByMessageId = Object.entries(momentMetaByAsset as Record<AssetUUID, StandardMoment>).reduce<Record<EphemeraMessageId, string[]>>((previous, [key, { messages }]) => (

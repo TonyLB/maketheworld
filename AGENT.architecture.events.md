@@ -56,7 +56,7 @@ export const perceptionMessage = async ({ payloads, messageBus }: PerceptionPara
 
             if (!characterId) {
                 // Get rooms where this message should appear
-                const messageMetaByAsset = await internalCache.ComponentMeta.getAcrossAllAssets(ephemeraId)
+                const messageMetaByAsset = await internalCache.ComponentAssetMeta.getAcrossAllAssets(ephemeraId)
                 const roomsForMessage = extractRoomsFromMeta(messageMetaByAsset)
                 
                 // Check for character presence in each room
@@ -200,7 +200,7 @@ export const moveCharacter = async ({ payloads, messageBus }: MoveCharacterParam
 ```
 
 **Processing Logic:**
-1. Get rooms where message appears via `ComponentMeta.getAcrossAllAssets()`
+1. Get rooms where message appears via `ComponentAssetMeta.getAcrossAllAssets()`
 2. For each room: check character presence via `RoomCharacterList.get()`
 3. If `onlyForAssets` specified: filter characters by asset access
 4. Send message to all qualifying characters
@@ -277,7 +277,7 @@ internalCache.RoomCharacterList.set({ key: roomId, value: activeCharacters })
 
 ### Presence-Independent Caches
 
-#### **ComponentMeta Cache**
+#### **ComponentAssetMeta Cache**
 - **Population**: On-demand when needed for any processing
 - **Function**: Asset structure and relationship information
 - **Scope**: Asset-level (not character-specific)
