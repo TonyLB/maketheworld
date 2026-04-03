@@ -97,7 +97,7 @@ describe('Perception message', () => {
                         Pronouns: 'she/her'
                     })
                 },
-                ComponentMeta: {
+                ComponentAssetMeta: {
                     getAcrossAssets: jest.fn().mockResolvedValue({
                         ['ASSET#Base']: new StandardMessage(`
                             <Message uuid=(Test) key=(testMessage)>
@@ -161,7 +161,7 @@ describe('Perception message', () => {
                         Pronouns: 'she/her'
                     })
                 },
-                ComponentMeta: {
+                ComponentAssetMeta: {
                     getAcrossAssets: jest.fn().mockResolvedValue({
                         ['ASSET#Base']: new StandardMessage(`
                             <Message uuid=(Test) key=(testMessage)>
@@ -214,7 +214,7 @@ describe('Perception message', () => {
                         Pronouns: 'she/her'
                     })
                 },
-                ComponentMeta: {
+                ComponentAssetMeta: {
                     getAcrossAssets: jest.fn().mockResolvedValue({
                         ['ASSET#Base']: new StandardMessage(`
                             <Message uuid=(Test) key=(testMessage)>

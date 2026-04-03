@@ -42,7 +42,7 @@ describe('computeDefaultMarksForRoom', () => {
 
     const makeMockInternalCache = (overrides: Partial<InternalCache> = {}): InternalCache => {
         const base: any = {
-            ComponentMeta: {
+            ComponentAssetMeta: {
                 getAcrossAssets: jest.fn()
             }
         }
@@ -64,13 +64,13 @@ describe('computeDefaultMarksForRoom', () => {
 
         expect(result).toEqual({ markValue: [] })
         expect(resolveCanonAssetStackForRoomMock).toHaveBeenCalledWith(roomId, mockCache)
-        expect(mockCache.ComponentMeta.getAcrossAssets).not.toHaveBeenCalled()
+        expect(mockCache.ComponentAssetMeta.getAcrossAssets).not.toHaveBeenCalled()
     })
 
     it('returns empty markState when room cannot be resolved in stack', async () => {
         resolveCanonAssetStackForRoomMock.mockResolvedValue(assetStack)
         const mockCache = makeMockInternalCache()
-        ;(mockCache.ComponentMeta.getAcrossAssets as jest.Mock).mockResolvedValue({})
+        ;(mockCache.ComponentAssetMeta.getAcrossAssets as jest.Mock).mockResolvedValue({})
 
         const result = await computeDefaultMarksForRoom({
             roomId,
@@ -78,7 +78,7 @@ describe('computeDefaultMarksForRoom', () => {
         })
 
         expect(result).toEqual({ markValue: [] })
-        expect(mockCache.ComponentMeta.getAcrossAssets).toHaveBeenCalledWith(
+        expect(mockCache.ComponentAssetMeta.getAcrossAssets).toHaveBeenCalledWith(
             roomId,
             assetStack
         )
@@ -91,7 +91,7 @@ describe('computeDefaultMarksForRoom', () => {
             tag: 'Room'
         } as any
 
-        ;(mockCache.ComponentMeta.getAcrossAssets as jest.Mock).mockResolvedValue({
+        ;(mockCache.ComponentAssetMeta.getAcrossAssets as jest.Mock).mockResolvedValue({
             ['ASSET#Base' as AssetUUID]: standardRoomInstance
         })
 
@@ -126,7 +126,7 @@ describe('computeDefaultMarksForRoom', () => {
             }
         } as any
 
-        ;(mockCache.ComponentMeta.getAcrossAssets as jest.Mock).mockResolvedValue({
+        ;(mockCache.ComponentAssetMeta.getAcrossAssets as jest.Mock).mockResolvedValue({
             ['ASSET#Base' as AssetUUID]: standardRoomInstance,
             ['ASSET#Overlay' as AssetUUID]: standardLensInstance
         })

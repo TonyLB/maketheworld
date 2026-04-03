@@ -4,7 +4,7 @@ import CacheRoomCharacterListsData from './roomCharacterLists';
 import CacheCharacterMetaData from './characterMeta';
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB';
 
-import ComponentMetaData from './componentMeta';
+import ComponentAssetMetaData from './componentAssetMeta';
 import { AssetMetaData } from './assetMeta';
 import { CacheAssetRoomsData, CacheRoomAssetsData } from './assetRooms';
 import { GraphCacheType, GraphEdgeType, GraphNodeType } from './graph';
@@ -58,7 +58,7 @@ export class InternalCache {
     GraphNodes: GraphNodeType;
     GraphEdges: GraphEdgeType;
     
-    ComponentMeta: ComponentMetaData = new ComponentMetaData();
+    ComponentAssetMeta: ComponentAssetMetaData = new ComponentAssetMetaData();
     AssetMetaData: AssetMetaData = new AssetMetaData();
 
     _invalidateAssetCallback: (EphemeraId: string) => void;
@@ -77,7 +77,7 @@ export class InternalCache {
         // AssetMap removed - was used for Variable/Computed dependency resolution
         this.ComponentRender = new ComponentRenderData(
             this.Examples,
-            this.ComponentMeta,
+            this.ComponentAssetMeta,
             this.RoomCharacterList,
             this.Global,
             this.CharacterMeta,
@@ -101,7 +101,7 @@ export class InternalCache {
         this.CharacterSessions.clear()
         this.PlayerSessions.clear()
         this._graphCache.clear()
-        this.ComponentMeta.clear()
+        this.ComponentAssetMeta.clear()
         this.AssetMetaData.clear()
 
         this.Examples.clear()
@@ -115,7 +115,7 @@ export class InternalCache {
     async flush() {
         await Promise.all([
             this._graphCache.flush(),
-            this.ComponentMeta.flush(),
+            this.ComponentAssetMeta.flush(),
             this.AssetMetaData.flush(),
             this.ComponentRender.flush(),
         ])

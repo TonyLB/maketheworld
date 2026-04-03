@@ -46,12 +46,12 @@ export const computeDefaultMarksForRoom = async ({
     // according to stack order, reusing the same semantics as the Assets-side
     // example enrichment helpers.
     //
-    const componentMetaByAsset = await cache.ComponentMeta.getAcrossAssets(
+    const componentAssetMetaByAsset = await cache.ComponentAssetMeta.getAcrossAssets(
         roomId as unknown as ComponentUUID,
         assetStack
     )
 
-    const byAssets = Object.entries(componentMetaByAsset).map(([AssetId, component]) => ({
+    const byAssets = Object.entries(componentAssetMetaByAsset).map(([AssetId, component]) => ({
         AssetId: AssetId as AssetUUID,
         component
     }))

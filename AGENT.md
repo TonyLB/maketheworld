@@ -122,7 +122,7 @@ Include specific guidance for AI assistants:
 
 #### **Ephemera System** (`lambda/ephemera/`)
 - **[Internal Cache](lambda/ephemera/internalCache/AGENT.md)**: Caching system overview
-- **[Component Meta](lambda/ephemera/internalCache/componentMeta.AGENT.md)**: Component metadata caching
+- **[Component Asset Meta](lambda/ephemera/internalCache/componentAssetMeta.AGENT.md)**: Component metadata caching from assetDB
 - **[Component Render](lambda/ephemera/internalCache/componentRender.AGENT.md)**: Component rendering pipeline
 - **[Examples](lambda/ephemera/internalCache/examples.AGENT.md)**: Example system and future vision
 - **[Perception](lambda/ephemera/perception/AGENT.md)**: Message routing and display engine

@@ -114,10 +114,10 @@ const naiveFirstExample = exampleMap[EphemeraId]?.[0]?.examples?.[0]
 
 ## Integration Points
 
-### **ComponentMeta System**
-- Calls `componentMeta.getAcrossAssets()` to retrieve component metadata
+### **ComponentAssetMeta System**
+- Calls `componentAssetMeta.getAcrossAssets()` to retrieve component metadata
 - Combines data from multiple assets for comprehensive rendering
-- See [`componentMeta.AGENT.md`](./componentMeta.AGENT.md) for details
+- See [`componentAssetMeta.AGENT.md`](./componentAssetMeta.AGENT.md) for details
 
 ### **Examples System**
 - Calls `examples.get()` to retrieve example descriptions
@@ -242,7 +242,7 @@ const publicDescription = await componentRender.get(
 
 1. **Start with `get()`**: Understand the main rendering interface
 2. **Check `_getPromiseFactory()`**: See how different component types are processed
-3. **Review Integration**: Understand how ComponentMeta and Examples are used
+3. **Review Integration**: Understand how ComponentAssetMeta and Examples are used
 4. **Examine Legacy Code**: See the conditional rendering code (to be deprecated)
 5. **Look at Future Plans**: Understand persistent caching and state-based rendering
 
@@ -252,4 +252,4 @@ const publicDescription = await componentRender.get(
 - **Legacy Code**: Conditional rendering system to be deprecated
 - **Caching**: Local-only, persistent caching planned
 - **Performance**: Expensive rendering operations need optimization
-- **Integration**: Heavily depends on ComponentMeta and Examples systems 
+- **Integration**: Heavily depends on ComponentAssetMeta and Examples systems 

@@ -249,7 +249,7 @@ Displays map information to characters:
 ### **InternalCache System**
 The perception system heavily leverages the internalCache for efficient data access:
 
-- **ComponentMeta**: Retrieves component metadata across assets ([`../internalCache/componentMeta.AGENT.md`](../internalCache/componentMeta.AGENT.md))
+- **ComponentAssetMeta**: Retrieves component metadata across assets ([`../internalCache/componentAssetMeta.AGENT.md`](../internalCache/componentAssetMeta.AGENT.md))
 - **ComponentRender**: Generates rendered descriptions for components ([`../internalCache/componentRender.AGENT.md`](../internalCache/componentRender.AGENT.md))
 - **CharacterMeta**: Gets character information and asset access
 - **RoomCharacterList**: Finds characters in specific rooms
