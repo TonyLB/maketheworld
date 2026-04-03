@@ -7,8 +7,7 @@ import { mergePersistMetaRoomMarks } from './mergePersistMetaRoomMarks'
  * Non-room component ids are ignored until other meta kinds are supported.
  *
  * Default marks (when none stored) use `computeDefaultMarksForRoom`, which resolves the Canon asset stack via
- * `resolveCanonAssetStackForRoom` only in that path. `cmd.assetStack` remains on `StateChangeCommand` for backward
- * compatibility until removed in a follow-on.
+ * `resolveCanonAssetStackForRoom` only in that path.
  */
 export const handleApiStateChangeCommand = async (cmd: StateChangeCommand): Promise<void> => {
     if (!isEphemeraRoomId(cmd.componentId)) {

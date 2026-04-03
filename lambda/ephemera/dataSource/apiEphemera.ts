@@ -1,8 +1,8 @@
 /**
  * api.ephemera: internal API stream for the ephemera lambda (parallel to api.wml / api.assets).
  * Header/envelope guards and typed messageBus send helpers. Not emitted from EventBridge.
- * Includes cache commands, Generate Room Preview, and State Change (componentId + markState; optional
- * assetStack on State Change is TEMPORARY --- see `StateChangeCommand` in `localApiEvents.ts`).
+ * Includes cache commands, Generate Room Preview, and State Change (`componentId` + `markState`; see
+ * `StateChangeCommand` in `localApiEvents.ts`).
  */
 import {
     StreamingEventHeader,
@@ -164,8 +164,7 @@ export function sendGenerateRoomPreview(bus: Bus, streamKey: string, content: Ge
 }
 
 /**
- * Post **State Change** to the internal bus. `content` may include optional `assetStack`; that field is
- * TEMPORARY until canonical defaulting does not rely on callers (see `StateChangeCommand` in `localApiEvents.ts`).
+ * Post **State Change** to the internal bus (`componentId` + `markState`).
  */
 export function sendStateChange(bus: Bus, streamKey: string, content: StateChangeCommand): void {
     const timestamp = Date.now()

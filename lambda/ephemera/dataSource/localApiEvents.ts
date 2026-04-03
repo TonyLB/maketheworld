@@ -2,7 +2,6 @@
  * Payload types and type guards for API-triggered internal events (dataSourceKey: 'api.ephemera').
  * Used by apiEphemera.ts send helpers and future DataSource receiveEvents. In-process only; no EventBridge.
  */
-import type { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 import type { EphemeraCacheComponentId, EphemeraCacheMarkState } from '../renderCache/baseClasses'
 import type { PutCacheRecordInput } from './renderCache/putCacheRecord'
 import type { GenerateRoomPreviewInput } from './renderOrchestration/generateRoomPreview'
@@ -26,18 +25,12 @@ export type GenerateRoomPreviewCommand = GenerateRoomPreviewInput & {
 
 /**
  * Proposed world-state marks for a component (e.g. Room); paired with header `State Change` on api.ephemera.
- *
- * TEMPORARY (State Change assetStack): optional `assetStack` exists only to bridge the gap until we resolve the
- * canonical participation stack (cached canon assets / server-side resolver) for default marks when `Meta::Room`
- * has no usable stored marks. It is not a commitment to a long-term contract: prefer removing it once defaults
- * derive from authoritative data, and do not build product features that depend on callers supplying a correct
- * stack indefinitely.
+ * Default marks when none are stored are resolved server-side (`resolveCanonAssetStackForRoom` inside
+ * `computeDefaultMarksForRoom`).
  */
 export type StateChangeCommand = {
     componentId: EphemeraCacheComponentId;
     markState: EphemeraCacheMarkState;
-    /** @see StateChangeCommand - TEMPORARY; see module comment above. */
-    assetStack?: AssetUUID[];
 }
 
 const isMarkStateShape = (value: unknown): value is EphemeraCacheMarkState => {
@@ -57,12 +50,6 @@ export const isStateChangeCommand = (value: unknown): value is StateChangeComman
     }
     if (!isMarkStateShape(v.markState)) {
         return false
-    }
-    // TEMPORARY (State Change assetStack): optional field; see StateChangeCommand JSDoc.
-    if (v.assetStack !== undefined) {
-        if (!Array.isArray(v.assetStack) || !v.assetStack.every((id) => typeof id === 'string')) {
-            return false
-        }
     }
     return true
 }

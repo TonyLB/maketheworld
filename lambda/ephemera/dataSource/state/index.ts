@@ -3,7 +3,6 @@
  *
  * Internal-only, non-replayable, bus-only publisher strategy.
  * Subscribes to api.ephemera **State Change** envelopes; persists room marks via `mergePersistMetaRoomMarks`.
- * Optional `assetStack` on that command is TEMPORARY scaffolding (see `StateChangeCommand` in `localApiEvents.ts`).
  * See ./AGENT.v3.planning.md (same package).
  */
 import EphemeraDataSource from '../abstract'
