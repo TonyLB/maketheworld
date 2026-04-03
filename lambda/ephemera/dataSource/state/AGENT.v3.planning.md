@@ -24,20 +24,24 @@ Domain boundaries in `AGENT.md` are unchanged: **state** owns authoritative worl
 
 ## Implemented so far
 
+### TEMPORARY: `assetStack` on **State Change** (not a long-term contract)
+
+Optional **`assetStack`** on [`StateChangeCommand`](../localApiEvents.ts) exists **only** to cover [`computeDefaultMarksForRoom`](./computeDefaultMarksForRoom.ts) until we resolve the **canonical participation stack** (cached canon assets / server-side resolver) for a room. **Do not** treat it as an authoritative or stable API surface: plan to **remove or demote** it once defaults no longer depend on caller-supplied stacks. Prefer documenting future work over building features that require clients to pass `assetStack` forever.
+
 ### `api.ephemera` ingress: **State Change**
 
-- **Types and guards:** [`localApiEvents.ts`](../localApiEvents.ts) --- `StateChangeCommand` (`componentId`, `markState`), `isStateChangeCommand`.
+- **Types and guards:** [`localApiEvents.ts`](../localApiEvents.ts) --- `StateChangeCommand` (`componentId`, `markState`, optional **`assetStack`** --- see **TEMPORARY** subsection above), `isStateChangeCommand`.
 - **Bus API:** [`apiEphemera.ts`](../apiEphemera.ts) --- header `type: 'State Change'`, `sendStateChange`, `isEphemeraApiStateChangeEnvelope`; union `EphemeraApiSubscribedHeader` / `EphemeraApiCommandPayload` updated.
 - **Tests:** [`apiEphemera.test.ts`](../apiEphemera.test.ts).
 
-### `mtw.ephemera.state` DataSource: subscribe (stub)
+### `mtw.ephemera.state` DataSource: subscribe + persist (rooms)
 
-- [`index.ts`](./index.ts) uses **`subscribedEventTypeGuard: isEphemeraApiStateChangeEnvelope`** and a **no-op** `receiveEvents`. This is **ingress on the state DataSource** (same pattern as other domains consuming `api.ephemera`); **outbound** `mtw.ephemera.state` publishes are still **not** implemented.
-- **Next:** replace the stub with calls to [`mergePersistMetaRoomMarks`](./mergePersistMetaRoomMarks.ts) (or thin wrappers), optional **`streamEvent`** publishes under `mtw.ephemera.state`, and/or fan-out to **`renderOrchestration`**.
+- [`index.ts`](./index.ts) uses **`subscribedEventTypeGuard: isEphemeraApiStateChangeEnvelope`** and **`receiveEvents`** that dispatches to [`handleApiStateChange.ts`](./handleApiStateChange.ts). Room ids merge marks into Dynamo via [`mergePersistMetaRoomMarks`](./mergePersistMetaRoomMarks.ts); non-room **`componentId`**s are ignored for now. **Outbound** `mtw.ephemera.state` publishes are still **not** implemented.
+- **Next:** optional **`streamEvent`** publishes under `mtw.ephemera.state`, and/or fan-out to **`renderOrchestration`**.
 
-### Persist merged marks (helper only)
+### Persist merged marks
 
-- [`mergePersistMetaRoomMarks.ts`](./mergePersistMetaRoomMarks.ts): **`mergePersistMetaRoomMarks`** loads `Meta::Room`, merges **`incomingMarks`** onto existing `state.marks` or onto **`computeDefaultMarksForRoom`**, writes **`state`** via Dynamo (preserves **`situationId`**). Returns **`META_ROOM_MISSING`** if there is no row. **Not wired** from `receiveEvents` yet; no pointer-field updates in this helper.
+- [`mergePersistMetaRoomMarks.ts`](./mergePersistMetaRoomMarks.ts): **`mergePersistMetaRoomMarks`** loads `Meta::Room`, merges **`incomingMarks`** onto existing `state.marks` or onto **`computeDefaultMarksForRoom`**, writes **`state`** via Dynamo (preserves **`situationId`**). Returns **`META_ROOM_MISSING`** if there is no row. Wired from **`handleApiStateChangeCommand`** for room **State Change**; no pointer-field updates in this helper.
 
 ## Architecture (target vs current)
 
@@ -49,8 +53,8 @@ Domain boundaries in `AGENT.md` are unchanged: **state** owns authoritative worl
 
 ### Current path
 
-1. Callers may **`sendStateChange(messageBus, streamKey, { componentId, markState })`** on the internal bus (same origin pattern as `sendPutCacheRecord`, etc.).
-2. **`mtw.ephemera.state`** `receiveEvents` runs for matching envelopes --- **stub only** (no Dynamo, no `streamEvent` yet).
+1. Callers may **`sendStateChange(messageBus, streamKey, { componentId, markState, assetStack? })`** on the internal bus (same origin pattern as `sendPutCacheRecord`, etc.). **`assetStack`** is **TEMPORARY** (see subsection above).
+2. **`mtw.ephemera.state`** `receiveEvents` persists room marks via **`mergePersistMetaRoomMarks`** (no outbound `streamEvent` yet).
 
 *Note:* Whether long-term **authoritative** state updates always originate as **`api.ephemera` State Change** vs direct Dynamo helpers is a product/wiring choice; this document treats **State Change** as the normalized API-level ingress for "proposed marks for a component."
 
@@ -72,7 +76,7 @@ Document a **registry** in code or in this file: which event types exist, who su
 
 | Where | Header `type` | Payload (summary) | Status |
 |-------|----------------|-------------------|--------|
-| `api.ephemera` | **State Change** | `StateChangeCommand`: `componentId`, `markState` | Implemented (`localApiEvents`, `apiEphemera`) |
+| `api.ephemera` | **State Change** | `StateChangeCommand`: `componentId`, `markState`, optional `assetStack` (TEMPORARY) | Implemented (`localApiEvents`, `apiEphemera`) |
 | `mtw.ephemera.state` | *TBD* (e.g. state-domain **State Changed** after persist) | *TBD* | Not implemented |
 | *Reserved* | Future gameplay | Situation entered, Feature toggled, etc. | TBD |
 
@@ -80,7 +84,7 @@ Naming: use **ASCII** strings consistent with existing envelope types (`Render R
 
 ## Payload sketch (extensions) --- open for refinement
 
-**Implemented (v1):** `componentId` + **`markState`** on **`api.ephemera` State Change**.
+**Implemented (v1):** `componentId` + **`markState`** + optional **`assetStack`** on **`api.ephemera` State Change** --- **`assetStack`** is **TEMPORARY** (bootstrap for `computeDefaultMarksForRoom` until canonical stack resolution exists; see subsection above).
 
 **Possible additions:**
 
@@ -93,7 +97,7 @@ Naming: use **ASCII** strings consistent with existing envelope types (`Render R
 ### Phase 0: Spike
 
 - [x] **Internal emit** of **`api.ephemera` State Change** (`sendStateChange`) + **typed guards** + tests.
-- [x] **`mtw.ephemera.state`** subscribes with **stub** `receiveEvents`.
+- [x] **`mtw.ephemera.state`** subscribes with **`receiveEvents`** -> **`mergePersistMetaRoomMarks`** (rooms).
 - [ ] **renderOrchestration** logs or handles **State Change** (or **`mtw.ephemera.state`** outbound) to prove end-to-end refresh policy.
 
 ### Phase 1: `mtw.ephemera.state` scaffold
@@ -141,8 +145,8 @@ Naming: use **ASCII** strings consistent with existing envelope types (`Render R
 ## Execution checklist (living)
 
 - [x] **`api.ephemera` State Change:** `StateChangeCommand`, guards, `sendStateChange`, tests (`apiEphemera` / `localApiEvents`)
-- [x] **`mtw.ephemera.state`** DataSource scaffold + `app.ts` import + **subscribe** to State Change (**stub** `receiveEvents`)
-- [x] **`mergePersistMetaRoomMarks`** helper (merge + persist `state.marks`; tests; not wired from `receiveEvents` yet)
+- [x] **`mtw.ephemera.state`** DataSource + `app.ts` import + **subscribe** to State Change (`receiveEvents` -> `handleApiStateChangeCommand`)
+- [x] **`mergePersistMetaRoomMarks`** helper + wired from **`handleApiStateChangeCommand`** for room State Change
 - [ ] **`mtw.ephemera.state` outbound** events (if distinct from `api.ephemera` ingress) + publish helpers
 - [ ] **renderOrchestration** subscription + normalization to **`RenderRequested`**
 - [ ] Migrate first state writer; remove duplicate direct orchestration trigger
