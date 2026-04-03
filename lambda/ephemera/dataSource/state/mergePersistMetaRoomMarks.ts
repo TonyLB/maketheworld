@@ -3,7 +3,7 @@ import type { EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import type { EphemeraCacheMarkState } from '../../renderCache/baseClasses'
 import { normalizeMarkState } from '../../renderCache/markStateUtils'
-import { computeDefaultMarksForRoom, type PerspectiveSpec } from './computeDefaultMarksForRoom'
+import { computeDefaultMarksForRoom } from './computeDefaultMarksForRoom'
 
 /**
  * Merge two mark states: `incoming` entries win on duplicate `mark` keys (same semantics as
@@ -18,7 +18,6 @@ export const mergeMarkState = (base: EphemeraCacheMarkState, incoming: EphemeraC
 export type MergePersistMetaRoomMarksArgs = {
     roomId: EphemeraRoomId;
     incomingMarks: EphemeraCacheMarkState;
-    perspective: PerspectiveSpec;
 }
 
 export type MergePersistMetaRoomMarksDependencies = {
@@ -82,7 +81,6 @@ export const mergePersistMetaRoomMarks = async (
         ? undefined
         : await computeDefaults({
             roomId: args.roomId,
-            perspective: args.perspective,
         })
 
     await optimisticUpdate({
