@@ -187,6 +187,7 @@ if (!object) {
 
 ### **Component-Based Handlers**
 - **`ComponentAssetMeta`**: Caches component metadata from assetDB ([`componentAssetMeta.AGENT.md`](./componentAssetMeta.AGENT.md))
+- **`ComponentEphemeraMeta`**: Read-through cache for ephemeraDB `Meta::Room` (`EphemeraMetaRoom`); v1 room-only ([`componentEphemeraMeta.AGENT.md`](./componentEphemeraMeta.AGENT.md))
 - **`ComponentRender`**: Caches rendered component descriptions ([`componentRender.AGENT.md`](./componentRender.AGENT.md))
 - **`Examples`**: Caches example components for rooms/features ([`examples.AGENT.md`](./examples.AGENT.md))
 

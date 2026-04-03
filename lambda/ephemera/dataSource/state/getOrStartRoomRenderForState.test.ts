@@ -109,7 +109,7 @@ describe('dataSource/state/getOrStartRoomRenderForState (TDD scaffold)', () => {
         expect(result).toEqual(expect.objectContaining({ status: 'error', errorCode: 'FAST_PATH_INVALID' }))
     })
 
-    it('falls back to exact-match search when currentCacheId missing', async () => {
+    it('returns not implemented when currentCacheId missing (slow path not built yet)', async () => {
         const metaRoom = baseMetaRoom({
             state: { marks: { markValue: [{ mark: 'MARK#a', value: 'one' }] } }
         })
@@ -121,14 +121,14 @@ describe('dataSource/state/getOrStartRoomRenderForState (TDD scaffold)', () => {
             { getMetaRoom }
         )
 
-        expect(result).toEqual(
-            expect.objectContaining({
-                status: 'ready'
-            })
-        )
+        expect(result).toEqual({
+            status: 'error',
+            errorCode: 'NOT_IMPLEMENTED',
+            errorMessage: 'Slow path not implemented',
+        })
     })
 
-    it('computes default marks when Meta::Room.state is missing', async () => {
+    it('returns not implemented when Meta::Room.state is missing and no currentCacheId', async () => {
         const metaRoom = baseMetaRoom()
         const getMetaRoom = jest.fn().mockResolvedValue(metaRoom)
 
@@ -137,10 +137,14 @@ describe('dataSource/state/getOrStartRoomRenderForState (TDD scaffold)', () => {
             { getMetaRoom }
         )
 
-        expect(result.status).not.toEqual('error')
+        expect(result).toEqual({
+            status: 'error',
+            errorCode: 'NOT_IMPLEMENTED',
+            errorMessage: 'Slow path not implemented',
+        })
     })
 
-    it('returns generating when no match exists and generation is allowed', async () => {
+    it('returns not implemented when generation allowed but slow path not built', async () => {
         const metaRoom = baseMetaRoom({
             state: { marks: { markValue: [{ mark: 'MARK#a', value: 'one' }] } }
         })
@@ -151,7 +155,11 @@ describe('dataSource/state/getOrStartRoomRenderForState (TDD scaffold)', () => {
             { getMetaRoom }
         )
 
-        expect(result).toEqual({ status: 'generating' })
+        expect(result).toEqual({
+            status: 'error',
+            errorCode: 'NOT_IMPLEMENTED',
+            errorMessage: 'Slow path not implemented',
+        })
     })
 })
 

@@ -78,6 +78,7 @@ export const defaultClearPerspectivePointer = async (roomId: EphemeraRoomId, per
             }
         }
     })
+    internalCache.ComponentEphemeraMeta.invalidate(roomId)
 }
 
 const getRoomStateRenderHandle = (

@@ -37,7 +37,7 @@ Domain boundaries in `AGENT.md` are unchanged: **state** owns authoritative worl
 
 ### Persist merged marks
 
-- [`mergePersistMetaRoomMarks.ts`](./mergePersistMetaRoomMarks.ts): **`mergePersistMetaRoomMarks`** loads `Meta::Room`, merges **`incomingMarks`** onto existing `state.marks` or onto **`computeDefaultMarksForRoom`**, writes **`state`** via Dynamo (preserves **`situationId`**). Returns **`META_ROOM_MISSING`** if there is no row. Wired from **`handleApiStateChangeCommand`** for room **State Change**; no pointer-field updates in this helper.
+- [`mergePersistMetaRoomMarks.ts`](./mergePersistMetaRoomMarks.ts): **`mergePersistMetaRoomMarks`** loads `Meta::Room`, merges **`incomingMarks`** onto existing `state.marks` or onto **`computeDefaultMarksForRoom`**, writes **`state`** via Dynamo (preserves **`situationId`**). Returns **`META_ROOM_MISSING`** if there is no row. Wired from **`handleApiStateChangeCommand`** for room **State Change**; no pointer-field updates in this helper. Default reads go through **`internalCache.ComponentEphemeraMeta`**; successful writes **`invalidate`** that cache entry.
 
 ## Architecture (target vs current)
 

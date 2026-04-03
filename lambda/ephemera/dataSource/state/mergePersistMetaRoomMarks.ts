@@ -1,6 +1,7 @@
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
+import internalCache from '../../internalCache'
 import type { EphemeraCacheMarkState } from '../../renderCache/baseClasses'
 import { normalizeMarkState } from '../../renderCache/markStateUtils'
 import { computeDefaultMarksForRoom } from './computeDefaultMarksForRoom'
@@ -36,13 +37,9 @@ export type MergePersistMetaRoomMarksResult =
     | { ok: true }
     | { ok: false; errorCode: 'META_ROOM_MISSING'; errorMessage: string }
 
-const defaultGetMetaRoom = async (roomId: EphemeraRoomId): Promise<EphemeraMetaRoom | undefined> => {
-    const fetched = await ephemeraDB.getItem<EphemeraMetaRoom>({
-        Key: { EphemeraId: roomId, DataCategory: 'Meta::Room' },
-        getAllFields: true,
-    })
-    return fetched ?? undefined
-}
+const defaultGetMetaRoom = async (roomId: EphemeraRoomId): Promise<EphemeraMetaRoom | undefined> => (
+    internalCache.ComponentEphemeraMeta.get(roomId)
+)
 
 const hasUsableStoredMarks = (meta: EphemeraMetaRoom): boolean => {
     const marks = meta.state?.marks
@@ -98,6 +95,8 @@ export const mergePersistMetaRoomMarks = async (
             }
         },
     })
+
+    internalCache.ComponentEphemeraMeta.invalidate(args.roomId)
 
     return { ok: true }
 }

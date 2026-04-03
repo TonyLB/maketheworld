@@ -3,8 +3,8 @@
  * (pointer hint from `currentCacheByPerspective`). B-phase and delivery live in `orchestrationHandler.ts`.
  * Planning notes: `AGENT.planning.simplification.md` (same package).
  */
-import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { isEphemeraRoomId, type EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import internalCache from '../../internalCache'
 import { computePerspectiveKey } from '@tonylb/mtw-interfaces/ts/perspective'
 import type { EphemeraCacheId, EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { isRenderPreviewRequested, type RenderPreviewRequested, type RenderRequested } from './events'
@@ -16,10 +16,7 @@ export type RequestIntakeDependencies = {
 }
 
 const defaultGetMetaRoom = async (roomId: EphemeraRoomId): Promise<EphemeraMetaRoom | undefined> => (
-    await ephemeraDB.getItem<EphemeraMetaRoom>({
-        Key: { EphemeraId: roomId, DataCategory: 'Meta::Room' },
-        getAllFields: true
-    }) ?? undefined
+    internalCache.ComponentEphemeraMeta.get(roomId)
 )
 
 type RequestIntakeDepsResolved = Required<RequestIntakeDependencies>
