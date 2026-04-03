@@ -1,7 +1,23 @@
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraCacheMarkState } from '../../renderCache/baseClasses'
+import type { MergePersistMetaRoomMarksOptimisticUpdateParams } from './mergePersistMetaRoomMarks'
 import { mergeMarkState, mergePersistMetaRoomMarks } from './mergePersistMetaRoomMarks'
+
+/** Simulates a successful Dynamo write: runs reducer, invokes successCallback with prior/output. */
+const mockOptimisticUpdatePersisting = (meta: EphemeraMetaRoom, roomId: EphemeraRoomId) => (
+    jest.fn().mockImplementation(async (params: MergePersistMetaRoomMarksOptimisticUpdateParams) => {
+        const draft: EphemeraMetaRoom = { ...meta }
+        params.updateReducer(draft)
+        if (params.successCallback) {
+            await params.successCallback(
+                { EphemeraId: roomId, DataCategory: 'Meta::Room', state: draft.state },
+                { EphemeraId: roomId, DataCategory: 'Meta::Room', state: meta.state }
+            )
+        }
+        return { EphemeraId: roomId, DataCategory: 'Meta::Room', state: draft.state }
+    })
+)
 
 describe('mergePersistMetaRoomMarks / mergeMarkState', () => {
     const roomId = 'ROOM#test' as EphemeraRoomId
@@ -73,7 +89,7 @@ describe('mergePersistMetaRoomMarks / mergeMarkState', () => {
                 },
             })
             const computeDefaultMarksForRoom = jest.fn()
-            const optimisticUpdate = jest.fn().mockResolvedValue(undefined)
+            const optimisticUpdate = mockOptimisticUpdatePersisting(meta, roomId)
 
             const result = await mergePersistMetaRoomMarks(
                 {
@@ -87,7 +103,13 @@ describe('mergePersistMetaRoomMarks / mergeMarkState', () => {
                 }
             )
 
-            expect(result).toEqual({ ok: true })
+            expect(result.ok).toBe(true)
+            if (!result.ok || !result.persisted) {
+                throw new Error('expected ok with persisted')
+            }
+            expect(result.priorState).toEqual(meta.state)
+            expect(result.newState.marks.markValue.map((e) => e.mark).sort()).toEqual(['MARK#new', 'MARK#old'].sort())
+            expect(result.newState.situationId).toBe('SITUATION#keep')
             expect(computeDefaultMarksForRoom).not.toHaveBeenCalled()
             expect(optimisticUpdate).toHaveBeenCalledTimes(1)
             const call = optimisticUpdate.mock.calls[0][0]
@@ -109,7 +131,7 @@ describe('mergePersistMetaRoomMarks / mergeMarkState', () => {
                 markValue: [{ mark: 'MARK#def', value: 'def' }],
             }
             const computeDefaultMarksForRoom = jest.fn().mockResolvedValue(defaultMarks)
-            const optimisticUpdate = jest.fn().mockResolvedValue(undefined)
+            const optimisticUpdate = mockOptimisticUpdatePersisting(meta, roomId)
 
             const result = await mergePersistMetaRoomMarks(
                 {
@@ -123,7 +145,10 @@ describe('mergePersistMetaRoomMarks / mergeMarkState', () => {
                 }
             )
 
-            expect(result).toEqual({ ok: true })
+            expect(result.ok).toBe(true)
+            if (!result.ok || !result.persisted) {
+                throw new Error('expected ok with persisted')
+            }
             expect(computeDefaultMarksForRoom).toHaveBeenCalledWith({
                 roomId,
             })
@@ -144,9 +169,9 @@ describe('mergePersistMetaRoomMarks / mergeMarkState', () => {
                 markValue: [{ mark: 'MARK#def', value: 'def' }],
             }
             const computeDefaultMarksForRoom = jest.fn().mockResolvedValue(defaultMarks)
-            const optimisticUpdate = jest.fn().mockResolvedValue(undefined)
+            const optimisticUpdate = mockOptimisticUpdatePersisting(meta, roomId)
 
-            await mergePersistMetaRoomMarks(
+            const result = await mergePersistMetaRoomMarks(
                 {
                     roomId,
                     incomingMarks: { markValue: [] },
@@ -158,6 +183,10 @@ describe('mergePersistMetaRoomMarks / mergeMarkState', () => {
                 }
             )
 
+            expect(result.ok).toBe(true)
+            if (!result.ok || !result.persisted) {
+                throw new Error('expected ok with persisted')
+            }
             expect(computeDefaultMarksForRoom).toHaveBeenCalled()
             const call = optimisticUpdate.mock.calls[0][0]
             expect(call.priorFetch).toBe(meta)
@@ -173,7 +202,7 @@ describe('mergePersistMetaRoomMarks / mergeMarkState', () => {
                 },
             })
             const computeDefaultMarksForRoom = jest.fn()
-            const optimisticUpdate = jest.fn().mockResolvedValue(undefined)
+            const optimisticUpdate = mockOptimisticUpdatePersisting(meta, roomId)
             const incomingMarks = { markValue: [{ mark: 'MARK#in', value: 'in' }] }
 
             await mergePersistMetaRoomMarks(
@@ -197,6 +226,30 @@ describe('mergePersistMetaRoomMarks / mergeMarkState', () => {
             expect(concurrent.state?.marks.markValue.map((e) => e.mark).sort()).toEqual(
                 ['MARK#concurrent', 'MARK#in'].sort()
             )
+        })
+
+        it('returns persisted false when optimistic update does not invoke successCallback', async () => {
+            const meta = baseMeta({
+                state: { marks: { markValue: [{ mark: 'MARK#x', value: 'x' }] } },
+            })
+            const optimisticUpdate = jest.fn().mockResolvedValue({
+                EphemeraId: roomId,
+                DataCategory: 'Meta::Room',
+                state: meta.state,
+            })
+
+            const result = await mergePersistMetaRoomMarks(
+                {
+                    roomId,
+                    incomingMarks: { markValue: [{ mark: 'MARK#y', value: 'y' }] },
+                },
+                {
+                    getMetaRoom: async () => meta,
+                    optimisticUpdate,
+                }
+            )
+
+            expect(result).toEqual({ ok: true, persisted: false })
         })
     })
 })
