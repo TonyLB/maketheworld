@@ -1,13 +1,11 @@
 import { CacheBase } from '@tonylb/mtw-lambda-patterns/ts/internalCache'
 import {
-    CONVERSATION_TYPE_GENERATE_ROOM_PREVIEW,
     CONVERSATION_TYPE_ROOM_STATE_RENDER,
     createConversationCompositeReadHandleStub,
     type ConversationId,
     type ConversationsCompositeGetResult,
     type StorableConversationRecord,
 } from '../conversations/conversationTypes'
-import { materializeGenerateRoomPreview } from '../conversations/conversationTypes/generateRoomPreview'
 import { materializeRoomStateRender } from '../conversations/conversationTypes/roomStateRender'
 import type { MessageBus } from '../messageBus/baseClasses'
 import CacheGlobalData from './global'
@@ -39,19 +37,6 @@ export class ConversationsData extends CacheBase {
             return undefined
         }
         const busForMaterialize = options?.messageBus ?? this.messageBus
-        if (record.type === CONVERSATION_TYPE_GENERATE_ROOM_PREVIEW) {
-            const live = materializeGenerateRoomPreview(record, {
-                messageBus: busForMaterialize,
-                getConnectionId: () => this.globals.get('ConnectionId'),
-            })
-            return {
-                record,
-                handle: {
-                    kind: 'conversationCompositeReadGenerateRoomPreview',
-                    sendMessage: live.sendMessage,
-                },
-            }
-        }
         if (record.type === CONVERSATION_TYPE_ROOM_STATE_RENDER) {
             const live = materializeRoomStateRender(record, {
                 messageBus: busForMaterialize,

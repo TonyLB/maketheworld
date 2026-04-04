@@ -1,22 +1,14 @@
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraCacheId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraCacheDynamoItem } from '../renderCache/baseClasses'
-import { apiClient } from '@tonylb/mtw-utilities/ts/apiManagement/apiManagementClient'
 import type { MessageBus } from '../messageBus/baseClasses'
 import {
     CONVERSATION_PAYLOAD_STUB,
     CONVERSATION_TYPE_ROOM_STATE_RENDER,
-    isConversationCompositeReadHandleGenerateRoomPreview,
     isConversationCompositeReadHandleRoomStateRender,
     type StorableConversationRecord,
 } from '../conversations/conversationTypes'
 import ConversationsData from './conversations'
-
-jest.mock('@tonylb/mtw-utilities/ts/apiManagement/apiManagementClient', () => ({
-    apiClient: {
-        send: jest.fn(),
-    },
-}))
 
 const testRoomId = 'ROOM#test-room' as EphemeraRoomId
 
@@ -30,17 +22,6 @@ const previewTerminalCacheRecord: EphemeraCacheDynamoItem = {
     perspectiveId: 'PERSPECTIVE#stub',
     perspectiveMatcher: { requiredAssetIds: [], forbiddenAssetIds: [] },
 }
-
-const makeRecord = (conversationId: string): StorableConversationRecord => ({
-    conversationId,
-    type: 'generateRoomPreview',
-    routing: {
-        roomId: testRoomId,
-        perspectiveId: 'PERSPECTIVE#stub',
-        requestId: 'req-1',
-    },
-    payload: CONVERSATION_PAYLOAD_STUB,
-})
 
 const makeGlobals = () => ({
     get: async (_key: any) => 'connection-1',
@@ -117,26 +98,6 @@ describe('ConversationsData', () => {
         }))
     })
 
-    it('set and get round-trip returns live composite handle for generateRoomPreview', () => {
-        const send = jest.fn()
-        const cache = new ConversationsData(
-            makeGlobals() as unknown as any,
-            { send } as unknown as MessageBus
-        )
-        const id = 'conv-001'
-        const record = makeRecord(id)
-        cache.set(record)
-        const got = cache.get(id)
-        expect(got).toMatchObject({
-            record,
-            handle: {
-                kind: 'conversationCompositeReadGenerateRoomPreview',
-                sendMessage: expect.any(Function),
-            },
-        })
-        expect(isConversationCompositeReadHandleGenerateRoomPreview(got!.handle)).toBe(true)
-    })
-
     it('get returns undefined for unknown id', () => {
         const send = jest.fn()
         const cache = new ConversationsData(
@@ -153,12 +114,21 @@ describe('ConversationsData', () => {
             { send } as unknown as MessageBus
         )
         const id = 'conv-002'
-        const first = makeRecord(id)
+        const first: StorableConversationRecord = {
+            conversationId: id,
+            type: CONVERSATION_TYPE_ROOM_STATE_RENDER,
+            routing: {
+                componentId: testRoomId,
+                perspectiveId: 'PERSPECTIVE#stub',
+                requestId: 'req-1',
+            },
+            payload: CONVERSATION_PAYLOAD_STUB,
+        }
         const second: StorableConversationRecord = {
             conversationId: id,
-            type: 'generateRoomPreview',
+            type: CONVERSATION_TYPE_ROOM_STATE_RENDER,
             routing: {
-                roomId: testRoomId,
+                componentId: testRoomId,
                 perspectiveId: 'PERSPECTIVE#stub',
                 requestId: 'req-2',
             },
@@ -169,7 +139,7 @@ describe('ConversationsData', () => {
         expect(cache.get(id)).toMatchObject({
             record: second,
             handle: {
-                kind: 'conversationCompositeReadGenerateRoomPreview',
+                kind: 'conversationCompositeReadRoomStateRender',
                 sendMessage: expect.any(Function),
             },
         })
@@ -182,7 +152,16 @@ describe('ConversationsData', () => {
             { send } as unknown as MessageBus
         )
         const id = 'conv-003'
-        cache.set(makeRecord(id))
+        const record: StorableConversationRecord = {
+            conversationId: id,
+            type: CONVERSATION_TYPE_ROOM_STATE_RENDER,
+            routing: {
+                componentId: testRoomId,
+                perspectiveId: 'P#1',
+            },
+            payload: CONVERSATION_PAYLOAD_STUB,
+        }
+        cache.set(record)
         expect(cache.delete(id)).toBe(true)
         expect(cache.get(id)).toBeUndefined()
     })
@@ -202,121 +181,22 @@ describe('ConversationsData', () => {
             makeGlobals() as unknown as any,
             { send } as unknown as MessageBus
         )
-        cache.set(makeRecord('a'))
-        cache.set(makeRecord('b'))
+        const a: StorableConversationRecord = {
+            conversationId: 'a',
+            type: CONVERSATION_TYPE_ROOM_STATE_RENDER,
+            routing: { componentId: testRoomId, perspectiveId: 'P#1' },
+            payload: CONVERSATION_PAYLOAD_STUB,
+        }
+        const b: StorableConversationRecord = {
+            conversationId: 'b',
+            type: CONVERSATION_TYPE_ROOM_STATE_RENDER,
+            routing: { componentId: testRoomId, perspectiveId: 'P#2' },
+            payload: CONVERSATION_PAYLOAD_STUB,
+        }
+        cache.set(a)
+        cache.set(b)
         cache.clear()
         expect(cache.get('a')).toBeUndefined()
         expect(cache.get('b')).toBeUndefined()
-    })
-
-    it('composite handle sendMessage emits ConversationStep generating with RequestId', async () => {
-        const send = jest.fn()
-        const cache = new ConversationsData(
-            makeGlobals() as unknown as any,
-            { send } as unknown as MessageBus
-        )
-        const id = 'conv-004'
-        cache.set(makeRecord(id))
-        const got = cache.get(id)
-        expect(got).toBeDefined()
-        const handle = got!.handle
-        if (!isConversationCompositeReadHandleGenerateRoomPreview(handle)) {
-            throw new Error('expected live generateRoomPreview composite handle')
-        }
-        await handle.sendMessage('generating')
-
-        expect(send).not.toHaveBeenCalled()
-        expect(apiClient.send).toHaveBeenCalledTimes(1)
-        expect(apiClient.send).toHaveBeenCalledWith({
-            ConnectionId: 'connection-1',
-            Data: JSON.stringify({
-                messageType: 'ConversationStep',
-                conversationId: id,
-                pipeline: 'generateRoomPreview',
-                step: 'generating',
-                RequestId: 'req-1',
-            }),
-        })
-    })
-
-    it('composite handle sendMessage emits ConversationStep complete with generateRoomPreview and RequestId', async () => {
-        const send = jest.fn()
-        const cache = new ConversationsData(
-            makeGlobals() as unknown as any,
-            { send } as unknown as MessageBus
-        )
-        const id = 'conv-005'
-        cache.set(makeRecord(id))
-        const got = cache.get(id)!
-        const handle = got.handle
-        if (!isConversationCompositeReadHandleGenerateRoomPreview(handle)) {
-            throw new Error('expected live generateRoomPreview composite handle')
-        }
-        await handle.sendMessage({
-            type: 'resolved',
-            renderedContent: { description: ['x'] },
-            cacheId: previewTerminalCacheId,
-            cacheRecord: previewTerminalCacheRecord,
-        })
-
-        expect(apiClient.send).toHaveBeenCalledTimes(1)
-        expect(apiClient.send).toHaveBeenCalledWith({
-            ConnectionId: 'connection-1',
-            Data: JSON.stringify({
-                messageType: 'ConversationStep',
-                conversationId: id,
-                pipeline: 'generateRoomPreview',
-                step: 'complete',
-                generateRoomPreview: {
-                    success: true,
-                    renderedContent: { description: ['x'] },
-                    cacheId: previewTerminalCacheId,
-                    cacheRecord: previewTerminalCacheRecord,
-                },
-                RequestId: 'req-1',
-            }),
-        })
-    })
-
-    it('composite handle sendMessage omits RequestId when routing has no requestId', async () => {
-        const send = jest.fn()
-        const cache = new ConversationsData(
-            makeGlobals() as unknown as any,
-            { send } as unknown as MessageBus
-        )
-        const id = 'conv-006'
-        const record: StorableConversationRecord = {
-            conversationId: id,
-            type: 'generateRoomPreview',
-            routing: { roomId: testRoomId, perspectiveId: 'P#1' },
-            payload: CONVERSATION_PAYLOAD_STUB,
-        }
-        cache.set(record)
-        const got = cache.get(id)!
-        const handle = got.handle
-        if (!isConversationCompositeReadHandleGenerateRoomPreview(handle)) {
-            throw new Error('expected live generateRoomPreview composite handle')
-        }
-        await handle.sendMessage({
-            type: 'failed',
-            errorCode: 'CONTEXT_REQUIRED',
-            errorMessage: 'need context',
-        })
-
-        expect(apiClient.send).toHaveBeenCalledTimes(1)
-        expect(apiClient.send).toHaveBeenCalledWith({
-            ConnectionId: 'connection-1',
-            Data: JSON.stringify({
-                messageType: 'ConversationStep',
-                conversationId: id,
-                pipeline: 'generateRoomPreview',
-                step: 'error',
-                generateRoomPreview: {
-                    success: false,
-                    errorCode: 'CONTEXT_REQUIRED',
-                    errorMessage: 'need context',
-                },
-            }),
-        })
     })
 })

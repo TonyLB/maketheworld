@@ -19,10 +19,10 @@ Follow the [root "Getting Started" pattern for complex tasks](../../AGENT.md#get
    - **Follow-on (packages)** --- `mtw-interfaces` types are a separate pass; do not block lambda deletion on them if the compiler still allows incremental cleanup.
    - **Recommended order (server)** --- work top-down from `app.ts` and adapters into orchestration, then conversations, then optional internalCache and docs.
 
-3. **Understand core integration points**
-   - **`app.ts`**: Maps `generateRoomPreview` API message to `sendRenderPreviewRequested` (bus / streaming path). Removing preview starts here or immediately after client stops sending.
-   - **`orchestrationHandler.ts`**: The **`isRenderPreviewRequested`** branch registers `CONVERSATION_TYPE_GENERATE_ROOM_PREVIEW` **before** intake and uses **stubbed** `findRender` deps (`getCacheRecordById` no-op). That is the fork you eliminate; passive keeps real pointer deps.
-   - **`conversations/conversationTypes/generateRoomPreview/`**: Only serves preview streaming; safe to remove with the preview branch (distinct from **`generateRoomPreview`** function in `renderOrchestration/`).
+3. **Understand core integration points** (removed in steps 1-3; kept here as orientation)
+   - **`app.ts`**: Previously mapped `generateRoomPreview` API message to `sendRenderPreviewRequested`; that ingress is **removed** (step 1).
+   - **`orchestrationHandler.ts`**: The **`isRenderPreviewRequested`** branch (preview registration + stubbed `findRender`) is **removed**; passive path only (step 2).
+   - **`conversations/conversationTypes/generateRoomPreview/`**: Preview-only conversation module **removed** (step 3). Distinct from **`generateRoomPreview`** in [`dataSource/renderOrchestration/generateRoomPreview.ts`](../../lambda/ephemera/dataSource/renderOrchestration/generateRoomPreview.ts), which remains for passive cache miss.
 
 4. **Review implemented code (concrete entry points)**
    - [`app.ts`](../../lambda/ephemera/app.ts) --- `isGenerateRoomPreviewAPIMessage` block.
@@ -36,7 +36,7 @@ Follow the [root "Getting Started" pattern for complex tasks](../../AGENT.md#get
    - **Key insight**: After removal, passive-only tests should still cover `findRender` + `generateRoomPreview` on miss.
 
 6. **Identify next task**
-   - Use **Recommended order (server)** as the checklist; finish **Entry and streaming adapters** before deleting conversation types so orchestration compiles at each step.
+   - Use **Recommended order (server)** as the checklist; steps 1-3 are complete. Continue with **internalCache (optional cleanup)**, **messageBus**, then **documentation**.
 
 7. **Run tests before starting (baseline)**
    - From repo root: `cd lambda/ephemera && npx tsc --noEmit` --- expect clean.
@@ -72,9 +72,11 @@ Use `- [ ]` while work is pending and `- [X]` when the line is complete (includi
    - [X] [`events.ts`](../../lambda/ephemera/dataSource/renderOrchestration/events.ts) (and [`baseClasses.ts`](../../lambda/ephemera/dataSource/renderOrchestration/baseClasses.ts) if applicable): remove `RenderPreviewRequested` types and guards.
    - [X] Tests: [`orchestrationHandler.test.ts`](../../lambda/ephemera/dataSource/renderOrchestration/orchestrationHandler.test.ts) (preview `describe` blocks), [`requestIntake.test.ts`](../../lambda/ephemera/dataSource/renderOrchestration/requestIntake.test.ts), [`index.test.ts`](../../lambda/ephemera/dataSource/renderOrchestration/index.test.ts), [`subscribedEvents.test.ts`](../../lambda/ephemera/dataSource/renderOrchestration/subscribedEvents.test.ts), [`events.test.ts`](../../lambda/ephemera/dataSource/renderOrchestration/events.test.ts); removed stale [`app.generateRoomPreview.test.ts`](../../lambda/ephemera/app.generateRoomPreview.test.ts) after step 1 app changes.
 
-3. [ ] **Conversations**
-   - [ ] Remove the [`conversations/conversationTypes/generateRoomPreview/`](../../lambda/ephemera/conversations/conversationTypes/generateRoomPreview/) module (materialize, baseClasses, `renderResolveOutputToGenerateRoomPreviewResult`, tests).
-   - [ ] Update [`conversationTypes/index.ts`](../../lambda/ephemera/conversations/conversationTypes/index.ts), [`compositeRead.ts`](../../lambda/ephemera/conversations/conversationTypes/compositeRead.ts), [`storableConversationRecord.ts`](../../lambda/ephemera/conversations/conversationTypes/storableConversationRecord.ts), [`handle.ts`](../../lambda/ephemera/conversations/conversationTypes/handle.ts), [`conversations/index.ts`](../../lambda/ephemera/conversations/index.ts), and [`registry.test.ts`](../../lambda/ephemera/conversations/registry.test.ts) to drop `CONVERSATION_TYPE_GENERATE_ROOM_PREVIEW` and generate-room-preview handles.
+3. [X] **Conversations**
+   - [X] Remove the [`conversations/conversationTypes/generateRoomPreview/`](../../lambda/ephemera/conversations/conversationTypes/generateRoomPreview/) module (materialize, baseClasses, `renderResolveOutputToGenerateRoomPreviewResult`, tests). **Done:** directory removed.
+   - [X] Update [`conversationTypes/index.ts`](../../lambda/ephemera/conversations/conversationTypes/index.ts), [`compositeRead.ts`](../../lambda/ephemera/conversations/conversationTypes/compositeRead.ts), [`storableConversationRecord.ts`](../../lambda/ephemera/conversations/conversationTypes/storableConversationRecord.ts), [`handle.ts`](../../lambda/ephemera/conversations/conversationTypes/handle.ts), [`conversations/index.ts`](../../lambda/ephemera/conversations/index.ts), [`conversationTypes/baseClasses.ts`](../../lambda/ephemera/conversations/conversationTypes/baseClasses.ts), and [`registry.test.ts`](../../lambda/ephemera/conversations/registry.test.ts) to drop `CONVERSATION_TYPE_GENERATE_ROOM_PREVIEW` and generate-room-preview handles. **Done:** persisted rows are `roomStateRender` only; registry tests use that variant.
+   - [X] [`internalCache/conversations.ts`](../../lambda/ephemera/internalCache/conversations.ts): remove `materializeGenerateRoomPreview` / `generateRoomPreview` row branch (required alongside conversation deletion). [`internalCache/conversations.test.ts`](../../lambda/ephemera/internalCache/conversations.test.ts): remove preview composite and `ConversationStep` / `apiClient.send` coverage; keep `roomStateRender` tests.
+   - [X] [`dataSource/renderOrchestration/generateRoomPreview.ts`](../../lambda/ephemera/dataSource/renderOrchestration/generateRoomPreview.ts): JSDoc on `sendMessage` no longer points at deleted conversation module. [`findRender.ts`](../../lambda/ephemera/dataSource/renderOrchestration/findRender.ts): passive-only correlation comments.
 
 4. [ ] **internalCache (optional cleanup)**
    - [ ] Evaluate [`PreviewGenerationRequestsData`](../../lambda/ephemera/internalCache/previewGenerationRequests.ts): if unused outside tests / `clear()`, remove the class, [`previewGenerationRequests.test.ts`](../../lambda/ephemera/internalCache/previewGenerationRequests.test.ts), and wiring in [`internalCache/index.ts`](../../lambda/ephemera/internalCache/index.ts).
@@ -89,4 +91,4 @@ Use `- [ ]` while work is pending and `- [X]` when the line is complete (includi
 
 - `npx tsc --noEmit` in `lambda/ephemera`.
 - Jest for affected packages.
-- Repo-wide `grep` for `RenderPreviewRequested`, `Render Preview Requested`, `sendRenderPreviewRequested`, `CONVERSATION_TYPE_GENERATE_ROOM_PREVIEW`, `generateRoomPreview` **conversation type** (distinguish from **`generateRoomPreview` function**).
+- Repo-wide `grep` for `RenderPreviewRequested`, `Render Preview Requested`, `sendRenderPreviewRequested`, `CONVERSATION_TYPE_GENERATE_ROOM_PREVIEW`, `generateRoomPreview` **conversation type** (distinguish from **`generateRoomPreview` function**). After step 3, `CONVERSATION_TYPE_GENERATE_ROOM_PREVIEW` and `conversationTypes/generateRoomPreview` should not appear in lambda **`.ts`** (markdown under `conversations/` may lag until step 6 documentation).

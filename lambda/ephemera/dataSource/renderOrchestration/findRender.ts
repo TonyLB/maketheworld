@@ -28,13 +28,13 @@ export type FindRenderDependencies = {
     /** Terminals from pointer/exact/invalidate paths, and progress + terminals from generation (same handle as orchestration). */
     sendMessage: (arg: RenderProgress | RenderResolveOutput) => Promise<void>;
     generateRoomPreview: typeof generateRoomPreview;
-    /** Correlation for `generateRoomPreview` / cache writes; passive mints per request, preview uses payload id. */
+    /** Correlation for `generateRoomPreview` / cache writes (passive orchestration mints per request). */
     conversationId?: ConversationId;
 }
 
 /**
  * B-phase: pointer validation (when `pointerHint` on the resolve input is set), exact-match, generation hook,
- * or `invalidate` when nothing matches and generation does not run. Single graph shared by passive and preview pipelines.
+ * or `invalidate` when nothing matches and generation does not run.
  *
  * Terminals are emitted only via the `sendMessage` dependency; there is no return payload.
  */

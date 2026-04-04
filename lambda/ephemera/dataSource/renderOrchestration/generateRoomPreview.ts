@@ -63,7 +63,7 @@ export type GenerateRoomPreviewOptions = {
     /** When set, forwarded on Put Cache Record / Cache Updated for prototype correlation (see conversations/AGENT.md). */
     conversationId?: ConversationId;
     /**
-     * Same contract as `ConversationHandleGenerateRoomPreview.sendMessage` (see `conversations/conversationTypes/generateRoomPreview`).
+     * Optional progressive + terminal delivery: `RenderProgress` (e.g. `generating`) and `RenderResolveOutput` terminals.
      * When set, invoked with `generating` after valid parseable context and before room description generation (slow path only).
      */
     sendMessage?: (arg: RenderProgress | RenderResolveOutput) => Promise<void>;
