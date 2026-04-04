@@ -1,5 +1,13 @@
 # Conversations registry (agent notes)
 
+## Client multi-message WebSocket (`socketDispatchConversation`)
+
+Charcoal-client exposes **`socketDispatchConversation`** in [`charcoal-client/src/slices/lifeLine/index.api.ts`](../../../charcoal-client/src/slices/lifeLine/index.api.ts) (notes in [`charcoal-client/src/slices/lifeLine/AGENT.md`](../../../charcoal-client/src/slices/lifeLine/AGENT.md)). It was **prototyped** together with this registry when the workbench **room preview generation** UI drove a multi-step **`ConversationStep`** stream (that UI has since been removed from the client).
+
+The client helper is **known to work** (tests and historical end-to-end use) and is **expected to matter** for future features that need **correlation** (`conversationId`, optional **`RequestId`** fallback) and **terminal** steps over the socket. **Today** there are **no production call sites** in charcoal-client and **no active client feature** pairing with a live multi-message payload stream; the implementation is **kept largely against future need** rather than deleted.
+
+Ephemera server code paths that **materialize** conversation rows and emit **`ConversationStep`** (including preview-shaped variants while lambda and interfaces are mid-migration) are independent: this section documents the **client transport** status, not a claim that the server has stopped emitting correlated messages elsewhere.
+
 ## Two layers: storable vs live handle
 
 **Storable rows** (`StorableConversationRecord`, per-variant types like `StorableConversationRecordGenerateRoomPreview`) are **JSON-safe**: `conversationId`, `type`, `routing`, `payload` fragments, etc. They are what [`internalCache/conversations.ts`](../internalCache/conversations.ts) **`set`** stores and what a future Dynamo row would contain.
@@ -77,7 +85,7 @@ Persisted storage always uses **storable** types only.
 
 ## Streaming / progress (planned)
 
-The WebSocket **`generateRoomPreview`** path in [`app.ts`](../app.ts) uses **`registerConversation`**, **`generateRoomPreview`**, then reads **`internalCache.Conversations.get(conversationId).handle`** and calls **`sendMessage`** (single **`ReturnValue`** completion). **Multi-stage** delivery (server-driven **Generating** plus final result) is specified in [AGENT.planning.md](AGENT.planning.md) (**Multi-stage WebSocket delivery and coordination trap**), task list **section 4**, and the client [lifeLine AGENT.md](../../../charcoal-client/src/slices/lifeLine/AGENT.md) (**`socketDispatchConversation`**).
+The WebSocket **`generateRoomPreview`** path in [`app.ts`](../app.ts) uses **`registerConversation`**, **`generateRoomPreview`**, then reads **`internalCache.Conversations.get(conversationId).handle`** and calls **`sendMessage`** (single **`ReturnValue`** completion). **Multi-stage** delivery (server-driven **Generating** plus final result) is specified in [AGENT.planning.md](AGENT.planning.md) (**Multi-stage WebSocket delivery and coordination trap**), task list **section 4**, and the client [lifeLine AGENT.md](../../../charcoal-client/src/slices/lifeLine/AGENT.md) (**`socketDispatchConversation`**). For **current** charcoal-client usage of **`socketDispatchConversation`** (prototype history, no live callers, kept for future need), see **Client multi-message WebSocket** at the top of this file.
 
 ## Design reference
 
