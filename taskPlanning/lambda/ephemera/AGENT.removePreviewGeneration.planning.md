@@ -57,31 +57,33 @@ That document narrows or removes the types above, regenerates **`dist/`** if app
 
 ## Recommended order (server)
 
-1. **Entry and streaming adapters**
-   - [`app.ts`](../../lambda/ephemera/app.ts): remove `isGenerateRoomPreviewAPIMessage` handling and `sendRenderPreviewRequested` usage.
-   - [`dataSource/apiEphemera.ts`](../../lambda/ephemera/dataSource/apiEphemera.ts): remove `Generate Room Preview` envelope guards, `sendGenerateRoomPreview`, and tests in [`apiEphemera.test.ts`](../../lambda/ephemera/dataSource/apiEphemera.test.ts).
-   - [`dataSource/localApiEvents.ts`](../../lambda/ephemera/dataSource/localApiEvents.ts): remove `GenerateRoomPreviewCommand` / `isGenerateRoomPreviewCommand` if only used for the above (adjust unions that reference them).
+Use `- [ ]` while work is pending and `- [X]` when the line is complete (including every nested bullet under that line).
 
-2. **renderOrchestration**
-   - [`subscribedEvents.ts`](../../lambda/ephemera/dataSource/renderOrchestration/subscribedEvents.ts): remove `Render Preview Requested` ingress helpers and `sendRenderPreviewRequested`.
-   - [`index.ts`](../../lambda/ephemera/dataSource/renderOrchestration/index.ts): drop `isRenderPreviewRequestedIngressEnvelope` branch and preview command mapping.
-   - [`orchestrationHandler.ts`](../../lambda/ephemera/dataSource/renderOrchestration/orchestrationHandler.ts): remove the entire **`isRenderPreviewRequested`** branch; passive path only. Drop imports only used by that branch (e.g. generate-room-preview composite handle guard).
-   - [`requestIntake.ts`](../../lambda/ephemera/dataSource/renderOrchestration/requestIntake.ts): remove `RenderPreviewRequested` branch; signature may narrow to `RenderRequested` only.
-   - [`events.ts`](../../lambda/ephemera/dataSource/renderOrchestration/events.ts) (and [`baseClasses.ts`](../../lambda/ephemera/dataSource/renderOrchestration/baseClasses.ts) if applicable): remove `RenderPreviewRequested` types and guards.
-   - Tests: [`orchestrationHandler.test.ts`](../../lambda/ephemera/dataSource/renderOrchestration/orchestrationHandler.test.ts) (preview `describe` blocks), [`requestIntake.test.ts`](../../lambda/ephemera/dataSource/renderOrchestration/requestIntake.test.ts), [`index.test.ts`](../../lambda/ephemera/dataSource/renderOrchestration/index.test.ts), [`subscribedEvents.test.ts`](../../lambda/ephemera/dataSource/renderOrchestration/subscribedEvents.test.ts).
+1. [X] **Entry and streaming adapters**
+   - [X] [`app.ts`](../../lambda/ephemera/app.ts): remove `isGenerateRoomPreviewAPIMessage` handling and `sendRenderPreviewRequested` usage.
+   - [X] [`dataSource/apiEphemera.ts`](../../lambda/ephemera/dataSource/apiEphemera.ts): remove `Generate Room Preview` envelope guards, `sendGenerateRoomPreview`, and tests in [`apiEphemera.test.ts`](../../lambda/ephemera/dataSource/apiEphemera.test.ts).
+   - [X] [`dataSource/localApiEvents.ts`](../../lambda/ephemera/dataSource/localApiEvents.ts): remove `GenerateRoomPreviewCommand` / `isGenerateRoomPreviewCommand` if only used for the above (adjust unions that reference them).
 
-3. **Conversations**
-   - Remove the [`conversations/conversationTypes/generateRoomPreview/`](../../lambda/ephemera/conversations/conversationTypes/generateRoomPreview/) module (materialize, baseClasses, `renderResolveOutputToGenerateRoomPreviewResult`, tests).
-   - Update [`conversationTypes/index.ts`](../../lambda/ephemera/conversations/conversationTypes/index.ts), [`compositeRead.ts`](../../lambda/ephemera/conversations/conversationTypes/compositeRead.ts), [`storableConversationRecord.ts`](../../lambda/ephemera/conversations/conversationTypes/storableConversationRecord.ts), [`handle.ts`](../../lambda/ephemera/conversations/conversationTypes/handle.ts), [`conversations/index.ts`](../../lambda/ephemera/conversations/index.ts), and [`registry.test.ts`](../../lambda/ephemera/conversations/registry.test.ts) to drop `CONVERSATION_TYPE_GENERATE_ROOM_PREVIEW` and generate-room-preview handles.
+2. [ ] **renderOrchestration**
+   - [ ] [`subscribedEvents.ts`](../../lambda/ephemera/dataSource/renderOrchestration/subscribedEvents.ts): remove `Render Preview Requested` ingress helpers and `sendRenderPreviewRequested`.
+   - [ ] [`index.ts`](../../lambda/ephemera/dataSource/renderOrchestration/index.ts): drop `isRenderPreviewRequestedIngressEnvelope` branch and preview command mapping.
+   - [ ] [`orchestrationHandler.ts`](../../lambda/ephemera/dataSource/renderOrchestration/orchestrationHandler.ts): remove the entire **`isRenderPreviewRequested`** branch; passive path only. Drop imports only used by that branch (e.g. generate-room-preview composite handle guard).
+   - [ ] [`requestIntake.ts`](../../lambda/ephemera/dataSource/renderOrchestration/requestIntake.ts): remove `RenderPreviewRequested` branch; signature may narrow to `RenderRequested` only.
+   - [ ] [`events.ts`](../../lambda/ephemera/dataSource/renderOrchestration/events.ts) (and [`baseClasses.ts`](../../lambda/ephemera/dataSource/renderOrchestration/baseClasses.ts) if applicable): remove `RenderPreviewRequested` types and guards.
+   - [ ] Tests: [`orchestrationHandler.test.ts`](../../lambda/ephemera/dataSource/renderOrchestration/orchestrationHandler.test.ts) (preview `describe` blocks), [`requestIntake.test.ts`](../../lambda/ephemera/dataSource/renderOrchestration/requestIntake.test.ts), [`index.test.ts`](../../lambda/ephemera/dataSource/renderOrchestration/index.test.ts), [`subscribedEvents.test.ts`](../../lambda/ephemera/dataSource/renderOrchestration/subscribedEvents.test.ts).
 
-4. **internalCache (optional cleanup)**
-   - Evaluate [`PreviewGenerationRequestsData`](../../lambda/ephemera/internalCache/previewGenerationRequests.ts): if unused outside tests / `clear()`, remove the class, [`previewGenerationRequests.test.ts`](../../lambda/ephemera/internalCache/previewGenerationRequests.test.ts), and wiring in [`internalCache/index.ts`](../../lambda/ephemera/internalCache/index.ts).
+3. [ ] **Conversations**
+   - [ ] Remove the [`conversations/conversationTypes/generateRoomPreview/`](../../lambda/ephemera/conversations/conversationTypes/generateRoomPreview/) module (materialize, baseClasses, `renderResolveOutputToGenerateRoomPreviewResult`, tests).
+   - [ ] Update [`conversationTypes/index.ts`](../../lambda/ephemera/conversations/conversationTypes/index.ts), [`compositeRead.ts`](../../lambda/ephemera/conversations/conversationTypes/compositeRead.ts), [`storableConversationRecord.ts`](../../lambda/ephemera/conversations/conversationTypes/storableConversationRecord.ts), [`handle.ts`](../../lambda/ephemera/conversations/conversationTypes/handle.ts), [`conversations/index.ts`](../../lambda/ephemera/conversations/index.ts), and [`registry.test.ts`](../../lambda/ephemera/conversations/registry.test.ts) to drop `CONVERSATION_TYPE_GENERATE_ROOM_PREVIEW` and generate-room-preview handles.
 
-5. **messageBus / cross-package**
-   - If `RenderPreviewRequested` appears in [`lambda/ephemera/messageBus`](../../lambda/ephemera/messageBus) or shared types, remove or narrow with the same change set.
+4. [ ] **internalCache (optional cleanup)**
+   - [ ] Evaluate [`PreviewGenerationRequestsData`](../../lambda/ephemera/internalCache/previewGenerationRequests.ts): if unused outside tests / `clear()`, remove the class, [`previewGenerationRequests.test.ts`](../../lambda/ephemera/internalCache/previewGenerationRequests.test.ts), and wiring in [`internalCache/index.ts`](../../lambda/ephemera/internalCache/index.ts).
 
-6. **Documentation**
-   - Update [`dataSource/renderOrchestration/AGENT.md`](../../lambda/ephemera/dataSource/renderOrchestration/AGENT.md), [`renderCache/AGENT.md`](../../lambda/ephemera/renderCache/AGENT.md), and any planning docs that describe preview ingress, `RenderPreviewRequested`, or preview vs passive split.
+5. [ ] **messageBus / cross-package**
+   - [ ] If `RenderPreviewRequested` appears in [`lambda/ephemera/messageBus`](../../lambda/ephemera/messageBus) or shared types, remove or narrow with the same change set.
+
+6. [ ] **Documentation**
+   - [ ] Update [`dataSource/renderOrchestration/AGENT.md`](../../lambda/ephemera/dataSource/renderOrchestration/AGENT.md), [`renderCache/AGENT.md`](../../lambda/ephemera/renderCache/AGENT.md), and any planning docs that describe preview ingress, `RenderPreviewRequested`, or preview vs passive split.
 
 ## Verification
 

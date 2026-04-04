@@ -50,12 +50,29 @@ Add `AGENT.development.md` when a subtree has non-obvious tooling (Vitest vs Jes
 4. **Link area development notes** if present: e.g. [`charcoal-client/AGENT.development.md`](charcoal-client/AGENT.development.md) for client work.
 5. **Follow the root [Getting Started pattern for complex tasks](../AGENT.md#getting-started-pattern-for-complex-tasks)** for the body: foundations, integration points, tests, baseline commands.
 6. **Use the area `AGENT.development.md`** (or package testing docs) for **exact** test commands; do not rely on Jest-only examples from generic templates when the package uses Vitest or another runner.
-7. **Include Progress** (table or checklist), **Recommended order**, and **Verification** so status is visible without rereading the whole file.
+7. **Include Progress** (table or checklist), **Recommended order** (with checkboxes and an intro line per **Recommended order checkboxes** below), and **Verification** so status is visible without rereading the whole file.
+
+## Recommended order checkboxes
+
+Every **`## Recommended order`** section (or similarly named ordered worklist, e.g. `Recommended order (server)`) should begin with a **short instruction line** (one sentence or two) placed immediately under the section heading and **before** the first checklist item. State that pending work uses `[ ]` and completed work uses `[X]`, and mention nested bullets if the section uses them (for example: mark each nested line `[X]` as it is done). Readers often open only the task plan; this line duplicates the minimum convention so they do not have to open [`taskPlanning/AGENT.md`](AGENT.md) for basics.
+
+After that intro, use **GitHub-style task list** syntax:
+
+- **Pending:** `[ ]` immediately after the list marker---for example `- [ ]` for bullets, or `1. [ ]` for numbered steps.
+- **Complete:** `[X]` (capital X) in the same position, for example `- [X]` or `1. [X]`.
+
+Apply checkboxes to **each actionable line** in that section (top-level steps and nested bullets when a parent step has sub-tasks). When a step has children, checking the parent usually implies all children are done; still mark nested lines `[X]` as you complete them so partial progress is visible.
+
+**When creating a new task plan**, write the Recommended order with all lines as `- [ ]` unless you are recording already-finished work.
+
+**When finishing implementation** (human or agent): update the task plan so the matching **Recommended order** lines reflect reality---typically as the **last step** of the change, after tests pass. Session-specific implementation plans (for example Cursor plan files) are optional; the **durable** checklist is the task-plan markdown in `taskPlanning/`.
+
+Agents that follow a task plan's **Getting Started** should treat **update Recommended order checkboxes in this document** as part of **done** for that slice of work, alongside verification commands.
 
 ## Style recommendations
 
 - **Status line** at the top: in progress / blocked / done, and what step is next.
-- **Progress table** for multi-step initiatives; strike through or mark done items in **Recommended order** when helpful.
+- **Progress table** for multi-step initiatives; use **Recommended order** checkboxes (see above) to show what is done.
 - **Relative links** to repo files (markdown links with paths from the task doc).
 - **ASCII punctuation** in new content (match project rules for quotes).
 - **Avoid** copying large blocks of architecture from package docs; link and add task-specific "what we are changing" only.

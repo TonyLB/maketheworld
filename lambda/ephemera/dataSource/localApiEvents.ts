@@ -4,7 +4,6 @@
  */
 import type { EphemeraCacheComponentId, EphemeraCacheMarkState } from '../renderCache/baseClasses'
 import type { PutCacheRecordInput } from './renderCache/putCacheRecord'
-import type { GenerateRoomPreviewInput } from './renderOrchestration/generateRoomPreview'
 
 export type PutCacheRecordCommand = {
     componentId: EphemeraCacheComponentId;
@@ -17,10 +16,6 @@ export type PutCacheRecordCommand = {
 export type DeleteCacheRecordsCommand = {
     componentId: EphemeraCacheComponentId;
     dataCategories: string[];
-};
-
-export type GenerateRoomPreviewCommand = GenerateRoomPreviewInput & {
-    RequestId?: string;
 };
 
 /**
@@ -102,32 +97,8 @@ export const isDeleteCacheRecordsCommand = (value: unknown): value is DeleteCach
     return true
 }
 
-export const isGenerateRoomPreviewCommand = (value: unknown): value is GenerateRoomPreviewCommand => {
-    if (!value || typeof value !== 'object') {
-        return false
-    }
-    const v = value as Record<string, unknown>
-    if (typeof v.roomId !== 'string') {
-        return false
-    }
-    if (!v.markState || typeof v.markState !== 'object') {
-        return false
-    }
-    if (!Array.isArray(v.assetStack) || !v.assetStack.every((id) => typeof id === 'string')) {
-        return false
-    }
-    if (v.generationContextWml !== undefined && typeof v.generationContextWml !== 'string') {
-        return false
-    }
-    if (v.RequestId !== undefined && typeof v.RequestId !== 'string') {
-        return false
-    }
-    return true
-}
-
 /** Union of all api.ephemera command payloads (discriminated by header.type on the bus). */
 export type EphemeraApiCommandPayload =
     | PutCacheRecordCommand
     | DeleteCacheRecordsCommand
-    | GenerateRoomPreviewCommand
     | StateChangeCommand

@@ -255,8 +255,9 @@ For complex migrations, refactorings, or multi-phase projects, include a structu
 
 6. **Identify Next Task**
    - Explain how to find current task
-   - Show progress tracking mechanism
+   - Show progress tracking mechanism (including [`taskPlanning/AGENT.md`](taskPlanning/AGENT.md#recommended-order-checkboxes) checkboxes in the task plan's **Recommended order**)
    - Guide to task prioritization
+   - **Closure:** After implementation and verification, update those checkboxes in the task-plan document so the durable record matches shipped work
 
 7. **Run Tests Before Starting**
    - Exact commands to run
