@@ -1,6 +1,6 @@
 # Remove Preview Generation (lambda/ephemera)
 
-**Status:** Task plan (durable). Prefer landing after **charcoal-client** no longer sends preview API messages; otherwise coordinate removal in the same release window.
+**Status:** Task plan (durable). **Charcoal-client:** the remove-preview-generation task (historical `taskPlanning/charcoal-client` plan, now retired) already removed workbench preview UI and client dispatch of `message: 'generateRoomPreview'`. Prefer landing server removal after that baseline, or coordinate removal in the same release window.
 
 ## Getting Started
 
@@ -12,7 +12,7 @@ Follow the [root "Getting Started" pattern for complex tasks](../../AGENT.md#get
    - **[`AGENT.md`](../../AGENT.md)** (repo root) --- **Why**: Monorepo navigation and documentation conventions. **Focus**: How `taskPlanning/` docs relate to `lambda/ephemera` package docs.
    - **[`lambda/ephemera/dataSource/renderOrchestration/AGENT.md`](../../lambda/ephemera/dataSource/renderOrchestration/AGENT.md)** --- **Why**: Canonical description of preview vs passive today. **Focus**: Request-scoped `RenderPreviewRequested` vs `RenderRequested`; what disappears vs what must remain (`findRender`, cache miss generation).
    - **[`lambda/ephemera/AGENT.ephemeraPerceptionVertical.planning.md`](../../lambda/ephemera/AGENT.ephemeraPerceptionVertical.planning.md)** --- **Why**: Epic-level throughline (state -> orchestration -> cache -> messages). **Focus**: Why removing preview reduces parallel contracts before you refactor orchestration/cache together.
-   - **[`charcoal-client` task plan](../charcoal-client/AGENT.removePreviewGeneration.planning.md)** --- **Why**: Client should stop sending preview messages before or with server removal. **Focus**: Coordinate PR order or a single release window.
+   - **Charcoal-client (completed)** --- The remove-preview client task is **done** (retired task plan). Workbench no longer routes to preview or sends preview API messages. **Focus**: Server slice can assume no live client callers of that wire; coordinate release window with [`packages/mtw-interfaces` follow-on](../../packages/mtw-interfaces/AGENT.removePreviewGeneration.planning.md) if needed.
 
 2. **Read this document (order)**
    - **Goal** --- preview **ingress** and **conversation type** removed; **`generateRoomPreview.ts`** (orchestration module) **kept** for passive cache miss.
@@ -49,11 +49,11 @@ Remove the **preview** branch of render orchestration: `RenderPreviewRequested` 
 
 ## Follow-on (packages)
 
-**Interfaces and wire contracts** for Ephemera API and client messages (`GenerateRoomPreviewAPIMessage`, `isGenerateRoomPreviewAPIMessage`, `EphemeraClientMessageConversationStepGenerateRoomPreview`, legacy `GenerateRoomPreview` client message, terminal helpers such as `isConversationStepGenerateRoomPreview`, etc.) live in **`packages/mtw-interfaces`**. After this lambda slice is clean and the compiler reports remaining references, add and execute:
+**Interfaces and wire contracts** for Ephemera API and client messages (`GenerateRoomPreviewAPIMessage`, `isGenerateRoomPreviewAPIMessage`, `EphemeraClientMessageConversationStepGenerateRoomPreview`, legacy `GenerateRoomPreview` client message, terminal helpers such as `isConversationStepGenerateRoomPreview`, etc.) live in **`packages/mtw-interfaces`**. After this lambda slice is clean and the compiler reports remaining references, execute:
 
-`taskPlanning/packages/mtw-interfaces/AGENT.removePreviewGeneration.planning.md`
+[`taskPlanning/packages/mtw-interfaces/AGENT.removePreviewGeneration.planning.md`](../../packages/mtw-interfaces/AGENT.removePreviewGeneration.planning.md)
 
-That document should narrow or remove the types above, regenerate **`dist/`** if applicable, and fix any remaining imports across the monorepo.
+That document narrows or removes the types above, regenerates **`dist/`** if applicable, and fixes any remaining imports across the monorepo.
 
 ## Recommended order (server)
 

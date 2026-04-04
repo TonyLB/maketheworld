@@ -1,6 +1,6 @@
 /**
  * Derive room-scoped Perspective from origin chains (Room + Situations + Marks)
- * for use as assetStack in generateRoomPreview and other consumers.
+ * for use as assetStack (e.g. personalAssets getPerspective and other consumers).
  */
 
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
