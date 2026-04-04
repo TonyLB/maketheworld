@@ -2,7 +2,7 @@
 
 ## Overview
 
-The `lambda/ephemera/dataSource/state` package owns the **runtime world-state model** for Ephemera: canonical **marks** (and related fields) for Rooms, how they are stored on `Meta::Room`, and **helpers** to derive defaults and merge WML across the asset stack (`computeDefaultMarksForRoom`, stack merge helpers, and the partial `getOrStartRoomRenderForState` scaffold).
+The `lambda/ephemera/dataSource/state` package owns the **runtime world-state model** for Ephemera: canonical **marks** (and related fields) for Rooms, how they are stored on `Meta::Room`, and **helpers** to derive defaults and merge WML across the asset stack (`computeDefaultMarksForRoom`, stack merge helpers).
 
 **Persist merged marks:** [`mergePersistMetaRoomMarks.ts`](mergePersistMetaRoomMarks.ts) --- `mergeMarkState` / `mergePersistMetaRoomMarks` merge incoming `EphemeraCacheMarkState` onto stored `Meta::Room.state.marks` (or onto `computeDefaultMarksForRoom` when stored marks are empty), then `optimisticUpdate` `state` on `Meta::Room`. Wired from `mtw.ephemera.state` [`index.ts`](index.ts) via [`handleApiStateChange.ts`](handleApiStateChange.ts) on api.ephemera **State Change** (room `componentId` + `markState`). Default marks use server-side stack resolution (`resolveCanonAssetStackForRoom` inside `computeDefaultMarksForRoom`). Does not update cache pointer fields.
 

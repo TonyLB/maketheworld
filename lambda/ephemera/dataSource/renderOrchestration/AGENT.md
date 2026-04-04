@@ -65,11 +65,13 @@ Passive **intake** surfaces missing `Meta::Room.state.marks` as an intake error 
 - Keep **multi-step orchestration** out of `state` (state owns persistence and invariants).
 - Keep **`perception`** focused on enrichment and delivery, consuming lifecycle signals as those contracts stabilize.
 
-## Parallel tracks and declutter
+## Parallel tracks (governance, not a goal)
+
+**Direction:** We are **consolidating** on **one** orchestration implementation in this package. Running duplicate stacks for the same concerns is a **liability to eliminate**, not a pattern to grow. This section exists so any **short-lived experiment** is explicitly labeled and routed toward **merge into canonical** or **retire**, not to normalize long-lived parallel implementations.
 
 **Canonical track:** `orchestrateRenderRequest`, intake, `findRender`, delivery in this package. Do **not** add a second orchestration stack elsewhere for the same concerns.
 
-**When adding a parallel experiment:** Record it immediately (status: `keep` | `merge into canonical` | `retire` | `quarantine (do not extend)`), one-line owner module, and do not extend non-canonical tracks with new features. Stray code under `dataSource/state/` that duplicates orchestration belongs in [`../state/AGENT.declutter.md`](../state/AGENT.declutter.md) until removed.
+**When you must add a parallel experiment** (rare): Record it immediately (status: `keep` | `merge into canonical` | `retire` | `quarantine (do not extend)`), one-line owner module, and do not extend non-canonical tracks with new features. Do **not** add a second orchestration stack under `dataSource/state/` (or elsewhere) for the same concerns as `findRender` and this package.
 
 **Legacy tests / app patterns:** Direct `RenderPreviewRequested` **messageBus** sends from app code are **obsolete**; use `sendRenderPreviewRequested` + DataSource ingress and assert `api.ephemera` / `StreamingEvent` envelopes where relevant.
 

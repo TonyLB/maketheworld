@@ -8,7 +8,6 @@ The **system-level narrative** that previously lived in `lambda/ephemera/dataSou
 
 **Related docs**
 
-- Orphaned state-package scaffold (Track B, scheduled removal): `../state/AGENT.declutter.md`
 - Status, graduation criteria, product split (preview vs presence), parallel-track policy: `AGENT.md` (same directory)
 - State package: historical archive `../state/AGENT.planning.historical.md`; active `mtw.ephemera.state` work `../state/AGENT.planning.perceptionVertical.md`
 - Cross-cutting epic: `../../AGENT.ephemeraPerceptionVertical.planning.md`
@@ -208,7 +207,7 @@ Tier 1--2 items that were fully described in older revisions of this file; detai
 - **Generation path (Tier 2 task 6):** Cache miss branching, `generateRoomPreview` on miss, pre-mint cache id, persist via `mtw.ephemera.renderCache`, passive conversation registration, preview "generating" only on slow path --- unified under `orchestrateRenderRequest`.
 - **Ingress relocation:** Request subscription moved to `dataSource/renderOrchestration` (evolving DataSource; see its `AGENT.md`).
 
-**Historical decisions (March 2026, condensed)** --- Detail lives in git history. Unified `findRender` and `intakeRenderRequested` success/error paths; passive batch shell; sendMessage-first `findRender` + `tryGeneration`; unified `orchestrateRenderRequest`. Ingress moved to `dataSource/renderOrchestration/`; app preview emits `api.ephemera` streaming envelopes instead of raw `RenderPreviewRequested` bus messages. Track B (`getOrStartRoomRenderForState`) documented for removal under `../state/AGENT.declutter.md`.
+**Historical decisions (March 2026, condensed)** --- Detail lives in git history. Unified `findRender` and `intakeRenderRequested` success/error paths; passive batch shell; sendMessage-first `findRender` + `tryGeneration`; unified `orchestrateRenderRequest`. Ingress moved to `dataSource/renderOrchestration/`; app preview emits `api.ephemera` streaming envelopes instead of raw `RenderPreviewRequested` bus messages. A duplicate synchronous orchestration scaffold under `dataSource/state/` was removed so orchestration stays single-sourced here.
 
 ---
 
