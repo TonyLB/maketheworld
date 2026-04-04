@@ -16,37 +16,27 @@ import {
 import {
     isRenderOrchestrationIngressEnvelope,
     isRenderOrchestrationSubscribedEnvelope,
-    isRenderPreviewRequestedIngressEnvelope,
     isRenderRequestedIngressEnvelope,
     type RenderOrchestrationIngressEvent,
     type RenderOrchestrationSubscribedContent,
 } from './subscribedEvents'
-import { isRenderPreviewRequestedCommand, isRenderRequestedCommand } from './localApiEvents'
+import { isRenderRequestedCommand } from './localApiEvents'
 import { orchestrateRenderRequest } from './orchestrationHandler'
 import { fanOutStateChangedToPassiveRenders } from './fanOutStateChangedToPassiveRenders'
 import messageBus from '../../messageBus'
 
 const toLegacyPayload = async (event: RenderOrchestrationIngressEvent) => {
     const content = await event.getContent()
-    if (isRenderRequestedIngressEnvelope(event)) {
-        if (!isRenderRequestedCommand(content)) {
-            return undefined
-        }
-        return {
-            type: 'RenderRequested' as const,
-            ...content,
-        }
+    if (!isRenderRequestedIngressEnvelope(event)) {
+        return undefined
     }
-    if (isRenderPreviewRequestedIngressEnvelope(event)) {
-        if (!isRenderPreviewRequestedCommand(content)) {
-            return undefined
-        }
-        return {
-            type: 'RenderPreviewRequested' as const,
-            ...content,
-        }
+    if (!isRenderRequestedCommand(content)) {
+        return undefined
     }
-    return undefined
+    return {
+        type: 'RenderRequested' as const,
+        ...content,
+    }
 }
 
 // Subscribes to api.ephemera render requests and mtw.ephemera.state State Changed (fan-out to passive render).

@@ -7,7 +7,7 @@ import { isEphemeraRoomId, type EphemeraRoomId } from '@tonylb/mtw-interfaces/ts
 import internalCache from '../../internalCache'
 import { computePerspectiveKey } from '@tonylb/mtw-interfaces/ts/perspective'
 import type { EphemeraCacheId, EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { isRenderPreviewRequested, type RenderPreviewRequested, type RenderRequested } from './events'
+import type { RenderRequested } from './events'
 import type { RenderResolveInput, RenderResolveInputSuccess } from './baseClasses'
 
 export type RequestIntakeDependencies = {
@@ -25,21 +25,9 @@ type RequestIntakeDepsResolved = Required<RequestIntakeDependencies>
  * A-phase: `RenderRequested` + `Meta::Room` -> {@link RenderResolveInput} or intake-only outcomes (no I/O beyond Meta).
  */
 export const intakeRenderRequested = async (
-    payload: RenderRequested | RenderPreviewRequested,
+    payload: RenderRequested,
     _deps?: RequestIntakeDependencies
 ): Promise<RenderResolveInput> => {
-    if (isRenderPreviewRequested(payload)) {
-        return {
-            type: 'success',
-            roomId: payload.componentId,
-            perspective: payload.perspective,
-            markState: payload.markState,
-            markProvenance: 'preview',
-            allowGeneration: payload.allowGeneration,
-            generationContextWml: payload.generationContextWml,
-        }
-    }
-
     if (!isEphemeraRoomId(payload.componentId)) {
         return {
             type: 'error',
