@@ -12,6 +12,8 @@ import {
 } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { createInternalOriginEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import type { StreamingEventMessage } from '../../messageBus/baseClasses'
+import { isEphemeraStateStateChangedEnvelope } from '../state/events'
+import type { StateChangedPayload } from '../state/events'
 import type {
     RenderOrchestrationIngressCommand,
     RenderPreviewRequestedCommand,
@@ -64,6 +66,15 @@ export const isRenderOrchestrationIngressEnvelope = makeStreamingEnvelopeGuardFr
     RenderOrchestrationIngressCommand,
     RenderOrchestrationIngressHeader
 >(isRenderOrchestrationIngressHeader)
+
+/** Ingress (`api.ephemera` render commands) plus `mtw.ephemera.state` `State Changed` (passive fan-out). */
+export type RenderOrchestrationSubscribedContent = RenderOrchestrationIngressCommand | StateChangedPayload
+
+export const isRenderOrchestrationSubscribedEnvelope = (
+    envelope: StreamingEventEnvelope<unknown>
+): envelope is StreamingEventEnvelope<RenderOrchestrationSubscribedContent> => (
+    isRenderOrchestrationIngressEnvelope(envelope) || isEphemeraStateStateChangedEnvelope(envelope)
+)
 
 type Bus = { send: (payload: StreamingEventMessage) => void }
 

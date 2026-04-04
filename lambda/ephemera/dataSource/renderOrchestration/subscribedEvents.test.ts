@@ -1,5 +1,6 @@
 import {
     isRenderOrchestrationIngressEnvelope,
+    isRenderOrchestrationSubscribedEnvelope,
     sendRenderPreviewRequested,
     sendRenderRequested,
 } from './subscribedEvents'
@@ -72,5 +73,40 @@ describe('renderOrchestration subscribedEvents', () => {
         expect(isRenderOrchestrationIngressEnvelope(acceptedPreview)).toBe(true)
         expect(isRenderOrchestrationIngressEnvelope(acceptedRequested)).toBe(true)
         expect(isRenderOrchestrationIngressEnvelope(rejected)).toBe(false)
+    })
+
+    it('isRenderOrchestrationSubscribedEnvelope accepts ingress and mtw.ephemera.state State Changed', () => {
+        const stateChanged = {
+            header: {
+                dataSourceKey: 'mtw.ephemera.state',
+                streamKey: 'ROOM#one',
+                timestamp: Date.now(),
+                type: 'State Changed',
+            },
+            getContent: () => Promise.resolve({ type: 'State Changed' }),
+        }
+        expect(isRenderOrchestrationSubscribedEnvelope(stateChanged as any)).toBe(true)
+        expect(
+            isRenderOrchestrationSubscribedEnvelope({
+                header: {
+                    dataSourceKey: 'api.ephemera',
+                    streamKey: 'ROOM#one',
+                    timestamp: Date.now(),
+                    type: 'Render Requested',
+                },
+                getContent: () => Promise.resolve({}),
+            } as any)
+        ).toBe(true)
+        expect(
+            isRenderOrchestrationSubscribedEnvelope({
+                header: {
+                    dataSourceKey: 'api.ephemera',
+                    streamKey: 'ROOM#one',
+                    timestamp: Date.now(),
+                    type: 'Put Cache Record',
+                },
+                getContent: () => Promise.resolve({}),
+            } as any)
+        ).toBe(false)
     })
 })
