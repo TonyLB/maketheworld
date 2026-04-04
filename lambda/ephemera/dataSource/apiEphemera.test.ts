@@ -1,7 +1,6 @@
 import {
     sendPutCacheRecord,
     sendDeleteCacheRecords,
-    sendGenerateRoomPreview,
     sendStateChange,
     isEphemeraApiSubscribedEnvelope,
     isEphemeraApiPutCacheRecordEnvelope,
@@ -97,19 +96,6 @@ describe('apiEphemera', () => {
             componentId: 'ROOM#room-one',
             conversationId: 'conv-abc',
         })
-    })
-
-    it('sendGenerateRoomPreview posts StreamingEvent with Generate Room Preview type', () => {
-        const { sent, bus } = makeBus()
-        sendGenerateRoomPreview(bus, 'ROOM#r2', {
-            roomId: 'ROOM#r2',
-            markState: { markValue: [] },
-            assetStack: ['ASSET#a'],
-            RequestId: 'req-1',
-        })
-
-        expect(sent[0].header.type).toBe('Generate Room Preview')
-        expect(sent[0].streamKey).toBe('ROOM#r2')
     })
 
     it('sendStateChange posts StreamingEvent with State Change type and componentId + markState', async () => {

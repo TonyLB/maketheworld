@@ -18,11 +18,9 @@ import {
     isMapUnsubscribeAPIMessage,
     isUnregisterCharacterAPIMessage,
     isCommandAPIMessage,
-    isActionAPIMessage,
-    isGenerateRoomPreviewAPIMessage
+    isActionAPIMessage
 } from '@tonylb/mtw-interfaces/ts/ephemera'
-import { EphemeraRoomId, isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraKnowledgeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { AssetUUID } from '@tonylb/mtw-base/ts/schema'
+import { isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraKnowledgeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import { fetchEphemeraForCharacter } from './fetchEphemera'
 import internalCache from './internalCache'
@@ -34,7 +32,6 @@ import { confirmGuestCharacter } from './guestCharacter'
 import { AssetsEventSerializer, ComponentExamplesEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
 import { fromEventBridgeFormat } from '@tonylb/mtw-lambda-patterns/ts/dataSource/formatTransform'
 import { coreFormatToStreamingEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
-import { sendRenderPreviewRequested } from './dataSource/renderOrchestration/subscribedEvents'
 
 // Import DataSources to trigger their messageBus subscriptions (side-effect imports)
 import './dataSource'  // mtw.ephemera DataSource
@@ -233,16 +230,6 @@ export const handler = async (event: any, context: any) => {
                 messageBus.send({
                     type: 'ExecuteAction',
                     action: request
-                })
-            }
-
-            if (isGenerateRoomPreviewAPIMessage(request)) {
-                sendRenderPreviewRequested(messageBus, request.RoomId as EphemeraRoomId, {
-                    componentId: request.RoomId as EphemeraRoomId,
-                    perspective: { assetStack: request.assetStack as AssetUUID[] },
-                    markState: request.markState,
-                    generationContextWml: request.generationContextWml,
-                    ...(request.RequestId !== undefined ? { requestId: request.RequestId } : {}),
                 })
             }
 

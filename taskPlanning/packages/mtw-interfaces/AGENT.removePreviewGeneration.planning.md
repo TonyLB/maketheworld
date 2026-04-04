@@ -55,17 +55,19 @@ Remove shared **wire types and runtime guards** for preview-only Ephemera flows:
 
 ## Recommended order
 
-1. **Confirm prerequisites** --- Execute or verify progress on [`lambda/ephemera` AGENT.removePreviewGeneration.planning.md](../../lambda/ephemera/AGENT.removePreviewGeneration.planning.md) so preview is not a live server path. Run repo-wide search for `GenerateRoomPreview`, `generateRoomPreview` (message and pipeline strings), `isGenerateRoomPreviewAPIMessage`, `isConversationStepGenerateRoomPreview`, etc., and fix any stragglers outside this package **before** editing exports here, unless you are doing one coordinated PR.
+Use `- [ ]` while work is pending and `- [X]` when the line is complete.
 
-2. **Edit `ephemera.ts` (API first)** --- Remove preview API types and guards; shrink unions and `switch` cases so `tsc` passes inside `mtw-interfaces`.
+1. [ ] **Confirm prerequisites** --- Execute or verify progress on [`lambda/ephemera` AGENT.removePreviewGeneration.planning.md](../../lambda/ephemera/AGENT.removePreviewGeneration.planning.md) so preview is not a live server path. Run repo-wide search for `GenerateRoomPreview`, `generateRoomPreview` (message and pipeline strings), `isGenerateRoomPreviewAPIMessage`, `isConversationStepGenerateRoomPreview`, etc., and fix any stragglers outside this package **before** editing exports here, unless you are doing one coordinated PR.
 
-3. **Edit `ephemera.ts` (client and helpers)** --- Remove preview client message variants; simplify `ConversationStep` / `EphemeraClientMessage` / `isTerminalConversationStep` as needed. If no `ConversationStep` pipelines remain, the union may drop `EphemeraClientMessageConversationStep` entirely (document that extension point for future pipelines).
+2. [ ] **Edit `ephemera.ts` (API first)** --- Remove preview API types and guards; shrink unions and `switch` cases so `tsc` passes inside `mtw-interfaces`.
 
-4. **Tests** --- Update [`ephemera.test.ts`](../../../packages/mtw-interfaces/ts/ephemera.test.ts); keep coverage for remaining guards.
+3. [ ] **Edit `ephemera.ts` (client and helpers)** --- Remove preview client message variants; simplify `ConversationStep` / `EphemeraClientMessage` / `isTerminalConversationStep` as needed. If no `ConversationStep` pipelines remain, the union may drop `EphemeraClientMessageConversationStep` entirely (document that extension point for future pipelines).
 
-5. **`dist/`** --- If committed, rebuild declarations so `dist/` matches `ts/` (check sibling packages or root scripts for the canonical command).
+4. [ ] **Tests** --- Update [`ephemera.test.ts`](../../../packages/mtw-interfaces/ts/ephemera.test.ts); keep coverage for remaining guards.
 
-6. **Consumers** --- Resolve any remaining compile errors in `lambda/ephemera`, `charcoal-client`, or other packages that imported removed symbols.
+5. [ ] **`dist/`** --- If committed, rebuild declarations so `dist/` matches `ts/` (check sibling packages or root scripts for the canonical command).
+
+6. [ ] **Consumers** --- Resolve any remaining compile errors in `lambda/ephemera`, `charcoal-client`, or other packages that imported removed symbols.
 
 ## Verification
 

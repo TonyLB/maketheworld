@@ -69,11 +69,11 @@ The message bus enables complex workflows such as:
 
 Parallel to **`api.wml`** and **`api.assets`** in other lambdas: **`dataSourceKey: 'api.ephemera'`** identifies **in-process** commands injected onto the message bus from the ephemera handler (or tests). These events are **not** produced by EventBridge and are **not** deserialized in `app.ts` from external `source` / `detail-type`.
 
-- **Definitions**: [`lambda/ephemera/dataSource/localApiEvents.ts`](dataSource/localApiEvents.ts) (payload types and shape guards), [`lambda/ephemera/dataSource/apiEphemera.ts`](dataSource/apiEphemera.ts) (header/envelope guards, `sendPutCacheRecord`, `sendDeleteCacheRecords`, `sendGenerateRoomPreview`).
+- **Definitions**: [`lambda/ephemera/dataSource/localApiEvents.ts`](dataSource/localApiEvents.ts) (payload types and shape guards), [`lambda/ephemera/dataSource/apiEphemera.ts`](dataSource/apiEphemera.ts) (header/envelope guards, `sendPutCacheRecord`, `sendDeleteCacheRecords`, `sendStateChange`).
 - **Initial event types**:
   - **`Put Cache Record`**: Payload aligns with `putCacheRecord(componentId, record, existingDataCategory?)` in the render cache layer. Consumed by **`mtw.ephemera.renderCache`** (see below). Production paths that participate in this thread should use **`sendPutCacheRecord`** from [`lambda/ephemera/dataSource/apiEphemera.ts`](dataSource/apiEphemera.ts) so the write and outbound signals stay consistent.
   - **`Delete Cache Records`**: Payload is `{ componentId, dataCategories }`. Consumed by **`mtw.ephemera.renderCache`**. Production paths should use **`sendDeleteCacheRecords`** (same pattern as `Put Cache Record`). When the handler is already inside an active **`messageBus.flush()`** (e.g. DataSource `receiveEvents`), nested **`send()`** calls are processed by that flush's recursion; top-level code paths may still **`await messageBus.flush()`** so work finishes before returning.
-  - **`Generate Room Preview`**: Payload mirrors room preview input plus optional `RequestId` for correlation.
+  - **`State Change`**: Payload is `{ componentId, markState }` (see `StateChangeCommand` in `localApiEvents.ts`). Production paths should use **`sendStateChange`**.
 
 #### **mtw.ephemera.renderCache (render cache write + outbound signals)**
 

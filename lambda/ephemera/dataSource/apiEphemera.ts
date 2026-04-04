@@ -1,12 +1,11 @@
 /**
  * api.ephemera: internal API stream for the ephemera lambda (parallel to api.wml / api.assets).
  * Header/envelope guards and typed messageBus send helpers. Not emitted from EventBridge.
- * Includes cache commands, Generate Room Preview, and State Change (`componentId` + `markState`; see
+ * Includes cache commands and State Change (`componentId` + `markState`; see
  * `StateChangeCommand` in `localApiEvents.ts`).
  */
 import {
     StreamingEventHeader,
-    StreamingEventEnvelope,
     HeaderGuard,
     makeStreamingEnvelopeGuardFromHeaderGuard,
 } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
@@ -15,7 +14,6 @@ import type { StreamingEventMessage } from '../messageBus/baseClasses'
 import type {
     PutCacheRecordCommand,
     DeleteCacheRecordsCommand,
-    GenerateRoomPreviewCommand,
     StateChangeCommand,
     EphemeraApiCommandPayload,
 } from './localApiEvents'
@@ -23,7 +21,6 @@ import type {
 export type EphemeraApiSubscribedHeader =
     | (StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Put Cache Record' })
     | (StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Delete Cache Records' })
-    | (StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Generate Room Preview' })
     | (StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'State Change' })
 
 export type EphemeraApiIncomingEvent =
@@ -36,10 +33,6 @@ export type EphemeraApiIncomingEvent =
           getContent: () => Promise<DeleteCacheRecordsCommand>;
       }
     | {
-          header: StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Generate Room Preview' };
-          getContent: () => Promise<GenerateRoomPreviewCommand>;
-      }
-    | {
           header: StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'State Change' };
           getContent: () => Promise<StateChangeCommand>;
       }
@@ -48,11 +41,6 @@ const isPutCacheRecordHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey
     h
 ): h is StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Put Cache Record' } =>
     h.dataSourceKey === 'api.ephemera' && h.type === 'Put Cache Record'
-
-const isGenerateRoomPreviewHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Generate Room Preview' }> = (
-    h
-): h is StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Generate Room Preview' } =>
-    h.dataSourceKey === 'api.ephemera' && h.type === 'Generate Room Preview'
 
 const isDeleteCacheRecordsHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Delete Cache Records' }> = (
     h
@@ -74,11 +62,6 @@ export const isEphemeraApiDeleteCacheRecordsEnvelope = makeStreamingEnvelopeGuar
     StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Delete Cache Records' }
 >(isDeleteCacheRecordsHeader)
 
-export const isEphemeraApiGenerateRoomPreviewEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
-    GenerateRoomPreviewCommand,
-    StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Generate Room Preview' }
->(isGenerateRoomPreviewHeader)
-
 export const isEphemeraApiStateChangeEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
     StateChangeCommand,
     StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'State Change' }
@@ -89,7 +72,6 @@ export const isEphemeraApiSubscribedHeader: HeaderGuard<EphemeraApiSubscribedHea
 ): header is EphemeraApiSubscribedHeader =>
     isPutCacheRecordHeader(header)
     || isDeleteCacheRecordsHeader(header)
-    || isGenerateRoomPreviewHeader(header)
     || isStateChangeHeader(header)
 
 export const isEphemeraApiSubscribedEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
@@ -132,25 +114,6 @@ export function sendDeleteCacheRecords(bus: Bus, streamKey: string, content: Del
         streamKey,
         timestamp,
         type: 'Delete Cache Records',
-    }
-    const envelope = createInternalOriginEnvelope(header, content, apiEphemeraSerializer)
-    bus.send({
-        type: 'StreamingEvent',
-        dataSourceKey: 'api.ephemera',
-        streamKey,
-        header: envelope.header,
-        getContent: envelope.getContent,
-        timestamp,
-    })
-}
-
-export function sendGenerateRoomPreview(bus: Bus, streamKey: string, content: GenerateRoomPreviewCommand): void {
-    const timestamp = Date.now()
-    const header: StreamingEventHeader = {
-        dataSourceKey: 'api.ephemera',
-        streamKey,
-        timestamp,
-        type: 'Generate Room Preview',
     }
     const envelope = createInternalOriginEnvelope(header, content, apiEphemeraSerializer)
     bus.send({
