@@ -132,28 +132,29 @@ This section will capture concrete decisions as they are made. Initial placehold
        - Returns a simple success/failure result over the authoring WebSocket flow (similar to Preview), with clear documentation that this contract is **experimental and subject to change** as we converge on a more general state API.
 4. **Cache usage policy**
    - **Rooms, v1:** Room perceptions are **cache-required** for state-driven renders; we do not silently fall back to `ComponentRender` for stateful Room descriptions.
-   - **Two-phase user feedback pattern (authoring, Room State Dashboard):**
-     - When a state change or perception request comes in over WebSocket (with a `RequestId`):
-       1. Call a **state+cache orchestration helper** (conceptual name: `getOrStartRoomRenderForState(roomId, perspective, options)`), which:
-          - Reads `Meta::Room` to obtain `state.marks`, optional `state.situationId`, and `currentCacheId`.
-          - Attempts a cache lookup via `currentCacheId` and, if needed, a search/generation path using `state.marks` + perspective.
-          - Returns either:
-            - `{ status: 'ready', cacheRecord }` when a matching cache record exists (either from prior work or immediate generation), or
-            - `{ status: 'generating' }` when an LLM round-trip has been started and no ready record exists yet.
-       2. Perception reacts to the helper’s status:
-          - **Case (a) `status: 'ready'`:**
-            - Call `componentRender.get(...)` as a synchronous enrichment step around the chosen cache record (exits, characters, short name, etc.).
-            - Send a normal `PerceptionRoomMessage` (with `header: true` and/or full description as appropriate) whose resulting `PerceptionMessage` room header reflects the new cached render.
-            - Return success on the original WebSocket `RequestId` once that perception has been sent.
-          - **Case (b) `status: 'generating'`:**
-            - Immediately send a **placeholder room header** via `PerceptionRoomMessage` with `header: true`, whose WML and metadata clearly indicate a transient "Generating..." state for that Room (e.g., a header description that renders as a centered "Generating..." summary, and the usual `PerceptionRoomMetaData` for the Room).
-            - Treat this as just another header for the same Room: on the client, `getMessagesByRoom` will treat the newest header as the current sticky header, so the placeholder naturally replaces any prior header for that Room without needing message overwrites.
-            - Resolve the WebSocket request as success as soon as this placeholder header perception is sent (the author sees that something is happening).
-            - Allow the generation function, owned by the state+cache helper, to continue asynchronously. When generation completes and the helper has written the new cache row and updated `Meta::Room.currentCacheId`:
-              - Invalidate the relevant `componentRender` cache entry for that `(characterId, RoomId, header?)`.
-              - Call `componentRender.get(...)` to rebuild the enriched `StandardForm`.
-              - Send a follow-up `PerceptionRoomMessage` (again with `header: true`) whose header content reflects the final rendered description. On the client, this new header will simply replace the placeholder header as the current sticky room context for that Room.
-    - In this design, `componentRender` remains a single-shot, synchronous enrichment step, while the **two-phase UX and LLM orchestration** live in the state+cache helper and perception layer. We rely on the existing Perception header semantics (newest header per Room becomes the sticky header) rather than adding any new "overwrite by MessageId" behavior.
+     - **Two-phase user feedback pattern (authoring, Room State Dashboard):**
+       - When a state change or perception request comes in over WebSocket (with a `RequestId`):
+         1. **Resolve** via **render orchestration** (`orchestrateRenderRequest` / `intakeRenderRequested` / `findRender` in `../renderOrchestration/`; see `../renderOrchestration/AGENT.md`), which:
+            - Reads `Meta::Room` to obtain `state.marks`, optional `state.situationId`, and cache pointer hints.
+            - Validates pointers, exact-matches, or starts generation (implemented in `findRender`), delivered through orchestration terminals rather than a synchronous return from `state/`.
+            - **Historical:** a short-lived synchronous scaffold `getOrStartRoomRenderForState` under `state/` was **removed** (2026) so orchestration stays authoritative and single-sourced.
+            - **Original v1 sketch** (superseded as a single synchronous API): returns either:
+              - `{ status: 'ready', cacheRecord }` when a matching cache record exists (either from prior work or immediate generation), or
+              - `{ status: 'generating' }` when an LLM round-trip has been started and no ready record exists yet.
+         2. Perception reacts to **resolved vs in-flight** orchestration outcomes (placeholders, finals):
+            - **Case (a) `status: 'ready'`:**
+              - Call `componentRender.get(...)` as a synchronous enrichment step around the chosen cache record (exits, characters, short name, etc.).
+              - Send a normal `PerceptionRoomMessage` (with `header: true` and/or full description as appropriate) whose resulting `PerceptionMessage` room header reflects the new cached render.
+              - Return success on the original WebSocket `RequestId` once that perception has been sent.
+            - **Case (b) `status: 'generating'`:**
+              - Immediately send a **placeholder room header** via `PerceptionRoomMessage` with `header: true`, whose WML and metadata clearly indicate a transient "Generating..." state for that Room (e.g., a header description that renders as a centered "Generating..." summary, and the usual `PerceptionRoomMetaData` for the Room).
+              - Treat this as just another header for the same Room: on the client, `getMessagesByRoom` will treat the newest header as the current sticky header, so the placeholder naturally replaces any prior header for that Room without needing message overwrites.
+              - Resolve the WebSocket request as success as soon as this placeholder header perception is sent (the author sees that something is happening).
+              - Allow generation, owned by **render orchestration**, to continue asynchronously. When generation completes and orchestration has written the new cache row and updated `Meta::Room` pointer fields:
+                - Invalidate the relevant `componentRender` cache entry for that `(characterId, RoomId, header?)`.
+                - Call `componentRender.get(...)` to rebuild the enriched `StandardForm`.
+                - Send a follow-up `PerceptionRoomMessage` (again with `header: true`) whose header content reflects the final rendered description. On the client, this new header will simply replace the placeholder header as the current sticky room context for that Room.
+     - In this design, `componentRender` remains a single-shot, synchronous enrichment step, while the **two-phase UX and LLM orchestration** live in **render orchestration** and the perception layer. We rely on the existing Perception header semantics (newest header per Room becomes the sticky header) rather than adding any new "overwrite by MessageId" behavior.
 5. **Extensibility to Features and Maps**
    - **Intentionally generic patterns (expected to carry over):**
      - `Meta::<ComponentType>.state` with:
@@ -196,13 +197,8 @@ v1 implemented the core foundations for a cache-backed, state-driven Room descri
 3. **renderCache exact-match primitives**
    - Exact-match semantics (normalized Mark-state equality + perspective matcher filtering) are implemented and tested via `internalCache.RenderCache.getExactMatch` and `generateRoomPreview` in `lambda/ephemera/renderCache/`.
 
-4. **Room state -> cache selection helper (fast path only)**
-   - Added a DI-friendly orchestration entrypoint `getOrStartRoomRenderForState(roomId, perspective, options)` in `lambda/ephemera/dataSource/state/getOrStartRoomRenderForState.ts`.
-   - Implemented and test-driven the `currentCacheId` fast path:
-     - load pointed cache record
-     - validate it matches `state.marks` and the requested perspective
-     - on mismatch, clear `Meta::Room.currentCacheId` (best-effort).
-   - The slow-path orchestration (exact-match search after a fast-path miss, and optional generation lifecycle) remains pending in the helper itself.
+4. **Room state -> cache selection (historical prototype, removed)**
+   - **Removed (2026):** A synchronous scaffold under `dataSource/state/` implemented only the `Meta::Room.currentCacheId` fast-path validation. It duplicated **render orchestration** and was deleted; canonical resolve/generation is **`orchestrateRenderRequest` → `intakeRenderRequested` → `findRender`** in `lambda/ephemera/dataSource/renderOrchestration/`.
 
 Perception wiring and `componentRender` enrichment around a chosen cache record are also still pending in v1.
 
@@ -232,34 +228,12 @@ It intentionally **excludes** the later task of "Create any way in which Room St
 - [x] **Exact-match cache primitive exists**
   - [x] `internalCache.RenderCache.getExactMatch` and `generateRoomPreview` semantics implemented and tested (preview branch + renderCache tests)
 
-#### Phase 2: Room state -> renderCache selection helper
+#### Phase 2: Room state -> renderCache selection
 
-- [x] **Create helper**
-  - [x] `getOrStartRoomRenderForState(roomId, perspective, options)` exists (DI-friendly)
+**Superseded (2026):** The duplicate `getOrStartRoomRenderForState` helper in `state/` was **removed**. Pointer validation, exact match, miss handling, and generation live under **`dataSource/renderOrchestration/`** (`findRender`, `orchestrateRenderRequest`). Track remaining work there and in perception docs, not via a second orchestration API in `state/`.
 
-- [x] **Fast path (implemented)**
-  - [x] If `currentCacheId` exists:
-    - [x] fetch cache record
-    - [x] validate record existence
-    - [x] validate `record.markState` matches `state.marks`
-    - [x] validate perspective match (`perspectiveMatches(record.perspectiveMatcher, perspective)`)
-    - [x] on mismatch, clear `Meta::Room.currentCacheId` (best-effort)
-
-- [ ] **Slow path orchestration (still missing in helper)**
-  - [ ] When `currentCacheId` is missing/invalidated:
-    - [ ] ensure a well-defined markState (use `Meta::Room.state.marks` or compute defaults)
-    - [ ] search `renderCache` for an exact match on (`state.marks`, perspective)
-    - [ ] return `{ status: 'ready', cacheRecord }` when found
-  - [ ] When no exact match exists:
-    - [ ] if `allowGeneration` is true, start generate-and-cache (same semantics as `generateRoomPreview`)
-    - [ ] return `{ status: 'generating' }` (helper-side initiation)
-    - [ ] update `Meta::Room.currentCacheId` on success
-
-- [ ] **Return status contract**
-  - [ ] Implement discriminated returns:
-    - [ ] `{ status: 'ready', cacheRecord }`
-    - [ ] `{ status: 'generating' }`
-    - [ ] `{ status: 'error', ... }`
+- [x] **Canonical orchestration** in `../renderOrchestration/` (not a parallel stack in `state/`)
+- [x] **Fast path** (pointer validation when a hint exists) and **slow path** (exact match, `generateRoomPreview` on miss) implemented in `findRender` + intake
 
 #### Phase 3: Enrichment + perception wiring
 
@@ -269,17 +243,17 @@ It intentionally **excludes** the later task of "Create any way in which Room St
 
 - [ ] **Wire `perception` Room branch**
   - [ ] Replace direct `ComponentRender.get(characterId, roomId, ...)` selection with:
-    - [ ] call orchestration helper
-    - [ ] on `{ status: 'ready' }`: enrich around chosen cache record and send `PerceptionRoomMessage`
-    - [ ] on `{ status: 'generating' }`: send placeholder header (`sendRoomGeneratingHeader`) and arrange async follow-up
+    - [ ] integrate with **render orchestration** outcomes (resolved cache row, generating placeholders)
+    - [ ] on ready: enrich around chosen cache record and send `PerceptionRoomMessage`
+    - [ ] while generating: send placeholder header (`sendRoomGeneratingHeader`) and arrange async follow-up
   - [ ] Refresh perception / `componentRender` caches after generation completes (orchestration updates Meta pointers; perception drops stale enriched views)
 
 #### Phase 4: Tests
 
-- [ ] **Unit tests for helper orchestration**
-  - [ ] default marks when `Meta::Room.state` missing
-  - [x] `currentCacheId` fast path + mismatch pointer clear (already test-driven)
-  - [ ] exact-match search path via helper (not just preview)
+- [ ] **Unit tests for orchestration** (see `../renderOrchestration/` tests)
+  - [ ] default marks when `Meta::Room.state` missing (intake/orchestration policy)
+  - [x] pointer validation + mismatch handling covered by `findRender` / orchestration tests
+  - [ ] exact-match and generation paths (preview and passive)
   - [ ] generation-start and follow-up behavior (mock generation)
 
 - [ ] **Perception wiring tests**

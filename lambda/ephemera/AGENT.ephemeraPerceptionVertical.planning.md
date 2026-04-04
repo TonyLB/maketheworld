@@ -45,8 +45,7 @@ These documents **contributed** to the journey so far. They remain **authoritati
 | [dataSource/state/AGENT.planning.historical.md](dataSource/state/AGENT.planning.historical.md) | **Historical** Room-state prototype (v1 era), v2 motivation snapshot; boundaries evolved (orchestration split out). |
 | [dataSource/state/AGENT.planning.perceptionVertical.md](dataSource/state/AGENT.planning.perceptionVertical.md) | **`mtw.ephemera.state`** DataSource, `State Change` / `State Changed`, fan-out toward `RenderRequested`. |
 | [dataSource/state/AGENT.md](dataSource/state/AGENT.md) | Domain boundaries for **state** vs orchestration. |
-| [dataSource/state/AGENT.declutter.md](dataSource/state/AGENT.declutter.md) | Track B: orphaned `getOrStartRoomRenderForState` scaffold (scheduled removal). Parallel-track policy: [dataSource/renderOrchestration/AGENT.md](dataSource/renderOrchestration/AGENT.md) (*Parallel tracks and declutter*). |
-| [dataSource/renderOrchestration/AGENT.md](dataSource/renderOrchestration/AGENT.md) | Current **renderOrchestration** package behavior, graduation gaps, preview vs passive. |
+| [dataSource/renderOrchestration/AGENT.md](dataSource/renderOrchestration/AGENT.md) | Current **renderOrchestration** package behavior, graduation gaps, preview vs passive, parallel-track policy. |
 | [dataSource/renderOrchestration/AGENT.planning.md](dataSource/renderOrchestration/AGENT.planning.md) | Local **v2** tasks: lifecycle, `findRender`, intake, perception integration phases (*Folded: state v2 orchestration plan*). |
 | [`dataSource/renderCache/index.ts`](dataSource/renderCache/index.ts) | `mtw.ephemera.renderCache` DataSource: put/delete **ingress**, **Cache Updated** / error **outbounds**. |
 | [conversations/AGENT.md](conversations/AGENT.md) | Registry, storable vs composite **`get`**, **`sendMessage`** / orchestration boundary, **temporary** `conversationId` on cache bus traffic. |

@@ -91,7 +91,7 @@ End state: authoritative **`Meta::Room`** world-state and **`mtw.ephemera.state`
 
 ### Sub-goals
 
-- [ ] **Track B**-class duplicate orchestration scaffolds in `state/` are **removed** or explicitly quarantined with no production callers (see `dataSource/state/AGENT.declutter.md`).
+- [x] **Duplicate orchestration-shaped** code in `state/` (parallel to `renderOrchestration`) is **removed**; canonical resolve/generation stays under `dataSource/renderOrchestration/` (see `dataSource/state/AGENT.md` and `dataSource/renderOrchestration/AGENT.md`).
 
 ---
 
