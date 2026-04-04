@@ -112,7 +112,7 @@ Document the chosen path in a one-line note at the top of this section when you 
 
 **Goal:** After the routing + fragments prototypes land, **remove** the **temporary** plumbing that threads **`conversationId`** through **`api.ephemera` `Put Cache Record`** commands and **`mtw.ephemera.renderCache` `Cache Updated`** payloads (see [`AGENT.md`](AGENT.md), [`dataSource/localApiEvents.ts`](../dataSource/localApiEvents.ts), [`dataSource/renderCache/`](../dataSource/renderCache/)). **`mtw.ephemera.renderCache`** should again emit **cache-shaped** events only; **conversations** (or a dedicated orchestration module) **subscribes** to those streams and **resolves** which open conversation (if any) an event belongs to using **keys on the event** (`componentId`, `perspectiveId`, `dataCategory`, etc.) plus **registry lookup**, not a conversation id carried inside the DS envelope.
 
-**Rationale:** This matches the original intent behind **`PreviewGenerationRequests`**: match **outputs** of the cache pipeline back to **waiters** without stuffing **original intent** into the data source implementation.
+**Rationale:** Match **outputs** of the cache pipeline back to **waiters** without stuffing **original intent** into the data source implementation.
 
 - [ ] **Subscribe** to the relevant internal bus output(s) (e.g. `mtw.ephemera.renderCache` **`Cache Updated`**, errors as needed) from a **single orchestration layer** that can consult **`internalCache.Conversations`** (or future durable rows).
 - [ ] **Define match rules** (e.g. room + perspective, optional request token, merge keys) so a **`Cache Updated`** can be tied to an **extant** `generateRoomPreview` (or other) conversation **without** `conversationId` on the event.
