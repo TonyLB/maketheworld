@@ -4,7 +4,7 @@
 
 **Transitional** here means **on the path to** a canonical DataSource-shaped home for render orchestration --- not "stay as small as possible until deleted."
 
-This package is the **implementation home** for the `mtw.ephemera.renderOrchestration` data domain: subscription, ingress normalization, `orchestrateRenderRequest`, intake, `findRender`, and `generateRoomPreview`. Long-form planning lives alongside code: `AGENT.planning.md`, `AGENT.planning.simplification.md`.
+This package is the **implementation home** for the `mtw.ephemera.renderOrchestration` data domain: subscription, ingress normalization, `orchestrateRenderRequest`, intake, `findRender`, and `generateRoomPreview`. Long-form planning lives alongside code: `AGENT.planning.md`.
 
 **What is immature (not what "transitional" means):** replay policy, EventBridge surface, and authoritative outbound streaming contracts are not finished. Those gaps are why the module is not yet **graduated** --- not because domain logic must forever live elsewhere.
 
@@ -65,6 +65,14 @@ Passive **intake** surfaces missing `Meta::Room.state.marks` as an intake error 
 - Keep **multi-step orchestration** out of `state` (state owns persistence and invariants).
 - Keep **`perception`** focused on enrichment and delivery, consuming lifecycle signals as those contracts stabilize.
 
+## Parallel tracks and declutter
+
+**Canonical track:** `orchestrateRenderRequest`, intake, `findRender`, delivery in this package. Do **not** add a second orchestration stack elsewhere for the same concerns.
+
+**When adding a parallel experiment:** Record it immediately (status: `keep` | `merge into canonical` | `retire` | `quarantine (do not extend)`), one-line owner module, and do not extend non-canonical tracks with new features. Stray code under `dataSource/state/` that duplicates orchestration belongs in [`../state/AGENT.declutter.md`](../state/AGENT.declutter.md) until removed.
+
+**Legacy tests / app patterns:** Direct `RenderPreviewRequested` **messageBus** sends from app code are **obsolete**; use `sendRenderPreviewRequested` + DataSource ingress and assert `api.ephemera` / `StreamingEvent` envelopes where relevant.
+
 ## Current constraints (until graduation)
 
 - **Internal-only**: no EventBridge ingress/egress contract is defined yet.
@@ -100,12 +108,11 @@ Until then, keep calling the status **transitional** in the sense of **evolving*
 
 **Planning (this directory)**
 
-- `AGENT.planning.md` --- v2 tasks, wiring tables, integration status
-- `AGENT.planning.simplification.md` --- parallel tracks, declutter, exit criteria
+- `AGENT.planning.md` --- v2 tasks, wiring tables, integration status, input boundary, open work
 
 **Ephemera module overviews**
 
-- `lambda/ephemera/dataSource/state/AGENT.v2.planning.md` (system-level v2 plan)
+- `lambda/ephemera/dataSource/state/AGENT.planning.historical.md` (v1-era archive; v2 orchestration narrative folded into **this directory's** `AGENT.planning.md`)
 - `lambda/ephemera/messageBus/AGENT.md`
 - `lambda/ephemera/perception/AGENT.md`
 - `lambda/ephemera/renderCache/AGENT.md`

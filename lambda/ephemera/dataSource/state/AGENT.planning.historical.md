@@ -1,15 +1,17 @@
-*Status: HISTORICAL PLANNING DOCUMENT - v1 world state system (Room-focused prototype).*
+*Status: HISTORICAL - consolidated v1-era Room-state planning; former v2 stub superseded.*
 
-## Historical status note
+## Consolidation note (2026)
 
-This document is retained as the historical planning/decision record for v1.
+This file **replaces** the former `AGENT.v1.planning.md` and the removed **stub** `AGENT.v2.planning.md`. The **message-bus orchestration** narrative that lived in the v2 stub is maintained only in [`../renderOrchestration/AGENT.planning.md`](../renderOrchestration/AGENT.planning.md) (*Folded: state v2 orchestration plan*). **Active** `mtw.ephemera.state` and state-domain event work: [`AGENT.planning.perceptionVertical.md`](./AGENT.planning.perceptionVertical.md).
 
-- It remains useful for understanding v1 assumptions, delivered foundations, and unresolved v1-era gaps.
-- It is no longer the active planning document for ongoing architecture work.
+## Historical status note (v1 archive)
 
-For active planning moving forward, see:
+This content remains useful for v1 assumptions, delivered foundations, and unresolved v1-era gaps. It is **not** the active planning surface.
 
-- `lambda/ephemera/dataSource/state/AGENT.v2.planning.md`
+**Active planning elsewhere**
+
+- Render orchestration (lifecycle, `findRender`, intake): [`../renderOrchestration/AGENT.planning.md`](../renderOrchestration/AGENT.planning.md)
+- State DataSource, State Change / Changed, fan-out: [`AGENT.planning.perceptionVertical.md`](./AGENT.planning.perceptionVertical.md)
 
 ## Domain boundaries (current architecture)
 
@@ -186,7 +188,7 @@ v1 implemented the core foundations for a cache-backed, state-driven Room descri
 1. **Room state shape in Ephemera table (type-level)**
    - Shared Ephemera-table `Meta::Room` record shape is defined as `EphemeraMetaRoom` in `packages/mtw-interfaces/ts/ephemeraMeta.ts`.
    - It includes `state.marks` (stored as `EphemeraCacheMarkState`), optional `state.situationId`, and optional `currentCacheId` (a `CACHE#...` `DataCategory` pointer).
-   - **Historical:** we documented eager clearing of `currentCacheId` on any `state` change. **Pointer lifecycle** is now owned by **render orchestration** (lazy validation on resolve); see `AGENT.md` and `AGENT.v2.planning.md`.
+   - **Historical:** we documented eager clearing of `currentCacheId` on any `state` change. **Pointer lifecycle** is now owned by **render orchestration** (lazy validation on resolve); see `AGENT.md` and `../renderOrchestration/AGENT.planning.md`.
 
 2. **Default mark derivation**
    - Implemented `computeDefaultMarksForRoom(roomId, perspective)` in `lambda/ephemera/dataSource/state/computeDefaultMarksForRoom.ts`.
@@ -288,6 +290,8 @@ It intentionally **excludes** the later task of "Create any way in which Room St
 As v1 design solidifies, we will convert these bullets into concrete decisions, diagrams, and type signatures, and mirror the results into `AGENT.md` as implementation lands.
 
 ## v2 Second Iteration (messageBus-based event-cascade + early feedback)
+
+**Canonical v2 orchestration detail** (subsystem split, phased cascade, pointer migration) lives in [`../renderOrchestration/AGENT.planning.md`](../renderOrchestration/AGENT.planning.md) (*Folded: state v2 orchestration plan*). The subsection below is a **historical snapshot** of motivation and task-list shape.
 
 v2 is the migration from an imperative "helper returns next step" orchestration into an event-cascade that better matches the asynchronous lifecycle we need for authoring and generation UX.
 

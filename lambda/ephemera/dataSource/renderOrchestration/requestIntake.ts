@@ -1,7 +1,7 @@
 /**
  * Passive `RenderRequested` **A-phase only**: load `Meta::Room`, validate `state.marks`, build {@link RenderResolveInput}
  * (pointer hint from `currentCacheByPerspective`). B-phase and delivery live in `orchestrationHandler.ts`.
- * Planning notes: `AGENT.planning.simplification.md` (same package).
+ * Planning notes: `AGENT.planning.md` (same package; *Input boundary*, open work).
  */
 import { isEphemeraRoomId, type EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import internalCache from '../../internalCache'

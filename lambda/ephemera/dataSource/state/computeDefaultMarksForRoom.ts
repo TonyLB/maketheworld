@@ -28,7 +28,7 @@ export type ComputeDefaultMarksForRoomArgs = {
  * to be revisited in a future iteration, likely replaced by an explicit
  * Assets-to-Ephemera pipeline for world-state defaults.
  *
- * See: lambda/ephemera/dataSource/state/AGENT.v1.planning.md (section on default state).
+ * See: lambda/ephemera/dataSource/state/AGENT.planning.historical.md (section on default state when none is specified).
  */
 export const computeDefaultMarksForRoom = async ({
     roomId,

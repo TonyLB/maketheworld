@@ -3,7 +3,7 @@
  *
  * Internal-only, non-replayable, bus-only publisher strategy.
  * Subscribes to api.ephemera **State Change** envelopes; persists room marks via `mergePersistMetaRoomMarks`.
- * See ./AGENT.v3.planning.md (same package).
+ * See ./AGENT.planning.perceptionVertical.md (same package).
  */
 import EphemeraDataSource from '../abstract'
 import { isEphemeraApiStateChangeEnvelope } from '../apiEphemera'
