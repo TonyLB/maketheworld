@@ -33,20 +33,17 @@ export type CharacterPerspectiveRow = {
  */
 export const groupCharacterRowsByPerspective = (
     rows: CharacterPerspectiveRow[]
-): Map<string, { assetStack: AssetUUID[]; characterIds: EphemeraCharacterId[] }> => {
-    const map = new Map<string, { assetStack: AssetUUID[]; characterIds: EphemeraCharacterId[] }>()
-    for (const row of rows) {
+): Record<string, { assetStack: AssetUUID[]; characterIds: EphemeraCharacterId[] }> => {
+    const map: Record<string, { assetStack: AssetUUID[]; characterIds: EphemeraCharacterId[] }> = rows.reduce((previous, row) => {
         const perspectiveKey = computePerspectiveKey(row.filteredAssetStack)
-        const existing = map.get(perspectiveKey)
-        if (existing) {
-            existing.characterIds.push(row.characterId)
-        } else {
-            map.set(perspectiveKey, {
-                assetStack: row.filteredAssetStack,
-                characterIds: [row.characterId],
-            })
+        return {
+            ...previous,
+            [perspectiveKey]: {
+                assetStack: previous[perspectiveKey]?.assetStack ?? row.filteredAssetStack,
+                characterIds: [...(previous[perspectiveKey]?.characterIds ?? []), row.characterId],
+            },
         }
-    }
+    }, {})
     return map
 }
 
@@ -75,16 +72,18 @@ export const fanOutStateChangedToPassiveRenders = async (
     const characters = await listGet(roomId)
 
     const characterMetaGet = deps?.characterMetaGet ?? ((id: EphemeraCharacterId) => internalCache.CharacterMeta.get(id))
-    const rows: CharacterPerspectiveRow[] = []
-    for (const entry of characters) {
-        const characterId = entry.EphemeraId
-        const meta = await characterMetaGet(characterId)
-        const filteredAssetStack = filterRoomCanonStackByCharacterAssets(roomCanonStack, meta.assets)
+    const characterMetaRows = await Promise.all(characters.map(async (character) => {
+        const characterId = character.EphemeraId
+        const { assets } = await characterMetaGet(characterId)
+        return { characterId, assets }
+    }))
+    const rows = characterMetaRows.reduce<CharacterPerspectiveRow[]>((previous, { characterId, assets }) => {
+        const filteredAssetStack = filterRoomCanonStackByCharacterAssets(roomCanonStack, assets)
         if (filteredAssetStack.length === 0) {
-            continue
+            return previous
         }
-        rows.push({ characterId, filteredAssetStack })
-    }
+        return [...previous, { characterId, filteredAssetStack }]
+    }, [])
 
     if (rows.length === 0) {
         return
@@ -102,19 +101,22 @@ export const fanOutStateChangedToPassiveRenders = async (
 
     const orchestrate = deps?.orchestrateRenderRequestFn ?? orchestrateRenderRequest
 
-    for (const { assetStack, characterIds } of groups.values()) {
-        const targets = characterIds as PublishTarget[]
-        await orchestrate(
-            {
-                payload: {
-                    type: 'RenderRequested',
-                    componentId: roomId,
-                    perspective: { assetStack },
-                    targets,
-                },
-                messageBus,
-            },
-            { getMetaRoom: getMetaRoomMerged }
-        )
-    }
+    await Promise.all(
+        Object.values(groups)
+            .map(async ({ assetStack, characterIds }) => {
+                const targets = characterIds as PublishTarget[]
+                await orchestrate(
+                    {
+                        payload: {
+                            type: 'RenderRequested',
+                            componentId: roomId,
+                            perspective: { assetStack },
+                            targets,
+                        },
+                        messageBus,
+                    },
+                    { getMetaRoom: getMetaRoomMerged }
+                )
+            })
+    )
 }
