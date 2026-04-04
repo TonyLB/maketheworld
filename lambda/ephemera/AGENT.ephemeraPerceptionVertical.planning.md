@@ -39,6 +39,7 @@ These documents **contributed** to the journey so far. They remain **authoritati
 
 | Document | Role |
 |----------|------|
+| [AGENT.ephemeraPerceptionVertical.planning.completionRubric.md](AGENT.ephemeraPerceptionVertical.planning.completionRubric.md) | **Completion rubric** (unordered outcome goals). Complements short-term task lists; does not encode execution order. |
 | [AGENT.caching.planning.md](AGENT.caching.planning.md) | Early **Ephemera caching and generation** plan; blueprint vs moment-to-moment; MVP iterations; **entangled concerns** (state, generation, caching, streaming). Still valuable as **technical history** and cache-centric detail. |
 | [renderCache/AGENT.md](renderCache/AGENT.md) | Schema, lookup model, links caching plan; implementation reference for cache rows. |
 | [dataSource/state/AGENT.planning.historical.md](dataSource/state/AGENT.planning.historical.md) | **Historical** Room-state prototype (v1 era), v2 motivation snapshot; boundaries evolved (orchestration split out). |
@@ -70,6 +71,10 @@ These are **themes**, not a duplicate of every checkbox in subordinate docs:
 3. **Perception as fan-in** (or equivalent assembler): merge **orchestration progress**, **renderCache** outbounds, and **presence** into **PublishMessage** / timeline rules.
 4. **Migration** off imperative **`sendPutCacheRecord`**-only stories where a **domain** outbound is the right seam (incremental; **componentExamples** and other call sites must stay accounted for).
 5. **Documentation consolidation**: reduce duplicate **active** planning surfaces; retain **historical** records where useful (see below).
+
+## Completion rubric (outcomes vs tasks)
+
+**Outcomes** for calling the vertical "done" live in [AGENT.ephemeraPerceptionVertical.planning.completionRubric.md](AGENT.ephemeraPerceptionVertical.planning.completionRubric.md): unordered goals and sub-goals, **not** an execution sequence. Short-term **task lists** and issues are for **what we push next**; they should **advance** the rubric without **defining** epic completion by emptying a single ordered checklist.
 
 ## Documentation consolidation
 
