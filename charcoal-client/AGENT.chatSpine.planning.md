@@ -744,7 +744,7 @@ This section guides AI agents (and human collaborators) through context gatherin
 
 **Testing standards**:
 - See **[Client Testing Standards](AGENT.testing.md)** for Vitest patterns and React component testing
-- Client tests: `npm test` (watch) or `npm test -- --run` (single run)
+- Client tests: `npm test` (watch) or `npm run test:single` (single run)
 
 **Test files to review**:
 - Existing component tests in `src/components/`
@@ -774,7 +774,7 @@ This section guides AI agents (and human collaborators) through context gatherin
 **Baseline verification**:
 ```bash
 cd charcoal-client
-npm test -- --run
+npm run test:single
 ```
 
 **Expected**: All existing tests should pass before making changes

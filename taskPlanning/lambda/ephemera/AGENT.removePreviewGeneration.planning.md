@@ -4,6 +4,8 @@
 
 ## Getting Started
 
+Read **[`taskPlanning/AGENT.md`](../../AGENT.md)** --- **Why**: What belongs in task plans versus durable docs, and how plans are retired when work completes.
+
 Follow the [root "Getting Started" pattern for complex tasks](../../AGENT.md#getting-started-pattern-for-complex-tasks) (7-step orientation). Use this section as the concrete map for **this** task.
 
 1. **Understand project foundations**

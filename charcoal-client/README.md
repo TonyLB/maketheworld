@@ -26,12 +26,12 @@ See the section about [running tests](https://facebook.github.io/create-react-ap
 
 **Note**: This runs Vitest in watch mode by default. To run tests once and exit, use:
 ```bash
-npm test -- --run
+npm run test:single
 ```
 
-To run a specific test file once:
+To run a specific test file or directory once:
 ```bash
-npm test -- --run src/path/to/test.ts
+npm run test:single -- src/path/to/test.ts
 ```
 
 ### `npm run introspect <your stack name>`

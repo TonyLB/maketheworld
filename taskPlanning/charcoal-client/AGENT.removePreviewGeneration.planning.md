@@ -11,14 +11,14 @@
 | 3 | Comments and shared libs (non-blocking) | Not started |
 | 4 | Types and interfaces (`mtw-interfaces`) | Deferred per plan |
 
-**Note:** `charcoal-client` uses Vitest, not Jest. Filter lifeLine tests with `cd charcoal-client && npx vitest run src/slices/lifeLine` (the root planning doc sometimes mentions `--testPathPattern=lifeLine`).
-
 ## Getting Started
+
+Read **[`taskPlanning/AGENT.md`](../AGENT.md)** first --- **Why**: Durability expectations, what belongs in this file versus package docs, and how task plans are retired. Read **[`AGENT.development.md`](AGENT.development.md)** --- **Why**: Exact Vitest commands and links to [`charcoal-client/AGENT.testing.md`](../../charcoal-client/AGENT.testing.md) (do not rely on Jest-only examples from generic templates).
 
 Follow the [root "Getting Started" pattern for complex tasks](../../AGENT.md#getting-started-pattern-for-complex-tasks) (7-step orientation). Use this section as the concrete map for **this** task.
 
 1. **Understand project foundations**
-   - **[`AGENT.md`](../../AGENT.md)** (repo root) --- **Why**: Monorepo navigation and documentation conventions. **Focus**: How durable planning under `taskPlanning/` relates to package `AGENT.md` files.
+   - **[`AGENT.md`](../../AGENT.md)** (repo root) --- **Why**: Monorepo navigation and documentation conventions. **Focus**: How `taskPlanning/` relates to package `AGENT.md` files (see [`taskPlanning/AGENT.md`](../AGENT.md)).
    - **[`charcoal-client/AGENT.md`](../../charcoal-client/AGENT.md)** --- **Why**: Workbench vs play mode and client architecture. **Focus**: Where authoring UI lives before you edit Room / Workbench components.
    - **[`lambda/ephemera/AGENT.ephemeraPerceptionVertical.planning.md`](../../lambda/ephemera/AGENT.ephemeraPerceptionVertical.planning.md)** --- **Why**: Epic context for the **throughline** you are aligning with by removing preview. **Focus**: State, orchestration, cache, conversations, lifeLine boundaries.
    - **[`charcoal-client/src/slices/lifeLine/AGENT.md`](../../charcoal-client/src/slices/lifeLine/AGENT.md)** --- **Why**: Preview used `socketDispatchPromise` / `ConversationStep` terminal rules (cleanup in step 2). **Focus**: `isTerminalConversationStep`, legacy `GenerateRoomPreview`, and `pipeline: 'generateRoomPreview'` (what to delete or simplify from docs).
@@ -47,8 +47,8 @@ Follow the [root "Getting Started" pattern for complex tasks](../../AGENT.md#get
    - Use **Recommended order** in this file as the checklist. **UI and navigation (step 1) is complete**; next is **LifeLine / Redux integration (step 2)** so grep-driven cleanup is unambiguous.
 
 7. **Run tests before starting (baseline)**
-   - From repo root: `cd charcoal-client && npx vitest run src/slices/lifeLine` (this package uses Vitest, not Jest).
-   - **Expect**: Existing suite passes; note failures before changing code. After edits, rerun the same command plus `npx vitest run` if you touched shared modules.
+   - See **[`AGENT.development.md`](AGENT.development.md)** for commands. Typical baseline for this task: `cd charcoal-client && npm run test:single -- src/slices/lifeLine`, then `npm run test:single` after broader edits.
+   - **Expect**: Existing suite passes; note failures before changing code.
 
 ## Goal
 
