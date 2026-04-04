@@ -33,8 +33,9 @@ describe('fanOutStateChangedToPassiveRenders', () => {
                 { characterId: 'CHARACTER#2' as EphemeraCharacterId, filteredAssetStack: [A, B] },
             ]
             const groups = groupCharacterRowsByPerspective(rows)
-            expect(groups.size).toBe(1)
-            const only = [...groups.values()][0]
+            // groupCharacterRowsByPerspective returns a Record, not a Map (no .size on plain objects)
+            expect(Object.keys(groups)).toHaveLength(1)
+            const only = Object.values(groups)[0]
             expect(only.assetStack).toEqual([A, B])
             expect(only.characterIds.sort()).toEqual(['CHARACTER#1', 'CHARACTER#2'].sort())
         })
@@ -45,8 +46,8 @@ describe('fanOutStateChangedToPassiveRenders', () => {
                 { characterId: 'CHARACTER#2' as EphemeraCharacterId, filteredAssetStack: [A] },
             ]
             const groups = groupCharacterRowsByPerspective(rows)
-            expect(groups.size).toBe(2)
-            const keys = [...groups.keys()]
+            const keys = Object.keys(groups)
+            expect(keys).toHaveLength(2)
             expect(keys).toContain(computePerspectiveKey([A, B]))
             expect(keys).toContain(computePerspectiveKey([A]))
         })
