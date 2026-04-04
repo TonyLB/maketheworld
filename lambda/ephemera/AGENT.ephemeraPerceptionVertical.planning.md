@@ -48,10 +48,9 @@ These documents **contributed** to the journey so far. They remain **authoritati
 | [dataSource/renderOrchestration/AGENT.md](dataSource/renderOrchestration/AGENT.md) | Current **renderOrchestration** package behavior, graduation gaps, preview vs passive. |
 | [dataSource/renderOrchestration/AGENT.planning.md](dataSource/renderOrchestration/AGENT.planning.md) | Local **v2** tasks: lifecycle, `findRender`, intake, perception integration phases (*Folded: state v2 orchestration plan*). |
 | [`dataSource/renderCache/index.ts`](dataSource/renderCache/index.ts) | `mtw.ephemera.renderCache` DataSource: put/delete **ingress**, **Cache Updated** / error **outbounds**. |
-| [conversations/AGENT.md](conversations/AGENT.md) | Registry, handles, **temporary** `conversationId` on cache bus traffic. |
+| [conversations/AGENT.md](conversations/AGENT.md) | Registry, storable vs composite **`get`**, **`sendMessage`** / orchestration boundary, **temporary** `conversationId` on cache bus traffic. |
 | [conversations/AGENT.planning.md](conversations/AGENT.planning.md) | **Cross-domain coordination**: fragments, assembly, correlation trap, multi-DataSource future. |
 | [conversations/AGENT.planning.tasklist.md](conversations/AGENT.planning.tasklist.md) | Task sequencing for conversations work. |
-| [conversations/AGENT.sendMessage.planning.md](conversations/AGENT.sendMessage.planning.md) | Send-message specifics if present. |
 | [perception/AGENT.md](perception/AGENT.md) | Triggers, header semantics, migration context; **navigation** scale. |
 
 ## Journey so far (discovered milestones)
