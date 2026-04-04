@@ -1,6 +1,5 @@
 import React, { FunctionComponent, useMemo, useCallback } from 'react'
-import { Box, ListItemButton, ListItemIcon, ListItemText, Typography } from '@mui/material'
-import VisibilityIcon from '@mui/icons-material/Visibility'
+import { Box } from '@mui/material'
 
 import { useWorkbenchAsset } from '../foundations/useWorkbenchAsset'
 import { useAddReferenceImport } from '../foundations/ReferenceList/AddReferenceImportControl'
@@ -61,23 +60,7 @@ export const RoomEditor: FunctionComponent = () => {
         return null
     }, [room, standardForm])
 
-    const canOpenPreview = useMemo(() => {
-        if (room?.situations.length) return true
-        if (!singleLens) return false
-        const markRefs = singleLens.marks.payload || []
-        return markRefs.length >= 1
-    }, [room, singleLens])
-
     const hasLens = !!singleLens
-
-    const handlePreviewClick = useCallback(() => {
-        if (!universalKey || !canOpenPreview || readonly) return
-        dispatch(pushBreadcrumb({
-            id: `preview:${universalKey}`,
-            kind: 'component',
-            componentId: `preview:${universalKey}`
-        }))
-    }, [universalKey, canOpenPreview, readonly, dispatch])
 
     useOnboardingCheckpoint('navigateRoom', { requireSequence: true })
     useOnboardingCheckpoint('navigateAssetWithImport', { requireSequence: true })
@@ -283,25 +266,6 @@ export const RoomEditor: FunctionComponent = () => {
                                         actionAffordances={situationActionRows}
                                     />
                                     {situationSelectorDialog}
-                                </Box>
-                                <Box sx={{ marginTop: '0.5em' }}>
-                                    <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>Preview</Typography>
-                                    {canOpenPreview ? (
-                                        <ListItemButton
-                                            onClick={handlePreviewClick}
-                                            disabled={readonly}
-                                            sx={{ borderRadius: 1, border: '1px solid', borderColor: 'divider' }}
-                                        >
-                                            <ListItemIcon sx={{ minWidth: 36 }}>
-                                                <VisibilityIcon fontSize="small" />
-                                            </ListItemIcon>
-                                            <ListItemText primary="Open Preview" secondary="Propose mark state and see cached result" />
-                                        </ListItemButton>
-                                    ) : (
-                                        <Typography variant="body2" color="text.secondary">
-                                            Add a Lens with Marks to use Preview.
-                                        </Typography>
-                                    )}
                                 </Box>
                             </>
                         )}
