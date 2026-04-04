@@ -338,6 +338,12 @@ export type SocketDispatchConversationOptions = {
 // socketDispatchConversation: subscribe to LifeLinePubSub for multiple inbound payloads sharing
 // conversationId (and optionally RequestId during migration) until terminal or unsubscribe.
 //
+// Framework status: This was prototyped end-to-end with the removed workbench "room preview
+// generation" flow. The mechanism is known to work and is expected to be useful for future
+// Ephemera features that stream multiple correlated messages per outbound action. There are
+// currently no production call sites in charcoal-client; the implementation is kept largely
+// against that future need (see lifeLine/AGENT.md and lambda/ephemera/conversations/AGENT.md).
+//
 export function socketDispatchConversation(
     payload: EphemeraAPIMessage & { conversationId?: string },
     options: SocketDispatchConversationOptions & { service?: 'ephemera' }

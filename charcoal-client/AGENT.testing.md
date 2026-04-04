@@ -19,16 +19,16 @@
 # Watch mode (default)
 npm test
 
-# Single run mode (use --run flag)
-npm test -- --run
+# Single run mode (all tests) --- package script: vitest run
+npm run test:single
 
-# Test specific file
-npm test -- --run src/path/to/test.tsx
+# Test specific file or directory (arguments after --)
+npm run test:single -- src/path/to/test.tsx
 ```
 
 ### **Key Differences from Jest**
 - **Command**: `npm test` instead of `npm run test`
-- **Run Flag**: Use `--run` for single execution instead of `--watchAll=false`
+- **Single run**: Use `npm run test:single` (runs `vitest run`) instead of Jest's `--watchAll=false`
 - **Mocking**: Use `vi` instead of `jest` global
 - **Environment**: Explicitly specify `jsdom` environment
 
@@ -278,7 +278,7 @@ The Slate testing patterns are substantial enough to warrant their own dedicated
 ## Integration with Project Standards
 
 ### **Cross-Reference with Project AGENT.md**
-- **Client Testing**: Use `npm test -- --run` (this document)
+- **Client Testing**: Use `npm run test:single` for a single full run (this document)
 - **Package Testing**: Use `npm run test -- --watchAll=false` (project AGENT.md)
 
 ---

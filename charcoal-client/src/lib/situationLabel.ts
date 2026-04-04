@@ -58,8 +58,9 @@ export function situationToMarksSummary(
 }
 
 /**
- * Derives generateRoomPreview-style markState from a Situation's marks.
- * Used for "Preview by situation" in RoomPreviewEditor.
+ * Builds a markValue list from a Situation's Mark facets: each entry uses the
+ * mark's universalKey and the facet payload as a string. Useful where callers
+ * need a compact { markValue } object for APIs or prompts that accept that shape.
  */
 export function situationMarksToMarkState(situation: StandardSituation): { markValue: { mark: string; value: string }[] } {
     const items = situation.marks?.items ?? []

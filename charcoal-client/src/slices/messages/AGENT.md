@@ -297,8 +297,8 @@ case 'PerceptionMessage':
 
 ### **Testing Patterns**
 - **Watch Mode**: `npm test` - Runs Vitest in watch mode (default)
-- **Single Run**: `npm test -- --run` - Runs tests once and exits
-- **Specific File**: `npm test -- --run src/path/to/test.ts` - Run specific test file
+- **Single Run**: `npm run test:single` - Runs tests once and exits
+- **Specific File**: `npm run test:single -- src/path/to/test.ts` - Run specific test file
 - **Client vs Packages**: Use `npm test` for client (Vitest), `npm run test` for packages (Jest)
 
 ### **Future Plans**

@@ -1,7 +1,7 @@
 # Make The World - AI Navigation Guide
 
 ## Quick Reference (Common Agent Failures)
-- **Client testing**: `npm test` (watch) or `npm test -- --run` (single run)
+- **Client testing**: `npm test` (watch) or `npm run test:single` (single run; in `charcoal-client/`)
 - **Package testing**: `npm run test` (watch) or `npm run test -- --watchAll=false` (single run)
 - **Detailed testing procedures**: See below for comprehensive testing patterns and examples
 
@@ -107,6 +107,10 @@ Include specific guidance for AI assistants:
 - **Function Documentation**: Inline code comments
 - **Type Definitions**: Interface and type documentation
 
+#### **Task planning (`taskPlanning/`)**
+- **[`taskPlanning/AGENT.md`](taskPlanning/AGENT.md)**: What belongs in task plans versus durable package docs, durability expectations, and how to add a new planning document.
+- **Area notes**: Subfolders may include `AGENT.development.md` (for example [`taskPlanning/charcoal-client/AGENT.development.md`](taskPlanning/charcoal-client/AGENT.development.md)) with exact test commands and links to [`charcoal-client/AGENT.testing.md`](charcoal-client/AGENT.testing.md).
+
 ## Quick Navigation
 
 ### **Core Systems**
@@ -145,13 +149,14 @@ Include specific guidance for AI assistants:
 
 #### **Migration and Architecture Planning**
 - **[Development Roadmap](AGENT.development.md)**: Master planning document for major migrations and architectural changes
+- **[Task planning framework](taskPlanning/AGENT.md)**: Task-scoped plans under `taskPlanning/` (disposable after completion); content split versus package `AGENT.md` files
 - **Migration Phases**: Message format standardization, Variable/Computed/Action removal, asset caching migration, LLM-mediated systems
 - **Strategic Planning**: Coordinated approach to completing incomplete migrations and legacy system removal
 
 #### **Testing Patterns**
-- **Client (Vitest)**: Use `npm test` for watch mode, `npm test -- --run` for single run
+- **Client (Vitest)**: Use `npm test` for watch mode, `npm run test:single` for single run (from `charcoal-client/`)
 - **Packages (Jest)**: Use `npm run test` for watch mode, `npm run test -- --watchAll=false` for single run
-- **Specific Files**: `npm test -- --run src/path/to/test.ts` (client) or `npm run test -- src/path/to/test.ts` (packages)
+- **Specific Files**: `npm run test:single -- src/path/to/test.ts` (client) or `npm run test -- src/path/to/test.ts` (packages)
 - **Test Coverage**: Follow existing test patterns and naming conventions
 - **Client Testing Standards**: See [`charcoal-client/AGENT.testing.md`](charcoal-client/AGENT.testing.md) for detailed Vitest patterns and React component testing
 
@@ -293,6 +298,8 @@ Do this:
 **Template**: See `lambda/wml/s3Storage/AGENT.md` for comprehensive documentation following this pattern
 
 **Recommendation**: Use this pattern for any task with 3+ phases or requiring understanding of multiple subsystems.
+
+**Task plans under `taskPlanning/`**: Also read [`taskPlanning/AGENT.md`](taskPlanning/AGENT.md) so you know what belongs in the task document versus durable docs, and when to retire the plan. Link any subfolder [`AGENT.development.md`](taskPlanning/charcoal-client/AGENT.development.md) (for example under `taskPlanning/charcoal-client/`) from **Getting Started** for exact test commands and pointers to [`charcoal-client/AGENT.testing.md`](charcoal-client/AGENT.testing.md); do not assume Jest-only examples apply to Vitest packages.
 
 #### **AI Assistant Guidelines**
 1. **Start Here**: Begin with this root `AGENT.md` for context
