@@ -40,7 +40,9 @@ A **second prototype pass** then adds the **fragment** map, merge rules, complet
 
 ## 3. First prototype pass: routing-first pipeline (e.g. API-activated preview)
 
-**Chosen path:** WebSocket **`generateRoomPreview`** in [`app.ts`](../app.ts): register row, **`generateRoomPreview`** with optional **`conversationId`** on orchestration, completion via **`getConversationHandle`** **`sendMessage`**; optional **`conversationId`** on **`Put Cache Record`** / **`Cache Updated`** for prototype correlation.
+**Update (remove-preview-generation):** The workbench **`generateRoomPreview`** WebSocket/API path and the **`generateRoomPreview`** conversation row type are **removed** from lambda. The **registry** and **`roomStateRender`** storable rows remain for **passive** orchestration (`orchestrateRenderRequest`). The bullets below describe the **historical** first prototype.
+
+**Chosen path (historical):** WebSocket **`generateRoomPreview`** in [`app.ts`](../app.ts): register row, orchestration **`generateRoomPreview`** with optional **`conversationId`**, completion via conversation **`sendMessage`**; optional **`conversationId`** on **`Put Cache Record`** / **`Cache Updated`** for prototype correlation.
 
 **Goal:** Register a `conversationId`, persist **routing** for the run, and thread that id through the handler so delivery stays coherent (e.g. `ReturnValue` / `RequestId`). **No requirement** yet for multiple fragment writers or a full assembler beyond whatever the single pipeline already does.
 
@@ -55,7 +57,9 @@ Suggested candidate: **GenerateRoomPreview** (UI button): one cohesive async cha
 
 ## 4. Multi-stage WebSocket contract (preview; next after section 3)
 
-**Goal:** Break the **single-ReturnValue** coordination lock for authoring **preview** (and similar flows) so the client and server can support **multiple correlated** messages per logical operation. Full rationale: [`AGENT.planning.md`](AGENT.planning.md) section **Multi-stage WebSocket delivery and coordination trap (preview path)**. Client patterns: [`charcoal-client/src/slices/lifeLine/AGENT.md`](../../../charcoal-client/src/slices/lifeLine/AGENT.md).
+**Update (remove-preview-generation):** Server-side **`ConversationStep`** materialization for the preview pipeline lived under **`conversationTypes/generateRoomPreview/`** (removed). Charcoal-client **`socketDispatchConversation`** remains for **future** correlated streams. Sub-bullets below are the **prior** MVP design.
+
+**Goal (historical):** Break the **single-ReturnValue** coordination lock for authoring **preview** (and similar flows) so the client and server can support **multiple correlated** messages per logical operation. Full rationale: [`AGENT.planning.md`](AGENT.planning.md) section **Multi-stage WebSocket delivery and coordination trap (preview path)**. Client patterns: [`charcoal-client/src/slices/lifeLine/AGENT.md`](../../../charcoal-client/src/slices/lifeLine/AGENT.md).
 
 **Wedge:** Ship a **vertical slice** first (same lambda invocation may emit **generating** then **result** before async multi-DataSource work is required). Wire shape names (**`ConversationStep`**, **`socketDispatchConversation`**) are **working names** until implementation locks them.
 
@@ -66,7 +70,7 @@ Suggested candidate: **GenerateRoomPreview** (UI button): one cohesive async cha
 - [x] **Registry (server):** Refactor **`registerConversation`** / [`registry.ts`](../registry.ts) so **`conversationId`** may be **optional** in the input: if provided, validate (e.g. UUID) and register under that id; if omitted, preserve current **`uuidv4()`** behavior. Document invariants (single registration per id per invocation, reject duplicate `set`). Add **unit tests** (happy path, duplicate id, invalid shape, omitted id matches legacy).
 - [x] **Client:** Add **`socketDispatchConversation`** (or equivalent): subscribe to **multiple** `LifeLinePubSub` payloads sharing **`conversationId`** (and optionally **`RequestId`** during migration), expose **`onEvent`** / **unsubscribe**; drop subscription on unmount, navigation, or superseding run.
 - [x] **Shared types:** After **`socketDispatchConversation`** is in place, add discriminated **step** types (e.g. generating vs terminal result vs error) and a wire shape (working name **`ConversationStep`**) in **`packages/mtw-interfaces`** or ephemera-local types as appropriate; align with Ephemera **`ReturnValue`** / merged response bodies. **Follow-up:** define the **proper restrictions** for **`LifeLinePubSub`** subscribers (e.g. **`messageType`**, **`conversationId`**, terminal vs non-terminal) so streaming listeners do not mirror the loose **`RequestId`-only** match used by **`socketDispatchPromise`** once types are specified.
-- [x] **Server:** Extend **`sendMessage`** materialization ([`conversationTypes/generateRoomPreview/materialize.ts`](../conversationTypes/generateRoomPreview/materialize.ts)) to use **`ConversationStep`** (not **`ReturnValue`**) for this vertical slice, emitting both **non-terminal** and **terminal** steps; keep `.sendMessage` arguments aligned with shared `mtw-interfaces` step types (e.g. `EphemeraClientMessageConversationStepGenerateRoomPreviewGenerating` / `...Complete` / `...Error`), and let `materialize` inject the envelope fields (`conversationId`, `pipeline`, and optional `RequestId` during migration).
+- [x] **Server:** Extend **`sendMessage`** materialization in the preview conversation module (removed: was `conversationTypes/generateRoomPreview/materialize.ts`) to use **`ConversationStep`** (not **`ReturnValue`**) for that vertical slice, emitting both **non-terminal** and **terminal** steps; keep `.sendMessage` arguments aligned with shared `mtw-interfaces` step types (e.g. `EphemeraClientMessageConversationStepGenerateRoomPreviewGenerating` / `...Complete` / `...Error`), and let `materialize` inject the envelope fields (`conversationId`, `pipeline`, and optional `RequestId` during migration).
 
   **Delivery semantics for this MVP vertical (ConversationStep-only):**
 
@@ -115,8 +119,8 @@ Document the chosen path in a one-line note at the top of this section when you 
 **Rationale:** Match **outputs** of the cache pipeline back to **waiters** without stuffing **original intent** into the data source implementation.
 
 - [ ] **Subscribe** to the relevant internal bus output(s) (e.g. `mtw.ephemera.renderCache` **`Cache Updated`**, errors as needed) from a **single orchestration layer** that can consult **`internalCache.Conversations`** (or future durable rows).
-- [ ] **Define match rules** (e.g. room + perspective, optional request token, merge keys) so a **`Cache Updated`** can be tied to an **extant** `generateRoomPreview` (or other) conversation **without** `conversationId` on the event.
-- [ ] **Delete** prototype fields and parameters: strip **`conversationId`** from **`PutCacheRecordCommand`**, **`RenderCacheCacheUpdatedPayload`**, **`PublishPutCacheRecord`**, **`GenerateRoomPreviewOptions`**, and any call sites/tests that exist only for DS-threaded correlation; keep behavior that still makes sense (e.g. synchronous preview completion in **`app.ts`** unchanged aside from removing the bus pass-through).
+- [ ] **Define match rules** (e.g. room + perspective, optional request token, merge keys) so a **`Cache Updated`** can be tied to an **extant** `roomStateRender` (or other) conversation **without** `conversationId` on the event.
+- [ ] **Delete** prototype fields and parameters: strip **`conversationId`** from **`PutCacheRecordCommand`**, **`RenderCacheCacheUpdatedPayload`**, **`PublishPutCacheRecord`**, **`GenerateRoomPreviewOptions`**, and any call sites/tests that exist only for DS-threaded correlation; keep behavior that still makes sense for **passive** orchestration.
 - [ ] **Tests:** orchestration resolves the correct conversation (or none) from a realistic **`Cache Updated`** payload; renderCache DS tests do **not** require `conversationId` on the stream.
 
 ---

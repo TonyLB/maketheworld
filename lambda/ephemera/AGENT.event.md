@@ -29,7 +29,7 @@ The Ephemera Lambda serves as the primary WebSocket handler for real-time client
 - **`action`**: Executes character actions in the game world
 - **`command`**: Parses and executes text-based character commands
 - **`link`**: Handles character interaction with game elements
-- **`generateRoomPreview`**: For authoring and development, computes a room content preview for a proposed Mark state and asset stack, returning either cached rendered content or a structured \"no exact match\" error. **Today** the lambda responds with **one** merged HTTP/WebSocket body (see **`ReturnValue`** below). **Planned:** multiple correlated client messages per request (e.g. generating vs completion) so preview can track **event-driven** orchestration; see [`conversations/AGENT.planning.md`](conversations/AGENT.planning.md) (**Multi-stage WebSocket delivery and coordination trap**), [`conversations/AGENT.planning.tasklist.md`](conversations/AGENT.planning.tasklist.md) **section 4**, and [`../../charcoal-client/src/slices/lifeLine/AGENT.md`](../../charcoal-client/src/slices/lifeLine/AGENT.md).
+- **`generateRoomPreview`**: **Removed** as a WebSocket/API entry point (workbench preview flow). Cache-miss **generation** for passive render still lives in [`dataSource/renderOrchestration/generateRoomPreview.ts`](dataSource/renderOrchestration/generateRoomPreview.ts) and is invoked from **`findRender`**, not as a standalone client message. Legacy message-key references may remain in **`packages/mtw-interfaces`** until the interfaces cleanup pass.
 
 #### **State Synchronization Events**
 - **`fetchEphemera`**: Provides initial state synchronization for new connections
@@ -55,7 +55,7 @@ The Ephemera Lambda uses an internal message bus pattern to decouple complex eve
 
 #### **Perception and Rendering Messages**
 - **`Perception`**: Requests character-perspective rendering of game components
-- **`ReturnValue`**: Queues response data for WebSocket delivery. The handler merges multiple **`ReturnValue`** messages into **one** response body for the API Gateway round-trip ([`returnValue/extractReturnValue`](../returnValue/index.ts)); multi-step **preview** flows will require either **multiple** outbound payloads on the same connection or an extended envelope (see **`generateRoomPreview`** note above).
+- **`ReturnValue`**: Queues response data for WebSocket delivery. The handler merges multiple **`ReturnValue`** messages into **one** response body for the API Gateway round-trip ([`returnValue/extractReturnValue`](../returnValue/index.ts)). Multi-message client streams (e.g. correlated **`ConversationStep`**) use direct **`PostToConnection`** / lifeLine patterns where implemented, not merged Lambda bodies.
 
 #### **Event Cascade Coordination**
 

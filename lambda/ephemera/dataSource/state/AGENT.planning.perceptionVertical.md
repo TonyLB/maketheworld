@@ -20,7 +20,7 @@ Domain boundaries in `AGENT.md` are unchanged: **state** owns authoritative worl
 
 - Full **replay** semantics for `mtw.ephemera.state` (may stay `replayable: false` initially; align with `renderOrchestration` graduation notes).
 - **EventBridge**-visible public contract (unless shared infrastructure already routes internal publishes); treat **internal bus + streaming envelope shape** as the first milestone.
-- Replacing **`Render Requested`** / **`Render Preview Requested`** on `api.ephemera` for **non-state** triggers (force render, preview) --- those remain valid parallel ingresses.
+- Replacing **`Render Requested`** on `api.ephemera` for **non-state** triggers (force render, etc.) --- that remains a valid parallel ingress. **`Render Preview Requested`** / authoring preview ingress was **removed**; passive **`Render Requested`** covers orchestration today.
 
 ## Implemented so far
 

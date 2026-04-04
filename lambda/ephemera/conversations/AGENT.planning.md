@@ -166,13 +166,15 @@ Non-goal until then: removing existing stub vs live distinctions; keep them expl
 
 ## Multi-stage WebSocket delivery and coordination trap (preview path)
 
+**Status:** The **lambda** preview conversation module and **`generateRoomPreview`** API ingress are **removed**. This section remains as **design history** for multi-stage WebSocket coordination; **`socketDispatchConversation`** on the client is still available for **future** pipelines.
+
 ### The lock-in loop
 
-Today, **authoring preview** and similar flows tend to co-evolve as a **single round-trip**:
+**Historically**, **authoring preview** and similar flows tended to co-evolve as a **single round-trip**:
 
 - The **client** uses **`socketDispatchPromise`**, which resolves **once** when an inbound message matches **`RequestId`** (see `charcoal-client/src/slices/lifeLine/AGENT.md`).
 - The **Ephemera** handler merges **`ReturnValue`** into **one** response body ([`returnValue/extractReturnValue`](../returnValue/index.ts)).
-- **`conversation.sendMessage`** for **`generateRoomPreview`** is typed and implemented for **terminal** outcomes only ([`conversationTypes/generateRoomPreview/baseClasses.ts`](conversationTypes/generateRoomPreview/baseClasses.ts)).
+- **`conversation.sendMessage`** for the preview pipeline was implemented for **terminal** outcomes in the removed **`generateRoomPreview`** conversation module.
 
 Together these create a **coordination trap**: moving to **event-driven** orchestration (multiple internal steps, async cache outcomes) **wants** multi-stage signaling, but the **wire** only models **one** terminal payload per request, so neither side fully commits until the other does.
 

@@ -10,7 +10,7 @@ Follow the [root "Getting Started" pattern for complex tasks](../../AGENT.md#get
 
 1. **Understand project foundations**
    - **[`AGENT.md`](../../AGENT.md)** (repo root) --- **Why**: Monorepo navigation and documentation conventions. **Focus**: How `taskPlanning/` docs relate to `lambda/ephemera` package docs.
-   - **[`lambda/ephemera/dataSource/renderOrchestration/AGENT.md`](../../lambda/ephemera/dataSource/renderOrchestration/AGENT.md)** --- **Why**: Canonical description of preview vs passive today. **Focus**: Request-scoped `RenderPreviewRequested` vs `RenderRequested`; what disappears vs what must remain (`findRender`, cache miss generation).
+   - **[`lambda/ephemera/dataSource/renderOrchestration/AGENT.md`](../../lambda/ephemera/dataSource/renderOrchestration/AGENT.md)** --- **Why**: Canonical **passive** orchestration behavior. **Focus**: `Render Requested` ingress, `findRender`, cache-miss `generateRoomPreview` (historical preview ingress removed).
    - **[`lambda/ephemera/AGENT.ephemeraPerceptionVertical.planning.md`](../../lambda/ephemera/AGENT.ephemeraPerceptionVertical.planning.md)** --- **Why**: Epic-level throughline (state -> orchestration -> cache -> messages). **Focus**: Why removing preview reduces parallel contracts before you refactor orchestration/cache together.
    - **Charcoal-client (completed)** --- The remove-preview client task is **done** (retired task plan). Workbench no longer routes to preview or sends preview API messages. **Focus**: Server slice can assume no live client callers of that wire; coordinate release window with [`packages/mtw-interfaces` follow-on](../../packages/mtw-interfaces/AGENT.removePreviewGeneration.planning.md) if needed.
 
@@ -36,7 +36,7 @@ Follow the [root "Getting Started" pattern for complex tasks](../../AGENT.md#get
    - **Key insight**: After removal, passive-only tests should still cover `findRender` + `generateRoomPreview` on miss.
 
 6. **Identify next task**
-   - Use **Recommended order (server)** as the checklist; steps 1-4 are complete. Continue with **messageBus**, then **documentation**.
+   - Use **Recommended order (server)** as the checklist; lambda server steps **1-6** are complete. Remaining cross-cutting work is the **`packages/mtw-interfaces`** follow-on where applicable.
 
 7. **Run tests before starting (baseline)**
    - From repo root: `cd lambda/ephemera && npx tsc --noEmit` --- expect clean.
@@ -81,14 +81,18 @@ Use `- [ ]` while work is pending and `- [X]` when the line is complete (includi
 4. [X] **internalCache (optional cleanup)**
    - [X] Removed **`PreviewGenerationRequestsData`** (`previewGenerationRequests.ts` / `previewGenerationRequests.test.ts` under `lambda/ephemera/internalCache/`). It was unused outside tests and `InternalCache.clear()` (no production `registerPending` / `getPending`). Wiring removed from [`internalCache/index.ts`](../../lambda/ephemera/internalCache/index.ts).
 
-5. [ ] **messageBus / cross-package**
-   - [ ] If `RenderPreviewRequested` appears in [`lambda/ephemera/messageBus`](../../lambda/ephemera/messageBus) or shared types, remove or narrow with the same change set.
+5. [X] **messageBus / cross-package**
+   - [X] Verified: no `RenderPreviewRequested` / `Render Preview Requested` / `sendRenderPreviewRequested` in [`lambda/ephemera/messageBus`](../../lambda/ephemera/messageBus) **`.ts`** files. The only remaining `Render Preview Requested` string in lambda **`.ts`** is a **negative** fixture in [`subscribedEvents.test.ts`](../../lambda/ephemera/dataSource/renderOrchestration/subscribedEvents.test.ts) (ingress guard must reject that header). Shared package types (`packages/mtw-interfaces`, etc.) stay under the [interfaces follow-on](../../packages/mtw-interfaces/AGENT.removePreviewGeneration.planning.md), not this step.
 
-6. [ ] **Documentation**
-   - [ ] Update [`dataSource/renderOrchestration/AGENT.md`](../../lambda/ephemera/dataSource/renderOrchestration/AGENT.md), [`renderCache/AGENT.md`](../../lambda/ephemera/renderCache/AGENT.md), and any planning docs that describe preview ingress, `RenderPreviewRequested`, or preview vs passive split.
+6. [X] **Documentation**
+   - [X] [`dataSource/renderOrchestration/AGENT.md`](../../lambda/ephemera/dataSource/renderOrchestration/AGENT.md): passive-only ingress, flows, dependencies, legacy test guidance.
+   - [X] [`renderCache/AGENT.md`](../../lambda/ephemera/renderCache/AGENT.md): replaced obsolete **Preview Flow** with **Passive render orchestration and cache-miss generation**; removed obsolete app/WebSocket/client preview subsections.
+   - [X] [`conversations/AGENT.md`](../../lambda/ephemera/conversations/AGENT.md): **`roomStateRender`**-only composite handles; orchestration boundary; removed broken links to deleted `generateRoomPreview` conversation module.
+   - [X] [`dataSource/renderOrchestration/AGENT.planning.md`](../../lambda/ephemera/dataSource/renderOrchestration/AGENT.planning.md): wiring table, input boundary, lifecycle section, open work, completed work (preview removal narrative).
+   - [X] Supporting: [`AGENT.event.md`](../../lambda/ephemera/AGENT.event.md), [`conversations/AGENT.planning.md`](../../lambda/ephemera/conversations/AGENT.planning.md), [`conversations/AGENT.planning.tasklist.md`](../../lambda/ephemera/conversations/AGENT.planning.tasklist.md), [`dataSource/state/AGENT.planning.perceptionVertical.md`](../../lambda/ephemera/dataSource/state/AGENT.planning.perceptionVertical.md), [`AGENT.ephemeraPerceptionVertical.planning.md`](../../lambda/ephemera/AGENT.ephemeraPerceptionVertical.planning.md).
 
 ## Verification
 
 - `npx tsc --noEmit` in `lambda/ephemera`.
 - Jest for affected packages.
-- Repo-wide `grep` for `RenderPreviewRequested`, `Render Preview Requested`, `sendRenderPreviewRequested`, `CONVERSATION_TYPE_GENERATE_ROOM_PREVIEW`, `generateRoomPreview` **conversation type** (distinguish from **`generateRoomPreview` function**). After step 3, `CONVERSATION_TYPE_GENERATE_ROOM_PREVIEW` and `conversationTypes/generateRoomPreview` should not appear in lambda **`.ts`** (markdown under `conversations/` may lag until step 6 documentation). After step 4, `PreviewGenerationRequests` should not appear in lambda **`.ts`**.
+- Repo-wide `grep` for `RenderPreviewRequested`, `Render Preview Requested`, `sendRenderPreviewRequested`, `CONVERSATION_TYPE_GENERATE_ROOM_PREVIEW`, `generateRoomPreview` **conversation type** (distinguish from **`generateRoomPreview` function**). After step 3, `CONVERSATION_TYPE_GENERATE_ROOM_PREVIEW` and `conversationTypes/generateRoomPreview` should not appear in lambda **`.ts`**. After step 4, `PreviewGenerationRequests` should not appear in lambda **`.ts`**. After step 5, `lambda/ephemera/messageBus` has no preview-specific symbols; expect at most the subscribedEvents test string above. After step 6, markdown may still mention preview **historically** (task lists, epic plans); broken links to deleted paths should be gone from durable AGENT files.
