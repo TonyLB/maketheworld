@@ -41,13 +41,12 @@ These documents **contributed** to the journey so far. They remain **authoritati
 |----------|------|
 | [AGENT.caching.planning.md](AGENT.caching.planning.md) | Early **Ephemera caching and generation** plan; blueprint vs moment-to-moment; MVP iterations; **entangled concerns** (state, generation, caching, streaming). Still valuable as **technical history** and cache-centric detail. |
 | [renderCache/AGENT.md](renderCache/AGENT.md) | Schema, lookup model, links caching plan; implementation reference for cache rows. |
-| [dataSource/state/AGENT.v1.planning.md](dataSource/state/AGENT.v1.planning.md) | **Historical** Room-state prototype; boundaries evolved (orchestration split out). |
-| [dataSource/renderOrchestration/AGENT.planning.md](dataSource/renderOrchestration/AGENT.planning.md) | **Message-bus orchestration** for render lifecycle (includes *Folded: state v2 orchestration plan*). Canonical reference; [state/AGENT.v2.planning.md](dataSource/state/AGENT.v2.planning.md) is a **stub** pointer. |
-| [dataSource/state/AGENT.v3.planning.md](dataSource/state/AGENT.v3.planning.md) | **`mtw.ephemera.state`** DataSource, `State Change` / `State Changed`, fan-out toward `RenderRequested`. |
+| [dataSource/state/AGENT.planning.historical.md](dataSource/state/AGENT.planning.historical.md) | **Historical** Room-state prototype (v1 era), v2 motivation snapshot; boundaries evolved (orchestration split out). |
+| [dataSource/state/AGENT.planning.perceptionVertical.md](dataSource/state/AGENT.planning.perceptionVertical.md) | **`mtw.ephemera.state`** DataSource, `State Change` / `State Changed`, fan-out toward `RenderRequested`. |
 | [dataSource/state/AGENT.md](dataSource/state/AGENT.md) | Domain boundaries for **state** vs orchestration. |
 | [dataSource/state/AGENT.declutter.md](dataSource/state/AGENT.declutter.md) | Track B: orphaned `getOrStartRoomRenderForState` scaffold (scheduled removal). Parallel-track policy: [dataSource/renderOrchestration/AGENT.md](dataSource/renderOrchestration/AGENT.md) (*Parallel tracks and declutter*). |
 | [dataSource/renderOrchestration/AGENT.md](dataSource/renderOrchestration/AGENT.md) | Current **renderOrchestration** package behavior, graduation gaps, preview vs passive. |
-| [dataSource/renderOrchestration/AGENT.planning.md](dataSource/renderOrchestration/AGENT.planning.md) | Local **v2** tasks: lifecycle, `findRender`, intake, perception integration phases. |
+| [dataSource/renderOrchestration/AGENT.planning.md](dataSource/renderOrchestration/AGENT.planning.md) | Local **v2** tasks: lifecycle, `findRender`, intake, perception integration phases (*Folded: state v2 orchestration plan*). |
 | [`dataSource/renderCache/index.ts`](dataSource/renderCache/index.ts) | `mtw.ephemera.renderCache` DataSource: put/delete **ingress**, **Cache Updated** / error **outbounds**. |
 | [conversations/AGENT.md](conversations/AGENT.md) | Registry, handles, **temporary** `conversationId` on cache bus traffic. |
 | [conversations/AGENT.planning.md](conversations/AGENT.planning.md) | **Cross-domain coordination**: fragments, assembly, correlation trap, multi-DataSource future. |
@@ -58,7 +57,7 @@ These documents **contributed** to the journey so far. They remain **authoritati
 ## Journey so far (discovered milestones)
 
 - **Caching plan** established why **persistent render cache** matters once **LLM generation** is in the loop; MVP and iterations landed in code and [AGENT.caching.planning.md](AGENT.caching.planning.md).
-- **State** was split from ad hoc helpers into **`Meta::Room`**, **`mtw.ephemera.state`**, and **merge** semantics (v1/v2/v3 planning docs).
+- **State** was split from ad hoc helpers into **`Meta::Room`**, **`mtw.ephemera.state`**, and **merge** semantics (see [state/AGENT.planning.historical.md](dataSource/state/AGENT.planning.historical.md) and [state/AGENT.planning.perceptionVertical.md](dataSource/state/AGENT.planning.perceptionVertical.md)).
 - **Render orchestration** centralized **intake**, **`findRender`**, **pointer repair**, **generation** (`generateRoomPreview`), and **conversation-backed** terminals; **`RenderReady`** and friends live on the **messageBus** type union today, with **DataSource** ingress for requests and **state** fan-out for passive refresh.
 - **Render cache DataSource** consumes **`api.ephemera` `Put Cache Record`** / **Delete**; orchestration **enqueues** puts via that API-shaped path; alignment with **pure orchestration outbounds** is an open **graduation** theme.
 - **Conversations** planning articulated the **correlation** and **fragment assembly** problem explicitly (multi-step, perception, orchestration).

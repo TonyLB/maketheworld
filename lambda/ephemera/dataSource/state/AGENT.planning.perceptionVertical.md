@@ -1,10 +1,10 @@
-*Status: ACTIVE DRAFT - `mtw.ephemera.state` DataSource and state-domain event surface (incrementally implemented).*
+*Status: ACTIVE DRAFT - state package in the perception vertical (`mtw.ephemera.state`, event surface; incrementally implemented).*
 
-## Relationship to prior plans
+## Relationship to other docs
 
-- **v1** (`AGENT.v1.planning.md`): Historical Room-state prototype and checklists; still useful for decisions already taken.
-- **v2** (superseded in `state/`): Message-bus orchestration for render lifecycle was documented here; narrative is **folded into** [`../renderOrchestration/AGENT.planning.md`](../renderOrchestration/AGENT.planning.md) (see *Folded: state v2 orchestration plan*). [`AGENT.v2.planning.md`](AGENT.v2.planning.md) in this directory is a **stub** pointer.
-- **v3 (this document):** Introduce a **first-class state domain** on the DataSource pattern: **`mtw.ephemera.state`**, wire **state-relevant ingress** (starting with **`api.ephemera` State Change**), later **publish** `mtw.ephemera.state` outbound events if needed, and migrate writers away from **direct** orchestration entrypoints for state-driven work.
+- **Historical v1-era planning** (Room prototype, v2 motivation snapshot): [`AGENT.planning.historical.md`](./AGENT.planning.historical.md)
+- **Render orchestration** (lifecycle, folded state v2 plan): [`../renderOrchestration/AGENT.planning.md`](../renderOrchestration/AGENT.planning.md)
+- **This document** tracks the **first-class state domain** on the DataSource pattern: **`mtw.ephemera.state`**, **state-relevant ingress** (starting with **`api.ephemera` State Change**), **`mtw.ephemera.state`** outbound **`State Changed`** after persist, and migration of writers away from **direct** orchestration entrypoints for state-driven work.
 
 Domain boundaries in `AGENT.md` are unchanged: **state** owns authoritative world-state on `Meta::Room` and event **publication**; **renderOrchestration** owns resolve, pointers, cache, and generation.
 
@@ -50,7 +50,7 @@ Domain boundaries in `AGENT.md` are unchanged: **state** owns authoritative worl
 ### Current path
 
 1. Callers may **`sendStateChange(messageBus, streamKey, { componentId, markState })`** on the internal bus (same origin pattern as `sendPutCacheRecord`, etc.).
-2. **`mtw.ephemera.state`** `receiveEvents` persists room marks via **`mergePersistMetaRoomMarks`** (no outbound `streamEvent` yet).
+2. **`mtw.ephemera.state`** `receiveEvents` persists room marks via **`mergePersistMetaRoomMarks`**. After a successful conditional write, **`streamEvent`** publishes **`State Changed`** (see [`events.ts`](./events.ts)).
 
 *Note:* Whether long-term **authoritative** state updates always originate as **`api.ephemera` State Change** vs direct Dynamo helpers is a product/wiring choice; this document treats **State Change** as the normalized API-level ingress for "proposed marks for a component."
 
@@ -73,7 +73,7 @@ Document a **registry** in code or in this file: which event types exist, who su
 | Where | Header `type` | Payload (summary) | Status |
 |-------|----------------|-------------------|--------|
 | `api.ephemera` | **State Change** | `StateChangeCommand`: `componentId`, `markState` | Implemented (`localApiEvents`, `apiEphemera`) |
-| `mtw.ephemera.state` | *TBD* (e.g. state-domain **State Changed** after persist) | *TBD* | Not implemented |
+| `mtw.ephemera.state` | **State Changed** (after persist) | See [`events.ts`](./events.ts) | Implemented (`streamEvent` from `receiveEvents`) |
 | *Reserved* | Future gameplay | Situation entered, Feature toggled, etc. | TBD |
 
 Naming: use **ASCII** strings consistent with existing envelope types (`Render Requested`, `Put Cache Record`, etc.).
@@ -100,7 +100,7 @@ Naming: use **ASCII** strings consistent with existing envelope types (`Render R
 
 - [x] Package **`lambda/ephemera/dataSource/state/`**, **`app.ts`** import, **`EphemeraDataSource`** instance.
 - [x] **Ingress** guard for **`api.ephemera` State Change** on the state DataSource.
-- [ ] **Outbound** helpers under **`mtw.ephemera.state`** (if distinct from `api.ephemera` ingress).
+- [x] **Outbound** **`State Changed`** via **`streamEvent`** after successful persist ([`events.ts`](./events.ts)); further helpers TBD if distinct envelopes are needed.
 
 ### Phase 2: Orchestration subscription
 
@@ -136,6 +136,7 @@ Naming: use **ASCII** strings consistent with existing envelope types (`Render R
 - `lambda/ephemera/dataSource/apiEphemera.ts` --- `sendStateChange`, `isEphemeraApiStateChangeEnvelope`
 - `lambda/ephemera/dataSource/renderOrchestration/subscribedEvents.ts` --- `sendRenderRequested` envelope pattern
 - [`AGENT.md`](./AGENT.md) --- domain boundaries
+- [`AGENT.planning.historical.md`](./AGENT.planning.historical.md) --- v1-era decisions and v2 motivation snapshot
 - `lambda/ephemera/dataSource/renderOrchestration/AGENT.md` --- orchestration scope and graduation
 
 ## Execution checklist (living)
@@ -146,5 +147,5 @@ Naming: use **ASCII** strings consistent with existing envelope types (`Render R
 - [x] **`mtw.ephemera.state` outbound** `State Changed` via **`streamEvent`** ([`events.ts`](./events.ts)); types + guards
 - [ ] **renderOrchestration** subscription + normalization to **`RenderRequested`**
 - [ ] Migrate first state writer; remove duplicate direct orchestration trigger
-- [ ] Update `AGENT.md` "active planning" pointer if v3 becomes the primary execution track for state
+- [x] **`AGENT.md`** points at this file for active state-package planning (alongside [`AGENT.planning.historical.md`](./AGENT.planning.historical.md) for history)
 - [ ] Subscriber registry notes (who listens to what)

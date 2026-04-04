@@ -112,7 +112,7 @@ Until then, keep calling the status **transitional** in the sense of **evolving*
 
 **Ephemera module overviews**
 
-- `lambda/ephemera/dataSource/state/AGENT.v2.planning.md` (stub: v2 orchestration narrative folded into **this directory's** `AGENT.planning.md`)
+- `lambda/ephemera/dataSource/state/AGENT.planning.historical.md` (v1-era archive; v2 orchestration narrative folded into **this directory's** `AGENT.planning.md`)
 - `lambda/ephemera/messageBus/AGENT.md`
 - `lambda/ephemera/perception/AGENT.md`
 - `lambda/ephemera/renderCache/AGENT.md`

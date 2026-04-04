@@ -4,24 +4,24 @@
 
 Local implementation plan for `lambda/ephemera/dataSource/renderOrchestration/` (render orchestration v2).
 
-The **system-level narrative** that previously lived in `lambda/ephemera/dataSource/state/AGENT.v2.planning.md` is **folded into this file** --- see [Folded: state v2 orchestration plan (historical record)](#folded-state-v2-orchestration-plan-historical-record). The `state/` copy is a **superseded stub** until `state/` docs are consolidated.
+The **system-level narrative** that previously lived in `lambda/ephemera/dataSource/state/AGENT.v2.planning.md` is **folded into this file** --- see [Folded: state v2 orchestration plan (historical record)](#folded-state-v2-orchestration-plan-historical-record). `state/` planning is now [`state/AGENT.planning.historical.md`](../state/AGENT.planning.historical.md) (archive) and [`state/AGENT.planning.perceptionVertical.md`](../state/AGENT.planning.perceptionVertical.md) (active).
 
 **Related docs**
 
 - Orphaned state-package scaffold (Track B, scheduled removal): `../state/AGENT.declutter.md`
 - Status, graduation criteria, product split (preview vs presence), parallel-track policy: `AGENT.md` (same directory)
-- State package history (v1, v3 DataSource): `../state/AGENT.v1.planning.md`, `../state/AGENT.v3.planning.md`
+- State package: historical archive `../state/AGENT.planning.historical.md`; active `mtw.ephemera.state` work `../state/AGENT.planning.perceptionVertical.md`
 - Cross-cutting epic: `../../AGENT.ephemeraPerceptionVertical.planning.md`
 
 ---
 
 ## Folded: state v2 orchestration plan (historical record)
 
-*The following was moved from `dataSource/state/AGENT.v2.planning.md` (2026 consolidation). It describes the original **why** and **phase** structure for message-bus orchestration; execution status and wiring tables below are the living truth.*
+*The following was moved from `dataSource/state/AGENT.v2.planning.md` (2026 consolidation). `state/` now keeps context in `AGENT.planning.historical.md` and active DataSource work in `AGENT.planning.perceptionVertical.md`. This section describes the original **why** and **phase** structure for message-bus orchestration; execution status and wiring tables below are the living truth.*
 
 ### Relationship to v1
 
-v1 (see `../state/AGENT.v1.planning.md`) established foundations: `Meta::Room` state shape, default mark derivation, renderCache exact-match primitives, fast-path cache validation. **v2** focused on **architecture and orchestration**, not re-defining those foundations.
+v1 (see `../state/AGENT.planning.historical.md`) established foundations: `Meta::Room` state shape, default mark derivation, renderCache exact-match primitives, fast-path cache validation. **v2** focused on **architecture and orchestration**, not re-defining those foundations.
 
 ### Why v2 existed (problem statement)
 

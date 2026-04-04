@@ -20,6 +20,6 @@ State **mutates** authoritative marks when product/API code updates room state; 
 
 ## Versioning and planning
 
-- **`mtw.ephemera.state` DataSource migration (draft):** `AGENT.v3.planning.md`
-- **Render orchestration cascade (v2):** canonical plan in [`../renderOrchestration/AGENT.planning.md`](../renderOrchestration/AGENT.planning.md) (v2 narrative folded there); [`AGENT.v2.planning.md`](AGENT.v2.planning.md) is a stub pointer
-- **Historical v1 decisions and checklists:** `AGENT.v1.planning.md`
+- **`mtw.ephemera.state` DataSource and state-domain events (draft):** [`AGENT.planning.perceptionVertical.md`](AGENT.planning.perceptionVertical.md)
+- **Render orchestration cascade (v2):** canonical plan in [`../renderOrchestration/AGENT.planning.md`](../renderOrchestration/AGENT.planning.md) (*Folded: state v2 orchestration plan*)
+- **Historical v1-era and v2 motivation archive:** [`AGENT.planning.historical.md`](AGENT.planning.historical.md)
