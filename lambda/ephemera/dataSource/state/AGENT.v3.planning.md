@@ -3,7 +3,7 @@
 ## Relationship to prior plans
 
 - **v1** (`AGENT.v1.planning.md`): Historical Room-state prototype and checklists; still useful for decisions already taken.
-- **v2** (`AGENT.v2.planning.md`): Message-bus orchestration for render lifecycle (`RenderRequested`, `findRender`, perception placeholders, etc.). Remains the reference for **renderOrchestration** behavior.
+- **v2** (superseded in `state/`): Message-bus orchestration for render lifecycle was documented here; narrative is **folded into** [`../renderOrchestration/AGENT.planning.md`](../renderOrchestration/AGENT.planning.md) (see *Folded: state v2 orchestration plan*). [`AGENT.v2.planning.md`](AGENT.v2.planning.md) in this directory is a **stub** pointer.
 - **v3 (this document):** Introduce a **first-class state domain** on the DataSource pattern: **`mtw.ephemera.state`**, wire **state-relevant ingress** (starting with **`api.ephemera` State Change**), later **publish** `mtw.ephemera.state` outbound events if needed, and migrate writers away from **direct** orchestration entrypoints for state-driven work.
 
 Domain boundaries in `AGENT.md` are unchanged: **state** owns authoritative world-state on `Meta::Room` and event **publication**; **renderOrchestration** owns resolve, pointers, cache, and generation.

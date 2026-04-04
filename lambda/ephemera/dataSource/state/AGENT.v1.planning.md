@@ -7,9 +7,9 @@ This document is retained as the historical planning/decision record for v1.
 - It remains useful for understanding v1 assumptions, delivered foundations, and unresolved v1-era gaps.
 - It is no longer the active planning document for ongoing architecture work.
 
-For active planning moving forward, see:
+For active orchestration planning, see:
 
-- `lambda/ephemera/dataSource/state/AGENT.v2.planning.md`
+- `lambda/ephemera/dataSource/renderOrchestration/AGENT.planning.md` (includes folded state v2 narrative; `AGENT.v2.planning.md` in this directory is a stub pointer)
 
 ## Domain boundaries (current architecture)
 
@@ -186,7 +186,7 @@ v1 implemented the core foundations for a cache-backed, state-driven Room descri
 1. **Room state shape in Ephemera table (type-level)**
    - Shared Ephemera-table `Meta::Room` record shape is defined as `EphemeraMetaRoom` in `packages/mtw-interfaces/ts/ephemeraMeta.ts`.
    - It includes `state.marks` (stored as `EphemeraCacheMarkState`), optional `state.situationId`, and optional `currentCacheId` (a `CACHE#...` `DataCategory` pointer).
-   - **Historical:** we documented eager clearing of `currentCacheId` on any `state` change. **Pointer lifecycle** is now owned by **render orchestration** (lazy validation on resolve); see `AGENT.md` and `AGENT.v2.planning.md`.
+   - **Historical:** we documented eager clearing of `currentCacheId` on any `state` change. **Pointer lifecycle** is now owned by **render orchestration** (lazy validation on resolve); see `AGENT.md` and `../renderOrchestration/AGENT.planning.md`.
 
 2. **Default mark derivation**
    - Implemented `computeDefaultMarksForRoom(roomId, perspective)` in `lambda/ephemera/dataSource/state/computeDefaultMarksForRoom.ts`.

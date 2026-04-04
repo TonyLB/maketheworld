@@ -1,3 +1,10 @@
+/**
+ * Tests for getOrStartRoomRenderForState --- a TDD scaffold scheduled for removal (no production callers).
+ * When you delete getOrStartRoomRenderForState.ts and this file per the tracker issue, also delete
+ * ./AGENT.declutter.md so we do not keep a planning doc for removed code.
+ *
+ * @see ./AGENT.declutter.md
+ */
 import { getOrStartRoomRenderForState } from './getOrStartRoomRenderForState'
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMetaRoom, EphemeraCacheId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'

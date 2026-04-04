@@ -42,12 +42,12 @@ These documents **contributed** to the journey so far. They remain **authoritati
 | [AGENT.caching.planning.md](AGENT.caching.planning.md) | Early **Ephemera caching and generation** plan; blueprint vs moment-to-moment; MVP iterations; **entangled concerns** (state, generation, caching, streaming). Still valuable as **technical history** and cache-centric detail. |
 | [renderCache/AGENT.md](renderCache/AGENT.md) | Schema, lookup model, links caching plan; implementation reference for cache rows. |
 | [dataSource/state/AGENT.v1.planning.md](dataSource/state/AGENT.v1.planning.md) | **Historical** Room-state prototype; boundaries evolved (orchestration split out). |
-| [dataSource/state/AGENT.v2.planning.md](dataSource/state/AGENT.v2.planning.md) | **Message-bus orchestration** for render lifecycle (`RenderRequested`, `RenderReady`, perception placeholders). Remains reference for **orchestration behavior** intent. |
+| [dataSource/renderOrchestration/AGENT.planning.md](dataSource/renderOrchestration/AGENT.planning.md) | **Message-bus orchestration** for render lifecycle (includes *Folded: state v2 orchestration plan*). Canonical reference; [state/AGENT.v2.planning.md](dataSource/state/AGENT.v2.planning.md) is a **stub** pointer. |
 | [dataSource/state/AGENT.v3.planning.md](dataSource/state/AGENT.v3.planning.md) | **`mtw.ephemera.state`** DataSource, `State Change` / `State Changed`, fan-out toward `RenderRequested`. |
 | [dataSource/state/AGENT.md](dataSource/state/AGENT.md) | Domain boundaries for **state** vs orchestration. |
+| [dataSource/state/AGENT.declutter.md](dataSource/state/AGENT.declutter.md) | Track B: orphaned `getOrStartRoomRenderForState` scaffold (scheduled removal). Parallel-track policy: [dataSource/renderOrchestration/AGENT.md](dataSource/renderOrchestration/AGENT.md) (*Parallel tracks and declutter*). |
 | [dataSource/renderOrchestration/AGENT.md](dataSource/renderOrchestration/AGENT.md) | Current **renderOrchestration** package behavior, graduation gaps, preview vs passive. |
 | [dataSource/renderOrchestration/AGENT.planning.md](dataSource/renderOrchestration/AGENT.planning.md) | Local **v2** tasks: lifecycle, `findRender`, intake, perception integration phases. |
-| [dataSource/renderOrchestration/AGENT.planning.simplification.md](dataSource/renderOrchestration/AGENT.planning.simplification.md) | Parallel-track declutter notes. |
 | [`dataSource/renderCache/index.ts`](dataSource/renderCache/index.ts) | `mtw.ephemera.renderCache` DataSource: put/delete **ingress**, **Cache Updated** / error **outbounds**. |
 | [conversations/AGENT.md](conversations/AGENT.md) | Registry, handles, **temporary** `conversationId` on cache bus traffic. |
 | [conversations/AGENT.planning.md](conversations/AGENT.planning.md) | **Cross-domain coordination**: fragments, assembly, correlation trap, multi-DataSource future. |
