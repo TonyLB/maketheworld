@@ -4,7 +4,6 @@ import { Box, Drawer, Dialog, useMediaQuery, useTheme, Button, ThemeProvider, Br
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz'
 import LayersIcon from '@mui/icons-material/Layers'
-import VisibilityIcon from '@mui/icons-material/Visibility'
 import { AssetUUID, ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import Content from './WorkbenchContent'
 import AssetSelector from './AssetSelector'
@@ -197,17 +196,6 @@ export const WorkbenchContainer: FunctionComponent<WorkbenchContainerProps> = ({
 
             // Component breadcrumb: look up the component for naming and icon.
             const universalKey = entry.componentId as ComponentUUID | null
-            // Synthetic Preview view (navigate from Room to Preview)
-            if (typeof universalKey === 'string' && universalKey.startsWith('preview:')) {
-                return {
-                    universalKey: universalKey as ComponentUUID,
-                    name: 'Preview',
-                    isLast,
-                    isAsset: false,
-                    icon: <VisibilityIcon sx={{ fontSize: '1rem', verticalAlign: 'middle', mr: 0.5 }} />,
-                    index
-                }
-            }
             const refComponent = universalKey ? assetData.standardForm.byUniversalId[universalKey] : undefined
             let name = 'Untitled'
 

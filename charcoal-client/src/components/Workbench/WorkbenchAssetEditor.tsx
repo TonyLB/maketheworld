@@ -5,13 +5,11 @@ import { Box, CircularProgress } from '@mui/material'
 import { getStatus } from '../../slices/personalAssets'
 import {
     getCurrentView,
-    getCurrentComponentId,
-    getCurrentAssetId
+    getCurrentComponentId
 } from '../../slices/UI/workbench'
 import { useWorkbenchAsset } from './foundations/useWorkbenchAsset'
 import AssetEditForm from './WorkbenchAssetEditForm'
 import RoomEditor from './RoomEdit/RoomEditor'
-import RoomPreviewEditor from './RoomEdit/RoomPreviewEditor'
 import FeatureEditor from './FeatureEdit/FeatureEditor'
 import KnowledgeEditor from './KnowledgeEdit/KnowledgeEditor'
 import { LayeredContextView } from './foundations/LayeredContext'
@@ -60,12 +58,6 @@ export const WorkbenchAssetEditor: FunctionComponent = () => {
     // Example and Guidance appear here when navigated as top-level (no siblings); when they are
     // children of a parent's ref list, currentView is 'componentLayer' and LayeredContextView renders.
     if (currentView === 'component' && currentComponentId) {
-        // Synthetic Preview view: navigate from Room to Preview (breadcrumb id preview:${roomId})
-        if (currentComponentId.startsWith('preview:')) {
-            const roomId = currentComponentId.replace(/^preview:/, '') as ComponentUUID
-            return <RoomPreviewEditor roomId={roomId} />
-        }
-
         // Derive component type from standardForm
         const component = assetData.standardForm.byUniversalId[currentComponentId as ComponentUUID]
         
