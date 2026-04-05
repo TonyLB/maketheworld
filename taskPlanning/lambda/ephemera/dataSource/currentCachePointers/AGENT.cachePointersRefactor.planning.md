@@ -31,7 +31,7 @@ Introduce an **`mtw.ephemera.currentCachePointers`** DataSource (name provisiona
 ## Cross-cutting constraints
 
 - **Correlation:** Payloads must be rich enough for **`currentCachePointers`** **and** **Perception** using **lean routing** + **`cacheId`** (contract uncertainty 9 resolved; [`../renderCache/AGENT.passThrough.planning.md`](../renderCache/AGENT.passThrough.planning.md) **Correlation vs routing**).
-- **Ordering:** Reliable ordering between orchestration, **`renderCache`**, and pointer updates is **hard** today; the contract records **uncertainty 11** ( **`messageBus`** revisions, e.g. **atomic sub-runs**). Treat as a **separate future refactor** - not a blocker for **this** stub's prose, but a blocker for **normative** no-races claims.
+- **Ordering:** Reliable ordering between orchestration, **`renderCache`**, and pointer updates is **hard** today; the contract records **uncertainty 11** ( **`messageBus`** revisions, e.g. **atomic sub-runs**). Task-plan home for that refactor: [`../messageBus/AGENT.runnableSubSets.planning.md`](../messageBus/AGENT.runnableSubSets.planning.md). Treat as a **separate future refactor** - not a blocker for **this** stub's prose, but a blocker for **normative** contract ordering claims.
 
 ---
 

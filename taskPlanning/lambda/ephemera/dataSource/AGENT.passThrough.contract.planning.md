@@ -29,6 +29,7 @@ Hold the **canonical cross-cutting contract** for the pass-through pattern: a si
 | [`packages/mtw-interfaces/AGENT.md`](../../../../packages/mtw-interfaces/AGENT.md) | **Client / cross-service** payloads; internal DS types may stay **ephemera-local** until a boundary needs this package (see **Where types live** under **Purpose**) |
 | [`currentCachePointers/AGENT.cachePointersRefactor.planning.md`](currentCachePointers/AGENT.cachePointersRefactor.planning.md) | **`mtw.ephemera.currentCachePointers`** - meta pointer maintenance (draft stub) |
 | [`perception/AGENT.perceptionRefactor.planning.md`](perception/AGENT.perceptionRefactor.planning.md) | Fan-in / registration; **delivery correlation** for player-visible output (see **Routing identity and Perception** below) |
+| [`../messageBus/AGENT.runnableSubSets.planning.md`](../messageBus/AGENT.runnableSubSets.planning.md) | **`messageBus`** refactor / **cross-layer ordering** (contract uncertainty **11**; draft stub) |
 
 ---
 
@@ -193,7 +194,7 @@ These are **not** small details; **open** items block a normative contract until
 
 10. **State-driven fan-out (implementation).** The **set algebra** for **A**, **P**, **S = A ∪ P**, and **`allowGeneration`** on **A** vs **P ∖ A** is recorded under **State-driven fan-out set and `allowGeneration` (set algebra)** above. **Still unsettled:** wiring that full resolve set in code (today: **A** only), exact **`RenderRequested`** shape for pointer-only runs, and ordering with meta pointers / bus (see uncertainty 11). See [`renderOrchestration/AGENT.passThrough.planning.md`](renderOrchestration/AGENT.passThrough.planning.md).
 
-11. **Cross-layer ordering and `messageBus`.** Reliable ordering between orchestration terminals, **`renderCache`** emissions, and **`currentCachePointers`** updates may require **atomic sub-runs** or other bus revisions. **Separate future refactor**; not blocking prose contract drafts, but blocks **normative** "no races" claims until addressed.
+11. **Cross-layer ordering and `messageBus`.** This contract names **multiple** producers (**`renderOrchestration`**, **`renderCache`**, **`currentCachePointers`**) that must **compose**; **subscriber-visible** ordering between their emissions is **not** fully pinned (may require **atomic sub-runs** or **`messageBus`** revisions). **Unsettled** for a **normative** **contract** (this doc): implementers cannot treat ordering as specified until this is addressed. Accrue commitments in [`../messageBus/AGENT.runnableSubSets.planning.md`](../messageBus/AGENT.runnableSubSets.planning.md). **Related but not identical:** completion rubric [section 4](../../../../lambda/ephemera/AGENT.ephemeraPerceptionVertical.planning.completionRubric.md#4-coherent-ready-to-show) asks for **no systematic races** **for presentation / UI**; that is a **product outcome** that should **follow** once this contract specifies ordering --- the rubric does **not** define the transport contract here.
 
 ---
 
