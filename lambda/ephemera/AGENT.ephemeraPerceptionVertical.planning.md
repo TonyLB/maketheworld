@@ -74,6 +74,16 @@ These are **themes**, not a duplicate of every checkbox in subordinate docs:
 4. **Migration** off imperative **`sendPutCacheRecord`**-only stories where a **domain** outbound is the right seam (incremental; **componentExamples** and other call sites must stay accounted for).
 5. **Documentation consolidation**: reduce duplicate **active** planning surfaces; retain **historical** records where useful (see below).
 
+## Intended sequencing: pass-through implementation waves (exploration)
+
+Cross-cutting detail lives in [`taskPlanning/lambda/ephemera/dataSource/AGENT.passThrough.contract.planning.md`](../../taskPlanning/lambda/ephemera/dataSource/AGENT.passThrough.contract.planning.md#intended-implementation-sequencing-exploration). Summary:
+
+1. **Graduate then implement `renderOrchestration`** pass-through task plan while the **contract** may stay **partially draft** --- aim for **real stream emissions** and foundations; narrow open items at boundaries as needed.
+2. **Graduate then implement `renderCache`** pass-through plan **next**; it should be **close behind** orchestration because shared handoff semantics clarify during step 1.
+3. **Those two waves do not complete the epic:** **Perception** refactor, **`currentCachePointers`**, **`messageBus`** ordering, and other contract-linked plans still need a **design return** before they are equally executable.
+
+This is **exploration sequencing**, not a commitment that the contract becomes normative before orchestration code lands.
+
 ## Completion rubric (outcomes vs tasks)
 
 **Outcomes** for calling the vertical "done" live in [AGENT.ephemeraPerceptionVertical.planning.completionRubric.md](AGENT.ephemeraPerceptionVertical.planning.completionRubric.md): unordered goals and sub-goals, **not** an execution sequence. Short-term **task lists** and issues are for **what we push next**; they should **advance** the rubric without **defining** epic completion by emptying a single ordered checklist.

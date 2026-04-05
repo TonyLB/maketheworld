@@ -208,6 +208,20 @@ Use this section as a scratchpad; prefer **Uncertainties** for blockers.
 
 ---
 
+## Intended implementation sequencing (exploration)
+
+The contract remains **draft** until more **uncertainties** close and **typed** envelopes land; **in parallel**, we expect to advance **code** in **waves** so producer behavior is not blocked on a fully normative document:
+
+1. **`renderOrchestration`:** Graduate [`renderOrchestration/AGENT.passThrough.planning.md`](renderOrchestration/AGENT.passThrough.planning.md) to an executable task plan (e.g. a GitHub issue such as **Graduate renderOrchestration pass-through plan**), then implement the **orchestration slice** of this contract. Open contract items (e.g. uncertainty **8** envelopes / module location, **10** passive **S** wiring) may remain **unsettled** --- stub or narrow at boundaries until decided. **Goal:** concrete **producer foundations** (six outbounds on **`mtw.ephemera.renderOrchestration`**, **`Put Cache Record`** rule on generate, **`conversation.sendMessage`** removal per plan). Prefer a **thin vertical** where **`renderCache`** already **subscribes** to **`Render Generated`** so the handoff is **exercised**, not only emitted into a void.
+
+2. **`renderCache`:** After orchestration emits real stream events and shared semantics stabilize, graduate [`renderCache/AGENT.passThrough.planning.md`](renderCache/AGENT.passThrough.planning.md) on similar terms and implement **subscription**, durable write on **`Render Generated`**, and **`Render Pertains`** / **`Cache Updated`** per contract. This layer should be **nearly as ready** to graduate as orchestration was **after** step 1, because many blockers are **shared**.
+
+3. **Design return after (1) and (2):** Shipping orchestration + cache **does not** by itself deliver a full **Perception** fan-in design, **`currentCachePointers`** execution plan, **`messageBus`** / cross-layer ordering (uncertainty **11**), or other contract-adjacent task plans. Expect to **return to design** for those before they become equally concrete **implementation** tracks.
+
+**Epic index:** [`lambda/ephemera/AGENT.ephemeraPerceptionVertical.planning.md`](../../../../lambda/ephemera/AGENT.ephemeraPerceptionVertical.planning.md) records the same **wave** at epic scope.
+
+---
+
 ## When this leaves draft status
 
 - [ ] Event/payload semantics agreed and mirrored in **typed** code (**[`packages/mtw-interfaces`](../../../../packages/mtw-interfaces)** if client or cross-service; otherwise **agreed ephemera-local** module --- see **Where types live**)
@@ -241,7 +255,8 @@ Use this section as a scratchpad; prefer **Uncertainties** for blockers.
 | Uncertainties resolved; contract normative | Not started |
 | Types / interfaces landed | TBD |
 | Implementation tracked in child plans | TBD |
+| **Exploration sequencing** (orchestration wave, then cache wave, then design for rest) | Done |
 
-**Recommended order:** Intentionally omitted until this document is promoted from draft; see **When this leaves draft status**.
+**Recommended order:** Intentionally omitted until this document is promoted from draft; see **When this leaves draft status** and **Intended implementation sequencing (exploration)**.
 
 **Verification:** See **Encoding the contract in unit tests** (active vs skipped suite, grep for event names, integration smoke when two layers exist).

@@ -34,6 +34,10 @@ This sub-epic exists to avoid a **two-sided contract trap**: emitters and percep
 - Parent: [AGENT.ephemeraPerceptionVertical.planning.md](./AGENT.ephemeraPerceptionVertical.planning.md) (north star, scope table, document index).
 - This sub-epic **advances** epic themes 1 (event-driven coordination), 2 (render cache as durable truth), and the **open themes** around a single readiness path and stream graduation, but **only** along the pass-through contract line. Other epic threads (state-only, unrelated perception features) may proceed in parallel; link them here when they **block** or **touch** the same types.
 
+### Intended wave order (exploration)
+
+**Wave 1:** Graduate and implement [`renderOrchestration/AGENT.passThrough.planning.md`](../../taskPlanning/lambda/ephemera/dataSource/renderOrchestration/AGENT.passThrough.planning.md) (orchestration slice; contract may remain draft in places). **Wave 2:** Graduate and implement [`renderCache/AGENT.passThrough.planning.md`](../../taskPlanning/lambda/ephemera/dataSource/renderCache/AGENT.passThrough.planning.md). **After those:** expect a **design phase** for Perception, **`currentCachePointers`**, **`messageBus`** ordering, and other plans **not** closed by producer + cache. Full prose: [pass-through contract - Intended implementation sequencing](../../taskPlanning/lambda/ephemera/dataSource/AGENT.passThrough.contract.planning.md#intended-implementation-sequencing-exploration). Parent epic: [AGENT.ephemeraPerceptionVertical.planning.md](./AGENT.ephemeraPerceptionVertical.planning.md#intended-sequencing-pass-through-implementation-waves-exploration).
+
 ---
 
 ## Execution principles (guardrails)
