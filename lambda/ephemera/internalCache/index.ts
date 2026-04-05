@@ -26,7 +26,6 @@ import { queryCacheRecordsForComponent } from '../dataSource/renderCache/queryCa
 import CacheCharacterPossibleMapsData from './characterPossibleMaps';
 import CachePlayerMetaData from './playerMeta';
 import CacheGlobalData from './global';
-import { PreviewGenerationRequestsData } from './previewGenerationRequests';
 import { RenderCacheData } from './renderCache';
 import ConversationsData from './conversations';
 import messageBus from '../messageBus';
@@ -41,7 +40,6 @@ const graphDBHandler: GraphDBHandler = new (withPrimitives<'PrimaryKey', string>
 
 export class InternalCache {
     Global: CacheGlobalData = new CacheGlobalData()
-    PreviewGenerationRequests: PreviewGenerationRequestsData = new PreviewGenerationRequestsData()
     Conversations: ConversationsData = new ConversationsData(this.Global, messageBus)
     RenderCache: RenderCacheData = new RenderCacheData(queryCacheRecordsForComponent)
     PlayerMeta: CachePlayerMetaData;
@@ -110,7 +108,6 @@ export class InternalCache {
         this.Examples.clear()
         this.ComponentRender.clear()
         this.CharacterPossibleMaps.clear()
-        this.PreviewGenerationRequests.clear()
         this.Conversations.clear()
         this.RenderCache.clear()
     }

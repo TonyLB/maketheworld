@@ -13,10 +13,10 @@ This is **not** only the [`perception/`](perception/) folder. It **includes** or
 | Area | Role in the epic |
 |------|------------------|
 | [`dataSource/state/`](dataSource/state/) | Authoritative `Meta::Room` world-state, `mtw.ephemera.state`, `State Changed` and related ingress/outbound |
-| [`dataSource/renderOrchestration/`](dataSource/renderOrchestration/) | Resolve / pointer / exact match / generation policy, passive and preview paths, lifecycle messages (`RenderReady`, etc.) |
+| [`dataSource/renderOrchestration/`](dataSource/renderOrchestration/) | Resolve / pointer / exact match / generation policy, passive path, lifecycle messages (`RenderReady`, etc.) |
 | [`dataSource/renderCache/`](dataSource/renderCache/) | Dynamo cache rows, `mtw.ephemera.renderCache`, `Put Cache Record` / `Cache Updated` (today), future alignment with orchestration streams |
 | [`renderCache/`](renderCache/) (module) | Types, helpers, schema; pairs with DataSource above |
-| [`conversations/`](conversations/) | Correlation (`conversationId`), composite handles, `sendMessage`, staging for multi-step / preview UX |
+| [`conversations/`](conversations/) | Correlation (`conversationId`), composite handles, `sendMessage`, staging for multi-step UX |
 | [`perception/`](perception/) | Enrichment and delivery into the chat spine; future **fan-in** assembler role |
 | [`messageBus/`](messageBus/) | Internal typed messages vs `StreamingEvent` DataSource envelopes; graduation targets |
 | [`internalCache/`](internalCache/) | Read-through caches, `ComponentRender`, `RenderCache`, etc. |
@@ -46,7 +46,7 @@ These documents **contributed** to the journey so far. They remain **authoritati
 | [dataSource/state/AGENT.planning.historical.md](dataSource/state/AGENT.planning.historical.md) | **Historical** Room-state prototype (v1 era), v2 motivation snapshot; boundaries evolved (orchestration split out). |
 | [dataSource/state/AGENT.planning.perceptionVertical.md](dataSource/state/AGENT.planning.perceptionVertical.md) | **`mtw.ephemera.state`** DataSource, `State Change` / `State Changed`, fan-out toward `RenderRequested`. |
 | [dataSource/state/AGENT.md](dataSource/state/AGENT.md) | Domain boundaries for **state** vs orchestration. |
-| [dataSource/renderOrchestration/AGENT.md](dataSource/renderOrchestration/AGENT.md) | Current **renderOrchestration** package behavior, graduation gaps, preview vs passive, parallel-track policy. |
+| [dataSource/renderOrchestration/AGENT.md](dataSource/renderOrchestration/AGENT.md) | Current **renderOrchestration** package behavior, graduation gaps, passive orchestration, parallel-track policy. |
 | [dataSource/renderOrchestration/AGENT.planning.md](dataSource/renderOrchestration/AGENT.planning.md) | Local **v2** tasks: lifecycle, `findRender`, intake, perception integration phases (*Folded: state v2 orchestration plan*). |
 | [`dataSource/renderCache/index.ts`](dataSource/renderCache/index.ts) | `mtw.ephemera.renderCache` DataSource: put/delete **ingress**, **Cache Updated** / error **outbounds**. |
 | [conversations/AGENT.md](conversations/AGENT.md) | Registry, storable vs composite **`get`**, **`sendMessage`** / orchestration boundary, **temporary** `conversationId` on cache bus traffic. |

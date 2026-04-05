@@ -22,7 +22,4 @@ export type {
     ConversationRecordType,
     StorableConversationRecord,
 } from './storableConversationRecord';
-export {
-    isStorableConversationRecordGenerateRoomPreview,
-    isStorableConversationRecordRoomStateRender,
-} from './storableConversationRecord';
+export { isStorableConversationRecordRoomStateRender } from './storableConversationRecord';

@@ -8,7 +8,7 @@ The **system-level narrative** that previously lived in `lambda/ephemera/dataSou
 
 **Related docs**
 
-- Status, graduation criteria, product split (preview vs presence), parallel-track policy: `AGENT.md` (same directory)
+- Status, graduation criteria, passive orchestration vs presence delivery, parallel-track policy: `AGENT.md` (same directory)
 - State package: historical archive `../state/AGENT.planning.historical.md`; active `mtw.ephemera.state` work `../state/AGENT.planning.perceptionVertical.md`
 - Cross-cutting epic: `../../AGENT.ephemeraPerceptionVertical.planning.md`
 
@@ -82,7 +82,7 @@ The v1 direction exposed a mismatch: the pipeline is **asynchronous and multi-st
 ## Goals (v2)
 
 1. MessageBus-based lifecycle for render orchestration (where the product contract requires it).
-2. Early feedback (`RenderGenerationStarted` / preview steps) vs terminal readiness aligned with cache + pointer reality.
+2. Early feedback (`RenderGenerationStarted` / generation progress) vs terminal readiness aligned with cache + pointer reality.
 3. Final readiness signals when cache write + pointer updates match the chosen contract (see open Task 6.5).
 4. Clean splits: `state`, `renderCache`, this package (`dataSource/renderOrchestration`), `perception` (see layering below).
 
@@ -92,14 +92,14 @@ The v1 direction exposed a mismatch: the pipeline is **asynchronous and multi-st
 
 | Piece | Where |
 |-------|--------|
-| Single-item orchestration (preview + passive) | `dataSource/renderOrchestration/orchestrationHandler.ts` -> `orchestrateRenderRequest` |
+| Single-item orchestration (passive) | `dataSource/renderOrchestration/orchestrationHandler.ts` -> `orchestrateRenderRequest` |
 | Passive batch | `orchestratePassiveRenderRequestedBatch` / `requestIntakeMessage` |
 | A-phase intake | `requestIntake.ts` (`intakeRenderRequested` -> `RenderResolveInput`) |
 | B-phase resolve | `findRender.ts` + `tryGeneration.ts` (terminals via `sendMessage`) |
 | Types, guards | `dataSource/renderOrchestration/events.ts` (primary ingress is DataSource) |
-| **Ingress** | `app.ts` imports `./dataSource/renderOrchestration`; API paths emit `api.ephemera` envelopes (`sendRenderPreviewRequested`, etc.). Adapter maps to legacy `RenderRequested` / `RenderPreviewRequested` and calls `orchestrateRenderRequest`. |
+| **Ingress** | `app.ts` imports `./dataSource/renderOrchestration`. Passive triggers emit `api.ephemera` **`Render Requested`** envelopes (`sendRenderRequested` in `subscribedEvents.ts`). Adapter maps to **`RenderRequested`** and calls `orchestrateRenderRequest`. |
 
-Preview still streams via conversations (`ConversationStep`); bridging to lifecycle events for preview is future-facing (see `lambda/ephemera/dataSource/renderOrchestration/AGENT.md`).
+**Removed:** request-scoped authoring preview (`Render Preview Requested`, preview conversation type, workbench UI). See `AGENT.md` in this directory.
 
 ---
 
@@ -109,7 +109,7 @@ Preview still streams via conversations (`ConversationStep`); bridging to lifecy
 
 **Generation** = the slow path after orchestration commits (`generateRoomPreview` and cache write helpers).
 
-**Intake** does not call `findRender` or publish lifecycle messages. **Shell** chains intake -> `findRender` -> enrichment/materialize (passive and preview share `orchestrateRenderRequest` with intentional branch differences).
+**Intake** does not call `findRender` or publish lifecycle messages. **Shell** chains intake -> `findRender` -> enrichment/materialize for **passive** `orchestrateRenderRequest`.
 
 **Duplication guard:** If orchestration owns exact-match first, `generateRoomPreview` must not re-implement it as a hidden fast path.
 
@@ -119,15 +119,13 @@ These boundaries can move incrementally; this doc tracks intent, not a single bi
 
 ## Input boundary (stable)
 
-Normalized core input: **`RenderResolveInput`** in `baseClasses.ts` (maps from `RenderPreviewRequested` / `intakeRenderRequested` after `Meta::Room`). **Correlation fields** (`characterId`, `targets`, `conversationId`, etc.) stay **outside** that type until an explicit correlation layer exists.
+Normalized core input: **`RenderResolveInput`** in `baseClasses.ts` (produced by `intakeRenderRequested` after `Meta::Room` for passive **`RenderRequested`**). **Correlation fields** (`characterId`, `targets`, `conversationId`, etc.) stay **outside** that type until an explicit correlation layer exists.
 
 ---
 
-## Lifecycle events (why preview differs)
+## Lifecycle events (passive path)
 
-Passive / state-driven flows aim for composable lifecycle messages (`RenderRequested`, `RenderGenerationStarted`, `RenderReady`, ...) and eventual presence gating (Task 7).
-
-Authoring preview is request-scoped and uses conversations, not `perception` --- so lifecycle events may be unused there even when they are the long-term abstraction for passive paths. Do not let preview-only criteria force presence design (and vice versa).
+Passive / state-driven flows aim for composable lifecycle messages (`RenderRequested`, `RenderGenerationStarted`, `RenderReady`, ...) and eventual presence gating (Task 7). The former **preview** branch (request-scoped `ConversationStep` to one client) is **removed**; delivery for passive runs through **`roomStateRender`** materialization and the message bus as implemented.
 
 ---
 
@@ -170,8 +168,8 @@ Request-scoped memo for cache rows: `internalCache/renderCache.ts`, cleared at h
 
 Ordered roughly by dependency / product unlock:
 
-1. **Preview vs passive intake policy (open)**  
-   Centralize **intake-error mapping** in one strategy (policy table, not duplicated control flow). Preview and passive share the same orchestration shell with intentional branch differences; errors should not sprawl. Optional: explicit `pointerMode` / shared bootstrap helper without merging product behavior.
+1. **Intake error policy (open)**  
+   Centralize **intake-error mapping** in one strategy (policy table, not duplicated control flow). Optional: explicit `pointerMode` / shared bootstrap helper.
 
 2. **Task 6.5 --- Cache lifecycle and ordering (open)**  
    - Emit `RenderGenerationStarted` on passive/state path when committing to generation (after exact-match miss).  
@@ -192,7 +190,7 @@ Ordered roughly by dependency / product unlock:
 
 7. **Docs** --- Keep `AGENT.md` and this file aligned when wiring changes.
 
-**Client / WebSocket:** Multi-stage preview delivery remains coordinated with `../../conversations/AGENT.planning.md`, `../../conversations/AGENT.planning.tasklist.md` section 4, and `charcoal-client` lifeLine docs when wiring `RenderGenerationStarted` and cache lifecycle into preview UX.
+**Client / WebSocket:** Future multi-stage delivery (if reintroduced) would coordinate with `../../conversations/AGENT.planning.md`, task list section 4, and `charcoal-client` lifeLine docs. Workbench preview UX was removed; `socketDispatchConversation` remains for potential future pipelines.
 
 ---
 
@@ -204,10 +202,10 @@ Tier 1--2 items that were fully described in older revisions of this file; detai
 - **Events:** `events.ts` with guards (Tier 1 task 3).
 - **Intake fast path:** `intakeRenderRequested` pointer validation + marks error policy (Tier 1 task 4).
 - **Handler B / exact-match:** `findRender` exact-match branch + shared `tryGeneration`; not duplicated inside `generateRoomPreview` as policy (Tier 1 task 5).
-- **Generation path (Tier 2 task 6):** Cache miss branching, `generateRoomPreview` on miss, pre-mint cache id, persist via `mtw.ephemera.renderCache`, passive conversation registration, preview "generating" only on slow path --- unified under `orchestrateRenderRequest`.
+- **Generation path (Tier 2 task 6):** Cache miss branching, `generateRoomPreview` on miss, pre-mint cache id, persist via `mtw.ephemera.renderCache`, passive `roomStateRender` conversation registration, slow-path `generating` feedback where applicable --- under `orchestrateRenderRequest`. **Preview-only** ingress and conversation variant **removed** (follow-on: narrow `mtw-interfaces` preview types).
 - **Ingress relocation:** Request subscription moved to `dataSource/renderOrchestration` (evolving DataSource; see its `AGENT.md`).
 
-**Historical decisions (March 2026, condensed)** --- Detail lives in git history. Unified `findRender` and `intakeRenderRequested` success/error paths; passive batch shell; sendMessage-first `findRender` + `tryGeneration`; unified `orchestrateRenderRequest`. Ingress moved to `dataSource/renderOrchestration/`; app preview emits `api.ephemera` streaming envelopes instead of raw `RenderPreviewRequested` bus messages. A duplicate synchronous orchestration scaffold under `dataSource/state/` was removed so orchestration stays single-sourced here.
+**Historical decisions (March 2026, condensed)** --- Detail lives in git history. Unified `findRender` and `intakeRenderRequested` success/error paths; passive batch shell; sendMessage-first `findRender` + `tryGeneration`; unified `orchestrateRenderRequest`. Ingress moved to `dataSource/renderOrchestration/` with **`Render Requested`** `api.ephemera` envelopes. Authoring **preview** ingress and conversation wiring were later **removed** (charcoal-client + lambda). A duplicate synchronous orchestration scaffold under `dataSource/state/` was removed so orchestration stays single-sourced here.
 
 ---
 

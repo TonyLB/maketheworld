@@ -1,7 +1,7 @@
 import { v4 as uuidv4 } from 'uuid'
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import internalCache from '../internalCache'
-import { CONVERSATION_PAYLOAD_STUB } from './conversationTypes'
+import { CONVERSATION_PAYLOAD_STUB, CONVERSATION_TYPE_ROOM_STATE_RENDER } from './conversationTypes'
 import {
     deleteConversationRecord,
     registerConversation,
@@ -30,9 +30,9 @@ describe('conversations registry', () => {
 
     it('registerConversation returns new id and stores a storable row', async () => {
         const id = await registerConversation({
-            type: 'generateRoomPreview',
+            type: CONVERSATION_TYPE_ROOM_STATE_RENDER,
             routing: {
-                roomId,
+                componentId: roomId,
                 perspectiveId: 'PERSPECTIVE#p1',
                 requestId: 'ws-req-1',
             },
@@ -44,9 +44,9 @@ describe('conversations registry', () => {
         const row = internalCache.Conversations.get(id)?.record
         expect(row).toEqual({
             conversationId: id,
-            type: 'generateRoomPreview',
+            type: CONVERSATION_TYPE_ROOM_STATE_RENDER,
             routing: {
-                roomId,
+                componentId: roomId,
                 perspectiveId: 'PERSPECTIVE#p1',
                 requestId: 'ws-req-1',
             },
@@ -58,26 +58,26 @@ describe('conversations registry', () => {
         uuidv4Mock.mockReturnValueOnce('id-a').mockReturnValueOnce('id-b')
 
         const a = await registerConversation({
-            type: 'generateRoomPreview',
-            routing: { roomId, perspectiveId: 'P1' },
+            type: CONVERSATION_TYPE_ROOM_STATE_RENDER,
+            routing: { componentId: roomId, perspectiveId: 'P1' },
             payload: CONVERSATION_PAYLOAD_STUB,
         })
         const b = await registerConversation({
-            type: 'generateRoomPreview',
-            routing: { roomId, perspectiveId: 'P2' },
+            type: CONVERSATION_TYPE_ROOM_STATE_RENDER,
+            routing: { componentId: roomId, perspectiveId: 'P2' },
             payload: CONVERSATION_PAYLOAD_STUB,
         })
 
         expect(a).toBe('id-a')
         expect(b).toBe('id-b')
-        expect(internalCache.Conversations.get(a)?.record).toMatchObject({ conversationId: a, type: 'generateRoomPreview' })
-        expect(internalCache.Conversations.get(b)?.record).toMatchObject({ conversationId: b, type: 'generateRoomPreview' })
+        expect(internalCache.Conversations.get(a)?.record).toMatchObject({ conversationId: a, type: CONVERSATION_TYPE_ROOM_STATE_RENDER })
+        expect(internalCache.Conversations.get(b)?.record).toMatchObject({ conversationId: b, type: CONVERSATION_TYPE_ROOM_STATE_RENDER })
     })
 
     it('deleteConversationRecord removes the row', async () => {
         const id = await registerConversation({
-            type: 'generateRoomPreview',
-            routing: { roomId, perspectiveId: 'PX' },
+            type: CONVERSATION_TYPE_ROOM_STATE_RENDER,
+            routing: { componentId: roomId, perspectiveId: 'PX' },
             payload: CONVERSATION_PAYLOAD_STUB,
         })
         expect(await deleteConversationRecord(id)).toBe(true)
@@ -91,8 +91,8 @@ describe('conversations registry', () => {
     it('registerConversation uses caller-supplied conversationId without calling uuidv4', async () => {
         const id = await registerConversation({
             conversationId: CLIENT_SUPPLIED_CONVERSATION_ID,
-            type: 'generateRoomPreview',
-            routing: { roomId, perspectiveId: 'P-client' },
+            type: CONVERSATION_TYPE_ROOM_STATE_RENDER,
+            routing: { componentId: roomId, perspectiveId: 'P-client' },
             payload: CONVERSATION_PAYLOAD_STUB,
         })
         expect(id).toBe(CLIENT_SUPPLIED_CONVERSATION_ID)
@@ -101,8 +101,8 @@ describe('conversations registry', () => {
         const row = internalCache.Conversations.get(id)?.record
         expect(row).toEqual({
             conversationId: CLIENT_SUPPLIED_CONVERSATION_ID,
-            type: 'generateRoomPreview',
-            routing: { roomId, perspectiveId: 'P-client' },
+            type: CONVERSATION_TYPE_ROOM_STATE_RENDER,
+            routing: { componentId: roomId, perspectiveId: 'P-client' },
             payload: CONVERSATION_PAYLOAD_STUB,
         })
     })
@@ -111,8 +111,8 @@ describe('conversations registry', () => {
         await expect(
             registerConversation({
                 conversationId: 'not-a-uuid',
-                type: 'generateRoomPreview',
-                routing: { roomId, perspectiveId: 'P1' },
+                type: CONVERSATION_TYPE_ROOM_STATE_RENDER,
+                routing: { componentId: roomId, perspectiveId: 'P1' },
                 payload: CONVERSATION_PAYLOAD_STUB,
             })
         ).rejects.toThrow('Conversation id must be a valid UUID')
@@ -123,16 +123,16 @@ describe('conversations registry', () => {
     it('registerConversation throws when conversationId is already registered', async () => {
         await registerConversation({
             conversationId: CLIENT_SUPPLIED_CONVERSATION_ID,
-            type: 'generateRoomPreview',
-            routing: { roomId, perspectiveId: 'first' },
+            type: CONVERSATION_TYPE_ROOM_STATE_RENDER,
+            routing: { componentId: roomId, perspectiveId: 'first' },
             payload: CONVERSATION_PAYLOAD_STUB,
         })
 
         await expect(
             registerConversation({
                 conversationId: CLIENT_SUPPLIED_CONVERSATION_ID,
-                type: 'generateRoomPreview',
-                routing: { roomId, perspectiveId: 'second' },
+                type: CONVERSATION_TYPE_ROOM_STATE_RENDER,
+                routing: { componentId: roomId, perspectiveId: 'second' },
                 payload: CONVERSATION_PAYLOAD_STUB,
             })
         ).rejects.toThrow('Conversation id already registered')

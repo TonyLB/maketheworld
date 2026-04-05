@@ -5,22 +5,7 @@ export type {
     ConversationRecordType,
     StorableConversationRecord,
 } from './baseClasses';
-export {
-    isStorableConversationRecordGenerateRoomPreview,
-    isStorableConversationRecordRoomStateRender,
-} from './baseClasses';
-export type {
-    ConversationHandleGenerateRoomPreview,
-    GenerateRoomPreviewConversationRouting,
-    GenerateRoomPreviewFailure,
-    GenerateRoomPreviewResult,
-    GenerateRoomPreviewSuccess,
-    StorableConversationRecordGenerateRoomPreview,
-} from './generateRoomPreview';
-export {
-    CONVERSATION_TYPE_GENERATE_ROOM_PREVIEW,
-    renderResolveOutputToGenerateRoomPreviewResult,
-} from './generateRoomPreview';
+export { isStorableConversationRecordRoomStateRender } from './baseClasses';
 export type {
     ConversationHandleRoomStateRender,
     RoomStateRenderConversationRouting,
@@ -36,14 +21,12 @@ export type { MaterializeRoomStateRenderDeps } from './roomStateRender';
 export type { ConversationHandle } from './handle';
 export type {
     ConversationCompositeReadHandle,
-    ConversationCompositeReadHandleGenerateRoomPreview,
     ConversationCompositeReadHandleRoomStateRender,
     ConversationCompositeReadHandleStub,
     ConversationsCompositeGetResult,
 } from './compositeRead';
 export {
     createConversationCompositeReadHandleStub,
-    isConversationCompositeReadHandleGenerateRoomPreview,
     isConversationCompositeReadHandleRoomStateRender,
     isConversationCompositeReadHandleStub,
 } from './compositeRead';

@@ -14,7 +14,7 @@ The cache is designed for **Room/Feature/Knowledge** components whose content de
 ## Goals
 
 - Support **exact-match** lookup from a proposed Mark state and perspective (asset stack) to a previously rendered Example.
-- Keep Ephemera’s cache as the **runtime source of truth** for rendered descriptions; Ephemera does not reach back into Assets during preview/lookup.
+- Keep Ephemera’s cache as the **runtime source of truth** for rendered descriptions; Ephemera does not reach back into Assets during orchestration lookup.
 - Preserve enough metadata (markState, perspectiveId, provenance) so that future features (LLM generation, constellation search, richer invalidation) can build on the same schema.
 
 ---
@@ -190,65 +190,29 @@ Core helper (conceptually):
   - Matches by Mark-state equality semantics (`markStatesEqual` over normalized markState).
   - Returns the first matching record, or `null` when none match.
 
-This is the canonical “does this state exist in cache?” check. Preview orchestration (`orchestrateRenderRequest` / `findRender`) calls it before the slow path; `generateRoomPreview` assumes exact-match was already tried.
+This is the canonical “does this state exist in cache?” check. Passive render orchestration (`orchestrateRenderRequest` / `findRender`) calls it before the slow path; `generateRoomPreview` assumes exact-match was already tried.
 
 ---
 
-## Preview Flow: orchestration, `generateRoomPreview`, and WebSocket handler
+## Passive render orchestration and cache-miss generation
 
-### Preview orchestration (`dataSource/renderOrchestration/orchestrationHandler.ts`)
+Single-item orchestration lives in [`dataSource/renderOrchestration/orchestrationHandler.ts`](../dataSource/renderOrchestration/orchestrationHandler.ts). For a **`Render Requested`** ingress, the handler registers a **`roomStateRender`** conversation row, runs **`intakeRenderRequested`**, then **`findRender`**, which:
 
-For `RenderPreviewRequested`, the handler resolves the conversations `sendMessage` handle, then:
-
-1. Builds `perspective` from the request asset stack.
-2. Calls `internalCache.RenderCache.getExactMatch({ componentId, proposedMarkState, perspective })`.
-3. On hit: sends `{ success: true, renderedContent }` via the conversation handle and returns (no LLM, no `generating` step).
-4. On miss: calls `generateRoomPreview` (slow path only).
+1. Builds perspective from the passive request.
+2. Calls `internalCache.RenderCache.getExactMatch` (and pointer validation) as policy dictates.
+3. On hit: emits resolve output through the conversation **`sendMessage`** path (wired to the message bus via `materializeRoomStateRender` when `passiveBusDelivery` is present).
+4. On miss (when generation is allowed): calls **`generateRoomPreview`** (slow path only).
 
 ### `generateRoomPreview` (`dataSource/renderOrchestration`)
 
-`dataSource/renderOrchestration/generateRoomPreview.ts` implements **generation on cache miss** (parse WML context, optional Bedrock `generateRoomDescription`, `publishPutCacheRecord`). It does **not** perform exact-match; orchestration must run that first.
+[`generateRoomPreview.ts`](../dataSource/renderOrchestration/generateRoomPreview.ts) implements **generation on cache miss** (parse WML context, optional Bedrock `generateRoomDescription`, `publishPutCacheRecord`). It does **not** perform exact-match; orchestration must run that first.
 
-- Input:
-  - `roomId: EphemeraRoomId`
-  - `markState: EphemeraCacheMarkState`
-  - `assetStack: string[]`
-- Options (optional): `publishPutCacheRecord` overrides the default `defaultPublishPutCacheRecord` (`sendPutCacheRecord` only; the handler's terminal `await messageBus.flush()` drains the queue). Tests typically pass `jest.fn()` to avoid real bus I/O.
+- Input: `roomId`, `markState`, `assetStack`, optional `generationContextWml`.
+- Options include `conversationId`, `sendMessage` for progress/terminals, and `publishPutCacheRecord` overrides for tests.
 
-### WebSocket integration (`app.ts`)
+### Authoring preview (removed)
 
-The Ephemera Lambda handler (`lambda/ephemera/app.ts`) registers the conversation, then publishes `RenderPreviewRequested` on the messageBus; `registerRenderOrchestration` handles preview work (exact match + `generateRoomPreview` on miss). Results stream via conversations `ConversationStep`, not a direct `ReturnValue` body from `generateRoomPreview` in this path.
-
-- Validated request type:
-  - `GenerateRoomPreviewAPIMessage` in `packages/mtw-interfaces/ts/ephemera.ts`.
-- Handler branch:
-  - When `isGenerateRoomPreviewAPIMessage(request)`:
-    - `registerConversation` for `generateRoomPreview`, then `messageBus.send` a `RenderPreviewRequested` payload; **`await messageBus.flush()`** runs orchestration.
-
-The Lambda return value is `{ statusCode: 200, body: JSON.stringify(mergedBodies) }`. On the client, the lifeLine WebSocket layer:
-
-- Detects Lambda-style responses (`{ statusCode, body: string }`).
-- Parses `body` and publishes the parsed object as `LifeLinePubSubData`, so `socketDispatchPromise` can match by `RequestId`.
-
-### Client Preview UI (high level)
-
-On the client (Authoring Workbench):
-
-- `RoomEditor` exposes an “Open Preview” entry when:
-  - The Room has exactly one Lens and that Lens has at least one Mark.
-- Clicking “Open Preview”:
-  - Pushes a synthetic breadcrumb entry `preview:${roomId}`.
-  - `WorkbenchAssetEditor` detects `currentComponentId.startsWith('preview:')` and renders `RoomPreviewEditor`.
-- `RoomPreviewEditor`:
-  - Resolves Room, Lens, and Marks from `useWorkbenchAsset().standardForm`.
-  - Lets the author enter Match values per Mark.
-  - Builds `markState` and `assetStack` (inherited assets + current asset).
-  - Dispatches `socketDispatchPromise({ message: 'generateRoomPreview', RoomId, markState, assetStack }, { service: 'ephemera' })`.
-  - Displays:
-    - Cached `renderedContent` (displayName/summary/description) on success.
-    - A clear “no exact match” or failure message on error.
-
-The UI layer is intentionally thin; all state semantics and matching live in the render cache and comparison helpers described above.
+The former **workbench preview** path (dedicated API message, `Render Preview Requested` ingress, preview conversation type, and `ConversationStep` streaming to one client) has been **removed** from lambda and charcoal-client. Shared **wire types** for legacy messages may still exist in `packages/mtw-interfaces` until the [interfaces remove-preview pass](../../../taskPlanning/packages/mtw-interfaces/AGENT.removePreviewGeneration.planning.md).
 
 ---
 
@@ -268,10 +232,8 @@ The UI layer is intentionally thin; all state semantics and matching live in the
 
 - **Mirroring vs runtime lookup**:
   - Authored Examples enter the cache solely via the mirroring pipeline.
-  - Runtime lookup (including Preview) reads only from the cache.
-  - This separation lets you:
-    - Change mirroring strategies without touching Preview logic.
-    - Experiment with new generation/invalidation strategies while keeping the runtime contract stable.
+  - Runtime lookup (orchestration / passive render) reads from the cache and exact-match helpers.
+  - This separation lets you change mirroring strategies without touching orchestration lookup logic.
 
 For broader architectural context, see:
 

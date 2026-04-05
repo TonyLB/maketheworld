@@ -18,19 +18,16 @@ Orchestration keeps **policy and multi-step lifecycle sequencing** out of neighb
 
 ## What it does today
 
-- Subscribes to internal `api.ephemera` streaming envelopes:
-  - `Render Requested`
-  - `Render Preview Requested`
-- Converts those ingress payloads into existing render request payloads (`RenderRequested` / `RenderPreviewRequested`).
-- Dispatches to `orchestrationHandler.ts` (`orchestrateRenderRequest`), which chains **intake** (`requestIntake.ts`), **intake error delivery** (`intakeErrors.ts`), **`findRender`**, and (on cache miss) **`generateRoomPreview`**, with terminals and progress delivered through **conversation** `sendMessage` handles where registered.
+- Subscribes to internal `api.ephemera` streaming envelopes with header type **`Render Requested`** (single ingress for passive render orchestration).
+- Maps ingress to **`RenderRequested`** and dispatches to `orchestrationHandler.ts` (`orchestrateRenderRequest`), which chains **intake** (`requestIntake.ts`), **intake error delivery** (`intakeErrors.ts`), **`findRender`**, and (on cache miss, when policy allows) **`generateRoomPreview`**. Terminals and progress are delivered through the **`roomStateRender`** conversation **`sendMessage`** path when orchestration registers a row (see `orchestrationHandler.ts`).
 
 Wiring: `app.ts` side-effect imports `./dataSource/renderOrchestration` (this DataSource's `index.ts`).
 
-## Preview vs presence (product split)
+**Removed (historical):** request-scoped **authoring preview** used a separate ingress (`Render Preview Requested`) and a dedicated **`generateRoomPreview`** conversation type. That path is gone; workbench preview UI and client dispatch were removed in charcoal-client. Cache-miss generation still lives in **`generateRoomPreview.ts`** as part of passive **`findRender`**.
 
-Lifecycle messages (`RenderGenerationStarted`, `RenderReady`, etc.) are primarily motivated by **presence-based** delivery: **`perception`** can react with placeholders and final content for people **in the room**.
+## Passive orchestration vs presence (product split)
 
-The **authoring preview** path (`RenderPreviewRequested`) is intentionally **request-scoped**: it streams **`ConversationStep`** via **`conversations`** to the requesting client and may **not** exercise the same lifecycle events even when those are the long-term abstraction. Bridging preview UX to the full lifecycle story is **future-facing**; see `AGENT.planning.md` in this directory for task-level detail.
+Lifecycle messages (`RenderGenerationStarted`, `RenderReady`, etc.) are primarily motivated by **presence-based** delivery: **`perception`** can react with placeholders and final content for people **in the room**. Passive **`Render Requested`** orchestration registers a **`roomStateRender`** conversation row and delivers terminals via **`materializeRoomStateRender`** (message bus), not a separate preview pipeline.
 
 ## Key concepts
 
@@ -47,12 +44,12 @@ The **authoring preview** path (`RenderPreviewRequested`) is intentionally **req
 - **State storage**: `Meta::Room` (`packages/mtw-interfaces/ts/ephemeraMeta.ts` + ephemeraDB).
 - **Cache**: `lambda/ephemera/renderCache/` and `internalCache.RenderCache` for exact match and memoized rows.
 - **LLM generation**: `lambda/ephemera/generateExample/` (invoked from `generateRoomPreview` on cache miss).
-- **Conversations**: preview and passive room render use conversation composite handles for **`sendMessage`** (see `orchestrationHandler.ts`).
+- **Conversations**: passive **`roomStateRender`** rows use composite handles for **`sendMessage`** (see `orchestrationHandler.ts` and `conversations/conversationTypes/roomStateRender/materialize.ts`).
 - **Perception**: `lambda/ephemera/perception/` --- placeholder/final delivery for presence-oriented paths as lifecycle work matures.
 
 ## Typical request flow (single-item)
 
-1. A trigger emits an `api.ephemera` envelope; this DataSource maps it to `RenderRequested` or `RenderPreviewRequested` and calls **`orchestrateRenderRequest`**.
+1. A trigger emits an `api.ephemera` **`Render Requested`** envelope; this DataSource maps it to **`RenderRequested`** and calls **`orchestrateRenderRequest`**.
 2. **A-phase**: **`intakeRenderRequested`** loads `Meta::Room` where needed and produces **`RenderResolveInput`** (or intake errors).
 3. **B-phase**: **`findRender`** tries pointer validation, then exact match, then **`generateRoomPreview`** when allowed; outcomes are delivered through the injected **`sendMessage`** path (conversation handle when present).
 4. **Full lifecycle** (`RenderGenerationStarted` / `RenderReady` / perception reactions) is **not** uniformly wired for every path today; tightening that contract is part of **graduation** and open tasks in `AGENT.planning.md`.
@@ -73,7 +70,7 @@ Passive **intake** surfaces missing `Meta::Room.state.marks` as an intake error 
 
 **When you must add a parallel experiment** (rare): Record it immediately (status: `keep` | `merge into canonical` | `retire` | `quarantine (do not extend)`), one-line owner module, and do not extend non-canonical tracks with new features. Do **not** add a second orchestration stack under `dataSource/state/` (or elsewhere) for the same concerns as `findRender` and this package.
 
-**Legacy tests / app patterns:** Direct `RenderPreviewRequested` **messageBus** sends from app code are **obsolete**; use `sendRenderPreviewRequested` + DataSource ingress and assert `api.ephemera` / `StreamingEvent` envelopes where relevant.
+**Tests / app patterns:** Exercise passive orchestration via **`sendRenderRequested`** (see `subscribedEvents.ts`) and assert `api.ephemera` / `StreamingEvent` envelopes with header type **`Render Requested`**. Do not reintroduce **`Render Preview Requested`** or preview-only API branches.
 
 ## Current constraints (until graduation)
 
@@ -118,4 +115,4 @@ Until then, keep calling the status **transitional** in the sense of **evolving*
 - `lambda/ephemera/messageBus/AGENT.md`
 - `lambda/ephemera/perception/AGENT.md`
 - `lambda/ephemera/renderCache/AGENT.md`
-- `lambda/ephemera/conversations/` (preview and room-state render handles)
+- `lambda/ephemera/conversations/` (`roomStateRender` handles)

@@ -8,22 +8,18 @@ import type {
 } from '../../renderCache/baseClasses'
 
 /**
- * Where {@link RenderResolveInputSuccess.markState} came from. Same wire shape for cache math;
- * semantics differ for policy and future defaults.
+ * Where {@link RenderResolveInputSuccess.markState} came from (`Meta::Room` for passive render).
  */
-export type RenderResolveMarkProvenance = 'meta' | 'preview'
+export type RenderResolveMarkProvenance = 'meta'
 
 /**
  * Successful normalized input to the shared "resolve room render from cache / maybe generate" choke-point.
  *
- * Preview and passive intake (`requestIntake.ts`) converge on this shape via
- * A-phase adapters; the orchestration shell chains `findRender` then delivery.
+ * Passive intake (`requestIntake.ts`) builds this from `RenderRequested` + `Meta::Room`; the orchestration
+ * shell chains `findRender` then delivery. `pointerHint` is
+ * `Meta::Room.currentCacheByPerspective[perspectiveKey]` when present.
  *
- * - **Preview path:** `markProvenance` is `'preview'`; `pointerHint` is omitted (no Meta pointer).
- * - **Passive path:** `markProvenance` is `'meta'`; `pointerHint` is
- *   `Meta::Room.currentCacheByPerspective[perspectiveKey]` when present.
- *
- * This type is intentionally not identical to bus messages (`RenderRequested` / `RenderPreviewRequested`):
+ * This type is intentionally not identical to bus messages (`RenderRequested`):
  * correlation, targets, and delivery stay outside until an output boundary exists.
  */
 export type RenderResolveInputSuccess = {
@@ -67,9 +63,8 @@ export const isRenderResolveInputSuccess = (arg: RenderResolveInput): arg is Ren
 export const isRenderResolveInputError = (arg: RenderResolveInput): arg is RenderResolveInputError => arg.type === 'error'
 
 /**
- * Error codes for {@link RenderResolveOutputFailed}. Preview failures mirror
- * `GenerateRoomPreviewFailure` in `conversations/conversationTypes/generateRoomPreview`; this union adds
- * passive-path invariants (e.g. missing `Meta::Room.state.marks`).
+ * Error codes for {@link RenderResolveOutputFailed}, including passive-path invariants
+ * (e.g. missing `Meta::Room.state.marks`).
  */
 export type RenderResolveErrorCode =
     | 'NOT_ROOM'
@@ -125,9 +120,9 @@ export type RenderResolveOutput =
 
 /**
  * Non-terminal orchestration frames before a terminal {@link RenderResolveOutput}.
- * Shared by passive `roomStateRender` and preview `generateRoomPreview` conversation handles.
+ * Shared by passive `roomStateRender` conversation handles.
  *
- * - `resolving` --- intake / cache / pointer work (passive may emit; preview wire may ignore until supported).
+ * - `resolving` --- intake / cache / pointer work.
  * - `generating` --- LLM or slow generation in flight.
  */
 export type RenderProgress = 'resolving' | 'generating';

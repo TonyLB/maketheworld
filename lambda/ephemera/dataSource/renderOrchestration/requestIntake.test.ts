@@ -1,5 +1,5 @@
 import { intakeRenderRequested } from './requestIntake'
-import type { RenderPreviewRequested, RenderRequested } from './events'
+import type { RenderRequested } from './events'
 
 describe('dataSource/renderOrchestration/intakeRenderRequested', () => {
     const basePayload: RenderRequested = {
@@ -50,23 +50,4 @@ describe('dataSource/renderOrchestration/intakeRenderRequested', () => {
         }
     })
 
-    it('returns preview success directly for RenderPreviewRequested', async () => {
-        const previewPayload: RenderPreviewRequested = {
-            type: 'RenderPreviewRequested',
-            componentId: 'ROOM#one',
-            perspective: { assetStack: ['ASSET#base'] },
-            markState: { markValue: [{ mark: 'MARK#p', value: 'preview' }] },
-            allowGeneration: true,
-        }
-        const r = await intakeRenderRequested(previewPayload)
-        expect(r).toEqual({
-            type: 'success',
-            roomId: 'ROOM#one',
-            perspective: { assetStack: ['ASSET#base'] },
-            markState: { markValue: [{ mark: 'MARK#p', value: 'preview' }] },
-            markProvenance: 'preview',
-            allowGeneration: true,
-            generationContextWml: undefined,
-        })
-    })
 })
