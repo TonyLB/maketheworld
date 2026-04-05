@@ -56,7 +56,7 @@ Canonical detail lives in [`../AGENT.passThrough.contract.planning.md`](../AGENT
 
 Full cross-cutting list: [`../AGENT.passThrough.contract.planning.md`](../AGENT.passThrough.contract.planning.md#uncertainties-explicit-next-refinement-phase). Items that matter most here:
 
-- **Ingress / wiring:** Subscribe to orchestration events vs **api.ephemera** or internal invoke from orchestration. **Unsettled** (contract item 2).
+- **Ingress / wiring:** **`renderOrchestration`** emits on **`mtw.ephemera.renderOrchestration`** **DataSource stream** (contract); whether this package **subscribes** to that stream vs **invoke** / **api.ephemera** handoff. **Unsettled** (contract item 2).
 - **Generate path:** Avoid or define **double `Cache Updated`** when put already fires from persistence. **Unsettled** (contract item 1).
 - **Pipeline placement:** Where **`Render Pertains`** is emitted relative to Dynamo writes on generate so ordering matches the rubric. **Unsettled** (contract item 5).
 - **Hit-path outbounds:** If **`Current Cache Valid`** / **`Exact Match Found`** carry ids only, whether this package **re-reads** Dynamo and how that interacts with consistency. **Unsettled** (contract item 3).

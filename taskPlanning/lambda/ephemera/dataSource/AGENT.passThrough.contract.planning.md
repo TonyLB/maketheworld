@@ -12,7 +12,7 @@
 
 Hold the **canonical cross-cutting contract** for the pass-through pattern: a single observable notion that a given render cache record is **the relevant answer** for a component/perspective (and correlation), whether that record was **just written** (miss path) or **already present** (hit path). [`renderCache/AGENT.passThrough.planning.md`](renderCache/AGENT.passThrough.planning.md), [`renderOrchestration/AGENT.passThrough.planning.md`](renderOrchestration/AGENT.passThrough.planning.md), and [`currentCachePointers/AGENT.cachePointersRefactor.planning.md`](currentCachePointers/AGENT.cachePointersRefactor.planning.md) should reference this file for shared semantics and payload shape; they own package-local execution detail.
 
-**Directional priority (`renderOrchestration`):** We intend to **remove dependency on `conversation.sendMessage`** for orchestration outcomes **as early as practical** and replace each former use with **outgoing streamed events** (DataSource stream and/or agreed bus publishing). **Exactly** which events, payloads, and envelopes correspond to each former call site is **not** fixed here; see **Uncertainties** and [`renderOrchestration/AGENT.passThrough.planning.md`](renderOrchestration/AGENT.passThrough.planning.md).
+**Directional priority (`renderOrchestration`):** We intend to **remove dependency on `conversation.sendMessage`** for orchestration outcomes **as early as practical** and replace each former use with **outgoing events on the `mtw.ephemera.renderOrchestration` DataSource stream** (product decision; uncertainty 8 **transport** resolved). **Exactly** which **envelopes** and **`mtw-interfaces`** shapes correspond to each former call site is **not** fixed here; see **Uncertainties** and [`renderOrchestration/AGENT.passThrough.planning.md`](renderOrchestration/AGENT.passThrough.planning.md).
 
 ---
 
@@ -131,7 +131,7 @@ Orchestration **does not** own the **final** "ready for this conversation" emiss
 
 ### Limited refinement: per-outbound body fields (narrow agreement)
 
-**Scope:** This subsection records **only** the **body** fields for each orchestration outbound **after** **routing identity** (**`componentId`** + **`perspective`** / **`perspectiveKey`** --- see **Routing identity and Perception** above). **Delivery** correlation (**`characterId`**, **`targets`**, etc.) is **not** part of this table. **Transport**, **envelopes**, and **replacing** legacy **`conversation.sendMessage`** in **code** remain **Unsettled** (uncertainty 8).
+**Scope:** This subsection records **only** the **body** fields for each orchestration outbound **after** **routing identity** (**`componentId`** + **`perspective`** / **`perspectiveKey`** --- see **Routing identity and Perception** above). **Delivery** correlation (**`characterId`**, **`targets`**, etc.) is **not** part of this table. **Transport** for these outbounds is **resolved:** **`mtw.ephemera.renderOrchestration`** **DataSource stream** (not **`messageBus`** as the contract's primary carrier). **Envelopes** and **replacing** legacy **`conversation.sendMessage`** in **code** remain **unsettled** (uncertainty 8).
 
 **Discrimination:** **`Current Cache Valid`** and **`Exact Match Found`** share the **same** body shape on the wire; the outbound **type** distinguishes pointer vs exact --- **no** separate **`hitKind`** field (it would only duplicate the type).
 
@@ -155,9 +155,9 @@ Orchestration **does not** own the **final** "ready for this conversation" emiss
 - On **`Generation Started`**, **`Orchestration Error`**, **`Generation Deferred`:** **`renderCache`** subscription behavior **TBD** per event (may be no-op for cache, or limited updates); refine when consumers exist. **`Generation Deferred`** pointer clearing is owned by **`currentCachePointers`**, not by deleting cache rows.
 - **`currentCachePointers`** (planned): On **`Render Pertains`** from **`renderCache`**, **set** meta pointers from the **cache id** and **lean** routing keys in the payload (**`componentId`**, **`perspectiveKey`**) --- **no** synthetic id required (product decision).
 
-### How `renderCache` "sees" orchestration events (unsettled)
+### How `renderCache` "sees" orchestration events (partially settled)
 
-**Subscribe** (e.g. internal bus listener on `renderCache`) vs **explicit call / API-shaped handoff** from orchestration into a renderCache entrypoint is **not decided**. The table below stays open until the next refinement phase.
+**Transport (product):** Orchestration publishes the **six outbounds** on **`mtw.ephemera.renderOrchestration`** **DataSource stream**. **`renderCache`** should **observe** them via **subscription** to that stream in the target architecture. **Still unsettled (uncertainty 2):** whether any **transitional** path uses **explicit invoke** into a **`renderCache`** entrypoint instead of stream observation, and how **`Generation Started`** / **error** / **defer** are handled once connected.
 
 ---
 
@@ -167,7 +167,7 @@ These are **not** small details; **open** items block a normative contract until
 
 1. **`Cache Updated` duplication on the generate path.** Persistence after generation already flows through **`mtw.ephemera.renderCache`** (put → likely **`Cache Updated`** today). If **`Render Generated`** also causes **`Cache Updated`**, we may emit **twice** unless we consolidate (single coordinated emission, dedupe semantics, or define **`Cache Updated`** as only from the write primitive). **Unsettled.**
 
-2. **Wiring: subscribe vs invoke.** Whether **`renderCache`** **subscribes** to orchestration outbounds (**`Current Cache Valid`**, **`Exact Match Found`**, **`Render Generated`**, and any others) or orchestration **invokes** a dedicated path into the DataSource. Implies layering and test seams. **Unsettled.**
+2. **Wiring: subscribe vs invoke.** Orchestration **emits** the six outbounds on **`mtw.ephemera.renderOrchestration`** **DataSource stream** (product decision). Whether **`renderCache`** **subscribes** to that stream (target) or orchestration **invokes** a dedicated path into **`renderCache`** for **transitional** wiring. Implies layering and test seams. **Unsettled.**
 
 3. **Hit-path outbound payload authority.** For **`Current Cache Valid`** and **`Exact Match Found`**, whether the event carries a **full cache row** (forward without re-read) or **ids only** (renderCache re-fetches), with implications for races and consistency. **Unsettled.** (Body field **names** for hits are narrowed in **Limited refinement: per-outbound body fields**; authority full-row vs ids remains open.)
 
@@ -179,7 +179,7 @@ These are **not** small details; **open** items block a normative contract until
 
 7. **Preview vs passive policy:** Same contract for both, or explicit variants (rubric sub-goal). **Unsettled.**
 
-8. **Stream event taxonomy (`renderOrchestration`).** **Documented in this doc (prose):** the **six outbound types** (**Orchestration outbounds** table), **per-outbound body** fields (**Limited refinement**), **legacy terminal** lineage, and **routing identity** for producer streams (**Routing identity and Perception** --- **`componentId`** + **`perspective`** / **`perspectiveKey`**; **not** request-scoped correlation for Perception). **Still unsettled:** exact **envelopes**, transport (DataSource stream vs bus vs both), **`mtw-interfaces`** names, **`renderCache`** subscription behavior for **`Generation Started`** / **error** / **defer**, and **replacing** **`conversation.sendMessage`** in code (see **Exit `conversation.sendMessage`**).
+8. **Stream event taxonomy (`renderOrchestration`) - partially resolved.** **Documented in this doc (prose):** the **six outbound types** (**Orchestration outbounds** table), **per-outbound body** fields (**Limited refinement**), **legacy terminal** lineage, and **routing identity** for producer streams (**Routing identity on producer streams** --- **`componentId`** + **`perspective`** / **`perspectiveKey`**; **not** request-scoped correlation for Perception). **Resolved (product):** **transport** --- **`mtw.ephemera.renderOrchestration`** **DataSource stream** for the six outbounds (**not** **`messageBus`** as the contract's primary carrier). **Still unsettled:** exact **envelopes**, **`mtw-interfaces`** names, **`renderCache`** handoff details (**stream subscription** vs **invoke**; overlaps uncertainty 2), per-event handling for **`Generation Started`** / **error** / **defer** once wired, and **replacing** **`conversation.sendMessage`** in code (see **Exit `conversation.sendMessage`**).
 
 9. **`Render Pertains` wire extras - resolved (product).** **Perception** does **not** depend on **`conversationId`** (or similar) **on producer streams**; it reconstructs from **registration + `(componentId, perspectiveKey)`** (see **Routing identity on producer streams**). **`Render Pertains`** and **`currentCachePointers`** **do not** use a **synthetic id** on the wire; **component x perspective** (+ **`cacheId`**) is sufficient. Documented in [`renderCache/AGENT.passThrough.planning.md`](renderCache/AGENT.passThrough.planning.md) **Correlation vs routing**.
 
@@ -194,8 +194,8 @@ These are **not** small details; **open** items block a normative contract until
 Use this section as a scratchpad; prefer **Uncertainties** for blockers.
 
 - Relationship of **`RenderReady`** to **`Render Pertains`** during migration (overlap period, deprecation).
-- Whether **streaming** vs **messageBus** graduation changes any of the above (see epic "Streams, contracts, graduation").
-- **Per-call-site mapping:** Prose mapping is in **Limited refinement** (uncertainty 8); **implementation** and envelopes still TBD.
+- Epic **Streams, contracts, graduation** may still affect **client** consumption and **envelopes**; **orchestration** carrier for this contract is **`mtw.ephemera.renderOrchestration`** **DataSource stream** (uncertainty 8 transport resolved).
+- **Per-call-site mapping:** Prose mapping is in **Limited refinement**; **implementation**, **envelopes**, and **`mtw-interfaces`** still TBD (uncertainty 8).
 
 ---
 
@@ -215,7 +215,7 @@ Use this section as a scratchpad; prefer **Uncertainties** for blockers.
 | --- | --- |
 | Draft stub created | Done |
 | Refined direction + uncertainties recorded (pass-through split) | Done |
-| **Exit `conversation.sendMessage`** priority + uncertainty 8 (six-type taxonomy + per-outbound body + legacy mapping in prose; wire/envelopes/code TBD) | Done |
+| **Exit `conversation.sendMessage`** priority + uncertainty 8 (six-type taxonomy + per-outbound body + legacy mapping in prose; **transport:** DataSource stream; envelopes / code TBD) | Done |
 | **Limited refinement:** per-outbound **body** fields (narrow; doc remains draft) | Done |
 | **Lean routing + Perception** (**Routing identity**); **no synthetic id** on **`Render Pertains`** (uncertainty 9 resolved) | Done |
 | Passive state: **S = A ∪ P** set algebra + **`allowGeneration`** on **A** vs **P ∖ A** (uncertainty 10 narrowed; code still TBD) | Done |
