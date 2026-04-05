@@ -45,7 +45,7 @@ Canonical detail lives in [`../AGENT.passThrough.contract.planning.md`](../AGENT
 - **On `Render Generated` from orchestration (hypothesis):** Orchestration signals **generation complete** with **full** content but **not** durability; this package **writes** (or confirms write), then emits **`Render Pertains`** / **`Cache Updated`**. **`Cache Updated`** duplication vs put-path is still **unsettled** (contract item 1).
 
 **Correlation vs routing:** The contract **Routing identity on producer streams (Perception delivery model)** applies; **uncertainty 9** is **resolved (product):** **no synthetic id** on **`Render Pertains`**. **Perception** does **not** depend on **`conversationId`** / request-scoped fields on streams; it matches on **`(componentId, perspectiveKey)`** and holds **delivery** context at **registration**. **`Render Pertains`** carries **lean routing identity** (**`componentId`**, perspective / **`perspectiveKey`**) plus **`cacheId`** / cache facts --- enough for **`currentCachePointers`**. See [`../AGENT.passThrough.contract.planning.md`](../AGENT.passThrough.contract.planning.md#routing-identity-on-producer-streams-perception-delivery-model) and [`../perception/AGENT.perceptionRefactor.planning.md`](../perception/AGENT.perceptionRefactor.planning.md).
-- **On `Current Cache Valid` / `Exact Match Found` (hypothesis):** **`Render Pertains` only** (no new write).
+- **On `Current Cache Valid` / `Exact Match Found` (hypothesis):** Orchestration sends **IDs only** (**`cacheId`** + routing); this package **refetches** the cache row (e.g. **`internalCache`** **`RenderCache.get`**) then **`Render Pertains` only** (no new write) (contract uncertainty 3 resolved).
 - **Upstream:** Orchestration is moving **off** **`conversation.sendMessage`** toward **`mtw.ephemera.renderOrchestration`** **DataSource stream** events ([`renderOrchestration/AGENT.passThrough.planning.md`](../renderOrchestration/AGENT.passThrough.planning.md)); this package **subscribes** to that stream --- **not** conversation, **not** direct calls from orchestration, **not** **`api.ephemera`** invoke for this handoff (contract uncertainty 2 resolved).
 - **Relationship to existing outbounds:** [`lambda/ephemera/dataSource/renderCache/index.ts`](../../../../../lambda/ephemera/dataSource/renderCache/index.ts) and today's **`Cache Updated`** behavior; duplicate-risk on generate path is **explicitly unsettled** in the contract doc.
 - **Out of scope for this stub:** Orchestration branching; perception assembly (epic-level).
@@ -59,7 +59,7 @@ Full cross-cutting list: [`../AGENT.passThrough.contract.planning.md`](../AGENT.
 - **Ingress / wiring (resolved):** **`renderOrchestration`** emits on **`mtw.ephemera.renderOrchestration`** **DataSource stream**; this package **subscribes**. **No** orchestration **invoke** into **`renderCache`**, **no** **`api.ephemera`** indirect invoke for this path (contract uncertainty 2).
 - **Generate path:** Avoid or define **double `Cache Updated`** when put already fires from persistence. **Unsettled** (contract item 1).
 - **Pipeline / durability (contract resolved):** **`Render Pertains`** / **`Cache Updated`** follow **durable** **`CACHE#...`** writes; orchestration **`Render Generated`** does **not** assert write completion (uncertainty 5). **Still unsettled:** double **`Cache Updated`** (contract item 1) and implementation ordering.
-- **Hit-path outbounds:** If **`Current Cache Valid`** / **`Exact Match Found`** carry ids only, whether this package **re-reads** Dynamo and how that interacts with consistency. **Unsettled** (contract item 3).
+- **Hit-path outbounds (resolved):** **`Current Cache Valid`** / **`Exact Match Found`** are **IDs only**; this package **refetches** before **`Render Pertains`** (contract item 3). **Still unsettled:** races / consistency if refetch misses (rare); overlaps uncertainty 6 / 11 as needed.
 - **Correlation vs routing:** **component x perspective** (+ **`cacheId`**) per contract **Routing identity**; **no** synthetic id (uncertainty 9 resolved).
 - **Testing:** Which existing tests become regression anchors once behavior exists; align with **Contract tests** above and contract doc **Encoding** section.
 
@@ -84,6 +84,7 @@ Full cross-cutting list: [`../AGENT.passThrough.contract.planning.md`](../AGENT.
 | **Correlation vs routing** explicit unknown documented | Done |
 | **Ingress:** subscribe to **`mtw.ephemera.renderOrchestration`** only (no invoke / **`api.ephemera`**; uncertainty 2) | Done |
 | **Durability:** **`Render Pertains`** / **`Cache Updated`** after write; orchestration **`Render Generated`** generation-only (uncertainty 5) | Done |
+| **Hit path:** IDs from orchestration, **refetch** then **`Render Pertains`** (uncertainty 3) | Done |
 | Design agreed with contract doc (uncertainties resolved) | Not started |
 | Implementation | Not started |
 
