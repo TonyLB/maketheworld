@@ -43,7 +43,7 @@ These bullets are **intentionally vague**; refine or replace as we learn.
 
 1. **Ingress:** Perception becomes a **typed consumer** of internal (and eventually DataSource) **event streams** - not only imperative `perceptionMessage` entry points from scattered callers.
 2. **Registration:** Support a pattern like **register** "when event family **X** arrives, accumulate toward **delivery pattern Y**" (headers, timeline, presence-gated messages) with explicit **correlation** keys where multi-step UX requires them.
-3. **Aggregation:** Handle **out-of-order** arrivals (orchestration before cache, cache before perception, duplicate signals) with **idempotency** rules aligned to the pass-through contract doc.
+3. **Aggregation:** Handle **out-of-order** arrivals (orchestration before cache, cache before perception, duplicate signals). **Duplicate intermediates** (e.g. several **Generating**-class updates) are **acceptable** for delivery; **duplicate terminal / final outputs** for the same logical completion are **not** --- Perception must **collapse** stream noise so registrants see **one** final outcome per correlation (see **Obligations** table, uncertainty **6**).
 4. **Two delivery semantics** (from contract discussions): **correlated** updates (same audience as an earlier placeholder) vs **cache-wide** refresh (new arrivals). Perception may apply **different** routing rules; exact design TBD.
 5. **Thin vertical first:** **state -> room render -> perception** before generalizing **character move**, **player look**, and other triggers already listed in [`perception/AGENT.md`](../../../../../lambda/ephemera/perception/AGENT.md).
 6. **Conversation role:** Reduce reliance on **conversation `sendMessage`** as the correlation backbone for render lifecycle; align with [`conversations/AGENT.md`](../../../../../lambda/ephemera/conversations/AGENT.md) (registry and correlation story).
@@ -58,10 +58,12 @@ Add rows as upstream decisions land. This is **debt we acknowledge** so we do no
 | --- | --- | --- |
 | Pass-through contract | Interpret **`Render Pertains`** (correlated) vs **`Cache Updated`** (abstract) for **different delivery audiences** (present for placeholder vs newly present). | TBD |
 | Pipeline / orchestration | **`renderOrchestration`** removes **`conversation.sendMessage`** for lifecycle in favor of the **six outbound types** (see contract); perception must **not** assume conversation-backed correlation long-term. **`Generation Started`**, **`Orchestration Error`**, **`Generation Deferred`** consumer rules **TBD**. | TBD |
-| Pass-through contract | **Idempotency / ordering** when multiple signals refer to one logical render. | TBD |
+| Pass-through contract **uncertainty 6** (subscriber idempotency) | Producers may emit **duplicate or retried** notifications; Perception **owns** collapsing those into **delivery** semantics: **repeated intermediate** states (e.g. multiple **Generating** / in-flight **`Render Pertains`**) are **fine**; a **registry of who wants what** must **not** surface **two terminal / final** deliveries for the **same** logical completion (same **`cacheId`** + routing identity, or agreed successor key). **Exact** dedupe strategy (monotonic version, last-write-wins, explicit generation nonce) **TBD** at implementation. | TBD |
 | Contract uncertainties | Fan-in must stay **single-path** for passive orchestration (no silent fork); aligns with pass-through contract and rubric **section 4**. | TBD |
 | Epic / rubric | **Fan-in** assembler role: merge orchestration progress, cache events, presence into **PublishMessage** / timeline rules. | TBD |
 | Current code | Preserve or migrate behavior documented in [`perception/AGENT.md`](../../../../../lambda/ephemera/perception/AGENT.md) (triggers, scale, navigation). | TBD |
+
+**Uncertainty 6 (contract):** The pass-through doc leaves **idempotency and duplicate collapse** open at the **system** level. **Orchestration + cache** aim to avoid duplicate **generation** for the same state; **this plan** owns the remaining **subscriber** obligation: **terminal** dedupe for Perception-facing delivery, as in the table row above.
 
 ---
 

@@ -184,7 +184,7 @@ These are **not** small details; **open** items block a normative contract until
 
 5. **`Render Generated` vs durability - resolved (product).** **`Render Generated`** from **`renderOrchestration`** means **only** that **content has been generated** (payload must include **full** content). It **does not** promise **Dynamo** / **`renderCache`** write completion. **`Render Pertains`** and **`Cache Updated`** from **`mtw.ephemera.renderCache`** **also** carry content **and** are the contract surface for **durable** cache facts.
 
-6. **Idempotency and duplicate collapse** for subscribers if multiple signals can fire for one logical outcome. **Unsettled.**
+6. **Idempotency and duplicate collapse** for subscribers if multiple signals can fire for one logical outcome. **Split:** Producers aim to avoid duplicate **work** (generation, etc.); **Perception** owns **subscriber** dedupe so **terminal / final** outputs are not delivered twice for the same logical completion while **intermediate** repeats remain acceptable --- see [`perception/AGENT.perceptionRefactor.planning.md`](perception/AGENT.perceptionRefactor.planning.md) **Obligations** (uncertainty **6** row). **Unsettled** until that behavior is specified in types/tests.
 
 7. **Preview vs passive policy - resolved (product).** **Authoring preview generation** has been **removed** from the system. This contract applies to **passive** orchestration only; there is **no** parallel preview ingress or variant to reconcile.
 
