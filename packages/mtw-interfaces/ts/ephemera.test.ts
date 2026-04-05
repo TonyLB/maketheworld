@@ -2,8 +2,7 @@ import {
     isEphemeraAPIMessage,
     isEphemeraClientMessage,
     isConversationCorrelatedPayload,
-    isEphemeraClientMessageGenerateRoomPreview,
-    isGenerateRoomPreviewConversationStep,
+    isEphemeraClientMessageConversationStep,
     isTerminalConversationStep,
 } from './ephemera'
 
@@ -300,20 +299,12 @@ describe('EphemeraClientMessage typeguard', () => {
 
     })
 
-    describe('GenerateRoomPreview (legacy) and ConversationStep', () => {
+    describe('ConversationStep (generic envelope)', () => {
 
-        it('should accept legacy GenerateRoomPreview', () => {
+        it('should reject legacy GenerateRoomPreview message type', () => {
             expect(isEphemeraClientMessage({
                 messageType: 'GenerateRoomPreview',
                 generateRoomPreview: { success: true, renderedContent: 'x' }
-            })).toBe(true)
-        })
-
-        it('should reject legacy GenerateRoomPreview with conversation correlation fields', () => {
-            expect(isEphemeraClientMessage({
-                messageType: 'GenerateRoomPreview',
-                conversationId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-                generateRoomPreview: { success: true }
             })).toBe(false)
         })
 
@@ -321,29 +312,38 @@ describe('EphemeraClientMessage typeguard', () => {
             expect(isEphemeraClientMessage({
                 messageType: 'ConversationStep',
                 conversationId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-                pipeline: 'generateRoomPreview',
+                pipeline: 'roomStateRender',
                 step: 'generating'
             })).toBe(true)
         })
 
-        it('should reject generating ConversationStep with generateRoomPreview set', () => {
+        it('should reject ConversationStep with legacy generateRoomPreview field', () => {
             expect(isEphemeraClientMessage({
                 messageType: 'ConversationStep',
                 conversationId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-                pipeline: 'generateRoomPreview',
+                pipeline: 'roomStateRender',
                 step: 'generating',
                 generateRoomPreview: { success: true }
             })).toBe(false)
         })
 
-        it('should accept ConversationStep complete', () => {
+        it('should accept ConversationStep complete with payload', () => {
             expect(isEphemeraClientMessage({
                 messageType: 'ConversationStep',
                 conversationId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-                pipeline: 'generateRoomPreview',
+                pipeline: 'roomStateRender',
                 step: 'complete',
-                generateRoomPreview: { success: true, renderedContent: 'x' }
+                payload: { result: 'ok' }
             })).toBe(true)
+        })
+
+        it('should reject empty pipeline', () => {
+            expect(isEphemeraClientMessage({
+                messageType: 'ConversationStep',
+                conversationId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+                pipeline: '',
+                step: 'generating'
+            })).toBe(false)
         })
     })
 })
@@ -356,18 +356,25 @@ describe('conversation correlation helpers', () => {
         expect(isConversationCorrelatedPayload({})).toBe(false)
     })
 
-    it('isConversationStepGenerateRoomPreview', () => {
+    it('isEphemeraClientMessageConversationStep', () => {
         const gen = {
             messageType: 'ConversationStep',
             conversationId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-            pipeline: 'generateRoomPreview',
+            pipeline: 'roomStateRender',
             step: 'generating'
         }
-        expect(isGenerateRoomPreviewConversationStep(gen)).toBe(true)
-        expect(isGenerateRoomPreviewConversationStep({
+        expect(isEphemeraClientMessageConversationStep(gen)).toBe(true)
+        expect(isEphemeraClientMessageConversationStep({
             messageType: 'GenerateRoomPreview',
             generateRoomPreview: { success: true }
         })).toBe(false)
+        expect(isEphemeraClientMessageConversationStep({
+            messageType: 'ConversationStep',
+            conversationId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+            pipeline: 'x',
+            step: 'complete',
+            payload: {}
+        })).toBe(true)
     })
 
     it('isTerminalConversationStep', () => {
@@ -375,37 +382,30 @@ describe('conversation correlation helpers', () => {
         expect(isTerminalConversationStep({
             messageType: 'GenerateRoomPreview',
             generateRoomPreview: { success: true }
-        })).toBe(true)
+        })).toBe(false)
         expect(isTerminalConversationStep({
             messageType: 'ConversationStep',
             conversationId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-            pipeline: 'generateRoomPreview',
+            pipeline: 'roomStateRender',
             step: 'generating'
         })).toBe(false)
         expect(isTerminalConversationStep({
             messageType: 'ConversationStep',
             conversationId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-            pipeline: 'generateRoomPreview',
+            pipeline: 'roomStateRender',
             step: 'complete',
-            generateRoomPreview: { success: true }
+            payload: { ok: true }
         })).toBe(true)
         expect(isTerminalConversationStep({
             messageType: 'ConversationStep',
             conversationId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-            pipeline: 'generateRoomPreview',
+            pipeline: 'roomStateRender',
             step: 'error',
-            generateRoomPreview: { success: false, errorMessage: 'e' }
+            payload: { code: 'e' }
         })).toBe(true)
         expect(isTerminalConversationStep({
             messageType: 'Messages',
             messages: []
         })).toBe(false)
-    })
-
-    it('isEphemeraClientMessageGenerateRoomPreview narrows', () => {
-        expect(isEphemeraClientMessageGenerateRoomPreview({
-            messageType: 'GenerateRoomPreview',
-            generateRoomPreview: { success: true }
-        })).toBe(true)
     })
 })

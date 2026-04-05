@@ -60,6 +60,7 @@ Defines interfaces for real-time game state and character interactions:
 - **`EphemeraClientMessagePublishMessages`**: Chat and narrative messages
 - **`EphemeraClientMessageRegister/UnregisterMessage`**: Character registration confirmations
 - **`EphemeraClientMessageSubscribeToMapsMessage`**: Map subscription confirmations
+- **`EphemeraClientMessageConversationStep`** (`ephemera.ts`): Correlated multi-message streams over LifeLine (e.g. `socketDispatchConversation` in charcoal-client). Fields include `conversationId`, non-empty `pipeline` (string; narrow per feature as needed), `step` (`generating` | `complete` | `error`), optional `RequestId`, and optional `payload` on terminal steps. [`isTerminalConversationStep`](ts/ephemera.ts) treats `Error` and terminal `ConversationStep` as stream completion. Preview-only wire shapes were removed; new pipelines extend this envelope with additional types next to the base definition in `ephemera.ts`.
 
 ### 3. **Message Display** (`messages.ts`)
 

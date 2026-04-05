@@ -212,7 +212,7 @@ Single-item orchestration lives in [`dataSource/renderOrchestration/orchestratio
 
 ### Authoring preview (removed)
 
-The former **workbench preview** path (dedicated API message, `Render Preview Requested` ingress, preview conversation type, and `ConversationStep` streaming to one client) has been **removed** from lambda and charcoal-client. Shared **wire types** for legacy messages may still exist in `packages/mtw-interfaces` until the [interfaces remove-preview pass](../../../taskPlanning/packages/mtw-interfaces/AGENT.removePreviewGeneration.planning.md).
+The former **workbench preview** path (dedicated API message, `Render Preview Requested` ingress, preview conversation type, and preview-only `ConversationStep` streaming to one client) has been **removed** from lambda and charcoal-client. Preview-only **wire types** were removed from **`@tonylb/mtw-interfaces`**; a generic **`ConversationStep`** envelope remains for future correlated streams (see [`packages/mtw-interfaces/AGENT.md`](../../../packages/mtw-interfaces/AGENT.md), [`ts/ephemera.ts`](../../../packages/mtw-interfaces/ts/ephemera.ts)).
 
 ---
 

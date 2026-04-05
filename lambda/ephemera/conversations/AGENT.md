@@ -56,7 +56,7 @@ Prefer tests that exercise the **composite `get`** when you need end-to-end beha
 
 ## Wire types (`packages/mtw-interfaces`)
 
-Legacy **preview** client/API shapes (e.g. **`GenerateRoomPreview`**, **`ConversationStep`** with **`pipeline: 'generateRoomPreview'`**) may still exist in **`@tonylb/mtw-interfaces`** until the [interfaces remove-preview pass](../../../taskPlanning/packages/mtw-interfaces/AGENT.removePreviewGeneration.planning.md). Lambda no longer defines a **`generateRoomPreview`** **conversation** variant or **`GenerateRoomPreviewResult`** next to storable rows.
+Preview-only **client/API** shapes (e.g. legacy **`GenerateRoomPreview`**, **`ConversationStep`** tied to **`pipeline: 'generateRoomPreview'`**, preview API message) have been **removed** from **`@tonylb/mtw-interfaces`**. A generic **`EphemeraClientMessageConversationStep`** remains; see [`packages/mtw-interfaces/AGENT.md`](../../../packages/mtw-interfaces/AGENT.md) and [`ts/ephemera.ts`](../../../packages/mtw-interfaces/ts/ephemera.ts). Lambda does not define a **`generateRoomPreview`** **conversation** variant or **`GenerateRoomPreviewResult`** next to storable rows.
 
 ## Temporary: `conversationId` on renderCache bus traffic
 
