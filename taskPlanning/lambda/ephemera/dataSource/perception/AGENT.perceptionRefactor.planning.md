@@ -57,6 +57,7 @@ Add rows as upstream decisions land. This is **debt we acknowledge** so we do no
 | Source | Obligation (draft) | Status |
 | --- | --- | --- |
 | Pass-through contract | Interpret **`Render Pertains`** (correlated) vs **`Cache Updated`** (abstract) for **different delivery audiences** (present for placeholder vs newly present). | TBD |
+| Pipeline / orchestration | **`renderOrchestration`** removes **`conversation.sendMessage`** for lifecycle in favor of the **six outbound types** (see contract); perception must **not** assume conversation-backed correlation long-term. **`Generation Started`**, **`Orchestration Error`**, **`Generation Deferred`** consumer rules **TBD**. | TBD |
 | Pass-through contract | **Idempotency / ordering** when multiple signals refer to one logical render. | TBD |
 | Contract uncertainties | **Preview vs passive** policy may require **variant** fan-in rules; perception must not fork silently (rubric sub-goal). | TBD |
 | Epic / rubric | **Fan-in** assembler role: merge orchestration progress, cache events, presence into **PublishMessage** / timeline rules. | TBD |
@@ -71,6 +72,7 @@ Add rows as upstream decisions land. This is **debt we acknowledge** so we do no
 - **State storage:** Does fan-in keep **ephemeral aggregation** in memory only, or durable checkpoints for replay?
 - **Testing:** Contract tests for perception fan-in (see [`Encoding the contract in unit tests`](../AGENT.passThrough.contract.planning.md#encoding-the-contract-in-unit-tests)); how much is **integration** vs **unit** with fake event streams?
 - **Breadth ordering:** After the thin vertical, do **move** and **look** share one aggregator or separate subsystems?
+- **Registration keys:** If **`Render Pertains`** emphasizes **component x perspective** (and cache identity) over **`conversationId`**, does Perception register handlers by those **routing** dimensions so assembly does not depend on synthetic correlation from cache? (Aligned with [`renderCache/AGENT.passThrough.planning.md`](../renderCache/AGENT.passThrough.planning.md) **Correlation vs routing** and contract uncertainty 9.)
 
 ---
 

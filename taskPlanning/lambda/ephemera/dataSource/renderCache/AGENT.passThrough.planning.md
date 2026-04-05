@@ -8,7 +8,7 @@
 
 ## Purpose (intent only)
 
-Capture **package-local** planning for [`lambda/ephemera/dataSource/renderCache/`](../../../../../lambda/ephemera/dataSource/renderCache/index.ts) behavior: how **`mtw.ephemera.renderCache`** participates in a pass-through pattern so that **both** paths that **write** cache records and paths where content is **already** in the cache can surface a **single subscribable story** ("this render is relevant for this component/perspective / correlation"). Shared semantics and payload rules live in the cross-cutting contract doc, not duplicated here.
+Capture **package-local** planning for [`lambda/ephemera/dataSource/renderCache/`](../../../../../lambda/ephemera/dataSource/renderCache/index.ts) behavior: how **`mtw.ephemera.renderCache`** participates in a pass-through pattern so that **both** paths that **write** cache records and paths where content is **already** in the cache can surface a **single subscribable story** ("this render is relevant for this component/perspective," plus whatever **routing or correlation** we settle on). Shared semantics and payload rules live in the cross-cutting contract doc, not duplicated here.
 
 ---
 
@@ -19,6 +19,7 @@ Capture **package-local** planning for [`lambda/ephemera/dataSource/renderCache/
 | [`taskPlanning/AGENT.md`](../../../../AGENT.md) | Task planning framework |
 | [`../AGENT.passThrough.contract.planning.md`](../AGENT.passThrough.contract.planning.md) | **Canonical cross-cutting contract** (draft) |
 | [`../renderOrchestration/AGENT.passThrough.planning.md`](../renderOrchestration/AGENT.passThrough.planning.md) | Orchestration-side draft plan |
+| [`../currentCachePointers/AGENT.cachePointersRefactor.planning.md`](../currentCachePointers/AGENT.cachePointersRefactor.planning.md) | **`mtw.ephemera.currentCachePointers`** - meta pointers (stub) |
 | [`lambda/ephemera/renderCache/AGENT.md`](../../../../../lambda/ephemera/renderCache/AGENT.md) | Durable cache domain reference |
 | [`lambda/ephemera/renderCache/AGENT.migration.md`](../../../../../lambda/ephemera/renderCache/AGENT.migration.md) | Boundary invariants (writes vs lookups) |
 | [`lambda/ephemera/dataSource/renderCache/index.ts`](../../../../../lambda/ephemera/dataSource/renderCache/index.ts) | DataSource entry (implementation) |
@@ -40,9 +41,12 @@ Canonical rules: [`../AGENT.passThrough.contract.planning.md`](../AGENT.passThro
 
 Canonical detail lives in [`../AGENT.passThrough.contract.planning.md`](../AGENT.passThrough.contract.planning.md). Package-local summary:
 
-- **Own (hypothesis):** **`Render Pertains`** (provisional name) as the correlated outbound: "this cache row + this `conversationId` (or successor) trace the answer." Emitted for **both** hit and generate outcomes once orchestration has signaled **`Render Matched`** or **`Render Generated`** per that doc.
-- **On `Render Generated` path (hypothesis):** Also emit **`Cache Updated`**-class abstract churn **unless** we consolidate with the existing put path (see contract **uncertainties**).
-- **On `Render Matched` path (hypothesis):** **`Render Pertains` only** (no new write).
+- **Own (hypothesis):** **`Render Pertains`** (provisional name) as the outbound that ties a **cache row** to whatever downstream needs to **assemble** player-visible output. Emitted when orchestration signals **`Current Cache Valid`**, **`Exact Match Found`**, or **`Render Generated`** (per [contract **Orchestration outbounds**](../AGENT.passThrough.contract.planning.md)); map each to **`Render Pertains`** / **`Cache Updated`** as described there.
+- **On `Render Generated` (hypothesis):** Also emit **`Cache Updated`**-class abstract churn **unless** we consolidate with the existing put path (see contract **uncertainties**).
+
+**Correlation vs routing (explicit unknown):** It is **not** decided that **`Render Pertains`** should carry **`conversationId`** (or any similar **synthetic** id) so **Perception** can match a pre-registered **conversation-scoped** handling pattern. That was convenient when orchestration used **conversation `sendMessage`**; it may **not** be the stronger long-term shape. A plausible alternative: **`Render Pertains`** carries **routing facts** (e.g. **this is the current render for this component x this perspective**, plus cache identity) and **Perception** registers **enough** intent (by component, perspective, pipeline step, etc.) to assemble messaging from those events **without** relying on a parallel correlation id from cache. The same fields are needed for planned **`mtw.ephemera.currentCachePointers`** (subscribe to **`Render Pertains`** to **set** meta pointers). This choice is **upstream of** payload design in [`../AGENT.passThrough.contract.planning.md`](../AGENT.passThrough.contract.planning.md); resolve in tandem with [`../perception/AGENT.perceptionRefactor.planning.md`](../perception/AGENT.perceptionRefactor.planning.md) and [`../currentCachePointers/AGENT.cachePointersRefactor.planning.md`](../currentCachePointers/AGENT.cachePointersRefactor.planning.md).
+- **On `Current Cache Valid` / `Exact Match Found` (hypothesis):** **`Render Pertains` only** (no new write).
+- **Upstream:** Orchestration is moving **off** **`conversation.sendMessage`** toward **streamed events** ([`renderOrchestration/AGENT.passThrough.planning.md`](../renderOrchestration/AGENT.passThrough.planning.md)); this package must consume **those** signals (subscribe or invoke per contract), not the conversation adapter.
 - **Relationship to existing outbounds:** [`lambda/ephemera/dataSource/renderCache/index.ts`](../../../../../lambda/ephemera/dataSource/renderCache/index.ts) and today's **`Cache Updated`** behavior; duplicate-risk on generate path is **explicitly unsettled** in the contract doc.
 - **Out of scope for this stub:** Orchestration branching; perception assembly (epic-level).
 
@@ -55,7 +59,8 @@ Full cross-cutting list: [`../AGENT.passThrough.contract.planning.md`](../AGENT.
 - **Ingress / wiring:** Subscribe to orchestration events vs **api.ephemera** or internal invoke from orchestration. **Unsettled** (contract item 2).
 - **Generate path:** Avoid or define **double `Cache Updated`** when put already fires from persistence. **Unsettled** (contract item 1).
 - **Pipeline placement:** Where **`Render Pertains`** is emitted relative to Dynamo writes on generate so ordering matches the rubric. **Unsettled** (contract item 5).
-- **Match path:** If **`Render Matched`** carries ids only, whether this package **re-reads** Dynamo and how that interacts with consistency. **Unsettled** (contract item 3).
+- **Hit-path outbounds:** If **`Current Cache Valid`** / **`Exact Match Found`** carry ids only, whether this package **re-reads** Dynamo and how that interacts with consistency. **Unsettled** (contract item 3).
+- **Correlation vs routing:** Whether **`Render Pertains`** keys subscribers by **`conversationId`**, by **component x perspective** (and related routing), or by a hybrid; see **Correlation vs routing** under Scope. Cross-reference: contract **uncertainty 9**. **Unsettled.**
 - **Testing:** Which existing tests become regression anchors once behavior exists; align with **Contract tests** above and contract doc **Encoding** section.
 
 ---
@@ -75,7 +80,8 @@ Full cross-cutting list: [`../AGENT.passThrough.contract.planning.md`](../AGENT.
 | --- | --- |
 | Draft stub created | Done |
 | Contract-as-tests strategy linked (`Encoding the contract in unit tests`) | Done |
-| Refined direction aligned with contract (`Render Pertains`, `Cache Updated` pairing on generate TBD) | Done |
+| Refined direction aligned with contract (`Render Pertains`, six orchestration outbounds mapped, `Cache Updated` pairing on generate TBD) | Done |
+| **Correlation vs routing** explicit unknown documented | Done |
 | Design agreed with contract doc (uncertainties resolved) | Not started |
 | Implementation | Not started |
 
