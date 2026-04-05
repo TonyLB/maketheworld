@@ -121,7 +121,7 @@ Orchestration **does not** own the **final** "ready for this conversation" emiss
 
 **Exit `conversation.sendMessage` (priority):** The current passive path registers **`roomStateRender`**, then routes **`findRender`** terminals through **`materializeRoomStateRender`** -> **`conversation.sendMessage`** -> **`messageBus.send`** (e.g. `RenderReady`). That coupling is **expedient**, not target architecture. Refactor work should **prioritize removing** orchestration's dependency on **`conversation.sendMessage`** and on that materialization adapter for pipeline outcomes, in favor of **streamed / published events** consumed by **`renderCache`** and eventually **perception**. Intermediate progress (e.g. "generating") must follow the same rule: **no** new long-lived reliance on conversation handles for orchestration delivery.
 
-**Today vs intent:** Until code catches up, legacy paths may still exist on a branch; the **intent** is to replace them **as soon as** replacement events exist, not to treat conversation as a parallel strangler indefinitely. **Migration** off **`RenderReady`** via `roomStateRender` materialization is an explicit open item (see uncertainty 4).
+**Today vs intent:** Until code catches up, legacy paths may still exist on a branch; the **intent** is to replace them **as soon as** replacement events exist, not to treat conversation as a parallel strangler indefinitely. There are **no** charcoal-client or other **external** subscribers that listen for **`RenderReady`** as "show this"; **`RenderReady`** is **internal** ephemera **`messageBus`** materialization today. The refactor is **producer-side** (orchestration stream + **`renderCache`** **`Render Pertains`**), not a **downstream listener migration** (uncertainty 4 resolved).
 
 ### Routing identity on producer streams (Perception delivery model)
 
@@ -173,7 +173,7 @@ These are **not** small details; **open** items block a normative contract until
 
 3. **Hit-path outbound payload authority.** For **`Current Cache Valid`** and **`Exact Match Found`**, whether the event carries a **full cache row** (forward without re-read) or **ids only** (renderCache re-fetches), with implications for races and consistency. **Unsettled.** (Body field **names** for hits are narrowed in **Limited refinement: per-outbound body fields**; authority full-row vs ids remains open.)
 
-4. **Listener migration from `RenderReady`.** Consumers that today treat **`RenderReady`** as "show this" must move to **`Render Pertains`** (or agreed successor); scope of file/listener changes **Unsettled.**
+4. **`RenderReady` subscriber migration - resolved (product).** There is **no** separate **listener** or **client** migration: no **`RenderReady`** subscribers exist outside **internal** ephemera wiring (tests and **`roomStateRender`** materialization). **`Render Pertains`** replaces the **correlated readiness** story at **producers** (**`renderCache`**), not by moving **N** downstream consumers.
 
 5. **`Render Generated` vs durability timing.** Whether "generated" means LLM finished, **Dynamo write completed**, or both; rubric cares about races with write-through. **Unsettled.**
 
@@ -195,7 +195,6 @@ These are **not** small details; **open** items block a normative contract until
 
 Use this section as a scratchpad; prefer **Uncertainties** for blockers.
 
-- Relationship of **`RenderReady`** to **`Render Pertains`** during migration (overlap period, deprecation).
 - Epic **Streams, contracts, graduation** may still affect **client** consumption and **envelopes**; **orchestration** carrier for this contract is **`mtw.ephemera.renderOrchestration`** **DataSource stream** (uncertainty 8 transport resolved).
 - **Per-call-site mapping:** Prose mapping is in **Limited refinement**; **implementation**, **envelopes**, and **typed** module location still TBD (uncertainty 8).
 
@@ -221,6 +220,7 @@ Use this section as a scratchpad; prefer **Uncertainties** for blockers.
 | **Limited refinement:** per-outbound **body** fields (narrow; doc remains draft) | Done |
 | **Lean routing + Perception** (**Routing identity**); **no synthetic id** on **`Render Pertains`** (uncertainty 9 resolved) | Done |
 | **`renderCache`** subscribes to orchestration stream (**no** orchestration invoke or **`api.ephemera`** handoff; uncertainty 2 resolved) | Done |
+| **No `RenderReady` listener migration** (no external subscribers; uncertainty 4 resolved) | Done |
 | **Preview generation removed**; passive-only contract (uncertainty 7 resolved) | Done |
 | Passive state: **S = A ∪ P** set algebra + **`allowGeneration`** on **A** vs **P ∖ A** (uncertainty 10 narrowed; code still TBD) | Done |
 | **`Generation Skipped` -> `Generation Deferred`**; **`currentCachePointers`** role + uncertainty 11 (bus ordering) | Done |

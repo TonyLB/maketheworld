@@ -98,7 +98,7 @@ Order is **logical**, not a promise of calendar sequencing; adjust this table in
 
 - Track **active vs skipped** contract tests over time (optional: small table in contract doc Progress or a single `*.test.ts` file header).
 - ~~Add **links to perception task plan(s)**~~ - see [`perception/AGENT.perceptionRefactor.planning.md`](../../taskPlanning/lambda/ephemera/dataSource/perception/AGENT.perceptionRefactor.planning.md) (expand as Phase D nears).
-- Add **explicit migration / overlap** notes for `RenderReady` and conversation materialization when phases B-D start (mirror contract doc).
+- ~~Add **explicit migration / overlap** notes for `RenderReady` and conversation materialization~~ - contract doc: **no** external **`RenderReady`** listeners; producer-path / cutover overlap only (uncertainty 4 resolved).
 - Optionally add a one-line row to the parent epic **Contributing and subordinate planning documents** table pointing here.
 
 ---
