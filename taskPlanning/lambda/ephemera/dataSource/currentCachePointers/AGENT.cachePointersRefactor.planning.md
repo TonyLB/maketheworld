@@ -22,7 +22,7 @@ Introduce an **`mtw.ephemera.currentCachePointers`** DataSource (name provisiona
 | Source | Instruction | Target data |
 | --- | --- | --- |
 | **`Generation Deferred`** (orchestration outbound; renamed from **`Generation Skipped`** in contract prose) | **Clear** the relevant **meta pointer(s)** for the component/perspective in scope. | **`Meta::Room`** (etc.) pointer fields - **not** deletion of **`CACHE#...`** rows. |
-| **`Render Pertains`** (from **`mtw.ephemera.renderCache`**) | **Set** meta pointers to the **cache id** and keys implied by the payload (perspective fingerprint, component id, and **routing / correlation** fields per contract uncertainty 9). | Same meta rows as above. |
+| **`Render Pertains`** (from **`mtw.ephemera.renderCache`**) | **Set** meta pointers to the **cache id** and keys implied by the payload (**`componentId`**, **`perspectiveKey`** / perspective fingerprint; **no** synthetic correlation id on the wire --- contract uncertainty 9 resolved). | Same meta rows as above. |
 
 **Subscriber-only:** This DataSource should **not** call **`findRender`**, **`putCacheRecord`**, or LLM generation for normal operation; it **projects** facts emitted by orchestration and **`renderCache`**.
 
@@ -30,7 +30,7 @@ Introduce an **`mtw.ephemera.currentCachePointers`** DataSource (name provisiona
 
 ## Cross-cutting constraints
 
-- **Correlation:** Payloads must be rich enough for **`currentCachePointers`** **and** **Perception** (see contract **uncertainty 9** and [`../renderCache/AGENT.passThrough.planning.md`](../renderCache/AGENT.passThrough.planning.md) **Correlation vs routing**).
+- **Correlation:** Payloads must be rich enough for **`currentCachePointers`** **and** **Perception** using **lean routing** + **`cacheId`** (contract uncertainty 9 resolved; [`../renderCache/AGENT.passThrough.planning.md`](../renderCache/AGENT.passThrough.planning.md) **Correlation vs routing**).
 - **Ordering:** Reliable ordering between orchestration, **`renderCache`**, and pointer updates is **hard** today; the contract records **uncertainty 11** ( **`messageBus`** revisions, e.g. **atomic sub-runs**). Treat as a **separate future refactor** - not a blocker for **this** stub's prose, but a blocker for **normative** no-races claims.
 
 ---

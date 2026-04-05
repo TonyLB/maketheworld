@@ -72,7 +72,7 @@ Add rows as upstream decisions land. This is **debt we acknowledge** so we do no
 - **State storage:** Does fan-in keep **ephemeral aggregation** in memory only, or durable checkpoints for replay?
 - **Testing:** Contract tests for perception fan-in (see [`Encoding the contract in unit tests`](../AGENT.passThrough.contract.planning.md#encoding-the-contract-in-unit-tests)); how much is **integration** vs **unit** with fake event streams?
 - **Breadth ordering:** After the thin vertical, do **move** and **look** share one aggregator or separate subsystems?
-- **Registration keys:** If **`Render Pertains`** emphasizes **component x perspective** (and cache identity) over **`conversationId`**, does Perception register handlers by those **routing** dimensions so assembly does not depend on synthetic correlation from cache? (Aligned with [`renderCache/AGENT.passThrough.planning.md`](../renderCache/AGENT.passThrough.planning.md) **Correlation vs routing** and contract uncertainty 9.)
+- **Registration keys:** **`Render Pertains`** uses **component x perspective** (+ **`cacheId`**) on the wire, **not** **`conversationId`** (contract uncertainty 9 resolved). Does Perception register handlers by those **routing** dimensions so assembly does not depend on **delivery** fields being echoed on producer streams? (Aligned with [`renderCache/AGENT.passThrough.planning.md`](../renderCache/AGENT.passThrough.planning.md) **Correlation vs routing**.)
 
 ---
 
