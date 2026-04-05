@@ -40,6 +40,8 @@ These documents **contributed** to the journey so far. They remain **authoritati
 | Document | Role |
 |----------|------|
 | [AGENT.ephemeraPerceptionVertical.planning.completionRubric.md](AGENT.ephemeraPerceptionVertical.planning.completionRubric.md) | **Completion rubric** (unordered outcome goals). Complements short-term task lists; does not encode execution order. |
+| [AGENT.ephemeraPerceptionVertical.contractAlign.planning.md](AGENT.ephemeraPerceptionVertical.contractAlign.planning.md) | **Sub-epic: contract alignment** - pass-through / readiness contract, phase order (orchestration, renderCache, perception), links to [`taskPlanning/.../AGENT.passThrough.contract.planning.md`](../../taskPlanning/lambda/ephemera/dataSource/AGENT.passThrough.contract.planning.md) and related task plans. |
+| [`taskPlanning/.../perception/AGENT.perceptionRefactor.planning.md`](../../taskPlanning/lambda/ephemera/dataSource/perception/AGENT.perceptionRefactor.planning.md) | **Perception big refactor** (draft) - fan-in / DataSource direction, obligations from pipeline work; broader than pass-through alone. |
 | [AGENT.caching.planning.md](AGENT.caching.planning.md) | Early **Ephemera caching and generation** plan; blueprint vs moment-to-moment; MVP iterations; **entangled concerns** (state, generation, caching, streaming). Still valuable as **technical history** and cache-centric detail. |
 | [renderCache/AGENT.md](renderCache/AGENT.md) | Schema, lookup model, links caching plan; implementation reference for cache rows. |
 | [renderCache/AGENT.migration.md](renderCache/AGENT.migration.md) | **Strangler** migration and **boundary invariants**: `mtw.ephemera.renderCache` for writes, `internalCache.RenderCache` / `getExactMatch` for lookups; completed steps + regression guardrails (orchestration must not re-couple to ad hoc persistence). |
@@ -66,11 +68,21 @@ These documents **contributed** to the journey so far. They remain **authoritati
 
 These are **themes**, not a duplicate of every checkbox in subordinate docs:
 
-1. **Single observable "ready for perception" path** across **hits** (no new write) vs **misses** (generate + persist), without races between **orchestration** and **renderCache** durability.
+1. **Single observable "ready for perception" path** across **hits** (no new write) vs **misses** (generate + persist), with **durable** cache facts owned by **`renderCache`** (**`Render Pertains`** / **`Cache Updated`**), not by orchestration **`Render Generated`** (pass-through contract uncertainty 5).
 2. **Stream vs messageBus** graduation for lifecycle events (`RenderReady`, progress, cache completion) and **subscriber** registry.
 3. **Perception as fan-in** (or equivalent assembler): merge **orchestration progress**, **renderCache** outbounds, and **presence** into **PublishMessage** / timeline rules.
 4. **Migration** off imperative **`sendPutCacheRecord`**-only stories where a **domain** outbound is the right seam (incremental; **componentExamples** and other call sites must stay accounted for).
 5. **Documentation consolidation**: reduce duplicate **active** planning surfaces; retain **historical** records where useful (see below).
+
+## Intended sequencing: pass-through implementation waves (exploration)
+
+Cross-cutting detail lives in [`taskPlanning/lambda/ephemera/dataSource/AGENT.passThrough.contract.planning.md`](../../taskPlanning/lambda/ephemera/dataSource/AGENT.passThrough.contract.planning.md#intended-implementation-sequencing-exploration). Summary:
+
+1. **Graduate then implement `renderOrchestration`** pass-through task plan while the **contract** may stay **partially draft** --- aim for **real stream emissions** and foundations; narrow open items at boundaries as needed.
+2. **Graduate then implement `renderCache`** pass-through plan **next**; it should be **close behind** orchestration because shared handoff semantics clarify during step 1.
+3. **Those two waves do not complete the epic:** **Perception** refactor, **`currentCachePointers`**, **`messageBus`** ordering, and other contract-linked plans still need a **design return** before they are equally executable.
+
+This is **exploration sequencing**, not a commitment that the contract becomes normative before orchestration code lands.
 
 ## Completion rubric (outcomes vs tasks)
 

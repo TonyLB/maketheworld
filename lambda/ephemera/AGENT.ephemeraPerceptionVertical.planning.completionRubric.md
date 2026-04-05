@@ -34,7 +34,7 @@ End state: producers publish **typed** events; consumers subscribe with **explic
 ### Sub-goals
 
 - [ ] State-driven refresh has a **canonical path** from authoritative state writes to render work (see also section 5).
-- [ ] Render lifecycle signals (`RenderGenerationStarted`, `RenderReady`, cache outcomes, etc.) have a **clear split** between preview vs presence-driven paths where product requires different behavior.
+- [ ] Render lifecycle signals (`RenderGenerationStarted`, `RenderReady`, cache outcomes, etc.) are coherent on the **passive / presence-driven** path (authoring **preview** branch removed).
 
 ---
 
@@ -44,7 +44,7 @@ End state: **long-lived render cache** is the durable substrate for **LLM-backed
 
 - [ ] **Cache rows** and pointer policy are coherent with orchestration resolve (`findRender` / generation) without duplicate exact-match stacks.
 - [ ] **Miss path** (generate + persist) and **hit path** are both well-defined relative to perception and conversations.
-- [ ] **renderCache DataSource** outbounds (`Cache Updated`, errors) align with orchestration and perception needs where graduation requires it (no ambiguous "who owns durability" gaps).
+- [ ] **renderCache DataSource** outbounds (`Render Pertains`, `Cache Updated`, errors) align with orchestration and perception needs where graduation requires it; **durable** readiness is owned by **`renderCache`**, not orchestration **`Render Generated`** (pass-through contract).
 
 ### Sub-goals
 
@@ -72,12 +72,12 @@ End state: **renderOrchestration** fans **out** work by perspective/target; **pe
 End state: **presentation** can rely on **one** notion of "ready for perception" without racing **write-through cache**, orchestration terminals, and perception delivery.
 
 - [ ] **Hits** (no new cache write) and **misses** (generate + persist) both land in a **single observable readiness story** for clients where the product demands it.
-- [ ] **No systematic races** between orchestration completion signals and **`renderCache`** durability that the UI cannot reason about.
+- [ ] **No systematic races** between **orchestration** **`Render Generated`** (generation-only, **not** a durability signal) and **`renderCache`** **`Render Pertains`** / **`Cache Updated`** (durable) that the UI cannot reason about (pass-through contract uncertainty 5).
 - [ ] **Graduation** targets for render orchestration (authoritative outbounds, reduced conversation-only coupling) are either met or superseded by an explicit newer contract **documented** as such.
 
 ### Sub-goals
 
-- [ ] Preview vs passive policy for intake errors and lifecycle messaging is **centralized** enough that new paths do not fork silently (see render orchestration planning).
+- [ ] Orchestration policy for intake errors and lifecycle messaging is **centralized** enough that new paths do not fork silently (see render orchestration planning).
 
 ---
 
@@ -101,7 +101,7 @@ End state: **internal bus** vs **`StreamingEvent` / DataSource** envelopes have 
 
 - [ ] **Subscriber registry** (or equivalent) exists where multiple consumers must coordinate on the same events without spaghetting imports.
 - [ ] **Replay / durability** policy for perception-relevant streams is **explicit** (`replayable`, EventBridge, etc.) and matches product needs.
-- [ ] **WebSocket / client** contract for multi-stage preview and passive refresh is **documented** end-to-end (server planning + client lifeLine docs where applicable).
+- [ ] **WebSocket / client** contract for passive refresh and lifecycle delivery is **documented** end-to-end (server planning + client lifeLine docs where applicable).
 
 ### Sub-goals
 
