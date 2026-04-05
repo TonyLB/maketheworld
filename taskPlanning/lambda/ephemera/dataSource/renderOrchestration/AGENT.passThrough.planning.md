@@ -30,6 +30,20 @@ Describe how [`lambda/ephemera/dataSource/renderOrchestration/`](../../../../../
 
 ---
 
+## No `Put Cache Record` from orchestration (pass-through)
+
+**Product rule:** For **passive / six-outbound** generation completion, this package must **not** enqueue **`Put Cache Record`** by **any** mechanism, including:
+
+- **`api.ephemera`** helpers such as **`sendPutCacheRecord`**
+- **`publishPutCacheRecord`** / **`defaultPublishPutCacheRecord`** (today wired from [`generateRoomPreview`](../../../../../lambda/ephemera/dataSource/renderOrchestration/generateRoomPreview.ts) on success)
+- **Any** future helper that queues the same command on **`messageBus`**
+
+**Why:** **`renderCache`** is the **durability boundary** for that flow: it **subscribes** to **`Render Generated`**, performs the **single** durable write (via the same internal primitive as other **`Put Cache Record`** handlers), and emits **`Render Pertains`** / **`Cache Updated`**. If orchestration **also** enqueued **`Put Cache Record`**, subscribers could see **duplicate** **`Cache Updated`**-class signals for one generation. **Other domains** (e.g. asset-blueprint) continue to enqueue **`Put Cache Record`** for **their** writes; this rule applies to **orchestration-owned** generation only.
+
+**Canonical contract:** [`../AGENT.passThrough.contract.planning.md`](../AGENT.passThrough.contract.planning.md) **uncertainty 1** (resolved).
+
+---
+
 ## Passive state updates: resolve set **S**, generation capped (direction)
 
 **Canonical set algebra** (prose agreed; code may still implement **A** only): [`../AGENT.passThrough.contract.planning.md`](../AGENT.passThrough.contract.planning.md#state-driven-fan-out-set-and-allowgeneration-set-algebra) --- **A** = perspectives with an **audience**, **P** = perspectives with a **meta pointer** in **`Meta::Room.currentCacheByPerspective`**, **S = A ∪ P**, **`allowGeneration`** **false** on **P ∖ A** (cheap **`findRender`** only) and may be **true** on **A** per product policy. **Not** skipping **`renderOrchestration`:** every perspective in **S** gets a **`findRender`** run; cost is capped by **`allowGeneration`**, not by bypassing orchestration.
@@ -97,7 +111,7 @@ Canonical detail: [`../AGENT.passThrough.contract.planning.md`](../AGENT.passThr
 
 - **Emit (hypothesis):** The **six outbounds** in **Outbound taxonomy** above; **`Current Cache Valid`** and **`Exact Match Found`** replace the old combined "match hit" and carry **IDs only** on the stream (**`cacheId`** + routing; **no** full row forward --- contract uncertainty 3); **`Generation Started`** / **`Render Generated`** cover the slow path; **`Orchestration Error`** and **`Generation Deferred`** cover failure and policy deferrals. **Not** the final request-scoped "ready for perception" subscriber contract (that remains **`Render Pertains`** on **`renderCache`** per contract). **`Generation Deferred`** consumers for **meta pointers**: [`../currentCachePointers/AGENT.cachePointersRefactor.planning.md`](../currentCachePointers/AGENT.cachePointersRefactor.planning.md).
 - **Passive state / state-driven fan-out (hypothesis):** Fan out **`findRender`** for every perspective in **S** per contract; **cap** cost with **`allowGeneration`** on **A** vs **P ∖ A** (see **Passive state updates** above).
-- **Stop / migrate (hypothesis):** Today's passive path maps **`resolved`** to **`RenderReady`** (and related shapes) via [`roomStateRender/materialize`](../../../../../lambda/ephemera/conversations/conversationTypes/roomStateRender/materialize.ts) and **`conversation.sendMessage`**. **Product decision:** the **target** system **does not** emit **`RenderReady`**, **`RenderInvalidate`**, or **`RenderError`** through that path for orchestration outcomes; they are **superseded** by **`mtw.ephemera.renderOrchestration`** stream outbounds and **`renderCache`** **`Render Pertains`**. Cutover is **remove** legacy emission, not run **parallel** bus + stream. There are **no** external **listeners** to migrate (contract uncertainty 4 resolved).
+- **Stop / migrate (hypothesis):** Today's passive path maps **`resolved`** to **`RenderReady`** (and related shapes) via [`roomStateRender/materialize`](../../../../../lambda/ephemera/conversations/conversationTypes/roomStateRender/materialize.ts) and **`conversation.sendMessage`**. **Product decision:** the **target** system **does not** emit **`RenderReady`**, **`RenderInvalidate`**, or **`RenderError`** through that path for orchestration outcomes; they are **superseded** by **`mtw.ephemera.renderOrchestration`** stream outbounds and **`renderCache`** **`Render Pertains`**. Cutover is **remove** legacy emission, not run **parallel** bus + stream. There are **no** external **listeners** to migrate (contract uncertainty 4 resolved). **Generate success** must **stop** calling **`publishPutCacheRecord`** / **`sendPutCacheRecord`** once **`Render Generated`** + **`renderCache`** subscription owns the put (**No `Put Cache Record` from orchestration**; contract uncertainty **1**).
 - **Explicit non-goal for this stub:** Normative payload types; those stay in the contract doc and an **agreed** type module (see contract **Where types live**).
 
 ---
@@ -113,6 +127,7 @@ Cross-cutting uncertainties: [`../AGENT.passThrough.contract.planning.md`](../AG
 - **Graduation:** [`AGENT.planning.md`](../../../../../lambda/ephemera/dataSource/renderOrchestration/AGENT.planning.md) tasks; merge only where the pass-through contract agrees.
 - **Conversation removal:** **Prose mapping done** in the contract **Limited refinement: per-outbound body fields** and **Orchestration outbounds** (each legacy terminal and materialization path tied to a **six-outbound** target). **Remaining:** code inventory, **`streamEvent`** wiring, and retiring **`getRoomStateRenderHandle`** / **`sendMessage`** / **`RenderReady`** (and related **`messageBus`** terminals) per **Legacy bus terminals** in the contract (see contract uncertainty 8 and **Priority** above).
 - **Single-flight generation (narrowed):** **Intent** and **task** are in **Single-flight generation** above; **hashing and Dynamo wiring** remain **TBD**. Overlaps contract **uncertainty 6** (duplicate **intermediate** signals acceptable; **Perception** owns **terminal** dedupe).
+- **`Put Cache Record` from orchestration (resolved):** **No** enqueue of **`Put Cache Record`** for pass-through generation completion; see **No `Put Cache Record` from orchestration** above and contract **uncertainty 1**. **Remaining:** **code** migration off **`publishPutCacheRecord`** on generation success.
 
 ---
 
@@ -140,6 +155,7 @@ Cross-cutting uncertainties: [`../AGENT.passThrough.contract.planning.md`](../AG
 | **Hit outbounds** **IDs only** (uncertainty 3) | Done |
 | **No `RenderReady` / materialize bus** in target (product; legacy removal in **code**) | Done |
 | **Single-flight generation:** intent + task documented; hashing / wiring TBD | Done |
+| **No `Put Cache Record` from orchestration** (pass-through); contract uncertainty 1 | Done |
 | Branch-by-branch impact in **code** | Not started |
 | Implementation | Not started |
 
