@@ -2,7 +2,6 @@ import { EphemeraCharacterId, EphemeraFeatureId, EphemeraKnowledgeId, EphemeraMa
 import { LegalCharacterColor } from './baseClasses'
 import { isMapDescribeData, isMessage, MapDescribeData, Message } from "./messages"
 import { checkAll, checkTypes } from "./utils";
-import { isEphemeraCacheMarkState, type EphemeraCacheMarkState, type EphemeraCacheMarkValue } from './ephemeraMeta'
 
 export type RegisterCharacterAPIMessage = {
     message: 'registercharacter';
@@ -107,18 +106,6 @@ export type CommandAPIMessage = {
     command: string;
 }
 
-export type GenerateRoomPreviewAPIMarkStateEntry = EphemeraCacheMarkValue
-export type GenerateRoomPreviewAPIMarkState = EphemeraCacheMarkState
-
-export type GenerateRoomPreviewAPIMessage = {
-    message: 'generateRoomPreview';
-    RoomId: EphemeraRoomId;
-    markState: GenerateRoomPreviewAPIMarkState;
-    assetStack: string[];
-    /** Expedient client-supplied context for LLM generation; see Ephemera caching plan item 1. */
-    generationContextWml?: string;
-}
-
 export type EphemeraAPIMessage = { RequestId?: string } & (
     RegisterCharacterAPIMessage |
     UnregisterCharacterAPIMessage |
@@ -129,8 +116,7 @@ export type EphemeraAPIMessage = { RequestId?: string } & (
     MapUnsubscribeAPIMessage |
     ActionAPIMessage |
     LinkAPIMessage |
-    CommandAPIMessage |
-    GenerateRoomPreviewAPIMessage
+    CommandAPIMessage
 )
 
 export const isRegisterCharacterAPIMessage = (message: EphemeraAPIMessage): message is RegisterCharacterAPIMessage => (message.message === 'registercharacter')
@@ -143,7 +129,6 @@ export const isMapUnsubscribeAPIMessage = (message: EphemeraAPIMessage): message
 export const isActionAPIMessage = (message: EphemeraAPIMessage): message is ActionAPIMessage => (message.message === 'action')
 export const isLinkAPIMessage = (message: EphemeraAPIMessage): message is LinkAPIMessage => (message.message === 'link')
 export const isCommandAPIMessage = (message: EphemeraAPIMessage): message is CommandAPIMessage => (message.message === 'command')
-export const isGenerateRoomPreviewAPIMessage = (message: EphemeraAPIMessage): message is GenerateRoomPreviewAPIMessage => (message.message === 'generateRoomPreview')
 
 export const isEphemeraAPIMessage = (message: any): message is EphemeraAPIMessage => {
     if (typeof message !== 'object') {
@@ -184,24 +169,6 @@ export const isEphemeraAPIMessage = (message: any): message is EphemeraAPIMessag
                 checkTypes(message, { CharacterId: 'string', command: 'string' })
                 && isEphemeraCharacterId(message.CharacterId)
             )
-        case 'generateRoomPreview':
-            if (!(
-                'RoomId' in message
-                && typeof message.RoomId === 'string'
-                && isEphemeraRoomId(message.RoomId)
-            )) {
-                return false
-            }
-            if (!isEphemeraCacheMarkState(message.markState)) {
-                return false
-            }
-            if (!Array.isArray(message.assetStack)) {
-                return false
-            }
-            if (!message.assetStack.every((entry: any) => typeof entry === 'string')) {
-                return false
-            }
-            return true
         case 'action':
             if (!('actionType' in message && 'payload' in message && typeof message.payload === 'object')) {
                 return false
