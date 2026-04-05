@@ -169,7 +169,7 @@ These are **not** small details; they block a normative contract until addressed
 
 7. **Preview vs passive policy:** Same contract for both, or explicit variants (rubric sub-goal). **Unsettled.**
 
-8. **Stream event taxonomy (`renderOrchestration`) - partially specified.** The **six outbound types** (**`Current Cache Valid`**, **`Exact Match Found`**, **`Generation Started`**, **`Render Generated`**, **`Orchestration Error`**, **`Generation Deferred`**) are the **working taxonomy**. **Narrow agreement:** per-outbound **body** fields (beyond routing) are sketched in **Limited refinement: per-outbound body fields** above. **Still unsettled:** shared **routing / correlation** on the wire, exact **envelopes**, transport (DataSource stream vs bus vs both), per-call-site mapping from legacy code, and **`Generation Started`** / **error** / **defer** consumer contracts. Directional priority remains: **remove** conversation dependency **as soon as** replacements exist (see **Exit `conversation.sendMessage`** above).
+8. **Stream event taxonomy (`renderOrchestration`).** **Documented in this doc (prose):** the **six outbound types** (**Orchestration outbounds** table), **per-outbound body** fields (**Limited refinement: per-outbound body fields**), and **legacy terminal** lineage (each row ties today's **`findRender`** / **`generateRoomPreview`** / intake path to a target outbound and today's **`RenderReady`** / **`RenderError`** / **`RenderInvalidate`** shapes). **Still unsettled:** shared **routing / correlation** on the wire, exact **envelopes**, transport (DataSource stream vs bus vs both), **`mtw-interfaces`** names, **`renderCache`** subscription behavior for **`Generation Started`** / **error** / **defer**, and **replacing** **`conversation.sendMessage`** in code (see **Exit `conversation.sendMessage`**).
 
 9. **`Render Pertains` correlation model.** Whether **`conversationId`** (or similar) is required for downstream **Perception** and **`currentCachePointers`** to associate events with a handling pattern, or whether **component x perspective** (and related **routing**) is enough so consumers register richer rules without a synthetic id. **Unsettled** - see [`renderCache/AGENT.passThrough.planning.md`](renderCache/AGENT.passThrough.planning.md) **Correlation vs routing**.
 
@@ -185,7 +185,7 @@ Use this section as a scratchpad; prefer **Uncertainties** for blockers.
 
 - Relationship of **`RenderReady`** to **`Render Pertains`** during migration (overlap period, deprecation).
 - Whether **streaming** vs **messageBus** graduation changes any of the above (see epic "Streams, contracts, graduation").
-- **Per-call-site mapping:** Which of the **six outbounds** replaces each **`conversation.sendMessage`** use in orchestration (uncertainty 8 - envelopes and shared routing still TBD).
+- **Per-call-site mapping:** Prose mapping is in **Limited refinement** (uncertainty 8); **implementation** and envelopes still TBD.
 
 ---
 
@@ -205,7 +205,7 @@ Use this section as a scratchpad; prefer **Uncertainties** for blockers.
 | --- | --- |
 | Draft stub created | Done |
 | Refined direction + uncertainties recorded (pass-through split) | Done |
-| **Exit `conversation.sendMessage`** priority + uncertainty 8 (six-type taxonomy drafted; payloads TBD) | Done |
+| **Exit `conversation.sendMessage`** priority + uncertainty 8 (six-type taxonomy + per-outbound body + legacy mapping in prose; wire/envelopes/code TBD) | Done |
 | **Limited refinement:** per-outbound **body** fields (narrow; doc remains draft) | Done |
 | Uncertainty 9 (`Render Pertains` correlation vs routing) + renderCache task plan | Done |
 | Passive state: **S = A ∪ P** set algebra + **`allowGeneration`** on **A** vs **P ∖ A** (uncertainty 10 narrowed; code still TBD) | Done |

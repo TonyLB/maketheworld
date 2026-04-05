@@ -22,11 +22,11 @@ Describe how [`lambda/ephemera/dataSource/renderOrchestration/`](../../../../../
 
 ## Priority: remove `conversation.sendMessage` (replace with streamed outbounds)
 
-**Intent:** **`renderOrchestration`** should **not** depend on **`conversation.sendMessage`** (nor on [`materializeRoomStateRender`](../../../../../lambda/ephemera/conversations/conversationTypes/roomStateRender/materialize.ts) as the adapter to `messageBus.send`) for **orchestration outcomes** any longer than necessary. Each call site that today goes through **`roomStateRender`** registration + **`sendMessage`** should become **outgoing streamed events** per the **six-type taxonomy** in [`../AGENT.passThrough.contract.planning.md`](../AGENT.passThrough.contract.planning.md) (**`Current Cache Valid`**, **`Exact Match Found`**, **`Generation Started`**, **`Render Generated`**, **`Orchestration Error`**, **`Generation Deferred`**); exact payloads remain uncertainty 8.
+**Intent:** **`renderOrchestration`** should **not** depend on **`conversation.sendMessage`** (nor on [`materializeRoomStateRender`](../../../../../lambda/ephemera/conversations/conversationTypes/roomStateRender/materialize.ts) as the adapter to `messageBus.send`) for **orchestration outcomes** any longer than necessary. Each call site that today goes through **`roomStateRender`** registration + **`sendMessage`** should become **outgoing streamed events** per the **six-type taxonomy** in [`../AGENT.passThrough.contract.planning.md`](../AGENT.passThrough.contract.planning.md) (**`Current Cache Valid`**, **`Exact Match Found`**, **`Generation Started`**, **`Render Generated`**, **`Orchestration Error`**, **`Generation Deferred`**). **Prose mapping** (terminals, body fields, legacy bus shapes) is in the contract **Limited refinement**; shared **routing / envelopes / transport** remain uncertainty 8.
 
 - **ASAP** in priority order: do **not** add new features that deepen the conversation dependency; prefer emitting **stream / publish** paths even while consumers catch up (see contract **Encoding the contract in unit tests** and branch-only outage in contract-align).
 - **Progress signals** (e.g. generation started) follow the same rule: **no** new long-lived use of conversation handles for orchestration-owned lifecycle.
-- **Follow-up:** Map each legacy call site to one of the **six outbounds**; tests should eventually assert **stream** emissions, not conversation mocks, for those paths.
+- **Follow-up (code):** Implement **`streamEvent`** (or agreed) emissions per the contract mapping; tests should eventually assert **stream** outputs, not conversation mocks, for those paths.
 
 ---
 
@@ -93,7 +93,7 @@ Cross-cutting uncertainties: [`../AGENT.passThrough.contract.planning.md`](../AG
 - **Passive vs preview:** Intake and lifecycle forking (rubric sub-goal); same contract or variants (contract uncertainty 7).
 - **`allowGeneration` on state-driven ingress:** Documented in the contract (**A** vs **P ∖ A**); **remaining** work is wiring **S** in code and **`RenderRequested`** shape for **P ∖ A** runs (see contract uncertainty 10) and Task 7 in [`AGENT.planning.md`](../../../../../lambda/ephemera/dataSource/renderOrchestration/AGENT.planning.md).
 - **Graduation:** [`AGENT.planning.md`](../../../../../lambda/ephemera/dataSource/renderOrchestration/AGENT.planning.md) tasks; merge only where the pass-through contract agrees.
-- **Conversation removal:** Inventory every **`getRoomStateRenderHandle`** / **`sendMessage`** use in this package; each must map to one of the **six outbounds** (payload details per uncertainty 8).
+- **Conversation removal:** **Prose mapping done** in the contract **Limited refinement: per-outbound body fields** and **Orchestration outbounds** (each legacy terminal and materialization path tied to a **six-outbound** target). **Remaining:** code inventory, **`streamEvent`** wiring, and retiring **`getRoomStateRenderHandle`** / **`sendMessage`** (see contract uncertainty 8 and **Priority** above).
 
 ---
 
@@ -114,8 +114,9 @@ Cross-cutting uncertainties: [`../AGENT.passThrough.contract.planning.md`](../AG
 | Refined direction aligned with contract (six outbounds; not final `RenderReady` / `Render Pertains` owner) | Done |
 | **`conversation.sendMessage` removal** priority documented | Done |
 | Six-outbound taxonomy aligned with contract | Done |
+| **Conversation removal:** legacy terminal -> six outbounds **mapped in contract** (implementation not started) | Done |
 | Passive state: **S = A ∪ P** direction + **`allowGeneration`** (aligned with contract set-algebra section) | Done |
-| Branch-by-branch impact mapped | Not started |
+| Branch-by-branch impact in **code** | Not started |
 | Implementation | Not started |
 
 **Recommended order:** Omitted until draft refinement.
