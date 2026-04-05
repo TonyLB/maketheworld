@@ -12,15 +12,11 @@ Describe how [`lambda/ephemera/dataSource/renderOrchestration/`](../../../../../
 
 ---
 
-## Passive state updates (unobserved room): cheap fan-out, generation capped (direction)
+## Passive state updates: resolve set **S**, generation capped (direction)
 
-**Intent:** When **world/state** updates a **room** that is **not** currently observed (no audience that needs expensive work), we still want to **fan out** into **`renderOrchestration`** so **`findRender`** runs its **cheap, deterministic** phases: **pointer / current-cache validation** and **exact match** ([`findRender.ts`](../../../../../lambda/ephemera/dataSource/renderOrchestration/findRender.ts)).
+**Canonical set algebra** (prose agreed; code may still implement **A** only): [`../AGENT.passThrough.contract.planning.md`](../AGENT.passThrough.contract.planning.md#state-driven-fan-out-set-and-allowgeneration-set-algebra) --- **A** = perspectives with an **audience**, **P** = perspectives with a **meta pointer** in **`Meta::Room.currentCacheByPerspective`**, **S = A ∪ P**, **`allowGeneration`** **false** on **P ∖ A** (cheap **`findRender`** only) and may be **true** on **A** per product policy. **Not** skipping **`renderOrchestration`:** every perspective in **S** gets a **`findRender`** run; cost is capped by **`allowGeneration`**, not by bypassing orchestration.
 
-**Cost cap:** The same fan-out must **not** invoke **LLM generation** in that situation. Policy is expressed by **preventing generation** (e.g. **`allowGeneration: false`** on the relevant **`RenderRequested`** / resolve input, or an equivalent gate agreed with state ingress). That yields **no slow path** while still allowing **pointer repair**, **exact match hits**, and **`Generation Deferred`** when there is no cheap hit (see contract and [`AGENT.planning.md`](../../../../../lambda/ephemera/dataSource/renderOrchestration/AGENT.planning.md) passive-observer themes).
-
-**Not** the same as skipping **`renderOrchestration`:** we are **not** replacing this with pointer-only Dynamo edits without **`findRender`**, unless a separate migration explicitly chooses that (avoid double work).
-
-**Open (refinement):** Exact definition of **observed** / **unobserved**, how state fan-out sets **`allowGeneration`**, and interaction with [`AGENT.planning.md`](../../../../../lambda/ephemera/dataSource/renderOrchestration/AGENT.planning.md) Task 7 (passive observers).
+**Package hook:** [`fanOutStateChangedToPassiveRenders.ts`](../../../../../lambda/ephemera/dataSource/renderOrchestration/fanOutStateChangedToPassiveRenders.ts) today builds **A** only; extending to **S** is implementation work (contract uncertainty 10, Task 7 in [`AGENT.planning.md`](../../../../../lambda/ephemera/dataSource/renderOrchestration/AGENT.planning.md)).
 
 ---
 
@@ -81,7 +77,7 @@ Canonical rules: [`../AGENT.passThrough.contract.planning.md`](../AGENT.passThro
 Canonical detail: [`../AGENT.passThrough.contract.planning.md`](../AGENT.passThrough.contract.planning.md). Package-local summary:
 
 - **Emit (hypothesis):** The **six outbounds** in **Outbound taxonomy** above; **`Current Cache Valid`** and **`Exact Match Found`** replace the old combined "match hit"; **`Generation Started`** / **`Render Generated`** cover the slow path; **`Orchestration Error`** and **`Generation Deferred`** cover failure and policy deferrals. **Not** the final request-scoped "ready for perception" subscriber contract (that remains **`Render Pertains`** on **`renderCache`** per contract). **`Generation Deferred`** consumers for **meta pointers**: [`../currentCachePointers/AGENT.cachePointersRefactor.planning.md`](../currentCachePointers/AGENT.cachePointersRefactor.planning.md).
-- **Passive state / unobserved rooms (hypothesis):** Fan out **`renderOrchestration`** for **cheap** resolve only; **cap** cost by **not** calling generation (see **Passive state updates** above).
+- **Passive state / state-driven fan-out (hypothesis):** Fan out **`findRender`** for every perspective in **S** per contract; **cap** cost with **`allowGeneration`** on **A** vs **P ∖ A** (see **Passive state updates** above).
 - **Stop / migrate (hypothesis):** Today's passive path maps **`resolved`** to **`RenderReady`** via [`roomStateRender/materialize`](../../../../../lambda/ephemera/conversations/conversationTypes/roomStateRender/materialize.ts) and **`conversation.sendMessage`**. Aligning with the new contract implies **removing** that path from orchestration in favor of **streamed events** (see **Priority: remove `conversation.sendMessage`** above) and **moving listeners** off **`RenderReady`** as the correlated terminal where **`Render Pertains`** applies (see contract uncertainties). Scope and overlap period **unsettled**.
 - **Explicit non-goal for this stub:** Normative payload types; those stay in the contract doc and [`packages/mtw-interfaces`](../../../../../packages/mtw-interfaces).
 
@@ -95,7 +91,7 @@ Cross-cutting uncertainties: [`../AGENT.passThrough.contract.planning.md`](../AG
 - **`Render Generated` semantics:** LLM complete vs Dynamo durable vs both (contract uncertainty 5); orchestration must not define this differently from **`renderCache`**.
 - **Handoff mechanism:** Bus publish vs direct invoke into **`renderCache`** (contract uncertainty 2) drives orchestration tests and dependencies.
 - **Passive vs preview:** Intake and lifecycle forking (rubric sub-goal); same contract or variants (contract uncertainty 7).
-- **Observation gate:** How **`allowGeneration`** (or successor) is set from **state-driven** fan-out when the room is **unobserved** vs observed; aligns with **Passive state updates** and Task 7 in [`AGENT.planning.md`](../../../../../lambda/ephemera/dataSource/renderOrchestration/AGENT.planning.md). **TBD.**
+- **`allowGeneration` on state-driven ingress:** Documented in the contract (**A** vs **P ∖ A**); **remaining** work is wiring **S** in code and **`RenderRequested`** shape for **P ∖ A** runs (see contract uncertainty 10) and Task 7 in [`AGENT.planning.md`](../../../../../lambda/ephemera/dataSource/renderOrchestration/AGENT.planning.md).
 - **Graduation:** [`AGENT.planning.md`](../../../../../lambda/ephemera/dataSource/renderOrchestration/AGENT.planning.md) tasks; merge only where the pass-through contract agrees.
 - **Conversation removal:** Inventory every **`getRoomStateRenderHandle`** / **`sendMessage`** use in this package; each must map to one of the **six outbounds** (payload details per uncertainty 8).
 
@@ -118,7 +114,7 @@ Cross-cutting uncertainties: [`../AGENT.passThrough.contract.planning.md`](../AG
 | Refined direction aligned with contract (six outbounds; not final `RenderReady` / `Render Pertains` owner) | Done |
 | **`conversation.sendMessage` removal** priority documented | Done |
 | Six-outbound taxonomy aligned with contract | Done |
-| Passive state: cheap fan-out + generation cap (unobserved room) direction | Done |
+| Passive state: **S = A ∪ P** direction + **`allowGeneration`** (aligned with contract set-algebra section) | Done |
 | Branch-by-branch impact mapped | Not started |
 | Implementation | Not started |
 

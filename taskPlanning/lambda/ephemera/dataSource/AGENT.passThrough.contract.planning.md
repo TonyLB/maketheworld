@@ -4,6 +4,8 @@
 
 **Refinement rule:** Do not "silently" grow this into a full plan. When this becomes actionable, add an explicit **Status** line, fill **Recommended order** with real checkboxes, and remove or narrow the draft banner once the team agrees it is no longer draft.
 
+**Narrow exception:** The subsection **Limited refinement: per-outbound body fields** below is a **partial** agreement (body columns only). It does **not** promote the rest of the document out of draft.
+
 ---
 
 ## Purpose (intent only)
@@ -80,7 +82,23 @@ This section records a **coherent guess** at the split of responsibilities. **Na
 
 ### Passive state updates (unobserved room)
 
-When **state** updates a **room** that is **not** currently observed, we still **fan out** into **`renderOrchestration`** so **`findRender`** can run its **cheap** branches (**pointer / current-cache validation**, **exact match**). **Cost is capped** by **not** invoking **LLM generation** in that situation (e.g. **`allowGeneration === false`** or an agreed equivalent on the resolve path). That is **not** "skip orchestration" and **not** a separate pointer-only Dynamo path unless explicitly designed elsewhere. Execution detail: [`renderOrchestration/AGENT.passThrough.planning.md`](renderOrchestration/AGENT.passThrough.planning.md).
+When **state** updates a **room**, we **fan out** one **`findRender`** run per perspective in the **state-driven resolve set** **S** (below). **Cost is capped** for perspectives **without** an audience by **`allowGeneration === false`** on that resolve. That is **not** "skip orchestration" and **not** a separate pointer-only Dynamo path unless explicitly designed elsewhere. Execution detail: [`renderOrchestration/AGENT.passThrough.planning.md`](renderOrchestration/AGENT.passThrough.planning.md).
+
+### State-driven fan-out set and `allowGeneration` (set algebra)
+
+Work from **room** + **`Meta::Room`** at state-change time:
+
+- **A** = set of **perspective keys** (`computePerspectiveKey(assetStack)`) that have an **audience**: derived from **active characters** in the room (room canon stack filtered by each character's assets, deduplicated by perspective), i.e. who is present and can see a given view.
+- **P** = set of perspective keys that have a **meta pointer**: keys of **`Meta::Room.currentCacheByPerspective`** for that room (perspectives we have previously pinned a **`CACHE#...`** id for).
+
+**Resolve set:** **S = A ∪ P** (equivalently **A ∪ (P ∖ A)** --- the two expressions are the same set). Every perspective that appears in the **audience** set **or** has a **meta pointer** entry. The **P ∖ A** form is useful only to separate **policy**: **`allowGeneration`** is keyed off membership in **A** vs **P ∖ A**, not because the union differs from **A ∪ P**.
+
+**`allowGeneration` on state-driven ingress:**
+
+- For perspectives in **A**: **`allowGeneration`** may be **true** (default) when product policy allows generation for **observed** / in-room views.
+- For perspectives in **P ∖ A** (pointer-only, no audience): **`allowGeneration === false`** so **`findRender`** runs **cheap** paths only (pointer validation, exact match) and never the LLM slow path.
+
+**Implementation note:** [`fanOutStateChangedToPassiveRenders`](../../../../lambda/ephemera/dataSource/renderOrchestration/fanOutStateChangedToPassiveRenders.ts) currently builds **A** only; extending fan-out to **S** requires additional **`RenderRequested`** runs for keys in **P ∖ A** (e.g. no **`targets`** or empty **`targets`** as agreed). **Ordering** with **`currentCachePointers`** and Task 7 remains cross-cutting (uncertainty 11).
 
 ### Orchestration outbounds (draft taxonomy - six types)
 
@@ -100,6 +118,25 @@ Orchestration **does not** own the **final** "ready for this conversation" emiss
 **Exit `conversation.sendMessage` (priority):** The current passive path registers **`roomStateRender`**, then routes **`findRender`** terminals through **`materializeRoomStateRender`** -> **`conversation.sendMessage`** -> **`messageBus.send`** (e.g. `RenderReady`). That coupling is **expedient**, not target architecture. Refactor work should **prioritize removing** orchestration's dependency on **`conversation.sendMessage`** and on that materialization adapter for pipeline outcomes, in favor of **streamed / published events** consumed by **`renderCache`** and eventually **perception**. Intermediate progress (e.g. "generating") must follow the same rule: **no** new long-lived reliance on conversation handles for orchestration delivery.
 
 **Today vs intent:** Until code catches up, legacy paths may still exist on a branch; the **intent** is to replace them **as soon as** replacement events exist, not to treat conversation as a parallel strangler indefinitely. **Migration** off **`RenderReady`** via `roomStateRender` materialization is an explicit open item (see uncertainty 4).
+
+### Limited refinement: per-outbound body fields (narrow agreement)
+
+**Scope:** This subsection records **only** the **body** fields intended for each orchestration outbound **after** any shared **routing / correlation envelope** (that envelope is **still unsettled** --- uncertainties 2, 8, 9). **Transport**, **envelopes**, and **per-call-site** mapping from legacy **`conversation.sendMessage`** remain **Unsettled**.
+
+**Discrimination:** **`Current Cache Valid`** and **`Exact Match Found`** share the **same** body shape on the wire; the outbound **type** distinguishes pointer vs exact --- **no** separate **`hitKind`** field (it would only duplicate the type).
+
+**Derived from** current passive wiring ([`findRender`](../../../../lambda/ephemera/dataSource/renderOrchestration/findRender.ts), [`generateRoomPreview`](../../../../lambda/ephemera/dataSource/renderOrchestration/generateRoomPreview.ts), [`intakeErrors`](../../../../lambda/ephemera/dataSource/renderOrchestration/intakeErrors.ts), [`events.ts`](../../../../lambda/ephemera/dataSource/renderOrchestration/events.ts), [`materializeRoomStateRender`](../../../../lambda/ephemera/conversations/conversationTypes/roomStateRender/materialize.ts)).
+
+| Outbound | Code path (today) | Legacy bus / terminal | Body fields (beyond routing envelope) |
+| --- | --- | --- | --- |
+| **`Current Cache Valid`** | [`findRender`](../../../../lambda/ephemera/dataSource/renderOrchestration/findRender.ts): **`pointerHint`** set, row validates (`markState`, matcher). | Would have been **`RenderReady`** via **`toRenderReady`** (same fields as exact hit today). | **`cacheId`** (pointer id), **`cacheRecord`** (full **`EphemeraCacheDynamoItem`** from **`getCacheRecordById`**), **`renderedContent`** (duplicate of **`cacheRecord`** for convenience). |
+| **`Exact Match Found`** | **`findRender`**: pointer branch skipped or invalid after **`clearPerspectivePointer`**, then **`getExactMatch`** returns a row. | Would have been **`RenderReady`** via **`toRenderReady`**. | Same shape as **`Current Cache Valid`** on the wire: **`cacheId`**, **`cacheRecord`**, **`renderedContent`**. Discriminated only by **event type** (see previous row). |
+| **`Generation Started`** | **`generateRoomPreview`** calls **`sendMessage('generating')`** after context parse, before LLM ([`generateRoomPreview.ts`](../../../../lambda/ephemera/dataSource/renderOrchestration/generateRoomPreview.ts)). | **Not** emitted on **`messageBus`** today (materialize [**drops** all `RenderProgress`](../../../../lambda/ephemera/conversations/conversationTypes/roomStateRender/materialize.ts) including **`generating`** in the passive adapter). [`RenderGenerationStarted`](../../../../lambda/ephemera/dataSource/renderOrchestration/events.ts) exists as a **type** but is not wired for passive delivery yet. | **No extra payload** beyond shared correlation (same as **`RenderGenerationStarted`** in **`events.ts`**: target context + component + perspective). Optional: **`phase: 'generating'`** for forward compatibility. |
+| **`Render Generated`** | **`generateRoomPreview`** success: **`resolved`** with **`cacheId`**, **`cacheRecord`**, **`renderedContent`** after **`publishPutCacheRecord`**. | **`RenderReady`** via **`toRenderReady`** (orchestration output **not** yet a durability guarantee per uncertainty 5). | **`cacheId`**, **`cacheRecord`**, **`renderedContent`**; may mirror **`RenderReady`** minus **`type: 'RenderReady'`**. Optional: provenance **`generated`**. |
+| **`Orchestration Error`** | (a) Intake errors -> **`failed`** in [`intakeErrors.ts`](../../../../lambda/ephemera/dataSource/renderOrchestration/intakeErrors.ts) (`NOT_ROOM`, **`META_ROOM_MARKS_MISSING`**). (b) **`generateRoomPreview`** failures: **`CONTEXT_REQUIRED`**, **`GENERATION_FAILED`**, etc. from [`RenderResolveErrorCode`](../../../../lambda/ephemera/dataSource/renderOrchestration/baseClasses.ts). | **`RenderError`** via **`toRenderError`**. | **`errorCode`** (string), **`errorMessage`** (string). Same mapping as today. |
+| **`Generation Deferred`** | **`findRender`**: no pointer hit, no exact match, **`allowGeneration === false`** -> **`invalidate`** with **`reason`** [`RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION`](../../../../lambda/ephemera/dataSource/renderOrchestration/baseClasses.ts) (`NO_CACHE_MATCH_AND_GENERATION_NOT_RUN`). | **`RenderInvalidate`** via **`toRenderInvalidate`** (optional **`reason`**). | **`reason`** (string, from invalidate terminal). Optional: **`policy: 'costCap'`** or similar **TBD**. Distinct from **`Orchestration Error`**: not a hard failure; **`currentCachePointers`** may clear pointers (see subscribers table). |
+
+**Legacy collapse note:** Today's **`RenderReady`** bus message does **not** distinguish pointer vs exact match; the split is **`Current Cache Valid`** vs **`Exact Match Found`** with **the same** body fields, differentiated by **outbound type** only --- no redundant **`hitKind`** on the payload.
 
 ### `renderCache` reactions (draft)
 
@@ -122,7 +159,7 @@ These are **not** small details; they block a normative contract until addressed
 
 2. **Wiring: subscribe vs invoke.** Whether **`renderCache`** **subscribes** to orchestration outbounds (**`Current Cache Valid`**, **`Exact Match Found`**, **`Render Generated`**, and any others) or orchestration **invokes** a dedicated path into the DataSource. Implies layering and test seams. **Unsettled.**
 
-3. **Hit-path outbound payload authority.** For **`Current Cache Valid`** and **`Exact Match Found`**, whether the event carries a **full cache row** (forward without re-read) or **ids only** (renderCache re-fetches), with implications for races and consistency. **Unsettled.**
+3. **Hit-path outbound payload authority.** For **`Current Cache Valid`** and **`Exact Match Found`**, whether the event carries a **full cache row** (forward without re-read) or **ids only** (renderCache re-fetches), with implications for races and consistency. **Unsettled.** (Body field **names** for hits are narrowed in **Limited refinement: per-outbound body fields**; authority full-row vs ids remains open.)
 
 4. **Listener migration from `RenderReady`.** Consumers that today treat **`RenderReady`** as "show this" must move to **`Render Pertains`** (or agreed successor); scope of file/listener changes **Unsettled.**
 
@@ -132,11 +169,11 @@ These are **not** small details; they block a normative contract until addressed
 
 7. **Preview vs passive policy:** Same contract for both, or explicit variants (rubric sub-goal). **Unsettled.**
 
-8. **Stream event taxonomy (`renderOrchestration`) - partially specified.** The **six outbound types** (**`Current Cache Valid`**, **`Exact Match Found`**, **`Generation Started`**, **`Render Generated`**, **`Orchestration Error`**, **`Generation Deferred`**) are the **working taxonomy**. **Still unsettled:** exact **payloads**, **envelopes**, transport (DataSource stream vs bus vs both), per-call-site mapping from legacy code, and **`Generation Started`** / **error** / **defer** consumer contracts. Directional priority remains: **remove** conversation dependency **as soon as** replacements exist (see **Exit `conversation.sendMessage`** above).
+8. **Stream event taxonomy (`renderOrchestration`) - partially specified.** The **six outbound types** (**`Current Cache Valid`**, **`Exact Match Found`**, **`Generation Started`**, **`Render Generated`**, **`Orchestration Error`**, **`Generation Deferred`**) are the **working taxonomy**. **Narrow agreement:** per-outbound **body** fields (beyond routing) are sketched in **Limited refinement: per-outbound body fields** above. **Still unsettled:** shared **routing / correlation** on the wire, exact **envelopes**, transport (DataSource stream vs bus vs both), per-call-site mapping from legacy code, and **`Generation Started`** / **error** / **defer** consumer contracts. Directional priority remains: **remove** conversation dependency **as soon as** replacements exist (see **Exit `conversation.sendMessage`** above).
 
 9. **`Render Pertains` correlation model.** Whether **`conversationId`** (or similar) is required for downstream **Perception** and **`currentCachePointers`** to associate events with a handling pattern, or whether **component x perspective** (and related **routing**) is enough so consumers register richer rules without a synthetic id. **Unsettled** - see [`renderCache/AGENT.passThrough.planning.md`](renderCache/AGENT.passThrough.planning.md) **Correlation vs routing**.
 
-10. **State-driven fan-out when unobserved.** How **observed vs unobserved** is determined for a room and how **`allowGeneration`** (or successor) is set on **state-driven** ingress so cheap **`findRender`** paths still run but **generation** does not. **Unsettled** - see **Passive state updates** above and [`renderOrchestration/AGENT.passThrough.planning.md`](renderOrchestration/AGENT.passThrough.planning.md).
+10. **State-driven fan-out (implementation).** The **set algebra** for **A**, **P**, **S = A ∪ P**, and **`allowGeneration`** on **A** vs **P ∖ A** is recorded under **State-driven fan-out set and `allowGeneration` (set algebra)** above. **Still unsettled:** wiring that full resolve set in code (today: **A** only), exact **`RenderRequested`** shape for pointer-only runs, and ordering with meta pointers / bus (see uncertainty 11). See [`renderOrchestration/AGENT.passThrough.planning.md`](renderOrchestration/AGENT.passThrough.planning.md).
 
 11. **Cross-layer ordering and `messageBus`.** Reliable ordering between orchestration terminals, **`renderCache`** emissions, and **`currentCachePointers`** updates may require **atomic sub-runs** or other bus revisions. **Separate future refactor**; not blocking prose contract drafts, but blocks **normative** "no races" claims until addressed.
 
@@ -148,7 +185,7 @@ Use this section as a scratchpad; prefer **Uncertainties** for blockers.
 
 - Relationship of **`RenderReady`** to **`Render Pertains`** during migration (overlap period, deprecation).
 - Whether **streaming** vs **messageBus** graduation changes any of the above (see epic "Streams, contracts, graduation").
-- **Per-call-site mapping:** Which of the **six outbounds** replaces each **`conversation.sendMessage`** use in orchestration (uncertainty 8 - payloads and envelopes still TBD).
+- **Per-call-site mapping:** Which of the **six outbounds** replaces each **`conversation.sendMessage`** use in orchestration (uncertainty 8 - envelopes and shared routing still TBD).
 
 ---
 
@@ -169,8 +206,9 @@ Use this section as a scratchpad; prefer **Uncertainties** for blockers.
 | Draft stub created | Done |
 | Refined direction + uncertainties recorded (pass-through split) | Done |
 | **Exit `conversation.sendMessage`** priority + uncertainty 8 (six-type taxonomy drafted; payloads TBD) | Done |
+| **Limited refinement:** per-outbound **body** fields (narrow; doc remains draft) | Done |
 | Uncertainty 9 (`Render Pertains` correlation vs routing) + renderCache task plan | Done |
-| Passive state (unobserved room): cheap fan-out + generation cap + uncertainty 10 | Done |
+| Passive state: **S = A ∪ P** set algebra + **`allowGeneration`** on **A** vs **P ∖ A** (uncertainty 10 narrowed; code still TBD) | Done |
 | **`Generation Skipped` -> `Generation Deferred`**; **`currentCachePointers`** role + uncertainty 11 (bus ordering) | Done |
 | **Encoding the contract in unit tests** section + task-plan pointers | Done |
 | Uncertainties resolved; contract normative | Not started |

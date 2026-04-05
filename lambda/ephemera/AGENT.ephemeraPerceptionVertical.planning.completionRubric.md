@@ -34,7 +34,7 @@ End state: producers publish **typed** events; consumers subscribe with **explic
 ### Sub-goals
 
 - [ ] State-driven refresh has a **canonical path** from authoritative state writes to render work (see also section 5).
-- [ ] Render lifecycle signals (`RenderGenerationStarted`, `RenderReady`, cache outcomes, etc.) have a **clear split** between preview vs presence-driven paths where product requires different behavior.
+- [ ] Render lifecycle signals (`RenderGenerationStarted`, `RenderReady`, cache outcomes, etc.) are coherent on the **passive / presence-driven** path (authoring **preview** branch removed).
 
 ---
 
@@ -77,7 +77,7 @@ End state: **presentation** can rely on **one** notion of "ready for perception"
 
 ### Sub-goals
 
-- [ ] Preview vs passive policy for intake errors and lifecycle messaging is **centralized** enough that new paths do not fork silently (see render orchestration planning).
+- [ ] **Passive** orchestration policy for intake errors and lifecycle messaging is **centralized** enough that new paths do not fork silently (see render orchestration planning); **preview** ingress is **not** in scope (removed).
 
 ---
 
@@ -101,7 +101,7 @@ End state: **internal bus** vs **`StreamingEvent` / DataSource** envelopes have 
 
 - [ ] **Subscriber registry** (or equivalent) exists where multiple consumers must coordinate on the same events without spaghetting imports.
 - [ ] **Replay / durability** policy for perception-relevant streams is **explicit** (`replayable`, EventBridge, etc.) and matches product needs.
-- [ ] **WebSocket / client** contract for multi-stage preview and passive refresh is **documented** end-to-end (server planning + client lifeLine docs where applicable).
+- [ ] **WebSocket / client** contract for passive refresh and lifecycle delivery is **documented** end-to-end (server planning + client lifeLine docs where applicable).
 
 ### Sub-goals
 
