@@ -6,6 +6,24 @@
 
 ---
 
+## Single-flight generation (intended pattern)
+
+**Intent:** After deterministic fast-path checks (pointer, exact match, policy gates), **multiple concurrent callers** for the **same logical generation** (same component + perspective / stable routing identity) should **not** each run a separate LLM **or** each race separate cache writes. We intend to wrap the **generation step** in **`mtw-lambda-patterns`** **`singleFlight`** ( **coalesce** mode): one **leader** runs **`computation()`** (slow path); **followers** wait and return **`retrieval()`** after the flight reaches **`COMPLETED`**, so downstream sees **one authoritative completion** for that flight barring total failure of the cohort.
+
+**Why this helps:** Callers no longer depend on finding a matching **in-progress** `renderCache` row to **coordinate** --- the **singleFlight** record (category + **`argumentHash`**) is the cohort key. **`retrieval`** still reads whatever durable state the leader wrote (or an in-flight placeholder shape), per implementation.
+
+**Not guaranteed by the library alone:** **`singleFlight`** does **not** promise **exactly-once** side effects inside **`computation`** (e.g. emitting **`Generation Started`** at the top of work). If the leader **expires** and another worker **self-promotes**, **`computation()`** can run **again** --- so **at least one** **`Generation Started`** is expected; **more than one** is an **edge case** until we add **idempotency** (conditional write / nonce) or extend the pattern. **Exactly one LLM call** per logical job is **not** guaranteed across timeout and recovery.
+
+**Downstream posture:** **Clients** can treat multiple **Generating**-class signals as idempotent UI state. **Perception** can **aggregate** duplicate **intermediate** events per pass-through **uncertainty 6** (see [`../AGENT.passThrough.contract.planning.md`](../AGENT.passThrough.contract.planning.md#uncertainties-explicit-next-refinement-phase)). **Terminal** dedupe (one final delivery per logical completion) remains a **Perception** obligation, not something orchestration must perfect at the stream.
+
+**Implementation unknowns (to detail later):** **`argumentHash`** and **`category`** for ephemera **`singleFlightFactory`**; how **`computation`** vs **`retrieval`** split **LLM**, **`renderCache`** writes, and **`Generation Started`** / **`Render Generated`** emissions; wiring to existing **`getItem`** / optimistic patterns. Code reference: [`packages/mtw-lambda-patterns/ts/singleFlight`](../../../../../packages/mtw-lambda-patterns/ts/singleFlight).
+
+### Task: singleFlight the generation step
+
+- [ ] **Single-flight the generation step** using **`singleFlight`** (coalesce): define stable **`argumentHash`** + **`category`**, implement **`computation`** / **`retrieval`**, and emit orchestration outbounds without fanning duplicate work for concurrent waiters on the same key. **Precise hashing, Dynamo interaction, and event ordering** are **TBD** in implementation; this item tracks the **architectural** commitment only.
+
+---
+
 ## Purpose (intent only)
 
 Describe how [`lambda/ephemera/dataSource/renderOrchestration/`](../../../../../lambda/ephemera/dataSource/renderOrchestration/) **interacts** with the pass-through pattern: orchestration remains responsible for **policy and branching** (exact match, current-cached, pointer repair, generation, etc.), while the **observable "this cache row answers this question"** surface is owned by **`renderCache`** per the shared contract. This plan tracks what orchestration **stops duplicating**, **emitting on its DataSource stream** ( **`renderCache`** **subscribes** --- orchestration does **not** invoke **`renderCache`** or send **`api.ephemera`** for that handoff), and **removing** reliance on **conversation** for pipeline delivery.
@@ -38,7 +56,7 @@ Canonical table: [`../AGENT.passThrough.contract.planning.md`](../AGENT.passThro
 | --- | --- |
 | **`Current Cache Valid`** | Pointer / **current-cache** path succeeded in `findRender`. Stream payload: **IDs only** + routing; **`renderCache`** refetches (contract uncertainty 3). |
 | **`Exact Match Found`** | **Exact match** succeeded (no pointer hit or after pointer repair). Same **IDs-only** hit shape as **`Current Cache Valid`**. |
-| **`Generation Started`** | Committed to generation; downstream handling **deferred** (see contract). |
+| **`Generation Started`** | Committed to generation; downstream handling **deferred** (see contract). **May repeat** (at least once) until **singleFlight** + idempotency are fully wired; see **Single-flight generation** above. |
 | **`Render Generated`** | **Generation** complete; **full** content in payload; **no** Dynamo durability promise (**`renderCache`** emits durable **`Render Pertains`** / **`Cache Updated`**; contract uncertainty 5 resolved). |
 | **`Orchestration Error`** | Terminal **error** (intake, generation failure, etc.). |
 | **`Generation Deferred`** | Policy **defer** (no generation now) / invalidate-style outcome without treating as generic error where distinct. |
@@ -59,6 +77,7 @@ Canonical table: [`../AGENT.passThrough.contract.planning.md`](../AGENT.passThro
 | [`lambda/ephemera/AGENT.ephemeraPerceptionVertical.planning.completionRubric.md`](../../../../../lambda/ephemera/AGENT.ephemeraPerceptionVertical.planning.completionRubric.md) | Rubric **section 4** (coherent ready-to-show; passive-only after preview removal) |
 | [`lambda/ephemera/AGENT.ephemeraPerceptionVertical.contractAlign.planning.md`](../../../../../lambda/ephemera/AGENT.ephemeraPerceptionVertical.contractAlign.planning.md) | Sub-epic: phase order + **contract encoding in tests** |
 | [`../currentCachePointers/AGENT.cachePointersRefactor.planning.md`](../currentCachePointers/AGENT.cachePointersRefactor.planning.md) | **`mtw.ephemera.currentCachePointers`** - meta pointer maintenance (stub) |
+| [`packages/mtw-lambda-patterns/ts/singleFlight`](../../../../../packages/mtw-lambda-patterns/ts/singleFlight) | **`singleFlight`** implementation (coalesce; **AGENT.md** in same folder) |
 
 ---
 
@@ -93,6 +112,7 @@ Cross-cutting uncertainties: [`../AGENT.passThrough.contract.planning.md`](../AG
 - **`allowGeneration` on state-driven ingress:** Documented in the contract (**A** vs **P ∖ A**); **remaining** work is wiring **S** in code and **`RenderRequested`** shape for **P ∖ A** runs (see contract uncertainty 10) and Task 7 in [`AGENT.planning.md`](../../../../../lambda/ephemera/dataSource/renderOrchestration/AGENT.planning.md).
 - **Graduation:** [`AGENT.planning.md`](../../../../../lambda/ephemera/dataSource/renderOrchestration/AGENT.planning.md) tasks; merge only where the pass-through contract agrees.
 - **Conversation removal:** **Prose mapping done** in the contract **Limited refinement: per-outbound body fields** and **Orchestration outbounds** (each legacy terminal and materialization path tied to a **six-outbound** target). **Remaining:** code inventory, **`streamEvent`** wiring, and retiring **`getRoomStateRenderHandle`** / **`sendMessage`** / **`RenderReady`** (and related **`messageBus`** terminals) per **Legacy bus terminals** in the contract (see contract uncertainty 8 and **Priority** above).
+- **Single-flight generation (narrowed):** **Intent** and **task** are in **Single-flight generation** above; **hashing and Dynamo wiring** remain **TBD**. Overlaps contract **uncertainty 6** (duplicate **intermediate** signals acceptable; **Perception** owns **terminal** dedupe).
 
 ---
 
@@ -119,6 +139,7 @@ Cross-cutting uncertainties: [`../AGENT.passThrough.contract.planning.md`](../AG
 | **`Render Generated`** = generation only; durability via **`renderCache`** (uncertainty 5) | Done |
 | **Hit outbounds** **IDs only** (uncertainty 3) | Done |
 | **No `RenderReady` / materialize bus** in target (product; legacy removal in **code**) | Done |
+| **Single-flight generation:** intent + task documented; hashing / wiring TBD | Done |
 | Branch-by-branch impact in **code** | Not started |
 | Implementation | Not started |
 
