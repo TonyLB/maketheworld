@@ -1,4 +1,4 @@
-# `mtw.ephemera.renderCache` — pass-through readiness — DRAFT
+# `mtw.ephemera.renderCache` - pass-through readiness - DRAFT
 
 **Document status: DRAFT (not refined).** This file is a **first-draft stub**. It does **not** yet satisfy [`taskPlanning/AGENT.md`](../../../../AGENT.md) for an executable task plan (Getting Started tailored to verification, full Recommended order with checkboxes, concrete verification commands). Content here is **provisional** until an intentional editing pass.
 
@@ -22,22 +22,41 @@ Capture **package-local** planning for [`lambda/ephemera/dataSource/renderCache/
 | [`lambda/ephemera/renderCache/AGENT.md`](../../../../../lambda/ephemera/renderCache/AGENT.md) | Durable cache domain reference |
 | [`lambda/ephemera/renderCache/AGENT.migration.md`](../../../../../lambda/ephemera/renderCache/AGENT.migration.md) | Boundary invariants (writes vs lookups) |
 | [`lambda/ephemera/dataSource/renderCache/index.ts`](../../../../../lambda/ephemera/dataSource/renderCache/index.ts) | DataSource entry (implementation) |
+| [`lambda/ephemera/AGENT.ephemeraPerceptionVertical.contractAlign.planning.md`](../../../../../lambda/ephemera/AGENT.ephemeraPerceptionVertical.contractAlign.planning.md) | Sub-epic: phase order + **contract encoding in tests** |
+
+---
+
+## Contract tests (progressive activation)
+
+Canonical rules: [`../AGENT.passThrough.contract.planning.md`](../AGENT.passThrough.contract.planning.md#encoding-the-contract-in-unit-tests). This package:
+
+- Adds **unit tests** (or extends existing DataSource tests) for **`Render Pertains`**, **`Cache Updated`** behavior on the generate path (once contract uncertainty 1 is resolved), and **match-only** behavior, using **fixtures** aligned with the contract doc.
+- **Skips** assertions not yet implementable with **`it.skip` / `describe.skip`** and a **reason** (phase C, uncertainty id). **Update** those tests when [`../AGENT.passThrough.contract.planning.md`](../AGENT.passThrough.contract.planning.md) changes.
+- **Integration:** When orchestration and renderCache both emit real signals, add or extend a **thin cross-layer test** per the contract doc (ordering, not only unit isolation).
 
 ---
 
 ## Scope for this package (draft)
 
-- **In scope (hypothesis):** Emitting or forwarding a streaming (or agreed) outbound so subscribers hear that a **specific cache record** answers an **outstanding** render question, including **no new write** when a hit selects an existing row.
-- **Relationship to existing outbounds:** Clarify interaction with **`Cache Updated`** and any future stream graduation; avoid duplicate semantics without documenting them.
-- **Out of scope for this stub:** Full orchestration policy (see orchestration plan); perception assembly (epic-level).
+Canonical detail lives in [`../AGENT.passThrough.contract.planning.md`](../AGENT.passThrough.contract.planning.md). Package-local summary:
+
+- **Own (hypothesis):** **`Render Pertains`** (provisional name) as the correlated outbound: "this cache row + this `conversationId` (or successor) trace the answer." Emitted for **both** hit and generate outcomes once orchestration has signaled **`Render Matched`** or **`Render Generated`** per that doc.
+- **On `Render Generated` path (hypothesis):** Also emit **`Cache Updated`**-class abstract churn **unless** we consolidate with the existing put path (see contract **uncertainties**).
+- **On `Render Matched` path (hypothesis):** **`Render Pertains` only** (no new write).
+- **Relationship to existing outbounds:** [`lambda/ephemera/dataSource/renderCache/index.ts`](../../../../../lambda/ephemera/dataSource/renderCache/index.ts) and today's **`Cache Updated`** behavior; duplicate-risk on generate path is **explicitly unsettled** in the contract doc.
+- **Out of scope for this stub:** Orchestration branching; perception assembly (epic-level).
 
 ---
 
-## Open questions (renderCache-specific)
+## Open questions (renderCache-specific - uncertainties preserved)
 
-- Ingress: does pass-through require a **new api.ephemera command** or an internal-only path from orchestration? TBD.
-- Exactly where in the DataSource pipeline does emission run for **hit** vs **miss** so durability and ordering match the contract?
-- Testing: which existing tests become regression anchors once behavior exists?
+Full cross-cutting list: [`../AGENT.passThrough.contract.planning.md`](../AGENT.passThrough.contract.planning.md#uncertainties-explicit-next-refinement-phase). Items that matter most here:
+
+- **Ingress / wiring:** Subscribe to orchestration events vs **api.ephemera** or internal invoke from orchestration. **Unsettled** (contract item 2).
+- **Generate path:** Avoid or define **double `Cache Updated`** when put already fires from persistence. **Unsettled** (contract item 1).
+- **Pipeline placement:** Where **`Render Pertains`** is emitted relative to Dynamo writes on generate so ordering matches the rubric. **Unsettled** (contract item 5).
+- **Match path:** If **`Render Matched`** carries ids only, whether this package **re-reads** Dynamo and how that interacts with consistency. **Unsettled** (contract item 3).
+- **Testing:** Which existing tests become regression anchors once behavior exists; align with **Contract tests** above and contract doc **Encoding** section.
 
 ---
 
@@ -46,7 +65,7 @@ Capture **package-local** planning for [`lambda/ephemera/dataSource/renderCache/
 - [ ] Aligns with [`../AGENT.passThrough.contract.planning.md`](../AGENT.passThrough.contract.planning.md) without restating the full contract
 - [ ] **Getting Started** lists concrete files and baseline commands (link `AGENT.development.md` or package test docs if added)
 - [ ] **Recommended order** uses real checkboxes per [`taskPlanning/AGENT.md`](../../../../AGENT.md)
-- [ ] **Verification** section with grep / test commands
+- [ ] **Verification** section with grep / test commands (include skip inventory for this package)
 
 ---
 
@@ -55,9 +74,11 @@ Capture **package-local** planning for [`lambda/ephemera/dataSource/renderCache/
 | Milestone | Status |
 | --- | --- |
 | Draft stub created | Done |
-| Design agreed with contract doc | Not started |
+| Contract-as-tests strategy linked (`Encoding the contract in unit tests`) | Done |
+| Refined direction aligned with contract (`Render Pertains`, `Cache Updated` pairing on generate TBD) | Done |
+| Design agreed with contract doc (uncertainties resolved) | Not started |
 | Implementation | Not started |
 
 **Recommended order:** Omitted until draft refinement.
 
-**Verification:** TBD.
+**Verification:** See **Contract tests** and parent doc [Encoding the contract in unit tests](../AGENT.passThrough.contract.planning.md#encoding-the-contract-in-unit-tests).
