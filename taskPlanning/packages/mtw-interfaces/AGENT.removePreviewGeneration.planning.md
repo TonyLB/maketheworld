@@ -1,6 +1,6 @@
 # Remove Preview Generation (`@tonylb/mtw-interfaces`)
 
-**Status:** Not started. **Depends on:** Server and runtime removal of preview ingress and the `generateRoomPreview` **conversation type** per [`lambda/ephemera` plan](../../lambda/ephemera/AGENT.removePreviewGeneration.planning.md), so TypeScript and tests can drive a complete list of remaining references. **Charcoal-client:** the remove-preview client task is **complete** (retired `taskPlanning/charcoal-client` plan); workbench preview and `generateRoomPreview` dispatch are gone---this package pass is the remaining shared-types work.
+**Status:** Not started. **Prerequisites (lambda):** **Complete.** Preview ingress, preview conversation type, and related wiring were removed from `lambda/ephemera`; steady-state behavior is documented in [`lambda/ephemera/dataSource/renderOrchestration/AGENT.md`](../../../lambda/ephemera/dataSource/renderOrchestration/AGENT.md) and [`lambda/ephemera/conversations/AGENT.md`](../../../lambda/ephemera/conversations/AGENT.md). This package pass removes obsolete **shared wire types** once `tsc`/grep allow. **Charcoal-client:** the remove-preview client task is **complete** (retired `taskPlanning/charcoal-client` plan); workbench preview and `generateRoomPreview` dispatch are gone---this package pass is the remaining shared-types work.
 
 ## Getting Started
 
@@ -10,7 +10,7 @@ Follow the [root "Getting Started" pattern for complex tasks](../../../AGENT.md#
 
 1. **Understand project foundations**
    - **[`packages/mtw-interfaces/AGENT.md`](../../../packages/mtw-interfaces/AGENT.md)** --- **Why**: Role of the package as shared wire contracts. **Focus**: Ephemera API vs client message categories; do not duplicate long-form protocol docs here.
-   - **[`lambda/ephemera` remove-preview plan](../../lambda/ephemera/AGENT.removePreviewGeneration.planning.md)** --- **Why**: Which lambda modules and types disappear first; distinguishes **`generateRoomPreview` conversation** from the passive **`generateRoomPreview`** render helper in `renderOrchestration/`. **Focus**: Execute server slice before assuming interfaces are unused.
+   - **[`lambda/ephemera/dataSource/renderOrchestration/AGENT.md`](../../../lambda/ephemera/dataSource/renderOrchestration/AGENT.md)** and **[`lambda/ephemera/conversations/AGENT.md`](../../../lambda/ephemera/conversations/AGENT.md)** --- **Why**: Current passive orchestration and **`roomStateRender`** conversations; distinction between removed **`generateRoomPreview` conversation** and the **`generateRoomPreview`** cache-miss helper in `renderOrchestration/`. **Focus**: Confirm lambda no longer imports preview-only shapes before deleting types here.
    - **Charcoal-client (completed)** --- No production dispatch of `message: 'generateRoomPreview'`; see [`charcoal-client/src/slices/lifeLine/AGENT.md`](../../../charcoal-client/src/slices/lifeLine/AGENT.md) for **`socketDispatchConversation`** framework notes. **Focus**: Preview-only terminal types become removable here once lambda and **`tsc`** allow.
 
 2. **Read this document (order)**
@@ -46,7 +46,7 @@ Remove shared **wire types and runtime guards** for preview-only Ephemera flows:
 
 | Step | Area | State |
 | --- | --- | --- |
-| 0 | Prerequisites | **Pending.** Lambda plan [`Recommended order (server)`](../../lambda/ephemera/AGENT.removePreviewGeneration.planning.md#recommended-order-server) advanced enough that preview API and conversation types are removed or unused; monorepo grep / `tsc` confirms what still references `GenerateRoomPreview*`, `generateRoomPreview` message keys, and preview `ConversationStep` helpers. |
+| 0 | Prerequisites | **Lambda done; interfaces pending.** Preview API and conversation paths removed from `lambda/ephemera` (see durable AGENT links above). Before editing exports here: monorepo grep / `tsc` should show what still references `GenerateRoomPreview*`, `generateRoomPreview` message keys, and preview `ConversationStep` helpers. |
 | 1 | `ephemera.ts` API surface | **Pending.** Drop `GenerateRoomPreviewAPIMessage` (and preview-only aliases if unused), remove from `EphemeraAPIMessage` union, delete `isGenerateRoomPreviewAPIMessage`, remove `generateRoomPreview` branch from `isEphemeraAPIMessage`. |
 | 2 | `ephemera.ts` client surface | **Pending.** Remove preview `ConversationStep` types (today `ConversationStepPipeline` is only `'generateRoomPreview'`; if no pipeline remains, remove `EphemeraClientMessageConversationStep` from [`EphemeraClientMessage`](../../../packages/mtw-interfaces/ts/ephemera.ts) until a new pipeline is added). Remove legacy `EphemeraClientMessageGenerateRoomPreview` and its guard; update `isEphemeraClientMessage` accordingly. |
 | 3 | Helpers | **Pending.** Update [`isTerminalConversationStep`](../../../packages/mtw-interfaces/ts/ephemera.ts) so default terminal behavior matches remaining message shapes (typically `Error` and any future `ConversationStep` pipelines). Remove or repurpose preview-only exports (`isConversationStepGenerateRoomPreview`, etc.). |
@@ -57,7 +57,7 @@ Remove shared **wire types and runtime guards** for preview-only Ephemera flows:
 
 Use `- [ ]` while work is pending and `- [X]` when the line is complete.
 
-1. [ ] **Confirm prerequisites** --- Execute or verify progress on [`lambda/ephemera` AGENT.removePreviewGeneration.planning.md](../../lambda/ephemera/AGENT.removePreviewGeneration.planning.md) so preview is not a live server path. Run repo-wide search for `GenerateRoomPreview`, `generateRoomPreview` (message and pipeline strings), `isGenerateRoomPreviewAPIMessage`, `isConversationStepGenerateRoomPreview`, etc., and fix any stragglers outside this package **before** editing exports here, unless you are doing one coordinated PR.
+1. [ ] **Confirm prerequisites** --- Verify `lambda/ephemera` no longer depends on preview-only wire types (see [`renderOrchestration/AGENT.md`](../../../lambda/ephemera/dataSource/renderOrchestration/AGENT.md)). Run repo-wide search for `GenerateRoomPreview`, `generateRoomPreview` (message and pipeline strings), `isGenerateRoomPreviewAPIMessage`, `isConversationStepGenerateRoomPreview`, etc., and fix any stragglers outside this package **before** editing exports here, unless you are doing one coordinated PR.
 
 2. [ ] **Edit `ephemera.ts` (API first)** --- Remove preview API types and guards; shrink unions and `switch` cases so `tsc` passes inside `mtw-interfaces`.
 
@@ -81,6 +81,6 @@ Use `- [ ]` while work is pending and `- [X]` when the line is complete.
 | Document | Role |
 | --- | --- |
 | Charcoal-client remove-preview task | **Completed** (retired task plan). Client UI and dispatch work shipped; durable notes in [`charcoal-client/src/slices/lifeLine/AGENT.md`](../../../charcoal-client/src/slices/lifeLine/AGENT.md). Interface deletion is **this** plan. |
-| [`lambda/ephemera/AGENT.removePreviewGeneration.planning.md`](../../lambda/ephemera/AGENT.removePreviewGeneration.planning.md) | Server behavior and tests; should be far enough along that preview wire shapes are unused before you delete types here. |
+| [`lambda/ephemera/dataSource/renderOrchestration/AGENT.md`](../../../lambda/ephemera/dataSource/renderOrchestration/AGENT.md), [`lambda/ephemera/conversations/AGENT.md`](../../../lambda/ephemera/conversations/AGENT.md) | Durable server behavior after preview removal; `mtw-interfaces` edits should align with these contracts. |
 
 When this initiative is complete, archive or delete this plan per [`taskPlanning/AGENT.md`](../../AGENT.md); move any lasting protocol notes into [`packages/mtw-interfaces/AGENT.md`](../../../packages/mtw-interfaces/AGENT.md) if still useful after merge.

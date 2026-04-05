@@ -30,6 +30,7 @@ describe('renderOrchestration subscribedEvents', () => {
             },
             getContent: () => Promise.resolve({}),
         }
+        // Removed ingress type: only here so the guard keeps rejecting it (grep may still find this string).
         const rejectedPreview = {
             header: {
                 dataSourceKey: 'api.ephemera',
