@@ -179,7 +179,7 @@ These are **not** small details; **open** items block a normative contract until
 
 6. **Idempotency and duplicate collapse** for subscribers if multiple signals can fire for one logical outcome. **Unsettled.**
 
-7. **Preview vs passive policy:** Same contract for both, or explicit variants (rubric sub-goal). **Unsettled.**
+7. **Preview vs passive policy - resolved (product).** **Authoring preview generation** has been **removed** from the system. This contract applies to **passive** orchestration only; there is **no** parallel preview ingress or variant to reconcile.
 
 8. **Stream event taxonomy (`renderOrchestration`) - partially resolved.** **Documented in this doc (prose):** the **six outbound types** (**Orchestration outbounds** table), **per-outbound body** fields (**Limited refinement**), **legacy terminal** lineage, and **routing identity** for producer streams (**Routing identity on producer streams** --- **`componentId`** + **`perspective`** / **`perspectiveKey`**; **not** request-scoped correlation for Perception). **Resolved (product):** **transport** --- **`mtw.ephemera.renderOrchestration`** **DataSource stream** for the six outbounds (**not** **`messageBus`** as the contract's primary carrier); **`renderCache`** **subscribes** (no direct / **`api.ephemera`** invoke from orchestration --- uncertainty 2). **Still unsettled:** exact **envelopes**, **stable TypeScript** names and module **location** ( **`mtw-interfaces`** only if a **client or cross-service** boundary needs it; otherwise ephemera-local --- see **Where types live**), per-event handling for **`Generation Started`** / **error** / **defer** once wired, and **replacing** **`conversation.sendMessage`** in code (see **Exit `conversation.sendMessage`**).
 
@@ -221,6 +221,7 @@ Use this section as a scratchpad; prefer **Uncertainties** for blockers.
 | **Limited refinement:** per-outbound **body** fields (narrow; doc remains draft) | Done |
 | **Lean routing + Perception** (**Routing identity**); **no synthetic id** on **`Render Pertains`** (uncertainty 9 resolved) | Done |
 | **`renderCache`** subscribes to orchestration stream (**no** orchestration invoke or **`api.ephemera`** handoff; uncertainty 2 resolved) | Done |
+| **Preview generation removed**; passive-only contract (uncertainty 7 resolved) | Done |
 | Passive state: **S = A ∪ P** set algebra + **`allowGeneration`** on **A** vs **P ∖ A** (uncertainty 10 narrowed; code still TBD) | Done |
 | **`Generation Skipped` -> `Generation Deferred`**; **`currentCachePointers`** role + uncertainty 11 (bus ordering) | Done |
 | **Encoding the contract in unit tests** section + task-plan pointers | Done |

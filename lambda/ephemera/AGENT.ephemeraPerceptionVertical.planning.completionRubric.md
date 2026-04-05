@@ -77,7 +77,7 @@ End state: **presentation** can rely on **one** notion of "ready for perception"
 
 ### Sub-goals
 
-- [ ] **Passive** orchestration policy for intake errors and lifecycle messaging is **centralized** enough that new paths do not fork silently (see render orchestration planning); **preview** ingress is **not** in scope (removed).
+- [ ] Orchestration policy for intake errors and lifecycle messaging is **centralized** enough that new paths do not fork silently (see render orchestration planning).
 
 ---
 
