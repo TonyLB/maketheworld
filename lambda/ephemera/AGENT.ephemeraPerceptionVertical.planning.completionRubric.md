@@ -44,7 +44,7 @@ End state: **long-lived render cache** is the durable substrate for **LLM-backed
 
 - [ ] **Cache rows** and pointer policy are coherent with orchestration resolve (`findRender` / generation) without duplicate exact-match stacks.
 - [ ] **Miss path** (generate + persist) and **hit path** are both well-defined relative to perception and conversations.
-- [ ] **renderCache DataSource** outbounds (`Cache Updated`, errors) align with orchestration and perception needs where graduation requires it (no ambiguous "who owns durability" gaps).
+- [ ] **renderCache DataSource** outbounds (`Render Pertains`, `Cache Updated`, errors) align with orchestration and perception needs where graduation requires it; **durable** readiness is owned by **`renderCache`**, not orchestration **`Render Generated`** (pass-through contract).
 
 ### Sub-goals
 
@@ -72,7 +72,7 @@ End state: **renderOrchestration** fans **out** work by perspective/target; **pe
 End state: **presentation** can rely on **one** notion of "ready for perception" without racing **write-through cache**, orchestration terminals, and perception delivery.
 
 - [ ] **Hits** (no new cache write) and **misses** (generate + persist) both land in a **single observable readiness story** for clients where the product demands it.
-- [ ] **No systematic races** between orchestration completion signals and **`renderCache`** durability that the UI cannot reason about.
+- [ ] **No systematic races** between **orchestration** **`Render Generated`** (generation-only, **not** a durability signal) and **`renderCache`** **`Render Pertains`** / **`Cache Updated`** (durable) that the UI cannot reason about (pass-through contract uncertainty 5).
 - [ ] **Graduation** targets for render orchestration (authoritative outbounds, reduced conversation-only coupling) are either met or superseded by an explicit newer contract **documented** as such.
 
 ### Sub-goals

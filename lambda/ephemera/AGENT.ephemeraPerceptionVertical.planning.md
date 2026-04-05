@@ -68,7 +68,7 @@ These documents **contributed** to the journey so far. They remain **authoritati
 
 These are **themes**, not a duplicate of every checkbox in subordinate docs:
 
-1. **Single observable "ready for perception" path** across **hits** (no new write) vs **misses** (generate + persist), without races between **orchestration** and **renderCache** durability.
+1. **Single observable "ready for perception" path** across **hits** (no new write) vs **misses** (generate + persist), with **durable** cache facts owned by **`renderCache`** (**`Render Pertains`** / **`Cache Updated`**), not by orchestration **`Render Generated`** (pass-through contract uncertainty 5).
 2. **Stream vs messageBus** graduation for lifecycle events (`RenderReady`, progress, cache completion) and **subscriber** registry.
 3. **Perception as fan-in** (or equivalent assembler): merge **orchestration progress**, **renderCache** outbounds, and **presence** into **PublishMessage** / timeline rules.
 4. **Migration** off imperative **`sendPutCacheRecord`**-only stories where a **domain** outbound is the right seam (incremental; **componentExamples** and other call sites must stay accounted for).

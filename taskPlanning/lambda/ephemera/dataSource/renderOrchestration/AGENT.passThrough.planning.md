@@ -39,7 +39,7 @@ Canonical table: [`../AGENT.passThrough.contract.planning.md`](../AGENT.passThro
 | **`Current Cache Valid`** | Pointer / **current-cache** path succeeded in `findRender`. |
 | **`Exact Match Found`** | **Exact match** succeeded (no pointer hit or after pointer repair). |
 | **`Generation Started`** | Committed to generation; downstream handling **deferred** (see contract). |
-| **`Render Generated`** | Generate path completed (timing vs Dynamo: contract uncertainty 5). |
+| **`Render Generated`** | **Generation** complete; **full** content in payload; **no** Dynamo durability promise (**`renderCache`** emits durable **`Render Pertains`** / **`Cache Updated`**; contract uncertainty 5 resolved). |
 | **`Orchestration Error`** | Terminal **error** (intake, generation failure, etc.). |
 | **`Generation Deferred`** | Policy **defer** (no generation now) / invalidate-style outcome without treating as generic error where distinct. |
 
@@ -88,7 +88,7 @@ Canonical detail: [`../AGENT.passThrough.contract.planning.md`](../AGENT.passThr
 Cross-cutting uncertainties: [`../AGENT.passThrough.contract.planning.md`](../AGENT.passThrough.contract.planning.md#uncertainties-explicit-next-refinement-phase).
 
 - **Branch overlap (implementation):** Which code paths still emit **`RenderReady`** (or related bus shapes) such that **`renderCache`** **`Render Pertains`** could **duplicate** the same logical readiness during migration? Map against [`findRender`](../../../../../lambda/ephemera/dataSource/renderOrchestration/findRender.ts) and materialization. **To be refined in code** (not a downstream listener concern).
-- **`Render Generated` semantics:** LLM complete vs Dynamo durable vs both (contract uncertainty 5); orchestration must not define this differently from **`renderCache`**.
+- **`Render Generated` semantics (resolved):** Orchestration emits **generation-complete** with **full** content only; **no** write guarantee. **`renderCache`** owns **durable** **`Render Pertains`** / **`Cache Updated`** (contract uncertainty 5).
 - **Handoff mechanism (resolved):** Orchestration **emits** only on **`mtw.ephemera.renderOrchestration`** **DataSource stream**. **`renderCache`** **subscribes**; orchestration does **not** call into **`renderCache`** or use **`api.ephemera`** for this path (contract uncertainty 2). Tests should assert **stream** emissions from orchestration and **subscription** handling in **`renderCache`**, not direct coupling.
 - **`allowGeneration` on state-driven ingress:** Documented in the contract (**A** vs **P ∖ A**); **remaining** work is wiring **S** in code and **`RenderRequested`** shape for **P ∖ A** runs (see contract uncertainty 10) and Task 7 in [`AGENT.planning.md`](../../../../../lambda/ephemera/dataSource/renderOrchestration/AGENT.planning.md).
 - **Graduation:** [`AGENT.planning.md`](../../../../../lambda/ephemera/dataSource/renderOrchestration/AGENT.planning.md) tasks; merge only where the pass-through contract agrees.
@@ -116,6 +116,7 @@ Cross-cutting uncertainties: [`../AGENT.passThrough.contract.planning.md`](../AG
 | **Conversation removal:** legacy terminal -> six outbounds **mapped in contract** (implementation not started) | Done |
 | Passive state: **S = A ∪ P** direction + **`allowGeneration`** (aligned with contract set-algebra section) | Done |
 | **`renderCache`** handoff: **subscribe** only (no invoke / **`api.ephemera`**; contract uncertainty 2) | Done |
+| **`Render Generated`** = generation only; durability via **`renderCache`** (uncertainty 5) | Done |
 | Branch-by-branch impact in **code** | Not started |
 | Implementation | Not started |
 

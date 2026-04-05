@@ -41,8 +41,8 @@ Canonical rules: [`../AGENT.passThrough.contract.planning.md`](../AGENT.passThro
 
 Canonical detail lives in [`../AGENT.passThrough.contract.planning.md`](../AGENT.passThrough.contract.planning.md). Package-local summary:
 
-- **Own (hypothesis):** **`Render Pertains`** (provisional name) as the outbound that ties a **cache row** to whatever downstream needs to **assemble** player-visible output. Emitted when orchestration signals **`Current Cache Valid`**, **`Exact Match Found`**, or **`Render Generated`** (per [contract **Orchestration outbounds**](../AGENT.passThrough.contract.planning.md)); map each to **`Render Pertains`** / **`Cache Updated`** as described there.
-- **On `Render Generated` (hypothesis):** Also emit **`Cache Updated`**-class abstract churn **unless** we consolidate with the existing put path (see contract **uncertainties**).
+- **Own (hypothesis):** **`Render Pertains`** (provisional name) as the outbound that ties a **cache row** to whatever downstream needs to **assemble** player-visible output. Emitted when orchestration signals **`Current Cache Valid`**, **`Exact Match Found`**, or after handling **`Render Generated`** (per [contract **Orchestration outbounds**](../AGENT.passThrough.contract.planning.md)); map each to **`Render Pertains`** / **`Cache Updated`** as described there. **`Render Pertains`** and **`Cache Updated`** **assert durable persistence** and carry **content** (contract **Generation vs durability**).
+- **On `Render Generated` from orchestration (hypothesis):** Orchestration signals **generation complete** with **full** content but **not** durability; this package **writes** (or confirms write), then emits **`Render Pertains`** / **`Cache Updated`**. **`Cache Updated`** duplication vs put-path is still **unsettled** (contract item 1).
 
 **Correlation vs routing:** The contract **Routing identity on producer streams (Perception delivery model)** applies; **uncertainty 9** is **resolved (product):** **no synthetic id** on **`Render Pertains`**. **Perception** does **not** depend on **`conversationId`** / request-scoped fields on streams; it matches on **`(componentId, perspectiveKey)`** and holds **delivery** context at **registration**. **`Render Pertains`** carries **lean routing identity** (**`componentId`**, perspective / **`perspectiveKey`**) plus **`cacheId`** / cache facts --- enough for **`currentCachePointers`**. See [`../AGENT.passThrough.contract.planning.md`](../AGENT.passThrough.contract.planning.md#routing-identity-on-producer-streams-perception-delivery-model) and [`../perception/AGENT.perceptionRefactor.planning.md`](../perception/AGENT.perceptionRefactor.planning.md).
 - **On `Current Cache Valid` / `Exact Match Found` (hypothesis):** **`Render Pertains` only** (no new write).
@@ -58,7 +58,7 @@ Full cross-cutting list: [`../AGENT.passThrough.contract.planning.md`](../AGENT.
 
 - **Ingress / wiring (resolved):** **`renderOrchestration`** emits on **`mtw.ephemera.renderOrchestration`** **DataSource stream**; this package **subscribes**. **No** orchestration **invoke** into **`renderCache`**, **no** **`api.ephemera`** indirect invoke for this path (contract uncertainty 2).
 - **Generate path:** Avoid or define **double `Cache Updated`** when put already fires from persistence. **Unsettled** (contract item 1).
-- **Pipeline placement:** Where **`Render Pertains`** is emitted relative to Dynamo writes on generate so ordering matches the rubric. **Unsettled** (contract item 5).
+- **Pipeline / durability (contract resolved):** **`Render Pertains`** / **`Cache Updated`** follow **durable** **`CACHE#...`** writes; orchestration **`Render Generated`** does **not** assert write completion (uncertainty 5). **Still unsettled:** double **`Cache Updated`** (contract item 1) and implementation ordering.
 - **Hit-path outbounds:** If **`Current Cache Valid`** / **`Exact Match Found`** carry ids only, whether this package **re-reads** Dynamo and how that interacts with consistency. **Unsettled** (contract item 3).
 - **Correlation vs routing:** **component x perspective** (+ **`cacheId`**) per contract **Routing identity**; **no** synthetic id (uncertainty 9 resolved).
 - **Testing:** Which existing tests become regression anchors once behavior exists; align with **Contract tests** above and contract doc **Encoding** section.
@@ -83,6 +83,7 @@ Full cross-cutting list: [`../AGENT.passThrough.contract.planning.md`](../AGENT.
 | Refined direction aligned with contract (`Render Pertains`, six orchestration outbounds mapped, `Cache Updated` pairing on generate TBD) | Done |
 | **Correlation vs routing** explicit unknown documented | Done |
 | **Ingress:** subscribe to **`mtw.ephemera.renderOrchestration`** only (no invoke / **`api.ephemera`**; uncertainty 2) | Done |
+| **Durability:** **`Render Pertains`** / **`Cache Updated`** after write; orchestration **`Render Generated`** generation-only (uncertainty 5) | Done |
 | Design agreed with contract doc (uncertainties resolved) | Not started |
 | Implementation | Not started |
 
