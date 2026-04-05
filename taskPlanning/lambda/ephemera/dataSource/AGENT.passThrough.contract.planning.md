@@ -12,7 +12,9 @@
 
 Hold the **canonical cross-cutting contract** for the pass-through pattern: a single observable notion that a given render cache record is **the relevant answer** for a component/perspective (and correlation), whether that record was **just written** (miss path) or **already present** (hit path). [`renderCache/AGENT.passThrough.planning.md`](renderCache/AGENT.passThrough.planning.md), [`renderOrchestration/AGENT.passThrough.planning.md`](renderOrchestration/AGENT.passThrough.planning.md), and [`currentCachePointers/AGENT.cachePointersRefactor.planning.md`](currentCachePointers/AGENT.cachePointersRefactor.planning.md) should reference this file for shared semantics and payload shape; they own package-local execution detail.
 
-**Directional priority (`renderOrchestration`):** We intend to **remove dependency on `conversation.sendMessage`** for orchestration outcomes **as early as practical** and replace each former use with **outgoing events on the `mtw.ephemera.renderOrchestration` DataSource stream** (product decision; uncertainty 8 **transport** resolved). **Exactly** which **envelopes** and **`mtw-interfaces`** shapes correspond to each former call site is **not** fixed here; see **Uncertainties** and [`renderOrchestration/AGENT.passThrough.planning.md`](renderOrchestration/AGENT.passThrough.planning.md).
+**Directional priority (`renderOrchestration`):** We intend to **remove dependency on `conversation.sendMessage`** for orchestration outcomes **as early as practical** and replace each former use with **outgoing events on the `mtw.ephemera.renderOrchestration` DataSource stream** (product decision; uncertainty 8 **transport** resolved). **Exactly** which **envelopes** and **typed payload** shapes correspond to each former call site is **not** fixed here; see **Uncertainties** and [`renderOrchestration/AGENT.passThrough.planning.md`](renderOrchestration/AGENT.passThrough.planning.md).
+
+**Where types live:** [`packages/mtw-interfaces`](../../../../packages/mtw-interfaces) is the **client and cross-service** contract package. **Internal-only** DataSource streams (orchestration -> **`renderCache`**, etc.) need **stable TypeScript types** shared between producers and consumers, but those types **do not** have to live in **`mtw-interfaces`** unless the same payloads are (or will be) **serialized to the client** or **another service**. Prefer **ephemera-local** or **lambda-internal** modules until a boundary requires **`mtw-interfaces`**.
 
 ---
 
@@ -24,7 +26,7 @@ Hold the **canonical cross-cutting contract** for the pass-through pattern: a si
 | [`lambda/ephemera/AGENT.ephemeraPerceptionVertical.planning.md`](../../../../lambda/ephemera/AGENT.ephemeraPerceptionVertical.planning.md) | Epic index |
 | [`lambda/ephemera/AGENT.ephemeraPerceptionVertical.contractAlign.planning.md`](../../../../lambda/ephemera/AGENT.ephemeraPerceptionVertical.contractAlign.planning.md) | **Sub-epic** - phase order and dependencies for this contract |
 | [`lambda/ephemera/AGENT.ephemeraPerceptionVertical.planning.completionRubric.md`](../../../../lambda/ephemera/AGENT.ephemeraPerceptionVertical.planning.completionRubric.md) | **Section 4** - Coherent "ready to show" (primary rubric anchor) |
-| [`packages/mtw-interfaces/AGENT.md`](../../../../packages/mtw-interfaces/AGENT.md) | Likely eventual home for **types** once the contract stabilizes (TBD) |
+| [`packages/mtw-interfaces/AGENT.md`](../../../../packages/mtw-interfaces/AGENT.md) | **Client / cross-service** payloads; internal DS types may stay **ephemera-local** until a boundary needs this package (see **Where types live** under **Purpose**) |
 | [`currentCachePointers/AGENT.cachePointersRefactor.planning.md`](currentCachePointers/AGENT.cachePointersRefactor.planning.md) | **`mtw.ephemera.currentCachePointers`** - meta pointer maintenance (draft stub) |
 | [`perception/AGENT.perceptionRefactor.planning.md`](perception/AGENT.perceptionRefactor.planning.md) | Fan-in / registration; **delivery correlation** for player-visible output (see **Routing identity and Perception** below) |
 
@@ -38,7 +40,7 @@ This initiative is aimed at [completion rubric section 4](../../../../lambda/eph
 
 ## Encoding the contract in unit tests
 
-The pass-through contract is **not** only this markdown file and eventual `mtw-interfaces` types. It must live in **executable tests** so producer-first work does not emit into an **untested void**. Coordinated with [contract alignment sub-epic](../../../../lambda/ephemera/AGENT.ephemeraPerceptionVertical.contractAlign.planning.md#contract-encoding-in-tests-progressive-activation).
+The pass-through contract is **not** only this markdown file and eventual **typed** payloads ( **`mtw-interfaces`** only where a **client or service boundary** requires it). It must live in **executable tests** so producer-first work does not emit into an **untested void**. Coordinated with [contract alignment sub-epic](../../../../lambda/ephemera/AGENT.ephemeraPerceptionVertical.contractAlign.planning.md#contract-encoding-in-tests-progressive-activation).
 
 ### What to add
 
@@ -64,13 +66,13 @@ The pass-through contract is **not** only this markdown file and eventual `mtw-i
 
 ### Verification (contract doc)
 
-When this file nears normative: grep for **`describe.skip` / `it.skip`** in pass-through-related tests should trend **down**; **active** tests should reference the same event names and fields as this doc and `mtw-interfaces`.
+When this file nears normative: grep for **`describe.skip` / `it.skip`** in pass-through-related tests should trend **down**; **active** tests should reference the same event names and fields as this doc and the **agreed type module** ( **`mtw-interfaces`** or ephemera-local, per **Where types live**).
 
 ---
 
 ## Refined direction (hypothesis - not normative yet)
 
-This section records a **coherent guess** at the split of responsibilities. **Names are provisional** until typed and reviewed against [`packages/mtw-interfaces`](../../../../packages/mtw-interfaces). Orchestration outbounds use the **six-type taxonomy** below; **`Render Pertains`** remains the correlated cache outbound.
+This section records a **coherent guess** at the split of responsibilities. **Names are provisional** until typed and reviewed in an **agreed** module ( **`mtw-interfaces`** or ephemera-local per **Where types live**). Orchestration outbounds use the **six-type taxonomy** below; **`Render Pertains`** remains the correlated cache outbound.
 
 ### Roles
 
@@ -104,7 +106,7 @@ Work from **room** + **`Meta::Room`** at state-change time:
 
 ### Orchestration outbounds (draft taxonomy - six types)
 
-These replace ad hoc **`conversation.sendMessage`** / **`RenderReady`** materialization for orchestration-owned facts. **Stable TypeScript names** may differ when added to `mtw-interfaces`.
+These replace ad hoc **`conversation.sendMessage`** / **`RenderReady`** materialization for orchestration-owned facts. **Stable TypeScript names** may differ when committed to the **agreed** type module ( **`mtw-interfaces`** or ephemera-local).
 
 | Outbound | When (intent) | Primary subscribers (draft) |
 | --- | --- | --- |
@@ -155,9 +157,9 @@ Orchestration **does not** own the **final** "ready for this conversation" emiss
 - On **`Generation Started`**, **`Orchestration Error`**, **`Generation Deferred`:** **`renderCache`** subscription behavior **TBD** per event (may be no-op for cache, or limited updates); refine when consumers exist. **`Generation Deferred`** pointer clearing is owned by **`currentCachePointers`**, not by deleting cache rows.
 - **`currentCachePointers`** (planned): On **`Render Pertains`** from **`renderCache`**, **set** meta pointers from the **cache id** and **lean** routing keys in the payload (**`componentId`**, **`perspectiveKey`**) --- **no** synthetic id required (product decision).
 
-### How `renderCache` "sees" orchestration events (partially settled)
+### How `renderCache` "sees" orchestration events (settled)
 
-**Transport (product):** Orchestration publishes the **six outbounds** on **`mtw.ephemera.renderOrchestration`** **DataSource stream**. **`renderCache`** should **observe** them via **subscription** to that stream in the target architecture. **Still unsettled (uncertainty 2):** whether any **transitional** path uses **explicit invoke** into a **`renderCache`** entrypoint instead of stream observation, and how **`Generation Started`** / **error** / **defer** are handled once connected.
+**Transport (product):** Orchestration publishes the **six outbounds** on **`mtw.ephemera.renderOrchestration`** **DataSource stream**. **`renderCache`** **subscribes** to that stream --- **not** via **`renderOrchestration`** calling into **`renderCache`**, and **not** via **`api.ephemera`** messages as an indirect invoke path (product decision; uncertainty 2 resolved). **Still unsettled:** per-event behavior for **`Generation Started`** / **Orchestration Error** / **Generation Deferred** once subscribed (may be no-op for **`renderCache`**; see **`renderCache` reactions** draft above).
 
 ---
 
@@ -167,7 +169,7 @@ These are **not** small details; **open** items block a normative contract until
 
 1. **`Cache Updated` duplication on the generate path.** Persistence after generation already flows through **`mtw.ephemera.renderCache`** (put → likely **`Cache Updated`** today). If **`Render Generated`** also causes **`Cache Updated`**, we may emit **twice** unless we consolidate (single coordinated emission, dedupe semantics, or define **`Cache Updated`** as only from the write primitive). **Unsettled.**
 
-2. **Wiring: subscribe vs invoke.** Orchestration **emits** the six outbounds on **`mtw.ephemera.renderOrchestration`** **DataSource stream** (product decision). Whether **`renderCache`** **subscribes** to that stream (target) or orchestration **invokes** a dedicated path into **`renderCache`** for **transitional** wiring. Implies layering and test seams. **Unsettled.**
+2. **`renderCache` wiring - resolved (product).** **`mtw.ephemera.renderCache`** **subscribes** to **`mtw.ephemera.renderOrchestration`** stream events. **`renderOrchestration`** does **not** **invoke** **`renderCache`** directly, and does **not** use **`api.ephemera`** to invoke it **indirectly**. Documented in [`renderCache/AGENT.passThrough.planning.md`](renderCache/AGENT.passThrough.planning.md) **Ingress / wiring**.
 
 3. **Hit-path outbound payload authority.** For **`Current Cache Valid`** and **`Exact Match Found`**, whether the event carries a **full cache row** (forward without re-read) or **ids only** (renderCache re-fetches), with implications for races and consistency. **Unsettled.** (Body field **names** for hits are narrowed in **Limited refinement: per-outbound body fields**; authority full-row vs ids remains open.)
 
@@ -179,7 +181,7 @@ These are **not** small details; **open** items block a normative contract until
 
 7. **Preview vs passive policy:** Same contract for both, or explicit variants (rubric sub-goal). **Unsettled.**
 
-8. **Stream event taxonomy (`renderOrchestration`) - partially resolved.** **Documented in this doc (prose):** the **six outbound types** (**Orchestration outbounds** table), **per-outbound body** fields (**Limited refinement**), **legacy terminal** lineage, and **routing identity** for producer streams (**Routing identity on producer streams** --- **`componentId`** + **`perspective`** / **`perspectiveKey`**; **not** request-scoped correlation for Perception). **Resolved (product):** **transport** --- **`mtw.ephemera.renderOrchestration`** **DataSource stream** for the six outbounds (**not** **`messageBus`** as the contract's primary carrier). **Still unsettled:** exact **envelopes**, **`mtw-interfaces`** names, **`renderCache`** handoff details (**stream subscription** vs **invoke**; overlaps uncertainty 2), per-event handling for **`Generation Started`** / **error** / **defer** once wired, and **replacing** **`conversation.sendMessage`** in code (see **Exit `conversation.sendMessage`**).
+8. **Stream event taxonomy (`renderOrchestration`) - partially resolved.** **Documented in this doc (prose):** the **six outbound types** (**Orchestration outbounds** table), **per-outbound body** fields (**Limited refinement**), **legacy terminal** lineage, and **routing identity** for producer streams (**Routing identity on producer streams** --- **`componentId`** + **`perspective`** / **`perspectiveKey`**; **not** request-scoped correlation for Perception). **Resolved (product):** **transport** --- **`mtw.ephemera.renderOrchestration`** **DataSource stream** for the six outbounds (**not** **`messageBus`** as the contract's primary carrier); **`renderCache`** **subscribes** (no direct / **`api.ephemera`** invoke from orchestration --- uncertainty 2). **Still unsettled:** exact **envelopes**, **stable TypeScript** names and module **location** ( **`mtw-interfaces`** only if a **client or cross-service** boundary needs it; otherwise ephemera-local --- see **Where types live**), per-event handling for **`Generation Started`** / **error** / **defer** once wired, and **replacing** **`conversation.sendMessage`** in code (see **Exit `conversation.sendMessage`**).
 
 9. **`Render Pertains` wire extras - resolved (product).** **Perception** does **not** depend on **`conversationId`** (or similar) **on producer streams**; it reconstructs from **registration + `(componentId, perspectiveKey)`** (see **Routing identity on producer streams**). **`Render Pertains`** and **`currentCachePointers`** **do not** use a **synthetic id** on the wire; **component x perspective** (+ **`cacheId`**) is sufficient. Documented in [`renderCache/AGENT.passThrough.planning.md`](renderCache/AGENT.passThrough.planning.md) **Correlation vs routing**.
 
@@ -195,13 +197,13 @@ Use this section as a scratchpad; prefer **Uncertainties** for blockers.
 
 - Relationship of **`RenderReady`** to **`Render Pertains`** during migration (overlap period, deprecation).
 - Epic **Streams, contracts, graduation** may still affect **client** consumption and **envelopes**; **orchestration** carrier for this contract is **`mtw.ephemera.renderOrchestration`** **DataSource stream** (uncertainty 8 transport resolved).
-- **Per-call-site mapping:** Prose mapping is in **Limited refinement**; **implementation**, **envelopes**, and **`mtw-interfaces`** still TBD (uncertainty 8).
+- **Per-call-site mapping:** Prose mapping is in **Limited refinement**; **implementation**, **envelopes**, and **typed** module location still TBD (uncertainty 8).
 
 ---
 
 ## When this leaves draft status
 
-- [ ] Event/payload semantics agreed and mirrored in [`packages/mtw-interfaces`](../../../../packages/mtw-interfaces) or agreed interim location
+- [ ] Event/payload semantics agreed and mirrored in **typed** code (**[`packages/mtw-interfaces`](../../../../packages/mtw-interfaces)** if client or cross-service; otherwise **agreed ephemera-local** module --- see **Where types live**)
 - [ ] Single-emitter and race story written clearly enough to implement
 - [ ] **Encoding the contract in unit tests** (see section above) reflected in repo: suites exist per layer; skip count tracked toward zero
 - [ ] Child task plans updated to stop duplicating contract text; they link here only
@@ -218,6 +220,7 @@ Use this section as a scratchpad; prefer **Uncertainties** for blockers.
 | **Exit `conversation.sendMessage`** priority + uncertainty 8 (six-type taxonomy + per-outbound body + legacy mapping in prose; **transport:** DataSource stream; envelopes / code TBD) | Done |
 | **Limited refinement:** per-outbound **body** fields (narrow; doc remains draft) | Done |
 | **Lean routing + Perception** (**Routing identity**); **no synthetic id** on **`Render Pertains`** (uncertainty 9 resolved) | Done |
+| **`renderCache`** subscribes to orchestration stream (**no** orchestration invoke or **`api.ephemera`** handoff; uncertainty 2 resolved) | Done |
 | Passive state: **S = A ∪ P** set algebra + **`allowGeneration`** on **A** vs **P ∖ A** (uncertainty 10 narrowed; code still TBD) | Done |
 | **`Generation Skipped` -> `Generation Deferred`**; **`currentCachePointers`** role + uncertainty 11 (bus ordering) | Done |
 | **Encoding the contract in unit tests** section + task-plan pointers | Done |

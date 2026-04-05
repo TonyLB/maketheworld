@@ -8,7 +8,7 @@
 
 ## Purpose (intent only)
 
-Describe how [`lambda/ephemera/dataSource/renderOrchestration/`](../../../../../lambda/ephemera/dataSource/renderOrchestration/) **interacts** with the pass-through pattern: orchestration remains responsible for **policy and branching** (exact match, current-cached, pointer repair, generation, etc.), while the **observable "this cache row answers this question"** surface is owned by **`renderCache`** per the shared contract. This plan tracks what orchestration **stops duplicating**, what it **invokes**, and **removing** reliance on **conversation** for pipeline delivery.
+Describe how [`lambda/ephemera/dataSource/renderOrchestration/`](../../../../../lambda/ephemera/dataSource/renderOrchestration/) **interacts** with the pass-through pattern: orchestration remains responsible for **policy and branching** (exact match, current-cached, pointer repair, generation, etc.), while the **observable "this cache row answers this question"** surface is owned by **`renderCache`** per the shared contract. This plan tracks what orchestration **stops duplicating**, **emitting on its DataSource stream** ( **`renderCache`** **subscribes** --- orchestration does **not** invoke **`renderCache`** or send **`api.ephemera`** for that handoff), and **removing** reliance on **conversation** for pipeline delivery.
 
 ---
 
@@ -22,7 +22,7 @@ Describe how [`lambda/ephemera/dataSource/renderOrchestration/`](../../../../../
 
 ## Priority: remove `conversation.sendMessage` (replace with streamed outbounds)
 
-**Intent:** **`renderOrchestration`** should **not** depend on **`conversation.sendMessage`** (nor on [`materializeRoomStateRender`](../../../../../lambda/ephemera/conversations/conversationTypes/roomStateRender/materialize.ts) as the adapter to `messageBus.send`) for **orchestration outcomes** any longer than necessary. Each call site that today goes through **`roomStateRender`** registration + **`sendMessage`** should become **outgoing events on the `mtw.ephemera.renderOrchestration` DataSource stream** per the **six-type taxonomy** in [`../AGENT.passThrough.contract.planning.md`](../AGENT.passThrough.contract.planning.md) (**`Current Cache Valid`**, **`Exact Match Found`**, **`Generation Started`**, **`Render Generated`**, **`Orchestration Error`**, **`Generation Deferred`**). **Prose mapping** (terminals, body fields, legacy bus shapes) is in the contract **Limited refinement**; **transport** is **resolved** (DataSource stream); **envelopes** and **`mtw-interfaces`** remain uncertainty 8.
+**Intent:** **`renderOrchestration`** should **not** depend on **`conversation.sendMessage`** (nor on [`materializeRoomStateRender`](../../../../../lambda/ephemera/conversations/conversationTypes/roomStateRender/materialize.ts) as the adapter to `messageBus.send`) for **orchestration outcomes** any longer than necessary. Each call site that today goes through **`roomStateRender`** registration + **`sendMessage`** should become **outgoing events on the `mtw.ephemera.renderOrchestration` DataSource stream** per the **six-type taxonomy** in [`../AGENT.passThrough.contract.planning.md`](../AGENT.passThrough.contract.planning.md) (**`Current Cache Valid`**, **`Exact Match Found`**, **`Generation Started`**, **`Render Generated`**, **`Orchestration Error`**, **`Generation Deferred`**). **Prose mapping** (terminals, body fields, legacy bus shapes) is in the contract **Limited refinement**; **transport** is **resolved** (DataSource stream); **`renderCache`** **subscribes** (no orchestration **invoke** or **`api.ephemera`** handoff; contract uncertainty 2 resolved); **envelopes** and **typed** module location (**`mtw-interfaces`** vs ephemera-local; contract **Where types live**) remain uncertainty 8.
 
 - **ASAP** in priority order: do **not** add new features that deepen the conversation dependency; prefer emitting **stream / publish** paths even while consumers catch up (see contract **Encoding the contract in unit tests** and branch-only outage in contract-align).
 - **Progress signals** (e.g. generation started) follow the same rule: **no** new long-lived use of conversation handles for orchestration-owned lifecycle.
@@ -79,7 +79,7 @@ Canonical detail: [`../AGENT.passThrough.contract.planning.md`](../AGENT.passThr
 - **Emit (hypothesis):** The **six outbounds** in **Outbound taxonomy** above; **`Current Cache Valid`** and **`Exact Match Found`** replace the old combined "match hit"; **`Generation Started`** / **`Render Generated`** cover the slow path; **`Orchestration Error`** and **`Generation Deferred`** cover failure and policy deferrals. **Not** the final request-scoped "ready for perception" subscriber contract (that remains **`Render Pertains`** on **`renderCache`** per contract). **`Generation Deferred`** consumers for **meta pointers**: [`../currentCachePointers/AGENT.cachePointersRefactor.planning.md`](../currentCachePointers/AGENT.cachePointersRefactor.planning.md).
 - **Passive state / state-driven fan-out (hypothesis):** Fan out **`findRender`** for every perspective in **S** per contract; **cap** cost with **`allowGeneration`** on **A** vs **P ∖ A** (see **Passive state updates** above).
 - **Stop / migrate (hypothesis):** Today's passive path maps **`resolved`** to **`RenderReady`** via [`roomStateRender/materialize`](../../../../../lambda/ephemera/conversations/conversationTypes/roomStateRender/materialize.ts) and **`conversation.sendMessage`**. Aligning with the new contract implies **removing** that path from orchestration in favor of **streamed events** (see **Priority: remove `conversation.sendMessage`** above) and **moving listeners** off **`RenderReady`** as the correlated terminal where **`Render Pertains`** applies (see contract uncertainties). Scope and overlap period **unsettled**.
-- **Explicit non-goal for this stub:** Normative payload types; those stay in the contract doc and [`packages/mtw-interfaces`](../../../../../packages/mtw-interfaces).
+- **Explicit non-goal for this stub:** Normative payload types; those stay in the contract doc and an **agreed** type module (see contract **Where types live**).
 
 ---
 
@@ -89,7 +89,7 @@ Cross-cutting uncertainties: [`../AGENT.passThrough.contract.planning.md`](../AG
 
 - **Branch overlap:** Which branches today emit **`RenderReady`** or related messages that would **duplicate** **`Render Pertains`** once **`renderCache`** owns the correlated surface? Map against [`findRender`](../../../../../lambda/ephemera/dataSource/renderOrchestration/findRender.ts) and materialization. **To be refined in code.**
 - **`Render Generated` semantics:** LLM complete vs Dynamo durable vs both (contract uncertainty 5); orchestration must not define this differently from **`renderCache`**.
-- **Handoff mechanism:** Orchestration **emits** on **`mtw.ephemera.renderOrchestration`** **DataSource stream** (contract transport decision); whether **`renderCache`** **subscribes** vs **invoke** (contract uncertainty 2) drives tests and dependencies.
+- **Handoff mechanism (resolved):** Orchestration **emits** only on **`mtw.ephemera.renderOrchestration`** **DataSource stream**. **`renderCache`** **subscribes**; orchestration does **not** call into **`renderCache`** or use **`api.ephemera`** for this path (contract uncertainty 2). Tests should assert **stream** emissions from orchestration and **subscription** handling in **`renderCache`**, not direct coupling.
 - **Passive vs preview:** Intake and lifecycle forking (rubric sub-goal); same contract or variants (contract uncertainty 7).
 - **`allowGeneration` on state-driven ingress:** Documented in the contract (**A** vs **P ∖ A**); **remaining** work is wiring **S** in code and **`RenderRequested`** shape for **P ∖ A** runs (see contract uncertainty 10) and Task 7 in [`AGENT.planning.md`](../../../../../lambda/ephemera/dataSource/renderOrchestration/AGENT.planning.md).
 - **Graduation:** [`AGENT.planning.md`](../../../../../lambda/ephemera/dataSource/renderOrchestration/AGENT.planning.md) tasks; merge only where the pass-through contract agrees.
@@ -116,6 +116,7 @@ Cross-cutting uncertainties: [`../AGENT.passThrough.contract.planning.md`](../AG
 | Six-outbound taxonomy aligned with contract | Done |
 | **Conversation removal:** legacy terminal -> six outbounds **mapped in contract** (implementation not started) | Done |
 | Passive state: **S = A ∪ P** direction + **`allowGeneration`** (aligned with contract set-algebra section) | Done |
+| **`renderCache`** handoff: **subscribe** only (no invoke / **`api.ephemera`**; contract uncertainty 2) | Done |
 | Branch-by-branch impact in **code** | Not started |
 | Implementation | Not started |
 

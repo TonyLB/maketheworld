@@ -46,7 +46,7 @@ Canonical detail lives in [`../AGENT.passThrough.contract.planning.md`](../AGENT
 
 **Correlation vs routing:** The contract **Routing identity on producer streams (Perception delivery model)** applies; **uncertainty 9** is **resolved (product):** **no synthetic id** on **`Render Pertains`**. **Perception** does **not** depend on **`conversationId`** / request-scoped fields on streams; it matches on **`(componentId, perspectiveKey)`** and holds **delivery** context at **registration**. **`Render Pertains`** carries **lean routing identity** (**`componentId`**, perspective / **`perspectiveKey`**) plus **`cacheId`** / cache facts --- enough for **`currentCachePointers`**. See [`../AGENT.passThrough.contract.planning.md`](../AGENT.passThrough.contract.planning.md#routing-identity-on-producer-streams-perception-delivery-model) and [`../perception/AGENT.perceptionRefactor.planning.md`](../perception/AGENT.perceptionRefactor.planning.md).
 - **On `Current Cache Valid` / `Exact Match Found` (hypothesis):** **`Render Pertains` only** (no new write).
-- **Upstream:** Orchestration is moving **off** **`conversation.sendMessage`** toward **streamed events** ([`renderOrchestration/AGENT.passThrough.planning.md`](../renderOrchestration/AGENT.passThrough.planning.md)); this package must consume **those** signals (subscribe or invoke per contract), not the conversation adapter.
+- **Upstream:** Orchestration is moving **off** **`conversation.sendMessage`** toward **`mtw.ephemera.renderOrchestration`** **DataSource stream** events ([`renderOrchestration/AGENT.passThrough.planning.md`](../renderOrchestration/AGENT.passThrough.planning.md)); this package **subscribes** to that stream --- **not** conversation, **not** direct calls from orchestration, **not** **`api.ephemera`** invoke for this handoff (contract uncertainty 2 resolved).
 - **Relationship to existing outbounds:** [`lambda/ephemera/dataSource/renderCache/index.ts`](../../../../../lambda/ephemera/dataSource/renderCache/index.ts) and today's **`Cache Updated`** behavior; duplicate-risk on generate path is **explicitly unsettled** in the contract doc.
 - **Out of scope for this stub:** Orchestration branching; perception assembly (epic-level).
 
@@ -56,7 +56,7 @@ Canonical detail lives in [`../AGENT.passThrough.contract.planning.md`](../AGENT
 
 Full cross-cutting list: [`../AGENT.passThrough.contract.planning.md`](../AGENT.passThrough.contract.planning.md#uncertainties-explicit-next-refinement-phase). Items that matter most here:
 
-- **Ingress / wiring:** **`renderOrchestration`** emits on **`mtw.ephemera.renderOrchestration`** **DataSource stream** (contract); whether this package **subscribes** to that stream vs **invoke** / **api.ephemera** handoff. **Unsettled** (contract item 2).
+- **Ingress / wiring (resolved):** **`renderOrchestration`** emits on **`mtw.ephemera.renderOrchestration`** **DataSource stream**; this package **subscribes**. **No** orchestration **invoke** into **`renderCache`**, **no** **`api.ephemera`** indirect invoke for this path (contract uncertainty 2).
 - **Generate path:** Avoid or define **double `Cache Updated`** when put already fires from persistence. **Unsettled** (contract item 1).
 - **Pipeline placement:** Where **`Render Pertains`** is emitted relative to Dynamo writes on generate so ordering matches the rubric. **Unsettled** (contract item 5).
 - **Hit-path outbounds:** If **`Current Cache Valid`** / **`Exact Match Found`** carry ids only, whether this package **re-reads** Dynamo and how that interacts with consistency. **Unsettled** (contract item 3).
@@ -82,6 +82,7 @@ Full cross-cutting list: [`../AGENT.passThrough.contract.planning.md`](../AGENT.
 | Contract-as-tests strategy linked (`Encoding the contract in unit tests`) | Done |
 | Refined direction aligned with contract (`Render Pertains`, six orchestration outbounds mapped, `Cache Updated` pairing on generate TBD) | Done |
 | **Correlation vs routing** explicit unknown documented | Done |
+| **Ingress:** subscribe to **`mtw.ephemera.renderOrchestration`** only (no invoke / **`api.ephemera`**; uncertainty 2) | Done |
 | Design agreed with contract doc (uncertainties resolved) | Not started |
 | Implementation | Not started |
 
