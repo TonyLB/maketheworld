@@ -1,8 +1,6 @@
 /**
- * Skipped contract tests: when streamEvent wiring lands, orchestration should emit
- * mtw.ephemera.renderOrchestration StreamingEvents (six outbounds) instead of legacy
- * conversation / messageBus terminals for these outcomes.
- * Un-skip with stream skeleton (phase B).
+ * Contract tests: orchestration emits mtw.ephemera.renderOrchestration StreamingEvents
+ * (six outbounds) alongside legacy conversation delivery until conversation removal lands.
  */
 import type { MessageBus as MessageBusType } from '../../messageBus/baseClasses'
 import type { EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
@@ -32,7 +30,7 @@ const findOrchestrationStreamingEvent = (send: jest.Mock): { getContent: () => P
     return undefined
 }
 
-describe.skip('renderOrchestration stream outcomes (until streamEvent wired in pipeline)', () => {
+describe('renderOrchestration stream outcomes (pass-through six outbounds)', () => {
     beforeEach(() => {
         internalCache.clear()
     })
@@ -106,7 +104,17 @@ describe.skip('renderOrchestration stream outcomes (until streamEvent wired in p
     })
 
     it('generation slow path emits Generation Started on mtw.ephemera.renderOrchestration', async () => {
-        const generateRoomPreview = jest.fn().mockImplementation(async (_input: unknown, options: { sendMessage?: (m: unknown) => Promise<void> }) => {
+        const generateRoomPreview = jest.fn().mockImplementation(async (_input: unknown, options: {
+            sendMessage?: (m: unknown) => Promise<void>;
+            publishOrchestration?: (c: unknown) => void;
+        }) => {
+            options?.publishOrchestration?.({
+                type: 'Generation Started',
+                componentId: 'ROOM#one',
+                perspective: { assetStack: ['ASSET#base'] },
+                perspectiveKey: 'PERSPECTIVE#v1#abc',
+                phase: 'generating',
+            })
             await options?.sendMessage?.('generating')
             await options?.sendMessage?.({
                 type: 'resolved',
@@ -155,7 +163,18 @@ describe.skip('renderOrchestration stream outcomes (until streamEvent wired in p
             DataCategory: 'CACHE#generated',
             provenance: { type: 'generated' },
         }
-        const generateRoomPreview = jest.fn().mockImplementation(async (_input: unknown, options: { sendMessage?: (m: unknown) => Promise<void> }) => {
+        const generateRoomPreview = jest.fn().mockImplementation(async (_input: unknown, options: {
+            sendMessage?: (m: unknown) => Promise<void>;
+            publishOrchestration?: (c: unknown) => void;
+        }) => {
+            options?.publishOrchestration?.({
+                type: 'Render Generated',
+                componentId: 'ROOM#one',
+                perspective: { assetStack: ['ASSET#base'] },
+                perspectiveKey: 'PERSPECTIVE#v1#abc',
+                cacheId: 'CACHE#generated',
+                cacheRecord: generatedRow,
+            })
             await options?.sendMessage?.({
                 type: 'resolved',
                 renderedContent: { description: [{ tag: 'String', value: 'Generated' }] },
@@ -195,7 +214,7 @@ describe.skip('renderOrchestration stream outcomes (until streamEvent wired in p
             { payload, messageBus },
             {
                 getMetaRoom: jest.fn(),
-                computePerspectiveKey: jest.fn(),
+                computePerspectiveKey: jest.fn().mockReturnValue('PERSPECTIVE#v1#abc'),
                 getCacheRecordById: jest.fn(),
                 getExactMatch: jest.fn(),
                 clearPerspectivePointer: jest.fn(),

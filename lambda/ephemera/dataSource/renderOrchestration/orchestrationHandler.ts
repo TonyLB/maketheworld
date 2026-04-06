@@ -24,6 +24,8 @@ import type { ConversationId } from '../../conversations'
 import type { RenderRequested } from './events'
 import { isRenderResolveInputSuccess } from './baseClasses'
 import { deliverIntakeErrorsIfAny } from './intakeErrors'
+import { buildOrchestrationRouting } from './orchestrationRouting'
+import { sendRenderOrchestrationPublish, type RenderOrchestrationPublishedPayload } from './publishedEvents'
 import { findRender } from './findRender'
 import { generateRoomPreview } from './generateRoomPreview'
 import { intakeRenderRequested } from './requestIntake'
@@ -126,7 +128,17 @@ export const orchestrateRenderRequest = async (
         payload: CONVERSATION_PAYLOAD_STUB,
     })
 
+    const streamKey = payload.componentId
     const intakeErrorHandled = await deliverIntakeErrorsIfAny(intake, async (output) => {
+        if (output.type === 'failed') {
+            const routing = buildOrchestrationRouting(payload.componentId, payload.perspective, orchDeps.computePerspectiveKey)
+            sendRenderOrchestrationPublish(messageBus, streamKey, {
+                type: 'Orchestration Error',
+                ...routing,
+                errorCode: output.errorCode,
+                errorMessage: output.errorMessage,
+            })
+        }
         const roomStateHandle = getRoomStateRenderHandle(conversationId, messageBus)
         await roomStateHandle?.sendMessage(output)
     })
@@ -138,6 +150,10 @@ export const orchestrateRenderRequest = async (
         return
     }
 
+    const publishOrchestration = (content: RenderOrchestrationPublishedPayload) => {
+        sendRenderOrchestrationPublish(messageBus, streamKey, content)
+    }
+
     await findRender(intake, {
         getExactMatch: orchDeps.getExactMatch,
         getCacheRecordById: orchDeps.getCacheRecordById,
@@ -145,6 +161,7 @@ export const orchestrateRenderRequest = async (
         computePerspectiveKey: orchDeps.computePerspectiveKey,
         markStatesEqual: orchDeps.markStatesEqual,
         perspectiveMatches,
+        publishOrchestration,
         sendMessage: async (arg) => {
             const roomStateHandle = getRoomStateRenderHandle(conversationId, messageBus)
             await roomStateHandle?.sendMessage(arg)
