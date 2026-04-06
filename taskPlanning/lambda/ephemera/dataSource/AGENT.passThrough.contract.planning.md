@@ -58,6 +58,7 @@ The pass-through contract is **not** only this markdown file and eventual **type
 
 - **Create** tests (and **describe** blocks) for **every** behavior we intend, including not-yet-built pieces.
 - **Deactivate** tests we are not ready to enforce using **`describe.skip`**, **`it.skip`**, or **`it.todo`**, each with a **reason** string (e.g. `phase C`, `until generate path migrated`, `until perception DataSource`).
+- **Sequencing (orchestration + renderCache):** Prefer landing **skipped** contract tests for **both** producer (**`streamEvent`**) and consumer (**`renderCache`** subscription) expectations **before** wiring **`streamEvent`** / handlers, so the contract stays encoded in CI while behavior catches up ([`renderOrchestration` **Stream skeleton sequencing**](renderOrchestration/AGENT.passThrough.planning.md#stream-skeleton-sequencing)).
 - **Do not** rely on large **commented-out** blocks: they rot in merges and disappear from runner output. Skipped tests remain **visible** in Jest/Vitest listings.
 - **Edit** skipped tests when this contract doc or **Uncertainties** change, the same way we would edit types.
 - **Goal:** CI is green with **fewer skips over time**; **end state** = full suite **active** and passing.

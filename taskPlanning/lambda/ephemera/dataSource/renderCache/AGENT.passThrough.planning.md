@@ -1,6 +1,6 @@
 # `mtw.ephemera.renderCache` - pass-through readiness
 
-**Status: ACTIVE TASK PLAN.** Next focus: execute **Recommended order** from the top (code / contract inventory, then subscription scaffold aligned with [orchestration stream work](../renderOrchestration/AGENT.passThrough.planning.md)).
+**Status: ACTIVE TASK PLAN.** Next focus: execute **Recommended order** from the top (inventory, then **contract test scaffold** with orchestration, then **Subscribe** / **Handlers** to **un-skip** those tests per [orchestration Stream skeleton sequencing](../renderOrchestration/AGENT.passThrough.planning.md#stream-skeleton-sequencing)).
 
 This document is the **task plan** for [`lambda/ephemera/dataSource/renderCache/`](../../../../../lambda/ephemera/dataSource/renderCache/index.ts): how **`mtw.ephemera.renderCache`** participates in the pass-through pattern so paths that **write** cache rows and paths where content is **already** cached surface a **single subscribable story** (correlated **`Render Pertains`** and abstract **`Cache Updated`** per contract). Shared semantics and payload rules live in the [canonical contract](../AGENT.passThrough.contract.planning.md).
 
@@ -79,6 +79,7 @@ These are **how** we implement agreed rules, not whether the product rules apply
 
 Mitigate **two-sided waiting** by making dependencies explicit:
 
+- **Stream slice sequencing:** [orchestration **Stream skeleton sequencing**](../renderOrchestration/AGENT.passThrough.planning.md#stream-skeleton-sequencing) --- cross-cutting **skipped** contract tests (orchestration + **`renderCache`** receiving) land **before** orchestration **`streamEvent`** wiring; orchestration then **un-skips** producer tests; this package **un-skips** receiving tests when **Subscribe** / **Handlers** ship. Avoids **`renderCache`** being temporarily orphaned without a plan: the **skipped** tests document the intended contract during the gap.
 - **Parallel-friendly:** Contract-oriented unit tests with **`it.skip`** and **fixture** envelopes; handler scaffolding; hit-path **refetch** + **`Render Pertains`** logic **given** stable-enough test payloads ([Encoding the contract in unit tests](../AGENT.passThrough.contract.planning.md#encoding-the-contract-in-unit-tests)).
 - **Ordered:** End-to-end integration and **remove duplicate `Put Cache Record`** / **`publishPutCacheRecord`** coordination require alignment with orchestration **stream skeleton** and **Stop duplicate durability** ([orchestration Recommended order](../renderOrchestration/AGENT.passThrough.planning.md#recommended-order)). Do not assume both packages move at identical speed; track **Cache-OI-6** and orchestration **OI-7**.
 
@@ -114,8 +115,9 @@ Mitigate **two-sided waiting** by making dependencies explicit:
 | --- | --- |
 | Task plan graduated (structure per `taskPlanning/AGENT.md`) | Done |
 | Code / contract inventory: current DataSource paths vs pass-through targets | Not started |
+| Skipped receiving/subscription tests (cross-cutting scaffold with orchestration; [Stream skeleton sequencing](../renderOrchestration/AGENT.passThrough.planning.md#stream-skeleton-sequencing)) | Not started |
 | Subscription scaffold to **`mtw.ephemera.renderOrchestration`** (**Cache-OI-2**) | Not started |
-| Handlers + tests for orchestration outbound types (skip/todo per contract encoding) | Not started |
+| Handlers + tests: **un-skip** scaffold tests; complete handling per contract (skip/todo only where still incomplete) | Not started |
 | Hit path: refetch + **`Render Pertains`** for **`Current Cache Valid`** / **`Exact Match Found`** | Not started |
 | Generate path: durable write on **`Render Generated`** + **`Render Pertains`** / **`Cache Updated`** (**Cache-OI-1**, **Cache-OI-3**) | Not started |
 | Coordinated cutover: no double **`Put Cache Record`** with orchestration | Not started |
@@ -129,8 +131,9 @@ Mitigate **two-sided waiting** by making dependencies explicit:
 Pending work uses `[ ]`; completed work uses `[X]`. Apply checkboxes to each actionable line; for nested bullets, mark each line `[X]` as done so partial progress is visible.
 
 - [ ] **Inventory** --- Map current [`renderCache`](../../../../../lambda/ephemera/dataSource/renderCache/index.ts) behavior (**`Cache Updated`**, **`Put Cache Record`** handlers, existing publishes) to pass-through targets; note gaps in **Cache-OI** rows.
+- [ ] **Contract test scaffold (cross-cutting)** --- With orchestration, add **skipped** receiving/subscription tests for orchestration outbounds (fixtures + reasons); **coordination:** [orchestration **Stream skeleton sequencing**](../renderOrchestration/AGENT.passThrough.planning.md#stream-skeleton-sequencing). **Un-skip** in **Subscribe** / **Handlers + tests** when implementation lands.
 - [ ] **Subscribe** --- Wire subscription to **`mtw.ephemera.renderOrchestration`** (scaffold / stub handlers as needed; **Cache-OI-2**).
-- [ ] **Handlers + tests** --- Implement handling for orchestration outbound types per contract; use **`it.skip` / `describe.skip`** with reasons where incomplete ([Encoding the contract in unit tests](../AGENT.passThrough.contract.planning.md#encoding-the-contract-in-unit-tests)).
+- [ ] **Handlers + tests** --- Implement handling for orchestration outbound types per contract; **un-skip** tests from the scaffold above; use **`it.skip` / `describe.skip`** only where behavior still incomplete ([Encoding the contract in unit tests](../AGENT.passThrough.contract.planning.md#encoding-the-contract-in-unit-tests)).
 - [ ] **Hit path** --- Refetch + **`Render Pertains`** for **`Current Cache Valid`** / **`Exact Match Found`** (**Cache-OI-4** as needed).
 - [ ] **Generate path** --- Durable write on **`Render Generated`**; emit **`Render Pertains`** / **`Cache Updated`** per pairing decision (**Cache-OI-1**).
 - [ ] **Coordinate cutover** --- Align with orchestration removal of **`publishPutCacheRecord`** on generation success ([orchestration **Stop duplicate durability**](../renderOrchestration/AGENT.passThrough.planning.md#recommended-order)); verify no duplicate **`Cache Updated`**.

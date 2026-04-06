@@ -1,6 +1,6 @@
 # `renderOrchestration` - pass-through readiness
 
-**Status: ACTIVE TASK PLAN.** Next focus: execute **Recommended order** from the top (inventory and stream skeleton before deep refactors).
+**Status: ACTIVE TASK PLAN.** Next focus: execute **Recommended order** from the top (**contract test scaffold**, then orchestration **stream skeleton**, then **`renderCache`** un-skips per [Stream skeleton sequencing](#stream-skeleton-sequencing)).
 
 This document is the **task plan** for [`lambda/ephemera/dataSource/renderOrchestration/`](../../../../../lambda/ephemera/dataSource/renderOrchestration/): orchestration-side work for the pass-through pattern, separate from [`mtw.ephemera.renderCache`](../../../../../lambda/ephemera/renderCache/) so "who decides hit/miss/generate" stays separate from "who emits the subscribable readiness signal."
 
@@ -24,7 +24,7 @@ Follow the root [**"Getting Started" Pattern for Complex Tasks**](../../../../..
 
 5. **Core integration files** --- Trace the passive path: [`orchestrationHandler.ts`](../../../../../lambda/ephemera/dataSource/renderOrchestration/orchestrationHandler.ts) -> [`findRender.ts`](../../../../../lambda/ephemera/dataSource/renderOrchestration/findRender.ts) -> [`generateRoomPreview.ts`](../../../../../lambda/ephemera/dataSource/renderOrchestration/generateRoomPreview.ts); state-driven fan-out: [`fanOutStateChangedToPassiveRenders.ts`](../../../../../lambda/ephemera/dataSource/renderOrchestration/fanOutStateChangedToPassiveRenders.ts). Conversation materialization: [`roomStateRender/materialize.ts`](../../../../../lambda/ephemera/conversations/conversationTypes/roomStateRender/materialize.ts).
 
-6. **Tests** --- Baseline and extend [`orchestrationHandler.test.ts`](../../../../../lambda/ephemera/dataSource/renderOrchestration/orchestrationHandler.test.ts), [`findRender.test.ts`](../../../../../lambda/ephemera/dataSource/renderOrchestration/findRender.test.ts), or add a dedicated contract test module. Prefer stream assertions over conversation mocks as slices land ([Encoding the contract in unit tests](../AGENT.passThrough.contract.planning.md#encoding-the-contract-in-unit-tests)).
+6. **Tests** --- Baseline and extend [`orchestrationHandler.test.ts`](../../../../../lambda/ephemera/dataSource/renderOrchestration/orchestrationHandler.test.ts), [`findRender.test.ts`](../../../../../lambda/ephemera/dataSource/renderOrchestration/findRender.test.ts), or add a dedicated contract test module. Prefer stream assertions over conversation mocks as slices land ([Encoding the contract in unit tests](../AGENT.passThrough.contract.planning.md#encoding-the-contract-in-unit-tests)). **Order:** [Stream skeleton sequencing](#stream-skeleton-sequencing) (cross-cutting skipped tests, then **`streamEvent`**, then un-skip).
 
 7. **Run tests before changing behavior** --- From repo root, `lambda/ephemera` uses Jest (`npm test` in [`lambda/ephemera/package.json`](../../../../../lambda/ephemera/package.json)). Run the full lambda package test suite or scope to this DataSource's tests once you know the Jest project pattern for this tree. After each slice, update **Recommended order** checkboxes in this document and re-run **Verification**.
 
@@ -133,7 +133,9 @@ These are **how** we implement agreed rules, not whether the product rules apply
 | --- | --- |
 | Task plan graduated (structure per `taskPlanning/AGENT.md`) | Done |
 | Inventory: legacy conversation / **`publishPutCacheRecord`** / **`materialize`** paths mapped to six outbounds | Done (see [OI-4](#oi-4-legacy-orchestration-outcome-inventory)) |
-| Stream emissions: skeleton for six outbound types + tests (skip/todo per contract encoding); types in **`publishedEvents.ts`** (**OI-5** resolved) | Not started |
+| Types: six outbound TypeScript payloads in **`publishedEvents.ts`** (**OI-5** resolved) | Done |
+| Contract test scaffold: skipped tests (orchestration + **`renderCache`** receiving) before **`streamEvent`** wiring ([Stream skeleton sequencing](#stream-skeleton-sequencing)) | Not started |
+| Stream skeleton: **`streamEvent`** emissions + un-skip orchestration tests | Not started |
 | Remove **`Put Cache Record`** enqueue from orchestration on generation success (`generateRoomPreview` / helpers) | Not started |
 | Passive fan-out: **S** + **`allowGeneration`** in **`fanOutStateChangedToPassiveRenders`** | Not started |
 | **singleFlight** around generation (**OI-1**--**OI-3**) | Not started |
@@ -143,12 +145,25 @@ These are **how** we implement agreed rules, not whether the product rules apply
 
 ---
 
+## Stream skeleton sequencing
+
+Agreed order for the stream slice (reduces contract drift and makes cutover sequencing explicit vs **`renderCache`**):
+
+1. **Cross-cutting contract test scaffold (first)** --- Land **deactivated** tests (**`describe.skip` / `it.skip`** with reasons) for intended orchestration **`streamEvent`** outcomes **and** for **`renderCache`** subscription / receiving behavior, per [Encoding the contract in unit tests](../AGENT.passThrough.contract.planning.md#encoding-the-contract-in-unit-tests). Handlers need not exist yet on the cache side; skips keep consumer expectations visible in Jest output.
+2. **Orchestration wiring** --- Wire **`streamEvent`** (or agreed) on **`mtw.ephemera.renderOrchestration`**, emit the six outbounds per contract mapping, and **un-skip** orchestration tests as behavior lands (**`publishedEvents.ts`** types already; **OI-5**).
+3. **`renderCache` follow-up** --- **`renderCache`**-local tasks **un-skip** receiving tests added in (1) when subscription and handlers ship ([`renderCache` plan](../renderCache/AGENT.passThrough.planning.md)). Integration and duplicate-durability alignment remain **OI-7** / **Cache-OI-6** and **Stop duplicate durability** below.
+
+Subscriber readiness and **`Put Cache Record`** overlap are still [OI-4](#oi-4-legacy-orchestration-outcome-inventory) and coordinated with [`renderCache`](../renderCache/AGENT.passThrough.planning.md).
+
+---
+
 ## Recommended order
 
 Pending work uses `[ ]`; completed work uses `[X]`. Apply checkboxes to each actionable line; for nested bullets, mark each line `[X]` as done so partial progress is visible.
 
 - [X] **Inventory** --- Map every orchestration outcome path that uses **`conversation.sendMessage`**, **`materializeRoomStateRender`**, **`publishPutCacheRecord`**, or related **`messageBus`** terminals to a target six-outbound (see contract **Legacy bus terminals** and **Exit `conversation.sendMessage`**). Document gaps in **OI-4** ([section below](#oi-4-legacy-orchestration-outcome-inventory)).
-- [ ] **Stream skeleton** --- Implement **`streamEvent`** (or agreed) emissions for **`Current Cache Valid`**, **`Exact Match Found`**, **`Generation Started`**, **`Render Generated`**, **`Orchestration Error`**, **`Generation Deferred`** per contract mapping; add or extend tests with **`it.skip` / `describe.skip`** and reasons where behavior is incomplete ([Encoding the contract in unit tests](../AGENT.passThrough.contract.planning.md#encoding-the-contract-in-unit-tests)).
+- [ ] **Contract test scaffold (cross-cutting)** --- Add skipped/contract tests for orchestration stream outcomes **and** **`renderCache`** receiving expectations **immediately before** **`streamEvent`** wiring ([Encoding the contract in unit tests](../AGENT.passThrough.contract.planning.md#encoding-the-contract-in-unit-tests); [Stream skeleton sequencing](#stream-skeleton-sequencing) step 1).
+- [ ] **Stream skeleton (orchestration)** --- Implement **`streamEvent`** (or agreed) emissions for **`Current Cache Valid`**, **`Exact Match Found`**, **`Generation Started`**, **`Render Generated`**, **`Orchestration Error`**, **`Generation Deferred`** per contract mapping; **un-skip** orchestration tests as branches complete ([Stream skeleton sequencing](#stream-skeleton-sequencing) step 2).
 - [ ] **Stop duplicate durability** --- Remove **`publishPutCacheRecord`** / **`sendPutCacheRecord`** from orchestration-owned generation success; coordinate timing with **`renderCache`** subscription work ([`renderCache` plan](../renderCache/AGENT.passThrough.planning.md)) per **OI-7**.
 - [ ] **Passive fan-out (set S)** --- Extend **`fanOutStateChangedToPassiveRenders`** from **A** to **S** with **`allowGeneration`** policy (**OI-8**, Task 7 in [`AGENT.planning.md`](../../../../../lambda/ephemera/dataSource/renderOrchestration/AGENT.planning.md)).
 - [ ] **singleFlight generation** --- Wire **`singleFlight`** (coalesce) around the generation step; resolve **OI-1**, **OI-2**, **OI-3** in code; un-skip related tests when stable.
