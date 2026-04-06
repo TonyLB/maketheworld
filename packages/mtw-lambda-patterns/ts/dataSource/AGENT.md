@@ -71,7 +71,7 @@ Maintain strict separation between internal messageBus events and external Event
 - **Serializer Pattern**: Class-based converters that transform between formats at the EventBridge boundary
 - **Type Safety**: Full TypeScript support for both internal and external event structures
 
-See [Implementation Details](AGENT.implementation.md#eventbridge-serialization) for serializer patterns and usage examples.
+See [Implementation Details](AGENT.implementation.md#eventbridge-serialization) for serializer patterns and usage examples. For **where to define types** for **outgoing** `streamEvent` payloads, see [Implementation Details](AGENT.implementation.md) (section **publishedEvents.ts and outgoing update payloads**): **`eventBridge+bus`** uses **`mtw-interfaces`**; **`busOnly`** uses **`publishedEvents.ts`** per DataSource directory.
 
 This architecture ensures that:
 - **Live events** reach all current subscribers efficiently
@@ -119,7 +119,9 @@ Provide the tools to distribute incremental changes for specific streams to outg
 - **`streamKey`**: Identifier for the specific stream within the data source
 - **`detailType`**: EventBridge DetailType for the event (e.g., `"Character Updated"`, `"Asset Modified"`)
 
-**Parallel Operations**: Executes DynamoDB storage (if replayable) and EventBridge publishing simultaneously for optimal performance.
+**Parallel Operations**: With **`publisherStrategy: 'eventBridge+bus'`** (default), executes DynamoDB storage (if replayable) and EventBridge publishing simultaneously for optimal performance. With **`publisherStrategy: 'busOnly'`**, updates are published to the process message bus only (no EventBridge).
+
+**Where outgoing types live:** Types for **`update`** (the **`UpdatePayload`** generic) **must** match how updates leave the lambda: **cross-lambda** EventBridge publishing **`must`** define **outgoing** types in **`mtw-interfaces`** (shared with serializers and other implementing sites). **`busOnly`** DataSources **`must`** define **outgoing** types in **`publishedEvents.ts`** in the same directory as the DataSource, pairing with **`subscribedEvents.ts`** for incoming types. See [Implementation Details](AGENT.implementation.md) (section **publishedEvents.ts and outgoing update payloads**).
 
 ### **3. Replay Serialization** (Optional - when `replayable` is enabled)
 Deserialize data from the replay store for a specific stream and deliver it directly to a specific subscriber via the Feedback SNS topic.
@@ -193,15 +195,18 @@ The multi-stream architecture enables:
 
 ### Three-Phase Data Source Implementation Pattern
 
-**Phase 1: Define Event Contracts in `mtw-interfaces`**
-Before implementing a DataSource, define the event contracts in the shared interface layer:
+**Phase 1: Define outgoing event contracts**
+
+**Cross-lambda publishing (`publisherStrategy: 'eventBridge+bus'`, default):** Before implementing a DataSource that publishes updates to **EventBridge**, define **outgoing** event contracts in the shared interface layer so every implementing site and consumer shares the same wire contract:
 
 1. **Create Event Types**: Define internal and external event types in `mtw-interfaces/ts/eventBridge/[dataSource].ts`
 2. **Implement Type Guards**: Create type guard functions for event validation
 3. **Build Serializers**: Implement `DataSourceEventSerializer` for EventBridge integration
 4. **Export Contracts**: Make all event contracts available via `@tonylb/mtw-interfaces/ts/eventBridge`
 
-**Benefits:**
+**Bus-only publishing (`publisherStrategy: 'busOnly'`):** DataSources that do **not** publish to EventBridge **`must`** colocate **outgoing** `streamEvent` / `streamEnvelope` payload types in **`publishedEvents.ts`** in the same directory as the DataSource. Do **not** place bus-only-only shapes in **`mtw-interfaces`** unless the same payload also crosses a shared service boundary.
+
+**Benefits (EventBridge path):**
 - **Service Isolation**: No cross-lambda dependencies
 - **Centralized Contracts**: Event definitions in shared interface layer
 - **Deployment Independence**: Each lambda can be deployed independently
@@ -211,7 +216,7 @@ Before implementing a DataSource, define the event contracts in the shared inter
 Create a sub-class of `DataSource` for each lambda to localize common configuration:
 
 1. **Lambda-Specific Sub-classing**: Create a base class extending `DataSource` with pre-configured lambda resources
-2. **Import Event Contracts**: Import serializers and types from `@tonylb/mtw-interfaces/ts/eventBridge`
+2. **Import Event Contracts**: For **`eventBridge+bus`** DataSources, import serializers and types from `@tonylb/mtw-interfaces/ts/eventBridge`; for **`busOnly`** DataSources, import **outgoing** types from `./publishedEvents.ts` (or define them inline only when trivial)
 3. **Configure Common Parameters**: Set up lambda-specific resources that all DataSources in this lambda will use
 
 **Configuration Parameters to Localize**:
