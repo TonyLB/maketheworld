@@ -75,7 +75,7 @@ Implementation hashing, Dynamo wiring, and **`computation`** vs **`retrieval`** 
 
 **Authoritative list:** [`../AGENT.passThrough.contract.planning.md`](../AGENT.passThrough.contract.planning.md#uncertainties-explicit-next-refinement-phase).
 
-Unresolved **product** questions (payloads, **`Where types live`**, remaining contract gaps) stay in that document. This task plan links to it and does **not** collapse those uncertainties here.
+Unresolved **product** questions (payload field details, remaining contract gaps) stay in that document. **Where types live** for orchestration outbounds is **resolved** ( **`publishedEvents.ts`** ; uncertainty 8 / **OI-5**). This task plan links to it and does **not** collapse remaining uncertainties here.
 
 ---
 
@@ -83,13 +83,20 @@ Unresolved **product** questions (payloads, **`Where types live`**, remaining co
 
 These are **how** we implement agreed rules, not whether the product rules apply. Link to contract uncertainty ids when useful (e.g. UC6: duplicate intermediates acceptable). Normative **payload fields** belong in the contract doc, not duplicated as decisions here.
 
+### Resolved
+
+| Id | Resolution |
+| --- | --- |
+| **OI-5** | **Outgoing types and module path:** Define the six-outbound TypeScript types (unions, guards, optional helpers) in **`publishedEvents.ts`** colocated with this DataSource ([`lambda/ephemera/dataSource/renderOrchestration/publishedEvents.ts`](../../../../../lambda/ephemera/dataSource/renderOrchestration/publishedEvents.ts) to be added with the stream skeleton). **`mtw.ephemera.renderOrchestration`** uses **`publisherStrategy: 'busOnly'`**; **`mtw-interfaces`** is **not** required for this internal handoff. **`renderCache`** imports the same ephemera-local types when subscribing. **Emission API:** **`streamEvent`** / **`streamEnvelope`** on the DataSource instance per [`AGENT.implementation.md`](../../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md) (section **publishedEvents.ts and outgoing update payloads**). **Envelopes:** standard streaming envelope shape (**`StreamingEventHeader`** + **`getContent`**); exact **`header.type`** strings per outbound are **TBD** at implementation (contract uncertainty 8 remainder). **Contract:** uncertainty 8 **pattern** resolution. |
+
+### Open
+
 | Id | Question |
 | --- | --- |
 | **OI-1** | **`argumentHash`** and **`category`** for ephemera **`singleFlightFactory`**: stable routing identity for the generation cohort key. |
 | **OI-2** | **`computation`** vs **`retrieval`**: where LLM runs, where **`renderCache`** writes belong, and ordering of **`Generation Started`** / **`Render Generated`** vs leader expiry and duplicate emissions (ties UC6). |
 | **OI-3** | Wiring to existing **`getItem`** / optimistic patterns; Dynamo interaction details for **singleFlight** records. |
 | **OI-4** | **Cutover order:** sequence of changes across [`findRender`](../../../../../lambda/ephemera/dataSource/renderOrchestration/findRender.ts), [`materialize`](../../../../../lambda/ephemera/conversations/conversationTypes/roomStateRender/materialize.ts), [`generateRoomPreview`](../../../../../lambda/ephemera/dataSource/renderOrchestration/generateRoomPreview.ts), and new stream emissions (minimize broken intermediate state if not on a long-lived branch). **Inventory:** see [OI-4: Legacy orchestration outcome inventory](#oi-4-legacy-orchestration-outcome-inventory). |
-| **OI-5** | **`streamEvent`** (or agreed) API: module placement, envelopes, interim ephemera-local types vs **`mtw-interfaces`** (contract uncertainty 8 / **Where types live**). |
 | **OI-6** | **Tests:** which suite owns stream assertions first; fixture shape; when to switch from conversation mocks to stream assertions. |
 | **OI-7** | **Integration test** timing: thin cross-layer test with **`renderCache`** --- sequencing with [`renderCache` pass-through plan](../renderCache/AGENT.passThrough.planning.md) subscription work. |
 | **OI-8** | Fan-out set **S**: wiring **`RenderRequested`** shape for perspectives in **P** but not **A**, and **`allowGeneration`** behavior (contract uncertainty 10, Task 7 in [`AGENT.planning.md`](../../../../../lambda/ephemera/dataSource/renderOrchestration/AGENT.planning.md)). |
@@ -99,7 +106,7 @@ These are **how** we implement agreed rules, not whether the product rules apply
 ## Scope and non-goals
 
 - **In scope:** Six orchestration outbounds on the DataSource stream; removal of **`Put Cache Record`** enqueue from orchestration on pass-through generation success; passive fan-out **S** + **`allowGeneration`**; **singleFlight** around generation; migration off conversation **`sendMessage`** for orchestration outcomes; contract-oriented unit tests and eventual thin integration test.
-- **Out of scope here:** Normative TypeScript payload types (contract + agreed module). Final perception fan-in ([`perception` plan](../perception/AGENT.perceptionRefactor.planning.md)). **`currentCachePointers`** behavior ([stub plan](../currentCachePointers/AGENT.cachePointersRefactor.planning.md)).
+- **Out of scope here:** Duplicating full normative **payload field** lists from the contract (see **Limited refinement** in the contract doc); **`publishedEvents.ts`** **implements** those shapes locally. Final perception fan-in ([`perception` plan](../perception/AGENT.perceptionRefactor.planning.md)). **`currentCachePointers`** behavior ([stub plan](../currentCachePointers/AGENT.cachePointersRefactor.planning.md)).
 
 ---
 
@@ -116,6 +123,7 @@ These are **how** we implement agreed rules, not whether the product rules apply
 | [`lambda/ephemera/AGENT.ephemeraPerceptionVertical.contractAlign.planning.md`](../../../../../lambda/ephemera/AGENT.ephemeraPerceptionVertical.contractAlign.planning.md) | Sub-epic: phase order + contract encoding in tests |
 | [`../currentCachePointers/AGENT.cachePointersRefactor.planning.md`](../currentCachePointers/AGENT.cachePointersRefactor.planning.md) | **`mtw.ephemera.currentCachePointers`** (stub) |
 | [`packages/mtw-lambda-patterns/ts/singleFlight`](../../../../../packages/mtw-lambda-patterns/ts/singleFlight) | **`singleFlight`** implementation |
+| [`packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md`](../../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md) | DataSource pattern (**publishedEvents.ts** / **subscribedEvents.ts**) |
 
 ---
 
@@ -125,7 +133,7 @@ These are **how** we implement agreed rules, not whether the product rules apply
 | --- | --- |
 | Task plan graduated (structure per `taskPlanning/AGENT.md`) | Done |
 | Inventory: legacy conversation / **`publishPutCacheRecord`** / **`materialize`** paths mapped to six outbounds | Done (see [OI-4](#oi-4-legacy-orchestration-outcome-inventory)) |
-| Stream emissions: skeleton for six outbound types + tests (skip/todo per contract encoding) | Not started |
+| Stream emissions: skeleton for six outbound types + tests (skip/todo per contract encoding); types in **`publishedEvents.ts`** (**OI-5** resolved) | Not started |
 | Remove **`Put Cache Record`** enqueue from orchestration on generation success (`generateRoomPreview` / helpers) | Not started |
 | Passive fan-out: **S** + **`allowGeneration`** in **`fanOutStateChangedToPassiveRenders`** | Not started |
 | **singleFlight** around generation (**OI-1**--**OI-3**) | Not started |

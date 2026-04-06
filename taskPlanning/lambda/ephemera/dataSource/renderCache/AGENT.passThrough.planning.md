@@ -56,7 +56,7 @@ flowchart LR
 
 **Authoritative list:** [`../AGENT.passThrough.contract.planning.md`](../AGENT.passThrough.contract.planning.md#uncertainties-explicit-next-refinement-phase).
 
-Unresolved **product** questions (payload fields, **`Where types live`**, remaining gaps) stay in that document. This task plan links to it and does **not** collapse those uncertainties here.
+Unresolved **product** questions (payload fields, remaining gaps) stay in that document. **Typing the orchestration consumer path** is **resolved** at the pattern level: import **outbound** types from [`renderOrchestration/publishedEvents.ts`](../renderOrchestration/publishedEvents.ts) (**`mtw-interfaces`** not required; see orchestration **OI-5** and contract uncertainty 8). This task plan links to it and does **not** collapse remaining uncertainties here.
 
 ---
 
@@ -68,7 +68,7 @@ These are **how** we implement agreed rules, not whether the product rules apply
 | --- | --- |
 | **Cache-OI-1** | **`Render Pertains`** vs **`Cache Updated`** on the generate-path write: both vs one; ordering relative to durable write completion (**Narrow TBD** in prior draft). |
 | **Cache-OI-2** | **Subscription wiring:** where and how the DataSource subscribes to **`mtw.ephemera.renderOrchestration`**; interaction with existing [`index.ts`](../../../../../lambda/ephemera/dataSource/renderCache/index.ts) initialization and other subscriptions. |
-| **Cache-OI-3** | **Envelope / typing:** consume stream payloads from orchestration until shared types land (contract uncertainty 8 / **Where types live**); interim shapes in ephemera vs **`mtw-interfaces`**. |
+| **Cache-OI-3** | **Envelope / typing (consumer):** Shared orchestration **outbound** types live in [`renderOrchestration/publishedEvents.ts`](../renderOrchestration/publishedEvents.ts) (**`busOnly`** producer; **`mtw-interfaces`** not required). **`renderCache`** **imports** those types for subscription handlers (same leverage as orchestration **OI-5** / uncertainty 8). **Still implementation work:** wire **`receiveEvents`** / guards to **`header.type`**, narrow **`getContent()`**, and any adapter until the stream skeleton exists. **Emit** typings for **`Render Pertains`** / **`Cache Updated`** stay **`renderCache`**-local (contract + this package; optional **`publishedEvents.ts`** here per DataSource pattern for **outgoing** cache events). |
 | **Cache-OI-4** | **Refetch races:** miss or staleness after IDs-only hit (rare); overlaps contract uncertainties 6 / 11 --- implementation mitigation vs escalating to contract. |
 | **Cache-OI-5** | **Tests:** fixtures vs mocks until orchestration emits stable shapes; which existing tests become regression anchors ([`index.test.ts`](../../../../../lambda/ephemera/dataSource/renderCache/index.test.ts), [`putCacheRecord.test.ts`](../../../../../lambda/ephemera/dataSource/renderCache/putCacheRecord.test.ts), etc.). |
 | **Cache-OI-6** | **Integration test** timing: thin cross-layer test with orchestration --- align with orchestration **OI-7** and **Recommended order** items **Stop duplicate durability** and **Integration** in [`../renderOrchestration/AGENT.passThrough.planning.md`](../renderOrchestration/AGENT.passThrough.planning.md). |
@@ -87,7 +87,7 @@ Mitigate **two-sided waiting** by making dependencies explicit:
 ## Scope and non-goals
 
 - **In scope:** Subscription to **`mtw.ephemera.renderOrchestration`**; durable write on **`Render Generated`**; hit-path refetch; **`Render Pertains`** / **`Cache Updated`** per contract; tests; thin integration when orchestration is ready.
-- **Out of scope here:** Orchestration branching ([orchestration plan](../renderOrchestration/AGENT.passThrough.planning.md)); full perception fan-in ([`../perception/AGENT.perceptionRefactor.planning.md`](../perception/AGENT.perceptionRefactor.planning.md)); **`currentCachePointers`** ([stub](../currentCachePointers/AGENT.cachePointersRefactor.planning.md)). Normative TypeScript payload types: contract + agreed module.
+- **Out of scope here:** Orchestration branching ([orchestration plan](../renderOrchestration/AGENT.passThrough.planning.md)); full perception fan-in ([`../perception/AGENT.perceptionRefactor.planning.md`](../perception/AGENT.perceptionRefactor.planning.md)); **`currentCachePointers`** ([stub](../currentCachePointers/AGENT.cachePointersRefactor.planning.md)). Normative **field** lists: contract. **Imports:** orchestration outbounds from **`renderOrchestration`** **`publishedEvents.ts`** (**Cache-OI-3**); **`renderCache`** **emit** shapes remain local unless a client boundary later requires **`mtw-interfaces`**.
 
 ---
 
@@ -102,6 +102,8 @@ Mitigate **two-sided waiting** by making dependencies explicit:
 | [`lambda/ephemera/renderCache/AGENT.md`](../../../../../lambda/ephemera/renderCache/AGENT.md) | Durable cache domain reference |
 | [`lambda/ephemera/renderCache/AGENT.migration.md`](../../../../../lambda/ephemera/renderCache/AGENT.migration.md) | Boundary invariants |
 | [`lambda/ephemera/dataSource/renderCache/index.ts`](../../../../../lambda/ephemera/dataSource/renderCache/index.ts) | DataSource entry |
+| [`renderOrchestration/publishedEvents.ts`](../renderOrchestration/publishedEvents.ts) | Shared orchestration **outbound** types (**`renderCache`** imports for subscription handlers) |
+| [`packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md`](../../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md) | **`publishedEvents.ts`** / **`subscribedEvents.ts`** convention |
 | [`lambda/ephemera/AGENT.ephemeraPerceptionVertical.contractAlign.planning.md`](../../../../../lambda/ephemera/AGENT.ephemeraPerceptionVertical.contractAlign.planning.md) | Sub-epic: phase order + contract encoding in tests |
 
 ---
