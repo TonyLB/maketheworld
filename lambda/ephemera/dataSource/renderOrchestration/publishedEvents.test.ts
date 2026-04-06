@@ -9,35 +9,16 @@ import {
     sendRenderOrchestrationPublish,
     type RenderOrchestrationPublishedPayload,
 } from './publishedEvents'
-import type { Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
-import type { EphemeraCacheDynamoItem, EphemeraCacheRenderedContent } from '../../renderCache/baseClasses'
-import { EPHEMERA_CACHE_PROVENANCE_GENERATED } from '../../renderCache/baseClasses'
+import {
+    passThroughFixtureMinimalCacheId,
+    passThroughFixtureMinimalDynamoItem,
+    passThroughFixtureRoomId,
+    passThroughFixtureRouting,
+} from '../passThroughContractFixtures'
 
-const roomId = 'ROOM#test-room' as const
-const perspective: Perspective = { assetStack: ['ASSET#one'] }
-const perspectiveKey = 'PERSPECTIVE#v1#abc123'
-
-const routing = {
-    componentId: roomId,
-    perspective,
-    perspectiveKey,
-}
-
-const minimalCacheId = 'CACHE#fixture-cache-1' as const
-
-const minimalRenderedContent: EphemeraCacheRenderedContent = {
-    description: ['Test description.'],
-}
-
-const minimalDynamoItem: EphemeraCacheDynamoItem = {
-    EphemeraId: roomId,
-    DataCategory: minimalCacheId,
-    markState: { markValue: [{ mark: 'MARK#a', value: 'one' }] },
-    renderedContent: minimalRenderedContent,
-    provenance: { type: EPHEMERA_CACHE_PROVENANCE_GENERATED },
-    perspectiveId: 'perspective-id',
-    perspectiveMatcher: { requiredAssetIds: ['ASSET#one'] },
-}
+const routing = passThroughFixtureRouting
+const minimalCacheId = passThroughFixtureMinimalCacheId
+const minimalDynamoItem = passThroughFixtureMinimalDynamoItem
 
 describe('publishedEvents guards', () => {
     it('accepts Current Cache Valid minimal payload', () => {
@@ -145,12 +126,12 @@ describe('sendRenderOrchestrationPublish', () => {
             ...routing,
             cacheId: minimalCacheId,
         }
-        sendRenderOrchestrationPublish(bus, 'ROOM#test-room', content)
+        sendRenderOrchestrationPublish(bus, passThroughFixtureRoomId, content)
         expect(bus.send).toHaveBeenCalledTimes(1)
         const arg = bus.send.mock.calls[0][0]
         expect(arg.type).toBe('StreamingEvent')
         expect(arg.dataSourceKey).toBe('mtw.ephemera.renderOrchestration')
         expect(arg.header.type).toBe('Current Cache Valid')
-        expect(arg.header.streamKey).toBe('ROOM#test-room')
+        expect(arg.header.streamKey).toBe(passThroughFixtureRoomId)
     })
 })
