@@ -13,6 +13,7 @@ The serialization refactor established these principles (authority and typing on
 - **Single path and single builder:** All lambdas use `fromEventBridgeFormat` and pass `coreFormat.header` + `coreFormat.update` to deserialize. Wire envelope construction is centralized in the publisher (`publishStreamEvent` / `wireFormatsFromCoreFormat`); DataSource and initialize lambda do not hand-build CoreExternalFormat.
 - **CoreExternalFormat header-only:** In-memory format is `{ header, update }` only; no duplicated top-level envelope fields.
 - **Event contracts:** Cross-lambda EventBridge contracts (types, serializers) live in mtw-interfaces; API-triggered internal events use lambda-local `localApiEvents.ts` (see below).
+- **Outgoing update payloads:** Types for **published** DataSource updates (`streamEvent` / `streamEnvelope`, the `UpdatePayload` generic) follow the publishing boundary: **cross-lambda** (`publisherStrategy: 'eventBridge+bus'`, default) **must** define **outgoing** event types in **mtw-interfaces** (with serializers) so every implementing site and consumer shares the same wire contract; **`busOnly`** DataSources **must** colocate **outgoing** payload unions and guards in **`publishedEvents.ts`** in the same directory as the DataSource (see **publishedEvents.ts and outgoing update payloads** below).
 - **Header predicates centralize guards:** Per DataSource, header-level discriminants (and optional header union types) are the single source for aggregate and per-event envelope guards across regimes (lazy internal, resolved internal, external/core).
 
 ## Technical Details
@@ -232,6 +233,16 @@ Each DataSource implementation should colocate its subscription surface in a **`
 - Send-helpers are only for events **this lambda** publishes to its own messageBus; do not add helpers for events the lambda only forwards from EventBridge.
 - In lambdas with multiple DataSources (e.g. assets: dataSource, players, library, contentHeaders, characters), each DataSource lives in its own directory and has exactly one `subscribedEvents.ts` in that directory.
 - Reference implementation: [lambda/wml/dataSource/subscribedEvents.ts](../../../../lambda/wml/dataSource/subscribedEvents.ts).
+
+### **publishedEvents.ts and outgoing update payloads**
+
+Each DataSource publishes incremental updates via **`streamEvent`** and **`streamEnvelope`**. The TypeScript types for those **outgoing** payloads (the **`UpdatePayload`** type argument on `DataSource`) must live where consumers can share them:
+
+- **`publisherStrategy: 'eventBridge+bus'` (default):** Updates are serialized and published to **EventBridge** as well as the process message bus. **Outgoing** event types and serializers **must** live in **`mtw-interfaces`** (typically under `packages/mtw-interfaces/ts/eventBridge/`), alongside cross-lambda **subscribed** payload types, so multiple lambdas and tooling import one contract.
+
+- **`publisherStrategy: 'busOnly'`:** The DataSource does **not** publish to EventBridge; **`streamEvent`** / **`streamEnvelope`** still publish to the process **messageBus** for in-lambda subscribers only (see **`index.test.ts`** in this package for `busOnly`). **Outgoing** payload unions, type guards, and optional send-style helpers for those updates **must** be colocated in **`publishedEvents.ts`** in the **same directory** as the file that instantiates the DataSource (one such file per DataSource directory), mirroring **`subscribedEvents.ts`** for the subscribe side. Do **not** add types to **`mtw-interfaces`** for payloads that only cross this boundary unless the same shape is also shared on the wire elsewhere.
+
+**Naming:** **`publishedEvents.ts`** pairs with **`subscribedEvents.ts`** (outgoing vs incoming). It does **not** replace **`localApiEvents.ts`**, which holds **`api.*` in-process command** shapes injected from API handlers, not arbitrary **`streamEvent`** domain outbounds.
 
 ### **localApiEvents.ts and API-triggered internal events**
 
