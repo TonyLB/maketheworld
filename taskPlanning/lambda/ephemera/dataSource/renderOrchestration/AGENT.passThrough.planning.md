@@ -88,7 +88,7 @@ These are **how** we implement agreed rules, not whether the product rules apply
 | **OI-1** | **`argumentHash`** and **`category`** for ephemera **`singleFlightFactory`**: stable routing identity for the generation cohort key. |
 | **OI-2** | **`computation`** vs **`retrieval`**: where LLM runs, where **`renderCache`** writes belong, and ordering of **`Generation Started`** / **`Render Generated`** vs leader expiry and duplicate emissions (ties UC6). |
 | **OI-3** | Wiring to existing **`getItem`** / optimistic patterns; Dynamo interaction details for **singleFlight** records. |
-| **OI-4** | **Cutover order:** sequence of changes across [`findRender`](../../../../../lambda/ephemera/dataSource/renderOrchestration/findRender.ts), [`materialize`](../../../../../lambda/ephemera/conversations/conversationTypes/roomStateRender/materialize.ts), [`generateRoomPreview`](../../../../../lambda/ephemera/dataSource/renderOrchestration/generateRoomPreview.ts), and new stream emissions (minimize broken intermediate state if not on a long-lived branch). |
+| **OI-4** | **Cutover order:** sequence of changes across [`findRender`](../../../../../lambda/ephemera/dataSource/renderOrchestration/findRender.ts), [`materialize`](../../../../../lambda/ephemera/conversations/conversationTypes/roomStateRender/materialize.ts), [`generateRoomPreview`](../../../../../lambda/ephemera/dataSource/renderOrchestration/generateRoomPreview.ts), and new stream emissions (minimize broken intermediate state if not on a long-lived branch). **Inventory:** see [OI-4: Legacy orchestration outcome inventory](#oi-4-legacy-orchestration-outcome-inventory). |
 | **OI-5** | **`streamEvent`** (or agreed) API: module placement, envelopes, interim ephemera-local types vs **`mtw-interfaces`** (contract uncertainty 8 / **Where types live**). |
 | **OI-6** | **Tests:** which suite owns stream assertions first; fixture shape; when to switch from conversation mocks to stream assertions. |
 | **OI-7** | **Integration test** timing: thin cross-layer test with **`renderCache`** --- sequencing with [`renderCache` pass-through plan](../renderCache/AGENT.passThrough.planning.md) subscription work. |
@@ -124,7 +124,7 @@ These are **how** we implement agreed rules, not whether the product rules apply
 | Milestone | Status |
 | --- | --- |
 | Task plan graduated (structure per `taskPlanning/AGENT.md`) | Done |
-| Inventory: legacy conversation / **`publishPutCacheRecord`** / **`materialize`** paths mapped to six outbounds | Not started |
+| Inventory: legacy conversation / **`publishPutCacheRecord`** / **`materialize`** paths mapped to six outbounds | Done (see [OI-4](#oi-4-legacy-orchestration-outcome-inventory)) |
 | Stream emissions: skeleton for six outbound types + tests (skip/todo per contract encoding) | Not started |
 | Remove **`Put Cache Record`** enqueue from orchestration on generation success (`generateRoomPreview` / helpers) | Not started |
 | Passive fan-out: **S** + **`allowGeneration`** in **`fanOutStateChangedToPassiveRenders`** | Not started |
@@ -139,7 +139,7 @@ These are **how** we implement agreed rules, not whether the product rules apply
 
 Pending work uses `[ ]`; completed work uses `[X]`. Apply checkboxes to each actionable line; for nested bullets, mark each line `[X]` as done so partial progress is visible.
 
-- [ ] **Inventory** --- Map every orchestration outcome path that uses **`conversation.sendMessage`**, **`materializeRoomStateRender`**, **`publishPutCacheRecord`**, or related **`messageBus`** terminals to a target six-outbound (see contract **Legacy bus terminals** and **Exit `conversation.sendMessage`**). Document gaps in **OI-4**.
+- [X] **Inventory** --- Map every orchestration outcome path that uses **`conversation.sendMessage`**, **`materializeRoomStateRender`**, **`publishPutCacheRecord`**, or related **`messageBus`** terminals to a target six-outbound (see contract **Legacy bus terminals** and **Exit `conversation.sendMessage`**). Document gaps in **OI-4** ([section below](#oi-4-legacy-orchestration-outcome-inventory)).
 - [ ] **Stream skeleton** --- Implement **`streamEvent`** (or agreed) emissions for **`Current Cache Valid`**, **`Exact Match Found`**, **`Generation Started`**, **`Render Generated`**, **`Orchestration Error`**, **`Generation Deferred`** per contract mapping; add or extend tests with **`it.skip` / `describe.skip`** and reasons where behavior is incomplete ([Encoding the contract in unit tests](../AGENT.passThrough.contract.planning.md#encoding-the-contract-in-unit-tests)).
 - [ ] **Stop duplicate durability** --- Remove **`publishPutCacheRecord`** / **`sendPutCacheRecord`** from orchestration-owned generation success; coordinate timing with **`renderCache`** subscription work ([`renderCache` plan](../renderCache/AGENT.passThrough.planning.md)) per **OI-7**.
 - [ ] **Passive fan-out (set S)** --- Extend **`fanOutStateChangedToPassiveRenders`** from **A** to **S** with **`allowGeneration`** policy (**OI-8**, Task 7 in [`AGENT.planning.md`](../../../../../lambda/ephemera/dataSource/renderOrchestration/AGENT.planning.md)).
@@ -147,6 +147,50 @@ Pending work uses `[ ]`; completed work uses `[X]`. Apply checkboxes to each act
 - [ ] **Conversation removal** --- Remove **`getRoomStateRenderHandle`** / **`sendMessage`** / legacy **`RenderReady`**-class bus paths for orchestration outcomes per contract; assert stream outputs in tests (**OI-6**).
 - [ ] **Integration** --- Add thin cross-layer test with **`renderCache`** when both producer and consumer slices exist (**OI-7**).
 - [ ] **Close the loop** --- Update **Progress**, **Verification** skip inventory, and this **Recommended order** when each slice ships.
+
+## OI-4: Legacy orchestration outcome inventory
+
+**Scope:** Current code paths under [`dataSource/renderOrchestration/`](../../../../../lambda/ephemera/dataSource/renderOrchestration/) that deliver B-phase outcomes or enqueue cache writes. **Unified delivery:** [`orchestrateRenderRequest`](../../../../../lambda/ephemera/dataSource/renderOrchestration/orchestrationHandler.ts) mints a **`roomStateRender`** conversation row and injects **`sendMessage`** that resolves to [`materializeRoomStateRender`](../../../../../lambda/ephemera/conversations/conversationTypes/roomStateRender/materialize.ts) -> **`messageBus.send`** for terminal **`RenderResolveOutput`** only. **Exception:** generation success also calls **`defaultPublishPutCacheRecord`** -> **`sendPutCacheRecord`** ( **`api.ephemera`** **`Put Cache Record`** on the same process **`messageBus`** ), which is not mapped through **`materializeRoomStateRender`**.
+
+**Ingress (both hit the same pipeline):**
+
+| Entry | File | Notes |
+| --- | --- | --- |
+| **`RenderRequested`** from **`api.ephemera`** / DataSource ingress | [`index.ts`](../../../../../lambda/ephemera/dataSource/renderOrchestration/index.ts) | Calls **`orchestrateRenderRequest`**. |
+| **`State Changed`** fan-out | [`fanOutStateChangedToPassiveRenders.ts`](../../../../../lambda/ephemera/dataSource/renderOrchestration/fanOutStateChangedToPassiveRenders.ts) | One **`orchestrateRenderRequest`** per deduplicated perspective group (**A**-only set today); passes **`messageBus`**. No extra terminals beyond the shared handler. |
+
+**`sendMessage` -> `materializeRoomStateRender` -> legacy bus terminal**
+
+| Source path | `RenderResolveOutput` / progress | [`enrichRenderResolveForPassive`](../../../../../lambda/ephemera/conversations/conversationTypes/roomStateRender/materialize.ts) -> bus type | Target six-outbound (contract) |
+| --- | --- | --- | --- |
+| [`deliverIntakeErrorsIfAny`](../../../../../lambda/ephemera/dataSource/renderOrchestration/intakeErrors.ts) | `failed` / **`NOT_ROOM`** | **`RenderError`** via **`toRenderError`** | **`Orchestration Error`** |
+| [`deliverIntakeErrorsIfAny`](../../../../../lambda/ephemera/dataSource/renderOrchestration/intakeErrors.ts) | `failed` / **`META_ROOM_MARKS_MISSING`** | **`RenderError`** | **`Orchestration Error`** |
+| [`findRender`](../../../../../lambda/ephemera/dataSource/renderOrchestration/findRender.ts) pointer branch valid | `resolved` (full row in payload) | **`RenderReady`** via **`toRenderReady`** | **`Current Cache Valid`** (target: **IDs only**; legacy carries full row) |
+| [`findRender`](../../../../../lambda/ephemera/dataSource/renderOrchestration/findRender.ts) exact match | `resolved` | **`RenderReady`** | **`Exact Match Found`** (target: **IDs only**) |
+| [`findRender`](../../../../../lambda/ephemera/dataSource/renderOrchestration/findRender.ts) **`allowGeneration === false`** miss | `invalidate` / **`NO_CACHE_MATCH_AND_GENERATION_NOT_RUN`** | **`RenderInvalidate`** via **`toRenderInvalidate`** | **`Generation Deferred`** |
+| [`generateRoomPreview`](../../../../../lambda/ephemera/dataSource/renderOrchestration/generateRoomPreview.ts) missing / bad context | `failed` / **`CONTEXT_REQUIRED`** | **`RenderError`** | **`Orchestration Error`** |
+| [`generateRoomPreview`](../../../../../lambda/ephemera/dataSource/renderOrchestration/generateRoomPreview.ts) LLM / description failure | `failed` / **`NO_EXACT_MATCH`**, **`GENERATION_FAILED`**, etc. | **`RenderError`** | **`Orchestration Error`** |
+| [`generateRoomPreview`](../../../../../lambda/ephemera/dataSource/renderOrchestration/generateRoomPreview.ts) success (after **`publishPutCacheRecord`**) | `resolved` | **`RenderReady`** | **`Render Generated`** (target: full content **without** orchestration-owned **`Put Cache Record`**) |
+
+**Progress (not on legacy bus today)**
+
+| Call site | Progress | `materialize` behavior | Target six-outbound |
+| --- | --- | --- | --- |
+| [`generateRoomPreview`](../../../../../lambda/ephemera/dataSource/renderOrchestration/generateRoomPreview.ts) slow path | **`sendMessage('generating')`** | **`isRenderProgress`** -> **no-op** (dropped); does **not** emit **`RenderGenerationStarted`** on **`messageBus`** | **`Generation Started`** |
+
+**`publishPutCacheRecord` / `sendPutCacheRecord` (parallel to conversation terminals)**
+
+| Call site | Mechanism | Target (pass-through) |
+| --- | --- | --- |
+| [`defaultPublishPutCacheRecord`](../../../../../lambda/ephemera/dataSource/renderOrchestration/generateRoomPreview.ts) after successful LLM | **`sendPutCacheRecord`** -> **`api.ephemera`** **`Put Cache Record`** envelope on **`messageBus`** | **Remove** from orchestration-owned generation; **`renderCache`** owns durable write on **`Render Generated`**. |
+
+**Gaps for cutover sequencing (OI-4)**
+
+1. **One adapter, two side effects on generate success:** **`publishPutCacheRecord`** ( **`api.ephemera`** ) then **`sendMessage`(`resolved`)** -> **`RenderReady`**. Stream cutover should hand off generation completion **once** to **`renderCache`** and drop orchestration **`Put Cache Record`** without leaving a window with no terminal (coordinate with **`renderCache`** subscription).
+2. **Pointer vs exact** share the same legacy **`RenderReady`** shape; six-outbound discriminates **`Current Cache Valid`** vs **`Exact Match Found`** by type only (contract already states this).
+3. **`generating`** is implemented but **not** observable on **`messageBus`**; **`Generation Started`** is net-new on the DataSource stream.
+4. **Ordering:** Today **`Put Cache Record`** is enqueued before the terminal **`RenderReady`**. Target: **`Render Generated`** first (content, no durability claim); **`renderCache`** writes then emits **`Render Pertains`** / **`Cache Updated`** (contract).
+5. **No silent terminal:** If **`getRoomStateRenderHandle`** were missing, **`sendMessage`** would no-op; production always registers the stub conversation before **`findRender`** (worth preserving or replacing with direct stream emit in tests).
 
 ---
 
