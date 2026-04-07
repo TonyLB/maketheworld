@@ -83,9 +83,10 @@ describe('fanOutStateChangedToPassiveRenders', () => {
         const getMetaRoomBase = jest.fn().mockImplementation(async (roomId: EphemeraRoomId) => baseMetaRoom(roomId))
 
         const messageBus = { send: jest.fn() } as any
+        const streamEvent = jest.fn().mockResolvedValue(undefined)
 
         await fanOutStateChangedToPassiveRenders(
-            { stateChanged, messageBus },
+            { stateChanged, messageBus, streamEvent },
             {
                 orchestrateRenderRequestFn,
                 resolveCanonAssetStackForRoom,
@@ -137,9 +138,10 @@ describe('fanOutStateChangedToPassiveRenders', () => {
         const characterMetaGet = jest.fn().mockResolvedValue({ assets: [A, B, C] })
         const getMetaRoomBase = jest.fn().mockImplementation(async (roomId: EphemeraRoomId) => baseMetaRoom(roomId))
         const messageBus = { send: jest.fn() } as any
+        const streamEvent = jest.fn().mockResolvedValue(undefined)
 
         await fanOutStateChangedToPassiveRenders(
-            { stateChanged, messageBus },
+            { stateChanged, messageBus, streamEvent },
             {
                 orchestrateRenderRequestFn,
                 resolveCanonAssetStackForRoom,
@@ -165,7 +167,11 @@ describe('fanOutStateChangedToPassiveRenders', () => {
         const characterMetaGet = jest.fn().mockResolvedValue({ assets: ['ASSET#unrelated'] })
 
         await fanOutStateChangedToPassiveRenders(
-            { stateChanged: baseStateChanged(), messageBus: { send: jest.fn() } as any },
+            {
+                stateChanged: baseStateChanged(),
+                messageBus: { send: jest.fn() } as any,
+                streamEvent: jest.fn().mockResolvedValue(undefined),
+            },
             {
                 orchestrateRenderRequestFn,
                 resolveCanonAssetStackForRoom,

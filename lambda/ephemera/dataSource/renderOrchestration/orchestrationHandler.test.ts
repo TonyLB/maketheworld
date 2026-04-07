@@ -3,6 +3,7 @@ import type { EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraCacheDynamoItem } from '../../renderCache/baseClasses'
 import internalCache from '../../internalCache'
 import { orchestrateRenderRequest } from './orchestrationHandler'
+import { streamEventFromMessageBus } from './publishedEvents'
 import type { RenderRequested } from './events'
 
 describe('dataSource/renderOrchestration/orchestrationHandler', () => {
@@ -43,7 +44,7 @@ describe('dataSource/renderOrchestration/orchestrationHandler', () => {
         const getCacheRecordById = jest.fn().mockResolvedValue(baseCacheRecord)
         const getExactMatch = jest.fn()
         await orchestrateRenderRequest(
-            { payload: basePayload, messageBus },
+            { payload: basePayload, messageBus, streamEvent: streamEventFromMessageBus(messageBus) },
             {
                 getMetaRoom: jest.fn().mockResolvedValue(baseMetaRoom),
                 computePerspectiveKey: jest.fn().mockReturnValue('PERSPECTIVE#v1#abc'),
@@ -66,7 +67,7 @@ describe('dataSource/renderOrchestration/orchestrationHandler', () => {
         const messageBus = makeBus()
         const getExactMatch = jest.fn().mockResolvedValue(null)
         await orchestrateRenderRequest(
-            { payload: basePayload, messageBus },
+            { payload: basePayload, messageBus, streamEvent: streamEventFromMessageBus(messageBus) },
             {
                 getMetaRoom: jest.fn().mockResolvedValue({ ...baseMetaRoom, currentCacheByPerspective: {} }),
                 computePerspectiveKey: jest.fn().mockReturnValue('PERSPECTIVE#v1#abc'),
@@ -84,7 +85,7 @@ describe('dataSource/renderOrchestration/orchestrationHandler', () => {
         const clearPerspectivePointer = jest.fn().mockResolvedValue(undefined)
         const messageBus = makeBus()
         await orchestrateRenderRequest(
-            { payload: basePayload, messageBus },
+            { payload: basePayload, messageBus, streamEvent: streamEventFromMessageBus(messageBus) },
             {
                 getMetaRoom: jest.fn().mockResolvedValue(baseMetaRoom),
                 computePerspectiveKey: jest.fn().mockReturnValue('PERSPECTIVE#v1#abc'),
@@ -102,7 +103,7 @@ describe('dataSource/renderOrchestration/orchestrationHandler', () => {
         const messageBus = makeBus()
         const getExactMatch = jest.fn().mockResolvedValue(baseCacheRecord)
         await orchestrateRenderRequest(
-            { payload: basePayload, messageBus },
+            { payload: basePayload, messageBus, streamEvent: streamEventFromMessageBus(messageBus) },
             {
                 getMetaRoom: jest.fn().mockResolvedValue({ ...baseMetaRoom, currentCacheByPerspective: {} }),
                 computePerspectiveKey: jest.fn().mockReturnValue('PERSPECTIVE#v1#abc'),
@@ -124,7 +125,7 @@ describe('dataSource/renderOrchestration/orchestrationHandler', () => {
         const clearPerspectivePointer = jest.fn().mockResolvedValue(undefined)
         const messageBus = makeBus()
         await orchestrateRenderRequest(
-            { payload: basePayload, messageBus },
+            { payload: basePayload, messageBus, streamEvent: streamEventFromMessageBus(messageBus) },
             {
                 getMetaRoom: jest.fn().mockResolvedValue({ ...baseMetaRoom, state: undefined }),
                 computePerspectiveKey: jest.fn().mockReturnValue('PERSPECTIVE#v1#abc'),
@@ -147,7 +148,7 @@ describe('dataSource/renderOrchestration/orchestrationHandler', () => {
         const messageBus = makeBus()
         const getCacheRecordById = jest.fn()
         await orchestrateRenderRequest(
-            { payload: basePayload, messageBus },
+            { payload: basePayload, messageBus, streamEvent: streamEventFromMessageBus(messageBus) },
             {
                 getMetaRoom: jest.fn().mockResolvedValue(undefined),
                 computePerspectiveKey: jest.fn().mockReturnValue('PERSPECTIVE#v1#abc'),
@@ -170,7 +171,7 @@ describe('dataSource/renderOrchestration/orchestrationHandler', () => {
         const clearPerspectivePointer = jest.fn().mockResolvedValue(undefined)
         const messageBus = makeBus()
         await orchestrateRenderRequest(
-            { payload: basePayload, messageBus },
+            { payload: basePayload, messageBus, streamEvent: streamEventFromMessageBus(messageBus) },
             {
                 getMetaRoom: jest.fn().mockResolvedValue(baseMetaRoom),
                 computePerspectiveKey: jest.fn().mockReturnValue('PERSPECTIVE#v1#abc'),
@@ -192,7 +193,7 @@ describe('dataSource/renderOrchestration/orchestrationHandler', () => {
             perspectiveMatcher: { requiredAssetIds: ['ASSET#other'], forbiddenAssetIds: [] }
         }
         await orchestrateRenderRequest(
-            { payload: basePayload, messageBus },
+            { payload: basePayload, messageBus, streamEvent: streamEventFromMessageBus(messageBus) },
             {
                 getMetaRoom: jest.fn().mockResolvedValue(baseMetaRoom),
                 computePerspectiveKey: jest.fn().mockReturnValue('PERSPECTIVE#v1#abc'),
@@ -209,7 +210,7 @@ describe('dataSource/renderOrchestration/orchestrationHandler', () => {
     it('continues to lookup handoff if pointer clearing fails', async () => {
         const messageBus = makeBus()
         await orchestrateRenderRequest(
-            { payload: basePayload, messageBus },
+            { payload: basePayload, messageBus, streamEvent: streamEventFromMessageBus(messageBus) },
             {
                 getMetaRoom: jest.fn().mockResolvedValue(baseMetaRoom),
                 computePerspectiveKey: jest.fn().mockReturnValue('PERSPECTIVE#v1#abc'),
@@ -226,7 +227,7 @@ describe('dataSource/renderOrchestration/orchestrationHandler', () => {
         const clearPerspectivePointer = jest.fn().mockResolvedValue(undefined)
         const messageBus = makeBus()
         await orchestrateRenderRequest(
-            { payload: basePayload, messageBus },
+            { payload: basePayload, messageBus, streamEvent: streamEventFromMessageBus(messageBus) },
             {
                 getMetaRoom: jest.fn().mockResolvedValue(baseMetaRoom),
                 computePerspectiveKey: jest.fn().mockReturnValue('PERSPECTIVE#v1#abc'),
@@ -249,7 +250,7 @@ describe('dataSource/renderOrchestration/orchestrationHandler', () => {
         const payload: RenderRequested = { ...basePayload, componentId: 'FEATURE#one' }
         const getMetaRoom = jest.fn()
         await orchestrateRenderRequest(
-            { payload, messageBus },
+            { payload, messageBus, streamEvent: streamEventFromMessageBus(messageBus) },
             {
                 getMetaRoom,
                 computePerspectiveKey: jest.fn(),
@@ -289,7 +290,7 @@ describe('dataSource/renderOrchestration/orchestrationHandler', () => {
             generationContextWml: '<Asset key=(Test) />',
         }
         await orchestrateRenderRequest(
-            { payload, messageBus },
+            { payload, messageBus, streamEvent: streamEventFromMessageBus(messageBus) },
             {
                 getMetaRoom: jest.fn().mockResolvedValue({ ...baseMetaRoom, currentCacheByPerspective: {} }),
                 computePerspectiveKey: jest.fn().mockReturnValue('PERSPECTIVE#v1#abc'),
@@ -323,7 +324,7 @@ describe('dataSource/renderOrchestration/orchestrationHandler', () => {
             allowGeneration: true,
         }
         await orchestrateRenderRequest(
-            { payload, messageBus },
+            { payload, messageBus, streamEvent: streamEventFromMessageBus(messageBus) },
             {
                 getMetaRoom: jest.fn().mockResolvedValue({ ...baseMetaRoom, currentCacheByPerspective: {} }),
                 computePerspectiveKey: jest.fn().mockReturnValue('PERSPECTIVE#v1#abc'),

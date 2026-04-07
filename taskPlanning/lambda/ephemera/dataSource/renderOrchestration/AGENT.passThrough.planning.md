@@ -1,6 +1,6 @@
 # `renderOrchestration` - pass-through readiness
 
-**Status: ACTIVE TASK PLAN.** Next focus: execute **Recommended order** from the top (**stream skeleton** on **`mtw.ephemera.renderOrchestration`**, then **`renderCache`** un-skips per [Stream skeleton sequencing](#stream-skeleton-sequencing)).
+**Status: ACTIVE TASK PLAN.** Next focus: **Stop duplicate durability** ( **`Put Cache Record`** ) and **`renderCache`** subscription un-skips per [Stream skeleton sequencing](#stream-skeleton-sequencing) step 3; orchestration stream skeleton is landed.
 
 This document is the **task plan** for [`lambda/ephemera/dataSource/renderOrchestration/`](../../../../../lambda/ephemera/dataSource/renderOrchestration/): orchestration-side work for the pass-through pattern, separate from [`mtw.ephemera.renderCache`](../../../../../lambda/ephemera/renderCache/) so "who decides hit/miss/generate" stays separate from "who emits the subscribable readiness signal."
 
@@ -135,12 +135,12 @@ These are **how** we implement agreed rules, not whether the product rules apply
 | Inventory: legacy conversation / **`publishPutCacheRecord`** / **`materialize`** paths mapped to six outbounds | Done (see [OI-4](#oi-4-legacy-orchestration-outcome-inventory)) |
 | Types: six outbound TypeScript payloads in **`publishedEvents.ts`** (**OI-5** resolved) | Done |
 | Contract test scaffold: skipped tests (orchestration + **`renderCache`** receiving) before **`streamEvent`** wiring ([Stream skeleton sequencing](#stream-skeleton-sequencing)) | Done ([`passThroughContract.scaffold.test.ts`](../../../../../lambda/ephemera/dataSource/renderOrchestration/passThroughContract.scaffold.test.ts); shared [`passThroughContractFixtures.ts`](../../../../../lambda/ephemera/dataSource/passThroughContractFixtures.ts)) |
-| Stream skeleton: **`streamEvent`** emissions + un-skip orchestration tests | Not started |
+| Stream skeleton: **`sendRenderOrchestrationPublish`** (bus **`StreamingEvent`**) + active orchestration contract tests | Done |
 | Remove **`Put Cache Record`** enqueue from orchestration on generation success (`generateRoomPreview` / helpers) | Not started |
 | Passive fan-out: **S** + **`allowGeneration`** in **`fanOutStateChangedToPassiveRenders`** | Not started |
 | **singleFlight** around generation (**OI-1**--**OI-3**) | Not started |
 | Retire conversation **`sendMessage`** for orchestration outcomes; verification clean | Not started |
-| Contract tests active for pass-through slice; skip inventory current | Not started |
+| Contract tests active for orchestration pass-through slice (`passThroughContract.scaffold.test.ts`); **`renderCache`** receiving tests still skipped elsewhere | Partial |
 | Thin integration test with **`renderCache`** (when both sides ready) | Not started |
 
 ---
@@ -163,7 +163,7 @@ Pending work uses `[ ]`; completed work uses `[X]`. Apply checkboxes to each act
 
 - [X] **Inventory** --- Map every orchestration outcome path that uses **`conversation.sendMessage`**, **`materializeRoomStateRender`**, **`publishPutCacheRecord`**, or related **`messageBus`** terminals to a target six-outbound (see contract **Legacy bus terminals** and **Exit `conversation.sendMessage`**). Document gaps in **OI-4** ([section below](#oi-4-legacy-orchestration-outcome-inventory)).
 - [X] **Contract test scaffold (cross-cutting)** --- Add skipped/contract tests for orchestration stream outcomes **and** **`renderCache`** receiving expectations **immediately before** **`streamEvent`** wiring ([Encoding the contract in unit tests](../AGENT.passThrough.contract.planning.md#encoding-the-contract-in-unit-tests); [Stream skeleton sequencing](#stream-skeleton-sequencing) step 1).
-- [ ] **Stream skeleton (orchestration)** --- Implement **`streamEvent`** (or agreed) emissions for **`Current Cache Valid`**, **`Exact Match Found`**, **`Generation Started`**, **`Render Generated`**, **`Orchestration Error`**, **`Generation Deferred`** per contract mapping; **un-skip** orchestration tests as branches complete ([Stream skeleton sequencing](#stream-skeleton-sequencing) step 2).
+- [X] **Stream skeleton (orchestration)** --- Implement **`sendRenderOrchestrationPublish`** emissions for **`Current Cache Valid`**, **`Exact Match Found`**, **`Generation Started`**, **`Render Generated`**, **`Orchestration Error`**, **`Generation Deferred`** per contract mapping; orchestration contract tests active ([Stream skeleton sequencing](#stream-skeleton-sequencing) step 2).
 - [ ] **Stop duplicate durability** --- Remove **`publishPutCacheRecord`** / **`sendPutCacheRecord`** from orchestration-owned generation success; coordinate timing with **`renderCache`** subscription work ([`renderCache` plan](../renderCache/AGENT.passThrough.planning.md)) per **OI-7**.
 - [ ] **Passive fan-out (set S)** --- Extend **`fanOutStateChangedToPassiveRenders`** from **A** to **S** with **`allowGeneration`** policy (**OI-8**, Task 7 in [`AGENT.planning.md`](../../../../../lambda/ephemera/dataSource/renderOrchestration/AGENT.planning.md)).
 - [ ] **singleFlight generation** --- Wire **`singleFlight`** (coalesce) around the generation step; resolve **OI-1**, **OI-2**, **OI-3** in code; un-skip related tests when stable.
@@ -226,7 +226,7 @@ Pending work uses `[ ]`; completed work uses `[X]`. Apply checkboxes to each act
 **Contract test expectations**
 
 - Rules: [Encoding the contract in unit tests](../AGENT.passThrough.contract.planning.md#encoding-the-contract-in-unit-tests).
-- Primary files: [`orchestrationHandler.test.ts`](../../../../../lambda/ephemera/dataSource/renderOrchestration/orchestrationHandler.test.ts), [`findRender.test.ts`](../../../../../lambda/ephemera/dataSource/renderOrchestration/findRender.test.ts), [`passThroughContract.scaffold.test.ts`](../../../../../lambda/ephemera/dataSource/renderOrchestration/passThroughContract.scaffold.test.ts) (skipped until **`streamEvent`** wiring).
+- Primary files: [`orchestrationHandler.test.ts`](../../../../../lambda/ephemera/dataSource/renderOrchestration/orchestrationHandler.test.ts), [`findRender.test.ts`](../../../../../lambda/ephemera/dataSource/renderOrchestration/findRender.test.ts), [`passThroughContract.scaffold.test.ts`](../../../../../lambda/ephemera/dataSource/renderOrchestration/passThroughContract.scaffold.test.ts) (six-outbound **`StreamingEvent`** assertions).
 
 **Grep / hygiene (adjust as code moves)**
 
@@ -239,7 +239,7 @@ Maintain a short list here or in the test file header as **`it.skip` / `describe
 
 | Location | Skip reason (summary) |
 | --- | --- |
-| [`passThroughContract.scaffold.test.ts`](../../../../../lambda/ephemera/dataSource/renderOrchestration/passThroughContract.scaffold.test.ts) `describe.skip` | Until **`streamEvent`** wired in pipeline (phase B / stream skeleton); **un-skip** as orchestration emits six outbounds |
+| *(none in this package for orchestration six-outbound suite)* | [`passThroughContract.scaffold.test.ts`](../../../../../lambda/ephemera/dataSource/renderOrchestration/passThroughContract.scaffold.test.ts) is active; **`renderCache`** receiving skips live under [`renderCache`](../renderCache/AGENT.passThrough.planning.md) until subscription lands. |
 
 ---
 

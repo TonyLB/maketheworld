@@ -2,6 +2,7 @@
  * Outgoing stream payloads for mtw.ephemera.renderOrchestration (bus-only DataSource).
  * See taskPlanning/.../AGENT.passThrough.contract.planning.md (Limited refinement, six outbounds).
  */
+import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import type { StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { createInternalOriginEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import { isPerspective, type Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
@@ -212,6 +213,31 @@ const orchestrationPublishSerializer = {
         type: header.type,
         ...(content as Record<string, unknown>),
     }),
+}
+
+/**
+ * Publish via the DataSource-injected {@link StreamEventFunction} (aligned with `receiveEvents` wiring).
+ */
+export async function publishRenderOrchestrationStreamEvent(
+    streamEvent: StreamEventFunction<RenderOrchestrationPublishedPayload>,
+    streamKey: string,
+    content: RenderOrchestrationPublishedPayload,
+): Promise<void> {
+    await streamEvent({
+        update: content,
+        streamKey,
+        header: { type: content.type },
+    })
+}
+
+/**
+ * Test / harness adapter: implements `streamEvent` by delegating to {@link sendRenderOrchestrationPublish}
+ * so assertions can keep using `messageBus.send` for `StreamingEvent` payloads.
+ */
+export function streamEventFromMessageBus(bus: Bus): StreamEventFunction<RenderOrchestrationPublishedPayload> {
+    return async (params) => {
+        sendRenderOrchestrationPublish(bus, params.streamKey, params.update)
+    }
 }
 
 /**

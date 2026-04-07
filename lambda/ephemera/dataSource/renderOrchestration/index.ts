@@ -23,6 +23,7 @@ import {
 import { isRenderRequestedCommand } from './localApiEvents'
 import { orchestrateRenderRequest } from './orchestrationHandler'
 import { fanOutStateChangedToPassiveRenders } from './fanOutStateChangedToPassiveRenders'
+import type { RenderOrchestrationPublishedPayload } from './publishedEvents'
 import messageBus from '../../messageBus'
 
 const toLegacyPayload = async (event: RenderOrchestrationIngressEvent) => {
@@ -40,19 +41,19 @@ const toLegacyPayload = async (event: RenderOrchestrationIngressEvent) => {
 }
 
 // Subscribes to api.ephemera render requests and mtw.ephemera.state State Changed (fan-out to passive render).
-export const renderOrchestrationDataSource = new EphemeraDataSource<never, never, RenderOrchestrationSubscribedContent>({
+export const renderOrchestrationDataSource = new EphemeraDataSource<never, RenderOrchestrationPublishedPayload, RenderOrchestrationSubscribedContent>({
     dataSourceKey: 'mtw.ephemera.renderOrchestration',
     replayable: false,
     publisherStrategy: 'busOnly',
     subscribedEventTypeGuard: isRenderOrchestrationSubscribedEnvelope,
-    receiveEvents: async ({ events }) => {
+    receiveEvents: async ({ events, streamEvent }) => {
         await Promise.all(events.map(async (event) => {
             if (isEphemeraStateStateChangedEnvelope(event)) {
                 const raw = await event.getContent()
                 if (!isStateChangedPayload(raw)) {
                     return
                 }
-                await fanOutStateChangedToPassiveRenders({ stateChanged: raw, messageBus })
+                await fanOutStateChangedToPassiveRenders({ stateChanged: raw, messageBus, streamEvent })
                 return
             }
             if (!isRenderOrchestrationIngressEnvelope(event)) {
@@ -65,6 +66,7 @@ export const renderOrchestrationDataSource = new EphemeraDataSource<never, never
             await orchestrateRenderRequest({
                 payload,
                 messageBus,
+                streamEvent,
             })
         }))
     },

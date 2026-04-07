@@ -19,6 +19,8 @@ import internalCache from '../../internalCache'
 import { generateRoomDescription } from '../../generateExample'
 import { sendPutCacheRecord } from '../apiEphemera'
 import messageBus from '../../messageBus'
+import { buildOrchestrationRouting } from './orchestrationRouting'
+import type { RenderOrchestrationPublishedPayload } from './publishedEvents'
 
 export type GenerateRoomPreviewInput = {
     roomId: EphemeraRoomId;
@@ -67,6 +69,8 @@ export type GenerateRoomPreviewOptions = {
      * When set, invoked with `generating` after valid parseable context and before room description generation (slow path only).
      */
     sendMessage?: (arg: RenderProgress | RenderResolveOutput) => Promise<void>;
+    /** mtw.ephemera.renderOrchestration stream outbounds (from `streamEvent` via orchestration; required for this entry point). */
+    publishOrchestration: (content: RenderOrchestrationPublishedPayload) => void | Promise<void>;
 }
 
 /** Control return from `generateRoomPreview`; terminals are delivered only via `sendMessage`. */
@@ -91,8 +95,12 @@ export const generateRoomPreview = async (
         queryCacheRecordsForComponentImpl = (componentId) => internalCache.RenderCache.get(componentId),
         conversationId,
         sendMessage,
-    }: GenerateRoomPreviewOptions = {}
+        publishOrchestration,
+    }: GenerateRoomPreviewOptions
 ): Promise<GenerateRoomPreviewGenerationReturn> => {
+    const perspective = { assetStack: assetStack as AssetUUID[] }
+    const routing = buildOrchestrationRouting(roomId, perspective, computePerspectiveKey)
+
     let parsedContext: StandardForm | null = null
     if (generationContextWml) {
         try {
@@ -102,9 +110,13 @@ export const generateRoomPreview = async (
         }
     }
 
-    const perspective = { assetStack: assetStack as AssetUUID[] }
-
     if (!parsedContext) {
+        await publishOrchestration({
+            type: 'Orchestration Error',
+            ...routing,
+            errorCode: 'CONTEXT_REQUIRED',
+            errorMessage: 'Generation context required',
+        })
         await sendMessage?.({
             type: 'failed',
             errorCode: 'CONTEXT_REQUIRED',
@@ -114,6 +126,11 @@ export const generateRoomPreview = async (
     }
 
     // slow path only: we have no exact cache match and we have valid generation context
+    await publishOrchestration({
+        type: 'Generation Started',
+        ...routing,
+        phase: 'generating',
+    })
     await sendMessage?.('generating')
 
     const allRecords = await queryCacheRecordsForComponentImpl(roomId)
@@ -130,6 +147,12 @@ export const generateRoomPreview = async (
     })
 
     if (!descriptionResult.success) {
+        await publishOrchestration({
+            type: 'Orchestration Error',
+            ...routing,
+            errorCode: descriptionResult.errorCode,
+            errorMessage: descriptionResult.errorMessage,
+        })
         await sendMessage?.({
             type: 'failed',
             errorCode: descriptionResult.errorCode,
@@ -159,6 +182,12 @@ export const generateRoomPreview = async (
     }
     await publishPutCacheRecord(roomId, record, cacheId, conversationId)
 
+    await publishOrchestration({
+        type: 'Render Generated',
+        ...routing,
+        cacheId,
+        cacheRecord,
+    })
     await sendMessage?.({
         type: 'resolved',
         renderedContent: descriptionResult.renderedContent,

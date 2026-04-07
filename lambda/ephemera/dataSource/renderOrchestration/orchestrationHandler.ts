@@ -12,6 +12,7 @@ import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { perspectiveMatches, computePerspectiveKey as defaultComputePerspectiveKey, type Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
 import type { EphemeraCacheId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import type { MessageBus } from '../../messageBus/baseClasses'
 import { isEphemeraCacheDynamoItem, type EphemeraCacheDynamoItem, type EphemeraCacheMarkState } from '../../renderCache/baseClasses'
 import { markStatesEqual } from '../../renderCache/markStateUtils'
@@ -24,6 +25,8 @@ import type { ConversationId } from '../../conversations'
 import type { RenderRequested } from './events'
 import { isRenderResolveInputSuccess } from './baseClasses'
 import { deliverIntakeErrorsIfAny } from './intakeErrors'
+import { buildOrchestrationRouting } from './orchestrationRouting'
+import { publishRenderOrchestrationStreamEvent, type RenderOrchestrationPublishedPayload } from './publishedEvents'
 import { findRender } from './findRender'
 import { generateRoomPreview } from './generateRoomPreview'
 import { intakeRenderRequested } from './requestIntake'
@@ -94,7 +97,15 @@ const getRoomStateRenderHandle = (
  * Single-item orchestration: intake, {@link deliverIntakeErrorsIfAny}, and {@link findRender}.
  */
 export const orchestrateRenderRequest = async (
-    { payload, messageBus }: { payload: RenderRequested; messageBus: MessageBus },
+    {
+        payload,
+        messageBus,
+        streamEvent,
+    }: {
+        payload: RenderRequested;
+        messageBus: MessageBus;
+        streamEvent: StreamEventFunction<RenderOrchestrationPublishedPayload>;
+    },
     _deps?: OrchestrationPipelineDependencies
 ): Promise<void> => {
     const orchDeps: OrchestrationHandlerDepsResolved = {
@@ -126,7 +137,17 @@ export const orchestrateRenderRequest = async (
         payload: CONVERSATION_PAYLOAD_STUB,
     })
 
+    const streamKey = payload.componentId
     const intakeErrorHandled = await deliverIntakeErrorsIfAny(intake, async (output) => {
+        if (output.type === 'failed') {
+            const routing = buildOrchestrationRouting(payload.componentId, payload.perspective, orchDeps.computePerspectiveKey)
+            await publishRenderOrchestrationStreamEvent(streamEvent, streamKey, {
+                type: 'Orchestration Error',
+                ...routing,
+                errorCode: output.errorCode,
+                errorMessage: output.errorMessage,
+            })
+        }
         const roomStateHandle = getRoomStateRenderHandle(conversationId, messageBus)
         await roomStateHandle?.sendMessage(output)
     })
@@ -138,6 +159,10 @@ export const orchestrateRenderRequest = async (
         return
     }
 
+    const publishOrchestration = async (content: RenderOrchestrationPublishedPayload) => {
+        await publishRenderOrchestrationStreamEvent(streamEvent, streamKey, content)
+    }
+
     await findRender(intake, {
         getExactMatch: orchDeps.getExactMatch,
         getCacheRecordById: orchDeps.getCacheRecordById,
@@ -145,6 +170,7 @@ export const orchestrateRenderRequest = async (
         computePerspectiveKey: orchDeps.computePerspectiveKey,
         markStatesEqual: orchDeps.markStatesEqual,
         perspectiveMatches,
+        publishOrchestration,
         sendMessage: async (arg) => {
             const roomStateHandle = getRoomStateRenderHandle(conversationId, messageBus)
             await roomStateHandle?.sendMessage(arg)
