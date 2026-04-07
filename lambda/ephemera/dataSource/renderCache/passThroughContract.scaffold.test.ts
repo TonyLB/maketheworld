@@ -3,9 +3,15 @@
  * refetch + emit Render Pertains; Render Generated should persist + emit per pass-through contract.
  * Importing ./index registers the DataSource once (ESM module cache; safe with index.test.ts).
  * Hit-path tests spy internalCache.RenderCache.get to supply a refetched row (avoids Dynamo).
- * Skipped its: Generate path until that milestone (see AGENT.passThrough.planning.md).
+ * Generate path mocks putCacheRecord to avoid Dynamo.
  */
+jest.mock('./putCacheRecord', () => ({
+    __esModule: true,
+    putCacheRecord: jest.fn(),
+}))
+
 import './index'
+import { putCacheRecord } from './putCacheRecord'
 import internalCache from '../../internalCache'
 import messageBus from '../../messageBus'
 import { sendRenderOrchestrationPublish } from '../renderOrchestration/publishedEvents'
@@ -23,11 +29,15 @@ import {
     passThroughFixturePerspectiveKey,
 } from '../passThroughContractFixtures'
 
+const mockedPutCacheRecord = putCacheRecord as jest.MockedFunction<typeof putCacheRecord>
+
 describe('renderCache receives renderOrchestration stream', () => {
     beforeEach(() => {
         messageBus.clear()
         internalCache.RenderCache.clear()
         jest.spyOn(internalCache.RenderCache, 'get').mockResolvedValue([passThroughFixtureMinimalDynamoItem])
+        mockedPutCacheRecord.mockReset()
+        mockedPutCacheRecord.mockResolvedValue(passThroughFixtureMinimalCacheId)
     })
 
     afterEach(() => {
@@ -95,11 +105,12 @@ describe('renderCache receives renderOrchestration stream', () => {
         }
     )
 
-    it.skip(
-        'Render Generated leads to durable write then Render Pertains and/or Cache Updated (Cache-OI-1) [until Generate path]',
+    it(
+        'Render Generated leads to durable write then Render Pertains then Cache Updated (Cache-OI-1)',
         async () => {
             const pertains: unknown[] = []
             const cacheUpdated: unknown[] = []
+            const streamOrder: string[] = []
             messageBus.subscribe({
                 tag: 'scaffold-render-pertains-gen',
                 priority: 20,
@@ -109,6 +120,7 @@ describe('renderCache receives renderOrchestration stream', () => {
                     && m.header?.type === 'Render Pertains',
                 callback: async ({ payloads }) => {
                     for (const p of payloads) {
+                        streamOrder.push('Render Pertains')
                         pertains.push(await p.getContent())
                     }
                 },
@@ -122,22 +134,42 @@ describe('renderCache receives renderOrchestration stream', () => {
                     && m.header?.type === 'Cache Updated',
                 callback: async ({ payloads }) => {
                     for (const p of payloads) {
+                        streamOrder.push('Cache Updated')
                         cacheUpdated.push(await p.getContent())
                     }
                 },
             })
 
-            sendRenderOrchestrationPublish(messageBus, passThroughFixtureRoomId, makePassThroughRenderGeneratedPayload())
+            const payload = makePassThroughRenderGeneratedPayload()
+            sendRenderOrchestrationPublish(messageBus, passThroughFixtureRoomId, payload)
             await messageBus.flush()
 
-            expect(pertains.length + cacheUpdated.length).toBeGreaterThan(0)
-            if (pertains.length > 0) {
-                expect(pertains[0]).toMatchObject({
-                    componentId: passThroughFixtureRoomId,
-                    perspectiveKey: passThroughFixturePerspectiveKey,
-                    cacheId: passThroughFixtureMinimalCacheId,
-                })
-            }
+            expect(mockedPutCacheRecord).toHaveBeenCalledTimes(1)
+            expect(mockedPutCacheRecord).toHaveBeenCalledWith(
+                passThroughFixtureRoomId,
+                expect.objectContaining({
+                    markState: passThroughFixtureMinimalDynamoItem.markState,
+                    renderedContent: passThroughFixtureMinimalDynamoItem.renderedContent,
+                    provenance: passThroughFixtureMinimalDynamoItem.provenance,
+                    perspectiveId: passThroughFixtureMinimalDynamoItem.perspectiveId,
+                    perspectiveMatcher: passThroughFixtureMinimalDynamoItem.perspectiveMatcher,
+                }),
+                passThroughFixtureMinimalCacheId
+            )
+            expect(pertains).toHaveLength(1)
+            expect(cacheUpdated).toHaveLength(1)
+            expect(streamOrder).toEqual(['Render Pertains', 'Cache Updated'])
+            expect(pertains[0]).toMatchObject({
+                componentId: passThroughFixtureRoomId,
+                perspectiveKey: passThroughFixturePerspectiveKey,
+                cacheId: passThroughFixtureMinimalCacheId,
+            })
+            expect(cacheUpdated[0]).toMatchObject({
+                type: 'Cache Updated',
+                componentId: passThroughFixtureRoomId,
+                dataCategory: passThroughFixtureMinimalCacheId,
+                perspectiveId: passThroughFixtureMinimalDynamoItem.perspectiveId,
+            })
         }
     )
 

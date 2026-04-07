@@ -7,18 +7,13 @@ import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import {
     EPHEMERA_CACHE_DATA_CATEGORY_PREFIX,
     EPHEMERA_CACHE_PROVENANCE_GENERATED,
-    type EphemeraCacheComponentId,
     type EphemeraCacheDynamoItem,
     type EphemeraCacheMarkState,
 } from '../../renderCache/baseClasses'
-import type { ConversationId } from '../../conversations'
 import type { RenderProgress, RenderResolveOutput } from './baseClasses'
-import type { PutCacheRecordInput } from '../renderCache/putCacheRecord'
 import type { QueryCacheRecordsForComponentFn } from '../renderCache/queryCacheRecordsForComponent'
 import internalCache from '../../internalCache'
 import { generateRoomDescription } from '../../generateExample'
-import { sendPutCacheRecord } from '../apiEphemera'
-import messageBus from '../../messageBus'
 import { buildOrchestrationRouting } from './orchestrationRouting'
 import type { RenderOrchestrationPublishedPayload } from './publishedEvents'
 
@@ -31,39 +26,9 @@ export type GenerateRoomPreviewInput = {
 
 type GenerateRoomDescription = typeof generateRoomDescription
 
-export type PublishPutCacheRecord = (
-    componentId: EphemeraCacheComponentId,
-    record: PutCacheRecordInput,
-    existingDataCategory?: string,
-    conversationId?: ConversationId
-) => Promise<void>
-
-/**
- * Default write path: enqueue `Put Cache Record` on `api.ephemera`.
- * Do not flush here: production callers (e.g. `app.ts`) already `await messageBus.flush()` after
- * queueing `ReturnValue`, and nested `send()` during an active flush is drained recursively.
- */
-export const defaultPublishPutCacheRecord: PublishPutCacheRecord = async (
-    componentId,
-    record,
-    existingDataCategory,
-    conversationId
-) => {
-    sendPutCacheRecord(messageBus, componentId, {
-        componentId,
-        record,
-        ...(existingDataCategory !== undefined ? { existingDataCategory } : {}),
-        ...(conversationId !== undefined ? { conversationId } : {}),
-    })
-}
-
 export type GenerateRoomPreviewOptions = {
-    /** Override for tests; default is `defaultPublishPutCacheRecord` (`sendPutCacheRecord` on process `messageBus`). */
-    publishPutCacheRecord?: PublishPutCacheRecord;
     generateRoomDescriptionImpl?: GenerateRoomDescription;
     queryCacheRecordsForComponentImpl?: QueryCacheRecordsForComponentFn;
-    /** When set, forwarded on Put Cache Record / Cache Updated for prototype correlation (see conversations/AGENT.md). */
-    conversationId?: ConversationId;
     /**
      * Optional progressive + terminal delivery: `RenderProgress` (e.g. `generating`) and `RenderResolveOutput` terminals.
      * When set, invoked with `generating` after valid parseable context and before room description generation (slow path only).
@@ -81,6 +46,7 @@ export type GenerateRoomPreviewGenerationReturn = 'success' | 'fail'
  * Callers must not invoke this when a cache row already satisfies the request.
  *
  * Emits terminal `RenderResolveOutput` through `sendMessage` (and `generating` progress on the slow path).
+ * Durable cache write is owned by `mtw.ephemera.renderCache` on `Render Generated` (pass-through); do not enqueue `Put Cache Record` here.
  */
 export const generateRoomPreview = async (
     {
@@ -90,10 +56,8 @@ export const generateRoomPreview = async (
         generationContextWml
     }: GenerateRoomPreviewInput,
     {
-        publishPutCacheRecord = defaultPublishPutCacheRecord,
         generateRoomDescriptionImpl = generateRoomDescription,
         queryCacheRecordsForComponentImpl = (componentId) => internalCache.RenderCache.get(componentId),
-        conversationId,
         sendMessage,
         publishOrchestration,
     }: GenerateRoomPreviewOptions
@@ -173,14 +137,13 @@ export const generateRoomPreview = async (
         perspectiveId,
         perspectiveMatcher,
     }
-    // Pre-mint `DataCategory` and pass as `existingDataCategory` so `putCacheRecord` uses this key (same as a new row) and callers get the id without waiting on the bus.
+    // Pre-mint `DataCategory` so `Render Generated` carries the id `renderCache` uses in `putCacheRecord(..., existingDataCategory)`.
     const cacheId = `${EPHEMERA_CACHE_DATA_CATEGORY_PREFIX}${uuidv4()}` as EphemeraCacheId
     const cacheRecord: EphemeraCacheDynamoItem = {
         EphemeraId: roomId,
         DataCategory: cacheId,
         ...record,
     }
-    await publishPutCacheRecord(roomId, record, cacheId, conversationId)
 
     await publishOrchestration({
         type: 'Render Generated',

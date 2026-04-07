@@ -38,7 +38,6 @@ describe('dataSource/renderOrchestration/findRender', () => {
         perspectiveMatches,
         sendMessage: jest.fn().mockResolvedValue(undefined),
         generateRoomPreview: jest.fn().mockResolvedValue('fail'),
-        conversationId: undefined,
         publishOrchestration: jest.fn().mockResolvedValue(undefined),
     })
 

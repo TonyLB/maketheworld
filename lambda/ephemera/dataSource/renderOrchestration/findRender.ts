@@ -2,7 +2,6 @@ import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { perspectiveMatches, computePerspectiveKey, type Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
 import type { EphemeraCacheId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraCacheDynamoItem, EphemeraCacheMarkState } from '../../renderCache/baseClasses'
-import type { ConversationId } from '../../conversations'
 import type { generateRoomPreview } from './generateRoomPreview'
 import { buildOrchestrationRouting } from './orchestrationRouting'
 import type { RenderOrchestrationPublishedPayload } from './publishedEvents'
@@ -30,8 +29,6 @@ export type FindRenderDependencies = {
     /** Terminals from pointer/exact/invalidate paths, and progress + terminals from generation (same handle as orchestration). */
     sendMessage: (arg: RenderProgress | RenderResolveOutput) => Promise<void>;
     generateRoomPreview: typeof generateRoomPreview;
-    /** Correlation for `generateRoomPreview` / cache writes (passive orchestration mints per request). */
-    conversationId?: ConversationId;
     /** mtw.ephemera.renderOrchestration stream outbounds (six-type pass-through contract). */
     publishOrchestration: (content: RenderOrchestrationPublishedPayload) => void | Promise<void>;
 }
@@ -126,7 +123,6 @@ export const findRender = async (
             generationContextWml: resolve.generationContextWml,
         },
         {
-            conversationId: deps.conversationId,
             sendMessage: deps.sendMessage,
             publishOrchestration: deps.publishOrchestration,
         },
