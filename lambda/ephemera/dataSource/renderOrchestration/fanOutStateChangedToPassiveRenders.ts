@@ -1,20 +1,24 @@
 /**
- * Fan-out `mtw.ephemera.state` `State Changed` to passive {@link orchestrateRenderRequest} runs
- * (one per deduplicated perspective, `targets` = active characters sharing that view).
+ * Fan-out `mtw.ephemera.state` `State Changed` to passive {@link orchestrateRenderRequest} runs.
+ *
+ * Resolve set **S = A ∪ P** (contract): **A** = deduplicated audience perspectives (`targets` = characters
+ * sharing that view); **P** = keys in `Meta::Room.currentCacheByPerspective` not covered by **A** (pointer-only:
+ * `allowGeneration: false`, empty `targets`). **A** wins when a perspective key appears in both.
  */
 import type { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { computePerspectiveKey } from '@tonylb/mtw-interfaces/ts/perspective'
-import type { EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraCacheId, EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import type { MessageBus, PublishTarget } from '../../messageBus/baseClasses'
+import type { EphemeraCacheDynamoItem } from '../../renderCache/baseClasses'
 import type { RenderOrchestrationPublishedPayload } from './publishedEvents'
 import type { StateChangedPayload } from '../state/events'
 import { resolveCanonAssetStackForRoom, type CanonAssetStackCache } from '../state/resolveAssetStackForRoom'
 import type { CharacterMetaItem } from '../../internalCache/characterMeta'
 import type { RoomCharacterListItem } from '../../internalCache/baseClasses'
 import internalCache from '../../internalCache'
-import { orchestrateRenderRequest } from './orchestrationHandler'
+import { defaultGetCacheRecordById, orchestrateRenderRequest } from './orchestrationHandler'
 
 /** Room canon stack order preserved; only assets also present on the character are kept. */
 export const filterRoomCanonStackByCharacterAssets = (
@@ -23,6 +27,46 @@ export const filterRoomCanonStackByCharacterAssets = (
 ): AssetUUID[] => {
     const set = new Set(characterAssets)
     return roomCanonStack.filter((id) => set.has(id))
+}
+
+/** Room canon order preserved; only assets in `requiredAssetIds` are kept (for pointer-only fan-out). */
+export const filterRoomCanonStackByRequiredAssetIds = (
+    roomCanonStack: AssetUUID[],
+    requiredAssetIds: readonly AssetUUID[]
+): AssetUUID[] => {
+    const set = new Set<string>(requiredAssetIds)
+    return roomCanonStack.filter((id) => set.has(id))
+}
+
+type ComputePk = typeof computePerspectiveKey
+
+/**
+ * Reconstruct `perspective.assetStack` for a meta pointer entry: canon filtered by cache row matcher,
+ * then verify {@link computePerspectiveKey} matches the map key (hash is not reversible).
+ */
+export const assetStackForPointerOnlyPerspective = async (
+    roomId: EphemeraRoomId,
+    perspectiveKey: string,
+    cacheId: EphemeraCacheId,
+    roomCanonStack: AssetUUID[],
+    getCacheRecordById: (roomId: EphemeraRoomId, cacheId: EphemeraCacheId) => Promise<EphemeraCacheDynamoItem | undefined>,
+    computePk: ComputePk
+): Promise<AssetUUID[] | undefined> => {
+    const cacheRecord = await getCacheRecordById(roomId, cacheId)
+    if (!cacheRecord) {
+        return undefined
+    }
+    const candidate = filterRoomCanonStackByRequiredAssetIds(
+        roomCanonStack,
+        cacheRecord.perspectiveMatcher.requiredAssetIds
+    )
+    if (candidate.length === 0) {
+        return undefined
+    }
+    if (computePk(candidate) !== perspectiveKey) {
+        return undefined
+    }
+    return candidate
 }
 
 export type CharacterPerspectiveRow = {
@@ -55,8 +99,16 @@ export type FanOutStateChangedDependencies = {
     roomCharacterListGet?: (roomId: EphemeraRoomId) => Promise<RoomCharacterListItem[]>;
     characterMetaGet?: (characterId: EphemeraCharacterId) => Promise<CharacterMetaItem>;
     getMetaRoomBase?: (roomId: EphemeraRoomId) => Promise<EphemeraMetaRoom | undefined>;
+    getCacheRecordById?: (roomId: EphemeraRoomId, cacheId: EphemeraCacheId) => Promise<EphemeraCacheDynamoItem | undefined>;
+    computePerspectiveKey?: ComputePk;
     orchestrateRenderRequestFn?: typeof orchestrateRenderRequest;
 };
+
+type PassiveFanOutWorkItem = {
+    assetStack: AssetUUID[];
+    targets: PublishTarget[];
+    allowGenerationFalse: boolean;
+}
 
 export const fanOutStateChangedToPassiveRenders = async (
     {
@@ -75,6 +127,8 @@ export const fanOutStateChangedToPassiveRenders = async (
         RoomAssets: internalCache.RoomAssets,
         AssetMetaData: internalCache.AssetMetaData,
     }
+    const computePk = deps?.computePerspectiveKey ?? computePerspectiveKey
+    const getCacheRecordById = deps?.getCacheRecordById ?? defaultGetCacheRecordById
     const roomId = stateChanged.componentId
 
     const roomCanonStack = await resolveCanon(roomId, cache)
@@ -95,10 +149,6 @@ export const fanOutStateChangedToPassiveRenders = async (
         return [...previous, { characterId, filteredAssetStack }]
     }, [])
 
-    if (rows.length === 0) {
-        return
-    }
-
     const groups = groupCharacterRowsByPerspective(rows)
     const getMetaRoomBase = deps?.getMetaRoomBase ?? ((id: EphemeraRoomId) => internalCache.ComponentEphemeraMeta.get(id))
     const getMetaRoomMerged = async (rid: EphemeraRoomId): Promise<EphemeraMetaRoom | undefined> => {
@@ -109,25 +159,69 @@ export const fanOutStateChangedToPassiveRenders = async (
         return { ...base, state: stateChanged.newState }
     }
 
+    const mergedMeta = await getMetaRoomMerged(roomId)
+    const pointerMap = mergedMeta?.currentCacheByPerspective ?? {}
+
+    const workByKey = new Map<string, PassiveFanOutWorkItem>()
+
+    for (const { assetStack, characterIds } of Object.values(groups)) {
+        const perspectiveKey = computePk(assetStack)
+        workByKey.set(perspectiveKey, {
+            assetStack,
+            targets: characterIds as PublishTarget[],
+            allowGenerationFalse: false,
+        })
+    }
+
+    const audienceKeys = new Set(workByKey.keys())
+    for (const perspectiveKey of Object.keys(pointerMap)) {
+        if (audienceKeys.has(perspectiveKey)) {
+            continue
+        }
+        const cacheId = pointerMap[perspectiveKey] as EphemeraCacheId | undefined
+        if (cacheId === undefined) {
+            continue
+        }
+        const assetStack = await assetStackForPointerOnlyPerspective(
+            roomId,
+            perspectiveKey,
+            cacheId,
+            roomCanonStack,
+            getCacheRecordById,
+            computePk
+        )
+        if (assetStack === undefined) {
+            continue
+        }
+        workByKey.set(perspectiveKey, {
+            assetStack,
+            targets: [],
+            allowGenerationFalse: true,
+        })
+    }
+
+    if (workByKey.size === 0) {
+        return
+    }
+
     const orchestrate = deps?.orchestrateRenderRequestFn ?? orchestrateRenderRequest
 
     await Promise.all(
-        Object.values(groups)
-            .map(async ({ assetStack, characterIds }) => {
-                const targets = characterIds as PublishTarget[]
-                await orchestrate(
-                    {
-                        payload: {
-                            type: 'RenderRequested',
-                            componentId: roomId,
-                            perspective: { assetStack },
-                            targets,
-                        },
-                        messageBus,
-                        streamEvent,
+        [...workByKey.values()].map(async ({ assetStack, targets, allowGenerationFalse }) => {
+            await orchestrate(
+                {
+                    payload: {
+                        type: 'RenderRequested',
+                        componentId: roomId,
+                        perspective: { assetStack },
+                        targets,
+                        ...(allowGenerationFalse ? { allowGeneration: false as const } : {}),
                     },
-                    { getMetaRoom: getMetaRoomMerged }
-                )
-            })
+                    messageBus,
+                    streamEvent,
+                },
+                { getMetaRoom: getMetaRoomMerged }
+            )
+        })
     )
 }
