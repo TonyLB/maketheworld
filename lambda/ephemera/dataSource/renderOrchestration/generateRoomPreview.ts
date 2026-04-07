@@ -20,7 +20,7 @@ import { generateRoomDescription } from '../../generateExample'
 import { sendPutCacheRecord } from '../apiEphemera'
 import messageBus from '../../messageBus'
 import { buildOrchestrationRouting } from './orchestrationRouting'
-import { sendRenderOrchestrationPublish, type RenderOrchestrationPublishedPayload } from './publishedEvents'
+import type { RenderOrchestrationPublishedPayload } from './publishedEvents'
 
 export type GenerateRoomPreviewInput = {
     roomId: EphemeraRoomId;
@@ -69,8 +69,8 @@ export type GenerateRoomPreviewOptions = {
      * When set, invoked with `generating` after valid parseable context and before room description generation (slow path only).
      */
     sendMessage?: (arg: RenderProgress | RenderResolveOutput) => Promise<void>;
-    /** mtw.ephemera.renderOrchestration stream outbounds; defaults to `sendRenderOrchestrationPublish` on the process bus. */
-    publishOrchestration?: (content: RenderOrchestrationPublishedPayload) => void;
+    /** mtw.ephemera.renderOrchestration stream outbounds (from `streamEvent` via orchestration; required for this entry point). */
+    publishOrchestration: (content: RenderOrchestrationPublishedPayload) => void | Promise<void>;
 }
 
 /** Control return from `generateRoomPreview`; terminals are delivered only via `sendMessage`. */
@@ -95,15 +95,11 @@ export const generateRoomPreview = async (
         queryCacheRecordsForComponentImpl = (componentId) => internalCache.RenderCache.get(componentId),
         conversationId,
         sendMessage,
-        publishOrchestration: publishOrchestrationOption,
-    }: GenerateRoomPreviewOptions = {}
+        publishOrchestration,
+    }: GenerateRoomPreviewOptions
 ): Promise<GenerateRoomPreviewGenerationReturn> => {
     const perspective = { assetStack: assetStack as AssetUUID[] }
     const routing = buildOrchestrationRouting(roomId, perspective, computePerspectiveKey)
-    const publishOrchestration = publishOrchestrationOption
-        ?? ((content: RenderOrchestrationPublishedPayload) => {
-            sendRenderOrchestrationPublish(messageBus, roomId, content)
-        })
 
     let parsedContext: StandardForm | null = null
     if (generationContextWml) {
@@ -115,7 +111,7 @@ export const generateRoomPreview = async (
     }
 
     if (!parsedContext) {
-        publishOrchestration({
+        await publishOrchestration({
             type: 'Orchestration Error',
             ...routing,
             errorCode: 'CONTEXT_REQUIRED',
@@ -130,7 +126,7 @@ export const generateRoomPreview = async (
     }
 
     // slow path only: we have no exact cache match and we have valid generation context
-    publishOrchestration({
+    await publishOrchestration({
         type: 'Generation Started',
         ...routing,
         phase: 'generating',
@@ -151,7 +147,7 @@ export const generateRoomPreview = async (
     })
 
     if (!descriptionResult.success) {
-        publishOrchestration({
+        await publishOrchestration({
             type: 'Orchestration Error',
             ...routing,
             errorCode: descriptionResult.errorCode,
@@ -186,7 +182,7 @@ export const generateRoomPreview = async (
     }
     await publishPutCacheRecord(roomId, record, cacheId, conversationId)
 
-    publishOrchestration({
+    await publishOrchestration({
         type: 'Render Generated',
         ...routing,
         cacheId,

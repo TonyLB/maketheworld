@@ -33,7 +33,7 @@ export type FindRenderDependencies = {
     /** Correlation for `generateRoomPreview` / cache writes (passive orchestration mints per request). */
     conversationId?: ConversationId;
     /** mtw.ephemera.renderOrchestration stream outbounds (six-type pass-through contract). */
-    publishOrchestration?: (content: RenderOrchestrationPublishedPayload) => void;
+    publishOrchestration: (content: RenderOrchestrationPublishedPayload) => void | Promise<void>;
 }
 
 /**
@@ -48,7 +48,6 @@ export const findRender = async (
 ): Promise<void> => {
     const perspectiveKey = deps.computePerspectiveKey(resolve.perspective.assetStack)
     const routing = buildOrchestrationRouting(resolve.roomId, resolve.perspective, deps.computePerspectiveKey)
-    const publish = deps.publishOrchestration
     const pointerId = resolve.pointerHint
 
     if (pointerId !== undefined) {
@@ -61,7 +60,7 @@ export const findRender = async (
         )
 
         if (isValid && cacheRecord) {
-            publish?.({
+            await deps.publishOrchestration({
                 type: 'Current Cache Valid',
                 ...routing,
                 cacheId: pointerId,
@@ -91,7 +90,7 @@ export const findRender = async (
     })
     if (exactMatch) {
         const cacheId = exactMatch.DataCategory as EphemeraCacheId
-        publish?.({
+        await deps.publishOrchestration({
             type: 'Exact Match Found',
             ...routing,
             cacheId,
@@ -107,7 +106,7 @@ export const findRender = async (
     }
 
     if (resolve.allowGeneration === false) {
-        publish?.({
+        await deps.publishOrchestration({
             type: 'Generation Deferred',
             ...routing,
             reason: RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION,

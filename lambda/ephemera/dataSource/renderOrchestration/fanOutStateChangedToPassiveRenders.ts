@@ -6,7 +6,9 @@ import type { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { computePerspectiveKey } from '@tonylb/mtw-interfaces/ts/perspective'
 import type { EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import type { MessageBus, PublishTarget } from '../../messageBus/baseClasses'
+import type { RenderOrchestrationPublishedPayload } from './publishedEvents'
 import type { StateChangedPayload } from '../state/events'
 import { resolveCanonAssetStackForRoom, type CanonAssetStackCache } from '../state/resolveAssetStackForRoom'
 import type { CharacterMetaItem } from '../../internalCache/characterMeta'
@@ -57,7 +59,15 @@ export type FanOutStateChangedDependencies = {
 };
 
 export const fanOutStateChangedToPassiveRenders = async (
-    { stateChanged, messageBus }: { stateChanged: StateChangedPayload; messageBus: MessageBus },
+    {
+        stateChanged,
+        messageBus,
+        streamEvent,
+    }: {
+        stateChanged: StateChangedPayload;
+        messageBus: MessageBus;
+        streamEvent: StreamEventFunction<RenderOrchestrationPublishedPayload>;
+    },
     deps?: FanOutStateChangedDependencies
 ): Promise<void> => {
     const resolveCanon = deps?.resolveCanonAssetStackForRoom ?? resolveCanonAssetStackForRoom
@@ -114,6 +124,7 @@ export const fanOutStateChangedToPassiveRenders = async (
                             targets,
                         },
                         messageBus,
+                        streamEvent,
                     },
                     { getMetaRoom: getMetaRoomMerged }
                 )

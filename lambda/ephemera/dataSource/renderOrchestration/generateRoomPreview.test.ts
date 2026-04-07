@@ -16,10 +16,12 @@ const makeMarkState = (entries: Array<{ mark: string; value: string }>): Ephemer
 describe('dataSource/renderOrchestration/generateRoomPreview', () => {
     const roomId = 'ROOM#test-room' as const
     const noopPublishPutCacheRecord = jest.fn().mockResolvedValue(undefined)
+    const noopPublishOrchestration = jest.fn().mockResolvedValue(undefined)
 
     beforeEach(() => {
         jest.clearAllMocks()
         noopPublishPutCacheRecord.mockResolvedValue(undefined)
+        noopPublishOrchestration.mockResolvedValue(undefined)
     })
 
     it('emits CONTEXT_REQUIRED failure and returns fail when no generationContextWml', async () => {
@@ -29,7 +31,7 @@ describe('dataSource/renderOrchestration/generateRoomPreview', () => {
             roomId,
             markState: makeMarkState([{ mark: 'MARK#a', value: 'one' }]),
             assetStack: ['ASSET#one']
-        }, { publishPutCacheRecord: noopPublishPutCacheRecord, sendMessage })
+        }, { publishPutCacheRecord: noopPublishPutCacheRecord, sendMessage, publishOrchestration: noopPublishOrchestration })
 
         expect(result).toBe('fail')
         expect(sendMessage).toHaveBeenCalledTimes(1)
@@ -48,7 +50,7 @@ describe('dataSource/renderOrchestration/generateRoomPreview', () => {
             markState: makeMarkState([{ mark: 'MARK#a', value: 'one' }]),
             assetStack: ['ASSET#one'],
             generationContextWml: '<not valid wml<<'
-        }, { publishPutCacheRecord: noopPublishPutCacheRecord, sendMessage })
+        }, { publishPutCacheRecord: noopPublishPutCacheRecord, sendMessage, publishOrchestration: noopPublishOrchestration })
 
         expect(result).toBe('fail')
         expect(sendMessage).toHaveBeenCalledTimes(1)
@@ -81,7 +83,8 @@ describe('dataSource/renderOrchestration/generateRoomPreview', () => {
                 generateRoomDescriptionImpl,
                 queryCacheRecordsForComponentImpl,
                 publishPutCacheRecord: noopPublishPutCacheRecord,
-                sendMessage
+                sendMessage,
+                publishOrchestration: noopPublishOrchestration,
             }
         )
 
@@ -134,6 +137,7 @@ describe('dataSource/renderOrchestration/generateRoomPreview', () => {
                 queryCacheRecordsForComponentImpl,
                 publishPutCacheRecord,
                 sendMessage,
+                publishOrchestration: noopPublishOrchestration,
             }
         )
 
@@ -196,6 +200,7 @@ describe('dataSource/renderOrchestration/generateRoomPreview', () => {
                 publishPutCacheRecord,
                 conversationId: 'conv-thread-1',
                 sendMessage,
+                publishOrchestration: noopPublishOrchestration,
             }
         )
 

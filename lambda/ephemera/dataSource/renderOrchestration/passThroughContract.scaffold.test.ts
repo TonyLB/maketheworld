@@ -16,6 +16,7 @@ import {
     isRenderOrchestrationOrchestrationErrorPayload,
     isRenderOrchestrationRenderGeneratedPayload,
     RENDER_ORCHESTRATION_DATA_SOURCE_KEY,
+    streamEventFromMessageBus,
 } from './publishedEvents'
 
 const makeBus = (): MessageBusType & { send: jest.Mock } => ({ send: jest.fn() } as unknown as MessageBusType & { send: jest.Mock })
@@ -66,7 +67,7 @@ describe('renderOrchestration stream outcomes (pass-through six outbounds)', () 
         const getCacheRecordById = jest.fn().mockResolvedValue(baseCacheRecord)
         const getExactMatch = jest.fn()
         await orchestrateRenderRequest(
-            { payload: basePayload, messageBus },
+            { payload: basePayload, messageBus, streamEvent: streamEventFromMessageBus(messageBus) },
             {
                 getMetaRoom: jest.fn().mockResolvedValue(baseMetaRoom),
                 computePerspectiveKey: jest.fn().mockReturnValue('PERSPECTIVE#v1#abc'),
@@ -87,7 +88,7 @@ describe('renderOrchestration stream outcomes (pass-through six outbounds)', () 
         const messageBus = makeBus()
         const getExactMatch = jest.fn().mockResolvedValue(baseCacheRecord)
         await orchestrateRenderRequest(
-            { payload: basePayload, messageBus },
+            { payload: basePayload, messageBus, streamEvent: streamEventFromMessageBus(messageBus) },
             {
                 getMetaRoom: jest.fn().mockResolvedValue({ ...baseMetaRoom, currentCacheByPerspective: {} }),
                 computePerspectiveKey: jest.fn().mockReturnValue('PERSPECTIVE#v1#abc'),
@@ -131,7 +132,7 @@ describe('renderOrchestration stream outcomes (pass-through six outbounds)', () 
             generationContextWml: '<Asset key=(Test) />',
         }
         await orchestrateRenderRequest(
-            { payload, messageBus },
+            { payload, messageBus, streamEvent: streamEventFromMessageBus(messageBus) },
             {
                 getMetaRoom: jest.fn().mockResolvedValue({ ...baseMetaRoom, currentCacheByPerspective: {} }),
                 computePerspectiveKey: jest.fn().mockReturnValue('PERSPECTIVE#v1#abc'),
@@ -190,7 +191,7 @@ describe('renderOrchestration stream outcomes (pass-through six outbounds)', () 
             generationContextWml: '<Asset key=(Test) />',
         }
         await orchestrateRenderRequest(
-            { payload, messageBus },
+            { payload, messageBus, streamEvent: streamEventFromMessageBus(messageBus) },
             {
                 getMetaRoom: jest.fn().mockResolvedValue({ ...baseMetaRoom, currentCacheByPerspective: {} }),
                 computePerspectiveKey: jest.fn().mockReturnValue('PERSPECTIVE#v1#abc'),
@@ -211,7 +212,7 @@ describe('renderOrchestration stream outcomes (pass-through six outbounds)', () 
         const messageBus = makeBus()
         const payload: RenderRequested = { ...basePayload, componentId: 'FEATURE#one' }
         await orchestrateRenderRequest(
-            { payload, messageBus },
+            { payload, messageBus, streamEvent: streamEventFromMessageBus(messageBus) },
             {
                 getMetaRoom: jest.fn(),
                 computePerspectiveKey: jest.fn().mockReturnValue('PERSPECTIVE#v1#abc'),
@@ -232,7 +233,7 @@ describe('renderOrchestration stream outcomes (pass-through six outbounds)', () 
         const messageBus = makeBus()
         const getExactMatch = jest.fn().mockResolvedValue(null)
         await orchestrateRenderRequest(
-            { payload: basePayload, messageBus },
+            { payload: basePayload, messageBus, streamEvent: streamEventFromMessageBus(messageBus) },
             {
                 getMetaRoom: jest.fn().mockResolvedValue({ ...baseMetaRoom, currentCacheByPerspective: {} }),
                 computePerspectiveKey: jest.fn().mockReturnValue('PERSPECTIVE#v1#abc'),

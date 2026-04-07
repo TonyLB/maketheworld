@@ -6,7 +6,9 @@ import {
     isRenderOrchestrationOrchestrationErrorPayload,
     isRenderOrchestrationPublishedPayload,
     isRenderOrchestrationRenderGeneratedPayload,
+    publishRenderOrchestrationStreamEvent,
     sendRenderOrchestrationPublish,
+    streamEventFromMessageBus,
     type RenderOrchestrationPublishedPayload,
 } from './publishedEvents'
 import {
@@ -133,5 +135,43 @@ describe('sendRenderOrchestrationPublish', () => {
         expect(arg.dataSourceKey).toBe('mtw.ephemera.renderOrchestration')
         expect(arg.header.type).toBe('Current Cache Valid')
         expect(arg.header.streamKey).toBe(passThroughFixtureRoomId)
+    })
+})
+
+describe('publishRenderOrchestrationStreamEvent', () => {
+    it('invokes streamEvent with update, streamKey, and header.type', async () => {
+        const streamEvent = jest.fn().mockResolvedValue(undefined)
+        const content: RenderOrchestrationPublishedPayload = {
+            type: 'Exact Match Found',
+            ...routing,
+            cacheId: minimalCacheId,
+        }
+        await publishRenderOrchestrationStreamEvent(streamEvent, passThroughFixtureRoomId, content)
+        expect(streamEvent).toHaveBeenCalledWith({
+            update: content,
+            streamKey: passThroughFixtureRoomId,
+            header: { type: 'Exact Match Found' },
+        })
+    })
+})
+
+describe('streamEventFromMessageBus', () => {
+    it('delegates to sendRenderOrchestrationPublish', async () => {
+        const bus = { send: jest.fn() }
+        const streamEvent = streamEventFromMessageBus(bus)
+        const content: RenderOrchestrationPublishedPayload = {
+            type: 'Current Cache Valid',
+            ...routing,
+            cacheId: minimalCacheId,
+        }
+        await streamEvent({
+            update: content,
+            streamKey: passThroughFixtureRoomId,
+            header: { type: content.type },
+        })
+        expect(bus.send).toHaveBeenCalledTimes(1)
+        const arg = bus.send.mock.calls[0][0]
+        expect(arg.type).toBe('StreamingEvent')
+        expect(arg.dataSourceKey).toBe('mtw.ephemera.renderOrchestration')
     })
 })
