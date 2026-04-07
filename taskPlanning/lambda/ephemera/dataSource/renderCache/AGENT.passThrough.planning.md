@@ -37,7 +37,7 @@ Resolved product items are recorded in the [contract doc](../AGENT.passThrough.c
 - **Own outbounds:** **`Render Pertains`** (provisional name) and **`Cache Updated`** --- correlated vs abstract per contract. Orchestration does **not** emit these.
 - **Handoff:** Subscribe to **`mtw.ephemera.renderOrchestration`** **DataSource stream** only for this path. **No** orchestration **invoke** into **`renderCache`**, **no** **`api.ephemera`** handoff for this handoff (contract uncertainty 2).
 - **Hit paths:** On **`Current Cache Valid`** / **`Exact Match Found`**, orchestration sends **IDs only** + routing; this package **refetches** (e.g. **`internalCache`** **`RenderCache.get`**) then emits **`Render Pertains`** only (no new write) (contract uncertainty 3).
-- **Generate path:** On **`Render Generated`**, orchestration signals generation-complete with **full** content and **no** durability promise; this package performs the **single** durable write, then emits **`Render Pertains`** / **`Cache Updated`** per contract. Orchestration does **not** enqueue **`Put Cache Record`** for that completion (contract uncertainty 1); avoid double **`Cache Updated`** once orchestration stops **`publishPutCacheRecord`** on that path.
+- **Generate path:** On **`Render Generated`**, orchestration signals generation-complete with **full** content and **no** durability promise; this package performs the **single** durable write, then emits **`Render Pertains`** / **`Cache Updated`** per contract. Orchestration does **not** enqueue **`Put Cache Record`** for that completion (contract uncertainty 1); **cutover done** --- no duplicate **`Cache Updated`** from orchestration **`publishPutCacheRecord`** on passive generation.
 - **Durability:** **`Render Pertains`** / **`Cache Updated`** assert **durable** **`CACHE#...`** persistence; orchestration **`Render Generated`** does not (contract uncertainty 5).
 - **Routing:** **`Render Pertains`** carries **`componentId`**, perspective / **`perspectiveKey`**, **`cacheId`** / cache facts --- **no** synthetic id (contract uncertainty 9). See [routing identity](../AGENT.passThrough.contract.planning.md#routing-identity-on-producer-streams-perception-delivery-model).
 
@@ -67,11 +67,11 @@ These are **how** we implement agreed rules, not whether the product rules apply
 | Id | Question |
 | --- | --- |
 | **Cache-OI-1** | **Resolved:** After a successful durable write on **`Render Generated`**, emit **`Render Pertains`** first, then **`Cache Updated`** (same shapes as [`index.ts`](../../../../../lambda/ephemera/dataSource/renderCache/index.ts) **`Put Cache Record`** path for **`Cache Updated`**). Hit path remains **`Render Pertains`** only. |
-| **Cache-OI-2** | **Subscription wiring:** where and how the DataSource subscribes to **`mtw.ephemera.renderOrchestration`**; interaction with existing [`index.ts`](../../../../../lambda/ephemera/dataSource/renderCache/index.ts) initialization and other subscriptions. |
-| **Cache-OI-3** | **Envelope / typing (consumer):** Shared orchestration **outbound** types live in [`renderOrchestration/publishedEvents.ts`](../renderOrchestration/publishedEvents.ts) (**`busOnly`** producer; **`mtw-interfaces`** not required). **`renderCache`** **imports** those types for subscription handlers (same leverage as orchestration **OI-5** / uncertainty 8). **Still implementation work:** wire **`receiveEvents`** / guards to **`header.type`**, narrow **`getContent()`**, and any adapter until the stream skeleton exists. **Emit** typings for **`Render Pertains`** / **`Cache Updated`** stay **`renderCache`**-local (contract + this package; optional **`publishedEvents.ts`** here per DataSource pattern for **outgoing** cache events). |
+| **Cache-OI-2** | **Resolved:** Same DataSource **`receiveEvents`** as **`api.ephemera`**; **`subscribedEvents.ts`** + orchestration branch in [`index.ts`](../../../../../lambda/ephemera/dataSource/renderCache/index.ts). |
+| **Cache-OI-3** | **Landed:** Handlers import orchestration types from [`renderOrchestration/publishedEvents.ts`](../renderOrchestration/publishedEvents.ts); guards + **`getContent`** in [`index.ts`](../../../../../lambda/ephemera/dataSource/renderCache/index.ts) / [`handleRenderOrchestrationInbound.ts`](../../../../../lambda/ephemera/dataSource/renderCache/handleRenderOrchestrationInbound.ts). **Optional:** local **`publishedEvents.ts`** for **`renderCache`** outbounds only (DataSource pattern). |
 | **Cache-OI-4** | **Refetch races:** miss or staleness after IDs-only hit (rare); overlaps contract uncertainties 6 / 11 --- implementation mitigation vs escalating to contract. |
 | **Cache-OI-5** | **Tests:** fixtures vs mocks until orchestration emits stable shapes; which existing tests become regression anchors ([`index.test.ts`](../../../../../lambda/ephemera/dataSource/renderCache/index.test.ts), [`putCacheRecord.test.ts`](../../../../../lambda/ephemera/dataSource/renderCache/putCacheRecord.test.ts), etc.). |
-| **Cache-OI-6** | **Integration test** timing: thin cross-layer test with orchestration --- align with orchestration **OI-7** and **Recommended order** items **Stop duplicate durability** and **Integration** in [`../renderOrchestration/AGENT.passThrough.planning.md`](../renderOrchestration/AGENT.passThrough.planning.md). |
+| **Cache-OI-6** | **Integration test** timing: thin cross-layer test with orchestration --- align with orchestration **OI-7** and **Recommended order** item **Integration** in [`../renderOrchestration/AGENT.passThrough.planning.md`](../renderOrchestration/AGENT.passThrough.planning.md) (**Stop duplicate durability** is done). |
 
 ---
 
@@ -125,9 +125,9 @@ These are **how** we implement agreed rules, not whether the product rules apply
 
 Mitigate **two-sided waiting** by making dependencies explicit:
 
-- **Stream slice sequencing:** [orchestration **Stream skeleton sequencing**](../renderOrchestration/AGENT.passThrough.planning.md#stream-skeleton-sequencing) --- cross-cutting **skipped** contract tests (orchestration + **`renderCache`** receiving) land **before** orchestration **`streamEvent`** wiring; orchestration then **un-skips** producer tests; this package **un-skips** receiving tests when **Subscribe** / **Handlers** ship. Avoids **`renderCache`** being temporarily orphaned without a plan: the **skipped** tests document the intended contract during the gap.
+- **Stream slice sequencing:** [orchestration **Stream skeleton sequencing**](../renderOrchestration/AGENT.passThrough.planning.md#stream-skeleton-sequencing) --- cross-cutting contract tests were landed with skips first, then **un-skipped** as producer and consumer handlers shipped; both sides' **`passThroughContract.scaffold.test.ts`** suites are **active** today.
 - **Parallel-friendly:** Contract-oriented unit tests with **`it.skip`** and **fixture** envelopes; handler scaffolding; hit-path **refetch** + **`Render Pertains`** logic **given** stable-enough test payloads ([Encoding the contract in unit tests](../AGENT.passThrough.contract.planning.md#encoding-the-contract-in-unit-tests)).
-- **Ordered:** End-to-end integration and **remove duplicate `Put Cache Record`** / **`publishPutCacheRecord`** coordination require alignment with orchestration **stream skeleton** and **Stop duplicate durability** ([orchestration Recommended order](../renderOrchestration/AGENT.passThrough.planning.md#recommended-order)). Do not assume both packages move at identical speed; track **Cache-OI-6** and orchestration **OI-7**.
+- **Ordered:** **Stop duplicate durability** is done on both sides; **thin integration** test remains (**Cache-OI-6**, orchestration **OI-7**).
 
 ---
 
@@ -202,7 +202,7 @@ Pending work uses `[ ]`; completed work uses `[X]`. Apply checkboxes to each act
 **Grep / hygiene (adjust as code moves)**
 
 - Track subscription / registration for **`renderOrchestration`** or **`mtw.ephemera.renderOrchestration`** in this DataSource.
-- After cutover, orchestration must not **`publishPutCacheRecord`** on pass-through generation success; **`renderCache`** owns the durable write --- verify in tandem with [orchestration Verification](../renderOrchestration/AGENT.passThrough.planning.md#verification).
+- **Cutover:** Orchestration does not **`publishPutCacheRecord`** on passive generation success; **`renderCache`** owns the durable write --- grep / tests per [orchestration Verification](../renderOrchestration/AGENT.passThrough.planning.md#verification).
 
 **Skip inventory**
 
