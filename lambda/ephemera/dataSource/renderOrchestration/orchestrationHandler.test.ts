@@ -3,7 +3,15 @@ import type { EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraCacheDynamoItem } from '../../renderCache/baseClasses'
 import internalCache from '../../internalCache'
 import { orchestrateRenderRequest } from './orchestrationHandler'
-import { streamEventFromMessageBus } from './publishedEvents'
+import {
+    isRenderOrchestrationCurrentCacheValidPayload,
+    isRenderOrchestrationExactMatchFoundPayload,
+    isRenderOrchestrationGenerationDeferredPayload,
+    isRenderOrchestrationOrchestrationErrorPayload,
+    isRenderOrchestrationRenderGeneratedPayload,
+    RENDER_ORCHESTRATION_DATA_SOURCE_KEY,
+    streamEventFromMessageBus,
+} from './publishedEvents'
 import type { RenderRequested } from './events'
 
 describe('dataSource/renderOrchestration/orchestrationHandler', () => {
@@ -37,9 +45,21 @@ describe('dataSource/renderOrchestration/orchestrationHandler', () => {
         perspectiveMatcher: { requiredAssetIds: ['ASSET#base'], forbiddenAssetIds: [] }
     }
 
-    const makeBus = (): MessageBusType => ({ send: jest.fn() } as unknown as MessageBusType)
+    const makeBus = (): MessageBusType & { send: jest.Mock } => (
+        { send: jest.fn() } as unknown as MessageBusType & { send: jest.Mock }
+    )
 
-    it('emits RenderReady on valid fast-path hit', async () => {
+    const findOrchestrationStreamingEvent = (send: jest.Mock): { getContent: () => Promise<unknown> } | undefined => {
+        for (const call of send.mock.calls) {
+            const msg = call[0] as { type?: string; dataSourceKey?: string; getContent?: () => Promise<unknown> }
+            if (msg?.type === 'StreamingEvent' && msg?.dataSourceKey === RENDER_ORCHESTRATION_DATA_SOURCE_KEY && msg.getContent) {
+                return msg as { getContent: () => Promise<unknown> }
+            }
+        }
+        return undefined
+    }
+
+    it('emits Current Cache Valid on valid fast-path hit', async () => {
         const messageBus = makeBus()
         const getCacheRecordById = jest.fn().mockResolvedValue(baseCacheRecord)
         const getExactMatch = jest.fn()
@@ -54,16 +74,16 @@ describe('dataSource/renderOrchestration/orchestrationHandler', () => {
                 markStatesEqual: jest.fn().mockReturnValue(true)
             }
         )
-        expect(messageBus.send).toHaveBeenCalledWith(expect.objectContaining({
-            type: 'RenderReady',
-            cacheId: 'CACHE#valid'
-        }))
-        expect(messageBus.send).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'RenderInvalidate' }))
+        const stream = findOrchestrationStreamingEvent(messageBus.send)
+        expect(stream).toBeDefined()
+        const content = await stream!.getContent()
+        expect(isRenderOrchestrationCurrentCacheValidPayload(content)).toBe(true)
+        expect((content as { cacheId?: string }).cacheId).toBe('CACHE#valid')
         expect(getCacheRecordById).toHaveBeenCalledWith('ROOM#one', 'CACHE#valid')
         expect(getExactMatch).not.toHaveBeenCalled()
     })
 
-    it('emits lookup handoff when no pointer exists', async () => {
+    it('emits Generation Deferred when no pointer exists', async () => {
         const messageBus = makeBus()
         const getExactMatch = jest.fn().mockResolvedValue(null)
         await orchestrateRenderRequest(
@@ -77,11 +97,12 @@ describe('dataSource/renderOrchestration/orchestrationHandler', () => {
                 markStatesEqual: jest.fn()
             }
         )
-        expect(messageBus.send).toHaveBeenCalledWith(expect.objectContaining({ type: 'RenderInvalidate' }))
+        const content = await findOrchestrationStreamingEvent(messageBus.send)!.getContent()
+        expect(isRenderOrchestrationGenerationDeferredPayload(content)).toBe(true)
         expect(getExactMatch).toHaveBeenCalled()
     })
 
-    it('clears pointer and emits lookup handoff when record missing', async () => {
+    it('clears pointer and emits Generation Deferred when record missing', async () => {
         const clearPerspectivePointer = jest.fn().mockResolvedValue(undefined)
         const messageBus = makeBus()
         await orchestrateRenderRequest(
@@ -96,10 +117,11 @@ describe('dataSource/renderOrchestration/orchestrationHandler', () => {
             }
         )
         expect(clearPerspectivePointer).toHaveBeenCalledWith('ROOM#one', 'PERSPECTIVE#v1#abc')
-        expect(messageBus.send).toHaveBeenCalledWith(expect.objectContaining({ type: 'RenderInvalidate' }))
+        const content = await findOrchestrationStreamingEvent(messageBus.send)!.getContent()
+        expect(isRenderOrchestrationGenerationDeferredPayload(content)).toBe(true)
     })
 
-    it('emits RenderReady on exact-match hit when no pointer exists', async () => {
+    it('emits Exact Match Found on exact-match hit when no pointer exists', async () => {
         const messageBus = makeBus()
         const getExactMatch = jest.fn().mockResolvedValue(baseCacheRecord)
         await orchestrateRenderRequest(
@@ -113,15 +135,13 @@ describe('dataSource/renderOrchestration/orchestrationHandler', () => {
                 markStatesEqual: jest.fn()
             }
         )
-        expect(messageBus.send).toHaveBeenCalledWith(expect.objectContaining({
-            type: 'RenderReady',
-            cacheId: 'CACHE#valid'
-        }))
-        expect(messageBus.send).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'RenderInvalidate' }))
+        const content = await findOrchestrationStreamingEvent(messageBus.send)!.getContent()
+        expect(isRenderOrchestrationExactMatchFoundPayload(content)).toBe(true)
+        expect((content as { cacheId?: string }).cacheId).toBe('CACHE#valid')
         expect(getExactMatch).toHaveBeenCalled()
     })
 
-    it('emits RenderError and does not clear pointer when state marks missing', async () => {
+    it('emits Orchestration Error and does not clear pointer when state marks missing', async () => {
         const clearPerspectivePointer = jest.fn().mockResolvedValue(undefined)
         const messageBus = makeBus()
         await orchestrateRenderRequest(
@@ -136,15 +156,13 @@ describe('dataSource/renderOrchestration/orchestrationHandler', () => {
             }
         )
         expect(clearPerspectivePointer).not.toHaveBeenCalled()
-        expect(messageBus.send).toHaveBeenCalledWith(expect.objectContaining({
-            type: 'RenderError',
-            errorCode: 'META_ROOM_MARKS_MISSING',
-            errorMessage: expect.stringContaining('Meta::Room.state.marks'),
-            componentId: 'ROOM#one',
-        }))
+        const content = await findOrchestrationStreamingEvent(messageBus.send)!.getContent()
+        expect(isRenderOrchestrationOrchestrationErrorPayload(content)).toBe(true)
+        expect((content as { errorCode?: string }).errorCode).toBe('META_ROOM_MARKS_MISSING')
+        expect((content as { errorMessage?: string }).errorMessage).toEqual(expect.stringContaining('Meta::Room.state.marks'))
     })
 
-    it('emits RenderError when Meta::Room is missing', async () => {
+    it('emits Orchestration Error when Meta::Room is missing', async () => {
         const messageBus = makeBus()
         const getCacheRecordById = jest.fn()
         await orchestrateRenderRequest(
@@ -159,15 +177,13 @@ describe('dataSource/renderOrchestration/orchestrationHandler', () => {
             }
         )
         expect(getCacheRecordById).not.toHaveBeenCalled()
-        expect(messageBus.send).toHaveBeenCalledWith(expect.objectContaining({
-            type: 'RenderError',
-            errorCode: 'META_ROOM_MARKS_MISSING',
-            errorMessage: expect.stringContaining('Meta::Room.state.marks'),
-            componentId: 'ROOM#one',
-        }))
+        const content = await findOrchestrationStreamingEvent(messageBus.send)!.getContent()
+        expect(isRenderOrchestrationOrchestrationErrorPayload(content)).toBe(true)
+        expect((content as { errorCode?: string }).errorCode).toBe('META_ROOM_MARKS_MISSING')
+        expect((content as { errorMessage?: string }).errorMessage).toEqual(expect.stringContaining('Meta::Room.state.marks'))
     })
 
-    it('clears pointer and emits lookup handoff when markState mismatch', async () => {
+    it('clears pointer and emits Generation Deferred when markState mismatch', async () => {
         const clearPerspectivePointer = jest.fn().mockResolvedValue(undefined)
         const messageBus = makeBus()
         await orchestrateRenderRequest(
@@ -182,10 +198,11 @@ describe('dataSource/renderOrchestration/orchestrationHandler', () => {
             }
         )
         expect(clearPerspectivePointer).toHaveBeenCalled()
-        expect(messageBus.send).toHaveBeenCalledWith(expect.objectContaining({ type: 'RenderInvalidate' }))
+        const content = await findOrchestrationStreamingEvent(messageBus.send)!.getContent()
+        expect(isRenderOrchestrationGenerationDeferredPayload(content)).toBe(true)
     })
 
-    it('clears pointer and emits lookup handoff when perspective mismatches', async () => {
+    it('clears pointer and emits Generation Deferred when perspective mismatches', async () => {
         const clearPerspectivePointer = jest.fn().mockResolvedValue(undefined)
         const messageBus = makeBus()
         const cacheRecord = {
@@ -204,10 +221,11 @@ describe('dataSource/renderOrchestration/orchestrationHandler', () => {
             }
         )
         expect(clearPerspectivePointer).toHaveBeenCalled()
-        expect(messageBus.send).toHaveBeenCalledWith(expect.objectContaining({ type: 'RenderInvalidate' }))
+        const content = await findOrchestrationStreamingEvent(messageBus.send)!.getContent()
+        expect(isRenderOrchestrationGenerationDeferredPayload(content)).toBe(true)
     })
 
-    it('continues to lookup handoff if pointer clearing fails', async () => {
+    it('continues to Generation Deferred if pointer clearing fails', async () => {
         const messageBus = makeBus()
         await orchestrateRenderRequest(
             { payload: basePayload, messageBus, streamEvent: streamEventFromMessageBus(messageBus) },
@@ -220,10 +238,11 @@ describe('dataSource/renderOrchestration/orchestrationHandler', () => {
                 markStatesEqual: jest.fn()
             }
         )
-        expect(messageBus.send).toHaveBeenCalledWith(expect.objectContaining({ type: 'RenderInvalidate' }))
+        const content = await findOrchestrationStreamingEvent(messageBus.send)!.getContent()
+        expect(isRenderOrchestrationGenerationDeferredPayload(content)).toBe(true)
     })
 
-    it('emits RenderReady on exact-match hit after invalid pointer', async () => {
+    it('emits Exact Match Found on exact-match hit after invalid pointer', async () => {
         const clearPerspectivePointer = jest.fn().mockResolvedValue(undefined)
         const messageBus = makeBus()
         await orchestrateRenderRequest(
@@ -238,11 +257,9 @@ describe('dataSource/renderOrchestration/orchestrationHandler', () => {
             }
         )
         expect(clearPerspectivePointer).toHaveBeenCalledWith('ROOM#one', 'PERSPECTIVE#v1#abc')
-        expect(messageBus.send).toHaveBeenCalledWith(expect.objectContaining({
-            type: 'RenderReady',
-            cacheId: 'CACHE#valid'
-        }))
-        expect(messageBus.send).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'RenderInvalidate' }))
+        const content = await findOrchestrationStreamingEvent(messageBus.send)!.getContent()
+        expect(isRenderOrchestrationExactMatchFoundPayload(content)).toBe(true)
+        expect((content as { cacheId?: string }).cacheId).toBe('CACHE#valid')
     })
 
     it('bypasses room fast-path for non-room componentIds', async () => {
@@ -253,7 +270,7 @@ describe('dataSource/renderOrchestration/orchestrationHandler', () => {
             { payload, messageBus, streamEvent: streamEventFromMessageBus(messageBus) },
             {
                 getMetaRoom,
-                computePerspectiveKey: jest.fn(),
+                computePerspectiveKey: jest.fn().mockReturnValue('PERSPECTIVE#v1#abc'),
                 getCacheRecordById: jest.fn(),
                 getExactMatch: jest.fn(),
                 clearPerspectivePointer: jest.fn(),
@@ -261,23 +278,33 @@ describe('dataSource/renderOrchestration/orchestrationHandler', () => {
             }
         )
         expect(getMetaRoom).not.toHaveBeenCalled()
-        expect(messageBus.send).toHaveBeenCalledWith(expect.objectContaining({
-            type: 'RenderError',
-            errorCode: 'NOT_ROOM',
-        }))
+        const content = await findOrchestrationStreamingEvent(messageBus.send)!.getContent()
+        expect(isRenderOrchestrationOrchestrationErrorPayload(content)).toBe(true)
+        expect((content as { errorCode?: string }).errorCode).toBe('NOT_ROOM')
     })
 
-    it('runs generation and emits RenderReady when allowGeneration and no cache hit', async () => {
+    it('runs generation and emits Render Generated when allowGeneration and no cache hit', async () => {
         const generatedRow: EphemeraCacheDynamoItem = {
             ...baseCacheRecord,
             DataCategory: 'CACHE#generated',
             provenance: { type: 'generated' },
         }
-        const generateRoomPreview = jest.fn().mockImplementation(async (_input, options) => {
-            await options?.sendMessage?.('generating')
-            await options?.sendMessage?.({
-                type: 'resolved',
-                renderedContent: { description: [{ tag: 'String', value: 'Generated' }] },
+        const generateRoomPreview = jest.fn().mockImplementation(async (
+            _input: unknown,
+            options: { publishOrchestration: (c: unknown) => void | Promise<void> }
+        ) => {
+            await options.publishOrchestration({
+                type: 'Generation Started',
+                componentId: 'ROOM#one',
+                perspective: { assetStack: ['ASSET#base'] },
+                perspectiveKey: 'PERSPECTIVE#v1#abc',
+                phase: 'generating',
+            })
+            await options.publishOrchestration({
+                type: 'Render Generated',
+                componentId: 'ROOM#one',
+                perspective: { assetStack: ['ASSET#base'] },
+                perspectiveKey: 'PERSPECTIVE#v1#abc',
                 cacheId: 'CACHE#generated',
                 cacheRecord: generatedRow,
             })
@@ -302,17 +329,30 @@ describe('dataSource/renderOrchestration/orchestrationHandler', () => {
             }
         )
         expect(generateRoomPreview).toHaveBeenCalled()
-        expect(messageBus.send).toHaveBeenCalledWith(expect.objectContaining({
-            type: 'RenderReady',
-            cacheId: 'CACHE#generated',
-        }))
-        expect(messageBus.send).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'RenderInvalidate' }))
+        let sawRenderGenerated = false
+        for (const call of messageBus.send.mock.calls) {
+            const msg = call[0] as { type?: string; dataSourceKey?: string; getContent?: () => Promise<unknown> }
+            if (msg?.type === 'StreamingEvent' && msg?.dataSourceKey === RENDER_ORCHESTRATION_DATA_SOURCE_KEY && msg.getContent) {
+                const c = await msg.getContent()
+                if (isRenderOrchestrationRenderGeneratedPayload(c)) {
+                    sawRenderGenerated = true
+                    expect((c as { cacheId?: string }).cacheId).toBe('CACHE#generated')
+                }
+            }
+        }
+        expect(sawRenderGenerated).toBe(true)
     })
 
-    it('emits RenderError when allowGeneration set but generation returns CONTEXT_REQUIRED', async () => {
-        const generateRoomPreview = jest.fn().mockImplementation(async (_input, options) => {
-            await options?.sendMessage?.({
-                type: 'failed',
+    it('emits Orchestration Error when allowGeneration set but generation returns CONTEXT_REQUIRED', async () => {
+        const generateRoomPreview = jest.fn().mockImplementation(async (
+            _input: unknown,
+            options: { publishOrchestration: (c: unknown) => void | Promise<void> }
+        ) => {
+            await options.publishOrchestration({
+                type: 'Orchestration Error',
+                componentId: 'ROOM#one',
+                perspective: { assetStack: ['ASSET#base'] },
+                perspectiveKey: 'PERSPECTIVE#v1#abc',
                 errorCode: 'CONTEXT_REQUIRED',
                 errorMessage: 'Generation context required',
             })
@@ -336,11 +376,10 @@ describe('dataSource/renderOrchestration/orchestrationHandler', () => {
             }
         )
         expect(generateRoomPreview).toHaveBeenCalled()
-        expect(messageBus.send).toHaveBeenCalledWith(expect.objectContaining({
-            type: 'RenderError',
-            errorCode: 'CONTEXT_REQUIRED',
-            errorMessage: 'Generation context required',
-            componentId: 'ROOM#one',
-        }))
+        const content = await findOrchestrationStreamingEvent(messageBus.send)!.getContent()
+        expect(isRenderOrchestrationOrchestrationErrorPayload(content)).toBe(true)
+        expect((content as { errorCode?: string }).errorCode).toBe('CONTEXT_REQUIRED')
+        expect((content as { errorMessage?: string }).errorMessage).toBe('Generation context required')
+        expect((content as { componentId?: string }).componentId).toBe('ROOM#one')
     })
 })

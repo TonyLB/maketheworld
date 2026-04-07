@@ -29,8 +29,10 @@ export type RenderRequested = RenderTargetContext & RenderComponentPerspective &
 }
 
 /**
- * Subset of {@link RenderRequested} stored on `roomStateRender` conversation rows so materialized
- * `sendMessage` can publish {@link RenderReady} / {@link RenderInvalidate} / `Error` to the message bus.
+ * Subset of {@link RenderRequested} stored on `roomStateRender` conversation rows where materialized
+ * `sendMessage` still publishes {@link RenderReady} / {@link RenderInvalidate} / `Error` to the message bus.
+ * Passive orchestration (`orchestrateRenderRequest`) does not register that path; it emits only
+ * `mtw.ephemera.renderOrchestration` stream outbounds.
  */
 export type RenderRequestedBusDeliveryFields = Pick<RenderRequested, 'componentId' | 'perspective' | 'characterId' | 'targets' | 'messageGroupId'>
 

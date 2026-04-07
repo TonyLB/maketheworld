@@ -1,6 +1,6 @@
 # `mtw.ephemera.renderCache` - pass-through readiness
 
-**Status: ACTIVE TASK PLAN.** Next focus: **Integration** slice (**Cache-OI-6**). **Generate path** and **coordinate cutover** are done: **`Render Generated`** -> durable write -> **`Render Pertains`** then **`Cache Updated`** (**Cache-OI-1** resolved). **Hit path** is done: refetch via **`internalCache.RenderCache.get`**, **`Render Pertains`** with **`cacheRecord`** ([`baseClasses.ts`](../../../../../lambda/ephemera/dataSource/renderCache/baseClasses.ts)); [`passThroughContract.scaffold.test.ts`](../../../../../lambda/ephemera/dataSource/renderCache/passThroughContract.scaffold.test.ts) covers Hit and **Render Generated** (with **`putCacheRecord`** mocked).
+**Status: ACTIVE TASK PLAN.** **Integration** (**Cache-OI-6**): thin cross-layer Jest test [`passThroughOrchestrationToCache.integration.test.ts`](../../../../../lambda/ephemera/dataSource/passThroughOrchestrationToCache.integration.test.ts) (`orchestrateRenderRequest` + this DataSource subscription). **Generate path** and **coordinate cutover** are done: **`Render Generated`** -> durable write -> **`Render Pertains`** then **`Cache Updated`** (**Cache-OI-1** resolved). **Hit path** is done: refetch via **`internalCache.RenderCache.get`**, **`Render Pertains`** with **`cacheRecord`** ([`baseClasses.ts`](../../../../../lambda/ephemera/dataSource/renderCache/baseClasses.ts)); [`passThroughContract.scaffold.test.ts`](../../../../../lambda/ephemera/dataSource/renderCache/passThroughContract.scaffold.test.ts) covers Hit and **Render Generated** (with **`putCacheRecord`** mocked).
 
 This document is the **task plan** for [`lambda/ephemera/dataSource/renderCache/`](../../../../../lambda/ephemera/dataSource/renderCache/index.ts): how **`mtw.ephemera.renderCache`** participates in the pass-through pattern so paths that **write** cache rows and paths where content is **already** cached surface a **single subscribable story** (correlated **`Render Pertains`** and abstract **`Cache Updated`** per contract). Shared semantics and payload rules live in the [canonical contract](../AGENT.passThrough.contract.planning.md).
 
@@ -71,7 +71,7 @@ These are **how** we implement agreed rules, not whether the product rules apply
 | **Cache-OI-3** | **Landed:** Handlers import orchestration types from [`renderOrchestration/publishedEvents.ts`](../renderOrchestration/publishedEvents.ts); guards + **`getContent`** in [`index.ts`](../../../../../lambda/ephemera/dataSource/renderCache/index.ts) / [`handleRenderOrchestrationInbound.ts`](../../../../../lambda/ephemera/dataSource/renderCache/handleRenderOrchestrationInbound.ts). **Optional:** local **`publishedEvents.ts`** for **`renderCache`** outbounds only (DataSource pattern). |
 | **Cache-OI-4** | **Refetch races:** miss or staleness after IDs-only hit (rare); overlaps contract uncertainties 6 / 11 --- implementation mitigation vs escalating to contract. |
 | **Cache-OI-5** | **Tests:** fixtures vs mocks until orchestration emits stable shapes; which existing tests become regression anchors ([`index.test.ts`](../../../../../lambda/ephemera/dataSource/renderCache/index.test.ts), [`putCacheRecord.test.ts`](../../../../../lambda/ephemera/dataSource/renderCache/putCacheRecord.test.ts), etc.). |
-| **Cache-OI-6** | **Integration test** timing: thin cross-layer test with orchestration --- align with orchestration **OI-7** and **Recommended order** item **Integration** in [`../renderOrchestration/AGENT.passThrough.planning.md`](../renderOrchestration/AGENT.passThrough.planning.md) (**Stop duplicate durability** is done). |
+| **Cache-OI-6** | **Resolved:** Thin cross-layer Jest test [`passThroughOrchestrationToCache.integration.test.ts`](../../../../../lambda/ephemera/dataSource/passThroughOrchestrationToCache.integration.test.ts) (orchestration **`orchestrateRenderRequest`** + **`renderCache`** subscription); aligns with orchestration **OI-7**. |
 
 ---
 
@@ -95,7 +95,7 @@ These are **how** we implement agreed rules, not whether the product rules apply
 | Event | Payload shape (today) | Tests |
 | --- | --- | --- |
 | **`Cache Updated`** | `componentId`, `dataCategory` (cache id), `perspectiveId`, optional **`conversationId`** (prototype echo from command; see `baseClasses` comment) | [`index.test.ts`](../../../../../lambda/ephemera/dataSource/renderCache/index.test.ts) |
-| **`Render Pertains`** | `componentId`, `perspectiveKey`, `cacheId`, `cacheRecord` (hit path after refetch; generate path after write) | [`passThroughContract.scaffold.test.ts`](../../../../../lambda/ephemera/dataSource/renderCache/passThroughContract.scaffold.test.ts), [`index.test.ts`](../../../../../lambda/ephemera/dataSource/renderCache/index.test.ts) |
+| **`Render Pertains`** | `componentId`, `perspectiveKey`, `cacheId`, `cacheRecord` (hit path after refetch; generate path after write) | [`passThroughContract.scaffold.test.ts`](../../../../../lambda/ephemera/dataSource/renderCache/passThroughContract.scaffold.test.ts), [`index.test.ts`](../../../../../lambda/ephemera/dataSource/renderCache/index.test.ts), [`passThroughOrchestrationToCache.integration.test.ts`](../../../../../lambda/ephemera/dataSource/passThroughOrchestrationToCache.integration.test.ts) |
 | **`Cache Deleted`** | `componentId`, `dataCategories` | same |
 | **`Cache Error`** | `componentId`, `errorCode`, `errorMessage`, optional `perspectiveId` | same |
 
@@ -117,7 +117,7 @@ These are **how** we implement agreed rules, not whether the product rules apply
 | **Cache-OI-3** | Inbound guards in place; outbound union includes **`Render Pertains`** in [`baseClasses.ts`](../../../../../lambda/ephemera/dataSource/renderCache/baseClasses.ts); optional local **`publishedEvents.ts`** for outbounds still TBD. |
 | **Cache-OI-4** | **Hit path:** refetch miss -> **`console.error`**, no emit. Further mitigation TBD if product requires. |
 | **Cache-OI-5** | [`passThroughContract.scaffold.test.ts`](../../../../../lambda/ephemera/dataSource/renderCache/passThroughContract.scaffold.test.ts) covers Hit + **Render Generated** (mocked put) + Error / Deferred / **Generation Started**. |
-| **Cache-OI-6** | No thin cross-layer test yet; orchestration **`publishPutCacheRecord`** removed from passive generation success ([`generateRoomPreview`](../../../../../lambda/ephemera/dataSource/renderOrchestration/generateRoomPreview.ts)). |
+| **Cache-OI-6** | **Done:** [`passThroughOrchestrationToCache.integration.test.ts`](../../../../../lambda/ephemera/dataSource/passThroughOrchestrationToCache.integration.test.ts) (orchestration **OI-7**). |
 
 ---
 
@@ -127,13 +127,13 @@ Mitigate **two-sided waiting** by making dependencies explicit:
 
 - **Stream slice sequencing:** [orchestration **Stream skeleton sequencing**](../renderOrchestration/AGENT.passThrough.planning.md#stream-skeleton-sequencing) --- cross-cutting contract tests were landed with skips first, then **un-skipped** as producer and consumer handlers shipped; both sides' **`passThroughContract.scaffold.test.ts`** suites are **active** today.
 - **Parallel-friendly:** Contract-oriented unit tests with **`it.skip`** and **fixture** envelopes; handler scaffolding; hit-path **refetch** + **`Render Pertains`** logic **given** stable-enough test payloads ([Encoding the contract in unit tests](../AGENT.passThrough.contract.planning.md#encoding-the-contract-in-unit-tests)).
-- **Ordered:** **Stop duplicate durability** is done on both sides; **thin integration** test remains (**Cache-OI-6**, orchestration **OI-7**).
+- **Ordered:** **Stop duplicate durability** is done on both sides; **thin integration** test landed ([`passThroughOrchestrationToCache.integration.test.ts`](../../../../../lambda/ephemera/dataSource/passThroughOrchestrationToCache.integration.test.ts); **Cache-OI-6**, orchestration **OI-7**).
 
 ---
 
 ## Scope and non-goals
 
-- **In scope:** Subscription to **`mtw.ephemera.renderOrchestration`**; durable write on **`Render Generated`**; hit-path refetch; **`Render Pertains`** / **`Cache Updated`** per contract; tests; thin integration when orchestration is ready.
+- **In scope:** Subscription to **`mtw.ephemera.renderOrchestration`**; durable write on **`Render Generated`**; hit-path refetch; **`Render Pertains`** / **`Cache Updated`** per contract; tests; thin integration with orchestration ([`passThroughOrchestrationToCache.integration.test.ts`](../../../../../lambda/ephemera/dataSource/passThroughOrchestrationToCache.integration.test.ts)).
 - **Out of scope here:** Orchestration branching ([orchestration plan](../renderOrchestration/AGENT.passThrough.planning.md)); full perception fan-in ([`../perception/AGENT.perceptionRefactor.planning.md`](../perception/AGENT.perceptionRefactor.planning.md)); **`currentCachePointers`** ([stub](../currentCachePointers/AGENT.cachePointersRefactor.planning.md)). Normative **field** lists: contract. **Imports:** orchestration outbounds from **`renderOrchestration`** **`publishedEvents.ts`** (**Cache-OI-3**); **`renderCache`** **emit** shapes remain local unless a client boundary later requires **`mtw-interfaces`**.
 
 ---
@@ -168,7 +168,7 @@ Mitigate **two-sided waiting** by making dependencies explicit:
 | Generate path: durable write on **`Render Generated`** + **`Render Pertains`** / **`Cache Updated`** (**Cache-OI-1**, **Cache-OI-3**) | Done |
 | Coordinated cutover: no double **`Put Cache Record`** with orchestration | Done |
 | Contract tests active for slice; **Verification** skip inventory current | Done (no **`it.skip`** for **Generate path** in scaffold) |
-| Thin integration test (**Cache-OI-6**, orchestration **OI-7**) | Not started |
+| Thin integration test (**Cache-OI-6**, orchestration **OI-7**) | Done ([`passThroughOrchestrationToCache.integration.test.ts`](../../../../../lambda/ephemera/dataSource/passThroughOrchestrationToCache.integration.test.ts)) |
 
 ---
 
@@ -183,8 +183,8 @@ Pending work uses `[ ]`; completed work uses `[X]`. Apply checkboxes to each act
 - [X] **Hit path** --- Refetch + **`Render Pertains`** for **`Current Cache Valid`** / **`Exact Match Found`** (**Cache-OI-4** as needed).
 - [X] **Generate path** --- Durable write on **`Render Generated`**; emit **`Render Pertains`** / **`Cache Updated`** per pairing decision (**Cache-OI-1**).
 - [X] **Coordinate cutover** --- Align with orchestration removal of **`publishPutCacheRecord`** on generation success ([orchestration **Stop duplicate durability**](../renderOrchestration/AGENT.passThrough.planning.md#recommended-order)); verify no duplicate **`Cache Updated`**.
-- [ ] **Integration** --- Thin cross-layer test when both sides ready (**Cache-OI-6**, orchestration **OI-7**).
-- [ ] **Close the loop** --- Update **Progress**, **Verification** skip inventory, and this **Recommended order** when each slice ships.
+- [X] **Integration** --- Thin cross-layer test (**Cache-OI-6**, orchestration **OI-7**): [`passThroughOrchestrationToCache.integration.test.ts`](../../../../../lambda/ephemera/dataSource/passThroughOrchestrationToCache.integration.test.ts).
+- [X] **Close the loop** --- Update **Progress**, **Verification** skip inventory, and this **Recommended order** when each slice ships (includes **Integration**).
 
 ---
 
@@ -197,12 +197,12 @@ Pending work uses `[ ]`; completed work uses `[X]`. Apply checkboxes to each act
 **Contract test expectations**
 
 - Rules: [Encoding the contract in unit tests](../AGENT.passThrough.contract.planning.md#encoding-the-contract-in-unit-tests).
-- Primary files: [`index.test.ts`](../../../../../lambda/ephemera/dataSource/renderCache/index.test.ts), [`putCacheRecord.test.ts`](../../../../../lambda/ephemera/dataSource/renderCache/putCacheRecord.test.ts), [`deleteCacheRecord.test.ts`](../../../../../lambda/ephemera/dataSource/renderCache/deleteCacheRecord.test.ts), [`queryCacheRecordsForComponent.test.ts`](../../../../../lambda/ephemera/dataSource/renderCache/queryCacheRecordsForComponent.test.ts), [`passThroughContract.scaffold.test.ts`](../../../../../lambda/ephemera/dataSource/renderCache/passThroughContract.scaffold.test.ts).
+- Primary files: [`index.test.ts`](../../../../../lambda/ephemera/dataSource/renderCache/index.test.ts), [`putCacheRecord.test.ts`](../../../../../lambda/ephemera/dataSource/renderCache/putCacheRecord.test.ts), [`deleteCacheRecord.test.ts`](../../../../../lambda/ephemera/dataSource/renderCache/deleteCacheRecord.test.ts), [`queryCacheRecordsForComponent.test.ts`](../../../../../lambda/ephemera/dataSource/renderCache/queryCacheRecordsForComponent.test.ts), [`passThroughContract.scaffold.test.ts`](../../../../../lambda/ephemera/dataSource/renderCache/passThroughContract.scaffold.test.ts). Cross-layer: [`passThroughOrchestrationToCache.integration.test.ts`](../../../../../lambda/ephemera/dataSource/passThroughOrchestrationToCache.integration.test.ts).
 
 **Grep / hygiene (adjust as code moves)**
 
 - Track subscription / registration for **`renderOrchestration`** or **`mtw.ephemera.renderOrchestration`** in this DataSource.
-- **Cutover:** Orchestration does not **`publishPutCacheRecord`** on passive generation success; **`renderCache`** owns the durable write --- grep / tests per [orchestration Verification](../renderOrchestration/AGENT.passThrough.planning.md#verification).
+- **Cutover:** Orchestration does not **`publishPutCacheRecord`** on passive generation success; **`renderCache`** owns the durable write --- grep / tests per [orchestration Verification](../renderOrchestration/AGENT.passThrough.planning.md#verification). Cross-layer: [`passThroughOrchestrationToCache.integration.test.ts`](../../../../../lambda/ephemera/dataSource/passThroughOrchestrationToCache.integration.test.ts).
 
 **Skip inventory**
 
@@ -210,10 +210,10 @@ Maintain a short list here or in test file headers as **`it.skip` / `describe.sk
 
 | Location | Skip reason (summary) |
 | --- | --- |
-| (none) | **Generate path** scaffold test is active. |
+| (none) | **Generate path** scaffold test is active. Integration: [`passThroughOrchestrationToCache.integration.test.ts`](../../../../../lambda/ephemera/dataSource/passThroughOrchestrationToCache.integration.test.ts). |
 
 ---
 
 ## Contract tests (progressive activation)
 
-Canonical rules: [`../AGENT.passThrough.contract.planning.md`](../AGENT.passThrough.contract.planning.md#encoding-the-contract-in-unit-tests). This package adds or extends tests for **`Render Pertains`**, **`Cache Updated`** on the generate path (**single** write from **`Render Generated`**), and match-only behavior. **Integration** when orchestration and **`renderCache`** both emit real signals.
+Canonical rules: [`../AGENT.passThrough.contract.planning.md`](../AGENT.passThrough.contract.planning.md#encoding-the-contract-in-unit-tests). This package adds or extends tests for **`Render Pertains`**, **`Cache Updated`** on the generate path (**single** write from **`Render Generated`**), and match-only behavior. Cross-layer integration: [`passThroughOrchestrationToCache.integration.test.ts`](../../../../../lambda/ephemera/dataSource/passThroughOrchestrationToCache.integration.test.ts) (**Cache-OI-6** / orchestration **OI-7**).

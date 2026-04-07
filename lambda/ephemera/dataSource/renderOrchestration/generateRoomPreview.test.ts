@@ -4,6 +4,7 @@ jest.mock('uuid', () => ({
 }))
 
 import { generateRoomPreview } from './generateRoomPreview'
+import { passThroughSingleFlight } from './singleFlightRenderGeneration'
 import type {
     EphemeraCacheMarkState,
     EphemeraCacheRenderedContent,
@@ -22,46 +23,43 @@ describe('dataSource/renderOrchestration/generateRoomPreview', () => {
         noopPublishOrchestration.mockResolvedValue(undefined)
     })
 
-    it('emits CONTEXT_REQUIRED failure and returns fail when no generationContextWml', async () => {
-        const sendMessage = jest.fn().mockResolvedValue(undefined)
-
+    it('publishes Orchestration Error CONTEXT_REQUIRED and returns fail when no generationContextWml', async () => {
         const result = await generateRoomPreview({
             roomId,
             markState: makeMarkState([{ mark: 'MARK#a', value: 'one' }]),
             assetStack: ['ASSET#one']
-        }, { sendMessage, publishOrchestration: noopPublishOrchestration })
+        }, { publishOrchestration: noopPublishOrchestration, runWithSingleFlight: passThroughSingleFlight })
 
         expect(result).toBe('fail')
-        expect(sendMessage).toHaveBeenCalledTimes(1)
-        expect(sendMessage).toHaveBeenCalledWith({
-            type: 'failed',
+        expect(noopPublishOrchestration).toHaveBeenCalledTimes(1)
+        expect(noopPublishOrchestration).toHaveBeenCalledWith({
+            type: 'Orchestration Error',
+            componentId: roomId,
+            perspective: { assetStack: ['ASSET#one'] },
+            perspectiveKey: expect.any(String),
             errorCode: 'CONTEXT_REQUIRED',
             errorMessage: 'Generation context required',
         })
     })
 
-    it('emits CONTEXT_REQUIRED failure and returns fail when invalid generationContextWml', async () => {
-        const sendMessage = jest.fn().mockResolvedValue(undefined)
-
+    it('publishes Orchestration Error CONTEXT_REQUIRED and returns fail when invalid generationContextWml', async () => {
         const result = await generateRoomPreview({
             roomId,
             markState: makeMarkState([{ mark: 'MARK#a', value: 'one' }]),
             assetStack: ['ASSET#one'],
             generationContextWml: '<not valid wml<<'
-        }, { sendMessage, publishOrchestration: noopPublishOrchestration })
+        }, { publishOrchestration: noopPublishOrchestration, runWithSingleFlight: passThroughSingleFlight })
 
         expect(result).toBe('fail')
-        expect(sendMessage).toHaveBeenCalledTimes(1)
-        expect(sendMessage).toHaveBeenCalledWith({
-            type: 'failed',
+        expect(noopPublishOrchestration).toHaveBeenCalledTimes(1)
+        expect(noopPublishOrchestration).toHaveBeenCalledWith(expect.objectContaining({
+            type: 'Orchestration Error',
             errorCode: 'CONTEXT_REQUIRED',
             errorMessage: 'Generation context required',
-        })
+        }))
     })
 
-    it('emits generating then NO_EXACT_MATCH failure when valid context but generation fails', async () => {
-        const sendMessage = jest.fn().mockResolvedValue(undefined)
-
+    it('publishes Generation Started then Orchestration Error NO_EXACT_MATCH when valid context but generation fails', async () => {
         const generateRoomDescriptionImpl = jest.fn().mockResolvedValue({
             success: false,
             errorCode: 'NO_EXACT_MATCH',
@@ -80,8 +78,8 @@ describe('dataSource/renderOrchestration/generateRoomPreview', () => {
             {
                 generateRoomDescriptionImpl,
                 queryCacheRecordsForComponentImpl,
-                sendMessage,
                 publishOrchestration: noopPublishOrchestration,
+                runWithSingleFlight: passThroughSingleFlight,
             }
         )
 
@@ -95,13 +93,16 @@ describe('dataSource/renderOrchestration/generateRoomPreview', () => {
             })
         )
         expect(result).toBe('fail')
-        expect(sendMessage).toHaveBeenCalledTimes(2)
-        expect(sendMessage).toHaveBeenNthCalledWith(1, 'generating')
-        expect(sendMessage).toHaveBeenNthCalledWith(2, {
-            type: 'failed',
+        expect(noopPublishOrchestration).toHaveBeenCalledTimes(2)
+        expect(noopPublishOrchestration).toHaveBeenNthCalledWith(1, expect.objectContaining({
+            type: 'Generation Started',
+            phase: 'generating',
+        }))
+        expect(noopPublishOrchestration).toHaveBeenNthCalledWith(2, expect.objectContaining({
+            type: 'Orchestration Error',
             errorCode: 'NO_EXACT_MATCH',
             errorMessage: 'No exact match for proposed state',
-        })
+        }))
     })
 
     it('publishes Render Generated with full cacheRecord when LLM returns success (no Put Cache Record from orchestration)', async () => {
@@ -115,7 +116,6 @@ describe('dataSource/renderOrchestration/generateRoomPreview', () => {
             renderedContent
         })
         const queryCacheRecordsForComponentImpl = jest.fn().mockResolvedValue([])
-        const sendMessage = jest.fn().mockResolvedValue(undefined)
 
         const validWml = '<Asset uuid=(test)><Room uuid=(room1) key=(room1)><ShortName>Test</ShortName></Room></Asset>'
         const markState = makeMarkState([{ mark: 'MARK#a', value: 'one' }])
@@ -131,26 +131,12 @@ describe('dataSource/renderOrchestration/generateRoomPreview', () => {
             {
                 generateRoomDescriptionImpl,
                 queryCacheRecordsForComponentImpl,
-                sendMessage,
                 publishOrchestration: noopPublishOrchestration,
+                runWithSingleFlight: passThroughSingleFlight,
             }
         )
 
         expect(result).toBe('success')
-        expect(sendMessage).toHaveBeenNthCalledWith(1, 'generating')
-        expect(sendMessage).toHaveBeenNthCalledWith(2, {
-            type: 'resolved',
-            renderedContent,
-            cacheId: 'CACHE#aaaaaaaa-bbbb-4ccc-dddd-eeeeeeeeeeee',
-            cacheRecord: expect.objectContaining({
-                EphemeraId: roomId,
-                DataCategory: 'CACHE#aaaaaaaa-bbbb-4ccc-dddd-eeeeeeeeeeee',
-                markState,
-                renderedContent,
-                provenance: { type: 'generated' },
-                perspectiveMatcher: { requiredAssetIds: assetStack, forbiddenAssetIds: [] },
-            }),
-        })
         expect(noopPublishOrchestration).toHaveBeenCalledTimes(2)
         expect(noopPublishOrchestration).toHaveBeenNthCalledWith(1, expect.objectContaining({
             type: 'Generation Started',

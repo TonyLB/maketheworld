@@ -36,12 +36,11 @@ describe('dataSource/renderOrchestration/findRender', () => {
         computePerspectiveKey,
         markStatesEqual,
         perspectiveMatches,
-        sendMessage: jest.fn().mockResolvedValue(undefined),
         generateRoomPreview: jest.fn().mockResolvedValue('fail'),
         publishOrchestration: jest.fn().mockResolvedValue(undefined),
     })
 
-    it('emits resolved on valid pointer fast-path', async () => {
+    it('emits Current Cache Valid on valid pointer fast-path', async () => {
         const deps = baseDeps()
         deps.getCacheRecordById.mockResolvedValue(baseCacheRecord)
         const resolve: RenderResolveInputSuccess = {
@@ -49,17 +48,17 @@ describe('dataSource/renderOrchestration/findRender', () => {
             pointerHint: 'CACHE#valid',
         }
         await findRender(resolve, deps)
-        expect(deps.sendMessage).toHaveBeenCalledWith({
-            type: 'resolved',
-            renderedContent: baseCacheRecord.renderedContent,
-            cacheId: 'CACHE#valid',
-            cacheRecord: baseCacheRecord,
-        })
+        expect(deps.publishOrchestration).toHaveBeenCalledWith(
+            expect.objectContaining({
+                type: 'Current Cache Valid',
+                cacheId: 'CACHE#valid',
+            })
+        )
         expect(deps.getExactMatch).not.toHaveBeenCalled()
         expect(deps.generateRoomPreview).not.toHaveBeenCalled()
     })
 
-    it('clears pointer and emits invalidate when pointer row is missing', async () => {
+    it('clears pointer and emits Generation Deferred when pointer row is missing', async () => {
         const deps = baseDeps()
         deps.getCacheRecordById.mockResolvedValue(undefined)
         const resolve: RenderResolveInputSuccess = {
@@ -69,33 +68,37 @@ describe('dataSource/renderOrchestration/findRender', () => {
         }
         await findRender(resolve, deps)
         expect(deps.clearPerspectivePointer).toHaveBeenCalled()
-        expect(deps.sendMessage).toHaveBeenCalledWith({
-            type: 'invalidate',
-            reason: RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION,
-        })
+        expect(deps.publishOrchestration).toHaveBeenCalledWith(
+            expect.objectContaining({
+                type: 'Generation Deferred',
+                reason: RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION,
+            })
+        )
     })
 
-    it('emits resolved on exact match when no pointer', async () => {
+    it('emits Exact Match Found on exact match when no pointer', async () => {
         const deps = baseDeps()
         deps.getExactMatch.mockResolvedValue(baseCacheRecord)
         await findRender(baseResolve, deps)
-        expect(deps.sendMessage).toHaveBeenCalledWith({
-            type: 'resolved',
-            renderedContent: baseCacheRecord.renderedContent,
-            cacheId: 'CACHE#valid',
-            cacheRecord: baseCacheRecord,
-        })
+        expect(deps.publishOrchestration).toHaveBeenCalledWith(
+            expect.objectContaining({
+                type: 'Exact Match Found',
+                cacheId: 'CACHE#valid',
+            })
+        )
         expect(deps.getCacheRecordById).not.toHaveBeenCalled()
         expect(deps.generateRoomPreview).not.toHaveBeenCalled()
     })
 
-    it('emits invalidate when generation is skipped (allowGeneration false)', async () => {
+    it('emits Generation Deferred when generation is skipped (allowGeneration false)', async () => {
         const deps = baseDeps()
         await findRender({ ...baseResolve, allowGeneration: false }, deps)
-        expect(deps.sendMessage).toHaveBeenCalledWith({
-            type: 'invalidate',
-            reason: RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION,
-        })
+        expect(deps.publishOrchestration).toHaveBeenCalledWith(
+            expect.objectContaining({
+                type: 'Generation Deferred',
+                reason: RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION,
+            })
+        )
         expect(deps.generateRoomPreview).not.toHaveBeenCalled()
     })
 
@@ -110,15 +113,15 @@ describe('dataSource/renderOrchestration/findRender', () => {
         }
         await findRender(resolve, deps)
         expect(deps.clearPerspectivePointer).toHaveBeenCalled()
-        expect(deps.sendMessage).toHaveBeenCalledWith({
-            type: 'resolved',
-            renderedContent: baseCacheRecord.renderedContent,
-            cacheId: 'CACHE#valid',
-            cacheRecord: baseCacheRecord,
-        })
+        expect(deps.publishOrchestration).toHaveBeenCalledWith(
+            expect.objectContaining({
+                type: 'Exact Match Found',
+                cacheId: 'CACHE#valid',
+            })
+        )
     })
 
-    it('continues to invalidate if pointer clearing throws', async () => {
+    it('continues to Generation Deferred if pointer clearing throws', async () => {
         const deps = baseDeps()
         deps.getCacheRecordById.mockResolvedValue(undefined)
         deps.clearPerspectivePointer.mockRejectedValue(new Error('boom'))
@@ -128,9 +131,11 @@ describe('dataSource/renderOrchestration/findRender', () => {
             allowGeneration: false,
         }
         await findRender(resolve, deps)
-        expect(deps.sendMessage).toHaveBeenCalledWith({
-            type: 'invalidate',
-            reason: RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION,
-        })
+        expect(deps.publishOrchestration).toHaveBeenCalledWith(
+            expect.objectContaining({
+                type: 'Generation Deferred',
+                reason: RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION,
+            })
+        )
     })
 })

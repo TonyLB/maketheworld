@@ -1,13 +1,12 @@
 /**
- * Render orchestration handler: {@link findRender} + terminal delivery via conversation `sendMessage`
- * after {@link intakeRenderRequested} (see `./requestIntake.ts`).
+ * Render orchestration handler: {@link findRender} after {@link intakeRenderRequested} (see `./requestIntake.ts`).
+ * Outcomes are published on **`mtw.ephemera.renderOrchestration`** via `streamEvent` only (no conversation / legacy bus).
  *
  * {@link orchestrateRenderRequest} is the unified entry for passive single-item orchestration.
  *
  * Lives under `dataSource/renderOrchestration/` so ingress, intake, and orchestration (`findRender`, `generateRoomPreview`, …)
  * stay co-located with planning docs (`AGENT.planning.md`, etc.) in this directory.
  */
-import { v4 as uuidv4 } from 'uuid'
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { perspectiveMatches, computePerspectiveKey as defaultComputePerspectiveKey, type Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
@@ -16,19 +15,14 @@ import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSou
 import type { MessageBus } from '../../messageBus/baseClasses'
 import { isEphemeraCacheDynamoItem, type EphemeraCacheDynamoItem, type EphemeraCacheMarkState } from '../../renderCache/baseClasses'
 import { markStatesEqual } from '../../renderCache/markStateUtils'
-import {
-    CONVERSATION_PAYLOAD_STUB,
-    CONVERSATION_TYPE_ROOM_STATE_RENDER,
-    isConversationCompositeReadHandleRoomStateRender,
-} from '../../conversations/conversationTypes'
-import type { ConversationId } from '../../conversations'
 import type { RenderRequested } from './events'
 import { isRenderResolveInputSuccess } from './baseClasses'
-import { deliverIntakeErrorsIfAny } from './intakeErrors'
+import { getIntakeOrchestrationErrorIfAny } from './intakeErrors'
 import { buildOrchestrationRouting } from './orchestrationRouting'
 import { publishRenderOrchestrationStreamEvent, type RenderOrchestrationPublishedPayload } from './publishedEvents'
 import { findRender } from './findRender'
 import { generateRoomPreview } from './generateRoomPreview'
+import type { RunWithSingleFlight } from './singleFlightRenderGeneration'
 import { intakeRenderRequested } from './requestIntake'
 import type { RequestIntakeDependencies } from './requestIntake'
 import internalCache from '../../internalCache'
@@ -45,6 +39,8 @@ export type OrchestrationHandlerDependencies = {
     markStatesEqual?: typeof markStatesEqual;
     /** Override for tests; default is {@link generateRoomPreview}. */
     generateRoomPreview?: typeof generateRoomPreview;
+    /** Tests: {@link passThroughSingleFlight} from `./singleFlightRenderGeneration`; omit in production. */
+    runWithSingleFlight?: RunWithSingleFlight;
 };
 
 export type OrchestrationPipelineDependencies = RequestIntakeDependencies & OrchestrationHandlerDependencies
@@ -56,6 +52,7 @@ type OrchestrationHandlerDepsResolved = {
     computePerspectiveKey: NonNullable<OrchestrationHandlerDependencies['computePerspectiveKey']>;
     markStatesEqual: NonNullable<OrchestrationHandlerDependencies['markStatesEqual']>;
     generateRoomPreview: typeof generateRoomPreview;
+    runWithSingleFlight: RunWithSingleFlight | undefined;
 };
 
 export const defaultGetCacheRecordById = async (
@@ -82,27 +79,17 @@ export const defaultClearPerspectivePointer = async (roomId: EphemeraRoomId, per
     internalCache.ComponentEphemeraMeta.invalidate(roomId)
 }
 
-const getRoomStateRenderHandle = (
-    conversationId: ConversationId,
-    messageBus: MessageBus
-) => {
-    const composite = internalCache.Conversations.get(conversationId, { messageBus })
-    const rawHandle = composite?.handle
-    return rawHandle !== undefined && isConversationCompositeReadHandleRoomStateRender(rawHandle)
-        ? rawHandle
-        : undefined
-}
-
 /**
- * Single-item orchestration: intake, {@link deliverIntakeErrorsIfAny}, and {@link findRender}.
+ * Single-item orchestration: intake, stream-only error handling, and {@link findRender}.
  */
 export const orchestrateRenderRequest = async (
     {
         payload,
-        messageBus,
+        messageBus: _messageBus,
         streamEvent,
     }: {
         payload: RenderRequested;
+        /** Retained for ingress compatibility; stream publishing uses `streamEvent` only. */
         messageBus: MessageBus;
         streamEvent: StreamEventFunction<RenderOrchestrationPublishedPayload>;
     },
@@ -115,43 +102,21 @@ export const orchestrateRenderRequest = async (
         computePerspectiveKey: _deps?.computePerspectiveKey ?? defaultComputePerspectiveKey,
         markStatesEqual: _deps?.markStatesEqual ?? markStatesEqual,
         generateRoomPreview: _deps?.generateRoomPreview ?? generateRoomPreview,
+        runWithSingleFlight: _deps?.runWithSingleFlight,
     }
 
     const intake = await intakeRenderRequested(payload, _deps)
 
-    const conversationId = uuidv4() as ConversationId
-    const perspectiveId = orchDeps.computePerspectiveKey(payload.perspective.assetStack)
-    internalCache.Conversations.set({
-        conversationId,
-        type: CONVERSATION_TYPE_ROOM_STATE_RENDER,
-        routing: {
-            componentId: payload.componentId,
-            perspectiveId,
-            passiveBusDelivery: {
-                perspective: payload.perspective,
-                characterId: payload.characterId,
-                targets: payload.targets,
-                messageGroupId: payload.messageGroupId,
-            },
-        },
-        payload: CONVERSATION_PAYLOAD_STUB,
-    })
-
     const streamKey = payload.componentId
-    const intakeErrorHandled = await deliverIntakeErrorsIfAny(intake, async (output) => {
-        if (output.type === 'failed') {
-            const routing = buildOrchestrationRouting(payload.componentId, payload.perspective, orchDeps.computePerspectiveKey)
-            await publishRenderOrchestrationStreamEvent(streamEvent, streamKey, {
-                type: 'Orchestration Error',
-                ...routing,
-                errorCode: output.errorCode,
-                errorMessage: output.errorMessage,
-            })
-        }
-        const roomStateHandle = getRoomStateRenderHandle(conversationId, messageBus)
-        await roomStateHandle?.sendMessage(output)
-    })
-    if (intakeErrorHandled) {
+    const intakeErr = getIntakeOrchestrationErrorIfAny(intake)
+    if (intakeErr) {
+        const routing = buildOrchestrationRouting(payload.componentId, payload.perspective, orchDeps.computePerspectiveKey)
+        await publishRenderOrchestrationStreamEvent(streamEvent, streamKey, {
+            type: 'Orchestration Error',
+            ...routing,
+            errorCode: intakeErr.errorCode,
+            errorMessage: intakeErr.errorMessage,
+        })
         return
     }
 
@@ -171,10 +136,7 @@ export const orchestrateRenderRequest = async (
         markStatesEqual: orchDeps.markStatesEqual,
         perspectiveMatches,
         publishOrchestration,
-        sendMessage: async (arg) => {
-            const roomStateHandle = getRoomStateRenderHandle(conversationId, messageBus)
-            await roomStateHandle?.sendMessage(arg)
-        },
         generateRoomPreview: orchDeps.generateRoomPreview,
+        runWithSingleFlight: orchDeps.runWithSingleFlight,
     })
 }

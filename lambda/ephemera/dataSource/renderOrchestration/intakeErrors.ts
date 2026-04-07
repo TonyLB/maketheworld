@@ -1,36 +1,36 @@
 import {
     isRenderResolveInputError,
     type RenderResolveInput,
-    type RenderResolveOutput,
 } from './baseClasses'
 
+/** Payload for {@link Orchestration Error} when passive intake fails before {@link findRender}. */
+export type IntakeOrchestrationError = {
+    errorCode: string;
+    errorMessage: string;
+}
+
 /**
- * Maps passive {@link RenderResolveInput} intake errors to terminal {@link RenderResolveOutput}
- * `failed` shapes and delivers via the injected `sendMessage` (same contract as `findRender` deps).
- *
- * Preview uses the same helper for symmetry: with current preview intake (always success), this is a no-op.
+ * If passive {@link RenderResolveInput} is an intake error, returns fields for a single
+ * {@link Orchestration Error} stream publish. Otherwise `null`.
  */
-export const deliverIntakeErrorsIfAny = async (
-    intake: RenderResolveInput,
-    sendMessage: (output: RenderResolveOutput) => Promise<void>
-): Promise<boolean> => {
+export const getIntakeOrchestrationErrorIfAny = (
+    intake: RenderResolveInput
+): IntakeOrchestrationError | null => {
     if (!isRenderResolveInputError(intake)) {
-        return false
+        return null
     }
     switch (intake.errorCode) {
         case 'RENDER_REQUESTED_NOT_ROOM':
-            await sendMessage({
-                type: 'failed',
+            return {
                 errorCode: 'NOT_ROOM',
                 errorMessage: intake.errorMessage,
-            })
-            return true
+            }
         case 'META_ROOM_MARKS_MISSING':
-            await sendMessage({
-                type: 'failed',
+            return {
                 errorCode: 'META_ROOM_MARKS_MISSING',
                 errorMessage: intake.errorMessage,
-            })
-            return true
+            }
+        default:
+            return null
     }
 }

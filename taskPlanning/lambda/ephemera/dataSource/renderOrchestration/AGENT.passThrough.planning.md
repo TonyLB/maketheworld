@@ -1,6 +1,6 @@
 # `renderOrchestration` - pass-through readiness
 
-**Status: ACTIVE TASK PLAN.** **Stop duplicate durability** is done (orchestration does not enqueue **`Put Cache Record`** on passive generation success; **`renderCache`** owns the write on **`Render Generated`**). Next focus: **Passive fan-out (set S)** ([Recommended order](#recommended-order)) and/or **Conversation removal**; orchestration stream skeleton is landed.
+**Status: ACTIVE TASK PLAN.** **Stop duplicate durability** is done (orchestration does not enqueue **`Put Cache Record`** on passive generation success; **`renderCache`** owns the write on **`Render Generated`**). **Conversation removal** for passive orchestration is done (stream-only outcomes). **Integration** (**OI-7**): thin cross-layer Jest test [`passThroughOrchestrationToCache.integration.test.ts`](../../../../../lambda/ephemera/dataSource/passThroughOrchestrationToCache.integration.test.ts) (`orchestrateRenderRequest` + **`renderCache`** subscription). Remaining work is ad-hoc cross-cutting verification only.
 
 This document is the **task plan** for [`lambda/ephemera/dataSource/renderOrchestration/`](../../../../../lambda/ephemera/dataSource/renderOrchestration/): orchestration-side work for the pass-through pattern, separate from [`mtw.ephemera.renderCache`](../../../../../lambda/ephemera/renderCache/) so "who decides hit/miss/generate" stays separate from "who emits the subscribable readiness signal."
 
@@ -20,7 +20,7 @@ Follow the root [**"Getting Started" Pattern for Complex Tasks**](../../../../..
 
 3. **Sub-epic context** --- Read [`lambda/ephemera/AGENT.ephemeraPerceptionVertical.contractAlign.planning.md`](../../../../../lambda/ephemera/AGENT.ephemeraPerceptionVertical.contractAlign.planning.md) for phase B (orchestration), contract-as-tests guardrails, and dependency on [`renderCache`](../renderCache/AGENT.passThrough.planning.md) work.
 
-4. **Package reference** --- [`lambda/ephemera/dataSource/renderOrchestration/AGENT.md`](../../../../../lambda/ephemera/dataSource/renderOrchestration/AGENT.md) describes current behavior (conversation `sendMessage`, ingress). [`AGENT.planning.md`](../../../../../lambda/ephemera/dataSource/renderOrchestration/AGENT.planning.md) holds v2 tasks (e.g. Task 7, fan-out **S**); merge only where the pass-through contract agrees.
+4. **Package reference** --- [`lambda/ephemera/dataSource/renderOrchestration/AGENT.md`](../../../../../lambda/ephemera/dataSource/renderOrchestration/AGENT.md) should be read alongside this plan (ingress + stream outcomes). [`AGENT.planning.md`](../../../../../lambda/ephemera/dataSource/renderOrchestration/AGENT.planning.md) holds v2 tasks (e.g. Task 7, fan-out **S**); merge only where the pass-through contract agrees.
 
 5. **Core integration files** --- Trace the passive path: [`orchestrationHandler.ts`](../../../../../lambda/ephemera/dataSource/renderOrchestration/orchestrationHandler.ts) -> [`findRender.ts`](../../../../../lambda/ephemera/dataSource/renderOrchestration/findRender.ts) -> [`generateRoomPreview.ts`](../../../../../lambda/ephemera/dataSource/renderOrchestration/generateRoomPreview.ts); state-driven fan-out: [`fanOutStateChangedToPassiveRenders.ts`](../../../../../lambda/ephemera/dataSource/renderOrchestration/fanOutStateChangedToPassiveRenders.ts). Conversation materialization: [`roomStateRender/materialize.ts`](../../../../../lambda/ephemera/conversations/conversationTypes/roomStateRender/materialize.ts).
 
@@ -87,26 +87,26 @@ These are **how** we implement agreed rules, not whether the product rules apply
 
 | Id | Resolution |
 | --- | --- |
-| **OI-5** | **Outgoing types and module path:** Six-outbound TypeScript types (unions, guards, helpers) live in [`publishedEvents.ts`](../../../../../lambda/ephemera/dataSource/renderOrchestration/publishedEvents.ts) (**landed**). **`mtw.ephemera.renderOrchestration`** uses **`publisherStrategy: 'busOnly'`**; **`mtw-interfaces`** is **not** required for this internal handoff. **`renderCache`** imports the same ephemera-local types when subscribing. **Emission:** **`sendRenderOrchestrationPublish`** / **`publishRenderOrchestrationStreamEvent`** per [`AGENT.implementation.md`](../../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md) (section **publishedEvents.ts and outgoing update payloads**). **Contract uncertainty 8 remainder:** conversation **`sendMessage`** removal (**Conversation removal**), not type location. |
-| **Duplicate durability (pass-through generation)** | **Resolved:** [`generateRoomPreview`](../../../../../lambda/ephemera/dataSource/renderOrchestration/generateRoomPreview.ts) does **not** call **`publishPutCacheRecord`**, **`defaultPublishPutCacheRecord`**, or **`sendPutCacheRecord`**. Generation success publishes **`Render Generated`** only; **`mtw.ephemera.renderCache`** performs the single Dynamo write and emits **`Render Pertains`** / **`Cache Updated`** ([`renderCache` plan](../renderCache/AGENT.passThrough.planning.md)). **Remaining:** thin cross-layer verification (**OI-7**); grep hygiene below. |
+| **OI-5** | **Outgoing types and module path:** Six-outbound TypeScript types (unions, guards, helpers) live in [`publishedEvents.ts`](../../../../../lambda/ephemera/dataSource/renderOrchestration/publishedEvents.ts) (**landed**). **`mtw.ephemera.renderOrchestration`** uses **`publisherStrategy: 'busOnly'`**; **`mtw-interfaces`** is **not** required for this internal handoff. **`renderCache`** imports the same ephemera-local types when subscribing. **Emission:** **`sendRenderOrchestrationPublish`** / **`publishRenderOrchestrationStreamEvent`** per [`AGENT.implementation.md`](../../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md) (section **publishedEvents.ts and outgoing update payloads**). **Contract uncertainty 8:** passive orchestration no longer uses conversation **`sendMessage`** for outcomes (**Conversation removal** done). |
+| **Duplicate durability (pass-through generation)** | **Resolved:** [`generateRoomPreview`](../../../../../lambda/ephemera/dataSource/renderOrchestration/generateRoomPreview.ts) does **not** call **`publishPutCacheRecord`**, **`defaultPublishPutCacheRecord`**, or **`sendPutCacheRecord`**. Generation success publishes **`Render Generated`** only; **`mtw.ephemera.renderCache`** performs the single Dynamo write and emits **`Render Pertains`** / **`Cache Updated`** ([`renderCache` plan](../renderCache/AGENT.passThrough.planning.md)). Cross-layer verification: [`passThroughOrchestrationToCache.integration.test.ts`](../../../../../lambda/ephemera/dataSource/passThroughOrchestrationToCache.integration.test.ts) (**OI-7**). |
 | **OI-8** | **Resolved (orchestration):** [`fanOutStateChangedToPassiveRenders`](../../../../../lambda/ephemera/dataSource/renderOrchestration/fanOutStateChangedToPassiveRenders.ts) fans out **S = A ∪ P**; pointer-only keys (**P ∖ A**) call **`orchestrateRenderRequest`** with **`allowGeneration: false`**, **`targets: []`**, and **`perspective.assetStack`** reconstructed from the **`CACHE#...`** row plus room canon (key check). **Remaining (cross-cutting):** subscriber ordering vs meta pointers / bus (contract uncertainty 11), not this handler in isolation. |
+| **OI-1** | **Resolved:** Stable cohort key in [`renderGenerationArgumentHash.ts`](../../../../../lambda/ephemera/dataSource/renderOrchestration/renderGenerationArgumentHash.ts) (`computeRenderGenerationArgumentHash`); fixed **`category`** in [`singleFlightRenderGeneration.ts`](../../../../../lambda/ephemera/dataSource/renderOrchestration/singleFlightRenderGeneration.ts) (`EPHEMERA_ROOM_RENDER_GENERATION_CATEGORY`). |
+| **OI-2** | **Resolved:** [`generateRoomPreview`](../../../../../lambda/ephemera/dataSource/renderOrchestration/generateRoomPreview.ts) **`computation`** runs LLM, **`Generation Started`**, and **`Render Generated`** on the orchestration stream; **`retrieval`** (followers) polls **`getExactMatch`** and returns without republishing **`Render Generated`** (duplicate intermediates remain acceptable per UC6). |
+| **OI-3** | **Resolved:** [`defaultRunWithSingleFlight`](../../../../../lambda/ephemera/dataSource/renderOrchestration/singleFlightRenderGeneration.ts) uses **`ephemeraDB.optimisticUpdate`** / **`getItem`**, **`primaryKey: 'EphemeraId'`**, **`RENDER_GENERATION_SINGLE_FLIGHT_TIMEOUT_MS`**. Unit tests inject **`passThroughSingleFlight`** (`await computation()` only). |
 
 ### Open
 
 | Id | Question |
 | --- | --- |
-| **OI-1** | **`argumentHash`** and **`category`** for ephemera **`singleFlightFactory`**: stable routing identity for the generation cohort key. |
-| **OI-2** | **`computation`** vs **`retrieval`**: where LLM runs, where **`renderCache`** writes belong, and ordering of **`Generation Started`** / **`Render Generated`** vs leader expiry and duplicate emissions (ties UC6). |
-| **OI-3** | Wiring to existing **`getItem`** / optimistic patterns; Dynamo interaction details for **singleFlight** records. |
-| **OI-4** | **Cutover order:** sequence of changes across [`findRender`](../../../../../lambda/ephemera/dataSource/renderOrchestration/findRender.ts), [`materialize`](../../../../../lambda/ephemera/conversations/conversationTypes/roomStateRender/materialize.ts), [`generateRoomPreview`](../../../../../lambda/ephemera/dataSource/renderOrchestration/generateRoomPreview.ts), and stream emissions. **Done:** orchestration no longer enqueues **`Put Cache Record`** on passive generation success (**Stop duplicate durability**). **Open:** retire conversation **`sendMessage`** / legacy bus for orchestration outcomes (**Conversation removal**). **Inventory:** [OI-4: Legacy orchestration outcome inventory](#oi-4-legacy-orchestration-outcome-inventory). |
-| **OI-6** | **Tests:** which suite owns stream assertions first; fixture shape; when to switch from conversation mocks to stream assertions. |
-| **OI-7** | **Integration test** timing: thin cross-layer test with **`renderCache`** --- producer + consumer paths are both implemented; **duplicate durability** alignment is done; **integration** test still **not** landed (see [Recommended order](#recommended-order) **Integration**). |
+| **OI-4** | **Cutover order:** **Done** for passive orchestration --- [`orchestrateRenderRequest`](../../../../../lambda/ephemera/dataSource/renderOrchestration/orchestrationHandler.ts) does not register **`roomStateRender`** or inject **`sendMessage`**; outcomes are **`publishRenderOrchestrationStreamEvent`** / **`mtw.ephemera.renderOrchestration`** only. [`materializeRoomStateRender`](../../../../../lambda/ephemera/conversations/conversationTypes/roomStateRender/materialize.ts) may still serve other callers. **Inventory:** [OI-4: Legacy orchestration outcome inventory](#oi-4-legacy-orchestration-outcome-inventory). |
+| **OI-6** | **Resolved (orchestration):** [`orchestrationHandler.test.ts`](../../../../../lambda/ephemera/dataSource/renderOrchestration/orchestrationHandler.test.ts), [`findRender.test.ts`](../../../../../lambda/ephemera/dataSource/renderOrchestration/findRender.test.ts), and [`generateRoomPreview.test.ts`](../../../../../lambda/ephemera/dataSource/renderOrchestration/generateRoomPreview.test.ts) assert stream payloads (and **`publishOrchestration`** mocks), aligned with [`passThroughContract.scaffold.test.ts`](../../../../../lambda/ephemera/dataSource/renderOrchestration/passThroughContract.scaffold.test.ts). |
+| **OI-7** | **Resolved:** Thin cross-layer Jest test [`passThroughOrchestrationToCache.integration.test.ts`](../../../../../lambda/ephemera/dataSource/passThroughOrchestrationToCache.integration.test.ts) --- **`orchestrateRenderRequest`** with **`streamEventFromMessageBus`** plus **`import`** [`renderCache/index`](../../../../../lambda/ephemera/dataSource/renderCache/index.ts) (subscriber); asserts **`renderCache`** **`Render Pertains`** / **`Cache Updated`** (aligned with **`renderCache`** **Cache-OI-6**). |
 
 ---
 
 ## Scope and non-goals
 
-- **In scope:** Six orchestration outbounds on the DataSource stream; **(done)** no **`Put Cache Record`** from orchestration on pass-through generation success; passive fan-out **S** + **`allowGeneration`**; **singleFlight** around generation; migration off conversation **`sendMessage`** for orchestration outcomes; contract-oriented unit tests and eventual thin integration test.
+- **In scope:** Six orchestration outbounds on the DataSource stream; **(done)** no **`Put Cache Record`** from orchestration on pass-through generation success; passive fan-out **S** + **`allowGeneration`**; **singleFlight** around generation; migration off conversation **`sendMessage`** for orchestration outcomes; contract-oriented unit tests and thin integration test with **`renderCache`** ([`passThroughOrchestrationToCache.integration.test.ts`](../../../../../lambda/ephemera/dataSource/passThroughOrchestrationToCache.integration.test.ts)).
 - **Out of scope here:** Duplicating full normative **payload field** lists from the contract (see **Limited refinement** in the contract doc); **`publishedEvents.ts`** **implements** those shapes locally. Final perception fan-in ([`perception` plan](../perception/AGENT.perceptionRefactor.planning.md)). **`currentCachePointers`** behavior ([stub plan](../currentCachePointers/AGENT.cachePointersRefactor.planning.md)).
 
 ---
@@ -139,10 +139,10 @@ These are **how** we implement agreed rules, not whether the product rules apply
 | Stream skeleton: **`sendRenderOrchestrationPublish`** (bus **`StreamingEvent`**) + active orchestration contract tests | Done |
 | Remove **`Put Cache Record`** enqueue from orchestration on generation success (`generateRoomPreview` / helpers) | Done |
 | Passive fan-out: **S** + **`allowGeneration`** in **`fanOutStateChangedToPassiveRenders`** | Done |
-| **singleFlight** around generation (**OI-1**--**OI-3**) | Not started |
-| Retire conversation **`sendMessage`** for orchestration outcomes; verification clean | Not started |
+| **singleFlight** around generation (**OI-1**--**OI-3**) | Done |
+| Retire conversation **`sendMessage`** for orchestration outcomes; verification clean | Done |
 | Contract tests active for orchestration pass-through slice (`passThroughContract.scaffold.test.ts`); **`renderCache`** receiving tests active for Hit + **Render Generated** ([`renderCache` plan](../renderCache/AGENT.passThrough.planning.md)) | Done |
-| Thin integration test with **`renderCache`** (when both sides ready) | Not started |
+| Thin integration test with **`renderCache`** | Done ([`passThroughOrchestrationToCache.integration.test.ts`](../../../../../lambda/ephemera/dataSource/passThroughOrchestrationToCache.integration.test.ts)) |
 
 ---
 
@@ -152,9 +152,9 @@ Agreed order for the stream slice (reduces contract drift and makes cutover sequ
 
 1. **Cross-cutting contract test scaffold (first)** --- Land **deactivated** tests (**`describe.skip` / `it.skip`** with reasons) for intended orchestration **`streamEvent`** outcomes **and** for **`renderCache`** subscription / receiving behavior, per [Encoding the contract in unit tests](../AGENT.passThrough.contract.planning.md#encoding-the-contract-in-unit-tests). Handlers need not exist yet on the cache side; skips keep consumer expectations visible in Jest output.
 2. **Orchestration wiring** --- Wire **`streamEvent`** (or agreed) on **`mtw.ephemera.renderOrchestration`**, emit the six outbounds per contract mapping, and **un-skip** orchestration tests as behavior lands (**`publishedEvents.ts`** types already; **OI-5**).
-3. **`renderCache` follow-up** --- Subscription and handlers for orchestration outbounds are **landed** ([`renderCache` plan](../renderCache/AGENT.passThrough.planning.md)); duplicate **Put Cache Record** from orchestration on generation success is **removed**. **Remaining:** thin **Integration** test (**OI-7** / **Cache-OI-6**).
+3. **`renderCache` follow-up** --- Subscription and handlers for orchestration outbounds are **landed** ([`renderCache` plan](../renderCache/AGENT.passThrough.planning.md)); duplicate **Put Cache Record** from orchestration on generation success is **removed**. Thin **Integration** test: [`passThroughOrchestrationToCache.integration.test.ts`](../../../../../lambda/ephemera/dataSource/passThroughOrchestrationToCache.integration.test.ts) (**OI-7** / **Cache-OI-6**).
 
-Conversation-backed terminals and legacy **`RenderReady`** bus mapping remain [OI-4](#oi-4-legacy-orchestration-outcome-inventory) until **Conversation removal** ([Recommended order](#recommended-order)).
+Passive orchestration no longer emits conversation-backed **`RenderReady`** / **`RenderInvalidate`** / **`RenderError`** on the process bus; see [OI-4](#oi-4-legacy-orchestration-outcome-inventory) for historical mapping and non-orchestration callers.
 
 ---
 
@@ -165,42 +165,37 @@ Pending work uses `[ ]`; completed work uses `[X]`. Apply checkboxes to each act
 - [X] **Inventory** --- Map every orchestration outcome path that uses **`conversation.sendMessage`**, **`materializeRoomStateRender`**, **`publishPutCacheRecord`**, or related **`messageBus`** terminals to a target six-outbound (see contract **Legacy bus terminals** and **Exit `conversation.sendMessage`**). Document gaps in **OI-4** ([section below](#oi-4-legacy-orchestration-outcome-inventory)).
 - [X] **Contract test scaffold (cross-cutting)** --- Add skipped/contract tests for orchestration stream outcomes **and** **`renderCache`** receiving expectations **immediately before** **`streamEvent`** wiring ([Encoding the contract in unit tests](../AGENT.passThrough.contract.planning.md#encoding-the-contract-in-unit-tests); [Stream skeleton sequencing](#stream-skeleton-sequencing) step 1).
 - [X] **Stream skeleton (orchestration)** --- Implement **`sendRenderOrchestrationPublish`** emissions for **`Current Cache Valid`**, **`Exact Match Found`**, **`Generation Started`**, **`Render Generated`**, **`Orchestration Error`**, **`Generation Deferred`** per contract mapping; orchestration contract tests active ([Stream skeleton sequencing](#stream-skeleton-sequencing) step 2).
-- [X] **Stop duplicate durability** --- Remove **`publishPutCacheRecord`** / **`sendPutCacheRecord`** from orchestration-owned generation success; coordinate with **`renderCache`** on **`Render Generated`** ([`renderCache` plan](../renderCache/AGENT.passThrough.planning.md)). **Done:** [`generateRoomPreview`](../../../../../lambda/ephemera/dataSource/renderOrchestration/generateRoomPreview.ts) no longer enqueues **`Put Cache Record`**; **`renderCache`** [`handleRenderOrchestrationInbound`](../../../../../lambda/ephemera/dataSource/renderCache/handleRenderOrchestrationInbound.ts) owns the durable write. **OI-7** remainder: thin **Integration** test only.
+- [X] **Stop duplicate durability** --- Remove **`publishPutCacheRecord`** / **`sendPutCacheRecord`** from orchestration-owned generation success; coordinate with **`renderCache`** on **`Render Generated`** ([`renderCache` plan](../renderCache/AGENT.passThrough.planning.md)). **Done:** [`generateRoomPreview`](../../../../../lambda/ephemera/dataSource/renderOrchestration/generateRoomPreview.ts) no longer enqueues **`Put Cache Record`**; **`renderCache`** [`handleRenderOrchestrationInbound`](../../../../../lambda/ephemera/dataSource/renderCache/handleRenderOrchestrationInbound.ts) owns the durable write.
 - [X] **Passive fan-out (set S)** --- Extend **`fanOutStateChangedToPassiveRenders`** from **A** to **S** with **`allowGeneration`** policy (**OI-8** resolved for orchestration; Task 7 in [`AGENT.planning.md`](../../../../../lambda/ephemera/dataSource/renderOrchestration/AGENT.planning.md)).
-- [ ] **singleFlight generation** --- Wire **`singleFlight`** (coalesce) around the generation step; resolve **OI-1**, **OI-2**, **OI-3** in code; un-skip related tests when stable.
-- [ ] **Conversation removal** --- Remove **`getRoomStateRenderHandle`** / **`sendMessage`** / legacy **`RenderReady`**-class bus paths for orchestration outcomes per contract; assert stream outputs in tests (**OI-6**).
-- [ ] **Integration** --- Add thin cross-layer test with **`renderCache`** when both producer and consumer slices exist (**OI-7**).
-- [ ] **Close the loop** --- Update **Progress**, **Verification** skip inventory, and this **Recommended order** when each slice ships.
+- [X] **singleFlight generation** --- Wire **`singleFlight`** (coalesce) around the generation step in [`generateRoomPreview`](../../../../../lambda/ephemera/dataSource/renderOrchestration/generateRoomPreview.ts); **`passThroughSingleFlight`** for unit tests; **OI-1**--**OI-3** resolved in code.
+- [X] **Conversation removal** --- Remove **`getRoomStateRenderHandle`** / **`sendMessage`** / legacy **`RenderReady`**-class bus paths for orchestration outcomes per contract; assert stream outputs in tests (**OI-6**).
+- [X] **Integration** --- Thin cross-layer test with **`renderCache`** (**OI-7**): [`passThroughOrchestrationToCache.integration.test.ts`](../../../../../lambda/ephemera/dataSource/passThroughOrchestrationToCache.integration.test.ts).
+- [X] **Close the loop** --- Update **Progress**, **Verification** skip inventory, and this **Recommended order** when each slice ships (includes **Integration**).
 
 ## OI-4: Legacy orchestration outcome inventory
 
-**Scope:** Current code paths under [`dataSource/renderOrchestration/`](../../../../../lambda/ephemera/dataSource/renderOrchestration/) that deliver B-phase outcomes or enqueue cache writes. **Unified delivery:** [`orchestrateRenderRequest`](../../../../../lambda/ephemera/dataSource/renderOrchestration/orchestrationHandler.ts) mints a **`roomStateRender`** conversation row and injects **`sendMessage`** that resolves to [`materializeRoomStateRender`](../../../../../lambda/ephemera/conversations/conversationTypes/roomStateRender/materialize.ts) -> **`messageBus.send`** for terminal **`RenderResolveOutput`**. **Pass-through generation:** orchestration **does not** enqueue **`Put Cache Record`** on LLM success; durable write is **`renderCache`** on **`Render Generated`** ([`handleRenderOrchestrationInbound`](../../../../../lambda/ephemera/dataSource/renderCache/handleRenderOrchestrationInbound.ts)). **Other** producers may still use **`api.ephemera`** **`Put Cache Record`** for non-orchestration writes.
+**Current (passive orchestration):** [`orchestrateRenderRequest`](../../../../../lambda/ephemera/dataSource/renderOrchestration/orchestrationHandler.ts) publishes only via **`publishRenderOrchestrationStreamEvent`** / **`mtw.ephemera.renderOrchestration`**. Intake errors use [`getIntakeOrchestrationErrorIfAny`](../../../../../lambda/ephemera/dataSource/renderOrchestration/intakeErrors.ts) and a single **`Orchestration Error`** publish. There is **no** **`roomStateRender`** registration, **`getRoomStateRenderHandle`**, or **`sendMessage`** on this path. **Pass-through generation:** orchestration **does not** enqueue **`Put Cache Record`** on LLM success; durable write is **`renderCache`** on **`Render Generated`** ([`handleRenderOrchestrationInbound`](../../../../../lambda/ephemera/dataSource/renderCache/handleRenderOrchestrationInbound.ts)). **Other** producers may still use **`api.ephemera`** **`Put Cache Record`** for non-orchestration writes.
+
+**Historical mapping (pre stream-only cutover):** The table below described **`materializeRoomStateRender`** terminals for the same logical outcomes; orchestration now emits the **six-outbound** types directly.
 
 **Ingress (both hit the same pipeline):**
 
 | Entry | File | Notes |
 | --- | --- | --- |
 | **`RenderRequested`** from **`api.ephemera`** / DataSource ingress | [`index.ts`](../../../../../lambda/ephemera/dataSource/renderOrchestration/index.ts) | Calls **`orchestrateRenderRequest`**. |
-| **`State Changed`** fan-out | [`fanOutStateChangedToPassiveRenders.ts`](../../../../../lambda/ephemera/dataSource/renderOrchestration/fanOutStateChangedToPassiveRenders.ts) | One **`orchestrateRenderRequest`** per perspective in **S = A ∪ P** (audience-deduped groups plus pointer-only keys with **`allowGeneration: false`**); passes **`messageBus`**. No extra terminals beyond the shared handler. |
+| **`State Changed`** fan-out | [`fanOutStateChangedToPassiveRenders.ts`](../../../../../lambda/ephemera/dataSource/renderOrchestration/fanOutStateChangedToPassiveRenders.ts) | One **`orchestrateRenderRequest`** per perspective in **S = A ∪ P** (audience-deduped groups plus pointer-only keys with **`allowGeneration: false`**); passes **`messageBus`** for ingress compatibility; stream uses **`streamEvent`**. |
 
-**`sendMessage` -> `materializeRoomStateRender` -> legacy bus terminal**
+**Stream emission (current)**
 
-| Source path | `RenderResolveOutput` / progress | [`enrichRenderResolveForPassive`](../../../../../lambda/ephemera/conversations/conversationTypes/roomStateRender/materialize.ts) -> bus type | Target six-outbound (contract) |
-| --- | --- | --- | --- |
-| [`deliverIntakeErrorsIfAny`](../../../../../lambda/ephemera/dataSource/renderOrchestration/intakeErrors.ts) | `failed` / **`NOT_ROOM`** | **`RenderError`** via **`toRenderError`** | **`Orchestration Error`** |
-| [`deliverIntakeErrorsIfAny`](../../../../../lambda/ephemera/dataSource/renderOrchestration/intakeErrors.ts) | `failed` / **`META_ROOM_MARKS_MISSING`** | **`RenderError`** | **`Orchestration Error`** |
-| [`findRender`](../../../../../lambda/ephemera/dataSource/renderOrchestration/findRender.ts) pointer branch valid | `resolved` (full row in payload) | **`RenderReady`** via **`toRenderReady`** | **`Current Cache Valid`** (target: **IDs only**; legacy carries full row) |
-| [`findRender`](../../../../../lambda/ephemera/dataSource/renderOrchestration/findRender.ts) exact match | `resolved` | **`RenderReady`** | **`Exact Match Found`** (target: **IDs only**) |
-| [`findRender`](../../../../../lambda/ephemera/dataSource/renderOrchestration/findRender.ts) **`allowGeneration === false`** miss | `invalidate` / **`NO_CACHE_MATCH_AND_GENERATION_NOT_RUN`** | **`RenderInvalidate`** via **`toRenderInvalidate`** | **`Generation Deferred`** |
-| [`generateRoomPreview`](../../../../../lambda/ephemera/dataSource/renderOrchestration/generateRoomPreview.ts) missing / bad context | `failed` / **`CONTEXT_REQUIRED`** | **`RenderError`** | **`Orchestration Error`** |
-| [`generateRoomPreview`](../../../../../lambda/ephemera/dataSource/renderOrchestration/generateRoomPreview.ts) LLM / description failure | `failed` / **`NO_EXACT_MATCH`**, **`GENERATION_FAILED`**, etc. | **`RenderError`** | **`Orchestration Error`** |
-| [`generateRoomPreview`](../../../../../lambda/ephemera/dataSource/renderOrchestration/generateRoomPreview.ts) success | `resolved` | **`RenderReady`** | **`Render Generated`** on stream (full content; **no** orchestration **`Put Cache Record`**); **`renderCache`** durable outbounds |
-
-**Progress (not on legacy bus today)**
-
-| Call site | Progress | `materialize` behavior | Target six-outbound |
-| --- | --- | --- | --- |
-| [`generateRoomPreview`](../../../../../lambda/ephemera/dataSource/renderOrchestration/generateRoomPreview.ts) slow path | **`sendMessage('generating')`** | **`isRenderProgress`** -> **no-op** (dropped); does **not** emit **`RenderGenerationStarted`** on **`messageBus`** | **`Generation Started`** |
+| Source path | Six-outbound |
+| --- | --- |
+| [`getIntakeOrchestrationErrorIfAny`](../../../../../lambda/ephemera/dataSource/renderOrchestration/intakeErrors.ts) (intake error before **`findRender`**) | **`Orchestration Error`** |
+| [`findRender`](../../../../../lambda/ephemera/dataSource/renderOrchestration/findRender.ts) pointer branch valid | **`Current Cache Valid`** |
+| [`findRender`](../../../../../lambda/ephemera/dataSource/renderOrchestration/findRender.ts) exact match | **`Exact Match Found`** |
+| [`findRender`](../../../../../lambda/ephemera/dataSource/renderOrchestration/findRender.ts) **`allowGeneration === false`** miss | **`Generation Deferred`** |
+| [`generateRoomPreview`](../../../../../lambda/ephemera/dataSource/renderOrchestration/generateRoomPreview.ts) missing / bad context | **`Orchestration Error`** (**`CONTEXT_REQUIRED`**) |
+| [`generateRoomPreview`](../../../../../lambda/ephemera/dataSource/renderOrchestration/generateRoomPreview.ts) LLM / description failure | **`Orchestration Error`** |
+| [`generateRoomPreview`](../../../../../lambda/ephemera/dataSource/renderOrchestration/generateRoomPreview.ts) slow path | **`Generation Started`**, then **`Render Generated`** or **`Orchestration Error`** |
 
 **`publishPutCacheRecord` / `sendPutCacheRecord` (orchestration)**
 
@@ -208,13 +203,7 @@ Pending work uses `[ ]`; completed work uses `[X]`. Apply checkboxes to each act
 | --- | --- |
 | Passive generation success in [`generateRoomPreview`](../../../../../lambda/ephemera/dataSource/renderOrchestration/generateRoomPreview.ts) | **Removed.** Durable **`CACHE#...`** write is **`renderCache`** only on **`Render Generated`**. |
 
-**Gaps for cutover sequencing (OI-4)**
-
-1. **Conversation removal:** **`sendMessage`(`resolved`)** -> **`RenderReady`** still runs for generation success alongside stream **`Render Generated`**; target is to retire legacy **`RenderReady`** for orchestration outcomes per contract (**Conversation removal** in [Recommended order](#recommended-order)).
-2. **Pointer vs exact** share the same legacy **`RenderReady`** shape; six-outbound discriminates **`Current Cache Valid`** vs **`Exact Match Found`** by type only (contract already states this).
-3. **`generating`** is implemented but **not** observable on **`messageBus`**; **`Generation Started`** is net-new on the DataSource stream.
-4. **Ordering (duplicate durability):** **Done** --- **`Render Generated`** (no durable claim) then **`renderCache`** **`putCacheRecord`** + **`Render Pertains`** / **`Cache Updated`**.
-5. **No silent terminal:** If **`getRoomStateRenderHandle`** were missing, **`sendMessage`** would no-op; production always registers the stub conversation before **`findRender`** (worth preserving or replacing with direct stream emit in tests).
+**Other code paths:** [`materializeRoomStateRender`](../../../../../lambda/ephemera/conversations/conversationTypes/roomStateRender/materialize.ts) remains for conversation-backed callers outside this passive orchestration handler; it is not invoked from [`orchestrationHandler.ts`](../../../../../lambda/ephemera/dataSource/renderOrchestration/orchestrationHandler.ts).
 
 ---
 
@@ -227,12 +216,12 @@ Pending work uses `[ ]`; completed work uses `[X]`. Apply checkboxes to each act
 **Contract test expectations**
 
 - Rules: [Encoding the contract in unit tests](../AGENT.passThrough.contract.planning.md#encoding-the-contract-in-unit-tests).
-- Primary files: [`orchestrationHandler.test.ts`](../../../../../lambda/ephemera/dataSource/renderOrchestration/orchestrationHandler.test.ts), [`findRender.test.ts`](../../../../../lambda/ephemera/dataSource/renderOrchestration/findRender.test.ts), [`passThroughContract.scaffold.test.ts`](../../../../../lambda/ephemera/dataSource/renderOrchestration/passThroughContract.scaffold.test.ts) (six-outbound **`StreamingEvent`** assertions).
+- Primary files: [`orchestrationHandler.test.ts`](../../../../../lambda/ephemera/dataSource/renderOrchestration/orchestrationHandler.test.ts), [`findRender.test.ts`](../../../../../lambda/ephemera/dataSource/renderOrchestration/findRender.test.ts), [`passThroughContract.scaffold.test.ts`](../../../../../lambda/ephemera/dataSource/renderOrchestration/passThroughContract.scaffold.test.ts) (six-outbound **`StreamingEvent`** assertions). Cross-layer: [`passThroughOrchestrationToCache.integration.test.ts`](../../../../../lambda/ephemera/dataSource/passThroughOrchestrationToCache.integration.test.ts).
 
 **Grep / hygiene (adjust as code moves)**
 
 - **Duplicate durability:** Under `dataSource/renderOrchestration/`, **`publishPutCacheRecord`**, **`sendPutCacheRecord`**, and **`defaultPublishPutCacheRecord`** must **not** appear on passive **generation success** paths (grep should hit **no** call sites in **`generateRoomPreview`** after cutover). Other packages may still use **`Put Cache Record`** for their own writes.
-- Track migration of **`sendMessage`** / **`materializeRoomStateRender`** for orchestration outcomes.
+- **Conversation / legacy bus:** Under `dataSource/renderOrchestration/`, **`sendMessage`**, **`getRoomStateRenderHandle`**, **`materializeRoomStateRender`**, and orchestration-driven **`RenderReady`** / **`RenderInvalidate`** / **`RenderError`** should **not** appear in orchestration implementation files (comments in [`events.ts`](../../../../../lambda/ephemera/dataSource/renderOrchestration/events.ts) may still mention **`sendMessage`** for conversation-row shapes). Prefer grepping **`orchestrationHandler.ts`**, **`findRender.ts`**, **`generateRoomPreview.ts`**, **`intakeErrors.ts`**.
 
 **Skip inventory**
 
@@ -240,10 +229,10 @@ Maintain a short list here or in the test file header as **`it.skip` / `describe
 
 | Location | Skip reason (summary) |
 | --- | --- |
-| *(none in this package for orchestration six-outbound suite)* | [`passThroughContract.scaffold.test.ts`](../../../../../lambda/ephemera/dataSource/renderOrchestration/passThroughContract.scaffold.test.ts) is active; **`renderCache`** [`passThroughContract.scaffold.test.ts`](../../../../../lambda/ephemera/dataSource/renderCache/passThroughContract.scaffold.test.ts) is active for Hit + **Render Generated** ([`renderCache` plan](../renderCache/AGENT.passThrough.planning.md)). |
+| *(none in this package for orchestration six-outbound suite)* | [`passThroughContract.scaffold.test.ts`](../../../../../lambda/ephemera/dataSource/renderOrchestration/passThroughContract.scaffold.test.ts) is active; **`renderCache`** [`passThroughContract.scaffold.test.ts`](../../../../../lambda/ephemera/dataSource/renderCache/passThroughContract.scaffold.test.ts) is active for Hit + **Render Generated** ([`renderCache` plan](../renderCache/AGENT.passThrough.planning.md)). Integration: [`passThroughOrchestrationToCache.integration.test.ts`](../../../../../lambda/ephemera/dataSource/passThroughOrchestrationToCache.integration.test.ts). |
 
 ---
 
 ## Contract tests (progressive activation)
 
-Canonical rules: [`../AGENT.passThrough.contract.planning.md`](../AGENT.passThrough.contract.planning.md#encoding-the-contract-in-unit-tests). This package adds unit tests for the six outbound types, **`findRender`** / intake branches, and non-duplication of the final correlated readiness signal (owned by **`renderCache`**). Over time, assert **stream** outputs instead of conversation **`sendMessage`** mocks. Integration tests follow when **`renderCache`** consumes orchestration signals.
+Canonical rules: [`../AGENT.passThrough.contract.planning.md`](../AGENT.passThrough.contract.planning.md#encoding-the-contract-in-unit-tests). This package adds unit tests for the six outbound types, **`findRender`** / intake branches, and non-duplication of the final correlated readiness signal (owned by **`renderCache`**). Orchestration unit tests assert **`StreamingEvent`** / **`getContent()`** shapes for **`mtw.ephemera.renderOrchestration`**. Cross-layer integration: [`passThroughOrchestrationToCache.integration.test.ts`](../../../../../lambda/ephemera/dataSource/passThroughOrchestrationToCache.integration.test.ts) (**OI-7** / **`renderCache`** **Cache-OI-6**).
