@@ -4,8 +4,10 @@ import type { EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { StateChangedPayload } from '../state/events'
 import { computePerspectiveKey } from '@tonylb/mtw-interfaces/ts/perspective'
 import {
+    assetStackForPointerOnlyPerspective,
     fanOutStateChangedToPassiveRenders,
     filterRoomCanonStackByCharacterAssets,
+    filterRoomCanonStackByRequiredAssetIds,
     groupCharacterRowsByPerspective,
     type CharacterPerspectiveRow,
 } from './fanOutStateChangedToPassiveRenders'
@@ -23,6 +25,45 @@ describe('fanOutStateChangedToPassiveRenders', () => {
 
         it('returns empty when there is no overlap', () => {
             expect(filterRoomCanonStackByCharacterAssets([A, B], ['ASSET#other'])).toEqual([])
+        })
+    })
+
+    describe('filterRoomCanonStackByRequiredAssetIds', () => {
+        it('preserves room order among required assets', () => {
+            expect(filterRoomCanonStackByRequiredAssetIds([C, A, B], [B, A])).toEqual([A, B])
+        })
+    })
+
+    describe('assetStackForPointerOnlyPerspective', () => {
+        it('returns stack when cache matcher and key agree', async () => {
+            const pk = computePerspectiveKey([A, B])
+            const getCacheRecordById = jest.fn().mockResolvedValue({
+                perspectiveMatcher: { requiredAssetIds: [A, B] },
+            })
+            const stack = await assetStackForPointerOnlyPerspective(
+                'ROOM#x' as EphemeraRoomId,
+                pk,
+                'CACHE#1' as any,
+                [A, B, C],
+                getCacheRecordById,
+                computePerspectiveKey
+            )
+            expect(stack).toEqual([A, B])
+        })
+
+        it('returns undefined when derived key does not match meta key', async () => {
+            const getCacheRecordById = jest.fn().mockResolvedValue({
+                perspectiveMatcher: { requiredAssetIds: [A] },
+            })
+            const stack = await assetStackForPointerOnlyPerspective(
+                'ROOM#x' as EphemeraRoomId,
+                'PERSPECTIVE#v1#wrong',
+                'CACHE#1' as any,
+                [A, B, C],
+                getCacheRecordById,
+                computePerspectiveKey
+            )
+            expect(stack).toBeUndefined()
         })
     })
 
@@ -158,13 +199,14 @@ describe('fanOutStateChangedToPassiveRenders', () => {
         })
     })
 
-    it('no-op when every character has empty filtered stack', async () => {
+    it('no-op when every character has empty filtered stack and no meta pointers', async () => {
         const orchestrateRenderRequestFn = jest.fn().mockResolvedValue(undefined)
         const resolveCanonAssetStackForRoom = jest.fn().mockResolvedValue([A])
         const roomCharacterListGet = jest.fn().mockResolvedValue([
             { EphemeraId: 'CHARACTER#1' as EphemeraCharacterId, DisplayName: 'One', SessionIds: [] },
         ])
         const characterMetaGet = jest.fn().mockResolvedValue({ assets: ['ASSET#unrelated'] })
+        const getMetaRoomBase = jest.fn().mockImplementation(async (roomId: EphemeraRoomId) => baseMetaRoom(roomId))
 
         await fanOutStateChangedToPassiveRenders(
             {
@@ -177,9 +219,147 @@ describe('fanOutStateChangedToPassiveRenders', () => {
                 resolveCanonAssetStackForRoom,
                 roomCharacterListGet,
                 characterMetaGet,
+                getMetaRoomBase,
             }
         )
 
         expect(orchestrateRenderRequestFn).not.toHaveBeenCalled()
+    })
+
+    it('fans out pointer-only perspectives with allowGeneration false when no audience', async () => {
+        const stateChanged = baseStateChanged()
+        const orchestrateRenderRequestFn = jest.fn().mockResolvedValue(undefined)
+        const resolveCanonAssetStackForRoom = jest.fn().mockResolvedValue([A, B, C])
+        const roomCharacterListGet = jest.fn().mockResolvedValue([])
+        const pkAb = computePerspectiveKey([A, B])
+        const getMetaRoomBase = jest.fn().mockImplementation(async (roomId: EphemeraRoomId) => ({
+            ...baseMetaRoom(roomId),
+            currentCacheByPerspective: {
+                [pkAb]: 'CACHE#ab',
+            },
+        }))
+        const getCacheRecordById = jest.fn().mockResolvedValue({
+            perspectiveMatcher: { requiredAssetIds: [A, B] },
+        })
+        const messageBus = { send: jest.fn() } as any
+        const streamEvent = jest.fn().mockResolvedValue(undefined)
+
+        await fanOutStateChangedToPassiveRenders(
+            { stateChanged, messageBus, streamEvent },
+            {
+                orchestrateRenderRequestFn,
+                resolveCanonAssetStackForRoom,
+                roomCharacterListGet,
+                getMetaRoomBase,
+                getCacheRecordById,
+            }
+        )
+
+        expect(orchestrateRenderRequestFn).toHaveBeenCalledTimes(1)
+        expect(orchestrateRenderRequestFn.mock.calls[0][0].payload).toMatchObject({
+            type: 'RenderRequested',
+            perspective: { assetStack: [A, B] },
+            targets: [],
+            allowGeneration: false,
+        })
+        expect(getCacheRecordById).toHaveBeenCalledWith('ROOM#fanout', 'CACHE#ab')
+    })
+
+    it('does not duplicate orchestrate when meta pointer key matches audience perspective', async () => {
+        const stateChanged = baseStateChanged()
+        const orchestrateRenderRequestFn = jest.fn().mockResolvedValue(undefined)
+        const resolveCanonAssetStackForRoom = jest.fn().mockResolvedValue([A, B])
+        const roomCharacterListGet = jest.fn().mockResolvedValue([
+            { EphemeraId: 'CHARACTER#1' as EphemeraCharacterId, DisplayName: 'One', SessionIds: [] },
+            { EphemeraId: 'CHARACTER#2' as EphemeraCharacterId, DisplayName: 'Two', SessionIds: [] },
+        ])
+        const characterMetaGet = jest.fn().mockResolvedValue({ assets: [A, B, C] })
+        const pkAb = computePerspectiveKey([A, B])
+        const getMetaRoomBase = jest.fn().mockImplementation(async (roomId: EphemeraRoomId) => ({
+            ...baseMetaRoom(roomId),
+            currentCacheByPerspective: {
+                [pkAb]: 'CACHE#overlap',
+            },
+        }))
+        const getCacheRecordById = jest.fn()
+        const messageBus = { send: jest.fn() } as any
+        const streamEvent = jest.fn().mockResolvedValue(undefined)
+
+        await fanOutStateChangedToPassiveRenders(
+            { stateChanged, messageBus, streamEvent },
+            {
+                orchestrateRenderRequestFn,
+                resolveCanonAssetStackForRoom,
+                roomCharacterListGet,
+                characterMetaGet,
+                getMetaRoomBase,
+                getCacheRecordById,
+            }
+        )
+
+        expect(orchestrateRenderRequestFn).toHaveBeenCalledTimes(1)
+        expect(orchestrateRenderRequestFn.mock.calls[0][0].payload).toMatchObject({
+            targets: ['CHARACTER#1', 'CHARACTER#2'],
+        })
+        expect(orchestrateRenderRequestFn.mock.calls[0][0].payload.allowGeneration).toBeUndefined()
+        expect(getCacheRecordById).not.toHaveBeenCalled()
+    })
+
+    it('fans out audience perspectives and an extra pointer-only perspective', async () => {
+        const stateChanged = baseStateChanged()
+        const orchestrateRenderRequestFn = jest.fn().mockResolvedValue(undefined)
+        const resolveCanonAssetStackForRoom = jest.fn().mockResolvedValue([A, B, C])
+        const roomCharacterListGet = jest.fn().mockResolvedValue([
+            { EphemeraId: 'CHARACTER#1' as EphemeraCharacterId, DisplayName: 'One', SessionIds: [] },
+            { EphemeraId: 'CHARACTER#2' as EphemeraCharacterId, DisplayName: 'Two', SessionIds: [] },
+        ])
+        const characterMetaGet = jest
+            .fn()
+            .mockResolvedValueOnce({ assets: [A, B] })
+            .mockResolvedValueOnce({ assets: [A] })
+        const pkAb = computePerspectiveKey([A, B])
+        const pkA = computePerspectiveKey([A])
+        const pkBc = computePerspectiveKey([B, C])
+        const getMetaRoomBase = jest.fn().mockImplementation(async (roomId: EphemeraRoomId) => ({
+            ...baseMetaRoom(roomId),
+            currentCacheByPerspective: {
+                [pkAb]: 'CACHE#ab',
+                [pkA]: 'CACHE#a',
+                [pkBc]: 'CACHE#bc',
+            },
+        }))
+        const getCacheRecordById = jest.fn().mockImplementation(async (_room: EphemeraRoomId, cacheId: string) => {
+            if (cacheId === 'CACHE#bc') {
+                return { perspectiveMatcher: { requiredAssetIds: [B, C] } }
+            }
+            return undefined
+        })
+        const messageBus = { send: jest.fn() } as any
+        const streamEvent = jest.fn().mockResolvedValue(undefined)
+
+        await fanOutStateChangedToPassiveRenders(
+            { stateChanged, messageBus, streamEvent },
+            {
+                orchestrateRenderRequestFn,
+                resolveCanonAssetStackForRoom,
+                roomCharacterListGet,
+                characterMetaGet,
+                getMetaRoomBase,
+                getCacheRecordById,
+            }
+        )
+
+        expect(orchestrateRenderRequestFn).toHaveBeenCalledTimes(3)
+        const payloads = orchestrateRenderRequestFn.mock.calls.map((c) => c[0].payload)
+        const withDefer = payloads.filter((p: { allowGeneration?: boolean }) => p.allowGeneration === false)
+        const withoutDefer = payloads.filter((p: { allowGeneration?: boolean }) => p.allowGeneration !== false)
+        expect(withDefer).toHaveLength(1)
+        expect(withoutDefer).toHaveLength(2)
+        expect(withDefer[0]).toMatchObject({
+            perspective: { assetStack: [B, C] },
+            targets: [],
+        })
+        expect(getCacheRecordById).toHaveBeenCalledTimes(1)
+        expect(getCacheRecordById).toHaveBeenCalledWith('ROOM#fanout', 'CACHE#bc')
     })
 })
