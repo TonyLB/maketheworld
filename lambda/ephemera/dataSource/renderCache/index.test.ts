@@ -8,6 +8,12 @@ import {
 } from './baseClasses'
 import { sendDeleteCacheRecords } from '../apiEphemera'
 import { isRenderCacheCacheDeletedPayload } from './baseClasses'
+import { ephemeraRenderCacheDataSource } from './index'
+import {
+    makePassThroughCurrentCacheValidPayload,
+    passThroughFixtureRoomId,
+} from '../passThroughContractFixtures'
+import { RENDER_ORCHESTRATION_DATA_SOURCE_KEY } from '../renderOrchestration/publishedEvents'
 
 jest.mock('./putCacheRecord', () => ({
     putCacheRecord: jest.fn(),
@@ -15,9 +21,6 @@ jest.mock('./putCacheRecord', () => ({
 jest.mock('./deleteCacheRecord', () => ({
     deleteCacheRecord: jest.fn(),
 }))
-
-// Side-effect: registers mtw.ephemera.renderCache subscription on messageBus
-import './index'
 
 const putCacheRecordMock = putCacheRecord as jest.MockedFunction<typeof putCacheRecord>
 const deleteCacheRecordMock = deleteCacheRecord as jest.MockedFunction<typeof deleteCacheRecord>
@@ -173,5 +176,30 @@ describe('mtw.ephemera.renderCache DataSource', () => {
             componentId: 'ROOM#room-one',
             dataCategories: ['CACHE#one', 'CACHE#two'],
         })
+    })
+
+    it('receiveEvents handles renderOrchestration outbound without putCacheRecord or renderCache streamEvent', async () => {
+        const streamEvent = jest.fn().mockResolvedValue(undefined)
+        const content = makePassThroughCurrentCacheValidPayload()
+        const events: any[] = [
+            {
+                header: {
+                    dataSourceKey: RENDER_ORCHESTRATION_DATA_SOURCE_KEY,
+                    streamKey: passThroughFixtureRoomId,
+                    timestamp: Date.now(),
+                    type: 'Current Cache Valid',
+                },
+                getContent: () => Promise.resolve(content),
+            },
+        ]
+
+        await ephemeraRenderCacheDataSource.receiveEvents?.({
+            events,
+            streamEvent,
+            streamEnvelope: jest.fn().mockResolvedValue(undefined),
+        })
+
+        expect(putCacheRecordMock).not.toHaveBeenCalled()
+        expect(streamEvent).not.toHaveBeenCalled()
     })
 })

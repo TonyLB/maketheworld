@@ -1,13 +1,10 @@
 /**
  * mtw.ephemera.renderCache: consumes api.ephemera Put Cache Record and Delete Cache Records,
+ * subscribes to mtw.ephemera.renderOrchestration pass-through outbounds (see handleRenderOrchestrationInbound),
  * writes via putCacheRecord / deleteCacheRecord, publishes Cache Updated / Cache Deleted / Cache Error
  * on the internal bus (bus-only, non-replayable).
  */
 import EphemeraDataSource from '../abstract'
-import {
-    isEphemeraApiPutCacheRecordEnvelope,
-    isEphemeraApiDeleteCacheRecordsEnvelope
-} from '../apiEphemera'
 import type { DeleteCacheRecordsCommand, PutCacheRecordCommand } from '../localApiEvents'
 import { isDeleteCacheRecordsCommand, isPutCacheRecordCommand } from '../localApiEvents'
 import { putCacheRecord } from './putCacheRecord'
@@ -15,27 +12,43 @@ import { deleteCacheRecord } from './deleteCacheRecord'
 import type { EphemeraCacheComponentId } from '../../renderCache/baseClasses'
 import internalCache from '../../internalCache'
 import type { RenderCacheUpdatePayload } from './baseClasses'
+import {
+    isRenderOrchestrationPublishedPayload,
+    isRenderOrchestrationPublishedStreamEnvelope,
+} from '../renderOrchestration/publishedEvents'
+import type { RenderCacheSubscribedContent } from './subscribedEvents'
+import { isRenderCacheSubscribedEnvelope } from './subscribedEvents'
+import { handleRenderOrchestrationInbound } from './handleRenderOrchestrationInbound'
 
 type CacheCommand = PutCacheRecordCommand | DeleteCacheRecordsCommand
 
-const isPutOrDeleteCacheCommandEnvelope = (envelope: any): envelope is any => (
-    isEphemeraApiPutCacheRecordEnvelope(envelope) || isEphemeraApiDeleteCacheRecordsEnvelope(envelope)
-)
-
-export const ephemeraRenderCacheDataSource = new EphemeraDataSource<never, RenderCacheUpdatePayload, CacheCommand>({
+export const ephemeraRenderCacheDataSource = new EphemeraDataSource<never, RenderCacheUpdatePayload, RenderCacheSubscribedContent>({
     dataSourceKey: 'mtw.ephemera.renderCache',
     replayable: false,
     publisherStrategy: 'busOnly',
-    subscribedEventTypeGuard: isPutOrDeleteCacheCommandEnvelope,
+    subscribedEventTypeGuard: isRenderCacheSubscribedEnvelope,
     receiveEvents: async ({ events, streamEvent }) => {
         await Promise.all(
             events.map(async (evt) => {
+                if (isRenderOrchestrationPublishedStreamEnvelope(evt)) {
+                    const raw = await evt.getContent()
+                    if (!isRenderOrchestrationPublishedPayload(raw)) {
+                        console.error('[mtw.ephemera.renderCache] invalid renderOrchestration stream payload', {
+                            headerType: evt.header.type,
+                            streamKey: evt.header.streamKey,
+                        })
+                        return
+                    }
+                    await handleRenderOrchestrationInbound({ content: raw, streamEvent })
+                    return
+                }
+
                 const streamKey = evt.header.streamKey
                 let componentId: EphemeraCacheComponentId = streamKey as EphemeraCacheComponentId
                 let perspectiveId: string | undefined
                 let opErrorCode: string | undefined
                 try {
-                    const cmd = await (evt as any).getContent() as CacheCommand
+                    const cmd = await evt.getContent() as CacheCommand
                     if (isPutCacheRecordCommand(cmd)) {
                         opErrorCode = 'PUT_FAILED'
                         componentId = cmd.componentId

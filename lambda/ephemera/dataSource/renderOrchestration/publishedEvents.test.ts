@@ -5,8 +5,10 @@ import {
     isRenderOrchestrationGenerationStartedPayload,
     isRenderOrchestrationOrchestrationErrorPayload,
     isRenderOrchestrationPublishedPayload,
+    isRenderOrchestrationPublishedStreamEnvelope,
     isRenderOrchestrationRenderGeneratedPayload,
     publishRenderOrchestrationStreamEvent,
+    RENDER_ORCHESTRATION_DATA_SOURCE_KEY,
     sendRenderOrchestrationPublish,
     streamEventFromMessageBus,
     type RenderOrchestrationPublishedPayload,
@@ -117,6 +119,52 @@ describe('publishedEvents guards', () => {
     it('rejects aggregate for non-object', () => {
         expect(isRenderOrchestrationPublishedPayload(null)).toBe(false)
         expect(isRenderOrchestrationPublishedPayload(1)).toBe(false)
+    })
+})
+
+describe('isRenderOrchestrationPublishedStreamEnvelope', () => {
+    it('accepts envelope with renderOrchestration dataSourceKey and known header.type', () => {
+        const content: RenderOrchestrationPublishedPayload = {
+            type: 'Current Cache Valid',
+            ...routing,
+            cacheId: minimalCacheId,
+        }
+        const envelope = {
+            header: {
+                dataSourceKey: RENDER_ORCHESTRATION_DATA_SOURCE_KEY,
+                streamKey: passThroughFixtureRoomId,
+                timestamp: Date.now(),
+                type: 'Current Cache Valid',
+            },
+            getContent: () => Promise.resolve(content),
+        }
+        expect(isRenderOrchestrationPublishedStreamEnvelope(envelope as any)).toBe(true)
+    })
+
+    it('rejects wrong dataSourceKey', () => {
+        const envelope = {
+            header: {
+                dataSourceKey: 'mtw.ephemera',
+                streamKey: passThroughFixtureRoomId,
+                timestamp: Date.now(),
+                type: 'Current Cache Valid',
+            },
+            getContent: () => Promise.resolve({}),
+        }
+        expect(isRenderOrchestrationPublishedStreamEnvelope(envelope as any)).toBe(false)
+    })
+
+    it('rejects unknown header.type for orchestration stream', () => {
+        const envelope = {
+            header: {
+                dataSourceKey: RENDER_ORCHESTRATION_DATA_SOURCE_KEY,
+                streamKey: passThroughFixtureRoomId,
+                timestamp: Date.now(),
+                type: 'Unknown Event',
+            },
+            getContent: () => Promise.resolve({}),
+        }
+        expect(isRenderOrchestrationPublishedStreamEnvelope(envelope as any)).toBe(false)
     })
 })
 

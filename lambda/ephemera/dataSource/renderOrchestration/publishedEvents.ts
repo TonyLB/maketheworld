@@ -3,7 +3,7 @@
  * See taskPlanning/.../AGENT.passThrough.contract.planning.md (Limited refinement, six outbounds).
  */
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
-import type { StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import type { StreamingEventEnvelope, StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { createInternalOriginEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import { isPerspective, type Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
 import { EphemeraCacheId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
@@ -204,6 +204,21 @@ export const isRenderOrchestrationPublishedPayload = (
     || isRenderOrchestrationRenderGeneratedPayload(value)
     || isRenderOrchestrationOrchestrationErrorPayload(value)
     || isRenderOrchestrationGenerationDeferredPayload(value)
+)
+
+const isRenderOrchestrationPublishedHeaderType = (type: string): type is RenderOrchestrationPublishedEventType => (
+    (RENDER_ORCHESTRATION_PUBLISHED_EVENT_TYPES as readonly string[]).includes(type)
+)
+
+/**
+ * Message-bus filter for consumers (e.g. mtw.ephemera.renderCache) that subscribe to orchestration outbounds.
+ * Header-only; validate payload with {@link isRenderOrchestrationPublishedPayload} in receiveEvents if needed.
+ */
+export const isRenderOrchestrationPublishedStreamEnvelope = (
+    envelope: StreamingEventEnvelope<unknown>
+): envelope is StreamingEventEnvelope<RenderOrchestrationPublishedPayload> => (
+    envelope.header.dataSourceKey === RENDER_ORCHESTRATION_DATA_SOURCE_KEY
+    && isRenderOrchestrationPublishedHeaderType(envelope.header.type)
 )
 
 type Bus = { send: (payload: StreamingEventMessage) => void }
