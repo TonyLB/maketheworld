@@ -2,9 +2,11 @@
  * Contract tests: renderCache subscribes to mtw.ephemera.renderOrchestration; hit outbounds should
  * refetch + emit Render Pertains; Render Generated should persist + emit per pass-through contract.
  * Importing ./index registers the DataSource once (ESM module cache; safe with index.test.ts).
- * Skipped its: Hit path / Generate path until those milestones (see AGENT.passThrough.planning.md).
+ * Hit-path tests spy internalCache.RenderCache.get to supply a refetched row (avoids Dynamo).
+ * Skipped its: Generate path until that milestone (see AGENT.passThrough.planning.md).
  */
 import './index'
+import internalCache from '../../internalCache'
 import messageBus from '../../messageBus'
 import { sendRenderOrchestrationPublish } from '../renderOrchestration/publishedEvents'
 import { RENDER_CACHE_DATA_SOURCE_KEY } from './baseClasses'
@@ -15,6 +17,7 @@ import {
     makePassThroughGenerationStartedPayload,
     makePassThroughOrchestrationErrorPayload,
     makePassThroughRenderGeneratedPayload,
+    passThroughFixtureMinimalDynamoItem,
     passThroughFixtureMinimalCacheId,
     passThroughFixtureRoomId,
     passThroughFixturePerspectiveKey,
@@ -23,10 +26,16 @@ import {
 describe('renderCache receives renderOrchestration stream', () => {
     beforeEach(() => {
         messageBus.clear()
+        internalCache.RenderCache.clear()
+        jest.spyOn(internalCache.RenderCache, 'get').mockResolvedValue([passThroughFixtureMinimalDynamoItem])
     })
 
-    it.skip(
-        'Current Cache Valid leads to Render Pertains after refetch (IDs-only hit; lean routing) [until Hit path]',
+    afterEach(() => {
+        jest.restoreAllMocks()
+    })
+
+    it(
+        'Current Cache Valid leads to Render Pertains after refetch (IDs-only hit; lean routing)',
         async () => {
             const received: unknown[] = []
             messageBus.subscribe({
@@ -56,8 +65,8 @@ describe('renderCache receives renderOrchestration stream', () => {
         }
     )
 
-    it.skip(
-        'Exact Match Found leads to Render Pertains after refetch (lean routing) [until Hit path]',
+    it(
+        'Exact Match Found leads to Render Pertains after refetch (lean routing)',
         async () => {
             const received: unknown[] = []
             messageBus.subscribe({
