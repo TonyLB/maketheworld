@@ -3,6 +3,7 @@ import { perspectiveMatches, computePerspectiveKey, type Perspective } from '@to
 import type { EphemeraCacheId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraCacheDynamoItem, EphemeraCacheMarkState } from '../../renderCache/baseClasses'
 import type { generateRoomPreview } from './generateRoomPreview'
+import type { RunWithSingleFlight } from './singleFlightRenderGeneration'
 import { buildOrchestrationRouting } from './orchestrationRouting'
 import type { RenderOrchestrationPublishedPayload } from './publishedEvents'
 import {
@@ -29,6 +30,8 @@ export type FindRenderDependencies = {
     /** Terminals from pointer/exact/invalidate paths, and progress + terminals from generation (same handle as orchestration). */
     sendMessage: (arg: RenderProgress | RenderResolveOutput) => Promise<void>;
     generateRoomPreview: typeof generateRoomPreview;
+    /** Optional: tests pass {@link passThroughSingleFlight}; production uses default from `generateRoomPreview`. */
+    runWithSingleFlight?: RunWithSingleFlight;
     /** mtw.ephemera.renderOrchestration stream outbounds (six-type pass-through contract). */
     publishOrchestration: (content: RenderOrchestrationPublishedPayload) => void | Promise<void>;
 }
@@ -125,6 +128,8 @@ export const findRender = async (
         {
             sendMessage: deps.sendMessage,
             publishOrchestration: deps.publishOrchestration,
+            getExactMatch: deps.getExactMatch,
+            runWithSingleFlight: deps.runWithSingleFlight,
         },
     )
 }

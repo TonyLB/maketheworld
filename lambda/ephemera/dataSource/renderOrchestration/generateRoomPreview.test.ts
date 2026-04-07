@@ -4,6 +4,7 @@ jest.mock('uuid', () => ({
 }))
 
 import { generateRoomPreview } from './generateRoomPreview'
+import { passThroughSingleFlight } from './singleFlightRenderGeneration'
 import type {
     EphemeraCacheMarkState,
     EphemeraCacheRenderedContent,
@@ -29,7 +30,7 @@ describe('dataSource/renderOrchestration/generateRoomPreview', () => {
             roomId,
             markState: makeMarkState([{ mark: 'MARK#a', value: 'one' }]),
             assetStack: ['ASSET#one']
-        }, { sendMessage, publishOrchestration: noopPublishOrchestration })
+        }, { sendMessage, publishOrchestration: noopPublishOrchestration, runWithSingleFlight: passThroughSingleFlight })
 
         expect(result).toBe('fail')
         expect(sendMessage).toHaveBeenCalledTimes(1)
@@ -48,7 +49,7 @@ describe('dataSource/renderOrchestration/generateRoomPreview', () => {
             markState: makeMarkState([{ mark: 'MARK#a', value: 'one' }]),
             assetStack: ['ASSET#one'],
             generationContextWml: '<not valid wml<<'
-        }, { sendMessage, publishOrchestration: noopPublishOrchestration })
+        }, { sendMessage, publishOrchestration: noopPublishOrchestration, runWithSingleFlight: passThroughSingleFlight })
 
         expect(result).toBe('fail')
         expect(sendMessage).toHaveBeenCalledTimes(1)
@@ -82,6 +83,7 @@ describe('dataSource/renderOrchestration/generateRoomPreview', () => {
                 queryCacheRecordsForComponentImpl,
                 sendMessage,
                 publishOrchestration: noopPublishOrchestration,
+                runWithSingleFlight: passThroughSingleFlight,
             }
         )
 
@@ -133,6 +135,7 @@ describe('dataSource/renderOrchestration/generateRoomPreview', () => {
                 queryCacheRecordsForComponentImpl,
                 sendMessage,
                 publishOrchestration: noopPublishOrchestration,
+                runWithSingleFlight: passThroughSingleFlight,
             }
         )
 

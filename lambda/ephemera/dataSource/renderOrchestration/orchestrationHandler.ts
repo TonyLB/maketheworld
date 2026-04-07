@@ -29,6 +29,7 @@ import { buildOrchestrationRouting } from './orchestrationRouting'
 import { publishRenderOrchestrationStreamEvent, type RenderOrchestrationPublishedPayload } from './publishedEvents'
 import { findRender } from './findRender'
 import { generateRoomPreview } from './generateRoomPreview'
+import type { RunWithSingleFlight } from './singleFlightRenderGeneration'
 import { intakeRenderRequested } from './requestIntake'
 import type { RequestIntakeDependencies } from './requestIntake'
 import internalCache from '../../internalCache'
@@ -45,6 +46,8 @@ export type OrchestrationHandlerDependencies = {
     markStatesEqual?: typeof markStatesEqual;
     /** Override for tests; default is {@link generateRoomPreview}. */
     generateRoomPreview?: typeof generateRoomPreview;
+    /** Tests: {@link passThroughSingleFlight} from `./singleFlightRenderGeneration`; omit in production. */
+    runWithSingleFlight?: RunWithSingleFlight;
 };
 
 export type OrchestrationPipelineDependencies = RequestIntakeDependencies & OrchestrationHandlerDependencies
@@ -56,6 +59,7 @@ type OrchestrationHandlerDepsResolved = {
     computePerspectiveKey: NonNullable<OrchestrationHandlerDependencies['computePerspectiveKey']>;
     markStatesEqual: NonNullable<OrchestrationHandlerDependencies['markStatesEqual']>;
     generateRoomPreview: typeof generateRoomPreview;
+    runWithSingleFlight: RunWithSingleFlight | undefined;
 };
 
 export const defaultGetCacheRecordById = async (
@@ -115,6 +119,7 @@ export const orchestrateRenderRequest = async (
         computePerspectiveKey: _deps?.computePerspectiveKey ?? defaultComputePerspectiveKey,
         markStatesEqual: _deps?.markStatesEqual ?? markStatesEqual,
         generateRoomPreview: _deps?.generateRoomPreview ?? generateRoomPreview,
+        runWithSingleFlight: _deps?.runWithSingleFlight,
     }
 
     const intake = await intakeRenderRequested(payload, _deps)
@@ -176,5 +181,6 @@ export const orchestrateRenderRequest = async (
             await roomStateHandle?.sendMessage(arg)
         },
         generateRoomPreview: orchDeps.generateRoomPreview,
+        runWithSingleFlight: orchDeps.runWithSingleFlight,
     })
 }
