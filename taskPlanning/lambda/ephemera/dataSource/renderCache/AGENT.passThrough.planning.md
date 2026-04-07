@@ -1,6 +1,6 @@
 # `mtw.ephemera.renderCache` - pass-through readiness
 
-**Status: ACTIVE TASK PLAN.** Next focus: **Handlers + tests** (implement pass-through handling per contract; **un-skip** [`passThroughContract.scaffold.test.ts`](../../../../../lambda/ephemera/dataSource/renderCache/passThroughContract.scaffold.test.ts) per [orchestration Stream skeleton sequencing](../renderOrchestration/AGENT.passThrough.planning.md#stream-skeleton-sequencing)). **Subscribe** to **`mtw.ephemera.renderOrchestration`** is done (stub inbound handler).
+**Status: ACTIVE TASK PLAN.** Next focus: **Hit path** then **Generate path** (refetch + **`Render Pertains`**; durable write + emits on **`Render Generated`**). **Handlers + tests** umbrella is done: [`handleRenderOrchestrationInbound.ts`](../../../../../lambda/ephemera/dataSource/renderCache/handleRenderOrchestrationInbound.ts) dispatches all six outbounds; [`passThroughContract.scaffold.test.ts`](../../../../../lambda/ephemera/dataSource/renderCache/passThroughContract.scaffold.test.ts) **`describe`** active, **`it.skip`** on Hit/Generate contract tests until those milestones.
 
 This document is the **task plan** for [`lambda/ephemera/dataSource/renderCache/`](../../../../../lambda/ephemera/dataSource/renderCache/index.ts): how **`mtw.ephemera.renderCache`** participates in the pass-through pattern so paths that **write** cache rows and paths where content is **already** cached surface a **single subscribable story** (correlated **`Render Pertains`** and abstract **`Cache Updated`** per contract). Shared semantics and payload rules live in the [canonical contract](../AGENT.passThrough.contract.planning.md).
 
@@ -88,7 +88,7 @@ These are **how** we implement agreed rules, not whether the product rules apply
 | Invalid command shape | (falls through after guards) | none | **`Cache Error`** (`INVALID_PAYLOAD`) |
 | Thrown errors from put/delete | `catch` | partial writes possible before throw | **`Cache Error`** (`PUT_FAILED` / `DELETE_FAILED` / `CACHE_COMMAND_FAILED`) |
 
-**Subscribed:** **`mtw.ephemera.renderOrchestration`** six outbounds via widened **`subscribedEventTypeGuard`** ([`subscribedEvents.ts`](../../../../../lambda/ephemera/dataSource/renderCache/subscribedEvents.ts)) on the same DataSource **`receiveEvents`** as **`api.ephemera`** (message bus, not a second subscription). Stub handler: [`handleRenderOrchestrationInbound.ts`](../../../../../lambda/ephemera/dataSource/renderCache/handleRenderOrchestrationInbound.ts) (**Cache-OI-2** done; pass-through behavior in **Handlers + tests**).
+**Subscribed:** **`mtw.ephemera.renderOrchestration`** six outbounds via widened **`subscribedEventTypeGuard`** ([`subscribedEvents.ts`](../../../../../lambda/ephemera/dataSource/renderCache/subscribedEvents.ts)) on the same DataSource **`receiveEvents`** as **`api.ephemera`** (message bus, not a second subscription). Inbound handler: [`handleRenderOrchestrationInbound.ts`](../../../../../lambda/ephemera/dataSource/renderCache/handleRenderOrchestrationInbound.ts) (**Cache-OI-2** done; per-type dispatch; refetch / **`Render Pertains`** / generate-path write in **Hit path** / **Generate path**).
 
 ### Current publishes (outbound contract surface)
 
@@ -104,8 +104,8 @@ These are **how** we implement agreed rules, not whether the product rules apply
 
 | Contract target | Current code |
 | --- | --- |
-| Subscribe to **`renderOrchestration`** stream | **Wired** (stub handlers); **`Render Pertains`** / durable write still **missing** (**Cache-OI-3**). |
-| **`Current Cache Valid` / `Exact Match Found`** -> refetch -> **`Render Pertains`** only (no write) | **Missing** --- no orchestration consumer; hits today terminate in orchestration + legacy **`RenderReady`** path, not in this DataSource. |
+| Subscribe to **`renderOrchestration`** stream | **Wired** (per-type inbound dispatch); **`Render Pertains`** / durable write still **missing** (**Cache-OI-3**). |
+| **`Current Cache Valid` / `Exact Match Found`** -> refetch -> **`Render Pertains`** only (no write) | **Inbound handler** present; **refetch** + **`Render Pertains`** still **Hit path** milestone (legacy hits may still terminate in orchestration + **`RenderReady`** until cutover). |
 | **`Render Generated`** -> durable write -> **`Render Pertains`** + optional **`Cache Updated`** | **Partial / legacy** --- generation success still uses **`publishPutCacheRecord`** -> **`Put Cache Record`** on **`api.ephemera`**, which hits the **same** put handler and emits **`Cache Updated`** only (no **`Render Pertains`**). Cutover needs orchestration to stop enqueueing put on generation and this package to own write on **`Render Generated`** (**Cache-OI-1**, coordinated **Stop duplicate durability**). |
 | Lean routing (**`componentId`**, **`perspectiveKey`**, **`cacheId`**) without synthetic correlation on producer streams | **`Cache Updated`** still carries **`perspectiveId`** and optional **`conversationId`**; **`perspectiveKey`** / **`Render Pertains`** not present --- **Cache-OI-3** and contract **Routing identity** remain implementation work. |
 
@@ -116,8 +116,8 @@ These are **how** we implement agreed rules, not whether the product rules apply
 | **Cache-OI-1** | Single outbound after put today (**`Cache Updated`**). Contract needs **`Render Pertains`** (always for pass-through outcomes) and pairing vs **`Cache Updated`** on the generate-path single write; hit path = **`Render Pertains`** without **`Cache Updated`**. |
 | **Cache-OI-2** | **`isRenderCacheSubscribedEnvelope`** in [`subscribedEvents.ts`](../../../../../lambda/ephemera/dataSource/renderCache/subscribedEvents.ts); orchestration branch in [`index.ts`](../../../../../lambda/ephemera/dataSource/renderCache/index.ts). |
 | **Cache-OI-3** | Inbound: add guards for orchestration **`header.type`** + **`publishedEvents.ts`**; outbound: extend union with **`Render Pertains`** (and possibly local **`publishedEvents.ts`** for bus-only emits per pattern). |
-| **Cache-OI-4** | No refetch path; no hit-path handler until orchestration events are consumed. |
-| **Cache-OI-5** | [`index.test.ts`](../../../../../lambda/ephemera/dataSource/renderCache/index.test.ts) / [`putCacheRecord.test.ts`](../../../../../lambda/ephemera/dataSource/renderCache/putCacheRecord.test.ts) anchor **`api.ephemera`** behavior; skipped receiving contract tests in [`passThroughContract.scaffold.test.ts`](../../../../../lambda/ephemera/dataSource/renderCache/passThroughContract.scaffold.test.ts) (**un-skip** with Subscribe + handlers). |
+| **Cache-OI-4** | Inbound handler runs for hit outbounds; **refetch** + **`Render Pertains`** still **Hit path** milestone. |
+| **Cache-OI-5** | [`index.test.ts`](../../../../../lambda/ephemera/dataSource/renderCache/index.test.ts) / [`putCacheRecord.test.ts`](../../../../../lambda/ephemera/dataSource/renderCache/putCacheRecord.test.ts) anchor **`api.ephemera`** behavior; [`passThroughContract.scaffold.test.ts`](../../../../../lambda/ephemera/dataSource/renderCache/passThroughContract.scaffold.test.ts) live for Error / Deferred / **Generation Started**; **`it.skip`** for Hit/Generate contract tests until those slices. |
 | **Cache-OI-6** | No thin cross-layer test; orchestration still owns **`publishPutCacheRecord`** on generation success until cutover. |
 
 ---
@@ -163,12 +163,12 @@ Mitigate **two-sided waiting** by making dependencies explicit:
 | Task plan graduated (structure per `taskPlanning/AGENT.md`) | Done |
 | Code / contract inventory: current DataSource paths vs pass-through targets | Done (see [Inventory](#inventory-current-datasource-vs-pass-through-targets)) |
 | Skipped receiving/subscription tests (cross-cutting scaffold with orchestration; [Stream skeleton sequencing](../renderOrchestration/AGENT.passThrough.planning.md#stream-skeleton-sequencing)) | Done ([`passThroughContract.scaffold.test.ts`](../../../../../lambda/ephemera/dataSource/renderCache/passThroughContract.scaffold.test.ts); shared [`passThroughContractFixtures.ts`](../../../../../lambda/ephemera/dataSource/passThroughContractFixtures.ts)) |
-| Subscription scaffold to **`mtw.ephemera.renderOrchestration`** (**Cache-OI-2**) | Done (stub inbound handler; see [`handleRenderOrchestrationInbound.ts`](../../../../../lambda/ephemera/dataSource/renderCache/handleRenderOrchestrationInbound.ts)) |
-| Handlers + tests: **un-skip** scaffold tests; complete handling per contract (skip/todo only where still incomplete) | Not started |
+| Subscription scaffold to **`mtw.ephemera.renderOrchestration`** (**Cache-OI-2**) | Done (see [`handleRenderOrchestrationInbound.ts`](../../../../../lambda/ephemera/dataSource/renderCache/handleRenderOrchestrationInbound.ts)) |
+| Handlers + tests: scaffold **`describe`** un-skipped; per-type handler dispatch; **`it.skip`** only for Hit/Generate tests until those milestones | Done |
 | Hit path: refetch + **`Render Pertains`** for **`Current Cache Valid`** / **`Exact Match Found`** | Not started |
 | Generate path: durable write on **`Render Generated`** + **`Render Pertains`** / **`Cache Updated`** (**Cache-OI-1**, **Cache-OI-3**) | Not started |
 | Coordinated cutover: no double **`Put Cache Record`** with orchestration | Not started |
-| Contract tests active for slice; **Verification** skip inventory current | Not started |
+| Contract tests active for slice; **Verification** skip inventory current | Partial (scaffold live for Error / Deferred / **Generation Started**; Hit/Generate **`it.skip`**) |
 | Thin integration test (**Cache-OI-6**, orchestration **OI-7**) | Not started |
 
 ---
@@ -180,7 +180,7 @@ Pending work uses `[ ]`; completed work uses `[X]`. Apply checkboxes to each act
 - [X] **Inventory** --- Map current [`renderCache`](../../../../../lambda/ephemera/dataSource/renderCache/index.ts) behavior (**`Cache Updated`**, **`Put Cache Record`** handlers, existing publishes) to pass-through targets; note gaps in **Cache-OI** rows (see [Inventory](#inventory-current-datasource-vs-pass-through-targets)).
 - [X] **Contract test scaffold (cross-cutting)** --- With orchestration, add **skipped** receiving/subscription tests for orchestration outbounds (fixtures + reasons); **coordination:** [orchestration **Stream skeleton sequencing**](../renderOrchestration/AGENT.passThrough.planning.md#stream-skeleton-sequencing). **Un-skip** in **Subscribe** / **Handlers + tests** when implementation lands.
 - [X] **Subscribe** --- Wire subscription to **`mtw.ephemera.renderOrchestration`** (scaffold / stub handlers as needed; **Cache-OI-2**).
-- [ ] **Handlers + tests** --- Implement handling for orchestration outbound types per contract; **un-skip** tests from the scaffold above; use **`it.skip` / `describe.skip`** only where behavior still incomplete ([Encoding the contract in unit tests](../AGENT.passThrough.contract.planning.md#encoding-the-contract-in-unit-tests)).
+- [X] **Handlers + tests** --- Implement handling for orchestration outbound types per contract; **un-skip** tests from the scaffold above; use **`it.skip` / `describe.skip`** only where behavior still incomplete ([Encoding the contract in unit tests](../AGENT.passThrough.contract.planning.md#encoding-the-contract-in-unit-tests)).
 - [ ] **Hit path** --- Refetch + **`Render Pertains`** for **`Current Cache Valid`** / **`Exact Match Found`** (**Cache-OI-4** as needed).
 - [ ] **Generate path** --- Durable write on **`Render Generated`**; emit **`Render Pertains`** / **`Cache Updated`** per pairing decision (**Cache-OI-1**).
 - [ ] **Coordinate cutover** --- Align with orchestration removal of **`publishPutCacheRecord`** on generation success ([orchestration **Stop duplicate durability**](../renderOrchestration/AGENT.passThrough.planning.md#recommended-order)); verify no duplicate **`Cache Updated`**.
@@ -198,7 +198,7 @@ Pending work uses `[ ]`; completed work uses `[X]`. Apply checkboxes to each act
 **Contract test expectations**
 
 - Rules: [Encoding the contract in unit tests](../AGENT.passThrough.contract.planning.md#encoding-the-contract-in-unit-tests).
-- Primary files: [`index.test.ts`](../../../../../lambda/ephemera/dataSource/renderCache/index.test.ts), [`putCacheRecord.test.ts`](../../../../../lambda/ephemera/dataSource/renderCache/putCacheRecord.test.ts), [`deleteCacheRecord.test.ts`](../../../../../lambda/ephemera/dataSource/renderCache/deleteCacheRecord.test.ts), [`queryCacheRecordsForComponent.test.ts`](../../../../../lambda/ephemera/dataSource/renderCache/queryCacheRecordsForComponent.test.ts), [`passThroughContract.scaffold.test.ts`](../../../../../lambda/ephemera/dataSource/renderCache/passThroughContract.scaffold.test.ts) (skipped until subscription + handlers).
+- Primary files: [`index.test.ts`](../../../../../lambda/ephemera/dataSource/renderCache/index.test.ts), [`putCacheRecord.test.ts`](../../../../../lambda/ephemera/dataSource/renderCache/putCacheRecord.test.ts), [`deleteCacheRecord.test.ts`](../../../../../lambda/ephemera/dataSource/renderCache/deleteCacheRecord.test.ts), [`queryCacheRecordsForComponent.test.ts`](../../../../../lambda/ephemera/dataSource/renderCache/queryCacheRecordsForComponent.test.ts), [`passThroughContract.scaffold.test.ts`](../../../../../lambda/ephemera/dataSource/renderCache/passThroughContract.scaffold.test.ts) (**`describe`** active; **`it.skip`** for Hit/Generate until those slices).
 
 **Grep / hygiene (adjust as code moves)**
 
@@ -211,8 +211,8 @@ Maintain a short list here or in test file headers as **`it.skip` / `describe.sk
 
 | Location | Skip reason (summary) |
 | --- | --- |
-| [`passThroughContract.scaffold.test.ts`](../../../../../lambda/ephemera/dataSource/renderCache/passThroughContract.scaffold.test.ts) `describe.skip` | Until pass-through **handlers** emit **Render Pertains** / **Cache Updated** (phase C); subscription + stubs are in place |
-| [`passThroughContract.scaffold.test.ts`](../../../../../lambda/ephemera/dataSource/renderCache/passThroughContract.scaffold.test.ts) `it.todo` (3) | Optional outbound behavior (**Cache-OI-2**); fill when contract for **Generation Started** / **Orchestration Error** / **Generation Deferred** is fixed in code |
+| [`passThroughContract.scaffold.test.ts`](../../../../../lambda/ephemera/dataSource/renderCache/passThroughContract.scaffold.test.ts) `it.skip` | **Current Cache Valid** / **Exact Match Found** --- until **Hit path** (refetch + **Render Pertains**) |
+| [`passThroughContract.scaffold.test.ts`](../../../../../lambda/ephemera/dataSource/renderCache/passThroughContract.scaffold.test.ts) `it.skip` | **Render Generated** --- until **Generate path** (**Cache-OI-1**, durable write + emits) |
 
 ---
 
