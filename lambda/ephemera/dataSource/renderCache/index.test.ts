@@ -8,9 +8,12 @@ import {
 } from './baseClasses'
 import { sendDeleteCacheRecords } from '../apiEphemera'
 import { isRenderCacheCacheDeletedPayload } from './baseClasses'
+import internalCache from '../../internalCache'
 import { ephemeraRenderCacheDataSource } from './index'
 import {
     makePassThroughCurrentCacheValidPayload,
+    passThroughFixtureMinimalDynamoItem,
+    passThroughFixturePerspectiveKey,
     passThroughFixtureRoomId,
 } from '../passThroughContractFixtures'
 import { RENDER_ORCHESTRATION_DATA_SOURCE_KEY } from '../renderOrchestration/publishedEvents'
@@ -41,6 +44,7 @@ describe('mtw.ephemera.renderCache DataSource', () => {
         messageBus.clear()
         jest.clearAllMocks()
         putCacheRecordMock.mockResolvedValue('CACHE#written')
+        internalCache.RenderCache.clear()
     })
 
     it('putCacheRecord then emits Cache Updated on the bus', async () => {
@@ -178,8 +182,11 @@ describe('mtw.ephemera.renderCache DataSource', () => {
         })
     })
 
-    it('receiveEvents handles renderOrchestration outbound without putCacheRecord or renderCache streamEvent', async () => {
+    it('receiveEvents handles Current Cache Valid with refetch and Render Pertains', async () => {
         const streamEvent = jest.fn().mockResolvedValue(undefined)
+        const getSpy = jest
+            .spyOn(internalCache.RenderCache, 'get')
+            .mockResolvedValue([passThroughFixtureMinimalDynamoItem])
         const content = makePassThroughCurrentCacheValidPayload()
         const events: any[] = [
             {
@@ -193,13 +200,29 @@ describe('mtw.ephemera.renderCache DataSource', () => {
             },
         ]
 
-        await ephemeraRenderCacheDataSource.receiveEvents?.({
-            events,
-            streamEvent,
-            streamEnvelope: jest.fn().mockResolvedValue(undefined),
-        })
+        try {
+            await ephemeraRenderCacheDataSource.receiveEvents?.({
+                events,
+                streamEvent,
+                streamEnvelope: jest.fn().mockResolvedValue(undefined),
+            })
 
-        expect(putCacheRecordMock).not.toHaveBeenCalled()
-        expect(streamEvent).not.toHaveBeenCalled()
+            expect(putCacheRecordMock).not.toHaveBeenCalled()
+            expect(getSpy).toHaveBeenCalledWith(passThroughFixtureRoomId)
+            expect(streamEvent).toHaveBeenCalledTimes(1)
+            expect(streamEvent).toHaveBeenCalledWith({
+                streamKey: passThroughFixtureRoomId,
+                header: { type: 'Render Pertains' },
+                update: {
+                    type: 'Render Pertains',
+                    componentId: passThroughFixtureRoomId,
+                    perspectiveKey: passThroughFixturePerspectiveKey,
+                    cacheId: passThroughFixtureMinimalDynamoItem.DataCategory,
+                    cacheRecord: passThroughFixtureMinimalDynamoItem,
+                },
+            })
+        } finally {
+            getSpy.mockRestore()
+        }
     })
 })

@@ -176,6 +176,5 @@ export const orchestrateRenderRequest = async (
             await roomStateHandle?.sendMessage(arg)
         },
         generateRoomPreview: orchDeps.generateRoomPreview,
-        conversationId,
     })
 }
