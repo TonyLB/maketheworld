@@ -11,7 +11,6 @@ import {
     type EphemeraCacheDynamoItem,
     type EphemeraCacheMarkState,
 } from '../../renderCache/baseClasses'
-import type { RenderProgress, RenderResolveOutput } from './baseClasses'
 import type { QueryCacheRecordsForComponentFn } from '../renderCache/queryCacheRecordsForComponent'
 import internalCache from '../../internalCache'
 import { generateRoomDescription } from '../../generateExample'
@@ -51,16 +50,11 @@ export type GenerateRoomPreviewOptions = {
      * Coalesce concurrent generation (production default). Tests should pass {@link passThroughSingleFlight} from `./singleFlightRenderGeneration`.
      */
     runWithSingleFlight?: RunWithSingleFlight;
-    /**
-     * Optional progressive + terminal delivery: `RenderProgress` (e.g. `generating`) and `RenderResolveOutput` terminals.
-     * When set, invoked with `generating` after valid parseable context and before room description generation (slow path only).
-     */
-    sendMessage?: (arg: RenderProgress | RenderResolveOutput) => Promise<void>;
     /** mtw.ephemera.renderOrchestration stream outbounds (from `streamEvent` via orchestration; required for this entry point). */
     publishOrchestration: (content: RenderOrchestrationPublishedPayload) => void | Promise<void>;
 }
 
-/** Control return from `generateRoomPreview`; terminals are delivered only via `sendMessage`. */
+/** Control return from `generateRoomPreview`. */
 export type GenerateRoomPreviewGenerationReturn = 'success' | 'fail'
 
 const getExactMatchAfterLeaderWrite = async (
@@ -85,7 +79,7 @@ const getExactMatchAfterLeaderWrite = async (
  * Slow path only: assumes exact-match was already tried by orchestration.
  * Callers must not invoke this when a cache row already satisfies the request.
  *
- * Emits terminal `RenderResolveOutput` through `sendMessage` (and `generating` progress on the slow path).
+ * Emits outcomes via `publishOrchestration` only.
  * Durable cache write is owned by `mtw.ephemera.renderCache` on `Render Generated` (pass-through); do not enqueue `Put Cache Record` here.
  */
 export const generateRoomPreview = async (
@@ -100,7 +94,6 @@ export const generateRoomPreview = async (
         queryCacheRecordsForComponentImpl = (componentId) => internalCache.RenderCache.get(componentId),
         getExactMatch = (input) => internalCache.RenderCache.getExactMatch(input),
         runWithSingleFlight: runWithSingleFlightOpt,
-        sendMessage,
         publishOrchestration,
     }: GenerateRoomPreviewOptions
 ): Promise<GenerateRoomPreviewGenerationReturn> => {
@@ -124,11 +117,6 @@ export const generateRoomPreview = async (
             errorCode: 'CONTEXT_REQUIRED',
             errorMessage: 'Generation context required',
         })
-        await sendMessage?.({
-            type: 'failed',
-            errorCode: 'CONTEXT_REQUIRED',
-            errorMessage: 'Generation context required',
-        })
         return 'fail'
     }
 
@@ -144,7 +132,6 @@ export const generateRoomPreview = async (
                 ...routing,
                 phase: 'generating',
             })
-            await sendMessage?.('generating')
 
             const allRecords = await queryCacheRecordsForComponentImpl(roomId)
             const cachedExamples = allRecords.filter(
@@ -163,11 +150,6 @@ export const generateRoomPreview = async (
                 await publishOrchestration({
                     type: 'Orchestration Error',
                     ...routing,
-                    errorCode: descriptionResult.errorCode,
-                    errorMessage: descriptionResult.errorMessage,
-                })
-                await sendMessage?.({
-                    type: 'failed',
                     errorCode: descriptionResult.errorCode,
                     errorMessage: descriptionResult.errorMessage,
                 })
@@ -199,12 +181,6 @@ export const generateRoomPreview = async (
                 cacheId,
                 cacheRecord,
             })
-            await sendMessage?.({
-                type: 'resolved',
-                renderedContent: descriptionResult.renderedContent,
-                cacheId,
-                cacheRecord,
-            })
             return 'success'
         },
         retrieval: async (): Promise<GenerateRoomPreviewGenerationReturn> => {
@@ -216,13 +192,6 @@ export const generateRoomPreview = async (
             if (!exact) {
                 throw new Error('RENDER_GENERATION_FOLLOWER_CACHE_MISS')
             }
-            const cacheId = exact.DataCategory as EphemeraCacheId
-            await sendMessage?.({
-                type: 'resolved',
-                renderedContent: exact.renderedContent,
-                cacheId,
-                cacheRecord: exact,
-            })
             return 'success'
         },
     })

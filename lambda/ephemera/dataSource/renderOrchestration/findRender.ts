@@ -8,9 +8,7 @@ import { buildOrchestrationRouting } from './orchestrationRouting'
 import type { RenderOrchestrationPublishedPayload } from './publishedEvents'
 import {
     RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION,
-    type RenderProgress,
     type RenderResolveInputSuccess,
-    type RenderResolveOutput,
 } from './baseClasses'
 
 /**
@@ -27,8 +25,6 @@ export type FindRenderDependencies = {
     computePerspectiveKey: typeof computePerspectiveKey;
     markStatesEqual: (a: EphemeraCacheMarkState, b: EphemeraCacheMarkState) => boolean;
     perspectiveMatches: typeof perspectiveMatches;
-    /** Terminals from pointer/exact/invalidate paths, and progress + terminals from generation (same handle as orchestration). */
-    sendMessage: (arg: RenderProgress | RenderResolveOutput) => Promise<void>;
     generateRoomPreview: typeof generateRoomPreview;
     /** Optional: tests pass {@link passThroughSingleFlight}; production uses default from `generateRoomPreview`. */
     runWithSingleFlight?: RunWithSingleFlight;
@@ -40,7 +36,7 @@ export type FindRenderDependencies = {
  * B-phase: pointer validation (when `pointerHint` on the resolve input is set), exact-match, generation hook,
  * or `invalidate` when nothing matches and generation does not run.
  *
- * Terminals are emitted only via the `sendMessage` dependency; there is no return payload.
+ * Outcomes are emitted via `publishOrchestration` only.
  */
 export const findRender = async (
     resolve: RenderResolveInputSuccess,
@@ -65,13 +61,6 @@ export const findRender = async (
                 ...routing,
                 cacheId: pointerId,
             })
-            const output: RenderResolveOutput = {
-                type: 'resolved',
-                renderedContent: cacheRecord.renderedContent,
-                cacheId: pointerId,
-                cacheRecord,
-            }
-            await deps.sendMessage(output)
             return
         }
 
@@ -95,13 +84,6 @@ export const findRender = async (
             ...routing,
             cacheId,
         })
-        const output: RenderResolveOutput = {
-            type: 'resolved',
-            renderedContent: exactMatch.renderedContent,
-            cacheId,
-            cacheRecord: exactMatch,
-        }
-        await deps.sendMessage(output)
         return
     }
 
@@ -109,10 +91,6 @@ export const findRender = async (
         await deps.publishOrchestration({
             type: 'Generation Deferred',
             ...routing,
-            reason: RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION,
-        })
-        await deps.sendMessage({
-            type: 'invalidate',
             reason: RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION,
         })
         return
@@ -126,7 +104,6 @@ export const findRender = async (
             generationContextWml: resolve.generationContextWml,
         },
         {
-            sendMessage: deps.sendMessage,
             publishOrchestration: deps.publishOrchestration,
             getExactMatch: deps.getExactMatch,
             runWithSingleFlight: deps.runWithSingleFlight,

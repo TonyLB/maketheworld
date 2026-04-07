@@ -1,6 +1,6 @@
 /**
  * Contract tests: orchestration emits mtw.ephemera.renderOrchestration StreamingEvents
- * (six outbounds) alongside legacy conversation delivery until conversation removal lands.
+ * (six outbounds); passive orchestration is stream-only (no legacy conversation bus).
  */
 import type { MessageBus as MessageBusType } from '../../messageBus/baseClasses'
 import type { EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
@@ -106,7 +106,6 @@ describe('renderOrchestration stream outcomes (pass-through six outbounds)', () 
 
     it('generation slow path emits Generation Started on mtw.ephemera.renderOrchestration', async () => {
         const generateRoomPreview = jest.fn().mockImplementation(async (_input: unknown, options: {
-            sendMessage?: (m: unknown) => Promise<void>;
             publishOrchestration?: (c: unknown) => void;
         }) => {
             options?.publishOrchestration?.({
@@ -115,13 +114,6 @@ describe('renderOrchestration stream outcomes (pass-through six outbounds)', () 
                 perspective: { assetStack: ['ASSET#base'] },
                 perspectiveKey: 'PERSPECTIVE#v1#abc',
                 phase: 'generating',
-            })
-            await options?.sendMessage?.('generating')
-            await options?.sendMessage?.({
-                type: 'resolved',
-                renderedContent: { description: [{ tag: 'String', value: 'Generated' }] },
-                cacheId: 'CACHE#generated',
-                cacheRecord: { ...baseCacheRecord, DataCategory: 'CACHE#generated', provenance: { type: 'generated' } },
             })
             return 'success'
         })
@@ -165,7 +157,6 @@ describe('renderOrchestration stream outcomes (pass-through six outbounds)', () 
             provenance: { type: 'generated' },
         }
         const generateRoomPreview = jest.fn().mockImplementation(async (_input: unknown, options: {
-            sendMessage?: (m: unknown) => Promise<void>;
             publishOrchestration?: (c: unknown) => void;
         }) => {
             options?.publishOrchestration?.({
@@ -173,12 +164,6 @@ describe('renderOrchestration stream outcomes (pass-through six outbounds)', () 
                 componentId: 'ROOM#one',
                 perspective: { assetStack: ['ASSET#base'] },
                 perspectiveKey: 'PERSPECTIVE#v1#abc',
-                cacheId: 'CACHE#generated',
-                cacheRecord: generatedRow,
-            })
-            await options?.sendMessage?.({
-                type: 'resolved',
-                renderedContent: { description: [{ tag: 'String', value: 'Generated' }] },
                 cacheId: 'CACHE#generated',
                 cacheRecord: generatedRow,
             })
