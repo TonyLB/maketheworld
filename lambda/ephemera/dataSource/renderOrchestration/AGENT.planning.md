@@ -8,7 +8,7 @@ The **system-level narrative** that previously lived in `lambda/ephemera/dataSou
 
 **Related docs**
 
-- Status, graduation criteria, passive orchestration vs presence delivery, parallel-track policy: `AGENT.md` (same directory)
+- Status, constraints, passive orchestration vs presence delivery, parallel-track policy: `AGENT.md` (same directory)
 - State package: historical archive `../state/AGENT.planning.historical.md`; active `mtw.ephemera.state` work `../state/AGENT.planning.perceptionVertical.md`
 - Cross-cutting epic: `../../AGENT.ephemeraPerceptionVertical.planning.md`
 
@@ -203,7 +203,7 @@ Tier 1--2 items that were fully described in older revisions of this file; detai
 - **Intake fast path:** `intakeRenderRequested` pointer validation + marks error policy (Tier 1 task 4).
 - **Handler B / exact-match:** `findRender` exact-match branch + shared `tryGeneration`; not duplicated inside `generateRoomPreview` as policy (Tier 1 task 5).
 - **Generation path (Tier 2 task 6):** Cache miss branching, `generateRoomPreview` on miss, pre-mint cache id, persist via `mtw.ephemera.renderCache`, passive `roomStateRender` conversation registration, slow-path `generating` feedback where applicable --- under `orchestrateRenderRequest`. **Preview-only** ingress and conversation variant **removed**; shared **`mtw-interfaces`** preview wire types **removed** (generic `ConversationStep` in [`packages/mtw-interfaces/ts/ephemera.ts`](../../../../packages/mtw-interfaces/ts/ephemera.ts)).
-- **Ingress relocation:** Request subscription moved to `dataSource/renderOrchestration` (evolving DataSource; see its `AGENT.md`).
+- **Ingress relocation:** Request subscription moved to `dataSource/renderOrchestration` (see its `AGENT.md`).
 
 **Historical decisions (March 2026, condensed)** --- Detail lives in git history. Unified `findRender` and `intakeRenderRequested` success/error paths; passive batch shell; sendMessage-first `findRender` + `tryGeneration`; unified `orchestrateRenderRequest`. Ingress moved to `dataSource/renderOrchestration/` with **`Render Requested`** `api.ephemera` envelopes. Authoring **preview** ingress and conversation wiring were later **removed** (charcoal-client + lambda). A duplicate synchronous orchestration scaffold under `dataSource/state/` was removed so orchestration stays single-sourced here.
 

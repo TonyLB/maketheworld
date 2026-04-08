@@ -1,8 +1,8 @@
 /**
  * renderOrchestration ingress envelope guards and typed send-helpers.
  *
- * Part of the evolving mtw.ephemera.renderOrchestration DataSource (see ../AGENT.md).
- * Internal-only publish path uses dataSourceKey 'api.ephemera'; replay and outbound contracts still TBD.
+ * Part of mtw.ephemera.renderOrchestration (see ../AGENT.md).
+ * Internal-only publish path uses dataSourceKey 'api.ephemera'; stream outbounds are defined in publishedEvents.ts.
  */
 import {
     StreamingEventEnvelope,

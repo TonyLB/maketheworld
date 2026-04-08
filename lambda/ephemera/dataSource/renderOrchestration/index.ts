@@ -1,12 +1,11 @@
 /**
- * mtw.ephemera.renderOrchestration DataSource (evolving).
+ * mtw.ephemera.renderOrchestration DataSource.
  *
- * Ingress is normalized here first; orchestration may consolidate into this package over time.
- * See ./AGENT.md: "transitional" means immature contracts, not "keep this file minimal forever."
+ * Canonical home for passive render orchestration. See ./AGENT.md for semantics and constraints.
  *
- * Current facts: internal-only, non-replayable, envelope subscription to api.ephemera and
- * mtw.ephemera.state (`State Changed` passive fan-out).
- * Outbound / replay semantics are TBD until graduation criteria in AGENT.md are met.
+ * Ingress: api.ephemera envelopes and mtw.ephemera.state (`State Changed` passive fan-out).
+ * Outbounds: six-type stream on this DataSource via streamEvent (pass-through migration complete).
+ * replayable: false today; replay is not a planned follow-up unless product asks (AGENT.md).
  */
 import EphemeraDataSource from '../abstract'
 import {

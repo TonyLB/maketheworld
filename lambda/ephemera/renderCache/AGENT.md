@@ -196,19 +196,21 @@ This is the canonical “does this state exist in cache?” check. Passive rende
 
 ## Passive render orchestration and cache-miss generation
 
-Single-item orchestration lives in [`dataSource/renderOrchestration/orchestrationHandler.ts`](../dataSource/renderOrchestration/orchestrationHandler.ts). For a **`Render Requested`** ingress, the handler registers a **`roomStateRender`** conversation row, runs **`intakeRenderRequested`**, then **`findRender`**, which:
+Single-item orchestration lives in [`dataSource/renderOrchestration/orchestrationHandler.ts`](../dataSource/renderOrchestration/orchestrationHandler.ts). For a **`Render Requested`** ingress, the handler runs **`intakeRenderRequested`**, then **`findRender`**, then **`generateRoomPreview`** on cache miss when policy allows. **Outcomes are published on `mtw.ephemera.renderOrchestration`** (`streamEvent`); the passive path does **not** register **`roomStateRender`** or deliver terminals via **`conversation.sendMessage`**.
 
 1. Builds perspective from the passive request.
 2. Calls `internalCache.RenderCache.getExactMatch` (and pointer validation) as policy dictates.
-3. On hit: emits resolve output through the conversation **`sendMessage`** path (wired to the message bus via `materializeRoomStateRender` when `passiveBusDelivery` is present).
-4. On miss (when generation is allowed): calls **`generateRoomPreview`** (slow path only).
+3. On hit: orchestration emits **`Current Cache Valid`** or **`Exact Match Found`** (IDs only); the **`mtw.ephemera.renderCache`** DataSource refetches and emits **`Render Pertains`** (see [`dataSource/renderCache/AGENT.md`](../dataSource/renderCache/AGENT.md)).
+4. On miss (when generation is allowed): **`generateRoomPreview`** publishes **`Generation Started`** / **`Render Generated`** (or errors); **`renderCache`** performs the durable **`putCacheRecord`** and emits **`Render Pertains`** / **`Cache Updated`**.
+
+Durable behavior and types: [`dataSource/renderOrchestration/AGENT.md`](../dataSource/renderOrchestration/AGENT.md), [`dataSource/renderCache/AGENT.md`](../dataSource/renderCache/AGENT.md), and the [pass-through contract](../../../taskPlanning/lambda/ephemera/dataSource/AGENT.passThrough.contract.planning.md).
 
 ### `generateRoomPreview` (`dataSource/renderOrchestration`)
 
-[`generateRoomPreview.ts`](../dataSource/renderOrchestration/generateRoomPreview.ts) implements **generation on cache miss** (parse WML context, optional Bedrock `generateRoomDescription`, `publishPutCacheRecord`). It does **not** perform exact-match; orchestration must run that first.
+[`generateRoomPreview.ts`](../dataSource/renderOrchestration/generateRoomPreview.ts) implements **generation on cache miss** (parse WML context, Bedrock `generateRoomDescription`, **`publishOrchestration`** stream outbounds only). It does **not** perform exact-match; orchestration must run that first. It does **not** enqueue **`Put Cache Record`** on success; the **`mtw.ephemera.renderCache`** DataSource writes on **`Render Generated`**.
 
 - Input: `roomId`, `markState`, `assetStack`, optional `generationContextWml`.
-- Options include `conversationId`, `sendMessage` for progress/terminals, and `publishPutCacheRecord` overrides for tests.
+- Required: `publishOrchestration` for streaming outbounds; tests inject mocks. **`runWithSingleFlight`** can be overridden for unit tests (`passThroughSingleFlight`).
 
 ### Authoring preview (removed)
 

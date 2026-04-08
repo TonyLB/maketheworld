@@ -1,8 +1,7 @@
 /**
  * Payload contracts for internal render-orchestration ingress events.
  *
- * In-process only (dataSourceKey: 'api.ephemera'). Part of the evolving DataSource
- * under dataSource/renderOrchestration/ (see AGENT.md); contracts may expand at graduation.
+ * In-process only (dataSourceKey: 'api.ephemera'). See dataSource/renderOrchestration/AGENT.md.
  */
 import type { RenderRequested } from './events'
 

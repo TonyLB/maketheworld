@@ -30,7 +30,7 @@ Introduce an **`mtw.ephemera.currentCachePointers`** DataSource (name provisiona
 
 ## Cross-cutting constraints
 
-- **Correlation:** Payloads must be rich enough for **`currentCachePointers`** **and** **Perception** using **lean routing** + **`cacheId`** (contract uncertainty 9 resolved; [`../renderCache/AGENT.passThrough.planning.md`](../renderCache/AGENT.passThrough.planning.md) **Correlation vs routing**).
+- **Correlation:** Payloads must be rich enough for **`currentCachePointers`** **and** **Perception** using **lean routing** + **`cacheId`** (contract uncertainty 9 resolved; [`lambda/ephemera/dataSource/renderCache/AGENT.md`](../../../../lambda/ephemera/dataSource/renderCache/AGENT.md#correlation-vs-routing) **Correlation vs routing**).
 - **Ordering:** Reliable ordering between orchestration, **`renderCache`**, and pointer updates is **hard** today; the contract records **uncertainty 11** ( **`messageBus`** revisions, e.g. **atomic sub-runs**). Task-plan home for that refactor: [`../messageBus/AGENT.runnableSubSets.planning.md`](../messageBus/AGENT.runnableSubSets.planning.md). Treat as a **separate future refactor** - not a blocker for **this** stub's prose, but a blocker for **normative** contract ordering claims.
 
 ---
@@ -41,8 +41,8 @@ Introduce an **`mtw.ephemera.currentCachePointers`** DataSource (name provisiona
 | --- | --- |
 | [`taskPlanning/AGENT.md`](../../../../AGENT.md) | Task planning framework |
 | [`../AGENT.passThrough.contract.planning.md`](../AGENT.passThrough.contract.planning.md) | **Canonical contract** - roles, **`Generation Deferred`**, **`Render Pertains`**, uncertainties |
-| [`../renderCache/AGENT.passThrough.planning.md`](../renderCache/AGENT.passThrough.planning.md) | **`Render Pertains`** producer |
-| [`../renderOrchestration/AGENT.passThrough.planning.md`](../renderOrchestration/AGENT.passThrough.planning.md) | Orchestration outbounds |
+| [`lambda/ephemera/dataSource/renderCache/AGENT.md`](../../../../lambda/ephemera/dataSource/renderCache/AGENT.md) | **`Render Pertains`** producer |
+| [`lambda/ephemera/dataSource/renderOrchestration/AGENT.md`](../../../../lambda/ephemera/dataSource/renderOrchestration/AGENT.md) | Orchestration outbounds |
 | [`lambda/ephemera/AGENT.ephemeraPerceptionVertical.contractAlign.planning.md`](../../../../lambda/ephemera/AGENT.ephemeraPerceptionVertical.contractAlign.planning.md) | Sub-epic index |
 
 ---

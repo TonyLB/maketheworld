@@ -73,7 +73,7 @@ describe('mtw.ephemera.renderOrchestration DataSource', () => {
         orchestrateSpy.mockRestore()
     })
 
-    it('is non-replayable until replay semantics are defined (see AGENT.md graduation)', () => {
+    it('is non-replayable (current product choice; see AGENT.md)', () => {
         expect(renderOrchestrationDataSource.replayable).toBe(false)
     })
 })
