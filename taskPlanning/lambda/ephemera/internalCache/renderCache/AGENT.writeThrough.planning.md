@@ -1,7 +1,7 @@
 # `internalCache.RenderCache` write-through alignment plan
 
 **Status:** In progress.  
-**Next step:** Finalize behavior decisions, then refactor `RenderCacheData` to align with `ExamplesData`-style write-through semantics without introducing a shared abstraction.
+**Next step:** Add/adjust tests to encode the new authoritative-write contract, then refactor `RenderCacheData` internals.
 
 ## Purpose
 
@@ -68,7 +68,7 @@ Align `lambda/ephemera/internalCache/renderCache.ts` with the internalCache writ
 
 Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines as `[X]` as each sub-step completes.
 
-- [ ] Baseline and contract capture
+- [X] Baseline and contract capture
 - [ ] Add/adjust tests that express target behavior:
   - [ ] deduped concurrent `get(componentId)`
   - [ ] read-through + post-read write-through mutation visibility
@@ -95,12 +95,24 @@ Run from `lambda/ephemera/` unless documented otherwise.
 - Quick static checks for callsite/API drift:
   - `rg "RenderCache\\.(get|set|getExactMatch|deleteCacheRecords|clear|flush|invalidate)" lambda/ephemera`
 
+## Baseline and contract capture (2026-04-08)
+
+- Baseline command run from `lambda/ephemera/`:
+  - `npm run test -- internalCache/renderCache.test.ts --watchAll=false`
+- Result: pass (`1` suite, `12` tests).
+- Current contract encoded in baseline tests:
+  - `get(componentId)` memoizes per component and returns stable reference within invocation.
+  - `set` before first `get(componentId)` is currently a no-op (this will change under the new decision).
+  - `set` updates or appends by `cacheId` when valid; invalid `cacheId` prefix is a no-op.
+  - `set` without `cacheId` matches by mark-state equality, otherwise appends with generated `CACHE#...`.
+  - `getExactMatch` preserves perspective + mark-state filtering semantics and memoized read behavior.
+
 ## Progress
 
 | Milestone | Status |
 | --- | --- |
 | Plan created with scope, order, and verification | Done |
-| Behavior decisions finalized | Not started |
+| Behavior decisions finalized | Done |
 | Contract tests aligned with target semantics | Not started |
 | Refactor implemented | Not started |
 | Verification green | Not started |
