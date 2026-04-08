@@ -23,6 +23,7 @@ Different handlers use specific cache key formats:
 - **Component Meta**: `{assetId}::{EphemeraId}`
 - **Component Render**: `{CharacterId}::{EphemeraId}::{header}`
 - **Examples**: `{EphemeraId}` (component ID)
+- **Render cache rows**: `{EphemeraId}` (Room/Feature/Knowledge component ID; `DeferredCache` + `_Store` mirror, `getExactMatch` for exact lookup)
 - **Character Meta**: `{CharacterId}`
 - **Asset State**: `{AssetId}::{StateType}`
 
