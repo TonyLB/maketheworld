@@ -1,118 +1,124 @@
-# mtw.ephemera.renderOrchestration (evolving)
+# mtw.ephemera.renderOrchestration
 
 ## Status
 
-**Transitional** here means **on the path to** a canonical DataSource-shaped home for render orchestration --- not "stay as small as possible until deleted."
+This directory is the **canonical implementation** for the `mtw.ephemera.renderOrchestration` DataSource: subscription, ingress, `orchestrateRenderRequest`, intake, `findRender`, and `generateRoomPreview`. Long-form planning for other v2 themes (wiring breadth, room-scale work) lives in [`AGENT.planning.md`](AGENT.planning.md) in this folder.
 
-This package is the **implementation home** for the `mtw.ephemera.renderOrchestration` data domain: subscription, ingress normalization, `orchestrateRenderRequest`, intake, `findRender`, and `generateRoomPreview`. Long-form planning lives alongside code: `AGENT.planning.md`.
+**Passive orchestration** (single-item **`Render Requested`**) has completed the **pass-through migration:** outcomes are published only on **`mtw.ephemera.renderOrchestration`** via `streamEvent` (see `publishedEvents.ts`, `sendRenderOrchestrationPublish`). There is no `roomStateRender` registration, `conversation.sendMessage`, or legacy `RenderReady` / `RenderInvalidate` / `RenderError` bus materialization on that path.
 
-**What is immature (not what "transitional" means):** replay policy, EventBridge surface, and authoritative outbound streaming contracts are not finished. Those gaps are why the module is not yet **graduated** --- not because domain logic must forever live elsewhere.
+**Contract doc:** the cross-cutting [pass-through contract](../../../../taskPlanning/lambda/ephemera/dataSource/AGENT.passThrough.contract.planning.md) may still be marked draft or refined over time; it remains the right place for **semantics** (outbounds, durability split, uncertainties). This `AGENT.md` describes **how the code behaves today**.
+
+**Not implied roadmap items:** we do **not** treat **replay** or an **external** (e.g. EventBridge) contract as planned follow-ups for this module. If those ever become product requirements, they would be explicit new decisions, not the completion criteria for work already shipped here.
+
+## Getting Started
+
+1. **Contract** --- Skim the [pass-through contract](../../../../taskPlanning/lambda/ephemera/dataSource/AGENT.passThrough.contract.planning.md) for the **six orchestration outbounds**, **Limited refinement** (payload shapes), and **uncertainties** that are still open at the product level. This file covers **implementation** and passive-path wiring.
+2. **Consumer side** --- Read [`../renderCache/AGENT.md`](../renderCache/AGENT.md) so you know how **`mtw.ephemera.renderCache`** subscribes and where the durable **`CACHE#...`** write happens (**`Render Generated`** handler).
+3. **Domain cache** --- [`../../renderCache/AGENT.md`](../../renderCache/AGENT.md) for cache rows, exact match, and `internalCache` (orchestration reads through these helpers).
+4. **Code path** --- Passive pipeline: [`orchestrationHandler.ts`](orchestrationHandler.ts) (`orchestrateRenderRequest`) -> [`findRender.ts`](findRender.ts) -> [`generateRoomPreview.ts`](generateRoomPreview.ts). State-driven fan-out: [`fanOutStateChangedToPassiveRenders.ts`](fanOutStateChangedToPassiveRenders.ts). Outbound types and publish helpers: [`publishedEvents.ts`](publishedEvents.ts), `sendRenderOrchestrationPublish` / `publishRenderOrchestrationStreamEvent` (see [`index.ts`](index.ts) wiring).
+5. **Tests** --- Run from [`lambda/ephemera/`](../../): `npm test`. Start with [`passThroughContract.scaffold.test.ts`](passThroughContract.scaffold.test.ts), [`orchestrationHandler.test.ts`](orchestrationHandler.test.ts), [`findRender.test.ts`](findRender.test.ts), [`generateRoomPreview.test.ts`](generateRoomPreview.test.ts); cross-layer: [`../passThroughOrchestrationToCache.integration.test.ts`](../passThroughOrchestrationToCache.integration.test.ts).
+6. **Broader planning** --- [`AGENT.planning.md`](AGENT.planning.md) in this directory for v2 tasks (e.g. wiring tables) that are **not** the same as the pass-through doc.
+7. **DataSource pattern** --- [`packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md`](../../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md) (**publishedEvents.ts** for **`busOnly`** outbounds).
 
 ## Why this layer exists
 
 Orchestration keeps **policy and multi-step lifecycle sequencing** out of neighboring packages:
 
-- **`renderCache`** stays a cache primitive layer (types, mark helpers, exact match, persistence helpers).
-- **`state`** stays the owner of world-state storage and invariants (`Meta::Room`, etc.).
-- **`perception`** stays the owner of enrichment and **presence-driven** message delivery.
+- **`renderCache`** (domain) stays cache types and persistence helpers; the **`mtw.ephemera.renderCache`** DataSource emits correlated **`Render Pertains`** / **`Cache Updated`** (see [`../renderCache/AGENT.md`](../renderCache/AGENT.md)).
+- **`state`** owns world-state storage and invariants (`Meta::Room`, etc.).
+- **`perception`** will own delivery correlation and fan-in (future).
 
-## What it does today
+## What passive orchestration does today
 
-- Subscribes to internal `api.ephemera` streaming envelopes with header type **`Render Requested`** (single ingress for passive render orchestration).
-- Maps ingress to **`RenderRequested`** and dispatches to `orchestrationHandler.ts` (`orchestrateRenderRequest`), which chains **intake** (`requestIntake.ts`), **intake error delivery** (`intakeErrors.ts`), **`findRender`**, and (on cache miss, when policy allows) **`generateRoomPreview`**. Terminals and progress are delivered through the **`roomStateRender`** conversation **`sendMessage`** path when orchestration registers a row (see `orchestrationHandler.ts`).
+1. Subscribes to internal `api.ephemera` streaming envelopes with header type **`Render Requested`**.
+2. Maps ingress to **`RenderRequested`** and runs **`orchestrateRenderRequest`** (`orchestrationHandler.ts`): intake (`requestIntake.ts`), optional **`Orchestration Error`** from `intakeErrors.ts`, then **`findRender`**, then **`generateRoomPreview`** on cache miss when policy allows.
+3. Publishes **six outbound** payload types on **`mtw.ephemera.renderOrchestration`** (union in [`publishedEvents.ts`](publishedEvents.ts)): **`Current Cache Valid`**, **`Exact Match Found`**, **`Generation Started`**, **`Render Generated`**, **`Orchestration Error`**, **`Generation Deferred`**.
 
-Wiring: `app.ts` side-effect imports `./dataSource/renderOrchestration` (this DataSource's `index.ts`).
+**Not orchestration-owned:** durable **`CACHE#...`** writes or the final correlated **`Render Pertains`** signal. On generation success, orchestration emits **`Render Generated`** with full content; **`mtw.ephemera.renderCache`** subscribes, performs the single **`putCacheRecord`**, then emits **`Render Pertains`** and **`Cache Updated`** (see [pass-through contract](../../../../taskPlanning/lambda/ephemera/dataSource/AGENT.passThrough.contract.planning.md)).
 
-**Removed (historical):** request-scoped **authoring preview** used a separate ingress (`Render Preview Requested`) and a dedicated **`generateRoomPreview`** conversation type. That path is gone; workbench preview UI and client dispatch were removed in charcoal-client. Cache-miss generation still lives in **`generateRoomPreview.ts`** as part of passive **`findRender`**.
+**Removed (historical):** authoring **preview** ingress (`Render Preview Requested`) and preview-only conversation types.
 
-## Passive orchestration vs presence (product split)
+Wiring: `app.ts` side-effect imports `./dataSource/renderOrchestration` (`index.ts`).
 
-Lifecycle messages (`RenderGenerationStarted`, `RenderReady`, etc.) are primarily motivated by **presence-based** delivery: **`perception`** can react with placeholders and final content for people **in the room**. Passive **`Render Requested`** orchestration registers a **`roomStateRender`** conversation row and delivers terminals via **`materializeRoomStateRender`** (message bus), not a separate preview pipeline.
+## Handoff to `mtw.ephemera.renderCache`
+
+- Orchestration **does not** call the renderCache DataSource directly and **does not** enqueue **`Put Cache Record`** for passive generation completion.
+- **`renderCache`** **subscribes** to orchestration stream events on the same `receiveEvents` path as `api.ephemera` (message bus streaming), via [`../renderCache/subscribedEvents.ts`](../renderCache/subscribedEvents.ts) and [`../renderCache/handleRenderOrchestrationInbound.ts`](../renderCache/handleRenderOrchestrationInbound.ts).
+
+## Pass-through durability rule
+
+Same constraint as **Handoff** above, for grep and contract links: passive generation success must **not** use **`publishPutCacheRecord`**, **`sendPutCacheRecord`**, or **`defaultPublishPutCacheRecord`** in orchestration; **`mtw.ephemera.renderCache`** performs the single Dynamo write when handling **`Render Generated`**.
+
+Canonical semantics: [AGENT.passThrough.contract.planning.md](../../../../taskPlanning/lambda/ephemera/dataSource/AGENT.passThrough.contract.planning.md).
+
+## Passive state fan-out (`S = A union P`)
+
+When room **state** changes, **`fanOutStateChangedToPassiveRenders.ts`** fans out one **`orchestrateRenderRequest`** per perspective in the resolve set **S** (audience perspectives **A** union meta-pointer perspectives **P**). Pointer-only keys use **`allowGeneration: false`** and cheap paths only. Set algebra and product rules: **State-driven fan-out** in the contract doc.
+
+## Single-flight generation
+
+After fast-path checks (pointer, exact match, policy gates), concurrent callers for the **same** logical generation (stable cohort key: `EPHEMERA_ROOM_RENDER_GENERATION_CATEGORY` + `computeRenderGenerationArgumentHash` in [`renderGenerationArgumentHash.ts`](renderGenerationArgumentHash.ts)) are coalesced with **`singleFlight`** (**coalesce** mode) from [`singleFlightRenderGeneration.ts`](singleFlightRenderGeneration.ts): one leader runs **`computation()`** (LLM + **`Generation Started`** + **`Render Generated`**); followers **`retrieval()`** waits for the durable row via **`getExactMatch`** and does **not** republish **`Render Generated`**.
+
+**Library limits:** `singleFlight` does not guarantee exactly-once side effects inside **`computation`** (e.g. duplicate **`Generation Started`** on leader expiry / self-promote). **Perception** owns subscriber dedupe for terminal outputs (contract uncertainty 6). See [`packages/mtw-lambda-patterns/ts/singleFlight`](../../../../../packages/mtw-lambda-patterns/ts/singleFlight).
+
+## Stream emission (passive path)
+
+| Source | Outbound |
+| --- | --- |
+| `intakeErrors.ts` (intake failure before `findRender`) | **`Orchestration Error`** |
+| `findRender.ts` pointer branch valid | **`Current Cache Valid`** |
+| `findRender.ts` exact match | **`Exact Match Found`** |
+| `findRender.ts` miss, `allowGeneration === false` | **`Generation Deferred`** |
+| `generateRoomPreview.ts` bad / missing context | **`Orchestration Error`** (`CONTEXT_REQUIRED`, etc.) |
+| `generateRoomPreview.ts` LLM / generation failure | **`Orchestration Error`** |
+| `generateRoomPreview.ts` slow path (leader) | **`Generation Started`**, then **`Render Generated`** or **`Orchestration Error`** |
+
+**`publishPutCacheRecord` / `sendPutCacheRecord`:** must **not** appear on passive **generation success** in `generateRoomPreview.ts`; durable write is **`renderCache`** on **`Render Generated`** only.
+
+**Other callers:** [`materializeRoomStateRender`](../../../conversations/conversationTypes/roomStateRender/materialize.ts) may still serve conversation-backed flows outside this passive handler; it is not used from `orchestrationHandler.ts` for passive outcomes.
+
+## Stream skeleton sequencing
+
+Order used for the pass-through slice (keeps contract tests and implementation aligned):
+
+1. Land **skipped** contract tests for orchestration **`streamEvent`** shapes and **`renderCache`** subscription expectations (per [Encoding the contract in unit tests](../../../../taskPlanning/lambda/ephemera/dataSource/AGENT.passThrough.contract.planning.md#encoding-the-contract-in-unit-tests)).
+2. Wire orchestration **`streamEvent`** emissions and **un-skip** producer tests.
+3. Implement **`renderCache`** subscription handlers and remove duplicate **`Put Cache Record`** from orchestration on generation success; add thin integration test [`passThroughOrchestrationToCache.integration.test.ts`](../passThroughOrchestrationToCache.integration.test.ts).
+
+## Tests and verification
+
+**Primary tests:** [`orchestrationHandler.test.ts`](orchestrationHandler.test.ts), [`findRender.test.ts`](findRender.test.ts), [`generateRoomPreview.test.ts`](generateRoomPreview.test.ts), [`passThroughContract.scaffold.test.ts`](passThroughContract.scaffold.test.ts). **Cross-layer:** [`passThroughOrchestrationToCache.integration.test.ts`](../passThroughOrchestrationToCache.integration.test.ts) (`orchestrateRenderRequest` + renderCache subscriber).
+
+**Hygiene (grep):** Under `dataSource/renderOrchestration/`, passive generation success must not call `publishPutCacheRecord` / `sendPutCacheRecord` / `defaultPublishPutCacheRecord` from `generateRoomPreview.ts`. Passive orchestration paths should not use `getRoomStateRenderHandle`, `sendMessage`, or `materializeRoomStateRender` for outcomes (see `orchestrationHandler.ts`, `findRender.ts`, `generateRoomPreview.ts`, `intakeErrors.ts`).
+
+From [`lambda/ephemera/`](../../): `npm test` (Jest).
 
 ## Key concepts
 
-- **Component render lifecycle events**: messageBus-typed events such as `RenderRequested`, `RenderGenerationStarted`, `RenderReady` (definitions in `events.ts`).
-- **Request-scoped vs update-scoped targeting**:
-  - Request-scoped traffic often carries **`characterId`** for direct requester feedback.
-  - Update-scoped traffic may omit explicit targets; **`perception`** can derive recipients from room presence at publish time.
-- **Perspective**: ordered asset stack used for cache matching (`computePerspectiveKey`, matchers on cache rows).
-- **Rooms first (v2)**: event shapes use generic **`componentId`** so the same lifecycle can extend to Maps/Features later. Passive vs **active** update patterns differ by domain (see planning docs).
-
-## Dependencies (where to read next)
-
-- **Message bus**: `lambda/ephemera/messageBus/` --- internal lifecycle publishes; render **request** ingress is this DataSource, not a dedicated `registerRenderOrchestration` hook in `messageBus/index.ts`.
-- **State storage**: `Meta::Room` (`packages/mtw-interfaces/ts/ephemeraMeta.ts` + ephemeraDB).
-- **Cache**: `lambda/ephemera/renderCache/` and `internalCache.RenderCache` for exact match and memoized rows.
-- **LLM generation**: `lambda/ephemera/generateExample/` (invoked from `generateRoomPreview` on cache miss).
-- **Conversations**: passive **`roomStateRender`** rows use composite handles for **`sendMessage`** (see `orchestrationHandler.ts` and `conversations/conversationTypes/roomStateRender/materialize.ts`).
-- **Perception**: `lambda/ephemera/perception/` --- placeholder/final delivery for presence-oriented paths as lifecycle work matures.
-
-## Typical request flow (single-item)
-
-1. A trigger emits an `api.ephemera` **`Render Requested`** envelope; this DataSource maps it to **`RenderRequested`** and calls **`orchestrateRenderRequest`**.
-2. **A-phase**: **`intakeRenderRequested`** loads `Meta::Room` where needed and produces **`RenderResolveInput`** (or intake errors).
-3. **B-phase**: **`findRender`** tries pointer validation, then exact match, then **`generateRoomPreview`** when allowed; outcomes are delivered through the injected **`sendMessage`** path (conversation handle when present).
-4. **Full lifecycle** (`RenderGenerationStarted` / `RenderReady` / perception reactions) is **not** uniformly wired for every path today; tightening that contract is part of **graduation** and open tasks in `AGENT.planning.md`.
-
-Passive **intake** surfaces missing `Meta::Room.state.marks` as an intake error (no defaults invented in intake). Mapping that to user-visible errors is handled in orchestration and conversation layers; see planning docs for batch vs single-item history.
+- **Perspective**: asset stack and `computePerspectiveKey` for cache matching.
+- **Rooms first (v2)**: event shapes use **`componentId`** so the same lifecycle can extend beyond rooms later.
+- **Outgoing types:** [`publishedEvents.ts`](publishedEvents.ts) (**`publisherStrategy: 'busOnly'`**); **`mtw-interfaces`** not required for this internal handoff (see [`packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md`](../../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md)).
 
 ## Design intent
 
-- Keep **message delivery** out of `renderCache` (cache stays a data primitive).
-- Keep **multi-step orchestration** out of `state` (state owns persistence and invariants).
-- Keep **`perception`** focused on enrichment and delivery, consuming lifecycle signals as those contracts stabilize.
+- Keep **multi-step orchestration** out of `state` and **durable readiness** ownership in **`renderCache`** (DataSource), not duplicated on the orchestration stream as the final subscriber contract.
 
-## Parallel tracks (governance, not a goal)
+## Parallel tracks (governance)
 
-**Direction:** We are **consolidating** on **one** orchestration implementation in this package. Running duplicate stacks for the same concerns is a **liability to eliminate**, not a pattern to grow. This section exists so any **short-lived experiment** is explicitly labeled and routed toward **merge into canonical** or **retire**, not to normalize long-lived parallel implementations.
+**Canonical track:** `orchestrateRenderRequest`, intake, `findRender`, `generateRoomPreview` in this package. Do **not** add a second orchestration stack elsewhere for the same concerns.
 
-**Canonical track:** `orchestrateRenderRequest`, intake, `findRender`, delivery in this package. Do **not** add a second orchestration stack elsewhere for the same concerns.
+**Tests:** Exercise passive orchestration via **`sendRenderRequested`** (see `subscribedEvents.ts`) and assert `StreamingEvent` shapes for **`mtw.ephemera.renderOrchestration`**. Do not reintroduce **`Render Preview Requested`**.
 
-**When you must add a parallel experiment** (rare): Record it immediately (status: `keep` | `merge into canonical` | `retire` | `quarantine (do not extend)`), one-line owner module, and do not extend non-canonical tracks with new features. Do **not** add a second orchestration stack under `dataSource/state/` (or elsewhere) for the same concerns as `findRender` and this package.
+## Current constraints
 
-**Tests / app patterns:** Exercise passive orchestration via **`sendRenderRequested`** (see `subscribedEvents.ts`) and assert `api.ephemera` / `StreamingEvent` envelopes with header type **`Render Requested`**. Do not reintroduce **`Render Preview Requested`** or preview-only API branches.
-
-## Current constraints (until graduation)
-
-- **Internal-only**: no EventBridge ingress/egress contract is defined yet.
-- **Non-replayable**: `replayable: false` until replay semantics are defined.
-- **Contract incomplete**: no authoritative outbound event-stream contract is established yet; conversation and messageBus side effects still flow through this orchestration package for much of the pipeline.
-
-These describe **readiness**, not a rule against growing this package.
-
-## Copying this module elsewhere (warning)
-
-Do **not** copy **today's** snapshot as a template for unrelated DataSource work without reading the **graduation** section below. The unfinished pieces (replay, publish semantics) are exactly what we are iterating on.
-
-Conversely, **this directory is allowed to grow** into the canonical implementation of render orchestration as those pieces land --- the warning is about **blind copy-paste**, not about **choosing** to consolidate orchestration here.
-
-## Graduation (dropping the transitional label)
-
-Declare the module **graduated** when all of the following are true:
-
-1. Render orchestration publishes authoritative lifecycle/update events as first-class outputs.
-2. Conversation-specific side effects are no longer the primary contract surface.
-3. Event contracts for producers/consumers are stabilized and documented as durable.
-4. The module can be cited as precedent for similar DataSource domains without special caveats.
-
-Until then, keep calling the status **transitional** in the sense of **evolving**, not **disposable edge adapter only**.
+- **In-process / internal bus:** passive orchestration is consumed inside Ephemera via the existing streaming / message-bus path; there is **no** separate public EventBridge contract for this DataSource today, and none is assumed.
+- **`replayable: false`:** matches current usage (no replay pipeline for this stream). Turning on replay later would be a **new** design if product needs it, not an unfinished obligation of this migration.
 
 ## Related docs
 
-**Implementation (this tree)**
-
-- `orchestrationHandler.ts` --- `orchestrateRenderRequest`
-- `events.ts`, `baseClasses.ts` --- bus types and resolve shapes
-- `requestIntake.ts`, `intakeErrors.ts`, `findRender.ts`, `generateRoomPreview.ts`
-
-**Planning (this directory)**
-
-- `AGENT.planning.md` --- v2 tasks, wiring tables, integration status, input boundary, open work
-
-**Ephemera module overviews**
-
-- `lambda/ephemera/dataSource/state/AGENT.planning.historical.md` (v1-era archive; v2 orchestration narrative folded into **this directory's** `AGENT.planning.md`)
-- `lambda/ephemera/messageBus/AGENT.md`
-- `lambda/ephemera/perception/AGENT.md`
-- `lambda/ephemera/renderCache/AGENT.md`
-- `lambda/ephemera/conversations/` (`roomStateRender` handles)
+- [`AGENT.planning.md`](AGENT.planning.md) --- v2 tasks (Task 7, wiring tables).
+- [Pass-through contract (draft)](../../../../taskPlanning/lambda/ephemera/dataSource/AGENT.passThrough.contract.planning.md).
+- [`../renderCache/AGENT.md`](../renderCache/AGENT.md) --- **`mtw.ephemera.renderCache`** DataSource (subscription, **`Render Pertains`** / **`Cache Updated`**).
+- [`../../renderCache/AGENT.md`](../../renderCache/AGENT.md) --- domain cache schema and primitives.
+- [`packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md`](../../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md) --- DataSource patterns.
+- [`../../messageBus/AGENT.md`](../../messageBus/AGENT.md), [`../../perception/AGENT.md`](../../perception/AGENT.md).

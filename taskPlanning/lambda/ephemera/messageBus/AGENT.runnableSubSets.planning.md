@@ -32,8 +32,8 @@ Pin **subscriber-visible ordering** and **composition** across layers that today
 | --- | --- |
 | [`taskPlanning/AGENT.md`](../../../AGENT.md) | Task planning framework |
 | [`../dataSource/AGENT.passThrough.contract.planning.md`](../dataSource/AGENT.passThrough.contract.planning.md) | **Canonical contract** - **uncertainty 11** (cross-layer ordering) |
-| [`../dataSource/renderOrchestration/AGENT.passThrough.planning.md`](../dataSource/renderOrchestration/AGENT.passThrough.planning.md) | Orchestration stream outbounds |
-| [`../dataSource/renderCache/AGENT.passThrough.planning.md`](../dataSource/renderCache/AGENT.passThrough.planning.md) | **`renderCache`** subscriber |
+| [`../../../lambda/ephemera/dataSource/renderOrchestration/AGENT.md`](../../../lambda/ephemera/dataSource/renderOrchestration/AGENT.md) | Orchestration stream outbounds |
+| [`../../../lambda/ephemera/dataSource/renderCache/AGENT.md`](../../../lambda/ephemera/dataSource/renderCache/AGENT.md) | **`renderCache`** subscriber |
 | [`lambda/ephemera/AGENT.ephemeraPerceptionVertical.contractAlign.planning.md`](../../../../lambda/ephemera/AGENT.ephemeraPerceptionVertical.contractAlign.planning.md) | Sub-epic coordination |
 
 ---
