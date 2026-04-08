@@ -1,6 +1,6 @@
 import { ComponentAssetMetaData } from './componentAssetMeta'
 import { DeferredCache } from '@tonylb/mtw-lambda-patterns/ts/internalCache'
-import type { EphemeraCacheDynamoItem } from '../renderCache/baseClasses'
+import type { EphemeraCacheDynamoItem } from '../dataSource/renderCache/baseClasses'
 import type { RenderCacheData } from './renderCache'
 
 import { RoomDescribeData, MapDescribeData, RoomExit } from '@tonylb/mtw-interfaces/ts/messages'

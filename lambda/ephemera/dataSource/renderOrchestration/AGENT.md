@@ -13,18 +13,17 @@ This directory is the **canonical implementation** for the `mtw.ephemera.renderO
 ## Getting Started
 
 1. **Contract** --- Skim the [pass-through contract](../../../../taskPlanning/lambda/ephemera/dataSource/AGENT.passThrough.contract.planning.md) for the **six orchestration outbounds**, **Limited refinement** (payload shapes), and **uncertainties** that are still open at the product level. This file covers **implementation** and passive-path wiring.
-2. **Consumer side** --- Read [`../renderCache/AGENT.md`](../renderCache/AGENT.md) so you know how **`mtw.ephemera.renderCache`** subscribes and where the durable **`CACHE#...`** write happens (**`Render Generated`** handler).
-3. **Domain cache** --- [`../../renderCache/AGENT.md`](../../renderCache/AGENT.md) for cache rows, exact match, and `internalCache` (orchestration reads through these helpers).
-4. **Code path** --- Passive pipeline: [`orchestrationHandler.ts`](orchestrationHandler.ts) (`orchestrateRenderRequest`) -> [`findRender.ts`](findRender.ts) -> [`generateRoomPreview.ts`](generateRoomPreview.ts). State-driven fan-out: [`fanOutStateChangedToPassiveRenders.ts`](fanOutStateChangedToPassiveRenders.ts). Outbound types and publish helpers: [`publishedEvents.ts`](publishedEvents.ts), `sendRenderOrchestrationPublish` / `publishRenderOrchestrationStreamEvent` (see [`index.ts`](index.ts) wiring).
-5. **Tests** --- Run from [`lambda/ephemera/`](../../): `npm test`. Start with [`passThroughContract.scaffold.test.ts`](passThroughContract.scaffold.test.ts), [`orchestrationHandler.test.ts`](orchestrationHandler.test.ts), [`findRender.test.ts`](findRender.test.ts), [`generateRoomPreview.test.ts`](generateRoomPreview.test.ts); cross-layer: [`../passThroughOrchestrationToCache.integration.test.ts`](../passThroughOrchestrationToCache.integration.test.ts).
-6. **Broader planning** --- [`AGENT.planning.md`](AGENT.planning.md) in this directory for v2 tasks (e.g. wiring tables) that are **not** the same as the pass-through doc.
-7. **DataSource pattern** --- [`packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md`](../../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md) (**publishedEvents.ts** for **`busOnly`** outbounds).
+2. **Render cache** --- Read [`../renderCache/AGENT.md`](../renderCache/AGENT.md) for the **`mtw.ephemera.renderCache`** DataSource (subscription, durable **`CACHE#...`** write on **`Render Generated`**), Dynamo schema, cache rows, exact match, and `internalCache` (orchestration reads through these helpers).
+3. **Code path** --- Passive pipeline: [`orchestrationHandler.ts`](orchestrationHandler.ts) (`orchestrateRenderRequest`) -> [`findRender.ts`](findRender.ts) -> [`generateRoomPreview.ts`](generateRoomPreview.ts). State-driven fan-out: [`fanOutStateChangedToPassiveRenders.ts`](fanOutStateChangedToPassiveRenders.ts). Outbound types and publish helpers: [`publishedEvents.ts`](publishedEvents.ts), `sendRenderOrchestrationPublish` / `publishRenderOrchestrationStreamEvent` (see [`index.ts`](index.ts) wiring).
+4. **Tests** --- Run from [`lambda/ephemera/`](../../): `npm test`. Start with [`passThroughContract.scaffold.test.ts`](passThroughContract.scaffold.test.ts), [`orchestrationHandler.test.ts`](orchestrationHandler.test.ts), [`findRender.test.ts`](findRender.test.ts), [`generateRoomPreview.test.ts`](generateRoomPreview.test.ts); cross-layer: [`../passThroughOrchestrationToCache.integration.test.ts`](../passThroughOrchestrationToCache.integration.test.ts).
+5. **Broader planning** --- [`AGENT.planning.md`](AGENT.planning.md) in this directory for v2 tasks (e.g. wiring tables) that are **not** the same as the pass-through doc.
+6. **DataSource pattern** --- [`packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md`](../../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md) (**publishedEvents.ts** for **`busOnly`** outbounds).
 
 ## Why this layer exists
 
 Orchestration keeps **policy and multi-step lifecycle sequencing** out of neighboring packages:
 
-- **`renderCache`** (domain) stays cache types and persistence helpers; the **`mtw.ephemera.renderCache`** DataSource emits correlated **`Render Pertains`** / **`Cache Updated`** (see [`../renderCache/AGENT.md`](../renderCache/AGENT.md)).
+- **`mtw.ephemera.renderCache`** owns cache types, persistence primitives, and correlated **`Render Pertains`** / **`Cache Updated`** (see [`../renderCache/AGENT.md`](../renderCache/AGENT.md)).
 - **`state`** owns world-state storage and invariants (`Meta::Room`, etc.).
 - **`perception`** will own delivery correlation and fan-in (future).
 
@@ -118,7 +117,6 @@ From [`lambda/ephemera/`](../../): `npm test` (Jest).
 
 - [`AGENT.planning.md`](AGENT.planning.md) --- v2 tasks (Task 7, wiring tables).
 - [Pass-through contract (draft)](../../../../taskPlanning/lambda/ephemera/dataSource/AGENT.passThrough.contract.planning.md).
-- [`../renderCache/AGENT.md`](../renderCache/AGENT.md) --- **`mtw.ephemera.renderCache`** DataSource (subscription, **`Render Pertains`** / **`Cache Updated`**).
-- [`../../renderCache/AGENT.md`](../../renderCache/AGENT.md) --- domain cache schema and primitives.
+- [`../renderCache/AGENT.md`](../renderCache/AGENT.md) --- **`mtw.ephemera.renderCache`** DataSource, Dynamo schema, `internalCache.RenderCache`, exact match, **`Render Pertains`** / **`Cache Updated`**.
 - [`packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md`](../../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md) --- DataSource patterns.
 - [`../../messageBus/AGENT.md`](../../messageBus/AGENT.md), [`../../perception/AGENT.md`](../../perception/AGENT.md).

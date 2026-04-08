@@ -3,7 +3,7 @@ import type { AssetUUID, ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import { internalCache, InternalCache } from '../../internalCache'
 import { mergeRoomAcrossStack, mergeLensAcrossStack } from './mergeComponentsAcrossStack'
 import { getLensMarksWithDefaults } from '@tonylb/mtw-wml/ts/standardize/worldState/lensMarks'
-import type { EphemeraCacheMarkState, EphemeraCacheMarkValue } from '../../renderCache/baseClasses'
+import type { EphemeraCacheMarkState, EphemeraCacheMarkValue } from '../renderCache/baseClasses'
 import { resolveCanonAssetStackForRoom } from './resolveAssetStackForRoom'
 
 export type PerspectiveSpec = {

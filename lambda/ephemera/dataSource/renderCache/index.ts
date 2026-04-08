@@ -9,7 +9,7 @@ import type { DeleteCacheRecordsCommand, PutCacheRecordCommand } from '../localA
 import { isDeleteCacheRecordsCommand, isPutCacheRecordCommand } from '../localApiEvents'
 import { putCacheRecord } from './putCacheRecord'
 import { deleteCacheRecord } from './deleteCacheRecord'
-import type { EphemeraCacheComponentId } from '../../renderCache/baseClasses'
+import type { EphemeraCacheComponentId } from './baseClasses'
 import internalCache from '../../internalCache'
 import type { RenderCacheUpdatePayload } from './baseClasses'
 import {

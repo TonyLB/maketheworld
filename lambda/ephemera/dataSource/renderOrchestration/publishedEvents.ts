@@ -15,7 +15,7 @@ import {
 import {
     isEphemeraCacheDynamoItem,
     type EphemeraCacheDynamoItem,
-} from '../../renderCache/baseClasses'
+} from '../renderCache/baseClasses'
 import type { StreamingEventMessage } from '../../messageBus/baseClasses'
 import type { RenderComponentId } from './events'
 

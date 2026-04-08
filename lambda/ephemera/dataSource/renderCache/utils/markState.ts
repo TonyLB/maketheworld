@@ -1,4 +1,4 @@
-import type { EphemeraCacheMarkState } from './baseClasses'
+import type { EphemeraCacheMarkState } from '../baseClasses'
 
 /**
  * Normalized mark state for stable comparison (trim, dedupe by mark, sort).

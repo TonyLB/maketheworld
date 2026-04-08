@@ -5,8 +5,8 @@
  * `internalCache`) can couple only via an injected boundary function.
  */
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
-import type { EphemeraCacheComponentId, EphemeraCacheDynamoItem } from '../../renderCache/baseClasses'
-import { EPHEMERA_CACHE_DATA_CATEGORY_PREFIX, isEphemeraCacheDynamoItem } from '../../renderCache/baseClasses'
+import type { EphemeraCacheComponentId, EphemeraCacheDynamoItem } from './baseClasses'
+import { EPHEMERA_CACHE_DATA_CATEGORY_PREFIX, isEphemeraCacheDynamoItem } from './baseClasses'
 
 export type QueryCacheRecordsForComponentFn = (
     componentId: EphemeraCacheComponentId

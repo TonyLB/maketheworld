@@ -5,7 +5,7 @@ import type {
     EphemeraCacheMarkState,
     EphemeraCacheRenderedContent,
     EphemeraCacheDynamoItem
-} from '../renderCache/baseClasses'
+} from '../dataSource/renderCache/baseClasses'
 import type { RenderTree } from '@tonylb/mtw-base/ts/renderTree'
 import { buildRoomDescriptionPrompt } from './buildRoomDescriptionPrompt'
 import { invokeBedrockRoomDescription } from './invokeBedrockRoomDescription'

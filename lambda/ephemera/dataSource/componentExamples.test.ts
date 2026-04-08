@@ -3,7 +3,7 @@ import {
     type HandleComponentExamplesDependencies
 } from './componentExamples'
 import type { ComponentExamplesMirrorEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
-import type { EphemeraCacheDynamoItem } from '../renderCache'
+import type { EphemeraCacheDynamoItem } from './renderCache/baseClasses'
 import type { StreamingEventMessage } from '../messageBus/baseClasses'
 
 describe('handleComponentExamplesEvent (mtw.ephemera.examples)', () => {

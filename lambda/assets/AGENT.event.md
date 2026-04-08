@@ -153,7 +153,7 @@ Other component types (Character, Message, Guidance, etc.) are ignored by this d
 
 **Implementation**: [`./componentExamples/index.ts`](./componentExamples/index.ts)
 
-For more on how these events are consumed to populate Ephemera's render cache, see `lambda/ephemera/AGENT.caching.planning.md` and `lambda/ephemera/renderCache/AGENT.md`.
+For more on how these events are consumed to populate Ephemera's render cache, see `lambda/ephemera/AGENT.caching.planning.md` and `lambda/ephemera/dataSource/renderCache/AGENT.md`.
 
 ## Event Flow Patterns
 

@@ -3,15 +3,15 @@
  * Mutate via `set` only after `get` has loaded that component; otherwise `set` is a no-op.
  */
 import { v4 as uuidv4 } from 'uuid'
-import type { EphemeraCacheComponentId, EphemeraCacheDynamoItem } from '../renderCache/baseClasses'
-import type { EphemeraCacheMarkState } from '../renderCache/baseClasses'
+import type { EphemeraCacheComponentId, EphemeraCacheDynamoItem } from '../dataSource/renderCache/baseClasses'
+import type { EphemeraCacheMarkState } from '../dataSource/renderCache/baseClasses'
 import {
     EPHEMERA_CACHE_DATA_CATEGORY_PREFIX,
-} from '../renderCache/baseClasses'
+} from '../dataSource/renderCache/baseClasses'
 import type { PutCacheRecordInput } from '../dataSource/renderCache/putCacheRecord'
 import type { QueryCacheRecordsForComponentFn } from '../dataSource/renderCache/queryCacheRecordsForComponent'
 import { perspectiveMatches, type Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
-import { markStatesEqual } from '../renderCache/markStateUtils'
+import { markStatesEqual } from '../dataSource/renderCache/utils/markState'
 
 /** Fields to upsert into the in-memory array (after `get` has run for `componentId`). */
 export type RenderCacheSetParams = {

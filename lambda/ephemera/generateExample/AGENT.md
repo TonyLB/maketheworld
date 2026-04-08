@@ -2,7 +2,7 @@
 
 `lambda/ephemera/generateExample/` owns **Bedrock-backed room description generation** for cache examples.
 
-When no exact cache match exists, this module builds a prompt from generation context (Room, Lens, Marks, Guidance) and cached examples, invokes Bedrock Nova 2 Lite, and parses the model JSON into `EphemeraCacheRenderedContent`. It depends on `renderCache/baseClasses` for the example shape and record types.
+When no exact cache match exists, this module builds a prompt from generation context (Room, Lens, Marks, Guidance) and cached examples, invokes Bedrock Nova 2 Lite, and parses the model JSON into `EphemeraCacheRenderedContent`. It depends on [`dataSource/renderCache/baseClasses.ts`](../dataSource/renderCache/baseClasses.ts) for the example shape and record types.
 
 ## Scope
 

@@ -33,7 +33,7 @@ The final system will have many cooperating parts. We start with a minimal slice
 
 ## First Iteration (MVP) - DONE
 
-The first iteration is complete: exact-match Room preview, cache kept in sync via mirroring and ExampleRemoved, Preview UI in the Room Workbench. See `lambda/ephemera/renderCache/AGENT.md` for implementation details.
+The first iteration is complete: exact-match Room preview, cache kept in sync via mirroring and ExampleRemoved, Preview UI in the Room Workbench. See `lambda/ephemera/dataSource/renderCache/AGENT.md` for implementation details.
 
 ### Scope (as built)
 

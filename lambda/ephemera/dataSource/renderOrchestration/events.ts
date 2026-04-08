@@ -3,7 +3,7 @@ import { EphemeraFeatureId, EphemeraMapId, EphemeraRoomId, isEphemeraFeatureId, 
 import { EphemeraCacheId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { MessageGroupId } from '../../internalCache/orchestrateMessages'
 import { PublishTarget } from '../../messageBus/baseClasses'
-import { EphemeraCacheDynamoItem } from '../../renderCache/baseClasses'
+import { EphemeraCacheDynamoItem } from '../renderCache/baseClasses'
 
 export type RenderComponentId = EphemeraRoomId | EphemeraFeatureId | EphemeraMapId
 

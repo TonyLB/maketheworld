@@ -1,6 +1,6 @@
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import type { EphemeraCacheMarkState } from '../../renderCache/baseClasses'
+import type { EphemeraCacheMarkState } from '../renderCache/baseClasses'
 import type { MergePersistMetaRoomMarksOptimisticUpdateParams } from './mergePersistMetaRoomMarks'
 import { mergeMarkState, mergePersistMetaRoomMarks } from './mergePersistMetaRoomMarks'
 
