@@ -1,6 +1,6 @@
 # Ephemera Render Cache - AGENT
 
-This document describes how Ephemera caches rendered descriptions in the Ephemera DynamoDB table. The `renderCache/` module now provides **types** (`baseClasses.ts`), **mark-state helpers** (`markStateUtils.ts`), and a thin barrel re-exporting DataSource persistence primitives. LLM generation lives in `generateExample/`; cache-miss generation lives in `dataSource/renderOrchestration/generateRoomPreview.ts`. DataSource-owned Dynamo helpers live under `dataSource/renderCache/`.
+This document describes how Ephemera caches rendered descriptions in the Ephemera DynamoDB table. The `renderCache/` module provides **types** (`baseClasses.ts`) and **mark-state helpers** (`markStateUtils.ts`). Import DataSource persistence primitives from `dataSource/renderCache/` (e.g. `putCacheRecord`, `deleteCacheRecord`). LLM generation lives in `generateExample/`; cache-miss generation lives in `dataSource/renderOrchestration/generateRoomPreview.ts`.
 
 It is the concrete realization of the schema and flow outlined in:
 

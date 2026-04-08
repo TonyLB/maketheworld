@@ -1,6 +1,6 @@
 # Ephemera `renderCache/` colocation and deprecation
 
-**Status:** Not started.
+**Status:** In progress (barrel removed; next: fold domain types into `dataSource/renderCache/`).
 
 This task plan supports **colocating** Ephemera render-cache **domain types** and **mark-state helpers** under [`lambda/ephemera/dataSource/renderCache/`](../../../../lambda/ephemera/dataSource/renderCache/), then **deprecating** the standalone [`lambda/ephemera/renderCache/`](../../../../lambda/ephemera/renderCache/) package as a place for TypeScript modules (barrel, `baseClasses`, `markStateUtils`). Steady-state documentation should live next to the DataSource after merge; **delete this file** when the initiative is complete (see [`taskPlanning/AGENT.md`](../../../AGENT.md) durability ladder).
 
@@ -26,7 +26,7 @@ This task plan supports **colocating** Ephemera render-cache **domain types** an
 
 - **`baseClasses` collision:** [`lambda/ephemera/dataSource/renderCache/baseClasses.ts`](../../../../lambda/ephemera/dataSource/renderCache/baseClasses.ts) already holds **outbound** bus payload types and guards; [`lambda/ephemera/renderCache/baseClasses.ts`](../../../../lambda/ephemera/renderCache/baseClasses.ts) holds **domain / Dynamo** record types. Resolve by **merging** into one module with clear sections, or by **splitting** into two files in the same folder (e.g. `cacheRecordTypes.ts` + rename current outbound file). Pick one approach and use it consistently in imports.
 - **`markStateUtils` depends on domain types** via `./baseClasses`. **Move or merge domain `baseClasses` before** moving `markStateUtils` so helpers can import from a **sibling** path under `dataSource/renderCache/` (avoid `utils/` importing back to `lambda/ephemera/renderCache/`).
-- **Barrel:** [`lambda/ephemera/renderCache/index.ts`](../../../../lambda/ephemera/renderCache/index.ts) re-exports DataSource primitives and types; removing it first eliminates inverted dependencies and forces explicit import paths (stable intermediate).
+- **Barrel (removed):** The former `lambda/ephemera/renderCache/index.ts` re-exported DataSource primitives and types; it was deleted so callers use explicit `dataSource/renderCache/*` and `renderCache/baseClasses` (and `markStateUtils` until moved).
 
 ---
 
@@ -34,7 +34,7 @@ This task plan supports **colocating** Ephemera render-cache **domain types** an
 
 Pending work uses `[ ]`; completed work uses `[X]`. Nested bullets use the same rule; mark nested lines `[X]` as you complete them so partial progress is visible.
 
-- [ ] **Remove the barrel** [`lambda/ephemera/renderCache/index.ts`](../../../../lambda/ephemera/renderCache/index.ts) and fix all imports that used the package root (e.g. [`lambda/ephemera/dataSource/componentExamples.ts`](../../../../lambda/ephemera/dataSource/componentExamples.ts), [`lambda/ephemera/internalUtils/perspectiveId.ts`](../../../../lambda/ephemera/internalUtils/perspectiveId.ts), tests). Point callers at explicit modules: `dataSource/renderCache` primitives vs `renderCache/baseClasses` vs `renderCache/markStateUtils` until those move.
+- [X] **Remove the barrel** and fix imports that used the package root: [`lambda/ephemera/dataSource/componentExamples.ts`](../../../../lambda/ephemera/dataSource/componentExamples.ts), [`lambda/ephemera/internalUtils/perspectiveId.ts`](../../../../lambda/ephemera/internalUtils/perspectiveId.ts), [`lambda/ephemera/dataSource/componentExamples.test.ts`](../../../../lambda/ephemera/dataSource/componentExamples.test.ts). Deleted [`lambda/ephemera/renderCache/index.ts`](../../../../lambda/ephemera/renderCache/index.ts) (no longer present).
 - [ ] **Fold domain types into `dataSource/renderCache/`**
   - [ ] Merge or split per **Constraints and merge notes** above; remove upward imports from `dataSource/renderCache/baseClasses.ts` that reference `../../renderCache/baseClasses`.
   - [ ] Repoint **all** TypeScript imports from `.../renderCache/baseClasses` to the new module path(s).
@@ -61,7 +61,7 @@ Pending work uses `[ ]`; completed work uses `[X]`. Nested bullets use the same 
 | Milestone | Status |
 | --- | --- |
 | Task plan created | Done |
-| Barrel removed; explicit imports | Not started |
+| Barrel removed; explicit imports | Done |
 | Domain `baseClasses` colocated; outbound merge resolved | Not started |
 | `markStateUtils` colocated under DataSource | Not started |
 | `AGENT.md` merged; links updated | Not started |

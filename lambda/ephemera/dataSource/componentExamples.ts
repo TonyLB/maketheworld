@@ -8,11 +8,8 @@ import {
     StreamingEventHeader,
     makeStreamingEnvelopeGuardFromHeaderGuard
 } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
-import type {
-    EphemeraCacheDynamoItem,
-    EphemeraCacheComponentId,
-    PutCacheRecordInput,
-} from '../renderCache'
+import type { EphemeraCacheComponentId, EphemeraCacheDynamoItem } from '../renderCache/baseClasses'
+import type { PutCacheRecordInput } from './renderCache/putCacheRecord'
 import internalCache, { type InternalCache } from '../internalCache'
 import {
     isEphemeraFeatureId,
