@@ -147,7 +147,7 @@ Future work will migrate perception rendering off `ExamplesData` and onto the re
 - The same perspective model (`assetStack` / `perspectiveId`).
 - The same mirroring pipeline from Assets.
 
-For cache schema and flow details, see `lambda/ephemera/renderCache/AGENT.md` and `lambda/ephemera/AGENT.caching.planning.md`.
+For cache schema and flow details, see `lambda/ephemera/dataSource/renderCache/AGENT.md` and `lambda/ephemera/AGENT.caching.planning.md`.
 
 ## Future Development
 
