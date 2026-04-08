@@ -186,7 +186,7 @@ Ordered roughly by dependency / product unlock:
 5. **Task 9 --- Foundational tests**  
    Fast-path hit/miss/invalid-pointer; ordering (`RenderGenerationStarted` before terminals; cache outcome ordering); state-triggered observer branching.
 
-6. **Tier 3 (foggy)** --- Perspective fan-out policy (10), compact `RenderReady` payloads (11), cross-domain boundaries with `perception` (12), generalization beyond Rooms (13), RenderCache migration checklist (14) --- see `../../renderCache/AGENT.migration.md` for 14.
+6. **Tier 3 (foggy)** --- Perspective fan-out policy (10), compact `RenderReady` payloads (11), cross-domain boundaries with `perception` (12), generalization beyond Rooms (13), RenderCache boundary invariants (14) --- see [`../renderCache/AGENT.md`](../renderCache/AGENT.md) (**Boundary invariants** / **Regression / equivalence checks**).
 
 7. **Docs** --- Keep `AGENT.md` and this file aligned when wiring changes.
 
