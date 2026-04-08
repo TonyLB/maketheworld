@@ -131,7 +131,7 @@ The `ExamplesData` handler represents the **legacy perception path** for example
 - Perception flows (e.g. `internalCache/componentRender`) currently:
   - Query `ephemeraDB` `EXAMPLE#` items via `ExamplesData`.
   - Render the first available Example for a component, without Mark-state matching.
-- The newer **render cache** lives in `lambda/ephemera/renderCache/`:
+- The newer **render cache** lives in `lambda/ephemera/dataSource/renderCache/`:
   - Receives authored Example lifecycle events from `mtw.assets.componentExamples` via the `mtw.ephemera.examples` DataSource.
   - Stores per-render cache rows under `DataCategory: 'CACHE#...'`, keyed by component and `perspectiveId`, with explicit `markState` and `renderedContent`.
   - Is used today by the Room authoring **Preview** flow (`generateRoomPreview` + `RoomPreviewEditor`) to perform exact-match lookups from proposed Mark state + asset stack.
