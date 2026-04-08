@@ -1,8 +1,10 @@
 /**
  * Request-scoped memo of render-cache Dynamo rows per component (`queryCacheRecordsForComponent`).
- * Mutate via `set` only after `get` has loaded that component; otherwise `set` is a no-op.
+ * Uses DeferredCache for read-through loading and concurrent get dedupe; `set` is authoritative
+ * (may initialize state before the first `get` for that component).
  */
 import { v4 as uuidv4 } from 'uuid'
+import { DeferredCache } from '@tonylb/mtw-lambda-patterns/ts/internalCache'
 import type { EphemeraCacheComponentId, EphemeraCacheDynamoItem } from '../dataSource/renderCache/baseClasses'
 import type { EphemeraCacheMarkState } from '../dataSource/renderCache/baseClasses'
 import {
@@ -13,7 +15,7 @@ import type { QueryCacheRecordsForComponentFn } from '../dataSource/renderCache/
 import { perspectiveMatches, type Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
 import { markStatesEqual } from '../dataSource/renderCache/utils/markState'
 
-/** Fields to upsert into the in-memory array (after `get` has run for `componentId`). */
+/** Fields to upsert into the in-memory array for `componentId`. */
 export type RenderCacheSetParams = {
     componentId: EphemeraCacheComponentId;
     markState: PutCacheRecordInput['markState'];
@@ -27,39 +29,63 @@ export type RenderCacheSetParams = {
     authoredExampleId?: PutCacheRecordInput['authoredExampleId'];
 }
 
+const cacheKey = (componentId: EphemeraCacheComponentId): string => componentId as string
+
 export class RenderCacheData {
-    private readonly rowsByComponent = new Map<EphemeraCacheComponentId, EphemeraCacheDynamoItem[]>()
+    private readonly _Cache: DeferredCache<EphemeraCacheDynamoItem[]>
+    private _Store: Record<string, EphemeraCacheDynamoItem[]> = {}
     private readonly query: QueryCacheRecordsForComponentFn
 
     constructor(queryCacheRecordsForComponent: QueryCacheRecordsForComponentFn) {
         this.query = queryCacheRecordsForComponent
+        this._Cache = new DeferredCache<EphemeraCacheDynamoItem[]>({
+            callback: (key, value) => {
+                this._Store[key] = value
+            },
+        })
     }
 
     /**
      * Returns the same array reference for a given `componentId` within an invocation so `set` can upsert in place.
      */
     async get(componentId: EphemeraCacheComponentId): Promise<EphemeraCacheDynamoItem[]> {
-        const hit = this.rowsByComponent.get(componentId)
-        if (hit !== undefined) {
-            return hit
+        const key = cacheKey(componentId)
+        if (!this._Cache.isCached(key)) {
+            this._Cache.add({
+                promiseFactory: async (keys: string[]) => {
+                    const out: Record<string, EphemeraCacheDynamoItem[]> = {}
+                    await Promise.all(
+                        keys.map(async (k) => {
+                            out[k] = await this.query(k as EphemeraCacheComponentId)
+                        })
+                    )
+                    return out
+                },
+                requiredKeys: [key],
+                transform: (out) => out,
+            })
         }
-        const rows = await this.query(componentId)
-        this.rowsByComponent.set(componentId, rows)
-        return rows
+        await this._Cache.get(key)
+        return this._Store[key]
     }
 
     /**
-     * No-op if `get` has never been called for `componentId`.
+     * Authoritative upsert: initializes cache state for `componentId` when needed.
      * Invalid `cacheId` (present but not `CACHE#...`) is a no-op.
      */
     set(params: RenderCacheSetParams): void {
         const { componentId, markState, cacheId, renderedContent, provenance, perspectiveId, perspectiveMatcher } = params
-        const rows = this.rowsByComponent.get(componentId)
-        if (rows === undefined) {
-            return
-        }
+        const key = cacheKey(componentId)
+
         if (cacheId !== undefined && !cacheId.startsWith(EPHEMERA_CACHE_DATA_CATEGORY_PREFIX)) {
             return
+        }
+
+        let rows = this._Store[key]
+        if (rows === undefined) {
+            rows = []
+            this._Cache.set(Infinity, key, rows)
+            this._Store[key] = rows
         }
 
         const baseItem = {
@@ -99,13 +125,13 @@ export class RenderCacheData {
 
     /**
      * Remove specific memo rows from the invocation-scoped cache.
-     * No-op unless `get(componentId)` has already populated the memo.
+     * No-op unless `get(componentId)` or `set` has populated rows for that component.
      *
      * Important: this mutates the existing array in-place so any callers holding
      * the memo reference observe the updated contents.
      */
     deleteCacheRecords(componentId: EphemeraCacheComponentId, cacheIds: string[]): void {
-        const rows = this.rowsByComponent.get(componentId)
+        const rows = this._Store[cacheKey(componentId)]
         if (rows === undefined) {
             return
         }
@@ -123,7 +149,18 @@ export class RenderCacheData {
     }
 
     clear(): void {
-        this.rowsByComponent.clear()
+        this._Cache.clear()
+        this._Store = {}
+    }
+
+    invalidate(componentId: EphemeraCacheComponentId): void {
+        const key = cacheKey(componentId)
+        delete this._Store[key]
+        this._Cache.invalidate(key)
+    }
+
+    async flush(): Promise<void> {
+        await this._Cache.flush()
     }
 
     /**

@@ -16,7 +16,7 @@ const makeRow = (overrides: Partial<EphemeraCacheDynamoItem> = {}): EphemeraCach
 })
 
 describe('RenderCacheData', () => {
-    describe('currentContract', () => {
+    describe('contract', () => {
         it('memoizes sequential get calls per componentId (single query)', async () => {
             const query = jest.fn().mockResolvedValue([makeRow()])
             const cache = new RenderCacheData(query)
@@ -163,10 +163,8 @@ describe('RenderCacheData', () => {
             expect(query).toHaveBeenCalledTimes(2)
             expect(rows[0].DataCategory).toBe('CACHE#after')
         })
-    })
 
-    describe('targetContractAuthoritativeWrite', () => {
-        it.skip('[phase:refactor] set before get initializes authoritative write state', async () => {
+        it('set before get initializes authoritative write state', async () => {
             const query = jest.fn().mockResolvedValue([makeRow()])
             const cache = new RenderCacheData(query)
 
@@ -184,7 +182,7 @@ describe('RenderCacheData', () => {
             expect(rows[0].perspectiveId).toBe('PERSPECTIVE#new')
         })
 
-        it.skip('[phase:refactor] overlapping get calls dedupe to one query invocation', async () => {
+        it('overlapping get calls dedupe to one query invocation', async () => {
             let releaseQuery: () => void = () => {}
             const queryBarrier = new Promise<void>((resolve) => {
                 releaseQuery = resolve
@@ -208,7 +206,7 @@ describe('RenderCacheData', () => {
     // Invariant regression guards: exact-match semantics must remain stable through cache refactor.
     describe('mustRemainStable', () => {
         describe('getExactMatch', () => {
-        const perspective: Perspective = { assetStack: ['ASSET#a'] }
+            const perspective: Perspective = { assetStack: ['ASSET#a'] }
 
             it('returns a record when markState and perspective match', async () => {
                 const row = makeRow()

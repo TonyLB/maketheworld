@@ -1,7 +1,7 @@
 # `internalCache.RenderCache` write-through alignment plan
 
-**Status:** In progress.  
-**Next step:** Add/adjust tests to encode the new authoritative-write contract, then refactor `RenderCacheData` internals.
+**Status:** Refactor landed; verify in CI and retire this plan when the slice is accepted.  
+**Next step:** Archive or delete this task plan after merge (see [`taskPlanning/AGENT.md`](../../../../../AGENT.md)).
 
 ## Purpose
 
@@ -70,21 +70,21 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines as `[X]` a
 
 - [X] Baseline and contract capture
 - [X] Add/adjust tests that express target behavior:
-  - [X] deduped concurrent `get(componentId)` (captured as skipped target-contract test; activate during refactor)
+  - [X] deduped concurrent `get(componentId)` (active in `renderCache.test.ts`)
   - [X] read-through + post-read write-through mutation visibility
-  - [X] `set`/`deleteCacheRecords` semantics for missing and loaded component rows (`set`-before-`get` captured as skipped target-contract test)
+  - [X] `set`/`deleteCacheRecords` semantics for missing and loaded component rows (`set`-before-`get` authoritative)
   - [X] `getExactMatch` behavior unchanged across refactor
-- [ ] Refactor `RenderCacheData` internals toward DeferredCache-backed loading while preserving public API
-- [ ] Integrate lifecycle behavior
-  - [ ] decide and implement `flush()` and/or `invalidate()` behavior
-  - [ ] update `InternalCache.flush()` if `RenderCache` has async pending work to drain
-- [ ] Run focused tests and fix regressions
-- [ ] Post-refactor test cleanup
-  - [ ] unskip target-contract tests once implementation behavior lands
-  - [ ] collapse transitional contract buckets in `renderCache.test.ts` (rename/merge `currentContract` and `targetContractAuthoritativeWrite` into one active contract section)
-- [ ] Update docs as needed
-  - [ ] update `lambda/ephemera/internalCache/AGENT.md` if behavior expectations changed
-  - [ ] keep this task plan progress/checklist current
+- [X] Refactor `RenderCacheData` internals toward DeferredCache-backed loading while preserving public API
+- [X] Integrate lifecycle behavior
+  - [X] decide and implement `flush()` and/or `invalidate()` behavior
+  - [X] update `InternalCache.flush()` if `RenderCache` has async pending work to drain
+- [X] Run focused tests and fix regressions
+- [X] Post-refactor test cleanup
+  - [X] unskip target-contract tests once implementation behavior lands
+  - [X] collapse transitional contract buckets in `renderCache.test.ts` (rename/merge `currentContract` and `targetContractAuthoritativeWrite` into one active contract section)
+- [X] Update docs as needed
+  - [X] update `lambda/ephemera/internalCache/AGENT.md` if behavior expectations changed
+  - [X] keep this task plan progress/checklist current
 
 ## Verification
 
@@ -111,9 +111,9 @@ Run from `lambda/ephemera/` unless documented otherwise.
 - Baseline command run from `lambda/ephemera/`:
   - `npm run test -- internalCache/renderCache.test.ts --watchAll=false`
 - Result: pass (`1` suite, `12` tests).
-- Current contract encoded in baseline tests:
-  - `get(componentId)` memoizes per component and returns stable reference within invocation.
-  - `set` before first `get(componentId)` is currently a no-op (this will change under the new decision).
+- Contract encoded in tests after refactor:
+  - `get(componentId)` memoizes per component, dedupes overlapping loads, returns stable array reference within invocation.
+  - `set` before first `get(componentId)` is authoritative (initializes cache state; primed rows skip Dynamo until `invalidate`/`clear`).
   - `set` updates or appends by `cacheId` when valid; invalid `cacheId` prefix is a no-op.
   - `set` without `cacheId` matches by mark-state equality, otherwise appends with generated `CACHE#...`.
   - `getExactMatch` preserves perspective + mark-state filtering semantics and memoized read behavior.
@@ -124,10 +124,10 @@ Run from `lambda/ephemera/` unless documented otherwise.
 | --- | --- |
 | Plan created with scope, order, and verification | Done |
 | Behavior decisions finalized | Done |
-| Contract tests aligned with target semantics | In progress (target-contract deltas staged as skipped tests; invariants active) |
-| Refactor implemented | Not started |
-| Verification green | Not started |
-| Task completed and plan retired/archived | Not started |
+| Contract tests aligned with target semantics | Done |
+| Refactor implemented | Done |
+| Verification green | Done (focused Jest: `renderCache`, `componentRender`, `examples`) |
+| Task completed and plan retired/archived | Pending human archive/delete after merge |
 
-Progress note (test-adjustment phase): `renderCache.test.ts` now uses progressive activation with explicit target-contract coverage. Two tests remain intentionally skipped until refactor lands: authoritative `set` before first `get`, and strict overlapping-`get` dedupe.
+Progress note: `renderCache.test.ts` uses a single `contract` describe block; authoritative `set` before first `get` and overlapping-`get` dedupe are active tests.
 

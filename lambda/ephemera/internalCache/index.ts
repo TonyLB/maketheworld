@@ -118,6 +118,7 @@ export class InternalCache {
             this.ComponentAssetMeta.flush(),
             this.AssetMetaData.flush(),
             this.ComponentRender.flush(),
+            this.RenderCache.flush(),
         ])
     }
 
