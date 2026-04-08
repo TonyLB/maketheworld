@@ -1,7 +1,7 @@
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 import { buildRoomDescriptionPrompt } from './buildRoomDescriptionPrompt'
-import type { EphemeraCacheDynamoItem, EphemeraCacheMarkState } from '../renderCache/baseClasses'
+import type { EphemeraCacheDynamoItem, EphemeraCacheMarkState } from '../dataSource/renderCache/baseClasses'
 
 const makeMarkState = (entries: Array<{ mark: string; value: string }>): EphemeraCacheMarkState => ({
     markValue: entries

@@ -1,6 +1,6 @@
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraCacheId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import type { EphemeraCacheDynamoItem } from '../renderCache/baseClasses'
+import type { EphemeraCacheDynamoItem } from '../dataSource/renderCache/baseClasses'
 import type { MessageBus } from '../messageBus/baseClasses'
 import {
     CONVERSATION_PAYLOAD_STUB,

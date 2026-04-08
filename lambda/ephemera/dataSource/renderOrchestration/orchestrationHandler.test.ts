@@ -1,6 +1,6 @@
 import type { MessageBus as MessageBusType } from '../../messageBus/baseClasses'
 import type { EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import type { EphemeraCacheDynamoItem } from '../../renderCache/baseClasses'
+import type { EphemeraCacheDynamoItem } from '../renderCache/baseClasses'
 import internalCache from '../../internalCache'
 import { orchestrateRenderRequest } from './orchestrationHandler'
 import {

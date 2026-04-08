@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto'
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraCacheMarkState } from '../../renderCache/baseClasses'
+import type { EphemeraCacheMarkState } from '../renderCache/baseClasses'
 
 /** Bump if canonical mark JSON changes (keeps cohort keys stable across code versions). */
 const MARK_STATE_CANON_VERSION = 'm1' as const

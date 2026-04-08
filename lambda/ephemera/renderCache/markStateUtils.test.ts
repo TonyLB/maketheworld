@@ -2,7 +2,7 @@ import {
     normalizeMarkState,
     markStatesEqual,
 } from './markStateUtils'
-import type { EphemeraCacheMarkState } from './baseClasses'
+import type { EphemeraCacheMarkState } from '../dataSource/renderCache/baseClasses'
 
 const makeMarkState = (entries: Array<{ mark: string; value: string }>): EphemeraCacheMarkState => ({
     markValue: entries

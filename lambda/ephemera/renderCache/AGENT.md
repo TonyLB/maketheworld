@@ -1,6 +1,6 @@
 # Ephemera Render Cache - AGENT
 
-This document describes how Ephemera caches rendered descriptions in the Ephemera DynamoDB table. The `renderCache/` module provides **types** (`baseClasses.ts`) and **mark-state helpers** (`markStateUtils.ts`). Import DataSource persistence primitives from `dataSource/renderCache/` (e.g. `putCacheRecord`, `deleteCacheRecord`). LLM generation lives in `generateExample/`; cache-miss generation lives in `dataSource/renderOrchestration/generateRoomPreview.ts`.
+This document describes how Ephemera caches rendered descriptions in the Ephemera DynamoDB table. **Cache record and Dynamo types** live in [`../dataSource/renderCache/baseClasses.ts`](../dataSource/renderCache/baseClasses.ts); this folder still holds **mark-state helpers** ([`markStateUtils.ts`](markStateUtils.ts)) (temporary location until colocated). Import DataSource persistence primitives from `dataSource/renderCache/` (e.g. `putCacheRecord`, `deleteCacheRecord`). LLM generation lives in `generateExample/`; cache-miss generation lives in `dataSource/renderOrchestration/generateRoomPreview.ts`.
 
 It is the concrete realization of the schema and flow outlined in:
 
@@ -43,7 +43,7 @@ There is no “cache per Example ID” or “RoomId + Mark state” key; this ke
 
 ### Record shape
 
-`renderCache/baseClasses.ts` defines the core types.
+[`dataSource/renderCache/baseClasses.ts`](../dataSource/renderCache/baseClasses.ts) defines the core types.
 
 #### EphemeraCacheRecord (domain model)
 
@@ -77,7 +77,7 @@ Stored directly in DynamoDB:
 - `DataCategory`: `CACHE#${uuid}`.
 - `markState`, `renderedContent`, `provenance`, `perspectiveId`, `perspectiveMatcher`, `situationId?`, `authoredExampleId?`.
 
-`isEphemeraCacheDynamoItem` in `baseClasses.ts` enforces the expected shape at read time.
+`isEphemeraCacheDynamoItem` in [`dataSource/renderCache/baseClasses.ts`](../dataSource/renderCache/baseClasses.ts) enforces the expected shape at read time.
 
 ---
 

@@ -2,7 +2,7 @@
  * Payload types and type guards for API-triggered internal events (dataSourceKey: 'api.ephemera').
  * Used by apiEphemera.ts send helpers and future DataSource receiveEvents. In-process only; no EventBridge.
  */
-import type { EphemeraCacheComponentId, EphemeraCacheMarkState } from '../renderCache/baseClasses'
+import type { EphemeraCacheComponentId, EphemeraCacheMarkState } from './renderCache/baseClasses'
 import type { PutCacheRecordInput } from './renderCache/putCacheRecord'
 
 export type PutCacheRecordCommand = {

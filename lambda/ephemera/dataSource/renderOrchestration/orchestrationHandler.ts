@@ -13,7 +13,7 @@ import { perspectiveMatches, computePerspectiveKey as defaultComputePerspectiveK
 import type { EphemeraCacheId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import type { MessageBus } from '../../messageBus/baseClasses'
-import { isEphemeraCacheDynamoItem, type EphemeraCacheDynamoItem, type EphemeraCacheMarkState } from '../../renderCache/baseClasses'
+import { isEphemeraCacheDynamoItem, type EphemeraCacheDynamoItem, type EphemeraCacheMarkState } from '../renderCache/baseClasses'
 import { markStatesEqual } from '../../renderCache/markStateUtils'
 import type { RenderRequested } from './events'
 import { isRenderResolveInputSuccess } from './baseClasses'

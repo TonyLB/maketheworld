@@ -3,7 +3,7 @@
  * Generate path: durable write on Render Generated, then Render Pertains then Cache Updated (Cache-OI-1).
  */
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
-import type { EphemeraCacheComponentId, EphemeraCacheDynamoItem } from '../../renderCache/baseClasses'
+import type { EphemeraCacheComponentId, EphemeraCacheDynamoItem } from './baseClasses'
 import internalCache from '../../internalCache'
 import type {
     RenderOrchestrationCurrentCacheValidPayload,

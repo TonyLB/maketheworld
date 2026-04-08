@@ -7,7 +7,7 @@ import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import StandardMark, { StandardLens } from '@tonylb/mtw-wml/ts/standardize/components/worldState'
 import StandardGuidance from '@tonylb/mtw-wml/ts/standardize/components/guidance'
 import { renderTreeToString } from '@tonylb/mtw-base/ts/renderTree'
-import type { EphemeraCacheMarkState, EphemeraCacheDynamoItem } from '../renderCache/baseClasses'
+import type { EphemeraCacheMarkState, EphemeraCacheDynamoItem } from '../dataSource/renderCache/baseClasses'
 
 export type BuildRoomDescriptionPromptInput = {
     roomId: string;

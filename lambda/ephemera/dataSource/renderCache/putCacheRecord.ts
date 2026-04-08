@@ -7,7 +7,7 @@ import {
     EPHEMERA_CACHE_DATA_CATEGORY_PREFIX,
     type EphemeraCacheComponentId,
     type EphemeraCacheDynamoItem,
-} from '../../renderCache/baseClasses'
+} from './baseClasses'
 
 export type PutCacheRecordInput = {
     markState: EphemeraCacheDynamoItem['markState'];

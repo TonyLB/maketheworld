@@ -2,7 +2,7 @@
 // DataSource-owned Dynamo delete: remove a CACHE# row from ephemeraDB.
 //
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
-import type { EphemeraCacheComponentId } from '../../renderCache/baseClasses'
+import type { EphemeraCacheComponentId } from './baseClasses'
 
 /**
  * Delete the cache record with the given key. Idempotent.

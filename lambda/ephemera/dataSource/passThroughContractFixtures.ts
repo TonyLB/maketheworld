@@ -3,8 +3,8 @@
  * Do not import from production runtime code.
  */
 import type { Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
-import type { EphemeraCacheDynamoItem, EphemeraCacheRenderedContent } from '../renderCache/baseClasses'
-import { EPHEMERA_CACHE_PROVENANCE_GENERATED } from '../renderCache/baseClasses'
+import type { EphemeraCacheDynamoItem, EphemeraCacheRenderedContent } from './renderCache/baseClasses'
+import { EPHEMERA_CACHE_PROVENANCE_GENERATED } from './renderCache/baseClasses'
 import type {
     RenderOrchestrationCurrentCacheValidPayload,
     RenderOrchestrationExactMatchFoundPayload,

@@ -8,7 +8,7 @@ import {
 } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraRoomState } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import type { EphemeraCacheMarkState } from '../../renderCache/baseClasses'
+import type { EphemeraCacheMarkState } from '../renderCache/baseClasses'
 
 export const EPHEMERA_STATE_DATA_SOURCE_KEY = 'mtw.ephemera.state' as const
 

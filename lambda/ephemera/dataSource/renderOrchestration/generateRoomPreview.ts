@@ -10,7 +10,7 @@ import {
     EPHEMERA_CACHE_PROVENANCE_GENERATED,
     type EphemeraCacheDynamoItem,
     type EphemeraCacheMarkState,
-} from '../../renderCache/baseClasses'
+} from '../renderCache/baseClasses'
 import type { QueryCacheRecordsForComponentFn } from '../renderCache/queryCacheRecordsForComponent'
 import internalCache from '../../internalCache'
 import { generateRoomDescription } from '../../generateExample'

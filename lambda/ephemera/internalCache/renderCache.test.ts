@@ -1,5 +1,5 @@
 import { RenderCacheData } from './renderCache'
-import type { EphemeraCacheDynamoItem } from '../renderCache/baseClasses'
+import type { EphemeraCacheDynamoItem } from '../dataSource/renderCache/baseClasses'
 import type { Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
 
 const roomId = 'ROOM#r1' as const

@@ -2,7 +2,7 @@
 
 This directory implements the **`mtw.ephemera.renderCache`** DataSource: `api.ephemera` commands (**`Put Cache Record`**, **`Delete Cache Records`**) and **subscription** to **`mtw.ephemera.renderOrchestration`** for the pass-through pipeline.
 
-**Domain** cache schema and shared types live in [`../../renderCache/AGENT.md`](../../renderCache/AGENT.md) (Dynamo shape, `internalCache.RenderCache`, `putCacheRecord` / `deleteCacheRecord` primitives).
+**Domain** cache record types and outbound payload guards live in [`baseClasses.ts`](baseClasses.ts). Schema narrative and pipeline context remain in [`../../renderCache/AGENT.md`](../../renderCache/AGENT.md) (Dynamo shape, `internalCache.RenderCache`, `putCacheRecord` / `deleteCacheRecord` primitives).
 
 **Canonical pass-through semantics** (durable readiness, routing identity, six orchestration outbounds): [AGENT.passThrough.contract.planning.md](../../../../taskPlanning/lambda/ephemera/dataSource/AGENT.passThrough.contract.planning.md).
 
@@ -31,7 +31,7 @@ Cross-cutting rules for cache I/O (social + technical):
 - **`internalCache.RenderCache`** is the only surface that should expose **exact-match** lookup to callers (`getExactMatch`). Do not call `get` and reimplement matcher / markState logic at orchestration or policy call sites.
 - **`mtw.ephemera.renderCache`** is the only place that should expose **cache persistence writes** to the rest of the system.
 
-Persistence primitives (`putCacheRecord`, `deleteCacheRecord`, `queryCacheRecordsForComponent`) live under this directory; domain types and schema details remain in [`../../renderCache/AGENT.md`](../../renderCache/AGENT.md).
+Persistence primitives (`putCacheRecord`, `deleteCacheRecord`, `queryCacheRecordsForComponent`) and **domain / Dynamo types** (`EphemeraCacheDynamoItem`, etc.) live in this directory ([`baseClasses.ts`](baseClasses.ts)). Longer-form schema and flow notes remain in [`../../renderCache/AGENT.md`](../../renderCache/AGENT.md).
 
 ## Regression / equivalence checks
 

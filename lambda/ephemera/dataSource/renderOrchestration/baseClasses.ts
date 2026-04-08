@@ -5,7 +5,7 @@ import type {
     EphemeraCacheDynamoItem,
     EphemeraCacheMarkState,
     EphemeraCacheRenderedContent,
-} from '../../renderCache/baseClasses'
+} from '../renderCache/baseClasses'
 
 /**
  * Where {@link RenderResolveInputSuccess.markState} came from (`Meta::Room` for passive render).

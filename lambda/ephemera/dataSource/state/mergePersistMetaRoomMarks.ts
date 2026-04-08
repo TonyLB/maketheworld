@@ -2,7 +2,7 @@ import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMetaRoom, EphemeraRoomState } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import internalCache from '../../internalCache'
-import type { EphemeraCacheMarkState } from '../../renderCache/baseClasses'
+import type { EphemeraCacheMarkState } from '../renderCache/baseClasses'
 import { normalizeMarkState } from '../../renderCache/markStateUtils'
 import { computeDefaultMarksForRoom } from './computeDefaultMarksForRoom'
 

@@ -8,7 +8,7 @@ import { passThroughSingleFlight } from './singleFlightRenderGeneration'
 import type {
     EphemeraCacheMarkState,
     EphemeraCacheRenderedContent,
-} from '../../renderCache/baseClasses'
+} from '../renderCache/baseClasses'
 
 const makeMarkState = (entries: Array<{ mark: string; value: string }>): EphemeraCacheMarkState => ({
     markValue: entries
