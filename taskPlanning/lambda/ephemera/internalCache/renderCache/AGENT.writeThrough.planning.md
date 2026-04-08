@@ -69,16 +69,19 @@ Align `lambda/ephemera/internalCache/renderCache.ts` with the internalCache writ
 Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines as `[X]` as each sub-step completes.
 
 - [X] Baseline and contract capture
-- [ ] Add/adjust tests that express target behavior:
-  - [ ] deduped concurrent `get(componentId)`
-  - [ ] read-through + post-read write-through mutation visibility
-  - [ ] `set`/`deleteCacheRecords` semantics for missing and loaded component rows
-  - [ ] `getExactMatch` behavior unchanged across refactor
+- [X] Add/adjust tests that express target behavior:
+  - [X] deduped concurrent `get(componentId)` (captured as skipped target-contract test; activate during refactor)
+  - [X] read-through + post-read write-through mutation visibility
+  - [X] `set`/`deleteCacheRecords` semantics for missing and loaded component rows (`set`-before-`get` captured as skipped target-contract test)
+  - [X] `getExactMatch` behavior unchanged across refactor
 - [ ] Refactor `RenderCacheData` internals toward DeferredCache-backed loading while preserving public API
 - [ ] Integrate lifecycle behavior
   - [ ] decide and implement `flush()` and/or `invalidate()` behavior
   - [ ] update `InternalCache.flush()` if `RenderCache` has async pending work to drain
 - [ ] Run focused tests and fix regressions
+- [ ] Post-refactor test cleanup
+  - [ ] unskip target-contract tests once implementation behavior lands
+  - [ ] collapse transitional contract buckets in `renderCache.test.ts` (rename/merge `currentContract` and `targetContractAuthoritativeWrite` into one active contract section)
 - [ ] Update docs as needed
   - [ ] update `lambda/ephemera/internalCache/AGENT.md` if behavior expectations changed
   - [ ] keep this task plan progress/checklist current
@@ -94,6 +97,14 @@ Run from `lambda/ephemera/` unless documented otherwise.
   - `npm run test internalCache/examples.test.ts -- --watchAll=false`
 - Quick static checks for callsite/API drift:
   - `rg "RenderCache\\.(get|set|getExactMatch|deleteCacheRecords|clear|flush|invalidate)" lambda/ephemera`
+
+## Test activation strategy (progressive activation)
+
+- During the "Add/adjust tests" phase, land target-contract tests early even when implementation is not complete.
+- Keep behavior-delta cases (`set` on missing component row, strict concurrent dedupe if currently failing) as `it.skip` or `it.todo` with a short reason string (for example: `until authoritative write refactor lands`).
+- Keep regression guards that already match current behavior active (especially `getExactMatch` and existing post-read mutation semantics).
+- Unskip/activate target-contract tests as part of the refactor step so CI transitions from "documented intent" to "enforced behavior" without losing visibility.
+- After activation, remove transitional structure debt in the same phase: merge/rename temporary contract buckets so test organization reflects steady-state behavior instead of migration staging.
 
 ## Baseline and contract capture (2026-04-08)
 
@@ -113,8 +124,10 @@ Run from `lambda/ephemera/` unless documented otherwise.
 | --- | --- |
 | Plan created with scope, order, and verification | Done |
 | Behavior decisions finalized | Done |
-| Contract tests aligned with target semantics | Not started |
+| Contract tests aligned with target semantics | In progress (target-contract deltas staged as skipped tests; invariants active) |
 | Refactor implemented | Not started |
 | Verification green | Not started |
 | Task completed and plan retired/archived | Not started |
+
+Progress note (test-adjustment phase): `renderCache.test.ts` now uses progressive activation with explicit target-contract coverage. Two tests remain intentionally skipped until refactor lands: authoritative `set` before first `get`, and strict overlapping-`get` dedupe.
 
