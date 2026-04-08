@@ -2,7 +2,7 @@
 
 This directory implements the **`mtw.ephemera.renderCache`** DataSource: `api.ephemera` commands (**`Put Cache Record`**, **`Delete Cache Records`**) and **subscription** to **`mtw.ephemera.renderOrchestration`** for the pass-through pipeline.
 
-**Domain** cache record types and outbound payload guards live in [`baseClasses.ts`](baseClasses.ts). Schema narrative and pipeline context remain in [`../../renderCache/AGENT.md`](../../renderCache/AGENT.md) (Dynamo shape, `internalCache.RenderCache`, `putCacheRecord` / `deleteCacheRecord` primitives).
+**Domain** cache record types and outbound payload guards live in [`baseClasses.ts`](baseClasses.ts). **Mark-state** normalization and equality (`normalizeMarkState`, `markStatesEqual`) live in [`utils/markState.ts`](utils/markState.ts). Schema narrative and pipeline context remain in [`../../renderCache/AGENT.md`](../../renderCache/AGENT.md) (Dynamo shape, `internalCache.RenderCache`, `putCacheRecord` / `deleteCacheRecord` primitives).
 
 **Canonical pass-through semantics** (durable readiness, routing identity, six orchestration outbounds): [AGENT.passThrough.contract.planning.md](../../../../taskPlanning/lambda/ephemera/dataSource/AGENT.passThrough.contract.planning.md).
 

@@ -11,7 +11,7 @@ import {
 import type { PutCacheRecordInput } from '../dataSource/renderCache/putCacheRecord'
 import type { QueryCacheRecordsForComponentFn } from '../dataSource/renderCache/queryCacheRecordsForComponent'
 import { perspectiveMatches, type Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
-import { markStatesEqual } from '../renderCache/markStateUtils'
+import { markStatesEqual } from '../dataSource/renderCache/utils/markState'
 
 /** Fields to upsert into the in-memory array (after `get` has run for `componentId`). */
 export type RenderCacheSetParams = {

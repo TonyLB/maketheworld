@@ -1,14 +1,14 @@
 import {
     normalizeMarkState,
     markStatesEqual,
-} from './markStateUtils'
-import type { EphemeraCacheMarkState } from '../dataSource/renderCache/baseClasses'
+} from './markState'
+import type { EphemeraCacheMarkState } from '../baseClasses'
 
 const makeMarkState = (entries: Array<{ mark: string; value: string }>): EphemeraCacheMarkState => ({
     markValue: entries
 })
 
-describe('renderCache/markStateUtils', () => {
+describe('dataSource/renderCache/utils/markState', () => {
     describe('normalizeMarkState', () => {
         it('produces deterministic ordering for the same logical state', () => {
             const a = makeMarkState([
@@ -102,4 +102,3 @@ describe('renderCache/markStateUtils', () => {
         })
     })
 })
-

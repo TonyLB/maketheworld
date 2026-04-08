@@ -2,7 +2,7 @@ import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
 import { perspectiveMatches, computePerspectiveKey } from '@tonylb/mtw-interfaces/ts/perspective'
 import type { EphemeraCacheDynamoItem, EphemeraCacheMarkState } from '../renderCache/baseClasses'
-import { markStatesEqual } from '../../renderCache/markStateUtils'
+import { markStatesEqual } from '../renderCache/utils/markState'
 import { RENDER_INVALIDATE_REASON_NO_CACHE_NO_GENERATION, type RenderResolveInputSuccess } from './baseClasses'
 import { findRender } from './findRender'
 
