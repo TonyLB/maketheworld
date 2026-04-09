@@ -161,12 +161,6 @@ export const LensMarkFacetsEditor: FunctionComponent<LensMarkFacetsEditorProps> 
                 onFacetsChange={(newItems: StandardLensMarkFacet[]) =>
                     onChange?.(new LensMarkFacetList(newItems))
                 }
-                createEmptyFacet={(universalKey: ComponentUUID) =>
-                    new StandardLensMarkFacet({
-                        reference: { tag: "Mark", universalKey },
-                        payload: {}
-                    })
-                }
                 createFacetWithPayload={(
                     facet: StandardLensMarkFacet,
                     newPayload: unknown
@@ -184,7 +178,7 @@ export const LensMarkFacetsEditor: FunctionComponent<LensMarkFacetsEditorProps> 
                 affordance={{
                     addLabel: "Create new Mark",
                     referenceExistingLabel: "Reference existing Mark",
-                    enableReferenceExisting: false,
+                    enableReferenceExisting: true,
                     enableImport: true
                 }}
                 renderFacetRow={(
