@@ -26,6 +26,8 @@ export type DeleteCacheRecordsCommand = {
 export type StateChangeCommand = {
     componentId: EphemeraCacheComponentId;
     markState: EphemeraCacheMarkState;
+    /** When set, handlers emit a correlated `ReturnValue` ack. */
+    requestId?: string;
 }
 
 const isMarkStateShape = (value: unknown): value is EphemeraCacheMarkState => {
@@ -44,6 +46,9 @@ export const isStateChangeCommand = (value: unknown): value is StateChangeComman
         return false
     }
     if (!isMarkStateShape(v.markState)) {
+        return false
+    }
+    if (v.requestId !== undefined && typeof v.requestId !== 'string') {
         return false
     }
     return true

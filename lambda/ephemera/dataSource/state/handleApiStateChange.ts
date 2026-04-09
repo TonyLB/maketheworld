@@ -4,10 +4,11 @@ import type { StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSo
 import type { StateChangeCommand } from '../localApiEvents'
 import { mergePersistMetaRoomMarks } from './mergePersistMetaRoomMarks'
 import type { StateChangedPayload } from './events'
+import messageBus from '../../messageBus'
 
 /**
  * Apply api.ephemera `State Change` to Dynamo: rooms merge `markState` into `Meta::Room.state.marks`.
- * Non-room component ids are ignored until other meta kinds are supported.
+ * Non-room component ids: no-op for internal callers; correlated `requestId` receives an Error `ReturnValue`.
  *
  * Default marks (when none stored) use `computeDefaultMarksForRoom`, which resolves the Canon asset stack via
  * `resolveCanonAssetStackForRoom` only in that path.
@@ -18,7 +19,39 @@ export const handleApiStateChangeCommand = async (
         streamEvent: StreamEventFunction<StateChangedPayload, StreamingEventHeader>;
     }
 ): Promise<void> => {
+    const rid = cmd.requestId
+
+    const sendError = (message: string) => {
+        if (!rid) {
+            return
+        }
+        messageBus.send({
+            type: 'ReturnValue',
+            body: {
+                messageType: 'Error',
+                RequestId: rid,
+                message,
+            },
+        })
+    }
+
+    const sendSuccess = () => {
+        if (!rid) {
+            return
+        }
+        messageBus.send({
+            type: 'ReturnValue',
+            body: {
+                messageType: 'EphemeraCommandSuccess',
+                RequestId: rid,
+                command: 'stateChange' as const,
+                componentId: cmd.componentId,
+            },
+        })
+    }
+
     if (!isEphemeraRoomId(cmd.componentId)) {
+        sendError('STATE_CHANGE_INVALID_COMPONENT: componentId must be a room id')
         return
     }
 
@@ -29,6 +62,7 @@ export const handleApiStateChangeCommand = async (
 
     if (!result.ok) {
         console.error(`[mtw.ephemera.state] mergePersistMetaRoomMarks failed: ${result.errorMessage}`)
+        sendError(`STATE_CHANGE_FAILED: ${result.errorMessage}`)
         return
     }
 
@@ -45,4 +79,6 @@ export const handleApiStateChangeCommand = async (
             },
         })
     }
+    // ok && !persisted: merge was a no-op (e.g. identical marks); still ack success for correlated clients.
+    sendSuccess()
 }

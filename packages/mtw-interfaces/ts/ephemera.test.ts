@@ -4,6 +4,8 @@ import {
     isConversationCorrelatedPayload,
     isEphemeraClientMessageConversationStep,
     isTerminalConversationStep,
+    isEphemeraClientMessageEphemeraCommandSuccess,
+    isEphemeraClientMessageError,
 } from './ephemera'
 
 describe('EphemeraAPIMessage typeguard', () => {
@@ -345,6 +347,53 @@ describe('EphemeraClientMessage typeguard', () => {
                 step: 'generating'
             })).toBe(false)
         })
+    })
+})
+
+describe('ephemera API wire (client and server)', () => {
+    it('isEphemeraAPIMessage accepts ephemeraStateChange', () => {
+        expect(
+            isEphemeraAPIMessage({
+                message: 'ephemeraStateChange',
+                componentId: 'ROOM#x',
+                markState: { markValue: [{ mark: 'm', value: 'v' }] },
+            })
+        ).toBe(true)
+    })
+
+    it('isEphemeraClientMessageEphemeraCommandSuccess', () => {
+        expect(
+            isEphemeraClientMessageEphemeraCommandSuccess({
+                messageType: 'EphemeraCommandSuccess',
+                RequestId: 'rid',
+                command: 'stateChange',
+                componentId: 'ROOM#x',
+            })
+        ).toBe(true)
+        expect(
+            isEphemeraClientMessageEphemeraCommandSuccess({
+                messageType: 'EphemeraCommandSuccess',
+                command: 'bad',
+                componentId: 'ROOM#x',
+            })
+        ).toBe(false)
+    })
+
+    it('isEphemeraClientMessageError', () => {
+        expect(
+            isEphemeraClientMessageError({
+                messageType: 'Error',
+                RequestId: 'rid',
+                message: 'failed',
+            })
+        ).toBe(true)
+        expect(
+            isEphemeraClientMessage({
+                messageType: 'Error',
+                RequestId: 'rid',
+                message: 'failed',
+            })
+        ).toBe(true)
     })
 })
 

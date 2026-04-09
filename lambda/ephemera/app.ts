@@ -18,7 +18,8 @@ import {
     isMapUnsubscribeAPIMessage,
     isUnregisterCharacterAPIMessage,
     isCommandAPIMessage,
-    isActionAPIMessage
+    isActionAPIMessage,
+    isEphemeraApiStateChangeAPIMessage,
 } from '@tonylb/mtw-interfaces/ts/ephemera'
 import { isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraKnowledgeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
@@ -32,6 +33,8 @@ import { confirmGuestCharacter } from './guestCharacter'
 import { AssetsEventSerializer, ComponentExamplesEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
 import { fromEventBridgeFormat } from '@tonylb/mtw-lambda-patterns/ts/dataSource/formatTransform'
 import { coreFormatToStreamingEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
+import { sendStateChange } from './dataSource/apiEphemera'
+import { isStateChangeCommand } from './dataSource/localApiEvents'
 
 // Import DataSources to trigger their messageBus subscriptions (side-effect imports)
 import './dataSource'  // mtw.ephemera DataSource
@@ -231,6 +234,29 @@ export const handler = async (event: any, context: any) => {
                     type: 'ExecuteAction',
                     action: request
                 })
+            }
+
+            if (isEphemeraApiStateChangeAPIMessage(request)) {
+                const cmd = {
+                    componentId: request.componentId,
+                    markState: request.markState,
+                    ...(request.RequestId ? { requestId: request.RequestId } : {}),
+                }
+                if (!isStateChangeCommand(cmd)) {
+                    if (request.RequestId) {
+                        messageBus.send({
+                            type: 'ReturnValue',
+                            body: {
+                                messageType: 'Error',
+                                RequestId: request.RequestId,
+                                message: 'Invalid ephemera state change payload',
+                            },
+                        })
+                    }
+                }
+                else {
+                    sendStateChange(messageBus, request.componentId, cmd)
+                }
             }
 
         }
