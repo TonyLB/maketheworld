@@ -193,4 +193,60 @@ describe('app handler', () => {
             expect(content).toEqual({})
         })
     })
+
+    describe('ephemera API wire messages (api.ephemera)', () => {
+        it('routes ephemeraStateChange to a StreamingEvent on api.ephemera', async () => {
+            const body = {
+                message: 'ephemeraStateChange' as const,
+                componentId: 'ROOM#x',
+                markState: { markValue: [{ mark: 'm', value: 'v' }] },
+            }
+            await handler(
+                {
+                    requestContext: { connectionId: 'test-connection' },
+                    body: JSON.stringify(body),
+                },
+                {}
+            )
+            expect(mockMessageBus.send).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    type: 'StreamingEvent',
+                    dataSourceKey: 'api.ephemera',
+                    streamKey: 'ROOM#x',
+                    header: expect.objectContaining({
+                        type: 'State Change',
+                        dataSourceKey: 'api.ephemera',
+                    }),
+                })
+            )
+        })
+
+        it('includes requestId on State Change command content when RequestId is on the wire', async () => {
+            const body = {
+                message: 'ephemeraStateChange' as const,
+                RequestId: 'req-a',
+                componentId: 'ROOM#x',
+                markState: { markValue: [{ mark: 'm', value: 'v' }] },
+            }
+            await handler(
+                {
+                    requestContext: { connectionId: 'test-connection' },
+                    body: JSON.stringify(body),
+                },
+                {}
+            )
+            const streamingEventCall = mockMessageBus.send.mock.calls.find(
+                (c) => c[0]?.type === 'StreamingEvent' && c[0]?.dataSourceKey === 'api.ephemera'
+            )
+            expect(streamingEventCall).toBeDefined()
+            const payload = streamingEventCall![0] as { getContent: () => Promise<unknown> }
+            const content = await payload.getContent()
+            expect(content).toEqual(
+                expect.objectContaining({
+                    componentId: 'ROOM#x',
+                    requestId: 'req-a',
+                })
+            )
+        })
+    })
 })

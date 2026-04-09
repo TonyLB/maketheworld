@@ -1,5 +1,6 @@
 import { EphemeraCharacterId, EphemeraFeatureId, EphemeraKnowledgeId, EphemeraMapId, EphemeraRoomId, isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraKnowledgeId, isEphemeraMapId, isEphemeraRoomId } from "./baseClasses"
 import { LegalCharacterColor } from './baseClasses'
+import { isEphemeraCacheMarkState, type EphemeraCacheMarkState } from "./ephemeraMeta"
 import { isMapDescribeData, isMessage, MapDescribeData, Message } from "./messages"
 import { checkAll, checkTypes } from "./utils";
 
@@ -106,6 +107,18 @@ export type CommandAPIMessage = {
     command: string;
 }
 
+/**
+ * WebSocket client requests that map to internal `api.ephemera` StreamingEvents (see lambda ephemera `send*` helpers).
+ */
+export type EphemeraApiStateChangeRequest = {
+    message: 'ephemeraStateChange';
+    componentId: string;
+    markState: EphemeraCacheMarkState;
+}
+
+/** Correlates {@link EphemeraClientMessageEphemeraCommandSuccess} with the originating request. */
+export type EphemeraApiCommand = 'stateChange'
+
 export type EphemeraAPIMessage = { RequestId?: string } & (
     RegisterCharacterAPIMessage |
     UnregisterCharacterAPIMessage |
@@ -116,7 +129,8 @@ export type EphemeraAPIMessage = { RequestId?: string } & (
     MapUnsubscribeAPIMessage |
     ActionAPIMessage |
     LinkAPIMessage |
-    CommandAPIMessage
+    CommandAPIMessage |
+    EphemeraApiStateChangeRequest
 )
 
 export const isRegisterCharacterAPIMessage = (message: EphemeraAPIMessage): message is RegisterCharacterAPIMessage => (message.message === 'registercharacter')
@@ -129,6 +143,29 @@ export const isMapUnsubscribeAPIMessage = (message: EphemeraAPIMessage): message
 export const isActionAPIMessage = (message: EphemeraAPIMessage): message is ActionAPIMessage => (message.message === 'action')
 export const isLinkAPIMessage = (message: EphemeraAPIMessage): message is LinkAPIMessage => (message.message === 'link')
 export const isCommandAPIMessage = (message: EphemeraAPIMessage): message is CommandAPIMessage => (message.message === 'command')
+
+const isEphemeraApiStateChangeWire = (message: any): boolean => {
+    if (!message || typeof message !== 'object') {
+        return false
+    }
+    if (message.message !== 'ephemeraStateChange') {
+        return false
+    }
+    if (typeof message.componentId !== 'string') {
+        return false
+    }
+    if (!isEphemeraCacheMarkState(message.markState)) {
+        return false
+    }
+    if (message.RequestId !== undefined && typeof message.RequestId !== 'string') {
+        return false
+    }
+    return true
+}
+
+export const isEphemeraApiStateChangeAPIMessage = (message: EphemeraAPIMessage): message is EphemeraApiStateChangeRequest => (
+    message.message === 'ephemeraStateChange'
+)
 
 export const isEphemeraAPIMessage = (message: any): message is EphemeraAPIMessage => {
     if (typeof message !== 'object') {
@@ -215,6 +252,8 @@ export const isEphemeraAPIMessage = (message: any): message is EphemeraAPIMessag
                     )
                 default: return false
             }
+        case 'ephemeraStateChange':
+            return isEphemeraApiStateChangeWire(message)
         default: return false
     }
 }
@@ -354,6 +393,22 @@ export type EphemeraClientMessageUnsubscribeFromMapsMessage = {
     RequestId?: string;
 }
 
+/** Correlated success ack for {@link EphemeraApiStateChangeRequest}. */
+export type EphemeraClientMessageEphemeraCommandSuccess = {
+    messageType: 'EphemeraCommandSuccess';
+    RequestId?: string;
+    command: EphemeraApiCommand;
+    componentId: string;
+}
+
+/** Correlated error ack (matches map subscription and `socketDispatchPromise` rejection). */
+export type EphemeraClientMessageError = {
+    messageType: 'Error';
+    RequestId?: string;
+    message: string;
+    error?: string;
+}
+
 /**
  * Correlated server-to-client streams use `messageType: 'ConversationStep'` (LifeLine
  * {@link isTerminalConversationStep} / client `socketDispatchConversation`). Preview-only
@@ -446,7 +501,41 @@ export type EphemeraClientMessage = EphemeraClientMessageEphemeraUpdate |
     EphemeraClientMessageUnregisterMessage |
     EphemeraClientMessageSubscribeToMapsMessage |
     EphemeraClientMessageUnsubscribeFromMapsMessage |
+    EphemeraClientMessageEphemeraCommandSuccess |
+    EphemeraClientMessageError |
     EphemeraClientMessageConversationStep
+
+export const isEphemeraClientMessageEphemeraCommandSuccess = (message: any): message is EphemeraClientMessageEphemeraCommandSuccess => {
+    if (!message || typeof message !== 'object') {
+        return false
+    }
+    if (message.messageType !== 'EphemeraCommandSuccess') {
+        return false
+    }
+    if (!checkTypes(message, { command: 'string', componentId: 'string' }, { RequestId: 'string' })) {
+        return false
+    }
+    return message.command === 'stateChange'
+}
+
+export const isEphemeraClientMessageError = (message: any): message is EphemeraClientMessageError => {
+    if (!message || typeof message !== 'object') {
+        return false
+    }
+    if (message.messageType !== 'Error') {
+        return false
+    }
+    if (typeof message.message !== 'string') {
+        return false
+    }
+    if (message.RequestId !== undefined && typeof message.RequestId !== 'string') {
+        return false
+    }
+    if (message.error !== undefined && typeof message.error !== 'string') {
+        return false
+    }
+    return true
+}
 
 export const isEphemeraClientMessage = (message: any): message is EphemeraClientMessage => {
     if (!('messageType' in message && typeof message.messageType === 'string')) {
@@ -490,6 +579,10 @@ export const isEphemeraClientMessage = (message: any): message is EphemeraClient
             ), true)
         case 'ConversationStep':
             return isEphemeraClientMessageConversationStep(message)
+        case 'EphemeraCommandSuccess':
+            return isEphemeraClientMessageEphemeraCommandSuccess(message)
+        case 'Error':
+            return isEphemeraClientMessageError(message)
         default: return false
     }
 }
