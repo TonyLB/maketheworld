@@ -178,7 +178,7 @@ export const LensMarkFacetsEditor: FunctionComponent<LensMarkFacetsEditorProps> 
                 affordance={{
                     addLabel: "Create new Mark",
                     referenceExistingLabel: "Reference existing Mark",
-                    enableReferenceExisting: false,
+                    enableReferenceExisting: true,
                     enableImport: true
                 }}
                 renderFacetRow={(
