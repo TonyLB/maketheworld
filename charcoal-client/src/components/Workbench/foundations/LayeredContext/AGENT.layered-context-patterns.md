@@ -217,7 +217,7 @@ The **payload** being edited is entirely owned by the child (ExampleEditor, Guid
 The "Unlock for editing" affordance is rendered in ExampleEditor when an Example is inherited but is **unimplemented** (no-op button). To implement it:
 
 - **fetchImportDefaults and Examples**: The `fetchImportDefaults` process has not been carefully thought through in the context of Examples. A conceptual refactor is likely needed: how do we determine the origin asset for an inherited Example so we can import it correctly?
-- **Implementation path**: Use `origin={}` data from back-end import-defaults to identify the source asset; call `addImport` (or equivalent) with `fromAsset` derived from that origin; add the Example to the local asset with proper `_from` so it becomes editable while preserving the import chain.
+- **Implementation path**: Use `origin={}` data from back-end import-defaults to identify the source asset; use `addImportToDraft` (or equivalent) inside `updateStandard` with `fromAsset` derived from that origin; add the Example to the local asset with proper `_from` so it becomes editable while preserving the import chain.
 - **Reference**: Map editor uses "unlock for editing" semantics; that UI is currently the most obfuscated, but the metaphor aligns.
 
 ---

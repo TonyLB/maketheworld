@@ -53,7 +53,7 @@ interface ImportComponentDialogProps {
     open: boolean
     onClose: () => void
     assetId: AssetUUID
-    /** Called when user selects a component to import. Caller dispatches addImport with addToReferenceList. */
+    /** Called when user selects a component to import. Caller typically runs addImportToDraft inside updateStandard and associates the ref (see AddReferenceImportControl). */
     onImportSelect: (fromAsset: AssetUUID, uuid: ComponentUUID, tag: SchemaImportMapping['type']) => void
     /** When set, filter components to this type only (zone tabs and Recently Visited). */
     tag?: SchemaImportMapping['type']

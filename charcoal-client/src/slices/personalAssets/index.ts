@@ -31,7 +31,7 @@ import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardFormData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes'
 import Debounce from '../../lib/keyedDebounce'
-import { isSchemaImport, SchemaImportMapping } from '@tonylb/mtw-base/ts/schema/metaData'
+import { isSchemaImport } from '@tonylb/mtw-base/ts/schema/metaData'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import { StandardRender } from '@tonylb/mtw-wml/ts/standardize/render'
 import { deepEqual } from '../../lib/objects'
@@ -39,7 +39,6 @@ import StandardExample from '@tonylb/mtw-wml/ts/standardize/components/example'
 import { AssetUUID, ComponentUUID, isSchemaComponentUUID, isSchemaAssetUUID } from '@tonylb/mtw-base/ts/schema'
 import { ReferenceList } from '@tonylb/mtw-wml/ts/standardize/keys/referenceList'
 import type { ScopedInstrumentationOptions } from '../../testing/scopedInstrumentation'
-import { addImportToDraft } from './addImportToDraft'
 import { getWMLBase } from '../wmlDataSource/selectors'
 import { createSelector } from '@reduxjs/toolkit'
 import { derivePerspectiveForRoom } from '../../lib/perspectiveFromOrigins'
@@ -299,37 +298,6 @@ export {
 
 export { addImportToDraft } from './addImportToDraft'
 export type { AddImportToDraftParams } from './addImportToDraft'
-
-export const addImport = ({
-    assetId,
-    fromAsset,
-    uuid,
-    tag,
-    addToReferenceList
-}: {
-    assetId: AssetUUID
-    fromAsset: AssetUUID
-    tag: SchemaImportMapping['type']
-    uuid: ComponentUUID
-    addToReferenceList: (draft: StandardForm) => ReferenceListDescriptor | null
-}, options?: { overrideUpdateStandard?: typeof updateStandard }) => (dispatch: any, getState: any) => {
-    const base = getWMLBase(getState(), assetId) ?? EMPTY_BASE
-    dispatch((options?.overrideUpdateStandard ?? publicActions.updateStandard)(assetId)({
-        type: 'update',
-        update: (draft: StandardForm) => {
-            const ref = addImportToDraft(draft, { fromAsset, uuid, tag })
-            const descriptor = addToReferenceList(draft)
-            if (descriptor != null && ref) {
-                descriptor.setReferenceList(descriptor.referenceList.assureItem(ref))
-            }
-            return draft
-        },
-        base
-    }))
-    dispatch(fetchImports(assetId))
-    dispatch(setIntent({ key: assetId, intent: ['SCHEMADIRTY'] }))
-    dispatch(heartbeat)
-}
 
 export const requestLLMGeneration = ({ assetId, roomId }: { assetId: AssetUUID, roomId: ComponentUUID }) => async (dispatch: any, getState: any) => {
     const standardSelector = getStandardForm(assetId)

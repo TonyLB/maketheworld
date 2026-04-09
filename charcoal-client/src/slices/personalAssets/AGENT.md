@@ -73,7 +73,7 @@ Manage per-asset editing state and lifecycle so the Workbench can:
 - `updateStandard(key)(payload)` - **Thunk**. Apply edits; orchestrates base from getWMLBase, dispatches to reducer
 - `saveEdit(key)` - Send edit to backend via applyEdit, move to pendingEdits
 - `receiveWMLEvent(key)({ header, content })` - Thunk. Handle mtw.wml events: clear pendingEdits by RequestIds, show Merge Conflict toast
-- `addImport({ assetId, fromAsset, uuid, tag, addToReferenceList })` - Add import; orchestrates base, dispatches updateStandard
+- `addImportToDraft(draft, { fromAsset, uuid, tag })` - Pure helper (re-exported from [addImportToDraft.ts](./addImportToDraft.ts)). Mutates a draft to add or update an imported component. Callers combine it with `updateStandard` from `useWorkbenchAsset` (or the `updateStandard` thunk) and optional `getTopLevelAddToReferenceList` / custom descriptors to place the new reference. See Usage Patterns.
 - `assureDefaultSituationFromPrimitives(draft, fromAsset?)` - Pure helper: ensures draft has SITUATION#DEFAULT imported from primitives; mutates draft, returns true if it made a change. See below.
 - `getStandardForm(key)(state)`, `getLocalStandardForm(key)(state)`, `getBase(key)(state)` - Selectors (key-scoped)
 
@@ -164,16 +164,24 @@ updateStandard({
 })
 ```
 
-**Adding an import**:
+**Adding an import** (Workbench pattern: `addImportToDraft` inside `updateStandard`; `useWorkbenchAsset` already dispatches intent and heartbeat):
 
 ```typescript
-dispatch(addImport({
-    assetId: 'ASSET#myAsset',
-    fromAsset: 'ASSET#other',
-    uuid: 'ROOM#room1',
-    tag: 'Room',
-    addToReferenceList: getTopLevelAddToReferenceList
-}))
+// addImportToDraft, getTopLevelAddToReferenceList from personalAssets/index
+const { updateStandard } = useWorkbenchAsset()
+updateStandard({
+    type: 'update',
+    update: (draft) => {
+        const ref = addImportToDraft(draft, {
+            fromAsset: 'ASSET#other',
+            uuid: 'ROOM#room1',
+            tag: 'Room'
+        })
+        const descriptor = getTopLevelAddToReferenceList(draft)
+        if (ref && descriptor) descriptor.setReferenceList(descriptor.referenceList.assureItem(ref))
+        return draft
+    }
+})
 ```
 
 **Reading standard form** (with base derived from wmlDataSource):
@@ -184,7 +192,7 @@ const standardForm = useSelector(getStandardForm(assetId))
 
 ### Best Practices
 
-- Use the **thunk** `updateStandard(key)(payload)` from index.ts, not `publicActions.updateStandard` directly, unless you orchestrate base yourself (e.g. addImport)
+- Use the **thunk** `updateStandard(key)(payload)` from index.ts, not `publicActions.updateStandard` directly, unless you orchestrate base yourself (e.g. tests or advanced tooling)
 - Do not mutate `edit` or `pendingEdits` outside reducers
 - Base is authoritative from wmlDataSource; personalAssets never writes base
 

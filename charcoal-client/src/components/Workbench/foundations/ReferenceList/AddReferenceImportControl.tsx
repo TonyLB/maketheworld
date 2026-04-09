@@ -48,7 +48,7 @@ export interface AddReferenceImportProps {
     enableReferenceExisting?: boolean
     enableImport?: boolean
     disabled?: boolean
-    /** When set, used for Import dialog and addImport; otherwise tag is used. */
+    /** When set, used for Import dialog tag filter; otherwise `tag` is used. */
     importTag?: ImportTag
 }
 

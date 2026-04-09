@@ -22,10 +22,6 @@ vi.mock("../foundations/useWorkbenchAsset", () => ({
     useWorkbenchAsset: () => mockWorkbenchReturn
 }))
 
-vi.mock("../../../slices/personalAssets", () => ({
-    addImport: vi.fn()
-}))
-
 vi.mock("../ImportComponentDialog", () => ({
     default: () => null
 }))
