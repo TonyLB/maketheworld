@@ -1,5 +1,7 @@
 # AddReferenceImportControl – planning
 
+**Note:** The old Redux `addImport` thunk was removed from `personalAssets`. Imports use `addImportToDraft` plus `updateStandard` and association (see `AddReferenceImportControl.tsx`). Mentions of `addImport` below are historical; read them as that pattern.
+
 Single shared component for the "Add / Reference existing / Import" pattern used for component references and (where applicable) facets. This doc is an anchoring point for refining the plan and open questions.
 
 ---

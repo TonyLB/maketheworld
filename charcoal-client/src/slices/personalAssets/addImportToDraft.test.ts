@@ -1,9 +1,12 @@
 import { describe, it, expect } from 'vitest'
 import { addImportToDraft } from './addImportToDraft'
 import { getTopLevelAddToReferenceList } from './index'
-import { Schema, schemaToWML } from '@tonylb/mtw-wml/ts/schema'
+import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
+import { ReferenceList } from '@tonylb/mtw-wml/ts/standardize/keys/referenceList'
+import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
+import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
 
 describe('addImportToDraft', () => {
     it('should no-op on a repeated import (same uuid and fromAsset)', () => {
@@ -75,5 +78,36 @@ describe('addImportToDraft', () => {
         expect(() => {
             addImportToDraft(draft, { fromAsset: 'ASSET#x', uuid: 'ROOM#y', tag: 'InvalidTag' as 'Room' })
         }).toThrow('Could not create component for tag')
+    })
+
+    it('when addToReferenceList returns list descriptor, ref is added to that list and _topLevel unchanged', () => {
+        const base = new StandardForm(`
+            <Asset uuid=(testAsset)>
+                <Room uuid=(room1) />
+                <Import from=(testImport)><Room key=(testRoom) /></Import>
+            </Asset>
+        `)
+        const draft = base._clone()
+        const addToReferenceList = (d: StandardForm) => {
+            const room = d.byUniversalId['ROOM#room1']
+            if (!(room instanceof StandardRoom)) return null
+            const features = room._payload._features ?? new ReferenceList([])
+            return {
+                referenceList: features,
+                setReferenceList: (list: ReferenceList) => {
+                    room._payload._features = list
+                }
+            }
+        }
+        const ref = addImportToDraft(draft, { fromAsset: 'ASSET#testImport', uuid: 'FEATURE#featureFromImport', tag: 'Feature' })
+        const descriptor = addToReferenceList(draft)
+        if (ref && descriptor) descriptor.setReferenceList(descriptor.referenceList.assureItem(ref))
+        const updated = draft
+        const feature = updated.byUniversalId['FEATURE#featureFromImport']
+        expect(feature).toBeDefined()
+        expect(feature instanceof StandardFeature).toBe(true)
+        const room = updated.byUniversalId['ROOM#room1'] as StandardRoom
+        expect(room._payload._features?.payload.some((r) => r.universalKey === 'FEATURE#featureFromImport')).toBe(true)
+        expect(updated._topLevel?.payload.some((r) => r.universalKey === 'FEATURE#featureFromImport')).toBe(false)
     })
 })

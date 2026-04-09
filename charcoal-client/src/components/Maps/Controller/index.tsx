@@ -3,20 +3,13 @@ import React, { FunctionComponent, ReactNode, useCallback, useContext, useEffect
 import { MapContextItemSelected, MapContextPosition, MapContextType, MapDispatchAction, ToolSelected, isMapTreeRoomWithPosition } from "./baseClasses"
 import MapDThree from "../Edit/MapDThree"
 import { SimNode } from "../Edit/MapDThree/baseClasses"
-import { addExitFactory } from "./addExit"
-import { addRoomFactory } from "./addRoom"
-import { useDispatch } from "react-redux"
-
-import { addImport } from "../../../slices/personalAssets"
-import { addOnboardingComplete } from "../../../slices/player/index.api"
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
 import { StandardMap } from "@tonylb/mtw-wml/ts/standardize/components/map"
 import StandardRoom, { StandardRoomPayload } from "@tonylb/mtw-wml/ts/standardize/components/room"
-import { isSchemaComponentUUID } from "@tonylb/mtw-base/ts/schema"
 
 import { StandardKey } from "@tonylb/mtw-wml/ts/standardize/components/reference"
 import { excludeUndefined } from "../../../lib/lists"
-import { StandardPositionFacet, PositionRemoveClass } from "@tonylb/mtw-wml/ts/standardize/keys/facets/position"
+import { PositionRemoveClass } from "@tonylb/mtw-wml/ts/standardize/keys/facets/position"
 import { ExitFacetList } from "@tonylb/mtw-wml/ts/standardize/keys/facets/exit"
 
 const emptyStandardForm = new StandardForm('<Asset uuid=(default) />')

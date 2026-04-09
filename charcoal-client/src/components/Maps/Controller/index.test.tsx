@@ -20,10 +20,6 @@ vi.mock('../../Library/Edit/LibraryAsset', () => ({
     })
 }))
 
-vi.mock('../../../slices/personalAssets', () => ({
-    addImport: vi.fn()
-}))
-
 vi.mock('../../../slices/player/index.api', () => ({
     addOnboardingComplete: vi.fn()
 }))
