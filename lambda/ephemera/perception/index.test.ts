@@ -1,25 +1,28 @@
-jest.mock('../messageBus')
-import messageBus from '../messageBus'
 jest.mock('@tonylb/mtw-utilities/ts/dynamoDB')
-import { ephemeraDB } from "@tonylb/mtw-utilities/ts/dynamoDB"
+jest.mock('../publishMessage', () => ({
+    __esModule: true,
+    default: jest.fn().mockResolvedValue(undefined),
+}))
+import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
+
+import messageBus from '../messageBus'
+import '../dataSource/perception'
 
 import perceptionMessage, { sendRoomGeneratingHeader } from '.'
 
-// @ts-ignore
-const messageBusMock = messageBus as jest.Mocked<typeof messageBus>
 const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 
 describe('Perception message', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         jest.resetAllMocks()
+        messageBus.clear()
     })
 
     it('should render characters correctly', async () => {
-        // Create mock instance
         const mockInternalCache = {
             Global: {
-                get: jest.fn().mockResolvedValue(['Base'])
+                get: jest.fn().mockResolvedValue(['Base']),
             },
             CharacterMeta: {
                 get: jest.fn().mockResolvedValue({
@@ -29,36 +32,39 @@ describe('Perception message', () => {
                     RoomId: 'ROOM#VORTEX',
                     RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
                     HomeId: 'ROOM#VORTEX',
-                    Pronouns: 'she/her'
-                })
-            }
+                    Pronouns: 'she/her',
+                }),
+            },
         } as any
 
         ephemeraDBMock.getItem.mockResolvedValue({
-            Name: 'Tess', 
-            Pronouns: 'she/her'
+            Name: 'Tess',
+            Pronouns: 'she/her',
         })
-        
-        await perceptionMessage({ 
+
+        const sendSpy = jest.spyOn(messageBus, 'send')
+
+        await perceptionMessage({
             payloads: [
                 {
                     type: 'Perception',
                     characterId: 'CHARACTER#TESS',
-                    ephemeraId: 'CHARACTER#TESS'
-                }
-            ], 
-            messageBus: messageBusMock,
-            internalCacheOverride: mockInternalCache
+                    ephemeraId: 'CHARACTER#TESS',
+                },
+            ],
+            messageBus,
+            internalCacheOverride: mockInternalCache,
         })
+        await messageBus.flush()
+
         expect(ephemeraDBMock.getItem).toHaveBeenCalledWith({
             Key: {
                 EphemeraId: 'CHARACTER#TESS',
-                DataCategory: 'Meta::Character'
+                DataCategory: 'Meta::Character',
             },
-            ProjectionFields: ['Name', 'Pronouns', 'fileURL', 'Color']
+            ProjectionFields: ['Name', 'Pronouns', 'fileURL', 'Color'],
         })
-        expect(messageBusMock.send).toHaveBeenCalledTimes(2)
-        expect(messageBusMock.send).toHaveBeenCalledWith({
+        expect(sendSpy).toHaveBeenCalledWith({
             type: 'PublishMessage',
             displayProtocol: 'PerceptionMessage',
             targets: ['CHARACTER#TESS'],
@@ -70,19 +76,22 @@ describe('Perception message', () => {
     </Character>
 </Asset>`,
             metaData: {
-                componentUUID: 'CHARACTER#TESS'
+                componentUUID: 'CHARACTER#TESS',
             },
-            messageGroupId: undefined
+            messageGroupId: undefined,
         })
+        sendSpy.mockRestore()
     })
 
     describe('sendRoomGeneratingHeader', () => {
+        const messageBusMock = { send: jest.fn() } as any
+
         it('should send a PerceptionMessage with generating status for room headers', () => {
             sendRoomGeneratingHeader({
                 roomId: 'ROOM#TEST',
                 characterIds: ['CHARACTER#TESS'],
-                messageBus: messageBusMock as any,
-                messageGroupId: 'UUID#group'
+                messageBus: messageBusMock,
+                messageGroupId: 'UUID#group',
             })
 
             expect(messageBusMock.send).toHaveBeenCalledWith({
@@ -99,17 +108,18 @@ describe('Perception message', () => {
                 metaData: {
                     componentUUID: 'ROOM#TEST',
                     displayMode: 'header',
-                    status: 'generating'
+                    status: 'generating',
                 },
-                messageGroupId: 'UUID#group'
+                messageGroupId: 'UUID#group',
             })
         })
 
         it('should be a no-op when characterIds is empty', () => {
+            jest.clearAllMocks()
             sendRoomGeneratingHeader({
                 roomId: 'ROOM#TEST',
                 characterIds: [],
-                messageBus: messageBusMock as any
+                messageBus: messageBusMock,
             })
 
             expect(messageBusMock.send).not.toHaveBeenCalled()
