@@ -46,46 +46,34 @@ This dual-mode distinction is driven by the core [Architectural Philosophy](AGEN
 
 ### Primary Mechanism
 
-The core filtering occurs in the perception system (`lambda/ephemera/perception/index.ts`):
+The core filtering occurs in the perception system (`lambda/ephemera/perception/index.ts`). Processing is keyed by `ephemeraId` (asset, room, feature, knowledge, character, or map), for example:
 
 ```typescript
 export const perceptionMessage = async ({ payloads, messageBus }: PerceptionParams) => {
     await Promise.all(payloads.map(async (payload) => {
-        if (isPerceptionShowMessage(payload)) {
-            const { characterId, ephemeraId, onlyForAssets } = payload
-
-            if (!characterId) {
-                // Get rooms where this message should appear
-                const messageMetaByAsset = await internalCache.ComponentAssetMeta.getAcrossAllAssets(ephemeraId)
-                const roomsForMessage = extractRoomsFromMeta(messageMetaByAsset)
-                
-                // Check for character presence in each room
-                const roomCharacterLists = await Promise.all(
-                    roomsForMessage.map(async (roomId) => (
-                        internalCache.RoomCharacterList.get(roomId)
-                    ))
+        if (isPerceptionRoomMessage(payload)) {
+            const characterList = payload.characterId
+                ? [payload.characterId]
+                : (await internalCache.RoomCharacterList.get(payload.ephemeraId)).map(({ EphemeraId }) => EphemeraId)
+            await Promise.all(characterList.map(async (characterId) => {
+                const roomDescribe = await internalCache.ComponentRender.get(
+                    characterId,
+                    payload.ephemeraId,
+                    { header: payload.header }
                 )
-
-                // Only process if characters are present
-                await Promise.all(
-                    roomCharacterLists.map((characters) => (Promise.all(
-                        characters.map(async ({ EphemeraId }) => {
-                            if (onlyForAssets) {
-                                const { assets } = await internalCache.CharacterMeta.get(EphemeraId)
-                                if (!assets.find((asset) => (onlyForAssets.includes(asset)))) {
-                                    return // Skip if character lacks asset access
-                                }
-                            }
-                            // Process perception for this character
-                            await renderPerceptionForCharacter(EphemeraId, ephemeraId)
-                        })
-                    )))
-                )
-            }
+                messageBus.send({
+                    type: 'PublishMessage',
+                    displayProtocol: 'PerceptionMessage',
+                    /* ... */
+                })
+            }))
         }
+        // ... asset, component, map branches
     }))
 }
 ```
+
+WML `Message` components (`MESSAGE#`) are not routed through Ephemera perception; see `lambda/ephemera/perception/AGENT.md`.
 
 ### Character Location Tracking
 
@@ -187,23 +175,6 @@ export const moveCharacter = async ({ payloads, messageBus }: MoveCharacterParam
 2. Check character permissions for component access
 3. Render component description via `ComponentRender.get(characterId, ephemeraId)`
 4. Send appropriately formatted message (`FeatureDescription`, `KnowledgeDescription`, etc.)
-
-#### **Message Broadcast**
-```typescript
-// Triggered when: system messages, character actions create observable effects
-{
-    type: 'Perception',
-    ephemeraId: EphemeraMessageId,
-    onlyForAssets?: AssetUUID[],
-    messageGroupId?: MessageGroupId
-}
-```
-
-**Processing Logic:**
-1. Get rooms where message appears via `ComponentAssetMeta.getAcrossAllAssets()`
-2. For each room: check character presence via `RoomCharacterList.get()`
-3. If `onlyForAssets` specified: filter characters by asset access
-4. Send message to all qualifying characters
 
 ### Movement Events
 

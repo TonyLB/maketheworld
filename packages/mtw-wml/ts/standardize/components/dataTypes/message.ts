@@ -5,6 +5,7 @@ import { SchemaOutputTag } from "@tonylb/mtw-base/ts/schema";
 import { ReferenceListData } from "./reference";
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";
 
+/** Ephemera does not consume this shape for live play; WML Message is authoring and tooling only at runtime. */
 export type StandardMessageData = {
     tag: 'Message';
     shortName?: StandardEditableData<string>;
