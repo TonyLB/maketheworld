@@ -1,5 +1,4 @@
-import { PerceptionMessage as PerceptionRequestMessage, MessageBus, isPerceptionMapMessage, isPerceptionShowMessage, isPerceptionShowMoment, isPerceptionRoomMessage, isPerceptionAssetMessage, isPerceptionComponentMessage } from "../messageBus/baseClasses"
-import { PerceptionMessage } from "@tonylb/mtw-interfaces/ts/messages"
+import { PerceptionMessage as PerceptionRequestMessage, MessageBus, isPerceptionMapMessage, isPerceptionRoomMessage, isPerceptionAssetMessage, isPerceptionComponentMessage } from "../messageBus/baseClasses"
 import { internalCache } from "../internalCache"
 // Recreated type from deleted cacheAsset/baseClasses
 type EphemeraCharacter = {
@@ -12,20 +11,10 @@ type EphemeraCharacter = {
 import { ephemeraDB } from "@tonylb/mtw-utilities/ts/dynamoDB"
 import {
     EphemeraCharacterId,
-    EphemeraMessageId,
     EphemeraRoomId,
     isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraKnowledgeId, isEphemeraRoomId
 } from "@tonylb/mtw-interfaces/ts/baseClasses"
-import { StandardComponentData } from "@tonylb/mtw-wml/ts/standardize/baseClasses"
-import { AssetUUID } from "@tonylb/mtw-base/ts/schema"
-import { StandardComponent } from "@tonylb/mtw-wml/ts/standardize/components/baseClasses"
-import { AssetKey } from "@tonylb/mtw-utilities/ts/types"
-import StandardMoment from "@tonylb/mtw-wml/ts/standardize/components/moment"
-import StandardReference from "@tonylb/mtw-wml/ts/standardize/components/reference"
 import { schemaToWML } from "@tonylb/mtw-wml/ts/schema"
-import StandardMessage from "@tonylb/mtw-wml/ts/standardize/components/message"
-import { isStandardMessageData } from "@tonylb/mtw-wml/ts/standardize/components/dataTypes"
-import { RenderTree } from "@tonylb/mtw-base/ts/renderTree"
 
 type EphemeraCharacterDescription = {
     [K in 'Name' | 'Pronouns' | 'fileURL' | 'Color']: EphemeraCharacter[K];
@@ -43,104 +32,8 @@ export const perceptionMessage = async ({
     const getCache = () => internalCacheOverride || internalCache
     
     await Promise.all(payloads.map(async (payload) => {
-        if (isPerceptionShowMessage(payload)) {
-            const { characterId, ephemeraId, onlyForAssets } = payload
-
-            if (!characterId) {
-                const internalCache = getCache()
-                const messageMetaByAsset = await internalCache.ComponentAssetMeta.getAcrossAllAssets(ephemeraId) as Record<AssetUUID, StandardComponent>
-                const roomsForMessage = (Object.values(messageMetaByAsset) as StandardComponentData[]).filter(isStandardMessageData).reduce<EphemeraRoomId[]>((previous, { rooms }) => ([ ...previous, ...(rooms ?? []) as `ROOM#${string}`[] ]), [])
-                const roomCharacterLists = await Promise.all(roomsForMessage.map(async (roomId) => (internalCache.RoomCharacterList.get(roomId))))
-
-                await Promise.all(
-                    roomCharacterLists.map((characters) => (Promise.all(
-                        characters.map(async ({ EphemeraId }) => {
-                            if (onlyForAssets) {
-                                const { assets } = await internalCache.CharacterMeta.get(EphemeraId)
-                                if (!assets.find((asset) => (onlyForAssets.includes(asset)))) {
-                                    return
-                                }
-                            }
-                            messageBus.send({
-                                type: 'Perception',
-                                ephemeraId,
-                                characterId: EphemeraId,
-                                messageGroupId: payload.messageGroupId
-                            })
-                        })
-                    )))
-                )
-            }
-            else {
-                const internalCache = getCache()
-                const [characterMeta, globalAssets] = await Promise.all([
-                    internalCache.CharacterMeta.get(characterId),
-                    internalCache.Global.get('assets')
-                ])
-                const assetList = [ ...(globalAssets || []), ...characterMeta.assets ].map((key) => (AssetKey(key)))
-                const messageMetaForCharacter = await internalCache.ComponentAssetMeta.getAcrossAssets(ephemeraId, assetList) as Record<AssetUUID, StandardComponent>
-                const roomsForMessage = Object.values(messageMetaForCharacter).filter((component): component is StandardMessage => component instanceof StandardMessage).reduce<EphemeraRoomId[]>((previous, component) => ([ ...previous, ...(component.rooms.payload ?? []).map((reference) => (reference.universalKey)) as `ROOM#${string}`[] ]), [])
-                if (roomsForMessage.includes(characterMeta.RoomId)) {
-                    const messageForm = await internalCache.ComponentRender.get(characterId, ephemeraId)
-                    if (messageForm.byUniversalId[characterMeta.RoomId]) {
-                        const messageItem = messageForm._components.find((item) => (item instanceof StandardMessage)) as StandardMessage | undefined
-                        if (messageItem) {
-                            const rawMessage = messageItem.description?.toJSON()
-                            const message: RenderTree = Array.isArray(rawMessage) ? rawMessage : []
-                            if (message.length) {
-                                messageBus.send({
-                                    type: 'PublishMessage',
-                                    targets: [characterId],
-                                    displayProtocol: 'WorldMessage',
-                                    message,
-                                    messageGroupId: payload.messageGroupId
-                                })
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        else if (isPerceptionShowMoment(payload)) {
-            const { ephemeraId } = payload
-            const internalCache = getCache()
-
-            const [momentMetaByAsset, globalAssets = []] = await Promise.all([
-                internalCache.ComponentAssetMeta.getAcrossAllAssets(ephemeraId),
-                internalCache.Global.get('assets')
-            ])
-            const assetsByMessageId = Object.entries(momentMetaByAsset as Record<AssetUUID, StandardMoment>).reduce<Record<EphemeraMessageId, string[]>>((previous, [key, { messages }]) => (
-                messages.payload.reduce<Record<EphemeraMessageId, string[]>>((accumulator, { key: messageId }) => (messageId
-                    ? {
-                        ...accumulator,
-                        [messageId]: [
-                            ...(accumulator[messageId] || []),
-                            key
-                        ]
-                    }
-                    : accumulator),
-                previous)
-            ), {})
-            const allMessages = Object.keys(assetsByMessageId) as EphemeraMessageId[]
-            allMessages.forEach((messageId) => {
-                if (assetsByMessageId[messageId].find((asset) => (globalAssets.includes(asset)))) {
-                    messageBus.send({
-                        type: 'Perception',
-                        ephemeraId: messageId,
-                        messageGroupId: payload.messageGroupId ? internalCache.OrchestrateMessages.next(payload.messageGroupId) : undefined
-                    })
-                }
-                else {
-                    messageBus.send({
-                        type: 'Perception',
-                        ephemeraId: messageId,
-                        onlyForAssets: assetsByMessageId[messageId],
-                        messageGroupId: payload.messageGroupId ? internalCache.OrchestrateMessages.next(payload.messageGroupId) : undefined
-                    })
-                }
-            })
-        }
-        else if (isPerceptionAssetMessage(payload)) {
+        // WML Message (MESSAGE#) and Moment (MOMENT#) are not routed through Ephemera perception; see mtw-wml Message docs.
+        if (isPerceptionAssetMessage(payload)) {
             const internalCache = getCache()
             const { rooms = [] } = (await internalCache.AssetRooms.get(payload.ephemeraId)) || {}
             rooms.forEach((roomId) => {

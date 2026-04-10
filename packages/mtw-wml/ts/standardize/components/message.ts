@@ -1,3 +1,7 @@
+/**
+ * WML Message components (`<Message>`) are supported for authoring, standardization, and tooling.
+ * Ephemera does not implement runtime delivery of Message components to players (no MESSAGE# perception path).
+ */
 import { excludeUndefined } from "../../lib/lists"
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { AssureReferencesResult, componentClassFactory, ComponentConstructorMethods } from "./component"

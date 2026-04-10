@@ -68,20 +68,8 @@ The perception system can be triggered by several different categories of events
   - Environmental conditions changing
 - **Update Strategy**: Headers receive current state updates, not timeline entries
 
-### **Message Broadcasting Events** *(Communication)*
-**What They Are**: Deliberate message delivery to characters in specific contexts
-
-#### **Moment-Based Messages**
-- **Source**: `PerceptionShowMoment` requests for specific moments
-- **Trigger Pattern**: System needs to display all messages within a moment → Asset discovery → Character targeting
-- **Usage**: Often for coordinated narrative events or system announcements
-- **Routing**: Messages distributed based on asset access and room presence
-
-#### **Direct Messages**
-- **Source**: `PerceptionShowMessage` requests for specific messages
-- **Trigger Pattern**: Specific message needs display → Room association discovery → Character targeting
-- **Filtering**: Can be restricted by `onlyForAssets` parameter
-- **Scope**: Global (all associated characters) or targeted (specific character)
+### **WML Message components (MESSAGE#)** *(Not implemented)*
+Ephemera does not deliver WML `Message` components to players at runtime. Authoring and parsing may still exist in `mtw-wml`; live play does not route `MESSAGE#` or `MOMENT#` through `perceptionMessage`. Use other mechanisms (e.g. future DataSource pipelines) for narrative or system text.
 
 ### **System Coordination Events** *(Infrastructure)*
 **What They Are**: System-level events that require perception updates for consistency
@@ -125,41 +113,6 @@ For detailed technical implementation of these patterns, see [`../AGENT.event.md
 ## Message Types
 
 The system handles several types of perception messages, each with specific behavior:
-
-### **PerceptionShowMessage**
-Displays messages to characters based on room associations:
-
-```typescript
-{
-    type: 'Perception',
-    characterId?: EphemeraCharacterId,  // Optional: specific character
-    ephemeraId: EphemeraMessageId,      // Message to display
-    onlyForAssets?: AssetUUID[],        // Limit to specific assets
-    messageGroupId?: MessageGroupId
-}
-```
-
-**Behavior:**
-- **Global Display**: If no `characterId`, shows to all characters in associated rooms
-- **Targeted Display**: If `characterId` specified, shows only to that character
-- **Asset Filtering**: `onlyForAssets` restricts which characters see the message
-- **Room Association**: Messages are displayed to characters in rooms where the message appears
-
-### **PerceptionShowMoment**
-Displays all messages within a moment to appropriate audiences:
-
-```typescript
-{
-    type: 'Perception',
-    ephemeraId: EphemeraMomentId,      // Moment containing messages
-    messageGroupId?: MessageGroupId
-}
-```
-
-**Behavior:**
-- **Message Discovery**: Finds all messages within the moment across assets
-- **Asset-Based Routing**: Routes messages based on which assets contain them
-- **Global vs. Asset-Specific**: Messages in global assets go to everyone, others are asset-restricted
 
 ### **PerceptionAssetMessage**
 Triggers room header updates when assets change:
@@ -280,8 +233,6 @@ const characterDescription = await ephemeraDB.getItem<EphemeraCharacterDescripti
 
 ### **Message Type Detection**
 The system uses type guards to determine message type:
-- `isPerceptionShowMessage()`
-- `isPerceptionShowMoment()`
 - `isPerceptionAssetMessage()`
 - `isPerceptionRoomMessage()`
 - `isPerceptionComponentMessage()`
@@ -302,12 +253,9 @@ Determines which characters should receive messages:
 
 ### **Message Generation**
 Creates appropriate message formats:
-- **WorldMessage**: For general world descriptions
-- **Room PerceptionMessage**: For room information (with `displayMode: 'full'` or `'header'` in metadata)
-- **CharacterDescription**: For character information
-- **FeatureDescription**: For feature descriptions
-- **KnowledgeDescription**: For knowledge content
-- **MapUpdate**: For map display updates
+- **PerceptionMessage** (publish): Room, feature, knowledge, and character examine content (with room `displayMode` metadata where applicable)
+- **EphemeraUpdate** with **MapUpdate**: For map display updates
+- **WorldMessage** is not emitted by this handler; arrival/departure lines and speech are published elsewhere (e.g. `moveCharacter`, `executeAction`)
 
 ## Usage Patterns
 
@@ -332,19 +280,6 @@ await perceptionMessage({
         type: 'Perception',
         characterId: 'CHARACTER#player-uuid',
         ephemeraId: 'CHARACTER#target-uuid'
-    }],
-    messageBus
-})
-```
-
-### **Message Broadcasting**
-```typescript
-// Broadcast message to all characters in associated rooms
-await perceptionMessage({
-    payloads: [{
-        type: 'Perception',
-        ephemeraId: 'MESSAGE#announcement-uuid',
-        messageGroupId: 'GROUP#1'
     }],
     messageBus
 })
