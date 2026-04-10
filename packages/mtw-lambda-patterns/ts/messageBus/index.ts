@@ -1,6 +1,14 @@
 type InternalMessageItem<PayloadType> = {
     processedBy: string[];
     payload: PayloadType;
+    laneId?: string;
+}
+
+function matchesActiveLane<PayloadType>(item: InternalMessageItem<PayloadType>, activeLane: string | undefined): boolean {
+    if (activeLane === undefined) {
+        return item.laneId === undefined
+    }
+    return item.laneId === activeLane
 }
 
 type UnconstrainedInternalMessageSubscription<PayloadType> = {
@@ -21,23 +29,41 @@ export class InternalMessageBus<PayloadType> {
     _stream: InternalMessageItem<PayloadType>[] = []
     _subscriptions: (UnconstrainedInternalMessageSubscription<PayloadType> | ConstrainedInternalMessageSubscription<PayloadType, any>)[] = []
 
-    send(payload: PayloadType): void {
-        this._stream.push({
-            processedBy: [],
-            payload
-        })
+    send(payload: PayloadType): void;
+    send(payload: PayloadType, laneId: string): void;
+    send(payload: PayloadType, laneId?: string): void {
+        if (laneId === undefined || laneId === '') {
+            this._stream.push({
+                processedBy: [],
+                payload
+            })
+        } else {
+            this._stream.push({
+                processedBy: [],
+                payload,
+                laneId
+            })
+        }
     }
 
     subscribe<P extends PayloadType>(props: UnconstrainedInternalMessageSubscription<PayloadType> | ConstrainedInternalMessageSubscription<PayloadType, P>): void {
         this._subscriptions.push(props)
     }
 
-    async flush(): Promise<void> {
+    flush(): Promise<void>;
+    flush(laneId: string): Promise<void>;
+    async flush(laneId?: string): Promise<void> {
+        const activeLane = laneId === undefined ? undefined : laneId
+        await this.flushLane(activeLane)
+    }
+
+    private async flushLane(activeLane: string | undefined): Promise<void> {
         const priorities = [...(new Set(this._subscriptions.map(({ priority }) => (priority))))].sort()
         const priorityToProcess = priorities.find((priority) => (
             this._subscriptions
                 .filter((subscription) => (subscription.priority === priority))
                 .filter(({ filter: filterFunc, tag }) => (this._stream
+                    .filter((item) => (matchesActiveLane(item, activeLane)))
                     .filter(({ processedBy }) => (!processedBy.includes(tag)))
                     .map(({ payload }) => (payload))
                     .filter(filterFunc)
@@ -51,6 +77,7 @@ export class InternalMessageBus<PayloadType> {
         const subscriptionsToProcess = this._subscriptions.filter(({ priority }) => (priority === priorityToProcess))
         const processSubscription = async ({ tag, filter: filterFunc, callback }): Promise<void> => {
             const filteredMessages = this._stream
+                .filter((item) => (matchesActiveLane(item, activeLane)))
                 .filter(({ processedBy }) => (!processedBy.includes(tag)))
                 .filter(({ payload }) => (filterFunc(payload)))
             filteredMessages.forEach((message) => (message.processedBy.push(tag)))
@@ -59,7 +86,7 @@ export class InternalMessageBus<PayloadType> {
             }
         }
         await Promise.all(subscriptionsToProcess.map(processSubscription))
-        await this.flush()
+        await this.flushLane(activeLane)
     }
 
     clear(): void {

@@ -147,7 +147,9 @@ Pending work uses `[ ]`, completed work uses `[X]`. Nested bullets track sub-ste
 - [X] **Spec** lane naming (`laneId` vs `busId`), default-lane rules, and `send` / `flush` signatures (TypeScript-friendly overloads).
   - [X] **Naming:** `laneId` (see **Naming: `laneId` (not `busId`)**).
   - [X] **Default lane + overloads:** see **API spec (queue cell, `send`, `flush`)**.
-- [ ] **Implement** queue-cell metadata + filtered `flush` in **`mtw-lambda-patterns`** `InternalMessageBus`; extend unit tests in [`packages/mtw-lambda-patterns/ts/messageBus/index.test.ts`](../../../../packages/mtw-lambda-patterns/ts/messageBus/index.test.ts).
+- [X] **Implement** queue-cell metadata + filtered `flush` in **`mtw-lambda-patterns`** `InternalMessageBus`; extend unit tests in [`packages/mtw-lambda-patterns/ts/messageBus/index.test.ts`](../../../../packages/mtw-lambda-patterns/ts/messageBus/index.test.ts).
+  - [X] **`InternalMessageBus`:** `laneId?` on cells, `send` / `flush` overloads, private `flushLane(activeLane)`.
+  - [X] **Tests:** isolation, no cross-lane drain, priority within a named lane, re-entrancy, empty-string lane id.
 - [ ] **Plumb** optional lane through ephemera **`MessageBus`** / `app` `flush` call sites (minimal vertical slice).
 - [ ] **Plumb** lane through **`DataSource.streamEvent` / `streamEnvelope`** (or agreed alternative) so orchestration emissions stay on the active lane.
 - [ ] **Document** re-entrancy / nested `flush` policy in code comment or durable `AGENT.md` near the bus.
@@ -170,7 +172,7 @@ Adjust commands if the repo uses a root test runner; confirm against package `pa
 | --- | --- |
 | Task plan created | Done |
 | API spec (`laneId`, `send` / `flush` overloads, default lane) | Done |
-| `InternalMessageBus` lane metadata + filtered flush | Not started |
+| `InternalMessageBus` lane metadata + filtered flush | Done |
 | Ephemera + DataSource plumbing | Not started |
 | Consumer docs linked | Not started |
 
