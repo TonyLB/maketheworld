@@ -1,26 +1,34 @@
 /**
- * mtw.ephemera.perception DataSource (stub).
+ * mtw.ephemera.perception DataSource.
  *
- * Bus-only, non-replayable. Subscribes via placeholder ingress guard; receiveEvents is a no-op until
- * real ingress and aggregation land. See task plan:
+ * Bus-only, non-replayable. Subscribes to api.ephemera Character perception ingress. See AGENT.md and
  * taskPlanning/lambda/ephemera/dataSource/perception/AGENT.perceptionRefactor.planning.md
  */
 import EphemeraDataSource from '../abstract'
 import type { PerceptionStubPublishedPayload } from './publishedEvents'
-import type { PerceptionIngressPlaceholderPayload } from './subscribedEvents'
+import type { PerceptionSubscribedContent } from './subscribedEvents'
 import { isPerceptionSubscribedEnvelope } from './subscribedEvents'
+import { isCharacterPerceptionRequestedCommand } from './localApiEvents'
+import { handleCharacterPerceptionRequested } from './characterPerception'
+import messageBus from '../../messageBus'
 
 export const ephemeraPerceptionDataSource = new EphemeraDataSource<
     never,
     PerceptionStubPublishedPayload,
-    PerceptionIngressPlaceholderPayload
+    PerceptionSubscribedContent
 >({
     dataSourceKey: 'mtw.ephemera.perception',
     replayable: false,
     publisherStrategy: 'busOnly',
     subscribedEventTypeGuard: isPerceptionSubscribedEnvelope,
-    receiveEvents: async () => {
-        // Stub: no production envelopes match the placeholder guard yet.
+    receiveEvents: async ({ events }) => {
+        await Promise.all(events.map(async (event) => {
+            const raw = await event.getContent()
+            if (!isCharacterPerceptionRequestedCommand(raw)) {
+                return
+            }
+            await handleCharacterPerceptionRequested(raw, messageBus)
+        }))
     },
 })
 

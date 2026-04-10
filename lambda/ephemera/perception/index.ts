@@ -1,24 +1,12 @@
 import { PerceptionMessage as PerceptionRequestMessage, MessageBus, isPerceptionMapMessage, isPerceptionRoomMessage, isPerceptionAssetMessage, isPerceptionComponentMessage } from "../messageBus/baseClasses"
 import { internalCache } from "../internalCache"
-// Recreated type from deleted cacheAsset/baseClasses
-type EphemeraCharacter = {
-    Name?: string;
-    Pronouns?: string;
-    fileURL?: string;
-    Color?: string;
-    [key: string]: any;
-}
-import { ephemeraDB } from "@tonylb/mtw-utilities/ts/dynamoDB"
 import {
     EphemeraCharacterId,
     EphemeraRoomId,
     isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraKnowledgeId, isEphemeraRoomId
 } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import { schemaToWML } from "@tonylb/mtw-wml/ts/schema"
-
-type EphemeraCharacterDescription = {
-    [K in 'Name' | 'Pronouns' | 'fileURL' | 'Color']: EphemeraCharacter[K];
-}
+import { sendCharacterPerceptionRequested } from "../dataSource/perception/subscribedEvents"
 
 /**
  * When false, Perception requests for MAP# ids do not emit EphemeraUpdate MapUpdate.
@@ -80,38 +68,10 @@ export const perceptionMessage = async ({
         else if (isPerceptionComponentMessage(payload)) {
             const { characterId = 'ANONYMOUS', ephemeraId } = payload
             if (isEphemeraCharacterId(ephemeraId) && isEphemeraCharacterId(characterId)) {
-                const characterDescription = (await ephemeraDB.getItem<EphemeraCharacterDescription>({
-                    Key: {
-                        EphemeraId: ephemeraId,
-                        DataCategory: 'Meta::Character'
-                    },
-                    ProjectionFields: ['Name', 'Pronouns', 'fileURL', 'Color']
-                })) || {
-                    Name: 'Unknown',
-                    Pronouns: 'they/them',
-                }
-                
-                // Generate WML content for the character (DB has Name; we emit DisplayName in WML)
-                const { Name: displayName = 'Unknown', Pronouns = 'they/them' } = characterDescription
-                const fileURL = ('fileURL' in characterDescription) ? characterDescription.fileURL : undefined
-                const imageTag = fileURL ? `<Image key=(portrait) fileURL="${fileURL}" />` : ''
-                const wmlContent = `<Asset uuid=(render)>
-    <Character uuid=(${ephemeraId})>
-        <DisplayName>${displayName}</DisplayName>
-        <Pronouns>${Pronouns}</Pronouns>
-        ${imageTag}
-    </Character>
-</Asset>`
-
-                messageBus.send({
-                    type: 'PublishMessage',
-                    targets: [characterId],
-                    displayProtocol: 'PerceptionMessage',
-                    wmlContent,
-                    metaData: {
-                        componentUUID: ephemeraId
-                    },
-                    messageGroupId: payload.messageGroupId
+                sendCharacterPerceptionRequested(messageBus, ephemeraId, {
+                    characterId,
+                    ephemeraId,
+                    messageGroupId: payload.messageGroupId,
                 })
             }
             else {

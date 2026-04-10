@@ -1,6 +1,6 @@
 # Perception - big refactor (fan-in DataSource)
 
-**Status:** In progress. **Next:** [Recommended order](#recommended-order) --- **Character perception** + **`api.ephemera`** ingress. Coordinate with [message bus lanes](../../messageBus/AGENT.messageBusLanes.planning.md) if delivery must be lane-isolated before client output.
+**Status:** In progress. **Next:** [Recommended order](#recommended-order) --- **In-memory aggregation cache** prototype (step 3). Coordinate with [message bus lanes](../../messageBus/AGENT.messageBusLanes.planning.md) if delivery must be lane-isolated before client output.
 
 This file tracks the **large** refactor of Ephemera **perception** from today's largely **imperative** handlers toward an **event-driven fan-in** model (a **DataSource** boundary that **subscribes** to typed streams, **aggregates** partial state, and **delivers** when enough is known). It is **broader** than the pass-through / readiness contract alone; pass-through work is **groundwork** that accrues **obligations** on this shape.
 
@@ -42,13 +42,17 @@ Read [`taskPlanning/AGENT.md`](../../../../AGENT.md) once so you know what belon
    - **Lambda entry / flush:** [`lambda/ephemera/app.ts`](../../../../../lambda/ephemera/app.ts) (`messageBus.flush()`).
    - **Lanes (transport):** [`../../messageBus/AGENT.messageBusLanes.planning.md`](../../messageBus/AGENT.messageBusLanes.planning.md) --- coordinate if delivery must be lane-isolated before client-visible output.
 
-4. **Tests to mirror**
+4. **Implementation stance**
+   - **Lift from imperative perception:** new `mtw.ephemera.perception` work **moves behavior and structure out of** [`lambda/ephemera/perception/`](../../../../../lambda/ephemera/perception/) (handlers, helpers) **into** the DataSource under [`lambda/ephemera/dataSource/perception/`](../../../../../lambda/ephemera/dataSource/perception/); keep [`lambda/ephemera/perception/AGENT.md`](../../../../../lambda/ephemera/perception/AGENT.md) accurate as the split evolves.
+   - **Upgrade using existing DataSources where they apply:** when adding ingress, subscription guards, published stream shapes, tests, or wiring, **prefer the same patterns as** [`renderOrchestration`](../../../../../lambda/ephemera/dataSource/renderOrchestration/) and [`renderCache`](../../../../../lambda/ephemera/dataSource/renderCache/) **where a comparable pattern exists** (for example `api.ephemera` ingress helpers, `subscribedEvents` / `publishedEvents`, `EphemeraDataSource` + `subscribe()`). Perception-specific fan-in will not map one-to-one to every orchestration or cache concern; treat those trees as **reference implementations**, not a spec to force-fit.
+
+5. **Tests to mirror**
    - [`lambda/ephemera/perception/index.test.ts`](../../../../../lambda/ephemera/perception/index.test.ts), [`lambda/ephemera/dataSource/renderCache/index.test.ts`](../../../../../lambda/ephemera/dataSource/renderCache/index.test.ts), [`../AGENT.passThrough.contract.planning.md`](../AGENT.passThrough.contract.planning.md#encoding-the-contract-in-unit-tests) (placeholder / skipped tests with reasons).
 
-5. **Next task**
+6. **Next task**
    - Open [Recommended order](#recommended-order); the first unchecked `[ ]` is next (after baseline `[X]`). After a change merges, mark the matching line `[X]` and run **Verification**.
 
-6. **Baseline before you edit**
+7. **Baseline before you edit**
    - From repo root: `cd lambda/ephemera && npm test` --- expect **green** before large refactors; fix or note existing failures.
 
 There is no `lambda/ephemera/AGENT.development.md` yet; use **Verification** below and this section for commands.
@@ -72,7 +76,13 @@ Pending work uses `[ ]`, completed work uses `[X]`. Mark nested lines `[X]` as y
 
 - [X] **Baseline prep:** legacy Message delivery path removed from imperative perception; Knowledge and Map perception branches **disabled** in handler (flags in [`perception/index.ts`](../../../../../lambda/ephemera/perception/index.ts)). See [Current baseline](#current-baseline-prep-work-done).
 - [X] **Stub** `mtw.ephemera.perception` (or agreed `dataSourceKey`): **bus-published** `EphemeraDataSource`, `subscribe()` wired, same internal `StreamingEvent` patterns as [`renderOrchestration`](../../../../../lambda/ephemera/dataSource/renderOrchestration/) / [`renderCache`](../../../../../lambda/ephemera/dataSource/renderCache/); no EventBridge for the stub. Code: [`lambda/ephemera/dataSource/perception/`](../../../../../lambda/ephemera/dataSource/perception/).
-- [ ] **Character perception** inside the DataSource plus **`api.ephemera`**-style **invoking** ingress (mirror [`sendRenderRequested`](../../../../../lambda/ephemera/dataSource/renderOrchestration/subscribedEvents.ts) patterns).
+- [X] **Character perception** inside the DataSource plus **`api.ephemera`**-style **invoking** ingress (mirror [`sendRenderRequested`](../../../../../lambda/ephemera/dataSource/renderOrchestration/subscribedEvents.ts) patterns).
+  - **Ingress `header.type`:** `Character Perception Requested`.
+  - **`getContent()` payload:** `CharacterPerceptionRequestedCommand` in [`lambda/ephemera/dataSource/perception/localApiEvents.ts`](../../../../../lambda/ephemera/dataSource/perception/localApiEvents.ts) (field parity with [`PerceptionComponentMessage`](../../../../../lambda/ephemera/messageBus/baseClasses.ts) where applicable).
+  - **`streamKey`:** viewed character **`ephemeraId`** (`CHARACTER#...`), not the viewer `characterId` (matches other `api.ephemera` per-entity keys).
+  - **Call-sites:** migrate incrementally as the work lands (tidy, no big-bang) --- first bridge: imperative [`perceptionMessage`](../../../../../lambda/ephemera/perception/index.ts) Character branch.
+  - **Output:** `receiveEvents` emits **`PublishMessage`** only; no `mtw.ephemera.perception` outbound stream carry-forward in this step (add later if needed).
+  - **Non-goals:** no `renderOrchestration` / `renderCache` subscription for Character; no rendering **lanes** for Character in this step.
 - [ ] **In-memory** aggregation cache prototype (running collected state; durable checkpoints **out of scope** unless needed).
 - [ ] **Room header** aggregation (**generating** + **terminal** results) --- fan-in and state first; **delivery mechanics** (who, timeline vs in-place) refine with pass-through + [lanes](../../messageBus/AGENT.messageBusLanes.planning.md) as needed.
 - [ ] **Room description** aggregation (same footnote as header).
@@ -85,7 +95,7 @@ Pending work uses `[ ]`, completed work uses `[X]`. Mark nested lines `[X]` as y
 | --- | --- | --- |
 | -- | Baseline | Done --- see [Current baseline](#current-baseline-prep-work-done). |
 | 1 | Stub perception DataSource | Done --- bus-only; see [`dataSource/perception/`](../../../../../lambda/ephemera/dataSource/perception/). |
-| 2 | Character perception + `api.ephemera` ingress | Typed like `sendRenderRequested`. |
+| 2 | Character perception + `api.ephemera` ingress | Done: `Character Perception Requested`; `CharacterPerceptionRequestedCommand`; `streamKey` = viewed `ephemeraId`; `PublishMessage` only; `perceptionMessage` bridge. |
 | 3 | In-memory aggregation cache | Prototype. |
 | 4 | Room header aggregation | Generating + terminal; delivery details iterate. |
 | 5 | Room description aggregation | Same as header. |
@@ -228,5 +238,6 @@ Run from **repository root** unless noted.
 | Message bus lanes plan ([`../../messageBus/AGENT.messageBusLanes.planning.md`](../../messageBus/AGENT.messageBusLanes.planning.md)) | Draft exists; implementation tracked there |
 | Obligations table vs pass-through contract | In progress (upstream) |
 | Stub perception DataSource (Recommended order step 1) | Done ([`lambda/ephemera/dataSource/perception/`](../../../../../lambda/ephemera/dataSource/perception/)) |
-| Steps 2--7 | Not started |
+| Character perception + api.ephemera ingress (Recommended order step 2) | Done |
+| Steps 3--7 | Not started |
 | Initiative complete; durable docs updated; task plan retired | Not started |
