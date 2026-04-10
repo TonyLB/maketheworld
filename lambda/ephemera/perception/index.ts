@@ -20,6 +20,12 @@ type EphemeraCharacterDescription = {
     [K in 'Name' | 'Pronouns' | 'fileURL' | 'Color']: EphemeraCharacter[K];
 }
 
+/**
+ * When false, Perception requests for MAP# ids do not emit EphemeraUpdate MapUpdate.
+ * Temporarily off pending perception DataSource migration; restore this path when Map display moves there.
+ */
+export const MAP_PERCEPTION_ENABLED = false
+
 export const perceptionMessage = async ({ 
     payloads, 
     messageBus, 
@@ -140,7 +146,8 @@ export const perceptionMessage = async ({
         }
         else {
             const { characterId = 'ANONYMOUS' } = payload
-            if (isPerceptionMapMessage(payload) && isEphemeraCharacterId(characterId)) {
+            if (MAP_PERCEPTION_ENABLED && isPerceptionMapMessage(payload) && isEphemeraCharacterId(characterId)) {
+                // Map perception gated by MAP_PERCEPTION_ENABLED (see file-level JSDoc).
                 const internalCache = getCache()
                 const mapDescribe = await internalCache.ComponentRender.get(characterId, payload.ephemeraId)
                 if ((!payload.mustIncludeRoomId) || mapDescribe.byUniversalId[payload.mustIncludeRoomId]) {
