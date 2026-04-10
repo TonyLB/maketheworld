@@ -22,6 +22,10 @@ Two-tier architecture for decoupling processing steps within individual lambda j
 - **[Implementation Guide](./ts/messageBus/AGENT.implementation.md)** - Code examples and patterns
 - **[Testing Guide](./ts/messageBus/AGENT.testing.md)** - Testing strategies
 
+### Test utilities (`ts/testing/`)
+
+Jest-oriented helpers that are **not** exported from the package runtime entry. Use deep imports from tests only (for example `createAsyncGate` in [`ts/testing/asyncGate.ts`](./ts/testing/asyncGate.ts)): one in-flight gated async call at a time, with explicit `resolve()` / `reject()` to unblock after asserting intermediate behavior.
+
 ### Internal Cache System (`ts/internalCache/`)
 
 Comprehensive caching layer providing deferred loading of asynchronous data sources with reusable patterns for common cache handler implementations.
