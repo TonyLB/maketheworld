@@ -22,6 +22,7 @@ import { buildOrchestrationRouting } from './orchestrationRouting'
 import { publishRenderOrchestrationStreamEvent, type RenderOrchestrationPublishedPayload } from './publishedEvents'
 import { findRender } from './findRender'
 import { generateRoomPreview } from './generateRoomPreview'
+import { renderOrchestrationIngressLaneId } from './subscribedEvents'
 import type { RunWithSingleFlight } from './singleFlightRenderGeneration'
 import { intakeRenderRequested } from './requestIntake'
 import type { RequestIntakeDependencies } from './requestIntake'
@@ -85,11 +86,11 @@ export const defaultClearPerspectivePointer = async (roomId: EphemeraRoomId, per
 export const orchestrateRenderRequest = async (
     {
         payload,
-        messageBus: _messageBus,
+        messageBus,
         streamEvent,
     }: {
         payload: RenderRequested;
-        /** Retained for ingress compatibility; stream publishing uses `streamEvent` only. */
+        /** Used for lane-scoped flush alongside generation; stream publishing uses `streamEvent`. */
         messageBus: MessageBus;
         streamEvent: StreamEventFunction<RenderOrchestrationPublishedPayload>;
     },
@@ -108,6 +109,7 @@ export const orchestrateRenderRequest = async (
     const intake = await intakeRenderRequested(payload, _deps)
 
     const streamKey = payload.componentId
+    const orchestrationLaneId = renderOrchestrationIngressLaneId(streamKey)
     const intakeErr = getIntakeOrchestrationErrorIfAny(intake)
     if (intakeErr) {
         const routing = buildOrchestrationRouting(payload.componentId, payload.perspective, orchDeps.computePerspectiveKey)
@@ -116,7 +118,7 @@ export const orchestrateRenderRequest = async (
             ...routing,
             errorCode: intakeErr.errorCode,
             errorMessage: intakeErr.errorMessage,
-        })
+        }, { laneId: '' })
         return
     }
 
@@ -124,8 +126,24 @@ export const orchestrateRenderRequest = async (
         return
     }
 
+    /**
+     * Terminal / cache-resolution outbounds use the default lane so a single `flush()` at lambda boundary drains them.
+     * `Generation Started` omits `laneId` so it inherits the inbound orchestration lane (see `sendRenderRequested`).
+     */
     const publishOrchestration = async (content: RenderOrchestrationPublishedPayload) => {
-        await publishRenderOrchestrationStreamEvent(streamEvent, streamKey, content)
+        const useDefaultLane = (
+            content.type === 'Current Cache Valid'
+            || content.type === 'Exact Match Found'
+            || content.type === 'Render Generated'
+            || content.type === 'Orchestration Error'
+            || content.type === 'Generation Deferred'
+        )
+        await publishRenderOrchestrationStreamEvent(
+            streamEvent,
+            streamKey,
+            content,
+            useDefaultLane ? { laneId: '' } : undefined,
+        )
     }
 
     await findRender(intake, {
@@ -138,5 +156,6 @@ export const orchestrateRenderRequest = async (
         publishOrchestration,
         generateRoomPreview: orchDeps.generateRoomPreview,
         runWithSingleFlight: orchDeps.runWithSingleFlight,
+        flushOrchestrationLane: () => messageBus.flush(orchestrationLaneId),
     })
 }

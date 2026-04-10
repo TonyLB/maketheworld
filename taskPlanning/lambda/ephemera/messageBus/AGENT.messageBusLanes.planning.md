@@ -150,9 +150,9 @@ Pending work uses `[ ]`, completed work uses `[X]`. Nested bullets track sub-ste
 - [X] **Implement** queue-cell metadata + filtered `flush` in **`mtw-lambda-patterns`** `InternalMessageBus`; extend unit tests in [`packages/mtw-lambda-patterns/ts/messageBus/index.test.ts`](../../../../packages/mtw-lambda-patterns/ts/messageBus/index.test.ts).
   - [X] **`InternalMessageBus`:** `laneId?` on cells, `send` / `flush` overloads, private `flushLane(activeLane)`.
   - [X] **Tests:** isolation, no cross-lane drain, priority within a named lane, re-entrancy, empty-string lane id.
-- [ ] **Plumb** optional lane through ephemera **`MessageBus`** / `app` `flush` call sites (minimal vertical slice).
-- [ ] **Plumb** lane through **`DataSource.streamEvent` / `streamEnvelope`** (or agreed alternative) so orchestration emissions stay on the active lane.
-- [ ] **Document** re-entrancy / nested `flush` policy in code comment or durable `AGENT.md` near the bus.
+- [X] **Plumb** optional lane through ephemera **`MessageBus`** / `app` `flush` call sites (minimal vertical slice).
+- [X] **Plumb** lane through **`DataSource.streamEvent` / `streamEnvelope`** (or agreed alternative) so orchestration emissions stay on the active lane.
+- [X] **Document** re-entrancy / nested `flush` policy in code comment or durable `AGENT.md` near the bus.
 - [ ] **Link** consumers (perception plan, pass-through notes if needed).
 
 ---

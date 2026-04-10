@@ -272,6 +272,8 @@ export const handler = async (event: any, context: any) => {
         }
     }
 
+    // Default-lane drain: terminal render-orchestration outbounds use `laneId: ''` from `publishOrchestration`.
+    // Named `renderOrchestration:*` lanes are flushed in parallel with generation inside `generateRoomPreview`.
     await messageBus.flush()
     return extractReturnValue(messageBus)
 

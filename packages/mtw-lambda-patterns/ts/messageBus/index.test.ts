@@ -40,7 +40,7 @@ describe('InternalMessageBus', () => {
             tag: 'testSubscribe',
             priority: 1,
             filter: (prop: TestPayload): prop is TestPayloadOne => (prop.type === 'payloadOne'),
-            callback: async (props: { payloads: TestPayloadOne[], messageBus: InternalMessageBus<TestPayload> }) => {
+            callback: async (props: { payloads: TestPayloadOne[], messageBus: InternalMessageBus<TestPayload>, activeFlushLane: string | undefined }) => {
                 props.payloads.forEach(({ value }) => { outputs.push(`String: ${value}`) })
             }
         })
@@ -65,7 +65,7 @@ describe('InternalMessageBus', () => {
             tag: 'testSubscribe',
             priority: 1,
             filter: (prop: TestPayload): prop is TestPayloadOne => (prop.type === 'payloadOne'),
-            callback: async (props: { payloads: TestPayloadOne[], messageBus: InternalMessageBus<TestPayload> }) => {
+            callback: async (props: { payloads: TestPayloadOne[], messageBus: InternalMessageBus<TestPayload>, activeFlushLane: string | undefined }) => {
                 props.payloads.forEach(({ value }) => {
                         messageBus.send({
                             type: 'payloadTwo',
@@ -79,7 +79,7 @@ describe('InternalMessageBus', () => {
             tag: 'testSubscribeTwo',
             priority: 2,
             filter: (prop: TestPayload) => (prop.type === 'payloadTwo'),
-            callback: async (props: { payloads: TestPayload[], messageBus: InternalMessageBus<TestPayload> }) => {
+            callback: async (props: { payloads: TestPayload[], messageBus: InternalMessageBus<TestPayload>, activeFlushLane: string | undefined }) => {
                 props.payloads.forEach(({ value }) => {
                         outputs.push(`Number: ${value}`)
                 })
@@ -157,7 +157,7 @@ describe('InternalMessageBus', () => {
             tag: 'testSubscribe',
             priority: 1,
             filter: (prop: TestPayload): prop is TestPayloadOne => (prop.type === 'payloadOne'),
-            callback: async (props: { payloads: TestPayloadOne[], messageBus: InternalMessageBus<TestPayload> }) => {
+            callback: async (props: { payloads: TestPayloadOne[], messageBus: InternalMessageBus<TestPayload>, activeFlushLane: string | undefined }) => {
                 props.payloads.forEach(({ value }) => {
                     messageBus.send({
                         type: 'payloadTwo',
@@ -171,7 +171,7 @@ describe('InternalMessageBus', () => {
             tag: 'testSubscribeTwo',
             priority: 2,
             filter: (prop: TestPayload) => (prop.type === 'payloadTwo'),
-            callback: async (props: { payloads: TestPayload[], messageBus: InternalMessageBus<TestPayload> }) => {
+            callback: async (props: { payloads: TestPayload[], messageBus: InternalMessageBus<TestPayload>, activeFlushLane: string | undefined }) => {
                 props.payloads.forEach(({ value }) => {
                     outputs.push(`Number: ${value}`)
                 })
@@ -233,6 +233,24 @@ describe('InternalMessageBus', () => {
         expect(outputs).toEqual(['lane:start'])
         await messageBus.flush()
         expect(outputs).toEqual(['lane:start', 'default:fromCallback'])
+    })
+
+    it('passes activeFlushLane matching the flush scope', async () => {
+        const messageBus = new InternalMessageBus<string>()
+        const recorded: Array<string | undefined> = []
+        messageBus.subscribe({
+            tag: 'sub',
+            priority: 1,
+            filter: () => true,
+            callback: async ({ activeFlushLane }) => {
+                recorded.push(activeFlushLane)
+            }
+        })
+        messageBus.send('defaultOnly')
+        messageBus.send('namedOnly', 'laneZ')
+        await messageBus.flush()
+        await messageBus.flush('laneZ')
+        expect(recorded).toEqual([undefined, 'laneZ'])
     })
 
     it('should treat empty string lane id as default lane', async () => {
