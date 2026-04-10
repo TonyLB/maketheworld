@@ -26,6 +26,12 @@ type EphemeraCharacterDescription = {
  */
 export const MAP_PERCEPTION_ENABLED = false
 
+/**
+ * When false, Perception requests whose ephemeraId is a Knowledge id do not emit the Knowledge PublishMessage.
+ * Temporarily off pending perception DataSource migration; restore this path when Knowledge display moves there.
+ */
+export const KNOWLEDGE_PERCEPTION_ENABLED = false
+
 export const perceptionMessage = async ({ 
     payloads, 
     messageBus, 
@@ -123,7 +129,8 @@ export const perceptionMessage = async ({
                         messageGroupId: payload.messageGroupId
                     })
                 }
-                if (isEphemeraKnowledgeId(ephemeraId)) {
+                if (KNOWLEDGE_PERCEPTION_ENABLED && isEphemeraKnowledgeId(ephemeraId)) {
+                    // Knowledge perception gated by KNOWLEDGE_PERCEPTION_ENABLED (see file-level JSDoc).
                     //
                     // Knowledge perception can be passed a CharacterID to view *as*, even if that character is not in play.
                     // When the response should be piped directly back to the calling session (rather than added to the
