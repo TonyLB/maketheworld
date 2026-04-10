@@ -1,6 +1,6 @@
 # Perception - big refactor (fan-in DataSource)
 
-**Status:** In progress. **Next:** [Recommended order](#recommended-order) --- **In-memory aggregation cache** prototype (step 3). Coordinate with [message bus lanes](../../messageBus/AGENT.messageBusLanes.planning.md) if delivery must be lane-isolated before client output.
+**Status:** In progress. **Next:** [Recommended order](#recommended-order) --- **In-memory aggregation cache** prototype (step 3). Coordinate with [**Virtual lanes**](../../../../../packages/mtw-lambda-patterns/ts/messageBus/AGENT.implementation.md#virtual-lanes-internalmessagebus) (`InternalMessageBus`) if delivery must be lane-isolated before client output.
 
 This file tracks the **large** refactor of Ephemera **perception** from today's largely **imperative** handlers toward an **event-driven fan-in** model (a **DataSource** boundary that **subscribes** to typed streams, **aggregates** partial state, and **delivers** when enough is known). It is **broader** than the pass-through / readiness contract alone; pass-through work is **groundwork** that accrues **obligations** on this shape.
 
@@ -8,7 +8,7 @@ This file tracks the **large** refactor of Ephemera **perception** from today's 
 
 **Delivery sequencing** (when and how aggregated output becomes `PublishMessage` / client-visible updates) aligns with the pass-through contract ([`../AGENT.passThrough.contract.planning.md`](../AGENT.passThrough.contract.planning.md)) and [Delivery: message bus lanes](#delivery-message-bus-lanes-transport). Final **delivery mechanics** (audience, timeline vs in-place) refine as steps 4--5 land; **obligations** table tracks contract debt.
 
-**Transport (lanes):** Cascade isolation on the **single** ephemera message bus is tracked in [`../../messageBus/AGENT.messageBusLanes.planning.md`](../../messageBus/AGENT.messageBusLanes.planning.md) (**partitioned `flush`**, optional lane id on queue items). Perception consumes that work for **delivery**; do not duplicate lane design here.
+**Transport (lanes):** Cascade isolation on the **single** ephemera message bus is documented in [`packages/mtw-lambda-patterns/ts/messageBus/AGENT.implementation.md`](../../../../../packages/mtw-lambda-patterns/ts/messageBus/AGENT.implementation.md#virtual-lanes-internalmessagebus) (**Virtual lanes**), with implementation in [`index.ts`](../../../../../packages/mtw-lambda-patterns/ts/messageBus/index.ts). **`DataSource.streamEvent`** inheritance is in [`dataSource/AGENT.implementation.md`](../../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md) (**Message bus lanes**). Perception consumes that transport for **delivery**; do not duplicate lane design here.
 
 ---
 
@@ -40,7 +40,7 @@ Read [`taskPlanning/AGENT.md`](../../../../AGENT.md) once so you know what belon
    - **Bus:** [`lambda/ephemera/messageBus/index.ts`](../../../../../lambda/ephemera/messageBus/index.ts) (subscriptions), [`lambda/ephemera/messageBus/baseClasses.ts`](../../../../../lambda/ephemera/messageBus/baseClasses.ts) (message types).
    - **DataSource patterns:** [`lambda/ephemera/dataSource/renderOrchestration/`](../../../../../lambda/ephemera/dataSource/renderOrchestration/) (ingress, `subscribe()`), [`lambda/ephemera/dataSource/renderCache/`](../../../../../lambda/ephemera/dataSource/renderCache/) (consumes orchestration stream), [`lambda/ephemera/dataSource/perception/`](../../../../../lambda/ephemera/dataSource/perception/) (`mtw.ephemera.perception` stub; see [`AGENT.md`](../../../../../lambda/ephemera/dataSource/perception/AGENT.md)).
    - **Lambda entry / flush:** [`lambda/ephemera/app.ts`](../../../../../lambda/ephemera/app.ts) (`messageBus.flush()`).
-   - **Lanes (transport):** [`../../messageBus/AGENT.messageBusLanes.planning.md`](../../messageBus/AGENT.messageBusLanes.planning.md) --- coordinate if delivery must be lane-isolated before client-visible output.
+   - **Lanes (transport):** [`Virtual lanes`](../../../../../packages/mtw-lambda-patterns/ts/messageBus/AGENT.implementation.md#virtual-lanes-internalmessagebus) in `mtw-lambda-patterns` --- coordinate if delivery must be lane-isolated before client-visible output. Ephemera entry: [`lambda/ephemera/messageBus/AGENT.md`](../../../../../lambda/ephemera/messageBus/AGENT.md).
 
 4. **Implementation stance**
    - **Lift from imperative perception:** new `mtw.ephemera.perception` work **moves behavior and structure out of** [`lambda/ephemera/perception/`](../../../../../lambda/ephemera/perception/) (handlers, helpers) **into** the DataSource under [`lambda/ephemera/dataSource/perception/`](../../../../../lambda/ephemera/dataSource/perception/); keep [`lambda/ephemera/perception/AGENT.md`](../../../../../lambda/ephemera/perception/AGENT.md) accurate as the split evolves.
@@ -84,7 +84,7 @@ Pending work uses `[ ]`, completed work uses `[X]`. Mark nested lines `[X]` as y
   - **Output:** `receiveEvents` emits **`PublishMessage`** only; no `mtw.ephemera.perception` outbound stream carry-forward in this step (add later if needed).
   - **Non-goals:** no `renderOrchestration` / `renderCache` subscription for Character; no rendering **lanes** for Character in this step.
 - [ ] **In-memory** aggregation cache prototype (running collected state; durable checkpoints **out of scope** unless needed).
-- [ ] **Room header** aggregation (**generating** + **terminal** results) --- fan-in and state first; **delivery mechanics** (who, timeline vs in-place) refine with pass-through + [lanes](../../messageBus/AGENT.messageBusLanes.planning.md) as needed.
+- [ ] **Room header** aggregation (**generating** + **terminal** results) --- fan-in and state first; **delivery mechanics** (who, timeline vs in-place) refine with pass-through + [virtual bus lanes](../../../../../packages/mtw-lambda-patterns/ts/messageBus/AGENT.implementation.md#virtual-lanes-internalmessagebus) as needed.
 - [ ] **Room description** aggregation (same footnote as header).
 - [ ] **Refactor `moveCharacter`** to start a **`renderOrchestration`**-driven cascade (replace or narrow direct imperative `Perception` where appropriate).
 - [ ] **Aggregate `moveCharacter`** outcomes in the perception DataSource (end-to-end with room header/description).
@@ -132,7 +132,7 @@ Documenting this list avoids the false assumption that **only** passive render +
 | [`../AGENT.passThrough.contract.planning.md`](../AGENT.passThrough.contract.planning.md) | Pass-through / readiness **contract draft** (producer and cache side; perception consumes its outputs) |
 | [`lambda/ephemera/perception/AGENT.md`](../../../../../lambda/ephemera/perception/AGENT.md) | Current perception behavior, triggers, navigation scale (durable reference) |
 | [`lambda/ephemera/AGENT.ephemeraPerceptionVertical.planning.completionRubric.md`](../../../../../lambda/ephemera/AGENT.ephemeraPerceptionVertical.planning.completionRubric.md) | Rubric **section 3** (fan-in), **section 4** (ready to show) |
-| [`../../messageBus/AGENT.messageBusLanes.planning.md`](../../messageBus/AGENT.messageBusLanes.planning.md) | **Message bus lanes** (virtual sub-buses): partitioned `flush`, single subscription graph; transport for decoupled cascades before perception client delivery |
+| [`ts/messageBus/AGENT.implementation.md`](../../../../../packages/mtw-lambda-patterns/ts/messageBus/AGENT.implementation.md#virtual-lanes-internalmessagebus) | **Virtual lanes** on `InternalMessageBus`: partitioned `flush`, `send(payload, laneId?)`, single subscription graph; transport for decoupled cascades before perception client delivery |
 
 ---
 
@@ -140,9 +140,9 @@ Documenting this list avoids the false assumption that **only** passive render +
 
 **Problem:** Orchestration and downstream `StreamingEvent` traffic share one **`InternalMessageBus`**; we still want **independent drains** for multi-step cascades without a second bus instance or duplicate DataSource subscriptions.
 
-**Owned elsewhere:** [`../../messageBus/AGENT.messageBusLanes.planning.md`](../../messageBus/AGENT.messageBusLanes.planning.md) (**ephemera adopts lanes first**). That plan covers queue-cell lane metadata, **centralized filtering in `flush`**, and **`streamEvent` plumbing**.
+**Owned in patterns + DataSource docs:** [`Virtual lanes`](../../../../../packages/mtw-lambda-patterns/ts/messageBus/AGENT.implementation.md#virtual-lanes-internalmessagebus) (queue-cell lane metadata, **centralized filtering in `flush`**), [`messageBus/index.ts`](../../../../../packages/mtw-lambda-patterns/ts/messageBus/index.ts), and **Message bus lanes** in [`dataSource/AGENT.implementation.md`](../../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md) (`streamEvent` / `streamEnvelope`). Ephemera wiring: [`lambda/ephemera/messageBus/AGENT.md`](../../../../../lambda/ephemera/messageBus/AGENT.md), [`renderOrchestration`](../../../../../lambda/ephemera/dataSource/renderOrchestration/).
 
-**This plan (perception):** **Fan-in**, aggregation, and **when** to emit **`PublishMessage`** / client-visible updates once lane semantics exist. **Cross-lane hand-off** (default lane vs named lane) is a **follow-on** in the lanes plan where relevant.
+**This plan (perception):** **Fan-in**, aggregation, and **when** to emit **`PublishMessage`** / client-visible updates given lane semantics above. **Cross-lane hand-off** (default lane vs named lane) is documented in **Virtual lanes** (non-goals / follow-ons).
 
 ---
 
@@ -191,7 +191,7 @@ Add rows as upstream decisions land. This is **debt we acknowledge** so we do no
 - **DataSource vs other boundary:** First pass assumes a **published** DataSource on the internal bus; a later **split** (ingress adapter vs domain core) is still allowed if complexity grows.
 - **Subscription graph:** First pass: **bus-only** `StreamingEvent` subscription consistent with other ephemera DataSources; **EventBridge** / external replay remains a **later** epic theme unless we add it deliberately.
 - **State storage:** **v1 prototype: in-memory** aggregation only; durable checkpoints **TBD** when we need replay or cross-invocation continuity.
-- **Delivery sequencing (sub-task):** When aggregated state becomes **`PublishMessage`** (and how **correlated** vs **broadcast** semantics apply) --- refine alongside pass-through contract, timeline rules, and **delivery mechanics** (steps 4--5 in [Recommended order](#recommended-order)). **Transport:** partitioned drains / [`message bus lanes`](../../messageBus/AGENT.messageBusLanes.planning.md); perception logic sits **above** that.
+- **Delivery sequencing (sub-task):** When aggregated state becomes **`PublishMessage`** (and how **correlated** vs **broadcast** semantics apply) --- refine alongside pass-through contract, timeline rules, and **delivery mechanics** (steps 4--5 in [Recommended order](#recommended-order)). **Transport:** partitioned drains / [`Virtual lanes`](../../../../../packages/mtw-lambda-patterns/ts/messageBus/AGENT.implementation.md#virtual-lanes-internalmessagebus); perception logic sits **above** that.
 - **Testing:** Contract tests for perception fan-in (see [`Encoding the contract in unit tests`](../AGENT.passThrough.contract.planning.md#encoding-the-contract-in-unit-tests)); how much is **integration** vs **unit** with fake event streams?
 - **Breadth ordering:** After first pass, do **look** and **asset header** share the **same** aggregator as **move** or stay on legacy longer? (Either is valid; list [Out of scope](#out-of-scope-for-first-pass-legacy-bus-until-follow-on) until we migrate them.)
 - **Registration keys:** **`Render Pertains`** uses **component x perspective** (+ **`cacheId`**) on the wire, **not** **`conversationId`** (contract uncertainty 9 resolved). Does Perception register handlers by those **routing** dimensions so assembly does not depend on **delivery** fields being echoed on producer streams? (Aligned with [`lambda/ephemera/dataSource/renderCache/AGENT.md`](../../../../lambda/ephemera/dataSource/renderCache/AGENT.md#correlation-vs-routing) **Correlation vs routing**.)
@@ -213,7 +213,7 @@ Run from **repository root** unless noted.
 | **Ephemera package (default)** | `cd lambda/ephemera && npm test` | After any change under `lambda/ephemera/`; full suite before merge when touching shared behavior. |
 | **Perception only (faster)** | `cd lambda/ephemera && npx jest perception/index.test.ts` | While iterating on [`perception/index.ts`](../../../../../lambda/ephemera/perception/index.ts) and tests. |
 | **DataSource / integration** | `cd lambda/ephemera && npx jest dataSource/` (or targeted path, e.g. `dataSource/renderCache/index.test.ts`) | When changing DataSource wiring or pass-through scaffolds. |
-| **Patterns package** | `cd packages/mtw-lambda-patterns && npm test` | Only if you change `InternalMessageBus` or `DataSource` in [`packages/mtw-lambda-patterns`](../../../../../packages/mtw-lambda-patterns/) (e.g. with [message bus lanes](../../messageBus/AGENT.messageBusLanes.planning.md)). |
+| **Patterns package** | `cd packages/mtw-lambda-patterns && npm test` | Only if you change `InternalMessageBus` or `DataSource` in [`packages/mtw-lambda-patterns`](../../../../../packages/mtw-lambda-patterns/) (e.g. [Virtual lanes](../../../../../packages/mtw-lambda-patterns/ts/messageBus/AGENT.implementation.md#virtual-lanes-internalmessagebus) or **Message bus lanes** in DataSource). |
 
 **Expectation:** Baseline is **green** before large refactors; new tests should pass with the matching **Recommended order** step. Add **integration** or **contract** tests when two layers are real enough to fail together (per pass-through planning).
 
@@ -235,7 +235,7 @@ Run from **repository root** unless noted.
 | Task plan graduated (Getting Started, Recommended order, Verification) | Done |
 | Prep: Message path removed; Knowledge/Map handler paths disabled | Done |
 | Out-of-scope list + links | Done |
-| Message bus lanes plan ([`../../messageBus/AGENT.messageBusLanes.planning.md`](../../messageBus/AGENT.messageBusLanes.planning.md)) | Draft exists; implementation tracked there |
+| Virtual lanes (`InternalMessageBus`) | Shipped: [`AGENT.implementation.md`](../../../../../packages/mtw-lambda-patterns/ts/messageBus/AGENT.implementation.md#virtual-lanes-internalmessagebus), [`lambda/ephemera/messageBus/AGENT.md`](../../../../../lambda/ephemera/messageBus/AGENT.md) |
 | Obligations table vs pass-through contract | In progress (upstream) |
 | Stub perception DataSource (Recommended order step 1) | Done ([`lambda/ephemera/dataSource/perception/`](../../../../../lambda/ephemera/dataSource/perception/)) |
 | Character perception + api.ephemera ingress (Recommended order step 2) | Done |

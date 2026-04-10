@@ -221,7 +221,12 @@ export const isRenderOrchestrationPublishedStreamEnvelope = (
     && isRenderOrchestrationPublishedHeaderType(envelope.header.type)
 )
 
-type Bus = { send: (payload: StreamingEventMessage) => void }
+type Bus = { send: (payload: StreamingEventMessage, laneId?: string) => void }
+
+export type PublishRenderOrchestrationStreamOptions = {
+    /** Non-empty: that lane. Empty string: default lane. Omit: inherit DataSource inbound flush lane in `receiveEvents`. */
+    laneId?: string
+}
 
 const orchestrationPublishSerializer = {
     serialize: ({ content, header }: { content: object; header: StreamingEventHeader }) => ({
@@ -237,11 +242,13 @@ export async function publishRenderOrchestrationStreamEvent(
     streamEvent: StreamEventFunction<RenderOrchestrationPublishedPayload>,
     streamKey: string,
     content: RenderOrchestrationPublishedPayload,
+    options?: PublishRenderOrchestrationStreamOptions,
 ): Promise<void> {
     await streamEvent({
         update: content,
         streamKey,
         header: { type: content.type },
+        ...(options?.laneId !== undefined ? { laneId: options.laneId } : {}),
     })
 }
 
@@ -251,14 +258,19 @@ export async function publishRenderOrchestrationStreamEvent(
  */
 export function streamEventFromMessageBus(bus: Bus): StreamEventFunction<RenderOrchestrationPublishedPayload> {
     return async (params) => {
-        sendRenderOrchestrationPublish(bus, params.streamKey, params.update)
+        sendRenderOrchestrationPublish(bus, params.streamKey, params.update, params.laneId)
     }
 }
 
 /**
  * Publish a render-orchestration outbound on the process message bus (same envelope shape as other DataSource stream events).
  */
-export function sendRenderOrchestrationPublish(bus: Bus, streamKey: string, content: RenderOrchestrationPublishedPayload): void {
+export function sendRenderOrchestrationPublish(
+    bus: Bus,
+    streamKey: string,
+    content: RenderOrchestrationPublishedPayload,
+    laneId?: string,
+): void {
     const timestamp = Date.now()
     const header: StreamingEventHeader = {
         dataSourceKey: RENDER_ORCHESTRATION_DATA_SOURCE_KEY,
@@ -267,12 +279,17 @@ export function sendRenderOrchestrationPublish(bus: Bus, streamKey: string, cont
         type: content.type,
     }
     const envelope = createInternalOriginEnvelope(header, content, orchestrationPublishSerializer)
-    bus.send({
+    const message: StreamingEventMessage = {
         type: 'StreamingEvent',
         dataSourceKey: RENDER_ORCHESTRATION_DATA_SOURCE_KEY,
         streamKey,
         header: envelope.header,
         getContent: envelope.getContent,
         timestamp,
-    })
+    }
+    if (laneId !== undefined && laneId !== '') {
+        bus.send(message, laneId)
+    } else {
+        bus.send(message)
+    }
 }

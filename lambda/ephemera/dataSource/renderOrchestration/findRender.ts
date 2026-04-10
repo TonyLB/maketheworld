@@ -30,6 +30,11 @@ export type FindRenderDependencies = {
     runWithSingleFlight?: RunWithSingleFlight;
     /** mtw.ephemera.renderOrchestration stream outbounds (six-type pass-through contract). */
     publishOrchestration: (content: RenderOrchestrationPublishedPayload) => void | Promise<void>;
+    /**
+     * Drain the orchestration ingress lane in parallel with slow generation so `Generation Started`
+     * can be delivered without waiting for LLM work (see `generateRoomPreview`).
+     */
+    flushOrchestrationLane?: () => Promise<void>;
 }
 
 /**
@@ -107,6 +112,7 @@ export const findRender = async (
             publishOrchestration: deps.publishOrchestration,
             getExactMatch: deps.getExactMatch,
             runWithSingleFlight: deps.runWithSingleFlight,
+            flushOrchestrationLane: deps.flushOrchestrationLane,
         },
     )
 }

@@ -52,6 +52,8 @@ export type GenerateRoomPreviewOptions = {
     runWithSingleFlight?: RunWithSingleFlight;
     /** mtw.ephemera.renderOrchestration stream outbounds (from `streamEvent` via orchestration; required for this entry point). */
     publishOrchestration: (content: RenderOrchestrationPublishedPayload) => void | Promise<void>;
+    /** When set, run together with post-`Generation Started` work so the orchestration lane can flush in parallel. */
+    flushOrchestrationLane?: () => Promise<void>;
 }
 
 /** Control return from `generateRoomPreview`. */
@@ -95,6 +97,7 @@ export const generateRoomPreview = async (
         getExactMatch = (input) => internalCache.RenderCache.getExactMatch(input),
         runWithSingleFlight: runWithSingleFlightOpt,
         publishOrchestration,
+        flushOrchestrationLane,
     }: GenerateRoomPreviewOptions
 ): Promise<GenerateRoomPreviewGenerationReturn> => {
     const perspective = { assetStack: assetStack as AssetUUID[] }
@@ -133,55 +136,63 @@ export const generateRoomPreview = async (
                 phase: 'generating',
             })
 
-            const allRecords = await queryCacheRecordsForComponentImpl(roomId)
-            const cachedExamples = allRecords.filter(
-                (record) => record.perspectiveMatcher && perspectiveMatches(record.perspectiveMatcher, perspective)
-            )
+            const runAfterGenerationStarted = async (): Promise<GenerateRoomPreviewGenerationReturn> => {
+                const allRecords = await queryCacheRecordsForComponentImpl(roomId)
+                const cachedExamples = allRecords.filter(
+                    (record) => record.perspectiveMatcher && perspectiveMatches(record.perspectiveMatcher, perspective)
+                )
 
-            const descriptionResult = await generateRoomDescriptionImpl({
-                roomId,
-                markState,
-                perspective,
-                generationContext: parsedContext!,
-                cachedExamples
-            })
-
-            if (!descriptionResult.success) {
-                await publishOrchestration({
-                    type: 'Orchestration Error',
-                    ...routing,
-                    errorCode: descriptionResult.errorCode,
-                    errorMessage: descriptionResult.errorMessage,
+                const descriptionResult = await generateRoomDescriptionImpl({
+                    roomId,
+                    markState,
+                    perspective,
+                    generationContext: parsedContext!,
+                    cachedExamples
                 })
-                return 'fail'
+
+                if (!descriptionResult.success) {
+                    await publishOrchestration({
+                        type: 'Orchestration Error',
+                        ...routing,
+                        errorCode: descriptionResult.errorCode,
+                        errorMessage: descriptionResult.errorMessage,
+                    })
+                    return 'fail'
+                }
+
+                const perspectiveId = computePerspectiveKey(perspective.assetStack)
+                const perspectiveMatcher = {
+                    requiredAssetIds: perspective.assetStack,
+                    forbiddenAssetIds: [] as AssetUUID[]
+                }
+                const record = {
+                    markState,
+                    renderedContent: descriptionResult.renderedContent,
+                    provenance: { type: EPHEMERA_CACHE_PROVENANCE_GENERATED },
+                    perspectiveId,
+                    perspectiveMatcher,
+                }
+                const cacheId = `${EPHEMERA_CACHE_DATA_CATEGORY_PREFIX}${uuidv4()}` as EphemeraCacheId
+                const cacheRecord: EphemeraCacheDynamoItem = {
+                    EphemeraId: roomId,
+                    DataCategory: cacheId,
+                    ...record,
+                }
+
+                await publishOrchestration({
+                    type: 'Render Generated',
+                    ...routing,
+                    cacheId,
+                    cacheRecord,
+                })
+                return 'success'
             }
 
-            const perspectiveId = computePerspectiveKey(perspective.assetStack)
-            const perspectiveMatcher = {
-                requiredAssetIds: perspective.assetStack,
-                forbiddenAssetIds: [] as AssetUUID[]
+            if (flushOrchestrationLane) {
+                const [, result] = await Promise.all([flushOrchestrationLane(), runAfterGenerationStarted()])
+                return result
             }
-            const record = {
-                markState,
-                renderedContent: descriptionResult.renderedContent,
-                provenance: { type: EPHEMERA_CACHE_PROVENANCE_GENERATED },
-                perspectiveId,
-                perspectiveMatcher,
-            }
-            const cacheId = `${EPHEMERA_CACHE_DATA_CATEGORY_PREFIX}${uuidv4()}` as EphemeraCacheId
-            const cacheRecord: EphemeraCacheDynamoItem = {
-                EphemeraId: roomId,
-                DataCategory: cacheId,
-                ...record,
-            }
-
-            await publishOrchestration({
-                type: 'Render Generated',
-                ...routing,
-                cacheId,
-                cacheRecord,
-            })
-            return 'success'
+            return await runAfterGenerationStarted()
         },
         retrieval: async (): Promise<GenerateRoomPreviewGenerationReturn> => {
             const exact = await getExactMatchAfterLeaderWrite(getExactMatch, {

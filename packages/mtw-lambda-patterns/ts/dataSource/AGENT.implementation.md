@@ -49,6 +49,10 @@ Snapshots use the same header semantics as streaming events. A single shared `he
 - **Error Handling**: Graceful failure without breaking other messageBus handlers
 - **Stream Processing**: Events persist in messageBus for multiple handler consumption
 
+### **Message bus lanes (`streamEvent` / `streamEnvelope`)**
+
+The constructor `messageBus` port supports `send(payload, laneId?)` (named lane = non-empty string; omit second argument for the default lane). `streamEvent` accepts optional `laneId` on `StreamEventParams`: non-empty string sends on that lane, empty string forces the default lane, and omitted `laneId` inherits the **inbound** lane for the duration of the `subscribe` callback (`activeFlushLane` from `InternalMessageBus.flush` / `flush(laneId)`), via a small stack so nested flushes do not clobber. `streamEnvelope` takes an optional second argument with the same override semantics; omitting it inherits the inbound lane the same way. Callers that need explicit default-lane delivery from inside a named-lane drain should pass `laneId: ''` on `streamEvent` or `''` as the `streamEnvelope` override.
+
 ### **EventBridge Integration**: The subscription system works with the broader EventBridge architecture:
 - **Event Reception**: Lambda receives EventBridge events and deserializes them to internal format before routing to messageBus
 - **Type Filtering**: Data source only processes events it's interested in via type guards

@@ -1,3 +1,4 @@
+import { createAsyncGate } from '../testing/asyncGate'
 import { InternalMessageBus } from './index'
 
 type TestPayloadOne = {
@@ -39,7 +40,7 @@ describe('InternalMessageBus', () => {
             tag: 'testSubscribe',
             priority: 1,
             filter: (prop: TestPayload): prop is TestPayloadOne => (prop.type === 'payloadOne'),
-            callback: async (props: { payloads: TestPayloadOne[], messageBus: InternalMessageBus<TestPayload> }) => {
+            callback: async (props: { payloads: TestPayloadOne[], messageBus: InternalMessageBus<TestPayload>, activeFlushLane: string | undefined }) => {
                 props.payloads.forEach(({ value }) => { outputs.push(`String: ${value}`) })
             }
         })
@@ -64,7 +65,7 @@ describe('InternalMessageBus', () => {
             tag: 'testSubscribe',
             priority: 1,
             filter: (prop: TestPayload): prop is TestPayloadOne => (prop.type === 'payloadOne'),
-            callback: async (props: { payloads: TestPayloadOne[], messageBus: InternalMessageBus<TestPayload> }) => {
+            callback: async (props: { payloads: TestPayloadOne[], messageBus: InternalMessageBus<TestPayload>, activeFlushLane: string | undefined }) => {
                 props.payloads.forEach(({ value }) => {
                         messageBus.send({
                             type: 'payloadTwo',
@@ -78,7 +79,7 @@ describe('InternalMessageBus', () => {
             tag: 'testSubscribeTwo',
             priority: 2,
             filter: (prop: TestPayload) => (prop.type === 'payloadTwo'),
-            callback: async (props: { payloads: TestPayload[], messageBus: InternalMessageBus<TestPayload> }) => {
+            callback: async (props: { payloads: TestPayload[], messageBus: InternalMessageBus<TestPayload>, activeFlushLane: string | undefined }) => {
                 props.payloads.forEach(({ value }) => {
                         outputs.push(`Number: ${value}`)
                 })
@@ -156,7 +157,7 @@ describe('InternalMessageBus', () => {
             tag: 'testSubscribe',
             priority: 1,
             filter: (prop: TestPayload): prop is TestPayloadOne => (prop.type === 'payloadOne'),
-            callback: async (props: { payloads: TestPayloadOne[], messageBus: InternalMessageBus<TestPayload> }) => {
+            callback: async (props: { payloads: TestPayloadOne[], messageBus: InternalMessageBus<TestPayload>, activeFlushLane: string | undefined }) => {
                 props.payloads.forEach(({ value }) => {
                     messageBus.send({
                         type: 'payloadTwo',
@@ -170,7 +171,7 @@ describe('InternalMessageBus', () => {
             tag: 'testSubscribeTwo',
             priority: 2,
             filter: (prop: TestPayload) => (prop.type === 'payloadTwo'),
-            callback: async (props: { payloads: TestPayload[], messageBus: InternalMessageBus<TestPayload> }) => {
+            callback: async (props: { payloads: TestPayload[], messageBus: InternalMessageBus<TestPayload>, activeFlushLane: string | undefined }) => {
                 props.payloads.forEach(({ value }) => {
                     outputs.push(`Number: ${value}`)
                 })
@@ -234,6 +235,24 @@ describe('InternalMessageBus', () => {
         expect(outputs).toEqual(['lane:start', 'default:fromCallback'])
     })
 
+    it('passes activeFlushLane matching the flush scope', async () => {
+        const messageBus = new InternalMessageBus<string>()
+        const recorded: Array<string | undefined> = []
+        messageBus.subscribe({
+            tag: 'sub',
+            priority: 1,
+            filter: () => true,
+            callback: async ({ activeFlushLane }) => {
+                recorded.push(activeFlushLane)
+            }
+        })
+        messageBus.send('defaultOnly')
+        messageBus.send('namedOnly', 'laneZ')
+        await messageBus.flush()
+        await messageBus.flush('laneZ')
+        expect(recorded).toEqual([undefined, 'laneZ'])
+    })
+
     it('should treat empty string lane id as default lane', async () => {
         const messageBus = new InternalMessageBus<TestPayload>()
         const outputs: string[] = []
@@ -251,6 +270,47 @@ describe('InternalMessageBus', () => {
         }, '')
         await messageBus.flush()
         expect(outputs).toEqual(['emptyLane'])
+    })
+
+    it('orders lane flush vs post-gate default send when a handler awaits createAsyncGate', async () => {
+        const messageBus = new InternalMessageBus<string>()
+        const onA = jest.fn<void, [string]>()
+        const asyncGate = createAsyncGate(() => {})
+
+        messageBus.subscribe({
+            tag: 'handlerA',
+            priority: 2,
+            filter: (p): p is string => (p === 'fromLaneFlush' || p === 'fromDefaultAfterGate'),
+            callback: async ({ payloads }) => {
+                payloads.forEach((p) => { onA(p) })
+            }
+        })
+        messageBus.subscribe({
+            tag: 'handlerB',
+            priority: 1,
+            filter: (p): p is string => (p === 'kickoff'),
+            callback: async ({ messageBus: mb }) => {
+                mb.send('fromLaneFlush', 'sideLane')
+                await mb.flush('sideLane')
+                await asyncGate.fn()
+                mb.send('fromDefaultAfterGate')
+            }
+        })
+
+        messageBus.send('kickoff')
+        const flushPromise = messageBus.flush()
+
+        // Past flush microtasks and past createAsyncGate impl's setImmediate so fn is blocked on the hold.
+        await new Promise<void>((r) => { setImmediate(r) })
+        expect(onA).toHaveBeenCalledTimes(1)
+        expect(onA).toHaveBeenNthCalledWith(1, 'fromLaneFlush')
+
+        asyncGate.resolve()
+        await Promise.resolve()
+        await flushPromise
+
+        expect(onA).toHaveBeenCalledTimes(2)
+        expect(onA).toHaveBeenNthCalledWith(2, 'fromDefaultAfterGate')
     })
 
 })

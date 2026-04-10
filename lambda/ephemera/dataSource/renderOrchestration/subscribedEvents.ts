@@ -58,7 +58,12 @@ export const isRenderOrchestrationSubscribedEnvelope = (
     isRenderOrchestrationIngressEnvelope(envelope) || isEphemeraStateStateChangedEnvelope(envelope)
 )
 
-type Bus = { send: (payload: StreamingEventMessage) => void }
+type Bus = { send: (payload: StreamingEventMessage, laneId?: string) => void }
+
+/** Stable message-bus lane for a render-orchestration work unit; matches ingress {@link sendRenderRequested}. */
+export function renderOrchestrationIngressLaneId(streamKey: string): string {
+    return `renderOrchestration:${streamKey}`
+}
 
 const apiEphemeraSerializer = {
     serialize: ({ content, header }: { content: object; header: StreamingEventHeader }) => ({
@@ -76,12 +81,15 @@ export function sendRenderRequested(bus: Bus, streamKey: string, content: Render
         type: 'Render Requested',
     }
     const envelope = createInternalOriginEnvelope(header, content, apiEphemeraSerializer)
-    bus.send({
-        type: 'StreamingEvent',
-        dataSourceKey: 'api.ephemera',
-        streamKey,
-        header: envelope.header,
-        getContent: envelope.getContent,
-        timestamp,
-    })
+    bus.send(
+        {
+            type: 'StreamingEvent',
+            dataSourceKey: 'api.ephemera',
+            streamKey,
+            header: envelope.header,
+            getContent: envelope.getContent,
+            timestamp,
+        },
+        renderOrchestrationIngressLaneId(streamKey),
+    )
 }

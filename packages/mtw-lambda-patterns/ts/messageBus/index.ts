@@ -11,18 +11,25 @@ function matchesActiveLane<PayloadType>(item: InternalMessageItem<PayloadType>, 
     return item.laneId === activeLane
 }
 
+export type InternalMessageBusCallbackProps<PayloadType> = {
+    payloads: PayloadType[];
+    messageBus: InternalMessageBus<PayloadType>;
+    /** Lane being drained by the active `flush()` / `flush(laneId)`; `undefined` means default lane. */
+    activeFlushLane: string | undefined;
+}
+
 type UnconstrainedInternalMessageSubscription<PayloadType> = {
     tag: string;
     priority: number;
     filter: (payload: PayloadType) => boolean;
-    callback: (props: { payloads: PayloadType[]; messageBus: InternalMessageBus<PayloadType> }) => Promise<void>;
+    callback: (props: InternalMessageBusCallbackProps<PayloadType>) => Promise<void>;
 }
 
 type ConstrainedInternalMessageSubscription<PayloadType, P extends PayloadType> = {
     tag: string;
     priority: number;
     filter: (payload: PayloadType) => payload is P;
-    callback: (props: { payloads: P[]; messageBus: InternalMessageBus<PayloadType> }) => Promise<void>;
+    callback: (props: { payloads: P[]; messageBus: InternalMessageBus<PayloadType>; activeFlushLane: string | undefined }) => Promise<void>;
 }
 
 export class InternalMessageBus<PayloadType> {
@@ -82,7 +89,11 @@ export class InternalMessageBus<PayloadType> {
                 .filter(({ payload }) => (filterFunc(payload)))
             filteredMessages.forEach((message) => (message.processedBy.push(tag)))
             if (filteredMessages.length > 0) {
-                await callback({ payloads: filteredMessages.map(({ payload }) => (payload)), messageBus: this })
+                await callback({
+                    payloads: filteredMessages.map(({ payload }) => (payload)),
+                    messageBus: this,
+                    activeFlushLane: activeLane
+                })
             }
         }
         await Promise.all(subscriptionsToProcess.map(processSubscription))

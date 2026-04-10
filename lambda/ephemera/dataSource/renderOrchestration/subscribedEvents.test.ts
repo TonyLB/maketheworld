@@ -1,18 +1,21 @@
 import {
     isRenderOrchestrationIngressEnvelope,
     isRenderOrchestrationSubscribedEnvelope,
+    renderOrchestrationIngressLaneId,
     sendRenderRequested,
 } from './subscribedEvents'
 
 describe('renderOrchestration subscribedEvents', () => {
-    it('sendRenderRequested emits api.ephemera StreamingEvent envelope', async () => {
-        const sent: any[] = []
-        sendRenderRequested({ send: (payload) => sent.push(payload) }, 'ROOM#one', {
+    it('sendRenderRequested emits api.ephemera StreamingEvent envelope on renderOrchestration lane', async () => {
+        const calls: { payload: any; lane?: string }[] = []
+        sendRenderRequested({ send: (payload, lane) => calls.push({ payload, lane }) }, 'ROOM#one', {
             componentId: 'ROOM#one',
             perspective: { assetStack: ['ASSET#one'] },
             allowGeneration: false,
         })
-        expect(sent).toHaveLength(1)
+        expect(calls).toHaveLength(1)
+        expect(calls[0].lane).toBe(renderOrchestrationIngressLaneId('ROOM#one'))
+        const sent = calls.map((c) => c.payload)
         expect(sent[0].header.type).toBe('Render Requested')
         expect(await sent[0].getContent()).toMatchObject({
             componentId: 'ROOM#one',

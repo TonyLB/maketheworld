@@ -824,6 +824,26 @@ describe('DataSource', () => {
                 type: 'SomeType'
             })
         })
+
+        it('should pass explicit laneId as second argument to messageBus.send', async () => {
+            await dataSource.streamEvent({
+                streamKey: 'test-stream',
+                update: { type: 'TestUpdatePayload', update: 'test-update' },
+                header: { type: 'TestUpdatePayload' },
+                laneId: 'named-lane',
+            })
+            expect(mockMessageBus.send.mock.calls[0][1]).toBe('named-lane')
+        })
+
+        it('should omit second argument to messageBus.send when laneId is empty string', async () => {
+            await dataSource.streamEvent({
+                streamKey: 'test-stream',
+                update: { type: 'TestUpdatePayload', update: 'test-update' },
+                header: { type: 'TestUpdatePayload' },
+                laneId: '',
+            })
+            expect(mockMessageBus.send.mock.calls[0].length).toBe(1)
+        })
     })
 
     describe('streamEnvelope', () => {
@@ -1415,7 +1435,7 @@ describe('DataSource', () => {
                         timestamp: 123456789
                     }
                 ]
-                await callback({ payloads })
+                await callback({ payloads, messageBus: mockMessageBus as any, activeFlushLane: undefined })
 
                 expect(mockSubscribedEventTypeGuard).toHaveBeenCalledTimes(2)
                 expect(mockSubscribedEventTypeGuard).toHaveBeenNthCalledWith(1, expect.objectContaining({
@@ -1488,7 +1508,7 @@ describe('DataSource', () => {
                     }
                 ]
 
-                await callback({ payloads: testEvents })
+                await callback({ payloads: testEvents, messageBus: mockMessageBus as any, activeFlushLane: undefined })
 
                 // Should be called once with array of events
                 expect(mockReceiveEvents).toHaveBeenCalledTimes(1)
@@ -1529,11 +1549,65 @@ describe('DataSource', () => {
                     header: { type: 'Test Event' }
                 })
 
-                expect(mockStreamEvent).toHaveBeenCalledWith({
+                expect(mockStreamEvent).toHaveBeenCalledWith(expect.objectContaining({
                     update: 'test-update',
                     streamKey: 'test-stream',
-                    header: { type: 'Test Event' }
+                    header: { type: 'Test Event' },
+                    laneId: undefined,
+                }))
+            })
+
+            it('should merge activeFlushLane into bound streamEvent when params.laneId is omitted', async () => {
+                const receiveEventsWithStream = jest.fn(async ({ streamEvent }: { streamEvent: (p: any) => Promise<void> }) => {
+                    await streamEvent({
+                        update: 'test-update',
+                        streamKey: 'test-stream',
+                        header: { type: 'Test Event' },
+                    })
                 })
+
+                const dataSource = new TestDataSource({
+                    dynamo: mockDynamo,
+                    sns: mockSns,
+                    messageBus: mockMessageBus,
+                    primaryKeyName: 'AssetId',
+                    dataSourceKey: 'mtw.testDataSource',
+                    snapshotContentGenerator: mockSnapshotContentGenerator,
+                    feedbackTopicArn: 'arn:aws:sns:us-east-1:123456789012:test-feedback',
+                    subscribedEventTypeGuard: mockSubscribedEventTypeGuard,
+                    receiveEvents: receiveEventsWithStream,
+                })
+
+                dataSource.subscribe()
+
+                const regularSubscription = mockMessageBus.subscribe.mock.calls.find(call =>
+                    call[0].tag === 'dataSource-mtw.testDataSource'
+                )
+                const callback = regularSubscription[0].callback
+
+                const mockStreamEvent = jest.spyOn(dataSource, 'streamEvent').mockResolvedValue(undefined)
+
+                const testEvents = [
+                    {
+                        type: 'StreamingEvent',
+                        dataSourceKey: 'mtw.otherDataSource',
+                        streamKey: 'test-stream',
+                        header: {
+                            dataSourceKey: 'mtw.otherDataSource',
+                            streamKey: 'test-stream',
+                            timestamp: 123456789,
+                            type: 'event1',
+                        },
+                        getContent: () => Promise.resolve({ type: 'event1', data: 'test1' }),
+                        timestamp: 123456789,
+                    },
+                ]
+
+                await callback({ payloads: testEvents, messageBus: mockMessageBus as any, activeFlushLane: 'ingress-lane' })
+
+                expect(mockStreamEvent).toHaveBeenCalledWith(expect.objectContaining({
+                    laneId: 'ingress-lane',
+                }))
             })
 
             it('should pass streamEnvelope to receiveEvents and forward to dataSource.streamEnvelope', async () => {
@@ -1571,7 +1645,7 @@ describe('DataSource', () => {
                     timestamp: 123456789
                 }
 
-                await callback({ payloads: [testEvent] })
+                await callback({ payloads: [testEvent], messageBus: mockMessageBus as any, activeFlushLane: undefined })
 
                 const streamEnvelopeFn = mockReceiveEvents.mock.calls[0][0].streamEnvelope
                 const envelope = {
@@ -1623,7 +1697,7 @@ describe('DataSource', () => {
                 ]
 
                 // Callback will reject if receiveEvents rejects
-                await expect(callback({ payloads: testEvents })).rejects.toThrow('Processing failed')
+                await expect(callback({ payloads: testEvents, messageBus: mockMessageBus as any, activeFlushLane: undefined })).rejects.toThrow('Processing failed')
                 expect(errorReceiveEvents).toHaveBeenCalledWith({
                     events: [
                         {
@@ -1666,7 +1740,7 @@ describe('DataSource', () => {
                 const callback = regularSubscription[0].callback
 
                 // Test callback with empty array
-                await callback({ payloads: [] })
+                await callback({ payloads: [], messageBus: mockMessageBus as any, activeFlushLane: undefined })
 
                 expect(mockReceiveEvents).toHaveBeenCalledWith({
                     events: [],
@@ -1712,7 +1786,7 @@ describe('DataSource', () => {
                     }
                 ]
 
-                await callback({ payloads: testEvents })
+                await callback({ payloads: testEvents, messageBus: mockMessageBus as any, activeFlushLane: undefined })
 
                 expect(mockReceiveEvents).toHaveBeenCalledWith({
                     events: [
@@ -1887,7 +1961,7 @@ describe('DataSource', () => {
                     timestamp: 123456789
                 }
 
-                await callback({ payloads: [testEvent] })
+                await callback({ payloads: [testEvent], messageBus: mockMessageBus as any, activeFlushLane: undefined })
 
                 expect(mockInitializeSubscription).toHaveBeenCalledWith({
                     sessionId: 'SESSION#test-session',
@@ -1946,7 +2020,7 @@ describe('DataSource', () => {
                     }
                 ]
 
-                await callback({ payloads: testEvents })
+                await callback({ payloads: testEvents, messageBus: mockMessageBus as any, activeFlushLane: undefined })
 
                 expect(mockInitializeSubscription).toHaveBeenCalledTimes(2)
                 expect(mockInitializeSubscription).toHaveBeenNthCalledWith(1, {
@@ -1999,7 +2073,7 @@ describe('DataSource', () => {
                 }
 
                 // Should not throw, but should log error
-                await expect(callback({ payloads: [testEvent] })).resolves.not.toThrow()
+                await expect(callback({ payloads: [testEvent], messageBus: mockMessageBus as any, activeFlushLane: undefined })).resolves.not.toThrow()
 
                 expect(mockInitializeSubscription).toHaveBeenCalledWith({
                     sessionId: 'SESSION#test-session',

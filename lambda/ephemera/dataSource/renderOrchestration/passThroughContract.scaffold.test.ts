@@ -19,7 +19,12 @@ import {
     streamEventFromMessageBus,
 } from './publishedEvents'
 
-const makeBus = (): MessageBusType & { send: jest.Mock } => ({ send: jest.fn() } as unknown as MessageBusType & { send: jest.Mock })
+const makeBus = (): MessageBusType & { send: jest.Mock; flush: jest.Mock } => (
+    {
+        send: jest.fn(),
+        flush: jest.fn().mockResolvedValue(undefined),
+    } as unknown as MessageBusType & { send: jest.Mock; flush: jest.Mock }
+)
 
 const findOrchestrationStreamingEvent = (send: jest.Mock): { getContent: () => Promise<unknown> } | undefined => {
     for (const call of send.mock.calls) {

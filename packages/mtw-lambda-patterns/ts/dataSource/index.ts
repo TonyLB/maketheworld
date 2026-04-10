@@ -49,6 +49,8 @@ export type StreamEventParams<UpdatePayload = any, Header extends StreamingEvent
     update: UpdatePayload
     streamKey: string
     header: StreamEventHeaderFragment<Header>
+    /** When set to a non-empty string, sends on that message bus lane. Empty string forces default lane. When omitted, inherits inbound flush lane inside `receiveEvents`. */
+    laneId?: string
 }
 
 export type StreamEventFunction<UpdatePayload = any, Header extends StreamingEventHeader = StreamingEventHeader> =
@@ -58,6 +60,12 @@ export type StreamEnvelopeFunction =
     (envelope: StreamingEventEnvelope<unknown, StreamingEventHeader, unknown>) => Promise<void>
 
 export type DataSourcePublisherStrategy = 'eventBridge+bus' | 'busOnly'
+
+/** Minimal message bus surface for DataSource (lane-aware send). */
+export type DataSourceMessageBusPort = {
+    send(payload: unknown, laneId?: string): void
+    subscribe(subscription: unknown): void
+}
 
 /**
  * SubscribedContent = payload type of events this DataSource subscribes *to* (incoming).
@@ -75,10 +83,7 @@ export class DataSource<
 > {
     readonly dynamo: DynamoUtils<KeyType>
     readonly sns: SnsUtils
-    readonly messageBus: { 
-        send: (payload: any) => void;
-        subscribe: (subscription: any) => void;
-    }
+    readonly messageBus: DataSourceMessageBusPort
     readonly primaryKeyName: KeyType
     readonly dataSourceKey: string
     readonly snapshotContentGenerator?: (streamKey: string) => Promise<SnapshotPayload>
@@ -96,6 +101,7 @@ export class DataSource<
     readonly aggregator?: DataSourceAggregator<SnapshotPayload, UpdatePayload>
     readonly buildHeader?: (params: { update: UpdatePayload; streamKey: string; timestamp: number }) => Header
     _snapshots: Record<string, SnapshotType<SnapshotPayload>> = {}
+    private readonly _inboundFlushLaneStack: (string | undefined)[] = []
 
     constructor({ 
         dynamo,
@@ -116,10 +122,7 @@ export class DataSource<
     }: { 
         dynamo: DynamoUtils<KeyType>,
         sns: SnsUtils,
-        messageBus: { 
-            send: (payload: any) => void;
-            subscribe: (subscription: any) => void;
-        },
+        messageBus: DataSourceMessageBusPort,
         primaryKeyName: KeyType,
         dataSourceKey: string,
         snapshotContentGenerator?: (streamKey: string) => Promise<SnapshotPayload>,
@@ -163,6 +166,35 @@ export class DataSource<
                 timeoutMs: snapshotTimeoutMs
             }
             this.singleFlight = singleFlightFactory<SnapshotType<ExternalSnapshotPayload>>(singleFlightConfig)
+        }
+    }
+
+    private peekInboundFlushLane(): string | undefined {
+        if (this._inboundFlushLaneStack.length === 0) {
+            return undefined
+        }
+        return this._inboundFlushLaneStack[this._inboundFlushLaneStack.length - 1]
+    }
+
+    /**
+     * Non-empty explicit `laneId` wins. Empty string forces default lane (no second arg to `send`).
+     * `undefined` uses current inbound flush lane (stack top) when inside `subscribe` callbacks.
+     */
+    private resolveOutboundLaneId(explicit?: string): string | undefined {
+        if (explicit !== undefined) {
+            if (explicit === '') {
+                return undefined
+            }
+            return explicit
+        }
+        return this.peekInboundFlushLane()
+    }
+
+    private sendStreamingEventOnBus(payload: StreamingEventPayloadContract, laneId?: string): void {
+        if (laneId !== undefined && laneId !== '') {
+            this.messageBus.send(payload, laneId)
+        } else {
+            this.messageBus.send(payload)
         }
     }
 
@@ -341,7 +373,8 @@ export class DataSource<
     }
 
     async streamEvent(params: StreamEventParams<UpdatePayload, Header>): Promise<void> {
-        const { update, streamKey, header: headerFragment } = params
+        const { update, streamKey, header: headerFragment, laneId: laneIdParam } = params
+        const outboundLane = this.resolveOutboundLaneId(laneIdParam)
         const now = getCurrentTimestamp()
         const uuid = uuidv4()  // Just the UUID part (timestamp is in coreFormat)
 
@@ -373,8 +406,7 @@ export class DataSource<
         await Promise.all([
             // Store event to DynamoDB for replay
             (this.replayable && dynamoRecord ? this.dynamo.putItem(dynamoRecord) : Promise.resolve()).then(() => {
-                // Publish to internal messageBus for other DataSources
-                this.messageBus.send(messageBusEvent)
+                this.sendStreamingEventOnBus(messageBusEvent, outboundLane)
             }),
             // Publish to EventBridge for real-time subscribers
             (this.publisherStrategy === 'eventBridge+bus'
@@ -390,7 +422,11 @@ export class DataSource<
      * plus partial transform. Uses getContent('external') for DynamoDB and EventBridge; passes
      * envelope to messageBus.
      */
-    async streamEnvelope(envelope: StreamingEventEnvelope<unknown, StreamingEventHeader, unknown>): Promise<void> {
+    async streamEnvelope(
+        envelope: StreamingEventEnvelope<unknown, StreamingEventHeader, unknown>,
+        laneIdOverride?: string
+    ): Promise<void> {
+        const outboundLane = this.resolveOutboundLaneId(laneIdOverride)
         const coreFormat: CoreExternalFormat = {
             header: envelope.header,
             update: await envelope.getContent('external') as CoreExternalFormat['update'],
@@ -411,7 +447,7 @@ export class DataSource<
 
         await Promise.all([
             (this.replayable && dynamoRecord ? this.dynamo.putItem(dynamoRecord) : Promise.resolve()).then(() => {
-                this.messageBus.send(messageBusPayload)
+                this.sendStreamingEventOnBus(messageBusPayload, outboundLane)
             }),
             (this.publisherStrategy === 'eventBridge+bus'
                 ? eventBridgeClient.send([eventBridgeEvent as any])
@@ -680,23 +716,31 @@ export class DataSource<
             tag: `dataSource-${this.dataSourceKey}`,
             priority: 5, // Default priority for data source processing
             filter: streamingEventStructureGuard,
-            callback: async ({ payloads }) => {
-                const header = (p: any): StreamingEventHeader => ({
-                    dataSourceKey: p.header?.dataSourceKey ?? p.dataSourceKey,
-                    streamKey: p.header?.streamKey ?? p.streamKey,
-                    timestamp: p.header?.timestamp ?? p.timestamp,
-                    type: p.header?.type
-                })
-                const envelopes: Array<StreamingEventEnvelope<unknown>> = payloads.map((p) => ({
-                    header: header(p),
-                    getContent: p.getContent
-                }))
-                const narrowed = envelopes.filter((e): e is StreamingEventEnvelope<SubscribedContent> => this.subscribedEventTypeGuard!(e))
-                await this.receiveEvents!({
-                    events: narrowed,
-                    streamEvent: (params) => this.streamEvent(params),
-                    streamEnvelope: (envelope) => this.streamEnvelope(envelope)
-                })
+            callback: async ({ payloads, activeFlushLane }) => {
+                this._inboundFlushLaneStack.push(activeFlushLane)
+                try {
+                    const header = (p: any): StreamingEventHeader => ({
+                        dataSourceKey: p.header?.dataSourceKey ?? p.dataSourceKey,
+                        streamKey: p.header?.streamKey ?? p.streamKey,
+                        timestamp: p.header?.timestamp ?? p.timestamp,
+                        type: p.header?.type
+                    })
+                    const envelopes: Array<StreamingEventEnvelope<unknown>> = payloads.map((p) => ({
+                        header: header(p),
+                        getContent: p.getContent
+                    }))
+                    const narrowed = envelopes.filter((e): e is StreamingEventEnvelope<SubscribedContent> => this.subscribedEventTypeGuard!(e))
+                    await this.receiveEvents!({
+                        events: narrowed,
+                        streamEvent: (params) => this.streamEvent({
+                            ...params,
+                            laneId: params.laneId === undefined ? this.peekInboundFlushLane() : params.laneId
+                        }),
+                        streamEnvelope: (envelope) => this.streamEnvelope(envelope)
+                    })
+                } finally {
+                    this._inboundFlushLaneStack.pop()
+                }
             }
         })
     }
@@ -723,23 +767,26 @@ export class DataSource<
             tag: `dataSource-${this.dataSourceKey}-initialize`,
             priority: 1, // Higher priority than regular events
             filter: initializeEventTypeGuard,
-            callback: async ({ payloads }) => {
-                // Process each Initialize Subscription event
-                for (const payload of payloads) {
-                    const { streamKey } = payload
-                    const content = await payload.getContent()
-                    if (typeof content?.sessionId !== 'string') {
-                        console.error(`Invalid Initialize Subscription payload for streamKey: ${streamKey}: missing sessionId`)
-                        continue
-                    }
-                    const { sessionId } = content
+            callback: async ({ payloads, activeFlushLane }) => {
+                this._inboundFlushLaneStack.push(activeFlushLane)
+                try {
+                    for (const payload of payloads) {
+                        const { streamKey } = payload
+                        const content = await payload.getContent()
+                        if (typeof content?.sessionId !== 'string') {
+                            console.error(`Invalid Initialize Subscription payload for streamKey: ${streamKey}: missing sessionId`)
+                            continue
+                        }
+                        const { sessionId } = content
 
-                    try {
-                        // Use the existing initializeSubscription method
-                        await this.initializeSubscription({ sessionId, streamKey })
-                    } catch (error) {
-                        console.error(`Failed to process Initialize Subscription for streamKey: ${streamKey}`, error)
+                        try {
+                            await this.initializeSubscription({ sessionId, streamKey })
+                        } catch (error) {
+                            console.error(`Failed to process Initialize Subscription for streamKey: ${streamKey}`, error)
+                        }
                     }
+                } finally {
+                    this._inboundFlushLaneStack.pop()
                 }
             }
         })
