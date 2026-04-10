@@ -1,3 +1,4 @@
+import { createAsyncGate } from '../testing/asyncGate'
 import { InternalMessageBus } from './index'
 
 type TestPayloadOne = {
@@ -251,6 +252,47 @@ describe('InternalMessageBus', () => {
         }, '')
         await messageBus.flush()
         expect(outputs).toEqual(['emptyLane'])
+    })
+
+    it('orders lane flush vs post-gate default send when a handler awaits createAsyncGate', async () => {
+        const messageBus = new InternalMessageBus<string>()
+        const onA = jest.fn<void, [string]>()
+        const asyncGate = createAsyncGate(() => {})
+
+        messageBus.subscribe({
+            tag: 'handlerA',
+            priority: 2,
+            filter: (p): p is string => (p === 'fromLaneFlush' || p === 'fromDefaultAfterGate'),
+            callback: async ({ payloads }) => {
+                payloads.forEach((p) => { onA(p) })
+            }
+        })
+        messageBus.subscribe({
+            tag: 'handlerB',
+            priority: 1,
+            filter: (p): p is string => (p === 'kickoff'),
+            callback: async ({ messageBus: mb }) => {
+                mb.send('fromLaneFlush', 'sideLane')
+                await mb.flush('sideLane')
+                await asyncGate.fn()
+                mb.send('fromDefaultAfterGate')
+            }
+        })
+
+        messageBus.send('kickoff')
+        const flushPromise = messageBus.flush()
+
+        // Past flush microtasks and past createAsyncGate impl's setImmediate so fn is blocked on the hold.
+        await new Promise<void>((r) => { setImmediate(r) })
+        expect(onA).toHaveBeenCalledTimes(1)
+        expect(onA).toHaveBeenNthCalledWith(1, 'fromLaneFlush')
+
+        asyncGate.resolve()
+        await Promise.resolve()
+        await flushPromise
+
+        expect(onA).toHaveBeenCalledTimes(2)
+        expect(onA).toHaveBeenNthCalledWith(2, 'fromDefaultAfterGate')
     })
 
 })
