@@ -1,6 +1,6 @@
 # Perception - big refactor (fan-in DataSource)
 
-**Status:** In progress. **Next:** first unchecked item in [Recommended order](#recommended-order) (stub `mtw.ephemera.perception` DataSource). Coordinate with [message bus lanes](../../messageBus/AGENT.messageBusLanes.planning.md) if delivery must be lane-isolated before client output.
+**Status:** In progress. **Next:** [Recommended order](#recommended-order) --- **Character perception** + **`api.ephemera`** ingress. Coordinate with [message bus lanes](../../messageBus/AGENT.messageBusLanes.planning.md) if delivery must be lane-isolated before client output.
 
 This file tracks the **large** refactor of Ephemera **perception** from today's largely **imperative** handlers toward an **event-driven fan-in** model (a **DataSource** boundary that **subscribes** to typed streams, **aggregates** partial state, and **delivers** when enough is known). It is **broader** than the pass-through / readiness contract alone; pass-through work is **groundwork** that accrues **obligations** on this shape.
 
@@ -38,7 +38,7 @@ Read [`taskPlanning/AGENT.md`](../../../../AGENT.md) once so you know what belon
 3. **Integration points (code)**
    - **Imperative perception today:** [`lambda/ephemera/perception/index.ts`](../../../../../lambda/ephemera/perception/index.ts) (`perceptionMessage`, `sendRoomGeneratingHeader`).
    - **Bus:** [`lambda/ephemera/messageBus/index.ts`](../../../../../lambda/ephemera/messageBus/index.ts) (subscriptions), [`lambda/ephemera/messageBus/baseClasses.ts`](../../../../../lambda/ephemera/messageBus/baseClasses.ts) (message types).
-   - **DataSource patterns:** [`lambda/ephemera/dataSource/renderOrchestration/`](../../../../../lambda/ephemera/dataSource/renderOrchestration/) (ingress, `subscribe()`), [`lambda/ephemera/dataSource/renderCache/`](../../../../../lambda/ephemera/dataSource/renderCache/) (consumes orchestration stream).
+   - **DataSource patterns:** [`lambda/ephemera/dataSource/renderOrchestration/`](../../../../../lambda/ephemera/dataSource/renderOrchestration/) (ingress, `subscribe()`), [`lambda/ephemera/dataSource/renderCache/`](../../../../../lambda/ephemera/dataSource/renderCache/) (consumes orchestration stream), [`lambda/ephemera/dataSource/perception/`](../../../../../lambda/ephemera/dataSource/perception/) (`mtw.ephemera.perception` stub; see [`AGENT.md`](../../../../../lambda/ephemera/dataSource/perception/AGENT.md)).
    - **Lambda entry / flush:** [`lambda/ephemera/app.ts`](../../../../../lambda/ephemera/app.ts) (`messageBus.flush()`).
    - **Lanes (transport):** [`../../messageBus/AGENT.messageBusLanes.planning.md`](../../messageBus/AGENT.messageBusLanes.planning.md) --- coordinate if delivery must be lane-isolated before client-visible output.
 
@@ -71,7 +71,7 @@ Work already merged or in flight before the **perception DataSource** slice:
 Pending work uses `[ ]`, completed work uses `[X]`. Mark nested lines `[X]` as you complete them so partial progress is visible. After implementation for a step, run **Verification** and update this list.
 
 - [X] **Baseline prep:** legacy Message delivery path removed from imperative perception; Knowledge and Map perception branches **disabled** in handler (flags in [`perception/index.ts`](../../../../../lambda/ephemera/perception/index.ts)). See [Current baseline](#current-baseline-prep-work-done).
-- [ ] **Stub** `mtw.ephemera.perception` (or agreed `dataSourceKey`): **bus-published** `EphemeraDataSource`, `subscribe()` wired, same internal `StreamingEvent` patterns as [`renderOrchestration`](../../../../../lambda/ephemera/dataSource/renderOrchestration/) / [`renderCache`](../../../../../lambda/ephemera/dataSource/renderCache/); no EventBridge for the stub.
+- [X] **Stub** `mtw.ephemera.perception` (or agreed `dataSourceKey`): **bus-published** `EphemeraDataSource`, `subscribe()` wired, same internal `StreamingEvent` patterns as [`renderOrchestration`](../../../../../lambda/ephemera/dataSource/renderOrchestration/) / [`renderCache`](../../../../../lambda/ephemera/dataSource/renderCache/); no EventBridge for the stub. Code: [`lambda/ephemera/dataSource/perception/`](../../../../../lambda/ephemera/dataSource/perception/).
 - [ ] **Character perception** inside the DataSource plus **`api.ephemera`**-style **invoking** ingress (mirror [`sendRenderRequested`](../../../../../lambda/ephemera/dataSource/renderOrchestration/subscribedEvents.ts) patterns).
 - [ ] **In-memory** aggregation cache prototype (running collected state; durable checkpoints **out of scope** unless needed).
 - [ ] **Room header** aggregation (**generating** + **terminal** results) --- fan-in and state first; **delivery mechanics** (who, timeline vs in-place) refine with pass-through + [lanes](../../messageBus/AGENT.messageBusLanes.planning.md) as needed.
@@ -84,7 +84,7 @@ Pending work uses `[ ]`, completed work uses `[X]`. Mark nested lines `[X]` as y
 | Step | What | Notes |
 | --- | --- | --- |
 | -- | Baseline | Done --- see [Current baseline](#current-baseline-prep-work-done). |
-| 1 | Stub perception DataSource | Bus-only; mirror existing DataSources. |
+| 1 | Stub perception DataSource | Done --- bus-only; see [`dataSource/perception/`](../../../../../lambda/ephemera/dataSource/perception/). |
 | 2 | Character perception + `api.ephemera` ingress | Typed like `sendRenderRequested`. |
 | 3 | In-memory aggregation cache | Prototype. |
 | 4 | Room header aggregation | Generating + terminal; delivery details iterate. |
@@ -227,6 +227,6 @@ Run from **repository root** unless noted.
 | Out-of-scope list + links | Done |
 | Message bus lanes plan ([`../../messageBus/AGENT.messageBusLanes.planning.md`](../../messageBus/AGENT.messageBusLanes.planning.md)) | Draft exists; implementation tracked there |
 | Obligations table vs pass-through contract | In progress (upstream) |
-| Stub perception DataSource (Recommended order step 1) | Not started |
+| Stub perception DataSource (Recommended order step 1) | Done ([`lambda/ephemera/dataSource/perception/`](../../../../../lambda/ephemera/dataSource/perception/)) |
 | Steps 2--7 | Not started |
 | Initiative complete; durable docs updated; task plan retired | Not started |
