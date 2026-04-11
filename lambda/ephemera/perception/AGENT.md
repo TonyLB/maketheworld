@@ -14,6 +14,12 @@ The perception system serves as the **message routing and display engine** that:
 - **Asset Integration**: Leverages the internalCache system for efficient data retrieval
 - **Real-time Updates**: Provides immediate feedback through the message bus
 
+## Architecture: `mtw.ephemera.perception` DataSource
+
+New work is moving **audience-facing** assembly into the bus-published DataSource at [`../dataSource/perception/`](../dataSource/perception/). See [`../dataSource/perception/AGENT.md`](../dataSource/perception/AGENT.md) for the **data domain**: how perception **bridges** internal-focused pipelines (`renderOrchestration`, `renderCache`, etc.) and audience-focused delivery, including **correlated** (register, subscribe, correlate, dispatch) vs **immediate** (data on hand) patterns and why both live in one place.
+
+This guide remains the map for **imperative** `perceptionMessage` behavior, triggers, and message shapes until those paths migrate.
+
 ## Perception Event Triggers
 
 The perception system can be triggered by several different categories of events, each representing a different reason why characters need updated information:

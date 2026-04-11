@@ -1,6 +1,6 @@
 # Perception - big refactor (fan-in DataSource)
 
-**Status:** In progress. **Next:** [Recommended order](#recommended-order) --- **Room header** aggregation (step 4). Coordinate with [**Virtual lanes**](../../../../../packages/mtw-lambda-patterns/ts/messageBus/AGENT.implementation.md#virtual-lanes-internalmessagebus) (`InternalMessageBus`) if delivery must be lane-isolated before client output.
+**Status:** In progress. **Next:** [Recommended order](#recommended-order) --- **Room description** aggregation (step 4). Coordinate with [**Virtual lanes**](../../../../../packages/mtw-lambda-patterns/ts/messageBus/AGENT.implementation.md#virtual-lanes-internalmessagebus) (`InternalMessageBus`) if delivery must be lane-isolated before client output.
 
 This file tracks the **large** refactor of Ephemera **perception** from today's largely **imperative** handlers toward an **event-driven fan-in** model (a **DataSource** boundary that **subscribes** to typed streams, **aggregates** partial state, and **delivers** when enough is known). It is **broader** than the pass-through / readiness contract alone; pass-through work is **groundwork** that accrues **obligations** on this shape.
 
@@ -14,6 +14,7 @@ This file tracks the **large** refactor of Ephemera **perception** from today's 
 
 ## Purpose
 
+- **Durable domain narrative** (audience vs internal frameworks, correlated vs immediate): [`lambda/ephemera/dataSource/perception/AGENT.md`](../../../../../lambda/ephemera/dataSource/perception/AGENT.md).
 - Give a **single place** to record **direction**, **open questions**, and **obligations we accrue** on behalf of **future Perception** while `renderOrchestration`, `renderCache`, and contracts evolve first.
 - Avoid a planning vacuum where we refactor producers **toward** "Perception will aggregate this" without anywhere to track what **this** must become.
 - Stay **honest about uncertainty:** exact APIs **grow** in as implementation lands; **Verification** below is the baseline bar.
@@ -89,10 +90,10 @@ Pending work uses `[ ]`, completed work uses `[X]`. Mark nested lines `[X]` as y
   - [X] **Registration ingress (decided):** one new **`api.ephemera`** ingress (synthetic **`header.type`**, see [Thread registration ingress (api.ephemera)](#thread-registration-ingress-apiephemera)) so callers can **register** a thread; the perception DataSource handles it and calls a **`set`** operator on **`internalCache.PerceptionThreads`** (store by **`componentId` + `perspectiveKey`**). No other new DataSource behavior required in step 3.
   - [X] **Routing identity (decided):** aggregation map key is **`componentId` + `perspectiveKey`** only; **`cacheId`** is **not** a key segment (late on generate paths; stored as **in-bucket state** when events carry it). See [Decisions](#decisions).
   - [X] **Placement (decided):** state lives on **`internalCache.PerceptionThreads`** ([`InternalCache`](../../../../../lambda/ephemera/internalCache/index.ts) property + **`clear()`** wiring; **no** **`flush()`** --- not Dynamo-backed). See [Aggregation cache placement (internalCache)](#aggregation-cache-placement-internalcache).
-- [ ] **Room header** aggregation (**generating** + **terminal** results) --- fan-in and state first; **delivery mechanics** (who, timeline vs in-place) refine with pass-through + [virtual bus lanes](../../../../../packages/mtw-lambda-patterns/ts/messageBus/AGENT.implementation.md#virtual-lanes-internalmessagebus) as needed.
-- [ ] **Room description** aggregation (same footnote as header).
+- [ ] **Room description** aggregation --- fan-in and state first; **delivery mechanics** (who, timeline vs in-place) refine with pass-through + [virtual bus lanes](../../../../../packages/mtw-lambda-patterns/ts/messageBus/AGENT.implementation.md#virtual-lanes-internalmessagebus) as needed.
+- [ ] **Room header** aggregation (**generating** + **terminal** results; same footnote as description).
 - [ ] **Refactor `moveCharacter`** to start a **`renderOrchestration`**-driven cascade (replace or narrow direct imperative `Perception` where appropriate).
-- [ ] **Aggregate `moveCharacter`** outcomes in the perception DataSource (end-to-end with room header/description).
+- [ ] **Aggregate `moveCharacter`** outcomes in the perception DataSource (end-to-end with room description/header).
 
 **At a glance (same steps):**
 
@@ -102,8 +103,8 @@ Pending work uses `[ ]`, completed work uses `[X]`. Mark nested lines `[X]` as y
 | 1 | Stub perception DataSource | Done --- bus-only; see [`dataSource/perception/`](../../../../../lambda/ephemera/dataSource/perception/). |
 | 2 | Character perception + `api.ephemera` ingress | Done: `Character Perception Requested`; `CharacterPerceptionRequestedCommand`; `streamKey` = viewed `ephemeraId`; `PublishMessage` only; `perceptionMessage` bridge. |
 | 3 | In-memory aggregation cache | Done: [minimal scope](#step-3-minimal-scope-recommended-order); [`perceptionThreads.ts`](../../../../../lambda/ephemera/internalCache/perceptionThreads.ts), [`perceptionThreads.test.ts`](../../../../../lambda/ephemera/internalCache/perceptionThreads.test.ts); **`Perception Thread Registered`** / **`sendPerceptionThreadRegistered`**; **`internalCache.PerceptionThreads`**. |
-| 4 | Room header aggregation | Generating + terminal; delivery details iterate. |
-| 5 | Room description aggregation | Same as header. |
+| 4 | Room description aggregation | Fan-in and state first; delivery details iterate. |
+| 5 | Room header aggregation | Generating + terminal; same as description. |
 | 6 | `moveCharacter` -> orchestration cascade | Aligns move with stream shape. |
 | 7 | Aggregate move in perception DS | E2E check. |
 
