@@ -1,6 +1,8 @@
 /**
  * In-memory perception fan-in threads (PerceptionThreads). Cleared each lambda invocation via InternalCache.clear().
  * See taskPlanning/lambda/ephemera/dataSource/perception/AGENT.perceptionRefactor.planning.md steps 3-4.
+ *
+ * Multiple independent entries may share the same (componentId, perspectiveKey); each is a separate output request.
  */
 import { v4 as uuidv4 } from 'uuid'
 import type { PerceptionThreadRegisteredCommand } from '../dataSource/perception/localApiEvents'
@@ -69,49 +71,83 @@ export type PerceptionThreadUpdateKey = {
     registrationId: string;
 }
 
+export type PerceptionThreadRemoveKey = {
+    componentId: string;
+    perspectiveKey: string;
+    registrationId: string;
+}
+
 /**
  * Map key is `${componentId}::${perspectiveKey}`. perspectiveKey must not contain '::'.
- * Duplicate set for the same pair: last write wins.
+ * Each bucket holds zero or more independent PerceptionThreadEntry rows (append via register).
  */
 export default class PerceptionThreadsData {
-    private threads: Record<string, PerceptionThreadEntry> = {}
+    private buckets: Record<string, PerceptionThreadEntry[]> = {}
 
     private static makeKey(componentId: string, perspectiveKey: string): string {
         return `${componentId}::${perspectiveKey}`
     }
 
-    set(
+    /**
+     * Append a new thread row for this (componentId, perspectiveKey). Does not replace existing rows.
+     */
+    register(
         registration: PerceptionThreadRegisteredCommand,
         thread: PerceptionThread = { kind: 'stub' }
     ): void {
         const { componentId, perspectiveKey } = registration
         const key = PerceptionThreadsData.makeKey(componentId, perspectiveKey)
         const registrationId = registration.registrationId ?? uuidv4()
-        this.threads[key] = { registrationId, thread, registration }
+        const entry: PerceptionThreadEntry = {
+            registrationId,
+            thread,
+            registration: { ...registration, registrationId },
+        }
+        if (!this.buckets[key]) {
+            this.buckets[key] = []
+        }
+        this.buckets[key].push(entry)
     }
 
-    get(componentId: string, perspectiveKey: string): PerceptionThreadEntry | undefined {
-        return this.threads[PerceptionThreadsData.makeKey(componentId, perspectiveKey)]
+    /** All entries for the composite key (possibly empty). Returned array is a shallow copy. */
+    list(componentId: string, perspectiveKey: string): PerceptionThreadEntry[] {
+        const key = PerceptionThreadsData.makeKey(componentId, perspectiveKey)
+        const bucket = this.buckets[key]
+        return bucket ? [...bucket] : []
     }
 
     /**
-     * Shallow-merge partial thread fields into the stored thread after registrationId matches.
+     * Shallow-merge partial thread fields into the stored thread after registrationId matches within the bucket.
      */
     update(key: PerceptionThreadUpdateKey, partial: Partial<PerceptionThread>): boolean {
-        const entry = this.threads[PerceptionThreadsData.makeKey(key.componentId, key.perspectiveKey)]
-        if (!entry || entry.registrationId !== key.registrationId) {
+        const bucket = this.buckets[PerceptionThreadsData.makeKey(key.componentId, key.perspectiveKey)]
+        if (!bucket) {
+            return false
+        }
+        const entry = bucket.find((e) => e.registrationId === key.registrationId)
+        if (!entry) {
             return false
         }
         entry.thread = { ...entry.thread, ...partial } as PerceptionThread
         return true
     }
 
-    /** Remove one registration row (e.g. after terminal room description delivery). */
-    delete(componentId: string, perspectiveKey: string): void {
-        delete this.threads[PerceptionThreadsData.makeKey(componentId, perspectiveKey)]
+    /** Remove one registration row from the bucket; drops empty buckets. */
+    remove(key: PerceptionThreadRemoveKey): void {
+        const composite = PerceptionThreadsData.makeKey(key.componentId, key.perspectiveKey)
+        const bucket = this.buckets[composite]
+        if (!bucket) {
+            return
+        }
+        const next = bucket.filter((e) => e.registrationId !== key.registrationId)
+        if (next.length === 0) {
+            delete this.buckets[composite]
+        } else {
+            this.buckets[composite] = next
+        }
     }
 
     clear(): void {
-        this.threads = {}
+        this.buckets = {}
     }
 }

@@ -8,7 +8,7 @@ The `internalCache` system is a comprehensive caching layer that improves develo
 
 Some handlers are **process-supporting** state for the current lambda run: they may **not** use `DeferredCache`, but they still live on the [`InternalCache`](index.ts) singleton and reset in [`InternalCache.clear()`](index.ts). Examples: [`Global`](global.ts) (`internalCache.Global`, **`CacheGlobalData`**) for connection/session keyed fields; [`OrchestrateMessages`](orchestrateMessages.ts) for in-memory message-group graphs.
 
-**Shipped (step 3 foundation):** **`internalCache.PerceptionThreads`** ([`perceptionThreads.ts`](perceptionThreads.ts)) --- fan-in aggregation store for **`mtw.ephemera.perception`**; `clear()` wired from `InternalCache.clear()`, **no** `flush()`. Why perception owns this state: [`../dataSource/perception/AGENT.md`](../dataSource/perception/AGENT.md). Task-plan detail: [`AGENT.perceptionRefactor.planning.md`](../../../taskPlanning/lambda/ephemera/dataSource/perception/AGENT.perceptionRefactor.planning.md).
+**Shipped (step 3 foundation):** **`internalCache.PerceptionThreads`** ([`perceptionThreads.ts`](perceptionThreads.ts)) --- fan-in aggregation store for **`mtw.ephemera.perception`**; **multiple** independent entries per **`componentId` + `perspectiveKey`**; `clear()` wired from `InternalCache.clear()`, **no** `flush()`. Why perception owns this state: [`../dataSource/perception/AGENT.md`](../dataSource/perception/AGENT.md). Task-plan detail: [`AGENT.perceptionRefactor.planning.md`](../../../taskPlanning/lambda/ephemera/dataSource/perception/AGENT.perceptionRefactor.planning.md).
 
 ## Core Architecture
 
@@ -216,7 +216,7 @@ if (!object) {
 ### **Global Handlers**
 - **`Global`**: Caches global system data
 - **`OrchestrateMessages`**: Caches message orchestration data
-- **`PerceptionThreads`**: In-memory fan-in aggregation for **`mtw.ephemera.perception`**; [`perceptionThreads.ts`](perceptionThreads.ts), [`perceptionThreads.test.ts`](perceptionThreads.test.ts); stub and **`roomDescription`** thread variants; **`set`** / **`update`** / **`delete`**; **`clear()`** only (no **`flush()`**). See [`AGENT.perceptionRefactor.planning.md`](../../../taskPlanning/lambda/ephemera/dataSource/perception/AGENT.perceptionRefactor.planning.md).
+- **`PerceptionThreads`**: In-memory fan-in aggregation for **`mtw.ephemera.perception`**; [`perceptionThreads.ts`](perceptionThreads.ts), [`perceptionThreads.test.ts`](perceptionThreads.test.ts); stub and **`roomDescription`** thread variants; **`register`** / **`list`** / **`update`** / **`remove(registrationId)`**; **`clear()`** only (no **`flush()`**). See [`AGENT.perceptionRefactor.planning.md`](../../../taskPlanning/lambda/ephemera/dataSource/perception/AGENT.perceptionRefactor.planning.md).
 - **`Graph`**: Caches graph relationships
 
 ## Integration Points

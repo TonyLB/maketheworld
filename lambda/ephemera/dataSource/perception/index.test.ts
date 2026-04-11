@@ -67,12 +67,14 @@ describe('mtw.ephemera.perception DataSource', () => {
         })
         await messageBus.flush()
 
-        const entry = internalCache.PerceptionThreads.get('ROOM#REG', 'view-1')
-        expect(entry?.thread).toMatchObject({
+        const listed = internalCache.PerceptionThreads.list('ROOM#REG', 'view-1')
+        expect(listed).toHaveLength(1)
+        const entry = listed[0]
+        expect(entry.thread).toMatchObject({
             kind: 'roomDescription',
             status: 'Initial',
         })
-        expect(entry?.registration).toMatchObject({
+        expect(entry.registration).toMatchObject({
             componentId: 'ROOM#REG',
             perspectiveKey: 'view-1',
             characterId: 'CHARACTER#viewer',
@@ -147,7 +149,7 @@ describe('mtw.ephemera.perception DataSource', () => {
         })
         expect(terminalPublish).toBeDefined()
         expect((terminalPublish![0] as { messageId?: string }).messageId).toBe(mid)
-        expect(internalCache.PerceptionThreads.get(passThroughFixtureRoomId, passThroughFixturePerspectiveKey)).toBeUndefined()
+        expect(internalCache.PerceptionThreads.list(passThroughFixtureRoomId, passThroughFixturePerspectiveKey)).toEqual([])
 
         schemaSpy.mockRestore()
         componentRenderSpy.mockRestore()

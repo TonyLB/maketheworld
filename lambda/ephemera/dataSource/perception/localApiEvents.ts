@@ -29,7 +29,7 @@ export type PerceptionThreadRegisteredCommand = {
     perspectiveKey: string;
     messageGroupId?: MessageGroupId;
     characterId?: EphemeraCharacterId;
-    /** Caller-supplied id; if omitted, PerceptionThreads.set assigns a synthetic uuid. */
+    /** Caller-supplied id; if omitted, PerceptionThreads.register assigns a synthetic uuid. */
     registrationId?: string;
 }
 

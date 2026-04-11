@@ -33,13 +33,13 @@ export const ephemeraPerceptionDataSource = new EphemeraDataSource<
             }
             if (isPerceptionThreadRegisteredCommand(raw)) {
                 if (isEphemeraRoomId(raw.componentId)) {
-                    internalCache.PerceptionThreads.set(raw, {
+                    internalCache.PerceptionThreads.register(raw, {
                         kind: 'roomDescription',
                         status: 'Initial',
                     })
                 }
                 else {
-                    internalCache.PerceptionThreads.set(raw, { kind: 'stub' })
+                    internalCache.PerceptionThreads.register(raw, { kind: 'stub' })
                 }
                 return
             }
