@@ -60,6 +60,7 @@ The perception system can be triggered by several different categories of events
 - **Source**: Direct character actions, commands, or link interactions
 - **Trigger Pattern**: Character interacts with component → Component perception triggered
 - **Perception Types**:
+  - **Room look (`look` at a room)**: [`parse/executeAction.ts`](../parse/executeAction.ts) registers a room thread via **`sendPerceptionThreadRegistered`** and kicks passive render via **`sendRenderRequested`**; delivery is **`PublishMessage`** from **`mtw.ephemera.perception`** fan-in ([`../dataSource/perception/orchestrate.ts`](../dataSource/perception/orchestrate.ts)), not imperative **`Perception`** → `perceptionMessage` for that path.
   - **Feature Interaction**: `PerceptionComponentMessage` for feature descriptions
   - **Knowledge Access**: `PerceptionComponentMessage` with `directResponse` for immediate knowledge delivery
   - **Character Examination**: Character description lookups

@@ -19,10 +19,13 @@ import type { RenderRequested } from './events'
 import { isRenderResolveInputSuccess } from './baseClasses'
 import { getIntakeOrchestrationErrorIfAny } from './intakeErrors'
 import { buildOrchestrationRouting } from './orchestrationRouting'
-import { publishRenderOrchestrationStreamEvent, type RenderOrchestrationPublishedPayload } from './publishedEvents'
+import {
+    publishRenderOrchestrationStreamEvent,
+    type PublishRenderOrchestrationStreamOptions,
+    type RenderOrchestrationPublishedPayload,
+} from './publishedEvents'
 import { findRender } from './findRender'
 import { generateRoomPreview } from './generateRoomPreview'
-import { renderOrchestrationIngressLaneId } from './subscribedEvents'
 import type { RunWithSingleFlight } from './singleFlightRenderGeneration'
 import { intakeRenderRequested } from './requestIntake'
 import type { RequestIntakeDependencies } from './requestIntake'
@@ -109,7 +112,6 @@ export const orchestrateRenderRequest = async (
     const intake = await intakeRenderRequested(payload, _deps)
 
     const streamKey = payload.componentId
-    const orchestrationLaneId = renderOrchestrationIngressLaneId(streamKey)
     const intakeErr = getIntakeOrchestrationErrorIfAny(intake)
     if (intakeErr) {
         const routing = buildOrchestrationRouting(payload.componentId, payload.perspective, orchDeps.computePerspectiveKey)
@@ -128,9 +130,16 @@ export const orchestrateRenderRequest = async (
 
     /**
      * Terminal / cache-resolution outbounds use the default lane so a single `flush()` at lambda boundary drains them.
-     * `Generation Started` omits `laneId` so it inherits the inbound orchestration lane (see `sendRenderRequested`).
+     * `Generation Started` uses an explicit lane passed from {@link findRender} slow-path (`generateRoomPreview`) so it can flush before long-running work.
      */
-    const publishOrchestration = async (content: RenderOrchestrationPublishedPayload) => {
+    const publishOrchestration = async (
+        content: RenderOrchestrationPublishedPayload,
+        laneOverride?: PublishRenderOrchestrationStreamOptions
+    ) => {
+        if (laneOverride !== undefined) {
+            await publishRenderOrchestrationStreamEvent(streamEvent, streamKey, content, laneOverride)
+            return
+        }
         const useDefaultLane = (
             content.type === 'Current Cache Valid'
             || content.type === 'Exact Match Found'
@@ -156,6 +165,6 @@ export const orchestrateRenderRequest = async (
         publishOrchestration,
         generateRoomPreview: orchDeps.generateRoomPreview,
         runWithSingleFlight: orchDeps.runWithSingleFlight,
-        flushOrchestrationLane: () => messageBus.flush(orchestrationLaneId),
+        flushMessageBusLane: (laneId: string) => messageBus.flush(laneId),
     })
 }

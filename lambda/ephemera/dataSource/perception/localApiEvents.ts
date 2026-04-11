@@ -23,12 +23,14 @@ export const isEphemeraCacheComponentId = (value: string): value is EphemeraCach
     isEphemeraRoomId(value) || isEphemeraFeatureId(value) || isEphemeraKnowledgeId(value)
 )
 
-/** Registers a perception fan-in thread (component x perspective). Step 3 stub; delivery fields optional for later steps. */
+/** Registers a perception fan-in thread (component x perspective). Room registrations require characterId (step 4). */
 export type PerceptionThreadRegisteredCommand = {
     componentId: EphemeraCacheComponentId;
     perspectiveKey: string;
     messageGroupId?: MessageGroupId;
     characterId?: EphemeraCharacterId;
+    /** Caller-supplied id; if omitted, PerceptionThreads.set assigns a synthetic uuid. */
+    registrationId?: string;
 }
 
 export type PerceptionIngressCommand = CharacterPerceptionRequestedCommand | PerceptionThreadRegisteredCommand
@@ -62,6 +64,14 @@ export const isPerceptionThreadRegisteredCommand = (value: unknown): value is Pe
     }
     if (v.characterId !== undefined && (typeof v.characterId !== 'string' || !isEphemeraCharacterId(v.characterId))) {
         return false
+    }
+    if (v.registrationId !== undefined && typeof v.registrationId !== 'string') {
+        return false
+    }
+    if (isEphemeraRoomId(v.componentId)) {
+        if (typeof v.characterId !== 'string' || !isEphemeraCharacterId(v.characterId)) {
+            return false
+        }
     }
     return true
 }

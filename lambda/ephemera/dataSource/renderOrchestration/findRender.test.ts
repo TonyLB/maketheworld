@@ -38,6 +38,7 @@ describe('dataSource/renderOrchestration/findRender', () => {
         perspectiveMatches,
         generateRoomPreview: jest.fn().mockResolvedValue('fail'),
         publishOrchestration: jest.fn().mockResolvedValue(undefined),
+        flushMessageBusLane: jest.fn().mockResolvedValue(undefined),
     })
 
     it('emits Current Cache Valid on valid pointer fast-path', async () => {

@@ -216,7 +216,7 @@ if (!object) {
 ### **Global Handlers**
 - **`Global`**: Caches global system data
 - **`OrchestrateMessages`**: Caches message orchestration data
-- **`PerceptionThreads`**: In-memory fan-in aggregation for **`mtw.ephemera.perception`**; [`perceptionThreads.ts`](perceptionThreads.ts), [`perceptionThreads.test.ts`](perceptionThreads.test.ts); **`clear()`** only (no **`flush()`**). See [`AGENT.perceptionRefactor.planning.md`](../../../taskPlanning/lambda/ephemera/dataSource/perception/AGENT.perceptionRefactor.planning.md).
+- **`PerceptionThreads`**: In-memory fan-in aggregation for **`mtw.ephemera.perception`**; [`perceptionThreads.ts`](perceptionThreads.ts), [`perceptionThreads.test.ts`](perceptionThreads.test.ts); stub and **`roomDescription`** thread variants; **`set`** / **`update`** / **`delete`**; **`clear()`** only (no **`flush()`**). See [`AGENT.perceptionRefactor.planning.md`](../../../taskPlanning/lambda/ephemera/dataSource/perception/AGENT.perceptionRefactor.planning.md).
 - **`Graph`**: Caches graph relationships
 
 ## Integration Points

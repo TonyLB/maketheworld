@@ -2,8 +2,14 @@ import messageBus from '../messageBus'
 import internalCache from '../internalCache'
 import { defaultColorFromCharacterId } from '../lib/characterColor'
 import { ActionAPIMessage } from '@tonylb/mtw-interfaces/ts/ephemera'
-import { EphemeraCharacterId, LegalCharacterColor } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { EphemeraCharacterId, LegalCharacterColor, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { PublishMessage } from '../messageBus/baseClasses'
+import { computePerspectiveKey } from '@tonylb/mtw-interfaces/ts/perspective'
+import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
+import { resolveCanonAssetStackForRoom } from '../dataSource/state/resolveAssetStackForRoom'
+import { filterRoomCanonStackByCharacterAssets } from '../dataSource/renderOrchestration/fanOutStateChangedToPassiveRenders'
+import { sendPerceptionThreadRegistered } from '../dataSource/perception/subscribedEvents'
+import { sendRenderRequested } from '../dataSource/renderOrchestration/subscribedEvents'
 
 const narrateOOCOrSpeech = async ({ CharacterId, Message, DisplayProtocol }: { CharacterId?: EphemeraCharacterId; Message?: string; DisplayProtocol?: PublishMessage["displayProtocol"]; } = {}) => {
     if (CharacterId && Message && DisplayProtocol) {
@@ -28,13 +34,40 @@ const narrateOOCOrSpeech = async ({ CharacterId, Message, DisplayProtocol }: { C
 
 export const executeAction = async (request: ActionAPIMessage) => {
     switch(request.actionType) {
-        case 'look':
+        case 'look': {
+            const characterId = request.payload.CharacterId
+            const ephemeraId = request.payload.EphemeraId
+            if (isEphemeraRoomId(ephemeraId)) {
+                const roomCanonStack = await resolveCanonAssetStackForRoom(ephemeraId, {
+                    RoomAssets: internalCache.RoomAssets,
+                    AssetMetaData: internalCache.AssetMetaData,
+                })
+                const { assets: characterAssets = [] } = await internalCache.CharacterMeta.get(characterId) || {}
+                const filteredAssetStack = filterRoomCanonStackByCharacterAssets(roomCanonStack, characterAssets)
+                const perspective = { assetStack: filteredAssetStack }
+                const perspectiveKey = computePerspectiveKey(perspective.assetStack)
+                sendPerceptionThreadRegistered(messageBus, ephemeraId, {
+                    componentId: ephemeraId,
+                    perspectiveKey,
+                    characterId,
+                })
+                const roomForm = await internalCache.ComponentRender.get(characterId, ephemeraId)
+                const generationContextWml = schemaToWML([roomForm.schema])
+                sendRenderRequested(messageBus, ephemeraId, {
+                    componentId: ephemeraId,
+                    perspective,
+                    characterId,
+                    generationContextWml,
+                })
+                break
+            }
             messageBus.send({
                 type: 'Perception',
-                characterId: request.payload.CharacterId,
-                ephemeraId: request.payload.EphemeraId
+                characterId,
+                ephemeraId,
             })
             break
+        }
         case 'SayMessage':
         case 'NarrateMessage':
         case 'OOCMessage':

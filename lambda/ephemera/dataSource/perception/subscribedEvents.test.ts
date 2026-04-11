@@ -92,6 +92,7 @@ describe('perception subscribedEvents', () => {
                 Promise.resolve({
                     componentId: 'ROOM#R',
                     perspectiveKey: 'p',
+                    characterId: 'CHARACTER#viewer',
                 }),
         }
         const rejected = {
@@ -124,7 +125,11 @@ describe('perception subscribedEvents', () => {
                 timestamp: Date.now(),
                 type: 'Perception Thread Registered',
             },
-            getContent: () => Promise.resolve({ componentId: 'ROOM#one', perspectiveKey: 'k' }),
+            getContent: () => Promise.resolve({
+                componentId: 'ROOM#one',
+                perspectiveKey: 'k',
+                characterId: 'CHARACTER#viewer',
+            }),
         }
         expect(isPerceptionSubscribedEnvelope(character as any)).toBe(true)
         expect(isPerceptionSubscribedEnvelope(threadReg as any)).toBe(true)

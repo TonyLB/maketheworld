@@ -3,6 +3,8 @@ import messageBus from '../messageBus'
 import internalCache from '../internalCache'
 import { ActionAPIMessage } from '@tonylb/mtw-interfaces/ts/ephemera'
 import { EphemeraCharacterId, EphemeraRoomId, EphemeraFeatureId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { sendPerceptionThreadRegistered } from '../dataSource/perception/subscribedEvents'
+import { sendRenderRequested } from '../dataSource/renderOrchestration/subscribedEvents'
 
 // Mock dependencies
 jest.mock('../messageBus')
@@ -10,20 +12,55 @@ jest.mock('../internalCache')
 jest.mock('../lib/characterColor', () => ({
     defaultColorFromCharacterId: jest.fn(() => 'blue')
 }))
+jest.mock('@tonylb/mtw-wml/ts/schema', () => ({
+    schemaToWML: jest.fn(() => '<Asset />'),
+}))
+jest.mock('../dataSource/perception/subscribedEvents', () => {
+    const actual = jest.requireActual('../dataSource/perception/subscribedEvents') as object
+    return {
+        ...actual,
+        sendPerceptionThreadRegistered: jest.fn(),
+    }
+})
+jest.mock('../dataSource/renderOrchestration/subscribedEvents', () => {
+    const actual = jest.requireActual('../dataSource/renderOrchestration/subscribedEvents') as object
+    return {
+        ...actual,
+        sendRenderRequested: jest.fn(),
+    }
+})
 
 const MockMessageBus = messageBus as jest.Mocked<typeof messageBus>
 // @ts-ignore
 const internalCacheMock = jest.mocked(internalCache, true)
+const mockSendPerceptionThreadRegistered = sendPerceptionThreadRegistered as jest.MockedFunction<typeof sendPerceptionThreadRegistered>
+const mockSendRenderRequested = sendRenderRequested as jest.MockedFunction<typeof sendRenderRequested>
 
 describe('executeAction', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         MockMessageBus.send.mockClear()
         internalCacheMock.CharacterMeta.get.mockClear()
+        mockSendPerceptionThreadRegistered.mockClear()
+        mockSendRenderRequested.mockClear()
+        internalCacheMock.RoomAssets = { get: jest.fn().mockResolvedValue([]) } as any
+        internalCacheMock.AssetMetaData = { get: jest.fn().mockResolvedValue([]) } as any
+        internalCacheMock.ComponentRender = {
+            get: jest.fn().mockResolvedValue({ schema: {} }),
+        } as any
     })
 
     describe('look action', () => {
-        it('should send Perception message for look action', async () => {
+        it('should register room perception thread and send render request for room look', async () => {
+            internalCacheMock.CharacterMeta.get.mockResolvedValue({
+                EphemeraId: 'CHARACTER#123',
+                Name: 'TestCharacter',
+                RoomId: 'ROOM#456' as EphemeraRoomId,
+                RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
+                HomeId: 'ROOM#HOME' as EphemeraRoomId,
+                assets: ['ASSET#one'],
+            })
+
             const request: ActionAPIMessage = {
                 message: 'action',
                 actionType: 'look',
@@ -35,11 +72,26 @@ describe('executeAction', () => {
 
             await executeAction(request)
 
-            expect(MockMessageBus.send).toHaveBeenCalledWith({
-                type: 'Perception',
-                characterId: 'CHARACTER#123',
-                ephemeraId: 'ROOM#456'
-            })
+            expect(mockSendPerceptionThreadRegistered).toHaveBeenCalledWith(
+                MockMessageBus,
+                'ROOM#456',
+                expect.objectContaining({
+                    componentId: 'ROOM#456',
+                    characterId: 'CHARACTER#123',
+                })
+            )
+            expect(mockSendRenderRequested).toHaveBeenCalledWith(
+                MockMessageBus,
+                'ROOM#456',
+                expect.objectContaining({
+                    componentId: 'ROOM#456',
+                    characterId: 'CHARACTER#123',
+                    generationContextWml: '<Asset />',
+                })
+            )
+            expect(MockMessageBus.send).not.toHaveBeenCalledWith(
+                expect.objectContaining({ type: 'Perception' })
+            )
         })
 
         it('should handle look action with feature ID', async () => {

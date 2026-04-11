@@ -297,7 +297,7 @@ export const publishMessage = async ({ payloads }: { payloads: PublishMessage[],
         if (isPerceptionPublishMessage(payload)) {
             await pushToQueues({
                 Targets: payload.targets,
-                MessageId: `MESSAGE#${uuidv4()}`,
+                MessageId: payload.messageId ?? `MESSAGE#${uuidv4()}`,
                 CreatedTime,
                 DisplayProtocol: payload.displayProtocol,
                 wmlContent: payload.wmlContent,
