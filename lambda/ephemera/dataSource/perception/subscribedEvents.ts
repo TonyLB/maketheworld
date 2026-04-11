@@ -12,6 +12,13 @@ import {
 import { createInternalOriginEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import type { StreamingEventMessage } from '../../messageBus/baseClasses'
 import type { CharacterPerceptionRequestedCommand, PerceptionThreadRegisteredCommand } from './localApiEvents'
+import { RENDER_CACHE_DATA_SOURCE_KEY, type RenderCacheRenderPertainsPayload } from '../renderCache/baseClasses'
+import {
+    RENDER_ORCHESTRATION_DATA_SOURCE_KEY,
+    type RenderOrchestrationGenerationDeferredPayload,
+    type RenderOrchestrationGenerationStartedPayload,
+    type RenderOrchestrationOrchestrationErrorPayload,
+} from '../renderOrchestration/publishedEvents'
 
 export type CharacterPerceptionIngressHeader =
     StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Character Perception Requested' }
@@ -46,13 +53,44 @@ export const isPerceptionThreadRegisteredIngressEnvelope = makeStreamingEnvelope
     PerceptionThreadRegisteredIngressHeader
 >(isPerceptionThreadRegisteredHeader)
 
-export type PerceptionSubscribedContent = CharacterPerceptionRequestedCommand | PerceptionThreadRegisteredCommand
+export type PerceptionFanInOrchestrationPayload =
+    | RenderOrchestrationGenerationStartedPayload
+    | RenderOrchestrationOrchestrationErrorPayload
+    | RenderOrchestrationGenerationDeferredPayload
+
+const PERCEPTION_FAN_IN_ORCHESTRATION_HEADER_TYPES = [
+    'Generation Started',
+    'Orchestration Error',
+    'Generation Deferred',
+] as const
+
+export type PerceptionSubscribedContent =
+    | CharacterPerceptionRequestedCommand
+    | PerceptionThreadRegisteredCommand
+    | RenderCacheRenderPertainsPayload
+    | PerceptionFanInOrchestrationPayload
+
+export const isPerceptionRenderPertainsStreamEnvelope = (
+    envelope: StreamingEventEnvelope<unknown>
+): envelope is StreamingEventEnvelope<RenderCacheRenderPertainsPayload> => (
+    envelope.header.dataSourceKey === RENDER_CACHE_DATA_SOURCE_KEY
+    && envelope.header.type === 'Render Pertains'
+)
+
+export const isPerceptionRoomDescriptionOrchestrationStreamEnvelope = (
+    envelope: StreamingEventEnvelope<unknown>
+): envelope is StreamingEventEnvelope<PerceptionFanInOrchestrationPayload> => (
+    envelope.header.dataSourceKey === RENDER_ORCHESTRATION_DATA_SOURCE_KEY
+    && (PERCEPTION_FAN_IN_ORCHESTRATION_HEADER_TYPES as readonly string[]).includes(envelope.header.type)
+)
 
 export const isPerceptionSubscribedEnvelope = (
     envelope: StreamingEventEnvelope<unknown>
 ): envelope is StreamingEventEnvelope<PerceptionSubscribedContent> => (
     isCharacterPerceptionRequestedIngressEnvelope(envelope)
         || isPerceptionThreadRegisteredIngressEnvelope(envelope)
+        || isPerceptionRenderPertainsStreamEnvelope(envelope)
+        || isPerceptionRoomDescriptionOrchestrationStreamEnvelope(envelope)
 )
 
 type Bus = { send: (payload: StreamingEventMessage) => void }

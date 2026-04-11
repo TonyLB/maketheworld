@@ -79,6 +79,8 @@ export type PublishPerceptionMessage = {
     displayProtocol: 'PerceptionMessage';
     wmlContent: string;
     metaData: import('@tonylb/mtw-interfaces/ts/messages').PerceptionMessageMetaData;
+    /** When set, publishMessage uses this RowId so a later terminal message overwrites the same client row. */
+    messageId?: string;
 } & PublishMessageBase
 
 export type PublishMessage = PublishWorldMessage |

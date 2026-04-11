@@ -25,7 +25,7 @@ Orchestration keeps **policy and multi-step lifecycle sequencing** out of neighb
 
 - **`mtw.ephemera.renderCache`** owns cache types, persistence primitives, and correlated **`Render Pertains`** / **`Cache Updated`** (see [`../renderCache/AGENT.md`](../renderCache/AGENT.md)).
 - **`state`** owns world-state storage and invariants (`Meta::Room`, etc.).
-- **`perception`** will own delivery correlation and fan-in (future).
+- **`mtw.ephemera.perception`** owns audience-side **correlation**, registration, and fan-in into **`PublishMessage`** (see [`../perception/AGENT.md`](../perception/AGENT.md)).
 
 ## What passive orchestration does today
 
@@ -119,4 +119,6 @@ From [`lambda/ephemera/`](../../): `npm test` (Jest).
 - [Pass-through contract (draft)](../../../../taskPlanning/lambda/ephemera/dataSource/AGENT.passThrough.contract.planning.md).
 - [`../renderCache/AGENT.md`](../renderCache/AGENT.md) --- **`mtw.ephemera.renderCache`** DataSource, Dynamo schema, `internalCache.RenderCache`, exact match, **`Render Pertains`** / **`Cache Updated`**.
 - [`packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md`](../../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md) --- DataSource patterns.
-- [`../../messageBus/AGENT.md`](../../messageBus/AGENT.md), [`../../perception/AGENT.md`](../../perception/AGENT.md).
+- [`../../messageBus/AGENT.md`](../../messageBus/AGENT.md).
+- [`../../perception/AGENT.md`](../../perception/AGENT.md) --- imperative **`perceptionMessage`** handler navigation.
+- [`../perception/AGENT.md`](../perception/AGENT.md) --- **`mtw.ephemera.perception`** DataSource (domain: internal vs audience, correlation).

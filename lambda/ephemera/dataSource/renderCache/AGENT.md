@@ -250,7 +250,7 @@ The former **workbench preview** path (dedicated API message, `Render Preview Re
 
 ## Correlation vs routing
 
-**`Render Pertains`** carries lean routing (**`componentId`**, **`perspectiveKey`**, **`cacheId`**, **`cacheRecord`**) for indexing; it does **not** rely on a synthetic **`conversationId`** on the wire for Perception (see **Routing identity on producer streams** in the contract doc).
+**`Render Pertains`** carries lean routing (**`componentId`**, **`perspectiveKey`**, **`cacheId`**, **`cacheRecord`**) for indexing; it does **not** rely on a synthetic **`conversationId`** on the wire for Perception (see **Routing identity on producer streams** in the contract doc). How **`mtw.ephemera.perception`** uses that routing to **correlate** internal signals to audience delivery is documented in [`../perception/AGENT.md`](../perception/AGENT.md).
 
 ## Refetch edge cases
 
@@ -292,5 +292,6 @@ From [`lambda/ephemera/`](../../): `npm test` (Jest).
 ## Related docs
 
 - [`../renderOrchestration/AGENT.md`](../renderOrchestration/AGENT.md) --- orchestration stream, single-flight, emission map.
+- [`../perception/AGENT.md`](../perception/AGENT.md) --- **`mtw.ephemera.perception`**: consumer of **`Render Pertains`** / **`Cache Updated`** semantics for audience delivery.
 - [Pass-through contract (draft)](../../../../taskPlanning/lambda/ephemera/dataSource/AGENT.passThrough.contract.planning.md).
 - [`packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md`](../../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md).
