@@ -1,6 +1,6 @@
 # Perception - big refactor (fan-in DataSource)
 
-**Status:** In progress. **Next:** [Recommended order](#recommended-order) --- **In-memory aggregation cache** prototype (step 3). Coordinate with [**Virtual lanes**](../../../../../packages/mtw-lambda-patterns/ts/messageBus/AGENT.implementation.md#virtual-lanes-internalmessagebus) (`InternalMessageBus`) if delivery must be lane-isolated before client output.
+**Status:** In progress. **Next:** [Recommended order](#recommended-order) --- **Room header** aggregation (step 4). Coordinate with [**Virtual lanes**](../../../../../packages/mtw-lambda-patterns/ts/messageBus/AGENT.implementation.md#virtual-lanes-internalmessagebus) (`InternalMessageBus`) if delivery must be lane-isolated before client output.
 
 This file tracks the **large** refactor of Ephemera **perception** from today's largely **imperative** handlers toward an **event-driven fan-in** model (a **DataSource** boundary that **subscribes** to typed streams, **aggregates** partial state, and **delivers** when enough is known). It is **broader** than the pass-through / readiness contract alone; pass-through work is **groundwork** that accrues **obligations** on this shape.
 
@@ -83,12 +83,12 @@ Pending work uses `[ ]`, completed work uses `[X]`. Mark nested lines `[X]` as y
   - **Call-sites:** migrate incrementally as the work lands (tidy, no big-bang) --- first bridge: imperative [`perceptionMessage`](../../../../../lambda/ephemera/perception/index.ts) Character branch.
   - **Output:** `receiveEvents` emits **`PublishMessage`** only; no `mtw.ephemera.perception` outbound stream carry-forward in this step (add later if needed).
   - **Non-goals:** no `renderOrchestration` / `renderCache` subscription for Character; no rendering **lanes** for Character in this step.
-- [ ] **In-memory** aggregation cache prototype (running collected state; durable checkpoints **out of scope** unless needed).
-  - **Scope (decided):** the cache **exists** for later steps to build on. **No** new fan-in from `renderOrchestration` / `renderCache`, **no** new **`PublishMessage`** behavior driven solely by thread state, and **no** merge/dedupe/stream semantics beyond what is listed in the next bullets --- those ship with steps **4--7**. See [Step 3 minimal scope](#step-3-minimal-scope-recommended-order).
-  - **Types (decided):** stub **thread** variant(s), a **discriminated union**, and **type guards** (plus any small TypeScript helpers) live in [`lambda/ephemera/internalCache/perceptionThreads.ts`](../../../../../lambda/ephemera/internalCache/perceptionThreads.ts); unit tests for guards in [`lambda/ephemera/internalCache/perceptionThreads.test.ts`](../../../../../lambda/ephemera/internalCache/perceptionThreads.test.ts). See [Perception thread types (step 3)](#perception-thread-types-step-3).
-  - **Registration ingress (decided):** one new **`api.ephemera`** ingress (synthetic **`header.type`**, see [Thread registration ingress (api.ephemera)](#thread-registration-ingress-apiephemera)) so callers can **register** a thread; the perception DataSource handles it and calls a **`set`** operator on **`internalCache.PerceptionThreads`** (store by **`componentId` + `perspectiveKey`**). No other new DataSource behavior required in step 3.
-  - **Routing identity (decided):** aggregation map key is **`componentId` + `perspectiveKey`** only; **`cacheId`** is **not** a key segment (late on generate paths; stored as **in-bucket state** when events carry it). See [Decisions](#decisions).
-  - **Placement (decided):** state lives on **`internalCache.PerceptionThreads`** ([`InternalCache`](../../../../../lambda/ephemera/internalCache/index.ts) property + **`clear()`** wiring; **no** **`flush()`** --- not Dynamo-backed). See [Aggregation cache placement (internalCache)](#aggregation-cache-placement-internalcache).
+- [X] **In-memory** aggregation cache prototype (running collected state; durable checkpoints **out of scope** unless needed).
+  - [X] **Scope (decided):** the cache **exists** for later steps to build on. **No** new fan-in from `renderOrchestration` / `renderCache`, **no** new **`PublishMessage`** behavior driven solely by thread state, and **no** merge/dedupe/stream semantics beyond what is listed in the next bullets --- those ship with steps **4--7**. See [Step 3 minimal scope](#step-3-minimal-scope-recommended-order).
+  - [X] **Types (decided):** stub **thread** variant(s), a **discriminated union**, and **type guards** (plus any small TypeScript helpers) live in [`lambda/ephemera/internalCache/perceptionThreads.ts`](../../../../../lambda/ephemera/internalCache/perceptionThreads.ts); unit tests for guards in [`lambda/ephemera/internalCache/perceptionThreads.test.ts`](../../../../../lambda/ephemera/internalCache/perceptionThreads.test.ts). See [Perception thread types (step 3)](#perception-thread-types-step-3).
+  - [X] **Registration ingress (decided):** one new **`api.ephemera`** ingress (synthetic **`header.type`**, see [Thread registration ingress (api.ephemera)](#thread-registration-ingress-apiephemera)) so callers can **register** a thread; the perception DataSource handles it and calls a **`set`** operator on **`internalCache.PerceptionThreads`** (store by **`componentId` + `perspectiveKey`**). No other new DataSource behavior required in step 3.
+  - [X] **Routing identity (decided):** aggregation map key is **`componentId` + `perspectiveKey`** only; **`cacheId`** is **not** a key segment (late on generate paths; stored as **in-bucket state** when events carry it). See [Decisions](#decisions).
+  - [X] **Placement (decided):** state lives on **`internalCache.PerceptionThreads`** ([`InternalCache`](../../../../../lambda/ephemera/internalCache/index.ts) property + **`clear()`** wiring; **no** **`flush()`** --- not Dynamo-backed). See [Aggregation cache placement (internalCache)](#aggregation-cache-placement-internalcache).
 - [ ] **Room header** aggregation (**generating** + **terminal** results) --- fan-in and state first; **delivery mechanics** (who, timeline vs in-place) refine with pass-through + [virtual bus lanes](../../../../../packages/mtw-lambda-patterns/ts/messageBus/AGENT.implementation.md#virtual-lanes-internalmessagebus) as needed.
 - [ ] **Room description** aggregation (same footnote as header).
 - [ ] **Refactor `moveCharacter`** to start a **`renderOrchestration`**-driven cascade (replace or narrow direct imperative `Perception` where appropriate).
@@ -101,7 +101,7 @@ Pending work uses `[ ]`, completed work uses `[X]`. Mark nested lines `[X]` as y
 | -- | Baseline | Done --- see [Current baseline](#current-baseline-prep-work-done). |
 | 1 | Stub perception DataSource | Done --- bus-only; see [`dataSource/perception/`](../../../../../lambda/ephemera/dataSource/perception/). |
 | 2 | Character perception + `api.ephemera` ingress | Done: `Character Perception Requested`; `CharacterPerceptionRequestedCommand`; `streamKey` = viewed `ephemeraId`; `PublishMessage` only; `perceptionMessage` bridge. |
-| 3 | In-memory aggregation cache | [Minimal scope](#step-3-minimal-scope-recommended-order); [`perceptionThreads.ts`](../../../../../lambda/ephemera/internalCache/perceptionThreads.ts), [`perceptionThreads.test.ts`](../../../../../lambda/ephemera/internalCache/perceptionThreads.test.ts); [registration ingress](#thread-registration-ingress-apiephemera); [routing key](#aggregation-cache-routing-identity); **`internalCache.PerceptionThreads`**. |
+| 3 | In-memory aggregation cache | Done: [minimal scope](#step-3-minimal-scope-recommended-order); [`perceptionThreads.ts`](../../../../../lambda/ephemera/internalCache/perceptionThreads.ts), [`perceptionThreads.test.ts`](../../../../../lambda/ephemera/internalCache/perceptionThreads.test.ts); **`Perception Thread Registered`** / **`sendPerceptionThreadRegistered`**; **`internalCache.PerceptionThreads`**. |
 | 4 | Room header aggregation | Generating + terminal; delivery details iterate. |
 | 5 | Room description aggregation | Same as header. |
 | 6 | `moveCharacter` -> orchestration cascade | Aligns move with stream shape. |
@@ -289,5 +289,6 @@ Run from **repository root** unless noted.
 | Aggregation cache map key: **`componentId` + `perspectiveKey`** (not **`cacheId`**) | Done --- [Decisions](#decisions) |
 | **`internalCache.PerceptionThreads`** (normative name; **`clear()`** only, no **`flush()`**) | Done --- [Decisions](#decisions) |
 | Step 3 scope + registration ingress + `perceptionThreads` module paths | Done --- [Decisions](#decisions) |
-| Steps 3--7 | Not started |
+| Recommended order step 3 (in-memory cache + registration ingress) | Done |
+| Steps 4--7 | Not started |
 | Initiative complete; durable docs updated; task plan retired | Not started |

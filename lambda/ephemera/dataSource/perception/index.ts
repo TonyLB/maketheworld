@@ -8,9 +8,10 @@ import EphemeraDataSource from '../abstract'
 import type { PerceptionStubPublishedPayload } from './publishedEvents'
 import type { PerceptionSubscribedContent } from './subscribedEvents'
 import { isPerceptionSubscribedEnvelope } from './subscribedEvents'
-import { isCharacterPerceptionRequestedCommand } from './localApiEvents'
+import { isCharacterPerceptionRequestedCommand, isPerceptionThreadRegisteredCommand } from './localApiEvents'
 import { handleCharacterPerceptionRequested } from './characterPerception'
 import messageBus from '../../messageBus'
+import internalCache from '../../internalCache'
 
 export const ephemeraPerceptionDataSource = new EphemeraDataSource<
     never,
@@ -24,10 +25,13 @@ export const ephemeraPerceptionDataSource = new EphemeraDataSource<
     receiveEvents: async ({ events }) => {
         await Promise.all(events.map(async (event) => {
             const raw = await event.getContent()
-            if (!isCharacterPerceptionRequestedCommand(raw)) {
+            if (isCharacterPerceptionRequestedCommand(raw)) {
+                await handleCharacterPerceptionRequested(raw, messageBus)
                 return
             }
-            await handleCharacterPerceptionRequested(raw, messageBus)
+            if (isPerceptionThreadRegisteredCommand(raw)) {
+                internalCache.PerceptionThreads.set(raw, { kind: 'stub' })
+            }
         }))
     },
 })

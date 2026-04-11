@@ -28,6 +28,7 @@ import CachePlayerMetaData from './playerMeta';
 import CacheGlobalData from './global';
 import { RenderCacheData } from './renderCache';
 import ConversationsData from './conversations';
+import PerceptionThreadsData from './perceptionThreads';
 import messageBus from '../messageBus';
 
 const graphDBHandler: GraphDBHandler = new (withPrimitives<'PrimaryKey', string>()(withGetOperations<'PrimaryKey', string>()(DBHandlerBase)))({
@@ -44,6 +45,7 @@ export class InternalCache {
     RenderCache: RenderCacheData = new RenderCacheData(queryCacheRecordsForComponent)
     PlayerMeta: CachePlayerMetaData;
     OrchestrateMessages: OrchestrateMessagesData = new OrchestrateMessagesData()
+    PerceptionThreads: PerceptionThreadsData = new PerceptionThreadsData()
     RoomCharacterList: CacheRoomCharacterListsData = new CacheRoomCharacterListsData()
     CharacterMeta: CacheCharacterMetaData = new CacheCharacterMetaData()
     AssetRooms: CacheAssetRoomsData = new CacheAssetRoomsData()
@@ -93,6 +95,7 @@ export class InternalCache {
         this.Global.clear()
         this.PlayerMeta.clear()
         this.OrchestrateMessages.clear()
+        this.PerceptionThreads.clear()
         this.RoomCharacterList.clear()
         this.CharacterMeta.clear()
         this.AssetRooms.clear()
