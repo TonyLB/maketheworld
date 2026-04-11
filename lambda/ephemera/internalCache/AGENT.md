@@ -4,6 +4,12 @@
 
 The `internalCache` system is a comprehensive caching layer that improves development velocity by providing **deferred loading** of asynchronous data sources. Cache handlers can request data anytime, but only make actual database calls on the first request for a particular item. Subsequent requests either refer to existing outstanding calls (if unfulfilled) or return cached data (if the call has previously completed).
 
+### Per-invocation process state (not only deferred loads)
+
+Some handlers are **process-supporting** state for the current lambda run: they may **not** use `DeferredCache`, but they still live on the [`InternalCache`](index.ts) singleton and reset in [`InternalCache.clear()`](index.ts). Examples: [`Global`](global.ts) (`internalCache.Global`, **`CacheGlobalData`**) for connection/session keyed fields; [`OrchestrateMessages`](orchestrateMessages.ts) for in-memory message-group graphs.
+
+**Normative (planned):** **`mtw.ephemera.perception`** fan-in aggregation ([`AGENT.perceptionRefactor.planning.md`](../../../taskPlanning/lambda/ephemera/dataSource/perception/AGENT.perceptionRefactor.planning.md) step 3) is **`internalCache.PerceptionThreads`** --- a **new** `InternalCache` property with `clear()` wired from `InternalCache.clear()`, following that lifecycle --- not ad-hoc module globals.
+
 ## Core Architecture
 
 ### **DeferredCache Foundation**
@@ -210,6 +216,7 @@ if (!object) {
 ### **Global Handlers**
 - **`Global`**: Caches global system data
 - **`OrchestrateMessages`**: Caches message orchestration data
+- **`PerceptionThreads`** (planned, normative name): In-memory fan-in aggregation for **`mtw.ephemera.perception`**; implementation in [`perceptionThreads.ts`](perceptionThreads.ts) (and [`perceptionThreads.test.ts`](perceptionThreads.test.ts)); **`clear()`** only (no **`flush()`**). See [`AGENT.perceptionRefactor.planning.md`](../../../taskPlanning/lambda/ephemera/dataSource/perception/AGENT.perceptionRefactor.planning.md) **Decisions**.
 - **`Graph`**: Caches graph relationships
 
 ## Integration Points
