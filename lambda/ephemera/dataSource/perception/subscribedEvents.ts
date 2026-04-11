@@ -11,7 +11,7 @@ import {
 } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { createInternalOriginEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import type { StreamingEventMessage } from '../../messageBus/baseClasses'
-import type { CharacterPerceptionRequestedCommand } from './localApiEvents'
+import type { CharacterPerceptionRequestedCommand, PerceptionThreadRegisteredCommand } from './localApiEvents'
 
 export type CharacterPerceptionIngressHeader =
     StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Character Perception Requested' }
@@ -32,12 +32,27 @@ export const isCharacterPerceptionRequestedIngressEnvelope = makeStreamingEnvelo
     CharacterPerceptionIngressHeader
 >(isCharacterPerceptionRequestedHeader)
 
-export type PerceptionSubscribedContent = CharacterPerceptionRequestedCommand
+export type PerceptionThreadRegisteredIngressHeader =
+    StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Perception Thread Registered' }
+
+const isPerceptionThreadRegisteredHeader: HeaderGuard<PerceptionThreadRegisteredIngressHeader> = (
+    h
+): h is PerceptionThreadRegisteredIngressHeader => (
+    h.dataSourceKey === 'api.ephemera' && h.type === 'Perception Thread Registered'
+)
+
+export const isPerceptionThreadRegisteredIngressEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
+    PerceptionThreadRegisteredCommand,
+    PerceptionThreadRegisteredIngressHeader
+>(isPerceptionThreadRegisteredHeader)
+
+export type PerceptionSubscribedContent = CharacterPerceptionRequestedCommand | PerceptionThreadRegisteredCommand
 
 export const isPerceptionSubscribedEnvelope = (
     envelope: StreamingEventEnvelope<unknown>
 ): envelope is StreamingEventEnvelope<PerceptionSubscribedContent> => (
     isCharacterPerceptionRequestedIngressEnvelope(envelope)
+        || isPerceptionThreadRegisteredIngressEnvelope(envelope)
 )
 
 type Bus = { send: (payload: StreamingEventMessage) => void }
@@ -61,6 +76,32 @@ export function sendCharacterPerceptionRequested(
         streamKey,
         timestamp,
         type: 'Character Perception Requested',
+    }
+    const envelope = createInternalOriginEnvelope(header, content, apiEphemeraSerializer)
+    bus.send({
+        type: 'StreamingEvent',
+        dataSourceKey: 'api.ephemera',
+        streamKey,
+        header: envelope.header,
+        getContent: envelope.getContent,
+        timestamp,
+    })
+}
+
+/**
+ * streamKey should be componentId (ROOM# / FEATURE# / KNOWLEDGE#), matching render-style per-component keys.
+ */
+export function sendPerceptionThreadRegistered(
+    bus: Bus,
+    streamKey: string,
+    content: PerceptionThreadRegisteredCommand
+): void {
+    const timestamp = Date.now()
+    const header: StreamingEventHeader = {
+        dataSourceKey: 'api.ephemera',
+        streamKey,
+        timestamp,
+        type: 'Perception Thread Registered',
     }
     const envelope = createInternalOriginEnvelope(header, content, apiEphemeraSerializer)
     bus.send({

@@ -1,7 +1,9 @@
 import {
     isCharacterPerceptionRequestedIngressEnvelope,
     isPerceptionSubscribedEnvelope,
+    isPerceptionThreadRegisteredIngressEnvelope,
     sendCharacterPerceptionRequested,
+    sendPerceptionThreadRegistered,
 } from './subscribedEvents'
 
 describe('perception subscribedEvents', () => {
@@ -55,8 +57,58 @@ describe('perception subscribedEvents', () => {
         expect(isCharacterPerceptionRequestedIngressEnvelope(rejected)).toBe(false)
     })
 
-    it('isPerceptionSubscribedEnvelope matches Character ingress only', () => {
+    it('sendPerceptionThreadRegistered emits api.ephemera StreamingEvent envelope', async () => {
+        const sent: any[] = []
+        sendPerceptionThreadRegistered(
+            { send: (payload) => sent.push(payload) },
+            'ROOM#ROOM1',
+            {
+                componentId: 'ROOM#ROOM1',
+                perspectiveKey: 'persp-a',
+                characterId: 'CHARACTER#VIEWER',
+            }
+        )
+        expect(sent).toHaveLength(1)
+        expect(sent[0].type).toBe('StreamingEvent')
+        expect(sent[0].dataSourceKey).toBe('api.ephemera')
+        expect(sent[0].streamKey).toBe('ROOM#ROOM1')
+        expect(sent[0].header.type).toBe('Perception Thread Registered')
+        expect(await sent[0].getContent()).toMatchObject({
+            componentId: 'ROOM#ROOM1',
+            perspectiveKey: 'persp-a',
+            characterId: 'CHARACTER#VIEWER',
+        })
+    })
+
+    it('isPerceptionThreadRegisteredIngressEnvelope accepts Perception Thread Registered and rejects unrelated', () => {
         const accepted = {
+            header: {
+                dataSourceKey: 'api.ephemera',
+                streamKey: 'ROOM#R',
+                timestamp: Date.now(),
+                type: 'Perception Thread Registered',
+            },
+            getContent: () =>
+                Promise.resolve({
+                    componentId: 'ROOM#R',
+                    perspectiveKey: 'p',
+                }),
+        }
+        const rejected = {
+            header: {
+                dataSourceKey: 'api.ephemera',
+                streamKey: 'ROOM#R',
+                timestamp: Date.now(),
+                type: 'Character Perception Requested',
+            },
+            getContent: () => Promise.resolve({}),
+        }
+        expect(isPerceptionThreadRegisteredIngressEnvelope(accepted)).toBe(true)
+        expect(isPerceptionThreadRegisteredIngressEnvelope(rejected)).toBe(false)
+    })
+
+    it('isPerceptionSubscribedEnvelope matches Character or Perception Thread Registered ingress', () => {
+        const character = {
             header: {
                 dataSourceKey: 'api.ephemera',
                 streamKey: 'CHARACTER#ONE',
@@ -65,7 +117,17 @@ describe('perception subscribedEvents', () => {
             },
             getContent: () => Promise.resolve({}),
         }
-        expect(isPerceptionSubscribedEnvelope(accepted as any)).toBe(true)
+        const threadReg = {
+            header: {
+                dataSourceKey: 'api.ephemera',
+                streamKey: 'ROOM#one',
+                timestamp: Date.now(),
+                type: 'Perception Thread Registered',
+            },
+            getContent: () => Promise.resolve({ componentId: 'ROOM#one', perspectiveKey: 'k' }),
+        }
+        expect(isPerceptionSubscribedEnvelope(character as any)).toBe(true)
+        expect(isPerceptionSubscribedEnvelope(threadReg as any)).toBe(true)
         expect(
             isPerceptionSubscribedEnvelope({
                 header: {

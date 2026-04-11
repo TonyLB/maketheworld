@@ -21,6 +21,16 @@ describe('InternalCache', () => {
         expect(await internalCache.Global.get('ConnectionId')).toEqual('TestConnection')
     })
 
+    it('clear resets PerceptionThreads', () => {
+        internalCache.PerceptionThreads.set(
+            { componentId: 'ROOM#C', perspectiveKey: 'p' },
+            { kind: 'stub' }
+        )
+        expect(internalCache.PerceptionThreads.get('ROOM#C', 'p')).toBeDefined()
+        internalCache.clear()
+        expect(internalCache.PerceptionThreads.get('ROOM#C', 'p')).toBeUndefined()
+    })
+
     it('should fetch an async lookup only once', async () => {
         const testActiveCharacters = [
             {

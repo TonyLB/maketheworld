@@ -5,8 +5,9 @@ jest.mock('../../publishMessage', () => ({
 }))
 
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
+import internalCache from '../../internalCache'
 import messageBus from '../../messageBus'
-import { sendCharacterPerceptionRequested } from './subscribedEvents'
+import { sendCharacterPerceptionRequested, sendPerceptionThreadRegistered } from './subscribedEvents'
 import { ephemeraPerceptionDataSource } from './index'
 
 const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
@@ -15,6 +16,7 @@ describe('mtw.ephemera.perception DataSource', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         messageBus.clear()
+        internalCache.clear()
         ephemeraDBMock.getItem.mockResolvedValue({
             Name: 'Test',
             Pronouns: 'they/them',
@@ -43,6 +45,25 @@ describe('mtw.ephemera.perception DataSource', () => {
             ProjectionFields: ['Name', 'Pronouns', 'fileURL', 'Color'],
         })
         expect(sendSpy.mock.calls.some((call) => call[0]?.type === 'PublishMessage' && call[0]?.displayProtocol === 'PerceptionMessage')).toBe(true)
+        sendSpy.mockRestore()
+    })
+
+    it('receiveEvents stores Perception Thread Registered in internalCache.PerceptionThreads without PublishMessage', async () => {
+        const sendSpy = jest.spyOn(messageBus, 'send')
+
+        sendPerceptionThreadRegistered(messageBus, 'ROOM#REG', {
+            componentId: 'ROOM#REG',
+            perspectiveKey: 'view-1',
+        })
+        await messageBus.flush()
+
+        const entry = internalCache.PerceptionThreads.get('ROOM#REG', 'view-1')
+        expect(entry?.thread).toEqual({ kind: 'stub' })
+        expect(entry?.registration).toMatchObject({
+            componentId: 'ROOM#REG',
+            perspectiveKey: 'view-1',
+        })
+        expect(sendSpy.mock.calls.some((call) => call[0]?.type === 'PublishMessage')).toBe(false)
         sendSpy.mockRestore()
     })
 })
