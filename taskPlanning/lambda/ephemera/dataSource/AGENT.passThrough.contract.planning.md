@@ -29,7 +29,7 @@ Hold the **canonical cross-cutting contract** for the pass-through pattern: a si
 | [`packages/mtw-interfaces/AGENT.md`](../../../../packages/mtw-interfaces/AGENT.md) | **Client / cross-service** payloads; internal DS types may stay **ephemera-local** until a boundary needs this package (see **Where types live** under **Purpose**) |
 | [`packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md`](../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md) | DataSource pattern: **publishedEvents.ts** vs **mtw-interfaces** for **outgoing** types |
 | [`currentCachePointers/AGENT.cachePointersRefactor.planning.md`](currentCachePointers/AGENT.cachePointersRefactor.planning.md) | **`mtw.ephemera.currentCachePointers`** - meta pointer maintenance (draft stub) |
-| [`lambda/ephemera/dataSource/perception/AGENT.md`](../../../../lambda/ephemera/dataSource/perception/AGENT.md) | **Durable** perception consumer: normative **routing**, **obligations** table, **legacy `Perception` emitters**, **verification** (see **Routing identity and Perception** below) |
+| [`lambda/ephemera/dataSource/perception/AGENT.md`](../../../../lambda/ephemera/dataSource/perception/AGENT.md) | **Durable** perception consumer: **[Delivery paths (correlated vs imperative)](../../../../lambda/ephemera/dataSource/perception/AGENT.md#delivery-paths-correlated-vs-imperative)**, normative **routing**, **obligations** table, **verification** (see **Routing identity and Perception** below) |
 | [`../messageBus/AGENT.runnableSubSets.planning.md`](../messageBus/AGENT.runnableSubSets.planning.md) | **`messageBus`** refactor / **cross-layer ordering** (contract uncertainty **11**; draft stub) |
 
 ---

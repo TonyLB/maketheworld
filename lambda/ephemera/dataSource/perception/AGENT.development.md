@@ -1,10 +1,12 @@
 # Developing `mtw.ephemera.perception` (notes and follow-on direction)
 
-Use this file for **how to work in this tree** and for **durable design intent** that outlives episodic task plans. It does **not** replace [`AGENT.md`](AGENT.md) (steady-state behavior, **plan assumptions**, **policy** for room description and imperative handler v1, **normative decisions**, **obligations**, **verification**, legacy-emitter inventory).
+Use this file for **how to work in this tree** and for **durable design intent** that outlives episodic task plans. It does **not** replace [`AGENT.md`](AGENT.md) (steady-state behavior, **delivery paths**, **plan assumptions**, **policy**, **normative decisions**, **obligations**, **verification**).
+
+**Operational routing** (who uses fan-in vs **`perceptionMessage`**) lives **only** in [`AGENT.md`](AGENT.md#delivery-paths-correlated-vs-imperative). This file records **rationale** and **possible next models** (default publish, particularizing registration), not a second copy of that map.
 
 ## Canonical documentation
 
-- **[`AGENT.md`](AGENT.md)** --- Data domain, wiring, **plan assumptions**, **implementation stance**, **imperative `perceptionMessage` baseline (v1)**, **correlated room description** policy, **routing identity**, **terminal dedupe**, **obligations table**, **legacy `Perception` emitters**, **related links**, **verification** commands.
+- **[`AGENT.md`](AGENT.md)** --- Data domain, **[Delivery paths (correlated vs imperative)](AGENT.md#delivery-paths-correlated-vs-imperative)**, wiring, **plan assumptions**, **implementation stance**, **imperative `perceptionMessage` baseline (v1)**, **correlated room description** policy, **routing identity**, **terminal dedupe**, **obligations** table, **related links**, **verification** commands.
 - **[`taskPlanning/lambda/ephemera/dataSource/AGENT.passThrough.contract.planning.md`](../../../../taskPlanning/lambda/ephemera/dataSource/AGENT.passThrough.contract.planning.md)** --- Pass-through semantics perception consumes (draft; refine alongside implementation).
 - **[`lambda/ephemera/internalCache/AGENT.md`](../../internalCache/AGENT.md)** --- `PerceptionThreads` placement and lifecycle (`clear()` only).
 
@@ -71,5 +73,5 @@ These are intentional gaps, not bugs in this doc.
 
 ## When to edit this file
 
-- After **agreed** changes to the follow-on model (keep **`AGENT.md`** as the steady-state anchor).
-- When **first-pass** behavior in [`AGENT.md`](AGENT.md) materially changes (keep the "today" story in `AGENT.md`, the "tomorrow hypothesis" here).
+- After **agreed** changes to the follow-on model (keep [`AGENT.md`](AGENT.md) as the steady-state anchor for **current** behavior and delivery paths).
+- When correlated vs imperative **routing** in code changes, update [`AGENT.md`](AGENT.md#delivery-paths-correlated-vs-imperative) first; update this file only if the change affects **design direction** or questions listed here.
