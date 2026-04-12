@@ -24,7 +24,7 @@ Without an **overarching decision layer**, each feature tends to pick whichever 
 Treat the **room** (or similar scope) as one **logical** unit: many **typed** updates about the same **`EphemeraId`**, same cache row family (`Meta::Room`), same mental model for subscribers. Multi-channel stories become **different message kinds** on a **shared** authority, not necessarily separate transport "pipes."
 
 **Domain-oriented view**  
-Split by **semantic ownership**: `mtw.ephemera.state` (marks / world-state inputs to render keys), `mtw.ephemera.rooms` (other room-scoped meta), `mtw.ephemera.renderOrchestration`, `mtw.ephemera.renderCache`, `mtw.ephemera.perception`. Clear boundaries make **reasoning, tests, and event contracts** easier.
+Split by **semantic ownership**: `mtw.ephemera.state` (marks / world-state inputs to render keys), `mtw.ephemera.objects` (runtime object lists; v1 may persist on **`Meta::Room`**), `mtw.ephemera.renderOrchestration`, `mtw.ephemera.renderCache`, `mtw.ephemera.perception`. Clear boundaries make **reasoning, tests, and event contracts** easier.
 
 **Reconciliation note:** These pulls are **compatible at the storage layer** and **tension-prone at the process contract layer**. The same Dynamo **row** (`Meta::Room`) can hold fields owned by **different** DataSource modules **if** we document **who writes what**, **what gets invalidated**, and **what perception (or clients) may assume** about ordering and baseline delivery.
 
@@ -75,7 +75,7 @@ This document **does not** yet fix every cell; it **requires** that new work eit
 | [`state/AGENT.md`](state/AGENT.md) | `Meta::Room.state` ownership vs orchestration pointer ownership |
 | [`renderOrchestration/AGENT.md`](renderOrchestration/AGENT.md) | Resolve, generation, orchestration outbounds |
 | [`renderCache/AGENT.md`](renderCache/AGENT.md) | Durable cache, `Render Pertains`, correlation vs routing |
-| [`taskPlanning/lambda/ephemera/dataSource/rooms/AGENT.objectHandling.plan.md`](../../../taskPlanning/lambda/ephemera/dataSource/rooms/AGENT.objectHandling.plan.md) | Example: `mtw.ephemera.rooms` + `objects` slice |
+| [`taskPlanning/lambda/ephemera/dataSource/objects/AGENT.objectHandling.plan.md`](../../../taskPlanning/lambda/ephemera/dataSource/objects/AGENT.objectHandling.plan.md) | **`mtw.ephemera.objects`** (v1 on **`Meta::Room`**) |
 | [`taskPlanning/lambda/ephemera/dataSource/AGENT.passThrough.contract.planning.md`](../../../taskPlanning/lambda/ephemera/dataSource/AGENT.passThrough.contract.planning.md) | Pass-through durability and cross-cutting semantics |
 | [`packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md`](../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md) | DataSource pattern, `busOnly`, `publishedEvents.ts` |
 
@@ -88,7 +88,7 @@ Track resolutions here or in a linked task plan; remove bullets when **normative
 - [ ] **Cadence taxonomy:** fixed enum of channel/cadence names vs per-feature description only.
 - [ ] **Client protocol:** one vs many logical channels for room UI; snapshot vs delta defaults.
 - [ ] **Baseline contract:** formal "minimum delivery set" for room enter / look / move (ties perception + rooms + state + render).
-- [ ] **Long-term split or merge:** whether `mtw.ephemera.state` stays room-only in practice or merges narratively under `mtw.ephemera.rooms` for subscriber clarity.
+- [ ] **Long-term split or merge:** how `mtw.ephemera.state` and `mtw.ephemera.objects` evolve as non-room kinds appear; whether subscriber docs stay **per-DataSource** or gain a composed **room** story for clients.
 
 ---
 
