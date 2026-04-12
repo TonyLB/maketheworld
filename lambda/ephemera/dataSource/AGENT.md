@@ -21,7 +21,7 @@ Task-planning drafts (dispose after tasks land) live under [`taskPlanning/lambda
 | File | Role |
 | --- | --- |
 | [`abstract.ts`](abstract.ts) | `EphemeraDataSource` --- `ephemeraDB`, SNS, `messageBus`, `EphemeraId` primary key |
-| [`apiEphemera.ts`](apiEphemera.ts) | **`api.ephemera`** streaming helpers (`sendStateChange`, cache primitives, etc.) and envelope guards |
+| [`apiEphemera.ts`](apiEphemera.ts) | **`api.ephemera`** streaming helpers (`sendStateChange`, `sendObjectsChange`, cache primitives, etc.) and envelope guards |
 | [`localApiEvents.ts`](localApiEvents.ts) | Payload types for **`api.ephemera`** commands shared across packages |
 | [`subscribedEvents.ts`](subscribedEvents.ts) | Guards for **`mtw.assets`** envelopes consumed by the main ephemera DataSource ([`index.ts`](index.ts)) |
 | [`index.ts`](index.ts) | **`mtw.ephemera`** DataSource --- assets subscription, `processComponentUpdated`, etc. |
@@ -42,7 +42,7 @@ Side-effect **`import './dataSource/...'`** from [`../app.ts`](../app.ts) regist
 | **`mtw.ephemera.renderOrchestration`** | [`renderOrchestration/`](renderOrchestration/) | **`findRender`**, generation, six outbound types --- [`renderOrchestration/AGENT.md`](renderOrchestration/AGENT.md) |
 | **`mtw.ephemera.perception`** | [`perception/`](perception/) | Audience fan-in, **`PublishMessage`** --- [`perception/AGENT.md`](perception/AGENT.md) |
 | **`mtw.ephemera.state`** | [`state/`](state/) | **`Meta::Room.state`** marks merge, **`State Changed`** --- [`state/AGENT.md`](state/AGENT.md) |
-| **`mtw.ephemera.objects`** | *planned* | Runtime object lists (v1 on **`Meta::Room`**) --- [`taskPlanning/.../objects/AGENT.objectHandling.plan.md`](../../../taskPlanning/lambda/ephemera/dataSource/objects/AGENT.objectHandling.plan.md) |
+| **`mtw.ephemera.objects`** | [`objects/`](objects/) | **`Meta::Room.objects`** merge, **`Objects Changed`** --- [`objects/AGENT.md`](objects/AGENT.md); executable history: [`taskPlanning/.../objects/AGENT.objectHandling.plan.md`](../../../taskPlanning/lambda/ephemera/dataSource/objects/AGENT.objectHandling.plan.md) |
 
 **Virtual / cross-cutting:** **`api.ephemera`** is not a `DataSource` class but the **`dataSourceKey`** for internal command envelopes consumed by multiple subscribers above.
 

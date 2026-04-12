@@ -30,6 +30,16 @@ export type StateChangeCommand = {
     requestId?: string;
 }
 
+/**
+ * Runtime object list patch for a room `Meta::Room`; paired with header `Objects Change` on api.ephemera.
+ * v1: room `componentId` only; internal callers only (no `requestId` / ReturnValue).
+ */
+export type ObjectsChangeCommand = {
+    componentId: EphemeraCacheComponentId;
+    add: string[];
+    remove: string[];
+}
+
 const isMarkStateShape = (value: unknown): value is EphemeraCacheMarkState => {
     if (!value || typeof value !== 'object') {
         return false
@@ -49,6 +59,23 @@ export const isStateChangeCommand = (value: unknown): value is StateChangeComman
         return false
     }
     if (v.requestId !== undefined && typeof v.requestId !== 'string') {
+        return false
+    }
+    return true
+}
+
+export const isObjectsChangeCommand = (value: unknown): value is ObjectsChangeCommand => {
+    if (!value || typeof value !== 'object') {
+        return false
+    }
+    const v = value as Record<string, unknown>
+    if (typeof v.componentId !== 'string') {
+        return false
+    }
+    if (!Array.isArray(v.add) || !v.add.every((x) => typeof x === 'string')) {
+        return false
+    }
+    if (!Array.isArray(v.remove) || !v.remove.every((x) => typeof x === 'string')) {
         return false
     }
     return true
@@ -107,3 +134,4 @@ export type EphemeraApiCommandPayload =
     | PutCacheRecordCommand
     | DeleteCacheRecordsCommand
     | StateChangeCommand
+    | ObjectsChangeCommand

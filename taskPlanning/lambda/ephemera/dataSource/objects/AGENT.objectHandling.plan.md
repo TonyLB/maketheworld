@@ -1,6 +1,6 @@
 # `mtw.ephemera.objects` - object handling (phase 1: stub, storage, bus)
 
-**Status:** Active --- **phase 1 in progress**. **Next step:** implement **`optimisticUpdate`** (or equivalent) for objects-only patch and **`ComponentEphemeraMeta.invalidate`** on success (second item under **Recommended order**).
+**Status:** Active --- **phase 1 complete** (including **`dataSource/AGENT.md`** and **`objects/AGENT.md`**). **Next:** **phase 2** (perception / delivery) or archive this plan per **When this task plan can retire**.
 
 **Framework:** This document is an **executable task plan** per [`taskPlanning/AGENT.md`](../../../../AGENT.md) (status, **Getting Started**, **Progress**, **Recommended order** checkboxes, **Verification**). Steady-state architecture belongs in [`lambda/ephemera/dataSource/`](../../../../../lambda/ephemera/dataSource/) package `AGENT.md` files after merge.
 
@@ -110,12 +110,12 @@ Pending work uses `[ ]`; completed work uses `[X]` (capital **X**). Mark each li
 **Phase 1 (core `mtw.ephemera.objects`---ship without perception):**
 
 - [X] Add **`EphemeraMetaRoom.objects`** + **`isEphemeraMetaRoom`** in **`mtw-interfaces`**
-- [ ] Implement **`optimisticUpdate`** (or equivalent) for objects-only patch; **`ComponentEphemeraMeta.invalidate`** on success
-- [ ] Add bus ingress types and **`sendObjectsChange`**; **no** **`ReturnValue`** for v1
-- [ ] Create **`lambda/ephemera/dataSource/objects/`** with **`index.ts`**, **`subscribedEvents.ts`**, **`publishedEvents.ts`** (or **`events.ts`**) for **Objects Changed** payloads
-- [ ] Side-effect import in **`app.ts`**, **above** **`./dataSource/state`** (see **Ordering relative to `mtw.ephemera.state`**)
-- [ ] Unit tests: persist, invalidate, outbound envelope, guard rejects non-room ids (v1)
-- [ ] Update **`lambda/ephemera/dataSource/AGENT.md`** planned-row, **Progress** table, and phase 1 lines in this **Recommended order** when the slice merges
+- [X] Implement **`optimisticUpdate`** (or equivalent) for objects-only patch; **`ComponentEphemeraMeta.invalidate`** on success (`mergePersistMetaRoomObjects.ts`)
+- [X] Add bus ingress types and **`sendObjectsChange`**; **no** **`ReturnValue`** for v1 (`localApiEvents.ts`, `apiEphemera.ts`)
+- [X] Create **`lambda/ephemera/dataSource/objects/`** with **`index.ts`**, **`subscribedEvents.ts`**, **`events.ts`** for **Objects Changed** payloads
+- [X] Side-effect import in **`app.ts`**, **above** **`./dataSource/state`** (see **Ordering relative to `mtw.ephemera.state`**)
+- [X] Unit tests: persist, invalidate, outbound envelope, guard rejects non-room ids (v1) (`mergePersistMetaRoomObjects.test.ts`, `handleApiObjectsChange.test.ts`, `apiEphemera.test.ts`)
+- [X] Update **`lambda/ephemera/dataSource/AGENT.md`** planned-row, **Progress** table, and phase 1 lines in this **Recommended order** when the slice merges (includes **`objects/AGENT.md`**)
 
 **Phase 2 (perception and player-visible delivery---after phase 1):**
 
@@ -130,8 +130,8 @@ Pending work uses `[ ]`; completed work uses `[X]` (capital **X**). Mark each li
 | Milestone | Status |
 | --- | --- |
 | Task plan (executable) | Done |
-| Phase 1: schema + interfaces | **`mtw-interfaces`** done; persistence + lambda wiring not started |
-| Phase 1: DataSource + ingress + tests | Not started |
+| Phase 1: schema + interfaces | Done ([`ephemeraMeta.ts`](../../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts)) |
+| Phase 1: DataSource + ingress + tests | Done ([`objects/`](../../../../../lambda/ephemera/dataSource/objects/), [`dataSource/AGENT.md`](../../../../../lambda/ephemera/dataSource/AGENT.md), [`objects/AGENT.md`](../../../../../lambda/ephemera/dataSource/objects/AGENT.md)) |
 | Phase 2: perception timing + subscriptions | Not started (deferred) |
 
 ---
@@ -168,6 +168,7 @@ npm run test -- --watchAll=false
 | [`lambda/ephemera/dataSource/perception/AGENT.md`](../../../../../lambda/ephemera/dataSource/perception/AGENT.md) | Perception fan-in and delivery paths |
 | [`lambda/ephemera/internalCache/componentEphemeraMeta.AGENT.md`](../../../../../lambda/ephemera/internalCache/componentEphemeraMeta.AGENT.md) | Meta::Room cache + invalidation contract |
 | [`lambda/ephemera/dataSource/state/AGENT.md`](../../../../../lambda/ephemera/dataSource/state/AGENT.md) | Symmetry reference: **`mtw.ephemera.state`** |
+| [`lambda/ephemera/dataSource/objects/AGENT.md`](../../../../../lambda/ephemera/dataSource/objects/AGENT.md) | Steady-state package index for **`mtw.ephemera.objects`** |
 | [`lambda/ephemera/dataSource/AGENT.md`](../../../../../lambda/ephemera/dataSource/AGENT.md) | **dataSource** directory index |
 | [`lambda/ephemera/dataSource/AGENT.multiChannel.contract.md`](../../../../../lambda/ephemera/dataSource/AGENT.multiChannel.contract.md) | Multi-cadence; shared row vs domain boundaries |
 
