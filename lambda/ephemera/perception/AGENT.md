@@ -41,7 +41,7 @@ The perception system can be triggered by several different categories of events
 - **Source**: Direct asset modifications, imports, or structural changes
 - **Trigger Pattern**: Asset structure changes → Room compositions change → Headers need updates
 - **Perception Impact**: Room descriptions may include new components or lose removed ones
-- **Propagation**: Affects all rooms associated with the modified asset
+- **Propagation**: Affects all rooms associated with the modified asset. **Room header refresh** for linked rooms is kicked via **`kickRoomHeaderBroadcastForRoom`** (group by **`perspectiveKey`**, **`Perception Thread Registered`** with **`threadKind: 'roomHeaderBroadcast'`**, then **`Render Requested`** with **`targets`**) and delivered by fan-in in [`../dataSource/perception/orchestrate.ts`](../dataSource/perception/orchestrate.ts), not by re-queuing imperative **`Perception`** with **`header: true`** for that path.
 
 ### **Character State Events** *(Real-Time Updates)*
 **What They Are**: Changes to character presence, movement, or actions that require immediate perception updates

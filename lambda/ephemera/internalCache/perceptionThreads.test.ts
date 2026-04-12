@@ -1,8 +1,11 @@
 import PerceptionThreadsData, {
     isPerceptionThread,
     isRoomDescriptionPerceptionThread,
+    isRoomHeaderBroadcastPerceptionThread,
     isStubPerceptionThread,
+    mergePerceptionThreadPatch,
     type RoomDescriptionPerceptionThread,
+    type RoomHeaderBroadcastPerceptionThread,
 } from './perceptionThreads'
 import type { PerceptionThreadRegisterCommand } from '../dataSource/perception/localApiEvents'
 
@@ -25,8 +28,23 @@ const makeStubRegistration = (
     ...overrides,
 })
 
+const makeHeaderBroadcastRegistration = (
+    overrides: Partial<Extract<PerceptionThreadRegisterCommand, { threadKind: 'roomHeaderBroadcast' }>> = {}
+): Extract<PerceptionThreadRegisterCommand, { threadKind: 'roomHeaderBroadcast' }> => ({
+    threadKind: 'roomHeaderBroadcast',
+    componentId: 'ROOM#test',
+    perspectiveKey: 'pk-one',
+    targets: ['CHARACTER#a', 'CHARACTER#b'],
+    ...overrides,
+})
+
 const roomDescriptionInitial = (): RoomDescriptionPerceptionThread => ({
     kind: 'roomDescription',
+    status: 'Initial',
+})
+
+const roomHeaderBroadcastInitial = (): RoomHeaderBroadcastPerceptionThread => ({
+    kind: 'roomHeaderBroadcast',
     status: 'Initial',
 })
 
@@ -162,7 +180,10 @@ describe('PerceptionThreadsData', () => {
         cache.register(makeStubRegistration({ perspectiveKey: 'same', characterId: 'CHARACTER#two' }))
         const listed = cache.list('FEATURE#test', 'same')
         expect(listed).toHaveLength(2)
-        const chars = listed.map((e) => e.registration.characterId).sort()
+        const chars = listed
+            .map((e) => (e.registration.threadKind === 'stub' ? e.registration.characterId : undefined))
+            .filter((c) => c !== undefined)
+            .sort()
         expect(chars).toEqual(['CHARACTER#one', 'CHARACTER#two'].sort())
     })
 
@@ -191,6 +212,46 @@ describe('PerceptionThreadsData', () => {
     it('list returns empty array for missing key', () => {
         expect(cache.list('ROOM#x', 'y')).toEqual([])
     })
+
+    it('register roomHeaderBroadcast stores Initial thread and targets', () => {
+        cache.register(makeHeaderBroadcastRegistration())
+        const listed = cache.list('ROOM#test', 'pk-one')
+        expect(listed).toHaveLength(1)
+        expect(listed[0].thread).toEqual({ kind: 'roomHeaderBroadcast', status: 'Initial' })
+        expect(listed[0].registration.threadKind).toBe('roomHeaderBroadcast')
+        expect((listed[0].registration as { targets: string[] }).targets).toEqual(['CHARACTER#a', 'CHARACTER#b'])
+    })
+
+    it('update merges roomHeaderBroadcast thread', () => {
+        cache.register(makeHeaderBroadcastRegistration())
+        const { registrationId } = cache.list('ROOM#test', 'pk-one')[0]
+        const ok = cache.update(
+            { componentId: 'ROOM#test', perspectiveKey: 'pk-one', registrationId },
+            { threadKind: 'roomHeaderBroadcast', status: 'Generating', messageId: 'MESSAGE#h1' }
+        )
+        expect(ok).toBe(true)
+        expect(cache.list('ROOM#test', 'pk-one')[0].thread).toMatchObject({
+            kind: 'roomHeaderBroadcast',
+            status: 'Generating',
+            messageId: 'MESSAGE#h1',
+        })
+    })
+})
+
+describe('mergePerceptionThreadPatch roomHeaderBroadcast', () => {
+    it('merges status and messageId', () => {
+        const base = roomHeaderBroadcastInitial()
+        const merged = mergePerceptionThreadPatch(base, {
+            threadKind: 'roomHeaderBroadcast',
+            status: 'Generating',
+            messageId: 'MESSAGE#x',
+        })
+        expect(merged).toMatchObject({
+            kind: 'roomHeaderBroadcast',
+            status: 'Generating',
+            messageId: 'MESSAGE#x',
+        })
+    })
 })
 
 describe('isStubPerceptionThread / isRoomDescriptionPerceptionThread / isPerceptionThread', () => {
@@ -202,6 +263,12 @@ describe('isStubPerceptionThread / isRoomDescriptionPerceptionThread / isPercept
     it('accepts roomDescription shape', () => {
         const t = roomDescriptionInitial()
         expect(isRoomDescriptionPerceptionThread(t)).toBe(true)
+        expect(isPerceptionThread(t)).toBe(true)
+    })
+
+    it('accepts roomHeaderBroadcast shape', () => {
+        const t = roomHeaderBroadcastInitial()
+        expect(isRoomHeaderBroadcastPerceptionThread(t)).toBe(true)
         expect(isPerceptionThread(t)).toBe(true)
     })
 

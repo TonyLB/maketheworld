@@ -35,6 +35,16 @@ export type PerceptionThreadRegisterRoomDescriptionCommand = {
     registrationId?: string;
 }
 
+/** Multi-target room header fan-in (passive render + broadcast delivery per perspectiveKey). */
+export type PerceptionThreadRegisterRoomHeaderBroadcastCommand = {
+    threadKind: 'roomHeaderBroadcast';
+    componentId: EphemeraRoomId;
+    perspectiveKey: string;
+    targets: EphemeraCharacterId[];
+    messageGroupId?: MessageGroupId;
+    registrationId?: string;
+}
+
 /** Non-room component registration placeholder (stub thread body). */
 export type PerceptionThreadRegisterStubCommand = {
     threadKind: 'stub';
@@ -48,6 +58,7 @@ export type PerceptionThreadRegisterStubCommand = {
 /** Discriminated command for `Perception Thread Registered` ingress and PerceptionThreads.register. */
 export type PerceptionThreadRegisterCommand =
     | PerceptionThreadRegisterRoomDescriptionCommand
+    | PerceptionThreadRegisterRoomHeaderBroadcastCommand
     | PerceptionThreadRegisterStubCommand
 
 export type PerceptionIngressCommand = CharacterPerceptionRequestedCommand | PerceptionThreadRegisterCommand
@@ -74,7 +85,7 @@ export const isPerceptionThreadRegisterCommand = (value: unknown): value is Perc
         return false
     }
     const v = value as Record<string, unknown>
-    if (v.threadKind !== 'roomDescription' && v.threadKind !== 'stub') {
+    if (v.threadKind !== 'roomDescription' && v.threadKind !== 'roomHeaderBroadcast' && v.threadKind !== 'stub') {
         return false
     }
     if (typeof v.componentId !== 'string' || !isEphemeraCacheComponentId(v.componentId)) {
@@ -96,6 +107,14 @@ export const isPerceptionThreadRegisterCommand = (value: unknown): value is Perc
         return isEphemeraRoomId(v.componentId)
             && typeof v.characterId === 'string'
             && isEphemeraCharacterId(v.characterId)
+    }
+    if (v.threadKind === 'roomHeaderBroadcast') {
+        if (!isEphemeraRoomId(v.componentId) || !Array.isArray(v.targets) || v.targets.length === 0) {
+            return false
+        }
+        return v.targets.every(
+            (t) => typeof t === 'string' && isEphemeraCharacterId(t)
+        )
     }
     return isStubComponentId(v.componentId)
 }

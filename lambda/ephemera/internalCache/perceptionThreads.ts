@@ -23,7 +23,15 @@ export type RoomDescriptionPerceptionThread = {
     cacheId?: string;
 }
 
-export type PerceptionThread = StubPerceptionThread | RoomDescriptionPerceptionThread
+/** Room header broadcast: multi-target Generating + terminal header fan-in (targets live on registration). */
+export type RoomHeaderBroadcastPerceptionThread = {
+    kind: 'roomHeaderBroadcast';
+    status: 'Initial' | 'Generating' | 'Terminal';
+    messageId?: string;
+    cacheId?: string;
+}
+
+export type PerceptionThread = StubPerceptionThread | RoomDescriptionPerceptionThread | RoomHeaderBroadcastPerceptionThread
 
 export function isStubPerceptionThread(value: unknown): value is StubPerceptionThread {
     if (!value || typeof value !== 'object') {
@@ -54,8 +62,33 @@ export function isRoomDescriptionPerceptionThread(value: unknown): value is Room
     return true
 }
 
+export function isRoomHeaderBroadcastPerceptionThread(value: unknown): value is RoomHeaderBroadcastPerceptionThread {
+    if (!value || typeof value !== 'object') {
+        return false
+    }
+    const v = value as Record<string, unknown>
+    if (v.kind !== 'roomHeaderBroadcast') {
+        return false
+    }
+    const status = v.status
+    if (status !== 'Initial' && status !== 'Generating' && status !== 'Terminal') {
+        return false
+    }
+    if (v.messageId !== undefined && typeof v.messageId !== 'string') {
+        return false
+    }
+    if (v.cacheId !== undefined && typeof v.cacheId !== 'string') {
+        return false
+    }
+    return true
+}
+
 export function isPerceptionThread(value: unknown): value is PerceptionThread {
-    return isStubPerceptionThread(value) || isRoomDescriptionPerceptionThread(value)
+    return (
+        isStubPerceptionThread(value)
+        || isRoomDescriptionPerceptionThread(value)
+        || isRoomHeaderBroadcastPerceptionThread(value)
+    )
 }
 
 /** Discriminated patch for `update`; `threadKind` matches the thread body `kind` it applies to. */
@@ -70,9 +103,20 @@ export type StubPerceptionThreadPatch = {
     threadKind: 'stub';
 }
 
-export type PerceptionThreadPatch = RoomDescriptionPerceptionThreadPatch | StubPerceptionThreadPatch
+export type RoomHeaderBroadcastPerceptionThreadPatch = {
+    threadKind: 'roomHeaderBroadcast';
+    status?: RoomHeaderBroadcastPerceptionThread['status'];
+    messageId?: string;
+    cacheId?: string;
+}
+
+export type PerceptionThreadPatch =
+    | RoomDescriptionPerceptionThreadPatch
+    | RoomHeaderBroadcastPerceptionThreadPatch
+    | StubPerceptionThreadPatch
 
 const ROOM_DESCRIPTION_PATCH_KEYS = new Set<string>(['threadKind', 'status', 'messageId', 'cacheId'])
+const ROOM_HEADER_BROADCAST_PATCH_KEYS = new Set<string>(['threadKind', 'status', 'messageId', 'cacheId'])
 
 export function isRoomDescriptionPerceptionThreadPatch(value: unknown): value is RoomDescriptionPerceptionThreadPatch {
     if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -84,6 +128,36 @@ export function isRoomDescriptionPerceptionThreadPatch(value: unknown): value is
     }
     for (const key of Object.keys(p)) {
         if (!ROOM_DESCRIPTION_PATCH_KEYS.has(key)) {
+            return false
+        }
+    }
+    if ('status' in p && p.status !== undefined) {
+        const s = p.status
+        if (s !== 'Initial' && s !== 'Generating' && s !== 'Terminal') {
+            return false
+        }
+    }
+    if ('messageId' in p && p.messageId !== undefined && typeof p.messageId !== 'string') {
+        return false
+    }
+    if ('cacheId' in p && p.cacheId !== undefined && typeof p.cacheId !== 'string') {
+        return false
+    }
+    return true
+}
+
+export function isRoomHeaderBroadcastPerceptionThreadPatch(
+    value: unknown
+): value is RoomHeaderBroadcastPerceptionThreadPatch {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        return false
+    }
+    const p = value as Record<string, unknown>
+    if (p.threadKind !== 'roomHeaderBroadcast') {
+        return false
+    }
+    for (const key of Object.keys(p)) {
+        if (!ROOM_HEADER_BROADCAST_PATCH_KEYS.has(key)) {
             return false
         }
     }
@@ -121,6 +195,9 @@ export function isPerceptionThreadPatch(value: unknown): value is PerceptionThre
     if (p.threadKind === 'roomDescription') {
         return isRoomDescriptionPerceptionThreadPatch(value)
     }
+    if (p.threadKind === 'roomHeaderBroadcast') {
+        return isRoomHeaderBroadcastPerceptionThreadPatch(value)
+    }
     if (p.threadKind === 'stub') {
         return isStubPerceptionThreadPatch(value)
     }
@@ -148,6 +225,21 @@ export function mergePerceptionThreadPatch(base: PerceptionThread, patch: Percep
             }
             return merged
         }
+        case 'roomHeaderBroadcast': {
+            if (base.kind !== 'roomHeaderBroadcast') {
+                throw new Error(
+                    'PerceptionThreads.mergePerceptionThreadPatch: roomHeaderBroadcast patch requires roomHeaderBroadcast thread'
+                )
+            }
+            const { threadKind: _, ...rest } = patch
+            const merged = { ...base, ...rest }
+            if (!isRoomHeaderBroadcastPerceptionThread(merged)) {
+                throw new Error(
+                    'PerceptionThreads.mergePerceptionThreadPatch: merged roomHeaderBroadcast thread failed validation'
+                )
+            }
+            return merged
+        }
         case 'stub': {
             if (base.kind !== 'stub') {
                 throw new Error('PerceptionThreads.mergePerceptionThreadPatch: stub patch requires stub thread')
@@ -168,6 +260,14 @@ function assertRegistrationMatchesThread(entry: PerceptionThreadEntry): void {
         if (thread.kind !== 'roomDescription') {
             throw new Error(
                 'PerceptionThreads.update: registration.threadKind roomDescription does not match stored thread.kind'
+            )
+        }
+        return
+    }
+    if (registration.threadKind === 'roomHeaderBroadcast') {
+        if (thread.kind !== 'roomHeaderBroadcast') {
+            throw new Error(
+                'PerceptionThreads.update: registration.threadKind roomHeaderBroadcast does not match stored thread.kind'
             )
         }
         return
@@ -228,6 +328,9 @@ export default class PerceptionThreadsData {
             case 'roomDescription':
                 thread = { kind: 'roomDescription', status: 'Initial' }
                 break
+            case 'roomHeaderBroadcast':
+                thread = { kind: 'roomHeaderBroadcast', status: 'Initial' }
+                break
             case 'stub':
                 thread = { kind: 'stub' }
                 break
@@ -271,6 +374,13 @@ export default class PerceptionThreadsData {
             case 'stub':
                 throw new Error('PerceptionThreads.update: stub threads do not support updates')
             case 'roomDescription': {
+                if (!isPerceptionThreadPatch(partial)) {
+                    throw new Error('PerceptionThreads.update: not a valid PerceptionThreadPatch')
+                }
+                entry.thread = mergePerceptionThreadPatch(entry.thread, partial)
+                return true
+            }
+            case 'roomHeaderBroadcast': {
                 if (!isPerceptionThreadPatch(partial)) {
                     throw new Error('PerceptionThreads.update: not a valid PerceptionThreadPatch')
                 }

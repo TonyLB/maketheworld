@@ -12,6 +12,12 @@ jest.mock('../messageBus', () => ({
     subscribe: jest.fn()
 }))
 
+jest.mock('./perception/kickRoomHeaderBroadcast', () => ({
+    kickRoomHeaderBroadcastForRoom: jest.fn().mockResolvedValue(undefined),
+}))
+
+import { kickRoomHeaderBroadcastForRoom } from './perception/kickRoomHeaderBroadcast'
+
 // Mock the date utility
 jest.mock('../internalUtils/dateUtil', () => ({
     __esModule: true,
@@ -30,7 +36,7 @@ describe('Ephemera DataSource receiveEvents', () => {
     })
 
     describe('Component Updated Events', () => {
-        it('should process Component Updated events and send Perception messages for room components', async () => {
+        it('should process Component Updated events and kick room header broadcast for room components', async () => {
             const roomComponent = new StandardRoom(deIndentWML(`
                 <Room uuid=(test-room)>
                     <ShortName>Test Room</ShortName>
@@ -55,10 +61,9 @@ describe('Ephemera DataSource receiveEvents', () => {
             const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
             await ephemeraDataSource.receiveEvents?.({ events, streamEvent: mockStreamEvent, streamEnvelope: jest.fn().mockResolvedValue(undefined) })
 
-            expect(mockMessageBus.send).toHaveBeenCalledWith({
-                type: 'Perception',
-                ephemeraId: 'ROOM#test-room',
-                header: true
+            expect(kickRoomHeaderBroadcastForRoom).toHaveBeenCalledWith({
+                roomId: 'ROOM#test-room',
+                messageBus: mockMessageBus,
             })
         })
 
@@ -347,11 +352,10 @@ describe('Ephemera DataSource receiveEvents', () => {
             const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
             await ephemeraDataSource.receiveEvents?.({ events, streamEvent: mockStreamEvent, streamEnvelope: jest.fn().mockResolvedValue(undefined) })
 
-            expect(mockMessageBus.send).toHaveBeenCalledTimes(3)
-            expect(mockMessageBus.send).toHaveBeenCalledWith({
-                type: 'Perception',
-                ephemeraId: 'ROOM#test-room',
-                header: true
+            expect(mockMessageBus.send).toHaveBeenCalledTimes(2)
+            expect(kickRoomHeaderBroadcastForRoom).toHaveBeenCalledWith({
+                roomId: 'ROOM#test-room',
+                messageBus: mockMessageBus,
             })
             expect(mockMessageBus.send).toHaveBeenCalledWith({
                 type: 'CanonSet',

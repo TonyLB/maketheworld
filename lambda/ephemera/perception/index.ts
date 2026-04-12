@@ -7,6 +7,8 @@ import {
 } from "@tonylb/mtw-interfaces/ts/baseClasses"
 import { schemaToWML } from "@tonylb/mtw-wml/ts/schema"
 import { sendCharacterPerceptionRequested } from "../dataSource/perception/subscribedEvents"
+import { roomHeaderGeneratingPlaceholderWml } from "../dataSource/perception/roomHeaderPlaceholderWml"
+import { kickRoomHeaderBroadcastForRoom } from "../dataSource/perception/kickRoomHeaderBroadcast"
 
 /**
  * When false, Perception requests for MAP# ids do not emit EphemeraUpdate MapUpdate.
@@ -36,14 +38,17 @@ export const perceptionMessage = async ({
         if (isPerceptionAssetMessage(payload)) {
             const internalCache = getCache()
             const { rooms = [] } = (await internalCache.AssetRooms.get(payload.ephemeraId)) || {}
-            rooms.forEach((roomId) => {
-                messageBus.send({
-                    type: 'Perception',
-                    ephemeraId: roomId,
-                    header: true,
-                    messageGroupId: payload.messageGroupId
-                })
-            })
+            await Promise.all(
+                rooms
+                    .filter(isEphemeraRoomId)
+                    .map((roomId) =>
+                        kickRoomHeaderBroadcastForRoom({
+                            roomId,
+                            messageBus,
+                            messageGroupId: payload.messageGroupId,
+                        })
+                    )
+            )
         }
         else if (isPerceptionRoomMessage(payload)) {
             if (isEphemeraRoomId(payload.ephemeraId)) {
@@ -153,13 +158,7 @@ export const sendRoomGeneratingHeader = ({ roomId, characterIds, messageBus, mes
     if (!characterIds.length) {
         return
     }
-    const wmlContent = `<Asset uuid=(render)>
-    <Room uuid=(${roomId})>
-        <Example key=(generatingHeader) uuid=(EXAMPLE#generatingHeader)>
-            <DisplayName>Generating...</DisplayName>
-        </Example>
-    </Room>
-</Asset>`
+    const wmlContent = roomHeaderGeneratingPlaceholderWml(roomId)
 
     messageBus.send({
         type: 'PublishMessage',

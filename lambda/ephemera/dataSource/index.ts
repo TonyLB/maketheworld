@@ -10,13 +10,14 @@ import {
     isEphemeraCanonUpdatedEnvelope,
     isEphemeraZoneUpdatedEnvelope,
 } from './subscribedEvents'
+import { kickRoomHeaderBroadcastForRoom } from './perception/kickRoomHeaderBroadcast'
 
 const processComponentUpdated = async (evt: Extract<EphemeraIncomingEvent, { header: { type: 'Component Updated' } }>): Promise<void> => {
     const content = await evt.getContent()
     if (!content) return
     const componentId = content.component.universalKey || ''
     if (isEphemeraRoomId(componentId)) {
-        messageBus.send({ type: 'Perception', ephemeraId: componentId, header: true })
+        await kickRoomHeaderBroadcastForRoom({ roomId: componentId, messageBus })
     }
 }
 
