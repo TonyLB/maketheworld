@@ -1,4 +1,5 @@
 import PerceptionThreadsData, {
+    isCharacterMovePerceptionThread,
     isPerceptionThread,
     isRoomDescriptionPerceptionThread,
     isRoomHeaderBroadcastPerceptionThread,
@@ -35,6 +36,20 @@ const makeHeaderBroadcastRegistration = (
     componentId: 'ROOM#test',
     perspectiveKey: 'pk-one',
     targets: ['CHARACTER#a', 'CHARACTER#b'],
+    ...overrides,
+})
+
+const makeCharacterMoveRegistration = (
+    overrides: Partial<Extract<PerceptionThreadRegisterCommand, { threadKind: 'characterMove' }>> = {}
+): Extract<PerceptionThreadRegisterCommand, { threadKind: 'characterMove' }> => ({
+    threadKind: 'characterMove',
+    componentId: 'ROOM#test',
+    perspectiveKey: 'pk-one',
+    characterId: 'CHARACTER#mover',
+    departureRoomId: 'ROOM#from',
+    messageGroupId: 'MSG#root',
+    leaveMessageGroupId: 'MSG#leave',
+    arriveMessageGroupId: 'MSG#arrive',
     ...overrides,
 })
 
@@ -236,6 +251,39 @@ describe('PerceptionThreadsData', () => {
             messageId: 'MESSAGE#h1',
         })
     })
+
+    it('register characterMove stores Initial thread', () => {
+        cache.register(makeCharacterMoveRegistration())
+        const listed = cache.list('ROOM#test', 'pk-one')
+        expect(listed).toHaveLength(1)
+        expect(listed[0].thread).toEqual({ kind: 'characterMove', status: 'Initial' })
+        expect(listed[0].registration.threadKind).toBe('characterMove')
+    })
+
+    it('update merges characterMove thread and registration leaveWorldMessage', () => {
+        cache.register(makeCharacterMoveRegistration())
+        const { registrationId } = cache.list('ROOM#test', 'pk-one')[0]
+        const ok = cache.update(
+            { componentId: 'ROOM#test', perspectiveKey: 'pk-one', registrationId },
+            {
+                threadKind: 'characterMove',
+                status: 'Generating',
+                messageId: 'MESSAGE#cm1',
+                leaveWorldMessage: { targets: ['ROOM#from'], message: ['bye'] },
+            }
+        )
+        expect(ok).toBe(true)
+        const row = cache.list('ROOM#test', 'pk-one')[0]
+        expect(row.thread).toMatchObject({
+            kind: 'characterMove',
+            status: 'Generating',
+            messageId: 'MESSAGE#cm1',
+        })
+        expect(row.registration.threadKind).toBe('characterMove')
+        if (row.registration.threadKind === 'characterMove') {
+            expect(row.registration.leaveWorldMessage).toEqual({ targets: ['ROOM#from'], message: ['bye'] })
+        }
+    })
 })
 
 describe('mergePerceptionThreadPatch roomHeaderBroadcast', () => {
@@ -250,6 +298,23 @@ describe('mergePerceptionThreadPatch roomHeaderBroadcast', () => {
             kind: 'roomHeaderBroadcast',
             status: 'Generating',
             messageId: 'MESSAGE#x',
+        })
+    })
+})
+
+describe('mergePerceptionThreadPatch characterMove', () => {
+    it('merges status stripping registration-only patch fields from thread body', () => {
+        const base = { kind: 'characterMove' as const, status: 'Initial' as const }
+        const merged = mergePerceptionThreadPatch(base, {
+            threadKind: 'characterMove',
+            status: 'Generating',
+            messageId: 'MESSAGE#cm',
+            leaveWorldMessage: { targets: ['ROOM#r'], message: ['x'] },
+        })
+        expect(merged).toEqual({
+            kind: 'characterMove',
+            status: 'Generating',
+            messageId: 'MESSAGE#cm',
         })
     })
 })
@@ -269,6 +334,12 @@ describe('isStubPerceptionThread / isRoomDescriptionPerceptionThread / isPercept
     it('accepts roomHeaderBroadcast shape', () => {
         const t = roomHeaderBroadcastInitial()
         expect(isRoomHeaderBroadcastPerceptionThread(t)).toBe(true)
+        expect(isPerceptionThread(t)).toBe(true)
+    })
+
+    it('accepts characterMove shape', () => {
+        const t = { kind: 'characterMove' as const, status: 'Initial' as const }
+        expect(isCharacterMovePerceptionThread(t)).toBe(true)
         expect(isPerceptionThread(t)).toBe(true)
     })
 

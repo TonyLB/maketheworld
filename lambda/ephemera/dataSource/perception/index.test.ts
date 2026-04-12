@@ -245,4 +245,90 @@ describe('mtw.ephemera.perception DataSource', () => {
         componentRenderSpy.mockRestore()
         sendSpy.mockRestore()
     })
+
+    it('characterMove receives Generation Started then terminal Render Pertains with stable messageId (mover header)', async () => {
+        const sendSpy = jest.spyOn(messageBus, 'send')
+        const schemaSpy = jest.spyOn(schemaModule, 'schemaToWML').mockReturnValue('<HeaderMoveTerminal />')
+        const componentRenderSpy = jest.spyOn(internalCache.ComponentRender, 'get').mockResolvedValue({ schema: {} } as any)
+
+        sendPerceptionThreadRegistered(messageBus, passThroughFixtureRoomId, {
+            threadKind: 'characterMove',
+            componentId: passThroughFixtureRoomId,
+            perspectiveKey: passThroughFixturePerspectiveKey,
+            characterId: 'CHARACTER#viewer',
+            departureRoomId: 'ROOM#other',
+            messageGroupId: 'MSG#root',
+            leaveMessageGroupId: 'MSG#leave',
+            arriveMessageGroupId: 'MSG#arrive',
+        })
+        await messageBus.flush()
+
+        const genStarted = makePassThroughGenerationStartedPayload()
+        const tsOrch = Date.now()
+        messageBus.send({
+            type: 'StreamingEvent',
+            dataSourceKey: RENDER_ORCHESTRATION_DATA_SOURCE_KEY,
+            streamKey: passThroughFixtureRoomId,
+            timestamp: tsOrch,
+            header: {
+                dataSourceKey: RENDER_ORCHESTRATION_DATA_SOURCE_KEY,
+                streamKey: passThroughFixtureRoomId,
+                timestamp: tsOrch,
+                type: 'Generation Started',
+            },
+            getContent: () => Promise.resolve(genStarted),
+        })
+        await messageBus.flush()
+
+        const genPublish = sendSpy.mock.calls.find((c) => {
+            const m = c[0] as { type?: string; metaData?: { displayMode?: string; status?: string }; targets?: string[] }
+            return (
+                m?.type === 'PublishMessage'
+                && m?.metaData?.displayMode === 'header'
+                && m?.metaData?.status === 'generating'
+                && m?.targets?.length === 1
+                && m.targets[0] === 'CHARACTER#viewer'
+            )
+        })
+        expect(genPublish).toBeDefined()
+        const mid = (genPublish![0] as { messageId?: string }).messageId
+        expect(mid).toMatch(/^MESSAGE#/)
+
+        const tsCache = Date.now()
+        messageBus.send({
+            type: 'StreamingEvent',
+            dataSourceKey: RENDER_CACHE_DATA_SOURCE_KEY,
+            streamKey: passThroughFixtureRoomId,
+            timestamp: tsCache,
+            header: {
+                dataSourceKey: RENDER_CACHE_DATA_SOURCE_KEY,
+                streamKey: passThroughFixtureRoomId,
+                timestamp: tsCache,
+                type: 'Render Pertains',
+            },
+            getContent: () =>
+                Promise.resolve({
+                    type: 'Render Pertains',
+                    componentId: passThroughFixtureRoomId,
+                    perspectiveKey: passThroughFixturePerspectiveKey,
+                    cacheId: passThroughFixtureMinimalDynamoItem.DataCategory,
+                    cacheRecord: passThroughFixtureMinimalDynamoItem,
+                }),
+        })
+        await messageBus.flush()
+
+        const terminalPublish = sendSpy.mock.calls.find((c) => {
+            const m = c[0] as { type?: string; wmlContent?: string; metaData?: { displayMode?: string } }
+            return m?.type === 'PublishMessage' && m?.wmlContent === '<HeaderMoveTerminal />' && m?.metaData?.displayMode === 'header'
+        })
+        expect(terminalPublish).toBeDefined()
+        expect((terminalPublish![0] as { messageId?: string }).messageId).toBe(mid)
+        expect(
+            internalCache.PerceptionThreads.list(passThroughFixtureRoomId, passThroughFixturePerspectiveKey)
+        ).toEqual([])
+
+        schemaSpy.mockRestore()
+        componentRenderSpy.mockRestore()
+        sendSpy.mockRestore()
+    })
 })

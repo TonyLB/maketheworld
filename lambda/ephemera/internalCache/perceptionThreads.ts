@@ -4,8 +4,14 @@
  *
  * Multiple independent entries may share the same (componentId, perspectiveKey); each is a separate output request.
  */
+import { isEphemeraCharacterId, type EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { v4 as uuidv4 } from 'uuid'
-import type { PerceptionThreadRegisterCommand } from '../dataSource/perception/localApiEvents'
+import {
+    isCharacterMoveWorldMessageSpec,
+    type CharacterMoveWorldMessageSpec,
+    type PerceptionThreadRegisterCharacterMoveCommand,
+    type PerceptionThreadRegisterCommand,
+} from '../dataSource/perception/localApiEvents'
 
 /** Stub thread body; more variants may be added in later refactor steps. */
 export type StubPerceptionThread = {
@@ -31,7 +37,21 @@ export type RoomHeaderBroadcastPerceptionThread = {
     cacheId?: string;
 }
 
-export type PerceptionThread = StubPerceptionThread | RoomDescriptionPerceptionThread | RoomHeaderBroadcastPerceptionThread
+/** Character move: header fan-in + Leave/Arrive WorldMessage specs on registration (see characterMoveDelivery). */
+export type CharacterMovePerceptionThread = {
+    kind: 'characterMove';
+    status: 'Initial' | 'Generating' | 'Terminal';
+    messageId?: string;
+    cacheId?: string;
+    leaveDispatched?: boolean;
+    arriveDispatched?: boolean;
+}
+
+export type PerceptionThread =
+    | StubPerceptionThread
+    | RoomDescriptionPerceptionThread
+    | RoomHeaderBroadcastPerceptionThread
+    | CharacterMovePerceptionThread
 
 export function isStubPerceptionThread(value: unknown): value is StubPerceptionThread {
     if (!value || typeof value !== 'object') {
@@ -83,11 +103,39 @@ export function isRoomHeaderBroadcastPerceptionThread(value: unknown): value is 
     return true
 }
 
+export function isCharacterMovePerceptionThread(value: unknown): value is CharacterMovePerceptionThread {
+    if (!value || typeof value !== 'object') {
+        return false
+    }
+    const v = value as Record<string, unknown>
+    if (v.kind !== 'characterMove') {
+        return false
+    }
+    const status = v.status
+    if (status !== 'Initial' && status !== 'Generating' && status !== 'Terminal') {
+        return false
+    }
+    if (v.messageId !== undefined && typeof v.messageId !== 'string') {
+        return false
+    }
+    if (v.cacheId !== undefined && typeof v.cacheId !== 'string') {
+        return false
+    }
+    if (v.leaveDispatched !== undefined && typeof v.leaveDispatched !== 'boolean') {
+        return false
+    }
+    if (v.arriveDispatched !== undefined && typeof v.arriveDispatched !== 'boolean') {
+        return false
+    }
+    return true
+}
+
 export function isPerceptionThread(value: unknown): value is PerceptionThread {
     return (
         isStubPerceptionThread(value)
         || isRoomDescriptionPerceptionThread(value)
         || isRoomHeaderBroadcastPerceptionThread(value)
+        || isCharacterMovePerceptionThread(value)
     )
 }
 
@@ -110,13 +158,37 @@ export type RoomHeaderBroadcastPerceptionThreadPatch = {
     cacheId?: string;
 }
 
+export type CharacterMovePerceptionThreadPatch = {
+    threadKind: 'characterMove';
+    status?: CharacterMovePerceptionThread['status'];
+    messageId?: string;
+    cacheId?: string;
+    leaveDispatched?: boolean;
+    arriveDispatched?: boolean;
+    leaveWorldMessage?: CharacterMoveWorldMessageSpec;
+    arriveWorldMessage?: CharacterMoveWorldMessageSpec;
+    headerTargets?: EphemeraCharacterId[];
+}
+
 export type PerceptionThreadPatch =
     | RoomDescriptionPerceptionThreadPatch
     | RoomHeaderBroadcastPerceptionThreadPatch
+    | CharacterMovePerceptionThreadPatch
     | StubPerceptionThreadPatch
 
 const ROOM_DESCRIPTION_PATCH_KEYS = new Set<string>(['threadKind', 'status', 'messageId', 'cacheId'])
 const ROOM_HEADER_BROADCAST_PATCH_KEYS = new Set<string>(['threadKind', 'status', 'messageId', 'cacheId'])
+const CHARACTER_MOVE_PATCH_KEYS = new Set<string>([
+    'threadKind',
+    'status',
+    'messageId',
+    'cacheId',
+    'leaveDispatched',
+    'arriveDispatched',
+    'leaveWorldMessage',
+    'arriveWorldMessage',
+    'headerTargets',
+])
 
 export function isRoomDescriptionPerceptionThreadPatch(value: unknown): value is RoomDescriptionPerceptionThreadPatch {
     if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -176,6 +248,55 @@ export function isRoomHeaderBroadcastPerceptionThreadPatch(
     return true
 }
 
+export function isCharacterMovePerceptionThreadPatch(value: unknown): value is CharacterMovePerceptionThreadPatch {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        return false
+    }
+    const p = value as Record<string, unknown>
+    if (p.threadKind !== 'characterMove') {
+        return false
+    }
+    for (const key of Object.keys(p)) {
+        if (!CHARACTER_MOVE_PATCH_KEYS.has(key)) {
+            return false
+        }
+    }
+    if ('status' in p && p.status !== undefined) {
+        const s = p.status
+        if (s !== 'Initial' && s !== 'Generating' && s !== 'Terminal') {
+            return false
+        }
+    }
+    if ('messageId' in p && p.messageId !== undefined && typeof p.messageId !== 'string') {
+        return false
+    }
+    if ('cacheId' in p && p.cacheId !== undefined && typeof p.cacheId !== 'string') {
+        return false
+    }
+    if ('leaveDispatched' in p && p.leaveDispatched !== undefined && typeof p.leaveDispatched !== 'boolean') {
+        return false
+    }
+    if ('arriveDispatched' in p && p.arriveDispatched !== undefined && typeof p.arriveDispatched !== 'boolean') {
+        return false
+    }
+    if ('leaveWorldMessage' in p && p.leaveWorldMessage !== undefined && !isCharacterMoveWorldMessageSpec(p.leaveWorldMessage)) {
+        return false
+    }
+    if ('arriveWorldMessage' in p && p.arriveWorldMessage !== undefined && !isCharacterMoveWorldMessageSpec(p.arriveWorldMessage)) {
+        return false
+    }
+    if (
+        'headerTargets' in p
+        && p.headerTargets !== undefined
+        && (!Array.isArray(p.headerTargets)
+            || p.headerTargets.length === 0
+            || !p.headerTargets.every((t) => typeof t === 'string' && isEphemeraCharacterId(t)))
+    ) {
+        return false
+    }
+    return true
+}
+
 export function isStubPerceptionThreadPatch(value: unknown): value is StubPerceptionThreadPatch {
     if (!value || typeof value !== 'object' || Array.isArray(value)) {
         return false
@@ -197,6 +318,9 @@ export function isPerceptionThreadPatch(value: unknown): value is PerceptionThre
     }
     if (p.threadKind === 'roomHeaderBroadcast') {
         return isRoomHeaderBroadcastPerceptionThreadPatch(value)
+    }
+    if (p.threadKind === 'characterMove') {
+        return isCharacterMovePerceptionThreadPatch(value)
     }
     if (p.threadKind === 'stub') {
         return isStubPerceptionThreadPatch(value)
@@ -240,6 +364,27 @@ export function mergePerceptionThreadPatch(base: PerceptionThread, patch: Percep
             }
             return merged
         }
+        case 'characterMove': {
+            if (base.kind !== 'characterMove') {
+                throw new Error(
+                    'PerceptionThreads.mergePerceptionThreadPatch: characterMove patch requires characterMove thread'
+                )
+            }
+            const {
+                threadKind: _tk,
+                leaveWorldMessage: _lw,
+                arriveWorldMessage: _aw,
+                headerTargets: _ht,
+                ...threadRest
+            } = patch
+            const merged = { ...base, ...threadRest }
+            if (!isCharacterMovePerceptionThread(merged)) {
+                throw new Error(
+                    'PerceptionThreads.mergePerceptionThreadPatch: merged characterMove thread failed validation'
+                )
+            }
+            return merged
+        }
         case 'stub': {
             if (base.kind !== 'stub') {
                 throw new Error('PerceptionThreads.mergePerceptionThreadPatch: stub patch requires stub thread')
@@ -272,6 +417,14 @@ function assertRegistrationMatchesThread(entry: PerceptionThreadEntry): void {
         }
         return
     }
+    if (registration.threadKind === 'characterMove') {
+        if (thread.kind !== 'characterMove') {
+            throw new Error(
+                'PerceptionThreads.update: registration.threadKind characterMove does not match stored thread.kind'
+            )
+        }
+        return
+    }
     if (registration.threadKind === 'stub') {
         if (thread.kind !== 'stub') {
             throw new Error(
@@ -283,6 +436,23 @@ function assertRegistrationMatchesThread(entry: PerceptionThreadEntry): void {
     const _exhaustive: never = registration
     void _exhaustive
     throw new Error('PerceptionThreads.update: unexpected registration.threadKind')
+}
+
+function mergeCharacterMoveRegistration(
+    reg: PerceptionThreadRegisterCharacterMoveCommand,
+    patch: CharacterMovePerceptionThreadPatch
+): PerceptionThreadRegisterCharacterMoveCommand {
+    let next: PerceptionThreadRegisterCharacterMoveCommand = { ...reg }
+    if (patch.leaveWorldMessage !== undefined) {
+        next = { ...next, leaveWorldMessage: patch.leaveWorldMessage }
+    }
+    if (patch.arriveWorldMessage !== undefined) {
+        next = { ...next, arriveWorldMessage: patch.arriveWorldMessage }
+    }
+    if (patch.headerTargets !== undefined) {
+        next = { ...next, headerTargets: patch.headerTargets }
+    }
+    return next
 }
 
 export type PerceptionThreadEntry = {
@@ -330,6 +500,9 @@ export default class PerceptionThreadsData {
                 break
             case 'roomHeaderBroadcast':
                 thread = { kind: 'roomHeaderBroadcast', status: 'Initial' }
+                break
+            case 'characterMove':
+                thread = { kind: 'characterMove', status: 'Initial' }
                 break
             case 'stub':
                 thread = { kind: 'stub' }
@@ -385,6 +558,33 @@ export default class PerceptionThreadsData {
                     throw new Error('PerceptionThreads.update: not a valid PerceptionThreadPatch')
                 }
                 entry.thread = mergePerceptionThreadPatch(entry.thread, partial)
+                return true
+            }
+            case 'characterMove': {
+                if (!isCharacterMovePerceptionThreadPatch(partial)) {
+                    throw new Error('PerceptionThreads.update: not a valid PerceptionThreadPatch')
+                }
+                if (entry.registration.threadKind !== 'characterMove') {
+                    throw new Error('PerceptionThreads.update: registration not characterMove')
+                }
+                const p = partial
+                entry.registration = mergeCharacterMoveRegistration(entry.registration, p)
+                const hasThreadPatchFields =
+                    p.status !== undefined
+                    || p.messageId !== undefined
+                    || p.cacheId !== undefined
+                    || p.leaveDispatched !== undefined
+                    || p.arriveDispatched !== undefined
+                if (hasThreadPatchFields) {
+                    entry.thread = mergePerceptionThreadPatch(entry.thread, {
+                        threadKind: 'characterMove',
+                        status: p.status,
+                        messageId: p.messageId,
+                        cacheId: p.cacheId,
+                        leaveDispatched: p.leaveDispatched,
+                        arriveDispatched: p.arriveDispatched,
+                    })
+                }
                 return true
             }
             default: {
