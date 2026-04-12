@@ -72,6 +72,11 @@ export type EphemeraMetaRoom = {
     state?: EphemeraRoomState;
     currentCacheByPerspective?: EphemeraRoomCurrentCacheByPerspective;
     currentCacheId?: EphemeraCacheId;
+
+    //
+    // v1 runtime object handles (mtw.ephemera.objects on this Meta::Room row).
+    //
+    objects?: string[];
 }
 
 export const isEphemeraMetaRoom = (value: any): value is EphemeraMetaRoom => {
@@ -139,6 +144,15 @@ export const isEphemeraMetaRoom = (value: any): value is EphemeraMetaRoom => {
             && isEphemeraCharacterId(entry.EphemeraId)
         ))
         if (!ok) {
+            return false
+        }
+    }
+    if ('objects' in value) {
+        const objects = value.objects
+        if (!Array.isArray(objects)) {
+            return false
+        }
+        if (!objects.every((entry: any) => typeof entry === 'string')) {
             return false
         }
     }

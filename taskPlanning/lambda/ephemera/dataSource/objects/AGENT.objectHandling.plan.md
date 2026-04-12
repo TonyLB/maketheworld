@@ -1,6 +1,6 @@
 # `mtw.ephemera.objects` - object handling (phase 1: stub, storage, bus)
 
-**Status:** Active --- **phase 1 not started**. **Next step:** add **`EphemeraMetaRoom.objects`** and **`isEphemeraMetaRoom`** in **`mtw-interfaces`** (first item under **Recommended order**).
+**Status:** Active --- **phase 1 in progress**. **Next step:** implement **`optimisticUpdate`** (or equivalent) for objects-only patch and **`ComponentEphemeraMeta.invalidate`** on success (second item under **Recommended order**).
 
 **Framework:** This document is an **executable task plan** per [`taskPlanning/AGENT.md`](../../../../AGENT.md) (status, **Getting Started**, **Progress**, **Recommended order** checkboxes, **Verification**). Steady-state architecture belongs in [`lambda/ephemera/dataSource/`](../../../../../lambda/ephemera/dataSource/) package `AGENT.md` files after merge.
 
@@ -109,7 +109,7 @@ Pending work uses `[ ]`; completed work uses `[X]` (capital **X**). Mark each li
 
 **Phase 1 (core `mtw.ephemera.objects`---ship without perception):**
 
-- [ ] Add **`EphemeraMetaRoom.objects`** + **`isEphemeraMetaRoom`** in **`mtw-interfaces`**
+- [X] Add **`EphemeraMetaRoom.objects`** + **`isEphemeraMetaRoom`** in **`mtw-interfaces`**
 - [ ] Implement **`optimisticUpdate`** (or equivalent) for objects-only patch; **`ComponentEphemeraMeta.invalidate`** on success
 - [ ] Add bus ingress types and **`sendObjectsChange`**; **no** **`ReturnValue`** for v1
 - [ ] Create **`lambda/ephemera/dataSource/objects/`** with **`index.ts`**, **`subscribedEvents.ts`**, **`publishedEvents.ts`** (or **`events.ts`**) for **Objects Changed** payloads
@@ -130,7 +130,7 @@ Pending work uses `[ ]`; completed work uses `[X]` (capital **X**). Mark each li
 | Milestone | Status |
 | --- | --- |
 | Task plan (executable) | Done |
-| Phase 1: schema + interfaces | Not started |
+| Phase 1: schema + interfaces | **`mtw-interfaces`** done; persistence + lambda wiring not started |
 | Phase 1: DataSource + ingress + tests | Not started |
 | Phase 2: perception timing + subscriptions | Not started (deferred) |
 
