@@ -16,6 +16,7 @@ import {
 } from '../passThroughContractFixtures'
 import { RENDER_CACHE_DATA_SOURCE_KEY } from '../renderCache/baseClasses'
 import { RENDER_ORCHESTRATION_DATA_SOURCE_KEY } from '../renderOrchestration/publishedEvents'
+import { roomHeaderGeneratingPlaceholderWml } from './roomHeaderPlaceholderWml'
 import { sendCharacterPerceptionRequested, sendPerceptionThreadRegistered } from './subscribedEvents'
 import { ephemeraPerceptionDataSource } from './index'
 
@@ -61,18 +62,22 @@ describe('mtw.ephemera.perception DataSource', () => {
         const sendSpy = jest.spyOn(messageBus, 'send')
 
         sendPerceptionThreadRegistered(messageBus, 'ROOM#REG', {
+            threadKind: 'roomDescription',
             componentId: 'ROOM#REG',
             perspectiveKey: 'view-1',
             characterId: 'CHARACTER#viewer',
         })
         await messageBus.flush()
 
-        const entry = internalCache.PerceptionThreads.get('ROOM#REG', 'view-1')
-        expect(entry?.thread).toMatchObject({
+        const listed = internalCache.PerceptionThreads.list('ROOM#REG', 'view-1')
+        expect(listed).toHaveLength(1)
+        const entry = listed[0]
+        expect(entry.thread).toMatchObject({
             kind: 'roomDescription',
             status: 'Initial',
         })
-        expect(entry?.registration).toMatchObject({
+        expect(entry.registration).toMatchObject({
+            threadKind: 'roomDescription',
             componentId: 'ROOM#REG',
             perspectiveKey: 'view-1',
             characterId: 'CHARACTER#viewer',
@@ -87,6 +92,7 @@ describe('mtw.ephemera.perception DataSource', () => {
         const componentRenderSpy = jest.spyOn(internalCache.ComponentRender, 'get').mockResolvedValue({ schema: {} } as any)
 
         sendPerceptionThreadRegistered(messageBus, passThroughFixtureRoomId, {
+            threadKind: 'roomDescription',
             componentId: passThroughFixtureRoomId,
             perspectiveKey: passThroughFixturePerspectiveKey,
             characterId: 'CHARACTER#viewer',
@@ -147,7 +153,93 @@ describe('mtw.ephemera.perception DataSource', () => {
         })
         expect(terminalPublish).toBeDefined()
         expect((terminalPublish![0] as { messageId?: string }).messageId).toBe(mid)
-        expect(internalCache.PerceptionThreads.get(passThroughFixtureRoomId, passThroughFixturePerspectiveKey)).toBeUndefined()
+        expect(internalCache.PerceptionThreads.list(passThroughFixtureRoomId, passThroughFixturePerspectiveKey)).toEqual([])
+
+        schemaSpy.mockRestore()
+        componentRenderSpy.mockRestore()
+        sendSpy.mockRestore()
+    })
+
+    it('roomHeaderBroadcast receives Generation Started then terminal Render Pertains with stable messageId', async () => {
+        const sendSpy = jest.spyOn(messageBus, 'send')
+        const schemaSpy = jest.spyOn(schemaModule, 'schemaToWML').mockReturnValue('<HeaderTerminal />')
+        const componentRenderSpy = jest.spyOn(internalCache.ComponentRender, 'get').mockResolvedValue({ schema: {} } as any)
+
+        const targets = ['CHARACTER#viewer', 'CHARACTER#other'] as const
+        sendPerceptionThreadRegistered(messageBus, passThroughFixtureRoomId, {
+            threadKind: 'roomHeaderBroadcast',
+            componentId: passThroughFixtureRoomId,
+            perspectiveKey: passThroughFixturePerspectiveKey,
+            targets: [...targets],
+        })
+        await messageBus.flush()
+
+        const genStarted = makePassThroughGenerationStartedPayload()
+        const tsOrch = Date.now()
+        messageBus.send({
+            type: 'StreamingEvent',
+            dataSourceKey: RENDER_ORCHESTRATION_DATA_SOURCE_KEY,
+            streamKey: passThroughFixtureRoomId,
+            timestamp: tsOrch,
+            header: {
+                dataSourceKey: RENDER_ORCHESTRATION_DATA_SOURCE_KEY,
+                streamKey: passThroughFixtureRoomId,
+                timestamp: tsOrch,
+                type: 'Generation Started',
+            },
+            getContent: () => Promise.resolve(genStarted),
+        })
+        await messageBus.flush()
+
+        const genPublish = sendSpy.mock.calls.find((c) => {
+            const m = c[0] as { type?: string; metaData?: { displayMode?: string; status?: string }; targets?: string[] }
+            return (
+                m?.type === 'PublishMessage'
+                && m?.metaData?.displayMode === 'header'
+                && m?.metaData?.status === 'generating'
+                && Array.isArray(m.targets)
+                && m.targets.length === 2
+            )
+        })
+        expect(genPublish).toBeDefined()
+        expect((genPublish![0] as { wmlContent?: string }).wmlContent).toBe(
+            roomHeaderGeneratingPlaceholderWml(passThroughFixtureRoomId)
+        )
+        const mid = (genPublish![0] as { messageId?: string }).messageId
+        expect(mid).toMatch(/^MESSAGE#/)
+
+        const tsCache = Date.now()
+        messageBus.send({
+            type: 'StreamingEvent',
+            dataSourceKey: RENDER_CACHE_DATA_SOURCE_KEY,
+            streamKey: passThroughFixtureRoomId,
+            timestamp: tsCache,
+            header: {
+                dataSourceKey: RENDER_CACHE_DATA_SOURCE_KEY,
+                streamKey: passThroughFixtureRoomId,
+                timestamp: tsCache,
+                type: 'Render Pertains',
+            },
+            getContent: () =>
+                Promise.resolve({
+                    type: 'Render Pertains',
+                    componentId: passThroughFixtureRoomId,
+                    perspectiveKey: passThroughFixturePerspectiveKey,
+                    cacheId: passThroughFixtureMinimalDynamoItem.DataCategory,
+                    cacheRecord: passThroughFixtureMinimalDynamoItem,
+                }),
+        })
+        await messageBus.flush()
+
+        const terminalPublish = sendSpy.mock.calls.find((c) => {
+            const m = c[0] as { type?: string; wmlContent?: string; metaData?: { displayMode?: string } }
+            return m?.type === 'PublishMessage' && m?.wmlContent === '<HeaderTerminal />' && m?.metaData?.displayMode === 'header'
+        })
+        expect(terminalPublish).toBeDefined()
+        expect((terminalPublish![0] as { messageId?: string }).messageId).toBe(mid)
+        expect(
+            internalCache.PerceptionThreads.list(passThroughFixtureRoomId, passThroughFixturePerspectiveKey)
+        ).toEqual([])
 
         schemaSpy.mockRestore()
         componentRenderSpy.mockRestore()

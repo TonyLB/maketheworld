@@ -1,20 +1,50 @@
 import PerceptionThreadsData, {
     isPerceptionThread,
     isRoomDescriptionPerceptionThread,
+    isRoomHeaderBroadcastPerceptionThread,
     isStubPerceptionThread,
+    mergePerceptionThreadPatch,
     type RoomDescriptionPerceptionThread,
+    type RoomHeaderBroadcastPerceptionThread,
 } from './perceptionThreads'
-import type { PerceptionThreadRegisteredCommand } from '../dataSource/perception/localApiEvents'
+import type { PerceptionThreadRegisterCommand } from '../dataSource/perception/localApiEvents'
 
-const makeRegistration = (overrides: Partial<PerceptionThreadRegisteredCommand> = {}): PerceptionThreadRegisteredCommand => ({
+const makeRoomRegistration = (
+    overrides: Partial<Extract<PerceptionThreadRegisterCommand, { threadKind: 'roomDescription' }>> = {}
+): Extract<PerceptionThreadRegisterCommand, { threadKind: 'roomDescription' }> => ({
+    threadKind: 'roomDescription',
     componentId: 'ROOM#test',
     perspectiveKey: 'pk-one',
     characterId: 'CHARACTER#viewer',
     ...overrides,
 })
 
+const makeStubRegistration = (
+    overrides: Partial<Extract<PerceptionThreadRegisterCommand, { threadKind: 'stub' }>> = {}
+): Extract<PerceptionThreadRegisterCommand, { threadKind: 'stub' }> => ({
+    threadKind: 'stub',
+    componentId: 'FEATURE#test',
+    perspectiveKey: 'pk-one',
+    ...overrides,
+})
+
+const makeHeaderBroadcastRegistration = (
+    overrides: Partial<Extract<PerceptionThreadRegisterCommand, { threadKind: 'roomHeaderBroadcast' }>> = {}
+): Extract<PerceptionThreadRegisterCommand, { threadKind: 'roomHeaderBroadcast' }> => ({
+    threadKind: 'roomHeaderBroadcast',
+    componentId: 'ROOM#test',
+    perspectiveKey: 'pk-one',
+    targets: ['CHARACTER#a', 'CHARACTER#b'],
+    ...overrides,
+})
+
 const roomDescriptionInitial = (): RoomDescriptionPerceptionThread => ({
     kind: 'roomDescription',
+    status: 'Initial',
+})
+
+const roomHeaderBroadcastInitial = (): RoomHeaderBroadcastPerceptionThread => ({
+    kind: 'roomHeaderBroadcast',
     status: 'Initial',
 })
 
@@ -25,31 +55,32 @@ describe('PerceptionThreadsData', () => {
         cache = new PerceptionThreadsData()
     })
 
-    it('set and get round-trip', () => {
-        const reg = makeRegistration()
-        cache.set(reg, { kind: 'stub' })
-        const got = cache.get('ROOM#test', 'pk-one')
-        expect(got?.thread).toEqual({ kind: 'stub' })
-        expect(got?.registration).toEqual(reg)
-        expect(got?.registrationId).toMatch(/^[\da-f-]{36}$/i)
+    it('register and list round-trip', () => {
+        const reg = makeStubRegistration()
+        cache.register(reg)
+        const listed = cache.list('FEATURE#test', 'pk-one')
+        expect(listed).toHaveLength(1)
+        expect(listed[0].thread).toEqual({ kind: 'stub' })
+        expect(listed[0].registration.threadKind).toBe('stub')
+        expect(listed[0].registrationId).toMatch(/^[\da-f-]{36}$/i)
     })
 
-    it('set stores caller registrationId when provided', () => {
-        const reg = makeRegistration({ registrationId: 'custom-reg-id' })
-        cache.set(reg, { kind: 'stub' })
-        expect(cache.get('ROOM#test', 'pk-one')?.registrationId).toBe('custom-reg-id')
+    it('register stores caller registrationId when provided', () => {
+        const reg = makeStubRegistration({ registrationId: 'custom-reg-id' })
+        cache.register(reg)
+        expect(cache.list('FEATURE#test', 'pk-one')[0].registrationId).toBe('custom-reg-id')
     })
 
     it('update shallow-merges when registrationId matches', () => {
-        const reg = makeRegistration()
-        cache.set(reg, roomDescriptionInitial())
-        const { registrationId } = cache.get('ROOM#test', 'pk-one')!
+        const reg = makeRoomRegistration()
+        cache.register(reg)
+        const { registrationId } = cache.list('ROOM#test', 'pk-one')[0]
         const ok = cache.update(
             { componentId: 'ROOM#test', perspectiveKey: 'pk-one', registrationId },
-            { status: 'Generating', messageId: 'MESSAGE#m1' }
+            { threadKind: 'roomDescription', status: 'Generating', messageId: 'MESSAGE#m1' }
         )
         expect(ok).toBe(true)
-        const t = cache.get('ROOM#test', 'pk-one')!.thread
+        const t = cache.list('ROOM#test', 'pk-one')[0].thread
         expect(t).toMatchObject({
             kind: 'roomDescription',
             status: 'Generating',
@@ -58,35 +89,168 @@ describe('PerceptionThreadsData', () => {
     })
 
     it('update returns false when registrationId mismatches', () => {
-        cache.set(makeRegistration(), roomDescriptionInitial())
+        cache.register(makeRoomRegistration())
         const ok = cache.update(
             { componentId: 'ROOM#test', perspectiveKey: 'pk-one', registrationId: 'wrong' },
-            { status: 'Terminal' }
+            { threadKind: 'roomDescription', status: 'Terminal' }
         )
         expect(ok).toBe(false)
-        expect((cache.get('ROOM#test', 'pk-one')!.thread as { status: string }).status).toBe('Initial')
+        expect((cache.list('ROOM#test', 'pk-one')[0].thread as { status: string }).status).toBe('Initial')
     })
 
-    it('last set wins for same componentId and perspectiveKey', () => {
-        cache.set(makeRegistration({ perspectiveKey: 'same' }), { kind: 'stub' })
-        cache.set(makeRegistration({ perspectiveKey: 'same', characterId: 'CHARACTER#two' }), { kind: 'stub' })
-        expect(cache.get('ROOM#test', 'same')?.registration.characterId).toBe('CHARACTER#two')
+    it('update throws on stub row', () => {
+        cache.register(makeStubRegistration())
+        const { registrationId } = cache.list('FEATURE#test', 'pk-one')[0]
+        expect(() =>
+            cache.update(
+                { componentId: 'FEATURE#test', perspectiveKey: 'pk-one', registrationId },
+                { status: 'Generating' }
+            )
+        ).toThrow('stub threads do not support updates')
     })
 
-    it('delete removes entry', () => {
-        cache.set(makeRegistration(), { kind: 'stub' })
-        cache.delete('ROOM#test', 'pk-one')
-        expect(cache.get('ROOM#test', 'pk-one')).toBeUndefined()
+    it('update throws on roomDescription patch with unknown key', () => {
+        cache.register(makeRoomRegistration())
+        const { registrationId } = cache.list('ROOM#test', 'pk-one')[0]
+        expect(() =>
+            cache.update(
+                { componentId: 'ROOM#test', perspectiveKey: 'pk-one', registrationId },
+                { threadKind: 'roomDescription', mesageId: 'MESSAGE#typo' } as unknown
+            )
+        ).toThrow('not a valid PerceptionThreadPatch')
+    })
+
+    it('update throws when patch uses legacy kind field instead of threadKind', () => {
+        cache.register(makeRoomRegistration())
+        const { registrationId } = cache.list('ROOM#test', 'pk-one')[0]
+        expect(() =>
+            cache.update(
+                { componentId: 'ROOM#test', perspectiveKey: 'pk-one', registrationId },
+                { kind: 'roomDescription' } as unknown
+            )
+        ).toThrow('not a valid PerceptionThreadPatch')
+    })
+
+    it('update throws when patch threadKind does not match roomDescription row', () => {
+        cache.register(makeRoomRegistration())
+        const { registrationId } = cache.list('ROOM#test', 'pk-one')[0]
+        expect(() =>
+            cache.update(
+                { componentId: 'ROOM#test', perspectiveKey: 'pk-one', registrationId },
+                { threadKind: 'stub' }
+            )
+        ).toThrow('stub patch requires stub thread')
+    })
+
+    it('update throws on roomDescription patch with invalid status', () => {
+        cache.register(makeRoomRegistration())
+        const { registrationId } = cache.list('ROOM#test', 'pk-one')[0]
+        expect(() =>
+            cache.update(
+                { componentId: 'ROOM#test', perspectiveKey: 'pk-one', registrationId },
+                { threadKind: 'roomDescription', status: 'bogus' } as unknown
+            )
+        ).toThrow('not a valid PerceptionThreadPatch')
+    })
+
+    it('update throws on roomDescription patch with non-string messageId', () => {
+        cache.register(makeRoomRegistration())
+        const { registrationId } = cache.list('ROOM#test', 'pk-one')[0]
+        expect(() =>
+            cache.update(
+                { componentId: 'ROOM#test', perspectiveKey: 'pk-one', registrationId },
+                { threadKind: 'roomDescription', messageId: 123 } as unknown
+            )
+        ).toThrow('not a valid PerceptionThreadPatch')
+    })
+
+    it('update throws when patch is not a plain object', () => {
+        cache.register(makeRoomRegistration())
+        const { registrationId } = cache.list('ROOM#test', 'pk-one')[0]
+        expect(() =>
+            cache.update(
+                { componentId: 'ROOM#test', perspectiveKey: 'pk-one', registrationId },
+                null
+            )
+        ).toThrow('not a valid PerceptionThreadPatch')
+    })
+
+    it('two registers under same composite key coexist', () => {
+        cache.register(makeStubRegistration({ perspectiveKey: 'same', characterId: 'CHARACTER#one' }))
+        cache.register(makeStubRegistration({ perspectiveKey: 'same', characterId: 'CHARACTER#two' }))
+        const listed = cache.list('FEATURE#test', 'same')
+        expect(listed).toHaveLength(2)
+        const chars = listed
+            .map((e) => (e.registration.threadKind === 'stub' ? e.registration.characterId : undefined))
+            .filter((c) => c !== undefined)
+            .sort()
+        expect(chars).toEqual(['CHARACTER#one', 'CHARACTER#two'].sort())
+    })
+
+    it('remove drops one entry and leaves sibling', () => {
+        cache.register(makeStubRegistration({ perspectiveKey: 'same', registrationId: 'r1' }))
+        cache.register(makeStubRegistration({ perspectiveKey: 'same', registrationId: 'r2' }))
+        cache.remove({ componentId: 'FEATURE#test', perspectiveKey: 'same', registrationId: 'r1' })
+        const listed = cache.list('FEATURE#test', 'same')
+        expect(listed).toHaveLength(1)
+        expect(listed[0].registrationId).toBe('r2')
+    })
+
+    it('remove clears bucket when last entry removed', () => {
+        cache.register(makeStubRegistration())
+        const { registrationId } = cache.list('FEATURE#test', 'pk-one')[0]
+        cache.remove({ componentId: 'FEATURE#test', perspectiveKey: 'pk-one', registrationId })
+        expect(cache.list('FEATURE#test', 'pk-one')).toEqual([])
     })
 
     it('clear removes all entries', () => {
-        cache.set(makeRegistration(), { kind: 'stub' })
+        cache.register(makeStubRegistration())
         cache.clear()
-        expect(cache.get('ROOM#test', 'pk-one')).toBeUndefined()
+        expect(cache.list('FEATURE#test', 'pk-one')).toEqual([])
     })
 
-    it('get returns undefined for missing key', () => {
-        expect(cache.get('ROOM#x', 'y')).toBeUndefined()
+    it('list returns empty array for missing key', () => {
+        expect(cache.list('ROOM#x', 'y')).toEqual([])
+    })
+
+    it('register roomHeaderBroadcast stores Initial thread and targets', () => {
+        cache.register(makeHeaderBroadcastRegistration())
+        const listed = cache.list('ROOM#test', 'pk-one')
+        expect(listed).toHaveLength(1)
+        expect(listed[0].thread).toEqual({ kind: 'roomHeaderBroadcast', status: 'Initial' })
+        expect(listed[0].registration.threadKind).toBe('roomHeaderBroadcast')
+        expect((listed[0].registration as { targets: string[] }).targets).toEqual(['CHARACTER#a', 'CHARACTER#b'])
+    })
+
+    it('update merges roomHeaderBroadcast thread', () => {
+        cache.register(makeHeaderBroadcastRegistration())
+        const { registrationId } = cache.list('ROOM#test', 'pk-one')[0]
+        const ok = cache.update(
+            { componentId: 'ROOM#test', perspectiveKey: 'pk-one', registrationId },
+            { threadKind: 'roomHeaderBroadcast', status: 'Generating', messageId: 'MESSAGE#h1' }
+        )
+        expect(ok).toBe(true)
+        expect(cache.list('ROOM#test', 'pk-one')[0].thread).toMatchObject({
+            kind: 'roomHeaderBroadcast',
+            status: 'Generating',
+            messageId: 'MESSAGE#h1',
+        })
+    })
+})
+
+describe('mergePerceptionThreadPatch roomHeaderBroadcast', () => {
+    it('merges status and messageId', () => {
+        const base = roomHeaderBroadcastInitial()
+        const merged = mergePerceptionThreadPatch(base, {
+            threadKind: 'roomHeaderBroadcast',
+            status: 'Generating',
+            messageId: 'MESSAGE#x',
+        })
+        expect(merged).toMatchObject({
+            kind: 'roomHeaderBroadcast',
+            status: 'Generating',
+            messageId: 'MESSAGE#x',
+        })
     })
 })
 
@@ -99,6 +263,12 @@ describe('isStubPerceptionThread / isRoomDescriptionPerceptionThread / isPercept
     it('accepts roomDescription shape', () => {
         const t = roomDescriptionInitial()
         expect(isRoomDescriptionPerceptionThread(t)).toBe(true)
+        expect(isPerceptionThread(t)).toBe(true)
+    })
+
+    it('accepts roomHeaderBroadcast shape', () => {
+        const t = roomHeaderBroadcastInitial()
+        expect(isRoomHeaderBroadcastPerceptionThread(t)).toBe(true)
         expect(isPerceptionThread(t)).toBe(true)
     })
 

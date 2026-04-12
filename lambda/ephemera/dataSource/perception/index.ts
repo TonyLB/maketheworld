@@ -4,12 +4,11 @@
  * Bus-only, non-replayable. Subscribes to api.ephemera Character perception ingress. See AGENT.md and
  * taskPlanning/lambda/ephemera/dataSource/perception/AGENT.perceptionRefactor.planning.md
  */
-import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import EphemeraDataSource from '../abstract'
 import type { PerceptionStubPublishedPayload } from './publishedEvents'
 import type { PerceptionSubscribedContent } from './subscribedEvents'
 import { isPerceptionSubscribedEnvelope } from './subscribedEvents'
-import { isCharacterPerceptionRequestedCommand, isPerceptionThreadRegisteredCommand } from './localApiEvents'
+import { isCharacterPerceptionRequestedCommand, isPerceptionThreadRegisterCommand } from './localApiEvents'
 import { handleCharacterPerceptionRequested } from './characterPerception'
 import { orchestrateRoomDescriptionStreams } from './orchestrate'
 import messageBus from '../../messageBus'
@@ -31,16 +30,8 @@ export const ephemeraPerceptionDataSource = new EphemeraDataSource<
                 await handleCharacterPerceptionRequested(raw, messageBus)
                 return
             }
-            if (isPerceptionThreadRegisteredCommand(raw)) {
-                if (isEphemeraRoomId(raw.componentId)) {
-                    internalCache.PerceptionThreads.set(raw, {
-                        kind: 'roomDescription',
-                        status: 'Initial',
-                    })
-                }
-                else {
-                    internalCache.PerceptionThreads.set(raw, { kind: 'stub' })
-                }
+            if (isPerceptionThreadRegisterCommand(raw)) {
+                internalCache.PerceptionThreads.register(raw)
                 return
             }
             await orchestrateRoomDescriptionStreams(raw, messageBus)

@@ -1,5 +1,6 @@
 /**
- * Room description fan-in: correlate renderOrchestration / renderCache streams to Perception Thread Registered rows.
+ * Room description and room header broadcast fan-in: correlate renderOrchestration / renderCache streams
+ * to Perception Thread Registered rows.
  */
 import { randomUUID } from 'crypto'
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
@@ -11,7 +12,11 @@ import StandardExample from '@tonylb/mtw-wml/ts/standardize/components/example'
 import type { StandardRoomData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/room'
 import internalCache from '../../internalCache'
 import type { MessageBus } from '../../messageBus/baseClasses'
-import { isRoomDescriptionPerceptionThread } from '../../internalCache/perceptionThreads'
+import {
+    isRoomDescriptionPerceptionThread,
+    isRoomHeaderBroadcastPerceptionThread,
+} from '../../internalCache/perceptionThreads'
+import { roomHeaderErrorPlaceholderWml, roomHeaderGeneratingPlaceholderWml } from './roomHeaderPlaceholderWml'
 import { isRenderCacheRenderPertainsPayload } from '../renderCache/baseClasses'
 import {
     isRenderOrchestrationGenerationDeferredPayload,
@@ -40,8 +45,15 @@ function placeholderRoomFullWml(roomId: EphemeraRoomId, bodyText: string): strin
     return schemaToWML([form.schema])
 }
 
-function logTerminalDedupe(eventLabel: string, componentId: string, perspectiveKey: string): void {
-    console.log(`[mtw.ephemera.perception] skip ${eventLabel} (terminal) ${componentId} ${perspectiveKey}`)
+function logTerminalDedupe(
+    eventLabel: string,
+    componentId: string,
+    perspectiveKey: string,
+    registrationId: string
+): void {
+    console.log(
+        `[mtw.ephemera.perception] skip ${eventLabel} (terminal) ${componentId} ${perspectiveKey} registrationId=${registrationId}`
+    )
 }
 
 export async function orchestrateRoomDescriptionStreams(
@@ -68,36 +80,102 @@ async function handleRenderPertains(
     if (!isEphemeraRoomId(payload.componentId)) {
         return
     }
-    const entry = internalCache.PerceptionThreads.get(payload.componentId, payload.perspectiveKey)
-    if (!entry || !isRoomDescriptionPerceptionThread(entry.thread)) {
-        return
-    }
-    const { thread, registration } = entry
-    if (thread.status === 'Terminal') {
-        logTerminalDedupe('Render Pertains', payload.componentId, payload.perspectiveKey)
-        return
-    }
-    const characterId = registration.characterId
-    if (!characterId) {
-        return
+    const entries = internalCache.PerceptionThreads.list(payload.componentId, payload.perspectiveKey)
+    for (const entry of entries) {
+        if (!isRoomDescriptionPerceptionThread(entry.thread)) {
+            continue
+        }
+        const { thread, registration, registrationId } = entry
+        if (registration.threadKind !== 'roomDescription') {
+            continue
+        }
+        if (thread.status === 'Terminal') {
+            logTerminalDedupe('Render Pertains', payload.componentId, payload.perspectiveKey, registrationId)
+            continue
+        }
+        const characterId = registration.characterId
+
+        const roomDescribe = await internalCache.ComponentRender.get(characterId, payload.componentId)
+        const messageId = thread.messageId ?? `MESSAGE#${randomUUID()}`
+        bus.send({
+            type: 'PublishMessage',
+            targets: [characterId],
+            displayProtocol: 'PerceptionMessage',
+            wmlContent: schemaToWML([roomDescribe.schema]),
+            metaData: {
+                componentUUID: payload.componentId,
+                displayMode: 'full',
+            },
+            messageGroupId: registration.messageGroupId,
+            messageId,
+        })
+
+        internalCache.PerceptionThreads.remove({
+            componentId: payload.componentId,
+            perspectiveKey: payload.perspectiveKey,
+            registrationId,
+        })
     }
 
-    const roomDescribe = await internalCache.ComponentRender.get(characterId, payload.componentId)
-    const messageId = thread.messageId ?? `MESSAGE#${randomUUID()}`
-    bus.send({
-        type: 'PublishMessage',
-        targets: [characterId],
-        displayProtocol: 'PerceptionMessage',
-        wmlContent: schemaToWML([roomDescribe.schema]),
-        metaData: {
-            componentUUID: payload.componentId,
-            displayMode: 'full',
-        },
-        messageGroupId: registration.messageGroupId,
-        messageId,
-    })
+    for (const entry of entries) {
+        if (!isRoomHeaderBroadcastPerceptionThread(entry.thread)) {
+            continue
+        }
+        const { thread, registration, registrationId } = entry
+        if (registration.threadKind !== 'roomHeaderBroadcast') {
+            continue
+        }
+        if (thread.status === 'Terminal') {
+            logTerminalDedupe('Render Pertains', payload.componentId, payload.perspectiveKey, registrationId)
+            continue
+        }
+        const targets = registration.targets
+        const roomId = payload.componentId
+        const headerDescribes = await Promise.all(
+            targets.map((characterId) =>
+                internalCache.ComponentRender.get(characterId, roomId, { header: true })
+            )
+        )
+        const wmlStrings = headerDescribes.map((d) => schemaToWML([d.schema]))
+        const messageId = thread.messageId ?? `MESSAGE#${randomUUID()}`
+        const firstWml = wmlStrings[0]
+        const allSame = wmlStrings.length > 0 && wmlStrings.every((w) => w === firstWml)
+        if (allSame) {
+            bus.send({
+                type: 'PublishMessage',
+                targets,
+                displayProtocol: 'PerceptionMessage',
+                wmlContent: firstWml,
+                metaData: {
+                    componentUUID: roomId,
+                    displayMode: 'header',
+                },
+                messageGroupId: registration.messageGroupId,
+                messageId,
+            })
+        } else {
+            for (let i = 0; i < targets.length; i++) {
+                bus.send({
+                    type: 'PublishMessage',
+                    targets: [targets[i]],
+                    displayProtocol: 'PerceptionMessage',
+                    wmlContent: wmlStrings[i],
+                    metaData: {
+                        componentUUID: roomId,
+                        displayMode: 'header',
+                    },
+                    messageGroupId: registration.messageGroupId,
+                    messageId,
+                })
+            }
+        }
 
-    internalCache.PerceptionThreads.delete(payload.componentId, payload.perspectiveKey)
+        internalCache.PerceptionThreads.remove({
+            componentId: payload.componentId,
+            perspectiveKey: payload.perspectiveKey,
+            registrationId,
+        })
+    }
 }
 
 async function handleGenerationStarted(
@@ -107,40 +185,76 @@ async function handleGenerationStarted(
     if (!isEphemeraRoomId(payload.componentId)) {
         return
     }
-    const entry = internalCache.PerceptionThreads.get(payload.componentId, payload.perspectiveKey)
-    if (!entry || !isRoomDescriptionPerceptionThread(entry.thread)) {
-        return
-    }
-    const { thread, registration, registrationId } = entry
-    if (thread.status === 'Terminal') {
-        logTerminalDedupe('Generation Started', payload.componentId, payload.perspectiveKey)
-        return
-    }
-    const characterId = registration.characterId
-    if (!characterId) {
-        return
+    const entries = internalCache.PerceptionThreads.list(payload.componentId, payload.perspectiveKey)
+    for (const entry of entries) {
+        if (!isRoomDescriptionPerceptionThread(entry.thread)) {
+            continue
+        }
+        const { thread, registration, registrationId } = entry
+        if (registration.threadKind !== 'roomDescription') {
+            continue
+        }
+        if (thread.status === 'Terminal') {
+            logTerminalDedupe('Generation Started', payload.componentId, payload.perspectiveKey, registrationId)
+            continue
+        }
+        const characterId = registration.characterId
+
+        const messageId = `MESSAGE#${randomUUID()}`
+        const roomId = payload.componentId
+        bus.send({
+            type: 'PublishMessage',
+            targets: [characterId],
+            displayProtocol: 'PerceptionMessage',
+            wmlContent: placeholderRoomFullWml(roomId, 'Generating'),
+            metaData: {
+                componentUUID: roomId,
+                displayMode: 'full',
+                status: 'generating',
+            },
+            messageGroupId: registration.messageGroupId,
+            messageId,
+        })
+
+        internalCache.PerceptionThreads.update(
+            { componentId: payload.componentId, perspectiveKey: payload.perspectiveKey, registrationId },
+            { threadKind: 'roomDescription', status: 'Generating', messageId }
+        )
     }
 
-    const messageId = `MESSAGE#${randomUUID()}`
-    const roomId = payload.componentId
-    bus.send({
-        type: 'PublishMessage',
-        targets: [characterId],
-        displayProtocol: 'PerceptionMessage',
-        wmlContent: placeholderRoomFullWml(roomId, 'Generating'),
-        metaData: {
-            componentUUID: roomId,
-            displayMode: 'full',
-            status: 'generating',
-        },
-        messageGroupId: registration.messageGroupId,
-        messageId,
-    })
+    for (const entry of entries) {
+        if (!isRoomHeaderBroadcastPerceptionThread(entry.thread)) {
+            continue
+        }
+        const { thread, registration, registrationId } = entry
+        if (registration.threadKind !== 'roomHeaderBroadcast') {
+            continue
+        }
+        if (thread.status === 'Terminal') {
+            logTerminalDedupe('Generation Started', payload.componentId, payload.perspectiveKey, registrationId)
+            continue
+        }
+        const roomId = payload.componentId
+        const messageId = `MESSAGE#${randomUUID()}`
+        bus.send({
+            type: 'PublishMessage',
+            targets: registration.targets,
+            displayProtocol: 'PerceptionMessage',
+            wmlContent: roomHeaderGeneratingPlaceholderWml(roomId),
+            metaData: {
+                componentUUID: roomId,
+                displayMode: 'header',
+                status: 'generating',
+            },
+            messageGroupId: registration.messageGroupId,
+            messageId,
+        })
 
-    internalCache.PerceptionThreads.update(
-        { componentId: payload.componentId, perspectiveKey: payload.perspectiveKey, registrationId },
-        { status: 'Generating', messageId }
-    )
+        internalCache.PerceptionThreads.update(
+            { componentId: payload.componentId, perspectiveKey: payload.perspectiveKey, registrationId },
+            { threadKind: 'roomHeaderBroadcast', status: 'Generating', messageId }
+        )
+    }
 }
 
 type ErrorLikePayload =
@@ -151,34 +265,75 @@ async function handleOrchestrationErrorOrDeferred(payload: ErrorLikePayload, bus
     if (!isEphemeraRoomId(payload.componentId)) {
         return
     }
-    const entry = internalCache.PerceptionThreads.get(payload.componentId, payload.perspectiveKey)
-    if (!entry || !isRoomDescriptionPerceptionThread(entry.thread)) {
-        return
-    }
-    const { thread, registration } = entry
-    if (thread.status === 'Terminal') {
-        logTerminalDedupe(payload.type, payload.componentId, payload.perspectiveKey)
-        return
-    }
-    const characterId = registration.characterId
-    if (!characterId) {
-        return
+    const entries = internalCache.PerceptionThreads.list(payload.componentId, payload.perspectiveKey)
+    for (const entry of entries) {
+        if (!isRoomDescriptionPerceptionThread(entry.thread)) {
+            continue
+        }
+        const { thread, registration, registrationId } = entry
+        if (registration.threadKind !== 'roomDescription') {
+            continue
+        }
+        if (thread.status === 'Terminal') {
+            logTerminalDedupe(payload.type, payload.componentId, payload.perspectiveKey, registrationId)
+            continue
+        }
+        const characterId = registration.characterId
+
+        const roomId = payload.componentId
+        const messageId = thread.messageId ?? `MESSAGE#${randomUUID()}`
+        bus.send({
+            type: 'PublishMessage',
+            targets: [characterId],
+            displayProtocol: 'PerceptionMessage',
+            wmlContent: placeholderRoomFullWml(roomId, 'Error'),
+            metaData: {
+                componentUUID: roomId,
+                displayMode: 'full',
+            },
+            messageGroupId: registration.messageGroupId,
+            messageId,
+        })
+
+        internalCache.PerceptionThreads.remove({
+            componentId: payload.componentId,
+            perspectiveKey: payload.perspectiveKey,
+            registrationId,
+        })
     }
 
-    const roomId = payload.componentId
-    const messageId = thread.messageId ?? `MESSAGE#${randomUUID()}`
-    bus.send({
-        type: 'PublishMessage',
-        targets: [characterId],
-        displayProtocol: 'PerceptionMessage',
-        wmlContent: placeholderRoomFullWml(roomId, 'Error'),
-        metaData: {
-            componentUUID: roomId,
-            displayMode: 'full',
-        },
-        messageGroupId: registration.messageGroupId,
-        messageId,
-    })
+    for (const entry of entries) {
+        if (!isRoomHeaderBroadcastPerceptionThread(entry.thread)) {
+            continue
+        }
+        const { thread, registration, registrationId } = entry
+        if (registration.threadKind !== 'roomHeaderBroadcast') {
+            continue
+        }
+        if (thread.status === 'Terminal') {
+            logTerminalDedupe(payload.type, payload.componentId, payload.perspectiveKey, registrationId)
+            continue
+        }
 
-    internalCache.PerceptionThreads.delete(payload.componentId, payload.perspectiveKey)
+        const roomId = payload.componentId
+        const messageId = thread.messageId ?? `MESSAGE#${randomUUID()}`
+        bus.send({
+            type: 'PublishMessage',
+            targets: registration.targets,
+            displayProtocol: 'PerceptionMessage',
+            wmlContent: roomHeaderErrorPlaceholderWml(roomId),
+            metaData: {
+                componentUUID: roomId,
+                displayMode: 'header',
+            },
+            messageGroupId: registration.messageGroupId,
+            messageId,
+        })
+
+        internalCache.PerceptionThreads.remove({
+            componentId: payload.componentId,
+            perspectiveKey: payload.perspectiveKey,
+            registrationId,
+        })
+    }
 }
