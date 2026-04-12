@@ -3,6 +3,7 @@ import { ephemeraDB, exponentialBackoffWrapper } from "@tonylb/mtw-utilities/ts/
 import internalCache from "../internalCache"
 import { RoomKey, splitType } from "@tonylb/mtw-utilities/ts/types"
 import { unique } from "@tonylb/mtw-utilities/ts/lists"
+import { kickPassiveRenderRequestedForCharacterInRoom } from "../dataSource/perception/kickRoomHeaderBroadcast"
 
 export type RoomStackItem = {
     asset: string;
@@ -163,6 +164,14 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
                     }
                 }
             ])
+            if (payload.roomId !== characterMeta.RoomId) {
+                await kickPassiveRenderRequestedForCharacterInRoom({
+                    roomId: payload.roomId,
+                    characterId: payload.characterId,
+                    assets: characterMeta.assets || [],
+                    messageBus,
+                })
+            }
             messageBus.send({
                 type: 'RoomUpdate',
                 roomId: payload.roomId

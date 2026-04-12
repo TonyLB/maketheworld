@@ -26,6 +26,10 @@ describe('fanOutStateChangedToPassiveRenders', () => {
         it('returns empty when there is no overlap', () => {
             expect(filterRoomCanonStackByCharacterAssets([A, B], ['ASSET#other'])).toEqual([])
         })
+
+        it('matches character slugs to canon stack via AssetKey', () => {
+            expect(filterRoomCanonStackByCharacterAssets([A, B, C], ['a', 'b'])).toEqual([A, B])
+        })
     })
 
     describe('filterRoomCanonStackByRequiredAssetIds', () => {
