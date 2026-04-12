@@ -7,6 +7,7 @@
  */
 import type { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { AssetKey } from '@tonylb/mtw-utilities/ts/types'
 import { computePerspectiveKey } from '@tonylb/mtw-interfaces/ts/perspective'
 import type { EphemeraCacheId, EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
@@ -25,8 +26,8 @@ export const filterRoomCanonStackByCharacterAssets = (
     roomCanonStack: AssetUUID[],
     characterAssets: readonly string[]
 ): AssetUUID[] => {
-    const set = new Set(characterAssets)
-    return roomCanonStack.filter((id) => set.has(id))
+    const set = new Set(characterAssets.map((a) => AssetKey(a)))
+    return roomCanonStack.filter((id) => set.has(AssetKey(id)))
 }
 
 /** Room canon order preserved; only assets in `requiredAssetIds` are kept (for pointer-only fan-out). */

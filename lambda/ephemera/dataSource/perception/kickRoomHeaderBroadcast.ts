@@ -62,3 +62,29 @@ export async function kickRoomHeaderBroadcastForRoom(options: {
         })
     }
 }
+
+/**
+ * Passive render only: enqueue {@link sendRenderRequested} for one character's filtered perspective on a room.
+ * Does not register perception threads or emit client Perception messages.
+ */
+export async function kickPassiveRenderRequestedForCharacterInRoom(options: {
+    roomId: EphemeraRoomId;
+    characterId: EphemeraCharacterId;
+    assets: readonly string[];
+    messageBus: MessageBus;
+}): Promise<void> {
+    const { roomId, characterId, assets, messageBus } = options
+    const roomCanonStack = await resolveCanonAssetStackForRoom(roomId, {
+        RoomAssets: internalCache.RoomAssets,
+        AssetMetaData: internalCache.AssetMetaData,
+    })
+    const filteredAssetStack = filterRoomCanonStackByCharacterAssets(roomCanonStack, assets)
+    if (filteredAssetStack.length === 0) {
+        return
+    }
+    sendRenderRequested(messageBus, roomId, {
+        componentId: roomId,
+        perspective: { assetStack: filteredAssetStack },
+        characterId,
+    })
+}

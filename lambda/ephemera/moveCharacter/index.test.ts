@@ -8,6 +8,15 @@ import {
 jest.mock('../internalCache')
 import internalCache from '../internalCache'
 
+jest.mock('../dataSource/renderOrchestration/subscribedEvents', () => {
+    const actual = jest.requireActual('../dataSource/renderOrchestration/subscribedEvents') as object
+    return {
+        ...actual,
+        sendRenderRequested: jest.fn(),
+    }
+})
+import { sendRenderRequested } from '../dataSource/renderOrchestration/subscribedEvents'
+
 import moveCharacter, { RoomStackItem } from '.'
 import { MessageBus } from '../messageBus/baseClasses'
 import { EphemeraId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
@@ -16,6 +25,10 @@ import { RoomKey } from '@tonylb/mtw-utilities/ts/types'
 // @ts-ignore
 const internalCacheMock = jest.mocked(internalCache, true)
 const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
+const mockSendRenderRequested = sendRenderRequested as jest.MockedFunction<typeof sendRenderRequested>
+
+/** Character assets intersecting test room canon stacks; filter uses `AssetKey` so short names match `ASSET#...` stack ids. */
+const assetsIntersectingTestRooms = ['primitives', 'TownCenter', 'Dockside', 'draftOne', 'draftTwo']
 
 const testEphemeraRecord = (fromRoomStack: RoomStackItem[], toRoomId: EphemeraRoomId, fromDisconnected?: boolean) => (ephemeraId: EphemeraId) => {
     const fromRoomId = RoomKey(fromRoomStack.slice(-1)[0]?.RoomId)
@@ -76,11 +89,17 @@ describe('moveCharacter', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         jest.restoreAllMocks()
+        mockSendRenderRequested.mockClear()
         internalCacheMock.Global.get.mockImplementation((key) => (key === 'assets' ? Promise.resolve(['primitives', 'TownCenter']) : Promise.resolve('abcdef')) as any),
         internalCacheMock.CharacterSessions.get.mockResolvedValue(['abcdef'])
         internalCacheMock.OrchestrateMessages.newMessageGroup.mockReturnValue('UUID#MessageGroup')
         internalCacheMock.OrchestrateMessages.before.mockReturnValue('UUID#Before')
         internalCacheMock.OrchestrateMessages.after.mockReturnValue('UUID#After')
+        internalCacheMock.AssetMetaData = {
+            get: jest.fn().mockImplementation(async (ids: string[]) => (
+                ids.map((id) => ({ AssetId: id, zone: 'Canon' as const }))
+            )),
+        } as any
 
         internalCacheMock.RoomAssets.get.mockImplementation(async (roomId) => {
             switch(roomId) {
@@ -104,7 +123,7 @@ describe('moveCharacter', () => {
         wrapMocks(
             [{ asset: 'primitives', RoomId: 'VORTEX' }],
             'ROOM#TestTwo',
-            ['draftOne', 'draftTwo']
+            assetsIntersectingTestRooms
         )
         await moveCharacter({
             payloads: [{ type: 'MoveCharacter', characterId: 'CHARACTER#Test', roomId: 'ROOM#TestTwo' }],
@@ -192,6 +211,16 @@ describe('moveCharacter', () => {
             previousRoomId: 'ROOM#VORTEX',
             roomId: 'ROOM#TestTwo'
         })
+        expect(mockSendRenderRequested).toHaveBeenCalledTimes(1)
+        expect(mockSendRenderRequested).toHaveBeenCalledWith(
+            messageBusMock,
+            'ROOM#TestTwo',
+            expect.objectContaining({
+                componentId: 'ROOM#TestTwo',
+                characterId: 'CHARACTER#Test',
+                perspective: { assetStack: ['ASSET#TownCenter'] },
+            })
+        )
     })
 
     it('should handle appearance from disconnected', async () => {
@@ -268,13 +297,27 @@ describe('moveCharacter', () => {
             previousRoomId: 'ROOM#VORTEX',
             roomId: 'ROOM#VORTEX'
         })
+        expect(mockSendRenderRequested).not.toHaveBeenCalled()
+    })
+
+    it('does not kick passive render when filtered asset stack is empty', async () => {
+        wrapMocks(
+            [{ asset: 'primitives', RoomId: 'VORTEX' }],
+            'ROOM#TestTwo',
+            []
+        )
+        await moveCharacter({
+            payloads: [{ type: 'MoveCharacter', characterId: 'CHARACTER#Test', roomId: 'ROOM#TestTwo' }],
+            messageBus: messageBusMock,
+        })
+        expect(mockSendRenderRequested).not.toHaveBeenCalled()
     })
 
     it('should replace items in RoomStack when moved in same asset', async () => {
         wrapMocks(
             [{ asset: 'primitives', RoomId: 'VORTEX' }, { asset: 'TownCenter', RoomId: 'TestTwo' }],
             'ROOM#TestThree',
-            ['draftOne', 'draftTwo']
+            assetsIntersectingTestRooms
         )
         await moveCharacter({
             payloads: [{ type: 'MoveCharacter', characterId: 'CHARACTER#Test', roomId: 'ROOM#TestThree' }],
@@ -299,7 +342,7 @@ describe('moveCharacter', () => {
         wrapMocks(
             [{ asset: 'primitives', RoomId: 'VORTEX' }, { asset: 'TownCenter', RoomId: 'TestTwo' }],
             'ROOM#TestFour',
-            ['draftOne', 'draftTwo']
+            assetsIntersectingTestRooms
         )
         await moveCharacter({
             payloads: [{ type: 'MoveCharacter', characterId: 'CHARACTER#Test', roomId: 'ROOM#TestFour' }],
@@ -325,7 +368,7 @@ describe('moveCharacter', () => {
         wrapMocks(
             [{ asset: 'primitives', RoomId: 'VORTEX' }, { asset: 'TownCenter', RoomId: 'TestTwo' }, { asset: 'draftOne', RoomId: 'TestFour' }],
             'ROOM#TestOne',
-            ['draftOne', 'draftTwo']
+            assetsIntersectingTestRooms
         )
         await moveCharacter({
             payloads: [{ type: 'MoveCharacter', characterId: 'CHARACTER#Test', roomId: 'ROOM#TestOne' }],
