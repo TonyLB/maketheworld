@@ -1,10 +1,12 @@
 # mtw.ephemera.perception
 
-**Status:** Bus-only, non-replayable `EphemeraDataSource`. Subscribes to **`api.ephemera`** ingress **`Character Perception Requested`** and **`Perception Thread Registered`**, and to **`mtw.ephemera.renderCache`** **`Render Pertains`** plus selected **`mtw.ephemera.renderOrchestration`** outbounds (**`Generation Started`**, **`Orchestration Error`**, **`Generation Deferred`**) for **room description** and **room header broadcast** fan-in (see [`subscribedEvents.ts`](subscribedEvents.ts)). Character path: **`streamKey`** = viewed character id (`CHARACTER#...`); thread registration: **`streamKey`** = **`componentId`**. `receiveEvents` handles Character via `Meta::Character` and **`PublishMessage`** (`characterPerception.ts`); thread registration calls **`internalCache.PerceptionThreads.register(cmd)`** with a **`threadKind`**-discriminated **`PerceptionThreadRegisterCommand`** (initial thread body derived inside **`register`**; multiple rows may share the same **`componentId` + `perspectiveKey`**); stream payloads are handled in [`orchestrate.ts`](orchestrate.ts) (**`PublishMessage`**, correlated **`messageId`**). No outbound `mtw.ephemera.perception` stream events yet.
+**Status:** Bus-only, non-replayable `EphemeraDataSource`. Subscribes to **`api.ephemera`** ingress **`Character Perception Requested`** and **`Perception Thread Registered`**, and to **`mtw.ephemera.renderCache`** **`Render Pertains`** plus selected **`mtw.ephemera.renderOrchestration`** outbounds (**`Generation Started`**, **`Orchestration Error`**, **`Generation Deferred`**) for **room description**, **room header broadcast**, and **`characterMove`** fan-in (see [`subscribedEvents.ts`](subscribedEvents.ts)). Character path: **`streamKey`** = viewed character id (`CHARACTER#...`); thread registration: **`streamKey`** = **`componentId`**. `receiveEvents` handles Character via `Meta::Character` and **`PublishMessage`** (`characterPerception.ts`); thread registration calls **`internalCache.PerceptionThreads.register(cmd)`** with a **`threadKind`**-discriminated **`PerceptionThreadRegisterCommand`** (initial thread body derived inside **`register`**; multiple rows may share the same **`componentId` + `perspectiveKey`**); stream payloads are handled in [`orchestrate.ts`](orchestrate.ts) (**`PublishMessage`**, correlated **`messageId`**). No outbound `mtw.ephemera.perception` stream events yet.
 
-**Fan-in aggregation:** In-memory state on **`internalCache.PerceptionThreads`** ([`perceptionThreads.ts`](../../internalCache/perceptionThreads.ts): **`register`** appends a row per composite key, **`list`** / **`update`** / **`remove(registrationId)`**, synthetic **`registrationId`** when omitted; no cross-thread dedupe; [`InternalCache.clear()`](../../internalCache/index.ts) only, no **`flush()`**). **`threadKind`** includes **`stub`**, **`roomDescription`**, and **`roomHeaderBroadcast`** (same **`componentId` + `perspectiveKey`** bucket; separate rows). Room examine (step 4) and room header refresh (step 5): [`AGENT.perceptionRefactor.planning.md`](../../../../taskPlanning/lambda/ephemera/dataSource/perception/AGENT.perceptionRefactor.planning.md) **Recommended order**. Entry kicks: **`parse/executeAction`** (description) vs [`kickRoomHeaderBroadcast.ts`](kickRoomHeaderBroadcast.ts) from [`dataSource/index.ts`](../index.ts) (room component update) and imperative [`perceptionMessage`](../../perception/index.ts) (asset-linked rooms), each pairing **`sendPerceptionThreadRegistered`** with passive **`Render Requested`** (**`targets`**) through **`renderOrchestration`**.
+**Fan-in aggregation:** In-memory state on **`internalCache.PerceptionThreads`** ([`perceptionThreads.ts`](../../internalCache/perceptionThreads.ts): **`register`** appends a row per composite key, **`list`** / **`update`** / **`remove(registrationId)`**, synthetic **`registrationId`** when omitted; no cross-thread dedupe; [`InternalCache.clear()`](../../internalCache/index.ts) only, no **`flush()`**). **`threadKind`** includes **`stub`**, **`roomDescription`**, **`roomHeaderBroadcast`**, and **`characterMove`** (same **`componentId` + `perspectiveKey`** bucket; separate rows). Correlated flows (room examine, room header refresh, character move header): first-pass migration **steps 1--7** are shipped; **policy**, **normative decisions**, **obligations**, and **legacy emitters** live in [Normative decisions and obligations](#normative-decisions-and-obligations) below. **`characterMove`** rows carry **`messageGroupId`** (root), **`leaveMessageGroupId`**, **`arriveMessageGroupId`**, optional **`leaveWorldMessage` / `arriveWorldMessage`**, and **`headerTargets`** (defaults to the mover when omitted). Leave/Arrive **`WorldMessage`** sends from transact callbacks use [`characterMoveDelivery.ts`](characterMoveDelivery.ts) with **`OrchestrateMessages`** ordering: **`before`** = leave group, root = room header placeholder/terminal, **`after`** = arrive group.
 
-**Task plan:** [`AGENT.perceptionRefactor.planning.md`](../../../../taskPlanning/lambda/ephemera/dataSource/perception/AGENT.perceptionRefactor.planning.md) under `taskPlanning/lambda/ephemera/dataSource/perception/`.
+**Entry kicks:** **`parse/executeAction`** (room description) and [`kickRoomHeaderBroadcast.ts`](kickRoomHeaderBroadcast.ts) / [`dataSource/index.ts`](../index.ts) / imperative [`perceptionMessage`](../../perception/index.ts) pair **`sendPerceptionThreadRegistered`** with passive **`Render Requested`** (**`targets`**) through **`renderOrchestration`**. **[`moveCharacter`](../../moveCharacter/index.ts)** calls **`internalCache.PerceptionThreads.register`** **directly** (synchronously, before transact) when the arrival room has a **non-empty** **`perspectiveKey`** --- not only **`sendPerceptionThreadRegistered`**, so the row exists before success callbacks that emit Leave/Arrive.
+
+**Development notes:** [`AGENT.development.md`](AGENT.development.md) --- test commands and **follow-on** design direction (default publish vs particularizing registration).
 
 **Related:** Imperative [`perceptionMessage`](../../perception/index.ts) bridges the Character branch through `sendCharacterPerceptionRequested` into this DataSource.
 
@@ -40,4 +42,115 @@ Some audience responses can be satisfied **with data already on hand**. Those pa
 
 ### Why both patterns live here
 
-Keeping **immediate** and **correlated** behavior under **`mtw.ephemera.perception`** avoids splitting "simple" and "hard" delivery into separate subsystems that would have to merge as features evolve. The **task plan** and **Obligations** in [`AGENT.perceptionRefactor.planning.md`](../../../../taskPlanning/lambda/ephemera/dataSource/perception/AGENT.perceptionRefactor.planning.md) describe the correlated fan-in work in flight; this document states the **enduring** domain boundary regardless of which pattern a given code path uses today.
+Keeping **immediate** and **correlated** behavior under **`mtw.ephemera.perception`** avoids splitting "simple" and "hard" delivery into separate subsystems that would have to merge as features evolve. **Obligations** and **normative routing** for fan-in are in [Normative decisions and obligations](#normative-decisions-and-obligations) below; pass-through semantics this stack consumes are in [`AGENT.passThrough.contract.planning.md`](../../../../taskPlanning/lambda/ephemera/dataSource/AGENT.passThrough.contract.planning.md).
+
+---
+
+## Normative decisions and obligations
+
+### Plan assumptions
+
+- **`mtw.ephemera.perception`** is a **published** Ephemera DataSource on the **internal** bus (**`StreamingEvent`**, **`subscribedEvents`**, **`publishedEvents`**) like other ephemera DataSources. A later **split** (ingress adapter vs domain core) is allowed if complexity grows.
+- **Bus-only graph:** subscribe and publish perception-related work through the **internal bus** only. **EventBridge** / external **replay** are **out of scope** unless added deliberately.
+- **In-memory fan-in:** aggregation lives on **`internalCache.PerceptionThreads`** only for the lambda invocation; **no** durable checkpoints until **replay** or **cross-invocation** continuity requires them (**TBD**).
+
+### Implementation stance
+
+- **Lift** audience-facing assembly from imperative [`perceptionMessage`](../../perception/index.ts) into this DataSource where the refactor applies; keep [`perception/AGENT.md`](../../perception/AGENT.md) accurate as the split evolves.
+- **Prefer** the same DataSource patterns as [`renderOrchestration`](../renderOrchestration/) and [`renderCache`](../renderCache/) where they fit (**`api.ephemera`** ingress helpers, **`subscribedEvents`** / **`publishedEvents`**, **`EphemeraDataSource`** + **`subscribe()`**). Perception-specific fan-in will not map one-to-one to every orchestration or cache concern; use those trees as **reference implementations**, not a spec to force-fit.
+
+### Imperative `perceptionMessage` baseline (v1)
+
+Policy for the legacy handler in [`perception/index.ts`](../../perception/index.ts) (orthogonal to **`mtw.ephemera.perception`** fan-in, but affects what still hits the bus):
+
+| Policy | Detail |
+| --- | --- |
+| **Message components** | Legacy **Message** component delivery was **removed** from **`perceptionMessage`**; that UX is intended to be **rebuilt** on the new model rather than preserved in the old path. |
+| **Knowledge and Map** | Branches are **disabled** in the handler via **`KNOWLEDGE_PERCEPTION_ENABLED`** and **`MAP_PERCEPTION_ENABLED`**. They are **not** migrated in v1; callers may still enqueue **`Perception`** for maps/knowledge until follow-on wiring. |
+
+### Routing identity
+
+- **Bucket key:** **`componentId` + `perspectiveKey`** only. A bucket may hold **multiple** thread rows (**`register`** appends; **`remove(registrationId)`** drops one).
+- **`cacheId`:** **not** part of the match predicate for **`Render Pertains`** / **`Generation Started`**. Producers include **`cacheId`** on **`Render Pertains`** for **cache content and durability**; that does **not** require perception to **route** or **open** a thread by **`cacheId`**. **Matching** stays **`componentId` + `perspectiveKey`** (and registration). Perception may **persist** **`cacheId`** on the row (e.g. for dedupe or cache lifecycle alignment) --- separate from the match predicate. See [**Correlation vs routing**](../renderCache/AGENT.md#correlation-vs-routing) in **`mtw.ephemera.renderCache`**.
+- **Logical completion:** Defining **same logical completion** for subscriber dedupe (pass-through **uncertainty 6**) may still use **`cacheId` + routing identity** without using **`cacheId`** as the **primary** bucket key.
+- **Concurrency:** If two logical completions could **overlap** for the same **`(componentId, perspectiveKey)`**, policy may add a **generation epoch** or nonce at registration (**TBD**). The default is **not** to promote **`cacheId`** to the primary map key without revisiting that decision.
+- **Terminal dedupe:** If **`status`** is already **`Terminal`**, further **relevant** orchestration/cache stream events are **`console.log`**'d and **ignored** (no second **`PublishMessage`**), including a **late** **`Generation Started`** that would only add a **Generating** placeholder. Perception does **not** argue whether **`Generation Started` "should"** have fired earlier. **`Orchestration Error`** / **`Generation Deferred`** use the **same terminal overwrite** behavior as success (**overwrite** prior **Generating** **`messageId`** when present), then **`remove`** where applicable.
+- **Duplicate intermediates:** Multiple **`Generation Started`** (or similar in-flight signals) before **terminal** are an **acceptable intermediate** (pass-through **uncertainty 6**); **`singleFlight`** and orchestration docs constrain duplicate **generation** work. Subscriber-side **terminal** dedupe for **delivery** remains an **open** obligation (see table below).
+
+### Correlated room description (policy)
+
+- **No `Cache Updated`-only fan-in (v1):** Perception does **not** subscribe to fan-in driven **only** by **`Cache Updated`** for room description. Scenarios that would depend on **`Cache Updated`** alone stay **deferred**. A possible **future** end-of-invocation **sweep** of unfulfilled threads is **out of scope** until deliberately designed.
+- **Room examine entry (v1):** The correlated **room description** path **registers** and **kicks** render from **`parse/executeAction`** only (room **`look`**). **`checkLocation`**, **`perceptionMessage`**, and other callers are **not** wired to that correlated path until a deliberate follow-on.
+- **Bucket after terminal (room description):** After **terminal** delivery, the **room description** thread row **need not** retain the finished render (emit full description and drop the registration). **Other** thread kinds may later **retain** terminal material or combine with **separate** inputs; treat that as a **per-`threadKind`** choice when extending the model.
+- **Placeholder copy:** **Generating** / **Error** **`PublishMessage`** for room description use the **same shape** as terminal full room: **`displayProtocol`**, **`metaData`**, **`displayMode: 'full'`**, and related fields, with **dirt-simple** body text; copy is **throwaway** until product polish.
+- **No-slow path UX:** On cache **hit** paths (**`Current Cache Valid`** / **`Exact Match Found`** leading to **`Render Pertains`** without **`Generation Started`**), the user does **not** see a **Generating** placeholder---only the **terminal** description **`PublishMessage`**.
+
+### Virtual lanes (Generating traffic)
+
+The **main** cascade (**`executeAction`**, **`renderOrchestration`**, **`renderCache`**, perception **`receiveEvents`** for non-Generating work) stays on the **default** lane unless a slice opts in. **Generating** placeholder traffic uses a **`laneId`** allocated on the **slow path** in **`findRender`** at handoff into **`generateRoomPreview`**, threaded through **`publishOrchestration`** / bus **`send`** for **Generating**-scoped **StreamingEvent** traffic only, with **`flushOrchestrationLane`** so placeholders reach subscribers before long-running generation. **Owned detail:** [`AGENT.implementation.md`](../../../../packages/mtw-lambda-patterns/ts/messageBus/AGENT.implementation.md#virtual-lanes-internalmessagebus) (**Virtual lanes**), [`lambda/ephemera/messageBus/AGENT.md`](../../messageBus/AGENT.md).
+
+### Aggregation placement and lifecycle
+
+**`internalCache.PerceptionThreads`** ([`perceptionThreads.ts`](../../internalCache/perceptionThreads.ts)): in-memory only; wired to **`InternalCache.clear()`**; **no** **`flush()`** (not Dynamo-backed). See [`internalCache/AGENT.md`](../../internalCache/AGENT.md) (**PerceptionThreads**).
+
+### Pass-through relationship
+
+| Topic | Role |
+| --- | --- |
+| **`Render Pertains`**, **`Cache Updated`**, correlation vs broadcast | Defines what emitters publish; perception **interprets** those signals for **who** gets placeholders vs terminal vs cache-only refresh. |
+| **Contract alignment** (phases in parent epics) | Encodes producer obligations; perception is the **consumer** that closes the client delivery loop. |
+| **[`AGENT.passThrough.contract.planning.md`](../../../../taskPlanning/lambda/ephemera/dataSource/AGENT.passThrough.contract.planning.md)** | Draft contract; refine alongside implementation and [**Encoding the contract in unit tests**](../../../../taskPlanning/lambda/ephemera/dataSource/AGENT.passThrough.contract.planning.md#encoding-the-contract-in-unit-tests). |
+
+### Obligations accruing to future perception (working list)
+
+Debt acknowledged while pass-through and types catch up. **Update this table** when upstream decisions land.
+
+| Source | Obligation (draft) | Status |
+| --- | --- | --- |
+| Pass-through contract | Interpret **`Render Pertains`** (correlated) vs **`Cache Updated`** (abstract) for **different delivery audiences** (present for placeholder vs newly present). | TBD |
+| Pipeline / orchestration | **`renderOrchestration`** moves lifecycle off **`conversation.sendMessage`** toward the **six outbound types**; perception must **not** assume conversation-backed correlation long-term. **`Generation Started`**, **`Orchestration Error`**, **`Generation Deferred`** consumer rules **TBD**. **Multiple** **`Generation Started`** for one logical job is an **acceptable intermediate** (pre-**`singleFlight`** / recovery); align with contract **uncertainty 6** and [`renderOrchestration/AGENT.md`](../renderOrchestration/AGENT.md#single-flight-generation) (**Single-flight generation**). | TBD |
+| Pass-through **uncertainty 6** (subscriber idempotency) | Producers may emit **duplicate or retried** notifications; perception **owns** collapsing those into **delivery** semantics: **repeated intermediate** states are **fine**; do **not** surface **two terminal / final** deliveries for the **same** logical completion (same **`cacheId`** + routing identity, or agreed successor key). **Exact** dedupe strategy **TBD**. | TBD |
+| Contract uncertainties | Fan-in must stay **single-path** for passive orchestration (no silent fork); aligns with pass-through and completion rubric **section 4**. | TBD |
+| Epic / rubric | **Fan-in** assembler role: merge orchestration progress, cache events, presence into **`PublishMessage`** / timeline rules. | TBD |
+| Current code | Preserve or migrate behavior documented in [`perception/AGENT.md`](../../perception/AGENT.md) (triggers, scale, navigation). | TBD |
+
+**Uncertainty 6 (summary):** Orchestration + cache aim to avoid duplicate **generation** (**`singleFlight`**); **duplicate** **`Generation Started`** may still occur until idempotency hardens. Perception implements **terminal** dedupe for **delivery** as in [Routing identity](#routing-identity) above; the **full** subscriber collapse strategy for all products remains **TBD** (table row).
+
+### Legacy imperative `Perception` bus emitters (not yet on DataSource fan-in)
+
+These paths **still enqueue** **`type: 'Perception'`** for [`perceptionMessage`](../../perception/index.ts) until a follow-on routes them through **`mtw.ephemera.perception`** or removes dead emits. **Note:** **`executeAction`** **`look`** uses the correlated **room** path (**`roomDescription`** registration + **`Render Requested`**) when **`EphemeraId`** is a **room**; **non-room** **`look`** still sends imperative **`Perception`**.
+
+| Source | Reference |
+| --- | --- |
+| **`look`** / **`ExecuteAction`** (non-room) | [`parse/executeAction.ts`](../../parse/executeAction.ts) |
+| **`checkLocation`** (`forceRender`) | [`checkLocation/index.ts`](../../checkLocation/index.ts) |
+| **Asset `Component Updated`** (room header refresh) | [`dataSource/index.ts`](../index.ts) (`processComponentUpdated`) |
+| **Link API** (feature, character, knowledge) | [`app.ts`](../../app.ts) |
+| **Map subscription** success path | [`mapSubscription/index.ts`](../../mapSubscription/index.ts) (handler may gate knowledge/map; bus traffic can still differ) |
+
+**`moveCharacter` (partial migration):** when the mover has a **non-empty** arrival-room **`perspectiveKey`**, header delivery uses **`characterMove`** fan-in, not imperative **`Perception`** for that leg; **fallback** paths may still use imperative **`Perception`**.
+
+### Related documentation
+
+| Doc | Role |
+| --- | --- |
+| [`taskPlanning/AGENT.md`](../../../../taskPlanning/AGENT.md) | Task planning framework |
+| [`lambda/ephemera/AGENT.ephemeraPerceptionVertical.planning.md`](../../AGENT.ephemeraPerceptionVertical.planning.md) | Parent epic |
+| [`lambda/ephemera/AGENT.ephemeraPerceptionVertical.contractAlign.planning.md`](../../AGENT.ephemeraPerceptionVertical.contractAlign.planning.md) | Phase order, pass-through, contract encoding in tests |
+| [`AGENT.passThrough.contract.planning.md`](../../../../taskPlanning/lambda/ephemera/dataSource/AGENT.passThrough.contract.planning.md) | Pass-through / readiness draft (perception consumes) |
+| [`lambda/ephemera/perception/AGENT.md`](../../perception/AGENT.md) | Imperative triggers, navigation, message shapes |
+| [`lambda/ephemera/AGENT.ephemeraPerceptionVertical.planning.completionRubric.md`](../../AGENT.ephemeraPerceptionVertical.planning.completionRubric.md) | Rubric **section 3** (fan-in), **section 4** (ready to show) |
+| [`messageBus/AGENT.implementation.md`](../../../../packages/mtw-lambda-patterns/ts/messageBus/AGENT.implementation.md#virtual-lanes-internalmessagebus) | **Virtual lanes** (`InternalMessageBus`) |
+
+### Verification
+
+Run from repository root unless noted.
+
+| Scope | Command | When |
+| --- | --- | --- |
+| **Ephemera package (default)** | `cd lambda/ephemera && npm test` | After changes under `lambda/ephemera/`; full suite before merge when touching shared behavior |
+| **Imperative perception** | `cd lambda/ephemera && npx jest perception/index.test.ts` | Iterating on [`perception/index.ts`](../../perception/index.ts) |
+| **This DataSource** | `cd lambda/ephemera && npx jest dataSource/perception/` | Perception DataSource and unit tests |
+| **Patterns package** | `cd packages/mtw-lambda-patterns && npm test` | After changing `InternalMessageBus` or DataSource base in `mtw-lambda-patterns` |
+
+**Contract tests:** Per [`AGENT.passThrough.contract.planning.md`](../../../../taskPlanning/lambda/ephemera/dataSource/AGENT.passThrough.contract.planning.md#encoding-the-contract-in-unit-tests), add placeholder or skipped tests early with reasons; activate as behavior lands.

@@ -11,6 +11,9 @@ import {
     type EphemeraCharacterId,
     type EphemeraRoomId,
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { RenderTree } from '@tonylb/mtw-base/ts/renderTree'
+import { isRenderTree } from '@tonylb/mtw-base/ts/renderTree'
+import type { PublishTarget } from '../../messageBus/baseClasses'
 import type { MessageGroupId } from '../../internalCache/orchestrateMessages'
 import type { EphemeraCacheComponentId } from '../renderCache/baseClasses'
 
@@ -45,6 +48,31 @@ export type PerceptionThreadRegisterRoomHeaderBroadcastCommand = {
     registrationId?: string;
 }
 
+/** Wire payload for Leave / Arrive WorldMessage legs (same shape as PublishWorldMessage). */
+export type CharacterMoveWorldMessageSpec = {
+    targets: PublishTarget[];
+    message: RenderTree;
+}
+
+/**
+ * Character move: correlated header fan-in on arrival room + perspectiveKey, with ordered WorldMessage legs.
+ * Ordering ids must be the concrete values from OrchestrateMessages.before / root / after.
+ */
+export type PerceptionThreadRegisterCharacterMoveCommand = {
+    threadKind: 'characterMove';
+    componentId: EphemeraRoomId;
+    perspectiveKey: string;
+    characterId: EphemeraCharacterId;
+    departureRoomId: EphemeraRoomId;
+    messageGroupId: MessageGroupId;
+    leaveMessageGroupId: MessageGroupId;
+    arriveMessageGroupId: MessageGroupId;
+    leaveWorldMessage?: CharacterMoveWorldMessageSpec;
+    arriveWorldMessage?: CharacterMoveWorldMessageSpec;
+    headerTargets?: EphemeraCharacterId[];
+    registrationId?: string;
+}
+
 /** Non-room component registration placeholder (stub thread body). */
 export type PerceptionThreadRegisterStubCommand = {
     threadKind: 'stub';
@@ -59,9 +87,21 @@ export type PerceptionThreadRegisterStubCommand = {
 export type PerceptionThreadRegisterCommand =
     | PerceptionThreadRegisterRoomDescriptionCommand
     | PerceptionThreadRegisterRoomHeaderBroadcastCommand
+    | PerceptionThreadRegisterCharacterMoveCommand
     | PerceptionThreadRegisterStubCommand
 
 export type PerceptionIngressCommand = CharacterPerceptionRequestedCommand | PerceptionThreadRegisterCommand
+
+export const isCharacterMoveWorldMessageSpec = (value: unknown): value is CharacterMoveWorldMessageSpec => {
+    if (!value || typeof value !== 'object') {
+        return false
+    }
+    const o = value as Record<string, unknown>
+    if (!Array.isArray(o.targets) || o.targets.length === 0 || !o.targets.every((t) => typeof t === 'string')) {
+        return false
+    }
+    return isRenderTree(o.message)
+}
 
 export const isCharacterPerceptionRequestedCommand = (value: unknown): value is CharacterPerceptionRequestedCommand => {
     if (!value || typeof value !== 'object') {
@@ -85,7 +125,12 @@ export const isPerceptionThreadRegisterCommand = (value: unknown): value is Perc
         return false
     }
     const v = value as Record<string, unknown>
-    if (v.threadKind !== 'roomDescription' && v.threadKind !== 'roomHeaderBroadcast' && v.threadKind !== 'stub') {
+    if (
+        v.threadKind !== 'roomDescription'
+        && v.threadKind !== 'roomHeaderBroadcast'
+        && v.threadKind !== 'characterMove'
+        && v.threadKind !== 'stub'
+    ) {
         return false
     }
     if (typeof v.componentId !== 'string' || !isEphemeraCacheComponentId(v.componentId)) {
@@ -94,7 +139,7 @@ export const isPerceptionThreadRegisterCommand = (value: unknown): value is Perc
     if (typeof v.perspectiveKey !== 'string' || v.perspectiveKey.length === 0) {
         return false
     }
-    if (v.messageGroupId !== undefined && typeof v.messageGroupId !== 'string') {
+    if (v.threadKind !== 'characterMove' && v.messageGroupId !== undefined && typeof v.messageGroupId !== 'string') {
         return false
     }
     if (v.registrationId !== undefined && typeof v.registrationId !== 'string') {
@@ -115,6 +160,41 @@ export const isPerceptionThreadRegisterCommand = (value: unknown): value is Perc
         return v.targets.every(
             (t) => typeof t === 'string' && isEphemeraCharacterId(t)
         )
+    }
+    if (v.threadKind === 'characterMove') {
+        if (!isEphemeraRoomId(v.componentId)) {
+            return false
+        }
+        if (typeof v.characterId !== 'string' || !isEphemeraCharacterId(v.characterId)) {
+            return false
+        }
+        if (typeof v.departureRoomId !== 'string' || !isEphemeraRoomId(v.departureRoomId)) {
+            return false
+        }
+        if (typeof v.messageGroupId !== 'string' || v.messageGroupId.length === 0) {
+            return false
+        }
+        if (typeof v.leaveMessageGroupId !== 'string' || v.leaveMessageGroupId.length === 0) {
+            return false
+        }
+        if (typeof v.arriveMessageGroupId !== 'string' || v.arriveMessageGroupId.length === 0) {
+            return false
+        }
+        if (v.leaveWorldMessage !== undefined && !isCharacterMoveWorldMessageSpec(v.leaveWorldMessage)) {
+            return false
+        }
+        if (v.arriveWorldMessage !== undefined && !isCharacterMoveWorldMessageSpec(v.arriveWorldMessage)) {
+            return false
+        }
+        if (
+            v.headerTargets !== undefined
+            && (!Array.isArray(v.headerTargets)
+                || v.headerTargets.length === 0
+                || !v.headerTargets.every((t) => typeof t === 'string' && isEphemeraCharacterId(t)))
+        ) {
+            return false
+        }
+        return true
     }
     return isStubComponentId(v.componentId)
 }

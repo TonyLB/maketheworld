@@ -22,7 +22,7 @@ This sub-epic exists to avoid a **two-sided contract trap**: emitters and percep
 | **renderCache slice** | [`dataSource/renderCache/AGENT.md`](dataSource/renderCache/AGENT.md) | **`mtw.ephemera.renderCache`** DataSource (pass-through shipped) |
 | **renderOrchestration slice** | [`dataSource/renderOrchestration/AGENT.md`](dataSource/renderOrchestration/AGENT.md) | **`mtw.ephemera.renderOrchestration`** DataSource (pass-through shipped) |
 | **currentCachePointers slice** | [`taskPlanning/lambda/ephemera/dataSource/currentCachePointers/AGENT.cachePointersRefactor.planning.md`](../../taskPlanning/lambda/ephemera/dataSource/currentCachePointers/AGENT.cachePointersRefactor.planning.md) | **`mtw.ephemera.currentCachePointers`** - meta pointer maintenance (stub) |
-| **Perception big refactor** | [`taskPlanning/lambda/ephemera/dataSource/perception/AGENT.perceptionRefactor.planning.md`](../../taskPlanning/lambda/ephemera/dataSource/perception/AGENT.perceptionRefactor.planning.md) | Fan-in / DataSource direction, **obligations** accrued from pass-through; **not** pass-through-only |
+| **Perception DataSource** | [`dataSource/perception/AGENT.md`](dataSource/perception/AGENT.md) | Fan-in shipped; normative **routing**, **obligations**, **policy**; consumer of pass-through (see **Related documentation** there) |
 | **Completion rubric anchor** | [AGENT.ephemeraPerceptionVertical.planning.completionRubric.md](AGENT.ephemeraPerceptionVertical.planning.completionRubric.md) (section 4) | Outcomes: coherent "ready to show," no systematic races |
 
 **Types / interfaces:** eventual home TBD; see [`packages/mtw-interfaces/AGENT.md`](../../packages/mtw-interfaces/AGENT.md).
@@ -77,7 +77,7 @@ Order is **logical**, not a promise of calendar sequencing; adjust this table in
 | **B** | **renderOrchestration** - emit the **six outbound types** (`Current Cache Valid`, `Exact Match Found`, `Generation Started`, `Render Generated`, `Orchestration Error`, `Generation Deferred` per contract); **remove `conversation.sendMessage`** in favor of **streamed outbounds**; migrate off owning the **final** correlated "ready" story as agreed | Phase A stable enough to implement without weekly renames | [`dataSource/renderOrchestration/AGENT.md`](dataSource/renderOrchestration/AGENT.md) |
 | **C** | **renderCache** - correlated (`Render Pertains`) and abstract (`Cache Updated`) behavior; reconcile duplicate-`Cache Updated` risk on generate path | Phases A-B; contract uncertainties on write vs notify | [`dataSource/renderCache/AGENT.md`](dataSource/renderCache/AGENT.md) |
 | **C.5** | **`currentCachePointers`** - **`mtw.ephemera.currentCachePointers`**: subscribe to **`Generation Deferred`** (clear **meta** pointers only) and **`Render Pertains`** (set pointers); see stub | Phases B-C; **`Render Pertains`** payloads **component x perspective** + **`cacheId`** (uncertainty 9 resolved); uncertainty 11 (bus ordering) is future | [`currentCachePointers/AGENT.cachePointersRefactor.planning.md`](../../taskPlanning/lambda/ephemera/dataSource/currentCachePointers/AGENT.cachePointersRefactor.planning.md) |
-| **D** | **Perception** - DataSource (or agreed) fan-in: register delivery intent, aggregate out-of-order events, thin vertical **state -> room render -> perception** before move/look breadth | Phases A-C emitting enough signal to test; contract for correlation vs broadcast | [`perception/AGENT.perceptionRefactor.planning.md`](../../taskPlanning/lambda/ephemera/dataSource/perception/AGENT.perceptionRefactor.planning.md) |
+| **D** | **Perception** - DataSource (or agreed) fan-in: register delivery intent, aggregate out-of-order events, thin vertical **state -> room render -> perception** before move/look breadth | Phases A-C emitting enough signal to test; contract for correlation vs broadcast | [`dataSource/perception/AGENT.md`](dataSource/perception/AGENT.md) |
 | **E** | **Breadth** - character move, player look, and other event types aligned to the same perception pattern | Phase D vertical proven | *Per-phase task plans TBD* |
 
 **Perception note:** Phase D is intentionally **last** in this sub-epic so the contract is not designed only from consumer desire or only from producer convenience; stubs and contract tests can still exist **before** D lands in full.
@@ -101,7 +101,7 @@ Order is **logical**, not a promise of calendar sequencing; adjust this table in
 ## Open items for this document
 
 - Track **active vs skipped** contract tests over time (optional: small table in contract doc Progress or a single `*.test.ts` file header).
-- ~~Add **links to perception task plan(s)**~~ - see [`perception/AGENT.perceptionRefactor.planning.md`](../../taskPlanning/lambda/ephemera/dataSource/perception/AGENT.perceptionRefactor.planning.md) (expand as Phase D nears).
+- ~~Add **links to perception task plan(s)**~~ - superseded by [`dataSource/perception/AGENT.md`](dataSource/perception/AGENT.md) (normative consumer doc; historical task plan removed).
 - ~~Add **explicit migration / overlap** notes for `RenderReady` and conversation materialization~~ - contract doc: **no** external **`RenderReady`** listeners; producer-path / cutover overlap only (uncertainty 4 resolved).
 - Optionally add a one-line row to the parent epic **Contributing and subordinate planning documents** table pointing here.
 

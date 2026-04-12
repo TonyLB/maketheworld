@@ -16,9 +16,9 @@ The perception system serves as the **message routing and display engine** that:
 
 ## Architecture: `mtw.ephemera.perception` DataSource
 
-New work is moving **audience-facing** assembly into the bus-published DataSource at [`../dataSource/perception/`](../dataSource/perception/). See [`../dataSource/perception/AGENT.md`](../dataSource/perception/AGENT.md) for the **data domain**: how perception **bridges** internal-focused pipelines (`renderOrchestration`, `renderCache`, etc.) and audience-focused delivery, including **correlated** (register, subscribe, correlate, dispatch) vs **immediate** (data on hand) patterns and why both live in one place.
+New work is moving **audience-facing** assembly into the bus-published DataSource at [`../dataSource/perception/`](../dataSource/perception/). See [`../dataSource/perception/AGENT.md`](../dataSource/perception/AGENT.md) for the **data domain**: how perception **bridges** internal-focused pipelines (`renderOrchestration`, `renderCache`, etc.) and audience-focused delivery, including **correlated** (register, subscribe, correlate, dispatch) vs **immediate** (data on hand) patterns and why both live in one place. That doc also holds **normative routing**, **plan assumptions**, **implementation stance**, **imperative `perceptionMessage` baseline (v1)**, **correlated room description** policy, the **obligations** working list, **legacy `Perception` emitters** not yet migrated, **verification** commands, and **related planning links**.
 
-This guide remains the map for **imperative** `perceptionMessage` behavior, triggers, and message shapes until those paths migrate.
+This guide remains the map for **imperative** `perceptionMessage` behavior, triggers, and message shapes until those paths migrate. **v1 handler policy** (removed Message path; Knowledge and Map branches **gated off** by flags): [`../dataSource/perception/AGENT.md`](../dataSource/perception/AGENT.md#imperative-perceptionmessage-baseline-v1).
 
 ## Perception Event Triggers
 
@@ -49,11 +49,12 @@ The perception system can be triggered by several different categories of events
 #### **Character Movement Events**
 - **Source**: `MoveCharacter` internal message bus events
 - **Trigger Pattern**: Character moves rooms → New room perception → Header updates → Map updates
-- **Perception Flow**:
-  1. `moveCharacter` function triggers `Perception` message with `header: true`
-  2. `PerceptionRoomMessage` sends room header to moving character
-  3. `MapUpdate` message updates character's map view
-  4. Other characters in destination room see arrival message
+- **Perception Flow** (when the mover has a **non-empty** arrival-room **`perspectiveKey`**):
+  1. [`moveCharacter`](../moveCharacter/index.ts) registers a **`characterMove`** perception thread on **`internalCache.PerceptionThreads`** (synchronous **`register`** before transact) and kicks passive **`Render Requested`** for the new room.
+  2. Header **Generating** / terminal **`PublishMessage`** for the mover (and optional **`headerTargets`**) is delivered by fan-in in [`../dataSource/perception/orchestrate.ts`](../dataSource/perception/orchestrate.ts), analogous to **`roomHeaderBroadcast`**.
+  3. Leave/Arrive narrative **`WorldMessage`** sends use [`../dataSource/perception/characterMoveDelivery.ts`](../dataSource/perception/characterMoveDelivery.ts) with correlated **`OrchestrateMessages`** group ids (**`before`** / root / **`after`**).
+  4. **`MapUpdate`** still updates the character's map view.
+- **Fallback**: empty filtered perspective or same-room updates may still use imperative **`Perception`** / **`perceptionMessage`** where the code path requires it.
 - **Special Behavior**: Room headers use in-place updates rather than timeline entries
 
 #### **Character Interaction Events**

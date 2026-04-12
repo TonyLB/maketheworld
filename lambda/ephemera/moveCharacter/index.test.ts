@@ -7,6 +7,7 @@ import {
 
 jest.mock('../internalCache')
 import internalCache from '../internalCache'
+import PerceptionThreadsData from '../internalCache/perceptionThreads'
 
 jest.mock('../dataSource/renderOrchestration/subscribedEvents', () => {
     const actual = jest.requireActual('../dataSource/renderOrchestration/subscribedEvents') as object
@@ -85,10 +86,12 @@ const wrapMocks = (fromRoomStack: RoomStackItem[], toRoomId: EphemeraRoomId, ass
 }
 
 describe('moveCharacter', () => {
-    const messageBusMock = { send: jest.fn() } as unknown as MessageBus
+    const messageBusSend = jest.fn()
+    const messageBusMock = { send: messageBusSend } as unknown as MessageBus
     beforeEach(() => {
         jest.clearAllMocks()
         jest.restoreAllMocks()
+        messageBusSend.mockClear()
         mockSendRenderRequested.mockClear()
         internalCacheMock.Global.get.mockImplementation((key) => (key === 'assets' ? Promise.resolve(['primitives', 'TownCenter']) : Promise.resolve('abcdef')) as any),
         internalCacheMock.CharacterSessions.get.mockResolvedValue(['abcdef'])
@@ -117,6 +120,7 @@ describe('moveCharacter', () => {
                     return ['ASSET#primitives', 'ASSET#TownCenter', 'ASSET#Dockside']
             }
         })
+        internalCacheMock.PerceptionThreads = new PerceptionThreadsData() as any
     })
 
     it('should change rooms appropriately', async () => {
@@ -166,7 +170,7 @@ describe('moveCharacter', () => {
                 ]
             })
         }
-        expect(messageBusMock.send).toHaveBeenCalledWith({
+        expect(messageBusSend).toHaveBeenCalledWith({
             type: 'EphemeraUpdate',
             updates: [{
                 type: 'CharacterInPlay',
@@ -176,36 +180,30 @@ describe('moveCharacter', () => {
                 connectionTargets: ['GLOBAL', 'SESSION#abcdef'],
             }]
         })
-        expect(messageBusMock.send).toHaveBeenCalledWith({
+        expect(messageBusSend).toHaveBeenCalledWith({
             type: 'PublishMessage',
             targets: ['ROOM#VORTEX', 'CHARACTER#Test'],
             displayProtocol: 'WorldMessage',
             message: ['Test has left.'],
             messageGroupId: 'UUID#Before'
         })
-        expect(messageBusMock.send).toHaveBeenCalledWith({
+        expect(messageBusSend).toHaveBeenCalledWith({
             type: 'RoomUpdate',
             roomId: 'ROOM#VORTEX'
         })
-        expect(messageBusMock.send).toHaveBeenCalledWith({
-            type: 'Perception',
-            characterId: 'CHARACTER#Test',
-            ephemeraId: 'ROOM#TestTwo',
-            header: true,
-            messageGroupId: 'UUID#MessageGroup'
-        })
-        expect(messageBusMock.send).toHaveBeenCalledWith({
+        expect(messageBusSend.mock.calls.filter((c) => (c[0] as { type?: string })?.type === 'Perception')).toHaveLength(0)
+        expect(messageBusSend).toHaveBeenCalledWith({
             type: 'PublishMessage',
             targets: ['ROOM#TestTwo', 'CHARACTER#Test'],
             displayProtocol: 'WorldMessage',
             message: ['Test has arrived.'],
             messageGroupId: 'UUID#After'
         })
-        expect(messageBusMock.send).toHaveBeenCalledWith({
+        expect(messageBusSend).toHaveBeenCalledWith({
             type: 'RoomUpdate',
             roomId: 'ROOM#TestTwo'
         })
-        expect(messageBusMock.send).toHaveBeenCalledWith({
+        expect(messageBusSend).toHaveBeenCalledWith({
             type: 'MapUpdate',
             characterId: 'CHARACTER#Test',
             previousRoomId: 'ROOM#VORTEX',
@@ -262,8 +260,8 @@ describe('moveCharacter', () => {
                 ]
             })
         }
-        expect(messageBusMock.send).toHaveBeenCalledTimes(5)
-        expect(messageBusMock.send).toHaveBeenCalledWith({
+        expect(messageBusSend).toHaveBeenCalledTimes(5)
+        expect(messageBusSend).toHaveBeenCalledWith({
             type: 'EphemeraUpdate',
             updates: [{
                 type: 'CharacterInPlay',
@@ -273,25 +271,25 @@ describe('moveCharacter', () => {
                 connectionTargets: ['GLOBAL', 'SESSION#abcdef'],
             }]
         })
-        expect(messageBusMock.send).toHaveBeenCalledWith({
+        expect(messageBusSend).toHaveBeenCalledWith({
             type: 'Perception',
             characterId: 'CHARACTER#Test',
             ephemeraId: 'ROOM#VORTEX',
             header: true,
             messageGroupId: 'UUID#MessageGroup'
         })
-        expect(messageBusMock.send).toHaveBeenCalledWith({
+        expect(messageBusSend).toHaveBeenCalledWith({
             type: 'PublishMessage',
             targets: ['ROOM#VORTEX', '!CHARACTER#Test'],
             displayProtocol: 'WorldMessage',
             message: ['Test has connected.'],
             messageGroupId: 'UUID#After'
         })
-        expect(messageBusMock.send).toHaveBeenCalledWith({
+        expect(messageBusSend).toHaveBeenCalledWith({
             type: 'RoomUpdate',
             roomId: 'ROOM#VORTEX'
         })
-        expect(messageBusMock.send).toHaveBeenCalledWith({
+        expect(messageBusSend).toHaveBeenCalledWith({
             type: 'MapUpdate',
             characterId: 'CHARACTER#Test',
             previousRoomId: 'ROOM#VORTEX',

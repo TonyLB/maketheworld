@@ -1,9 +1,18 @@
+import { v4 as uuidv4 } from 'uuid'
 import { MoveCharacterMessage, MessageBus } from "../messageBus/baseClasses"
 import { ephemeraDB, exponentialBackoffWrapper } from "@tonylb/mtw-utilities/ts/dynamoDB"
 import internalCache from "../internalCache"
 import { RoomKey, splitType } from "@tonylb/mtw-utilities/ts/types"
 import { unique } from "@tonylb/mtw-utilities/ts/lists"
-import { kickPassiveRenderRequestedForCharacterInRoom } from "../dataSource/perception/kickRoomHeaderBroadcast"
+import {
+    getCharacterRoomPerspectiveKey,
+    kickPassiveRenderRequestedForCharacterInRoom,
+} from "../dataSource/perception/kickRoomHeaderBroadcast"
+import {
+    sendCharacterMoveArrive,
+    sendCharacterMoveLeave,
+    type CharacterMoveDeliveryKey,
+} from "../dataSource/perception/characterMoveDelivery"
 
 export type RoomStackItem = {
     asset: string;
@@ -27,6 +36,50 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
                 internalCache.RoomAssets.get(payload.roomId),
                 internalCache.Global.get('assets')
             ])
+
+            let characterMoveKey: CharacterMoveDeliveryKey | null = null
+            if (payload.roomId !== characterMeta.RoomId) {
+                const perspectiveKey = await getCharacterRoomPerspectiveKey(
+                    payload.roomId,
+                    characterMeta.assets || []
+                )
+                if (perspectiveKey) {
+                    const leaveMessageGroupId = internalCache.OrchestrateMessages.before(messageGroupId)
+                    const arriveMessageGroupId = internalCache.OrchestrateMessages.after(messageGroupId)
+                    const registrationId = uuidv4()
+                    internalCache.PerceptionThreads.register({
+                        threadKind: 'characterMove',
+                        componentId: payload.roomId,
+                        perspectiveKey,
+                        characterId: payload.characterId,
+                        departureRoomId: characterMeta.RoomId,
+                        messageGroupId,
+                        leaveMessageGroupId,
+                        arriveMessageGroupId,
+                        registrationId,
+                        leaveWorldMessage: !payload.suppressDeparture
+                            ? {
+                                targets: [characterMeta.RoomId, payload.characterId],
+                                message: [`${characterMeta.Name || 'Someone'}${payload.leaveMessage || ' has left.'}`],
+                            }
+                            : undefined,
+                        arriveWorldMessage: !payload.suppressArrival
+                            ? {
+                                targets: [
+                                    payload.roomId,
+                                    payload.suppressSelfMessage ? `!${payload.characterId}` : payload.characterId,
+                                ],
+                                message: [`${characterMeta.Name || 'Someone'}${payload.arriveMessage || ' has arrived.'}`],
+                            }
+                            : undefined,
+                    })
+                    characterMoveKey = {
+                        componentId: payload.roomId,
+                        perspectiveKey,
+                        registrationId,
+                    }
+                }
+            }
             // if (payload.roomId === characterMeta.RoomId) {
             //     const roomCharacterList = await internalCache.RoomCharacterList.get(payload.roomId)
             //     if (roomCharacterList.find(({ EphemeraId }) => (EphemeraId === payload.characterId))) {
@@ -110,7 +163,9 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
                             internalCache.ComponentEphemeraMeta.invalidate(characterMeta.RoomId)
                             internalCache.RoomCharacterList.set({ key: characterMeta.RoomId, value: activeCharacters })
                             if (priorActiveCharacters.find(({ EphemeraId }) => (EphemeraId === characterMeta.EphemeraId))) {
-                                if (!payload.suppressDeparture) {
+                                if (characterMoveKey) {
+                                    sendCharacterMoveLeave(messageBus, characterMoveKey)
+                                } else if (!payload.suppressDeparture) {
                                     messageBus.send({
                                         type: 'PublishMessage',
                                         targets: [characterMeta.RoomId, payload.characterId],
@@ -151,7 +206,11 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
                             internalCache.ComponentEphemeraMeta.invalidate(payload.roomId)
                             internalCache.RoomCharacterList.set({ key: payload.roomId, value: activeCharacters })
                 
-                            if (!payload.suppressArrival) {
+                            if (characterMoveKey) {
+                                if (!payload.suppressArrival) {
+                                    sendCharacterMoveArrive(messageBus, characterMoveKey)
+                                }
+                            } else if (!payload.suppressArrival) {
                                 messageBus.send({
                                     type: 'PublishMessage',
                                     targets: [payload.roomId, payload.suppressSelfMessage ? `!${payload.characterId}` : payload.characterId],
@@ -176,13 +235,15 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
                 type: 'RoomUpdate',
                 roomId: payload.roomId
             })
-            messageBus.send({
-                type: 'Perception',
-                characterId: payload.characterId,
-                ephemeraId: payload.roomId,
-                header: true,
-                messageGroupId
-            })
+            if (!characterMoveKey) {
+                messageBus.send({
+                    type: 'Perception',
+                    characterId: payload.characterId,
+                    ephemeraId: payload.roomId,
+                    header: true,
+                    messageGroupId
+                })
+            }
             messageBus.send({
                 type: 'MapUpdate',
                 characterId: payload.characterId,

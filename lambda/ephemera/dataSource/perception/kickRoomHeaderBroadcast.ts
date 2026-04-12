@@ -64,6 +64,25 @@ export async function kickRoomHeaderBroadcastForRoom(options: {
 }
 
 /**
+ * Perspective key for a character's filtered asset stack on a room, or null if the stack is empty.
+ * Matches {@link kickPassiveRenderRequestedForCharacterInRoom} routing.
+ */
+export async function getCharacterRoomPerspectiveKey(
+    roomId: EphemeraRoomId,
+    assets: readonly string[]
+): Promise<string | null> {
+    const roomCanonStack = await resolveCanonAssetStackForRoom(roomId, {
+        RoomAssets: internalCache.RoomAssets,
+        AssetMetaData: internalCache.AssetMetaData,
+    })
+    const filteredAssetStack = filterRoomCanonStackByCharacterAssets(roomCanonStack, assets)
+    if (filteredAssetStack.length === 0) {
+        return null
+    }
+    return computePerspectiveKey(filteredAssetStack)
+}
+
+/**
  * Passive render only: enqueue {@link sendRenderRequested} for one character's filtered perspective on a room.
  * Does not register perception threads or emit client Perception messages.
  */
