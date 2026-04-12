@@ -58,6 +58,133 @@ export function isPerceptionThread(value: unknown): value is PerceptionThread {
     return isStubPerceptionThread(value) || isRoomDescriptionPerceptionThread(value)
 }
 
+/** Discriminated patch for `update`; `threadKind` matches the thread body `kind` it applies to. */
+export type RoomDescriptionPerceptionThreadPatch = {
+    threadKind: 'roomDescription';
+    status?: RoomDescriptionPerceptionThread['status'];
+    messageId?: string;
+    cacheId?: string;
+}
+
+export type StubPerceptionThreadPatch = {
+    threadKind: 'stub';
+}
+
+export type PerceptionThreadPatch = RoomDescriptionPerceptionThreadPatch | StubPerceptionThreadPatch
+
+const ROOM_DESCRIPTION_PATCH_KEYS = new Set<string>(['threadKind', 'status', 'messageId', 'cacheId'])
+
+export function isRoomDescriptionPerceptionThreadPatch(value: unknown): value is RoomDescriptionPerceptionThreadPatch {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        return false
+    }
+    const p = value as Record<string, unknown>
+    if (p.threadKind !== 'roomDescription') {
+        return false
+    }
+    for (const key of Object.keys(p)) {
+        if (!ROOM_DESCRIPTION_PATCH_KEYS.has(key)) {
+            return false
+        }
+    }
+    if ('status' in p && p.status !== undefined) {
+        const s = p.status
+        if (s !== 'Initial' && s !== 'Generating' && s !== 'Terminal') {
+            return false
+        }
+    }
+    if ('messageId' in p && p.messageId !== undefined && typeof p.messageId !== 'string') {
+        return false
+    }
+    if ('cacheId' in p && p.cacheId !== undefined && typeof p.cacheId !== 'string') {
+        return false
+    }
+    return true
+}
+
+export function isStubPerceptionThreadPatch(value: unknown): value is StubPerceptionThreadPatch {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        return false
+    }
+    const p = value as Record<string, unknown>
+    if (p.threadKind !== 'stub') {
+        return false
+    }
+    return Object.keys(p).length === 1 && p.threadKind === 'stub'
+}
+
+export function isPerceptionThreadPatch(value: unknown): value is PerceptionThreadPatch {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        return false
+    }
+    const p = value as Record<string, unknown>
+    if (p.threadKind === 'roomDescription') {
+        return isRoomDescriptionPerceptionThreadPatch(value)
+    }
+    if (p.threadKind === 'stub') {
+        return isStubPerceptionThreadPatch(value)
+    }
+    return false
+}
+
+/**
+ * Shallow-merge a validated patch into a thread of the same logical kind (`threadKind` matches `base.kind`).
+ * Throws if the patch targets a different kind than `base`.
+ */
+export function mergePerceptionThreadPatch(base: PerceptionThread, patch: PerceptionThreadPatch): PerceptionThread {
+    switch (patch.threadKind) {
+        case 'roomDescription': {
+            if (base.kind !== 'roomDescription') {
+                throw new Error(
+                    'PerceptionThreads.mergePerceptionThreadPatch: roomDescription patch requires roomDescription thread'
+                )
+            }
+            const { threadKind: _, ...rest } = patch
+            const merged = { ...base, ...rest }
+            if (!isRoomDescriptionPerceptionThread(merged)) {
+                throw new Error(
+                    'PerceptionThreads.mergePerceptionThreadPatch: merged roomDescription thread failed validation'
+                )
+            }
+            return merged
+        }
+        case 'stub': {
+            if (base.kind !== 'stub') {
+                throw new Error('PerceptionThreads.mergePerceptionThreadPatch: stub patch requires stub thread')
+            }
+            return { ...base }
+        }
+        default: {
+            const _never: never = patch
+            void _never
+            throw new Error('PerceptionThreads.mergePerceptionThreadPatch: unexpected patch.threadKind')
+        }
+    }
+}
+
+function assertRegistrationMatchesThread(entry: PerceptionThreadEntry): void {
+    const { registration, thread } = entry
+    if (registration.threadKind === 'roomDescription') {
+        if (thread.kind !== 'roomDescription') {
+            throw new Error(
+                'PerceptionThreads.update: registration.threadKind roomDescription does not match stored thread.kind'
+            )
+        }
+        return
+    }
+    if (registration.threadKind === 'stub') {
+        if (thread.kind !== 'stub') {
+            throw new Error(
+                'PerceptionThreads.update: registration.threadKind stub does not match stored thread.kind'
+            )
+        }
+        return
+    }
+    const _exhaustive: never = registration
+    void _exhaustive
+    throw new Error('PerceptionThreads.update: unexpected registration.threadKind')
+}
+
 export type PerceptionThreadEntry = {
     /** Stable id for this registration; synthetic uuid when ingress omitted one. */
     registrationId: string;
@@ -124,9 +251,13 @@ export default class PerceptionThreadsData {
     }
 
     /**
-     * Shallow-merge partial thread fields into the stored thread after registrationId matches within the bucket.
+     * Shallow-merge validated patch fields into the stored thread when `registrationId` matches a row in the bucket.
+     *
+     * Returns `false` if the composite key or `registrationId` is not found. Throws if `registration` and `thread.kind`
+     * disagree, if the row kind does not support updates (stub), or if `partial` is not a valid
+     * {@link PerceptionThreadPatch} / fails merge (e.g. patch `threadKind` does not match the row).
      */
-    update(key: PerceptionThreadUpdateKey, partial: Partial<PerceptionThread>): boolean {
+    update(key: PerceptionThreadUpdateKey, partial: unknown): boolean {
         const bucket = this.buckets[PerceptionThreadsData.makeKey(key.componentId, key.perspectiveKey)]
         if (!bucket) {
             return false
@@ -135,8 +266,24 @@ export default class PerceptionThreadsData {
         if (!entry) {
             return false
         }
-        entry.thread = { ...entry.thread, ...partial } as PerceptionThread
-        return true
+        assertRegistrationMatchesThread(entry)
+        switch (entry.thread.kind) {
+            case 'stub':
+                throw new Error('PerceptionThreads.update: stub threads do not support updates')
+            case 'roomDescription': {
+                if (!isPerceptionThreadPatch(partial)) {
+                    throw new Error('PerceptionThreads.update: not a valid PerceptionThreadPatch')
+                }
+                entry.thread = mergePerceptionThreadPatch(entry.thread, partial)
+                return true
+            }
+            default: {
+                const _never: never = entry.thread
+                throw new Error(
+                    `PerceptionThreads.update: unhandled thread.kind ${String((_never as PerceptionThread).kind)}`
+                )
+            }
+        }
     }
 
     /** Remove one registration row from the bucket; drops empty buckets. */

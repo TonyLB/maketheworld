@@ -153,7 +153,7 @@ async function handleGenerationStarted(
 
         internalCache.PerceptionThreads.update(
             { componentId: payload.componentId, perspectiveKey: payload.perspectiveKey, registrationId },
-            { status: 'Generating', messageId }
+            { threadKind: 'roomDescription', status: 'Generating', messageId }
         )
     }
 }

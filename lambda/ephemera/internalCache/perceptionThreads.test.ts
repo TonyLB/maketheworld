@@ -59,7 +59,7 @@ describe('PerceptionThreadsData', () => {
         const { registrationId } = cache.list('ROOM#test', 'pk-one')[0]
         const ok = cache.update(
             { componentId: 'ROOM#test', perspectiveKey: 'pk-one', registrationId },
-            { status: 'Generating', messageId: 'MESSAGE#m1' }
+            { threadKind: 'roomDescription', status: 'Generating', messageId: 'MESSAGE#m1' }
         )
         expect(ok).toBe(true)
         const t = cache.list('ROOM#test', 'pk-one')[0].thread
@@ -74,10 +74,87 @@ describe('PerceptionThreadsData', () => {
         cache.register(makeRoomRegistration())
         const ok = cache.update(
             { componentId: 'ROOM#test', perspectiveKey: 'pk-one', registrationId: 'wrong' },
-            { status: 'Terminal' }
+            { threadKind: 'roomDescription', status: 'Terminal' }
         )
         expect(ok).toBe(false)
         expect((cache.list('ROOM#test', 'pk-one')[0].thread as { status: string }).status).toBe('Initial')
+    })
+
+    it('update throws on stub row', () => {
+        cache.register(makeStubRegistration())
+        const { registrationId } = cache.list('FEATURE#test', 'pk-one')[0]
+        expect(() =>
+            cache.update(
+                { componentId: 'FEATURE#test', perspectiveKey: 'pk-one', registrationId },
+                { status: 'Generating' }
+            )
+        ).toThrow('stub threads do not support updates')
+    })
+
+    it('update throws on roomDescription patch with unknown key', () => {
+        cache.register(makeRoomRegistration())
+        const { registrationId } = cache.list('ROOM#test', 'pk-one')[0]
+        expect(() =>
+            cache.update(
+                { componentId: 'ROOM#test', perspectiveKey: 'pk-one', registrationId },
+                { threadKind: 'roomDescription', mesageId: 'MESSAGE#typo' } as unknown
+            )
+        ).toThrow('not a valid PerceptionThreadPatch')
+    })
+
+    it('update throws when patch uses legacy kind field instead of threadKind', () => {
+        cache.register(makeRoomRegistration())
+        const { registrationId } = cache.list('ROOM#test', 'pk-one')[0]
+        expect(() =>
+            cache.update(
+                { componentId: 'ROOM#test', perspectiveKey: 'pk-one', registrationId },
+                { kind: 'roomDescription' } as unknown
+            )
+        ).toThrow('not a valid PerceptionThreadPatch')
+    })
+
+    it('update throws when patch threadKind does not match roomDescription row', () => {
+        cache.register(makeRoomRegistration())
+        const { registrationId } = cache.list('ROOM#test', 'pk-one')[0]
+        expect(() =>
+            cache.update(
+                { componentId: 'ROOM#test', perspectiveKey: 'pk-one', registrationId },
+                { threadKind: 'stub' }
+            )
+        ).toThrow('stub patch requires stub thread')
+    })
+
+    it('update throws on roomDescription patch with invalid status', () => {
+        cache.register(makeRoomRegistration())
+        const { registrationId } = cache.list('ROOM#test', 'pk-one')[0]
+        expect(() =>
+            cache.update(
+                { componentId: 'ROOM#test', perspectiveKey: 'pk-one', registrationId },
+                { threadKind: 'roomDescription', status: 'bogus' } as unknown
+            )
+        ).toThrow('not a valid PerceptionThreadPatch')
+    })
+
+    it('update throws on roomDescription patch with non-string messageId', () => {
+        cache.register(makeRoomRegistration())
+        const { registrationId } = cache.list('ROOM#test', 'pk-one')[0]
+        expect(() =>
+            cache.update(
+                { componentId: 'ROOM#test', perspectiveKey: 'pk-one', registrationId },
+                { threadKind: 'roomDescription', messageId: 123 } as unknown
+            )
+        ).toThrow('not a valid PerceptionThreadPatch')
+    })
+
+    it('update throws when patch is not a plain object', () => {
+        cache.register(makeRoomRegistration())
+        const { registrationId } = cache.list('ROOM#test', 'pk-one')[0]
+        expect(() =>
+            cache.update(
+                { componentId: 'ROOM#test', perspectiveKey: 'pk-one', registrationId },
+                null
+            )
+        ).toThrow('not a valid PerceptionThreadPatch')
     })
 
     it('two registers under same composite key coexist', () => {
