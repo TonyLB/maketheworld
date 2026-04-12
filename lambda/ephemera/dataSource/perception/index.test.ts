@@ -61,6 +61,7 @@ describe('mtw.ephemera.perception DataSource', () => {
         const sendSpy = jest.spyOn(messageBus, 'send')
 
         sendPerceptionThreadRegistered(messageBus, 'ROOM#REG', {
+            threadKind: 'roomDescription',
             componentId: 'ROOM#REG',
             perspectiveKey: 'view-1',
             characterId: 'CHARACTER#viewer',
@@ -75,6 +76,7 @@ describe('mtw.ephemera.perception DataSource', () => {
             status: 'Initial',
         })
         expect(entry.registration).toMatchObject({
+            threadKind: 'roomDescription',
             componentId: 'ROOM#REG',
             perspectiveKey: 'view-1',
             characterId: 'CHARACTER#viewer',
@@ -89,6 +91,7 @@ describe('mtw.ephemera.perception DataSource', () => {
         const componentRenderSpy = jest.spyOn(internalCache.ComponentRender, 'get').mockResolvedValue({ schema: {} } as any)
 
         sendPerceptionThreadRegistered(messageBus, passThroughFixtureRoomId, {
+            threadKind: 'roomDescription',
             componentId: passThroughFixtureRoomId,
             perspectiveKey: passThroughFixturePerspectiveKey,
             characterId: 'CHARACTER#viewer',

@@ -47,6 +47,7 @@ export const executeAction = async (request: ActionAPIMessage) => {
                 const perspective = { assetStack: filteredAssetStack }
                 const perspectiveKey = computePerspectiveKey(perspective.assetStack)
                 sendPerceptionThreadRegistered(messageBus, ephemeraId, {
+                    threadKind: 'roomDescription',
                     componentId: ephemeraId,
                     perspectiveKey,
                     characterId,

@@ -63,6 +63,7 @@ describe('perception subscribedEvents', () => {
             { send: (payload) => sent.push(payload) },
             'ROOM#ROOM1',
             {
+                threadKind: 'roomDescription',
                 componentId: 'ROOM#ROOM1',
                 perspectiveKey: 'persp-a',
                 characterId: 'CHARACTER#VIEWER',
@@ -74,6 +75,7 @@ describe('perception subscribedEvents', () => {
         expect(sent[0].streamKey).toBe('ROOM#ROOM1')
         expect(sent[0].header.type).toBe('Perception Thread Registered')
         expect(await sent[0].getContent()).toMatchObject({
+            threadKind: 'roomDescription',
             componentId: 'ROOM#ROOM1',
             perspectiveKey: 'persp-a',
             characterId: 'CHARACTER#VIEWER',
@@ -90,6 +92,7 @@ describe('perception subscribedEvents', () => {
             },
             getContent: () =>
                 Promise.resolve({
+                    threadKind: 'roomDescription',
                     componentId: 'ROOM#R',
                     perspectiveKey: 'p',
                     characterId: 'CHARACTER#viewer',
@@ -126,6 +129,7 @@ describe('perception subscribedEvents', () => {
                 type: 'Perception Thread Registered',
             },
             getContent: () => Promise.resolve({
+                threadKind: 'roomDescription',
                 componentId: 'ROOM#one',
                 perspectiveKey: 'k',
                 characterId: 'CHARACTER#viewer',

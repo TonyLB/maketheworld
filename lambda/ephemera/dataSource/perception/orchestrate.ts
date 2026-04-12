@@ -81,14 +81,14 @@ async function handleRenderPertains(
             continue
         }
         const { thread, registration, registrationId } = entry
+        if (registration.threadKind !== 'roomDescription') {
+            continue
+        }
         if (thread.status === 'Terminal') {
             logTerminalDedupe('Render Pertains', payload.componentId, payload.perspectiveKey, registrationId)
             continue
         }
         const characterId = registration.characterId
-        if (!characterId) {
-            continue
-        }
 
         const roomDescribe = await internalCache.ComponentRender.get(characterId, payload.componentId)
         const messageId = thread.messageId ?? `MESSAGE#${randomUUID()}`
@@ -126,14 +126,14 @@ async function handleGenerationStarted(
             continue
         }
         const { thread, registration, registrationId } = entry
+        if (registration.threadKind !== 'roomDescription') {
+            continue
+        }
         if (thread.status === 'Terminal') {
             logTerminalDedupe('Generation Started', payload.componentId, payload.perspectiveKey, registrationId)
             continue
         }
         const characterId = registration.characterId
-        if (!characterId) {
-            continue
-        }
 
         const messageId = `MESSAGE#${randomUUID()}`
         const roomId = payload.componentId
@@ -172,14 +172,14 @@ async function handleOrchestrationErrorOrDeferred(payload: ErrorLikePayload, bus
             continue
         }
         const { thread, registration, registrationId } = entry
+        if (registration.threadKind !== 'roomDescription') {
+            continue
+        }
         if (thread.status === 'Terminal') {
             logTerminalDedupe(payload.type, payload.componentId, payload.perspectiveKey, registrationId)
             continue
         }
         const characterId = registration.characterId
-        if (!characterId) {
-            continue
-        }
 
         const roomId = payload.componentId
         const messageId = thread.messageId ?? `MESSAGE#${randomUUID()}`

@@ -76,6 +76,7 @@ describe('executeAction', () => {
                 MockMessageBus,
                 'ROOM#456',
                 expect.objectContaining({
+                    threadKind: 'roomDescription',
                     componentId: 'ROOM#456',
                     characterId: 'CHARACTER#123',
                 })

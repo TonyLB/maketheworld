@@ -22,13 +22,14 @@ describe('InternalCache', () => {
     })
 
     it('clear resets PerceptionThreads', () => {
-        internalCache.PerceptionThreads.register(
-            { componentId: 'ROOM#C', perspectiveKey: 'p', characterId: 'CHARACTER#c' },
-            { kind: 'stub' }
-        )
-        expect(internalCache.PerceptionThreads.list('ROOM#C', 'p')).toHaveLength(1)
+        internalCache.PerceptionThreads.register({
+            threadKind: 'stub',
+            componentId: 'FEATURE#C',
+            perspectiveKey: 'p',
+        })
+        expect(internalCache.PerceptionThreads.list('FEATURE#C', 'p')).toHaveLength(1)
         internalCache.clear()
-        expect(internalCache.PerceptionThreads.list('ROOM#C', 'p')).toHaveLength(0)
+        expect(internalCache.PerceptionThreads.list('FEATURE#C', 'p')).toHaveLength(0)
     })
 
     it('should fetch an async lookup only once', async () => {

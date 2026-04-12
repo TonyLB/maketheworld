@@ -11,7 +11,7 @@ import {
 } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { createInternalOriginEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import type { StreamingEventMessage } from '../../messageBus/baseClasses'
-import type { CharacterPerceptionRequestedCommand, PerceptionThreadRegisteredCommand } from './localApiEvents'
+import type { CharacterPerceptionRequestedCommand, PerceptionThreadRegisterCommand } from './localApiEvents'
 import { RENDER_CACHE_DATA_SOURCE_KEY, type RenderCacheRenderPertainsPayload } from '../renderCache/baseClasses'
 import {
     RENDER_ORCHESTRATION_DATA_SOURCE_KEY,
@@ -49,7 +49,7 @@ const isPerceptionThreadRegisteredHeader: HeaderGuard<PerceptionThreadRegistered
 )
 
 export const isPerceptionThreadRegisteredIngressEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
-    PerceptionThreadRegisteredCommand,
+    PerceptionThreadRegisterCommand,
     PerceptionThreadRegisteredIngressHeader
 >(isPerceptionThreadRegisteredHeader)
 
@@ -66,7 +66,7 @@ const PERCEPTION_FAN_IN_ORCHESTRATION_HEADER_TYPES = [
 
 export type PerceptionSubscribedContent =
     | CharacterPerceptionRequestedCommand
-    | PerceptionThreadRegisteredCommand
+    | PerceptionThreadRegisterCommand
     | RenderCacheRenderPertainsPayload
     | PerceptionFanInOrchestrationPayload
 
@@ -132,7 +132,7 @@ export function sendCharacterPerceptionRequested(
 export function sendPerceptionThreadRegistered(
     bus: Bus,
     streamKey: string,
-    content: PerceptionThreadRegisteredCommand
+    content: PerceptionThreadRegisterCommand
 ): void {
     const timestamp = Date.now()
     const header: StreamingEventHeader = {

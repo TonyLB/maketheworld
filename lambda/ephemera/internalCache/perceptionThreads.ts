@@ -5,7 +5,7 @@
  * Multiple independent entries may share the same (componentId, perspectiveKey); each is a separate output request.
  */
 import { v4 as uuidv4 } from 'uuid'
-import type { PerceptionThreadRegisteredCommand } from '../dataSource/perception/localApiEvents'
+import type { PerceptionThreadRegisterCommand } from '../dataSource/perception/localApiEvents'
 
 /** Stub thread body; more variants may be added in later refactor steps. */
 export type StubPerceptionThread = {
@@ -62,7 +62,7 @@ export type PerceptionThreadEntry = {
     /** Stable id for this registration; synthetic uuid when ingress omitted one. */
     registrationId: string;
     thread: PerceptionThread;
-    registration: PerceptionThreadRegisteredCommand;
+    registration: PerceptionThreadRegisterCommand;
 }
 
 export type PerceptionThreadUpdateKey = {
@@ -90,18 +90,25 @@ export default class PerceptionThreadsData {
 
     /**
      * Append a new thread row for this (componentId, perspectiveKey). Does not replace existing rows.
+     * Initial thread body is derived from cmd.threadKind.
      */
-    register(
-        registration: PerceptionThreadRegisteredCommand,
-        thread: PerceptionThread = { kind: 'stub' }
-    ): void {
-        const { componentId, perspectiveKey } = registration
+    register(cmd: PerceptionThreadRegisterCommand): void {
+        const { componentId, perspectiveKey } = cmd
         const key = PerceptionThreadsData.makeKey(componentId, perspectiveKey)
-        const registrationId = registration.registrationId ?? uuidv4()
+        const registrationId = cmd.registrationId ?? uuidv4()
+        let thread: PerceptionThread
+        switch (cmd.threadKind) {
+            case 'roomDescription':
+                thread = { kind: 'roomDescription', status: 'Initial' }
+                break
+            case 'stub':
+                thread = { kind: 'stub' }
+                break
+        }
         const entry: PerceptionThreadEntry = {
             registrationId,
             thread,
-            registration: { ...registration, registrationId },
+            registration: { ...cmd, registrationId },
         }
         if (!this.buckets[key]) {
             this.buckets[key] = []

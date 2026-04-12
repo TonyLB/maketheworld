@@ -4,12 +4,24 @@ import PerceptionThreadsData, {
     isStubPerceptionThread,
     type RoomDescriptionPerceptionThread,
 } from './perceptionThreads'
-import type { PerceptionThreadRegisteredCommand } from '../dataSource/perception/localApiEvents'
+import type { PerceptionThreadRegisterCommand } from '../dataSource/perception/localApiEvents'
 
-const makeRegistration = (overrides: Partial<PerceptionThreadRegisteredCommand> = {}): PerceptionThreadRegisteredCommand => ({
+const makeRoomRegistration = (
+    overrides: Partial<Extract<PerceptionThreadRegisterCommand, { threadKind: 'roomDescription' }>> = {}
+): Extract<PerceptionThreadRegisterCommand, { threadKind: 'roomDescription' }> => ({
+    threadKind: 'roomDescription',
     componentId: 'ROOM#test',
     perspectiveKey: 'pk-one',
     characterId: 'CHARACTER#viewer',
+    ...overrides,
+})
+
+const makeStubRegistration = (
+    overrides: Partial<Extract<PerceptionThreadRegisterCommand, { threadKind: 'stub' }>> = {}
+): Extract<PerceptionThreadRegisterCommand, { threadKind: 'stub' }> => ({
+    threadKind: 'stub',
+    componentId: 'FEATURE#test',
+    perspectiveKey: 'pk-one',
     ...overrides,
 })
 
@@ -26,24 +38,24 @@ describe('PerceptionThreadsData', () => {
     })
 
     it('register and list round-trip', () => {
-        const reg = makeRegistration()
-        cache.register(reg, { kind: 'stub' })
-        const listed = cache.list('ROOM#test', 'pk-one')
+        const reg = makeStubRegistration()
+        cache.register(reg)
+        const listed = cache.list('FEATURE#test', 'pk-one')
         expect(listed).toHaveLength(1)
         expect(listed[0].thread).toEqual({ kind: 'stub' })
-        expect(listed[0].registration.characterId).toBe(reg.characterId)
+        expect(listed[0].registration.threadKind).toBe('stub')
         expect(listed[0].registrationId).toMatch(/^[\da-f-]{36}$/i)
     })
 
     it('register stores caller registrationId when provided', () => {
-        const reg = makeRegistration({ registrationId: 'custom-reg-id' })
-        cache.register(reg, { kind: 'stub' })
-        expect(cache.list('ROOM#test', 'pk-one')[0].registrationId).toBe('custom-reg-id')
+        const reg = makeStubRegistration({ registrationId: 'custom-reg-id' })
+        cache.register(reg)
+        expect(cache.list('FEATURE#test', 'pk-one')[0].registrationId).toBe('custom-reg-id')
     })
 
     it('update shallow-merges when registrationId matches', () => {
-        const reg = makeRegistration()
-        cache.register(reg, roomDescriptionInitial())
+        const reg = makeRoomRegistration()
+        cache.register(reg)
         const { registrationId } = cache.list('ROOM#test', 'pk-one')[0]
         const ok = cache.update(
             { componentId: 'ROOM#test', perspectiveKey: 'pk-one', registrationId },
@@ -59,7 +71,7 @@ describe('PerceptionThreadsData', () => {
     })
 
     it('update returns false when registrationId mismatches', () => {
-        cache.register(makeRegistration(), roomDescriptionInitial())
+        cache.register(makeRoomRegistration())
         const ok = cache.update(
             { componentId: 'ROOM#test', perspectiveKey: 'pk-one', registrationId: 'wrong' },
             { status: 'Terminal' }
@@ -69,34 +81,34 @@ describe('PerceptionThreadsData', () => {
     })
 
     it('two registers under same composite key coexist', () => {
-        cache.register(makeRegistration({ perspectiveKey: 'same', characterId: 'CHARACTER#one' }), { kind: 'stub' })
-        cache.register(makeRegistration({ perspectiveKey: 'same', characterId: 'CHARACTER#two' }), { kind: 'stub' })
-        const listed = cache.list('ROOM#test', 'same')
+        cache.register(makeStubRegistration({ perspectiveKey: 'same', characterId: 'CHARACTER#one' }))
+        cache.register(makeStubRegistration({ perspectiveKey: 'same', characterId: 'CHARACTER#two' }))
+        const listed = cache.list('FEATURE#test', 'same')
         expect(listed).toHaveLength(2)
         const chars = listed.map((e) => e.registration.characterId).sort()
         expect(chars).toEqual(['CHARACTER#one', 'CHARACTER#two'].sort())
     })
 
     it('remove drops one entry and leaves sibling', () => {
-        cache.register(makeRegistration({ perspectiveKey: 'same', registrationId: 'r1' }), { kind: 'stub' })
-        cache.register(makeRegistration({ perspectiveKey: 'same', registrationId: 'r2' }), { kind: 'stub' })
-        cache.remove({ componentId: 'ROOM#test', perspectiveKey: 'same', registrationId: 'r1' })
-        const listed = cache.list('ROOM#test', 'same')
+        cache.register(makeStubRegistration({ perspectiveKey: 'same', registrationId: 'r1' }))
+        cache.register(makeStubRegistration({ perspectiveKey: 'same', registrationId: 'r2' }))
+        cache.remove({ componentId: 'FEATURE#test', perspectiveKey: 'same', registrationId: 'r1' })
+        const listed = cache.list('FEATURE#test', 'same')
         expect(listed).toHaveLength(1)
         expect(listed[0].registrationId).toBe('r2')
     })
 
     it('remove clears bucket when last entry removed', () => {
-        cache.register(makeRegistration(), { kind: 'stub' })
-        const { registrationId } = cache.list('ROOM#test', 'pk-one')[0]
-        cache.remove({ componentId: 'ROOM#test', perspectiveKey: 'pk-one', registrationId })
-        expect(cache.list('ROOM#test', 'pk-one')).toEqual([])
+        cache.register(makeStubRegistration())
+        const { registrationId } = cache.list('FEATURE#test', 'pk-one')[0]
+        cache.remove({ componentId: 'FEATURE#test', perspectiveKey: 'pk-one', registrationId })
+        expect(cache.list('FEATURE#test', 'pk-one')).toEqual([])
     })
 
     it('clear removes all entries', () => {
-        cache.register(makeRegistration(), { kind: 'stub' })
+        cache.register(makeStubRegistration())
         cache.clear()
-        expect(cache.list('ROOM#test', 'pk-one')).toEqual([])
+        expect(cache.list('FEATURE#test', 'pk-one')).toEqual([])
     })
 
     it('list returns empty array for missing key', () => {

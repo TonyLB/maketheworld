@@ -9,6 +9,7 @@ import {
     isEphemeraKnowledgeId,
     isEphemeraRoomId,
     type EphemeraCharacterId,
+    type EphemeraRoomId,
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { MessageGroupId } from '../../internalCache/orchestrateMessages'
 import type { EphemeraCacheComponentId } from '../renderCache/baseClasses'
@@ -23,17 +24,33 @@ export const isEphemeraCacheComponentId = (value: string): value is EphemeraCach
     isEphemeraRoomId(value) || isEphemeraFeatureId(value) || isEphemeraKnowledgeId(value)
 )
 
-/** Registers a perception fan-in thread (component x perspective). Room registrations require characterId (step 4). */
-export type PerceptionThreadRegisteredCommand = {
-    componentId: EphemeraCacheComponentId;
+/** Room examine / correlated full-description fan-in (requires viewer characterId). */
+export type PerceptionThreadRegisterRoomDescriptionCommand = {
+    threadKind: 'roomDescription';
+    componentId: EphemeraRoomId;
     perspectiveKey: string;
+    characterId: EphemeraCharacterId;
     messageGroupId?: MessageGroupId;
-    characterId?: EphemeraCharacterId;
     /** Caller-supplied id; if omitted, PerceptionThreads.register assigns a synthetic uuid. */
     registrationId?: string;
 }
 
-export type PerceptionIngressCommand = CharacterPerceptionRequestedCommand | PerceptionThreadRegisteredCommand
+/** Non-room component registration placeholder (stub thread body). */
+export type PerceptionThreadRegisterStubCommand = {
+    threadKind: 'stub';
+    componentId: Exclude<EphemeraCacheComponentId, EphemeraRoomId>;
+    perspectiveKey: string;
+    messageGroupId?: MessageGroupId;
+    registrationId?: string;
+    characterId?: EphemeraCharacterId;
+}
+
+/** Discriminated command for `Perception Thread Registered` ingress and PerceptionThreads.register. */
+export type PerceptionThreadRegisterCommand =
+    | PerceptionThreadRegisterRoomDescriptionCommand
+    | PerceptionThreadRegisterStubCommand
+
+export type PerceptionIngressCommand = CharacterPerceptionRequestedCommand | PerceptionThreadRegisterCommand
 
 export const isCharacterPerceptionRequestedCommand = (value: unknown): value is CharacterPerceptionRequestedCommand => {
     if (!value || typeof value !== 'object') {
@@ -48,11 +65,18 @@ export const isCharacterPerceptionRequestedCommand = (value: unknown): value is 
     )
 }
 
-export const isPerceptionThreadRegisteredCommand = (value: unknown): value is PerceptionThreadRegisteredCommand => {
+const isStubComponentId = (id: string): id is Exclude<EphemeraCacheComponentId, EphemeraRoomId> => (
+    isEphemeraCacheComponentId(id) && !isEphemeraRoomId(id)
+)
+
+export const isPerceptionThreadRegisterCommand = (value: unknown): value is PerceptionThreadRegisterCommand => {
     if (!value || typeof value !== 'object') {
         return false
     }
     const v = value as Record<string, unknown>
+    if (v.threadKind !== 'roomDescription' && v.threadKind !== 'stub') {
+        return false
+    }
     if (typeof v.componentId !== 'string' || !isEphemeraCacheComponentId(v.componentId)) {
         return false
     }
@@ -62,16 +86,16 @@ export const isPerceptionThreadRegisteredCommand = (value: unknown): value is Pe
     if (v.messageGroupId !== undefined && typeof v.messageGroupId !== 'string') {
         return false
     }
-    if (v.characterId !== undefined && (typeof v.characterId !== 'string' || !isEphemeraCharacterId(v.characterId))) {
-        return false
-    }
     if (v.registrationId !== undefined && typeof v.registrationId !== 'string') {
         return false
     }
-    if (isEphemeraRoomId(v.componentId)) {
-        if (typeof v.characterId !== 'string' || !isEphemeraCharacterId(v.characterId)) {
-            return false
-        }
+    if (v.characterId !== undefined && (typeof v.characterId !== 'string' || !isEphemeraCharacterId(v.characterId))) {
+        return false
     }
-    return true
+    if (v.threadKind === 'roomDescription') {
+        return isEphemeraRoomId(v.componentId)
+            && typeof v.characterId === 'string'
+            && isEphemeraCharacterId(v.characterId)
+    }
+    return isStubComponentId(v.componentId)
 }
