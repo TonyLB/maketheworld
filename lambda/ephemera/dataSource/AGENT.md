@@ -10,7 +10,8 @@
 
 | Doc | Role |
 | --- | --- |
-| [**AGENT.multiChannel.contract.md**](AGENT.multiChannel.contract.md) | Multi-cadence / multi-channel player updates, **`Meta::Room`** as shared storage, decision norms so features do not reinvent rules ad hoc |
+| [**AGENT.multiChannel.contract.md**](AGENT.multiChannel.contract.md) | Multi-cadence / multi-channel player updates, **`Meta::Room`** as shared storage, **room-render** vs **room-affordances** direction, decision norms |
+| [**AGENT.multiChannel.plan.md** (task plan)](../../../taskPlanning/lambda/ephemera/dataSource/perception/AGENT.multiChannel.plan.md) | Executable plan: open wire/correlation/coupling decisions, server + client alignment, verification |
 
 Task-planning drafts (dispose after tasks land) live under [`taskPlanning/lambda/ephemera/`](../../../taskPlanning/lambda/ephemera/); the pass-through narrative is in [`AGENT.passThrough.contract.planning.md`](../../../taskPlanning/lambda/ephemera/dataSource/AGENT.passThrough.contract.planning.md).
 
