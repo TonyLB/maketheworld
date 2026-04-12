@@ -3,6 +3,7 @@
  *
  * This function ensures the primitives asset exists with required system components:
  * - VORTEX room (the initial game location)
+ * - STRAIGHTAWAY, CLIFFTOP, CORNER, BRIDGE rooms (Coyote-game demo topology; stable ids for eval / prototypes)
  * - knowledgeRoot knowledge (the root of the knowledge graph)
  * - DEFAULT situation (default facet for room rendering, ShortName Default)
  *
@@ -20,8 +21,13 @@ import { applyEdit } from "../applyEdit"
 
 export const PRIMITIVES_ASSET_ID = 'ASSET#primitives'
 
+// Coyote-game demo rooms (candidates to extract to a separate asset later); VORTEX remains the canonical default origin.
 const FULL_PRIMITIVES_WML = `<Asset uuid=(primitives)>
     <Room uuid=(VORTEX) />
+    <Room uuid=(STRAIGHTAWAY) />
+    <Room uuid=(CLIFFTOP) />
+    <Room uuid=(CORNER) />
+    <Room uuid=(BRIDGE) />
     <Knowledge uuid=(knowledgeRoot) />
     <Situation uuid=(DEFAULT)>
         <ShortName>Default</ShortName>
@@ -70,11 +76,23 @@ export async function initializePrimitives(): Promise<{
         
         // Check for required components using byUniversalId
         const hasVortex = Boolean(existing.byUniversalId['ROOM#VORTEX'])
+        const hasStraightaway = Boolean(existing.byUniversalId['ROOM#STRAIGHTAWAY'])
+        const hasClifftop = Boolean(existing.byUniversalId['ROOM#CLIFFTOP'])
+        const hasCorner = Boolean(existing.byUniversalId['ROOM#CORNER'])
+        const hasBridge = Boolean(existing.byUniversalId['ROOM#BRIDGE'])
         const hasKnowledgeRoot = Boolean(existing.byUniversalId['KNOWLEDGE#knowledgeRoot'])
         const hasDefaultSituation = Boolean(existing.byUniversalId['SITUATION#DEFAULT'])
 
         // Case 2a: Already properly initialized
-        if (hasVortex && hasKnowledgeRoot && hasDefaultSituation) {
+        if (
+            hasVortex &&
+            hasStraightaway &&
+            hasClifftop &&
+            hasCorner &&
+            hasBridge &&
+            hasKnowledgeRoot &&
+            hasDefaultSituation
+        ) {
             return {
                 success: true,
                 action: 'skipped',
@@ -86,6 +104,18 @@ export async function initializePrimitives(): Promise<{
         const repairComponents: string[] = []
         if (!hasVortex) {
             repairComponents.push('    <Room uuid=(VORTEX) />')
+        }
+        if (!hasStraightaway) {
+            repairComponents.push('    <Room uuid=(STRAIGHTAWAY) />')
+        }
+        if (!hasClifftop) {
+            repairComponents.push('    <Room uuid=(CLIFFTOP) />')
+        }
+        if (!hasCorner) {
+            repairComponents.push('    <Room uuid=(CORNER) />')
+        }
+        if (!hasBridge) {
+            repairComponents.push('    <Room uuid=(BRIDGE) />')
         }
         if (!hasKnowledgeRoot) {
             repairComponents.push('    <Knowledge uuid=(knowledgeRoot) />')
@@ -129,4 +159,3 @@ export async function initializePrimitives(): Promise<{
 }
 
 export default initializePrimitives
-

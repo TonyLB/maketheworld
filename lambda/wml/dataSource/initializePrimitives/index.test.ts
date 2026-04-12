@@ -10,7 +10,7 @@ jest.mock('../applyEdit')
 const MockAssetWorkspace = ReadOnlyAssetWorkspace as jest.MockedClass<typeof ReadOnlyAssetWorkspace>
 const applyEditMock = applyEdit as jest.MockedFunction<typeof applyEdit>
 
-const FULL_PRIMITIVES_WML_SINGLE_LINE = '<Asset uuid=(primitives)><Room uuid=(VORTEX) /><Knowledge uuid=(knowledgeRoot) /><Situation uuid=(DEFAULT)><ShortName>Default</ShortName></Situation></Asset>'
+const FULL_PRIMITIVES_WML_SINGLE_LINE = '<Asset uuid=(primitives)><Room uuid=(VORTEX) /><Room uuid=(STRAIGHTAWAY) /><Room uuid=(CLIFFTOP) /><Room uuid=(CORNER) /><Room uuid=(BRIDGE) /><Knowledge uuid=(knowledgeRoot) /><Situation uuid=(DEFAULT)><ShortName>Default</ShortName></Situation></Asset>'
 
 describe('initializePrimitives', () => {
     beforeEach(() => {
@@ -153,7 +153,7 @@ describe('initializePrimitives', () => {
             expect(result).toEqual({
                 success: true,
                 action: 'repaired',
-                message: 'Primitives repaired (added 2 missing component(s))',
+                message: 'Primitives repaired (added 6 missing component(s))',
                 schema: expect.any(StandardForm)
             })
             
@@ -192,7 +192,7 @@ describe('initializePrimitives', () => {
             expect(result).toEqual({
                 success: true,
                 action: 'repaired',
-                message: 'Primitives repaired (added 2 missing component(s))',
+                message: 'Primitives repaired (added 6 missing component(s))',
                 schema: expect.any(StandardForm)
             })
             
@@ -232,6 +232,7 @@ describe('initializePrimitives', () => {
             // Should call applyEdit with full primitives WML
             const call = applyEditMock.mock.calls[0][0]
             expect(call.schema).toContain('<Room uuid=(VORTEX) />')
+            expect(call.schema).toContain('<Room uuid=(STRAIGHTAWAY) />')
             expect(call.schema).toContain('<Knowledge uuid=(knowledgeRoot) />')
             expect(call.schema).toContain('Situation uuid=(DEFAULT)')
             expect(call.schema).toContain('ShortName')
@@ -260,7 +261,7 @@ describe('initializePrimitives', () => {
             expect(result).toEqual({
                 success: true,
                 action: 'repaired',
-                message: 'Primitives repaired (added 1 missing component(s))',
+                message: 'Primitives repaired (added 5 missing component(s))',
                 schema: expect.any(StandardForm)
             })
 
