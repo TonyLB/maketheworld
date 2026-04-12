@@ -10,7 +10,7 @@
 
 Introduce a single internal **`EphemeraDataSource`** with **`dataSourceKey: 'mtw.ephemera.rooms'`** (name final unless a naming collision appears next to existing keys). Use **one key** and **multiple typed header events** (e.g. **Objects Changed**, future **Character Changed** or **Active Characters Changed**) so room-scoped updates share a clear domain without multiplying `subscribe()` boundaries.
 
-**First slice:** minimal **object** storage as a **list of strings** on the ephemera-table **`Meta::Room`** row (see [`packages/mtw-interfaces/ts/ephemeraMeta.ts`](../../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts)), plus **API ingress** and **outbound bus events** after successful persist.
+**First slice:** minimal **object** storage as a **list of strings** in field **`objects`** on the ephemera-table **`Meta::Room`** row (see [`packages/mtw-interfaces/ts/ephemeraMeta.ts`](../../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts)), plus **internal bus ingress** (same envelope patterns as **`api.ephemera`** where convenient, but **no** `requestId` / **`ReturnValue`** correlation) and **outbound bus events** after successful persist.
 
 **Lasting architecture** for steady-state behavior belongs in [`lambda/ephemera/dataSource/`](../../../../../lambda/ephemera/dataSource/) package docs once code exists; this file tracks **task order**, **unknowns**, and **verification** for the initial landing.
 
@@ -20,7 +20,7 @@ Introduce a single internal **`EphemeraDataSource`** with **`dataSourceKey: 'mtw
 
 1. [`taskPlanning/AGENT.md`](../../../../AGENT.md) - task plan conventions.
 2. [`lambda/ephemera/dataSource/abstract.ts`](../../../../../lambda/ephemera/dataSource/abstract.ts) - `EphemeraDataSource`, `busOnly`, `replayable: false` pattern.
-3. [`lambda/ephemera/dataSource/state/index.ts`](../../../../../lambda/ephemera/dataSource/state/index.ts) and [`apiEphemera.ts`](../../../../../lambda/ephemera/dataSource/apiEphemera.ts) - **api.ephemera** ingress + `send*` helpers + envelope guards (mirror for rooms/objects).
+3. [`lambda/ephemera/dataSource/state/index.ts`](../../../../../lambda/ephemera/dataSource/state/index.ts) and [`apiEphemera.ts`](../../../../../lambda/ephemera/dataSource/apiEphemera.ts) - **api.ephemera** ingress + `send*` helpers + envelope guards (reference for bus shape; rooms/objects ingress is **internal-only** without **`ReturnValue`** per **Decisions log**).
 4. [`lambda/ephemera/internalCache/componentEphemeraMeta.ts`](../../../../../lambda/ephemera/internalCache/componentEphemeraMeta.ts) - read-through cache for `Meta::Room`; **invalidate** after writes.
 5. [`lambda/ephemera/dataSource/perception/subscribedEvents.ts`](../../../../../lambda/ephemera/dataSource/perception/subscribedEvents.ts) and [`AGENT.md`](../../../../../lambda/ephemera/dataSource/perception/AGENT.md) - how perception multiplexes sources; future **rooms** subscription for fan-in.
 6. [`packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md`](../../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md) - **busOnly** outgoing types in **`publishedEvents.ts`** colocated with the DataSource.
@@ -30,10 +30,10 @@ Introduce a single internal **`EphemeraDataSource`** with **`dataSourceKey: 'mtw
 ## Goals (initial milestone)
 
 1. **DataSource stub:** `lambda/ephemera/dataSource/rooms/` (or agreed name) with `EphemeraDataSource` instance **`mtw.ephemera.rooms`**, **`publisherStrategy: 'busOnly'`**, **`replayable: false`**, **`subscribe()`** side-effect import from [`lambda/ephemera/app.ts`](../../../../../lambda/ephemera/app.ts) (same pattern as [`state/index.ts`](../../../../../lambda/ephemera/dataSource/state/index.ts)).
-2. **Schema:** Extend **`EphemeraMetaRoom`** with an optional field for **object id strings** (exact property name TBD in **Open questions**). Extend **`isEphemeraMetaRoom`** accordingly.
-3. **Persistence:** Conditional write path on **`Meta::Room`** that updates **only** the objects field (or merges per chosen semantics), requires existing row, then **`internalCache.ComponentEphemeraMeta.invalidate(roomId)`**.
-4. **API ingress:** New **`api.ephemera`** envelope (header `type` TBD) carrying at least **`componentId`** (room) and **objects** payload; lambda routes to messageBus; **`mtw.ephemera.rooms`** `receiveEvents` handles it.
-5. **Outbound:** After successful persist, **`streamEvent`** on **`mtw.ephemera.rooms`** with header **`type: 'Objects Changed'`** (or agreed name) and a **typed** payload (room id, maybe prior/new snapshot for tests and subscribers).
+2. **Schema:** Extend **`EphemeraMetaRoom`** with optional **`objects: string[]`** (object ids). Extend **`isEphemeraMetaRoom`** accordingly.
+3. **Persistence:** Conditional write path on **`Meta::Room`** that merges ingress **`{ add: string[]; remove: string[] }`** into **`objects`** (see **Storage**), requires existing row, then **`internalCache.ComponentEphemeraMeta.invalidate(roomId)`**.
+4. **Ingress:** New **`api.ephemera`**-style envelope with header **`type: 'Objects Change'`** (imperative, like **`State Change`**) with **`componentId`** (room) and **`{ add, remove }`**; internal publishers only---**no** `requestId`, **no** **`ReturnValue`** success/error path. **`mtw.ephemera.rooms`** `receiveEvents` handles it. Bus helper **`sendObjectsChange`** (name aligned with **`sendStateChange`**).
+5. **Outbound:** After successful persist, **`streamEvent`** on **`mtw.ephemera.rooms`** with header **`type: 'Objects Changed'`** and a **typed** payload (room id, maybe prior/new snapshot for tests and subscribers).
 6. **Tests:** Unit tests for handler persistence + cache invalidation + outbound shape (pattern from [`state`](../../../../../lambda/ephemera/dataSource/state/) tests and [`apiEphemera.test.ts`](../../../../../lambda/ephemera/dataSource/apiEphemera.test.ts)).
 
 ---
@@ -44,6 +44,7 @@ Introduce a single internal **`EphemeraDataSource`** with **`dataSourceKey: 'mtw
 - Full **perception** fan-in wiring (subscribe **`mtw.ephemera.perception`** to **Objects Changed** and correlate to threads) unless explicitly pulled into this milestone; document as **follow-on**.
 - **Character** / **activeCharacters** migration onto the same DataSource (plan for **typed** events, implement later).
 - **WML** or **assetDB** authoring surface for objects (ephemera runtime only unless product says otherwise).
+- **Authorization** framework or **client correlation** (`requestId` / **`ReturnValue`**) for this ingress---callers are **internal processes** only for v1 (see **Decisions log**).
 
 ---
 
@@ -53,22 +54,22 @@ Introduce a single internal **`EphemeraDataSource`** with **`dataSourceKey: 'mtw
 
 | Concern | Header `type` (on `mtw.ephemera.rooms`) | Notes |
 | --- | --- | --- |
-| Objects list updated | **`Objects Changed`** (provisional) | First implementation |
+| Objects list updated | **`Objects Changed`** | Outbound after persist (Title Case, past tense like **`State Changed`**) |
 | Active characters / presence | **`...`** TBD | Future; may align with **`Meta::Room.activeCharacters`** writers |
 
 **Subfolders** under `dataSource/rooms/` may split **handlers** (`objects.ts`, `characters.ts`) without splitting **`dataSourceKey`**.
 
-### Ingress (mirrors state pattern)
+### Ingress (internal bus; shape like **`api.ephemera`**)
 
-1. Client or internal caller emits **`api.ephemera`** with a dedicated header type (e.g. **Objects Set** / **Objects Update** - TBD).
-2. **`sendRoomsObjects...`** helper in [`apiEphemera.ts`](../../../../../lambda/ephemera/dataSource/apiEphemera.ts) (or small `roomsApi.ts` if the file grows).
+1. **Internal** callers only emit on the bus with header **`type: 'Objects Change'`**. Payload: **`componentId`** (room) and **`{ add: string[]; remove: string[] }`** (either array may be empty).
+2. **`sendObjectsChange`** helper in [`apiEphemera.ts`](../../../../../lambda/ephemera/dataSource/apiEphemera.ts) (or small `roomsApi.ts` if the file grows). **Do not** mirror **`handleApiStateChange`** **`ReturnValue`** behavior.
 3. **`mtw.ephemera.rooms`** subscribes via a **type guard** unioned into `subscribedEventTypeGuard` (or dedicated guard composition).
 
 ### Storage
 
 - **Dynamo:** `EphemeraId: ROOM#...`, `DataCategory: 'Meta::Room'`.
-- **Merge semantics:** replace entire list vs merge/patch - **Open questions**.
-- **Empty list:** distinguish **unset** vs **empty array** if needed for clients - **Open questions**.
+- **Field:** **`objects`:** `string[]`. Treat **missing** like **`[]`** when applying a patch.
+- **Merge semantics:** Treat **`objects`** as an **ordered multiset** of strings (duplicates allowed). **Remove:** **stable filter** - drop every element whose value is in the **set** of strings appearing in **`remove`** (relative order of survivors unchanged). **Add:** append each **`add`** entry **in order**; duplicates are allowed, including duplicates of strings still in the list. **No** max length cap in v1.
 
 ### Downstream (follow-on)
 
@@ -77,15 +78,10 @@ Introduce a single internal **`EphemeraDataSource`** with **`dataSourceKey: 'mtw
 
 ---
 
-## Open questions (resolve before or during implementation)
+## Open questions (remaining)
 
-1. **Field name** on **`EphemeraMetaRoom`:** e.g. `objectIds`, `objects`, `roomObjectKeys` - align with client and future WML.
-2. **Ingress command shape:** replace-list vs diff vs named operations; idempotency and max list size.
-3. **Authorization:** who may set objects for a room (same as state change, connection-bound, asset ownership) - may be **caller's responsibility** in v1 with a TODO.
-4. **Correlation:** whether **`api.ephemera`** ingress carries **`requestId`** and returns **`ReturnValue`** like **State Change** ([`handleApiStateChange.ts`](../../../../../lambda/ephemera/dataSource/state/handleApiStateChange.ts)).
-5. **Coherence with `mtw.ephemera.state`:** separate **`api.ephemera`** types vs one **Room Meta** command with discriminant - prefer **separate** types for v1 clarity unless product wants one envelope.
-6. **Perception timing:** register thread + kick render vs emit **Objects Changed** only and let a thin perception handler **PublishMessage** without render - **product** decision.
-7. **Event name casing:** match existing headers (**`State Changed`**, **`Render Pertains`**) - use space-separated Title Case for **`Objects Changed`**.
+1. **Coherence with `mtw.ephemera.state`:** separate **`api.ephemera`** types vs one **Room Meta** command with discriminant - **plan:** separate types for v1 clarity unless product wants one envelope.
+2. **Perception timing:** register thread + kick render vs emit **Objects Changed** only and let a thin perception handler **PublishMessage** without render - **product** decision.
 
 ---
 
@@ -93,10 +89,10 @@ Introduce a single internal **`EphemeraDataSource`** with **`dataSourceKey: 'mtw
 
 Pending work uses `[ ]`; completed work uses `[X]`. Mark nested bullets the same way as you complete them.
 
-- [ ] Resolve **Open questions** 1-2 and 7 (field name, ingress shape, header spelling) in review; record decisions in a short **Decisions** subsection below or in PR description
+- [ ] Resolve remaining **Open questions** (coherence with **`mtw.ephemera.state`**, perception timing) in review; update **Decisions log** if needed
 - [ ] Add **`EphemeraMetaRoom`** field + **`isEphemeraMetaRoom`** update in **`mtw-interfaces`**
 - [ ] Implement **`optimisticUpdate`** (or equivalent) helper for objects-only patch; **`ComponentEphemeraMeta.invalidate`** on success
-- [ ] Add **`api.ephemera`** ingress types, serializer path if required, and **`send*`** helper; extend ephemera lambda **EventBridge** / bus routing if this ingress is also used from API Gateway (follow existing **`State Change`** wiring)
+- [ ] Add bus ingress types and **`send*`** helper ( **`api.ephemera`** key if consistent with other internal events); **no** API Gateway / **`ReturnValue`** requirement for v1
 - [ ] Create **`lambda/ephemera/dataSource/rooms/`** with **`index.ts`**, **`subscribedEvents.ts`**, **`publishedEvents.ts`** (or **`events.ts`**) for **Objects Changed** payload types
 - [ ] Side-effect import in **`app.ts`**
 - [ ] Unit tests: persist, invalidate, outbound envelope, guard rejects non-room ids
@@ -133,16 +129,23 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested bullets the same
 | [`lambda/ephemera/dataSource/perception/AGENT.md`](../../../../../lambda/ephemera/dataSource/perception/AGENT.md) | Perception fan-in and delivery paths |
 | [`lambda/ephemera/internalCache/componentEphemeraMeta.AGENT.md`](../../../../../lambda/ephemera/internalCache/componentEphemeraMeta.AGENT.md) | Meta::Room cache + invalidation contract |
 | [`lambda/ephemera/dataSource/state/AGENT.md`](../../../../../lambda/ephemera/dataSource/state/AGENT.md) | State domain boundary vs orchestration |
+| [`lambda/ephemera/dataSource/AGENT.md`](../../../../../lambda/ephemera/dataSource/AGENT.md) | **dataSource** directory index |
+| [`lambda/ephemera/dataSource/AGENT.multiChannel.contract.md`](../../../../../lambda/ephemera/dataSource/AGENT.multiChannel.contract.md) | Multi-cadence / aggregate storage vs domain boundaries |
 
 ---
 
 ## Decisions log
 
-Record agreed answers to **Open questions** here as they land (date optional).
-
-| Topic | Decision | Date |
-| --- | --- | --- |
-| *Example* | *Objects field name: `...`* | |
+| Topic | Decision |
+| --- | --- |
+| `EphemeraMetaRoom` field name | **`objects`:** `string[]` (optional / missing treated as empty when patching). |
+| Ingress payload | **`{ add: string[]; remove: string[] }`** alongside room **`componentId`**. |
+| Authorization | **None** for v1; only **internal processes** invoke this path; no permission framework in scope. |
+| Correlation | **No** **`requestId`** / **`ReturnValue`** on ingress (internal-only; unlike **State Change**). |
+| api.ephemera ingress header | **`Objects Change`** (imperative; parallels **`State Change`**). |
+| Bus helper name | **`sendObjectsChange`** (parallels **`sendStateChange`**). |
+| `objects` merge semantics | **Multiset:** no dedupe; **remove** = stable filter using membership in the **set** of **`remove`** entries (all matching occurrences dropped); **add** = ordered append; **no** length cap in v1. |
+| Outbound header | **`Objects Changed`** (Title Case, past tense; matches **`State Changed`**). |
 
 ---
 
