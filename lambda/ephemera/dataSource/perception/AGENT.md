@@ -2,11 +2,11 @@
 
 **Status:** Bus-only, non-replayable `EphemeraDataSource`. Subscribes to **`api.ephemera`** ingress **`Character Perception Requested`** and **`Perception Thread Registered`**, and to **`mtw.ephemera.renderCache`** **`Render Pertains`** plus selected **`mtw.ephemera.renderOrchestration`** outbounds (**`Generation Started`**, **`Orchestration Error`**, **`Generation Deferred`**) for **room description**, **room header broadcast**, and **`characterMove`** fan-in (see [`subscribedEvents.ts`](subscribedEvents.ts)). Character path: **`streamKey`** = viewed character id (`CHARACTER#...`); thread registration: **`streamKey`** = **`componentId`**. `receiveEvents` handles Character via `Meta::Character` and **`PublishMessage`** (`characterPerception.ts`); thread registration calls **`internalCache.PerceptionThreads.register(cmd)`** with a **`threadKind`**-discriminated **`PerceptionThreadRegisterCommand`** (initial thread body derived inside **`register`**; multiple rows may share the same **`componentId` + `perspectiveKey`**); stream payloads are handled in [`orchestrate.ts`](orchestrate.ts) (**`PublishMessage`**, correlated **`messageId`**). No outbound `mtw.ephemera.perception` stream events yet.
 
-**Fan-in aggregation:** In-memory state on **`internalCache.PerceptionThreads`** ([`perceptionThreads.ts`](../../internalCache/perceptionThreads.ts): **`register`** appends a row per composite key, **`list`** / **`update`** / **`remove(registrationId)`**, synthetic **`registrationId`** when omitted; no cross-thread dedupe; [`InternalCache.clear()`](../../internalCache/index.ts) only, no **`flush()`**). **`threadKind`** includes **`stub`**, **`roomDescription`**, **`roomHeaderBroadcast`**, and **`characterMove`** (same **`componentId` + `perspectiveKey`** bucket; separate rows). Correlated flows (room examine, room header refresh, character move header): first-pass migration **steps 1--7** are shipped; **policy**, **normative decisions**, **obligations**, and **legacy emitters** live in [Normative decisions and obligations](#normative-decisions-and-obligations) below. **`characterMove`** rows carry **`messageGroupId`** (root), **`leaveMessageGroupId`**, **`arriveMessageGroupId`**, optional **`leaveWorldMessage` / `arriveWorldMessage`**, and **`headerTargets`** (defaults to the mover when omitted). Leave/Arrive **`WorldMessage`** sends from transact callbacks use [`characterMoveDelivery.ts`](characterMoveDelivery.ts) with **`OrchestrateMessages`** ordering: **`before`** = leave group, root = room header placeholder/terminal, **`after`** = arrive group.
+**Fan-in aggregation:** In-memory state on **`internalCache.PerceptionThreads`** ([`perceptionThreads.ts`](../../internalCache/perceptionThreads.ts): **`register`** appends a row per composite key, **`list`** / **`update`** / **`remove(registrationId)`**, synthetic **`registrationId`** when omitted; no cross-thread dedupe; [`InternalCache.clear()`](../../internalCache/index.ts) only, no **`flush()`**). **`threadKind`** includes **`stub`**, **`roomDescription`**, **`roomHeaderBroadcast`**, and **`characterMove`** (same **`componentId` + `perspectiveKey`** bucket; separate rows). Correlated flows (room examine, room header refresh, character move header) are **shipped**. **Which entry points use fan-in versus imperative [`perceptionMessage`](../../perception/index.ts)** is documented in [Delivery paths (correlated vs imperative)](#delivery-paths-correlated-vs-imperative). **Policy**, **normative decisions**, and **obligations** are in [Normative decisions and obligations](#normative-decisions-and-obligations). **`characterMove`** rows carry **`messageGroupId`** (root), **`leaveMessageGroupId`**, **`arriveMessageGroupId`**, optional **`leaveWorldMessage` / `arriveWorldMessage`**, and **`headerTargets`** (defaults to the mover when omitted). Leave/Arrive **`WorldMessage`** sends from transact callbacks use [`characterMoveDelivery.ts`](characterMoveDelivery.ts) with **`OrchestrateMessages`** ordering: **`before`** = leave group, root = room header placeholder/terminal, **`after`** = arrive group.
 
 **Entry kicks:** **`parse/executeAction`** (room description) and [`kickRoomHeaderBroadcast.ts`](kickRoomHeaderBroadcast.ts) / [`dataSource/index.ts`](../index.ts) / imperative [`perceptionMessage`](../../perception/index.ts) pair **`sendPerceptionThreadRegistered`** with passive **`Render Requested`** (**`targets`**) through **`renderOrchestration`**. **[`moveCharacter`](../../moveCharacter/index.ts)** calls **`internalCache.PerceptionThreads.register`** **directly** (synchronously, before transact) when the arrival room has a **non-empty** **`perspectiveKey`** --- not only **`sendPerceptionThreadRegistered`**, so the row exists before success callbacks that emit Leave/Arrive.
 
-**Development notes:** [`AGENT.development.md`](AGENT.development.md) --- test commands and **follow-on** design direction (default publish vs particularizing registration).
+**Development notes:** Steady-state **delivery map**: [Delivery paths (correlated vs imperative)](#delivery-paths-correlated-vs-imperative). **Follow-on design** (default publish, particularizing registration): [`AGENT.development.md`](AGENT.development.md) (test commands there too).
 
 **Related:** Imperative [`perceptionMessage`](../../perception/index.ts) bridges the Character branch through `sendCharacterPerceptionRequested` into this DataSource.
 
@@ -46,6 +46,37 @@ Keeping **immediate** and **correlated** behavior under **`mtw.ephemera.percepti
 
 ---
 
+## Delivery paths (correlated vs imperative)
+
+Steady-state map of which legs are satisfied by **`mtw.ephemera.perception`** fan-in versus imperative [`perceptionMessage`](../../perception/index.ts). This is **current routing**, not a changelog.
+
+### Correlated delivery (DataSource fan-in)
+
+These paths **register** a perception thread (or enter through code that registers), **kick** passive render where needed, and emit room-related **`PublishMessage`** from [`orchestrate.ts`](orchestrate.ts) when **`Render Pertains`** and orchestration lifecycle events correlate to those threads.
+
+| Flow | How it is entered | Notes |
+| --- | --- | --- |
+| **Room `look` (room id)** | [`parse/executeAction.ts`](../../parse/executeAction.ts) **`look`** when **`EphemeraId`** is a room | **`threadKind`:** **`roomDescription`**. Does **not** use imperative **`Perception`** for the **full** room description. |
+| **Room header refresh (asset `Component Updated`)** | [`dataSource/index.ts`](../index.ts) **`processComponentUpdated`** [`kickRoomHeaderBroadcastForRoom`](kickRoomHeaderBroadcast.ts) | **`threadKind`:** **`roomHeaderBroadcast`**, grouped by **`perspectiveKey`**. |
+| **Room headers after asset change (`PerceptionAssetMessage`)** | [`perceptionMessage`](../../perception/index.ts) handles the bus message and calls **`kickRoomHeaderBroadcastForRoom`** per linked room | Same correlated header pipeline as the row above; the imperative handler is only the **entry** that kicks registration + render. |
+| **Move, arrival-room header** | [`moveCharacter`](../../moveCharacter/index.ts) when the arrival room has a **non-empty** **`perspectiveKey`** | **`threadKind`:** **`characterMove`**. Leave/Arrive narrative uses [`characterMoveDelivery.ts`](characterMoveDelivery.ts). |
+
+### Imperative delivery (`perceptionMessage`)
+
+These paths **enqueue** **`type: 'Perception'`** for [`perceptionMessage`](../../perception/index.ts) without the correlated room fan-in above (until a deliberate follow-on wires them).
+
+| Source | Reference |
+| --- | --- |
+| **`look` (non-room target)** | [`parse/executeAction.ts`](../../parse/executeAction.ts) |
+| **`checkLocation`** (`forceRender`) | [`checkLocation/index.ts`](../../checkLocation/index.ts) |
+| **Link API** (feature, character, knowledge) | [`app.ts`](../../app.ts) |
+| **Map subscription** success path | [`mapSubscription/index.ts`](../../mapSubscription/index.ts) |
+| **`moveCharacter` fallback** | When there is **no** **`characterMoveKey`** (empty arrival-room **`perspectiveKey`**), header refresh still uses imperative **`Perception`** with **`header: true`** ([`moveCharacter/index.ts`](../../moveCharacter/index.ts)) |
+
+**Other room `Perception` payloads:** Any **`PerceptionRoomMessage`** that still reaches **`perceptionMessage`** uses immediate **`ComponentRender.get`** + **`PublishMessage`** in the handler. Only **room `look` from `executeAction`** uses the correlated room description path today; see [Correlated room description (policy)](#correlated-room-description-policy).
+
+---
+
 ## Normative decisions and obligations
 
 ### Plan assumptions
@@ -56,16 +87,16 @@ Keeping **immediate** and **correlated** behavior under **`mtw.ephemera.percepti
 
 ### Implementation stance
 
-- **Lift** audience-facing assembly from imperative [`perceptionMessage`](../../perception/index.ts) into this DataSource where the refactor applies; keep [`perception/AGENT.md`](../../perception/AGENT.md) accurate as the split evolves.
+- **Route** new audience-facing room and room-header work through this DataSource when it matches [Delivery paths (correlated vs imperative)](#delivery-paths-correlated-vs-imperative); keep imperative [`perceptionMessage`](../../perception/index.ts) accurate for remaining entry points. Keep [`perception/AGENT.md`](../../perception/AGENT.md) aligned as routing evolves.
 - **Prefer** the same DataSource patterns as [`renderOrchestration`](../renderOrchestration/) and [`renderCache`](../renderCache/) where they fit (**`api.ephemera`** ingress helpers, **`subscribedEvents`** / **`publishedEvents`**, **`EphemeraDataSource`** + **`subscribe()`**). Perception-specific fan-in will not map one-to-one to every orchestration or cache concern; use those trees as **reference implementations**, not a spec to force-fit.
 
 ### Imperative `perceptionMessage` baseline (v1)
 
-Policy for the legacy handler in [`perception/index.ts`](../../perception/index.ts) (orthogonal to **`mtw.ephemera.perception`** fan-in, but affects what still hits the bus):
+Policy for the imperative handler in [`perception/index.ts`](../../perception/index.ts) (orthogonal to **`mtw.ephemera.perception`** fan-in, but affects what still hits the bus):
 
 | Policy | Detail |
 | --- | --- |
-| **Message components** | Legacy **Message** component delivery was **removed** from **`perceptionMessage`**; that UX is intended to be **rebuilt** on the new model rather than preserved in the old path. |
+| **Message components** | **Message** component delivery was **removed** from **`perceptionMessage`**; that UX is intended to be **rebuilt** on the DataSource-oriented model rather than preserved in the imperative path. |
 | **Knowledge and Map** | Branches are **disabled** in the handler via **`KNOWLEDGE_PERCEPTION_ENABLED`** and **`MAP_PERCEPTION_ENABLED`**. They are **not** migrated in v1; callers may still enqueue **`Perception`** for maps/knowledge until follow-on wiring. |
 
 ### Routing identity
@@ -115,20 +146,6 @@ Debt acknowledged while pass-through and types catch up. **Update this table** w
 | Current code | Preserve or migrate behavior documented in [`perception/AGENT.md`](../../perception/AGENT.md) (triggers, scale, navigation). | TBD |
 
 **Uncertainty 6 (summary):** Orchestration + cache aim to avoid duplicate **generation** (**`singleFlight`**); **duplicate** **`Generation Started`** may still occur until idempotency hardens. Perception implements **terminal** dedupe for **delivery** as in [Routing identity](#routing-identity) above; the **full** subscriber collapse strategy for all products remains **TBD** (table row).
-
-### Legacy imperative `Perception` bus emitters (not yet on DataSource fan-in)
-
-These paths **still enqueue** **`type: 'Perception'`** for [`perceptionMessage`](../../perception/index.ts) until a follow-on routes them through **`mtw.ephemera.perception`** or removes dead emits. **Note:** **`executeAction`** **`look`** uses the correlated **room** path (**`roomDescription`** registration + **`Render Requested`**) when **`EphemeraId`** is a **room**; **non-room** **`look`** still sends imperative **`Perception`**.
-
-| Source | Reference |
-| --- | --- |
-| **`look`** / **`ExecuteAction`** (non-room) | [`parse/executeAction.ts`](../../parse/executeAction.ts) |
-| **`checkLocation`** (`forceRender`) | [`checkLocation/index.ts`](../../checkLocation/index.ts) |
-| **Asset `Component Updated`** (room header refresh) | [`dataSource/index.ts`](../index.ts) (`processComponentUpdated`) |
-| **Link API** (feature, character, knowledge) | [`app.ts`](../../app.ts) |
-| **Map subscription** success path | [`mapSubscription/index.ts`](../../mapSubscription/index.ts) (handler may gate knowledge/map; bus traffic can still differ) |
-
-**`moveCharacter` (partial migration):** when the mover has a **non-empty** arrival-room **`perspectiveKey`**, header delivery uses **`characterMove`** fan-in, not imperative **`Perception`** for that leg; **fallback** paths may still use imperative **`Perception`**.
 
 ### Related documentation
 

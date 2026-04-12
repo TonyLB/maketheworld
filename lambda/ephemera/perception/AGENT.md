@@ -16,9 +16,11 @@ The perception system serves as the **message routing and display engine** that:
 
 ## Architecture: `mtw.ephemera.perception` DataSource
 
-New work is moving **audience-facing** assembly into the bus-published DataSource at [`../dataSource/perception/`](../dataSource/perception/). See [`../dataSource/perception/AGENT.md`](../dataSource/perception/AGENT.md) for the **data domain**: how perception **bridges** internal-focused pipelines (`renderOrchestration`, `renderCache`, etc.) and audience-focused delivery, including **correlated** (register, subscribe, correlate, dispatch) vs **immediate** (data on hand) patterns and why both live in one place. That doc also holds **normative routing**, **plan assumptions**, **implementation stance**, **imperative `perceptionMessage` baseline (v1)**, **correlated room description** policy, the **obligations** working list, **legacy `Perception` emitters** not yet migrated, **verification** commands, and **related planning links**.
+**Audience-facing** assembly for correlated room and room-header legs lives in the bus-published DataSource at [`../dataSource/perception/`](../dataSource/perception/). See [`../dataSource/perception/AGENT.md`](../dataSource/perception/AGENT.md) for the **data domain** (how perception **bridges** `renderOrchestration`, `renderCache`, and delivery), **correlated** vs **immediate** patterns, **normative routing**, **plan assumptions**, **policy**, **obligations**, and **verification**.
 
-This guide remains the map for **imperative** `perceptionMessage` behavior, triggers, and message shapes until those paths migrate. **v1 handler policy** (removed Message path; Knowledge and Map branches **gated off** by flags): [`../dataSource/perception/AGENT.md`](../dataSource/perception/AGENT.md#imperative-perceptionmessage-baseline-v1).
+**Which flows use fan-in versus imperative [`perceptionMessage`](./index.ts)** is the steady-state **[Delivery paths (correlated vs imperative)](../dataSource/perception/AGENT.md#delivery-paths-correlated-vs-imperative)** section in that doc. Start there when debugging or extending routing.
+
+This guide remains the map for **imperative** `perceptionMessage` behavior, triggers, and message shapes for paths that still use it. **v1 handler policy** (removed Message path; Knowledge and Map branches **gated off** by flags): [`../dataSource/perception/AGENT.md`](../dataSource/perception/AGENT.md#imperative-perceptionmessage-baseline-v1). **Follow-on design** (default publish, etc.): [`../dataSource/perception/AGENT.development.md`](../dataSource/perception/AGENT.development.md).
 
 ## Perception Event Triggers
 
