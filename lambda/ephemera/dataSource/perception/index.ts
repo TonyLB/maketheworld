@@ -1,8 +1,8 @@
 /**
  * mtw.ephemera.perception DataSource.
  *
- * Bus-only, non-replayable. Subscribes to api.ephemera Character perception ingress. See AGENT.md and
- * taskPlanning/lambda/ephemera/dataSource/perception/AGENT.perceptionRefactor.planning.md
+ * Bus-only, non-replayable. Subscribes to api.ephemera Character perception ingress. See AGENT.md
+ * (normative decisions, obligations, verification).
  */
 import EphemeraDataSource from '../abstract'
 import type { PerceptionStubPublishedPayload } from './publishedEvents'

@@ -1,6 +1,6 @@
 /**
  * In-memory perception fan-in threads (PerceptionThreads). Cleared each lambda invocation via InternalCache.clear().
- * See taskPlanning/lambda/ephemera/dataSource/perception/AGENT.perceptionRefactor.planning.md steps 3-4.
+ * See lambda/ephemera/dataSource/perception/AGENT.md (Normative decisions and obligations).
  *
  * Multiple independent entries may share the same (componentId, perspectiveKey); each is a separate output request.
  */
