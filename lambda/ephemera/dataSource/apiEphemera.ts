@@ -1,8 +1,8 @@
 /**
  * api.ephemera: internal API stream for the ephemera lambda (parallel to api.wml / api.assets).
  * Header/envelope guards and typed messageBus send helpers. Not emitted from EventBridge.
- * Includes cache commands and State Change (`componentId` + `markState`; see
- * `StateChangeCommand` in `localApiEvents.ts`).
+ * Includes cache commands, State Change (`componentId` + `markState`), and Objects Change
+ * (`componentId` + `add` / `remove`; see `localApiEvents.ts`).
  */
 import {
     StreamingEventHeader,
@@ -15,6 +15,7 @@ import type {
     PutCacheRecordCommand,
     DeleteCacheRecordsCommand,
     StateChangeCommand,
+    ObjectsChangeCommand,
     EphemeraApiCommandPayload,
 } from './localApiEvents'
 
@@ -22,6 +23,7 @@ export type EphemeraApiSubscribedHeader =
     | (StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Put Cache Record' })
     | (StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Delete Cache Records' })
     | (StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'State Change' })
+    | (StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Objects Change' })
 
 export type EphemeraApiIncomingEvent =
     | {
@@ -35,6 +37,10 @@ export type EphemeraApiIncomingEvent =
     | {
           header: StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'State Change' };
           getContent: () => Promise<StateChangeCommand>;
+      }
+    | {
+          header: StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Objects Change' };
+          getContent: () => Promise<ObjectsChangeCommand>;
       }
 
 const isPutCacheRecordHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Put Cache Record' }> = (
@@ -52,6 +58,11 @@ const isStateChangeHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey: '
 ): h is StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'State Change' } =>
     h.dataSourceKey === 'api.ephemera' && h.type === 'State Change'
 
+const isObjectsChangeHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Objects Change' }> = (
+    h
+): h is StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Objects Change' } =>
+    h.dataSourceKey === 'api.ephemera' && h.type === 'Objects Change'
+
 export const isEphemeraApiPutCacheRecordEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
     PutCacheRecordCommand,
     StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Put Cache Record' }
@@ -67,12 +78,18 @@ export const isEphemeraApiStateChangeEnvelope = makeStreamingEnvelopeGuardFromHe
     StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'State Change' }
 >(isStateChangeHeader)
 
+export const isEphemeraApiObjectsChangeEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
+    ObjectsChangeCommand,
+    StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Objects Change' }
+>(isObjectsChangeHeader)
+
 export const isEphemeraApiSubscribedHeader: HeaderGuard<EphemeraApiSubscribedHeader> = (
     header
 ): header is EphemeraApiSubscribedHeader =>
     isPutCacheRecordHeader(header)
     || isDeleteCacheRecordsHeader(header)
     || isStateChangeHeader(header)
+    || isObjectsChangeHeader(header)
 
 export const isEphemeraApiSubscribedEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
     EphemeraApiCommandPayload,
@@ -136,6 +153,28 @@ export function sendStateChange(bus: Bus, streamKey: string, content: StateChang
         streamKey,
         timestamp,
         type: 'State Change',
+    }
+    const envelope = createInternalOriginEnvelope(header, content, apiEphemeraSerializer)
+    bus.send({
+        type: 'StreamingEvent',
+        dataSourceKey: 'api.ephemera',
+        streamKey,
+        header: envelope.header,
+        getContent: envelope.getContent,
+        timestamp,
+    })
+}
+
+/**
+ * Post **Objects Change** to the internal bus (`componentId` + `add` / `remove`). No ReturnValue for v1.
+ */
+export function sendObjectsChange(bus: Bus, streamKey: string, content: ObjectsChangeCommand): void {
+    const timestamp = Date.now()
+    const header: StreamingEventHeader = {
+        dataSourceKey: 'api.ephemera',
+        streamKey,
+        timestamp,
+        type: 'Objects Change',
     }
     const envelope = createInternalOriginEnvelope(header, content, apiEphemeraSerializer)
     bus.send({

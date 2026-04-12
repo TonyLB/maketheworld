@@ -225,8 +225,9 @@ For complete testing pattern documentation including dependency injection, real-
 ### **Understanding Current System**
 1. **Start with WebSocket Endpoints**: Review the API endpoints for client interaction patterns
 2. **Examine Message Bus**: Understand how internal events coordinate complex workflows  
-3. **Study Perception System**: See [`perception/AGENT.md`](perception/AGENT.md) for character presence filtering
-4. **Review Internal Cache**: See [`internalCache/AGENT.md`](internalCache/AGENT.md) for performance optimization
+3. **DataSource packages**: See [`dataSource/AGENT.md`](dataSource/AGENT.md) for `EphemeraDataSource` instances (`mtw.ephemera`, render cache, orchestration, perception, state) and internal `api.ephemera` ingress
+4. **Study Perception System**: See [`perception/AGENT.md`](perception/AGENT.md) for character presence filtering
+5. **Review Internal Cache**: See [`internalCache/AGENT.md`](internalCache/AGENT.md) for performance optimization
 
 ### **Understanding Transition Context**
 1. **Legacy System**: Read `cacheAsset/README.state.md` for Variable/Computed/Action details
@@ -245,6 +246,7 @@ For complete testing pattern documentation including dependency injection, real-
 
 - **[Event Flow Documentation](AGENT.event.md)**: Comprehensive event processing patterns, WebSocket handling, and migration planning
 - **[Testing Patterns](AGENT.testing.md)**: Dependency injection patterns, real-time system testing, and migration testing strategy
+- **[DataSource layer](dataSource/AGENT.md)**: `EphemeraDataSource` packages, internal bus keys, cross-cutting contracts (including multi-cadence / multi-channel design)
 - **[Perception System](perception/AGENT.md)**: Detailed perception processing and filtering documentation
 - **[Internal Cache System](internalCache/AGENT.md)**: Caching architecture supporting real-time performance
 - **[Assets System](../assets/)**: Component data source for perception rendering
