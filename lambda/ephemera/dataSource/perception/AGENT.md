@@ -6,6 +6,8 @@
 
 **Task plan:** [`AGENT.perceptionRefactor.planning.md`](../../../../taskPlanning/lambda/ephemera/dataSource/perception/AGENT.perceptionRefactor.planning.md) under `taskPlanning/lambda/ephemera/dataSource/perception/`.
 
+**Development notes:** [`AGENT.development.md`](AGENT.development.md) --- test commands and **follow-on** design direction (default publish vs particularizing registration).
+
 **Related:** Imperative [`perceptionMessage`](../../perception/index.ts) bridges the Character branch through `sendCharacterPerceptionRequested` into this DataSource.
 
 ---

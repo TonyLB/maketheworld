@@ -36,27 +36,32 @@ Read [`taskPlanning/AGENT.md`](../../../../AGENT.md) once so you know what belon
    - [Out of scope for first pass](#out-of-scope-for-first-pass-legacy-bus-until-follow-on) --- legacy `Perception` emitters not migrated in v1.
    - [Obligations](#obligations-accruing-to-future-perception-working-list) --- debt from pass-through until types and code catch up.
 
-3. **Integration points (code)**
+3. **Future direction only (do not let this block the current migration)**
+   - **[`lambda/ephemera/dataSource/perception/AGENT.development.md`](../../../../../lambda/ephemera/dataSource/perception/AGENT.development.md)** exists so we remember **where** and **why** we may change perception **after** this initiative's first pass --- notably a **hypothetical second iteration** (default publish when no thread is registered; registration as **particularizing** overlay rather than the only way work happens).
+   - **Use it as forward-looking context only.** It is **not** part of [Recommended order](#recommended-order) unless we add an explicit checkbox. **Ship the current plan:** explicit `Perception Thread Registered` rows, kick sites, and `orchestrate.ts` fan-in are the **committed** shape for finishing the migration off legacy [`perceptionMessage`](../../../../../lambda/ephemera/perception/index.ts) (including steps **6--7**). Accept that we may be painting ourselves into **some** architectural corner; **that is OK** --- completing and stabilizing this migration **outranks** preemptively matching a future model.
+   - **Do not** use the follow-on write-up to stall work, rewrite green paths for elegance mid-stream, or second-guess merged slices. When the first pass is done, we can revisit `AGENT.development.md` deliberately.
+
+4. **Integration points (code)**
    - **Imperative perception today:** [`lambda/ephemera/perception/index.ts`](../../../../../lambda/ephemera/perception/index.ts) (`perceptionMessage`, `sendRoomGeneratingHeader`).
    - **Bus:** [`lambda/ephemera/messageBus/index.ts`](../../../../../lambda/ephemera/messageBus/index.ts) (subscriptions), [`lambda/ephemera/messageBus/baseClasses.ts`](../../../../../lambda/ephemera/messageBus/baseClasses.ts) (message types).
    - **DataSource patterns:** [`lambda/ephemera/dataSource/renderOrchestration/`](../../../../../lambda/ephemera/dataSource/renderOrchestration/) (ingress, `subscribe()`), [`lambda/ephemera/dataSource/renderCache/`](../../../../../lambda/ephemera/dataSource/renderCache/) (consumes orchestration stream), [`lambda/ephemera/dataSource/perception/`](../../../../../lambda/ephemera/dataSource/perception/) (`mtw.ephemera.perception` stub; see [`AGENT.md`](../../../../../lambda/ephemera/dataSource/perception/AGENT.md)). **Perception threads (step 3+):** [`lambda/ephemera/internalCache/perceptionThreads.ts`](../../../../../lambda/ephemera/internalCache/perceptionThreads.ts).
    - **Lambda entry / flush:** [`lambda/ephemera/app.ts`](../../../../../lambda/ephemera/app.ts) (`messageBus.flush()`).
    - **Lanes (transport):** [`Virtual lanes`](../../../../../packages/mtw-lambda-patterns/ts/messageBus/AGENT.implementation.md#virtual-lanes-internalmessagebus) in `mtw-lambda-patterns` --- coordinate if delivery must be lane-isolated before client-visible output. Ephemera entry: [`lambda/ephemera/messageBus/AGENT.md`](../../../../../lambda/ephemera/messageBus/AGENT.md).
 
-4. **Implementation stance**
+5. **Implementation stance**
    - **Lift from imperative perception:** new `mtw.ephemera.perception` work **moves behavior and structure out of** [`lambda/ephemera/perception/`](../../../../../lambda/ephemera/perception/) (handlers, helpers) **into** the DataSource under [`lambda/ephemera/dataSource/perception/`](../../../../../lambda/ephemera/dataSource/perception/); keep [`lambda/ephemera/perception/AGENT.md`](../../../../../lambda/ephemera/perception/AGENT.md) accurate as the split evolves.
    - **Upgrade using existing DataSources where they apply:** when adding ingress, subscription guards, published stream shapes, tests, or wiring, **prefer the same patterns as** [`renderOrchestration`](../../../../../lambda/ephemera/dataSource/renderOrchestration/) and [`renderCache`](../../../../../lambda/ephemera/dataSource/renderCache/) **where a comparable pattern exists** (for example `api.ephemera` ingress helpers, `subscribedEvents` / `publishedEvents`, `EphemeraDataSource` + `subscribe()`). Perception-specific fan-in will not map one-to-one to every orchestration or cache concern; treat those trees as **reference implementations**, not a spec to force-fit.
 
-5. **Tests to mirror**
+6. **Tests to mirror**
    - [`lambda/ephemera/perception/index.test.ts`](../../../../../lambda/ephemera/perception/index.test.ts), [`lambda/ephemera/dataSource/renderCache/index.test.ts`](../../../../../lambda/ephemera/dataSource/renderCache/index.test.ts), [`../AGENT.passThrough.contract.planning.md`](../AGENT.passThrough.contract.planning.md#encoding-the-contract-in-unit-tests) (placeholder / skipped tests with reasons).
 
-6. **Next task**
+7. **Next task**
    - Open [Recommended order](#recommended-order); the first unchecked `[ ]` is next (after baseline `[X]`). After a change merges, mark the matching line `[X]` and run **Verification**.
 
-7. **Baseline before you edit**
+8. **Baseline before you edit**
    - From repo root: `cd lambda/ephemera && npm test` --- expect **green** before large refactors; fix or note existing failures.
 
-There is no `lambda/ephemera/AGENT.development.md` yet; use **Verification** below and this section for commands.
+There is still no package-wide `lambda/ephemera/AGENT.development.md`; use **Verification** below and this section for commands. **Perception subtree** (test commands + **follow-on design only**, not current checklist scope): [`lambda/ephemera/dataSource/perception/AGENT.development.md`](../../../../../lambda/ephemera/dataSource/perception/AGENT.development.md) --- see **Getting Started** item **3**.
 
 ---
 
