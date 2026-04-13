@@ -10,6 +10,14 @@
 
 **Related:** Imperative [`perceptionMessage`](../../perception/index.ts) bridges the Character branch through `sendCharacterPerceptionRequested` into this DataSource.
 
+## Multi-channel room UI (render vs affordances)
+
+Normative contract: [`AGENT.multiChannel.contract.md`](../AGENT.multiChannel.contract.md).
+
+**Room-render** and **room-affordances** share **`DisplayProtocol: 'PerceptionMessage'`** and discriminate with **`metaData.roomChannel`** on **`PerceptionRoomMetaData`** (`@tonylb/mtw-interfaces`). **Correlated** render (**Generating** / terminal overwrite on the same **`messageId`**) applies to the **render** channel only; **room-affordances** **`PublishMessage`** rows sit **outside** that replace pipeline.
+
+**Coupled thread template:** Optional paired delivery (for example gating affordances on render progress) remains **TBD** for v1. There is **no** normative **PerceptionThread** state machine for multi-channel unless product requests one; see **Coupled PerceptionThread template (deferral)** in the contract.
+
 ---
 
 ## Data domain and purpose

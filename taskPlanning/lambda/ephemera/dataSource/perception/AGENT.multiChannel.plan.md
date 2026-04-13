@@ -1,6 +1,6 @@
 # Room UI: multi-channel delivery (render vs affordances)
 
-**Status:** Active --- **planning / decisions open**. Normative **direction** lives in [`lambda/ephemera/dataSource/AGENT.multiChannel.contract.md`](../../../../../lambda/ephemera/dataSource/AGENT.multiChannel.contract.md) (**Room UI delivery channels**). This file tracks **unknowns**, **alignment work**, and **verification** until the initiative completes or is superseded.
+**Status:** Active --- **Phase A** (types + normative docs) **done**; **Phase B/C** (lambda emitters, client selectors) **not** started. Normative **direction** lives in [`lambda/ephemera/dataSource/AGENT.multiChannel.contract.md`](../../../../../lambda/ephemera/dataSource/AGENT.multiChannel.contract.md) (**Room UI delivery channels**). This file tracks **remaining work** and **verification** until the initiative completes or is superseded.
 
 **Framework:** Executable task plan per [`taskPlanning/AGENT.md`](../../../../../AGENT.md) (status, **Getting Started**, **Progress**, **Recommended order** checkboxes, **Verification**).
 
@@ -31,11 +31,11 @@ Read in order (or skim **Decisions to resolve** first if resuming):
 
 ## Goals
 
-1. **Decide** wire shapes, naming, and **`messageId` / correlation** rules for **room-render** vs **room-affordances** (may retain evolution from current types or introduce distinct **`PublishMessage`** display protocols).
-2. **Decide** **single source of truth** per fact (e.g. whether exits and characters live **only** on affordances after migration, and what remains in WML for render).
-3. **Specify** **uncoupled** vs **coupled** perception flows: when affordances may ship independently vs when a **PerceptionThread** must **gate** affordances until render reaches at least **Generating**, and when **terminal** requires both channels (including **failure** and **timeout** semantics).
-4. **Implement** server publishers, perception subscriptions/handlers, and client composition so the **sticky room header** reflects **both** channels without dropping updates.
-5. **Land** **`Objects Changed`** (or successor affordance delta) on the **affordances** cadence where product agrees, without forcing full room render unless summary derivation requires it.
+1. **[Decided / contract]** Wire shape: **`PerceptionMessage`** + **`metaData.roomChannel`** (`'render' | 'affordances'`); separate **`messageId`** spaces; norms in [`AGENT.multiChannel.contract.md`](../../../../../lambda/ephemera/dataSource/AGENT.multiChannel.contract.md).
+2. **[Decided / contract]** **Fact ownership** (render vs affordances) and **coupled thread** deferral are **normative** in the contract; **`RoomUpdate`** merge / retirement still **TBD** (client path).
+3. **[Phase B/C]** **Coupled** perception flows: full **PerceptionThread** state machine for paired delivery remains **deferred** unless product requests it.
+4. **[Phase B/C]** **Implement** server publishers, perception subscriptions/handlers, and client composition so the **sticky room header** reflects **both** channels without dropping updates.
+5. **[Phase B]** **Land** **`Objects Changed`** (or successor affordance delta) on the **affordances** cadence where product agrees, without forcing full room render unless summary derivation requires it.
 
 ---
 
@@ -49,17 +49,17 @@ Read in order (or skim **Decisions to resolve** first if resuming):
 
 ## Decisions to resolve
 
-Track here until promoted to **`AGENT.multiChannel.contract.md`** or package **`AGENT.md`** files.
+Promoted norms live in **`AGENT.multiChannel.contract.md`**. Remaining rows are **execution** or **product** follow-ups.
 
-| Topic | Notes |
+| Topic | Status / notes |
 | --- | --- |
-| **Wire protocol** | Distinct **`DisplayProtocol`** values vs composed payload vs evolution of **`PerceptionMessage`** + metadata. |
-| **Correlation keys** | Room id, per-channel **`messageId`**, epoch / version for staleness, pairing across channels. |
-| **Fact ownership** | Remove duplication between WML room schema and affordance payload; migration ordering. |
-| **Uncoupled default** | Which internal events publish **only** affordances (e.g. **`Objects Changed`**, **`RoomUpdate`** triggers). |
-| **Coupled thread template** | Exact state machine: start conditions, **Generating** barrier, terminal join, error paths, **timeout**. |
-| **Journeys** | Which user actions use **coupled** vs **uncoupled** (room look, move, asset refresh, passive ticks). |
-| **Objects + perception** | How **[`AGENT.objectHandling.plan.md`](../objects/AGENT.objectHandling.plan.md) Phase 2** attaches (subscribe on **`mtw.ephemera.objects`**, translate to affordance publish, vs other). |
+| **Wire protocol** | **[Resolved]** Both channels use **`PerceptionMessage`**; **`PerceptionRoomMetaData.roomChannel`** discriminates. |
+| **Correlation keys** | **[Resolved]** Separate **`messageId`** per channel; no shared render thread id for affordances. |
+| **Fact ownership** | **[Resolved]** See **Fact ownership (agreed)** in contract; **`RoomUpdate`** evolution **TBD**. |
+| **Uncoupled default** | **[Phase B]** Which internal events publish **only** affordances (e.g. **`Objects Changed`**, **`RoomUpdate`** triggers) when wiring publishers. |
+| **Coupled thread template** | **[Deferred]** No v1 state machine; optional pattern in contract only until product needs paired delivery. |
+| **Journeys** | **[Open]** Which user actions would use **coupled** vs **uncoupled** when/if paired delivery ships. |
+| **Objects + perception** | **[Phase B]** **[`AGENT.objectHandling.plan.md`](../objects/AGENT.objectHandling.plan.md) Phase 2** attaches (subscribe **`mtw.ephemera.objects`**, affordance **`PublishMessage`**, etc.). |
 
 ---
 
@@ -69,9 +69,9 @@ Pending work uses `[ ]`; completed work uses `[X]` (capital **X**). Mark each li
 
 **Phase A --- decisions and contract hardening**
 
-- [ ] Resolve **wire shape** and **correlation** rows in **Decisions to resolve**; update [`AGENT.multiChannel.contract.md`](../../../../../lambda/ephemera/dataSource/AGENT.multiChannel.contract.md) with normative text (remove or narrow **TBD** bullets).
-- [ ] Document **coupled thread** template in [`perception/AGENT.md`](../../../../../lambda/ephemera/dataSource/perception/AGENT.md) or contract (or both) once agreed.
-- [ ] Add interface / **`PublishMessage`** type notes in **`mtw-interfaces`** or lambda **`messageBus`** docs as needed.
+- [X] Resolve **wire shape** and **correlation** rows in **Decisions to resolve**; update [`AGENT.multiChannel.contract.md`](../../../../../lambda/ephemera/dataSource/AGENT.multiChannel.contract.md) with normative text (remove or narrow **TBD** bullets).
+- [X] Document **coupled thread** deferral in [`perception/AGENT.md`](../../../../../lambda/ephemera/dataSource/perception/AGENT.md) and contract (optional pattern only for v1).
+- [X] Add interface / **`PublishMessage`** type notes in **`mtw-interfaces`** (**`roomChannel`**, **`resolvedPerceptionRoomChannel`**) and lambda **`messageBus`** / dataSource **`AGENT.md`**.
 
 **Phase B --- server**
 
@@ -97,7 +97,7 @@ Pending work uses `[ ]`; completed work uses `[X]` (capital **X**). Mark each li
 | --- | --- |
 | Direction documented in multi-channel contract | Done |
 | Task plan (this file) | Done |
-| Phase A: decisions promoted to normative docs | Not started |
+| Phase A: decisions promoted to normative docs | Done |
 | Phase B: server alignment | Not started |
 | Phase C: client alignment | Not started |
 | Phase D: closeout | Not started |
