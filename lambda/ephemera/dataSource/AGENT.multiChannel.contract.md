@@ -32,7 +32,7 @@ Split by **semantic ownership**: `mtw.ephemera.state` (marks / world-state input
 
 ## Room UI delivery channels (agreed direction)
 
-The following is **normative intent** for how we **frame** player-visible room context going forward. It does **not** yet prescribe final **`PublishMessage`** wire types, field lists, or perception state machines; those are tracked in [`taskPlanning/lambda/ephemera/dataSource/perception/AGENT.multiChannel.plan.md`](../../../taskPlanning/lambda/ephemera/dataSource/perception/AGENT.multiChannel.plan.md).
+The following is **normative intent** for how we **frame** player-visible room context going forward. **Payload vocabulary**, **`PublishMessage` shape** (**`PerceptionMessage`** + **`metaData`** discriminator), **cross-channel correlation** norms, **`messageId`** policy, and **client virtual-header aggregation** are **decided** below and in **Open decisions**. **`mtw-interfaces`** field names / unions for the discriminator are **implementation** work (see **Client implementation** in **Open decisions**). Optional coupled perception threads stay in the [multi-channel task plan](../../../taskPlanning/lambda/ephemera/dataSource/perception/AGENT.multiChannel.plan.md).
 
 ### Two logical channels
 
@@ -44,7 +44,7 @@ These are **logically distinct**: they **may** use different internal triggers, 
 ### Cadence and independence
 
 - Each channel **may** be published **independently** and on its **own cadence** in response to the internal events that own that data.
-- **Neither** channel is assumed to **block** the other at the protocol level **by default**; the **client** is expected to **compose** one header UX from **both** when both apply, and to tolerate **one channel arriving before the other** (placeholders or last-known-good per channel until data arrives). Exact UX and **staleness** rules are **TBD** (see task plan).
+- **Neither** channel is assumed to **block** the other at the protocol level **by default**; the **client** is expected to **compose** one header UX from **both** when both apply, and to tolerate **one channel arriving before the other** (placeholders or last-known-good per channel until data arrives). **Cross-channel shared staleness / revision keys** are **not** required for correctness while render truth stays in **state** and affordance truth in **objects / presence / exits**, and product accepts **brief skew** and **eventual** server-side cascade (e.g. objects → **state** → render). Exact **placeholder UX** is still **TBD** in the task plan.
 
 ### Coupled delivery (optional pattern)
 
@@ -57,6 +57,25 @@ Today, **`PerceptionMessage`** room WML can still embed **overlapping** facts (e
 ### Normative consequence for new features
 
 When adding **player-visible** room updates, **name** which **channel** owns the change (**render** vs **affordances**) and **which DataSource or module** publishes it. If a change could fit **either** channel, record the choice in the task plan or in this file so we do not reintroduce **implicit** coupling.
+
+### `MessageId` and correlated render vs affordances (agreed)
+
+- **Separate `messageId` namespaces by channel:** **Room-render** and **room-affordances** **`PublishMessage`** rows use **different** **`messageId`** values. **Do not** reuse a render thread **`messageId`** for affordance payloads (and vice versa).
+- **Room-render** may keep today’s **correlated** behavior: **`renderOrchestration`** / **`renderCache`** / **`mtw.ephemera.perception`** paths that issue a **Generating**-class placeholder and later **overwrite** on the **same** **`messageId`** (see [`perception/AGENT.md`](perception/AGENT.md)).
+- **Room-affordances** is **outside** that replace pipeline: a logical affordance update is published as **its own** **`messageId`** (typically **one** **`PublishMessage`** per publish; **no** **Generating** → terminal **replace** on that id tied to render orchestration).
+- **Server stream:** **Multiple** rows for the same logical affordance refresh are **acceptable**; the product does **not** require the server to collapse republishes into a **single** row.
+
+### `PublishMessage` envelope for both channels (agreed)
+
+- **Single display protocol:** **Room-render** and **room-affordances** both use **`DisplayProtocol: 'PerceptionMessage'`** (same top-level wire shape as today’s room headers and descriptions).
+- **Discriminator in `metaData`:** Include a **channel (or role) field** in **`PerceptionMessage` `metaData`** so the client can tell **render-backed** vs **affordances** rows without a second protocol. Exact **property name** and **`mtw-interfaces`** typing ship with implementation.
+- **Affordances body:** **`wmlContent`** carries **full room WML** (a **`Room`** subtree, same *shape habit* as render), not a fragment-only delta. With **`<Object>`** and other ephemera-only tags, producers use **`mtw-wml`** **`standardizeMode: 'ephemeraWire'`** when building or validating that string. **Room-render** continues **render-backed** **`ComponentRender`** → **`schemaToWML`** (typically **`asset`** mode unless a path opts into wire-only tags).
+
+### Sticky header: virtual aggregation on the client (agreed)
+
+- The **sticky room header** is a **virtual** view: the client **aggregates** **multiple** incoming **`presentation`** rows (**`PerceptionMessage`** headers for the same room section, **discriminated** by **`metaData`** into **render** vs **affordances**) into **one** composed header for display.
+- **Transcript placement** continues to follow the **room-section** grouping model (original **timestamp / sort position** semantics for where that section’s header **lives** in the narrative), not “one raw row equals one header pixel-for-pixel.”
+- **Republishes** and duplicate logical updates: **collapse / dedupe toward the virtual header** is a **client aggregation** responsibility (extend selectors such as [`charcoal-client/src/slices/messages/selectors.ts`](../../../charcoal-client/src/slices/messages/selectors.ts) and header UI); avoiding double rows in the **raw** WebSocket stream is **not** a hard server requirement.
 
 ---
 
@@ -118,13 +137,23 @@ This document **does not** yet fix every cell; it **requires** that new work eit
 
 ## Open decisions (inventory)
 
-Track resolutions here or in [`taskPlanning/lambda/ephemera/dataSource/perception/AGENT.multiChannel.plan.md`](../../../taskPlanning/lambda/ephemera/dataSource/perception/AGENT.multiChannel.plan.md); remove bullets when **normative** text exists above.
+Track resolutions here or in [`taskPlanning/lambda/ephemera/dataSource/perception/AGENT.multiChannel.plan.md`](../../../taskPlanning/lambda/ephemera/dataSource/perception/AGENT.multiChannel.plan.md). Mark **[X]** when the decision is **normative** in this file or linked package docs; keep **[ ]** for unresolved items.
 
-- [ ] **Wire shapes and correlation:** final **`PublishMessage`** / protocol representation for **room-render** vs **room-affordances**, **`messageId`** rules, and **staleness** keys (task plan **Phase A**).
+### Wire shapes and correlation (status)
+
+- [X] **Affordances payload vocabulary (runtime objects):** Use **`mtw-wml`** with **`standardizeMode: 'ephemeraWire'`** and **`<Object>`** under **`Room`** for ephemera wire WML (canonical **`OBJECT#...`** handles). **`Object`** is **ephemera-only**; asset pipeline rejects it. See **Implementation-level aggregation (`Meta::Room`)** above and [`packages/mtw-wml/ts/standardize/AGENT.md`](../../../packages/mtw-wml/ts/standardize/AGENT.md).
+- [X] **Room-render payload vocabulary (baseline):** Continues to be **render-backed WML** via **`ComponentRender`** and **`schemaToWML`** on **`PerceptionMessage`** (and correlated perception paths) unless a follow-on introduces a dedicated wire tag (e.g. **`<Render>`**); not blocked on affordances vocabulary above.
+- [X] **Cross-channel correlation and staleness keys:** **No** shared **revision / staleness** key across **room-render** and **room-affordances** is **required** for semantic correctness under current rules: channels are **semantically independent**, **brief skew** between them is **acceptable**, and **eventual** cascade (e.g. objects published, then **state**, then render refresh) is an allowed product shape. **Per-channel** ordering still uses **`CreatedTime`**, **`messageId`**, and existing client **`presentation`** rules as applicable.
+- [X] **`PublishMessage` envelope:** Both channels use **`DisplayProtocol: 'PerceptionMessage'`**; **`metaData`** carries a **discriminator** between **room-render** and **room-affordances**. **Affordances** **`wmlContent`** is **full room WML** (parse with **`ephemeraWire`** when **`<Object>`** / ephemera-only tags appear). See **Room UI** subsection **`PublishMessage` envelope for both channels** above.
+- [X] **`messageId` rules (per channel):** **Isolated** **`messageId`** space: affordances **never** share a render thread **`messageId`**. Render keeps **correlated** **Generating** → terminal **overwrite** where applicable; affordances publish on **their own** ids (**single** publish per logical affordance update, **not** part of render’s replace pipeline). See **Room UI** subsection **`MessageId` and correlated render vs affordances** above.
+- [X] **Sticky header / client aggregation:** Virtual header from **aggregating** multiple incoming **`presentation`** kinds for the same room section; **additional affordance message type** folded into that composition; **republish handling** on the **client**, not a requirement for a single server row. See **Room UI** subsection **Sticky header: virtual aggregation on the client** above.
+
+### Other inventory
+
 - [ ] **Fact ownership:** which fields live **only** on affordances vs **only** on render WML after migration; **`RoomUpdate`** evolution.
 - [ ] **Coupled PerceptionThread template:** when affordances are **gated** on render progress, **terminal** join rules, **failure**, and **timeout** (task plan **Phase A**).
 - [ ] **Cadence taxonomy:** fixed enum of channel/cadence names vs per-feature description only.
-- [ ] **Client protocol:** concrete composition model for the sticky header (two slots vs other); snapshot vs delta defaults.
+- [ ] **Client implementation:** extend **`mtw-interfaces`** **`PerceptionMessage` `metaData`** for the **channel discriminator**; wire **`getMessagesByRoom`** / **`VirtualMessageList`** (or successors) to aggregate **discriminated** **`PerceptionMessage`** rows per the virtual-header model above.
 - [ ] **Baseline contract:** formal "minimum delivery set" for room enter / look / move (ties perception + rooms + state + render).
 - [ ] **Long-term split or merge:** how `mtw.ephemera.state` and `mtw.ephemera.objects` evolve as non-room kinds appear; whether subscriber docs stay **per-DataSource** or gain a composed **room** story for clients.
 
