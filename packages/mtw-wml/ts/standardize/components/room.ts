@@ -3,7 +3,7 @@ import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-bas
 import { HasShortName } from "./abstract"
 import { AssureReferencesResult, componentClassFactory, ComponentConstructorMethods } from "./component"
 import { NestedSchemaOptions, StandardComponent, StandardComponentReferenceKey, StandardDiffOptions } from "./baseClasses"
-import { StandardRoomData } from "./dataTypes/room"
+import { StandardRoomData, StandardRoomObjectData } from "./dataTypes/room"
 import { ReferenceFormat } from "./utils/references"
 import { StandardToJSONOptions } from "./baseClasses"
 import { ReferenceList } from "./reference"
@@ -11,7 +11,7 @@ import StandardReference from "../keys/reference"
 import { StandardKey } from "../keys/key"
 import { StandardReferenceData } from "./dataTypes/reference"
 import { AssetUUID, ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
-import { isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components"
+import { isSchemaObject, isSchemaRoom, isSchemaShortName } from "@tonylb/mtw-base/ts/schema/components"
 import { deepEqual } from "../../lib/objects"
 import { StandardLiteral } from "../literal"
 import { resolveStandardizeFromSchemaContext, type StandardFormConstructionOptions, type StandardizeFromSchemaContext } from "../wmlStandardizeMode"
@@ -84,7 +84,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
     _examples: ReferenceList;
     _guidance: ReferenceList;
     _characters: ReferenceList;
-    _objects: string[];
+    _objects: StandardRoomObjectData[];
     tag = 'Room' as const
 
     constructor(previous?: StandardRoomPayload) {
@@ -121,7 +121,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         this._examples = new ReferenceList(props.examples?.map((reference) => (new StandardReference(reference))) ?? [])
         this._guidance = new ReferenceList(props.guidance?.map((reference) => (new StandardReference(reference))) ?? [])
         this._characters = new ReferenceList(props.characters?.map((reference) => (new StandardReference(reference))) ?? [])
-        this._objects = [...(props.objects ?? [])]
+        this._objects = (props.objects ?? []).map((o) => ({ uuid: o.uuid, shortName: o.shortName }))
     }
 
     fromSchema(node: GenericTreeNode<SchemaTag>, context?: StandardizeFromSchemaContext): GenericTree<SchemaTag> {
@@ -171,16 +171,23 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
                         tag: 'Object',
                         update(matched) {
                             this._objects = matched.map((objectNode) => {
-                                const textValue = objectNode.children
+                                if (!isSchemaObject(objectNode.data)) {
+                                    throw new Error('Expected Object schema node')
+                                }
+                                const shortNameNodes = objectNode.children.filter((c) => isSchemaShortName(c.data))
+                                if (shortNameNodes.length !== 1) {
+                                    throw new Error('Object tag must contain exactly one ShortName child')
+                                }
+                                const textValue = shortNameNodes[0].children
                                     .map(({ data }) => data)
                                     .filter(isSchemaString)
                                     .map(({ value }) => value)
                                     .join('')
                                     .trim()
                                 if (!textValue) {
-                                    throw new Error('Object tag must contain non-empty handle after trim')
+                                    throw new Error('Object ShortName must contain non-empty text after trim')
                                 }
-                                return textValue
+                                return { uuid: objectNode.data.uuid, shortName: textValue }
                             })
                         },
                     })
@@ -219,7 +226,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
             ...(this.guidance.payload.length ? { guidance: this.guidance.toJSON() } : {}),
             ...(this.examples.payload.length ? { examples: this.examples.toJSON() } : {}),
             ...(this.characters.payload.length ? { characters: this.characters.toJSON() } : {}),
-            ...(this._objects.length ? { objects: [...this._objects] } : {})
+            ...(this._objects.length ? { objects: this._objects.map((o) => ({ ...o })) } : {})
         }
     }
 
@@ -244,9 +251,14 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
             return result.newNode ?? result.aggregatedNode
         }).filter(excludeUndefined) as GenericTreeNode<SchemaTag>[]
         
-        const objectSchemas: GenericTreeNode<SchemaTag>[] = this._objects.map((handle) => ({
-            data: { tag: 'Object' },
-            children: [{ data: { tag: 'String', value: handle }, children: [] }]
+        const objectSchemas: GenericTreeNode<SchemaTag>[] = this._objects.map((o) => ({
+            data: { tag: 'Object', uuid: o.uuid },
+            children: [
+                {
+                    data: { tag: 'ShortName' },
+                    children: [{ data: { tag: 'String', value: o.shortName }, children: [] }],
+                },
+            ],
         }))
         return {
             data: { tag: 'Room', key, uuid: universalKey },
@@ -310,9 +322,14 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
             return acc
         }, [])
         
-        const objectSchemas: GenericTreeNode<SchemaTag>[] = this._objects.map((handle) => ({
-            data: { tag: 'Object' },
-            children: [{ data: { tag: 'String', value: handle }, children: [] }]
+        const objectSchemas: GenericTreeNode<SchemaTag>[] = this._objects.map((o) => ({
+            data: { tag: 'Object', uuid: o.uuid },
+            children: [
+                {
+                    data: { tag: 'ShortName' },
+                    children: [{ data: { tag: 'String', value: o.shortName }, children: [] }],
+                },
+            ],
         }))
         // Pass this Room's key as parent context to children for correct rendering
         return {

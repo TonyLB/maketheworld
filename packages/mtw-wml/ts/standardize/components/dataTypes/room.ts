@@ -6,6 +6,11 @@ import { FacetListData } from "../../keys/abstract"
 import { ExitPayload } from "../../keys/facets/dataTypes/facet"
 import type { SituationRoomFacetPayloadType } from "../../keys/facets/situationRoom"
 
+export type StandardRoomObjectData = {
+    uuid: string;
+    shortName: string;
+}
+
 export type StandardRoomData = {
     tag: 'Room';
     shortName?: StandardEditableData<string>;
@@ -16,9 +21,18 @@ export type StandardRoomData = {
     examples?: ReferenceListData;
     guidance?: ReferenceListData;
     characters?: ReferenceListData;
-    /** Ephemera wire: runtime object handles (see Meta::Room.objects). */
-    objects?: string[];
+    /** Ephemera wire: runtime objects (uuid handle + ShortName label); project uuids for Meta::Room.objects. */
+    objects?: StandardRoomObjectData[];
 } & StandardBaseData
+
+const isStandardRoomObjectData = (x: unknown): x is StandardRoomObjectData => (
+    typeof x === 'object'
+    && x !== null
+    && 'uuid' in x
+    && 'shortName' in x
+    && typeof (x as StandardRoomObjectData).uuid === 'string'
+    && typeof (x as StandardRoomObjectData).shortName === 'string'
+)
 
 export const isStandardRoomData = (arg: any): arg is StandardRoomData => {
     if (typeof arg !== 'object') {
@@ -41,6 +55,6 @@ export const isStandardRoomData = (arg: any): arg is StandardRoomData => {
             characters: 'referenceList'
         }),
         !('objects' in arg) ||
-            (Array.isArray(arg.objects) && (arg.objects as unknown[]).every((x) => typeof x === 'string'))
+            (Array.isArray(arg.objects) && (arg.objects as unknown[]).every(isStandardRoomObjectData))
     )
 }

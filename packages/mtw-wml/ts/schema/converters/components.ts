@@ -24,7 +24,9 @@ const componentTemplates = {
     Default: {},
     Parent: {},
     Key: {},
-    Object: {},
+    Object: {
+        uuid: { type: ParsePropertyTypes.Key, required: true },
+    },
     Room: {
         uuid: { type: ParsePropertyTypes.Key },
         key: { type: ParsePropertyTypes.Key },
@@ -119,25 +121,6 @@ const keyTagRenderLiteral = ({ tag: { data: tag, children }, ...args }: PrintMap
     else {
         return [{ printMode: PrintMode.naive, output: `<${tag.tag}>${textValue}</${tag.tag}>` }]
     }
-}
-
-const objectTagRenderLiteral = ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments): PrintMapResult[] => {
-    if (!isSchemaObject(tag)) {
-        return [{ printMode: PrintMode.naive, output: '' }]
-    }
-    if (children.length === 0) {
-        return [{ printMode: PrintMode.naive, output: `<${tag.tag} />` }]
-    }
-    const textValue = children.map(({ data }) => (data)).filter(isSchemaString).map(({ value }) => (value)).join('') as string
-    const naive = `<${tag.tag}>${textValue}</${tag.tag}>`
-    if (naive.length + Math.min(10, args.options.indent * 4) > 80) {
-        return [
-            { printMode: PrintMode.nested, output: `<${tag.tag}>` },
-            { printMode: PrintMode.nested, output: `    ${textValue}` },
-            { printMode: PrintMode.nested, output: `</${tag.tag}>` }
-        ]
-    }
-    return [{ printMode: PrintMode.naive, output: `<${tag.tag}>${textValue}</${tag.tag}>` }]
 }
 
 export const componentConverters: Record<string, ConverterMapEntry> = {
@@ -251,28 +234,49 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
             if (!hasRoomContext) {
                 throw new Error('Object tag can only be used inside a Room')
             }
-            validateProperties(componentTemplates.Object)(parseOpen)
-            return { tag: 'Object' }
+            const { uuid } = validateProperties(componentTemplates.Object)(parseOpen)
+            const uuidTrimmed = (uuid ?? '').trim()
+            if (!uuidTrimmed) {
+                throw new Error('Object tag must have a non-empty uuid')
+            }
+            return { tag: 'Object', uuid: uuidTrimmed }
         },
-        typeCheckContents: isSchemaString,
-        finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag>): GenericTreeNodeFiltered<SchemaObjectTag, SchemaStringTag> => {
+        typeCheckContents: (item: SchemaTag): boolean => isSchemaShortName(item),
+        finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag>): GenericTreeNodeFiltered<SchemaObjectTag, SchemaTag> => {
             if (!isSchemaObject(initialTag)) {
                 throw new Error('Type mismatch on schema finalize')
             }
-            const textValue = children
+            const uuidTrimmed = initialTag.uuid.trim()
+            if (!uuidTrimmed) {
+                throw new Error('Object tag must have a non-empty uuid')
+            }
+            const shortNameNodes = children.filter((child) => isSchemaShortName(child.data))
+            if (shortNameNodes.length === 0) {
+                throw new Error('Object tag must contain exactly one ShortName child')
+            }
+            if (shortNameNodes.length > 1) {
+                throw new Error('Object tag must contain exactly one ShortName child')
+            }
+            const shortNameChild = shortNameNodes[0]
+            const textValue = shortNameChild.children
                 .map(({ data }) => data)
                 .filter(isSchemaString)
                 .map(({ value }) => value)
                 .join('')
                 .trim()
             if (!textValue) {
-                throw new Error('Object tag must contain non-empty text (handle) after trim')
+                throw new Error('Object ShortName must contain non-empty text after trim')
             }
             return {
-                data: { tag: 'Object' },
-                children: [{ data: { tag: 'String' as const, value: textValue }, children: [] }]
+                data: { tag: 'Object', uuid: uuidTrimmed },
+                children: [
+                    {
+                        data: { tag: 'ShortName' },
+                        children: [{ data: { tag: 'String' as const, value: textValue }, children: [] }],
+                    },
+                ],
             }
-        }
+        },
     },
     Room: {
         initialize: ({ parseOpen }): SchemaRoomTag => {
@@ -399,7 +403,17 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
     Default: defaultPrintMap,
     Parent: parentTagRenderLiteral,
     Key: keyTagRenderLiteral,
-    Object: objectTagRenderLiteral,
+    Object: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => {
+        if (!isSchemaObject(tag)) {
+            return [{ printMode: PrintMode.naive, output: '' }]
+        }
+        return tagRender({
+            ...args,
+            tag: 'Object',
+            properties: [{ key: 'uuid', type: 'key' as const, value: tag.uuid }],
+            node: { data: tag, children },
+        })
+    },
     Room: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => {
         //
         // Reassemble the contents out of name and description fields

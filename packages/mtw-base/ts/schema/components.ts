@@ -17,6 +17,7 @@ export type SchemaKeyTag = {
 
 export type SchemaObjectTag = {
     tag: 'Object';
+    uuid: string;
 }
 
 export type SchemaExitTag = {
@@ -114,7 +115,7 @@ export const isSchemaKey = (schema: any): schema is SchemaKeyTag => (
 
 export const isSchemaObject = (schema: any): schema is SchemaObjectTag => (
     checkTypes({
-        required: { tag: CheckTypes.STRING },
+        required: { tag: CheckTypes.STRING, uuid: CheckTypes.STRING },
         values: { tag: 'Object' }
     })(schema)
 )

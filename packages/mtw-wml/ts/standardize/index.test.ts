@@ -71,36 +71,51 @@ describe('StandardForm', () => {
             const wml = deIndentWML(`
                 <Asset uuid=(Test)>
                     <Room key=(main) uuid=(ROOM#main)>
-                        <Object>roller skates</Object>
+                        <Object uuid=(skates)>
+                            <ShortName>roller skates</ShortName>
+                        </Object>
+                        <Object uuid=(shovel)>
+                            <ShortName>shovel</ShortName>
+                        </Object>
                     </Room>
                 </Asset>
             `)
             const sf = new StandardForm(wml, { standardizeMode: 'ephemeraWire' })
             const room = sf._lookup('ROOM#main') as StandardRoom
-            expect(room.objects).toEqual(['roller skates'])
-            expect((room.toJSON() as { objects?: string[] }).objects).toEqual(['roller skates'])
+            expect(room.objects).toEqual([
+                { uuid: 'skates', shortName: 'roller skates' },
+                { uuid: 'shovel', shortName: 'shovel' },
+            ])
+            expect((room.toJSON() as { objects?: { uuid: string; shortName: string }[] }).objects).toEqual([
+                { uuid: 'skates', shortName: 'roller skates' },
+                { uuid: 'shovel', shortName: 'shovel' },
+            ])
         })
 
         it('rejects Object under Room in asset mode (unconsumed tag)', () => {
             const wml = deIndentWML(`
                 <Asset uuid=(Test)>
                     <Room key=(main) uuid=(ROOM#main)>
-                        <Object>roller skates</Object>
+                        <Object uuid=(skates)>
+                            <ShortName>roller skates</ShortName>
+                        </Object>
                     </Room>
                 </Asset>
             `)
             expect(() => new StandardForm(wml)).toThrow(/Unconsumed child tags: Object/)
         })
 
-        it('throws when parsing whitespace-only Object body inside Room', () => {
+        it('throws when Object ShortName is whitespace-only inside Room', () => {
             const wml = deIndentWML(`
                 <Asset uuid=(Test)>
                     <Room key=(main) uuid=(ROOM#main)>
-                        <Object>   </Object>
+                        <Object uuid=(o1)>
+                            <ShortName>   </ShortName>
+                        </Object>
                     </Room>
                 </Asset>
             `)
-            expect(() => treeFromWML(wml)).toThrow(/Object tag must contain non-empty text/)
+            expect(() => treeFromWML(wml)).toThrow(/Object ShortName must contain non-empty text/)
         })
     })
 

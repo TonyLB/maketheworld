@@ -103,7 +103,7 @@ particular context.
 - **Clone / merge:** **`_clone()`** copies **`semanticMode`** and **`standardizeMode`**. **`merge()`** uses **`this._clone()`** as the base of the result, so the **receiver's** **`standardizeMode`** is kept (incoming's mode is not merged).
 - **`withStandardizeMode`:** Functional update of **`standardizeMode`**; prefer passing options at construction when parsing WML so **`fromSchema`** sees the correct mode.
 
-**Ephemera-only tag (v1):** **`Object`** --- **`<Object>handle</Object>`** (trimmed text = one string handle, parseable only inside a **`Room`** in the schema layer). **`StandardRoom`** collects handles into **`objects`** when **`standardizeMode === 'ephemeraWire'`**; in **`asset`** mode **`Object`** under **`Room`** is an unconsumed child and standardization **errors**. Aligns with ephemera **`Meta::Room.objects`** (`string[]`).
+**Ephemera-only tag (v1):** **`Object`** --- required **`uuid`** attribute and exactly one **`ShortName`** child (WML shape **`<Object uuid=(id)><ShortName>label</ShortName></Object>`**). Parseable only inside a **`Room`** in the schema layer. **`StandardRoom`** collects **`objects`** as **`{ uuid, shortName }[]`** when **`standardizeMode === 'ephemeraWire'`**; in **`asset`** mode **`Object`** under **`Room`** is an unconsumed child and standardization **errors**. For **`Meta::Room.objects`** (`string[]`), project **`objects.map((o) => o.uuid)`** (or your chosen handle field).
 
 ## Core Purpose
 

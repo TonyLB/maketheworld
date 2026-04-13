@@ -295,7 +295,7 @@ export const defaultSchemaTag = <T extends SchemaTag["tag"]>(tag: T): SchemaTag 
                 to: '',
             }
         case 'Object':
-            return { tag: 'Object' }
+            return { tag: 'Object', uuid: '' }
         default:
             return {
                 tag: 'String',
