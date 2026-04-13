@@ -24,11 +24,6 @@ import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardRoomData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/room'
 import { StandardCharacterData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/character'
 
-/** Same header flag semantics as `ComponentRender`; included in the cache key only. */
-export type ComponentStackMergeGetOptions = {
-    header?: boolean
-}
-
 /** Options shape accepted for cache keys (aligns with `ComponentRender` room keys; `priorRenderChain` is ignored for the key string). */
 export type EphemeraComponentCacheKeyOptions = {
     priorRenderChain?: string[]
@@ -41,6 +36,14 @@ export function generateEphemeraComponentCacheKey(
     options?: EphemeraComponentCacheKeyOptions
 ): string {
     return `${CharacterId}::${EphemeraId}::${options && 'header' in options && options.header ? 'true' : 'false'}`
+}
+
+/** Cache key for `ComponentStackMerge` only (room structural merge does not depend on `header`). */
+export function generateComponentStackMergeCacheKey(
+    CharacterId: EphemeraCharacterId | 'ANONYMOUS',
+    EphemeraRoomId: EphemeraRoomId
+): string {
+    return `${CharacterId}::${EphemeraRoomId}`
 }
 
 export function mergeRoomExitsToJSON(assetData: StandardRoom[]) {
@@ -146,12 +149,8 @@ export class ComponentStackMergeData {
         ])
     }
 
-    async get(
-        CharacterId: EphemeraCharacterId | 'ANONYMOUS',
-        EphemeraRoomId: EphemeraRoomId,
-        options?: ComponentStackMergeGetOptions
-    ): Promise<StandardForm> {
-        const cacheKey = generateEphemeraComponentCacheKey(CharacterId, EphemeraRoomId, options)
+    async get(CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraRoomId: EphemeraRoomId): Promise<StandardForm> {
+        const cacheKey = generateComponentStackMergeCacheKey(CharacterId, EphemeraRoomId)
         if (!this._Cache.isCached(cacheKey)) {
             this._Cache.add({
                 promiseFactory: async () => this._getPromiseFactory(CharacterId, EphemeraRoomId),
