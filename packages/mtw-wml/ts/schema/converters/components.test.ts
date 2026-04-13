@@ -4,7 +4,7 @@ import SourceStream from '../../parser/tokenizer/sourceStream'
 
 import { schemaFromParse, schemaToWML } from '../index'
 import { deIndentWML } from '../utils'
-import { isSchemaParent, isSchemaKey, isSchemaDefault } from '@tonylb/mtw-base/ts/schema/components'
+import { isSchemaParent, isSchemaKey, isSchemaDefault, isSchemaRender } from '@tonylb/mtw-base/ts/schema/components'
 import { isSchemaReplaceMatch, isSchemaReplacePayload } from '@tonylb/mtw-base/ts/schema/edit'
 
 describe('Parent tag', () => {
@@ -500,5 +500,165 @@ describe('Key tag', () => {
             `)
             expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
         })
+    })
+})
+
+describe('Render tag', () => {
+    beforeEach(() => {
+        jest.clearAllMocks()
+        jest.resetAllMocks()
+    })
+
+    it('should parse Render under Room with DisplayName, Summary, Description', () => {
+        const testParse = parse(tokenizer(new SourceStream(deIndentWML(`
+            <Asset uuid=(Test)>
+                <Room key=(room1)>
+                    <Render>
+                        <DisplayName>Parlor</DisplayName>
+                        <Summary>A quiet room</Summary>
+                        <Description>Full prose here.</Description>
+                    </Render>
+                </Room>
+            </Asset>
+        `))))
+        const schema = schemaFromParse(testParse)
+        const roomNode = schema[0].children.find(({ data }) => data.tag === 'Room')
+        expect(roomNode).toBeDefined()
+        const renderNode = roomNode?.children.find(({ data }) => data.tag === 'Render')
+        expect(renderNode).toBeDefined()
+        expect(isSchemaRender(renderNode?.data)).toBe(true)
+        expect(renderNode?.children.map(({ data }) => data.tag)).toEqual(['DisplayName', 'Summary', 'Description'])
+    })
+
+    it('should round-trip Render under Room', () => {
+        const testWML = deIndentWML(`
+            <Asset uuid=(Test)>
+                <Room key=(room1)>
+                    <Render>
+                        <DisplayName>Parlor</DisplayName>
+                        <Summary>A quiet room</Summary>
+                        <Description>Full prose here.</Description>
+                    </Render>
+                </Room>
+            </Asset>
+        `)
+        expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
+    })
+
+    it('should reject Render when not inside Room', () => {
+        const testParse = parse(tokenizer(new SourceStream(deIndentWML(`
+            <Asset uuid=(Test)>
+                <Render>
+                    <DisplayName>X</DisplayName>
+                    <Summary>Y</Summary>
+                    <Description>Z</Description>
+                </Render>
+            </Asset>
+        `))))
+        expect(() => schemaFromParse(testParse)).toThrow('Render tag can only be used inside a Room')
+    })
+
+    it('should reject Render under Feature', () => {
+        const testParse = parse(tokenizer(new SourceStream(deIndentWML(`
+            <Asset uuid=(Test)>
+                <Feature key=(feature1)>
+                    <Render>
+                        <DisplayName>X</DisplayName>
+                        <Summary>Y</Summary>
+                        <Description>Z</Description>
+                    </Render>
+                </Feature>
+            </Asset>
+        `))))
+        expect(() => schemaFromParse(testParse)).toThrow('Render tag can only be used inside a Room')
+    })
+
+    it('should reject wrong child order', () => {
+        const testParse = parse(tokenizer(new SourceStream(deIndentWML(`
+            <Asset uuid=(Test)>
+                <Room key=(room1)>
+                    <Render>
+                        <Summary>First</Summary>
+                        <DisplayName>Second</DisplayName>
+                        <Description>Third</Description>
+                    </Render>
+                </Room>
+            </Asset>
+        `))))
+        expect(() => schemaFromParse(testParse)).toThrow('Render children must be DisplayName, Summary, Description in order')
+    })
+
+    it('should reject missing child', () => {
+        const testParse = parse(tokenizer(new SourceStream(deIndentWML(`
+            <Asset uuid=(Test)>
+                <Room key=(room1)>
+                    <Render>
+                        <DisplayName>X</DisplayName>
+                        <Summary>Y</Summary>
+                    </Render>
+                </Room>
+            </Asset>
+        `))))
+        expect(() => schemaFromParse(testParse)).toThrow()
+    })
+
+    it('should reject invalid direct child of Render', () => {
+        const testParse = parse(tokenizer(new SourceStream(deIndentWML(`
+            <Asset uuid=(Test)>
+                <Room key=(room1)>
+                    <Render>
+                        <DisplayName>X</DisplayName>
+                        <ShortName>bad</ShortName>
+                        <Description>Z</Description>
+                    </Render>
+                </Room>
+            </Asset>
+        `))))
+        expect(() => schemaFromParse(testParse)).toThrow()
+    })
+
+    it('should reject empty DisplayName text', () => {
+        const testParse = parse(tokenizer(new SourceStream(deIndentWML(`
+            <Asset uuid=(Test)>
+                <Room key=(room1)>
+                    <Render>
+                        <DisplayName>   </DisplayName>
+                        <Summary>Y</Summary>
+                        <Description>Z</Description>
+                    </Render>
+                </Room>
+            </Asset>
+        `))))
+        expect(() => schemaFromParse(testParse)).toThrow('Render DisplayName must contain non-empty text after trim')
+    })
+
+    it('should allow empty Summary and Description', () => {
+        const testWML = deIndentWML(`
+            <Asset uuid=(Test)>
+                <Room key=(room1)>
+                    <Render>
+                        <DisplayName>Name</DisplayName>
+                        <Summary />
+                        <Description />
+                    </Render>
+                </Room>
+            </Asset>
+        `)
+        expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
+    })
+
+    it('should preserve tagged content in Summary under Render', () => {
+        const testWML = deIndentWML(`
+            <Asset uuid=(Test)>
+                <Room key=(room1)>
+                    <Render>
+                        <DisplayName>Name</DisplayName>
+                        <Summary>See <Link to=(other)>other</Link> room.</Summary>
+                        <Description>Plain text.</Description>
+                    </Render>
+                </Room>
+            </Asset>
+        `)
+        expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
     })
 })

@@ -40,6 +40,44 @@ export const isSituationRoomFacetPayload = (arg: any): arg is SituationRoomFacet
     return keys.every((k) => allowed.includes(k));
 };
 
+/**
+ * Parse DisplayName / Summary / Description children (same pipeline as inside a Situation facet).
+ * Used by SituationRoomFacetPayload.fromSchema and Room ephemera `<Render>`.
+ */
+export function parseProseTripletChildren(
+    children: GenericTree<SchemaTag>,
+    options?: { allowUnconsumed?: boolean }
+): SituationRoomFacetPayloadType {
+    const result: SituationRoomFacetPayloadType = {};
+    const context = { result };
+    const consumers = [
+        new StandardizeConsumerStandardLiteral<typeof context>(context, {
+            tag: "DisplayName",
+            update(literal) {
+                if (literal) this.result.displayName = literal.toJSON();
+            },
+        }),
+        new StandardizeConsumerRender(context, {
+            tag: "Summary",
+            nodeTypeGuard: isSchemaSummary,
+            errorMessage: "Schema mismatch",
+            update(render) {
+                if (render) this.result.summary = render.toJSON();
+            },
+        }),
+        new StandardizeConsumerRender(context, {
+            tag: "Description",
+            nodeTypeGuard: isSchemaDescription,
+            errorMessage: "Schema mismatch",
+            update(render) {
+                if (render) this.result.description = render.toJSON();
+            },
+        }),
+    ];
+    processWithConsumers(context, consumers, children, { allowUnconsumed: options?.allowUnconsumed ?? false });
+    return result;
+}
+
 /** Payload class: holds optional StandardLiteral for displayName, and StandardRender for summary/description. */
 export class SituationRoomFacetPayload {
     _displayName?: StandardLiteral;
@@ -72,6 +110,21 @@ export class SituationRoomFacetPayload {
             emptyRender(payload._summary) &&
             emptyRender(payload._description)
         );
+    }
+
+    /** True when DisplayName has non-empty visible text (for ephemera `<Render>` validation). */
+    hasNonEmptyDisplayName(): boolean {
+        const emptyLiteral = (l?: StandardLiteral) => !l || !String((l as any).plainString ?? (l as any)._payload?.plain?.data ?? "").trim();
+        return !emptyLiteral(this._displayName);
+    }
+
+    /** Children for `<Render>` WML or inner prose under Situation (DisplayName, Summary, Description). */
+    toProseTripletChildren(): GenericTree<SchemaTag> {
+        return [
+            ...(this._displayName?.nestedSchema({ tag: "DisplayName" }) ?? []),
+            ...(this._summary?.nestedSchema({ tag: "Summary" }) ?? []),
+            ...(this._description?.nestedSchema({ tag: "Description" }) ?? []),
+        ].filter(excludeUndefined);
     }
 
     toJSON(): SituationRoomFacetPayloadType {
@@ -128,34 +181,7 @@ export class SituationRoomFacetPayload {
         const first = node[0];
         if (!treeNodeTypeguard(isSchemaSituation)(first)) throw new Error("Invalid schema: expected Situation node");
         const children: GenericTree<SchemaTag> = Array.isArray(first.children) ? first.children : [];
-        const result: SituationRoomFacetPayloadType = {};
-        const context = { result };
-        const consumers = [
-            new StandardizeConsumerStandardLiteral<typeof context>(context, {
-                tag: "DisplayName",
-                update(literal) {
-                    if (literal) this.result.displayName = literal.toJSON();
-                },
-            }),
-            new StandardizeConsumerRender(context, {
-                tag: "Summary",
-                nodeTypeGuard: isSchemaSummary,
-                errorMessage: "Schema mismatch",
-                update(render) {
-                    if (render) this.result.summary = render.toJSON();
-                },
-            }),
-            new StandardizeConsumerRender(context, {
-                tag: "Description",
-                nodeTypeGuard: isSchemaDescription,
-                errorMessage: "Schema mismatch",
-                update(render) {
-                    if (render) this.result.description = render.toJSON();
-                },
-            }),
-        ];
-        processWithConsumers(context, consumers, children, { allowUnconsumed: true });
-        return result;
+        return parseProseTripletChildren(children, { allowUnconsumed: true });
     }
 
     renderFacet(
@@ -167,11 +193,7 @@ export class SituationRoomFacetPayload {
         if (referenceRender && treeNodeTypeguard(isSchemaRemove)(referenceRender)) {
             return { aggregatedNode: referenceRender };
         }
-        const children: GenericTree<SchemaTag> = [
-            ...(this._displayName?.nestedSchema({ tag: "DisplayName" }) ?? []),
-            ...(this._summary?.nestedSchema({ tag: "Summary" }) ?? []),
-            ...(this._description?.nestedSchema({ tag: "Description" }) ?? []),
-        ].filter(excludeUndefined);
+        const children: GenericTree<SchemaTag> = this.toProseTripletChildren();
         const lookedUpReference = lookup ? (lookup(reference.standardKey)?.reference ?? reference) : reference;
         const formattedRef = lookedUpReference.toFormat("key").withRef(reference.ref);
         const refSchema = formattedRef.schema;

@@ -1,6 +1,6 @@
 # Ephemera-only `<Render>` tag (`mtw-wml`)
 
-**Status:** Active --- **not started**. Adds an **ephemera wire** child of **`Room`** that carries **resolved** **DisplayName**, **Summary**, and **Description** without **Situation**, **Example**, **Lens**, or **Guidance** authoring shapes. Aligns with [**room-render** vs **room-affordances**](../../../lambda/ephemera/dataSource/AGENT.multiChannel.contract.md) and [**fact ownership**](../../../lambda/ephemera/dataSource/AGENT.multiChannel.contract.md) (render channel prose vs pipeline-only constructs).
+**Status:** Active --- **Phase 1 done**; next is **Phase 2** (**StandardRoom**). Adds an **ephemera wire** child of **`Room`** that carries **resolved** **DisplayName**, **Summary**, and **Description** without **Situation**, **Example**, **Lens**, or **Guidance** authoring shapes. Aligns with [**room-render** vs **room-affordances**](../../../lambda/ephemera/dataSource/AGENT.multiChannel.contract.md) and [**fact ownership**](../../../lambda/ephemera/dataSource/AGENT.multiChannel.contract.md) (render channel prose vs pipeline-only constructs).
 
 **Framework:** Executable task plan per [`taskPlanning/AGENT.md`](../../AGENT.md) (status, **Getting Started**, **Progress**, **Recommended order** checkboxes, **Verification**).
 
@@ -77,9 +77,9 @@ Pending work uses `[ ]`; completed work uses `[X]` (capital **X**). Mark each li
 
 **Phase 1 --- schema and converters**
 
-- [ ] Add **`SchemaRenderTag`** / **`isSchemaRender`** in **`mtw-base`**; export from schema index as needed.
-- [ ] Add **`Render`** entries in [`packages/mtw-wml/ts/schema/converters/components.ts`](../../../packages/mtw-wml/ts/schema/converters/components.ts) (parse, print, validation).
-- [ ] Unit tests for schema round-trip and illegal placements (outside **`Room`**).
+- [X] Add **`SchemaRenderTag`** / **`isSchemaRender`** in **`mtw-base`**; export from schema index as needed.
+- [X] Add **`Render`** entries in [`packages/mtw-wml/ts/schema/converters/components.ts`](../../../packages/mtw-wml/ts/schema/converters/components.ts) (parse, print, validation).
+- [X] Unit tests for schema round-trip and illegal placements (outside **`Room`**).
 
 **Phase 2 --- StandardRoom and standardize**
 
@@ -108,7 +108,7 @@ Pending work uses `[ ]`; completed work uses `[X]` (capital **X**). Mark each li
 | Milestone | Status |
 | --- | --- |
 | Task plan (this file) | Done |
-| Phase 1: schema + converters | Not started |
+| Phase 1: schema + converters | Done |
 | Phase 2: StandardRoom + tests | Not started |
 | Phase 3: docs + contract pointer | Not started |
 | Phase 4: ephemera + client | Not started |
@@ -155,6 +155,7 @@ npx jest ts/standardize/index.test.ts -t Render
 | --- | --- |
 | Plan path | **`taskPlanning/packages/mtw-wml/AGENT.renderTag.plan.md`** |
 | Wire shape | **`Render`** with **DisplayName**, **Summary**, **Description** under **`Room`**, **`ephemeraWire`** only |
+| Phase 1 schema rules | **DisplayName** then **Summary** then **Description** in strict order; **DisplayName** non-empty after trim; **Summary** / **Description** may be empty; **`defaultSchemaTag`** includes **`Render`** |
 
 ---
 

@@ -171,6 +171,106 @@ describe('StandardForm', () => {
             `)
             expect(() => treeFromWML(wml)).toThrow(/Object ShortName must contain non-empty text/)
         })
+
+        it('parses Render under Room in ephemeraWire', () => {
+            const wml = deIndentWML(`
+                <Asset uuid=(Test)>
+                    <Room key=(main) uuid=(ROOM#main)>
+                        <Render>
+                            <DisplayName>Parlor</DisplayName>
+                            <Summary>A quiet room</Summary>
+                            <Description>Full prose here.</Description>
+                        </Render>
+                    </Room>
+                </Asset>
+            `)
+            const sf = new StandardForm(wml, { standardizeMode: 'ephemeraWire' })
+            const room = sf._lookup('ROOM#main') as StandardRoom
+            expect(room.render).toEqual({
+                displayName: 'Parlor',
+                summary: ['A quiet room'],
+                description: ['Full prose here.'],
+            })
+            expect((room.toJSON() as { render?: { displayName: string; summary: unknown; description: unknown } }).render).toEqual({
+                displayName: 'Parlor',
+                summary: ['A quiet room'],
+                description: ['Full prose here.'],
+            })
+        })
+
+        it('round-trips Render under Room in ephemeraWire', () => {
+            const wml = deIndentWML(`
+                <Asset uuid=(Test)>
+                    <Room key=(main) uuid=(ROOM#main)>
+                        <Render>
+                            <DisplayName>Parlor</DisplayName>
+                            <Summary>A quiet room</Summary>
+                            <Description>Full prose here.</Description>
+                        </Render>
+                    </Room>
+                </Asset>
+            `)
+            const sf = new StandardForm(wml, { standardizeMode: 'ephemeraWire' })
+            const printed = schemaToWML([sf.schema])
+            const sfAgain = new StandardForm(printed, { standardizeMode: 'ephemeraWire' })
+            expect(schemaToWML([sfAgain.schema])).toEqual(printed)
+            const roomAgain = sfAgain._lookup('ROOM#main') as StandardRoom
+            expect(roomAgain.render).toEqual({
+                displayName: 'Parlor',
+                summary: ['A quiet room'],
+                description: ['Full prose here.'],
+            })
+        })
+
+        it('rejects Render under Room in asset mode (unconsumed tag)', () => {
+            const wml = deIndentWML(`
+                <Asset uuid=(Test)>
+                    <Room key=(main) uuid=(ROOM#main)>
+                        <Render>
+                            <DisplayName>X</DisplayName>
+                            <Summary>Y</Summary>
+                            <Description>Z</Description>
+                        </Render>
+                    </Room>
+                </Asset>
+            `)
+            expect(() => new StandardForm(wml)).toThrow(/Unconsumed child tags: Render/)
+        })
+
+        it('throws when more than one Render under Room in ephemeraWire', () => {
+            const wml = deIndentWML(`
+                <Asset uuid=(Test)>
+                    <Room key=(main) uuid=(ROOM#main)>
+                        <Render>
+                            <DisplayName>A</DisplayName>
+                            <Summary>B</Summary>
+                            <Description>C</Description>
+                        </Render>
+                        <Render>
+                            <DisplayName>D</DisplayName>
+                            <Summary>E</Summary>
+                            <Description>F</Description>
+                        </Render>
+                    </Room>
+                </Asset>
+            `)
+            expect(() => new StandardForm(wml, { standardizeMode: 'ephemeraWire' })).toThrow(/Room must contain at most one Render tag/)
+        })
+
+        it('throws when Render DisplayName is whitespace-only inside Room', () => {
+            const wml = deIndentWML(`
+                <Asset uuid=(Test)>
+                    <Room key=(main) uuid=(ROOM#main)>
+                        <Render>
+                            <DisplayName>   </DisplayName>
+                            <Summary>Y</Summary>
+                            <Description>Z</Description>
+                        </Render>
+                    </Room>
+                </Asset>
+            `)
+            expect(() => treeFromWML(wml)).toThrow(/Render DisplayName must contain non-empty text/)
+        })
     })
 
     it('should return an empty wrapper unchanged', () => {

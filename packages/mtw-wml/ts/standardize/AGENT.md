@@ -105,6 +105,8 @@ particular context.
 
 **Ephemera-only tag (v1):** **`Object`** --- required **`uuid`** attribute and exactly one **`ShortName`** child (WML shape **`<Object uuid=(id)><ShortName>label</ShortName></Object>`**; you may also author **`uuid=(OBJECT#...)`**). The schema layer normalizes **`uuid`** to canonical **`OBJECT#...`** (bare **`id`** in WML becomes **`OBJECT#id`**); **`schemaToWML`** prints **`uuid=(id)`** again via the same strip pattern as **`Room`**. Parseable only inside a **`Room`**. **`StandardRoom`** collects **`objects`** as **`{ uuid, shortName }[]`** when **`standardizeMode === 'ephemeraWire'`**; in **`asset`** mode **`Object`** under **`Room`** is an unconsumed child and standardization **errors**. For **`Meta::Room.objects`** (`string[]`), project **`objects.map((o) => o.uuid)`** (handles are **`OBJECT#...`**). **`Object`** is not a **`StandardComponent`**; **`ComponentUUID`** / **`isSchemaComponentUUID`** are unchanged for this tag.
 
+**Ephemera-only:** **`Render`** under **`Room`** (DisplayName / Summary / Description) is stored on **`StandardRoom`** as **`render`** in JSON with the same shape as **`SituationRoomFacetPayloadType`** (literal **`displayName`**, **`summary`** and **`description`** as render-tree editable data), not three plain strings.
+
 ## Core Purpose
 
 - **Asset Management**: Represents entire WML assets as first-class objects
