@@ -1,6 +1,6 @@
 # `mtw.ephemera.objects` - object handling (phase 1: stub, storage, bus)
 
-**Status:** Active --- **phase 1 complete** (including **`dataSource/AGENT.md`** and **`objects/AGENT.md`**). **Next:** **phase 2** (perception / delivery) or archive this plan per **When this task plan can retire**.
+**Status:** Active --- **phase 1** and **phase 2** (perception / affordance delivery with multi-channel Phase B server) **complete**; archive this plan per **When this task plan can retire** when steady-state docs absorb the narrative.
 
 **Framework:** This document is an **executable task plan** per [`taskPlanning/AGENT.md`](../../../../AGENT.md) (status, **Getting Started**, **Progress**, **Recommended order** checkboxes, **Verification**). Steady-state architecture belongs in [`lambda/ephemera/dataSource/`](../../../../../lambda/ephemera/dataSource/) package `AGENT.md` files after merge.
 
@@ -127,8 +127,8 @@ Pending work uses `[ ]`; completed work uses `[X]` (capital **X**). Mark each li
 **Phase 2 (perception and player-visible delivery---after phase 1):**
 
 - [X] Resolve **perception wiring** --- **`mtw.ephemera.perception`** subscribes to **`Objects Changed`** (norms in multi-channel plan **Phase B server**)
-- [ ] Wire **`mtw.ephemera.perception`** **`subscribedEvents`** / **`receiveEvents`** and affordance **`PublishMessage`** (targets: all characters in room per contract)
-- [ ] Add or enable tests (including **`describe.skip`** lifted per [`AGENT.passThrough.contract.planning.md`](../AGENT.passThrough.contract.planning.md) discipline, if applicable)
+- [X] Wire **`mtw.ephemera.perception`** **`subscribedEvents`** / **`receiveEvents`** and affordance **`PublishMessage`** (**one per character**: **`targets: [characterId]`**, **`ComponentStackMerge.get(characterId, roomId)`**, **`roomChannel: 'affordances'`** per multi-channel contract)
+- [X] Add or enable tests (including **`describe.skip`** lifted per [`AGENT.passThrough.contract.planning.md`](../AGENT.passThrough.contract.planning.md) discipline, if applicable)
 
 ---
 
@@ -139,7 +139,7 @@ Pending work uses `[ ]`; completed work uses `[X]` (capital **X**). Mark each li
 | Task plan (executable) | Done |
 | Phase 1: schema + interfaces | Done ([`ephemeraMeta.ts`](../../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts)) |
 | Phase 1: DataSource + ingress + tests | Done ([`objects/`](../../../../../lambda/ephemera/dataSource/objects/), [`dataSource/AGENT.md`](../../../../../lambda/ephemera/dataSource/AGENT.md), [`objects/AGENT.md`](../../../../../lambda/ephemera/dataSource/objects/AGENT.md)) |
-| Phase 2: perception wiring + subscriptions | Not started (decision recorded; implement with multi-channel Phase B) |
+| Phase 2: perception wiring + subscriptions | Done (with multi-channel Phase B server) |
 
 ---
 

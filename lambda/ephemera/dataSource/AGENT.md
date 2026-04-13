@@ -13,7 +13,7 @@
 | [**AGENT.multiChannel.contract.md**](AGENT.multiChannel.contract.md) | Multi-cadence / multi-channel player updates, **`Meta::Room`** as shared storage, **room-render** vs **room-affordances** direction, decision norms |
 | [**AGENT.multiChannel.plan.md** (task plan)](../../../taskPlanning/lambda/ephemera/dataSource/perception/AGENT.multiChannel.plan.md) | Executable plan: Phase B/C server + client alignment, verification (Phase A contract + types done) |
 
-**Wire note:** **`PublishPerceptionMessage`** ([`messageBus/baseClasses.ts`](../messageBus/baseClasses.ts)) uses **`PerceptionMessageMetaData`**; room rows distinguish channels with **`metaData.roomChannel`** per the multi-channel contract (lambda emitters populate it in **Phase B**).
+**Wire note:** **`PublishPerceptionMessage`** ([`messageBus/baseClasses.ts`](../messageBus/baseClasses.ts)) uses **`PerceptionMessageMetaData`**; room rows distinguish channels with **`metaData.roomChannel`** per the multi-channel contract (lambda emitters populate it in **Phase B**). **Inventory of current `PublishMessage` / `perceptionMessage` / perception `receiveEvents` paths:** [task plan **Publisher inventory**](../../../taskPlanning/lambda/ephemera/dataSource/perception/AGENT.multiChannel.plan.md#publisher-inventory-code-archaeology-ephemera-lambda).
 
 Task-planning drafts (dispose after tasks land) live under [`taskPlanning/lambda/ephemera/`](../../../taskPlanning/lambda/ephemera/); the pass-through narrative is in [`AGENT.passThrough.contract.planning.md`](../../../taskPlanning/lambda/ephemera/dataSource/AGENT.passThrough.contract.planning.md).
 

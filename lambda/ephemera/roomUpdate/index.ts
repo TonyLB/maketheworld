@@ -1,5 +1,6 @@
 import internalCache from "../internalCache"
 import { MessageBus, RoomUpdateMessage } from "../messageBus/baseClasses"
+import { publishRoomAffordancePerceptionMessages } from "../dataSource/perception/publishRoomAffordancePerceptionMessages"
 
 export const roomUpdateMessage = async ({ payloads, messageBus }: { payloads: RoomUpdateMessage[], messageBus: MessageBus }): Promise<void> => {
     await Promise.all(payloads
@@ -13,6 +14,7 @@ export const roomUpdateMessage = async ({ payloads, messageBus }: { payloads: Ro
                 RoomId: roomId,
                 Characters: activeCharacters.map(({ EphemeraId, SessionIds, ...rest }) => ({ CharacterId: EphemeraId, ...rest }))
             })
+            await publishRoomAffordancePerceptionMessages({ roomId, messageBus })
         })
     )
 }

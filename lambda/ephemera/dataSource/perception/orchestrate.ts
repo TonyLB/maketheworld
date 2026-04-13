@@ -113,6 +113,7 @@ async function handleRenderPertains(
             metaData: {
                 componentUUID: payload.componentId,
                 displayMode: 'full',
+                roomChannel: 'render',
             },
             messageGroupId: registration.messageGroupId,
             messageId,
@@ -157,6 +158,7 @@ async function handleRenderPertains(
                 metaData: {
                     componentUUID: roomId,
                     displayMode: 'header',
+                    roomChannel: 'render',
                 },
                 messageGroupId: registration.messageGroupId,
                 messageId,
@@ -171,6 +173,7 @@ async function handleRenderPertains(
                     metaData: {
                         componentUUID: roomId,
                         displayMode: 'header',
+                        roomChannel: 'render',
                     },
                     messageGroupId: registration.messageGroupId,
                     messageId,
@@ -217,6 +220,7 @@ async function handleRenderPertains(
                 metaData: {
                     componentUUID: roomId,
                     displayMode: 'header',
+                    roomChannel: 'render',
                 },
                 messageGroupId: registration.messageGroupId,
                 messageId,
@@ -231,6 +235,7 @@ async function handleRenderPertains(
                     metaData: {
                         componentUUID: roomId,
                         displayMode: 'header',
+                        roomChannel: 'render',
                     },
                     messageGroupId: registration.messageGroupId,
                     messageId,
@@ -279,6 +284,7 @@ async function handleGenerationStarted(
                 componentUUID: roomId,
                 displayMode: 'full',
                 status: 'generating',
+                roomChannel: 'render',
             },
             messageGroupId: registration.messageGroupId,
             messageId,
@@ -313,6 +319,7 @@ async function handleGenerationStarted(
                 componentUUID: roomId,
                 displayMode: 'header',
                 status: 'generating',
+                roomChannel: 'render',
             },
             messageGroupId: registration.messageGroupId,
             messageId,
@@ -348,6 +355,7 @@ async function handleGenerationStarted(
                 componentUUID: roomId,
                 displayMode: 'header',
                 status: 'generating',
+                roomChannel: 'render',
             },
             messageGroupId: registration.messageGroupId,
             messageId,
@@ -393,6 +401,7 @@ async function handleOrchestrationErrorOrDeferred(payload: ErrorLikePayload, bus
             metaData: {
                 componentUUID: roomId,
                 displayMode: 'full',
+                roomChannel: 'render',
             },
             messageGroupId: registration.messageGroupId,
             messageId,
@@ -428,6 +437,7 @@ async function handleOrchestrationErrorOrDeferred(payload: ErrorLikePayload, bus
             metaData: {
                 componentUUID: roomId,
                 displayMode: 'header',
+                roomChannel: 'render',
             },
             messageGroupId: registration.messageGroupId,
             messageId,
@@ -464,6 +474,7 @@ async function handleOrchestrationErrorOrDeferred(payload: ErrorLikePayload, bus
             metaData: {
                 componentUUID: roomId,
                 displayMode: 'header',
+                roomChannel: 'render',
             },
             messageGroupId: registration.messageGroupId,
             messageId,

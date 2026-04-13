@@ -111,6 +111,7 @@ describe('Perception message', () => {
                     componentUUID: 'ROOM#TEST',
                     displayMode: 'header',
                     status: 'generating',
+                    roomChannel: 'render',
                 },
                 messageGroupId: 'UUID#group',
             })

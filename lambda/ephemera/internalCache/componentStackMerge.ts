@@ -83,6 +83,7 @@ export function roomCharacterListToStandardCharacterData(
     }))
 }
 
+/** Room structural merge cache; key is (characterId, roomId). A future migration toward (componentId, perspectiveKey) would align with render / perception perspectiveKey usage. */
 export class ComponentStackMergeData {
     _componentAssetMeta: (EphemeraId: ComponentUUID, assetList: AssetUUID[]) => Promise<Record<AssetUUID, StandardComponent>>
     _roomCharacterList: (roomId: EphemeraRoomId) => Promise<RoomCharacterListItem[]>
