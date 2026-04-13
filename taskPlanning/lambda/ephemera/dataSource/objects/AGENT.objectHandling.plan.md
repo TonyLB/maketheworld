@@ -12,7 +12,7 @@ Introduce an internal **`EphemeraDataSource`** with **`dataSourceKey: 'mtw.ephem
 
 **Naming rationale:** **`state`** is already scoped as a **general** DataSource that today **implements** room marks only. **`objects`** follows the same pattern: **long term**, object lists may attach to **other** ephemera component kinds or rows; v1 intentionally **does not** encode "objects are a subset of rooms" in the **`dataSourceKey`**.
 
-**First slice (implementation):** minimal storage as **`objects: string[]`** on the ephemera-table **`Meta::Room`** row (see [`packages/mtw-interfaces/ts/ephemeraMeta.ts`](../../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts)), **`componentId`** restricted to **room** ids for this milestone, plus **internal bus ingress** (same envelope patterns as **`api.ephemera`** where convenient, but **no** `requestId` / **`ReturnValue`** correlation) and **outbound bus events** after successful persist.
+**First slice (implementation):** minimal storage as **`objects: string[]`** on the ephemera-table **`Meta::Room`** row (see [`packages/mtw-interfaces/ts/ephemeraMeta.ts`](../../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts)). Entries are **opaque handles**; when populated from **`mtw-wml`**, canonical values align with **`OBJECT#...`** (see **Ephemera wire WML** below). **`componentId`** restricted to **room** ids for this milestone, plus **internal bus ingress** (same envelope patterns as **`api.ephemera`** where convenient, but **no** `requestId` / **`ReturnValue`** correlation) and **outbound bus events** after successful persist.
 
 **Lasting architecture** for steady-state behavior belongs in package docs once code exists; this file tracks **execution order**, **progress**, and **verification**.
 
@@ -30,6 +30,13 @@ Read in order before implementation (or skim **Decisions log** + **Architecture*
 6. [`lambda/ephemera/dataSource/perception/subscribedEvents.ts`](../../../../../lambda/ephemera/dataSource/perception/subscribedEvents.ts) and [`perception/AGENT.md`](../../../../../lambda/ephemera/dataSource/perception/AGENT.md) --- background for **phase 2** only.
 7. [`lambda/ephemera/dataSource/AGENT.multiChannel.contract.md`](../../../../../lambda/ephemera/dataSource/AGENT.multiChannel.contract.md) --- shared **`Meta::Room`** row vs DataSource domains.
 8. [`packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md`](../../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md) --- **`busOnly`**, **`publishedEvents.ts`**.
+9. [`packages/mtw-wml/ts/standardize/AGENT.md`](../../../../../packages/mtw-wml/ts/standardize/AGENT.md) and [`packages/mtw-wml/ts/standardize/wmlStandardizeMode.ts`](../../../../../packages/mtw-wml/ts/standardize/wmlStandardizeMode.ts) --- **ephemera wire** WML, **`<Object>`** under **`Room`**, **`OBJECT#`** handles vs blueprint **`asset`** mode (package **`AGENT.md`** indexes cross-links).
+
+---
+
+## Ephemera wire WML (producers)
+
+**Not** asset / blueprint authoring: **`mtw-wml`** **`standardizeMode: 'ephemeraWire'`** allows **`<Object uuid=(id)><ShortName>label</ShortName></Object>`** inside **`Room`**. **`uuid`** is canonical **`OBJECT#...`** in memory and in **`StandardRoom.objects`** / **`toJSON`**; **`add` / `remove`** on **`Objects Change`** should use the same handle strings. WML print strips to bare **`uuid=(id)`**. Normative detail: [`packages/mtw-wml/ts/standardize/AGENT.md`](../../../../../packages/mtw-wml/ts/standardize/AGENT.md). Multi-channel contract (room affordances vs render): [`lambda/ephemera/dataSource/AGENT.multiChannel.contract.md`](../../../../../lambda/ephemera/dataSource/AGENT.multiChannel.contract.md).
 
 ---
 
@@ -49,7 +56,7 @@ Read in order before implementation (or skim **Decisions log** + **Architecture*
 - **Replay** / EventBridge-visible public contract for **`mtw.ephemera.objects`** (stay **bus-only** like **`mtw.ephemera.state`** initially).
 - Full **perception** fan-in wiring unless explicitly pulled into this milestone; document as **follow-on**.
 - **Non-room** **`componentId`**, additional **`Meta::*`** shapes, **`ComponentEphemeraMeta`** unions, or separate caches for object lists---future task plans only; this plan ships **room-only** **`mtw.ephemera.objects`** on **`Meta::Room`**.
-- **WML** or **assetDB** authoring surface for objects (ephemera runtime only unless product says otherwise).
+- **Asset / blueprint** WML or **assetDB** authoring surface for objects (ephemera runtime only unless product says otherwise). **Ephemera wire** WML for **`Object`** is defined in **`mtw-wml`** (see **Ephemera wire WML** above), not in asset mode.
 - **Authorization** framework or **client correlation** for this ingress---**internal processes** only for v1 (see **Decisions log**).
 
 ---

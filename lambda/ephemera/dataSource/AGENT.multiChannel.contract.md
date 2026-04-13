@@ -64,6 +64,8 @@ When adding **player-visible** room updates, **name** which **channel** owns the
 
 Ephemera already stores **multiple concerns** on one **`Meta::Room`** item (`EphemeraId: ROOM#...`, `DataCategory: 'Meta::Room'`): e.g. `activeCharacters`, `state` (marks), cache pointer fields, and planned fields such as `objects` (see [`packages/mtw-interfaces/ts/ephemeraMeta.ts`](../../../packages/mtw-interfaces/ts/ephemeraMeta.ts)).
 
+**Ephemera wire WML (producers):** When a service builds **room** WML that includes **runtime objects** (for example for **`PerceptionMessage`**, wire transfer, or other ephemera payloads), use **`mtw-wml`** with **`standardizeMode: 'ephemeraWire'`** and **`<Object uuid=(id)><ShortName>label</ShortName></Object>`** children under **`Room`**. Canonical handles in **`StandardRoom.objects`** and in schema are **`OBJECT#...`**; WML serialization prints bare **`uuid=(id)`** again. **`Object`** is **not** a **`StandardComponent`**. Normative package docs: [`packages/mtw-wml/ts/standardize/AGENT.md`](../../../packages/mtw-wml/ts/standardize/AGENT.md) and [`packages/mtw-wml/ts/AGENT.md`](../../../packages/mtw-wml/ts/AGENT.md) (**Standardize** / **`standardizeMode`**).
+
 **Contract:** **Co-location on one row is an implementation choice** for **atomicity, read efficiency, and cache keying** (`ComponentEphemeraMeta`), **not** a claim that there is only one **semantic** domain. **Domain boundaries** remain defined by **which DataSource (or module) owns writes and outbounds** for each field or field group.
 
 **Invalidation:** Any successful write to `Meta::Room` must respect the **invalidation contract** for [`ComponentEphemeraMeta`](../internalCache/componentEphemeraMeta.AGENT.md) (call **`invalidate(roomId)`** after success unless a narrower rule is explicitly documented).
@@ -106,6 +108,8 @@ This document **does not** yet fix every cell; it **requires** that new work eit
 | [`renderOrchestration/AGENT.md`](renderOrchestration/AGENT.md) | Resolve, generation, orchestration outbounds |
 | [`renderCache/AGENT.md`](renderCache/AGENT.md) | Durable cache, `Render Pertains`, correlation vs routing |
 | [`taskPlanning/lambda/ephemera/dataSource/objects/AGENT.objectHandling.plan.md`](../../../taskPlanning/lambda/ephemera/dataSource/objects/AGENT.objectHandling.plan.md) | **`mtw.ephemera.objects`** (v1 on **`Meta::Room`**) |
+| [`packages/mtw-wml/ts/standardize/AGENT.md`](../../../packages/mtw-wml/ts/standardize/AGENT.md) | **`standardizeMode`**, **`Object`** under **`Room`**, **`OBJECT#`** (payload vocabulary) |
+| [`packages/mtw-wml/ts/AGENT.md`](../../../packages/mtw-wml/ts/AGENT.md) | Package index; **Standardize** section links ephemera wire + lambda/task-plan context |
 | [`taskPlanning/lambda/ephemera/dataSource/perception/AGENT.multiChannel.plan.md`](../../../taskPlanning/lambda/ephemera/dataSource/perception/AGENT.multiChannel.plan.md) | **Room-render** vs **room-affordances**: open decisions, migration, verification |
 | [`taskPlanning/lambda/ephemera/dataSource/AGENT.passThrough.contract.planning.md`](../../../taskPlanning/lambda/ephemera/dataSource/AGENT.passThrough.contract.planning.md) | Pass-through durability and cross-cutting semantics |
 | [`packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md`](../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md) | DataSource pattern, `busOnly`, `publishedEvents.ts` |
