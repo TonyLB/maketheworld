@@ -23,10 +23,14 @@ The `RoomDescription` component is the most complex message component in the sys
 The component now uses **Standard format exclusively**. Room data is extracted from `StandardForm` via `StandardRoom` components.
 
 ### **Standard Format Data**
-- **Room Data**: `StandardRoom` from `StandardForm.byUniversalId`
-- **Room Name/Description**: Extracted from first `StandardExample` referenced by `StandardRoom.examples`
+- **Room Data**: `StandardRoom` from `StandardForm.byUniversalId[metaData.componentUUID]`
+- **Room name / summary / description (prose)**: In order of precedence: (1) **`StandardRoom.render`** (ephemera **`<Render>`**, same JSON shape as **`SituationRoomFacetPayloadType`**), (2) first **Situation** facet payload on the room, (3) first **`StandardExample`** referenced by **`StandardRoom.examples`**. Implemented via **`SituationRoomFacetPayload`** in **`RoomDescription.tsx`**.
 - **Exits**: `StandardExitFacet[]` from `StandardRoom.exits.items`
 - **Characters**: `StandardCharacter[]` resolved from `StandardRoom.characters.payload` references
+
+### **Perception `parsedWML` parsing**
+
+Inbound **`PerceptionMessage.wmlContent`** is parsed with **`standardizeMode: 'ephemeraWire'`** (see [`../../slices/messages/AGENT.md`](../../slices/messages/AGENT.md) and [`../../slices/perceptionCache/AGENT.md`](../../slices/perceptionCache/AGENT.md)) so **`<Render>`** and **`<Object>`** under **`Room`** are accepted. Asset-only **`StandardForm`** parsing would reject those tags.
 
 ## Component Architecture
 
@@ -71,18 +75,18 @@ The component now uses **Standard format exclusively**. Room data is extracted f
 
 ### **WML Structure for Rooms**
 
-Based on the WML standard, room data should be structured as:
+**Room-render / perception** WML from ephemera typically uses **`<Render>`** for resolved header prose (see **`packages/mtw-wml`** **`standardize/AGENT.md`**). Asset authoring may still use **Example** / **Situation** shapes; **`RoomDescription`** supports both.
 
 ```xml
-<Asset uuid=(RoomName)>
+<Asset uuid=(render)>
     <Room uuid=(room-uuid)>
-        <Example uuid=(room-example-1)>
-            <Name>Room Display Name</Name>
-            <Description>Room description content</Description>
+        <Render>
+            <DisplayName>Room Display Name</DisplayName>
             <Summary>Brief room summary</Summary>
-        </Example>
+            <Description>Room description content</Description>
+        </Render>
         <Exit to=(ROOM#other-room)>North Exit</Exit>
-        <Character uuid=(character-1)><Name>Character Name</Name></Character>
+        <Character uuid=(CHARACTER#npc) />
     </Room>
 </Asset>
 ```
@@ -102,38 +106,51 @@ interface RoomDescriptionProps {
 ### **Standard Format Data Extraction Pattern**
 
 ```typescript
-// Initialize with proper types
-let name: StandardRender = new StandardRender(['Unknown'])
+// Initialize with proper types (see RoomDescription.tsx)
+let name: StandardLiteral = new StandardLiteral('Untitled', { tag: 'DisplayName' })
 let description: StandardRender = new StandardRender([])
 let summary: StandardRender = new StandardRender([])
 let exits: StandardExitFacet[] = []
 let characters: StandardCharacter[] = []
 
-if (parsedWML && componentUUID) {
-    // Standard format: extract from StandardForm
+if (parsedWML) {
     const component = parsedWML.byUniversalId[componentUUID]
     if (component instanceof StandardRoom) {
-        // Extract room data from Standard format structure
-        const firstExample = component.examples.payload[0]
-        if (firstExample && firstExample.universalKey) {
-            const exampleComponent = parsedWML.byUniversalId[firstExample.universalKey as ComponentUUID]
-            if (exampleComponent instanceof StandardExample) {
-                name = exampleComponent.name ? new StandardRender(exampleComponent.name) : new StandardRender(['Unknown'])
-                description = exampleComponent.description ? new StandardRender(exampleComponent.description) : new StandardRender([])
-                summary = exampleComponent.summary ? new StandardRender(exampleComponent.summary) : new StandardRender([])
+        let prosePayload: SituationRoomFacetPayload | undefined
+        if (component.render) {
+            const fromRender = new SituationRoomFacetPayload(component.render)
+            if (!SituationRoomFacetPayload.isEmpty(fromRender)) {
+                prosePayload = fromRender
             }
         }
-        
-        // Pass Standard format objects directly to sub-components
-        exits = component.exits.items  // Pass StandardExitFacet instances directly
-        
-        // Extract character references from StandardRoom and resolve them to StandardCharacter instances
+        if (!prosePayload) {
+            const firstSituationFacet = component.situations.items[0]
+            if (firstSituationFacet) {
+                prosePayload = firstSituationFacet.payload as SituationRoomFacetPayload
+            }
+        }
+        if (prosePayload) {
+            name = prosePayload._displayName || new StandardLiteral('Untitled', { tag: 'DisplayName' })
+            description = prosePayload._description || new StandardRender([])
+            summary = prosePayload._summary || new StandardRender([])
+        } else {
+            const firstExampleRef = component.examples.payload[0]
+            if (firstExampleRef) {
+                const firstExample = parsedWML._lookup(firstExampleRef.standardKey.toJSON())
+                if (firstExample && firstExample.universalKey) {
+                    const exampleComponent = parsedWML.byUniversalId[firstExample.universalKey as any]
+                    if (exampleComponent instanceof StandardExample) {
+                        name = exampleComponent.displayName || new StandardLiteral('Untitled', { tag: 'DisplayName' })
+                        description = exampleComponent.description || new StandardRender([])
+                        summary = exampleComponent.summary || new StandardRender([])
+                    }
+                }
+            }
+        }
+        exits = component.exits.items
         characters = component.characters.payload
-            .map(characterRef => {
-                const resolvedCharacter = parsedWML._lookup(characterRef.standardKey.toJSON())
-                return resolvedCharacter
-            })
-            .filter((character): character is StandardCharacter => character instanceof StandardCharacter)
+            .map((ref) => parsedWML._lookup(ref.standardKey.toJSON()))
+            .filter((c): c is StandardCharacter => c instanceof StandardCharacter)
     }
 }
 ```
@@ -264,7 +281,7 @@ For complete details on message timeline organization, see [`AGENT.md`](AGENT.md
 ### **Current Implementation**
 - ✅ **Standard Format Only**: Component exclusively uses Standard format data from `StandardForm`
 - ✅ **Sub-Component Integration**: RoomExit and RoomCharacter work with `StandardExitFacet` and `StandardCharacter` directly
-- ✅ **Backend Integration**: Backend sends Standard format data via `PerceptionMessage` with `parsedWML`
+- ✅ **Backend Integration**: Backend sends Standard format data via `PerceptionMessage` with `parsedWML` (ephemera wire may include **`<Render>`** on **`Room`**)
 - ✅ **Character Integration**: Characters extracted from `StandardRoom.characters.payload` references
 - ✅ **Exit Integration**: Exits use `StandardExitFacet` pattern from `StandardRoom.exits.items`
 
@@ -309,16 +326,16 @@ For complete details on message timeline organization, see [`AGENT.md`](AGENT.md
 ## Implementation Notes
 
 ### **Standard Format Architecture**
-1. **Standard Format Input**: Component accepts `parsedWML: StandardForm` via `PerceptionMessage`
+1. **Standard Format Input**: Component accepts `parsedWML: StandardForm` via `PerceptionMessage` (built with **`ephemeraWire`** parsing for perception)
 2. **Room Data Extraction**: Extracts `StandardRoom` from `parsedWML.byUniversalId[componentUUID]`
-3. **Example Resolution**: Room name/description from first referenced `StandardExample`
+3. **Prose resolution**: **`render`** → **Situation** facet → **Example** (see **`SituationRoomFacetPayload`**)
 4. **Exit Handling**: Direct use of `StandardExitFacet[]` from `StandardRoom.exits.items`
 5. **Character Resolution**: Resolves `StandardCharacter[]` from `StandardRoom.characters.payload` references
 
 ### **Data Flow**
 1. **Input**: `PerceptionMessage` with `parsedWML` and `metaData.componentUUID`
 2. **Room Lookup**: `parsedWML.byUniversalId[componentUUID]` → `StandardRoom`
-3. **Example Lookup**: `StandardRoom.examples.payload[0]` → resolve to `StandardExample`
+3. **Prose**: Prefer **`StandardRoom.render`**; else first Situation facet; else first **`StandardExample`** under **`examples`**
 4. **Exit Direct Access**: `StandardRoom.exits.items` → `StandardExitFacet[]`
 5. **Character Resolution**: `StandardRoom.characters.payload` → resolve each reference → `StandardCharacter[]`
 
@@ -328,9 +345,8 @@ For complete details on message timeline organization, see [`AGENT.md`](AGENT.md
 - **Layout Recalculation**: Grid layout may need optimization for Standard format data
 
 ### **Testing Coverage**
-- **Unit Tests**: Legacy conversion functions and component rendering
-- **Integration Tests**: Both legacy and Standard format data handling
-- **Manual Testing**: Room navigation and character interaction functionality
+- **Unit Tests**: [`RoomDescription.test.tsx`](RoomDescription.test.tsx) --- **Pure render** (active) covers **`<Render>`** + **`ephemeraWire`**; **Pure affordances** / **Merged behavior** are **`describe.skip`** baselines for future multi-channel work
+- **Integration Tests**: Message routing with `PerceptionMessage` and `parsedWML`
 - **Layout Testing**: Header vs. full description modes with proper styling
 
 ## Navigation Tips
@@ -345,7 +361,7 @@ For complete details on message timeline organization, see [`AGENT.md`](AGENT.md
 - **`RoomDescription.tsx`**: Main component with complex layout
 - **`RoomExit.tsx`**: Exit display and navigation
 - **`RoomCharacter.tsx`**: Character display and linking
-- **`messages.ts`**: Legacy data type definitions
+- **`../../slices/messages/index.ts`**: `processPerceptionMessage` and Redux wiring
 
 ### **Related Documentation**
 - **WML Standard**: See [`../../../../packages/mtw-wml/ts/standardize/components/AGENT.md`](../../../../packages/mtw-wml/ts/standardize/components/AGENT.md)

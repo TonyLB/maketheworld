@@ -124,12 +124,12 @@ Redux state for this slice has three parts, all keyed by character (see **Transc
 ### **Performance Optimization Strategy**
 
 #### **Current Issue**
-The planned `PerceptionMessage` type will contain WML schema strings that need parsing:
+The `PerceptionMessage` type carries WML strings that need parsing:
 ```typescript
 interface PerceptionMessage {
     DisplayProtocol: 'PerceptionMessage';
-    wmlContent: string;           // WML schema string requiring parsing
-    componentUUID: SchemaComponentUUID;
+    wmlContent: string;           // WML string (ephemera wire; parse with standardizeMode: 'ephemeraWire')
+    metaData: PerceptionMessageMetaData;  // includes componentUUID for the rendered component
     // ... other fields
 }
 ```
@@ -162,26 +162,25 @@ type EnhancedMessage = Message | (PerceptionMessage & { parsedWML: StandardForm 
 const processPerceptionMessage = (message: Message): EnhancedMessage => {
     if (message.DisplayProtocol === 'PerceptionMessage') {
         try {
-            const standardForm = new StandardForm(message.wmlContent)
+            const standardForm = new StandardForm(message.wmlContent, { standardizeMode: 'ephemeraWire' })
             return {
                 ...message,
                 parsedWML: standardForm
             }
         } catch (error) {
             console.warn('Failed to parse WML content for PerceptionMessage:', error)
-            // Create a fallback StandardForm to prevent perpetual loading state
-            const [upperTag] = splitType(message.componentUUID)
+            const componentUUID = message.metaData.componentUUID
+            const [upperTag] = splitType(componentUUID)
             const tag = `${upperTag[0].toUpperCase()}${upperTag.slice(1).toLowerCase()}`
-            
-            // Create a proper fallback StandardForm with the correct component type
+
             const fallbackForm = new StandardForm('fallback')
-            const defaultData = defaultComponentFromTag(tag as any, 'fallback', message.componentUUID)
-            const fallbackComponent = standardComponentFactory(defaultData)
-            
+            const defaultData = defaultComponentFromTag(tag as any, 'fallback', componentUUID)
+            const { component: fallbackComponent } = standardComponentFactory(defaultData)
+
             if (fallbackComponent) {
                 fallbackForm._components = [fallbackComponent]
             }
-            
+
             return {
                 ...message,
                 parsedWML: fallbackForm
@@ -194,6 +193,8 @@ const processPerceptionMessage = (message: Message): EnhancedMessage => {
 // In cacheMessages action
 const processedMessages = messages.map(processPerceptionMessage)
 ```
+
+**Ephemera wire parsing:** `standardizeMode: 'ephemeraWire'` accepts perception WML such as **`<Render>`** and **`<Object>`** under **`Room`**. Asset-only default parsing would reject those tags. See **`packages/mtw-wml`** **`standardize/AGENT.md`**.
 
 ##### **Phase 2: No Special Selectors Needed**
 ```typescript
@@ -209,8 +210,9 @@ export const getMessages = (state: RootState, characterId: EphemeraCharacterId) 
 // Components handle parsing with fallback support
 case 'PerceptionMessage':
     // parsedWML is guaranteed to exist (either valid or fallback)
-    const component = message.parsedWML.byUniversalID(message.componentUUID)
-    const componentType = component?.tag || getComponentTypeFromUUID(message.componentUUID)
+    const componentUUID = message.metaData.componentUUID
+    const component = message.parsedWML.byUniversalId[componentUUID]
+    const componentType = component?.tag || getComponentTypeFromUUID(componentUUID)
     
     switch(componentType) {
         case 'Room':
@@ -302,13 +304,11 @@ case 'PerceptionMessage':
 - **Client vs Packages**: Use `npm test` for client (Vitest), `npm run test` for packages (Jest)
 
 ### **Future Plans**
-- **Component Integration**: Update message router to handle `PerceptionMessage` case
-- **Component Updates**: Modify components to use parsed WML content
-- **Error Display**: Create components to show fallback content gracefully
-- **Performance Monitoring**: Add parsing performance tracking
+- **Lazy parsing**: Optional strategies from Phase 4 migration timeline
+- **Error Display**: Richer UI when fallback `StandardForm` is used
+- **Performance Monitoring**: Parsing cost in production
 
 ### **Technical Debt**
-- **Component Updates**: Need to update message router and components for `PerceptionMessage`
-- **Error Handling**: Need to create graceful fallback display components
+- **Phase 3 migration**: Legacy removal items from the migration timeline (if any remain)
 - **Performance**: Monitor parsing performance in production
 - **Memory Usage**: Optimize parsed data lifecycle management 

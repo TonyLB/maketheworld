@@ -60,15 +60,14 @@ describe('ComponentRender cache handler', () => {
         expect(schemaToWML([descriptionOutput.schema])).toEqual(deIndentWML(`
             <Asset uuid=(render)>
                 <Character uuid=(TESS) ref={0}><DisplayName>Tess</DisplayName></Character>
-                <Example uuid=(rendered) ref={0}>
-                    <DisplayName>Example Name</DisplayName>
-                    <Summary>Summary</Summary>
-                    <Description>Description</Description>
-                </Example>
                 <Room uuid=(TestOne) ref={0}>
                     <ShortName>TestRoom</ShortName>
-                    <Example uuid=(rendered) />
                     <Character uuid=(TESS) />
+                    <Render>
+                        <DisplayName>Example Name</DisplayName>
+                        <Summary>Summary</Summary>
+                        <Description>Description</Description>
+                    </Render>
                 </Room>
             </Asset>
         `))
@@ -114,21 +113,20 @@ describe('ComponentRender cache handler', () => {
         const descriptionOutput = await internalCache.ComponentRender.get('CHARACTER#TESS', 'ROOM#TestOne')
         expect(schemaToWML([descriptionOutput.schema])).toEqual(deIndentWML(`
             <Asset uuid=(render)>
-                <Situation uuid=(situation-one) ref={0} />
                 <Room uuid=(TestOne) ref={0}>
                     <ShortName>TestRoom</ShortName>
-                    <Situation uuid=(situation-one)>
+                    <Render>
                         <DisplayName>From Cache</DisplayName>
                         <Summary>Cache Summary</Summary>
                         <Description>Cache description content</Description>
-                    </Situation>
+                    </Render>
                 </Room>
             </Asset>
         `))
         expect(internalCache.Examples.get).not.toHaveBeenCalled()
     })
 
-    it('should prefer situationId over authoredExampleId when both present (Phase 4)', async () => {
+    it('uses cache renderedContent as Render when situationId and authoredExampleId both present', async () => {
         const cacheRecord = {
             EphemeraId: 'ROOM#TestOne',
             DataCategory: 'CACHE#test-uuid',
@@ -169,14 +167,13 @@ describe('ComponentRender cache handler', () => {
         const descriptionOutput = await internalCache.ComponentRender.get('CHARACTER#TESS', 'ROOM#TestOne')
         expect(schemaToWML([descriptionOutput.schema])).toEqual(deIndentWML(`
             <Asset uuid=(render)>
-                <Situation uuid=(primary) ref={0} />
                 <Room uuid=(TestOne) ref={0}>
                     <ShortName>TestRoom</ShortName>
-                    <Situation uuid=(primary)>
+                    <Render>
                         <DisplayName>From situationId</DisplayName>
                         <Summary>Summary</Summary>
                         <Description>Description</Description>
-                    </Situation>
+                    </Render>
                 </Room>
             </Asset>
         `))

@@ -38,7 +38,7 @@ const perceptionCacheSlice = createSlice({
 // Helper function to process PerceptionMessage with WML parsing
 const processPerceptionMessage = (message: PerceptionMessage): EnhancedPerceptionMessage => {
     try {
-        const standardForm = new StandardForm(message.wmlContent)
+        const standardForm = new StandardForm(message.wmlContent, { standardizeMode: 'ephemeraWire' })
         return {
             ...message,
             parsedWML: standardForm

@@ -6,14 +6,31 @@ import { MessageState } from './baseClasses'
 import { Selector } from '../../store'
 import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import binarySearch from './binarySearch'
-import { unique } from '../../lib/lists'
-import { StandardRender } from '@tonylb/mtw-wml/ts/standardize/render'
 import { SchemaImportMapping } from '@tonylb/mtw-base/ts/schema/metaData'
 import { AssetUUID, ComponentUUID } from '@tonylb/mtw-base/ts/schema'
-import { Component } from 'react'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
-import StandardExample from '@tonylb/mtw-wml/ts/standardize/components/example'
+import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
+
+/** Label for transcript chips / recent visits: ephemera `<Render>` displayName, then component displayName / shortName. */
+function perceptionMessageDisplayLabel(component: StandardComponent): string | undefined {
+    if (component instanceof StandardRoom) {
+        const render = component.render
+        const dn = render?.displayName
+        if (typeof dn === 'string' && dn.trim()) {
+            return dn.trim()
+        }
+    }
+    const displayName = (component as any).displayName
+    const shortName = (component as any).shortName
+    if (displayName?.plainString) {
+        return displayName.plainString
+    }
+    if (shortName?.plainString) {
+        return shortName.plainString
+    }
+    return undefined
+}
 
 // Helper function to check if a message is a room header
 const isRoomHeader = (message: Message): message is PerceptionMessage => {
@@ -261,10 +278,9 @@ export const getRecentlyVisited: (fromTime: number) => Selector<MessageRecentVis
                         if (perceptionMessage.parsedWML) {
                             const component = perceptionMessage.parsedWML.byUniversalId[ephemeraId]
                             if (component) {
-                                // Try to get name from component - this is component-specific logic
-                                const componentName = (component as any).displayName || (component as any).shortName
-                                if (componentName) {
-                                    name = componentName.plainString || name
+                                const label = perceptionMessageDisplayLabel(component)
+                                if (label) {
+                                    name = label
                                 }
                                 
                                 // Extract assets if available

@@ -3,13 +3,15 @@
  */
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
-/** Same markup as legacy `sendRoomGeneratingHeader` (Generating...). */
+/** Ephemera wire `<Render>` placeholder (parse with `standardizeMode: 'ephemeraWire'`). */
 export function roomHeaderGeneratingPlaceholderWml(roomId: EphemeraRoomId): string {
     return `<Asset uuid=(render)>
     <Room uuid=(${roomId})>
-        <Example key=(generatingHeader) uuid=(EXAMPLE#generatingHeader)>
+        <Render>
             <DisplayName>Generating...</DisplayName>
-        </Example>
+            <Summary></Summary>
+            <Description></Description>
+        </Render>
     </Room>
 </Asset>`
 }
@@ -18,9 +20,11 @@ export function roomHeaderGeneratingPlaceholderWml(roomId: EphemeraRoomId): stri
 export function roomHeaderErrorPlaceholderWml(roomId: EphemeraRoomId): string {
     return `<Asset uuid=(render)>
     <Room uuid=(${roomId})>
-        <Example key=(errorHeader) uuid=(EXAMPLE#errorHeader)>
+        <Render>
             <DisplayName>Error</DisplayName>
-        </Example>
+            <Summary></Summary>
+            <Description></Description>
+        </Render>
     </Room>
 </Asset>`
 }

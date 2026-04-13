@@ -100,9 +100,11 @@ describe('Perception message', () => {
                 displayProtocol: 'PerceptionMessage',
                 wmlContent: `<Asset uuid=(render)>
     <Room uuid=(ROOM#TEST)>
-        <Example key=(generatingHeader) uuid=(EXAMPLE#generatingHeader)>
+        <Render>
             <DisplayName>Generating...</DisplayName>
-        </Example>
+            <Summary></Summary>
+            <Description></Description>
+        </Render>
     </Room>
 </Asset>`,
                 metaData: {
