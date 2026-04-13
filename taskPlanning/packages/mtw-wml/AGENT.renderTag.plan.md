@@ -1,6 +1,6 @@
 # Ephemera-only `<Render>` tag (`mtw-wml`)
 
-**Status:** Active --- **Phase 1 done**; next is **Phase 2** (**StandardRoom**). Adds an **ephemera wire** child of **`Room`** that carries **resolved** **DisplayName**, **Summary**, and **Description** without **Situation**, **Example**, **Lens**, or **Guidance** authoring shapes. Aligns with [**room-render** vs **room-affordances**](../../../lambda/ephemera/dataSource/AGENT.multiChannel.contract.md) and [**fact ownership**](../../../lambda/ephemera/dataSource/AGENT.multiChannel.contract.md) (render channel prose vs pipeline-only constructs).
+**Status:** Active --- **Phase 1--3 done** ( **`mtw-wml`** **`AGENT.md`**, **`standardize/AGENT.md`**, **`AGENT.multiChannel.contract.md`** updated); next is **Phase 4** (optional **lambda** emit + **`RoomDescription`** read path) or **closeout**. Adds an **ephemera wire** child of **`Room`** that carries **resolved** **DisplayName**, **Summary**, and **Description** without **Situation**, **Example**, **Lens**, or **Guidance** authoring shapes. Aligns with [**room-render** vs **room-affordances**](../../../lambda/ephemera/dataSource/AGENT.multiChannel.contract.md) and [**fact ownership**](../../../lambda/ephemera/dataSource/AGENT.multiChannel.contract.md) (render channel prose vs pipeline-only constructs).
 
 **Framework:** Executable task plan per [`taskPlanning/AGENT.md`](../../AGENT.md) (status, **Getting Started**, **Progress**, **Recommended order** checkboxes, **Verification**).
 
@@ -83,14 +83,15 @@ Pending work uses `[ ]`; completed work uses `[X]` (capital **X**). Mark each li
 
 **Phase 2 --- StandardRoom and standardize**
 
-- [ ] Extend **`StandardRoomPayload`** / **`fromSchema`** / **`toSchema`** to consume **`Render`** in **`ephemeraWire`** only; map **DisplayName / Summary / Description** into stable **`StandardRoom`** data.
-- [ ] Ensure **asset** mode does not accept **`Render`**.
-- [ ] Tests mirroring **`Object`** coverage in [`standardize/index.test.ts`](../../../packages/mtw-wml/ts/standardize/index.test.ts).
+- [X] Extend **`StandardRoomPayload`** / **`fromSchema`** / **`toSchema`** to consume **`Render`** in **`ephemeraWire`** only; map **DisplayName / Summary / Description** into stable **`StandardRoom`** data (JSON field **`render`**: **`SituationRoomFacetPayloadType`** --- literal **`displayName`**, render-tree **`summary`** / **`description`**; see [`packages/mtw-wml/ts/standardize/components/dataTypes/room.ts`](../../../packages/mtw-wml/ts/standardize/components/dataTypes/room.ts) and [`packages/mtw-wml/ts/standardize/components/room.ts`](../../../packages/mtw-wml/ts/standardize/components/room.ts)).
+- [X] Ensure **asset** mode does not accept **`Render`** (unconsumed tag error, same pattern as **`Object`**).
+- [X] Tests mirroring **`Object`** coverage in [`standardize/index.test.ts`](../../../packages/mtw-wml/ts/standardize/index.test.ts) under **`describe('standardizeMode')`** (parse, round-trip, asset rejection, duplicate **`Render`**, whitespace **DisplayName**, merge with affordance form).
 
 **Phase 3 --- documentation and cross-links**
 
-- [ ] Update [`packages/mtw-wml/ts/standardize/AGENT.md`](../../../packages/mtw-wml/ts/standardize/AGENT.md) (**Ephemera-only tags**).
-- [ ] Optional one-line pointer in [`lambda/ephemera/dataSource/AGENT.multiChannel.contract.md`](../../../lambda/ephemera/dataSource/AGENT.multiChannel.contract.md) under **Implementation-level aggregation** or **fact ownership** when **`Render`** is stable.
+- [X] Update [`packages/mtw-wml/ts/standardize/AGENT.md`](../../../packages/mtw-wml/ts/standardize/AGENT.md) (**Ephemera-only tags**) --- **`Render`** paragraph is present next to **`Object`**.
+- [X] Pointer in [`lambda/ephemera/dataSource/AGENT.multiChannel.contract.md`](../../../lambda/ephemera/dataSource/AGENT.multiChannel.contract.md) under **Implementation-level aggregation** (and **`Open decisions`** / **Fact ownership** cross-links) for **`Render`** and **`StandardRoom.render`**.
+- [X] **`Render`** note next to **`Object`** in [`packages/mtw-wml/ts/AGENT.md`](../../../packages/mtw-wml/ts/AGENT.md) (Goal 6).
 
 **Phase 4 --- downstream (optional follow-on)**
 
@@ -109,8 +110,8 @@ Pending work uses `[ ]`; completed work uses `[X]` (capital **X**). Mark each li
 | --- | --- |
 | Task plan (this file) | Done |
 | Phase 1: schema + converters | Done |
-| Phase 2: StandardRoom + tests | Not started |
-| Phase 3: docs + contract pointer | Not started |
+| Phase 2: StandardRoom + tests | Done |
+| Phase 3: docs + contract pointer | Done |
 | Phase 4: ephemera + client | Not started |
 
 ---
@@ -127,14 +128,14 @@ cd packages/mtw-wml
 npm test
 ```
 
-Scope while iterating:
+Scope while iterating (Phase 2 **`Render`** slice; regex matches test names):
 
 ```bash
 cd packages/mtw-wml
-npx jest ts/standardize/index.test.ts -t Render
+npx jest ts/standardize/index.test.ts -t "Render under Room|merges ephemeraWire render|whitespace-only inside Room"
 ```
 
-(Adjust **`-t`** pattern once test names exist.)
+Broader **`Render`** substring also matches unrelated tests whose titles contain **render** (maps, features, etc.); prefer the pattern above for this plan.
 
 ---
 
@@ -156,6 +157,7 @@ npx jest ts/standardize/index.test.ts -t Render
 | Plan path | **`taskPlanning/packages/mtw-wml/AGENT.renderTag.plan.md`** |
 | Wire shape | **`Render`** with **DisplayName**, **Summary**, **Description** under **`Room`**, **`ephemeraWire`** only |
 | Phase 1 schema rules | **DisplayName** then **Summary** then **Description** in strict order; **DisplayName** non-empty after trim; **Summary** / **Description** may be empty; **`defaultSchemaTag`** includes **`Render`** |
+| Phase 2 StandardRoom mapping | JSON **`render`** uses **`SituationRoomFacetPayloadType`** (same as situation-room facet payload); **`schema`** / **`nestedSchema`** re-emit **`<Render>`** via **`renderPayloadToSchemaNode`** |
 
 ---
 
