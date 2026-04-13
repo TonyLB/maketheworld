@@ -80,7 +80,7 @@ Treat **Recommended order** lines **79-81** as **one slice** (publishers + **`Ob
 
 **Decided:** De-duplicated channels per **Phase B server** table; affordance **`wmlContent`** is **full room WML** with **`ephemeraWire`** when **`Object`** / ephemera-only tags apply; render is **`ComponentRender`**-backed per contract.
 
-**Still to nail in implementation (not arbitrary):** the exact steps to produce **render** WML **without** exits / roster / objects / features---whether filtered **`StandardRoom`**, alternate export path, or post-process---depend on **`mtw-wml`** and **`ComponentRender`** capabilities. Prefer **`internalCache.BlueprintMerge`** (see [`internalCache/AGENT.blueprintMerge.plan.md`](../../internalCache/AGENT.blueprintMerge.plan.md)) for **affordance** structural room data once that cache exists. Record the chosen approach in **`lambda/ephemera/dataSource/perception/AGENT.md`** (or **`componentRender.AGENT.md`**) when Phase B ships, and add focused tests.
+**Still to nail in implementation (not arbitrary):** the exact steps to produce **render** WML **without** exits / roster / objects / features---whether filtered **`StandardRoom`**, alternate export path, or post-process---depend on **`mtw-wml`** and **`ComponentRender`** capabilities. Prefer **`internalCache.ComponentStackMerge`** (see [`internalCache/AGENT.componentStackMerge.plan.md`](../../internalCache/AGENT.componentStackMerge.plan.md)) for **affordance** structural room data once that cache exists. Record the chosen approach in **`lambda/ephemera/dataSource/perception/AGENT.md`** (or **`componentRender.AGENT.md`**) when Phase B ships, and add focused tests.
 
 ---
 
@@ -157,7 +157,7 @@ npm test
 | [`AGENT.multiChannel.contract.md`](../../../../../lambda/ephemera/dataSource/AGENT.multiChannel.contract.md) | Durable contract (room channels + norms) |
 | [`perception/AGENT.md`](../../../../../lambda/ephemera/dataSource/perception/AGENT.md) | Perception DataSource steady-state |
 | [`objects/AGENT.objectHandling.plan.md`](../objects/AGENT.objectHandling.plan.md) | Objects DataSource and Phase 2 |
-| [`internalCache/AGENT.blueprintMerge.plan.md`](../../internalCache/AGENT.blueprintMerge.plan.md) | **Blueprint merge** cache: render-agnostic asset stack merge (affordance WML inputs) |
+| [`internalCache/AGENT.componentStackMerge.plan.md`](../../internalCache/AGENT.componentStackMerge.plan.md) | **Component stack merge** cache: render-agnostic asset stack merge (affordance WML inputs) |
 | [`charcoal-client/src/components/Message/AGENT.md`](../../../../../charcoal-client/src/components/Message/AGENT.md) | Header UX intent |
 
 ---

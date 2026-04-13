@@ -1,16 +1,16 @@
-# Blueprint merge cache (`blueprintMerge.ts`)
+# Component stack merge cache (`componentStackMerge.ts`)
 
 **Status:** Active --- public API defined; implementation not started.
 
 **Framework:** Executable task plan per [`taskPlanning/AGENT.md`](../../../AGENT.md) (status, **Getting Started**, **Progress**, **Recommended order** checkboxes, **Verification**).
 
-**Naming:** Code identifier **`BlueprintMerge`** (file **`lambda/ephemera/internalCache/blueprintMerge.ts`**). This is **render-agnostic** merge of asset-layer **`Standard*`** components for a room (and, in later slices, other component kinds if needed): same **stack resolution** idea as [`ComponentRender`](../../../../../lambda/ephemera/internalCache/componentRender.ts), **without** **`RenderCache`**, **`Examples`**, or perception **prose** / **`<Render>`** assembly. Aligns with multi-channel **affordance** facts (see [`AGENT.multiChannel.plan.md`](../dataSource/perception/AGENT.multiChannel.plan.md) **WML composition (recipe)**).
+**Naming:** Code identifier **`ComponentStackMerge`** (file **`lambda/ephemera/internalCache/componentStackMerge.ts`**). This is **render-agnostic** merge of asset-layer **`Standard*`** components for a room (and, in later slices, other component kinds if needed): same **stack resolution** idea as [`ComponentRender`](../../../../../lambda/ephemera/internalCache/componentRender.ts), **without** **`RenderCache`**, **`Examples`**, or perception **prose** / **`<Render>`** assembly. Aligns with multi-channel **affordance** facts (see [`AGENT.multiChannel.plan.md`](../dataSource/perception/AGENT.multiChannel.plan.md) **WML composition (recipe)**).
 
 ---
 
 ## Purpose
 
-Introduce a dedicated **internalCache** handler that caches **merged blueprint-layer room data** derived from:
+Introduce a dedicated **internalCache** handler that caches **merged asset-stack room data** derived from:
 
 - **Global** + **character** asset lists (same union pattern as **`ComponentRender`**),
 - **`ComponentAssetMeta.getAcrossAssets`** (appearances of the room per asset),
@@ -24,17 +24,17 @@ and applies the **same merge rules** **`ComponentRender`** uses for **exits** (*
 
 ## Goals
 
-1. **`internalCache/blueprintMerge.ts`:** A **`BlueprintMergeData`** (or equivalent) class following existing cache patterns in [`internalCache/AGENT.md`](../../../../../lambda/ephemera/internalCache/AGENT.md) (**DeferredCache**, **`clear`**, **`flush`** as appropriate).
+1. **`internalCache/componentStackMerge.ts`:** A **`ComponentStackMergeData`** (or equivalent) class following existing cache patterns in [`internalCache/AGENT.md`](../../../../../lambda/ephemera/internalCache/AGENT.md) (**DeferredCache**, **`clear`**, **`flush`** as appropriate).
 2. **v1 scope:** **Rooms** (`ROOM#...`) only; **cache key** includes **`CharacterId`** (and **`header`** if the merged shape must differ for header vs full---match **`ComponentRender`** key semantics unless analysis shows a simpler key).
 3. **Explicit non-dependencies:** Implementation **must not** import or call **`RenderCache`**, **`Examples`**, or the **rendered-content / example-to-`render` payload** path documented in [`componentRender.AGENT.md`](../../../../../lambda/ephemera/internalCache/componentRender.AGENT.md).
-4. **Wiring:** Register on [`internalCache`](../../../../../lambda/ephemera/internalCache/index.ts) (**`internalCache.BlueprintMerge`**), **`InternalCache.clear()`**, and **`flush()`** if the handler uses **`DeferredCache`** async paths.
-5. **Tests:** **`blueprintMerge.test.ts`** (or co-located pattern) with mocks per [`lambda/ephemera/AGENT.testing.md`](../../../../../lambda/ephemera/AGENT.testing.md); assert merged **exits** / **shortName** / **characters** behavior **matches** the room branch of **`ComponentRender`** for equivalent inputs (golden or shared fixtures where practical).
+4. **Wiring:** Register on [`internalCache`](../../../../../lambda/ephemera/internalCache/index.ts) (**`internalCache.ComponentStackMerge`**), **`InternalCache.clear()`**, and **`flush()`** if the handler uses **`DeferredCache`** async paths.
+5. **Tests:** **`componentStackMerge.test.ts`** (or co-located pattern) with mocks per [`lambda/ephemera/AGENT.testing.md`](../../../../../lambda/ephemera/AGENT.testing.md); assert merged **exits** / **shortName** / **characters** behavior **matches** the room branch of **`ComponentRender`** for equivalent inputs (golden or shared fixtures where practical).
 
 ---
 
 ## Non-goals (this task plan)
 
-- **Refactoring** **`ComponentRender`** to call **`BlueprintMerge`** internally (optional **follow-on** PR; note in **Progress** if done early).
+- **Refactoring** **`ComponentRender`** to call **`ComponentStackMerge`** internally (optional **follow-on** PR; note in **Progress** if done early).
 - **Client** or **`PublishMessage`** changes (multi-channel Phase B uses this cache **after** it exists).
 - **Non-room** component kinds (Feature, Map, ...) unless a clear v1 requirement appears; document extension points in **`AGENT.md`** when shipped.
 
@@ -61,7 +61,7 @@ Source: [`componentRender.ts`](../../../../../lambda/ephemera/internalCache/comp
 2. `allAssets = unique(globalAssets || [], characterAssets).map(AssetKey)` (type **`AssetUUID[]`**).
 3. `appearancesByAsset = await _componentAssetMeta(EphemeraId, allAssets)` i.e. **`ComponentAssetMetaData.getAcrossAssets(EphemeraId, allAssets)`** -> `Record<AssetUUID, StandardComponent>`.
 4. `assetData = allAssets.flatMap((assetId) => (appearancesByAsset[assetId] ? [appearancesByAsset[assetId]] : []))` cast to **`StandardRoom[]`** (preserves **`allAssets`** order; missing assets contribute nothing).
-5. **Stop here for blueprint merge** (skip **`_renderCache.get`**, **`_examples`**, **`renderPayload`**, **`SituationRoomFacetPayload.isEmpty`**).
+5. **Stop here for component stack merge** (skip **`_renderCache.get`**, **`_examples`**, **`renderPayload`**, **`SituationRoomFacetPayload.isEmpty`**).
 6. `Promise.all([ _roomCharacterList(EphemeraId), exitsSync, shortNameSync ])` where:
    - **exits:** `allExitFacets = assetData.map((asset) => asset.exits.items || []).flat(1)`; `exits = new ExitFacetList(allExitFacets).toJSON()`.
    - **shortName:** `assetData.map((c) => c.shortName).filter(excludeUndefined).reduce<StandardLiteral | undefined>((previous, current) => (previous ? previous.merge(current) : current), undefined)`; use **`shortName?.toJSON()`** on the result for **`StandardRoomData.shortName`**.
@@ -73,20 +73,20 @@ Cache key for parity with **`ComponentRender.get`** (room): **`${CharacterId}::$
 
 ---
 
-## Public API (`BlueprintMergeData`)
+## Public API (`ComponentStackMergeData`)
 
-**Module:** [`blueprintMerge.ts`](../../../../../lambda/ephemera/internalCache/blueprintMerge.ts) (to be added).
+**Module:** [`componentStackMerge.ts`](../../../../../lambda/ephemera/internalCache/componentStackMerge.ts) (to be added).
 
-### `BlueprintMergeGetOptions`
+### `ComponentStackMergeGetOptions`
 
 ```ts
-type BlueprintMergeGetOptions = {
+type ComponentStackMergeGetOptions = {
     /** Same meaning as `ComponentRender`: included in the cache key only. Room merge output does not depend on this flag today (see `componentRender.ts` room branch). */
     header?: boolean;
 };
 ```
 
-**Not** included: **`priorRenderChain`** --- that exists on **`ComponentRender`** for render-related call paths; the room **`_getPromiseFactory`** does not read it. Blueprint merge does not take it.
+**Not** included: **`priorRenderChain`** --- that exists on **`ComponentRender`** for render-related call paths; the room **`_getPromiseFactory`** does not read it. Component stack merge does not take it.
 
 ### `get`
 
@@ -94,7 +94,7 @@ type BlueprintMergeGetOptions = {
 async get(
     CharacterId: EphemeraCharacterId | 'ANONYMOUS',
     EphemeraRoomId: EphemeraRoomId,
-    options?: BlueprintMergeGetOptions
+    options?: ComponentStackMergeGetOptions
 ): Promise<StandardForm>
 ```
 
@@ -137,17 +137,17 @@ Pending work uses `[ ]`; completed work uses `[X]` (capital **X**). Mark each li
 **Design and extraction**
 
 - [X] Trace **`ComponentRender`** room **`_getPromiseFactory`** and list exact steps to replicate **without** prose (**`renderPayload`**). See **Trace (room, no `renderPayload`)** below.
-- [X] Define **public API** for **`BlueprintMergeData`** (**`get(CharacterId, EphemeraRoomId, options?)`**, return type, cache key format). See **Public API (`BlueprintMergeData`)** above.
+- [X] Define **public API** for **`ComponentStackMergeData`** (**`get(CharacterId, EphemeraRoomId, options?)`**, return type, cache key format). See **Public API (`ComponentStackMergeData`)** above.
 
 **Implementation**
 
-- [ ] Add **`lambda/ephemera/internalCache/blueprintMerge.ts`** implementing **`BlueprintMergeData`** (or chosen name) with shared merge logic (extract **pure helpers** from **`componentRender.ts`** where duplication would otherwise diverge).
-- [ ] Wire **`internalCache/index.ts`**: construct with **`Examples`/`RenderCache` omitted**; **`internalCache.BlueprintMerge`**; **`clear()`** / **`flush()`**.
+- [ ] Add **`lambda/ephemera/internalCache/componentStackMerge.ts`** implementing **`ComponentStackMergeData`** (or chosen name) with shared merge logic (extract **pure helpers** from **`componentRender.ts`** where duplication would otherwise diverge).
+- [ ] Wire **`internalCache/index.ts`**: construct with **`Examples`/`RenderCache` omitted**; **`internalCache.ComponentStackMerge`**; **`clear()`** / **`flush()`**.
 
 **Tests and docs**
 
-- [ ] Add **`blueprintMerge.test.ts`**; parity or regression checks vs **`ComponentRender`** for room merge behavior on controlled mocks.
-- [ ] Update **`lambda/ephemera/internalCache/AGENT.md`** with a **Blueprint merge** subsection (role, keys, **not** render prose).
+- [ ] Add **`componentStackMerge.test.ts`**; parity or regression checks vs **`ComponentRender`** for room merge behavior on controlled mocks.
+- [ ] Update **`lambda/ephemera/internalCache/AGENT.md`** with a **Component stack merge** subsection (role, keys, **not** render prose).
 - [ ] Link this plan from [`taskPlanning/lambda/ephemera/dataSource/perception/AGENT.multiChannel.plan.md`](../dataSource/perception/AGENT.multiChannel.plan.md) **WML composition (recipe)** or **Links** when the cache is usable (optional one-line).
 
 **Closeout**
@@ -161,10 +161,10 @@ Pending work uses `[ ]`; completed work uses `[X]` (capital **X**). Mark each li
 | Milestone | Status |
 | --- | --- |
 | Task plan (this file) | Done |
-| **`blueprintMerge.ts`** + **`InternalCache`** wiring | Not started |
+| **`componentStackMerge.ts`** + **`InternalCache`** wiring | Not started |
 | Tests | Not started |
 | **`internalCache/AGENT.md`** | Not started |
-| Optional: **`ComponentRender`** delegates to **`BlueprintMerge`** | Not started |
+| Optional: **`ComponentRender`** delegates to **`ComponentStackMerge`** | Not started |
 
 ---
 
@@ -176,13 +176,13 @@ From [`lambda/ephemera/AGENT.testing.md`](../../../../../lambda/ephemera/AGENT.t
 cd lambda/ephemera
 npm run test -- --watchAll=false
 # Scope while iterating:
-# npm run test internalCache/blueprintMerge
+# npm run test internalCache/componentStackMerge
 ```
 
 **Manual / grep checks:**
 
-- **`grep -n BlueprintMerge lambda/ephemera/internalCache/index.ts`** --- singleton wired.
-- **`grep -n RenderCache lambda/ephemera/internalCache/blueprintMerge.ts`** --- should be **empty** (no render-cache coupling).
+- **`grep -n ComponentStackMerge lambda/ephemera/internalCache/index.ts`** --- singleton wired.
+- **`grep -n RenderCache lambda/ephemera/internalCache/componentStackMerge.ts`** --- should be **empty** (no render-cache coupling).
 
 ---
 
@@ -190,7 +190,7 @@ npm run test -- --watchAll=false
 
 | Doc / code | Role |
 | --- | --- |
-| [`internalCache/AGENT.md`](../../../../../lambda/ephemera/internalCache/AGENT.md) | Steady-state cache patterns (update when **`BlueprintMerge`** ships) |
+| [`internalCache/AGENT.md`](../../../../../lambda/ephemera/internalCache/AGENT.md) | Steady-state cache patterns (update when **`ComponentStackMerge`** ships) |
 | [`componentRender.ts`](../../../../../lambda/ephemera/internalCache/componentRender.ts) | Reference merge behavior to match or delegate |
 | [`AGENT.multiChannel.plan.md`](../dataSource/perception/AGENT.multiChannel.plan.md) | Multi-channel consumer context |
 
@@ -200,15 +200,15 @@ npm run test -- --watchAll=false
 
 | Topic | Decision |
 | --- | --- |
-| File / export | **`blueprintMerge.ts`**, **`BlueprintMergeData`** (or align name in code to single export style used by sibling caches). |
-| **v1** | **Room**-only **`BlueprintMerge`**; extend kinds later if needed. |
+| File / export | **`componentStackMerge.ts`**, **`ComponentStackMergeData`** (or align name in code to single export style used by sibling caches). |
+| **v1** | **Room**-only **`ComponentStackMerge`**; extend kinds later if needed. |
 | **Render exclusion** | **No** **`RenderCache`**, **no** **`Examples`**, **no** **`render`** facet assembly in this cache. |
 | **`get` return type** | **`Promise<StandardForm>`** (room **`Asset`** + **`StandardRoomData`** without **`render`** + character rows). |
-| **Options** | **`BlueprintMergeGetOptions`**: **`header?: boolean`** only; **no** **`priorRenderChain`**. |
+| **Options** | **`ComponentStackMergeGetOptions`**: **`header?: boolean`** only; **no** **`priorRenderChain`**. |
 | **Cache key** | **`${CharacterId}::${EphemeraRoomId}::${header ? 'true' : 'false'}`** (same as **`ComponentRender`**). |
 
 ---
 
 ## When this task plan can retire
 
-After **`BlueprintMerge`** is merged, tested, documented in **`internalCache/AGENT.md`**, and multi-channel work can cite it: **archive or delete** this plan per [`taskPlanning/AGENT.md`](../../../AGENT.md). If **`ComponentRender`** refactor is deferred, leave a pointer in **`componentRender.AGENT.md`** or a one-line **Related** in **`internalCache/AGENT.md`**.
+After **`ComponentStackMerge`** is merged, tested, documented in **`internalCache/AGENT.md`**, and multi-channel work can cite it: **archive or delete** this plan per [`taskPlanning/AGENT.md`](../../../AGENT.md). If **`ComponentRender`** refactor is deferred, leave a pointer in **`componentRender.AGENT.md`** or a one-line **Related** in **`internalCache/AGENT.md`**.
