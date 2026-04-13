@@ -17,6 +17,7 @@ import { StandardLiteral } from "../literal"
 import { resolveStandardizeFromSchemaContext, type StandardFormConstructionOptions, type StandardizeFromSchemaContext } from "../wmlStandardizeMode"
 import { renderReference } from "./utils/schema"
 import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
+import { enforceTypedKey } from "@tonylb/mtw-utilities/ts/types"
 import { ExitFacetList, StandardExitFacet } from "../keys/facets/exit"
 import { SituationRoomFacetList } from "../keys/facets/situationRoom"
 import { StandardExplicitParent } from "../explicit"
@@ -121,7 +122,10 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         this._examples = new ReferenceList(props.examples?.map((reference) => (new StandardReference(reference))) ?? [])
         this._guidance = new ReferenceList(props.guidance?.map((reference) => (new StandardReference(reference))) ?? [])
         this._characters = new ReferenceList(props.characters?.map((reference) => (new StandardReference(reference))) ?? [])
-        this._objects = (props.objects ?? []).map((o) => ({ uuid: o.uuid, shortName: o.shortName }))
+        this._objects = (props.objects ?? []).map((o) => ({
+            uuid: enforceTypedKey('OBJECT')(o.uuid),
+            shortName: o.shortName,
+        }))
     }
 
     fromSchema(node: GenericTreeNode<SchemaTag>, context?: StandardizeFromSchemaContext): GenericTree<SchemaTag> {
@@ -187,7 +191,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
                                 if (!textValue) {
                                     throw new Error('Object ShortName must contain non-empty text after trim')
                                 }
-                                return { uuid: objectNode.data.uuid, shortName: textValue }
+                                return { uuid: enforceTypedKey('OBJECT')(objectNode.data.uuid), shortName: textValue }
                             })
                         },
                     })

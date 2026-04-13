@@ -239,7 +239,7 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
             if (!uuidTrimmed) {
                 throw new Error('Object tag must have a non-empty uuid')
             }
-            return { tag: 'Object', uuid: uuidTrimmed }
+            return { tag: 'Object', uuid: enforceTypedKey('OBJECT')(uuidTrimmed) }
         },
         typeCheckContents: (item: SchemaTag): boolean => isSchemaShortName(item),
         finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag>): GenericTreeNodeFiltered<SchemaObjectTag, SchemaTag> => {
@@ -250,6 +250,7 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
             if (!uuidTrimmed) {
                 throw new Error('Object tag must have a non-empty uuid')
             }
+            const uuidNormalized = enforceTypedKey('OBJECT')(uuidTrimmed)
             const shortNameNodes = children.filter((child) => isSchemaShortName(child.data))
             if (shortNameNodes.length === 0) {
                 throw new Error('Object tag must contain exactly one ShortName child')
@@ -268,7 +269,7 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
                 throw new Error('Object ShortName must contain non-empty text after trim')
             }
             return {
-                data: { tag: 'Object', uuid: uuidTrimmed },
+                data: { tag: 'Object', uuid: uuidNormalized },
                 children: [
                     {
                         data: { tag: 'ShortName' },
@@ -410,7 +411,7 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
         return tagRender({
             ...args,
             tag: 'Object',
-            properties: [{ key: 'uuid', type: 'key' as const, value: tag.uuid }],
+            properties: [{ key: 'uuid', type: 'key' as const, value: stripTypedKey('OBJECT')(tag.uuid) }],
             node: { data: tag, children },
         })
     },

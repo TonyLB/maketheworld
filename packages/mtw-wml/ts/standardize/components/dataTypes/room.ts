@@ -21,7 +21,7 @@ export type StandardRoomData = {
     examples?: ReferenceListData;
     guidance?: ReferenceListData;
     characters?: ReferenceListData;
-    /** Ephemera wire: runtime objects (uuid handle + ShortName label); project uuids for Meta::Room.objects. */
+    /** Ephemera wire: runtime objects (OBJECT# handle + ShortName label); project those handles for Meta::Room.objects. */
     objects?: StandardRoomObjectData[];
 } & StandardBaseData
 
