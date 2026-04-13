@@ -77,8 +77,15 @@ When adding **player-visible** room updates, **name** which **channel** owns the
 ### `PublishMessage` envelope for both channels (agreed)
 
 - **Single display protocol:** **Room-render** and **room-affordances** both use **`DisplayProtocol: 'PerceptionMessage'`** (same top-level wire shape as today’s room headers and descriptions).
-- **Discriminator in `metaData`:** **`PerceptionRoomMetaData.roomChannel`**: **`'render' | 'affordances'`**; **`undefined`** is treated as **`render`** (legacy rows). See **`@tonylb/mtw-interfaces`** **`resolvedPerceptionRoomChannel`**.
+- **Discriminator in `metaData`:** **`PerceptionRoomMetaData.roomChannel`**: **`'render' | 'affordances'`**; **`undefined`** is treated as **`render`** (legacy rows). See **`@tonylb/mtw-interfaces`** **`resolvedPerceptionRoomChannel`**. **New server code** sets **`roomChannel` explicitly:** **`'render'`** for the render channel and **`'affordances'`** for affordances (do not rely on omission for new emits).
 - **Affordances body:** **`wmlContent`** carries **full room WML** (a **`Room`** subtree, same *shape habit* as render), not a fragment-only delta. With **`<Object>`** and other ephemera-only tags, producers use **`mtw-wml`** **`standardizeMode: 'ephemeraWire'`** when building or validating that string. **Room-render** continues **render-backed** **`ComponentRender`** → **`schemaToWML`** (typically **`asset`** mode unless a path opts into **`ephemeraWire`** with **`<Render>`** for resolved header prose; see **Implementation-level aggregation**).
+- **De-duplication (Phase B):** Room-render **`wmlContent`** must **not** repeat structured facts owned by **room-affordances** (exits, characters present, objects, features). The **affordance** channel carries those facts; the **render** channel carries **render-backed** presentation only. The **concrete recipe** (schema filtering, export mode, or post-process) is an implementation choice recorded next to perception / **`ComponentRender`** when Phase B lands (see [multi-channel task plan](../../../taskPlanning/lambda/ephemera/dataSource/perception/AGENT.multiChannel.plan.md) **WML composition (recipe)**).
+
+### Phase B server migration (agreed)
+
+- **`RoomUpdate`:** Migrate **character roster refresh** from **`displayProtocol: 'RoomUpdate'`** to **`PerceptionMessage`** with **`metaData.roomChannel: 'affordances'`**; **retire or thin** **`RoomUpdate`** **`PublishMessage`** on the server in that milestone. **Client** updates to consume affordance rows in the sticky header are **Phase C** (or follow-on); see task plan.
+- **`mtw.ephemera.objects` `Objects Changed`:** **`mtw.ephemera.perception`** subscribes (extend **`subscribedEvents`** / **`receiveEvents`**) and emits affordance **`PublishMessage`** rows. **`targets`** use **room-targeted** **`PublishMessage`** semantics so **every character in the target room** receives the update (same resolution pattern as other **`ROOM#...`**-scoped **`PublishMessage`** delivery).
+- **Unit tests:** Assert **`roomChannel`** discrimination, isolated **`messageId`** spaces, and **`Objects Changed`** → affordance **`PublishMessage`** shape; see task plan **Phase B server (agreed norms)**.
 
 ### Sticky header: virtual aggregation on the client (agreed)
 
@@ -162,7 +169,7 @@ Track resolutions here or in [`taskPlanning/lambda/ephemera/dataSource/perceptio
 - **Room-render channel** owns **render-backed** presentation: **ShortName**, **assets**, **DisplayName / Summary / Description** via **`<Render>`** / **`ComponentRender`** pipeline (see **Implementation-level aggregation** above).
 - **Room-affordances channel** owns structured facts: **exits**, **characters** present, **objects**, **features**.
 - **Situation / Lens / Guidance** are **not** forwarded for this UI slice.
-- **`RoomUpdate`** evolution (merge into sticky header vs retirement) remains **TBD**; track with client aggregation / Phase C unless superseded by affordances + **`PerceptionMessage`** alone.
+- **`RoomUpdate`:** **Server** migrates roster delivery to affordance **`PerceptionMessage`** in **Phase B** (see **Phase B server migration (agreed)** above). **Client** handling of legacy **`RoomUpdate`** rows vs affordance-only headers is **Phase C** / follow-on.
 
 ### Coupled PerceptionThread template (deferral)
 

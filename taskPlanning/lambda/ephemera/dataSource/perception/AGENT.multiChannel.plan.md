@@ -32,7 +32,7 @@ Read in order (or skim **Decisions to resolve** first if resuming):
 ## Goals
 
 1. **[Decided / contract]** Wire shape: **`PerceptionMessage`** + **`metaData.roomChannel`** (`'render' | 'affordances'`); separate **`messageId`** spaces; norms in [`AGENT.multiChannel.contract.md`](../../../../../lambda/ephemera/dataSource/AGENT.multiChannel.contract.md).
-2. **[Decided / contract]** **Fact ownership** (render vs affordances) and **coupled thread** deferral are **normative** in the contract; **`RoomUpdate`** merge / retirement still **TBD** (client path).
+2. **[Decided / contract]** **Fact ownership** (render vs affordances) and **coupled thread** deferral are **normative** in the contract; **server** migrates roster off **`displayProtocol: 'RoomUpdate'`** to affordance **`PerceptionMessage`** in **Phase B** (see **Phase B server (agreed norms)**). **Client** aggregation of **`RoomUpdate`** vs affordance rows is **Phase C** / follow-on.
 3. **[Phase B/C]** **Coupled** perception flows: full **PerceptionThread** state machine for paired delivery remains **deferred** unless product requests it.
 4. **[Phase B/C]** **Implement** server publishers, perception subscriptions/handlers, and client composition so the **sticky room header** reflects **both** channels without dropping updates.
 5. **[Phase B]** **Land** **`Objects Changed`** (or successor affordance delta) on the **affordances** cadence where product agrees, without forcing full room render unless summary derivation requires it.
@@ -55,11 +55,32 @@ Promoted norms live in **`AGENT.multiChannel.contract.md`**. Remaining rows are 
 | --- | --- |
 | **Wire protocol** | **[Resolved]** Both channels use **`PerceptionMessage`**; **`PerceptionRoomMetaData.roomChannel`** discriminates. |
 | **Correlation keys** | **[Resolved]** Separate **`messageId`** per channel; no shared render thread id for affordances. |
-| **Fact ownership** | **[Resolved]** See **Fact ownership (agreed)** in contract; **`RoomUpdate`** evolution **TBD**. |
+| **Fact ownership** | **[Resolved]** See **Fact ownership (agreed)** in contract. **Server:** migrate **`RoomUpdate`** roster refresh to **`PerceptionMessage`** + **`roomChannel: 'affordances'`**; retire or thin **`displayProtocol: 'RoomUpdate'`** in Phase B. **De-duplication:** room-render **`wmlContent`** must **not** repeat facts owned by affordances (see contract). |
 | **Uncoupled default** | **[Resolved]** Internal signals that publish **only** affordances (no render-channel **`PerceptionMessage`** from these kicks): **`mtw.ephemera.objects` `Objects Changed`** (Phase 2) and **`RoomUpdate`** bus triggers (character roster refresh). **`mtw.ephemera.state` `State Changed`** does **not** publish affordances; it participates **only** in the **render** path (passive render fan-out / room-render **`PerceptionMessage`**). |
 | **Coupled thread template** | **[Deferred]** No v1 state machine; optional pattern in contract only until product needs paired delivery. |
 | **Journeys** | **[Resolved]** No planned journey requires **strict** cross-channel coupling (the client must work with either channel alone). **Navigation** to a new room context **intends** both channels when practical; norms in [`AGENT.multiChannel.contract.md`](../../../../../lambda/ephemera/dataSource/AGENT.multiChannel.contract.md) **Navigation intent and user journeys (agreed)**. First-arrival presentation (affordances before render): **client** staging preferred; server does **not** by default withhold affordances for that reason. |
-| **Objects + perception** | **[Phase B]** **[`AGENT.objectHandling.plan.md`](../objects/AGENT.objectHandling.plan.md) Phase 2** attaches (subscribe **`mtw.ephemera.objects`**, affordance **`PublishMessage`**, etc.). |
+| **Objects + perception** | **[Resolved / Phase B execution]** **`mtw.ephemera.perception`** subscribes to **`mtw.ephemera.objects` `Objects Changed`** and emits affordance **`PublishMessage`**; see **Phase B server (agreed norms)** and **[`AGENT.objectHandling.plan.md`](../objects/AGENT.objectHandling.plan.md)** Phase 2. |
+
+---
+
+## Phase B server (agreed norms)
+
+Treat **Recommended order** lines **79-81** as **one slice** (publishers + **`Objects Changed`** wiring + unit tests).
+
+| Topic | Decision |
+| --- | --- |
+| **`RoomUpdate` migration (server)** | **(A)** Roster refresh moves to **`PerceptionMessage`** with **`metaData.roomChannel: 'affordances'`** (and **`messageId`** in the affordance namespace). Retire or thin **`displayProtocol: 'RoomUpdate'`** on the server in this slice. |
+| **WML overlap** | **De-duplicate:** room-render **`wmlContent`** must **not** carry facts owned by **room-affordances** (exits, characters present, objects, features). Affordance bodies carry those facts per contract. **Concrete composition recipe** (how **`ComponentRender`** / **`schemaToWML`** omits them): decide at implementation; document in code-area **`AGENT.md`** when landed (see **WML composition (recipe)** below). |
+| **`Objects Changed` targeting** | **Everyone in the target room:** use **`PublishMessage`** **`targets`** that resolve to **all characters in `ROOM#...`** (same room-target semantics as existing room-scoped delivery, e.g. **`targets: [roomId]`** through **`publishMessage`**). |
+| **`roomChannel` on new emits** | **Explicit render:** new server **`PublishMessage`** for the render channel sets **`metaData.roomChannel: 'render'`** (do not rely on omission for new code; **`undefined`** remains **legacy** semantics). |
+| **Subscription site** | Handle **`Objects Changed`** inside **`mtw.ephemera.perception`** (extend **`subscribedEvents`** / **`receiveEvents`** per DataSource pattern). |
+| **Unit tests (line 81)** | Assert **`roomChannel`** on sampled **`PublishMessage`s**; affordance **`messageId`** **not** equal to render thread **`messageId`**; **`Objects Changed`** produces an affordance **`PublishMessage`** with expected shape and **explicit** **`roomChannel: 'affordances'`**; cover **`publishMessage`** / orchestration helpers as needed. |
+
+### WML composition (recipe)
+
+**Decided:** De-duplicated channels per **Phase B server** table; affordance **`wmlContent`** is **full room WML** with **`ephemeraWire`** when **`Object`** / ephemera-only tags apply; render is **`ComponentRender`**-backed per contract.
+
+**Still to nail in implementation (not arbitrary):** the exact steps to produce **render** WML **without** exits / roster / objects / features---whether filtered **`StandardRoom`**, alternate export path, or post-process---depend on **`mtw-wml`** and **`ComponentRender`** capabilities. Prefer **`internalCache.BlueprintMerge`** (see [`internalCache/AGENT.blueprintMerge.plan.md`](../../internalCache/AGENT.blueprintMerge.plan.md)) for **affordance** structural room data once that cache exists. Record the chosen approach in **`lambda/ephemera/dataSource/perception/AGENT.md`** (or **`componentRender.AGENT.md`**) when Phase B ships, and add focused tests.
 
 ---
 
@@ -74,11 +95,11 @@ Pending work uses `[ ]`; completed work uses `[X]` (capital **X**). Mark each li
 - [X] Document **coupled thread** deferral in [`perception/AGENT.md`](../../../../../lambda/ephemera/dataSource/perception/AGENT.md) and contract (optional pattern only for v1).
 - [X] Add interface / **`PublishMessage`** type notes in **`mtw-interfaces`** (**`roomChannel`**, **`resolvedPerceptionRoomChannel`**) and lambda **`messageBus`** / dataSource **`AGENT.md`**.
 
-**Phase B --- server**
+**Phase B --- server** (one slice: **Phase B server (agreed norms)**; lines below ship together)
 
-- [ ] Adjust publishers (**`publishMessage`**, **`perceptionMessage`**, **`mtw.ephemera.perception` `receiveEvents`**) so **render** and **affordances** match the contract.
-- [ ] Wire **`Objects Changed`** / affordance path per object plan **Phase 2** once channel design is fixed.
-- [ ] Unit tests: perception orchestration, publish helpers, and any new guards (pattern from existing **`dataSource/perception/`** tests).
+- [ ] Adjust publishers (**`publishMessage`**, **`perceptionMessage`**, **`mtw.ephemera.perception` `receiveEvents`**) so **render** and **affordances** match the contract (**explicit `roomChannel: 'render'`**, migrate roster off **`RoomUpdate`**, **de-duplicate** render vs affordance WML per norms).
+- [ ] Wire **`Objects Changed`** via **`mtw.ephemera.perception`** subscription (object plan **Phase 2**); affordance **`PublishMessage`** to **all characters in the target room**.
+- [ ] Unit tests: **`roomChannel`** + **`messageId`** separation + **`Objects Changed`** affordance shape (see **Phase B server (agreed norms)**); perception orchestration and publish helpers (pattern from existing **`dataSource/perception/`** tests).
 
 **Phase C --- client**
 
@@ -136,6 +157,7 @@ npm test
 | [`AGENT.multiChannel.contract.md`](../../../../../lambda/ephemera/dataSource/AGENT.multiChannel.contract.md) | Durable contract (room channels + norms) |
 | [`perception/AGENT.md`](../../../../../lambda/ephemera/dataSource/perception/AGENT.md) | Perception DataSource steady-state |
 | [`objects/AGENT.objectHandling.plan.md`](../objects/AGENT.objectHandling.plan.md) | Objects DataSource and Phase 2 |
+| [`internalCache/AGENT.blueprintMerge.plan.md`](../../internalCache/AGENT.blueprintMerge.plan.md) | **Blueprint merge** cache: render-agnostic asset stack merge (affordance WML inputs) |
 | [`charcoal-client/src/components/Message/AGENT.md`](../../../../../charcoal-client/src/components/Message/AGENT.md) | Header UX intent |
 
 ---
@@ -148,6 +170,8 @@ npm test
 | Filename | **`multiChannel`** (not `mutliChannel`) for search and consistency. |
 | **State Changed vs affordances** | **`State Changed`** drives **render** only (no affordance-channel **`PublishMessage`**). |
 | **Journeys** | No strict coupling required; navigation **intends** both channels when practical; first-arrival staging **client-first** (see contract). |
+| **Phase B server** | **`RoomUpdate`** migrate to affordance **`PerceptionMessage`**; **de-duplicate** render WML; **`Objects Changed`** via **`mtw.ephemera.perception`** to full room; **explicit `render`**; tests per **Phase B server (agreed norms)**. |
+| **WML recipe** | **De-duplicate** normative; concrete **`ComponentRender`** / **`schemaToWML`** approach **TBD** at implementation; document when Phase B lands. |
 
 ---
 

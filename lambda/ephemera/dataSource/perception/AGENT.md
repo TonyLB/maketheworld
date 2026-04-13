@@ -18,6 +18,8 @@ Normative contract: [`AGENT.multiChannel.contract.md`](../AGENT.multiChannel.con
 
 **Journeys:** No planned journey requires strict cross-channel pairing; navigation **intends** both channels when practical. First-arrival staging (affordances before render) is a **client** composition concern by default, not server withholding of affordances.
 
+**Phase B (server):** Migrate **`RoomUpdate`** roster to affordance **`PerceptionMessage`**; **`mtw.ephemera.objects` `Objects Changed`** handled here (**subscribe** on this DataSource); **de-duplicate** render vs affordance WML per contract; **explicit `roomChannel`** on new emits. See [`AGENT.multiChannel.contract.md`](../AGENT.multiChannel.contract.md) **Phase B server migration** and [task plan **Phase B server (agreed norms)**](../../../taskPlanning/lambda/ephemera/dataSource/perception/AGENT.multiChannel.plan.md#phase-b-server-agreed-norms).
+
 **Coupled thread template:** Optional **hypothetical** paired delivery remains **deferred**; there is **no** normative **PerceptionThread** state machine for multi-channel in v1 unless product requests one; see **Coupled PerceptionThread template (deferral)** and **Coupled delivery (optional pattern)** in the contract.
 
 ---

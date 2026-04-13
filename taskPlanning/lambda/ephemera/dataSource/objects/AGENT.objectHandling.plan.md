@@ -100,13 +100,13 @@ This does **not** add automatic coupling between the two DataSources; it is **or
 ### Downstream (follow-on)
 
 - **`renderOrchestration`:** Subscribe to **`Objects Changed`** (or ingress) if object lists affect render keys or passive fan-out.
-- **`mtw.ephemera.perception`:** Correlate **Objects Changed** to delivery when product requires it.
+- **`mtw.ephemera.perception`:** **Agreed:** subscribe on **`mtw.ephemera.perception`** and emit affordance **`PerceptionMessage`** for **`Objects Changed`** (see [`AGENT.multiChannel.plan.md`](../../../taskPlanning/lambda/ephemera/dataSource/perception/AGENT.multiChannel.plan.md) **Phase B server (agreed norms)** and [`AGENT.multiChannel.contract.md`](../AGENT.multiChannel.contract.md) **Phase B server migration**).
 
 ---
 
 ## Deferred (not blocking phase 1)
 
-**Perception timing** (register thread + kick render vs **Objects Changed**-only thin **`PublishMessage`**) is a **larger design lift**. It does **not** need to be settled to land **schema, persistence, bus ingress, `mtw.ephemera.objects`, and tests**. Resolve it in a **later** pass when wiring **`mtw.ephemera.perception`** (or a dedicated follow-on task plan), then add **Decisions log** entries and **subscriptions** implied by that choice.
+**Perception wiring** for **`Objects Changed`** is **decided** for Phase 2: **`mtw.ephemera.perception`** subscription and affordance **`PublishMessage`** (see multi-channel plan **Phase B**). Remaining **implementation** detail (WML build helpers, tests) ships with that slice.
 
 ---
 
@@ -126,8 +126,8 @@ Pending work uses `[ ]`; completed work uses `[X]` (capital **X**). Mark each li
 
 **Phase 2 (perception and player-visible delivery---after phase 1):**
 
-- [ ] Resolve **perception timing** (see **Deferred** above); record in **Decisions log**
-- [ ] Wire **`mtw.ephemera.perception`** (and any other) **subscriptions** the decision requires
+- [X] Resolve **perception wiring** --- **`mtw.ephemera.perception`** subscribes to **`Objects Changed`** (norms in multi-channel plan **Phase B server**)
+- [ ] Wire **`mtw.ephemera.perception`** **`subscribedEvents`** / **`receiveEvents`** and affordance **`PublishMessage`** (targets: all characters in room per contract)
 - [ ] Add or enable tests (including **`describe.skip`** lifted per [`AGENT.passThrough.contract.planning.md`](../AGENT.passThrough.contract.planning.md) discipline, if applicable)
 
 ---
@@ -139,7 +139,7 @@ Pending work uses `[ ]`; completed work uses `[X]` (capital **X**). Mark each li
 | Task plan (executable) | Done |
 | Phase 1: schema + interfaces | Done ([`ephemeraMeta.ts`](../../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts)) |
 | Phase 1: DataSource + ingress + tests | Done ([`objects/`](../../../../../lambda/ephemera/dataSource/objects/), [`dataSource/AGENT.md`](../../../../../lambda/ephemera/dataSource/AGENT.md), [`objects/AGENT.md`](../../../../../lambda/ephemera/dataSource/objects/AGENT.md)) |
-| Phase 2: perception timing + subscriptions | Not started (deferred) |
+| Phase 2: perception wiring + subscriptions | Not started (decision recorded; implement with multi-channel Phase B) |
 
 ---
 
@@ -196,7 +196,7 @@ npm run test -- --watchAll=false
 | `objects` merge semantics | **Multiset:** no dedupe; **remove** = stable filter via **set** membership of **`remove`**; **add** = ordered append; **no** length cap in v1. |
 | Outbound header | **`Objects Changed`** (Title Case, past tense; matches **`State Changed`**). |
 | Order vs **`mtw.ephemera.state`** | **`objects` before `state`:** **`app.ts`** imports **`./dataSource/objects`** before **`./dataSource/state`**; callers emitting both for one room send **`Objects Change`** before **`State Change`**. Rationale: object changes may **drive** derived state (e.g. lighting), rarely the reverse. |
-| Perception | **Phase 2:** timing model and **`mtw.ephemera.perception`** wiring are **out of scope** for initial merge; **`Objects Changed`** may ship on the bus with **no** perception subscriber until follow-on. |
+| Perception | **Phase 2:** **`mtw.ephemera.perception`** subscribes to **`Objects Changed`** and emits affordance **`PerceptionMessage`** (see multi-channel plan **Phase B server**). Phase 1 shipped **without** that subscriber; Phase B adds it. |
 
 ---
 
