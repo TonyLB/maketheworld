@@ -95,6 +95,7 @@ export const mergePersistMetaRoomObjects = async (
     })
 
     internalCache.ComponentEphemeraMeta.invalidate(args.roomId)
+    internalCache.ComponentStackMerge.invalidate(args.roomId)
 
     if (persistedSnapshot) {
         return { ok: true, persisted: true, ...persistedSnapshot }

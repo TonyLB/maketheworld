@@ -195,6 +195,13 @@ export class DeferredCacheGeneral <K, T>{
         }
     }
 
+    invalidateWhere(predicate: (key: K) => boolean): void {
+        const keysToInvalidate = this._cache.filter(([key]) => predicate(key)).map(([key]) => key)
+        keysToInvalidate.forEach((key) => {
+            this.invalidate(key)
+        })
+    }
+
     set(invalidationCounter: number, key: K, value: T): boolean {
         let cachedKey = this._find(key)
         if (!cachedKey) {

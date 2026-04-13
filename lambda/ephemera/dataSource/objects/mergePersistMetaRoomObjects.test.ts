@@ -11,11 +11,18 @@ jest.mock('../../internalCache', () => ({
             invalidate: jest.fn(),
             get: jest.fn(),
         },
+        ComponentStackMerge: {
+            invalidate: jest.fn(),
+        },
     },
 }))
 
 const invalidateMock = internalCache.ComponentEphemeraMeta.invalidate as jest.MockedFunction<
     typeof internalCache.ComponentEphemeraMeta.invalidate
+>
+
+const stackMergeInvalidateMock = internalCache.ComponentStackMerge.invalidate as jest.MockedFunction<
+    typeof internalCache.ComponentStackMerge.invalidate
 >
 
 const obj = (suffix: string, shortName: string): EphemeraMetaRoomObject => ({
@@ -78,6 +85,7 @@ describe('mergePersistMetaRoomObjects', () => {
 
     beforeEach(() => {
         invalidateMock.mockClear()
+        stackMergeInvalidateMock.mockClear()
     })
 
     it('returns META_ROOM_MISSING when getMetaRoom returns undefined', async () => {
@@ -91,6 +99,7 @@ describe('mergePersistMetaRoomObjects', () => {
             errorMessage: 'Meta::Room not found for ROOM#test',
         })
         expect(invalidateMock).not.toHaveBeenCalled()
+        expect(stackMergeInvalidateMock).not.toHaveBeenCalled()
     })
 
     it('merges add/remove onto stored objects and persists', async () => {
@@ -116,6 +125,7 @@ describe('mergePersistMetaRoomObjects', () => {
         expect(call.updateKeys).toEqual(['objects'])
         expect(call.priorFetch).toBe(meta)
         expect(invalidateMock).toHaveBeenCalledWith(roomId)
+        expect(stackMergeInvalidateMock).toHaveBeenCalledWith(roomId)
     })
 
     it('treats missing objects as empty when merging', async () => {
@@ -150,5 +160,6 @@ describe('mergePersistMetaRoomObjects', () => {
 
         expect(result).toEqual({ ok: true, persisted: false })
         expect(invalidateMock).toHaveBeenCalledWith(roomId)
+        expect(stackMergeInvalidateMock).toHaveBeenCalledWith(roomId)
     })
 })

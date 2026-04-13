@@ -1,4 +1,5 @@
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import type { EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import internalCache from '../internalCache'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
@@ -146,5 +147,50 @@ describe('ComponentStackMerge cache handler', () => {
         const wml = schemaToWML([merged.schema])
         expect(wml).toContain('<Object uuid=(foo)')
         expect(wml).toContain('A lamp')
+    })
+
+    it('invalidate(roomId) refetches that room only', async () => {
+        jest.spyOn(internalCache.Global, 'get').mockResolvedValue(['Base'])
+        jest.spyOn(internalCache.CharacterMeta, 'get').mockResolvedValue({
+            EphemeraId: 'CHARACTER#TESS',
+            Name: 'Tess',
+            assets: [],
+            RoomId: 'ROOM#VORTEX',
+            RoomStack: [],
+            HomeId: 'ROOM#VORTEX',
+            Pronouns: 'she/her',
+        })
+        const roomA = 'ROOM#InvA' as const
+        const roomB = 'ROOM#InvB' as const
+        const makeRoom = (universalKey: EphemeraRoomId, shortName: string) =>
+            new StandardRoom({
+                universalKey,
+                tag: 'Room',
+                shortName,
+                exits: [],
+                examples: [],
+            })
+        const getAcrossAssets = jest.spyOn(internalCache.ComponentAssetMeta, 'getAcrossAssets').mockImplementation(
+            async (ephemeraId: ComponentUUID) => ({
+                [`ASSET#Base`]: makeRoom(
+                    ephemeraId as EphemeraRoomId,
+                    ephemeraId === roomA ? 'Alpha' : 'Beta'
+                ),
+            })
+        )
+        jest.spyOn(internalCache.RoomCharacterList, 'get').mockResolvedValue([])
+
+        const char = 'CHARACTER#TESS' as const
+        await internalCache.ComponentStackMerge.get(char, roomA)
+        await internalCache.ComponentStackMerge.get(char, roomB)
+        const callsAfterWarm = getAcrossAssets.mock.calls.length
+
+        internalCache.ComponentStackMerge.invalidate(roomA)
+
+        await internalCache.ComponentStackMerge.get(char, roomA)
+        expect(getAcrossAssets.mock.calls.length).toBe(callsAfterWarm + 1)
+
+        await internalCache.ComponentStackMerge.get(char, roomB)
+        expect(getAcrossAssets.mock.calls.length).toBe(callsAfterWarm + 1)
     })
 })

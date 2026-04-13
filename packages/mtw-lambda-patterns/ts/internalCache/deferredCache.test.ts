@@ -132,4 +132,19 @@ describe('DeferredCache', () => {
         expect(callbackMock).toHaveBeenCalledWith('testOne', 'test')
         expect(output).toEqual('test')
     })
+
+    it('should invalidate only keys matching invalidateWhere predicate', async () => {
+        testCache.add({
+            promiseFactory: jest.fn().mockResolvedValue({
+                alpha: 'a',
+                beta: 'b',
+            }),
+            requiredKeys: ['alpha', 'beta'],
+            transform: (output: Record<string, string>) => output,
+        })
+        await Promise.all([testCache.get('alpha'), testCache.get('beta')])
+        testCache.invalidateWhere((key) => key === 'alpha')
+        expect(testCache.isCached('alpha')).toBe(false)
+        expect(testCache.isCached('beta')).toBe(true)
+    })
 })

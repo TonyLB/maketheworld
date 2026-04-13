@@ -47,6 +47,11 @@ export function generateComponentStackMergeCacheKey(
     return `${CharacterId}::${EphemeraRoomId}`
 }
 
+/** True if `cacheKey` is a stack-merge key for `roomId` (suffix match; character id must not contain `::`). */
+export function componentStackMergeCacheKeyForRoom(cacheKey: string, roomId: EphemeraRoomId): boolean {
+    return cacheKey.endsWith(`::${roomId}`)
+}
+
 export function mergeRoomExitsToJSON(assetData: StandardRoom[]) {
     const allExitFacets = assetData.map((asset) => asset.exits.items || []).flat(1)
     return new ExitFacetList(allExitFacets).toJSON()
@@ -113,6 +118,16 @@ export class ComponentStackMergeData {
     clear() {
         this._Cache.clear()
         this._Store = {}
+    }
+
+    invalidate(roomId: EphemeraRoomId): void {
+        const matches = (key: string) => componentStackMergeCacheKeyForRoom(key, roomId)
+        this._Cache.invalidateWhere(matches)
+        for (const key of Object.keys(this._Store)) {
+            if (matches(key)) {
+                delete this._Store[key]
+            }
+        }
     }
 
     async _getPromiseFactory(
