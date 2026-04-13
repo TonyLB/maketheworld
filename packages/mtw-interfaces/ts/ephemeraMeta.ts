@@ -1,5 +1,12 @@
 import { checkAll, checkTypes } from './utils'
-import { isEphemeraRoomId, type EphemeraRoomId, isEphemeraCharacterId, type EphemeraCharacterId } from './baseClasses'
+import {
+    isEphemeraRoomId,
+    type EphemeraRoomId,
+    isEphemeraCharacterId,
+    type EphemeraCharacterId,
+    isEphemeraObjectId,
+    type EphemeraObjectId,
+} from './baseClasses'
 
 //
 // Shared types for Ephemera-table metadata records (ephemeraDB).
@@ -57,6 +64,21 @@ export type EphemeraRoomActiveCharacter = {
     sessions?: string[];
 }
 
+/** Runtime object row on Meta::Room; uuid is OBJECT#... (ephemera wire / WML StandardRoom.objects). */
+export type EphemeraMetaRoomObject = {
+    uuid: EphemeraObjectId;
+    shortName: string;
+}
+
+export const isEphemeraMetaRoomObject = (entry: unknown): entry is EphemeraMetaRoomObject => (
+    typeof entry === 'object'
+    && entry !== null
+    && 'uuid' in entry
+    && 'shortName' in entry
+    && typeof (entry as EphemeraMetaRoomObject).shortName === 'string'
+    && isEphemeraObjectId((entry as EphemeraMetaRoomObject).uuid)
+)
+
 export type EphemeraMetaRoom = {
     EphemeraId: EphemeraRoomId;
     DataCategory: 'Meta::Room';
@@ -74,9 +96,9 @@ export type EphemeraMetaRoom = {
     currentCacheId?: EphemeraCacheId;
 
     //
-    // v1 runtime object handles (mtw.ephemera.objects on this Meta::Room row).
+    // v1 runtime objects (mtw.ephemera.objects on this Meta::Room row).
     //
-    objects?: string[];
+    objects?: EphemeraMetaRoomObject[];
 }
 
 export const isEphemeraMetaRoom = (value: any): value is EphemeraMetaRoom => {
@@ -152,7 +174,7 @@ export const isEphemeraMetaRoom = (value: any): value is EphemeraMetaRoom => {
         if (!Array.isArray(objects)) {
             return false
         }
-        if (!objects.every((entry: any) => typeof entry === 'string')) {
+        if (!objects.every((entry: unknown) => isEphemeraMetaRoomObject(entry))) {
             return false
         }
     }

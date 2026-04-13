@@ -2,6 +2,9 @@
  * Payload types and type guards for API-triggered internal events (dataSourceKey: 'api.ephemera').
  * Used by apiEphemera.ts send helpers and future DataSource receiveEvents. In-process only; no EventBridge.
  */
+import { isEphemeraObjectId, type EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraMetaRoomObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { isEphemeraMetaRoomObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraCacheComponentId, EphemeraCacheMarkState } from './renderCache/baseClasses'
 import type { PutCacheRecordInput } from './renderCache/putCacheRecord'
 
@@ -33,11 +36,12 @@ export type StateChangeCommand = {
 /**
  * Runtime object list patch for a room `Meta::Room`; paired with header `Objects Change` on api.ephemera.
  * v1: room `componentId` only; internal callers only (no `requestId` / ReturnValue).
+ * `add` entries are full rows (`OBJECT#...` + `shortName`); `remove` lists object ids to drop.
  */
 export type ObjectsChangeCommand = {
     componentId: EphemeraCacheComponentId;
-    add: string[];
-    remove: string[];
+    add: EphemeraMetaRoomObject[];
+    remove: EphemeraObjectId[];
 }
 
 const isMarkStateShape = (value: unknown): value is EphemeraCacheMarkState => {
@@ -72,10 +76,10 @@ export const isObjectsChangeCommand = (value: unknown): value is ObjectsChangeCo
     if (typeof v.componentId !== 'string') {
         return false
     }
-    if (!Array.isArray(v.add) || !v.add.every((x) => typeof x === 'string')) {
+    if (!Array.isArray(v.add) || !v.add.every((x) => isEphemeraMetaRoomObject(x))) {
         return false
     }
-    if (!Array.isArray(v.remove) || !v.remove.every((x) => typeof x === 'string')) {
+    if (!Array.isArray(v.remove) || !v.remove.every((x) => typeof x === 'string' && isEphemeraObjectId(x))) {
         return false
     }
     return true

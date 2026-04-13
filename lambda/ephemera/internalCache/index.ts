@@ -91,7 +91,8 @@ export class InternalCache {
             this.ComponentAssetMeta,
             this.RoomCharacterList,
             this.Global,
-            this.CharacterMeta
+            this.CharacterMeta,
+            (roomId) => this.ComponentEphemeraMeta.get(roomId)
         )
         this.CharacterPossibleMaps = new CacheCharacterPossibleMapsData(this.CharacterMeta, this.Graph)
         this._invalidateAssetCallback = (EphemeraId) => {

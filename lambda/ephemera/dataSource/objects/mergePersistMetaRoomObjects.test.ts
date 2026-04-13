@@ -1,7 +1,7 @@
-import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraMetaRoom, EphemeraMetaRoomObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { MergePersistMetaRoomObjectsOptimisticUpdateParams } from './mergePersistMetaRoomObjects'
-import { mergeMetaRoomObjectsList, mergePersistMetaRoomObjects } from './mergePersistMetaRoomObjects'
+import { mergeMetaRoomObjects, mergePersistMetaRoomObjects } from './mergePersistMetaRoomObjects'
 import internalCache from '../../internalCache'
 
 jest.mock('../../internalCache', () => ({
@@ -18,6 +18,11 @@ const invalidateMock = internalCache.ComponentEphemeraMeta.invalidate as jest.Mo
     typeof internalCache.ComponentEphemeraMeta.invalidate
 >
 
+const obj = (suffix: string, shortName: string): EphemeraMetaRoomObject => ({
+    uuid: `OBJECT#${suffix}` as EphemeraObjectId,
+    shortName,
+})
+
 /** Simulates a successful Dynamo write: runs reducer, invokes successCallback with prior/output. */
 const mockOptimisticUpdatePersisting = (meta: EphemeraMetaRoom, roomId: EphemeraRoomId) => (
     jest.fn().mockImplementation(async (params: MergePersistMetaRoomObjectsOptimisticUpdateParams) => {
@@ -33,21 +38,32 @@ const mockOptimisticUpdatePersisting = (meta: EphemeraMetaRoom, roomId: Ephemera
     })
 )
 
-describe('mergeMetaRoomObjectsList', () => {
+describe('mergeMetaRoomObjects', () => {
     it('treats missing base as empty', () => {
-        expect(mergeMetaRoomObjectsList(undefined, ['a'], [])).toEqual(['a'])
+        expect(mergeMetaRoomObjects(undefined, [obj('a', 'A')], [])).toEqual([obj('a', 'A')])
     })
 
-    it('removes all values in remove set with stable order', () => {
-        expect(mergeMetaRoomObjectsList(['x', 'y', 'x'], [], ['x'])).toEqual(['y'])
+    it('removes every entry whose uuid is in remove', () => {
+        const base = [obj('x', 'X'), obj('y', 'Y'), obj('x', 'X2')]
+        expect(mergeMetaRoomObjects(base, [], ['OBJECT#x' as EphemeraObjectId])).toEqual([obj('y', 'Y')])
     })
 
-    it('appends add after filter', () => {
-        expect(mergeMetaRoomObjectsList(['a', 'b'], ['c', 'd'], ['b'])).toEqual(['a', 'c', 'd'])
+    it('appends adds after remove, preserving non-removed order', () => {
+        const base = [obj('a', 'A'), obj('b', 'B')]
+        expect(mergeMetaRoomObjects(base, [obj('c', 'C'), obj('d', 'D')], ['OBJECT#b' as EphemeraObjectId])).toEqual([
+            obj('a', 'A'),
+            obj('c', 'C'),
+            obj('d', 'D'),
+        ])
     })
 
-    it('allows duplicates in multiset', () => {
-        expect(mergeMetaRoomObjectsList(['a'], ['a', 'a'], [])).toEqual(['a', 'a', 'a'])
+    it('upserts by uuid and moves updated entry to end', () => {
+        const base = [obj('a', 'old'), obj('b', 'B')]
+        expect(mergeMetaRoomObjects(base, [obj('a', 'new')], [])).toEqual([obj('b', 'B'), obj('a', 'new')])
+    })
+
+    it('last add wins when same uuid appears twice in add', () => {
+        expect(mergeMetaRoomObjects(undefined, [obj('a', 'first'), obj('a', 'second')], [])).toEqual([obj('a', 'second')])
     })
 })
 
@@ -66,7 +82,7 @@ describe('mergePersistMetaRoomObjects', () => {
 
     it('returns META_ROOM_MISSING when getMetaRoom returns undefined', async () => {
         const result = await mergePersistMetaRoomObjects(
-            { roomId, add: ['o1'], remove: [] },
+            { roomId, add: [obj('o1', 'O1')], remove: [] },
             { getMetaRoom: async () => undefined }
         )
         expect(result).toEqual({
@@ -78,11 +94,13 @@ describe('mergePersistMetaRoomObjects', () => {
     })
 
     it('merges add/remove onto stored objects and persists', async () => {
-        const meta = baseMeta({ objects: ['a', 'b', 'a'] })
+        const meta = baseMeta({
+            objects: [obj('a', 'A'), obj('b', 'B'), obj('a', 'A2')],
+        })
         const optimisticUpdate = mockOptimisticUpdatePersisting(meta, roomId)
 
         const result = await mergePersistMetaRoomObjects(
-            { roomId, add: ['c'], remove: ['a'] },
+            { roomId, add: [obj('c', 'C')], remove: ['OBJECT#a' as EphemeraObjectId] },
             { getMetaRoom: async () => meta, optimisticUpdate }
         )
 
@@ -90,8 +108,8 @@ describe('mergePersistMetaRoomObjects', () => {
         if (!result.ok || !result.persisted) {
             throw new Error('expected ok with persisted')
         }
-        expect(result.priorObjects).toEqual(['a', 'b', 'a'])
-        expect(result.newObjects).toEqual(['b', 'c'])
+        expect(result.priorObjects).toEqual([obj('a', 'A'), obj('b', 'B'), obj('a', 'A2')])
+        expect(result.newObjects).toEqual([obj('b', 'B'), obj('c', 'C')])
         expect(optimisticUpdate).toHaveBeenCalledTimes(1)
         const call = optimisticUpdate.mock.calls[0][0]
         expect(call.Key).toEqual({ EphemeraId: roomId, DataCategory: 'Meta::Room' })
@@ -105,7 +123,7 @@ describe('mergePersistMetaRoomObjects', () => {
         const optimisticUpdate = mockOptimisticUpdatePersisting(meta, roomId)
 
         const result = await mergePersistMetaRoomObjects(
-            { roomId, add: ['x'], remove: [] },
+            { roomId, add: [obj('x', 'X')], remove: [] },
             { getMetaRoom: async () => meta, optimisticUpdate }
         )
 
@@ -114,11 +132,11 @@ describe('mergePersistMetaRoomObjects', () => {
             throw new Error('expected ok with persisted')
         }
         expect(result.priorObjects).toEqual([])
-        expect(result.newObjects).toEqual(['x'])
+        expect(result.newObjects).toEqual([obj('x', 'X')])
     })
 
     it('returns persisted false when optimistic update does not invoke successCallback', async () => {
-        const meta = baseMeta({ objects: ['z'] })
+        const meta = baseMeta({ objects: [obj('z', 'Z')] })
         const optimisticUpdate = jest.fn().mockResolvedValue({
             EphemeraId: roomId,
             DataCategory: 'Meta::Room',
@@ -126,7 +144,7 @@ describe('mergePersistMetaRoomObjects', () => {
         })
 
         const result = await mergePersistMetaRoomObjects(
-            { roomId, add: ['y'], remove: [] },
+            { roomId, add: [obj('y', 'Y')], remove: [] },
             { getMetaRoom: async () => meta, optimisticUpdate }
         )
 

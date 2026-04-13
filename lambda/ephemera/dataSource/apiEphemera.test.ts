@@ -124,8 +124,11 @@ describe('apiEphemera', () => {
         const { sent, bus } = makeBus()
         sendObjectsChange(bus, 'ROOM#obj', {
             componentId: 'ROOM#obj',
-            add: ['h1', 'h2'],
-            remove: ['h0'],
+            add: [
+                { uuid: 'OBJECT#h1', shortName: 'First' },
+                { uuid: 'OBJECT#h2', shortName: 'Second' },
+            ],
+            remove: ['OBJECT#h0'],
         })
 
         expect(sent).toHaveLength(1)
@@ -137,8 +140,11 @@ describe('apiEphemera', () => {
         const content = await msg.getContent()
         expect(content).toEqual({
             componentId: 'ROOM#obj',
-            add: ['h1', 'h2'],
-            remove: ['h0'],
+            add: [
+                { uuid: 'OBJECT#h1', shortName: 'First' },
+                { uuid: 'OBJECT#h2', shortName: 'Second' },
+            ],
+            remove: ['OBJECT#h0'],
         })
     })
 

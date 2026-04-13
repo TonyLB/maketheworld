@@ -2,7 +2,7 @@
  * api.ephemera: internal API stream for the ephemera lambda (parallel to api.wml / api.assets).
  * Header/envelope guards and typed messageBus send helpers. Not emitted from EventBridge.
  * Includes cache commands, State Change (`componentId` + `markState`), and Objects Change
- * (`componentId` + `add` / `remove`; see `localApiEvents.ts`).
+ * (`componentId` + structured `add` / `remove`; see `ObjectsChangeCommand` in `localApiEvents.ts`).
  */
 import {
     StreamingEventHeader,
@@ -166,7 +166,8 @@ export function sendStateChange(bus: Bus, streamKey: string, content: StateChang
 }
 
 /**
- * Post **Objects Change** to the internal bus (`componentId` + `add` / `remove`). No ReturnValue for v1.
+ * Post **Objects Change** to the internal bus: `add` is `{ uuid: OBJECT#..., shortName }[]`,
+ * `remove` is `OBJECT#...` ids. No ReturnValue for v1.
  */
 export function sendObjectsChange(bus: Bus, streamKey: string, content: ObjectsChangeCommand): void {
     const timestamp = Date.now()

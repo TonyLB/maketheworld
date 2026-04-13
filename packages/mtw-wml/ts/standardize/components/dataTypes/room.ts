@@ -24,7 +24,7 @@ export type StandardRoomData = {
     examples?: ReferenceListData;
     guidance?: ReferenceListData;
     characters?: ReferenceListData;
-    /** Ephemera wire: runtime objects (OBJECT# handle + ShortName label); project those handles for Meta::Room.objects. */
+    /** Ephemera wire: runtime objects (OBJECT# + ShortName); same JSON shape as ephemera Meta::Room.objects. */
     objects?: StandardRoomObjectData[];
     /** Ephemera wire: resolved DisplayName / Summary / Description from `<Render>`. */
     render?: StandardRoomRenderData;

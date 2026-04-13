@@ -45,7 +45,7 @@ Side-effect **`import './dataSource/...'`** from [`../app.ts`](../app.ts) regist
 | **`mtw.ephemera.renderOrchestration`** | [`renderOrchestration/`](renderOrchestration/) | **`findRender`**, generation, six outbound types --- [`renderOrchestration/AGENT.md`](renderOrchestration/AGENT.md) |
 | **`mtw.ephemera.perception`** | [`perception/`](perception/) | Audience fan-in, **`PublishMessage`** --- [`perception/AGENT.md`](perception/AGENT.md) |
 | **`mtw.ephemera.state`** | [`state/`](state/) | **`Meta::Room.state`** marks merge, **`State Changed`** --- [`state/AGENT.md`](state/AGENT.md) |
-| **`mtw.ephemera.objects`** | [`objects/`](objects/) | **`Meta::Room.objects`** merge, **`Objects Changed`** --- [`objects/AGENT.md`](objects/AGENT.md); executable history: [`taskPlanning/.../objects/AGENT.objectHandling.plan.md`](../../../taskPlanning/lambda/ephemera/dataSource/objects/AGENT.objectHandling.plan.md) |
+| **`mtw.ephemera.objects`** | [`objects/`](objects/) | **`Meta::Room.objects`** (structured **`uuid` + `shortName`**) merge, **`Objects Changed`** --- [`objects/AGENT.md`](objects/AGENT.md); executable history: [`taskPlanning/.../objects/AGENT.objectHandling.plan.md`](../../../taskPlanning/lambda/ephemera/dataSource/objects/AGENT.objectHandling.plan.md) |
 
 **Virtual / cross-cutting:** **`api.ephemera`** is not a `DataSource` class but the **`dataSourceKey`** for internal command envelopes consumed by multiple subscribers above.
 

@@ -11,6 +11,7 @@ import {
     EphemeraRoomId,
     isEphemeraCharacterId,
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { RoomCharacterListItem } from './baseClasses'
 import CacheCharacterMetaData, { CharacterMetaItem } from './characterMeta'
 import { AssetKey } from '@tonylb/mtw-utilities/ts/types'
@@ -82,6 +83,7 @@ export class ComponentStackMergeData {
     _roomCharacterList: (roomId: EphemeraRoomId) => Promise<RoomCharacterListItem[]>
     _getAssets: () => Promise<string[]>
     _characterMeta: (characterId: EphemeraCharacterId) => Promise<CharacterMetaItem>
+    _getMetaRoom: (roomId: EphemeraRoomId) => Promise<EphemeraMetaRoom | undefined>
     _Cache: DeferredCache<StandardForm>
     _Store: Record<string, StandardForm> = {}
 
@@ -89,12 +91,14 @@ export class ComponentStackMergeData {
         componentAssetMeta: ComponentAssetMetaData,
         roomCharacterList: CacheRoomCharacterListsData,
         globalCache: CacheGlobalData,
-        characterMeta: CacheCharacterMetaData
+        characterMeta: CacheCharacterMetaData,
+        getMetaRoom: (roomId: EphemeraRoomId) => Promise<EphemeraMetaRoom | undefined>
     ) {
         this._componentAssetMeta = (EphemeraId, assetList) => componentAssetMeta.getAcrossAssets(EphemeraId, assetList)
         this._roomCharacterList = (RoomId) => roomCharacterList.get(RoomId)
         this._getAssets = async () => (await globalCache.get('assets')) || []
         this._characterMeta = (characterId) => characterMeta.get(characterId)
+        this._getMetaRoom = getMetaRoom
         this._Cache = new DeferredCache<StandardForm>({
             callback: (key, description) => {
                 this._Store[key] = description
@@ -128,7 +132,10 @@ export class ComponentStackMergeData {
 
         const assetData = allAssets.map((assetId) => (appearancesByAsset[assetId] ? [appearancesByAsset[assetId]] : [])).flat(1) as StandardRoom[]
 
-        const roomCharacterList = await this._roomCharacterList(EphemeraRoomId)
+        const [roomCharacterList, meta] = await Promise.all([
+            this._roomCharacterList(EphemeraRoomId),
+            this._getMetaRoom(EphemeraRoomId),
+        ])
         const exits = mergeRoomExitsToJSON(assetData)
         const shortNameLiteral = mergeRoomShortNameLiteral(assetData)
 
@@ -138,15 +145,23 @@ export class ComponentStackMergeData {
             ...(exits.length ? { exits } : {}),
             characters: roomCharacterList.map((char) => char.EphemeraId),
             shortName: shortNameLiteral?.toJSON(),
+            ...(meta?.objects?.length
+                ? {
+                    objects: meta.objects.map((o) => ({ uuid: o.uuid, shortName: o.shortName })),
+                }
+                : {}),
         }
 
         const characterComponents = roomCharacterListToStandardCharacterData(roomCharacterList)
 
-        return new StandardForm([
-            { tag: 'Asset', universalKey: 'ASSET#render', key: 'render' },
-            roomRow,
-            ...characterComponents,
-        ])
+        return new StandardForm(
+            [
+                { tag: 'Asset', universalKey: 'ASSET#render', key: 'render' },
+                roomRow,
+                ...characterComponents,
+            ],
+            { standardizeMode: 'ephemeraWire' }
+        )
     }
 
     async get(CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraRoomId: EphemeraRoomId): Promise<StandardForm> {

@@ -1,22 +1,32 @@
-import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraMetaRoom, EphemeraMetaRoomObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import internalCache from '../../internalCache'
 
 /**
- * Multiset patch: remove all occurrences whose value is in `remove` (stable order), then append `add` in order.
+ * Merge runtime objects on Meta::Room:
+ * 1. Remove every entry whose uuid is in `remove`.
+ * 2. For each entry in `add` (in order), strip existing rows with the same uuid, then append.
  * Missing `base` is treated as empty.
  */
-export const mergeMetaRoomObjectsList = (base: string[] | undefined, add: string[], remove: string[]): string[] => {
+export const mergeMetaRoomObjects = (
+    base: EphemeraMetaRoomObject[] | undefined,
+    add: EphemeraMetaRoomObject[],
+    remove: EphemeraObjectId[]
+): EphemeraMetaRoomObject[] => {
     const removeSet = new Set(remove)
-    const filtered = (base ?? []).filter((x) => !removeSet.has(x))
-    return [...filtered, ...add]
+    let working = (base ?? []).filter((x) => !removeSet.has(x.uuid))
+    for (const entry of add) {
+        working = working.filter((x) => x.uuid !== entry.uuid)
+        working = [...working, entry]
+    }
+    return working
 }
 
 export type MergePersistMetaRoomObjectsArgs = {
     roomId: EphemeraRoomId;
-    add: string[];
-    remove: string[];
+    add: EphemeraMetaRoomObject[];
+    remove: EphemeraObjectId[];
 }
 
 export type MergePersistMetaRoomObjectsOptimisticUpdateParams = {
@@ -33,7 +43,7 @@ export type MergePersistMetaRoomObjectsDependencies = {
 }
 
 export type MergePersistMetaRoomObjectsResult =
-    | { ok: true; persisted: true; priorObjects: string[]; newObjects: string[] }
+    | { ok: true; persisted: true; priorObjects: EphemeraMetaRoomObject[]; newObjects: EphemeraMetaRoomObject[] }
     | { ok: true; persisted: false }
     | { ok: false; errorCode: 'META_ROOM_MISSING'; errorMessage: string }
 
@@ -41,7 +51,9 @@ const defaultGetMetaRoom = async (roomId: EphemeraRoomId): Promise<EphemeraMetaR
     internalCache.ComponentEphemeraMeta.get(roomId)
 )
 
-const snapshotObjects = (meta: Partial<EphemeraMetaRoom> | undefined): string[] => [...(meta?.objects ?? [])]
+const snapshotObjects = (meta: Partial<EphemeraMetaRoom> | undefined): EphemeraMetaRoomObject[] => (
+    (meta?.objects ?? []).map(({ uuid, shortName }) => ({ uuid, shortName }))
+)
 
 /**
  * Load `Meta::Room`, merge `add` / `remove` into `objects` via `optimisticUpdate` (`updateKeys: ['objects']`).
@@ -65,14 +77,14 @@ export const mergePersistMetaRoomObjects = async (
         }
     }
 
-    let persistedSnapshot: { priorObjects: string[]; newObjects: string[] } | undefined
+    let persistedSnapshot: { priorObjects: EphemeraMetaRoomObject[]; newObjects: EphemeraMetaRoomObject[] } | undefined
 
     await optimisticUpdate({
         Key: { EphemeraId: args.roomId, DataCategory: 'Meta::Room' },
         updateKeys: ['objects'],
         priorFetch: meta,
         updateReducer: (draft) => {
-            draft.objects = mergeMetaRoomObjectsList(draft.objects, args.add, args.remove)
+            draft.objects = mergeMetaRoomObjects(draft.objects, args.add, args.remove)
         },
         successCallback: (output, prior) => {
             persistedSnapshot = {

@@ -1,3 +1,5 @@
+import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import internalCache from '../internalCache'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
@@ -8,11 +10,10 @@ describe('ComponentStackMerge cache handler', () => {
         jest.clearAllMocks()
         jest.resetAllMocks()
         internalCache.clear()
+        jest.spyOn(internalCache.ComponentEphemeraMeta, 'get').mockResolvedValue(undefined)
     })
 
-    it('matches ComponentRender structural room WML when there is no render facet (no cache, no examples)', async () => {
-        jest.spyOn(internalCache.RenderCache, 'get').mockResolvedValue([])
-        jest.spyOn(internalCache.Examples, 'get').mockResolvedValue({})
+    it('builds structural room WML from assets and roster (no Meta::Room.objects)', async () => {
         jest.spyOn(internalCache.Global, 'get').mockResolvedValue(['Base'])
         jest.spyOn(internalCache.CharacterMeta, 'get').mockResolvedValue({
             EphemeraId: 'CHARACTER#TESS',
@@ -40,9 +41,7 @@ describe('ComponentStackMerge cache handler', () => {
         const roomId = 'ROOM#ParityOne' as const
 
         const merged = await internalCache.ComponentStackMerge.get(characterId, roomId)
-        const rendered = await internalCache.ComponentRender.get(characterId, roomId)
 
-        expect(schemaToWML([merged.schema])).toEqual(schemaToWML([rendered.schema]))
         expect(schemaToWML([merged.schema])).toEqual(
             deIndentWML(`
             <Asset uuid=(render)>
@@ -56,9 +55,7 @@ describe('ComponentStackMerge cache handler', () => {
         )
     })
 
-    it('matches ComponentRender when merging exits and shortName across two assets', async () => {
-        jest.spyOn(internalCache.RenderCache, 'get').mockResolvedValue([])
-        jest.spyOn(internalCache.Examples, 'get').mockResolvedValue({})
+    it('merges exits and shortName across two assets', async () => {
         jest.spyOn(internalCache.Global, 'get').mockResolvedValue(['Base'])
         jest.spyOn(internalCache.CharacterMeta, 'get').mockResolvedValue({
             EphemeraId: 'CHARACTER#TESS',
@@ -101,8 +98,53 @@ describe('ComponentStackMerge cache handler', () => {
         const roomId = 'ROOM#MergeTwo' as const
 
         const merged = await internalCache.ComponentStackMerge.get(characterId, roomId)
-        const rendered = await internalCache.ComponentRender.get(characterId, roomId)
 
-        expect(schemaToWML([merged.schema])).toEqual(schemaToWML([rendered.schema]))
+        expect(schemaToWML([merged.schema])).toEqual(
+            deIndentWML(`
+            <Asset uuid=(render)>
+                <Room uuid=(MergeTwo) ref={0}>
+                    <ShortName>NorthWingAnnex</ShortName>
+                    <Exit to=(ROOM#DestNorth)>North door</Exit>
+                    <Exit to=(ROOM#DestEast)>East stair</Exit>
+                </Room>
+            </Asset>
+        `)
+        )
+    })
+
+    it('includes Meta::Room.objects on the merged room', async () => {
+        jest.spyOn(internalCache.Global, 'get').mockResolvedValue(['Base'])
+        jest.spyOn(internalCache.CharacterMeta, 'get').mockResolvedValue({
+            EphemeraId: 'CHARACTER#TESS',
+            Name: 'Tess',
+            assets: [],
+            RoomId: 'ROOM#VORTEX',
+            RoomStack: [],
+            HomeId: 'ROOM#VORTEX',
+            Pronouns: 'she/her',
+        })
+        jest.spyOn(internalCache.ComponentAssetMeta, 'getAcrossAssets').mockResolvedValue({
+            [`ASSET#Base`]: new StandardRoom({
+                universalKey: 'ROOM#ObjRoom',
+                tag: 'Room',
+                shortName: 'Hall',
+                exits: [],
+                examples: [],
+            }),
+        })
+        jest.spyOn(internalCache.RoomCharacterList, 'get').mockResolvedValue([])
+
+        const metaRoom: EphemeraMetaRoom = {
+            EphemeraId: 'ROOM#ObjRoom' as EphemeraRoomId,
+            DataCategory: 'Meta::Room',
+            objects: [{ uuid: 'OBJECT#foo', shortName: 'A lamp' }],
+        }
+        jest.spyOn(internalCache.ComponentEphemeraMeta, 'get').mockResolvedValue(metaRoom)
+
+        const merged = await internalCache.ComponentStackMerge.get('CHARACTER#TESS', 'ROOM#ObjRoom')
+
+        const wml = schemaToWML([merged.schema])
+        expect(wml).toContain('<Object uuid=(foo)')
+        expect(wml).toContain('A lamp')
     })
 })
