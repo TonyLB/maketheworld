@@ -56,9 +56,9 @@ Promoted norms live in **`AGENT.multiChannel.contract.md`**. Remaining rows are 
 | **Wire protocol** | **[Resolved]** Both channels use **`PerceptionMessage`**; **`PerceptionRoomMetaData.roomChannel`** discriminates. |
 | **Correlation keys** | **[Resolved]** Separate **`messageId`** per channel; no shared render thread id for affordances. |
 | **Fact ownership** | **[Resolved]** See **Fact ownership (agreed)** in contract; **`RoomUpdate`** evolution **TBD**. |
-| **Uncoupled default** | **[Phase B]** Which internal events publish **only** affordances (e.g. **`Objects Changed`**, **`RoomUpdate`** triggers) when wiring publishers. |
+| **Uncoupled default** | **[Resolved]** Internal signals that publish **only** affordances (no render-channel **`PerceptionMessage`** from these kicks): **`mtw.ephemera.objects` `Objects Changed`** (Phase 2) and **`RoomUpdate`** bus triggers (character roster refresh). **`mtw.ephemera.state` `State Changed`** does **not** publish affordances; it participates **only** in the **render** path (passive render fan-out / room-render **`PerceptionMessage`**). |
 | **Coupled thread template** | **[Deferred]** No v1 state machine; optional pattern in contract only until product needs paired delivery. |
-| **Journeys** | **[Open]** Which user actions would use **coupled** vs **uncoupled** when/if paired delivery ships. |
+| **Journeys** | **[Resolved]** No planned journey requires **strict** cross-channel coupling (the client must work with either channel alone). **Navigation** to a new room context **intends** both channels when practical; norms in [`AGENT.multiChannel.contract.md`](../../../../../lambda/ephemera/dataSource/AGENT.multiChannel.contract.md) **Navigation intent and user journeys (agreed)**. First-arrival presentation (affordances before render): **client** staging preferred; server does **not** by default withhold affordances for that reason. |
 | **Objects + perception** | **[Phase B]** **[`AGENT.objectHandling.plan.md`](../objects/AGENT.objectHandling.plan.md) Phase 2** attaches (subscribe **`mtw.ephemera.objects`**, affordance **`PublishMessage`**, etc.). |
 
 ---
@@ -69,6 +69,7 @@ Pending work uses `[ ]`; completed work uses `[X]` (capital **X**). Mark each li
 
 **Phase A --- decisions and contract hardening**
 
+- [X] Document **navigation intent**, **Journeys** (no strict coupling; dual-channel intent on navigation; client-first first-arrival staging) in [`AGENT.multiChannel.contract.md`](../../../../../lambda/ephemera/dataSource/AGENT.multiChannel.contract.md); resolve **Journeys** row in **Decisions to resolve** here.
 - [X] Resolve **wire shape** and **correlation** rows in **Decisions to resolve**; update [`AGENT.multiChannel.contract.md`](../../../../../lambda/ephemera/dataSource/AGENT.multiChannel.contract.md) with normative text (remove or narrow **TBD** bullets).
 - [X] Document **coupled thread** deferral in [`perception/AGENT.md`](../../../../../lambda/ephemera/dataSource/perception/AGENT.md) and contract (optional pattern only for v1).
 - [X] Add interface / **`PublishMessage`** type notes in **`mtw-interfaces`** (**`roomChannel`**, **`resolvedPerceptionRoomChannel`**) and lambda **`messageBus`** / dataSource **`AGENT.md`**.
@@ -98,6 +99,7 @@ Pending work uses `[ ]`; completed work uses `[X]` (capital **X**). Mark each li
 | Direction documented in multi-channel contract | Done |
 | Task plan (this file) | Done |
 | Phase A: decisions promoted to normative docs | Done |
+| Navigation intent + Journeys (contract + plan) | Done |
 | Phase B: server alignment | Not started |
 | Phase C: client alignment | Not started |
 | Phase D: closeout | Not started |
@@ -144,6 +146,8 @@ npm test
 | --- | --- |
 | Plan location | **`taskPlanning/lambda/ephemera/dataSource/perception/AGENT.multiChannel.plan.md`** tracks execution; contract file holds **agreed** norms. |
 | Filename | **`multiChannel`** (not `mutliChannel`) for search and consistency. |
+| **State Changed vs affordances** | **`State Changed`** drives **render** only (no affordance-channel **`PublishMessage`**). |
+| **Journeys** | No strict coupling required; navigation **intends** both channels when practical; first-arrival staging **client-first** (see contract). |
 
 ---
 

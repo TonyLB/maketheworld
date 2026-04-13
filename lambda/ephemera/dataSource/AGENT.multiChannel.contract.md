@@ -44,11 +44,20 @@ These are **logically distinct**: they **may** use different internal triggers, 
 ### Cadence and independence
 
 - Each channel **may** be published **independently** and on its **own cadence** in response to the internal events that own that data.
-- **Neither** channel is assumed to **block** the other at the protocol level **by default**; the **client** is expected to **compose** one header UX from **both** when both apply, and to tolerate **one channel arriving before the other** (placeholders or last-known-good per channel until data arrives). **Cross-channel shared staleness / revision keys** are **not** required for correctness while render truth stays in **state** and affordance truth in **objects / presence / exits**, and product accepts **brief skew** and **eventual** server-side cascade (e.g. objects → **state** → render). Exact **placeholder UX** is still **TBD** in the task plan.
+- **Neither** channel is assumed to **block** the other at the protocol level **by default**; the **client** is expected to **compose** one header UX from **both** when both apply, and to tolerate **one channel arriving before the other** (placeholders or last-known-good per channel until data arrives). **Cross-channel shared staleness / revision keys** are **not** required for correctness while render truth stays in **state** and affordance truth in **objects / presence / exits**, and product accepts **brief skew** and **eventual** server-side cascade (e.g. objects → **state** → render). Fine-grained **placeholder** and **first-arrival** staging norms live under **Navigation intent and user journeys (agreed)** below.
+
+### Navigation intent and user journeys (agreed)
+
+- **No strict coupling required:** No user journey currently planned requires **protocol-level** coupling where the client **cannot** treat one channel as usable without the other. The client must be able to show something coherent per channel in isolation (last-known-good, placeholders, or channel-specific rules), even when the **preferred** experience is both channels together.
+- **Navigation intent (dual channel):** When a character **enters a new room context** (for example **move** / **arrival** / first **look** at that room), the **system intent** is to deliver **both** room-render and room-affordances updates **when practical**. This is **product intent**, not a hard delivery guarantee: **Cadence and independence** still applies (independent publishes, skew, no shared revision keys).
+- **First arrival / ordering (presentation):** Affordances may arrive before render completes; showing a **full** affordance slice next to an **empty** or not-yet-generating render slice can feel wrong. **Default:** address that in **client** composition (for example defer updating the **virtual** sticky header until room-render has at least a **Generating**-class signal, while still accepting affordance rows on the wire). **Do not** rely on the server **by default** to withhold affordance **`PublishMessage`** until render has shipped unless product explicitly revisits that policy.
+- **Optional server-side pairing** remains a **hypothetical** future pattern only; see [Coupled delivery (optional pattern)](#coupled-delivery-optional-pattern).
 
 ### Coupled delivery (optional pattern)
 
-Some **product flows** may require **paired** delivery semantics (for example: do not treat affordances as **terminal** until **render** has at least reached a **Generating**-class signal, or require **both** channels **terminal** before closing a perception thread). That is a **PerceptionThread template** / fan-in concern, **not** a global rule for every update. Specific state machines, **failure**, and **timeout** behavior are **TBD** (see task plan).
+**Current product stance:** No planned journey requires **paired** delivery semantics. The client is not expected to block on **both** channels for correctness.
+
+**Hypothetical future flows** might still require **paired** semantics (for example: do not treat affordances as **terminal** until **render** has at least reached a **Generating**-class signal, or require **both** channels **terminal** before closing a perception thread). That would be a **PerceptionThread template** / fan-in concern, **not** a global rule for every update. Specific state machines, **failure**, and **timeout** behavior remain **TBD** unless product pulls them in (see [multi-channel task plan](../../../taskPlanning/lambda/ephemera/dataSource/perception/AGENT.multiChannel.plan.md)).
 
 ### Current codebase (fact, not target)
 
@@ -99,7 +108,7 @@ The **decision layer** is the place we answer **once**, then cite from feature w
 | --- | --- |
 | **Cadence classes** | Which updates are **fast-path** (meta, presence, lists) vs **render-backed** (full description, heavy `PublishMessage` bodies). |
 | **Channels (logical)** | Whether the client treats these as **one subscription** with typed deltas, **multiple** WebSocket message families, or **one** message with **composed** payloads (product + protocol). |
-| **Baseline guarantee** | For a given **user action** or **view entry**, what is the **minimum** set of facts that must be delivered **at least once** to avoid broken UI (and within what **time ordering** constraints). |
+| **Baseline guarantee** | For a given **user action** or **view entry**, what is the **minimum** set of facts that must be delivered **at least once** to avoid broken UI (and within what **time ordering** constraints). **Navigation intent** (dual channel when practical) is in [Navigation intent and user journeys (agreed)](#navigation-intent-and-user-journeys-agreed); formal per-action **minimum** sets and **failure** timings remain **TBD** if product needs them for QA. |
 | **Kickoff orchestration** | Whether a **single** internal kick may **fan out** to multiple domains (state, rooms, render) and how we avoid **duplicate** or **contradictory** terminal messages. |
 | **Correlation** | When **slow** paths complete, how they **tie** to earlier **fast** updates (message ids, thread registration, perception fan-in). See [`perception/AGENT.md`](perception/AGENT.md) and the [pass-through contract](../../../../taskPlanning/lambda/ephemera/dataSource/AGENT.passThrough.contract.planning.md). |
 
@@ -157,7 +166,7 @@ Track resolutions here or in [`taskPlanning/lambda/ephemera/dataSource/perceptio
 
 ### Coupled PerceptionThread template (deferral)
 
-- [X] **Deferred until product needs paired delivery:** There is **no** normative **PerceptionThread** state machine for multi-channel in **v1**. **Generating**-barrier, **terminal** join across channels, **failure**, and **timeout** for **paired** affordances + render are **TBD**; the optional pattern stays under [Coupled delivery (optional pattern)](#coupled-delivery-optional-pattern) only.
+- [X] **Deferred until product needs paired delivery:** There is **no** normative **PerceptionThread** state machine for multi-channel in **v1**, and **no** planned user journey **requires** strict cross-channel pairing. **Generating**-barrier, **terminal** join across channels, **failure**, and **timeout** for **paired** affordances + render are **TBD** for hypothetical flows; the optional pattern stays under [Coupled delivery (optional pattern)](#coupled-delivery-optional-pattern) only.
 
 ### Client implementation (types vs selectors)
 
@@ -167,7 +176,7 @@ Track resolutions here or in [`taskPlanning/lambda/ephemera/dataSource/perceptio
 ### Other inventory
 
 - [ ] **Cadence taxonomy:** fixed enum of channel/cadence names vs per-feature description only.
-- [ ] **Baseline contract:** formal "minimum delivery set" for room enter / look / move (ties perception + rooms + state + render).
+- [X] **Baseline contract (intent):** **Navigation intent** for enter / look / move is normative in [Navigation intent and user journeys (agreed)](#navigation-intent-and-user-journeys-agreed) (dual channel when practical; no strict coupling; client-first staging for first arrival). Formal **minimum delivery** matrices per action (**timeouts**, **failure**) remain **TBD** if product requires them.
 - [ ] **Long-term split or merge:** how `mtw.ephemera.state` and `mtw.ephemera.objects` evolve as non-room kinds appear; whether subscriber docs stay **per-DataSource** or gain a composed **room** story for clients.
 
 ---
