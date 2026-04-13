@@ -99,7 +99,8 @@ Common combinations: A Room typically references and hosts its Features. A Room 
 - **Purpose**: Represents rooms with name, description, exits, features, and characters
 - **Content Properties**: `name`, `description` (both `StandardRender`)
 - **Reference Properties**: `features`, `examples`, `characters` (all `ReferenceList`)
-- **fromSchema**: Uses the process-and-remainder pipeline. Accepted child tags: ShortName, Exit, Lens, Feature, Example, Guidance, Character, Position (no-op), Grant, DisplayName (no-ops for backward compatibility). See [fromSchema: process-and-remainder pipeline](#fromschema-process-and-remainder-pipeline) below.
+- **Ephemera wire**: Optional **`objects`** (`string[]`) from **`<Object>handle</Object>`** children (trimmed text body = handle). The **`Object`** consumer is registered only when **`standardizeMode === 'ephemeraWire'`** on **`StandardizeFromSchemaContext`**; in **`asset`** mode those tags are **unconsumed** and **`fromSchema`** throws. See **`standardize/AGENT.md`** (**Payload vocabulary vs semantic mode**).
+- **fromSchema**: Uses the process-and-remainder pipeline. Accepted child tags: ShortName, Exit, Lens, Feature, Example, Guidance, Character, Position (no-op), Grant, DisplayName (no-ops for backward compatibility), plus **`Object`** when **`ephemeraWire`**. See [fromSchema: process-and-remainder pipeline](#fromschema-process-and-remainder-pipeline) below.
 
 ### **StandardFeature** 🟢
 - **Purpose**: Represents features with a short-name and example references

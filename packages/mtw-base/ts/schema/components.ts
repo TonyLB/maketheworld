@@ -15,6 +15,10 @@ export type SchemaKeyTag = {
     tag: 'Key';
 }
 
+export type SchemaObjectTag = {
+    tag: 'Object';
+}
+
 export type SchemaExitTag = {
     tag: 'Exit';
     to: string;
@@ -105,6 +109,13 @@ export const isSchemaKey = (schema: any): schema is SchemaKeyTag => (
     checkTypes({
         required: { tag: CheckTypes.STRING },
         values: { tag: 'Key' }
+    })(schema)
+)
+
+export const isSchemaObject = (schema: any): schema is SchemaObjectTag => (
+    checkTypes({
+        required: { tag: CheckTypes.STRING },
+        values: { tag: 'Object' }
     })(schema)
 )
 

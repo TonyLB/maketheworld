@@ -1,7 +1,7 @@
 import { SchemaAssetTag, SchemaStoryTag } from "./asset"
 import { isSchemaGrant, SchemaGrantTag } from "./authorization"
 import { isSchemaPronouns, SchemaCharacterLegalContents, SchemaCharacterTag, SchemaPronounsTag } from "./character"
-import { isSchemaExit, isSchemaFeature, isSchemaGuidance, isSchemaKnowledge, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaPosition, isSchemaRoom, isSchemaShortName, isSchemaInstructions, isSchemaDefault, isSchemaParent, isSchemaKey, isSchemaSituation, SchemaExitTag, SchemaFeatureTag, SchemaGuidanceTag, SchemaKnowledgeTag, SchemaMapTag, SchemaMessageTag, SchemaMomentTag, SchemaPositionTag, SchemaRoomTag, SchemaShortNameTag, SchemaInstructionsTag, SchemaDefaultTag, SchemaParentTag, SchemaKeyTag, SchemaSituationTag } from "./components"
+import { isSchemaExit, isSchemaFeature, isSchemaGuidance, isSchemaKnowledge, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaObject, isSchemaPosition, isSchemaRoom, isSchemaShortName, isSchemaInstructions, isSchemaDefault, isSchemaParent, isSchemaKey, isSchemaSituation, SchemaExitTag, SchemaFeatureTag, SchemaGuidanceTag, SchemaKnowledgeTag, SchemaMapTag, SchemaMessageTag, SchemaMomentTag, SchemaObjectTag, SchemaPositionTag, SchemaRoomTag, SchemaShortNameTag, SchemaInstructionsTag, SchemaDefaultTag, SchemaParentTag, SchemaKeyTag, SchemaSituationTag } from "./components"
 import { isSchemaMatch, isSchemaMark, isSchemaLens, SchemaMatchTag, SchemaMarkTag, SchemaLensTag } from "./worldState"
 
 import { isSchemaEdit, isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload, SchemaEditTag, SchemaReplaceTag } from "./edit"
@@ -70,7 +70,8 @@ export type SchemaTag = SchemaAssetTag |
     SchemaEditTag |
     SchemaGrantTag |
     SchemaParentTag |
-    SchemaKeyTag
+    SchemaKeyTag |
+    SchemaObjectTag
 
 export type SchemaWithContents = SchemaAssetTag |
     SchemaStoryTag |
@@ -171,7 +172,8 @@ export const isSchemaTag = (value: any): value is SchemaTag => {
         isSchemaEdit(value) ||
         isSchemaGrant(value) ||
         isSchemaParent(value) ||
-        isSchemaKey(value)
+        isSchemaKey(value) ||
+        isSchemaObject(value)
 }
 
 export type SchemaToWMLTopLevelOptions = {

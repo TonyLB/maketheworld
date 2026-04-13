@@ -4,7 +4,7 @@ import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./base
 import { tagRender } from "./tagRender"
 import { validateProperties, validateExpressionAsNonNegativeInteger, parsePositionCoordinates } from "./utils"
 import { GenericTree, GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree"
-import { isSchemaExit, isSchemaFeature, isSchemaGuidance, isSchemaKnowledge, isSchemaMap, isSchemaPosition, isSchemaRoom, isSchemaShortName, isSchemaParent, isSchemaKey, isSchemaSituation, SchemaExitTag, SchemaFeatureTag, SchemaGuidanceTag, SchemaKnowledgeTag, SchemaMapTag, SchemaPositionTag, SchemaRoomTag, SchemaShortNameTag, SchemaParentTag, SchemaKeyTag, SchemaSituationTag } from "@tonylb/mtw-base/ts/schema/components"
+import { isSchemaExit, isSchemaFeature, isSchemaGuidance, isSchemaKnowledge, isSchemaMap, isSchemaObject, isSchemaPosition, isSchemaRoom, isSchemaShortName, isSchemaParent, isSchemaKey, isSchemaSituation, SchemaExitTag, SchemaFeatureTag, SchemaGuidanceTag, SchemaKnowledgeTag, SchemaMapTag, SchemaObjectTag, SchemaPositionTag, SchemaRoomTag, SchemaShortNameTag, SchemaParentTag, SchemaKeyTag, SchemaSituationTag } from "@tonylb/mtw-base/ts/schema/components"
 import { isSchemaString, SchemaStringTag } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { SchemaTag, isSchemaComponent, isSchemaComponentUUID } from "@tonylb/mtw-base/ts/schema"
 import { PrintMode, PrintMapResult } from "@tonylb/mtw-base/ts/schema/printMap"
@@ -24,6 +24,7 @@ const componentTemplates = {
     Default: {},
     Parent: {},
     Key: {},
+    Object: {},
     Room: {
         uuid: { type: ParsePropertyTypes.Key },
         key: { type: ParsePropertyTypes.Key },
@@ -118,6 +119,25 @@ const keyTagRenderLiteral = ({ tag: { data: tag, children }, ...args }: PrintMap
     else {
         return [{ printMode: PrintMode.naive, output: `<${tag.tag}>${textValue}</${tag.tag}>` }]
     }
+}
+
+const objectTagRenderLiteral = ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments): PrintMapResult[] => {
+    if (!isSchemaObject(tag)) {
+        return [{ printMode: PrintMode.naive, output: '' }]
+    }
+    if (children.length === 0) {
+        return [{ printMode: PrintMode.naive, output: `<${tag.tag} />` }]
+    }
+    const textValue = children.map(({ data }) => (data)).filter(isSchemaString).map(({ value }) => (value)).join('') as string
+    const naive = `<${tag.tag}>${textValue}</${tag.tag}>`
+    if (naive.length + Math.min(10, args.options.indent * 4) > 80) {
+        return [
+            { printMode: PrintMode.nested, output: `<${tag.tag}>` },
+            { printMode: PrintMode.nested, output: `    ${textValue}` },
+            { printMode: PrintMode.nested, output: `</${tag.tag}>` }
+        ]
+    }
+    return [{ printMode: PrintMode.naive, output: `<${tag.tag}>${textValue}</${tag.tag}>` }]
 }
 
 export const componentConverters: Record<string, ConverterMapEntry> = {
@@ -222,6 +242,35 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
             return {
                 data: { tag: 'Key' },
                 children: children.map(({ data }) => data).filter(isSchemaString).map(({ value }) => ({ data: { tag: 'String' as const, value }, children: [] }))
+            }
+        }
+    },
+    Object: {
+        initialize: ({ parseOpen, contextStack }): SchemaObjectTag => {
+            const hasRoomContext = contextStack.some(({ data }) => isSchemaRoom(data))
+            if (!hasRoomContext) {
+                throw new Error('Object tag can only be used inside a Room')
+            }
+            validateProperties(componentTemplates.Object)(parseOpen)
+            return { tag: 'Object' }
+        },
+        typeCheckContents: isSchemaString,
+        finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag>): GenericTreeNodeFiltered<SchemaObjectTag, SchemaStringTag> => {
+            if (!isSchemaObject(initialTag)) {
+                throw new Error('Type mismatch on schema finalize')
+            }
+            const textValue = children
+                .map(({ data }) => data)
+                .filter(isSchemaString)
+                .map(({ value }) => value)
+                .join('')
+                .trim()
+            if (!textValue) {
+                throw new Error('Object tag must contain non-empty text (handle) after trim')
+            }
+            return {
+                data: { tag: 'Object' },
+                children: [{ data: { tag: 'String' as const, value: textValue }, children: [] }]
             }
         }
     },
@@ -350,6 +399,7 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
     Default: defaultPrintMap,
     Parent: parentTagRenderLiteral,
     Key: keyTagRenderLiteral,
+    Object: objectTagRenderLiteral,
     Room: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => {
         //
         // Reassemble the contents out of name and description fields

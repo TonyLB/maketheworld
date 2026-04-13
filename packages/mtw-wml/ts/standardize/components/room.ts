@@ -14,7 +14,7 @@ import { AssetUUID, ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components"
 import { deepEqual } from "../../lib/objects"
 import { StandardLiteral } from "../literal"
-import type { StandardFormConstructionOptions, StandardizeFromSchemaContext } from "../wmlStandardizeMode"
+import { resolveStandardizeFromSchemaContext, type StandardFormConstructionOptions, type StandardizeFromSchemaContext } from "../wmlStandardizeMode"
 import { renderReference } from "./utils/schema"
 import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { ExitFacetList, StandardExitFacet } from "../keys/facets/exit"
@@ -84,6 +84,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
     _examples: ReferenceList;
     _guidance: ReferenceList;
     _characters: ReferenceList;
+    _objects: string[];
     tag = 'Room' as const
 
     constructor(previous?: StandardRoomPayload) {
@@ -96,6 +97,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
             this._examples = previous._examples.clone()
             this._guidance = previous._guidance.clone()
             this._characters = previous._characters.clone()
+            this._objects = [...previous._objects]
         }
         else {
             this._exits = new ExitFacetList([])
@@ -105,6 +107,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
             this._guidance = new ReferenceList([])
             this._features = new ReferenceList([])
             this._characters = new ReferenceList([])
+            this._objects = []
         }
     }
 
@@ -118,13 +121,14 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         this._examples = new ReferenceList(props.examples?.map((reference) => (new StandardReference(reference))) ?? [])
         this._guidance = new ReferenceList(props.guidance?.map((reference) => (new StandardReference(reference))) ?? [])
         this._characters = new ReferenceList(props.characters?.map((reference) => (new StandardReference(reference))) ?? [])
+        this._objects = [...(props.objects ?? [])]
     }
 
-    fromSchema(node: GenericTreeNode<SchemaTag>, _context?: StandardizeFromSchemaContext): GenericTree<SchemaTag> {
+    fromSchema(node: GenericTreeNode<SchemaTag>, context?: StandardizeFromSchemaContext): GenericTree<SchemaTag> {
         if (treeNodeTypeguard(isSchemaRoom)(node)) {
             // Process-and-remainder pipeline: each step consumes one tag and passes remainder to the next.
             // Unconsumed children (e.g. unknown tags) cause processWithConsumers to throw. See AGENT.implementation.md (fromSchema: process-and-remainder pipeline).
-            const consumers = [
+            const consumers: StandardizeConsumer[] = [
                 new StandardizeConsumerStandardLiteral(this, {
                     tag: "ShortName",
                     update(literal) {
@@ -160,8 +164,29 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
                 // Grant and DisplayName consumed as no-op so Room accepts WML that previously was silently ignored.
                 new StandardizeConsumerSimple(this, { tag: "Grant", update: () => {} }),
                 new StandardizeConsumerSimple(this, { tag: "DisplayName", update: () => {} }),
-                new StandardizeConsumerInline(),
             ]
+            if (resolveStandardizeFromSchemaContext(context).standardizeMode === 'ephemeraWire') {
+                consumers.push(
+                    new StandardizeConsumerSimple(this, {
+                        tag: 'Object',
+                        update(matched) {
+                            this._objects = matched.map((objectNode) => {
+                                const textValue = objectNode.children
+                                    .map(({ data }) => data)
+                                    .filter(isSchemaString)
+                                    .map(({ value }) => value)
+                                    .join('')
+                                    .trim()
+                                if (!textValue) {
+                                    throw new Error('Object tag must contain non-empty handle after trim')
+                                }
+                                return textValue
+                            })
+                        },
+                    })
+                )
+            }
+            consumers.push(new StandardizeConsumerInline())
             const returnRemainder = processWithConsumers(this, consumers, node.children)
             return returnRemainder
         }
@@ -170,6 +195,9 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
 
     get shortName() {
         return this._shortName
+    }
+    get objects() {
+        return this._objects
     }
     get exits() { return this._exits }
     get situations() { return this._situations }
@@ -190,7 +218,8 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
             ...(this.features.payload.length ? { features: this.features.toJSON() } : {}),
             ...(this.guidance.payload.length ? { guidance: this.guidance.toJSON() } : {}),
             ...(this.examples.payload.length ? { examples: this.examples.toJSON() } : {}),
-            ...(this.characters.payload.length ? { characters: this.characters.toJSON() } : {})
+            ...(this.characters.payload.length ? { characters: this.characters.toJSON() } : {}),
+            ...(this._objects.length ? { objects: [...this._objects] } : {})
         }
     }
 
@@ -215,6 +244,10 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
             return result.newNode ?? result.aggregatedNode
         }).filter(excludeUndefined) as GenericTreeNode<SchemaTag>[]
         
+        const objectSchemas: GenericTreeNode<SchemaTag>[] = this._objects.map((handle) => ({
+            data: { tag: 'Object' },
+            children: [{ data: { tag: 'String', value: handle }, children: [] }]
+        }))
         return {
             data: { tag: 'Room', key, uuid: universalKey },
             children: [
@@ -225,7 +258,8 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
                 ...this.examples.schema,
                 ...this.characters.schema,
                 ...situationSchemas,
-                ...exitSchemas
+                ...exitSchemas,
+                ...objectSchemas
             ]
         }
     }
@@ -276,6 +310,10 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
             return acc
         }, [])
         
+        const objectSchemas: GenericTreeNode<SchemaTag>[] = this._objects.map((handle) => ({
+            data: { tag: 'Object' },
+            children: [{ data: { tag: 'String', value: handle }, children: [] }]
+        }))
         // Pass this Room's key as parent context to children for correct rendering
         return {
             data: { tag: 'Room', key: key.key ?? '', uuid: key.universalKey },
@@ -288,7 +326,8 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
                 ...charactersToRender.payload.map(renderReference({ lookup, options: { ...options, parent: key } })).filter(excludeUndefined),
                 ...inlineRemainder.map(renderReference({ lookup, options: { ...options, parent: key } })).filter(excludeUndefined),
                 ...situationSchemas,
-                ...exitSchemas
+                ...exitSchemas,
+                ...objectSchemas
             ]
         }
     }
@@ -305,6 +344,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         returnValue._examples = this._examples.merge(incoming._examples) ?? new ReferenceList([])
         returnValue._guidance = this._guidance.merge(incoming._guidance) ?? new ReferenceList([])
         returnValue._characters = this._characters.merge(incoming._characters) ?? new ReferenceList([])
+        returnValue._objects = [...this._objects, ...incoming._objects]
         return returnValue as this
     }
 
@@ -321,6 +361,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         returnValue._examples = this._examples.invert()
         returnValue._guidance = this._guidance.invert()
         returnValue._characters = this._characters.invert()
+        returnValue._objects = []
         return returnValue as this
     }
 
@@ -472,7 +513,8 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         const hasExamples = this._examples.payload.length > 0
         const hasGuidance = this._guidance.payload.length > 0
         const hasCharacters = this._characters.payload.length > 0
-        return !(hasShortName || hasExits || hasSituations || hasLens || hasFeatures || hasExamples || hasGuidance || hasCharacters)
+        const hasObjects = this._objects.length > 0
+        return !(hasShortName || hasExits || hasSituations || hasLens || hasFeatures || hasExamples || hasGuidance || hasCharacters || hasObjects)
     }
 }
 
@@ -485,6 +527,7 @@ export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'St
     get examples() { return this._payload.examples }
     get guidance() { return this._payload.guidance }
     get characters() { return this._payload.characters }
+    get objects() { return this._payload.objects }
 
     constructor(
         props: string | StandardRoomData | GenericTreeNode<SchemaTag> | StandardRoom,
@@ -516,7 +559,8 @@ export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'St
             !(this.characters.diff(incoming.characters)?.payload.length) &&
             !(exitsDiff?.length) &&
             !(situationsDiff?.length) &&
-            deepEqual(this.shortName?.toJSON(), incoming.shortName?.toJSON())
+            deepEqual(this.shortName?.toJSON(), incoming.shortName?.toJSON()) &&
+            deepEqual(this.objects, incoming.objects)
     }
 
 }

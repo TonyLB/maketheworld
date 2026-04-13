@@ -16,6 +16,8 @@ export type StandardRoomData = {
     examples?: ReferenceListData;
     guidance?: ReferenceListData;
     characters?: ReferenceListData;
+    /** Ephemera wire: runtime object handles (see Meta::Room.objects). */
+    objects?: string[];
 } & StandardBaseData
 
 export const isStandardRoomData = (arg: any): arg is StandardRoomData => {
@@ -37,6 +39,8 @@ export const isStandardRoomData = (arg: any): arg is StandardRoomData => {
             examples: 'referenceList',
             guidance: 'referenceList',
             characters: 'referenceList'
-        })
+        }),
+        !('objects' in arg) ||
+            (Array.isArray(arg.objects) && (arg.objects as unknown[]).every((x) => typeof x === 'string'))
     )
 }

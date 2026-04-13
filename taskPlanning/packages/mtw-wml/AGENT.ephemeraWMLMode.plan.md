@@ -35,7 +35,7 @@ Read in order (or skim **Recommended order** first if resuming):
 
 1. **`mode` parameter (Phase 1):** Optional **`standardizeMode`** on **`StandardForm`** via second constructor arg **`StandardFormConstructionOptions`**; thread through **`processComponents`**, **`standardComponentFactory`**, and **`fromSchema(node, context?)`** (**`StandardizeFromSchemaContext`**) using **`WmlStandardizeMode`** (**`'asset'`** | **`'ephemeraWire'`**). **Default** preserves **today's** behavior (**`'asset'`** via **`DEFAULT_WML_STANDARDIZE_MODE`**). **No** new tags in this step; ephemera-only tags still absent or still rejected everywhere until Phase 3 enables them under **`ephemeraWire`**.
 2. **Documentation (Phase 2):** Update WML / standardize **AGENT** docs (and root [`packages/mtw-wml/ts/AGENT.md`](../../../packages/mtw-wml/ts/AGENT.md) if appropriate) to describe **asset vs ephemera wire**, where **`mode`** is passed, and that ephemera-only tags **must not** appear in blueprints.
-3. **`<Object>` tag (Phase 3):** Add schema + converter + standardize support **only** when **`mode === 'ephemeraWire'`** (or chosen name); **asset** path **errors** on **`Object`**. Align payload shape with ephemera **`Meta::Room.objects`** / [`taskPlanning/lambda/ephemera/dataSource/objects/AGENT.objectHandling.plan.md`](../../../taskPlanning/lambda/ephemera/dataSource/objects/AGENT.objectHandling.plan.md) string handles as needed.
+3. **`<Object>` tag (Phase 3):** Add schema + converter + standardize support **only** when **`mode === 'ephemeraWire'`** (or chosen name); **asset** path **errors** on **`Object`**. **Wire surface (fixed):** one ephemera object handle per tag as **plain text body**, e.g. **`<Object>roller skates</Object>`** --- no attributes required for v1; the **trimmed** body string is the handle aligned with **`Meta::Room.objects`** / [`taskPlanning/lambda/ephemera/dataSource/objects/AGENT.objectHandling.plan.md`](../../../taskPlanning/lambda/ephemera/dataSource/objects/AGENT.objectHandling.plan.md). Internally the schema may still represent that text via the usual **`String`** child pattern used elsewhere in **`mtw-base`** if that matches parser output.
 4. **Tests and contracts:** Unit tests in **`packages/mtw-wml`** for mode gating; link from [`lambda/ephemera/dataSource/AGENT.multiChannel.contract.md`](../../../lambda/ephemera/dataSource/AGENT.multiChannel.contract.md) and/or [`packages/mtw-wml/ts/standardize/AGENT.md`](../../../packages/mtw-wml/ts/standardize/AGENT.md) once behavior is normative.
 
 ---
@@ -71,7 +71,7 @@ Pending work uses `[ ]`; completed work uses `[X]` (capital **X**). Mark each li
 
 **Phase 3 --- `<Object>` ephemera-only tag**
 
-- [ ] Extend **`mtw-base`** schema with **`Object`** tag type (attributes / children as agreed; minimal v1: enough to carry ephemera object **handles** / ids).
+- [ ] Extend **`mtw-base`** schema with **`Object`** tag type: **v1 WML** is **`<Object>`** ... **`</Object>`** with the **object handle** as **text content** (e.g. **`<Object>roller skates</Object>`**); **no** extra attributes required for v1. Schema / converter should round-trip that to a single string handle for **`Meta::Room.objects`**-style payloads.
 - [ ] **`mtw-wml`**: parse / print / standardize **`Object`** only under **`ephemeraWire`**; **asset** path throws or reports structured error.
 - [ ] Unit tests: asset rejects **`Object`**; ephemeraWire accepts and round-trips (or standardizes to expected shape).
 - [ ] Cross-links: update [`lambda/ephemera/dataSource/AGENT.multiChannel.contract.md`](../../../lambda/ephemera/dataSource/AGENT.multiChannel.contract.md) or [`taskPlanning/lambda/ephemera/dataSource/objects/AGENT.objectHandling.plan.md`](../../../taskPlanning/lambda/ephemera/dataSource/objects/AGENT.objectHandling.plan.md) to cite **ephemera wire** + **`Object`** when those teams emit WML.
@@ -120,7 +120,7 @@ npm test
 **Manual / grep checks (after Phase 3):**
 
 - Grep: **`ephemeraWire`** (or chosen mode name) appears next to **`StandardForm`** / standardize docs.
-- Grep: **`Object`** schema guard exists; asset pipeline tests fail on sample **`Object`** WML.
+- Grep: **`Object`** schema guard exists; asset pipeline tests fail on sample **`Object`** WML (e.g. **`<Object>test-handle</Object>`** under **`ephemeraWire`** only).
 
 ---
 
@@ -146,6 +146,7 @@ npm test
 | `WmlStandardizeMode` placement | **`mtw-wml`** only (not **`mtw-base`**); orthogonal to **`StandardFormSemanticMode`** |
 | Phase 1 scope | **`mode`** only; **no** ephemera-only tags until Phase 3 |
 | **`standardizeMode` threading** | **Public:** optional **second** arg **`StandardFormConstructionOptions`** on **`StandardForm`** (pattern A). **Same** optional second arg on **`componentClassFactory`**-generated **`Standard*`** for WML/schema construction. **Implementation:** **`processComponents`** props + **`standardComponentFactory`** + **`fromSchema(node, context?)`** / facet **`fromSchema(node, ref, context?)`** with **`StandardizeFromSchemaContext`** (pattern C); persist **`standardizeMode`** on **`StandardForm`**. |
+| **`Object` WML (Phase 3 v1)** | Text body only: **`<Object>handle</Object>`** (example: **`<Object>roller skates</Object>`**). Trimmed body string is the handle; no required attributes in v1. |
 
 ---
 

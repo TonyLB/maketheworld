@@ -1,4 +1,4 @@
-import { Schema, schemaToWML } from '../schema'
+import { Schema, schemaToWML, treeFromWML } from '../schema'
 import { StandardForm, hasShortName } from '.'
 import { deIndentWML } from '../schema/utils'
 import { GenericTreeNode } from '@tonylb/mtw-base/ts/genericTree'
@@ -65,6 +65,42 @@ describe('StandardForm', () => {
         it('includes standardizeMode in toJSON when not asset', () => {
             const sf = new StandardForm(`<Asset uuid=(X)><Room key=(main) /></Asset>`).withStandardizeMode('ephemeraWire')
             expect(sf.toJSON().standardizeMode).toBe('ephemeraWire')
+        })
+
+        it('parses Object children under Room in ephemeraWire', () => {
+            const wml = deIndentWML(`
+                <Asset uuid=(Test)>
+                    <Room key=(main) uuid=(ROOM#main)>
+                        <Object>roller skates</Object>
+                    </Room>
+                </Asset>
+            `)
+            const sf = new StandardForm(wml, { standardizeMode: 'ephemeraWire' })
+            const room = sf._lookup('ROOM#main') as StandardRoom
+            expect(room.objects).toEqual(['roller skates'])
+            expect((room.toJSON() as { objects?: string[] }).objects).toEqual(['roller skates'])
+        })
+
+        it('rejects Object under Room in asset mode (unconsumed tag)', () => {
+            const wml = deIndentWML(`
+                <Asset uuid=(Test)>
+                    <Room key=(main) uuid=(ROOM#main)>
+                        <Object>roller skates</Object>
+                    </Room>
+                </Asset>
+            `)
+            expect(() => new StandardForm(wml)).toThrow(/Unconsumed child tags: Object/)
+        })
+
+        it('throws when parsing whitespace-only Object body inside Room', () => {
+            const wml = deIndentWML(`
+                <Asset uuid=(Test)>
+                    <Room key=(main) uuid=(ROOM#main)>
+                        <Object>   </Object>
+                    </Room>
+                </Asset>
+            `)
+            expect(() => treeFromWML(wml)).toThrow(/Object tag must contain non-empty text/)
         })
     })
 

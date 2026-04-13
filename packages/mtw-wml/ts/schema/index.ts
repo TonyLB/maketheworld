@@ -294,6 +294,8 @@ export const defaultSchemaTag = <T extends SchemaTag["tag"]>(tag: T): SchemaTag 
                 tag,
                 to: '',
             }
+        case 'Object':
+            return { tag: 'Object' }
         default:
             return {
                 tag: 'String',
