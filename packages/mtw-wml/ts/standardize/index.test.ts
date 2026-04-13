@@ -271,6 +271,58 @@ describe('StandardForm', () => {
             `)
             expect(() => treeFromWML(wml)).toThrow(/Render DisplayName must contain non-empty text/)
         })
+
+        /**
+         * Ephemera split: one form carries `<Render>` prose; another carries affordances (`<Character>`, `<Object>`).
+         * Merge on the same `ROOM#` should combine render payload with objects and character references.
+         */
+        it('merges ephemeraWire render form with affordance form for the same room UUID', () => {
+            const renderWml = deIndentWML(`
+                <Asset uuid=(Test)>
+                    <Room key=(main) uuid=(ROOM#main)>
+                        <Render>
+                            <DisplayName>Parlor</DisplayName>
+                            <Summary>A quiet room</Summary>
+                            <Description>Full prose here.</Description>
+                        </Render>
+                    </Room>
+                </Asset>
+            `)
+            const affordanceWml = deIndentWML(`
+                <Asset uuid=(Test)>
+                    <Room key=(main) uuid=(ROOM#main)>
+                        <Character key=(ally) />
+                        <Character key=(npc) />
+                        <Object uuid=(crate)>
+                            <ShortName>wooden crate</ShortName>
+                        </Object>
+                        <Object uuid=(lantern)>
+                            <ShortName>brass lantern</ShortName>
+                        </Object>
+                    </Room>
+                </Asset>
+            `)
+            const render = new StandardForm(renderWml, { standardizeMode: 'ephemeraWire' })
+            const affordance = new StandardForm(affordanceWml, { standardizeMode: 'ephemeraWire' })
+            const final = render.merge(affordance)
+            expect(schemaToWML([final.schema])).toEqual(
+                deIndentWML(`
+                <Asset uuid=(Test)>
+                    <Room uuid=(main) key=(main) ref={2}>
+                        <Character key=(ally) />
+                        <Character key=(npc) />
+                        <Object uuid=(crate)><ShortName>wooden crate</ShortName></Object>
+                        <Object uuid=(lantern)><ShortName>brass lantern</ShortName></Object>
+                        <Render>
+                            <DisplayName>Parlor</DisplayName>
+                            <Summary>A quiet room</Summary>
+                            <Description>Full prose here.</Description>
+                        </Render>
+                    </Room>
+                </Asset>
+                `)
+            )
+        })
     })
 
     it('should return an empty wrapper unchanged', () => {
