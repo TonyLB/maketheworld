@@ -24,6 +24,7 @@ import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable"
 import { RenderTree } from "@tonylb/mtw-base/ts/renderTree"
 import { ReferenceListData } from "../../keys/dataTypes/reference"
+import type { WmlStandardizeMode } from "../../wmlStandardizeMode"
 
 export { isStandardCharacterData, isStandardExampleData, isStandardRoomData, isStandardFeatureData, isStandardKnowledgeData, isStandardMapData, isStandardMessageData, isStandardMomentData, isStandardImageData, isStandardMarkData, isStandardLensData, isStandardGuidanceData, isStandardSituationData }
 
@@ -69,6 +70,7 @@ export type StandardFormData = {
     shortName?: StandardEditableData<string>;
     summary?: StandardEditableData<RenderTree>;
     topLevel?: ReferenceListData;
+    standardizeMode?: WmlStandardizeMode;
 }
 
 export const isStandardForm = (arg: any): arg is StandardFormData => {

@@ -15,6 +15,7 @@ import { StandardKey } from "../keys/key"
 import StandardReference from "../keys/reference"
 import { HasShortName } from "./abstract"
 import { StandardLiteral } from "../literal"
+import type { StandardFormConstructionOptions, StandardizeFromSchemaContext } from "../wmlStandardizeMode"
 import { LensMarkFacetList, StandardLensMarkFacet } from "../keys/facets/lensMark"
 import { renderReference } from "./utils/schema"
 import { StandardEditableData, extractFromEditableData } from "@tonylb/mtw-base/ts/editable"
@@ -45,7 +46,7 @@ export class StandardMarkPayload implements HasShortName, ComponentConstructorMe
         this._description = description ? new StandardRender(description) : undefined
     }
 
-    fromSchema(node: GenericTreeNode<SchemaTag>): GenericTree<SchemaTag> {
+    fromSchema(node: GenericTreeNode<SchemaTag>, _context?: StandardizeFromSchemaContext): GenericTree<SchemaTag> {
         if (treeNodeTypeguard(isSchemaMark)(node)) {
             const consumers = [
                 new StandardizeConsumerStandardLiteral<StandardMarkPayload>(this, {
@@ -147,8 +148,11 @@ export class StandardMark extends componentClassFactory(StandardMarkPayload, 'St
     get shortName() { return this._payload.shortName }
     get description() { return this._payload.description }
 
-    constructor(props: string | StandardMarkData | GenericTreeNode<SchemaTag> | StandardMark) {
-        super(props)
+    constructor(
+        props: string | StandardMarkData | GenericTreeNode<SchemaTag> | StandardMark,
+        options?: StandardFormConstructionOptions,
+    ) {
+        super(props, options)
     }
 
     override _wrap(instance: StandardComponent): this {
@@ -202,7 +206,7 @@ export class StandardLensPayload implements HasShortName, ComponentConstructorMe
         this._marks = new LensMarkFacetList(normalizedMarks)
     }
 
-    fromSchema(node: GenericTreeNode<SchemaTag>): GenericTree<SchemaTag> {
+    fromSchema(node: GenericTreeNode<SchemaTag>, _context?: StandardizeFromSchemaContext): GenericTree<SchemaTag> {
         if (treeNodeTypeguard(isSchemaLens)(node)) {
             const consumers = [
                 new StandardizeConsumerStandardLiteral<StandardLensPayload>(this, {
@@ -387,8 +391,11 @@ export class StandardLens extends componentClassFactory(StandardLensPayload, 'St
     get description() { return this._payload.description }
     get marks() { return this._payload.marks }
 
-    constructor(props: string | StandardLensData | GenericTreeNode<SchemaTag> | StandardLens) {
-        super(props)
+    constructor(
+        props: string | StandardLensData | GenericTreeNode<SchemaTag> | StandardLens,
+        options?: StandardFormConstructionOptions,
+    ) {
+        super(props, options)
     }
 
     override _wrap(instance: StandardComponent): this {

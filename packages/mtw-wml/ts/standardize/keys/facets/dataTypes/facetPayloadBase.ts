@@ -3,6 +3,7 @@ import { SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { StandardReference } from "../../reference";
 import { StandardKey } from "../../key";
 import { StandardComponent } from "../../../components/baseClasses";
+import type { StandardizeFromSchemaContext } from "../../../wmlStandardizeMode";
 
 /**
  * FacetPayloadBase: Interface for facet payload classes that handle WML schema parsing and generation.
@@ -35,7 +36,11 @@ export interface FacetPayloadBase<TPayload> {
      * @param reference - The already-parsed StandardReference for the target component
      * @returns The parsed payload data
      */
-    fromSchema(node: GenericTree<SchemaTag>, reference: StandardReference): TPayload;
+    fromSchema(
+        node: GenericTree<SchemaTag>,
+        reference: StandardReference,
+        context?: StandardizeFromSchemaContext
+    ): TPayload;
 
     /**
      * Render facet for parent component orchestration.

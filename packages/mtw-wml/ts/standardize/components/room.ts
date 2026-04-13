@@ -14,7 +14,7 @@ import { AssetUUID, ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaRoom } from "@tonylb/mtw-base/ts/schema/components"
 import { deepEqual } from "../../lib/objects"
 import { StandardLiteral } from "../literal"
-
+import type { StandardFormConstructionOptions, StandardizeFromSchemaContext } from "../wmlStandardizeMode"
 import { renderReference } from "./utils/schema"
 import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { ExitFacetList, StandardExitFacet } from "../keys/facets/exit"
@@ -120,7 +120,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         this._characters = new ReferenceList(props.characters?.map((reference) => (new StandardReference(reference))) ?? [])
     }
 
-    fromSchema(node: GenericTreeNode<SchemaTag>): GenericTree<SchemaTag> {
+    fromSchema(node: GenericTreeNode<SchemaTag>, _context?: StandardizeFromSchemaContext): GenericTree<SchemaTag> {
         if (treeNodeTypeguard(isSchemaRoom)(node)) {
             // Process-and-remainder pipeline: each step consumes one tag and passes remainder to the next.
             // Unconsumed children (e.g. unknown tags) cause processWithConsumers to throw. See AGENT.implementation.md (fromSchema: process-and-remainder pipeline).
@@ -486,8 +486,11 @@ export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'St
     get guidance() { return this._payload.guidance }
     get characters() { return this._payload.characters }
 
-    constructor(props: string | StandardRoomData | GenericTreeNode<SchemaTag> | StandardRoom) {
-        super(props)
+    constructor(
+        props: string | StandardRoomData | GenericTreeNode<SchemaTag> | StandardRoom,
+        options?: StandardFormConstructionOptions,
+    ) {
+        super(props, options)
     }
 
     override _wrap(instance: StandardComponent): this {

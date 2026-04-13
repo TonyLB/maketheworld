@@ -226,6 +226,7 @@ for every component type
 - **Edit Processing** (`standardize/components/edits.ts`): Handles `<Replace>`, `<Remove>`, and other edit tags
 - **Component Standardization**: Each component type has its own standardizer (Room, Feature, etc.)
 - **Merge Operations**: Combines multiple edits and detects conflicts
+- **`standardizeMode`**: Asset vs ephemera wire payload vocabulary, optional **`StandardFormConstructionOptions`** on **`StandardForm`** and generated **`Standard*`** constructors (WML/schema paths), and threading through **`fromSchema`** --- see [`standardize/AGENT.md`](./standardize/AGENT.md) (section **Payload vocabulary vs semantic mode (`standardizeMode`)**). Component-level concepts also link from [`standardize/components/AGENT.md`](./standardize/components/AGENT.md).
 
 ## Usage Patterns
 

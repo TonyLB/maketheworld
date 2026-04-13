@@ -42,6 +42,7 @@ import { KeyLookup } from "./keyLookup"
 import { SchemaOrganization, createOrganizationContext } from "./schemaOrganization"
 import { renderReference } from "./components/utils/schema"
 import { RemoveClass as StandardExplicitKeyRemoveClass, ReplaceClass as StandardExplicitKeyReplaceClass } from "./explicit/key"
+import { resolveStandardizeMode, type StandardFormConstructionOptions, type WmlStandardizeMode } from "./wmlStandardizeMode"
 
 //
 // Component order defines which component tags are processed from schema (and their order).
@@ -125,10 +126,25 @@ export class StandardForm {
      * @see {@link ./AGENT.md#semantic-modes AGENT.md - Semantic Modes} for detailed explanation of each mode
      */
     semanticMode?: StandardFormSemanticMode;
+    standardizeMode: WmlStandardizeMode;
     _keyLookupCache?: KeyLookup;
     _schemaOrganizationCache?: SchemaOrganization;
 
-    constructor(args: StandardFormData | GenericTreeNode<SchemaTag> | StandardNDJSON | string) {
+    static resolveInitialStandardizeMode(
+        args: StandardFormData | GenericTreeNode<SchemaTag> | StandardNDJSON | string,
+        options?: StandardFormConstructionOptions,
+    ): WmlStandardizeMode {
+        if (isStandardForm(args) && args.standardizeMode !== undefined) {
+            return resolveStandardizeMode(args.standardizeMode)
+        }
+        return resolveStandardizeMode(options?.standardizeMode)
+    }
+
+    constructor(
+        args: StandardFormData | GenericTreeNode<SchemaTag> | StandardNDJSON | string,
+        options?: StandardFormConstructionOptions,
+    ) {
+        this.standardizeMode = StandardForm.resolveInitialStandardizeMode(args, options)
         if (typeof args === 'string' && isSchemaAssetUUID(args)) {
             this._universalKey = args
             this._components = []
@@ -140,7 +156,7 @@ export class StandardForm {
 
             this._metaData = args.metaData.filter((node) => (!wrappedNodeTypeGuard(isSchemaImport)(node)))
             this._components = args.components.reduce<StandardComponent[]>((previous, standardData) => {
-                const { component } = standardComponentFactory(standardData)
+                const { component } = standardComponentFactory(standardData, { standardizeMode: this.standardizeMode })
                 if (component) {
                     return [
                         ...previous,
@@ -175,7 +191,7 @@ export class StandardForm {
             this._topLevel = (assetLine as any).topLevel ? new ReferenceList((assetLine as any).topLevel) : undefined
             
             this._components = args.filter(isStandardComponentData).reduce<StandardComponent[]>((previous, standardData: StandardComponentData & SerializeNDJSONMixin) => {
-                const { component } = standardComponentFactory(standardData)
+                const { component } = standardComponentFactory(standardData, { standardizeMode: this.standardizeMode })
                 if (component) {
                     component._from = standardData.from
                     return [...previous, component]
@@ -217,7 +233,8 @@ export class StandardForm {
                 const { components: componentFragments, topLevel: topLevelKeys } = processComponents({ 
                     componentOrder: COMPONENT_ORDER, 
                     schema: node.children,
-                    assetUUID: this._universalKey
+                    assetUUID: this._universalKey,
+                    standardizeMode: this.standardizeMode,
                 })
                 const universalKeyMappings: StandardKey[] = componentFragments
                     .reduce<StandardKey[]>((previous, component) => {
@@ -444,6 +461,9 @@ export class StandardForm {
         if (this._topLevel) {
             result.topLevel = this._topLevel.toFormat('universal').toJSON()
         }
+        if (this.standardizeMode !== 'asset') {
+            result.standardizeMode = this.standardizeMode
+        }
         return result
     }
 
@@ -516,7 +536,8 @@ export class StandardForm {
     }
 
     _clone(): StandardForm {
-        const returnValue = new StandardForm(this.universalKey)
+        const returnValue = new StandardForm(this.universalKey, { standardizeMode: this.standardizeMode })
+        returnValue.semanticMode = this.semanticMode
         returnValue._metaData = [...this._metaData]
         returnValue._shortName = this._shortName
         returnValue._summary = this._summary
@@ -562,7 +583,7 @@ export class StandardForm {
                 const key = reference.key
                 const universalKey = reference.universalKey
                 const defaultData = defaultComponentFromTag(tag, key, universalKey)
-                const { component } = standardComponentFactory(defaultData)
+                const { component } = standardComponentFactory(defaultData, { standardizeMode: this.standardizeMode })
                 if (component) {
                     return [...previous, component]
                 }
@@ -1258,6 +1279,12 @@ export class StandardForm {
         return returnValue
     }
 
+    withStandardizeMode(standardizeMode: WmlStandardizeMode): StandardForm {
+        const returnValue = this._clone()
+        returnValue.standardizeMode = standardizeMode
+        return returnValue
+    }
+
     /**
      * Removes a component from this StandardForm and removes all references to it.
      * Returns a new StandardForm with the component removed (functional pattern, no mutation).
@@ -1325,3 +1352,15 @@ export class StandardForm {
     }
 
 }
+
+export type {
+    StandardFormConstructionOptions,
+    StandardizeFromSchemaContext,
+    WmlStandardizeMode,
+} from './wmlStandardizeMode'
+export {
+    DEFAULT_WML_STANDARDIZE_MODE,
+    isWmlStandardizeMode,
+    resolveStandardizeFromSchemaContext,
+    resolveStandardizeMode,
+} from './wmlStandardizeMode'

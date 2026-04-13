@@ -17,6 +17,7 @@ import { StandardKey } from "../key";
 import { StandardComponent } from "../../components/baseClasses";
 import { excludeUndefined } from "@tonylb/mtw-base/ts/utils/lists";
 import { splitTaggedChildren } from "../../../schema/utils";
+import type { StandardizeFromSchemaContext } from "../../wmlStandardizeMode";
 
 /** Payload class: holds optional StandardLiteral for default. */
 export class LensMarkFacetPayload {
@@ -83,7 +84,7 @@ export class LensMarkFacetPayload {
         return out;
     }
 
-    fromSchema(node: GenericTree<SchemaTag>, _reference: StandardReference): LensMarkFacetPayloadType {
+    fromSchema(node: GenericTree<SchemaTag>, _reference: StandardReference, _context?: StandardizeFromSchemaContext): LensMarkFacetPayloadType {
         if (node.length === 0) throw new Error("Invalid schema: empty node");
         const first = node[0];
         if (!treeNodeTypeguard(isSchemaMark)(first)) throw new Error("Invalid schema: expected Mark node");

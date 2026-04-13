@@ -21,6 +21,7 @@ import { StandardComponent } from "../../components/baseClasses";
 import { RenderTree } from "@tonylb/mtw-base/ts/renderTree";
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";
 import { excludeUndefined } from "@tonylb/mtw-base/ts/utils/lists";
+import type { StandardizeFromSchemaContext } from "../../wmlStandardizeMode";
 
 /** Payload shape: optional displayName/summary/description.
  *  displayName is a StandardLiteral (string-based), while summary/description remain StandardRender (RenderTree-based).
@@ -122,7 +123,7 @@ export class SituationRoomFacetPayload {
         return out;
     }
 
-    fromSchema(node: GenericTree<SchemaTag>, _reference: StandardReference): SituationRoomFacetPayloadType {
+    fromSchema(node: GenericTree<SchemaTag>, _reference: StandardReference, _schemaContext?: StandardizeFromSchemaContext): SituationRoomFacetPayloadType {
         if (node.length === 0) throw new Error("Invalid schema: empty node");
         const first = node[0];
         if (!treeNodeTypeguard(isSchemaSituation)(first)) throw new Error("Invalid schema: expected Situation node");

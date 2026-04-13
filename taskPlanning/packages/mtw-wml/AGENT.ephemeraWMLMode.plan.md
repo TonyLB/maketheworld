@@ -1,6 +1,6 @@
 # Ephemera wire vs asset WML mode (`mtw-wml`)
 
-**Status:** Active --- **not started**. **Intent:** Clarify **payload language** for ephemera **wire-transfer** WML versus **asset / blueprint** WML, before leaning on that split in [`taskPlanning/lambda/ephemera/dataSource/perception/AGENT.multiChannel.plan.md`](../../../taskPlanning/lambda/ephemera/dataSource/perception/AGENT.multiChannel.plan.md) and related perception work.
+**Status:** Active --- **in progress** (Phases 1--2 complete for **`mtw-wml`** docs and mode plumbing; Phase 3 **`Object`** not started). **Intent:** Clarify **payload language** for ephemera **wire-transfer** WML versus **asset / blueprint** WML, before leaning on that split in [`taskPlanning/lambda/ephemera/dataSource/perception/AGENT.multiChannel.plan.md`](../../../taskPlanning/lambda/ephemera/dataSource/perception/AGENT.multiChannel.plan.md) and related perception work.
 
 **Framework:** Executable task plan per [`taskPlanning/AGENT.md`](../../AGENT.md) (status, **Getting Started**, **Progress**, **Recommended order** checkboxes, **Verification**).
 
@@ -33,7 +33,7 @@ Read in order (or skim **Recommended order** first if resuming):
 
 ## Goals
 
-1. **`mode` parameter (Phase 1):** Optional constructor / factory argument on **`StandardForm`** and **`StandardComponent`** (or single shared options type threaded through standardize) with at least **`'asset'`** and **`'ephemeraWire'`** (exact names TBD). **Default** preserves **today's** behavior (treat as asset). **No** new tags in this step; ephemera-only tags still absent or still rejected everywhere until Phase 3 enables them under **`ephemeraWire`**.
+1. **`mode` parameter (Phase 1):** Optional **`standardizeMode`** on **`StandardForm`** via second constructor arg **`StandardFormConstructionOptions`**; thread through **`processComponents`**, **`standardComponentFactory`**, and **`fromSchema(node, context?)`** (**`StandardizeFromSchemaContext`**) using **`WmlStandardizeMode`** (**`'asset'`** | **`'ephemeraWire'`**). **Default** preserves **today's** behavior (**`'asset'`** via **`DEFAULT_WML_STANDARDIZE_MODE`**). **No** new tags in this step; ephemera-only tags still absent or still rejected everywhere until Phase 3 enables them under **`ephemeraWire`**.
 2. **Documentation (Phase 2):** Update WML / standardize **AGENT** docs (and root [`packages/mtw-wml/ts/AGENT.md`](../../../packages/mtw-wml/ts/AGENT.md) if appropriate) to describe **asset vs ephemera wire**, where **`mode`** is passed, and that ephemera-only tags **must not** appear in blueprints.
 3. **`<Object>` tag (Phase 3):** Add schema + converter + standardize support **only** when **`mode === 'ephemeraWire'`** (or chosen name); **asset** path **errors** on **`Object`**. Align payload shape with ephemera **`Meta::Room.objects`** / [`taskPlanning/lambda/ephemera/dataSource/objects/AGENT.objectHandling.plan.md`](../../../taskPlanning/lambda/ephemera/dataSource/objects/AGENT.objectHandling.plan.md) string handles as needed.
 4. **Tests and contracts:** Unit tests in **`packages/mtw-wml`** for mode gating; link from [`lambda/ephemera/dataSource/AGENT.multiChannel.contract.md`](../../../lambda/ephemera/dataSource/AGENT.multiChannel.contract.md) and/or [`packages/mtw-wml/ts/standardize/AGENT.md`](../../../packages/mtw-wml/ts/standardize/AGENT.md) once behavior is normative.
@@ -54,15 +54,20 @@ Pending work uses `[ ]`; completed work uses `[X]` (capital **X**). Mark each li
 
 **Phase 1 --- `mode` plumbing, no new tags**
 
-- [ ] Define **`WmlStandardizeMode`** (or equivalent) in **`mtw-wml`** / **`mtw-base`** as appropriate; document default **`'asset'`**.
-- [ ] Thread optional **`mode`** into **`StandardForm`** constructor and **`StandardComponent`** standardize entry points (exact API: constructor vs `fromSchema` options --- pick one consistent pattern and document).
-- [ ] Ensure **asset** mode behavior matches **pre-change** behavior for all existing tests; add tests that **`ephemeraWire`** without new tags behaves like asset for current inputs.
-- [ ] No **`Object`** (or other ephemera-only) tags accepted yet in either mode **or** reject in both until Phase 3 implements ephemera branch (choose explicitly in implementation notes).
+- [X] Define **`WmlStandardizeMode`** (or equivalent) in **`mtw-wml`** / **`mtw-base`** as appropriate; document default **`'asset'`**. **Done:** [`packages/mtw-wml/ts/standardize/wmlStandardizeMode.ts`](../../../packages/mtw-wml/ts/standardize/wmlStandardizeMode.ts) (`'asset' | 'ephemeraWire'`, **`DEFAULT_WML_STANDARDIZE_MODE`**, **`isWmlStandardizeMode`**); re-exported from [`packages/mtw-wml/ts/standardize/index.ts`](../../../packages/mtw-wml/ts/standardize/index.ts); tests in **`wmlStandardizeMode.test.ts`**.
+- [X] Thread optional **`standardizeMode`** (**`WmlStandardizeMode`**, default **`DEFAULT_WML_STANDARDIZE_MODE`**) through **`StandardForm`** and component standardization. **Decisions are fixed** (no further API choice during implementation):
+  - **Public entry (pattern A):** **`StandardForm`** accepts optional **`options?: StandardFormConstructionOptions`** (includes **`standardizeMode?: WmlStandardizeMode`**) on **all** constructor overloads; resolved mode persisted on **`standardizeMode`**; **`withStandardizeMode`**, **`_clone`**, **`StandardFormData`**, **`toJSON`** (omit when **`'asset'`**), **`assureComponents`** wired. **Done:** [`packages/mtw-wml/ts/standardize/index.ts`](../../../packages/mtw-wml/ts/standardize/index.ts), [`components/dataTypes/index.ts`](../../../packages/mtw-wml/ts/standardize/components/dataTypes/index.ts).
+  - **Single-component WML (same options type):** **`componentClassFactory`**-generated **`Standard*`** classes accept the same optional second argument **`options?: StandardFormConstructionOptions`** when constructing from a WML string or schema node; WML/schema branch calls **`fromSchema(node, resolveStandardizeFromSchemaContext(options?.standardizeMode))`**. Subclasses with custom **`constructor`** forward **`options`** to **`super`**. **Done:** [`packages/mtw-wml/ts/standardize/components/component.ts`](../../../packages/mtw-wml/ts/standardize/components/component.ts) and hand-written subclasses (**`character`**, **`room`**, **`example`**, **`guidance`**, **`situation`**, **`worldState`**, **`StandardMark`**, **`StandardLens`**).
+  - **Propagation (pattern C):** **`processComponents`** threads **`standardizeMode`** on props recursively; **`standardComponentFactory`** passes context into **`fromSchema`**. Payload **`fromSchema(node, context?)`** and facet **`fromSchema(node, ref, context?)`** updated. **Done:** [`processComponents.ts`](../../../packages/mtw-wml/ts/standardize/processComponents.ts), [`componentFactory.ts`](../../../packages/mtw-wml/ts/standardize/componentFactory.ts), payload / facet implementations.
+  - **Documentation (minimal in Phase 1):** Threading and constructor notes in [`packages/mtw-wml/ts/standardize/AGENT.md`](../../../packages/mtw-wml/ts/standardize/AGENT.md) (**Payload vocabulary vs semantic mode** section). Phase 2 may add package index / component doc pointers.
+- [X] Ensure **asset** mode behavior matches **pre-change** behavior for all existing tests; add tests that **`ephemeraWire`** without new tags behaves like asset for current inputs. **Done:** full **`packages/mtw-wml`** **`npm test`** green on default **`asset`**; **`index.test.ts`** **`describe('standardizeMode')`** covers default, constructor **`ephemeraWire`**, **`toJSON`**; **`wmlStandardizeMode.test.ts`** covers resolvers. Phase 1 design: no new tags, so **`ephemeraWire`** does not widen parse outcomes yet (see **`standardize/AGENT.md`**); no dedicated side-by-side snapshot asserting identical schema under both modes (optional follow-up).
+- [X] No **`Object`** (or other ephemera-only) tags accepted yet in either mode **or** reject in both until Phase 3 implements ephemera branch (choose explicitly in implementation notes). **Done:** Phase 3 not started; tag set unchanged.
 
 **Phase 2 --- documentation**
 
-- [ ] Update [`packages/mtw-wml/ts/standardize/AGENT.md`](../../../packages/mtw-wml/ts/standardize/AGENT.md) (and related component docs) with **Asset vs ephemera wire** section: purpose, **`mode`**, forbidden tags in asset pipeline.
-- [ ] Add a short pointer from [`packages/mtw-wml/ts/AGENT.md`](../../../packages/mtw-wml/ts/AGENT.md) if that file is the package index readers use first.
+- [X] Update [`packages/mtw-wml/ts/standardize/AGENT.md`](../../../packages/mtw-wml/ts/standardize/AGENT.md) (and related component docs) with **Asset vs ephemera wire** section: purpose, **`mode`**, forbidden tags in asset pipeline. **Done:** **`## Payload vocabulary vs semantic mode (`standardizeMode`)`** plus constructor overload note; Phase 1 parity sentence (no parse delta until ephemera-only tags).
+- [X] Extend [`packages/mtw-wml/ts/standardize/components/AGENT.md`](../../../packages/mtw-wml/ts/standardize/components/AGENT.md) with a short cross-link to **`standardize/AGENT.md`** for **`standardizeMode`** / single-component **`options`** (optional polish). **Done:** paragraph after **IMPORTANT** in Overview.
+- [X] Add a short pointer from [`packages/mtw-wml/ts/AGENT.md`](../../../packages/mtw-wml/ts/AGENT.md) if that file is the package index readers use first. **Done:** bullet under **Standardize** in directory structure.
 
 **Phase 3 --- `<Object>` ephemera-only tag**
 
@@ -81,9 +86,9 @@ Pending work uses `[ ]`; completed work uses `[X]` (capital **X**). Mark each li
 
 | Milestone | Status |
 | --- | --- |
-| Task plan (this file) | Done |
-| Phase 1: `mode` plumbing | Not started |
-| Phase 2: documentation | Not started |
+| Task plan (this file) | Done (this update reflects Phase 1 complete) |
+| Phase 1: `mode` plumbing | **Done** (`WmlStandardizeMode`, **`StandardForm`** + factory + **`fromSchema`** threading, generated **`Standard*`** optional second **`options`**, tests) |
+| Phase 2: documentation | **Done** (`standardize/AGENT.md`, `standardize/components/AGENT.md`, package `AGENT.md`) |
 | Phase 3: `<Object>` + tests + contract links | Not started |
 | Closeout | Not started |
 
@@ -125,6 +130,7 @@ npm test
 | --- | --- |
 | [`taskPlanning/AGENT.md`](../../AGENT.md) | Task plan framework |
 | [`packages/mtw-wml/ts/standardize/AGENT.md`](../../../packages/mtw-wml/ts/standardize/AGENT.md) | Standardize index |
+| [`packages/mtw-wml/ts/standardize/wmlStandardizeMode.ts`](../../../packages/mtw-wml/ts/standardize/wmlStandardizeMode.ts) | **`WmlStandardizeMode`** type, default **`asset`**, runtime guard |
 | [`packages/mtw-wml/AGENT.testing.mtw-wml-typescript.md`](../../../packages/mtw-wml/AGENT.testing.mtw-wml-typescript.md) | WML test commands / patterns |
 | [`taskPlanning/lambda/ephemera/dataSource/perception/AGENT.multiChannel.plan.md`](../../../taskPlanning/lambda/ephemera/dataSource/perception/AGENT.multiChannel.plan.md) | Downstream consumer (room channels) |
 | [`taskPlanning/lambda/ephemera/dataSource/objects/AGENT.objectHandling.plan.md`](../../../taskPlanning/lambda/ephemera/dataSource/objects/AGENT.objectHandling.plan.md) | **`Meta::Room.objects`** context |
@@ -136,8 +142,10 @@ npm test
 | Topic | Decision |
 | --- | --- |
 | Plan path | **`taskPlanning/packages/mtw-wml/AGENT.ephemeraWMLMode.plan.md`** |
-| Mode names | **`asset`** vs **`ephemeraWire`** (working names; finalize in Phase 1 PR) |
+| Mode names | **`asset`** vs **`ephemeraWire`** (encoded as **`WmlStandardizeMode`** in **`mtw-wml`**) |
+| `WmlStandardizeMode` placement | **`mtw-wml`** only (not **`mtw-base`**); orthogonal to **`StandardFormSemanticMode`** |
 | Phase 1 scope | **`mode`** only; **no** ephemera-only tags until Phase 3 |
+| **`standardizeMode` threading** | **Public:** optional **second** arg **`StandardFormConstructionOptions`** on **`StandardForm`** (pattern A). **Same** optional second arg on **`componentClassFactory`**-generated **`Standard*`** for WML/schema construction. **Implementation:** **`processComponents`** props + **`standardComponentFactory`** + **`fromSchema(node, context?)`** / facet **`fromSchema(node, ref, context?)`** with **`StandardizeFromSchemaContext`** (pattern C); persist **`standardizeMode`** on **`StandardForm`**. |
 
 ---
 

@@ -52,6 +52,22 @@ describe('StandardForm', () => {
         })
     })
 
+    describe('standardizeMode', () => {
+        it('defaults to asset', () => {
+            expect(new StandardForm('ASSET#TestAsset').standardizeMode).toBe('asset')
+        })
+
+        it('accepts ephemeraWire via constructor options', () => {
+            const sf = new StandardForm(`<Asset uuid=(X) />`, { standardizeMode: 'ephemeraWire' })
+            expect(sf.standardizeMode).toBe('ephemeraWire')
+        })
+
+        it('includes standardizeMode in toJSON when not asset', () => {
+            const sf = new StandardForm(`<Asset uuid=(X)><Room key=(main) /></Asset>`).withStandardizeMode('ephemeraWire')
+            expect(sf.toJSON().standardizeMode).toBe('ephemeraWire')
+        })
+    })
+
     it('should return an empty wrapper unchanged', () => {
         const test = new StandardForm(`<Asset uuid=(Test) />`)
         expect(test.header).toEqual({ tag: 'Asset', universalKey: 'ASSET#Test', topLevel: [] })

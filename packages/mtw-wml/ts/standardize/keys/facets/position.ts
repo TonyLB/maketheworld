@@ -11,6 +11,7 @@ import { isSchemaRemove } from "@tonylb/mtw-base/ts/schema/edit";
 import { facetClassFactory } from './facetFactory';
 import { isSchemaTreeNode, treeFromWML } from "../../../schema";
 import { transformNestedChildren, splitTaggedChildren } from "../../../schema/utils";
+import type { StandardizeFromSchemaContext } from "../../wmlStandardizeMode";
 
 //
 // StandardPositionPayloadBase holds the contents for a simple PositionPayload
@@ -165,7 +166,7 @@ export class PositionFacetPayload {
     }
 
     // FacetPayloadBase method: parse from schema
-    fromSchema(node: GenericTree<SchemaTag>, reference: StandardReference): PositionPayloadType {
+    fromSchema(node: GenericTree<SchemaTag>, reference: StandardReference, context?: StandardizeFromSchemaContext): PositionPayloadType {
         if (node.length === 0) {
             throw new Error('Invalid schema: empty node');
         }
@@ -261,7 +262,7 @@ export class PositionFacetPlainClass extends PositionPlainClass {
     }
     
     // FacetPayloadBase methods
-    fromSchema(node: GenericTree<SchemaTag>, reference: StandardReference): PositionPayloadType {
+    fromSchema(node: GenericTree<SchemaTag>, reference: StandardReference, context?: StandardizeFromSchemaContext): PositionPayloadType {
         if (node.length === 0) {
             throw new Error('Invalid schema: empty node');
         }
@@ -353,14 +354,14 @@ export class PositionFacetRemoveClass extends PositionRemoveClass {
         return unifiedPayload as any;
     }
     
-    fromSchema(node: GenericTree<SchemaTag>, reference: StandardReference): PositionPayloadType {
+    fromSchema(node: GenericTree<SchemaTag>, reference: StandardReference, context?: StandardizeFromSchemaContext): PositionPayloadType {
         const match = (this as any).match;
         if (match && match.x !== undefined && match.y !== undefined) {
             return { x: match.x, y: match.y };
         }
         // Fallback: parse from schema
         const plainClass = new PositionFacetPlainClass(node);
-        return plainClass.fromSchema(node, reference);
+        return plainClass.fromSchema(node, reference, context);
     }
 
     renderFacet(reference: StandardReference, payload: PositionPayloadType, referenceRender?: GenericTreeNode<SchemaTag>, lookup?: (key: string | StandardKey) => StandardComponent | undefined): { newNode?: GenericTreeNode<SchemaTag>, aggregatedNode?: GenericTreeNode<SchemaTag> } {
@@ -418,14 +419,14 @@ export class PositionFacetReplaceClass extends PositionReplaceClass {
         return unifiedPayload as any;
     }
     
-    fromSchema(node: GenericTree<SchemaTag>, reference: StandardReference): PositionPayloadType {
+    fromSchema(node: GenericTree<SchemaTag>, reference: StandardReference, context?: StandardizeFromSchemaContext): PositionPayloadType {
         const payload = (this as any).payload;
         if (payload && payload.x !== undefined && payload.y !== undefined) {
             return { x: payload.x, y: payload.y };
         }
         // Fallback: parse from schema
         const plainClass = new PositionFacetPlainClass(node);
-        return plainClass.fromSchema(node, reference);
+        return plainClass.fromSchema(node, reference, context);
     }
 
     renderFacet(reference: StandardReference, payload: PositionPayloadType, referenceRender?: GenericTreeNode<SchemaTag>, lookup?: (key: string | StandardKey) => StandardComponent | undefined): { newNode?: GenericTreeNode<SchemaTag>, aggregatedNode?: GenericTreeNode<SchemaTag> } {

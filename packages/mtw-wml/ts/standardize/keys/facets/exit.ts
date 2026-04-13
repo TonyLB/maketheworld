@@ -11,6 +11,7 @@ import { isRenderTree, renderTreeToSchema } from "@tonylb/mtw-base/ts/renderTree
 import { isSchemaTreeNode, treeFromWML } from "../../../schema";
 import { StandardComponent } from "../../components/baseClasses";
 import { StandardKey } from "../key";
+import type { StandardizeFromSchemaContext } from "../../wmlStandardizeMode";
 
 // Unified ExitFacetPayload class extending StandardLiteral with undefined normalization
 // Note: Exit payload is string | undefined, but StandardLiteral works with string.
@@ -68,7 +69,7 @@ export class ExitFacetPayload extends StandardLiteral {
     }
     
     // FacetPayloadBase method: parse from schema
-    fromSchema(node: GenericTree<SchemaTag>, reference: StandardReference): ExitPayloadType {
+    fromSchema(node: GenericTree<SchemaTag>, reference: StandardReference, _context?: StandardizeFromSchemaContext): ExitPayloadType {
         if (node.length === 0) {
             throw new Error('Invalid schema: empty node');
         }
@@ -219,7 +220,7 @@ export class ExitFacetPlainClass extends PlainClass {
     }
     
     // FacetPayloadBase methods
-    fromSchema(node: GenericTree<SchemaTag>, reference: StandardReference): ExitPayloadType {
+    fromSchema(node: GenericTree<SchemaTag>, reference: StandardReference, _context?: StandardizeFromSchemaContext): ExitPayloadType {
         if (node.length === 0) {
             throw new Error('Invalid schema: empty node');
         }
@@ -322,7 +323,7 @@ export class ExitFacetRemoveClass extends RemoveClass {
         return unifiedPayload as any;
     }
     
-    fromSchema(node: GenericTree<SchemaTag>, reference: StandardReference): ExitPayloadType {
+    fromSchema(node: GenericTree<SchemaTag>, reference: StandardReference, _context?: StandardizeFromSchemaContext): ExitPayloadType {
         const match = (this as any).match;
         if (match && match.data) {
             return ExitFacetRemoveClass.denormalizeFromLiteral(match.data);
@@ -414,7 +415,7 @@ export class ExitFacetReplaceClass extends ReplaceClass {
         return unifiedPayload as any;
     }
     
-    fromSchema(node: GenericTree<SchemaTag>, reference: StandardReference): ExitPayloadType {
+    fromSchema(node: GenericTree<SchemaTag>, reference: StandardReference, _context?: StandardizeFromSchemaContext): ExitPayloadType {
         const payload = (this as any).payload;
         if (payload && payload.data) {
             return ExitFacetReplaceClass.denormalizeFromLiteral(payload.data);

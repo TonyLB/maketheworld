@@ -8,6 +8,7 @@ import { ReferenceList } from "./keys/referenceList"
 import StandardReference from "./keys/reference"
 import { ReferenceCollection } from "./components/utils/referenceCollection"
 import { excludeUndefined } from "@tonylb/mtw-base/ts/utils/lists"
+import { resolveStandardizeMode, WmlStandardizeMode } from "./wmlStandardizeMode"
 
 // Non-edit component type - excludes components wrapped in Remove or Replace
 // Matches the pattern of StandardComponentNonEditData for data types
@@ -34,21 +35,25 @@ export const processComponents = (props: {
     componentContext?: ComponentTag[];
     inContextOfRemove?: boolean;
     assetUUID?: AssetUUID;
+    standardizeMode?: WmlStandardizeMode;
 }): ComponentProcessingResult => {
+    const standardizeMode = resolveStandardizeMode(props.standardizeMode)
+    const propsWithMode = { ...props, standardizeMode }
+
     const {
         componentOrder,
         schema,
         componentContext = [],
         inContextOfRemove = false,
         assetUUID,
-    } = props
+    } = propsWithMode
 
     const recursiveResult = schema.reduce<Omit<ComponentProcessingResult, 'referenceCollection'>>((previous, item) => {
         //
         // If the item is a remove, invert inContextOfRemove
         //
         if (treeNodeTypeguard(isSchemaRemove)(item)) {
-            const removeResult = processComponents({ ...props, schema: item.children, inContextOfRemove: !(inContextOfRemove ?? false) })
+            const removeResult = processComponents({ ...propsWithMode, schema: item.children, inContextOfRemove: !(inContextOfRemove ?? false) })
             return {
                 components: [...previous.components, ...removeResult.components],
                 topLevel: previous.topLevel.merge(removeResult.topLevel) ?? new ReferenceList([])
@@ -89,7 +94,7 @@ export const processComponents = (props: {
         if (treeNodeTypeguard(isSchemaComponent)(item)) {
             if (componentOrder.includes(item.data.tag)) {
 
-                const { component, remainder } = standardComponentFactory(item)
+                const { component, remainder } = standardComponentFactory(item, { standardizeMode })
 
                 if (!component) {
                     return previous
@@ -115,7 +120,7 @@ export const processComponents = (props: {
                 // Component tag is always a ComponentTag (not 'Remove' or 'Replace') since we only store plain components
                 const componentTag = plainComponent.tag as ComponentTag
                 const childrenResult = processComponents({
-                    ...props,
+                    ...propsWithMode,
                     schema: remainder,
                     componentContext: [...componentContext, componentTag]
                 })
@@ -143,7 +148,7 @@ export const processComponents = (props: {
                 }
             }
         }
-        const childrenResult = processComponents({ ...props, schema: item.children })
+        const childrenResult = processComponents({ ...propsWithMode, schema: item.children })
         return {
             components: [...previous.components, ...childrenResult.components],
             topLevel: previous.topLevel.merge(childrenResult.topLevel) ?? new ReferenceList([])

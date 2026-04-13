@@ -12,6 +12,7 @@ import StandardReference from "../keys/reference"
 import { MarkFacetList } from "../keys/facets/mark"
 import { StandardFormSubsetRequest } from "../baseClasses"
 import { StandardLiteral } from "../literal"
+import type { StandardFormConstructionOptions, StandardizeFromSchemaContext } from "../wmlStandardizeMode"
 import { HasShortName } from "./abstract"
 import { excludeUndefined } from "../../lib/lists"
 import { processWithConsumers, StandardizeConsumerFacetListMark, StandardizeConsumerInline, StandardizeConsumerStandardLiteral } from "./fromSchemaPipeline"
@@ -37,7 +38,7 @@ export class StandardSituationPayload implements HasShortName, ComponentConstruc
         this._marks = new MarkFacetList(props.marks ?? [])
     }
 
-    fromSchema(node: GenericTreeNode<SchemaTag>): GenericTree<SchemaTag> {
+    fromSchema(node: GenericTreeNode<SchemaTag>, _context?: StandardizeFromSchemaContext): GenericTree<SchemaTag> {
         if (treeNodeTypeguard(isSchemaSituation)(node)) {
             const consumers = [
                 new StandardizeConsumerStandardLiteral(this, {
@@ -171,8 +172,11 @@ export class StandardSituation extends componentClassFactory(StandardSituationPa
     get shortName() { return this._payload.shortName }
     get marks() { return this._payload.marks }
 
-    constructor(props: string | StandardSituationData | GenericTreeNode<SchemaTag> | StandardSituation) {
-        super(props)
+    constructor(
+        props: string | StandardSituationData | GenericTreeNode<SchemaTag> | StandardSituation,
+        options?: StandardFormConstructionOptions,
+    ) {
+        super(props, options)
     }
 
     override _wrap(instance: StandardComponent): this {

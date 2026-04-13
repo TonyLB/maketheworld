@@ -28,6 +28,11 @@ import StandardReference from "../keys/reference";
 import { StandardKey } from "../keys/key";
 import { StandardExplicitParent, StandardExplicitKey, StandardExplicitKeyPlain, StandardExplicitKeyRemove, StandardExplicitKeyReplace } from "../explicit";
 import { splitTaggedChildren } from "../../schema/utils";
+import {
+    resolveStandardizeFromSchemaContext,
+    type StandardFormConstructionOptions,
+    type StandardizeFromSchemaContext,
+} from "../wmlStandardizeMode";
 
 export interface AssureReferencesResult<T> {
     payload: T
@@ -43,7 +48,7 @@ export type ComponentConstructorMethodsDiff<D extends ComponentKey> = {
 
 export interface ComponentConstructorMethods<D> {
     fromJSON(line: D): void;
-    fromSchema(node: GenericTreeNode<SchemaTag>): GenericTree<SchemaTag>;
+    fromSchema(node: GenericTreeNode<SchemaTag>, context?: StandardizeFromSchemaContext): GenericTree<SchemaTag>;
     subset(options: StandardFormSubsetRequest): this;
     merge(incoming: this): this;
     toJSON(options?: StandardToJSONOptions): Omit<D, 'key' | 'universalKey'>;
@@ -77,7 +82,10 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
         _from?: AssetUUID;
         _origin?: AssetUUID[];
         explicitParent?: StandardExplicitParent;
-        constructor(props: string | D | GenericTreeNode<SchemaTag> | GeneratedComponentClass) {
+        constructor(
+            props: string | D | GenericTreeNode<SchemaTag> | GeneratedComponentClass,
+            options?: StandardFormConstructionOptions,
+        ) {
             this._payload = new Base() as InstanceType<typeof Base>
             //
             // Default-construction path: allow callers to create an "empty" component whose payload
@@ -113,7 +121,14 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
                 const node = typeof props === 'string'
                     ? nodeFromWML(props)
                     : props
-                this.fromSchema(node)
+                this.fromSchema(
+                    node,
+                    resolveStandardizeFromSchemaContext(
+                        options?.standardizeMode !== undefined
+                            ? { standardizeMode: options.standardizeMode }
+                            : undefined,
+                    ),
+                )
                 return
             }
             this._universalKey = props.universalKey
@@ -134,7 +149,8 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
         // remainder from the payload's fromSchema pipeline (currently always empty for
         // components that don't expose child schema to processComponents).
         //
-        fromSchema(node: GenericTreeNode<SchemaTag>): GenericTree<SchemaTag> {
+        fromSchema(node: GenericTreeNode<SchemaTag>, context?: StandardizeFromSchemaContext): GenericTree<SchemaTag> {
+            const resolvedContext = resolveStandardizeFromSchemaContext(context)
             if (!treeNodeTypeguard(isSchemaComponent)(node)) {
                 throw new Error(`Invalid schema node type in ${label} constructor call: ${node.data.tag}`)
             }
@@ -170,7 +186,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
                 ...node,
                 children: childrenWithoutParentAndKey
             }
-            return this._payload.fromSchema(nodeWithoutParentAndKey)
+            return this._payload.fromSchema(nodeWithoutParentAndKey, resolvedContext)
         }
 
         _wrap(instance: GeneratedComponentClass): this {
