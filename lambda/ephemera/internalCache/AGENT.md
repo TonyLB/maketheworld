@@ -27,7 +27,7 @@ Most cache handlers implement a dual storage system:
 ### **Cache Key Patterns**
 Different handlers use specific cache key formats:
 - **Component Meta**: `{assetId}::{EphemeraId}`
-- **Component Render**: `{CharacterId}::{EphemeraId}::{header}`
+- **Component Render** / **Component stack merge** (rooms): `{CharacterId}::{EphemeraId}::{header}` (same string format; see **`generateEphemeraComponentCacheKey`** in [`componentStackMerge.ts`](componentStackMerge.ts))
 - **Examples**: `{EphemeraId}` (component ID)
 - **Render cache rows**: `{EphemeraId}` (Room/Feature/Knowledge component ID; `DeferredCache` + `_Store` mirror, `getExactMatch` for exact lookup)
 - **Character Meta**: `{CharacterId}`
@@ -196,6 +196,7 @@ if (!object) {
 - **`ComponentAssetMeta`**: Caches component metadata from assetDB ([`componentAssetMeta.AGENT.md`](./componentAssetMeta.AGENT.md))
 - **`ComponentEphemeraMeta`**: Read-through cache for ephemeraDB `Meta::Room` (`EphemeraMetaRoom`); v1 room-only ([`componentEphemeraMeta.AGENT.md`](./componentEphemeraMeta.AGENT.md))
 - **`ComponentRender`**: Caches rendered component descriptions ([`componentRender.AGENT.md`](./componentRender.AGENT.md))
+- **`ComponentStackMerge`** ([`componentStackMerge.ts`](componentStackMerge.ts)): **`DeferredCache`** of **room**-only merged **`StandardForm`** --- same asset union and merge rules as **`ComponentRender`** for exits, **shortName**, and present-character wiring, but **does not** use **`RenderCache`**, **`Examples`**, or **`StandardRoomData.render`**. Use when callers need **structural** room truth (for example affordance-channel WML) without situation / example prose. API: **`get(CharacterId, EphemeraRoomId, options?)`** with **`ComponentStackMergeGetOptions`** (`header` affects cache key only). **`clear()`** / **`flush()`** wired from **`InternalCache`**. Pure merge helpers and **`generateEphemeraComponentCacheKey`** are exported from this module and imported by **`componentRender.ts`** (helpers-only sharing; no **`ComponentRender`** call into **`ComponentStackMerge.get`**).
 - **`Examples`**: Caches example components for rooms/features ([`examples.AGENT.md`](./examples.AGENT.md))
 
 ### **Character-Based Handlers**

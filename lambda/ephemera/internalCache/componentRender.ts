@@ -1,11 +1,17 @@
 import { ComponentAssetMetaData } from './componentAssetMeta'
+import {
+    generateEphemeraComponentCacheKey,
+    mergeRoomExitsToJSON,
+    mergeRoomShortNameLiteral,
+    roomCharacterListToStandardCharacterData,
+} from './componentStackMerge'
 import { DeferredCache } from '@tonylb/mtw-lambda-patterns/ts/internalCache'
 import type { EphemeraCacheDynamoItem } from '../dataSource/renderCache/baseClasses'
 import type { RenderCacheData } from './renderCache'
 
 import { RoomDescribeData, MapDescribeData, RoomExit } from '@tonylb/mtw-interfaces/ts/messages'
 import CacheGlobalData from './global';
-import { excludeUndefined, unique } from '@tonylb/mtw-utilities/ts/lists';
+import { unique } from '@tonylb/mtw-utilities/ts/lists';
 
 import {
     EphemeraCharacterId,
@@ -32,8 +38,6 @@ import { RenderTree } from '@tonylb/mtw-base/ts/renderTree';
 import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses';
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room';
 import StandardExample from '@tonylb/mtw-wml/ts/standardize/components/example';
-import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal';
-import { ExitFacetList } from '@tonylb/mtw-wml/ts/standardize/keys/facets/exit';
 import { StandardRender } from '@tonylb/mtw-wml/ts/standardize/render';
 import StandardMessage from '@tonylb/mtw-wml/ts/standardize/components/message';
 import StandardMap from '@tonylb/mtw-wml/ts/standardize/components/map';
@@ -98,12 +102,10 @@ type ComponentDescriptionCache = {
     description: ComponentDescriptionItem;
 }
 
-type ComponentRenderGetOptions = {
+export type ComponentRenderGetOptions = {
     priorRenderChain?: string[];
     header?: boolean;
 }
-
-const generateCacheKey = (CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraId: EphemeraRoomId | EphemeraFeatureId | EphemeraKnowledgeId | EphemeraMapId | EphemeraMessageId, options?: ComponentRenderGetOptions) => (`${CharacterId}::${EphemeraId}::${(options && 'header' in options && options.header) ? 'true' : 'false'}`)
 
 export const isComponentTag = (tag) => (['Room', 'Feature'].includes(tag))
 
@@ -190,8 +192,6 @@ export class ComponentRenderData {
         const appearancesByAsset = await this._componentAssetMeta(EphemeraId, allAssets.map((key) => AssetKey(key))) as Record<AssetUUID, StandardComponent>;
 
         if (isEphemeraRoomId(EphemeraId)) {
-            const assets = allAssets.filter((assetId) => Boolean(appearancesByAsset[assetId]));
-
             const assetData = allAssets.map((assetId) => (appearancesByAsset[assetId] ? [appearancesByAsset[assetId]] : [])).flat(1) as StandardRoom[];
 
             // Prefer render cache for Room (may contain situation-facet records); fall back to ExamplesData.
@@ -220,23 +220,9 @@ export class ComponentRenderData {
                 }
             }
 
-            const [roomCharacterList, exits, shortName] = await Promise.all([
-                this._roomCharacterList(EphemeraId),
-                (() => {
-                    // Collect all exit facets from all assets and merge them
-                    const allExitFacets = assetData
-                        .map((asset) => asset.exits.items || [])
-                        .flat(1)
-                    // Create a new ExitFacetList which will automatically deduplicate and merge
-                    const mergedExits = new ExitFacetList(allExitFacets)
-                    // Convert to JSON format for StandardRoomData
-                    return mergedExits.toJSON()
-                })(),
-                assetData
-                    .map((component) => component.shortName)
-                    .filter(excludeUndefined)
-                    .reduce<StandardLiteral | undefined>((previous, current: StandardLiteral) => (previous ? previous.merge(current) : current), undefined)
-            ]);
+            const roomCharacterList = await this._roomCharacterList(EphemeraId)
+            const exits = mergeRoomExitsToJSON(assetData)
+            const shortName = mergeRoomShortNameLiteral(assetData)
 
             const roomRow: StandardRoomData = {
                 tag: 'Room',
@@ -247,20 +233,7 @@ export class ComponentRenderData {
                 shortName: shortName?.toJSON()
             };
 
-            // Create character components for the StandardForm
-            const characterComponents: StandardCharacterData[] = roomCharacterList.map(char => {
-                const characterData: StandardCharacterData = {
-                    tag: 'Character',
-                    universalKey: char.EphemeraId,
-                    // DisplayName is now a StandardLiteral (string-based) in StandardCharacterData
-                    displayName: char.DisplayName ?? undefined,
-                    image: char.fileURL ? { 
-                        data: { tag: 'Image', key: '', fileURL: char.fileURL }, 
-                        children: [] 
-                    } : undefined
-                };
-                return characterData;
-            });
+            const characterComponents: StandardCharacterData[] = roomCharacterListToStandardCharacterData(roomCharacterList)
 
             const formComponents: any[] = [
                 { tag: 'Asset' as const, universalKey: 'ASSET#render' as const, key: 'render' },
@@ -392,7 +365,7 @@ export class ComponentRenderData {
     }
 
     async get(CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraId: EphemeraFeatureId | EphemeraKnowledgeId | EphemeraRoomId | EphemeraMapId | EphemeraMessageId, options?: ComponentRenderGetOptions): Promise<StandardForm> {
-        const cacheKey = generateCacheKey(CharacterId, EphemeraId, options)
+        const cacheKey = generateEphemeraComponentCacheKey(CharacterId, EphemeraId, options)
         if (!this._Cache.isCached(cacheKey)) {
             //
             // TODO: Figure out how to convince Typescript to evaluate each branch independently, *without* having
@@ -437,7 +410,7 @@ export class ComponentRenderData {
     }
 
     invalidate(CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraId: EphemeraRoomId | EphemeraFeatureId | EphemeraKnowledgeId) {
-        const cacheKey = generateCacheKey(CharacterId, EphemeraId)
+        const cacheKey = generateEphemeraComponentCacheKey(CharacterId, EphemeraId)
         if (cacheKey in this._Store) {
             delete this._Store[cacheKey]
         }
@@ -447,7 +420,7 @@ export class ComponentRenderData {
     }
 
     set(CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraId: EphemeraRoomId | EphemeraFeatureId | EphemeraKnowledgeId, value: StandardForm) {
-        const cacheKey = generateCacheKey(CharacterId, EphemeraId)
+        const cacheKey = generateEphemeraComponentCacheKey(CharacterId, EphemeraId)
         this._Cache.set(Infinity, cacheKey, value)
         this._Store[cacheKey] = value
     }

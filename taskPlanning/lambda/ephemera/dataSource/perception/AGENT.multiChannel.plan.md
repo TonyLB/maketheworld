@@ -80,7 +80,9 @@ Treat **Recommended order** lines **79-81** as **one slice** (publishers + **`Ob
 
 **Decided:** De-duplicated channels per **Phase B server** table; affordance **`wmlContent`** is **full room WML** with **`ephemeraWire`** when **`Object`** / ephemera-only tags apply; render is **`ComponentRender`**-backed per contract.
 
-**Still to nail in implementation (not arbitrary):** the exact steps to produce **render** WML **without** exits / roster / objects / features---whether filtered **`StandardRoom`**, alternate export path, or post-process---depend on **`mtw-wml`** and **`ComponentRender`** capabilities. Prefer **`internalCache.ComponentStackMerge`** (see [`internalCache/AGENT.componentStackMerge.plan.md`](../../internalCache/AGENT.componentStackMerge.plan.md)) for **affordance** structural room data once that cache exists. Record the chosen approach in **`lambda/ephemera/dataSource/perception/AGENT.md`** (or **`componentRender.AGENT.md`**) when Phase B ships, and add focused tests.
+**Structural room data (shipped):** For **affordance**-channel room facts (exits, roster, merged shortName, etc.) without **`RenderCache`** / **`Examples`** prose, use **`internalCache.ComponentStackMerge`** ([`lambda/ephemera/internalCache/componentStackMerge.ts`](../../../../../lambda/ephemera/internalCache/componentStackMerge.ts)); steady-state notes in [`lambda/ephemera/internalCache/AGENT.md`](../../../../../lambda/ephemera/internalCache/AGENT.md) (**Component stack merge**). Perception DataSource also points here: [`lambda/ephemera/dataSource/perception/AGENT.md`](../../../../../lambda/ephemera/dataSource/perception/AGENT.md) (**Structural room WML (affordances)**).
+
+**Still to nail in implementation (not arbitrary):** the exact steps to produce **render** WML **without** exits / roster / objects / features---whether filtered **`StandardRoom`**, alternate export path, or post-process---depend on **`mtw-wml`** and **`ComponentRender`** capabilities. Record the chosen **render**-channel filtering approach in **`lambda/ephemera/dataSource/perception/AGENT.md`** (or **`componentRender.AGENT.md`**) when Phase B ships, and add focused tests.
 
 ---
 
@@ -157,7 +159,8 @@ npm test
 | [`AGENT.multiChannel.contract.md`](../../../../../lambda/ephemera/dataSource/AGENT.multiChannel.contract.md) | Durable contract (room channels + norms) |
 | [`perception/AGENT.md`](../../../../../lambda/ephemera/dataSource/perception/AGENT.md) | Perception DataSource steady-state |
 | [`objects/AGENT.objectHandling.plan.md`](../objects/AGENT.objectHandling.plan.md) | Objects DataSource and Phase 2 |
-| [`internalCache/AGENT.componentStackMerge.plan.md`](../../internalCache/AGENT.componentStackMerge.plan.md) | **Component stack merge** cache: render-agnostic asset stack merge (affordance WML inputs) |
+| [`lambda/ephemera/internalCache/AGENT.md`](../../../../../lambda/ephemera/internalCache/AGENT.md) | Steady-state **Component stack merge** + cache patterns |
+| [`lambda/ephemera/internalCache/componentStackMerge.ts`](../../../../../lambda/ephemera/internalCache/componentStackMerge.ts) | **`ComponentStackMergeData`** implementation |
 | [`charcoal-client/src/components/Message/AGENT.md`](../../../../../charcoal-client/src/components/Message/AGENT.md) | Header UX intent |
 
 ---
