@@ -48,32 +48,7 @@ import { StandardMapData } from '@tonylb/mtw-wml/ts/standardize/components/dataT
 import { StandardFeatureData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/feature';
 import { StandardCharacterData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/character';
 import { SituationRoomFacetPayload, type SituationRoomFacetPayloadType } from '@tonylb/mtw-wml/ts/standardize/keys/facets/situationRoom'
-
-function normalizeCacheDisplayName(displayName: unknown): string | undefined {
-    if (displayName === undefined || displayName === null) return undefined
-    if (typeof displayName === 'string') return displayName
-    if (Array.isArray(displayName)) return (displayName as RenderTree).join('')
-    return undefined
-}
-
-function cacheRenderedContentToRenderPayload(renderedContent: {
-    displayName?: unknown
-    summary?: RenderTree
-    description?: RenderTree
-}): SituationRoomFacetPayloadType {
-    const displayName = normalizeCacheDisplayName(renderedContent.displayName)
-    const out: SituationRoomFacetPayloadType = {}
-    if (displayName !== undefined && String(displayName).trim()) {
-        out.displayName = displayName
-    }
-    if (renderedContent.summary) {
-        out.summary = renderedContent.summary
-    }
-    if (renderedContent.description !== undefined) {
-        out.description = renderedContent.description
-    }
-    return out
-}
+import { situationRoomRenderPayloadFromCacheRenderedContent } from '../dataSource/renderCache/renderedContentToSituationRoomPayload'
 
 function standardExampleToRenderPayload(ex: StandardExample): SituationRoomFacetPayloadType {
     const out: SituationRoomFacetPayloadType = {}
@@ -202,8 +177,7 @@ export class ComponentRenderData {
             let renderPayload: SituationRoomFacetPayloadType | undefined
 
             if (firstRecord) {
-                const { renderedContent } = firstRecord
-                renderPayload = cacheRenderedContentToRenderPayload(renderedContent)
+                renderPayload = situationRoomRenderPayloadFromCacheRenderedContent(firstRecord.renderedContent)
             }
             else {
                 const exampleMap = await this._examples([EphemeraId]);

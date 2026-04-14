@@ -90,7 +90,6 @@ describe('mtw.ephemera.perception DataSource', () => {
     it('room thread receives Generation Started then terminal Render Pertains with stable messageId', async () => {
         const sendSpy = jest.spyOn(messageBus, 'send')
         const schemaSpy = jest.spyOn(schemaModule, 'schemaToWML').mockReturnValue('<RoomTerminal />')
-        const componentRenderSpy = jest.spyOn(internalCache.ComponentRender, 'get').mockResolvedValue({ schema: {} } as any)
 
         sendPerceptionThreadRegistered(messageBus, passThroughFixtureRoomId, {
             threadKind: 'roomDescription',
@@ -159,14 +158,12 @@ describe('mtw.ephemera.perception DataSource', () => {
         expect(internalCache.PerceptionThreads.list(passThroughFixtureRoomId, passThroughFixturePerspectiveKey)).toEqual([])
 
         schemaSpy.mockRestore()
-        componentRenderSpy.mockRestore()
         sendSpy.mockRestore()
     })
 
     it('roomHeaderBroadcast receives Generation Started then terminal Render Pertains with stable messageId', async () => {
         const sendSpy = jest.spyOn(messageBus, 'send')
         const schemaSpy = jest.spyOn(schemaModule, 'schemaToWML').mockReturnValue('<HeaderTerminal />')
-        const componentRenderSpy = jest.spyOn(internalCache.ComponentRender, 'get').mockResolvedValue({ schema: {} } as any)
 
         const targets = ['CHARACTER#viewer', 'CHARACTER#other'] as const
         sendPerceptionThreadRegistered(messageBus, passThroughFixtureRoomId, {
@@ -247,14 +244,12 @@ describe('mtw.ephemera.perception DataSource', () => {
         ).toEqual([])
 
         schemaSpy.mockRestore()
-        componentRenderSpy.mockRestore()
         sendSpy.mockRestore()
     })
 
     it('characterMove receives Generation Started then terminal Render Pertains with stable messageId (mover header)', async () => {
         const sendSpy = jest.spyOn(messageBus, 'send')
         const schemaSpy = jest.spyOn(schemaModule, 'schemaToWML').mockReturnValue('<HeaderMoveTerminal />')
-        const componentRenderSpy = jest.spyOn(internalCache.ComponentRender, 'get').mockResolvedValue({ schema: {} } as any)
 
         sendPerceptionThreadRegistered(messageBus, passThroughFixtureRoomId, {
             threadKind: 'characterMove',
@@ -335,7 +330,6 @@ describe('mtw.ephemera.perception DataSource', () => {
         ).toEqual([])
 
         schemaSpy.mockRestore()
-        componentRenderSpy.mockRestore()
         sendSpy.mockRestore()
     })
 

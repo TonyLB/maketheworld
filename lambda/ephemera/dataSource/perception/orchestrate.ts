@@ -19,6 +19,7 @@ import {
 } from '../../internalCache/perceptionThreads'
 import type { PerceptionThreadRegisterCharacterMoveCommand } from './localApiEvents'
 import { roomHeaderErrorPlaceholderWml, roomHeaderGeneratingPlaceholderWml } from './roomHeaderPlaceholderWml'
+import { roomRenderWmlFromCacheRecord } from './roomRenderWmlFromCacheRecord'
 import { isRenderCacheRenderPertainsPayload } from '../renderCache/baseClasses'
 import {
     isRenderOrchestrationGenerationDeferredPayload,
@@ -89,6 +90,10 @@ async function handleRenderPertains(
         return
     }
     const entries = internalCache.PerceptionThreads.list(payload.componentId, payload.perspectiveKey)
+    const terminalRenderWml = roomRenderWmlFromCacheRecord(
+        payload.componentId,
+        payload.cacheRecord.renderedContent
+    )
     for (const entry of entries) {
         if (!isRoomDescriptionPerceptionThread(entry.thread)) {
             continue
@@ -103,13 +108,12 @@ async function handleRenderPertains(
         }
         const characterId = registration.characterId
 
-        const roomDescribe = await internalCache.ComponentRender.get(characterId, payload.componentId)
         const messageId = thread.messageId ?? `MESSAGE#${randomUUID()}`
         bus.send({
             type: 'PublishMessage',
             targets: [characterId],
             displayProtocol: 'PerceptionMessage',
-            wmlContent: schemaToWML([roomDescribe.schema]),
+            wmlContent: terminalRenderWml,
             metaData: {
                 componentUUID: payload.componentId,
                 displayMode: 'full',
@@ -140,21 +144,13 @@ async function handleRenderPertains(
         }
         const targets = registration.targets
         const roomId = payload.componentId
-        const headerDescribes = await Promise.all(
-            targets.map((characterId) =>
-                internalCache.ComponentRender.get(characterId, roomId, { header: true })
-            )
-        )
-        const wmlStrings = headerDescribes.map((d) => schemaToWML([d.schema]))
         const messageId = thread.messageId ?? `MESSAGE#${randomUUID()}`
-        const firstWml = wmlStrings[0]
-        const allSame = wmlStrings.length > 0 && wmlStrings.every((w) => w === firstWml)
-        if (allSame) {
+        if (targets.length) {
             bus.send({
                 type: 'PublishMessage',
                 targets,
                 displayProtocol: 'PerceptionMessage',
-                wmlContent: firstWml,
+                wmlContent: terminalRenderWml,
                 metaData: {
                     componentUUID: roomId,
                     displayMode: 'header',
@@ -163,22 +159,6 @@ async function handleRenderPertains(
                 messageGroupId: registration.messageGroupId,
                 messageId,
             })
-        } else {
-            for (let i = 0; i < targets.length; i++) {
-                bus.send({
-                    type: 'PublishMessage',
-                    targets: [targets[i]],
-                    displayProtocol: 'PerceptionMessage',
-                    wmlContent: wmlStrings[i],
-                    metaData: {
-                        componentUUID: roomId,
-                        displayMode: 'header',
-                        roomChannel: 'render',
-                    },
-                    messageGroupId: registration.messageGroupId,
-                    messageId,
-                })
-            }
         }
 
         internalCache.PerceptionThreads.remove({
@@ -202,21 +182,13 @@ async function handleRenderPertains(
         }
         const targets = headerTargetsForCharacterMove(registration)
         const roomId = payload.componentId
-        const headerDescribes = await Promise.all(
-            targets.map((characterId) =>
-                internalCache.ComponentRender.get(characterId, roomId, { header: true })
-            )
-        )
-        const wmlStrings = headerDescribes.map((d) => schemaToWML([d.schema]))
         const messageId = thread.messageId ?? `MESSAGE#${randomUUID()}`
-        const firstWml = wmlStrings[0]
-        const allSame = wmlStrings.length > 0 && wmlStrings.every((w) => w === firstWml)
-        if (allSame) {
+        if (targets.length) {
             bus.send({
                 type: 'PublishMessage',
                 targets,
                 displayProtocol: 'PerceptionMessage',
-                wmlContent: firstWml,
+                wmlContent: terminalRenderWml,
                 metaData: {
                     componentUUID: roomId,
                     displayMode: 'header',
@@ -225,22 +197,6 @@ async function handleRenderPertains(
                 messageGroupId: registration.messageGroupId,
                 messageId,
             })
-        } else {
-            for (let i = 0; i < targets.length; i++) {
-                bus.send({
-                    type: 'PublishMessage',
-                    targets: [targets[i]],
-                    displayProtocol: 'PerceptionMessage',
-                    wmlContent: wmlStrings[i],
-                    metaData: {
-                        componentUUID: roomId,
-                        displayMode: 'header',
-                        roomChannel: 'render',
-                    },
-                    messageGroupId: registration.messageGroupId,
-                    messageId,
-                })
-            }
         }
 
         internalCache.PerceptionThreads.remove({
