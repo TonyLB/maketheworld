@@ -16,6 +16,7 @@ import type {
     DeleteCacheRecordsCommand,
     StateChangeCommand,
     ObjectsChangeCommand,
+    ParseRequestedCommand,
     EphemeraApiCommandPayload,
 } from './localApiEvents'
 
@@ -24,6 +25,7 @@ export type EphemeraApiSubscribedHeader =
     | (StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Delete Cache Records' })
     | (StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'State Change' })
     | (StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Objects Change' })
+    | (StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Parse Requested' })
 
 export type EphemeraApiIncomingEvent =
     | {
@@ -41,6 +43,10 @@ export type EphemeraApiIncomingEvent =
     | {
           header: StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Objects Change' };
           getContent: () => Promise<ObjectsChangeCommand>;
+      }
+    | {
+          header: StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Parse Requested' };
+          getContent: () => Promise<ParseRequestedCommand>;
       }
 
 const isPutCacheRecordHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Put Cache Record' }> = (
@@ -63,6 +69,11 @@ const isObjectsChangeHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey:
 ): h is StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Objects Change' } =>
     h.dataSourceKey === 'api.ephemera' && h.type === 'Objects Change'
 
+const isParseRequestedHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Parse Requested' }> = (
+    h
+): h is StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Parse Requested' } =>
+    h.dataSourceKey === 'api.ephemera' && h.type === 'Parse Requested'
+
 export const isEphemeraApiPutCacheRecordEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
     PutCacheRecordCommand,
     StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Put Cache Record' }
@@ -83,6 +94,11 @@ export const isEphemeraApiObjectsChangeEnvelope = makeStreamingEnvelopeGuardFrom
     StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Objects Change' }
 >(isObjectsChangeHeader)
 
+export const isEphemeraApiParseRequestedEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
+    ParseRequestedCommand,
+    StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Parse Requested' }
+>(isParseRequestedHeader)
+
 export const isEphemeraApiSubscribedHeader: HeaderGuard<EphemeraApiSubscribedHeader> = (
     header
 ): header is EphemeraApiSubscribedHeader =>
@@ -90,6 +106,7 @@ export const isEphemeraApiSubscribedHeader: HeaderGuard<EphemeraApiSubscribedHea
     || isDeleteCacheRecordsHeader(header)
     || isStateChangeHeader(header)
     || isObjectsChangeHeader(header)
+    || isParseRequestedHeader(header)
 
 export const isEphemeraApiSubscribedEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
     EphemeraApiCommandPayload,
@@ -176,6 +193,28 @@ export function sendObjectsChange(bus: Bus, streamKey: string, content: ObjectsC
         streamKey,
         timestamp,
         type: 'Objects Change',
+    }
+    const envelope = createInternalOriginEnvelope(header, content, apiEphemeraSerializer)
+    bus.send({
+        type: 'StreamingEvent',
+        dataSourceKey: 'api.ephemera',
+        streamKey,
+        header: envelope.header,
+        getContent: envelope.getContent,
+        timestamp,
+    })
+}
+
+/**
+ * Post **Parse Requested** to the internal bus for mtw.ephemera.actions ingestion.
+ */
+export function sendParseRequested(bus: Bus, streamKey: string, content: ParseRequestedCommand): void {
+    const timestamp = Date.now()
+    const header: StreamingEventHeader = {
+        dataSourceKey: 'api.ephemera',
+        streamKey,
+        timestamp,
+        type: 'Parse Requested',
     }
     const envelope = createInternalOriginEnvelope(header, content, apiEphemeraSerializer)
     bus.send({
