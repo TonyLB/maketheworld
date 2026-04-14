@@ -6,6 +6,8 @@ import internalCache from "."
 const ephemeraMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 
 describe('InternalCache', () => {
+    const defaultGameRooms = ['VORTEX', 'STRAIGHTAWAY', 'CLIFFTOP', 'CORNER', 'BRIDGE']
+
     beforeEach(() => {
         jest.clearAllMocks()
         jest.resetAllMocks()
@@ -19,6 +21,21 @@ describe('InternalCache', () => {
     it('should return set value on KeyValue cache when set', async () => {
         internalCache.Global.set({ key: 'ConnectionId', value: 'TestConnection' })
         expect(await internalCache.Global.get('ConnectionId')).toEqual('TestConnection')
+    })
+
+    it('returns default CoyoteGame room list', async () => {
+        expect(await internalCache.CoyoteGame.get('gameRooms')).toEqual(defaultGameRooms)
+    })
+
+    it('returns overridden CoyoteGame room list when set', async () => {
+        internalCache.CoyoteGame.set({ key: 'gameRooms', value: ['ROOM#1', 'ROOM#2'] })
+        expect(await internalCache.CoyoteGame.get('gameRooms')).toEqual(['ROOM#1', 'ROOM#2'])
+    })
+
+    it('clear restores default CoyoteGame room list', async () => {
+        internalCache.CoyoteGame.set({ key: 'gameRooms', value: ['ROOM#1'] })
+        internalCache.clear()
+        expect(await internalCache.CoyoteGame.get('gameRooms')).toEqual(defaultGameRooms)
     })
 
     it('clear resets PerceptionThreads', () => {
