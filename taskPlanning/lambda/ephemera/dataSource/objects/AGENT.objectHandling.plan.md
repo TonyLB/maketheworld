@@ -100,13 +100,13 @@ This does **not** add automatic coupling between the two DataSources; it is **or
 ### Downstream (follow-on)
 
 - **`renderOrchestration`:** Subscribe to **`Objects Changed`** (or ingress) if object lists affect render keys or passive fan-out.
-- **`mtw.ephemera.perception`:** **Agreed:** subscribe on **`mtw.ephemera.perception`** and emit affordance **`PerceptionMessage`** for **`Objects Changed`** (see [`AGENT.multiChannel.plan.md`](../../../taskPlanning/lambda/ephemera/dataSource/perception/AGENT.multiChannel.plan.md) **Phase B server (agreed norms)** and [`AGENT.multiChannel.contract.md`](../AGENT.multiChannel.contract.md) **Phase B server migration**).
+- **`mtw.ephemera.perception`:** **Agreed:** subscribe on **`mtw.ephemera.perception`** and emit affordance **`PerceptionMessage`** for **`Objects Changed`** (see [`lambda/ephemera/dataSource/AGENT.multiChannel.contract.md`](../../../../lambda/ephemera/dataSource/AGENT.multiChannel.contract.md) **Phase B server migration (agreed)** and [`lambda/ephemera/dataSource/perception/AGENT.md`](../../../../lambda/ephemera/dataSource/perception/AGENT.md) **Server publish sites (multi-channel)**).
 
 ---
 
 ## Deferred (not blocking phase 1)
 
-**Perception wiring** for **`Objects Changed`** is **decided** for Phase 2: **`mtw.ephemera.perception`** subscription and affordance **`PublishMessage`** (see multi-channel plan **Phase B**). Remaining **implementation** detail (WML build helpers, tests) ships with that slice.
+**Perception wiring** for **`Objects Changed`** is **decided** for Phase 2: **`mtw.ephemera.perception`** subscription and affordance **`PublishMessage`** (see [`AGENT.multiChannel.contract.md`](../../../../lambda/ephemera/dataSource/AGENT.multiChannel.contract.md) **Phase B server migration**). Remaining **implementation** detail (WML build helpers, tests) ships with that slice.
 
 ---
 
