@@ -19,10 +19,26 @@ export type ParseCommandAcmeOrderResult = {
     order: string
 }
 
+/** Coyote Game: wait-state for Road Runner encounter flows. */
+export type ParseCommandAwaitRoadrunnerResult = {
+    type: 'AwaitRoadRunner'
+}
+
+export type ParseCommandUnimplementedResult = {
+    type: 'Unimplemented'
+}
+
+export type ParseCommandUnknownResult = {
+    type: 'Unknown'
+}
+
 export type ParseCommandResult =
     | ParseCommandErrorResult
     | ParseCommandNavigationResult
     | ParseCommandAcmeOrderResult
+    | ParseCommandAwaitRoadrunnerResult
+    | ParseCommandUnimplementedResult
+    | ParseCommandUnknownResult
 
 export function isParseCommandErrorResult(
     result: ParseCommandResult
@@ -40,6 +56,24 @@ export function isParseCommandAcmeOrderResult(
     result: ParseCommandResult
 ): result is ParseCommandAcmeOrderResult {
     return result.type === 'AcmeOrder' && typeof result.order === 'string'
+}
+
+export function isParseCommandAwaitRoadrunnerResult(
+    result: ParseCommandResult
+): result is ParseCommandAwaitRoadrunnerResult {
+    return result.type === 'AwaitRoadRunner'
+}
+
+export function isParseCommandUnimplementedResult(
+    result: ParseCommandResult
+): result is ParseCommandUnimplementedResult {
+    return result.type === 'Unimplemented'
+}
+
+export function isParseCommandUnknownResult(
+    result: ParseCommandResult
+): result is ParseCommandUnknownResult {
+    return result.type === 'Unknown'
 }
 
 export type ParseCommandInput = {

@@ -13,8 +13,11 @@ import messageBus from '../../messageBus'
 import { getRoomExitTargetsForCharacter } from './roomExitTargetsForCharacter'
 import {
     isParseCommandAcmeOrderResult,
+    isParseCommandAwaitRoadrunnerResult,
     isParseCommandErrorResult,
     isParseCommandNavigationResult,
+    isParseCommandUnimplementedResult,
+    isParseCommandUnknownResult,
     parseCommand,
 } from './parseCommand'
 
@@ -77,6 +80,34 @@ export const ephemeraActionsDataSource = new EphemeraDataSource<
                     targets: [content.characterId],
                     displayProtocol: 'WorldOOCMessage',
                     message: [`Acme Order: ${parseResult.order}`],
+                })
+            }
+            else if (isEphemeraCharacterId(content.characterId) && isParseCommandAwaitRoadrunnerResult(parseResult)) {
+                messageBus.send({
+                    type: 'PublishMessage',
+                    targets: [content.characterId],
+                    displayProtocol: 'WorldOOCMessage',
+                    message: ['Awaiting Road Runner'],
+                })
+            }
+            else if (isEphemeraCharacterId(content.characterId) && isParseCommandUnimplementedResult(parseResult)) {
+                messageBus.send({
+                    type: 'PublishMessage',
+                    targets: [content.characterId],
+                    displayProtocol: 'WorldOOCMessage',
+                    message: [
+                        "I can tell you're trying to do something that hasn't been implemented in the game yet, sorry.",
+                    ],
+                })
+            }
+            else if (isEphemeraCharacterId(content.characterId) && isParseCommandUnknownResult(parseResult)) {
+                messageBus.send({
+                    type: 'PublishMessage',
+                    targets: [content.characterId],
+                    displayProtocol: 'WorldOOCMessage',
+                    message: [
+                        "I'm sorry, I can't tell what you're trying to tell me to do.",
+                    ],
                 })
             }
             if (content.requestId) {

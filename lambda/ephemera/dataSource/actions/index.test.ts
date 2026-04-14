@@ -240,4 +240,98 @@ describe('ephemeraActionsDataSource', () => {
             })
         })
     })
+
+    describe('ParseCommandAwaitRoadrunnerResult', () => {
+        it('publishes WorldOOCMessage Awaiting Road Runner', async () => {
+            mockedParseCommand.mockResolvedValue({ type: 'AwaitRoadRunner' })
+
+            await ephemeraActionsDataSource.receiveEvents!({
+                events: [{
+                    header: {
+                        dataSourceKey: 'api.ephemera',
+                        streamKey: 'CHARACTER#123',
+                        timestamp: Date.now(),
+                        type: 'Parse Requested',
+                    },
+                    getContent: async () => ({
+                        characterId: 'CHARACTER#123',
+                        command: 'wait',
+                    }),
+                }],
+                streamEvent: jest.fn(async () => {}),
+                streamEnvelope: jest.fn(async () => {}),
+            })
+
+            expect(mockMessageBus.send).toHaveBeenCalledWith({
+                type: 'PublishMessage',
+                targets: ['CHARACTER#123'],
+                displayProtocol: 'WorldOOCMessage',
+                message: ['Awaiting Road Runner'],
+            })
+        })
+    })
+
+    describe('ParseCommandUnimplementedResult', () => {
+        it('publishes WorldOOCMessage for unimplemented intent', async () => {
+            mockedParseCommand.mockResolvedValue({ type: 'Unimplemented' })
+
+            await ephemeraActionsDataSource.receiveEvents!({
+                events: [{
+                    header: {
+                        dataSourceKey: 'api.ephemera',
+                        streamKey: 'CHARACTER#123',
+                        timestamp: Date.now(),
+                        type: 'Parse Requested',
+                    },
+                    getContent: async () => ({
+                        characterId: 'CHARACTER#123',
+                        command: 'future feature',
+                    }),
+                }],
+                streamEvent: jest.fn(async () => {}),
+                streamEnvelope: jest.fn(async () => {}),
+            })
+
+            expect(mockMessageBus.send).toHaveBeenCalledWith({
+                type: 'PublishMessage',
+                targets: ['CHARACTER#123'],
+                displayProtocol: 'WorldOOCMessage',
+                message: [
+                    "I can tell you're trying to do something that hasn't been implemented in the game yet, sorry.",
+                ],
+            })
+        })
+    })
+
+    describe('ParseCommandUnknownResult', () => {
+        it('publishes WorldOOCMessage for unknown intent', async () => {
+            mockedParseCommand.mockResolvedValue({ type: 'Unknown' })
+
+            await ephemeraActionsDataSource.receiveEvents!({
+                events: [{
+                    header: {
+                        dataSourceKey: 'api.ephemera',
+                        streamKey: 'CHARACTER#123',
+                        timestamp: Date.now(),
+                        type: 'Parse Requested',
+                    },
+                    getContent: async () => ({
+                        characterId: 'CHARACTER#123',
+                        command: 'gibberish',
+                    }),
+                }],
+                streamEvent: jest.fn(async () => {}),
+                streamEnvelope: jest.fn(async () => {}),
+            })
+
+            expect(mockMessageBus.send).toHaveBeenCalledWith({
+                type: 'PublishMessage',
+                targets: ['CHARACTER#123'],
+                displayProtocol: 'WorldOOCMessage',
+                message: [
+                    "I'm sorry, I can't tell what you're trying to tell me to do.",
+                ],
+            })
+        })
+    })
 })
