@@ -43,6 +43,12 @@ export type WorldMessage = {
     Message: RenderTree;
 } & MessageAddressing
 
+/** System / out-of-world line: same wire shape as WorldMessage, distinct DisplayProtocol for UI (grey stripes). */
+export type WorldOOCMessage = {
+    DisplayProtocol: 'WorldOOCMessage';
+    Message: RenderTree;
+} & MessageAddressing
+
 export type RoomExit = {
     Name: string;
     RoomId: EphemeraRoomId;
@@ -331,7 +337,7 @@ export const isPerceptionAssetMetaData = (metaData: PerceptionMessageMetaData): 
     return metaData.componentUUID.startsWith('ASSET#');
 }
 
-export type Message = SpacerMessage | WorldMessage | RoomUpdate | CharacterNarration | CharacterSpeech | OutOfCharacterMessage | PerceptionMessage
+export type Message = SpacerMessage | WorldMessage | WorldOOCMessage | RoomUpdate | CharacterNarration | CharacterSpeech | OutOfCharacterMessage | PerceptionMessage
 
 export const isMessage = (message: any): message is Message => {
     if (typeof message !== 'object') {
@@ -345,6 +351,7 @@ export const isMessage = (message: any): message is Message => {
     }
     switch(message.DisplayProtocol) {
         case 'WorldMessage':
+        case 'WorldOOCMessage':
             return isRenderTree(message.Message)
         case 'SayMessage':
         case 'NarrateMessage':

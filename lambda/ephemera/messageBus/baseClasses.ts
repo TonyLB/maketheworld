@@ -45,6 +45,11 @@ export type PublishWorldMessage = PublishMessageBase & {
     message: RenderTree;
 }
 
+export type PublishWorldOOCMessage = PublishMessageBase & {
+    displayProtocol: 'WorldOOCMessage';
+    message: RenderTree;
+}
+
 type MessageCharacterInfo = {
     characterId: EphemeraCharacterId;
     name: string;
@@ -80,6 +85,7 @@ export type PublishPerceptionMessage = {
 } & PublishMessageBase
 
 export type PublishMessage = PublishWorldMessage |
+    PublishWorldOOCMessage |
     PublishSpeechMessage |
     PublishNarrateMessage |
     PublishOutOfCharacterMessage |
@@ -297,6 +303,8 @@ export type MessageType = PublishMessage |
 
 export const isPublishMessage = (prop: MessageType): prop is PublishMessage => (prop.type === 'PublishMessage')
 export const isWorldMessage = (prop: PublishMessage): prop is PublishWorldMessage => (prop.displayProtocol === 'WorldMessage')
+export const isPublishWorldLineMessage = (prop: PublishMessage): prop is PublishWorldMessage | PublishWorldOOCMessage =>
+    prop.displayProtocol === 'WorldMessage' || prop.displayProtocol === 'WorldOOCMessage'
 export const isCharacterMessage = (prop: PublishMessage): prop is (PublishSpeechMessage | PublishNarrateMessage | PublishOutOfCharacterMessage) => (['SayMessage', 'NarrateMessage', 'OOCMessage'].includes(prop.displayProtocol))
 
 export const isPerceptionPublishMessage = (prop: PublishMessage): prop is PublishPerceptionMessage => (prop.displayProtocol === 'PerceptionMessage')

@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid'
-import { isCharacterMessage, isWorldMessage, PublishMessage, MessageBus, isPublishTargetRoom, isPublishTargetCharacter, isPublishTargetExcludeCharacter, PublishTarget, isPerceptionPublishMessage, isPublishTargetSession, isPublishTargetExcludeSession } from "../messageBus/baseClasses"
+import { isCharacterMessage, isPublishWorldLineMessage, PublishMessage, MessageBus, isPublishTargetRoom, isPublishTargetCharacter, isPublishTargetExcludeCharacter, PublishTarget, isPerceptionPublishMessage, isPublishTargetSession, isPublishTargetExcludeSession } from "../messageBus/baseClasses"
 import getCurrentTimestamp from '../internalUtils/dateUtil'
 import { unique } from '@tonylb/mtw-utilities/ts/lists'
 import internalCache from '../internalCache'
@@ -255,7 +255,7 @@ export const publishMessage = async ({ payloads }: { payloads: PublishMessage[],
 
     await Promise.all(payloads.map(async (payload, index) => {
         const CreatedTime = baseTime + (payload.messageGroupId ? offsetsByMessageId[payload.messageGroupId] ?? pastOffsets + index : pastOffsets + index)
-        if (isWorldMessage(payload)) {
+        if (isPublishWorldLineMessage(payload)) {
             await pushToQueues({
                 Targets: payload.targets,
                 MessageId: `MESSAGE#${uuidv4()}`,

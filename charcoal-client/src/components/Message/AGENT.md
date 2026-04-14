@@ -19,6 +19,7 @@ The `Message` directory contains React components that handle the display of dif
 - **`NarrateMessage`**: Character narrative actions
 - **`OOCMessage`**: Out-of-character player communication
 - **`WorldMessage`**: System-generated content
+- **`WorldOOCMessage`**: System / out-of-world lines (grey striped bubble, not in-play)
 
 ### **Perception Messages**
 - **`RoomDescription`**: Room information and layout
