@@ -44,6 +44,16 @@ export type ObjectsChangeCommand = {
     remove: EphemeraObjectId[];
 }
 
+/**
+ * Synthetic action-parse request for mtw.ephemera.actions.
+ * `command` is raw player input to be parsed into an action shape.
+ */
+export type ParseRequestedCommand = {
+    characterId: string;
+    command: string;
+    requestId?: string;
+}
+
 const isMarkStateShape = (value: unknown): value is EphemeraCacheMarkState => {
     if (!value || typeof value !== 'object') {
         return false
@@ -80,6 +90,23 @@ export const isObjectsChangeCommand = (value: unknown): value is ObjectsChangeCo
         return false
     }
     if (!Array.isArray(v.remove) || !v.remove.every((x) => typeof x === 'string' && isEphemeraObjectId(x))) {
+        return false
+    }
+    return true
+}
+
+export const isParseRequestedCommand = (value: unknown): value is ParseRequestedCommand => {
+    if (!value || typeof value !== 'object') {
+        return false
+    }
+    const v = value as Record<string, unknown>
+    if (typeof v.characterId !== 'string') {
+        return false
+    }
+    if (typeof v.command !== 'string') {
+        return false
+    }
+    if (v.requestId !== undefined && typeof v.requestId !== 'string') {
         return false
     }
     return true
@@ -139,3 +166,4 @@ export type EphemeraApiCommandPayload =
     | DeleteCacheRecordsCommand
     | StateChangeCommand
     | ObjectsChangeCommand
+    | ParseRequestedCommand

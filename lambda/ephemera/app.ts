@@ -1,7 +1,6 @@
 // Copyright 2020 Tony Lower-Basch. All Rights Reserved.
 // SPDX-License-Identifier: MIT-0
 
-import { parseCommand } from './parse'
 import { StartExecutionCommand } from '@aws-sdk/client-sfn'
 import getCurrentTimestamp from './internalUtils/dateUtil'
 
@@ -33,7 +32,7 @@ import { confirmGuestCharacter } from './guestCharacter'
 import { AssetsEventSerializer, ComponentExamplesEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
 import { fromEventBridgeFormat } from '@tonylb/mtw-lambda-patterns/ts/dataSource/formatTransform'
 import { coreFormatToStreamingEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
-import { sendStateChange } from './dataSource/apiEphemera'
+import { sendParseRequested, sendStateChange } from './dataSource/apiEphemera'
 import { isStateChangeCommand } from './dataSource/localApiEvents'
 
 // Import DataSources to trigger their messageBus subscriptions (side-effect imports)
@@ -42,6 +41,7 @@ import './dataSource/componentExamples'  // mtw.ephemera.examples DataSource
 import './dataSource/renderCache'  // mtw.ephemera.renderCache DataSource
 import './dataSource/renderOrchestration'  // mtw.ephemera.renderOrchestration DataSource (evolving; see dataSource/renderOrchestration/AGENT.md)
 import './dataSource/perception'  // mtw.ephemera.perception DataSource (see dataSource/perception/AGENT.md)
+import './dataSource/actions'  // mtw.ephemera.actions DataSource (inert bus-only stub)
 import './dataSource/objects'  // mtw.ephemera.objects DataSource (before state: shared Meta::Room ordering)
 import './dataSource/state'  // mtw.ephemera.state DataSource (see lambda/ephemera/dataSource/state/AGENT.planning.perceptionVertical.md)
 
@@ -219,16 +219,22 @@ export const handler = async (event: any, context: any) => {
             }
 
             if (isCommandAPIMessage(request)) {
-                const parsedAction = await parseCommand({
-                    CharacterId: request.CharacterId,
-                    command: request.command
+                sendParseRequested(messageBus, request.CharacterId, {
+                    characterId: request.CharacterId,
+                    command: request.command,
+                    ...(request.RequestId ? { requestId: request.RequestId } : {}),
                 })
-                if (parsedAction) {
-                    messageBus.send({
-                        type: 'ExecuteAction',
-                        action: parsedAction
-                    })
-                }
+                // Legacy reference (Phase 1 intentionally disables direct imperative parse/execute):
+                // const parsedAction = await parseCommand({
+                //     CharacterId: request.CharacterId,
+                //     command: request.command
+                // })
+                // if (parsedAction) {
+                //     messageBus.send({
+                //         type: 'ExecuteAction',
+                //         action: parsedAction
+                //     })
+                // }
             }
 
             if (isActionAPIMessage(request)) {
