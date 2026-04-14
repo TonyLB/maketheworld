@@ -1,11 +1,17 @@
 import { ComponentAssetMetaData } from './componentAssetMeta'
+import {
+    generateEphemeraComponentCacheKey,
+    mergeRoomExitsToJSON,
+    mergeRoomShortNameLiteral,
+    roomCharacterListToStandardCharacterData,
+} from './componentStackMerge'
 import { DeferredCache } from '@tonylb/mtw-lambda-patterns/ts/internalCache'
 import type { EphemeraCacheDynamoItem } from '../dataSource/renderCache/baseClasses'
 import type { RenderCacheData } from './renderCache'
 
 import { RoomDescribeData, MapDescribeData, RoomExit } from '@tonylb/mtw-interfaces/ts/messages'
 import CacheGlobalData from './global';
-import { excludeUndefined, unique } from '@tonylb/mtw-utilities/ts/lists';
+import { unique } from '@tonylb/mtw-utilities/ts/lists';
 
 import {
     EphemeraCharacterId,
@@ -32,9 +38,6 @@ import { RenderTree } from '@tonylb/mtw-base/ts/renderTree';
 import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses';
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room';
 import StandardExample from '@tonylb/mtw-wml/ts/standardize/components/example';
-import StandardSituation from '@tonylb/mtw-wml/ts/standardize/components/situation';
-import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal';
-import { ExitFacetList } from '@tonylb/mtw-wml/ts/standardize/keys/facets/exit';
 import { StandardRender } from '@tonylb/mtw-wml/ts/standardize/render';
 import StandardMessage from '@tonylb/mtw-wml/ts/standardize/components/message';
 import StandardMap from '@tonylb/mtw-wml/ts/standardize/components/map';
@@ -44,7 +47,22 @@ import { StandardKnowledgeData } from '@tonylb/mtw-wml/ts/standardize/components
 import { StandardMapData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/map';
 import { StandardFeatureData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/feature';
 import { StandardCharacterData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/character';
-import { StandardEditableData } from '@tonylb/mtw-base/ts/editable';
+import { SituationRoomFacetPayload, type SituationRoomFacetPayloadType } from '@tonylb/mtw-wml/ts/standardize/keys/facets/situationRoom'
+import { situationRoomRenderPayloadFromCacheRenderedContent } from '../dataSource/renderCache/renderedContentToSituationRoomPayload'
+
+function standardExampleToRenderPayload(ex: StandardExample): SituationRoomFacetPayloadType {
+    const out: SituationRoomFacetPayloadType = {}
+    if (ex.displayName) {
+        out.displayName = ex.displayName.toJSON()
+    }
+    if (ex.summary) {
+        out.summary = ex.summary.toJSON()
+    }
+    if (ex.description) {
+        out.description = ex.description.toJSON()
+    }
+    return out
+}
 
 type MessageDescribeData = {
     MessageId: EphemeraMessageId;
@@ -59,12 +77,10 @@ type ComponentDescriptionCache = {
     description: ComponentDescriptionItem;
 }
 
-type ComponentRenderGetOptions = {
+export type ComponentRenderGetOptions = {
     priorRenderChain?: string[];
     header?: boolean;
 }
-
-const generateCacheKey = (CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraId: EphemeraRoomId | EphemeraFeatureId | EphemeraKnowledgeId | EphemeraMapId | EphemeraMessageId, options?: ComponentRenderGetOptions) => (`${CharacterId}::${EphemeraId}::${(options && 'header' in options && options.header) ? 'true' : 'false'}`)
 
 export const isComponentTag = (tag) => (['Room', 'Feature'].includes(tag))
 
@@ -151,8 +167,6 @@ export class ComponentRenderData {
         const appearancesByAsset = await this._componentAssetMeta(EphemeraId, allAssets.map((key) => AssetKey(key))) as Record<AssetUUID, StandardComponent>;
 
         if (isEphemeraRoomId(EphemeraId)) {
-            const assets = allAssets.filter((assetId) => Boolean(appearancesByAsset[assetId]));
-
             const assetData = allAssets.map((assetId) => (appearancesByAsset[assetId] ? [appearancesByAsset[assetId]] : [])).flat(1) as StandardRoom[];
 
             // Prefer render cache for Room (may contain situation-facet records); fall back to ExamplesData.
@@ -160,124 +174,46 @@ export class ComponentRenderData {
             const firstRecord: EphemeraCacheDynamoItem | undefined = cacheRecords.length > 0
                 ? cacheRecords[0]
                 : undefined;
-            let naiveFirstExample: StandardExample | undefined;
-            let situationComponent: StandardSituation | undefined;
-            let situationFacets: StandardRoomData['situations'];
+            let renderPayload: SituationRoomFacetPayloadType | undefined
 
             if (firstRecord) {
-                const { situationId, authoredExampleId, renderedContent, markState } = firstRecord;
-
-                if (situationId) {
-                    // Situation-backed cache record: synthesize StandardSituation and SituationRoom facet.
-                    const marks = (markState.markValue ?? []).map(({ mark, value }) => ({
-                        reference: mark as ComponentUUID,
-                        payload: value
-                    }));
-
-                    situationComponent = new StandardSituation({
-                        tag: 'Situation',
-                        universalKey: situationId as ComponentUUID,
-                        marks
-                    });
-
-                    situationFacets = [{
-                        reference: {
-                            tag: 'Situation',
-                            universalKey: situationId as ComponentUUID
-                        },
-                        // SituationRoomFacetPayloadType.displayName is a StandardEditableData<string>;
-                        // summary/description remain RenderTree-based.
-                        payload: {
-                            ...(renderedContent.displayName
-                                ? { displayName: renderedContent.displayName as unknown as StandardEditableData<string> }
-                                : {}),
-                            ...(renderedContent.summary ? { summary: renderedContent.summary } : {}),
-                            description: renderedContent.description
-                        }
-                    }];
-                }
-                else {
-                    // Example-backed cache record: preserve existing Example synthesis behavior.
-                    const stateSliceId = (authoredExampleId ?? 'EXAMPLE#rendered') as ComponentUUID;
-                    naiveFirstExample = new StandardExample({
-                        tag: 'Example',
-                        universalKey: stateSliceId,
-                        // Example displayName is a StandardLiteral (string-based); convert RenderTree to string.
-                        displayName: renderedContent.displayName
-                            ? (renderedContent.displayName as RenderTree).join('')
-                            : undefined,
-                        summary: renderedContent.summary,
-                        description: renderedContent.description ?? [],
-                        marks: [],
-                    });
-                }
-            } else {
+                renderPayload = situationRoomRenderPayloadFromCacheRenderedContent(firstRecord.renderedContent)
+            }
+            else {
                 const exampleMap = await this._examples([EphemeraId]);
-                naiveFirstExample = exampleMap[EphemeraId]?.[0]?.examples?.[0];
+                const naiveFirstExample = exampleMap[EphemeraId]?.[0]?.examples?.[0]
+                if (naiveFirstExample) {
+                    renderPayload = standardExampleToRenderPayload(naiveFirstExample)
+                }
             }
 
-            const [roomCharacterList, exits, shortName] = await Promise.all([
-                this._roomCharacterList(EphemeraId),
-                (() => {
-                    // Collect all exit facets from all assets and merge them
-                    const allExitFacets = assetData
-                        .map((asset) => asset.exits.items || [])
-                        .flat(1)
-                    // Create a new ExitFacetList which will automatically deduplicate and merge
-                    const mergedExits = new ExitFacetList(allExitFacets)
-                    // Convert to JSON format for StandardRoomData
-                    return mergedExits.toJSON()
-                })(),
-                assetData
-                    .map((component) => component.shortName)
-                    .filter(excludeUndefined)
-                    .reduce<StandardLiteral | undefined>((previous, current: StandardLiteral) => (previous ? previous.merge(current) : current), undefined)
-            ]);
+            if (renderPayload) {
+                const payloadModel = new SituationRoomFacetPayload(renderPayload)
+                if (SituationRoomFacetPayload.isEmpty(payloadModel)) {
+                    renderPayload = undefined
+                }
+            }
 
-            const examples = (naiveFirstExample
-                ? [firstRecord?.authoredExampleId ?? 'EXAMPLE#rendered']
-                : []) as StandardRoomData['examples'];
+            const roomCharacterList = await this._roomCharacterList(EphemeraId)
+            const exits = mergeRoomExitsToJSON(assetData)
+            const shortName = mergeRoomShortNameLiteral(assetData)
 
             const roomRow: StandardRoomData = {
                 tag: 'Room',
                 universalKey: EphemeraId,
                 ...(exits.length ? { exits } : {}),
-                ...(situationFacets && situationFacets.length ? { situations: situationFacets } : {}),
-                ...(examples && examples.length ? { examples } : {}),
+                ...(renderPayload ? { render: renderPayload } : {}),
                 characters: roomCharacterList.map(char => char.EphemeraId),
                 shortName: shortName?.toJSON()
             };
 
-            // Create character components for the StandardForm
-            const characterComponents: StandardCharacterData[] = roomCharacterList.map(char => {
-                const characterData: StandardCharacterData = {
-                    tag: 'Character',
-                    universalKey: char.EphemeraId,
-                    // DisplayName is now a StandardLiteral (string-based) in StandardCharacterData
-                    displayName: char.DisplayName ?? undefined,
-                    image: char.fileURL ? { 
-                        data: { tag: 'Image', key: '', fileURL: char.fileURL }, 
-                        children: [] 
-                    } : undefined
-                };
-                return characterData;
-            });
+            const characterComponents: StandardCharacterData[] = roomCharacterListToStandardCharacterData(roomCharacterList)
 
             const formComponents: any[] = [
                 { tag: 'Asset' as const, universalKey: 'ASSET#render' as const, key: 'render' },
                 roomRow,
                 ...characterComponents
             ];
-
-            if (situationComponent) {
-                formComponents.push(situationComponent.toJSON());
-            }
-
-            if (naiveFirstExample) {
-                const example = naiveFirstExample.clone();
-                example._universalKey = (firstRecord?.authoredExampleId ?? 'EXAMPLE#rendered') as ComponentUUID;
-                formComponents.push(example.toJSON());
-            }
 
             return new StandardForm(formComponents)
         }
@@ -403,7 +339,7 @@ export class ComponentRenderData {
     }
 
     async get(CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraId: EphemeraFeatureId | EphemeraKnowledgeId | EphemeraRoomId | EphemeraMapId | EphemeraMessageId, options?: ComponentRenderGetOptions): Promise<StandardForm> {
-        const cacheKey = generateCacheKey(CharacterId, EphemeraId, options)
+        const cacheKey = generateEphemeraComponentCacheKey(CharacterId, EphemeraId, options)
         if (!this._Cache.isCached(cacheKey)) {
             //
             // TODO: Figure out how to convince Typescript to evaluate each branch independently, *without* having
@@ -448,7 +384,7 @@ export class ComponentRenderData {
     }
 
     invalidate(CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraId: EphemeraRoomId | EphemeraFeatureId | EphemeraKnowledgeId) {
-        const cacheKey = generateCacheKey(CharacterId, EphemeraId)
+        const cacheKey = generateEphemeraComponentCacheKey(CharacterId, EphemeraId)
         if (cacheKey in this._Store) {
             delete this._Store[cacheKey]
         }
@@ -458,7 +394,7 @@ export class ComponentRenderData {
     }
 
     set(CharacterId: EphemeraCharacterId | 'ANONYMOUS', EphemeraId: EphemeraRoomId | EphemeraFeatureId | EphemeraKnowledgeId, value: StandardForm) {
-        const cacheKey = generateCacheKey(CharacterId, EphemeraId)
+        const cacheKey = generateEphemeraComponentCacheKey(CharacterId, EphemeraId)
         this._Cache.set(Infinity, cacheKey, value)
         this._Store[cacheKey] = value
     }

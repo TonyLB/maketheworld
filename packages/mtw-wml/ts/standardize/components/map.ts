@@ -12,6 +12,7 @@ import { PositionFacetList, StandardPositionFacet } from "../keys/facets/positio
 import StandardReference from "../keys/reference"
 import { StandardKey } from "../keys/key"
 import { StandardLiteral } from "../literal"
+import type { StandardizeFromSchemaContext } from "../wmlStandardizeMode"
 import { StandardExplicitParent } from "../explicit"
 import { processWithConsumers, StandardizeConsumer, StandardizeConsumerFacetListPosition, StandardizeConsumerInline, StandardizeConsumerStandardLiteral } from "./fromSchemaPipeline"
 import { splitTaggedChildren } from "../../schema/utils"
@@ -70,7 +71,7 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
         this._positions = new PositionFacetList(props.positions ?? [])
     }
 
-    fromSchema(node: GenericTreeNode<SchemaTag>): GenericTree<SchemaTag> {
+    fromSchema(node: GenericTreeNode<SchemaTag>, _context?: StandardizeFromSchemaContext): GenericTree<SchemaTag> {
         if (treeNodeTypeguard(isSchemaMap)(node)) {
             const consumers = [
                 new StandardizeConsumerStandardLiteral<StandardMapPayload>(this, {

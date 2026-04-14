@@ -21,6 +21,7 @@ import { StandardReferenceData } from "./dataTypes/reference"
 import { deepEqual } from "../../lib/objects"
 import { StandardExplicitParent } from "../explicit"
 import { StandardLiteral } from "../literal"
+import type { StandardizeFromSchemaContext } from "../wmlStandardizeMode"
 import {
     processWithConsumers,
     StandardizeConsumerInline,
@@ -52,7 +53,7 @@ export class StandardMessagePayload implements ComponentConstructorMethods<Stand
         this._rooms = new ReferenceList(props.rooms?.map((reference) => (new StandardReference(reference))) ?? [])
     }
 
-    fromSchema(node: GenericTreeNode<SchemaTag>): GenericTree<SchemaTag> {
+    fromSchema(node: GenericTreeNode<SchemaTag>, _context?: StandardizeFromSchemaContext): GenericTree<SchemaTag> {
         if (treeNodeTypeguard(isSchemaMessage)(node)) {
             const consumers = [
                 new StandardizeConsumerStandardLiteral(this, {

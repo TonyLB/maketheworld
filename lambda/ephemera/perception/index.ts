@@ -63,7 +63,8 @@ export const perceptionMessage = async ({
                         wmlContent: schemaToWML([roomDescribe.schema]),
                         metaData: {
                             componentUUID: payload.ephemeraId,
-                            displayMode: payload.header ? 'header' : 'full'
+                            displayMode: payload.header ? 'header' : 'full',
+                            roomChannel: 'render',
                         },
                         messageGroupId: payload.messageGroupId
                     })
@@ -168,7 +169,8 @@ export const sendRoomGeneratingHeader = ({ roomId, characterIds, messageBus, mes
         metaData: {
             componentUUID: roomId,
             displayMode: 'header',
-            status: 'generating'
+            status: 'generating',
+            roomChannel: 'render',
         },
         messageGroupId
     })

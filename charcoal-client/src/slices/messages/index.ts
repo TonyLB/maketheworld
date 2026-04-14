@@ -228,7 +228,7 @@ export const { receiveMessages, clear } = messagesSlice.actions
 const processPerceptionMessage = (message: Message): EnhancedMessage => {
     if (message.DisplayProtocol === 'PerceptionMessage') {
         try {
-            const standardForm = new StandardForm(message.wmlContent)
+            const standardForm = new StandardForm(message.wmlContent, { standardizeMode: 'ephemeraWire' })
             return {
                 ...message,
                 parsedWML: standardForm

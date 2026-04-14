@@ -16,6 +16,7 @@ import {
 } from '../passThroughContractFixtures'
 import { RENDER_CACHE_DATA_SOURCE_KEY } from '../renderCache/baseClasses'
 import { RENDER_ORCHESTRATION_DATA_SOURCE_KEY } from '../renderOrchestration/publishedEvents'
+import { EPHEMERA_OBJECTS_DATA_SOURCE_KEY } from '../objects/events'
 import { roomHeaderGeneratingPlaceholderWml } from './roomHeaderPlaceholderWml'
 import { sendCharacterPerceptionRequested, sendPerceptionThreadRegistered } from './subscribedEvents'
 import { ephemeraPerceptionDataSource } from './index'
@@ -89,7 +90,6 @@ describe('mtw.ephemera.perception DataSource', () => {
     it('room thread receives Generation Started then terminal Render Pertains with stable messageId', async () => {
         const sendSpy = jest.spyOn(messageBus, 'send')
         const schemaSpy = jest.spyOn(schemaModule, 'schemaToWML').mockReturnValue('<RoomTerminal />')
-        const componentRenderSpy = jest.spyOn(internalCache.ComponentRender, 'get').mockResolvedValue({ schema: {} } as any)
 
         sendPerceptionThreadRegistered(messageBus, passThroughFixtureRoomId, {
             threadKind: 'roomDescription',
@@ -121,6 +121,7 @@ describe('mtw.ephemera.perception DataSource', () => {
             return m?.type === 'PublishMessage' && m?.metaData?.status === 'generating'
         })
         expect(genPublish).toBeDefined()
+        expect((genPublish![0] as { metaData?: { roomChannel?: string } }).metaData?.roomChannel).toBe('render')
         const mid = (genPublish![0] as { messageId?: string }).messageId
         expect(mid).toMatch(/^MESSAGE#/)
 
@@ -152,18 +153,17 @@ describe('mtw.ephemera.perception DataSource', () => {
             return m?.type === 'PublishMessage' && m?.wmlContent === '<RoomTerminal />'
         })
         expect(terminalPublish).toBeDefined()
+        expect((terminalPublish![0] as { metaData?: { roomChannel?: string } }).metaData?.roomChannel).toBe('render')
         expect((terminalPublish![0] as { messageId?: string }).messageId).toBe(mid)
         expect(internalCache.PerceptionThreads.list(passThroughFixtureRoomId, passThroughFixturePerspectiveKey)).toEqual([])
 
         schemaSpy.mockRestore()
-        componentRenderSpy.mockRestore()
         sendSpy.mockRestore()
     })
 
     it('roomHeaderBroadcast receives Generation Started then terminal Render Pertains with stable messageId', async () => {
         const sendSpy = jest.spyOn(messageBus, 'send')
         const schemaSpy = jest.spyOn(schemaModule, 'schemaToWML').mockReturnValue('<HeaderTerminal />')
-        const componentRenderSpy = jest.spyOn(internalCache.ComponentRender, 'get').mockResolvedValue({ schema: {} } as any)
 
         const targets = ['CHARACTER#viewer', 'CHARACTER#other'] as const
         sendPerceptionThreadRegistered(messageBus, passThroughFixtureRoomId, {
@@ -202,6 +202,7 @@ describe('mtw.ephemera.perception DataSource', () => {
             )
         })
         expect(genPublish).toBeDefined()
+        expect((genPublish![0] as { metaData?: { roomChannel?: string } }).metaData?.roomChannel).toBe('render')
         expect((genPublish![0] as { wmlContent?: string }).wmlContent).toBe(
             roomHeaderGeneratingPlaceholderWml(passThroughFixtureRoomId)
         )
@@ -236,20 +237,19 @@ describe('mtw.ephemera.perception DataSource', () => {
             return m?.type === 'PublishMessage' && m?.wmlContent === '<HeaderTerminal />' && m?.metaData?.displayMode === 'header'
         })
         expect(terminalPublish).toBeDefined()
+        expect((terminalPublish![0] as { metaData?: { roomChannel?: string } }).metaData?.roomChannel).toBe('render')
         expect((terminalPublish![0] as { messageId?: string }).messageId).toBe(mid)
         expect(
             internalCache.PerceptionThreads.list(passThroughFixtureRoomId, passThroughFixturePerspectiveKey)
         ).toEqual([])
 
         schemaSpy.mockRestore()
-        componentRenderSpy.mockRestore()
         sendSpy.mockRestore()
     })
 
     it('characterMove receives Generation Started then terminal Render Pertains with stable messageId (mover header)', async () => {
         const sendSpy = jest.spyOn(messageBus, 'send')
         const schemaSpy = jest.spyOn(schemaModule, 'schemaToWML').mockReturnValue('<HeaderMoveTerminal />')
-        const componentRenderSpy = jest.spyOn(internalCache.ComponentRender, 'get').mockResolvedValue({ schema: {} } as any)
 
         sendPerceptionThreadRegistered(messageBus, passThroughFixtureRoomId, {
             threadKind: 'characterMove',
@@ -291,6 +291,7 @@ describe('mtw.ephemera.perception DataSource', () => {
             )
         })
         expect(genPublish).toBeDefined()
+        expect((genPublish![0] as { metaData?: { roomChannel?: string } }).metaData?.roomChannel).toBe('render')
         const mid = (genPublish![0] as { messageId?: string }).messageId
         expect(mid).toMatch(/^MESSAGE#/)
 
@@ -322,13 +323,65 @@ describe('mtw.ephemera.perception DataSource', () => {
             return m?.type === 'PublishMessage' && m?.wmlContent === '<HeaderMoveTerminal />' && m?.metaData?.displayMode === 'header'
         })
         expect(terminalPublish).toBeDefined()
+        expect((terminalPublish![0] as { metaData?: { roomChannel?: string } }).metaData?.roomChannel).toBe('render')
         expect((terminalPublish![0] as { messageId?: string }).messageId).toBe(mid)
         expect(
             internalCache.PerceptionThreads.list(passThroughFixtureRoomId, passThroughFixturePerspectiveKey)
         ).toEqual([])
 
         schemaSpy.mockRestore()
-        componentRenderSpy.mockRestore()
+        sendSpy.mockRestore()
+    })
+
+    it('receiveEvents publishes affordance PerceptionMessage per character on Objects Changed stream', async () => {
+        const sendSpy = jest.spyOn(messageBus, 'send')
+        const schemaSpy = jest.spyOn(schemaModule, 'schemaToWML').mockReturnValue('<RoomAffordance />')
+        const mergeSpy = jest.spyOn(internalCache.ComponentStackMerge, 'get').mockResolvedValue({ schema: {} } as any)
+        jest.spyOn(internalCache.RoomCharacterList, 'get').mockResolvedValue([
+            { EphemeraId: 'CHARACTER#A', DisplayName: 'A', Color: 'blue', SessionIds: [] },
+            { EphemeraId: 'CHARACTER#B', DisplayName: 'B', Color: 'purple', SessionIds: [] },
+        ])
+        jest.spyOn(internalCache.ComponentEphemeraMeta, 'get').mockResolvedValue(undefined)
+
+        const roomId = 'ROOM#ObjAff' as const
+        const ts = Date.now()
+        messageBus.send({
+            type: 'StreamingEvent',
+            dataSourceKey: EPHEMERA_OBJECTS_DATA_SOURCE_KEY,
+            streamKey: roomId,
+            timestamp: ts,
+            header: {
+                dataSourceKey: EPHEMERA_OBJECTS_DATA_SOURCE_KEY,
+                streamKey: roomId,
+                timestamp: ts,
+                type: 'Objects Changed',
+            },
+            getContent: () =>
+                Promise.resolve({
+                    type: 'Objects Changed',
+                    componentId: roomId,
+                    add: [],
+                    remove: [],
+                    priorObjects: [],
+                    newObjects: [],
+                }),
+        })
+        await messageBus.flush()
+
+        const affordancePublishes = sendSpy.mock.calls.filter((c) => {
+            const m = c[0] as { type?: string; metaData?: { roomChannel?: string } }
+            return m?.type === 'PublishMessage' && m?.metaData?.roomChannel === 'affordances'
+        })
+        expect(affordancePublishes).toHaveLength(2)
+        const ids = affordancePublishes.map((c) => (c[0] as { messageId?: string }).messageId)
+        expect(new Set(ids).size).toBe(2)
+        expect(ids.every((id) => id?.startsWith('MESSAGE#'))).toBe(true)
+        expect(affordancePublishes[0][0]).toMatchObject({ targets: ['CHARACTER#A'], wmlContent: '<RoomAffordance />' })
+        expect(mergeSpy).toHaveBeenCalledWith('CHARACTER#A', roomId)
+        expect(mergeSpy).toHaveBeenCalledWith('CHARACTER#B', roomId)
+
+        schemaSpy.mockRestore()
+        mergeSpy.mockRestore()
         sendSpy.mockRestore()
     })
 })

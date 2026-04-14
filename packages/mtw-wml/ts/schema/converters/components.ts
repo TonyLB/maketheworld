@@ -4,7 +4,8 @@ import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./base
 import { tagRender } from "./tagRender"
 import { validateProperties, validateExpressionAsNonNegativeInteger, parsePositionCoordinates } from "./utils"
 import { GenericTree, GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree"
-import { isSchemaExit, isSchemaFeature, isSchemaGuidance, isSchemaKnowledge, isSchemaMap, isSchemaPosition, isSchemaRoom, isSchemaShortName, isSchemaParent, isSchemaKey, isSchemaSituation, SchemaExitTag, SchemaFeatureTag, SchemaGuidanceTag, SchemaKnowledgeTag, SchemaMapTag, SchemaPositionTag, SchemaRoomTag, SchemaShortNameTag, SchemaParentTag, SchemaKeyTag, SchemaSituationTag } from "@tonylb/mtw-base/ts/schema/components"
+import { isSchemaExit, isSchemaFeature, isSchemaGuidance, isSchemaKnowledge, isSchemaMap, isSchemaObject, isSchemaPosition, isSchemaRoom, isSchemaShortName, isSchemaParent, isSchemaKey, isSchemaSituation, isSchemaRender, SchemaExitTag, SchemaFeatureTag, SchemaGuidanceTag, SchemaKnowledgeTag, SchemaMapTag, SchemaObjectTag, SchemaPositionTag, SchemaRoomTag, SchemaShortNameTag, SchemaParentTag, SchemaKeyTag, SchemaSituationTag, SchemaRenderTag } from "@tonylb/mtw-base/ts/schema/components"
+import { isSchemaDescription, isSchemaDisplayName, isSchemaSummary } from "@tonylb/mtw-base/ts/schema/example"
 import { isSchemaString, SchemaStringTag } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { SchemaTag, isSchemaComponent, isSchemaComponentUUID } from "@tonylb/mtw-base/ts/schema"
 import { PrintMode, PrintMapResult } from "@tonylb/mtw-base/ts/schema/printMap"
@@ -24,6 +25,10 @@ const componentTemplates = {
     Default: {},
     Parent: {},
     Key: {},
+    Object: {
+        uuid: { type: ParsePropertyTypes.Key, required: true },
+    },
+    Render: {},
     Room: {
         uuid: { type: ParsePropertyTypes.Key },
         key: { type: ParsePropertyTypes.Key },
@@ -225,6 +230,102 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
             }
         }
     },
+    Object: {
+        initialize: ({ parseOpen, contextStack }): SchemaObjectTag => {
+            const hasRoomContext = contextStack.some(({ data }) => isSchemaRoom(data))
+            if (!hasRoomContext) {
+                throw new Error('Object tag can only be used inside a Room')
+            }
+            const { uuid } = validateProperties(componentTemplates.Object)(parseOpen)
+            const uuidTrimmed = (uuid ?? '').trim()
+            if (!uuidTrimmed) {
+                throw new Error('Object tag must have a non-empty uuid')
+            }
+            return { tag: 'Object', uuid: enforceTypedKey('OBJECT')(uuidTrimmed) }
+        },
+        typeCheckContents: (item: SchemaTag): boolean => isSchemaShortName(item),
+        finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag>): GenericTreeNodeFiltered<SchemaObjectTag, SchemaTag> => {
+            if (!isSchemaObject(initialTag)) {
+                throw new Error('Type mismatch on schema finalize')
+            }
+            const uuidTrimmed = initialTag.uuid.trim()
+            if (!uuidTrimmed) {
+                throw new Error('Object tag must have a non-empty uuid')
+            }
+            const uuidNormalized = enforceTypedKey('OBJECT')(uuidTrimmed)
+            const shortNameNodes = children.filter((child) => isSchemaShortName(child.data))
+            if (shortNameNodes.length === 0) {
+                throw new Error('Object tag must contain exactly one ShortName child')
+            }
+            if (shortNameNodes.length > 1) {
+                throw new Error('Object tag must contain exactly one ShortName child')
+            }
+            const shortNameChild = shortNameNodes[0]
+            const textValue = shortNameChild.children
+                .map(({ data }) => data)
+                .filter(isSchemaString)
+                .map(({ value }) => value)
+                .join('')
+                .trim()
+            if (!textValue) {
+                throw new Error('Object ShortName must contain non-empty text after trim')
+            }
+            return {
+                data: { tag: 'Object', uuid: uuidNormalized },
+                children: [
+                    {
+                        data: { tag: 'ShortName' },
+                        children: [{ data: { tag: 'String' as const, value: textValue }, children: [] }],
+                    },
+                ],
+            }
+        },
+    },
+    Render: {
+        initialize: ({ parseOpen, contextStack }): SchemaRenderTag => {
+            const hasRoomContext = contextStack.some(({ data }) => isSchemaRoom(data))
+            if (!hasRoomContext) {
+                throw new Error('Render tag can only be used inside a Room')
+            }
+            validateProperties(componentTemplates.Render)(parseOpen)
+            return { tag: 'Render' }
+        },
+        typeCheckContents: (item: SchemaTag): boolean => (
+            isSchemaDisplayName(item) || isSchemaSummary(item) || isSchemaDescription(item)
+        ),
+        finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag>): GenericTreeNodeFiltered<SchemaRenderTag, SchemaTag> => {
+            if (!isSchemaRender(initialTag)) {
+                throw new Error('Type mismatch on schema finalize')
+            }
+            if (children.length !== 3) {
+                throw new Error('Render tag must contain exactly three children: DisplayName, Summary, Description in order')
+            }
+            const [first, second, third] = children
+            if (!isSchemaDisplayName(first.data) || !isSchemaSummary(second.data) || !isSchemaDescription(third.data)) {
+                throw new Error('Render children must be DisplayName, Summary, Description in order')
+            }
+            const displayNameChildren = compressWhitespace(first.children)
+            const summaryChildren = compressWhitespace(second.children)
+            const descriptionChildren = compressWhitespace(third.children)
+            const displayNameText = displayNameChildren
+                .map(({ data }) => data)
+                .filter(isSchemaString)
+                .map(({ value }) => value)
+                .join('')
+                .trim()
+            if (!displayNameText) {
+                throw new Error('Render DisplayName must contain non-empty text after trim')
+            }
+            return {
+                data: { tag: 'Render' },
+                children: [
+                    { data: { tag: 'DisplayName' }, children: displayNameChildren },
+                    { data: { tag: 'Summary' }, children: summaryChildren },
+                    { data: { tag: 'Description' }, children: descriptionChildren },
+                ],
+            }
+        },
+    },
     Room: {
         initialize: ({ parseOpen }): SchemaRoomTag => {
             const { uuid, ref, ...rest } = validateProperties(componentTemplates.Room)(parseOpen)
@@ -350,6 +451,28 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
     Default: defaultPrintMap,
     Parent: parentTagRenderLiteral,
     Key: keyTagRenderLiteral,
+    Object: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => {
+        if (!isSchemaObject(tag)) {
+            return [{ printMode: PrintMode.naive, output: '' }]
+        }
+        return tagRender({
+            ...args,
+            tag: 'Object',
+            properties: [{ key: 'uuid', type: 'key' as const, value: stripTypedKey('OBJECT')(tag.uuid) }],
+            node: { data: tag, children },
+        })
+    },
+    Render: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => {
+        if (!isSchemaRender(tag)) {
+            return [{ printMode: PrintMode.naive, output: '' }]
+        }
+        return tagRender({
+            ...args,
+            tag: 'Render',
+            properties: [],
+            node: { data: tag, children },
+        })
+    },
     Room: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => {
         //
         // Reassemble the contents out of name and description fields

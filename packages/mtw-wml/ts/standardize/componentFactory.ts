@@ -20,6 +20,7 @@ import { isSchemaExample } from "@tonylb/mtw-base/ts/schema/example"
 import { isSchemaFeature, isSchemaGuidance, isSchemaKnowledge, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaRoom, isSchemaSituation } from "@tonylb/mtw-base/ts/schema/components"
 import { isSchemaImage } from "@tonylb/mtw-base/ts/schema/image"
 import { isSchemaMark, isSchemaLens } from "@tonylb/mtw-base/ts/schema/worldState"
+import { resolveStandardizeFromSchemaContext, WmlStandardizeMode } from "./wmlStandardizeMode"
 
 //
 // standardComponentFactory takes an incoming argument that can apply to any of the StandardComponent classes,
@@ -31,7 +32,19 @@ export type StandardComponentFactoryResult = {
     remainder: GenericTree<SchemaTag>;
 }
 
-export const standardComponentFactory = (arg: StandardComponentData | GenericTreeNode<SchemaTag>): StandardComponentFactoryResult => {
+export type StandardComponentFactoryOptions = {
+    standardizeMode?: WmlStandardizeMode
+}
+
+export const standardComponentFactory = (
+    arg: StandardComponentData | GenericTreeNode<SchemaTag>,
+    options?: StandardComponentFactoryOptions
+): StandardComponentFactoryResult => {
+    const fromSchemaContext = resolveStandardizeFromSchemaContext(
+        options?.standardizeMode !== undefined
+            ? { standardizeMode: options.standardizeMode }
+            : undefined
+    )
     //
     // Data-based construction: build the component directly from StandardComponentData and
     // return an empty remainder (no child schema is produced by fromSchema in this path).
@@ -88,67 +101,67 @@ export const standardComponentFactory = (arg: StandardComponentData | GenericTre
     const node = arg
     if (treeNodeTypeguard(isSchemaCharacter)(node)) {
         const instance = new StandardCharacter(undefined as any)
-        const remainder = instance.fromSchema(node)
+        const remainder = instance.fromSchema(node, fromSchemaContext)
         return { component: instance, remainder }
     }
     if (treeNodeTypeguard(isSchemaExample)(node)) {
         const instance = new StandardExample(undefined as any)
-        const remainder = instance.fromSchema(node)
+        const remainder = instance.fromSchema(node, fromSchemaContext)
         return { component: instance, remainder }
     }
     if (treeNodeTypeguard(isSchemaGuidance)(node)) {
         const instance = new StandardGuidance(undefined as any)
-        const remainder = instance.fromSchema(node)
+        const remainder = instance.fromSchema(node, fromSchemaContext)
         return { component: instance, remainder }
     }
     if (treeNodeTypeguard(isSchemaSituation)(node)) {
         const instance = new StandardSituation(undefined as any)
-        const remainder = instance.fromSchema(node)
+        const remainder = instance.fromSchema(node, fromSchemaContext)
         return { component: instance, remainder }
     }
     if (treeNodeTypeguard(isSchemaRoom)(node)) {
         const instance = new StandardRoom(undefined as any)
-        const remainder = instance.fromSchema(node)
+        const remainder = instance.fromSchema(node, fromSchemaContext)
         return { component: instance, remainder }
     }
     if (treeNodeTypeguard(isSchemaFeature)(node)) {
         const instance = new StandardFeature(undefined as any)
-        const remainder = instance.fromSchema(node)
+        const remainder = instance.fromSchema(node, fromSchemaContext)
         return { component: instance, remainder }
     }
     if (treeNodeTypeguard(isSchemaKnowledge)(node)) {
         const instance = new StandardKnowledge(undefined as any)
-        const remainder = instance.fromSchema(node)
+        const remainder = instance.fromSchema(node, fromSchemaContext)
         return { component: instance, remainder }
     }
     if (treeNodeTypeguard(isSchemaMap)(node)) {
         const instance = new StandardMap(undefined as any)
-        const remainder = instance.fromSchema(node)
+        const remainder = instance.fromSchema(node, fromSchemaContext)
         return { component: instance, remainder }
     }
     if (treeNodeTypeguard(isSchemaMessage)(node)) {
         const instance = new StandardMessage(undefined as any)
-        const remainder = instance.fromSchema(node)
+        const remainder = instance.fromSchema(node, fromSchemaContext)
         return { component: instance, remainder }
     }
     if (treeNodeTypeguard(isSchemaMoment)(node)) {
         const instance = new StandardMoment(undefined as any)
-        const remainder = instance.fromSchema(node)
+        const remainder = instance.fromSchema(node, fromSchemaContext)
         return { component: instance, remainder }
     }
     if (treeNodeTypeguard(isSchemaImage)(node)) {
         const instance = new StandardImage(undefined as any)
-        const remainder = instance.fromSchema(node)
+        const remainder = instance.fromSchema(node, fromSchemaContext)
         return { component: instance, remainder }
     }
     if (treeNodeTypeguard(isSchemaMark)(node)) {
         const instance = new StandardMark(undefined as any)
-        const remainder = instance.fromSchema(node)
+        const remainder = instance.fromSchema(node, fromSchemaContext)
         return { component: instance, remainder }
     }
     if (treeNodeTypeguard(isSchemaLens)(node)) {
         const instance = new StandardLens(undefined as any)
-        const remainder = instance.fromSchema(node)
+        const remainder = instance.fromSchema(node, fromSchemaContext)
         return { component: instance, remainder }
     }
 

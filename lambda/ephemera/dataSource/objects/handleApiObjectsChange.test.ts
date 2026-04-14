@@ -1,4 +1,5 @@
-import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraMetaRoomObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { handleApiObjectsChangeCommand } from './handleApiObjectsChange'
 import { mergePersistMetaRoomObjects } from './mergePersistMetaRoomObjects'
 
@@ -7,6 +8,11 @@ jest.mock('./mergePersistMetaRoomObjects', () => ({
 }))
 
 const mergePersistMetaRoomObjectsMock = mergePersistMetaRoomObjects as jest.MockedFunction<typeof mergePersistMetaRoomObjects>
+
+const obj = (suffix: string, shortName: string): EphemeraMetaRoomObject => ({
+    uuid: `OBJECT#${suffix}` as EphemeraObjectId,
+    shortName,
+})
 
 describe('handleApiObjectsChangeCommand', () => {
     const streamEvent = jest.fn().mockResolvedValue(undefined)
@@ -20,13 +26,17 @@ describe('handleApiObjectsChangeCommand', () => {
     it('calls mergePersistMetaRoomObjects with roomId, add, and remove', async () => {
         const roomId = 'ROOM#r1' as EphemeraRoomId
         await handleApiObjectsChangeCommand(
-            { componentId: roomId, add: ['o1'], remove: ['o2'] },
+            {
+                componentId: roomId,
+                add: [obj('o1', 'One')],
+                remove: ['OBJECT#o2' as EphemeraObjectId],
+            },
             { streamEvent }
         )
         expect(mergePersistMetaRoomObjectsMock).toHaveBeenCalledWith({
             roomId,
-            add: ['o1'],
-            remove: ['o2'],
+            add: [obj('o1', 'One')],
+            remove: ['OBJECT#o2' as EphemeraObjectId],
         })
     })
 
@@ -57,7 +67,7 @@ describe('handleApiObjectsChangeCommand', () => {
         })
         const roomId = 'ROOM#fail' as EphemeraRoomId
         await handleApiObjectsChangeCommand(
-            { componentId: roomId, add: ['x'], remove: [] },
+            { componentId: roomId, add: [obj('x', 'X')], remove: [] },
             { streamEvent }
         )
         expect(streamEvent).not.toHaveBeenCalled()
@@ -67,14 +77,15 @@ describe('handleApiObjectsChangeCommand', () => {
 
     it('streams Objects Changed when merge persisted', async () => {
         const roomId = 'ROOM#r3' as EphemeraRoomId
+        const add = [obj('b', 'B')]
         mergePersistMetaRoomObjectsMock.mockResolvedValue({
             ok: true,
             persisted: true,
-            priorObjects: ['a'],
-            newObjects: ['a', 'b'],
+            priorObjects: [obj('a', 'A')],
+            newObjects: [obj('a', 'A'), obj('b', 'B')],
         })
         await handleApiObjectsChangeCommand(
-            { componentId: roomId, add: ['b'], remove: [] },
+            { componentId: roomId, add, remove: [] },
             { streamEvent }
         )
         expect(streamEvent).toHaveBeenCalledTimes(1)
@@ -84,10 +95,10 @@ describe('handleApiObjectsChangeCommand', () => {
             update: {
                 type: 'Objects Changed',
                 componentId: roomId,
-                add: ['b'],
+                add,
                 remove: [],
-                priorObjects: ['a'],
-                newObjects: ['a', 'b'],
+                priorObjects: [obj('a', 'A')],
+                newObjects: [obj('a', 'A'), obj('b', 'B')],
             },
         })
     })

@@ -18,6 +18,7 @@ import { MarkFacetList } from "../keys/facets/mark"
 import { StandardEditableData, extractFromEditableData } from "@tonylb/mtw-base/ts/editable"
 import { StandardFormSubsetRequest } from "../baseClasses"
 import { StandardLiteral } from "../literal"
+import type { StandardFormConstructionOptions, StandardizeFromSchemaContext } from "../wmlStandardizeMode"
 import { HasShortName } from "./abstract"
 import { processWithConsumers, StandardizeConsumerFacetListMark, StandardizeConsumerInline, StandardizeConsumerRender, StandardizeConsumerStandardLiteral } from "./fromSchemaPipeline"
 
@@ -51,7 +52,7 @@ export class StandardExamplePayload implements HasShortName, ComponentConstructo
         this._marks = new MarkFacetList(marks ?? [])
     }
 
-    fromSchema(node: GenericTreeNode<SchemaTag>): GenericTree<SchemaTag> {
+    fromSchema(node: GenericTreeNode<SchemaTag>, _context?: StandardizeFromSchemaContext): GenericTree<SchemaTag> {
         if (treeNodeTypeguard(isSchemaExample)(node)) {
             const consumers = [
                 new StandardizeConsumerStandardLiteral<StandardExamplePayload>(this, {
@@ -270,8 +271,11 @@ export class StandardExample extends componentClassFactory(StandardExamplePayloa
     get shortName() { return this._payload.shortName }
     get marks() { return this._payload.marks }
 
-    constructor(props: string | StandardExampleData | StandardExampleNDJSONData | GenericTreeNode<SchemaTag> | StandardExample) {
-        super(props)
+    constructor(
+        props: string | StandardExampleData | StandardExampleNDJSONData | GenericTreeNode<SchemaTag> | StandardExample,
+        options?: StandardFormConstructionOptions,
+    ) {
+        super(props, options)
     }
 
     override _wrap(instance: StandardComponent): this {

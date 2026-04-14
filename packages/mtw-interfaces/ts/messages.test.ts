@@ -10,7 +10,9 @@ import {
     isPerceptionRoomMetaData,
     isPerceptionFeatureMetaData,
     isPerceptionKnowledgeMetaData,
-    PerceptionMessageMetaData
+    PerceptionMessageMetaData,
+    DEFAULT_PERCEPTION_ROOM_CHANNEL,
+    resolvedPerceptionRoomChannel
 } from './messages'
 
 describe('PerceptionMessage', () => {
@@ -213,6 +215,29 @@ describe('PerceptionMessage MetaData System', () => {
             const validModes: Array<PerceptionRoomMetaData['displayMode']> = ['header', 'full']
             expect(validModes).toContain('header')
             expect(validModes).toContain('full')
+        })
+
+        it('should accept roomChannel render or affordances', () => {
+            const renderRow: PerceptionRoomMetaData = {
+                componentUUID: 'ROOM#ch1',
+                displayMode: 'header',
+                roomChannel: 'render'
+            }
+            const affordRow: PerceptionRoomMetaData = {
+                componentUUID: 'ROOM#ch1',
+                displayMode: 'header',
+                roomChannel: 'affordances'
+            }
+            expect(renderRow.roomChannel).toBe('render')
+            expect(affordRow.roomChannel).toBe('affordances')
+        })
+
+        it('should treat omitted roomChannel as render via resolvedPerceptionRoomChannel', () => {
+            const legacy: PerceptionRoomMetaData = {
+                componentUUID: 'ROOM#legacy',
+                displayMode: 'full'
+            }
+            expect(resolvedPerceptionRoomChannel(legacy)).toBe(DEFAULT_PERCEPTION_ROOM_CHANNEL)
         })
     })
 

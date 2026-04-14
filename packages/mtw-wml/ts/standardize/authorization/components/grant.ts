@@ -9,6 +9,7 @@ import { isSchemaTreeNode, nodeFromWML } from "../../../schema";
 import { deepEqual } from "../../../lib/objects";
 import { StandardAuthorizationItem } from "./baseClasses";
 import { StandardAuthReplace } from "./edits";
+import type { StandardizeFromSchemaContext } from "../../wmlStandardizeMode";
 
 export class StandardGrantPayload {
     _player: string;
@@ -29,7 +30,7 @@ export class StandardGrantPayload {
         this._actions = [...props.actions]
     }
 
-    fromSchema(node: GenericTreeNode<SchemaTag>) {
+    fromSchema(node: GenericTreeNode<SchemaTag>, _context?: StandardizeFromSchemaContext) {
         if (treeNodeTypeguard(isSchemaGrant)(node)) {
             this._player = node.data.player
             this._actions = [...node.data.actions]

@@ -8,7 +8,7 @@ export const splitType = (value: string) => {
     return ['', '']
 }
 
-type PrefixKey = 'ASSET' | 'CHARACTER' | 'ROOM' | 'EXAMPLE' | 'FEATURE' | 'KNOWLEDGE' | 'MAP' | 'MESSAGE' | 'MOMENT' | 'IMAGE' | 'CONNECTION' | 'SESSION' | 'MARK' | 'LENS' | 'GUIDANCE' | 'SITUATION'
+type PrefixKey = 'ASSET' | 'CHARACTER' | 'ROOM' | 'EXAMPLE' | 'FEATURE' | 'KNOWLEDGE' | 'MAP' | 'MESSAGE' | 'MOMENT' | 'IMAGE' | 'CONNECTION' | 'SESSION' | 'MARK' | 'LENS' | 'GUIDANCE' | 'SITUATION' | 'OBJECT'
 
 export const enforceTypedKey = <T extends PrefixKey>(key: T) => (value: string): `${T}#${string}` => {
     const [checkType, checkForTwoSections] = splitType(value)
@@ -31,6 +31,7 @@ export const stripTypedKey = <T extends PrefixKey>(key: T) => (value: string): s
 export const AssetKey = enforceTypedKey('ASSET')
 export const CharacterKey = enforceTypedKey('CHARACTER')
 export const RoomKey = enforceTypedKey('ROOM')
+export const ObjectKey = enforceTypedKey('OBJECT')
 export const ConnectionKey = enforceTypedKey('CONNECTION')
 export const SessionKey = enforceTypedKey('SESSION')
 

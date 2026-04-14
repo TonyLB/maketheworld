@@ -31,6 +31,7 @@ import { StandardExitFacet } from '@tonylb/mtw-wml/ts/standardize/keys/facets/ex
 import { StandardCharacter } from '@tonylb/mtw-wml/ts/standardize/components/character'
 import { SituationRoomFacetPayload } from '@tonylb/mtw-wml/ts/standardize/keys/facets/situationRoom'
 import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
+import { formatRoomContentsLine } from '../../slices/messages/roomHeaderPhaseC'
 
 interface RoomDescriptionProps {
     parsedWML?: StandardForm;
@@ -58,13 +59,24 @@ export const RoomDescription = ({ parsedWML, metaData, header, currentHeader, is
         const component = parsedWML.byUniversalId[componentUUID]
         
         if (component instanceof StandardRoom) {
-            // Prefer Situation facets (if any), fall back to Example-based prose
-            const firstSituationFacet = component.situations.items[0]
-            if (firstSituationFacet) {
-                const payload = firstSituationFacet.payload as SituationRoomFacetPayload
-                name = payload._displayName || new StandardLiteral('Untitled', { tag: 'DisplayName' })
-                description = payload._description || new StandardRender([])
-                summary = payload._summary || new StandardRender([])
+            // Prefer ephemera `<Render>` (StandardRoom.render), then Situation facets, then Example-based prose
+            let prosePayload: SituationRoomFacetPayload | undefined
+            if (component.render) {
+                const fromRender = new SituationRoomFacetPayload(component.render)
+                if (!SituationRoomFacetPayload.isEmpty(fromRender)) {
+                    prosePayload = fromRender
+                }
+            }
+            if (!prosePayload) {
+                const firstSituationFacet = component.situations.items[0]
+                if (firstSituationFacet) {
+                    prosePayload = firstSituationFacet.payload as SituationRoomFacetPayload
+                }
+            }
+            if (prosePayload) {
+                name = prosePayload._displayName || new StandardLiteral('Untitled', { tag: 'DisplayName' })
+                description = prosePayload._description || new StandardRender([])
+                summary = prosePayload._summary || new StandardRender([])
             }
             else {
                 // Extract room data from Standard format structure - handle missing examples gracefully
@@ -125,6 +137,7 @@ export const RoomDescription = ({ parsedWML, metaData, header, currentHeader, is
     useOnboardingCheckpoint('navigatePersonalRoom', { requireSequence: true, condition: inPersonalRoom })
 
     const nameText = (name?._payload?.plain?.toJSON?.() as string) ?? 'Untitled'
+    const contentsLine = header ? formatRoomContentsLine(parsedWML, componentUUID) : null
 
     if (isGenerating) {
         return <MessageComponent
@@ -222,6 +235,11 @@ export const RoomDescription = ({ parsedWML, metaData, header, currentHeader, is
                             })()
                         }
                     </Box>
+                    {contentsLine && (
+                        <Typography variant='body2' component='p' sx={{ marginTop: '8px' }}>
+                            {contentsLine}
+                        </Typography>
+                    )}
                     <Divider />
                 </Box>
                 <Box sx={{ gridArea: 'exits' }}>

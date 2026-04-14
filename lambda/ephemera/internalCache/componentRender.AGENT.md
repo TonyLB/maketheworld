@@ -73,9 +73,9 @@ componentRender.set('CHARACTER#player-uuid', 'ROOM#marketSquare-uuid', renderedF
 
 #### **Room Rendering**
 - **Metadata Assembly**: Combines room data from all accessible assets
-- **Exit Processing**: Merges and validates room exits
-- **Character Lists**: Includes characters currently in the room
-- **Example Integration**: Uses first available example (naive approach)
+- **Exit Processing**: Merges exit facets across assets via **`ExitFacetList`**
+- **Character Lists**: Includes characters currently in the room (resolved to **`StandardCharacterData`** children)
+- **Prose for perception**: Prefer **`renderCache`** (Dynamo) **`renderedContent`** converted to **`SituationRoomFacetPayloadType`**; if none, fall back to **`ExamplesData`** first example and map via **`standardExampleToRenderPayload`**. Non-empty payload is stored on **`StandardRoomData.render`** (serializes as **`<Render>`** for ephemera wire). The room path does **not** synthesize separate Example / Situation wire children for that prose.
 - **Short Name**: Merges short names from multiple assets
 
 #### **Feature Rendering**
@@ -105,8 +105,9 @@ ComponentRender discovers accessible assets through:
 - **Character Assets**: Assets specific to the requesting character
 - **Asset Filtering**: Only includes assets where component appears
 
-### **Example Integration**
-Currently uses a **naive first-example approach**:
+### **Example Integration (rooms vs other types)**
+- **Rooms**: Render cache first, then first example only when cache is empty (see **`Room Rendering`** above and **`componentRender.ts`** **`_getPromiseFactory`**).
+- **Features / knowledge / maps (current)**: Still use a **naive first-example** pattern where applicable:
 ```typescript
 const exampleMap = await this._examples([EphemeraId])
 const naiveFirstExample = exampleMap[EphemeraId]?.[0]?.examples?.[0]
@@ -121,7 +122,7 @@ const naiveFirstExample = exampleMap[EphemeraId]?.[0]?.examples?.[0]
 
 ### **Examples System**
 - Calls `examples.get()` to retrieve example descriptions
-- Currently uses first available example (naive approach)
+- **Rooms** pair **`renderCache`** with example fallback; other component types may still use first example
 - Future: Will implement state-based example selection
 - See [`examples.AGENT.md`](./examples.AGENT.md) for details
 
@@ -136,7 +137,7 @@ const naiveFirstExample = exampleMap[EphemeraId]?.[0]?.examples?.[0]
 
 ### **Perception System**
 - **Primary Consumer**: The perception system is the main consumer of ComponentRender output
-- **Message Generation**: Perception uses rendered components to create display messages
+- **Message Generation**: Perception serializes rendered **`StandardForm`** (including **`Room.render`** as **`<Render>`**) into **`PerceptionMessage.wmlContent`** for the client, which parses with **`ephemeraWire`** (see charcoal **`messages`** / **`perceptionCache`** AGENT docs)
 - **Real-time Updates**: Provides immediate feedback through the message bus
 - See [`../perception/AGENT.md`](../perception/AGENT.md) for details on how rendered components are used
 
@@ -162,9 +163,9 @@ export const filterAppearances = (evaluateCode: (address: EvaluateCodeAddress) =
 Due to high computational cost of LLM rendering, results will be cached persistently:
 
 #### **Current Limitation**
-- **Local Caching**: Results only cached for current lambda invocation
-- **No Persistence**: Expensive renders lost between invocations
-- **Repeated Work**: Same renders generated multiple times
+- **DeferredCache lifetime**: Assembled **`StandardForm`** results in **`ComponentRenderData`** are in-memory for the current lambda invocation only.
+- **Room prose elsewhere**: Dynamo **`renderCache`** can persist **`renderedContent`** consumed when building **`StandardRoomData.render`**; that is separate from **`DeferredCache`**.
+- **Broader persistence**: Other expensive paths may still repeat work across cold starts until the planned ephemeraDB layer lands.
 
 #### **Planned Enhancement**
 - **EphemeraDB Caching**: Store render results in DynamoDB
@@ -248,7 +249,7 @@ const publicDescription = await componentRender.get(
 
 ## Development Notes
 
-- **Current Limitation**: Naive first-example approach, no state matching
+- **Current Limitation**: Rooms use render cache + example fallback; other types may still use naive first-example; no state matching
 - **Legacy Code**: Conditional rendering system to be deprecated
 - **Caching**: Local-only, persistent caching planned
 - **Performance**: Expensive rendering operations need optimization

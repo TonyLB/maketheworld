@@ -93,6 +93,20 @@ Understanding these modes is crucial for proper usage of StandardForm methods li
 ways (and with different purposes) depending upon how the StandardForm class is being used in the
 particular context.
 
+## Payload vocabulary vs semantic mode (`standardizeMode`)
+
+**Orthogonal to semantic modes above:** `StandardForm` also carries **`standardizeMode`** (`WmlStandardizeMode`: `'asset'` or `'ephemeraWire'`). That field controls which WML **tag set** applies when parsing and standardizing (blueprint vs ephemera wire), not whether the form is an edit bundle or an aggregate.
+
+- **Public API:** Pass an optional second constructor argument, **`StandardFormConstructionOptions`**, e.g. `new StandardForm(wml, { standardizeMode: 'ephemeraWire' })`. Omitting it defaults to **`'asset'`** (`DEFAULT_WML_STANDARDIZE_MODE`).
+- **Persistence:** The resolved mode is stored on **`standardizeMode`**. **`toJSON()`** includes **`standardizeMode`** only when it is not **`'asset'`** (omission-over-empty). **`StandardFormData`** may include optional **`standardizeMode`**; constructor options and data field are resolved via **`StandardForm.resolveInitialStandardizeMode`** (data wins when both specify).
+- **Threading:** From the WML/schema path, mode flows **`processComponents`** → **`standardComponentFactory`** → generated component **`fromSchema(node, context?)`** → payload **`fromSchema`**. **`StandardizeFromSchemaContext`** carries **`standardizeMode`**. Facet payloads use the same context as an optional **third** argument: **`fromSchema(node, reference, context?)`** (the second argument remains the facet **`StandardReference`**).
+- **Clone / merge:** **`_clone()`** copies **`semanticMode`** and **`standardizeMode`**. **`merge()`** uses **`this._clone()`** as the base of the result, so the **receiver's** **`standardizeMode`** is kept (incoming's mode is not merged).
+- **`withStandardizeMode`:** Functional update of **`standardizeMode`**; prefer passing options at construction when parsing WML so **`fromSchema`** sees the correct mode.
+
+**Ephemera-only tag (v1):** **`Object`** --- required **`uuid`** attribute and exactly one **`ShortName`** child (WML shape **`<Object uuid=(id)><ShortName>label</ShortName></Object>`**; you may also author **`uuid=(OBJECT#...)`**). The schema layer normalizes **`uuid`** to canonical **`OBJECT#...`** (bare **`id`** in WML becomes **`OBJECT#id`**); **`schemaToWML`** prints **`uuid=(id)`** again via the same strip pattern as **`Room`**. Parseable only inside a **`Room`**. **`StandardRoom`** collects **`objects`** as **`{ uuid, shortName }[]`** when **`standardizeMode === 'ephemeraWire'`**; in **`asset`** mode **`Object`** under **`Room`** is an unconsumed child and standardization **errors**. Ephemera **`Meta::Room.objects`** uses the **same** JSON shape (**`OBJECT#...`** **`uuid`** plus **`shortName`**). **`Object`** is not a **`StandardComponent`**; **`ComponentUUID`** / **`isSchemaComponentUUID`** are unchanged for this tag.
+
+**Ephemera-only:** **`Render`** under **`Room`** (DisplayName / Summary / Description) is stored on **`StandardRoom`** as **`render`** in JSON with the same shape as **`SituationRoomFacetPayloadType`** (literal **`displayName`**, **`summary`** and **`description`** as render-tree editable data), not three plain strings.
+
 ## Core Purpose
 
 - **Asset Management**: Represents entire WML assets as first-class objects
@@ -118,6 +132,8 @@ particular context.
 - **`renameKey(props)`**: @deprecated Use explicit `<Key>` tags in edits processed through `merge()` instead
 
 ### Constructor Overloads
+
+All overloads accept an optional **second** argument: **`options?: StandardFormConstructionOptions`** (e.g. `{ standardizeMode: 'ephemeraWire' }`). Examples below omit it for brevity.
 
 StandardForm supports multiple construction patterns:
 

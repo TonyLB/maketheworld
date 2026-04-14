@@ -6,6 +6,8 @@ This document describes the **abstract concept** of Component types in WML and t
 
 **⚠️ IMPORTANT**: This document describes the **target architecture and design goals** for Components in WML. The current implementation in this directory may not fully match all concepts described here, as the system is in active migration toward these requirements. For current implementation details, see [`AGENT.implementation.md`](./AGENT.implementation.md). For practical usage examples, see [`AGENT.usage.md`](./AGENT.usage.md).
 
+**`standardizeMode` (blueprint vs ephemera wire):** Tag-set and parse behavior for asset WML vs ephemera wire WML is controlled by **`standardizeMode`** (`WmlStandardizeMode`) and threads through **`StandardForm`**, **`processComponents`**, and **`fromSchema`**. **`StandardForm`** and factory-generated **`Standard*`** classes accept the same optional second constructor argument **`StandardFormConstructionOptions`** (e.g. `{ standardizeMode: 'ephemeraWire' }`) when the first argument is WML text or a schema node. See [`standardize/AGENT.md`](../AGENT.md), section **Payload vocabulary vs semantic mode (`standardizeMode`)**.
+
 ## Getting Started
 
 1. **Start with core component concepts**

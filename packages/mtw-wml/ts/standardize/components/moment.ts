@@ -13,6 +13,7 @@ import { StandardExplicitParent } from "../explicit"
 import { excludeUndefined } from "../../lib/lists"
 import { renderReference } from "./utils/schema"
 import { StandardLiteral } from "../literal"
+import type { StandardizeFromSchemaContext } from "../wmlStandardizeMode"
 import {
     processWithConsumers,
     StandardizeConsumerInline,
@@ -40,7 +41,7 @@ export class StandardMomentPayload implements ComponentConstructorMethods<Standa
         this._messages = new ReferenceList(props.messages?.map((reference) => (new StandardReference(reference))) ?? [])
     }
 
-    fromSchema(node: GenericTreeNode<SchemaTag>): GenericTree<SchemaTag> {
+    fromSchema(node: GenericTreeNode<SchemaTag>, _context?: StandardizeFromSchemaContext): GenericTree<SchemaTag> {
         if (treeNodeTypeguard(isSchemaMoment)(node)) {
             const consumers = [
                 new StandardizeConsumerStandardLiteral(this, {

@@ -11,6 +11,7 @@ import { isRenderTree, renderTreeToSchema } from "@tonylb/mtw-base/ts/renderTree
 import { isSchemaTreeNode, treeFromWML } from "../../../schema";
 import { transformNestedChildren } from "../../../schema/utils";
 import { TagMismatchError } from "@tonylb/mtw-base/ts/standardize";
+import type { StandardizeFromSchemaContext } from "../../wmlStandardizeMode";
 
 // Unified MarkFacetPayload class extending StandardLiteral
 export class MarkFacetPayload extends StandardLiteral {
@@ -31,7 +32,7 @@ export class MarkFacetPayload extends StandardLiteral {
     }
     
     // FacetPayloadBase method: parse from schema
-    fromSchema(node: GenericTree<SchemaTag>, reference: StandardReference): MarkFacetPayloadType {
+    fromSchema(node: GenericTree<SchemaTag>, reference: StandardReference, _context?: StandardizeFromSchemaContext): MarkFacetPayloadType {
         if (node.length === 0) {
             throw new Error('Invalid schema: empty node');
         }

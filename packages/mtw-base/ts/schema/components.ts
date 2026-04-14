@@ -15,6 +15,15 @@ export type SchemaKeyTag = {
     tag: 'Key';
 }
 
+export type SchemaObjectTag = {
+    tag: 'Object';
+    uuid: string;
+}
+
+export type SchemaRenderTag = {
+    tag: 'Render';
+}
+
 export type SchemaExitTag = {
     tag: 'Exit';
     to: string;
@@ -105,6 +114,20 @@ export const isSchemaKey = (schema: any): schema is SchemaKeyTag => (
     checkTypes({
         required: { tag: CheckTypes.STRING },
         values: { tag: 'Key' }
+    })(schema)
+)
+
+export const isSchemaObject = (schema: any): schema is SchemaObjectTag => (
+    checkTypes({
+        required: { tag: CheckTypes.STRING, uuid: CheckTypes.STRING },
+        values: { tag: 'Object' }
+    })(schema)
+)
+
+export const isSchemaRender = (schema: any): schema is SchemaRenderTag => (
+    checkTypes({
+        required: { tag: CheckTypes.STRING },
+        values: { tag: 'Render' }
     })(schema)
 )
 

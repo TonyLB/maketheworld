@@ -8,6 +8,7 @@ import StandardReference from "../keys/reference";
 import { StandardKey } from "../keys/key";
 import { StandardExplicitParent } from "../explicit"
 import { StandardLiteral } from "../literal"
+import type { StandardizeFromSchemaContext } from "../wmlStandardizeMode"
 import { excludeUndefined } from "../../lib/lists"
 import {
     processWithConsumers,
@@ -28,7 +29,7 @@ export class StandardImagePayload implements ComponentConstructorMethods<Standar
         this._shortName = props.shortName ? new StandardLiteral(props.shortName, { tag: 'ShortName' }) : undefined
     }
 
-    fromSchema(node: GenericTreeNode<SchemaTag>): GenericTree<SchemaTag> {
+    fromSchema(node: GenericTreeNode<SchemaTag>, _context?: StandardizeFromSchemaContext): GenericTree<SchemaTag> {
         if (treeNodeTypeguard(isSchemaImage)(node)) {
             const consumers = [
                 new StandardizeConsumerStandardLiteral(this, {

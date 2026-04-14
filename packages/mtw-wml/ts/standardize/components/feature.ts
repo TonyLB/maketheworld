@@ -13,6 +13,7 @@ import { deepEqual } from "../../lib/objects"
 import { renderReference } from "./utils/schema"
 import { HasShortName } from "./abstract"
 import { StandardLiteral } from "../literal"
+import type { StandardizeFromSchemaContext } from "../wmlStandardizeMode"
 import { StandardExplicitParent } from "../explicit"
 import {
     processWithConsumers,
@@ -43,7 +44,7 @@ export class StandardFeaturePayload implements HasShortName, ComponentConstructo
         this._examples = new ReferenceList(props.examples?.map((reference) => (new StandardReference(reference))) ?? [])
     }
 
-    fromSchema(node: GenericTreeNode<SchemaTag>): GenericTree<SchemaTag> {
+    fromSchema(node: GenericTreeNode<SchemaTag>, _context?: StandardizeFromSchemaContext): GenericTree<SchemaTag> {
         if (treeNodeTypeguard(isSchemaFeature)(node)) {
             const consumers = [
                 new StandardizeConsumerStandardLiteral(this, {

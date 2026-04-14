@@ -184,6 +184,12 @@ type PerceptionMessageMetaDataBase = {
     componentUUID: ComponentUUID;
 }
 
+/** Multi-channel room UI: which logical channel this `PerceptionMessage` row belongs to (see ephemera `AGENT.multiChannel.contract.md`). */
+export type PerceptionRoomChannel = 'render' | 'affordances'
+
+/** When `roomChannel` is omitted on stored or legacy messages, treat as render (backward compatible). */
+export const DEFAULT_PERCEPTION_ROOM_CHANNEL: PerceptionRoomChannel = 'render'
+
 // Component-specific metadata types
 export type PerceptionRoomMetaData = PerceptionMessageMetaDataBase & {
     componentUUID: `ROOM#${string}`;
@@ -194,6 +200,8 @@ export type PerceptionRoomMetaData = PerceptionMessageMetaDataBase & {
     // - 'generating': Placeholder header indicating that a new render is being generated.
     //
     status?: 'ready' | 'generating';
+    /** Multi-channel discriminator: render-backed vs affordances payload. Omitted means `render` (legacy rows). */
+    roomChannel?: PerceptionRoomChannel;
 }
 
 export type PerceptionFeatureMetaData = PerceptionMessageMetaDataBase & {
@@ -270,6 +278,10 @@ export type PerceptionMessage = {
 export const isPerceptionRoomMetaData = (metaData: PerceptionMessageMetaData): metaData is PerceptionRoomMetaData => {
     return metaData.componentUUID.startsWith('ROOM#');
 }
+
+/** Resolved channel for room `PerceptionMessage` metadata (`undefined` roomChannel => `render`). */
+export const resolvedPerceptionRoomChannel = (meta: PerceptionRoomMetaData): PerceptionRoomChannel =>
+    meta.roomChannel ?? DEFAULT_PERCEPTION_ROOM_CHANNEL
 
 export const isPerceptionFeatureMetaData = (metaData: PerceptionMessageMetaData): metaData is PerceptionFeatureMetaData => {
     return metaData.componentUUID.startsWith('FEATURE#');

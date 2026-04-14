@@ -7,6 +7,7 @@ import { AssetUUID, ComponentUUID, isSchemaCharacter, SchemaTag } from "@tonylb/
 import { isSchemaImage, SchemaImageTag } from "@tonylb/mtw-base/ts/schema/image"
 import { isSchemaDisplayName, SchemaDisplayNameTag } from "@tonylb/mtw-base/ts/schema/example"
 import { StandardLiteral } from "../literal"
+import type { StandardFormConstructionOptions, StandardizeFromSchemaContext } from "../wmlStandardizeMode"
 import { StandardComponent, StandardComponentReferenceKey } from "./baseClasses"
 import StandardReference from "../keys/reference"
 import { StandardKey } from "../keys/key"
@@ -43,7 +44,7 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
         this._image = props.image
     }
 
-    fromSchema(node: GenericTreeNode<SchemaTag>): GenericTree<SchemaTag> {
+    fromSchema(node: GenericTreeNode<SchemaTag>, _context?: StandardizeFromSchemaContext): GenericTree<SchemaTag> {
         if (treeNodeTypeguard(isSchemaCharacter)(node)) {
             const consumers = [
                 new StandardizeConsumerStandardLiteral(this, {
@@ -169,8 +170,11 @@ export class StandardCharacter extends componentClassFactory(StandardCharacterPa
     get displayName() { return this._payload.displayName }
     get image() { return this._payload.image }
 
-    constructor(props: string | StandardCharacterData | GenericTreeNode<SchemaTag> | StandardCharacter) {
-        super(props)
+    constructor(
+        props: string | StandardCharacterData | GenericTreeNode<SchemaTag> | StandardCharacter,
+        options?: StandardFormConstructionOptions,
+    ) {
+        super(props, options)
     }
 
     override _wrap(instance: StandardComponent): this {

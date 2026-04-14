@@ -55,7 +55,7 @@ receiveMessages: (state, action: PayloadAction<Message[]>) => {
             // For anonymous knowledge exploration, we cache all PerceptionMessages
             // The backend sends to SESSION#${SessionId} for directResponse, but the Target
             // field may not be included in the message payload itself
-            const cacheKey = `ANONYMOUS::${message.componentUUID}`
+            const cacheKey = `ANONYMOUS::${message.metaData.componentUUID}`
             state[cacheKey] = enhancedMessage
         })
 }
@@ -65,13 +65,15 @@ receiveMessages: (state, action: PayloadAction<Message[]>) => {
 ```typescript
 const processPerceptionMessage = (message: PerceptionMessage): EnhancedPerceptionMessage => {
     try {
-        const standardForm = new StandardForm(message.wmlContent)
+        const standardForm = new StandardForm(message.wmlContent, { standardizeMode: 'ephemeraWire' })
         return { ...message, parsedWML: standardForm }
     } catch (error) {
-        // Create fallback StandardForm with default component
+        const componentUUID = message.metaData.componentUUID
+        const [upperTag] = splitType(componentUUID)
+        const tag = `${upperTag[0].toUpperCase()}${upperTag.slice(1).toLowerCase()}`
         const fallbackForm = new StandardForm('fallback')
-        const defaultData = defaultComponentFromTag(tag, 'fallback', message.componentUUID)
-        const fallbackComponent = standardComponentFactory(defaultData)
+        const defaultData = defaultComponentFromTag(tag as any, 'fallback', componentUUID)
+        const { component: fallbackComponent } = standardComponentFactory(defaultData)
         if (fallbackComponent) {
             fallbackForm._components = [fallbackComponent]
         }
@@ -79,6 +81,8 @@ const processPerceptionMessage = (message: PerceptionMessage): EnhancedPerceptio
     }
 }
 ```
+
+**Ephemera wire:** Same **`ephemeraWire`** mode and **`metaData.componentUUID`** fallback as the **`messages`** slice ([`../messages/AGENT.md`](../messages/AGENT.md)).
 
 ### **Selector Interface**
 ```typescript

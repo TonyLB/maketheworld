@@ -13,7 +13,7 @@ import { StandardKnowledgeData, isStandardKnowledgeData } from "./knowledge"
 import { StandardMapData, isStandardMapData } from "./map"
 import { StandardMessageData, isStandardMessageData } from "./message"
 import { StandardMomentData, isStandardMomentData } from "./moment"
-import { StandardRoomData, isStandardRoomData } from "./room"
+import { StandardRoomData, StandardRoomObjectData, StandardRoomRenderData, isStandardRoomData } from "./room"
 import { StandardMarkData, isStandardMarkData } from "./mark"
 import { StandardLensData, isStandardLensData } from "./lens"
 import { StandardGuidanceData, isStandardGuidanceData } from "./guidance"
@@ -24,7 +24,9 @@ import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable"
 import { RenderTree } from "@tonylb/mtw-base/ts/renderTree"
 import { ReferenceListData } from "../../keys/dataTypes/reference"
+import type { WmlStandardizeMode } from "../../wmlStandardizeMode"
 
+export type { StandardRoomObjectData, StandardRoomRenderData }
 export { isStandardCharacterData, isStandardExampleData, isStandardRoomData, isStandardFeatureData, isStandardKnowledgeData, isStandardMapData, isStandardMessageData, isStandardMomentData, isStandardImageData, isStandardMarkData, isStandardLensData, isStandardGuidanceData, isStandardSituationData }
 
 export type StandardComponentNonEditData =
@@ -69,6 +71,7 @@ export type StandardFormData = {
     shortName?: StandardEditableData<string>;
     summary?: StandardEditableData<RenderTree>;
     topLevel?: ReferenceListData;
+    standardizeMode?: WmlStandardizeMode;
 }
 
 export const isStandardForm = (arg: any): arg is StandardFormData => {

@@ -48,7 +48,8 @@ export const isEphemeraMapId = isEphemeraTaggedId<'MAP'>('MAP')
 export type EphemeraCharacterId = EphemeraWrappedId<'CHARACTER'>
 export const isEphemeraCharacterId = isEphemeraTaggedId<'CHARACTER'>('CHARACTER')
 
-
+export type EphemeraObjectId = EphemeraWrappedId<'OBJECT'>
+export const isEphemeraObjectId = isEphemeraTaggedId<'OBJECT'>('OBJECT')
 
 export type EphemeraMessageId = EphemeraWrappedId<'MESSAGE'>
 export const isEphemeraMessageId = isEphemeraTaggedId<'MESSAGE'>('MESSAGE')
@@ -70,7 +71,7 @@ export const isEphemeraSituationId = isEphemeraTaggedId<'SITUATION'>('SITUATION'
 // Redundancy: this union is maintained by hand; consider re-evaluating whether to derive
 // from ComponentUUID or a shared tag union in future.
 //
-export type EphemeraId = EphemeraWrappedId<'ASSET' | 'EXAMPLE' | 'FEATURE' | 'KNOWLEDGE' | 'ROOM' | 'MAP' | 'CHARACTER' | 'MESSAGE' | 'MOMENT' | 'IMAGE' | 'SITUATION'>
+export type EphemeraId = EphemeraWrappedId<'ASSET' | 'EXAMPLE' | 'FEATURE' | 'KNOWLEDGE' | 'ROOM' | 'MAP' | 'CHARACTER' | 'OBJECT' | 'MESSAGE' | 'MOMENT' | 'IMAGE' | 'SITUATION'>
 export const isEphemeraId = (value: string): value is EphemeraId => (
     isEphemeraAssetId(value) ||
     isEphemeraExampleId(value) ||
@@ -79,6 +80,7 @@ export const isEphemeraId = (value: string): value is EphemeraId => (
     isEphemeraRoomId(value) ||
     isEphemeraMapId(value) ||
     isEphemeraCharacterId(value) ||
+    isEphemeraObjectId(value) ||
     isEphemeraMessageId(value) ||
     isEphemeraMomentId(value) ||
     isEphemeraImageId(value) ||

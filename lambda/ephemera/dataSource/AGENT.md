@@ -10,7 +10,10 @@
 
 | Doc | Role |
 | --- | --- |
-| [**AGENT.multiChannel.contract.md**](AGENT.multiChannel.contract.md) | Multi-cadence / multi-channel player updates, **`Meta::Room`** as shared storage, decision norms so features do not reinvent rules ad hoc |
+| [**AGENT.multiChannel.contract.md**](AGENT.multiChannel.contract.md) | Multi-cadence / multi-channel player updates, **`Meta::Room`** as shared storage, **room-render** vs **room-affordances** direction, decision norms |
+| Multi-channel room UI (initiative complete) | Norms: [`AGENT.multiChannel.contract.md`](AGENT.multiChannel.contract.md); server publish map: [`perception/AGENT.md`](perception/AGENT.md) **Server publish sites (multi-channel)** |
+
+**Wire note:** **`PublishPerceptionMessage`** ([`messageBus/baseClasses.ts`](../messageBus/baseClasses.ts)) uses **`PerceptionMessageMetaData`**; room rows distinguish channels with **`metaData.roomChannel`** per the multi-channel contract. **Where emits happen (ephemera lambda):** [`perception/AGENT.md` **Server publish sites (multi-channel)**](perception/AGENT.md#server-publish-sites-multi-channel) (durable inventory). The task plan **Publisher inventory** section was the working copy and is **superseded** by that subsection for steady-state truth.
 
 Task-planning drafts (dispose after tasks land) live under [`taskPlanning/lambda/ephemera/`](../../../taskPlanning/lambda/ephemera/); the pass-through narrative is in [`AGENT.passThrough.contract.planning.md`](../../../taskPlanning/lambda/ephemera/dataSource/AGENT.passThrough.contract.planning.md).
 
@@ -42,7 +45,7 @@ Side-effect **`import './dataSource/...'`** from [`../app.ts`](../app.ts) regist
 | **`mtw.ephemera.renderOrchestration`** | [`renderOrchestration/`](renderOrchestration/) | **`findRender`**, generation, six outbound types --- [`renderOrchestration/AGENT.md`](renderOrchestration/AGENT.md) |
 | **`mtw.ephemera.perception`** | [`perception/`](perception/) | Audience fan-in, **`PublishMessage`** --- [`perception/AGENT.md`](perception/AGENT.md) |
 | **`mtw.ephemera.state`** | [`state/`](state/) | **`Meta::Room.state`** marks merge, **`State Changed`** --- [`state/AGENT.md`](state/AGENT.md) |
-| **`mtw.ephemera.objects`** | [`objects/`](objects/) | **`Meta::Room.objects`** merge, **`Objects Changed`** --- [`objects/AGENT.md`](objects/AGENT.md); executable history: [`taskPlanning/.../objects/AGENT.objectHandling.plan.md`](../../../taskPlanning/lambda/ephemera/dataSource/objects/AGENT.objectHandling.plan.md) |
+| **`mtw.ephemera.objects`** | [`objects/`](objects/) | **`Meta::Room.objects`** (structured **`uuid` + `shortName`**) merge, **`Objects Changed`** --- [`objects/AGENT.md`](objects/AGENT.md); executable history: [`taskPlanning/.../objects/AGENT.objectHandling.plan.md`](../../../taskPlanning/lambda/ephemera/dataSource/objects/AGENT.objectHandling.plan.md) |
 
 **Virtual / cross-cutting:** **`api.ephemera`** is not a `DataSource` class but the **`dataSourceKey`** for internal command envelopes consumed by multiple subscribers above.
 

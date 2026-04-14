@@ -8,7 +8,8 @@ import {
     isSchemaMap, 
     isSchemaMessage, 
     isSchemaMoment,
-    isSchemaSituation
+    isSchemaSituation,
+    isSchemaRender
 } from './components'
 
 describe('components tags', () => {
@@ -225,6 +226,23 @@ describe('components tags', () => {
         it('should return false for wrong tag', () => {
             const schema = { tag: 'Guidance', key: 'key' }
             expect(isSchemaSituation(schema)).toBe(false)
+        })
+    })
+
+    describe('isSchemaRender', () => {
+        it('should return true for valid SchemaRenderTag', () => {
+            const schema = { tag: 'Render' }
+            expect(isSchemaRender(schema)).toBe(true)
+        })
+
+        it('should return false for invalid tag', () => {
+            const schema = { tag: 'Object' }
+            expect(isSchemaRender(schema)).toBe(false)
+        })
+
+        it('should return false when tag is missing', () => {
+            const schema = {}
+            expect(isSchemaRender(schema)).toBe(false)
         })
     })
 })

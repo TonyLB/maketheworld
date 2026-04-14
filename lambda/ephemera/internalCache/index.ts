@@ -22,6 +22,7 @@ import withGetOperations from '@tonylb/mtw-utilities/ts/dynamoDB/mixins/get';
 import { DBHandlerBase } from '@tonylb/mtw-utilities/ts/dynamoDB/baseClasses';
 import ExamplesData from './examples';
 import ComponentRenderData from './componentRender';
+import ComponentStackMergeData from './componentStackMerge';
 import { queryCacheRecordsForComponent } from '../dataSource/renderCache/queryCacheRecordsForComponent';
 import CacheCharacterPossibleMapsData from './characterPossibleMaps';
 import CachePlayerMetaData from './playerMeta';
@@ -67,8 +68,9 @@ export class InternalCache {
     
     Examples: ExamplesData = new ExamplesData()
 
-    ComponentRender: ComponentRenderData;    
-    CharacterPossibleMaps: CacheCharacterPossibleMapsData;    
+    ComponentRender: ComponentRenderData;
+    ComponentStackMerge: ComponentStackMergeData;
+    CharacterPossibleMaps: CacheCharacterPossibleMapsData;
 
     constructor() {
         this.PlayerMeta = new CachePlayerMetaData(this.Global)
@@ -84,6 +86,13 @@ export class InternalCache {
             this.Global,
             this.CharacterMeta,
             this.RenderCache
+        )
+        this.ComponentStackMerge = new ComponentStackMergeData(
+            this.ComponentAssetMeta,
+            this.RoomCharacterList,
+            this.Global,
+            this.CharacterMeta,
+            (roomId) => this.ComponentEphemeraMeta.get(roomId)
         )
         this.CharacterPossibleMaps = new CacheCharacterPossibleMapsData(this.CharacterMeta, this.Graph)
         this._invalidateAssetCallback = (EphemeraId) => {
@@ -110,6 +119,7 @@ export class InternalCache {
 
         this.Examples.clear()
         this.ComponentRender.clear()
+        this.ComponentStackMerge.clear()
         this.CharacterPossibleMaps.clear()
         this.Conversations.clear()
         this.RenderCache.clear()
@@ -121,6 +131,7 @@ export class InternalCache {
             this.ComponentAssetMeta.flush(),
             this.AssetMetaData.flush(),
             this.ComponentRender.flush(),
+            this.ComponentStackMerge.flush(),
             this.RenderCache.flush(),
         ])
     }
