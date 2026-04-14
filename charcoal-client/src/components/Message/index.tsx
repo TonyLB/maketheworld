@@ -7,6 +7,7 @@ import SayMessage from './SayMessage'
 import NarrateMessage from './NarrateMessage'
 import OOCMessage from './OOCMessage'
 import WorldMessage from './WorldMessage'
+import WorldOOCMessage from './WorldOOCMessage'
 import RoomDescription from './RoomDescription'
 import ComponentDescription from './ComponentDescription'
 import SpacerMessage from './SpacerMessage'
@@ -53,6 +54,8 @@ export const Message = ({ message, ...rest }: MessageProps) => {
             return <OOCMessage message={message} variant={message.CharacterId === CharacterId ? 'right' : 'left'} />
         case 'WorldMessage':
             return <WorldMessage message={message} {...rest} />
+        case 'WorldOOCMessage':
+            return <WorldOOCMessage message={message} {...rest} />
         case 'PerceptionMessage':
             // Handle PerceptionMessage by routing to appropriate component based on metaData or fallback to component type
             const perceptionMessage = message as PerceptionMessage & { parsedWML?: StandardForm }

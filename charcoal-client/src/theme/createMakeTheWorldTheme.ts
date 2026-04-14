@@ -78,6 +78,7 @@
  */
 
 import { createTheme, Theme, ThemeOptions } from '@mui/material/styles'
+import { grey } from '@mui/material/colors'
 
 // Import theme extensions to ensure module augmentation is applied
 import './extensions'
@@ -164,6 +165,17 @@ export const createMakeTheWorldTheme = (options: MakeTheWorldThemeOptions): Them
                 ${primary[50]}80 20px
             ),
             linear-gradient(white 70%, ${primary[50]})
+        `,
+        /** System / out-of-world chat lines (WorldOOCMessage); neutral stripes, not character-primary. */
+        stripedGradientGrey: `
+            repeating-linear-gradient(
+                45deg,
+                transparent,
+                transparent 10px,
+                ${grey[200]}80 10px,
+                ${grey[200]}80 20px
+            ),
+            linear-gradient(white 70%, ${grey[100]})
         `,
         
         // Workbench-specific colors (used in authoring workbench)

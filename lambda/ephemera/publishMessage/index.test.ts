@@ -80,6 +80,41 @@ describe('PublishMessage', () => {
         })
     })
 
+    it('should dispatch WorldOOCMessage with same wire shape as WorldMessage', async () => {
+        cacheMock.OrchestrateMessages.allOffsets.mockReturnValue({})
+        cacheMock.CharacterSessions.get.mockResolvedValue(['Z123'])
+        cacheMock.SessionConnections.get.mockResolvedValue(['Y123'])
+        await publishMessage({
+            payloads: [{
+                type: 'PublishMessage',
+                targets: ['CHARACTER#123'],
+                displayProtocol: 'WorldOOCMessage',
+                message: ['Out of world']
+            }]
+        })
+        expect(messageDeltaDBMock.putItem).toHaveBeenCalledWith({
+            Target: 'CHARACTER#123',
+            DeltaId: '1000000000000::MESSAGE#UUID',
+            RowId: 'MESSAGE#UUID',
+            CreatedTime: 1000000000000,
+            Message: ['Out of world'],
+            DisplayProtocol: 'WorldOOCMessage'
+        })
+        expect(apiClientMock.send).toHaveBeenCalledWith({
+            ConnectionId: 'Y123',
+            Data: JSON.stringify({
+                messageType: 'Messages',
+                messages: [{
+                    Target: 'CHARACTER#123',
+                    MessageId: 'MESSAGE#UUID',
+                    CreatedTime: 1000000000000,
+                    Message: ['Out of world'],
+                    DisplayProtocol: 'WorldOOCMessage'
+                }]
+            })
+        })
+    })
+
     it('should remap room targets dynamically', async () => {
         cacheMock.OrchestrateMessages.allOffsets.mockReturnValue({})
         cacheMock.RoomCharacterList.get.mockResolvedValue([{

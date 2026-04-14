@@ -1,7 +1,7 @@
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
-import { 
-    isMessage, 
-    isPerceptionMessage, 
+import {
+    isMessage,
+    isPerceptionMessage,
     PerceptionMessage, 
     WMLSchema,
     PerceptionRoomMetaData,
@@ -14,6 +14,26 @@ import {
     DEFAULT_PERCEPTION_ROOM_CHANNEL,
     resolvedPerceptionRoomChannel
 } from './messages'
+
+describe('WorldOOCMessage', () => {
+    it('should validate through isMessage with render tree Message', () => {
+        expect(isMessage({
+            DisplayProtocol: 'WorldOOCMessage',
+            MessageId: 'MESSAGE#x',
+            CreatedTime: 1,
+            Message: ['Test']
+        })).toBe(true)
+    })
+
+    it('should reject invalid Message payload', () => {
+        expect(isMessage({
+            DisplayProtocol: 'WorldOOCMessage',
+            MessageId: 'MESSAGE#x',
+            CreatedTime: 1,
+            Message: 'not a render tree'
+        })).toBe(false)
+    })
+})
 
 describe('PerceptionMessage', () => {
     const validPerceptionMessage: PerceptionMessage = {
