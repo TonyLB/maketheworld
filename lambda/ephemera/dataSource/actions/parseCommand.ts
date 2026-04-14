@@ -1,3 +1,5 @@
+import { EphemeraRoomId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+
 /**
  * Parser result for action ingress. Extend with non-error variants as the contract grows.
  */
@@ -6,13 +8,25 @@ export type ParseCommandErrorResult = {
     errorMessage?: string
 }
 
+export type ParseCommandNavigationResult = {
+    type: 'Navigation'
+    targetId: EphemeraRoomId
+}
+
 export type ParseCommandResult =
     | ParseCommandErrorResult
+    | ParseCommandNavigationResult
 
 export function isParseCommandErrorResult(
     result: ParseCommandResult
 ): result is ParseCommandErrorResult {
     return result.type === 'Error'
+}
+
+export function isParseCommandNavigationResult(
+    result: ParseCommandResult
+): result is ParseCommandNavigationResult {
+    return result.type === 'Navigation' && isEphemeraRoomId(result.targetId)
 }
 
 export type ParseCommandInput = {
