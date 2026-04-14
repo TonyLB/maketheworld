@@ -50,7 +50,7 @@ These are **logically distinct**: they **may** use different internal triggers, 
 
 - **No strict coupling required:** No user journey currently planned requires **protocol-level** coupling where the client **cannot** treat one channel as usable without the other. The client must be able to show something coherent per channel in isolation (last-known-good, placeholders, or channel-specific rules), even when the **preferred** experience is both channels together.
 - **Navigation intent (dual channel):** When a character **enters a new room context** (for example **move** / **arrival** / first **look** at that room), the **system intent** is to deliver **both** room-render and room-affordances updates **when practical**. This is **product intent**, not a hard delivery guarantee: **Cadence and independence** still applies (independent publishes, skew, no shared revision keys).
-- **First arrival / ordering (presentation):** Affordances may arrive before render completes; showing a **full** affordance slice next to an **empty** or not-yet-generating render slice can feel wrong. **Default:** address that in **client** composition (for example defer updating the **virtual** sticky header until room-render has at least a **Generating**-class signal, while still accepting affordance rows on the wire). **Do not** rely on the server **by default** to withhold affordance **`PublishMessage`** until render has shipped unless product explicitly revisits that policy.
+- **First arrival / ordering (presentation):** Affordances may arrive before render completes; showing a **full** affordance slice next to an **empty** or not-yet-generating render slice can feel wrong. **Default:** address that in **client** composition (for example defer updating the **virtual** sticky header until room-render has at least a **Generating**-class signal, while still accepting affordance rows on the wire). **Do not** rely on the server **by default** to withhold affordance **`PublishMessage`** until render has shipped unless product explicitly revisits that policy. **Refinement (Phase C, agreed):** see [Phase C client composition (agreed)](#phase-c-client-composition-agreed) --- **muted** affordance emphasis until render catch-up (including **Generating**), **silent** timeout behavior for that mute gate, and **existing** sidebar error UX on **render** failure.
 - **Optional server-side pairing** remains a **hypothetical** future pattern only; see [Coupled delivery (optional pattern)](#coupled-delivery-optional-pattern).
 
 ### Coupled delivery (optional pattern)
@@ -61,7 +61,7 @@ These are **logically distinct**: they **may** use different internal triggers, 
 
 ### Current codebase (fact, not target)
 
-Today, **`PerceptionMessage`** room WML can still embed **overlapping** facts (e.g. characters, exits) while **`RoomUpdate`** carries **character roster** separately; the main client **room grouping** path does **not** fully merge **`RoomUpdate`** into the sticky header. **Migrating** to the two-channel model implies **choosing a single source of truth per fact** where possible and updating **client aggregation** accordingly. That migration is **work**, not yet done.
+Today, **`PerceptionMessage`** room WML can still embed **overlapping** facts (e.g. characters, exits) while **`RoomUpdate`** carries **character roster** separately. **Phase C (client)** removes **`RoomUpdate`** from the sticky-header path and composes **render** + **affordance** **`PerceptionMessage`** per [Phase C client composition (agreed)](#phase-c-client-composition-agreed). **Server** **`RoomUpdate`** retirement follows once no consumer needs it (see [multi-channel task plan](../../../taskPlanning/lambda/ephemera/dataSource/perception/AGENT.multiChannel.plan.md) **Phase C**).
 
 ### Normative consequence for new features
 
@@ -92,6 +92,21 @@ When adding **player-visible** room updates, **name** which **channel** owns the
 - The **sticky room header** is a **virtual** view: the client **aggregates** **multiple** incoming **`presentation`** rows (**`PerceptionMessage`** headers for the same room section, **discriminated** by **`metaData`** into **render** vs **affordances**) into **one** composed header for display.
 - **Transcript placement** continues to follow the **room-section** grouping model (original **timestamp / sort position** semantics for where that section’s header **lives** in the narrative), not “one raw row equals one header pixel-for-pixel.”
 - **Republishes** and duplicate logical updates: **collapse / dedupe toward the virtual header** is a **client aggregation** responsibility (extend selectors such as [`charcoal-client/src/slices/messages/selectors.ts`](../../../charcoal-client/src/slices/messages/selectors.ts) and header UI); avoiding double rows in the **raw** WebSocket stream is **not** a hard server requirement.
+
+### Phase C client composition (agreed)
+
+Product and implementation norms for **charcoal-client** Phase C (see [multi-channel task plan](../../../taskPlanning/lambda/ephemera/dataSource/perception/AGENT.multiChannel.plan.md) **Phase C client (agreed norms)**). **Wire protocol** norms elsewhere in this file are unchanged.
+
+1. **Layout (objects in header text):** Preserve **exits** and **characters** presentation as today. Add **runtime objects** to the **text area** of the room **summary / description** (below existing copy): a **`Contents:`** line, then an English list of object **`shortName`** values with **commas** and **and** before the last item.
+2. **Cross-channel structural merge:** When **render** and **affordances** each supply overlapping room-shaped **`wmlContent`** (e.g. different **`<Object>`** sets), build the virtual header body by merging parsed **`StandardForm`** values with **`StandardForm.merge`** so facts from **both** channels appear (e.g. **ObjectA** from one channel and **ObjectB** from the other).
+3. **Canonical channel for objects:** **Affordances** are the **long-term canonical** source for **objects**; **render** may still duplicate **`<Object>`** until server-side de-dupe matches the **De-duplication (norm vs Phase B)** norm under **`PublishMessage` envelope for both channels** above. Until then, **do not** prefer dropping affordance objects on the client; use **`StandardForm.merge`** as in (2).
+4. **Transcript anchor:** The **first render-channel** room header **`PerceptionMessage`** for the section **anchors** transcript / room-section position, **including** the **Generating...** intermediate on the render **`messageId`**. **Affordance** header rows **do not** re-anchor the section.
+5. **Staleness and placeholders:** **Last-known-good** per channel when data exists. **No** affordance-specific **Loading** / **Updating** row; **only** the render channel uses the existing **Generating...** intermediate. **Render** errors use the **existing** client **sidebar** (or equivalent) error pattern, not new affordance-only error chrome.
+6. **First arrival / mute:** Until render has emitted a header for that section (**Generating** counts), show affordance-sourced header material **muted** (lower emphasis using **Material** / **MUI** patterns consistent with **charcoal-client**). If waiting for that signal **times out**, **fail silently** for the mute gate (restore normal emphasis on last-known-good affordances without a dedicated affordance error state).
+7. **Multiple affordance rows:** When choosing one affordance snapshot for the virtual header, prefer the row with the **latest** **`CreatedTime`** (per selector aggregation for the viewer / room section).
+8. **`RoomUpdate`:** The **client** **does not** use **`displayProtocol: 'RoomUpdate'`** for the sticky header / room grouping path once Phase C ships; **roster** aligns to affordance **`PerceptionMessage`**. The server may emit **`RoomUpdate`** until all consumers are gone, then retire it (task plan **Phase C** checkbox).
+9. **Visual system:** Follow **charcoal-client** / **Material** conventions for **two-slot** layout (render vs affordances), **dividers**, and **muted** styling.
+10. **Accessibility:** A **comprehensive** accessibility pass is **explicitly out of scope** for this Phase C slice (deferred; not forgotten).
 
 ---
 
@@ -169,7 +184,7 @@ Track resolutions here or in [`taskPlanning/lambda/ephemera/dataSource/perceptio
 - **Room-render channel** owns **render-backed** presentation: **ShortName**, **assets**, **DisplayName / Summary / Description** via **`<Render>`** / **`ComponentRender`** pipeline (see **Implementation-level aggregation** above).
 - **Room-affordances channel** owns structured facts: **exits**, **characters** present, **objects**, **features**.
 - **Situation / Lens / Guidance** are **not** forwarded for this UI slice.
-- **`RoomUpdate`:** **Server** migrates roster delivery to affordance **`PerceptionMessage`** in **Phase B** (see **Phase B server migration (agreed)** above). **Client** handling of legacy **`RoomUpdate`** rows vs affordance-only headers is **Phase C** / follow-on.
+- **`RoomUpdate`:** **Server** added affordance **`PerceptionMessage`** in **Phase B** (see **Phase B server migration (agreed)** above). **Phase C client** drops **`RoomUpdate`** from the sticky-header path (**[Phase C client composition (agreed)](#phase-c-client-composition-agreed)**); **server** retires **`RoomUpdate`** after no consumer needs it.
 
 ### Coupled PerceptionThread template (deferral)
 
@@ -178,7 +193,8 @@ Track resolutions here or in [`taskPlanning/lambda/ephemera/dataSource/perceptio
 ### Client implementation (types vs selectors)
 
 - [X] **Types:** **`PerceptionRoomMetaData.roomChannel`** + default semantics in **`@tonylb/mtw-interfaces`** (**Phase A**).
-- [ ] **Selectors / UI:** **`getMessagesByRoom`** / **`VirtualMessageList`** (or successors) aggregate **discriminated** **`PerceptionMessage`** rows (**Phase C**).
+- [X] **Phase C composition norms (agreed):** Layout, **`StandardForm.merge`**, transcript anchor, staleness, mute / timeout / render error UX, affordance **`CreatedTime`** tie-break, **`RoomUpdate`** removal on the client, Material alignment, a11y deferral --- see [Phase C client composition (agreed)](#phase-c-client-composition-agreed) and the [multi-channel task plan](../../../taskPlanning/lambda/ephemera/dataSource/perception/AGENT.multiChannel.plan.md).
+- [ ] **Selectors / UI implementation:** **`getMessagesByRoom`** / **`VirtualMessageList`** (or successors) implement those norms (**Phase C** code).
 
 ### Other inventory
 

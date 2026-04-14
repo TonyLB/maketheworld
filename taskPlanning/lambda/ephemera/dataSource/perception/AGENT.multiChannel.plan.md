@@ -13,7 +13,7 @@ Align **server publication**, **`mtw.ephemera.perception`** threading, and **cli
 1. **Room-render** --- summary / render-backed presentation (expensive path).
 2. **Room-affordances** --- structured facts that should refresh cheaply (exits, characters present, **objects** as the runtime model grows).
 
-Today the codebase still **overlaps** these concerns (for example **`PerceptionMessage`** WML vs **`RoomUpdate`**), and the main client grouping path does not fully merge **`RoomUpdate`** into the sticky header. This plan drives the **migration** and records **open decisions** until steady-state docs absorb the results.
+Today the codebase still **overlaps** these concerns (for example **`PerceptionMessage`** WML vs **`RoomUpdate`**). **Phase C** removes **client** handling of **`RoomUpdate`** (roster and related facts come from affordance **`PerceptionMessage`** only) and implements the **virtual** sticky header per **Phase C client (agreed norms)** and [`AGENT.multiChannel.contract.md`](../../../../../lambda/ephemera/dataSource/AGENT.multiChannel.contract.md) **Phase C client composition (agreed)**. This plan drives the **migration** and records **open decisions** until steady-state docs absorb the results.
 
 ---
 
@@ -32,7 +32,7 @@ Read in order (or skim **Decisions to resolve** first if resuming):
 ## Goals
 
 1. **[Decided / contract]** Wire shape: **`PerceptionMessage`** + **`metaData.roomChannel`** (`'render' | 'affordances'`); separate **`messageId`** spaces; norms in [`AGENT.multiChannel.contract.md`](../../../../../lambda/ephemera/dataSource/AGENT.multiChannel.contract.md).
-2. **[Decided / contract]** **Fact ownership** (render vs affordances) and **coupled thread** deferral are **normative** in the contract; **server** adds affordance **`PerceptionMessage`** for roster in **Phase B** (see **Phase B server (agreed norms)**). **Retire** **`displayProtocol: 'RoomUpdate'`** on the server **after Phase C** when the client no longer depends on it (see **Decisions to resolve** and **Outstanding decisions and questions**). **Client** aggregation is **Phase C**.
+2. **[Decided / contract]** **Fact ownership** (render vs affordances) and **coupled thread** deferral are **normative** in the contract; **server** adds affordance **`PerceptionMessage`** for roster in **Phase B** (see **Phase B server (agreed norms)**). **Phase C client (agreed norms)** and contract **Phase C client composition (agreed)** fix virtual-header layout, **`StandardForm.merge`**, **`RoomUpdate`** removal on the client, and related UX. **Retire** server **`displayProtocol: 'RoomUpdate'`** **after** that client ships (see **Outstanding decisions and questions**).
 3. **[Phase B/C]** **Coupled** perception flows: full **PerceptionThread** state machine for paired delivery remains **deferred** unless product requests it.
 4. **[Phase B/C]** **Implement** server publishers, perception subscriptions/handlers, and client composition so the **sticky room header** reflects **both** channels without dropping updates.
 5. **[Phase B]** **Land** **`Objects Changed`** (or successor affordance delta) on the **affordances** cadence where product agrees, without forcing full room render unless summary derivation requires it.
@@ -62,6 +62,7 @@ Promoted norms live in **`AGENT.multiChannel.contract.md`**. Remaining rows are 
 | **Objects + perception** | **[Resolved / Phase B execution]** **`mtw.ephemera.perception`** subscribes to **`mtw.ephemera.objects` `Objects Changed`** and emits affordance **`PublishMessage`**; see **Phase B server (agreed norms)** and **[`AGENT.objectHandling.plan.md`](../objects/AGENT.objectHandling.plan.md)** Phase 2. |
 | **Phase B correlation** | **[Resolved]** Phase B work is **explicitly constrained** **not** to invent a **coupled** perception thread (no new paired render+affordance fan-in state machine for **`Objects Changed`** or roster affordance kicks). Uncorrelated **`PublishMessage`** per channel norms only. New affordance emits use **one bus `PublishMessage` per recipient character** (see **Phase B server** table and **Publisher inventory**). |
 | **Affordance `ComponentStackMerge` (viewer-specific merge)** | **[Resolved / Option B]** Room-wide affordance publishes (e.g. **`Objects Changed`**, roster refresh) resolve **`wmlContent`** by calling **`internalCache.ComponentStackMerge.get(characterId, roomId)` once per target**, then emit **`PublishMessage`** with **`targets: [characterId]`** (one message per character), not a single shared body for the room. **Do not** use **`ANONYMOUS`** for that path unless a later decision explicitly changes this. See **WML composition (recipe)** for the **implementation request** (call-site comments + cache docs) about a **future** cache-key migration. |
+| **Phase C client composition** | **[Resolved]** Layout, cross-channel merge, transcript anchor, staleness, **`RoomUpdate`** removal on the client, objects presentation, affordance tie-break, accessibility scope, and Material UI alignment: see **Phase C client (agreed norms)** below; durable copy in [`AGENT.multiChannel.contract.md`](../../../../../lambda/ephemera/dataSource/AGENT.multiChannel.contract.md) **Phase C client composition (agreed)**. |
 
 ---
 
@@ -128,12 +129,29 @@ Pending work uses `[ ]`; completed work uses `[X]` (capital **X**). Mark each li
 - [X] Wire **`Objects Changed`** via **`mtw.ephemera.perception`** subscription (object plan **Phase 2**); **one affordance `PublishMessage` per character** in the target room (**`targets: [characterId]`**), **`wmlContent`** from **`ComponentStackMerge.get(characterId, roomId)`** (Option B), explicit **`roomChannel: 'affordances'`**, plus **call-site** / **cache** notes per **WML composition (recipe)**.
 - [X] Unit tests: **`roomChannel`** + **`messageId`** separation + **`Objects Changed`** affordance shape (see **Phase B server (agreed norms)**); perception orchestration and publish helpers (pattern from existing **`dataSource/perception/`** tests).
 
+## Phase C client (agreed norms)
+
+Durable duplicate: [`AGENT.multiChannel.contract.md`](../../../../../lambda/ephemera/dataSource/AGENT.multiChannel.contract.md) **Phase C client composition (agreed)**.
+
+| Topic | Decision |
+| --- | --- |
+| **Layout (objects in header text)** | Keep **exits** and **characters** as today. Add **runtime objects** to the **text area** of the room **summary / description** (below existing copy): a **`Contents:`** line, then an English list of object **`shortName`** values using **comma** separators and **and** before the last item (Oxford-style list). |
+| **Cross-channel merge (structural)** | When **render** and **affordances** each contribute **`<Object>`** (or other structured room facts), the **virtual** composed header treats them as **one** room body: merge parsed **`StandardForm`** trees with **`StandardForm.merge`** (same merge the codebase already uses for combining room-shaped schemas) so **ObjectA** from one channel and **ObjectB** from the other both appear. |
+| **Objects: canonical channel** | **Affordances** are the **canonical** source for **objects** over time; **render** may still carry overlapping **`<Object>`** until server de-dupe lands. **Until then**, rely on **`StandardForm.merge`** as above (no client-side preference to drop affordance objects). |
+| **Transcript anchor** | The **first room-render** channel **`PerceptionMessage`** header row for that room section **anchors** transcript / room-section position---including the **Generating...** intermediate (same **`messageId`** replace pipeline as today). Affordance rows **do not** re-anchor the section. |
+| **Staleness and placeholders** | **Last-known-good** is **always** shown per channel when available. **Do not** add a separate **Loading** / **Updating** affordance placeholder; affordances have **no** Generating-style row. **Render** keeps **only** the existing **Generating...** intermediate behavior for the render channel. |
+| **First arrival / render catch-up** | Until render has **caught up** to at least the same **room context** as the affordance rows (operational definition: render channel has produced a header row for that section, including **Generating**), show **affordance**-sourced UI **muted** (lower emphasis per **Material** patterns already used in **charcoal-client**). If that catch-up **times out**, **fail silently** for the mute lift (show last-known-good affordances at normal emphasis without a dedicated error affordance state). On **render error**, use the **existing** client **sidebar** (or equivalent) **error** presentation---same as other render failures today---not a new affordance-specific error chrome. |
+| **Multiple affordance rows** | When collapsing affordance **`PublishMessage`** history for the virtual header, the **winning** affordance snapshot is the one with the **latest** **`CreatedTime`** (per character / room section aggregation rules in selectors). |
+| **`RoomUpdate` on the client** | **Remove** client-side acceptance and use of **`displayProtocol: 'RoomUpdate'`** for the sticky header / room grouping path; **roster** and related facts come from affordance **`PerceptionMessage`** only. (Server may still emit **`RoomUpdate`** until the Phase C follow-on retires it; the client **ignores** it for this path.) |
+| **Visual system** | Follow **charcoal-client** conventions; the app is **Material-heavy**---use existing **MUI** / layout patterns for **two-slot** composition (render vs affordances), **muted** affordances, and **dividers** as appropriate. |
+| **Accessibility** | **Out of scope** for this Phase C implementation slice; a **comprehensive** a11y pass is **deferred** (recorded explicitly so it is not forgotten). |
+
 **Phase C --- client**
 
-- [ ] Extend **`getMessagesByRoom`** (or successor) so **both** channels participate in **one** header composition model (no silent drop of **`RoomUpdate`** / affordance messages).
-- [ ] Update **`VirtualMessageList`** / **`RoomDescription`** (or split components) for **two-slot** composition and placeholders.
+- [ ] Extend **`getMessagesByRoom`** (or successor) so **both** **`roomChannel`** values participate in **one** virtual header model; **remove** **`RoomUpdate`** from the room header / grouping path (affordance **`PerceptionMessage`** only for roster-aligned facts).
+- [ ] Update **`VirtualMessageList`** / **`RoomDescription`** (or split components) for **two-slot** composition per **Phase C client (agreed norms)** (render + affordances; **Contents:** line; **`StandardForm.merge`**; Material patterns).
 - [ ] Tests: selectors and message list behavior (`charcoal-client` testing patterns).
-- [ ] **After** client consumes affordance **`PerceptionMessage`** for roster in the sticky header: **retire** server **`displayProtocol: 'RoomUpdate'`** (or thin to zero emits); confirm no remaining server dependency.
+- [ ] **After** the client ships the above: **retire** server **`displayProtocol: 'RoomUpdate'`** (or thin to zero emits); confirm no remaining consumer dependency.
 
 **Phase D --- closeout**
 
@@ -173,8 +191,8 @@ npm test
 
 **Manual / integration checks** (refine when wire shapes exist):
 
-- Room look / move / header refresh: header shows **consistent** summary + affordances; no stuck placeholders beyond agreed timeouts.
-- **Objects** mutation: affordance channel updates without **required** full room regen unless contract says otherwise.
+- Room look / move / header refresh: header shows **consistent** summary + affordances; render **Generating** behaves as today; affordance mute / unmute per **Phase C client (agreed norms)**.
+- **Objects** mutation: **`Contents:`** line and merged object list; affordance channel may update without **required** full room regen unless contract says otherwise.
 
 ---
 
@@ -187,7 +205,7 @@ Items below stay open until a later milestone; they are **not** blockers for Pha
 | **Contract vs plan (WML de-duplication)** | **Aligned:** the contract now states a **norm** (render should eventually not repeat affordance-owned facts) and explicitly that **Phase B need not enforce** it on the server. **Render-only recipe** remains deferred until **`ComponentRender`** / **`renderCache`** work. |
 | **Render-only WML recipe** | **Deferred:** define how render-channel bodies omit exits / roster / objects / features (filtered export, alternate mode, post-process) when **`ComponentRender`** is revisited or replaced by **`renderCache`**-driven materialization. Document next to the chosen pipeline in **`AGENT.md`**. |
 | **`ComponentStackMerge` invalidation** | **Shipped:** **`ComponentStackMergeData.invalidate(roomId)`** ([`componentStackMerge.ts`](../../../../../lambda/ephemera/internalCache/componentStackMerge.ts)) clears merge cache for that room; called beside **`ComponentEphemeraMeta.invalidate`** on **`Meta::Room`** / roster paths (see [`internalCache/AGENT.md`](../../../../../lambda/ephemera/internalCache/AGENT.md)). |
-| **Server `RoomUpdate` end state** | **After Phase C:** remove or gate **`RoomUpdate`** emits; verify **charcoal-client** and any other consumers. |
+| **Server `RoomUpdate` end state** | **After** charcoal-client Phase C drops **`RoomUpdate`** handling: remove or gate server **`RoomUpdate`** emits; verify **charcoal-client** and any other consumers. |
 | **Coupled delivery (optional)** | Product has **not** requested paired render+affordance threads; if that changes, treat as a **new** initiative (contract **Coupled delivery (optional pattern)**). |
 | **`ComponentStackMerge` cache key evolution** | **Future (not Phase B):** migrate cache identity from **`(characterId, roomId)`** toward **`(componentId, perspectiveKey)`** when render and perception keying are ready; **Phase B** only documents the justification at call-sites and in **`internalCache`** docs (see **WML composition (recipe)**). |
 
@@ -217,7 +235,8 @@ Items below stay open until a later milestone; they are **not** blockers for Pha
 | **Phase B server** | Add affordance **`PerceptionMessage`** for roster (**one `PublishMessage` per character**); **`Objects Changed`** via **`mtw.ephemera.perception`** (same per-character rule); **explicit `roomChannel: 'render'`** on new render emits; **norm:** render should eventually de-dupe vs affordances --- **Phase B need not enforce**; **no** coupled threads; **`RoomUpdate`** retirement **after Phase C**; **`ComponentStackMerge` Option B** + **`invalidate(roomId)`** wired; cache/call-site notes for future **`(componentId, perspectiveKey)`** keys; tests per **Phase B server (agreed norms)**. |
 | **WML recipe (affordance)** | **`ComponentStackMerge`** + **`ephemeraWire`** for affordance bodies (shipped / documented in **`internalCache`**). |
 | **WML recipe (render-only)** | **Deferred** until **`ComponentRender`** return or **`renderCache`** replacement; see **Outstanding decisions and questions**. |
-| **Temporary overlap** | Phase B **accepts** duplicate facts across channels until render pipeline migration. |
+| **Temporary overlap** | Phase B **accepts** duplicate facts across channels until render pipeline migration. **Phase C client** merges overlapping **`<Object>`** (and similar) via **`StandardForm.merge`**; affordances are **canonical** for objects long-term. |
+| **Phase C client (summary)** | See **Phase C client (agreed norms)** and contract **Phase C client composition (agreed)**. |
 | **Affordance merge per viewer (Option B)** | **`ComponentStackMerge.get(characterId, roomId)` per target** for room-wide affordance **`wmlContent`**; **not** **`ANONYMOUS`**. **Implementation request:** comment at publish call-sites + note in **`internalCache/AGENT.md`** / **`componentStackMerge.ts`** that **`(componentId, perspectiveKey)`** cache keys are a **justified future migration**. |
 | **Affordance `messageId`** | **New UUID** every affordance **`PublishMessage`** (**`MESSAGE#${uuid}`**, [`publishMessage`](../../../../../lambda/ephemera/publishMessage/index.ts)); not render thread ids or **`OrchestrateMessages`** offsets. |
 

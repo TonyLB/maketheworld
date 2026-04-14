@@ -96,6 +96,8 @@ Each room header displays:
 - **Exit List**: Available navigation options
 - **Environmental Status**: Current room state
 
+**Multi-channel (render vs affordances, Phase C):** Agreed client norms (virtual header from **`roomChannel`**, **`StandardForm.merge`**, **`Contents:`** + object **shortName** list, **`RoomUpdate`** removal, mute / anchor rules) live in [`lambda/ephemera/dataSource/AGENT.multiChannel.contract.md`](../../../../lambda/ephemera/dataSource/AGENT.multiChannel.contract.md) **Phase C client composition (agreed)** and [`taskPlanning/lambda/ephemera/dataSource/perception/AGENT.multiChannel.plan.md`](../../../../taskPlanning/lambda/ephemera/dataSource/perception/AGENT.multiChannel.plan.md) **Phase C client (agreed norms)**. Follow existing **Material** / **MUI** patterns in this package.
+
 ### **Dynamic Header Updates**
 
 #### **In-Place Header Replacement**
