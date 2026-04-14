@@ -30,7 +30,14 @@ describe('ephemeraActionsDataSource', () => {
             streamEnvelope: jest.fn(async () => {}),
         })
 
-        expect(mockMessageBus.send).toHaveBeenCalledWith({
+        expect(mockMessageBus.send).toHaveBeenCalledTimes(2)
+        expect(mockMessageBus.send).toHaveBeenNthCalledWith(1, {
+            type: 'PublishMessage',
+            targets: ['CHARACTER#123'],
+            displayProtocol: 'WorldOOCMessage',
+            message: ['Parse error'],
+        })
+        expect(mockMessageBus.send).toHaveBeenNthCalledWith(2, {
             type: 'ReturnValue',
             body: {
                 messageType: 'Success',
@@ -58,6 +65,12 @@ describe('ephemeraActionsDataSource', () => {
             streamEnvelope: jest.fn(async () => {}),
         })
 
-        expect(mockMessageBus.send).not.toHaveBeenCalled()
+        expect(mockMessageBus.send).toHaveBeenCalledTimes(1)
+        expect(mockMessageBus.send).toHaveBeenCalledWith({
+            type: 'PublishMessage',
+            targets: ['CHARACTER#123'],
+            displayProtocol: 'WorldOOCMessage',
+            message: ['Parse error'],
+        })
     })
 })
