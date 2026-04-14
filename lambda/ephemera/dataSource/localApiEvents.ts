@@ -49,7 +49,9 @@ export type ObjectsChangeCommand = {
  * `command` is raw player input to be parsed into an action shape.
  */
 export type ParseRequestedCommand = {
+    characterId: string;
     command: string;
+    requestId?: string;
 }
 
 const isMarkStateShape = (value: unknown): value is EphemeraCacheMarkState => {
@@ -98,7 +100,16 @@ export const isParseRequestedCommand = (value: unknown): value is ParseRequested
         return false
     }
     const v = value as Record<string, unknown>
-    return typeof v.command === 'string'
+    if (typeof v.characterId !== 'string') {
+        return false
+    }
+    if (typeof v.command !== 'string') {
+        return false
+    }
+    if (v.requestId !== undefined && typeof v.requestId !== 'string') {
+        return false
+    }
+    return true
 }
 
 export const isPutCacheRecordCommand = (value: unknown): value is PutCacheRecordCommand => {

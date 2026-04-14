@@ -1,7 +1,6 @@
 // Copyright 2020 Tony Lower-Basch. All Rights Reserved.
 // SPDX-License-Identifier: MIT-0
 
-import { parseCommand } from './parse'
 import { StartExecutionCommand } from '@aws-sdk/client-sfn'
 import getCurrentTimestamp from './internalUtils/dateUtil'
 
@@ -33,7 +32,7 @@ import { confirmGuestCharacter } from './guestCharacter'
 import { AssetsEventSerializer, ComponentExamplesEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
 import { fromEventBridgeFormat } from '@tonylb/mtw-lambda-patterns/ts/dataSource/formatTransform'
 import { coreFormatToStreamingEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
-import { sendStateChange } from './dataSource/apiEphemera'
+import { sendParseRequested, sendStateChange } from './dataSource/apiEphemera'
 import { isStateChangeCommand } from './dataSource/localApiEvents'
 
 // Import DataSources to trigger their messageBus subscriptions (side-effect imports)
@@ -220,16 +219,22 @@ export const handler = async (event: any, context: any) => {
             }
 
             if (isCommandAPIMessage(request)) {
-                const parsedAction = await parseCommand({
-                    CharacterId: request.CharacterId,
-                    command: request.command
+                sendParseRequested(messageBus, request.CharacterId, {
+                    characterId: request.CharacterId,
+                    command: request.command,
+                    ...(request.RequestId ? { requestId: request.RequestId } : {}),
                 })
-                if (parsedAction) {
-                    messageBus.send({
-                        type: 'ExecuteAction',
-                        action: parsedAction
-                    })
-                }
+                // Legacy reference (Phase 1 intentionally disables direct imperative parse/execute):
+                // const parsedAction = await parseCommand({
+                //     CharacterId: request.CharacterId,
+                //     command: request.command
+                // })
+                // if (parsedAction) {
+                //     messageBus.send({
+                //         type: 'ExecuteAction',
+                //         action: parsedAction
+                //     })
+                // }
             }
 
             if (isActionAPIMessage(request)) {

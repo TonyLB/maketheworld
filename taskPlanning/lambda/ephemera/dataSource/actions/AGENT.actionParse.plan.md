@@ -1,6 +1,6 @@
 # Action Parse DataSource Plan
 
-**Status:** In progress. Next step is to complete the closed-loop parse request path (`command` API -> `api.ephemera` synthetic -> `mtw.ephemera.actions` ack).
+**Status:** In progress. Phase 1 is complete; next step is Phase 2 parser-result contract hardening.
 
 ## Purpose
 
@@ -45,11 +45,11 @@ This plan is task-scoped and should be retired after the action parse initiative
 
 Use `[ ]` for pending and `[X]` for complete. Mark nested lines as you finish each sub-step.
 
-- [ ] Phase 1 - close the no-op request loop on `command`
-  - [ ] Route `isCommandAPIMessage` handling from direct imperative parse toward `sendParseRequested(...)` synthetic dispatch (or equivalent handoff bridge).
-  - [ ] Handle `Parse Requested` in `mtw.ephemera.actions` by emitting correlated immediate success when `RequestId` is present.
-  - [ ] Add/update tests proving: outbound `command` request receives a `RequestId`-correlated success response even with no implemented action branches.
-  - [ ] Keep behavior explicit for currently unsupported/empty parse outcomes.
+- [X] Phase 1 - close the no-op request loop on `command`
+  - [X] Route `isCommandAPIMessage` handling from direct imperative parse toward `sendParseRequested(...)` synthetic dispatch (or equivalent handoff bridge).
+  - [X] Handle `Parse Requested` in `mtw.ephemera.actions` by emitting correlated immediate success when `RequestId` is present.
+  - [X] Add/update tests proving: outbound `command` request receives a `RequestId`-correlated success response even with no implemented action branches.
+  - [X] Keep behavior explicit for currently unsupported/empty parse outcomes.
 
 - [ ] Phase 2 - define parser result contract (pre-LLM hardening)
   - [ ] Define internal parse-result type(s): intent key, extracted slots/entities, confidence, and parse diagnostics.
@@ -95,6 +95,10 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines as you finish ea
   - parser contract validation and fallback,
   - branch dispatch and branch-specific outcomes.
 - For client correlation behavior, verify request resolution by matching top-level `RequestId` in returned payload.
+- Phase 1 verification completed:
+  - `cd "/Users/anthonylower-basch/Code/maketheworld/lambda/ephemera" && npm run test -- --runInBand app.test.ts dataSource/actions/index.test.ts`
+  - `cd "/Users/anthonylower-basch/Code/maketheworld/lambda/ephemera" && npm run build`
+  - `ReadLints` clean on edited files.
 
 ## Progress
 
@@ -102,6 +106,7 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines as you finish ea
 | --- | --- |
 | Inert `mtw.ephemera.actions` DataSource stub | Done |
 | Synthetic `api.ephemera` `Parse Requested` event contract and subscription guard | Done |
-| Closed-loop `command` -> `Parse Requested` -> correlated success | Not started |
+| Closed-loop `command` -> `Parse Requested` -> correlated success | Done |
+| Legacy imperative parser retained as explicit commented reference in `app.ts` | Done |
 | LLM parser contract and implementation | Not started |
 | Action branch framework and migration from imperative parse | Not started |

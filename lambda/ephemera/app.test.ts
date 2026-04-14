@@ -5,12 +5,8 @@ import messageBus from './messageBus'
 // Mock dependencies
 jest.mock('./messageBus')
 jest.mock('./internalCache')
-jest.mock('./parse', () => ({
-    parseCommand: jest.fn()
-}))
 
 const mockMessageBus = messageBus as jest.Mocked<typeof messageBus>
-const mockParseCommand = require('./parse').parseCommand as jest.MockedFunction<typeof import('./parse').parseCommand>
 
 describe('app handler', () => {
     beforeEach(() => {
@@ -18,7 +14,6 @@ describe('app handler', () => {
         mockMessageBus.clear.mockReturnValue(undefined)
         mockMessageBus.flush.mockResolvedValue(undefined)
         mockMessageBus.send.mockReturnValue(undefined)
-        mockParseCommand.mockResolvedValue(undefined)
     })
 
     describe('action message handling', () => {
@@ -100,18 +95,7 @@ describe('app handler', () => {
     })
 
     describe('command message handling', () => {
-        it('should route command messages to messageBus.send with ExecuteActionMessage when parsed', async () => {
-            const mockParsedAction: import('@tonylb/mtw-interfaces/ts/ephemera').ActionAPIMessage = {
-                message: 'action',
-                actionType: 'look',
-                payload: {
-                    CharacterId: 'CHARACTER#123',
-                    EphemeraId: 'ROOM#456'
-                }
-            }
-            
-            mockParseCommand.mockResolvedValue(mockParsedAction)
-
+        it('should route command messages to api.ephemera Parse Requested synthetic event', async () => {
             const commandMessage = {
                 message: 'command',
                 CharacterId: 'CHARACTER#123',
@@ -127,20 +111,26 @@ describe('app handler', () => {
 
             await handler(event, {})
 
-            // The command should be parsed and then sent to messageBus
-            expect(mockMessageBus.send).toHaveBeenCalledWith({
-                type: 'ExecuteAction',
-                action: mockParsedAction
+            const parseRequestedCall = mockMessageBus.send.mock.calls.find(
+                ([payload]) => payload?.type === 'StreamingEvent'
+                    && payload?.dataSourceKey === 'api.ephemera'
+                    && payload?.header?.type === 'Parse Requested'
+            )
+            expect(parseRequestedCall).toBeDefined()
+            const parsePayload = parseRequestedCall![0] as { getContent: () => Promise<unknown> }
+            const content = await parsePayload.getContent()
+            expect(content).toEqual({
+                characterId: 'CHARACTER#123',
+                command: 'look',
             })
         })
 
-        it('should not send to messageBus when command parsing returns undefined', async () => {
-            mockParseCommand.mockResolvedValue(undefined)
-
+        it('includes requestId in Parse Requested synthetic payload when present on wire request', async () => {
             const commandMessage = {
                 message: 'command',
+                RequestId: 'req-parse-1',
                 CharacterId: 'CHARACTER#123',
-                command: 'invalid command'
+                command: 'look'
             }
 
             const event = {
@@ -152,7 +142,19 @@ describe('app handler', () => {
 
             await handler(event, {})
 
-            expect(mockMessageBus.send).not.toHaveBeenCalled()
+            const parseRequestedCall = mockMessageBus.send.mock.calls.find(
+                ([payload]) => payload?.type === 'StreamingEvent'
+                    && payload?.dataSourceKey === 'api.ephemera'
+                    && payload?.header?.type === 'Parse Requested'
+            )
+            expect(parseRequestedCall).toBeDefined()
+            const parsePayload = parseRequestedCall![0] as { getContent: () => Promise<unknown> }
+            const content = await parsePayload.getContent()
+            expect(content).toEqual({
+                characterId: 'CHARACTER#123',
+                command: 'look',
+                requestId: 'req-parse-1',
+            })
         })
     })
 
