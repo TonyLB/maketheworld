@@ -1,4 +1,5 @@
 import { ephemeraDB } from "@tonylb/mtw-utilities/ts/dynamoDB";
+import { coyoteGameEnabled } from '@tonylb/mtw-base/ts/coyoteGame'
 
 // Recreated function from deleted cacheAsset module
 const pushCharacterEphemera = async (character: {
@@ -7,11 +8,12 @@ const pushCharacterEphemera = async (character: {
     Name: string;
     Color: string;
     Pronouns: string;
+    Description?: string;
     assets: string[];
     RoomId: string;
     player: string;
 }) => {
-    const updateKeys: (keyof typeof character)[] = ['Name', 'Pronouns', 'Color', 'assets', 'RoomId', 'player']
+    const updateKeys: (keyof typeof character)[] = ['Name', 'Pronouns', 'Color', 'assets', 'RoomId', 'player', 'Description']
     await ephemeraDB.optimisticUpdate({
         Key: {
             EphemeraId: character.EphemeraId,
@@ -40,9 +42,10 @@ export const confirmGuestCharacter = async (userName: string): Promise<void> => 
     await pushCharacterEphemera({
         key: characterId,
         EphemeraId: `CHARACTER#${characterId}`,
-        Name: name,
+        Name: coyoteGameEnabled ? userName : name,
         Color: 'pink',
         Pronouns: 'they/them',
+        ...(coyoteGameEnabled ? { Description: 'A scraggly coyote with a hungry and cunning look in his eye.' } : {}),
         assets: [],
         RoomId: 'VORTEX',
         player: userName

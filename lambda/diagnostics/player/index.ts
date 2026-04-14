@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { splitType } from '@tonylb/mtw-utilities/ts/types'
 import { newGuestName } from "./guestNames"
+import { coyoteGameEnabled } from '@tonylb/mtw-base/ts/coyoteGame'
 
 import { CognitoIdentityProviderClient, ListUsersCommand } from "@aws-sdk/client-cognito-identity-provider"
 import { AssetClientPlayerSettings  } from "@tonylb/mtw-interfaces/ts/asset"
@@ -68,8 +69,9 @@ export const healPlayer = async (player: string): Promise<HealPlayerReturnValue>
     const { guestName, guestId } = fetch || {}
     let finalGuestName = guestName
     let finalGuestId = guestId
-    if (!guestName || !guestId) {
-        const confirmedGuestName = guestName || await newGuestName()
+    const coyoteGuestNameNeedsUpdate = coyoteGameEnabled && guestName !== player
+    if (!guestName || !guestId || coyoteGuestNameNeedsUpdate) {
+        const confirmedGuestName = coyoteGameEnabled ? player : (guestName || await newGuestName())
         const confirmedGuestId = guestId || uuidv4()
         const result = await assetDB.optimisticUpdate<{ guestName: string; guestId: string }>({
             Key: {

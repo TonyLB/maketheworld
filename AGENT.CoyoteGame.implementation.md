@@ -16,6 +16,17 @@ Important: there is currently no global `coyote-game` feature switch wired into 
 
 ## Where Coyote Game Specific Code Exists
 
+### 0) Global feature switch
+
+- `packages/mtw-base/ts/coyoteGame.ts`
+  - Exposes `coyoteGameEnabled` (and default export) as the global switch for Coyote Game specific behavior.
+  - Current implementation is a direct code constant: `export const coyoteGameEnabled = true`.
+  - Intended as a temporary global gate until a more dynamic rollout path is needed.
+
+Practical meaning:
+- new Coyote-specific behavior should be gated behind `coyoteGameEnabled`.
+- turning the demo gate on or off is currently a code change.
+
 ### 1) Ephemera internal cache: dedicated CoyoteGame cache namespace
 
 - `lambda/ephemera/internalCache/coyoteGame.ts`
@@ -48,21 +59,22 @@ Practical meaning:
 Practical meaning:
 - the system bootstrap currently treats this room set as part of baseline primitives.
 
-### 3) Guest character flow (related, but not coyote-aware)
+### 3) Guest character flow (now coyote-aware behind the global switch)
 
-- `lambda/ephemera/guestCharacter/index.ts`
-  - `confirmGuestCharacter()` copies stored `guestName` and `guestId` into character ephemera metadata.
-  - Default placement is `RoomId: 'VORTEX'`.
-  - No branching by demo mode.
-- `lambda/ephemera/app.ts`
-  - Calls `confirmGuestCharacter()` on `"Player Connected"` events.
-- `lambda/assets/player/guestNames.ts`
-  - Generates default guest names from a static list plus counter.
-  - No Coyote-specific naming pattern or switch.
+- **Feature behavior (high level)**:
+  - when `coyoteGameEnabled` is on, guest identity and character flavor are coyote-specific
+  - when off, legacy guest-name generation and hydration behavior remains
+
+- **Where to look in code**:
+  - `lambda/diagnostics/player/index.ts` (guest identity generation branch)
+  - `lambda/ephemera/guestCharacter/index.ts` (guest character metadata hydration branch)
+  - `lambda/updateEphemera/app.ts` (legacy update path kept consistent with the switch)
+  - `lambda/ephemera/app.ts` (player-connected entry point calling guest confirmation)
+  - `lambda/assets/player/guestNames.ts` (legacy generated-name source)
 
 Practical meaning:
 - guest character generation and hydration exist,
-- but currently have no coyote-specific conditional behavior.
+- and now support coyote-specific conditional behavior behind `coyoteGameEnabled`.
 
 ## Related Data Shapes and Settings
 
@@ -77,7 +89,6 @@ These settings are per-player and currently onboarding-focused. They are not a g
 ## Gaps and Explicit Non-Goals (Current)
 
 Current gaps relative to Coyote Game intent:
-- no global coyote-mode switch
 - no coyote-specific guest generation pattern selection
 - no built-in object staging model for Acme objects
 - no first-class hypothesis generation pipeline labeled for Coyote loop
@@ -96,9 +107,10 @@ When adding or changing Coyote Game behavior, start in this order:
 2. **Understand current demo scaffolding in ephemera cache**
    - **Why**: this is the clearest existing Coyote-specific runtime hook in ephemera.
    - **Files**:
+     - `packages/mtw-base/ts/coyoteGame.ts`
      - `lambda/ephemera/internalCache/coyoteGame.ts`
      - `lambda/ephemera/internalCache/index.ts`
-   - **Focus**: what is invocation-local, what is hard-coded, and what is not yet a switch.
+   - **Focus**: global switch semantics, what is invocation-local, and what remains hard-coded.
 
 3. **Understand world bootstrap assumptions**
    - **Why**: demo room topology is currently baked into primitives initialization.
