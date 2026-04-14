@@ -13,9 +13,16 @@ export type ParseCommandNavigationResult = {
     targetId: EphemeraRoomId
 }
 
+/** Coyote Game: order line routed to Acme-themed affordances. */
+export type ParseCommandAcmeOrderResult = {
+    type: 'AcmeOrder'
+    order: string
+}
+
 export type ParseCommandResult =
     | ParseCommandErrorResult
     | ParseCommandNavigationResult
+    | ParseCommandAcmeOrderResult
 
 export function isParseCommandErrorResult(
     result: ParseCommandResult
@@ -27,6 +34,12 @@ export function isParseCommandNavigationResult(
     result: ParseCommandResult
 ): result is ParseCommandNavigationResult {
     return result.type === 'Navigation' && isEphemeraRoomId(result.targetId)
+}
+
+export function isParseCommandAcmeOrderResult(
+    result: ParseCommandResult
+): result is ParseCommandAcmeOrderResult {
+    return result.type === 'AcmeOrder' && typeof result.order === 'string'
 }
 
 export type ParseCommandInput = {

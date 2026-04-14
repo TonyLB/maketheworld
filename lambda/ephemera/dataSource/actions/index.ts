@@ -12,6 +12,7 @@ import { isActionsSubscribedEnvelope } from './subscribedEvents'
 import messageBus from '../../messageBus'
 import { getRoomExitTargetsForCharacter } from './roomExitTargetsForCharacter'
 import {
+    isParseCommandAcmeOrderResult,
     isParseCommandErrorResult,
     isParseCommandNavigationResult,
     parseCommand,
@@ -69,6 +70,14 @@ export const ephemeraActionsDataSource = new EphemeraDataSource<
                         },
                     })
                 }
+            }
+            else if (isEphemeraCharacterId(content.characterId) && isParseCommandAcmeOrderResult(parseResult)) {
+                messageBus.send({
+                    type: 'PublishMessage',
+                    targets: [content.characterId],
+                    displayProtocol: 'WorldOOCMessage',
+                    message: [`Acme Order: ${parseResult.order}`],
+                })
             }
             if (content.requestId) {
                 messageBus.send({

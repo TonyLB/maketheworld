@@ -207,4 +207,37 @@ describe('ephemeraActionsDataSource', () => {
             })
         })
     })
+
+    describe('ParseCommandAcmeOrderResult', () => {
+        it('publishes WorldOOCMessage with Acme Order prefix', async () => {
+            mockedParseCommand.mockResolvedValue({
+                type: 'AcmeOrder',
+                order: 'rocket-powered roller skates',
+            })
+
+            await ephemeraActionsDataSource.receiveEvents!({
+                events: [{
+                    header: {
+                        dataSourceKey: 'api.ephemera',
+                        streamKey: 'CHARACTER#123',
+                        timestamp: Date.now(),
+                        type: 'Parse Requested',
+                    },
+                    getContent: async () => ({
+                        characterId: 'CHARACTER#123',
+                        command: 'order rocket skates',
+                    }),
+                }],
+                streamEvent: jest.fn(async () => {}),
+                streamEnvelope: jest.fn(async () => {}),
+            })
+
+            expect(mockMessageBus.send).toHaveBeenCalledWith({
+                type: 'PublishMessage',
+                targets: ['CHARACTER#123'],
+                displayProtocol: 'WorldOOCMessage',
+                message: ['Acme Order: rocket-powered roller skates'],
+            })
+        })
+    })
 })
