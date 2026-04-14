@@ -31,6 +31,7 @@ import { StandardExitFacet } from '@tonylb/mtw-wml/ts/standardize/keys/facets/ex
 import { StandardCharacter } from '@tonylb/mtw-wml/ts/standardize/components/character'
 import { SituationRoomFacetPayload } from '@tonylb/mtw-wml/ts/standardize/keys/facets/situationRoom'
 import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
+import { formatRoomContentsLine } from '../../slices/messages/roomHeaderPhaseC'
 
 interface RoomDescriptionProps {
     parsedWML?: StandardForm;
@@ -136,6 +137,7 @@ export const RoomDescription = ({ parsedWML, metaData, header, currentHeader, is
     useOnboardingCheckpoint('navigatePersonalRoom', { requireSequence: true, condition: inPersonalRoom })
 
     const nameText = (name?._payload?.plain?.toJSON?.() as string) ?? 'Untitled'
+    const contentsLine = header ? formatRoomContentsLine(parsedWML, componentUUID) : null
 
     if (isGenerating) {
         return <MessageComponent
@@ -233,6 +235,11 @@ export const RoomDescription = ({ parsedWML, metaData, header, currentHeader, is
                             })()
                         }
                     </Box>
+                    {contentsLine && (
+                        <Typography variant='body2' component='p' sx={{ marginTop: '8px' }}>
+                            {contentsLine}
+                        </Typography>
+                    )}
                     <Divider />
                 </Box>
                 <Box sx={{ gridArea: 'exits' }}>

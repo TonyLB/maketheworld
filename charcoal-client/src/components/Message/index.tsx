@@ -136,6 +136,8 @@ export const Message = ({ message, ...rest }: MessageProps) => {
             return <UnknownMessage message={message} />
         case 'SpacerMessage':
             return <SpacerMessage message={message} />
+        case 'RoomUpdate':
+            return null
         default:
             return <UnknownMessage message={message} />
     }
