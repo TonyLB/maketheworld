@@ -31,6 +31,7 @@ import { RenderCacheData } from './renderCache';
 import ConversationsData from './conversations';
 import PerceptionThreadsData from './perceptionThreads';
 import messageBus from '../messageBus';
+import CacheCoyoteGameData from './coyoteGame';
 
 const graphDBHandler: GraphDBHandler = new (withPrimitives<'PrimaryKey', string>()(withGetOperations<'PrimaryKey', string>()(DBHandlerBase)))({
     client: assetDB._client,
@@ -42,6 +43,7 @@ const graphDBHandler: GraphDBHandler = new (withPrimitives<'PrimaryKey', string>
 
 export class InternalCache {
     Global: CacheGlobalData = new CacheGlobalData()
+    CoyoteGame: CacheCoyoteGameData = new CacheCoyoteGameData()
     Conversations: ConversationsData = new ConversationsData(this.Global, messageBus)
     RenderCache: RenderCacheData = new RenderCacheData(queryCacheRecordsForComponent)
     PlayerMeta: CachePlayerMetaData;
@@ -102,6 +104,7 @@ export class InternalCache {
 
     clear() {
         this.Global.clear()
+        this.CoyoteGame.clear()
         this.PlayerMeta.clear()
         this.OrchestrateMessages.clear()
         this.PerceptionThreads.clear()
