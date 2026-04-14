@@ -157,7 +157,7 @@ This document **does not** yet fix every cell; it **requires** that new work eit
 | [`state/AGENT.md`](state/AGENT.md) | `Meta::Room.state` ownership vs orchestration pointer ownership |
 | [`renderOrchestration/AGENT.md`](renderOrchestration/AGENT.md) | Resolve, generation, orchestration outbounds |
 | [`renderCache/AGENT.md`](renderCache/AGENT.md) | Durable cache, `Render Pertains`, correlation vs routing |
-| [`taskPlanning/lambda/ephemera/dataSource/objects/AGENT.objectHandling.plan.md`](../../../taskPlanning/lambda/ephemera/dataSource/objects/AGENT.objectHandling.plan.md) | **`mtw.ephemera.objects`** (v1 on **`Meta::Room`**) |
+| [`objects/AGENT.md`](objects/AGENT.md) | **`mtw.ephemera.objects`** (v1 on **`Meta::Room`**) |
 | [`packages/mtw-wml/ts/standardize/AGENT.md`](../../../packages/mtw-wml/ts/standardize/AGENT.md) | **`standardizeMode`**, **`Object`** and **`Render`** under **`Room`**, **`OBJECT#`** (payload vocabulary) |
 | [`packages/mtw-wml/ts/AGENT.md`](../../../packages/mtw-wml/ts/AGENT.md) | Package index; **Standardize** section links ephemera wire + lambda/task-plan context |
 | [`taskPlanning/lambda/ephemera/dataSource/AGENT.passThrough.contract.planning.md`](../../../taskPlanning/lambda/ephemera/dataSource/AGENT.passThrough.contract.planning.md) | Pass-through durability and cross-cutting semantics |
