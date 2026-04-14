@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid'
-import { isCharacterMessage, isWorldMessage, PublishMessage, MessageBus, isRoomUpdatePublishMessage, isPublishTargetRoom, isPublishTargetCharacter, isPublishTargetExcludeCharacter, PublishTarget, isPerceptionPublishMessage, isPublishTargetSession, isPublishTargetExcludeSession } from "../messageBus/baseClasses"
+import { isCharacterMessage, isWorldMessage, PublishMessage, MessageBus, isPublishTargetRoom, isPublishTargetCharacter, isPublishTargetExcludeCharacter, PublishTarget, isPerceptionPublishMessage, isPublishTargetSession, isPublishTargetExcludeSession } from "../messageBus/baseClasses"
 import getCurrentTimestamp from '../internalUtils/dateUtil'
 import { unique } from '@tonylb/mtw-utilities/ts/lists'
 import internalCache from '../internalCache'
@@ -282,18 +282,6 @@ export const publishMessage = async ({ payloads }: { payloads: PublishMessage[],
                 fileURL
             })
         }
-        if (isRoomUpdatePublishMessage(payload)) {
-            await pushToQueues({
-                Targets: payload.targets,
-                MessageId: `MESSAGE#${uuidv4()}`,
-                CreatedTime,
-                DisplayProtocol: payload.displayProtocol,
-                RoomId: payload.RoomId,
-                Characters: payload.Characters
-            })
-        }
-
-
         if (isPerceptionPublishMessage(payload)) {
             await pushToQueues({
                 Targets: payload.targets,

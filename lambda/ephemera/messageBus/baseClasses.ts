@@ -2,7 +2,6 @@ import { InternalMessageBus } from '@tonylb/mtw-lambda-patterns/ts/messageBus'
 import { StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 
 import { LegalCharacterColor, isEphemeraTaggedId, isEphemeraRoomId, isEphemeraFeatureId, isEphemeraCharacterId, EphemeraAssetId, EphemeraKnowledgeId, isEphemeraKnowledgeId, isEphemeraAssetId, } from "@tonylb/mtw-interfaces/ts/baseClasses"
-import { RoomCharacterListItem } from "../internalCache/baseClasses"
 import {
     EphemeraCharacterId,
     EphemeraFeatureId,
@@ -67,12 +66,6 @@ export type PublishOutOfCharacterMessage = {
     message: RenderTree;
 } & PublishMessageBase & MessageCharacterInfo
 
-export type PublishRoomUpdateMessage = {
-    displayProtocol: 'RoomUpdate';
-    RoomId: EphemeraRoomId;
-    Characters: (Omit<RoomCharacterListItem, 'EphemeraId' | 'ConnectionIds' | 'SessionIds'> & { CharacterId: string })[];
-} & PublishMessageBase
-
 /**
  * Room **`PerceptionMessage`** rows (wire / bus): **`displayProtocol: 'PerceptionMessage'`** with **`metaData`** from **`@tonylb/mtw-interfaces`**.
  * For **`ROOM#...`** metadata, **`metaData.roomChannel`** (`'render' | 'affordances'`, omitted = treat as **`render`**) discriminates **room-render** vs **room-affordances**; see **`lambda/ephemera/dataSource/AGENT.multiChannel.contract.md`**.
@@ -90,7 +83,6 @@ export type PublishMessage = PublishWorldMessage |
     PublishSpeechMessage |
     PublishNarrateMessage |
     PublishOutOfCharacterMessage |
-    PublishRoomUpdateMessage |
     PublishPerceptionMessage
 
 export type ReturnValueMessage = {
@@ -306,9 +298,6 @@ export type MessageType = PublishMessage |
 export const isPublishMessage = (prop: MessageType): prop is PublishMessage => (prop.type === 'PublishMessage')
 export const isWorldMessage = (prop: PublishMessage): prop is PublishWorldMessage => (prop.displayProtocol === 'WorldMessage')
 export const isCharacterMessage = (prop: PublishMessage): prop is (PublishSpeechMessage | PublishNarrateMessage | PublishOutOfCharacterMessage) => (['SayMessage', 'NarrateMessage', 'OOCMessage'].includes(prop.displayProtocol))
-export const isRoomUpdatePublishMessage = (prop: PublishMessage): prop is PublishRoomUpdateMessage => (prop.displayProtocol === 'RoomUpdate')
-
-
 
 export const isPerceptionPublishMessage = (prop: PublishMessage): prop is PublishPerceptionMessage => (prop.displayProtocol === 'PerceptionMessage')
 

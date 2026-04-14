@@ -15,7 +15,7 @@ describe('roomUpdateMessage', () => {
         internalCache.clear()
     })
 
-    it('sends RoomUpdate PublishMessage then affordance PerceptionMessage per character', async () => {
+    it('sends affordance PerceptionMessage per character only (wire RoomUpdate retired)', async () => {
         const roomId = 'ROOM#RU1' as const
         jest.spyOn(internalCache.RoomCharacterList, 'get').mockResolvedValue([
             { EphemeraId: 'CHARACTER#One', DisplayName: 'One', Color: 'blue', SessionIds: [] },
@@ -32,10 +32,10 @@ describe('roomUpdateMessage', () => {
         })
         await messageBus.flush()
 
-        const roomUpdateCalls = sendSpy.mock.calls.filter(
+        const roomUpdateWireCalls = sendSpy.mock.calls.filter(
             (c) => c[0]?.type === 'PublishMessage' && (c[0] as any).displayProtocol === 'RoomUpdate'
         )
-        expect(roomUpdateCalls).toHaveLength(1)
+        expect(roomUpdateWireCalls).toHaveLength(0)
 
         const affordanceCalls = sendSpy.mock.calls.filter(
             (c) =>
