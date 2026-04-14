@@ -30,7 +30,7 @@ Hold the **canonical cross-cutting contract** for the pass-through pattern: a si
 | [`packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md`](../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md) | DataSource pattern: **publishedEvents.ts** vs **mtw-interfaces** for **outgoing** types |
 | [`currentCachePointers/AGENT.cachePointersRefactor.planning.md`](currentCachePointers/AGENT.cachePointersRefactor.planning.md) | **`mtw.ephemera.currentCachePointers`** - meta pointer maintenance (draft stub) |
 | [`lambda/ephemera/dataSource/perception/AGENT.md`](../../../../lambda/ephemera/dataSource/perception/AGENT.md) | **Durable** perception consumer: **[Delivery paths (correlated vs imperative)](../../../../lambda/ephemera/dataSource/perception/AGENT.md#delivery-paths-correlated-vs-imperative)**, normative **routing**, **obligations** table, **verification** (see **Routing identity and Perception** below) |
-| [`../messageBus/AGENT.runnableSubSets.planning.md`](../messageBus/AGENT.runnableSubSets.planning.md) | **`messageBus`** refactor / **cross-layer ordering** (contract uncertainty **11**; draft stub) |
+| [`lambda/ephemera/messageBus/AGENT.md`](../../../../lambda/ephemera/messageBus/AGENT.md) | Message-bus lane primitives and current ordering mechanics used by this contract |
 
 ---
 
@@ -106,7 +106,7 @@ Work from **room** + **`Meta::Room`** at state-change time:
 - For perspectives in **A**: **`allowGeneration`** may be **true** (default) when product policy allows generation for **observed** / in-room views.
 - For perspectives in **P ∖ A** (pointer-only, no audience): **`allowGeneration === false`** so **`findRender`** runs **cheap** paths only (pointer validation, exact match) and never the LLM slow path.
 
-**Implementation note:** [`fanOutStateChangedToPassiveRenders`](../../../../lambda/ephemera/dataSource/renderOrchestration/fanOutStateChangedToPassiveRenders.ts) fans out **S = A ∪ P** (see [`lambda/ephemera/dataSource/renderOrchestration/AGENT.md`](../../../../lambda/ephemera/dataSource/renderOrchestration/AGENT.md#passive-state-fan-out-s--a-union-p)). **Ordering** with **`currentCachePointers`** and the bus remains cross-cutting (uncertainty 11).
+**Implementation note:** [`fanOutStateChangedToPassiveRenders`](../../../../lambda/ephemera/dataSource/renderOrchestration/fanOutStateChangedToPassiveRenders.ts) fans out **S = A ∪ P** (see [`lambda/ephemera/dataSource/renderOrchestration/AGENT.md`](../../../../lambda/ephemera/dataSource/renderOrchestration/AGENT.md#passive-state-fan-out-s--a-union-p)). Current move-path presentation ordering is handled by Perception fan-in (`PerceptionThreads`) plus message-group orchestration (uncertainty 11 resolved for current scope).
 
 ### Orchestration outbounds (draft taxonomy - six types)
 
@@ -195,9 +195,9 @@ These are **not** small details; **open** items block a normative contract until
 
 9. **`Render Pertains` wire extras - resolved (product).** **Perception** does **not** depend on **`conversationId`** (or similar) **on producer streams**; it reconstructs from **registration + `(componentId, perspectiveKey)`** (see **Routing identity on producer streams**). **`Render Pertains`** and **`currentCachePointers`** **do not** use a **synthetic id** on the wire; **component x perspective** (+ **`cacheId`**) is sufficient. Documented in [`lambda/ephemera/dataSource/renderCache/AGENT.md`](../../../../lambda/ephemera/dataSource/renderCache/AGENT.md#correlation-vs-routing).
 
-10. **State-driven fan-out (implementation).** The **set algebra** for **A**, **P**, **S = A ∪ P**, and **`allowGeneration`** on **A** vs **P ∖ A** is recorded under **State-driven fan-out set and `allowGeneration` (set algebra)** above. **Landed in code:** [`fanOutStateChangedToPassiveRenders`](../../../../lambda/ephemera/dataSource/renderOrchestration/fanOutStateChangedToPassiveRenders.ts) (see [`lambda/ephemera/dataSource/renderOrchestration/AGENT.md`](../../../../lambda/ephemera/dataSource/renderOrchestration/AGENT.md#passive-state-fan-out-s--a-union-p)). **Still unsettled:** exact **`RenderRequested`** shape for pointer-only runs in edge cases, and ordering with meta pointers / bus (see uncertainty 11).
+10. **State-driven fan-out (implementation).** The **set algebra** for **A**, **P**, **S = A ∪ P**, and **`allowGeneration`** on **A** vs **P ∖ A** is recorded under **State-driven fan-out set and `allowGeneration` (set algebra)** above. **Landed in code:** [`fanOutStateChangedToPassiveRenders`](../../../../lambda/ephemera/dataSource/renderOrchestration/fanOutStateChangedToPassiveRenders.ts) (see [`lambda/ephemera/dataSource/renderOrchestration/AGENT.md`](../../../../lambda/ephemera/dataSource/renderOrchestration/AGENT.md#passive-state-fan-out-s--a-union-p)). **Still unsettled:** exact **`RenderRequested`** shape for pointer-only runs in edge cases.
 
-11. **Cross-layer ordering and `messageBus`.** This contract names **multiple** producers (**`renderOrchestration`**, **`renderCache`**, **`currentCachePointers`**) that must **compose**; **subscriber-visible** ordering between their emissions is **not** fully pinned (may require **atomic sub-runs** or **`messageBus`** revisions). **Unsettled** for a **normative** **contract** (this doc): implementers cannot treat ordering as specified until this is addressed. Accrue commitments in [`../messageBus/AGENT.runnableSubSets.planning.md`](../messageBus/AGENT.runnableSubSets.planning.md). **Related but not identical:** completion rubric [section 4](../../../../lambda/ephemera/AGENT.ephemeraPerceptionVertical.planning.completionRubric.md#4-coherent-ready-to-show) asks for **no systematic races** **for presentation / UI**; that is a **product outcome** that should **follow** once this contract specifies ordering --- the rubric does **not** define the transport contract here.
+11. **Cross-layer ordering and `messageBus` - resolved (product scope).** For current shipped paths, ordering concerns are handled at the consumer edge through Perception fan-in (`PerceptionThreads`) and message-group choreography (`before` / root / `after`) on move delivery, including the practical Leave -> room-header -> Arrive sequencing target. There is no separate producer-side transport ordering contract to define right now beyond this delivered behavior. If future features introduce new cross-producer ordering requirements, capture them as new uncertainties rather than keeping this one open.
 
 ---
 
@@ -252,12 +252,12 @@ The contract remains **draft** until more **uncertainties** close and **typed** 
 | **Preview generation removed**; passive-only contract (uncertainty 7 resolved) | Done |
 | Passive state: **S = A ∪ P** set algebra + **`allowGeneration`** on **A** vs **P ∖ A** (uncertainty 10; **S** wired in code) | Done |
 | **Uncertainty 6:** duplicate **`Generation Started`** / intermediates acknowledged; **`singleFlight`** in [`lambda/ephemera/dataSource/renderOrchestration/AGENT.md`](../../../../lambda/ephemera/dataSource/renderOrchestration/AGENT.md#single-flight-generation) (terminal dedupe still **Perception**) | Done |
-| **`Generation Skipped` -> `Generation Deferred`**; **`currentCachePointers`** role + uncertainty 11 (bus ordering) | Done |
+| **`Generation Skipped` -> `Generation Deferred`**; **`currentCachePointers`** role + uncertainty 11 | Done |
 | **Encoding the contract in unit tests** section + links to package docs | Done |
 | Uncertainties resolved; contract normative | Not started |
 | Types / interfaces landed | Partial (**renderOrchestration** **`publishedEvents.ts`** + **`renderCache`** consumer handlers; uncertainty 8 remainder: envelope polish) |
 | Implementation tracked in package docs | Done ([`lambda/ephemera/dataSource/renderOrchestration/AGENT.md`](../../../../lambda/ephemera/dataSource/renderOrchestration/AGENT.md), [`lambda/ephemera/dataSource/renderCache/AGENT.md`](../../../../lambda/ephemera/dataSource/renderCache/AGENT.md)) |
-| **Exploration sequencing** (orchestration wave, then cache wave, then design for rest) | Orchestration stream + **`renderCache`** Hit/Generate paths **shipped**; Perception / **`currentCachePointers`** / bus ordering still open |
+| **Exploration sequencing** (orchestration wave, then cache wave, then design for rest) | Orchestration stream + **`renderCache`** Hit/Generate paths **shipped**; practical move-ordering scope handled in Perception fan-in |
 
 **Recommended order:** Intentionally omitted until this document is promoted from draft; see **When this leaves draft status** and **Intended implementation sequencing (exploration)**. Ongoing implementation detail lives in [`lambda/ephemera/dataSource/renderOrchestration/AGENT.md`](../../../../lambda/ephemera/dataSource/renderOrchestration/AGENT.md) and [`lambda/ephemera/dataSource/renderCache/AGENT.md`](../../../../lambda/ephemera/dataSource/renderCache/AGENT.md).
 

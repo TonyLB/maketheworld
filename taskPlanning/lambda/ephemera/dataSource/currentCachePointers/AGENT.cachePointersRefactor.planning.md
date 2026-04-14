@@ -31,7 +31,7 @@ Introduce an **`mtw.ephemera.currentCachePointers`** DataSource (name provisiona
 ## Cross-cutting constraints
 
 - **Correlation:** Payloads must be rich enough for **`currentCachePointers`** **and** **Perception** using **lean routing** + **`cacheId`** (contract uncertainty 9 resolved; [`lambda/ephemera/dataSource/renderCache/AGENT.md`](../../../../lambda/ephemera/dataSource/renderCache/AGENT.md#correlation-vs-routing) **Correlation vs routing**).
-- **Ordering:** Reliable ordering between orchestration, **`renderCache`**, and pointer updates is **hard** today; the contract records **uncertainty 11** ( **`messageBus`** revisions, e.g. **atomic sub-runs**). Task-plan home for that refactor: [`../messageBus/AGENT.runnableSubSets.planning.md`](../messageBus/AGENT.runnableSubSets.planning.md). Treat as a **separate future refactor** - not a blocker for **this** stub's prose, but a blocker for **normative** contract ordering claims.
+- **Ordering:** Current product-scope ordering is handled by Perception fan-in (`PerceptionThreads`) plus message-group choreography; pass-through uncertainty 11 is resolved. If pointer updates later need stricter producer-level sequencing, capture that as a new uncertainty instead of reviving the retired runnable-subsets stub.
 
 ---
 
