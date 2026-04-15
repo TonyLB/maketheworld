@@ -13,6 +13,7 @@ import ExitIcon from '@mui/icons-material/ExitToApp'
 import RenameIcon from "../Maps/Edit/MapLayers/RenameIcon"
 import EditIcon from '@mui/icons-material/Edit'
 import TwoWayExitIcon from '@mui/icons-material/SyncAlt'
+import { coyoteGameEnabled } from '@tonylb/mtw-base/ts/coyoteGame'
 
 type DeepReadonly<T> =
     T extends (infer R)[] ? DeepReadonlyArray<R> :
@@ -256,7 +257,9 @@ const onboardingChaptersRaw: DeepReadonly<OnboardingChapter[]> = [
                 subItems: [
                     {
                         key: 'openMap',
-                        text: 'Either enter "map" in command mode, or click the "..." options button on bottom right and select the map icon.',
+                        text: coyoteGameEnabled
+                            ? 'Enter "map" in command mode to open the map.'
+                            : 'Either enter "map" in command mode, or click the "..." options button on bottom right and select the map icon.',
                         popoverText: `Type "map" here to show the map.`
                     },
                     {
