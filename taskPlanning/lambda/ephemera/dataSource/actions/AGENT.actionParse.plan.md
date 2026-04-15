@@ -28,18 +28,39 @@ This plan is task-scoped and should be retired after the action parse initiative
 
 ## Getting started
 
-1. Read task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md)
-2. Review existing ephemera command ingress: [`lambda/ephemera/app.ts`](../../../../../lambda/ephemera/app.ts)
-3. Review synthetic command contracts:
-   - [`lambda/ephemera/dataSource/localApiEvents.ts`](../../../../../lambda/ephemera/dataSource/localApiEvents.ts)
-   - [`lambda/ephemera/dataSource/apiEphemera.ts`](../../../../../lambda/ephemera/dataSource/apiEphemera.ts)
-   - [`lambda/ephemera/dataSource/actions/subscribedEvents.ts`](../../../../../lambda/ephemera/dataSource/actions/subscribedEvents.ts)
-4. Review existing imperative parser/executor baseline:
-   - [`lambda/ephemera/parse/index.ts`](../../../../../lambda/ephemera/parse/index.ts)
-   - [`lambda/ephemera/parse/executeAction.ts`](../../../../../lambda/ephemera/parse/executeAction.ts)
-5. Review wire contracts used by WebSocket request/response correlation:
-   - [`packages/mtw-interfaces/ts/ephemera.ts`](../../../../../packages/mtw-interfaces/ts/ephemera.ts)
-   - [`charcoal-client/src/slices/lifeLine/index.api.ts`](../../../../../charcoal-client/src/slices/lifeLine/index.api.ts)
+Follow the ordered **categories** below (see [Getting Started pattern for complex tasks](../../../../../AGENT.md#getting-started-pattern-for-complex-tasks) in root [`AGENT.md`](../../../../../AGENT.md)). A category can be light if it does not apply yet; keep **Why** / **Focus** so the next reader knows what to skim vs study.
+
+1. **Understand project foundations**
+   - **Why**: Task plans sit under [`taskPlanning/`](../../../../); root navigation explains how docs fit together and when this plan retires.
+   - **Read**: Root [`AGENT.md`](../../../../../AGENT.md) (overview, ephemera links, Getting Started pattern). [`taskPlanning/AGENT.md`](../../../../AGENT.md) (what belongs in this file vs durable `AGENT.md`, **Recommended order** checkbox rules, verification expectations).
+
+2. **Read this document**
+   - **Why**: Phases and scope split change over time; the durable checklist is **Recommended order** and **Verification**.
+   - **Focus**: **Purpose** and **Scope split** for intent; **Recommended order** for the current milestone (next: Phase 3); **Material decisions** for open product choices.
+
+3. **Understand core integration points**
+   - **Why**: Action parse work crosses WebSocket ingress, synthetic `api.ephemera` events, the `mtw.ephemera.actions` DataSource, and client correlation.
+   - **Focus**: `command` string in, `Parse Requested` on the bus, handler outcomes correlated with `RequestId` (see **Material decisions** and interfaces below).
+   - **Primary files**: [`lambda/ephemera/app.ts`](../../../../../lambda/ephemera/app.ts) (ingress and handoff); [`lambda/ephemera/dataSource/localApiEvents.ts`](../../../../../lambda/ephemera/dataSource/localApiEvents.ts), [`lambda/ephemera/dataSource/apiEphemera.ts`](../../../../../lambda/ephemera/dataSource/apiEphemera.ts), [`lambda/ephemera/dataSource/actions/subscribedEvents.ts`](../../../../../lambda/ephemera/dataSource/actions/subscribedEvents.ts) (synthetic contracts and subscription helpers).
+
+4. **Review implemented code**
+   - **Why**: Phase 3 adds an LLM path; reuse established Bedrock **Converse** + JSON validation patterns and the existing parse-result boundary.
+   - **Parser contract and handler**: [`lambda/ephemera/dataSource/actions/parseCommand.ts`](../../../../../lambda/ephemera/dataSource/actions/parseCommand.ts), [`lambda/ephemera/dataSource/actions/index.ts`](../../../../../lambda/ephemera/dataSource/actions/index.ts).
+   - **Legacy imperative baseline** (parity / migration context): [`lambda/ephemera/parse/index.ts`](../../../../../lambda/ephemera/parse/index.ts), [`lambda/ephemera/parse/executeAction.ts`](../../../../../lambda/ephemera/parse/executeAction.ts).
+   - **Bedrock invocation reference** (Nova text in, JSON out, timeout): [`lambda/ephemera/generateExample/invokeBedrockRoomDescription.ts`](../../../../../lambda/ephemera/generateExample/invokeBedrockRoomDescription.ts), [`lambda/ephemera/generateExample/generateRoomDescription.ts`](../../../../../lambda/ephemera/generateExample/generateRoomDescription.ts).
+
+5. **Check testing patterns**
+   - **Why**: Ephemera uses Jest from `lambda/ephemera`; keep parity with existing action-parse and ingress tests.
+   - **Files**: [`lambda/ephemera/dataSource/actions/parseCommand.test.ts`](../../../../../lambda/ephemera/dataSource/actions/parseCommand.test.ts), [`lambda/ephemera/dataSource/actions/index.test.ts`](../../../../../lambda/ephemera/dataSource/actions/index.test.ts); ingress routing in [`lambda/ephemera/app.test.ts`](../../../../../lambda/ephemera/app.test.ts) where `command` / parse paths are covered.
+   - **Wire contracts** (types and client correlation expectations): [`packages/mtw-interfaces/ts/ephemera.ts`](../../../../../packages/mtw-interfaces/ts/ephemera.ts), [`charcoal-client/src/slices/lifeLine/index.api.ts`](../../../../../charcoal-client/src/slices/lifeLine/index.api.ts).
+
+6. **Identify next task**
+   - **Why**: Progress lives in **Recommended order**; readers often open only this plan.
+   - **Focus**: First unchecked parent phase and its nested items (see [`taskPlanning/AGENT.md` Recommended order checkboxes](../../../../AGENT.md#recommended-order-checkboxes)). After shipping a slice, mark checkboxes and refresh **Verification** to match.
+
+7. **Run tests before starting**
+   - **Why**: Confirms baseline before edits; commands are Jest from `lambda/ephemera` (not Vitest).
+   - **Commands**: From **Verification** in this document (e.g. targeted `npm run test -- --runInBand ...` for actions and `npm run build`). Extend with any new test files you add for Phase 3.
 
 ## Recommended order
 
