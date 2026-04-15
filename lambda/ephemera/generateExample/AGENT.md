@@ -1,13 +1,15 @@
 # Ephemera GenerateExample - AGENT
 
-`lambda/ephemera/generateExample/` owns **Bedrock-backed room description generation** for cache examples.
+`lambda/ephemera/generateExample/` owns **Bedrock-backed** helpers used from ephemera: shared **Converse** plumbing, **room description** generation for cache examples, and **command parse** invocation (prompting and parse wiring live with the actions DataSource as that work lands).
 
-When no exact cache match exists, this module builds a prompt from generation context (Room, Lens, Marks, Guidance) and cached examples, invokes Bedrock Nova 2 Lite, and parses the model JSON into `EphemeraCacheRenderedContent`. It depends on [`dataSource/renderCache/baseClasses.ts`](../dataSource/renderCache/baseClasses.ts) for the example shape and record types.
+When no exact cache match exists, room flow builds a prompt from generation context (Room, Lens, Marks, Guidance) and cached examples, invokes Bedrock Nova 2 Lite, and parses the model JSON into `EphemeraCacheRenderedContent`. It depends on [`dataSource/renderCache/baseClasses.ts`](../dataSource/renderCache/baseClasses.ts) for the example shape and record types.
 
 ## Scope
 
+- `invokeBedrockConverseText`: shared Bedrock Runtime `Converse` call (messages, inference config, timeout, text extraction).
+- `invokeBedrockRoomDescription`: room-description defaults on top of `invokeBedrockConverseText`.
+- `invokeBedrockParseCommand`: parse-oriented defaults (lower max tokens, lower temperature) on top of `invokeBedrockConverseText`.
 - `generateRoomDescription`: orchestrates prompt build, Bedrock invoke, JSON parse/validate.
 - `buildRoomDescriptionPrompt`: converts `StandardForm` + cached examples to plain-text prompt.
-- `invokeBedrockRoomDescription`: AWS Bedrock client call with timeout.
 
 Consumers: `dataSource/renderOrchestration/generateRoomPreview` (room cache-miss flow). The orchestration layer decides when to generate; this module performs the LLM work.

@@ -1,122 +1,20 @@
-import { EphemeraRoomId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { invokeBedrockParseCommand } from '../../generateExample/invokeBedrockParseCommand'
+import type { ParseCommandDeps, ParseCommandInput, ParseCommandResult } from './baseClasses'
+import { buildParseCommandIntentClassificationPrompt } from './buildParseCommandIntentClassificationPrompt'
+import { interpretParseCommandIntentClassificationBody } from './parseCommandIntentClassification'
 
 /**
- * Parser confidence for non-error outcomes. Typically in [0, 1]; validated by type guards.
+ * Classifies free-form command text via LLM into `Unimplemented` vs `Unknown` (first cut), with strict JSON validation.
  */
-export type ParseCommandConfidence = number
-
-const isParseConfidence = (value: unknown): value is ParseCommandConfidence => (
-    typeof value === 'number'
-    && Number.isFinite(value)
-    && value >= 0
-    && value <= 1
-)
-
-/**
- * Parser result for action ingress. Extend with non-error variants as the contract grows.
- * Intent is encoded by `type` (discriminated union). Slots/entities are per-variant fields.
- * `confidence` is required on every non-error variant. Parse diagnostics: not modeled yet.
- */
-export type ParseCommandErrorResult = {
-    type: 'Error'
-    errorMessage?: string
-}
-
-export type ParseCommandNavigationResult = {
-    type: 'Navigation'
-    targetId: EphemeraRoomId
-    confidence: ParseCommandConfidence
-}
-
-/** Coyote Game: order line routed to Acme-themed affordances. */
-export type ParseCommandAcmeOrderResult = {
-    type: 'AcmeOrder'
-    order: string
-    confidence: ParseCommandConfidence
-}
-
-/** Coyote Game: wait-state for Road Runner encounter flows. */
-export type ParseCommandAwaitRoadrunnerResult = {
-    type: 'AwaitRoadRunner'
-    confidence: ParseCommandConfidence
-}
-
-export type ParseCommandUnimplementedResult = {
-    type: 'Unimplemented'
-    confidence: ParseCommandConfidence
-}
-
-export type ParseCommandUnknownResult = {
-    type: 'Unknown'
-    confidence: ParseCommandConfidence
-}
-
-export type ParseCommandResult =
-    | ParseCommandErrorResult
-    | ParseCommandNavigationResult
-    | ParseCommandAcmeOrderResult
-    | ParseCommandAwaitRoadrunnerResult
-    | ParseCommandUnimplementedResult
-    | ParseCommandUnknownResult
-
-export function isParseCommandErrorResult(
-    result: ParseCommandResult
-): result is ParseCommandErrorResult {
-    return result.type === 'Error'
-}
-
-export function isParseCommandNavigationResult(
-    result: ParseCommandResult
-): result is ParseCommandNavigationResult {
-    if (result.type !== 'Navigation') {
-        return false
+export async function parseCommand(
+    input: ParseCommandInput,
+    deps: ParseCommandDeps = {}
+): Promise<ParseCommandResult> {
+    const invoke = deps.invokeBedrockParseCommandImpl ?? invokeBedrockParseCommand
+    const prompt = buildParseCommandIntentClassificationPrompt(input.command)
+    const invokeResult = await invoke(prompt)
+    if (!invokeResult.success) {
+        return { type: 'Error', errorMessage: invokeResult.errorMessage }
     }
-    return isEphemeraRoomId(result.targetId) && isParseConfidence(result.confidence)
-}
-
-export function isParseCommandAcmeOrderResult(
-    result: ParseCommandResult
-): result is ParseCommandAcmeOrderResult {
-    if (result.type !== 'AcmeOrder') {
-        return false
-    }
-    return typeof result.order === 'string' && isParseConfidence(result.confidence)
-}
-
-export function isParseCommandAwaitRoadrunnerResult(
-    result: ParseCommandResult
-): result is ParseCommandAwaitRoadrunnerResult {
-    if (result.type !== 'AwaitRoadRunner') {
-        return false
-    }
-    return isParseConfidence(result.confidence)
-}
-
-export function isParseCommandUnimplementedResult(
-    result: ParseCommandResult
-): result is ParseCommandUnimplementedResult {
-    if (result.type !== 'Unimplemented') {
-        return false
-    }
-    return isParseConfidence(result.confidence)
-}
-
-export function isParseCommandUnknownResult(
-    result: ParseCommandResult
-): result is ParseCommandUnknownResult {
-    if (result.type !== 'Unknown') {
-        return false
-    }
-    return isParseConfidence(result.confidence)
-}
-
-export type ParseCommandInput = {
-    command: string
-}
-
-/**
- * Stub: returns a fixed Error-shaped result until the LLM / validation pipeline is wired.
- */
-export async function parseCommand(_input: ParseCommandInput): Promise<ParseCommandResult> {
-    return { type: 'Error' }
+    return interpretParseCommandIntentClassificationBody(invokeResult.body)
 }

@@ -18,8 +18,8 @@ import {
     isParseCommandNavigationResult,
     isParseCommandUnimplementedResult,
     isParseCommandUnknownResult,
-    parseCommand,
-} from './parseCommand'
+} from './baseClasses'
+import { parseCommand } from './parseCommand'
 
 export const ephemeraActionsDataSource = new EphemeraDataSource<
     never,

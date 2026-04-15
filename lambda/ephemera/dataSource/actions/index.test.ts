@@ -9,13 +9,10 @@ jest.mock('../../messageBus')
 jest.mock('./roomExitTargetsForCharacter', () => ({
     getRoomExitTargetsForCharacter: jest.fn(),
 }))
-jest.mock('./parseCommand', () => {
-    const actual = jest.requireActual<typeof import('./parseCommand')>('./parseCommand')
-    return {
-        ...actual,
-        parseCommand: jest.fn((input: Parameters<typeof actual.parseCommand>[0]) => actual.parseCommand(input)),
-    }
-})
+jest.mock('./parseCommand', () => ({
+    ...jest.requireActual<typeof import('./parseCommand')>('./parseCommand'),
+    parseCommand: jest.fn(),
+}))
 
 const mockMessageBus = messageBus as jest.Mocked<typeof messageBus>
 const mockedParseCommand = jest.mocked(parseCommand)
@@ -25,9 +22,10 @@ describe('ephemeraActionsDataSource', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         mockMessageBus.send.mockReturnValue(undefined)
-        mockedParseCommand.mockImplementation((input) =>
-            jest.requireActual<typeof import('./parseCommand')>('./parseCommand').parseCommand(input)
-        )
+        mockedParseCommand.mockResolvedValue({
+            type: 'Error',
+            errorMessage: 'Parse error',
+        })
     })
 
     it('emits immediate correlated success when Parse Requested carries requestId', async () => {
