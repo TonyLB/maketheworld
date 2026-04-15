@@ -38,20 +38,40 @@ describe('parseCommand type guards', () => {
     })
 
     describe('isParseCommandAcmeOrderResult', () => {
-        it('accepts valid AcmeOrder with confidence', () => {
+        it('accepts valid AcmeOrder with orders and confidence', () => {
             expect(isParseCommandAcmeOrderResult({
                 type: 'AcmeOrder',
-                order: 'skates',
+                orders: ['rocket-powered roller skates'],
                 confidence: 0.9,
+            })).toBe(true)
+            expect(isParseCommandAcmeOrderResult({
+                type: 'AcmeOrder',
+                orders: ['anvil', 'giant magnet'],
+                confidence: 0.85,
             })).toBe(true)
         })
 
-        it('rejects invalid confidence', () => {
+        it('rejects invalid confidence, empty orders, or blank lines', () => {
             expect(isParseCommandAcmeOrderResult({
                 type: 'AcmeOrder',
-                order: 'skates',
+                orders: ['skates'],
                 confidence: -0.01,
             })).toBe(false)
+            expect(isParseCommandAcmeOrderResult({
+                type: 'AcmeOrder',
+                orders: [],
+                confidence: 0.5,
+            })).toBe(false)
+            expect(isParseCommandAcmeOrderResult({
+                type: 'AcmeOrder',
+                orders: ['  '],
+                confidence: 0.5,
+            })).toBe(false)
+            expect(isParseCommandAcmeOrderResult({
+                type: 'AcmeOrder',
+                order: 'legacy only',
+                confidence: 0.9,
+            } as any)).toBe(false)
         })
     })
 
@@ -78,9 +98,11 @@ describe('buildParseCommandIntentClassificationPrompt', () => {
         const prompt = buildParseCommandIntentClassificationPrompt('  attack troll  ')
         expect(prompt).toContain('attack troll')
         expect(prompt).toContain('AwaitRoadRunner')
+        expect(prompt).toContain('AcmeOrder')
         expect(prompt).toContain('Unimplemented')
         expect(prompt).toContain('Unknown')
         expect(prompt).toContain('"type": "AwaitRoadRunner"')
+        expect(prompt).toContain('"type": "AcmeOrder"')
         expect(prompt).toContain('"type": "Unimplemented"')
         expect(prompt).toContain('"type": "Unknown"')
     })
@@ -92,16 +114,28 @@ describe('buildParseCommandIntentClassificationPrompt', () => {
 })
 
 describe('interpretParseCommandIntentClassificationBody', () => {
-    it('accepts bare JSON for AwaitRoadRunner, Unimplemented, and Unknown', () => {
+    it('accepts bare JSON for AwaitRoadRunner, AcmeOrder, Unimplemented, and Unknown', () => {
         expect(interpretParseCommandIntentClassificationBody(
             '{"type":"AwaitRoadRunner","confidence":0.95}'
         )).toEqual({ type: 'AwaitRoadRunner', confidence: 0.95 })
+        expect(interpretParseCommandIntentClassificationBody(
+            '{"type":"AcmeOrder","orders":["rocket skates"],"confidence":0.9}'
+        )).toEqual({ type: 'AcmeOrder', orders: ['rocket skates'], confidence: 0.9 })
+        expect(interpretParseCommandIntentClassificationBody(
+            '{"type":"AcmeOrder","orders":["  anvil  ","magnet"],"confidence":0.7}'
+        )).toEqual({ type: 'AcmeOrder', orders: ['anvil', 'magnet'], confidence: 0.7 })
         expect(interpretParseCommandIntentClassificationBody(
             '{"type":"Unimplemented","confidence":0.8}'
         )).toEqual({ type: 'Unimplemented', confidence: 0.8 })
         expect(interpretParseCommandIntentClassificationBody(
             '{"type":"Unknown","confidence":0.25}'
         )).toEqual({ type: 'Unknown', confidence: 0.25 })
+    })
+
+    it('accepts AcmeOrder with legacy single order string when orders array is absent', () => {
+        expect(interpretParseCommandIntentClassificationBody(
+            '{"type":"AcmeOrder","order":"  giant rubber band  ","confidence":0.6}'
+        )).toEqual({ type: 'AcmeOrder', orders: ['giant rubber band'], confidence: 0.6 })
     })
 
     it('strips markdown fences and tolerates surrounding prose', () => {
@@ -123,6 +157,12 @@ describe('interpretParseCommandIntentClassificationBody', () => {
         ).type).toBe('Error')
         expect(interpretParseCommandIntentClassificationBody(
             '{"type":"AwaitRoadRunner"}'
+        ).type).toBe('Error')
+        expect(interpretParseCommandIntentClassificationBody(
+            '{"type":"AcmeOrder","confidence":0.9}'
+        ).type).toBe('Error')
+        expect(interpretParseCommandIntentClassificationBody(
+            '{"type":"AcmeOrder","orders":[],"confidence":0.9}'
         ).type).toBe('Error')
     })
 })
@@ -168,5 +208,23 @@ describe('parseCommand LLM path', () => {
         )
 
         expect(result).toEqual({ type: 'AwaitRoadRunner', confidence: 0.88 })
+    })
+
+    it('returns AcmeOrder when the model emits orders', async () => {
+        const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: '{"type":"AcmeOrder","orders":["dynamite","spring"],"confidence":0.82}',
+        })
+
+        const result = await parseCommand(
+            { command: 'mail order dynamite and a spring from acme' },
+            { invokeBedrockParseCommandImpl }
+        )
+
+        expect(result).toEqual({
+            type: 'AcmeOrder',
+            orders: ['dynamite', 'spring'],
+            confidence: 0.82,
+        })
     })
 })

@@ -28,10 +28,11 @@ export type ParseCommandNavigationResult = {
     confidence: ParseCommandConfidence
 }
 
-/** Coyote Game: order line routed to Acme-themed affordances. */
+/** Coyote Game: order from Acme (mail-order, catalog, or unspecified). One or more product lines. */
 export type ParseCommandAcmeOrderResult = {
     type: 'AcmeOrder'
-    order: string
+    /** One entry per distinct product or line item (single-item orders use length 1). */
+    orders: string[]
     confidence: ParseCommandConfidence
 }
 
@@ -80,7 +81,13 @@ export function isParseCommandAcmeOrderResult(
     if (result.type !== 'AcmeOrder') {
         return false
     }
-    return typeof result.order === 'string' && isParseConfidence(result.confidence)
+    if (!isParseConfidence(result.confidence)) {
+        return false
+    }
+    if (!Array.isArray(result.orders) || result.orders.length === 0) {
+        return false
+    }
+    return result.orders.every((line) => typeof line === 'string' && line.trim().length > 0)
 }
 
 export function isParseCommandAwaitRoadrunnerResult(

@@ -79,7 +79,7 @@ export const ephemeraActionsDataSource = new EphemeraDataSource<
                     type: 'PublishMessage',
                     targets: [content.characterId],
                     displayProtocol: 'WorldOOCMessage',
-                    message: [`Acme Order: ${parseResult.order}`],
+                    message: [`Acme Order: ${parseResult.orders.join(', ')}`],
                 })
             }
             else if (isEphemeraCharacterId(content.characterId) && isParseCommandAwaitRoadrunnerResult(parseResult)) {

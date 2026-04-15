@@ -4,7 +4,7 @@ import { buildParseCommandIntentClassificationPrompt } from './buildParseCommand
 import { interpretParseCommandIntentClassificationBody } from './parseCommandIntentClassification'
 
 /**
- * Classifies free-form command text via LLM: `AwaitRoadRunner` (priority), then `Unimplemented` vs `Unknown`, with strict JSON validation.
+ * Classifies free-form command text via LLM: `AwaitRoadRunner` and `AcmeOrder` (same tier, before `Unimplemented` / `Unknown`), with strict JSON validation.
  */
 export async function parseCommand(
     input: ParseCommandInput,
