@@ -1,13 +1,19 @@
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMetaRoomObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { handleApiObjectsChangeCommand } from './handleApiObjectsChange'
-import { mergePersistMetaRoomObjects } from './mergePersistMetaRoomObjects'
+import {
+    clearRoomObjectsAndPublishUpdate,
+    handleApiObjectsChangeCommand,
+    handleAwaitRoadRunnerClearObjects,
+} from './handleApiObjectsChange'
+import { clearPersistMetaRoomObjects, mergePersistMetaRoomObjects } from './mergePersistMetaRoomObjects'
 
 jest.mock('./mergePersistMetaRoomObjects', () => ({
+    clearPersistMetaRoomObjects: jest.fn(),
     mergePersistMetaRoomObjects: jest.fn(),
 }))
 
 const mergePersistMetaRoomObjectsMock = mergePersistMetaRoomObjects as jest.MockedFunction<typeof mergePersistMetaRoomObjects>
+const clearPersistMetaRoomObjectsMock = clearPersistMetaRoomObjects as jest.MockedFunction<typeof clearPersistMetaRoomObjects>
 
 const obj = (suffix: string, shortName: string): EphemeraMetaRoomObject => ({
     uuid: `OBJECT#${suffix}` as EphemeraObjectId,
@@ -20,6 +26,8 @@ describe('handleApiObjectsChangeCommand', () => {
     beforeEach(() => {
         mergePersistMetaRoomObjectsMock.mockReset()
         mergePersistMetaRoomObjectsMock.mockResolvedValue({ ok: true, persisted: false })
+        clearPersistMetaRoomObjectsMock.mockReset()
+        clearPersistMetaRoomObjectsMock.mockResolvedValue({ ok: true, persisted: false })
         streamEvent.mockClear()
     })
 
@@ -101,5 +109,86 @@ describe('handleApiObjectsChangeCommand', () => {
                 newObjects: [obj('a', 'A'), obj('b', 'B')],
             },
         })
+    })
+})
+
+describe('clearRoomObjectsAndPublishUpdate', () => {
+    const roomId = 'ROOM#clear' as EphemeraRoomId
+    const streamEvent = jest.fn().mockResolvedValue(undefined)
+
+    beforeEach(() => {
+        clearPersistMetaRoomObjectsMock.mockReset()
+        clearPersistMetaRoomObjectsMock.mockResolvedValue({ ok: true, persisted: false })
+        streamEvent.mockClear()
+    })
+
+    it('publishes Objects Changed with empty newObjects when clear persists', async () => {
+        clearPersistMetaRoomObjectsMock.mockResolvedValue({
+            ok: true,
+            persisted: true,
+            priorObjects: [obj('a', 'A'), obj('b', 'B')],
+            newObjects: [],
+        })
+
+        await clearRoomObjectsAndPublishUpdate(roomId, { streamEvent })
+
+        expect(clearPersistMetaRoomObjectsMock).toHaveBeenCalledWith({ roomId })
+        expect(streamEvent).toHaveBeenCalledWith({
+            streamKey: roomId,
+            header: { type: 'Objects Changed' },
+            update: {
+                type: 'Objects Changed',
+                componentId: roomId,
+                add: [],
+                remove: ['OBJECT#a' as EphemeraObjectId, 'OBJECT#b' as EphemeraObjectId],
+                priorObjects: [obj('a', 'A'), obj('b', 'B')],
+                newObjects: [],
+            },
+        })
+    })
+
+    it('does not stream when clear does not persist', async () => {
+        await clearRoomObjectsAndPublishUpdate(roomId, { streamEvent })
+        expect(streamEvent).not.toHaveBeenCalled()
+    })
+
+    it('logs and does not stream when clear fails', async () => {
+        const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+        clearPersistMetaRoomObjectsMock.mockResolvedValue({
+            ok: false,
+            errorCode: 'META_ROOM_MISSING',
+            errorMessage: 'no row',
+        })
+        await clearRoomObjectsAndPublishUpdate(roomId, { streamEvent })
+        expect(streamEvent).not.toHaveBeenCalled()
+        expect(consoleSpy).toHaveBeenCalled()
+        consoleSpy.mockRestore()
+    })
+})
+
+describe('handleAwaitRoadRunnerClearObjects', () => {
+    const streamEvent = jest.fn().mockResolvedValue(undefined)
+
+    beforeEach(() => {
+        streamEvent.mockClear()
+    })
+
+    it('clears all coyote rooms in parallel via Promise.all', async () => {
+        const clearRoomObjectsAndPublishUpdateImpl = jest
+            .fn()
+            .mockImplementation(async () => Promise.resolve())
+        const getGameRooms = jest.fn(async () => ['VORTEX', 'ROOM#BRIDGE', 'CLIFFTOP'])
+
+        await handleAwaitRoadRunnerClearObjects({
+            streamEvent,
+            getGameRooms,
+            clearRoomObjectsAndPublishUpdateImpl,
+        })
+
+        expect(getGameRooms).toHaveBeenCalledTimes(1)
+        expect(clearRoomObjectsAndPublishUpdateImpl).toHaveBeenCalledTimes(3)
+        expect(clearRoomObjectsAndPublishUpdateImpl).toHaveBeenNthCalledWith(1, 'ROOM#VORTEX', { streamEvent })
+        expect(clearRoomObjectsAndPublishUpdateImpl).toHaveBeenNthCalledWith(2, 'ROOM#BRIDGE', { streamEvent })
+        expect(clearRoomObjectsAndPublishUpdateImpl).toHaveBeenNthCalledWith(3, 'ROOM#CLIFFTOP', { streamEvent })
     })
 })

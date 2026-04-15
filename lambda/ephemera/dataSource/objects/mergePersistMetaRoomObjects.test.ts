@@ -1,7 +1,7 @@
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMetaRoom, EphemeraMetaRoomObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { MergePersistMetaRoomObjectsOptimisticUpdateParams } from './mergePersistMetaRoomObjects'
-import { mergeMetaRoomObjects, mergePersistMetaRoomObjects } from './mergePersistMetaRoomObjects'
+import { clearPersistMetaRoomObjects, mergeMetaRoomObjects, mergePersistMetaRoomObjects } from './mergePersistMetaRoomObjects'
 import internalCache from '../../internalCache'
 
 jest.mock('../../internalCache', () => ({
@@ -159,6 +159,54 @@ describe('mergePersistMetaRoomObjects', () => {
         )
 
         expect(result).toEqual({ ok: true, persisted: false })
+        expect(invalidateMock).toHaveBeenCalledWith(roomId)
+        expect(stackMergeInvalidateMock).toHaveBeenCalledWith(roomId)
+    })
+})
+
+describe('clearPersistMetaRoomObjects', () => {
+    const roomId = 'ROOM#clear' as EphemeraRoomId
+
+    const baseMeta = (overrides: Partial<EphemeraMetaRoom> = {}): EphemeraMetaRoom => ({
+        EphemeraId: roomId,
+        DataCategory: 'Meta::Room',
+        ...overrides,
+    })
+
+    beforeEach(() => {
+        invalidateMock.mockClear()
+        stackMergeInvalidateMock.mockClear()
+    })
+
+    it('returns META_ROOM_MISSING when getMetaRoom returns undefined', async () => {
+        const result = await clearPersistMetaRoomObjects(
+            { roomId },
+            { getMetaRoom: async () => undefined }
+        )
+        expect(result).toEqual({
+            ok: false,
+            errorCode: 'META_ROOM_MISSING',
+            errorMessage: 'Meta::Room not found for ROOM#clear',
+        })
+        expect(invalidateMock).not.toHaveBeenCalled()
+        expect(stackMergeInvalidateMock).not.toHaveBeenCalled()
+    })
+
+    it('clears objects to empty regardless of previous values', async () => {
+        const meta = baseMeta({ objects: [obj('a', 'A'), obj('b', 'B')] })
+        const optimisticUpdate = mockOptimisticUpdatePersisting(meta, roomId)
+
+        const result = await clearPersistMetaRoomObjects(
+            { roomId },
+            { getMetaRoom: async () => meta, optimisticUpdate }
+        )
+
+        expect(result.ok).toBe(true)
+        if (!result.ok || !result.persisted) {
+            throw new Error('expected ok with persisted')
+        }
+        expect(result.priorObjects).toEqual([obj('a', 'A'), obj('b', 'B')])
+        expect(result.newObjects).toEqual([])
         expect(invalidateMock).toHaveBeenCalledWith(roomId)
         expect(stackMergeInvalidateMock).toHaveBeenCalledWith(roomId)
     })
