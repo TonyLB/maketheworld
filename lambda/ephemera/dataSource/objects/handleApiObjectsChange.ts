@@ -2,9 +2,11 @@ import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import type { StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import { RoomKey } from '@tonylb/mtw-utilities/ts/types'
 import type { ObjectsChangeCommand } from '../localApiEvents'
 import { clearPersistMetaRoomObjects, mergePersistMetaRoomObjects } from './mergePersistMetaRoomObjects'
 import type { ObjectsChangedPayload } from './events'
+import internalCache from '../../internalCache'
 
 /**
  * Apply api.ephemera `Objects Change` to Dynamo: rooms merge `add` / `remove` into `Meta::Room.objects`.
@@ -77,4 +79,20 @@ export const clearRoomObjectsAndPublishUpdate = async (
             newObjects: [],
         },
     })
+}
+
+/**
+ * Coyote path: clear objects in every configured Coyote Game room.
+ */
+export const handleAwaitRoadRunnerClearObjects = async (
+    deps: {
+        streamEvent: StreamEventFunction<ObjectsChangedPayload, StreamingEventHeader>;
+        getGameRooms?: () => Promise<string[]>;
+        clearRoomObjectsAndPublishUpdateImpl?: typeof clearRoomObjectsAndPublishUpdate;
+    }
+): Promise<void> => {
+    const getGameRooms = deps.getGameRooms ?? (() => internalCache.CoyoteGame.get('gameRooms'))
+    const clearImpl = deps.clearRoomObjectsAndPublishUpdateImpl ?? clearRoomObjectsAndPublishUpdate
+    const gameRooms = await getGameRooms()
+    await Promise.all(gameRooms.map((roomId) => clearImpl(RoomKey(roomId) as EphemeraRoomId, { streamEvent: deps.streamEvent })))
 }

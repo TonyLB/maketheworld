@@ -20,6 +20,25 @@ export type AwaitRoadRunnerPublishedPayload = {
     confidence: number;
 }
 
+export const isAwaitRoadRunnerPublishedPayload = (
+    value: unknown
+): value is AwaitRoadRunnerPublishedPayload => {
+    if (!value || typeof value !== 'object') {
+        return false
+    }
+    const v = value as Record<string, unknown>
+    if (v.type !== 'Await RoadRunner') {
+        return false
+    }
+    if (typeof v.characterId !== 'string') {
+        return false
+    }
+    if (typeof v.confidence !== 'number' || !Number.isFinite(v.confidence)) {
+        return false
+    }
+    return true
+}
+
 export type ActionsPublishedPayload =
     | ActionsStubPublishedPayload
     | CharacterNavigatePublishedPayload

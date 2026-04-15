@@ -1,6 +1,10 @@
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMetaRoomObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { clearRoomObjectsAndPublishUpdate, handleApiObjectsChangeCommand } from './handleApiObjectsChange'
+import {
+    clearRoomObjectsAndPublishUpdate,
+    handleApiObjectsChangeCommand,
+    handleAwaitRoadRunnerClearObjects,
+} from './handleApiObjectsChange'
 import { clearPersistMetaRoomObjects, mergePersistMetaRoomObjects } from './mergePersistMetaRoomObjects'
 
 jest.mock('./mergePersistMetaRoomObjects', () => ({
@@ -159,5 +163,32 @@ describe('clearRoomObjectsAndPublishUpdate', () => {
         expect(streamEvent).not.toHaveBeenCalled()
         expect(consoleSpy).toHaveBeenCalled()
         consoleSpy.mockRestore()
+    })
+})
+
+describe('handleAwaitRoadRunnerClearObjects', () => {
+    const streamEvent = jest.fn().mockResolvedValue(undefined)
+
+    beforeEach(() => {
+        streamEvent.mockClear()
+    })
+
+    it('clears all coyote rooms in parallel via Promise.all', async () => {
+        const clearRoomObjectsAndPublishUpdateImpl = jest
+            .fn()
+            .mockImplementation(async () => Promise.resolve())
+        const getGameRooms = jest.fn(async () => ['VORTEX', 'ROOM#BRIDGE', 'CLIFFTOP'])
+
+        await handleAwaitRoadRunnerClearObjects({
+            streamEvent,
+            getGameRooms,
+            clearRoomObjectsAndPublishUpdateImpl,
+        })
+
+        expect(getGameRooms).toHaveBeenCalledTimes(1)
+        expect(clearRoomObjectsAndPublishUpdateImpl).toHaveBeenCalledTimes(3)
+        expect(clearRoomObjectsAndPublishUpdateImpl).toHaveBeenNthCalledWith(1, 'ROOM#VORTEX', { streamEvent })
+        expect(clearRoomObjectsAndPublishUpdateImpl).toHaveBeenNthCalledWith(2, 'ROOM#BRIDGE', { streamEvent })
+        expect(clearRoomObjectsAndPublishUpdateImpl).toHaveBeenNthCalledWith(3, 'ROOM#CLIFFTOP', { streamEvent })
     })
 })
