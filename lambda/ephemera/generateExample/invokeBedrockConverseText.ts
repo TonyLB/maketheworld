@@ -32,6 +32,16 @@ export type InvokeBedrockConverseTextParams = {
     client?: BedrockRuntimeClient;
 }
 
+let defaultClient: BedrockRuntimeClient | undefined
+
+const getDefaultClient = (): BedrockRuntimeClient => {
+    if (!defaultClient) {
+        const region = process.env.AWS_REGION
+        defaultClient = new BedrockRuntimeClient(region ? { region } : {})
+    }
+    return defaultClient
+}
+
 function extractTextFromResponse(response: { output?: { message?: { content?: Array<{ text?: string }> } } }): string {
     const content = response?.output?.message?.content
     if (!Array.isArray(content)) return ''
@@ -56,8 +66,7 @@ export async function invokeBedrockConverseText(
         client: clientOpt,
     } = params
 
-    const region = process.env.AWS_REGION
-    const client = clientOpt ?? new BedrockRuntimeClient(region ? { region } : {})
+    const client = clientOpt ?? getDefaultClient()
 
     const abortController = new AbortController()
     const timeoutId = setTimeout(() => abortController.abort(), timeoutMs)
