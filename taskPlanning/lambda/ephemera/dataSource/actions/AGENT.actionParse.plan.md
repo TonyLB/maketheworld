@@ -1,6 +1,6 @@
 # Action Parse DataSource Plan
 
-**Status:** In progress. Phase 1 is complete; next step is Phase 2 parser-result contract hardening.
+**Status:** In progress. Phases 1-3 are complete; next step is Phase 4 (action branch framework).
 
 ## Purpose
 
@@ -28,18 +28,39 @@ This plan is task-scoped and should be retired after the action parse initiative
 
 ## Getting started
 
-1. Read task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md)
-2. Review existing ephemera command ingress: [`lambda/ephemera/app.ts`](../../../../../lambda/ephemera/app.ts)
-3. Review synthetic command contracts:
-   - [`lambda/ephemera/dataSource/localApiEvents.ts`](../../../../../lambda/ephemera/dataSource/localApiEvents.ts)
-   - [`lambda/ephemera/dataSource/apiEphemera.ts`](../../../../../lambda/ephemera/dataSource/apiEphemera.ts)
-   - [`lambda/ephemera/dataSource/actions/subscribedEvents.ts`](../../../../../lambda/ephemera/dataSource/actions/subscribedEvents.ts)
-4. Review existing imperative parser/executor baseline:
-   - [`lambda/ephemera/parse/index.ts`](../../../../../lambda/ephemera/parse/index.ts)
-   - [`lambda/ephemera/parse/executeAction.ts`](../../../../../lambda/ephemera/parse/executeAction.ts)
-5. Review wire contracts used by WebSocket request/response correlation:
-   - [`packages/mtw-interfaces/ts/ephemera.ts`](../../../../../packages/mtw-interfaces/ts/ephemera.ts)
-   - [`charcoal-client/src/slices/lifeLine/index.api.ts`](../../../../../charcoal-client/src/slices/lifeLine/index.api.ts)
+Follow the ordered **categories** below (see [Getting Started pattern for complex tasks](../../../../../AGENT.md#getting-started-pattern-for-complex-tasks) in root [`AGENT.md`](../../../../../AGENT.md)). A category can be light if it does not apply yet; keep **Why** / **Focus** so the next reader knows what to skim vs study.
+
+1. **Understand project foundations**
+   - **Why**: Task plans sit under [`taskPlanning/`](../../../../); root navigation explains how docs fit together and when this plan retires.
+   - **Read**: Root [`AGENT.md`](../../../../../AGENT.md) (overview, ephemera links, Getting Started pattern). [`taskPlanning/AGENT.md`](../../../../AGENT.md) (what belongs in this file vs durable `AGENT.md`, **Recommended order** checkbox rules, verification expectations).
+
+2. **Read this document**
+   - **Why**: Phases and scope split change over time; the durable checklist is **Recommended order** and **Verification**.
+   - **Focus**: **Purpose** and **Scope split** for intent; **Recommended order** for the current milestone (next: Phase 4); **Material decisions** for open product choices.
+
+3. **Understand core integration points**
+   - **Why**: Action parse work crosses WebSocket ingress, synthetic `api.ephemera` events, the `mtw.ephemera.actions` DataSource, and client correlation.
+   - **Focus**: `command` string in, `Parse Requested` on the bus, handler outcomes correlated with `RequestId` (see **Material decisions** and interfaces below).
+   - **Primary files**: [`lambda/ephemera/app.ts`](../../../../../lambda/ephemera/app.ts) (ingress and handoff); [`lambda/ephemera/dataSource/localApiEvents.ts`](../../../../../lambda/ephemera/dataSource/localApiEvents.ts), [`lambda/ephemera/dataSource/apiEphemera.ts`](../../../../../lambda/ephemera/dataSource/apiEphemera.ts), [`lambda/ephemera/dataSource/actions/subscribedEvents.ts`](../../../../../lambda/ephemera/dataSource/actions/subscribedEvents.ts) (synthetic contracts and subscription helpers).
+
+4. **Review implemented code**
+   - **Why**: Phase 3 adds an LLM path; reuse established Bedrock **Converse** + JSON validation patterns and the existing parse-result boundary.
+   - **Parser contract and handler**: [`baseClasses.ts`](../../../../../lambda/ephemera/dataSource/actions/baseClasses.ts) (types and guards), [`parseCommand.ts`](../../../../../lambda/ephemera/dataSource/actions/parseCommand.ts), [`parseCommandIntentClassification.ts`](../../../../../lambda/ephemera/dataSource/actions/parseCommandIntentClassification.ts), [`buildParseCommandIntentClassificationPrompt.ts`](../../../../../lambda/ephemera/dataSource/actions/buildParseCommandIntentClassificationPrompt.ts), [`index.ts`](../../../../../lambda/ephemera/dataSource/actions/index.ts).
+   - **Legacy imperative baseline** (parity / migration context): [`lambda/ephemera/parse/index.ts`](../../../../../lambda/ephemera/parse/index.ts), [`lambda/ephemera/parse/executeAction.ts`](../../../../../lambda/ephemera/parse/executeAction.ts).
+   - **Bedrock invocation reference** (Nova text in, JSON out, timeout): [`invokeBedrockConverseText.ts`](../../../../../lambda/ephemera/generateExample/invokeBedrockConverseText.ts), [`invokeBedrockParseCommand.ts`](../../../../../lambda/ephemera/generateExample/invokeBedrockParseCommand.ts), [`invokeBedrockRoomDescription.ts`](../../../../../lambda/ephemera/generateExample/invokeBedrockRoomDescription.ts).
+
+5. **Check testing patterns**
+   - **Why**: Ephemera uses Jest from `lambda/ephemera`; keep parity with existing action-parse and ingress tests.
+   - **Files**: [`lambda/ephemera/dataSource/actions/parseCommand.test.ts`](../../../../../lambda/ephemera/dataSource/actions/parseCommand.test.ts), [`lambda/ephemera/dataSource/actions/index.test.ts`](../../../../../lambda/ephemera/dataSource/actions/index.test.ts); ingress routing in [`lambda/ephemera/app.test.ts`](../../../../../lambda/ephemera/app.test.ts) where `command` / parse paths are covered.
+   - **Wire contracts** (types and client correlation expectations): [`packages/mtw-interfaces/ts/ephemera.ts`](../../../../../packages/mtw-interfaces/ts/ephemera.ts), [`charcoal-client/src/slices/lifeLine/index.api.ts`](../../../../../charcoal-client/src/slices/lifeLine/index.api.ts).
+
+6. **Identify next task**
+   - **Why**: Progress lives in **Recommended order**; readers often open only this plan.
+   - **Focus**: First unchecked parent phase and its nested items (see [`taskPlanning/AGENT.md` Recommended order checkboxes](../../../../AGENT.md#recommended-order-checkboxes)). After shipping a slice, mark checkboxes and refresh **Verification** to match.
+
+7. **Run tests before starting**
+   - **Why**: Confirms baseline before edits; commands are Jest from `lambda/ephemera` (not Vitest).
+   - **Commands**: From **Verification** in this document (e.g. targeted `npm run test -- --runInBand ...` for actions and `npm run build`). Extend with any new test files you add for Phase 3.
 
 ## Recommended order
 
@@ -51,17 +72,17 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines as you finish ea
   - [X] Add/update tests proving: outbound `command` request receives a `RequestId`-correlated success response even with no implemented action branches.
   - [X] Keep behavior explicit for currently unsupported/empty parse outcomes.
 
-- [ ] Phase 2 - define parser result contract (pre-LLM hardening)
-  - [ ] Define internal parse-result type(s): intent key, extracted slots/entities, confidence, and parse diagnostics.
-  - [ ] Decide authoritative validation boundary (schema guard in lambda vs parser wrapper).
-  - [ ] Define fallback behavior when parse is invalid or low-confidence.
-  - [ ] Add tests for parse-result validation and fallback handling.
+- [X] Phase 2 - define parser result contract (pre-LLM hardening)
+  - [X] Define internal parse-result types: discriminated union by intent (`type`); slots/entities as per-variant fields (e.g. `targetId`, `orders`); `confidence` on all non-error outcomes (typically `[0, 1]`). Parse diagnostics: explicitly deferred.
+  - [X] Validation boundary: type guards and confidence/range checks in [`baseClasses.ts`](../../../../../lambda/ephemera/dataSource/actions/baseClasses.ts); handler in [`index.ts`](../../../../../lambda/ephemera/dataSource/actions/index.ts) branches on guards before effects.
+  - [X] Fallback / edge handling: `Error`, `Unknown`, `Unimplemented`; WorldOOCMessage user copy; navigation exit validation against current room exits.
+  - [X] Tests: [`parseCommand.test.ts`](../../../../../lambda/ephemera/dataSource/actions/parseCommand.test.ts) (guards), [`index.test.ts`](../../../../../lambda/ephemera/dataSource/actions/index.test.ts) (handler branches).
 
-- [ ] Phase 3 - implement LLM parser vertical slice
-  - [ ] Add prompt + invocation path for command-to-intent parsing.
-  - [ ] Validate structured output and normalize to internal parse-result contract.
-  - [ ] Add deterministic fallback path when model output fails validation or call errors.
-  - [ ] Add tests with fixed fixtures/mocks for success, low-confidence, malformed output, and provider failure.
+- [X] Phase 3 - implement LLM parser vertical slice
+  - [X] Add prompt + invocation path for command-to-intent parsing.
+  - [X] Validate structured output and normalize to internal parse-result contract.
+  - [X] Add deterministic fallback path when model output fails validation or call errors.
+  - [X] Add tests with fixed fixtures/mocks for success, low-confidence, malformed output, and provider failure.
 
 - [ ] Phase 4 - action branch framework
   - [ ] Define branch registry/routing by intent (single dispatch point).
@@ -99,6 +120,8 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines as you finish ea
   - `cd "/Users/anthonylower-basch/Code/maketheworld/lambda/ephemera" && npm run test -- --runInBand app.test.ts dataSource/actions/index.test.ts`
   - `cd "/Users/anthonylower-basch/Code/maketheworld/lambda/ephemera" && npm run build`
   - `ReadLints` clean on edited files.
+- Phase 2 verification: `npm run test -- --runInBand dataSource/actions/parseCommand.test.ts dataSource/actions/index.test.ts` and `npm run build` in `lambda/ephemera`.
+- Phase 3 verification: same Jest targets as Phase 2 (parse pipeline + handler); `npm run build` in `lambda/ephemera`. LLM path covered with mocked `invokeBedrockParseCommand`; validation/fallback covered in `interpretParseCommandIntentClassificationBody` tests.
 
 ## Progress
 
@@ -108,5 +131,6 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines as you finish ea
 | Synthetic `api.ephemera` `Parse Requested` event contract and subscription guard | Done |
 | Closed-loop `command` -> `Parse Requested` -> correlated success | Done |
 | Legacy imperative parser retained as explicit commented reference in `app.ts` | Done |
-| LLM parser contract and implementation | Not started |
+| Phase 2 parse-result contract (`parseCommand.ts` union, confidence, guards, handler tests) | Done |
+| LLM parser contract and implementation | Done |
 | Action branch framework and migration from imperative parse | Not started |

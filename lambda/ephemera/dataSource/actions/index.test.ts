@@ -9,13 +9,10 @@ jest.mock('../../messageBus')
 jest.mock('./roomExitTargetsForCharacter', () => ({
     getRoomExitTargetsForCharacter: jest.fn(),
 }))
-jest.mock('./parseCommand', () => {
-    const actual = jest.requireActual<typeof import('./parseCommand')>('./parseCommand')
-    return {
-        ...actual,
-        parseCommand: jest.fn((input: Parameters<typeof actual.parseCommand>[0]) => actual.parseCommand(input)),
-    }
-})
+jest.mock('./parseCommand', () => ({
+    ...jest.requireActual<typeof import('./parseCommand')>('./parseCommand'),
+    parseCommand: jest.fn(),
+}))
 
 const mockMessageBus = messageBus as jest.Mocked<typeof messageBus>
 const mockedParseCommand = jest.mocked(parseCommand)
@@ -25,9 +22,10 @@ describe('ephemeraActionsDataSource', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         mockMessageBus.send.mockReturnValue(undefined)
-        mockedParseCommand.mockImplementation((input) =>
-            jest.requireActual<typeof import('./parseCommand')>('./parseCommand').parseCommand(input)
-        )
+        mockedParseCommand.mockResolvedValue({
+            type: 'Error',
+            errorMessage: 'Parse error',
+        })
     })
 
     it('emits immediate correlated success when Parse Requested carries requestId', async () => {
@@ -98,7 +96,7 @@ describe('ephemeraActionsDataSource', () => {
         const from = 'ROOM#from' as EphemeraRoomId
 
         it('emits Character Navigate streamEvent when target is a valid exit', async () => {
-            mockedParseCommand.mockResolvedValue({ type: 'Navigation', targetId: dest })
+            mockedParseCommand.mockResolvedValue({ type: 'Navigation', targetId: dest, confidence: 0.9 })
             mockedGetRoomExitTargetsForCharacter.mockResolvedValue({
                 fromRoomId: from,
                 toRoomIds: [dest],
@@ -144,7 +142,7 @@ describe('ephemeraActionsDataSource', () => {
         })
 
         it('publishes WorldOOCMessage when character has no current room', async () => {
-            mockedParseCommand.mockResolvedValue({ type: 'Navigation', targetId: dest })
+            mockedParseCommand.mockResolvedValue({ type: 'Navigation', targetId: dest, confidence: 0.9 })
             mockedGetRoomExitTargetsForCharacter.mockResolvedValue({
                 fromRoomId: null,
                 toRoomIds: [],
@@ -176,7 +174,7 @@ describe('ephemeraActionsDataSource', () => {
         })
 
         it('publishes WorldOOCMessage when target room is not reachable by an exit', async () => {
-            mockedParseCommand.mockResolvedValue({ type: 'Navigation', targetId: dest })
+            mockedParseCommand.mockResolvedValue({ type: 'Navigation', targetId: dest, confidence: 0.9 })
             mockedGetRoomExitTargetsForCharacter.mockResolvedValue({
                 fromRoomId: from,
                 toRoomIds: ['ROOM#other' as EphemeraRoomId],
@@ -212,7 +210,8 @@ describe('ephemeraActionsDataSource', () => {
         it('publishes WorldOOCMessage with Acme Order prefix', async () => {
             mockedParseCommand.mockResolvedValue({
                 type: 'AcmeOrder',
-                order: 'rocket-powered roller skates',
+                orders: ['rocket-powered roller skates'],
+                confidence: 0.9,
             })
 
             await ephemeraActionsDataSource.receiveEvents!({
@@ -239,11 +238,43 @@ describe('ephemeraActionsDataSource', () => {
                 message: ['Acme Order: rocket-powered roller skates'],
             })
         })
+
+        it('joins multiple order lines in WorldOOCMessage', async () => {
+            mockedParseCommand.mockResolvedValue({
+                type: 'AcmeOrder',
+                orders: ['anvil', 'giant magnet'],
+                confidence: 0.88,
+            })
+
+            await ephemeraActionsDataSource.receiveEvents!({
+                events: [{
+                    header: {
+                        dataSourceKey: 'api.ephemera',
+                        streamKey: 'CHARACTER#123',
+                        timestamp: Date.now(),
+                        type: 'Parse Requested',
+                    },
+                    getContent: async () => ({
+                        characterId: 'CHARACTER#123',
+                        command: 'order anvil and magnet',
+                    }),
+                }],
+                streamEvent: jest.fn(async () => {}),
+                streamEnvelope: jest.fn(async () => {}),
+            })
+
+            expect(mockMessageBus.send).toHaveBeenCalledWith({
+                type: 'PublishMessage',
+                targets: ['CHARACTER#123'],
+                displayProtocol: 'WorldOOCMessage',
+                message: ['Acme Order: anvil, giant magnet'],
+            })
+        })
     })
 
     describe('ParseCommandAwaitRoadrunnerResult', () => {
         it('publishes WorldOOCMessage Awaiting Road Runner', async () => {
-            mockedParseCommand.mockResolvedValue({ type: 'AwaitRoadRunner' })
+            mockedParseCommand.mockResolvedValue({ type: 'AwaitRoadRunner', confidence: 0.9 })
 
             await ephemeraActionsDataSource.receiveEvents!({
                 events: [{
@@ -273,7 +304,7 @@ describe('ephemeraActionsDataSource', () => {
 
     describe('ParseCommandUnimplementedResult', () => {
         it('publishes WorldOOCMessage for unimplemented intent', async () => {
-            mockedParseCommand.mockResolvedValue({ type: 'Unimplemented' })
+            mockedParseCommand.mockResolvedValue({ type: 'Unimplemented', confidence: 0.9 })
 
             await ephemeraActionsDataSource.receiveEvents!({
                 events: [{
@@ -305,7 +336,7 @@ describe('ephemeraActionsDataSource', () => {
 
     describe('ParseCommandUnknownResult', () => {
         it('publishes WorldOOCMessage for unknown intent', async () => {
-            mockedParseCommand.mockResolvedValue({ type: 'Unknown' })
+            mockedParseCommand.mockResolvedValue({ type: 'Unknown', confidence: 0.9 })
 
             await ephemeraActionsDataSource.receiveEvents!({
                 events: [{

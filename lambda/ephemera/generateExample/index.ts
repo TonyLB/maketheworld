@@ -16,6 +16,14 @@ export {
 } from './buildRoomDescriptionPrompt'
 
 export {
+    invokeBedrockConverseText,
+    type InvokeBedrockConverseTextParams,
+    type InvokeBedrockConverseTextResult,
+    type InvokeBedrockConverseTextSuccess,
+    type InvokeBedrockConverseTextFailure,
+} from './invokeBedrockConverseText'
+
+export {
     invokeBedrockRoomDescription,
     BEDROCK_ROOM_DESCRIPTION_MODEL_ID,
     BEDROCK_REQUEST_TIMEOUT_MS,
@@ -24,3 +32,13 @@ export {
     type InvokeBedrockRoomDescriptionSuccess,
     type InvokeBedrockRoomDescriptionFailure,
 } from './invokeBedrockRoomDescription'
+
+export {
+    invokeBedrockParseCommand,
+    BEDROCK_PARSE_COMMAND_MODEL_ID,
+    BEDROCK_PARSE_COMMAND_TIMEOUT_MS,
+    BEDROCK_PARSE_COMMAND_MAX_TOKENS,
+    type InvokeBedrockParseCommandResult,
+    type InvokeBedrockParseCommandSuccess,
+    type InvokeBedrockParseCommandFailure,
+} from './invokeBedrockParseCommand'
