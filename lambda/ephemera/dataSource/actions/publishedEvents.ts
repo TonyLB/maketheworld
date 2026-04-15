@@ -20,6 +20,13 @@ export type AwaitRoadRunnerPublishedPayload = {
     confidence: number;
 }
 
+export type AcmeOrderPublishedPayload = {
+    type: 'Acme Order';
+    characterId: EphemeraCharacterId;
+    orders: string[];
+    confidence: number;
+}
+
 export const isAwaitRoadRunnerPublishedPayload = (
     value: unknown
 ): value is AwaitRoadRunnerPublishedPayload => {
@@ -42,4 +49,5 @@ export const isAwaitRoadRunnerPublishedPayload = (
 export type ActionsPublishedPayload =
     | ActionsStubPublishedPayload
     | CharacterNavigatePublishedPayload
+    | AcmeOrderPublishedPayload
     | AwaitRoadRunnerPublishedPayload

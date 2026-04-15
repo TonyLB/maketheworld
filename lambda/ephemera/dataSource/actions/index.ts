@@ -75,6 +75,16 @@ export const ephemeraActionsDataSource = new EphemeraDataSource<
                 }
             }
             else if (isEphemeraCharacterId(content.characterId) && isParseCommandAcmeOrderResult(parseResult)) {
+                await streamEvent({
+                    streamKey: content.characterId,
+                    header: { type: 'Acme Order' },
+                    update: {
+                        type: 'Acme Order',
+                        characterId: content.characterId,
+                        orders: parseResult.orders,
+                        confidence: parseResult.confidence,
+                    },
+                })
                 messageBus.send({
                     type: 'PublishMessage',
                     targets: [content.characterId],

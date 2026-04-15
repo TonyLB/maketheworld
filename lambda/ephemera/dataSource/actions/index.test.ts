@@ -207,12 +207,13 @@ describe('ephemeraActionsDataSource', () => {
     })
 
     describe('ParseCommandAcmeOrderResult', () => {
-        it('publishes WorldOOCMessage with Acme Order prefix', async () => {
+        it('publishes Acme Order streamEvent and WorldOOCMessage with Acme Order prefix', async () => {
             mockedParseCommand.mockResolvedValue({
                 type: 'AcmeOrder',
                 orders: ['rocket-powered roller skates'],
                 confidence: 0.9,
             })
+            const streamEvent = jest.fn(async () => {})
 
             await ephemeraActionsDataSource.receiveEvents!({
                 events: [{
@@ -227,10 +228,20 @@ describe('ephemeraActionsDataSource', () => {
                         command: 'order rocket skates',
                     }),
                 }],
-                streamEvent: jest.fn(async () => {}),
+                streamEvent,
                 streamEnvelope: jest.fn(async () => {}),
             })
 
+            expect(streamEvent).toHaveBeenCalledWith({
+                streamKey: 'CHARACTER#123',
+                header: { type: 'Acme Order' },
+                update: {
+                    type: 'Acme Order',
+                    characterId: 'CHARACTER#123',
+                    orders: ['rocket-powered roller skates'],
+                    confidence: 0.9,
+                },
+            })
             expect(mockMessageBus.send).toHaveBeenCalledWith({
                 type: 'PublishMessage',
                 targets: ['CHARACTER#123'],
@@ -245,6 +256,7 @@ describe('ephemeraActionsDataSource', () => {
                 orders: ['anvil', 'giant magnet'],
                 confidence: 0.88,
             })
+            const streamEvent = jest.fn(async () => {})
 
             await ephemeraActionsDataSource.receiveEvents!({
                 events: [{
@@ -259,10 +271,20 @@ describe('ephemeraActionsDataSource', () => {
                         command: 'order anvil and magnet',
                     }),
                 }],
-                streamEvent: jest.fn(async () => {}),
+                streamEvent,
                 streamEnvelope: jest.fn(async () => {}),
             })
 
+            expect(streamEvent).toHaveBeenCalledWith({
+                streamKey: 'CHARACTER#123',
+                header: { type: 'Acme Order' },
+                update: {
+                    type: 'Acme Order',
+                    characterId: 'CHARACTER#123',
+                    orders: ['anvil', 'giant magnet'],
+                    confidence: 0.88,
+                },
+            })
             expect(mockMessageBus.send).toHaveBeenCalledWith({
                 type: 'PublishMessage',
                 targets: ['CHARACTER#123'],
