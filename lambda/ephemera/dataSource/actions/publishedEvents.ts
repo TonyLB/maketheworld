@@ -14,6 +14,13 @@ export type CharacterNavigatePublishedPayload = {
     toRoomId: EphemeraRoomId;
 }
 
+export type AwaitRoadRunnerPublishedPayload = {
+    type: 'Await RoadRunner';
+    characterId: EphemeraCharacterId;
+    confidence: number;
+}
+
 export type ActionsPublishedPayload =
     | ActionsStubPublishedPayload
     | CharacterNavigatePublishedPayload
+    | AwaitRoadRunnerPublishedPayload

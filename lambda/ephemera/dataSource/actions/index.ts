@@ -83,6 +83,15 @@ export const ephemeraActionsDataSource = new EphemeraDataSource<
                 })
             }
             else if (isEphemeraCharacterId(content.characterId) && isParseCommandAwaitRoadrunnerResult(parseResult)) {
+                await streamEvent({
+                    streamKey: content.characterId,
+                    header: { type: 'Await RoadRunner' },
+                    update: {
+                        type: 'Await RoadRunner',
+                        characterId: content.characterId,
+                        confidence: parseResult.confidence,
+                    },
+                })
                 messageBus.send({
                     type: 'PublishMessage',
                     targets: [content.characterId],

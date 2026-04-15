@@ -273,8 +273,9 @@ describe('ephemeraActionsDataSource', () => {
     })
 
     describe('ParseCommandAwaitRoadrunnerResult', () => {
-        it('publishes WorldOOCMessage Awaiting Road Runner', async () => {
+        it('publishes Await RoadRunner streamEvent and WorldOOCMessage', async () => {
             mockedParseCommand.mockResolvedValue({ type: 'AwaitRoadRunner', confidence: 0.9 })
+            const streamEvent = jest.fn(async () => {})
 
             await ephemeraActionsDataSource.receiveEvents!({
                 events: [{
@@ -289,10 +290,19 @@ describe('ephemeraActionsDataSource', () => {
                         command: 'wait',
                     }),
                 }],
-                streamEvent: jest.fn(async () => {}),
+                streamEvent,
                 streamEnvelope: jest.fn(async () => {}),
             })
 
+            expect(streamEvent).toHaveBeenCalledWith({
+                streamKey: 'CHARACTER#123',
+                header: { type: 'Await RoadRunner' },
+                update: {
+                    type: 'Await RoadRunner',
+                    characterId: 'CHARACTER#123',
+                    confidence: 0.9,
+                },
+            })
             expect(mockMessageBus.send).toHaveBeenCalledWith({
                 type: 'PublishMessage',
                 targets: ['CHARACTER#123'],
