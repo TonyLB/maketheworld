@@ -2,6 +2,7 @@ import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts
 import type { EphemeraMetaRoomObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import {
     clearRoomObjectsAndPublishUpdate,
+    handleAcmeOrderAddObjects,
     handleApiObjectsChangeCommand,
     handleAwaitRoadRunnerClearObjects,
 } from './handleApiObjectsChange'
@@ -190,5 +191,85 @@ describe('handleAwaitRoadRunnerClearObjects', () => {
         expect(clearRoomObjectsAndPublishUpdateImpl).toHaveBeenNthCalledWith(1, 'ROOM#VORTEX', { streamEvent })
         expect(clearRoomObjectsAndPublishUpdateImpl).toHaveBeenNthCalledWith(2, 'ROOM#BRIDGE', { streamEvent })
         expect(clearRoomObjectsAndPublishUpdateImpl).toHaveBeenNthCalledWith(3, 'ROOM#CLIFFTOP', { streamEvent })
+    })
+})
+
+describe('handleAcmeOrderAddObjects', () => {
+    const streamEvent = jest.fn().mockResolvedValue(undefined)
+
+    beforeEach(() => {
+        mergePersistMetaRoomObjectsMock.mockReset()
+        mergePersistMetaRoomObjectsMock.mockResolvedValue({ ok: true, persisted: false })
+        streamEvent.mockClear()
+    })
+
+    it('adds incoming order strings as room objects for character current room', async () => {
+        const mergePersistMetaRoomObjectsImpl = jest.fn().mockResolvedValue({
+            ok: true,
+            persisted: true,
+            priorObjects: [obj('old', 'Old')],
+            newObjects: [obj('old', 'Old'), obj('u1', 'anvil'), obj('u2', 'giant magnet')],
+        })
+        const getCharacterMeta = jest.fn(async () => ({ RoomId: 'ROOM#VORTEX' }))
+        const uuidValues = ['u1', 'u2']
+        const uuidFactory = jest.fn(() => uuidValues.shift() || 'fallback')
+
+        await handleAcmeOrderAddObjects({
+            type: 'Acme Order',
+            characterId: 'CHARACTER#123',
+            orders: ['anvil', 'giant magnet'],
+            confidence: 0.9,
+        }, {
+            streamEvent,
+            getCharacterMeta,
+            uuidFactory,
+            mergePersistMetaRoomObjectsImpl,
+        })
+
+        expect(getCharacterMeta).toHaveBeenCalledWith('CHARACTER#123')
+        expect(mergePersistMetaRoomObjectsImpl).toHaveBeenCalledWith({
+            roomId: 'ROOM#VORTEX',
+            add: [
+                { uuid: 'OBJECT#u1', shortName: 'anvil' },
+                { uuid: 'OBJECT#u2', shortName: 'giant magnet' },
+            ],
+            remove: [],
+        })
+        expect(streamEvent).toHaveBeenCalledWith({
+            streamKey: 'ROOM#VORTEX',
+            header: { type: 'Objects Changed' },
+            update: {
+                type: 'Objects Changed',
+                componentId: 'ROOM#VORTEX',
+                add: [
+                    { uuid: 'OBJECT#u1', shortName: 'anvil' },
+                    { uuid: 'OBJECT#u2', shortName: 'giant magnet' },
+                ],
+                remove: [],
+                priorObjects: [obj('old', 'Old')],
+                newObjects: [obj('old', 'Old'), obj('u1', 'anvil'), obj('u2', 'giant magnet')],
+            },
+        })
+    })
+
+    it('does nothing when character room cannot be resolved as ephemera room id', async () => {
+        const mergePersistMetaRoomObjectsImpl = jest.fn()
+        const getCharacterMeta = jest.fn(async () => ({}))
+        const uuidFactory = jest.fn(() => 'u1')
+
+        await handleAcmeOrderAddObjects({
+            type: 'Acme Order',
+            characterId: 'CHARACTER#123',
+            orders: ['anvil'],
+            confidence: 0.9,
+        }, {
+            streamEvent,
+            getCharacterMeta,
+            uuidFactory,
+            mergePersistMetaRoomObjectsImpl,
+        })
+
+        expect(mergePersistMetaRoomObjectsImpl).not.toHaveBeenCalled()
+        expect(streamEvent).not.toHaveBeenCalled()
     })
 })
