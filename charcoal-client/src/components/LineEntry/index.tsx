@@ -27,6 +27,7 @@ import { ParseCommandModes, ParseCommandProps } from '../../slices/lifeLine/base
 import EntryModeRoller from './EntryModeRoller'
 import TutorialPopover from '../Onboarding/TutorialPopover'
 import DraftLabel from '../Message/DraftLabel'
+import { coyoteGameEnabled } from '@tonylb/mtw-base/ts/coyoteGame'
 
 interface EntryFieldProps {
     placeholder?: string;
@@ -183,13 +184,15 @@ export const LineEntry: FunctionComponent<LineEntryProps> = ({ callback = () => 
     return (
         <CharacterColorWrapper color="blue">
             <MessageComponent
-                leftIcon={<DraftLabel />}
+                leftIcon={coyoteGameEnabled ? undefined : <DraftLabel />}
                 leftGutter={100} // Increased to accommodate larger DraftLabel
                 rightIcon={
-                    <Stack direction="row">
-                        <EntryModeRoller />
-                        <EntryModeSpeedDial />
-                    </Stack>
+                    coyoteGameEnabled
+                        ? undefined
+                        : <Stack direction="row">
+                            <EntryModeRoller />
+                            <EntryModeSpeedDial />
+                        </Stack>
                 }
                 rightGutter={160}
             >
