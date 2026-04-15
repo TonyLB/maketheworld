@@ -20,6 +20,13 @@ export type AwaitRoadRunnerPublishedPayload = {
     confidence: number;
 }
 
+export type AcmeOrderPublishedPayload = {
+    type: 'Acme Order';
+    characterId: EphemeraCharacterId;
+    orders: string[];
+    confidence: number;
+}
+
 export const isAwaitRoadRunnerPublishedPayload = (
     value: unknown
 ): value is AwaitRoadRunnerPublishedPayload => {
@@ -39,7 +46,30 @@ export const isAwaitRoadRunnerPublishedPayload = (
     return true
 }
 
+export const isAcmeOrderPublishedPayload = (
+    value: unknown
+): value is AcmeOrderPublishedPayload => {
+    if (!value || typeof value !== 'object') {
+        return false
+    }
+    const v = value as Record<string, unknown>
+    if (v.type !== 'Acme Order') {
+        return false
+    }
+    if (typeof v.characterId !== 'string') {
+        return false
+    }
+    if (!Array.isArray(v.orders) || !v.orders.every((entry) => typeof entry === 'string')) {
+        return false
+    }
+    if (typeof v.confidence !== 'number' || !Number.isFinite(v.confidence)) {
+        return false
+    }
+    return true
+}
+
 export type ActionsPublishedPayload =
     | ActionsStubPublishedPayload
     | CharacterNavigatePublishedPayload
+    | AcmeOrderPublishedPayload
     | AwaitRoadRunnerPublishedPayload

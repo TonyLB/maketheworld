@@ -6,11 +6,19 @@
 import type { StreamingEventEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { isEphemeraApiObjectsChangeEnvelope } from '../apiEphemera'
 import type { ObjectsChangeCommand } from '../localApiEvents'
-import type { AwaitRoadRunnerPublishedPayload } from '../actions/publishedEvents'
+import type { AcmeOrderPublishedPayload, AwaitRoadRunnerPublishedPayload } from '../actions/publishedEvents'
 
 export type ObjectsSubscribedContent =
     | ObjectsChangeCommand
+    | AcmeOrderPublishedPayload
     | AwaitRoadRunnerPublishedPayload
+
+export const isEphemeraActionsAcmeOrderEnvelope = (
+    envelope: StreamingEventEnvelope<unknown>
+): envelope is StreamingEventEnvelope<AcmeOrderPublishedPayload> => (
+    envelope.header.dataSourceKey === 'mtw.ephemera.actions'
+    && envelope.header.type === 'Acme Order'
+)
 
 export const isEphemeraActionsAwaitRoadRunnerEnvelope = (
     envelope: StreamingEventEnvelope<unknown>
@@ -22,7 +30,9 @@ export const isEphemeraActionsAwaitRoadRunnerEnvelope = (
 export const isObjectsSubscribedEnvelope = (
     envelope: StreamingEventEnvelope<unknown>
 ): envelope is StreamingEventEnvelope<ObjectsSubscribedContent> => (
-    isEphemeraApiObjectsChangeEnvelope(envelope) || isEphemeraActionsAwaitRoadRunnerEnvelope(envelope)
+    isEphemeraApiObjectsChangeEnvelope(envelope)
+    || isEphemeraActionsAcmeOrderEnvelope(envelope)
+    || isEphemeraActionsAwaitRoadRunnerEnvelope(envelope)
 )
 
 export { isEphemeraApiObjectsChangeEnvelope }

@@ -6,10 +6,14 @@
 import EphemeraDataSource from '../abstract'
 import { isObjectsSubscribedEnvelope } from './subscribedEvents'
 import { isObjectsChangeCommand } from '../localApiEvents'
-import { handleApiObjectsChangeCommand, handleAwaitRoadRunnerClearObjects } from './handleApiObjectsChange'
+import {
+    handleAcmeOrderAddObjects,
+    handleApiObjectsChangeCommand,
+    handleAwaitRoadRunnerClearObjects,
+} from './handleApiObjectsChange'
 import type { ObjectsChangedPayload } from './events'
 import type { ObjectsSubscribedContent } from './subscribedEvents'
-import { isAwaitRoadRunnerPublishedPayload } from '../actions/publishedEvents'
+import { isAcmeOrderPublishedPayload, isAwaitRoadRunnerPublishedPayload } from '../actions/publishedEvents'
 
 export const ephemeraObjectsDataSource = new EphemeraDataSource<never, ObjectsChangedPayload, ObjectsSubscribedContent>({
     dataSourceKey: 'mtw.ephemera.objects',
@@ -25,6 +29,10 @@ export const ephemeraObjectsDataSource = new EphemeraDataSource<never, ObjectsCh
             }
             if (isAwaitRoadRunnerPublishedPayload(cmd)) {
                 await handleAwaitRoadRunnerClearObjects({ streamEvent })
+                return
+            }
+            if (isAcmeOrderPublishedPayload(cmd)) {
+                await handleAcmeOrderAddObjects(cmd, { streamEvent })
             }
         }))
     },
