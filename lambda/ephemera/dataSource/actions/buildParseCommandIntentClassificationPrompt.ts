@@ -18,7 +18,7 @@ Choose **AwaitRoadRunner** when the line is **primarily** about **waiting for th
 
 ### B — AcmeOrder
 
-Choose **AcmeOrder** when the line is **primarily** about **ordering or buying goods from Acme** (catalog, mail-order, telephone order, unspecified delivery method, "send away for", "I need from Acme", product requests). Extract **what** they want as one or more short product strings in \`orders\` (e.g. one item: \`["rocket-powered roller skates"]\`; several: \`["anvil", "spring-loaded boxing glove"]\`). Use **concise** noun phrases; split distinct products into separate array entries.
+Choose **AcmeOrder** when the line is **primarily** about **ordering or buying goods from Acme** (catalog, mail-order, telephone order, unspecified delivery method, "send away for", "I need from Acme", product requests). Extract each line item into \`orders\` as an object with \`valid\`, required \`name\`, and optional \`errorType\`.
 
 ### Tie-break when both A and B could apply
 
@@ -32,7 +32,7 @@ If neither A nor B applies, choose **Unimplemented** vs **Unknown** as follows.
 
 1. **AwaitRoadRunner** — As in section A.
 
-2. **AcmeOrder** — As in section B. You **must** include \`orders\`: a JSON array of one or more non-empty strings.
+2. **AcmeOrder** — As in section B. You **must** include \`orders\`: a JSON array of one or more objects.
 
 3. **Unimplemented** — Clear **other** in-world intent we do not implement yet (not mainly A or B).
 
@@ -42,7 +42,8 @@ If neither A nor B applies, choose **Unimplemented** vs **Unknown** as follows.
 
 - Output **only** a single JSON object, no markdown fences, no explanation before or after.
 - \`confidence\` is a number from 0 through 1.
-- For **AcmeOrder**, \`orders\` must be a JSON array of strings; use at least one string. Do not use a single \`order\` string field unless you also provide \`orders\` (prefer \`orders\` only).
+- For **AcmeOrder**, each entry in \`orders\` must be \`{ "valid": <boolean>, "name": <string>, "errorType"?: "Not a thing" | "Not tangible" | "Too large" }\`.
+- If \`valid\` is \`true\`, omit \`errorType\`. If \`valid\` is \`false\`, include \`errorType\`.
 
 ## Required JSON shapes
 
@@ -50,7 +51,7 @@ If neither A nor B applies, choose **Unimplemented** vs **Unknown** as follows.
 
 or
 
-{ "type": "AcmeOrder", "orders": [ "<product>", ... ], "confidence": <number> }
+{ "type": "AcmeOrder", "orders": [ { "valid": true, "name": "<product>" }, { "valid": false, "name": "Justice", "errorType": "Not tangible" } ], "confidence": <number> }
 
 or
 
@@ -60,7 +61,7 @@ or
 
 { "type": "Unknown", "confidence": <number> }
 
-The \`type\` string must be exactly \`AwaitRoadRunner\`, \`AcmeOrder\`, \`Unimplemented\`, or \`Unknown\` (case-sensitive). For **AcmeOrder**, include only \`type\`, \`confidence\`, and \`orders\` (or a single \`order\` string for one product if you cannot produce an array).
+The \`type\` string must be exactly \`AwaitRoadRunner\`, \`AcmeOrder\`, \`Unimplemented\`, or \`Unknown\` (case-sensitive). For **AcmeOrder**, include only \`type\`, \`confidence\`, and \`orders\`.
 
 ## Player input
 

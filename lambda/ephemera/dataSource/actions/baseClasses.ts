@@ -12,6 +12,10 @@ const isParseConfidence = (value: unknown): value is ParseCommandConfidence => (
     && value <= 1
 )
 
+const isParseCommandAcmeOrderErrorType = (value: unknown): value is ParseCommandAcmeOrderErrorType => (
+    value === 'Not a thing' || value === 'Not tangible' || value === 'Too large'
+)
+
 /**
  * Parser result for action ingress. Extend with non-error variants as the contract grows.
  * Intent is encoded by `type` (discriminated union). Slots/entities are per-variant fields.
@@ -28,11 +32,19 @@ export type ParseCommandNavigationResult = {
     confidence: ParseCommandConfidence
 }
 
+export type ParseCommandAcmeOrderErrorType = 'Not a thing' | 'Not tangible' | 'Too large'
+
+export type ParseCommandAcmeOrderLine = {
+    valid: boolean
+    name: string
+    errorType?: ParseCommandAcmeOrderErrorType
+}
+
 /** Coyote Game: order from Acme (mail-order, catalog, or unspecified). One or more product lines. */
 export type ParseCommandAcmeOrderResult = {
     type: 'AcmeOrder'
     /** One entry per distinct product or line item (single-item orders use length 1). */
-    orders: string[]
+    orders: ParseCommandAcmeOrderLine[]
     confidence: ParseCommandConfidence
 }
 
@@ -87,7 +99,25 @@ export function isParseCommandAcmeOrderResult(
     if (!Array.isArray(result.orders) || result.orders.length === 0) {
         return false
     }
-    return result.orders.every((line) => typeof line === 'string' && line.trim().length > 0)
+    return result.orders.every((line) => {
+        if (!line || typeof line !== 'object' || Array.isArray(line)) {
+            return false
+        }
+        const entry = line as Record<string, unknown>
+        if (typeof entry.valid !== 'boolean') {
+            return false
+        }
+        if (typeof entry.name !== 'string' || entry.name.trim().length === 0) {
+            return false
+        }
+        if (entry.valid && entry.errorType !== undefined) {
+            return false
+        }
+        if (!entry.valid && !isParseCommandAcmeOrderErrorType(entry.errorType)) {
+            return false
+        }
+        return true
+    })
 }
 
 export function isParseCommandAwaitRoadrunnerResult(

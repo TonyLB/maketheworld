@@ -272,4 +272,5 @@ describe('handleAcmeOrderAddObjects', () => {
         expect(mergePersistMetaRoomObjectsImpl).not.toHaveBeenCalled()
         expect(streamEvent).not.toHaveBeenCalled()
     })
+
 })

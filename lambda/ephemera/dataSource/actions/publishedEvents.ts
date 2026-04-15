@@ -59,7 +59,7 @@ export const isAcmeOrderPublishedPayload = (
     if (typeof v.characterId !== 'string') {
         return false
     }
-    if (!Array.isArray(v.orders) || !v.orders.every((entry) => typeof entry === 'string')) {
+    if (!Array.isArray(v.orders) || !v.orders.every((entry) => typeof entry === 'string' && entry.trim().length > 0)) {
         return false
     }
     if (typeof v.confidence !== 'number' || !Number.isFinite(v.confidence)) {

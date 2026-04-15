@@ -119,6 +119,9 @@ export const handleAcmeOrderAddObjects = async (
         uuid: `OBJECT#${makeUuid()}` as `OBJECT#${string}`,
         shortName,
     }))
+    if (add.length === 0) {
+        return
+    }
     const result = await mergePersist({
         roomId,
         add,

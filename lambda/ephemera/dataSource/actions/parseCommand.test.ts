@@ -41,12 +41,15 @@ describe('parseCommand type guards', () => {
         it('accepts valid AcmeOrder with orders and confidence', () => {
             expect(isParseCommandAcmeOrderResult({
                 type: 'AcmeOrder',
-                orders: ['rocket-powered roller skates'],
+                orders: [{ valid: true, name: 'rocket-powered roller skates' }],
                 confidence: 0.9,
             })).toBe(true)
             expect(isParseCommandAcmeOrderResult({
                 type: 'AcmeOrder',
-                orders: ['anvil', 'giant magnet'],
+                orders: [
+                    { valid: true, name: 'anvil' },
+                    { valid: false, name: 'justice', errorType: 'Not tangible' },
+                ],
                 confidence: 0.85,
             })).toBe(true)
         })
@@ -54,7 +57,7 @@ describe('parseCommand type guards', () => {
         it('rejects invalid confidence, empty orders, or blank lines', () => {
             expect(isParseCommandAcmeOrderResult({
                 type: 'AcmeOrder',
-                orders: ['skates'],
+                orders: [{ valid: true, name: 'skates' }],
                 confidence: -0.01,
             })).toBe(false)
             expect(isParseCommandAcmeOrderResult({
@@ -64,7 +67,27 @@ describe('parseCommand type guards', () => {
             })).toBe(false)
             expect(isParseCommandAcmeOrderResult({
                 type: 'AcmeOrder',
-                orders: ['  '],
+                orders: [{ valid: true, name: '  ' }],
+                confidence: 0.5,
+            })).toBe(false)
+            expect(isParseCommandAcmeOrderResult({
+                type: 'AcmeOrder',
+                orders: [{ valid: true, name: 'anvil', errorType: 'Not a thing' } as any],
+                confidence: 0.5,
+            })).toBe(false)
+            expect(isParseCommandAcmeOrderResult({
+                type: 'AcmeOrder',
+                orders: [{ valid: true, name: 'anvil' } as any],
+                confidence: 0.5,
+            })).toBe(true)
+            expect(isParseCommandAcmeOrderResult({
+                type: 'AcmeOrder',
+                orders: [{ valid: true } as any],
+                confidence: 0.5,
+            })).toBe(false)
+            expect(isParseCommandAcmeOrderResult({
+                type: 'AcmeOrder',
+                orders: [{ valid: false, errorType: 'Too large' } as any],
                 confidence: 0.5,
             })).toBe(false)
             expect(isParseCommandAcmeOrderResult({
@@ -120,10 +143,21 @@ describe('interpretParseCommandIntentClassificationBody', () => {
         )).toEqual({ type: 'AwaitRoadRunner', confidence: 0.95 })
         expect(interpretParseCommandIntentClassificationBody(
             '{"type":"AcmeOrder","orders":["rocket skates"],"confidence":0.9}'
-        )).toEqual({ type: 'AcmeOrder', orders: ['rocket skates'], confidence: 0.9 })
+        )).toEqual({
+            type: 'AcmeOrder',
+            orders: [{ valid: true, name: 'rocket skates' }],
+            confidence: 0.9,
+        })
         expect(interpretParseCommandIntentClassificationBody(
             '{"type":"AcmeOrder","orders":["  anvil  ","magnet"],"confidence":0.7}'
-        )).toEqual({ type: 'AcmeOrder', orders: ['anvil', 'magnet'], confidence: 0.7 })
+        )).toEqual({
+            type: 'AcmeOrder',
+            orders: [
+                { valid: true, name: 'anvil' },
+                { valid: true, name: 'magnet' },
+            ],
+            confidence: 0.7,
+        })
         expect(interpretParseCommandIntentClassificationBody(
             '{"type":"Unimplemented","confidence":0.8}'
         )).toEqual({ type: 'Unimplemented', confidence: 0.8 })
@@ -135,7 +169,11 @@ describe('interpretParseCommandIntentClassificationBody', () => {
     it('accepts AcmeOrder with legacy single order string when orders array is absent', () => {
         expect(interpretParseCommandIntentClassificationBody(
             '{"type":"AcmeOrder","order":"  giant rubber band  ","confidence":0.6}'
-        )).toEqual({ type: 'AcmeOrder', orders: ['giant rubber band'], confidence: 0.6 })
+        )).toEqual({
+            type: 'AcmeOrder',
+            orders: [{ valid: true, name: 'giant rubber band' }],
+            confidence: 0.6,
+        })
     })
 
     it('strips markdown fences and tolerates surrounding prose', () => {
@@ -223,7 +261,10 @@ describe('parseCommand LLM path', () => {
 
         expect(result).toEqual({
             type: 'AcmeOrder',
-            orders: ['dynamite', 'spring'],
+            orders: [
+                { valid: true, name: 'dynamite' },
+                { valid: true, name: 'spring' },
+            ],
             confidence: 0.82,
         })
     })
