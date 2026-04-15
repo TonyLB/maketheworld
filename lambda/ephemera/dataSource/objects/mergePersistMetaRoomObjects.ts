@@ -47,6 +47,10 @@ export type MergePersistMetaRoomObjectsResult =
     | { ok: true; persisted: false }
     | { ok: false; errorCode: 'META_ROOM_MISSING'; errorMessage: string }
 
+export type ClearPersistMetaRoomObjectsArgs = {
+    roomId: EphemeraRoomId;
+}
+
 const defaultGetMetaRoom = async (roomId: EphemeraRoomId): Promise<EphemeraMetaRoom | undefined> => (
     internalCache.ComponentEphemeraMeta.get(roomId)
 )
@@ -85,6 +89,54 @@ export const mergePersistMetaRoomObjects = async (
         priorFetch: meta,
         updateReducer: (draft) => {
             draft.objects = mergeMetaRoomObjects(draft.objects, args.add, args.remove)
+        },
+        successCallback: (output, prior) => {
+            persistedSnapshot = {
+                priorObjects: snapshotObjects(prior),
+                newObjects: snapshotObjects(output),
+            }
+        },
+    })
+
+    internalCache.ComponentEphemeraMeta.invalidate(args.roomId)
+    internalCache.ComponentStackMerge.invalidate(args.roomId)
+
+    if (persistedSnapshot) {
+        return { ok: true, persisted: true, ...persistedSnapshot }
+    }
+    return { ok: true, persisted: false }
+}
+
+/**
+ * Force `Meta::Room.objects` to empty for a room, regardless of current contents.
+ * Requires an existing row. Invalidates `ComponentEphemeraMeta` after update attempt.
+ */
+export const clearPersistMetaRoomObjects = async (
+    args: ClearPersistMetaRoomObjectsArgs,
+    _deps?: MergePersistMetaRoomObjectsDependencies
+): Promise<MergePersistMetaRoomObjectsResult> => {
+    const getMetaRoom = _deps?.getMetaRoom ?? defaultGetMetaRoom
+    const optimisticUpdate =
+        _deps?.optimisticUpdate
+        ?? ((params: MergePersistMetaRoomObjectsOptimisticUpdateParams) => ephemeraDB.optimisticUpdate(params))
+
+    const meta = await getMetaRoom(args.roomId)
+    if (!meta) {
+        return {
+            ok: false,
+            errorCode: 'META_ROOM_MISSING',
+            errorMessage: `Meta::Room not found for ${args.roomId}`,
+        }
+    }
+
+    let persistedSnapshot: { priorObjects: EphemeraMetaRoomObject[]; newObjects: EphemeraMetaRoomObject[] } | undefined
+
+    await optimisticUpdate({
+        Key: { EphemeraId: args.roomId, DataCategory: 'Meta::Room' },
+        updateKeys: ['objects'],
+        priorFetch: meta,
+        updateReducer: (draft) => {
+            draft.objects = []
         },
         successCallback: (output, prior) => {
             persistedSnapshot = {
