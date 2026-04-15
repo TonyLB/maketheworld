@@ -1,5 +1,6 @@
 import type { ParseCommandResult } from './baseClasses'
 import {
+    isParseCommandAwaitRoadrunnerResult,
     isParseCommandUnimplementedResult,
     isParseCommandUnknownResult,
 } from './baseClasses'
@@ -19,7 +20,7 @@ function extractJsonBody(raw: string): string {
 
 /**
  * Parses and validates LLM output for the intent-classification prompt.
- * Only `Unimplemented` and `Unknown` with valid confidence are accepted; anything else becomes `Error`.
+ * Accepts `AwaitRoadRunner`, `Unimplemented`, or `Unknown` with valid confidence; anything else becomes `Error`.
  */
 export function interpretParseCommandIntentClassificationBody(body: string): ParseCommandResult {
     const toParse = extractJsonBody(body)
@@ -43,6 +44,16 @@ export function interpretParseCommandIntentClassificationBody(body: string): Par
     const obj = parsed as Record<string, unknown>
     const type = obj.type
 
+    if (type === 'AwaitRoadRunner') {
+        const candidate: ParseCommandResult = {
+            type: 'AwaitRoadRunner',
+            confidence: obj.confidence as number,
+        }
+        if (isParseCommandAwaitRoadrunnerResult(candidate)) {
+            return candidate
+        }
+    }
+
     if (type === 'Unimplemented') {
         const candidate: ParseCommandResult = {
             type: 'Unimplemented',
@@ -65,6 +76,6 @@ export function interpretParseCommandIntentClassificationBody(body: string): Par
 
     return {
         type: 'Error',
-        errorMessage: 'Model JSON must be { type: "Unimplemented" | "Unknown", confidence } with confidence in [0, 1]',
+        errorMessage: 'Model JSON must be { type: "AwaitRoadRunner" | "Unimplemented" | "Unknown", confidence } with confidence in [0, 1]',
     }
 }

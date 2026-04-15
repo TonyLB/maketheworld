@@ -77,8 +77,10 @@ describe('buildParseCommandIntentClassificationPrompt', () => {
     it('embeds the trimmed command and classification vocabulary', () => {
         const prompt = buildParseCommandIntentClassificationPrompt('  attack troll  ')
         expect(prompt).toContain('attack troll')
+        expect(prompt).toContain('AwaitRoadRunner')
         expect(prompt).toContain('Unimplemented')
         expect(prompt).toContain('Unknown')
+        expect(prompt).toContain('"type": "AwaitRoadRunner"')
         expect(prompt).toContain('"type": "Unimplemented"')
         expect(prompt).toContain('"type": "Unknown"')
     })
@@ -90,7 +92,10 @@ describe('buildParseCommandIntentClassificationPrompt', () => {
 })
 
 describe('interpretParseCommandIntentClassificationBody', () => {
-    it('accepts bare JSON for Unimplemented and Unknown', () => {
+    it('accepts bare JSON for AwaitRoadRunner, Unimplemented, and Unknown', () => {
+        expect(interpretParseCommandIntentClassificationBody(
+            '{"type":"AwaitRoadRunner","confidence":0.95}'
+        )).toEqual({ type: 'AwaitRoadRunner', confidence: 0.95 })
         expect(interpretParseCommandIntentClassificationBody(
             '{"type":"Unimplemented","confidence":0.8}'
         )).toEqual({ type: 'Unimplemented', confidence: 0.8 })
@@ -115,6 +120,9 @@ describe('interpretParseCommandIntentClassificationBody', () => {
         ).type).toBe('Error')
         expect(interpretParseCommandIntentClassificationBody(
             '{"type":"Unknown","confidence":2}'
+        ).type).toBe('Error')
+        expect(interpretParseCommandIntentClassificationBody(
+            '{"type":"AwaitRoadRunner"}'
         ).type).toBe('Error')
     })
 })
@@ -146,5 +154,19 @@ describe('parseCommand LLM path', () => {
         const result = await parseCommand({ command: 'x' }, { invokeBedrockParseCommandImpl })
 
         expect(result).toEqual({ type: 'Error', errorMessage: 'ThrottlingException' })
+    })
+
+    it('returns AwaitRoadRunner when the model emits it', async () => {
+        const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: '{"type":"AwaitRoadRunner","confidence":0.88}',
+        })
+
+        const result = await parseCommand(
+            { command: 'wait for the bird' },
+            { invokeBedrockParseCommandImpl }
+        )
+
+        expect(result).toEqual({ type: 'AwaitRoadRunner', confidence: 0.88 })
     })
 })
