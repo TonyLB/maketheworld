@@ -1,7 +1,21 @@
 import { EphemeraRoomId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 /**
+ * Parser confidence for non-error outcomes. Typically in [0, 1]; validated by type guards.
+ */
+export type ParseCommandConfidence = number
+
+const isParseConfidence = (value: unknown): value is ParseCommandConfidence => (
+    typeof value === 'number'
+    && Number.isFinite(value)
+    && value >= 0
+    && value <= 1
+)
+
+/**
  * Parser result for action ingress. Extend with non-error variants as the contract grows.
+ * Intent is encoded by `type` (discriminated union). Slots/entities are per-variant fields.
+ * `confidence` is required on every non-error variant. Parse diagnostics: not modeled yet.
  */
 export type ParseCommandErrorResult = {
     type: 'Error'
@@ -11,25 +25,30 @@ export type ParseCommandErrorResult = {
 export type ParseCommandNavigationResult = {
     type: 'Navigation'
     targetId: EphemeraRoomId
+    confidence: ParseCommandConfidence
 }
 
 /** Coyote Game: order line routed to Acme-themed affordances. */
 export type ParseCommandAcmeOrderResult = {
     type: 'AcmeOrder'
     order: string
+    confidence: ParseCommandConfidence
 }
 
 /** Coyote Game: wait-state for Road Runner encounter flows. */
 export type ParseCommandAwaitRoadrunnerResult = {
     type: 'AwaitRoadRunner'
+    confidence: ParseCommandConfidence
 }
 
 export type ParseCommandUnimplementedResult = {
     type: 'Unimplemented'
+    confidence: ParseCommandConfidence
 }
 
 export type ParseCommandUnknownResult = {
     type: 'Unknown'
+    confidence: ParseCommandConfidence
 }
 
 export type ParseCommandResult =
@@ -49,31 +68,46 @@ export function isParseCommandErrorResult(
 export function isParseCommandNavigationResult(
     result: ParseCommandResult
 ): result is ParseCommandNavigationResult {
-    return result.type === 'Navigation' && isEphemeraRoomId(result.targetId)
+    if (result.type !== 'Navigation') {
+        return false
+    }
+    return isEphemeraRoomId(result.targetId) && isParseConfidence(result.confidence)
 }
 
 export function isParseCommandAcmeOrderResult(
     result: ParseCommandResult
 ): result is ParseCommandAcmeOrderResult {
-    return result.type === 'AcmeOrder' && typeof result.order === 'string'
+    if (result.type !== 'AcmeOrder') {
+        return false
+    }
+    return typeof result.order === 'string' && isParseConfidence(result.confidence)
 }
 
 export function isParseCommandAwaitRoadrunnerResult(
     result: ParseCommandResult
 ): result is ParseCommandAwaitRoadrunnerResult {
-    return result.type === 'AwaitRoadRunner'
+    if (result.type !== 'AwaitRoadRunner') {
+        return false
+    }
+    return isParseConfidence(result.confidence)
 }
 
 export function isParseCommandUnimplementedResult(
     result: ParseCommandResult
 ): result is ParseCommandUnimplementedResult {
-    return result.type === 'Unimplemented'
+    if (result.type !== 'Unimplemented') {
+        return false
+    }
+    return isParseConfidence(result.confidence)
 }
 
 export function isParseCommandUnknownResult(
     result: ParseCommandResult
 ): result is ParseCommandUnknownResult {
-    return result.type === 'Unknown'
+    if (result.type !== 'Unknown') {
+        return false
+    }
+    return isParseConfidence(result.confidence)
 }
 
 export type ParseCommandInput = {

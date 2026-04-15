@@ -98,7 +98,7 @@ describe('ephemeraActionsDataSource', () => {
         const from = 'ROOM#from' as EphemeraRoomId
 
         it('emits Character Navigate streamEvent when target is a valid exit', async () => {
-            mockedParseCommand.mockResolvedValue({ type: 'Navigation', targetId: dest })
+            mockedParseCommand.mockResolvedValue({ type: 'Navigation', targetId: dest, confidence: 0.9 })
             mockedGetRoomExitTargetsForCharacter.mockResolvedValue({
                 fromRoomId: from,
                 toRoomIds: [dest],
@@ -144,7 +144,7 @@ describe('ephemeraActionsDataSource', () => {
         })
 
         it('publishes WorldOOCMessage when character has no current room', async () => {
-            mockedParseCommand.mockResolvedValue({ type: 'Navigation', targetId: dest })
+            mockedParseCommand.mockResolvedValue({ type: 'Navigation', targetId: dest, confidence: 0.9 })
             mockedGetRoomExitTargetsForCharacter.mockResolvedValue({
                 fromRoomId: null,
                 toRoomIds: [],
@@ -176,7 +176,7 @@ describe('ephemeraActionsDataSource', () => {
         })
 
         it('publishes WorldOOCMessage when target room is not reachable by an exit', async () => {
-            mockedParseCommand.mockResolvedValue({ type: 'Navigation', targetId: dest })
+            mockedParseCommand.mockResolvedValue({ type: 'Navigation', targetId: dest, confidence: 0.9 })
             mockedGetRoomExitTargetsForCharacter.mockResolvedValue({
                 fromRoomId: from,
                 toRoomIds: ['ROOM#other' as EphemeraRoomId],
@@ -213,6 +213,7 @@ describe('ephemeraActionsDataSource', () => {
             mockedParseCommand.mockResolvedValue({
                 type: 'AcmeOrder',
                 order: 'rocket-powered roller skates',
+                confidence: 0.9,
             })
 
             await ephemeraActionsDataSource.receiveEvents!({
@@ -243,7 +244,7 @@ describe('ephemeraActionsDataSource', () => {
 
     describe('ParseCommandAwaitRoadrunnerResult', () => {
         it('publishes WorldOOCMessage Awaiting Road Runner', async () => {
-            mockedParseCommand.mockResolvedValue({ type: 'AwaitRoadRunner' })
+            mockedParseCommand.mockResolvedValue({ type: 'AwaitRoadRunner', confidence: 0.9 })
 
             await ephemeraActionsDataSource.receiveEvents!({
                 events: [{
@@ -273,7 +274,7 @@ describe('ephemeraActionsDataSource', () => {
 
     describe('ParseCommandUnimplementedResult', () => {
         it('publishes WorldOOCMessage for unimplemented intent', async () => {
-            mockedParseCommand.mockResolvedValue({ type: 'Unimplemented' })
+            mockedParseCommand.mockResolvedValue({ type: 'Unimplemented', confidence: 0.9 })
 
             await ephemeraActionsDataSource.receiveEvents!({
                 events: [{
@@ -305,7 +306,7 @@ describe('ephemeraActionsDataSource', () => {
 
     describe('ParseCommandUnknownResult', () => {
         it('publishes WorldOOCMessage for unknown intent', async () => {
-            mockedParseCommand.mockResolvedValue({ type: 'Unknown' })
+            mockedParseCommand.mockResolvedValue({ type: 'Unknown', confidence: 0.9 })
 
             await ephemeraActionsDataSource.receiveEvents!({
                 events: [{
