@@ -1,5 +1,7 @@
 import type { ParseCommandResult } from './baseClasses'
 import {
+    type ParseCommandAcmeOrderErrorType,
+    type ParseCommandAcmeOrderLine,
     isParseCommandAcmeOrderResult,
     isParseCommandAwaitRoadrunnerResult,
     isParseCommandUnimplementedResult,
@@ -19,8 +21,43 @@ function extractJsonBody(raw: string): string {
     return s.slice(firstBrace, lastBrace + 1)
 }
 
-function normalizeAcmeOrdersFromModel(obj: Record<string, unknown>): string[] | null {
-    const fromArray = (value: unknown): string[] | null => {
+function normalizeAcmeOrdersFromModel(obj: Record<string, unknown>): ParseCommandAcmeOrderLine[] | null {
+    const isErrorType = (value: unknown): value is ParseCommandAcmeOrderErrorType => (
+        value === 'Not a thing' || value === 'Not tangible' || value === 'Too large'
+    )
+
+    const fromLineArray = (value: unknown): ParseCommandAcmeOrderLine[] | null => {
+        if (!Array.isArray(value)) {
+            return null
+        }
+        const lines = value
+            .filter((x): x is Record<string, unknown> => Boolean(x) && typeof x === 'object' && !Array.isArray(x))
+            .map((entry): ParseCommandAcmeOrderLine | null => {
+                if (typeof entry.valid !== 'boolean') {
+                    return null
+                }
+                const name = typeof entry.name === 'string' && entry.name.trim().length > 0 ? entry.name.trim() : null
+                if (!name) {
+                    return null
+                }
+                const errorType = isErrorType(entry.errorType) ? entry.errorType : undefined
+                if (entry.valid && errorType !== undefined) {
+                    return null
+                }
+                if (!entry.valid && errorType === undefined) {
+                    return null
+                }
+                return {
+                    valid: entry.valid,
+                    name,
+                    ...(errorType ? { errorType } : {}),
+                }
+            })
+            .filter((x): x is ParseCommandAcmeOrderLine => x !== null)
+        return lines.length > 0 ? lines : null
+    }
+
+    const fromStringArray = (value: unknown): ParseCommandAcmeOrderLine[] | null => {
         if (!Array.isArray(value)) {
             return null
         }
@@ -28,15 +65,16 @@ function normalizeAcmeOrdersFromModel(obj: Record<string, unknown>): string[] | 
             .filter((x): x is string => typeof x === 'string')
             .map((s) => s.trim())
             .filter((s) => s.length > 0)
+            .map((name): ParseCommandAcmeOrderLine => ({ valid: true, name }))
         return lines.length > 0 ? lines : null
     }
 
-    const primary = fromArray(obj.orders)
+    const primary = fromLineArray(obj.orders) ?? fromStringArray(obj.orders)
     if (primary) {
         return primary
     }
     if (typeof obj.order === 'string' && obj.order.trim().length > 0) {
-        return [obj.order.trim()]
+        return [{ valid: true, name: obj.order.trim() }]
     }
     return null
 }
@@ -82,7 +120,7 @@ export function interpretParseCommandIntentClassificationBody(body: string): Par
         if (!orders) {
             return {
                 type: 'Error',
-                errorMessage: 'Model JSON AcmeOrder requires non-empty orders: string[] (or a single legacy order string)',
+                errorMessage: 'Model JSON AcmeOrder requires non-empty orders with per-line validity or legacy order strings',
             }
         }
         const candidate: ParseCommandResult = {

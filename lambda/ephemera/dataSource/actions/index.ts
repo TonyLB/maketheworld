@@ -4,6 +4,7 @@
  * Inert bus-only stub for local coordination scaffolding. Ingress wiring follows.
  */
 import { isEphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { RenderTree } from '@tonylb/mtw-base/ts/renderTree'
 
 import EphemeraDataSource from '../abstract'
 import type { ActionsPublishedPayload } from './publishedEvents'
@@ -12,6 +13,7 @@ import { isActionsSubscribedEnvelope } from './subscribedEvents'
 import messageBus from '../../messageBus'
 import { getRoomExitTargetsForCharacter } from './roomExitTargetsForCharacter'
 import {
+    type ParseCommandAcmeOrderLine,
     isParseCommandAcmeOrderResult,
     isParseCommandAwaitRoadrunnerResult,
     isParseCommandErrorResult,
@@ -20,6 +22,37 @@ import {
     isParseCommandUnknownResult,
 } from './baseClasses'
 import { parseCommand } from './parseCommand'
+
+const validAcmeOrderNames = (orders: ParseCommandAcmeOrderLine[]): string[] => (
+    orders
+        .filter(({ valid }) => valid)
+        .map(({ name }) => name)
+)
+
+const invalidAcmeOrderMessages = (orders: ParseCommandAcmeOrderLine[]): string[] => (
+    orders
+        .filter(({ valid }) => !valid)
+        .map(({ name, errorType }) => {
+            switch (errorType) {
+                case 'Not a thing':
+                    return `The courier apologizes: ${name} is not in the catalog.`
+                case 'Not tangible':
+                    return `The courier apologizes: Acme only sells tangible objects, ${name} doesn't qualify`
+                case 'Too large':
+                    return `The courier apologizes: You couldn't afford the shipping on ${name}`
+                default:
+                    return `The courier apologizes: ${name} cannot be delivered.`
+            }
+        })
+)
+
+const linesToRenderTree = (lines: string[]): RenderTree => (
+    lines.flatMap((line, index) => (
+        index === 0
+            ? [line]
+            : [{ data: { tag: 'br' as const }, children: [] }, line]
+    ))
+)
 
 export const ephemeraActionsDataSource = new EphemeraDataSource<
     never,
@@ -75,21 +108,25 @@ export const ephemeraActionsDataSource = new EphemeraDataSource<
                 }
             }
             else if (isEphemeraCharacterId(content.characterId) && isParseCommandAcmeOrderResult(parseResult)) {
+                const orders = validAcmeOrderNames(parseResult.orders)
                 await streamEvent({
                     streamKey: content.characterId,
                     header: { type: 'Acme Order' },
                     update: {
                         type: 'Acme Order',
                         characterId: content.characterId,
-                        orders: parseResult.orders,
+                        orders,
                         confidence: parseResult.confidence,
                     },
                 })
                 messageBus.send({
                     type: 'PublishMessage',
                     targets: [content.characterId],
-                    displayProtocol: 'WorldOOCMessage',
-                    message: [`Acme Order: ${parseResult.orders.join(', ')}`],
+                    displayProtocol: 'WorldMessage',
+                    message: linesToRenderTree([
+                        ...(orders.length > 0 ? ['An Acme courier delivers your order'] : []),
+                        ...invalidAcmeOrderMessages(parseResult.orders),
+                    ]),
                 })
             }
             else if (isEphemeraCharacterId(content.characterId) && isParseCommandAwaitRoadrunnerResult(parseResult)) {

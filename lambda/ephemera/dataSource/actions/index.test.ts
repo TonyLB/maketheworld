@@ -207,10 +207,10 @@ describe('ephemeraActionsDataSource', () => {
     })
 
     describe('ParseCommandAcmeOrderResult', () => {
-        it('publishes Acme Order streamEvent and WorldOOCMessage with Acme Order prefix', async () => {
+        it('publishes Acme Order streamEvent and WorldMessage delivery line when valid orders exist', async () => {
             mockedParseCommand.mockResolvedValue({
                 type: 'AcmeOrder',
-                orders: ['rocket-powered roller skates'],
+                orders: [{ valid: true, name: 'rocket-powered roller skates' }],
                 confidence: 0.9,
             })
             const streamEvent = jest.fn(async () => {})
@@ -245,15 +245,20 @@ describe('ephemeraActionsDataSource', () => {
             expect(mockMessageBus.send).toHaveBeenCalledWith({
                 type: 'PublishMessage',
                 targets: ['CHARACTER#123'],
-                displayProtocol: 'WorldOOCMessage',
-                message: ['Acme Order: rocket-powered roller skates'],
+                displayProtocol: 'WorldMessage',
+                message: ['An Acme courier delivers your order'],
             })
         })
 
-        it('joins multiple order lines in WorldOOCMessage', async () => {
+        it('includes invalid-order apology lines in WorldMessage', async () => {
             mockedParseCommand.mockResolvedValue({
                 type: 'AcmeOrder',
-                orders: ['anvil', 'giant magnet'],
+                orders: [
+                    { valid: true, name: 'anvil' },
+                    { valid: false, name: 'justice', errorType: 'Not tangible' },
+                    { valid: false, name: "Jupiter's moon Ganymede", errorType: 'Too large' },
+                    { valid: false, name: 'Glooblethwoats, flensed', errorType: 'Not a thing' },
+                ],
                 confidence: 0.88,
             })
             const streamEvent = jest.fn(async () => {})
@@ -281,15 +286,25 @@ describe('ephemeraActionsDataSource', () => {
                 update: {
                     type: 'Acme Order',
                     characterId: 'CHARACTER#123',
-                    orders: ['anvil', 'giant magnet'],
+                    orders: [
+                        'anvil',
+                    ],
                     confidence: 0.88,
                 },
             })
             expect(mockMessageBus.send).toHaveBeenCalledWith({
                 type: 'PublishMessage',
                 targets: ['CHARACTER#123'],
-                displayProtocol: 'WorldOOCMessage',
-                message: ['Acme Order: anvil, giant magnet'],
+                displayProtocol: 'WorldMessage',
+                message: [
+                    'An Acme courier delivers your order',
+                    { data: { tag: 'br' }, children: [] },
+                    "The courier apologizes: Acme only sells tangible objects, justice doesn't qualify",
+                    { data: { tag: 'br' }, children: [] },
+                    "The courier apologizes: You couldn't afford the shipping on Jupiter's moon Ganymede",
+                    { data: { tag: 'br' }, children: [] },
+                    'The courier apologizes: Glooblethwoats, flensed is not in the catalog.',
+                ],
             })
         })
     })
