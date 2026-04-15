@@ -42,6 +42,7 @@ import './dataSource/renderCache'  // mtw.ephemera.renderCache DataSource
 import './dataSource/renderOrchestration'  // mtw.ephemera.renderOrchestration DataSource (evolving; see dataSource/renderOrchestration/AGENT.md)
 import './dataSource/perception'  // mtw.ephemera.perception DataSource (see dataSource/perception/AGENT.md)
 import './dataSource/actions'  // mtw.ephemera.actions DataSource (inert bus-only stub)
+import './dataSource/coyoteGame'  // mtw.ephemera.coyoteGame DataSource (stub; Coyote Game wiring follows)
 import './dataSource/objects'  // mtw.ephemera.objects DataSource (before state: shared Meta::Room ordering)
 import './dataSource/state'  // mtw.ephemera.state DataSource (see lambda/ephemera/dataSource/state/AGENT.planning.perceptionVertical.md)
 
