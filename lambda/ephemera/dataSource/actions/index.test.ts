@@ -298,8 +298,11 @@ describe('ephemeraActionsDataSource', () => {
                 displayProtocol: 'WorldMessage',
                 message: [
                     'An Acme courier delivers your order',
+                    { data: { tag: 'br' }, children: [] },
                     "The courier apologizes: Acme only sells tangible objects, justice doesn't qualify",
+                    { data: { tag: 'br' }, children: [] },
                     "The courier apologizes: You couldn't afford the shipping on Jupiter's moon Ganymede",
+                    { data: { tag: 'br' }, children: [] },
                     'The courier apologizes: Glooblethwoats, flensed is not in the catalog.',
                 ],
             })

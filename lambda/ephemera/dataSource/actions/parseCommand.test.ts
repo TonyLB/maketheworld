@@ -128,6 +128,9 @@ describe('buildParseCommandIntentClassificationPrompt', () => {
         expect(prompt).toContain('"type": "AcmeOrder"')
         expect(prompt).toContain('"type": "Unimplemented"')
         expect(prompt).toContain('"type": "Unknown"')
+        expect(prompt).toContain('can only be delivered in packaging/containment')
+        expect(prompt).toContain('pressurized bottle of hydrogen gas')
+        expect(prompt).toContain('huge aquarium of piranhas')
     })
 
     it('uses placeholder for empty or whitespace-only command', () => {

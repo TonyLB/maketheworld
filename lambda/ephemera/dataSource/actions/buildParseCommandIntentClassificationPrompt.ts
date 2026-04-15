@@ -44,6 +44,7 @@ If neither A nor B applies, choose **Unimplemented** vs **Unknown** as follows.
 - \`confidence\` is a number from 0 through 1.
 - For **AcmeOrder**, each entry in \`orders\` must be \`{ "valid": <boolean>, "name": <string>, "errorType"?: "Not a thing" | "Not tangible" | "Too large" }\`.
 - If \`valid\` is \`true\`, omit \`errorType\`. If \`valid\` is \`false\`, include \`errorType\`.
+- For items that can only be delivered in packaging/containment (for example hydrogen gas, piranhas), output a packaged deliverable \`name\` like "pressurized bottle of hydrogen gas" or "huge aquarium of piranhas", not the raw uncontained item text.
 
 ## Required JSON shapes
 

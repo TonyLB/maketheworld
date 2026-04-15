@@ -4,6 +4,7 @@
  * Inert bus-only stub for local coordination scaffolding. Ingress wiring follows.
  */
 import { isEphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { RenderTree } from '@tonylb/mtw-base/ts/renderTree'
 
 import EphemeraDataSource from '../abstract'
 import type { ActionsPublishedPayload } from './publishedEvents'
@@ -43,6 +44,14 @@ const invalidAcmeOrderMessages = (orders: ParseCommandAcmeOrderLine[]): string[]
                     return `The courier apologizes: ${name} cannot be delivered.`
             }
         })
+)
+
+const linesToRenderTree = (lines: string[]): RenderTree => (
+    lines.flatMap((line, index) => (
+        index === 0
+            ? [line]
+            : [{ data: { tag: 'br' as const }, children: [] }, line]
+    ))
 )
 
 export const ephemeraActionsDataSource = new EphemeraDataSource<
@@ -114,10 +123,10 @@ export const ephemeraActionsDataSource = new EphemeraDataSource<
                     type: 'PublishMessage',
                     targets: [content.characterId],
                     displayProtocol: 'WorldMessage',
-                    message: [
+                    message: linesToRenderTree([
                         ...(orders.length > 0 ? ['An Acme courier delivers your order'] : []),
                         ...invalidAcmeOrderMessages(parseResult.orders),
-                    ],
+                    ]),
                 })
             }
             else if (isEphemeraCharacterId(content.characterId) && isParseCommandAwaitRoadrunnerResult(parseResult)) {
