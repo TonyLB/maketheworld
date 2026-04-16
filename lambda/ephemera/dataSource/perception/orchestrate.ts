@@ -2,7 +2,7 @@
  * Room description and room header broadcast fan-in: correlate renderOrchestration / renderCache streams
  * to Perception Thread Registered rows.
  */
-import { randomUUID } from 'crypto'
+import { v4 as uuidv4 } from 'uuid'
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
@@ -108,7 +108,7 @@ async function handleRenderPertains(
         }
         const characterId = registration.characterId
 
-        const messageId = thread.messageId ?? `MESSAGE#${randomUUID()}`
+        const messageId = thread.messageId ?? `MESSAGE#${uuidv4()}`
         bus.send({
             type: 'PublishMessage',
             targets: [characterId],
@@ -144,7 +144,7 @@ async function handleRenderPertains(
         }
         const targets = registration.targets
         const roomId = payload.componentId
-        const messageId = thread.messageId ?? `MESSAGE#${randomUUID()}`
+        const messageId = thread.messageId ?? `MESSAGE#${uuidv4()}`
         if (targets.length) {
             bus.send({
                 type: 'PublishMessage',
@@ -182,7 +182,7 @@ async function handleRenderPertains(
         }
         const targets = headerTargetsForCharacterMove(registration)
         const roomId = payload.componentId
-        const messageId = thread.messageId ?? `MESSAGE#${randomUUID()}`
+        const messageId = thread.messageId ?? `MESSAGE#${uuidv4()}`
         if (targets.length) {
             bus.send({
                 type: 'PublishMessage',
@@ -229,7 +229,7 @@ async function handleGenerationStarted(
         }
         const characterId = registration.characterId
 
-        const messageId = `MESSAGE#${randomUUID()}`
+        const messageId = `MESSAGE#${uuidv4()}`
         const roomId = payload.componentId
         bus.send({
             type: 'PublishMessage',
@@ -265,7 +265,7 @@ async function handleGenerationStarted(
             continue
         }
         const roomId = payload.componentId
-        const messageId = `MESSAGE#${randomUUID()}`
+        const messageId = `MESSAGE#${uuidv4()}`
         bus.send({
             type: 'PublishMessage',
             targets: registration.targets,
@@ -301,7 +301,7 @@ async function handleGenerationStarted(
         }
         const roomId = payload.componentId
         const targets = headerTargetsForCharacterMove(registration)
-        const messageId = `MESSAGE#${randomUUID()}`
+        const messageId = `MESSAGE#${uuidv4()}`
         bus.send({
             type: 'PublishMessage',
             targets,
@@ -348,7 +348,7 @@ async function handleOrchestrationErrorOrDeferred(payload: ErrorLikePayload, bus
         const characterId = registration.characterId
 
         const roomId = payload.componentId
-        const messageId = thread.messageId ?? `MESSAGE#${randomUUID()}`
+        const messageId = thread.messageId ?? `MESSAGE#${uuidv4()}`
         bus.send({
             type: 'PublishMessage',
             targets: [characterId],
@@ -384,7 +384,7 @@ async function handleOrchestrationErrorOrDeferred(payload: ErrorLikePayload, bus
         }
 
         const roomId = payload.componentId
-        const messageId = thread.messageId ?? `MESSAGE#${randomUUID()}`
+        const messageId = thread.messageId ?? `MESSAGE#${uuidv4()}`
         bus.send({
             type: 'PublishMessage',
             targets: registration.targets,
@@ -421,7 +421,7 @@ async function handleOrchestrationErrorOrDeferred(payload: ErrorLikePayload, bus
 
         const roomId = payload.componentId
         const targets = headerTargetsForCharacterMove(registration)
-        const messageId = thread.messageId ?? `MESSAGE#${randomUUID()}`
+        const messageId = thread.messageId ?? `MESSAGE#${uuidv4()}`
         bus.send({
             type: 'PublishMessage',
             targets,

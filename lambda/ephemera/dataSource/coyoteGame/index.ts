@@ -1,12 +1,15 @@
 /**
  * mtw.ephemera.coyoteGame DataSource.
  *
- * Bus-only. Subscribes to mtw.ephemera.objects Objects Changed for Coyote demo rooms; hypothesis stub path.
+ * Bus-only. Subscribes to Objects Changed (Coyote rooms) and mtw.ephemera.actions Await RoadRunner.
  */
 import EphemeraDataSource from '../abstract'
+import { isAwaitRoadRunnerPublishedPayload } from '../actions/publishedEvents'
+import { isObjectsChangedPayload } from '../objects/events'
 import type { CoyoteGamePublishedPayload } from './publishedEvents'
 import type { CoyoteGameSubscribedContent } from './subscribedEvents'
 import { isCoyoteGameSubscribedEnvelope } from './subscribedEvents'
+import { handleAwaitRoadRunnerForPlanOutcome } from './handleAwaitRoadRunnerForPlanOutcome'
 import { handleObjectsChangedForHypothesis } from './handleObjectsChangedForHypothesis'
 import messageBus from '../../messageBus'
 
@@ -22,7 +25,13 @@ export const ephemeraCoyoteGameDataSource = new EphemeraDataSource<
     receiveEvents: async ({ events, streamEvent }) => {
         await Promise.all(events.map(async (event) => {
             const raw = await event.getContent()
-            await handleObjectsChangedForHypothesis(raw, { streamEvent, messageBus })
+            if (isObjectsChangedPayload(raw)) {
+                await handleObjectsChangedForHypothesis(raw, { streamEvent, messageBus })
+                return
+            }
+            if (isAwaitRoadRunnerPublishedPayload(raw)) {
+                await handleAwaitRoadRunnerForPlanOutcome(raw, { streamEvent, messageBus })
+            }
         }))
     },
 })

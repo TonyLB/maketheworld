@@ -25,9 +25,25 @@ export type HypothesisGenerationResultPublishedPayload = {
     renderTree: RenderTree;
 }
 
+/** Pair with {@link PlanOutcomeGenerationResultPublishedPayload} via {@link outcomeId}. */
+export type PlanOutcomeGenerationStartedPublishedPayload = {
+    type: 'Plan Outcome Generation Started';
+    outcomeId: string;
+    characterId: EphemeraCharacterId;
+}
+
+export type PlanOutcomeGenerationResultPublishedPayload = {
+    type: 'Plan Outcome Generation Result';
+    outcomeId: string;
+    characterId: EphemeraCharacterId;
+    renderTree: RenderTree;
+}
+
 export type CoyoteGamePublishedPayload =
     | HypothesisGenerationStartedPublishedPayload
     | HypothesisGenerationResultPublishedPayload
+    | PlanOutcomeGenerationStartedPublishedPayload
+    | PlanOutcomeGenerationResultPublishedPayload
 
 export const isHypothesisGenerationStartedPublishedPayload = (
     value: unknown
@@ -59,6 +75,47 @@ export const isHypothesisGenerationResultPublishedPayload = (
         return false
     }
     if (typeof v.hypothesisId !== 'string' || v.hypothesisId.length === 0) {
+        return false
+    }
+    if (typeof v.characterId !== 'string' || !isEphemeraCharacterId(v.characterId)) {
+        return false
+    }
+    if (!isRenderTree(v.renderTree)) {
+        return false
+    }
+    return true
+}
+
+export const isPlanOutcomeGenerationStartedPublishedPayload = (
+    value: unknown
+): value is PlanOutcomeGenerationStartedPublishedPayload => {
+    if (!value || typeof value !== 'object') {
+        return false
+    }
+    const v = value as Record<string, unknown>
+    if (v.type !== 'Plan Outcome Generation Started') {
+        return false
+    }
+    if (typeof v.outcomeId !== 'string' || v.outcomeId.length === 0) {
+        return false
+    }
+    if (typeof v.characterId !== 'string' || !isEphemeraCharacterId(v.characterId)) {
+        return false
+    }
+    return true
+}
+
+export const isPlanOutcomeGenerationResultPublishedPayload = (
+    value: unknown
+): value is PlanOutcomeGenerationResultPublishedPayload => {
+    if (!value || typeof value !== 'object') {
+        return false
+    }
+    const v = value as Record<string, unknown>
+    if (v.type !== 'Plan Outcome Generation Result') {
+        return false
+    }
+    if (typeof v.outcomeId !== 'string' || v.outcomeId.length === 0) {
         return false
     }
     if (typeof v.characterId !== 'string' || !isEphemeraCharacterId(v.characterId)) {

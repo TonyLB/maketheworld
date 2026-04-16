@@ -1,6 +1,8 @@
 import {
     isHypothesisGenerationResultPublishedPayload,
     isHypothesisGenerationStartedPublishedPayload,
+    isPlanOutcomeGenerationResultPublishedPayload,
+    isPlanOutcomeGenerationStartedPublishedPayload,
 } from './publishedEvents'
 
 describe('coyoteGame publishedEvents guards', () => {
@@ -37,5 +39,22 @@ describe('coyoteGame publishedEvents guards', () => {
             characterId: 'CHARACTER#coyote',
             renderTree: {},
         })).toBe(false)
+    })
+
+    it('isPlanOutcomeGenerationStartedPublishedPayload accepts valid payloads', () => {
+        expect(isPlanOutcomeGenerationStartedPublishedPayload({
+            type: 'Plan Outcome Generation Started',
+            outcomeId: 'MESSAGE#01',
+            characterId: 'CHARACTER#rr',
+        })).toBe(true)
+    })
+
+    it('isPlanOutcomeGenerationResultPublishedPayload accepts valid payloads with RenderTree', () => {
+        expect(isPlanOutcomeGenerationResultPublishedPayload({
+            type: 'Plan Outcome Generation Result',
+            outcomeId: 'MESSAGE#01',
+            characterId: 'CHARACTER#rr',
+            renderTree: ['Outcome: Stubbed'],
+        })).toBe(true)
     })
 })
