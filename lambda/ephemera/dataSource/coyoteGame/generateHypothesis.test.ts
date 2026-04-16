@@ -1,22 +1,21 @@
-jest.mock('../../internalCache', () => ({
+jest.mock('./invokeBedrockHypothesis', () => ({
     __esModule: true,
-    default: {
-        CoyoteGame: { get: jest.fn() },
-        ComponentEphemeraMeta: { get: jest.fn() },
-    },
+    invokeBedrockHypothesis: jest.fn(),
 }))
 
-import internalCache from '../../internalCache'
 import { generateHypothesis } from './generateHypothesis'
+import { invokeBedrockHypothesis } from './invokeBedrockHypothesis'
 
-const coyoteGameGetMock = internalCache.CoyoteGame.get as jest.MockedFunction<typeof internalCache.CoyoteGame.get>
-const componentMetaGetMock = internalCache.ComponentEphemeraMeta.get as jest.MockedFunction<typeof internalCache.ComponentEphemeraMeta.get>
+const invokeBedrockHypothesisMock = invokeBedrockHypothesis as jest.MockedFunction<typeof invokeBedrockHypothesis>
 
 describe('generateHypothesis', () => {
+    const getGameRooms = jest.fn<Promise<string[]>, []>()
+    const getRoomMeta = jest.fn()
+
     beforeEach(() => {
         jest.clearAllMocks()
-        coyoteGameGetMock.mockResolvedValue(['VORTEX', 'STRAIGHTAWAY'])
-        componentMetaGetMock.mockImplementation(async (roomId) => {
+        getGameRooms.mockResolvedValue(['VORTEX', 'STRAIGHTAWAY'])
+        getRoomMeta.mockImplementation(async (roomId: string) => {
             if (roomId === 'ROOM#VORTEX') {
                 return {
                     EphemeraId: roomId,
@@ -33,18 +32,33 @@ describe('generateHypothesis', () => {
                 objects: [],
             }
         })
+        invokeBedrockHypothesisMock.mockResolvedValue({
+            success: true,
+            body: 'Hypothesis: You are trying to drop something on the Road Runner.',
+        })
     })
 
-    it('returns stub RenderTree', async () => {
-        await expect(generateHypothesis()).resolves.toEqual(['Hypothesis: Stubbed'])
+    it('returns model output when Bedrock succeeds', async () => {
+        await expect(generateHypothesis({ getGameRooms, getRoomMeta })).resolves.toEqual(
+            'Hypothesis: You are trying to drop something on the Road Runner.'
+        )
     })
 
     it('fetches room-local objects for all Coyote Game rooms', async () => {
-        await generateHypothesis()
+        await generateHypothesis({ getGameRooms, getRoomMeta })
 
-        expect(coyoteGameGetMock).toHaveBeenCalledWith('gameRooms')
-        expect(componentMetaGetMock).toHaveBeenCalledTimes(2)
-        expect(componentMetaGetMock).toHaveBeenNthCalledWith(1, 'ROOM#VORTEX')
-        expect(componentMetaGetMock).toHaveBeenNthCalledWith(2, 'ROOM#STRAIGHTAWAY')
+        expect(getGameRooms).toHaveBeenCalledTimes(1)
+        expect(getRoomMeta).toHaveBeenCalledTimes(2)
+        expect(getRoomMeta).toHaveBeenNthCalledWith(1, 'ROOM#VORTEX')
+        expect(getRoomMeta).toHaveBeenNthCalledWith(2, 'ROOM#STRAIGHTAWAY')
+    })
+
+    it('falls back to stub output when Bedrock fails', async () => {
+        invokeBedrockHypothesisMock.mockResolvedValue({
+            success: false,
+            errorMessage: 'Throttled',
+        })
+
+        await expect(generateHypothesis({ getGameRooms, getRoomMeta })).resolves.toEqual('Hypothesis: Stubbed')
     })
 })

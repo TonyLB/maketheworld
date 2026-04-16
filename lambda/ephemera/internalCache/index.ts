@@ -32,6 +32,7 @@ import ConversationsData from './conversations';
 import PerceptionThreadsData from './perceptionThreads';
 import messageBus from '../messageBus';
 import CacheCoyoteGameData from './coyoteGame';
+import { generateHypothesis } from '../dataSource/coyoteGame/generateHypothesis';
 
 const graphDBHandler: GraphDBHandler = new (withPrimitives<'PrimaryKey', string>()(withGetOperations<'PrimaryKey', string>()(DBHandlerBase)))({
     client: assetDB._client,
@@ -43,7 +44,7 @@ const graphDBHandler: GraphDBHandler = new (withPrimitives<'PrimaryKey', string>
 
 export class InternalCache {
     Global: CacheGlobalData = new CacheGlobalData()
-    CoyoteGame: CacheCoyoteGameData = new CacheCoyoteGameData()
+    CoyoteGame: CacheCoyoteGameData;
     Conversations: ConversationsData = new ConversationsData(this.Global, messageBus)
     RenderCache: RenderCacheData = new RenderCacheData(queryCacheRecordsForComponent)
     PlayerMeta: CachePlayerMetaData;
@@ -75,6 +76,12 @@ export class InternalCache {
     CharacterPossibleMaps: CacheCharacterPossibleMapsData;
 
     constructor() {
+        this.CoyoteGame = new CacheCoyoteGameData({
+            generateIntent: () => generateHypothesis({
+                getGameRooms: () => this.CoyoteGame.get('gameRooms'),
+                getRoomMeta: (roomId) => this.ComponentEphemeraMeta.get(roomId),
+            }),
+        })
         this.PlayerMeta = new CachePlayerMetaData(this.Global)
         this._graphCache = new (GraphCache(graphDBHandler)(GraphEdge(graphDBHandler)(GraphNode(graphDBHandler)(GraphCacheBase))))()
         this.Graph = this._graphCache.Graph

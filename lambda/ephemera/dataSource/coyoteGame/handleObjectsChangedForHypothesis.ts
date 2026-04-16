@@ -7,7 +7,6 @@ import { isObjectsChangedPayload } from '../objects/events'
 import getCurrentTimestamp from '../../internalUtils/dateUtil'
 import internalCache from '../../internalCache'
 import type { CoyoteGamePublishedPayload } from './publishedEvents'
-import { generateHypothesis } from './generateHypothesis'
 import { isCoyoteGameRoom } from './isCoyoteGameRoom'
 
 /**
@@ -72,7 +71,9 @@ export async function handleObjectsChangedForHypothesis(
             },
         })
 
-        const renderTree = await generateHypothesis()
+        await internalCache.CoyoteGame.invalidate('intent')
+        const intent = await internalCache.CoyoteGame.get('intent')
+        const renderTree = [intent]
 
         const t1 = Math.max(stored.t0 + 1, getCurrentTimestamp())
 
