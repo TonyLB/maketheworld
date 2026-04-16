@@ -1,21 +1,12 @@
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { formatCoyoteStagedObjectsByRoom } from './coyoteRoomObjectSnapshot'
 
 export type BuildHypothesisPromptInput = {
     roomObjectsByRoom: Record<EphemeraRoomId, string[]>
 }
 
-function formatRoomLabel(roomId: EphemeraRoomId): string {
-    return roomId.replace(/^ROOM#/, '')
-}
-
-function formatObjectList(objects: string[]): string {
-    return objects.length > 0 ? objects.join(', ') : '(none)'
-}
-
 export function buildHypothesisPrompt(input: BuildHypothesisPromptInput): string {
-    const snapshotSection = Object.entries(input.roomObjectsByRoom)
-        .map(([roomId, objects]) => `${formatRoomLabel(roomId as EphemeraRoomId)}: ${formatObjectList(objects)}`)
-        .join('\n')
+    const snapshotSection = formatCoyoteStagedObjectsByRoom(input.roomObjectsByRoom)
 
     return [
         'You are inferring the player\'s current plan in a cartoon Coyote environment from a staged set of Acme objects distributed across a small world.',

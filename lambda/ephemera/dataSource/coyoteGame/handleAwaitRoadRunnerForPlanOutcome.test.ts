@@ -1,7 +1,7 @@
 jest.mock('../../internalCache', () => ({
     __esModule: true,
     default: {
-        CoyoteGame: { get: jest.fn() },
+        CoyoteGame: { get: jest.fn(), invalidate: jest.fn() },
         RoomCharacterList: { get: jest.fn() },
     },
 }))
@@ -12,9 +12,13 @@ jest.mock('../../internalUtils/dateUtil', () => ({
 }))
 
 import internalCache from '../../internalCache'
+import type { CacheCoyoteGameKeys } from '../../internalCache/coyoteGame'
 import { handleAwaitRoadRunnerForPlanOutcome } from './handleAwaitRoadRunnerForPlanOutcome'
 
 const coyoteMock = internalCache.CoyoteGame.get as jest.MockedFunction<typeof internalCache.CoyoteGame.get>
+const coyoteInvalidateMock = internalCache.CoyoteGame.invalidate as jest.MockedFunction<
+    typeof internalCache.CoyoteGame.invalidate
+>
 const roomListMock = internalCache.RoomCharacterList.get as jest.MockedFunction<typeof internalCache.RoomCharacterList.get>
 
 const awaitPayload = {
@@ -24,9 +28,24 @@ const awaitPayload = {
 }
 
 describe('handleAwaitRoadRunnerForPlanOutcome', () => {
+    let coyoteCallOrder: string[] = []
+
     beforeEach(() => {
         jest.clearAllMocks()
-        coyoteMock.mockResolvedValue(['VORTEX'])
+        coyoteCallOrder = []
+        coyoteInvalidateMock.mockImplementation(async () => {
+            coyoteCallOrder.push('invalidate')
+        })
+        coyoteMock.mockImplementation((key: CacheCoyoteGameKeys) => {
+            coyoteCallOrder.push(`get:${key}`)
+            if (key === 'gameRooms') {
+                return Promise.resolve(['VORTEX'])
+            }
+            if (key === 'outcome') {
+                return Promise.resolve(['Outcome: Stubbed'])
+            }
+            return Promise.reject(new Error(`Unexpected CoyoteGame.get key: ${key}`))
+        })
         roomListMock.mockResolvedValue([
             { EphemeraId: 'CHARACTER#guest', DisplayName: 'G', SessionIds: ['sess1'] },
         ])
@@ -51,6 +70,10 @@ describe('handleAwaitRoadRunnerForPlanOutcome', () => {
         const streamEvent = jest.fn().mockResolvedValue(undefined)
         const messageBus = busMocks()
         await handleAwaitRoadRunnerForPlanOutcome(awaitPayload, { streamEvent, messageBus })
+
+        expect(coyoteInvalidateMock).toHaveBeenCalledWith('outcome')
+        expect(coyoteMock).toHaveBeenCalledWith('outcome')
+        expect(coyoteCallOrder.indexOf('invalidate')).toBeLessThan(coyoteCallOrder.indexOf('get:outcome'))
 
         expect(streamEvent).toHaveBeenCalledTimes(2)
         expect(streamEvent.mock.calls[0][0].streamKey).toBe('CHARACTER#trigger')

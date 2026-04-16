@@ -5,9 +5,9 @@ import type { MessageBus } from '../../messageBus/baseClasses'
 import type { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isAwaitRoadRunnerPublishedPayload } from '../actions/publishedEvents'
 import getCurrentTimestamp from '../../internalUtils/dateUtil'
+import internalCache from '../../internalCache'
 import type { CoyoteGamePublishedPayload } from './publishedEvents'
 import { collectActiveCharactersInCoyoteRooms } from './collectActiveCharactersInCoyoteRooms'
-import { generatePlanOutcome } from './generatePlanOutcome'
 
 /**
  * On Await RoadRunner from actions, broadcast plan-outcome WorldMessages to all active characters
@@ -60,7 +60,8 @@ export async function handleAwaitRoadRunnerForPlanOutcome(
             },
         })
 
-        const renderTree = await generatePlanOutcome()
+        await internalCache.CoyoteGame.invalidate('outcome')
+        const renderTree = await internalCache.CoyoteGame.get('outcome')
 
         const t1 = Math.max(stored.t0 + 1, getCurrentTimestamp())
 

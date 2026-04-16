@@ -5,10 +5,22 @@ import { CacheCoyoteGameData } from './coyoteGame'
 
 const ephemeraMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 
+const stubOutcome = ['Outcome: Stubbed'] as const
+
+const defaultDeps = () => ({
+    generateIntent: jest.fn().mockResolvedValue('Hypothesis: Fresh'),
+    generateOutcome: jest.fn().mockResolvedValue(stubOutcome),
+})
+
 describe('CacheCoyoteGameData', () => {
-    const key = {
+    const intentKey = {
         EphemeraId: 'Global',
         DataCategory: 'CoyoteGame#Intent',
+    } as const
+
+    const outcomeKey = {
+        EphemeraId: 'Global',
+        DataCategory: 'CoyoteGame#Outcome',
     } as const
 
     beforeEach(() => {
@@ -16,53 +28,111 @@ describe('CacheCoyoteGameData', () => {
         jest.resetAllMocks()
     })
 
-    it('returns cached in-memory intent without hitting Dynamo', async () => {
-        const generateIntent = jest.fn().mockResolvedValue('Hypothesis: Fresh')
-        const cache = new CacheCoyoteGameData({ generateIntent })
+    describe('intent', () => {
+        it('returns cached in-memory intent without hitting Dynamo', async () => {
+            const { generateIntent, generateOutcome } = defaultDeps()
+            const cache = new CacheCoyoteGameData({ generateIntent, generateOutcome })
 
-        cache.set({ key: 'intent', value: 'Hypothesis: Cached' })
+            cache.set({ key: 'intent', value: 'Hypothesis: Cached' })
 
-        await expect(cache.get('intent')).resolves.toBe('Hypothesis: Cached')
-        expect(ephemeraMock.getItem).not.toHaveBeenCalled()
-        expect(generateIntent).not.toHaveBeenCalled()
-    })
-
-    it('reads intent from durable Global row on local miss', async () => {
-        const generateIntent = jest.fn().mockResolvedValue('Hypothesis: Fresh')
-        ephemeraMock.getItem.mockResolvedValue({ intent: 'Hypothesis: Durable' })
-        const cache = new CacheCoyoteGameData({ generateIntent })
-
-        await expect(cache.get('intent')).resolves.toBe('Hypothesis: Durable')
-        expect(ephemeraMock.getItem).toHaveBeenCalledWith({
-            Key: key,
-            ProjectionFields: ['intent'],
+            await expect(cache.get('intent')).resolves.toBe('Hypothesis: Cached')
+            expect(ephemeraMock.getItem).not.toHaveBeenCalled()
+            expect(generateIntent).not.toHaveBeenCalled()
         })
-        expect(generateIntent).not.toHaveBeenCalled()
-    })
 
-    it('generates and persists intent on durable miss', async () => {
-        const generateIntent = jest.fn().mockResolvedValue('Hypothesis: Generated')
-        ephemeraMock.getItem.mockResolvedValue(undefined)
-        const cache = new CacheCoyoteGameData({ generateIntent })
+        it('reads intent from durable Global row on local miss', async () => {
+            const { generateIntent, generateOutcome } = defaultDeps()
+            ephemeraMock.getItem.mockResolvedValue({ intent: 'Hypothesis: Durable' })
+            const cache = new CacheCoyoteGameData({ generateIntent, generateOutcome })
 
-        await expect(cache.get('intent')).resolves.toBe('Hypothesis: Generated')
-        expect(generateIntent).toHaveBeenCalledTimes(1)
-        expect(ephemeraMock.putItem).toHaveBeenCalledWith({
-            ...key,
-            intent: 'Hypothesis: Generated',
+            await expect(cache.get('intent')).resolves.toBe('Hypothesis: Durable')
+            expect(ephemeraMock.getItem).toHaveBeenCalledWith({
+                Key: intentKey,
+                ProjectionFields: ['intent'],
+            })
+            expect(generateIntent).not.toHaveBeenCalled()
+        })
+
+        it('generates and persists intent on durable miss', async () => {
+            const { generateIntent, generateOutcome } = defaultDeps()
+            generateIntent.mockResolvedValue('Hypothesis: Generated')
+            ephemeraMock.getItem.mockResolvedValue(undefined)
+            const cache = new CacheCoyoteGameData({ generateIntent, generateOutcome })
+
+            await expect(cache.get('intent')).resolves.toBe('Hypothesis: Generated')
+            expect(generateIntent).toHaveBeenCalledTimes(1)
+            expect(ephemeraMock.putItem).toHaveBeenCalledWith({
+                ...intentKey,
+                intent: 'Hypothesis: Generated',
+            })
+        })
+
+        it('invalidate clears local cache and deletes durable row', async () => {
+            const { generateIntent, generateOutcome } = defaultDeps()
+            ephemeraMock.getItem.mockResolvedValueOnce({ intent: 'Hypothesis: Durable' }).mockResolvedValueOnce(undefined)
+            const cache = new CacheCoyoteGameData({ generateIntent, generateOutcome })
+
+            await expect(cache.get('intent')).resolves.toBe('Hypothesis: Durable')
+            await cache.invalidate('intent')
+            await expect(cache.get('intent')).resolves.toBe('Hypothesis: Fresh')
+
+            expect(ephemeraMock.deleteItem).toHaveBeenCalledWith(intentKey)
+            expect(generateIntent).toHaveBeenCalledTimes(1)
         })
     })
 
-    it('invalidate clears local cache and deletes durable row', async () => {
-        const generateIntent = jest.fn().mockResolvedValue('Hypothesis: Fresh')
-        ephemeraMock.getItem.mockResolvedValueOnce({ intent: 'Hypothesis: Durable' }).mockResolvedValueOnce(undefined)
-        const cache = new CacheCoyoteGameData({ generateIntent })
+    describe('outcome', () => {
+        it('returns cached in-memory outcome without hitting Dynamo', async () => {
+            const { generateIntent, generateOutcome } = defaultDeps()
+            const cache = new CacheCoyoteGameData({ generateIntent, generateOutcome })
 
-        await expect(cache.get('intent')).resolves.toBe('Hypothesis: Durable')
-        await cache.invalidate('intent')
-        await expect(cache.get('intent')).resolves.toBe('Hypothesis: Fresh')
+            cache.set({ key: 'outcome', value: ['Cached'] })
 
-        expect(ephemeraMock.deleteItem).toHaveBeenCalledWith(key)
-        expect(generateIntent).toHaveBeenCalledTimes(1)
+            await expect(cache.get('outcome')).resolves.toEqual(['Cached'])
+            expect(ephemeraMock.getItem).not.toHaveBeenCalled()
+            expect(generateOutcome).not.toHaveBeenCalled()
+        })
+
+        it('reads outcome from durable Global row on local miss', async () => {
+            const { generateIntent, generateOutcome } = defaultDeps()
+            ephemeraMock.getItem.mockResolvedValue({ outcome: ['Outcome: Durable'] })
+            const cache = new CacheCoyoteGameData({ generateIntent, generateOutcome })
+
+            await expect(cache.get('outcome')).resolves.toEqual(['Outcome: Durable'])
+            expect(ephemeraMock.getItem).toHaveBeenCalledWith({
+                Key: outcomeKey,
+                ProjectionFields: ['outcome'],
+            })
+            expect(generateOutcome).not.toHaveBeenCalled()
+        })
+
+        it('generates and persists outcome on durable miss', async () => {
+            const { generateIntent, generateOutcome } = defaultDeps()
+            generateOutcome.mockResolvedValue(['Outcome: Generated'])
+            ephemeraMock.getItem.mockResolvedValue(undefined)
+            const cache = new CacheCoyoteGameData({ generateIntent, generateOutcome })
+
+            await expect(cache.get('outcome')).resolves.toEqual(['Outcome: Generated'])
+            expect(generateOutcome).toHaveBeenCalledTimes(1)
+            expect(ephemeraMock.putItem).toHaveBeenCalledWith({
+                ...outcomeKey,
+                outcome: ['Outcome: Generated'],
+            })
+        })
+
+        it('invalidate clears local cache and deletes durable row', async () => {
+            const { generateIntent, generateOutcome } = defaultDeps()
+            ephemeraMock.getItem
+                .mockResolvedValueOnce({ outcome: ['Outcome: Durable'] })
+                .mockResolvedValueOnce(undefined)
+            const cache = new CacheCoyoteGameData({ generateIntent, generateOutcome })
+
+            await expect(cache.get('outcome')).resolves.toEqual(['Outcome: Durable'])
+            await cache.invalidate('outcome')
+            await expect(cache.get('outcome')).resolves.toEqual(stubOutcome)
+
+            expect(ephemeraMock.deleteItem).toHaveBeenCalledWith(outcomeKey)
+            expect(generateOutcome).toHaveBeenCalledTimes(1)
+        })
     })
 })
