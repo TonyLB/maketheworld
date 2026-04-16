@@ -1,7 +1,7 @@
 jest.mock('../../internalCache', () => ({
     __esModule: true,
     default: {
-        CoyoteGame: { get: jest.fn() },
+        CoyoteGame: { get: jest.fn(), invalidate: jest.fn() },
         RoomCharacterList: { get: jest.fn() },
     },
 }))
@@ -17,6 +17,7 @@ import type { ObjectsChangedPayload } from '../objects/events'
 
 const coyoteMock = internalCache.CoyoteGame.get as jest.MockedFunction<typeof internalCache.CoyoteGame.get>
 const roomListMock = internalCache.RoomCharacterList.get as jest.MockedFunction<typeof internalCache.RoomCharacterList.get>
+const coyoteInvalidateMock = internalCache.CoyoteGame.invalidate as jest.MockedFunction<typeof internalCache.CoyoteGame.invalidate>
 
 const basePayload = (over: Partial<ObjectsChangedPayload> = {}): ObjectsChangedPayload => ({
     type: 'Objects Changed',
@@ -35,6 +36,7 @@ describe('handleObjectsChangedForHypothesis', () => {
         roomListMock.mockResolvedValue([
             { EphemeraId: 'CHARACTER#guest', DisplayName: 'G', SessionIds: ['sess1'] },
         ])
+        coyoteInvalidateMock.mockResolvedValue(undefined)
     })
 
     const busMocks = () => ({
@@ -73,6 +75,7 @@ describe('handleObjectsChangedForHypothesis', () => {
     })
 
     it('emits stream events and two WorldMessage publishes with shared messageId', async () => {
+        coyoteMock.mockResolvedValueOnce(['VORTEX', 'STRAIGHTAWAY']).mockResolvedValueOnce('Hypothesis: Cached from CoyoteGame')
         const streamEvent = jest.fn().mockResolvedValue(undefined)
         const messageBus = busMocks()
         await handleObjectsChangedForHypothesis(basePayload(), { streamEvent, messageBus })
@@ -92,12 +95,14 @@ describe('handleObjectsChangedForHypothesis', () => {
         expect(typeof firstLane).toBe('string')
         expect(firstLane).toMatch(/^hypothesisLane:MESSAGE#/)
         expect(second.displayProtocol).toBe('WorldMessage')
-        expect(second.message).toEqual(['Hypothesis: Stubbed'])
+        expect(second.message).toEqual(['Hypothesis: Cached from CoyoteGame'])
         expect(first.messageId).toBe(second.messageId)
         expect(typeof first.messageId).toBe('string')
         expect(first.createdTime).toBe(1000)
         expect(second.createdTime).toBe(1001)
 
+        expect(coyoteInvalidateMock).toHaveBeenCalledWith('intent')
+        expect(coyoteMock).toHaveBeenNthCalledWith(2, 'intent')
         expect(messageBus.flush).toHaveBeenCalledWith(firstLane)
     })
 })

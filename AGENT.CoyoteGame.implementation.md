@@ -58,6 +58,12 @@ Practical meaning:
 
 Practical meaning:
 - the system bootstrap currently treats this room set as part of baseline primitives.
+- the canonical spatial relationship for prompt-building is documented in `AGENT.CoyoteGame.md` under `Canonical Demo Topology`
+- the intended layout is:
+  - `STRAIGHTAWAY` west of `VORTEX`
+  - `CLIFFTOP` above `VORTEX`
+  - `CORNER` east of `VORTEX`
+  - `BRIDGE` south of `CORNER`
 
 ### 3) Guest character flow (now coyote-aware behind the global switch)
 
