@@ -1,4 +1,4 @@
-import { randomUUID } from 'crypto'
+import { v4 as uuidv4 } from 'uuid'
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import type { StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import type { MessageBus } from '../../messageBus/baseClasses'
@@ -40,7 +40,7 @@ export async function handleObjectsChangedForHypothesis(
     }
 
     const characterId: EphemeraCharacterId = active[0].EphemeraId
-    const hypothesisId = `MESSAGE#${randomUUID()}`
+    const hypothesisId = `MESSAGE#${uuidv4()}`
     const t0 = getCurrentTimestamp()
     const stored = { hypothesisId, t0 }
 

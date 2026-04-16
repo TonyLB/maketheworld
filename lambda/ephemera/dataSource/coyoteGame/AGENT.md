@@ -1,13 +1,24 @@
 # mtw.ephemera.coyoteGame
 
-**Status:** Bus-only, non-replayable `EphemeraDataSource`. Subscribes to **`mtw.ephemera.objects`** **`Objects Changed`** (same envelope as [`../objects/events.ts`](../objects/events.ts)).
+**Status:** Bus-only, non-replayable `EphemeraDataSource`.
 
-**Behavior (v1):** When the event adds at least one object (`add.length > 0`) and the room is a Coyote Game demo room ([`internalCache.CoyoteGame`](../../internalCache/coyoteGame.ts) short names, matched as `ROOM#${name}`), the handler:
+**Subscribes to**
 
-1. Queues the placeholder **`WorldMessage`** (`Hypothesis: Generating...`) on a synthesized **`hypothesisLane:${messageId}`** so it can be drained separately from the default lane (see [`messageBus/AGENT.md`](../../messageBus/AGENT.md) **Virtual lanes**).
-2. Runs **`Promise.all([messageBus.flush(hypothesisLane), remainder])`**: **`flush`** drives **`publishMessage`** for the placeholder while **`remainder`** runs **`streamEvent`** (`Hypothesis Generation Started`), [`generateHypothesis`](generateHypothesis.ts), **`streamEvent`** (`Hypothesis Generation Result`), and the terminal **`WorldMessage`** (same **`messageId`**, later **`createdTime`** via [`publishMessage`](../../publishMessage/index.ts) overrides). Logical order is **`CreatedTime`**-based on the wire.
+- **`mtw.ephemera.objects`** **`Objects Changed`** ([`../objects/events.ts`](../objects/events.ts)).
+- **`mtw.ephemera.actions`** **`Await RoadRunner`** (same envelope guard as [`../objects/subscribedEvents.ts`](../objects/subscribedEvents.ts) **`isEphemeraActionsAwaitRoadRunnerEnvelope`**).
 
-Targets are **active** occupants (`RoomCharacterList` entries with non-empty **`SessionIds`**). Stream payload **`characterId`** uses the first such occupant as a correlation anchor until object rows carry an actor.
+## Objects Changed (hypothesis path)
+
+When the event adds at least one object (`add.length > 0`) and the room is a Coyote Game demo room ([`internalCache.CoyoteGame`](../../internalCache/coyoteGame.ts); ids via [`RoomKey`](../../../../packages/mtw-utilities/ts/types.ts)), the handler:
+
+1. Queues the placeholder **`WorldMessage`** (`Hypothesis: Generating...`) on **`hypothesisLane:${messageId}`** (see [`messageBus/AGENT.md`](../../messageBus/AGENT.md) **Virtual lanes**).
+2. Runs **`Promise.all([messageBus.flush(hypothesisLane), remainder])`**: **`remainder`** emits hypothesis **`streamEvent`** payloads ([`publishedEvents.ts`](publishedEvents.ts)), [`generateHypothesis`](generateHypothesis.ts), and the terminal **`WorldMessage`**.
+
+Targets: **active** occupants of that room. Stream **`characterId`**: first active occupant.
+
+## Await RoadRunner (plan outcome path)
+
+On **`Await RoadRunner`** from actions, the handler targets **all active characters across all Coyote demo rooms** ([`collectActiveCharactersInCoyoteRooms`](collectActiveCharactersInCoyoteRooms.ts)), queues **`Outcome: Generating...`** on **`outcomeLane:${messageId}`**, then the same **`flush` + `remainder`** pattern with [`generatePlanOutcome`](generatePlanOutcome.ts) and **`Plan Outcome Generation Started` / `Result`** stream events (**`streamKey`** = triggering **`characterId`** from the actions payload).
 
 **Product / demo context:** [`AGENT.CoyoteGame.implementation.md`](../../../../AGENT.CoyoteGame.implementation.md).
 
