@@ -45,6 +45,21 @@ The strong existing IP frame is intentional:
 
 This MVP intentionally uses a very lightweight local framework.
 
+### Canonical Demo Topology
+
+The Coyote Game demo world is organized around a small, fixed set of rooms with strong spatial relationships:
+
+- `STRAIGHTAWAY` is west of `VORTEX`. It is a long desert highway lined with cacti, disappearing toward the western horizon.
+- `VORTEX` is the origin room where the Coyote starts. The same highway passes along the base of a tall, sheer cliff.
+- `CLIFFTOP` is above `VORTEX`, at the top of that cliff, with a boulder perched near the edge.
+- `CORNER` is east of `VORTEX`. The road continues east from the cliff base and then turns sharply south, bending away from a rock face.
+- `BRIDGE` lies south of `CORNER`. It is a bridge over a yawning chasm, carrying the road north-south before the road disappears farther south.
+
+Practical interpretation notes:
+- west-to-east along the highway: `STRAIGHTAWAY` -> `VORTEX` -> `CORNER`
+- vertical relationship: `CLIFFTOP` is directly above `VORTEX`
+- southward continuation after the turn: `CORNER` -> `BRIDGE`
+
 Needed state:
 - rooms
 - player location
