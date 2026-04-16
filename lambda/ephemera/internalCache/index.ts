@@ -82,7 +82,11 @@ export class InternalCache {
                 getGameRooms: () => this.CoyoteGame.get('gameRooms'),
                 getRoomMeta: (roomId) => this.ComponentEphemeraMeta.get(roomId),
             }),
-            generateOutcome: () => generatePlanOutcome(),
+            generateOutcome: () => generatePlanOutcome({
+                getGameRooms: () => this.CoyoteGame.get('gameRooms'),
+                getRoomMeta: (roomId) => this.ComponentEphemeraMeta.get(roomId),
+                getIntent: () => this.CoyoteGame.get('intent'),
+            }),
         })
         this.PlayerMeta = new CachePlayerMetaData(this.Global)
         this._graphCache = new (GraphCache(graphDBHandler)(GraphEdge(graphDBHandler)(GraphNode(graphDBHandler)(GraphCacheBase))))()
