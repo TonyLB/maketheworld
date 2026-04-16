@@ -33,6 +33,7 @@ import PerceptionThreadsData from './perceptionThreads';
 import messageBus from '../messageBus';
 import CacheCoyoteGameData from './coyoteGame';
 import { generateHypothesis } from '../dataSource/coyoteGame/generateHypothesis';
+import { generatePlanOutcome } from '../dataSource/coyoteGame/generatePlanOutcome';
 
 const graphDBHandler: GraphDBHandler = new (withPrimitives<'PrimaryKey', string>()(withGetOperations<'PrimaryKey', string>()(DBHandlerBase)))({
     client: assetDB._client,
@@ -81,6 +82,7 @@ export class InternalCache {
                 getGameRooms: () => this.CoyoteGame.get('gameRooms'),
                 getRoomMeta: (roomId) => this.ComponentEphemeraMeta.get(roomId),
             }),
+            generateOutcome: () => generatePlanOutcome(),
         })
         this.PlayerMeta = new CachePlayerMetaData(this.Global)
         this._graphCache = new (GraphCache(graphDBHandler)(GraphEdge(graphDBHandler)(GraphNode(graphDBHandler)(GraphCacheBase))))()
