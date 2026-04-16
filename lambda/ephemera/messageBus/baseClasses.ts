@@ -43,11 +43,17 @@ export type PublishMessageBase = {
 export type PublishWorldMessage = PublishMessageBase & {
     displayProtocol: 'WorldMessage';
     message: RenderTree;
+    /** When set, publishMessage uses this RowId so a later terminal message overwrites the same client row. */
+    messageId?: string;
+    /** When set, overrides default CreatedTime ordering for this payload. */
+    createdTime?: number;
 }
 
 export type PublishWorldOOCMessage = PublishMessageBase & {
     displayProtocol: 'WorldOOCMessage';
     message: RenderTree;
+    messageId?: string;
+    createdTime?: number;
 }
 
 type MessageCharacterInfo = {

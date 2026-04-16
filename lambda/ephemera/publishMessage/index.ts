@@ -254,11 +254,13 @@ export const publishMessage = async ({ payloads }: { payloads: PublishMessage[],
     }
 
     await Promise.all(payloads.map(async (payload, index) => {
-        const CreatedTime = baseTime + (payload.messageGroupId ? offsetsByMessageId[payload.messageGroupId] ?? pastOffsets + index : pastOffsets + index)
+        const computedCreatedTime = baseTime + (payload.messageGroupId ? offsetsByMessageId[payload.messageGroupId] ?? pastOffsets + index : pastOffsets + index)
         if (isPublishWorldLineMessage(payload)) {
+            const CreatedTime = payload.createdTime !== undefined ? payload.createdTime : computedCreatedTime
+            const MessageId = payload.messageId ?? `MESSAGE#${uuidv4()}`
             await pushToQueues({
                 Targets: payload.targets,
-                MessageId: `MESSAGE#${uuidv4()}`,
+                MessageId,
                 CreatedTime,
                 Message: payload.message,
                 DisplayProtocol: payload.displayProtocol,
@@ -273,7 +275,7 @@ export const publishMessage = async ({ payloads }: { payloads: PublishMessage[],
             await pushToQueues({
                 Targets: payload.targets,
                 MessageId: `MESSAGE#${uuidv4()}`,
-                CreatedTime,
+                CreatedTime: computedCreatedTime,
                 Message: payload.message,
                 DisplayProtocol: payload.displayProtocol,
                 DisplayName: payload.name,
@@ -286,7 +288,7 @@ export const publishMessage = async ({ payloads }: { payloads: PublishMessage[],
             await pushToQueues({
                 Targets: payload.targets,
                 MessageId: payload.messageId ?? `MESSAGE#${uuidv4()}`,
-                CreatedTime,
+                CreatedTime: computedCreatedTime,
                 DisplayProtocol: payload.displayProtocol,
                 wmlContent: payload.wmlContent,
                 metaData: payload.metaData
