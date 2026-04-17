@@ -12,6 +12,8 @@ export type GeneratePlanOutcomeDeps = {
     getRoomMeta: (roomId: EphemeraRoomId) => Promise<EphemeraMetaRoom | undefined>
     /** Current hypothesis line (from `CoyoteGame.get('intent')`). */
     getIntent: () => Promise<string>
+    roomObjectsByRoomOverride?: Record<EphemeraRoomId, string[]>
+    hypothesisLineOverride?: string
 }
 
 function normalizeOutcomeBody(body: string): string | null {
@@ -33,10 +35,8 @@ function normalizeOutcomeBody(body: string): string | null {
 
 /** Single-call LLM plan outcome: Road Runner safe, Coyote poetic backfire. */
 export async function generatePlanOutcome(deps: GeneratePlanOutcomeDeps): Promise<RenderTree> {
-    const [roomObjectsByRoom, hypothesisLine] = await Promise.all([
-        loadCoyoteRoomObjectsByRoom(deps),
-        deps.getIntent(),
-    ])
+    const roomObjectsByRoom = deps.roomObjectsByRoomOverride ?? await loadCoyoteRoomObjectsByRoom(deps)
+    const hypothesisLine = deps.hypothesisLineOverride ?? await deps.getIntent()
     const prompt = buildPlanOutcomePromptParts({ roomObjectsByRoom, hypothesisLine })
     const invokeResult = await invokeBedrockHypothesis(prompt, { maxTokens: 384 })
     if (!invokeResult.success) {

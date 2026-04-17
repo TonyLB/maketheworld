@@ -2,6 +2,31 @@
 
 **Status:** Planning. No implementation yet; this document captures steps and unknowns before building.
 
+## Getting Started
+
+Follow the ordered **categories** below (see [Getting Started pattern for complex tasks](../../../../../AGENT.md#getting-started-pattern-for-complex-tasks) in root [`AGENT.md`](../../../../../AGENT.md)). A category can be light if it does not apply yet; keep **Why** / **Focus** so the next reader knows what to skim vs study.
+
+1. **Understand task-plan conventions**
+   - **Why:** Task plans under [`taskPlanning/`](../../../../) are disposable process docs; know what belongs here vs durable `AGENT.md` next to code.
+   - **Read:** [`taskPlanning/AGENT.md`](../../../../AGENT.md) (durability, **Recommended order** checkbox rules, verification). Root [`AGENT.md`](../../../../../AGENT.md) for repo navigation and the Getting Started pattern.
+
+2. **Read this document**
+   - **Why:** Scope and decisions live in **Purpose** through **Unknowns and decisions**; implementation tracking is **Recommended order** and **Verification**.
+   - **Focus:** Snapshot overrides, dedicated harness entrypoint (not `CacheCoyoteGameData`), `CoyoteEngineTest` activation, ten fixtures, **continue-on-error**, and extending [`invokeBedrockConverseText`](../../../../../lambda/ephemera/generateExample/invokeBedrockConverseText.ts) for metadata.
+
+3. **Understand ephemera and Coyote integration**
+   - **Why:** Harness code lands in `lambda/ephemera` and touches actions + Bedrock helpers.
+   - **Read:** [`lambda/ephemera/AGENT.md`](../../../../../lambda/ephemera/AGENT.md) (overview). [`lambda/ephemera/dataSource/coyoteGame/AGENT.md`](../../../../../lambda/ephemera/dataSource/coyoteGame/AGENT.md) (current Coyote data source). Related parse work: [`taskPlanning/.../actions/AGENT.actionParse.plan.md`](../actions/AGENT.actionParse.plan.md).
+   - **Primary files (implementation):** [`generateHypothesis.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/generateHypothesis.ts), [`invokeBedrockHypothesis.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/invokeBedrockHypothesis.ts), [`invokeBedrockConverseText.ts`](../../../../../lambda/ephemera/generateExample/invokeBedrockConverseText.ts), [`internalCache/coyoteGame.ts`](../../../../../lambda/ephemera/internalCache/coyoteGame.ts), [`dataSource/actions/index.ts`](../../../../../lambda/ephemera/dataSource/actions/index.ts), [`dataSource/actions/baseClasses.ts`](../../../../../lambda/ephemera/dataSource/actions/baseClasses.ts).
+
+4. **Testing**
+   - **Why:** Ephemera uses **Jest** from `lambda/ephemera` (not Vitest); see [`lambda/ephemera/AGENT.testing.md`](../../../../../lambda/ephemera/AGENT.testing.md) for package testing notes.
+   - **Commands:** From **Verification** below; after changes, `cd lambda/ephemera && npx jest dataSource/coyoteGame/ dataSource/actions/` (extend with harness tests when added).
+
+5. **Identify next task**
+   - **Why:** Progress lives in **Recommended order**; readers often open only unchecked items.
+   - **Focus:** First unchecked line in **Recommended order** and any nested bullets.
+
 ## Purpose
 
 Ship a **repeatable way to run the Coyote hypothesis / plan-outcome engine** against a **fixed set of ten staged-object setups**, and return results as **ten separate `WorldOOCMessage` deliveries** (one per fixture) so you can:
@@ -136,7 +161,7 @@ Handler behavior: when parse result is `CoyoteEngineTest` and the flag is on, **
 Use `[ ]` / `[X]` as work lands.
 
 - [X] **Decisions:** See **Unknowns and decisions** (all items resolved). **Activation:** parse intent `CoyoteEngineTest` (see **Activation** above).
-- [ ] **Generator overrides:** Add optional `roomObjectsByRoom` / `hypothesisLine` overrides to `generateHypothesis` (required for harness); `generatePlanOutcome` overrides for future outcome harness; unit tests with mocked Bedrock proving meta is not consulted when overrides are set.
+- [X] **Generator overrides:** Add optional `roomObjectsByRoom` / `hypothesisLine` overrides to `generateHypothesis` (required for harness); `generatePlanOutcome` overrides for future outcome harness; unit tests with mocked Bedrock proving meta is not consulted when overrides are set.
 - [ ] **Lambda:** Confirm ephemera Lambda timeout; **~60s** is a reasonable target for ten sequential Bedrock calls plus overhead; tune if `testBatchSize` is raised.
 - [ ] **Fixtures:** Add ten-fixture module + snapshot test that fixture shape matches `EphemeraRoomId` / room key conventions.
 - [ ] **Bedrock usage + timing:** Extend **`invokeBedrockConverseText`** to return Converse usage/metadata on success; update **`invokeBedrockHypothesis`** / Coyote + other callers; unit test with mocked `client.send` including usage fields.

@@ -53,6 +53,28 @@ describe('generateHypothesis', () => {
         expect(getRoomMeta).toHaveBeenNthCalledWith(2, 'ROOM#STRAIGHTAWAY')
     })
 
+    it('uses room object override without consulting room meta deps', async () => {
+        await generateHypothesis({
+            getGameRooms,
+            getRoomMeta,
+            roomObjectsByRoomOverride: {
+                'ROOM#VORTEX': ['anvil'],
+                'ROOM#BRIDGE': ['portable hole', 'birdseed'],
+            },
+        })
+
+        expect(getGameRooms).not.toHaveBeenCalled()
+        expect(getRoomMeta).not.toHaveBeenCalled()
+        expect(invokeBedrockHypothesisMock).toHaveBeenCalledTimes(1)
+        const promptArg = invokeBedrockHypothesisMock.mock.calls[0][0] as {
+            invariantPrefix: string
+            dynamicSuffix: string
+        }
+        const fullPrompt = promptArg.invariantPrefix + promptArg.dynamicSuffix
+        expect(fullPrompt).toContain('VORTEX: anvil')
+        expect(fullPrompt).toContain('BRIDGE: portable hole, birdseed')
+    })
+
     it('falls back to stub output when Bedrock fails', async () => {
         invokeBedrockHypothesisMock.mockResolvedValue({
             success: false,

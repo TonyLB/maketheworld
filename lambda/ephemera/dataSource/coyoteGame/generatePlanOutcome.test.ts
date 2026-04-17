@@ -62,6 +62,59 @@ describe('generatePlanOutcome', () => {
         expect(invokeBedrockHypothesisMock.mock.calls[0][1]).toEqual({ maxTokens: 384 })
     })
 
+    it('uses both overrides without consulting room meta or getIntent deps', async () => {
+        await generatePlanOutcome({
+            getGameRooms,
+            getRoomMeta,
+            getIntent,
+            roomObjectsByRoomOverride: {
+                'ROOM#VORTEX': ['catapult'],
+                'ROOM#CLIFFTOP': ['lever'],
+            },
+            hypothesisLineOverride: 'Hypothesis: It looks like you are trying to spring a cliff trap.',
+        })
+
+        expect(getGameRooms).not.toHaveBeenCalled()
+        expect(getRoomMeta).not.toHaveBeenCalled()
+        expect(getIntent).not.toHaveBeenCalled()
+        const promptArg = invokeBedrockHypothesisMock.mock.calls[0][0] as {
+            invariantPrefix: string
+            dynamicSuffix: string
+        }
+        const fullPrompt = promptArg.invariantPrefix + promptArg.dynamicSuffix
+        expect(fullPrompt).toContain('VORTEX: catapult')
+        expect(fullPrompt).toContain('CLIFFTOP: lever')
+        expect(fullPrompt).toContain('Hypothesis: It looks like you are trying to spring a cliff trap.')
+    })
+
+    it('still calls getIntent when only room object override is provided', async () => {
+        await generatePlanOutcome({
+            getGameRooms,
+            getRoomMeta,
+            getIntent,
+            roomObjectsByRoomOverride: {
+                'ROOM#BRIDGE': ['portable hole'],
+            },
+        })
+
+        expect(getGameRooms).not.toHaveBeenCalled()
+        expect(getRoomMeta).not.toHaveBeenCalled()
+        expect(getIntent).toHaveBeenCalledTimes(1)
+    })
+
+    it('still loads room meta when only hypothesis override is provided', async () => {
+        await generatePlanOutcome({
+            getGameRooms,
+            getRoomMeta,
+            getIntent,
+            hypothesisLineOverride: 'Hypothesis: It looks like you are trying to launch a boulder.',
+        })
+
+        expect(getGameRooms).toHaveBeenCalledTimes(1)
+        expect(getRoomMeta).toHaveBeenCalledTimes(2)
+        expect(getIntent).not.toHaveBeenCalled()
+    })
+
     it('falls back to stub when Bedrock fails', async () => {
         invokeBedrockHypothesisMock.mockResolvedValue({
             success: false,

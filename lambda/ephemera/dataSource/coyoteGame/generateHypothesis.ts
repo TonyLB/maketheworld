@@ -7,6 +7,7 @@ import { invokeBedrockHypothesis } from './invokeBedrockHypothesis'
 export type GenerateHypothesisDeps = {
     getGameRooms: () => Promise<string[]>
     getRoomMeta: (roomId: EphemeraRoomId) => Promise<EphemeraMetaRoom | undefined>
+    roomObjectsByRoomOverride?: Record<EphemeraRoomId, string[]>
 }
 
 function normalizeHypothesisBody(body: string): string | null {
@@ -22,7 +23,7 @@ function normalizeHypothesisBody(body: string): string | null {
 
 /** Generates a single plain-text hypothesis sentence. */
 export async function generateHypothesis(deps: GenerateHypothesisDeps): Promise<string> {
-    const roomObjectsByRoom = await loadCoyoteRoomObjectsByRoom(deps)
+    const roomObjectsByRoom = deps.roomObjectsByRoomOverride ?? await loadCoyoteRoomObjectsByRoom(deps)
     const prompt = buildHypothesisPromptParts({ roomObjectsByRoom })
     const invokeResult = await invokeBedrockHypothesis(prompt)
     if (!invokeResult.success) {
