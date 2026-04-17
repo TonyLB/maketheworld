@@ -162,8 +162,8 @@ Use `[ ]` / `[X]` as work lands.
 
 - [X] **Decisions:** See **Unknowns and decisions** (all items resolved). **Activation:** parse intent `CoyoteEngineTest` (see **Activation** above).
 - [X] **Generator overrides:** Add optional `roomObjectsByRoom` / `hypothesisLine` overrides to `generateHypothesis` (required for harness); `generatePlanOutcome` overrides for future outcome harness; unit tests with mocked Bedrock proving meta is not consulted when overrides are set.
-- [ ] **Lambda:** Confirm ephemera Lambda timeout; **~60s** is a reasonable target for ten sequential Bedrock calls plus overhead; tune if `testBatchSize` is raised.
-- [ ] **Fixtures:** Add ten-fixture module + snapshot test that fixture shape matches `EphemeraRoomId` / room key conventions.
+- [X] **Lambda:** Confirm ephemera Lambda timeout; **~60s** is a reasonable target for ten sequential Bedrock calls plus overhead; tune if `testBatchSize` is raised.
+- [X] **Fixtures:** Add ten-fixture module + snapshot test that fixture shape matches `EphemeraRoomId` / room key conventions.
 - [ ] **Bedrock usage + timing:** Extend **`invokeBedrockConverseText`** to return Converse usage/metadata on success; update **`invokeBedrockHypothesis`** / Coyote + other callers; unit test with mocked `client.send` including usage fields.
 - [ ] **Harness runner:** Implement loop with **`testBatchSize`** (tunable concurrency), **continue-on-error** (failed fixture still publishes a line, remaining fixtures run), formatted per-fixture body including **metrics lines**; **ten `PublishMessage` calls** per harness invocation.
 - [ ] **Actions wiring:** Add `CoyoteEngineTest` to parse types + prompt + validation + handler branch; enable flag + harness triggers ten publishes; integration test with mocks (no Bedrock in CI) optional.

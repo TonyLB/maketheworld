@@ -446,7 +446,7 @@ Resources:
       Handler: lambda.handler
       MemorySize: 512
       Runtime: nodejs18.x
-      # 60s to accommodate Bedrock room-description call (30s) plus prompt build and cache write
+      # 60s to accommodate Bedrock calls (including Coyote harness runs) plus prompt/build overhead
       Timeout: 60
       Environment:
         Variables:
