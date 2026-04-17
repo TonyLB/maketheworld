@@ -7,11 +7,13 @@ import {
     ConverseCommand,
     type ConverseCommandInput,
     type Message,
+    type TokenUsage,
 } from '@aws-sdk/client-bedrock-runtime'
 
 export type InvokeBedrockConverseTextSuccess = {
     success: true;
     body: string;
+    usage?: TokenUsage
 }
 
 export type InvokeBedrockConverseTextFailure = {
@@ -85,7 +87,11 @@ export async function invokeBedrockConverseText(
         const response = await client.send(command, { abortSignal: abortController.signal })
         clearTimeout(timeoutId)
         const body = extractTextFromResponse(response)
-        return { success: true, body }
+        return {
+            success: true,
+            body,
+            usage: response.usage,
+        }
     } catch (err) {
         clearTimeout(timeoutId)
         const message = err instanceof Error ? err.message : String(err)

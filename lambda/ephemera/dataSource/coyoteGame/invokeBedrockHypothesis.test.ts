@@ -6,6 +6,13 @@ describe('invokeBedrockHypothesis', () => {
     it('sends Converse user content with a cache point between prefix and suffix', async () => {
         const send = jest.fn().mockResolvedValue({
             output: { message: { content: [{ text: 'Hypothesis: ok' }] } },
+            usage: {
+                inputTokens: 42,
+                outputTokens: 7,
+                totalTokens: 49,
+                cacheReadInputTokens: 33,
+                cacheWriteInputTokens: 0,
+            },
         })
         const client = { send } as unknown as BedrockRuntimeClient
 
@@ -14,7 +21,17 @@ describe('invokeBedrockHypothesis', () => {
             { client, timeoutMs: 5000 }
         )
 
-        expect(result).toEqual({ success: true, body: 'Hypothesis: ok' })
+        expect(result).toEqual({
+            success: true,
+            body: 'Hypothesis: ok',
+            usage: {
+                inputTokens: 42,
+                outputTokens: 7,
+                totalTokens: 49,
+                cacheReadInputTokens: 33,
+                cacheWriteInputTokens: 0,
+            },
+        })
         expect(send).toHaveBeenCalledTimes(1)
         const command = send.mock.calls[0][0]
         expect(command).toBeInstanceOf(ConverseCommand)
