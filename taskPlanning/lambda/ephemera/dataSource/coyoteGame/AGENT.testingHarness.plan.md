@@ -95,7 +95,7 @@ flowchart TB
 - In each generator, if override is present, **skip** `loadCoyoteRoomObjectsByRoom` and pass the override into `buildHypothesisPromptParts` / `buildPlanOutcomePromptParts`.
 - **Room order (resolved):** When serializing overrides for the prompt, use the **same room order as** [`defaultCoyoteGameData.gameRooms`](../../../../lambda/ephemera/internalCache/coyoteGame.ts) (`VORTEX`, `STRAIGHTAWAY`, etc.): iterate that list and emit only rooms present in the fixture map (omit empty rooms). This matches **default** live behavior from `getGameRooms()` and keeps runs comparable.
 
-**InternalCache (resolved):** Today [`CacheCoyoteGameData`](../../../../lambda/ephemera/internalCache/coyoteGame.ts) closes over `generateHypothesis({ getGameRooms, getRoomMeta })` with no parameters. **Locked-in approach:** do **not** thread snapshot overrides through `CoyoteGame.get('intent')` / `get('outcome')`. Add a **separate** harness entry (e.g. `runCoyoteEngineHarness(...)`, same lambda package) that calls `generateHypothesis` / (later) `generatePlanOutcome` **directly** with overrides, invoked only from the actions branch when `CoyoteEngineTest` fires. Production cache behavior stays unchanged.
+**InternalCache (resolved):** Today [`CacheCoyoteGameData`](../../../../lambda/ephemera/internalCache/coyoteGame.ts) closes over `generateHypothesis({ getGameRooms, getRoomMeta })` with no parameters. **Locked-in approach:** do **not** thread snapshot overrides through `CoyoteGame.get('intent')` / `get('outcome')`. Add a **separate** harness entry (e.g. `runCoyoteEngineTestHarness(...)`, same lambda package) that calls `generateHypothesis` / (later) `generatePlanOutcome` **directly** with overrides, invoked only from the actions branch when `CoyoteEngineTest` fires. Production cache behavior stays unchanged.
 
 ### 2. Define ten fixtures
 
@@ -165,7 +165,7 @@ Use `[ ]` / `[X]` as work lands.
 - [X] **Lambda:** Confirm ephemera Lambda timeout; **~60s** is a reasonable target for ten sequential Bedrock calls plus overhead; tune if `testBatchSize` is raised.
 - [X] **Fixtures:** Add ten-fixture module + snapshot test that fixture shape matches `EphemeraRoomId` / room key conventions.
 - [X] **Bedrock usage + timing:** Extend **`invokeBedrockConverseText`** to return Converse usage/metadata on success; update **`invokeBedrockHypothesis`** / Coyote + other callers; unit test with mocked `client.send` including usage fields.
-- [ ] **Harness runner:** Implement loop with **`testBatchSize`** (tunable concurrency), **continue-on-error** (failed fixture still publishes a line, remaining fixtures run), formatted per-fixture body including **metrics lines**; **ten `PublishMessage` calls** per harness invocation.
+- [X] **Harness runner:** Implement loop with **`testBatchSize`** (tunable concurrency), **continue-on-error** (failed fixture still publishes a line, remaining fixtures run), formatted per-fixture body including **metrics lines**; **ten `PublishMessage` calls** per harness invocation.
 - [ ] **Actions wiring:** Add `CoyoteEngineTest` to parse types + prompt + validation + handler branch; enable flag + harness triggers ten publishes; integration test with mocks (no Bedrock in CI) optional.
 - [ ] **Docs:** Short section in [`lambda/ephemera/dataSource/coyoteGame/AGENT.md`](../../../../lambda/ephemera/dataSource/coyoteGame/AGENT.md) and link from root task planning index if applicable.
 
@@ -181,7 +181,7 @@ Use `[ ]` / `[X]` as work lands.
 7. **Concurrency (resolved):** **`testBatchSize`** (or similar) **tunable** variable; default conservative (e.g. sequential). Lets operators trade latency vs throttling in practice.
 8. **Persistence (resolved):** **Pure testing:** harness does **not** read or write `CoyoteGame`, Dynamo intent/outcome, or other live game state.
 9. **Metrics (resolved):** Each fixture message includes **token usage** (and cache token fields when the API returns them) and **per-call latency** for objective grading of cost and speed; see **Harness runner** and **Output size and transport** above.
-10. **InternalCache entrypoint (resolved):** **Option A** only: dedicated harness runner (e.g. `runCoyoteEngineHarness`) calls generators with overrides; **no** snapshot parameters on [`CacheCoyoteGameData`](../../../../lambda/ephemera/internalCache/coyoteGame.ts) `get` methods (see **Plumb optional snapshot**).
+10. **InternalCache entrypoint (resolved):** **Option A** only: dedicated harness runner (e.g. `runCoyoteEngineTestHarness`) calls generators with overrides; **no** snapshot parameters on [`CacheCoyoteGameData`](../../../../lambda/ephemera/internalCache/coyoteGame.ts) `get` methods (see **Plumb optional snapshot**).
 11. **Converse metadata plumbing (resolved):** Extend [`invokeBedrockConverseText`](../../../../lambda/ephemera/generateExample/invokeBedrockConverseText.ts) so success results carry **usage / response metadata** from Bedrock; propagate to Coyote invoke path; **no** separate harness-only Converse wrapper for the primary implementation.
 12. **Fixture failures (resolved):** **Continue on error:** one failed fixture does **not** cancel the rest of the batch; each of ten slots gets a published line (success or error).
 
