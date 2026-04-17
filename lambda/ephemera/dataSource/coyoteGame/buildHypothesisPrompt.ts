@@ -1,4 +1,10 @@
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import {
+    COYOTE_HYPOTHESIS_CARTOON_OPPORTUNITY_LINES,
+    COYOTE_HYPOTHESIS_WORLD_TOPOLOGY_LINES,
+    SNAPSHOT_SECTION_HEADER,
+    splitCoyoteHypothesisLinesAtSnapshot,
+} from './coyoteHypothesisPromptShared'
 import { formatCoyoteStagedObjectsByRoom } from './coyoteRoomObjectSnapshot'
 
 export type BuildHypothesisPromptInput = {
@@ -10,27 +16,18 @@ export type CoyotePromptParts = {
     dynamicSuffix: string
 }
 
-const SNAPSHOT_SECTION_HEADER = '## Current staged objects by room'
+export { SNAPSHOT_SECTION_HEADER }
 
+/** @deprecated Legacy single-call hypothesis prompt — replaced by stage 1 + stage 2 builders in the two-round pipeline. */
 const HYPOTHESIS_PROMPT_LINES_TEMPLATE = (snapshotSection: string) =>
     [
         'You are inferring the player\'s current plan in a cartoon Coyote environment from a staged set of Acme objects distributed across a small world.',
         '',
         'Your job is to produce a concise, provisional hypothesis about what the player appears to be trying to do.',
         '',
-        '## World topology',
-        '- STRAIGHTAWAY is west of VORTEX. It is a long desert highway lined with cacti, stretching toward the western horizon.',
-        '- VORTEX is the starting room. The highway passes the base of a tall, sheer cliff here.',
-        '- CLIFFTOP is directly above VORTEX. A boulder sits near the cliff edge.',
-        '- CORNER is east of VORTEX. The road continues east, then turns sharply south, bending away from a rock face.',
-        '- BRIDGE is south of CORNER. It is a bridge over a yawning chasm, carrying the road north-south.',
+        ...COYOTE_HYPOTHESIS_WORLD_TOPOLOGY_LINES,
         '',
-        '## Cartoon opportunity points',
-        '- Objects placed on CLIFFTOP may imply a plan to drop or release the boulder onto the road below at VORTEX.',
-        '- Objects placed near CORNER may imply a plan for the Road Runner to collide with the rock face, overshoot the turn, or be redirected by the bend in the road.',
-        '- Objects placed on BRIDGE may imply a collapse, a fake crossing, a trap over the chasm, or a break in the road.',
-        '- Objects placed on STRAIGHTAWAY may imply a chase setup, acceleration, bait, or a long run-up.',
-        '- Read object placement spatially. Room choice matters, not just the object names.',
+        ...COYOTE_HYPOTHESIS_CARTOON_OPPORTUNITY_LINES,
         '',
         '## Actor affinities',
         '- The Coyote is a physical participant in plans: he wears, rides, and operates equipment himself.',
@@ -67,21 +64,11 @@ const HYPOTHESIS_PROMPT_LINES_TEMPLATE = (snapshotSection: string) =>
         snapshotSection || '(none)',
     ] as const
 
-function splitIndexForPromptCache(lines: string[]): number {
-    const splitAt = lines.findIndex(
-        (line, index) => line === '' && lines[index + 1] === SNAPSHOT_SECTION_HEADER
-    )
-    if (splitAt < 0) {
-        throw new Error('buildHypothesisPrompt: missing blank line before staged-objects snapshot')
-    }
-    return splitAt
-}
-
 /** Invariant instruction block + per-request snapshot, for Bedrock prompt caching. */
 export function buildHypothesisPromptParts(input: BuildHypothesisPromptInput): CoyotePromptParts {
     const snapshotSection = formatCoyoteStagedObjectsByRoom(input.roomObjectsByRoom)
     const lines = [...HYPOTHESIS_PROMPT_LINES_TEMPLATE(snapshotSection)]
-    const splitAt = splitIndexForPromptCache(lines)
+    const splitAt = splitCoyoteHypothesisLinesAtSnapshot(lines)
     return {
         invariantPrefix: lines.slice(0, splitAt).join('\n'),
         // Leading newline pairs with the blank line before "## Current staged objects..." in the full prompt.

@@ -1,8 +1,8 @@
 import type { RenderTree } from '@tonylb/mtw-base/ts/renderTree'
 import { renderTreeToString } from '@tonylb/mtw-base/ts/renderTree'
-import type { CoyotePromptParts } from './buildHypothesisPrompt'
 import type { CoyoteEngineTestFixture } from './coyoteEngineTestFixtures'
 import { runCoyoteEngineTestHarness } from './runCoyoteEngineTestHarness'
+import type { GenerateHypothesisPipelineResult } from './generateHypothesis'
 
 const simpleFixtures: CoyoteEngineTestFixture[] = [
     {
@@ -23,14 +23,30 @@ const simpleFixtures: CoyoteEngineTestFixture[] = [
     },
 ]
 
+function okPipeline(intentLine: string): GenerateHypothesisPipelineResult {
+    return {
+        record: {
+            intent: intentLine,
+        },
+        stageOneResult: {
+            success: true,
+            body: '',
+            usage: { inputTokens: 10, outputTokens: 6, totalTokens: 16 },
+        },
+        stageTwoResult: {
+            success: true,
+            body: intentLine,
+            usage: { inputTokens: 10, outputTokens: 6, totalTokens: 16 },
+        },
+    }
+}
+
 describe('runCoyoteEngineTestHarness', () => {
     it('publishes one WorldOOCMessage per fixture', async () => {
         const send = jest.fn()
-        const invoke = jest.fn().mockResolvedValue({
-            success: true,
-            body: 'Hypothesis: It looks like you are trying to set a trap.',
-            usage: { inputTokens: 10, outputTokens: 6, totalTokens: 16 },
-        })
+        const pipeline = jest.fn().mockImplementation(async (): Promise<GenerateHypothesisPipelineResult> =>
+            okPipeline('Hypothesis: It looks like you are trying to set a trap.')
+        )
         let t = 1000
         const now = () => {
             t += 5
@@ -41,12 +57,12 @@ describe('runCoyoteEngineTestHarness', () => {
             characterId: 'CHARACTER#runner',
             messageBus: { send },
             fixtures: simpleFixtures,
-            invokeBedrockHypothesisImpl: invoke,
+            generateHypothesisPipelineImpl: pipeline,
             now,
         })
 
         expect(send).toHaveBeenCalledTimes(simpleFixtures.length)
-        expect(invoke).toHaveBeenCalledTimes(simpleFixtures.length)
+        expect(pipeline).toHaveBeenCalledTimes(simpleFixtures.length)
         for (const call of send.mock.calls) {
             expect(call[0]).toMatchObject({
                 type: 'PublishMessage',
@@ -59,18 +75,22 @@ describe('runCoyoteEngineTestHarness', () => {
 
     it('continues on error and still publishes one line per fixture', async () => {
         const send = jest.fn()
-        const invoke = jest
+        const pipeline = jest
             .fn()
-            .mockResolvedValueOnce({ success: true, body: 'Hypothesis: ok', usage: undefined })
-            .mockResolvedValueOnce({ success: false, errorMessage: 'Throttled' })
+            .mockResolvedValueOnce(okPipeline('Hypothesis: ok'))
+            .mockResolvedValueOnce({
+                record: { intent: 'Hypothesis: Stubbed' },
+                stageOneResult: { success: false, errorMessage: 'Throttled', body: '' },
+                stageTwoResult: null,
+            })
             .mockRejectedValueOnce(new Error('network down'))
-            .mockResolvedValueOnce({ success: true, body: 'Hypothesis: final', usage: undefined })
+            .mockResolvedValueOnce(okPipeline('Hypothesis: final'))
 
         await runCoyoteEngineTestHarness({
             characterId: 'CHARACTER#runner',
             messageBus: { send },
             fixtures: simpleFixtures,
-            invokeBedrockHypothesisImpl: invoke,
+            generateHypothesisPipelineImpl: pipeline,
         })
 
         expect(send).toHaveBeenCalledTimes(simpleFixtures.length)
@@ -78,20 +98,40 @@ describe('runCoyoteEngineTestHarness', () => {
             renderTreeToString((call[0] as { message: RenderTree }).message)
         )
         expect(rendered.some((msg) => msg.includes('error: Throttled'))).toBe(true)
+        expect(rendered.some((msg) => msg.includes('stageOneBody: (none)') && msg.includes('error: Throttled'))).toBe(
+            true
+        )
         expect(rendered.some((msg) => msg.includes('error: network down'))).toBe(true)
     })
 
-    it('includes fixture index, elapsed timing, and usage metrics lines', async () => {
+    it('includes fixture index, elapsed timing, and per-stage usage metrics lines', async () => {
         const send = jest.fn()
-        const invoke = jest.fn().mockResolvedValue({
-            success: true,
-            body: '```text\nHypothesis: It looks like you are trying to launch a boulder.\n```',
-            usage: {
-                inputTokens: 40,
-                outputTokens: 11,
-                totalTokens: 51,
-                cacheReadInputTokens: 30,
-                cacheWriteInputTokens: 2,
+        const stageOneSeamBody = '## Objects\n### VORTEX · anvil\n- **Function:** drop\n- **Affinity:** ambiguous\n\n## Clusters\n### Cluster A\n- **Members:** VORTEX · anvil\n- **Coyote role:** ambiguous\n- **Summary:** test seam'
+        const pipeline = jest.fn().mockResolvedValue({
+            record: {
+                intent: 'Hypothesis: It looks like you are trying to launch a boulder.',
+            },
+            stageOneResult: {
+                success: true,
+                body: stageOneSeamBody,
+                usage: {
+                    inputTokens: 40,
+                    outputTokens: 11,
+                    totalTokens: 51,
+                    cacheReadInputTokens: 30,
+                    cacheWriteInputTokens: 2,
+                },
+            },
+            stageTwoResult: {
+                success: true,
+                body: '```text\nHypothesis: It looks like you are trying to launch a boulder.\n```',
+                usage: {
+                    inputTokens: 20,
+                    outputTokens: 9,
+                    totalTokens: 29,
+                    cacheReadInputTokens: 12,
+                    cacheWriteInputTokens: 0,
+                },
             },
         })
         let t = 0
@@ -104,7 +144,7 @@ describe('runCoyoteEngineTestHarness', () => {
             characterId: 'CHARACTER#runner',
             messageBus: { send },
             fixtures: [simpleFixtures[0]],
-            invokeBedrockHypothesisImpl: invoke,
+            generateHypothesisPipelineImpl: pipeline,
             now,
         })
 
@@ -113,27 +153,10 @@ describe('runCoyoteEngineTestHarness', () => {
         expect(flat).toContain('1/1 fixture-01')
         expect(flat).toContain('Hypothesis: It looks like you are trying to launch a boulder.')
         expect(flat).toContain('elapsedMs: 10')
-        expect(flat).toContain('usage: input=40 output=11 total=51 cacheRead=30 cacheWrite=2')
-    })
-
-    it('includes scene analysis when model returns preamble before Hypothesis line', async () => {
-        const send = jest.fn()
-        const invoke = jest.fn().mockResolvedValue({
-            success: true,
-            body: '## Scene analysis\nRocket: Coyote-operated.\nHypothesis: It looks like you are trying to ride.',
-            usage: undefined,
-        })
-
-        await runCoyoteEngineTestHarness({
-            characterId: 'CHARACTER#runner',
-            messageBus: { send },
-            fixtures: [simpleFixtures[0]],
-            invokeBedrockHypothesisImpl: invoke,
-        })
-
-        const flat = renderTreeToString((send.mock.calls[0][0] as { message: RenderTree }).message)
-        expect(flat).toContain('## Scene analysis')
-        expect(flat).toContain('Hypothesis: It looks like you are trying to ride.')
+        expect(flat).toContain('usageStage1: input=40 output=11 total=51 cacheRead=30 cacheWrite=2')
+        expect(flat).toContain('stageOneBody:')
+        expect(flat).toContain('### VORTEX · anvil')
+        expect(flat).toContain('usageStage2: input=20 output=9 total=29 cacheRead=12 cacheWrite=0')
     })
 
     it('respects testBatchSize concurrency limit', async () => {
@@ -141,7 +164,7 @@ describe('runCoyoteEngineTestHarness', () => {
         let inFlight = 0
         let maxInFlight = 0
         const resolvers: Array<() => void> = []
-        const invoke = jest.fn().mockImplementation(async (_prompt: CoyotePromptParts) => {
+        const pipeline = jest.fn().mockImplementation(async (): Promise<GenerateHypothesisPipelineResult> => {
             inFlight += 1
             maxInFlight = Math.max(maxInFlight, inFlight)
             await new Promise<void>((resolve) => {
@@ -150,14 +173,14 @@ describe('runCoyoteEngineTestHarness', () => {
                     resolve()
                 })
             })
-            return { success: true, body: 'Hypothesis: ok', usage: undefined }
+            return okPipeline('Hypothesis: ok')
         })
 
         const runPromise = runCoyoteEngineTestHarness({
             characterId: 'CHARACTER#runner',
             messageBus: { send },
             fixtures: simpleFixtures,
-            invokeBedrockHypothesisImpl: invoke,
+            generateHypothesisPipelineImpl: pipeline,
             testBatchSize: 2,
         })
 

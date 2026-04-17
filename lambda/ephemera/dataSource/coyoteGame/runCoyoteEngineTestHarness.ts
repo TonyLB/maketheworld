@@ -2,24 +2,24 @@ import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces
 import type { RenderTree } from '@tonylb/mtw-base/ts/renderTree'
 import type { MessageBus } from '../../messageBus/baseClasses'
 import type { CoyoteGameIntentRecord } from '../../internalCache/coyoteGame'
-import { buildHypothesisPromptParts } from './buildHypothesisPrompt'
 import { COYOTE_RENDER_LINE_BREAK } from './coyoteRenderTree'
 import {
     COYOTE_ENGINE_TEST_FIXTURES,
     type CoyoteEngineTestFixture,
 } from './coyoteEngineTestFixtures'
+import type { InvokeBedrockHypothesisResult } from './invokeBedrockHypothesis'
 import {
-    invokeBedrockHypothesis,
-    type InvokeBedrockHypothesisResult,
-} from './invokeBedrockHypothesis'
-import { parseHypothesisModelOutput } from './parseHypothesisModelOutput'
+    generateHypothesisWithStageResults,
+    type GenerateHypothesisPipelineResult,
+} from './generateHypothesis'
 
 export type RunCoyoteEngineTestHarnessDeps = {
     characterId: EphemeraCharacterId
     messageBus: Pick<MessageBus, 'send'>
     fixtures?: CoyoteEngineTestFixture[]
     testBatchSize?: number
-    invokeBedrockHypothesisImpl?: typeof invokeBedrockHypothesis
+    /** Override for tests; defaults to [`generateHypothesisWithStageResults`]. */
+    generateHypothesisPipelineImpl?: typeof generateHypothesisWithStageResults
     now?: () => number
 }
 
@@ -39,9 +39,21 @@ function normalizeFixtureRoomObjects(
     ) as Record<EphemeraRoomId, string[]>
 }
 
-function formatUsageLine(result: InvokeBedrockHypothesisResult): string {
+/** Raw stage-1 Bedrock text for harness diagnostics (seam contract tuning, parse failures vs skipped stage 2). */
+function formatStageOneBodyForHarness(result: InvokeBedrockHypothesisResult): string {
+    if (!result.success) {
+        return 'stageOneBody: (none)'
+    }
+    const body = result.body
+    if (!body.trim()) {
+        return 'stageOneBody: (empty)'
+    }
+    return `stageOneBody:\n${body}`
+}
+
+function formatUsageLine(label: string, result: InvokeBedrockHypothesisResult): string {
     if (!result.success || !result.usage) {
-        return 'usage: (none)'
+        return `${label}: (none)`
     }
     const {
         inputTokens,
@@ -52,7 +64,17 @@ function formatUsageLine(result: InvokeBedrockHypothesisResult): string {
     } = result.usage
     const cacheRead = cacheReadInputTokens ?? 0
     const cacheWrite = cacheWriteInputTokens ?? 0
-    return `usage: input=${inputTokens} output=${outputTokens} total=${totalTokens} cacheRead=${cacheRead} cacheWrite=${cacheWrite}`
+    return `${label}: input=${inputTokens} output=${outputTokens} total=${totalTokens} cacheRead=${cacheRead} cacheWrite=${cacheWrite}`
+}
+
+function pipelineErrorMessage(pipeline: GenerateHypothesisPipelineResult): string | undefined {
+    if (!pipeline.stageOneResult.success) {
+        return pipeline.stageOneResult.errorMessage
+    }
+    if (pipeline.stageTwoResult && !pipeline.stageTwoResult.success) {
+        return pipeline.stageTwoResult.errorMessage
+    }
+    return undefined
 }
 
 function formatFixtureRenderTree(args: {
@@ -61,10 +83,22 @@ function formatFixtureRenderTree(args: {
     total: number
     intentRecord: CoyoteGameIntentRecord
     elapsedMs: number
-    usageLine: string
+    usageStageOne: string
+    stageOneBodyBlock: string
+    usageStageTwo: string
     errorMessage?: string
 }): RenderTree {
-    const { fixture, index, total, intentRecord, elapsedMs, usageLine, errorMessage } = args
+    const {
+        fixture,
+        index,
+        total,
+        intentRecord,
+        elapsedMs,
+        usageStageOne,
+        stageOneBodyBlock,
+        usageStageTwo,
+        errorMessage,
+    } = args
     const heading = `${index + 1}/${total} ${fixture.id}${fixture.label ? ` - ${fixture.label}` : ''}`
     const tree: RenderTree = [heading, COYOTE_RENDER_LINE_BREAK]
     if (intentRecord.sceneAnalysis !== undefined && intentRecord.sceneAnalysis.length > 0) {
@@ -75,7 +109,11 @@ function formatFixtureRenderTree(args: {
         COYOTE_RENDER_LINE_BREAK,
         `elapsedMs: ${elapsedMs}`,
         COYOTE_RENDER_LINE_BREAK,
-        usageLine
+        usageStageOne,
+        COYOTE_RENDER_LINE_BREAK,
+        stageOneBodyBlock,
+        COYOTE_RENDER_LINE_BREAK,
+        usageStageTwo
     )
     if (errorMessage) {
         tree.push(COYOTE_RENDER_LINE_BREAK, `error: ${errorMessage}`)
@@ -89,29 +127,34 @@ export async function runCoyoteEngineTestHarness(deps: RunCoyoteEngineTestHarnes
         return
     }
     const testBatchSize = Math.max(1, Math.floor(deps.testBatchSize ?? 1))
-    const invoke = deps.invokeBedrockHypothesisImpl ?? invokeBedrockHypothesis
+    const runPipeline = deps.generateHypothesisPipelineImpl ?? generateHypothesisWithStageResults
     const now = deps.now ?? (() => Date.now())
     let nextIndex = 0
 
     const runFixture = async (fixture: CoyoteEngineTestFixture, index: number): Promise<void> => {
         const startMs = now()
         try {
-            const prompt = buildHypothesisPromptParts({
-                roomObjectsByRoom: normalizeFixtureRoomObjects(fixture),
+            const pipeline = await runPipeline({
+                getGameRooms: async () => [],
+                getRoomMeta: async () => undefined,
+                roomObjectsByRoomOverride: normalizeFixtureRoomObjects(fixture),
             })
-            const result = await invoke(prompt)
-            const intentRecord: CoyoteGameIntentRecord = result.success
-                ? parseHypothesisModelOutput(result.body)
-                : { intent: 'Hypothesis: Stubbed' }
             const elapsedMs = Math.max(0, now() - startMs)
+            const usageStageOne = formatUsageLine('usageStage1', pipeline.stageOneResult)
+            const usageStageTwo = pipeline.stageTwoResult
+                ? formatUsageLine('usageStage2', pipeline.stageTwoResult)
+                : 'usageStage2: (skipped)'
+            const stageOneBodyBlock = formatStageOneBodyForHarness(pipeline.stageOneResult)
             const message = formatFixtureRenderTree({
                 fixture,
                 index,
                 total: fixtures.length,
-                intentRecord,
+                intentRecord: pipeline.record,
                 elapsedMs,
-                usageLine: formatUsageLine(result),
-                errorMessage: result.success ? undefined : result.errorMessage,
+                usageStageOne,
+                stageOneBodyBlock,
+                usageStageTwo,
+                errorMessage: pipelineErrorMessage(pipeline),
             })
             deps.messageBus.send({
                 type: 'PublishMessage',
@@ -129,7 +172,9 @@ export async function runCoyoteEngineTestHarness(deps: RunCoyoteEngineTestHarnes
                 total: fixtures.length,
                 intentRecord: { intent: 'Hypothesis: Stubbed' },
                 elapsedMs,
-                usageLine: 'usage: (none)',
+                usageStageOne: 'usageStage1: (none)',
+                stageOneBodyBlock: 'stageOneBody: (none)',
+                usageStageTwo: 'usageStage2: (none)',
                 errorMessage,
             })
             deps.messageBus.send({
