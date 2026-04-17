@@ -110,6 +110,7 @@ Include specific guidance for AI assistants:
 #### **Task planning (`taskPlanning/`)**
 - **[`taskPlanning/AGENT.md`](taskPlanning/AGENT.md)**: What belongs in task plans versus durable package docs, durability expectations, and how to add a new planning document.
 - **Area notes**: Subfolders may include `AGENT.development.md` (for example [`taskPlanning/charcoal-client/AGENT.development.md`](taskPlanning/charcoal-client/AGENT.development.md)) with exact test commands and links to [`charcoal-client/AGENT.testing.md`](charcoal-client/AGENT.testing.md).
+- **Example (ephemera / Coyote):** [`lambda/ephemera/dataSource/coyoteGame/AGENT.md`](lambda/ephemera/dataSource/coyoteGame/AGENT.md) **Engine testing harness (dev)** — graded Coyote hypothesis runs via `runCoyoteEngineTestHarness`.
 
 ## Quick Navigation
 
