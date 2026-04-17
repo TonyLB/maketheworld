@@ -1,4 +1,4 @@
-import { buildPlanOutcomePrompt } from './buildPlanOutcomePrompt'
+import { buildPlanOutcomePrompt, buildPlanOutcomePromptParts } from './buildPlanOutcomePrompt'
 
 describe('buildPlanOutcomePrompt', () => {
     it('includes safety, backfire, hypothesis section, and staged objects', () => {
@@ -29,5 +29,15 @@ describe('buildPlanOutcomePrompt', () => {
         })
         expect(prompt).toContain('## Current hypothesis about your intent')
         expect(prompt).toContain('(none)')
+    })
+
+    it('rejoins prompt parts to the same string as buildPlanOutcomePrompt', () => {
+        const input = {
+            roomObjectsByRoom: { 'ROOM#VORTEX': ['anvil'] },
+            hypothesisLine: 'Hypothesis: test.',
+        }
+        const full = buildPlanOutcomePrompt(input)
+        const parts = buildPlanOutcomePromptParts(input)
+        expect(parts.invariantPrefix + parts.dynamicSuffix).toBe(full)
     })
 })

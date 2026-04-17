@@ -52,10 +52,13 @@ describe('generatePlanOutcome', () => {
         expect(getIntent).toHaveBeenCalledTimes(1)
         expect(getRoomMeta).toHaveBeenCalledTimes(2)
         expect(invokeBedrockHypothesisMock).toHaveBeenCalledTimes(1)
-        const promptArg = invokeBedrockHypothesisMock.mock.calls[0][0]
-        expect(typeof promptArg).toBe('string')
-        expect(promptArg).toContain('VORTEX: anvil')
-        expect(promptArg).toContain('Hypothesis: It looks like you are trying to drop the anvil.')
+        const promptArg = invokeBedrockHypothesisMock.mock.calls[0][0] as {
+            invariantPrefix: string
+            dynamicSuffix: string
+        }
+        const fullPrompt = promptArg.invariantPrefix + promptArg.dynamicSuffix
+        expect(fullPrompt).toContain('VORTEX: anvil')
+        expect(fullPrompt).toContain('Hypothesis: It looks like you are trying to drop the anvil.')
         expect(invokeBedrockHypothesisMock.mock.calls[0][1]).toEqual({ maxTokens: 384 })
     })
 

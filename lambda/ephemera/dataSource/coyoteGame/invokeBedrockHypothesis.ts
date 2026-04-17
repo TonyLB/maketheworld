@@ -1,8 +1,14 @@
-import type { BedrockRuntimeClient, ContentBlock, Message } from '@aws-sdk/client-bedrock-runtime'
+import {
+    CachePointType,
+    type BedrockRuntimeClient,
+    type ContentBlock,
+    type Message,
+} from '@aws-sdk/client-bedrock-runtime'
 import {
     invokeBedrockConverseText,
     type InvokeBedrockConverseTextResult,
 } from '../../generateExample/invokeBedrockConverseText'
+import type { CoyotePromptParts } from './buildHypothesisPrompt'
 
 export const BEDROCK_HYPOTHESIS_MODEL_ID = 'us.amazon.nova-2-lite-v1:0' as const
 export const BEDROCK_HYPOTHESIS_TIMEOUT_MS = 30_000
@@ -12,8 +18,16 @@ export type InvokeBedrockHypothesisSuccess = Extract<InvokeBedrockConverseTextRe
 export type InvokeBedrockHypothesisFailure = Extract<InvokeBedrockConverseTextResult, { success: false }>
 export type InvokeBedrockHypothesisResult = InvokeBedrockConverseTextResult
 
+function coyoteUserContent(prompt: CoyotePromptParts): ContentBlock[] {
+    return [
+        { text: prompt.invariantPrefix },
+        { cachePoint: { type: CachePointType.DEFAULT } },
+        { text: prompt.dynamicSuffix },
+    ]
+}
+
 export async function invokeBedrockHypothesis(
-    prompt: string,
+    prompt: CoyotePromptParts,
     options: {
         modelId?: string;
         maxTokens?: number;
@@ -29,7 +43,7 @@ export async function invokeBedrockHypothesis(
 
     const userMessage: Message = {
         role: 'user',
-        content: [{ text: prompt } as ContentBlock],
+        content: coyoteUserContent(prompt),
     }
 
     return invokeBedrockConverseText({

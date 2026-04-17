@@ -5,10 +5,13 @@ export type BuildHypothesisPromptInput = {
     roomObjectsByRoom: Record<EphemeraRoomId, string[]>
 }
 
-export function buildHypothesisPrompt(input: BuildHypothesisPromptInput): string {
-    const snapshotSection = formatCoyoteStagedObjectsByRoom(input.roomObjectsByRoom)
+export type CoyotePromptParts = {
+    invariantPrefix: string
+    dynamicSuffix: string
+}
 
-    return [
+const HYPOTHESIS_PROMPT_LINES_TEMPLATE = (snapshotSection: string) =>
+    [
         'You are inferring the player\'s current plan in a cartoon Coyote environment from a staged set of Acme objects distributed across a small world.',
         '',
         'Your job is to produce a concise, provisional hypothesis about what the player appears to be trying to do.',
@@ -47,5 +50,21 @@ export function buildHypothesisPrompt(input: BuildHypothesisPromptInput): string
         '',
         '## Current staged objects by room',
         snapshotSection || '(none)',
-    ].join('\n')
+    ] as const
+
+/** Invariant instruction block + per-request snapshot, for Bedrock prompt caching. */
+export function buildHypothesisPromptParts(input: BuildHypothesisPromptInput): CoyotePromptParts {
+    const snapshotSection = formatCoyoteStagedObjectsByRoom(input.roomObjectsByRoom)
+    const lines = [...HYPOTHESIS_PROMPT_LINES_TEMPLATE(snapshotSection)]
+    const splitAt = 47
+    return {
+        invariantPrefix: lines.slice(0, splitAt).join('\n'),
+        // Leading newline pairs with the blank line before "## Current staged objects…" in the full prompt.
+        dynamicSuffix: '\n' + lines.slice(splitAt).join('\n'),
+    }
+}
+
+export function buildHypothesisPrompt(input: BuildHypothesisPromptInput): string {
+    const { invariantPrefix, dynamicSuffix } = buildHypothesisPromptParts(input)
+    return invariantPrefix + dynamicSuffix
 }

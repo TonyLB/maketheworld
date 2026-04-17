@@ -1,7 +1,7 @@
 import type { RenderTree } from '@tonylb/mtw-base/ts/renderTree'
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { buildPlanOutcomePrompt } from './buildPlanOutcomePrompt'
+import { buildPlanOutcomePromptParts } from './buildPlanOutcomePrompt'
 import { loadCoyoteRoomObjectsByRoom } from './coyoteRoomObjectSnapshot'
 import { invokeBedrockHypothesis } from './invokeBedrockHypothesis'
 
@@ -37,7 +37,7 @@ export async function generatePlanOutcome(deps: GeneratePlanOutcomeDeps): Promis
         loadCoyoteRoomObjectsByRoom(deps),
         deps.getIntent(),
     ])
-    const prompt = buildPlanOutcomePrompt({ roomObjectsByRoom, hypothesisLine })
+    const prompt = buildPlanOutcomePromptParts({ roomObjectsByRoom, hypothesisLine })
     const invokeResult = await invokeBedrockHypothesis(prompt, { maxTokens: 384 })
     if (!invokeResult.success) {
         return OUTCOME_STUB

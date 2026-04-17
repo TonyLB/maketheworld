@@ -1,6 +1,6 @@
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { buildHypothesisPrompt } from './buildHypothesisPrompt'
+import { buildHypothesisPromptParts } from './buildHypothesisPrompt'
 import { loadCoyoteRoomObjectsByRoom } from './coyoteRoomObjectSnapshot'
 import { invokeBedrockHypothesis } from './invokeBedrockHypothesis'
 
@@ -23,7 +23,7 @@ function normalizeHypothesisBody(body: string): string | null {
 /** Generates a single plain-text hypothesis sentence. */
 export async function generateHypothesis(deps: GenerateHypothesisDeps): Promise<string> {
     const roomObjectsByRoom = await loadCoyoteRoomObjectsByRoom(deps)
-    const prompt = buildHypothesisPrompt({ roomObjectsByRoom })
+    const prompt = buildHypothesisPromptParts({ roomObjectsByRoom })
     const invokeResult = await invokeBedrockHypothesis(prompt)
     if (!invokeResult.success) {
         return 'Hypothesis: Stubbed'

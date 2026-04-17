@@ -22,4 +22,8 @@ On **`Await RoadRunner`** from actions, the handler targets **all active charact
 
 **Product / demo context:** [`AGENT.CoyoteGame.implementation.md`](../../../../AGENT.CoyoteGame.implementation.md).
 
+## Bedrock prompt caching
+
+[`invokeBedrockHypothesis`](invokeBedrockHypothesis.ts) sends a single user message as `text` (static instructions), [`cachePoint`](https://docs.aws.amazon.com/bedrock/latest/userguide/prompt-caching.html), then `text` (dynamic tail). Prompts are split in [`buildHypothesisPromptParts`](buildHypothesisPrompt.ts) and [`buildPlanOutcomePromptParts`](buildPlanOutcomePrompt.ts).
+
 **Verification:** `cd lambda/ephemera && npx jest dataSource/coyoteGame/`

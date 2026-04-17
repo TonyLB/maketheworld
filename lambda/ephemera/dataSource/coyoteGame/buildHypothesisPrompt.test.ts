@@ -1,4 +1,4 @@
-import { buildHypothesisPrompt } from './buildHypothesisPrompt'
+import { buildHypothesisPrompt, buildHypothesisPromptParts } from './buildHypothesisPrompt'
 
 describe('buildHypothesisPrompt', () => {
     it('places topology instructions before the live snapshot', () => {
@@ -27,5 +27,17 @@ describe('buildHypothesisPrompt', () => {
         expect(prompt).toContain('STRAIGHTAWAY: rocket skates')
         expect(prompt).toContain('CLIFFTOP: giant magnet')
         expect(prompt.trim().endsWith('BRIDGE: portable hole')).toBe(true)
+    })
+
+    it('rejoins prompt parts to the same string as buildHypothesisPrompt', () => {
+        const input = {
+            roomObjectsByRoom: {
+                'ROOM#STRAIGHTAWAY': ['rocket skates'],
+                'ROOM#VORTEX': ['anvil'],
+            },
+        }
+        const full = buildHypothesisPrompt(input)
+        const parts = buildHypothesisPromptParts(input)
+        expect(parts.invariantPrefix + parts.dynamicSuffix).toBe(full)
     })
 })
