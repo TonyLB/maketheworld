@@ -54,6 +54,12 @@ export type ParseCommandAwaitRoadrunnerResult = {
     confidence: ParseCommandConfidence
 }
 
+/** Coyote Game: explicit trigger for the Coyote engine test harness. */
+export type ParseCommandCoyoteEngineTestResult = {
+    type: 'CoyoteEngineTest'
+    confidence: ParseCommandConfidence
+}
+
 export type ParseCommandUnimplementedResult = {
     type: 'Unimplemented'
     confidence: ParseCommandConfidence
@@ -69,6 +75,7 @@ export type ParseCommandResult =
     | ParseCommandNavigationResult
     | ParseCommandAcmeOrderResult
     | ParseCommandAwaitRoadrunnerResult
+    | ParseCommandCoyoteEngineTestResult
     | ParseCommandUnimplementedResult
     | ParseCommandUnknownResult
 
@@ -124,6 +131,15 @@ export function isParseCommandAwaitRoadrunnerResult(
     result: ParseCommandResult
 ): result is ParseCommandAwaitRoadrunnerResult {
     if (result.type !== 'AwaitRoadRunner') {
+        return false
+    }
+    return isParseConfidence(result.confidence)
+}
+
+export function isParseCommandCoyoteEngineTestResult(
+    result: ParseCommandResult
+): result is ParseCommandCoyoteEngineTestResult {
+    if (result.type !== 'CoyoteEngineTest') {
         return false
     }
     return isParseConfidence(result.confidence)

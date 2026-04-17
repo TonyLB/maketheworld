@@ -10,7 +10,7 @@ const OUTCOME_STUB: RenderTree = ['Outcome: Stubbed']
 export type GeneratePlanOutcomeDeps = {
     getGameRooms: () => Promise<string[]>
     getRoomMeta: (roomId: EphemeraRoomId) => Promise<EphemeraMetaRoom | undefined>
-    /** Current hypothesis line (from `CoyoteGame.get('intent')`). */
+    /** Current hypothesis line (the `intent` field from `CoyoteGame.get('intent')`). */
     getIntent: () => Promise<string>
     roomObjectsByRoomOverride?: Record<EphemeraRoomId, string[]>
     hypothesisLineOverride?: string

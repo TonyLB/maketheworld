@@ -1,6 +1,9 @@
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { RenderTree } from '@tonylb/mtw-base/ts/renderTree'
 import type { MessageBus } from '../../messageBus/baseClasses'
+import type { CoyoteGameIntentRecord } from '../../internalCache/coyoteGame'
 import { buildHypothesisPromptParts } from './buildHypothesisPrompt'
+import { COYOTE_RENDER_LINE_BREAK } from './coyoteRenderTree'
 import {
     COYOTE_ENGINE_TEST_FIXTURES,
     type CoyoteEngineTestFixture,
@@ -9,6 +12,7 @@ import {
     invokeBedrockHypothesis,
     type InvokeBedrockHypothesisResult,
 } from './invokeBedrockHypothesis'
+import { parseHypothesisModelOutput } from './parseHypothesisModelOutput'
 
 export type RunCoyoteEngineTestHarnessDeps = {
     characterId: EphemeraCharacterId
@@ -35,17 +39,6 @@ function normalizeFixtureRoomObjects(
     ) as Record<EphemeraRoomId, string[]>
 }
 
-function normalizeHypothesisBody(body: string): string | null {
-    const trimmed = body.trim()
-    if (!trimmed) {
-        return null
-    }
-    const openFence = /^```(?:text)?\s*\n?/i
-    const closeFence = /\n?```\s*$/i
-    const unwrapped = trimmed.replace(openFence, '').replace(closeFence, '').trim()
-    return unwrapped || null
-}
-
 function formatUsageLine(result: InvokeBedrockHypothesisResult): string {
     if (!result.success || !result.usage) {
         return 'usage: (none)'
@@ -62,35 +55,32 @@ function formatUsageLine(result: InvokeBedrockHypothesisResult): string {
     return `usage: input=${inputTokens} output=${outputTokens} total=${totalTokens} cacheRead=${cacheRead} cacheWrite=${cacheWrite}`
 }
 
-function formatFixtureMessage(args: {
+function formatFixtureRenderTree(args: {
     fixture: CoyoteEngineTestFixture
     index: number
     total: number
-    hypothesisLine: string
+    intentRecord: CoyoteGameIntentRecord
     elapsedMs: number
     usageLine: string
     errorMessage?: string
-}): string {
-    const {
-        fixture,
-        index,
-        total,
-        hypothesisLine,
-        elapsedMs,
-        usageLine,
-        errorMessage,
-    } = args
+}): RenderTree {
+    const { fixture, index, total, intentRecord, elapsedMs, usageLine, errorMessage } = args
     const heading = `${index + 1}/${total} ${fixture.id}${fixture.label ? ` - ${fixture.label}` : ''}`
-    const lines = [
-        heading,
-        hypothesisLine,
-        `elapsedMs: ${elapsedMs}`,
-        usageLine,
-    ]
-    if (errorMessage) {
-        lines.push(`error: ${errorMessage}`)
+    const tree: RenderTree = [heading, COYOTE_RENDER_LINE_BREAK]
+    if (intentRecord.sceneAnalysis !== undefined && intentRecord.sceneAnalysis.length > 0) {
+        tree.push(intentRecord.sceneAnalysis, COYOTE_RENDER_LINE_BREAK)
     }
-    return lines.join('\n')
+    tree.push(
+        intentRecord.intent,
+        COYOTE_RENDER_LINE_BREAK,
+        `elapsedMs: ${elapsedMs}`,
+        COYOTE_RENDER_LINE_BREAK,
+        usageLine
+    )
+    if (errorMessage) {
+        tree.push(COYOTE_RENDER_LINE_BREAK, `error: ${errorMessage}`)
+    }
+    return tree
 }
 
 export async function runCoyoteEngineTestHarness(deps: RunCoyoteEngineTestHarnessDeps): Promise<void> {
@@ -110,15 +100,15 @@ export async function runCoyoteEngineTestHarness(deps: RunCoyoteEngineTestHarnes
                 roomObjectsByRoom: normalizeFixtureRoomObjects(fixture),
             })
             const result = await invoke(prompt)
-            const hypothesisLine = result.success
-                ? (normalizeHypothesisBody(result.body) ?? 'Hypothesis: Stubbed')
-                : 'Hypothesis: Stubbed'
+            const intentRecord: CoyoteGameIntentRecord = result.success
+                ? parseHypothesisModelOutput(result.body)
+                : { intent: 'Hypothesis: Stubbed' }
             const elapsedMs = Math.max(0, now() - startMs)
-            const message = formatFixtureMessage({
+            const message = formatFixtureRenderTree({
                 fixture,
                 index,
                 total: fixtures.length,
-                hypothesisLine,
+                intentRecord,
                 elapsedMs,
                 usageLine: formatUsageLine(result),
                 errorMessage: result.success ? undefined : result.errorMessage,
@@ -127,17 +117,17 @@ export async function runCoyoteEngineTestHarness(deps: RunCoyoteEngineTestHarnes
                 type: 'PublishMessage',
                 targets: [deps.characterId],
                 displayProtocol: 'WorldOOCMessage',
-                message: [message],
+                message,
             })
         }
         catch (error) {
             const elapsedMs = Math.max(0, now() - startMs)
             const errorMessage = error instanceof Error ? error.message : String(error)
-            const message = formatFixtureMessage({
+            const message = formatFixtureRenderTree({
                 fixture,
                 index,
                 total: fixtures.length,
-                hypothesisLine: 'Hypothesis: Stubbed',
+                intentRecord: { intent: 'Hypothesis: Stubbed' },
                 elapsedMs,
                 usageLine: 'usage: (none)',
                 errorMessage,
@@ -146,7 +136,7 @@ export async function runCoyoteEngineTestHarness(deps: RunCoyoteEngineTestHarnes
                 type: 'PublishMessage',
                 targets: [deps.characterId],
                 displayProtocol: 'WorldOOCMessage',
-                message: [message],
+                message,
             })
         }
     }
@@ -162,4 +152,3 @@ export async function runCoyoteEngineTestHarness(deps: RunCoyoteEngineTestHarnes
     const workerCount = Math.min(testBatchSize, fixtures.length)
     await Promise.all(Array.from({ length: workerCount }, () => worker()))
 }
-

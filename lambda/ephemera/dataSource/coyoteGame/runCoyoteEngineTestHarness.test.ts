@@ -1,3 +1,5 @@
+import type { RenderTree } from '@tonylb/mtw-base/ts/renderTree'
+import { renderTreeToString } from '@tonylb/mtw-base/ts/renderTree'
 import type { CoyotePromptParts } from './buildHypothesisPrompt'
 import type { CoyoteEngineTestFixture } from './coyoteEngineTestFixtures'
 import { runCoyoteEngineTestHarness } from './runCoyoteEngineTestHarness'
@@ -51,6 +53,7 @@ describe('runCoyoteEngineTestHarness', () => {
                 targets: ['CHARACTER#runner'],
                 displayProtocol: 'WorldOOCMessage',
             })
+            expect(Array.isArray((call[0] as { message: RenderTree }).message)).toBe(true)
         }
     })
 
@@ -71,7 +74,9 @@ describe('runCoyoteEngineTestHarness', () => {
         })
 
         expect(send).toHaveBeenCalledTimes(simpleFixtures.length)
-        const rendered = send.mock.calls.map((call) => call[0].message[0] as string)
+        const rendered = send.mock.calls.map((call) =>
+            renderTreeToString((call[0] as { message: RenderTree }).message)
+        )
         expect(rendered.some((msg) => msg.includes('error: Throttled'))).toBe(true)
         expect(rendered.some((msg) => msg.includes('error: network down'))).toBe(true)
     })
@@ -103,11 +108,32 @@ describe('runCoyoteEngineTestHarness', () => {
             now,
         })
 
-        const message = send.mock.calls[0][0].message[0] as string
-        expect(message).toContain('1/1 fixture-01')
-        expect(message).toContain('Hypothesis: It looks like you are trying to launch a boulder.')
-        expect(message).toContain('elapsedMs: 10')
-        expect(message).toContain('usage: input=40 output=11 total=51 cacheRead=30 cacheWrite=2')
+        const message = (send.mock.calls[0][0] as { message: RenderTree }).message
+        const flat = renderTreeToString(message)
+        expect(flat).toContain('1/1 fixture-01')
+        expect(flat).toContain('Hypothesis: It looks like you are trying to launch a boulder.')
+        expect(flat).toContain('elapsedMs: 10')
+        expect(flat).toContain('usage: input=40 output=11 total=51 cacheRead=30 cacheWrite=2')
+    })
+
+    it('includes scene analysis when model returns preamble before Hypothesis line', async () => {
+        const send = jest.fn()
+        const invoke = jest.fn().mockResolvedValue({
+            success: true,
+            body: '## Scene analysis\nRocket: Coyote-operated.\nHypothesis: It looks like you are trying to ride.',
+            usage: undefined,
+        })
+
+        await runCoyoteEngineTestHarness({
+            characterId: 'CHARACTER#runner',
+            messageBus: { send },
+            fixtures: [simpleFixtures[0]],
+            invokeBedrockHypothesisImpl: invoke,
+        })
+
+        const flat = renderTreeToString((send.mock.calls[0][0] as { message: RenderTree }).message)
+        expect(flat).toContain('## Scene analysis')
+        expect(flat).toContain('Hypothesis: It looks like you are trying to ride.')
     })
 
     it('respects testBatchSize concurrency limit', async () => {
@@ -155,4 +181,3 @@ describe('runCoyoteEngineTestHarness', () => {
         expect(send).toHaveBeenCalledTimes(simpleFixtures.length)
     })
 })
-

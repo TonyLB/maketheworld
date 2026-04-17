@@ -166,7 +166,7 @@ Use `[ ]` / `[X]` as work lands.
 - [X] **Fixtures:** Add ten-fixture module + snapshot test that fixture shape matches `EphemeraRoomId` / room key conventions.
 - [X] **Bedrock usage + timing:** Extend **`invokeBedrockConverseText`** to return Converse usage/metadata on success; update **`invokeBedrockHypothesis`** / Coyote + other callers; unit test with mocked `client.send` including usage fields.
 - [X] **Harness runner:** Implement loop with **`testBatchSize`** (tunable concurrency), **continue-on-error** (failed fixture still publishes a line, remaining fixtures run), formatted per-fixture body including **metrics lines**; **ten `PublishMessage` calls** per harness invocation.
-- [ ] **Actions wiring:** Add `CoyoteEngineTest` to parse types + prompt + validation + handler branch; enable flag + harness triggers ten publishes; integration test with mocks (no Bedrock in CI) optional.
+- [X] **Actions wiring:** Add `CoyoteEngineTest` to parse types + prompt + validation + handler branch; enable flag + harness triggers ten publishes; integration test with mocks (no Bedrock in CI) optional.
 - [ ] **Docs:** Short section in [`lambda/ephemera/dataSource/coyoteGame/AGENT.md`](../../../../lambda/ephemera/dataSource/coyoteGame/AGENT.md) and link from root task planning index if applicable.
 
 ## Unknowns and decisions

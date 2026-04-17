@@ -1,5 +1,5 @@
 /**
- * First-draft prompt: high-priority **AwaitRoadRunner** and **AcmeOrder**, then **Unimplemented** vs **Unknown**.
+ * First-draft prompt: high-priority **AwaitRoadRunner**, **AcmeOrder**, and **CoyoteEngineTest**, then **Unimplemented** vs **Unknown**.
  */
 
 export function buildParseCommandIntentClassificationPrompt(command: string): string {
@@ -10,7 +10,7 @@ export function buildParseCommandIntentClassificationPrompt(command: string): st
 
 ## Decision order (mandatory)
 
-**Before** choosing Unimplemented or Unknown, evaluate **AwaitRoadRunner** and **AcmeOrder** as **same-tier** special intents (either can win; see tie-break below).
+**Before** choosing Unimplemented or Unknown, evaluate **AwaitRoadRunner**, **AcmeOrder**, and **CoyoteEngineTest** as **same-tier** special intents.
 
 ### A — AwaitRoadRunner
 
@@ -24,9 +24,13 @@ Choose **AcmeOrder** when the line is **primarily** about **ordering or buying g
 
 Prefer **AcmeOrder** when **commerce / catalog / product** language is central (verbs like order, buy, mail, send for, plus product nouns). Prefer **AwaitRoadRunner** when **patience / timing / the chase** is central with **no** clear product order. If still ambiguous, prefer **AwaitRoadRunner**.
 
+### C — CoyoteEngineTest
+
+Choose **CoyoteEngineTest** when the line is primarily a **test-harness trigger command** for running the Coyote hypothesis engine across fixed fixtures (for example "run coyote engine test", "run coyote harness", "test coyote engine"). This is a developer/testing intent, not a normal in-world play action.
+
 ### After A / B
 
-If neither A nor B applies, choose **Unimplemented** vs **Unknown** as follows.
+If neither A, B, nor C applies, choose **Unimplemented** vs **Unknown** as follows.
 
 ## Outcomes (choose exactly one)
 
@@ -34,9 +38,11 @@ If neither A nor B applies, choose **Unimplemented** vs **Unknown** as follows.
 
 2. **AcmeOrder** — As in section B. You **must** include \`orders\`: a JSON array of one or more objects.
 
-3. **Unimplemented** — Clear **other** in-world intent we do not implement yet (not mainly A or B).
+3. **CoyoteEngineTest** — As in section C.
 
-4. **Unknown** — No sensible in-world intent (noise, OOC/meta, mash, empty).
+4. **Unimplemented** — Clear **other** in-world intent we do not implement yet (not mainly A, B, or C).
+
+5. **Unknown** — No sensible in-world intent (noise, OOC/meta, mash, empty).
 
 ## Rules
 
@@ -56,13 +62,17 @@ or
 
 or
 
+{ "type": "CoyoteEngineTest", "confidence": <number> }
+
+or
+
 { "type": "Unimplemented", "confidence": <number> }
 
 or
 
 { "type": "Unknown", "confidence": <number> }
 
-The \`type\` string must be exactly \`AwaitRoadRunner\`, \`AcmeOrder\`, \`Unimplemented\`, or \`Unknown\` (case-sensitive). For **AcmeOrder**, include only \`type\`, \`confidence\`, and \`orders\`.
+The \`type\` string must be exactly \`AwaitRoadRunner\`, \`AcmeOrder\`, \`CoyoteEngineTest\`, \`Unimplemented\`, or \`Unknown\` (case-sensitive). For **AcmeOrder**, include only \`type\`, \`confidence\`, and \`orders\`.
 
 ## Player input
 

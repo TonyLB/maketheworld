@@ -39,9 +39,9 @@ describe('generateHypothesis', () => {
     })
 
     it('returns model output when Bedrock succeeds', async () => {
-        await expect(generateHypothesis({ getGameRooms, getRoomMeta })).resolves.toEqual(
-            'Hypothesis: You are trying to drop something on the Road Runner.'
-        )
+        await expect(generateHypothesis({ getGameRooms, getRoomMeta })).resolves.toEqual({
+            intent: 'Hypothesis: You are trying to drop something on the Road Runner.',
+        })
     })
 
     it('fetches room-local objects for all Coyote Game rooms', async () => {
@@ -81,6 +81,8 @@ describe('generateHypothesis', () => {
             errorMessage: 'Throttled',
         })
 
-        await expect(generateHypothesis({ getGameRooms, getRoomMeta })).resolves.toEqual('Hypothesis: Stubbed')
+        await expect(generateHypothesis({ getGameRooms, getRoomMeta })).resolves.toEqual({
+            intent: 'Hypothesis: Stubbed',
+        })
     })
 })

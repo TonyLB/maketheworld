@@ -4,6 +4,7 @@ import { ephemeraActionsDataSource } from './index'
 import messageBus from '../../messageBus'
 import { parseCommand } from './parseCommand'
 import { getRoomExitTargetsForCharacter } from './roomExitTargetsForCharacter'
+import { runCoyoteEngineTestHarness } from '../coyoteGame/runCoyoteEngineTestHarness'
 
 jest.mock('../../messageBus')
 jest.mock('./roomExitTargetsForCharacter', () => ({
@@ -13,15 +14,20 @@ jest.mock('./parseCommand', () => ({
     ...jest.requireActual<typeof import('./parseCommand')>('./parseCommand'),
     parseCommand: jest.fn(),
 }))
+jest.mock('../coyoteGame/runCoyoteEngineTestHarness', () => ({
+    runCoyoteEngineTestHarness: jest.fn(),
+}))
 
 const mockMessageBus = messageBus as jest.Mocked<typeof messageBus>
 const mockedParseCommand = jest.mocked(parseCommand)
 const mockedGetRoomExitTargetsForCharacter = jest.mocked(getRoomExitTargetsForCharacter)
+const mockedRunCoyoteEngineTestHarness = jest.mocked(runCoyoteEngineTestHarness)
 
 describe('ephemeraActionsDataSource', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         mockMessageBus.send.mockReturnValue(undefined)
+        mockedRunCoyoteEngineTestHarness.mockResolvedValue(undefined)
         mockedParseCommand.mockResolvedValue({
             type: 'Error',
             errorMessage: 'Parse error',
@@ -377,6 +383,37 @@ describe('ephemeraActionsDataSource', () => {
                 message: [
                     "I can tell you're trying to do something that hasn't been implemented in the game yet, sorry.",
                 ],
+            })
+        })
+    })
+
+    describe('ParseCommandCoyoteEngineTestResult', () => {
+        it.skip('publishes disabled message and does not run harness', async () => {
+            mockedParseCommand.mockResolvedValue({ type: 'CoyoteEngineTest', confidence: 0.9 })
+
+            await ephemeraActionsDataSource.receiveEvents!({
+                events: [{
+                    header: {
+                        dataSourceKey: 'api.ephemera',
+                        streamKey: 'CHARACTER#123',
+                        timestamp: Date.now(),
+                        type: 'Parse Requested',
+                    },
+                    getContent: async () => ({
+                        characterId: 'CHARACTER#123',
+                        command: 'run coyote engine test',
+                    }),
+                }],
+                streamEvent: jest.fn(async () => {}),
+                streamEnvelope: jest.fn(async () => {}),
+            })
+
+            expect(mockedRunCoyoteEngineTestHarness).not.toHaveBeenCalled()
+            expect(mockMessageBus.send).toHaveBeenCalledWith({
+                type: 'PublishMessage',
+                targets: ['CHARACTER#123'],
+                displayProtocol: 'WorldOOCMessage',
+                message: ['Coyote engine test harness is currently disabled.'],
             })
         })
     })

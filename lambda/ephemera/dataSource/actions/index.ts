@@ -16,12 +16,16 @@ import {
     type ParseCommandAcmeOrderLine,
     isParseCommandAcmeOrderResult,
     isParseCommandAwaitRoadrunnerResult,
+    isParseCommandCoyoteEngineTestResult,
     isParseCommandErrorResult,
     isParseCommandNavigationResult,
     isParseCommandUnimplementedResult,
     isParseCommandUnknownResult,
 } from './baseClasses'
 import { parseCommand } from './parseCommand'
+import { runCoyoteEngineTestHarness } from '../coyoteGame/runCoyoteEngineTestHarness'
+
+const COYOTE_ENGINE_TEST_HARNESS_ENABLED = true
 
 const validAcmeOrderNames = (orders: ParseCommandAcmeOrderLine[]): string[] => (
     orders
@@ -145,6 +149,22 @@ export const ephemeraActionsDataSource = new EphemeraDataSource<
                     displayProtocol: 'WorldOOCMessage',
                     message: ['Awaiting Road Runner'],
                 })
+            }
+            else if (isEphemeraCharacterId(content.characterId) && isParseCommandCoyoteEngineTestResult(parseResult)) {
+                if (!COYOTE_ENGINE_TEST_HARNESS_ENABLED) {
+                    messageBus.send({
+                        type: 'PublishMessage',
+                        targets: [content.characterId],
+                        displayProtocol: 'WorldOOCMessage',
+                        message: ['Coyote engine test harness is currently disabled.'],
+                    })
+                }
+                else {
+                    await runCoyoteEngineTestHarness({
+                        characterId: content.characterId,
+                        messageBus,
+                    })
+                }
             }
             else if (isEphemeraCharacterId(content.characterId) && isParseCommandUnimplementedResult(parseResult)) {
                 messageBus.send({

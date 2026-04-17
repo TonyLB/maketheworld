@@ -12,7 +12,8 @@ import type { CoyotePromptParts } from './buildHypothesisPrompt'
 
 export const BEDROCK_HYPOTHESIS_MODEL_ID = 'us.amazon.nova-2-lite-v1:0' as const
 export const BEDROCK_HYPOTHESIS_TIMEOUT_MS = 30_000
-export const BEDROCK_HYPOTHESIS_MAX_TOKENS = 256
+/** Default max output tokens for hypothesis (scene analysis + Hypothesis line). Keep above cheap single-sentence caps. */
+export const BEDROCK_HYPOTHESIS_MAX_TOKENS = 1024
 
 export type InvokeBedrockHypothesisSuccess = Extract<InvokeBedrockConverseTextResult, { success: true }>
 export type InvokeBedrockHypothesisFailure = Extract<InvokeBedrockConverseTextResult, { success: false }>

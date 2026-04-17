@@ -5,9 +5,19 @@ import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 
 export type CacheCoyoteGameKeys = 'gameRooms' | 'intent' | 'outcome'
 
+export type CoyoteGameIntentRecord = {
+    intent: string
+    sceneAnalysis?: string
+}
+
+type CoyoteGameDurableIntentRow = {
+    intent?: string
+    sceneAnalysis?: string
+}
+
 type CoyoteGameCacheState = {
     gameRooms: string[]
-    intent?: string
+    intent?: CoyoteGameIntentRecord
     outcome?: RenderTree
 }
 
@@ -27,10 +37,22 @@ const COYOTE_GAME_OUTCOME_KEY = {
     DataCategory: 'CoyoteGame#Outcome',
 } as const
 
+function normalizeDurableIntentRow(fetched: CoyoteGameDurableIntentRow | undefined): CoyoteGameIntentRecord | null {
+    if (!fetched || typeof fetched.intent !== 'string' || fetched.intent.length === 0) {
+        return null
+    }
+    const { intent } = fetched
+    const sceneAnalysis =
+        typeof fetched.sceneAnalysis === 'string' && fetched.sceneAnalysis.length > 0
+            ? fetched.sceneAnalysis
+            : undefined
+    return sceneAnalysis !== undefined ? { intent, sceneAnalysis } : { intent }
+}
+
 // Temporary invocation-scoped cache for the Coyote Game experimental tech demo.
 // This is intentionally hard-coded and may be replaced by durable fetches later.
 export class CacheCoyoteGameData extends CacheBase {
-    private _inFlightIntent?: Promise<string>
+    private _inFlightIntent?: Promise<CoyoteGameIntentRecord>
     private _inFlightOutcome?: Promise<RenderTree>
     private state: CoyoteGameCacheState = {
         gameRooms: [...defaultCoyoteGameData.gameRooms],
@@ -39,22 +61,22 @@ export class CacheCoyoteGameData extends CacheBase {
     }
 
     constructor(private readonly deps: {
-        generateIntent: () => Promise<string>
+        generateIntent: () => Promise<CoyoteGameIntentRecord>
         generateOutcome: () => Promise<RenderTree>
     }) {
         super()
     }
 
     get(key: 'gameRooms'): Promise<string[]>
-    get(key: 'intent'): Promise<string>
+    get(key: 'intent'): Promise<CoyoteGameIntentRecord>
     get(key: 'outcome'): Promise<RenderTree>
-    get(key: CacheCoyoteGameKeys): Promise<string[] | string | RenderTree>
+    get(key: CacheCoyoteGameKeys): Promise<string[] | CoyoteGameIntentRecord | RenderTree>
     async get(key: CacheCoyoteGameKeys) {
         if (key === 'gameRooms') {
             return this.state.gameRooms
         }
         if (key === 'intent') {
-            if (typeof this.state.intent === 'string') {
+            if (this.state.intent !== undefined) {
                 return this.state.intent
             }
             if (this._inFlightIntent) {
@@ -62,8 +84,8 @@ export class CacheCoyoteGameData extends CacheBase {
             }
             this._inFlightIntent = this.loadIntent()
             try {
-                const intent = await this._inFlightIntent
-                return intent
+                const intentRecord = await this._inFlightIntent
+                return intentRecord
             } finally {
                 this._inFlightIntent = undefined
             }
@@ -87,19 +109,21 @@ export class CacheCoyoteGameData extends CacheBase {
         return _exhaustive
     }
 
-    private async loadIntent(): Promise<string> {
-        const fetched = await ephemeraDB.getItem<{ intent?: string }>({
+    private async loadIntent(): Promise<CoyoteGameIntentRecord> {
+        const fetched = await ephemeraDB.getItem<CoyoteGameDurableIntentRow>({
             Key: COYOTE_GAME_INTENT_KEY,
-            ProjectionFields: ['intent'],
+            ProjectionFields: ['intent', 'sceneAnalysis'],
         })
-        if (typeof fetched?.intent === 'string' && fetched.intent.length > 0) {
-            this.state.intent = fetched.intent
-            return fetched.intent
+        const fromDynamo = normalizeDurableIntentRow(fetched ?? undefined)
+        if (fromDynamo) {
+            this.state.intent = fromDynamo
+            return fromDynamo
         }
         const generated = await this.deps.generateIntent()
         await ephemeraDB.putItem({
             ...COYOTE_GAME_INTENT_KEY,
-            intent: generated,
+            intent: generated.intent,
+            ...(generated.sceneAnalysis !== undefined ? { sceneAnalysis: generated.sceneAnalysis } : {}),
         })
         this.state.intent = generated
         return generated
@@ -124,15 +148,15 @@ export class CacheCoyoteGameData extends CacheBase {
     }
 
     set(props: { key: 'gameRooms', value: string[] }): void
-    set(props: { key: 'intent', value: string }): void
+    set(props: { key: 'intent', value: CoyoteGameIntentRecord }): void
     set(props: { key: 'outcome', value: RenderTree }): void
-    set(props: { key: CacheCoyoteGameKeys, value: string[] | string | RenderTree }): void {
+    set(props: { key: CacheCoyoteGameKeys, value: string[] | CoyoteGameIntentRecord | RenderTree }): void {
         if (props.key === 'gameRooms') {
             this.state.gameRooms = props.value as string[]
             return
         }
         if (props.key === 'intent') {
-            this.state.intent = props.value as string
+            this.state.intent = props.value as CoyoteGameIntentRecord
             return
         }
         this.state.outcome = props.value as RenderTree
