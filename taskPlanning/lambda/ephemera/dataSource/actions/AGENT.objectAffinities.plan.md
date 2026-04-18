@@ -97,6 +97,27 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines as you finish ea
   - [ ] Replace the Phase 2 placeholder: expand **`buildParseAcmeOrderEnrichPrompt`** so instructions include (1) full role vocabulary and **`affinities`** with **aptness**, (2) enforce no RPG wording, (3) drop possibilities below the aptness floor, (4) normalize player text to Acme register **`name`** / **`description`** with the full catalog rigor intended for production.
   - [ ] Extend parser tests with fixtures (beehive, shovel, rope-style multi-role examples from the handoff).
 
+- [ ] Phase 3.5 - Acme parse manual-review harness (parallel to hypothesis **`/test generation`**)
+  - **Goal:** After Phase 3 prompt work, run the **Coyote LLM handoff Iteration 2** corpus through the **real** Step A + Step B parse pipeline **one item at a time** (each command is a **single-line** Acme order: `order <phrase>`), collect outputs for **human review** — same spirit as handoff § Testing (“no automated assertion”). Multi-item **`order A, B, C`** runs are out of scope for this harness; isolation makes enrich behavior easier to compare.
+  - **Reference implementation (hypothesis side):** The production-adjacent pattern to mirror — not copy wholesale — lives under [`coyoteGame/`](../../../../../lambda/ephemera/dataSource/coyoteGame/): [`coyoteEngineTestSlashCommand.ts`](../../../../../lambda/ephemera/dataSource/actions/coyoteEngineTestSlashCommand.ts) (**`/test generation`** → **`CoyoteEngineTest`** without Bedrock), [`runCoyoteEngineTestHarness.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/runCoyoteEngineTestHarness.ts), fixtures in [`coyoteEngineTestFixtures.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/coyoteEngineTestFixtures.ts), wiring + env gate in [`actions/index.ts`](../../../../../lambda/ephemera/dataSource/actions/index.ts) (**`COYOTE_ENGINE_TEST_HARNESS_ENABLED`**). Document the Acme-parse harness in [`coyoteGame/AGENT.md`](../../../../../lambda/ephemera/dataSource/coyoteGame/AGENT.md) when it exists.
+  - **High-level build plan:**
+    - [ ] **Entry point:** Add a dedicated slash prefix (or equivalent) recognized in [`parseCommand.ts`](../../../../../lambda/ephemera/dataSource/actions/parseCommand.ts) that returns a new **`ParseCommandResult`** variant **without** calling Bedrock for classification (same security model as **`CoyoteEngineTest`** — model JSON must not spoof it).
+    - [ ] **Fixture list:** Centralize the **ten strings** below in a small module (analogous to **`COYOTE_ENGINE_TEST_FIXTURES`**).
+    - [ ] **Runner:** Implement **`runAcmeOrderParseTestHarness`** (name TBD) that for each fixture builds **`order ${phrase}`**, invokes the same orchestration as live **`AcmeOrder`** (**`parseCommand`** → Step B enrich when applicable), and publishes **one consolidated or per-fixture developer message** (Step A + Step B JSON, **`affinities`**, timing) suitable for paste into a single human-review thread.
+    - [ ] **Safety:** Gate behind an explicit env flag constant in **`index.ts`** (like the hypothesis harness); default **off** outside dev.
+    - [ ] **Tests:** Unit-test the slash matcher and harness loop with **mocked** Bedrock; no CI requirement to call real Converse for the ten cases.
+  - **Handoff Iteration 2 inputs** (each should be exercised as **`order <...>`** on its own):
+    1. `an anvil`
+    2. `a grand piano`
+    3. `a rocket`
+    4. `a bag of marbles`
+    5. `ten thousand volts of electricity`
+    6. `a box of instant hole`
+    7. `invisible paint`
+    8. `a giant electromagnet`
+    9. `road runner costume`
+    10. `a trampoline`
+
 - [ ] Phase 4 - Persistence and bus payload
   - [ ] Extend [`AcmeOrderPublishedPayload`](../../../../../lambda/ephemera/dataSource/actions/publishedEvents.ts) (or introduce a versioned successor) so `mtw.ephemera.objects` receives **full enriched objects**: **`shortName`** = enriched catalog **`name`**, plus **`description`**, **`affinities`**, and **`affinitiesFailed`** when applicable. Update [`isAcmeOrderPublishedPayload`](../../../../../lambda/ephemera/dataSource/actions/publishedEvents.ts) accordingly.
   - [ ] Update [`handleAcmeOrderAddObjects`](../../../../../lambda/ephemera/dataSource/objects/handleApiObjectsChange.ts) to pass through optional fields onto each `EphemeraMetaRoomObject` when merging.
@@ -135,6 +156,7 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines as you finish ea
   - `npm run test -- --runInBand dataSource/objects/handleApiObjectsChange.test.ts`
   - Add runs for new Acme enrich unit tests and coyote snapshot tests.
 - Manual or harness check: place an Acme order in a Coyote demo room and confirm Dynamo `Meta::Room.objects` rows include **`affinities`** / **`affinitiesFailed`** as appropriate and hypothesis/plan prompts receive formatted affinities (inspect logging or test harness fixtures).
+- After Phase 3: use **Phase 3.5** handoff corpus (**ten** `order …` singles) for qualitative Acme enrich review; align with Coyote LLM **`CURSOR_HANDOFF.md`** § Testing (Iteration 2).
 
 ## Progress
 
