@@ -4,6 +4,8 @@ import {
     isAcmeOrderEnrichModelLine,
     isAcmeOrderEnrichModelResponse,
     isCoyoteAffinityPossibility,
+    normalizeAcmeOrderEnrichLine,
+    normalizeAcmeOrderEnrichResponse,
 } from './coyotePlanAffinities'
 import { isEphemeraMetaRoomObject } from './ephemeraMeta'
 
@@ -67,6 +69,153 @@ describe('isAcmeOrderEnrichModelLine', () => {
         }))
         expect(isAcmeOrderEnrichModelLine({ ...validLine, affinities })).toBe(false)
     })
+
+    it('accepts affinitiesFailed with required empty description and affinities', () => {
+        expect(
+            isAcmeOrderEnrichModelLine({
+                name: 'Rope',
+                description: '',
+                affinities: [],
+                affinitiesFailed: true,
+            })
+        ).toBe(true)
+    })
+
+    it('rejects affinitiesFailed when description or affinities are not empty', () => {
+        expect(
+            isAcmeOrderEnrichModelLine({
+                name: 'Rope',
+                description: 'x',
+                affinities: [],
+                affinitiesFailed: true,
+            })
+        ).toBe(false)
+        expect(
+            isAcmeOrderEnrichModelLine({
+                name: 'Rope',
+                description: '',
+                affinities: [{ role: 'terminal', aptness: 0.1 }],
+                affinitiesFailed: true,
+            })
+        ).toBe(false)
+    })
+})
+
+describe('normalizeAcmeOrderEnrichLine', () => {
+    it('returns valid lines unchanged', () => {
+        const line = {
+            name: 'A',
+            description: 'd',
+            affinities: [{ role: 'terminal', aptness: 0.5 }] as const,
+        }
+        expect(normalizeAcmeOrderEnrichLine(line, 'fallback')).toEqual(line)
+    })
+
+    it('synthesizes failure when raw is garbage', () => {
+        expect(normalizeAcmeOrderEnrichLine(null, 'rope')).toEqual({
+            name: 'rope',
+            description: '',
+            affinities: [],
+            affinitiesFailed: true,
+        })
+    })
+
+    it('uses trimmed raw name when present', () => {
+        expect(normalizeAcmeOrderEnrichLine({ name: '  catalog  ', foo: 1 }, 'rope')).toEqual({
+            name: 'catalog',
+            description: '',
+            affinities: [],
+            affinitiesFailed: true,
+        })
+    })
+
+    it('salvages by filtering invalid affinity entries', () => {
+        expect(
+            normalizeAcmeOrderEnrichLine(
+                {
+                    name: 'X',
+                    description: 'y',
+                    affinities: [{ role: 'terminal', aptness: 0.5 }, { bad: true }, 'nope'],
+                },
+                'fb'
+            )
+        ).toEqual({
+            name: 'X',
+            description: 'y',
+            affinities: [{ role: 'terminal', aptness: 0.5 }],
+        })
+    })
+
+    it('coerces affinitiesFailed with wrong fields to empty invariants', () => {
+        expect(
+            normalizeAcmeOrderEnrichLine(
+                {
+                    name: 'X',
+                    description: 'should drop',
+                    affinities: [{ role: 'terminal', aptness: 1 }],
+                    affinitiesFailed: true,
+                },
+                'fb'
+            )
+        ).toEqual({
+            name: 'X',
+            description: '',
+            affinities: [],
+            affinitiesFailed: true,
+        })
+    })
+})
+
+describe('normalizeAcmeOrderEnrichResponse', () => {
+    it('pads missing slots with synthetic failures and drops invalid root confidence', () => {
+        const r = normalizeAcmeOrderEnrichResponse(
+            { confidence: 9, lines: 'not-array' },
+            2,
+            ['a', 'b']
+        )
+        expect(r.confidence).toBeUndefined()
+        expect(r.lines).toHaveLength(2)
+        expect(r.lines[0]).toMatchObject({
+            name: 'a',
+            description: '',
+            affinities: [],
+            affinitiesFailed: true,
+        })
+        expect(r.lines[1]).toMatchObject({
+            name: 'b',
+            description: '',
+            affinities: [],
+            affinitiesFailed: true,
+        })
+    })
+
+    it('passes valid root confidence and mixes good and bad lines', () => {
+        const r = normalizeAcmeOrderEnrichResponse(
+            {
+                confidence: 0.9,
+                lines: [
+                    { name: 'Good', description: 'd', affinities: [{ role: 'terminal', aptness: 0.2 }] },
+                    null,
+                ],
+            },
+            2,
+            ['stepA1', 'stepA2']
+        )
+        expect(r.confidence).toBe(0.9)
+        expect(isAcmeOrderEnrichModelLine(r.lines[0])).toBe(true)
+        expect(r.lines[1]).toEqual({
+            name: 'stepA2',
+            description: '',
+            affinities: [],
+            affinitiesFailed: true,
+        })
+    })
+
+    it('throws when fallbackNames length disagrees with slotCount', () => {
+        expect(() => normalizeAcmeOrderEnrichResponse({ lines: [] }, 2, ['only'])).toThrow(
+            /fallbackNames length must equal slotCount/
+        )
+    })
 })
 
 describe('isAcmeOrderEnrichModelResponse', () => {
@@ -98,6 +247,30 @@ describe('isAcmeOrderEnrichModelResponse', () => {
             affinities: [] as [],
         }))
         expect(isAcmeOrderEnrichModelResponse({ lines })).toBe(false)
+    })
+
+    it('accepts optional root confidence in 0 to 1', () => {
+        expect(
+            isAcmeOrderEnrichModelResponse({
+                confidence: 0.88,
+                lines: [
+                    {
+                        name: 'A',
+                        description: 'd',
+                        affinities: [{ role: 'terminal', aptness: 0.2 }],
+                    },
+                ],
+            })
+        ).toBe(true)
+    })
+
+    it('rejects root confidence out of range', () => {
+        expect(
+            isAcmeOrderEnrichModelResponse({
+                confidence: 1.2,
+                lines: [{ name: 'A', description: 'd', affinities: [] }],
+            })
+        ).toBe(false)
     })
 })
 

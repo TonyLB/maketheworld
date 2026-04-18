@@ -216,7 +216,12 @@ describe('ephemeraActionsDataSource', () => {
         it('publishes Acme Order streamEvent and WorldMessage delivery line when valid orders exist', async () => {
             mockedParseCommand.mockResolvedValue({
                 type: 'AcmeOrder',
-                orders: [{ valid: true, name: 'rocket-powered roller skates' }],
+                orders: [{
+                    valid: true,
+                    name: 'rocket-powered roller skates',
+                    description: '',
+                    affinities: [],
+                }],
                 confidence: 0.9,
             })
             const streamEvent = jest.fn(async () => {})
@@ -260,10 +265,28 @@ describe('ephemeraActionsDataSource', () => {
             mockedParseCommand.mockResolvedValue({
                 type: 'AcmeOrder',
                 orders: [
-                    { valid: true, name: 'anvil' },
-                    { valid: false, name: 'justice', errorType: 'Not tangible' },
-                    { valid: false, name: "Jupiter's moon Ganymede", errorType: 'Too large' },
-                    { valid: false, name: 'Glooblethwoats, flensed', errorType: 'Not a thing' },
+                    { valid: true, name: 'anvil', description: '', affinities: [] },
+                    {
+                        valid: false,
+                        name: 'justice',
+                        errorType: 'Not tangible',
+                        description: '',
+                        affinities: [],
+                    },
+                    {
+                        valid: false,
+                        name: "Jupiter's moon Ganymede",
+                        errorType: 'Too large',
+                        description: '',
+                        affinities: [],
+                    },
+                    {
+                        valid: false,
+                        name: 'Glooblethwoats, flensed',
+                        errorType: 'Not a thing',
+                        description: '',
+                        affinities: [],
+                    },
                 ],
                 confidence: 0.88,
             })

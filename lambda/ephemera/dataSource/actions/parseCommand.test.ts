@@ -41,14 +41,25 @@ describe('parseCommand type guards', () => {
         it('accepts valid AcmeOrder with orders and confidence', () => {
             expect(isParseCommandAcmeOrderResult({
                 type: 'AcmeOrder',
-                orders: [{ valid: true, name: 'rocket-powered roller skates' }],
+                orders: [{
+                    valid: true,
+                    name: 'rocket-powered roller skates',
+                    description: '',
+                    affinities: [],
+                }],
                 confidence: 0.9,
             })).toBe(true)
             expect(isParseCommandAcmeOrderResult({
                 type: 'AcmeOrder',
                 orders: [
-                    { valid: true, name: 'anvil' },
-                    { valid: false, name: 'justice', errorType: 'Not tangible' },
+                    { valid: true, name: 'anvil', description: '', affinities: [] },
+                    {
+                        valid: false,
+                        name: 'justice',
+                        errorType: 'Not tangible',
+                        description: '',
+                        affinities: [],
+                    },
                 ],
                 confidence: 0.85,
             })).toBe(true)
@@ -57,7 +68,7 @@ describe('parseCommand type guards', () => {
         it('rejects invalid confidence, empty orders, or blank lines', () => {
             expect(isParseCommandAcmeOrderResult({
                 type: 'AcmeOrder',
-                orders: [{ valid: true, name: 'skates' }],
+                orders: [{ valid: true, name: 'skates', description: '', affinities: [] }],
                 confidence: -0.01,
             })).toBe(false)
             expect(isParseCommandAcmeOrderResult({
@@ -67,17 +78,23 @@ describe('parseCommand type guards', () => {
             })).toBe(false)
             expect(isParseCommandAcmeOrderResult({
                 type: 'AcmeOrder',
-                orders: [{ valid: true, name: '  ' }],
+                orders: [{ valid: true, name: '  ', description: '', affinities: [] }],
                 confidence: 0.5,
             })).toBe(false)
             expect(isParseCommandAcmeOrderResult({
                 type: 'AcmeOrder',
-                orders: [{ valid: true, name: 'anvil', errorType: 'Not a thing' } as any],
+                orders: [{
+                    valid: true,
+                    name: 'anvil',
+                    errorType: 'Not a thing',
+                    description: '',
+                    affinities: [],
+                } as any],
                 confidence: 0.5,
             })).toBe(false)
             expect(isParseCommandAcmeOrderResult({
                 type: 'AcmeOrder',
-                orders: [{ valid: true, name: 'anvil' } as any],
+                orders: [{ valid: true, name: 'anvil', description: '', affinities: [] }],
                 confidence: 0.5,
             })).toBe(true)
             expect(isParseCommandAcmeOrderResult({
@@ -89,6 +106,39 @@ describe('parseCommand type guards', () => {
                 type: 'AcmeOrder',
                 orders: [{ valid: false, errorType: 'Too large' } as any],
                 confidence: 0.5,
+            })).toBe(false)
+            expect(isParseCommandAcmeOrderResult({
+                type: 'AcmeOrder',
+                orders: [{
+                    valid: false,
+                    name: 'moon',
+                    errorType: 'Too large',
+                    description: '',
+                    affinities: [],
+                }],
+                confidence: 0.5,
+            })).toBe(true)
+            expect(isParseCommandAcmeOrderResult({
+                type: 'AcmeOrder',
+                orders: [{
+                    valid: true,
+                    name: 'rope',
+                    description: 'still here',
+                    affinities: [],
+                    affinitiesFailed: true,
+                }],
+                confidence: 0.9,
+            })).toBe(false)
+            expect(isParseCommandAcmeOrderResult({
+                type: 'AcmeOrder',
+                orders: [{
+                    valid: true,
+                    name: 'rope',
+                    description: '',
+                    affinities: [{ role: 'terminal', aptness: 0.5 }],
+                    affinitiesFailed: true,
+                }],
+                confidence: 0.9,
             })).toBe(false)
             expect(isParseCommandAcmeOrderResult({
                 type: 'AcmeOrder',
@@ -128,9 +178,7 @@ describe('buildParseCommandIntentClassificationPrompt', () => {
         expect(prompt).toContain('"type": "AcmeOrder"')
         expect(prompt).toContain('"type": "Unimplemented"')
         expect(prompt).toContain('"type": "Unknown"')
-        expect(prompt).toContain('can only be delivered in packaging/containment')
-        expect(prompt).toContain('pressurized bottle of hydrogen gas')
-        expect(prompt).toContain('huge aquarium of piranhas')
+        expect(prompt).toContain('later step')
     })
 
     it('uses placeholder for empty or whitespace-only command', () => {
@@ -148,7 +196,7 @@ describe('interpretParseCommandIntentClassificationBody', () => {
             '{"type":"AcmeOrder","orders":["rocket skates"],"confidence":0.9}'
         )).toEqual({
             type: 'AcmeOrder',
-            orders: [{ valid: true, name: 'rocket skates' }],
+            orders: [{ valid: true, name: 'rocket skates', description: '', affinities: [] }],
             confidence: 0.9,
         })
         expect(interpretParseCommandIntentClassificationBody(
@@ -156,8 +204,8 @@ describe('interpretParseCommandIntentClassificationBody', () => {
         )).toEqual({
             type: 'AcmeOrder',
             orders: [
-                { valid: true, name: 'anvil' },
-                { valid: true, name: 'magnet' },
+                { valid: true, name: 'anvil', description: '', affinities: [] },
+                { valid: true, name: 'magnet', description: '', affinities: [] },
             ],
             confidence: 0.7,
         })
@@ -174,7 +222,7 @@ describe('interpretParseCommandIntentClassificationBody', () => {
             '{"type":"AcmeOrder","order":"  giant rubber band  ","confidence":0.6}'
         )).toEqual({
             type: 'AcmeOrder',
-            orders: [{ valid: true, name: 'giant rubber band' }],
+            orders: [{ valid: true, name: 'giant rubber band', description: '', affinities: [] }],
             confidence: 0.6,
         })
     })
@@ -251,24 +299,153 @@ describe('parseCommand LLM path', () => {
         expect(result).toEqual({ type: 'AwaitRoadRunner', confidence: 0.88 })
     })
 
-    it('returns AcmeOrder when the model emits orders', async () => {
+    it('returns AcmeOrder merged with enrich when both Bedrock calls succeed', async () => {
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
             success: true,
             body: '{"type":"AcmeOrder","orders":["dynamite","spring"],"confidence":0.82}',
         })
+        const invokeBedrockAcmeOrderEnrichImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: JSON.stringify({
+                lines: [
+                    {
+                        name: 'dynamite sticks',
+                        description: 'Bundle of cartoon dynamite.',
+                        affinities: [{ role: 'terminal', aptness: 0.5 }],
+                    },
+                    {
+                        name: 'spring',
+                        description: 'Steel coil.',
+                        affinities: [{ role: 'trigger', aptness: 0.4 }],
+                    },
+                ],
+                confidence: 0.9,
+            }),
+        })
 
         const result = await parseCommand(
             { command: 'mail order dynamite and a spring from acme' },
-            { invokeBedrockParseCommandImpl }
+            { invokeBedrockParseCommandImpl, invokeBedrockAcmeOrderEnrichImpl }
         )
 
         expect(result).toEqual({
             type: 'AcmeOrder',
             orders: [
-                { valid: true, name: 'dynamite' },
-                { valid: true, name: 'spring' },
+                {
+                    valid: true,
+                    name: 'dynamite sticks',
+                    description: 'Bundle of cartoon dynamite.',
+                    affinities: [{ role: 'terminal', aptness: 0.5 }],
+                },
+                {
+                    valid: true,
+                    name: 'spring',
+                    description: 'Steel coil.',
+                    affinities: [{ role: 'trigger', aptness: 0.4 }],
+                },
             ],
-            confidence: 0.82,
+            confidence: 0.82 * 0.9,
         })
+        expect(invokeBedrockAcmeOrderEnrichImpl).toHaveBeenCalledTimes(1)
+    })
+
+    it('merges per-line: one good enrich line and one unparseable line still returns AcmeOrder with combined confidence', async () => {
+        const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: '{"type":"AcmeOrder","orders":["dynamite","spring"],"confidence":0.82}',
+        })
+        const invokeBedrockAcmeOrderEnrichImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: JSON.stringify({
+                lines: [
+                    {
+                        name: 'dynamite sticks',
+                        description: 'Bundle of cartoon dynamite.',
+                        affinities: [{ role: 'terminal', aptness: 0.5 }],
+                    },
+                    { bad: true },
+                ],
+                confidence: 0.9,
+            }),
+        })
+
+        const result = await parseCommand(
+            { command: 'mail order dynamite and a spring from acme' },
+            { invokeBedrockParseCommandImpl, invokeBedrockAcmeOrderEnrichImpl }
+        )
+
+        expect(result).toEqual({
+            type: 'AcmeOrder',
+            orders: [
+                {
+                    valid: true,
+                    name: 'dynamite sticks',
+                    description: 'Bundle of cartoon dynamite.',
+                    affinities: [{ role: 'terminal', aptness: 0.5 }],
+                },
+                {
+                    valid: true,
+                    name: 'spring',
+                    description: '',
+                    affinities: [],
+                    affinitiesFailed: true,
+                },
+            ],
+            confidence: 0.82 * 0.9,
+        })
+    })
+
+    it('marks affinitiesFailed and keeps Step A confidence when enrich Bedrock fails', async () => {
+        const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: '{"type":"AcmeOrder","orders":[{"valid":true,"name":"anvil"}],"confidence":0.75}',
+        })
+        const invokeBedrockAcmeOrderEnrichImpl = jest.fn().mockResolvedValue({
+            success: false,
+            errorMessage: 'timeout',
+        })
+
+        const result = await parseCommand(
+            { command: 'order anvil from acme' },
+            { invokeBedrockParseCommandImpl, invokeBedrockAcmeOrderEnrichImpl }
+        )
+
+        expect(result).toEqual({
+            type: 'AcmeOrder',
+            orders: [{
+                valid: true,
+                name: 'anvil',
+                description: '',
+                affinities: [],
+                affinitiesFailed: true,
+            }],
+            confidence: 0.75,
+        })
+    })
+
+    it('skips enrich when every Acme line is invalid', async () => {
+        const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: '{"type":"AcmeOrder","orders":[{"valid":false,"name":"Justice","errorType":"Not tangible"}],"confidence":0.8}',
+        })
+        const invokeBedrockAcmeOrderEnrichImpl = jest.fn()
+
+        const result = await parseCommand(
+            { command: 'order justice from acme' },
+            { invokeBedrockParseCommandImpl, invokeBedrockAcmeOrderEnrichImpl }
+        )
+
+        expect(result).toEqual({
+            type: 'AcmeOrder',
+            orders: [{
+                valid: false,
+                name: 'Justice',
+                errorType: 'Not tangible',
+                description: '',
+                affinities: [],
+            }],
+            confidence: 0.8,
+        })
+        expect(invokeBedrockAcmeOrderEnrichImpl).not.toHaveBeenCalled()
     })
 })

@@ -18,7 +18,7 @@ Choose **AwaitRoadRunner** when the line is **primarily** about **waiting for th
 
 ### B — AcmeOrder
 
-Choose **AcmeOrder** when the line is **primarily** about **ordering or buying goods from Acme** (catalog, mail-order, telephone order, unspecified delivery method, "send away for", "I need from Acme", product requests). Extract each line item into \`orders\` as an object with \`valid\`, required \`name\`, and optional \`errorType\`.
+Choose **AcmeOrder** when the line is **primarily** about **ordering or buying goods from Acme** (catalog, mail-order, telephone order, unspecified delivery method, "send away for", "I need from Acme", product requests). Extract each line item into \`orders\` as an object with \`valid\`, required \`name\`, and optional \`errorType\`. Catalog packaging and line enrichment run in a **later step** — here only classify intent and extract **names** / validity.
 
 ### Tie-break when both A and B could apply
 
@@ -50,7 +50,6 @@ If neither A, B, nor C applies, choose **Unimplemented** vs **Unknown** as follo
 - \`confidence\` is a number from 0 through 1.
 - For **AcmeOrder**, each entry in \`orders\` must be \`{ "valid": <boolean>, "name": <string>, "errorType"?: "Not a thing" | "Not tangible" | "Too large" }\`.
 - If \`valid\` is \`true\`, omit \`errorType\`. If \`valid\` is \`false\`, include \`errorType\`.
-- For items that can only be delivered in packaging/containment (for example hydrogen gas, piranhas), output a packaged deliverable \`name\` like "pressurized bottle of hydrogen gas" or "huge aquarium of piranhas", not the raw uncontained item text.
 
 ## Required JSON shapes
 

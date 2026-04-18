@@ -1,4 +1,6 @@
 import { EphemeraRoomId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { CoyoteAffinityPossibility } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
+import { isCoyoteAffinityPossibility } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 
 /**
  * Parser confidence for non-error outcomes. Typically in [0, 1]; validated by type guards.
@@ -38,6 +40,12 @@ export type ParseCommandAcmeOrderLine = {
     valid: boolean
     name: string
     errorType?: ParseCommandAcmeOrderErrorType
+    /** Acme catalog description after Step B enrich; **""** when **`affinitiesFailed`**. */
+    description: string
+    /** Role possibilities; **[]** when none apply or when **`affinitiesFailed`**. */
+    affinities: CoyoteAffinityPossibility[]
+    /** True when enrich could not attach validated affinities for this line. */
+    affinitiesFailed?: boolean
 }
 
 /** Coyote Game: order from Acme (mail-order, catalog, or unspecified). One or more product lines. */
@@ -123,6 +131,21 @@ export function isParseCommandAcmeOrderResult(
         if (!entry.valid && !isParseCommandAcmeOrderErrorType(entry.errorType)) {
             return false
         }
+        if (typeof entry.description !== 'string') {
+            return false
+        }
+        if (!Array.isArray(entry.affinities)) {
+            return false
+        }
+        if (!entry.affinities.every((x) => isCoyoteAffinityPossibility(x))) {
+            return false
+        }
+        if ('affinitiesFailed' in entry && typeof entry.affinitiesFailed !== 'boolean') {
+            return false
+        }
+        if (entry.valid === true && entry.affinitiesFailed === true) {
+            return entry.description === '' && entry.affinities.length === 0
+        }
         return true
     })
 }
@@ -170,4 +193,6 @@ export type ParseCommandInput = {
 export type ParseCommandDeps = {
     /** Tests inject a mock; production uses Bedrock Nova via `invokeBedrockParseCommand` in generateExample. */
     invokeBedrockParseCommandImpl?: typeof import('../../generateExample/invokeBedrockParseCommand').invokeBedrockParseCommand;
+    /** Second Bedrock call for Acme line enrichment; tests may inject a mock. */
+    invokeBedrockAcmeOrderEnrichImpl?: typeof import('../../generateExample/invokeBedrockAcmeOrderEnrich').invokeBedrockAcmeOrderEnrich;
 }

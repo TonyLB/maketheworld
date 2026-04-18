@@ -1,3 +1,5 @@
+import type { CoyoteAffinityPossibility } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
+import { isCoyoteAffinityPossibility } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import type { ParseCommandResult } from './baseClasses'
 import {
     type ParseCommandAcmeOrderErrorType,
@@ -8,6 +10,13 @@ import {
     isParseCommandUnimplementedResult,
     isParseCommandUnknownResult,
 } from './baseClasses'
+
+function parseAffinitiesField(raw: unknown): CoyoteAffinityPossibility[] {
+    if (!Array.isArray(raw)) {
+        return []
+    }
+    return raw.filter((x): x is CoyoteAffinityPossibility => isCoyoteAffinityPossibility(x))
+}
 
 /** Strip markdown code fences and extract a JSON object from the model response. */
 function extractJsonBody(raw: string): string {
@@ -48,11 +57,32 @@ function normalizeAcmeOrdersFromModel(obj: Record<string, unknown>): ParseComman
                 if (!entry.valid && errorType === undefined) {
                     return null
                 }
-                return {
-                    valid: entry.valid,
-                    name,
-                    ...(errorType ? { errorType } : {}),
+                if (!entry.valid && errorType !== undefined) {
+                    return {
+                        valid: false,
+                        name,
+                        description: '',
+                        affinities: [],
+                        errorType,
+                    }
                 }
+                let description = typeof entry.description === 'string' ? entry.description : ''
+                let affinities = parseAffinitiesField(entry.affinities)
+                const affinitiesFailed = typeof entry.affinitiesFailed === 'boolean'
+                    ? entry.affinitiesFailed
+                    : undefined
+                if (affinitiesFailed === true) {
+                    description = ''
+                    affinities = []
+                }
+                const base: ParseCommandAcmeOrderLine = {
+                    valid: true,
+                    name,
+                    description,
+                    affinities,
+                    ...(affinitiesFailed !== undefined ? { affinitiesFailed } : {}),
+                }
+                return base
             })
             .filter((x): x is ParseCommandAcmeOrderLine => x !== null)
         return lines.length > 0 ? lines : null
@@ -66,7 +96,12 @@ function normalizeAcmeOrdersFromModel(obj: Record<string, unknown>): ParseComman
             .filter((x): x is string => typeof x === 'string')
             .map((s) => s.trim())
             .filter((s) => s.length > 0)
-            .map((name): ParseCommandAcmeOrderLine => ({ valid: true, name }))
+            .map((name): ParseCommandAcmeOrderLine => ({
+                valid: true,
+                name,
+                description: '',
+                affinities: [],
+            }))
         return lines.length > 0 ? lines : null
     }
 
@@ -75,7 +110,12 @@ function normalizeAcmeOrdersFromModel(obj: Record<string, unknown>): ParseComman
         return primary
     }
     if (typeof obj.order === 'string' && obj.order.trim().length > 0) {
-        return [{ valid: true, name: obj.order.trim() }]
+        return [{
+            valid: true,
+            name: obj.order.trim(),
+            description: '',
+            affinities: [],
+        }]
     }
     return null
 }
