@@ -4,6 +4,7 @@ import { ephemeraActionsDataSource } from './index'
 import messageBus from '../../messageBus'
 import { parseCommand } from './parseCommand'
 import { getRoomExitTargetsForCharacter } from './roomExitTargetsForCharacter'
+import { runAcmeOrderAffinitiesHarness } from './runAcmeOrderAffinitiesHarness'
 import { runCoyoteEngineTestHarness } from '../coyoteGame/runCoyoteEngineTestHarness'
 
 jest.mock('../../messageBus')
@@ -17,17 +18,22 @@ jest.mock('./parseCommand', () => ({
 jest.mock('../coyoteGame/runCoyoteEngineTestHarness', () => ({
     runCoyoteEngineTestHarness: jest.fn(),
 }))
+jest.mock('./runAcmeOrderAffinitiesHarness', () => ({
+    runAcmeOrderAffinitiesHarness: jest.fn(),
+}))
 
 const mockMessageBus = messageBus as jest.Mocked<typeof messageBus>
 const mockedParseCommand = jest.mocked(parseCommand)
 const mockedGetRoomExitTargetsForCharacter = jest.mocked(getRoomExitTargetsForCharacter)
 const mockedRunCoyoteEngineTestHarness = jest.mocked(runCoyoteEngineTestHarness)
+const mockedRunAcmeOrderAffinitiesHarness = jest.mocked(runAcmeOrderAffinitiesHarness)
 
 describe('ephemeraActionsDataSource', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         mockMessageBus.send.mockReturnValue(undefined)
         mockedRunCoyoteEngineTestHarness.mockResolvedValue(undefined)
+        mockedRunAcmeOrderAffinitiesHarness.mockResolvedValue(undefined)
         mockedParseCommand.mockResolvedValue({
             type: 'Error',
             errorMessage: 'Parse error',
@@ -406,6 +412,37 @@ describe('ephemeraActionsDataSource', () => {
                 message: [
                     "I can tell you're trying to do something that hasn't been implemented in the game yet, sorry.",
                 ],
+            })
+        })
+    })
+
+    describe('ParseCommandCoyoteAffinitiesTestResult', () => {
+        it('publishes disabled message and does not run affinities harness', async () => {
+            mockedParseCommand.mockResolvedValue({ type: 'CoyoteAffinitiesTest', confidence: 1 })
+
+            await ephemeraActionsDataSource.receiveEvents!({
+                events: [{
+                    header: {
+                        dataSourceKey: 'api.ephemera',
+                        streamKey: 'CHARACTER#123',
+                        timestamp: Date.now(),
+                        type: 'Parse Requested',
+                    },
+                    getContent: async () => ({
+                        characterId: 'CHARACTER#123',
+                        command: '/test affinities',
+                    }),
+                }],
+                streamEvent: jest.fn(async () => {}),
+                streamEnvelope: jest.fn(async () => {}),
+            })
+
+            expect(mockedRunAcmeOrderAffinitiesHarness).not.toHaveBeenCalled()
+            expect(mockMessageBus.send).toHaveBeenCalledWith({
+                type: 'PublishMessage',
+                targets: ['CHARACTER#123'],
+                displayProtocol: 'WorldOOCMessage',
+                message: ['Acme affinities test harness is currently disabled.'],
             })
         })
     })

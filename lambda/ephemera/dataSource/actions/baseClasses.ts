@@ -68,6 +68,12 @@ export type ParseCommandCoyoteEngineTestResult = {
     confidence: ParseCommandConfidence
 }
 
+/** Coyote Game: explicit trigger for the Acme parse affinities manual-review harness. */
+export type ParseCommandCoyoteAffinitiesTestResult = {
+    type: 'CoyoteAffinitiesTest'
+    confidence: ParseCommandConfidence
+}
+
 export type ParseCommandUnimplementedResult = {
     type: 'Unimplemented'
     confidence: ParseCommandConfidence
@@ -84,6 +90,7 @@ export type ParseCommandResult =
     | ParseCommandAcmeOrderResult
     | ParseCommandAwaitRoadrunnerResult
     | ParseCommandCoyoteEngineTestResult
+    | ParseCommandCoyoteAffinitiesTestResult
     | ParseCommandUnimplementedResult
     | ParseCommandUnknownResult
 
@@ -163,6 +170,15 @@ export function isParseCommandCoyoteEngineTestResult(
     result: ParseCommandResult
 ): result is ParseCommandCoyoteEngineTestResult {
     if (result.type !== 'CoyoteEngineTest') {
+        return false
+    }
+    return isParseConfidence(result.confidence)
+}
+
+export function isParseCommandCoyoteAffinitiesTestResult(
+    result: ParseCommandResult
+): result is ParseCommandCoyoteAffinitiesTestResult {
+    if (result.type !== 'CoyoteAffinitiesTest') {
         return false
     }
     return isParseConfidence(result.confidence)

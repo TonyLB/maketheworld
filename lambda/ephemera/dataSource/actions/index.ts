@@ -16,6 +16,7 @@ import {
     type ParseCommandAcmeOrderLine,
     isParseCommandAcmeOrderResult,
     isParseCommandAwaitRoadrunnerResult,
+    isParseCommandCoyoteAffinitiesTestResult,
     isParseCommandCoyoteEngineTestResult,
     isParseCommandErrorResult,
     isParseCommandNavigationResult,
@@ -23,9 +24,11 @@ import {
     isParseCommandUnknownResult,
 } from './baseClasses'
 import { parseCommand } from './parseCommand'
+import { runAcmeOrderAffinitiesHarness } from './runAcmeOrderAffinitiesHarness'
 import { runCoyoteEngineTestHarness } from '../coyoteGame/runCoyoteEngineTestHarness'
 
 const COYOTE_ENGINE_TEST_HARNESS_ENABLED = true
+const COYOTE_AFFINITIES_TEST_HARNESS_ENABLED = false
 
 const validAcmeOrderNames = (orders: ParseCommandAcmeOrderLine[]): string[] => (
     orders
@@ -161,6 +164,22 @@ export const ephemeraActionsDataSource = new EphemeraDataSource<
                 }
                 else {
                     await runCoyoteEngineTestHarness({
+                        characterId: content.characterId,
+                        messageBus,
+                    })
+                }
+            }
+            else if (isEphemeraCharacterId(content.characterId) && isParseCommandCoyoteAffinitiesTestResult(parseResult)) {
+                if (!COYOTE_AFFINITIES_TEST_HARNESS_ENABLED) {
+                    messageBus.send({
+                        type: 'PublishMessage',
+                        targets: [content.characterId],
+                        displayProtocol: 'WorldOOCMessage',
+                        message: ['Acme affinities test harness is currently disabled.'],
+                    })
+                }
+                else {
+                    await runAcmeOrderAffinitiesHarness({
                         characterId: content.characterId,
                         messageBus,
                     })

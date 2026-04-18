@@ -62,4 +62,14 @@ On **`Await RoadRunner`** from actions, the handler targets **all active charact
 
 **Manual check:** Toggle the harness flag if needed, send **`/test generation`** (or with trailing words after a space), expect **ten** labeled replies; normal play paths should still persist Coyote intent/outcome only through the usual cache flows.
 
+## Acme parse affinities harness (dev)
+
+**Purpose:** Manual review of **Step A + Step B** (`parseCommand`) on the Coyote LLM handoff **Iteration 2** corpus: **ten** single-item orders, one Bedrock classification plus one enrich call per phrase.
+
+**Activation:** [`parseCommand`](../actions/parseCommand.ts) returns **`CoyoteAffinitiesTest`** (no Bedrock) when the trimmed command matches **`/test affinities`** (optional whitespace then more text); see [`coyoteAffinitiesTestSlashCommand`](../actions/coyoteAffinitiesTestSlashCommand.ts). [`actions/index.ts`](../actions/index.ts) runs [`runAcmeOrderAffinitiesHarness`](../actions/runAcmeOrderAffinitiesHarness.ts) only when **`COYOTE_AFFINITIES_TEST_HARNESS_ENABLED`** is **`true`** (constant in that file; default **`false`**). Otherwise the player sees that the harness is disabled.
+
+**Runner:** For each phrase in [`acmeOrderAffinitiesHarnessPhrases`](../actions/acmeOrderAffinitiesHarnessPhrases.ts), the harness calls **`parseCommand`** with **`command`** = **`order`** + that phrase, and publishes **one** consolidated **`WorldOOCMessage`** with numbered sections (`1/10` .. `10/10`), **`elapsedMs`**, and **`JSON.stringify`** of each **`ParseCommandResult`** (merged **`AcmeOrder`** including **`affinities`** when successful).
+
+**Cost:** Ten phrases times **two** Converse calls each (**twenty** invocations per full run when enabled). Budget Lambda time accordingly (raise ephemera Lambda timeout if needed).
+
 **Verification:** `cd lambda/ephemera && npx jest dataSource/coyoteGame/ dataSource/actions/`

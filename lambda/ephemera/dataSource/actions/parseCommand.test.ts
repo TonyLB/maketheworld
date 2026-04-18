@@ -9,6 +9,7 @@ import {
     isParseCommandUnknownResult,
 } from './baseClasses'
 import { buildParseCommandIntentClassificationPrompt } from './buildParseCommandIntentClassificationPrompt'
+import { isCoyoteAffinitiesTestSlashCommand } from './coyoteAffinitiesTestSlashCommand'
 import { isCoyoteEngineTestSlashCommand } from './coyoteEngineTestSlashCommand'
 import { interpretParseCommandIntentClassificationBody } from './parseCommandIntentClassification'
 import { parseCommand } from './parseCommand'
@@ -263,6 +264,22 @@ describe('interpretParseCommandIntentClassificationBody', () => {
     })
 })
 
+describe('isCoyoteAffinitiesTestSlashCommand', () => {
+    it('matches exact and suffix-with-whitespace forms', () => {
+        expect(isCoyoteAffinitiesTestSlashCommand('/test affinities')).toBe(true)
+        expect(isCoyoteAffinitiesTestSlashCommand('  /test affinities  ')).toBe(true)
+        expect(isCoyoteAffinitiesTestSlashCommand('/test affinities extra')).toBe(true)
+        expect(isCoyoteAffinitiesTestSlashCommand('/test affinities  --x')).toBe(true)
+    })
+
+    it('does not match typos or missing word boundary after affinities', () => {
+        expect(isCoyoteAffinitiesTestSlashCommand('/test affinity')).toBe(false)
+        expect(isCoyoteAffinitiesTestSlashCommand('/test affinitiesfoo')).toBe(false)
+        expect(isCoyoteAffinitiesTestSlashCommand('/test')).toBe(false)
+        expect(isCoyoteAffinitiesTestSlashCommand('order anvil')).toBe(false)
+    })
+})
+
 describe('isCoyoteEngineTestSlashCommand', () => {
     it('matches exact and suffix-with-whitespace forms', () => {
         expect(isCoyoteEngineTestSlashCommand('/test generation')).toBe(true)
@@ -303,6 +320,32 @@ describe('parseCommand LLM path', () => {
         )
 
         expect(result).toEqual({ type: 'CoyoteEngineTest', confidence: 1 })
+        expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
+    })
+
+    it('returns CoyoteAffinitiesTest without Bedrock for /test affinities', async () => {
+        const invokeBedrockParseCommandImpl = jest.fn()
+        const invokeBedrockAcmeOrderEnrichImpl = jest.fn()
+
+        const result = await parseCommand(
+            { command: '/test affinities' },
+            { invokeBedrockParseCommandImpl, invokeBedrockAcmeOrderEnrichImpl }
+        )
+
+        expect(result).toEqual({ type: 'CoyoteAffinitiesTest', confidence: 1 })
+        expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
+        expect(invokeBedrockAcmeOrderEnrichImpl).not.toHaveBeenCalled()
+    })
+
+    it('returns CoyoteAffinitiesTest for slash with trailing args without Bedrock', async () => {
+        const invokeBedrockParseCommandImpl = jest.fn()
+
+        const result = await parseCommand(
+            { command: '  /test affinities verbose  ' },
+            { invokeBedrockParseCommandImpl }
+        )
+
+        expect(result).toEqual({ type: 'CoyoteAffinitiesTest', confidence: 1 })
         expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
     })
 
