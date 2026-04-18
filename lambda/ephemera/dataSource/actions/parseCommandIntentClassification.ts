@@ -6,7 +6,6 @@ import {
     type ParseCommandAcmeOrderLine,
     isParseCommandAcmeOrderResult,
     isParseCommandAwaitRoadrunnerResult,
-    isParseCommandCoyoteEngineTestResult,
     isParseCommandUnimplementedResult,
     isParseCommandUnknownResult,
 } from './baseClasses'
@@ -122,7 +121,8 @@ function normalizeAcmeOrdersFromModel(obj: Record<string, unknown>): ParseComman
 
 /**
  * Parses and validates LLM output for the intent-classification prompt.
- * Accepts `AwaitRoadRunner`, `AcmeOrder`, `CoyoteEngineTest`, `Unimplemented`, or `Unknown`; anything else becomes `Error`.
+ * Accepts **`AwaitRoadRunner`**, **`AcmeOrder`**, **`Unimplemented`**, or **`Unknown`**; anything else becomes **`Error`**.
+ * (**`CoyoteEngineTest`** is handled deterministically before Bedrock in **`parseCommand`**.)
  */
 export function interpretParseCommandIntentClassificationBody(body: string): ParseCommandResult {
     const toParse = extractJsonBody(body)
@@ -174,16 +174,6 @@ export function interpretParseCommandIntentClassificationBody(body: string): Par
         }
     }
 
-    if (type === 'CoyoteEngineTest') {
-        const candidate: ParseCommandResult = {
-            type: 'CoyoteEngineTest',
-            confidence: obj.confidence as number,
-        }
-        if (isParseCommandCoyoteEngineTestResult(candidate)) {
-            return candidate
-        }
-    }
-
     if (type === 'Unimplemented') {
         const candidate: ParseCommandResult = {
             type: 'Unimplemented',
@@ -206,6 +196,6 @@ export function interpretParseCommandIntentClassificationBody(body: string): Par
 
     return {
         type: 'Error',
-        errorMessage: 'Model JSON must be a valid AwaitRoadRunner, AcmeOrder, CoyoteEngineTest, Unimplemented, or Unknown payload (see prompt)',
+        errorMessage: 'Model JSON must be a valid AwaitRoadRunner, AcmeOrder, Unimplemented, or Unknown payload (see prompt)',
     }
 }

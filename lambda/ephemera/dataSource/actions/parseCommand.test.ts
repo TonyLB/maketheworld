@@ -9,6 +9,7 @@ import {
     isParseCommandUnknownResult,
 } from './baseClasses'
 import { buildParseCommandIntentClassificationPrompt } from './buildParseCommandIntentClassificationPrompt'
+import { isCoyoteEngineTestSlashCommand } from './coyoteEngineTestSlashCommand'
 import { interpretParseCommandIntentClassificationBody } from './parseCommandIntentClassification'
 import { parseCommand } from './parseCommand'
 
@@ -253,10 +254,58 @@ describe('interpretParseCommandIntentClassificationBody', () => {
         expect(interpretParseCommandIntentClassificationBody(
             '{"type":"AcmeOrder","orders":[],"confidence":0.9}'
         ).type).toBe('Error')
+        expect(interpretParseCommandIntentClassificationBody(
+            '{"type":"CoyoteEngineTest","confidence":0.9}'
+        )).toEqual({
+            type: 'Error',
+            errorMessage: 'Model JSON must be a valid AwaitRoadRunner, AcmeOrder, Unimplemented, or Unknown payload (see prompt)',
+        })
+    })
+})
+
+describe('isCoyoteEngineTestSlashCommand', () => {
+    it('matches exact and suffix-with-whitespace forms', () => {
+        expect(isCoyoteEngineTestSlashCommand('/test generation')).toBe(true)
+        expect(isCoyoteEngineTestSlashCommand('  /test generation  ')).toBe(true)
+        expect(isCoyoteEngineTestSlashCommand('/test generation extra')).toBe(true)
+        expect(isCoyoteEngineTestSlashCommand('/test generation  --x')).toBe(true)
+    })
+
+    it('does not match typos or missing word boundary after generation', () => {
+        expect(isCoyoteEngineTestSlashCommand('/test generations')).toBe(false)
+        expect(isCoyoteEngineTestSlashCommand('/test generationfoo')).toBe(false)
+        expect(isCoyoteEngineTestSlashCommand('/test')).toBe(false)
+        expect(isCoyoteEngineTestSlashCommand('order anvil')).toBe(false)
     })
 })
 
 describe('parseCommand LLM path', () => {
+    it('returns CoyoteEngineTest without Bedrock for /test generation', async () => {
+        const invokeBedrockParseCommandImpl = jest.fn()
+        const invokeBedrockAcmeOrderEnrichImpl = jest.fn()
+
+        const result = await parseCommand(
+            { command: '/test generation' },
+            { invokeBedrockParseCommandImpl, invokeBedrockAcmeOrderEnrichImpl }
+        )
+
+        expect(result).toEqual({ type: 'CoyoteEngineTest', confidence: 1 })
+        expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
+        expect(invokeBedrockAcmeOrderEnrichImpl).not.toHaveBeenCalled()
+    })
+
+    it('returns CoyoteEngineTest for slash command with trailing args without Bedrock', async () => {
+        const invokeBedrockParseCommandImpl = jest.fn()
+
+        const result = await parseCommand(
+            { command: '  /test generation verbose  ' },
+            { invokeBedrockParseCommandImpl }
+        )
+
+        expect(result).toEqual({ type: 'CoyoteEngineTest', confidence: 1 })
+        expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
+    })
+
     it('returns interpreted body when Bedrock succeeds', async () => {
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
             success: true,

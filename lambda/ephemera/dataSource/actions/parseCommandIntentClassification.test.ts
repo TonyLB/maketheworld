@@ -1,26 +1,14 @@
 import { interpretParseCommandIntentClassificationBody } from './parseCommandIntentClassification'
 
 describe('interpretParseCommandIntentClassificationBody', () => {
-    it('accepts CoyoteEngineTest intent payload', () => {
+    it('rejects CoyoteEngineTest from model JSON (harness is slash-only)', () => {
         expect(
             interpretParseCommandIntentClassificationBody(
                 JSON.stringify({ type: 'CoyoteEngineTest', confidence: 0.87 })
             )
         ).toEqual({
-            type: 'CoyoteEngineTest',
-            confidence: 0.87,
-        })
-    })
-
-    it('rejects CoyoteEngineTest payload with invalid confidence', () => {
-        expect(
-            interpretParseCommandIntentClassificationBody(
-                JSON.stringify({ type: 'CoyoteEngineTest', confidence: 4 })
-            )
-        ).toEqual({
             type: 'Error',
-            errorMessage: 'Model JSON must be a valid AwaitRoadRunner, AcmeOrder, CoyoteEngineTest, Unimplemented, or Unknown payload (see prompt)',
+            errorMessage: 'Model JSON must be a valid AwaitRoadRunner, AcmeOrder, Unimplemented, or Unknown payload (see prompt)',
         })
     })
 })
-
