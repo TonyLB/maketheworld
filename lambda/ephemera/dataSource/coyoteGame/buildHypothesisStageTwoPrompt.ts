@@ -29,20 +29,19 @@ const INTERPRETATION_RULES_LINES = [
     '- Prefer coherent cartoon-logic readings over random lists of props.',
     '- Focus on what you think the player is trying to make happen to the Road Runner.',
     '- Choose the single most plausible detailed plan suggested by the staged objects and their room placement.',
-    '- If several readings are possible, select the strongest one and state it as your best current guess.',
-    '- Prefer one coherent cartoon action chain over a broad summary or a list of possibilities.',
-    '- Do not list multiple possible plans, branches, or alternatives.',
     '- Do not use ambiguous either-or phrasing like "either ... or ...", "possibly", "maybe", or "perhaps".',
     '- Do not summarize the setup as a vague theme like "a chase" if the objects support a more specific trap or sequence.',
     '- Do not mention likely failure, backfire, irony, or the Coyote getting hurt.',
-    '- Keep the tone intellectually humble and provisional, as if you are making your best current guess from incomplete evidence.',
     '- Prefer phrasing like "Hypothesis: It looks like you are trying to ..." or "Hypothesis: It seems like you are trying to ...".',
+    '- Uncertainty belongs only in that Hypothesis framing ("It looks like ..."). After it, narrate one committed plan in order, like a confident play-by-play - not another round of hedging.',
+    '- Describe the chosen reading like sketching the perfect caper: a single ordered run through the geography and staged objects (what happens first, next, then), as if each step lands - not a survey of options and not hedging between beats.',
     '- Good style: "Hypothesis: It looks like you are trying to use the roller skates to build speed, then send the Road Runner into a rope-triggered rocket trap further down the straightaway."',
     '- Bad style: "Hypothesis: It seems like you are trying to set up a chase using the roller skates and the rocket and rope to either propel or trap the Road Runner."',
 ] as const
 
 const SCENE_AND_HYPOTHESIS_LINES = [
     '## Scene analysis and Hypothesis output',
+    '- Your "## Scene analysis" section should commit to a single reading and build the spatial and causal logic behind it. Do not survey multiple plans there; the Hypothesis restates that same reading as one sentence.',
     '- Ground your "## Scene analysis" section on the stage-1 seam and the spatial layout; narrate for the player without contradicting the seam.',
     '- After "## Scene analysis", respond with one plain-text sentence on its own line beginning exactly with "Hypothesis:".',
     '- No JSON. No extra commentary outside "## Scene analysis" (markdown allowed there) and the Hypothesis line.',
