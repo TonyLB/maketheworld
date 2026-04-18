@@ -8,6 +8,9 @@ export const ACME_ORDER_ENRICH_MAX_LINES = 50
 /** Max affinity entries per object line (prompt guardrail). */
 export const ACME_ORDER_ENRICH_MAX_AFFINITIES_PER_LINE = 20
 
+/** Omit affinity possibilities strictly below this aptness (entries with aptness equal to this value are kept). */
+export const COYOTE_AFFINITY_APTNESS_MIN = 0.2
+
 export type CoyoteAffinityTarget = 'coyote' | 'road_runner' | 'environment'
 
 export type CoyoteAffinityMode = 'direct' | 'constructive'
@@ -40,6 +43,14 @@ export type CoyoteAffinityPossibility =
           role: CoyoteStructuralRole;
           aptness: number;
       }
+
+function applyCoyoteAffinityAptnessFloor(
+    affinities: CoyoteAffinityPossibility[]
+): CoyoteAffinityPossibility[] {
+    const kept = affinities.filter((a) => a.aptness >= COYOTE_AFFINITY_APTNESS_MIN)
+    kept.sort((a, b) => b.aptness - a.aptness)
+    return kept
+}
 
 export type AcmeOrderEnrichModelLine = {
     name: string;
@@ -124,7 +135,7 @@ function salvageAcmeOrderEnrichLine(raw: unknown): AcmeOrderEnrichModelLine | nu
     const candidate: AcmeOrderEnrichModelLine = {
         name: o.name,
         description,
-        affinities: filtered,
+        affinities: applyCoyoteAffinityAptnessFloor(filtered),
     }
     return isAcmeOrderEnrichModelLine(candidate) ? candidate : null
 }
@@ -150,7 +161,13 @@ function syntheticAcmeOrderEnrichFailureLine(raw: unknown, fallbackName: string)
  */
 export function normalizeAcmeOrderEnrichLine(raw: unknown, fallbackName: string): AcmeOrderEnrichModelLine {
     if (isAcmeOrderEnrichModelLine(raw)) {
-        return raw
+        if (raw.affinitiesFailed === true) {
+            return raw
+        }
+        return {
+            ...raw,
+            affinities: applyCoyoteAffinityAptnessFloor(raw.affinities),
+        }
     }
     const salvaged = salvageAcmeOrderEnrichLine(raw)
     if (salvaged !== null) {

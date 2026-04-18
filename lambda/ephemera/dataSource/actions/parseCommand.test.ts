@@ -472,6 +472,105 @@ describe('parseCommand LLM path', () => {
         })
     })
 
+    it('returns AcmeOrder with multi-role enrich for beehive, shovel, and rope line items', async () => {
+        const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: '{"type":"AcmeOrder","orders":["BEES!","trench shovel","climbing rope"],"confidence":0.85}',
+        })
+        const invokeBedrockAcmeOrderEnrichImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: JSON.stringify({
+                lines: [
+                    {
+                        name: 'Beehive',
+                        description: 'Standard Acme beehive, pre-loaded with agitated bees.',
+                        affinities: [
+                            {
+                                role: 'entity_modification',
+                                target: 'road_runner',
+                                mode: 'direct',
+                                aptness: 0.7,
+                            },
+                            { role: 'terminal', aptness: 0.5 },
+                        ],
+                    },
+                    {
+                        name: 'Entrenching Shovel',
+                        description: 'Folding steel blade for earthworks and tripwire trenches.',
+                        affinities: [
+                            {
+                                role: 'entity_modification',
+                                target: 'environment',
+                                mode: 'constructive',
+                                aptness: 0.88,
+                            },
+                            { role: 'trigger', aptness: 0.42 },
+                        ],
+                    },
+                    {
+                        name: 'Climbing Rope',
+                        description: 'Braided hemp line with grapnel hook.',
+                        affinities: [
+                            { role: 'delivery', aptness: 0.81 },
+                            { role: 'trigger', aptness: 0.55 },
+                        ],
+                    },
+                ],
+                confidence: 0.9,
+            }),
+        })
+
+        const result = await parseCommand(
+            { command: 'order BEES!, a trench shovel, and climbing rope from Acme' },
+            { invokeBedrockParseCommandImpl, invokeBedrockAcmeOrderEnrichImpl }
+        )
+
+        expect(result).toEqual({
+            type: 'AcmeOrder',
+            orders: [
+                {
+                    valid: true,
+                    name: 'Beehive',
+                    description: 'Standard Acme beehive, pre-loaded with agitated bees.',
+                    affinities: [
+                        {
+                            role: 'entity_modification',
+                            target: 'road_runner',
+                            mode: 'direct',
+                            aptness: 0.7,
+                        },
+                        { role: 'terminal', aptness: 0.5 },
+                    ],
+                },
+                {
+                    valid: true,
+                    name: 'Entrenching Shovel',
+                    description: 'Folding steel blade for earthworks and tripwire trenches.',
+                    affinities: [
+                        {
+                            role: 'entity_modification',
+                            target: 'environment',
+                            mode: 'constructive',
+                            aptness: 0.88,
+                        },
+                        { role: 'trigger', aptness: 0.42 },
+                    ],
+                },
+                {
+                    valid: true,
+                    name: 'Climbing Rope',
+                    description: 'Braided hemp line with grapnel hook.',
+                    affinities: [
+                        { role: 'delivery', aptness: 0.81 },
+                        { role: 'trigger', aptness: 0.55 },
+                    ],
+                },
+            ],
+            confidence: 0.85 * 0.9,
+        })
+        expect(invokeBedrockAcmeOrderEnrichImpl).toHaveBeenCalledTimes(1)
+    })
+
     it('skips enrich when every Acme line is invalid', async () => {
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
             success: true,

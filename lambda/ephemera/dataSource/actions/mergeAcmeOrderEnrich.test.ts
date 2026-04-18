@@ -169,4 +169,96 @@ describe('mergeAcmeOrderWithEnrich', () => {
         })
         expect(merged.confidence).toBeCloseTo(0.82 * 0.9)
     })
+
+    const stepAThreeValid = {
+        type: 'AcmeOrder' as const,
+        orders: [
+            { valid: true, name: 'BEES!', description: '', affinities: [] },
+            { valid: true, name: 'trench shovel', description: '', affinities: [] },
+            { valid: true, name: 'climbing rope', description: '', affinities: [] },
+        ],
+        confidence: 0.85,
+    }
+
+    it('merges multi-role enrich lines (beehive, shovel, rope) in index order', () => {
+        const merged = mergeAcmeOrderWithEnrich(
+            stepAThreeValid,
+            {
+                lines: [
+                    {
+                        name: 'Beehive',
+                        description: 'Standard Acme beehive, pre-loaded with agitated bees.',
+                        affinities: [
+                            {
+                                role: 'entity_modification',
+                                target: 'road_runner',
+                                mode: 'direct',
+                                aptness: 0.7,
+                            },
+                            { role: 'terminal', aptness: 0.5 },
+                        ],
+                    },
+                    {
+                        name: 'Entrenching Shovel',
+                        description: 'Folding steel blade for earthworks and tripwire trenches.',
+                        affinities: [
+                            {
+                                role: 'entity_modification',
+                                target: 'environment',
+                                mode: 'constructive',
+                                aptness: 0.88,
+                            },
+                            { role: 'trigger', aptness: 0.42 },
+                        ],
+                    },
+                    {
+                        name: 'Climbing Rope',
+                        description: 'Braided hemp line with grapnel hook.',
+                        affinities: [
+                            { role: 'delivery', aptness: 0.81 },
+                            { role: 'trigger', aptness: 0.55 },
+                        ],
+                    },
+                ],
+                confidence: 0.9,
+            },
+            false
+        )
+        expect(merged.orders[0]).toMatchObject({
+            valid: true,
+            name: 'Beehive',
+            description: 'Standard Acme beehive, pre-loaded with agitated bees.',
+            affinities: [
+                {
+                    role: 'entity_modification',
+                    target: 'road_runner',
+                    mode: 'direct',
+                    aptness: 0.7,
+                },
+                { role: 'terminal', aptness: 0.5 },
+            ],
+        })
+        expect(merged.orders[1]).toMatchObject({
+            valid: true,
+            name: 'Entrenching Shovel',
+            affinities: [
+                {
+                    role: 'entity_modification',
+                    target: 'environment',
+                    mode: 'constructive',
+                    aptness: 0.88,
+                },
+                { role: 'trigger', aptness: 0.42 },
+            ],
+        })
+        expect(merged.orders[2]).toMatchObject({
+            valid: true,
+            name: 'Climbing Rope',
+            affinities: [
+                { role: 'delivery', aptness: 0.81 },
+                { role: 'trigger', aptness: 0.55 },
+            ],
+        })
+        expect(merged.confidence).toBeCloseTo(0.85 * 0.9)
+    })
 })

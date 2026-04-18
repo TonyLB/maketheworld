@@ -1,6 +1,7 @@
 import {
     ACME_ORDER_ENRICH_MAX_AFFINITIES_PER_LINE,
     ACME_ORDER_ENRICH_MAX_LINES,
+    COYOTE_AFFINITY_APTNESS_MIN,
     isAcmeOrderEnrichModelLine,
     isAcmeOrderEnrichModelResponse,
     isCoyoteAffinityPossibility,
@@ -102,13 +103,57 @@ describe('isAcmeOrderEnrichModelLine', () => {
 })
 
 describe('normalizeAcmeOrderEnrichLine', () => {
-    it('returns valid lines unchanged', () => {
+    it('returns valid lines unchanged when a single affinity passes the aptness floor', () => {
         const line = {
             name: 'A',
             description: 'd',
             affinities: [{ role: 'terminal', aptness: 0.5 }] as const,
         }
         expect(normalizeAcmeOrderEnrichLine(line, 'fallback')).toEqual(line)
+    })
+
+    it('sorts affinities by aptness descending and drops entries below the floor', () => {
+        const line = {
+            name: 'X',
+            description: 'y',
+            affinities: [
+                { role: 'terminal', aptness: 0.4 },
+                {
+                    role: 'entity_modification',
+                    target: 'road_runner' as const,
+                    mode: 'direct' as const,
+                    aptness: 0.9,
+                },
+                { role: 'delivery', aptness: 0.15 },
+            ],
+        }
+        expect(normalizeAcmeOrderEnrichLine(line, 'fallback')).toEqual({
+            name: 'X',
+            description: 'y',
+            affinities: [
+                {
+                    role: 'entity_modification',
+                    target: 'road_runner',
+                    mode: 'direct',
+                    aptness: 0.9,
+                },
+                { role: 'terminal', aptness: 0.4 },
+            ],
+        })
+    })
+
+    it('keeps aptness equal to COYOTE_AFFINITY_APTNESS_MIN', () => {
+        const line = {
+            name: 'Edge',
+            description: 'd',
+            affinities: [
+                { role: 'terminal', aptness: COYOTE_AFFINITY_APTNESS_MIN },
+                { role: 'trigger', aptness: COYOTE_AFFINITY_APTNESS_MIN - 0.01 },
+            ],
+        }
+        expect(normalizeAcmeOrderEnrichLine(line, 'fallback').affinities).toEqual([
+            { role: 'terminal', aptness: COYOTE_AFFINITY_APTNESS_MIN },
+        ])
     })
 
     it('synthesizes failure when raw is garbage', () => {

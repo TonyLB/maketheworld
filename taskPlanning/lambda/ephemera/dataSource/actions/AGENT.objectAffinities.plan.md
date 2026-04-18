@@ -1,6 +1,6 @@
 # Object plan-role affinities (Acme parse enrichment)
 
-**Status:** In progress. Phase 1 (schema + shared types) and Phase 2 (two-step parse pipeline) are complete; next is Phase 3 (full Acme enrich prompt quality).
+**Status:** In progress. Phases 1-3 are complete (full Acme enrich prompt, **`COYOTE_AFFINITY_APTNESS_MIN`** normalization, tests); next is Phase 3.5 (manual-review harness) or Phase 4 (persistence).
 
 ## Purpose
 
@@ -93,9 +93,9 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines as you finish ea
   - [X] Extend **[`AcmeOrderEnrichModelResponse`](../../../../../packages/mtw-interfaces/ts/coyotePlanAffinities.ts)** / line types if needed (**optional root `confidence`** for Step B; optional **`affinitiesFailed`** per **`AcmeOrderEnrichModelLine`**) and adjust guards in **`mtw-interfaces`**.
   - [X] Adjust [`interpretParseCommandIntentClassificationBody`](../../../../../lambda/ephemera/dataSource/actions/parseCommandIntentClassification.ts) (or split interpreters) so validation stays strict JSON + guards.
 
-- [ ] Phase 3 - Acme enrich prompt and parsing (full prompt quality)
-  - [ ] Replace the Phase 2 placeholder: expand **`buildParseAcmeOrderEnrichPrompt`** so instructions include (1) full role vocabulary and **`affinities`** with **aptness**, (2) enforce no RPG wording, (3) drop possibilities below the aptness floor, (4) normalize player text to Acme register **`name`** / **`description`** with the full catalog rigor intended for production.
-  - [ ] Extend parser tests with fixtures (beehive, shovel, rope-style multi-role examples from the handoff).
+- [X] Phase 3 - Acme enrich prompt and parsing (full prompt quality)
+  - [X] Replace the Phase 2 placeholder: expand **`buildParseAcmeOrderEnrichPrompt`** so instructions include (1) full role vocabulary and **`affinities`** with **aptness**, (2) enforce no RPG wording, (3) drop possibilities below the aptness floor, (4) normalize player text to Acme register **`name`** / **`description`** with the full catalog rigor intended for production.
+  - [X] Extend parser tests with fixtures (beehive, shovel, rope-style multi-role examples from the handoff).
 
 - [ ] Phase 3.5 - Acme parse manual-review harness (parallel to hypothesis **`/test generation`**)
   - **Goal:** After Phase 3 prompt work, run the **Coyote LLM handoff Iteration 2** corpus through the **real** Step A + Step B parse pipeline **one item at a time** (each command is a **single-line** Acme order: `order <phrase>`), collect outputs for **human review** — same spirit as handoff § Testing (“no automated assertion”). Multi-item **`order A, B, C`** runs are out of scope for this harness; isolation makes enrich behavior easier to compare.
@@ -164,7 +164,7 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines as you finish ea
 | --- | --- |
 | Schema + guards for **`affinities`** / **`affinitiesFailed`** on room objects | Done ([`ephemeraMeta.ts`](../../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts), [`coyotePlanAffinities.ts`](../../../../../packages/mtw-interfaces/ts/coyotePlanAffinities.ts), merge snapshots) |
 | Intent-only first parse + Acme enrich second parse | Done ([`parseCommand.ts`](../../../../../lambda/ephemera/dataSource/actions/parseCommand.ts), [`invokeBedrockAcmeOrderEnrich.ts`](../../../../../lambda/ephemera/generateExample/invokeBedrockAcmeOrderEnrich.ts)) |
-| Acme enrich prompt + parser + tests | Phase 2 placeholder + merge done; Phase 3 = prompt quality |
+| Acme enrich prompt + parser + tests | Done ([`buildParseAcmeOrderEnrichPrompt.ts`](../../../../../lambda/ephemera/dataSource/actions/buildParseAcmeOrderEnrichPrompt.ts), **`COYOTE_AFFINITY_APTNESS_MIN`** in [`coyotePlanAffinities.ts`](../../../../../packages/mtw-interfaces/ts/coyotePlanAffinities.ts); tests in **`coyotePlanAffinities.test.ts`**, **`mergeAcmeOrderEnrich.test.ts`**, **`parseCommand.test.ts`**, **`buildParseAcmeOrderEnrichPrompt.test.ts`**) |
 | Bus payload + `handleAcmeOrderAddObjects` persistence | Not started |
 | `formatCoyoteStagedObjectsByRoom` renders affinities / failed flag | Not started |
 | Build + tests green | Not started |
