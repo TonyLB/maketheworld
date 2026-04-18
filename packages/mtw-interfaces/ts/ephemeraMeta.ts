@@ -69,8 +69,6 @@ export type EphemeraRoomActiveCharacter = {
 export type EphemeraMetaRoomObject = {
     uuid: EphemeraObjectId;
     shortName: string;
-    /** Acme enrich catalog text; same as enrich `name` when present. */
-    description?: string;
     /** Plan-role possibilities with aptness; omitted on legacy rows. */
     affinities?: CoyoteAffinityPossibility[];
     /** True when affinities could not be validated (enrich LLM/parse failure); distinguish from legacy omitted fields. */
@@ -89,9 +87,6 @@ export const isEphemeraMetaRoomObject = (entry: unknown): entry is EphemeraMetaR
         return false
     }
     const o = entry as Record<string, unknown>
-    if ('description' in o && typeof o.description !== 'string') {
-        return false
-    }
     if ('affinities' in o && !Array.isArray(o.affinities)) {
         return false
     }

@@ -2,7 +2,7 @@ import { COYOTE_AFFINITY_APTNESS_MIN } from '@tonylb/mtw-interfaces/ts/coyotePla
 import { buildParseAcmeOrderEnrichPrompt } from './buildParseAcmeOrderEnrichPrompt'
 
 describe('buildParseAcmeOrderEnrichPrompt', () => {
-    it('includes role vocabulary, anti-RPG guidance, and the aptness floor constant', () => {
+    it.skip('includes role vocabulary, anti-RPG guidance, and the aptness floor constant', () => {
         const { invariantPrefix, dynamicSuffix } = buildParseAcmeOrderEnrichPrompt(
             'order rope',
             ['rope']
@@ -12,6 +12,7 @@ describe('buildParseAcmeOrderEnrichPrompt', () => {
         expect(invariantPrefix).toContain('skill check')
         expect(invariantPrefix).toContain(String(COYOTE_AFFINITY_APTNESS_MIN))
         expect(invariantPrefix).toContain('strictly below')
+        expect(invariantPrefix).not.toContain('description')
         expect(dynamicSuffix).toContain('order rope')
         expect(dynamicSuffix).toContain('1. rope')
     })

@@ -93,7 +93,6 @@ export function mergeAcmeOrderWithEnrich(
         if (enrichInvokeFailed || enrich === null) {
             return {
                 ...line,
-                description: '',
                 affinities: [],
                 affinitiesFailed: true,
             }
@@ -105,7 +104,6 @@ export function mergeAcmeOrderWithEnrich(
         if (eline === undefined) {
             return {
                 ...line,
-                description: '',
                 affinities: [],
                 affinitiesFailed: true,
             }
@@ -117,7 +115,6 @@ export function mergeAcmeOrderWithEnrich(
             return {
                 ...line,
                 name: catalogName,
-                description: eline.description,
                 affinities: eline.affinities,
                 affinitiesFailed: true,
             }
@@ -126,7 +123,6 @@ export function mergeAcmeOrderWithEnrich(
         return {
             ...line,
             name: catalogName,
-            description: eline.description,
             affinities: eline.affinities,
         }
     })

@@ -1,5 +1,5 @@
 //
-// Second Bedrock call: Acme order line enrichment (name, description, affinities JSON).
+// Second Bedrock call: Acme order line enrichment (name and affinities JSON).
 // Same model as intent parse; higher token/timeout budget for multi-line JSON.
 // Prompt caching: static instructions before the cache point; player command + line list after.
 //

@@ -54,11 +54,9 @@ function applyCoyoteAffinityAptnessFloor(
 
 export type AcmeOrderEnrichModelLine = {
     name: string;
-    /** Catalog copy; use **`""`** when **`affinitiesFailed`** (no copy produced). */
-    description: string;
     /** Role possibilities; use **`[]`** when none apply or when **`affinitiesFailed`**. */
     affinities: CoyoteAffinityPossibility[];
-    /** When **`true`**, **`description`** must be **`""`** and **`affinities`** must be **`[]`**. */
+    /** When **`true`**, **`affinities`** must be **`[]`**. */
     affinitiesFailed?: boolean;
 }
 
@@ -118,13 +116,11 @@ function salvageAcmeOrderEnrichLine(raw: unknown): AcmeOrderEnrichModelLine | nu
     if (o.affinitiesFailed === true) {
         const coerced: AcmeOrderEnrichModelLine = {
             name: o.name,
-            description: '',
             affinities: [],
             affinitiesFailed: true,
         }
         return isAcmeOrderEnrichModelLine(coerced) ? coerced : null
     }
-    const description = typeof o.description === 'string' ? o.description : ''
     if (!Array.isArray(o.affinities)) {
         return null
     }
@@ -134,7 +130,6 @@ function salvageAcmeOrderEnrichLine(raw: unknown): AcmeOrderEnrichModelLine | nu
     }
     const candidate: AcmeOrderEnrichModelLine = {
         name: o.name,
-        description,
         affinities: applyCoyoteAffinityAptnessFloor(filtered),
     }
     return isAcmeOrderEnrichModelLine(candidate) ? candidate : null
@@ -150,7 +145,6 @@ function syntheticAcmeOrderEnrichFailureLine(raw: unknown, fallbackName: string)
     }
     return {
         name,
-        description: '',
         affinities: [],
         affinitiesFailed: true,
     }
@@ -162,10 +156,14 @@ function syntheticAcmeOrderEnrichFailureLine(raw: unknown, fallbackName: string)
 export function normalizeAcmeOrderEnrichLine(raw: unknown, fallbackName: string): AcmeOrderEnrichModelLine {
     if (isAcmeOrderEnrichModelLine(raw)) {
         if (raw.affinitiesFailed === true) {
-            return raw
+            return {
+                name: raw.name,
+                affinities: [],
+                affinitiesFailed: true,
+            }
         }
         return {
-            ...raw,
+            name: raw.name,
             affinities: applyCoyoteAffinityAptnessFloor(raw.affinities),
         }
     }
@@ -224,9 +222,6 @@ export function isAcmeOrderEnrichModelLine(entry: unknown): entry is AcmeOrderEn
     if (typeof o.name !== 'string') {
         return false
     }
-    if (typeof o.description !== 'string') {
-        return false
-    }
     if (!Array.isArray(o.affinities)) {
         return false
     }
@@ -234,7 +229,7 @@ export function isAcmeOrderEnrichModelLine(entry: unknown): entry is AcmeOrderEn
         return false
     }
     if (o.affinitiesFailed === true) {
-        return o.description === '' && o.affinities.length === 0
+        return o.affinities.length === 0
     }
     return o.affinities.every((x) => isCoyoteAffinityPossibility(x))
 }

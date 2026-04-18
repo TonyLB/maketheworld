@@ -52,7 +52,6 @@ describe('isCoyoteAffinityPossibility', () => {
 describe('isAcmeOrderEnrichModelLine', () => {
     const validLine = {
         name: 'Beehive',
-        description: 'Standard Acme beehive.',
         affinities: [
             { role: 'entity_modification', target: 'road_runner', mode: 'direct', aptness: 0.7 },
             { role: 'terminal', aptness: 0.5 },
@@ -71,30 +70,20 @@ describe('isAcmeOrderEnrichModelLine', () => {
         expect(isAcmeOrderEnrichModelLine({ ...validLine, affinities })).toBe(false)
     })
 
-    it('accepts affinitiesFailed with required empty description and affinities', () => {
+    it('accepts affinitiesFailed with empty affinities', () => {
         expect(
             isAcmeOrderEnrichModelLine({
                 name: 'Rope',
-                description: '',
                 affinities: [],
                 affinitiesFailed: true,
             })
         ).toBe(true)
     })
 
-    it('rejects affinitiesFailed when description or affinities are not empty', () => {
+    it('rejects affinitiesFailed when affinities are not empty', () => {
         expect(
             isAcmeOrderEnrichModelLine({
                 name: 'Rope',
-                description: 'x',
-                affinities: [],
-                affinitiesFailed: true,
-            })
-        ).toBe(false)
-        expect(
-            isAcmeOrderEnrichModelLine({
-                name: 'Rope',
-                description: '',
                 affinities: [{ role: 'terminal', aptness: 0.1 }],
                 affinitiesFailed: true,
             })
@@ -106,7 +95,6 @@ describe('normalizeAcmeOrderEnrichLine', () => {
     it('returns valid lines unchanged when a single affinity passes the aptness floor', () => {
         const line = {
             name: 'A',
-            description: 'd',
             affinities: [{ role: 'terminal', aptness: 0.5 }] as const,
         }
         expect(normalizeAcmeOrderEnrichLine(line, 'fallback')).toEqual(line)
@@ -115,7 +103,6 @@ describe('normalizeAcmeOrderEnrichLine', () => {
     it('sorts affinities by aptness descending and drops entries below the floor', () => {
         const line = {
             name: 'X',
-            description: 'y',
             affinities: [
                 { role: 'terminal', aptness: 0.4 },
                 {
@@ -129,7 +116,6 @@ describe('normalizeAcmeOrderEnrichLine', () => {
         }
         expect(normalizeAcmeOrderEnrichLine(line, 'fallback')).toEqual({
             name: 'X',
-            description: 'y',
             affinities: [
                 {
                     role: 'entity_modification',
@@ -145,7 +131,6 @@ describe('normalizeAcmeOrderEnrichLine', () => {
     it('keeps aptness equal to COYOTE_AFFINITY_APTNESS_MIN', () => {
         const line = {
             name: 'Edge',
-            description: 'd',
             affinities: [
                 { role: 'terminal', aptness: COYOTE_AFFINITY_APTNESS_MIN },
                 { role: 'trigger', aptness: COYOTE_AFFINITY_APTNESS_MIN - 0.01 },
@@ -159,7 +144,6 @@ describe('normalizeAcmeOrderEnrichLine', () => {
     it('synthesizes failure when raw is garbage', () => {
         expect(normalizeAcmeOrderEnrichLine(null, 'rope')).toEqual({
             name: 'rope',
-            description: '',
             affinities: [],
             affinitiesFailed: true,
         })
@@ -168,7 +152,6 @@ describe('normalizeAcmeOrderEnrichLine', () => {
     it('uses trimmed raw name when present', () => {
         expect(normalizeAcmeOrderEnrichLine({ name: '  catalog  ', foo: 1 }, 'rope')).toEqual({
             name: 'catalog',
-            description: '',
             affinities: [],
             affinitiesFailed: true,
         })
@@ -179,14 +162,12 @@ describe('normalizeAcmeOrderEnrichLine', () => {
             normalizeAcmeOrderEnrichLine(
                 {
                     name: 'X',
-                    description: 'y',
                     affinities: [{ role: 'terminal', aptness: 0.5 }, { bad: true }, 'nope'],
                 },
                 'fb'
             )
         ).toEqual({
             name: 'X',
-            description: 'y',
             affinities: [{ role: 'terminal', aptness: 0.5 }],
         })
     })
@@ -196,7 +177,6 @@ describe('normalizeAcmeOrderEnrichLine', () => {
             normalizeAcmeOrderEnrichLine(
                 {
                     name: 'X',
-                    description: 'should drop',
                     affinities: [{ role: 'terminal', aptness: 1 }],
                     affinitiesFailed: true,
                 },
@@ -204,7 +184,6 @@ describe('normalizeAcmeOrderEnrichLine', () => {
             )
         ).toEqual({
             name: 'X',
-            description: '',
             affinities: [],
             affinitiesFailed: true,
         })
@@ -222,13 +201,11 @@ describe('normalizeAcmeOrderEnrichResponse', () => {
         expect(r.lines).toHaveLength(2)
         expect(r.lines[0]).toMatchObject({
             name: 'a',
-            description: '',
             affinities: [],
             affinitiesFailed: true,
         })
         expect(r.lines[1]).toMatchObject({
             name: 'b',
-            description: '',
             affinities: [],
             affinitiesFailed: true,
         })
@@ -239,7 +216,7 @@ describe('normalizeAcmeOrderEnrichResponse', () => {
             {
                 confidence: 0.9,
                 lines: [
-                    { name: 'Good', description: 'd', affinities: [{ role: 'terminal', aptness: 0.2 }] },
+                    { name: 'Good', affinities: [{ role: 'terminal', aptness: 0.2 }] },
                     null,
                 ],
             },
@@ -250,7 +227,6 @@ describe('normalizeAcmeOrderEnrichResponse', () => {
         expect(isAcmeOrderEnrichModelLine(r.lines[0])).toBe(true)
         expect(r.lines[1]).toEqual({
             name: 'stepA2',
-            description: '',
             affinities: [],
             affinitiesFailed: true,
         })
@@ -270,7 +246,6 @@ describe('isAcmeOrderEnrichModelResponse', () => {
                 lines: [
                     {
                         name: 'Shovel',
-                        description: 'Entrenching shovel.',
                         affinities: [
                             {
                                 role: 'entity_modification',
@@ -288,7 +263,6 @@ describe('isAcmeOrderEnrichModelResponse', () => {
     it('rejects too many lines', () => {
         const lines = Array.from({ length: ACME_ORDER_ENRICH_MAX_LINES + 1 }, (_, i) => ({
             name: `x${i}`,
-            description: 'd',
             affinities: [] as [],
         }))
         expect(isAcmeOrderEnrichModelResponse({ lines })).toBe(false)
@@ -301,7 +275,6 @@ describe('isAcmeOrderEnrichModelResponse', () => {
                 lines: [
                     {
                         name: 'A',
-                        description: 'd',
                         affinities: [{ role: 'terminal', aptness: 0.2 }],
                     },
                 ],
@@ -313,7 +286,7 @@ describe('isAcmeOrderEnrichModelResponse', () => {
         expect(
             isAcmeOrderEnrichModelResponse({
                 confidence: 1.2,
-                lines: [{ name: 'A', description: 'd', affinities: [] }],
+                lines: [{ name: 'A', affinities: [] }],
             })
         ).toBe(false)
     })
@@ -334,7 +307,6 @@ describe('isEphemeraMetaRoomObject', () => {
             isEphemeraMetaRoomObject({
                 uuid: 'OBJECT#abc',
                 shortName: 'Beehive',
-                description: 'Bees.',
                 affinities: [{ role: 'terminal', aptness: 0.5 }],
                 affinitiesFailed: false,
             })
@@ -352,13 +324,6 @@ describe('isEphemeraMetaRoomObject', () => {
     })
 
     it('rejects wrong optional types', () => {
-        expect(
-            isEphemeraMetaRoomObject({
-                uuid: 'OBJECT#abc',
-                shortName: 'x',
-                description: 1,
-            } as unknown)
-        ).toBe(false)
         expect(
             isEphemeraMetaRoomObject({
                 uuid: 'OBJECT#abc',

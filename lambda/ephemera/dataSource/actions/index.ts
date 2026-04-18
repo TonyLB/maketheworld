@@ -28,7 +28,7 @@ import { runAcmeOrderAffinitiesHarness } from './runAcmeOrderAffinitiesHarness'
 import { runCoyoteEngineTestHarness } from '../coyoteGame/runCoyoteEngineTestHarness'
 
 const COYOTE_ENGINE_TEST_HARNESS_ENABLED = true
-const COYOTE_AFFINITIES_TEST_HARNESS_ENABLED = false
+const COYOTE_AFFINITIES_TEST_HARNESS_ENABLED = true
 
 const validAcmeOrderNames = (orders: ParseCommandAcmeOrderLine[]): string[] => (
     orders

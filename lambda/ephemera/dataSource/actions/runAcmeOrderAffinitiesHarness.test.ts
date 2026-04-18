@@ -22,7 +22,6 @@ describe('runAcmeOrderAffinitiesHarness', () => {
             orders: [{
                 valid: true,
                 name: phrase,
-                description: 'd',
                 affinities: [{ role: 'terminal', aptness: 0.5 }],
             }],
         })

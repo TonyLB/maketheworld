@@ -33,7 +33,7 @@ const obj = (suffix: string, shortName: string): EphemeraMetaRoomObject => ({
 const enrichedObj = (
     suffix: string,
     shortName: string,
-    extras: Partial<Pick<EphemeraMetaRoomObject, 'description' | 'affinities' | 'affinitiesFailed'>> = {}
+    extras: Partial<Pick<EphemeraMetaRoomObject, 'affinities' | 'affinitiesFailed'>> = {}
 ): EphemeraMetaRoomObject => ({
     uuid: `OBJECT#${suffix}` as EphemeraObjectId,
     shortName,
@@ -157,7 +157,6 @@ describe('mergePersistMetaRoomObjects', () => {
 
     it('preserves optional Acme enrich fields in priorObjects and newObjects snapshots', async () => {
         const priorRich = enrichedObj('a', 'Legacy', {
-            description: 'Old Acme packaging',
             affinities: [{ role: 'terminal', aptness: 0.4 }],
         })
         const meta = baseMeta({
@@ -166,7 +165,6 @@ describe('mergePersistMetaRoomObjects', () => {
         const optimisticUpdate = mockOptimisticUpdatePersisting(meta, roomId)
 
         const addRich = enrichedObj('c', 'Imported dynamite crate', {
-            description: 'Bundle of cartoon dynamite sticks.',
             affinities: [
                 { role: 'entity_modification', target: 'environment', mode: 'direct', aptness: 0.55 },
                 { role: 'terminal', aptness: 0.3 },
@@ -185,14 +183,12 @@ describe('mergePersistMetaRoomObjects', () => {
         }
         expect(result.priorObjects).toEqual([
             enrichedObj('a', 'Legacy', {
-                description: 'Old Acme packaging',
                 affinities: [{ role: 'terminal', aptness: 0.4 }],
             }),
             obj('b', 'B'),
         ])
         expect(result.newObjects).toEqual([
             enrichedObj('a', 'Legacy', {
-                description: 'Old Acme packaging',
                 affinities: [{ role: 'terminal', aptness: 0.4 }],
             }),
             obj('b', 'B'),

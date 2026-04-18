@@ -60,24 +60,20 @@ function normalizeAcmeOrdersFromModel(obj: Record<string, unknown>): ParseComman
                     return {
                         valid: false,
                         name,
-                        description: '',
                         affinities: [],
                         errorType,
                     }
                 }
-                let description = typeof entry.description === 'string' ? entry.description : ''
                 let affinities = parseAffinitiesField(entry.affinities)
                 const affinitiesFailed = typeof entry.affinitiesFailed === 'boolean'
                     ? entry.affinitiesFailed
                     : undefined
                 if (affinitiesFailed === true) {
-                    description = ''
                     affinities = []
                 }
                 const base: ParseCommandAcmeOrderLine = {
                     valid: true,
                     name,
-                    description,
                     affinities,
                     ...(affinitiesFailed !== undefined ? { affinitiesFailed } : {}),
                 }
@@ -98,7 +94,6 @@ function normalizeAcmeOrdersFromModel(obj: Record<string, unknown>): ParseComman
             .map((name): ParseCommandAcmeOrderLine => ({
                 valid: true,
                 name,
-                description: '',
                 affinities: [],
             }))
         return lines.length > 0 ? lines : null
@@ -112,7 +107,6 @@ function normalizeAcmeOrdersFromModel(obj: Record<string, unknown>): ParseComman
         return [{
             valid: true,
             name: obj.order.trim(),
-            description: '',
             affinities: [],
         }]
     }

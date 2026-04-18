@@ -40,8 +40,6 @@ export type ParseCommandAcmeOrderLine = {
     valid: boolean
     name: string
     errorType?: ParseCommandAcmeOrderErrorType
-    /** Acme catalog description after Step B enrich; **""** when **`affinitiesFailed`**. */
-    description: string
     /** Role possibilities; **[]** when none apply or when **`affinitiesFailed`**. */
     affinities: CoyoteAffinityPossibility[]
     /** True when enrich could not attach validated affinities for this line. */
@@ -138,9 +136,6 @@ export function isParseCommandAcmeOrderResult(
         if (!entry.valid && !isParseCommandAcmeOrderErrorType(entry.errorType)) {
             return false
         }
-        if (typeof entry.description !== 'string') {
-            return false
-        }
         if (!Array.isArray(entry.affinities)) {
             return false
         }
@@ -151,7 +146,7 @@ export function isParseCommandAcmeOrderResult(
             return false
         }
         if (entry.valid === true && entry.affinitiesFailed === true) {
-            return entry.description === '' && entry.affinities.length === 0
+            return entry.affinities.length === 0
         }
         return true
     })

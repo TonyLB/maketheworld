@@ -1,5 +1,5 @@
 /**
- * Step B: Acme order enrichment (catalog name, description, affinities).
+ * Step B: Acme order enrichment (catalog name and affinities).
  */
 
 import { COYOTE_AFFINITY_APTNESS_MIN } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
@@ -23,21 +23,19 @@ The **player command** and **numbered valid line items** appear at the end of th
 
 ## Tone and wording (mandatory)
 
-- Write \`name\`, \`description\`, and implied roles in **cartoon physics / contraption** language: slapstick, Acme catalog, chase comedy.
-- **Do not** use tabletop-RPG jargon or stats framing. Avoid terms like **character sheet**, **stat**, **save**, **skill check**, **DC**, **HP**, **damage roll**, **buff**, **debuff**, **class**, **feat**, **spell slot**, **initiative**. Prefer neutral physical words: device, gadget, hazard, launcher, snag, snag point, coil, fuse, bait, disguise, disguise kit, lure, obstacle.
-- Examples: Prefer "spring-loaded boxing glove" over "attack item"; prefer "heavy iron anvil drop" over "damage source".
+- Write each line's \`name\` and implied roles in **cartoon physics / contraption** language: slapstick, Acme catalog, chase comedy.
+- Prefer descriptions with salesman-like color (e.g. "Acme dynamite, 100% guaranteed to explode").
 
-## Catalog \`name\` and \`description\`
+## Catalog \`name\`
 
-- Normalize sloppy player wording into polished **Acme-style product titles** (\`name\`) and one or two concise sentences of in-fiction catalog copy (\`description\`).
-- Capitalize titles like brochure headings. **Description** should read like mail-order blurbs: concrete, tactile, playful, safe for general audiences.
-- For substances or creatures that must arrive contained, **name** and **describe** the **shipped package**, not loose hazardous raw reality (keep your existing instincts: pressurized cylinders, crates, aquariums, reinforced crates).
+- Normalize sloppy player wording into polished **Acme-style product titles** (\`name\`).
+- Capitalize titles like brochure headings.
+- For substances or creatures that must arrive contained, phrase the **shipped package** in the title, not loose hazardous raw reality (pressurized cylinders, crates, aquariums, reinforced crates).
 
 Example shape (structure only):
 
 {
-  "name": "Beehive",
-  "description": "Standard Acme beehive, pre-loaded with agitated bees.",
+  "name": "Beehive (prefilled portable hive)",
   "affinities": [
     { "role": "entity_modification", "target": "road_runner", "mode": "direct", "aptness": 0.7 },
     { "role": "terminal", "aptness": 0.5 }
@@ -69,7 +67,7 @@ The object (or an obvious construct built from it) changes **Coyote**, **Road Ru
 ## Failure and confidence
 
 - Optional root \`confidence\`: your confidence in this enrichment pass, **[0, 1]**.
-- If you cannot justify **affinities** for a line, set \`affinitiesFailed\`: true on that line, \`description\` to \`""\`, and \`affinities\` to \`[]\`.
+- If you cannot justify **affinities** for a line, set \`affinitiesFailed\`: true on that line and \`affinities\` to \`[]\`.
 
 ## Output shape
 
@@ -79,7 +77,6 @@ Output **only** one JSON object, no markdown fences, no text before or after.
   "lines": [
     {
       "name": "<string>",
-      "description": "<string>",
       "affinities": [ { "role": "terminal", "aptness": 0.5 } ]
     }
   ],

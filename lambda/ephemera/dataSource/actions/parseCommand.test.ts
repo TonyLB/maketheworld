@@ -46,7 +46,6 @@ describe('parseCommand type guards', () => {
                 orders: [{
                     valid: true,
                     name: 'rocket-powered roller skates',
-                    description: '',
                     affinities: [],
                 }],
                 confidence: 0.9,
@@ -54,12 +53,11 @@ describe('parseCommand type guards', () => {
             expect(isParseCommandAcmeOrderResult({
                 type: 'AcmeOrder',
                 orders: [
-                    { valid: true, name: 'anvil', description: '', affinities: [] },
+                    { valid: true, name: 'anvil', affinities: [] },
                     {
                         valid: false,
                         name: 'justice',
                         errorType: 'Not tangible',
-                        description: '',
                         affinities: [],
                     },
                 ],
@@ -70,7 +68,7 @@ describe('parseCommand type guards', () => {
         it('rejects invalid confidence, empty orders, or blank lines', () => {
             expect(isParseCommandAcmeOrderResult({
                 type: 'AcmeOrder',
-                orders: [{ valid: true, name: 'skates', description: '', affinities: [] }],
+                orders: [{ valid: true, name: 'skates', affinities: [] }],
                 confidence: -0.01,
             })).toBe(false)
             expect(isParseCommandAcmeOrderResult({
@@ -80,7 +78,7 @@ describe('parseCommand type guards', () => {
             })).toBe(false)
             expect(isParseCommandAcmeOrderResult({
                 type: 'AcmeOrder',
-                orders: [{ valid: true, name: '  ', description: '', affinities: [] }],
+                orders: [{ valid: true, name: '  ', affinities: [] }],
                 confidence: 0.5,
             })).toBe(false)
             expect(isParseCommandAcmeOrderResult({
@@ -89,14 +87,13 @@ describe('parseCommand type guards', () => {
                     valid: true,
                     name: 'anvil',
                     errorType: 'Not a thing',
-                    description: '',
                     affinities: [],
                 } as any],
                 confidence: 0.5,
             })).toBe(false)
             expect(isParseCommandAcmeOrderResult({
                 type: 'AcmeOrder',
-                orders: [{ valid: true, name: 'anvil', description: '', affinities: [] }],
+                orders: [{ valid: true, name: 'anvil', affinities: [] }],
                 confidence: 0.5,
             })).toBe(true)
             expect(isParseCommandAcmeOrderResult({
@@ -115,7 +112,6 @@ describe('parseCommand type guards', () => {
                     valid: false,
                     name: 'moon',
                     errorType: 'Too large',
-                    description: '',
                     affinities: [],
                 }],
                 confidence: 0.5,
@@ -125,18 +121,6 @@ describe('parseCommand type guards', () => {
                 orders: [{
                     valid: true,
                     name: 'rope',
-                    description: 'still here',
-                    affinities: [],
-                    affinitiesFailed: true,
-                }],
-                confidence: 0.9,
-            })).toBe(false)
-            expect(isParseCommandAcmeOrderResult({
-                type: 'AcmeOrder',
-                orders: [{
-                    valid: true,
-                    name: 'rope',
-                    description: '',
                     affinities: [{ role: 'terminal', aptness: 0.5 }],
                     affinitiesFailed: true,
                 }],
@@ -198,7 +182,7 @@ describe('interpretParseCommandIntentClassificationBody', () => {
             '{"type":"AcmeOrder","orders":["rocket skates"],"confidence":0.9}'
         )).toEqual({
             type: 'AcmeOrder',
-            orders: [{ valid: true, name: 'rocket skates', description: '', affinities: [] }],
+            orders: [{ valid: true, name: 'rocket skates', affinities: [] }],
             confidence: 0.9,
         })
         expect(interpretParseCommandIntentClassificationBody(
@@ -206,8 +190,8 @@ describe('interpretParseCommandIntentClassificationBody', () => {
         )).toEqual({
             type: 'AcmeOrder',
             orders: [
-                { valid: true, name: 'anvil', description: '', affinities: [] },
-                { valid: true, name: 'magnet', description: '', affinities: [] },
+                { valid: true, name: 'anvil', affinities: [] },
+                { valid: true, name: 'magnet', affinities: [] },
             ],
             confidence: 0.7,
         })
@@ -224,7 +208,7 @@ describe('interpretParseCommandIntentClassificationBody', () => {
             '{"type":"AcmeOrder","order":"  giant rubber band  ","confidence":0.6}'
         )).toEqual({
             type: 'AcmeOrder',
-            orders: [{ valid: true, name: 'giant rubber band', description: '', affinities: [] }],
+            orders: [{ valid: true, name: 'giant rubber band', affinities: [] }],
             confidence: 0.6,
         })
     })
@@ -402,12 +386,10 @@ describe('parseCommand LLM path', () => {
                 lines: [
                     {
                         name: 'dynamite sticks',
-                        description: 'Bundle of cartoon dynamite.',
                         affinities: [{ role: 'terminal', aptness: 0.5 }],
                     },
                     {
                         name: 'spring',
-                        description: 'Steel coil.',
                         affinities: [{ role: 'trigger', aptness: 0.4 }],
                     },
                 ],
@@ -426,13 +408,11 @@ describe('parseCommand LLM path', () => {
                 {
                     valid: true,
                     name: 'dynamite sticks',
-                    description: 'Bundle of cartoon dynamite.',
                     affinities: [{ role: 'terminal', aptness: 0.5 }],
                 },
                 {
                     valid: true,
                     name: 'spring',
-                    description: 'Steel coil.',
                     affinities: [{ role: 'trigger', aptness: 0.4 }],
                 },
             ],
@@ -452,7 +432,6 @@ describe('parseCommand LLM path', () => {
                 lines: [
                     {
                         name: 'dynamite sticks',
-                        description: 'Bundle of cartoon dynamite.',
                         affinities: [{ role: 'terminal', aptness: 0.5 }],
                     },
                     { bad: true },
@@ -472,13 +451,11 @@ describe('parseCommand LLM path', () => {
                 {
                     valid: true,
                     name: 'dynamite sticks',
-                    description: 'Bundle of cartoon dynamite.',
                     affinities: [{ role: 'terminal', aptness: 0.5 }],
                 },
                 {
                     valid: true,
                     name: 'spring',
-                    description: '',
                     affinities: [],
                     affinitiesFailed: true,
                 },
@@ -507,7 +484,6 @@ describe('parseCommand LLM path', () => {
             orders: [{
                 valid: true,
                 name: 'anvil',
-                description: '',
                 affinities: [],
                 affinitiesFailed: true,
             }],
@@ -526,7 +502,6 @@ describe('parseCommand LLM path', () => {
                 lines: [
                     {
                         name: 'Beehive',
-                        description: 'Standard Acme beehive, pre-loaded with agitated bees.',
                         affinities: [
                             {
                                 role: 'entity_modification',
@@ -539,7 +514,6 @@ describe('parseCommand LLM path', () => {
                     },
                     {
                         name: 'Entrenching Shovel',
-                        description: 'Folding steel blade for earthworks and tripwire trenches.',
                         affinities: [
                             {
                                 role: 'entity_modification',
@@ -552,7 +526,6 @@ describe('parseCommand LLM path', () => {
                     },
                     {
                         name: 'Climbing Rope',
-                        description: 'Braided hemp line with grapnel hook.',
                         affinities: [
                             { role: 'delivery', aptness: 0.81 },
                             { role: 'trigger', aptness: 0.55 },
@@ -574,7 +547,6 @@ describe('parseCommand LLM path', () => {
                 {
                     valid: true,
                     name: 'Beehive',
-                    description: 'Standard Acme beehive, pre-loaded with agitated bees.',
                     affinities: [
                         {
                             role: 'entity_modification',
@@ -588,7 +560,6 @@ describe('parseCommand LLM path', () => {
                 {
                     valid: true,
                     name: 'Entrenching Shovel',
-                    description: 'Folding steel blade for earthworks and tripwire trenches.',
                     affinities: [
                         {
                             role: 'entity_modification',
@@ -602,7 +573,6 @@ describe('parseCommand LLM path', () => {
                 {
                     valid: true,
                     name: 'Climbing Rope',
-                    description: 'Braided hemp line with grapnel hook.',
                     affinities: [
                         { role: 'delivery', aptness: 0.81 },
                         { role: 'trigger', aptness: 0.55 },
@@ -632,7 +602,6 @@ describe('parseCommand LLM path', () => {
                 valid: false,
                 name: 'Justice',
                 errorType: 'Not tangible',
-                description: '',
                 affinities: [],
             }],
             confidence: 0.8,

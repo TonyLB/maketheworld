@@ -8,7 +8,7 @@ const ctx1 = { slotCount: 1, fallbackNames: ['fallback'] }
 describe('interpretAcmeOrderEnrichBody', () => {
     it('accepts valid enrich JSON', () => {
         const r = interpretAcmeOrderEnrichBody(JSON.stringify({
-            lines: [{ name: 'A', description: 'd', affinities: [{ role: 'terminal', aptness: 0.5 }] }],
+            lines: [{ name: 'A', affinities: [{ role: 'terminal', aptness: 0.5 }] }],
         }), ctx1)
         expect(r.success).toBe(true)
         if (r.success) {
@@ -27,7 +27,6 @@ describe('interpretAcmeOrderEnrichBody', () => {
         if (r.success) {
             expect(r.response.lines[0]).toMatchObject({
                 name: 'fallback',
-                description: '',
                 affinities: [],
                 affinitiesFailed: true,
             })
@@ -38,7 +37,7 @@ describe('interpretAcmeOrderEnrichBody', () => {
         const r = interpretAcmeOrderEnrichBody(
             JSON.stringify({
                 lines: [
-                    { name: 'Good', description: 'd', affinities: [{ role: 'terminal', aptness: 0.3 }] },
+                    { name: 'Good', affinities: [{ role: 'terminal', aptness: 0.3 }] },
                     { notValid: true },
                 ],
             }),
@@ -49,7 +48,6 @@ describe('interpretAcmeOrderEnrichBody', () => {
             expect(r.response.lines[0].name).toBe('Good')
             expect(r.response.lines[1]).toMatchObject({
                 name: 'stepA2',
-                description: '',
                 affinities: [],
                 affinitiesFailed: true,
             })
@@ -67,12 +65,11 @@ describe('mergeAcmeOrderWithEnrich', () => {
     const stepA = {
         type: 'AcmeOrder' as const,
         orders: [
-            { valid: true, name: 'rope', description: '', affinities: [] },
+            { valid: true, name: 'rope', affinities: [] },
             {
                 valid: false,
                 name: 'moon',
                 errorType: 'Not a thing' as const,
-                description: '',
                 affinities: [],
             },
         ],
@@ -82,8 +79,8 @@ describe('mergeAcmeOrderWithEnrich', () => {
     const stepATwoValid = {
         type: 'AcmeOrder' as const,
         orders: [
-            { valid: true, name: 'dynamite', description: '', affinities: [] },
-            { valid: true, name: 'spring', description: '', affinities: [] },
+            { valid: true, name: 'dynamite', affinities: [] },
+            { valid: true, name: 'spring', affinities: [] },
         ],
         confidence: 0.82,
     }
@@ -95,7 +92,6 @@ describe('mergeAcmeOrderWithEnrich', () => {
                 lines: [
                     {
                         name: 'rope line',
-                        description: 'Cord.',
                         affinities: [{ role: 'delivery', aptness: 0.6 }],
                     },
                 ],
@@ -106,7 +102,6 @@ describe('mergeAcmeOrderWithEnrich', () => {
         expect(merged.orders[0]).toMatchObject({
             valid: true,
             name: 'rope line',
-            description: 'Cord.',
             affinities: [{ role: 'delivery', aptness: 0.6 }],
         })
         expect(merged.orders[1]).toEqual(stepA.orders[1])
@@ -117,7 +112,6 @@ describe('mergeAcmeOrderWithEnrich', () => {
         const merged = mergeAcmeOrderWithEnrich(stepA, { lines: [], confidence: 1 }, false)
         expect(merged.orders[0]).toMatchObject({
             affinitiesFailed: true,
-            description: '',
             affinities: [],
         })
         expect(merged.confidence).toBe(0.8)
@@ -127,7 +121,6 @@ describe('mergeAcmeOrderWithEnrich', () => {
         const merged = mergeAcmeOrderWithEnrich(stepA, null, true)
         expect(merged.orders[0]).toMatchObject({
             affinitiesFailed: true,
-            description: '',
             affinities: [],
         })
         expect(merged.orders[1]).toEqual(stepA.orders[1])
@@ -141,7 +134,6 @@ describe('mergeAcmeOrderWithEnrich', () => {
                 lines: [
                     {
                         name: 'dyn',
-                        description: 'Cartoon explosives.',
                         affinities: [{ role: 'terminal', aptness: 0.5 }],
                     },
                     null,
@@ -157,13 +149,11 @@ describe('mergeAcmeOrderWithEnrich', () => {
         expect(merged.orders[0]).toMatchObject({
             valid: true,
             name: 'dyn',
-            description: 'Cartoon explosives.',
             affinities: [{ role: 'terminal', aptness: 0.5 }],
         })
         expect(merged.orders[1]).toMatchObject({
             valid: true,
             name: 'spring',
-            description: '',
             affinities: [],
             affinitiesFailed: true,
         })
@@ -173,9 +163,9 @@ describe('mergeAcmeOrderWithEnrich', () => {
     const stepAThreeValid = {
         type: 'AcmeOrder' as const,
         orders: [
-            { valid: true, name: 'BEES!', description: '', affinities: [] },
-            { valid: true, name: 'trench shovel', description: '', affinities: [] },
-            { valid: true, name: 'climbing rope', description: '', affinities: [] },
+            { valid: true, name: 'BEES!', affinities: [] },
+            { valid: true, name: 'trench shovel', affinities: [] },
+            { valid: true, name: 'climbing rope', affinities: [] },
         ],
         confidence: 0.85,
     }
@@ -187,7 +177,6 @@ describe('mergeAcmeOrderWithEnrich', () => {
                 lines: [
                     {
                         name: 'Beehive',
-                        description: 'Standard Acme beehive, pre-loaded with agitated bees.',
                         affinities: [
                             {
                                 role: 'entity_modification',
@@ -200,7 +189,6 @@ describe('mergeAcmeOrderWithEnrich', () => {
                     },
                     {
                         name: 'Entrenching Shovel',
-                        description: 'Folding steel blade for earthworks and tripwire trenches.',
                         affinities: [
                             {
                                 role: 'entity_modification',
@@ -213,7 +201,6 @@ describe('mergeAcmeOrderWithEnrich', () => {
                     },
                     {
                         name: 'Climbing Rope',
-                        description: 'Braided hemp line with grapnel hook.',
                         affinities: [
                             { role: 'delivery', aptness: 0.81 },
                             { role: 'trigger', aptness: 0.55 },
@@ -227,7 +214,6 @@ describe('mergeAcmeOrderWithEnrich', () => {
         expect(merged.orders[0]).toMatchObject({
             valid: true,
             name: 'Beehive',
-            description: 'Standard Acme beehive, pre-loaded with agitated bees.',
             affinities: [
                 {
                     role: 'entity_modification',
