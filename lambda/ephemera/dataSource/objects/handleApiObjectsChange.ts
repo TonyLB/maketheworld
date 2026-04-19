@@ -118,6 +118,7 @@ export const handleAcmeOrderAddObjects = async (
     const add = payload.orders.map((entry) => ({
         uuid: `OBJECT#${makeUuid()}` as `OBJECT#${string}`,
         shortName: entry.shortName,
+        stableKey: entry.stableKey,
         affinities: entry.affinities,
         ...(entry.affinitiesFailed === true ? { affinitiesFailed: true as const } : {}),
     }))

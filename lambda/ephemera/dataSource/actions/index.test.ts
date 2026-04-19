@@ -3,6 +3,8 @@ import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { ephemeraActionsDataSource } from './index'
 import messageBus from '../../messageBus'
 import { parseCommand } from './parseCommand'
+import { collectCoyoteOccupiedStableKeys } from './collectCoyoteOccupiedStableKeys'
+import { finalizeStableKeysDeterministic } from './finalizeStableKeysDeterministic'
 import { getRoomExitTargetsForCharacter } from './roomExitTargetsForCharacter'
 import { runAcmeOrderAffinitiesHarness } from './runAcmeOrderAffinitiesHarness'
 import { runCoyoteEngineTestHarness } from '../coyoteGame/runCoyoteEngineTestHarness'
@@ -15,6 +17,9 @@ jest.mock('./parseCommand', () => ({
     ...jest.requireActual<typeof import('./parseCommand')>('./parseCommand'),
     parseCommand: jest.fn(),
 }))
+jest.mock('./collectCoyoteOccupiedStableKeys', () => ({
+    collectCoyoteOccupiedStableKeys: jest.fn(),
+}))
 jest.mock('../coyoteGame/runCoyoteEngineTestHarness', () => ({
     runCoyoteEngineTestHarness: jest.fn(),
 }))
@@ -24,6 +29,7 @@ jest.mock('./runAcmeOrderAffinitiesHarness', () => ({
 
 const mockMessageBus = messageBus as jest.Mocked<typeof messageBus>
 const mockedParseCommand = jest.mocked(parseCommand)
+const mockedCollectCoyoteOccupiedStableKeys = jest.mocked(collectCoyoteOccupiedStableKeys)
 const mockedGetRoomExitTargetsForCharacter = jest.mocked(getRoomExitTargetsForCharacter)
 const mockedRunCoyoteEngineTestHarness = jest.mocked(runCoyoteEngineTestHarness)
 const mockedRunAcmeOrderAffinitiesHarness = jest.mocked(runAcmeOrderAffinitiesHarness)
@@ -34,6 +40,7 @@ describe('ephemeraActionsDataSource', () => {
         mockMessageBus.send.mockReturnValue(undefined)
         mockedRunCoyoteEngineTestHarness.mockResolvedValue(undefined)
         mockedRunAcmeOrderAffinitiesHarness.mockResolvedValue(undefined)
+        mockedCollectCoyoteOccupiedStableKeys.mockResolvedValue(new Set<string>())
         mockedParseCommand.mockResolvedValue({
             type: 'Error',
             errorMessage: 'Parse error',
@@ -230,6 +237,10 @@ describe('ephemeraActionsDataSource', () => {
                 }],
                 confidence: 0.9,
             })
+            const expectedStableKey = finalizeStableKeysDeterministic(
+                [{ name: 'rocket-powered roller skates', proposedStableKey: 'rocket-powered-roller-skates' }],
+                new Set(),
+            )[0]
             const streamEvent = jest.fn(async () => {})
 
             await ephemeraActionsDataSource.receiveEvents!({
@@ -257,6 +268,7 @@ describe('ephemeraActionsDataSource', () => {
                     characterId: 'CHARACTER#123',
                     orders: [{
                         shortName: 'rocket-powered roller skates',
+                        stableKey: expectedStableKey,
                         affinities: [],
                     }],
                     confidence: 0.9,
@@ -268,6 +280,49 @@ describe('ephemeraActionsDataSource', () => {
                 displayProtocol: 'WorldMessage',
                 message: ['An Acme courier delivers your order'],
             })
+        })
+
+        it('repairs stableKey when Coyote-wide occupancy collides', async () => {
+            mockedCollectCoyoteOccupiedStableKeys.mockResolvedValue(new Set(['rocket-powered-roller-skates']))
+            mockedParseCommand.mockResolvedValue({
+                type: 'AcmeOrder',
+                orders: [{
+                    valid: true,
+                    name: 'rocket-powered roller skates',
+                    stableKey: 'rocket-powered-roller-skates',
+                    affinities: [],
+                }],
+                confidence: 0.9,
+            })
+            const expectedStableKey = finalizeStableKeysDeterministic(
+                [{ name: 'rocket-powered roller skates', proposedStableKey: 'rocket-powered-roller-skates' }],
+                new Set(['rocket-powered-roller-skates']),
+            )[0]
+            const streamEvent = jest.fn(async () => {})
+
+            await ephemeraActionsDataSource.receiveEvents!({
+                events: [{
+                    header: {
+                        dataSourceKey: 'api.ephemera',
+                        streamKey: 'CHARACTER#123',
+                        timestamp: Date.now(),
+                        type: 'Parse Requested',
+                    },
+                    getContent: async () => ({
+                        characterId: 'CHARACTER#123',
+                        command: 'order rocket skates',
+                    }),
+                }],
+                streamEvent,
+                streamEnvelope: jest.fn(async () => {}),
+            })
+
+            expect(streamEvent).toHaveBeenCalledWith(expect.objectContaining({
+                update: expect.objectContaining({
+                    orders: [{ shortName: 'rocket-powered roller skates', stableKey: expectedStableKey, affinities: [] }],
+                }),
+            }))
+            expect(expectedStableKey).toBe('rocket-powered-roller-skates1')
         })
 
         it('includes invalid-order apology lines in WorldMessage', async () => {
@@ -296,6 +351,10 @@ describe('ephemeraActionsDataSource', () => {
                 ],
                 confidence: 0.88,
             })
+            const expectedAnvilKey = finalizeStableKeysDeterministic(
+                [{ name: 'anvil', proposedStableKey: 'anvil' }],
+                new Set(),
+            )[0]
             const streamEvent = jest.fn(async () => {})
 
             await ephemeraActionsDataSource.receiveEvents!({
@@ -322,7 +381,7 @@ describe('ephemeraActionsDataSource', () => {
                     type: 'Acme Order',
                     characterId: 'CHARACTER#123',
                     orders: [
-                        { shortName: 'anvil', affinities: [] },
+                        { shortName: 'anvil', stableKey: expectedAnvilKey, affinities: [] },
                     ],
                     confidence: 0.88,
                 },
@@ -360,6 +419,10 @@ describe('ephemeraActionsDataSource', () => {
                 }],
                 confidence: 0.85,
             })
+            const beeDynamiteKeys = finalizeStableKeysDeterministic([
+                { name: 'Beehive', proposedStableKey: 'beehive' },
+                { name: 'broken dynamite', proposedStableKey: 'broken-dynamite' },
+            ], new Set())
             const streamEvent = jest.fn(async () => {})
 
             await ephemeraActionsDataSource.receiveEvents!({
@@ -386,8 +449,8 @@ describe('ephemeraActionsDataSource', () => {
                     type: 'Acme Order',
                     characterId: 'CHARACTER#123',
                     orders: [
-                        { shortName: 'Beehive', affinities: [{ role: 'terminal', aptness: 0.7 }] },
-                        { shortName: 'broken dynamite', affinities: [], affinitiesFailed: true },
+                        { shortName: 'Beehive', stableKey: beeDynamiteKeys[0], affinities: [{ role: 'terminal', aptness: 0.7 }] },
+                        { shortName: 'broken dynamite', stableKey: beeDynamiteKeys[1], affinities: [], affinitiesFailed: true },
                     ],
                     confidence: 0.85,
                 },

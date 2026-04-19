@@ -1,7 +1,10 @@
 /**
  * mtw.ephemera.actions DataSource.
  *
- * Inert bus-only stub for local coordination scaffolding. Ingress wiring follows.
+ * **`stableKey`** on **`Acme Order`** stream payloads: prefetch Coyote-wide occupancy,
+ * **`parseCommand`** (Step B enrich uses the same snapshot), then
+ * **`finalizeStableKeysDeterministic`** before **`streamEvent`** ---
+ * see **Where deterministic enforcement runs** in `taskPlanning/.../AGENT.acmeObject-stableKey.plan.md`.
  */
 import { isEphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { RenderTree } from '@tonylb/mtw-base/ts/renderTree'
@@ -24,23 +27,30 @@ import {
     isParseCommandUnknownResult,
 } from './baseClasses'
 import { parseCommand } from './parseCommand'
+import { collectCoyoteOccupiedStableKeys } from './collectCoyoteOccupiedStableKeys'
+import { finalizeStableKeysDeterministic } from './finalizeStableKeysDeterministic'
 import { runAcmeOrderAffinitiesHarness } from './runAcmeOrderAffinitiesHarness'
 import { runCoyoteEngineTestHarness } from '../coyoteGame/runCoyoteEngineTestHarness'
 
 const COYOTE_ENGINE_TEST_HARNESS_ENABLED = true
 const COYOTE_AFFINITIES_TEST_HARNESS_ENABLED = true
 
-const validAcmeOrderPublishedOrders = (
+const buildPublishedAcmeOrdersWithStableKeys = (
     orders: ParseCommandAcmeOrderLine[],
-): AcmeOrderPublishedOrder[] => (
-    orders
-        .filter(({ valid }) => valid)
-        .map(({ name, affinities, affinitiesFailed }) => ({
-            shortName: name.trim(),
-            affinities,
-            ...(affinitiesFailed === true ? { affinitiesFailed: true as const } : {}),
-        }))
-)
+    coyoteOccupiedStableKeys: ReadonlySet<string>,
+): AcmeOrderPublishedOrder[] => {
+    const validLines = orders.filter(({ valid }) => valid)
+    const finalizedKeys = finalizeStableKeysDeterministic(
+        validLines.map((line) => ({ name: line.name, proposedStableKey: line.stableKey })),
+        coyoteOccupiedStableKeys,
+    )
+    return validLines.map((line, index) => ({
+        shortName: line.name.trim(),
+        stableKey: finalizedKeys[index],
+        affinities: line.affinities,
+        ...(line.affinitiesFailed === true ? { affinitiesFailed: true as const } : {}),
+    }))
+}
 
 const invalidAcmeOrderMessages = (orders: ParseCommandAcmeOrderLine[]): string[] => (
     orders
@@ -79,7 +89,11 @@ export const ephemeraActionsDataSource = new EphemeraDataSource<
     receiveEvents: async ({ events, streamEvent }) => {
         await Promise.all(events.map(async (event) => {
             const content = await event.getContent()
-            const parseResult = await parseCommand({ command: content.command })
+            const coyoteOccupiedStableKeys = await collectCoyoteOccupiedStableKeys()
+            const parseResult = await parseCommand({
+                command: content.command,
+                occupiedStableKeys: [...coyoteOccupiedStableKeys],
+            })
             if (isEphemeraCharacterId(content.characterId) && isParseCommandErrorResult(parseResult)) {
                 const line = parseResult.errorMessage ?? 'Parse error'
                 messageBus.send({
@@ -121,7 +135,7 @@ export const ephemeraActionsDataSource = new EphemeraDataSource<
                 }
             }
             else if (isEphemeraCharacterId(content.characterId) && isParseCommandAcmeOrderResult(parseResult)) {
-                const orders = validAcmeOrderPublishedOrders(parseResult.orders)
+                const orders = buildPublishedAcmeOrdersWithStableKeys(parseResult.orders, coyoteOccupiedStableKeys)
                 await streamEvent({
                     streamKey: content.characterId,
                     header: { type: 'Acme Order' },

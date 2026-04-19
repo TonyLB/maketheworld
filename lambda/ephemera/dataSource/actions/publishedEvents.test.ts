@@ -3,15 +3,19 @@ import { isAcmeOrderPublishedOrder } from './publishedEvents'
 describe('isAcmeOrderPublishedOrder', () => {
     const minimal = {
         shortName: 'Anvil',
+        stableKey: 'anvil',
         affinities: [{ role: 'terminal' as const, aptness: 0.5 }],
     }
 
-    it('accepts minimal order without stableKey', () => {
+    it('accepts minimal order with stableKey', () => {
         expect(isAcmeOrderPublishedOrder(minimal)).toBe(true)
     })
 
-    it('accepts stableKey when non-empty after trim', () => {
-        expect(isAcmeOrderPublishedOrder({ ...minimal, stableKey: 'anvil' })).toBe(true)
+    it('rejects missing stableKey', () => {
+        expect(isAcmeOrderPublishedOrder({
+            shortName: 'Anvil',
+            affinities: [{ role: 'terminal' as const, aptness: 0.5 }],
+        } as unknown)).toBe(false)
     })
 
     it('rejects stableKey empty or whitespace-only', () => {
