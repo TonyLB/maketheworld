@@ -9,7 +9,7 @@ import type { BedrockRuntimeClient, ContentBlock, Message } from '@aws-sdk/clien
 import {
     invokeBedrockConverseText,
     type InvokeBedrockConverseTextResult,
-} from './invokeBedrockConverseText'
+} from '../llm/invokeBedrockConverseText'
 
 export const BEDROCK_ROOM_DESCRIPTION_MODEL_ID = 'us.amazon.nova-2-lite-v1:0' as const
 export const BEDROCK_REQUEST_TIMEOUT_MS = 30_000

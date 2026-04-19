@@ -1,12 +1,12 @@
 import type { BedrockRuntimeClient } from '@aws-sdk/client-bedrock-runtime'
 import { invokeBedrockParseCommand } from './invokeBedrockParseCommand'
 
-jest.mock('./invokeBedrockConverseText', () => ({
+jest.mock('../llm/invokeBedrockConverseText', () => ({
     invokeBedrockConverseText: jest.fn(),
 }))
 
 describe('invokeBedrockParseCommand', () => {
-    const { invokeBedrockConverseText } = jest.requireMock('./invokeBedrockConverseText') as {
+    const { invokeBedrockConverseText } = jest.requireMock('../llm/invokeBedrockConverseText') as {
         invokeBedrockConverseText: jest.Mock
     }
 
@@ -15,11 +15,19 @@ describe('invokeBedrockParseCommand', () => {
     })
 
     it('delegates to invokeBedrockConverseText with parse defaults', async () => {
-        invokeBedrockConverseText.mockResolvedValue({ success: true, body: '{}' })
+        invokeBedrockConverseText.mockResolvedValue({
+            success: true,
+            body: '{}',
+            usage: { inputTokens: 9, outputTokens: 4, totalTokens: 13 },
+        })
 
         const result = await invokeBedrockParseCommand('classify: go north')
 
-        expect(result).toEqual({ success: true, body: '{}' })
+        expect(result).toEqual({
+            success: true,
+            body: '{}',
+            usage: { inputTokens: 9, outputTokens: 4, totalTokens: 13 },
+        })
         expect(invokeBedrockConverseText).toHaveBeenCalledWith(
             expect.objectContaining({
                 modelId: 'us.amazon.nova-2-lite-v1:0',

@@ -115,9 +115,11 @@ export const handleAcmeOrderAddObjects = async (
         return
     }
     const makeUuid = deps.uuidFactory ?? uuidv4
-    const add = payload.orders.map((shortName) => ({
+    const add = payload.orders.map((entry) => ({
         uuid: `OBJECT#${makeUuid()}` as `OBJECT#${string}`,
-        shortName,
+        shortName: entry.shortName,
+        affinities: entry.affinities,
+        ...(entry.affinitiesFailed === true ? { affinitiesFailed: true as const } : {}),
     }))
     if (add.length === 0) {
         return

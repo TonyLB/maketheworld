@@ -1,4 +1,4 @@
-import { checkAll, checkTypes } from './utils'
+import { checkTypes } from './utils'
 import {
     isEphemeraRoomId,
     type EphemeraRoomId,
@@ -7,6 +7,7 @@ import {
     isEphemeraObjectId,
     type EphemeraObjectId,
 } from './baseClasses'
+import type { CoyoteAffinityPossibility } from './coyotePlanAffinities'
 
 //
 // Shared types for Ephemera-table metadata records (ephemeraDB).
@@ -68,16 +69,32 @@ export type EphemeraRoomActiveCharacter = {
 export type EphemeraMetaRoomObject = {
     uuid: EphemeraObjectId;
     shortName: string;
+    /** Plan-role possibilities with aptness; omitted on legacy rows. */
+    affinities?: CoyoteAffinityPossibility[];
+    /** True when affinities could not be validated (enrich LLM/parse failure); distinguish from legacy omitted fields. */
+    affinitiesFailed?: boolean;
 }
 
-export const isEphemeraMetaRoomObject = (entry: unknown): entry is EphemeraMetaRoomObject => (
-    typeof entry === 'object'
-    && entry !== null
-    && 'uuid' in entry
-    && 'shortName' in entry
-    && typeof (entry as EphemeraMetaRoomObject).shortName === 'string'
-    && isEphemeraObjectId((entry as EphemeraMetaRoomObject).uuid)
-)
+export const isEphemeraMetaRoomObject = (entry: unknown): entry is EphemeraMetaRoomObject => {
+    if (
+        typeof entry !== 'object'
+        || entry === null
+        || !('uuid' in entry)
+        || !('shortName' in entry)
+        || typeof (entry as EphemeraMetaRoomObject).shortName !== 'string'
+        || !isEphemeraObjectId((entry as EphemeraMetaRoomObject).uuid)
+    ) {
+        return false
+    }
+    const o = entry as Record<string, unknown>
+    if ('affinities' in o && !Array.isArray(o.affinities)) {
+        return false
+    }
+    if ('affinitiesFailed' in o && typeof o.affinitiesFailed !== 'boolean') {
+        return false
+    }
+    return true
+}
 
 export type EphemeraMetaRoom = {
     EphemeraId: EphemeraRoomId;

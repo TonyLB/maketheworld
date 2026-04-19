@@ -7,7 +7,7 @@ import { isEphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { RenderTree } from '@tonylb/mtw-base/ts/renderTree'
 
 import EphemeraDataSource from '../abstract'
-import type { ActionsPublishedPayload } from './publishedEvents'
+import type { AcmeOrderPublishedOrder, ActionsPublishedPayload } from './publishedEvents'
 import type { ActionsSubscribedContent } from './subscribedEvents'
 import { isActionsSubscribedEnvelope } from './subscribedEvents'
 import messageBus from '../../messageBus'
@@ -16,17 +16,30 @@ import {
     type ParseCommandAcmeOrderLine,
     isParseCommandAcmeOrderResult,
     isParseCommandAwaitRoadrunnerResult,
+    isParseCommandCoyoteAffinitiesTestResult,
+    isParseCommandCoyoteEngineTestResult,
     isParseCommandErrorResult,
     isParseCommandNavigationResult,
     isParseCommandUnimplementedResult,
     isParseCommandUnknownResult,
 } from './baseClasses'
 import { parseCommand } from './parseCommand'
+import { runAcmeOrderAffinitiesHarness } from './runAcmeOrderAffinitiesHarness'
+import { runCoyoteEngineTestHarness } from '../coyoteGame/runCoyoteEngineTestHarness'
 
-const validAcmeOrderNames = (orders: ParseCommandAcmeOrderLine[]): string[] => (
+const COYOTE_ENGINE_TEST_HARNESS_ENABLED = true
+const COYOTE_AFFINITIES_TEST_HARNESS_ENABLED = true
+
+const validAcmeOrderPublishedOrders = (
+    orders: ParseCommandAcmeOrderLine[],
+): AcmeOrderPublishedOrder[] => (
     orders
         .filter(({ valid }) => valid)
-        .map(({ name }) => name)
+        .map(({ name, affinities, affinitiesFailed }) => ({
+            shortName: name.trim(),
+            affinities,
+            ...(affinitiesFailed === true ? { affinitiesFailed: true as const } : {}),
+        }))
 )
 
 const invalidAcmeOrderMessages = (orders: ParseCommandAcmeOrderLine[]): string[] => (
@@ -108,7 +121,7 @@ export const ephemeraActionsDataSource = new EphemeraDataSource<
                 }
             }
             else if (isEphemeraCharacterId(content.characterId) && isParseCommandAcmeOrderResult(parseResult)) {
-                const orders = validAcmeOrderNames(parseResult.orders)
+                const orders = validAcmeOrderPublishedOrders(parseResult.orders)
                 await streamEvent({
                     streamKey: content.characterId,
                     header: { type: 'Acme Order' },
@@ -145,6 +158,38 @@ export const ephemeraActionsDataSource = new EphemeraDataSource<
                     displayProtocol: 'WorldOOCMessage',
                     message: ['Awaiting Road Runner'],
                 })
+            }
+            else if (isEphemeraCharacterId(content.characterId) && isParseCommandCoyoteEngineTestResult(parseResult)) {
+                if (!COYOTE_ENGINE_TEST_HARNESS_ENABLED) {
+                    messageBus.send({
+                        type: 'PublishMessage',
+                        targets: [content.characterId],
+                        displayProtocol: 'WorldOOCMessage',
+                        message: ['Coyote engine test harness is currently disabled.'],
+                    })
+                }
+                else {
+                    await runCoyoteEngineTestHarness({
+                        characterId: content.characterId,
+                        messageBus,
+                    })
+                }
+            }
+            else if (isEphemeraCharacterId(content.characterId) && isParseCommandCoyoteAffinitiesTestResult(parseResult)) {
+                if (!COYOTE_AFFINITIES_TEST_HARNESS_ENABLED) {
+                    messageBus.send({
+                        type: 'PublishMessage',
+                        targets: [content.characterId],
+                        displayProtocol: 'WorldOOCMessage',
+                        message: ['Acme affinities test harness is currently disabled.'],
+                    })
+                }
+                else {
+                    await runAcmeOrderAffinitiesHarness({
+                        characterId: content.characterId,
+                        messageBus,
+                    })
+                }
             }
             else if (isEphemeraCharacterId(content.characterId) && isParseCommandUnimplementedResult(parseResult)) {
                 messageBus.send({

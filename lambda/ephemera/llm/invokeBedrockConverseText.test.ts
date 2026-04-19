@@ -13,6 +13,11 @@ describe('invokeBedrockConverseText', () => {
     it('returns aggregated text on success', async () => {
         const send = jest.fn().mockResolvedValue({
             output: { message: { content: [{ text: 'a' }, { text: 'b' }] } },
+            usage: {
+                inputTokens: 12,
+                outputTokens: 8,
+                totalTokens: 20,
+            },
         })
         const client = { send } as unknown as BedrockRuntimeClient
 
@@ -21,7 +26,15 @@ describe('invokeBedrockConverseText', () => {
             client,
         })
 
-        expect(result).toEqual({ success: true, body: 'ab' })
+        expect(result).toEqual({
+            success: true,
+            body: 'ab',
+            usage: {
+                inputTokens: 12,
+                outputTokens: 8,
+                totalTokens: 20,
+            },
+        })
         expect(send).toHaveBeenCalledTimes(1)
     })
 
@@ -34,7 +47,38 @@ describe('invokeBedrockConverseText', () => {
             client,
         })
 
-        expect(result).toEqual({ success: true, body: '' })
+        expect(result).toEqual({ success: true, body: '', usage: undefined })
+    })
+
+    it('returns success metadata when usage is present', async () => {
+        const send = jest.fn().mockResolvedValue({
+            output: { message: { content: [{ text: 'ok' }] } },
+            usage: {
+                inputTokens: 101,
+                outputTokens: 12,
+                totalTokens: 113,
+                cacheReadInputTokens: 80,
+                cacheWriteInputTokens: 0,
+            },
+        })
+        const client = { send } as unknown as BedrockRuntimeClient
+
+        const result = await invokeBedrockConverseText({
+            ...baseParams,
+            client,
+        })
+
+        expect(result).toMatchObject({
+            success: true,
+            body: 'ok',
+            usage: {
+                inputTokens: 101,
+                outputTokens: 12,
+                totalTokens: 113,
+                cacheReadInputTokens: 80,
+                cacheWriteInputTokens: 0,
+            },
+        })
     })
 
     it('maps AbortError to timeout message', async () => {

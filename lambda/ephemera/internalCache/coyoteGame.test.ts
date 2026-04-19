@@ -8,7 +8,7 @@ const ephemeraMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 const stubOutcome = ['Outcome: Stubbed'] as const
 
 const defaultDeps = () => ({
-    generateIntent: jest.fn().mockResolvedValue('Hypothesis: Fresh'),
+    generateIntent: jest.fn().mockResolvedValue({ intent: 'Hypothesis: Fresh' }),
     generateOutcome: jest.fn().mockResolvedValue(stubOutcome),
 })
 
@@ -33,9 +33,9 @@ describe('CacheCoyoteGameData', () => {
             const { generateIntent, generateOutcome } = defaultDeps()
             const cache = new CacheCoyoteGameData({ generateIntent, generateOutcome })
 
-            cache.set({ key: 'intent', value: 'Hypothesis: Cached' })
+            cache.set({ key: 'intent', value: { intent: 'Hypothesis: Cached' } })
 
-            await expect(cache.get('intent')).resolves.toBe('Hypothesis: Cached')
+            await expect(cache.get('intent')).resolves.toEqual({ intent: 'Hypothesis: Cached' })
             expect(ephemeraMock.getItem).not.toHaveBeenCalled()
             expect(generateIntent).not.toHaveBeenCalled()
         })
@@ -45,25 +45,60 @@ describe('CacheCoyoteGameData', () => {
             ephemeraMock.getItem.mockResolvedValue({ intent: 'Hypothesis: Durable' })
             const cache = new CacheCoyoteGameData({ generateIntent, generateOutcome })
 
-            await expect(cache.get('intent')).resolves.toBe('Hypothesis: Durable')
+            await expect(cache.get('intent')).resolves.toEqual({ intent: 'Hypothesis: Durable' })
             expect(ephemeraMock.getItem).toHaveBeenCalledWith({
                 Key: intentKey,
-                ProjectionFields: ['intent'],
+                ProjectionFields: ['intent', 'sceneAnalysis'],
+            })
+            expect(generateIntent).not.toHaveBeenCalled()
+        })
+
+        it('reads intent and sceneAnalysis from durable row', async () => {
+            const { generateIntent, generateOutcome } = defaultDeps()
+            ephemeraMock.getItem.mockResolvedValue({
+                intent: 'Hypothesis: Durable',
+                sceneAnalysis: '## Scene analysis\nNotes.',
+            })
+            const cache = new CacheCoyoteGameData({ generateIntent, generateOutcome })
+
+            await expect(cache.get('intent')).resolves.toEqual({
+                intent: 'Hypothesis: Durable',
+                sceneAnalysis: '## Scene analysis\nNotes.',
             })
             expect(generateIntent).not.toHaveBeenCalled()
         })
 
         it('generates and persists intent on durable miss', async () => {
             const { generateIntent, generateOutcome } = defaultDeps()
-            generateIntent.mockResolvedValue('Hypothesis: Generated')
+            generateIntent.mockResolvedValue({ intent: 'Hypothesis: Generated' })
             ephemeraMock.getItem.mockResolvedValue(undefined)
             const cache = new CacheCoyoteGameData({ generateIntent, generateOutcome })
 
-            await expect(cache.get('intent')).resolves.toBe('Hypothesis: Generated')
+            await expect(cache.get('intent')).resolves.toEqual({ intent: 'Hypothesis: Generated' })
             expect(generateIntent).toHaveBeenCalledTimes(1)
             expect(ephemeraMock.putItem).toHaveBeenCalledWith({
                 ...intentKey,
                 intent: 'Hypothesis: Generated',
+            })
+        })
+
+        it('persists sceneAnalysis when generator returns it', async () => {
+            const { generateIntent, generateOutcome } = defaultDeps()
+            generateIntent.mockResolvedValue({
+                intent: 'Hypothesis: Generated',
+                sceneAnalysis: 'Scaffolding.',
+            })
+            ephemeraMock.getItem.mockResolvedValue(undefined)
+            const cache = new CacheCoyoteGameData({ generateIntent, generateOutcome })
+
+            await expect(cache.get('intent')).resolves.toEqual({
+                intent: 'Hypothesis: Generated',
+                sceneAnalysis: 'Scaffolding.',
+            })
+            expect(ephemeraMock.putItem).toHaveBeenCalledWith({
+                ...intentKey,
+                intent: 'Hypothesis: Generated',
+                sceneAnalysis: 'Scaffolding.',
             })
         })
 
@@ -72,9 +107,9 @@ describe('CacheCoyoteGameData', () => {
             ephemeraMock.getItem.mockResolvedValueOnce({ intent: 'Hypothesis: Durable' }).mockResolvedValueOnce(undefined)
             const cache = new CacheCoyoteGameData({ generateIntent, generateOutcome })
 
-            await expect(cache.get('intent')).resolves.toBe('Hypothesis: Durable')
+            await expect(cache.get('intent')).resolves.toEqual({ intent: 'Hypothesis: Durable' })
             await cache.invalidate('intent')
-            await expect(cache.get('intent')).resolves.toBe('Hypothesis: Fresh')
+            await expect(cache.get('intent')).resolves.toEqual({ intent: 'Hypothesis: Fresh' })
 
             expect(ephemeraMock.deleteItem).toHaveBeenCalledWith(intentKey)
             expect(generateIntent).toHaveBeenCalledTimes(1)

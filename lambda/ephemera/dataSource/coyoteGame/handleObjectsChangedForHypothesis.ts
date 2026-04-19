@@ -1,12 +1,14 @@
 import { v4 as uuidv4 } from 'uuid'
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import type { StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import type { RenderTree } from '@tonylb/mtw-base/ts/renderTree'
 import type { MessageBus } from '../../messageBus/baseClasses'
 import type { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isObjectsChangedPayload } from '../objects/events'
 import getCurrentTimestamp from '../../internalUtils/dateUtil'
 import internalCache from '../../internalCache'
 import type { CoyoteGamePublishedPayload } from './publishedEvents'
+import { COYOTE_RENDER_LINE_BREAK } from './coyoteRenderTree'
 import { isCoyoteGameRoom } from './isCoyoteGameRoom'
 
 /**
@@ -72,8 +74,11 @@ export async function handleObjectsChangedForHypothesis(
         })
 
         await internalCache.CoyoteGame.invalidate('intent')
-        const intent = await internalCache.CoyoteGame.get('intent')
-        const renderTree = [intent]
+        const intentRecord = await internalCache.CoyoteGame.get('intent')
+        const renderTree: RenderTree =
+            intentRecord.sceneAnalysis !== undefined && intentRecord.sceneAnalysis.length > 0
+                ? [intentRecord.sceneAnalysis, COYOTE_RENDER_LINE_BREAK, intentRecord.intent]
+                : [intentRecord.intent]
 
         const t1 = Math.max(stored.t0 + 1, getCurrentTimestamp())
 

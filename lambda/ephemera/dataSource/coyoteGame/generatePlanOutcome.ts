@@ -1,8 +1,8 @@
 import type { RenderTree } from '@tonylb/mtw-base/ts/renderTree'
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { buildPlanOutcomePrompt } from './buildPlanOutcomePrompt'
-import { loadCoyoteRoomObjectsByRoom } from './coyoteRoomObjectSnapshot'
+import { buildPlanOutcomePromptParts } from './buildPlanOutcomePrompt'
+import { loadCoyoteRoomObjectsByRoom, type CoyoteRoomObjectsByRoom } from './coyoteRoomObjectSnapshot'
 import { invokeBedrockHypothesis } from './invokeBedrockHypothesis'
 
 const OUTCOME_STUB: RenderTree = ['Outcome: Stubbed']
@@ -10,8 +10,10 @@ const OUTCOME_STUB: RenderTree = ['Outcome: Stubbed']
 export type GeneratePlanOutcomeDeps = {
     getGameRooms: () => Promise<string[]>
     getRoomMeta: (roomId: EphemeraRoomId) => Promise<EphemeraMetaRoom | undefined>
-    /** Current hypothesis line (from `CoyoteGame.get('intent')`). */
+    /** Current hypothesis line (the `intent` field from `CoyoteGame.get('intent')`). */
     getIntent: () => Promise<string>
+    roomObjectsByRoomOverride?: CoyoteRoomObjectsByRoom
+    hypothesisLineOverride?: string
 }
 
 function normalizeOutcomeBody(body: string): string | null {
@@ -33,11 +35,9 @@ function normalizeOutcomeBody(body: string): string | null {
 
 /** Single-call LLM plan outcome: Road Runner safe, Coyote poetic backfire. */
 export async function generatePlanOutcome(deps: GeneratePlanOutcomeDeps): Promise<RenderTree> {
-    const [roomObjectsByRoom, hypothesisLine] = await Promise.all([
-        loadCoyoteRoomObjectsByRoom(deps),
-        deps.getIntent(),
-    ])
-    const prompt = buildPlanOutcomePrompt({ roomObjectsByRoom, hypothesisLine })
+    const roomObjectsByRoom = deps.roomObjectsByRoomOverride ?? await loadCoyoteRoomObjectsByRoom(deps)
+    const hypothesisLine = deps.hypothesisLineOverride ?? await deps.getIntent()
+    const prompt = buildPlanOutcomePromptParts({ roomObjectsByRoom, hypothesisLine })
     const invokeResult = await invokeBedrockHypothesis(prompt, { maxTokens: 384 })
     if (!invokeResult.success) {
         return OUTCOME_STUB

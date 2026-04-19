@@ -3,6 +3,7 @@ jest.mock('./invokeBedrockHypothesis', () => ({
     invokeBedrockHypothesis: jest.fn(),
 }))
 
+import { harnessRoomObjects } from './coyoteEngineTestFixtures'
 import { generatePlanOutcome } from './generatePlanOutcome'
 import { invokeBedrockHypothesis } from './invokeBedrockHypothesis'
 
@@ -21,7 +22,7 @@ describe('generatePlanOutcome', () => {
                 return {
                     EphemeraId: roomId,
                     DataCategory: 'Meta::Room',
-                    objects: [{ uuid: 'OBJECT#anvil', shortName: 'anvil' }],
+                    objects: [{ uuid: 'OBJECT#anvil' as `OBJECT#${string}`, shortName: 'anvil' }],
                 }
             }
             return {
@@ -52,11 +53,70 @@ describe('generatePlanOutcome', () => {
         expect(getIntent).toHaveBeenCalledTimes(1)
         expect(getRoomMeta).toHaveBeenCalledTimes(2)
         expect(invokeBedrockHypothesisMock).toHaveBeenCalledTimes(1)
-        const promptArg = invokeBedrockHypothesisMock.mock.calls[0][0]
-        expect(typeof promptArg).toBe('string')
-        expect(promptArg).toContain('VORTEX: anvil')
-        expect(promptArg).toContain('Hypothesis: It looks like you are trying to drop the anvil.')
+        const promptArg = invokeBedrockHypothesisMock.mock.calls[0][0] as {
+            invariantPrefix: string
+            dynamicSuffix: string
+        }
+        const fullPrompt = promptArg.invariantPrefix + promptArg.dynamicSuffix
+        expect(fullPrompt).toContain('VORTEX')
+        expect(fullPrompt).toContain('anvil')
+        expect(fullPrompt).toContain('Hypothesis: It looks like you are trying to drop the anvil.')
         expect(invokeBedrockHypothesisMock.mock.calls[0][1]).toEqual({ maxTokens: 384 })
+    })
+
+    it('uses both overrides without consulting room meta or getIntent deps', async () => {
+        await generatePlanOutcome({
+            getGameRooms,
+            getRoomMeta,
+            getIntent,
+            roomObjectsByRoomOverride: {
+                'ROOM#VORTEX': harnessRoomObjects('vortex', ['catapult']),
+                'ROOM#CLIFFTOP': harnessRoomObjects('clifftop', ['lever']),
+            },
+            hypothesisLineOverride: 'Hypothesis: It looks like you are trying to spring a cliff trap.',
+        })
+
+        expect(getGameRooms).not.toHaveBeenCalled()
+        expect(getRoomMeta).not.toHaveBeenCalled()
+        expect(getIntent).not.toHaveBeenCalled()
+        const promptArg = invokeBedrockHypothesisMock.mock.calls[0][0] as {
+            invariantPrefix: string
+            dynamicSuffix: string
+        }
+        const fullPrompt = promptArg.invariantPrefix + promptArg.dynamicSuffix
+        expect(fullPrompt).toContain('VORTEX')
+        expect(fullPrompt).toContain('catapult')
+        expect(fullPrompt).toContain('CLIFFTOP')
+        expect(fullPrompt).toContain('lever')
+        expect(fullPrompt).toContain('Hypothesis: It looks like you are trying to spring a cliff trap.')
+    })
+
+    it('still calls getIntent when only room object override is provided', async () => {
+        await generatePlanOutcome({
+            getGameRooms,
+            getRoomMeta,
+            getIntent,
+            roomObjectsByRoomOverride: {
+                'ROOM#BRIDGE': harnessRoomObjects('bridge', ['portable hole']),
+            },
+        })
+
+        expect(getGameRooms).not.toHaveBeenCalled()
+        expect(getRoomMeta).not.toHaveBeenCalled()
+        expect(getIntent).toHaveBeenCalledTimes(1)
+    })
+
+    it('still loads room meta when only hypothesis override is provided', async () => {
+        await generatePlanOutcome({
+            getGameRooms,
+            getRoomMeta,
+            getIntent,
+            hypothesisLineOverride: 'Hypothesis: It looks like you are trying to launch a boulder.',
+        })
+
+        expect(getGameRooms).toHaveBeenCalledTimes(1)
+        expect(getRoomMeta).toHaveBeenCalledTimes(2)
+        expect(getIntent).not.toHaveBeenCalled()
     })
 
     it('falls back to stub when Bedrock fails', async () => {

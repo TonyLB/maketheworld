@@ -37,7 +37,7 @@ describe('objects subscribedEvents', () => {
                 Promise.resolve({
                     type: 'Acme Order',
                     characterId: 'CHARACTER#123',
-                    orders: ['anvil'],
+                    orders: [{ shortName: 'anvil', affinities: [] }],
                     confidence: 0.9,
                 }),
         }

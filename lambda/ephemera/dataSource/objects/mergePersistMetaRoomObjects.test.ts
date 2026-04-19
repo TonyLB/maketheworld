@@ -30,6 +30,16 @@ const obj = (suffix: string, shortName: string): EphemeraMetaRoomObject => ({
     shortName,
 })
 
+const enrichedObj = (
+    suffix: string,
+    shortName: string,
+    extras: Partial<Pick<EphemeraMetaRoomObject, 'affinities' | 'affinitiesFailed'>> = {}
+): EphemeraMetaRoomObject => ({
+    uuid: `OBJECT#${suffix}` as EphemeraObjectId,
+    shortName,
+    ...extras,
+})
+
 /** Simulates a successful Dynamo write: runs reducer, invokes successCallback with prior/output. */
 const mockOptimisticUpdatePersisting = (meta: EphemeraMetaRoom, roomId: EphemeraRoomId) => (
     jest.fn().mockImplementation(async (params: MergePersistMetaRoomObjectsOptimisticUpdateParams) => {
@@ -143,6 +153,47 @@ describe('mergePersistMetaRoomObjects', () => {
         }
         expect(result.priorObjects).toEqual([])
         expect(result.newObjects).toEqual([obj('x', 'X')])
+    })
+
+    it('preserves optional Acme enrich fields in priorObjects and newObjects snapshots', async () => {
+        const priorRich = enrichedObj('a', 'Legacy', {
+            affinities: [{ role: 'terminal', aptness: 0.4 }],
+        })
+        const meta = baseMeta({
+            objects: [priorRich, obj('b', 'B')],
+        })
+        const optimisticUpdate = mockOptimisticUpdatePersisting(meta, roomId)
+
+        const addRich = enrichedObj('c', 'Imported dynamite crate', {
+            affinities: [
+                { role: 'entity_modification', target: 'environment', mode: 'direct', aptness: 0.55 },
+                { role: 'terminal', aptness: 0.3 },
+            ],
+            affinitiesFailed: false,
+        })
+
+        const result = await mergePersistMetaRoomObjects(
+            { roomId, add: [addRich], remove: [] },
+            { getMetaRoom: async () => meta, optimisticUpdate }
+        )
+
+        expect(result.ok).toBe(true)
+        if (!result.ok || !result.persisted) {
+            throw new Error('expected ok with persisted')
+        }
+        expect(result.priorObjects).toEqual([
+            enrichedObj('a', 'Legacy', {
+                affinities: [{ role: 'terminal', aptness: 0.4 }],
+            }),
+            obj('b', 'B'),
+        ])
+        expect(result.newObjects).toEqual([
+            enrichedObj('a', 'Legacy', {
+                affinities: [{ role: 'terminal', aptness: 0.4 }],
+            }),
+            obj('b', 'B'),
+            addRich,
+        ])
     })
 
     it('returns persisted false when optimistic update does not invoke successCallback', async () => {

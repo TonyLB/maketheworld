@@ -75,7 +75,9 @@ describe('handleObjectsChangedForHypothesis', () => {
     })
 
     it('emits stream events and two WorldMessage publishes with shared messageId', async () => {
-        coyoteMock.mockResolvedValueOnce(['VORTEX', 'STRAIGHTAWAY']).mockResolvedValueOnce('Hypothesis: Cached from CoyoteGame')
+        coyoteMock
+            .mockResolvedValueOnce(['VORTEX', 'STRAIGHTAWAY'])
+            .mockResolvedValueOnce({ intent: 'Hypothesis: Cached from CoyoteGame' })
         const streamEvent = jest.fn().mockResolvedValue(undefined)
         const messageBus = busMocks()
         await handleObjectsChangedForHypothesis(basePayload(), { streamEvent, messageBus })

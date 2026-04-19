@@ -55,8 +55,9 @@ const defaultGetMetaRoom = async (roomId: EphemeraRoomId): Promise<EphemeraMetaR
     internalCache.ComponentEphemeraMeta.get(roomId)
 )
 
+/** Shallow snapshot for stream payloads; preserves optional Acme enrich fields on each object. */
 const snapshotObjects = (meta: Partial<EphemeraMetaRoom> | undefined): EphemeraMetaRoomObject[] => (
-    (meta?.objects ?? []).map(({ uuid, shortName }) => ({ uuid, shortName }))
+    (meta?.objects ?? []).map((entry) => ({ ...entry }))
 )
 
 /**

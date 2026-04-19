@@ -1,15 +1,16 @@
-import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { formatCoyoteStagedObjectsByRoom } from './coyoteRoomObjectSnapshot'
+import { formatCoyoteStagedObjectsByRoom, type CoyoteRoomObjectsByRoom } from './coyoteRoomObjectSnapshot'
+import type { CoyotePromptParts } from './buildHypothesisPrompt'
 
 export type BuildPlanOutcomePromptInput = {
-    roomObjectsByRoom: Record<EphemeraRoomId, string[]>
+    roomObjectsByRoom: CoyoteRoomObjectsByRoom
     hypothesisLine: string
 }
 
-export function buildPlanOutcomePrompt(input: BuildPlanOutcomePromptInput): string {
-    const snapshotSection = formatCoyoteStagedObjectsByRoom(input.roomObjectsByRoom)
-
-    return [
+const PLAN_OUTCOME_PROMPT_LINES = (
+    snapshotSection: string,
+    hypothesisDisplay: string
+) =>
+    [
         'You are describing how a plan plays out in a classic Coyote-and-Road-Runner cartoon when it is executed.',
         '',
         'Your job is to narrate one concise outcome: what actually happens in cartoon physics when the Coyote\'s scheme runs.',
@@ -35,9 +36,26 @@ export function buildPlanOutcomePrompt(input: BuildPlanOutcomePromptInput): stri
         '- No markdown fences, no JSON, no bullet lists, no numbered lists, no extra commentary before or after the outcome line.',
         '',
         '## Current hypothesis about your intent',
-        input.hypothesisLine.trim() || '(none)',
+        hypothesisDisplay,
         '',
         '## Current staged objects by room',
         snapshotSection,
-    ].join('\n')
+    ] as const
+
+/** Invariant instruction block + hypothesis + snapshot, for Bedrock prompt caching. */
+export function buildPlanOutcomePromptParts(input: BuildPlanOutcomePromptInput): CoyotePromptParts {
+    const snapshotSection = formatCoyoteStagedObjectsByRoom(input.roomObjectsByRoom)
+    const hypothesisDisplay = input.hypothesisLine.trim() || '(none)'
+    const lines = [...PLAN_OUTCOME_PROMPT_LINES(snapshotSection, hypothesisDisplay)]
+    const splitAt = 23
+    return {
+        invariantPrefix: lines.slice(0, splitAt).join('\n'),
+        // Leading newline pairs with the blank line before "## Current hypothesis…" in the full prompt.
+        dynamicSuffix: '\n' + lines.slice(splitAt).join('\n'),
+    }
+}
+
+export function buildPlanOutcomePrompt(input: BuildPlanOutcomePromptInput): string {
+    const { invariantPrefix, dynamicSuffix } = buildPlanOutcomePromptParts(input)
+    return invariantPrefix + dynamicSuffix
 }

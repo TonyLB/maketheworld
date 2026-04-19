@@ -21,7 +21,7 @@ export {
     type InvokeBedrockConverseTextResult,
     type InvokeBedrockConverseTextSuccess,
     type InvokeBedrockConverseTextFailure,
-} from './invokeBedrockConverseText'
+} from '../llm/invokeBedrockConverseText'
 
 export {
     invokeBedrockRoomDescription,
