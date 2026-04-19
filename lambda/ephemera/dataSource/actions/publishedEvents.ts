@@ -25,6 +25,8 @@ export type AwaitRoadRunnerPublishedPayload = {
 /** One catalog line on the bus; aligns with EphemeraMetaRoomObject minus uuid. */
 export type AcmeOrderPublishedOrder = {
     shortName: string;
+    /** Machine correlation key after deterministic finalize in actions `index.ts`. */
+    stableKey: string;
     affinities: CoyoteAffinityPossibility[];
     affinitiesFailed?: boolean;
 }
@@ -70,6 +72,9 @@ export const isAcmeOrderPublishedOrder = (value: unknown): value is AcmeOrderPub
         return false
     }
     if (o.affinitiesFailed === true && o.affinities.length !== 0) {
+        return false
+    }
+    if (typeof o.stableKey !== 'string' || o.stableKey.trim().length === 0) {
         return false
     }
     return true

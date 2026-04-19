@@ -6,12 +6,21 @@ import {
 describe('interpretAcmeOrderEnrichBody', () => {
     it('accepts valid Step B JSON', () => {
         const r = interpretAcmeOrderEnrichBody(JSON.stringify({
-            lines: [{ valid: true, name: 'A', affinities: [{ role: 'terminal', aptness: 0.5 }] }],
+            lines: [{
+                valid: true,
+                name: 'A',
+                stableKey: 'a',
+                affinities: [{ role: 'terminal', aptness: 0.5 }],
+            }],
         }))
         expect(r.success).toBe(true)
         if (r.success) {
             expect(r.response.lines).toHaveLength(1)
-            expect(r.response.lines[0].valid === true && r.response.lines[0].name).toBe('A')
+            expect(r.response.lines[0]).toMatchObject({
+                valid: true,
+                name: 'A',
+                stableKey: 'a',
+            })
             expect(r.reasoningMarkdown).toBe('')
         }
     })
@@ -22,7 +31,12 @@ describe('interpretAcmeOrderEnrichBody', () => {
 
     it('strips leading chain-of-reasoning and parses trailing fenced json', () => {
         const payload = JSON.stringify({
-            lines: [{ valid: true, name: 'Beehive', affinities: [{ role: 'terminal', aptness: 0.5 }] }],
+            lines: [{
+                valid: true,
+                name: 'Beehive',
+                stableKey: 'beehive',
+                affinities: [{ role: 'terminal', aptness: 0.5 }],
+            }],
             confidence: 1,
         })
         const body = `## Item 1
@@ -41,7 +55,7 @@ ${payload}
     })
 
     it('accepts prose plus raw JSON without a trailing fence (brace fallback)', () => {
-        const json = '{"lines":[{"valid":true,"name":"X","affinities":[]}]}'
+        const json = '{"lines":[{"valid":true,"name":"X","stableKey":"x","affinities":[]}]}'
         const body = `Notes here.\n\n${json}`
         const r = interpretAcmeOrderEnrichBody(body)
         expect(r.success).toBe(true)
@@ -58,6 +72,7 @@ ${payload}
             expect(r.response.lines).toHaveLength(1)
             expect(r.response.lines[0]).toMatchObject({
                 valid: true,
+                stableKey: 'order',
                 affinities: [],
                 affinitiesFailed: true,
             })
@@ -69,7 +84,12 @@ ${payload}
         const r = interpretAcmeOrderEnrichBody(
             JSON.stringify({
                 lines: [
-                    { valid: true, name: 'Good', affinities: [{ role: 'terminal', aptness: 0.3 }] },
+                    {
+                        valid: true,
+                        name: 'Good',
+                        stableKey: 'good',
+                        affinities: [{ role: 'terminal', aptness: 0.3 }],
+                    },
                     { notValid: true },
                 ],
             })
@@ -80,6 +100,7 @@ ${payload}
             expect(r.response.lines[1]).toMatchObject({
                 valid: true,
                 name: 'line2',
+                stableKey: 'line2',
                 affinities: [],
                 affinitiesFailed: true,
             })
@@ -100,6 +121,7 @@ describe('finalizeAcmeOrderFromStepB', () => {
                     {
                         valid: true,
                         name: 'rope line',
+                        stableKey: 'rope-line',
                         affinities: [{ role: 'delivery', aptness: 0.6 }],
                     },
                     {
@@ -117,6 +139,7 @@ describe('finalizeAcmeOrderFromStepB', () => {
         expect(merged.orders[0]).toMatchObject({
             valid: true,
             name: 'rope line',
+            stableKey: 'rope-line',
             affinities: [{ role: 'delivery', aptness: 0.6 }],
         })
         expect(merged.orders[1]).toMatchObject({
@@ -148,6 +171,7 @@ describe('finalizeAcmeOrderFromStepB', () => {
                     {
                         valid: true,
                         name: 'dyn',
+                        stableKey: 'dyn',
                         affinities: [{ role: 'terminal', aptness: 0.5 }],
                     },
                     null,
@@ -162,6 +186,7 @@ describe('finalizeAcmeOrderFromStepB', () => {
         expect(merged.orders[0]).toMatchObject({
             valid: true,
             name: 'dyn',
+            stableKey: 'dyn',
             affinities: [{ role: 'terminal', aptness: 0.5 }],
         })
         expect(merged.orders[1]?.affinitiesFailed).toBe(true)
@@ -176,6 +201,7 @@ describe('finalizeAcmeOrderFromStepB', () => {
                     {
                         valid: true,
                         name: 'Beehive',
+                        stableKey: 'beehive',
                         affinities: [
                             {
                                 role: 'entity_modification',
@@ -189,6 +215,7 @@ describe('finalizeAcmeOrderFromStepB', () => {
                     {
                         valid: true,
                         name: 'Entrenching Shovel',
+                        stableKey: 'entrenching-shovel',
                         affinities: [
                             {
                                 role: 'entity_modification',
@@ -202,6 +229,7 @@ describe('finalizeAcmeOrderFromStepB', () => {
                     {
                         valid: true,
                         name: 'Climbing Rope',
+                        stableKey: 'climbing-rope',
                         affinities: [
                             { role: 'delivery', aptness: 0.81 },
                             { role: 'trigger', aptness: 0.55 },
@@ -215,6 +243,9 @@ describe('finalizeAcmeOrderFromStepB', () => {
         )
         expect(merged.orders[0]?.name).toBe('Beehive')
         expect(merged.orders[2]?.name).toBe('Climbing Rope')
+        expect(merged.orders[0]).toMatchObject({ stableKey: 'beehive' })
+        expect(merged.orders[1]).toMatchObject({ stableKey: 'entrenching-shovel' })
+        expect(merged.orders[2]).toMatchObject({ stableKey: 'climbing-rope' })
         expect(merged.confidence).toBeCloseTo(0.85 * 0.9)
     })
 })

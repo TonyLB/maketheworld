@@ -8,6 +8,9 @@ import internalCache from '../../internalCache'
  * 1. Remove every entry whose uuid is in `remove`.
  * 2. For each entry in `add` (in order), strip existing rows with the same uuid, then append.
  * Missing `base` is treated as empty.
+ *
+ * Each `add` row is stored as an `EphemeraMetaRoomObject` as given (optional fields such as
+ * `stableKey`, `affinities`, `affinitiesFailed` persist when present).
  */
 export const mergeMetaRoomObjects = (
     base: EphemeraMetaRoomObject[] | undefined,

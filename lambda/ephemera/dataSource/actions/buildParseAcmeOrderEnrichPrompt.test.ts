@@ -17,7 +17,22 @@ describe('buildParseAcmeOrderEnrichPrompt', () => {
         expect(invariantPrefix).toContain(String(COYOTE_AFFINITY_APTNESS_MIN))
         expect(invariantPrefix).toContain('strictly below')
         expect(invariantPrefix).not.toContain('skill check')
+        expect(invariantPrefix).toContain('stableKey')
+        expect(invariantPrefix).toContain('constructed-')
         expect(dynamicSuffix).toContain('order rope')
         expect(dynamicSuffix).toContain('Player command')
+        expect(dynamicSuffix).toContain('Coyote-wide stable keys already in use')
+        expect(dynamicSuffix).toContain('(none)')
+    })
+
+    it('lists occupied stable keys in dynamicSuffix after dedupe and sort', () => {
+        const { dynamicSuffix } = buildParseAcmeOrderEnrichPrompt('buy widget', {
+            occupiedStableKeys: ['zebra', 'alpha', 'alpha', 'beta'],
+        })
+        expect(dynamicSuffix).toContain('- alpha')
+        expect(dynamicSuffix).toContain('- beta')
+        expect(dynamicSuffix).toContain('- zebra')
+        expect(dynamicSuffix.indexOf('- alpha')).toBeLessThan(dynamicSuffix.indexOf('- beta'))
+        expect(dynamicSuffix.indexOf('- beta')).toBeLessThan(dynamicSuffix.indexOf('- zebra'))
     })
 })

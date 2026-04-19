@@ -210,10 +210,16 @@ describe('handleAcmeOrderAddObjects', () => {
             priorObjects: [obj('old', 'Old')],
             newObjects: [
                 obj('old', 'Old'),
-                { uuid: 'OBJECT#u1' as EphemeraObjectId, shortName: 'anvil', affinities: [] },
+                {
+                    uuid: 'OBJECT#u1' as EphemeraObjectId,
+                    shortName: 'anvil',
+                    stableKey: 'anvil',
+                    affinities: [],
+                },
                 {
                     uuid: 'OBJECT#u2' as EphemeraObjectId,
                     shortName: 'giant magnet',
+                    stableKey: 'giant-magnet',
                     affinities: [{ role: 'terminal' as const, aptness: 0.6 }],
                 },
             ],
@@ -226,9 +232,10 @@ describe('handleAcmeOrderAddObjects', () => {
             type: 'Acme Order',
             characterId: 'CHARACTER#123',
             orders: [
-                { shortName: 'anvil', affinities: [] },
+                { shortName: 'anvil', stableKey: 'anvil', affinities: [] },
                 {
                     shortName: 'giant magnet',
+                    stableKey: 'giant-magnet',
                     affinities: [{ role: 'terminal', aptness: 0.6 }],
                 },
             ],
@@ -244,10 +251,11 @@ describe('handleAcmeOrderAddObjects', () => {
         expect(mergePersistMetaRoomObjectsImpl).toHaveBeenCalledWith({
             roomId: 'ROOM#VORTEX',
             add: [
-                { uuid: 'OBJECT#u1', shortName: 'anvil', affinities: [] },
+                { uuid: 'OBJECT#u1', shortName: 'anvil', stableKey: 'anvil', affinities: [] },
                 {
                     uuid: 'OBJECT#u2',
                     shortName: 'giant magnet',
+                    stableKey: 'giant-magnet',
                     affinities: [{ role: 'terminal', aptness: 0.6 }],
                 },
             ],
@@ -260,10 +268,11 @@ describe('handleAcmeOrderAddObjects', () => {
                 type: 'Objects Changed',
                 componentId: 'ROOM#VORTEX',
                 add: [
-                    { uuid: 'OBJECT#u1', shortName: 'anvil', affinities: [] },
+                    { uuid: 'OBJECT#u1', shortName: 'anvil', stableKey: 'anvil', affinities: [] },
                     {
                         uuid: 'OBJECT#u2',
                         shortName: 'giant magnet',
+                        stableKey: 'giant-magnet',
                         affinities: [{ role: 'terminal', aptness: 0.6 }],
                     },
                 ],
@@ -271,10 +280,11 @@ describe('handleAcmeOrderAddObjects', () => {
                 priorObjects: [obj('old', 'Old')],
                 newObjects: [
                     obj('old', 'Old'),
-                    { uuid: 'OBJECT#u1', shortName: 'anvil', affinities: [] },
+                    { uuid: 'OBJECT#u1', shortName: 'anvil', stableKey: 'anvil', affinities: [] },
                     {
                         uuid: 'OBJECT#u2',
                         shortName: 'giant magnet',
+                        stableKey: 'giant-magnet',
                         affinities: [{ role: 'terminal', aptness: 0.6 }],
                     },
                 ],
@@ -290,6 +300,7 @@ describe('handleAcmeOrderAddObjects', () => {
             newObjects: [{
                 uuid: 'OBJECT#u1' as EphemeraObjectId,
                 shortName: 'box',
+                stableKey: 'box',
                 affinities: [],
                 affinitiesFailed: true,
             }],
@@ -300,7 +311,7 @@ describe('handleAcmeOrderAddObjects', () => {
         await handleAcmeOrderAddObjects({
             type: 'Acme Order',
             characterId: 'CHARACTER#123',
-            orders: [{ shortName: 'box', affinities: [], affinitiesFailed: true }],
+            orders: [{ shortName: 'box', stableKey: 'box', affinities: [], affinitiesFailed: true }],
             confidence: 0.5,
         }, {
             streamEvent,
@@ -314,6 +325,7 @@ describe('handleAcmeOrderAddObjects', () => {
             add: [{
                 uuid: 'OBJECT#u1',
                 shortName: 'box',
+                stableKey: 'box',
                 affinities: [],
                 affinitiesFailed: true,
             }],
@@ -329,7 +341,7 @@ describe('handleAcmeOrderAddObjects', () => {
         await handleAcmeOrderAddObjects({
             type: 'Acme Order',
             characterId: 'CHARACTER#123',
-            orders: [{ shortName: 'anvil', affinities: [] }],
+            orders: [{ shortName: 'anvil', stableKey: 'anvil', affinities: [] }],
             confidence: 0.9,
         }, {
             streamEvent,
