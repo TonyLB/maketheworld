@@ -45,7 +45,7 @@ Side-effect **`import './dataSource/...'`** from [`../app.ts`](../app.ts) regist
 | **`mtw.ephemera.renderOrchestration`** | [`renderOrchestration/`](renderOrchestration/) | **`findRender`**, generation, six outbound types --- [`renderOrchestration/AGENT.md`](renderOrchestration/AGENT.md) |
 | **`mtw.ephemera.perception`** | [`perception/`](perception/) | Audience fan-in, **`PublishMessage`** --- [`perception/AGENT.md`](perception/AGENT.md) |
 | **`mtw.ephemera.state`** | [`state/`](state/) | **`Meta::Room.state`** marks merge, **`State Changed`** --- [`state/AGENT.md`](state/AGENT.md) |
-| **`mtw.ephemera.objects`** | [`objects/`](objects/) | **`Meta::Room.objects`** (structured **`uuid` + `shortName`**) merge, **`Objects Changed`**, affordance fan-out --- [`objects/AGENT.md`](objects/AGENT.md) |
+| **`mtw.ephemera.objects`** | [`objects/`](objects/) | **`Meta::Room.objects`** (**`EphemeraMetaRoomObject[]`**: **`uuid`**, **`shortName`**, optional plan-role **`affinities`** / **`affinitiesFailed`**) merge, **`Objects Changed`**, affordance fan-out --- [`objects/AGENT.md`](objects/AGENT.md) |
 | **`mtw.ephemera.coyoteGame`** | [`coyoteGame/`](coyoteGame/) | **`Objects Changed`** (Coyote + adds) and **`mtw.ephemera.actions` `Await RoadRunner`**; hypothesis + plan-outcome stubs --- [`coyoteGame/AGENT.md`](coyoteGame/AGENT.md) |
 
 **Virtual / cross-cutting:** **`api.ephemera`** is not a `DataSource` class but the **`dataSourceKey`** for internal command envelopes consumed by multiple subscribers above.

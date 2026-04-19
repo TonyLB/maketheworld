@@ -24,6 +24,16 @@ On **`Await RoadRunner`** from actions, the handler targets **all active charact
 
 **Product / demo context:** [`AGENT.CoyoteGame.implementation.md`](../../../../AGENT.CoyoteGame.implementation.md).
 
+## Staged objects snapshot (plan-role affinities)
+
+**Loader:** [`loadCoyoteRoomObjectsByRoom`](coyoteRoomObjectSnapshot.ts) gathers **`EphemeraMetaRoomObject[]`** per Coyote game room from **`getRoomMeta`** / **`Meta::Room.objects`** (same read path production uses).
+
+**Prompt text:** [`formatCoyoteStagedObjectsByRoom`](coyoteRoomObjectSnapshot.ts) fills **`## Current staged objects by room`** for [`buildHypothesisStageOnePromptParts`](buildHypothesisStageOnePrompt.ts), [`buildHypothesisStageTwoPromptParts`](buildHypothesisStageTwoPrompt.ts), and [`buildPlanOutcomePromptParts`](buildPlanOutcomePrompt.ts). Each staged object prints **`shortName`**, plus compact lines for persisted **plan-role** possibilities (**`affinities`**: `entity_modification`, structural roles, **`aptness`** --- see [`packages/mtw-interfaces/ts/coyotePlanAffinities.ts`](../../../../packages/mtw-interfaces/ts/coyotePlanAffinities.ts)). **`affinitiesFailed`** becomes the explicit suffix **`plan roles unavailable (enrich failed)`** so the model can separate enrich failure from legacy rows that never had affinity data.
+
+**Types:** **`CoyoteRoomObjectsByRoom`** (**`Record<EphemeraRoomId, EphemeraMetaRoomObject[]>`**) threads through [`generateHypothesis`](generateHypothesis.ts), [`generatePlanOutcome`](generatePlanOutcome.ts), and **`roomObjectsByRoomOverride`** on harnesses. Stage-one seam parsing ([`parseHypothesisStageOneOutput`](parseHypothesisStageOneOutput.ts)) still validates **`shortName`** multiset alignment only.
+
+**Separate from Stage One seam tokens:** The snapshot carries **persisted catalog / plan-role** affinity text. Stage One still includes **`ACTOR_AFFINITIES_LINES`** (Coyote-operated vs Road-Runner-trap **affinity** bullets for **`## Objects`** seam output). Prompt work to reconcile or prioritize those two signals is **not** implied here --- both appear in context today.
+
 ## Bedrock prompt caching
 
 [`invokeBedrockHypothesis`](invokeBedrockHypothesis.ts) sends a single user message as `text` (static instructions), [`cachePoint`](https://docs.aws.amazon.com/bedrock/latest/userguide/prompt-caching.html), then `text` (dynamic tail).
