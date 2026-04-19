@@ -1,25 +1,25 @@
 import type { RenderTree } from '@tonylb/mtw-base/ts/renderTree'
 import { renderTreeToString } from '@tonylb/mtw-base/ts/renderTree'
-import type { CoyoteEngineTestFixture } from './coyoteEngineTestFixtures'
+import { harnessRoomObjects, type CoyoteEngineTestFixture } from './coyoteEngineTestFixtures'
 import { runCoyoteEngineTestHarness } from './runCoyoteEngineTestHarness'
 import type { GenerateHypothesisPipelineResult } from './generateHypothesis'
 
 const simpleFixtures: CoyoteEngineTestFixture[] = [
     {
         id: 'fixture-01',
-        roomObjectsByRoom: { 'ROOM#VORTEX': ['anvil'] },
+        roomObjectsByRoom: { 'ROOM#VORTEX': harnessRoomObjects('vortex', ['anvil']) },
     },
     {
         id: 'fixture-02',
-        roomObjectsByRoom: { 'ROOM#STRAIGHTAWAY': ['rocket'] },
+        roomObjectsByRoom: { 'ROOM#STRAIGHTAWAY': harnessRoomObjects('straightaway', ['rocket']) },
     },
     {
         id: 'fixture-03',
-        roomObjectsByRoom: { 'ROOM#BRIDGE': ['portable hole'] },
+        roomObjectsByRoom: { 'ROOM#BRIDGE': harnessRoomObjects('bridge', ['portable hole']) },
     },
     {
         id: 'fixture-04',
-        roomObjectsByRoom: { 'ROOM#CORNER': ['paint'] },
+        roomObjectsByRoom: { 'ROOM#CORNER': harnessRoomObjects('corner', ['paint']) },
     },
 ]
 

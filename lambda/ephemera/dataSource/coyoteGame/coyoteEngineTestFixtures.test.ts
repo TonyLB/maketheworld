@@ -1,4 +1,5 @@
 import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraMetaRoomObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { COYOTE_ENGINE_TEST_FIXTURES } from './coyoteEngineTestFixtures'
 
 const ALLOWED_COYOTE_ROOM_IDS = new Set([
@@ -26,13 +27,13 @@ describe('COYOTE_ENGINE_TEST_FIXTURES', () => {
         }
     })
 
-    it('stores room object lists as arrays of non-empty strings', () => {
+    it('stores room object lists as valid EphemeraMetaRoomObject rows', () => {
         for (const fixture of COYOTE_ENGINE_TEST_FIXTURES) {
             for (const objects of Object.values(fixture.roomObjectsByRoom)) {
                 expect(Array.isArray(objects)).toBe(true)
-                for (const objectName of objects ?? []) {
-                    expect(typeof objectName).toBe('string')
-                    expect(objectName.trim().length).toBeGreaterThan(0)
+                for (const row of objects ?? []) {
+                    expect(isEphemeraMetaRoomObject(row)).toBe(true)
+                    expect(row.shortName.trim().length).toBeGreaterThan(0)
                 }
             }
         }

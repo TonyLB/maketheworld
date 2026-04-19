@@ -1,4 +1,3 @@
-import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { CoyotePromptParts } from './buildHypothesisPrompt'
 import {
     COYOTE_HYPOTHESIS_CARTOON_OPPORTUNITY_LINES,
@@ -6,10 +5,10 @@ import {
     coyoteSeamRoomMappingLines,
     SNAPSHOT_SECTION_HEADER,
 } from './coyoteHypothesisPromptShared'
-import { formatCoyoteStagedObjectsByRoom } from './coyoteRoomObjectSnapshot'
+import { formatCoyoteStagedObjectsByRoom, type CoyoteRoomObjectsByRoom } from './coyoteRoomObjectSnapshot'
 
 export type BuildHypothesisStageTwoPromptInput = {
-    roomObjectsByRoom: Record<EphemeraRoomId, string[]>
+    roomObjectsByRoom: CoyoteRoomObjectsByRoom
     seamMarkdown: string
 }
 

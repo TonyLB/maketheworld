@@ -1,4 +1,5 @@
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraMetaRoomObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { normalizeSeamRoomLabelToken, seamRoomLabelFromEphemeraRoomId } from './coyoteHypothesisPromptShared'
 
 /*
@@ -49,11 +50,11 @@ function sortedMultisetKey(pairs: [string, string][]): string {
 }
 
 /** Multiset keys use short seam labels (ROOM# stripped), aligned with prompts + topology names. */
-function expectedObjectPairs(roomObjectsByRoom: Record<EphemeraRoomId, string[]>): [string, string][] {
+function expectedObjectPairs(roomObjectsByRoom: Record<EphemeraRoomId, EphemeraMetaRoomObject[]>): [string, string][] {
     const pairs: [string, string][] = []
-    for (const [roomId, names] of Object.entries(roomObjectsByRoom)) {
+    for (const [roomId, objects] of Object.entries(roomObjectsByRoom)) {
         const seamLabel = seamRoomLabelFromEphemeraRoomId(roomId as EphemeraRoomId)
-        for (const shortName of names) {
+        for (const { shortName } of objects) {
             pairs.push([seamLabel, shortName])
         }
     }
@@ -75,7 +76,7 @@ function sectionExtract(body: string, title: string): { found: false } | { found
  */
 export function parseHypothesisStageOneOutput(
     rawBody: string,
-    roomObjectsByRoom: Record<EphemeraRoomId, string[]>
+    roomObjectsByRoom: Record<EphemeraRoomId, EphemeraMetaRoomObject[]>
 ): ParseHypothesisStageOneResult {
     const inner = normalizeNewlines(stripHypothesisStageOneFence(rawBody)).trim()
     if (!inner) {

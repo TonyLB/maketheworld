@@ -1,3 +1,4 @@
+import { harnessRoomObjects } from './coyoteEngineTestFixtures'
 import { buildHypothesisStageTwoPromptParts } from './buildHypothesisStageTwoPrompt'
 import { SNAPSHOT_SECTION_HEADER } from './coyoteHypothesisPromptShared'
 
@@ -6,7 +7,7 @@ describe('buildHypothesisStageTwoPromptParts', () => {
         const seam = `## Objects\n\n### VORTEX · anvil\n- **Function:** x.\n- **Affinity:** coyoteOperated\n\n## Clusters\n\n### One\n- **Members:** VORTEX · anvil\n- **Coyote role:** participant\n- **Summary:** y.`
         const parts = buildHypothesisStageTwoPromptParts({
             roomObjectsByRoom: {
-                'ROOM#VORTEX': ['anvil'],
+                'ROOM#VORTEX': harnessRoomObjects('vortex', ['anvil']),
                 'ROOM#STRAIGHTAWAY': [],
                 'ROOM#CLIFFTOP': [],
                 'ROOM#CORNER': [],
@@ -21,7 +22,8 @@ describe('buildHypothesisStageTwoPromptParts', () => {
         expect(parts.dynamicSuffix).toContain('`ROOM#VORTEX` → **VORTEX**')
         expect(parts.dynamicSuffix).toContain(seam.trim())
         expect(parts.dynamicSuffix).toContain(SNAPSHOT_SECTION_HEADER)
-        expect(parts.dynamicSuffix).toContain('VORTEX: anvil')
+        expect(parts.dynamicSuffix).toContain('VORTEX')
+        expect(parts.dynamicSuffix).toContain('anvil')
         expect(parts.invariantPrefix).not.toContain('## Seam Markdown contract')
     })
 })

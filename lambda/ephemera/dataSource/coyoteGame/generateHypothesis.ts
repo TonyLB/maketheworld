@@ -8,14 +8,14 @@ import {
     invokeBedrockHypothesisStageTwo,
     type InvokeBedrockHypothesisResult,
 } from './invokeBedrockHypothesis'
-import { loadCoyoteRoomObjectsByRoom } from './coyoteRoomObjectSnapshot'
+import { loadCoyoteRoomObjectsByRoom, type CoyoteRoomObjectsByRoom } from './coyoteRoomObjectSnapshot'
 import { parseHypothesisModelOutput } from './parseHypothesisModelOutput'
 import { parseHypothesisStageOneOutput } from './parseHypothesisStageOneOutput'
 
 export type GenerateHypothesisDeps = {
     getGameRooms: () => Promise<string[]>
     getRoomMeta: (roomId: EphemeraRoomId) => Promise<EphemeraMetaRoom | undefined>
-    roomObjectsByRoomOverride?: Record<EphemeraRoomId, string[]>
+    roomObjectsByRoomOverride?: CoyoteRoomObjectsByRoom
 }
 
 /** Failure policy (two-round pipeline): any stage-1/stage-2 Bedrock failure or invalid seam yields stub intent only — no partial hypothesis to players. */

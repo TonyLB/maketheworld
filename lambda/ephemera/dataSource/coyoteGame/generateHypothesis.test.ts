@@ -7,8 +7,8 @@ jest.mock('./invokeBedrockHypothesis', () => {
     }
 })
 
-import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { generateHypothesis } from './generateHypothesis'
+import { harnessRoomObjects } from './coyoteEngineTestFixtures'
 import {
     invokeBedrockHypothesisStageOne,
     invokeBedrockHypothesisStageTwo,
@@ -53,8 +53,8 @@ describe('generateHypothesis', () => {
                     EphemeraId: roomId,
                     DataCategory: 'Meta::Room',
                     objects: [
-                        { uuid: 'OBJECT#anvil', shortName: 'anvil' },
-                        { uuid: 'OBJECT#rocket-skates', shortName: 'rocket skates' },
+                        { uuid: 'OBJECT#anvil' as `OBJECT#${string}`, shortName: 'anvil' },
+                        { uuid: 'OBJECT#rocket-skates' as `OBJECT#${string}`, shortName: 'rocket skates' },
                     ],
                 }
             }
@@ -121,8 +121,8 @@ describe('generateHypothesis', () => {
             getGameRooms,
             getRoomMeta,
             roomObjectsByRoomOverride: {
-                'ROOM#VORTEX': ['anvil'],
-                'ROOM#BRIDGE': ['portable hole', 'birdseed'],
+                'ROOM#VORTEX': harnessRoomObjects('vortex', ['anvil']),
+                'ROOM#BRIDGE': harnessRoomObjects('bridge', ['portable hole', 'birdseed']),
             },
         })
 
@@ -135,8 +135,11 @@ describe('generateHypothesis', () => {
             dynamicSuffix: string
         }
         const fullStageTwo = stageTwoPrompt.invariantPrefix + stageTwoPrompt.dynamicSuffix
-        expect(fullStageTwo).toContain('VORTEX: anvil')
-        expect(fullStageTwo).toContain('BRIDGE: portable hole, birdseed')
+        expect(fullStageTwo).toContain('VORTEX')
+        expect(fullStageTwo).toContain('anvil')
+        expect(fullStageTwo).toContain('BRIDGE')
+        expect(fullStageTwo).toContain('portable hole')
+        expect(fullStageTwo).toContain('birdseed')
     })
 
     it('falls back to stub when stage 1 Bedrock fails', async () => {

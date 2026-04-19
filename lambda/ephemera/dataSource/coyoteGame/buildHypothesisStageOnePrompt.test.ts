@@ -1,3 +1,4 @@
+import { harnessRoomObjects } from './coyoteEngineTestFixtures'
 import { buildHypothesisStageOnePromptParts } from './buildHypothesisStageOnePrompt'
 import { SNAPSHOT_SECTION_HEADER } from './coyoteHypothesisPromptShared'
 
@@ -5,7 +6,7 @@ describe('buildHypothesisStageOnePromptParts', () => {
     it('places topology and seam instructions before staged-object snapshot', () => {
         const parts = buildHypothesisStageOnePromptParts({
             roomObjectsByRoom: {
-                'ROOM#STRAIGHTAWAY': ['rocket skates'],
+                'ROOM#STRAIGHTAWAY': harnessRoomObjects('straightaway', ['rocket skates']),
                 'ROOM#VORTEX': [],
                 'ROOM#CLIFFTOP': [],
                 'ROOM#CORNER': [],
@@ -18,14 +19,15 @@ describe('buildHypothesisStageOnePromptParts', () => {
         expect(full).toContain('`ROOM#STRAIGHTAWAY` → **STRAIGHTAWAY**')
         expect(full).toContain('## Seam Markdown contract')
         expect(full).toContain(SNAPSHOT_SECTION_HEADER)
-        expect(full).toContain('STRAIGHTAWAY: rocket skates')
+        expect(full).toContain('STRAIGHTAWAY')
+        expect(full).toContain('rocket skates')
         expect(full).not.toContain('## Interpretation rules')
     })
 
     it('rejoins parts consistently', () => {
         const input = {
             roomObjectsByRoom: {
-                'ROOM#STRAIGHTAWAY': ['rocket'],
+                'ROOM#STRAIGHTAWAY': harnessRoomObjects('straightaway', ['rocket']),
                 'ROOM#VORTEX': [],
                 'ROOM#CLIFFTOP': [],
                 'ROOM#CORNER': [],

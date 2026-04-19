@@ -1,14 +1,15 @@
+import { harnessRoomObjects } from './coyoteEngineTestFixtures'
 import { buildHypothesisPrompt, buildHypothesisPromptParts } from './buildHypothesisPrompt'
 
 describe('buildHypothesisPrompt', () => {
     it('places topology instructions before the live snapshot', () => {
         const prompt = buildHypothesisPrompt({
             roomObjectsByRoom: {
-                'ROOM#STRAIGHTAWAY': ['rocket skates'],
-                'ROOM#VORTEX': ['anvil'],
-                'ROOM#CLIFFTOP': ['giant magnet'],
+                'ROOM#STRAIGHTAWAY': harnessRoomObjects('straightaway', ['rocket skates']),
+                'ROOM#VORTEX': harnessRoomObjects('vortex', ['anvil']),
+                'ROOM#CLIFFTOP': harnessRoomObjects('clifftop', ['giant magnet']),
                 'ROOM#CORNER': [],
-                'ROOM#BRIDGE': ['portable hole'],
+                'ROOM#BRIDGE': harnessRoomObjects('bridge', ['portable hole']),
             },
         })
 
@@ -29,16 +30,20 @@ describe('buildHypothesisPrompt', () => {
         expect(prompt).toContain('## Scene analysis')
         expect(prompt).toContain('Structured markdown (including ## headings)')
         expect(prompt).toContain('## Current staged objects by room')
-        expect(prompt).toContain('STRAIGHTAWAY: rocket skates')
-        expect(prompt).toContain('CLIFFTOP: giant magnet')
-        expect(prompt.trim().endsWith('BRIDGE: portable hole')).toBe(true)
+        expect(prompt).toContain('STRAIGHTAWAY')
+        expect(prompt).toContain('rocket skates')
+        expect(prompt).toContain('CLIFFTOP')
+        expect(prompt).toContain('giant magnet')
+        expect(prompt).toContain('BRIDGE')
+        expect(prompt).toContain('portable hole')
+        expect(prompt.trim().endsWith('anvil')).toBe(true)
     })
 
     it('rejoins prompt parts to the same string as buildHypothesisPrompt', () => {
         const input = {
             roomObjectsByRoom: {
-                'ROOM#STRAIGHTAWAY': ['rocket skates'],
-                'ROOM#VORTEX': ['anvil'],
+                'ROOM#STRAIGHTAWAY': harnessRoomObjects('straightaway', ['rocket skates']),
+                'ROOM#VORTEX': harnessRoomObjects('vortex', ['anvil']),
             },
         }
         const full = buildHypothesisPrompt(input)

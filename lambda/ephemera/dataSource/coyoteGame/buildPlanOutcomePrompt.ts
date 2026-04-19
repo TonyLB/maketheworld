@@ -1,9 +1,8 @@
-import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { formatCoyoteStagedObjectsByRoom } from './coyoteRoomObjectSnapshot'
+import { formatCoyoteStagedObjectsByRoom, type CoyoteRoomObjectsByRoom } from './coyoteRoomObjectSnapshot'
 import type { CoyotePromptParts } from './buildHypothesisPrompt'
 
 export type BuildPlanOutcomePromptInput = {
-    roomObjectsByRoom: Record<EphemeraRoomId, string[]>
+    roomObjectsByRoom: CoyoteRoomObjectsByRoom
     hypothesisLine: string
 }
 

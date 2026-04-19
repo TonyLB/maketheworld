@@ -1,8 +1,9 @@
-import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { harnessRoomObjects } from './coyoteEngineTestFixtures'
+import type { CoyoteRoomObjectsByRoom } from './coyoteRoomObjectSnapshot'
 import { parseHypothesisStageOneOutput, stripHypothesisStageOneFence } from './parseHypothesisStageOneOutput'
 
-const singleObjectRoomMap: Record<EphemeraRoomId, string[]> = {
-    'ROOM#VORTEX': ['anvil'],
+const singleObjectRoomMap: CoyoteRoomObjectsByRoom = {
+    'ROOM#VORTEX': harnessRoomObjects('vortex', ['anvil']),
     'ROOM#STRAIGHTAWAY': [],
     'ROOM#CLIFFTOP': [],
     'ROOM#CORNER': [],
@@ -52,9 +53,9 @@ describe('parseHypothesisStageOneOutput', () => {
     })
 
     it('rejects multiset mismatch', () => {
-        const twoObjMap: Record<EphemeraRoomId, string[]> = {
+        const twoObjMap: CoyoteRoomObjectsByRoom = {
             ...singleObjectRoomMap,
-            'ROOM#BRIDGE': ['rope'],
+            'ROOM#BRIDGE': harnessRoomObjects('bridge', ['rope']),
         }
         expect(parseHypothesisStageOneOutput(validSeamSingleObject, twoObjMap).ok).toBe(false)
     })

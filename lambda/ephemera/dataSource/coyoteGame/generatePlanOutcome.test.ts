@@ -3,6 +3,7 @@ jest.mock('./invokeBedrockHypothesis', () => ({
     invokeBedrockHypothesis: jest.fn(),
 }))
 
+import { harnessRoomObjects } from './coyoteEngineTestFixtures'
 import { generatePlanOutcome } from './generatePlanOutcome'
 import { invokeBedrockHypothesis } from './invokeBedrockHypothesis'
 
@@ -21,7 +22,7 @@ describe('generatePlanOutcome', () => {
                 return {
                     EphemeraId: roomId,
                     DataCategory: 'Meta::Room',
-                    objects: [{ uuid: 'OBJECT#anvil', shortName: 'anvil' }],
+                    objects: [{ uuid: 'OBJECT#anvil' as `OBJECT#${string}`, shortName: 'anvil' }],
                 }
             }
             return {
@@ -57,7 +58,8 @@ describe('generatePlanOutcome', () => {
             dynamicSuffix: string
         }
         const fullPrompt = promptArg.invariantPrefix + promptArg.dynamicSuffix
-        expect(fullPrompt).toContain('VORTEX: anvil')
+        expect(fullPrompt).toContain('VORTEX')
+        expect(fullPrompt).toContain('anvil')
         expect(fullPrompt).toContain('Hypothesis: It looks like you are trying to drop the anvil.')
         expect(invokeBedrockHypothesisMock.mock.calls[0][1]).toEqual({ maxTokens: 384 })
     })
@@ -68,8 +70,8 @@ describe('generatePlanOutcome', () => {
             getRoomMeta,
             getIntent,
             roomObjectsByRoomOverride: {
-                'ROOM#VORTEX': ['catapult'],
-                'ROOM#CLIFFTOP': ['lever'],
+                'ROOM#VORTEX': harnessRoomObjects('vortex', ['catapult']),
+                'ROOM#CLIFFTOP': harnessRoomObjects('clifftop', ['lever']),
             },
             hypothesisLineOverride: 'Hypothesis: It looks like you are trying to spring a cliff trap.',
         })
@@ -82,8 +84,10 @@ describe('generatePlanOutcome', () => {
             dynamicSuffix: string
         }
         const fullPrompt = promptArg.invariantPrefix + promptArg.dynamicSuffix
-        expect(fullPrompt).toContain('VORTEX: catapult')
-        expect(fullPrompt).toContain('CLIFFTOP: lever')
+        expect(fullPrompt).toContain('VORTEX')
+        expect(fullPrompt).toContain('catapult')
+        expect(fullPrompt).toContain('CLIFFTOP')
+        expect(fullPrompt).toContain('lever')
         expect(fullPrompt).toContain('Hypothesis: It looks like you are trying to spring a cliff trap.')
     })
 
@@ -93,7 +97,7 @@ describe('generatePlanOutcome', () => {
             getRoomMeta,
             getIntent,
             roomObjectsByRoomOverride: {
-                'ROOM#BRIDGE': ['portable hole'],
+                'ROOM#BRIDGE': harnessRoomObjects('bridge', ['portable hole']),
             },
         })
 

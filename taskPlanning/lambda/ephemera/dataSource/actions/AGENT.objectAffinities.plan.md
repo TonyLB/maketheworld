@@ -1,6 +1,6 @@
 # Object plan-role affinities (Acme parse enrichment)
 
-**Status:** In progress. Phases 1-4 are complete (including **`AcmeOrderPublishedPayload.orders`** as enriched objects and persistence); next is Phase 5 (Coyote snapshot formatting).
+**Status:** In progress. Phases 1-5 are complete (including Coyote **`formatCoyoteStagedObjectsByRoom`** affinities); next is Phase 6 (verification and cleanup).
 
 ## Purpose
 
@@ -66,7 +66,7 @@ Follow the ordered **categories** below (see [Getting Started pattern for comple
      - [`handleAcmeOrderAddObjects`](../../../../../lambda/ephemera/dataSource/objects/handleApiObjectsChange.ts) — maps each **`orders`** entry onto [`EphemeraMetaRoomObject`](../../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts) (generated **`uuid`**, **`shortName`**, optional **`affinities`** / **`affinitiesFailed`**) and merges into `Meta::Room`.
      - [`mergePersistMetaRoomObjects.ts`](../../../../../lambda/ephemera/dataSource/objects/mergePersistMetaRoomObjects.ts) — merge semantics for `objects`.
    - **Coyote hypothesis / outcome prompts**
-     - [`coyoteRoomObjectSnapshot.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/coyoteRoomObjectSnapshot.ts) — `loadCoyoteRoomObjectsByRoom` currently reduces objects to **short names only**; **`formatCoyoteStagedObjectsByRoom`** must include affinity lines (or a **failed affinities** note) once data exists.
+     - [`coyoteRoomObjectSnapshot.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/coyoteRoomObjectSnapshot.ts) — **`loadCoyoteRoomObjectsByRoom`** supplies **`EphemeraMetaRoomObject[]`** per room; **`formatCoyoteStagedObjectsByRoom`** prints **shortName** plus compact **affinity** lines or **`affinitiesFailed`** note (see **`coyoteRoomObjectSnapshot.test.ts`**).
 
 4. **Testing**
    - **Why:** Ephemera uses **Jest** from [`lambda/ephemera`](../../../../../lambda/ephemera/package.json).
@@ -123,10 +123,10 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines as you finish ea
   - [X] Update [`handleAcmeOrderAddObjects`](../../../../../lambda/ephemera/dataSource/objects/handleApiObjectsChange.ts) to pass through optional fields onto each `EphemeraMetaRoomObject` when merging.
   - [X] Ensure [`actions/index.ts`](../../../../../lambda/ephemera/dataSource/actions/index.ts) still satisfies player-facing messages and stream headers; adjust only as needed for payload shape.
 
-- [ ] Phase 5 - Coyote snapshot formatting
-  - [ ] Change [`loadCoyoteRoomObjectsByRoom`](../../../../../lambda/ephemera/dataSource/coyoteGame/coyoteRoomObjectSnapshot.ts) to supply structured data (not only `string[]`) for prompts, or add a parallel loader that returns objects with **`affinities`** / **`affinitiesFailed`**.
-  - [ ] Update **`formatCoyoteStagedObjectsByRoom`** so each object line includes **short name** and **rendered affinities** (or an explicit note when **`affinitiesFailed`**); keep token cost reasonable.
-  - [ ] Thread the richer snapshot through [`generateHypothesis`](../../../../../lambda/ephemera/dataSource/coyoteGame/generateHypothesis.ts) / [`generatePlanOutcome`](../../../../../lambda/ephemera/dataSource/coyoteGame/generatePlanOutcome.ts) deps if types change.
+- [X] Phase 5 - Coyote snapshot formatting
+  - [X] Change [`loadCoyoteRoomObjectsByRoom`](../../../../../lambda/ephemera/dataSource/coyoteGame/coyoteRoomObjectSnapshot.ts) to supply structured data (not only `string[]`) for prompts, or add a parallel loader that returns objects with **`affinities`** / **`affinitiesFailed`**.
+  - [X] Update **`formatCoyoteStagedObjectsByRoom`** so each object line includes **short name** and **rendered affinities** (or an explicit note when **`affinitiesFailed`**); keep token cost reasonable.
+  - [X] Thread the richer snapshot through [`generateHypothesis`](../../../../../lambda/ephemera/dataSource/coyoteGame/generateHypothesis.ts) / [`generatePlanOutcome`](../../../../../lambda/ephemera/dataSource/coyoteGame/generatePlanOutcome.ts) deps if types change.
 
 - [ ] Phase 6 - Verification and cleanup
   - [ ] Full Jest targets for actions + objects + coyote snapshot; `npm run build` in `lambda/ephemera`.
@@ -191,5 +191,5 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines as you finish ea
 | Stage B Markdown reasoning layer (per-line valid/invalid + JSON) | Done ([`buildParseAcmeOrderEnrichPrompt.ts`](../../../../../lambda/ephemera/dataSource/actions/buildParseAcmeOrderEnrichPrompt.ts), [`mergeAcmeOrderEnrich.ts`](../../../../../lambda/ephemera/dataSource/actions/mergeAcmeOrderEnrich.ts), [`splitMarkdownReasoningAndJson.ts`](../../../../../lambda/ephemera/llm/splitMarkdownReasoningAndJson.ts)) |
 | Manual affinities harness (`/test affinities`, **20** Bedrock calls when enabled) | Done ([`coyoteAffinitiesTestSlashCommand.ts`](../../../../../lambda/ephemera/dataSource/actions/coyoteAffinitiesTestSlashCommand.ts), [`runAcmeOrderAffinitiesHarness.ts`](../../../../../lambda/ephemera/dataSource/actions/runAcmeOrderAffinitiesHarness.ts), [**`COYOTE_AFFINITIES_TEST_HARNESS_ENABLED`**](../../../../../lambda/ephemera/dataSource/actions/index.ts) default off) |
 | Bus payload + `handleAcmeOrderAddObjects` persistence | Done ([`publishedEvents.ts`](../../../../../lambda/ephemera/dataSource/actions/publishedEvents.ts), [`actions/index.ts`](../../../../../lambda/ephemera/dataSource/actions/index.ts), [`handleApiObjectsChange.ts`](../../../../../lambda/ephemera/dataSource/objects/handleApiObjectsChange.ts)) |
-| `formatCoyoteStagedObjectsByRoom` renders affinities / failed flag | Not started |
-| Build + tests green | Not started |
+| `formatCoyoteStagedObjectsByRoom` renders affinities / failed flag | Done ([`coyoteRoomObjectSnapshot.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/coyoteRoomObjectSnapshot.ts), [`coyoteRoomObjectSnapshot.test.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/coyoteRoomObjectSnapshot.test.ts)) |
+| Build + tests green | Not started (Phase 6) |

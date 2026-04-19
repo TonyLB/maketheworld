@@ -2,7 +2,7 @@ import type { RenderTree } from '@tonylb/mtw-base/ts/renderTree'
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { buildPlanOutcomePromptParts } from './buildPlanOutcomePrompt'
-import { loadCoyoteRoomObjectsByRoom } from './coyoteRoomObjectSnapshot'
+import { loadCoyoteRoomObjectsByRoom, type CoyoteRoomObjectsByRoom } from './coyoteRoomObjectSnapshot'
 import { invokeBedrockHypothesis } from './invokeBedrockHypothesis'
 
 const OUTCOME_STUB: RenderTree = ['Outcome: Stubbed']
@@ -12,7 +12,7 @@ export type GeneratePlanOutcomeDeps = {
     getRoomMeta: (roomId: EphemeraRoomId) => Promise<EphemeraMetaRoom | undefined>
     /** Current hypothesis line (the `intent` field from `CoyoteGame.get('intent')`). */
     getIntent: () => Promise<string>
-    roomObjectsByRoomOverride?: Record<EphemeraRoomId, string[]>
+    roomObjectsByRoomOverride?: CoyoteRoomObjectsByRoom
     hypothesisLineOverride?: string
 }
 

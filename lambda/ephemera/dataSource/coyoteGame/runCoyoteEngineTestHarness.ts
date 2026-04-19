@@ -7,6 +7,7 @@ import {
     COYOTE_ENGINE_TEST_FIXTURES,
     type CoyoteEngineTestFixture,
 } from './coyoteEngineTestFixtures'
+import type { CoyoteRoomObjectsByRoom } from './coyoteRoomObjectSnapshot'
 import type { InvokeBedrockHypothesisResult } from './invokeBedrockHypothesis'
 import {
     generateHypothesisWithStageResults,
@@ -31,12 +32,10 @@ const COYOTE_ROOM_IDS: EphemeraRoomId[] = [
     'ROOM#BRIDGE',
 ]
 
-function normalizeFixtureRoomObjects(
-    fixture: CoyoteEngineTestFixture
-): Record<EphemeraRoomId, string[]> {
+function normalizeFixtureRoomObjects(fixture: CoyoteEngineTestFixture): CoyoteRoomObjectsByRoom {
     return Object.fromEntries(
         COYOTE_ROOM_IDS.map((roomId) => [roomId, fixture.roomObjectsByRoom[roomId] ?? []])
-    ) as Record<EphemeraRoomId, string[]>
+    ) as CoyoteRoomObjectsByRoom
 }
 
 /** Raw stage-1 Bedrock text for harness diagnostics (seam contract tuning, parse failures vs skipped stage 2). */
