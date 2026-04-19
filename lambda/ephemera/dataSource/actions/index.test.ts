@@ -226,6 +226,38 @@ describe('ephemeraActionsDataSource', () => {
     })
 
     describe('ParseCommandAcmeOrderResult', () => {
+        it('passes occupiedStableKeys from collectCoyoteOccupiedStableKeys into parseCommand', async () => {
+            mockedCollectCoyoteOccupiedStableKeys.mockResolvedValue(new Set(['alpha', 'beta']))
+            mockedParseCommand.mockResolvedValue({
+                type: 'AcmeOrder',
+                orders: [{ valid: true, name: 'widget', stableKey: 'widget', affinities: [] }],
+                confidence: 0.91,
+            })
+
+            await ephemeraActionsDataSource.receiveEvents!({
+                events: [{
+                    header: {
+                        dataSourceKey: 'api.ephemera',
+                        streamKey: 'CHARACTER#123',
+                        timestamp: Date.now(),
+                        type: 'Parse Requested',
+                    },
+                    getContent: async () => ({
+                        characterId: 'CHARACTER#123',
+                        command: 'order widget',
+                    }),
+                }],
+                streamEvent: jest.fn(async () => {}),
+                streamEnvelope: jest.fn(async () => {}),
+            })
+
+            expect(mockedCollectCoyoteOccupiedStableKeys).toHaveBeenCalledTimes(1)
+            expect(mockedParseCommand).toHaveBeenCalledWith({
+                command: 'order widget',
+                occupiedStableKeys: ['alpha', 'beta'],
+            })
+        })
+
         it('publishes Acme Order streamEvent and WorldMessage delivery line when valid orders exist', async () => {
             mockedParseCommand.mockResolvedValue({
                 type: 'AcmeOrder',

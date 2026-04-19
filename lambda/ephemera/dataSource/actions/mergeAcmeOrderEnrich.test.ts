@@ -16,7 +16,11 @@ describe('interpretAcmeOrderEnrichBody', () => {
         expect(r.success).toBe(true)
         if (r.success) {
             expect(r.response.lines).toHaveLength(1)
-            expect(r.response.lines[0].valid === true && r.response.lines[0].name).toBe('A')
+            expect(r.response.lines[0]).toMatchObject({
+                valid: true,
+                name: 'A',
+                stableKey: 'a',
+            })
             expect(r.reasoningMarkdown).toBe('')
         }
     })
@@ -239,6 +243,9 @@ describe('finalizeAcmeOrderFromStepB', () => {
         )
         expect(merged.orders[0]?.name).toBe('Beehive')
         expect(merged.orders[2]?.name).toBe('Climbing Rope')
+        expect(merged.orders[0]).toMatchObject({ stableKey: 'beehive' })
+        expect(merged.orders[1]).toMatchObject({ stableKey: 'entrenching-shovel' })
+        expect(merged.orders[2]).toMatchObject({ stableKey: 'climbing-rope' })
         expect(merged.confidence).toBeCloseTo(0.85 * 0.9)
     })
 })
