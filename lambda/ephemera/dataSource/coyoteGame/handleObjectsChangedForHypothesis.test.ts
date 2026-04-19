@@ -22,10 +22,10 @@ const coyoteInvalidateMock = internalCache.CoyoteGame.invalidate as jest.MockedF
 const basePayload = (over: Partial<ObjectsChangedPayload> = {}): ObjectsChangedPayload => ({
     type: 'Objects Changed',
     componentId: 'ROOM#VORTEX',
-    add: [{ uuid: 'OBJECT#o1', shortName: 'crate' }],
+    add: [{ uuid: 'OBJECT#o1', shortName: 'crate', stableKey: 'crate' }],
     remove: [],
     priorObjects: [],
-    newObjects: [{ uuid: 'OBJECT#o1', shortName: 'crate' }],
+    newObjects: [{ uuid: 'OBJECT#o1', shortName: 'crate', stableKey: 'crate' }],
     ...over,
 })
 

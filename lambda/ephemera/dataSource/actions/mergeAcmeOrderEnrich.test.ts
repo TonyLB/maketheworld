@@ -157,6 +157,7 @@ describe('finalizeAcmeOrderFromStepB', () => {
         expect(merged.orders[0]).toMatchObject({
             valid: true,
             name: 'order rope',
+            stableKey: 'order-rope',
             affinities: [],
             affinitiesFailed: true,
         })
@@ -189,7 +190,7 @@ describe('finalizeAcmeOrderFromStepB', () => {
             stableKey: 'dyn',
             affinities: [{ role: 'terminal', aptness: 0.5 }],
         })
-        expect(merged.orders[1]?.affinitiesFailed).toBe(true)
+        expect(merged.orders[1]).toMatchObject({ valid: true, affinitiesFailed: true })
         expect(merged.confidence).toBeCloseTo(0.82 * 0.9)
     })
 

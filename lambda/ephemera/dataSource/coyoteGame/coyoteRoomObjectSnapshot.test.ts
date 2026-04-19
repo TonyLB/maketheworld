@@ -27,7 +27,11 @@ describe('formatCoyoteAffinityPossibility', () => {
 
 describe('formatCoyoteObjectAffinitySuffix', () => {
     it('returns empty for legacy object without affinities', () => {
-        const o: EphemeraMetaRoomObject = { uuid: 'OBJECT#a' as `OBJECT#${string}`, shortName: 'Anvil' }
+        const o: EphemeraMetaRoomObject = {
+            uuid: 'OBJECT#a' as `OBJECT#${string}`,
+            shortName: 'Anvil',
+            stableKey: 'anvil',
+        }
         expect(formatCoyoteObjectAffinitySuffix(o)).toBe('')
     })
 
@@ -35,6 +39,7 @@ describe('formatCoyoteObjectAffinitySuffix', () => {
         const o: EphemeraMetaRoomObject = {
             uuid: 'OBJECT#a' as `OBJECT#${string}`,
             shortName: 'Box',
+            stableKey: 'box',
             affinitiesFailed: true,
         }
         expect(formatCoyoteObjectAffinitySuffix(o)).toBe('plan roles unavailable (enrich failed)')
@@ -44,6 +49,7 @@ describe('formatCoyoteObjectAffinitySuffix', () => {
         const o: EphemeraMetaRoomObject = {
             uuid: 'OBJECT#a' as `OBJECT#${string}`,
             shortName: 'Beehive',
+            stableKey: 'beehive',
             affinities: [
                 { role: 'terminal', aptness: 0.5 },
                 {
@@ -74,7 +80,7 @@ describe('formatCoyoteStagedObjectsByRoom', () => {
 
     it('lists legacy object as short name only', () => {
         const out = formatCoyoteStagedObjectsByRoom({
-            [room('ROOM#VORTEX')]: [{ uuid: 'OBJECT#x' as `OBJECT#${string}`, shortName: 'anvil' }],
+            [room('ROOM#VORTEX')]: [{ uuid: 'OBJECT#x' as `OBJECT#${string}`, shortName: 'anvil', stableKey: 'anvil' }],
         })
         expect(out).toBe('VORTEX:\n  anvil')
     })
@@ -85,6 +91,7 @@ describe('formatCoyoteStagedObjectsByRoom', () => {
                 {
                     uuid: 'OBJECT#x' as `OBJECT#${string}`,
                     shortName: 'paint',
+                    stableKey: 'paint',
                     affinitiesFailed: true,
                 },
             ],
@@ -94,8 +101,8 @@ describe('formatCoyoteStagedObjectsByRoom', () => {
 
     it('sorts rooms by id', () => {
         const out = formatCoyoteStagedObjectsByRoom({
-            [room('ROOM#Z')]: [{ uuid: 'OBJECT#z' as `OBJECT#${string}`, shortName: 'z' }],
-            [room('ROOM#A')]: [{ uuid: 'OBJECT#a' as `OBJECT#${string}`, shortName: 'a' }],
+            [room('ROOM#Z')]: [{ uuid: 'OBJECT#z' as `OBJECT#${string}`, shortName: 'z', stableKey: 'z' }],
+            [room('ROOM#A')]: [{ uuid: 'OBJECT#a' as `OBJECT#${string}`, shortName: 'a', stableKey: 'a' }],
         })
         expect(out.indexOf('A:')).toBeLessThan(out.indexOf('Z:'))
     })

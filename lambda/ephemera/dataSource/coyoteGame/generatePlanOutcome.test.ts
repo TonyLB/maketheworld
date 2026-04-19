@@ -22,7 +22,7 @@ describe('generatePlanOutcome', () => {
                 return {
                     EphemeraId: roomId,
                     DataCategory: 'Meta::Room',
-                    objects: [{ uuid: 'OBJECT#anvil' as `OBJECT#${string}`, shortName: 'anvil' }],
+                    objects: [{ uuid: 'OBJECT#anvil' as `OBJECT#${string}`, shortName: 'anvil', stableKey: 'anvil' }],
                 }
             }
             return {

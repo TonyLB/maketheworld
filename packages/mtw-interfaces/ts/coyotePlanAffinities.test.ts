@@ -380,20 +380,21 @@ describe('isAcmeOrderEnrichModelResponse', () => {
 })
 
 describe('isEphemeraMetaRoomObject', () => {
-    it('accepts legacy uuid + shortName only', () => {
+    it('rejects uuid + shortName without stableKey', () => {
         expect(
             isEphemeraMetaRoomObject({
                 uuid: 'OBJECT#abc',
                 shortName: 'anvil',
             })
-        ).toBe(true)
+        ).toBe(false)
     })
 
-    it('accepts extended optional fields', () => {
+    it('accepts extended optional fields with stableKey', () => {
         expect(
             isEphemeraMetaRoomObject({
                 uuid: 'OBJECT#abc',
                 shortName: 'Beehive',
+                stableKey: 'beehive',
                 affinities: [{ role: 'terminal', aptness: 0.5 }],
                 affinitiesFailed: false,
             })
@@ -405,6 +406,7 @@ describe('isEphemeraMetaRoomObject', () => {
             isEphemeraMetaRoomObject({
                 uuid: 'OBJECT#abc',
                 shortName: 'x',
+                stableKey: 'x',
                 affinities: [{ bogus: true }],
             } as unknown)
         ).toBe(true)
@@ -415,6 +417,7 @@ describe('isEphemeraMetaRoomObject', () => {
             isEphemeraMetaRoomObject({
                 uuid: 'OBJECT#abc',
                 shortName: 'x',
+                stableKey: 'x',
                 affinities: {},
             } as unknown)
         ).toBe(false)
@@ -422,12 +425,13 @@ describe('isEphemeraMetaRoomObject', () => {
             isEphemeraMetaRoomObject({
                 uuid: 'OBJECT#abc',
                 shortName: 'x',
+                stableKey: 'x',
                 affinitiesFailed: 'yes',
             } as unknown)
         ).toBe(false)
     })
 
-    it('accepts optional stableKey', () => {
+    it('accepts required stableKey', () => {
         expect(
             isEphemeraMetaRoomObject({
                 uuid: 'OBJECT#abc',

@@ -28,15 +28,17 @@ const stackMergeInvalidateMock = internalCache.ComponentStackMerge.invalidate as
 const obj = (suffix: string, shortName: string): EphemeraMetaRoomObject => ({
     uuid: `OBJECT#${suffix}` as EphemeraObjectId,
     shortName,
+    stableKey: suffix,
 })
 
 const enrichedObj = (
     suffix: string,
     shortName: string,
-    extras: Partial<Pick<EphemeraMetaRoomObject, 'affinities' | 'affinitiesFailed'>> = {}
+    extras: Partial<Pick<EphemeraMetaRoomObject, 'affinities' | 'affinitiesFailed' | 'stableKey'>> = {}
 ): EphemeraMetaRoomObject => ({
     uuid: `OBJECT#${suffix}` as EphemeraObjectId,
     shortName,
+    stableKey: suffix,
     ...extras,
 })
 
@@ -83,15 +85,19 @@ describe('mergeMetaRoomObjects', () => {
         expect(mergeMetaRoomObjects(undefined, [obj('a', 'first'), obj('a', 'second')], [])).toEqual([obj('a', 'second')])
     })
 
-    it('preserves stableKey on added rows alongside legacy rows without stableKey', () => {
-        const legacy: EphemeraMetaRoomObject = { uuid: 'OBJECT#old' as EphemeraObjectId, shortName: 'Legacy' }
+    it('preserves existing rows when merging an enriched add row', () => {
+        const existing: EphemeraMetaRoomObject = {
+            uuid: 'OBJECT#old' as EphemeraObjectId,
+            shortName: 'Legacy',
+            stableKey: 'legacy',
+        }
         const incoming: EphemeraMetaRoomObject = {
             uuid: 'OBJECT#new' as EphemeraObjectId,
             shortName: 'Anvil',
             stableKey: 'anvil',
             affinities: [],
         }
-        expect(mergeMetaRoomObjects([legacy], [incoming], [])).toEqual([legacy, incoming])
+        expect(mergeMetaRoomObjects([existing], [incoming], [])).toEqual([existing, incoming])
     })
 
     it('upsert replaces stableKey when add supplies a new row for same uuid', () => {

@@ -1,7 +1,8 @@
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMetaRoomObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { defaultStableKeyProposal } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 
-/** Build harness objects with deterministic uuids (shortName-only rows; no affinities). */
+/** Build harness objects with deterministic uuids (`stableKey` disambiguated per slot; no affinities). */
 export function harnessRoomObjects(
     roomSlug: string,
     shortNames: string[]
@@ -9,6 +10,7 @@ export function harnessRoomObjects(
     return shortNames.map((shortName, index) => ({
         uuid: `OBJECT#harness-${roomSlug}-${index}` as `OBJECT#${string}`,
         shortName,
+        stableKey: `${defaultStableKeyProposal(shortName)}-${index}`,
     }))
 }
 

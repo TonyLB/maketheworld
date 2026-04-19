@@ -1,5 +1,5 @@
 import { EphemeraRoomId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { CoyoteAffinityPossibility } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
+import type { AcmeCatalogRejectionReason, AcmeOrderEnrichModelLine } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import { isCoyoteAffinityPossibility } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 
 /**
@@ -34,19 +34,11 @@ export type ParseCommandNavigationResult = {
     confidence: ParseCommandConfidence
 }
 
-export type ParseCommandAcmeOrderErrorType = 'Not a thing' | 'Not tangible' | 'Too large'
+/** Alias of **`AcmeCatalogRejectionReason`** for parse / courier apology copy. */
+export type ParseCommandAcmeOrderErrorType = AcmeCatalogRejectionReason
 
-export type ParseCommandAcmeOrderLine = {
-    valid: boolean
-    name: string
-    /** Step B proposal; deterministic **`stableKey`** repair may run later before persistence. */
-    stableKey?: string
-    errorType?: ParseCommandAcmeOrderErrorType
-    /** Role possibilities; **[]** when none apply or when **`affinitiesFailed`**. */
-    affinities: CoyoteAffinityPossibility[]
-    /** True when enrich could not attach validated affinities for this line. */
-    affinitiesFailed?: boolean
-}
+/** Parsed Acme line: aligns with **`AcmeOrderEnrichModelLine`** (no **`stableKey`** on **`valid: false`**). */
+export type ParseCommandAcmeOrderLine = AcmeOrderEnrichModelLine
 
 /**
  * Step A only: player intent is an Acme order (no segmentation or catalog validation).
@@ -164,13 +156,10 @@ export function isParseCommandAcmeOrderResult(
         if (typeof entry.valid !== 'boolean') {
             return false
         }
-        if (typeof entry.name !== 'string' || entry.name.trim().length === 0) {
+        if (typeof entry.name !== 'string') {
             return false
         }
-        if (entry.valid && entry.errorType !== undefined) {
-            return false
-        }
-        if (!entry.valid && !isParseCommandAcmeOrderErrorType(entry.errorType)) {
+        if (entry.name.trim().length === 0) {
             return false
         }
         if (!Array.isArray(entry.affinities)) {
@@ -179,16 +168,32 @@ export function isParseCommandAcmeOrderResult(
         if (!entry.affinities.every((x) => isCoyoteAffinityPossibility(x))) {
             return false
         }
-        if ('affinitiesFailed' in entry && typeof entry.affinitiesFailed !== 'boolean') {
+        if (entry.valid === true) {
+            if (entry.errorType !== undefined) {
+                return false
+            }
+            const stableKeyRaw = entry.stableKey
+            if (typeof stableKeyRaw !== 'string') {
+                return false
+            }
+            if (stableKeyRaw.trim().length === 0) {
+                return false
+            }
+            if ('affinitiesFailed' in entry && typeof entry.affinitiesFailed !== 'boolean') {
+                return false
+            }
+            if (entry.affinitiesFailed === true) {
+                return entry.affinities.length === 0
+            }
+            return true
+        }
+        if ('stableKey' in entry) {
             return false
         }
-        if ('stableKey' in entry && typeof entry.stableKey !== 'string') {
+        if (!isParseCommandAcmeOrderErrorType(entry.errorType)) {
             return false
         }
-        if (entry.valid === true && entry.affinitiesFailed === true) {
-            return entry.affinities.length === 0
-        }
-        return true
+        return entry.affinities.length === 0
     })
 }
 

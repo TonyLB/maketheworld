@@ -46,6 +46,7 @@ describe('parseCommand type guards', () => {
                 orders: [{
                     valid: true,
                     name: 'rocket-powered roller skates',
+                    stableKey: 'rocket-powered-roller-skates',
                     affinities: [],
                 }],
                 confidence: 0.9,
@@ -53,7 +54,7 @@ describe('parseCommand type guards', () => {
             expect(isParseCommandAcmeOrderResult({
                 type: 'AcmeOrder',
                 orders: [
-                    { valid: true, name: 'anvil', affinities: [] },
+                    { valid: true, name: 'anvil', stableKey: 'anvil', affinities: [] },
                     {
                         valid: false,
                         name: 'justice',
@@ -65,22 +66,7 @@ describe('parseCommand type guards', () => {
             })).toBe(true)
         })
 
-        it('rejects invalid confidence, empty orders, or blank lines', () => {
-            expect(isParseCommandAcmeOrderResult({
-                type: 'AcmeOrder',
-                orders: [{ valid: true, name: 'skates', affinities: [] }],
-                confidence: -0.01,
-            })).toBe(false)
-            expect(isParseCommandAcmeOrderResult({
-                type: 'AcmeOrder',
-                orders: [],
-                confidence: 0.5,
-            })).toBe(false)
-            expect(isParseCommandAcmeOrderResult({
-                type: 'AcmeOrder',
-                orders: [{ valid: true, name: '  ', affinities: [] }],
-                confidence: 0.5,
-            })).toBe(false)
+        it('rejects valid true line that also carries errorType (mixed shape)', () => {
             expect(isParseCommandAcmeOrderResult({
                 type: 'AcmeOrder',
                 orders: [{
@@ -91,31 +77,29 @@ describe('parseCommand type guards', () => {
                 } as any],
                 confidence: 0.5,
             })).toBe(false)
+        })
+
+        it('rejects invalid confidence, empty orders, or blank lines', () => {
             expect(isParseCommandAcmeOrderResult({
                 type: 'AcmeOrder',
-                orders: [{ valid: true, name: 'anvil', affinities: [] }],
-                confidence: 0.5,
-            })).toBe(true)
+                orders: [{ valid: true, name: 'skates', stableKey: 'skates', affinities: [] }],
+                confidence: -0.01,
+            })).toBe(false)
             expect(isParseCommandAcmeOrderResult({
                 type: 'AcmeOrder',
-                orders: [{
-                    valid: true,
-                    name: 'anvil',
-                    stableKey: 'anvil',
-                    affinities: [],
-                }],
-                confidence: 0.5,
-            })).toBe(true)
-            expect(isParseCommandAcmeOrderResult({
-                type: 'AcmeOrder',
-                orders: [{
-                    valid: true,
-                    name: 'anvil',
-                    stableKey: 123,
-                    affinities: [],
-                } as any],
+                orders: [],
                 confidence: 0.5,
             })).toBe(false)
+            expect(isParseCommandAcmeOrderResult({
+                type: 'AcmeOrder',
+                orders: [{ valid: true, name: '', stableKey: 'x', affinities: [] }],
+                confidence: 0.5,
+            })).toBe(false)
+            expect(isParseCommandAcmeOrderResult({
+                type: 'AcmeOrder',
+                orders: [{ valid: true, name: 'anvil', stableKey: 'anvil', affinities: [] }],
+                confidence: 0.5,
+            })).toBe(true)
             expect(isParseCommandAcmeOrderResult({
                 type: 'AcmeOrder',
                 orders: [{ valid: true } as any],
@@ -123,7 +107,7 @@ describe('parseCommand type guards', () => {
             })).toBe(false)
             expect(isParseCommandAcmeOrderResult({
                 type: 'AcmeOrder',
-                orders: [{ valid: false, errorType: 'Too large' } as any],
+                orders: [{ valid: false, name: 'x', affinities: [] } as any],
                 confidence: 0.5,
             })).toBe(false)
             expect(isParseCommandAcmeOrderResult({
@@ -139,8 +123,20 @@ describe('parseCommand type guards', () => {
             expect(isParseCommandAcmeOrderResult({
                 type: 'AcmeOrder',
                 orders: [{
+                    valid: false,
+                    name: 'moon',
+                    stableKey: 'moon',
+                    errorType: 'Too large',
+                    affinities: [],
+                } as any],
+                confidence: 0.5,
+            })).toBe(false)
+            expect(isParseCommandAcmeOrderResult({
+                type: 'AcmeOrder',
+                orders: [{
                     valid: true,
                     name: 'rope',
+                    stableKey: 'rope',
                     affinities: [{ role: 'terminal', aptness: 0.5 }],
                     affinitiesFailed: true,
                 }],
@@ -573,6 +569,7 @@ describe('parseCommand LLM path', () => {
             orders: [{
                 valid: true,
                 name: 'order anvil from acme',
+                stableKey: 'order-anvil-from-acme',
                 affinities: [],
                 affinitiesFailed: true,
             }],

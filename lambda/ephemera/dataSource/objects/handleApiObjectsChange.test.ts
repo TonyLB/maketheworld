@@ -19,6 +19,7 @@ const clearPersistMetaRoomObjectsMock = clearPersistMetaRoomObjects as jest.Mock
 const obj = (suffix: string, shortName: string): EphemeraMetaRoomObject => ({
     uuid: `OBJECT#${suffix}` as EphemeraObjectId,
     shortName,
+    stableKey: suffix,
 })
 
 describe('handleApiObjectsChangeCommand', () => {

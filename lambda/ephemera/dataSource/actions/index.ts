@@ -35,11 +35,14 @@ import { runCoyoteEngineTestHarness } from '../coyoteGame/runCoyoteEngineTestHar
 const COYOTE_ENGINE_TEST_HARNESS_ENABLED = true
 const COYOTE_AFFINITIES_TEST_HARNESS_ENABLED = true
 
+type ParseCommandAcmeOrderValidLine = Extract<ParseCommandAcmeOrderLine, { valid: true }>
+type ParseCommandAcmeOrderInvalidLine = Extract<ParseCommandAcmeOrderLine, { valid: false }>
+
 const buildPublishedAcmeOrdersWithStableKeys = (
     orders: ParseCommandAcmeOrderLine[],
     coyoteOccupiedStableKeys: ReadonlySet<string>,
 ): AcmeOrderPublishedOrder[] => {
-    const validLines = orders.filter(({ valid }) => valid)
+    const validLines = orders.filter((line): line is ParseCommandAcmeOrderValidLine => line.valid)
     const finalizedKeys = finalizeStableKeysDeterministic(
         validLines.map((line) => ({ name: line.name, proposedStableKey: line.stableKey })),
         coyoteOccupiedStableKeys,
@@ -54,7 +57,7 @@ const buildPublishedAcmeOrdersWithStableKeys = (
 
 const invalidAcmeOrderMessages = (orders: ParseCommandAcmeOrderLine[]): string[] => (
     orders
-        .filter(({ valid }) => !valid)
+        .filter((line): line is ParseCommandAcmeOrderInvalidLine => !line.valid)
         .map(({ name, errorType }) => {
             switch (errorType) {
                 case 'Not a thing':

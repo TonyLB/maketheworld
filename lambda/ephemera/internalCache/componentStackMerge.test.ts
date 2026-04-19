@@ -138,7 +138,7 @@ describe('ComponentStackMerge cache handler', () => {
         const metaRoom: EphemeraMetaRoom = {
             EphemeraId: 'ROOM#ObjRoom' as EphemeraRoomId,
             DataCategory: 'Meta::Room',
-            objects: [{ uuid: 'OBJECT#foo', shortName: 'A lamp' }],
+            objects: [{ uuid: 'OBJECT#foo', shortName: 'A lamp', stableKey: 'a-lamp' }],
         }
         jest.spyOn(internalCache.ComponentEphemeraMeta, 'get').mockResolvedValue(metaRoom)
 

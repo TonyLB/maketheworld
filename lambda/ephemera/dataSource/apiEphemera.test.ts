@@ -125,8 +125,8 @@ describe('apiEphemera', () => {
         sendObjectsChange(bus, 'ROOM#obj', {
             componentId: 'ROOM#obj',
             add: [
-                { uuid: 'OBJECT#h1', shortName: 'First' },
-                { uuid: 'OBJECT#h2', shortName: 'Second' },
+                { uuid: 'OBJECT#h1', shortName: 'First', stableKey: 'first' },
+                { uuid: 'OBJECT#h2', shortName: 'Second', stableKey: 'second' },
             ],
             remove: ['OBJECT#h0'],
         })
@@ -141,8 +141,8 @@ describe('apiEphemera', () => {
         expect(content).toEqual({
             componentId: 'ROOM#obj',
             add: [
-                { uuid: 'OBJECT#h1', shortName: 'First' },
-                { uuid: 'OBJECT#h2', shortName: 'Second' },
+                { uuid: 'OBJECT#h1', shortName: 'First', stableKey: 'first' },
+                { uuid: 'OBJECT#h2', shortName: 'Second', stableKey: 'second' },
             ],
             remove: ['OBJECT#h0'],
         })

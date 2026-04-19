@@ -53,8 +53,12 @@ describe('generateHypothesis', () => {
                     EphemeraId: roomId,
                     DataCategory: 'Meta::Room',
                     objects: [
-                        { uuid: 'OBJECT#anvil' as `OBJECT#${string}`, shortName: 'anvil' },
-                        { uuid: 'OBJECT#rocket-skates' as `OBJECT#${string}`, shortName: 'rocket skates' },
+                        { uuid: 'OBJECT#anvil' as `OBJECT#${string}`, shortName: 'anvil', stableKey: 'anvil' },
+                        {
+                            uuid: 'OBJECT#rocket-skates' as `OBJECT#${string}`,
+                            shortName: 'rocket skates',
+                            stableKey: 'rocket-skates',
+                        },
                     ],
                 }
             }

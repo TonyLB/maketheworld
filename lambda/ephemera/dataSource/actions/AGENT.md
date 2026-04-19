@@ -19,7 +19,7 @@ Stable keys give **machine correlation** for Coyote staged objects (seams, clust
 ### Scope and non-goals
 
 - **Uniqueness:** **`stableKey`** must be unique across the **union** of **`Meta::Room.objects`** staged in **every Coyote demo game room** --- the same fixed roster used for hypothesis / plan snapshots ([**`defaultCoyoteGameData.gameRooms`**](../../internalCache/coyoteGame.ts)), not only the character's delivery room. Objects remain **stored per room**; collisions are forbidden **across** those rooms.
-- **Outside scope:** No contract that **`stableKey`** stays unique outside that Coyote game-room set (other rooms or features). **Bulk backfill or migration** of legacy Dynamo rows is explicitly **not** assumed; **`stableKey`** is optional on persisted **[`EphemeraMetaRoomObject`](../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts)** rows without it.
+- **Outside scope:** No contract that **`stableKey`** stays unique outside that Coyote game-room set (other rooms or features). Persisted **[`EphemeraMetaRoomObject`](../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts)** rows require a non-empty **`stableKey`** after trim; environments with historical Dynamo rows that omit it need migration or loads may fail **`isEphemeraMetaRoomObject`** validation.
 
 ### Two phases
 
@@ -31,7 +31,7 @@ Stable keys give **machine correlation** for Coyote staged objects (seams, clust
 
 [**`index.ts`**](index.ts) (**Acme Order** path):
 
-1. **[`collectCoyoteOccupiedStableKeys`](collectCoyoteOccupiedStableKeys.ts)** builds the occupancy snapshot from **`CoyoteGame.gameRooms`** + **`Meta::Room.objects`** (same roster as Coyote snapshots). Legacy rows **without** **`stableKey`** contribute nothing to occupancy.
+1. **[`collectCoyoteOccupiedStableKeys`](collectCoyoteOccupiedStableKeys.ts)** builds the occupancy snapshot from **`CoyoteGame.gameRooms`** + **`Meta::Room.objects`** (same roster as Coyote snapshots). Only non-empty trimmed **`stableKey`** strings contribute; malformed or legacy-shaped rows without a valid key contribute nothing.
 2. **`parseCommand({ command, occupiedStableKeys })`** passes that snapshot into Step B enrich (**same snapshot** used for **`finalizeStableKeysDeterministic`** after parse returns **`AcmeOrder`**).
 3. **`finalizeStableKeysDeterministic`** attaches **final** **`stableKey: string`** per valid line before **`streamEvent`** **`Acme Order`**.
 4. **`mtw.ephemera.objects`** **[`handleAcmeOrderAddObjects`](../objects/handleApiObjectsChange.ts)** persists into the character's **current** room only (pass-through **`stableKey`**).
@@ -39,7 +39,7 @@ Stable keys give **machine correlation** for Coyote staged objects (seams, clust
 ### Types and payloads
 
 - **[`AcmeOrderPublishedOrder`](publishedEvents.ts):** **`stableKey: string`** required on each bus order line after wiring.
-- **`EphemeraMetaRoomObject`:** **`stableKey?: string`** --- optional on legacy persisted rows.
+- **`EphemeraMetaRoomObject`:** **`stableKey: string`** --- required on persisted rows (non-empty after trim); see **`isEphemeraMetaRoomObject`**.
 
 ### Coyote prompts vs stored fields
 
