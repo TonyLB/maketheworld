@@ -11,13 +11,25 @@ function clamp01(n: number): number {
     return Math.min(1, Math.max(0, n))
 }
 
-/** Strip chain-of-reasoning Markdown; keep only the JSON object substring for parsing. */
-function jsonSliceForEnrichInterpret(raw: string): string {
+export type InterpretAcmeOrderEnrichBodySuccess = {
+    success: true;
+    response: AcmeOrderEnrichModelResponse;
+    /** Leading Markdown chain-of-reason before the JSON payload; empty when absent or fallback path. */
+    reasoningMarkdown: string;
+}
+
+function splitBodyForEnrichInterpret(raw: string): { jsonText: string; reasoningMarkdown: string } {
     const split = splitMarkdownReasoningAndJson(raw)
     if (split.ok) {
-        return split.jsonText
+        return {
+            jsonText: split.jsonText,
+            reasoningMarkdown: split.reasoningMarkdown.trim(),
+        }
     }
-    return extractJsonObjectText(raw)
+    return {
+        jsonText: extractJsonObjectText(raw),
+        reasoningMarkdown: '',
+    }
 }
 
 export type InterpretAcmeOrderEnrichBodyOptions = {
@@ -27,18 +39,16 @@ export type InterpretAcmeOrderEnrichBodyOptions = {
 
 /**
  * Parses Step B JSON and normalizes **`lines`** via **`normalizeAcmeOrderStepBResponse`**.
+ * Returns **`reasoningMarkdown`** alongside **`response`** when **`success`** (possibly empty).
  */
 export function interpretAcmeOrderEnrichBody(
     body: string,
     options?: InterpretAcmeOrderEnrichBodyOptions
-): {
-    success: true;
-    response: AcmeOrderEnrichModelResponse;
-} | {
+): InterpretAcmeOrderEnrichBodySuccess | {
     success: false;
     errorMessage: string;
 } {
-    const toParse = jsonSliceForEnrichInterpret(body)
+    const { jsonText: toParse, reasoningMarkdown } = splitBodyForEnrichInterpret(body)
     let parsed: unknown
     try {
         parsed = JSON.parse(toParse)
@@ -59,11 +69,25 @@ export function interpretAcmeOrderEnrichBody(
                 errorMessage: `Acme enrich interpret: at most ${ACME_ORDER_ENRICH_MAX_LINES} lines per order`,
             }
         }
-        return { success: true, response }
+        return { success: true, response, reasoningMarkdown }
     } catch (err) {
         const message = err instanceof Error ? err.message : String(err)
         return { success: false, errorMessage: message }
     }
+}
+
+/**
+ * Adds optional **`reasoningMarkdown`** to **`AcmeOrder`** when the argument is non-empty after trim.
+ */
+export function attachReasoningMarkdown(
+    result: ParseCommandAcmeOrderResult,
+    reasoningMarkdown: string
+): ParseCommandAcmeOrderResult {
+    const trimmed = reasoningMarkdown.trim()
+    if (!trimmed) {
+        return result
+    }
+    return { ...result, reasoningMarkdown: trimmed }
 }
 
 function enrichLineToParseLine(line: AcmeOrderEnrichModelLine): ParseCommandAcmeOrderLine {

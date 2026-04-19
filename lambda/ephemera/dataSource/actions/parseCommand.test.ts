@@ -132,6 +132,24 @@ describe('parseCommand type guards', () => {
                 confidence: 0.9,
             } as any)).toBe(false)
         })
+
+        it('accepts optional reasoningMarkdown string', () => {
+            expect(isParseCommandAcmeOrderResult({
+                type: 'AcmeOrder',
+                orders: [{ valid: true, name: 'a', affinities: [] }],
+                confidence: 0.5,
+                reasoningMarkdown: 'CoR text',
+            })).toBe(true)
+        })
+
+        it('rejects non-string reasoningMarkdown', () => {
+            expect(isParseCommandAcmeOrderResult({
+                type: 'AcmeOrder',
+                orders: [{ valid: true, name: 'a', affinities: [] }],
+                confidence: 0.5,
+                reasoningMarkdown: 1,
+            } as any)).toBe(false)
+        })
     })
 
     it('isParseCommandAwaitRoadrunnerResult requires confidence', () => {
@@ -414,6 +432,34 @@ describe('parseCommand LLM path', () => {
             ],
             confidence: 0.82 * 0.9,
         })
+        expect(invokeBedrockAcmeOrderEnrichImpl).toHaveBeenCalledTimes(1)
+    })
+
+    it('includes reasoningMarkdown when enrich returns Markdown before fenced JSON', async () => {
+        const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: '{"type":"AcmeOrder","confidence":0.82}',
+        })
+        const payload = JSON.stringify({
+            lines: [{ valid: true, name: 'rope', affinities: [{ role: 'delivery', aptness: 0.6 }] }],
+            confidence: 0.95,
+        })
+        const body = `## Notes\nCheck catalog.\n\n\`\`\`json\n${payload}\n\`\`\``
+        const invokeBedrockAcmeOrderEnrichImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body,
+        })
+
+        const result = await parseCommand(
+            { command: 'order rope' },
+            { invokeBedrockParseCommandImpl, invokeBedrockAcmeOrderEnrichImpl }
+        )
+
+        expect(result.type).toBe('AcmeOrder')
+        if (result.type === 'AcmeOrder') {
+            expect(result.reasoningMarkdown).toContain('Notes')
+            expect(result.orders[0]?.name).toBe('rope')
+        }
         expect(invokeBedrockAcmeOrderEnrichImpl).toHaveBeenCalledTimes(1)
     })
 

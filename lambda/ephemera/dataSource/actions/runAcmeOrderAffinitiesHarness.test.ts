@@ -118,4 +118,45 @@ describe('runAcmeOrderAffinitiesHarness', () => {
         expect(joined).toContain('Step B enrich only')
         expect(joined).toContain('Test Widget')
     })
+
+    it('stepBOnly includes chain-of-reason block and JSON when enrich returns Markdown + fence', async () => {
+        const parseCommandImpl = jest.fn()
+        const payload = JSON.stringify({
+            lines: [{
+                valid: true,
+                name: 'CoR Widget',
+                affinities: [{ role: 'terminal', aptness: 0.5 }],
+            }],
+            confidence: 0.9,
+        })
+        const body = `## Analysis\nValid gadget.\n\n\`\`\`json\n${payload}\n\`\`\``
+        const invokeBedrockAcmeOrderEnrichImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body,
+        })
+
+        await runAcmeOrderAffinitiesHarness({
+            characterId: 'CHARACTER#t',
+            messageBus,
+            phrases: ['beta'],
+            stepBOnly: true,
+            parseCommandImpl,
+            invokeBedrockAcmeOrderEnrichImpl,
+            now: () => 0,
+        })
+
+        expect(parseCommandImpl).not.toHaveBeenCalled()
+        const payloadMsg = mockMessageBus.send.mock.calls[0][0]
+        if (!isPublishMessage(payloadMsg)) {
+            throw new Error('expected PublishMessage')
+        }
+        if (!isPublishWorldLineMessage(payloadMsg)) {
+            throw new Error('expected WorldMessage or WorldOOCMessage')
+        }
+        const joined = JSON.stringify(payloadMsg.message)
+        expect(joined).toContain('Chain-of-reason (Markdown):')
+        expect(joined).toContain('Analysis')
+        expect(joined).toContain('reasoningMarkdown')
+        expect(joined).toContain('CoR Widget')
+    })
 })

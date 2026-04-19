@@ -1,4 +1,5 @@
 import {
+    attachReasoningMarkdown,
     interpretAcmeOrderEnrichBody,
     finalizeAcmeOrderFromStepB,
 } from './mergeAcmeOrderEnrich'
@@ -12,6 +13,7 @@ describe('interpretAcmeOrderEnrichBody', () => {
         if (r.success) {
             expect(r.response.lines).toHaveLength(1)
             expect(r.response.lines[0].valid === true && r.response.lines[0].name).toBe('A')
+            expect(r.reasoningMarkdown).toBe('')
         }
     })
 
@@ -35,6 +37,7 @@ ${payload}
         if (r.success) {
             expect(r.response.lines).toHaveLength(1)
             expect(r.response.lines[0].valid === true && r.response.lines[0].name).toBe('Beehive')
+            expect(r.reasoningMarkdown).toContain('Item 1')
         }
     })
 
@@ -45,6 +48,7 @@ ${payload}
         expect(r.success).toBe(true)
         if (r.success) {
             expect(r.response.lines[0].valid === true && r.response.lines[0].name).toBe('X')
+            expect(r.reasoningMarkdown).toBe('Notes here.')
         }
     })
 
@@ -58,6 +62,7 @@ ${payload}
                 affinities: [],
                 affinitiesFailed: true,
             })
+            expect(r.reasoningMarkdown).toBe('')
         }
     })
 
@@ -79,7 +84,25 @@ ${payload}
                 affinities: [],
                 affinitiesFailed: true,
             })
+            expect(r.reasoningMarkdown).toBe('')
         }
+    })
+
+    it('attachReasoningMarkdown adds reasoningMarkdown when non-empty', () => {
+        const base = finalizeAcmeOrderFromStepB(
+            1,
+            {
+                lines: [{ valid: true, name: 'A', affinities: [] }],
+                confidence: 1,
+            },
+            false,
+            'x'
+        )
+        expect(attachReasoningMarkdown(base, '  ')).toEqual(base)
+        expect(attachReasoningMarkdown(base, 'Why')).toEqual({
+            ...base,
+            reasoningMarkdown: 'Why',
+        })
     })
 })
 

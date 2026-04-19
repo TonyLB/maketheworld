@@ -69,6 +69,11 @@ export type ParseCommandAcmeOrderResult = {
     /** One entry per distinct product or line item (single-item orders use length 1). */
     orders: ParseCommandAcmeOrderLine[]
     confidence: ParseCommandConfidence
+    /**
+     * When set, the Acme enrich model output included chain-of-reason Markdown before the final JSON
+     * (harness / diagnostics; not used for `Acme Order` stream payload in `index.ts`).
+     */
+    reasoningMarkdown?: string
 }
 
 /** Coyote Game: wait-state for Road Runner encounter flows. */
@@ -152,6 +157,14 @@ export function isParseCommandAcmeOrderResult(
         return false
     }
     if (!Array.isArray(result.orders) || result.orders.length === 0) {
+        return false
+    }
+    const withOpt = result as Record<string, unknown>
+    if (
+        'reasoningMarkdown' in withOpt
+        && withOpt.reasoningMarkdown !== undefined
+        && typeof withOpt.reasoningMarkdown !== 'string'
+    ) {
         return false
     }
     return result.orders.every((line) => {

@@ -11,7 +11,11 @@ import { buildParseAcmeOrderEnrichPrompt } from './buildParseAcmeOrderEnrichProm
 import { buildParseCommandIntentClassificationPrompt } from './buildParseCommandIntentClassificationPrompt'
 import { isCoyoteAffinitiesTestSlashCommand } from './coyoteAffinitiesTestSlashCommand'
 import { isCoyoteEngineTestSlashCommand } from './coyoteEngineTestSlashCommand'
-import { finalizeAcmeOrderFromStepB, interpretAcmeOrderEnrichBody } from './mergeAcmeOrderEnrich'
+import {
+    attachReasoningMarkdown,
+    finalizeAcmeOrderFromStepB,
+    interpretAcmeOrderEnrichBody,
+} from './mergeAcmeOrderEnrich'
 import { interpretParseCommandIntentClassificationBody } from './parseCommandIntentClassification'
 
 /**
@@ -49,6 +53,7 @@ export async function parseCommand(
 
     let enrichInvokeFailed = !enrichInvoke.success
     let enrichResponse: AcmeOrderEnrichModelResponse | null = null
+    let enrichReasoningMarkdown = ''
 
     if (enrichInvoke.success) {
         const fallback = input.command.trim() || 'order'
@@ -57,16 +62,20 @@ export async function parseCommand(
         })
         if (parsed.success) {
             enrichResponse = parsed.response
+            enrichReasoningMarkdown = parsed.reasoningMarkdown
         } else {
             enrichInvokeFailed = true
         }
     }
 
     const fallbackName = input.command.trim() || 'order'
-    return finalizeAcmeOrderFromStepB(
-        stepA.confidence,
-        enrichResponse,
-        enrichInvokeFailed,
-        fallbackName
+    return attachReasoningMarkdown(
+        finalizeAcmeOrderFromStepB(
+            stepA.confidence,
+            enrichResponse,
+            enrichInvokeFailed,
+            fallbackName
+        ),
+        enrichReasoningMarkdown
     )
 }

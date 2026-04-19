@@ -6,8 +6,13 @@ import { invokeBedrockAcmeOrderEnrich } from '../../generateExample/invokeBedroc
 import { COYOTE_RENDER_LINE_BREAK } from '../coyoteGame/coyoteRenderTree'
 import { ACME_ORDER_AFFINITIES_HARNESS_PHRASES } from './acmeOrderAffinitiesHarnessPhrases'
 import type { ParseCommandResult } from './baseClasses'
+import { isParseCommandAcmeOrderResult } from './baseClasses'
 import { buildParseAcmeOrderEnrichPrompt } from './buildParseAcmeOrderEnrichPrompt'
-import { finalizeAcmeOrderFromStepB, interpretAcmeOrderEnrichBody } from './mergeAcmeOrderEnrich'
+import {
+    attachReasoningMarkdown,
+    finalizeAcmeOrderFromStepB,
+    interpretAcmeOrderEnrichBody,
+} from './mergeAcmeOrderEnrich'
 import { parseCommand } from './parseCommand'
 
 export type RunAcmeOrderAffinitiesHarnessDeps = {
@@ -68,17 +73,22 @@ export async function runAcmeOrderAffinitiesHarness(deps: RunAcmeOrderAffinities
                 const enrichInvoke = await invokeEnrich(parts)
                 let enrichFailed = !enrichInvoke.success
                 let response: AcmeOrderEnrichModelResponse | null = null
+                let reasoningMarkdown = ''
                 if (enrichInvoke.success) {
                     const parsed = interpretAcmeOrderEnrichBody(enrichInvoke.body, {
                         emptyFallbackName: command.trim() || 'order',
                     })
                     if (parsed.success) {
                         response = parsed.response
+                        reasoningMarkdown = parsed.reasoningMarkdown
                     } else {
                         enrichFailed = true
                     }
                 }
-                result = finalizeAcmeOrderFromStepB(1, response, enrichFailed, command.trim() || 'order')
+                result = attachReasoningMarkdown(
+                    finalizeAcmeOrderFromStepB(1, response, enrichFailed, command.trim() || 'order'),
+                    reasoningMarkdown
+                )
             }
             else {
                 result = await runParse({ command }, {})
@@ -97,6 +107,12 @@ export async function runAcmeOrderAffinitiesHarness(deps: RunAcmeOrderAffinities
         tree.push(COYOTE_RENDER_LINE_BREAK)
         tree.push(`elapsedMs: ${elapsedMs}`)
         tree.push(COYOTE_RENDER_LINE_BREAK)
+        if (isParseCommandAcmeOrderResult(result) && result.reasoningMarkdown) {
+            tree.push('Chain-of-reason (Markdown):')
+            tree.push(COYOTE_RENDER_LINE_BREAK)
+            tree.push(result.reasoningMarkdown)
+            tree.push(COYOTE_RENDER_LINE_BREAK)
+        }
         tree.push(formatParseResultJson(result))
     }
 
