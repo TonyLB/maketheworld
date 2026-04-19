@@ -11,13 +11,19 @@ export function buildParseAcmeOrderEnrichPrompt(command: string): ParseAcmeOrder
 
     const floor = COYOTE_AFFINITY_APTNESS_MIN
 
-    const invariantPrefix = `You validate and enrich **Acme mail-order** requests for a Coyote vs. Road Runner cartoon-contraption game. Players order props and gadgets; plans are **physical gags**, trebuchets, traps, and chase mechanics — not tabletop RPG sessions. Output structured JSON only.
+    const invariantPrefix = `You validate and enrich **Acme mail-order** requests for a Coyote vs. Road Runner cartoon-contraption game. Players order props and gadgets; plans are **physical gags**, trebuchets, traps, and chase mechanics — not tabletop RPG sessions.
+
+Produce **two parts** in order:
+
+1. **Chain-of-reason (Markdown):** Walk each **distinct product / line item** you extracted (see below). Use **one section or bullet block per item**. For each item, say whether it is **valid** vs **invalid** under Acme catalog rules; if **invalid**, name exactly one **errorType**: **Not a thing**, **Not tangible**, or **Too large** — matching how you will encode it in JSON.
+
+2. **Final JSON:** After all reasoning, output **one** trailing fenced code block with language tag **json**. Inside the fence put **only** the root JSON object (**lines**, optional **confidence**) — nothing else inside the fence. No prose after that closing fence.
 
 The **full player command** appears at the end of this prompt.
 
 ## Segment line items
 
-From that command, extract **one JSON object per distinct product / line item** (split on commas, **and**, **also**, multiple verbs, etc.). Preserve **speaker intent** — do not drop items.
+From that command, extract **one entry in \`lines[]\` per distinct product / line item** (split on commas, **and**, **also**, multiple verbs, etc.). Preserve **speaker intent** — do not drop items.
 
 ## Catalog validation per line
 
@@ -37,7 +43,7 @@ Write **\`name\`** and implied roles in **cartoon physics / contraption** langua
 - Normalize sloppy wording into polished **Acme-style product titles**.
 - For hazardous substances or creatures, phrase the **shipped package**, not loose reality (crates, cylinders, reinforced containers).
 
-Example **valid** line:
+Example **valid** line entry (inside **\`lines\`**):
 
 {
   "valid": true,
@@ -48,7 +54,7 @@ Example **valid** line:
   ]
 }
 
-Example **invalid** line:
+Example **invalid** line entry:
 
 {
   "valid": false,
@@ -74,10 +80,9 @@ Include **\`target\`**: coyote | road_runner | environment and **\`mode\`**: dir
 - Optional root **\`confidence\`**: **[0, 1]** for this pass.
 - If **\`valid\`: true** but you cannot justify affinities, set **\`affinitiesFailed\`**: true and **\`affinities\`**: [].
 
-## Output shape
+## Final JSON shape (inside the **json** fence only)
 
-Output **only** one JSON object, no markdown fences.
-
+\`\`\`json
 {
   "lines": [
     { "valid": true, "name": "<string>", "affinities": [ { "role": "terminal", "aptness": 0.5 } ] },
@@ -85,6 +90,7 @@ Output **only** one JSON object, no markdown fences.
   ],
   "confidence": <optional number 0..1>
 }
+\`\`\`
 `
 
     const dynamicSuffix = `## Player command (full string)

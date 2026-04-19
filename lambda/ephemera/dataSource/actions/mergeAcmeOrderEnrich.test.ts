@@ -19,6 +19,35 @@ describe('interpretAcmeOrderEnrichBody', () => {
         expect(interpretAcmeOrderEnrichBody('{').success).toBe(false)
     })
 
+    it('strips leading chain-of-reasoning and parses trailing fenced json', () => {
+        const payload = JSON.stringify({
+            lines: [{ valid: true, name: 'Beehive', affinities: [{ role: 'terminal', aptness: 0.5 }] }],
+            confidence: 1,
+        })
+        const body = `## Item 1
+- **Valid**: beehive is catalog-orderable.
+
+\`\`\`json
+${payload}
+\`\`\``
+        const r = interpretAcmeOrderEnrichBody(body)
+        expect(r.success).toBe(true)
+        if (r.success) {
+            expect(r.response.lines).toHaveLength(1)
+            expect(r.response.lines[0].valid === true && r.response.lines[0].name).toBe('Beehive')
+        }
+    })
+
+    it('accepts prose plus raw JSON without a trailing fence (brace fallback)', () => {
+        const json = '{"lines":[{"valid":true,"name":"X","affinities":[]}]}'
+        const body = `Notes here.\n\n${json}`
+        const r = interpretAcmeOrderEnrichBody(body)
+        expect(r.success).toBe(true)
+        if (r.success) {
+            expect(r.response.lines[0].valid === true && r.response.lines[0].name).toBe('X')
+        }
+    })
+
     it('normalizes missing lines array to single synthetic row', () => {
         const r = interpretAcmeOrderEnrichBody(JSON.stringify({ lines: 'bad' }))
         expect(r.success).toBe(true)

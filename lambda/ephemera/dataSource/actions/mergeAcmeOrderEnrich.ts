@@ -3,23 +3,21 @@ import {
     ACME_ORDER_ENRICH_MAX_LINES,
     normalizeAcmeOrderStepBResponse,
 } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
+import { extractJsonObjectText } from '../../llm/extractJsonObjectText'
+import { splitMarkdownReasoningAndJson } from '../../llm/splitMarkdownReasoningAndJson'
 import type { ParseCommandAcmeOrderLine, ParseCommandAcmeOrderResult } from './baseClasses'
 
 function clamp01(n: number): number {
     return Math.min(1, Math.max(0, n))
 }
 
-/** Strip markdown fences and extract a JSON object from the model response. */
-export function extractJsonBodyFromModel(raw: string): string {
-    let s = raw.trim()
-    const openFence = /^```(?:json)?\s*\n?/i
-    const closeFence = /\n?```\s*$/
-    s = s.replace(openFence, '').replace(closeFence, '').trim()
-    const firstBrace = s.indexOf('{')
-    if (firstBrace === -1) return s
-    const lastBrace = s.lastIndexOf('}')
-    if (lastBrace === -1 || lastBrace <= firstBrace) return s
-    return s.slice(firstBrace, lastBrace + 1)
+/** Strip chain-of-reasoning Markdown; keep only the JSON object substring for parsing. */
+function jsonSliceForEnrichInterpret(raw: string): string {
+    const split = splitMarkdownReasoningAndJson(raw)
+    if (split.ok) {
+        return split.jsonText
+    }
+    return extractJsonObjectText(raw)
 }
 
 export type InterpretAcmeOrderEnrichBodyOptions = {
@@ -40,7 +38,7 @@ export function interpretAcmeOrderEnrichBody(
     success: false;
     errorMessage: string;
 } {
-    const toParse = extractJsonBodyFromModel(body)
+    const toParse = jsonSliceForEnrichInterpret(body)
     let parsed: unknown
     try {
         parsed = JSON.parse(toParse)

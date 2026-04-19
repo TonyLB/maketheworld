@@ -17,7 +17,7 @@
 ## Integration points
 
 - **Callers of** `invokeBedrockConverseText`: [`../generateExample/AGENT.md`](../generateExample/AGENT.md) (re-exports in [`../generateExample/index.ts`](../generateExample/index.ts)), [`../dataSource/coyoteGame/invokeBedrockHypothesis.ts`](../dataSource/coyoteGame/invokeBedrockHypothesis.ts).
-- **Downstream use of** `splitMarkdownReasoningAndJson` / `extractJsonObjectText`: any step that needs a **single JSON object** from a model after optional Markdown (for example Acme order enrich; see [`AGENT.objectAffinities.plan.md`](../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.objectAffinities.plan.md)) should import from here instead of duplicating fence logic.
+- **Downstream use of** `splitMarkdownReasoningAndJson` / `extractJsonObjectText`: any step that needs a **single JSON object** from a model after optional Markdown should import from here instead of duplicating fence logic. **Acme Step B:** [`../dataSource/actions/mergeAcmeOrderEnrich.ts`](../dataSource/actions/mergeAcmeOrderEnrich.ts) **`interpretAcmeOrderEnrichBody`** calls **`splitMarkdownReasoningAndJson`** first (then **`extractJsonObjectText`** on failure) before **`normalizeAcmeOrderStepBResponse`**; reasoning text is dropped. Product context: [`AGENT.objectAffinities.plan.md`](../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.objectAffinities.plan.md).
 
 ## Navigation
 
