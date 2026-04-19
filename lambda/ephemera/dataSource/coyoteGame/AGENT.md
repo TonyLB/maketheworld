@@ -60,6 +60,8 @@ On **`Await RoadRunner`** from actions, the handler targets **all active charact
 
 **Fixtures:** Canonical data is [`coyoteEngineTestFixtures.ts`](coyoteEngineTestFixtures.ts) (`COYOTE_ENGINE_TEST_FIXTURES`, optional **`hypothesisLine`** reserved for a future outcome harness). Room keys use **`ROOM#${roomKey}`**; when serializing prompts, room order matches [`defaultCoyoteGameData.gameRooms`](../../internalCache/coyoteGame.ts) (`VORTEX`, `STRAIGHTAWAY`, …), same as live **`getGameRooms()`** behavior.
 
+**Future (degraded snapshot coverage):** The stock fixtures are intended as a **golden path** for comparing prompts and cost. A later improvement is to add fixtures (or a separate test list) that include staged objects with **`affinitiesFailed: true`** or **omitted** **`affinities`** (legacy or pre-enrich) so Stage One, any post-seam **combine** step, and Stage Two are **explicitly** regression-tested when plan roles are missing or marked failed. That work is out of scope for the current [clustering refinement task plan](../../../../taskPlanning/lambda/ephemera/dataSource/coyoteGame/AGENT.clusteringRefinement.plan.md) (golden path only); it remains a separately scheduled hardening pass.
+
 **Authoring names to engine rooms**
 
 | Authoring phrase | `roomKey` | `EphemeraRoomId` |
