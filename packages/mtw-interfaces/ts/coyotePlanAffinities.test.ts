@@ -426,4 +426,38 @@ describe('isEphemeraMetaRoomObject', () => {
             } as unknown)
         ).toBe(false)
     })
+
+    it('accepts optional stableKey', () => {
+        expect(
+            isEphemeraMetaRoomObject({
+                uuid: 'OBJECT#abc',
+                shortName: 'Anvil',
+                stableKey: 'anvil',
+            })
+        ).toBe(true)
+    })
+
+    it('rejects stableKey wrong type or empty after trim', () => {
+        expect(
+            isEphemeraMetaRoomObject({
+                uuid: 'OBJECT#abc',
+                shortName: 'x',
+                stableKey: '',
+            })
+        ).toBe(false)
+        expect(
+            isEphemeraMetaRoomObject({
+                uuid: 'OBJECT#abc',
+                shortName: 'x',
+                stableKey: '   ',
+            })
+        ).toBe(false)
+        expect(
+            isEphemeraMetaRoomObject({
+                uuid: 'OBJECT#abc',
+                shortName: 'x',
+                stableKey: 1,
+            } as unknown)
+        ).toBe(false)
+    })
 })

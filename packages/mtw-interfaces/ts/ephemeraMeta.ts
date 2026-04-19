@@ -69,6 +69,8 @@ export type EphemeraRoomActiveCharacter = {
 export type EphemeraMetaRoomObject = {
     uuid: EphemeraObjectId;
     shortName: string;
+    /** Coyote-wide machine correlation key (`a-z` / `0-9` / `-`); omitted on legacy rows. */
+    stableKey?: string;
     /** Plan-role possibilities with aptness; omitted on legacy rows. */
     affinities?: CoyoteAffinityPossibility[];
     /** True when affinities could not be validated (enrich LLM/parse failure); distinguish from legacy omitted fields. */
@@ -92,6 +94,11 @@ export const isEphemeraMetaRoomObject = (entry: unknown): entry is EphemeraMetaR
     }
     if ('affinitiesFailed' in o && typeof o.affinitiesFailed !== 'boolean') {
         return false
+    }
+    if ('stableKey' in o) {
+        if (typeof o.stableKey !== 'string' || o.stableKey.trim().length === 0) {
+            return false
+        }
     }
     return true
 }
