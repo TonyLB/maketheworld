@@ -82,6 +82,32 @@ describe('mergeMetaRoomObjects', () => {
     it('last add wins when same uuid appears twice in add', () => {
         expect(mergeMetaRoomObjects(undefined, [obj('a', 'first'), obj('a', 'second')], [])).toEqual([obj('a', 'second')])
     })
+
+    it('preserves stableKey on added rows alongside legacy rows without stableKey', () => {
+        const legacy: EphemeraMetaRoomObject = { uuid: 'OBJECT#old' as EphemeraObjectId, shortName: 'Legacy' }
+        const incoming: EphemeraMetaRoomObject = {
+            uuid: 'OBJECT#new' as EphemeraObjectId,
+            shortName: 'Anvil',
+            stableKey: 'anvil',
+            affinities: [],
+        }
+        expect(mergeMetaRoomObjects([legacy], [incoming], [])).toEqual([legacy, incoming])
+    })
+
+    it('upsert replaces stableKey when add supplies a new row for same uuid', () => {
+        const base: EphemeraMetaRoomObject = {
+            uuid: 'OBJECT#a' as EphemeraObjectId,
+            shortName: 'rocket',
+            stableKey: 'rocket',
+        }
+        const replacement: EphemeraMetaRoomObject = {
+            uuid: 'OBJECT#a' as EphemeraObjectId,
+            shortName: 'rocket',
+            stableKey: 'rocket2',
+            affinities: [],
+        }
+        expect(mergeMetaRoomObjects([base], [replacement], [])).toEqual([replacement])
+    })
 })
 
 describe('mergePersistMetaRoomObjects', () => {

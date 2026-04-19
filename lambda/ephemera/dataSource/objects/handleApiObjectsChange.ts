@@ -99,6 +99,11 @@ export const handleAwaitRoadRunnerClearObjects = async (
     await Promise.all(gameRooms.map((roomId) => clearImpl(RoomKey(roomId) as EphemeraRoomId, { streamEvent: deps.streamEvent })))
 }
 
+/**
+ * Coyote Acme delivery: persist finalized `stableKey` from `AcmeOrderPublishedOrder` onto
+ * `Meta::Room.objects` with `shortName` / `affinities`; mapping is pass-through (uniqueness enforced
+ * upstream in `mtw.ephemera.actions`).
+ */
 export const handleAcmeOrderAddObjects = async (
     payload: AcmeOrderPublishedPayload,
     deps: {
