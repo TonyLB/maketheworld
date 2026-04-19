@@ -46,6 +46,23 @@ export type ParseCommandAcmeOrderLine = {
     affinitiesFailed?: boolean
 }
 
+/**
+ * Step A only: player intent is an Acme order (no segmentation or catalog validation).
+ * `parseCommand` always follows with Step B and returns {@link ParseCommandAcmeOrderResult}.
+ */
+export type ParseCommandAcmeOrderIntentResult = {
+    type: 'AcmeOrderIntent'
+    confidence: ParseCommandConfidence
+}
+
+/** Outcome of Step A intent classification only (includes Acme intent without line items). */
+export type IntentClassificationResult =
+    | ParseCommandErrorResult
+    | ParseCommandAwaitRoadrunnerResult
+    | ParseCommandAcmeOrderIntentResult
+    | ParseCommandUnimplementedResult
+    | ParseCommandUnknownResult
+
 /** Coyote Game: order from Acme (mail-order, catalog, or unspecified). One or more product lines. */
 export type ParseCommandAcmeOrderResult = {
     type: 'AcmeOrder'
@@ -96,6 +113,24 @@ export function isParseCommandErrorResult(
     result: ParseCommandResult
 ): result is ParseCommandErrorResult {
     return result.type === 'Error'
+}
+
+export function isParseCommandAcmeOrderIntentResult(
+    result: IntentClassificationResult | ParseCommandResult
+): result is ParseCommandAcmeOrderIntentResult {
+    if (result.type !== 'AcmeOrderIntent') {
+        return false
+    }
+    return isParseConfidence(result.confidence)
+}
+
+export function isParseCommandAwaitRoadrunnerResult(
+    result: ParseCommandResult | IntentClassificationResult
+): result is ParseCommandAwaitRoadrunnerResult {
+    if (result.type !== 'AwaitRoadRunner') {
+        return false
+    }
+    return isParseConfidence(result.confidence)
 }
 
 export function isParseCommandNavigationResult(
@@ -152,15 +187,6 @@ export function isParseCommandAcmeOrderResult(
     })
 }
 
-export function isParseCommandAwaitRoadrunnerResult(
-    result: ParseCommandResult
-): result is ParseCommandAwaitRoadrunnerResult {
-    if (result.type !== 'AwaitRoadRunner') {
-        return false
-    }
-    return isParseConfidence(result.confidence)
-}
-
 export function isParseCommandCoyoteEngineTestResult(
     result: ParseCommandResult
 ): result is ParseCommandCoyoteEngineTestResult {
@@ -180,7 +206,7 @@ export function isParseCommandCoyoteAffinitiesTestResult(
 }
 
 export function isParseCommandUnimplementedResult(
-    result: ParseCommandResult
+    result: ParseCommandResult | IntentClassificationResult
 ): result is ParseCommandUnimplementedResult {
     if (result.type !== 'Unimplemented') {
         return false
@@ -189,7 +215,7 @@ export function isParseCommandUnimplementedResult(
 }
 
 export function isParseCommandUnknownResult(
-    result: ParseCommandResult
+    result: ParseCommandResult | IntentClassificationResult
 ): result is ParseCommandUnknownResult {
     if (result.type !== 'Unknown') {
         return false

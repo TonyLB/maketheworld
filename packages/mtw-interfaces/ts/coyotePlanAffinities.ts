@@ -17,6 +17,9 @@ export type CoyoteAffinityMode = 'direct' | 'constructive'
 
 export type CoyoteStructuralRole = 'terminal' | 'trigger' | 'delivery' | 'autonomous_agent'
 
+/** Step B catalog rejection (aligned with parse command apology copy). */
+export type AcmeCatalogRejectionReason = 'Not a thing' | 'Not tangible' | 'Too large'
+
 const structuralRoles: ReadonlySet<CoyoteStructuralRole> = new Set([
     'terminal',
     'trigger',
@@ -52,13 +55,19 @@ function applyCoyoteAffinityAptnessFloor(
     return kept
 }
 
-export type AcmeOrderEnrichModelLine = {
-    name: string;
-    /** Role possibilities; use **`[]`** when none apply or when **`affinitiesFailed`**. */
-    affinities: CoyoteAffinityPossibility[];
-    /** When **`true`**, **`affinities`** must be **`[]`**. */
-    affinitiesFailed?: boolean;
-}
+export type AcmeOrderEnrichModelLine =
+    | {
+          valid: true;
+          name: string;
+          affinities: CoyoteAffinityPossibility[];
+          affinitiesFailed?: boolean;
+      }
+    | {
+          valid: false;
+          name: string;
+          errorType: AcmeCatalogRejectionReason;
+          affinities: [];
+      }
 
 export type AcmeOrderEnrichModelResponse = {
     lines: AcmeOrderEnrichModelLine[];
@@ -101,6 +110,10 @@ export function isCoyoteAffinityPossibility(entry: unknown): entry is CoyoteAffi
     return false
 }
 
+export function isAcmeCatalogRejectionReason(value: unknown): value is AcmeCatalogRejectionReason {
+    return value === 'Not a thing' || value === 'Not tangible' || value === 'Too large'
+}
+
 function isFiniteUnitConfidence(n: unknown): boolean {
     return typeof n === 'number' && Number.isFinite(n) && n >= 0 && n <= 1
 }
@@ -113,9 +126,20 @@ function salvageAcmeOrderEnrichLine(raw: unknown): AcmeOrderEnrichModelLine | nu
     if (typeof o.name !== 'string') {
         return null
     }
+    if (o.valid === false) {
+        const errorType = isAcmeCatalogRejectionReason(o.errorType) ? o.errorType : 'Not a thing'
+        const candidate: AcmeOrderEnrichModelLine = {
+            valid: false,
+            name: o.name.trim() || 'unknown',
+            errorType,
+            affinities: [],
+        }
+        return isAcmeOrderEnrichModelLine(candidate) ? candidate : null
+    }
     if (o.affinitiesFailed === true) {
         const coerced: AcmeOrderEnrichModelLine = {
-            name: o.name,
+            valid: true,
+            name: o.name.trim() || 'unknown',
             affinities: [],
             affinitiesFailed: true,
         }
@@ -129,7 +153,8 @@ function salvageAcmeOrderEnrichLine(raw: unknown): AcmeOrderEnrichModelLine | nu
         return null
     }
     const candidate: AcmeOrderEnrichModelLine = {
-        name: o.name,
+        valid: true,
+        name: o.name.trim() || 'unknown',
         affinities: applyCoyoteAffinityAptnessFloor(filtered),
     }
     return isAcmeOrderEnrichModelLine(candidate) ? candidate : null
@@ -144,6 +169,7 @@ function syntheticAcmeOrderEnrichFailureLine(raw: unknown, fallbackName: string)
         }
     }
     return {
+        valid: true,
         name,
         affinities: [],
         affinitiesFailed: true,
@@ -155,14 +181,24 @@ function syntheticAcmeOrderEnrichFailureLine(raw: unknown, fallbackName: string)
  */
 export function normalizeAcmeOrderEnrichLine(raw: unknown, fallbackName: string): AcmeOrderEnrichModelLine {
     if (isAcmeOrderEnrichModelLine(raw)) {
+        if (raw.valid === false) {
+            return {
+                valid: false,
+                name: raw.name,
+                errorType: raw.errorType,
+                affinities: [],
+            }
+        }
         if (raw.affinitiesFailed === true) {
             return {
+                valid: true,
                 name: raw.name,
                 affinities: [],
                 affinitiesFailed: true,
             }
         }
         return {
+            valid: true,
             name: raw.name,
             affinities: applyCoyoteAffinityAptnessFloor(raw.affinities),
         }
@@ -174,19 +210,21 @@ export function normalizeAcmeOrderEnrichLine(raw: unknown, fallbackName: string)
     return syntheticAcmeOrderEnrichFailureLine(raw, fallbackName)
 }
 
+export type NormalizeAcmeOrderStepBOptions = {
+    /** When **`lines`** is missing or empty after parse, emit one synthetic failure row with this **`name`**. */
+    emptyFallbackName?: string;
+};
+
 /**
- * Builds a full enrich response with **`slotCount`** lines aligned to Step A valid rows. Root **`confidence`** is kept only when valid; invalid values are omitted. **`lines`** values may be partial or invalid per index.
+ * Normalizes Step B JSON: optional root **`confidence`**, **`lines`** capped at **`ACME_ORDER_ENRICH_MAX_LINES`**.
+ * Empty **`lines`** becomes a single **`affinitiesFailed`** row (see **`emptyFallbackName`**).
  */
-export function normalizeAcmeOrderEnrichResponse(
+export function normalizeAcmeOrderStepBResponse(
     parsed: unknown,
-    slotCount: number,
-    fallbackNames: readonly string[]
+    options?: NormalizeAcmeOrderStepBOptions
 ): AcmeOrderEnrichModelResponse {
-    if (fallbackNames.length !== slotCount) {
-        throw new Error('normalizeAcmeOrderEnrichResponse: fallbackNames length must equal slotCount')
-    }
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-        throw new Error('normalizeAcmeOrderEnrichResponse: parsed must be a plain object')
+        throw new Error('normalizeAcmeOrderStepBResponse: parsed must be a plain object')
     }
     const root = parsed as Record<string, unknown>
 
@@ -202,10 +240,15 @@ export function normalizeAcmeOrderEnrichResponse(
         rawLines = []
     }
 
-    const outLines: AcmeOrderEnrichModelLine[] = []
-    for (let i = 0; i < slotCount; i += 1) {
-        outLines.push(normalizeAcmeOrderEnrichLine(rawLines[i], fallbackNames[i]))
-    }
+    const emptyName = options?.emptyFallbackName ?? 'order'
+    const outLines: AcmeOrderEnrichModelLine[] = rawLines.length > 0
+        ? rawLines.map((raw, i) => normalizeAcmeOrderEnrichLine(raw, `line${i + 1}`))
+        : [{
+            valid: true,
+            name: emptyName,
+            affinities: [],
+            affinitiesFailed: true,
+        }]
 
     const result: AcmeOrderEnrichModelResponse = { lines: outLines }
     if (confidence !== undefined) {
@@ -221,6 +264,13 @@ export function isAcmeOrderEnrichModelLine(entry: unknown): entry is AcmeOrderEn
     const o = entry as Record<string, unknown>
     if (typeof o.name !== 'string') {
         return false
+    }
+    if (o.valid === false) {
+        return (
+            isAcmeCatalogRejectionReason(o.errorType)
+            && Array.isArray(o.affinities)
+            && o.affinities.length === 0
+        )
     }
     if (!Array.isArray(o.affinities)) {
         return false

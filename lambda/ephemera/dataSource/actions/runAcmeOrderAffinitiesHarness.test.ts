@@ -80,4 +80,42 @@ describe('runAcmeOrderAffinitiesHarness', () => {
         }
         expect(JSON.stringify(payload.message)).toContain('boom')
     })
+
+    it('stepBOnly runs enrich only and does not call parseCommand', async () => {
+        const parseCommandImpl = jest.fn()
+        const invokeBedrockAcmeOrderEnrichImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: JSON.stringify({
+                lines: [{
+                    valid: true,
+                    name: 'Test Widget',
+                    affinities: [{ role: 'terminal', aptness: 0.5 }],
+                }],
+                confidence: 0.95,
+            }),
+        })
+
+        await runAcmeOrderAffinitiesHarness({
+            characterId: 'CHARACTER#t',
+            messageBus,
+            phrases: ['alpha'],
+            stepBOnly: true,
+            parseCommandImpl,
+            invokeBedrockAcmeOrderEnrichImpl,
+            now: () => 0,
+        })
+
+        expect(parseCommandImpl).not.toHaveBeenCalled()
+        expect(invokeBedrockAcmeOrderEnrichImpl).toHaveBeenCalledTimes(1)
+        const payload = mockMessageBus.send.mock.calls[0][0]
+        if (!isPublishMessage(payload)) {
+            throw new Error('expected PublishMessage')
+        }
+        if (!isPublishWorldLineMessage(payload)) {
+            throw new Error('expected WorldMessage or WorldOOCMessage')
+        }
+        const joined = JSON.stringify(payload.message)
+        expect(joined).toContain('Step B enrich only')
+        expect(joined).toContain('Test Widget')
+    })
 })

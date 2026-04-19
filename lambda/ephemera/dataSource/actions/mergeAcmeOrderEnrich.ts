@@ -1,9 +1,9 @@
-import type { AcmeOrderEnrichModelResponse } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
+import type { AcmeOrderEnrichModelLine, AcmeOrderEnrichModelResponse } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import {
     ACME_ORDER_ENRICH_MAX_LINES,
-    normalizeAcmeOrderEnrichResponse,
+    normalizeAcmeOrderStepBResponse,
 } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
-import type { ParseCommandAcmeOrderResult } from './baseClasses'
+import type { ParseCommandAcmeOrderLine, ParseCommandAcmeOrderResult } from './baseClasses'
 
 function clamp01(n: number): number {
     return Math.min(1, Math.max(0, n))
@@ -22,18 +22,17 @@ export function extractJsonBodyFromModel(raw: string): string {
     return s.slice(firstBrace, lastBrace + 1)
 }
 
-export type InterpretAcmeOrderEnrichBodyContext = {
-    slotCount: number;
-    fallbackNames: string[];
+export type InterpretAcmeOrderEnrichBodyOptions = {
+    /** Single-row fallback **`name`** when Step B returns no **`lines`**. */
+    emptyFallbackName?: string;
 }
 
 /**
- * Parses enrich JSON and normalizes each **`lines[i]`** to **`AcmeOrderEnrichModelLine`** (salvage or synthetic **`affinitiesFailed`**).
- * Fails only when the body is not JSON, not a plain object, slot count exceeds **`ACME_ORDER_ENRICH_MAX_LINES`**, or normalization throws.
+ * Parses Step B JSON and normalizes **`lines`** via **`normalizeAcmeOrderStepBResponse`**.
  */
 export function interpretAcmeOrderEnrichBody(
     body: string,
-    context: InterpretAcmeOrderEnrichBodyContext
+    options?: InterpretAcmeOrderEnrichBodyOptions
 ): {
     success: true;
     response: AcmeOrderEnrichModelResponse;
@@ -41,17 +40,6 @@ export function interpretAcmeOrderEnrichBody(
     success: false;
     errorMessage: string;
 } {
-    const { slotCount, fallbackNames } = context
-    if (fallbackNames.length !== slotCount) {
-        return { success: false, errorMessage: 'Acme enrich interpret: fallbackNames length must equal slotCount' }
-    }
-    if (slotCount > ACME_ORDER_ENRICH_MAX_LINES) {
-        return {
-            success: false,
-            errorMessage: `Acme enrich interpret: at most ${ACME_ORDER_ENRICH_MAX_LINES} lines per order`,
-        }
-    }
-
     const toParse = extractJsonBodyFromModel(body)
     let parsed: unknown
     try {
@@ -64,7 +52,15 @@ export function interpretAcmeOrderEnrichBody(
     }
 
     try {
-        const response = normalizeAcmeOrderEnrichResponse(parsed, slotCount, fallbackNames)
+        const response = normalizeAcmeOrderStepBResponse(parsed, {
+            emptyFallbackName: options?.emptyFallbackName,
+        })
+        if (response.lines.length > ACME_ORDER_ENRICH_MAX_LINES) {
+            return {
+                success: false,
+                errorMessage: `Acme enrich interpret: at most ${ACME_ORDER_ENRICH_MAX_LINES} lines per order`,
+            }
+        }
         return { success: true, response }
     } catch (err) {
         const message = err instanceof Error ? err.message : String(err)
@@ -72,73 +68,51 @@ export function interpretAcmeOrderEnrichBody(
     }
 }
 
-/**
- * Merges Step B enrich output into Step A orders. Per valid line, aligns **`lines[k]`** to the k-th valid row in order.
- * **`enrichInvokeFailed`**: transport failure or unparseable enrich JSON — mark every valid line **`affinitiesFailed`** and keep **`confidence`** at Step A only.
- */
-export function mergeAcmeOrderWithEnrich(
-    stepA: ParseCommandAcmeOrderResult,
-    enrich: AcmeOrderEnrichModelResponse | null,
-    enrichInvokeFailed: boolean
-): ParseCommandAcmeOrderResult {
-    const stepAConfidence = stepA.confidence
-    const { orders } = stepA
-
-    let enrichSlot = 0
-    const merged = orders.map((line) => {
-        if (!line.valid) {
-            return line
-        }
-
-        if (enrichInvokeFailed || enrich === null) {
-            return {
-                ...line,
-                affinities: [],
-                affinitiesFailed: true,
-            }
-        }
-
-        const eline = enrich.lines[enrichSlot]
-        enrichSlot += 1
-
-        if (eline === undefined) {
-            return {
-                ...line,
-                affinities: [],
-                affinitiesFailed: true,
-            }
-        }
-
-        const catalogName = eline.name.trim() || line.name
-
-        if (eline.affinitiesFailed === true) {
-            return {
-                ...line,
-                name: catalogName,
-                affinities: eline.affinities,
-                affinitiesFailed: true,
-            }
-        }
-
+function enrichLineToParseLine(line: AcmeOrderEnrichModelLine): ParseCommandAcmeOrderLine {
+    if (line.valid === false) {
         return {
-            ...line,
-            name: catalogName,
-            affinities: eline.affinities,
+            valid: false,
+            name: line.name,
+            errorType: line.errorType,
+            affinities: [],
         }
-    })
+    }
+    return {
+        valid: true,
+        name: line.name,
+        affinities: line.affinities,
+        ...(line.affinitiesFailed !== undefined ? { affinitiesFailed: line.affinitiesFailed } : {}),
+    }
+}
 
+/**
+ * Builds **`ParseCommandAcmeOrderResult`** from Step A confidence and Step B output.
+ * **`enrichInvokeFailed`**: transport failure or unparseable JSON — one synthetic failed row using **`commandFallbackName`**.
+ */
+export function finalizeAcmeOrderFromStepB(
+    stepAConfidence: number,
+    enrich: AcmeOrderEnrichModelResponse | null,
+    enrichInvokeFailed: boolean,
+    commandFallbackName: string
+): ParseCommandAcmeOrderResult {
     if (enrichInvokeFailed || enrich === null) {
         return {
             type: 'AcmeOrder',
-            orders: merged,
+            orders: [{
+                valid: true,
+                name: commandFallbackName.trim() || 'order',
+                affinities: [],
+                affinitiesFailed: true,
+            }],
             confidence: stepAConfidence,
         }
     }
 
     const stepBConfidence = enrich.confidence ?? 1
+    const orders = enrich.lines.map(enrichLineToParseLine)
     return {
         type: 'AcmeOrder',
-        orders: merged,
+        orders,
         confidence: clamp01(stepAConfidence * stepBConfidence),
     }
 }

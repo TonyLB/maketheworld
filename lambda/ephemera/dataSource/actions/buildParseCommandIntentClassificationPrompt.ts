@@ -1,5 +1,5 @@
 /**
- * Intent classification for parse Step A: **AwaitRoadRunner**, **AcmeOrder**, then **Unimplemented** vs **Unknown**.
+ * Intent classification for parse Step A: **AwaitRoadRunner**, **AcmeOrder** (intent only), **Unimplemented** vs **Unknown**.
  */
 
 export function buildParseCommandIntentClassificationPrompt(command: string): string {
@@ -18,7 +18,9 @@ Choose **AwaitRoadRunner** when the line is **primarily** about **waiting for th
 
 ### B — AcmeOrder
 
-Choose **AcmeOrder** when the line is **primarily** about **ordering or buying goods from Acme** (catalog, mail-order, telephone order, unspecified delivery method, "send away for", "I need from Acme", product requests). Extract each line item into \`orders\` as an object with \`valid\`, required \`name\`, and optional \`errorType\`. Catalog packaging and line enrichment run in a **later step** — here only classify intent and extract **names** / validity.
+Choose **AcmeOrder** when the line is **primarily** about **ordering or buying goods from Acme** (catalog, mail-order, telephone order, unspecified delivery method, "send away for", "I need from Acme", product requests).
+
+**Do not** list products, judge catalog validity, or segment line items — a **later step** parses the command and validates **tangible vs. abstract**, **catalog membership**, **size**, **affinities**, and **normalized titles**.
 
 ### Tie-break when both A and B could apply
 
@@ -32,7 +34,7 @@ If neither A nor B applies, choose **Unimplemented** vs **Unknown** as follows.
 
 1. **AwaitRoadRunner** — As in section A.
 
-2. **AcmeOrder** — As in section B. You **must** include \`orders\`: a JSON array of one or more objects.
+2. **AcmeOrder** — As in section B. Respond with **only** \`type\` and \`confidence\`. **Do not** include \`orders\`, \`order\`, product names, or validation fields.
 
 3. **Unimplemented** — Clear **other** in-world intent we do not implement yet (not mainly A or B).
 
@@ -42,8 +44,6 @@ If neither A nor B applies, choose **Unimplemented** vs **Unknown** as follows.
 
 - Output **only** a single JSON object, no markdown fences, no explanation before or after.
 - \`confidence\` is a number from 0 through 1.
-- For **AcmeOrder**, each entry in \`orders\` must be \`{ "valid": <boolean>, "name": <string>, "errorType"?: "Not a thing" | "Not tangible" | "Too large" }\`.
-- If \`valid\` is \`true\`, omit \`errorType\`. If \`valid\` is \`false\`, include \`errorType\`.
 
 ## Required JSON shapes
 
@@ -51,7 +51,7 @@ If neither A nor B applies, choose **Unimplemented** vs **Unknown** as follows.
 
 or
 
-{ "type": "AcmeOrder", "orders": [ { "valid": true, "name": "<product>" }, { "valid": false, "name": "Justice", "errorType": "Not tangible" } ], "confidence": <number> }
+{ "type": "AcmeOrder", "confidence": <number> }
 
 or
 
@@ -61,7 +61,7 @@ or
 
 { "type": "Unknown", "confidence": <number> }
 
-The \`type\` string must be exactly \`AwaitRoadRunner\`, \`AcmeOrder\`, \`Unimplemented\`, or \`Unknown\` (case-sensitive). For **AcmeOrder**, include only \`type\`, \`confidence\`, and \`orders\`.
+The \`type\` string must be exactly \`AwaitRoadRunner\`, \`AcmeOrder\`, \`Unimplemented\`, or \`Unknown\` (case-sensitive).
 
 ## Player input
 

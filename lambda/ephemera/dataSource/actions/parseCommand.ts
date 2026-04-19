@@ -1,21 +1,22 @@
 import {
-    ACME_ORDER_ENRICH_MAX_LINES,
     type AcmeOrderEnrichModelResponse,
 } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import { invokeBedrockAcmeOrderEnrich } from '../../generateExample/invokeBedrockAcmeOrderEnrich'
 import { invokeBedrockParseCommand } from '../../generateExample/invokeBedrockParseCommand'
 import type { ParseCommandDeps, ParseCommandInput, ParseCommandResult } from './baseClasses'
-import { isParseCommandAcmeOrderResult } from './baseClasses'
+import {
+    isParseCommandAcmeOrderIntentResult,
+} from './baseClasses'
 import { buildParseAcmeOrderEnrichPrompt } from './buildParseAcmeOrderEnrichPrompt'
 import { buildParseCommandIntentClassificationPrompt } from './buildParseCommandIntentClassificationPrompt'
 import { isCoyoteAffinitiesTestSlashCommand } from './coyoteAffinitiesTestSlashCommand'
 import { isCoyoteEngineTestSlashCommand } from './coyoteEngineTestSlashCommand'
-import { interpretAcmeOrderEnrichBody, mergeAcmeOrderWithEnrich } from './mergeAcmeOrderEnrich'
+import { finalizeAcmeOrderFromStepB, interpretAcmeOrderEnrichBody } from './mergeAcmeOrderEnrich'
 import { interpretParseCommandIntentClassificationBody } from './parseCommandIntentClassification'
 
 /**
  * **`/test generation`** returns **`CoyoteEngineTest`**; **`/test affinities`** returns **`CoyoteAffinitiesTest`**; both without Bedrock.
- * Otherwise classifies via LLM (Step A), then runs Acme enrich (Step B) when intent is **AcmeOrder** with at least one valid line.
+ * Otherwise classifies via LLM (Step A), then runs Acme Step B when intent is **AcmeOrderIntent**.
  */
 export async function parseCommand(
     input: ParseCommandInput,
@@ -39,32 +40,20 @@ export async function parseCommand(
 
     const stepA = interpretParseCommandIntentClassificationBody(invokeResult.body)
 
-    if (!isParseCommandAcmeOrderResult(stepA)) {
+    if (!isParseCommandAcmeOrderIntentResult(stepA)) {
         return stepA
     }
 
-    const validLines = stepA.orders.filter((o) => o.valid)
-    if (validLines.length === 0) {
-        return stepA
-    }
-
-    if (validLines.length > ACME_ORDER_ENRICH_MAX_LINES) {
-        return mergeAcmeOrderWithEnrich(stepA, null, true)
-    }
-
-    const enrichPromptParts = buildParseAcmeOrderEnrichPrompt(
-        input.command,
-        validLines.map((l) => l.name)
-    )
+    const enrichPromptParts = buildParseAcmeOrderEnrichPrompt(input.command)
     const enrichInvoke = await invokeEnrich(enrichPromptParts)
 
     let enrichInvokeFailed = !enrichInvoke.success
     let enrichResponse: AcmeOrderEnrichModelResponse | null = null
 
     if (enrichInvoke.success) {
+        const fallback = input.command.trim() || 'order'
         const parsed = interpretAcmeOrderEnrichBody(enrichInvoke.body, {
-            slotCount: validLines.length,
-            fallbackNames: validLines.map((l) => l.name),
+            emptyFallbackName: fallback,
         })
         if (parsed.success) {
             enrichResponse = parsed.response
@@ -73,5 +62,11 @@ export async function parseCommand(
         }
     }
 
-    return mergeAcmeOrderWithEnrich(stepA, enrichResponse, enrichInvokeFailed)
+    const fallbackName = input.command.trim() || 'order'
+    return finalizeAcmeOrderFromStepB(
+        stepA.confidence,
+        enrichResponse,
+        enrichInvokeFailed,
+        fallbackName
+    )
 }

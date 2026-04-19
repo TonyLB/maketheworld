@@ -1,12 +1,12 @@
 import type { BedrockRuntimeClient } from '@aws-sdk/client-bedrock-runtime'
 import { invokeBedrockParseCommand } from './invokeBedrockParseCommand'
 
-jest.mock('./invokeBedrockConverseText', () => ({
+jest.mock('../llm/invokeBedrockConverseText', () => ({
     invokeBedrockConverseText: jest.fn(),
 }))
 
 describe('invokeBedrockParseCommand', () => {
-    const { invokeBedrockConverseText } = jest.requireMock('./invokeBedrockConverseText') as {
+    const { invokeBedrockConverseText } = jest.requireMock('../llm/invokeBedrockConverseText') as {
         invokeBedrockConverseText: jest.Mock
     }
 

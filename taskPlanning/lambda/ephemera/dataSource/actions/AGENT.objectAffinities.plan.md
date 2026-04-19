@@ -96,6 +96,7 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines as you finish ea
 - [X] Phase 3 - Acme enrich prompt and parsing (full prompt quality)
   - [X] Replace the Phase 2 placeholder: expand **`buildParseAcmeOrderEnrichPrompt`** so instructions include (1) full role vocabulary and **`affinities`** with **aptness**, (2) enforce no RPG wording, (3) drop possibilities below the aptness floor, (4) normalize player text to Acme register **`name`** / **`description`** with the full catalog rigor intended for production.
   - [X] Extend parser tests with fixtures (beehive, shovel, rope-style multi-role examples from the handoff).
+  - [ ] **Planned (see [Planned Stage B enrich output](#planned-stage-b-enrich-output)):** Intermediate **Markdown** output with **one entry per line item** and explicit **valid** vs **invalid** (with **Not a thing** / **Not tangible** / **Too large**) for chain-of-reasoning, then the existing JSON **`lines`** contract (implementation pattern TBD: prefixed Markdown + JSON, extended schema, or two-call pipeline).
 
 - [X] Phase 3.5 - Acme parse manual-review harness (parallel to hypothesis **`/test generation`**)
   - **Goal:** After Phase 3 prompt work, run the **Coyote LLM handoff Iteration 2** corpus through the **real** Step A + Step B parse pipeline **one item at a time** (each command is a **single-line** Acme order: `order <phrase>`), collect outputs for **human review** — same spirit as handoff § Testing (“no automated assertion”). Multi-item **`order A, B, C`** runs are out of scope for this harness; isolation makes enrich behavior easier to compare.
@@ -142,6 +143,26 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines as you finish ea
 - **Phase 2 vs Phase 3 prompt:** Phase 2 ships **`buildParseAcmeOrderEnrichPrompt`** as a **thin placeholder** that **lifts** existing Acme-order instructions out of [`buildParseCommandIntentClassificationPrompt.ts`](../../../../../lambda/ephemera/dataSource/actions/buildParseCommandIntentClassificationPrompt.ts) into the second prompt; Phase 3 upgrades copy to full affinity vocabulary and production rigor (see Phase 3 above).
 - **Stage One prompt:** Explicitly **out of scope** for this task: removing [`ACTOR_AFFINITIES_LINES`](../../../../../lambda/ephemera/dataSource/coyoteGame/buildHypothesisStageOnePrompt.ts) waits for a follow-up that consumes snapshot affinity data in the prompt logic.
 
+## Planned Stage B enrich output
+
+**Shape:** Markdown chain-of-reasoning + final JSON (**Markdown reasoning + JSON**).
+
+**Status:** Documented intent only; not implemented yet. Today [`buildParseAcmeOrderEnrichPrompt.ts`](../../../../../lambda/ephemera/dataSource/actions/buildParseAcmeOrderEnrichPrompt.ts) asks for **structured JSON only** and describes catalog validation per line ( **`valid`**, **`errorType`** when false: **Not a thing** | **Not tangible** | **Too large**, **`affinities`**) in prose before the JSON schema.
+
+**Goal:** Add an explicit **intermediate Markdown output** so the model can show **chain-of-reasoning** before (or alongside) the machine-readable **`AcmeOrderEnrichModelResponse`** contract. This separates classification justification from the final JSON surface area parser code validates.
+
+**Per-order structure:** The Markdown should include **one distinct block or list item per extracted line item** (same segmentation as **distinct product / line items** in the prompt: split on commas, **and**, **also**, multiple verbs, etc., aligned with **`lines`** length/order relative to Step A / merge rules).
+
+**Per-item classification (must mirror JSON):** For each line item, state clearly whether it is **valid** (proceed to normalized **`name`** + **`affinities`**) or **invalid** with exactly one reason matching **`errorType`**:
+
+- **Not a thing** -- not a catalog-orderable good.
+- **Not tangible** -- abstract, non-ship-able, or not a physical gag prop as framed.
+- **Too large** -- at unshipping / cartoon-logistics scale.
+
+**Final JSON:** Remains the single source of truth for [`mergeAcmeOrderEnrich`](../../../../../lambda/ephemera/dataSource/actions/mergeAcmeOrderEnrich.ts) and downstream persistence. Implementation options (choose when building): (a) one assistant message with a **Markdown section followed by** the JSON object (parser strips/finds JSON), (b) structured **`reasoning`** + **`lines`** if the response schema is extended, or (c) a **second** Bedrock call that only emits JSON after a reasoning message -- trade latency/cost vs. prompt simplicity.
+
+**Tests:** When implemented, extend [`buildParseAcmeOrderEnrichPrompt.test.ts`](../../../../../lambda/ephemera/dataSource/actions/buildParseAcmeOrderEnrichPrompt.ts) and enrich fixture expectations so Markdown sections appear for multi-item orders and classifications stay consistent with parsed **`lines`**.
+
 ## Out of scope (this initiative)
 
 - Redesign of Stage One / Stage Two hypothesis prompts beyond **feeding richer snapshot text** (no removal of `ACTOR_AFFINITIES_LINES` yet).
@@ -165,6 +186,7 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines as you finish ea
 | Schema + guards for **`affinities`** / **`affinitiesFailed`** on room objects | Done ([`ephemeraMeta.ts`](../../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts), [`coyotePlanAffinities.ts`](../../../../../packages/mtw-interfaces/ts/coyotePlanAffinities.ts), merge snapshots) |
 | Intent-only first parse + Acme enrich second parse | Done ([`parseCommand.ts`](../../../../../lambda/ephemera/dataSource/actions/parseCommand.ts), [`invokeBedrockAcmeOrderEnrich.ts`](../../../../../lambda/ephemera/generateExample/invokeBedrockAcmeOrderEnrich.ts)) |
 | Acme enrich prompt + parser + tests | Done ([`buildParseAcmeOrderEnrichPrompt.ts`](../../../../../lambda/ephemera/dataSource/actions/buildParseAcmeOrderEnrichPrompt.ts), **`COYOTE_AFFINITY_APTNESS_MIN`** in [`coyotePlanAffinities.ts`](../../../../../packages/mtw-interfaces/ts/coyotePlanAffinities.ts); tests in **`coyotePlanAffinities.test.ts`**, **`mergeAcmeOrderEnrich.test.ts`**, **`parseCommand.test.ts`**, **`buildParseAcmeOrderEnrichPrompt.test.ts`**) |
+| Stage B Markdown reasoning layer (per-line valid/invalid + JSON) | Not started (spec: [Planned Stage B enrich output](#planned-stage-b-enrich-output)) |
 | Manual affinities harness (`/test affinities`, **20** Bedrock calls when enabled) | Done ([`coyoteAffinitiesTestSlashCommand.ts`](../../../../../lambda/ephemera/dataSource/actions/coyoteAffinitiesTestSlashCommand.ts), [`runAcmeOrderAffinitiesHarness.ts`](../../../../../lambda/ephemera/dataSource/actions/runAcmeOrderAffinitiesHarness.ts), [**`COYOTE_AFFINITIES_TEST_HARNESS_ENABLED`**](../../../../../lambda/ephemera/dataSource/actions/index.ts) default off) |
 | Bus payload + `handleAcmeOrderAddObjects` persistence | Not started |
 | `formatCoyoteStagedObjectsByRoom` renders affinities / failed flag | Not started |

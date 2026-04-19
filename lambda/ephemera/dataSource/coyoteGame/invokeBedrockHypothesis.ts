@@ -7,7 +7,7 @@ import {
 import {
     invokeBedrockConverseText,
     type InvokeBedrockConverseTextResult,
-} from '../../generateExample/invokeBedrockConverseText'
+} from '../../llm/invokeBedrockConverseText'
 import type { CoyotePromptParts } from './buildHypothesisPrompt'
 
 export const BEDROCK_HYPOTHESIS_MODEL_ID = 'us.amazon.nova-2-lite-v1:0' as const

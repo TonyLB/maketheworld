@@ -6,7 +6,7 @@ import {
     isAcmeOrderEnrichModelResponse,
     isCoyoteAffinityPossibility,
     normalizeAcmeOrderEnrichLine,
-    normalizeAcmeOrderEnrichResponse,
+    normalizeAcmeOrderStepBResponse,
 } from './coyotePlanAffinities'
 import { isEphemeraMetaRoomObject } from './ephemeraMeta'
 
@@ -51,6 +51,7 @@ describe('isCoyoteAffinityPossibility', () => {
 
 describe('isAcmeOrderEnrichModelLine', () => {
     const validLine = {
+        valid: true as const,
         name: 'Beehive',
         affinities: [
             { role: 'entity_modification', target: 'road_runner', mode: 'direct', aptness: 0.7 },
@@ -60,6 +61,17 @@ describe('isAcmeOrderEnrichModelLine', () => {
 
     it('accepts a valid line', () => {
         expect(isAcmeOrderEnrichModelLine(validLine)).toBe(true)
+    })
+
+    it('accepts an invalid catalog line', () => {
+        expect(
+            isAcmeOrderEnrichModelLine({
+                valid: false,
+                name: 'Justice',
+                errorType: 'Not tangible',
+                affinities: [],
+            })
+        ).toBe(true)
     })
 
     it('rejects too many affinities', () => {
@@ -73,6 +85,7 @@ describe('isAcmeOrderEnrichModelLine', () => {
     it('accepts affinitiesFailed with empty affinities', () => {
         expect(
             isAcmeOrderEnrichModelLine({
+                valid: true,
                 name: 'Rope',
                 affinities: [],
                 affinitiesFailed: true,
@@ -83,6 +96,7 @@ describe('isAcmeOrderEnrichModelLine', () => {
     it('rejects affinitiesFailed when affinities are not empty', () => {
         expect(
             isAcmeOrderEnrichModelLine({
+                valid: true,
                 name: 'Rope',
                 affinities: [{ role: 'terminal', aptness: 0.1 }],
                 affinitiesFailed: true,
@@ -94,6 +108,7 @@ describe('isAcmeOrderEnrichModelLine', () => {
 describe('normalizeAcmeOrderEnrichLine', () => {
     it('returns valid lines unchanged when a single affinity passes the aptness floor', () => {
         const line = {
+            valid: true as const,
             name: 'A',
             affinities: [{ role: 'terminal', aptness: 0.5 }] as const,
         }
@@ -102,6 +117,7 @@ describe('normalizeAcmeOrderEnrichLine', () => {
 
     it('sorts affinities by aptness descending and drops entries below the floor', () => {
         const line = {
+            valid: true as const,
             name: 'X',
             affinities: [
                 { role: 'terminal', aptness: 0.4 },
@@ -115,6 +131,7 @@ describe('normalizeAcmeOrderEnrichLine', () => {
             ],
         }
         expect(normalizeAcmeOrderEnrichLine(line, 'fallback')).toEqual({
+            valid: true,
             name: 'X',
             affinities: [
                 {
@@ -130,6 +147,7 @@ describe('normalizeAcmeOrderEnrichLine', () => {
 
     it('keeps aptness equal to COYOTE_AFFINITY_APTNESS_MIN', () => {
         const line = {
+            valid: true as const,
             name: 'Edge',
             affinities: [
                 { role: 'terminal', aptness: COYOTE_AFFINITY_APTNESS_MIN },
@@ -143,6 +161,7 @@ describe('normalizeAcmeOrderEnrichLine', () => {
 
     it('synthesizes failure when raw is garbage', () => {
         expect(normalizeAcmeOrderEnrichLine(null, 'rope')).toEqual({
+            valid: true,
             name: 'rope',
             affinities: [],
             affinitiesFailed: true,
@@ -150,7 +169,8 @@ describe('normalizeAcmeOrderEnrichLine', () => {
     })
 
     it('uses trimmed raw name when present', () => {
-        expect(normalizeAcmeOrderEnrichLine({ name: '  catalog  ', foo: 1 }, 'rope')).toEqual({
+        expect(normalizeAcmeOrderEnrichLine({ valid: true, name: '  catalog  ', foo: 1 }, 'rope')).toEqual({
+            valid: true,
             name: 'catalog',
             affinities: [],
             affinitiesFailed: true,
@@ -161,12 +181,14 @@ describe('normalizeAcmeOrderEnrichLine', () => {
         expect(
             normalizeAcmeOrderEnrichLine(
                 {
+                    valid: true,
                     name: 'X',
                     affinities: [{ role: 'terminal', aptness: 0.5 }, { bad: true }, 'nope'],
                 },
                 'fb'
             )
         ).toEqual({
+            valid: true,
             name: 'X',
             affinities: [{ role: 'terminal', aptness: 0.5 }],
         })
@@ -176,6 +198,7 @@ describe('normalizeAcmeOrderEnrichLine', () => {
         expect(
             normalizeAcmeOrderEnrichLine(
                 {
+                    valid: true,
                     name: 'X',
                     affinities: [{ role: 'terminal', aptness: 1 }],
                     affinitiesFailed: true,
@@ -183,6 +206,7 @@ describe('normalizeAcmeOrderEnrichLine', () => {
                 'fb'
             )
         ).toEqual({
+            valid: true,
             name: 'X',
             affinities: [],
             affinitiesFailed: true,
@@ -190,52 +214,83 @@ describe('normalizeAcmeOrderEnrichLine', () => {
     })
 })
 
-describe('normalizeAcmeOrderEnrichResponse', () => {
-    it('pads missing slots with synthetic failures and drops invalid root confidence', () => {
-        const r = normalizeAcmeOrderEnrichResponse(
-            { confidence: 9, lines: 'not-array' },
-            2,
-            ['a', 'b']
-        )
-        expect(r.confidence).toBeUndefined()
-        expect(r.lines).toHaveLength(2)
-        expect(r.lines[0]).toMatchObject({
-            name: 'a',
-            affinities: [],
-            affinitiesFailed: true,
+describe('normalizeAcmeOrderStepBResponse', () => {
+    it('drops invalid root confidence and uses explicit lines', () => {
+        const r = normalizeAcmeOrderStepBResponse({
+            confidence: 9,
+            lines: [
+                {
+                    valid: true,
+                    name: 'Good',
+                    affinities: [{ role: 'terminal', aptness: 0.2 }],
+                },
+            ],
         })
-        expect(r.lines[1]).toMatchObject({
-            name: 'b',
+        expect(r.confidence).toBeUndefined()
+        expect(r.lines).toHaveLength(1)
+        expect(isAcmeOrderEnrichModelLine(r.lines[0])).toBe(true)
+    })
+
+    it('pads empty lines array with synthetic failure using emptyFallbackName', () => {
+        const r = normalizeAcmeOrderStepBResponse({ lines: [] }, { emptyFallbackName: 'custom' })
+        expect(r.lines).toHaveLength(1)
+        expect(r.lines[0]).toMatchObject({
+            valid: true,
+            name: 'custom',
             affinities: [],
             affinitiesFailed: true,
         })
     })
 
-    it('passes valid root confidence and mixes good and bad lines', () => {
-        const r = normalizeAcmeOrderEnrichResponse(
-            {
-                confidence: 0.9,
-                lines: [
-                    { name: 'Good', affinities: [{ role: 'terminal', aptness: 0.2 }] },
-                    null,
-                ],
-            },
-            2,
-            ['stepA1', 'stepA2']
-        )
+    it('salvages null entries in lines array', () => {
+        const r = normalizeAcmeOrderStepBResponse({
+            confidence: 0.9,
+            lines: [
+                {
+                    valid: true,
+                    name: 'Good',
+                    affinities: [{ role: 'terminal', aptness: 0.2 }],
+                },
+                null,
+            ],
+        })
         expect(r.confidence).toBe(0.9)
         expect(isAcmeOrderEnrichModelLine(r.lines[0])).toBe(true)
-        expect(r.lines[1]).toEqual({
-            name: 'stepA2',
+        expect(r.lines[1]).toMatchObject({
+            valid: true,
+            name: 'line2',
             affinities: [],
             affinitiesFailed: true,
         })
     })
 
-    it('throws when fallbackNames length disagrees with slotCount', () => {
-        expect(() => normalizeAcmeOrderEnrichResponse({ lines: [] }, 2, ['only'])).toThrow(
-            /fallbackNames length must equal slotCount/
-        )
+    it('mixes valid and invalid lines', () => {
+        const r = normalizeAcmeOrderStepBResponse({
+            lines: [
+                {
+                    valid: false,
+                    name: 'Moon',
+                    errorType: 'Too large',
+                    affinities: [],
+                },
+                {
+                    valid: true,
+                    name: 'Anvil',
+                    affinities: [{ role: 'terminal', aptness: 0.5 }],
+                },
+            ],
+        })
+        expect(r.lines[0]).toMatchObject({
+            valid: false,
+            name: 'Moon',
+            errorType: 'Too large',
+            affinities: [],
+        })
+        expect(r.lines[1]?.valid === true ? r.lines[1].name : '').toBe('Anvil')
+    })
+
+    it('throws when parsed is not an object', () => {
+        expect(() => normalizeAcmeOrderStepBResponse(null)).toThrow(/plain object/)
     })
 })
 
@@ -245,6 +300,7 @@ describe('isAcmeOrderEnrichModelResponse', () => {
             isAcmeOrderEnrichModelResponse({
                 lines: [
                     {
+                        valid: true,
                         name: 'Shovel',
                         affinities: [
                             {
@@ -262,6 +318,7 @@ describe('isAcmeOrderEnrichModelResponse', () => {
 
     it('rejects too many lines', () => {
         const lines = Array.from({ length: ACME_ORDER_ENRICH_MAX_LINES + 1 }, (_, i) => ({
+            valid: true as const,
             name: `x${i}`,
             affinities: [] as [],
         }))
@@ -274,6 +331,7 @@ describe('isAcmeOrderEnrichModelResponse', () => {
                 confidence: 0.88,
                 lines: [
                     {
+                        valid: true,
                         name: 'A',
                         affinities: [{ role: 'terminal', aptness: 0.2 }],
                     },
@@ -286,7 +344,7 @@ describe('isAcmeOrderEnrichModelResponse', () => {
         expect(
             isAcmeOrderEnrichModelResponse({
                 confidence: 1.2,
-                lines: [{ name: 'A', affinities: [] }],
+                lines: [{ valid: true, name: 'A', affinities: [] }],
             })
         ).toBe(false)
     })

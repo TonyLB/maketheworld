@@ -6,7 +6,7 @@ When no exact cache match exists, room flow builds a prompt from generation cont
 
 ## Scope
 
-- `invokeBedrockConverseText`: shared Bedrock Runtime `Converse` call (messages, inference config, timeout, text extraction).
+- Shared Bedrock **`Converse`** plumbing lives in [`../llm/invokeBedrockConverseText.ts`](../llm/invokeBedrockConverseText.ts) (`invokeBedrockConverseText`, re-exported from this package `index`).
 - `invokeBedrockRoomDescription`: room-description defaults on top of `invokeBedrockConverseText`.
 - `invokeBedrockParseCommand`: parse-oriented defaults (lower max tokens, lower temperature) on top of `invokeBedrockConverseText`.
 - `generateRoomDescription`: orchestrates prompt build, Bedrock invoke, JSON parse/validate.

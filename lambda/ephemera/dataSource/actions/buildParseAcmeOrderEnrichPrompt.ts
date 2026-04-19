@@ -1,98 +1,95 @@
 /**
- * Step B: Acme order enrichment (catalog name and affinities).
+ * Step B: Parse the full Acme-order command, validate catalog rules per line item, normalized titles, and affinities.
  */
 
 import { COYOTE_AFFINITY_APTNESS_MIN } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import type { ParseAcmeOrderEnrichPromptParts } from '../../generateExample/invokeBedrockAcmeOrderEnrich'
 
-export function buildParseAcmeOrderEnrichPrompt(
-    command: string,
-    validLineNames: string[]
-): ParseAcmeOrderEnrichPromptParts {
+export function buildParseAcmeOrderEnrichPrompt(command: string): ParseAcmeOrderEnrichPromptParts {
     const trimmed = command.trim()
     const commandBlock = trimmed === '' ? '(empty command)' : trimmed
-    const catalogBlock = validLineNames.length > 0
-        ? validLineNames.map((name, i) => `${i + 1}. ${name}`).join('\n')
-        : '(none)'
 
     const floor = COYOTE_AFFINITY_APTNESS_MIN
 
-    const invariantPrefix = `You enrich **Acme mail-order line items** for a Coyote vs. Road Runner cartoon-contraption game. Players order props and gadgets; plans are **physical gags**, trebuchets, traps, and chase mechanics - not tabletop RPG sessions. Output structured JSON only.
+    const invariantPrefix = `You validate and enrich **Acme mail-order** requests for a Coyote vs. Road Runner cartoon-contraption game. Players order props and gadgets; plans are **physical gags**, trebuchets, traps, and chase mechanics — not tabletop RPG sessions. Output structured JSON only.
 
-The **player command** and **numbered valid line items** appear at the end of this prompt. Your JSON \`lines\` array must contain **exactly** as many objects as there are numbered entries in that list, in the **same order**.
+The **full player command** appears at the end of this prompt.
 
-## Tone and wording (mandatory)
+## Segment line items
 
-- Write each line's \`name\` and implied roles in **cartoon physics / contraption** language: slapstick, Acme catalog, chase comedy.
-- Prefer descriptions with salesman-like color (e.g. "Acme dynamite, 100% guaranteed to explode").
+From that command, extract **one JSON object per distinct product / line item** (split on commas, **and**, **also**, multiple verbs, etc.). Preserve **speaker intent** — do not drop items.
 
-## Catalog \`name\`
+## Catalog validation per line
 
-- Normalize sloppy player wording into polished **Acme-style product titles** (\`name\`).
-- Capitalize titles like brochure headings.
-- For substances or creatures that must arrive contained, phrase the **shipped package** in the title, not loose hazardous raw reality (pressurized cylinders, crates, aquariums, reinforced crates).
+Each **\`lines\`** entry must include **\`valid\`**: boolean.
 
-Example shape (structure only):
+- **\`valid\`: false** — include **\`errorType\`**: exactly one of **\`Not a thing\`** (not in catalog), **\`Not tangible\`** (abstract / not a ship-able good), **\`Too large\`** (unshipping scale). Use **\`affinities\`**: [].
+- **\`valid\`: true** — normalized Acme catalog **\`name\`**, **\`affinities\`** role possibilities with **\`aptness\`** in **[0, 1]**.
+
+## Tone (valid lines only)
+
+Write **\`name\`** and implied roles in **cartoon physics / contraption** language.
+
+- Prefer neutral physical words: gadget, hazard, launcher, coil, fuse, lure, obstacle.
+
+## Catalog title (\`valid\`: true)
+
+- Normalize sloppy wording into polished **Acme-style product titles**.
+- For hazardous substances or creatures, phrase the **shipped package**, not loose reality (crates, cylinders, reinforced containers).
+
+Example **valid** line:
 
 {
-  "name": "Beehive (prefilled portable hive)",
+  "valid": true,
+  "name": "Beehive",
   "affinities": [
     { "role": "entity_modification", "target": "road_runner", "mode": "direct", "aptness": 0.7 },
     { "role": "terminal", "aptness": 0.5 }
   ]
 }
 
-## Role possibilities (\`affinities\`)
+Example **invalid** line:
 
-Each object may participate in plans in multiple ways. Emit an \`affinities\` array of **role possibilities**. Each possibility includes \`aptness\` in **[0, 1]**: how plausible that role is **for this object in isolation**. Co-staged props change what actually gets built; **highest aptness is not always** the role the Coyote ends up using.
+{
+  "valid": false,
+  "name": "Justice",
+  "errorType": "Not tangible",
+  "affinities": []
+}
 
-Typically output **1-3** possibilities per line. **Omit** any possibility with aptness **strictly below ${floor}** (server-side tooling may drop marginal entries too).
+## Role possibilities (\`affinities\`) for **\`valid\`: true**
 
-### \`entity_modification\`
+Emit **1–3** possibilities per deliverable line. **Omit** aptness **strictly below ${floor}**.
 
-The object (or an obvious construct built from it) changes **Coyote**, **Road Runner**, or the **environment**.
+### entity_modification
 
-- Include \`target\`: \`coyote\` | \`road_runner\` | \`environment\`
-- Include \`mode\`:
-  - \`direct\`: the object itself applies the modification (paint, costume, bee swarm contact, glue patch).
-  - \`constructive\`: the order implies assembling or deploying something that then modifies the entity (building a ramp, digging a pit, installing a tripwire rig).
+Include **\`target\`**: coyote | road_runner | environment and **\`mode\`**: direct | constructive.
 
-### Structural execution roles (no \`target\` / \`mode\`)
+### Structural roles
 
-- **terminal**: Delivers the intended payoff toward the Road Runner (explosion, splash, crush, launch into view); at most one terminal beat per complete plan, but multiple props might *look* terminal-ish - rank by aptness honestly.
-- **trigger**: Starts or trips the next beat when a physical condition is met (tripwire, pressure plate, fuse ignited, latch released).
-- **delivery**: Moves energy, mass, or hazard **between** pieces (rope pull, conveyor segment, marble run section, cable run).
-- **autonomous_agent**: Self-propelled hazard or sub-contraption that keeps going without the Coyote steering each tick (rocket sled segment, rolling barrel, swarm cloud).
+**terminal**, **trigger**, **delivery**, **autonomous_agent** — include **\`aptness\`** only (no target/mode).
 
 ## Failure and confidence
 
-- Optional root \`confidence\`: your confidence in this enrichment pass, **[0, 1]**.
-- If you cannot justify **affinities** for a line, set \`affinitiesFailed\`: true on that line and \`affinities\` to \`[]\`.
+- Optional root **\`confidence\`**: **[0, 1]** for this pass.
+- If **\`valid\`: true** but you cannot justify affinities, set **\`affinitiesFailed\`**: true and **\`affinities\`**: [].
 
 ## Output shape
 
-Output **only** one JSON object, no markdown fences, no text before or after.
+Output **only** one JSON object, no markdown fences.
 
 {
   "lines": [
-    {
-      "name": "<string>",
-      "affinities": [ { "role": "terminal", "aptness": 0.5 } ]
-    }
+    { "valid": true, "name": "<string>", "affinities": [ { "role": "terminal", "aptness": 0.5 } ] },
+    { "valid": false, "name": "<string>", "errorType": "Not a thing", "affinities": [] }
   ],
   "confidence": <optional number 0..1>
 }
 `
 
-    const dynamicSuffix = `## Player command
+    const dynamicSuffix = `## Player command (full string)
 
 ${commandBlock}
-
-## Valid line items to enrich
-
-These are the **valid** catalog lines from intent parsing, **in order**. Your \`lines\` array must have **exactly** this many entries, in the **same order**.
-
-${catalogBlock}
 `
 
     return { invariantPrefix, dynamicSuffix }

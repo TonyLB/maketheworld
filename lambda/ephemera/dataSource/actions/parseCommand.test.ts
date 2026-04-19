@@ -174,26 +174,21 @@ describe('buildParseCommandIntentClassificationPrompt', () => {
 })
 
 describe('interpretParseCommandIntentClassificationBody', () => {
-    it('accepts bare JSON for AwaitRoadRunner, AcmeOrder, Unimplemented, and Unknown', () => {
+    it('accepts bare JSON for AwaitRoadRunner, AcmeOrder intent only, Unimplemented, and Unknown', () => {
         expect(interpretParseCommandIntentClassificationBody(
             '{"type":"AwaitRoadRunner","confidence":0.95}'
         )).toEqual({ type: 'AwaitRoadRunner', confidence: 0.95 })
         expect(interpretParseCommandIntentClassificationBody(
-            '{"type":"AcmeOrder","orders":["rocket skates"],"confidence":0.9}'
+            '{"type":"AcmeOrder","confidence":0.9}'
         )).toEqual({
-            type: 'AcmeOrder',
-            orders: [{ valid: true, name: 'rocket skates', affinities: [] }],
+            type: 'AcmeOrderIntent',
             confidence: 0.9,
         })
         expect(interpretParseCommandIntentClassificationBody(
-            '{"type":"AcmeOrder","orders":["  anvil  ","magnet"],"confidence":0.7}'
+            '{"type":"AcmeOrder","orders":[],"confidence":0.85}'
         )).toEqual({
-            type: 'AcmeOrder',
-            orders: [
-                { valid: true, name: 'anvil', affinities: [] },
-                { valid: true, name: 'magnet', affinities: [] },
-            ],
-            confidence: 0.7,
+            type: 'AcmeOrderIntent',
+            confidence: 0.85,
         })
         expect(interpretParseCommandIntentClassificationBody(
             '{"type":"Unimplemented","confidence":0.8}'
@@ -203,14 +198,16 @@ describe('interpretParseCommandIntentClassificationBody', () => {
         )).toEqual({ type: 'Unknown', confidence: 0.25 })
     })
 
-    it('accepts AcmeOrder with legacy single order string when orders array is absent', () => {
+    it('rejects AcmeOrder when Step A includes orders array with entries', () => {
+        expect(interpretParseCommandIntentClassificationBody(
+            '{"type":"AcmeOrder","orders":["rocket skates"],"confidence":0.9}'
+        ).type).toBe('Error')
+    })
+
+    it('rejects legacy AcmeOrder order field', () => {
         expect(interpretParseCommandIntentClassificationBody(
             '{"type":"AcmeOrder","order":"  giant rubber band  ","confidence":0.6}'
-        )).toEqual({
-            type: 'AcmeOrder',
-            orders: [{ valid: true, name: 'giant rubber band', affinities: [] }],
-            confidence: 0.6,
-        })
+        ).type).toBe('Error')
     })
 
     it('strips markdown fences and tolerates surrounding prose', () => {
@@ -234,16 +231,13 @@ describe('interpretParseCommandIntentClassificationBody', () => {
             '{"type":"AwaitRoadRunner"}'
         ).type).toBe('Error')
         expect(interpretParseCommandIntentClassificationBody(
-            '{"type":"AcmeOrder","confidence":0.9}'
-        ).type).toBe('Error')
-        expect(interpretParseCommandIntentClassificationBody(
-            '{"type":"AcmeOrder","orders":[],"confidence":0.9}'
+            '{"type":"AcmeOrder","confidence":1.2}'
         ).type).toBe('Error')
         expect(interpretParseCommandIntentClassificationBody(
             '{"type":"CoyoteEngineTest","confidence":0.9}'
         )).toEqual({
             type: 'Error',
-            errorMessage: 'Model JSON must be a valid AwaitRoadRunner, AcmeOrder, Unimplemented, or Unknown payload (see prompt)',
+            errorMessage: 'Model JSON must be a valid AwaitRoadRunner, AcmeOrder (confidence only), Unimplemented, or Unknown payload (see prompt)',
         })
     })
 })
@@ -378,17 +372,19 @@ describe('parseCommand LLM path', () => {
     it('returns AcmeOrder merged with enrich when both Bedrock calls succeed', async () => {
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
             success: true,
-            body: '{"type":"AcmeOrder","orders":["dynamite","spring"],"confidence":0.82}',
+            body: '{"type":"AcmeOrder","confidence":0.82}',
         })
         const invokeBedrockAcmeOrderEnrichImpl = jest.fn().mockResolvedValue({
             success: true,
             body: JSON.stringify({
                 lines: [
                     {
+                        valid: true,
                         name: 'dynamite sticks',
                         affinities: [{ role: 'terminal', aptness: 0.5 }],
                     },
                     {
+                        valid: true,
                         name: 'spring',
                         affinities: [{ role: 'trigger', aptness: 0.4 }],
                     },
@@ -424,13 +420,14 @@ describe('parseCommand LLM path', () => {
     it('merges per-line: one good enrich line and one unparseable line still returns AcmeOrder with combined confidence', async () => {
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
             success: true,
-            body: '{"type":"AcmeOrder","orders":["dynamite","spring"],"confidence":0.82}',
+            body: '{"type":"AcmeOrder","confidence":0.82}',
         })
         const invokeBedrockAcmeOrderEnrichImpl = jest.fn().mockResolvedValue({
             success: true,
             body: JSON.stringify({
                 lines: [
                     {
+                        valid: true,
                         name: 'dynamite sticks',
                         affinities: [{ role: 'terminal', aptness: 0.5 }],
                     },
@@ -455,7 +452,7 @@ describe('parseCommand LLM path', () => {
                 },
                 {
                     valid: true,
-                    name: 'spring',
+                    name: 'line2',
                     affinities: [],
                     affinitiesFailed: true,
                 },
@@ -467,7 +464,7 @@ describe('parseCommand LLM path', () => {
     it('marks affinitiesFailed and keeps Step A confidence when enrich Bedrock fails', async () => {
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
             success: true,
-            body: '{"type":"AcmeOrder","orders":[{"valid":true,"name":"anvil"}],"confidence":0.75}',
+            body: '{"type":"AcmeOrder","confidence":0.75}',
         })
         const invokeBedrockAcmeOrderEnrichImpl = jest.fn().mockResolvedValue({
             success: false,
@@ -483,7 +480,7 @@ describe('parseCommand LLM path', () => {
             type: 'AcmeOrder',
             orders: [{
                 valid: true,
-                name: 'anvil',
+                name: 'order anvil from acme',
                 affinities: [],
                 affinitiesFailed: true,
             }],
@@ -494,13 +491,14 @@ describe('parseCommand LLM path', () => {
     it('returns AcmeOrder with multi-role enrich for beehive, shovel, and rope line items', async () => {
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
             success: true,
-            body: '{"type":"AcmeOrder","orders":["BEES!","trench shovel","climbing rope"],"confidence":0.85}',
+            body: '{"type":"AcmeOrder","confidence":0.85}',
         })
         const invokeBedrockAcmeOrderEnrichImpl = jest.fn().mockResolvedValue({
             success: true,
             body: JSON.stringify({
                 lines: [
                     {
+                        valid: true,
                         name: 'Beehive',
                         affinities: [
                             {
@@ -513,6 +511,7 @@ describe('parseCommand LLM path', () => {
                         ],
                     },
                     {
+                        valid: true,
                         name: 'Entrenching Shovel',
                         affinities: [
                             {
@@ -525,6 +524,7 @@ describe('parseCommand LLM path', () => {
                         ],
                     },
                     {
+                        valid: true,
                         name: 'Climbing Rope',
                         affinities: [
                             { role: 'delivery', aptness: 0.81 },
@@ -584,12 +584,23 @@ describe('parseCommand LLM path', () => {
         expect(invokeBedrockAcmeOrderEnrichImpl).toHaveBeenCalledTimes(1)
     })
 
-    it('skips enrich when every Acme line is invalid', async () => {
+    it('runs enrich when Step B returns only invalid catalog lines', async () => {
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
             success: true,
-            body: '{"type":"AcmeOrder","orders":[{"valid":false,"name":"Justice","errorType":"Not tangible"}],"confidence":0.8}',
+            body: '{"type":"AcmeOrder","confidence":0.8}',
         })
-        const invokeBedrockAcmeOrderEnrichImpl = jest.fn()
+        const invokeBedrockAcmeOrderEnrichImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: JSON.stringify({
+                lines: [{
+                    valid: false,
+                    name: 'Justice',
+                    errorType: 'Not tangible',
+                    affinities: [],
+                }],
+                confidence: 1,
+            }),
+        })
 
         const result = await parseCommand(
             { command: 'order justice from acme' },
@@ -606,6 +617,6 @@ describe('parseCommand LLM path', () => {
             }],
             confidence: 0.8,
         })
-        expect(invokeBedrockAcmeOrderEnrichImpl).not.toHaveBeenCalled()
+        expect(invokeBedrockAcmeOrderEnrichImpl).toHaveBeenCalledTimes(1)
     })
 })

@@ -13,7 +13,7 @@ import {
 import {
     invokeBedrockConverseText,
     type InvokeBedrockConverseTextResult,
-} from './invokeBedrockConverseText'
+} from '../llm/invokeBedrockConverseText'
 import { BEDROCK_PARSE_COMMAND_MODEL_ID } from './invokeBedrockParseCommand'
 
 export { BEDROCK_PARSE_COMMAND_MODEL_ID }

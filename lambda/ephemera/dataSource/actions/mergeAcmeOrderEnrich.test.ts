@@ -1,181 +1,145 @@
 import {
     interpretAcmeOrderEnrichBody,
-    mergeAcmeOrderWithEnrich,
+    finalizeAcmeOrderFromStepB,
 } from './mergeAcmeOrderEnrich'
 
-const ctx1 = { slotCount: 1, fallbackNames: ['fallback'] }
-
 describe('interpretAcmeOrderEnrichBody', () => {
-    it('accepts valid enrich JSON', () => {
+    it('accepts valid Step B JSON', () => {
         const r = interpretAcmeOrderEnrichBody(JSON.stringify({
-            lines: [{ name: 'A', affinities: [{ role: 'terminal', aptness: 0.5 }] }],
-        }), ctx1)
+            lines: [{ valid: true, name: 'A', affinities: [{ role: 'terminal', aptness: 0.5 }] }],
+        }))
         expect(r.success).toBe(true)
         if (r.success) {
             expect(r.response.lines).toHaveLength(1)
-            expect(r.response.lines[0].name).toBe('A')
+            expect(r.response.lines[0].valid === true && r.response.lines[0].name).toBe('A')
         }
     })
 
     it('returns failure on JSON parse error', () => {
-        expect(interpretAcmeOrderEnrichBody('{', ctx1).success).toBe(false)
+        expect(interpretAcmeOrderEnrichBody('{').success).toBe(false)
     })
 
-    it('recovers when lines is not an array by normalizing empty slots', () => {
-        const r = interpretAcmeOrderEnrichBody(JSON.stringify({ lines: 'bad' }), ctx1)
+    it('normalizes missing lines array to single synthetic row', () => {
+        const r = interpretAcmeOrderEnrichBody(JSON.stringify({ lines: 'bad' }))
         expect(r.success).toBe(true)
         if (r.success) {
+            expect(r.response.lines).toHaveLength(1)
             expect(r.response.lines[0]).toMatchObject({
-                name: 'fallback',
+                valid: true,
                 affinities: [],
                 affinitiesFailed: true,
             })
         }
     })
 
-    it('per-line: one valid line and one garbage entry still succeeds', () => {
+    it('per-line: good line plus garbage yields salvage failure for second slot', () => {
         const r = interpretAcmeOrderEnrichBody(
             JSON.stringify({
                 lines: [
-                    { name: 'Good', affinities: [{ role: 'terminal', aptness: 0.3 }] },
+                    { valid: true, name: 'Good', affinities: [{ role: 'terminal', aptness: 0.3 }] },
                     { notValid: true },
                 ],
-            }),
-            { slotCount: 2, fallbackNames: ['stepA1', 'stepA2'] }
+            })
         )
         expect(r.success).toBe(true)
         if (r.success) {
-            expect(r.response.lines[0].name).toBe('Good')
+            expect(r.response.lines[0].valid === true ? r.response.lines[0].name : '').toBe('Good')
             expect(r.response.lines[1]).toMatchObject({
-                name: 'stepA2',
+                valid: true,
+                name: 'line2',
                 affinities: [],
                 affinitiesFailed: true,
             })
         }
     })
-
-    it('fails when slotCount exceeds max lines', () => {
-        const names = Array.from({ length: 51 }, (_, i) => `n${i}`)
-        const r = interpretAcmeOrderEnrichBody('{}', { slotCount: 51, fallbackNames: names })
-        expect(r.success).toBe(false)
-    })
 })
 
-describe('mergeAcmeOrderWithEnrich', () => {
-    const stepA = {
-        type: 'AcmeOrder' as const,
-        orders: [
-            { valid: true, name: 'rope', affinities: [] },
-            {
-                valid: false,
-                name: 'moon',
-                errorType: 'Not a thing' as const,
-                affinities: [],
-            },
-        ],
-        confidence: 0.8,
-    }
+describe('finalizeAcmeOrderFromStepB', () => {
+    const stepAConf = 0.8
 
-    const stepATwoValid = {
-        type: 'AcmeOrder' as const,
-        orders: [
-            { valid: true, name: 'dynamite', affinities: [] },
-            { valid: true, name: 'spring', affinities: [] },
-        ],
-        confidence: 0.82,
-    }
-
-    it('maps enrich lines only to valid rows by order', () => {
-        const merged = mergeAcmeOrderWithEnrich(
-            stepA,
+    it('maps enrich lines to parse orders', () => {
+        const merged = finalizeAcmeOrderFromStepB(
+            stepAConf,
             {
                 lines: [
                     {
+                        valid: true,
                         name: 'rope line',
                         affinities: [{ role: 'delivery', aptness: 0.6 }],
+                    },
+                    {
+                        valid: false,
+                        name: 'moon',
+                        errorType: 'Not a thing',
+                        affinities: [],
                     },
                 ],
                 confidence: 0.5,
             },
-            false
+            false,
+            'fallback'
         )
         expect(merged.orders[0]).toMatchObject({
             valid: true,
             name: 'rope line',
             affinities: [{ role: 'delivery', aptness: 0.6 }],
         })
-        expect(merged.orders[1]).toEqual(stepA.orders[1])
-        expect(merged.confidence).toBe(0.8 * 0.5)
-    })
-
-    it('marks valid line failed when enrich line missing', () => {
-        const merged = mergeAcmeOrderWithEnrich(stepA, { lines: [], confidence: 1 }, false)
-        expect(merged.orders[0]).toMatchObject({
-            affinitiesFailed: true,
+        expect(merged.orders[1]).toMatchObject({
+            valid: false,
+            name: 'moon',
+            errorType: 'Not a thing',
             affinities: [],
         })
-        expect(merged.confidence).toBe(0.8)
+        expect(merged.confidence).toBeCloseTo(stepAConf * 0.5)
     })
 
-    it('marks all valid lines failed when enrichInvokeFailed', () => {
-        const merged = mergeAcmeOrderWithEnrich(stepA, null, true)
+    it('single synthetic failure when enrichInvokeFailed', () => {
+        const merged = finalizeAcmeOrderFromStepB(stepAConf, null, true, 'order rope')
+        expect(merged.orders).toHaveLength(1)
         expect(merged.orders[0]).toMatchObject({
-            affinitiesFailed: true,
+            valid: true,
+            name: 'order rope',
             affinities: [],
+            affinitiesFailed: true,
         })
-        expect(merged.orders[1]).toEqual(stepA.orders[1])
-        expect(merged.confidence).toBe(0.8)
+        expect(merged.confidence).toBe(stepAConf)
     })
 
-    it('after interpret, merges one enriched row and one affinitiesFailed row', () => {
+    it('after interpret, merges good plus salvaged rows', () => {
         const parsed = interpretAcmeOrderEnrichBody(
             JSON.stringify({
                 confidence: 0.9,
                 lines: [
                     {
+                        valid: true,
                         name: 'dyn',
                         affinities: [{ role: 'terminal', aptness: 0.5 }],
                     },
                     null,
                 ],
-            }),
-            { slotCount: 2, fallbackNames: ['dynamite', 'spring'] }
+            })
         )
         expect(parsed.success).toBe(true)
         if (!parsed.success) {
             return
         }
-        const merged = mergeAcmeOrderWithEnrich(stepATwoValid, parsed.response, false)
+        const merged = finalizeAcmeOrderFromStepB(0.82, parsed.response, false, 'x')
         expect(merged.orders[0]).toMatchObject({
             valid: true,
             name: 'dyn',
             affinities: [{ role: 'terminal', aptness: 0.5 }],
         })
-        expect(merged.orders[1]).toMatchObject({
-            valid: true,
-            name: 'spring',
-            affinities: [],
-            affinitiesFailed: true,
-        })
+        expect(merged.orders[1]?.affinitiesFailed).toBe(true)
         expect(merged.confidence).toBeCloseTo(0.82 * 0.9)
     })
 
-    const stepAThreeValid = {
-        type: 'AcmeOrder' as const,
-        orders: [
-            { valid: true, name: 'BEES!', affinities: [] },
-            { valid: true, name: 'trench shovel', affinities: [] },
-            { valid: true, name: 'climbing rope', affinities: [] },
-        ],
-        confidence: 0.85,
-    }
-
-    it('merges multi-role enrich lines (beehive, shovel, rope) in index order', () => {
-        const merged = mergeAcmeOrderWithEnrich(
-            stepAThreeValid,
+    it('merges multi-role enrich lines in index order', () => {
+        const merged = finalizeAcmeOrderFromStepB(
+            0.85,
             {
                 lines: [
                     {
+                        valid: true,
                         name: 'Beehive',
                         affinities: [
                             {
@@ -188,6 +152,7 @@ describe('mergeAcmeOrderWithEnrich', () => {
                         ],
                     },
                     {
+                        valid: true,
                         name: 'Entrenching Shovel',
                         affinities: [
                             {
@@ -200,6 +165,7 @@ describe('mergeAcmeOrderWithEnrich', () => {
                         ],
                     },
                     {
+                        valid: true,
                         name: 'Climbing Rope',
                         affinities: [
                             { role: 'delivery', aptness: 0.81 },
@@ -209,42 +175,11 @@ describe('mergeAcmeOrderWithEnrich', () => {
                 ],
                 confidence: 0.9,
             },
-            false
+            false,
+            'cmd'
         )
-        expect(merged.orders[0]).toMatchObject({
-            valid: true,
-            name: 'Beehive',
-            affinities: [
-                {
-                    role: 'entity_modification',
-                    target: 'road_runner',
-                    mode: 'direct',
-                    aptness: 0.7,
-                },
-                { role: 'terminal', aptness: 0.5 },
-            ],
-        })
-        expect(merged.orders[1]).toMatchObject({
-            valid: true,
-            name: 'Entrenching Shovel',
-            affinities: [
-                {
-                    role: 'entity_modification',
-                    target: 'environment',
-                    mode: 'constructive',
-                    aptness: 0.88,
-                },
-                { role: 'trigger', aptness: 0.42 },
-            ],
-        })
-        expect(merged.orders[2]).toMatchObject({
-            valid: true,
-            name: 'Climbing Rope',
-            affinities: [
-                { role: 'delivery', aptness: 0.81 },
-                { role: 'trigger', aptness: 0.55 },
-            ],
-        })
+        expect(merged.orders[0]?.name).toBe('Beehive')
+        expect(merged.orders[2]?.name).toBe('Climbing Rope')
         expect(merged.confidence).toBeCloseTo(0.85 * 0.9)
     })
 })

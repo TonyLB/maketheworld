@@ -4,8 +4,7 @@ import { buildParseAcmeOrderEnrichPrompt } from './buildParseAcmeOrderEnrichProm
 describe('buildParseAcmeOrderEnrichPrompt', () => {
     it.skip('includes role vocabulary, anti-RPG guidance, and the aptness floor constant', () => {
         const { invariantPrefix, dynamicSuffix } = buildParseAcmeOrderEnrichPrompt(
-            'order rope',
-            ['rope']
+            'order rope'
         )
         expect(invariantPrefix).toContain('entity_modification')
         expect(invariantPrefix).toContain('autonomous_agent')
@@ -14,6 +13,6 @@ describe('buildParseAcmeOrderEnrichPrompt', () => {
         expect(invariantPrefix).toContain('strictly below')
         expect(invariantPrefix).not.toContain('description')
         expect(dynamicSuffix).toContain('order rope')
-        expect(dynamicSuffix).toContain('1. rope')
+        expect(dynamicSuffix).toContain('Player command')
     })
 })
