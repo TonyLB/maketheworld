@@ -74,7 +74,7 @@ export async function runAcmeOrderAffinitiesHarness(deps: RunAcmeOrderAffinities
         const parseDeps: ParseCommandDeps = {}
         try {
             if (stepBOnly) {
-                const parts = buildParseAcmeOrderEnrichPrompt(command)
+                const parts = buildParseAcmeOrderEnrichPrompt(command, { occupiedStableKeys: [] })
                 const enrichInvoke = await invokeEnrich(parts)
                 let enrichFailed = !enrichInvoke.success
                 let response: AcmeOrderEnrichModelResponse | null = null

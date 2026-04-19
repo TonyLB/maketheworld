@@ -49,7 +49,9 @@ async function parseCommandCore(
         return { result: stepA, enrichReasoningMarkdown: '' }
     }
 
-    const enrichPromptParts = buildParseAcmeOrderEnrichPrompt(input.command)
+    const enrichPromptParts = buildParseAcmeOrderEnrichPrompt(input.command, {
+        occupiedStableKeys: input.occupiedStableKeys ?? [],
+    })
     const enrichInvoke = await invokeEnrich(enrichPromptParts)
 
     let enrichInvokeFailed = !enrichInvoke.success

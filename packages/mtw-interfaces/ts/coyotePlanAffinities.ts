@@ -59,6 +59,8 @@ export type AcmeOrderEnrichModelLine =
     | {
           valid: true;
           name: string;
+          /** Machine correlation key proposal (`a-z` / `0-9` / `-`); deterministic repair may adjust. */
+          stableKey: string;
           affinities: CoyoteAffinityPossibility[];
           affinitiesFailed?: boolean;
       }
@@ -118,6 +120,24 @@ function isFiniteUnitConfidence(n: unknown): boolean {
     return typeof n === 'number' && Number.isFinite(n) && n >= 0 && n <= 1
 }
 
+/** Fallback **`stableKey`** when the model omits or supplies an empty string (deterministic repair may still adjust). */
+function defaultStableKeyProposal(name: string): string {
+    const folded = name.trim().toLowerCase()
+    const withHyphens = folded.replace(/\s+/g, '-').replace(/[^a-z0-9-]+/g, '-')
+    const collapsed = withHyphens.replace(/-+/g, '-').replace(/^-|-$/g, '')
+    return collapsed.length > 0 ? collapsed : 'line'
+}
+
+function stableKeyFromRawLine(o: Record<string, unknown>, nameForFallback: string): string {
+    if (typeof o.stableKey === 'string') {
+        const t = o.stableKey.trim()
+        if (t.length > 0) {
+            return t
+        }
+    }
+    return defaultStableKeyProposal(nameForFallback)
+}
+
 function salvageAcmeOrderEnrichLine(raw: unknown): AcmeOrderEnrichModelLine | null {
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
         return null
@@ -136,10 +156,13 @@ function salvageAcmeOrderEnrichLine(raw: unknown): AcmeOrderEnrichModelLine | nu
         }
         return isAcmeOrderEnrichModelLine(candidate) ? candidate : null
     }
+    const nameTrim = o.name.trim() || 'unknown'
+    const stableKey = stableKeyFromRawLine(o, nameTrim)
     if (o.affinitiesFailed === true) {
         const coerced: AcmeOrderEnrichModelLine = {
             valid: true,
-            name: o.name.trim() || 'unknown',
+            name: nameTrim,
+            stableKey,
             affinities: [],
             affinitiesFailed: true,
         }
@@ -154,7 +177,8 @@ function salvageAcmeOrderEnrichLine(raw: unknown): AcmeOrderEnrichModelLine | nu
     }
     const candidate: AcmeOrderEnrichModelLine = {
         valid: true,
-        name: o.name.trim() || 'unknown',
+        name: nameTrim,
+        stableKey,
         affinities: applyCoyoteAffinityAptnessFloor(filtered),
     }
     return isAcmeOrderEnrichModelLine(candidate) ? candidate : null
@@ -171,9 +195,15 @@ function syntheticAcmeOrderEnrichFailureLine(raw: unknown, fallbackName: string)
     return {
         valid: true,
         name,
+        stableKey: defaultStableKeyProposal(name),
         affinities: [],
         affinitiesFailed: true,
     }
+}
+
+function trimStableKeyOrFallback(stableKey: string, name: string): string {
+    const t = stableKey.trim()
+    return t.length > 0 ? t : defaultStableKeyProposal(name)
 }
 
 /**
@@ -193,6 +223,7 @@ export function normalizeAcmeOrderEnrichLine(raw: unknown, fallbackName: string)
             return {
                 valid: true,
                 name: raw.name,
+                stableKey: trimStableKeyOrFallback(raw.stableKey, raw.name),
                 affinities: [],
                 affinitiesFailed: true,
             }
@@ -200,6 +231,7 @@ export function normalizeAcmeOrderEnrichLine(raw: unknown, fallbackName: string)
         return {
             valid: true,
             name: raw.name,
+            stableKey: trimStableKeyOrFallback(raw.stableKey, raw.name),
             affinities: applyCoyoteAffinityAptnessFloor(raw.affinities),
         }
     }
@@ -246,6 +278,7 @@ export function normalizeAcmeOrderStepBResponse(
         : [{
             valid: true,
             name: emptyName,
+            stableKey: defaultStableKeyProposal(emptyName),
             affinities: [],
             affinitiesFailed: true,
         }]
@@ -271,6 +304,9 @@ export function isAcmeOrderEnrichModelLine(entry: unknown): entry is AcmeOrderEn
             && Array.isArray(o.affinities)
             && o.affinities.length === 0
         )
+    }
+    if (typeof o.stableKey !== 'string' || o.stableKey.trim().length === 0) {
+        return false
     }
     if (!Array.isArray(o.affinities)) {
         return false

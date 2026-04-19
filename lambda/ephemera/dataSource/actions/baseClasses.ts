@@ -39,6 +39,8 @@ export type ParseCommandAcmeOrderErrorType = 'Not a thing' | 'Not tangible' | 'T
 export type ParseCommandAcmeOrderLine = {
     valid: boolean
     name: string
+    /** Step B proposal; deterministic **`stableKey`** repair may run later before persistence. */
+    stableKey?: string
     errorType?: ParseCommandAcmeOrderErrorType
     /** Role possibilities; **[]** when none apply or when **`affinitiesFailed`**. */
     affinities: CoyoteAffinityPossibility[]
@@ -180,6 +182,9 @@ export function isParseCommandAcmeOrderResult(
         if ('affinitiesFailed' in entry && typeof entry.affinitiesFailed !== 'boolean') {
             return false
         }
+        if ('stableKey' in entry && typeof entry.stableKey !== 'string') {
+            return false
+        }
         if (entry.valid === true && entry.affinitiesFailed === true) {
             return entry.affinities.length === 0
         }
@@ -225,6 +230,8 @@ export function isParseCommandUnknownResult(
 
 export type ParseCommandInput = {
     command: string
+    /** Coyote-wide **`stableKey`** occupancy for Step B enrich (omit or **[]** when unknown). */
+    occupiedStableKeys?: readonly string[]
 }
 
 export type ParseCommandDeps = {

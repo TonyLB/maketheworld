@@ -225,6 +225,7 @@ describe('ephemeraActionsDataSource', () => {
                 orders: [{
                     valid: true,
                     name: 'rocket-powered roller skates',
+                    stableKey: 'rocket-powered-roller-skates',
                     affinities: [],
                 }],
                 confidence: 0.9,
@@ -273,7 +274,7 @@ describe('ephemeraActionsDataSource', () => {
             mockedParseCommand.mockResolvedValue({
                 type: 'AcmeOrder',
                 orders: [
-                    { valid: true, name: 'anvil', affinities: [] },
+                    { valid: true, name: 'anvil', stableKey: 'anvil', affinities: [] },
                     {
                         valid: false,
                         name: 'justice',
@@ -348,10 +349,12 @@ describe('ephemeraActionsDataSource', () => {
                 orders: [{
                     valid: true,
                     name: 'Beehive',
+                    stableKey: 'beehive',
                     affinities: [{ role: 'terminal', aptness: 0.7 }],
                 }, {
                     valid: true,
                     name: 'broken dynamite',
+                    stableKey: 'broken-dynamite',
                     affinities: [],
                     affinitiesFailed: true,
                 }],

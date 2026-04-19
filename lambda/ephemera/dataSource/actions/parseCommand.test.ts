@@ -98,6 +98,26 @@ describe('parseCommand type guards', () => {
             })).toBe(true)
             expect(isParseCommandAcmeOrderResult({
                 type: 'AcmeOrder',
+                orders: [{
+                    valid: true,
+                    name: 'anvil',
+                    stableKey: 'anvil',
+                    affinities: [],
+                }],
+                confidence: 0.5,
+            })).toBe(true)
+            expect(isParseCommandAcmeOrderResult({
+                type: 'AcmeOrder',
+                orders: [{
+                    valid: true,
+                    name: 'anvil',
+                    stableKey: 123,
+                    affinities: [],
+                } as any],
+                confidence: 0.5,
+            })).toBe(false)
+            expect(isParseCommandAcmeOrderResult({
+                type: 'AcmeOrder',
                 orders: [{ valid: true } as any],
                 confidence: 0.5,
             })).toBe(false)
@@ -382,11 +402,13 @@ describe('parseCommand LLM path', () => {
                     {
                         valid: true,
                         name: 'dynamite sticks',
+                        stableKey: 'dynamite-sticks',
                         affinities: [{ role: 'terminal', aptness: 0.5 }],
                     },
                     {
                         valid: true,
                         name: 'spring',
+                        stableKey: 'spring',
                         affinities: [{ role: 'trigger', aptness: 0.4 }],
                     },
                 ],
@@ -405,11 +427,13 @@ describe('parseCommand LLM path', () => {
                 {
                     valid: true,
                     name: 'dynamite sticks',
+                    stableKey: 'dynamite-sticks',
                     affinities: [{ role: 'terminal', aptness: 0.5 }],
                 },
                 {
                     valid: true,
                     name: 'spring',
+                    stableKey: 'spring',
                     affinities: [{ role: 'trigger', aptness: 0.4 }],
                 },
             ],
@@ -418,13 +442,47 @@ describe('parseCommand LLM path', () => {
         expect(invokeBedrockAcmeOrderEnrichImpl).toHaveBeenCalledTimes(1)
     })
 
+    it('passes occupiedStableKeys into enrich prompt dynamicSuffix', async () => {
+        const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: '{"type":"AcmeOrder","confidence":0.82}',
+        })
+        const invokeBedrockAcmeOrderEnrichImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: JSON.stringify({
+                lines: [{
+                    valid: true,
+                    name: 'rope',
+                    stableKey: 'rope',
+                    affinities: [{ role: 'delivery', aptness: 0.6 }],
+                }],
+                confidence: 1,
+            }),
+        })
+        await parseCommand(
+            { command: 'order rope', occupiedStableKeys: ['rocket-taken', 'anvil'] },
+            { invokeBedrockParseCommandImpl, invokeBedrockAcmeOrderEnrichImpl }
+        )
+        const parts = invokeBedrockAcmeOrderEnrichImpl.mock.calls[0][0] as {
+            dynamicSuffix: string
+        }
+        expect(parts.dynamicSuffix).toContain('Coyote-wide stable keys already in use')
+        expect(parts.dynamicSuffix).toContain('- rocket-taken')
+        expect(parts.dynamicSuffix).toContain('- anvil')
+    })
+
     it('parseCommand omits enrich Markdown on AcmeOrder; parseCommandWithEnrichReasoning returns it separately', async () => {
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
             success: true,
             body: '{"type":"AcmeOrder","confidence":0.82}',
         })
         const payload = JSON.stringify({
-            lines: [{ valid: true, name: 'rope', affinities: [{ role: 'delivery', aptness: 0.6 }] }],
+            lines: [{
+                valid: true,
+                name: 'rope',
+                stableKey: 'rope',
+                affinities: [{ role: 'delivery', aptness: 0.6 }],
+            }],
             confidence: 0.95,
         })
         const body = `## Notes\nCheck catalog.\n\n\`\`\`json\n${payload}\n\`\`\``
@@ -460,6 +518,7 @@ describe('parseCommand LLM path', () => {
                     {
                         valid: true,
                         name: 'dynamite sticks',
+                        stableKey: 'dynamite-sticks',
                         affinities: [{ role: 'terminal', aptness: 0.5 }],
                     },
                     { bad: true },
@@ -479,11 +538,13 @@ describe('parseCommand LLM path', () => {
                 {
                     valid: true,
                     name: 'dynamite sticks',
+                    stableKey: 'dynamite-sticks',
                     affinities: [{ role: 'terminal', aptness: 0.5 }],
                 },
                 {
                     valid: true,
                     name: 'line2',
+                    stableKey: 'line2',
                     affinities: [],
                     affinitiesFailed: true,
                 },
@@ -531,6 +592,7 @@ describe('parseCommand LLM path', () => {
                     {
                         valid: true,
                         name: 'Beehive',
+                        stableKey: 'beehive',
                         affinities: [
                             {
                                 role: 'entity_modification',
@@ -544,6 +606,7 @@ describe('parseCommand LLM path', () => {
                     {
                         valid: true,
                         name: 'Entrenching Shovel',
+                        stableKey: 'entrenching-shovel',
                         affinities: [
                             {
                                 role: 'entity_modification',
@@ -557,6 +620,7 @@ describe('parseCommand LLM path', () => {
                     {
                         valid: true,
                         name: 'Climbing Rope',
+                        stableKey: 'climbing-rope',
                         affinities: [
                             { role: 'delivery', aptness: 0.81 },
                             { role: 'trigger', aptness: 0.55 },
@@ -578,6 +642,7 @@ describe('parseCommand LLM path', () => {
                 {
                     valid: true,
                     name: 'Beehive',
+                    stableKey: 'beehive',
                     affinities: [
                         {
                             role: 'entity_modification',
@@ -591,6 +656,7 @@ describe('parseCommand LLM path', () => {
                 {
                     valid: true,
                     name: 'Entrenching Shovel',
+                    stableKey: 'entrenching-shovel',
                     affinities: [
                         {
                             role: 'entity_modification',
@@ -604,6 +670,7 @@ describe('parseCommand LLM path', () => {
                 {
                     valid: true,
                     name: 'Climbing Rope',
+                    stableKey: 'climbing-rope',
                     affinities: [
                         { role: 'delivery', aptness: 0.81 },
                         { role: 'trigger', aptness: 0.55 },

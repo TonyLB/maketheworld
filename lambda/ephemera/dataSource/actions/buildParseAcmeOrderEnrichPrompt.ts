@@ -5,7 +5,25 @@
 import { COYOTE_AFFINITY_APTNESS_MIN } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import type { ParseAcmeOrderEnrichPromptParts } from '../../generateExample/invokeBedrockAcmeOrderEnrich'
 
-export function buildParseAcmeOrderEnrichPrompt(command: string): ParseAcmeOrderEnrichPromptParts {
+export type BuildParseAcmeOrderEnrichPromptOptions = {
+    /** Union of **`stableKey`** values already used on staged objects across Coyote game rooms (must not invent collisions when avoidable). */
+    occupiedStableKeys?: readonly string[];
+};
+
+function formatOccupiedStableKeysBlock(keys: readonly string[]): string {
+    const uniqueSorted = [...new Set(keys.map((k) => k.trim()).filter((k) => k.length > 0))].sort(
+        (a, b) => a.localeCompare(b)
+    )
+    if (uniqueSorted.length === 0) {
+        return '(none)'
+    }
+    return uniqueSorted.map((k) => `- ${k}`).join('\n')
+}
+
+export function buildParseAcmeOrderEnrichPrompt(
+    command: string,
+    options?: BuildParseAcmeOrderEnrichPromptOptions
+): ParseAcmeOrderEnrichPromptParts {
     const trimmed = command.trim()
     const commandBlock = trimmed === '' ? '(empty command)' : trimmed
 
@@ -34,9 +52,9 @@ Produce **two parts** in order:
 
    In your markdown, show the **three layers** briefly: correction (if any), **Cartoon physics** yes/no, then primary category. For **Not a thing**, **Not tangible**, or **Too large**, state only those facts plus modifiers — no packaging spin. For **Phenomenon** and **Diffuse**, record the **two** alternatives for Step 2. **Primary** **Not a thing** / **Not tangible** / **Too large** → **\`valid\`: false** in JSON; **Phenomenon**, **Diffuse**, **Self-contained** → **\`valid\`: true**.
 
-2. **Enhance (JSON final):** After Step 1, output **one** trailing fenced code block with language tag **json**. Inside the fence put **only** the root JSON object (**lines**, optional **confidence**) — nothing else inside the fence. No prose after that closing fence. This step applies Acme catalog normalization, **affinities**, and light Coyote-vs.-Road-Runner **presentation** — that cartoon-contraption flavor belongs **here**, not in Step 1's eligibility decisions.
+2. **Enhance (JSON final):** After Step 1, output **one** trailing fenced code block with language tag **json**. Inside the fence put **only** the root JSON object (**lines**, optional **confidence**) — nothing else inside the fence. No prose after that closing fence. This step applies Acme catalog normalization, **affinities**, per-line **stable reference keys** (**\`stableKey\`**), and light Coyote-vs.-Road-Runner **presentation** — that cartoon-contraption flavor belongs **here**, not in Step 1's eligibility decisions.
 
-The **full player command** appears at the end of this prompt.
+The **Coyote-wide keys already in use** list appears **after** these instructions (before the player command). The **full player command** appears at the end of this prompt.
 
 ## Segment line items
 
@@ -46,8 +64,12 @@ From that command, extract **one entry in \`lines[]\` per distinct product / lin
 
 Each **\`lines\`** entry must include **\`valid\`**: boolean, aligned with Step 1.
 
-- **\`valid\`: false** (only for **Not a thing**, **Not tangible**, **Too large**) — include **\`errorType\`**: exactly one of **\`Not a thing\`**, **\`Not tangible\`**, **\`Too large\`**. Use **\`affinities\`**: [].
-- **\`valid\`: true** when Step 1 **primary** is **Phenomenon**, **Diffuse**, or **Self-contained** — normalized Acme catalog **\`name\`**, **\`affinities\`** role possibilities with **\`aptness\`** in **[0, 1]**. Choose **\`name\`** so shipped goods reflect Step 1 packaging for Phenomenon/Diffuse. When Step 1 had **Cartoon physics: yes**, title the SKU with straight-faced Acme packaging — the impossible behavior **is** the product.
+- **\`valid\`: false** (only for **Not a thing**, **Not tangible**, **Too large**) — include **\`errorType\`**: exactly one of **\`Not a thing\`**, **\`Not tangible\`**, **\`Too large\`**. Use **\`affinities\`**: []. **Do not** include **\`stableKey\`** on invalid lines.
+- **\`valid\`: true** when Step 1 **primary** is **Phenomenon**, **Diffuse**, or **Self-contained** — normalized Acme catalog **\`name\`**, **\`stableKey\`** (see below), **\`affinities\`** role possibilities with **\`aptness\`** in **[0, 1]**. Choose **\`name\`** so shipped goods reflect Step 1 packaging for Phenomenon/Diffuse. When Step 1 had **Cartoon physics: yes**, title the SKU with straight-faced Acme packaging — the impossible behavior **is** the product.
+
+## Stable reference key (**\`stableKey\`**, **\`valid\`: true** only)
+
+Emit **\`stableKey\`**: a single **slug-shaped** string per deliverable line: **ASCII lowercase** letters **a-z**, digits **0-9**, and **hyphens** only (no spaces or underscores). Prefer **semantic** hyphenated labels (**\`rocket-high-powered\`**) over opaque numeric suffixes when you can still avoid collisions. **Do not** use keys that begin with **\`constructed-\`** (reserved). Avoid every key listed under **Coyote-wide keys already in use** below **when you can** pick a distinct readable slug; if the list is empty, still choose stable, unique-looking keys within this order.
 
 ## Affinities must honor the player ask
 
@@ -67,6 +89,7 @@ Example **valid** line entry (inside **\`lines\`**):
 {
   "valid": true,
   "name": "Beehive",
+  "stableKey": "beehive",
   "affinities": [
     { "role": "entity_modification", "target": "road_runner", "mode": "direct", "aptness": 0.7 },
     { "role": "terminal", "aptness": 0.5 }
@@ -97,14 +120,14 @@ Include **\`target\`**: coyote | road_runner | environment and **\`mode\`**: dir
 ## Failure and confidence
 
 - Optional root **\`confidence\`**: **[0, 1]** for this pass.
-- If **\`valid\`: true** but you cannot justify affinities, set **\`affinitiesFailed\`**: true and **\`affinities\`**: [].
+- If **\`valid\`: true** but you cannot justify affinities, set **\`affinitiesFailed\`**: true and **\`affinities\`**: []. You must still emit **\`stableKey\`** on that line.
 
 ## Enhance JSON shape (inside the **json** fence only)
 
 \`\`\`json
 {
   "lines": [
-    { "valid": true, "name": "<string>", "affinities": [ { "role": "terminal", "aptness": 0.5 } ] },
+    { "valid": true, "name": "<string>", "stableKey": "<string>", "affinities": [ { "role": "terminal", "aptness": 0.5 } ] },
     { "valid": false, "name": "<string>", "errorType": "Not a thing", "affinities": [] }
   ],
   "confidence": <optional number 0..1>
@@ -112,7 +135,16 @@ Include **\`target\`**: coyote | road_runner | environment and **\`mode\`**: dir
 \`\`\`
 `
 
-    const dynamicSuffix = `## Player command (full string)
+    const occupied = options?.occupiedStableKeys ?? []
+    const occupiedBlock = formatOccupiedStableKeysBlock(occupied)
+
+    const dynamicSuffix = `## Coyote-wide stable keys already in use
+
+These **\`stableKey\`** values are already assigned to staged objects somewhere in the Coyote play-space. Prefer **not** to reuse them; choose a distinct slug **when semantics allow**.
+
+${occupiedBlock}
+
+## Player command (full string)
 
 ${commandBlock}
 `

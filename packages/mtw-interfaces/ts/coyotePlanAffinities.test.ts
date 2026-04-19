@@ -53,6 +53,7 @@ describe('isAcmeOrderEnrichModelLine', () => {
     const validLine = {
         valid: true as const,
         name: 'Beehive',
+        stableKey: 'beehive',
         affinities: [
             { role: 'entity_modification', target: 'road_runner', mode: 'direct', aptness: 0.7 },
             { role: 'terminal', aptness: 0.5 },
@@ -82,11 +83,20 @@ describe('isAcmeOrderEnrichModelLine', () => {
         expect(isAcmeOrderEnrichModelLine({ ...validLine, affinities })).toBe(false)
     })
 
+    it('rejects valid line without non-empty stableKey', () => {
+        expect(isAcmeOrderEnrichModelLine({
+            valid: true,
+            name: 'A',
+            affinities: [],
+        } as any)).toBe(false)
+    })
+
     it('accepts affinitiesFailed with empty affinities', () => {
         expect(
             isAcmeOrderEnrichModelLine({
                 valid: true,
                 name: 'Rope',
+                stableKey: 'rope',
                 affinities: [],
                 affinitiesFailed: true,
             })
@@ -98,6 +108,7 @@ describe('isAcmeOrderEnrichModelLine', () => {
             isAcmeOrderEnrichModelLine({
                 valid: true,
                 name: 'Rope',
+                stableKey: 'rope',
                 affinities: [{ role: 'terminal', aptness: 0.1 }],
                 affinitiesFailed: true,
             })
@@ -110,6 +121,7 @@ describe('normalizeAcmeOrderEnrichLine', () => {
         const line = {
             valid: true as const,
             name: 'A',
+            stableKey: 'a',
             affinities: [{ role: 'terminal', aptness: 0.5 }] as const,
         }
         expect(normalizeAcmeOrderEnrichLine(line, 'fallback')).toEqual(line)
@@ -119,6 +131,7 @@ describe('normalizeAcmeOrderEnrichLine', () => {
         const line = {
             valid: true as const,
             name: 'X',
+            stableKey: 'x',
             affinities: [
                 { role: 'terminal', aptness: 0.4 },
                 {
@@ -133,6 +146,7 @@ describe('normalizeAcmeOrderEnrichLine', () => {
         expect(normalizeAcmeOrderEnrichLine(line, 'fallback')).toEqual({
             valid: true,
             name: 'X',
+            stableKey: 'x',
             affinities: [
                 {
                     role: 'entity_modification',
@@ -149,6 +163,7 @@ describe('normalizeAcmeOrderEnrichLine', () => {
         const line = {
             valid: true as const,
             name: 'Edge',
+            stableKey: 'edge',
             affinities: [
                 { role: 'terminal', aptness: COYOTE_AFFINITY_APTNESS_MIN },
                 { role: 'trigger', aptness: COYOTE_AFFINITY_APTNESS_MIN - 0.01 },
@@ -163,6 +178,7 @@ describe('normalizeAcmeOrderEnrichLine', () => {
         expect(normalizeAcmeOrderEnrichLine(null, 'rope')).toEqual({
             valid: true,
             name: 'rope',
+            stableKey: 'rope',
             affinities: [],
             affinitiesFailed: true,
         })
@@ -172,6 +188,7 @@ describe('normalizeAcmeOrderEnrichLine', () => {
         expect(normalizeAcmeOrderEnrichLine({ valid: true, name: '  catalog  ', foo: 1 }, 'rope')).toEqual({
             valid: true,
             name: 'catalog',
+            stableKey: 'catalog',
             affinities: [],
             affinitiesFailed: true,
         })
@@ -183,6 +200,7 @@ describe('normalizeAcmeOrderEnrichLine', () => {
                 {
                     valid: true,
                     name: 'X',
+                    stableKey: 'x',
                     affinities: [{ role: 'terminal', aptness: 0.5 }, { bad: true }, 'nope'],
                 },
                 'fb'
@@ -190,6 +208,7 @@ describe('normalizeAcmeOrderEnrichLine', () => {
         ).toEqual({
             valid: true,
             name: 'X',
+            stableKey: 'x',
             affinities: [{ role: 'terminal', aptness: 0.5 }],
         })
     })
@@ -200,6 +219,7 @@ describe('normalizeAcmeOrderEnrichLine', () => {
                 {
                     valid: true,
                     name: 'X',
+                    stableKey: 'x',
                     affinities: [{ role: 'terminal', aptness: 1 }],
                     affinitiesFailed: true,
                 },
@@ -208,6 +228,7 @@ describe('normalizeAcmeOrderEnrichLine', () => {
         ).toEqual({
             valid: true,
             name: 'X',
+            stableKey: 'x',
             affinities: [],
             affinitiesFailed: true,
         })
@@ -222,6 +243,7 @@ describe('normalizeAcmeOrderStepBResponse', () => {
                 {
                     valid: true,
                     name: 'Good',
+                    stableKey: 'good',
                     affinities: [{ role: 'terminal', aptness: 0.2 }],
                 },
             ],
@@ -237,6 +259,7 @@ describe('normalizeAcmeOrderStepBResponse', () => {
         expect(r.lines[0]).toMatchObject({
             valid: true,
             name: 'custom',
+            stableKey: 'custom',
             affinities: [],
             affinitiesFailed: true,
         })
@@ -249,6 +272,7 @@ describe('normalizeAcmeOrderStepBResponse', () => {
                 {
                     valid: true,
                     name: 'Good',
+                    stableKey: 'good',
                     affinities: [{ role: 'terminal', aptness: 0.2 }],
                 },
                 null,
@@ -259,6 +283,7 @@ describe('normalizeAcmeOrderStepBResponse', () => {
         expect(r.lines[1]).toMatchObject({
             valid: true,
             name: 'line2',
+            stableKey: 'line2',
             affinities: [],
             affinitiesFailed: true,
         })
@@ -276,6 +301,7 @@ describe('normalizeAcmeOrderStepBResponse', () => {
                 {
                     valid: true,
                     name: 'Anvil',
+                    stableKey: 'anvil',
                     affinities: [{ role: 'terminal', aptness: 0.5 }],
                 },
             ],
@@ -302,6 +328,7 @@ describe('isAcmeOrderEnrichModelResponse', () => {
                     {
                         valid: true,
                         name: 'Shovel',
+                        stableKey: 'shovel',
                         affinities: [
                             {
                                 role: 'entity_modification',
@@ -320,6 +347,7 @@ describe('isAcmeOrderEnrichModelResponse', () => {
         const lines = Array.from({ length: ACME_ORDER_ENRICH_MAX_LINES + 1 }, (_, i) => ({
             valid: true as const,
             name: `x${i}`,
+            stableKey: `x${i}`,
             affinities: [] as [],
         }))
         expect(isAcmeOrderEnrichModelResponse({ lines })).toBe(false)
@@ -333,6 +361,7 @@ describe('isAcmeOrderEnrichModelResponse', () => {
                     {
                         valid: true,
                         name: 'A',
+                        stableKey: 'a',
                         affinities: [{ role: 'terminal', aptness: 0.2 }],
                     },
                 ],
@@ -344,7 +373,7 @@ describe('isAcmeOrderEnrichModelResponse', () => {
         expect(
             isAcmeOrderEnrichModelResponse({
                 confidence: 1.2,
-                lines: [{ valid: true, name: 'A', affinities: [] }],
+                lines: [{ valid: true, name: 'A', stableKey: 'a', affinities: [] }],
             })
         ).toBe(false)
     })

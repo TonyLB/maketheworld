@@ -88,6 +88,7 @@ function enrichLineToParseLine(line: AcmeOrderEnrichModelLine): ParseCommandAcme
     return {
         valid: true,
         name: line.name,
+        stableKey: line.stableKey,
         affinities: line.affinities,
         ...(line.affinitiesFailed !== undefined ? { affinitiesFailed: line.affinitiesFailed } : {}),
     }

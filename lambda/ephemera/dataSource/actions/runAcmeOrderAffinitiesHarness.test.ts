@@ -22,6 +22,7 @@ describe('runAcmeOrderAffinitiesHarness', () => {
             orders: [{
                 valid: true,
                 name: phrase,
+                stableKey: phrase,
                 affinities: [{ role: 'terminal', aptness: 0.5 }],
             }],
         })
@@ -89,6 +90,7 @@ describe('runAcmeOrderAffinitiesHarness', () => {
                 lines: [{
                     valid: true,
                     name: 'Test Widget',
+                    stableKey: 'test-widget',
                     affinities: [{ role: 'terminal', aptness: 0.5 }],
                 }],
                 confidence: 0.95,
@@ -125,6 +127,7 @@ describe('runAcmeOrderAffinitiesHarness', () => {
             lines: [{
                 valid: true,
                 name: 'CoR Widget',
+                stableKey: 'cor-widget',
                 affinities: [{ role: 'terminal', aptness: 0.5 }],
             }],
             confidence: 0.9,
