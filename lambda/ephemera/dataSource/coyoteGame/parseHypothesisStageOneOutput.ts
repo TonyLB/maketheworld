@@ -72,7 +72,8 @@ function sectionExtract(body: string, title: string): { found: false } | { found
 
 /**
  * Validates stage-1 body against the locked seam contract, then returns the normalized Markdown for
- * stage 2. See module comment above for why validation is strict; task plan: Stage 1 seam contract.
+ * stage 2. See module comment above for why validation is strict. Steady-state: `AGENT.md` (Hypothesis
+ * pipeline) and `buildHypothesisStageOnePrompt.ts` (emitted seam shape).
  */
 export function parseHypothesisStageOneOutput(
     rawBody: string,
