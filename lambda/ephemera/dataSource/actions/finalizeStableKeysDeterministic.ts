@@ -5,8 +5,9 @@
  * LLM-first vs deterministic phases, charset / **`constructed-`** rules; numeric repair
  * behavior is defined by this module and **`finalizeStableKeysDeterministic.test.ts`**.
  *
- * **Occupancy:** Callers build **`coyoteOccupiedStableKeys`** from existing staged objects only;
- * legacy **`Meta::Room.objects`** rows without **`stableKey`** must not contribute keys to that set.
+ * **Occupancy:** Callers build **`coyoteOccupiedStableKeys`** from existing staged objects only.
+ * **`Meta::Room.objects`** rows that are missing **`stableKey`**, blank after trim, or otherwise fail
+ * **`isEphemeraMetaRoomObject`** must not contribute keys to that set.
  */
 import {
     defaultStableKeyProposal,

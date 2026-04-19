@@ -1,6 +1,7 @@
 import type { AcmeOrderEnrichModelLine, AcmeOrderEnrichModelResponse } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import {
     ACME_ORDER_ENRICH_MAX_LINES,
+    defaultStableKeyProposal,
     normalizeAcmeOrderStepBResponse,
 } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import { extractJsonObjectText } from '../../llm/extractJsonObjectText'
@@ -105,11 +106,13 @@ export function finalizeAcmeOrderFromStepB(
     commandFallbackName: string
 ): ParseCommandAcmeOrderResult {
     if (enrichInvokeFailed || enrich === null) {
+        const name = commandFallbackName.trim() || 'order'
         return {
             type: 'AcmeOrder',
             orders: [{
                 valid: true,
-                name: commandFallbackName.trim() || 'order',
+                name,
+                stableKey: defaultStableKeyProposal(name),
                 affinities: [],
                 affinitiesFailed: true,
             }],
