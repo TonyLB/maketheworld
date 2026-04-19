@@ -4,7 +4,7 @@
 
 This document is task-scoped; retire it after the initiative ships and move lasting behavior notes into [`lambda/ephemera/dataSource/coyoteGame/AGENT.md`](../../../../../lambda/ephemera/dataSource/coyoteGame/AGENT.md) (see [`taskPlanning/AGENT.md`](../../../../AGENT.md)).
 
-**Prerequisite (foundational):** Prefer landing [**Acme stable keys**](../actions/AGENT.acmeObject-stableKey.plan.md) first so staged objects expose deterministic **`stableKey`** for seam/combine correlation; this plan can proceed in parallel only if combine logic keys off **`uuid`** temporarily.
+**Prerequisite (foundational):** Acme **`stableKey`** is shipped --- steady-state contract [**`lambda/ephemera/dataSource/actions/AGENT.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.md)**; staged objects expose deterministic **`stableKey`** for seam/combine correlation. This clustering plan can proceed in parallel only if combine logic keys off **`uuid`** temporarily.
 
 ## Purpose
 

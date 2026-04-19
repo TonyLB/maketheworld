@@ -1,5 +1,6 @@
 /**
- * Step B: Parse the full Acme-order command, validate catalog rules per line item, normalized titles, and affinities.
+ * Step B: Parse the full Acme-order command, validate catalog rules per line item, normalized titles, affinities,
+ * and **`stableKey`** proposals. Coyote-wide **`occupiedStableKeys`** embedding --- see **`LLM-first`** in [`AGENT.md`](./AGENT.md).
  */
 
 import { COYOTE_AFFINITY_APTNESS_MIN } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'

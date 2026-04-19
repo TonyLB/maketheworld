@@ -1,9 +1,9 @@
 /**
  * Post-LLM deterministic **`stableKey`** enforcement for Acme orders.
  *
- * Contract: task plan **Disambiguation phases**, **Deterministic numeric repair**,
- * **Charset and normalization**, **`constructed-`** reservation in
- * `taskPlanning/.../AGENT.acmeObject-stableKey.plan.md`.
+ * Contract: [`AGENT.md`](./AGENT.md) (**Acme catalog lines and `stableKey`**) ---
+ * LLM-first vs deterministic phases, charset / **`constructed-`** rules; numeric repair
+ * behavior is defined by this module and **`finalizeStableKeysDeterministic.test.ts`**.
  *
  * **Occupancy:** Callers build **`coyoteOccupiedStableKeys`** from existing staged objects only;
  * legacy **`Meta::Room.objects`** rows without **`stableKey`** must not contribute keys to that set.

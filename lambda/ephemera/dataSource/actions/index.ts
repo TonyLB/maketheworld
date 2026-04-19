@@ -4,7 +4,7 @@
  * **`stableKey`** on **`Acme Order`** stream payloads: prefetch Coyote-wide occupancy,
  * **`parseCommand`** (Step B enrich uses the same snapshot), then
  * **`finalizeStableKeysDeterministic`** before **`streamEvent`** ---
- * see **Where deterministic enforcement runs** in `taskPlanning/.../AGENT.acmeObject-stableKey.plan.md`.
+ * see **`Where enforcement runs`** in [`AGENT.md`](./AGENT.md) (**Acme catalog lines and `stableKey`**).
  */
 import { isEphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { RenderTree } from '@tonylb/mtw-base/ts/renderTree'
