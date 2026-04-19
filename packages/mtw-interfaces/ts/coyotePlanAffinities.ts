@@ -120,11 +120,19 @@ function isFiniteUnitConfidence(n: unknown): boolean {
     return typeof n === 'number' && Number.isFinite(n) && n >= 0 && n <= 1
 }
 
-/** Fallback **`stableKey`** when the model omits or supplies an empty string (deterministic repair may still adjust). */
-function defaultStableKeyProposal(name: string): string {
-    const folded = name.trim().toLowerCase()
+/**
+ * Charset normalization for **`stableKey`**: lowercase **`a-z`**, **`0-9`**, **`-`** only;
+ * whitespace and punctuation folded to hyphens (see task plan **Charset and normalization**).
+ */
+export function normalizeStableKeyCharset(raw: string): string {
+    const folded = raw.trim().toLowerCase()
     const withHyphens = folded.replace(/\s+/g, '-').replace(/[^a-z0-9-]+/g, '-')
-    const collapsed = withHyphens.replace(/-+/g, '-').replace(/^-|-$/g, '')
+    return withHyphens.replace(/-+/g, '-').replace(/^-|-$/g, '')
+}
+
+/** Fallback **`stableKey`** when the model omits or supplies an empty string (deterministic repair may still adjust). */
+export function defaultStableKeyProposal(name: string): string {
+    const collapsed = normalizeStableKeyCharset(name)
     return collapsed.length > 0 ? collapsed : 'line'
 }
 
