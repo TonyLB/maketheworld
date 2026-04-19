@@ -12,25 +12,26 @@ import { buildParseCommandIntentClassificationPrompt } from './buildParseCommand
 import { isCoyoteAffinitiesTestSlashCommand } from './coyoteAffinitiesTestSlashCommand'
 import { isCoyoteEngineTestSlashCommand } from './coyoteEngineTestSlashCommand'
 import {
-    attachReasoningMarkdown,
     finalizeAcmeOrderFromStepB,
     interpretAcmeOrderEnrichBody,
 } from './mergeAcmeOrderEnrich'
 import { interpretParseCommandIntentClassificationBody } from './parseCommandIntentClassification'
 
-/**
- * **`/test generation`** returns **`CoyoteEngineTest`**; **`/test affinities`** returns **`CoyoteAffinitiesTest`**; both without Bedrock.
- * Otherwise classifies via LLM (Step A), then runs Acme Step B when intent is **AcmeOrderIntent**.
- */
-export async function parseCommand(
+/** Step B chain-of-reason Markdown only; use with {@link parseCommandWithEnrichReasoning} for harness review. */
+export type ParseCommandWithEnrichReasoningResult = {
+    result: ParseCommandResult;
+    enrichReasoningMarkdown: string;
+};
+
+async function parseCommandCore(
     input: ParseCommandInput,
     deps: ParseCommandDeps = {}
-): Promise<ParseCommandResult> {
+): Promise<ParseCommandWithEnrichReasoningResult> {
     if (isCoyoteEngineTestSlashCommand(input.command)) {
-        return { type: 'CoyoteEngineTest', confidence: 1 }
+        return { result: { type: 'CoyoteEngineTest', confidence: 1 }, enrichReasoningMarkdown: '' }
     }
     if (isCoyoteAffinitiesTestSlashCommand(input.command)) {
-        return { type: 'CoyoteAffinitiesTest', confidence: 1 }
+        return { result: { type: 'CoyoteAffinitiesTest', confidence: 1 }, enrichReasoningMarkdown: '' }
     }
 
     const invoke = deps.invokeBedrockParseCommandImpl ?? invokeBedrockParseCommand
@@ -39,13 +40,13 @@ export async function parseCommand(
     const prompt = buildParseCommandIntentClassificationPrompt(input.command)
     const invokeResult = await invoke(prompt)
     if (!invokeResult.success) {
-        return { type: 'Error', errorMessage: invokeResult.errorMessage }
+        return { result: { type: 'Error', errorMessage: invokeResult.errorMessage }, enrichReasoningMarkdown: '' }
     }
 
     const stepA = interpretParseCommandIntentClassificationBody(invokeResult.body)
 
     if (!isParseCommandAcmeOrderIntentResult(stepA)) {
-        return stepA
+        return { result: stepA, enrichReasoningMarkdown: '' }
     }
 
     const enrichPromptParts = buildParseAcmeOrderEnrichPrompt(input.command)
@@ -69,13 +70,34 @@ export async function parseCommand(
     }
 
     const fallbackName = input.command.trim() || 'order'
-    return attachReasoningMarkdown(
-        finalizeAcmeOrderFromStepB(
-            stepA.confidence,
-            enrichResponse,
-            enrichInvokeFailed,
-            fallbackName
-        ),
-        enrichReasoningMarkdown
+    const result = finalizeAcmeOrderFromStepB(
+        stepA.confidence,
+        enrichResponse,
+        enrichInvokeFailed,
+        fallbackName
     )
+    return { result, enrichReasoningMarkdown }
+}
+
+/**
+ * **`/test generation`** returns **`CoyoteEngineTest`**; **`/test affinities`** returns **`CoyoteAffinitiesTest`**; both without Bedrock.
+ * Otherwise classifies via LLM (Step A), then runs Acme Step B when intent is **AcmeOrderIntent**.
+ * Enrich chain-of-reason Markdown is not attached to **`AcmeOrder`**; use {@link parseCommandWithEnrichReasoning} when needed (e.g. affinities harness).
+ */
+export async function parseCommand(
+    input: ParseCommandInput,
+    deps: ParseCommandDeps = {}
+): Promise<ParseCommandResult> {
+    const { result } = await parseCommandCore(input, deps)
+    return result
+}
+
+/**
+ * Same pipeline as **`parseCommand`**, plus Step B **`enrichReasoningMarkdown`** for manual review (affinities harness). Does not add that string to **`AcmeOrder`**.
+ */
+export async function parseCommandWithEnrichReasoning(
+    input: ParseCommandInput,
+    deps: ParseCommandDeps = {}
+): Promise<ParseCommandWithEnrichReasoningResult> {
+    return parseCommandCore(input, deps)
 }

@@ -4,9 +4,13 @@ import { buildParseAcmeOrderEnrichPrompt } from './buildParseAcmeOrderEnrichProm
 describe('buildParseAcmeOrderEnrichPrompt', () => {
     it('requires chain-of-reasoning markdown then fenced json, and retains affinity contract', () => {
         const { invariantPrefix, dynamicSuffix } = buildParseAcmeOrderEnrichPrompt('order rope')
-        expect(invariantPrefix).toContain('Chain-of-reason')
-        expect(invariantPrefix).toContain('two parts')
-        expect(invariantPrefix).toContain('Final JSON')
+        expect(invariantPrefix).toContain('Classify order type')
+        expect(invariantPrefix).toContain('two steps with different rules')
+        expect(invariantPrefix).toContain('Enhance (JSON final)')
+        expect(invariantPrefix).toContain('Correctable user error')
+        expect(invariantPrefix).toContain('Cartoon physics')
+        expect(invariantPrefix.indexOf('Correctable user error')).toBeLessThan(invariantPrefix.indexOf('Cartoon physics modifier'))
+        expect(invariantPrefix.indexOf('Cartoon physics modifier')).toBeLessThan(invariantPrefix.indexOf('Primary category'))
         expect(invariantPrefix).toContain('language tag **json**')
         expect(invariantPrefix).toContain('entity_modification')
         expect(invariantPrefix).toContain('autonomous_agent')

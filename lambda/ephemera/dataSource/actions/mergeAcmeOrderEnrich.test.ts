@@ -1,5 +1,4 @@
 import {
-    attachReasoningMarkdown,
     interpretAcmeOrderEnrichBody,
     finalizeAcmeOrderFromStepB,
 } from './mergeAcmeOrderEnrich'
@@ -88,22 +87,6 @@ ${payload}
         }
     })
 
-    it('attachReasoningMarkdown adds reasoningMarkdown when non-empty', () => {
-        const base = finalizeAcmeOrderFromStepB(
-            1,
-            {
-                lines: [{ valid: true, name: 'A', affinities: [] }],
-                confidence: 1,
-            },
-            false,
-            'x'
-        )
-        expect(attachReasoningMarkdown(base, '  ')).toEqual(base)
-        expect(attachReasoningMarkdown(base, 'Why')).toEqual({
-            ...base,
-            reasoningMarkdown: 'Why',
-        })
-    })
 })
 
 describe('finalizeAcmeOrderFromStepB', () => {

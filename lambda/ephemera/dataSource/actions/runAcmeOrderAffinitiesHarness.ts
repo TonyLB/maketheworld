@@ -5,15 +5,13 @@ import type { MessageBus } from '../../messageBus/baseClasses'
 import { invokeBedrockAcmeOrderEnrich } from '../../generateExample/invokeBedrockAcmeOrderEnrich'
 import { COYOTE_RENDER_LINE_BREAK } from '../coyoteGame/coyoteRenderTree'
 import { ACME_ORDER_AFFINITIES_HARNESS_PHRASES } from './acmeOrderAffinitiesHarnessPhrases'
-import type { ParseCommandResult } from './baseClasses'
-import { isParseCommandAcmeOrderResult } from './baseClasses'
+import type { ParseCommandDeps, ParseCommandResult } from './baseClasses'
 import { buildParseAcmeOrderEnrichPrompt } from './buildParseAcmeOrderEnrichPrompt'
 import {
-    attachReasoningMarkdown,
     finalizeAcmeOrderFromStepB,
     interpretAcmeOrderEnrichBody,
 } from './mergeAcmeOrderEnrich'
-import { parseCommand } from './parseCommand'
+import { parseCommand, parseCommandWithEnrichReasoning } from './parseCommand'
 
 export type RunAcmeOrderAffinitiesHarnessDeps = {
     characterId: EphemeraCharacterId
@@ -21,8 +19,14 @@ export type RunAcmeOrderAffinitiesHarnessDeps = {
     phrases?: readonly string[]
     /** When true, only Step B (enrich) runs with the full command string; Step A is skipped. */
     stepBOnly?: boolean
-    /** Override for tests; defaults to [`parseCommand`] when **`stepBOnly`** is false. */
+    /**
+     * Override for tests when **`stepBOnly`** is false. If unset, uses **`parseCommandWithEnrichReasoning`**
+     * so chain-of-reason Markdown is available for display. **`parseCommandImpl`** is a legacy shortcut
+     * that returns **`result`** only (no CoR in the published tree unless you also wire enrich reasoning).
+     */
     parseCommandImpl?: typeof parseCommand
+    /** Full override including **`enrichReasoningMarkdown`** for harness output when **`stepBOnly`** is false. */
+    parseCommandWithEnrichReasoningImpl?: typeof parseCommandWithEnrichReasoning
     /** Override Bedrock enrich for tests when **`stepBOnly`** is true. */
     invokeBedrockAcmeOrderEnrichImpl?: typeof invokeBedrockAcmeOrderEnrich
     now?: () => number
@@ -39,7 +43,6 @@ function formatParseResultJson(result: ParseCommandResult): string {
  */
 export async function runAcmeOrderAffinitiesHarness(deps: RunAcmeOrderAffinitiesHarnessDeps): Promise<void> {
     const phrases = deps.phrases ?? ACME_ORDER_AFFINITIES_HARNESS_PHRASES
-    const runParse = deps.parseCommandImpl ?? parseCommand
     const invokeEnrich = deps.invokeBedrockAcmeOrderEnrichImpl ?? invokeBedrockAcmeOrderEnrich
     const now = deps.now ?? (() => Date.now())
     const stepBOnly = deps.stepBOnly ?? false
@@ -67,31 +70,39 @@ export async function runAcmeOrderAffinitiesHarness(deps: RunAcmeOrderAffinities
         const command = `order ${phrase}`
         const startMs = now()
         let result: ParseCommandResult
+        let displayReasoning = ''
+        const parseDeps: ParseCommandDeps = {}
         try {
             if (stepBOnly) {
                 const parts = buildParseAcmeOrderEnrichPrompt(command)
                 const enrichInvoke = await invokeEnrich(parts)
                 let enrichFailed = !enrichInvoke.success
                 let response: AcmeOrderEnrichModelResponse | null = null
-                let reasoningMarkdown = ''
                 if (enrichInvoke.success) {
                     const parsed = interpretAcmeOrderEnrichBody(enrichInvoke.body, {
                         emptyFallbackName: command.trim() || 'order',
                     })
                     if (parsed.success) {
                         response = parsed.response
-                        reasoningMarkdown = parsed.reasoningMarkdown
+                        displayReasoning = parsed.reasoningMarkdown.trim()
                     } else {
                         enrichFailed = true
                     }
                 }
-                result = attachReasoningMarkdown(
-                    finalizeAcmeOrderFromStepB(1, response, enrichFailed, command.trim() || 'order'),
-                    reasoningMarkdown
-                )
+                result = finalizeAcmeOrderFromStepB(1, response, enrichFailed, command.trim() || 'order')
+            }
+            else if (deps.parseCommandWithEnrichReasoningImpl) {
+                const pair = await deps.parseCommandWithEnrichReasoningImpl({ command }, parseDeps)
+                result = pair.result
+                displayReasoning = pair.enrichReasoningMarkdown.trim()
+            }
+            else if (deps.parseCommandImpl) {
+                result = await deps.parseCommandImpl({ command }, parseDeps)
             }
             else {
-                result = await runParse({ command }, {})
+                const pair = await parseCommandWithEnrichReasoning({ command }, parseDeps)
+                result = pair.result
+                displayReasoning = pair.enrichReasoningMarkdown.trim()
             }
         }
         catch (error) {
@@ -107,10 +118,10 @@ export async function runAcmeOrderAffinitiesHarness(deps: RunAcmeOrderAffinities
         tree.push(COYOTE_RENDER_LINE_BREAK)
         tree.push(`elapsedMs: ${elapsedMs}`)
         tree.push(COYOTE_RENDER_LINE_BREAK)
-        if (isParseCommandAcmeOrderResult(result) && result.reasoningMarkdown) {
-            tree.push('Chain-of-reason (Markdown):')
+        if (displayReasoning) {
+            tree.push('Classify order type (markdown):')
             tree.push(COYOTE_RENDER_LINE_BREAK)
-            tree.push(result.reasoningMarkdown)
+            tree.push(displayReasoning)
             tree.push(COYOTE_RENDER_LINE_BREAK)
         }
         tree.push(formatParseResultJson(result))

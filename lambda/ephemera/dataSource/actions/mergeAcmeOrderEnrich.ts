@@ -76,20 +76,6 @@ export function interpretAcmeOrderEnrichBody(
     }
 }
 
-/**
- * Adds optional **`reasoningMarkdown`** to **`AcmeOrder`** when the argument is non-empty after trim.
- */
-export function attachReasoningMarkdown(
-    result: ParseCommandAcmeOrderResult,
-    reasoningMarkdown: string
-): ParseCommandAcmeOrderResult {
-    const trimmed = reasoningMarkdown.trim()
-    if (!trimmed) {
-        return result
-    }
-    return { ...result, reasoningMarkdown: trimmed }
-}
-
 function enrichLineToParseLine(line: AcmeOrderEnrichModelLine): ParseCommandAcmeOrderLine {
     if (line.valid === false) {
         return {

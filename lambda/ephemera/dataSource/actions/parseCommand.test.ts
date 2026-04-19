@@ -12,7 +12,7 @@ import { buildParseCommandIntentClassificationPrompt } from './buildParseCommand
 import { isCoyoteAffinitiesTestSlashCommand } from './coyoteAffinitiesTestSlashCommand'
 import { isCoyoteEngineTestSlashCommand } from './coyoteEngineTestSlashCommand'
 import { interpretParseCommandIntentClassificationBody } from './parseCommandIntentClassification'
-import { parseCommand } from './parseCommand'
+import { parseCommand, parseCommandWithEnrichReasoning } from './parseCommand'
 
 describe('parseCommand type guards', () => {
     const room = 'ROOM#x' as EphemeraRoomId
@@ -133,23 +133,6 @@ describe('parseCommand type guards', () => {
             } as any)).toBe(false)
         })
 
-        it('accepts optional reasoningMarkdown string', () => {
-            expect(isParseCommandAcmeOrderResult({
-                type: 'AcmeOrder',
-                orders: [{ valid: true, name: 'a', affinities: [] }],
-                confidence: 0.5,
-                reasoningMarkdown: 'CoR text',
-            })).toBe(true)
-        })
-
-        it('rejects non-string reasoningMarkdown', () => {
-            expect(isParseCommandAcmeOrderResult({
-                type: 'AcmeOrder',
-                orders: [{ valid: true, name: 'a', affinities: [] }],
-                confidence: 0.5,
-                reasoningMarkdown: 1,
-            } as any)).toBe(false)
-        })
     })
 
     it('isParseCommandAwaitRoadrunnerResult requires confidence', () => {
@@ -435,7 +418,7 @@ describe('parseCommand LLM path', () => {
         expect(invokeBedrockAcmeOrderEnrichImpl).toHaveBeenCalledTimes(1)
     })
 
-    it('includes reasoningMarkdown when enrich returns Markdown before fenced JSON', async () => {
+    it('parseCommand omits enrich Markdown on AcmeOrder; parseCommandWithEnrichReasoning returns it separately', async () => {
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
             success: true,
             body: '{"type":"AcmeOrder","confidence":0.82}',
@@ -450,17 +433,19 @@ describe('parseCommand LLM path', () => {
             body,
         })
 
-        const result = await parseCommand(
-            { command: 'order rope' },
-            { invokeBedrockParseCommandImpl, invokeBedrockAcmeOrderEnrichImpl }
-        )
+        const deps = { invokeBedrockParseCommandImpl, invokeBedrockAcmeOrderEnrichImpl }
+
+        const result = await parseCommand({ command: 'order rope' }, deps)
+        const withReason = await parseCommandWithEnrichReasoning({ command: 'order rope' }, deps)
 
         expect(result.type).toBe('AcmeOrder')
         if (result.type === 'AcmeOrder') {
-            expect(result.reasoningMarkdown).toContain('Notes')
+            expect(result).not.toHaveProperty('reasoningMarkdown')
             expect(result.orders[0]?.name).toBe('rope')
         }
-        expect(invokeBedrockAcmeOrderEnrichImpl).toHaveBeenCalledTimes(1)
+        expect(withReason.enrichReasoningMarkdown).toContain('Notes')
+        expect(withReason.result).toEqual(result)
+        expect(invokeBedrockAcmeOrderEnrichImpl).toHaveBeenCalledTimes(2)
     })
 
     it('merges per-line: one good enrich line and one unparseable line still returns AcmeOrder with combined confidence', async () => {

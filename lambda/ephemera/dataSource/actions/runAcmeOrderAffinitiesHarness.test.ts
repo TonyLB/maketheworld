@@ -154,9 +154,9 @@ describe('runAcmeOrderAffinitiesHarness', () => {
             throw new Error('expected WorldMessage or WorldOOCMessage')
         }
         const joined = JSON.stringify(payloadMsg.message)
-        expect(joined).toContain('Chain-of-reason (Markdown):')
+        expect(joined).toContain('Classify order type (markdown):')
         expect(joined).toContain('Analysis')
-        expect(joined).toContain('reasoningMarkdown')
+        expect(joined).not.toContain('"reasoningMarkdown"')
         expect(joined).toContain('CoR Widget')
     })
 })

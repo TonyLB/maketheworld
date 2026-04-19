@@ -254,7 +254,10 @@ describe('ephemeraActionsDataSource', () => {
                 update: {
                     type: 'Acme Order',
                     characterId: 'CHARACTER#123',
-                    orders: ['rocket-powered roller skates'],
+                    orders: [{
+                        shortName: 'rocket-powered roller skates',
+                        affinities: [],
+                    }],
                     confidence: 0.9,
                 },
             })
@@ -318,7 +321,7 @@ describe('ephemeraActionsDataSource', () => {
                     type: 'Acme Order',
                     characterId: 'CHARACTER#123',
                     orders: [
-                        'anvil',
+                        { shortName: 'anvil', affinities: [] },
                     ],
                     confidence: 0.88,
                 },
@@ -336,6 +339,55 @@ describe('ephemeraActionsDataSource', () => {
                     { data: { tag: 'br' }, children: [] },
                     'The courier apologizes: Glooblethwoats, flensed is not in the catalog.',
                 ],
+            })
+        })
+
+        it('publishes structured orders with affinities and affinitiesFailed', async () => {
+            mockedParseCommand.mockResolvedValue({
+                type: 'AcmeOrder',
+                orders: [{
+                    valid: true,
+                    name: 'Beehive',
+                    affinities: [{ role: 'terminal', aptness: 0.7 }],
+                }, {
+                    valid: true,
+                    name: 'broken dynamite',
+                    affinities: [],
+                    affinitiesFailed: true,
+                }],
+                confidence: 0.85,
+            })
+            const streamEvent = jest.fn(async () => {})
+
+            await ephemeraActionsDataSource.receiveEvents!({
+                events: [{
+                    header: {
+                        dataSourceKey: 'api.ephemera',
+                        streamKey: 'CHARACTER#123',
+                        timestamp: Date.now(),
+                        type: 'Parse Requested',
+                    },
+                    getContent: async () => ({
+                        characterId: 'CHARACTER#123',
+                        command: 'order stuff',
+                    }),
+                }],
+                streamEvent,
+                streamEnvelope: jest.fn(async () => {}),
+            })
+
+            expect(streamEvent).toHaveBeenCalledWith({
+                streamKey: 'CHARACTER#123',
+                header: { type: 'Acme Order' },
+                update: {
+                    type: 'Acme Order',
+                    characterId: 'CHARACTER#123',
+                    orders: [
+                        { shortName: 'Beehive', affinities: [{ role: 'terminal', aptness: 0.7 }] },
+                        { shortName: 'broken dynamite', affinities: [], affinitiesFailed: true },
+                    ],
+                    confidence: 0.85,
+                },
             })
         })
     })

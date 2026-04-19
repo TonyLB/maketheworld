@@ -7,7 +7,7 @@ import { isEphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { RenderTree } from '@tonylb/mtw-base/ts/renderTree'
 
 import EphemeraDataSource from '../abstract'
-import type { ActionsPublishedPayload } from './publishedEvents'
+import type { AcmeOrderPublishedOrder, ActionsPublishedPayload } from './publishedEvents'
 import type { ActionsSubscribedContent } from './subscribedEvents'
 import { isActionsSubscribedEnvelope } from './subscribedEvents'
 import messageBus from '../../messageBus'
@@ -30,10 +30,16 @@ import { runCoyoteEngineTestHarness } from '../coyoteGame/runCoyoteEngineTestHar
 const COYOTE_ENGINE_TEST_HARNESS_ENABLED = true
 const COYOTE_AFFINITIES_TEST_HARNESS_ENABLED = true
 
-const validAcmeOrderNames = (orders: ParseCommandAcmeOrderLine[]): string[] => (
+const validAcmeOrderPublishedOrders = (
+    orders: ParseCommandAcmeOrderLine[],
+): AcmeOrderPublishedOrder[] => (
     orders
         .filter(({ valid }) => valid)
-        .map(({ name }) => name)
+        .map(({ name, affinities, affinitiesFailed }) => ({
+            shortName: name.trim(),
+            affinities,
+            ...(affinitiesFailed === true ? { affinitiesFailed: true as const } : {}),
+        }))
 )
 
 const invalidAcmeOrderMessages = (orders: ParseCommandAcmeOrderLine[]): string[] => (
@@ -115,7 +121,7 @@ export const ephemeraActionsDataSource = new EphemeraDataSource<
                 }
             }
             else if (isEphemeraCharacterId(content.characterId) && isParseCommandAcmeOrderResult(parseResult)) {
-                const orders = validAcmeOrderNames(parseResult.orders)
+                const orders = validAcmeOrderPublishedOrders(parseResult.orders)
                 await streamEvent({
                     streamKey: content.characterId,
                     header: { type: 'Acme Order' },
