@@ -3,19 +3,19 @@ import {
     COYOTE_HYPOTHESIS_CARTOON_OPPORTUNITY_LINES,
     COYOTE_HYPOTHESIS_WORLD_TOPOLOGY_LINES,
     coyoteSeamRoomMappingLines,
-    SNAPSHOT_SECTION_HEADER,
 } from './coyoteHypothesisPromptShared'
-import { formatCoyoteStagedObjectsByRoom, type CoyoteRoomObjectsByRoom } from './coyoteRoomObjectSnapshot'
+import type { CoyoteRoomObjectsByRoom } from './coyoteRoomObjectSnapshot'
 
 export type BuildHypothesisStageTwoPromptInput = {
     roomObjectsByRoom: CoyoteRoomObjectsByRoom
-    seamMarkdown: string
+    /** Deterministic Markdown from combine + renderer (combined-only; no raw seam + snapshot replay). */
+    combinedMarkdown: string
 }
 
 const STAGE_TWO_INTRO_LINES = [
     'You are completing the player-facing hypothesis for a Coyote-vs-Road-Runner cartoon setup.',
     '',
-    'The dynamic section below contains a **stage-1 structured seam** (clustering + affinities) and the **current staged objects by room**. Use both together with the fixed world context in this message.',
+    'The dynamic section below contains **combined clustering input** (clusters, members, optional intended roles, outliers) derived from staged objects and Stage One --- use it as ground truth for grouping and roles.',
     '- Write a brief scene analysis under "## Scene analysis" for the player.',
     '- Then output exactly one plain-text line beginning with "Hypothesis:".',
     '- Structured markdown (including ## headings) is allowed only before the Hypothesis line; the Hypothesis line itself is plain text.',
@@ -41,21 +41,20 @@ const INTERPRETATION_RULES_LINES = [
 const SCENE_AND_HYPOTHESIS_LINES = [
     '## Scene analysis and Hypothesis output',
     '- Your "## Scene analysis" section should commit to a single reading and build the spatial and causal logic behind it. Do not survey multiple plans there; the Hypothesis restates that same reading as one sentence.',
-    '- Ground your "## Scene analysis" section on the stage-1 seam and the spatial layout; narrate for the player without contradicting the seam.',
+    '- Ground your "## Scene analysis" section on the **combined clustering** block and world topology; narrate for the player without contradicting cluster membership or stated intended roles.',
     '- After "## Scene analysis", respond with one plain-text sentence on its own line beginning exactly with "Hypothesis:".',
     '- No JSON. No extra commentary outside "## Scene analysis" (markdown allowed there) and the Hypothesis line.',
 ] as const
 
 const DYNAMIC_SECTION_INTRO = [
     '',
-    'The following blocks are specific to this request (stage-1 seam, then live snapshot):',
+    'The following blocks are specific to this request (seam room labels, then combined clustering):',
     '',
-    '## Stage 1 seam (structured Markdown)',
+    '## Combined clustering input (structured Markdown)',
 ] as const
 
-/** Stage 2: topology + interpretation + scene/hypothesis rules invariant; dynamic tail = seam + snapshot (cached tail varies per request). */
+/** Stage 2: topology + interpretation + scene/hypothesis rules invariant; dynamic tail = labels + combined Markdown only. */
 export function buildHypothesisStageTwoPromptParts(input: BuildHypothesisStageTwoPromptInput): CoyotePromptParts {
-    const snapshotSection = formatCoyoteStagedObjectsByRoom(input.roomObjectsByRoom)
     const seamRoomMappingBlock = coyoteSeamRoomMappingLines(input.roomObjectsByRoom).join('\n')
     const invariantPrefix = [
         ...STAGE_TWO_INTRO_LINES,
@@ -74,10 +73,8 @@ export function buildHypothesisStageTwoPromptParts(input: BuildHypothesisStageTw
         '',
         seamRoomMappingBlock,
         '',
-        input.seamMarkdown.trim(),
+        input.combinedMarkdown.trim(),
         '',
-        SNAPSHOT_SECTION_HEADER,
-        snapshotSection || '(none)',
     ].join('\n')
 
     return {

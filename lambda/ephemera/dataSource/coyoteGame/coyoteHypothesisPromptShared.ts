@@ -48,7 +48,7 @@ export function coyoteSeamRoomMappingLines(
     const roomIds = roomIdsWithStagedObjects(roomObjectsByRoom)
     const lines: string[] = [
         '## Seam room labels',
-        '- Canonical **`EphemeraRoomId`** values appear only in **Current staged objects by room**. Use the **short seam label** for that id in **`## Objects`** headings and **`## Clusters`** **Members** refs (easier to read; matches world topology names like VORTEX and CLIFFTOP).',
+        '- Canonical **`EphemeraRoomId`** values appear only in **Current staged objects by room**. Hypothesis Stage One clusters reference objects by **`stableKey`** from that snapshot (not room labels in member lines).',
         '- Right now each short label is the **`ROOM#` prefix stripped** from the id. Later we may substitute friendlier names; this table stays the source of truth.',
         '- Preferred form: **`### VORTEX · rocket skates`** and member refs **`VORTEX · rocket skates`** (separator **` · `**). The parser also accepts an optional **`ROOM#`** on the room token (e.g. `ROOM#VORTEX · rocket skates`) and normalizes it.',
         '',

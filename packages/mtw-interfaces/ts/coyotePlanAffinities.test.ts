@@ -29,6 +29,11 @@ describe('isCoyoteAffinityPossibility', () => {
         expect(isCoyoteAffinityPossibility({ role: 'autonomous_agent', aptness: 0.3 })).toBe(true)
     })
 
+    it('accepts generative roles', () => {
+        expect(isCoyoteAffinityPossibility({ role: 'prep', aptness: 0.6 })).toBe(true)
+        expect(isCoyoteAffinityPossibility({ role: 'creation', aptness: 0.4 })).toBe(true)
+    })
+
     it('rejects invalid aptness', () => {
         expect(isCoyoteAffinityPossibility({ role: 'terminal', aptness: -0.1 })).toBe(false)
         expect(isCoyoteAffinityPossibility({ role: 'terminal', aptness: 1.1 })).toBe(false)
@@ -39,6 +44,17 @@ describe('isCoyoteAffinityPossibility', () => {
         expect(
             isCoyoteAffinityPossibility({
                 role: 'entity_modification',
+                aptness: 0.5,
+            })
+        ).toBe(false)
+    })
+
+    it('rejects stale environment entity_modification target', () => {
+        expect(
+            isCoyoteAffinityPossibility({
+                role: 'entity_modification',
+                target: 'environment',
+                mode: 'direct',
                 aptness: 0.5,
             })
         ).toBe(false)
@@ -332,7 +348,7 @@ describe('isAcmeOrderEnrichModelResponse', () => {
                         affinities: [
                             {
                                 role: 'entity_modification',
-                                target: 'environment',
+                                target: 'prop',
                                 mode: 'constructive',
                                 aptness: 0.9,
                             },

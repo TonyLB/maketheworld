@@ -220,7 +220,7 @@ describe('finalizeAcmeOrderFromStepB', () => {
                         affinities: [
                             {
                                 role: 'entity_modification',
-                                target: 'environment',
+                                target: 'prop',
                                 mode: 'constructive',
                                 aptness: 0.88,
                             },

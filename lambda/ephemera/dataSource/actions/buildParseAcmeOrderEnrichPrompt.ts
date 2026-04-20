@@ -112,7 +112,21 @@ Emit **1-3** possibilities per deliverable line. **Omit** aptness **strictly bel
 
 ### entity_modification
 
-Include **\`target\`**: coyote | road_runner | environment and **\`mode\`**: direct | constructive.
+Include **\`target\`**: coyote | road_runner | prop and **\`mode\`**: direct | constructive.
+
+Use **\`prop\`** only when the item modifies another staged prop (camouflage, disguise, or covering another device). Do not emit **\`environment\`**.
+
+- Example (**prop**): tarp camouflaging a pit, or disguising another staged device.
+- Example (**road_runner**): glue on the Road Runner's feet, or a magnet attached to the Road Runner.
+
+### Generative roles
+
+**prep** and **creation** use **\`aptness\`** only (no target/mode).
+
+- **prep**: before-beat setup, assembly, rigging, digging, or scene preparation.
+- **creation**: in-beat generative or ephemeral effects produced during execution.
+- Example (**prep**): dig a pit, rig a rope, or assemble launch hardware before execution.
+- Example (**creation**): a Tesla coil creating lightning arcs during the beat.
 
 ### Structural roles
 

@@ -36,7 +36,7 @@ describe('buildHypothesisPrompt', () => {
         expect(prompt).toContain('giant magnet')
         expect(prompt).toContain('BRIDGE')
         expect(prompt).toContain('portable hole')
-        expect(prompt.trim().endsWith('anvil')).toBe(true)
+        expect(prompt.trim().endsWith('anvil-0')).toBe(true)
     })
 
     it('rejoins prompt parts to the same string as buildHypothesisPrompt', () => {

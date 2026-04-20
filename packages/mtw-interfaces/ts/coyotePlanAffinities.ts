@@ -1,5 +1,7 @@
 //
 // Coyote demo: plan-role affinities on staged objects (Acme enrich output + Meta::Room.objects).
+// Vocabulary includes structural roles, generative roles (`prep`, `creation`), and
+// `entity_modification.target` values `coyote` / `road_runner` / `prop`.
 //
 
 /** Max line items in a single Acme enrich model response (prompt guardrail). */
@@ -11,11 +13,12 @@ export const ACME_ORDER_ENRICH_MAX_AFFINITIES_PER_LINE = 20
 /** Omit affinity possibilities strictly below this aptness (entries with aptness equal to this value are kept). */
 export const COYOTE_AFFINITY_APTNESS_MIN = 0.2
 
-export type CoyoteAffinityTarget = 'coyote' | 'road_runner' | 'environment'
+export type CoyoteAffinityTarget = 'coyote' | 'road_runner' | 'prop'
 
 export type CoyoteAffinityMode = 'direct' | 'constructive'
 
 export type CoyoteStructuralRole = 'terminal' | 'trigger' | 'delivery' | 'autonomous_agent'
+export type CoyoteGenerativeRole = 'prep' | 'creation'
 
 /** Step B catalog rejection (aligned with parse command apology copy). */
 export type AcmeCatalogRejectionReason = 'Not a thing' | 'Not tangible' | 'Too large'
@@ -30,7 +33,7 @@ const structuralRoles: ReadonlySet<CoyoteStructuralRole> = new Set([
 const affinityTargets: ReadonlySet<CoyoteAffinityTarget> = new Set([
     'coyote',
     'road_runner',
-    'environment',
+    'prop',
 ])
 
 const affinityModes: ReadonlySet<CoyoteAffinityMode> = new Set(['direct', 'constructive'])
@@ -44,6 +47,10 @@ export type CoyoteAffinityPossibility =
       }
     | {
           role: CoyoteStructuralRole;
+          aptness: number;
+      }
+    | {
+          role: CoyoteGenerativeRole;
           aptness: number;
       }
 
@@ -93,6 +100,10 @@ export function isCoyoteStructuralRole(value: unknown): value is CoyoteStructura
     return typeof value === 'string' && structuralRoles.has(value as CoyoteStructuralRole)
 }
 
+export function isCoyoteGenerativeRole(value: unknown): value is CoyoteGenerativeRole {
+    return value === 'prep' || value === 'creation'
+}
+
 export function isCoyoteAffinityPossibility(entry: unknown): entry is CoyoteAffinityPossibility {
     if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
         return false
@@ -107,6 +118,9 @@ export function isCoyoteAffinityPossibility(entry: unknown): entry is CoyoteAffi
         )
     }
     if (isCoyoteStructuralRole(role)) {
+        return isFiniteAptness(o.aptness)
+    }
+    if (isCoyoteGenerativeRole(role)) {
         return isFiniteAptness(o.aptness)
     }
     return false
