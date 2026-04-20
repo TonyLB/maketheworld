@@ -4,6 +4,7 @@
 .idea/
 .aws-sam/
 .vscode/
+*.DS_Store
 packaged.yaml
 characterPackaged.yaml
 appsyncPackaged.yaml

@@ -68,4 +68,5 @@ cd lambda/ephemera && npx jest dataSource/actions/ dataSource/objects/
 | [`../AGENT.md`](../AGENT.md) | Ephemera DataSource directory index (**`mtw.ephemera.actions`** row) |
 | [`../objects/AGENT.md`](../objects/AGENT.md) | **`Meta::Room.objects`** merge; Acme **`stableKey`** pass-through |
 | [`../coyoteGame/AGENT.md`](../coyoteGame/AGENT.md) | Staged snapshot; **`stableKey`** on rows vs prompt text |
+| [`../../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.generativeAffinities.plan.md`](../../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.generativeAffinities.plan.md) | Task plan: extend **`CoyoteAffinityPossibility`** / Acme enrich (**generative** roles) |
 | [`../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts`](../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts) | **`EphemeraMetaRoomObject`** |
