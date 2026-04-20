@@ -23,6 +23,11 @@ describe('formatCoyoteAffinityPossibility', () => {
     it('formats structural role', () => {
         expect(formatCoyoteAffinityPossibility({ role: 'terminal', aptness: 0.5 })).toBe('terminal 0.50')
     })
+
+    it('formats generative roles', () => {
+        expect(formatCoyoteAffinityPossibility({ role: 'prep', aptness: 0.64 })).toBe('prep 0.64')
+        expect(formatCoyoteAffinityPossibility({ role: 'creation', aptness: 0.33 })).toBe('creation 0.33')
+    })
 })
 
 describe('formatCoyoteObjectAffinitySuffix', () => {
