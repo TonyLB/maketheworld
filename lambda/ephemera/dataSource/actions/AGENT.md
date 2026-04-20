@@ -43,7 +43,7 @@ Stable keys give **machine correlation** for Coyote staged objects (seams, clust
 
 ### Coyote prompts vs stored fields
 
-Hypothesis / plan prompts format staged objects primarily from **`shortName`** + plan-role **`affinities`** (**[`formatCoyoteStagedObjectsByRoom`](../coyoteGame/coyoteRoomObjectSnapshot.ts)**). **`stableKey`** may be present on rows (e.g. Acme deliveries) but is **not** echoed into that snapshot string today --- see **[`../coyoteGame/AGENT.md`](../coyoteGame/AGENT.md)** (**Staged objects snapshot**).
+Hypothesis / plan prompts format staged objects primarily from **`shortName`** + plan-role **`affinities`** (**[`formatCoyoteStagedObjectsByRoom`](../coyoteGame/coyoteRoomObjectSnapshot.ts)**). Current affinity vocabulary includes structural roles plus enrich-side generative roles **`prep`** and **`creation`**, and **`entity_modification.target`** values **`coyote`** / **`road_runner`** / **`prop`** (not **`environment`**). **`stableKey`** may be present on rows (e.g. Acme deliveries) but is **not** echoed into that snapshot string today --- see **[`../coyoteGame/AGENT.md`](../coyoteGame/AGENT.md)** (**Staged objects snapshot**).
 
 ### Downstream
 
@@ -68,5 +68,5 @@ cd lambda/ephemera && npx jest dataSource/actions/ dataSource/objects/
 | [`../AGENT.md`](../AGENT.md) | Ephemera DataSource directory index (**`mtw.ephemera.actions`** row) |
 | [`../objects/AGENT.md`](../objects/AGENT.md) | **`Meta::Room.objects`** merge; Acme **`stableKey`** pass-through |
 | [`../coyoteGame/AGENT.md`](../coyoteGame/AGENT.md) | Staged snapshot; **`stableKey`** on rows vs prompt text |
-| [`../../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.generativeAffinities.plan.md`](../../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.generativeAffinities.plan.md) | Task plan: extend **`CoyoteAffinityPossibility`** / Acme enrich (**generative** roles) |
+| [`../../../../packages/mtw-interfaces/ts/coyotePlanAffinities.ts`](../../../../packages/mtw-interfaces/ts/coyotePlanAffinities.ts) | Durable affinity contract: **`CoyoteAffinityPossibility`**, `prep` / `creation`, and `entity_modification.target` = `coyote` / `road_runner` / `prop` |
 | [`../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts`](../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts) | **`EphemeraMetaRoomObject`** |

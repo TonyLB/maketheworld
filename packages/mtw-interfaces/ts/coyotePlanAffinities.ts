@@ -1,5 +1,7 @@
 //
 // Coyote demo: plan-role affinities on staged objects (Acme enrich output + Meta::Room.objects).
+// Vocabulary includes structural roles, generative roles (`prep`, `creation`), and
+// `entity_modification.target` values `coyote` / `road_runner` / `prop`.
 //
 
 /** Max line items in a single Acme enrich model response (prompt guardrail). */

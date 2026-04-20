@@ -1,12 +1,12 @@
 # Coyote hypothesis Stage One: clustering and plan-structure refinement
 
-**Status:** Planning. **Implementation sequencing:** Prefer finishing **[`AGENT.generativeAffinities.plan.md`](../actions/AGENT.generativeAffinities.plan.md)** (Acme enrich affinity extension) **before** seam/parser/combine/Stage Two work here. **Next (after generative affinities):** lock **`intendedRole`** / **`priorAssembly`** in **types** + seam, degraded-path rules, combine wire format + Stage Two scope; harness + combine-layer scaffolding.
+**Status:** Planning. **Implementation sequencing:** Acme enrich-side role expansion is shipped (see **[`lambda/ephemera/dataSource/actions/AGENT.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.md)** and **[`packages/mtw-interfaces/ts/coyotePlanAffinities.ts`](../../../../../packages/mtw-interfaces/ts/coyotePlanAffinities.ts)): **`prep`** / **`creation`**, and **`entity_modification.target`** now **`prop`** not **`environment`**. **Next:** lock **`intendedRole`** / **`priorAssembly`** in seam + combine typing, degraded-path rules, combine wire format + Stage Two scope; harness + combine-layer scaffolding.
 
 This document is task-scoped; retire it after the initiative ships and move lasting behavior notes into [`lambda/ephemera/dataSource/coyoteGame/AGENT.md`](../../../../../lambda/ephemera/dataSource/coyoteGame/AGENT.md) (see [`taskPlanning/AGENT.md`](../../../../AGENT.md)).
 
 **Prerequisite (foundational):** Acme **`stableKey`** is shipped --- steady-state contract [**`lambda/ephemera/dataSource/actions/AGENT.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.md)** and **[`EphemeraMetaRoomObject`](../../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts)** (**`stableKey`** required, non-empty after trim on validated rows). Staged objects use **`stableKey`** for seam/combine correlation; **`uuid`** remains the object id wire form but is no longer the primary clustering correlation key for new combine code.
 
-**Sequencing:** **[`AGENT.generativeAffinities.plan.md`](../actions/AGENT.generativeAffinities.plan.md)** extends **`CoyoteAffinityPossibility`** at Acme enrich (**`priorAssembly`** / generative roles on **`Meta::Room`**). **Land that track before or in lockstep with** tearing out the legacy seam --- so **`intendedRole`** stays **selection among persisted rows**, not seam-only **`priorAssembly`** long term.
+**Sequencing:** Acme enrich has extended **`CoyoteAffinityPossibility`** at the durable interface layer (**`prep`** / **`creation`** persisted on **`Meta::Room`**; **`prop`** target in **`entity_modification`**). Use that shipped vocabulary when updating seam/parser/combine so **`intendedRole`** stays **selection among persisted rows**, with **`priorAssembly`** treated as seam-only sentinel unless/until separately promoted.
 
 ## Purpose
 
@@ -28,7 +28,7 @@ Meanwhile **plan-role affinities** are produced at **Acme Order** parse time, st
 ## Constraints and non-goals
 
 - **Non-goal:** Rewriting Stage Two narrative rules beyond what falls out from an improved seam + combine output (Stage Two tone work may already exist separately).
-- **Non-goal:** Changing Acme enrich **inside this initiative** --- except coordinated with **[`AGENT.generativeAffinities.plan.md`](../actions/AGENT.generativeAffinities.plan.md)** (**enrich-first** sequencing). **`affinities`** remain inputs from **`Meta::Room`** for clustering prompts.
+- **Non-goal:** Changing Acme enrich **inside this initiative** beyond the shipped enrich-role contract documented in **[`lambda/ephemera/dataSource/actions/AGENT.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.md)** and **[`packages/mtw-interfaces/ts/coyotePlanAffinities.ts`](../../../../../packages/mtw-interfaces/ts/coyotePlanAffinities.ts)**. **`affinities`** remain inputs from **`Meta::Room`** for clustering prompts.
 - **Non-goal:** Expanding Dynamo persistence for raw seam text in production (debug path remains harness / tests per [`AGENT.md`](../../../../../lambda/ephemera/dataSource/coyoteGame/AGENT.md)).
 - **Non-goal (this initiative):** Dedicated engine-harness or Jest fixtures whose **purpose** is resilience when affinity enrichment **failed** (`affinitiesFailed`), **legacy** rows with omitted **`affinities`**, or other **degraded snapshot** shapes. Runtime and prompts must still **tolerate** those rows (see **Constraint**); we are not investing in automated coverage of those paths for this task-plan.
 - **Constraint:** Production remains able to represent legacy staged objects **without** `affinities` or with **`affinitiesFailed`**; clustering and hypotheses must not **require** rich plan roles to parse or stub correctly. Golden-path refinement in this plan does not relax that constraint.
