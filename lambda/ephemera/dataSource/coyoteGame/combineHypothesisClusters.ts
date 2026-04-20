@@ -1,0 +1,181 @@
+import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraMetaRoomObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type {
+    CombineClustersReturn,
+    ClusterMemberPair,
+} from '@tonylb/mtw-interfaces/ts/coyoteCombineClusters'
+import type { CoyoteAffinityPossibility } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
+
+import type { ParsedCluster } from './parseHypothesisStageOneOutput'
+import { formatCoyoteAffinityPossibility } from './coyoteRoomObjectSnapshot'
+import type { CoyoteRoomObjectsByRoom } from './coyoteRoomObjectSnapshot'
+
+export type CombineHypothesisClustersSuccess = {
+    ok: true
+    combined: CombineClustersReturn
+}
+
+export type CombineHypothesisClustersFailure = {
+    ok: false
+    errorMessage: string
+}
+
+export type CombineHypothesisClustersResult = CombineHypothesisClustersSuccess | CombineHypothesisClustersFailure
+
+function affinityMatchesStored(
+    stored: CoyoteAffinityPossibility,
+    echoed: CoyoteAffinityPossibility
+): boolean {
+    if (stored.role !== echoed.role) {
+        return false
+    }
+    if (stored.role === 'entity_modification' && echoed.role === 'entity_modification') {
+        return (
+            stored.target === echoed.target
+            && stored.mode === echoed.mode
+            && Math.abs(stored.aptness - echoed.aptness) < 1e-6
+        )
+    }
+    return Math.abs(stored.aptness - echoed.aptness) < 1e-6
+}
+
+function resolveCanonicalRole(
+    obj: EphemeraMetaRoomObject,
+    echoed?: CoyoteAffinityPossibility
+): CoyoteAffinityPossibility | undefined {
+    if (!echoed || !obj.affinities?.length || obj.affinitiesFailed === true) {
+        return undefined
+    }
+    return obj.affinities.find((a) => affinityMatchesStored(a, echoed))
+}
+
+function snapshotIndexByStableKey(
+    roomObjectsByRoom: CoyoteRoomObjectsByRoom
+): Map<string, EphemeraMetaRoomObject> {
+    const map = new Map<string, EphemeraMetaRoomObject>()
+    for (const objects of Object.values(roomObjectsByRoom)) {
+        for (const o of objects) {
+            map.set(o.stableKey.trim(), o)
+        }
+    }
+    return map
+}
+
+/** Deterministic combine: hydrated DTO + empty outliers when Stage One lists every staged stableKey exactly once (parse-enforced). */
+export function combineHypothesisClusters(
+    clusters: ParsedCluster[],
+    roomObjectsByRoom: CoyoteRoomObjectsByRoom
+): CombineHypothesisClustersResult {
+    const byStableKey = snapshotIndexByStableKey(roomObjectsByRoom)
+
+    const outClusters: CombineClustersReturn['clusters'] = []
+    const seenKeys = new Set<string>()
+
+    for (const pc of clusters) {
+        const membersOut: ClusterMemberPair[] = []
+        for (const mem of pc.members) {
+            const sk = mem.stableKey.trim()
+            const obj = byStableKey.get(sk)
+            if (!obj) {
+                return { ok: false, errorMessage: `combine: unknown stableKey "${sk}"` }
+            }
+            seenKeys.add(sk)
+
+            let intendedRole = resolveCanonicalRole(obj, mem.intendedRole)
+            if (mem.intendedRole !== undefined && intendedRole === undefined) {
+                return {
+                    ok: false,
+                    errorMessage: `combine: could not resolve canonical intendedRole for "${sk}"`,
+                }
+            }
+            if (mem.intendedRole === undefined) {
+                intendedRole = undefined
+            }
+
+            const pair: ClusterMemberPair = {
+                identifier: sk,
+                intendedRole,
+            }
+            membersOut.push(pair)
+        }
+        outClusters.push({
+            clusterName: pc.clusterName,
+            members: membersOut,
+        })
+    }
+
+    const outliers: ClusterMemberPair[] = []
+    for (const objects of Object.values(roomObjectsByRoom)) {
+        for (const o of objects) {
+            const sk = o.stableKey.trim()
+            if (!seenKeys.has(sk)) {
+                outliers.push({ identifier: sk })
+            }
+        }
+    }
+
+    return {
+        ok: true,
+        combined: {
+            clusters: outClusters,
+            outliers,
+        },
+    }
+}
+
+/** Deterministic Markdown for Stage Two dynamic tail (combined-only contract). */
+export function renderCombinedHypothesisForStageTwo(
+    combined: CombineClustersReturn,
+    roomObjectsByRoom: CoyoteRoomObjectsByRoom
+): string {
+    const byStableKey = snapshotIndexByStableKey(roomObjectsByRoom)
+
+    const lines: string[] = ['## Combined clustering', '']
+
+    for (const cl of combined.clusters) {
+        lines.push(`### ${cl.clusterName}`, '')
+        for (const mem of cl.members) {
+            const sk = typeof mem.identifier === 'string' ? mem.identifier.trim() : ''
+            const obj = sk ? byStableKey.get(sk) : undefined
+            const shortName = obj?.shortName ?? sk
+            const roomLabel = obj
+                ? findRoomIdForObject(roomObjectsByRoom, obj)?.replace(/^ROOM#/, '') ?? ''
+                : ''
+            lines.push(
+                `- **stableKey:** ${sk} — **shortName:** ${shortName}${roomLabel ? ` — **room:** ${roomLabel}` : ''}`
+            )
+            if (mem.intendedRole !== undefined) {
+                lines.push(`  - **intendedRole:** ${formatCoyoteAffinityPossibility(mem.intendedRole)}`)
+            }
+            lines.push('')
+        }
+    }
+
+    lines.push('## Outliers', '')
+    if (combined.outliers.length === 0) {
+        lines.push('(none)', '')
+    } else {
+        for (const o of combined.outliers) {
+            const sk = typeof o.identifier === 'string' ? o.identifier.trim() : ''
+            const obj = sk ? byStableKey.get(sk) : undefined
+            lines.push(`- **stableKey:** ${sk}${obj ? ` — **shortName:** ${obj.shortName}` : ''}`, '')
+        }
+    }
+
+    return lines.join('\n').trimEnd()
+}
+
+function findRoomIdForObject(
+    roomObjectsByRoom: CoyoteRoomObjectsByRoom,
+    target: EphemeraMetaRoomObject
+): EphemeraRoomId | undefined {
+    for (const [roomId, objects] of Object.entries(roomObjectsByRoom) as [
+        EphemeraRoomId,
+        EphemeraMetaRoomObject[],
+    ][]) {
+        if (objects.some((o) => o.uuid === target.uuid)) {
+            return roomId
+        }
+    }
+    return undefined
+}

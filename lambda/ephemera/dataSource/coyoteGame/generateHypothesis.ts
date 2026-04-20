@@ -4,6 +4,10 @@ import type { CoyoteGameIntentRecord } from '../../internalCache/coyoteGame'
 import { buildHypothesisStageOnePromptParts } from './buildHypothesisStageOnePrompt'
 import { buildHypothesisStageTwoPromptParts } from './buildHypothesisStageTwoPrompt'
 import {
+    combineHypothesisClusters,
+    renderCombinedHypothesisForStageTwo,
+} from './combineHypothesisClusters'
+import {
     invokeBedrockHypothesisStageOne,
     invokeBedrockHypothesisStageTwo,
     type InvokeBedrockHypothesisResult,
@@ -18,7 +22,7 @@ export type GenerateHypothesisDeps = {
     roomObjectsByRoomOverride?: CoyoteRoomObjectsByRoom
 }
 
-/** Failure policy (two-round pipeline): any stage-1/stage-2 Bedrock failure or invalid seam yields stub intent only — no partial hypothesis to players. */
+/** Failure policy (two-round pipeline): any stage-1/stage-2 Bedrock failure, invalid seam, or combine failure yields stub intent only — no partial hypothesis to players. */
 
 export type GenerateHypothesisPipelineResult = {
     record: CoyoteGameIntentRecord
@@ -49,9 +53,21 @@ async function runHypothesisPipeline(deps: GenerateHypothesisDeps): Promise<Gene
         }
     }
 
+    // See coyoteGame/AGENT.md "Clustering and combine (design)": combine DTO + combined-only Stage Two.
+    const combinedResult = combineHypothesisClusters(seamParsed.clusters, roomObjectsByRoom)
+    if (!combinedResult.ok) {
+        return {
+            record: { intent: 'Hypothesis: Stubbed' },
+            stageOneResult,
+            stageTwoResult: null,
+        }
+    }
+
+    const combinedMarkdown = renderCombinedHypothesisForStageTwo(combinedResult.combined, roomObjectsByRoom)
+
     const stageTwoParts = buildHypothesisStageTwoPromptParts({
         roomObjectsByRoom,
-        seamMarkdown: seamParsed.markdown,
+        combinedMarkdown,
     })
     const stageTwoResult = await invokeBedrockHypothesisStageTwo(stageTwoParts)
 

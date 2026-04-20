@@ -14,23 +14,21 @@ import {
     invokeBedrockHypothesisStageTwo,
 } from './invokeBedrockHypothesis'
 
-/** Matches default getRoomMeta mock (VORTEX: anvil, rocket skates). */
-const stageOneSeamBody = `## Objects
-
-### ROOM#VORTEX · anvil
-- **Function:** Heavy weight overhead.
-- **Affinity:** coyoteOperated
-
-### ROOM#VORTEX · rocket skates
-- **Function:** Build chase speed on the highway.
-- **Affinity:** coyoteOperated
-
-## Clusters
+/** Valid seam for two VORTEX objects with stableKeys matching mocks (parse + combine succeed). */
+const stageOneSeamBody = `## Clusters
 
 ### Combined setup
-- **Members:** ROOM#VORTEX · anvil; ROOM#VORTEX · rocket skates
-- **Coyote role:** participant
-- **Summary:** Weight plus speed props at the cliff base highway.
+- **stableKey:** anvil
+
+\`\`\`json
+{"role":"terminal","aptness":0.5}
+\`\`\`
+
+- **stableKey:** rocket-skates
+
+\`\`\`json
+{"role":"delivery","aptness":0.6}
+\`\`\`
 `
 
 const stageOneMock = invokeBedrockHypothesisStageOne as jest.MockedFunction<
@@ -53,11 +51,17 @@ describe('generateHypothesis', () => {
                     EphemeraId: roomId,
                     DataCategory: 'Meta::Room',
                     objects: [
-                        { uuid: 'OBJECT#anvil' as `OBJECT#${string}`, shortName: 'anvil', stableKey: 'anvil' },
+                        {
+                            uuid: 'OBJECT#anvil' as `OBJECT#${string}`,
+                            shortName: 'anvil',
+                            stableKey: 'anvil',
+                            affinities: [{ role: 'terminal', aptness: 0.5 }],
+                        },
                         {
                             uuid: 'OBJECT#rocket-skates' as `OBJECT#${string}`,
                             shortName: 'rocket skates',
                             stableKey: 'rocket-skates',
+                            affinities: [{ role: 'delivery', aptness: 0.6 }],
                         },
                     ],
                 }
@@ -98,26 +102,14 @@ describe('generateHypothesis', () => {
     })
 
     it('uses room object override without consulting room meta deps', async () => {
-        const overrideSeam = `## Objects
-
-### ROOM#VORTEX · anvil
-- **Function:** Drop weight.
-- **Affinity:** coyoteOperated
-
-### ROOM#BRIDGE · portable hole
-- **Function:** Chasm trap.
-- **Affinity:** roadRunnerTrap
-
-### ROOM#BRIDGE · birdseed
-- **Function:** Bait.
-- **Affinity:** ambiguous
-
-## Clusters
+        const overrideSeam = `## Clusters
 
 ### Multi-room
-- **Members:** ROOM#VORTEX · anvil; ROOM#BRIDGE · portable hole; ROOM#BRIDGE · birdseed
-- **Coyote role:** trapSetter
-- **Summary:** Staged across base and bridge.
+- **stableKey:** anvil-0
+
+- **stableKey:** portable-hole-0
+
+- **stableKey:** birdseed-1
 `
         stageOneMock.mockResolvedValue({ success: true, body: overrideSeam })
 
@@ -139,11 +131,11 @@ describe('generateHypothesis', () => {
             dynamicSuffix: string
         }
         const fullStageTwo = stageTwoPrompt.invariantPrefix + stageTwoPrompt.dynamicSuffix
-        expect(fullStageTwo).toContain('VORTEX')
+        expect(fullStageTwo).toContain('## Combined clustering')
         expect(fullStageTwo).toContain('anvil')
-        expect(fullStageTwo).toContain('BRIDGE')
         expect(fullStageTwo).toContain('portable hole')
         expect(fullStageTwo).toContain('birdseed')
+        expect(fullStageTwo).not.toContain('## Current staged objects by room')
     })
 
     it('falls back to stub when stage 1 Bedrock fails', async () => {

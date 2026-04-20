@@ -1,33 +1,39 @@
+import type { CoyoteAffinityPossibility } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import { harnessRoomObjects } from './coyoteEngineTestFixtures'
 import type { CoyoteRoomObjectsByRoom } from './coyoteRoomObjectSnapshot'
 import { parseHypothesisStageOneOutput, stripHypothesisStageOneFence } from './parseHypothesisStageOneOutput'
 
+const affinitiesTerminal: CoyoteAffinityPossibility[] = [{ role: 'terminal', aptness: 0.55 }]
+
 const singleObjectRoomMap: CoyoteRoomObjectsByRoom = {
-    'ROOM#VORTEX': harnessRoomObjects('vortex', ['anvil']),
+    'ROOM#VORTEX': [
+        {
+            uuid: 'OBJECT#x' as `OBJECT#${string}`,
+            shortName: 'anvil',
+            stableKey: 'anvil-0',
+            affinities: affinitiesTerminal,
+        },
+    ],
     'ROOM#STRAIGHTAWAY': [],
     'ROOM#CLIFFTOP': [],
     'ROOM#CORNER': [],
     'ROOM#BRIDGE': [],
 }
 
-const validSeamSingleObject = `## Objects
-
-### VORTEX · anvil
-- **Function:** Drop weight on the Road Runner below.
-- **Affinity:** coyoteOperated
-
-## Clusters
+const validSeamSingleObject = `## Clusters
 
 ### Cliff trap
-- **Members:** VORTEX · anvil
-- **Coyote role:** participant
-- **Summary:** Uses gravity from above.
+- **stableKey:** anvil-0
+
+\`\`\`json
+{"role":"terminal","aptness":0.55}
+\`\`\`
 `
 
 describe('stripHypothesisStageOneFence', () => {
     it('removes fenced markdown wrapper', () => {
-        expect(stripHypothesisStageOneFence('```markdown\n## Objects\n\n### VORTEX · x\n')).toContain('## Objects')
-        expect(stripHypothesisStageOneFence('```markdown\n## Objects\n\n### VORTEX · x\n')).not.toContain('```')
+        expect(stripHypothesisStageOneFence('```markdown\n## Clusters\n')).toContain('## Clusters')
+        expect(stripHypothesisStageOneFence('```markdown\n## Clusters\n')).not.toContain('```')
     })
 })
 
@@ -36,20 +42,31 @@ describe('parseHypothesisStageOneOutput', () => {
         const r = parseHypothesisStageOneOutput(validSeamSingleObject, singleObjectRoomMap)
         expect(r.ok).toBe(true)
         if (r.ok) {
-            expect(r.markdown).toContain('## Objects')
+            expect(r.markdown).toContain('## Clusters')
+            expect(r.clusters).toHaveLength(1)
+            expect(r.clusters[0].members[0].stableKey).toBe('anvil-0')
         }
     })
 
-    it('accepts optional ROOM# prefix on room tokens (normalized to shorthand)', () => {
-        const withPrefix = validSeamSingleObject
-            .replace('### VORTEX ·', '### ROOM#VORTEX ·')
-            .replace('**Members:** VORTEX ·', '**Members:** ROOM#VORTEX ·')
-        expect(parseHypothesisStageOneOutput(withPrefix, singleObjectRoomMap).ok).toBe(true)
+    it('accepts member without intendedRole when affinities omitted on object', () => {
+        const map: CoyoteRoomObjectsByRoom = {
+            ...singleObjectRoomMap,
+            'ROOM#VORTEX': [{ uuid: 'OBJECT#x' as `OBJECT#${string}`, shortName: 'anvil', stableKey: 'anvil-0' }],
+        }
+        const seam = `## Clusters
+
+### One
+- **stableKey:** anvil-0
+`
+        expect(parseHypothesisStageOneOutput(seam, map).ok).toBe(true)
     })
 
-    it('rejects invalid affinity token', () => {
-        const bad = validSeamSingleObject.replace('coyoteOperated', 'wrong')
-        expect(parseHypothesisStageOneOutput(bad, singleObjectRoomMap).ok).toBe(false)
+    it('rejects IntendedRole when affinities unavailable', () => {
+        const map: CoyoteRoomObjectsByRoom = {
+            ...singleObjectRoomMap,
+            'ROOM#VORTEX': [{ uuid: 'OBJECT#x' as `OBJECT#${string}`, shortName: 'anvil', stableKey: 'anvil-0' }],
+        }
+        expect(parseHypothesisStageOneOutput(validSeamSingleObject, map).ok).toBe(false)
     })
 
     it('rejects multiset mismatch', () => {
@@ -60,30 +77,16 @@ describe('parseHypothesisStageOneOutput', () => {
         expect(parseHypothesisStageOneOutput(validSeamSingleObject, twoObjMap).ok).toBe(false)
     })
 
-    it('rejects more than two clusters', () => {
-        const bad = `## Objects
-
-### VORTEX · anvil
-- **Function:** Drop weight.
-- **Affinity:** coyoteOperated
-
-## Clusters
+    it('rejects invalid intendedRole JSON shape', () => {
+        const badSeam = `## Clusters
 
 ### One
-- **Members:** VORTEX · anvil
-- **Coyote role:** participant
-- **Summary:** First.
+- **stableKey:** anvil-0
 
-### Two
-- **Members:** VORTEX · anvil
-- **Coyote role:** participant
-- **Summary:** Second.
-
-### Three
-- **Members:** VORTEX · anvil
-- **Coyote role:** participant
-- **Summary:** Third.
+\`\`\`json
+{"role":"not_a_role","aptness":0.55}
+\`\`\`
 `
-        expect(parseHypothesisStageOneOutput(bad, singleObjectRoomMap).ok).toBe(false)
+        expect(parseHypothesisStageOneOutput(badSeam, singleObjectRoomMap).ok).toBe(false)
     })
 })

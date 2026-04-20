@@ -14,25 +14,20 @@ const STAGE_ONE_INTRO_LINES = [
     'Reply with structured Markdown **only**, following the seam contract below.',
     '- Do **not** write "Hypothesis:".',
     '- Do **not** use "## Scene analysis" — that belongs to a later processing step.',
-    '- Your entire response must be parsable seam output (optional Notes, required Objects and Clusters).',
-] as const
-
-const ACTOR_AFFINITIES_LINES = [
-    '## Actor affinities',
-    '- The Coyote is a physical participant in plans: he wears, rides, and operates equipment himself.',
-    '- Objects requiring sustained intentional operation (vehicles, wearables, aimed or steered devices) have Coyote-affinity: they belong to him and he uses them.',
-    '- Objects that work passively or trigger on contact (trip-wires, fake signs, painted tunnels, dropped weights) have Road-Runner-trap-affinity.',
-    '- The Road Runner is fast but passive. He does not operate machinery or steer devices. Plans that require him to do so are probably misread.',
-    '- Bait and consumables are ambiguous; treat them as context-dependent.',
+    '- Your entire response must be parsable seam output: optional **## Notes**, then required **## Clusters** (no **## Objects** section).',
 ] as const
 
 const SEAM_CONTRACT_LINES = [
     '## Seam Markdown contract',
-    '- Optional **## Notes**: at most one short paragraph for spatial / cross-room context.',
-    '- Required **## Objects**: one ### heading per staged object, **`### {short seam label} · {shortName}`** with separator **` · `**. Use the **Seam room labels** table below (preferred).',
-    '- Under each object heading, exactly two bullets in order: `- **Function:** …` then `- **Affinity:** …` with affinity token exactly one of: coyoteOperated, roadRunnerTrap, ambiguous.',
-    '- Required **## Clusters**: exactly one or two cluster subsections. Each cluster starts with `### {label}` then exactly three bullets: `- **Members:**` (semicolon-separated list of **`{short seam label} · shortName`** refs, same form as object headings), `- **Coyote role:**` with token participant, trapSetter, or ambiguous, and `- **Summary:**` with one sentence.',
-    '- Every **Members** reference must match an object heading. Object headings must cover exactly the multiset of staged objects below.',
+    '- **Functional/thematic clustering only.** Group props that work together toward one maneuver. Do **not** encode temporal ordering or beat sequencing here; that belongs to later plan-phase narration.',
+    '- Optional **## Notes**: at most one short paragraph for spatial / cross-room context only (no forward-looking plan narrative).',
+    '- Required **## Clusters**: one **or more** cluster subsections (upper bound: one subsection per staged object). Each subsection starts with `### {cluster label}` (short human-readable label only).',
+    '- Under each cluster heading, list **every member object** assigned to that cluster using **exactly one block per staged object**, in this order:',
+    '  - First line for that member: `- **stableKey:** ` followed by that object\'s **`stableKey`** token as shown in **Current staged objects by room** (literal copy).',
+    '  - Optionally, when the staged object rows include plan-role **`affinities`**, you may cite **one** persisted role choice by emitting a fenced **`json`** block immediately after that member\'s **`stableKey`** line. The fence opens with **` ```json`** on its own line, contains **exactly one** JSON object shaped like **`CoyoteAffinityPossibility`** (`terminal` | `trigger` | `delivery` | `autonomous_agent` | `prep` | `creation` | `entity_modification` with `target`/`mode`), including **`aptness`** copied from the staged row you select. Close with **` ``` **` on its own line.',
+    '- **Omit** the fenced JSON block entirely when `affinities` are missing or marked failed for that row (do not invent roles).',
+    '- **Coverage:** Each staged **`stableKey`** across all rooms must appear **exactly once** across all clusters (every object is in precisely one functional cluster).',
+    '- Prefer selecting **`prep`** / **`creation`** / **`entity_modification`** / structural roles consistent with definitions in Acme enrich; do not treat **`prep`** as chronological "first beat" clustering.',
 ] as const
 
 function stageOnePromptLines(snapshotSection: string): string[] {
@@ -42,8 +37,6 @@ function stageOnePromptLines(snapshotSection: string): string[] {
         ...COYOTE_HYPOTHESIS_WORLD_TOPOLOGY_LINES,
         '',
         ...COYOTE_HYPOTHESIS_CARTOON_OPPORTUNITY_LINES,
-        '',
-        ...ACTOR_AFFINITIES_LINES,
         '',
         ...SEAM_CONTRACT_LINES,
         '',

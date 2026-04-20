@@ -83,11 +83,11 @@ describe('formatCoyoteStagedObjectsByRoom', () => {
         expect(out).toBe('VORTEX: (none)')
     })
 
-    it('lists legacy object as short name only', () => {
+    it('lists legacy object with stableKey line', () => {
         const out = formatCoyoteStagedObjectsByRoom({
             [room('ROOM#VORTEX')]: [{ uuid: 'OBJECT#x' as `OBJECT#${string}`, shortName: 'anvil', stableKey: 'anvil' }],
         })
-        expect(out).toBe('VORTEX:\n  anvil')
+        expect(out).toBe('VORTEX:\n  anvil — stableKey: anvil')
     })
 
     it('includes failure note per object', () => {
@@ -101,7 +101,7 @@ describe('formatCoyoteStagedObjectsByRoom', () => {
                 },
             ],
         })
-        expect(out).toContain('paint — plan roles unavailable (enrich failed)')
+        expect(out).toContain('paint — stableKey: paint — plan roles unavailable (enrich failed)')
     })
 
     it('sorts rooms by id', () => {

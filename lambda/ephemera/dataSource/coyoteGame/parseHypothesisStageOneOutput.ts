@@ -1,26 +1,26 @@
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMetaRoomObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { normalizeSeamRoomLabelToken, seamRoomLabelFromEphemeraRoomId } from './coyoteHypothesisPromptShared'
-
+import type { CoyoteAffinityPossibility } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
+import { isCoyoteAffinityPossibility } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 /*
- * Stage 1 emits a Markdown "seam" that stage 2 consumes. Markdown is a compact wire format between
- * model calls (readable in prompts and logs, no extra JSON escaping in the transcript).
- *
- * That choice pushes complexity here: we must deterministically validate structure, constrained
- * tokens, and alignment with `roomObjectsByRoom` so bad stage-1 output fails closed (stub intent)
- * instead of propagating into a second Bedrock call and unreliable stage-2 output.
- *
- * This module is intentionally self-contained prototype logic. If multi-step seams with strict
- * contracts become a recurring pattern, consider extracting shared helpers (section splitting,
- * multiset checks, fenced-block stripping) rather than growing one-off parsers.
+ * Stage 1 emits Markdown seam: optional ## Notes, required ## Clusters with ### subsections.
+ * Each cluster lists members by **stableKey:** and optional fenced **intendedRole** JSON (CoyoteAffinityPossibility).
  */
 
-const AFFINITY_TOKENS = new Set(['coyoteOperated', 'roadRunnerTrap', 'ambiguous'])
-const COYOTE_ROLE_TOKENS = new Set(['participant', 'trapSetter', 'ambiguous'])
+export type ParsedClusterMember = {
+    stableKey: string
+    intendedRole?: CoyoteAffinityPossibility
+}
+
+export type ParsedCluster = {
+    clusterName: string
+    members: ParsedClusterMember[]
+}
 
 export type ParseHypothesisStageOneSuccess = {
     ok: true
     markdown: string
+    clusters: ParsedCluster[]
 }
 
 export type ParseHypothesisStageOneFailure = {
@@ -44,23 +44,6 @@ function normalizeNewlines(text: string): string {
     return text.replace(/\r\n/g, '\n')
 }
 
-function sortedMultisetKey(pairs: [string, string][]): string {
-    const keys = pairs.map(([a, b]) => `${a} · ${b}`).sort()
-    return JSON.stringify(keys)
-}
-
-/** Multiset keys use short seam labels (ROOM# stripped), aligned with prompts + topology names. */
-function expectedObjectPairs(roomObjectsByRoom: Record<EphemeraRoomId, EphemeraMetaRoomObject[]>): [string, string][] {
-    const pairs: [string, string][] = []
-    for (const [roomId, objects] of Object.entries(roomObjectsByRoom)) {
-        const seamLabel = seamRoomLabelFromEphemeraRoomId(roomId as EphemeraRoomId)
-        for (const { shortName } of objects) {
-            pairs.push([seamLabel, shortName])
-        }
-    }
-    return pairs
-}
-
 function sectionExtract(body: string, title: string): { found: false } | { found: true; start: number; end: number } {
     const re = new RegExp(`^## ${title}\\s*$`, 'm')
     const m = body.match(re)
@@ -70,10 +53,81 @@ function sectionExtract(body: string, title: string): { found: false } | { found
     return { found: true, start: m.index, end: m.index + m[0].length }
 }
 
+function expectedStableKeysSorted(
+    roomObjectsByRoom: Record<EphemeraRoomId, EphemeraMetaRoomObject[]>
+): string[] {
+    const keys: string[] = []
+    for (const objects of Object.values(roomObjectsByRoom)) {
+        for (const o of objects) {
+            keys.push(o.stableKey.trim())
+        }
+    }
+    return keys.map((k) => k).sort()
+}
+
+function parseClusterMemberLines(
+    lines: string[]
+): { ok: true; members: ParsedClusterMember[] } | { ok: false; errorMessage: string } {
+    const members: ParsedClusterMember[] = []
+    let i = 0
+    const consumeBlank = (): void => {
+        while (i < lines.length && lines[i].trim() === '') {
+            i += 1
+        }
+    }
+
+    while (true) {
+        consumeBlank()
+        if (i >= lines.length) {
+            break
+        }
+        const skMatch = lines[i].trim().match(/^-\s*\*\*stableKey:\*\*\s*(.+)$/u)
+        if (!skMatch) {
+            return { ok: false, errorMessage: `stage 1 seam: expected - **stableKey:** line, got: ${lines[i].trim()}` }
+        }
+        const stableKey = skMatch[1].trim()
+        if (!stableKey.length) {
+            return { ok: false, errorMessage: 'stage 1 seam: empty stableKey' }
+        }
+        i += 1
+        consumeBlank()
+
+        let intendedRole: CoyoteAffinityPossibility | undefined
+        if (i < lines.length && lines[i].trim().startsWith('```')) {
+            const fenceLine = lines[i].trim()
+            if (!/^```(?:json)?\s*$/u.test(fenceLine)) {
+                return { ok: false, errorMessage: 'stage 1 seam: intendedRole must use ``` or ```json fence' }
+            }
+            i += 1
+            const jsonLines: string[] = []
+            while (i < lines.length && !lines[i].trim().startsWith('```')) {
+                jsonLines.push(lines[i])
+                i += 1
+            }
+            if (i >= lines.length) {
+                return { ok: false, errorMessage: 'stage 1 seam: unclosed intendedRole ``` fence' }
+            }
+            i += 1
+            const jsonBody = jsonLines.join('\n').trim()
+            try {
+                const parsed: unknown = JSON.parse(jsonBody)
+                if (!isCoyoteAffinityPossibility(parsed)) {
+                    return { ok: false, errorMessage: 'stage 1 seam: intendedRole JSON is not CoyoteAffinityPossibility' }
+                }
+                intendedRole = parsed
+            } catch {
+                return { ok: false, errorMessage: 'stage 1 seam: intendedRole JSON parse failed' }
+            }
+        }
+
+        members.push({ stableKey, intendedRole })
+    }
+
+    return { ok: true, members }
+}
+
 /**
- * Validates stage-1 body against the locked seam contract, then returns the normalized Markdown for
- * stage 2. See module comment above for why validation is strict. Steady-state: `AGENT.md` (Hypothesis
- * pipeline) and `buildHypothesisStageOnePrompt.ts` (emitted seam shape).
+ * Validates stage-1 body against the seam contract, then returns normalized Markdown plus parsed clusters.
  */
 export function parseHypothesisStageOneOutput(
     rawBody: string,
@@ -84,114 +138,121 @@ export function parseHypothesisStageOneOutput(
         return { ok: false, errorMessage: 'stage 1 seam: empty body' }
     }
 
-    const secObjects = sectionExtract(inner, 'Objects')
+    const secNotes = sectionExtract(inner, 'Notes')
     const secClusters = sectionExtract(inner, 'Clusters')
-    if (!secObjects.found || !secClusters.found) {
-        return { ok: false, errorMessage: 'stage 1 seam: requires ## Objects and ## Clusters' }
-    }
-    if (secClusters.start <= secObjects.start) {
-        return { ok: false, errorMessage: 'stage 1 seam: ## Clusters must follow ## Objects' }
+
+    if (!secClusters.found) {
+        return { ok: false, errorMessage: 'stage 1 seam: requires ## Clusters' }
     }
 
-    const objectsInner = inner.slice(secObjects.end, secClusters.start).trim()
+    if (secNotes.found && secClusters.start <= secNotes.start) {
+        return { ok: false, errorMessage: 'stage 1 seam: ## Notes must precede ## Clusters' }
+    }
+
     const clustersInner = inner.slice(secClusters.end).trim()
 
-    const expectedPairs = expectedObjectPairs(roomObjectsByRoom)
-    const parsedPairs: [string, string][] = []
-
-    const objectHeadingRe = /^### (\S+) · (.+)$/u
-    const objectBlocks = objectsInner.split(/\n(?=### )/).map((b) => b.trim()).filter(Boolean)
-
-    for (const block of objectBlocks) {
-        const rawLines = block.split('\n')
-        const heading = rawLines[0]?.trim() ?? ''
-        const hm = heading.match(objectHeadingRe)
-        if (!hm) {
-            return { ok: false, errorMessage: `stage 1 seam: invalid object heading: ${heading}` }
-        }
-        const roomLabel = normalizeSeamRoomLabelToken(hm[1])
-        const shortName = hm[2].trim()
-        parsedPairs.push([roomLabel, shortName])
-
-        const bullets = rawLines.slice(1).filter((l) => l.trim().length > 0)
-        if (bullets.length !== 2) {
-            return {
-                ok: false,
-                errorMessage: `stage 1 seam: expected two bullets under ${roomLabel} · ${shortName}, got ${bullets.length}`,
-            }
-        }
-        const b0 = bullets[0].trim()
-        const b1 = bullets[1].trim()
-        if (!/^-\s*\*\*Function:\*\*\s+\S/u.test(b0)) {
-            return { ok: false, errorMessage: `stage 1 seam: first bullet must be - **Function:** ... under ${roomLabel}` }
-        }
-        const affinityM = b1.match(/^-\s*\*\*Affinity:\*\*\s*(\S+)\s*$/u)
-        if (!affinityM || !AFFINITY_TOKENS.has(affinityM[1])) {
-            return {
-                ok: false,
-                errorMessage: `stage 1 seam: second bullet must be - **Affinity:** <${[...AFFINITY_TOKENS].join('|')}> under ${roomLabel}`,
-            }
-        }
-    }
-
-    const expectedSorted = sortedMultisetKey(expectedPairs.map(([a, b]) => [a, b]))
-    const parsedSorted = sortedMultisetKey(parsedPairs)
-    if (parsedPairs.length !== expectedPairs.length || parsedSorted !== expectedSorted) {
-        return {
-            ok: false,
-            errorMessage: `stage 1 seam: object multiset mismatch (expected ${expectedSorted}, parsed ${parsedSorted})`,
-        }
-    }
-
     const clusterBlocks = clustersInner.split(/\n(?=### )/).map((b) => b.trim()).filter(Boolean)
-    if (clusterBlocks.length < 1 || clusterBlocks.length > 2) {
+    const expectedCount = expectedStableKeysSorted(roomObjectsByRoom).length
+
+    if (expectedCount === 0) {
+        return { ok: false, errorMessage: 'stage 1 seam: no staged objects to cluster' }
+    }
+
+    if (clusterBlocks.length < 1 || clusterBlocks.length > expectedCount) {
         return {
             ok: false,
-            errorMessage: `stage 1 seam: expected 1 or 2 clusters, got ${clusterBlocks.length}`,
+            errorMessage: `stage 1 seam: expected 1–${expectedCount} clusters, got ${clusterBlocks.length}`,
         }
     }
 
-    const memberRefRe = /^(\S+) · (.+)$/u
+    const clusters: ParsedCluster[] = []
 
     for (const cblock of clusterBlocks) {
         const rawLines = cblock.split('\n')
-        const first = rawLines[0]?.trim() ?? ''
-        if (!/^### .+/u.test(first)) {
-            return { ok: false, errorMessage: `stage 1 seam: invalid cluster heading: ${first}` }
+        const heading = rawLines[0]?.trim() ?? ''
+        const hm = heading.match(/^### \s*(.+)$/u)
+        if (!hm) {
+            return { ok: false, errorMessage: `stage 1 seam: invalid cluster heading: ${heading}` }
         }
-        const bullets = rawLines.slice(1).filter((l) => l.trim().length > 0)
-        if (bullets.length !== 3) {
-            return { ok: false, errorMessage: `stage 1 seam: cluster must have three bullets (Members, Coyote role, Summary)` }
+        const clusterName = hm[1].trim()
+        if (!clusterName.length) {
+            return { ok: false, errorMessage: 'stage 1 seam: empty cluster label' }
         }
-        const mLine = bullets[0].trim()
-        const rLine = bullets[1].trim()
-        const sLine = bullets[2].trim()
-        if (!/^-\s*\*\*Members:\*\*\s*\S/u.test(mLine)) {
-            return { ok: false, errorMessage: 'stage 1 seam: cluster first bullet must be **Members:**' }
+
+        const memberLines = rawLines.slice(1)
+        const parsedMembers = parseClusterMemberLines(memberLines)
+        if (!parsedMembers.ok) {
+            return { ok: false, errorMessage: parsedMembers.errorMessage }
         }
-        const membersBody = mLine.replace(/^-\s*\*\*Members:\*\*\s*/u, '').trim()
-        const refs = membersBody.split(';').map((s) => s.trim()).filter(Boolean)
-        for (const ref of refs) {
-            const rm = ref.match(memberRefRe)
-            if (!rm) {
-                return { ok: false, errorMessage: `stage 1 seam: invalid member "${ref}"` }
-            }
-            const memberRoom = normalizeSeamRoomLabelToken(rm[1])
-            const key = `${memberRoom} · ${rm[2].trim()}`
-            const okPair = parsedPairs.some(([rid, sn]) => `${rid} · ${sn}` === key)
-            if (!okPair) {
-                return { ok: false, errorMessage: `stage 1 seam: unknown cluster member "${ref}"` }
-            }
+        if (parsedMembers.members.length < 1) {
+            return { ok: false, errorMessage: `stage 1 seam: cluster "${clusterName}" has no members` }
         }
-        const roleM = rLine.match(/^-\s*\*\*Coyote role:\*\*\s*(\S+)\s*$/u)
-        if (!roleM || !COYOTE_ROLE_TOKENS.has(roleM[1])) {
-            return { ok: false, errorMessage: `stage 1 seam: invalid **Coyote role:** token` }
-        }
-        const summaryBody = sLine.replace(/^-\s*\*\*Summary:\*\*\s*/u, '').trim()
-        if (!summaryBody.length) {
-            return { ok: false, errorMessage: 'stage 1 seam: empty **Summary:**' }
+
+        clusters.push({
+            clusterName,
+            members: parsedMembers.members,
+        })
+    }
+
+    const parsedKeys = clusters
+        .flatMap((c) => c.members.map((m) => m.stableKey.trim()))
+        .sort()
+
+    const expectedSorted = JSON.stringify(expectedStableKeysSorted(roomObjectsByRoom))
+    const parsedSorted = JSON.stringify(parsedKeys)
+
+    if (parsedKeys.length !== expectedStableKeysSorted(roomObjectsByRoom).length || parsedSorted !== expectedSorted) {
+        return {
+            ok: false,
+            errorMessage: `stage 1 seam: stableKey multiset mismatch (expected ${expectedSorted}, parsed ${parsedSorted})`,
         }
     }
 
-    return { ok: true, markdown: inner }
+    const snapshotByStableKey = new Map<string, EphemeraMetaRoomObject>()
+    for (const objects of Object.values(roomObjectsByRoom)) {
+        for (const o of objects) {
+            snapshotByStableKey.set(o.stableKey.trim(), o)
+        }
+    }
+
+    for (const cl of clusters) {
+        for (const mem of cl.members) {
+            const obj = snapshotByStableKey.get(mem.stableKey.trim())
+            if (!obj) {
+                return { ok: false, errorMessage: `stage 1 seam: unknown stableKey "${mem.stableKey}"` }
+            }
+            if (mem.intendedRole !== undefined) {
+                const aff = obj.affinities
+                if (!aff || aff.length === 0 || obj.affinitiesFailed === true) {
+                    return {
+                        ok: false,
+                        errorMessage: `stage 1 seam: intendedRole given for ${mem.stableKey} but affinities unavailable`,
+                    }
+                }
+                const match = aff.some((a) => affinityEchoMatches(a, mem.intendedRole!))
+                if (!match) {
+                    return {
+                        ok: false,
+                        errorMessage: `stage 1 seam: intendedRole does not match snapshot row for ${mem.stableKey}`,
+                    }
+                }
+            }
+        }
+    }
+
+    return { ok: true, markdown: inner, clusters }
+}
+
+function affinityEchoMatches(stored: CoyoteAffinityPossibility, echoed: CoyoteAffinityPossibility): boolean {
+    if (stored.role !== echoed.role) {
+        return false
+    }
+    if (stored.role === 'entity_modification' && echoed.role === 'entity_modification') {
+        return (
+            stored.target === echoed.target
+            && stored.mode === echoed.mode
+            && Math.abs(stored.aptness - echoed.aptness) < 1e-6
+        )
+    }
+    return Math.abs(stored.aptness - echoed.aptness) < 1e-6
 }

@@ -61,7 +61,11 @@ export function formatCoyoteObjectAffinitySuffix(o: EphemeraMetaRoomObject): str
 
 function formatCoyoteStagedObjectLine(o: EphemeraMetaRoomObject): string {
     const suffix = formatCoyoteObjectAffinitySuffix(o)
-    return suffix ? `${o.shortName} — ${suffix}` : o.shortName
+    const keyPart = ` — stableKey: ${o.stableKey}`
+    if (suffix) {
+        return `${o.shortName}${keyPart} — ${suffix}`
+    }
+    return `${o.shortName}${keyPart}`
 }
 
 /** Shared "staged objects by room" block for Coyote prompts (hypothesis, plan outcome). */
