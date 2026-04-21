@@ -50,6 +50,25 @@ describe('parseHypothesisModelOutput', () => {
         })
     })
 
+    it('hop-2 Option A shape: leading ```json phase-plan fence then Scene analysis then final ```text Hypothesis', () => {
+        const raw = [
+            '```json',
+            '{"phases":[]}',
+            '```',
+            '',
+            '## Scene analysis',
+            'Player staged cliff gear.',
+            '',
+            '```text',
+            'Hypothesis: It looks like you are trying to spring a cliff trap.',
+            '```',
+        ].join('\n')
+        expect(parseHypothesisModelOutput(raw)).toEqual({
+            sceneAnalysis: '## Scene analysis\nPlayer staged cliff gear.',
+            intent: 'Hypothesis: It looks like you are trying to spring a cliff trap.',
+        })
+    })
+
     it('accepts optional parse options for API symmetry with the pipeline', () => {
         expect(parseHypothesisModelOutput('Hypothesis: Only.', { reasoningContentProvided: true })).toEqual({
             intent: 'Hypothesis: Only.',

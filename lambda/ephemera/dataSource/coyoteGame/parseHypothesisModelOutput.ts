@@ -1,4 +1,5 @@
 import type { CoyoteGameIntentRecord } from '../../internalCache/coyoteGame'
+import { findAllFenceBlocks } from '../../llm/markdownCodeFences'
 
 const STUB_INTENT = 'Hypothesis: Stubbed'
 
@@ -25,35 +26,6 @@ function trimSceneAnalysisPrefix(preHypothesisLines: string[]): string {
         return preHypothesisLines.join('\n').trim()
     }
     return preHypothesisLines.slice(headingIdx).join('\n').trim()
-}
-
-type FenceBlock = { start: number; end: number; interior: string }
-
-/** Finds Markdown fenced code blocks (``` optional lang + newline ... ```). */
-function findAllFenceBlocks(s: string): FenceBlock[] {
-    const blocks: FenceBlock[] = []
-    let i = 0
-    while (i < s.length) {
-        const tick = s.indexOf('```', i)
-        if (tick < 0) {
-            break
-        }
-        const rest = s.slice(tick + 3)
-        const m = rest.match(/^([\w]*)\r?\n/)
-        if (!m) {
-            i = tick + 3
-            continue
-        }
-        const innerStart = tick + 3 + m[0].length
-        const closeIdx = s.indexOf('```', innerStart)
-        if (closeIdx < 0) {
-            break
-        }
-        const interior = s.slice(innerStart, closeIdx)
-        blocks.push({ start: tick, end: closeIdx + 3, interior })
-        i = closeIdx + 3
-    }
-    return blocks
 }
 
 function interiorIsSingleHypothesisLine(interior: string): string | null {

@@ -22,10 +22,10 @@ When contracts stabilize, migrate steady-state documentation into [`lambda/ephem
 | Area | State |
 | --- | --- |
 | Step grouping (A / B / C) | **Decided:** **Option A** only for this initiative. **Out of scope:** revisiting **Option B** or **Option C** based on harness metrics -- handle in a separate task plan if needed |
-| Handoff (hop 1 to hop 2) | **Decided:** no `selectedPlanId`; pass **paragraph summary** + **rubric issues** (see **Decided** below). **Still open:** JSON shaping, fence contract, optional full rubric for harness/debug |
-| Phase-plan JSON schema + validators | **Decided:** stable refs (**stableKey** + seam room labels); see **Decided: stable references (phase-plan JSON)**. **Open:** full field list and validators |
+| Handoff (hop 1 to hop 2) | **Decided:** no `selectedPlanId`; **fenced JSON** for **paragraph summary** + **rubric issues** (**Decided: hop 1 handoff serialization**). **Locked in code:** [`coyoteHop1Handoff.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/coyoteHop1Handoff.ts) + [`markdownCodeFences.ts`](../../../../../lambda/ephemera/llm/markdownCodeFences.ts) — **`CoyoteHop1Handoff`**, last **` ```json `** fence, keys **`paragraphSummary`** / **`rubricIssues`**. **Still open:** optional full rubric for harness/debug |
+| Phase-plan JSON schema + validators | **Decided:** stable refs + **approved v1 document shape** (**Decided: phase-plan document shape (v1 approved)**). **Open:** implement validators in code |
 | Rubric representation | **Decided:** automation / hop 2 grounding; **three dimensions**; **criterion-first matrix then selection** (**Decided: rubric prompting pattern**). **Open:** aggregation **weights**, safety as dimension vs hard filter |
-| Persistence + harness diagnostics | **Decided:** durable **phase-plan JSON** + **walkthrough**; **no** durable **Scene analysis**; extend harness with **`selectionBody`** + **`phasePlanJson`** (**Decided: Coyote engine harness**). **Open:** `CoyoteGameIntentRecord` field shapes / wiring |
+| Persistence + harness diagnostics | **Decided:** durable **nested `phasePlan`**, **`walkthrough`** separate from **`intent`**; **no** **`sceneAnalysis`** on the persisted intent row (**Decided: intent record shape**); harness extensions (**Decided: Coyote engine harness**). **Open:** code wiring + Dynamo projection |
 | Implementation + durable `AGENT.md` updates | Not started |
 
 ## Getting Started
@@ -81,7 +81,7 @@ Hypothesis wiring uses the linear runner in [`coyoteHypothesisPipeline.ts`](../.
 
 | Hop | Contents (idea) |
 | --- | --- |
-| **Plan selection** | Brief scene analysis + exactly **N** one-line plan sketches + **criterion-first rubric matrix** (coverage / completeness / coherence) + **explicit selection** of one plan (**Decided: rubric prompting pattern**). No persisted candidate list outside this pipeline. **Handoff to hop 2:** (1) **paragraph summary** of the chosen plan, (2) **issues surfaced by the rubric** -- for example staged objects **without** a clear role in that plan, or **gaps** (missing pieces or goals) that require something **synthesized** or **scavenged / constructed** from what **is** on hand. Optional fenced **json** for those two fields only if parsing prefers it. |
+| **Plan selection** | Brief scene analysis + exactly **N** one-line plan sketches + **criterion-first rubric matrix** (coverage / completeness / coherence) + **explicit selection** of one plan (**Decided: rubric prompting pattern**). No persisted candidate list outside this pipeline. **Handoff to hop 2:** after matrix + selection, a **fenced `json`** block carrying **paragraph summary** + **rubric issues** (**Decided: hop 1 handoff serialization**) -- same semantic content as **Decided: handoff (hop 1 to hop 2)**. |
 | **Phase plan + surface** | Input: combined clustering Markdown + topology mapping + hop-1 **paragraph summary** + **rubric issues** (not the full rubric table unless we deliberately carry it). Output: trailing fenced **json** (**phasePlan**) then **`## Scene analysis`** (optional trim) + fenced **`Hypothesis:`** line **or** Hypothesis-only if scene analysis moves entirely into hop 1. |
 
 **Pros:** Matches "suggest + grade + pick" then "commit structure + player text". **Cons:** Hop 2 must not drift from hop 1; validate **phasePlan** against snapshot and clusters.
@@ -115,18 +115,48 @@ These choices are **set for Option A** unless implementation proves otherwise:
 - **No `selectedPlanId`** when candidate plans are **not** persisted outside the pipeline prompt -- the winning plan is implicit once hop 1 commits.
 - **Do pass forward to hop 2:** (1) a **paragraph summary** of the chosen plan, and (2) **issues surfaced by the rubric** -- e.g. staged objects that still lack a clear role in that plan, or missing goals/pieces that require **synthesis** or **scavenging** from staged props and topology.
 
+## Decided: hop 1 handoff serialization
+
+- Hop 1 ends with a **fenced JSON** payload (after rubric matrix + selection) that carries **paragraph summary** and **rubric issues** for hop 2 parsing.
+- **Canonical contract (code):** [`coyoteHop1Handoff.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/coyoteHop1Handoff.ts) — fence language **`json`** (parser uses the **last** **` ```json `** block; fence enumeration [`markdownCodeFences.ts`](../../../../../lambda/ephemera/llm/markdownCodeFences.ts) **`findAllFenceBlocks`**); required keys **`paragraphSummary`** (string) and **`rubricIssues`** (string array only); **`parseHop1HandoffFromSelectionBody`** for parsing hop-1 **`selectionBody`** when wired.
+
 ## Decided: phase-plan schema evolution
 
 We **do not** need a migration story or backward compatibility guarantees for successive JSON shapes **in development**: execution prompts are cleared often, and rolling out a breaking phase-plan schema can pair with **wiping the single extant development database** when required. Prefer a **clean cut** over maintaining legacy readers. Reserve optional **`schemaVersion`** only if production persistence later demands it (not assumed here).
 
 ## Decided: stable references (phase-plan JSON)
 
-**Locked.** Each phase-plan phase must reference staged objects by **`stableKey`**, and room placement must use labels **consistent with** [`coyoteSeamRoomMappingLines`](../../../../../lambda/ephemera/dataSource/coyoteGame/coyoteHypothesisPromptShared.ts) / seam room conventions -- **not** free-text names only. Validators should reject unknown keys and **stableKeys** absent from the staged snapshot (see illustrative sketch below).
+**Locked.** Each phase-plan phase must reference staged objects by **`stableKey`**, and room placement must use labels **consistent with** [`coyoteSeamRoomMappingLines`](../../../../../lambda/ephemera/dataSource/coyoteGame/coyoteHypothesisPromptShared.ts) / seam room conventions -- **not** free-text names only. Validators should reject unknown keys and **stableKeys** absent from the staged snapshot (shape: **Decided: phase-plan document shape (v1 approved)** below).
+
+## Decided: phase-plan document shape (v1 approved)
+
+**Approved v1** for the nested **`phasePlan`** object (and for hop 2 fenced JSON before prose fences):
+
+- **`phases`**: ordered array.
+- Per phase: **`stableKeysUsed`**, **`virtualEntities`** (each with **`label`**, **`derivedFrom`** stableKeys or topology refs, **`phaseKind`**: gathered | synthesized | deployed), **`achievement`** (what becomes true after this phase).
+- Optional per phase: **`prepVsBeat`** tagging to align with **prep** / **creation** semantics ([`lambda/ephemera/dataSource/coyoteGame/AGENT.md`](../../../../../lambda/ephemera/dataSource/coyoteGame/AGENT.md)).
+
+**Validators (required behavior, implement in code):** reject unknown keys; reject **stableKeys** not present in the staged snapshot for that run; reject phases that contradict **## Outliers** membership rules. Virtual / execution policy vs cached plan: **Decided: execution virtual props**.
 
 ## Decided: durable persistence vs harness
 
-- **`## Scene analysis`:** **Do not** treat as something that must live **durably** on **`CoyoteGame`** (or equivalent intent cache). Hop output may still include it for immediate player UX while generating; the **engine harness** should retain / surface it for **evaluation messages** and quality comparison alongside **`selectionBody`** / **`phasePlanJson`** (**Decided: Coyote engine harness**) -- harness/diagnostic scope only, not a migration-sensitive snapshot contract.
-- **Phase-plan JSON** (validated structure for the **chosen** plan) **and** the **walkthrough** (player-facing prose aligned to that plan -- companion to the durable **`Hypothesis:`** player line) **should** be **saved** for downstream prompts (execution comedy, alignment with [`generatePlanOutcome`](../../../../../lambda/ephemera/dataSource/coyoteGame/generatePlanOutcome.ts)), consistent with **Purpose** above.
+- **`## Scene analysis`:** **Not** persisted on **[`CoyoteGameIntentRecord`](../../../../../lambda/ephemera/internalCache/coyoteGame.ts)** (**Decided: intent record shape**). Hop 2 may still emit it for immediate UX; the **engine harness** retains / surfaces it for evaluation alongside **`selectionBody`** / **`phasePlanJson`** (**Decided: Coyote engine harness**).
+- **Phase plan** (nested structured object matching **Decided: phase-plan document shape**) **and** **`walkthrough`** (separate field) **and** durable **`intent`** (the **`Hypothesis:`** line contract) are **saved** for downstream prompts (execution comedy, alignment with [`generatePlanOutcome`](../../../../../lambda/ephemera/dataSource/coyoteGame/generatePlanOutcome.ts)), consistent with **Purpose** above.
+
+## Decided: intent record shape (`CoyoteGameIntentRecord`)
+
+- **`phasePlan`:** nested object types matching the approved phase-plan document shape (not an opaque string blob on the wire to Dynamo if the row uses map types; TypeScript models should mirror the schema).
+- **`walkthrough`:** its **own** field, separate from **`intent`** (Hypothesis line) and from **`phasePlan`**.
+- **`sceneAnalysis`:** **removed** from durable persistence on this record (no optional carry-over for rendering); treat hop 2 scene analysis as **transient + harness-only** unless a later product decision revives it.
+- **`intent`:** continues to mean the durable player **Hypothesis** line per existing parsing contract unless renamed during implementation.
+
+## Decided: execution virtual props
+
+**For now:** execution (and outcome) prompts **must not** introduce **new** virtual props that are **absent** from the **cached phase plan**. Revisit if that proves **too tight** for humor; until then validators and prompts should assume **closed-world** virtuals relative to persisted **`phasePlan`**.
+
+## Decided: structured validation failure
+
+On phase-plan (or related structured) validation failure, **prefer degraded prose** when hop output still yields usable player text (e.g. **`Hypothesis:`** and/or **walkthrough**) even without a valid **`phasePlan`**. This is **not** stub-only-or-nothing: persisted records may exist **with** or **without** a valid nested **`phasePlan`**. **Execution and outcome codepaths** must branch on presence and validity of **`phasePlan`** (and any partial fields) rather than assuming a single happy-path shape -- document that contract in durable **`AGENT.md`** when behavior ships.
 
 ## Decided: rubric automation and hop 2 grounding
 
@@ -157,7 +187,7 @@ We **do not** need a migration story or backward compatibility guarantees for su
 
 Symbolic scores (letters, 1--5, etc.) are **optional** inside cells only if anchors help the model; the **canonical** discriminant is **structured comparison then an explicit winner**, which aligns reliably with LLM behavior.
 
-Handoff **paragraph summary** + **rubric issues** (**Decided: handoff**) still follows this block and reflects the **chosen** plan only.
+After selection, emit handoff as **fenced JSON** (**Decided: hop 1 handoff serialization**) with **paragraph summary** + **rubric issues** (**Decided: handoff**) reflecting the **chosen** plan only.
 
 ## Decided: Coyote engine harness (extended diagnostics)
 
@@ -165,33 +195,20 @@ Handoff **paragraph summary** + **rubric issues** (**Decided: handoff**) still f
 
 - **[`runCoyoteEngineTestHarness`](../../../../../lambda/ephemera/dataSource/coyoteGame/runCoyoteEngineTestHarness.ts)** **will be extended** to surface intermediate pipeline artifacts for tuning and regression comparison (hypothesis harness only), parallel to staged **`usageStage1`** / **`stageOneBody`** today.
 - **Intermediate body names** agreed for the new hops (add more alongside if the pipeline grows): **`selectionBody`** -- hop 1 assistant output (matrix + selection + summary/issues handoff as emitted); **`phasePlanJson`** -- validated or raw **phase-plan JSON** produced in hop 2 **before** or alongside prose fences, as diagnostics require.
-- Include **`## Scene analysis`** (hop 2) in harness-published evaluation output when useful for comparison; not required on **`CoyoteGame`** (**Decided: durable persistence vs harness**).
+- Include **`## Scene analysis`** (hop 2) in harness-published evaluation output when useful for comparison; **not** on the durable intent row (**Decided: intent record shape**).
 - Publication format (concat in one **`WorldOOCMessage`**, extra lines, JSON labels) remains an **implementation** detail; the **obligation** is that harness readers can inspect those artifacts without replaying Bedrock.
 
 ## Unknowns: handoff formats
 
-Still to lock before or during implementation:
+Still to lock during implementation (prompt + parser detail):
 
 - **Optional observability:** Whether hop 2 or the **engine harness** should ever attach the **full** rubric text for debugging or quality review (**unlikely** in production payloads).
-- **JSON schema for phase plan:** Minimum fields (see below). **Compatibility:** follow **Decided: phase-plan schema evolution** -- no obligation to migrate old payloads in dev. **Stable references** are **decided** under **Decided: stable references (phase-plan JSON)**.
-- **Final player contract:** Keep the machine slice: **`Hypothesis:`** inside a **final** ` ```text ` fence ([`parseHypothesisModelOutput`](../../../../../lambda/ephemera/dataSource/coyoteGame/parseHypothesisModelOutput.ts)). **Persistence** intent is **decided** under **Decided: durable persistence vs harness** -- extend [`CoyoteGameIntentRecord`](../../../../../lambda/ephemera/internalCache/coyoteGame.ts) (or adjacent cache) for **phase-plan JSON** + **walkthrough**; **sceneAnalysis** on intent is **not** a durable requirement (may drop from stored record or remain optional if convenient for rendering only).
-
-### Phase plan JSON (illustrative sketch, not approved)
-
-Illustrative only -- replace after design review:
-
-- **`phases`**: ordered array.
-- Per phase: **`stableKeysUsed`**, **`virtualEntities`** (each with **`label`**, **`derivedFrom`** stableKeys or topology refs, **`phaseKind`**: gathered | synthesized | deployed), **`achievement`** (what becomes true after this phase).
-- Optional: **`prepVsBeat`** tagging per phase to align with **prep** / **creation** semantics ([`lambda/ephemera/dataSource/coyoteGame/AGENT.md`](../../../../../lambda/ephemera/dataSource/coyoteGame/AGENT.md)).
-
-Validation should reject unknown keys, reject **stableKeys** not present in the staged snapshot for that run, and reject phases that contradict **## Outliers** membership rules.
+- **Hop 1 handoff JSON:** **Locked** -- [`coyoteHop1Handoff.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/coyoteHop1Handoff.ts) (`CoyoteHop1Handoff`, `parseHop1HandoffFromSelectionBody`).
+- **Final player contract:** Keep **`Hypothesis:`** inside a **final** ` ```text ` fence ([`parseHypothesisModelOutput`](../../../../../lambda/ephemera/dataSource/coyoteGame/parseHypothesisModelOutput.ts)). Durable row fields: **Decided: intent record shape**; degraded persistence: **Decided: structured validation failure**.
 
 ## Unknowns: synthesized (virtual) objects
 
-Coyote prompts already allow **virtual scenery** and prep-invented props with strict rules ([`buildHypothesisStageTwoPrompt.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/buildHypothesisStageTwoPrompt.ts) **Virtual scenery and prep-invented props**). For structured phase plans:
-
-- Require every **synthetic** or **gathered virtual** entity to list **grounds** (which **stableKeys** + which topology cue), or explicitly mark **`inferredFromPlan`** with a maximum count.
-- Decide whether **execution** prompts may introduce **new** virtual props not listed in the cached phase plan (likely **no** for comedic continuity).
+Coyote prompts already allow **virtual scenery** and prep-invented props with strict rules ([`buildHypothesisStageTwoPrompt.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/buildHypothesisStageTwoPrompt.ts) **Virtual scenery and prep-invented props**). For **phase-plan** virtual entities, still choose validator detail: require every synthetic or gathered virtual to list **grounds** (which **stableKeys** + which topology cue), or allow **`inferredFromPlan`** with a **maximum count** (can mix with rules per **`phaseKind`**). **Execution** inventing props off-plan: **Decided: execution virtual props** (**no** for now).
 
 ## Unknowns: rubric grading
 
@@ -204,10 +221,9 @@ Open design questions:
 
 ## Other open questions
 
-- **Persistence (implementation):** Exact fields on **`CoyoteGame`** / [`CoyoteGameIntentRecord`](../../../../../lambda/ephemera/internalCache/coyoteGame.ts) for **phase-plan JSON** + **walkthrough** strings vs separate keys -- **strategy** is **decided** under **Decided: durable persistence vs harness**; wire-up TBD.
-- **Failure policy:** Keep **stub intent only** on any structured validation failure ([`CoyoteHypothesisPipelineAbortError`](../../../../../lambda/ephemera/dataSource/coyoteGame/coyoteHypothesisPipeline.ts)), or allow degraded player text without JSON.
+- **Persistence (implementation):** Wire [`CoyoteGameIntentRecord`](../../../../../lambda/ephemera/internalCache/coyoteGame.ts) + Dynamo projection to **Decided: intent record shape** (drop **`sceneAnalysis`** from the durable row); normalize / migrate any readers that assumed optional scene analysis on intent.
 - **Lambda budget:** Extra sequential Bedrock calls vs [`EphemeraFunction` timeout](../../../../../template.yaml); tune [`BEDROCK_HYPOTHESIS_TIMEOUT_MS`](../../../../../lambda/ephemera/dataSource/coyoteGame/invokeBedrockHypothesis.ts) per hop.
-- **Alignment with plan outcome:** [`AGENT.md`](../../../../../lambda/ephemera/dataSource/coyoteGame/AGENT.md) **Plan outcome consistency** -- execution and outcome prompts should not contradict the cached phase plan.
+- **Alignment with plan outcome:** [`AGENT.md`](../../../../../lambda/ephemera/dataSource/coyoteGame/AGENT.md) **Plan outcome consistency** -- when **`phasePlan`** is present and valid, execution and outcome prompts must not contradict it; when **`phasePlan`** is **missing** or invalid (**Decided: structured validation failure**), prompts must degrade gracefully and must not assume a full structured plan.
 
 ## Material decisions to confirm early
 
@@ -221,12 +237,14 @@ Open design questions:
 
 Pending work uses `[ ]` and completed work uses `[X]`. This section has no nested checklist bullets; each line is a single actionable step.
 
-- [ ] Implement **Option A** end-to-end (prompts, hop-2 multi-fence parse, validation); tune token budget per hop from harness results (reliability metrics inform **tuning**, not a topology change -- **Option B/C** remain out of scope).
-- [ ] Lock **handoff serialization** (optional fenced **json** for summary + issues; harness-only full rubric?) and final fence contract for **`Hypothesis:`** -- core handoff shape is **decided** under **Decided: handoff**.
-- [ ] Draft **phase plan JSON** schema + validation rules (stableKeys, outliers, virtual entities).
-- [ ] Decide rubric **aggregation weights** (if any) and **safety** as scored dimension vs hard filter -- matrix + selection pattern is **decided** under **Decided: rubric prompting pattern (hop 1)** and **Decided: rubric dimensions (initial set)**.
-- [ ] Wire **CoyoteGame** / cache fields for **phase-plan JSON** + **walkthrough** per **Decided: durable persistence vs harness**; implement **Decided: Coyote engine harness** (**`selectionBody`**, **`phasePlanJson`**, **Scene analysis** in evaluation output when useful).
-- [ ] Implement pipeline steps + parsers (feature code); update durable [`AGENT.md`](../../../../../lambda/ephemera/dataSource/coyoteGame/AGENT.md) when behavior is stable.
+**Dependency order:** lock hop-1 handoff **JSON** field names and fence tags, **`Hypothesis:`** fence contract, **`phasePlan`** types + virtual-entity validator rules (**Unknowns: synthesized**), and hop 1 **rubric aggregation / safety** instructions at a **design + type level** before treating the Option A implementation line as build-complete.
+
+- [X] Finalize hop-1 handoff **JSON property names** + fence tag; final **`Hypothesis:`** fence contract -- **encoded:** [`coyoteHop1Handoff.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/coyoteHop1Handoff.ts) (`CoyoteHop1Handoff`, `COYOTE_HOP1_HANDOFF_JSON_KEYS`, `parseHop1HandoffFromSelectionBody`); shared fences [`markdownCodeFences.ts`](../../../../../lambda/ephemera/llm/markdownCodeFences.ts); hop-2 multi-fence Hypothesis regression in [`parseHypothesisModelOutput.test.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/parseHypothesisModelOutput.test.ts).
+- [ ] Resolve **Unknowns: synthesized** (virtual-entity **grounds** vs **`inferredFromPlan`** cap, optionally per **`phaseKind`**), then encode **`phasePlan`** TypeScript types + validators (stableKeys, outliers) per **Decided: phase-plan document shape**.
+- [ ] Decide rubric **aggregation weights** (if any) and **safety** as scored dimension vs hard filter -- matrix + selection pattern is **decided** under **Decided: rubric prompting pattern (hop 1)** and **Decided: rubric dimensions (initial set)** (feeds hop 1 prompt text before the full build).
+- [ ] Implement **Option A** end-to-end (prompts, hop-1 **fenced JSON** handoff parse, hop-2 multi-fence parse, **phasePlan** validation wired to the contracts above); tune token budget per hop from harness results (reliability metrics inform **tuning**, not a topology change -- **Option B/C** remain out of scope).
+- [ ] Wire **CoyoteGame** / [`CoyoteGameIntentRecord`](../../../../../lambda/ephemera/internalCache/coyoteGame.ts) to **Decided: intent record shape** (nested **`phasePlan`**, **`walkthrough`**, drop **`sceneAnalysis`**); persist per **Decided: structured validation failure** where applicable; implement **Decided: Coyote engine harness** (**`selectionBody`**, **`phasePlanJson`**, **Scene analysis** in evaluation output when useful).
+- [ ] Update durable [`AGENT.md`](../../../../../lambda/ephemera/dataSource/coyoteGame/AGENT.md) when Option A behavior is stable.
 - [ ] Delete or archive this task plan after the initiative completes.
 
 ## Verification
