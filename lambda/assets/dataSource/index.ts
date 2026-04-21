@@ -15,8 +15,10 @@ import {
     isWMLAssetPurgedEvent,
     isDiagnosticsHealGlobalValuesEvent,
     isDiagnosticsCacheConsistencyFindingEvent,
+    isDiagnosticsEphemeraRenderCacheFindingEvent,
     isWMLContentUpdateEvent,
 } from './subscribedEvents'
+import { reseedComponentExamplesFromDiagnostics } from '../componentExamples/reseedFromDiagnostics'
 
 type StreamEventFn = (params: { update: AssetsEventUpdate; streamKey: string; header: { type: string } }) => Promise<void>
 
@@ -145,6 +147,20 @@ const handleCacheConsistencyFinding = async (
     }
 }
 
+const handleEphemeraRenderCacheFinding = async (
+    event: Extract<AssetsIncomingEvent, { header: { type: 'Ephemera RenderCache Finding' } }>,
+    streamEvent: StreamEventFn
+): Promise<void> => {
+    const content = await event.getContent()
+    if (!content) {
+        return
+    }
+    // This finding describes missing/corrupt data in ephemera render cache, but the source-of-truth
+    // for authored seed templates is Assets. We heal by republishing template-derived example updates
+    // from Assets so Ephemera rebuilds cache through its normal componentExamples mirror boundary.
+    await reseedComponentExamplesFromDiagnostics(content, streamEvent)
+}
+
 //
 // Non-replayable DataSource singleton for mtw.assets
 // 
@@ -185,6 +201,10 @@ export const assetsDataSource = new AssetsDataSource<never, AssetsEventUpdate, A
             }
             if (isDiagnosticsCacheConsistencyFindingEvent(event)) {
                 await handleCacheConsistencyFinding(event, streamEvent)
+                return
+            }
+            if (isDiagnosticsEphemeraRenderCacheFindingEvent(event)) {
+                await handleEphemeraRenderCacheFinding(event, streamEvent)
                 return
             }
         }))

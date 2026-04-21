@@ -1,10 +1,9 @@
 import {
     isEphemeraSubscribedEnvelope,
-    isEphemeraRenderCacheFindingEnvelope,
 } from './subscribedEvents'
 
 describe('ephemera subscribedEvents', () => {
-    it('accepts mtw.diagnostics Ephemera RenderCache Finding envelope', () => {
+    it('rejects mtw.diagnostics Ephemera RenderCache Finding envelope', () => {
         const envelope = {
             header: {
                 dataSourceKey: 'mtw.diagnostics',
@@ -21,8 +20,7 @@ describe('ephemera subscribedEvents', () => {
             }),
         }
 
-        expect(isEphemeraRenderCacheFindingEnvelope(envelope as any)).toBe(true)
-        expect(isEphemeraSubscribedEnvelope(envelope as any)).toBe(true)
+        expect(isEphemeraSubscribedEnvelope(envelope as any)).toBe(false)
     })
 
     it('rejects non-matching diagnostics event types', () => {
@@ -36,7 +34,6 @@ describe('ephemera subscribedEvents', () => {
             getContent: () => Promise.resolve({}),
         }
 
-        expect(isEphemeraRenderCacheFindingEnvelope(envelope as any)).toBe(false)
         expect(isEphemeraSubscribedEnvelope(envelope as any)).toBe(false)
     })
 })

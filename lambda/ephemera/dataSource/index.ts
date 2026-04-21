@@ -1,7 +1,6 @@
 import EphemeraDataSource from './abstract'
 import { EphemeraEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/ephemera'
 import { AssetsEventUpdate } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
-import { DiagnosticsEphemeraRenderCacheFindingEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics'
 import messageBus from '../messageBus'
 import { isEphemeraRoomId, isEphemeraAssetId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import {
@@ -10,7 +9,6 @@ import {
     isEphemeraComponentEnvelope,
     isEphemeraCanonUpdatedEnvelope,
     isEphemeraZoneUpdatedEnvelope,
-    isEphemeraRenderCacheFindingEnvelope,
 } from './subscribedEvents'
 import { kickRoomHeaderBroadcastForRoom } from './perception/kickRoomHeaderBroadcast'
 
@@ -46,12 +44,8 @@ const processZoneUpdated = async (evt: Extract<EphemeraIncomingEvent, { header: 
     }
 }
 
-const processRenderCacheFinding = async (evt: Extract<EphemeraIncomingEvent, { header: { type: 'Ephemera RenderCache Finding' } }>): Promise<void> => {
-    await evt.getContent()
-}
-
 // SubscribedContent = AssetsEventUpdate (we subscribe to mtw.assets). UpdatePayload = what we publish (same for Ephemera).
-export const ephemeraDataSource = new EphemeraDataSource<never, AssetsEventUpdate, AssetsEventUpdate | DiagnosticsEphemeraRenderCacheFindingEvent>({
+export const ephemeraDataSource = new EphemeraDataSource<never, AssetsEventUpdate, AssetsEventUpdate>({
     dataSourceKey: 'mtw.ephemera',
     replayable: false,
     eventSerializer: new EphemeraEventSerializer(),
@@ -69,9 +63,6 @@ export const ephemeraDataSource = new EphemeraDataSource<never, AssetsEventUpdat
             if (isEphemeraZoneUpdatedEnvelope(evt)) {
                 await processZoneUpdated(evt)
                 return
-            }
-            if (isEphemeraRenderCacheFindingEnvelope(evt)) {
-                await processRenderCacheFinding(evt)
             }
         }))
     }

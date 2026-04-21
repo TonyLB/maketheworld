@@ -1,6 +1,6 @@
 # Ephemera RenderCache Finding Plan
 
-**Status:** In progress. Draft the finding contract and ephemera subscription path first, then land the first self-healing handler with optional `roomIds` scope.
+**Status:** In progress. Phase 2.5 routing correction (assets-led reseed) is complete; next is first self-healing handler hardening with optional `roomIds` scope and broader integration coverage.
 
 ## Purpose
 
@@ -9,8 +9,8 @@ Create a diagnostics-driven self-healing path that can repopulate ephemera rende
 This initiative is a short-term gap-closer while `componentExamples` publication coverage is still incomplete for perspective-driven cache freshness. The flow should follow the existing descriptive-finding pattern:
 
 - Diagnostics publishes a finding event that describes the issue.
-- Ephemera consumes the finding and performs idempotent remediation.
-- Render cache persistence continues to flow through `mtw.ephemera.renderCache` write boundaries.
+- Assets handles finding-driven authored reseed and emits authoritative updates on `mtw.assets.componentExamples`.
+- Ephemera consumes those emits and persists through `mtw.ephemera.renderCache` write boundaries.
 
 ## Scope and non-goals
 
@@ -23,8 +23,8 @@ This initiative is a short-term gap-closer while `componentExamples` publication
   - `diagnosticRunId: string`
   - `timestamp: string`
   - optional `roomIds: EphemeraRoomId[]` (blast-radius limiter)
-- EventBridge routing from `mtw.diagnostics` to `EphemeraFunction`.
-- Ephemera consumption path that triggers cache regeneration for each targeted room and each situation-facet aggregate render in that room's inheritance tree.
+- EventBridge routing from `mtw.diagnostics` to `AssetsFunction` for this finding type.
+- Assets reseed path that emits authored starting-point payload updates consumed by ephemera cache mirroring.
 
 ### Explicitly deferred
 
@@ -78,12 +78,19 @@ Use `[ ]` for pending and `[X]` for complete. Mark each nested line `[X]` as it 
   - [X] Add ephemera subscribed-event guards/types for the new diagnostics finding.
   - [X] Add focused tests proving ephemera accepts the envelope and routes it to handler logic.
 
+- [X] Phase 2.5 - routing correction to assets-led reseed
+  - [X] Route `Ephemera RenderCache Finding` to `AssetsFunction` and remove direct `EphemeraFunction` EventBridge subscription for this finding in [`template.yaml`](../../../../template.yaml).
+  - [X] Remove ephemera-specific diagnostics handling for direct finding consumption (`lambda/ephemera/app.ts`, `lambda/ephemera/dataSource/subscribedEvents.ts`, `lambda/ephemera/dataSource/index.ts`) now that this flow is handled upstream.
+  - [X] Add assets-side diagnostics handling that reuses `lambda/assets/componentExamples` enrichment pipeline to emit authoritative authored seed updates on `mtw.assets.componentExamples`.
+  - [X] Ensure `status: missing | corrupted` takes the same idempotent reseed path in first iteration.
+  - [X] Add tests proving diagnostics finding -> assets emits -> ephemera `componentExamples` subscriber applies reseed updates without direct diagnostics subscription in ephemera.
+
 - [ ] Phase 3 - first self-healing implementation
-  - [ ] Implement `Ephemera RenderCache Finding` handler in ephemera that:
+  - [ ] Implement `Ephemera RenderCache Finding` remediation as authored invariant seed healing via `mtw.assets.componentExamples` that:
     - [ ] normalizes and validates `perspective` and optional `roomIds`,
     - [ ] resolves target rooms (`roomIds` if provided, otherwise full eligible room set),
-    - [ ] regenerates aggregate renders for each room and each situation-facet aggregate path,
-    - [ ] writes through `api.ephemera` / `mtw.ephemera.renderCache` command surfaces (no direct Dynamo writes in diagnostics handler).
+  - [ ] rebuilds and emits authored starting-point payloads for each room and each situation-facet aggregate path,
+  - [ ] performs healing through assets emits consumed by `mtw.ephemera.examples` -> `mtw.ephemera.renderCache` subscribed-event flow (no direct Dynamo writes outside renderCache domain ownership).
   - [ ] Add idempotency-safe behavior for repeated findings with same inputs.
   - [ ] Add tests for all-rooms and `roomIds`-limited blast radius.
 
@@ -102,6 +109,8 @@ Use `[ ]` for pending and `[X]` for complete. Mark each nested line `[X]` as it 
 - Finding events stay descriptive, not imperative.
 - First iteration includes optional `roomIds` for blast-radius control.
 - First iteration excludes facet filters due to high identification complexity.
+- `Ephemera RenderCache Finding` handling is assets-led: diagnostics finding drives reseed emits on `mtw.assets.componentExamples`, then ephemera applies those emits through existing mirroring path.
+- `missing` and `corrupted` statuses share the same idempotent reseed behavior in first iteration.
 - Remediation must preserve render cache boundary ownership (`mtw.ephemera.renderCache` remains the write owner surface).
 
 ## Verification
@@ -113,7 +122,7 @@ Use `[ ]` for pending and `[X]` for complete. Mark each nested line `[X]` as it 
 - Render-cache healing behavior tests:
   - Add targeted tests for handler fanout and write dispatch (all rooms vs `roomIds` subset).
 - Integration check (when feasible):
-  - Finding ingress -> ephemera handler -> cache update events observed.
+  - Finding ingress -> assets reseed emits -> ephemera mirror/cache update events observed.
 - Build and lint checks on touched packages:
   - `lambda/ephemera` build/test targets
   - `packages/mtw-interfaces` test targets
@@ -127,6 +136,7 @@ Use `[ ]` for pending and `[X]` for complete. Mark each nested line `[X]` as it 
 | Finding contract (`Ephemera RenderCache Finding`) | Done |
 | EventBridge route to ephemera | Done |
 | Ephemera diagnostics ingress + subscription typing | Done |
+| Phase 2.5 routing correction (assets-led reseed path) | Done |
 | Self-healing handler (all rooms + optional `roomIds`) | Not started |
 | Tests and operator runbook | Not started |
 

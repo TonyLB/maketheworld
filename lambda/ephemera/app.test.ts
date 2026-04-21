@@ -195,7 +195,7 @@ describe('app handler', () => {
             expect(content).toEqual({})
         })
 
-        it('should route mtw.diagnostics Ephemera RenderCache Finding through typed deserializer path', async () => {
+        it('should reject mtw.diagnostics Ephemera RenderCache Finding when deserializer is unavailable', async () => {
             const event = {
                 source: 'mtw.diagnostics',
                 'detail-type': 'Ephemera RenderCache Finding',
@@ -213,11 +213,9 @@ describe('app handler', () => {
 
             expect(mockMessageBus.send).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    type: 'StreamingEvent',
-                    dataSourceKey: 'mtw.diagnostics',
-                    header: expect.objectContaining({
-                        dataSourceKey: 'mtw.diagnostics',
-                        type: 'Ephemera RenderCache Finding'
+                    type: 'Error',
+                    body: expect.objectContaining({
+                        error: 'No deserializer available for data source: mtw.diagnostics'
                     })
                 })
             )

@@ -30,7 +30,6 @@ import { extractReturnValue } from './returnValue'
 import { sfnClient } from './clients'
 import { confirmGuestCharacter } from './guestCharacter'
 import { AssetsEventSerializer, ComponentExamplesEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
-import { DiagnosticsEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics'
 import { fromEventBridgeFormat } from '@tonylb/mtw-lambda-patterns/ts/dataSource/formatTransform'
 import { coreFormatToStreamingEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import { sendParseRequested, sendStateChange } from './dataSource/apiEphemera'
@@ -51,7 +50,6 @@ import './dataSource/state'  // mtw.ephemera.state DataSource (see lambda/epheme
 const eventDeserializers = {
     'mtw.assets': new AssetsEventSerializer(),
     'mtw.assets.componentExamples': new ComponentExamplesEventSerializer(),
-    'mtw.diagnostics': new DiagnosticsEventSerializer({ fetch: fetch.bind(globalThis) }),
     // Add other data source deserializers here as needed
 } as const
 

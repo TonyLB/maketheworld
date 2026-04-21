@@ -368,33 +368,6 @@ describe('Ephemera DataSource receiveEvents', () => {
         })
     })
 
-    describe('Diagnostics finding events', () => {
-        it('should accept and route Ephemera RenderCache Finding events', async () => {
-            const getContent = jest.fn().mockResolvedValue({
-                type: 'Ephemera RenderCache Finding' as const,
-                perspective: ['ASSET#primitives'],
-                status: 'missing' as const,
-                diagnosticRunId: 'diag-1',
-                timestamp: '2026-04-21T12:00:00.000Z',
-                roomIds: ['ROOM#alpha']
-            })
-            const events = [
-                {
-                    header: {
-                        dataSourceKey: 'mtw.diagnostics' as const,
-                        streamKey: 'global',
-                        timestamp: getCurrentTimestamp(),
-                        type: 'Ephemera RenderCache Finding' as const
-                    },
-                    getContent
-                }
-            ]
-            const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
-            await ephemeraDataSource.receiveEvents?.({ events, streamEvent: mockStreamEvent, streamEnvelope: jest.fn().mockResolvedValue(undefined) })
-            expect(getContent).toHaveBeenCalledTimes(1)
-        })
-    })
-
     describe('Event Subscription', () => {
         it('should subscribe to events from mtw.assets', () => {
             const envelope = {
@@ -424,7 +397,7 @@ describe('Ephemera DataSource receiveEvents', () => {
             expect(ephemeraDataSource.subscribedEventTypeGuard?.(otherEnvelope)).toBe(false)
         })
 
-        it('should subscribe to Ephemera RenderCache Finding from mtw.diagnostics', () => {
+        it('should not subscribe to Ephemera RenderCache Finding from mtw.diagnostics', () => {
             const envelope = {
                 header: {
                     dataSourceKey: 'mtw.diagnostics',
@@ -435,7 +408,7 @@ describe('Ephemera DataSource receiveEvents', () => {
                 getContent: () => Promise.resolve({})
             }
 
-            expect(ephemeraDataSource.subscribedEventTypeGuard?.(envelope)).toBe(true)
+            expect(ephemeraDataSource.subscribedEventTypeGuard?.(envelope)).toBe(false)
         })
     })
 })
