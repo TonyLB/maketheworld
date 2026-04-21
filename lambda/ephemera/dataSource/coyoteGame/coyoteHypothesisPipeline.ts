@@ -9,22 +9,33 @@ import {
     type PipelineStep,
 } from '../../llm/pipeline';
 
+import { buildHypothesisPhasePlanHopPromptParts } from './buildHypothesisPhasePlanHopPromptParts';
+import { buildHypothesisPlanSelectionPromptParts } from './buildHypothesisPlanSelectionPromptParts';
 import { buildHypothesisStageOnePromptParts } from './buildHypothesisStageOnePrompt';
-import { buildHypothesisStageTwoPromptParts } from './buildHypothesisStageTwoPrompt';
 import {
     combineHypothesisClusters,
     renderCombinedHypothesisForStageTwo,
 } from './combineHypothesisClusters';
+import { parseHop1HandoffFromSelectionBody, type CoyoteHop1Handoff } from './coyoteHop1Handoff';
+import { buildCoyotePhasePlanValidationContext } from './coyoteHypothesisPhasePlanContext';
 import { loadCoyoteRoomObjectsByRoom, type CoyoteRoomObjectsByRoom } from './coyoteRoomObjectSnapshot';
 import {
+    invokeBedrockHypothesisPhasePlanHop,
+    invokeBedrockHypothesisPlanSelection,
     invokeBedrockHypothesisStageOne,
-    invokeBedrockHypothesisStageTwo,
     type InvokeBedrockHypothesisResult,
 } from './invokeBedrockHypothesis';
-import { parseHypothesisModelOutput, type ParseHypothesisModelOutputOptions } from './parseHypothesisModelOutput';
+import {
+    parseHypothesisPhasePlanHopOutput,
+    type ParseHypothesisModelOutputOptions,
+} from './parseHypothesisModelOutput';
 import { parseHypothesisStageOneOutput } from './parseHypothesisStageOneOutput';
 
-/** Failure policy (two-round pipeline): any stage-1/stage-2 Bedrock failure, invalid seam, or combine failure yields stub intent only — no partial hypothesis to players. */
+/**
+ * Failure policy: Bedrock failure on Stage One, plan-selection hop, or phase-plan hop; invalid seam / combine;
+ * or hop-1 handoff parse failure yields stub intent only --- no partial hypothesis to players.
+ * Hop-2 phase-plan JSON validation failure does **not** abort when prose Hypothesis still parses (**Decided: structured validation failure**).
+ */
 
 export type GenerateHypothesisDeps = {
     getGameRooms: () => Promise<string[]>;
@@ -35,8 +46,16 @@ export type GenerateHypothesisDeps = {
 export type GenerateHypothesisPipelineResult = {
     record: CoyoteGameIntentRecord;
     stageOneResult: InvokeBedrockHypothesisResult;
-    stageTwoResult: InvokeBedrockHypothesisResult | null;
-    /** Stage Two extended-reasoning text when Bedrock returned it (not stored on CoyoteGameIntentRecord). */
+    /** Option A hop 1 (plan selection + rubric + JSON handoff). */
+    planSelectionResult: InvokeBedrockHypothesisResult | null;
+    /** Option A hop 2 (phase-plan JSON + "## Scene analysis" + fenced Hypothesis). */
+    phasePlanHopResult: InvokeBedrockHypothesisResult | null;
+    /** Hop 1 assistant body (plan selection); harness / tuning. */
+    selectionBody?: string;
+    /** Raw **` ```json ` ** interior that validated for **`phasePlan`**, when any. */
+    phasePlanJson?: string;
+    phasePlanValidationReason?: string;
+    /** Phase-plan hop extended-reasoning text when Bedrock returned it (not stored on CoyoteGameIntentRecord). */
     stageTwoReasoningContent?: string;
 };
 
@@ -44,7 +63,12 @@ export type CoyoteHypothesisPipelineState = {
     roomObjectsByRoom?: CoyoteRoomObjectsByRoom;
     combinedMarkdown?: string;
     stageOneResult?: InvokeBedrockHypothesisResult;
-    stageTwoResult?: InvokeBedrockHypothesisResult | null;
+    planSelectionResult?: InvokeBedrockHypothesisResult | null;
+    phasePlanHopResult?: InvokeBedrockHypothesisResult | null;
+    hop1Handoff?: CoyoteHop1Handoff;
+    selectionBody?: string;
+    phasePlanJson?: string;
+    phasePlanValidationReason?: string;
     record?: CoyoteGameIntentRecord;
     stageTwoReasoningContent?: string;
 };
@@ -115,40 +139,87 @@ function buildCoyoteHypothesisSteps(
             },
         }),
         ctx.defineLlmStep({
-            name: 'hypothesisStageTwoLlm',
+            name: 'hypothesisPlanSelectionLlm',
             run: async (draft) => {
                 const roomObjectsByRoom = draft.roomObjectsByRoom;
                 const combinedMarkdown = draft.combinedMarkdown;
                 if (!roomObjectsByRoom || combinedMarkdown === undefined) {
-                    throw new Error('CoyoteHypothesisPipeline: hypothesisStageTwoLlm preconditions');
+                    throw new Error('CoyoteHypothesisPipeline: hypothesisPlanSelectionLlm preconditions');
                 }
-                const stageTwoParts = buildHypothesisStageTwoPromptParts({
+                const parts = buildHypothesisPlanSelectionPromptParts({
                     roomObjectsByRoom,
                     combinedMarkdown,
                 });
-                const stageTwoResult = await invokeBedrockHypothesisStageTwo(stageTwoParts);
-                draft.stageTwoResult = stageTwoResult;
-                if (!stageTwoResult.success) {
+                const planSelectionResult = await invokeBedrockHypothesisPlanSelection(parts);
+                draft.planSelectionResult = planSelectionResult;
+                if (!planSelectionResult.success) {
                     abort();
                 }
             },
         }),
         ctx.defineOrchestrationStep({
-            name: 'parseStageTwoRecord',
+            name: 'parsePlanSelectionHandoff',
             run: async (draft) => {
-                const stageTwoResult = draft.stageTwoResult;
-                if (!stageTwoResult?.success) {
-                    throw new Error('CoyoteHypothesisPipeline: parseStageTwoRecord preconditions');
+                const planSelectionResult = draft.planSelectionResult;
+                const roomObjectsByRoom = draft.roomObjectsByRoom;
+                const combinedMarkdown = draft.combinedMarkdown;
+                if (!planSelectionResult?.success || !roomObjectsByRoom || combinedMarkdown === undefined) {
+                    throw new Error('CoyoteHypothesisPipeline: parsePlanSelectionHandoff preconditions');
+                }
+                draft.selectionBody = planSelectionResult.body;
+                const handoff = parseHop1HandoffFromSelectionBody(planSelectionResult.body);
+                if (!handoff.ok) {
+                    abort();
+                }
+                draft.hop1Handoff = handoff.handoff;
+            },
+        }),
+        ctx.defineLlmStep({
+            name: 'hypothesisPhasePlanHopLlm',
+            run: async (draft) => {
+                const roomObjectsByRoom = draft.roomObjectsByRoom;
+                const combinedMarkdown = draft.combinedMarkdown;
+                const handoff = draft.hop1Handoff;
+                if (!roomObjectsByRoom || combinedMarkdown === undefined || !handoff) {
+                    throw new Error('CoyoteHypothesisPipeline: hypothesisPhasePlanHopLlm preconditions');
+                }
+                const parts = buildHypothesisPhasePlanHopPromptParts({
+                    roomObjectsByRoom,
+                    combinedMarkdown,
+                    hop1Handoff: handoff,
+                });
+                const phasePlanHopResult = await invokeBedrockHypothesisPhasePlanHop(parts);
+                draft.phasePlanHopResult = phasePlanHopResult;
+                if (!phasePlanHopResult.success) {
+                    abort();
+                }
+            },
+        }),
+        ctx.defineOrchestrationStep({
+            name: 'parsePhasePlanHopRecord',
+            run: async (draft) => {
+                const phasePlanHopResult = draft.phasePlanHopResult;
+                const roomObjectsByRoom = draft.roomObjectsByRoom;
+                if (!phasePlanHopResult?.success || !roomObjectsByRoom) {
+                    throw new Error('CoyoteHypothesisPipeline: parsePhasePlanHopRecord preconditions');
                 }
                 const parseOptions: ParseHypothesisModelOutputOptions = {
-                    reasoningContentProvided: Boolean(stageTwoResult.reasoningContent),
+                    reasoningContentProvided: Boolean(phasePlanHopResult.reasoningContent),
                 };
-                draft.record = parseHypothesisModelOutput(stageTwoResult.body, parseOptions);
+                const phasePlanCtx = buildCoyotePhasePlanValidationContext(roomObjectsByRoom);
+                const parsed = parseHypothesisPhasePlanHopOutput(
+                    phasePlanHopResult.body,
+                    phasePlanCtx,
+                    parseOptions
+                );
+                draft.record = parsed.record;
+                draft.phasePlanJson = parsed.phasePlanJson;
+                draft.phasePlanValidationReason = parsed.phasePlanValidationReason;
                 if (
-                    stageTwoResult.reasoningContent !== undefined &&
-                    stageTwoResult.reasoningContent.length > 0
+                    phasePlanHopResult.reasoningContent !== undefined &&
+                    phasePlanHopResult.reasoningContent.length > 0
                 ) {
-                    draft.stageTwoReasoningContent = stageTwoResult.reasoningContent;
+                    draft.stageTwoReasoningContent = phasePlanHopResult.reasoningContent;
                 }
             },
         }),
@@ -172,7 +243,13 @@ function pipelineFailureToStubResult(
     return {
         record: { intent: 'Hypothesis: Stubbed' },
         stageOneResult,
-        stageTwoResult: state.stageTwoResult !== undefined ? state.stageTwoResult : null,
+        planSelectionResult: state.planSelectionResult !== undefined ? state.planSelectionResult : null,
+        phasePlanHopResult: state.phasePlanHopResult !== undefined ? state.phasePlanHopResult : null,
+        ...(state.selectionBody !== undefined ? { selectionBody: state.selectionBody } : {}),
+        ...(state.phasePlanJson !== undefined ? { phasePlanJson: state.phasePlanJson } : {}),
+        ...(state.phasePlanValidationReason !== undefined
+            ? { phasePlanValidationReason: state.phasePlanValidationReason }
+            : {}),
     };
 }
 
@@ -180,17 +257,30 @@ function pipelineSuccessToResult(
     state: CoyoteHypothesisPipelineState
 ): GenerateHypothesisPipelineResult {
     const stageOneResult = state.stageOneResult;
-    const stageTwoResult = state.stageTwoResult;
+    const planSelectionResult = state.planSelectionResult;
+    const phasePlanHopResult = state.phasePlanHopResult;
     const record = state.record;
 
-    if (!stageOneResult || stageTwoResult === undefined || stageTwoResult === null || !record) {
+    if (
+        !stageOneResult ||
+        planSelectionResult === undefined ||
+        phasePlanHopResult === undefined ||
+        phasePlanHopResult === null ||
+        !record
+    ) {
         throw new Error('CoyoteHypothesisPipeline: incomplete success state');
     }
 
     return {
         record,
         stageOneResult,
-        stageTwoResult,
+        planSelectionResult,
+        phasePlanHopResult,
+        ...(state.selectionBody !== undefined ? { selectionBody: state.selectionBody } : {}),
+        ...(state.phasePlanJson !== undefined ? { phasePlanJson: state.phasePlanJson } : {}),
+        ...(state.phasePlanValidationReason !== undefined
+            ? { phasePlanValidationReason: state.phasePlanValidationReason }
+            : {}),
         ...(state.stageTwoReasoningContent !== undefined && state.stageTwoReasoningContent.length > 0
             ? { stageTwoReasoningContent: state.stageTwoReasoningContent }
             : {}),

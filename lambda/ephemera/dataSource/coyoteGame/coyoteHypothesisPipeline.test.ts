@@ -1,7 +1,7 @@
 import {
     CoyoteHypothesisPipelineAbortError,
     mapPipelineRunToGenerateHypothesisResult,
-} from './coyoteHypothesisPipeline';
+} from './coyoteHypothesisPipeline'
 
 describe('mapPipelineRunToGenerateHypothesisResult', () => {
     it('maps abort failure with stage results to stub pipeline result', () => {
@@ -9,18 +9,20 @@ describe('mapPipelineRunToGenerateHypothesisResult', () => {
             ok: false,
             state: {
                 stageOneResult: { success: false, errorMessage: 'Throttled' },
-                stageTwoResult: null,
+                planSelectionResult: null,
+                phasePlanHopResult: null,
             },
             failedStepName: 'hypothesisStageOneLlm',
             failedStepIndex: 1,
             error: new CoyoteHypothesisPipelineAbortError(),
-        });
+        })
         expect(result).toEqual({
             record: { intent: 'Hypothesis: Stubbed' },
             stageOneResult: { success: false, errorMessage: 'Throttled' },
-            stageTwoResult: null,
-        });
-    });
+            planSelectionResult: null,
+            phasePlanHopResult: null,
+        })
+    })
 
     it('rethrows when failure is not an intentional abort', () => {
         expect(() =>
@@ -31,8 +33,8 @@ describe('mapPipelineRunToGenerateHypothesisResult', () => {
                 failedStepIndex: 0,
                 error: new Error('network'),
             })
-        ).toThrow('network');
-    });
+        ).toThrow('network')
+    })
 
     it('maps successful run state to pipeline result', () => {
         const result = mapPipelineRunToGenerateHypothesisResult({
@@ -43,18 +45,24 @@ describe('mapPipelineRunToGenerateHypothesisResult', () => {
                     body: '{}',
                     usage: { inputTokens: 1, outputTokens: 2, totalTokens: 3 },
                 },
-                stageTwoResult: {
+                planSelectionResult: {
+                    success: true,
+                    body: '{"paragraphSummary":"x","rubricIssues":[]}',
+                    usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+                },
+                phasePlanHopResult: {
                     success: true,
                     body: 'Hypothesis: Test.',
                     usage: { inputTokens: 4, outputTokens: 5, totalTokens: 9 },
                 },
                 record: { intent: 'Hypothesis: Test.' },
             },
-        });
+        })
         expect(result).toEqual({
             record: { intent: 'Hypothesis: Test.' },
             stageOneResult: expect.objectContaining({ success: true }),
-            stageTwoResult: expect.objectContaining({ success: true }),
-        });
-    });
-});
+            planSelectionResult: expect.objectContaining({ success: true }),
+            phasePlanHopResult: expect.objectContaining({ success: true }),
+        })
+    })
+})

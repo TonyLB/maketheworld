@@ -1,3 +1,5 @@
+import type { CoyotePhasePlanValidationContext } from '@tonylb/mtw-interfaces/ts/coyotePhasePlan'
+import { validateCoyotePhasePlan } from '@tonylb/mtw-interfaces/ts/coyotePhasePlan'
 import type { CoyoteGameIntentRecord } from '../../internalCache/coyoteGame'
 import { findAllFenceBlocks } from '../../llm/markdownCodeFences'
 
@@ -42,6 +44,19 @@ function interiorIsSingleHypothesisLine(interior: string): string | null {
 /**
  * New Stage Two contract: prefix (scene analysis Markdown) + final ``` fence whose interior is only Hypothesis: ...
  */
+/** Removes every **` ```json ` ** fenced region (Option A hop-2 phase-plan JSON) so prose parsing sees only scene analysis + Hypothesis fences. */
+function stripAllJsonFences(rawBody: string): string {
+    let s = rawBody
+    const blocks = findAllFenceBlocks(s)
+    const jsonBlocks = blocks
+        .filter((b) => b.lang.toLowerCase() === 'json')
+        .sort((a, b) => b.start - a.start)
+    for (const b of jsonBlocks) {
+        s = s.slice(0, b.start) + s.slice(b.end)
+    }
+    return s.trim()
+}
+
 function trySplitFinalHypothesisFence(rawBody: string): { prefix: string; intentLine: string } | null {
     const blocks = findAllFenceBlocks(rawBody)
     for (let b = blocks.length - 1; b >= 0; b--) {
@@ -67,6 +82,73 @@ function trySplitFinalHypothesisFence(rawBody: string): { prefix: string; intent
  * scene analysis is taken from the prefix before that fence (with the same `## Scene analysis` trim rules).
  * **Legacy path:** Otherwise, unwrap a single outer ``` fence if present, then use the first `Hypothesis:` line.
  */
+export type ParseHypothesisPhasePlanHopResult = {
+    record: CoyoteGameIntentRecord
+    /** Raw **` ```json ` ** interior that validated, when any. */
+    phasePlanJson?: string
+    phasePlanValidationReason?: string
+}
+
+/**
+ * Option A hop 2: extracts **`phasePlan`** from **` ```json ` ** fences via [**`validateCoyotePhasePlan`**], then prose via [**`parseHypothesisModelOutput`**].
+ * On validation failure, **`record`** still carries usable **`intent`** / **`sceneAnalysis`** / **`walkthrough`** when present (**Decided: structured validation failure**).
+ */
+export function parseHypothesisPhasePlanHopOutput(
+    rawBody: string,
+    phasePlanCtx: CoyotePhasePlanValidationContext,
+    parseOptions?: ParseHypothesisModelOutputOptions
+): ParseHypothesisPhasePlanHopResult {
+    const blocks = findAllFenceBlocks(rawBody)
+    let phasePlanJson: string | undefined
+    let lastReason = 'no valid phase-plan JSON in ```json fences'
+
+    for (const b of blocks) {
+        if (b.lang.toLowerCase() !== 'json') {
+            continue
+        }
+        const interior = b.interior.trim()
+        let parsed: unknown
+        try {
+            parsed = JSON.parse(interior) as unknown
+        } catch {
+            lastReason = 'invalid JSON inside ```json fence'
+            continue
+        }
+        const v = validateCoyotePhasePlan(parsed, phasePlanCtx)
+        if (v.ok) {
+            phasePlanJson = interior
+            const proseBody = stripAllJsonFences(rawBody)
+            const base = parseHypothesisModelOutput(proseBody, parseOptions)
+            const walkthrough =
+                base.sceneAnalysis !== undefined && base.sceneAnalysis.length > 0 ? base.sceneAnalysis : undefined
+            const record: CoyoteGameIntentRecord = {
+                intent: base.intent,
+                ...(base.sceneAnalysis !== undefined ? { sceneAnalysis: base.sceneAnalysis } : {}),
+                ...(walkthrough !== undefined ? { walkthrough } : {}),
+                phasePlan: v.phasePlan,
+            }
+            return { record, phasePlanJson }
+        }
+        lastReason = v.reason
+    }
+
+    const proseBody = stripAllJsonFences(rawBody)
+    const base = parseHypothesisModelOutput(proseBody, parseOptions)
+    const walkthrough =
+        base.sceneAnalysis !== undefined && base.sceneAnalysis.length > 0 ? base.sceneAnalysis : undefined
+    const record: CoyoteGameIntentRecord = {
+        intent: base.intent,
+        ...(base.sceneAnalysis !== undefined ? { sceneAnalysis: base.sceneAnalysis } : {}),
+        ...(walkthrough !== undefined ? { walkthrough } : {}),
+    }
+
+    return {
+        record,
+        phasePlanJson,
+        phasePlanValidationReason: lastReason,
+    }
+}
+
 export function parseHypothesisModelOutput(
     rawBody: string,
     _options?: ParseHypothesisModelOutputOptions

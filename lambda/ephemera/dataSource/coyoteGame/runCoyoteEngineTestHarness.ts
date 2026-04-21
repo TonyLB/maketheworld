@@ -71,8 +71,11 @@ function pipelineErrorMessage(pipeline: GenerateHypothesisPipelineResult): strin
     if (!pipeline.stageOneResult.success) {
         return pipeline.stageOneResult.errorMessage
     }
-    if (pipeline.stageTwoResult && !pipeline.stageTwoResult.success) {
-        return pipeline.stageTwoResult.errorMessage
+    if (pipeline.planSelectionResult && !pipeline.planSelectionResult.success) {
+        return pipeline.planSelectionResult.errorMessage
+    }
+    if (pipeline.phasePlanHopResult && !pipeline.phasePlanHopResult.success) {
+        return pipeline.phasePlanHopResult.errorMessage
     }
     return undefined
 }
@@ -85,7 +88,8 @@ function formatFixtureRenderTree(args: {
     elapsedMs: number
     usageStageOne: string
     stageOneBodyBlock: string
-    usageStageTwo: string
+    usagePlanSelection: string
+    usagePhasePlanHop: string
     errorMessage?: string
 }): RenderTree {
     const {
@@ -96,13 +100,18 @@ function formatFixtureRenderTree(args: {
         elapsedMs,
         usageStageOne,
         stageOneBodyBlock,
-        usageStageTwo,
+        usagePlanSelection,
+        usagePhasePlanHop,
         errorMessage,
     } = args
     const heading = `${index + 1}/${total} ${fixture.id}${fixture.label ? ` - ${fixture.label}` : ''}`
     const tree: RenderTree = [heading, COYOTE_RENDER_LINE_BREAK]
-    if (intentRecord.sceneAnalysis !== undefined && intentRecord.sceneAnalysis.length > 0) {
-        tree.push(intentRecord.sceneAnalysis, COYOTE_RENDER_LINE_BREAK)
+    const walkthroughOrScene =
+        intentRecord.walkthrough !== undefined && intentRecord.walkthrough.length > 0
+            ? intentRecord.walkthrough
+            : intentRecord.sceneAnalysis
+    if (walkthroughOrScene !== undefined && walkthroughOrScene.length > 0) {
+        tree.push(walkthroughOrScene, COYOTE_RENDER_LINE_BREAK)
     }
     tree.push(
         intentRecord.intent,
@@ -113,7 +122,9 @@ function formatFixtureRenderTree(args: {
         COYOTE_RENDER_LINE_BREAK,
         stageOneBodyBlock,
         COYOTE_RENDER_LINE_BREAK,
-        usageStageTwo
+        usagePlanSelection,
+        COYOTE_RENDER_LINE_BREAK,
+        usagePhasePlanHop
     )
     if (errorMessage) {
         tree.push(COYOTE_RENDER_LINE_BREAK, `error: ${errorMessage}`)
@@ -131,6 +142,8 @@ export async function runCoyoteEngineTestHarness(deps: RunCoyoteEngineTestHarnes
     const now = deps.now ?? (() => Date.now())
     let nextIndex = 0
 
+    const emptyUsageFailure = { success: false as const, errorMessage: '', body: '' }
+
     const runFixture = async (fixture: CoyoteEngineTestFixture, index: number): Promise<void> => {
         const laneId = uuidv4()
         const startMs = now()
@@ -142,9 +155,14 @@ export async function runCoyoteEngineTestHarness(deps: RunCoyoteEngineTestHarnes
             })
             const elapsedMs = Math.max(0, now() - startMs)
             const usageStageOne = formatUsageLine('usageStage1', pipeline.stageOneResult)
-            const usageStageTwo = pipeline.stageTwoResult
-                ? formatUsageLine('usageStage2', pipeline.stageTwoResult)
-                : 'usageStage2: (skipped)'
+            const usagePlanSelection = formatUsageLine(
+                'usagePlanSelection',
+                pipeline.planSelectionResult ?? emptyUsageFailure
+            )
+            const usagePhasePlanHop = formatUsageLine(
+                'usagePhasePlanHop',
+                pipeline.phasePlanHopResult ?? emptyUsageFailure
+            )
             const stageOneBodyBlock = formatStageOneBodyForHarness(pipeline.stageOneResult)
             const message = formatFixtureRenderTree({
                 fixture,
@@ -154,7 +172,8 @@ export async function runCoyoteEngineTestHarness(deps: RunCoyoteEngineTestHarnes
                 elapsedMs,
                 usageStageOne,
                 stageOneBodyBlock,
-                usageStageTwo,
+                usagePlanSelection,
+                usagePhasePlanHop,
                 errorMessage: pipelineErrorMessage(pipeline),
             })
             deps.messageBus.send(
@@ -178,7 +197,8 @@ export async function runCoyoteEngineTestHarness(deps: RunCoyoteEngineTestHarnes
                 elapsedMs,
                 usageStageOne: 'usageStage1: (none)',
                 stageOneBodyBlock: 'stageOneBody: (none)',
-                usageStageTwo: 'usageStage2: (none)',
+                usagePlanSelection: 'usagePlanSelection: (none)',
+                usagePhasePlanHop: 'usagePhasePlanHop: (none)',
                 errorMessage,
             })
             deps.messageBus.send(

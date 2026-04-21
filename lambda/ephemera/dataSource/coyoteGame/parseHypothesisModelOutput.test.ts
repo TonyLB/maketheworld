@@ -1,4 +1,10 @@
-import { parseHypothesisModelOutput } from './parseHypothesisModelOutput'
+import type { CoyotePhasePlanValidationContext } from '@tonylb/mtw-interfaces/ts/coyotePhasePlan'
+import { parseHypothesisModelOutput, parseHypothesisPhasePlanHopOutput } from './parseHypothesisModelOutput'
+
+const phasePlanCtx: CoyotePhasePlanValidationContext = {
+    snapshotStableKeys: new Set(['anvil']),
+    allowedTopologyRefTokens: new Set(['vortex']),
+}
 
 describe('parseHypothesisModelOutput', () => {
     it('returns stub when empty after strip', () => {
@@ -73,5 +79,50 @@ describe('parseHypothesisModelOutput', () => {
         expect(parseHypothesisModelOutput('Hypothesis: Only.', { reasoningContentProvided: true })).toEqual({
             intent: 'Hypothesis: Only.',
         })
+    })
+})
+
+describe('parseHypothesisPhasePlanHopOutput', () => {
+    it('extracts validated phasePlan and Hypothesis line', () => {
+        const raw = [
+            '```json',
+            JSON.stringify({
+                phases: [
+                    {
+                        stableKeysUsed: ['anvil'],
+                        virtualEntities: [
+                            { label: 'Prep', derivedFrom: ['anvil'], phaseKind: 'gathered' },
+                        ],
+                        achievement: 'Ready',
+                    },
+                ],
+            }),
+            '```',
+            '',
+            '```text',
+            'Hypothesis: Valid plan.',
+            '```',
+        ].join('\n')
+        const out = parseHypothesisPhasePlanHopOutput(raw, phasePlanCtx)
+        expect(out.record.phasePlan?.phases).toHaveLength(1)
+        expect(out.record.intent).toBe('Hypothesis: Valid plan.')
+        expect(out.phasePlanJson).toContain('"phases"')
+        expect(out.phasePlanValidationReason).toBeUndefined()
+    })
+
+    it('degrades when phase-plan JSON fails validation but Hypothesis parses', () => {
+        const raw = [
+            '```json',
+            '{"phases":[]}',
+            '```',
+            '',
+            '```text',
+            'Hypothesis: Still here.',
+            '```',
+        ].join('\n')
+        const out = parseHypothesisPhasePlanHopOutput(raw, phasePlanCtx)
+        expect(out.record.phasePlan).toBeUndefined()
+        expect(out.record.intent).toBe('Hypothesis: Still here.')
+        expect(out.phasePlanValidationReason).toContain('phases')
     })
 })

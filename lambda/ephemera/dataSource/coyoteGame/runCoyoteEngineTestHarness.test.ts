@@ -24,6 +24,7 @@ const simpleFixtures: CoyoteEngineTestFixture[] = [
 ]
 
 function okPipeline(intentLine: string): GenerateHypothesisPipelineResult {
+    const usageBase = { inputTokens: 10, outputTokens: 6, totalTokens: 16 }
     return {
         record: {
             intent: intentLine,
@@ -31,12 +32,17 @@ function okPipeline(intentLine: string): GenerateHypothesisPipelineResult {
         stageOneResult: {
             success: true,
             body: '',
-            usage: { inputTokens: 10, outputTokens: 6, totalTokens: 16 },
+            usage: usageBase,
         },
-        stageTwoResult: {
+        planSelectionResult: {
+            success: true,
+            body: '',
+            usage: usageBase,
+        },
+        phasePlanHopResult: {
             success: true,
             body: intentLine,
-            usage: { inputTokens: 10, outputTokens: 6, totalTokens: 16 },
+            usage: usageBase,
         },
     }
 }
@@ -88,7 +94,8 @@ describe('runCoyoteEngineTestHarness', () => {
             .mockResolvedValueOnce({
                 record: { intent: 'Hypothesis: Stubbed' },
                 stageOneResult: { success: false, errorMessage: 'Throttled', body: '' },
-                stageTwoResult: null,
+                planSelectionResult: null,
+                phasePlanHopResult: null,
             })
             .mockRejectedValueOnce(new Error('network down'))
             .mockResolvedValueOnce(okPipeline('Hypothesis: final'))
@@ -133,7 +140,18 @@ describe('runCoyoteEngineTestHarness', () => {
                     cacheWriteInputTokens: 2,
                 },
             },
-            stageTwoResult: {
+            planSelectionResult: {
+                success: true,
+                body: '{"paragraphSummary":"x","rubricIssues":[]}',
+                usage: {
+                    inputTokens: 15,
+                    outputTokens: 8,
+                    totalTokens: 23,
+                    cacheReadInputTokens: 10,
+                    cacheWriteInputTokens: 1,
+                },
+            },
+            phasePlanHopResult: {
                 success: true,
                 body: '```text\nHypothesis: It looks like you are trying to launch a boulder.\n```',
                 usage: {
@@ -169,7 +187,8 @@ describe('runCoyoteEngineTestHarness', () => {
         expect(flat).toContain('usageStage1: input=40 output=11 total=51 cacheRead=30 cacheWrite=2')
         expect(flat).toContain('stageOneBody:')
         expect(flat).toContain('"stableKey":"anvil-0"')
-        expect(flat).toContain('usageStage2: input=20 output=9 total=29 cacheRead=12 cacheWrite=0')
+        expect(flat).toContain('usagePlanSelection: input=15 output=8 total=23 cacheRead=10 cacheWrite=1')
+        expect(flat).toContain('usagePhasePlanHop: input=20 output=9 total=29 cacheRead=12 cacheWrite=0')
     })
 
     it('respects testBatchSize concurrency limit', async () => {

@@ -1,5 +1,6 @@
 import type { RenderTree } from '@tonylb/mtw-base/ts/renderTree'
 import { isRenderTree } from '@tonylb/mtw-base/ts/renderTree'
+import type { CoyotePhasePlan } from '@tonylb/mtw-interfaces/ts/coyotePhasePlan'
 import { CacheBase } from '@tonylb/mtw-lambda-patterns/ts/internalCache'
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 
@@ -7,12 +8,19 @@ export type CacheCoyoteGameKeys = 'gameRooms' | 'intent' | 'outcome'
 
 export type CoyoteGameIntentRecord = {
     intent: string
+    /** Transient / harness; durable carry optional until intent row migration completes. */
     sceneAnalysis?: string
+    /** Player walkthrough aligned to **`phasePlan`** (typically "## Scene analysis" body). */
+    walkthrough?: string
+    /** Machine-checkable phase plan when hop-2 JSON validates. */
+    phasePlan?: CoyotePhasePlan
 }
 
 type CoyoteGameDurableIntentRow = {
     intent?: string
     sceneAnalysis?: string
+    walkthrough?: string
+    phasePlan?: CoyotePhasePlan
 }
 
 type CoyoteGameCacheState = {
@@ -46,7 +54,15 @@ function normalizeDurableIntentRow(fetched: CoyoteGameDurableIntentRow | undefin
         typeof fetched.sceneAnalysis === 'string' && fetched.sceneAnalysis.length > 0
             ? fetched.sceneAnalysis
             : undefined
-    return sceneAnalysis !== undefined ? { intent, sceneAnalysis } : { intent }
+    const walkthrough =
+        typeof fetched.walkthrough === 'string' && fetched.walkthrough.length > 0 ? fetched.walkthrough : undefined
+    const phasePlan = fetched.phasePlan
+    return {
+        intent,
+        ...(sceneAnalysis !== undefined ? { sceneAnalysis } : {}),
+        ...(walkthrough !== undefined ? { walkthrough } : {}),
+        ...(phasePlan !== undefined ? { phasePlan } : {}),
+    }
 }
 
 // Temporary invocation-scoped cache for the Coyote Game experimental tech demo.
@@ -112,7 +128,7 @@ export class CacheCoyoteGameData extends CacheBase {
     private async loadIntent(): Promise<CoyoteGameIntentRecord> {
         const fetched = await ephemeraDB.getItem<CoyoteGameDurableIntentRow>({
             Key: COYOTE_GAME_INTENT_KEY,
-            ProjectionFields: ['intent', 'sceneAnalysis'],
+            ProjectionFields: ['intent', 'sceneAnalysis', 'walkthrough', 'phasePlan'],
         })
         const fromDynamo = normalizeDurableIntentRow(fetched ?? undefined)
         if (fromDynamo) {
@@ -124,6 +140,8 @@ export class CacheCoyoteGameData extends CacheBase {
             ...COYOTE_GAME_INTENT_KEY,
             intent: generated.intent,
             ...(generated.sceneAnalysis !== undefined ? { sceneAnalysis: generated.sceneAnalysis } : {}),
+            ...(generated.walkthrough !== undefined ? { walkthrough: generated.walkthrough } : {}),
+            ...(generated.phasePlan !== undefined ? { phasePlan: generated.phasePlan } : {}),
         })
         this.state.intent = generated
         return generated
