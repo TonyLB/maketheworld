@@ -88,6 +88,18 @@ describe('generateHypothesis', () => {
         expect(stageTwoMock).toHaveBeenCalledTimes(1)
     })
 
+    it('parses stage-2 body with ## Scene analysis + fenced Hypothesis', async () => {
+        stageTwoMock.mockResolvedValue({
+            success: true,
+            body: '## Scene analysis\nTrap setup.\n\n```text\nHypothesis: You are trying to drop something on the Road Runner.\n```',
+            usage: { inputTokens: 4, outputTokens: 5, totalTokens: 9 },
+        })
+        await expect(generateHypothesis({ getGameRooms, getRoomMeta })).resolves.toEqual({
+            intent: 'Hypothesis: You are trying to drop something on the Road Runner.',
+            sceneAnalysis: '## Scene analysis\nTrap setup.',
+        })
+    })
+
     it('exposes stageTwoReasoningContent on pipeline result when Stage Two returns reasoning', async () => {
         stageTwoMock.mockResolvedValue({
             success: true,

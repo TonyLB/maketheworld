@@ -82,7 +82,7 @@ export async function invokeBedrockHypothesisStageOne(
     })
 }
 
-/** Hypothesis pipeline round-trip 2: scene analysis + Hypothesis line. Defaults to [`BEDROCK_HYPOTHESIS_STAGE_TWO_MAX_TOKENS`]. */
+/** Hypothesis pipeline round-trip 2: scene analysis + Hypothesis line. Defaults to [`BEDROCK_HYPOTHESIS_STAGE_TWO_MAX_TOKENS`]. Extended thinking off by default; pass `extendedThinking: true` to experiment with Nova reasoning. */
 export async function invokeBedrockHypothesisStageTwo(
     prompt: CoyotePromptParts,
     options: InvokeBedrockHypothesisOptions = {}
@@ -90,6 +90,6 @@ export async function invokeBedrockHypothesisStageTwo(
     return invokeBedrockHypothesis(prompt, {
         ...options,
         maxTokens: options.maxTokens ?? BEDROCK_HYPOTHESIS_STAGE_TWO_MAX_TOKENS,
-        extendedThinking: options.extendedThinking ?? true,
+        extendedThinking: options.extendedThinking ?? false,
     })
 }

@@ -16,9 +16,9 @@ const STAGE_TWO_INTRO_LINES = [
     'You are completing the player-facing hypothesis for a Coyote-vs-Road-Runner cartoon setup.',
     '',
     'The dynamic section below contains **combined clustering input** (clusters, members, optional intended roles, outliers) derived from staged objects and Stage One --- use it as ground truth for grouping and roles.',
-    '- Write a brief scene analysis under "## Scene analysis" for the player.',
-    '- Then output exactly one plain-text line beginning with "Hypothesis:".',
-    '- Structured markdown (including ## headings) is allowed only before the Hypothesis line; the Hypothesis line itself is plain text.',
+    '- Write chain-of-reasoning and spatial analysis under "## Scene analysis" for the player (Markdown allowed there).',
+    '- After "## Scene analysis", output a **final** fenced code block with language `text` whose **only** content is exactly one plain-text line beginning with "Hypothesis:".',
+    '- Do not put any other text after the closing fence.',
 ] as const
 
 const COMBINED_CLUSTERING_CONTRACT_LINES = [
@@ -49,10 +49,10 @@ const INTERPRETATION_RULES_LINES = [
 
 const SCENE_AND_HYPOTHESIS_LINES = [
     '## Scene analysis and Hypothesis output',
-    '- Your "## Scene analysis" section should commit to a single reading and build the spatial and causal logic behind it. Do not survey multiple plans there; the Hypothesis restates that same reading as one sentence.',
+    '- Your "## Scene analysis" section should commit to a single reading and build the spatial and causal logic behind it. Do not survey multiple plans there; the Hypothesis line restates that same reading as one sentence.',
     '- Ground your "## Scene analysis" section on the **combined clustering** block and world topology; narrate for the player without contradicting cluster membership, **## Outliers** listings, or stated intended roles.',
-    '- After "## Scene analysis", respond with one plain-text sentence on its own line beginning exactly with "Hypothesis:".',
-    '- No JSON. No extra commentary outside "## Scene analysis" (markdown allowed there) and the Hypothesis line.',
+    '- After "## Scene analysis", open a Markdown fence: ```text on its own line, then exactly one line beginning with "Hypothesis:", then ``` on its own line to close the fence. The fenced interior must contain only that Hypothesis line.',
+    '- No JSON. No extra commentary outside "## Scene analysis" (markdown allowed there) and the fenced Hypothesis line.',
 ] as const
 
 const TEMPORAL_ORDERING_LINES = [
@@ -69,10 +69,10 @@ const VIRTUAL_SCENERY_AND_PREP_OBJECTS_LINES = [
     '- Still ground roles and membership on **## Combined clustering** and **## Outliers**; use virtual scenery to connect staged objects to place and sequence --- do not replace staged objects, merge outliers into clusters, or invent cluster members.',
 ] as const
 
-const EXTENDED_REASONING_VS_VISIBLE_TEXT_LINES = [
-    '## Extended reasoning vs visible assistant text',
-    '- This request may use **extended reasoning** in the model. Put **planning, ordering, and scratch work** in the **reasoning** channel --- not in the assistant **text** (**body**) stream.',
-    '- Your **text** output must be **player-facing only**: optional "## Scene analysis" Markdown (per the rules above), then exactly one line beginning with **Hypothesis:** --- no chain-of-thought or scratch paragraphs **before** "## Scene analysis" in **text**. If reasoning is unavailable, keep **text** equally clean.',
+const SCENE_ANALYSIS_AND_FENCED_HYPOTHESIS_LINES = [
+    '## Scene analysis and fenced Hypothesis (assistant text only)',
+    '- Put **planning, ordering, and topology** in "## Scene analysis" in the assistant **text** stream (**body**). Do not rely on a separate Nova reasoning channel.',
+    '- The **final** ```text fence must contain **only** the Hypothesis line so parsers can slice it reliably.',
 ] as const
 
 const DYNAMIC_SECTION_INTRO = [
@@ -102,7 +102,7 @@ export function buildHypothesisStageTwoPromptParts(input: BuildHypothesisStageTw
         '',
         ...VIRTUAL_SCENERY_AND_PREP_OBJECTS_LINES,
         '',
-        ...EXTENDED_REASONING_VS_VISIBLE_TEXT_LINES,
+        ...SCENE_ANALYSIS_AND_FENCED_HYPOTHESIS_LINES,
         ...DYNAMIC_SECTION_INTRO,
     ].join('\n')
 
