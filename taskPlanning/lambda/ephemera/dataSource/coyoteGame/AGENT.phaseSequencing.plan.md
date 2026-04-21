@@ -23,7 +23,7 @@ When contracts stabilize, migrate steady-state documentation into [`lambda/ephem
 | --- | --- |
 | Step grouping (A / B / C) | **Decided:** **Option A** only for this initiative. **Out of scope:** revisiting **Option B** or **Option C** based on harness metrics -- handle in a separate task plan if needed |
 | Handoff (hop 1 to hop 2) | **Decided:** no `selectedPlanId`; **fenced JSON** for **paragraph summary** + **rubric issues** (**Decided: hop 1 handoff serialization**). **Locked in code:** [`coyoteHop1Handoff.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/coyoteHop1Handoff.ts) + [`markdownCodeFences.ts`](../../../../../lambda/ephemera/llm/markdownCodeFences.ts) — **`CoyoteHop1Handoff`**, last **` ```json `** fence, keys **`paragraphSummary`** / **`rubricIssues`**. **Still open:** optional full rubric for harness/debug |
-| Phase-plan JSON schema + validators | **Decided:** stable refs + **approved v1 document shape** (**Decided: phase-plan document shape (v1 approved)**). **Open:** implement validators in code |
+| Phase-plan JSON schema + validators | **Decided:** stable refs + **approved v1 document shape** + **virtual grounding** via reserved **`SETTING`** (**Decided: reserved stable key SETTING (virtual grounding)**). **Open:** implement types + validators in code |
 | Rubric representation | **Decided:** automation / hop 2 grounding; **three dimensions**; **criterion-first matrix then selection** (**Decided: rubric prompting pattern**). **Open:** aggregation **weights**, safety as dimension vs hard filter |
 | Persistence + harness diagnostics | **Decided:** durable **nested `phasePlan`**, **`walkthrough`** separate from **`intent`**; **no** **`sceneAnalysis`** on the persisted intent row (**Decided: intent record shape**); harness extensions (**Decided: Coyote engine harness**). **Open:** code wiring + Dynamo projection |
 | Implementation + durable `AGENT.md` updates | Not started |
@@ -126,17 +126,29 @@ We **do not** need a migration story or backward compatibility guarantees for su
 
 ## Decided: stable references (phase-plan JSON)
 
-**Locked.** Each phase-plan phase must reference staged objects by **`stableKey`**, and room placement must use labels **consistent with** [`coyoteSeamRoomMappingLines`](../../../../../lambda/ephemera/dataSource/coyoteGame/coyoteHypothesisPromptShared.ts) / seam room conventions -- **not** free-text names only. Validators should reject unknown keys and **stableKeys** absent from the staged snapshot (shape: **Decided: phase-plan document shape (v1 approved)** below).
+**Locked.** Each phase-plan phase must reference staged objects by **`stableKey`**, and room placement must use labels **consistent with** [`coyoteSeamRoomMappingLines`](../../../../../lambda/ephemera/dataSource/coyoteGame/coyoteHypothesisPromptShared.ts) / seam room conventions -- **not** free-text names only. Validators should reject unknown keys and **stableKeys** absent from the staged **snapshot** for that run, **except** the reserved virtual-grounding token **`SETTING`** where **Decided: reserved stable key SETTING (virtual grounding)** allows it. (Do **not** treat **`SETTING`** as a real staged object in **`stableKeysUsed`** or outlier rules.)
 
 ## Decided: phase-plan document shape (v1 approved)
 
 **Approved v1** for the nested **`phasePlan`** object (and for hop 2 fenced JSON before prose fences):
 
 - **`phases`**: ordered array.
-- Per phase: **`stableKeysUsed`**, **`virtualEntities`** (each with **`label`**, **`derivedFrom`** stableKeys or topology refs, **`phaseKind`**: gathered | synthesized | deployed), **`achievement`** (what becomes true after this phase).
+- Per phase: **`stableKeysUsed`**, **`virtualEntities`** (each with **`label`**, **`derivedFrom`** stableKeys or topology refs -- **virtual** **`derivedFrom`** stable-key list **may include** reserved **`SETTING`** per **Decided: reserved stable key SETTING (virtual grounding)** -- **`phaseKind`**: gathered | synthesized | deployed), **`achievement`** (what becomes true after this phase).
 - Optional per phase: **`prepVsBeat`** tagging to align with **prep** / **creation** semantics ([`lambda/ephemera/dataSource/coyoteGame/AGENT.md`](../../../../../lambda/ephemera/dataSource/coyoteGame/AGENT.md)).
 
-**Validators (required behavior, implement in code):** reject unknown keys; reject **stableKeys** not present in the staged snapshot for that run; reject phases that contradict **## Outliers** membership rules. Virtual / execution policy vs cached plan: **Decided: execution virtual props**.
+**Validators (required behavior, implement in code):** reject unknown keys; reject **stableKeys** not present in the staged snapshot for that run (**except** reserved **`SETTING`** only where **Decided: reserved stable key SETTING (virtual grounding)** permits); reject **`SETTING`** in **`stableKeysUsed`** or anywhere it would stand in for a real staged row; reject phases that contradict **## Outliers** membership rules. Virtual / execution policy vs cached plan: **Decided: execution virtual props**.
+
+## Decided: reserved stable key SETTING (virtual grounding)
+
+**Instead of** an open-ended **`inferredFromPlan`** escape hatch (anything the narrative might imply), **v1** uses a **single reserved stable-key-shaped token:**
+
+- The reserved literal **`SETTING`** is legal **only** when grounding **`virtualEntities`** in **`derivedFrom`** (alongside real **`stableKey`**s from the snapshot and topology cues as needed). It denotes **cartoon-setting stock affordances** not represented by a specific staged row -- for example desert **boulders**, **cactus**, generic **Acme** labeling / crate texture, and similar world furniture the player expects in-frame even when not listed as staged props.
+
+**Semantics:** **`SETTING`** means *grounded in the shared setting read*, not *free invention*. Specificity stays in **`label`** (and **`phaseKind`**).
+
+**Execution:** Still **Decided: execution virtual props** -- execution must not introduce virtuals absent from **`phasePlan`**; **`SETTING`** does not loosen that rule; it only constrains **how** a listed virtual may cite grounds when no snapshot key applies.
+
+**Implementation (optional knobs, not redesign):** per-phase or per-plan **caps** on virtuals whose **only** stable-key ground is **`SETTING`**, or stricter rules for **`synthesized`** vs **`gathered`**, can be tuned in code without changing this decision.
 
 ## Decided: durable persistence vs harness
 
@@ -208,7 +220,7 @@ Still to lock during implementation (prompt + parser detail):
 
 ## Unknowns: synthesized (virtual) objects
 
-Coyote prompts already allow **virtual scenery** and prep-invented props with strict rules ([`buildHypothesisStageTwoPrompt.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/buildHypothesisStageTwoPrompt.ts) **Virtual scenery and prep-invented props**). For **phase-plan** virtual entities, still choose validator detail: require every synthetic or gathered virtual to list **grounds** (which **stableKeys** + which topology cue), or allow **`inferredFromPlan`** with a **maximum count** (can mix with rules per **`phaseKind`**). **Execution** inventing props off-plan: **Decided: execution virtual props** (**no** for now).
+Coyote prompts already allow **virtual scenery** and prep-invented props with strict rules ([`buildHypothesisStageTwoPrompt.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/buildHypothesisStageTwoPrompt.ts) **Virtual scenery and prep-invented props**). **Grounding policy for phase-plan virtuals is decided:** reserved **`SETTING`** (**Decided: reserved stable key SETTING (virtual grounding)**) instead of **`inferredFromPlan`**. **Still open during implementation:** optional **caps** (e.g. max virtuals per phase with **only** **`SETTING`** as stable-key ground) and whether **`phaseKind`** affects strictness -- tune in validators without revisiting the **`SETTING`** decision. **Execution** inventing props off-plan: **Decided: execution virtual props** (**no** for now).
 
 ## Unknowns: rubric grading
 
@@ -237,10 +249,10 @@ Open design questions:
 
 Pending work uses `[ ]` and completed work uses `[X]`. This section has no nested checklist bullets; each line is a single actionable step.
 
-**Dependency order:** lock hop-1 handoff **JSON** field names and fence tags, **`Hypothesis:`** fence contract, **`phasePlan`** types + virtual-entity validator rules (**Unknowns: synthesized**), and hop 1 **rubric aggregation / safety** instructions at a **design + type level** before treating the Option A implementation line as build-complete.
+**Dependency order:** lock hop-1 handoff **JSON** field names and fence tags, **`Hypothesis:`** fence contract, **`phasePlan`** types + virtual-entity validator rules (including **`SETTING`**; optional caps in code), and hop 1 **rubric aggregation / safety** instructions at a **design + type level** before treating the Option A implementation line as build-complete.
 
 - [X] Finalize hop-1 handoff **JSON property names** + fence tag; final **`Hypothesis:`** fence contract -- **encoded:** [`coyoteHop1Handoff.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/coyoteHop1Handoff.ts) (`CoyoteHop1Handoff`, `COYOTE_HOP1_HANDOFF_JSON_KEYS`, `parseHop1HandoffFromSelectionBody`); shared fences [`markdownCodeFences.ts`](../../../../../lambda/ephemera/llm/markdownCodeFences.ts); hop-2 multi-fence Hypothesis regression in [`parseHypothesisModelOutput.test.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/parseHypothesisModelOutput.test.ts).
-- [ ] Resolve **Unknowns: synthesized** (virtual-entity **grounds** vs **`inferredFromPlan`** cap, optionally per **`phaseKind`**), then encode **`phasePlan`** TypeScript types + validators (stableKeys, outliers) per **Decided: phase-plan document shape**.
+- [ ] Encode **`phasePlan`** TypeScript types + validators (stableKeys, outliers, **`SETTING`** rules per **Decided: reserved stable key SETTING (virtual grounding)**); optional **caps** / **`phaseKind`** strictness per **Unknowns: synthesized (virtual) objects**.
 - [ ] Decide rubric **aggregation weights** (if any) and **safety** as scored dimension vs hard filter -- matrix + selection pattern is **decided** under **Decided: rubric prompting pattern (hop 1)** and **Decided: rubric dimensions (initial set)** (feeds hop 1 prompt text before the full build).
 - [ ] Implement **Option A** end-to-end (prompts, hop-1 **fenced JSON** handoff parse, hop-2 multi-fence parse, **phasePlan** validation wired to the contracts above); tune token budget per hop from harness results (reliability metrics inform **tuning**, not a topology change -- **Option B/C** remain out of scope).
 - [ ] Wire **CoyoteGame** / [`CoyoteGameIntentRecord`](../../../../../lambda/ephemera/internalCache/coyoteGame.ts) to **Decided: intent record shape** (nested **`phasePlan`**, **`walkthrough`**, drop **`sceneAnalysis`**); persist per **Decided: structured validation failure** where applicable; implement **Decided: Coyote engine harness** (**`selectionBody`**, **`phasePlanJson`**, **Scene analysis** in evaluation output when useful).
