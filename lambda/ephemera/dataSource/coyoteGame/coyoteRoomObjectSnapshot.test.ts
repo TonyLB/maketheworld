@@ -16,6 +16,12 @@ describe('formatCoyoteAffinityPossibility', () => {
                 aptness: 0.712,
             })
         ).toBe('influence-road-runner 0.71')
+        expect(
+            formatCoyoteAffinityPossibility({
+                role: 'connect-props',
+                aptness: 0.604,
+            })
+        ).toBe('connect-props 0.60')
     })
 
     it('formats structural role', () => {

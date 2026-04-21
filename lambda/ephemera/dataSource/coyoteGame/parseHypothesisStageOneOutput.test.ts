@@ -4,6 +4,7 @@ import type { CoyoteRoomObjectsByRoom } from './coyoteRoomObjectSnapshot'
 import { parseHypothesisStageOneOutput, stripHypothesisStageOneFence } from './parseHypothesisStageOneOutput'
 
 const affinitiesTerminal: CoyoteAffinityPossibility[] = [{ role: 'terminal', aptness: 0.55 }]
+const affinitiesRoadRunner: CoyoteAffinityPossibility[] = [{ role: 'influence-road-runner', aptness: 0.67 }]
 
 const singleObjectRoomMap: CoyoteRoomObjectsByRoom = {
     'ROOM#VORTEX': [
@@ -102,6 +103,36 @@ describe('parseHypothesisStageOneOutput', () => {
             ],
         })
         expect(parseHypothesisStageOneOutput(bad, singleObjectRoomMap).ok).toBe(false)
+    })
+
+    it('resolves flat-tag intendedRole echo from snapshot affinities', () => {
+        const map: CoyoteRoomObjectsByRoom = {
+            ...singleObjectRoomMap,
+            'ROOM#VORTEX': [
+                {
+                    uuid: 'OBJECT#x' as `OBJECT#${string}`,
+                    shortName: 'birdseed',
+                    stableKey: 'anvil-0',
+                    affinities: affinitiesRoadRunner,
+                },
+            ],
+        }
+        const body = JSON.stringify({
+            clusters: [
+                {
+                    clusterName: 'Bait',
+                    members: [{ stableKey: 'anvil-0', intendedRole: { role: 'influence-road-runner' } }],
+                },
+            ],
+        })
+        const r = parseHypothesisStageOneOutput(body, map)
+        expect(r.ok).toBe(true)
+        if (r.ok) {
+            expect(r.clusters[0].members[0].intendedRole).toEqual({
+                role: 'influence-road-runner',
+                aptness: 0.67,
+            })
+        }
     })
 
     it('extracts JSON object when preceded by prose', () => {

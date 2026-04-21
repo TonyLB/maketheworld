@@ -25,7 +25,7 @@ const COMBINED_CLUSTERING_CONTRACT_LINES = [
     '## Combined clustering Markdown (how to read the dynamic tail)',
     '- After seam room labels you will see **## Combined clustering**, then one **### ClusterName** section per thematic group from Stage One. Treat each **###** heading as a working group for the maneuver; do not rename or merge clusters in your prose.',
     '- Each bullet under a cluster is one staged object: **stableKey**, **shortName**, and **room** (placement). An optional indented line **intendedRole:** is Stage One\'s binding choice of a single plan role for that object --- when present, prefer it over guessing from names.',
-    '- **intendedRole** uses the plan-role vocabulary: structural **terminal**, **trigger**, **delivery**, **autonomous_agent**; generative **prep** and **creation**; and flat modification tags (**influence-road-runner**, **alter-road-runner**, **coyote-equipment**, **coyote-enhancement**, **setting-addition**, **connect-props**, **enhance-prop**).',
+    '- **intendedRole** uses the plan-role vocabulary: structural **terminal**, **trigger**, **delivery**, **autonomous_agent**; generative **prep** and **creation**; and flat modification tags (**influence-road-runner**, **alter-road-runner**, **coyote-equipment**, **coyote-enhancement**, **setting-addition**, **connect-props**, **enhance-prop**). Treat each role label as intent-level semantics, not a decomposition into hidden tuple fields.',
     '- **prep** is setup that completes before the main trap fires or the cartoon beat runs; **creation** is effects that manifest during plan execution / the beat.',
     '- **## Outliers** lists staged objects in no **###** cluster. Acknowledge outliers when they matter to your reading; never fold them into a named cluster in prose. If outliers are **(none)**, do not invent cluster members.',
 ] as const
@@ -35,6 +35,7 @@ const INTERPRETATION_RULES_LINES = [
     '- Address the player in second person, using "you" and "your", not "the player" or "the Coyote".',
     '- Assume the player is intelligent and intentional, even when the setup is absurd.',
     '- Prefer coherent cartoon-logic readings over random lists of props.',
+    '- Never reinterpret Road Runner roles as Coyote gear-building instructions. For example, read **influence-road-runner** or **alter-road-runner** as effects on the Road Runner, not as constructive equipment prep for Coyote.',
     '- Focus on what you think the player is trying to make happen to the Road Runner.',
     '- Choose the single most plausible detailed plan suggested by the staged objects and their room placement.',
     '- Do not use ambiguous either-or phrasing like "either ... or ...", "possibly", "maybe", or "perhaps".',

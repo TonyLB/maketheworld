@@ -42,6 +42,24 @@ function resolveCanonicalRole(
     return obj.affinities.find((a) => affinityMatchesStored(a, echoed))
 }
 
+function resolveMemberIntendedRole(
+    obj: EphemeraMetaRoomObject,
+    echoed: CoyoteAffinityPossibility | undefined,
+    context: string
+): { ok: true; intendedRole?: CoyoteAffinityPossibility } | { ok: false; errorMessage: string } {
+    if (echoed === undefined) {
+        return { ok: true, intendedRole: undefined }
+    }
+    const intendedRole = resolveCanonicalRole(obj, echoed)
+    if (!intendedRole) {
+        return {
+            ok: false,
+            errorMessage: `combine: could not resolve canonical intendedRole for ${context}`,
+        }
+    }
+    return { ok: true, intendedRole }
+}
+
 function snapshotIndexByStableKey(
     roomObjectsByRoom: CoyoteRoomObjectsByRoom
 ): Map<string, EphemeraMetaRoomObject> {
@@ -79,20 +97,14 @@ export function combineHypothesisClusters(
             }
             seenKeys.add(sk)
 
-            let intendedRole = resolveCanonicalRole(obj, mem.intendedRole)
-            if (mem.intendedRole !== undefined && intendedRole === undefined) {
-                return {
-                    ok: false,
-                    errorMessage: `combine: could not resolve canonical intendedRole for "${sk}"`,
-                }
-            }
-            if (mem.intendedRole === undefined) {
-                intendedRole = undefined
+            const resolvedRole = resolveMemberIntendedRole(obj, mem.intendedRole, `"${sk}"`)
+            if (!resolvedRole.ok) {
+                return resolvedRole
             }
 
             const pair: ClusterMemberPair = {
                 identifier: sk,
-                intendedRole,
+                intendedRole: resolvedRole.intendedRole,
             }
             membersOut.push(pair)
         }
@@ -119,19 +131,13 @@ export function combineHypothesisClusters(
             if (!obj) {
                 return { ok: false, errorMessage: `combine: unknown outlier stableKey "${sk}"` }
             }
-            let intendedRole = resolveCanonicalRole(obj, mem.intendedRole)
-            if (mem.intendedRole !== undefined && intendedRole === undefined) {
-                return {
-                    ok: false,
-                    errorMessage: `combine: could not resolve canonical intendedRole for outlier "${sk}"`,
-                }
-            }
-            if (mem.intendedRole === undefined) {
-                intendedRole = undefined
+            const resolvedRole = resolveMemberIntendedRole(obj, mem.intendedRole, `outlier "${sk}"`)
+            if (!resolvedRole.ok) {
+                return resolvedRole
             }
             outliers.push({
                 identifier: sk,
-                intendedRole,
+                intendedRole: resolvedRole.intendedRole,
             })
         }
     } else {

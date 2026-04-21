@@ -1,6 +1,6 @@
 # Replace `entity_modification` with flat affinity tags
 
-**Status:** In progress. Next step is Phase 3 stage-one clustering and combine migration.
+**Status:** In progress. Next step is Phase 5 docs, harnesses, and compatibility cleanup.
 
 ## Purpose
 
@@ -70,16 +70,16 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines as you finish ea
   - [X] Update Acme parse harness output expectations and tests (`parseCommand`, `mergeAcmeOrderEnrich`, Step B prompt tests).
   - [X] Confirm persisted `Meta::Room.objects.affinities` rows remain valid with new tag shape.
 
-- [ ] Phase 3 - stage B: clustering and combine migration
-  - [ ] Update stage-one prompt few-shot and contract text to echo flat tag roles (no `target` / `mode` fields).
-  - [ ] Update stage-one parser validation/resolution logic for intended-role echo matching against flat tags.
-  - [ ] Update combine resolution and renderer output to remove `entity_modification` special-case branches.
-  - [ ] Update clustering tests and fixture assertions for flat-tag intended roles.
+- [X] Phase 3 - stage B: clustering and combine migration
+  - [X] Update stage-one prompt few-shot and contract text to echo flat tag roles (no `target` / `mode` fields).
+  - [X] Update stage-one parser validation/resolution logic for intended-role echo matching against flat tags.
+  - [X] Update combine resolution and renderer output to remove `entity_modification` special-case branches.
+  - [X] Update clustering tests and fixture assertions for flat-tag intended roles.
 
-- [ ] Phase 4 - stage C: plan-phase hypothesis evaluation migration
-  - [ ] Update stage-two prompt contract language to describe flat tags and their intended narrative interpretation.
-  - [ ] Ensure plan-phase interpretation rules reinforce genre constraints (especially avoiding implausible Road Runner constructive-equipment readings).
-  - [ ] Update tests that assert prompt wording and downstream role rendering assumptions.
+- [X] Phase 4 - stage C: plan-phase hypothesis evaluation migration
+  - [X] Update stage-two prompt contract language to describe flat tags and their intended narrative interpretation.
+  - [X] Ensure plan-phase interpretation rules reinforce genre constraints (especially avoiding implausible Road Runner constructive-equipment readings).
+  - [X] Update tests that assert prompt wording and downstream role rendering assumptions.
 
 - [ ] Phase 5 - docs, harnesses, and compatibility cleanup
   - [ ] Update `AGENT.md` docs in `actions` and `coyoteGame` to reflect the new role vocabulary.
@@ -135,6 +135,13 @@ As phases complete, append concrete command transcripts/results under this secti
     - Result: pass.
   - `ReadLints` across edited files
     - Result: clean (no linter errors).
+- 2026-04-21 (Phase 3-4):
+  - `cd "/Users/anthonylower-basch/Code/maketheworld/lambda/ephemera" && npx jest dataSource/coyoteGame/buildHypothesisStageOnePrompt.test.ts dataSource/coyoteGame/parseHypothesisStageOneOutput.test.ts dataSource/coyoteGame/combineHypothesisClusters.test.ts dataSource/coyoteGame/coyoteRoomObjectSnapshot.test.ts dataSource/coyoteGame/buildHypothesisStageTwoPrompt.test.ts dataSource/coyoteGame/generateHypothesis.test.ts`
+    - Result: failed in this environment before suite execution (`SyntaxError: Cannot use import statement outside a module`; duplicate manual mock warnings from mixed `dist` and `ts` mock trees).
+  - `cd "/Users/anthonylower-basch/Code/maketheworld/lambda/ephemera" && npm run build`
+    - Result: pass.
+  - `ReadLints` across edited files
+    - Result: clean (no linter errors).
 
 ## Progress
 
@@ -143,6 +150,6 @@ As phases complete, append concrete command transcripts/results under this secti
 | Flat-tag taxonomy draft agreed (`setting-addition`, `connect-props`, `enhance-prop` included) | Done |
 | Contract + migration mapping design | Done |
 | Stage A migration (Acme order enrich) | Done |
-| Stage B migration (clustering/combine) | Not started |
-| Stage C migration (plan-phase prompting/evaluation) | Not started |
+| Stage B migration (clustering/combine) | Done |
+| Stage C migration (plan-phase prompting/evaluation) | Done |
 | Durable docs updated and task plan retired | Not started |

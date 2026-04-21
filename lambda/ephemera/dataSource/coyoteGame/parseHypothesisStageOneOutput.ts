@@ -136,6 +136,7 @@ function resolveEchoToStoredRow(
     if (echo.aptness !== undefined && Number.isFinite(echo.aptness)) {
         return candidates.find((s) => Math.abs(s.aptness - echo.aptness!) < 1e-6)
     }
+    // Deterministic fallback for role-only echoes: pick highest-aptness persisted row for that role.
     const sorted = [...candidates].sort((a, b) => b.aptness - a.aptness)
     return sorted[0]
 }
@@ -194,7 +195,9 @@ function resolveDraftMembers(
         if (!resolved) {
             return {
                 ok: false,
-                errorMessage: `stage 1 JSON: intendedRole does not resolve to a snapshot affinity for ${dm.stableKey} (${kind})`,
+                errorMessage:
+                    `stage 1 JSON: intendedRole ${JSON.stringify(dm.echo)} does not resolve to a stored affinity for ` +
+                    `${dm.stableKey} (${kind}); echo one persisted role from that object's affinities`,
             }
         }
         membersOut.push({ stableKey: dm.stableKey, intendedRole: resolved })
