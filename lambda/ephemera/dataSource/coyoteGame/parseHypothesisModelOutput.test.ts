@@ -42,6 +42,14 @@ describe('parseHypothesisModelOutput', () => {
         })
     })
 
+    it('new contract: ## Scene analysis prefix + final ```text fence with Hypothesis only', () => {
+        const raw = '## Scene analysis\nYou staged a trap.\n\n```text\nHypothesis: It looks like you are trying to test.\n```'
+        expect(parseHypothesisModelOutput(raw)).toEqual({
+            sceneAnalysis: '## Scene analysis\nYou staged a trap.',
+            intent: 'Hypothesis: It looks like you are trying to test.',
+        })
+    })
+
     it('accepts optional parse options for API symmetry with the pipeline', () => {
         expect(parseHypothesisModelOutput('Hypothesis: Only.', { reasoningContentProvided: true })).toEqual({
             intent: 'Hypothesis: Only.',

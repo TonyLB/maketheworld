@@ -1,6 +1,6 @@
 # Coyote hypothesis: reverse extended thinking (plan-phase) task plan
 
-**Status:** Implementation not started. **Chosen direction** is fixed (see below): **Markdown scratchpad (`## Scene analysis`) + fenced `Hypothesis:` tail**. **Baseline:** Stage Two **`usage`** is already being tracked; it is trending toward **>3k** tokens per call vs **<1k** before the Nova 2 Lite extended-thinking path --- keep logging through the change for before/after. Next step: implement prompt + parser + turn off Nova extended thinking by default for Stage Two.
+**Status:** **Implemented** in code (Stage Two **`extendedThinking`** default off; prompt requires scene analysis + final fenced **text** tail; [`parseHypothesisModelOutput`](../../../../../lambda/ephemera/dataSource/coyoteGame/parseHypothesisModelOutput.ts) final-fence path + legacy). **Baseline:** keep comparing **`usageStage2`** after deploy vs the **>3k** / **<1k** trend. **Next:** optional harness or production check, then **Close out** this plan when you are satisfied.
 
 This document follows [`taskPlanning/AGENT.md`](../../../../AGENT.md) (durability, what belongs here vs [`lambda/ephemera/dataSource/coyoteGame/AGENT.md`](../../../../../lambda/ephemera/dataSource/coyoteGame/AGENT.md)). Retire or delete this plan after the initiative ships and durable notes land in code-adjacent `AGENT.md` if needed.
 
@@ -8,7 +8,7 @@ This document follows [`taskPlanning/AGENT.md`](../../../../AGENT.md) (durabilit
 
 The Coyote **hypothesis Stage Two** path ([`generateHypothesis`](../../../../../lambda/ephemera/dataSource/coyoteGame/generateHypothesis.ts)) currently defaults **Amazon Nova extended reasoning** on [`invokeBedrockHypothesisStageTwo`](../../../../../lambda/ephemera/dataSource/coyoteGame/invokeBedrockHypothesis.ts): `extendedThinking: true` with Nova **`reasoningConfig`** ([`invokeBedrockConverseText`](../../../../../lambda/ephemera/llm/invokeBedrockConverseText.ts), default **`reasoningEffort`** `medium`). Empirically this appears to spend on the order of **~4x** total tokens versus a plain text completion, with **most** of that budget in the **reasoning channel** rather than the assistant **`body`**. Recent **`usageStage2`** samples are climbing toward **>3k** tokens where the prior stack was **<1k** for Stage Two. Quality improvements have been **modest** relative to that cost.
 
-The **prompt** explicitly tells the model to put planning in the **reasoning** channel and keep **`body`** player-facing only ([`EXTENDED_REASONING_VS_VISIBLE_TEXT_LINES`](../../../../../lambda/ephemera/dataSource/coyoteGame/buildHypothesisStageTwoPrompt.ts)), which aligns with clean player text but **hides** chain-of-thought from every downstream surface (metrics, debugging, optional logging) except optional **`stageTwoReasoningContent`** on [`generateHypothesisWithStageResults`](../../../../../lambda/ephemera/dataSource/coyoteGame/generateHypothesis.ts).
+Before implementation, the **prompt** steered planning into the Nova **reasoning** channel ([`buildHypothesisStageTwoPrompt`](../../../../../lambda/ephemera/dataSource/coyoteGame/buildHypothesisStageTwoPrompt.ts)), which hid chain-of-thought from **`body`**-based metrics except optional **`stageTwoReasoningContent`** on [`generateHypothesisWithStageResults`](../../../../../lambda/ephemera/dataSource/coyoteGame/generateHypothesis.ts). That path is replaced by **`## Scene analysis`** + a fenced **`Hypothesis:`** tail in **`body`**.
 
 **Goal:** Refactor back toward **explicit** chain-of-reasoning in the **assistant text stream** (or another **observable** first-class representation), reusing **split-parse** patterns already in the repo, so that:
 
@@ -25,10 +25,10 @@ The **prompt** explicitly tells the model to put planning in the **reasoning** c
 
 | Area | Role |
 | --- | --- |
-| Stage Two invocation | [`invokeBedrockHypothesisStageTwo`](../../../../../lambda/ephemera/dataSource/coyoteGame/invokeBedrockHypothesis.ts) defaults `extendedThinking: true`. |
-| Nova transport + reasoning | [`invokeBedrockConverseText`](../../../../../lambda/ephemera/llm/invokeBedrockConverseText.ts); success may include **`reasoningContent`** alongside **`body`**; **`usage`** from Bedrock (inspect for before/after). |
-| Stage Two prompt contract | [`buildHypothesisStageTwoPrompt`](../../../../../lambda/ephemera/dataSource/coyoteGame/buildHypothesisStageTwoPrompt.ts) (extended reasoning vs visible text). |
-| Player-visible parse | [`parseHypothesisModelOutput`](../../../../../lambda/ephemera/dataSource/coyoteGame/parseHypothesisModelOutput.ts): optional `## Scene analysis`, one **`Hypothesis:`** line; trims preamble before `## Scene analysis` when present. |
+| Stage Two invocation | [`invokeBedrockHypothesisStageTwo`](../../../../../lambda/ephemera/dataSource/coyoteGame/invokeBedrockHypothesis.ts) defaults **`extendedThinking: false`**; pass **`true`** to experiment. |
+| Nova transport + reasoning | [`invokeBedrockConverseText`](../../../../../lambda/ephemera/llm/invokeBedrockConverseText.ts); success may include **`reasoningContent`** when extended thinking is on. |
+| Stage Two prompt contract | [`buildHypothesisStageTwoPrompt`](../../../../../lambda/ephemera/dataSource/coyoteGame/buildHypothesisStageTwoPrompt.ts): **`## Scene analysis`** + final fenced block (language **text**) with **`Hypothesis:`** only. |
+| Player-visible parse | [`parseHypothesisModelOutput`](../../../../../lambda/ephemera/dataSource/coyoteGame/parseHypothesisModelOutput.ts): **final-fence** path preferred; **legacy** whole-wrap + first **`Hypothesis:`** line; trims preamble before `## Scene analysis` when present. |
 | Shared split-parse prior art | [`splitMarkdownReasoningAndJson`](../../../../../lambda/ephemera/llm/splitMarkdownReasoningAndJson.ts) and [`llm/AGENT.md`](../../../../../lambda/ephemera/llm/AGENT.md) (Markdown scratchpad + **fenced** structured tail); Acme enrich path in [`mergeAcmeOrderEnrich`](../../../../../lambda/ephemera/dataSource/actions/mergeAcmeOrderEnrich.ts) / [`parseCommand`](../../../../../lambda/ephemera/dataSource/actions/parseCommand.ts) for **observable** reasoning alongside structured output. Stage Two should follow the same **scratchpad + fenced final output** shape for hypothesis text. |
 | Cost/quality comparison | [`runCoyoteEngineTestHarness`](../../../../../lambda/ephemera/dataSource/coyoteGame/runCoyoteEngineTestHarness.ts) exposes **`usageStage1`**, **`usageStage2`**, **`stageOneBody`**, elapsed time per fixture. |
 
@@ -65,7 +65,7 @@ Follow the ordered **categories** below (see [Getting Started pattern for comple
 
 2. **Read durable Coyote hypothesis docs**  
    - **Why:** Stage boundaries and parser contracts are easy to break.  
-   - **Read:** [`lambda/ephemera/dataSource/coyoteGame/AGENT.md`](../../../../../lambda/ephemera/dataSource/coyoteGame/AGENT.md) (especially **Stage Two reasoning vs visible text**, **Hypothesis pipeline**, engine harness).
+   - **Read:** [`lambda/ephemera/dataSource/coyoteGame/AGENT.md`](../../../../../lambda/ephemera/dataSource/coyoteGame/AGENT.md) (especially **Stage Two body contract**, **Hypothesis pipeline**, engine harness).
 
 3. **Inspect implementation hot spots**  
    - **Files:** [`invokeBedrockHypothesis.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/invokeBedrockHypothesis.ts), [`buildHypothesisStageTwoPrompt.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/buildHypothesisStageTwoPrompt.ts), [`parseHypothesisModelOutput.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/parseHypothesisModelOutput.ts), [`generateHypothesis.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/generateHypothesis.ts).
@@ -82,10 +82,10 @@ Follow the ordered **categories** below (see [Getting Started pattern for comple
 
 | Milestone | Notes |
 | --- | --- |
-| Baseline metrics | **In progress:** Stage Two **`usage`** tracked; trending **>3k** tokens vs **<1k** before; keep recording through post-change verification. |
-| Prompt + invocation change | Extended thinking default off; Stage Two prompt matches **Chosen direction** (scene analysis + fenced `Hypothesis:`). |
-| Parser + tests | Split at **final** fence; prefix vs interior; fixtures updated; no player-visible leaks. |
-| Durable doc touch-up | [`coyoteGame/AGENT.md`](../../../../../lambda/ephemera/dataSource/coyoteGame/AGENT.md) Stage Two section reflects new contract. |
+| Baseline metrics | **In progress:** compare post-deploy **`usageStage2`** to prior **>3k** trend. |
+| Prompt + invocation change | **Done:** `extendedThinking` default **false**; [`buildHypothesisStageTwoPrompt`](../../../../../lambda/ephemera/dataSource/coyoteGame/buildHypothesisStageTwoPrompt.ts) fenced tail + scene analysis instructions. |
+| Parser + tests | **Done:** [`parseHypothesisModelOutput`](../../../../../lambda/ephemera/dataSource/coyoteGame/parseHypothesisModelOutput.ts) `findAllFenceBlocks` + legacy; Jest updated. |
+| Durable doc touch-up | **Done:** [`coyoteGame/AGENT.md`](../../../../../lambda/ephemera/dataSource/coyoteGame/AGENT.md) **Stage Two body contract**. |
 
 ## Recommended order
 
@@ -93,14 +93,15 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines as you finish ea
 
 - [X] Baseline: Stage Two **`usage`** is already being captured (trending toward **>3k** tokens vs **<1k** previously; optional **`reasoningContent`** size). Keep logging on a fixed harness run or scripted comparison through implementation for before/after; note subjective quality on the same fixtures.
 - [X] **Direction:** **Chosen direction** is **Markdown `## Scene analysis` (reasoning scratchpad) + fenced `Hypothesis:` tail** --- documented in **Chosen direction (Stage Two hypothesis)** above; not revisiting unless a follow-up task says otherwise.
-- [ ] Implementation: flip [`invokeBedrockHypothesisStageTwo`](../../../../../lambda/ephemera/dataSource/coyoteGame/invokeBedrockHypothesis.ts) defaults and adjust [`buildHypothesisStageTwoPrompt`](../../../../../lambda/ephemera/dataSource/coyoteGame/buildHypothesisStageTwoPrompt.ts) to implement that contract (no steering planning into the Nova reasoning channel; extended thinking off for Stage Two unless explicitly overridden).
-- [ ] Parser: extend [`parseHypothesisModelOutput`](../../../../../lambda/ephemera/dataSource/coyoteGame/parseHypothesisModelOutput.ts) for any new headings or delimiters; keep **`CoyoteGameIntentRecord`** player-safe.
-- [ ] Tests: update [`parseHypothesisModelOutput.test.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/parseHypothesisModelOutput.test.ts), [`buildHypothesisStageTwoPrompt.test.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/buildHypothesisStageTwoPrompt.test.ts) if present, and [`generateHypothesis.test.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/generateHypothesis.test.ts) as needed.
-- [ ] Docs: refresh [`lambda/ephemera/dataSource/coyoteGame/AGENT.md`](../../../../../lambda/ephemera/dataSource/coyoteGame/AGENT.md) **Stage Two** bullets; update this plan's **Progress** and **Recommended order** checkboxes.
+- [X] Implementation: flip [`invokeBedrockHypothesisStageTwo`](../../../../../lambda/ephemera/dataSource/coyoteGame/invokeBedrockHypothesis.ts) defaults and adjust [`buildHypothesisStageTwoPrompt`](../../../../../lambda/ephemera/dataSource/coyoteGame/buildHypothesisStageTwoPrompt.ts) to implement that contract (no steering planning into the Nova reasoning channel; extended thinking off for Stage Two unless explicitly overridden).
+- [X] Parser: extend [`parseHypothesisModelOutput`](../../../../../lambda/ephemera/dataSource/coyoteGame/parseHypothesisModelOutput.ts) for any new headings or delimiters; keep **`CoyoteGameIntentRecord`** player-safe.
+- [X] Tests: update [`parseHypothesisModelOutput.test.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/parseHypothesisModelOutput.test.ts), [`buildHypothesisStageTwoPrompt.test.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/buildHypothesisStageTwoPrompt.test.ts) if present, and [`generateHypothesis.test.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/generateHypothesis.test.ts) as needed.
+- [X] Docs: refresh [`lambda/ephemera/dataSource/coyoteGame/AGENT.md`](../../../../../lambda/ephemera/dataSource/coyoteGame/AGENT.md) **Stage Two** bullets; update this plan's **Progress** and **Recommended order** checkboxes.
 - [ ] Close out: delete or archive this task plan when the behavior is stable and the team no longer needs the checklist.
 
 ## Verification
 
+- Ran: `cd lambda/ephemera && npx jest dataSource/coyoteGame/` (81 tests, all passing at implementation time).
 - From repo root: `cd lambda/ephemera && npx jest dataSource/coyoteGame/` (aligns with [`coyoteGame/AGENT.md`](../../../../../lambda/ephemera/dataSource/coyoteGame/AGENT.md) **Verification**).
 - After parser or prompt edits, add or adjust unit tests so **stub intent**, **scene analysis**, and **`Hypothesis:`** extraction stay deterministic.
 - Optional: run the Coyote engine test harness (disabled by default; see **Engine testing harness** in [`coyoteGame/AGENT.md`](../../../../../lambda/ephemera/dataSource/coyoteGame/AGENT.md)) to compare **`usageStage2`** across branches.

@@ -85,12 +85,10 @@ describe('invokeBedrockHypothesisStageOne / StageTwo', () => {
 
         const command = send.mock.calls[0][0] as InstanceType<typeof ConverseCommand>
         expect(command.input.inferenceConfig?.maxTokens).toBe(BEDROCK_HYPOTHESIS_STAGE_TWO_MAX_TOKENS)
-        expect(command.input.additionalModelRequestFields).toEqual({
-            reasoningConfig: { type: 'enabled', maxReasoningEffort: 'medium' },
-        })
+        expect(command.input.additionalModelRequestFields).toBeUndefined()
     })
 
-    it('StageTwo can disable extendedThinking', async () => {
+    it('StageTwo sends Nova reasoningConfig when extendedThinking is true', async () => {
         const send = jest.fn().mockResolvedValue({
             output: { message: { content: [{ text: 'Hypothesis: ok' }] } },
             usage: {},
@@ -99,11 +97,13 @@ describe('invokeBedrockHypothesisStageOne / StageTwo', () => {
 
         await invokeBedrockHypothesisStageTwo(
             { invariantPrefix: 'A', dynamicSuffix: '\nB' },
-            { client, timeoutMs: 5000, extendedThinking: false }
+            { client, timeoutMs: 5000, extendedThinking: true }
         )
 
         const command = send.mock.calls[0][0] as InstanceType<typeof ConverseCommand>
-        expect(command.input.additionalModelRequestFields).toBeUndefined()
+        expect(command.input.additionalModelRequestFields).toEqual({
+            reasoningConfig: { type: 'enabled', maxReasoningEffort: 'medium' },
+        })
     })
 
     it('StageTwo returns reasoningContent when the response includes reasoning blocks', async () => {
@@ -122,7 +122,7 @@ describe('invokeBedrockHypothesisStageOne / StageTwo', () => {
 
         const result = await invokeBedrockHypothesisStageTwo(
             { invariantPrefix: 'A', dynamicSuffix: '\nB' },
-            { client, timeoutMs: 5000 }
+            { client, timeoutMs: 5000, extendedThinking: true }
         )
 
         expect(result).toEqual({

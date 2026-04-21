@@ -22,8 +22,9 @@ describe('buildHypothesisStageTwoPromptParts', () => {
             },
             combinedMarkdown: combined,
         })
-        expect(parts.invariantPrefix).toContain('## Extended reasoning vs visible assistant text')
-        expect(parts.invariantPrefix).toContain('**extended reasoning**')
+        expect(parts.invariantPrefix).toContain('## Scene analysis and fenced Hypothesis (assistant text only)')
+        expect(parts.invariantPrefix).toContain('Do not rely on a separate Nova reasoning channel')
+        expect(parts.invariantPrefix).toContain('final** ```text fence')
         expect(parts.invariantPrefix).toContain('## Combined clustering Markdown (how to read the dynamic tail)')
         expect(parts.invariantPrefix).toContain('**prep**')
         expect(parts.invariantPrefix).toContain('**creation**')
