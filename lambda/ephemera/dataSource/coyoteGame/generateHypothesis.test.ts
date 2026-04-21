@@ -21,7 +21,7 @@ const stageOneSeamBody = JSON.stringify({
             clusterName: 'Combined setup',
             members: [
                 { stableKey: 'anvil', intendedRole: { role: 'terminal', aptness: 0.5 } },
-                { stableKey: 'rocket-skates', intendedRole: { role: 'delivery', aptness: 0.6 } },
+                { stableKey: 'rocket-skates', intendedRole: { role: 'coyote-equipment', aptness: 0.6 } },
             ],
         },
     ],
@@ -57,7 +57,7 @@ describe('generateHypothesis', () => {
                             uuid: 'OBJECT#rocket-skates' as `OBJECT#${string}`,
                             shortName: 'rocket skates',
                             stableKey: 'rocket-skates',
-                            affinities: [{ role: 'delivery', aptness: 0.6 }],
+                            affinities: [{ role: 'coyote-equipment', aptness: 0.6 }],
                         },
                     ],
                 }
@@ -86,6 +86,16 @@ describe('generateHypothesis', () => {
         })
         expect(stageOneMock).toHaveBeenCalledTimes(1)
         expect(stageTwoMock).toHaveBeenCalledTimes(1)
+    })
+
+    it('passes flat intendedRole rendering into Stage Two prompt', async () => {
+        await generateHypothesis({ getGameRooms, getRoomMeta })
+        const stageTwoPrompt = stageTwoMock.mock.calls[0][0] as {
+            invariantPrefix: string
+            dynamicSuffix: string
+        }
+        const fullStageTwo = stageTwoPrompt.invariantPrefix + stageTwoPrompt.dynamicSuffix
+        expect(fullStageTwo).toContain('**intendedRole:** coyote-equipment 0.60')
     })
 
     it('parses stage-2 body with ## Scene analysis + fenced Hypothesis', async () => {

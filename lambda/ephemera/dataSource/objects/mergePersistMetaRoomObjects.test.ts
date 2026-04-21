@@ -198,7 +198,7 @@ describe('mergePersistMetaRoomObjects', () => {
 
         const addRich = enrichedObj('c', 'Imported dynamite crate', {
             affinities: [
-                { role: 'entity_modification', target: 'prop', mode: 'direct', aptness: 0.55 },
+                { role: 'connect-props', aptness: 0.55 },
                 { role: 'terminal', aptness: 0.3 },
             ],
             affinitiesFailed: false,

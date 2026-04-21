@@ -29,13 +29,6 @@ function affinityMatchesStored(
     if (stored.role !== echoed.role) {
         return false
     }
-    if (stored.role === 'entity_modification' && echoed.role === 'entity_modification') {
-        return (
-            stored.target === echoed.target
-            && stored.mode === echoed.mode
-            && Math.abs(stored.aptness - echoed.aptness) < 1e-6
-        )
-    }
     return Math.abs(stored.aptness - echoed.aptness) < 1e-6
 }
 
@@ -47,6 +40,24 @@ function resolveCanonicalRole(
         return undefined
     }
     return obj.affinities.find((a) => affinityMatchesStored(a, echoed))
+}
+
+function resolveMemberIntendedRole(
+    obj: EphemeraMetaRoomObject,
+    echoed: CoyoteAffinityPossibility | undefined,
+    context: string
+): { ok: true; intendedRole?: CoyoteAffinityPossibility } | { ok: false; errorMessage: string } {
+    if (echoed === undefined) {
+        return { ok: true, intendedRole: undefined }
+    }
+    const intendedRole = resolveCanonicalRole(obj, echoed)
+    if (!intendedRole) {
+        return {
+            ok: false,
+            errorMessage: `combine: could not resolve canonical intendedRole for ${context}`,
+        }
+    }
+    return { ok: true, intendedRole }
 }
 
 function snapshotIndexByStableKey(
@@ -64,7 +75,7 @@ function snapshotIndexByStableKey(
 /**
  * Hydrated DTO for Stage Two. When **`explicitOutliers`** is set (Stage One JSON included **`outliers`**),
  * outliers come only from that list; otherwise every staged **`stableKey`** missing from **`clusters`**
- * is listed as an outlier (legacy).
+ * is listed as an outlier (complement fallback).
  */
 export function combineHypothesisClusters(
     clusters: ParsedCluster[],
@@ -86,20 +97,14 @@ export function combineHypothesisClusters(
             }
             seenKeys.add(sk)
 
-            let intendedRole = resolveCanonicalRole(obj, mem.intendedRole)
-            if (mem.intendedRole !== undefined && intendedRole === undefined) {
-                return {
-                    ok: false,
-                    errorMessage: `combine: could not resolve canonical intendedRole for "${sk}"`,
-                }
-            }
-            if (mem.intendedRole === undefined) {
-                intendedRole = undefined
+            const resolvedRole = resolveMemberIntendedRole(obj, mem.intendedRole, `"${sk}"`)
+            if (!resolvedRole.ok) {
+                return resolvedRole
             }
 
             const pair: ClusterMemberPair = {
                 identifier: sk,
-                intendedRole,
+                intendedRole: resolvedRole.intendedRole,
             }
             membersOut.push(pair)
         }
@@ -126,19 +131,13 @@ export function combineHypothesisClusters(
             if (!obj) {
                 return { ok: false, errorMessage: `combine: unknown outlier stableKey "${sk}"` }
             }
-            let intendedRole = resolveCanonicalRole(obj, mem.intendedRole)
-            if (mem.intendedRole !== undefined && intendedRole === undefined) {
-                return {
-                    ok: false,
-                    errorMessage: `combine: could not resolve canonical intendedRole for outlier "${sk}"`,
-                }
-            }
-            if (mem.intendedRole === undefined) {
-                intendedRole = undefined
+            const resolvedRole = resolveMemberIntendedRole(obj, mem.intendedRole, `outlier "${sk}"`)
+            if (!resolvedRole.ok) {
+                return resolvedRole
             }
             outliers.push({
                 identifier: sk,
-                intendedRole,
+                intendedRole: resolvedRole.intendedRole,
             })
         }
     } else {

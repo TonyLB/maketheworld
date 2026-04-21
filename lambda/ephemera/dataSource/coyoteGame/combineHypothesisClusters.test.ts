@@ -6,7 +6,7 @@ import type { ParsedCluster } from './parseHypothesisStageOneOutput'
 
 describe('combineHypothesisClusters', () => {
     it('hydrates canonical intendedRole from snapshot', () => {
-        const prep: CoyoteAffinityPossibility = { role: 'prep', aptness: 0.71 }
+        const prep: CoyoteAffinityPossibility = { role: 'connect-props', aptness: 0.71 }
         const roomMap: CoyoteRoomObjectsByRoom = {
             'ROOM#VORTEX': [
                 {
@@ -20,7 +20,7 @@ describe('combineHypothesisClusters', () => {
         const clusters: ParsedCluster[] = [
             {
                 clusterName: 'Prep',
-                members: [{ stableKey: 'rope-0', intendedRole: { role: 'prep', aptness: 0.71 } }],
+                members: [{ stableKey: 'rope-0', intendedRole: { role: 'connect-props', aptness: 0.71 } }],
             },
         ]
         const r = combineHypothesisClusters(clusters, roomMap)
@@ -28,6 +28,8 @@ describe('combineHypothesisClusters', () => {
         if (r.ok) {
             expect(r.combined.clusters[0].members[0].intendedRole).toEqual(prep)
             expect(r.combined.outliers).toHaveLength(0)
+            const md = renderCombinedHypothesisForStageTwo(r.combined, roomMap)
+            expect(md).toContain('**intendedRole:** connect-props 0.71')
         }
     })
 

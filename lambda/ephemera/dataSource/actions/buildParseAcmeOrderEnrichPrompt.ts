@@ -92,7 +92,7 @@ Example **valid** line entry (inside **\`lines\`**):
   "name": "Beehive",
   "stableKey": "beehive",
   "affinities": [
-    { "role": "entity_modification", "target": "road_runner", "mode": "direct", "aptness": 0.7 },
+    { "role": "influence-road-runner", "aptness": 0.7 },
     { "role": "terminal", "aptness": 0.5 }
   ]
 }
@@ -110,18 +110,23 @@ Example **invalid** line entry:
 
 Emit **1-3** possibilities per deliverable line. **Omit** aptness **strictly below ${floor}**.
 
-### entity_modification
+### Flat modification tags
 
-Include **\`target\`**: coyote | road_runner | prop and **\`mode\`**: direct | constructive.
+Use these exact role tags with **\`aptness\`** only:
 
-Use **\`prop\`** only when the item modifies another staged prop (camouflage, disguise, or covering another device). Do not emit **\`environment\`**.
+- **\`influence-road-runner\`**: impacts the Road Runner behavior or path.
+- **\`alter-road-runner\`**: physically alters, restrains, or directly affects the Road Runner.
+- **\`coyote-equipment\`**: equipment the Coyote uses or wears.
+- **\`coyote-enhancement\`**: boosts Coyote capability or state.
+- **\`setting-addition\`**: adds terrain or environmental setup.
+- **\`connect-props\`**: links staged props into one mechanism.
+- **\`enhance-prop\`**: modifies or improves an existing staged prop.
 
-- Example (**prop**): tarp camouflaging a pit, or disguising another staged device.
-- Example (**road_runner**): glue on the Road Runner's feet, or a magnet attached to the Road Runner.
+Do not emit legacy tuple fields like **\`target\`** or **\`mode\`**.
 
 ### Generative roles
 
-**prep** and **creation** use **\`aptness\`** only (no target/mode).
+**prep** and **creation** use **\`aptness\`** only.
 
 - **prep**: before-beat setup, assembly, rigging, digging, or scene preparation.
 - **creation**: in-beat generative or ephemeral effects produced during execution.
@@ -130,7 +135,7 @@ Use **\`prop\`** only when the item modifies another staged prop (camouflage, di
 
 ### Structural roles
 
-**terminal**, **trigger**, **delivery**, **autonomous_agent** — include **\`aptness\`** only (no target/mode).
+**terminal**, **trigger**, **delivery**, **autonomous_agent** — include **\`aptness\`** only.
 
 ## Failure and confidence
 

@@ -4,6 +4,15 @@ import { buildParseAcmeOrderEnrichPrompt } from './buildParseAcmeOrderEnrichProm
 describe('buildParseAcmeOrderEnrichPrompt', () => {
     it('requires chain-of-reasoning markdown then fenced json, and retains affinity contract', () => {
         const { invariantPrefix, dynamicSuffix } = buildParseAcmeOrderEnrichPrompt('order rope')
+        const flatTags = [
+            'influence-road-runner',
+            'alter-road-runner',
+            'coyote-equipment',
+            'coyote-enhancement',
+            'setting-addition',
+            'connect-props',
+            'enhance-prop',
+        ]
         expect(invariantPrefix).toContain('Classify order type')
         expect(invariantPrefix).toContain('two steps with different rules')
         expect(invariantPrefix).toContain('Enhance (JSON final)')
@@ -12,12 +21,13 @@ describe('buildParseAcmeOrderEnrichPrompt', () => {
         expect(invariantPrefix.indexOf('Correctable user error')).toBeLessThan(invariantPrefix.indexOf('Cartoon physics modifier'))
         expect(invariantPrefix.indexOf('Cartoon physics modifier')).toBeLessThan(invariantPrefix.indexOf('Primary category'))
         expect(invariantPrefix).toContain('language tag **json**')
-        expect(invariantPrefix).toContain('entity_modification')
+        for (const tag of flatTags) {
+            expect(invariantPrefix).toContain(tag)
+        }
         expect(invariantPrefix).toContain('autonomous_agent')
-        expect(invariantPrefix).toContain('tarp camouflaging a pit')
-        expect(invariantPrefix).toContain('glue on the Road Runner')
-        expect(invariantPrefix).toContain('dig a pit')
-        expect(invariantPrefix).toContain('Tesla coil creating lightning arcs')
+        expect(invariantPrefix).toContain('Do not emit legacy tuple fields like **`target`** or **`mode`**')
+        expect(invariantPrefix).toContain('### Generative roles')
+        expect(invariantPrefix).toContain('### Structural roles')
         expect(invariantPrefix).toContain(String(COYOTE_AFFINITY_APTNESS_MIN))
         expect(invariantPrefix).toContain('strictly below')
         expect(invariantPrefix).not.toContain('skill check')
