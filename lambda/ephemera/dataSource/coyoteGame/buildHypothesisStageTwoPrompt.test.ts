@@ -30,7 +30,7 @@ describe('buildHypothesisStageTwoPromptParts', () => {
         expect(parts.invariantPrefix).toContain('**creation**')
         expect(parts.invariantPrefix).toContain('**## Outliers**')
         expect(parts.invariantPrefix).toContain('**intendedRole**')
-        expect(parts.invariantPrefix).toContain('**entity_modification**')
+        expect(parts.invariantPrefix).toContain('**influence-road-runner**')
         expect(parts.invariantPrefix).toContain('## World topology')
         expect(parts.invariantPrefix).toContain('## Interpretation rules')
         expect(parts.invariantPrefix).toContain('## Temporal ordering (prep vs execution)')

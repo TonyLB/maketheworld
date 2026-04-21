@@ -1,7 +1,9 @@
 //
 // Coyote demo: plan-role affinities on staged objects (Acme enrich output + Meta::Room.objects).
 // Vocabulary includes structural roles, generative roles (`prep`, `creation`), and
-// `entity_modification.target` values `coyote` / `road_runner` / `prop`.
+// flat modification-intent tags (`influence-road-runner`, `alter-road-runner`,
+// `coyote-equipment`, `coyote-enhancement`, `setting-addition`, `connect-props`,
+// `enhance-prop`).
 //
 
 /** Max line items in a single Acme enrich model response (prompt guardrail). */
@@ -13,12 +15,16 @@ export const ACME_ORDER_ENRICH_MAX_AFFINITIES_PER_LINE = 20
 /** Omit affinity possibilities strictly below this aptness (entries with aptness equal to this value are kept). */
 export const COYOTE_AFFINITY_APTNESS_MIN = 0.2
 
-export type CoyoteAffinityTarget = 'coyote' | 'road_runner' | 'prop'
-
-export type CoyoteAffinityMode = 'direct' | 'constructive'
-
 export type CoyoteStructuralRole = 'terminal' | 'trigger' | 'delivery' | 'autonomous_agent'
 export type CoyoteGenerativeRole = 'prep' | 'creation'
+export type CoyoteModificationRole =
+    | 'influence-road-runner'
+    | 'alter-road-runner'
+    | 'coyote-equipment'
+    | 'coyote-enhancement'
+    | 'setting-addition'
+    | 'connect-props'
+    | 'enhance-prop'
 
 /** Step B catalog rejection (aligned with parse command apology copy). */
 export type AcmeCatalogRejectionReason = 'Not a thing' | 'Not tangible' | 'Too large'
@@ -30,19 +36,19 @@ const structuralRoles: ReadonlySet<CoyoteStructuralRole> = new Set([
     'autonomous_agent',
 ])
 
-const affinityTargets: ReadonlySet<CoyoteAffinityTarget> = new Set([
-    'coyote',
-    'road_runner',
-    'prop',
+const modificationRoles: ReadonlySet<CoyoteModificationRole> = new Set([
+    'influence-road-runner',
+    'alter-road-runner',
+    'coyote-equipment',
+    'coyote-enhancement',
+    'setting-addition',
+    'connect-props',
+    'enhance-prop',
 ])
-
-const affinityModes: ReadonlySet<CoyoteAffinityMode> = new Set(['direct', 'constructive'])
 
 export type CoyoteAffinityPossibility =
     | {
-          role: 'entity_modification';
-          target: CoyoteAffinityTarget;
-          mode: CoyoteAffinityMode;
+          role: CoyoteModificationRole;
           aptness: number;
       }
     | {
@@ -57,9 +63,7 @@ export type CoyoteAffinityPossibility =
 /** Stage-one intendedRole echo: same roles as **[`CoyoteAffinityPossibility`]**, but **`aptness`** may be omitted (resolved against snapshot rows). */
 export type CoyoteAffinityPossibilityEcho =
     | {
-          role: 'entity_modification';
-          target: CoyoteAffinityTarget;
-          mode: CoyoteAffinityMode;
+          role: CoyoteModificationRole;
           aptness?: number;
       }
     | {
@@ -105,12 +109,13 @@ function isFiniteAptness(n: unknown): n is number {
     return typeof n === 'number' && Number.isFinite(n) && n >= 0 && n <= 1
 }
 
-export function isCoyoteAffinityTarget(value: unknown): value is CoyoteAffinityTarget {
-    return typeof value === 'string' && affinityTargets.has(value as CoyoteAffinityTarget)
+function hasLegacyTupleKeys(o: Record<string, unknown>): boolean {
+    return Object.prototype.hasOwnProperty.call(o, 'target')
+        || Object.prototype.hasOwnProperty.call(o, 'mode')
 }
 
-export function isCoyoteAffinityMode(value: unknown): value is CoyoteAffinityMode {
-    return typeof value === 'string' && affinityModes.has(value as CoyoteAffinityMode)
+export function isCoyoteModificationRole(value: unknown): value is CoyoteModificationRole {
+    return typeof value === 'string' && modificationRoles.has(value as CoyoteModificationRole)
 }
 
 export function isCoyoteStructuralRole(value: unknown): value is CoyoteStructuralRole {
@@ -127,12 +132,8 @@ export function isCoyoteAffinityPossibility(entry: unknown): entry is CoyoteAffi
     }
     const o = entry as Record<string, unknown>
     const role = o.role
-    if (role === 'entity_modification') {
-        return (
-            isCoyoteAffinityTarget(o.target)
-            && isCoyoteAffinityMode(o.mode)
-            && isFiniteAptness(o.aptness)
-        )
+    if (isCoyoteModificationRole(role)) {
+        return !hasLegacyTupleKeys(o) && isFiniteAptness(o.aptness)
     }
     if (isCoyoteStructuralRole(role)) {
         return isFiniteAptness(o.aptness)
@@ -153,12 +154,8 @@ export function isCoyoteAffinityPossibilityEcho(entry: unknown): entry is Coyote
     }
     const o = entry as Record<string, unknown>
     const role = o.role
-    if (role === 'entity_modification') {
-        return (
-            isCoyoteAffinityTarget(o.target)
-            && isCoyoteAffinityMode(o.mode)
-            && (o.aptness === undefined || isFiniteAptness(o.aptness))
-        )
+    if (isCoyoteModificationRole(role)) {
+        return !hasLegacyTupleKeys(o) && (o.aptness === undefined || isFiniteAptness(o.aptness))
     }
     if (isCoyoteStructuralRole(role)) {
         return o.aptness === undefined || isFiniteAptness(o.aptness)

@@ -128,13 +128,7 @@ function resolveEchoToStoredRow(
         return undefined
     }
     const candidates = aff.filter((stored) => {
-        if (stored.role !== echo.role) {
-            return false
-        }
-        if (echo.role === 'entity_modification' && stored.role === 'entity_modification') {
-            return stored.target === echo.target && stored.mode === echo.mode
-        }
-        return true
+        return stored.role === echo.role
     })
     if (candidates.length === 0) {
         return undefined

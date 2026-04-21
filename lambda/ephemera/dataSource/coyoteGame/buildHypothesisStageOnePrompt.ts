@@ -18,7 +18,7 @@ const STAGE_ONE_INTRO_LINES = [
     '- After any optional fence, the payload must start with **`{`** immediately. Do **not** emit the bare word **`json`** before **`{`** (that is not valid JSON).',
 ] as const
 
-/** Few-shot: **intendedRole** uses **role** (+ **target** / **mode** for **entity_modification**) only; omit **aptness** — the parser resolves it against snapshot **affinities**. */
+/** Few-shot: **intendedRole** echoes one flat **role** only (no tuple fields, no aptness). */
 const STAGE_ONE_JSON_FEW_SHOT = `Example (shape — use real **stableKey** strings from **Current staged objects by room** below):
 \`\`\`json
 {
@@ -26,7 +26,7 @@ const STAGE_ONE_JSON_FEW_SHOT = `Example (shape — use real **stableKey** strin
     {
       "clusterName": "Trap setup",
       "members": [
-        { "stableKey": "birdseed", "intendedRole": { "role": "entity_modification", "target": "road_runner", "mode": "direct" } },
+        { "stableKey": "birdseed", "intendedRole": { "role": "influence-road-runner" } },
         { "stableKey": "glue", "intendedRole": { "role": "prep" } }
       ]
     }
@@ -52,7 +52,7 @@ const STAGE_ONE_JSON_CONTRACT_LINES = [
     '- **Functional/thematic clustering only.** Group props that work together toward one maneuver. Do **not** encode temporal ordering or beat sequencing here.',
     '- **Omit** **`intendedRole`** when `affinities` are missing or marked failed for that row (do not invent roles).',
     '- **Coverage:** Each staged **`stableKey`** appears **exactly once** across **`clusters`** ∪ **`outliers`** (when **`outliers`** is omitted, all keys appear only in **`clusters`**).',
-    '- Prefer **`prep`** / **`creation`** / **`entity_modification`** / structural roles consistent with definitions in Acme enrich; do not treat **`prep`** as chronological "first beat" clustering.',
+    '- Prefer flat modification tags + **`prep`** / **`creation`** / structural roles consistent with Acme enrich; do not include tuple fields like **`target`** or **`mode`** in **`intendedRole`**.',
 ] as const
 
 function stageOnePromptLines(snapshotSection: string): string[] {

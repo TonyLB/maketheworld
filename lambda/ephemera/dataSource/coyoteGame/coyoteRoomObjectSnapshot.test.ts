@@ -9,15 +9,13 @@ import {
 const room = (id: string): EphemeraRoomId => id as EphemeraRoomId
 
 describe('formatCoyoteAffinityPossibility', () => {
-    it('formats entity_modification', () => {
+    it('formats flat modification tags', () => {
         expect(
             formatCoyoteAffinityPossibility({
-                role: 'entity_modification',
-                target: 'road_runner',
-                mode: 'direct',
+                role: 'influence-road-runner',
                 aptness: 0.712,
             })
-        ).toBe('entity_modification road_runner direct 0.71')
+        ).toBe('influence-road-runner 0.71')
     })
 
     it('formats structural role', () => {
@@ -58,15 +56,13 @@ describe('formatCoyoteObjectAffinitySuffix', () => {
             affinities: [
                 { role: 'terminal', aptness: 0.5 },
                 {
-                    role: 'entity_modification',
-                    target: 'road_runner',
-                    mode: 'direct',
+                    role: 'influence-road-runner',
                     aptness: 0.7,
                 },
             ],
         }
         expect(formatCoyoteObjectAffinitySuffix(o)).toBe(
-            'entity_modification road_runner direct 0.70; terminal 0.50'
+            'influence-road-runner 0.70; terminal 0.50'
         )
     })
 })

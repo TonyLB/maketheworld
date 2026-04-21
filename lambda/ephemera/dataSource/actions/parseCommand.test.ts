@@ -592,9 +592,7 @@ describe('parseCommand LLM path', () => {
                         stableKey: 'beehive',
                         affinities: [
                             {
-                                role: 'entity_modification',
-                                target: 'road_runner',
-                                mode: 'direct',
+                                role: 'influence-road-runner',
                                 aptness: 0.7,
                             },
                             { role: 'terminal', aptness: 0.5 },
@@ -606,9 +604,7 @@ describe('parseCommand LLM path', () => {
                         stableKey: 'entrenching-shovel',
                         affinities: [
                             {
-                                role: 'entity_modification',
-                                target: 'prop',
-                                mode: 'constructive',
+                                role: 'connect-props',
                                 aptness: 0.88,
                             },
                             { role: 'trigger', aptness: 0.42 },
@@ -642,9 +638,7 @@ describe('parseCommand LLM path', () => {
                     stableKey: 'beehive',
                     affinities: [
                         {
-                            role: 'entity_modification',
-                            target: 'road_runner',
-                            mode: 'direct',
+                            role: 'influence-road-runner',
                             aptness: 0.7,
                         },
                         { role: 'terminal', aptness: 0.5 },
@@ -656,9 +650,7 @@ describe('parseCommand LLM path', () => {
                     stableKey: 'entrenching-shovel',
                     affinities: [
                         {
-                            role: 'entity_modification',
-                            target: 'prop',
-                            mode: 'constructive',
+                            role: 'connect-props',
                             aptness: 0.88,
                         },
                         { role: 'trigger', aptness: 0.42 },

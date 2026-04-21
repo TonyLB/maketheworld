@@ -12,12 +12,10 @@ import {
 import { isEphemeraMetaRoomObject } from './ephemeraMeta'
 
 describe('isCoyoteAffinityPossibility', () => {
-    it('accepts entity_modification', () => {
+    it('accepts flat modification tags', () => {
         expect(
             isCoyoteAffinityPossibility({
-                role: 'entity_modification',
-                target: 'road_runner',
-                mode: 'direct',
+                role: 'influence-road-runner',
                 aptness: 0.7,
             })
         ).toBe(true)
@@ -41,7 +39,7 @@ describe('isCoyoteAffinityPossibility', () => {
         expect(isCoyoteAffinityPossibility({ role: 'terminal', aptness: NaN })).toBe(false)
     })
 
-    it('rejects entity_modification without target/mode', () => {
+    it('rejects stale tuple-shaped role payloads', () => {
         expect(
             isCoyoteAffinityPossibility({
                 role: 'entity_modification',
@@ -50,11 +48,11 @@ describe('isCoyoteAffinityPossibility', () => {
         ).toBe(false)
     })
 
-    it('rejects stale environment entity_modification target', () => {
+    it('rejects tuple payload with legacy target/mode fields', () => {
         expect(
             isCoyoteAffinityPossibility({
-                role: 'entity_modification',
-                target: 'environment',
+                role: 'influence-road-runner',
+                target: 'road_runner',
                 mode: 'direct',
                 aptness: 0.5,
             })
@@ -76,9 +74,7 @@ describe('isCoyoteAffinityPossibilityEcho', () => {
         expect(isCoyoteAffinityPossibilityEcho({ role: 'prep' })).toBe(true)
         expect(
             isCoyoteAffinityPossibilityEcho({
-                role: 'entity_modification',
-                target: 'road_runner',
-                mode: 'direct',
+                role: 'influence-road-runner',
             })
         ).toBe(true)
     })
@@ -98,7 +94,7 @@ describe('isAcmeOrderEnrichModelLine', () => {
         name: 'Beehive',
         stableKey: 'beehive',
         affinities: [
-            { role: 'entity_modification', target: 'road_runner', mode: 'direct', aptness: 0.7 },
+            { role: 'influence-road-runner', aptness: 0.7 },
             { role: 'terminal', aptness: 0.5 },
         ],
     }
@@ -178,9 +174,7 @@ describe('normalizeAcmeOrderEnrichLine', () => {
             affinities: [
                 { role: 'terminal', aptness: 0.4 },
                 {
-                    role: 'entity_modification',
-                    target: 'road_runner' as const,
-                    mode: 'direct' as const,
+                    role: 'influence-road-runner' as const,
                     aptness: 0.9,
                 },
                 { role: 'delivery', aptness: 0.15 },
@@ -192,9 +186,7 @@ describe('normalizeAcmeOrderEnrichLine', () => {
             stableKey: 'x',
             affinities: [
                 {
-                    role: 'entity_modification',
-                    target: 'road_runner',
-                    mode: 'direct',
+                    role: 'influence-road-runner',
                     aptness: 0.9,
                 },
                 { role: 'terminal', aptness: 0.4 },
@@ -374,9 +366,7 @@ describe('isAcmeOrderEnrichModelResponse', () => {
                         stableKey: 'shovel',
                         affinities: [
                             {
-                                role: 'entity_modification',
-                                target: 'prop',
-                                mode: 'constructive',
+                                role: 'connect-props',
                                 aptness: 0.9,
                             },
                         ],

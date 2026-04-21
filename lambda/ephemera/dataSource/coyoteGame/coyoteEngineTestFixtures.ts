@@ -36,9 +36,7 @@ export type CoyoteEngineTestFixture = {
 /** Birdseed staged as bait: placed to stage the gag, then targets the quarry. */
 const birdseedLureAffinities: CoyoteAffinityPossibility[] = [
     {
-        role: 'entity_modification',
-        target: 'road_runner',
-        mode: 'direct',
+        role: 'influence-road-runner',
         aptness: 0.8,
     },
 ]
@@ -54,9 +52,7 @@ export const COYOTE_ENGINE_TEST_FIXTURES: CoyoteEngineTestFixture[] = [
                     affinities: [
                         { role: 'delivery', aptness: 0.4 },
                         {
-                            role: 'entity_modification',
-                            target: 'coyote',
-                            mode: 'direct',
+                            role: 'coyote-enhancement',
                             aptness: 0.69,
                         },
                         { role: 'terminal', aptness: 0.61 },
@@ -95,9 +91,7 @@ export const COYOTE_ENGINE_TEST_FIXTURES: CoyoteEngineTestFixture[] = [
                     shortName: 'roller skates',
                     affinities: [
                         {
-                            role: 'entity_modification',
-                            target: 'coyote',
-                            mode: 'constructive',
+                            role: 'coyote-equipment',
                             aptness: 0.71,
                         },
                         { role: 'delivery', aptness: 0.64 },
@@ -110,9 +104,7 @@ export const COYOTE_ENGINE_TEST_FIXTURES: CoyoteEngineTestFixture[] = [
                     affinities: [
                         { role: 'prep', aptness: 0.7 },
                         {
-                            role: 'entity_modification',
-                            target: 'prop',
-                            mode: 'constructive',
+                            role: 'connect-props',
                             aptness: 0.53,
                         },
                     ],
@@ -141,9 +133,7 @@ export const COYOTE_ENGINE_TEST_FIXTURES: CoyoteEngineTestFixture[] = [
                     shortName: 'magnet',
                     affinities: [
                         {
-                            role: 'entity_modification',
-                            target: 'road_runner',
-                            mode: 'direct',
+                            role: 'influence-road-runner',
                             aptness: 0.73,
                         },
                         { role: 'terminal', aptness: 0.62 },
@@ -190,9 +180,7 @@ export const COYOTE_ENGINE_TEST_FIXTURES: CoyoteEngineTestFixture[] = [
                     shortName: 'glue',
                     affinities: [
                         {
-                            role: 'entity_modification',
-                            target: 'prop',
-                            mode: 'direct',
+                            role: 'enhance-prop',
                             aptness: 0.66,
                         },
                         { role: 'prep', aptness: 0.54 },
@@ -243,9 +231,7 @@ export const COYOTE_ENGINE_TEST_FIXTURES: CoyoteEngineTestFixture[] = [
                     affinities: [
                         { role: 'delivery', aptness: 0.4 },
                         {
-                            role: 'entity_modification',
-                            target: 'coyote',
-                            mode: 'direct',
+                            role: 'coyote-enhancement',
                             aptness: 0.69,
                         },
                         { role: 'terminal', aptness: 0.61 },
@@ -256,9 +242,7 @@ export const COYOTE_ENGINE_TEST_FIXTURES: CoyoteEngineTestFixture[] = [
                     affinities: [
                         { role: 'delivery', aptness: 0.4 },
                         {
-                            role: 'entity_modification',
-                            target: 'coyote',
-                            mode: 'constructive',
+                            role: 'coyote-equipment',
                             aptness: 0.7,
                         },
                     ],
@@ -281,15 +265,11 @@ export const COYOTE_ENGINE_TEST_FIXTURES: CoyoteEngineTestFixture[] = [
                     shortName: 'glue',
                     affinities: [
                         {
-                            role: 'entity_modification',
-                            target: 'coyote',
-                            mode: 'constructive',
+                            role: 'coyote-equipment',
                             aptness: 0.57,
                         },
                         {
-                            role: 'entity_modification',
-                            target: 'prop',
-                            mode: 'direct',
+                            role: 'enhance-prop',
                             aptness: 0.52,
                         },
                     ],
@@ -306,9 +286,7 @@ export const COYOTE_ENGINE_TEST_FIXTURES: CoyoteEngineTestFixture[] = [
                     shortName: 'umbrella',
                     affinities: [
                         {
-                            role: 'entity_modification',
-                            target: 'coyote',
-                            mode: 'constructive',
+                            role: 'coyote-equipment',
                             aptness: 0.45,
                         },
                     ],
@@ -319,9 +297,7 @@ export const COYOTE_ENGINE_TEST_FIXTURES: CoyoteEngineTestFixture[] = [
                     shortName: 'snorkel',
                     affinities: [
                         {
-                            role: 'entity_modification',
-                            target: 'coyote',
-                            mode: 'constructive',
+                            role: 'coyote-equipment',
                             aptness: 0.45,
                         },
                     ],
@@ -333,9 +309,7 @@ export const COYOTE_ENGINE_TEST_FIXTURES: CoyoteEngineTestFixture[] = [
                     affinities: [
                         { role: 'delivery', aptness: 0.8 },
                         {
-                            role: 'entity_modification',
-                            target: 'coyote',
-                            mode: 'constructive',
+                            role: 'coyote-equipment',
                             aptness: 0.66,
                         },
                     ],
@@ -367,9 +341,7 @@ export const COYOTE_ENGINE_TEST_FIXTURES: CoyoteEngineTestFixture[] = [
                     shortName: 'roller skates',
                     affinities: [
                         {
-                            role: 'entity_modification',
-                            target: 'coyote',
-                            mode: 'constructive',
+                            role: 'coyote-equipment',
                             aptness: 0.7,
                         },
                         { role: 'delivery', aptness: 0.65 },
@@ -381,9 +353,7 @@ export const COYOTE_ENGINE_TEST_FIXTURES: CoyoteEngineTestFixture[] = [
                     shortName: 'paint',
                     affinities: [
                         {
-                            role: 'entity_modification',
-                            target: 'prop',
-                            mode: 'constructive',
+                            role: 'connect-props',
                             aptness: 0.6,
                         },
                         { role: 'prep', aptness: 0.7 },

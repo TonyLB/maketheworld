@@ -37,9 +37,6 @@ function formatRoomLabel(roomId: EphemeraRoomId): string {
 
 /** Compact deterministic line for one affinity possibility (prompt-facing; tunable copy). */
 export function formatCoyoteAffinityPossibility(p: CoyoteAffinityPossibility): string {
-    if (p.role === 'entity_modification') {
-        return `entity_modification ${p.target} ${p.mode} ${p.aptness.toFixed(2)}`
-    }
     return `${p.role} ${p.aptness.toFixed(2)}`
 }
 

@@ -29,13 +29,6 @@ function affinityMatchesStored(
     if (stored.role !== echoed.role) {
         return false
     }
-    if (stored.role === 'entity_modification' && echoed.role === 'entity_modification') {
-        return (
-            stored.target === echoed.target
-            && stored.mode === echoed.mode
-            && Math.abs(stored.aptness - echoed.aptness) < 1e-6
-        )
-    }
     return Math.abs(stored.aptness - echoed.aptness) < 1e-6
 }
 
