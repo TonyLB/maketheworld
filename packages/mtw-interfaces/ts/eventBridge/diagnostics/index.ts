@@ -1,5 +1,7 @@
 import { DataSourceEventSerializer, StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import type { DataSourceEnvironment } from '@tonylb/mtw-interfaces/ts/DataSourceEnvironment'
+import { AssetUUID, isSchemaAssetUUID } from '@tonylb/mtw-base/ts/schema'
+import { EphemeraRoomId, isEphemeraRoomId } from '../../baseClasses'
 
 //
 // Internal types for diagnostics events
@@ -21,6 +23,15 @@ export type DiagnosticsCacheConsistencyFindingEvent = {
     timestamp: string
 }
 
+export type DiagnosticsEphemeraRenderCacheFindingEvent = {
+    type: 'Ephemera RenderCache Finding'
+    perspective: AssetUUID[]
+    status: 'missing' | 'corrupted'
+    diagnosticRunId: string
+    timestamp: string
+    roomIds?: EphemeraRoomId[]
+}
+
 /** Heal Global Values content shape (for deserialize only; produced elsewhere) */
 export type DiagnosticsHealGlobalValuesContent = {
     type: 'Heal Global Values'
@@ -32,6 +43,7 @@ export type DiagnosticsHealGlobalValuesContent = {
 export type DiagnosticsEventUpdate =
     | DiagnosticsS3StructureFindingEvent
     | DiagnosticsCacheConsistencyFindingEvent
+    | DiagnosticsEphemeraRenderCacheFindingEvent
     | DiagnosticsHealGlobalValuesContent
 
 //
@@ -54,9 +66,19 @@ export type DiagnosticsCacheConsistencyFindingEventExternal = {
     timestamp?: string
 }
 
+export type DiagnosticsEphemeraRenderCacheFindingEventExternal = {
+    type: 'Ephemera RenderCache Finding'
+    perspective: AssetUUID[]
+    status: 'missing' | 'corrupted'
+    diagnosticRunId?: string
+    timestamp?: string
+    roomIds?: EphemeraRoomId[]
+}
+
 export type DiagnosticsEventExternal =
     | DiagnosticsS3StructureFindingEventExternal
     | DiagnosticsCacheConsistencyFindingEventExternal
+    | DiagnosticsEphemeraRenderCacheFindingEventExternal
 
 //
 // Type guards
@@ -84,8 +106,24 @@ export const isCacheConsistencyFindingEvent = (event: any): event is Diagnostics
     )
 }
 
+export const isEphemeraRenderCacheFindingEvent = (event: any): event is DiagnosticsEphemeraRenderCacheFindingEvent => {
+    return Boolean(
+        event &&
+        typeof event === 'object' &&
+        event.type === 'Ephemera RenderCache Finding' &&
+        Array.isArray(event.perspective) &&
+        event.perspective.every((entry: unknown) => typeof entry === 'string' && isSchemaAssetUUID(entry)) &&
+        typeof event.status === 'string' &&
+        ['missing', 'corrupted'].includes(event.status) &&
+        (!event.roomIds || (
+            Array.isArray(event.roomIds) &&
+            event.roomIds.every((entry: unknown) => typeof entry === 'string' && isEphemeraRoomId(entry))
+        ))
+    )
+}
+
 export const isDiagnosticsEventUpdate = (event: unknown): event is DiagnosticsEventUpdate => {
-    return isS3StructureFindingEvent(event) || isCacheConsistencyFindingEvent(event) ||
+    return isS3StructureFindingEvent(event) || isCacheConsistencyFindingEvent(event) || isEphemeraRenderCacheFindingEvent(event) ||
         (typeof event === 'object' && event !== null && (event as any).type === 'Heal Global Values')
 }
 
@@ -127,6 +165,16 @@ export class DiagnosticsEventSerializer implements DataSourceEventSerializer<Dia
                 status: content.status,
                 diagnosticRunId: content.diagnosticRunId,
                 timestamp: content.timestamp
+            }
+        }
+        if (header.type === 'Ephemera RenderCache Finding' && isEphemeraRenderCacheFindingEvent(content)) {
+            return {
+                type: 'Ephemera RenderCache Finding',
+                perspective: content.perspective,
+                status: content.status,
+                diagnosticRunId: content.diagnosticRunId,
+                timestamp: content.timestamp,
+                ...(content.roomIds ? { roomIds: content.roomIds } : {})
             }
         }
         throw new Error(`Unknown diagnostics event type: ${header.type}`)
@@ -177,6 +225,31 @@ export class DiagnosticsEventSerializer implements DataSourceEventSerializer<Dia
                 status: content.status as 'stale' | 'missing',
                 diagnosticRunId: content.diagnosticRunId || 'unknown',
                 timestamp: content.timestamp || new Date().toISOString()
+            }
+        }
+
+        if (eventType === 'Ephemera RenderCache Finding') {
+            if (!Array.isArray(content.perspective) || typeof content.status !== 'string') {
+                return null
+            }
+            if (!content.perspective.every((entry: unknown) => typeof entry === 'string' && isSchemaAssetUUID(entry))) {
+                return null
+            }
+            if (!['missing', 'corrupted'].includes(content.status)) {
+                return null
+            }
+            if (content.roomIds !== undefined) {
+                if (!Array.isArray(content.roomIds) || !content.roomIds.every((entry: unknown) => typeof entry === 'string' && isEphemeraRoomId(entry))) {
+                    return null
+                }
+            }
+            return {
+                type: 'Ephemera RenderCache Finding',
+                perspective: content.perspective as AssetUUID[],
+                status: content.status as 'missing' | 'corrupted',
+                diagnosticRunId: content.diagnosticRunId || 'unknown',
+                timestamp: content.timestamp || new Date().toISOString(),
+                ...(content.roomIds ? { roomIds: content.roomIds as EphemeraRoomId[] } : {})
             }
         }
 

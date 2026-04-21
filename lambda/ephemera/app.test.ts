@@ -194,6 +194,34 @@ describe('app handler', () => {
             const content = await payload.getContent()
             expect(content).toEqual({})
         })
+
+        it('should route mtw.diagnostics Ephemera RenderCache Finding through typed deserializer path', async () => {
+            const event = {
+                source: 'mtw.diagnostics',
+                'detail-type': 'Ephemera RenderCache Finding',
+                detail: {
+                    perspective: ['ASSET#primitives'],
+                    status: 'missing',
+                    diagnosticRunId: 'diag-1',
+                    timestamp: '2026-04-21T12:00:00.000Z',
+                    roomIds: ['ROOM#alpha']
+                },
+                time: '2026-04-21T12:00:00.000Z'
+            }
+
+            await handler(event, {})
+
+            expect(mockMessageBus.send).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    type: 'StreamingEvent',
+                    dataSourceKey: 'mtw.diagnostics',
+                    header: expect.objectContaining({
+                        dataSourceKey: 'mtw.diagnostics',
+                        type: 'Ephemera RenderCache Finding'
+                    })
+                })
+            )
+        })
     })
 
     describe('ephemera API wire messages (api.ephemera)', () => {

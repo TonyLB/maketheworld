@@ -68,15 +68,15 @@ Follow the ordered categories below (see [Getting Started pattern for complex ta
 
 Use `[ ]` for pending and `[X]` for complete. Mark each nested line `[X]` as it is finished.
 
-- [ ] Phase 1 - define finding contract and infra route
-  - [ ] Add `Ephemera RenderCache Finding` types, guards, and serializer/deserializer handling in diagnostics event contracts.
-  - [ ] Add EventBridge rule in [`template.yaml`](../../../../template.yaml) routing `mtw.diagnostics` / `Ephemera RenderCache Finding` to `EphemeraFunction`.
-  - [ ] Add/extend contract tests in `packages/mtw-interfaces` for valid/invalid finding payloads.
+- [X] Phase 1 - define finding contract and infra route
+  - [X] Add `Ephemera RenderCache Finding` types, guards, and serializer/deserializer handling in diagnostics event contracts.
+  - [X] Add EventBridge rule in [`template.yaml`](../../../../template.yaml) routing `mtw.diagnostics` / `Ephemera RenderCache Finding` to `EphemeraFunction`.
+  - [X] Add/extend contract tests in `packages/mtw-interfaces` for valid/invalid finding payloads.
 
-- [ ] Phase 2 - ephemera ingestion and subscribed-event typing
-  - [ ] Add diagnostics deserializer registration for ephemera EventBridge ingress in [`lambda/ephemera/app.ts`](../../../../lambda/ephemera/app.ts).
-  - [ ] Add ephemera subscribed-event guards/types for the new diagnostics finding.
-  - [ ] Add focused tests proving ephemera accepts the envelope and routes it to handler logic.
+- [X] Phase 2 - ephemera ingestion and subscribed-event typing
+  - [X] Add diagnostics deserializer registration for ephemera EventBridge ingress in [`lambda/ephemera/app.ts`](../../../../lambda/ephemera/app.ts).
+  - [X] Add ephemera subscribed-event guards/types for the new diagnostics finding.
+  - [X] Add focused tests proving ephemera accepts the envelope and routes it to handler logic.
 
 - [ ] Phase 3 - first self-healing implementation
   - [ ] Implement `Ephemera RenderCache Finding` handler in ephemera that:
@@ -124,9 +124,9 @@ Use `[ ]` for pending and `[X]` for complete. Mark each nested line `[X]` as it 
 | Milestone | Status |
 | --- | --- |
 | Plan created with first-iteration scope and deferred facet limiter | Done |
-| Finding contract (`Ephemera RenderCache Finding`) | Not started |
-| EventBridge route to ephemera | Not started |
-| Ephemera diagnostics ingress + subscription typing | Not started |
+| Finding contract (`Ephemera RenderCache Finding`) | Done |
+| EventBridge route to ephemera | Done |
+| Ephemera diagnostics ingress + subscription typing | Done |
 | Self-healing handler (all rooms + optional `roomIds`) | Not started |
 | Tests and operator runbook | Not started |
 
