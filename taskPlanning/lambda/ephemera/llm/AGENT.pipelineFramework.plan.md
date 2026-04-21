@@ -1,13 +1,13 @@
 # Ephemera LLM pipeline framework (linear reducers)
 
-**Status:** Not started. Next step: Phase 1 (design and types).
+**Status:** Phase 1 complete (design and types shipped). Next step: Phase 2 (core runner and helpers).
 
 ## Purpose
 
-Introduce a **small, explicit framework** for **linear pipelines** of **async reducer steps** that share a single evolving **pipeline state** object. **`PipelineState`** (a use-case-specific branded type) is intentionally shaped like `Partial<{ inputA, outputA, inputB, outputB, ... }>` so that:
+Introduce a **small, explicit framework** for **linear pipelines** of **async reducer steps** that share a single evolving **pipeline state** object. **`PipelineState`** is a use-case-specific type (generic parameter `S`), intentionally shaped like `Partial<{ inputA, outputA, inputB, outputB, ... }>` so that:
 
 - **Pipeline input** is written once (for example priming `inputA`).
-- **LLM steps** read named inputs from **`PipelineState`**, build prompts (invariant prefix + dynamic tail, including existing Bedrock cache-point patterns), invoke the model, then **validate and extract** named outputs back into the same **`PipelineState`**. **Per-call metadata** (token usage, latency, model id, error details, etc.) should be storable in optional **`metaA`**, **`metaB`**, ... slots on the same branded **`PipelineState`** so later steps and orchestration can use it without ad hoc side channels.
+- **LLM steps** read named inputs from **`PipelineState`**, build prompts (invariant prefix + dynamic tail, including existing Bedrock cache-point patterns), invoke the model, then **validate and extract** named outputs back into the same **`PipelineState`**. **Per-call metadata** (token usage, latency, model id, error details, etc.) should be storable in optional **`metaA`**, **`metaB`**, ... slots on the same **`PipelineState`** so later steps and orchestration can use it without ad hoc side channels.
 - **Orchestration / enrich steps** are ordinary async functions that may read **any prior** `input*` / `output*` fields and **derive the next step's inputs** (for example `outputA` + `inputA` -> `inputB`).
 - Pipelines **interleave** LLM and orchestration steps in a fixed order; this is **not** a graph or DAG runtime.
 
@@ -37,11 +37,40 @@ The goal is to **deduplicate glue** (invoke, extract, validate, metrics, failure
 ## Material decisions
 
 - **PipelineState updates (decided):** Use **Immer** `produce` so each step updates **`PipelineState`** via an immutable **draft** pattern, consistent with similar usage elsewhere in the codebase. Prefer **shallow top-level slot keys** on **`PipelineState`** in v1 so drafts stay simple; nested structures only when a slot truly needs them.
-- **Typing strategy (decided):** The framework is **generic over `PipelineState`**. Each use case defines a **branded `PipelineState`** (slot shape for that pipeline only; for example a Coyote-specific `CoyoteHypothesisPipelineState`). A **generic factory** constructs the pipeline object for a given **`PipelineState`**, producing **class-constrained execution objects** (runner, steps, and helpers) so all reads and writes are tied to that **`PipelineState`**; no single shared concrete **`PipelineState`** used for every feature.
-- **LLM step boundary (decided):** **Thin wrapper** around existing **`invokeBedrock*`** plus **feature-owned** prompt builders (message assembly, **cache points**, and domain-specific options stay in the feature). The framework still wires **invoke -> typed result -> extract/validate -> write `output*`**, and should support writing **call metadata** into **`metaA`**, **`metaB`**, ... (or similarly named slots on the branded **`PipelineState`**) so downstream steps, telemetry, and harnesses can read usage and diagnostics in one place.
+- **Typing strategy (decided):** The framework is **generic over `S extends Record<string, unknown>`** (pipeline state). Each use case defines its own **`S`** (slot shape for that pipeline only; for example a Coyote-specific `CoyoteHypothesisPipelineState`). **No nominal branding** (`unique symbol`, `__pipelineBrand`, etc.): distinct pipelines are distinguished by **different slot maps and value types**, not by extra phantom fields. A **generic factory** constructs the pipeline object for a given **`S`**, producing **class-constrained execution objects** (runner, steps, and helpers) so all reads and writes are tied to that **`S`**; no single shared concrete state type for every feature.
+- **LLM step boundary (decided):** **Thin wrapper** around existing **`invokeBedrock*`** plus **feature-owned** prompt builders (message assembly, **cache points**, and domain-specific options stay in the feature). The framework still wires **invoke -> typed result -> extract/validate -> write `output*`**, and should support writing **call metadata** into **`metaA`**, **`metaB`**, ... (or similarly named slots on **`S`**) so downstream steps, telemetry, and harnesses can read usage and diagnostics in one place.
 - **Telemetry (decided):** Minimum **structured log or span per step name** for operator visibility. **Per-call token usage and related invoke fields** live in **`meta*`** on **`PipelineState`** (see LLM step boundary above), not in a parallel untyped bag.
 - **First adopter (decided):** **Coyote hypothesis** --- the **clustering => plan-phase** stretch of [`generateHypothesis`](../../../../lambda/ephemera/dataSource/coyoteGame/generateHypothesis.ts) (stage-one seam / combine through stage-two plan output). That is the first vertical slice because **plan-phase is slated to split into more LLM steps**; the framework should land there before wider rollout.
 - **Code location (decided):** New package-style folder [`lambda/ephemera/llm/pipeline/`](../../../../lambda/ephemera/llm/pipeline/) for the runner, step types, and tests; keep **`lambda/ephemera/llm/`** for shared Bedrock/parsing primitives used by both **`pipeline/`** and feature code.
+
+## Phase 1 design note
+
+Phase 1 ships **TypeScript contracts only** under [`lambda/ephemera/llm/pipeline/`](../../../../lambda/ephemera/llm/pipeline/): no runnable `runPipeline`, no DAG. **Runtime runner, unit tests, and LLM helpers** are Phase 2. **Coyote hypothesis migration** is Phase 3.
+
+**Execution model:** Sequential fold over ordered steps. Each step mutates an Immer **`Draft<S>`** (primary contract); Phase 2 applies **`produce`** once per step so each step sees the immutable state produced by prior steps.
+
+```mermaid
+flowchart LR
+  initial[initialState]
+  p1[produce_step1]
+  p2[produce_step2]
+  pn[produce_stepN]
+  final[finalState]
+  initial --> p1 --> p2 --> pn --> final
+```
+
+**Public types (index):** [`index.ts`](../../../../lambda/ephemera/llm/pipeline/index.ts) re-exports the following:
+
+| Type / value | Role |
+| --- | --- |
+| [`AnyPipelineState`](../../../../lambda/ephemera/llm/pipeline/pipelineSteps.ts) | Constraint `Record<string, unknown>`; each pipeline supplies a concrete `S` (no nominal branding). |
+| [`PipelineStep`](../../../../lambda/ephemera/llm/pipeline/pipelineSteps.ts), [`OrchestrationStepDefinition`](../../../../lambda/ephemera/llm/pipeline/pipelineSteps.ts), [`LlmAdapterStepDefinition`](../../../../lambda/ephemera/llm/pipeline/pipelineSteps.ts), [`PipelineStepDraftFn`](../../../../lambda/ephemera/llm/pipeline/pipelineSteps.ts) | Discriminated step kinds; **`name`** for logs/spans; **`meta*`** usage documented on LLM kind. |
+| [`RunPipelineFn`](../../../../lambda/ephemera/llm/pipeline/pipelineRunner.ts), [`PipelineRunResult`](../../../../lambda/ephemera/llm/pipeline/pipelineRunner.ts), [`PipelineRunOptions`](../../../../lambda/ephemera/llm/pipeline/pipelineRunner.ts), [`PipelineTelemetryHooks`](../../../../lambda/ephemera/llm/pipeline/pipelineRunner.ts) | Runner signature and discriminated success/failure; optional telemetry hooks (usage stays on state **`meta*`**). |
+| [`PipelineContext`](../../../../lambda/ephemera/llm/pipeline/pipelineContext.ts), [`CreatePipelineContextFn`](../../../../lambda/ephemera/llm/pipeline/pipelineContext.ts) | Factory return shape fixing **`S`** (implementation in Phase 2). |
+
+**Typing note:** We intentionally avoid **defensive nominal branding** of pipeline state. The framework stays generic over **`S`**; features differentiate pipelines with **distinct slot types and names**, matching how ephemera models most domain data.
+
+Steady-state API documentation remains for Phase 4 [`lambda/ephemera/llm/pipeline/AGENT.md`](../../../../lambda/ephemera/llm/pipeline/AGENT.md).
 
 ## Getting started
 
@@ -79,11 +108,11 @@ Follow the ordered **categories** below (see [Getting Started pattern for comple
 
 Use `[ ]` for pending and `[X]` for complete. Mark nested lines as you finish each sub-step.
 
-- [ ] Phase 1 - design and types
-  - [ ] Document the **`PipelineState` model** (`Partial` of named input/output slots), **branding** per use case, and the **generic factory** that fixes **`PipelineState`** and returns typed execution objects (TypeScript types only; no runtime DAG).
-  - [ ] Specify the **runner API** (sequential `reduce`, error handling, and **Immer `produce`** application per step) and **step kinds** (orchestration vs LLM adapter).
-  - [ ] Align with **Material decisions** (structured spans; **`meta*`** for usage; **`PipelineState`** updates via Immer and generic branding as above).
-  - [ ] Write a short **design note** in this plan or a linked temp doc if needed; avoid duplicating full API docs here.
+- [X] Phase 1 - design and types
+  - [X] Document the **`PipelineState` model** (`Partial` of named input/output slots), **per-use-case `S`**, and the **generic factory** that fixes **`S`** and returns typed execution objects (TypeScript types only; no runtime DAG).
+  - [X] Specify the **runner API** (sequential `reduce`, error handling, and **Immer `produce`** application per step) and **step kinds** (orchestration vs LLM adapter).
+  - [X] Align with **Material decisions** (structured spans; **`meta*`** for usage; **`PipelineState`** updates via Immer and generic **`S`** as above).
+  - [X] Write a short **design note** in this plan or a linked temp doc if needed; avoid duplicating full API docs here.
 
 - [ ] Phase 2 - implement core runner and helpers
   - [ ] Add implementation under [`lambda/ephemera/llm/pipeline/`](../../../../lambda/ephemera/llm/pipeline/), keeping **feature-agnostic** boundaries: orchestration lives here; domain prompts and Coyote types stay in `dataSource/`. Cross-link from [`lambda/ephemera/llm/AGENT.md`](../../../../lambda/ephemera/llm/AGENT.md).
@@ -113,7 +142,7 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines as you finish ea
 
 | Milestone | Status |
 | --- | --- |
-| Phase 1 design agreed (branded generic `PipelineState`, factory, runner API, Immer `produce` contract) | Not started |
+| Phase 1 design agreed (generic `S` / `PipelineState`, factory, runner API, Immer `produce` contract) | Done |
 | Core runner + unit tests in `lambda/ephemera/llm/pipeline/` | Not started |
 | Coyote clustering => plan-phase pipeline on the runner | Not started |
 | Durable docs: `llm/AGENT.md` + `llm/pipeline/AGENT.md` | Not started |
