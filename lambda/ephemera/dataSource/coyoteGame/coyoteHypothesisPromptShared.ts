@@ -39,7 +39,7 @@ function roomIdsWithStagedObjects(
 }
 
 /**
- * Markdown lines: table of `ROOM#…` → short seam label. Place in both stage-1 and stage-2 prompts
+ * Prompt lines: table of `ROOM#…` → short seam label. Place in both stage-1 and stage-2 prompts
  * (dynamic region; varies with which rooms hold objects).
  */
 export function coyoteSeamRoomMappingLines(
@@ -48,9 +48,9 @@ export function coyoteSeamRoomMappingLines(
     const roomIds = roomIdsWithStagedObjects(roomObjectsByRoom)
     const lines: string[] = [
         '## Seam room labels',
-        '- Canonical **`EphemeraRoomId`** values appear only in **Current staged objects by room**. Hypothesis Stage One clusters reference objects by **`stableKey`** from that snapshot (not room labels in member lines).',
-        '- Right now each short label is the **`ROOM#` prefix stripped** from the id. Later we may substitute friendlier names; this table stays the source of truth.',
-        '- Preferred form: **`### VORTEX · rocket skates`** and member refs **`VORTEX · rocket skates`** (separator **` · `**). The parser also accepts an optional **`ROOM#`** on the room token (e.g. `ROOM#VORTEX · rocket skates`) and normalizes it.',
+        '- Canonical **`EphemeraRoomId`** values appear only in **Current staged objects by room**. Stage One JSON **`members`** reference objects **only** by **`stableKey`** from that snapshot — not by **`shortName`**, room headings, or this label table.',
+        '- Right now each short label is the **`ROOM#` prefix stripped** from the id. Later we may substitute friendlier names; this table stays the source of truth for interpreting geography vs ids.',
+        '- Use topology / room flavor in **`notes`** or free-text **`clusterName`** when helpful; spatial reasoning must not replace **`stableKey`** identifiers in **`members`**.',
         '',
     ]
     for (const rid of roomIds) {

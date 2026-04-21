@@ -20,31 +20,48 @@ const singleObjectRoomMap: CoyoteRoomObjectsByRoom = {
     'ROOM#BRIDGE': [],
 }
 
-const validSeamSingleObject = `## Clusters
-
-### Cliff trap
-- **stableKey:** anvil-0
-
-\`\`\`json
-{"role":"terminal","aptness":0.55}
-\`\`\`
-`
+const validJsonSingleObject = JSON.stringify({
+    clusters: [
+        {
+            clusterName: 'Cliff trap',
+            members: [{ stableKey: 'anvil-0', intendedRole: { role: 'terminal', aptness: 0.55 } }],
+        },
+    ],
+})
 
 describe('stripHypothesisStageOneFence', () => {
-    it('removes fenced markdown wrapper', () => {
-        expect(stripHypothesisStageOneFence('```markdown\n## Clusters\n')).toContain('## Clusters')
-        expect(stripHypothesisStageOneFence('```markdown\n## Clusters\n')).not.toContain('```')
+    it('removes fenced wrapper', () => {
+        expect(stripHypothesisStageOneFence('```json\n{"clusters":[]}\n```')).toBe('{"clusters":[]}')
+        expect(stripHypothesisStageOneFence('```markdown\n{"x":1}\n```')).toContain('"x":1')
+        expect(stripHypothesisStageOneFence('```markdown\n{"x":1}\n```')).not.toContain('```')
     })
 })
 
 describe('parseHypothesisStageOneOutput', () => {
-    it('accepts valid seam matching snapshot multiset', () => {
-        const r = parseHypothesisStageOneOutput(validSeamSingleObject, singleObjectRoomMap)
+    it('accepts valid JSON matching snapshot multiset', () => {
+        const r = parseHypothesisStageOneOutput(validJsonSingleObject, singleObjectRoomMap)
         expect(r.ok).toBe(true)
         if (r.ok) {
-            expect(r.markdown).toContain('## Clusters')
+            expect(r.normalizedJson).toContain('"stableKey":"anvil-0"')
             expect(r.clusters).toHaveLength(1)
             expect(r.clusters[0].members[0].stableKey).toBe('anvil-0')
+            expect(r.clusters[0].members[0].intendedRole).toEqual({ role: 'terminal', aptness: 0.55 })
+        }
+    })
+
+    it('accepts intendedRole echo without aptness and resolves from snapshot', () => {
+        const body = JSON.stringify({
+            clusters: [
+                {
+                    clusterName: 'One',
+                    members: [{ stableKey: 'anvil-0', intendedRole: { role: 'terminal' } }],
+                },
+            ],
+        })
+        const r = parseHypothesisStageOneOutput(body, singleObjectRoomMap)
+        expect(r.ok).toBe(true)
+        if (r.ok) {
+            expect(r.clusters[0].members[0].intendedRole).toEqual({ role: 'terminal', aptness: 0.55 })
         }
     })
 
@@ -53,12 +70,10 @@ describe('parseHypothesisStageOneOutput', () => {
             ...singleObjectRoomMap,
             'ROOM#VORTEX': [{ uuid: 'OBJECT#x' as `OBJECT#${string}`, shortName: 'anvil', stableKey: 'anvil-0' }],
         }
-        const seam = `## Clusters
-
-### One
-- **stableKey:** anvil-0
-`
-        expect(parseHypothesisStageOneOutput(seam, map).ok).toBe(true)
+        const body = JSON.stringify({
+            clusters: [{ clusterName: 'One', members: [{ stableKey: 'anvil-0' }] }],
+        })
+        expect(parseHypothesisStageOneOutput(body, map).ok).toBe(true)
     })
 
     it('rejects IntendedRole when affinities unavailable', () => {
@@ -66,7 +81,7 @@ describe('parseHypothesisStageOneOutput', () => {
             ...singleObjectRoomMap,
             'ROOM#VORTEX': [{ uuid: 'OBJECT#x' as `OBJECT#${string}`, shortName: 'anvil', stableKey: 'anvil-0' }],
         }
-        expect(parseHypothesisStageOneOutput(validSeamSingleObject, map).ok).toBe(false)
+        expect(parseHypothesisStageOneOutput(validJsonSingleObject, map).ok).toBe(false)
     })
 
     it('rejects multiset mismatch', () => {
@@ -74,19 +89,64 @@ describe('parseHypothesisStageOneOutput', () => {
             ...singleObjectRoomMap,
             'ROOM#BRIDGE': harnessRoomObjects('bridge', ['rope']),
         }
-        expect(parseHypothesisStageOneOutput(validSeamSingleObject, twoObjMap).ok).toBe(false)
+        expect(parseHypothesisStageOneOutput(validJsonSingleObject, twoObjMap).ok).toBe(false)
     })
 
     it('rejects invalid intendedRole JSON shape', () => {
-        const badSeam = `## Clusters
+        const bad = JSON.stringify({
+            clusters: [
+                {
+                    clusterName: 'One',
+                    members: [{ stableKey: 'anvil-0', intendedRole: { role: 'not_a_role', aptness: 0.55 } }],
+                },
+            ],
+        })
+        expect(parseHypothesisStageOneOutput(bad, singleObjectRoomMap).ok).toBe(false)
+    })
 
-### One
-- **stableKey:** anvil-0
+    it('extracts JSON object when preceded by prose', () => {
+        const body = `Here you go:\n${validJsonSingleObject}\nThanks`
+        expect(parseHypothesisStageOneOutput(body, singleObjectRoomMap).ok).toBe(true)
+    })
 
-\`\`\`json
-{"role":"not_a_role","aptness":0.55}
-\`\`\`
-`
-        expect(parseHypothesisStageOneOutput(badSeam, singleObjectRoomMap).ok).toBe(false)
+    it('canonical normalizedJson lists clusters before notes', () => {
+        const body = JSON.stringify({
+            notes: 'Written first by model still parses.',
+            clusters: [{ clusterName: 'Solo', members: [{ stableKey: 'anvil-0' }] }],
+        })
+        const r = parseHypothesisStageOneOutput(body, singleObjectRoomMap)
+        expect(r.ok).toBe(true)
+        if (r.ok) {
+            expect(r.normalizedJson.indexOf('"clusters"')).toBeLessThan(r.normalizedJson.indexOf('"notes"'))
+        }
+    })
+
+    it('accepts clusters ∪ outliers partition when outliers key is present', () => {
+        const map: CoyoteRoomObjectsByRoom = {
+            ...singleObjectRoomMap,
+            'ROOM#BRIDGE': harnessRoomObjects('bridge', ['rope']),
+        }
+        const body = JSON.stringify({
+            clusters: [{ clusterName: 'Main', members: [{ stableKey: 'anvil-0' }] }],
+            outliers: [{ stableKey: 'rope-0' }],
+        })
+        const r = parseHypothesisStageOneOutput(body, map)
+        expect(r.ok).toBe(true)
+        if (r.ok) {
+            expect(r.explicitOutliers).toEqual([{ stableKey: 'rope-0' }])
+            expect(r.normalizedJson).toContain('"outliers"')
+        }
+    })
+
+    it('rejects stableKey in both clusters and outliers', () => {
+        const map: CoyoteRoomObjectsByRoom = {
+            ...singleObjectRoomMap,
+            'ROOM#BRIDGE': harnessRoomObjects('bridge', ['rope']),
+        }
+        const body = JSON.stringify({
+            clusters: [{ clusterName: 'Main', members: [{ stableKey: 'anvil-0' }, { stableKey: 'rope-0' }] }],
+            outliers: [{ stableKey: 'rope-0' }],
+        })
+        expect(parseHypothesisStageOneOutput(body, map).ok).toBe(false)
     })
 })

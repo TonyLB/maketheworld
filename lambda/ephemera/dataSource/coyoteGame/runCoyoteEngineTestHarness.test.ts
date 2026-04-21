@@ -44,6 +44,7 @@ function okPipeline(intentLine: string): GenerateHypothesisPipelineResult {
 describe('runCoyoteEngineTestHarness', () => {
     it('publishes one WorldOOCMessage per fixture', async () => {
         const send = jest.fn()
+        const flush = jest.fn().mockResolvedValue(undefined)
         const pipeline = jest.fn().mockImplementation(async (): Promise<GenerateHypothesisPipelineResult> =>
             okPipeline('Hypothesis: It looks like you are trying to set a trap.')
         )
@@ -55,26 +56,32 @@ describe('runCoyoteEngineTestHarness', () => {
 
         await runCoyoteEngineTestHarness({
             characterId: 'CHARACTER#runner',
-            messageBus: { send },
+            messageBus: { send, flush },
             fixtures: simpleFixtures,
             generateHypothesisPipelineImpl: pipeline,
             now,
         })
 
         expect(send).toHaveBeenCalledTimes(simpleFixtures.length)
+        expect(flush).toHaveBeenCalledTimes(simpleFixtures.length)
         expect(pipeline).toHaveBeenCalledTimes(simpleFixtures.length)
+        const sendLanes = send.mock.calls.map((call) => call[1] as string)
+        const flushLanes = flush.mock.calls.map((call) => call[0] as string)
+        expect([...sendLanes].sort()).toEqual([...flushLanes].sort())
         for (const call of send.mock.calls) {
             expect(call[0]).toMatchObject({
                 type: 'PublishMessage',
                 targets: ['CHARACTER#runner'],
                 displayProtocol: 'WorldOOCMessage',
             })
+            expect(typeof call[1]).toBe('string')
             expect(Array.isArray((call[0] as { message: RenderTree }).message)).toBe(true)
         }
     })
 
     it('continues on error and still publishes one line per fixture', async () => {
         const send = jest.fn()
+        const flush = jest.fn().mockResolvedValue(undefined)
         const pipeline = jest
             .fn()
             .mockResolvedValueOnce(okPipeline('Hypothesis: ok'))
@@ -88,12 +95,13 @@ describe('runCoyoteEngineTestHarness', () => {
 
         await runCoyoteEngineTestHarness({
             characterId: 'CHARACTER#runner',
-            messageBus: { send },
+            messageBus: { send, flush },
             fixtures: simpleFixtures,
             generateHypothesisPipelineImpl: pipeline,
         })
 
         expect(send).toHaveBeenCalledTimes(simpleFixtures.length)
+        expect(flush).toHaveBeenCalledTimes(simpleFixtures.length)
         const rendered = send.mock.calls.map((call) =>
             renderTreeToString((call[0] as { message: RenderTree }).message)
         )
@@ -106,8 +114,10 @@ describe('runCoyoteEngineTestHarness', () => {
 
     it('includes fixture index, elapsed timing, and per-stage usage metrics lines', async () => {
         const send = jest.fn()
-        const stageOneSeamBody =
-            '## Clusters\n### Cluster A\n- **stableKey:** anvil-0\n'
+        const flush = jest.fn().mockResolvedValue(undefined)
+        const stageOneSeamBody = JSON.stringify({
+            clusters: [{ clusterName: 'Cluster A', members: [{ stableKey: 'anvil-0' }] }],
+        })
         const pipeline = jest.fn().mockResolvedValue({
             record: {
                 intent: 'Hypothesis: It looks like you are trying to launch a boulder.',
@@ -143,12 +153,14 @@ describe('runCoyoteEngineTestHarness', () => {
 
         await runCoyoteEngineTestHarness({
             characterId: 'CHARACTER#runner',
-            messageBus: { send },
+            messageBus: { send, flush },
             fixtures: [simpleFixtures[0]],
             generateHypothesisPipelineImpl: pipeline,
             now,
         })
 
+        expect(flush).toHaveBeenCalledTimes(1)
+        expect(flush.mock.calls[0][0]).toBe(send.mock.calls[0][1])
         const message = (send.mock.calls[0][0] as { message: RenderTree }).message
         const flat = renderTreeToString(message)
         expect(flat).toContain('1/1 fixture-01')
@@ -156,12 +168,13 @@ describe('runCoyoteEngineTestHarness', () => {
         expect(flat).toContain('elapsedMs: 10')
         expect(flat).toContain('usageStage1: input=40 output=11 total=51 cacheRead=30 cacheWrite=2')
         expect(flat).toContain('stageOneBody:')
-        expect(flat).toContain('**stableKey:** anvil-0')
+        expect(flat).toContain('"stableKey":"anvil-0"')
         expect(flat).toContain('usageStage2: input=20 output=9 total=29 cacheRead=12 cacheWrite=0')
     })
 
     it('respects testBatchSize concurrency limit', async () => {
         const send = jest.fn()
+        const flush = jest.fn().mockResolvedValue(undefined)
         let inFlight = 0
         let maxInFlight = 0
         const resolvers: Array<() => void> = []
@@ -179,7 +192,7 @@ describe('runCoyoteEngineTestHarness', () => {
 
         const runPromise = runCoyoteEngineTestHarness({
             characterId: 'CHARACTER#runner',
-            messageBus: { send },
+            messageBus: { send, flush },
             fixtures: simpleFixtures,
             generateHypothesisPipelineImpl: pipeline,
             testBatchSize: 2,
@@ -203,5 +216,6 @@ describe('runCoyoteEngineTestHarness', () => {
 
         await runPromise
         expect(send).toHaveBeenCalledTimes(simpleFixtures.length)
+        expect(flush).toHaveBeenCalledTimes(simpleFixtures.length)
     })
 })

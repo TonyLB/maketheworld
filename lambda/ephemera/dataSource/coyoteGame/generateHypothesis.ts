@@ -54,7 +54,11 @@ async function runHypothesisPipeline(deps: GenerateHypothesisDeps): Promise<Gene
     }
 
     // See coyoteGame/AGENT.md "Clustering and combine (design)": combine DTO + combined-only Stage Two.
-    const combinedResult = combineHypothesisClusters(seamParsed.clusters, roomObjectsByRoom)
+    const combinedResult = combineHypothesisClusters(
+        seamParsed.clusters,
+        roomObjectsByRoom,
+        seamParsed.explicitOutliers
+    )
     if (!combinedResult.ok) {
         return {
             record: { intent: 'Hypothesis: Stubbed' },

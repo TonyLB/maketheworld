@@ -1,5 +1,6 @@
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { RenderTree } from '@tonylb/mtw-base/ts/renderTree'
+import { v4 as uuidv4 } from 'uuid'
 import type { MessageBus } from '../../messageBus/baseClasses'
 import type { CoyoteGameIntentRecord } from '../../internalCache/coyoteGame'
 import { COYOTE_RENDER_LINE_BREAK } from './coyoteRenderTree'
@@ -16,7 +17,7 @@ import {
 
 export type RunCoyoteEngineTestHarnessDeps = {
     characterId: EphemeraCharacterId
-    messageBus: Pick<MessageBus, 'send'>
+    messageBus: Pick<MessageBus, 'send' | 'flush'>
     fixtures?: CoyoteEngineTestFixture[]
     testBatchSize?: number
     /** Override for tests; defaults to [`generateHypothesisWithStageResults`]. */
@@ -131,6 +132,7 @@ export async function runCoyoteEngineTestHarness(deps: RunCoyoteEngineTestHarnes
     let nextIndex = 0
 
     const runFixture = async (fixture: CoyoteEngineTestFixture, index: number): Promise<void> => {
+        const laneId = uuidv4()
         const startMs = now()
         try {
             const pipeline = await runPipeline({
@@ -155,12 +157,15 @@ export async function runCoyoteEngineTestHarness(deps: RunCoyoteEngineTestHarnes
                 usageStageTwo,
                 errorMessage: pipelineErrorMessage(pipeline),
             })
-            deps.messageBus.send({
-                type: 'PublishMessage',
-                targets: [deps.characterId],
-                displayProtocol: 'WorldOOCMessage',
-                message,
-            })
+            deps.messageBus.send(
+                {
+                    type: 'PublishMessage',
+                    targets: [deps.characterId],
+                    displayProtocol: 'WorldOOCMessage',
+                    message,
+                },
+                laneId
+            )
         }
         catch (error) {
             const elapsedMs = Math.max(0, now() - startMs)
@@ -176,13 +181,17 @@ export async function runCoyoteEngineTestHarness(deps: RunCoyoteEngineTestHarnes
                 usageStageTwo: 'usageStage2: (none)',
                 errorMessage,
             })
-            deps.messageBus.send({
-                type: 'PublishMessage',
-                targets: [deps.characterId],
-                displayProtocol: 'WorldOOCMessage',
-                message,
-            })
+            deps.messageBus.send(
+                {
+                    type: 'PublishMessage',
+                    targets: [deps.characterId],
+                    displayProtocol: 'WorldOOCMessage',
+                    message,
+                },
+                laneId
+            )
         }
+        await deps.messageBus.flush(laneId)
     }
 
     const worker = async (): Promise<void> => {

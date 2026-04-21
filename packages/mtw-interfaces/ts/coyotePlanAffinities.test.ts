@@ -5,6 +5,7 @@ import {
     isAcmeOrderEnrichModelLine,
     isAcmeOrderEnrichModelResponse,
     isCoyoteAffinityPossibility,
+    isCoyoteAffinityPossibilityEcho,
     normalizeAcmeOrderEnrichLine,
     normalizeAcmeOrderStepBResponse,
 } from './coyotePlanAffinities'
@@ -62,6 +63,32 @@ describe('isCoyoteAffinityPossibility', () => {
 
     it('rejects unknown role', () => {
         expect(isCoyoteAffinityPossibility({ role: 'wizard', aptness: 0.5 } as unknown)).toBe(false)
+    })
+})
+
+describe('isCoyoteAffinityPossibilityEcho', () => {
+    it('accepts full CoyoteAffinityPossibility objects', () => {
+        expect(isCoyoteAffinityPossibilityEcho({ role: 'terminal', aptness: 0.5 })).toBe(true)
+    })
+
+    it('accepts echoes that omit aptness', () => {
+        expect(isCoyoteAffinityPossibilityEcho({ role: 'terminal' })).toBe(true)
+        expect(isCoyoteAffinityPossibilityEcho({ role: 'prep' })).toBe(true)
+        expect(
+            isCoyoteAffinityPossibilityEcho({
+                role: 'entity_modification',
+                target: 'road_runner',
+                mode: 'direct',
+            })
+        ).toBe(true)
+    })
+
+    it('rejects invalid aptness when present', () => {
+        expect(isCoyoteAffinityPossibilityEcho({ role: 'terminal', aptness: 2 })).toBe(false)
+    })
+
+    it('rejects unknown role', () => {
+        expect(isCoyoteAffinityPossibilityEcho({ role: 'wizard' } as unknown)).toBe(false)
     })
 })
 
