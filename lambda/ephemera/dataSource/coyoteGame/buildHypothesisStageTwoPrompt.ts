@@ -62,6 +62,13 @@ const TEMPORAL_ORDERING_LINES = [
     '- Order your single **Hypothesis:** sentence so a reader can follow firing sequence and cause-and-effect: what leads off, what trips or delivers, what hits last. Lean on **intendedRole** (**trigger**, **terminal**, **delivery**, etc.) when present so the beat order matches the roles.',
 ] as const
 
+const VIRTUAL_SCENERY_AND_PREP_OBJECTS_LINES = [
+    '## Virtual scenery and prep-invented props',
+    '- **Environmental scenery** from world topology and cartoon-opportunity cues is first-class in "## Scene analysis" and the **Hypothesis:** line even when it is not a separate staged **`Meta::Room.objects`** row: the cliff and boulder on **CLIFFTOP**, the rock face at **CORNER**, cacti along **STRAIGHTAWAY**, the chasm at **BRIDGE**, lever-friendly rocks, and similar fixed geography.',
+    '- **Prep** may introduce narratively grounded **virtual** props or terrain (for example a painted fake tunnel on a rock face, a dug pit, piles, rigged ground rocks) that complete **before** the beat, consistent with **Temporal ordering** above. These are in-story setup, not new **`stableKey`** entries in the snapshot.',
+    '- Still ground roles and membership on **## Combined clustering** and **## Outliers**; use virtual scenery to connect staged objects to place and sequence --- do not replace staged objects, merge outliers into clusters, or invent cluster members.',
+] as const
+
 const EXTENDED_REASONING_VS_VISIBLE_TEXT_LINES = [
     '## Extended reasoning vs visible assistant text',
     '- This request may use **extended reasoning** in the model. Put **planning, ordering, and scratch work** in the **reasoning** channel --- not in the assistant **text** (**body**) stream.',
@@ -92,6 +99,8 @@ export function buildHypothesisStageTwoPromptParts(input: BuildHypothesisStageTw
         ...SCENE_AND_HYPOTHESIS_LINES,
         '',
         ...TEMPORAL_ORDERING_LINES,
+        '',
+        ...VIRTUAL_SCENERY_AND_PREP_OBJECTS_LINES,
         '',
         ...EXTENDED_REASONING_VS_VISIBLE_TEXT_LINES,
         ...DYNAMIC_SECTION_INTRO,

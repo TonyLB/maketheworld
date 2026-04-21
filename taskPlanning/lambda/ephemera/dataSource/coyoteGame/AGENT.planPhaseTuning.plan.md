@@ -1,6 +1,6 @@
 # Coyote plan-phase (Stage 2 hypothesis) tuning
 
-**Status:** In progress. **Extended thinking**, **cluster/combine alignment**, **thinking vs visible text**, **temporal ordering** (Stage 2 prompt), **parse + pipeline (`stageTwoReasoning`)** are done. Remaining: **virtual scenery** prompt bullets and a final verification sweep.
+**Status:** Done. **Extended thinking**, **cluster/combine alignment**, **thinking vs visible text**, **temporal ordering**, **virtual scenery / prep-invented props** (Stage 2 prompt), **parse + pipeline (`stageTwoReasoning`)**, and verification sweep are complete.
 
 ## Purpose
 
@@ -86,12 +86,12 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
 - [X] Temporal ordering in Stage 2 prompt
   - [X] State explicitly: **prep** steps happen **before** trigger/beat; **creation** effects occur **during** execution; contraption firing order is readable from the **`Hypothesis:`** line narrative. (**Implemented:** **`TEMPORAL_ORDERING_LINES`** in [`buildHypothesisStageTwoPrompt.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/buildHypothesisStageTwoPrompt.ts).)
 
-- [ ] Virtual scenery and invented prep objects
-  - [ ] Add prompt bullets: may reference **environmental props** (boulders, cliff/ground rocks, lever rocks, cactus, etc.) as plan elements.
-  - [ ] Add prompt bullets: **prep** may **introduce** ephemeral/virtual props (fake tunnel paint, dug pit, piles) that need not appear as staged **`Meta::Room.objects`** rows.
+- [X] Virtual scenery and invented prep objects (**Implemented:** **`VIRTUAL_SCENERY_AND_PREP_OBJECTS_LINES`** in [`buildHypothesisStageTwoPrompt.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/buildHypothesisStageTwoPrompt.ts).)
+  - [X] Add prompt bullets: may reference **environmental props** (boulders, cliff/ground rocks, lever rocks, cactus, etc.) as plan elements.
+  - [X] Add prompt bullets: **prep** may **introduce** ephemeral/virtual props (fake tunnel paint, dug pit, piles) that need not appear as staged **`Meta::Room.objects`** rows.
 
-- [ ] Verification sweep
-  - [ ] Run Jest targets for touched files; **`npm run build`** in **`lambda/ephemera`**.
+- [X] Verification sweep
+  - [X] Run Jest targets for touched files; **`npm run build`** in **`lambda/ephemera`**.
   - **Manual (web client):** Optional Stage 2 harness spot-check with **`COYOTE_ENGINE_TEST_HARNESS_ENABLED`** is done in the **application** when you want eyes on output shape --- not an agent/CLI step here; no shell command documented under **Verification**.
 
 ## Verification
@@ -114,6 +114,6 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
 | Stage 2 invocation uses extended thinking; types plumbed | Done |
 | Stage 2 prompt + combine Markdown: cluster roles, outliers, prep vs creation; outlier **`intendedRole`** / room in renderer | Done |
 | Stage 2 prompt: temporal ordering (**prep** / **creation** / Hypothesis narrative order) | Done |
-| Stage 2 prompt: virtual scenery / prep-created objects | Not started |
+| Stage 2 prompt: virtual scenery / prep-created objects | Done |
 | Thinking vs **`body`** prompt; **`parseHypothesisModelOutput`** trim; **`stageTwoReasoningContent`** on pipeline result | Done |
-| Build + tests green | Not started |
+| Build + tests green | Done |

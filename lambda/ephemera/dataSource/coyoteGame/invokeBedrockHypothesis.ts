@@ -18,7 +18,7 @@ export const BEDROCK_HYPOTHESIS_TIMEOUT_MS = 30_000
 export const BEDROCK_HYPOTHESIS_STAGE_ONE_MAX_TOKENS = 512
 
 /** Stage 2: "## Scene analysis" prose + Hypothesis line (matches prior single-call hypothesis cap). */
-export const BEDROCK_HYPOTHESIS_STAGE_TWO_MAX_TOKENS = 1024
+export const BEDROCK_HYPOTHESIS_STAGE_TWO_MAX_TOKENS = 2048
 
 /** Default max output tokens for [`invokeBedrockHypothesis`] when not using stage wrappers (e.g. plan outcome). */
 export const BEDROCK_HYPOTHESIS_MAX_TOKENS = BEDROCK_HYPOTHESIS_STAGE_TWO_MAX_TOKENS
