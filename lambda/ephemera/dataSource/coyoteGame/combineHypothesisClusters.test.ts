@@ -1,6 +1,6 @@
 import type { CoyoteAffinityPossibility } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import { harnessRoomObjects } from './coyoteEngineTestFixtures'
-import { combineHypothesisClusters } from './combineHypothesisClusters'
+import { combineHypothesisClusters, renderCombinedHypothesisForStageTwo } from './combineHypothesisClusters'
 import type { CoyoteRoomObjectsByRoom } from './coyoteRoomObjectSnapshot'
 import type { ParsedCluster } from './parseHypothesisStageOneOutput'
 
@@ -77,6 +77,9 @@ describe('combineHypothesisClusters', () => {
             expect(r.combined.outliers).toHaveLength(1)
             expect(r.combined.outliers[0].identifier).toBe('rope-0')
             expect(r.combined.outliers[0].intendedRole).toEqual(prep)
+            const md = renderCombinedHypothesisForStageTwo(r.combined, roomMap)
+            expect(md).toContain('**room:** VORTEX')
+            expect(md).toContain('**intendedRole:** prep 0.71')
         }
     })
 })

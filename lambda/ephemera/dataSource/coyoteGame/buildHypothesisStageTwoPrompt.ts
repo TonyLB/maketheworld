@@ -21,6 +21,15 @@ const STAGE_TWO_INTRO_LINES = [
     '- Structured markdown (including ## headings) is allowed only before the Hypothesis line; the Hypothesis line itself is plain text.',
 ] as const
 
+const COMBINED_CLUSTERING_CONTRACT_LINES = [
+    '## Combined clustering Markdown (how to read the dynamic tail)',
+    '- After seam room labels you will see **## Combined clustering**, then one **### ClusterName** section per thematic group from Stage One. Treat each **###** heading as a working group for the maneuver; do not rename or merge clusters in your prose.',
+    '- Each bullet under a cluster is one staged object: **stableKey**, **shortName**, and **room** (placement). An optional indented line **intendedRole:** is Stage One\'s binding choice of a single plan role for that object --- when present, prefer it over guessing from names.',
+    '- **intendedRole** uses the plan-role vocabulary: structural **terminal**, **trigger**, **delivery**, **autonomous_agent**; generative **prep** and **creation**; and **entity_modification** with **target** (**coyote** / **road_runner** / **prop**) and **mode** (**direct** / **constructive**).',
+    '- **prep** is setup that completes before the main trap fires or the cartoon beat runs; **creation** is effects that manifest during plan execution / the beat.',
+    '- **## Outliers** lists staged objects in no **###** cluster. Acknowledge outliers when they matter to your reading; never fold them into a named cluster in prose. If outliers are **(none)**, do not invent cluster members.',
+] as const
+
 const INTERPRETATION_RULES_LINES = [
     '## Interpretation rules',
     '- Address the player in second person, using "you" and "your", not "the player" or "the Coyote".',
@@ -41,7 +50,7 @@ const INTERPRETATION_RULES_LINES = [
 const SCENE_AND_HYPOTHESIS_LINES = [
     '## Scene analysis and Hypothesis output',
     '- Your "## Scene analysis" section should commit to a single reading and build the spatial and causal logic behind it. Do not survey multiple plans there; the Hypothesis restates that same reading as one sentence.',
-    '- Ground your "## Scene analysis" section on the **combined clustering** block and world topology; narrate for the player without contradicting cluster membership or stated intended roles.',
+    '- Ground your "## Scene analysis" section on the **combined clustering** block and world topology; narrate for the player without contradicting cluster membership, **## Outliers** listings, or stated intended roles.',
     '- After "## Scene analysis", respond with one plain-text sentence on its own line beginning exactly with "Hypothesis:".',
     '- No JSON. No extra commentary outside "## Scene analysis" (markdown allowed there) and the Hypothesis line.',
 ] as const
@@ -58,6 +67,8 @@ export function buildHypothesisStageTwoPromptParts(input: BuildHypothesisStageTw
     const seamRoomMappingBlock = coyoteSeamRoomMappingLines(input.roomObjectsByRoom).join('\n')
     const invariantPrefix = [
         ...STAGE_TWO_INTRO_LINES,
+        '',
+        ...COMBINED_CLUSTERING_CONTRACT_LINES,
         '',
         ...COYOTE_HYPOTHESIS_WORLD_TOPOLOGY_LINES,
         '',

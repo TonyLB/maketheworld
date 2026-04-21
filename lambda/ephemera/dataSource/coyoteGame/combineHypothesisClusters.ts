@@ -194,10 +194,20 @@ export function renderCombinedHypothesisForStageTwo(
     if (combined.outliers.length === 0) {
         lines.push('(none)', '')
     } else {
-        for (const o of combined.outliers) {
-            const sk = typeof o.identifier === 'string' ? o.identifier.trim() : ''
+        for (const out of combined.outliers) {
+            const sk = typeof out.identifier === 'string' ? out.identifier.trim() : ''
             const obj = sk ? byStableKey.get(sk) : undefined
-            lines.push(`- **stableKey:** ${sk}${obj ? ` — **shortName:** ${obj.shortName}` : ''}`, '')
+            const shortName = obj?.shortName ?? sk
+            const roomLabel = obj
+                ? findRoomIdForObject(roomObjectsByRoom, obj)?.replace(/^ROOM#/, '') ?? ''
+                : ''
+            lines.push(
+                `- **stableKey:** ${sk} — **shortName:** ${shortName}${roomLabel ? ` — **room:** ${roomLabel}` : ''}`
+            )
+            if (out.intendedRole !== undefined) {
+                lines.push(`  - **intendedRole:** ${formatCoyoteAffinityPossibility(out.intendedRole)}`)
+            }
+            lines.push('')
         }
     }
 

@@ -1,6 +1,6 @@
 # Coyote plan-phase (Stage 2 hypothesis) tuning
 
-**Status:** Not started. Clustering / combine pass is landed; this plan covers the next slice: extended thinking in Bedrock, Stage 2 alignment with richer cluster data, and prompt updates for temporal ordering and virtual scenery.
+**Status:** In progress. Clustering / combine pass is landed; **extended thinking** and **Stage 2 cluster/combine alignment** (prompt + `renderCombinedHypothesisForStageTwo` outlier parity) are done. Remaining: thinking vs output contract, parsing path, **temporal ordering** and **virtual scenery** prompt bullets, and a final verification sweep.
 
 ## Purpose
 
@@ -71,9 +71,9 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
   - [X] Thread **`extendedThinking`** (and optional returned **`reasoningContent`**) through [`invokeBedrockHypothesis`](../../../../../lambda/ephemera/dataSource/coyoteGame/invokeBedrockHypothesis.ts) / [`InvokeBedrockHypothesisResult`](../../../../../lambda/ephemera/dataSource/coyoteGame/invokeBedrockHypothesis.ts) types as needed.
   - [X] **`invokeBedrockHypothesisStageTwo`**: set **`extendedThinking: true`**; Stage One unchanged unless you intentionally align (default leave Stage One off).
 
-- [ ] Stage 2 alignment with richer cluster/combine data
-  - [ ] Audit [`buildHypothesisStageTwoPromptParts`](../../../../../lambda/ephemera/dataSource/coyoteGame/buildHypothesisStageTwoPrompt.ts) against current [`renderCombinedHypothesisForStageTwo`](../../../../../lambda/ephemera/dataSource/coyoteGame/combineHypothesisClusters.ts) output (cluster names, **`intendedRole`**, outliers, affinity lines). Update instructions so the model uses **roles** and **outliers** deliberately.
-  - [ ] Add or refresh **prompt tests** so Stage 2 instructions mention **prep** vs **creation** semantics consistent with [`coyotePlanAffinities`](../../../../../packages/mtw-interfaces/ts/coyotePlanAffinities.ts).
+- [X] Stage 2 alignment with richer cluster/combine data
+  - [X] Audit [`buildHypothesisStageTwoPromptParts`](../../../../../lambda/ephemera/dataSource/coyoteGame/buildHypothesisStageTwoPrompt.ts) against current [`renderCombinedHypothesisForStageTwo`](../../../../../lambda/ephemera/dataSource/coyoteGame/combineHypothesisClusters.ts) output (cluster names, **`intendedRole`**, outliers, affinity lines). Update instructions so the model uses **roles** and **outliers** deliberately. (**Implemented:** **`COMBINED_CLUSTERING_CONTRACT_LINES`** in Stage 2 prompt; outliers render with **room** / **`intendedRole`** like cluster members.)
+  - [X] Add or refresh **prompt tests** so Stage 2 instructions mention **prep** vs **creation** semantics consistent with [`coyotePlanAffinities`](../../../../../packages/mtw-interfaces/ts/coyotePlanAffinities.ts). (**Covered:** [`buildHypothesisStageTwoPrompt.test.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/buildHypothesisStageTwoPrompt.test.ts), [`combineHypothesisClusters.test.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/combineHypothesisClusters.test.ts) renderer assertions.)
 
 - [ ] Thinking vs output contract (Stage 2 prompt)
   - [ ] Document: reasoning channel = planning and ordering; **`body`** = scene analysis (if any) + **`Hypothesis:`** line only (no chain-of-thought preamble).
@@ -102,6 +102,7 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
 - Targeted tests (adjust paths as tests are added):
   - `npm run test -- --runInBand llm/invokeBedrockConverseText.test.ts`
   - `npm run test -- --runInBand dataSource/coyoteGame/invokeBedrockHypothesis.test.ts dataSource/coyoteGame/generateHypothesis.test.ts dataSource/coyoteGame/buildHypothesisStageTwoPrompt.test.ts`
+  - Cluster alignment slice (passes): `npm run test -- --runInBand dataSource/coyoteGame/buildHypothesisStageTwoPrompt.test.ts dataSource/coyoteGame/combineHypothesisClusters.test.ts`
 - Confirm **`ReadLints`** clean on edited files.
 
 ## Progress
@@ -110,6 +111,7 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
 | --- | --- |
 | `invokeBedrockConverseText` extended thinking + reasoning extraction | Done |
 | Stage 2 invocation uses extended thinking; types plumbed | Done |
-| Stage 2 prompt: cluster alignment, temporal ordering, virtual scenery / prep-created objects | Not started |
+| Stage 2 prompt + combine Markdown: cluster roles, outliers, prep vs creation; outlier **`intendedRole`** / room in renderer | Done |
+| Stage 2 prompt: temporal ordering, virtual scenery / prep-created objects (remaining bullets) | Not started |
 | Parsing/harness updated; chain-of-reason stripping removed from primary Stage 2 path | Not started |
 | Build + tests green | Not started |
