@@ -32,6 +32,8 @@ describe('buildHypothesisStageTwoPromptParts', () => {
         expect(parts.invariantPrefix).toContain('**entity_modification**')
         expect(parts.invariantPrefix).toContain('## World topology')
         expect(parts.invariantPrefix).toContain('## Interpretation rules')
+        expect(parts.invariantPrefix).toContain('## Temporal ordering (prep vs execution)')
+        expect(parts.invariantPrefix).toContain('**Hypothesis:** sentence')
         expect(parts.invariantPrefix).toContain('## Combined clustering input (structured Markdown)')
         expect(parts.dynamicSuffix).toContain('## Seam room labels')
         expect(parts.dynamicSuffix).toContain('`ROOM#VORTEX` → **VORTEX**')

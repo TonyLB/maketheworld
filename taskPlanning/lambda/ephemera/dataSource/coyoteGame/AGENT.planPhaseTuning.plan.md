@@ -1,6 +1,6 @@
 # Coyote plan-phase (Stage 2 hypothesis) tuning
 
-**Status:** In progress. **Extended thinking**, **cluster/combine alignment**, **thinking vs visible text** (Stage 2 prompt), **parse + pipeline (`stageTwoReasoning`)** are done. Remaining: **temporal ordering** and **virtual scenery** prompt bullets, and a final verification sweep.
+**Status:** In progress. **Extended thinking**, **cluster/combine alignment**, **thinking vs visible text**, **temporal ordering** (Stage 2 prompt), **parse + pipeline (`stageTwoReasoning`)** are done. Remaining: **virtual scenery** prompt bullets and a final verification sweep.
 
 ## Purpose
 
@@ -83,8 +83,8 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
   - [X] Hypothesis Stage 2 does not use trailing JSON; no **`splitMarkdownReasoningAndJson`** wire-up. **`parseHypothesisModelOutput`** trims lines **before** **`## Scene analysis`** when present so stray preamble is not stored as **`sceneAnalysis`**. Passes **`reasoningContentProvided`** from the Bedrock result for API symmetry ([`ParseHypothesisModelOutputOptions`](../../../../../lambda/ephemera/dataSource/coyoteGame/parseHypothesisModelOutput.ts)).
   - [X] Update [`generateHypothesis`](../../../../../lambda/ephemera/dataSource/coyoteGame/generateHypothesis.ts): optional **`stageTwoReasoningContent`** on **`GenerateHypothesisPipelineResult`** when Stage Two returns **`reasoningContent`**; not on **`CoyoteGameIntentRecord`**.
 
-- [ ] Temporal ordering in Stage 2 prompt
-  - [ ] State explicitly: **prep** steps happen **before** trigger/beat; **creation** effects occur **during** execution; contraption firing order is readable from the **`Hypothesis:`** line narrative.
+- [X] Temporal ordering in Stage 2 prompt
+  - [X] State explicitly: **prep** steps happen **before** trigger/beat; **creation** effects occur **during** execution; contraption firing order is readable from the **`Hypothesis:`** line narrative. (**Implemented:** **`TEMPORAL_ORDERING_LINES`** in [`buildHypothesisStageTwoPrompt.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/buildHypothesisStageTwoPrompt.ts).)
 
 - [ ] Virtual scenery and invented prep objects
   - [ ] Add prompt bullets: may reference **environmental props** (boulders, cliff/ground rocks, lever rocks, cactus, etc.) as plan elements.
@@ -113,6 +113,7 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
 | `invokeBedrockConverseText` extended thinking + reasoning extraction | Done |
 | Stage 2 invocation uses extended thinking; types plumbed | Done |
 | Stage 2 prompt + combine Markdown: cluster roles, outliers, prep vs creation; outlier **`intendedRole`** / room in renderer | Done |
-| Stage 2 prompt: temporal ordering, virtual scenery / prep-created objects (remaining bullets) | Not started |
+| Stage 2 prompt: temporal ordering (**prep** / **creation** / Hypothesis narrative order) | Done |
+| Stage 2 prompt: virtual scenery / prep-created objects | Not started |
 | Thinking vs **`body`** prompt; **`parseHypothesisModelOutput`** trim; **`stageTwoReasoningContent`** on pipeline result | Done |
 | Build + tests green | Not started |

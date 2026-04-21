@@ -55,6 +55,13 @@ const SCENE_AND_HYPOTHESIS_LINES = [
     '- No JSON. No extra commentary outside "## Scene analysis" (markdown allowed there) and the Hypothesis line.',
 ] as const
 
+const TEMPORAL_ORDERING_LINES = [
+    '## Temporal ordering (prep vs execution)',
+    '- **Prep** (**prep** roles, assembly, bait placement, positioning): narrate these as finishing **before** the contraption fires, before a **trigger** releases the gag, or before the main cartoon beat lands --- not as simultaneous with the payoff.',
+    '- **Creation** (**creation** roles): narrate generated or in-play effects as happening **during** execution of the plan / **during** the cartoon beat --- after setup has done its job.',
+    '- Order your single **Hypothesis:** sentence so a reader can follow firing sequence and cause-and-effect: what leads off, what trips or delivers, what hits last. Lean on **intendedRole** (**trigger**, **terminal**, **delivery**, etc.) when present so the beat order matches the roles.',
+] as const
+
 const EXTENDED_REASONING_VS_VISIBLE_TEXT_LINES = [
     '## Extended reasoning vs visible assistant text',
     '- This request may use **extended reasoning** in the model. Put **planning, ordering, and scratch work** in the **reasoning** channel --- not in the assistant **text** (**body**) stream.',
@@ -83,6 +90,8 @@ export function buildHypothesisStageTwoPromptParts(input: BuildHypothesisStageTw
         ...INTERPRETATION_RULES_LINES,
         '',
         ...SCENE_AND_HYPOTHESIS_LINES,
+        '',
+        ...TEMPORAL_ORDERING_LINES,
         '',
         ...EXTENDED_REASONING_VS_VISIBLE_TEXT_LINES,
         ...DYNAMIC_SECTION_INTRO,
