@@ -7,6 +7,7 @@ import {
 import {
     invokeBedrockConverseText,
     type InvokeBedrockConverseTextResult,
+    type NovaReasoningEffort,
 } from '../../llm/invokeBedrockConverseText'
 import type { CoyotePromptParts } from './buildHypothesisPrompt'
 
@@ -42,6 +43,8 @@ export async function invokeBedrockHypothesis(
         temperature?: number;
         timeoutMs?: number;
         client?: BedrockRuntimeClient;
+        extendedThinking?: boolean;
+        reasoningEffort?: NovaReasoningEffort;
     } = {}
 ): Promise<InvokeBedrockHypothesisResult> {
     const modelId = options.modelId ?? BEDROCK_HYPOTHESIS_MODEL_ID
@@ -61,6 +64,8 @@ export async function invokeBedrockHypothesis(
         temperature,
         timeoutMs,
         client: options.client,
+        extendedThinking: options.extendedThinking,
+        reasoningEffort: options.reasoningEffort,
     })
 }
 
@@ -85,5 +90,6 @@ export async function invokeBedrockHypothesisStageTwo(
     return invokeBedrockHypothesis(prompt, {
         ...options,
         maxTokens: options.maxTokens ?? BEDROCK_HYPOTHESIS_STAGE_TWO_MAX_TOKENS,
+        extendedThinking: options.extendedThinking ?? true,
     })
 }

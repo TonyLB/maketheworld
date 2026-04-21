@@ -67,9 +67,9 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
   - [X] Extend **text extraction** helpers if content blocks distinguish **text** vs **reasoning** (mirror patterns from AWS SDK types).
   - [X] Unit tests: mocked client returns reasoning + text; flag off preserves current behavior.
 
-- [ ] Hypothesis wrappers pass-through
-  - [ ] Thread **`extendedThinking`** (and optional returned **`reasoningContent`**) through [`invokeBedrockHypothesis`](../../../../../lambda/ephemera/dataSource/coyoteGame/invokeBedrockHypothesis.ts) / [`InvokeBedrockHypothesisResult`](../../../../../lambda/ephemera/dataSource/coyoteGame/invokeBedrockHypothesis.ts) types as needed.
-  - [ ] **`invokeBedrockHypothesisStageTwo`**: set **`extendedThinking: true`**; Stage One unchanged unless you intentionally align (default leave Stage One off).
+- [X] Hypothesis wrappers pass-through
+  - [X] Thread **`extendedThinking`** (and optional returned **`reasoningContent`**) through [`invokeBedrockHypothesis`](../../../../../lambda/ephemera/dataSource/coyoteGame/invokeBedrockHypothesis.ts) / [`InvokeBedrockHypothesisResult`](../../../../../lambda/ephemera/dataSource/coyoteGame/invokeBedrockHypothesis.ts) types as needed.
+  - [X] **`invokeBedrockHypothesisStageTwo`**: set **`extendedThinking: true`**; Stage One unchanged unless you intentionally align (default leave Stage One off).
 
 - [ ] Stage 2 alignment with richer cluster/combine data
   - [ ] Audit [`buildHypothesisStageTwoPromptParts`](../../../../../lambda/ephemera/dataSource/coyoteGame/buildHypothesisStageTwoPrompt.ts) against current [`renderCombinedHypothesisForStageTwo`](../../../../../lambda/ephemera/dataSource/coyoteGame/combineHypothesisClusters.ts) output (cluster names, **`intendedRole`**, outliers, affinity lines). Update instructions so the model uses **roles** and **outliers** deliberately.
@@ -98,6 +98,7 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
 
 - From **`lambda/ephemera`**: `npm run build`
 - Bedrock utility slice (`extendedThinking` / `reasoningContent`): `npm run test -- --runInBand llm/invokeBedrockConverseText.test.ts` (passes); `npm run build` (passes).
+- Hypothesis wrappers slice: `npm run test -- --runInBand dataSource/coyoteGame/invokeBedrockHypothesis.test.ts dataSource/coyoteGame/generateHypothesis.test.ts` (passes); `npm run build` (passes).
 - Targeted tests (adjust paths as tests are added):
   - `npm run test -- --runInBand llm/invokeBedrockConverseText.test.ts`
   - `npm run test -- --runInBand dataSource/coyoteGame/invokeBedrockHypothesis.test.ts dataSource/coyoteGame/generateHypothesis.test.ts dataSource/coyoteGame/buildHypothesisStageTwoPrompt.test.ts`
@@ -108,7 +109,7 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
 | Milestone | Status |
 | --- | --- |
 | `invokeBedrockConverseText` extended thinking + reasoning extraction | Done |
-| Stage 2 invocation uses extended thinking; types plumbed | Not started |
+| Stage 2 invocation uses extended thinking; types plumbed | Done |
 | Stage 2 prompt: cluster alignment, temporal ordering, virtual scenery / prep-created objects | Not started |
 | Parsing/harness updated; chain-of-reason stripping removed from primary Stage 2 path | Not started |
 | Build + tests green | Not started |
