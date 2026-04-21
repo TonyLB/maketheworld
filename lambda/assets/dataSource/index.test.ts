@@ -573,6 +573,71 @@ describe('AssetsDataSource (mtw.assets)', () => {
             }, mockStreamEvent)
         })
 
+        it('should route both missing and corrupted render-cache findings through the same reseed handler', async () => {
+            const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
+            const makeFindingEvent = (status: 'missing' | 'corrupted') => ({
+                header: {
+                    dataSourceKey: 'mtw.diagnostics' as const,
+                    streamKey: 'global',
+                    timestamp: Date.now(),
+                    type: 'Ephemera RenderCache Finding'
+                },
+                getContent: () => Promise.resolve({
+                    type: 'Ephemera RenderCache Finding' as const,
+                    perspective: ['ASSET#primitives'],
+                    status,
+                    diagnosticRunId: `diag-${status}`,
+                    timestamp: '2026-04-21T12:00:00.000Z'
+                })
+            })
+
+            await assetsDataSource.receiveEvents?.({
+                events: [makeFindingEvent('missing') as any, makeFindingEvent('corrupted') as any],
+                streamEvent: mockStreamEvent,
+                streamEnvelope: jest.fn().mockResolvedValue(undefined)
+            })
+
+            expect(reseedComponentExamplesFromDiagnosticsMock).toHaveBeenCalledTimes(2)
+            expect(reseedComponentExamplesFromDiagnosticsMock).toHaveBeenNthCalledWith(1, expect.objectContaining({ status: 'missing' }), mockStreamEvent)
+            expect(reseedComponentExamplesFromDiagnosticsMock).toHaveBeenNthCalledWith(2, expect.objectContaining({ status: 'corrupted' }), mockStreamEvent)
+        })
+
+        it('should process repeated findings with the same input without diverging behavior', async () => {
+            const findingEvent: any = {
+                header: {
+                    dataSourceKey: 'mtw.diagnostics' as const,
+                    streamKey: 'global',
+                    timestamp: Date.now(),
+                    type: 'Ephemera RenderCache Finding'
+                },
+                getContent: () => Promise.resolve({
+                    type: 'Ephemera RenderCache Finding' as const,
+                    perspective: ['ASSET#primitives'],
+                    status: 'missing' as const,
+                    diagnosticRunId: 'diag-repeat',
+                    timestamp: '2026-04-21T12:00:00.000Z',
+                    roomIds: ['ROOM#alpha']
+                })
+            }
+            const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
+
+            await assetsDataSource.receiveEvents?.({
+                events: [findingEvent, findingEvent],
+                streamEvent: mockStreamEvent,
+                streamEnvelope: jest.fn().mockResolvedValue(undefined)
+            })
+
+            expect(reseedComponentExamplesFromDiagnosticsMock).toHaveBeenCalledTimes(2)
+            expect(reseedComponentExamplesFromDiagnosticsMock).toHaveBeenNthCalledWith(1, expect.objectContaining({
+                perspective: ['ASSET#primitives'],
+                roomIds: ['ROOM#alpha']
+            }), mockStreamEvent)
+            expect(reseedComponentExamplesFromDiagnosticsMock).toHaveBeenNthCalledWith(2, expect.objectContaining({
+                perspective: ['ASSET#primitives'],
+                roomIds: ['ROOM#alpha']
+            }), mockStreamEvent)
+        })
+
         it('should normalize short assetId to ASSET# prefix in Cache Consistency Finding', async () => {
             const cacheConsistencyEvent: any = {
                 header: {

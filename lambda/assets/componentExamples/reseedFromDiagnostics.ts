@@ -11,6 +11,16 @@ const roomHasSituations = (room: StandardRoom): boolean => Boolean(room.situatio
 
 const dedupe = <T extends string>(items: T[]): T[] => Array.from(new Set(items))
 
+const normalizePerspective = (perspective: string[]): AssetUUID[] => (
+    dedupe(perspective.filter((assetId): assetId is AssetUUID => (
+        typeof assetId === 'string' && assetId.startsWith('ASSET#')
+    )))
+)
+
+const normalizeRoomIds = (roomIds: string[] | undefined): ComponentUUID[] => (
+    dedupe((roomIds ?? []).filter(isEphemeraRoomId) as ComponentUUID[])
+)
+
 const resolveRoomIdsFromPerspective = async (perspective: AssetUUID[]): Promise<ComponentUUID[]> => {
     const assetData = await internalCache.AssetData.get(perspective)
     const rooms = assetData.flatMap(({ standardForm }) => (
@@ -42,16 +52,30 @@ const resolveRoomByAsset = (
     return { room: fallback.component as StandardRoom, streamAssetId: fallback.AssetId }
 }
 
+const resolveTargetRoomIds = async (
+    perspective: AssetUUID[],
+    roomIds: string[] | undefined
+): Promise<ComponentUUID[]> => {
+    const scopedRoomIds = normalizeRoomIds(roomIds)
+    if (scopedRoomIds.length) {
+        const eligibleRoomIds = await resolveRoomIdsFromPerspective(perspective)
+        return scopedRoomIds.filter((roomId) => eligibleRoomIds.includes(roomId))
+    }
+    return resolveRoomIdsFromPerspective(perspective)
+}
+
 export const reseedComponentExamplesFromDiagnostics = async (
     finding: DiagnosticsEphemeraRenderCacheFindingEvent,
     streamEvent: StreamEventFn
 ): Promise<void> => {
-    const perspective = dedupe(finding.perspective)
+    const perspective = normalizePerspective(finding.perspective)
     if (!perspective.length) {
         return
     }
-    const scopedRoomIds = dedupe((finding.roomIds ?? []).filter(isEphemeraRoomId))
-    const targetRoomIds = scopedRoomIds.length ? scopedRoomIds : await resolveRoomIdsFromPerspective(perspective)
+    const targetRoomIds = await resolveTargetRoomIds(perspective, finding.roomIds)
+    if (!targetRoomIds.length) {
+        return
+    }
     for (const roomId of targetRoomIds) {
         if (!isEphemeraId(roomId)) {
             continue

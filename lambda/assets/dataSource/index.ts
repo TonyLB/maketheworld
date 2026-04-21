@@ -158,6 +158,11 @@ const handleEphemeraRenderCacheFinding = async (
     // This finding describes missing/corrupt data in ephemera render cache, but the source-of-truth
     // for authored seed templates is Assets. We heal by republishing template-derived example updates
     // from Assets so Ephemera rebuilds cache through its normal componentExamples mirror boundary.
+    console.info('Processing Ephemera RenderCache Finding for reseed', {
+        diagnosticRunId: content.diagnosticRunId,
+        status: content.status,
+        roomCount: content.roomIds?.length ?? null
+    })
     await reseedComponentExamplesFromDiagnostics(content, streamEvent)
 }
 

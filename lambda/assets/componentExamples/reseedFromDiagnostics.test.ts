@@ -1,6 +1,7 @@
 import { StandardRoom } from '@tonylb/mtw-wml/ts/standardize/components/room'
 import internalCache from '../internalCache'
 import { reseedComponentExamplesFromDiagnostics } from './reseedFromDiagnostics'
+import { DiagnosticsEphemeraRenderCacheFindingEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics'
 
 jest.mock('../internalCache', () => ({
     AssetData: { get: jest.fn() },
@@ -23,6 +24,10 @@ describe('reseedComponentExamplesFromDiagnostics', () => {
             universalKey: 'ROOM#alpha',
             situations: [{ reference: { universalKey: 'SITUATION#one' }, payload: {} } as any]
         } as any)
+        mockInternalCache.AssetData.get.mockResolvedValue([{
+            AssetId: 'ASSET#primitives',
+            standardForm: { _components: [room] }
+        }])
         mockInternalCache.ComponentData.get.mockResolvedValue([{
             ComponentId: 'ROOM#alpha',
             byAssets: [{ AssetId: 'ASSET#primitives', component: room }]
@@ -75,5 +80,100 @@ describe('reseedComponentExamplesFromDiagnostics', () => {
         }, streamEvent)
 
         expect(streamEvent).toHaveBeenCalledTimes(2)
+    })
+
+    it('does not emit for roomIds outside the perspective-eligible room set', async () => {
+        const roomOne = new StandardRoom({
+            tag: 'Room',
+            universalKey: 'ROOM#one',
+            situations: [{ reference: { universalKey: 'SITUATION#one' }, payload: {} } as any]
+        } as any)
+        mockInternalCache.AssetData.get.mockResolvedValue([{
+            AssetId: 'ASSET#primitives',
+            standardForm: { _components: [roomOne] }
+        }])
+        const streamEvent = jest.fn().mockResolvedValue(undefined)
+
+        await reseedComponentExamplesFromDiagnostics({
+            type: 'Ephemera RenderCache Finding',
+            perspective: ['ASSET#primitives'],
+            status: 'missing',
+            diagnosticRunId: 'diag-3',
+            timestamp: '2026-04-21T12:00:00.000Z',
+            roomIds: ['ROOM#two']
+        }, streamEvent)
+
+        expect(mockInternalCache.ComponentData.get).not.toHaveBeenCalled()
+        expect(streamEvent).not.toHaveBeenCalled()
+    })
+
+    it('normalizes duplicate and invalid perspective/roomIds before reseed', async () => {
+        const room = new StandardRoom({
+            tag: 'Room',
+            universalKey: 'ROOM#alpha',
+            situations: [{ reference: { universalKey: 'SITUATION#one' }, payload: {} } as any]
+        } as any)
+        mockInternalCache.AssetData.get.mockResolvedValue([{
+            AssetId: 'ASSET#primitives',
+            standardForm: { _components: [room] }
+        }])
+        mockInternalCache.ComponentData.get.mockResolvedValue([{
+            ComponentId: 'ROOM#alpha',
+            byAssets: [{ AssetId: 'ASSET#primitives', component: room }]
+        }])
+        const streamEvent = jest.fn().mockResolvedValue(undefined)
+
+        await reseedComponentExamplesFromDiagnostics({
+            type: 'Ephemera RenderCache Finding',
+            perspective: ['ASSET#primitives', 'ASSET#primitives', 'invalid' as any],
+            status: 'missing',
+            diagnosticRunId: 'diag-4',
+            timestamp: '2026-04-21T12:00:00.000Z',
+            roomIds: ['ROOM#alpha', 'ROOM#alpha', 'invalid-room' as any]
+        }, streamEvent)
+
+        expect(mockInternalCache.AssetData.get).toHaveBeenCalledWith(['ASSET#primitives'])
+        expect(mockInternalCache.ComponentData.get).toHaveBeenCalledTimes(1)
+        expect(streamEvent).toHaveBeenCalledTimes(1)
+    })
+
+    it('is idempotency-safe for repeated findings with the same normalized input', async () => {
+        const room = new StandardRoom({
+            tag: 'Room',
+            universalKey: 'ROOM#alpha',
+            situations: [{ reference: { universalKey: 'SITUATION#one' }, payload: {} } as any]
+        } as any)
+        mockInternalCache.AssetData.get.mockResolvedValue([{
+            AssetId: 'ASSET#primitives',
+            standardForm: { _components: [room] }
+        }])
+        mockInternalCache.ComponentData.get.mockResolvedValue([{
+            ComponentId: 'ROOM#alpha',
+            byAssets: [{ AssetId: 'ASSET#primitives', component: room }]
+        }])
+        const streamEvent = jest.fn().mockResolvedValue(undefined)
+        const finding: DiagnosticsEphemeraRenderCacheFindingEvent = {
+            type: 'Ephemera RenderCache Finding' as const,
+            perspective: ['ASSET#primitives', 'ASSET#primitives'],
+            status: 'corrupted' as const,
+            diagnosticRunId: 'diag-5',
+            timestamp: '2026-04-21T12:00:00.000Z',
+            roomIds: ['ROOM#alpha', 'ROOM#alpha']
+        }
+
+        await reseedComponentExamplesFromDiagnostics(finding, streamEvent)
+        await reseedComponentExamplesFromDiagnostics(finding, streamEvent)
+
+        expect(streamEvent).toHaveBeenCalledTimes(2)
+        expect(streamEvent).toHaveBeenNthCalledWith(1, {
+            update: { type: 'Component Updated', component: room },
+            streamKey: 'ASSET#primitives',
+            header: { type: 'Component Updated' }
+        })
+        expect(streamEvent).toHaveBeenNthCalledWith(2, {
+            update: { type: 'Component Updated', component: room },
+            streamKey: 'ASSET#primitives',
+            header: { type: 'Component Updated' }
+        })
     })
 })
