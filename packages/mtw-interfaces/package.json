@@ -5,6 +5,7 @@
   "description": "Typescript interfaces for shared type constraints",
   "main": "ts/index.ts",
   "scripts": {
+    "build": "tsc -p tsconfig.json",
     "test": "jest"
   },
   "author": "Tony Lower-Basch",
