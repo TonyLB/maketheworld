@@ -23,8 +23,8 @@ When contracts stabilize, migrate steady-state documentation into [`lambda/ephem
 | --- | --- |
 | Step grouping (A / B / C) | **Decided:** **Option A** only for this initiative. **Out of scope:** revisiting **Option B** or **Option C** based on harness metrics -- handle in a separate task plan if needed |
 | Handoff (hop 1 to hop 2) | **Decided:** no `selectedPlanId`; **fenced JSON** for **paragraph summary** + **rubric issues** (**Decided: hop 1 handoff serialization**). **Locked in code:** [`coyoteHop1Handoff.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/coyoteHop1Handoff.ts) + [`markdownCodeFences.ts`](../../../../../lambda/ephemera/llm/markdownCodeFences.ts) — **`CoyoteHop1Handoff`**, last **` ```json `** fence, keys **`paragraphSummary`** / **`rubricIssues`**. **Still open:** optional full rubric for harness/debug |
-| Phase-plan JSON schema + validators | **Decided:** stable refs + **approved v1 document shape** + **virtual grounding** via reserved **`SETTING`** (**Decided: reserved stable key SETTING (virtual grounding)**). **Open:** implement types + validators in code |
-| Rubric representation | **Decided:** automation / hop 2 grounding; **three dimensions**; **criterion-first matrix then selection** (**Decided: rubric prompting pattern**). **Open:** aggregation **weights**, safety as dimension vs hard filter |
+| Phase-plan JSON schema + validators | **Decided:** stable refs + **approved v1 document shape** + **virtual grounding** via reserved **`SETTING`** (**Decided: reserved stable key SETTING (virtual grounding)**) + **outliers guidance / guardrails** (**Decided: outliers in clustering vs phase plan**). **Open:** implement types + validators in code |
+| Rubric representation | **Decided:** automation / hop 2 grounding; **three dimensions**; **criterion-first matrix then selection** (**Decided: rubric prompting pattern**); **Road Runner canon / safety outside hop 1 rubric** (**Decided: Road Runner outcome-only (not in rubric)**); **first implementation:** **equal weight** across dimensions (**Decided: rubric aggregation (first implementation)**) |
 | Persistence + harness diagnostics | **Decided:** durable **nested `phasePlan`**, **`walkthrough`** separate from **`intent`**; **no** **`sceneAnalysis`** on the persisted intent row (**Decided: intent record shape**); harness extensions (**Decided: Coyote engine harness**). **Open:** code wiring + Dynamo projection |
 | Implementation + durable `AGENT.md` updates | Not started |
 
@@ -126,7 +126,7 @@ We **do not** need a migration story or backward compatibility guarantees for su
 
 ## Decided: stable references (phase-plan JSON)
 
-**Locked.** Each phase-plan phase must reference staged objects by **`stableKey`**, and room placement must use labels **consistent with** [`coyoteSeamRoomMappingLines`](../../../../../lambda/ephemera/dataSource/coyoteGame/coyoteHypothesisPromptShared.ts) / seam room conventions -- **not** free-text names only. Validators should reject unknown keys and **stableKeys** absent from the staged **snapshot** for that run, **except** the reserved virtual-grounding token **`SETTING`** where **Decided: reserved stable key SETTING (virtual grounding)** allows it. (Do **not** treat **`SETTING`** as a real staged object in **`stableKeysUsed`** or outlier rules.)
+**Locked.** Each phase-plan phase must reference staged objects by **`stableKey`**, and room placement must use labels **consistent with** [`coyoteSeamRoomMappingLines`](../../../../../lambda/ephemera/dataSource/coyoteGame/coyoteHypothesisPromptShared.ts) / seam room conventions -- **not** free-text names only. Validators should reject unknown keys and **stableKeys** absent from the staged **snapshot** for that run, **except** the reserved virtual-grounding token **`SETTING`** where **Decided: reserved stable key SETTING (virtual grounding)** allows it. (Do **not** treat **`SETTING`** as a real staged object in **`stableKeysUsed`**. **Decided: outliers in clustering vs phase plan** covers how real snapshot keys that are clustering outliers may appear in **`phasePlan`**.)
 
 ## Decided: phase-plan document shape (v1 approved)
 
@@ -136,19 +136,31 @@ We **do not** need a migration story or backward compatibility guarantees for su
 - Per phase: **`stableKeysUsed`**, **`virtualEntities`** (each with **`label`**, **`derivedFrom`** stableKeys or topology refs -- **virtual** **`derivedFrom`** stable-key list **may include** reserved **`SETTING`** per **Decided: reserved stable key SETTING (virtual grounding)** -- **`phaseKind`**: gathered | synthesized | deployed), **`achievement`** (what becomes true after this phase).
 - Optional per phase: **`prepVsBeat`** tagging to align with **prep** / **creation** semantics ([`lambda/ephemera/dataSource/coyoteGame/AGENT.md`](../../../../../lambda/ephemera/dataSource/coyoteGame/AGENT.md)).
 
-**Validators (required behavior, implement in code):** reject unknown keys; reject **stableKeys** not present in the staged snapshot for that run (**except** reserved **`SETTING`** only where **Decided: reserved stable key SETTING (virtual grounding)** permits); reject **`SETTING`** in **`stableKeysUsed`** or anywhere it would stand in for a real staged row; reject phases that contradict **## Outliers** membership rules. Virtual / execution policy vs cached plan: **Decided: execution virtual props**.
+**Validators (required behavior, implement in code):** reject unknown keys; reject **stableKeys** not present in the staged snapshot for that run (**except** reserved **`SETTING`** only where **Decided: reserved stable key SETTING (virtual grounding)** permits); reject **`SETTING`** in **`stableKeysUsed`** or anywhere it would stand in for a real staged row; apply **Decided: outliers in clustering vs phase plan** for how outlier keys participate in **`phasePlan`** (do **not** treat outlier **`stableKey`**s as invalid merely because they appear under **`## Outliers`**). Virtual / execution policy vs cached plan: **Decided: execution virtual props**.
+
+## Decided: outliers in clustering vs phase plan (guidance + guardrails)
+
+**What an outlier is:** Stage One assigns each staged **`stableKey`** to **either** a named **`###` cluster** (shared thematic / functional maneuver grouping) **or** the **`## Outliers`** list when it does **not** sit in any such group ([`combineHypothesisClusters`](../../../../../lambda/ephemera/dataSource/coyoteGame/combineHypothesisClusters.ts), [`AGENT.md`](../../../../../lambda/ephemera/dataSource/coyoteGame/AGENT.md) **Clustering and combine**). Outliers are **not** "non-participants" in the cartoon plan -- they are normal staged objects whose **clustering** placement is "with nothing else" for Stage One purposes.
+
+**Prompting (hop 2 / rubric / prose):** Treat **`## Combined clustering`** and **`## Outliers`** as **ground truth for grouping**: do **not** describe or imply that an object listed only under **`## Outliers`** belongs **inside** a named **`###` cluster** it was not assigned to. **Do** allow outliers to matter in the maneuver, appear in **`stableKeysUsed`**, and interact with clustered props when topology and roles support it -- same as any other snapshot key. Instructions should avoid language that frames outliers as **forbidden** or **second-class** for planning; the distinction is **membership in Stage One clusters**, not eligibility for beats.
+
+**Validators:** **`phasePlan`** validation is keyed off the **staged snapshot** (plus **`SETTING`** rules). If a **`stableKey`** is on the snapshot, it is **eligible** to appear in **`stableKeysUsed`** **regardless** of whether Stage One listed it under **`## Outliers`**. Do **not** add rules that reject plans solely because they reference outlier keys. If a future schema adds **explicit cluster membership** per object, validators may then flag **contradictions** between that structure and combined clustering; **v1** does not require inventing such fields for outlier checking.
+
+**Thought experiment (not adopted):** Representing outliers as a **reserved-name cluster** (single partition shape, every object under some **`###`**) was discussed as a way to reduce **register shift** between cluster lists and **`## Outliers`**. **Decision:** do **not** implement unless harness or product evidence later shows clear upside -- the **cons** (models over-generalizing **cluster** as **shared maneuver**) are plausible, and **pros** did not justify a Stage One / combine seam change **here**.
 
 ## Decided: reserved stable key SETTING (virtual grounding)
 
 **Instead of** an open-ended **`inferredFromPlan`** escape hatch (anything the narrative might imply), **v1** uses a **single reserved stable-key-shaped token:**
 
-- The reserved literal **`SETTING`** is legal **only** when grounding **`virtualEntities`** in **`derivedFrom`** (alongside real **`stableKey`**s from the snapshot and topology cues as needed). It denotes **cartoon-setting stock affordances** not represented by a specific staged row -- for example desert **boulders**, **cactus**, generic **Acme** labeling / crate texture, and similar world furniture the player expects in-frame even when not listed as staged props.
+- The reserved literal **`SETTING`** (normalized **`stableKey`** spelling: **`setting`**, per **`stableKey`** charset in [`coyotePlanAffinities.ts`](../../../../../packages/mtw-interfaces/ts/coyotePlanAffinities.ts)) is legal **only** when grounding **`virtualEntities`** in **`derivedFrom`** (alongside real **`stableKey`**s from the snapshot and topology cues as needed). It denotes **cartoon-setting stock affordances** not represented by a specific staged row -- for example desert **boulders**, **cactus**, generic **Acme** labeling / crate texture, and similar world furniture the player expects in-frame even when not listed as staged props.
 
-**Semantics:** **`SETTING`** means *grounded in the shared setting read*, not *free invention*. Specificity stays in **`label`** (and **`phaseKind`**).
+**Semantics:** **`setting`** / **`SETTING`** (same token) means *grounded in the shared setting read*, not *free invention*. Specificity stays in **`label`** (and **`phaseKind`**).
 
-**Execution:** Still **Decided: execution virtual props** -- execution must not introduce virtuals absent from **`phasePlan`**; **`SETTING`** does not loosen that rule; it only constrains **how** a listed virtual may cite grounds when no snapshot key applies.
+**Execution:** Still **Decided: execution virtual props** -- execution must not introduce virtuals absent from **`phasePlan`**; this token does not loosen that rule; it only constrains **how** a listed virtual may cite grounds when no snapshot key applies.
 
-**Implementation (optional knobs, not redesign):** per-phase or per-plan **caps** on virtuals whose **only** stable-key ground is **`SETTING`**, or stricter rules for **`synthesized`** vs **`gathered`**, can be tuned in code without changing this decision.
+**Code (interfaces + collision prevention):** Canonical constant **`COYOTE_RESERVED_VIRTUAL_GROUNDING_STABLE_KEY`** (`'setting'`) lives in [`packages/mtw-interfaces/ts/coyotePlanAffinities.ts`](../../../../packages/mtw-interfaces/ts/coyotePlanAffinities.ts). Acme deterministic **`stableKey`** finalization must **not** assign that key to staged catalog lines: [`finalizeStableKeysDeterministic`](../../../../../lambda/ephemera/dataSource/actions/finalizeStableKeysDeterministic.ts) remaps a proposal of **`setting`** to **`acme-setting`** so **`Meta::Room.objects`** never collides with the phase-plan reserved token (see tests in [`finalizeStableKeysDeterministic.test.ts`](../../../../../lambda/ephemera/dataSource/actions/finalizeStableKeysDeterministic.test.ts)).
+
+**Implementation (optional knobs, not redesign):** per-phase or per-plan **caps** on virtuals whose **only** stable-key ground is **`setting`**, or stricter rules for **`synthesized`** vs **`gathered`**, can be tuned in code without changing this decision.
 
 ## Decided: durable persistence vs harness
 
@@ -188,13 +200,23 @@ On phase-plan (or related structured) validation failure, **prefer degraded pros
 
 **Evolution:** Add further rubric dimensions **only** if probes show output that is weak in some **discernible** way that an extra axis would address; do not expand the rubric preemptively.
 
-**Still open:** relative **weights** across the three when **aggregating** the matrix into a winner, and whether **safety / Road Runner framing** is scored as a dimension or enforced only as **prompt hard rules** (Coyote hypothesis already discourages failure-comedy language elsewhere).
+## Decided: rubric aggregation (first implementation)
+
+**Locked for v1.** Hop 1 prompts must **not** emphasize one rubric dimension over the others when moving from matrix to winner: treat **coverage**, **completeness**, and **coherence** as **equally important** (no numeric weights, no prompt language that ranks axes). Selection stays the holistic **comparison then explicit winner** flow (**Decided: rubric prompting pattern (hop 1)**).
+
+**Later (optional):** uneven weights or tie-break hierarchy only if harness shows a **discernible** bias worth correcting.
+
+## Decided: Road Runner outcome-only (not in rubric)
+
+**Locked for Option A.** **Road Runner** inviolability and **setback-on-the-Coyote** canon --- the hard constraints in [`buildPlanOutcomePrompt`](../../../../../lambda/ephemera/dataSource/coyoteGame/buildPlanOutcomePrompt.ts) (**plan outcome**) --- stay **only** on the **outcome** path. **Do not** add a rubric column, tie-breaker, or implicit preference in hop 1 for plans where the Road Runner is **safer** or the trap **less villainously effective on paper**: player intent pulls toward elaborate Coyote schemes; hop 1 should compare sketches on **coverage**, **completeness**, and **coherence** only (**Decided: rubric dimensions**). Resolving canon in the player's favor is **plan outcome**'s job: take a well-thought-out antagonist plan and narrate how it **foils itself** in execution while respecting outcome prompts.
+
+Hypothesis-stage tone rules (earnest **`Hypothesis:`**, no preview of failure comedy) remain separate prompt guidance --- not a fourth rubric axis.
 
 ## Decided: rubric prompting pattern (hop 1)
 
 **Locked.** Hop 1 evaluates candidates with a **two-phase** assistant shape (still one LLM call unless we split later):
 
-1. **Criterion-first matrix** -- One row per candidate plan sketch, one column per rubric dimension (**coverage**, **completeness**, **coherence** from **Decided: rubric dimensions**). Each cell holds **short, evidence-grounded prose** (reference **`stableKey`** / cluster membership where relevant), not opaque letter grades -- the grid is for **comparison**, not calibrated A--F blobs.
+1. **Criterion-first matrix** -- One row per candidate plan sketch, one column per rubric dimension (**coverage**, **completeness**, **coherence** from **Decided: rubric dimensions**). Each cell holds **short, evidence-grounded prose** (reference **`stableKey`** / cluster membership where relevant), not opaque letter grades -- the grid is for **comparison**, not calibrated A--F blobs. When comparing rows to pick a winner, treat the three dimensions as **equally important** (**Decided: rubric aggregation (first implementation)**).
 2. **Selection second** -- After the matrix is complete: **either** a strict **ordinal rank** (1 = best, **no ties** unless the prompt defines a tie-break procedure) **or** a single **`chosenPlanIndex`** / explicit **winner label** matching the rows, plus **one sentence** naming the decisive dimension if the race was close.
 
 Symbolic scores (letters, 1--5, etc.) are **optional** inside cells only if anchors help the model; the **canonical** discriminant is **structured comparison then an explicit winner**, which aligns reliably with LLM behavior.
@@ -224,12 +246,13 @@ Coyote prompts already allow **virtual scenery** and prep-invented props with st
 
 ## Unknowns: rubric grading
 
-Open design questions:
+**v1** rubric shape, dimensions, Road Runner scope, and **equal-weight** aggregation are **decided**; only **optional** future unequal weighting is open. Checklist for the task plan:
 
 - **Evaluation shape:** **Decided** -- **criterion-first matrix**, then **selection** (**Decided: rubric prompting pattern (hop 1)** above).
 - **Dimensions:** **Decided** -- see **Decided: rubric dimensions (initial set)** above.
+- **Road Runner canon / safety in rubric:** **Decided** -- **outcome-only**; see **Decided: Road Runner outcome-only (not in rubric)**.
 - **Automation / hop grounding:** **Decided** -- see **Decided: rubric automation and hop 2 grounding** above.
-- **Aggregation:** Relative **weights** when turning the matrix into one winner if not left entirely to prose in the selection step.
+- **Aggregation:** **Decided** for first implementation -- **equal weight** across the three dimensions (**Decided: rubric aggregation (first implementation)**). Uneven weights remain a future tuning lever if needed.
 
 ## Other open questions
 
@@ -249,11 +272,12 @@ Open design questions:
 
 Pending work uses `[ ]` and completed work uses `[X]`. This section has no nested checklist bullets; each line is a single actionable step.
 
-**Dependency order:** lock hop-1 handoff **JSON** field names and fence tags, **`Hypothesis:`** fence contract, **`phasePlan`** types + virtual-entity validator rules (including **`SETTING`**; optional caps in code), and hop 1 **rubric aggregation / safety** instructions at a **design + type level** before treating the Option A implementation line as build-complete.
+**Dependency order:** lock hop-1 handoff **JSON** field names and fence tags, **`Hypothesis:`** fence contract, **`phasePlan`** types + virtual-entity validator rules (including **`SETTING`**; optional caps in code), and hop 1 **rubric** instructions (**equal-weight** dimensions per **Decided: rubric aggregation (first implementation)**; **Road Runner** canon **outcome-only** per **Decided: Road Runner outcome-only (not in rubric)**) at a **design + type level** before treating the Option A implementation line as build-complete.
 
 - [X] Finalize hop-1 handoff **JSON property names** + fence tag; final **`Hypothesis:`** fence contract -- **encoded:** [`coyoteHop1Handoff.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/coyoteHop1Handoff.ts) (`CoyoteHop1Handoff`, `COYOTE_HOP1_HANDOFF_JSON_KEYS`, `parseHop1HandoffFromSelectionBody`); shared fences [`markdownCodeFences.ts`](../../../../../lambda/ephemera/llm/markdownCodeFences.ts); hop-2 multi-fence Hypothesis regression in [`parseHypothesisModelOutput.test.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/parseHypothesisModelOutput.test.ts).
-- [ ] Encode **`phasePlan`** TypeScript types + validators (stableKeys, outliers, **`SETTING`** rules per **Decided: reserved stable key SETTING (virtual grounding)**); optional **caps** / **`phaseKind`** strictness per **Unknowns: synthesized (virtual) objects**.
-- [ ] Decide rubric **aggregation weights** (if any) and **safety** as scored dimension vs hard filter -- matrix + selection pattern is **decided** under **Decided: rubric prompting pattern (hop 1)** and **Decided: rubric dimensions (initial set)** (feeds hop 1 prompt text before the full build).
+- [ ] Encode **`phasePlan`** TypeScript types + validators (snapshot **`stableKey`** refs, **`SETTING`** rules per **Decided: reserved stable key SETTING (virtual grounding)**; outlier **`stableKey`** handling per **Decided: outliers in clustering vs phase plan**); optional **caps** / **`phaseKind`** strictness per **Unknowns: synthesized (virtual) objects**.
+- [X] **Road Runner** canon / safety **outside hop 1 rubric** (**Decided: Road Runner outcome-only (not in rubric)**) -- enforced on **plan outcome** only ([`buildPlanOutcomePrompt`](../../../../../lambda/ephemera/dataSource/coyoteGame/buildPlanOutcomePrompt.ts)).
+- [X] Rubric **aggregation:** **equal weight** across **coverage** / **completeness** / **coherence** for first implementation (**Decided: rubric aggregation (first implementation)**) -- matrix + selection pattern under **Decided: rubric prompting pattern (hop 1)** and **Decided: rubric dimensions (initial set)**.
 - [ ] Implement **Option A** end-to-end (prompts, hop-1 **fenced JSON** handoff parse, hop-2 multi-fence parse, **phasePlan** validation wired to the contracts above); tune token budget per hop from harness results (reliability metrics inform **tuning**, not a topology change -- **Option B/C** remain out of scope).
 - [ ] Wire **CoyoteGame** / [`CoyoteGameIntentRecord`](../../../../../lambda/ephemera/internalCache/coyoteGame.ts) to **Decided: intent record shape** (nested **`phasePlan`**, **`walkthrough`**, drop **`sceneAnalysis`**); persist per **Decided: structured validation failure** where applicable; implement **Decided: Coyote engine harness** (**`selectionBody`**, **`phasePlanJson`**, **Scene analysis** in evaluation output when useful).
 - [ ] Update durable [`AGENT.md`](../../../../../lambda/ephemera/dataSource/coyoteGame/AGENT.md) when Option A behavior is stable.
