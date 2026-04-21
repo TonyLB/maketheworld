@@ -14,22 +14,18 @@ import {
     invokeBedrockHypothesisStageTwo,
 } from './invokeBedrockHypothesis'
 
-/** Valid seam for two VORTEX objects with stableKeys matching mocks (parse + combine succeed). */
-const stageOneSeamBody = `## Clusters
-
-### Combined setup
-- **stableKey:** anvil
-
-\`\`\`json
-{"role":"terminal","aptness":0.5}
-\`\`\`
-
-- **stableKey:** rocket-skates
-
-\`\`\`json
-{"role":"delivery","aptness":0.6}
-\`\`\`
-`
+/** Valid stage-1 JSON for two VORTEX objects with stableKeys matching mocks (parse + combine succeed). */
+const stageOneSeamBody = JSON.stringify({
+    clusters: [
+        {
+            clusterName: 'Combined setup',
+            members: [
+                { stableKey: 'anvil', intendedRole: { role: 'terminal', aptness: 0.5 } },
+                { stableKey: 'rocket-skates', intendedRole: { role: 'delivery', aptness: 0.6 } },
+            ],
+        },
+    ],
+})
 
 const stageOneMock = invokeBedrockHypothesisStageOne as jest.MockedFunction<
     typeof invokeBedrockHypothesisStageOne
@@ -102,15 +98,18 @@ describe('generateHypothesis', () => {
     })
 
     it('uses room object override without consulting room meta deps', async () => {
-        const overrideSeam = `## Clusters
-
-### Multi-room
-- **stableKey:** anvil-0
-
-- **stableKey:** portable-hole-0
-
-- **stableKey:** birdseed-1
-`
+        const overrideSeam = JSON.stringify({
+            clusters: [
+                {
+                    clusterName: 'Multi-room',
+                    members: [
+                        { stableKey: 'anvil-0' },
+                        { stableKey: 'portable-hole-0' },
+                        { stableKey: 'birdseed-1' },
+                    ],
+                },
+            ],
+        })
         stageOneMock.mockResolvedValue({ success: true, body: overrideSeam })
 
         await generateHypothesis({
@@ -153,7 +152,7 @@ describe('generateHypothesis', () => {
     it('falls back to stub when stage 1 seam parse fails', async () => {
         stageOneMock.mockResolvedValue({
             success: true,
-            body: 'not valid seam markdown',
+            body: 'not valid stage 1 JSON',
         })
 
         await expect(generateHypothesis({ getGameRooms, getRoomMeta })).resolves.toEqual({

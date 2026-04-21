@@ -115,8 +115,9 @@ describe('runCoyoteEngineTestHarness', () => {
     it('includes fixture index, elapsed timing, and per-stage usage metrics lines', async () => {
         const send = jest.fn()
         const flush = jest.fn().mockResolvedValue(undefined)
-        const stageOneSeamBody =
-            '## Clusters\n### Cluster A\n- **stableKey:** anvil-0\n'
+        const stageOneSeamBody = JSON.stringify({
+            clusters: [{ clusterName: 'Cluster A', members: [{ stableKey: 'anvil-0' }] }],
+        })
         const pipeline = jest.fn().mockResolvedValue({
             record: {
                 intent: 'Hypothesis: It looks like you are trying to launch a boulder.',
@@ -167,7 +168,7 @@ describe('runCoyoteEngineTestHarness', () => {
         expect(flat).toContain('elapsedMs: 10')
         expect(flat).toContain('usageStage1: input=40 output=11 total=51 cacheRead=30 cacheWrite=2')
         expect(flat).toContain('stageOneBody:')
-        expect(flat).toContain('**stableKey:** anvil-0')
+        expect(flat).toContain('"stableKey":"anvil-0"')
         expect(flat).toContain('usageStage2: input=20 output=9 total=29 cacheRead=12 cacheWrite=0')
     })
 

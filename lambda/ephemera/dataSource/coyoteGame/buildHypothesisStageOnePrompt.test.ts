@@ -17,7 +17,7 @@ describe('buildHypothesisStageOnePromptParts', () => {
         expect(full).toContain('## World topology')
         expect(full).toContain('## Seam room labels')
         expect(full).toContain('`ROOM#STRAIGHTAWAY` → **STRAIGHTAWAY**')
-        expect(full).toContain('## Seam Markdown contract')
+        expect(full).toContain('## Stage one JSON contract')
         expect(full).toContain(SNAPSHOT_SECTION_HEADER)
         expect(full).toContain('STRAIGHTAWAY')
         expect(full).toContain('rocket skates')

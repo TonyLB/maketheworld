@@ -6,7 +6,7 @@ import type {
 } from '@tonylb/mtw-interfaces/ts/coyoteCombineClusters'
 import type { CoyoteAffinityPossibility } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 
-import type { ParsedCluster } from './parseHypothesisStageOneOutput'
+import type { ParsedCluster, ParsedClusterMember } from './parseHypothesisStageOneOutput'
 import { formatCoyoteAffinityPossibility } from './coyoteRoomObjectSnapshot'
 import type { CoyoteRoomObjectsByRoom } from './coyoteRoomObjectSnapshot'
 
@@ -61,10 +61,15 @@ function snapshotIndexByStableKey(
     return map
 }
 
-/** Deterministic combine: hydrated DTO + empty outliers when Stage One lists every staged stableKey exactly once (parse-enforced). */
+/**
+ * Hydrated DTO for Stage Two. When **`explicitOutliers`** is set (Stage One JSON included **`outliers`**),
+ * outliers come only from that list; otherwise every staged **`stableKey`** missing from **`clusters`**
+ * is listed as an outlier (legacy).
+ */
 export function combineHypothesisClusters(
     clusters: ParsedCluster[],
-    roomObjectsByRoom: CoyoteRoomObjectsByRoom
+    roomObjectsByRoom: CoyoteRoomObjectsByRoom,
+    explicitOutliers?: ParsedClusterMember[]
 ): CombineHypothesisClustersResult {
     const byStableKey = snapshotIndexByStableKey(roomObjectsByRoom)
 
@@ -104,12 +109,46 @@ export function combineHypothesisClusters(
         })
     }
 
-    const outliers: ClusterMemberPair[] = []
-    for (const objects of Object.values(roomObjectsByRoom)) {
-        for (const o of objects) {
-            const sk = o.stableKey.trim()
-            if (!seenKeys.has(sk)) {
-                outliers.push({ identifier: sk })
+    let outliers: ClusterMemberPair[]
+
+    if (explicitOutliers !== undefined) {
+        outliers = []
+        for (const mem of explicitOutliers) {
+            const sk = mem.stableKey.trim()
+            if (seenKeys.has(sk)) {
+                return {
+                    ok: false,
+                    errorMessage: `combine: stableKey "${sk}" appears in both clusters and explicit outliers`,
+                }
+            }
+            seenKeys.add(sk)
+            const obj = byStableKey.get(sk)
+            if (!obj) {
+                return { ok: false, errorMessage: `combine: unknown outlier stableKey "${sk}"` }
+            }
+            let intendedRole = resolveCanonicalRole(obj, mem.intendedRole)
+            if (mem.intendedRole !== undefined && intendedRole === undefined) {
+                return {
+                    ok: false,
+                    errorMessage: `combine: could not resolve canonical intendedRole for outlier "${sk}"`,
+                }
+            }
+            if (mem.intendedRole === undefined) {
+                intendedRole = undefined
+            }
+            outliers.push({
+                identifier: sk,
+                intendedRole,
+            })
+        }
+    } else {
+        outliers = []
+        for (const objects of Object.values(roomObjectsByRoom)) {
+            for (const o of objects) {
+                const sk = o.stableKey.trim()
+                if (!seenKeys.has(sk)) {
+                    outliers.push({ identifier: sk })
+                }
             }
         }
     }

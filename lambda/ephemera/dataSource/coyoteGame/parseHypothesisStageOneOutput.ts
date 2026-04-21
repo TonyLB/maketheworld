@@ -1,12 +1,17 @@
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMetaRoomObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import type { CoyoteAffinityPossibility } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
-import { isCoyoteAffinityPossibility } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
+import type {
+    CoyoteAffinityPossibility,
+    CoyoteAffinityPossibilityEcho,
+} from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
+import { isCoyoteAffinityPossibilityEcho } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
+
 /*
- * Stage 1 emits Markdown seam: optional ## Notes, required ## Clusters with ### subsections.
- * Each cluster lists members by **stableKey:** and optional fenced **intendedRole** JSON (CoyoteAffinityPossibility).
+ * Stage 1 emits JSON: optional notes, required clusters[], optional outliers[] (partition with clusters),
+ * members use stableKey + optional intendedRole echo (CoyoteAffinityPossibilityEcho).
  */
 
+/** One staged object reference in a cluster or in **`outliers`**. */
 export type ParsedClusterMember = {
     stableKey: string
     intendedRole?: CoyoteAffinityPossibility
@@ -19,8 +24,15 @@ export type ParsedCluster = {
 
 export type ParseHypothesisStageOneSuccess = {
     ok: true
-    markdown: string
+    /** Canonical JSON string after validation (debug / tests). */
+    normalizedJson: string
     clusters: ParsedCluster[]
+    /**
+     * Present when the model included root **`outliers`** — **`combineHypothesisClusters`** hydrates these
+     * instead of inferring complement from clusters. Omitted when **`outliers`** was absent (legacy: every
+     * staged **`stableKey`** appears only in **`clusters`**).
+     */
+    explicitOutliers?: ParsedClusterMember[]
 }
 
 export type ParseHypothesisStageOneFailure = {
@@ -30,9 +42,10 @@ export type ParseHypothesisStageOneFailure = {
 
 export type ParseHypothesisStageOneResult = ParseHypothesisStageOneSuccess | ParseHypothesisStageOneFailure
 
+/** Strips a leading markdown ``` / ```json fence and trailing ``` when present. */
 export function stripHypothesisStageOneFence(body: string): string {
     let s = body.trim()
-    const fenceOpen = /^```(?:markdown|md|text)?\s*\r?\n?/
+    const fenceOpen = /^```(?:json|markdown|md|text)?\s*\r?\n?/
     const fenceClose = /\r?\n```\s*$/
     if (fenceOpen.test(s)) {
         s = s.replace(fenceOpen, '').replace(fenceClose, '').trim()
@@ -44,13 +57,50 @@ function normalizeNewlines(text: string): string {
     return text.replace(/\r\n/g, '\n')
 }
 
-function sectionExtract(body: string, title: string): { found: false } | { found: true; start: number; end: number } {
-    const re = new RegExp(`^## ${title}\\s*$`, 'm')
-    const m = body.match(re)
-    if (!m || m.index === undefined) {
-        return { found: false }
+function extractJsonObjectString(text: string): string | null {
+    const t = stripHypothesisStageOneFence(normalizeNewlines(text).trim())
+    if (!t.length) {
+        return null
     }
-    return { found: true, start: m.index, end: m.index + m[0].length }
+    try {
+        JSON.parse(t)
+        return t
+    } catch {
+        /* fall through */
+    }
+    const start = t.indexOf('{')
+    if (start < 0) {
+        return null
+    }
+    let depth = 0
+    let inString = false
+    let escape = false
+    for (let i = start; i < t.length; i++) {
+        const c = t[i]
+        if (inString) {
+            if (escape) {
+                escape = false
+            } else if (c === '\\') {
+                escape = true
+            } else if (c === '"') {
+                inString = false
+            }
+            continue
+        }
+        if (c === '"') {
+            inString = true
+            continue
+        }
+        if (c === '{') {
+            depth += 1
+        } else if (c === '}') {
+            depth -= 1
+            if (depth === 0) {
+                return t.slice(start, i + 1)
+            }
+        }
+    }
+    return null
 }
 
 function expectedStableKeysSorted(
@@ -65,146 +115,231 @@ function expectedStableKeysSorted(
     return keys.map((k) => k).sort()
 }
 
-function parseClusterMemberLines(
-    lines: string[]
-): { ok: true; members: ParsedClusterMember[] } | { ok: false; errorMessage: string } {
-    const members: ParsedClusterMember[] = []
-    let i = 0
-    const consumeBlank = (): void => {
-        while (i < lines.length && lines[i].trim() === '') {
-            i += 1
-        }
-    }
-
-    while (true) {
-        consumeBlank()
-        if (i >= lines.length) {
-            break
-        }
-        const skMatch = lines[i].trim().match(/^-\s*\*\*stableKey:\*\*\s*(.+)$/u)
-        if (!skMatch) {
-            return { ok: false, errorMessage: `stage 1 seam: expected - **stableKey:** line, got: ${lines[i].trim()}` }
-        }
-        const stableKey = skMatch[1].trim()
-        if (!stableKey.length) {
-            return { ok: false, errorMessage: 'stage 1 seam: empty stableKey' }
-        }
-        i += 1
-        consumeBlank()
-
-        let intendedRole: CoyoteAffinityPossibility | undefined
-        if (i < lines.length && lines[i].trim().startsWith('```')) {
-            const fenceLine = lines[i].trim()
-            if (!/^```(?:json)?\s*$/u.test(fenceLine)) {
-                return { ok: false, errorMessage: 'stage 1 seam: intendedRole must use ``` or ```json fence' }
-            }
-            i += 1
-            const jsonLines: string[] = []
-            while (i < lines.length && !lines[i].trim().startsWith('```')) {
-                jsonLines.push(lines[i])
-                i += 1
-            }
-            if (i >= lines.length) {
-                return { ok: false, errorMessage: 'stage 1 seam: unclosed intendedRole ``` fence' }
-            }
-            i += 1
-            const jsonBody = jsonLines.join('\n').trim()
-            try {
-                const parsed: unknown = JSON.parse(jsonBody)
-                if (!isCoyoteAffinityPossibility(parsed)) {
-                    return { ok: false, errorMessage: 'stage 1 seam: intendedRole JSON is not CoyoteAffinityPossibility' }
-                }
-                intendedRole = parsed
-            } catch {
-                return { ok: false, errorMessage: 'stage 1 seam: intendedRole JSON parse failed' }
-            }
-        }
-
-        members.push({ stableKey, intendedRole })
-    }
-
-    return { ok: true, members }
+function isNonEmptyString(x: unknown): x is string {
+    return typeof x === 'string' && x.trim().length > 0
 }
 
-/**
- * Validates stage-1 body against the seam contract, then returns normalized Markdown plus parsed clusters.
- */
-export function parseHypothesisStageOneOutput(
-    rawBody: string,
+function resolveEchoToStoredRow(
+    obj: EphemeraMetaRoomObject,
+    echo: CoyoteAffinityPossibilityEcho
+): CoyoteAffinityPossibility | undefined {
+    const aff = obj.affinities
+    if (!aff || aff.length === 0 || obj.affinitiesFailed === true) {
+        return undefined
+    }
+    const candidates = aff.filter((stored) => {
+        if (stored.role !== echo.role) {
+            return false
+        }
+        if (echo.role === 'entity_modification' && stored.role === 'entity_modification') {
+            return stored.target === echo.target && stored.mode === echo.mode
+        }
+        return true
+    })
+    if (candidates.length === 0) {
+        return undefined
+    }
+    if (echo.aptness !== undefined && Number.isFinite(echo.aptness)) {
+        return candidates.find((s) => Math.abs(s.aptness - echo.aptness!) < 1e-6)
+    }
+    const sorted = [...candidates].sort((a, b) => b.aptness - a.aptness)
+    return sorted[0]
+}
+
+type DraftMember = {
+    stableKey: string
+    echo?: CoyoteAffinityPossibilityEcho
+}
+
+function parseDraftMemberFromRecord(
+    mo: Record<string, unknown>,
+    contextLabel: string
+): { ok: true; draft: DraftMember } | { ok: false; errorMessage: string } {
+    if (!isNonEmptyString(mo.stableKey)) {
+        return { ok: false, errorMessage: `${contextLabel} needs stableKey` }
+    }
+    const stableKey = mo.stableKey.trim()
+
+    let echo: CoyoteAffinityPossibilityEcho | undefined
+    if (mo.intendedRole !== undefined) {
+        if (!isCoyoteAffinityPossibilityEcho(mo.intendedRole)) {
+            return {
+                ok: false,
+                errorMessage: `${contextLabel}: intendedRole for "${stableKey}" is not a valid affinity echo`,
+            }
+        }
+        echo = mo.intendedRole
+    }
+
+    return { ok: true, draft: { stableKey, echo } }
+}
+
+function resolveDraftMembers(
+    drafts: DraftMember[],
+    snapshotByStableKey: Map<string, EphemeraMetaRoomObject>,
+    kind: 'cluster' | 'outlier'
+): { ok: true; members: ParsedClusterMember[] } | { ok: false; errorMessage: string } {
+    const membersOut: ParsedClusterMember[] = []
+    for (const dm of drafts) {
+        const obj = snapshotByStableKey.get(dm.stableKey.trim())
+        if (!obj) {
+            return { ok: false, errorMessage: `stage 1 JSON: unknown stableKey "${dm.stableKey}"` }
+        }
+        if (dm.echo === undefined) {
+            membersOut.push({ stableKey: dm.stableKey })
+            continue
+        }
+        const aff = obj.affinities
+        if (!aff || aff.length === 0 || obj.affinitiesFailed === true) {
+            return {
+                ok: false,
+                errorMessage: `stage 1 JSON: intendedRole given for ${dm.stableKey} (${kind}) but affinities unavailable`,
+            }
+        }
+        const resolved = resolveEchoToStoredRow(obj, dm.echo)
+        if (!resolved) {
+            return {
+                ok: false,
+                errorMessage: `stage 1 JSON: intendedRole does not resolve to a snapshot affinity for ${dm.stableKey} (${kind})`,
+            }
+        }
+        membersOut.push({ stableKey: dm.stableKey, intendedRole: resolved })
+    }
+    return { ok: true, members: membersOut }
+}
+
+function parseClustersFromPayload(
+    payload: unknown,
     roomObjectsByRoom: Record<EphemeraRoomId, EphemeraMetaRoomObject[]>
-): ParseHypothesisStageOneResult {
-    const inner = normalizeNewlines(stripHypothesisStageOneFence(rawBody)).trim()
-    if (!inner) {
-        return { ok: false, errorMessage: 'stage 1 seam: empty body' }
+): {
+    ok: true
+    clusters: ParsedCluster[]
+    explicitOutliers?: ParsedClusterMember[]
+} | { ok: false; errorMessage: string } {
+    if (typeof payload !== 'object' || payload === null) {
+        return { ok: false, errorMessage: 'stage 1 JSON: root must be an object' }
+    }
+    const root = payload as Record<string, unknown>
+
+    if (root.notes !== undefined && typeof root.notes !== 'string') {
+        return { ok: false, errorMessage: 'stage 1 JSON: notes must be a string when present' }
     }
 
-    const secNotes = sectionExtract(inner, 'Notes')
-    const secClusters = sectionExtract(inner, 'Clusters')
-
-    if (!secClusters.found) {
-        return { ok: false, errorMessage: 'stage 1 seam: requires ## Clusters' }
+    const clustersRaw = root.clusters
+    if (!Array.isArray(clustersRaw)) {
+        return { ok: false, errorMessage: 'stage 1 JSON: missing or invalid clusters array' }
     }
 
-    if (secNotes.found && secClusters.start <= secNotes.start) {
-        return { ok: false, errorMessage: 'stage 1 seam: ## Notes must precede ## Clusters' }
-    }
-
-    const clustersInner = inner.slice(secClusters.end).trim()
-
-    const clusterBlocks = clustersInner.split(/\n(?=### )/).map((b) => b.trim()).filter(Boolean)
     const expectedCount = expectedStableKeysSorted(roomObjectsByRoom).length
-
     if (expectedCount === 0) {
-        return { ok: false, errorMessage: 'stage 1 seam: no staged objects to cluster' }
+        return { ok: false, errorMessage: 'stage 1 JSON: no staged objects to cluster' }
     }
 
-    if (clusterBlocks.length < 1 || clusterBlocks.length > expectedCount) {
+    if (clustersRaw.length < 1 || clustersRaw.length > expectedCount) {
         return {
             ok: false,
-            errorMessage: `stage 1 seam: expected 1–${expectedCount} clusters, got ${clusterBlocks.length}`,
+            errorMessage: `stage 1 JSON: expected 1-${expectedCount} clusters, got ${clustersRaw.length}`,
         }
     }
 
-    const clusters: ParsedCluster[] = []
+    const draftClusters: { clusterName: string; members: DraftMember[] }[] = []
 
-    for (const cblock of clusterBlocks) {
-        const rawLines = cblock.split('\n')
-        const heading = rawLines[0]?.trim() ?? ''
-        const hm = heading.match(/^### \s*(.+)$/u)
-        if (!hm) {
-            return { ok: false, errorMessage: `stage 1 seam: invalid cluster heading: ${heading}` }
+    for (let ci = 0; ci < clustersRaw.length; ci++) {
+        const c = clustersRaw[ci]
+        if (typeof c !== 'object' || c === null) {
+            return { ok: false, errorMessage: `stage 1 JSON: cluster ${ci} must be an object` }
         }
-        const clusterName = hm[1].trim()
-        if (!clusterName.length) {
-            return { ok: false, errorMessage: 'stage 1 seam: empty cluster label' }
+        const co = c as Record<string, unknown>
+        if (!isNonEmptyString(co.clusterName)) {
+            return { ok: false, errorMessage: `stage 1 JSON: cluster ${ci} needs non-empty clusterName` }
         }
-
-        const memberLines = rawLines.slice(1)
-        const parsedMembers = parseClusterMemberLines(memberLines)
-        if (!parsedMembers.ok) {
-            return { ok: false, errorMessage: parsedMembers.errorMessage }
-        }
-        if (parsedMembers.members.length < 1) {
-            return { ok: false, errorMessage: `stage 1 seam: cluster "${clusterName}" has no members` }
+        const clusterName = co.clusterName.trim()
+        const membersRaw = co.members
+        if (!Array.isArray(membersRaw) || membersRaw.length < 1) {
+            return {
+                ok: false,
+                errorMessage: `stage 1 JSON: cluster "${clusterName}" needs a non-empty members array`,
+            }
         }
 
-        clusters.push({
-            clusterName,
-            members: parsedMembers.members,
-        })
+        const membersDraft: DraftMember[] = []
+        for (let mi = 0; mi < membersRaw.length; mi++) {
+            const mem = membersRaw[mi]
+            if (typeof mem !== 'object' || mem === null) {
+                return {
+                    ok: false,
+                    errorMessage: `stage 1 JSON: cluster "${clusterName}" member ${mi} must be an object`,
+                }
+            }
+            const parsedM = parseDraftMemberFromRecord(
+                mem as Record<string, unknown>,
+                `stage 1 JSON: cluster "${clusterName}" member ${mi}`
+            )
+            if (!parsedM.ok) {
+                return parsedM
+            }
+            membersDraft.push(parsedM.draft)
+        }
+
+        draftClusters.push({ clusterName, members: membersDraft })
     }
 
-    const parsedKeys = clusters
-        .flatMap((c) => c.members.map((m) => m.stableKey.trim()))
+    const clusterKeysSorted = draftClusters
+        .flatMap((cl) => cl.members.map((m) => m.stableKey.trim()))
         .sort()
 
     const expectedSorted = JSON.stringify(expectedStableKeysSorted(roomObjectsByRoom))
-    const parsedSorted = JSON.stringify(parsedKeys)
+    const hasExplicitOutliers = Object.prototype.hasOwnProperty.call(root, 'outliers')
 
-    if (parsedKeys.length !== expectedStableKeysSorted(roomObjectsByRoom).length || parsedSorted !== expectedSorted) {
-        return {
-            ok: false,
-            errorMessage: `stage 1 seam: stableKey multiset mismatch (expected ${expectedSorted}, parsed ${parsedSorted})`,
+    let draftOutliers: DraftMember[] | undefined
+    if (hasExplicitOutliers) {
+        if (!Array.isArray(root.outliers)) {
+            return { ok: false, errorMessage: 'stage 1 JSON: outliers must be an array when present' }
+        }
+        draftOutliers = []
+        for (let oi = 0; oi < root.outliers.length; oi++) {
+            const raw = root.outliers[oi]
+            if (typeof raw !== 'object' || raw === null) {
+                return { ok: false, errorMessage: `stage 1 JSON: outliers[${oi}] must be an object` }
+            }
+            const parsedO = parseDraftMemberFromRecord(
+                raw as Record<string, unknown>,
+                `stage 1 JSON: outliers[${oi}]`
+            )
+            if (!parsedO.ok) {
+                return parsedO
+            }
+            draftOutliers.push(parsedO.draft)
+        }
+
+        const outlierKeysSorted = draftOutliers.map((d) => d.stableKey.trim()).sort()
+        const clusterKeySet = new Set(clusterKeysSorted)
+        for (const ok of outlierKeysSorted) {
+            if (clusterKeySet.has(ok)) {
+                return {
+                    ok: false,
+                    errorMessage: `stage 1 JSON: stableKey "${ok}" appears in both clusters and outliers`,
+                }
+            }
+        }
+
+        const unionSorted = [...clusterKeysSorted, ...outlierKeysSorted].sort()
+        if (JSON.stringify(unionSorted) !== expectedSorted) {
+            return {
+                ok: false,
+                errorMessage: `stage 1 JSON: clusters ∪ outliers must equal staged multiset (expected ${expectedSorted}, got ${JSON.stringify(unionSorted)})`,
+            }
+        }
+    } else {
+        const parsedSorted = JSON.stringify(clusterKeysSorted)
+        if (
+            clusterKeysSorted.length !== expectedStableKeysSorted(roomObjectsByRoom).length
+            || parsedSorted !== expectedSorted
+        ) {
+            return {
+                ok: false,
+                errorMessage: `stage 1 JSON: stableKey multiset mismatch (expected ${expectedSorted}, parsed ${parsedSorted})`,
+            }
         }
     }
 
@@ -215,44 +350,70 @@ export function parseHypothesisStageOneOutput(
         }
     }
 
-    for (const cl of clusters) {
-        for (const mem of cl.members) {
-            const obj = snapshotByStableKey.get(mem.stableKey.trim())
-            if (!obj) {
-                return { ok: false, errorMessage: `stage 1 seam: unknown stableKey "${mem.stableKey}"` }
-            }
-            if (mem.intendedRole !== undefined) {
-                const aff = obj.affinities
-                if (!aff || aff.length === 0 || obj.affinitiesFailed === true) {
-                    return {
-                        ok: false,
-                        errorMessage: `stage 1 seam: intendedRole given for ${mem.stableKey} but affinities unavailable`,
-                    }
-                }
-                const match = aff.some((a) => affinityEchoMatches(a, mem.intendedRole!))
-                if (!match) {
-                    return {
-                        ok: false,
-                        errorMessage: `stage 1 seam: intendedRole does not match snapshot row for ${mem.stableKey}`,
-                    }
-                }
-            }
+    const clusters: ParsedCluster[] = []
+    for (const dc of draftClusters) {
+        const resolved = resolveDraftMembers(dc.members, snapshotByStableKey, 'cluster')
+        if (!resolved.ok) {
+            return resolved
         }
+        clusters.push({ clusterName: dc.clusterName, members: resolved.members })
     }
 
-    return { ok: true, markdown: inner, clusters }
+    let explicitOutliers: ParsedClusterMember[] | undefined
+    if (hasExplicitOutliers && draftOutliers !== undefined) {
+        const resolvedOut = resolveDraftMembers(draftOutliers, snapshotByStableKey, 'outlier')
+        if (!resolvedOut.ok) {
+            return resolvedOut
+        }
+        explicitOutliers = resolvedOut.members
+    }
+
+    return { ok: true, clusters, explicitOutliers }
 }
 
-function affinityEchoMatches(stored: CoyoteAffinityPossibility, echoed: CoyoteAffinityPossibility): boolean {
-    if (stored.role !== echoed.role) {
-        return false
+/**
+ * Validates stage-1 Bedrock JSON body and returns parsed clusters.
+ */
+export function parseHypothesisStageOneOutput(
+    rawBody: string,
+    roomObjectsByRoom: Record<EphemeraRoomId, EphemeraMetaRoomObject[]>
+): ParseHypothesisStageOneResult {
+    const jsonStr = extractJsonObjectString(rawBody)
+    if (!jsonStr) {
+        return { ok: false, errorMessage: 'stage 1 JSON: empty body or no JSON object found' }
     }
-    if (stored.role === 'entity_modification' && echoed.role === 'entity_modification') {
-        return (
-            stored.target === echoed.target
-            && stored.mode === echoed.mode
-            && Math.abs(stored.aptness - echoed.aptness) < 1e-6
-        )
+
+    let payload: unknown
+    try {
+        payload = JSON.parse(jsonStr)
+    } catch {
+        return { ok: false, errorMessage: 'stage 1 JSON: JSON.parse failed' }
     }
-    return Math.abs(stored.aptness - echoed.aptness) < 1e-6
+
+    const parsed = parseClustersFromPayload(payload, roomObjectsByRoom)
+    if (!parsed.ok) {
+        return parsed
+    }
+
+    const notes =
+        typeof payload === 'object' && payload !== null && typeof (payload as { notes?: unknown }).notes === 'string'
+            ? (payload as { notes: string }).notes
+            : undefined
+
+    const normalizedPayload: Record<string, unknown> = {
+        clusters: parsed.clusters,
+    }
+    if (parsed.explicitOutliers !== undefined) {
+        normalizedPayload.outliers = parsed.explicitOutliers
+    }
+    if (notes !== undefined) {
+        normalizedPayload.notes = notes
+    }
+
+    return {
+        ok: true,
+        normalizedJson: JSON.stringify(normalizedPayload),
+        clusters: parsed.clusters,
+        ...(parsed.explicitOutliers !== undefined ? { explicitOutliers: parsed.explicitOutliers } : {}),
+    }
 }

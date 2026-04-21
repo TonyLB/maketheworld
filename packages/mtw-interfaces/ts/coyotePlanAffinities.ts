@@ -54,6 +54,23 @@ export type CoyoteAffinityPossibility =
           aptness: number;
       }
 
+/** Stage-one intendedRole echo: same roles as **[`CoyoteAffinityPossibility`]**, but **`aptness`** may be omitted (resolved against snapshot rows). */
+export type CoyoteAffinityPossibilityEcho =
+    | {
+          role: 'entity_modification';
+          target: CoyoteAffinityTarget;
+          mode: CoyoteAffinityMode;
+          aptness?: number;
+      }
+    | {
+          role: CoyoteStructuralRole;
+          aptness?: number;
+      }
+    | {
+          role: CoyoteGenerativeRole;
+          aptness?: number;
+      }
+
 function applyCoyoteAffinityAptnessFloor(
     affinities: CoyoteAffinityPossibility[]
 ): CoyoteAffinityPossibility[] {
@@ -122,6 +139,32 @@ export function isCoyoteAffinityPossibility(entry: unknown): entry is CoyoteAffi
     }
     if (isCoyoteGenerativeRole(role)) {
         return isFiniteAptness(o.aptness)
+    }
+    return false
+}
+
+/** **`true`** for a full persisted row, or for an echo that omits **`aptness`** (optional decimals when present). */
+export function isCoyoteAffinityPossibilityEcho(entry: unknown): entry is CoyoteAffinityPossibilityEcho {
+    if (isCoyoteAffinityPossibility(entry)) {
+        return true
+    }
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+        return false
+    }
+    const o = entry as Record<string, unknown>
+    const role = o.role
+    if (role === 'entity_modification') {
+        return (
+            isCoyoteAffinityTarget(o.target)
+            && isCoyoteAffinityMode(o.mode)
+            && (o.aptness === undefined || isFiniteAptness(o.aptness))
+        )
+    }
+    if (isCoyoteStructuralRole(role)) {
+        return o.aptness === undefined || isFiniteAptness(o.aptness)
+    }
+    if (isCoyoteGenerativeRole(role)) {
+        return o.aptness === undefined || isFiniteAptness(o.aptness)
     }
     return false
 }
