@@ -87,7 +87,7 @@ flowchart LR
 
 ## Feature consumer (example)
 
-Coyote hypothesis (clustering seam through stage-two parse) runs on this runner in [`../../dataSource/coyoteGame/coyoteHypothesisPipeline.ts`](../../dataSource/coyoteGame/coyoteHypothesisPipeline.ts); entry points remain [`../../dataSource/coyoteGame/generateHypothesis.ts`](../../dataSource/coyoteGame/generateHypothesis.ts). Broader Coyote context: [`../../dataSource/coyoteGame/AGENT.md`](../../dataSource/coyoteGame/AGENT.md).
+Coyote hypothesis (stage one → combine → plan-selection hop → phase-plan hop → parse) runs on this runner in [`../../dataSource/coyoteGame/coyoteHypothesisPipeline.ts`](../../dataSource/coyoteGame/coyoteHypothesisPipeline.ts); entry points remain [`../../dataSource/coyoteGame/generateHypothesis.ts`](../../dataSource/coyoteGame/generateHypothesis.ts). Broader Coyote context: [`../../dataSource/coyoteGame/AGENT.md`](../../dataSource/coyoteGame/AGENT.md).
 
 Other multi-step flows that are still **ad hoc** (for example [`parseCommand`](../../dataSource/actions/parseCommand.ts) enrich paths) may migrate incrementally; **`dataSource/actions/AGENT.md`** and feature docs remain the source of truth for those products.
 

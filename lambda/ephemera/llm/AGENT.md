@@ -14,7 +14,7 @@
 
 - **Transport vs parsing:** Invoke helpers return success with a string `body` or a structured failure. Parsers only read that `body`; they stay agnostic to `@tonylb/mtw-interfaces` and action merge rules.
 - **Fenced JSON tail:** For prompts that ask for Markdown reasoning and a final JSON object, prefer a **trailing** fenced **json** block so `splitMarkdownReasoningAndJson` can avoid stray braces in prose. If that is not possible, the first-brace heuristic may mis-split; say so in the prompt or add a dedicated delimiter in a follow-up.
-- **Fenced text tail (Coyote hypothesis Stage Two):** Same **Markdown prefix + fenced tail** shape with a **`text`** fence and a single **`Hypothesis:`** line; [`parseHypothesisModelOutput`](../dataSource/coyoteGame/parseHypothesisModelOutput.ts) slices the last hypothesis-only fence. Contract and legacy fallback: [`coyoteGame/AGENT.md`](../dataSource/coyoteGame/AGENT.md) (**Stage Two body contract**).
+- **Fenced text tail (Coyote hypothesis phase-plan hop):** Same **Markdown prefix + fenced tail** shape with a **`text`** fence and a single **`Hypothesis:`** line; [`parseHypothesisModelOutput`](../dataSource/coyoteGame/parseHypothesisModelOutput.ts) slices the last hypothesis-only fence. Contract and legacy fallback: [`coyoteGame/AGENT.md`](../dataSource/coyoteGame/AGENT.md) (**Hop 2 (phase-plan + surface) contract**).
 - **Tests:** Jest lives next to sources in this folder; run tests from `lambda/ephemera` per `package.json`.
 
 ## Integration points

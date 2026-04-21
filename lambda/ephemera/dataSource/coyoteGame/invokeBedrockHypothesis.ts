@@ -22,7 +22,7 @@ export const BEDROCK_HYPOTHESIS_STAGE_TWO_MAX_TOKENS = 2048
 
 /**
  * Default max tokens for Option A hops after combine (plan selection; phase-plan + surface).
- * Tune from harness **`usage`** only — topology stays two hops (see task plan Option A).
+ * Tune from harness **`usage`** only — topology stays two Bedrock hops after combine (see [`AGENT.md`](./AGENT.md)).
  */
 export const BEDROCK_HYPOTHESIS_NEW_HOP_DEFAULT_MAX_TOKENS = 2048
 
@@ -34,7 +34,7 @@ export const BEDROCK_HYPOTHESIS_PLAN_SELECTION_MAX_TOKENS = BEDROCK_HYPOTHESIS_N
 
 /**
  * Hop 2 (phase-plan JSON + "## Scene analysis" + fenced Hypothesis line).
- * Two sequential Bedrock calls after combine each use [`BEDROCK_HYPOTHESIS_TIMEOUT_MS`] — ensure Lambda timeout allows both (see template.yaml).
+ * Hypothesis pipeline: three sequential invokes (stage one + hop 1 + hop 2), each using [`BEDROCK_HYPOTHESIS_TIMEOUT_MS`] — ensure Lambda timeout fits all plus combine work (see [`AGENT.md`](./AGENT.md), template.yaml).
  */
 export const BEDROCK_HYPOTHESIS_PHASE_PLAN_HOP_MAX_TOKENS = BEDROCK_HYPOTHESIS_NEW_HOP_DEFAULT_MAX_TOKENS
 
