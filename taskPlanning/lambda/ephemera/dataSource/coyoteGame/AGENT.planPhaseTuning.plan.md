@@ -61,11 +61,11 @@ Follow the ordered **categories** below (see [Getting Started pattern for comple
 
 Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]` as you complete each sub-step.
 
-- [ ] Bedrock utility: **`extendedThinking`** + **`reasoningContent`**
-  - [ ] Add **`extendedThinking?: boolean`** (default **`false`**) to [`InvokeBedrockConverseTextParams`](../../../../../lambda/ephemera/llm/invokeBedrockConverseText.ts) and plumb into **`ConverseCommandInput`** per AWS Bedrock extended-thinking API for the target model(s).
-  - [ ] On success, populate optional **`reasoningContent: string`** (or structured type if API returns blocks) on [`InvokeBedrockConverseTextSuccess`](../../../../../lambda/ephemera/llm/invokeBedrockConverseText.ts) when the response includes reasoning; keep **`body`** as primary assistant **text** output only.
-  - [ ] Extend **text extraction** helpers if content blocks distinguish **text** vs **reasoning** (mirror patterns from AWS SDK types).
-  - [ ] Unit tests: mocked client returns reasoning + text; flag off preserves current behavior.
+- [X] Bedrock utility: **`extendedThinking`** + **`reasoningContent`**
+  - [X] Add **`extendedThinking?: boolean`** (default **`false`**) to [`InvokeBedrockConverseTextParams`](../../../../../lambda/ephemera/llm/invokeBedrockConverseText.ts) and plumb into **`ConverseCommandInput`** per AWS Bedrock extended-thinking API for the target model(s).
+  - [X] On success, populate optional **`reasoningContent: string`** (or structured type if API returns blocks) on [`InvokeBedrockConverseTextSuccess`](../../../../../lambda/ephemera/llm/invokeBedrockConverseText.ts) when the response includes reasoning; keep **`body`** as primary assistant **text** output only.
+  - [X] Extend **text extraction** helpers if content blocks distinguish **text** vs **reasoning** (mirror patterns from AWS SDK types).
+  - [X] Unit tests: mocked client returns reasoning + text; flag off preserves current behavior.
 
 - [ ] Hypothesis wrappers pass-through
   - [ ] Thread **`extendedThinking`** (and optional returned **`reasoningContent`**) through [`invokeBedrockHypothesis`](../../../../../lambda/ephemera/dataSource/coyoteGame/invokeBedrockHypothesis.ts) / [`InvokeBedrockHypothesisResult`](../../../../../lambda/ephemera/dataSource/coyoteGame/invokeBedrockHypothesis.ts) types as needed.
@@ -97,8 +97,9 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
 ## Verification
 
 - From **`lambda/ephemera`**: `npm run build`
+- Bedrock utility slice (`extendedThinking` / `reasoningContent`): `npm run test -- --runInBand llm/invokeBedrockConverseText.test.ts` (passes); `npm run build` (passes).
 - Targeted tests (adjust paths as tests are added):
-  - `npm run test -- --runInBand llm/invokeBedrockConverseText.test.ts` (add file if missing)
+  - `npm run test -- --runInBand llm/invokeBedrockConverseText.test.ts`
   - `npm run test -- --runInBand dataSource/coyoteGame/invokeBedrockHypothesis.test.ts dataSource/coyoteGame/generateHypothesis.test.ts dataSource/coyoteGame/buildHypothesisStageTwoPrompt.test.ts`
 - Confirm **`ReadLints`** clean on edited files.
 
@@ -106,7 +107,7 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
 
 | Milestone | Status |
 | --- | --- |
-| `invokeBedrockConverseText` extended thinking + reasoning extraction | Not started |
+| `invokeBedrockConverseText` extended thinking + reasoning extraction | Done |
 | Stage 2 invocation uses extended thinking; types plumbed | Not started |
 | Stage 2 prompt: cluster alignment, temporal ordering, virtual scenery / prep-created objects | Not started |
 | Parsing/harness updated; chain-of-reason stripping removed from primary Stage 2 path | Not started |
