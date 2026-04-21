@@ -51,6 +51,28 @@ function formatStageOneBodyForHarness(result: InvokeBedrockHypothesisResult): st
     return `stageOneBody:\n${body}`
 }
 
+function formatSelectionBodyForHarness(selectionBody: string | undefined): string {
+    if (selectionBody !== undefined && selectionBody.trim().length > 0) {
+        return `selectionBody:\n${selectionBody}`
+    }
+    return 'selectionBody: (none)'
+}
+
+function formatPhasePlanJsonForHarness(args: {
+    phasePlanJson: string | undefined
+    phasePlanValidationReason: string | undefined
+}): string {
+    const { phasePlanJson, phasePlanValidationReason } = args
+    if (phasePlanJson !== undefined && phasePlanJson.trim().length > 0) {
+        return `phasePlanJson:\n${phasePlanJson}`
+    }
+    let s = 'phasePlanJson: (none)'
+    if (phasePlanValidationReason !== undefined && phasePlanValidationReason.length > 0) {
+        s += `\nphasePlanValidationReason: ${phasePlanValidationReason}`
+    }
+    return s
+}
+
 function formatUsageLine(label: string, result: InvokeBedrockHypothesisResult): string {
     if (!result.success || !result.usage) {
         return `${label}: (none)`
@@ -90,6 +112,8 @@ function formatFixtureRenderTree(args: {
     stageOneBodyBlock: string
     usagePlanSelection: string
     usagePhasePlanHop: string
+    selectionBodyBlock: string
+    phasePlanJsonBlock: string
     errorMessage?: string
 }): RenderTree {
     const {
@@ -102,16 +126,14 @@ function formatFixtureRenderTree(args: {
         stageOneBodyBlock,
         usagePlanSelection,
         usagePhasePlanHop,
+        selectionBodyBlock,
+        phasePlanJsonBlock,
         errorMessage,
     } = args
     const heading = `${index + 1}/${total} ${fixture.id}${fixture.label ? ` - ${fixture.label}` : ''}`
     const tree: RenderTree = [heading, COYOTE_RENDER_LINE_BREAK]
-    const walkthroughOrScene =
-        intentRecord.walkthrough !== undefined && intentRecord.walkthrough.length > 0
-            ? intentRecord.walkthrough
-            : intentRecord.sceneAnalysis
-    if (walkthroughOrScene !== undefined && walkthroughOrScene.length > 0) {
-        tree.push(walkthroughOrScene, COYOTE_RENDER_LINE_BREAK)
+    if (intentRecord.walkthrough !== undefined && intentRecord.walkthrough.length > 0) {
+        tree.push(intentRecord.walkthrough, COYOTE_RENDER_LINE_BREAK)
     }
     tree.push(
         intentRecord.intent,
@@ -124,7 +146,11 @@ function formatFixtureRenderTree(args: {
         COYOTE_RENDER_LINE_BREAK,
         usagePlanSelection,
         COYOTE_RENDER_LINE_BREAK,
-        usagePhasePlanHop
+        usagePhasePlanHop,
+        COYOTE_RENDER_LINE_BREAK,
+        selectionBodyBlock,
+        COYOTE_RENDER_LINE_BREAK,
+        phasePlanJsonBlock
     )
     if (errorMessage) {
         tree.push(COYOTE_RENDER_LINE_BREAK, `error: ${errorMessage}`)
@@ -164,6 +190,11 @@ export async function runCoyoteEngineTestHarness(deps: RunCoyoteEngineTestHarnes
                 pipeline.phasePlanHopResult ?? emptyUsageFailure
             )
             const stageOneBodyBlock = formatStageOneBodyForHarness(pipeline.stageOneResult)
+            const selectionBodyBlock = formatSelectionBodyForHarness(pipeline.selectionBody)
+            const phasePlanJsonBlock = formatPhasePlanJsonForHarness({
+                phasePlanJson: pipeline.phasePlanJson,
+                phasePlanValidationReason: pipeline.phasePlanValidationReason,
+            })
             const message = formatFixtureRenderTree({
                 fixture,
                 index,
@@ -174,6 +205,8 @@ export async function runCoyoteEngineTestHarness(deps: RunCoyoteEngineTestHarnes
                 stageOneBodyBlock,
                 usagePlanSelection,
                 usagePhasePlanHop,
+                selectionBodyBlock,
+                phasePlanJsonBlock,
                 errorMessage: pipelineErrorMessage(pipeline),
             })
             deps.messageBus.send(
@@ -199,6 +232,11 @@ export async function runCoyoteEngineTestHarness(deps: RunCoyoteEngineTestHarnes
                 stageOneBodyBlock: 'stageOneBody: (none)',
                 usagePlanSelection: 'usagePlanSelection: (none)',
                 usagePhasePlanHop: 'usagePhasePlanHop: (none)',
+                selectionBodyBlock: formatSelectionBodyForHarness(undefined),
+                phasePlanJsonBlock: formatPhasePlanJsonForHarness({
+                    phasePlanJson: undefined,
+                    phasePlanValidationReason: undefined,
+                }),
                 errorMessage,
             })
             deps.messageBus.send(

@@ -8,14 +8,13 @@ export type CacheCoyoteGameKeys = 'gameRooms' | 'intent' | 'outcome'
 
 export type CoyoteGameIntentRecord = {
     intent: string
-    /** Transient / harness; durable carry optional until intent row migration completes. */
-    sceneAnalysis?: string
     /** Player walkthrough aligned to **`phasePlan`** (typically "## Scene analysis" body). */
     walkthrough?: string
     /** Machine-checkable phase plan when hop-2 JSON validates. */
     phasePlan?: CoyotePhasePlan
 }
 
+/** Dynamo row shape; **`sceneAnalysis`** may exist on legacy reads only (mapped into **`walkthrough`**). */
 type CoyoteGameDurableIntentRow = {
     intent?: string
     sceneAnalysis?: string
@@ -50,16 +49,18 @@ function normalizeDurableIntentRow(fetched: CoyoteGameDurableIntentRow | undefin
         return null
     }
     const { intent } = fetched
-    const sceneAnalysis =
-        typeof fetched.sceneAnalysis === 'string' && fetched.sceneAnalysis.length > 0
-            ? fetched.sceneAnalysis
-            : undefined
-    const walkthrough =
+    let walkthrough =
         typeof fetched.walkthrough === 'string' && fetched.walkthrough.length > 0 ? fetched.walkthrough : undefined
+    if (walkthrough === undefined) {
+        const legacyScene =
+            typeof fetched.sceneAnalysis === 'string' && fetched.sceneAnalysis.length > 0
+                ? fetched.sceneAnalysis
+                : undefined
+        walkthrough = legacyScene
+    }
     const phasePlan = fetched.phasePlan
     return {
         intent,
-        ...(sceneAnalysis !== undefined ? { sceneAnalysis } : {}),
         ...(walkthrough !== undefined ? { walkthrough } : {}),
         ...(phasePlan !== undefined ? { phasePlan } : {}),
     }
@@ -128,7 +129,7 @@ export class CacheCoyoteGameData extends CacheBase {
     private async loadIntent(): Promise<CoyoteGameIntentRecord> {
         const fetched = await ephemeraDB.getItem<CoyoteGameDurableIntentRow>({
             Key: COYOTE_GAME_INTENT_KEY,
-            ProjectionFields: ['intent', 'sceneAnalysis', 'walkthrough', 'phasePlan'],
+            ProjectionFields: ['intent', 'walkthrough', 'phasePlan', 'sceneAnalysis'],
         })
         const fromDynamo = normalizeDurableIntentRow(fetched ?? undefined)
         if (fromDynamo) {
@@ -139,7 +140,6 @@ export class CacheCoyoteGameData extends CacheBase {
         await ephemeraDB.putItem({
             ...COYOTE_GAME_INTENT_KEY,
             intent: generated.intent,
-            ...(generated.sceneAnalysis !== undefined ? { sceneAnalysis: generated.sceneAnalysis } : {}),
             ...(generated.walkthrough !== undefined ? { walkthrough: generated.walkthrough } : {}),
             ...(generated.phasePlan !== undefined ? { phasePlan: generated.phasePlan } : {}),
         })

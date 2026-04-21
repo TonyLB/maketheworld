@@ -162,6 +162,8 @@ describe('runCoyoteEngineTestHarness', () => {
                     cacheWriteInputTokens: 0,
                 },
             },
+            selectionBody: '{"paragraphSummary":"x","rubricIssues":[]}',
+            phasePlanJson: '{"phases":[{"stableKeysUsed":["anvil-0"],"virtualEntities":[],"achievement":"launch"}]}',
         })
         let t = 0
         const now = () => {
@@ -189,6 +191,10 @@ describe('runCoyoteEngineTestHarness', () => {
         expect(flat).toContain('"stableKey":"anvil-0"')
         expect(flat).toContain('usagePlanSelection: input=15 output=8 total=23 cacheRead=10 cacheWrite=1')
         expect(flat).toContain('usagePhasePlanHop: input=20 output=9 total=29 cacheRead=12 cacheWrite=0')
+        expect(flat).toContain('selectionBody:\n{"paragraphSummary":"x","rubricIssues":[]}')
+        expect(flat).toContain(
+            'phasePlanJson:\n{"phases":[{"stableKeysUsed":["anvil-0"],"virtualEntities":[],"achievement":"launch"}]}'
+        )
     })
 
     it('respects testBatchSize concurrency limit', async () => {

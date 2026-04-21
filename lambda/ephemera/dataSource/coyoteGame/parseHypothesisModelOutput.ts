@@ -91,7 +91,7 @@ export type ParseHypothesisPhasePlanHopResult = {
 
 /**
  * Option A hop 2: extracts **`phasePlan`** from **` ```json ` ** fences via [**`validateCoyotePhasePlan`**], then prose via [**`parseHypothesisModelOutput`**].
- * On validation failure, **`record`** still carries usable **`intent`** / **`sceneAnalysis`** / **`walkthrough`** when present (**Decided: structured validation failure**).
+ * On validation failure, **`record`** still carries usable **`intent`** / **`walkthrough`** when prose parses (**Decided: structured validation failure**).
  */
 export function parseHypothesisPhasePlanHopOutput(
     rawBody: string,
@@ -119,12 +119,9 @@ export function parseHypothesisPhasePlanHopOutput(
             phasePlanJson = interior
             const proseBody = stripAllJsonFences(rawBody)
             const base = parseHypothesisModelOutput(proseBody, parseOptions)
-            const walkthrough =
-                base.sceneAnalysis !== undefined && base.sceneAnalysis.length > 0 ? base.sceneAnalysis : undefined
             const record: CoyoteGameIntentRecord = {
                 intent: base.intent,
-                ...(base.sceneAnalysis !== undefined ? { sceneAnalysis: base.sceneAnalysis } : {}),
-                ...(walkthrough !== undefined ? { walkthrough } : {}),
+                ...(base.walkthrough !== undefined ? { walkthrough: base.walkthrough } : {}),
                 phasePlan: v.phasePlan,
             }
             return { record, phasePlanJson }
@@ -134,12 +131,9 @@ export function parseHypothesisPhasePlanHopOutput(
 
     const proseBody = stripAllJsonFences(rawBody)
     const base = parseHypothesisModelOutput(proseBody, parseOptions)
-    const walkthrough =
-        base.sceneAnalysis !== undefined && base.sceneAnalysis.length > 0 ? base.sceneAnalysis : undefined
     const record: CoyoteGameIntentRecord = {
         intent: base.intent,
-        ...(base.sceneAnalysis !== undefined ? { sceneAnalysis: base.sceneAnalysis } : {}),
-        ...(walkthrough !== undefined ? { walkthrough } : {}),
+        ...(base.walkthrough !== undefined ? { walkthrough: base.walkthrough } : {}),
     }
 
     return {
@@ -158,11 +152,11 @@ export function parseHypothesisModelOutput(
         const { prefix, intentLine } = split
         const intent = intentLine.trim()
         const preLines = prefix.split(/\r?\n/)
-        const sceneAnalysis = trimSceneAnalysisPrefix(preLines)
+        const walkthrough = trimSceneAnalysisPrefix(preLines)
         if (!prefix.trim()) {
             return { intent }
         }
-        return sceneAnalysis.length > 0 ? { intent, sceneAnalysis } : { intent }
+        return walkthrough.length > 0 ? { intent, walkthrough } : { intent }
     }
 
     const unwrapped = stripCodeFences(rawBody)
@@ -176,6 +170,6 @@ export function parseHypothesisModelOutput(
     }
     const intent = lines[hypothesisIndex].trim()
     const preHypothesis = lines.slice(0, hypothesisIndex)
-    const sceneAnalysis = trimSceneAnalysisPrefix(preHypothesis)
-    return sceneAnalysis.length > 0 ? { intent, sceneAnalysis } : { intent }
+    const walkthrough = trimSceneAnalysisPrefix(preHypothesis)
+    return walkthrough.length > 0 ? { intent, walkthrough } : { intent }
 }

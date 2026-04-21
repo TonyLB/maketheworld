@@ -76,8 +76,8 @@ export async function handleObjectsChangedForHypothesis(
         await internalCache.CoyoteGame.invalidate('intent')
         const intentRecord = await internalCache.CoyoteGame.get('intent')
         const renderTree: RenderTree =
-            intentRecord.sceneAnalysis !== undefined && intentRecord.sceneAnalysis.length > 0
-                ? [intentRecord.sceneAnalysis, COYOTE_RENDER_LINE_BREAK, intentRecord.intent]
+            intentRecord.walkthrough !== undefined && intentRecord.walkthrough.length > 0
+                ? [intentRecord.walkthrough, COYOTE_RENDER_LINE_BREAK, intentRecord.intent]
                 : [intentRecord.intent]
 
         const t1 = Math.max(stored.t0 + 1, getCurrentTimestamp())

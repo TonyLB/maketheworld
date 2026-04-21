@@ -160,7 +160,6 @@ describe('generateHypothesis', () => {
         })
         await expect(generateHypothesis({ getGameRooms, getRoomMeta })).resolves.toMatchObject({
             intent: 'Hypothesis: You are trying to drop something on the Road Runner.',
-            sceneAnalysis: '## Scene analysis\nTrap setup.',
             walkthrough: '## Scene analysis\nTrap setup.',
         })
     })
