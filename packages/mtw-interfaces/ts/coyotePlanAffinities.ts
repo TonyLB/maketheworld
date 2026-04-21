@@ -175,6 +175,14 @@ function isFiniteUnitConfidence(n: unknown): boolean {
 }
 
 /**
+ * Normalized **`stableKey`** reserved for Coyote phase-plan **virtual grounding** (human-facing label **`SETTING`**).
+ * Acme deterministic finalization must not assign this key to staged **`Meta::Room.objects`**; use **`acme-setting`** (or suffixed variants) instead.
+ *
+ * @see task planning **Decided: reserved stable key SETTING (virtual grounding)** under **`lambda/ephemera/dataSource/coyoteGame/`**.
+ */
+export const COYOTE_RESERVED_VIRTUAL_GROUNDING_STABLE_KEY = 'setting' as const
+
+/**
  * Charset normalization for **`stableKey`**: lowercase **`a-z`**, **`0-9`**, **`-`** only;
  * whitespace and punctuation folded to hyphens (see task plan **Charset and normalization**).
  */

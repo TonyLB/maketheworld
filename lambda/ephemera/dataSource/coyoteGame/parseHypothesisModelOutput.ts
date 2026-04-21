@@ -1,4 +1,7 @@
+import type { CoyotePhasePlanValidationContext } from '@tonylb/mtw-interfaces/ts/coyotePhasePlan'
+import { validateCoyotePhasePlan } from '@tonylb/mtw-interfaces/ts/coyotePhasePlan'
 import type { CoyoteGameIntentRecord } from '../../internalCache/coyoteGame'
+import { findAllFenceBlocks } from '../../llm/markdownCodeFences'
 
 const STUB_INTENT = 'Hypothesis: Stubbed'
 
@@ -27,35 +30,6 @@ function trimSceneAnalysisPrefix(preHypothesisLines: string[]): string {
     return preHypothesisLines.slice(headingIdx).join('\n').trim()
 }
 
-type FenceBlock = { start: number; end: number; interior: string }
-
-/** Finds Markdown fenced code blocks (``` optional lang + newline ... ```). */
-function findAllFenceBlocks(s: string): FenceBlock[] {
-    const blocks: FenceBlock[] = []
-    let i = 0
-    while (i < s.length) {
-        const tick = s.indexOf('```', i)
-        if (tick < 0) {
-            break
-        }
-        const rest = s.slice(tick + 3)
-        const m = rest.match(/^([\w]*)\r?\n/)
-        if (!m) {
-            i = tick + 3
-            continue
-        }
-        const innerStart = tick + 3 + m[0].length
-        const closeIdx = s.indexOf('```', innerStart)
-        if (closeIdx < 0) {
-            break
-        }
-        const interior = s.slice(innerStart, closeIdx)
-        blocks.push({ start: tick, end: closeIdx + 3, interior })
-        i = closeIdx + 3
-    }
-    return blocks
-}
-
 function interiorIsSingleHypothesisLine(interior: string): string | null {
     const nonEmpty = interior
         .split(/\r?\n/)
@@ -70,6 +44,19 @@ function interiorIsSingleHypothesisLine(interior: string): string | null {
 /**
  * New Stage Two contract: prefix (scene analysis Markdown) + final ``` fence whose interior is only Hypothesis: ...
  */
+/** Removes every **` ```json ` ** fenced region (Option A hop-2 phase-plan JSON) so prose parsing sees only scene analysis + Hypothesis fences. */
+function stripAllJsonFences(rawBody: string): string {
+    let s = rawBody
+    const blocks = findAllFenceBlocks(s)
+    const jsonBlocks = blocks
+        .filter((b) => b.lang.toLowerCase() === 'json')
+        .sort((a, b) => b.start - a.start)
+    for (const b of jsonBlocks) {
+        s = s.slice(0, b.start) + s.slice(b.end)
+    }
+    return s.trim()
+}
+
 function trySplitFinalHypothesisFence(rawBody: string): { prefix: string; intentLine: string } | null {
     const blocks = findAllFenceBlocks(rawBody)
     for (let b = blocks.length - 1; b >= 0; b--) {
@@ -95,6 +82,67 @@ function trySplitFinalHypothesisFence(rawBody: string): { prefix: string; intent
  * scene analysis is taken from the prefix before that fence (with the same `## Scene analysis` trim rules).
  * **Legacy path:** Otherwise, unwrap a single outer ``` fence if present, then use the first `Hypothesis:` line.
  */
+export type ParseHypothesisPhasePlanHopResult = {
+    record: CoyoteGameIntentRecord
+    /** Raw **` ```json ` ** interior that validated, when any. */
+    phasePlanJson?: string
+    phasePlanValidationReason?: string
+}
+
+/**
+ * Option A hop 2: extracts **`phasePlan`** from **` ```json ` ** fences via [**`validateCoyotePhasePlan`**], then prose via [**`parseHypothesisModelOutput`**].
+ * On validation failure, **`record`** still carries usable **`intent`** / **`walkthrough`** when prose parses (**Decided: structured validation failure**).
+ */
+export function parseHypothesisPhasePlanHopOutput(
+    rawBody: string,
+    phasePlanCtx: CoyotePhasePlanValidationContext,
+    parseOptions?: ParseHypothesisModelOutputOptions
+): ParseHypothesisPhasePlanHopResult {
+    const blocks = findAllFenceBlocks(rawBody)
+    let phasePlanJson: string | undefined
+    let lastReason = 'no valid phase-plan JSON in ```json fences'
+
+    for (const b of blocks) {
+        if (b.lang.toLowerCase() !== 'json') {
+            continue
+        }
+        const interior = b.interior.trim()
+        let parsed: unknown
+        try {
+            parsed = JSON.parse(interior) as unknown
+        } catch {
+            lastReason = 'invalid JSON inside ```json fence'
+            continue
+        }
+        const v = validateCoyotePhasePlan(parsed, phasePlanCtx)
+        if (v.ok) {
+            phasePlanJson = interior
+            const proseBody = stripAllJsonFences(rawBody)
+            const base = parseHypothesisModelOutput(proseBody, parseOptions)
+            const record: CoyoteGameIntentRecord = {
+                intent: base.intent,
+                ...(base.walkthrough !== undefined ? { walkthrough: base.walkthrough } : {}),
+                phasePlan: v.phasePlan,
+            }
+            return { record, phasePlanJson }
+        }
+        lastReason = v.reason
+    }
+
+    const proseBody = stripAllJsonFences(rawBody)
+    const base = parseHypothesisModelOutput(proseBody, parseOptions)
+    const record: CoyoteGameIntentRecord = {
+        intent: base.intent,
+        ...(base.walkthrough !== undefined ? { walkthrough: base.walkthrough } : {}),
+    }
+
+    return {
+        record,
+        phasePlanJson,
+        phasePlanValidationReason: lastReason,
+    }
+}
+
 export function parseHypothesisModelOutput(
     rawBody: string,
     _options?: ParseHypothesisModelOutputOptions
@@ -104,11 +152,11 @@ export function parseHypothesisModelOutput(
         const { prefix, intentLine } = split
         const intent = intentLine.trim()
         const preLines = prefix.split(/\r?\n/)
-        const sceneAnalysis = trimSceneAnalysisPrefix(preLines)
+        const walkthrough = trimSceneAnalysisPrefix(preLines)
         if (!prefix.trim()) {
             return { intent }
         }
-        return sceneAnalysis.length > 0 ? { intent, sceneAnalysis } : { intent }
+        return walkthrough.length > 0 ? { intent, walkthrough } : { intent }
     }
 
     const unwrapped = stripCodeFences(rawBody)
@@ -122,6 +170,6 @@ export function parseHypothesisModelOutput(
     }
     const intent = lines[hypothesisIndex].trim()
     const preHypothesis = lines.slice(0, hypothesisIndex)
-    const sceneAnalysis = trimSceneAnalysisPrefix(preHypothesis)
-    return sceneAnalysis.length > 0 ? { intent, sceneAnalysis } : { intent }
+    const walkthrough = trimSceneAnalysisPrefix(preHypothesis)
+    return walkthrough.length > 0 ? { intent, walkthrough } : { intent }
 }

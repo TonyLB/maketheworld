@@ -7,12 +7,14 @@
 - [`invokeBedrockConverseText.ts`](invokeBedrockConverseText.ts) -- **Converse** call: messages, `maxTokens` / `temperature` / `timeoutMs`, aggregated text `body`, typed success or failure. Default client uses `AWS_REGION`. Thin wrappers (parse, room description, Acme enrich, hypothesis) import this and set model id and message shape. Optional **`extendedThinking`** (default **`false`**): when **`true`** and the model returns reasoning content blocks, success includes optional **`reasoningContent`** alongside **`body`** (assistant text only). Call sites that need chain-of-thought should prefer the reasoning channel over embedding scratch work in **`body`**.
 - [`extractJsonObjectText.ts`](extractJsonObjectText.ts) -- Strips optional full-wrap fenced **json** blocks, then takes the slice from the first **{** through the last **}**. Used for "JSON somewhere in the blob" recovery; same family of behavior as several hand-rolled extractors in `dataSource/actions` and `generateExample` (candidates for consolidation over time).
 - [`splitMarkdownReasoningAndJson.ts`](splitMarkdownReasoningAndJson.ts) -- If the response **ends** in a triple-backtick **json** block, treats the last such fence as the final JSON; otherwise falls back to `extractJsonObjectText` and attributes a **reasoning** prefix. Returns `ok` plus `reasoningMarkdown` and `jsonText`, or an error; does **not** call `JSON.parse` into domain types (callers run existing interpreters and guards).
+- [`markdownCodeFences.ts`](markdownCodeFences.ts) -- Enumerates Markdown triple-backtick fences (optional language tag, interior span). Used by Coyote hypothesis helpers ([`parseHypothesisModelOutput`](../dataSource/coyoteGame/parseHypothesisModelOutput.ts), hop-1 handoff); same opening-line grammar as the fence logic embedded elsewhere (candidates to unify with `splitMarkdownReasoningAndJson` later).
+- [`pipeline/`](pipeline/) -- **Linear pipeline framework**: sequential runner over a generic pipeline state (`createPipelineContext`, `runPipeline`), optional Bedrock-shaped helper [`defineLlmInvokeStep`](pipeline/llmInvokeStep.ts). Steady-state navigation (runner, `PipelineState`, step kinds): [`pipeline/AGENT.md`](pipeline/AGENT.md). Orchestration lives here; feature prompts and domain types stay under `dataSource/` or other feature folders.
 
 ## Patterns
 
 - **Transport vs parsing:** Invoke helpers return success with a string `body` or a structured failure. Parsers only read that `body`; they stay agnostic to `@tonylb/mtw-interfaces` and action merge rules.
 - **Fenced JSON tail:** For prompts that ask for Markdown reasoning and a final JSON object, prefer a **trailing** fenced **json** block so `splitMarkdownReasoningAndJson` can avoid stray braces in prose. If that is not possible, the first-brace heuristic may mis-split; say so in the prompt or add a dedicated delimiter in a follow-up.
-- **Fenced text tail (Coyote hypothesis Stage Two):** Same **Markdown prefix + fenced tail** shape with a **`text`** fence and a single **`Hypothesis:`** line; [`parseHypothesisModelOutput`](../dataSource/coyoteGame/parseHypothesisModelOutput.ts) slices the last hypothesis-only fence. Contract and legacy fallback: [`coyoteGame/AGENT.md`](../dataSource/coyoteGame/AGENT.md) (**Stage Two body contract**).
+- **Fenced text tail (Coyote hypothesis phase-plan hop):** Same **Markdown prefix + fenced tail** shape with a **`text`** fence and a single **`Hypothesis:`** line; [`parseHypothesisModelOutput`](../dataSource/coyoteGame/parseHypothesisModelOutput.ts) slices the last hypothesis-only fence. Contract and legacy fallback: [`coyoteGame/AGENT.md`](../dataSource/coyoteGame/AGENT.md) (**Hop 2 (phase-plan + surface) contract**).
 - **Tests:** Jest lives next to sources in this folder; run tests from `lambda/ephemera` per `package.json`.
 
 ## Integration points
@@ -22,5 +24,6 @@
 
 ## Navigation
 
+- Multi-call LLM flows that share evolving state use [`pipeline/`](pipeline/) rather than ad hoc sequences; read [`pipeline/AGENT.md`](pipeline/AGENT.md) for patterns. Keep transport/parsing imports from this `llm/` root and wire feature-specific prompts next to the feature.
 - Add a new **Converse**-level concern here; add **feature-specific** Bedrock wrappers next to the feature (for example `generateExample` or `dataSource/coyoteGame`) and import the shared pieces from `llm/`.
 - Parent: [`../AGENT.md`](../AGENT.md) (ephemera lambda), [`../../../AGENT.md`](../../../AGENT.md) (repo root documentation standards).

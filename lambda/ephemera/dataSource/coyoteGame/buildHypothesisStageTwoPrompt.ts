@@ -21,7 +21,8 @@ const STAGE_TWO_INTRO_LINES = [
     '- Do not put any other text after the closing fence.',
 ] as const
 
-const COMBINED_CLUSTERING_CONTRACT_LINES = [
+/** Exported for [`buildHypothesisPhasePlanHopPromptParts`](./buildHypothesisPhasePlanHopPromptParts.ts). */
+export const COMBINED_CLUSTERING_CONTRACT_LINES = [
     '## Combined clustering Markdown (how to read the dynamic tail)',
     '- After seam room labels you will see **## Combined clustering**, then one **### ClusterName** section per thematic group from Stage One. Treat each **###** heading as a working group for the maneuver; do not rename or merge clusters in your prose.',
     '- Each bullet under a cluster is one staged object: **stableKey**, **shortName**, and **room** (placement). An optional indented line **intendedRole:** is Stage One\'s binding choice of a single plan role for that object --- when present, prefer it over guessing from names.',
@@ -30,7 +31,7 @@ const COMBINED_CLUSTERING_CONTRACT_LINES = [
     '- **## Outliers** lists staged objects in no **###** cluster. Acknowledge outliers when they matter to your reading; never fold them into a named cluster in prose. If outliers are **(none)**, do not invent cluster members.',
 ] as const
 
-const INTERPRETATION_RULES_LINES = [
+export const INTERPRETATION_RULES_LINES = [
     '## Interpretation rules',
     '- Address the player in second person, using "you" and "your", not "the player" or "the Coyote".',
     '- Assume the player is intelligent and intentional, even when the setup is absurd.',
@@ -56,14 +57,14 @@ const SCENE_AND_HYPOTHESIS_LINES = [
     '- No JSON. No extra commentary outside "## Scene analysis" (markdown allowed there) and the fenced Hypothesis line.',
 ] as const
 
-const TEMPORAL_ORDERING_LINES = [
+export const TEMPORAL_ORDERING_LINES = [
     '## Temporal ordering (prep vs execution)',
     '- **Prep** (**prep** roles, assembly, bait placement, positioning): narrate these as finishing **before** the contraption fires, before a **trigger** releases the gag, or before the main cartoon beat lands --- not as simultaneous with the payoff.',
     '- **Creation** (**creation** roles): narrate generated or in-play effects as happening **during** execution of the plan / **during** the cartoon beat --- after setup has done its job.',
     '- Order your single **Hypothesis:** sentence so a reader can follow firing sequence and cause-and-effect: what leads off, what trips or delivers, what hits last. Lean on **intendedRole** (**trigger**, **terminal**, **delivery**, etc.) when present so the beat order matches the roles.',
 ] as const
 
-const VIRTUAL_SCENERY_AND_PREP_OBJECTS_LINES = [
+export const VIRTUAL_SCENERY_AND_PREP_OBJECTS_LINES = [
     '## Virtual scenery and prep-invented props',
     '- **Environmental scenery** from world topology and cartoon-opportunity cues is first-class in "## Scene analysis" and the **Hypothesis:** line even when it is not a separate staged **`Meta::Room.objects`** row: the cliff and boulder on **CLIFFTOP**, the rock face at **CORNER**, cacti along **STRAIGHTAWAY**, the chasm at **BRIDGE**, lever-friendly rocks, and similar fixed geography.',
     '- **Prep** may introduce narratively grounded **virtual** props or terrain (for example a painted fake tunnel on a rock face, a dug pit, piles, rigged ground rocks) that complete **before** the beat, consistent with **Temporal ordering** above. These are in-story setup, not new **`stableKey`** entries in the snapshot.',

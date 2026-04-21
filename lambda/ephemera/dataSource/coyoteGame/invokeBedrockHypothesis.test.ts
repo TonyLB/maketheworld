@@ -1,8 +1,8 @@
 import type { BedrockRuntimeClient } from '@aws-sdk/client-bedrock-runtime'
 import { CachePointType, ConverseCommand } from '@aws-sdk/client-bedrock-runtime'
 import {
+    BEDROCK_HYPOTHESIS_PHASE_PLAN_HOP_MAX_TOKENS,
     BEDROCK_HYPOTHESIS_STAGE_ONE_MAX_TOKENS,
-    BEDROCK_HYPOTHESIS_STAGE_TWO_MAX_TOKENS,
     invokeBedrockHypothesis,
     invokeBedrockHypothesisStageOne,
     invokeBedrockHypothesisStageTwo,
@@ -84,7 +84,7 @@ describe('invokeBedrockHypothesisStageOne / StageTwo', () => {
         )
 
         const command = send.mock.calls[0][0] as InstanceType<typeof ConverseCommand>
-        expect(command.input.inferenceConfig?.maxTokens).toBe(BEDROCK_HYPOTHESIS_STAGE_TWO_MAX_TOKENS)
+        expect(command.input.inferenceConfig?.maxTokens).toBe(BEDROCK_HYPOTHESIS_PHASE_PLAN_HOP_MAX_TOKENS)
         expect(command.input.additionalModelRequestFields).toBeUndefined()
     })
 

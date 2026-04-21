@@ -2,7 +2,7 @@
  * Post-LLM deterministic **`stableKey`** enforcement for Acme orders.
  *
  * Contract: [`AGENT.md`](./AGENT.md) (**Acme catalog lines and `stableKey`**) ---
- * LLM-first vs deterministic phases, charset / **`constructed-`** rules; numeric repair
+ * LLM-first vs deterministic phases, charset / **`constructed-`** / reserved **`setting`** rules; numeric repair
  * behavior is defined by this module and **`finalizeStableKeysDeterministic.test.ts`**.
  *
  * **Occupancy:** Callers build **`coyoteOccupiedStableKeys`** from existing staged objects only.
@@ -10,6 +10,7 @@
  * **`isEphemeraMetaRoomObject`** must not contribute keys to that set.
  */
 import {
+    COYOTE_RESERVED_VIRTUAL_GROUNDING_STABLE_KEY,
     defaultStableKeyProposal,
     normalizeStableKeyCharset,
 } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
@@ -53,6 +54,9 @@ function normalizedCandidateBeforeUniqueness(line: StableKeyFinalizeLineInput): 
     }
     if (key.length === 0) {
         key = defaultStableKeyProposal(line.name)
+    }
+    if (key === COYOTE_RESERVED_VIRTUAL_GROUNDING_STABLE_KEY) {
+        return 'acme-setting'
     }
     return key
 }

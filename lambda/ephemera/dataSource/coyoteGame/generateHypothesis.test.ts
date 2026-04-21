@@ -3,15 +3,17 @@ jest.mock('./invokeBedrockHypothesis', () => {
     return {
         ...actual,
         invokeBedrockHypothesisStageOne: jest.fn(),
-        invokeBedrockHypothesisStageTwo: jest.fn(),
+        invokeBedrockHypothesisPlanSelection: jest.fn(),
+        invokeBedrockHypothesisPhasePlanHop: jest.fn(),
     }
 })
 
 import { generateHypothesis, generateHypothesisWithStageResults } from './generateHypothesis'
 import { harnessRoomObjects } from './coyoteEngineTestFixtures'
 import {
+    invokeBedrockHypothesisPhasePlanHop,
+    invokeBedrockHypothesisPlanSelection,
     invokeBedrockHypothesisStageOne,
-    invokeBedrockHypothesisStageTwo,
 } from './invokeBedrockHypothesis'
 
 /** Valid stage-1 JSON for two VORTEX objects with stableKeys matching mocks (parse + combine succeed). */
@@ -27,11 +29,53 @@ const stageOneSeamBody = JSON.stringify({
     ],
 })
 
+/** Hop 1 --- rubric narrative + trailing ` ```json ` handoff for hop 2. */
+const hop1PlanSelectionBody = [
+    '## Comparison',
+    'Plan A wins.',
+    '',
+    '```json',
+    '{"paragraphSummary":"Stage the anvil and lure the Road Runner underneath.","rubricIssues":["needs rope timing"]}',
+    '```',
+].join('\n')
+
+/** Minimal phase-plan JSON validating against VORTEX snapshot (stableKey **anvil**). */
+function hop2PhasePlanHopBody(intentLine: string, options?: { includeSceneAnalysis?: boolean }): string {
+    const phasePlan = {
+        phases: [
+            {
+                stableKeysUsed: ['anvil'],
+                virtualEntities: [
+                    {
+                        label: 'Position bait',
+                        derivedFrom: ['anvil'],
+                        phaseKind: 'gathered' as const,
+                    },
+                ],
+                achievement: 'Trap staged',
+            },
+        ],
+    }
+    const blocks = [
+        '```json',
+        JSON.stringify(phasePlan),
+        '```',
+    ]
+    if (options?.includeSceneAnalysis) {
+        blocks.push('', '## Scene analysis', 'Trap setup.', '')
+    }
+    blocks.push('```text', intentLine, '```')
+    return blocks.join('\n')
+}
+
 const stageOneMock = invokeBedrockHypothesisStageOne as jest.MockedFunction<
     typeof invokeBedrockHypothesisStageOne
 >
-const stageTwoMock = invokeBedrockHypothesisStageTwo as jest.MockedFunction<
-    typeof invokeBedrockHypothesisStageTwo
+const planSelectionMock = invokeBedrockHypothesisPlanSelection as jest.MockedFunction<
+    typeof invokeBedrockHypothesisPlanSelection
+>
+const phasePlanHopMock = invokeBedrockHypothesisPhasePlanHop as jest.MockedFunction<
+    typeof invokeBedrockHypothesisPhasePlanHop
 >
 
 describe('generateHypothesis', () => {
@@ -73,59 +117,73 @@ describe('generateHypothesis', () => {
             body: stageOneSeamBody,
             usage: { inputTokens: 1, outputTokens: 2, totalTokens: 3 },
         })
-        stageTwoMock.mockResolvedValue({
+        planSelectionMock.mockResolvedValue({
             success: true,
-            body: 'Hypothesis: You are trying to drop something on the Road Runner.',
+            body: hop1PlanSelectionBody,
+            usage: { inputTokens: 2, outputTokens: 3, totalTokens: 5 },
+        })
+        phasePlanHopMock.mockResolvedValue({
+            success: true,
+            body: hop2PhasePlanHopBody('Hypothesis: You are trying to drop something on the Road Runner.'),
             usage: { inputTokens: 4, outputTokens: 5, totalTokens: 9 },
         })
     })
 
-    it('returns stage-2 model output when both stages succeed', async () => {
-        await expect(generateHypothesis({ getGameRooms, getRoomMeta })).resolves.toEqual({
-            intent: 'Hypothesis: You are trying to drop something on the Road Runner.',
-        })
+    it('returns phase-plan hop model output when all stages succeed', async () => {
+        const record = await generateHypothesis({ getGameRooms, getRoomMeta })
+        expect(record.intent).toBe('Hypothesis: You are trying to drop something on the Road Runner.')
+        expect(record.phasePlan?.phases).toHaveLength(1)
+        expect(record.walkthrough).toBeUndefined()
         expect(stageOneMock).toHaveBeenCalledTimes(1)
-        expect(stageTwoMock).toHaveBeenCalledTimes(1)
+        expect(planSelectionMock).toHaveBeenCalledTimes(1)
+        expect(phasePlanHopMock).toHaveBeenCalledTimes(1)
     })
 
-    it('passes flat intendedRole rendering into Stage Two prompt', async () => {
+    it('passes flat intendedRole rendering into phase-plan hop prompt', async () => {
         await generateHypothesis({ getGameRooms, getRoomMeta })
-        const stageTwoPrompt = stageTwoMock.mock.calls[0][0] as {
+        const phasePlanHopPrompt = phasePlanHopMock.mock.calls[0][0] as {
             invariantPrefix: string
             dynamicSuffix: string
         }
-        const fullStageTwo = stageTwoPrompt.invariantPrefix + stageTwoPrompt.dynamicSuffix
-        expect(fullStageTwo).toContain('**intendedRole:** coyote-equipment 0.60')
+        const fullHop2 = phasePlanHopPrompt.invariantPrefix + phasePlanHopPrompt.dynamicSuffix
+        expect(fullHop2).toContain('**intendedRole:** coyote-equipment 0.60')
     })
 
-    it('parses stage-2 body with ## Scene analysis + fenced Hypothesis', async () => {
-        stageTwoMock.mockResolvedValue({
+    it('parses phase-plan hop body with ## Scene analysis + fenced Hypothesis', async () => {
+        phasePlanHopMock.mockResolvedValue({
             success: true,
-            body: '## Scene analysis\nTrap setup.\n\n```text\nHypothesis: You are trying to drop something on the Road Runner.\n```',
+            body: hop2PhasePlanHopBody(
+                'Hypothesis: You are trying to drop something on the Road Runner.',
+                { includeSceneAnalysis: true }
+            ),
             usage: { inputTokens: 4, outputTokens: 5, totalTokens: 9 },
         })
-        await expect(generateHypothesis({ getGameRooms, getRoomMeta })).resolves.toEqual({
+        await expect(generateHypothesis({ getGameRooms, getRoomMeta })).resolves.toMatchObject({
             intent: 'Hypothesis: You are trying to drop something on the Road Runner.',
-            sceneAnalysis: '## Scene analysis\nTrap setup.',
+            walkthrough: '## Scene analysis\nTrap setup.',
         })
     })
 
-    it('exposes stageTwoReasoningContent on pipeline result when Stage Two returns reasoning', async () => {
-        stageTwoMock.mockResolvedValue({
+    it('exposes stageTwoReasoningContent on pipeline result when phase-plan hop returns reasoning', async () => {
+        phasePlanHopMock.mockResolvedValue({
             success: true,
-            body: 'Hypothesis: With reasoning channel.',
+            body: hop2PhasePlanHopBody('Hypothesis: With reasoning channel.'),
             reasoningContent: 'plan ordering scratch',
             usage: { inputTokens: 1, outputTokens: 2, totalTokens: 3 },
         })
-        await expect(generateHypothesisWithStageResults({ getGameRooms, getRoomMeta })).resolves.toEqual({
-            record: { intent: 'Hypothesis: With reasoning channel.' },
-            stageOneResult: expect.objectContaining({ success: true }),
-            stageTwoResult: expect.objectContaining({
+        const result = await generateHypothesisWithStageResults({ getGameRooms, getRoomMeta })
+        expect(result.record.intent).toBe('Hypothesis: With reasoning channel.')
+        expect(result.stageOneResult).toEqual(expect.objectContaining({ success: true }))
+        expect(result.planSelectionResult).toEqual(expect.objectContaining({ success: true }))
+        expect(result.phasePlanHopResult).toEqual(
+            expect.objectContaining({
                 success: true,
                 reasoningContent: 'plan ordering scratch',
-            }),
-            stageTwoReasoningContent: 'plan ordering scratch',
-        })
+            })
+        )
+        expect(result.stageTwoReasoningContent).toBe('plan ordering scratch')
+        expect(typeof result.selectionBody).toBe('string')
+        expect(typeof result.phasePlanJson).toBe('string')
     })
 
     it('fetches room-local objects for all Coyote Game rooms when not overridden', async () => {
@@ -164,17 +222,18 @@ describe('generateHypothesis', () => {
         expect(getGameRooms).not.toHaveBeenCalled()
         expect(getRoomMeta).not.toHaveBeenCalled()
         expect(stageOneMock).toHaveBeenCalledTimes(1)
-        expect(stageTwoMock).toHaveBeenCalledTimes(1)
-        const stageTwoPrompt = stageTwoMock.mock.calls[0][0] as {
+        expect(planSelectionMock).toHaveBeenCalledTimes(1)
+        expect(phasePlanHopMock).toHaveBeenCalledTimes(1)
+        const phasePlanHopPrompt = phasePlanHopMock.mock.calls[0][0] as {
             invariantPrefix: string
             dynamicSuffix: string
         }
-        const fullStageTwo = stageTwoPrompt.invariantPrefix + stageTwoPrompt.dynamicSuffix
-        expect(fullStageTwo).toContain('## Combined clustering')
-        expect(fullStageTwo).toContain('anvil')
-        expect(fullStageTwo).toContain('portable hole')
-        expect(fullStageTwo).toContain('birdseed')
-        expect(fullStageTwo).not.toContain('## Current staged objects by room')
+        const fullHop2 = phasePlanHopPrompt.invariantPrefix + phasePlanHopPrompt.dynamicSuffix
+        expect(fullHop2).toContain('## Combined clustering')
+        expect(fullHop2).toContain('anvil')
+        expect(fullHop2).toContain('portable hole')
+        expect(fullHop2).toContain('birdseed')
+        expect(fullHop2).not.toContain('## Current staged objects by room')
     })
 
     it('falls back to stub when stage 1 Bedrock fails', async () => {
@@ -186,7 +245,8 @@ describe('generateHypothesis', () => {
         await expect(generateHypothesis({ getGameRooms, getRoomMeta })).resolves.toEqual({
             intent: 'Hypothesis: Stubbed',
         })
-        expect(stageTwoMock).not.toHaveBeenCalled()
+        expect(planSelectionMock).not.toHaveBeenCalled()
+        expect(phasePlanHopMock).not.toHaveBeenCalled()
     })
 
     it('falls back to stub when stage 1 seam parse fails', async () => {
@@ -198,11 +258,12 @@ describe('generateHypothesis', () => {
         await expect(generateHypothesis({ getGameRooms, getRoomMeta })).resolves.toEqual({
             intent: 'Hypothesis: Stubbed',
         })
-        expect(stageTwoMock).not.toHaveBeenCalled()
+        expect(planSelectionMock).not.toHaveBeenCalled()
+        expect(phasePlanHopMock).not.toHaveBeenCalled()
     })
 
-    it('falls back to stub when stage 2 Bedrock fails', async () => {
-        stageTwoMock.mockResolvedValue({
+    it('falls back to stub when plan-selection Bedrock fails', async () => {
+        planSelectionMock.mockResolvedValue({
             success: false,
             errorMessage: 'Timeout',
         })
@@ -210,6 +271,51 @@ describe('generateHypothesis', () => {
         await expect(generateHypothesis({ getGameRooms, getRoomMeta })).resolves.toEqual({
             intent: 'Hypothesis: Stubbed',
         })
-        expect(stageTwoMock).toHaveBeenCalledTimes(1)
+        expect(planSelectionMock).toHaveBeenCalledTimes(1)
+        expect(phasePlanHopMock).not.toHaveBeenCalled()
+    })
+
+    it('falls back to stub when hop-1 handoff JSON parse fails', async () => {
+        planSelectionMock.mockResolvedValue({
+            success: true,
+            body: 'No json fence here.',
+            usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+        })
+
+        await expect(generateHypothesis({ getGameRooms, getRoomMeta })).resolves.toEqual({
+            intent: 'Hypothesis: Stubbed',
+        })
+        expect(phasePlanHopMock).not.toHaveBeenCalled()
+    })
+
+    it('falls back to stub when phase-plan hop Bedrock fails', async () => {
+        phasePlanHopMock.mockResolvedValue({
+            success: false,
+            errorMessage: 'Timeout',
+        })
+
+        await expect(generateHypothesis({ getGameRooms, getRoomMeta })).resolves.toEqual({
+            intent: 'Hypothesis: Stubbed',
+        })
+        expect(phasePlanHopMock).toHaveBeenCalledTimes(1)
+    })
+
+    it('keeps prose when phase-plan JSON is invalid but Hypothesis parses', async () => {
+        phasePlanHopMock.mockResolvedValue({
+            success: true,
+            body: [
+                '```json',
+                '{"phases":[]}',
+                '```',
+                '',
+                '```text',
+                'Hypothesis: Prose still works.',
+                '```',
+            ].join('\n'),
+            usage: { inputTokens: 1, outputTokens: 2, totalTokens: 3 },
+        })
+        const record = await generateHypothesis({ getGameRooms, getRoomMeta })
+        expect(record.intent).toBe('Hypothesis: Prose still works.')
+        expect(record.phasePlan).toBeUndefined()
     })
 })

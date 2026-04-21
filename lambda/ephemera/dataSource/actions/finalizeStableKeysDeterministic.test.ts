@@ -18,6 +18,31 @@ describe('finalizeStableKeysDeterministic', () => {
         expect(keys[0].startsWith('constructed-')).toBe(false)
     })
 
+    it('never emits reserved virtual-grounding stableKey setting (remaps to acme-setting)', () => {
+        expect(
+            finalizeStableKeysDeterministic([{ name: 'X', proposedStableKey: 'SETTING' }], new Set()),
+        ).toEqual(['acme-setting'])
+        expect(
+            finalizeStableKeysDeterministic([{ name: 'X', proposedStableKey: 'Setting' }], new Set()),
+        ).toEqual(['acme-setting'])
+        expect(
+            finalizeStableKeysDeterministic([{ name: 'X', proposedStableKey: 'setting' }], new Set()),
+        ).toEqual(['acme-setting'])
+    })
+
+    it('uses numeric suffix when acme-setting is occupied for reserved remap', () => {
+        const keys = finalizeStableKeysDeterministic(
+            [{ name: 'Widget', proposedStableKey: 'setting' }],
+            new Set(['acme-setting']),
+        )
+        expect(keys).toEqual(['acme-setting1'])
+    })
+
+    it('remaps name fallback when catalog name normalizes to setting', () => {
+        const keys = finalizeStableKeysDeterministic([{ name: 'Setting' }], new Set())
+        expect(keys).toEqual(['acme-setting'])
+    })
+
     it('picks next free numeric suffix when occupied collides with Coyote-wide set', () => {
         const keys = finalizeStableKeysDeterministic(
             [{ name: 'R', proposedStableKey: 'rocket2' }],

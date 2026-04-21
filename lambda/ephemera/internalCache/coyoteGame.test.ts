@@ -48,12 +48,12 @@ describe('CacheCoyoteGameData', () => {
             await expect(cache.get('intent')).resolves.toEqual({ intent: 'Hypothesis: Durable' })
             expect(ephemeraMock.getItem).toHaveBeenCalledWith({
                 Key: intentKey,
-                ProjectionFields: ['intent', 'sceneAnalysis'],
+                ProjectionFields: ['intent', 'walkthrough', 'phasePlan', 'sceneAnalysis'],
             })
             expect(generateIntent).not.toHaveBeenCalled()
         })
 
-        it('reads intent and sceneAnalysis from durable row', async () => {
+        it('maps legacy durable sceneAnalysis to walkthrough when walkthrough absent', async () => {
             const { generateIntent, generateOutcome } = defaultDeps()
             ephemeraMock.getItem.mockResolvedValue({
                 intent: 'Hypothesis: Durable',
@@ -63,7 +63,23 @@ describe('CacheCoyoteGameData', () => {
 
             await expect(cache.get('intent')).resolves.toEqual({
                 intent: 'Hypothesis: Durable',
-                sceneAnalysis: '## Scene analysis\nNotes.',
+                walkthrough: '## Scene analysis\nNotes.',
+            })
+            expect(generateIntent).not.toHaveBeenCalled()
+        })
+
+        it('prefers durable walkthrough over legacy sceneAnalysis', async () => {
+            const { generateIntent, generateOutcome } = defaultDeps()
+            ephemeraMock.getItem.mockResolvedValue({
+                intent: 'Hypothesis: Durable',
+                sceneAnalysis: 'legacy',
+                walkthrough: '## Scene analysis\nPreferred.',
+            })
+            const cache = new CacheCoyoteGameData({ generateIntent, generateOutcome })
+
+            await expect(cache.get('intent')).resolves.toEqual({
+                intent: 'Hypothesis: Durable',
+                walkthrough: '## Scene analysis\nPreferred.',
             })
             expect(generateIntent).not.toHaveBeenCalled()
         })
@@ -82,23 +98,23 @@ describe('CacheCoyoteGameData', () => {
             })
         })
 
-        it('persists sceneAnalysis when generator returns it', async () => {
+        it('persists walkthrough when generator returns it', async () => {
             const { generateIntent, generateOutcome } = defaultDeps()
             generateIntent.mockResolvedValue({
                 intent: 'Hypothesis: Generated',
-                sceneAnalysis: 'Scaffolding.',
+                walkthrough: 'Scaffolding.',
             })
             ephemeraMock.getItem.mockResolvedValue(undefined)
             const cache = new CacheCoyoteGameData({ generateIntent, generateOutcome })
 
             await expect(cache.get('intent')).resolves.toEqual({
                 intent: 'Hypothesis: Generated',
-                sceneAnalysis: 'Scaffolding.',
+                walkthrough: 'Scaffolding.',
             })
             expect(ephemeraMock.putItem).toHaveBeenCalledWith({
                 ...intentKey,
                 intent: 'Hypothesis: Generated',
-                sceneAnalysis: 'Scaffolding.',
+                walkthrough: 'Scaffolding.',
             })
         })
 
