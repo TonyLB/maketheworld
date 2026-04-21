@@ -1,6 +1,6 @@
 # Coyote plan-phase (Stage 2 hypothesis) tuning
 
-**Status:** In progress. Clustering / combine pass is landed; **extended thinking** and **Stage 2 cluster/combine alignment** (prompt + `renderCombinedHypothesisForStageTwo` outlier parity) are done. Remaining: thinking vs output contract, parsing path, **temporal ordering** and **virtual scenery** prompt bullets, and a final verification sweep.
+**Status:** In progress. **Extended thinking**, **cluster/combine alignment**, **thinking vs visible text** (Stage 2 prompt), **parse + pipeline (`stageTwoReasoning`)** are done. Remaining: **temporal ordering** and **virtual scenery** prompt bullets, and a final verification sweep.
 
 ## Purpose
 
@@ -75,13 +75,13 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
   - [X] Audit [`buildHypothesisStageTwoPromptParts`](../../../../../lambda/ephemera/dataSource/coyoteGame/buildHypothesisStageTwoPrompt.ts) against current [`renderCombinedHypothesisForStageTwo`](../../../../../lambda/ephemera/dataSource/coyoteGame/combineHypothesisClusters.ts) output (cluster names, **`intendedRole`**, outliers, affinity lines). Update instructions so the model uses **roles** and **outliers** deliberately. (**Implemented:** **`COMBINED_CLUSTERING_CONTRACT_LINES`** in Stage 2 prompt; outliers render with **room** / **`intendedRole`** like cluster members.)
   - [X] Add or refresh **prompt tests** so Stage 2 instructions mention **prep** vs **creation** semantics consistent with [`coyotePlanAffinities`](../../../../../packages/mtw-interfaces/ts/coyotePlanAffinities.ts). (**Covered:** [`buildHypothesisStageTwoPrompt.test.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/buildHypothesisStageTwoPrompt.test.ts), [`combineHypothesisClusters.test.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/combineHypothesisClusters.test.ts) renderer assertions.)
 
-- [ ] Thinking vs output contract (Stage 2 prompt)
-  - [ ] Document: reasoning channel = planning and ordering; **`body`** = scene analysis (if any) + **`Hypothesis:`** line only (no chain-of-thought preamble).
-  - [ ] Coordinate with **`parseHypothesisModelOutput`** expectations (see next section).
+- [X] Thinking vs output contract (Stage 2 prompt)
+  - [X] Document: reasoning channel = planning and ordering; **`body`** = scene analysis (if any) + **`Hypothesis:`** line only (no chain-of-thought preamble). (**Implemented:** **`EXTENDED_REASONING_VS_VISIBLE_TEXT_LINES`** in [`buildHypothesisStageTwoPrompt.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/buildHypothesisStageTwoPrompt.ts).)
+  - [X] Coordinate with **`parseHypothesisModelOutput`** expectations (see next section).
 
-- [ ] Refactor parsing: drop chain-of-reason stripping from primary path
-  - [ ] If any Stage 2 path splits leading Markdown from JSON/text, replace with **clean `body`** + optional **`reasoningContent`** from invocation (hypothesis-specific; follow [`splitMarkdownReasoningAndJson`](../../../../../lambda/ephemera/llm/splitMarkdownReasoningAndJson.ts) patterns only where still needed for non-extended-thinking fallbacks).
-  - [ ] Update [`generateHypothesis`](../../../../../lambda/ephemera/dataSource/coyoteGame/generateHypothesis.ts) (and harness types) to carry **`reasoningContent`** for metrics or debug when present; do not inject reasoning into **`CoyoteGameIntentRecord`** unless product asks (default: omit from player-visible cache).
+- [X] Refactor parsing: drop chain-of-reason stripping from primary path
+  - [X] Hypothesis Stage 2 does not use trailing JSON; no **`splitMarkdownReasoningAndJson`** wire-up. **`parseHypothesisModelOutput`** trims lines **before** **`## Scene analysis`** when present so stray preamble is not stored as **`sceneAnalysis`**. Passes **`reasoningContentProvided`** from the Bedrock result for API symmetry ([`ParseHypothesisModelOutputOptions`](../../../../../lambda/ephemera/dataSource/coyoteGame/parseHypothesisModelOutput.ts)).
+  - [X] Update [`generateHypothesis`](../../../../../lambda/ephemera/dataSource/coyoteGame/generateHypothesis.ts): optional **`stageTwoReasoningContent`** on **`GenerateHypothesisPipelineResult`** when Stage Two returns **`reasoningContent`**; not on **`CoyoteGameIntentRecord`**.
 
 - [ ] Temporal ordering in Stage 2 prompt
   - [ ] State explicitly: **prep** steps happen **before** trigger/beat; **creation** effects occur **during** execution; contraption firing order is readable from the **`Hypothesis:`** line narrative.
@@ -92,7 +92,7 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
 
 - [ ] Verification sweep
   - [ ] Run Jest targets for touched files; **`npm run build`** in **`lambda/ephemera`**.
-  - [ ] Optional: one harness fixture run with **`COYOTE_ENGINE_TEST_HARNESS_ENABLED`** workflow to spot-check Stage 2 output shape (document command in **Verification** when used).
+  - **Manual (web client):** Optional Stage 2 harness spot-check with **`COYOTE_ENGINE_TEST_HARNESS_ENABLED`** is done in the **application** when you want eyes on output shape --- not an agent/CLI step here; no shell command documented under **Verification**.
 
 ## Verification
 
@@ -103,6 +103,7 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
   - `npm run test -- --runInBand llm/invokeBedrockConverseText.test.ts`
   - `npm run test -- --runInBand dataSource/coyoteGame/invokeBedrockHypothesis.test.ts dataSource/coyoteGame/generateHypothesis.test.ts dataSource/coyoteGame/buildHypothesisStageTwoPrompt.test.ts`
   - Cluster alignment slice (passes): `npm run test -- --runInBand dataSource/coyoteGame/buildHypothesisStageTwoPrompt.test.ts dataSource/coyoteGame/combineHypothesisClusters.test.ts`
+  - Thinking / parsing slice (passes): `npm run test -- --runInBand dataSource/coyoteGame/parseHypothesisModelOutput.test.ts dataSource/coyoteGame/generateHypothesis.test.ts`
 - Confirm **`ReadLints`** clean on edited files.
 
 ## Progress
@@ -113,5 +114,5 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
 | Stage 2 invocation uses extended thinking; types plumbed | Done |
 | Stage 2 prompt + combine Markdown: cluster roles, outliers, prep vs creation; outlier **`intendedRole`** / room in renderer | Done |
 | Stage 2 prompt: temporal ordering, virtual scenery / prep-created objects (remaining bullets) | Not started |
-| Parsing/harness updated; chain-of-reason stripping removed from primary Stage 2 path | Not started |
+| Thinking vs **`body`** prompt; **`parseHypothesisModelOutput`** trim; **`stageTwoReasoningContent`** on pipeline result | Done |
 | Build + tests green | Not started |

@@ -33,4 +33,18 @@ describe('parseHypothesisModelOutput', () => {
             intent: 'Hypothesis: First.',
         })
     })
+
+    it('drops text before ## Scene analysis so leaked scratch is not sceneAnalysis', () => {
+        const body = 'First I will plan in text (leak).\n\n## Scene analysis\nYou staged a trap.\n\nHypothesis: It looks like you are trying to test.'
+        expect(parseHypothesisModelOutput(body)).toEqual({
+            sceneAnalysis: '## Scene analysis\nYou staged a trap.',
+            intent: 'Hypothesis: It looks like you are trying to test.',
+        })
+    })
+
+    it('accepts optional parse options for API symmetry with the pipeline', () => {
+        expect(parseHypothesisModelOutput('Hypothesis: Only.', { reasoningContentProvided: true })).toEqual({
+            intent: 'Hypothesis: Only.',
+        })
+    })
 })

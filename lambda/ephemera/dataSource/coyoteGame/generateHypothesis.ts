@@ -13,7 +13,7 @@ import {
     type InvokeBedrockHypothesisResult,
 } from './invokeBedrockHypothesis'
 import { loadCoyoteRoomObjectsByRoom, type CoyoteRoomObjectsByRoom } from './coyoteRoomObjectSnapshot'
-import { parseHypothesisModelOutput } from './parseHypothesisModelOutput'
+import { parseHypothesisModelOutput, type ParseHypothesisModelOutputOptions } from './parseHypothesisModelOutput'
 import { parseHypothesisStageOneOutput } from './parseHypothesisStageOneOutput'
 
 export type GenerateHypothesisDeps = {
@@ -28,6 +28,8 @@ export type GenerateHypothesisPipelineResult = {
     record: CoyoteGameIntentRecord
     stageOneResult: InvokeBedrockHypothesisResult
     stageTwoResult: InvokeBedrockHypothesisResult | null
+    /** Stage Two extended-reasoning text when Bedrock returned it (not stored on CoyoteGameIntentRecord). */
+    stageTwoReasoningContent?: string
 }
 
 async function runHypothesisPipeline(deps: GenerateHypothesisDeps): Promise<GenerateHypothesisPipelineResult> {
@@ -83,10 +85,16 @@ async function runHypothesisPipeline(deps: GenerateHypothesisDeps): Promise<Gene
         }
     }
 
+    const parseOptions: ParseHypothesisModelOutputOptions = {
+        reasoningContentProvided: Boolean(stageTwoResult.reasoningContent),
+    }
     return {
-        record: parseHypothesisModelOutput(stageTwoResult.body),
+        record: parseHypothesisModelOutput(stageTwoResult.body, parseOptions),
         stageOneResult,
         stageTwoResult,
+        ...(stageTwoResult.reasoningContent !== undefined && stageTwoResult.reasoningContent.length > 0
+            ? { stageTwoReasoningContent: stageTwoResult.reasoningContent }
+            : {}),
     }
 }
 

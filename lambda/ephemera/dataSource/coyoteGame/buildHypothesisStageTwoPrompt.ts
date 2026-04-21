@@ -55,6 +55,12 @@ const SCENE_AND_HYPOTHESIS_LINES = [
     '- No JSON. No extra commentary outside "## Scene analysis" (markdown allowed there) and the Hypothesis line.',
 ] as const
 
+const EXTENDED_REASONING_VS_VISIBLE_TEXT_LINES = [
+    '## Extended reasoning vs visible assistant text',
+    '- This request may use **extended reasoning** in the model. Put **planning, ordering, and scratch work** in the **reasoning** channel --- not in the assistant **text** (**body**) stream.',
+    '- Your **text** output must be **player-facing only**: optional "## Scene analysis" Markdown (per the rules above), then exactly one line beginning with **Hypothesis:** --- no chain-of-thought or scratch paragraphs **before** "## Scene analysis" in **text**. If reasoning is unavailable, keep **text** equally clean.',
+] as const
+
 const DYNAMIC_SECTION_INTRO = [
     '',
     'The following blocks are specific to this request (seam room labels, then combined clustering):',
@@ -77,6 +83,8 @@ export function buildHypothesisStageTwoPromptParts(input: BuildHypothesisStageTw
         ...INTERPRETATION_RULES_LINES,
         '',
         ...SCENE_AND_HYPOTHESIS_LINES,
+        '',
+        ...EXTENDED_REASONING_VS_VISIBLE_TEXT_LINES,
         ...DYNAMIC_SECTION_INTRO,
     ].join('\n')
 

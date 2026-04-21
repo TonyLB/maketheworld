@@ -22,6 +22,8 @@ describe('buildHypothesisStageTwoPromptParts', () => {
             },
             combinedMarkdown: combined,
         })
+        expect(parts.invariantPrefix).toContain('## Extended reasoning vs visible assistant text')
+        expect(parts.invariantPrefix).toContain('**extended reasoning**')
         expect(parts.invariantPrefix).toContain('## Combined clustering Markdown (how to read the dynamic tail)')
         expect(parts.invariantPrefix).toContain('**prep**')
         expect(parts.invariantPrefix).toContain('**creation**')
