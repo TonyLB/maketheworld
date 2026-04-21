@@ -29,7 +29,7 @@ export type ParseHypothesisStageOneSuccess = {
     clusters: ParsedCluster[]
     /**
      * Present when the model included root **`outliers`** — **`combineHypothesisClusters`** hydrates these
-     * instead of inferring complement from clusters. Omitted when **`outliers`** was absent (legacy: every
+     * instead of inferring complement from clusters. Omitted when **`outliers`** is absent (fallback: every
      * staged **`stableKey`** appears only in **`clusters`**).
      */
     explicitOutliers?: ParsedClusterMember[]

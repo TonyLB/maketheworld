@@ -75,7 +75,7 @@ function snapshotIndexByStableKey(
 /**
  * Hydrated DTO for Stage Two. When **`explicitOutliers`** is set (Stage One JSON included **`outliers`**),
  * outliers come only from that list; otherwise every staged **`stableKey`** missing from **`clusters`**
- * is listed as an outlier (legacy).
+ * is listed as an outlier (complement fallback).
  */
 export function combineHypothesisClusters(
     clusters: ParsedCluster[],
