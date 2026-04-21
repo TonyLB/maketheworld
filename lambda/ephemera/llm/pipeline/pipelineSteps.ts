@@ -10,7 +10,7 @@ export type AnyPipelineState = Record<string, unknown>;
 
 /**
  * Primary step contract: each step mutates a single Immer **draft** of `S`.
- * The runner applies `produce` per step (Phase 2); prefer shallow writes to top-level slot keys.
+ * The runner applies **`createDraft` / `finishDraft`** per step; prefer shallow writes to top-level slot keys.
  */
 export type PipelineStepDraftFn<S extends AnyPipelineState> = (draft: Draft<S>) => void | Promise<void>;
 

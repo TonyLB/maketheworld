@@ -15,4 +15,12 @@ export type {
     RunPipelineFn,
 } from './pipelineRunner';
 
+export { runPipeline } from './pipelineRunner';
+
 export type { CreatePipelineContextFn, PipelineContext } from './pipelineContext';
+
+export { createPipelineContext } from './pipelineContext';
+
+export type { LlmInvokeDiagnostics } from './llmInvokeStep';
+
+export { defineLlmInvokeStep } from './llmInvokeStep';

@@ -1,6 +1,6 @@
 # Ephemera LLM pipeline framework (linear reducers)
 
-**Status:** Phase 1 complete (design and types shipped). Next step: Phase 2 (core runner and helpers).
+**Status:** Phase 2 complete (core runner, tests, `defineLlmInvokeStep`, `llm/AGENT.md` cross-link). Next step: Phase 3 (Coyote vertical slice).
 
 ## Purpose
 
@@ -47,7 +47,7 @@ The goal is to **deduplicate glue** (invoke, extract, validate, metrics, failure
 
 Phase 1 ships **TypeScript contracts only** under [`lambda/ephemera/llm/pipeline/`](../../../../lambda/ephemera/llm/pipeline/): no runnable `runPipeline`, no DAG. **Runtime runner, unit tests, and LLM helpers** are Phase 2. **Coyote hypothesis migration** is Phase 3.
 
-**Execution model:** Sequential fold over ordered steps. Each step mutates an Immer **`Draft<S>`** (primary contract); Phase 2 applies **`produce`** once per step so each step sees the immutable state produced by prior steps.
+**Execution model:** Sequential fold over ordered steps. Each step mutates an Immer **`Draft<S>`** (primary contract); Phase 2 applies **`createDraft` / `finishDraft`** once per step (async-safe; avoids revoked drafts after `await` in async `produce` recipes) so each step sees the immutable state produced by prior steps.
 
 ```mermaid
 flowchart LR
@@ -59,14 +59,16 @@ flowchart LR
   initial --> p1 --> p2 --> pn --> final
 ```
 
-**Public types (index):** [`index.ts`](../../../../lambda/ephemera/llm/pipeline/index.ts) re-exports the following:
+**Public exports (`index`):** [`index.ts`](../../../../lambda/ephemera/llm/pipeline/index.ts) re-exports the following:
 
 | Type / value | Role |
 | --- | --- |
 | [`AnyPipelineState`](../../../../lambda/ephemera/llm/pipeline/pipelineSteps.ts) | Constraint `Record<string, unknown>`; each pipeline supplies a concrete `S` (no nominal branding). |
 | [`PipelineStep`](../../../../lambda/ephemera/llm/pipeline/pipelineSteps.ts), [`OrchestrationStepDefinition`](../../../../lambda/ephemera/llm/pipeline/pipelineSteps.ts), [`LlmAdapterStepDefinition`](../../../../lambda/ephemera/llm/pipeline/pipelineSteps.ts), [`PipelineStepDraftFn`](../../../../lambda/ephemera/llm/pipeline/pipelineSteps.ts) | Discriminated step kinds; **`name`** for logs/spans; **`meta*`** usage documented on LLM kind. |
 | [`RunPipelineFn`](../../../../lambda/ephemera/llm/pipeline/pipelineRunner.ts), [`PipelineRunResult`](../../../../lambda/ephemera/llm/pipeline/pipelineRunner.ts), [`PipelineRunOptions`](../../../../lambda/ephemera/llm/pipeline/pipelineRunner.ts), [`PipelineTelemetryHooks`](../../../../lambda/ephemera/llm/pipeline/pipelineRunner.ts) | Runner signature and discriminated success/failure; optional telemetry hooks (usage stays on state **`meta*`**). |
-| [`PipelineContext`](../../../../lambda/ephemera/llm/pipeline/pipelineContext.ts), [`CreatePipelineContextFn`](../../../../lambda/ephemera/llm/pipeline/pipelineContext.ts) | Factory return shape fixing **`S`** (implementation in Phase 2). |
+| [`runPipeline`](../../../../lambda/ephemera/llm/pipeline/pipelineRunner.ts) | Sequential runner (**`createDraft`** / **`finishDraft`** per step). |
+| [`PipelineContext`](../../../../lambda/ephemera/llm/pipeline/pipelineContext.ts), [`CreatePipelineContextFn`](../../../../lambda/ephemera/llm/pipeline/pipelineContext.ts), [`createPipelineContext`](../../../../lambda/ephemera/llm/pipeline/pipelineContext.ts) | Factory return shape fixing **`S`**; **`createPipelineContext`** attaches **`kind`** for orchestration vs LLM steps. |
+| [`defineLlmInvokeStep`](../../../../lambda/ephemera/llm/pipeline/llmInvokeStep.ts), [`LlmInvokeDiagnostics`](../../../../lambda/ephemera/llm/pipeline/llmInvokeStep.ts) | Optional Bedrock-shaped invoke helper plus diagnostics type for **`meta*`** slots. |
 
 **Typing note:** We intentionally avoid **defensive nominal branding** of pipeline state. The framework stays generic over **`S`**; features differentiate pipelines with **distinct slot types and names**, matching how ephemera models most domain data.
 
@@ -114,10 +116,10 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines as you finish ea
   - [X] Align with **Material decisions** (structured spans; **`meta*`** for usage; **`PipelineState`** updates via Immer and generic **`S`** as above).
   - [X] Write a short **design note** in this plan or a linked temp doc if needed; avoid duplicating full API docs here.
 
-- [ ] Phase 2 - implement core runner and helpers
-  - [ ] Add implementation under [`lambda/ephemera/llm/pipeline/`](../../../../lambda/ephemera/llm/pipeline/), keeping **feature-agnostic** boundaries: orchestration lives here; domain prompts and Coyote types stay in `dataSource/`. Cross-link from [`lambda/ephemera/llm/AGENT.md`](../../../../lambda/ephemera/llm/AGENT.md).
-  - [ ] Provide **unit tests** for step order (each `produce` sees the prior **`PipelineState`**), failure propagation, and step naming.
-  - [ ] Optional: minimal **LLM step helper** that accepts prompt assembly + invoke options + extract/validate callbacks, and persists **invoke metadata** into **`PipelineState` `meta*`** slots without pulling in Coyote or actions types.
+- [X] Phase 2 - implement core runner and helpers
+  - [X] Add implementation under [`lambda/ephemera/llm/pipeline/`](../../../../lambda/ephemera/llm/pipeline/), keeping **feature-agnostic** boundaries: orchestration lives here; domain prompts and Coyote types stay in `dataSource/`. Cross-link from [`lambda/ephemera/llm/AGENT.md`](../../../../lambda/ephemera/llm/AGENT.md).
+  - [X] Provide **unit tests** for step order (each step sees the prior **`PipelineState`**), failure propagation, and step naming.
+  - [X] Optional: minimal **LLM step helper** that accepts prompt assembly + invoke options + extract/validate callbacks, and persists **invoke metadata** into **`PipelineState` `meta*`** slots without pulling in Coyote or actions types (`defineLlmInvokeStep` in [`llmInvokeStep.ts`](../../../../lambda/ephemera/llm/pipeline/llmInvokeStep.ts)).
 
 - [ ] Phase 3 - first vertical slice integration (Coyote clustering => plan-phase)
   - [ ] Migrate the **Coyote hypothesis** **clustering => plan-phase** pipeline ([`generateHypothesis`](../../../../lambda/ephemera/dataSource/coyoteGame/generateHypothesis.ts) and its helpers) to use the runner end-to-end, or add a thin pilot caller that exercises the same stages.
@@ -143,7 +145,7 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines as you finish ea
 | Milestone | Status |
 | --- | --- |
 | Phase 1 design agreed (generic `S` / `PipelineState`, factory, runner API, Immer `produce` contract) | Done |
-| Core runner + unit tests in `lambda/ephemera/llm/pipeline/` | Not started |
+| Core runner + unit tests in `lambda/ephemera/llm/pipeline/` | Done |
 | Coyote clustering => plan-phase pipeline on the runner | Not started |
 | Durable docs: `llm/AGENT.md` + `llm/pipeline/AGENT.md` | Not started |
 | This task plan retired | Not started |

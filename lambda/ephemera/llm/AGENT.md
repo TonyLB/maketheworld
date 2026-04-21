@@ -7,6 +7,7 @@
 - [`invokeBedrockConverseText.ts`](invokeBedrockConverseText.ts) -- **Converse** call: messages, `maxTokens` / `temperature` / `timeoutMs`, aggregated text `body`, typed success or failure. Default client uses `AWS_REGION`. Thin wrappers (parse, room description, Acme enrich, hypothesis) import this and set model id and message shape. Optional **`extendedThinking`** (default **`false`**): when **`true`** and the model returns reasoning content blocks, success includes optional **`reasoningContent`** alongside **`body`** (assistant text only). Call sites that need chain-of-thought should prefer the reasoning channel over embedding scratch work in **`body`**.
 - [`extractJsonObjectText.ts`](extractJsonObjectText.ts) -- Strips optional full-wrap fenced **json** blocks, then takes the slice from the first **{** through the last **}**. Used for "JSON somewhere in the blob" recovery; same family of behavior as several hand-rolled extractors in `dataSource/actions` and `generateExample` (candidates for consolidation over time).
 - [`splitMarkdownReasoningAndJson.ts`](splitMarkdownReasoningAndJson.ts) -- If the response **ends** in a triple-backtick **json** block, treats the last such fence as the final JSON; otherwise falls back to `extractJsonObjectText` and attributes a **reasoning** prefix. Returns `ok` plus `reasoningMarkdown` and `jsonText`, or an error; does **not** call `JSON.parse` into domain types (callers run existing interpreters and guards).
+- [`pipeline/`](pipeline/) -- **Linear pipeline framework**: sequential runner over a generic pipeline state (`createPipelineContext`, `runPipeline`), optional Bedrock-shaped helper [`defineLlmInvokeStep`](pipeline/llmInvokeStep.ts). Orchestration lives here; feature prompts and domain types stay under `dataSource/` or other feature folders.
 
 ## Patterns
 
@@ -22,5 +23,6 @@
 
 ## Navigation
 
+- Multi-call LLM flows that share evolving state use [`pipeline/`](pipeline/) rather than ad hoc sequences; keep transport/parsing imports from this `llm/` root and wire feature-specific prompts next to the feature.
 - Add a new **Converse**-level concern here; add **feature-specific** Bedrock wrappers next to the feature (for example `generateExample` or `dataSource/coyoteGame`) and import the shared pieces from `llm/`.
 - Parent: [`../AGENT.md`](../AGENT.md) (ephemera lambda), [`../../../AGENT.md`](../../../AGENT.md) (repo root documentation standards).
