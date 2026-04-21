@@ -447,7 +447,7 @@ Resources:
       MemorySize: 512
       Runtime: nodejs18.x
       # 60s to accommodate Bedrock calls (including Coyote harness runs) plus prompt/build overhead
-      Timeout: 60
+      Timeout: 120
       Environment:
         Variables:
           TABLE_PREFIX: !Ref TablePrefix

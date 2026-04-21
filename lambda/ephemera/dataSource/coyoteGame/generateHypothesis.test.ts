@@ -7,7 +7,7 @@ jest.mock('./invokeBedrockHypothesis', () => {
     }
 })
 
-import { generateHypothesis } from './generateHypothesis'
+import { generateHypothesis, generateHypothesisWithStageResults } from './generateHypothesis'
 import { harnessRoomObjects } from './coyoteEngineTestFixtures'
 import {
     invokeBedrockHypothesisStageOne,
@@ -86,6 +86,24 @@ describe('generateHypothesis', () => {
         })
         expect(stageOneMock).toHaveBeenCalledTimes(1)
         expect(stageTwoMock).toHaveBeenCalledTimes(1)
+    })
+
+    it('exposes stageTwoReasoningContent on pipeline result when Stage Two returns reasoning', async () => {
+        stageTwoMock.mockResolvedValue({
+            success: true,
+            body: 'Hypothesis: With reasoning channel.',
+            reasoningContent: 'plan ordering scratch',
+            usage: { inputTokens: 1, outputTokens: 2, totalTokens: 3 },
+        })
+        await expect(generateHypothesisWithStageResults({ getGameRooms, getRoomMeta })).resolves.toEqual({
+            record: { intent: 'Hypothesis: With reasoning channel.' },
+            stageOneResult: expect.objectContaining({ success: true }),
+            stageTwoResult: expect.objectContaining({
+                success: true,
+                reasoningContent: 'plan ordering scratch',
+            }),
+            stageTwoReasoningContent: 'plan ordering scratch',
+        })
     })
 
     it('fetches room-local objects for all Coyote Game rooms when not overridden', async () => {

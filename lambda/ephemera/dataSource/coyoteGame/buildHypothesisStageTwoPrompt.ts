@@ -21,6 +21,15 @@ const STAGE_TWO_INTRO_LINES = [
     '- Structured markdown (including ## headings) is allowed only before the Hypothesis line; the Hypothesis line itself is plain text.',
 ] as const
 
+const COMBINED_CLUSTERING_CONTRACT_LINES = [
+    '## Combined clustering Markdown (how to read the dynamic tail)',
+    '- After seam room labels you will see **## Combined clustering**, then one **### ClusterName** section per thematic group from Stage One. Treat each **###** heading as a working group for the maneuver; do not rename or merge clusters in your prose.',
+    '- Each bullet under a cluster is one staged object: **stableKey**, **shortName**, and **room** (placement). An optional indented line **intendedRole:** is Stage One\'s binding choice of a single plan role for that object --- when present, prefer it over guessing from names.',
+    '- **intendedRole** uses the plan-role vocabulary: structural **terminal**, **trigger**, **delivery**, **autonomous_agent**; generative **prep** and **creation**; and **entity_modification** with **target** (**coyote** / **road_runner** / **prop**) and **mode** (**direct** / **constructive**).',
+    '- **prep** is setup that completes before the main trap fires or the cartoon beat runs; **creation** is effects that manifest during plan execution / the beat.',
+    '- **## Outliers** lists staged objects in no **###** cluster. Acknowledge outliers when they matter to your reading; never fold them into a named cluster in prose. If outliers are **(none)**, do not invent cluster members.',
+] as const
+
 const INTERPRETATION_RULES_LINES = [
     '## Interpretation rules',
     '- Address the player in second person, using "you" and "your", not "the player" or "the Coyote".',
@@ -41,9 +50,29 @@ const INTERPRETATION_RULES_LINES = [
 const SCENE_AND_HYPOTHESIS_LINES = [
     '## Scene analysis and Hypothesis output',
     '- Your "## Scene analysis" section should commit to a single reading and build the spatial and causal logic behind it. Do not survey multiple plans there; the Hypothesis restates that same reading as one sentence.',
-    '- Ground your "## Scene analysis" section on the **combined clustering** block and world topology; narrate for the player without contradicting cluster membership or stated intended roles.',
+    '- Ground your "## Scene analysis" section on the **combined clustering** block and world topology; narrate for the player without contradicting cluster membership, **## Outliers** listings, or stated intended roles.',
     '- After "## Scene analysis", respond with one plain-text sentence on its own line beginning exactly with "Hypothesis:".',
     '- No JSON. No extra commentary outside "## Scene analysis" (markdown allowed there) and the Hypothesis line.',
+] as const
+
+const TEMPORAL_ORDERING_LINES = [
+    '## Temporal ordering (prep vs execution)',
+    '- **Prep** (**prep** roles, assembly, bait placement, positioning): narrate these as finishing **before** the contraption fires, before a **trigger** releases the gag, or before the main cartoon beat lands --- not as simultaneous with the payoff.',
+    '- **Creation** (**creation** roles): narrate generated or in-play effects as happening **during** execution of the plan / **during** the cartoon beat --- after setup has done its job.',
+    '- Order your single **Hypothesis:** sentence so a reader can follow firing sequence and cause-and-effect: what leads off, what trips or delivers, what hits last. Lean on **intendedRole** (**trigger**, **terminal**, **delivery**, etc.) when present so the beat order matches the roles.',
+] as const
+
+const VIRTUAL_SCENERY_AND_PREP_OBJECTS_LINES = [
+    '## Virtual scenery and prep-invented props',
+    '- **Environmental scenery** from world topology and cartoon-opportunity cues is first-class in "## Scene analysis" and the **Hypothesis:** line even when it is not a separate staged **`Meta::Room.objects`** row: the cliff and boulder on **CLIFFTOP**, the rock face at **CORNER**, cacti along **STRAIGHTAWAY**, the chasm at **BRIDGE**, lever-friendly rocks, and similar fixed geography.',
+    '- **Prep** may introduce narratively grounded **virtual** props or terrain (for example a painted fake tunnel on a rock face, a dug pit, piles, rigged ground rocks) that complete **before** the beat, consistent with **Temporal ordering** above. These are in-story setup, not new **`stableKey`** entries in the snapshot.',
+    '- Still ground roles and membership on **## Combined clustering** and **## Outliers**; use virtual scenery to connect staged objects to place and sequence --- do not replace staged objects, merge outliers into clusters, or invent cluster members.',
+] as const
+
+const EXTENDED_REASONING_VS_VISIBLE_TEXT_LINES = [
+    '## Extended reasoning vs visible assistant text',
+    '- This request may use **extended reasoning** in the model. Put **planning, ordering, and scratch work** in the **reasoning** channel --- not in the assistant **text** (**body**) stream.',
+    '- Your **text** output must be **player-facing only**: optional "## Scene analysis" Markdown (per the rules above), then exactly one line beginning with **Hypothesis:** --- no chain-of-thought or scratch paragraphs **before** "## Scene analysis" in **text**. If reasoning is unavailable, keep **text** equally clean.',
 ] as const
 
 const DYNAMIC_SECTION_INTRO = [
@@ -59,6 +88,8 @@ export function buildHypothesisStageTwoPromptParts(input: BuildHypothesisStageTw
     const invariantPrefix = [
         ...STAGE_TWO_INTRO_LINES,
         '',
+        ...COMBINED_CLUSTERING_CONTRACT_LINES,
+        '',
         ...COYOTE_HYPOTHESIS_WORLD_TOPOLOGY_LINES,
         '',
         ...COYOTE_HYPOTHESIS_CARTOON_OPPORTUNITY_LINES,
@@ -66,6 +97,12 @@ export function buildHypothesisStageTwoPromptParts(input: BuildHypothesisStageTw
         ...INTERPRETATION_RULES_LINES,
         '',
         ...SCENE_AND_HYPOTHESIS_LINES,
+        '',
+        ...TEMPORAL_ORDERING_LINES,
+        '',
+        ...VIRTUAL_SCENERY_AND_PREP_OBJECTS_LINES,
+        '',
+        ...EXTENDED_REASONING_VS_VISIBLE_TEXT_LINES,
         ...DYNAMIC_SECTION_INTRO,
     ].join('\n')
 

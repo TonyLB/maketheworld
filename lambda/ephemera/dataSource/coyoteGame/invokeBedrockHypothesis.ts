@@ -7,6 +7,7 @@ import {
 import {
     invokeBedrockConverseText,
     type InvokeBedrockConverseTextResult,
+    type NovaReasoningEffort,
 } from '../../llm/invokeBedrockConverseText'
 import type { CoyotePromptParts } from './buildHypothesisPrompt'
 
@@ -16,8 +17,8 @@ export const BEDROCK_HYPOTHESIS_TIMEOUT_MS = 30_000
 /** Stage 1: clustering seam Markdown only — typically shorter output than stage 2. */
 export const BEDROCK_HYPOTHESIS_STAGE_ONE_MAX_TOKENS = 512
 
-/** Stage 2: "## Scene analysis" prose + Hypothesis line (matches prior single-call hypothesis cap). */
-export const BEDROCK_HYPOTHESIS_STAGE_TWO_MAX_TOKENS = 1024
+/** Stage 2 max output tokens ("## Scene analysis" prose + Hypothesis line); increase if the model truncates. */
+export const BEDROCK_HYPOTHESIS_STAGE_TWO_MAX_TOKENS = 2048
 
 /** Default max output tokens for [`invokeBedrockHypothesis`] when not using stage wrappers (e.g. plan outcome). */
 export const BEDROCK_HYPOTHESIS_MAX_TOKENS = BEDROCK_HYPOTHESIS_STAGE_TWO_MAX_TOKENS
@@ -42,6 +43,8 @@ export async function invokeBedrockHypothesis(
         temperature?: number;
         timeoutMs?: number;
         client?: BedrockRuntimeClient;
+        extendedThinking?: boolean;
+        reasoningEffort?: NovaReasoningEffort;
     } = {}
 ): Promise<InvokeBedrockHypothesisResult> {
     const modelId = options.modelId ?? BEDROCK_HYPOTHESIS_MODEL_ID
@@ -61,6 +64,8 @@ export async function invokeBedrockHypothesis(
         temperature,
         timeoutMs,
         client: options.client,
+        extendedThinking: options.extendedThinking,
+        reasoningEffort: options.reasoningEffort,
     })
 }
 
@@ -85,5 +90,6 @@ export async function invokeBedrockHypothesisStageTwo(
     return invokeBedrockHypothesis(prompt, {
         ...options,
         maxTokens: options.maxTokens ?? BEDROCK_HYPOTHESIS_STAGE_TWO_MAX_TOKENS,
+        extendedThinking: options.extendedThinking ?? true,
     })
 }

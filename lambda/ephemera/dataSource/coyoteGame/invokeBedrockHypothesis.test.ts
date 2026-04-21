@@ -49,6 +49,7 @@ describe('invokeBedrockHypothesis', () => {
             { cachePoint: { type: CachePointType.DEFAULT } },
             { text: '\nDYNAMIC_TAIL' },
         ])
+        expect(input.additionalModelRequestFields).toBeUndefined()
     })
 })
 
@@ -67,6 +68,7 @@ describe('invokeBedrockHypothesisStageOne / StageTwo', () => {
 
         const command = send.mock.calls[0][0] as InstanceType<typeof ConverseCommand>
         expect(command.input.inferenceConfig?.maxTokens).toBe(BEDROCK_HYPOTHESIS_STAGE_ONE_MAX_TOKENS)
+        expect(command.input.additionalModelRequestFields).toBeUndefined()
     })
 
     it('StageTwo passes stage-two max tokens by default', async () => {
@@ -83,5 +85,51 @@ describe('invokeBedrockHypothesisStageOne / StageTwo', () => {
 
         const command = send.mock.calls[0][0] as InstanceType<typeof ConverseCommand>
         expect(command.input.inferenceConfig?.maxTokens).toBe(BEDROCK_HYPOTHESIS_STAGE_TWO_MAX_TOKENS)
+        expect(command.input.additionalModelRequestFields).toEqual({
+            reasoningConfig: { type: 'enabled', maxReasoningEffort: 'medium' },
+        })
+    })
+
+    it('StageTwo can disable extendedThinking', async () => {
+        const send = jest.fn().mockResolvedValue({
+            output: { message: { content: [{ text: 'Hypothesis: ok' }] } },
+            usage: {},
+        })
+        const client = { send } as unknown as BedrockRuntimeClient
+
+        await invokeBedrockHypothesisStageTwo(
+            { invariantPrefix: 'A', dynamicSuffix: '\nB' },
+            { client, timeoutMs: 5000, extendedThinking: false }
+        )
+
+        const command = send.mock.calls[0][0] as InstanceType<typeof ConverseCommand>
+        expect(command.input.additionalModelRequestFields).toBeUndefined()
+    })
+
+    it('StageTwo returns reasoningContent when the response includes reasoning blocks', async () => {
+        const send = jest.fn().mockResolvedValue({
+            output: {
+                message: {
+                    content: [
+                        { reasoningContent: { reasoningText: { text: 'plan' } } },
+                        { text: 'Hypothesis: ok' },
+                    ],
+                },
+            },
+            usage: {},
+        })
+        const client = { send } as unknown as BedrockRuntimeClient
+
+        const result = await invokeBedrockHypothesisStageTwo(
+            { invariantPrefix: 'A', dynamicSuffix: '\nB' },
+            { client, timeoutMs: 5000 }
+        )
+
+        expect(result).toEqual({
+            success: true,
+            body: 'Hypothesis: ok',
+            reasoningContent: 'plan',
+            usage: {},
+        })
     })
 })
