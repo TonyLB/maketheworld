@@ -3,6 +3,7 @@ import {
     DiagnosticsEventUpdate,
     isS3StructureFindingEvent,
     isCacheConsistencyFindingEvent,
+    isEphemeraRenderCacheFindingEvent,
     isDiagnosticsEventUpdate
 } from './index'
 import type { DataSourceEnvironment } from '@tonylb/mtw-interfaces/ts/DataSourceEnvironment'
@@ -111,6 +112,31 @@ describe('DiagnosticsEventSerializer', () => {
                 header: diagnosticsHeader('Snapshot')
             })
             expect(result).toBeNull()
+        })
+
+        it('should serialize Ephemera RenderCache Finding event', () => {
+            const internalEvent: DiagnosticsEventUpdate = {
+                type: 'Ephemera RenderCache Finding',
+                perspective: ['ASSET#primitives', 'ASSET#core'],
+                status: 'missing',
+                diagnosticRunId: 'run-rc-1',
+                timestamp: '2025-10-18T14:30:00.000Z',
+                roomIds: ['ROOM#one', 'ROOM#two']
+            }
+
+            const external = serializer.serialize({
+                content: internalEvent,
+                header: diagnosticsHeader('Ephemera RenderCache Finding')
+            })
+
+            expect(external).toEqual({
+                type: 'Ephemera RenderCache Finding',
+                perspective: ['ASSET#primitives', 'ASSET#core'],
+                status: 'missing',
+                diagnosticRunId: 'run-rc-1',
+                timestamp: '2025-10-18T14:30:00.000Z',
+                roomIds: ['ROOM#one', 'ROOM#two']
+            })
         })
     })
 
@@ -258,6 +284,73 @@ describe('DiagnosticsEventSerializer', () => {
             })
         })
 
+        it('should deserialize Ephemera RenderCache Finding event from EventBridge format', async () => {
+            const externalEvent: any = {
+                type: 'Ephemera RenderCache Finding',
+                perspective: ['ASSET#primitives', 'ASSET#core'],
+                status: 'corrupted',
+                diagnosticRunId: 'run-rc-2',
+                timestamp: '2025-10-18T14:35:00.000Z',
+                roomIds: ['ROOM#alpha']
+            }
+
+            const internal = await serializer.deserialize({
+                content: externalEvent,
+                header: diagnosticsHeader('Ephemera RenderCache Finding')
+            })
+
+            expect(internal).toEqual({
+                type: 'Ephemera RenderCache Finding',
+                perspective: ['ASSET#primitives', 'ASSET#core'],
+                status: 'corrupted',
+                diagnosticRunId: 'run-rc-2',
+                timestamp: '2025-10-18T14:35:00.000Z',
+                roomIds: ['ROOM#alpha']
+            })
+        })
+
+        it('should deserialize Ephemera RenderCache Finding with defaults for optional fields', async () => {
+            const externalEvent: any = {
+                type: 'Ephemera RenderCache Finding',
+                perspective: ['ASSET#primitives'],
+                status: 'missing'
+            }
+
+            const internal = await serializer.deserialize({
+                content: externalEvent,
+                header: diagnosticsHeader('Ephemera RenderCache Finding')
+            })
+
+            expect(internal).toBeDefined()
+            expect(internal).toMatchObject({
+                type: 'Ephemera RenderCache Finding',
+                perspective: ['ASSET#primitives'],
+                status: 'missing'
+            })
+            if (internal && internal.type === 'Ephemera RenderCache Finding') {
+                expect(internal.diagnosticRunId).toBe('unknown')
+                expect(internal.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T/)
+            }
+        })
+
+        it('should return null for Ephemera RenderCache Finding invalid payloads', async () => {
+            const invalidEvents = [
+                { type: 'Ephemera RenderCache Finding', status: 'missing' },
+                { type: 'Ephemera RenderCache Finding', perspective: ['ASSET#x'] },
+                { type: 'Ephemera RenderCache Finding', perspective: ['NOT-ASSET#x'], status: 'missing' },
+                { type: 'Ephemera RenderCache Finding', perspective: ['ASSET#x'], status: 'stale' },
+                { type: 'Ephemera RenderCache Finding', perspective: ['ASSET#x'], status: 'missing', roomIds: ['NOT-ROOM#x'] }
+            ]
+
+            for (const event of invalidEvents) {
+                const internal = await serializer.deserialize({
+                    content: event,
+                    header: diagnosticsHeader('Ephemera RenderCache Finding')
+                })
+                expect(internal).toBeNull()
+            }
+        })
+
         it('should return null for unknown event types', async () => {
             const unknownEvent: any = {
                 type: 'Unknown Event Type',
@@ -354,6 +447,29 @@ describe('DiagnosticsEventSerializer', () => {
                 expect(isCacheConsistencyFindingEvent({ type: 'Cache Consistency Finding', assetId: 'x', status: 'repaired' })).toBe(false)
             })
         })
+
+        describe('isEphemeraRenderCacheFindingEvent', () => {
+            it('should return true for valid Ephemera RenderCache Finding event', () => {
+                const event = {
+                    type: 'Ephemera RenderCache Finding',
+                    perspective: ['ASSET#primitives'],
+                    status: 'missing',
+                    diagnosticRunId: 'run-1',
+                    timestamp: '2025-10-18T12:00:00.000Z',
+                    roomIds: ['ROOM#one']
+                }
+                expect(isEphemeraRenderCacheFindingEvent(event)).toBe(true)
+            })
+
+            it('should return false for invalid events', () => {
+                expect(isEphemeraRenderCacheFindingEvent(null)).toBe(false)
+                expect(isEphemeraRenderCacheFindingEvent(undefined)).toBe(false)
+                expect(isEphemeraRenderCacheFindingEvent({})).toBe(false)
+                expect(isEphemeraRenderCacheFindingEvent({ type: 'Ephemera RenderCache Finding', perspective: ['ASSET#x'], status: 'invalid' })).toBe(false)
+                expect(isEphemeraRenderCacheFindingEvent({ type: 'Ephemera RenderCache Finding', perspective: ['NOT-ASSET#x'], status: 'missing' })).toBe(false)
+                expect(isEphemeraRenderCacheFindingEvent({ type: 'Ephemera RenderCache Finding', perspective: ['ASSET#x'], status: 'missing', roomIds: ['NOT-ROOM#x'] })).toBe(false)
+            })
+        })
     })
 
     describe('round-trip serialization', () => {
@@ -394,6 +510,28 @@ describe('DiagnosticsEventSerializer', () => {
             const deserialized = await serializer.deserialize({
                 content: external,
                 header: diagnosticsHeader('Cache Consistency Finding')
+            })
+
+            expect(deserialized).toEqual(original)
+        })
+
+        it('should round-trip Ephemera RenderCache Finding', async () => {
+            const original: DiagnosticsEventUpdate = {
+                type: 'Ephemera RenderCache Finding',
+                perspective: ['ASSET#primitives', 'ASSET#core'],
+                status: 'missing',
+                diagnosticRunId: 'run-rc-3',
+                timestamp: '2025-10-18T16:10:00.000Z',
+                roomIds: ['ROOM#abc']
+            }
+
+            const external = serializer.serialize({
+                content: original,
+                header: diagnosticsHeader('Ephemera RenderCache Finding')
+            })
+            const deserialized = await serializer.deserialize({
+                content: external,
+                header: diagnosticsHeader('Ephemera RenderCache Finding')
             })
 
             expect(deserialized).toEqual(original)

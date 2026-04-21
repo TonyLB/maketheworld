@@ -396,5 +396,19 @@ describe('Ephemera DataSource receiveEvents', () => {
 
             expect(ephemeraDataSource.subscribedEventTypeGuard?.(otherEnvelope)).toBe(false)
         })
+
+        it('should not subscribe to Ephemera RenderCache Finding from mtw.diagnostics', () => {
+            const envelope = {
+                header: {
+                    dataSourceKey: 'mtw.diagnostics',
+                    streamKey: 'global',
+                    timestamp: getCurrentTimestamp(),
+                    type: 'Ephemera RenderCache Finding'
+                },
+                getContent: () => Promise.resolve({})
+            }
+
+            expect(ephemeraDataSource.subscribedEventTypeGuard?.(envelope)).toBe(false)
+        })
     })
 })

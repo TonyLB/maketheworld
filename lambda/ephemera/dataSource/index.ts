@@ -62,6 +62,7 @@ export const ephemeraDataSource = new EphemeraDataSource<never, AssetsEventUpdat
             }
             if (isEphemeraZoneUpdatedEnvelope(evt)) {
                 await processZoneUpdated(evt)
+                return
             }
         }))
     }

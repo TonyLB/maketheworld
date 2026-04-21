@@ -194,6 +194,32 @@ describe('app handler', () => {
             const content = await payload.getContent()
             expect(content).toEqual({})
         })
+
+        it('should reject mtw.diagnostics Ephemera RenderCache Finding when deserializer is unavailable', async () => {
+            const event = {
+                source: 'mtw.diagnostics',
+                'detail-type': 'Ephemera RenderCache Finding',
+                detail: {
+                    perspective: ['ASSET#primitives'],
+                    status: 'missing',
+                    diagnosticRunId: 'diag-1',
+                    timestamp: '2026-04-21T12:00:00.000Z',
+                    roomIds: ['ROOM#alpha']
+                },
+                time: '2026-04-21T12:00:00.000Z'
+            }
+
+            await handler(event, {})
+
+            expect(mockMessageBus.send).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    type: 'Error',
+                    body: expect.objectContaining({
+                        error: 'No deserializer available for data source: mtw.diagnostics'
+                    })
+                })
+            )
+        })
     })
 
     describe('ephemera API wire messages (api.ephemera)', () => {

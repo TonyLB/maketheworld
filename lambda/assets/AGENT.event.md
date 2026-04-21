@@ -31,6 +31,16 @@ The Assets Lambda hosts six data sources, each serving a specific purpose:
 
 **Event Subscription**: Subscribes to `mtw.wml` events to trigger caching operations
 
+**Diagnostics finding handling (steady state):**
+- Subscribes to `mtw.diagnostics` findings including:
+  - `Cache Consistency Finding` -> calls `cacheAsset(...)`.
+  - `Ephemera RenderCache Finding` -> calls `reseedComponentExamplesFromDiagnostics(...)`.
+- `Ephemera RenderCache Finding` remediation is **assets-led** and **descriptive**:
+  - validates and normalizes `perspective` and optional `roomIds`,
+  - resolves target room set (`roomIds` scope when provided, else all perspective-eligible rooms),
+  - emits synthetic `Component Updated` events from Assets to drive `mtw.assets.componentExamples` fanout.
+- This path does **not** write ephemera render cache directly. It preserves ownership boundaries by healing through the existing publish/subscribe chain.
+
 **Implementation**: [`./dataSource/index.ts`](./dataSource/index.ts)
 
 **Documentation**: See [`./dataSource/AGENT.md`](./dataSource/AGENT.md) (if exists) or inline comments in implementation
@@ -150,6 +160,11 @@ Where:
   - For `ExampleRemoved`, computes `assetStack` and `parentIds` without emitting a new example payload.
 
 Other component types (Character, Message, Guidance, etc.) are ignored by this data source.
+
+**Diagnostics reseed integration (steady state):**
+- `Ephemera RenderCache Finding` remediation in `mtw.assets` uses synthetic `Component Updated` events to intentionally re-enter this enrichment pipeline.
+- As a result, reseed uses the same authored payload construction path as normal component updates (including room-situation fanout) rather than introducing a separate cache-healing event shape.
+- `status: 'missing'` and `status: 'corrupted'` currently share the same idempotent reseed behavior.
 
 **Implementation**: [`./componentExamples/index.ts`](./componentExamples/index.ts)
 

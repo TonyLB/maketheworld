@@ -1399,6 +1399,7 @@ Resources:
                   detail-type:
                     - Heal Global Values
                     - Cache Consistency Finding
+                    - Ephemera RenderCache Finding
             InitializeSubscriptions:
               Type: CloudWatchEvent
               Properties:

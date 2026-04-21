@@ -31,6 +31,11 @@ Task-planning drafts (dispose after tasks land) live under [`taskPlanning/lambda
 
 **Ingress convention:** Many flows use **`dataSourceKey: 'api.ephemera'`** on the internal bus for lambda-invoked commands (not necessarily API Gateway). Package-local `localApiEvents.ts` files document additional **`api.ephemera`** header types.
 
+**Diagnostics boundary note (steady state):**
+- Ephemera DataSource does **not** directly subscribe to `mtw.diagnostics` `Ephemera RenderCache Finding`.
+- Render-cache self-healing for this finding is assets-led: diagnostics finding -> `mtw.assets` reseed -> `mtw.assets.componentExamples` -> `mtw.ephemera.examples` -> `mtw.ephemera.renderCache`.
+- This preserves `mtw.ephemera.renderCache` as the write-owner boundary for cache persistence.
+
 ---
 
 ## DataSource instances (by `dataSourceKey`)

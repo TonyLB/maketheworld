@@ -7,6 +7,7 @@ import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { cacheAsset, decacheAsset } from './caching'
 import { Zone } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { reseedComponentExamplesFromDiagnostics } from '../componentExamples/reseedFromDiagnostics'
 
 // Mock external dependencies
 jest.mock('@tonylb/mtw-utilities/ts/dynamoDB', () => ({
@@ -47,11 +48,15 @@ jest.mock('../internalCache', () => ({
     }
 }))
 jest.mock('./caching')
+jest.mock('../componentExamples/reseedFromDiagnostics', () => ({
+    reseedComponentExamplesFromDiagnostics: jest.fn()
+}))
 
 const assetDBMock = jest.mocked(assetDB, { shallow: false })
 const eventBridgeSendMock = jest.mocked(eventBridgeClient.send, { shallow: false })
 const cacheAssetMock = jest.mocked(cacheAsset)
 const decacheAssetMock = jest.mocked(decacheAsset)
+const reseedComponentExamplesFromDiagnosticsMock = jest.mocked(reseedComponentExamplesFromDiagnostics)
 
 describe('AssetsDataSource (mtw.assets)', () => {
     beforeEach(() => {
@@ -61,6 +66,7 @@ describe('AssetsDataSource (mtw.assets)', () => {
             isNewAsset: false
         } as any)
         decacheAssetMock.mockResolvedValue(undefined)
+        reseedComponentExamplesFromDiagnosticsMock.mockResolvedValue(undefined)
         // Mock assetDB.query for diagnostic tests
         assetDBMock.query.mockResolvedValue([])
     })
@@ -84,7 +90,7 @@ describe('AssetsDataSource (mtw.assets)', () => {
             const update: AssetsEventUpdate = {
                 type: 'Component Updated',
                 component
-            }
+            } as AssetsEventUpdate
 
             await assetsDataSource.streamEvent({
                 update,
@@ -117,7 +123,7 @@ describe('AssetsDataSource (mtw.assets)', () => {
             const update: AssetsEventUpdate = {
                 type: 'Canon Updated',
                 assetIds: ['ASSET#asset789']
-            }
+            } as AssetsEventUpdate
 
             await assetsDataSource.streamEvent({
                 update,
@@ -152,7 +158,7 @@ describe('AssetsDataSource (mtw.assets)', () => {
             const update: AssetsEventUpdate = {
                 type: 'Component Updated',
                 component
-            }
+            } as AssetsEventUpdate
 
             await assetsDataSource.streamEvent({
                 update,
@@ -181,7 +187,7 @@ describe('AssetsDataSource (mtw.assets)', () => {
             const update: AssetsEventUpdate = {
                 type: 'Component Updated',
                 component
-            }
+            } as AssetsEventUpdate
 
             await assetsDataSource.streamEvent({
                 update,
@@ -532,8 +538,108 @@ describe('AssetsDataSource (mtw.assets)', () => {
             })
         })
 
+        it('should process Ephemera RenderCache Finding by reseeding component examples', async () => {
+            const findingEvent: any = {
+                header: {
+                    dataSourceKey: 'mtw.diagnostics' as const,
+                    streamKey: 'global',
+                    timestamp: Date.now(),
+                    type: 'Ephemera RenderCache Finding'
+                },
+                getContent: () => Promise.resolve({
+                    type: 'Ephemera RenderCache Finding' as const,
+                    perspective: ['ASSET#primitives'],
+                    status: 'missing' as const,
+                    diagnosticRunId: 'diag-1',
+                    timestamp: '2026-04-21T12:00:00.000Z',
+                    roomIds: ['ROOM#alpha']
+                })
+            }
+            const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
+
+            await assetsDataSource.receiveEvents?.({
+                events: [findingEvent],
+                streamEvent: mockStreamEvent,
+                streamEnvelope: jest.fn().mockResolvedValue(undefined)
+            })
+
+            expect(reseedComponentExamplesFromDiagnosticsMock).toHaveBeenCalledWith({
+                type: 'Ephemera RenderCache Finding',
+                perspective: ['ASSET#primitives'],
+                status: 'missing',
+                diagnosticRunId: 'diag-1',
+                timestamp: '2026-04-21T12:00:00.000Z',
+                roomIds: ['ROOM#alpha']
+            }, mockStreamEvent)
+        })
+
+        it('should route both missing and corrupted render-cache findings through the same reseed handler', async () => {
+            const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
+            const makeFindingEvent = (status: 'missing' | 'corrupted') => ({
+                header: {
+                    dataSourceKey: 'mtw.diagnostics' as const,
+                    streamKey: 'global',
+                    timestamp: Date.now(),
+                    type: 'Ephemera RenderCache Finding'
+                },
+                getContent: () => Promise.resolve({
+                    type: 'Ephemera RenderCache Finding' as const,
+                    perspective: ['ASSET#primitives'],
+                    status,
+                    diagnosticRunId: `diag-${status}`,
+                    timestamp: '2026-04-21T12:00:00.000Z'
+                })
+            })
+
+            await assetsDataSource.receiveEvents?.({
+                events: [makeFindingEvent('missing') as any, makeFindingEvent('corrupted') as any],
+                streamEvent: mockStreamEvent,
+                streamEnvelope: jest.fn().mockResolvedValue(undefined)
+            })
+
+            expect(reseedComponentExamplesFromDiagnosticsMock).toHaveBeenCalledTimes(2)
+            expect(reseedComponentExamplesFromDiagnosticsMock).toHaveBeenNthCalledWith(1, expect.objectContaining({ status: 'missing' }), mockStreamEvent)
+            expect(reseedComponentExamplesFromDiagnosticsMock).toHaveBeenNthCalledWith(2, expect.objectContaining({ status: 'corrupted' }), mockStreamEvent)
+        })
+
+        it('should process repeated findings with the same input without diverging behavior', async () => {
+            const findingEvent: any = {
+                header: {
+                    dataSourceKey: 'mtw.diagnostics' as const,
+                    streamKey: 'global',
+                    timestamp: Date.now(),
+                    type: 'Ephemera RenderCache Finding'
+                },
+                getContent: () => Promise.resolve({
+                    type: 'Ephemera RenderCache Finding' as const,
+                    perspective: ['ASSET#primitives'],
+                    status: 'missing' as const,
+                    diagnosticRunId: 'diag-repeat',
+                    timestamp: '2026-04-21T12:00:00.000Z',
+                    roomIds: ['ROOM#alpha']
+                })
+            }
+            const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
+
+            await assetsDataSource.receiveEvents?.({
+                events: [findingEvent, findingEvent],
+                streamEvent: mockStreamEvent,
+                streamEnvelope: jest.fn().mockResolvedValue(undefined)
+            })
+
+            expect(reseedComponentExamplesFromDiagnosticsMock).toHaveBeenCalledTimes(2)
+            expect(reseedComponentExamplesFromDiagnosticsMock).toHaveBeenNthCalledWith(1, expect.objectContaining({
+                perspective: ['ASSET#primitives'],
+                roomIds: ['ROOM#alpha']
+            }), mockStreamEvent)
+            expect(reseedComponentExamplesFromDiagnosticsMock).toHaveBeenNthCalledWith(2, expect.objectContaining({
+                perspective: ['ASSET#primitives'],
+                roomIds: ['ROOM#alpha']
+            }), mockStreamEvent)
+        })
+
         it('should normalize short assetId to ASSET# prefix in Cache Consistency Finding', async () => {
-            const cacheConsistencyEvent = {
+            const cacheConsistencyEvent: any = {
                 header: {
                     dataSourceKey: 'mtw.diagnostics' as const,
                     streamKey: 'test-stream',
@@ -543,7 +649,9 @@ describe('AssetsDataSource (mtw.assets)', () => {
                 getContent: () => Promise.resolve({
                     type: 'Cache Consistency Finding' as const,
                     assetId: 'primitives',
-                    status: 'missing' as const
+                    status: 'missing' as const,
+                    diagnosticRunId: 'diag-2',
+                    timestamp: '2026-04-21T12:00:00.000Z'
                 })
             }
 
@@ -627,7 +735,8 @@ describe('AssetsDataSource (mtw.assets)', () => {
                 { dataSourceKey: 'mtw.wml', type: 'Zone Changed' },
                 { dataSourceKey: 'mtw.wml', type: 'Asset Purged' },
                 { dataSourceKey: 'mtw.diagnostics', type: 'Heal Global Values' },
-                { dataSourceKey: 'mtw.diagnostics', type: 'Cache Consistency Finding' }
+                { dataSourceKey: 'mtw.diagnostics', type: 'Cache Consistency Finding' },
+                { dataSourceKey: 'mtw.diagnostics', type: 'Ephemera RenderCache Finding' }
             ]
 
             subscribedHeaderPairs.forEach(({ dataSourceKey, type }) => {
