@@ -17,7 +17,7 @@ export const BEDROCK_HYPOTHESIS_TIMEOUT_MS = 30_000
 /** Stage 1: clustering seam Markdown only — typically shorter output than stage 2. */
 export const BEDROCK_HYPOTHESIS_STAGE_ONE_MAX_TOKENS = 512
 
-/** Stage 2: "## Scene analysis" prose + Hypothesis line (matches prior single-call hypothesis cap). */
+/** Stage 2 max output tokens ("## Scene analysis" prose + Hypothesis line); increase if the model truncates. */
 export const BEDROCK_HYPOTHESIS_STAGE_TWO_MAX_TOKENS = 2048
 
 /** Default max output tokens for [`invokeBedrockHypothesis`] when not using stage wrappers (e.g. plan outcome). */
