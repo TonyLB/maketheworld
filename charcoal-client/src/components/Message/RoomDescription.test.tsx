@@ -214,16 +214,10 @@ describe('RoomDescription', () => {
             expect(screen.getByText('A room rendered from a Situation facet')).toBeDefined()
         })
 
-        it('uses defaults when room has examples but no render or situation prose', () => {
+        it('uses defaults when room has no render or situation prose', () => {
             const standardForm = new StandardForm(deIndentWML(`
                 <Asset uuid=(test)>
-                    <Room key=(testRoom) uuid=(ROOM#testRoom)>
-                        <Example key=(example1) uuid=(EXAMPLE#example1)>
-                            <DisplayName>Legacy Example Name</DisplayName>
-                            <Description>Legacy Example Description</Description>
-                            <Summary>Legacy Example Summary</Summary>
-                        </Example>
-                    </Room>
+                    <Room key=(testRoom) uuid=(ROOM#testRoom) />
                 </Asset>
             `))
 
@@ -240,8 +234,6 @@ describe('RoomDescription', () => {
 
             expect(screen.getByText('Untitled')).toBeDefined()
             expect(screen.getByText('No description')).toBeDefined()
-            expect(screen.queryByText('Legacy Example Name')).toBeNull()
-            expect(screen.queryByText('Legacy Example Description')).toBeNull()
         })
     })
 
@@ -316,11 +308,11 @@ describe('RoomDescription', () => {
                 const standardForm = new StandardForm(deIndentWML(`
                     <Asset uuid=(test)>
                         <Room key=(testRoom) uuid=(ROOM#testRoom)>
-                            <Example key=(example1) uuid=(EXAMPLE#example1)>
+                            <Situation uuid=(DEFAULT)>
                                 <DisplayName>Test Room</DisplayName>
                                 <Description>A beautiful test room with stone walls</Description>
                                 <Summary>Test summary</Summary>
-                            </Example>
+                            </Situation>
                         </Room>
                     </Asset>
                 `))
@@ -344,10 +336,10 @@ describe('RoomDescription', () => {
                 const standardForm = new StandardForm(deIndentWML(`
                     <Asset uuid=(test)>
                         <Room key=(testRoom) uuid=(ROOM#testRoom)>
-                            <Example key=(example1) uuid=(EXAMPLE#example1)>
+                            <Situation uuid=(DEFAULT)>
                                 <DisplayName>Room with Exits</DisplayName>
                                 <Description>A room with multiple exits and characters</Description>
-                            </Example>
+                            </Situation>
                             <Exit to=(ROOM#north)>North passage</Exit>
                             <Exit to=(ROOM#south)>South corridor</Exit>
                             <Character key=(testChar) uuid=(testChar) />
@@ -381,10 +373,10 @@ describe('RoomDescription', () => {
                 const standardForm = new StandardForm(deIndentWML(`
                     <Asset uuid=(test)>
                         <Room key=(testRoom) uuid=(ROOM#testRoom)>
-                            <Example key=(example1) uuid=(EXAMPLE#example1)>
+                            <Situation uuid=(DEFAULT)>
                                 <DisplayName>Header Room</DisplayName>
                                 <Description>A room shown as header</Description>
-                            </Example>
+                            </Situation>
                         </Room>
                     </Asset>
                 `))
@@ -467,7 +459,7 @@ describe('RoomDescription', () => {
         })
 
         describe('Edge cases', () => {
-            it('should handle room with no examples gracefully', () => {
+            it('should handle room with no situation prose gracefully', () => {
                 const standardForm = new StandardForm(deIndentWML(`
                     <Asset uuid=(test)>
                         <Room key=(testRoom) uuid=(ROOM#testRoom) />

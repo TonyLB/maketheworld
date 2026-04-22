@@ -5,8 +5,12 @@ import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
 import { Schema, schemaToWML } from "@tonylb/mtw-wml/ts/schema"
 import { deIndentWML } from "@tonylb/mtw-wml/ts/schema/utils"
 import { publicSelectors } from "./selectors"
-import StandardExample from "@tonylb/mtw-wml/ts/standardize/components/example"
+import StandardRoom from "@tonylb/mtw-wml/ts/standardize/components/room"
 import { StandardLiteral } from "@tonylb/mtw-wml/ts/standardize/literal"
+import {
+    SituationRoomFacetList,
+    StandardSituationRoomFacet,
+} from "@tonylb/mtw-wml/ts/standardize/keys/facets/situationRoom"
 import { StandardExplicitKey } from "@tonylb/mtw-wml/ts/standardize/explicit"
 import ReferenceList from "@tonylb/mtw-wml/ts/standardize/keys/referenceList"
 import StandardReference from "@tonylb/mtw-wml/ts/standardize/keys/reference"
@@ -55,10 +59,10 @@ describe('personalAsset slice reducers', () => {
                 `
                     <Asset uuid=(testAsset)>
                         <Room uuid=(testRoom)>
-                            <Example uuid=(base)>
+                            <Situation uuid=(DEFAULT)>
                                 <DisplayName>Test Room</DisplayName>
                                 <Description>Test Description</Description>
-                            </Example>
+                            </Situation>
                         </Room>
                     </Asset>
                 `,
@@ -68,11 +72,16 @@ describe('personalAsset slice reducers', () => {
                 {
                     type: 'update',
                     update: (draft) => {
-                        const exampleComponent = draft.byUniversalId['EXAMPLE#base']
-                        if (exampleComponent instanceof StandardExample) {
-                            const newExample = exampleComponent.clone()
-                            newExample._payload._displayName = new StandardLiteral('Test Update', { tag: 'DisplayName' })
-                            draft.byUniversalId['EXAMPLE#base'] = newExample
+                        const room = draft.byUniversalId['ROOM#testRoom']
+                        if (room instanceof StandardRoom) {
+                            const facet = room.situations.items[0]
+                            const newPayload = facet.payload.clone()
+                            newPayload._displayName = new StandardLiteral('Test Update', { tag: 'DisplayName' })
+                            const newFacet = new StandardSituationRoomFacet({
+                                reference: facet.reference.toJSON(),
+                                payload: newPayload.toJSON(),
+                            })
+                            room._payload._situations = new SituationRoomFacetList([newFacet])
                         }
                         return draft
                     }
@@ -81,39 +90,45 @@ describe('personalAsset slice reducers', () => {
                 base: deIndentWML(`
                     <Asset uuid=(testAsset)>
                         <Room uuid=(testRoom)>
-                            <Example uuid=(base)>
+                            <Situation uuid=(DEFAULT) ref={0} />
+                            <Situation uuid=(DEFAULT)>
                                 <DisplayName>Test Room</DisplayName>
                                 <Description>Test Description</Description>
-                            </Example>
+                            </Situation>
                         </Room>
                     </Asset>
                 `),
                 standard: deIndentWML(`
                     <Asset uuid=(testAsset)>
                         <Room uuid=(testRoom)>
-                            <Example uuid=(base)>
+                            <Situation uuid=(DEFAULT) ref={0} />
+                            <Situation uuid=(DEFAULT)>
                                 <DisplayName>Test Update</DisplayName>
                                 <Description>Test Description</Description>
-                            </Example>
+                            </Situation>
                         </Room>
                     </Asset>
                 `),
                 calculated: deIndentWML(`
                     <Asset uuid=(testAsset)>
                         <Room uuid=(testRoom)>
-                            <Example uuid=(base)>
+                            <Situation uuid=(DEFAULT) ref={0} />
+                            <Situation uuid=(DEFAULT)>
                                 <DisplayName>Test Update</DisplayName>
                                 <Description>Test Description</Description>
-                            </Example>
+                            </Situation>
                         </Room>
                     </Asset>
                 `),
                 edit: deIndentWML(`
                     <Asset uuid=(testAsset)>
-                        <Example uuid=(base) ref={0}>
-                            <Replace><DisplayName>Room</DisplayName></Replace>
-                            <With><DisplayName>Update</DisplayName></With>
-                        </Example>
+                        <Situation uuid=(DEFAULT) ref={0} />
+                        <Room uuid=(testRoom) ref={0}>
+                            <Situation uuid=(DEFAULT) ref={0}>
+                                <Replace><DisplayName>Room</DisplayName></Replace>
+                                <With><DisplayName>Update</DisplayName></With>
+                            </Situation>
+                        </Room>
                     </Asset>
                 `)
             })
@@ -124,10 +139,10 @@ describe('personalAsset slice reducers', () => {
                 `
                 <Asset uuid=(testAsset)>
                     <Room uuid=(testRoom)>
-                        <Example uuid=(base)>
+                        <Situation uuid=(DEFAULT)>
                             <DisplayName>Test Room</DisplayName>
                             <Description>Test Description</Description>
-                        </Example>
+                        </Situation>
                     </Room>
                     <Room uuid=(testRoomTwo) />
                 </Asset>
@@ -147,10 +162,11 @@ describe('personalAsset slice reducers', () => {
                 base: deIndentWML(`
                     <Asset uuid=(testAsset)>
                         <Room uuid=(testRoom)>
-                            <Example uuid=(base)>
+                            <Situation uuid=(DEFAULT) ref={0} />
+                            <Situation uuid=(DEFAULT)>
                                 <DisplayName>Test Room</DisplayName>
                                 <Description>Test Description</Description>
-                            </Example>
+                            </Situation>
                         </Room>
                         <Room uuid=(testRoomTwo) />
                     </Asset>
@@ -165,10 +181,11 @@ describe('personalAsset slice reducers', () => {
                     <Asset uuid=(testAsset)>
                         <Remove>
                             <Room uuid=(testRoom)>
-                                <Example uuid=(base)>
+                                <Situation uuid=(DEFAULT) ref={0} />
+                                <Situation uuid=(DEFAULT)>
                                     <DisplayName>Test Room</DisplayName>
                                     <Description>Test Description</Description>
-                                </Example>
+                                </Situation>
                             </Room>
                         </Remove>
                     </Asset>
@@ -181,10 +198,10 @@ describe('personalAsset slice reducers', () => {
                 `
                 <Asset uuid=(testAsset)>
                     <Room uuid=(testRoom)>
-                        <Example uuid=(base)>
+                        <Situation uuid=(DEFAULT)>
                             <DisplayName>Test Room</DisplayName>
                             <Description>Test Description</Description>
-                        </Example>
+                        </Situation>
                     </Room>
                 </Asset>
                 `,
@@ -194,11 +211,16 @@ describe('personalAsset slice reducers', () => {
                 {
                     type: 'update',
                     update: (draft) => {
-                        const exampleComponent = draft.byUniversalId['EXAMPLE#base']
-                        if (exampleComponent instanceof StandardExample) {
-                            const newExample = exampleComponent.clone()
-                            newExample._payload._displayName = undefined
-                            draft.byUniversalId['EXAMPLE#base'] = newExample
+                        const room = draft.byUniversalId['ROOM#testRoom']
+                        if (room instanceof StandardRoom) {
+                            const facet = room.situations.items[0]
+                            const newPayload = facet.payload.clone()
+                            newPayload._displayName = undefined
+                            const newFacet = new StandardSituationRoomFacet({
+                                reference: facet.reference.toJSON(),
+                                payload: newPayload.toJSON(),
+                            })
+                            room._payload._situations = new SituationRoomFacetList([newFacet])
                         }
                         return draft
                     }
@@ -207,36 +229,42 @@ describe('personalAsset slice reducers', () => {
                 base: deIndentWML(`
                     <Asset uuid=(testAsset)>
                         <Room uuid=(testRoom)>
-                            <Example uuid=(base)>
+                            <Situation uuid=(DEFAULT) ref={0} />
+                            <Situation uuid=(DEFAULT)>
                                 <DisplayName>Test Room</DisplayName>
                                 <Description>Test Description</Description>
-                            </Example>
+                            </Situation>
                         </Room>
                     </Asset>
                 `),
                 standard: deIndentWML(`
                     <Asset uuid=(testAsset)>
                         <Room uuid=(testRoom)>
-                            <Example uuid=(base)>
+                            <Situation uuid=(DEFAULT) ref={0} />
+                            <Situation uuid=(DEFAULT)>
                                 <Description>Test Description</Description>
-                            </Example>
+                            </Situation>
                         </Room>
                     </Asset>
                 `),
                 calculated: deIndentWML(`
                     <Asset uuid=(testAsset)>
                         <Room uuid=(testRoom)>
-                            <Example uuid=(base)>
+                            <Situation uuid=(DEFAULT) ref={0} />
+                            <Situation uuid=(DEFAULT)>
                                 <Description>Test Description</Description>
-                            </Example>
+                            </Situation>
                         </Room>
                     </Asset>
                 `),
                 edit: deIndentWML(`
                     <Asset uuid=(testAsset)>
-                        <Example uuid=(base) ref={0}>
-                            <Remove><DisplayName>Test Room</DisplayName></Remove>
-                        </Example>
+                        <Situation uuid=(DEFAULT) ref={0} />
+                        <Room uuid=(testRoom) ref={0}>
+                            <Situation uuid=(DEFAULT) ref={0}>
+                                <Remove><DisplayName>Test Room</DisplayName></Remove>
+                            </Situation>
+                        </Room>
                     </Asset>
                 `)
             })
@@ -247,14 +275,14 @@ describe('personalAsset slice reducers', () => {
                 `
                 <Asset uuid=(testAsset)>
                     <Room uuid=(Room1)>
-                        <Example uuid=(base)>
+                        <Situation uuid=(DEFAULT)>
                             <DisplayName>Test Room</DisplayName>
                             <Description>Test Description</Description>
-                        </Example>
+                        </Situation>
                         <Exit to=(ROOM#Room2)>out</Exit>
                     </Room>
                     <Room uuid=(Room2)>
-                        <Example uuid=(base2)><DisplayName>Garden</DisplayName></Example>
+                        <Situation uuid=(DEFAULT)><DisplayName>Garden</DisplayName></Situation>
                         <Exit to=(ROOM#Room1)>text</Exit>
                     </Room>
                 </Asset>
@@ -275,45 +303,48 @@ describe('personalAsset slice reducers', () => {
             )).toEqual({
                 base: deIndentWML(`
                     <Asset uuid=(testAsset)>
+                        <Situation uuid=(DEFAULT) ref={0} />
                         <Room uuid=(Room1)>
-                            <Example uuid=(base)>
+                            <Situation uuid=(DEFAULT)>
                                 <DisplayName>Test Room</DisplayName>
                                 <Description>Test Description</Description>
-                            </Example>
+                            </Situation>
                             <Exit to=(ROOM#Room2)>out</Exit>
                         </Room>
                         <Room uuid=(Room2)>
-                            <Example uuid=(base2)><DisplayName>Garden</DisplayName></Example>
+                            <Situation uuid=(DEFAULT)><DisplayName>Garden</DisplayName></Situation>
                             <Exit to=(ROOM#Room1)>text</Exit>
                         </Room>
                     </Asset>
                 `),
                 standard: deIndentWML(`
                     <Asset uuid=(testAsset)>
+                        <Situation uuid=(DEFAULT) ref={0} />
                         <Room uuid=(Room1)>
-                            <Example uuid=(base)>
+                            <Situation uuid=(DEFAULT)>
                                 <DisplayName>Test Room</DisplayName>
                                 <Description>Test Description</Description>
-                            </Example>
+                            </Situation>
                             <Exit to=(garden)>out</Exit>
                         </Room>
                         <Room uuid=(Room2) key=(garden)>
-                            <Example uuid=(base2)><DisplayName>Garden</DisplayName></Example>
+                            <Situation uuid=(DEFAULT)><DisplayName>Garden</DisplayName></Situation>
                             <Exit to=(ROOM#Room1)>text</Exit>
                         </Room>
                     </Asset>
                 `),
                 calculated: deIndentWML(`
                     <Asset uuid=(testAsset)>
+                        <Situation uuid=(DEFAULT) ref={0} />
                         <Room uuid=(Room1)>
-                            <Example uuid=(base)>
+                            <Situation uuid=(DEFAULT)>
                                 <DisplayName>Test Room</DisplayName>
                                 <Description>Test Description</Description>
-                            </Example>
+                            </Situation>
                             <Exit to=(garden)>out</Exit>
                         </Room>
                         <Room uuid=(Room2) key=(garden)>
-                            <Example uuid=(base2)><DisplayName>Garden</DisplayName></Example>
+                            <Situation uuid=(DEFAULT)><DisplayName>Garden</DisplayName></Situation>
                             <Exit to=(ROOM#Room1)>text</Exit>
                         </Room>
                     </Asset>
@@ -328,7 +359,9 @@ describe('personalAsset slice reducers', () => {
             expect(transformWML(
                 `
                 <Asset uuid=(testAsset)>
-                    <Room uuid=(Room2)><Example uuid=(base)><DisplayName>Garden</DisplayName></Example></Room>
+                    <Room uuid=(Room2)>
+                        <Situation uuid=(DEFAULT)><DisplayName>Garden</DisplayName></Situation>
+                    </Room>
                     <Map uuid=(testMap)><Room uuid=(Room2)><Position {0, 0} /></Room></Map>
                 </Asset>
                 `,
@@ -349,7 +382,8 @@ describe('personalAsset slice reducers', () => {
                 base: deIndentWML(`
                     <Asset uuid=(testAsset)>
                         <Room uuid=(Room2)>
-                            <Example uuid=(base)><DisplayName>Garden</DisplayName></Example>
+                            <Situation uuid=(DEFAULT) ref={0} />
+                            <Situation uuid=(DEFAULT)><DisplayName>Garden</DisplayName></Situation>
                         </Room>
                         <Map uuid=(testMap)><Room uuid=(Room2)><Position {0, 0} /></Room></Map>
                     </Asset>
@@ -357,7 +391,8 @@ describe('personalAsset slice reducers', () => {
                 standard: deIndentWML(`
                     <Asset uuid=(testAsset)>
                         <Room uuid=(Room2) key=(garden)>
-                            <Example uuid=(base)><DisplayName>Garden</DisplayName></Example>
+                            <Situation uuid=(DEFAULT) ref={0} />
+                            <Situation uuid=(DEFAULT)><DisplayName>Garden</DisplayName></Situation>
                         </Room>
                         <Map uuid=(testMap)><Room key=(garden)><Position {0, 0} /></Room></Map>
                     </Asset>
@@ -365,7 +400,8 @@ describe('personalAsset slice reducers', () => {
                 calculated: deIndentWML(`
                     <Asset uuid=(testAsset)>
                         <Room uuid=(Room2) key=(garden)>
-                            <Example uuid=(base)><DisplayName>Garden</DisplayName></Example>
+                            <Situation uuid=(DEFAULT) ref={0} />
+                            <Situation uuid=(DEFAULT)><DisplayName>Garden</DisplayName></Situation>
                         </Room>
                         <Map uuid=(testMap)><Room key=(garden)><Position {0, 0} /></Room></Map>
                     </Asset>

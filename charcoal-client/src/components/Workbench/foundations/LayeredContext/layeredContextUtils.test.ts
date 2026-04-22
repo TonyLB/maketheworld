@@ -8,7 +8,6 @@ describe('layeredContextUtils Room Example refactor slice', () => {
             <Room key=(room1) uuid=(ROOM#room1)>
                 <Situation key=(bright) uuid=(SITUATION#bright) />
                 <Guidance key=(guide1) uuid=(GUIDANCE#guide1) />
-                <Example key=(roomExample) uuid=(EXAMPLE#roomExample) />
             </Room>
             <Feature key=(feature1) uuid=(FEATURE#feature1)>
                 <Example key=(featureExample) uuid=(EXAMPLE#featureExample) />
