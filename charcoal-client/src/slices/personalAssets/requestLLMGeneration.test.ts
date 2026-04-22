@@ -107,7 +107,7 @@ describe('requestLLMGeneration', () => {
         expect(defaultFacet).toBeDefined()
         const payload = defaultFacet?.payload instanceof SituationRoomFacetPayload
             ? defaultFacet.payload
-            : new SituationRoomFacetPayload(defaultFacet?.payload)
+            : new SituationRoomFacetPayload(defaultFacet!.payload)
         expect(payload._summary?.plainString).toBe('Generated summary')
         expect(payload._description?.plainString).toBe('Generated description')
         expect(updated.byUniversalId[DEFAULT_SITUATION_ID]?._from).toBe('ASSET#primitives')

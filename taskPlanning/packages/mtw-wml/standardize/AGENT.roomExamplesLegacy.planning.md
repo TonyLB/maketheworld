@@ -79,10 +79,10 @@ Use `[ ]` for pending and `[X]` for completed work. Mark each nested line `[X]` 
     - [X] Stop reading `room.examples`; write generated Room prose through designated situation/render target.
     - [X] Add or update focused tests for successful writes and missing-target guard behavior.
     - [X] Re-run inventory search and confirm this file leaves the Room examples runtime bucket.
-  - [ ] `lambda/ephemera/dataSource/perception/orchestrate.ts` (`replace`)
-    - [ ] Replace Example-based Room placeholder WML with Room `<Render>` placeholder payload.
-    - [ ] Add or update perception tests for generation/error placeholder behavior and unchanged terminal `Render Pertains` behavior.
-    - [ ] Re-run inventory search and confirm this file leaves the Room examples runtime bucket.
+  - [X] `lambda/ephemera/dataSource/perception/orchestrate.ts` (`replace`)
+    - [X] Replace Example-based Room placeholder WML with Room `<Render>` placeholder payload.
+    - [X] Add or update perception tests for generation/error placeholder behavior and unchanged terminal `Render Pertains` behavior.
+    - [X] Re-run inventory search and confirm this file leaves the Room examples runtime bucket.
   - [ ] `lambda/ephemera/internalCache/componentRender.ts` (in-scope deferred: short-term `defer`, then `replace`)
     - [ ] Keep transitional fallback unchanged until render-channel readiness gate is satisfied.
     - [ ] Define explicit follow-up trigger and owner for removing Room examples default/fallback usage.
@@ -105,7 +105,7 @@ Track each call site and its disposition here before code changes.
 | --- | --- | --- | --- | --- | --- |
 | assets | `lambda/assets/componentExamples/exampleEnrichment.ts` | helper now reads `component.examples` only for `Feature`/`Knowledge`; `Room` removed from parent-id lookup | Runtime dependency (Room path removed) | `TBD(room-runtime)` | Completed (`replace`) |
 | ephemera | `lambda/ephemera/internalCache/componentRender.ts` | default `StandardRoomData` includes `examples: []` and room fallback paths read cached examples | Runtime transitional | `TBD(room-transitional)` | Recommended (`defer` short-term, then `replace`) |
-| ephemera | `lambda/ephemera/dataSource/perception/orchestrate.ts` | placeholder room WML uses synthetic Example + `room.examples` reference | Runtime transitional | `TBD(room-runtime)` | Recommended (`replace`) |
+| ephemera | `lambda/ephemera/dataSource/perception/orchestrate.ts` | full-room placeholder WML uses Room `render` via `situationRoomRenderPayloadFromCacheRenderedContent` (no `StandardRoom.examples` / synthetic Example) | Runtime dependency (Room examples placeholder path removed) | `TBD(room-runtime)` | Completed (`replace`) |
 | charcoal-client | `charcoal-client/src/components/Message/RoomDescription.tsx` | room prose fallback reads `component.examples.payload[0]` when render/situation are absent | Runtime dependency | `TBD(room-runtime)` | Recommended (`replace`) |
 | charcoal-client | `charcoal-client/src/slices/personalAssets/index.ts` | `requestLLMGeneration` writes Room generation output to default Situation facet payload; no Room Example read/write path | Runtime dependency (Room path removed) | `TBD(room-runtime)` | Completed (`replace`) |
 | charcoal-client | `charcoal-client/src/components/Workbench/foundations/LayeredContext/layeredContextUtils.ts` | layered tab utilities read `parent.examples` for Room/Feature/Knowledge sibling detection | Runtime mixed dependency | Room path: `TBD(room-runtime)`; Feature/Knowledge path: `TBD(feature-knowledge-followup)` | Completed (`replace` Room path), deferred (`Feature/Knowledge` path) |
@@ -134,8 +134,9 @@ Direct reads of `room`/`component`/`parent` example references where `Room` can 
 
 Room row construction paths that still serialize examples for room payloads:
 
-- `lambda/ephemera/dataSource/perception/orchestrate.ts` (`StandardRoomData.examples = [exKey]` placeholder path)
 - `lambda/ephemera/internalCache/componentRender.ts` (default room payload includes `examples: []`)
+
+Post-baseline: `lambda/ephemera/dataSource/perception/orchestrate.ts` no longer uses `StandardRoomData.examples` for placeholders (see Slice update: `orchestrate.ts`).
 
 ### Test-only references
 
@@ -200,6 +201,15 @@ Known documentation/planning mentions to revisit after runtime migration:
 - Inventory delta:
   - `rg "\b(room|component|parent)\.examples\b" charcoal-client/src/slices/personalAssets` returns no matches.
   - `charcoal-client/src/slices/personalAssets/index.ts` no longer has a Room examples runtime read/write path.
+
+### Slice update (2026-04-22): `lambda/ephemera/dataSource/perception/orchestrate.ts`
+
+- Applied: `placeholderRoomFullWml` now builds Room `render` using `situationRoomRenderPayloadFromCacheRenderedContent` (same mapping family as terminal `roomRenderWmlFromCacheRecord`), with a word-joiner displayName and empty summary so serialized `<Render>` satisfies the DisplayName/Summary/Description parse contract; removed `StandardExample` and `StandardRoomData.examples` from this path.
+- Tests: `lambda/ephemera/dataSource/perception/index.test.ts` asserts parsed ephemera-wire placeholders for `Generation Started`, `Orchestration Error`, and `Generation Deferred` (full-room `PublishMessage`); existing `Render Pertains` integration tests unchanged.
+- Verification: `npx jest dataSource/perception/` from `lambda/ephemera/` passes (22 tests).
+- Inventory delta:
+  - `rg "tag:\s*'Room'[\s\S]{0,160}examples" lambda/ephemera/dataSource/perception/orchestrate.ts --multiline` and `rg "StandardRoomData[\s\S]{0,220}examples" lambda/ephemera/dataSource/perception/orchestrate.ts --multiline` return no matches.
+  - `rg "\.examples\b" lambda/ephemera/dataSource/perception/orchestrate.ts` returns no matches.
 
 ## Runtime slice recommendation: `lambda/assets/componentExamples/exampleEnrichment.ts`
 
@@ -403,7 +413,7 @@ Rationale:
   - `Render Pertains` from `mtw.ephemera.renderCache` (terminal, durable cache-backed signal),
   - `Generation Started`, `Orchestration Error`, and `Generation Deferred` from `mtw.ephemera.renderOrchestration`.
 - For `Render Pertains`, it publishes terminal room/header perception messages using `roomRenderWmlFromCacheRecord()` (render-channel prose from `cacheRecord.renderedContent`).
-- For `Generation Started` and error/deferred, it publishes placeholder rows. The full-room placeholder helper currently builds WML with a synthetic Example attached to Room (`StandardRoomData.examples = [EXAMPLE#perception-placeholder]`).
+- For `Generation Started` and error/deferred, it publishes placeholder rows. The full-room placeholder helper builds Room `render` WML (no synthetic Example / `StandardRoom.examples`; see Slice update in this document).
 
 ### How this interacts with render orchestration
 
