@@ -50,20 +50,6 @@ import { StandardCharacterData } from '@tonylb/mtw-wml/ts/standardize/components
 import { SituationRoomFacetPayload, type SituationRoomFacetPayloadType } from '@tonylb/mtw-wml/ts/standardize/keys/facets/situationRoom'
 import { situationRoomRenderPayloadFromCacheRenderedContent } from '../dataSource/renderCache/renderedContentToSituationRoomPayload'
 
-function standardExampleToRenderPayload(ex: StandardExample): SituationRoomFacetPayloadType {
-    const out: SituationRoomFacetPayloadType = {}
-    if (ex.displayName) {
-        out.displayName = ex.displayName.toJSON()
-    }
-    if (ex.summary) {
-        out.summary = ex.summary.toJSON()
-    }
-    if (ex.description) {
-        out.description = ex.description.toJSON()
-    }
-    return out
-}
-
 type MessageDescribeData = {
     MessageId: EphemeraMessageId;
     Description: RenderTree;
@@ -126,7 +112,7 @@ export class ComponentRenderData {
                 if (isEphemeraRoomId(cacheKey)) {
                     return new StandardForm([
                         { tag: 'Asset', universalKey: 'ASSET#render' },
-                        { tag: 'Room', universalKey: `ROOM#${cacheKey}`, examples: [], exits: [] }
+                        { tag: 'Room', universalKey: `ROOM#${cacheKey}`, exits: [] }
                     ])
                 }
                 if (isEphemeraMessageId(cacheKey)) {
@@ -169,7 +155,7 @@ export class ComponentRenderData {
         if (isEphemeraRoomId(EphemeraId)) {
             const assetData = allAssets.map((assetId) => (appearancesByAsset[assetId] ? [appearancesByAsset[assetId]] : [])).flat(1) as StandardRoom[];
 
-            // Prefer render cache for Room (may contain situation-facet records); fall back to ExamplesData.
+            // Room prose: render cache only (no ExamplesData fallback).
             const cacheRecords = await this._renderCache.get(EphemeraId);
             const firstRecord: EphemeraCacheDynamoItem | undefined = cacheRecords.length > 0
                 ? cacheRecords[0]
@@ -178,13 +164,6 @@ export class ComponentRenderData {
 
             if (firstRecord) {
                 renderPayload = situationRoomRenderPayloadFromCacheRenderedContent(firstRecord.renderedContent)
-            }
-            else {
-                const exampleMap = await this._examples([EphemeraId]);
-                const naiveFirstExample = exampleMap[EphemeraId]?.[0]?.examples?.[0]
-                if (naiveFirstExample) {
-                    renderPayload = standardExampleToRenderPayload(naiveFirstExample)
-                }
             }
 
             if (renderPayload) {

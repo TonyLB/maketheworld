@@ -1,6 +1,6 @@
 # StandardRoom.examples legacy investigation plan
 
-Status: in progress. Next step: classify runtime sites by migration strategy (`remove` / `replace` / `defer`).
+Status: in progress. Next step: remaining checklist items under **Recommended order** (Feature/Knowledge defer tracking, full verification, deprecation gate proposal for `StandardRoom.examples`).
 
 ## Purpose and scope
 
@@ -36,7 +36,8 @@ In-scope deferred: Room transitional compatibility paths that we intentionally s
 ### Owner placeholders for this plan
 
 - `TBD(room-runtime)` - owner for in-scope Room runtime replace slices.
-- `TBD(room-transitional)` - owner for in-scope deferred Room transitional compatibility slices.
+- `TBD(room-transitional)` - owner for in-scope deferred Room transitional compatibility slices (still use for any future deferred Room paths).
+- **`componentRender.ts` (Room transitional):** plan maintainer (self). Render-channel readiness gate for removing the Room `ExamplesData` / first-example fallback **accepted 2026-04-22** (rooms no longer depend on that fallback for correctness in real flows).
 - `TBD(feature-knowledge-followup)` - owner for out-of-scope Feature/Knowledge migration follow-up planning.
 
 ## Progress
@@ -44,9 +45,9 @@ In-scope deferred: Room transitional compatibility paths that we intentionally s
 | Phase | Goal | Status | Notes |
 | --- | --- | --- | --- |
 | 1 | Build complete call-site inventory | Complete | Baseline frozen on 2026-04-22 (runtime/test/docs buckets below) |
-| 2 | Classify each site (hard dependency vs transitional fallback vs test/docs) | Complete | Runtime scope now split into in-scope Room paths, out-of-scope Feature/Knowledge defer paths, and in-scope Room transitional defer |
-| 3 | Refactor highest-confidence runtime sites | Pending | Execute per-runsite slices in the ordered checklist below |
-| 4 | Update tests/docs and re-baseline inventory | Pending | |
+| 2 | Classify each site (hard dependency vs transitional fallback vs test/docs) | Complete | Runtime scope split into in-scope Room paths, out-of-scope Feature/Knowledge defer paths; Room transitional defer for `componentRender.ts` completed (`replace`) |
+| 3 | Refactor highest-confidence runtime sites | Complete | All in-scope Room runtime `replace` slices shipped, including [`lambda/ephemera/internalCache/componentRender.ts`](../../../../lambda/ephemera/internalCache/componentRender.ts) |
+| 4 | Update tests/docs and re-baseline inventory | In progress | `componentRender` slice updated tests and [`componentRender.AGENT.md`](../../../../lambda/ephemera/internalCache/componentRender.AGENT.md); full repo re-baseline optional |
 | 5 | Decide deprecation gate for `StandardRoom.examples` | Pending | Gate should be explicit and test-backed |
 
 ## Recommended order
@@ -61,7 +62,7 @@ Use `[ ]` for pending and `[X]` for completed work. Mark each nested line `[X]` 
   - [X] `remove`: no longer needed after situation-facet migration.
   - [X] `replace`: should read from situations/render instead of examples.
   - [X] `defer`: intentionally keep for temporary compatibility.
-- [ ] Refactor in-scope Room runtime sites one slice at a time (smallest surface first).
+- [X] Refactor in-scope Room runtime sites one slice at a time (smallest surface first).
   - [X] `lambda/assets/componentExamples/exampleEnrichment.ts` (`replace`)
     - [X] Apply minimal Room-path code change (keep Feature/Knowledge behavior stable).
     - [X] Add or update targeted tests for Room-negative and Feature/Knowledge-positive behavior.
@@ -83,10 +84,10 @@ Use `[ ]` for pending and `[X]` for completed work. Mark each nested line `[X]` 
     - [X] Replace Example-based Room placeholder WML with Room `<Render>` placeholder payload.
     - [X] Add or update perception tests for generation/error placeholder behavior and unchanged terminal `Render Pertains` behavior.
     - [X] Re-run inventory search and confirm this file leaves the Room examples runtime bucket.
-  - [ ] `lambda/ephemera/internalCache/componentRender.ts` (in-scope deferred: short-term `defer`, then `replace`)
-    - [ ] Keep transitional fallback unchanged until render-channel readiness gate is satisfied.
-    - [ ] Define explicit follow-up trigger and owner for removing Room examples default/fallback usage.
-    - [ ] Land follow-up `replace` slice once gate criteria are met.
+  - [X] `lambda/ephemera/internalCache/componentRender.ts` (`defer` then `replace`; `replace` landed)
+    - [X] Render-channel readiness gate satisfied (2026-04-22): Room prose is correct without relying on `ExamplesData` / first-example fallback in real flows; transitional fallback may be removed in code when ready.
+    - [X] Follow-up owner and trigger: **Owner** - plan maintainer (self). **Trigger** - land `replace` in a focused PR after updating [`lambda/ephemera/internalCache/componentRender.ts`](../../../../lambda/ephemera/internalCache/componentRender.ts) and [`lambda/ephemera/internalCache/componentRender.test.ts`](../../../../lambda/ephemera/internalCache/componentRender.test.ts); re-run inventory for this file.
+    - [X] Land follow-up `replace` slice (removed Room-path `ExamplesData` fallback; dropped `examples: []` from Room `DeferredCache` default stub row).
 - [ ] Track out-of-scope Feature/Knowledge defer sites explicitly (no code changes in this task plan).
   - [ ] `charcoal-client/src/components/Message/ComponentDescription.tsx` remains intentionally unchanged for Room-only migration.
   - [ ] Feature/Knowledge path in `charcoal-client/src/components/Workbench/foundations/LayeredContext/layeredContextUtils.ts` remains intentionally unchanged.
@@ -104,7 +105,7 @@ Track each call site and its disposition here before code changes.
 | Area | File | Current usage shape | Classification | Action owner | Status |
 | --- | --- | --- | --- | --- | --- |
 | assets | `lambda/assets/componentExamples/exampleEnrichment.ts` | helper now reads `component.examples` only for `Feature`/`Knowledge`; `Room` removed from parent-id lookup | Runtime dependency (Room path removed) | `TBD(room-runtime)` | Completed (`replace`) |
-| ephemera | `lambda/ephemera/internalCache/componentRender.ts` | default `StandardRoomData` includes `examples: []` and room fallback paths read cached examples | Runtime transitional | `TBD(room-transitional)` | Recommended (`defer` short-term, then `replace`) |
+| ephemera | `lambda/ephemera/internalCache/componentRender.ts` | Room prose from `renderCache` only; Feature/Knowledge still use `examples` via `_examples` | Runtime dependency (Room examples path removed) | Plan maintainer (self) | Completed (`replace`) |
 | ephemera | `lambda/ephemera/dataSource/perception/orchestrate.ts` | full-room placeholder WML uses Room `render` via `situationRoomRenderPayloadFromCacheRenderedContent` (no `StandardRoom.examples` / synthetic Example) | Runtime dependency (Room examples placeholder path removed) | `TBD(room-runtime)` | Completed (`replace`) |
 | charcoal-client | `charcoal-client/src/components/Message/RoomDescription.tsx` | room prose fallback reads `component.examples.payload[0]` when render/situation are absent | Runtime dependency | `TBD(room-runtime)` | Recommended (`replace`) |
 | charcoal-client | `charcoal-client/src/slices/personalAssets/index.ts` | `requestLLMGeneration` writes Room generation output to default Situation facet payload; no Room Example read/write path | Runtime dependency (Room path removed) | `TBD(room-runtime)` | Completed (`replace`) |
@@ -113,7 +114,7 @@ Track each call site and its disposition here before code changes.
 
 ### Scope labeling for deferred sites
 
-- In-scope deferred (Room transitional): `lambda/ephemera/internalCache/componentRender.ts` (owner placeholder: `TBD(room-transitional)`).
+- In-scope Room transitional for `componentRender.ts` is **complete** (`replace` landed; see slice update below).
 - Out of scope (Feature/Knowledge for this task plan):
   - `charcoal-client/src/components/Message/ComponentDescription.tsx` (owner placeholder: `TBD(feature-knowledge-followup)`)
   - Feature/Knowledge path in `charcoal-client/src/components/Workbench/foundations/LayeredContext/layeredContextUtils.ts` (owner placeholder: `TBD(feature-knowledge-followup)`)
@@ -132,9 +133,9 @@ Direct reads of `room`/`component`/`parent` example references where `Room` can 
 - `charcoal-client/src/components/Workbench/foundations/LayeredContext/layeredContextUtils.ts`
 - `charcoal-client/src/slices/personalAssets/index.ts`
 
-Room row construction paths that still serialize examples for room payloads:
+Room row construction paths that still serialize examples for room payloads (historical baseline only):
 
-- `lambda/ephemera/internalCache/componentRender.ts` (default room payload includes `examples: []`)
+- `lambda/ephemera/internalCache/componentRender.ts` (default room payload included `examples: []`) **superseded:** post-slice, Room `DeferredCache` stub omits `examples` and Room prose does not use `ExamplesData`.
 
 Post-baseline: `lambda/ephemera/dataSource/perception/orchestrate.ts` no longer uses `StandardRoomData.examples` for placeholders (see Slice update: `orchestrate.ts`).
 
@@ -210,6 +211,20 @@ Known documentation/planning mentions to revisit after runtime migration:
 - Inventory delta:
   - `rg "tag:\s*'Room'[\s\S]{0,160}examples" lambda/ephemera/dataSource/perception/orchestrate.ts --multiline` and `rg "StandardRoomData[\s\S]{0,220}examples" lambda/ephemera/dataSource/perception/orchestrate.ts --multiline` return no matches.
   - `rg "\.examples\b" lambda/ephemera/dataSource/perception/orchestrate.ts` returns no matches.
+
+### Gate decision (2026-04-22): `componentRender.ts` render-channel readiness
+
+- **Decision:** The render-channel readiness gate for removing the Room `ExamplesData` / first-example fallback in [`lambda/ephemera/internalCache/componentRender.ts`](../../../../lambda/ephemera/internalCache/componentRender.ts) is **satisfied**.
+- **Rationale:** Prior slices (client Room prose, `requestLLMGeneration`, perception placeholders, render-cache-first room assembly) mean real flows no longer depend on that fallback for correct Room display prose.
+- **Shipped:** `replace` slice landed same initiative (see **Slice update: `componentRender.ts`** below).
+
+### Slice update (2026-04-22): `lambda/ephemera/internalCache/componentRender.ts`
+
+- Applied: Room branch uses **`renderCache`** only for `<Render>` prose (`situationRoomRenderPayloadFromCacheRenderedContent`); removed `ExamplesData` / first-example fallback and **`standardExampleToRenderPayload`**. Room `DeferredCache` default stub row no longer includes `examples: []`.
+- Tests: [`lambda/ephemera/internalCache/componentRender.test.ts`](../../../../lambda/ephemera/internalCache/componentRender.test.ts) asserts empty cache yields no `<Render>` and `Examples.get` is not called for Room; cache-hit tests unchanged in intent.
+- Docs: [`lambda/ephemera/internalCache/componentRender.AGENT.md`](../../../../lambda/ephemera/internalCache/componentRender.AGENT.md) updated for cache-only Room prose.
+- Verification: `npx jest internalCache/componentRender.test.ts --watchAll=false` from `lambda/ephemera/` passes (6 tests).
+- Inventory delta: `rg "\.examples\b" lambda/ephemera/internalCache/componentRender.ts` reports only Feature/Knowledge `naiveFirstExample` lines (no Room-path reads).
 
 ## Runtime slice recommendation: `lambda/assets/componentExamples/exampleEnrichment.ts`
 
@@ -429,8 +444,8 @@ Rationale:
    - This is low-risk because placeholders are transient and already superseded by terminal `Render Pertains`.
 
 2. `lambda/ephemera/internalCache/componentRender.ts` -> `defer` short-term, then `replace`
-   - Keep current transitional fallback while perception/render cache migration stabilizes.
-   - Then remove room `examples` default/fallback usage once all room render-channel producers consistently use room render/situation payloads.
+   - Transitional fallback was kept until the render-channel readiness gate was satisfied (**cleared 2026-04-22**; see **Gate decision** above).
+   - **`replace` shipped:** Room path is render-cache-only; no `ExamplesData` fallback; Room `DeferredCache` stub omits `examples: []` (see **Slice update: `componentRender.ts`** in this document).
 
 ### Risks and mitigations
 
@@ -445,7 +460,7 @@ Rationale:
 - Perception tests confirm:
   - `Generation Started` emits render-channel placeholder rows with expected metadata.
   - terminal `Render Pertains` behavior remains unchanged.
-- `componentRender.ts` remains explicitly marked transitional until follow-up replace slice lands.
+- `componentRender.ts`: `replace` complete; durable doc updated ([`componentRender.AGENT.md`](../../../../lambda/ephemera/internalCache/componentRender.AGENT.md)).
 
 ## Verification checklist (per slice)
 
