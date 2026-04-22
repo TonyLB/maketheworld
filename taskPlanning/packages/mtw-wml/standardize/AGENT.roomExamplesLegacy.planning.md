@@ -62,10 +62,10 @@ Use `[ ]` for pending and `[X]` for completed work. Mark each nested line `[X]` 
   - [X] `replace`: should read from situations/render instead of examples.
   - [X] `defer`: intentionally keep for temporary compatibility.
 - [ ] Refactor in-scope Room runtime sites one slice at a time (smallest surface first).
-  - [ ] `lambda/assets/componentExamples/exampleEnrichment.ts` (`replace`)
-    - [ ] Apply minimal Room-path code change (keep Feature/Knowledge behavior stable).
-    - [ ] Add or update targeted tests for Room-negative and Feature/Knowledge-positive behavior.
-    - [ ] Re-run inventory search and confirm this file leaves the Room examples runtime bucket.
+  - [X] `lambda/assets/componentExamples/exampleEnrichment.ts` (`replace`)
+    - [X] Apply minimal Room-path code change (keep Feature/Knowledge behavior stable).
+    - [X] Add or update targeted tests for Room-negative and Feature/Knowledge-positive behavior.
+    - [X] Re-run inventory search and confirm this file leaves the Room examples runtime bucket.
   - [ ] `charcoal-client/src/components/Message/RoomDescription.tsx` (`replace`)
     - [ ] Remove `component.examples` Room prose fallback and keep render/situation/default precedence.
     - [ ] Add or update focused tests for render, situation, and prose-missing default paths.
@@ -103,7 +103,7 @@ Track each call site and its disposition here before code changes.
 
 | Area | File | Current usage shape | Classification | Action owner | Status |
 | --- | --- | --- | --- | --- | --- |
-| assets | `lambda/assets/componentExamples/exampleEnrichment.ts` | `Room` included in helper that returns `component.examples` for parent-id lookup | Runtime dependency | `TBD(room-runtime)` | Recommended (`replace`) |
+| assets | `lambda/assets/componentExamples/exampleEnrichment.ts` | helper now reads `component.examples` only for `Feature`/`Knowledge`; `Room` removed from parent-id lookup | Runtime dependency (Room path removed) | `TBD(room-runtime)` | Completed (`replace`) |
 | ephemera | `lambda/ephemera/internalCache/componentRender.ts` | default `StandardRoomData` includes `examples: []` and room fallback paths read cached examples | Runtime transitional | `TBD(room-transitional)` | Recommended (`defer` short-term, then `replace`) |
 | ephemera | `lambda/ephemera/dataSource/perception/orchestrate.ts` | placeholder room WML uses synthetic Example + `room.examples` reference | Runtime transitional | `TBD(room-runtime)` | Recommended (`replace`) |
 | charcoal-client | `charcoal-client/src/components/Message/RoomDescription.tsx` | room prose fallback reads `component.examples.payload[0]` when render/situation are absent | Runtime dependency | `TBD(room-runtime)` | Recommended (`replace`) |
@@ -167,6 +167,14 @@ Known documentation/planning mentions to revisit after runtime migration:
 - `rg "\.examples\b" /Users/anthonylower-basch/Code/maketheworld`
 - `rg "\b(room|component|parent)\.examples\b" /Users/anthonylower-basch/Code/maketheworld`
 - `rg "tag:\s*'Room'[\s\S]{0,180}examples|StandardRoomData[\s\S]{0,220}examples" /Users/anthonylower-basch/Code/maketheworld --multiline`
+
+### Slice update (2026-04-22): `exampleEnrichment.ts`
+
+- Applied: `getExamplesReferenceList()` now returns `examples` for `Feature` and `Knowledge` only.
+- Tests: `lambda/assets/componentExamples/exampleEnrichment.test.ts` updated with Room-negative + Feature/Knowledge-positive parent-id assertions; focused file run passes.
+- Inventory delta:
+  - `rg "\b(room|component|parent)\.examples\b" lambda/assets/componentExamples` now reports only `Feature`/`Knowledge` lines in `exampleEnrichment.ts`.
+  - `exampleEnrichment.ts` no longer has a `Room.examples` runtime read path.
 
 ## Runtime slice recommendation: `lambda/assets/componentExamples/exampleEnrichment.ts`
 

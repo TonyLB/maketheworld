@@ -148,9 +148,6 @@ export const getOrderedAssetStack = (
 }
 
 const getExamplesReferenceList = (component: StandardComponent): ReferenceList | undefined => {
-    if (component instanceof StandardRoom) {
-        return component.examples
-    }
     if (component instanceof StandardFeature) {
         return component.examples
     }
@@ -182,7 +179,7 @@ export const getParentIdsForExample = async (
         .flatMap(({ standardForm }) => standardForm._components)
         .filter((component) => {
             const tag = (component as any).tag
-            return tag === 'Room' || tag === 'Feature' || tag === 'Knowledge'
+            return tag === 'Feature' || tag === 'Knowledge'
         })
         .filter((component) => {
             const examples = getExamplesReferenceList(component)
