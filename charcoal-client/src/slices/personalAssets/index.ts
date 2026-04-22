@@ -35,14 +35,22 @@ import { isSchemaImport } from '@tonylb/mtw-base/ts/schema/metaData'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import { StandardRender } from '@tonylb/mtw-wml/ts/standardize/render'
 import { deepEqual } from '../../lib/objects'
-import StandardExample from '@tonylb/mtw-wml/ts/standardize/components/example'
-import { AssetUUID, ComponentUUID, isSchemaComponentUUID, isSchemaAssetUUID } from '@tonylb/mtw-base/ts/schema'
+import { AssetUUID, ComponentUUID, isSchemaAssetUUID } from '@tonylb/mtw-base/ts/schema'
 import { ReferenceList } from '@tonylb/mtw-wml/ts/standardize/keys/referenceList'
 import type { ScopedInstrumentationOptions } from '../../testing/scopedInstrumentation'
 import { getWMLBase } from '../wmlDataSource/selectors'
 import { createSelector } from '@reduxjs/toolkit'
 import { derivePerspectiveForRoom } from '../../lib/perspectiveFromOrigins'
 import type { Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
+import {
+    assureDefaultSituationFromPrimitives,
+    DEFAULT_SITUATION_ID
+} from './assureDefaultSituationFromPrimitives'
+import {
+    SituationRoomFacetPayload,
+    SituationRoomFacetList,
+    StandardSituationRoomFacet
+} from '@tonylb/mtw-wml/ts/standardize/keys/facets/situationRoom'
 
 const autoSaveDebounce = new Debounce()
 
@@ -317,17 +325,37 @@ export const requestLLMGeneration = ({ assetId, roomId }: { assetId: AssetUUID, 
                     updateStandard(assetId)({
                         type: 'update',
                         update: (draft: StandardForm) => {
-                            const room = draft.byId[roomId]
+                            const room = draft.byUniversalId[roomId]
                             if (room instanceof StandardRoom) {
-                                const exampleKey = room.examples.payload[0].universalKey
-                                const example = exampleKey && isSchemaComponentUUID(exampleKey) ? draft.byUniversalId[exampleKey] : undefined
-                                if (example instanceof StandardExample) {
-                                    if (description) {
-                                        example._payload._description = new StandardRender([description.trim()])
-                                    }
-                                    if (summary) {
-                                        example._payload._summary = new StandardRender([summary.trim()])
-                                    }
+                                assureDefaultSituationFromPrimitives(draft)
+                                const currentFacet = room.situations.items.find(
+                                    ({ reference }) => reference?.universalKey === DEFAULT_SITUATION_ID
+                                )
+                                const currentPayload = currentFacet?.payload instanceof SituationRoomFacetPayload
+                                    ? currentFacet.payload
+                                    : currentFacet?.payload
+                                        ? new SituationRoomFacetPayload(currentFacet.payload)
+                                        : new SituationRoomFacetPayload({})
+                                const updatedPayload = new SituationRoomFacetPayload({
+                                    displayName: currentPayload._displayName?.toJSON(),
+                                    summary: summary ? new StandardRender([summary.trim()]).toJSON() : currentPayload._summary?.toJSON(),
+                                    description: description ? new StandardRender([description.trim()]).toJSON() : currentPayload._description?.toJSON()
+                                })
+                                if (!SituationRoomFacetPayload.isEmpty(updatedPayload)) {
+                                    const updatedFacet = new StandardSituationRoomFacet({
+                                        reference: currentFacet?.reference?.clone() ?? {
+                                            tag: 'Situation',
+                                            universalKey: DEFAULT_SITUATION_ID
+                                        },
+                                        payload: updatedPayload.toJSON()
+                                    })
+                                    const remainingFacets = room.situations.items.filter(
+                                        ({ reference }) => reference?.universalKey !== DEFAULT_SITUATION_ID
+                                    )
+                                    room._payload._situations = new SituationRoomFacetList([
+                                        ...remainingFacets,
+                                        updatedFacet
+                                    ])
                                 }
                             }
                             return draft

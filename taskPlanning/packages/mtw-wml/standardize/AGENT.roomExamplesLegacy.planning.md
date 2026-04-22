@@ -75,10 +75,10 @@ Use `[ ]` for pending and `[X]` for completed work. Mark each nested line `[X]` 
     - [X] Preserve Feature/Knowledge Example behavior (out-of-scope behavior is not changed in this task plan).
     - [X] Add or update tests for Room Situation/Guidance positive paths and Room Example negative path.
     - [X] Re-run inventory search and confirm Room dependency delta for this file.
-  - [ ] `charcoal-client/src/slices/personalAssets/index.ts` (`requestLLMGeneration`, `replace`)
-    - [ ] Stop reading `room.examples`; write generated Room prose through designated situation/render target.
-    - [ ] Add or update focused tests for successful writes and missing-target guard behavior.
-    - [ ] Re-run inventory search and confirm this file leaves the Room examples runtime bucket.
+  - [X] `charcoal-client/src/slices/personalAssets/index.ts` (`requestLLMGeneration`, `replace`)
+    - [X] Stop reading `room.examples`; write generated Room prose through designated situation/render target.
+    - [X] Add or update focused tests for successful writes and missing-target guard behavior.
+    - [X] Re-run inventory search and confirm this file leaves the Room examples runtime bucket.
   - [ ] `lambda/ephemera/dataSource/perception/orchestrate.ts` (`replace`)
     - [ ] Replace Example-based Room placeholder WML with Room `<Render>` placeholder payload.
     - [ ] Add or update perception tests for generation/error placeholder behavior and unchanged terminal `Render Pertains` behavior.
@@ -107,7 +107,7 @@ Track each call site and its disposition here before code changes.
 | ephemera | `lambda/ephemera/internalCache/componentRender.ts` | default `StandardRoomData` includes `examples: []` and room fallback paths read cached examples | Runtime transitional | `TBD(room-transitional)` | Recommended (`defer` short-term, then `replace`) |
 | ephemera | `lambda/ephemera/dataSource/perception/orchestrate.ts` | placeholder room WML uses synthetic Example + `room.examples` reference | Runtime transitional | `TBD(room-runtime)` | Recommended (`replace`) |
 | charcoal-client | `charcoal-client/src/components/Message/RoomDescription.tsx` | room prose fallback reads `component.examples.payload[0]` when render/situation are absent | Runtime dependency | `TBD(room-runtime)` | Recommended (`replace`) |
-| charcoal-client | `charcoal-client/src/slices/personalAssets/index.ts` | `requestLLMGeneration` updates first room Example by reading `room.examples.payload[0]` | Runtime dependency | `TBD(room-runtime)` | Recommended (`replace`) |
+| charcoal-client | `charcoal-client/src/slices/personalAssets/index.ts` | `requestLLMGeneration` writes Room generation output to default Situation facet payload; no Room Example read/write path | Runtime dependency (Room path removed) | `TBD(room-runtime)` | Completed (`replace`) |
 | charcoal-client | `charcoal-client/src/components/Workbench/foundations/LayeredContext/layeredContextUtils.ts` | layered tab utilities read `parent.examples` for Room/Feature/Knowledge sibling detection | Runtime mixed dependency | Room path: `TBD(room-runtime)`; Feature/Knowledge path: `TBD(feature-knowledge-followup)` | Completed (`replace` Room path), deferred (`Feature/Knowledge` path) |
 | charcoal-client | `charcoal-client/src/components/Message/ComponentDescription.tsx` | feature/knowledge description reads first example from parent reference list | Runtime non-room dependency | `TBD(feature-knowledge-followup)` | Recommended (`defer`) |
 
@@ -192,6 +192,14 @@ Known documentation/planning mentions to revisit after runtime migration:
 - Inventory delta:
   - `rg "\.examples\b" charcoal-client/src/components/Workbench/foundations/LayeredContext/layeredContextUtils.ts` now shows Example checks gated to Feature/Knowledge branches only.
   - Room Example membership is no longer a positive path in this file.
+
+### Slice update (2026-04-22): `personalAssets/requestLLMGeneration`
+
+- Applied: `requestLLMGeneration` no longer reads or writes `room.examples`; generated Room `summary`/`description` now write to the Room default Situation facet payload (`SITUATION#DEFAULT`), while preserving existing SCHEMADIRTY heartbeat semantics for non-empty generation results.
+- Tests: added `charcoal-client/src/slices/personalAssets/requestLLMGeneration.test.ts` with coverage for default-situation write success, missing-room guard behavior, and empty-generation no-intent behavior; focused file run passes via `npx vitest run src/slices/personalAssets/requestLLMGeneration.test.ts`.
+- Inventory delta:
+  - `rg "\b(room|component|parent)\.examples\b" charcoal-client/src/slices/personalAssets` returns no matches.
+  - `charcoal-client/src/slices/personalAssets/index.ts` no longer has a Room examples runtime read/write path.
 
 ## Runtime slice recommendation: `lambda/assets/componentExamples/exampleEnrichment.ts`
 
