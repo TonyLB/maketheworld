@@ -43,10 +43,10 @@ Use `[ ]` for pending and `[X]` for completed work. Mark each nested line `[X]` 
   - [X] Capture runtime call sites (non-test, non-doc files).
   - [X] Capture test-only references.
   - [X] Capture documentation-only references.
-- [ ] Classify runtime sites by migration strategy.
-  - [ ] `remove`: no longer needed after situation-facet migration.
-  - [ ] `replace`: should read from situations/render instead of examples.
-  - [ ] `defer`: intentionally keep for temporary compatibility.
+- [X] Classify runtime sites by migration strategy.
+  - [X] `remove`: no longer needed after situation-facet migration.
+  - [X] `replace`: should read from situations/render instead of examples.
+  - [X] `defer`: intentionally keep for temporary compatibility.
 - [ ] Refactor runtime sites one by one, smallest surface first.
   - [ ] Keep behavior stable with targeted tests for each site.
   - [ ] Update related docs/comments in the same slice.
@@ -63,10 +63,10 @@ Track each call site and its disposition here before code changes.
 | Area | File | Current usage shape | Classification | Action owner | Status |
 | --- | --- | --- | --- | --- | --- |
 | assets | `lambda/assets/componentExamples/exampleEnrichment.ts` | `Room` included in helper that returns `component.examples` for parent-id lookup | Runtime dependency | TBD | Recommended (`replace`) |
-| ephemera | `lambda/ephemera/internalCache/componentRender.ts` | default `StandardRoomData` includes `examples: []` and room fallback paths read cached examples | Runtime transitional | TBD | Investigate |
-| ephemera | `lambda/ephemera/dataSource/perception/orchestrate.ts` | placeholder room WML uses synthetic Example + `room.examples` reference | Runtime transitional | TBD | Investigate |
+| ephemera | `lambda/ephemera/internalCache/componentRender.ts` | default `StandardRoomData` includes `examples: []` and room fallback paths read cached examples | Runtime transitional | TBD | Recommended (`defer` short-term, then `replace`) |
+| ephemera | `lambda/ephemera/dataSource/perception/orchestrate.ts` | placeholder room WML uses synthetic Example + `room.examples` reference | Runtime transitional | TBD | Recommended (`replace`) |
 | charcoal-client | `charcoal-client/src/components/Message/RoomDescription.tsx` | room prose fallback reads `component.examples.payload[0]` when render/situation are absent | Runtime dependency | TBD | Recommended (`replace`) |
-| charcoal-client | `charcoal-client/src/slices/personalAssets/index.ts` | LLM generation update path reads `room.examples.payload[0]` | Runtime dependency | TBD | Investigate |
+| charcoal-client | `charcoal-client/src/slices/personalAssets/index.ts` | `requestLLMGeneration` updates first room Example by reading `room.examples.payload[0]` | Runtime dependency | TBD | Recommended (`replace`) |
 | charcoal-client | `charcoal-client/src/components/Workbench/foundations/LayeredContext/layeredContextUtils.ts` | layered tab utilities read `parent.examples` for Room/Feature/Knowledge sibling detection | Runtime mixed dependency | TBD | Recommended (`replace` Room path, `defer` Feature/Knowledge path) |
 | charcoal-client | `charcoal-client/src/components/Message/ComponentDescription.tsx` | feature/knowledge description reads first example from parent reference list | Runtime non-room dependency | TBD | Recommended (`defer`) |
 
@@ -269,6 +269,92 @@ Rationale:
 - Room layered context remains valid for `SituationFacet` and `Guidance`.
 - Feature/Knowledge Example layered context remains unchanged.
 - Inventory query no longer reports Room-example dependency from this file (while acknowledging intentional Feature/Knowledge example usage remains).
+
+## Runtime slice recommendation: `charcoal-client/src/slices/personalAssets/index.ts` (`requestLLMGeneration`)
+
+### Current behavior in context
+
+- `requestLLMGeneration({ assetId, roomId })` sends `llmGenerate` and receives `{ description, summary }`.
+- It then mutates the in-memory `StandardForm` by:
+  1. resolving the Room,
+  2. reading `room.examples.payload[0]`,
+  3. resolving that Example component,
+  4. writing generated `description`/`summary` into that Example payload.
+- Room authoring UI has shifted to situation/render editing (`DefaultRenderEditor`, situation facets); `RoomEditor` explicitly notes room examples are no longer surfaced for editing.
+
+### Recommendation
+
+Classification: `replace`.
+
+For room-scoped migration, stop writing generation results through `Room.examples` and write to the room's situation/render pathway instead:
+
+1. Primary target: default room Situation facet payload used by authoring flow.
+2. Fallback target: room `render` payload only if that is the chosen canonical authoring sink.
+3. Keep Feature/Knowledge generation behavior unchanged (out of scope here).
+
+Rationale:
+
+- This slice is a direct Room-example write dependency in client-memory authoring state.
+- Keeping this path on Example creates hidden legacy coupling even when Room examples are no longer UI-authorable.
+
+### Risks and mitigations
+
+- Risk: generated prose may become invisible if written to a field not read by current editors/previews.
+  - Mitigation: align write target with current Room editor/view precedence (render/situation) and add integration-style tests around `requestLLMGeneration`.
+- Risk: existing assets that still have only Example prose might not receive updates in the same place.
+  - Mitigation: decide and document one compatibility rule (e.g., migrate-on-write or write-only to new model with defaults).
+
+### Acceptance criteria for this slice
+
+- `requestLLMGeneration` no longer reads `room.examples`.
+- Generated room prose is written to the designated room prose model (situation/render) and is visible in current Room editing/view paths.
+- Tests cover:
+  - successful room generation write through the new target field
+  - no-op/guard behavior when room or target payload is missing
+- Inventory query no longer reports this file in the room examples runtime bucket.
+
+## Paired ephemera recommendation: `perception/orchestrate.ts` + `internalCache/componentRender.ts`
+
+### What `perception/orchestrate.ts` is doing
+
+- `orchestrateRoomDescriptionStreams()` is a fan-in coordinator inside `mtw.ephemera.perception`.
+- It consumes:
+  - `Render Pertains` from `mtw.ephemera.renderCache` (terminal, durable cache-backed signal),
+  - `Generation Started`, `Orchestration Error`, and `Generation Deferred` from `mtw.ephemera.renderOrchestration`.
+- For `Render Pertains`, it publishes terminal room/header perception messages using `roomRenderWmlFromCacheRecord()` (render-channel prose from `cacheRecord.renderedContent`).
+- For `Generation Started` and error/deferred, it publishes placeholder rows. The full-room placeholder helper currently builds WML with a synthetic Example attached to Room (`StandardRoomData.examples = [EXAMPLE#perception-placeholder]`).
+
+### How this interacts with render orchestration
+
+- `renderOrchestration` emits orchestration lifecycle events (`Generation Started`, `Render Generated`, etc.).
+- `renderCache` owns durable cache records and emits `Render Pertains` after hit/refetch or post-write readiness.
+- Perception treats `Render Pertains` as the terminal "ready to show prose" signal, while orchestration lifecycle events drive interim placeholders/status.
+- Therefore, the placeholder shape in `orchestrate.ts` is compatibility UI glue, not the durable prose path.
+
+### Classification and sequencing
+
+1. `lambda/ephemera/dataSource/perception/orchestrate.ts` -> `replace`
+  - Replace Example-based placeholder full-room WML with Room `<Render>` placeholder payload (ephemera-wire shape).
+   - This is low-risk because placeholders are transient and already superseded by terminal `Render Pertains`.
+
+2. `lambda/ephemera/internalCache/componentRender.ts` -> `defer` short-term, then `replace`
+   - Keep current transitional fallback while perception/render cache migration stabilizes.
+   - Then remove room `examples` default/fallback usage once all room render-channel producers consistently use room render/situation payloads.
+
+### Risks and mitigations
+
+- Risk: placeholder rendering regressions during generation/error states.
+  - Mitigation: add focused perception tests for `Generation Started` and error/deferred message shape.
+- Risk: removing `componentRender` fallback too early could impact non-terminal/imperative paths still expecting example-shaped room prose.
+  - Mitigation: stage as second step; gate on verification that render-channel room prose comes from render cache / room render payloads.
+
+### Acceptance criteria for the paired slice
+
+- `orchestrate.ts` placeholder full-room helper no longer references `Room.examples`.
+- Perception tests confirm:
+  - `Generation Started` emits render-channel placeholder rows with expected metadata.
+  - terminal `Render Pertains` behavior remains unchanged.
+- `componentRender.ts` remains explicitly marked transitional until follow-up replace slice lands.
 
 ## Verification checklist (per slice)
 
