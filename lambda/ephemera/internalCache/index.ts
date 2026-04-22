@@ -82,6 +82,7 @@ export class InternalCache {
                 getGameRooms: () => this.CoyoteGame.get('gameRooms'),
                 getRoomMeta: (roomId) => this.ComponentEphemeraMeta.get(roomId),
             }),
+            // Outcome reuses the same `CoyoteGame.get('intent')` record (intent, walkthrough, phasePlan) as hypothesis; no second intent fetch.
             generateOutcome: () => generatePlanOutcome({
                 getGameRooms: () => this.CoyoteGame.get('gameRooms'),
                 getRoomMeta: (roomId) => this.ComponentEphemeraMeta.get(roomId),
