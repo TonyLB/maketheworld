@@ -152,7 +152,7 @@ Where:
 - Subscribes to `mtw.assets` **Component Updated** and **Component Removed** events.
 - Filters to **Example-associated** component events only:
   - All `Example` components.
-  - `Room`, `Feature`, and `Knowledge` components whose `examples` field on the **diff** has non-zero length (`component.examples?.payload?.length > 0`), which reliably indicates example-related changes (add/remove of example refs or example content).
+  - `Room`, `Feature`, and `Knowledge` components whose `examples` field on the **diff** has non-zero length (`component.examples?.payload?.length > 0`), which reliably indicates example-related changes (add/remove of example refs or example content). **Room** diffs here are increasingly **legacy** (migration and older assets); **Feature**/**Knowledge** remain the primary consumers of this bridge. New room prose should not depend on adding Examples.
 - For each Example-associated change, this data source:
   - Reconstructs the Example's **inheritance chain** via `_from` links across the Assets table to build the ordered `assetStack` (base-first, event asset last).
   - For each asset in that chain, scans all candidate parent components (Rooms/Features/Knowledge) to find those whose `examples` lists reference the Example, yielding `parentIds`.

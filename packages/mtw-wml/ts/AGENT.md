@@ -30,6 +30,8 @@ WML uses XML-like syntax with custom tags and attributes:
 </Asset>
 ```
 
+**Legacy illustration:** The `<Example>` under `<Room>` above shows how nested components parse in WML. For **new** Room display prose, prefer **Situation** facets on the Room (and ephemera **`<Render>`** / `StandardRoom.render`), not Room `examples` or nested Examples. See the **Room** bullets under **Core Concepts** below.
+
 ### Core Concepts
 
 #### **Tags**: These are XML-style elements like `<Asset>`, `<Room>`, `<Exit>`, or `<Description>`. These can represent
@@ -52,7 +54,7 @@ changes to them are considered additive across the entire asset. While it is sta
 about a component in one place, and reference it simply at any other appearance, the WML parser does not *require*
 that behavior. Part of the process of *standardizing* a WML asset is to transform it into the standard format.
 
-For instance, in the following example:
+For instance, in the following example (the `<Example>` under `<Room>` is a **legacy** prose pattern; it illustrates additive merge across appearances):
 
 ```xml
 <Asset uuid=(MarketSquare)>
@@ -100,7 +102,11 @@ standard form, the data would be expresed as follows:
 
 For detailed information about all component types and their APIs, see [`standardize/components/AGENT.md`](./standardize/components/AGENT.md).
 
-**⚠️ CRITICAL**: Display content (`name`, `summary`, `description`) is stored in `Example` components, not directly in other components. Feature, Knowledge, and Room components reference Examples via their `examples` property. See [Standard Components documentation](standardize/components/AGENT.md) for details.
+**⚠️ CRITICAL (Feature and Knowledge)**: Display content (`name`, `summary`, `description`) for **Feature** and **Knowledge** is stored in `Example` components, not directly on those parents. Features and Knowledge reference Examples via their `examples` property. See [Standard Components documentation](standardize/components/AGENT.md) for details.
+
+**Room display prose (preferred)**: Author **Situation** facets on the Room for blueprint display name, summary, and description. On ephemera wire, resolved header prose is carried on **`StandardRoom.render`** (`<Render>`), the same JSON shape as **`SituationRoomFacetPayloadType`**. See [`standardize/AGENT.md`](./standardize/AGENT.md) (**Payload vocabulary vs semantic mode**).
+
+**Room `examples` / nested `<Example>` (legacy)**: `StandardRoom.examples` and `<Example>` children under `<Room>` remain in the schema for migration and tooling, but are **deprecated** for Room display prose. Do not use them as the primary authoring path for new work. Room retirement work: [`taskPlanning` / Room examples plan](../../../taskPlanning/packages/mtw-wml/standardize/AGENT.roomExamplesLegacy.planning.md). Feature and Knowledge Examples are unchanged; follow-up for those: [`taskPlanning` / Feature-Knowledge examples plan](../../../taskPlanning/packages/mtw-wml/standardize/AGENT.featureKnowledgeExamples.planning.md).
 
 #### **Keys and UUIDs**: Any component *can* have a key or UUID (or both) and *must* have one or the other. The
 key and UUID specify the component as itself, even when it appears in multiple places. The two serve different

@@ -98,7 +98,8 @@ Common combinations: A Room typically references and hosts its Features. A Room 
 ### **StandardRoom** 🟢
 - **Purpose**: Represents rooms with name, description, exits, features, and characters
 - **Content Properties**: `name`, `description` (both `StandardRender`)
-- **Reference Properties**: `features`, `examples`, `characters` (all `ReferenceList`)
+- **Reference Properties**: `features`, **`examples`** (deprecated for Room display prose; prefer **Situation** facets in asset WML and **`render`** on ephemera wire), `characters` (all `ReferenceList` where applicable)
+- **Room prose (preferred)**: Author **Situation** facets; resolved wire prose on **`StandardRoom.render`**. See [`../../AGENT.md`](../../AGENT.md) (**Room** bullets) and [`../AGENT.md`](../AGENT.md) (**Room prose migration**).
 - **Ephemera wire**: Optional **`objects`** (`{ uuid: string; shortName: string }[]`) from **`<Object uuid=(...)><ShortName>...</ShortName></Object>`** children. **`uuid`** values are canonical **`OBJECT#...`** in memory (WML may use a bare key; see **`standardize/AGENT.md`**). The **`Object`** consumer is registered only when **`standardizeMode === 'ephemeraWire'`** on **`StandardizeFromSchemaContext`**; in **`asset`** mode those tags are **unconsumed** and **`fromSchema`** throws. See **`standardize/AGENT.md`** (**Payload vocabulary vs semantic mode**).
 - **fromSchema**: Uses the process-and-remainder pipeline. Accepted child tags: ShortName, Exit, Lens, Feature, Example, Guidance, Character, Position (no-op), Grant, DisplayName (no-ops for backward compatibility), plus **`Object`** when **`ephemeraWire`**. See [fromSchema: process-and-remainder pipeline](#fromschema-process-and-remainder-pipeline) below.
 
@@ -680,7 +681,7 @@ export const isStandardComponent = (value: any): value is StandardComponent => {
 
 #### Components with References
 
-**Example**: `StandardRoom` (has `features`, `examples`, `characters` reference lists)
+**Example**: `StandardRoom` (has `features`, `examples`, `characters` reference lists; Room **`examples`** is deprecated for display prose; prefer Situation + `render`; see **StandardRoom** at top of this file)
 
 **Pattern**:
 - Multiple `ReferenceList` properties for different child types

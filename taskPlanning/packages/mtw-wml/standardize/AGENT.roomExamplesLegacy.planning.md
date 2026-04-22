@@ -1,6 +1,6 @@
 # StandardRoom.examples legacy investigation plan
 
-Status: in progress. Next step: **Recommended order** -- propose deprecation gate and removal checklist for `StandardRoom.examples` (verification run documented under **Verification run (2026-04-22)**; lambda `esbuild` / client `vite build` gates pass while package-wide `tsc` remains baseline debt). Feature/Knowledge defer sites are recorded in **Out-of-scope Feature/Knowledge defer registry** and [`AGENT.featureKnowledgeExamples.planning.md`](AGENT.featureKnowledgeExamples.planning.md).
+Status: in progress. Next step: **Recommended order** -- **Gate B (authoring)** under staged removal of `StandardRoom.examples` (Room-only). **Gate A (documentation / API)** complete; durable guidance linked below. Feature/Knowledge defer sites: **Out-of-scope Feature/Knowledge defer registry** and [`AGENT.featureKnowledgeExamples.planning.md`](AGENT.featureKnowledgeExamples.planning.md).
 
 ## Purpose and scope
 
@@ -47,8 +47,8 @@ In-scope deferred: Room transitional compatibility paths that we intentionally s
 | 1 | Build complete call-site inventory | Complete | Baseline frozen on 2026-04-22 (runtime/test/docs buckets below) |
 | 2 | Classify each site (hard dependency vs transitional fallback vs test/docs) | Complete | Runtime scope split into in-scope Room paths, out-of-scope Feature/Knowledge defer paths; Room transitional defer for `componentRender.ts` completed (`replace`) |
 | 3 | Refactor highest-confidence runtime sites | Complete | All in-scope Room runtime `replace` slices shipped, including [`lambda/ephemera/internalCache/componentRender.ts`](../../../../lambda/ephemera/internalCache/componentRender.ts) |
-| 4 | Update tests/docs and re-baseline inventory | In progress | `componentRender` slice updated tests and [`componentRender.AGENT.md`](../../../../lambda/ephemera/internalCache/componentRender.AGENT.md); verification run 2026-04-22 (unit tests, bundle gates, inventory; package-wide `tsc` debt noted) |
-| 5 | Decide deprecation gate for `StandardRoom.examples` | Pending | Gate should be explicit and test-backed |
+| 4 | Update tests/docs and re-baseline inventory | In progress | `componentRender` slice updated tests and [`componentRender.AGENT.md`](../../../../lambda/ephemera/internalCache/componentRender.AGENT.md); verification run 2026-04-22 (unit tests, bundle gates, inventory; package-wide `tsc` debt noted); **Gate A** doc/API sweep (2026-04-22) |
+| 5 | Decide deprecation gate for `StandardRoom.examples` | In progress | Staged gates A-D in **Recommended order** (Room-only removal); Feature/Knowledge unchanged |
 
 ## Recommended order
 
@@ -96,7 +96,12 @@ Use `[ ]` for pending and `[X]` for completed work. Mark each nested line `[X]` 
   - [X] Unit tests for modified areas.
   - [X] Typecheck/build checks for modified areas (`lambda/ephemera` `tsc --noEmit` clean; `lambda/assets` and `lambda/ephemera` `npm run build` esbuild clean; `charcoal-client` `vite build` clean; package-wide `tsc` still not baseline-clean -- see **Verification run (2026-04-22)**).
   - [X] Re-run inventory and compare against baseline.
-- [ ] Propose deprecation gate and removal checklist for `StandardRoom.examples`.
+- [ ] Staged deprecation and removal of `StandardRoom.examples` (**Room-only**; `StandardFeature` / `StandardKnowledge` `examples` stay in scope of [`AGENT.featureKnowledgeExamples.planning.md`](AGENT.featureKnowledgeExamples.planning.md)). Runtime Room paths are already off `examples`; remaining work is model, schema, stored data, authoring, and tests.
+  - [X] **Gate A (documentation / API):** Document Room `examples` as deprecated; point authors to default situation facet + `render`; update relevant [`packages/mtw-wml/ts/AGENT.md`](../../../../packages/mtw-wml/ts/AGENT.md) / [`packages/mtw-wml/ts/standardize/AGENT.md`](../../../../packages/mtw-wml/ts/standardize/AGENT.md) / [`packages/mtw-wml/ts/standardize/components/AGENT.md`](../../../../packages/mtw-wml/ts/standardize/components/AGENT.md) and other docs called out in the documentation-only inventory; link durable guidance from this plan where helpful.
+    - **Durable guidance (do not duplicate here):** Room vs Feature/Knowledge Examples in [`packages/mtw-wml/ts/AGENT.md`](../../../../packages/mtw-wml/ts/AGENT.md) (**CRITICAL (Feature and Knowledge)**, **Room display prose**, **Room `examples` (legacy)**); wire + migration note in [`packages/mtw-wml/ts/standardize/AGENT.md`](../../../../packages/mtw-wml/ts/standardize/AGENT.md) (**Room prose migration**); ReferenceList nuance in [`packages/mtw-wml/ts/standardize/components/AGENT.md`](../../../../packages/mtw-wml/ts/standardize/components/AGENT.md); **`StandardRoom`** in [`packages/mtw-wml/ts/standardize/components/AGENT.implementation.md`](../../../../packages/mtw-wml/ts/standardize/components/AGENT.implementation.md); **`StandardRoomData`** in [`packages/mtw-wml/ts/standardize/components/dataTypes/AGENT.md`](../../../../packages/mtw-wml/ts/standardize/components/dataTypes/AGENT.md); `@deprecated` on **`StandardRoomData.examples`** and **`StandardRoom.examples`** in [`packages/mtw-wml/ts/standardize/components/dataTypes/room.ts`](../../../../packages/mtw-wml/ts/standardize/components/dataTypes/room.ts) / [`packages/mtw-wml/ts/standardize/components/room.ts`](../../../../packages/mtw-wml/ts/standardize/components/room.ts). Documentation-only inventory: [`charcoal-client/src/components/Message/AGENT.md`](../../../../charcoal-client/src/components/Message/AGENT.md), [`charcoal-client/src/components/Message/AGENT.RoomDescription.md`](../../../../charcoal-client/src/components/Message/AGENT.RoomDescription.md), [`charcoal-client/src/components/Workbench/foundations/LayeredContext/AGENT.layered-context-patterns.md`](../../../../charcoal-client/src/components/Workbench/foundations/LayeredContext/AGENT.layered-context-patterns.md), [`lambda/assets/AGENT.event.md`](../../../../lambda/assets/AGENT.event.md). **`packages/mtw-wml` `tsc --noEmit`** clean after Gate A.
+  - [ ] **Gate B (authoring):** Confirm no authoring UI path still writes new Room example refs; fix stragglers or record explicit defer with owner if any remain.
+  - [ ] **Gate C (data):** Inventory real assets / WML for non-empty Room example children or serialized `examples` refs; define migration (e.g. fold prose into default situation or render target); run or schedule migration slices; re-run targeted tests and inventory after migration.
+  - [ ] **Gate D (code removal):** After Gate C and test updates, remove `_examples` / `examples` from [`StandardRoom`](../../../../packages/mtw-wml/ts/standardize/components/room.ts) and [`StandardRoomData`](../../../../packages/mtw-wml/ts/standardize/components/dataTypes/room.ts) (`isStandardRoomData`, merge/diff/schema consumers); align schema and WML tests (e.g. [`packages/mtw-wml/ts/schema/index.test.ts`](../../../../packages/mtw-wml/ts/schema/index.test.ts), [`packages/mtw-wml/ts/standardize/components/room.test.ts`](../../../../packages/mtw-wml/ts/standardize/components/room.test.ts), baseline **test-only references** list in this plan); choose and document breaking-change policy for legacy `<Room>...<Example>` WML (reject vs ignore vs migrate-on-load).
 
 ## Investigation matrix (living)
 
@@ -165,13 +170,13 @@ Known tests that currently include room example fields or read room examples:
 
 ### Documentation-only references
 
-Known documentation/planning mentions to revisit after runtime migration:
+Known documentation/planning mentions to revisit after runtime migration (**Gate A complete**; lists preserved for baseline traceability):
 
 - `charcoal-client/src/components/Message/AGENT.md`
 - `charcoal-client/src/components/Message/AGENT.RoomDescription.md`
 - `charcoal-client/src/components/Workbench/foundations/LayeredContext/AGENT.layered-context-patterns.md`
 - `lambda/assets/AGENT.event.md`
-- `packages/mtw-wml/ts/AGENT.md` (critical note still mentions room examples)
+- `packages/mtw-wml/ts/AGENT.md` (Room vs Feature/Knowledge Examples clarified; Room `examples` marked legacy)
 
 ### Inventory commands used
 

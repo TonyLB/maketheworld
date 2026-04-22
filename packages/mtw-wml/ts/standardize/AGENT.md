@@ -107,6 +107,8 @@ particular context.
 
 **Ephemera-only:** **`Render`** under **`Room`** (DisplayName / Summary / Description) is stored on **`StandardRoom`** as **`render`** in JSON with the same shape as **`SituationRoomFacetPayloadType`** (literal **`displayName`**, **`summary`** and **`description`** as render-tree editable data), not three plain strings.
 
+**Room prose migration:** In **`asset`** mode, prefer **Situation** facets on the Room for authored display name, summary, and description; wire mode then surfaces resolved prose via **`render`** as above. Nested **`<Example>`** under **`Room`** and **`StandardRoom.examples`** are **legacy** for Room prose (deprecated for new authoring; still present for migration). Feature/Knowledge continue to use **`examples`** for display content. See [`../AGENT.md`](../AGENT.md) (**Room** bullets under **Core Concepts**) and [`./components/AGENT.implementation.md`](./components/AGENT.implementation.md) (**StandardRoom**).
+
 ## Core Purpose
 
 - **Asset Management**: Represents entire WML assets as first-class objects

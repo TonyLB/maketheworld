@@ -250,6 +250,9 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
     get situations() { return this._situations }
     get lens() { return this._lens }
     get features() { return this._features }
+    /**
+     * @deprecated For Room display prose. Prefer {@link StandardRoomPayload.situations} and {@link StandardRoomPayload.render}. Kept for migration.
+     */
     get examples() { return this._examples }
     get guidance() { return this._guidance }
     get characters() { return this._characters }
@@ -596,6 +599,9 @@ export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'St
     get situations() { return this._payload.situations }
     get lens() { return this._payload.lens }
     get features() { return this._payload.features }
+    /**
+     * @deprecated For Room display prose. Prefer {@link StandardRoom.situations} and {@link StandardRoom.render}. Kept for migration.
+     */
     get examples() { return this._payload.examples }
     get guidance() { return this._payload.guidance }
     get characters() { return this._payload.characters }
