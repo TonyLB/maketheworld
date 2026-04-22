@@ -2,12 +2,14 @@ import { harnessRoomObjects } from './coyoteEngineTestFixtures'
 import { buildPlanOutcomePrompt, buildPlanOutcomePromptParts } from './buildPlanOutcomePrompt'
 
 describe('buildPlanOutcomePrompt', () => {
+    const baseRooms = {
+        'ROOM#STRAIGHTAWAY': harnessRoomObjects('straightaway', ['rocket skates']),
+        'ROOM#VORTEX': harnessRoomObjects('vortex', ['anvil']),
+    }
+
     it('includes safety, backfire, hypothesis section, and staged objects', () => {
         const prompt = buildPlanOutcomePrompt({
-            roomObjectsByRoom: {
-                'ROOM#STRAIGHTAWAY': harnessRoomObjects('straightaway', ['rocket skates']),
-                'ROOM#VORTEX': harnessRoomObjects('vortex', ['anvil']),
-            },
+            roomObjectsByRoom: baseRooms,
             hypothesisLine: 'Hypothesis: It looks like you are trying to test the road.',
         })
 
@@ -15,7 +17,7 @@ describe('buildPlanOutcomePrompt', () => {
         expect(prompt).toContain('The Road Runner must not be harmed')
         expect(prompt).toContain('setback or punchline should land on the Coyote')
         expect(prompt).toContain('poetic, ironic')
-        expect(prompt).toContain('## Current hypothesis about your intent')
+        expect(prompt).toContain('## Hypothesis line')
         expect(prompt).toContain('Hypothesis: It looks like you are trying to test the road.')
         expect(prompt).toContain('## Current staged objects by room')
         expect(prompt).toContain('STRAIGHTAWAY')
@@ -30,7 +32,7 @@ describe('buildPlanOutcomePrompt', () => {
             roomObjectsByRoom: { 'ROOM#VORTEX': [] },
             hypothesisLine: '   ',
         })
-        expect(prompt).toContain('## Current hypothesis about your intent')
+        expect(prompt).toContain('## Hypothesis line')
         expect(prompt).toContain('(none)')
     })
 
@@ -42,5 +44,70 @@ describe('buildPlanOutcomePrompt', () => {
         const full = buildPlanOutcomePrompt(input)
         const parts = buildPlanOutcomePromptParts(input)
         expect(parts.invariantPrefix + parts.dynamicSuffix).toBe(full)
+    })
+
+    it('uses the same invariant prefix when only dynamic inputs change', () => {
+        const minimal = buildPlanOutcomePromptParts({
+            roomObjectsByRoom: { 'ROOM#VORTEX': [] },
+            hypothesisLine: 'Hypothesis: A.',
+        })
+        const rich = buildPlanOutcomePromptParts({
+            roomObjectsByRoom: baseRooms,
+            hypothesisLine: 'Hypothesis: B.',
+            walkthrough: 'You stage the chase along the highway.',
+            phasePlan: {
+                phases: [
+                    {
+                        stableKeysUsed: ['anvil'],
+                        virtualEntities: [],
+                        achievement: 'Test.',
+                    },
+                ],
+            },
+        })
+        expect(minimal.invariantPrefix).toBe(rich.invariantPrefix)
+        expect(minimal.dynamicSuffix).not.toBe(rich.dynamicSuffix)
+    })
+
+    it('includes scene analysis when walkthrough is present', () => {
+        const prompt = buildPlanOutcomePrompt({
+            roomObjectsByRoom: { 'ROOM#VORTEX': [] },
+            hypothesisLine: 'Hypothesis: Trap.',
+            walkthrough: 'The bird loops past the cliff.',
+        })
+        expect(prompt).toContain('## Scene analysis')
+        expect(prompt).toContain('The bird loops past the cliff.')
+        expect(prompt).toContain('cartoon time')
+    })
+
+    it('includes phase plan outline when phasePlan is present', () => {
+        const prompt = buildPlanOutcomePrompt({
+            roomObjectsByRoom: {
+                'ROOM#VORTEX': harnessRoomObjects('vortex', ['anvil']),
+            },
+            hypothesisLine: 'Hypothesis: Drop.',
+            phasePlan: {
+                phases: [
+                    {
+                        stableKeysUsed: ['anvil'],
+                        virtualEntities: [],
+                        achievement: 'Gravity votes coyote.',
+                    },
+                ],
+            },
+        })
+        expect(prompt).toContain('## Phase plan (execution outline)')
+        expect(prompt).toContain('Phase 1: Gravity votes coyote.')
+        expect(prompt).toContain('Staged props: anvil')
+        expect(prompt).toContain('single Outcome: line')
+    })
+
+    it('omits scene analysis and phase sections when absent', () => {
+        const prompt = buildPlanOutcomePrompt({
+            roomObjectsByRoom: baseRooms,
+            hypothesisLine: 'Hypothesis: Minimal.',
+        })
+        expect(prompt).not.toContain('## Scene analysis')
+        expect(prompt).not.toContain('## Phase plan (execution outline)')
     })
 })
