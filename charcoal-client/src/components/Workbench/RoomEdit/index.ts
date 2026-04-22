@@ -1,5 +1,6 @@
 export { default as RoomEditor } from './RoomEditor'
 export { default as ExitEditor } from './ExitEditor'
 export { default as FeatureListEditor } from './FeatureListEditor'
+export { default as RoomStateAffordance } from './RoomStateAffordance'
 export { sendRoomEphemeraStateChange } from './ephemeraStateChange'
 export type { RoomStateAffordanceResult, SendRoomStateAffordanceArgs } from './ephemeraStateChange'

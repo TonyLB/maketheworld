@@ -31,6 +31,7 @@ import { ReferenceListEditor } from '../foundations/ReferenceList'
 import { ReferenceListEditorGeneric } from '../foundations/ReferenceList/ReferenceListEditorGeneric'
 import { situationIdToLabel } from '../../../lib/situationLabel'
 import { DEFAULT_SITUATION_ID } from '../../../slices/personalAssets'
+import RoomStateAffordance from './RoomStateAffordance'
 
 export const RoomEditor: FunctionComponent = () => {
     const dispatch = useDispatch()
@@ -244,6 +245,7 @@ export const RoomEditor: FunctionComponent = () => {
                         />
                         {hasLens && (
                             <>
+                                <RoomStateAffordance RoomId={universalKey} />
                                 {/* Room Examples are not shown in the UI; supplanted by Situation facets. */}
                                 <Box sx={{ marginTop: '0.5em' }}>
                                     <ReferenceListEditor

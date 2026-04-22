@@ -62,7 +62,7 @@ This document follows [`taskPlanning/AGENT.md`](../AGENT.md) (task-only content;
 Pending work uses `[ ]`; completed work uses `[X]`. Apply the same convention to nested bullets.
 
 - [X] Add a small **client helper** (or thunk) that builds **`EphemeraApiStateChangeRequest`** (`markState` per **Decided**), assigns **`RequestId`**, and uses **`socketDispatchPromise`** to ephemera; map **`ReturnValue`** body to success vs error strings for the UI. Include **comments** per **Decided** (future **`mtw.ephemera.state`** subscribe + **EventBridge** publish prerequisite).
-- [ ] Implement **Workbench UI** in Room edit **Advanced** (per **Decided**): one value control per **Lens** mark (per **Decided**); pass **workbench room component id** as **`componentId`**; build **`markValue`** from those fields; validate with **`isEphemeraCacheMarkState`** before send; **ack-only** UX per **Decided**.
+- [X] Implement **Room-state affordance UI** as an **independent drop-in component** for Room edit **Advanced** (per **Decided**): v1 API is **`<RoomStateAffordance RoomId={roomId} />`**. The component resolves Room/Lens/marks from **authoring workbench context** (same pattern as `LensHeader`, `ExitEditor`, `FeatureListEditor`: use **`useWorkbenchAsset()`** + `RoomId` lookup), avoiding direct Redux selectors for data reads and avoiding tight coupling to existing RoomEdit layout internals. Keep invocation-site wiring minimal (drop-in usage only with `RoomId`); defer broader prop-surface flexibility to a later refactor if needed. Render one value control per **Lens** mark (per **Decided**); pass workbench room component id as **`componentId`**; build **`markValue`** from those fields; validate with **`isEphemeraCacheMarkState`** before send; **ack-only** UX per **Decided**.
 - [X] **Tests:** unit tests for the helper/thunk (mock dispatch); component tests if the surface is non-trivial.
 - [ ] **Manual verification** in a dev stack: successful merge; server-driven errors (e.g. missing **`Meta::Room`** / merge failure) via ack.
 - [ ] Update this document **Recommended order** and **Progress** when the slice ships; move any **lasting** behavior notes into [`charcoal-client/src/components/Workbench/AGENT.md`](../../charcoal-client/src/components/Workbench/AGENT.md) or the relevant slice doc if appropriate, then archive or delete this plan per [`taskPlanning/AGENT.md`](../AGENT.md).
@@ -79,7 +79,7 @@ Pending work uses `[ ]`; completed work uses `[X]`. Apply the same convention to
 | Room id: workbench id **is** **`ROOM#...`**; no client preflight | Decided (in this doc) |
 | Editor: per-Lens-mark values; wire = **`EphemeraCacheMarkState`** | Decided (in this doc) |
 | Helper or thunk + tests | Done (`sendRoomEphemeraStateChange` + `ephemeraStateChange.test.ts`) |
-| Room edit UI + verification | Not started |
+| Room edit UI + verification | UI + automated verification done (`RoomStateAffordance` + RTL/Vitest); manual dev-stack verification pending |
 
 ---
 
