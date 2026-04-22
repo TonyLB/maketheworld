@@ -226,6 +226,7 @@ updateStandard({
 - **Reference Lists**: `ReferenceListEditor` and `InlineReferenceList` with adapter
 - **Layered Examples/Guidance**: `LayeredTabs` (MUI Tabs) for sibling Example or Guidance navigation
 - **Read-only for non-Draft assets**: Enforced via `readonly` from `useWorkbenchAsset`
+- **Room runtime-state affordance**: `RoomEdit/RoomStateAffordance.tsx` is rendered from `RoomEditor` when `hasLens` is true; it uses the drop-in API `<RoomStateAffordance RoomId={roomId} />`, resolves Room/Lens/mark data via `useWorkbenchAsset`, validates outbound `markState` with `isEphemeraCacheMarkState`, and sends ack-only updates through `sendRoomEphemeraStateChange` (no live read-back subscription in this iteration)
 
 ### Future Plans
 
