@@ -126,6 +126,11 @@ describe('generatePlanOutcome', () => {
         }
         const fullPrompt = promptArg.invariantPrefix + promptArg.dynamicSuffix
         expect(fullPrompt).toContain('Hypothesis: Full record override.')
+        expect(fullPrompt).toContain('## Scene analysis')
+        expect(fullPrompt).toContain('Scene beats align to the plan.')
+        expect(fullPrompt).toContain('## Phase plan (execution outline)')
+        expect(fullPrompt).toContain('Launch toward cliff.')
+        expect(fullPrompt).toContain('catapult')
     })
 
     it('still calls getIntentRecord when only room object override is provided', async () => {

@@ -51,7 +51,12 @@ export async function generatePlanOutcome(deps: GeneratePlanOutcomeDeps): Promis
     const roomObjectsByRoom = deps.roomObjectsByRoomOverride ?? await loadCoyoteRoomObjectsByRoom(deps)
     const intentRecord = await resolveIntentRecord(deps)
     const hypothesisLine = deps.hypothesisLineOverride ?? intentRecord.intent
-    const prompt = buildPlanOutcomePromptParts({ roomObjectsByRoom, hypothesisLine })
+    const prompt = buildPlanOutcomePromptParts({
+        roomObjectsByRoom,
+        hypothesisLine,
+        walkthrough: intentRecord.walkthrough,
+        phasePlan: intentRecord.phasePlan,
+    })
     const invokeResult = await invokeBedrockHypothesis(prompt, { maxTokens: 384 })
     if (!invokeResult.success) {
         return OUTCOME_STUB

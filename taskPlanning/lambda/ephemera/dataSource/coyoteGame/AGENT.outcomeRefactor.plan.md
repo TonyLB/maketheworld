@@ -1,12 +1,12 @@
 # Coyote plan outcome refactor (rich hypothesis record)
 
-**Status:** In progress. Next step: enrich `buildPlanOutcomePrompt` with `walkthrough` and `phasePlan` sections (record is plumbed into `generatePlanOutcome`).
+**Status:** In progress. Next step: initiative cleanup (remaining non-code checklist only if needed); prompt enrichment and formatter are shipped.
 
 Skim [`taskPlanning/AGENT.md`](../../../../AGENT.md) once for durability rules (this file retires after the task), **Recommended order** checkbox conventions, and what belongs here versus [`lambda/ephemera/dataSource/coyoteGame/AGENT.md`](../../../../../lambda/ephemera/dataSource/coyoteGame/AGENT.md).
 
 ## Purpose
 
-Refactor **plan outcome** generation so it uses the **full durable hypothesis record**, not only the single-line `Hypothesis:` string (`intent`). [`generatePlanOutcome`](../../../../../lambda/ephemera/dataSource/coyoteGame/generatePlanOutcome.ts) now takes **`getIntentRecord`** (full [`CoyoteGameIntentRecord`](../../../../../lambda/ephemera/internalCache/coyoteGame.ts)) from [`internalCache`](../../../../../lambda/ephemera/internalCache/index.ts) via `CoyoteGame.get('intent')` with no extra fetch; [`buildPlanOutcomePrompt`](../../../../../lambda/ephemera/dataSource/coyoteGame/buildPlanOutcomePrompt.ts) still receives only **`hypothesisLine`** until prompt enrichment adds **`walkthrough`** and **`phasePlan`** (validated [`CoyotePhasePlan`](../../../../../packages/mtw-interfaces/ts/coyotePhasePlan.ts)).
+Refactor **plan outcome** generation so it uses the **full durable hypothesis record**, not only the single-line `Hypothesis:` string (`intent`). [`generatePlanOutcome`](../../../../../lambda/ephemera/dataSource/coyoteGame/generatePlanOutcome.ts) takes **`getIntentRecord`** (full [`CoyoteGameIntentRecord`](../../../../../lambda/ephemera/internalCache/coyoteGame.ts)) from [`internalCache`](../../../../../lambda/ephemera/internalCache/index.ts) via `CoyoteGame.get('intent')` with no extra fetch; [`buildPlanOutcomePromptParts`](../../../../../lambda/ephemera/dataSource/coyoteGame/buildPlanOutcomePrompt.ts) receives **`hypothesisLine`** plus optional **`walkthrough`** and **`phasePlan`** (validated [`CoyotePhasePlan`](../../../../../packages/mtw-interfaces/ts/coyotePhasePlan.ts)), with phase text from [`formatPhasePlanForOutcomePrompt`](../../../../../lambda/ephemera/dataSource/coyoteGame/formatPhasePlanForOutcomePrompt.ts).
 
 The outcome model should ground the single **"Outcome:"** line in the same **beat sequence and prop vocabulary** the hypothesis pipeline produced, while preserving existing **Road Runner safety** and **Coyote backfire** rules.
 
@@ -19,7 +19,7 @@ This plan is task-scoped; archive or delete it when the initiative ships and fol
    - Treat **`walkthrough`** as canonical narrative context when present (player-visible scene analysis aligned to **`phasePlan`**).
    - When **`phasePlan`** is present, add a **deterministic human-readable outline** derived from structured phases (ordered steps, achievements, stable keys resolved to staged **`shortName`**, virtual entities summarized). Prefer concise prose bullets over dumping raw JSON unless a small fenced summary aids the model.
 3. **Fallback:** When **`phasePlan`** is absent (validation failed but prose survived, or legacy rows), outcome still uses **`intent`** and optional **`walkthrough`**.
-4. **Caching split:** Revisit [`buildPlanOutcomePromptParts`](../../../../../lambda/ephemera/dataSource/coyoteGame/buildPlanOutcomePrompt.ts) **`splitAt`** so the **invariant** prefix (topology, safety constraints, voice rules) stays stable for Bedrock prompt caching while the **dynamic** tail grows.
+4. **Caching split:** [`buildPlanOutcomePromptParts`](../../../../../lambda/ephemera/dataSource/coyoteGame/buildPlanOutcomePrompt.ts) uses a fixed **invariant** prefix array (topology, safety, voice) and a **dynamic** tail (hypothesis, optional scene analysis and phase outline, staged snapshot); no numeric **`splitAt`** drift.
 5. **Tests:** Extend [`buildPlanOutcomePrompt.test.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/buildPlanOutcomePrompt.ts), [`generatePlanOutcome.test.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/generatePlanOutcome.test.ts), and [`internalCache/index.test.ts`](../../../../../lambda/ephemera/internalCache/index.test.ts) or focused Coyote cache tests so new sections and deps are covered; keep **Jest** from `lambda/ephemera`.
 
 ## Non-goals (for this initiative)
@@ -75,25 +75,25 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested lines `[X]` a
   - [X] Update `internalCache` `generateOutcome` closure to pass the record from `CoyoteGame.get('intent')` without extra fetches.
   - [X] Keep overrides for tests (`hypothesisLineOverride` pattern may expand to optional full record override if needed).
 
-- [ ] **Enrich `buildPlanOutcomePrompt`**
-  - [ ] Add sections for **Hypothesis line** (short anchor) and **Scene analysis** when `walkthrough` is present, with instructions that execution should follow that analysis in cartoon time.
-  - [ ] Add **Phase plan (execution outline)** when `phasePlan` is present: ordered phases, `achievement`, `prepVsBeat`, resolved stable keys and brief virtual-entity summaries; instruct the model to compress into one **Outcome:** line with Coyote backfire and Road Runner safety.
-  - [ ] **Recompute `invariantPrefix` / `dynamicSuffix` split** for prompt caching after section order and line count stabilize.
+- [X] **Enrich `buildPlanOutcomePrompt`**
+  - [X] Add sections for **Hypothesis line** (short anchor) and **Scene analysis** when `walkthrough` is present, with instructions that execution should follow that analysis in cartoon time.
+  - [X] Add **Phase plan (execution outline)** when `phasePlan` is present: ordered phases, `achievement`, `prepVsBeat`, resolved stable keys and brief virtual-entity summaries; instruct the model to compress into one **Outcome:** line with Coyote backfire and Road Runner safety.
+  - [X] **Recompute `invariantPrefix` / `dynamicSuffix` split** for prompt caching after section order and line count stabilize.
 
-- [ ] **Implement `formatPhasePlanForOutcomePrompt` (or named equivalent)**
-  - [ ] Pure function: input `CoyotePhasePlan` + `CoyoteRoomObjectsByRoom`, output markdown or plain-text block.
-  - [ ] Resolve `stableKeysUsed` to **`shortName`** via snapshot; handle unknown keys gracefully for robustness.
+- [X] **Implement `formatPhasePlanForOutcomePrompt` (or named equivalent)**
+  - [X] Pure function: input `CoyotePhasePlan` + `CoyoteRoomObjectsByRoom`, output markdown or plain-text block.
+  - [X] Resolve `stableKeysUsed` to **`shortName`** via snapshot; handle unknown keys gracefully for robustness.
 
-- [ ] **Tests and docs**
-  - [ ] Unit tests: prompt contains expected sections when `walkthrough` / `phasePlan` present or absent.
-  - [ ] Unit tests: formatter output snapshots or string assertions for a small fixture `phasePlan`.
-  - [ ] Update [`lambda/ephemera/dataSource/coyoteGame/AGENT.md`](../../../../../lambda/ephemera/dataSource/coyoteGame/AGENT.md) outcome bullet to describe rich prompt inputs (short task-specific note; avoid pasting large architecture).
+- [X] **Tests and docs**
+  - [X] Unit tests: prompt contains expected sections when `walkthrough` / `phasePlan` present or absent.
+  - [X] Unit tests: formatter output snapshots or string assertions for a small fixture `phasePlan`.
+  - [X] Update [`lambda/ephemera/dataSource/coyoteGame/AGENT.md`](../../../../../lambda/ephemera/dataSource/coyoteGame/AGENT.md) outcome bullet to describe rich prompt inputs (short task-specific note; avoid pasting large architecture).
 
 ## Verification
 
 - From `lambda/ephemera`: `npm run build`
 - Targeted Jest (adjust paths if test file names change):
-  - `npm run test -- --runInBand dataSource/coyoteGame/buildPlanOutcomePrompt.test.ts dataSource/coyoteGame/generatePlanOutcome.test.ts dataSource/coyoteGame/handleAwaitRoadRunnerForPlanOutcome.test.ts internalCache/index.test.ts internalCache/coyoteGame.test.ts`
+  - `npm run test -- --runInBand dataSource/coyoteGame/buildPlanOutcomePrompt.test.ts dataSource/coyoteGame/formatPhasePlanForOutcomePrompt.test.ts dataSource/coyoteGame/generatePlanOutcome.test.ts dataSource/coyoteGame/handleAwaitRoadRunnerForPlanOutcome.test.ts internalCache/index.test.ts internalCache/coyoteGame.test.ts`
 - Lint clean on touched files (`read_lints` / IDE diagnostics).
 
 ## Progress
@@ -101,7 +101,7 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested lines `[X]` a
 | Milestone | Status |
 | --- | --- |
 | Intent record plumbed to `generatePlanOutcome` / cache | Done |
-| Prompt sections: walkthrough + phase outline | Not started |
-| Formatter helper + tests | Not started |
-| Prompt cache split validated | Not started |
-| `AGENT.md` outcome path updated | Not started |
+| Prompt sections: walkthrough + phase outline | Done |
+| Formatter helper + tests | Done |
+| Prompt cache split validated | Done |
+| `AGENT.md` outcome path updated | Done |
