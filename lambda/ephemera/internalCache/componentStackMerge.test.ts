@@ -31,7 +31,6 @@ describe('ComponentStackMerge cache handler', () => {
                 tag: 'Room',
                 shortName: 'Hall',
                 exits: [],
-                examples: [],
             }),
         })
         jest.spyOn(internalCache.RoomCharacterList, 'get').mockResolvedValue([
@@ -78,7 +77,6 @@ describe('ComponentStackMerge cache handler', () => {
                         payload: 'North door',
                     },
                 ],
-                examples: [],
             }),
             [`ASSET#Personal`]: new StandardRoom({
                 universalKey: 'ROOM#MergeTwo',
@@ -90,7 +88,6 @@ describe('ComponentStackMerge cache handler', () => {
                         payload: 'East stair',
                     },
                 ],
-                examples: [],
             }),
         })
         jest.spyOn(internalCache.RoomCharacterList, 'get').mockResolvedValue([])
@@ -130,7 +127,6 @@ describe('ComponentStackMerge cache handler', () => {
                 tag: 'Room',
                 shortName: 'Hall',
                 exits: [],
-                examples: [],
             }),
         })
         jest.spyOn(internalCache.RoomCharacterList, 'get').mockResolvedValue([])
@@ -168,7 +164,6 @@ describe('ComponentStackMerge cache handler', () => {
                 tag: 'Room',
                 shortName,
                 exits: [],
-                examples: [],
             })
         const getAcrossAssets = jest.spyOn(internalCache.ComponentAssetMeta, 'getAcrossAssets').mockImplementation(
             async (ephemeraId: ComponentUUID) => ({

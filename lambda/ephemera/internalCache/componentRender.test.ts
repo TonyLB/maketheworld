@@ -31,13 +31,14 @@ describe('ComponentRender cache handler', () => {
             Pronouns: 'she/her'
         })
         jest.spyOn(internalCache.ComponentAssetMeta, "getAcrossAssets").mockResolvedValue({
-            [`ASSET#Base`]: new StandardRoom({
-                universalKey: 'ROOM#TestOne',
-                tag: 'Room',
-                shortName: 'TestRoom',
-                exits: [],
-                examples: ['EXAMPLE#Base']
-            })
+            [`ASSET#Base`]: new StandardRoom(deIndentWML(`
+                <Room uuid=(TestOne)>
+                    <ShortName>TestRoom</ShortName>
+                    <Situation uuid=(DEFAULT)>
+                        <DisplayName>Situation prose</DisplayName>
+                    </Situation>
+                </Room>
+            `)),
         })
         jest.spyOn(internalCache.RoomCharacterList, "get").mockResolvedValue([
             { EphemeraId: 'CHARACTER#TESS', DisplayName: 'Tess', Color: 'purple', SessionIds: [] }
@@ -88,7 +89,6 @@ describe('ComponentRender cache handler', () => {
                 tag: 'Room',
                 shortName: 'TestRoom',
                 exits: [],
-                examples: [],
             }),
         })
         jest.spyOn(internalCache.RoomCharacterList, "get").mockResolvedValue([])
@@ -142,7 +142,6 @@ describe('ComponentRender cache handler', () => {
                 tag: 'Room',
                 shortName: 'TestRoom',
                 exits: [],
-                examples: [],
             }),
         })
         jest.spyOn(internalCache.RoomCharacterList, "get").mockResolvedValue([])
