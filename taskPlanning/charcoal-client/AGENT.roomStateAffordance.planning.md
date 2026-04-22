@@ -61,9 +61,9 @@ This document follows [`taskPlanning/AGENT.md`](../AGENT.md) (task-only content;
 
 Pending work uses `[ ]`; completed work uses `[X]`. Apply the same convention to nested bullets.
 
-- [ ] Add a small **client helper** (or thunk) that builds **`EphemeraApiStateChangeRequest`** (`markState` per **Decided**), assigns **`RequestId`**, and uses **`socketDispatchPromise`** to ephemera; map **`ReturnValue`** body to success vs error strings for the UI. Include **comments** per **Decided** (future **`mtw.ephemera.state`** subscribe + **EventBridge** publish prerequisite).
+- [X] Add a small **client helper** (or thunk) that builds **`EphemeraApiStateChangeRequest`** (`markState` per **Decided**), assigns **`RequestId`**, and uses **`socketDispatchPromise`** to ephemera; map **`ReturnValue`** body to success vs error strings for the UI. Include **comments** per **Decided** (future **`mtw.ephemera.state`** subscribe + **EventBridge** publish prerequisite).
 - [ ] Implement **Workbench UI** in Room edit **Advanced** (per **Decided**): one value control per **Lens** mark (per **Decided**); pass **workbench room component id** as **`componentId`**; build **`markValue`** from those fields; validate with **`isEphemeraCacheMarkState`** before send; **ack-only** UX per **Decided**.
-- [ ] **Tests:** unit tests for the helper/thunk (mock dispatch); component tests if the surface is non-trivial.
+- [X] **Tests:** unit tests for the helper/thunk (mock dispatch); component tests if the surface is non-trivial.
 - [ ] **Manual verification** in a dev stack: successful merge; server-driven errors (e.g. missing **`Meta::Room`** / merge failure) via ack.
 - [ ] Update this document **Recommended order** and **Progress** when the slice ships; move any **lasting** behavior notes into [`charcoal-client/src/components/Workbench/AGENT.md`](../../charcoal-client/src/components/Workbench/AGENT.md) or the relevant slice doc if appropriate, then archive or delete this plan per [`taskPlanning/AGENT.md`](../AGENT.md).
 
@@ -78,7 +78,7 @@ Pending work uses `[ ]`; completed work uses `[X]`. Apply the same convention to
 | Placement: Room edit **Advanced**; no feature flag / role gate | Decided (in this doc) |
 | Room id: workbench id **is** **`ROOM#...`**; no client preflight | Decided (in this doc) |
 | Editor: per-Lens-mark values; wire = **`EphemeraCacheMarkState`** | Decided (in this doc) |
-| Helper or thunk + tests | Not started |
+| Helper or thunk + tests | Done (`sendRoomEphemeraStateChange` + `ephemeraStateChange.test.ts`) |
 | Room edit UI + verification | Not started |
 
 ---
