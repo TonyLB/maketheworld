@@ -1,12 +1,12 @@
 # Coyote plan outcome refactor (rich hypothesis record)
 
-**Status:** Not started. Next step: plumb `CoyoteGameIntentRecord` into outcome generation and extend prompts.
+**Status:** In progress. Next step: enrich `buildPlanOutcomePrompt` with `walkthrough` and `phasePlan` sections (record is plumbed into `generatePlanOutcome`).
 
 Skim [`taskPlanning/AGENT.md`](../../../../AGENT.md) once for durability rules (this file retires after the task), **Recommended order** checkbox conventions, and what belongs here versus [`lambda/ephemera/dataSource/coyoteGame/AGENT.md`](../../../../../lambda/ephemera/dataSource/coyoteGame/AGENT.md).
 
 ## Purpose
 
-Refactor **plan outcome** generation so it uses the **full durable hypothesis record**, not only the single-line `Hypothesis:` string (`intent`). Today [`generatePlanOutcome`](../../../../../lambda/ephemera/dataSource/coyoteGame/generatePlanOutcome.ts) and [`buildPlanOutcomePrompt`](../../../../../lambda/ephemera/dataSource/coyoteGame/buildPlanOutcomePrompt.ts) receive just `hypothesisLine`; [`internalCache`](../../../../../lambda/ephemera/internalCache/index.ts) wires `getIntent` as `(await CoyoteGame.get('intent')).intent`, discarding **`walkthrough`** (scene analysis prose aligned to the plan) and **`phasePlan`** (validated [`CoyotePhasePlan`](../../../../../packages/mtw-interfaces/ts/coyotePhasePlan.ts)).
+Refactor **plan outcome** generation so it uses the **full durable hypothesis record**, not only the single-line `Hypothesis:` string (`intent`). [`generatePlanOutcome`](../../../../../lambda/ephemera/dataSource/coyoteGame/generatePlanOutcome.ts) now takes **`getIntentRecord`** (full [`CoyoteGameIntentRecord`](../../../../../lambda/ephemera/internalCache/coyoteGame.ts)) from [`internalCache`](../../../../../lambda/ephemera/internalCache/index.ts) via `CoyoteGame.get('intent')` with no extra fetch; [`buildPlanOutcomePrompt`](../../../../../lambda/ephemera/dataSource/coyoteGame/buildPlanOutcomePrompt.ts) still receives only **`hypothesisLine`** until prompt enrichment adds **`walkthrough`** and **`phasePlan`** (validated [`CoyotePhasePlan`](../../../../../packages/mtw-interfaces/ts/coyotePhasePlan.ts)).
 
 The outcome model should ground the single **"Outcome:"** line in the same **beat sequence and prop vocabulary** the hypothesis pipeline produced, while preserving existing **Road Runner safety** and **Coyote backfire** rules.
 
@@ -70,10 +70,10 @@ Follow the ordered **categories** below (see [Getting Started pattern for comple
 
 Pending work uses `[ ]` and completed work uses `[X]`. Mark nested lines `[X]` as each sub-step finishes.
 
-- [ ] **Plumb intent record into outcome generation**
-  - [ ] Extend `GeneratePlanOutcomeDeps` to accept full `CoyoteGameIntentRecord` (e.g. `getIntentRecord` or equivalent) alongside or instead of string-only `getIntent`.
-  - [ ] Update `internalCache` `generateOutcome` closure to pass the record from `CoyoteGame.get('intent')` without extra fetches.
-  - [ ] Keep overrides for tests (`hypothesisLineOverride` pattern may expand to optional full record override if needed).
+- [X] **Plumb intent record into outcome generation**
+  - [X] Extend `GeneratePlanOutcomeDeps` to accept full `CoyoteGameIntentRecord` (e.g. `getIntentRecord` or equivalent) alongside or instead of string-only `getIntent`.
+  - [X] Update `internalCache` `generateOutcome` closure to pass the record from `CoyoteGame.get('intent')` without extra fetches.
+  - [X] Keep overrides for tests (`hypothesisLineOverride` pattern may expand to optional full record override if needed).
 
 - [ ] **Enrich `buildPlanOutcomePrompt`**
   - [ ] Add sections for **Hypothesis line** (short anchor) and **Scene analysis** when `walkthrough` is present, with instructions that execution should follow that analysis in cartoon time.
@@ -100,7 +100,7 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested lines `[X]` a
 
 | Milestone | Status |
 | --- | --- |
-| Intent record plumbed to `generatePlanOutcome` / cache | Not started |
+| Intent record plumbed to `generatePlanOutcome` / cache | Done |
 | Prompt sections: walkthrough + phase outline | Not started |
 | Formatter helper + tests | Not started |
 | Prompt cache split validated | Not started |

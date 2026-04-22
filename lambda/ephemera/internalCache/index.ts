@@ -85,7 +85,7 @@ export class InternalCache {
             generateOutcome: () => generatePlanOutcome({
                 getGameRooms: () => this.CoyoteGame.get('gameRooms'),
                 getRoomMeta: (roomId) => this.ComponentEphemeraMeta.get(roomId),
-                getIntent: async () => (await this.CoyoteGame.get('intent')).intent,
+                getIntentRecord: () => this.CoyoteGame.get('intent'),
             }),
         })
         this.PlayerMeta = new CachePlayerMetaData(this.Global)
