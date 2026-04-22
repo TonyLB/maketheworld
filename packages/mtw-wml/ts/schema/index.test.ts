@@ -31,19 +31,19 @@ describe('schemaFromParse', () => {
                 </Import>
                 <Room uuid=(123-abc) key=(ABC)>
                     <ShortName>Vortex</ShortName>
-                    <Example uuid=(123-Example1)>
+                    <Situation uuid=(DEFAULT)>
                         <DisplayName>Vortex</DisplayName>
                         <Description>
                             <Space />
                             Vortex
                             <Link to=(GHI)>(knowledge)</Link>
                         </Description>
-                    </Example>
+                    </Situation>
                 </Room>
                 <Room key=(DEF)>
-                    <Example uuid=(123-DEF-example)>
+                    <Situation uuid=(DEFAULT)>
                         <DisplayName>Welcome</DisplayName>
-                    </Example>
+                    </Situation>
                     <Exit to=(ABC)>vortex</Exit>
                 </Room>
                 <Knowledge key=(GHI)>
@@ -95,8 +95,8 @@ describe('schemaFromParse', () => {
                         children: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }]
                     },
                     {
-                        data: { tag: 'Example', uuid: 'EXAMPLE#123-Example1' },
-                        children: [                    {
+                        data: { tag: 'Situation', uuid: 'SITUATION#DEFAULT' },
+                        children: [{
                             data: { tag: 'DisplayName' },
                             children: [{ data: { tag: 'String', value: 'Vortex' }, children: [] }]
                         },
@@ -123,7 +123,7 @@ describe('schemaFromParse', () => {
                         key: "DEF"
                     },
                     children: [{
-                        data: { tag: 'Example', uuid: 'EXAMPLE#123-DEF-example' },
+                        data: { tag: 'Situation', uuid: 'SITUATION#DEFAULT' },
                         children: [{ data: { tag: 'DisplayName' }, children: [{ data: { tag: 'String', value: 'Welcome' }, children: [] }] }]
                     },
                     {
@@ -205,10 +205,10 @@ describe('schemaFromParse', () => {
         const testWML = `
             <Asset uuid=(test)>
                 <Room key=(room1)>
-                    <Example uuid=(123-room1-replace-example)>
+                    <Situation uuid=(DEFAULT)>
                         <Replace><DisplayName>Lobby</DisplayName></Replace>
                         <With><DisplayName>Foyer</DisplayName></With>
-                    </Example>
+                    </Situation>
                 </Room>
             </Asset>
         `
@@ -223,7 +223,7 @@ describe('schemaFromParse', () => {
                 {
                     data: { tag: 'Room', key: 'room1' },
                     children: [{
-                        data: { tag: 'Example', uuid: 'EXAMPLE#123-room1-replace-example' },
+                        data: { tag: 'Situation', uuid: 'SITUATION#DEFAULT' },
                         children: [{
                             data: { tag: 'Replace' },
                             children: [
@@ -245,8 +245,8 @@ describe('schemaFromParse', () => {
 
     it('should correctly parse component replace tags', () => {
         const testWML = `
-            <Replace><Room key=(room1)><Example uuid=(123-room1-replace-component-example)><DisplayName>Lobby</DisplayName></Example></Room></Replace>
-            <With><Room key=(room1)><Example uuid=(123-room1-replace-component-example-2)><DisplayName>Foyer</DisplayName></Example></Room></With>
+            <Replace><Room key=(room1)><Situation uuid=(DEFAULT)><DisplayName>Lobby</DisplayName></Situation></Room></Replace>
+            <With><Room key=(room1)><Situation uuid=(DEFAULT)><DisplayName>Foyer</DisplayName></Situation></Room></With>
         `
         const testParse = parse(tokenizer(new SourceStream(testWML)))
         expect(schemaFromParse(testParse)).toEqual([{
@@ -256,14 +256,14 @@ describe('schemaFromParse', () => {
                     data: { tag: 'ReplaceMatch' },
                     children: [{
                         data: { tag: 'Room', key: 'room1' },
-                        children: [{ data: { tag: 'Example', uuid: 'EXAMPLE#123-room1-replace-component-example' }, children: [{ data: { tag: 'DisplayName' }, children: [{ data: { tag: 'String', value: 'Lobby' }, children: [] }] }] }]
+                        children: [{ data: { tag: 'Situation', uuid: 'SITUATION#DEFAULT' }, children: [{ data: { tag: 'DisplayName' }, children: [{ data: { tag: 'String', value: 'Lobby' }, children: [] }] }] }]
                     }]
                 },
                 {
                     data: { tag: 'ReplacePayload' },
                     children: [{
                         data: { tag: 'Room', key: 'room1' },
-                        children: [{ data: { tag: 'Example', uuid: 'EXAMPLE#123-room1-replace-component-example-2' }, children: [{ data: { tag: 'DisplayName' }, children: [{ data: { tag: 'String', value: 'Foyer' }, children: [] }] }] }]
+                        children: [{ data: { tag: 'Situation', uuid: 'SITUATION#DEFAULT' }, children: [{ data: { tag: 'DisplayName' }, children: [{ data: { tag: 'String', value: 'Foyer' }, children: [] }] }] }]
                     }]
                 }
             ]
@@ -397,9 +397,9 @@ describe('schemaFromParse', () => {
             <Asset uuid=(nakatomiPlaza)>
                 <ShortName>Nakatomi Plaza</ShortName>
                 <Room key=(lobby)>
-                    <Example uuid=(123-lobby-example)>
+                    <Situation uuid=(DEFAULT)>
                         <Description>A gleaming marble lobby</Description>
-                    </Example>
+                    </Situation>
                 </Room>
             </Asset>
         `)))
@@ -417,7 +417,7 @@ describe('schemaFromParse', () => {
                 {
                     data: { tag: 'Room', key: 'lobby' },
                     children: [{
-                        data: { tag: 'Example', uuid: 'EXAMPLE#123-lobby-example' },
+                        data: { tag: 'Situation', uuid: 'SITUATION#DEFAULT' },
                         children: [{
                             data: { tag: 'Description' },
                             children: [{ data: { tag: 'String', value: 'A gleaming marble lobby' }, children: [] }]
@@ -433,9 +433,9 @@ describe('schemaFromParse', () => {
             <Asset uuid=(nakatomiPlaza)>
                 <Summary>A high-rise office building in downtown Los Angeles</Summary>
                 <Room key=(lobby)>
-                    <Example uuid=(123-lobby-example)>
+                    <Situation uuid=(DEFAULT)>
                         <Description>A gleaming marble lobby</Description>
-                    </Example>
+                    </Situation>
                 </Room>
             </Asset>
         `)))
@@ -453,7 +453,7 @@ describe('schemaFromParse', () => {
                 {
                     data: { tag: 'Room', key: 'lobby' },
                     children: [{
-                        data: { tag: 'Example', uuid: 'EXAMPLE#123-lobby-example' },
+                        data: { tag: 'Situation', uuid: 'SITUATION#DEFAULT' },
                         children: [{
                             data: { tag: 'Description' },
                             children: [{ data: { tag: 'String', value: 'A gleaming marble lobby' }, children: [] }]
@@ -471,9 +471,9 @@ describe('schemaFromParse', () => {
                 <Summary>Ancient cavern system beneath the mountain</Summary>
                 <Room key=(entrance)>
                     <ShortName>Crystal Grotto</ShortName>
-                    <Example uuid=(123-entrance-example)>
+                    <Situation uuid=(DEFAULT)>
                         <Description>Luminescent crystals cast an eerie blue glow</Description>
-                    </Example>
+                    </Situation>
                 </Room>
             </Asset>
         `)))
@@ -500,7 +500,7 @@ describe('schemaFromParse', () => {
                             children: [{ data: { tag: 'String', value: 'Crystal Grotto' }, children: [] }]
                         },
                         {
-                            data: { tag: 'Example', uuid: 'EXAMPLE#123-entrance-example' },
+                            data: { tag: 'Situation', uuid: 'SITUATION#DEFAULT' },
                             children: [{
                                 data: { tag: 'Description' },
                                 children: [{ data: { tag: 'String', value: 'Luminescent crystals cast an eerie blue glow' }, children: [] }]
@@ -559,10 +559,10 @@ describe('schemaToWML', () => {
         const testWML = deIndentWML(`
             <Asset uuid=(Test)>
                 <Room uuid=(123-VORTEX) key=(VORTEX)>
-                    <Example uuid=(123-Example) key=(example1)>
+                    <Situation uuid=(DEFAULT)>
                         <DisplayName>Vortex</DisplayName>
                         <Description>Test Room</Description>
-                    </Example>
+                    </Situation>
                 </Room>
                 <Feature uuid=(123-doors) key=(doors)>
                     <Example uuid=(456-example2) key=(example2)>
@@ -627,7 +627,7 @@ describe('schemaToWML', () => {
             <Asset uuid=(Test)>
                 <Room key=(VORTEX)>
                     <ShortName>Vortex</ShortName>
-                    <Example key=(example1)>
+                    <Situation uuid=(DEFAULT)>
                         <DisplayName>Vortex</DisplayName>
                         <Summary>
                             You float in a swirling mass of energy and debris.
@@ -638,7 +638,7 @@ describe('schemaToWML', () => {
                             <Link to=(doors)>Doors</Link> to other realms drift around you.
                             Crackling bursts of energy snap through space in the distance.
                         </Description>
-                    </Example>
+                    </Situation>
                     <Exit to=(welcome)>Welcome room</Exit>
                 </Room>
                 <Feature key=(doors)>
@@ -649,12 +649,12 @@ describe('schemaToWML', () => {
                 </Feature>
                 <Room key=(welcome)>
                     <ShortName>Welcome</ShortName>
-                    <Example uuid=(123-welcome-example)>
+                    <Situation uuid=(DEFAULT)>
                         <DisplayName>Welcome room</DisplayName>
                         <Description>
                             A clean and sterile welcome room. The lights are on.
                         </Description>
-                    </Example>
+                    </Situation>
                     <Exit to=(VORTEX)>vortex</Exit>
                 </Room>
             </Asset>
@@ -666,10 +666,10 @@ describe('schemaToWML', () => {
         const testWML = deIndentWML(`
             <Asset uuid=(test)>
                 <Room key=(room1)>
-                    <Example uuid=(123-room1-edit-example)>
+                    <Situation uuid=(DEFAULT)>
                         <Replace><DisplayName>Lobby</DisplayName></Replace>
                         <With><DisplayName>Foyer</DisplayName></With>
-                    </Example>
+                    </Situation>
                     <Remove><Exit to=(room2)>out</Exit></Remove>
                 </Room>
             </Asset>
@@ -694,9 +694,9 @@ describe('schemaToWML', () => {
             <Asset uuid=(Test)>
                 <Room key=(VORTEX)><Exit to=(ROOM#target)>Exit to nowhere</Exit></Room>
                 <Room uuid=(target)>
-                    <Example uuid=(123-target-example)>
+                    <Situation uuid=(DEFAULT)>
                         <DisplayName>Nowhere</DisplayName>
-                    </Example>
+                    </Situation>
                 </Room>
             </Asset>
         `)
@@ -734,9 +734,7 @@ describe('schemaToWML', () => {
     it('should correctly round-trip nested remove tags', () => {
         const testWML = deIndentWML(`
             <Asset uuid=(Test)>
-                <Room key=(room1)>
-                    <Remove><Example uuid=(123-room1-remove-example) /></Remove>
-                </Room>
+                <Room key=(room1)><Remove><Situation uuid=(DEFAULT) /></Remove></Room>
             </Asset>
         `)
         expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
@@ -745,9 +743,7 @@ describe('schemaToWML', () => {
     it('should correctly round-trip remove with nested tags', () => {
         const testWML = deIndentWML(`
             <Asset uuid=(Test)>
-                <Remove>
-                    <Room key=(room1)><Example uuid=(123-room1-remove-example) /></Room>
-                </Remove>
+                <Remove><Room key=(room1)><Situation uuid=(DEFAULT) /></Room></Remove>
             </Asset>
         `)
         expect(schemaToWML(schemaFromParse(parse(tokenizer(new SourceStream(testWML)))))).toEqual(testWML)
@@ -775,9 +771,9 @@ describe('schemaToWML', () => {
         const testWML = deIndentWML(`
             <Asset uuid=(Test)>
                 <Room key=(test)>
-                    <Example uuid=(123-test-escape-example)>
+                    <Situation uuid=(DEFAULT)>
                         <Description>Test \\\\ \\< \\></Description>
-                    </Example>
+                    </Situation>
                 </Room>
             </Asset>
         `)
@@ -793,9 +789,7 @@ describe('schemaToWML', () => {
                     <Room uuid=(testTwo) />
                 </Import>
                 <Room uuid=(test)>
-                    <Example uuid=(123-test-import-example)>
-                        <Description>Test</Description>
-                    </Example>
+                    <Situation uuid=(DEFAULT)><Description>Test</Description></Situation>
                 </Room>
             </Asset>
         `)
@@ -821,10 +815,10 @@ describe('schemaToWML', () => {
         const testWML = deIndentWML(`
             <Asset uuid=(Test)>
                 <Room key=(test)>
-                    <Example uuid=(123-test-freetext-example)>
+                    <Situation uuid=(DEFAULT)>
                         <DisplayName>Lobby in the dark</DisplayName>
                         <Description>A dark and dusty lobby.</Description>
-                    </Example>
+                    </Situation>
                 </Room>
             </Asset>
         `)
@@ -837,9 +831,9 @@ describe('schemaToWML', () => {
             <Asset uuid=(hauntedMansion)>
                 <ShortName>Ravencrest Manor</ShortName>
                 <Room key=(foyer)>
-                    <Example uuid=(123-foyer-example)>
+                    <Situation uuid=(DEFAULT)>
                         <Description>A dust-covered entrance hall</Description>
-                    </Example>
+                    </Situation>
                 </Room>
             </Asset>
         `)
@@ -851,9 +845,9 @@ describe('schemaToWML', () => {
             <Asset uuid=(hauntedMansion)>
                 <Summary>Victorian mansion with a dark history</Summary>
                 <Room key=(foyer)>
-                    <Example uuid=(123-foyer-example)>
+                    <Situation uuid=(DEFAULT)>
                         <Description>A dust-covered entrance hall</Description>
-                    </Example>
+                    </Situation>
                 </Room>
             </Asset>
         `)
@@ -867,9 +861,9 @@ describe('schemaToWML', () => {
                 <Summary>Floating docking station for airships</Summary>
                 <Room key=(platform)>
                     <ShortName>Main Platform</ShortName>
-                    <Example uuid=(123-platform-example)>
+                    <Situation uuid=(DEFAULT)>
                         <Description>A wooden platform swaying in the wind</Description>
-                    </Example>
+                    </Situation>
                 </Room>
             </Asset>
         `)

@@ -16,7 +16,7 @@ describe('StandardRoom class', () => {
             <Room uuid=(123) key=(test)>
                 <ShortName>ShortName Test</ShortName>
                 <Feature key=(testFeature) />
-                <Example key=(base) />
+                <Situation uuid=(DEFAULT)><DisplayName>Base</DisplayName></Situation>
                 <Exit to=(testTwo)>Exit test</Exit>
             </Room>
         `)
@@ -36,7 +36,7 @@ describe('StandardRoom class', () => {
             <Room uuid=(123) key=(test)>
                 <ShortName>ShortName Test</ShortName>
                 <Feature key=(testFeature) />
-                <Example uuid=(base) />
+                <Situation uuid=(DEFAULT)><DisplayName>Base</DisplayName></Situation>
                 <Exit to=(testTwo)>Exit test</Exit>
             </Room>
         `)
@@ -45,8 +45,9 @@ describe('StandardRoom class', () => {
         expect(testRoom.key).toEqual('test')
         expect(testRoom.features).toBeDefined()
         expect(testRoom.features!.toJSON()).toEqual([{ tag: 'Feature', key: 'testFeature'}])
-        expect(testRoom.examples).toBeDefined()
-        expect(testRoom.examples!.toJSON()).toEqual(['EXAMPLE#base'])
+        expect(testRoom.situations.length).toBe(1)
+        expect(testRoom.situations.items[0].reference.universalKey).toBe('SITUATION#DEFAULT')
+        expect(testRoom.situations.items[0].payload.toJSON()).toMatchObject({ displayName: 'Base' })
         expect(testRoom.shortName?.schema).toEqual([{ data: { tag: 'String', value: 'ShortName Test' }, children: [] }])
         expect(testRoom.exits.toJSON()).toEqual([{ reference: { tag: 'Room', key: 'testTwo' }, payload: 'Exit test' }])
         expect(testRoom.universalKey).toEqual('ROOM#123')
@@ -188,38 +189,43 @@ describe('StandardRoom class', () => {
         expect(outputJSON.exits).toBeUndefined()
     })
 
-    it('should correctly render a removed example reference', () => {
+    it('should correctly render a removed feature reference', () => {
         const test = new StandardRoom(`
             <Room key=(testRoomOne)>
-                <Remove><Example key=(base) /></Remove>
+                <Remove><Feature key=(base) /></Remove>
             </Room>
         `)
 
         expect(schemaToWML([test.schema])).toEqual(deIndentWML(`
-            <Room key=(testRoomOne)><Remove><Example key=(base) /></Remove></Room>
+            <Room key=(testRoomOne)><Remove><Feature key=(base) /></Remove></Room>
         `))
     })
 
     it('should merge correctly', () => {
         expect(mergeTest(
             `<Room key=(testRoomOne)>
-                <Example key=(base)>
+                <Situation uuid=(DEFAULT)>
                     <DisplayName>Lobby</DisplayName>
                     <Description>A plain lobby.</Description>
-                </Example>
+                </Situation>
             </Room>`,
             StandardRoom,
             `<Room key=(testRoomOne) ref={0}>
                 <Feature key=(testFeature) />
-                <Example key=(base) ref={0}>
+                <Situation uuid=(DEFAULT) ref={0}>
                     <Replace><DisplayName>Lobby</DisplayName></Replace><With><DisplayName>Spooky Lobby</DisplayName></With>
                     <Description><Space />Shadows cling to the corners of the room.</Description>
-                </Example>
+                </Situation>
             </Room>`
         )).toEqual(deIndentWML(`
             <Room key=(testRoomOne)>
                 <Feature key=(testFeature) />
-                <Example key=(base) />
+                <Situation uuid=(DEFAULT)>
+                    <DisplayName>Spooky Lobby</DisplayName>
+                    <Description>
+                        A plain lobby. Shadows cling to the corners of the room.
+                    </Description>
+                </Situation>
             </Room>
         `))
     })
@@ -273,12 +279,13 @@ describe('StandardRoom class', () => {
     // })
 
     it('should map references to universal keys correctly', () => {
-        const test = new StandardRoom(`
-            <Room uuid=(Room1) key=(testRoomOne)>
-                <Example uuid=(Example1) key=(base) />
-                <Exit to=(testRoomTwo)>exit</Exit>
-            </Room>
-        `)
+        const test = new StandardRoom({
+            tag: 'Room',
+            key: 'testRoomOne',
+            universalKey: 'ROOM#Room1',
+            examples: [{ tag: 'Example', key: 'base', universalKey: 'EXAMPLE#Example1' }],
+            exits: [{ reference: { tag: 'Room', key: 'testRoomTwo' }, payload: 'exit' }],
+        })
         const remapped = test.withMapping([
             new StandardReference({ universalKey: 'ROOM#Room1', key: 'testRoomOne', tag: 'Room'}),
             new StandardReference({ universalKey: 'EXAMPLE#Example1', key: 'base', tag: 'Example' }),
@@ -293,12 +300,12 @@ describe('StandardRoom class', () => {
     })
 
     it('should map references to local keys correctly', () => {
-        const test = new StandardRoom(`
-            <Room key=(testRoomOne)>
-                <Example uuid=(Example1) />
-                <Feature uuid=(Feature1) />
-            </Room>
-        `)
+        const test = new StandardRoom({
+            tag: 'Room',
+            key: 'testRoomOne',
+            examples: [{ tag: 'Example', universalKey: 'EXAMPLE#Example1' }],
+            features: [{ tag: 'Feature', universalKey: 'FEATURE#Feature1' }],
+        })
         expect(schemaToWML([
             test.withMapping([
                 new StandardReference({ universalKey: 'ROOM#Room1', tag: 'Room', key: 'testRoomOne' }),
@@ -314,12 +321,12 @@ describe('StandardRoom class', () => {
     })
 
     it('should correctly add a feature reference to a room', () => {
-        const test = new StandardRoom(`
-            <Room key=(testRoomOne)>
-                <Example uuid=(Example1) />
-                <Feature uuid=(Feature1) />
-            </Room>
-        `)
+        const test = new StandardRoom({
+            tag: 'Room',
+            key: 'testRoomOne',
+            examples: [{ tag: 'Example', universalKey: 'EXAMPLE#Example1' }],
+            features: [{ tag: 'Feature', universalKey: 'FEATURE#Feature1' }],
+        })
         const feature = new StandardKey({ key: 'featureTwo' })
         const added = test.withChild(new StandardReference(feature, 'Feature'))
         expect(schemaToWML([added.schema])).toEqual(deIndentWML(`
@@ -332,12 +339,12 @@ describe('StandardRoom class', () => {
     })
 
     it('should correctly add an example reference to a room', () => {
-        const test = new StandardRoom(`
-            <Room key=(testRoomOne)>
-                <Example uuid=(Example1) />
-                <Feature uuid=(Feature1) />
-            </Room>
-        `)
+        const test = new StandardRoom({
+            tag: 'Room',
+            key: 'testRoomOne',
+            examples: [{ tag: 'Example', universalKey: 'EXAMPLE#Example1' }],
+            features: [{ tag: 'Feature', universalKey: 'FEATURE#Feature1' }],
+        })
         const example = new StandardKey("EXAMPLE#Example2")
         const added = test.withChild(new StandardReference(example))
         expect(schemaToWML([added.schema])).toEqual(deIndentWML(`
@@ -350,12 +357,12 @@ describe('StandardRoom class', () => {
     })
 
     it('should correctly add a character reference to a room', () => {
-        const test = new StandardRoom(`
-            <Room key=(testRoomOne)>
-                <Example uuid=(Example1) />
-                <Feature uuid=(Feature1) />
-            </Room>
-        `)
+        const test = new StandardRoom({
+            tag: 'Room',
+            key: 'testRoomOne',
+            examples: [{ tag: 'Example', universalKey: 'EXAMPLE#Example1' }],
+            features: [{ tag: 'Feature', universalKey: 'FEATURE#Feature1' }],
+        })
         const character = new StandardKey("CHARACTER#Character1")
         const added = test.withChild(new StandardReference(character))
         expect(schemaToWML([added.schema])).toEqual(deIndentWML(`
@@ -886,7 +893,7 @@ describe('StandardRoom class', () => {
                 <Room key=(test)>
                     <ShortName>Test</ShortName>
                     <Remove><Feature key=(feat1) /></Remove>
-                    <Remove><Example key=(ex1) /></Remove>
+                    <Remove><Character key=(char1) /></Remove>
                 </Room>
             `))
             const inverted = roomWithRemoves._payload.invert()
@@ -896,7 +903,7 @@ describe('StandardRoom class', () => {
                 <Room key=(test)>
                     <Remove><ShortName>Test</ShortName></Remove>
                     <Feature key=(feat1) />
-                    <Example key=(ex1) />
+                    <Character key=(char1) />
                 </Room>
             `))
         })
@@ -1325,12 +1332,12 @@ describe('StandardRoom class', () => {
         })
         
         it('should leave existing references with non-zero ref unchanged', () => {
-            const room = new StandardRoom(deIndentWML(`
-                <Room key=(test)>
-                    <Feature key=(feat1) />
-                    <Example key=(ex1) ref={2} />
-                </Room>
-            `))
+            const room = new StandardRoom({
+                tag: 'Room',
+                key: 'test',
+                features: [{ tag: 'Feature', key: 'feat1' }],
+                examples: [{ tag: 'Example', key: 'ex1', ref: 2 }],
+            })
             const featureRef = new StandardReference({ tag: 'Feature', key: 'feat1' })
             const exampleRef = new StandardReference({ tag: 'Example', key: 'ex1', ref: 2 })
             
@@ -1450,14 +1457,16 @@ describe('StandardRoom class', () => {
 
     describe('removeReferences method', () => {
         it('should remove matching references from all buckets', () => {
-            const room = new StandardRoom(deIndentWML(`
-                <Room key=(test)>
-                    <Feature key=(feat1) />
-                    <Feature key=(feat2) />
-                    <Example key=(ex1) />
-                    <Character key=(char1) />
-                </Room>
-            `))
+            const room = new StandardRoom({
+                tag: 'Room',
+                key: 'test',
+                features: [
+                    { tag: 'Feature', key: 'feat1' },
+                    { tag: 'Feature', key: 'feat2' },
+                ],
+                examples: [{ tag: 'Example', key: 'ex1' }],
+                characters: [{ tag: 'Character', key: 'char1' }],
+            })
             const featureRef = new StandardReference({ tag: 'Feature', key: 'feat1' })
             const exampleRef = new StandardReference({ tag: 'Example', key: 'ex1' })
             
