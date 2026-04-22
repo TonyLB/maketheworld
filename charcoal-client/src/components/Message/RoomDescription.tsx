@@ -26,7 +26,6 @@ import { socketDispatchPromise } from '../../slices/lifeLine'
 import { StandardRender, PlainClass } from '@tonylb/mtw-wml/ts/standardize/render'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardRoom } from '@tonylb/mtw-wml/ts/standardize/components/room'
-import { StandardExample } from '@tonylb/mtw-wml/ts/standardize/components/example'
 import { StandardExitFacet } from '@tonylb/mtw-wml/ts/standardize/keys/facets/exit'
 import { StandardCharacter } from '@tonylb/mtw-wml/ts/standardize/components/character'
 import { SituationRoomFacetPayload } from '@tonylb/mtw-wml/ts/standardize/keys/facets/situationRoom'
@@ -59,7 +58,7 @@ export const RoomDescription = ({ parsedWML, metaData, header, currentHeader, is
         const component = parsedWML.byUniversalId[componentUUID]
         
         if (component instanceof StandardRoom) {
-            // Prefer ephemera `<Render>` (StandardRoom.render), then Situation facets, then Example-based prose
+            // Prefer ephemera `<Render>` (StandardRoom.render), then Situation facets, then defaults
             let prosePayload: SituationRoomFacetPayload | undefined
             if (component.render) {
                 const fromRender = new SituationRoomFacetPayload(component.render)
@@ -77,24 +76,6 @@ export const RoomDescription = ({ parsedWML, metaData, header, currentHeader, is
                 name = prosePayload._displayName || new StandardLiteral('Untitled', { tag: 'DisplayName' })
                 description = prosePayload._description || new StandardRender([])
                 summary = prosePayload._summary || new StandardRender([])
-            }
-            else {
-                // Extract room data from Standard format structure - handle missing examples gracefully
-                const firstExampleRef = component.examples.payload[0]
-                if (firstExampleRef) {
-                    const firstExample = parsedWML._lookup(firstExampleRef.standardKey.toJSON())
-                    
-                    if (firstExample && firstExample.universalKey) {
-                        const exampleComponent = parsedWML.byUniversalId[firstExample.universalKey as any]
-                        
-                        if (exampleComponent instanceof StandardExample) {
-                            // StandardExample displayName is a StandardLiteral
-                            name = exampleComponent.displayName || new StandardLiteral('Untitled', { tag: 'DisplayName' })
-                            description = exampleComponent.description || new StandardRender([])
-                            summary = exampleComponent.summary || new StandardRender([])
-                        }
-                    }
-                }
             }
             
             // Extract character references from StandardRoom and resolve them to StandardCharacter instances

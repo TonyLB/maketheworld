@@ -66,10 +66,10 @@ Use `[ ]` for pending and `[X]` for completed work. Mark each nested line `[X]` 
     - [X] Apply minimal Room-path code change (keep Feature/Knowledge behavior stable).
     - [X] Add or update targeted tests for Room-negative and Feature/Knowledge-positive behavior.
     - [X] Re-run inventory search and confirm this file leaves the Room examples runtime bucket.
-  - [ ] `charcoal-client/src/components/Message/RoomDescription.tsx` (`replace`)
-    - [ ] Remove `component.examples` Room prose fallback and keep render/situation/default precedence.
-    - [ ] Add or update focused tests for render, situation, and prose-missing default paths.
-    - [ ] Re-run inventory search and confirm this file leaves the Room examples runtime bucket.
+  - [X] `charcoal-client/src/components/Message/RoomDescription.tsx` (`replace`)
+    - [X] Remove `component.examples` Room prose fallback and keep render/situation/default precedence.
+    - [X] Add or update focused tests for render, situation, and prose-missing default paths.
+    - [X] Re-run inventory search and confirm this file leaves the Room examples runtime bucket.
   - [ ] `charcoal-client/src/components/Workbench/foundations/LayeredContext/layeredContextUtils.ts` (Room path `replace`)
     - [ ] Remove Room participation in Example-membership checks.
     - [ ] Preserve Feature/Knowledge Example behavior (out-of-scope behavior is not changed in this task plan).
@@ -175,6 +175,14 @@ Known documentation/planning mentions to revisit after runtime migration:
 - Inventory delta:
   - `rg "\b(room|component|parent)\.examples\b" lambda/assets/componentExamples` now reports only `Feature`/`Knowledge` lines in `exampleEnrichment.ts`.
   - `exampleEnrichment.ts` no longer has a `Room.examples` runtime read path.
+
+### Slice update (2026-04-22): `RoomDescription.tsx`
+
+- Applied: removed Room prose fallback through `component.examples.payload[0]`; component now resolves prose as `render` -> first `situation` -> defaults.
+- Tests: `charcoal-client/src/components/Message/RoomDescription.test.tsx` updated with focused situation-only and prose-missing-default assertions; targeted file run passes.
+- Inventory delta:
+  - `rg "\b(room|component|parent)\.examples\b" charcoal-client/src/components/Message` no longer reports `RoomDescription.tsx`.
+  - Remaining examples hits in this folder are intentional docs plus `ComponentDescription.tsx` (Feature/Knowledge path).
 
 ## Runtime slice recommendation: `lambda/assets/componentExamples/exampleEnrichment.ts`
 

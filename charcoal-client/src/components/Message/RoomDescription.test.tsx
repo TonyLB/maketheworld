@@ -180,6 +180,69 @@ describe('RoomDescription', () => {
 
             expect(screen.getByText('Untitled')).toBeDefined()
         })
+
+        it('uses situation prose when render is absent', () => {
+            const standardForm = new StandardForm(deIndentWML(`
+                <Asset uuid=(test)>
+                    <Situation key=(bright) uuid=(SITUATION#bright)>
+                        <Mark key=(illumination) uuid=(MARK#illumination)>
+                            <Match>bright</Match>
+                        </Mark>
+                    </Situation>
+                    <Room key=(testRoom) uuid=(ROOM#testRoom)>
+                        <Situation key=(bright) uuid=(SITUATION#bright)>
+                            <DisplayName>Situation Room</DisplayName>
+                            <Description>A room rendered from a Situation facet</Description>
+                            <Summary>Situation summary</Summary>
+                        </Situation>
+                    </Room>
+                </Asset>
+            `))
+
+            const metaData: PerceptionRoomMetaData = {
+                componentUUID: 'ROOM#testRoom',
+                displayMode: 'full'
+            }
+
+            render(
+                <Provider store={store}>
+                    <RoomDescription parsedWML={standardForm} metaData={metaData} />
+                </Provider>
+            )
+
+            expect(screen.getByText('Situation Room')).toBeDefined()
+            expect(screen.getByText('A room rendered from a Situation facet')).toBeDefined()
+        })
+
+        it('uses defaults when room has examples but no render or situation prose', () => {
+            const standardForm = new StandardForm(deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room key=(testRoom) uuid=(ROOM#testRoom)>
+                        <Example key=(example1) uuid=(EXAMPLE#example1)>
+                            <DisplayName>Legacy Example Name</DisplayName>
+                            <Description>Legacy Example Description</Description>
+                            <Summary>Legacy Example Summary</Summary>
+                        </Example>
+                    </Room>
+                </Asset>
+            `))
+
+            const metaData: PerceptionRoomMetaData = {
+                componentUUID: 'ROOM#testRoom',
+                displayMode: 'full'
+            }
+
+            render(
+                <Provider store={store}>
+                    <RoomDescription parsedWML={standardForm} metaData={metaData} />
+                </Provider>
+            )
+
+            expect(screen.getByText('Untitled')).toBeDefined()
+            expect(screen.getByText('No description')).toBeDefined()
+            expect(screen.queryByText('Legacy Example Name')).toBeNull()
+            expect(screen.queryByText('Legacy Example Description')).toBeNull()
+        })
     })
 
     /**
