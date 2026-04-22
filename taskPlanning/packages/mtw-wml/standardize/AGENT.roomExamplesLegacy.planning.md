@@ -1,6 +1,6 @@
 # StandardRoom.examples legacy investigation plan
 
-Status: in progress. Next step: remaining checklist items under **Recommended order** (Feature/Knowledge defer tracking, full verification, deprecation gate proposal for `StandardRoom.examples`).
+Status: in progress. Next step: **Recommended order** -- propose deprecation gate and removal checklist for `StandardRoom.examples` (verification run documented under **Verification run (2026-04-22)**; lambda `esbuild` / client `vite build` gates pass while package-wide `tsc` remains baseline debt). Feature/Knowledge defer sites are recorded in **Out-of-scope Feature/Knowledge defer registry** and [`AGENT.featureKnowledgeExamples.planning.md`](AGENT.featureKnowledgeExamples.planning.md).
 
 ## Purpose and scope
 
@@ -38,7 +38,7 @@ In-scope deferred: Room transitional compatibility paths that we intentionally s
 - `TBD(room-runtime)` - owner for in-scope Room runtime replace slices.
 - `TBD(room-transitional)` - owner for in-scope deferred Room transitional compatibility slices (still use for any future deferred Room paths).
 - **`componentRender.ts` (Room transitional):** plan maintainer (self). Render-channel readiness gate for removing the Room `ExamplesData` / first-example fallback **accepted 2026-04-22** (rooms no longer depend on that fallback for correctness in real flows).
-- `TBD(feature-knowledge-followup)` - owner for out-of-scope Feature/Knowledge migration follow-up planning.
+- `TBD(feature-knowledge-followup)` - owner for out-of-scope Feature/Knowledge migration follow-up planning; task plan stub: [`AGENT.featureKnowledgeExamples.planning.md`](AGENT.featureKnowledgeExamples.planning.md).
 
 ## Progress
 
@@ -47,7 +47,7 @@ In-scope deferred: Room transitional compatibility paths that we intentionally s
 | 1 | Build complete call-site inventory | Complete | Baseline frozen on 2026-04-22 (runtime/test/docs buckets below) |
 | 2 | Classify each site (hard dependency vs transitional fallback vs test/docs) | Complete | Runtime scope split into in-scope Room paths, out-of-scope Feature/Knowledge defer paths; Room transitional defer for `componentRender.ts` completed (`replace`) |
 | 3 | Refactor highest-confidence runtime sites | Complete | All in-scope Room runtime `replace` slices shipped, including [`lambda/ephemera/internalCache/componentRender.ts`](../../../../lambda/ephemera/internalCache/componentRender.ts) |
-| 4 | Update tests/docs and re-baseline inventory | In progress | `componentRender` slice updated tests and [`componentRender.AGENT.md`](../../../../lambda/ephemera/internalCache/componentRender.AGENT.md); full repo re-baseline optional |
+| 4 | Update tests/docs and re-baseline inventory | In progress | `componentRender` slice updated tests and [`componentRender.AGENT.md`](../../../../lambda/ephemera/internalCache/componentRender.AGENT.md); verification run 2026-04-22 (unit tests, bundle gates, inventory; package-wide `tsc` debt noted) |
 | 5 | Decide deprecation gate for `StandardRoom.examples` | Pending | Gate should be explicit and test-backed |
 
 ## Recommended order
@@ -88,14 +88,14 @@ Use `[ ]` for pending and `[X]` for completed work. Mark each nested line `[X]` 
     - [X] Render-channel readiness gate satisfied (2026-04-22): Room prose is correct without relying on `ExamplesData` / first-example fallback in real flows; transitional fallback may be removed in code when ready.
     - [X] Follow-up owner and trigger: **Owner** - plan maintainer (self). **Trigger** - land `replace` in a focused PR after updating [`lambda/ephemera/internalCache/componentRender.ts`](../../../../lambda/ephemera/internalCache/componentRender.ts) and [`lambda/ephemera/internalCache/componentRender.test.ts`](../../../../lambda/ephemera/internalCache/componentRender.test.ts); re-run inventory for this file.
     - [X] Land follow-up `replace` slice (removed Room-path `ExamplesData` fallback; dropped `examples: []` from Room `DeferredCache` default stub row).
-- [ ] Track out-of-scope Feature/Knowledge defer sites explicitly (no code changes in this task plan).
-  - [ ] `charcoal-client/src/components/Message/ComponentDescription.tsx` remains intentionally unchanged for Room-only migration.
-  - [ ] Feature/Knowledge path in `charcoal-client/src/components/Workbench/foundations/LayeredContext/layeredContextUtils.ts` remains intentionally unchanged.
-  - [ ] Record follow-up owner/task link for Feature/Knowledge examples migration planning (`TBD(feature-knowledge-followup)`).
-- [ ] Run full verification for touched packages/lambdas.
-  - [ ] Unit tests for modified areas.
-  - [ ] Typecheck/build checks for modified areas.
-  - [ ] Re-run inventory and compare against baseline.
+- [X] Track out-of-scope Feature/Knowledge defer sites explicitly (no code changes in this task plan).
+  - [X] `charcoal-client/src/components/Message/ComponentDescription.tsx` remains intentionally unchanged for Room-only migration.
+  - [X] Feature/Knowledge path in `charcoal-client/src/components/Workbench/foundations/LayeredContext/layeredContextUtils.ts` remains intentionally unchanged.
+  - [X] Record follow-up owner/task link for Feature/Knowledge examples migration planning (`TBD(feature-knowledge-followup)`): [`AGENT.featureKnowledgeExamples.planning.md`](AGENT.featureKnowledgeExamples.planning.md).
+- [X] Run full verification for touched packages/lambdas.
+  - [X] Unit tests for modified areas.
+  - [X] Typecheck/build checks for modified areas (`lambda/ephemera` `tsc --noEmit` clean; `lambda/assets` and `lambda/ephemera` `npm run build` esbuild clean; `charcoal-client` `vite build` clean; package-wide `tsc` still not baseline-clean -- see **Verification run (2026-04-22)**).
+  - [X] Re-run inventory and compare against baseline.
 - [ ] Propose deprecation gate and removal checklist for `StandardRoom.examples`.
 
 ## Investigation matrix (living)
@@ -107,17 +107,26 @@ Track each call site and its disposition here before code changes.
 | assets | `lambda/assets/componentExamples/exampleEnrichment.ts` | helper now reads `component.examples` only for `Feature`/`Knowledge`; `Room` removed from parent-id lookup | Runtime dependency (Room path removed) | `TBD(room-runtime)` | Completed (`replace`) |
 | ephemera | `lambda/ephemera/internalCache/componentRender.ts` | Room prose from `renderCache` only; Feature/Knowledge still use `examples` via `_examples` | Runtime dependency (Room examples path removed) | Plan maintainer (self) | Completed (`replace`) |
 | ephemera | `lambda/ephemera/dataSource/perception/orchestrate.ts` | full-room placeholder WML uses Room `render` via `situationRoomRenderPayloadFromCacheRenderedContent` (no `StandardRoom.examples` / synthetic Example) | Runtime dependency (Room examples placeholder path removed) | `TBD(room-runtime)` | Completed (`replace`) |
-| charcoal-client | `charcoal-client/src/components/Message/RoomDescription.tsx` | room prose fallback reads `component.examples.payload[0]` when render/situation are absent | Runtime dependency | `TBD(room-runtime)` | Recommended (`replace`) |
+| charcoal-client | `charcoal-client/src/components/Message/RoomDescription.tsx` | room prose from `render` then first situation facet, then defaults; no `component.examples` read | Runtime dependency (Room path removed) | `TBD(room-runtime)` | Completed (`replace`) |
 | charcoal-client | `charcoal-client/src/slices/personalAssets/index.ts` | `requestLLMGeneration` writes Room generation output to default Situation facet payload; no Room Example read/write path | Runtime dependency (Room path removed) | `TBD(room-runtime)` | Completed (`replace`) |
-| charcoal-client | `charcoal-client/src/components/Workbench/foundations/LayeredContext/layeredContextUtils.ts` | layered tab utilities read `parent.examples` for Room/Feature/Knowledge sibling detection | Runtime mixed dependency | Room path: `TBD(room-runtime)`; Feature/Knowledge path: `TBD(feature-knowledge-followup)` | Completed (`replace` Room path), deferred (`Feature/Knowledge` path) |
-| charcoal-client | `charcoal-client/src/components/Message/ComponentDescription.tsx` | feature/knowledge description reads first example from parent reference list | Runtime non-room dependency | `TBD(feature-knowledge-followup)` | Recommended (`defer`) |
+| charcoal-client | `charcoal-client/src/components/Workbench/foundations/LayeredContext/layeredContextUtils.ts` | layered tab utilities: Room uses Situation/Guidance; Feature/Knowledge still use `parent.examples` for sibling detection | Runtime mixed dependency | Room path: `TBD(room-runtime)`; Feature/Knowledge path: [`AGENT.featureKnowledgeExamples.planning.md`](AGENT.featureKnowledgeExamples.planning.md) (`TBD(feature-knowledge-followup)`) | Completed (`replace` Room path), deferred (`Feature/Knowledge` path) |
+| charcoal-client | `charcoal-client/src/components/Message/ComponentDescription.tsx` | feature/knowledge description reads first example from parent reference list | Runtime non-room dependency | [`AGENT.featureKnowledgeExamples.planning.md`](AGENT.featureKnowledgeExamples.planning.md) (`TBD(feature-knowledge-followup)`) | Deferred (`defer`; unchanged this initiative) |
 
 ### Scope labeling for deferred sites
 
 - In-scope Room transitional for `componentRender.ts` is **complete** (`replace` landed; see slice update below).
-- Out of scope (Feature/Knowledge for this task plan):
-  - `charcoal-client/src/components/Message/ComponentDescription.tsx` (owner placeholder: `TBD(feature-knowledge-followup)`)
-  - Feature/Knowledge path in `charcoal-client/src/components/Workbench/foundations/LayeredContext/layeredContextUtils.ts` (owner placeholder: `TBD(feature-knowledge-followup)`)
+- Out of scope (Feature/Knowledge for this task plan); follow-up planning: [`AGENT.featureKnowledgeExamples.planning.md`](AGENT.featureKnowledgeExamples.planning.md) (`TBD(feature-knowledge-followup)`):
+  - `charcoal-client/src/components/Message/ComponentDescription.tsx`
+  - Feature/Knowledge path in `charcoal-client/src/components/Workbench/foundations/LayeredContext/layeredContextUtils.ts`
+
+### Out-of-scope Feature/Knowledge defer registry
+
+Explicit register of call sites intentionally left on `examples` for Feature/Knowledge while this plan retires Room-only paths. No further code changes here until the follow-up plan is executed.
+
+| Call site | Role today | Why unchanged in this initiative | Follow-up owner |
+| --- | --- | --- | --- |
+| [`charcoal-client/src/components/Message/ComponentDescription.tsx`](../../../../charcoal-client/src/components/Message/ComponentDescription.tsx) | Feature/Knowledge display text from first linked `StandardExample` via `component.examples.payload[0]` | Not on the Room path; widens scope to non-Room examples migration | `TBD(feature-knowledge-followup)` -- [`AGENT.featureKnowledgeExamples.planning.md`](AGENT.featureKnowledgeExamples.planning.md) |
+| [`charcoal-client/src/components/Workbench/foundations/LayeredContext/layeredContextUtils.ts`](../../../../charcoal-client/src/components/Workbench/foundations/LayeredContext/layeredContextUtils.ts) | Example membership and reference-list logic for `StandardFeature` / `StandardKnowledge` only (`parent.examples.payload`); Room path uses Situation/Guidance only | Preserved in the Room slice; Feature/Knowledge migration belongs to follow-up work | `TBD(feature-knowledge-followup)` -- [`AGENT.featureKnowledgeExamples.planning.md`](AGENT.featureKnowledgeExamples.planning.md) |
 
 ## Baseline inventory snapshot (2026-04-22)
 
@@ -169,6 +178,34 @@ Known documentation/planning mentions to revisit after runtime migration:
 - `rg "\.examples\b" /Users/anthonylower-basch/Code/maketheworld`
 - `rg "\b(room|component|parent)\.examples\b" /Users/anthonylower-basch/Code/maketheworld`
 - `rg "tag:\s*'Room'[\s\S]{0,180}examples|StandardRoomData[\s\S]{0,220}examples" /Users/anthonylower-basch/Code/maketheworld --multiline`
+
+### Verification run (2026-04-22)
+
+Commands run from repo root paths below.
+
+**Unit tests (PASS)**
+
+- `lambda/assets`: `cd lambda/assets && npx jest componentExamples/exampleEnrichment.test.ts --watchAll=false` (13 tests).
+- `lambda/ephemera`: `cd lambda/ephemera && npx jest dataSource/perception/ internalCache/componentRender.test.ts --watchAll=false` (28 tests across 5 suites).
+- `charcoal-client`: `cd charcoal-client && npm run test:single -- src/components/Message/RoomDescription.test.tsx src/components/Workbench/foundations/LayeredContext/layeredContextUtils.test.ts src/slices/personalAssets/requestLLMGeneration.test.ts` (3 files, all pass; `RoomDescription` file reports skipped cases as before).
+
+**Typecheck / build**
+
+**Why `esbuild` can pass when `tsc` does not:** `esbuild` bundles TypeScript by stripping types; it does not run the TypeScript checker. A clean `npm run build` on the lambdas therefore proves entry-point graph and syntax are bundleable, not that `tsc` would be clean. For **ship confidence** on this initiative, lambda `esbuild` + targeted tests are the meaningful gates; full-package `tsc` is still worth fixing over time as a separate hygiene track.
+
+- `lambda/ephemera`: `cd lambda/ephemera && npx tsc --noEmit` **PASS**.
+- `lambda/ephemera`: `cd lambda/ephemera && npm run build` (esbuild bundle of `app.ts`) **PASS**.
+- `lambda/assets`: `cd lambda/assets && npx tsc --noEmit` **FAIL** at repo head with errors in `characters/`, `dataSource/caching/`, `library/`, etc., not in `componentExamples/exampleEnrichment.ts`.
+- `lambda/assets`: `cd lambda/assets && npm run build` (esbuild bundle of `app.ts`) **PASS**.
+- `charcoal-client`: `npm run check` (`tsc --noEmit --skipLibCheck`) **FAIL** at repo head with many errors (for example MUI `Theme` / `ThemeProvider` exports, `LibraryCharacter.Name`, and other files unrelated to the Room `examples` migration paths). Official `npm run build` is `tsc && vite build`, so it would fail for the same reason; **`npx vite build` alone** (production bundle without the `tsc` gate) **PASS** at repo head.
+
+Package-wide `tsc` cleanup for `lambda/assets` and `charcoal-client` remains optional follow-up work, not a blocker for recording this verification slice.
+
+**Inventory (compare to baseline intent)**
+
+- `\b(room|component|parent)\.examples\b` in `*.ts` / `*.tsx`: runtime-style hits remain in `lambda/assets/componentExamples/exampleEnrichment.ts` (Feature/Knowledge only), `charcoal-client/.../layeredContextUtils.ts` (Feature/Knowledge branches), `charcoal-client/.../ComponentDescription.tsx`, and `packages/mtw-wml/ts/standardize/components/component.test.ts` (`room.examples` in tests). No `RoomDescription.tsx` or `personalAssets` hits; aligns with completed Room slices.
+- `StandardRoomData` near `examples` in TS: no multiline matches in the same shape as the deprecated orchestrate path (spot-check via search).
+- `tag: 'Room'` within ~180 chars of `examples` in TS: remaining hits are **test** payloads (for example `lambda/assets/componentExamples/exampleAssociatedFilter.test.ts`, `lambda/assets/internalCache/assetData.test.ts`, `lambda/assets/internalCache/componentData.test.ts`), consistent with the baseline **test-only references** bucket.
 
 ### Slice update (2026-04-22): `exampleEnrichment.ts`
 
