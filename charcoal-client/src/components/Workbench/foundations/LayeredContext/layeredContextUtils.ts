@@ -39,6 +39,7 @@ function getReferenceList(
     childTag: LayeredChildTag
 ): StandardReference[] | null {
     if (childTag === 'Example') {
+        if (parent instanceof StandardRoom) return null
         return parent.examples.payload.filter(
             (ref): ref is StandardReference => ref instanceof StandardReference
         )
@@ -120,7 +121,8 @@ export function findReferenceSiblings(
 }
 
 /**
- * Returns true if childId appears in parent's examples or guidance payload (by universalKey).
+ * Returns true if childId appears in parent's guidance payload (Room) or examples payload
+ * (Feature/Knowledge) by universalKey.
  */
 export function isReferenceListChild(
     standardForm: StandardForm,
@@ -132,7 +134,7 @@ export function isReferenceListChild(
     if (!(parent instanceof StandardRoom) && !(parent instanceof StandardFeature) && !(parent instanceof StandardKnowledge)) {
         return false
     }
-    const inExamples = parent.examples.payload.some(
+    const inExamples = (parent instanceof StandardFeature || parent instanceof StandardKnowledge) && parent.examples.payload.some(
         (ref) => ref instanceof StandardReference && ref.universalKey === childId
     )
     if (inExamples) return true
@@ -179,7 +181,7 @@ export function getLayeredContext(
     }
     if (child instanceof StandardMark) return null
 
-    const inExamples = parent.examples.payload.some(
+    const inExamples = (parent instanceof StandardFeature || parent instanceof StandardKnowledge) && parent.examples.payload.some(
         (ref) => ref instanceof StandardReference && ref.universalKey === currentId
     )
     const inGuidance = parent instanceof StandardRoom && parent.guidance.payload.some(
