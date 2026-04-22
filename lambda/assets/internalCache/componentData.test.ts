@@ -4,6 +4,7 @@ import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 const assetDBMock = jest.mocked(assetDB)
 
 import { ComponentData } from './componentData'
+import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
 
@@ -29,9 +30,28 @@ describe('ComponentData cache class', () => {
 
     it('should return the data from the database when found', async () => {
         const ComponentId = 'ROOM#Test'
+        const roomBase = new StandardRoom(deIndentWML(`
+            <Room uuid=(Test) key=(Room1)>
+                <ShortName>Lobby</ShortName>
+                <Situation key=(base) uuid=(SITUATION#base) />
+            </Room>
+        `))
+        const roomExtra = new StandardRoom(deIndentWML(`
+            <Room uuid=(Test) key=(Room1)>
+                <Situation key=(baseTwo) uuid=(SITUATION#baseTwo) />
+            </Room>
+        `))
         const mockData = [
-            { tag: 'Room', key: 'Room1', AssetId: `ROOM#Test`, DataCategory: 'ASSET#Test', shortName: 'Lobby', exits: [], examples: [{ tag: 'Example', key: 'base' }] },
-            { tag: 'Room', key: 'Room1', AssetId: `ROOM#Test`, DataCategory: 'ASSET#Extra', exits: [], examples: [{ tag: 'Example', key: 'baseTwo' }] },
+            {
+                ...roomBase.toJSON(),
+                DataCategory: 'ASSET#Test',
+                AssetId: ComponentId,
+            },
+            {
+                ...roomExtra.toJSON(),
+                DataCategory: 'ASSET#Extra',
+                AssetId: ComponentId,
+            },
         ]
         assetDBMock.query.mockResolvedValue(mockData)
         const result = await componentData.get([ComponentId])
@@ -43,13 +63,13 @@ describe('ComponentData cache class', () => {
         ])
         expect(result[0].byAssets.map(({ component }) => (schemaToWML([component.schema])))).toEqual([
             deIndentWML(`
-                <Room key=(Room1)>
+                <Room uuid=(Test) key=(Room1)>
                     <ShortName>Lobby</ShortName>
-                    <Example key=(base) />
+                    <Situation key=(base) />
                 </Room>
             `),
             deIndentWML(`
-                <Room key=(Room1)><Example key=(baseTwo) /></Room>
+                <Room uuid=(Test) key=(Room1)><Situation key=(baseTwo) /></Room>
             `)
         ])
     })

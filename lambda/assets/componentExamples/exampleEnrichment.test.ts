@@ -83,7 +83,7 @@ describe('exampleEnrichment helpers', () => {
         expect(payload.provenance.type).toBe('authored')
     })
 
-    it('should ignore Room examples but keep Feature and Knowledge parentIds in enrichExampleEvent', async () => {
+    it('should not treat Room as Example parent but keep Feature and Knowledge parentIds in enrichExampleEvent', async () => {
         const exampleId = 'EXAMPLE#one' as const
         const eventAssetId = 'ASSET#asset1' as const
 
@@ -93,13 +93,11 @@ describe('exampleEnrichment helpers', () => {
             </Example>
         `))
 
-        const room = new StandardRoom({
-            tag: 'Room',
-            universalKey: 'ROOM#one',
-            examples: [
-                { universalKey: exampleId, key: 'exampleRef', tag: 'Example' } as any,
-            ],
-        } as any)
+        const room = new StandardRoom(deIndentWML(`
+            <Room key=(one) uuid=(ROOM#one)>
+                <Situation uuid=(DEFAULT)><DisplayName>Room prose</DisplayName></Situation>
+            </Room>
+        `))
         const feature = new StandardFeature({
             tag: 'Feature',
             universalKey: 'FEATURE#one',

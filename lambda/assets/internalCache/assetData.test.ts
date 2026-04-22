@@ -9,8 +9,10 @@ jest.mock('@tonylb/mtw-utilities/ts/uuid/index', () => {
 const assetDBMock = jest.mocked(assetDB)
 
 import { AssetData } from './assetData'
+import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
+import { StandardRoomData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/room'
 
 const assetData = new AssetData()
 
@@ -35,10 +37,20 @@ describe('AssetData cache class', () => {
 
     it('should return the data from the database when found', async () => {
         const assetId = 'ASSET#Test'
-        const mockData = [
-            { tag: 'Room', key: 'Room1', AssetId: `ROOM#ABCDEF`, DataCategory: 'ASSET#Test', shortName: 'Lobby', exits: [], examples: ['EXAMPLE#GHIJKL'] },
-            { tag: 'Example', AssetId: 'EXAMPLE#GHIJKL', DataCategory: 'ASSET#Test', context: ['ROOM#ABCDEF'], displayName: 'Plain lobby', description: ['A featureless lobby'], summary: [] }
-        ]
+        const roomRow = new StandardRoom(deIndentWML(`
+            <Room uuid=(ABCDEF) key=(Room1)>
+                <ShortName>Lobby</ShortName>
+                <Situation uuid=(DEFAULT)>
+                    <DisplayName>Plain lobby</DisplayName>
+                    <Description>A featureless lobby</Description>
+                </Situation>
+            </Room>
+        `))
+        const mockData = [{
+            ...roomRow.toJSON() as StandardRoomData,
+            DataCategory: 'ASSET#Test' as const,
+            AssetId: roomRow.universalKey as `ROOM#${string}`
+        }]
         assetDBMock.query.mockResolvedValue(mockData)
         assetDBMock.getItem.mockResolvedValue({ topLevel: ['ROOM#ABCDEF'] })
         const result = await assetData.get([assetId])
@@ -52,10 +64,10 @@ describe('AssetData cache class', () => {
             <Asset uuid=(Test)>
                 <Room uuid=(ABCDEF) key=(Room1)>
                     <ShortName>Lobby</ShortName>
-                    <Example uuid=(GHIJKL)>
+                    <Situation uuid=(DEFAULT)>
                         <DisplayName>Plain lobby</DisplayName>
                         <Description>A featureless lobby</Description>
-                    </Example>
+                    </Situation>
                 </Room>
             </Asset>
         `))
@@ -64,7 +76,7 @@ describe('AssetData cache class', () => {
     it('should return asset with ShortName and Summary from Meta::Asset record', async () => {
         const assetId = 'ASSET#TestWithMetadata'
         const mockComponentData = [
-            { tag: 'Room', key: 'lobby', AssetId: `ROOM#ABC123`, DataCategory: 'ASSET#TestWithMetadata', shortName: 'Main Lobby', exits: [], examples: [] }
+            { tag: 'Room', key: 'lobby', AssetId: `ROOM#ABC123`, DataCategory: 'ASSET#TestWithMetadata', shortName: 'Main Lobby', exits: [] }
         ]
         const mockMetaData = {
             shortName: 'Nakatomi Plaza',
@@ -101,7 +113,7 @@ describe('AssetData cache class', () => {
     it('should return asset without ShortName/Summary when Meta::Asset has no metadata', async () => {
         const assetId = 'ASSET#TestNoMetadata'
         const mockComponentData = [
-            { tag: 'Room', key: 'room1', AssetId: `ROOM#DEF456`, DataCategory: 'ASSET#TestNoMetadata', exits: [], examples: [] }
+            { tag: 'Room', key: 'room1', AssetId: `ROOM#DEF456`, DataCategory: 'ASSET#TestNoMetadata', exits: [] }
         ]
         const mockMetaData = { topLevel: ['ROOM#DEF456'] }  // No shortName or summary
         
