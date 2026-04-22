@@ -25,13 +25,27 @@ This file is task-scoped and temporary. Keep durable behavior docs in package `A
 - Feature and Knowledge still use `examples` references for now.
 - We should not remove `StandardRoom.examples` until all runtime call sites are either migrated or intentionally retained with explicit rationale.
 
+## Scope boundaries after runtime classification
+
+In-scope for this task plan: remove or replace runtime dependencies where `StandardRoom.examples` is still on the active Room path.
+
+Out of scope for this task plan: Feature/Knowledge migrations that continue to rely on `examples` and do not block Room-only deprecation work.
+
+In-scope deferred: Room transitional compatibility paths that we intentionally stage behind a follow-up gate before final removal.
+
+### Owner placeholders for this plan
+
+- `TBD(room-runtime)` - owner for in-scope Room runtime replace slices.
+- `TBD(room-transitional)` - owner for in-scope deferred Room transitional compatibility slices.
+- `TBD(feature-knowledge-followup)` - owner for out-of-scope Feature/Knowledge migration follow-up planning.
+
 ## Progress
 
 | Phase | Goal | Status | Notes |
 | --- | --- | --- | --- |
 | 1 | Build complete call-site inventory | Complete | Baseline frozen on 2026-04-22 (runtime/test/docs buckets below) |
-| 2 | Classify each site (hard dependency vs transitional fallback vs test/docs) | Pending | |
-| 3 | Refactor highest-confidence runtime sites | Pending | Prefer smallest behavior-preserving steps |
+| 2 | Classify each site (hard dependency vs transitional fallback vs test/docs) | Complete | Runtime scope now split into in-scope Room paths, out-of-scope Feature/Knowledge defer paths, and in-scope Room transitional defer |
+| 3 | Refactor highest-confidence runtime sites | Pending | Execute per-runsite slices in the ordered checklist below |
 | 4 | Update tests/docs and re-baseline inventory | Pending | |
 | 5 | Decide deprecation gate for `StandardRoom.examples` | Pending | Gate should be explicit and test-backed |
 
@@ -47,9 +61,36 @@ Use `[ ]` for pending and `[X]` for completed work. Mark each nested line `[X]` 
   - [X] `remove`: no longer needed after situation-facet migration.
   - [X] `replace`: should read from situations/render instead of examples.
   - [X] `defer`: intentionally keep for temporary compatibility.
-- [ ] Refactor runtime sites one by one, smallest surface first.
-  - [ ] Keep behavior stable with targeted tests for each site.
-  - [ ] Update related docs/comments in the same slice.
+- [ ] Refactor in-scope Room runtime sites one slice at a time (smallest surface first).
+  - [ ] `lambda/assets/componentExamples/exampleEnrichment.ts` (`replace`)
+    - [ ] Apply minimal Room-path code change (keep Feature/Knowledge behavior stable).
+    - [ ] Add or update targeted tests for Room-negative and Feature/Knowledge-positive behavior.
+    - [ ] Re-run inventory search and confirm this file leaves the Room examples runtime bucket.
+  - [ ] `charcoal-client/src/components/Message/RoomDescription.tsx` (`replace`)
+    - [ ] Remove `component.examples` Room prose fallback and keep render/situation/default precedence.
+    - [ ] Add or update focused tests for render, situation, and prose-missing default paths.
+    - [ ] Re-run inventory search and confirm this file leaves the Room examples runtime bucket.
+  - [ ] `charcoal-client/src/components/Workbench/foundations/LayeredContext/layeredContextUtils.ts` (Room path `replace`)
+    - [ ] Remove Room participation in Example-membership checks.
+    - [ ] Preserve Feature/Knowledge Example behavior (out-of-scope behavior is not changed in this task plan).
+    - [ ] Add or update tests for Room Situation/Guidance positive paths and Room Example negative path.
+    - [ ] Re-run inventory search and confirm Room dependency delta for this file.
+  - [ ] `charcoal-client/src/slices/personalAssets/index.ts` (`requestLLMGeneration`, `replace`)
+    - [ ] Stop reading `room.examples`; write generated Room prose through designated situation/render target.
+    - [ ] Add or update focused tests for successful writes and missing-target guard behavior.
+    - [ ] Re-run inventory search and confirm this file leaves the Room examples runtime bucket.
+  - [ ] `lambda/ephemera/dataSource/perception/orchestrate.ts` (`replace`)
+    - [ ] Replace Example-based Room placeholder WML with Room `<Render>` placeholder payload.
+    - [ ] Add or update perception tests for generation/error placeholder behavior and unchanged terminal `Render Pertains` behavior.
+    - [ ] Re-run inventory search and confirm this file leaves the Room examples runtime bucket.
+  - [ ] `lambda/ephemera/internalCache/componentRender.ts` (in-scope deferred: short-term `defer`, then `replace`)
+    - [ ] Keep transitional fallback unchanged until render-channel readiness gate is satisfied.
+    - [ ] Define explicit follow-up trigger and owner for removing Room examples default/fallback usage.
+    - [ ] Land follow-up `replace` slice once gate criteria are met.
+- [ ] Track out-of-scope Feature/Knowledge defer sites explicitly (no code changes in this task plan).
+  - [ ] `charcoal-client/src/components/Message/ComponentDescription.tsx` remains intentionally unchanged for Room-only migration.
+  - [ ] Feature/Knowledge path in `charcoal-client/src/components/Workbench/foundations/LayeredContext/layeredContextUtils.ts` remains intentionally unchanged.
+  - [ ] Record follow-up owner/task link for Feature/Knowledge examples migration planning (`TBD(feature-knowledge-followup)`).
 - [ ] Run full verification for touched packages/lambdas.
   - [ ] Unit tests for modified areas.
   - [ ] Typecheck/build checks for modified areas.
@@ -62,13 +103,20 @@ Track each call site and its disposition here before code changes.
 
 | Area | File | Current usage shape | Classification | Action owner | Status |
 | --- | --- | --- | --- | --- | --- |
-| assets | `lambda/assets/componentExamples/exampleEnrichment.ts` | `Room` included in helper that returns `component.examples` for parent-id lookup | Runtime dependency | TBD | Recommended (`replace`) |
-| ephemera | `lambda/ephemera/internalCache/componentRender.ts` | default `StandardRoomData` includes `examples: []` and room fallback paths read cached examples | Runtime transitional | TBD | Recommended (`defer` short-term, then `replace`) |
-| ephemera | `lambda/ephemera/dataSource/perception/orchestrate.ts` | placeholder room WML uses synthetic Example + `room.examples` reference | Runtime transitional | TBD | Recommended (`replace`) |
-| charcoal-client | `charcoal-client/src/components/Message/RoomDescription.tsx` | room prose fallback reads `component.examples.payload[0]` when render/situation are absent | Runtime dependency | TBD | Recommended (`replace`) |
-| charcoal-client | `charcoal-client/src/slices/personalAssets/index.ts` | `requestLLMGeneration` updates first room Example by reading `room.examples.payload[0]` | Runtime dependency | TBD | Recommended (`replace`) |
-| charcoal-client | `charcoal-client/src/components/Workbench/foundations/LayeredContext/layeredContextUtils.ts` | layered tab utilities read `parent.examples` for Room/Feature/Knowledge sibling detection | Runtime mixed dependency | TBD | Recommended (`replace` Room path, `defer` Feature/Knowledge path) |
-| charcoal-client | `charcoal-client/src/components/Message/ComponentDescription.tsx` | feature/knowledge description reads first example from parent reference list | Runtime non-room dependency | TBD | Recommended (`defer`) |
+| assets | `lambda/assets/componentExamples/exampleEnrichment.ts` | `Room` included in helper that returns `component.examples` for parent-id lookup | Runtime dependency | `TBD(room-runtime)` | Recommended (`replace`) |
+| ephemera | `lambda/ephemera/internalCache/componentRender.ts` | default `StandardRoomData` includes `examples: []` and room fallback paths read cached examples | Runtime transitional | `TBD(room-transitional)` | Recommended (`defer` short-term, then `replace`) |
+| ephemera | `lambda/ephemera/dataSource/perception/orchestrate.ts` | placeholder room WML uses synthetic Example + `room.examples` reference | Runtime transitional | `TBD(room-runtime)` | Recommended (`replace`) |
+| charcoal-client | `charcoal-client/src/components/Message/RoomDescription.tsx` | room prose fallback reads `component.examples.payload[0]` when render/situation are absent | Runtime dependency | `TBD(room-runtime)` | Recommended (`replace`) |
+| charcoal-client | `charcoal-client/src/slices/personalAssets/index.ts` | `requestLLMGeneration` updates first room Example by reading `room.examples.payload[0]` | Runtime dependency | `TBD(room-runtime)` | Recommended (`replace`) |
+| charcoal-client | `charcoal-client/src/components/Workbench/foundations/LayeredContext/layeredContextUtils.ts` | layered tab utilities read `parent.examples` for Room/Feature/Knowledge sibling detection | Runtime mixed dependency | Room path: `TBD(room-runtime)`; Feature/Knowledge path: `TBD(feature-knowledge-followup)` | Recommended (`replace` Room path, `defer` Feature/Knowledge path) |
+| charcoal-client | `charcoal-client/src/components/Message/ComponentDescription.tsx` | feature/knowledge description reads first example from parent reference list | Runtime non-room dependency | `TBD(feature-knowledge-followup)` | Recommended (`defer`) |
+
+### Scope labeling for deferred sites
+
+- In-scope deferred (Room transitional): `lambda/ephemera/internalCache/componentRender.ts` (owner placeholder: `TBD(room-transitional)`).
+- Out of scope (Feature/Knowledge for this task plan):
+  - `charcoal-client/src/components/Message/ComponentDescription.tsx` (owner placeholder: `TBD(feature-knowledge-followup)`)
+  - Feature/Knowledge path in `charcoal-client/src/components/Workbench/foundations/LayeredContext/layeredContextUtils.ts` (owner placeholder: `TBD(feature-knowledge-followup)`)
 
 ## Baseline inventory snapshot (2026-04-22)
 
@@ -380,7 +428,8 @@ Prefer narrow searches and keep outputs with the task PR/notes.
 Treat this task as complete when all are true:
 
 - No unclassified runtime `StandardRoom.examples` call sites remain.
-- Every retained site has an explicit compatibility rationale and owner.
+- Every in-scope deferred Room site has an explicit compatibility rationale, owner, and follow-up trigger.
+- Out-of-scope Feature/Knowledge defer sites are explicitly documented with follow-up ownership.
 - Tests cover migrated behavior for each changed runtime path.
 - A concrete deprecation/removal gate for `StandardRoom.examples` is documented.
 
