@@ -15,7 +15,7 @@ import {
     StandardizeConsumerStandardLiteral,
 } from "./fromSchemaPipeline"
 
-export class StandardImagePayload implements ComponentConstructorMethods<StandardImageData> {
+export class StandardImagePayload implements ComponentConstructorMethods<StandardImageData, StandardImageData> {
     _shortName?: StandardLiteral;
     tag = 'Image' as const;
 

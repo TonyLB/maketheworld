@@ -6,7 +6,7 @@ import linkReferenceKeys, { ReferenceFormat, childReferenceFactory } from "./uti
 import { StandardRender } from "../render"
 import { StandardToJSONOptions } from "./baseClasses"
 import { StandardMarkData } from "./dataTypes/mark"
-import { StandardLensData } from "./dataTypes/lens"
+import { StandardLensData, StandardLensInputData } from "./dataTypes/lens"
 import { AssetUUID, ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaMark, isSchemaLens } from "@tonylb/mtw-base/ts/schema/worldState"
 import { deepEqual } from "../../lib/objects"
@@ -28,7 +28,7 @@ import {
 } from "./fromSchemaPipeline"
 import { SchemaDescriptionTag, isSchemaDescription } from "@tonylb/mtw-base/ts/schema/example"
 
-export class StandardMarkPayload implements HasShortName, ComponentConstructorMethods<StandardMarkData> {
+export class StandardMarkPayload implements HasShortName, ComponentConstructorMethods<StandardMarkData, StandardMarkData> {
     _shortName?: StandardLiteral;
     _description?: StandardRender;
     tag = 'Mark' as const
@@ -176,7 +176,7 @@ export class StandardMark extends componentClassFactory(StandardMarkPayload, 'St
 
 export default StandardMark
 
-export class StandardLensPayload implements HasShortName, ComponentConstructorMethods<StandardLensData> {
+export class StandardLensPayload implements HasShortName, ComponentConstructorMethods<StandardLensInputData, StandardLensData> {
     _shortName?: StandardLiteral;
     _description?: StandardRender;
     _marks: LensMarkFacetList;
@@ -193,7 +193,7 @@ export class StandardLensPayload implements HasShortName, ComponentConstructorMe
         }
     }
 
-    fromJSON(props: StandardLensData) {
+    fromJSON(props: StandardLensInputData) {
         const { shortName, description, marks } = props
         this._shortName = shortName ? new StandardLiteral(shortName, { tag: 'ShortName' }) : undefined
         this._description = description ? new StandardRender(description) : undefined
@@ -392,7 +392,7 @@ export class StandardLens extends componentClassFactory(StandardLensPayload, 'St
     get marks() { return this._payload.marks }
 
     constructor(
-        props: string | StandardLensData | GenericTreeNode<SchemaTag> | StandardLens,
+        props: string | StandardLensInputData | GenericTreeNode<SchemaTag> | StandardLens,
         options?: StandardFormConstructionOptions,
     ) {
         super(props, options)

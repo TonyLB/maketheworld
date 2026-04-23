@@ -636,7 +636,10 @@ export class StandardExitFacet extends facetClassFactory(
     ExitFacetPayload,
     createExitFacetPayload,
     'ExitFacet',
-    exitReferenceFactory
+    exitReferenceFactory,
+    {
+        missingPayloadDefault: () => undefined
+    }
 ) {
     constructor(
         props: StandardFacetData<ExitPayloadType> | StandardExitFacet | GenericTree<SchemaTag> | string

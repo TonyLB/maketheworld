@@ -236,7 +236,11 @@ function createSituationRoomFacetPayload(arg: any): SituationRoomFacetPayload {
 export class StandardSituationRoomFacet extends facetClassFactory(
     SituationRoomFacetPayload,
     createSituationRoomFacetPayload,
-    "SituationRoomFacet"
+    "SituationRoomFacet",
+    undefined,
+    {
+        missingPayloadDefault: () => ({})
+    }
 ) {
     constructor(
         props:

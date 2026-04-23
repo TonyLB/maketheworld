@@ -3,7 +3,7 @@ import { componentClassFactory, ComponentConstructorMethods } from "./component"
 import { StandardComponent, StandardComponentReferenceKey, NestedSchemaOptions } from "./baseClasses"
 import { StandardToJSONOptions } from "./baseClasses"
 import { ReferenceFormat } from "./utils/references"
-import { StandardSituationData } from "./dataTypes/situation"
+import { StandardSituationData, StandardSituationInputData } from "./dataTypes/situation"
 import { ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaSituation } from "@tonylb/mtw-base/ts/schema/components"
 import { deepEqual } from "../../lib/objects"
@@ -17,7 +17,7 @@ import { HasShortName } from "./abstract"
 import { excludeUndefined } from "../../lib/lists"
 import { processWithConsumers, StandardizeConsumerFacetListMark, StandardizeConsumerInline, StandardizeConsumerStandardLiteral } from "./fromSchemaPipeline"
 
-export class StandardSituationPayload implements HasShortName, ComponentConstructorMethods<StandardSituationData> {
+export class StandardSituationPayload implements HasShortName, ComponentConstructorMethods<StandardSituationInputData, StandardSituationData> {
     _shortName?: StandardLiteral;
     _marks: MarkFacetList;
     tag = 'Situation' as const
@@ -32,7 +32,7 @@ export class StandardSituationPayload implements HasShortName, ComponentConstruc
         }
     }
 
-    fromJSON(props: StandardSituationData) {
+    fromJSON(props: StandardSituationInputData) {
         const { shortName } = props
         this._shortName = shortName ? new StandardLiteral(shortName, { tag: 'ShortName' }) : undefined
         this._marks = new MarkFacetList(props.marks ?? [])
@@ -173,7 +173,7 @@ export class StandardSituation extends componentClassFactory(StandardSituationPa
     get marks() { return this._payload.marks }
 
     constructor(
-        props: string | StandardSituationData | GenericTreeNode<SchemaTag> | StandardSituation,
+        props: string | StandardSituationInputData | GenericTreeNode<SchemaTag> | StandardSituation,
         options?: StandardFormConstructionOptions,
     ) {
         super(props, options)

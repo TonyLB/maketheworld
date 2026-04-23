@@ -5,7 +5,7 @@ import { StandardComponent, StandardComponentReferenceKey, NestedSchemaOptions }
 import linkReferenceKeys, { ReferenceFormat } from "./utils/references"
 import { StandardRender } from "../render"
 import { StandardToJSONOptions } from "./baseClasses"
-import { StandardExampleData, StandardExampleNDJSONData } from "./dataTypes/example"
+import { StandardExampleData, StandardExampleInputData, StandardExampleNDJSONData, StandardExampleNDJSONInputData } from "./dataTypes/example"
 import { AssetUUID, ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaExample, isSchemaDisplayName, isSchemaSummary, isSchemaDescription, SchemaDisplayNameTag, SchemaSummaryTag, SchemaDescriptionTag } from "@tonylb/mtw-base/ts/schema/example"
 import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
@@ -22,7 +22,7 @@ import type { StandardFormConstructionOptions, StandardizeFromSchemaContext } fr
 import { HasShortName } from "./abstract"
 import { processWithConsumers, StandardizeConsumerFacetListMark, StandardizeConsumerInline, StandardizeConsumerRender, StandardizeConsumerStandardLiteral } from "./fromSchemaPipeline"
 
-export class StandardExamplePayload implements HasShortName, ComponentConstructorMethods<StandardExampleNDJSONData | StandardExampleData> {
+export class StandardExamplePayload implements HasShortName, ComponentConstructorMethods<StandardExampleNDJSONInputData | StandardExampleInputData, StandardExampleData> {
     _displayName?: StandardLiteral;
     _summary?: StandardRender;
     _description?: StandardRender;
@@ -43,7 +43,7 @@ export class StandardExamplePayload implements HasShortName, ComponentConstructo
         }
     }
 
-    fromJSON(props: StandardExampleData | StandardExampleNDJSONData) {
+    fromJSON(props: StandardExampleInputData | StandardExampleNDJSONInputData) {
         const { displayName, summary, description, marks, shortName } = props
         this._displayName = displayName ? new StandardLiteral(displayName, { tag: 'DisplayName' }) : undefined
         this._summary = summary ? new StandardRender(summary) : undefined
@@ -272,7 +272,7 @@ export class StandardExample extends componentClassFactory(StandardExamplePayloa
     get marks() { return this._payload.marks }
 
     constructor(
-        props: string | StandardExampleData | StandardExampleNDJSONData | GenericTreeNode<SchemaTag> | StandardExample,
+        props: string | StandardExampleInputData | StandardExampleNDJSONInputData | GenericTreeNode<SchemaTag> | StandardExample,
         options?: StandardFormConstructionOptions,
     ) {
         super(props, options)

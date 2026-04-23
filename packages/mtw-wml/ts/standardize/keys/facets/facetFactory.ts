@@ -13,7 +13,7 @@ import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-bas
 import { ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload } from "@tonylb/mtw-base/ts/schema/edit";
 import { ComponentTag } from "../../components/dataTypes/abstract";
-import { StandardFacetData, isStandardFacetData } from "./dataTypes/facet";
+import { StandardFacetData, isStandardFacetEnvelopeWithOptionalPayload } from "./dataTypes/facet";
 import { ReferenceFormat } from "../../components/utils/references";
 import { StandardReference, LookupMappings } from "../reference";
 import { StandardKey } from "../key";
@@ -24,7 +24,10 @@ export const facetClassFactory = <D, PayloadClass extends { renderFacet: (...arg
     PayloadClass: new (...args: any[]) => PayloadClass,
     createPayload: (arg: any) => PayloadClass,
     label: string,
-    referenceFactory?: (schema: GenericTree<SchemaTag>) => StandardReference
+    referenceFactory?: (schema: GenericTree<SchemaTag>) => StandardReference,
+    options?: {
+        missingPayloadDefault?: () => any
+    }
 ) => {
     return class GeneratedFacetClass {
         _reference: StandardReference;
@@ -41,10 +44,13 @@ export const facetClassFactory = <D, PayloadClass extends { renderFacet: (...arg
             }
 
             // Handle StandardFacetData (JSON format)
-            if (isStandardFacetData(arg)) {
+            if (isStandardFacetEnvelopeWithOptionalPayload(arg)) {
                 this._reference = new StandardReference(arg.reference);
+                const payloadValue = Object.prototype.hasOwnProperty.call(arg, 'payload')
+                    ? arg.payload
+                    : options?.missingPayloadDefault?.();
                 // Use createPayload to dispatch to correct extended class
-                this._payloadInstance = createPayload(arg.payload);
+                this._payloadInstance = createPayload(payloadValue);
                 return;
             }
 

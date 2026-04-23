@@ -3,6 +3,7 @@ import {
     isMarkFacetPayload,
     isExitPayload,
     isStandardFacetData,
+    isStandardFacetEnvelopeWithOptionalPayload,
     PositionPayload,
     MarkFacetPayload,
     ExitPayload,
@@ -231,5 +232,32 @@ describe('isStandardFacetData', () => {
 
     it('should reject number', () => {
         expect(isStandardFacetData(42)).toBe(false)
+    })
+})
+
+describe('isStandardFacetEnvelopeWithOptionalPayload', () => {
+    const validReference: StandardReferenceData = {
+        key: 'room1',
+        tag: 'Room',
+        ref: 1
+    }
+
+    it('should accept reference with payload', () => {
+        expect(isStandardFacetEnvelopeWithOptionalPayload({
+            reference: validReference,
+            payload: { x: 10, y: 20 }
+        })).toBe(true)
+    })
+
+    it('should accept reference without payload', () => {
+        expect(isStandardFacetEnvelopeWithOptionalPayload({
+            reference: validReference
+        })).toBe(true)
+    })
+
+    it('should reject missing reference', () => {
+        expect(isStandardFacetEnvelopeWithOptionalPayload({
+            payload: 'test'
+        })).toBe(false)
     })
 })

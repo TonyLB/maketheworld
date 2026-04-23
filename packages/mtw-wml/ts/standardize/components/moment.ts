@@ -21,7 +21,7 @@ import {
     StandardizeConsumerStandardLiteral,
 } from "./fromSchemaPipeline"
 
-export class StandardMomentPayload implements ComponentConstructorMethods<StandardMomentData> {
+export class StandardMomentPayload implements ComponentConstructorMethods<StandardMomentData, StandardMomentData> {
     _shortName?: StandardLiteral;
     _messages: ReferenceList;
     tag = 'Moment' as const

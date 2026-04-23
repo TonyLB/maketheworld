@@ -3,7 +3,7 @@ import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-bas
 import { HasShortName } from "./abstract"
 import { AssureReferencesResult, componentClassFactory, ComponentConstructorMethods } from "./component"
 import { NestedSchemaOptions, StandardComponent, StandardComponentReferenceKey, StandardDiffOptions } from "./baseClasses"
-import { StandardRoomData, StandardRoomObjectData } from "./dataTypes/room"
+import { StandardRoomData, StandardRoomInputData, StandardRoomObjectData } from "./dataTypes/room"
 import { ReferenceFormat } from "./utils/references"
 import { StandardToJSONOptions } from "./baseClasses"
 import { ReferenceList } from "./reference"
@@ -102,7 +102,7 @@ const renderPayloadToSchemaNode = (p: SituationRoomFacetPayload): GenericTreeNod
     children: p.toProseTripletChildren(),
 })
 
-export class StandardRoomPayload implements HasShortName, ComponentConstructorMethods<StandardRoomData> {
+export class StandardRoomPayload implements HasShortName, ComponentConstructorMethods<StandardRoomInputData, StandardRoomData> {
     _shortName?: StandardLiteral;
     _exits: ExitFacetList;
     _situations: SituationRoomFacetList;
@@ -147,7 +147,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
             : new ReferenceList([])
     }
 
-    fromJSON(props: StandardRoomData) {
+    fromJSON(props: StandardRoomInputData) {
         const { shortName } = props
         this._shortName = shortName ? new StandardLiteral(shortName, { tag: 'ShortName' }) : undefined
         this._exits = new ExitFacetList(props.exits ?? [])
@@ -615,7 +615,7 @@ export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'St
     get render() { return this._payload.render }
 
     constructor(
-        props: string | StandardRoomData | GenericTreeNode<SchemaTag> | StandardRoom,
+        props: string | StandardRoomInputData | GenericTreeNode<SchemaTag> | StandardRoom,
         options?: StandardFormConstructionOptions,
     ) {
         super(props, options)

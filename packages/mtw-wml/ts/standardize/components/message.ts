@@ -30,7 +30,7 @@ import {
     StandardizeConsumerStandardLiteral,
 } from "./fromSchemaPipeline"
 
-export class StandardMessagePayload implements ComponentConstructorMethods<StandardMessageData> {
+export class StandardMessagePayload implements ComponentConstructorMethods<StandardMessageData, StandardMessageData> {
     _shortName?: StandardLiteral;
     _description?: StandardRender;
     _rooms: ReferenceList;

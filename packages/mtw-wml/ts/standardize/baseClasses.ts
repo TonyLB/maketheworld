@@ -1,5 +1,5 @@
 import { GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree";
-import { isStandardComponentData, StandardComponentNonEditData } from "./components/dataTypes";
+import { isStandardComponentData, isStandardComponentInputData, StandardComponentInputNonEditData, StandardComponentNonEditData } from "./components/dataTypes";
 import { StandardBaseData } from "./components/dataTypes/abstract";
 
 import { checkAll, checkTypes } from "./components/dataTypes/typeguards";
@@ -22,6 +22,7 @@ export type StandardFormSemanticMode =
     | 'aggregation'              // Mode 3: Aggregation of content from multiple assets
 
 export type StandardComponentData = StandardComponentNonEditData
+export type StandardComponentInputData = StandardComponentInputNonEditData
 export type StandardComponentTag = StandardComponentData["tag"]
 
 export const isStandardDataFactory = <T extends StandardComponentData>(tag: StandardComponentTag) => (value: StandardComponentData): value is T => (value.tag === tag)
@@ -74,7 +75,7 @@ export type SerializeNDJSONMixin = {
     fileName?: string;
 }
 
-export type StandardNDJSON = (({ tag: 'Asset', topLevel?: ReferenceListData } & StandardBaseData) | (StandardComponentData & SerializeNDJSONMixin))[]
+export type StandardNDJSON = (({ tag: 'Asset', topLevel?: ReferenceListData } & StandardBaseData) | (StandardComponentInputData & SerializeNDJSONMixin))[]
 
 export const isStandardNDJSONLine = (line: any): line is StandardNDJSON[number] => {
     if (!(typeof line === 'object')) {
@@ -96,7 +97,7 @@ export const isStandardNDJSONLine = (line: any): line is StandardNDJSON[number] 
         )
     }
     return checkAll(
-        isStandardComponentData(line),
+        isStandardComponentInputData(line),
         checkTypes(
             line,
             {},

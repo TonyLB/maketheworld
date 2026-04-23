@@ -15,7 +15,11 @@ describe('facetClassFactory', () => {
     const TestFacetClass = facetClassFactory(
         PositionFacetPayload,
         createPositionFacetPayload,
-        'TestFacet'
+        'TestFacet',
+        undefined,
+        {
+            missingPayloadDefault: () => ({ x: 0, y: 0 })
+        }
     );
     
     const validReference: StandardReferenceData = {
@@ -71,6 +75,20 @@ describe('facetClassFactory', () => {
                 match: { x: 5, y: 10 },
                 payload: positionPayload
             });
+        });
+
+        it('should inject default payload when payload key is missing', () => {
+            const facet = new TestFacetClass({
+                reference: validReference
+            } as any);
+            expect(facet.payload.toJSON()).toEqual({ x: 0, y: 0 });
+        });
+
+        it('should keep strict behavior when payload key exists but is malformed', () => {
+            expect(() => new TestFacetClass({
+                reference: validReference,
+                payload: null
+            } as any)).toThrow('Invalid argument in StandardPositionPayloadBase factory');
         });
 
         it('should clone from another facet instance', () => {
@@ -243,6 +261,19 @@ describe('facetClassFactory', () => {
             expect(merged?.payload.toJSON()).toEqual(positionPayload);
             expect(merged?.ref).toBe(0); // Reference with ref=0 after cancellation
         });
+
+        it('should merge default-injected missing-payload facet with explicit equivalent payload', () => {
+            const fromMissingPayload = new TestFacetClass({
+                reference: validReference
+            } as any);
+            const explicitPayloadFacet = new TestFacetClass({
+                reference: validReference,
+                payload: { x: 0, y: 0 }
+            });
+            const merged = fromMissingPayload.merge(explicitPayloadFacet);
+            expect(merged).toBeDefined();
+            expect(merged?.payload.toJSON()).toEqual({ x: 0, y: 0 });
+        });
     });
 
     describe('diff', () => {
@@ -255,6 +286,23 @@ describe('facetClassFactory', () => {
             const facet2 = new TestFacetClass(facetData);
             const diff = facet1.diff(facet2);
             expect(diff).toBeUndefined();
+        });
+
+        it('should diff default-injected missing-payload facet against changed payload', () => {
+            const fromMissingPayload = new TestFacetClass({
+                reference: validReference
+            } as any);
+            const changedPayloadFacet = new TestFacetClass({
+                reference: validReference,
+                payload: { x: 99, y: 101 }
+            });
+            const diff = fromMissingPayload.diff(changedPayloadFacet);
+            expect(diff).toBeDefined();
+            expect(diff?.payload.toJSON()).toEqual({
+                tag: 'Replace',
+                match: { x: 0, y: 0 },
+                payload: { x: 99, y: 101 }
+            });
         });
     });
 
@@ -272,6 +320,18 @@ describe('facetClassFactory', () => {
             expect(inverted.payload.toJSON()).toEqual({
                 tag: 'Remove',
                 match: positionPayload
+            });
+        });
+
+        it('should invert default-injected missing-payload facet', () => {
+            const fromMissingPayload = new TestFacetClass({
+                reference: validReference
+            } as any);
+            const inverted = fromMissingPayload.invert();
+            expect(inverted.ref).toBe(-1);
+            expect(inverted.payload.toJSON()).toEqual({
+                tag: 'Remove',
+                match: { x: 0, y: 0 }
             });
         });
 

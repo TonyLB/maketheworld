@@ -14,8 +14,8 @@ import StandardRoom from "./components/room"
 import StandardMark, { StandardLens } from "./components/worldState"
 import { isSchemaCharacter, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaTreeNode } from "../schema"
-import { StandardComponentData } from "./baseClasses"
-import { isStandardCharacterData, isStandardExampleData, isStandardFeatureData, isStandardGuidanceData, isStandardImageData, isStandardKnowledgeData, isStandardMapData, isStandardMessageData, isStandardMomentData, isStandardRoomData, isStandardMarkData, isStandardLensData, isStandardSituationData } from "./components/dataTypes"
+import { StandardComponentInputData } from "./baseClasses"
+import { isStandardCharacterData, isStandardExampleInputData, isStandardFeatureData, isStandardGuidanceInputData, isStandardImageData, isStandardKnowledgeData, isStandardMapInputData, isStandardMessageData, isStandardMomentData, isStandardRoomInputData, isStandardMarkData, isStandardLensInputData, isStandardSituationInputData } from "./components/dataTypes"
 import { isSchemaExample } from "@tonylb/mtw-base/ts/schema/example"
 import { isSchemaFeature, isSchemaGuidance, isSchemaKnowledge, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaRoom, isSchemaSituation } from "@tonylb/mtw-base/ts/schema/components"
 import { isSchemaImage } from "@tonylb/mtw-base/ts/schema/image"
@@ -37,7 +37,7 @@ export type StandardComponentFactoryOptions = {
 }
 
 export const standardComponentFactory = (
-    arg: StandardComponentData | GenericTreeNode<SchemaTag>,
+    arg: StandardComponentInputData | GenericTreeNode<SchemaTag>,
     options?: StandardComponentFactoryOptions
 ): StandardComponentFactoryResult => {
     const fromSchemaContext = resolveStandardizeFromSchemaContext(
@@ -53,16 +53,16 @@ export const standardComponentFactory = (
         if (isStandardCharacterData(arg)) {
             return { component: new StandardCharacter(arg), remainder: [] }
         }
-        if (isStandardExampleData(arg)) {
+        if (isStandardExampleInputData(arg)) {
             return { component: new StandardExample(arg), remainder: [] }
         }
-        if (isStandardGuidanceData(arg)) {
+        if (isStandardGuidanceInputData(arg)) {
             return { component: new StandardGuidance(arg), remainder: [] }
         }
-        if (isStandardSituationData(arg)) {
+        if (isStandardSituationInputData(arg)) {
             return { component: new StandardSituation(arg), remainder: [] }
         }
-        if (isStandardRoomData(arg)) {
+        if (isStandardRoomInputData(arg)) {
             return { component: new StandardRoom(arg), remainder: [] }
         }
         if (isStandardFeatureData(arg)) {
@@ -71,7 +71,7 @@ export const standardComponentFactory = (
         if (isStandardKnowledgeData(arg)) {
             return { component: new StandardKnowledge(arg), remainder: [] }
         }
-        if (isStandardMapData(arg)) {
+        if (isStandardMapInputData(arg)) {
             return { component: new StandardMap(arg), remainder: [] }
         }
         if (isStandardMessageData(arg)) {
@@ -86,7 +86,7 @@ export const standardComponentFactory = (
         if (isStandardMarkData(arg)) {
             return { component: new StandardMark(arg), remainder: [] }
         }
-        if (isStandardLensData(arg)) {
+        if (isStandardLensInputData(arg)) {
             return { component: new StandardLens(arg), remainder: [] }
         }
         return { component: undefined, remainder: [] }

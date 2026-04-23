@@ -503,7 +503,11 @@ export function createPositionFacetPayload(arg: any): PositionFacetPayload {
 export class StandardPositionFacet extends facetClassFactory(
     PositionFacetPayload,
     createPositionFacetPayload,
-    'PositionFacet'
+    'PositionFacet',
+    undefined,
+    {
+        missingPayloadDefault: () => ({ x: 0, y: 0 })
+    }
 ) {
     constructor(
         props: StandardFacetData<PositionPayloadType> | StandardPositionFacet | GenericTree<SchemaTag> | string

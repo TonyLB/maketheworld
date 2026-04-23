@@ -5,7 +5,7 @@ import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";
 import { StandardReference, LookupMappings } from "./reference";
 import { StandardKey } from "./key";
 import { ReferenceFormat } from "../components/utils/references";
-import { StandardFacetData } from "./facets/dataTypes/facet";
+import { StandardFacetData, StandardFacetEnvelopeWithOptionalPayload } from "./facets/dataTypes/facet";
 
 /**
  * FacetListData: Serialization format for FacetList collections
@@ -19,6 +19,14 @@ import { StandardFacetData } from "./facets/dataTypes/facet";
  */
 export type FacetListData<TPayload> = 
     StandardEditableData<StandardFacetData<TPayload>>[]
+
+/**
+ * FacetListInputData: Input format for FacetList collections during ingestion.
+ * Accepts legacy facet envelopes that may omit payload so constructors can inject defaults.
+ * This should be used only at parse/validation boundaries.
+ */
+export type FacetListInputData<TPayload> =
+    StandardEditableData<StandardFacetData<TPayload> | StandardFacetEnvelopeWithOptionalPayload<TPayload>>[]
 
 /**
  * StandardFacet: Interface for Facet relational objects
