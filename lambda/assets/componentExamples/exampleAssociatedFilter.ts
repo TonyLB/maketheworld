@@ -3,7 +3,7 @@
  * Used so mtw.assets.componentExamples only processes Component Updated / Component Removed
  * for components that can affect Example lifecycle (Example itself or parents that reference Examples).
  *
- * Room prose is not tracked via this Example-lifecycle filter (see Gate D).
+ * Room prose is not tracked via this Example-lifecycle filter (Situation / render instead).
  */
 import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 

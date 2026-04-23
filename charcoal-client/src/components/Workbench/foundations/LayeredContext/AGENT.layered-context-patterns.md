@@ -2,7 +2,7 @@
 
 **Context**: Features are edited in isolation with breadcrumbs; they have independent meaning. Examples are different—each is meaningful on its own but best viewed in the context of its sibling Examples (like Photoshop layers). We need a **component pattern** that (a) demonstrates that layered/sibling context and (b) allows easy navigation between sibling components.
 
-**Scope**: Reusable pattern for "layer-like" sibling groups (primary use case: Examples under **Feature** and **Knowledge**; **Room** may still expose an Examples list in the UI for **legacy** assets, but **new** room prose should use **Situation** facets and ephemera **`render`**, not `component.examples`). See [`packages/mtw-wml/ts/AGENT.md`](../../../../../../packages/mtw-wml/ts/AGENT.md). The pattern should be generic enough to apply elsewhere (e.g. Lenses, Marks) if we add similar sibling-in-context editing.
+**Scope**: Reusable pattern for "layer-like" sibling groups (primary use case: Examples under **Feature** and **Knowledge**). **Room** layered tabs use **Situation** facets and **Guidance** (`layeredContextUtils`), not **`Room.examples`** / Example membership. **New** room prose uses **Situation** facets and ephemera **`render`** (see [`packages/mtw-wml/ts/AGENT.md`](../../../../../../packages/mtw-wml/ts/AGENT.md)). The pattern should be generic enough to apply elsewhere (e.g. Lenses, Marks) if we add similar sibling-in-context editing.
 
 ---
 

@@ -24,7 +24,7 @@ The component now uses **Standard format exclusively**. Room data is extracted f
 
 ### **Standard Format Data**
 - **Room Data**: `StandardRoom` from `StandardForm.byUniversalId[metaData.componentUUID]`
-- **Room name / summary / description (prose)**: Runtime precedence in **`RoomDescription.tsx`** (via **`SituationRoomFacetPayload`**): (1) **`StandardRoom.render`** (ephemera **`<Render>`**, same JSON shape as **`SituationRoomFacetPayloadType`**), (2) first **Situation** facet payload on the room, (3) **legacy** fallback: first **`StandardExample`** referenced by **`StandardRoom.examples`**. **Authoring:** Prefer **Situation** facets (and wire **`render`**); do **not** add new Room prose via **`examples`** / nested **Example** under Room (deprecated; see [`packages/mtw-wml/ts/AGENT.md`](../../../../packages/mtw-wml/ts/AGENT.md)).
+- **Room name / summary / description (prose)**: Runtime precedence in **`RoomDescription.tsx`**: (1) **`StandardRoom.render`** (ephemera **`<Render>`**, same JSON shape as **`SituationRoomFacetPayloadType`**), (2) first **Situation** facet payload on the room, (3) safe defaults (**`Untitled`** / empty summary and description) when prose is missing. **`StandardRoom`** JSON has **no** **`examples`** field; this component **does not** read **`component.examples`** for Room display. **Authoring:** Prefer **Situation** facets and wire **`render`** (see [`packages/mtw-wml/ts/AGENT.md`](../../../../packages/mtw-wml/ts/AGENT.md)).
 - **Exits**: `StandardExitFacet[]` from `StandardRoom.exits.items`
 - **Characters**: `StandardCharacter[]` resolved from `StandardRoom.characters.payload` references
 
@@ -75,7 +75,7 @@ Inbound **`PerceptionMessage.wmlContent`** is parsed with **`standardizeMode: 'e
 
 ### **WML Structure for Rooms**
 
-**Room-render / perception** WML from ephemera typically uses **`<Render>`** for resolved header prose (see **`packages/mtw-wml`** **`standardize/AGENT.md`**). Asset authoring should prefer **Situation** facets; **Example** under Room remains supported as **legacy** for older assets only.
+**Room-render / perception** WML from ephemera typically uses **`<Render>`** for resolved header prose (see **`packages/mtw-wml`** **`standardize/AGENT.md`**). Asset authoring should prefer **Situation** facets; raw WML may still contain legacy **`<Example>`** under **`<Room>`** in old imports---the standardized model does not treat that as Room-owned **`examples`** (see **`packages/mtw-wml/ts/AGENT.md`**).
 
 ```xml
 <Asset uuid=(render)>

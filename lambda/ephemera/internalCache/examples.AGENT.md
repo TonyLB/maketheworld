@@ -2,7 +2,7 @@
 
 ## Overview
 
-The `ExamplesData` class is a cache handler that manages **example descriptions** for components (rooms, features, knowledge). Examples represent different ways a component can be rendered based on varying circumstances, though the state-matching system is still in development.
+The `ExamplesData` class is a cache handler that loads **`EXAMPLE#`** rows from ephemera for **Feature** and **Knowledge** component ids (**`EphemeraFeatureId`** / **`EphemeraKnowledgeId`** only in **[`examples.ts`](./examples.ts)**). **Room** prose is **not** loaded through this cache (Room uses **`renderCache`** / **`ComponentRender`** Room branch). Examples represent different ways a component can be rendered based on varying circumstances, though the state-matching system is still in development.
 
 > **Note**: This handler follows the standard `internalCache` patterns documented in [`AGENT.md`](./AGENT.md). See that file for common patterns like DeferredCache usage, dual storage, and core methods.
 
@@ -22,27 +22,26 @@ When encountering **light snowfall** (a state not explicitly covered), the LLM c
 
 ### **Basic Example Storage**
 Currently, examples are stored as `StandardExample` components without state conditions:
-- **Parent Components**: Examples are referenced by `StandardRoom`, `StandardFeature`, or `StandardKnowledge`
+- **Parent components (blueprint):** **`Feature`** and **`Knowledge`** reference Examples via **`examples`** lists. **`StandardRoom`** JSON does **not** include **`examples`**; Room prose uses **Situation** facets and wire **`render`** (see [`packages/mtw-wml/ts/AGENT.md`](../../../../packages/mtw-wml/ts/AGENT.md)).
 - **Content**: Rich text descriptions using `RenderTree` format
 - **Storage**: Stored in `ephemeraDB` with `DataCategory: 'EXAMPLE#'`
 
-### **Naive Rendering**
-`ComponentRender` currently uses a simple approach:
-- Renders the **first example** it can find for a component
-- No state matching or intelligent selection
-- Sufficient for testing integration, but limited
+### **Naive rendering vs Room**
+- **Room:** **`ComponentRender`** builds header prose from **`renderCache`** only for Room ids; it does **not** call **`ExamplesData`** for Room (see **[`componentRender.AGENT.md`](./componentRender.AGENT.md)**).
+- **Feature / Knowledge / Map (current):** **`ComponentRender`** may still use a **first-example** pattern via **`ExamplesData.get`** where applicable.
+- No full state matching or intelligent selection yet; sufficient for integration, limited for narrative variety.
 
 ## Cache Key Format
 
 Examples are cached using the component ID: `{EphemeraId}`
-- **`EphemeraId`**: The component that owns the examples (Room, Feature, or Knowledge ID)
+- **`EphemeraId`**: **Feature** or **Knowledge** ephemera id (**not** **`ROOM#`** for this handler's key type)
 
 ## Data Structure
 
 Each cached item contains:
 ```typescript
 {
-    componentId: ExampleComponentId;  // Room, Feature, or Knowledge ID
+    componentId: ExampleComponentId;  // Feature or Knowledge ephemera id
     examples: StandardExample[];      // Array of example descriptions
 }
 ```
@@ -54,8 +53,8 @@ Retrieves examples for multiple components:
 
 ```typescript
 const examples = await examplesData.get([
-    'ROOM#marketSquare-uuid',
-    'FEATURE#fountain-uuid'
+    'FEATURE#fountain-uuid',
+    'KNOWLEDGE#topic-uuid'
 ])
 // Returns: Record<ExampleComponentId, ExamplesReturn[]>
 ```
@@ -64,7 +63,7 @@ const examples = await examplesData.get([
 Manually sets example data for a component:
 
 ```typescript
-examplesData.set('ROOM#marketSquare-uuid', [
+examplesData.set('FEATURE#fountain-uuid', [
     { assetId: 'ASSET#market-uuid', examples: [sunnyExample, rainyExample] }
 ])
 ```
@@ -73,14 +72,14 @@ examplesData.set('ROOM#marketSquare-uuid', [
 Removes examples for a specific component:
 
 ```typescript
-examplesData.invalidate('ROOM#marketSquare-uuid')
+examplesData.invalidate('FEATURE#fountain-uuid')
 ```
 
 ### **`isOverridden(EphemeraId)`**
 Checks if examples have been manually set (bypassing cache):
 
 ```typescript
-const overridden = examplesData.isOverridden('ROOM#marketSquare-uuid')
+const overridden = examplesData.isOverridden('FEATURE#fountain-uuid')
 ```
 
 ## DynamoDB Integration
@@ -100,7 +99,7 @@ Examples are stored in `ephemeraDB` with this structure:
 ### **Query Pattern**
 ```typescript
 const examples = await ephemeraDB.query({
-    Key: { EphemeraId: 'ROOM#marketSquare-uuid' },
+    Key: { EphemeraId: 'FEATURE#fountain-uuid' },
     KeyConditionExpression: 'begins_with(DataCategory, :dcPrefix)',
     ExpressionAttributeValues: { ':dcPrefix': 'EXAMPLE#' },
     ProjectionFields: ['DataCategory', 'name', 'description', 'summary']
@@ -110,13 +109,12 @@ const examples = await ephemeraDB.query({
 ## Integration Points
 
 ### **ComponentRender System**
-- `ComponentRender` calls `ExamplesData.get()` to retrieve examples.
-- Currently renders the first available example.
+- **`ComponentRender`** calls **`ExamplesData.get()`** for types that use the naive first-example path (**Feature** / **Knowledge** / etc., not **Room** prose---see **[`componentRender.AGENT.md`](./componentRender.AGENT.md)**).
 - Future: Will implement state-based example selection.
 
 ### **WML StandardExample System**
 - Uses `StandardExample` for example creation and validation.
-- Integrates with `StandardRoom`, `StandardFeature`, `StandardKnowledge`.
+- Integrates with **`StandardFeature`** and **`StandardKnowledge`** via reference lists; **`StandardRoom`** does not serialize **`examples`**.
 - Supports rich text content via `RenderTree`.
 
 ### **EphemeraDB**
@@ -203,19 +201,19 @@ const description = await llm.generateFromWeightedExamples(weightedExamples, sta
 
 ### **Current Usage**
 ```typescript
-// Get examples for a component
-const examples = await examplesData.get(['ROOM#marketSquare-uuid'])
-const marketExamples = examples['ROOM#marketSquare-uuid']
+// Get examples for Feature / Knowledge ids (not ROOM# for this cache type)
+const examples = await examplesData.get(['FEATURE#fountain-uuid'])
+const fountainExamples = examples['FEATURE#fountain-uuid']
 
-// ComponentRender uses first example
-const firstExample = marketExamples[0]?.examples[0]
+// ComponentRender uses first example where applicable (not for Room prose)
+const firstExample = fountainExamples[0]?.examples[0]
 ```
 
 ### **Future Usage (Planned)**
 ```typescript
 // State-based example selection
 const state = { weather: 'rain', time: 'night', season: 'autumn' }
-const examples = await examplesData.getForState('ROOM#marketSquare-uuid', state)
+const examples = await examplesData.getForState('FEATURE#fountain-uuid', state)
 
 // LLM extrapolation from nearby examples
 const description = await llm.generateFromExamples(examples, state)

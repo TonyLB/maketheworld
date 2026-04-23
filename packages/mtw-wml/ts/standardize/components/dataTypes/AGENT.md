@@ -108,7 +108,7 @@ Serialization format for `StandardReference` - standalone reference format. Can 
 Serialization format for Example components. Contains `name`, `summary`, and `description` as `RenderTree` arrays for storage and transmission. Optional `shortName` (string or editable) is the *Example's own* label, used for UI (tabs, lists). **Name vs ShortName**: `name` is the name of the *item being exemplified* (Room/Feature/Knowledge); `shortName` is the label of the *Example itself*. Use `shortName` for the Example's tab/list label; do **not** use `name` as the Example's label.
 
 #### **StandardRoomData** (`room.ts`)
-Serialization format for Room components. Contains `shortName`, `exits`, `features`, **Situation** facets (`situations`), optional ephemera **`render`**, and other reference structures. The **`examples`** field remains for migration and legacy assets but is **deprecated** for Room display prose; prefer **Situation** facets (asset) and **`render`** (ephemera wire). See [`../../AGENT.md`](../../AGENT.md) and [`../AGENT.implementation.md`](../AGENT.implementation.md) (**StandardRoom**).
+Serialization format for Room components. Contains `shortName`, `exits`, **Situation** facets (`situations`), optional **`lens`**, **`features`**, **`guidance`**, **`characters`**, optional ephemera **`render`** and **`objects`**. **No** **`examples`** property; Room prose lives on **Situation** / **`render`**, not an **`examples`** list. See [`../../AGENT.md`](../../AGENT.md) and [`../AGENT.implementation.md`](../AGENT.implementation.md) (**StandardRoom**).
 
 #### **StandardFeatureData** (`feature.ts`)
 Serialization format for Feature components. Contains `examples` array referencing `StandardExample` components for display content.

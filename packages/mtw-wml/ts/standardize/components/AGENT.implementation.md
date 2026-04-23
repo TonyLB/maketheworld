@@ -96,12 +96,13 @@ Common combinations: A Room typically references and hosts its Features. A Room 
 - **Content Properties**: `name`, `description` (both `StandardRender`)
 
 ### **StandardRoom** 🟢
-- **Purpose**: Represents rooms with name, description, exits, features, and characters
-- **Content Properties**: `name`, `description` (both `StandardRender`)
-- **Reference Properties**: `features`, **`examples`** (deprecated for Room display prose; prefer **Situation** facets in asset WML and **`render`** on ephemera wire), `characters` (all `ReferenceList` where applicable)
-- **Room prose (preferred)**: Author **Situation** facets; resolved wire prose on **`StandardRoom.render`**. See [`../../AGENT.md`](../../AGENT.md) (**Room** bullets) and [`../AGENT.md`](../AGENT.md) (**Room prose migration**).
+- **Purpose**: Represents rooms with exits, situation facets, lens, features, guidance, characters, and optional ephemera **`render`** / **`objects`**
+- **Content Properties**: `shortName` (`StandardLiteral`); exits as **`ExitFacetList`**; **`situations`** as **`SituationRoomFacetList`**; optional ephemera **`render`** (`SituationRoomFacetPayload`-shaped JSON)
+- **Reference Properties**: **`lens`** (`SingleReference`), **`features`**, **`guidance`**, **`characters`** (`ReferenceList`). **No** serialized **`examples`** field on **`StandardRoomData`**. Room prose is **Situation** / **`render`**, not an **`examples`** list like Feature/Knowledge.
+- **Inline Example (`ref={0}`)**: **`fromSchema`** ends with a consumer that records **only** **`ref={0}`** **`<Example>`** schema nodes into **`_inlineRefs`** (for **`referencedKeys`** / subset cascade). Those refs are **not** emitted as **`examples:`** in **`toJSON()`**. Example nodes that are not consumed by the pipeline (including non-inline shapes) contribute to the **parsing remainder** and typically cause **`fromSchema`** to **fail** once unconsumed children remain.
+- **Room prose (preferred)**: Author **Situation** facets; resolved wire prose on **`StandardRoom.render`**. See [`../../AGENT.md`](../../AGENT.md) (**Room** bullets) and [`../AGENT.md`](../AGENT.md) (**Room prose**).
 - **Ephemera wire**: Optional **`objects`** (`{ uuid: string; shortName: string }[]`) from **`<Object uuid=(...)><ShortName>...</ShortName></Object>`** children. **`uuid`** values are canonical **`OBJECT#...`** in memory (WML may use a bare key; see **`standardize/AGENT.md`**). The **`Object`** consumer is registered only when **`standardizeMode === 'ephemeraWire'`** on **`StandardizeFromSchemaContext`**; in **`asset`** mode those tags are **unconsumed** and **`fromSchema`** throws. See **`standardize/AGENT.md`** (**Payload vocabulary vs semantic mode**).
-- **fromSchema**: Uses the process-and-remainder pipeline. Accepted child tags: ShortName, Exit, Lens, Feature, Example, Guidance, Character, Position (no-op), Grant, DisplayName (no-ops for backward compatibility), plus **`Object`** when **`ephemeraWire`**. See [fromSchema: process-and-remainder pipeline](#fromschema-process-and-remainder-pipeline) below.
+- **fromSchema**: Uses the process-and-remainder pipeline. Consumers include ShortName, Exit, Lens, Feature, Situation (facet list), Guidance, Character, Position (no-op), Grant, DisplayName (no-ops for backward compatibility), plus **`Object`** and **`Render`** when **`ephemeraWire`**, then the inline Example ref consumer above. See [fromSchema: process-and-remainder pipeline](#fromschema-process-and-remainder-pipeline) below.
 
 ### **StandardFeature** 🟢
 - **Purpose**: Represents features with a short-name and example references
@@ -236,7 +237,7 @@ The `assureReferences` method is the single point where `ref={0}` references are
 #### Purpose
 
 - **Single source of `ref={0}`**: This is the ONLY place where `ref={0}` references should be introduced (though they can be deserialized from WML format)
-- **Component-specific dispatch**: Each component type handles its own bucket structure (e.g., Room dispatches to features/examples/characters based on component tag)
+- **Component-specific dispatch**: Each component type handles its own bucket structure (e.g., Room dispatches to lens, features, guidance, and characters by tag)
 - **Tree structure assurance**: Ensures that components with implicit or explicit parentage appear in their parent's reference lists when building the tree structure for serialization
 - **Used during schema generation**: Called on-demand when `nestedSchema` is generating the hierarchical tree structure from the flat component data
 
@@ -259,7 +260,7 @@ The `assureReferences` method is the single point where `ref={0}` references are
 #### Component-Specific Dispatch
 
 Each component type implements its own dispatch logic (bucket tags); all other tags go to `inlineRemainder` (hosted children):
-- **StandardRoom**: Buckets Lens, Feature, Example, Guidance, Character (e.g. Mark → inlineRemainder, rendered as hosted)
+- **StandardRoom**: Buckets Lens, Feature, Guidance, Character (`Example` is **not** a reference-list bucket on Room; inline **`ref={0}`** Examples are tracked separately for schema and subset; see **StandardRoom** section above)
 - **StandardFeature**: Bucket Example
 - **StandardKnowledge**: Bucket Example
 - **StandardMoment**: Bucket Message
@@ -368,7 +369,7 @@ Before adding a new component type, you should understand:
 - **Component Architecture Pattern**: Components use a payload/class separation pattern (see "Component Architecture" section above)
 - **Data Types**: Components have data types defined in `dataTypes/` for serialization
 - **Factory Pattern**: Components are created via `standardComponentFactory()` in `componentFactory.ts`
-- **Reference System**: Components can reference other components via `ReferenceList` (see `StandardRoom` for examples)
+- **Reference System**: Components can reference other components via `ReferenceList` (see **`StandardRoom`** and **`StandardFeature`** sections above for patterns)
 - **Schema Integration**: Components must integrate with the WML schema parsing system
 
 ### Step-by-Step Checklist
@@ -681,7 +682,7 @@ export const isStandardComponent = (value: any): value is StandardComponent => {
 
 #### Components with References
 
-**Example**: `StandardRoom` (has `features`, `examples`, `characters` reference lists; Room **`examples`** is deprecated for display prose; prefer Situation + `render`; see **StandardRoom** at top of this file)
+**Example**: `StandardRoom` (multiple **`ReferenceList`** buckets: `features`, `guidance`, `characters`, plus **`lens`**, **`situations`**, and optional **`render`**; no persisted **`examples`** list; see **StandardRoom** at top of this file)
 
 **Pattern**:
 - Multiple `ReferenceList` properties for different child types

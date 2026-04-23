@@ -30,7 +30,7 @@ WML uses XML-like syntax with custom tags and attributes:
 </Asset>
 ```
 
-**Legacy illustration:** The `<Example>` under `<Room>` above shows how nested components parse in WML. For **new** Room display prose, prefer **Situation** facets on the Room (and ephemera **`<Render>`** / `StandardRoom.render`), not Room `examples` or nested Examples. See the **Room** bullets under **Core Concepts** below.
+**Legacy illustration:** The `<Example>` under `<Room>` above is **legacy-shaped WML** (older authoring). **Current** Room display prose uses **Situation** facets (asset WML) and **`StandardRoom.render`** / **`<Render>`** on ephemera wire; do not treat a Room-owned **`examples`** reference list or nested Example as the supported prose path. See the **Room** bullets under **Core Concepts** below.
 
 ### Core Concepts
 
@@ -106,7 +106,9 @@ For detailed information about all component types and their APIs, see [`standar
 
 **Room display prose (preferred)**: Author **Situation** facets on the Room for blueprint display name, summary, and description. On ephemera wire, resolved header prose is carried on **`StandardRoom.render`** (`<Render>`), the same JSON shape as **`SituationRoomFacetPayloadType`**. See [`standardize/AGENT.md`](./standardize/AGENT.md) (**Payload vocabulary vs semantic mode**).
 
-**Room `examples` / nested `<Example>` (legacy)**: `StandardRoom.examples` and `<Example>` children under `<Room>` remain in the schema for migration and tooling, but are **deprecated** for Room display prose. Do not use them as the primary authoring path for new work. Room retirement work: [`taskPlanning` / Room examples plan](../../../taskPlanning/packages/mtw-wml/standardize/AGENT.roomExamplesLegacy.planning.md). Feature and Knowledge Examples are unchanged; follow-up for those: [`taskPlanning` / Feature-Knowledge examples plan](../../../taskPlanning/packages/mtw-wml/standardize/AGENT.featureKnowledgeExamples.planning.md).
+**Room vs nested `<Example>` (legacy WML):** **`StandardRoomData`** / **`StandardRoom`** JSON **does not** include an **`examples`** field. Room prose belongs on **Situation** facets (blueprint) and **`render`** (wire). **`Feature`** and **`Knowledge`** still own display content via their **`examples`** reference lists; that pattern is unchanged. Raw WML may still contain **`<Example>`** under **`<Room>`** in old assets; the standardized Room model does not persist those as Room **`examples`**. **`ref={0}`** Example nodes may still appear in schema for merge/subset plumbing and are tracked internally for **`referencedKeys`** only, not as serialized Room **`examples`**. Other unconsumed tags under Room surface as **standardization errors** (non-empty remainder). Authoring guidance: [`standardize/AGENT.md`](./standardize/AGENT.md) (**Room prose**), [`standardize/components/AGENT.implementation.md`](./standardize/components/AGENT.implementation.md) (**StandardRoom**). Optional **`rg`** checks when editing tests: [`AGENT.testing.mtw-wml-typescript.md`](../AGENT.testing.mtw-wml-typescript.md) (**Optional regression searches**). Feature/Knowledge Examples initiative (separate scope): [`taskPlanning` / Feature-Knowledge examples plan](../../../taskPlanning/packages/mtw-wml/standardize/AGENT.featureKnowledgeExamples.planning.md).
+
+**Imported / third-party asset packs:** If you merge WML authored elsewhere, validate that Room display prose does not depend on serialized Room **`examples`** or nested Example ownership. Re-run targeted searches (see **`AGENT.testing.mtw-wml-typescript.md`**) if you suspect legacy shapes.
 
 #### **Keys and UUIDs**: Any component *can* have a key or UUID (or both) and *must* have one or the other. The
 key and UUID specify the component as itself, even when it appears in multiple places. The two serve different
