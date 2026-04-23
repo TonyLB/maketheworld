@@ -21,7 +21,6 @@ export type StandardRoomData = {
     situations?: FacetListData<SituationRoomFacetPayloadType>;
     lens?: ReferenceListData;
     features?: ReferenceListData;
-    examples?: ReferenceListData;
     guidance?: ReferenceListData;
     characters?: ReferenceListData;
     /** Ephemera wire: runtime objects (OBJECT# + ShortName); same JSON shape as ephemera Meta::Room.objects. */
@@ -66,7 +65,6 @@ export const isStandardRoomData = (arg: any): arg is StandardRoomData => {
             situations: 'facetList',
             lens: 'referenceList',
             features: 'referenceList',
-            examples: 'referenceList',
             guidance: 'referenceList',
             characters: 'referenceList'
         }),

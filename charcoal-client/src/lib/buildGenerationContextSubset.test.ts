@@ -241,7 +241,6 @@ describe('buildGenerationContextSubset', () => {
                         <Instructions>Mood is spooky, play up shadows.</Instructions>
                         <Mark uuid=(mark1)><Match>Bright</Match></Mark>
                     </Guidance>
-                    <Example uuid=(ex1) key=(base)><Description>Default</Description></Example>
                 </Room>
             </Asset>
         `)

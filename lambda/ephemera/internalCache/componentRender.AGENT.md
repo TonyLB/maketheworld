@@ -75,7 +75,7 @@ componentRender.set('CHARACTER#player-uuid', 'ROOM#marketSquare-uuid', renderedF
 - **Metadata Assembly**: Combines room data from all accessible assets
 - **Exit Processing**: Merges exit facets across assets via **`ExitFacetList`**
 - **Character Lists**: Includes characters currently in the room (resolved to **`StandardCharacterData`** children)
-- **Prose for perception**: Prefer **`renderCache`** (Dynamo) **`renderedContent`** converted to **`SituationRoomFacetPayloadType`**; if none, fall back to **`ExamplesData`** first example and map via **`standardExampleToRenderPayload`**. Non-empty payload is stored on **`StandardRoomData.render`** (serializes as **`<Render>`** for ephemera wire). The room path does **not** synthesize separate Example / Situation wire children for that prose.
+- **Prose for perception**: **`renderCache`** (Dynamo) **`renderedContent`** only, converted to **`SituationRoomFacetPayloadType`** via **`situationRoomRenderPayloadFromCacheRenderedContent`**. When there is no cache record (or the payload is empty after mapping), Room output has **no** `<Render>` for prose. The room path does **not** call **`ExamplesData`** for prose and does **not** synthesize separate Example / Situation wire children for that prose.
 - **Short Name**: Merges short names from multiple assets
 
 #### **Feature Rendering**
@@ -106,7 +106,7 @@ ComponentRender discovers accessible assets through:
 - **Asset Filtering**: Only includes assets where component appears
 
 ### **Example Integration (rooms vs other types)**
-- **Rooms**: Render cache first, then first example only when cache is empty (see **`Room Rendering`** above and **`componentRender.ts`** **`_getPromiseFactory`**).
+- **Rooms**: **`renderCache`** only for prose (see **`Room Rendering`** and **`componentRender.ts`** **`_getPromiseFactory`** Room branch).
 - **Features / knowledge / maps (current)**: Still use a **naive first-example** pattern where applicable:
 ```typescript
 const exampleMap = await this._examples([EphemeraId])
@@ -121,8 +121,8 @@ const naiveFirstExample = exampleMap[EphemeraId]?.[0]?.examples?.[0]
 - See [`componentAssetMeta.AGENT.md`](./componentAssetMeta.AGENT.md) for details
 
 ### **Examples System**
-- Calls `examples.get()` to retrieve example descriptions
-- **Rooms** pair **`renderCache`** with example fallback; other component types may still use first example
+- Calls `examples.get()` to retrieve example descriptions for **Feature** / **Knowledge** (and similar paths), not for **Room** prose assembly.
+- **Rooms** do not use **`examples.get()`** in **`ComponentRenderData`** for display prose.
 - Future: Will implement state-based example selection
 - See [`examples.AGENT.md`](./examples.AGENT.md) for details
 
@@ -249,7 +249,7 @@ const publicDescription = await componentRender.get(
 
 ## Development Notes
 
-- **Current Limitation**: Rooms use render cache + example fallback; other types may still use naive first-example; no state matching
+- **Current Limitation**: Rooms use **`renderCache`** only for prose (no example fallback); other types may still use naive first-example; no state matching
 - **Legacy Code**: Conditional rendering system to be deprecated
 - **Caching**: Local-only, persistent caching planned
 - **Performance**: Expensive rendering operations need optimization

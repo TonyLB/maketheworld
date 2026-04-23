@@ -22,6 +22,11 @@ const jsonHelperMock = (assets: StandardForm[]): jest.Mocked<InstanceType<typeof
 
 const testResult = async (...args: Parameters<typeof recursiveFetchImports>) => (schemaToWML([(await recursiveFetchImports(...args)).schema]))
 
+//
+// Prefer <Situation uuid=(DEFAULT)> for room prose (Gate D). Exception: "should properly stub out features"
+// — provisional until SituationFacet prose raises Link references for nested import traversal (same as index.test.ts).
+//
+
 describe('recursiveFetchImports', () => {
 
     beforeEach(() => {
@@ -34,9 +39,9 @@ describe('recursiveFetchImports', () => {
             new StandardForm(`
                 <Asset uuid=(testFinal)>
                     <Room uuid=(testNonImport)>
-                        <Example uuid=(base)>
+                        <Situation uuid=(DEFAULT)>
                             <Description>DescriptionOne</Description>
-                        </Example>
+                        </Situation>
                         <Exit to=(testNonImportStub)>test exit</Exit>
                     </Room>
                     <Room uuid=(testNonImportStub)>
@@ -55,18 +60,18 @@ describe('recursiveFetchImports', () => {
             new StandardForm(`
                 <Asset uuid=(testFinal)>
                     <Room uuid=(testNonImport) key=(testNonImport)>
-                        <Example uuid=(testNonImportBase)>
+                        <Situation uuid=(DEFAULT)>
                             <Description>DescriptionOne</Description>
-                        </Example>
+                        </Situation>
                         <Exit to=(ROOM#testNonImportStub)>test exit</Exit>
                     </Room>
                     <Room uuid=(testNonImportStub)>
                         <ShortName>StubOne</ShortName>
                     </Room>
                     <Room uuid=(testImportOne) from=(ASSET#testImportAssetOne)>
-                        <Example uuid=(testImportOneBase)>
+                        <Situation uuid=(DEFAULT)>
                             <Description>Two</Description>
-                        </Example>
+                        </Situation>
                         <Exit to=(ROOM#testImportStubOne)>test exit one</Exit>
                     </Room>
                     <Room uuid=(testImportStubOne) from=(ASSET#testImportAssetOne) />
@@ -79,9 +84,10 @@ describe('recursiveFetchImports', () => {
                     <ShortName>StubOne</ShortName>
                 </Room>
                 <Room uuid=(testNonImport) key=(testNonImport) origin=(ASSET#testFinal)>
-                    <Example uuid=(testNonImportBase) origin=(ASSET#testFinal)>
+                    <Situation uuid=(DEFAULT) origin=(ASSET#testFinal) ref={0} />
+                    <Situation uuid=(DEFAULT)>
                         <Description>DescriptionOne</Description>
-                    </Example>
+                    </Situation>
                     <Exit to=(ROOM#testNonImportStub)>test exit</Exit>
                 </Room>
             </Asset>
@@ -93,11 +99,11 @@ describe('recursiveFetchImports', () => {
             new StandardForm(`
                 <Asset uuid=(testFinal)>
                     <Room uuid=(testImportOne) key=(testImportOne) from=(ASSET#testImportAsset)>
-                        <Example uuid=(testImportOneBase)>
+                        <Situation uuid=(DEFAULT)>
                             <Description>
                                 Two
                             </Description>
-                        </Example>
+                        </Situation>
                         <Exit to=(ROOM#testImportStubOne)>test exit one</Exit>
                     </Room>
                     <Room uuid=(testImportStubOne) from=(ASSET#testImportAsset) />
@@ -110,18 +116,18 @@ describe('recursiveFetchImports', () => {
             new StandardForm(`
                 <Asset uuid=(testImportAsset)>
                     <Room uuid=(testImportOne)>
-                        <Example uuid=(testImportOneOriginalBase)>
+                        <Situation uuid=(DEFAULT)>
                             <Description>One</Description>
-                        </Example>
+                        </Situation>
                     </Room>
                     <Room uuid=(testImportStubOne)>
                         <ShortName>StubTwo</ShortName>
                     </Room>
                     <Room uuid=(testImportFoo)>
                         <ShortName>StubFoo</ShortName>
-                        <Example uuid=(testImportFooBase)>
+                        <Situation uuid=(DEFAULT)>
                             <Description>Foo</Description>
-                        </Example>
+                        </Situation>
                     </Room>
                 </Asset>
             `)])
@@ -139,15 +145,14 @@ describe('recursiveFetchImports', () => {
                         key=(testImportOne)
                         origin=(ASSET#testImportAsset,ASSET#testFinal)
                     >
-                        <Example
-                            uuid=(testImportOneOriginalBase)
-                            origin=(ASSET#testImportAsset)
-                        >
-                            <Description>One</Description>
-                        </Example>
-                        <Example uuid=(testImportOneBase) origin=(ASSET#testFinal)>
-                            <Description>Two</Description>
-                        </Example>
+                        <Situation
+                            uuid=(DEFAULT)
+                            origin=(ASSET#testImportAsset,ASSET#testFinal)
+                            ref={0}
+                        />
+                        <Situation uuid=(DEFAULT) ref={2}>
+                            <Description>OneTwo</Description>
+                        </Situation>
                         <Exit to=(ROOM#testImportStubOne)>test exit one</Exit>
                     </Room>
                 </Asset>
@@ -164,11 +169,11 @@ describe('recursiveFetchImports', () => {
             new StandardForm(`
                 <Asset uuid=(testImportAssetOne)>
                     <Room uuid=(testImport) from=(ASSET#testImportAssetTwo)>
-                        <Example uuid=(assetOneBase)>
+                        <Situation uuid=(DEFAULT)>
                             <Description>
                                 Asset One
                             </Description>
-                        </Example>
+                        </Situation>
                         <Exit to=(Stub)>test exit one</Exit>
                     </Room>
                     <Room uuid=(Stub1) key=(Stub)><ShortName>Asset One</ShortName></Room>
@@ -197,9 +202,10 @@ describe('recursiveFetchImports', () => {
                         key=(testImport)
                         origin=(ASSET#testImportAssetTwo,ASSET#testImportAssetOne,ASSET#testFinal)
                     >
-                        <Example uuid=(assetOneBase) origin=(ASSET#testImportAssetOne)>
+                        <Situation uuid=(DEFAULT) origin=(ASSET#testImportAssetOne) ref={0} />
+                        <Situation uuid=(DEFAULT)>
                             <Description>Asset One</Description>
-                        </Example>
+                        </Situation>
                         <Exit to=(ROOM#Stub2)>test exit two</Exit>
                         <Exit to=(ROOM#Stub1)>test exit one</Exit>
                     </Room>
@@ -207,6 +213,9 @@ describe('recursiveFetchImports', () => {
             `))
     })
 
+    //
+    // Provisional — Room-hosted Example + Link until SituationFacet prose exposes Link refs for subset (see index.test.ts).
+    //
     it('should properly stub out features in room description', async () => {
         const jsonHelper = jsonHelperMock([
             new StandardForm(`<Asset uuid=(testFinal)>
@@ -219,7 +228,7 @@ describe('recursiveFetchImports', () => {
                     </Example>
                 </Feature>
                 <Room uuid=(testRoomWithFeatures) key=(testRoomWithFeatures)>
-                    <Example uuid=(testRoomBase)>
+                    <Example ref={0} uuid=(testRoomBase)>
                         <Description><Link to=(testFeature)>Test</Link></Description>
                     </Example>
                 </Room>
@@ -228,18 +237,15 @@ describe('recursiveFetchImports', () => {
         expect(await testResult({ assetId: 'ASSET#testFinal', jsonHelper, fullKeys: ['ROOM#testRoomWithFeatures'], stubKeys: [] }))
             .toEqual(deIndentWML(`
                 <Asset uuid=(testFinal)>
+                    <Example uuid=(testRoomBase) origin=(ASSET#testImport) ref={0}>
+                        <Description><Link to=(FEATURE#testFeature)>Test</Link></Description>
+                    </Example>
                     <Feature uuid=(testFeature) origin=(ASSET#testImport) ref={0} />
                     <Room
                         uuid=(testRoomWithFeatures)
                         key=(testRoomWithFeatures)
                         origin=(ASSET#testImport,ASSET#testFinal)
-                    >
-                        <Example uuid=(testRoomBase) origin=(ASSET#testImport)>
-                            <Description>
-                                <Link to=(FEATURE#testFeature)>Test</Link>
-                            </Description>
-                        </Example>
-                    </Room>
+                    />
                 </Asset>
             `))
     })

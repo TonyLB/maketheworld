@@ -281,6 +281,15 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
             }
         },
     },
+    /**
+     * PROVISIONAL: Room `<Render>` parse rules are stricter than ideal for ephemera placeholders and
+     * partial facet payloads. `finalize` requires three ordered children and non-empty DisplayName
+     * text after trim, which forces workarounds (for example `PLACEHOLDER_RENDER_INVISIBLE_TITLE` in
+     * `lambda/ephemera/dataSource/perception/orchestrate.ts`). When relaxing this contract, update
+     * emit paths (for example `SituationRoomFacetPayload.toProseTripletChildren` and
+     * `situationRoomRenderPayloadFromCacheRenderedContent` in the ephemera lambda) and remove those
+     * placeholders in the same change set so WML round-trip stays coherent.
+     */
     Render: {
         initialize: ({ parseOpen, contextStack }): SchemaRenderTag => {
             const hasRoomContext = contextStack.some(({ data }) => isSchemaRoom(data))

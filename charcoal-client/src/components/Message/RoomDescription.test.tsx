@@ -180,6 +180,61 @@ describe('RoomDescription', () => {
 
             expect(screen.getByText('Untitled')).toBeDefined()
         })
+
+        it('uses situation prose when render is absent', () => {
+            const standardForm = new StandardForm(deIndentWML(`
+                <Asset uuid=(test)>
+                    <Situation key=(bright) uuid=(SITUATION#bright)>
+                        <Mark key=(illumination) uuid=(MARK#illumination)>
+                            <Match>bright</Match>
+                        </Mark>
+                    </Situation>
+                    <Room key=(testRoom) uuid=(ROOM#testRoom)>
+                        <Situation key=(bright) uuid=(SITUATION#bright)>
+                            <DisplayName>Situation Room</DisplayName>
+                            <Description>A room rendered from a Situation facet</Description>
+                            <Summary>Situation summary</Summary>
+                        </Situation>
+                    </Room>
+                </Asset>
+            `))
+
+            const metaData: PerceptionRoomMetaData = {
+                componentUUID: 'ROOM#testRoom',
+                displayMode: 'full'
+            }
+
+            render(
+                <Provider store={store}>
+                    <RoomDescription parsedWML={standardForm} metaData={metaData} />
+                </Provider>
+            )
+
+            expect(screen.getByText('Situation Room')).toBeDefined()
+            expect(screen.getByText('A room rendered from a Situation facet')).toBeDefined()
+        })
+
+        it('uses defaults when room has no render or situation prose', () => {
+            const standardForm = new StandardForm(deIndentWML(`
+                <Asset uuid=(test)>
+                    <Room key=(testRoom) uuid=(ROOM#testRoom) />
+                </Asset>
+            `))
+
+            const metaData: PerceptionRoomMetaData = {
+                componentUUID: 'ROOM#testRoom',
+                displayMode: 'full'
+            }
+
+            render(
+                <Provider store={store}>
+                    <RoomDescription parsedWML={standardForm} metaData={metaData} />
+                </Provider>
+            )
+
+            expect(screen.getByText('Untitled')).toBeDefined()
+            expect(screen.getByText('No description')).toBeDefined()
+        })
     })
 
     /**
@@ -253,11 +308,11 @@ describe('RoomDescription', () => {
                 const standardForm = new StandardForm(deIndentWML(`
                     <Asset uuid=(test)>
                         <Room key=(testRoom) uuid=(ROOM#testRoom)>
-                            <Example key=(example1) uuid=(EXAMPLE#example1)>
+                            <Situation uuid=(DEFAULT)>
                                 <DisplayName>Test Room</DisplayName>
                                 <Description>A beautiful test room with stone walls</Description>
                                 <Summary>Test summary</Summary>
-                            </Example>
+                            </Situation>
                         </Room>
                     </Asset>
                 `))
@@ -281,10 +336,10 @@ describe('RoomDescription', () => {
                 const standardForm = new StandardForm(deIndentWML(`
                     <Asset uuid=(test)>
                         <Room key=(testRoom) uuid=(ROOM#testRoom)>
-                            <Example key=(example1) uuid=(EXAMPLE#example1)>
+                            <Situation uuid=(DEFAULT)>
                                 <DisplayName>Room with Exits</DisplayName>
                                 <Description>A room with multiple exits and characters</Description>
-                            </Example>
+                            </Situation>
                             <Exit to=(ROOM#north)>North passage</Exit>
                             <Exit to=(ROOM#south)>South corridor</Exit>
                             <Character key=(testChar) uuid=(testChar) />
@@ -318,10 +373,10 @@ describe('RoomDescription', () => {
                 const standardForm = new StandardForm(deIndentWML(`
                     <Asset uuid=(test)>
                         <Room key=(testRoom) uuid=(ROOM#testRoom)>
-                            <Example key=(example1) uuid=(EXAMPLE#example1)>
+                            <Situation uuid=(DEFAULT)>
                                 <DisplayName>Header Room</DisplayName>
                                 <Description>A room shown as header</Description>
-                            </Example>
+                            </Situation>
                         </Room>
                     </Asset>
                 `))
@@ -404,7 +459,7 @@ describe('RoomDescription', () => {
         })
 
         describe('Edge cases', () => {
-            it('should handle room with no examples gracefully', () => {
+            it('should handle room with no situation prose gracefully', () => {
                 const standardForm = new StandardForm(deIndentWML(`
                     <Asset uuid=(test)>
                         <Room key=(testRoom) uuid=(ROOM#testRoom) />

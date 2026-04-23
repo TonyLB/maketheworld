@@ -118,7 +118,13 @@ export class SituationRoomFacetPayload {
         return !emptyLiteral(this._displayName);
     }
 
-    /** Children for `<Render>` WML or inner prose under Situation (DisplayName, Summary, Description). */
+    /**
+     * Children for `<Render>` WML or inner prose under Situation (DisplayName, Summary, Description).
+     * PROVISIONAL: Only emits nodes for present fields; strict `Render.finalize` in
+     * `packages/mtw-wml/ts/schema/converters/components.ts` can still require a full triplet and
+     * non-empty DisplayName on parse. Ephemera workarounds (for example invisible title in
+     * `lambda/ephemera/dataSource/perception/orchestrate.ts`) exist until that contract is loosened.
+     */
     toProseTripletChildren(): GenericTree<SchemaTag> {
         return [
             ...(this._displayName?.nestedSchema({ tag: "DisplayName" }) ?? []),

@@ -1,13 +1,16 @@
 /**
  * Materialized View Operations Tests
- * 
+ *
  * Test coverage for updateContentByChunk content reducer.
- * 
+ *
  * Focus: Test the wrapper function, not StandardForm.merge() (which is tested in mtw-wml).
  * - Does it correctly parse chunk WML?
  * - Does it call merge on the baseline?
  * - Does it return the merged result?
  * - Does it propagate errors?
+ *
+ * Fixtures use `<Situation uuid=(DEFAULT)>` under `<Room>` (canonical room prose) rather than
+ * `<Example ref={0}>` hosting.
  */
 
 import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
@@ -21,162 +24,169 @@ describe('updateContentByChunk', () => {
             const baseline = new StandardForm(`
                 <Asset uuid=(test)>
                     <Room uuid=(testRoom)>
-                        <Example uuid=(testExample)>
+                        <Situation uuid=(DEFAULT)>
                             <DisplayName>Original Name</DisplayName>
-                        </Example>
+                        </Situation>
                     </Room>
                 </Asset>
             `)
-            
+
             const chunkWML = `
                 <Asset uuid=(test)>
-                    <Example uuid=(testExample) ref={0}>
-                        <Description>Added description</Description>
-                    </Example>
+                    <Room uuid=(testRoom)>
+                        <Situation uuid=(DEFAULT) ref={0}>
+                            <Description>Added description</Description>
+                        </Situation>
+                    </Room>
                 </Asset>
             `
-            
+
             const result = updateContentByChunk(baseline, chunkWML)
-            
-            // Verify merge occurred
+
             expect(result).toBeInstanceOf(StandardForm)
             const serialized = schemaToWML([result.schema])
             expect(serialized).toEqual(deIndentWML(`
                 <Asset uuid=(test)>
-                    <Room uuid=(testRoom)>
-                        <Example uuid=(testExample)>
+                    <Room uuid=(testRoom) ref={2}>
+                        <Situation uuid=(DEFAULT) ref={0} />
+                        <Situation uuid=(DEFAULT)>
                             <DisplayName>Original Name</DisplayName>
                             <Description>Added description</Description>
-                        </Example>
+                        </Situation>
                     </Room>
                 </Asset>
             `))
             expect(serialized).toContain('Added description')
         })
-        
+
         test('works with empty baseline', () => {
             const emptyBaseline = new StandardForm('ASSET#newAsset')
-            
+
             const chunkWML = `
                 <Asset uuid=(newAsset)>
                     <Room uuid=(newRoom)>
-                        <Example uuid=(newExample)>
+                        <Situation uuid=(DEFAULT)>
                             <DisplayName>First Content</DisplayName>
-                        </Example>
+                        </Situation>
                     </Room>
                 </Asset>
             `
-            
+
             const result = updateContentByChunk(emptyBaseline, chunkWML)
-            
+
             expect(result).toBeInstanceOf(StandardForm)
             const serialized = schemaToWML([result.schema])
             expect(serialized).toEqual(deIndentWML(`
                 <Asset uuid=(newAsset)>
                     <Room uuid=(newRoom)>
-                        <Example uuid=(newExample)>
+                        <Situation uuid=(DEFAULT) ref={0} />
+                        <Situation uuid=(DEFAULT)>
                             <DisplayName>First Content</DisplayName>
-                        </Example>
+                        </Situation>
                     </Room>
                 </Asset>
             `))
         })
-        
+
         test('works with Replace/With pattern', () => {
             const baseline = new StandardForm(`
                 <Asset uuid=(test)>
                     <Room uuid=(testRoom)>
-                        <Example uuid=(testExample)>
+                        <Situation uuid=(DEFAULT)>
                             <DisplayName>Original</DisplayName>
-                        </Example>
+                        </Situation>
                     </Room>
                 </Asset>
             `)
-            
+
             const chunkWML = `
                 <Asset uuid=(test)>
-                    <Example uuid=(testExample) ref={0}>
-                        <Replace>
-                            <DisplayName>Original</DisplayName>
-                        </Replace>
-                        <With>
-                            <DisplayName>Updated</DisplayName>
-                        </With>
-                    </Example>
+                    <Room uuid=(testRoom) ref={0}>
+                        <Situation uuid=(DEFAULT) ref={0}>
+                            <Replace>
+                                <DisplayName>Original</DisplayName>
+                            </Replace>
+                            <With>
+                                <DisplayName>Updated</DisplayName>
+                            </With>
+                        </Situation>
+                    </Room>
                 </Asset>
             `
-            
+
             const result = updateContentByChunk(baseline, chunkWML)
-            
+
             const serialized = schemaToWML([result.schema])
             expect(serialized).toEqual(deIndentWML(`
                 <Asset uuid=(test)>
                     <Room uuid=(testRoom)>
-                        <Example uuid=(testExample)>
+                        <Situation uuid=(DEFAULT) ref={0} />
+                        <Situation uuid=(DEFAULT)>
                             <DisplayName>Updated</DisplayName>
-                        </Example>
+                        </Situation>
                     </Room>
                 </Asset>
             `))
             expect(serialized).not.toContain('Original')
         })
     })
-    
+
     describe('error propagation', () => {
         test('propagates parsing errors from invalid WML', () => {
             const baseline = new StandardForm('ASSET#test')
             const invalidWML = '<Asset uuid=(test)><InvalidTag>broken'
-            
+
             expect(() => {
                 updateContentByChunk(baseline, invalidWML)
             }).toThrow()
         })
-        
+
         test('propagates empty WML error', () => {
             const baseline = new StandardForm('ASSET#test')
             const emptyWML = ''
-            
+
             expect(() => {
                 updateContentByChunk(baseline, emptyWML)
             }).toThrow('Empty WML argument')
         })
     })
-    
+
     describe('immutability', () => {
         test('does not mutate baseline StandardForm', () => {
             const baseline = new StandardForm(`
                 <Asset uuid=(test)>
                     <Room uuid=(testRoom)>
-                        <Example uuid=(testExample)>
+                        <Situation uuid=(DEFAULT)>
                             <DisplayName>Original</DisplayName>
-                        </Example>
+                        </Situation>
                     </Room>
                 </Asset>
             `)
-            
+
             const originalSerialized = schemaToWML([baseline.schema])
-            
+
             const chunk = `
                 <Asset uuid=(test)>
-                    <Example uuid=(testExample) ref={0}>
-                        <Description>Added</Description>
-                    </Example>
+                    <Room uuid=(testRoom)>
+                        <Situation uuid=(DEFAULT) ref={0}>
+                            <Description>Added</Description>
+                        </Situation>
+                    </Room>
                 </Asset>
             `
-            
+
             const result = updateContentByChunk(baseline, chunk)
-            
-            // Baseline should be unchanged
+
             expect(schemaToWML([baseline.schema])).toBe(originalSerialized)
-            // Result should be different instance with changes
             expect(result).not.toBe(baseline)
             expect(schemaToWML([result.schema])).toEqual(deIndentWML(`
                 <Asset uuid=(test)>
-                    <Room uuid=(testRoom)>
-                        <Example uuid=(testExample)>
+                    <Room uuid=(testRoom) ref={2}>
+                        <Situation uuid=(DEFAULT) ref={0} />
+                        <Situation uuid=(DEFAULT)>
                             <DisplayName>Original</DisplayName>
                             <Description>Added</Description>
-                        </Example>
+                        </Situation>
                     </Room>
                 </Asset>
             `))

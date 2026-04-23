@@ -145,16 +145,18 @@ dispatch(pushBreadcrumb({ id: exampleId, kind: 'component', componentId: example
 
 ### Reference List Editing
 
+Room display prose uses **Situation** facets on the Room and ephemera **`render`** payloads, not `StandardRoom.examples` (legacy; see [`packages/mtw-wml/ts/AGENT.md`](../../../../packages/mtw-wml/ts/AGENT.md)). **Feature** and **Knowledge** still store display content via their **`examples`** reference list.
+
 ```typescript
 // Use referenceListToItems for list display
 const items = referenceListToItems({ referenceList, standardForm, tag: 'Example' })
 
-// Add/remove via updateStandard and ReferenceList
+// Add/remove via updateStandard and ReferenceList (Feature or Knowledge — not Room)
 updateStandard({
     type: 'update',
     update: (draft) => {
         const base = draft.byUniversalId[universalKey]
-        if (base instanceof StandardRoom) {
+        if (base instanceof StandardFeature) {
             const currentExamples = base._payload._examples ?? new ReferenceList([])
             base._payload._examples = currentExamples.assureItem(new StandardReference({ universalKey: exampleId, tag: 'Example' }))
         }

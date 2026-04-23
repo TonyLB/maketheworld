@@ -2,7 +2,7 @@ jest.mock('@tonylb/mtw-utilities/ts/dynamoDB/index')
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB/index'
 
 import internalCache from "."
-import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
+import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
 import { StandardComponentData } from '@tonylb/mtw-wml/ts/standardize/baseClasses'
 import { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 import { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
@@ -27,70 +27,66 @@ describe('ComponentAssetMeta', () => {
     it('should send multiple fetches correctly', async () => {
         assetMock.getItems.mockResolvedValue([{
             DataCategory: 'ASSET#Base',
-            AssetId: 'ROOM#TestOne',
+            AssetId: 'FEATURE#TestOne',
             examples: ['EXAMPLE#ExampleOne'],
-            exits: []
         },
         {
             DataCategory: 'ASSET#Layer',
-            AssetId: 'ROOM#TestOne',
+            AssetId: 'FEATURE#TestOne',
             examples: ['EXAMPLE#ExampleTwo'],
-            exits: []
         }])
-        const output = await internalCache.ComponentAssetMeta.getAcrossAssets('ROOM#TestOne', ['ASSET#Base', 'ASSET#Layer'])
+        const output = await internalCache.ComponentAssetMeta.getAcrossAssets('FEATURE#TestOne', ['ASSET#Base', 'ASSET#Layer'])
         expect(mapToJSON(output)).toEqual({
             Base: {
-                tag: 'Room',
-                universalKey: 'ROOM#TestOne',
+                tag: 'Feature',
+                universalKey: 'FEATURE#TestOne',
                 examples: ['EXAMPLE#ExampleOne']
             },
             Layer: {
-                tag: 'Room',
-                universalKey: 'ROOM#TestOne',
+                tag: 'Feature',
+                universalKey: 'FEATURE#TestOne',
                 examples: ['EXAMPLE#ExampleTwo']
             }
         })
         expect(assetMock.getItems).toHaveBeenCalledTimes(1)
         expect(assetMock.getItems).toHaveBeenCalledWith({
             Keys: [
-                { AssetId: 'ROOM#TestOne', DataCategory: 'ASSET#Base' },
-                { AssetId: 'ROOM#TestOne', DataCategory: 'ASSET#Layer' }
+                { AssetId: 'FEATURE#TestOne', DataCategory: 'ASSET#Base' },
+                { AssetId: 'FEATURE#TestOne', DataCategory: 'ASSET#Layer' }
             ],
             getAllFields: true
         })
     })
 
     it('should send already cached items', async () => {
-        internalCache.ComponentAssetMeta.set('ROOM#TestOne', 'ASSET#Layer', new StandardRoom({
-            universalKey: 'ROOM#TestOne',
-            tag: 'Room',
+        internalCache.ComponentAssetMeta.set('FEATURE#TestOne', 'ASSET#Layer', new StandardFeature({
+            universalKey: 'FEATURE#TestOne',
+            tag: 'Feature',
             examples: [{ key: 'base', tag: 'Example' }],
-            exits: [],
         }))
         assetMock.getItems.mockResolvedValue([{
-            AssetId: 'ROOM#TestOne',
+            AssetId: 'FEATURE#TestOne',
             DataCategory: 'ASSET#Base',
             examples: [{ key: 'test', tag: 'Example' }],
-            tag: 'Room',
-            exits: []
+            tag: 'Feature',
         }])
-        const output = await internalCache.ComponentAssetMeta.getAcrossAssets('ROOM#TestOne', ['ASSET#Base', 'ASSET#Layer'])
+        const output = await internalCache.ComponentAssetMeta.getAcrossAssets('FEATURE#TestOne', ['ASSET#Base', 'ASSET#Layer'])
         expect(mapToJSON(output)).toEqual({
             Base: {
-                universalKey: 'ROOM#TestOne',
-                tag: 'Room',
+                universalKey: 'FEATURE#TestOne',
+                tag: 'Feature',
                 examples: [{ key: 'test', tag: 'Example' }]
             },
             Layer: {
-                universalKey: 'ROOM#TestOne',
-                tag: 'Room',
+                universalKey: 'FEATURE#TestOne',
+                tag: 'Feature',
                 examples: [{ key: 'base', tag: 'Example' }]
             }
         })
         expect(assetMock.getItems).toHaveBeenCalledTimes(1)
         expect(assetMock.getItems).toHaveBeenCalledWith({
             Keys: [
-                { AssetId: 'ROOM#TestOne', DataCategory: 'ASSET#Base' }
+                { AssetId: 'FEATURE#TestOne', DataCategory: 'ASSET#Base' }
             ],
             getAllFields: true
         })
@@ -100,71 +96,67 @@ describe('ComponentAssetMeta', () => {
         assetMock.getItems.mockResolvedValue([{
             DataCategory: 'ASSET#Base',
             examples: [{ key: 'test', tag: 'Example' }],
-            exits: [],
-            AssetId: 'ROOM#TestOne'
+            AssetId: 'FEATURE#TestOne'
         }])
-        const output = await internalCache.ComponentAssetMeta.getAcrossAssets('ROOM#TestOne', ['ASSET#Base', 'ASSET#Layer'])
+        const output = await internalCache.ComponentAssetMeta.getAcrossAssets('FEATURE#TestOne', ['ASSET#Base', 'ASSET#Layer'])
         expect(mapToJSON(output)).toEqual({
             Base: {
-                tag: 'Room',
-                universalKey: 'ROOM#TestOne',
+                tag: 'Feature',
+                universalKey: 'FEATURE#TestOne',
                 examples: [{ key: 'test', tag: 'Example' }]
             },
             Layer: {
-                universalKey: 'ROOM#TestOne',
-                tag: 'Room'
+                universalKey: 'FEATURE#TestOne',
+                tag: 'Feature'
             }
         })
         expect(assetMock.getItems).toHaveBeenCalledTimes(1)
         expect(assetMock.getItems).toHaveBeenCalledWith({
             Keys: [
-                { AssetId: 'ROOM#TestOne', DataCategory: 'ASSET#Base' },
-                { AssetId: 'ROOM#TestOne', DataCategory: 'ASSET#Layer' }
+                { AssetId: 'FEATURE#TestOne', DataCategory: 'ASSET#Base' },
+                { AssetId: 'FEATURE#TestOne', DataCategory: 'ASSET#Layer' }
             ],
             getAllFields: true
         })
     })
 
     it('should handle invalid DataCategory values gracefully', async () => {
-        // Simulate bootstrap database scenario with records that have invalid/missing DataCategory
         assetMock.getItems.mockResolvedValue([
             {
                 DataCategory: 'ASSET#Base',
-                examples: [{ key: 'validRecord', tag: 'Example' }],
+                shortName: 'ValidRecord',
                 AssetId: 'ROOM#TestOne'
             },
             {
-                DataCategory: '', // Empty string - invalid AssetUUID
-                examples: [{ key: 'shouldBeFiltered', tag: 'Example' }],
+                DataCategory: '',
+                shortName: 'shouldBeFiltered',
                 AssetId: 'ROOM#TestOne'
             },
             {
-                DataCategory: undefined, // Missing DataCategory - invalid AssetUUID
-                examples: [{ key: 'alsoFiltered', tag: 'Example' }],
+                DataCategory: undefined,
+                shortName: 'alsoFiltered',
                 AssetId: 'ROOM#TestOne'
             },
             {
-                DataCategory: 'INVALIDFORMAT', // Invalid AssetUUID format
-                examples: [{ key: 'stillFiltered', tag: 'Example' }],
+                DataCategory: 'INVALIDFORMAT',
+                shortName: 'stillFiltered',
                 AssetId: 'ROOM#TestOne'
             }
         ])
-        
-        // Should only return the valid record, filtering out invalid ones
+
         const output = await internalCache.ComponentAssetMeta.getAcrossAssets('ROOM#TestOne', ['ASSET#Base', 'ASSET#Layer'])
         expect(mapToJSON(output)).toEqual({
             Base: {
                 tag: 'Room',
                 universalKey: 'ROOM#TestOne',
-                examples: [{ key: 'validRecord', tag: 'Example' }]
+                shortName: 'ValidRecord'
             },
             Layer: {
                 universalKey: 'ROOM#TestOne',
                 tag: 'Room'
             }
         })
-        
-        // Should not crash and should process the request normally
+
         expect(assetMock.getItems).toHaveBeenCalledTimes(1)
     })
 

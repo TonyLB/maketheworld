@@ -2,7 +2,7 @@
 
 **Context**: Features are edited in isolation with breadcrumbs; they have independent meaning. Examples are different—each is meaningful on its own but best viewed in the context of its sibling Examples (like Photoshop layers). We need a **component pattern** that (a) demonstrates that layered/sibling context and (b) allows easy navigation between sibling components.
 
-**Scope**: Reusable pattern for "layer-like" sibling groups (primary use case: Examples under Room/Feature/Knowledge). The pattern should be generic enough to apply elsewhere (e.g. Lenses, Marks) if we add similar sibling-in-context editing.
+**Scope**: Reusable pattern for "layer-like" sibling groups (primary use case: Examples under **Feature** and **Knowledge**). **Room** layered tabs use **Situation** facets and **Guidance** (`layeredContextUtils`), not **`Room.examples`** / Example membership. **New** room prose uses **Situation** facets and ephemera **`render`** (see [`packages/mtw-wml/ts/AGENT.md`](../../../../../../packages/mtw-wml/ts/AGENT.md)). The pattern should be generic enough to apply elsewhere (e.g. Lenses, Marks) if we add similar sibling-in-context editing.
 
 ---
 
@@ -65,7 +65,7 @@ The index bar answers "which layer am I on?" and "how many siblings are there?" 
 
 **Implementation notes**  
 - Add a `LayeredContextIndexBar` (or similar) above the Example list: `siblings: { id, label }[]`, `currentId`, `onSelect(id)`.  
-- RoomEditor/FeatureEditor/KnowledgeEditor derive sibling list from `component.examples`; ExamplesView tracks `currentExampleId` (local state or slice).  
+- RoomEditor/FeatureEditor/KnowledgeEditor derive sibling list from `component.examples` (for **Feature**/**Knowledge** this is the canonical Examples UX; for **Room** treat as legacy-only sibling editing). ExamplesView tracks `currentExampleId` (local state or slice).  
 - Accordions: `expanded` only for `currentExampleId`; `summary` prop can show name/summary when collapsed.  
 - Use `scroll-margin` / `scrollIntoView` when selecting a chip so the chosen accordion comes into view.
 
@@ -187,7 +187,7 @@ const [currentId, setCurrentId] = useState(siblings[0]?.id ?? null)
 - **Breadcrumbs**: When we are in a layered view, breadcrumbs read **Asset → Parent → Child** (e.g. **Asset → Room → Example** or **Asset → Room → Guidance**). The stack uses uniform `kind: 'component'` entries; layered context is derived when the top component is in the second-from-top’s reference list. Clicking the parent crumb exits the layered view. Example/Guidance can also be top-level (stack has only that component); then breadcrumbs are **Asset → Example** (or Guidance) and the component section shows the single editor.  
 - **Navigation model**: Redux navigation is a stack of breadcrumb entries (`breadcrumbStack`), all `kind: 'component'`. The asset is implied (currentAssetId); the stack holds component ids. When the top component is a child of the second-from-top’s reference list (examples/guidance), `getLayeredContext` returns context and `currentView === 'componentLayer'`; otherwise `currentView === 'component'`. `currentView`, current component id, and layered layer id are **derived selectors** over this stack.  
 - **Examples/Guidance management vs. layered view**: The set of Example/Guidance items is managed via `ReferenceListEditor` under the parent (Room/Feature/Knowledge). Entering the layered view pushes the child’s component id onto the stack (so stack is e.g. [parent, child]); `LayeredContextView` then shows tabs and editor. Switching tabs uses `replaceTopBreadcrumb(childId)`.  
-- **Data**: Sibling list for the layered view comes from `component.examples` (or the equivalent reference list). Use `shortName` for the Example's tab/list label; do **not** use `name` (that is the exemplified item's name). Fall back to "Untitled" when `shortName` is missing.
+- **Data**: Sibling list for the layered view comes from `component.examples` (or the equivalent reference list). For **Room**, this path is **legacy**; prefer Situation / render for prose (see WML package `AGENT.md`). Use `shortName` for the Example's tab/list label; do **not** use `name` (that is the exemplified item's name). Fall back to "Untitled" when `shortName` is missing.
 
 ---
 

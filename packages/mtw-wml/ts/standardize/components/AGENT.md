@@ -147,7 +147,7 @@ A Component's data is structured as an independent set of data fields and refere
 Each different data tag (like `ShortName`, `Description`, etc.) and each different type of reference (like `Feature`, `Character`, etc.) are stored independently within a component:
 
 - **Data Tags**: Stored in dedicated types specific to that data field. For example, `ShortName` is stored as a `StandardLiteral` type, while `Description` might be stored as a `StandardRender` type.
-- **References**: Stored in `ReferenceList` types. Each reference collection (like `features`, `characters`, `examples`) is maintained as a separate `ReferenceList` that manages a collection of `StandardReference` objects.
+- **References**: Stored in `ReferenceList` types (and related structures such as **`SingleReference`**). Each reference collection (like `features`, `characters`, or on Feature/Knowledge `examples`) is maintained separately. **Room** does **not** serialize an **`examples`** list; use **Situation** facets and ephemera **`render`** for Room prose. **Feature** and **Knowledge** still use **`examples`** for display content.
 
 This independent storage means that edits to one data field or reference collection do not affect others, allowing precise, targeted modifications to component content.
 
@@ -174,7 +174,7 @@ For the mathematical properties of how edits relate to each other (the two-tuple
 - **Properties**: Contains `StandardKey` as payload, plus stored `tag`
 - **Tag Storage**: Tag is stored directly in `StandardReference`, making it self-contained
 - **Use Cases**:
-  - ReferenceList items (e.g., `features`, `examples`, `characters` in rooms)
+  - ReferenceList items (e.g., **`features`** / **`characters`** / **`guidance`** on Room; **`examples`** on Feature and Knowledge)
   - Independent schema generation (can generate schema without lookup)
   - Standalone reference operations (like `StandardLiteral` or other standalone objects)
 - **Construction Pattern**: 

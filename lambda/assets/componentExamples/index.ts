@@ -2,7 +2,7 @@
 // Non-replayable DataSource for mtw.assets.componentExamples
 //
 // Subscribes to mtw.assets Component Updated / Component Removed and filters to
-// Example-associated components only (Example, Room, Feature, Knowledge).
+// Example-associated components only (Example, Feature, Knowledge per exampleAssociatedFilter).
 // Events on this stream may carry Situation ids and situation-facet payloads (Phase 3);
 // "Example" in event names is legacy.
 //

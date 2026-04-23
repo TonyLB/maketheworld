@@ -5,10 +5,8 @@
 import { v4 as uuidv4 } from 'uuid'
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
-import StandardExample from '@tonylb/mtw-wml/ts/standardize/components/example'
 import type { StandardRoomData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/room'
 import internalCache from '../../internalCache'
 import type { MessageBus } from '../../messageBus/baseClasses'
@@ -21,29 +19,37 @@ import type { PerceptionThreadRegisterCharacterMoveCommand } from './localApiEve
 import { roomHeaderErrorPlaceholderWml, roomHeaderGeneratingPlaceholderWml } from './roomHeaderPlaceholderWml'
 import { roomRenderWmlFromCacheRecord } from './roomRenderWmlFromCacheRecord'
 import { isRenderCacheRenderPertainsPayload } from '../renderCache/baseClasses'
+import { situationRoomRenderPayloadFromCacheRenderedContent } from '../renderCache/renderedContentToSituationRoomPayload'
 import {
     isRenderOrchestrationGenerationDeferredPayload,
     isRenderOrchestrationGenerationStartedPayload,
     isRenderOrchestrationOrchestrationErrorPayload,
 } from '../renderOrchestration/publishedEvents'
 
+/**
+ * TEMPORARY: Word joiner (U+2060) as non-whitespace display title so WML round-trips.
+ * `packages/mtw-wml/ts/schema/converters/components.ts` `Render.finalize` currently requires
+ * exactly three ordered children (DisplayName, Summary, Description) and rejects an empty
+ * DisplayName after trim. Remove this constant once `Render.finalize` (and matching emit/standardize
+ * behavior) are loosened so partial or empty DisplayName/Summary can round-trip; then use a normal
+ * empty or omitted display name in `placeholderRoomFullWml` instead.
+ */
+const PLACEHOLDER_RENDER_INVISIBLE_TITLE = '\u2060'
+
 function placeholderRoomFullWml(roomId: EphemeraRoomId, bodyText: string): string {
-    const exKey = 'EXAMPLE#perception-placeholder' as ComponentUUID
-    const ex = new StandardExample({
-        tag: 'Example',
-        universalKey: exKey,
+    const renderPayload = situationRoomRenderPayloadFromCacheRenderedContent({
+        displayName: [PLACEHOLDER_RENDER_INVISIBLE_TITLE],
+        summary: [''],
         description: [bodyText],
-        marks: [],
     })
     const roomRow: StandardRoomData = {
         tag: 'Room',
         universalKey: roomId,
-        examples: [exKey],
+        ...(renderPayload ? { render: renderPayload } : {}),
     }
     const form = new StandardForm([
         { tag: 'Asset', universalKey: 'ASSET#render', key: 'render' },
         roomRow,
-        ex.toJSON(),
     ])
     return schemaToWML([form.schema])
 }

@@ -26,7 +26,7 @@ The core idea is:
 
 **Reference** and **hosting** are two independent qualities of a parent–child relationship. Component A can reference Component B, host Component B, both, or neither.
 
-- **Reference**: The parent actively tracks the child in data it owns—a reference list (e.g. Room's features, examples) or a facet list (e.g. Map's positions). Either the parent references the child (has it in a list) or it does not.
+- **Reference**: The parent actively tracks the child in data it owns—a reference list (e.g. Room's features and characters, Feature's examples) or a facet list (e.g. Map's positions). Either the parent references the child (has it in a list) or it does not.
 - **Hosting**: The child's content is rendered under the parent in the tree produced by `SchemaOrganization` (the hierarchy used for serialization and display). A component may be referenced in many places, but its content is centralized in one—that parent is the host. Either the parent hosts the child (we render the child's content here) or it does not.
 
 Common combinations: A Room typically **references and hosts** its Features (they are in its reference list and their content is rendered under it). A Room **hosts but does not reference** a shared Mark (the Mark's content is rendered under the Room in WML for structural convenience, but the Room has no marks list). In other cases, reference and hosting can diverge (e.g. explicit parent overrides). When reasoning about a parent–child edge, ask separately: does the parent reference this child? Does the parent host this child? For how this affects `assureReferences` and schema generation, see [components/AGENT.implementation.md](components/AGENT.implementation.md) (Reference vs. hosting, assureReferences).

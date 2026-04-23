@@ -24,7 +24,7 @@ The component now uses **Standard format exclusively**. Room data is extracted f
 
 ### **Standard Format Data**
 - **Room Data**: `StandardRoom` from `StandardForm.byUniversalId[metaData.componentUUID]`
-- **Room name / summary / description (prose)**: In order of precedence: (1) **`StandardRoom.render`** (ephemera **`<Render>`**, same JSON shape as **`SituationRoomFacetPayloadType`**), (2) first **Situation** facet payload on the room, (3) first **`StandardExample`** referenced by **`StandardRoom.examples`**. Implemented via **`SituationRoomFacetPayload`** in **`RoomDescription.tsx`**.
+- **Room name / summary / description (prose)**: Runtime precedence in **`RoomDescription.tsx`**: (1) **`StandardRoom.render`** (ephemera **`<Render>`**, same JSON shape as **`SituationRoomFacetPayloadType`**), (2) first **Situation** facet payload on the room, (3) safe defaults (**`Untitled`** / empty summary and description) when prose is missing. **`StandardRoom`** JSON has **no** **`examples`** field; this component **does not** read **`component.examples`** for Room display. **Authoring:** Prefer **Situation** facets and wire **`render`** (see [`packages/mtw-wml/ts/AGENT.md`](../../../../packages/mtw-wml/ts/AGENT.md)).
 - **Exits**: `StandardExitFacet[]` from `StandardRoom.exits.items`
 - **Characters**: `StandardCharacter[]` resolved from `StandardRoom.characters.payload` references
 
@@ -75,7 +75,7 @@ Inbound **`PerceptionMessage.wmlContent`** is parsed with **`standardizeMode: 'e
 
 ### **WML Structure for Rooms**
 
-**Room-render / perception** WML from ephemera typically uses **`<Render>`** for resolved header prose (see **`packages/mtw-wml`** **`standardize/AGENT.md`**). Asset authoring may still use **Example** / **Situation** shapes; **`RoomDescription`** supports both.
+**Room-render / perception** WML from ephemera typically uses **`<Render>`** for resolved header prose (see **`packages/mtw-wml`** **`standardize/AGENT.md`**). Asset authoring should prefer **Situation** facets; raw WML may still contain legacy **`<Example>`** under **`<Room>`** in old imports---the standardized model does not treat that as Room-owned **`examples`** (see **`packages/mtw-wml/ts/AGENT.md`**).
 
 ```xml
 <Asset uuid=(render)>
@@ -134,6 +134,7 @@ if (parsedWML) {
             description = prosePayload._description || new StandardRender([])
             summary = prosePayload._summary || new StandardRender([])
         } else {
+            // Legacy fallback only (deprecated for new authoring; prefer Situation + render)
             const firstExampleRef = component.examples.payload[0]
             if (firstExampleRef) {
                 const firstExample = parsedWML._lookup(firstExampleRef.standardKey.toJSON())
@@ -328,14 +329,14 @@ For complete details on message timeline organization, see [`AGENT.md`](AGENT.md
 ### **Standard Format Architecture**
 1. **Standard Format Input**: Component accepts `parsedWML: StandardForm` via `PerceptionMessage` (built with **`ephemeraWire`** parsing for perception)
 2. **Room Data Extraction**: Extracts `StandardRoom` from `parsedWML.byUniversalId[componentUUID]`
-3. **Prose resolution**: **`render`** → **Situation** facet → **Example** (see **`SituationRoomFacetPayload`**)
+3. **Prose resolution**: **`render`** → **Situation** facet → **Example** (legacy fallback only; see **`SituationRoomFacetPayload`**)
 4. **Exit Handling**: Direct use of `StandardExitFacet[]` from `StandardRoom.exits.items`
 5. **Character Resolution**: Resolves `StandardCharacter[]` from `StandardRoom.characters.payload` references
 
 ### **Data Flow**
 1. **Input**: `PerceptionMessage` with `parsedWML` and `metaData.componentUUID`
 2. **Room Lookup**: `parsedWML.byUniversalId[componentUUID]` → `StandardRoom`
-3. **Prose**: Prefer **`StandardRoom.render`**; else first Situation facet; else first **`StandardExample`** under **`examples`**
+3. **Prose**: **`StandardRoom.render`**, then first Situation facet, then first **`StandardExample`** under **`examples`** (legacy only; do not rely on this for new content)
 4. **Exit Direct Access**: `StandardRoom.exits.items` → `StandardExitFacet[]`
 5. **Character Resolution**: `StandardRoom.characters.payload` → resolve each reference → `StandardCharacter[]`
 

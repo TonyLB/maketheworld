@@ -252,12 +252,14 @@ Components will need to:
 - **Extract Content**: Pull relevant information from WML structure and component data
 - **Render Appropriately**: Display content with proper styling based on component type
 
-**⚠️ CRITICAL**: When accessing WML content, remember that display content (`name`, `summary`, `description`) is stored in `Example` components, not directly in Feature/Knowledge/Room components. You must:
+**⚠️ CRITICAL (Feature and Knowledge)**: When accessing WML content for **Feature** or **Knowledge**, display content (`name`, `summary`, `description`) is stored in `Example` components, not directly on those parents. You must:
 
 1. Get the main component from `parsedWML.byUniversalId[componentUUID]`
-2. Use `instanceof` checks to verify the component type (e.g., `component instanceof StandardFeature`)
+2. Use `instanceof` checks to verify the component type (e.g., `component instanceof StandardFeature` or `StandardKnowledge`)
 3. Access the `examples.payload[0]` to get the first Example reference
 4. Look up the Example component to get actual display content
+
+**Room**: Do not follow the Example-first path for room prose. Use **`StandardRoom.render`** (ephemera wire), then the first **Situation** facet, with **`StandardRoom.examples`** only as a **legacy** fallback. See [`AGENT.RoomDescription.md`](./AGENT.RoomDescription.md) and [`packages/mtw-wml/ts/AGENT.md`](../../../../packages/mtw-wml/ts/AGENT.md).
 
 **Implementation Pattern:**
 ```typescript

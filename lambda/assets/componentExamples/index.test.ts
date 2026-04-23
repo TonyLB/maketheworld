@@ -289,7 +289,7 @@ describe('ComponentExamplesDataSource (mtw.assets.componentExamples)', () => {
             })
         })
 
-        it('should apply lens defaults and scoping for Room situations', async () => {
+        it('does not publish componentExamples events for Room updates (Gate D: Room excluded from Example-lifecycle filter)', async () => {
             const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
             const mockStreamEnvelope = jest.fn().mockResolvedValue(undefined)
 
@@ -388,14 +388,7 @@ describe('ComponentExamplesDataSource (mtw.assets.componentExamples)', () => {
                 streamEnvelope: mockStreamEnvelope,
             })
 
-            expect(mockStreamEvent).toHaveBeenCalledTimes(1)
-            const call = mockStreamEvent.mock.calls[0][0]
-            expect(call.update.exampleId).toBe(situationId)
-            const markState = call.update.example.markState.markValue
-            expect(markState).toEqual([
-                { mark: 'MARK#illumination', value: 'dim' },
-                { mark: 'MARK#timeofday', value: 'Afternoon' },
-            ])
+            expect(mockStreamEvent).toHaveBeenCalledTimes(0)
         })
     })
 })

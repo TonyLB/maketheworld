@@ -17,9 +17,9 @@ describe('ComponentRender cache handler', () => {
         internalCache.clear()
     })
 
-    it('should render room descriptions and headers differently', async () => {
-        // No render-cache records: fall back to ExamplesData (Phase 3: prefer cache, then fallback).
+    it('does not call Examples for Room when render cache is empty; omits Render', async () => {
         jest.spyOn(internalCache.RenderCache, "get").mockResolvedValue([])
+        jest.spyOn(internalCache.Examples, "get")
         jest.spyOn(internalCache.Global, "get").mockResolvedValue(['Base'])
         jest.spyOn(internalCache.CharacterMeta, "get").mockResolvedValue({
             EphemeraId: 'CHARACTER#Test',
@@ -30,44 +30,27 @@ describe('ComponentRender cache handler', () => {
             HomeId: 'ROOM#VORTEX',
             Pronouns: 'she/her'
         })
-        jest.spyOn(internalCache.Examples, "get").mockResolvedValue({
-            'ROOM#TestOne': [{
-                assetId: 'TestAsset',
-                examples: [
-                    new StandardExample({
-                        tag: 'Example',
-                        universalKey: 'EXAMPLE#Base',
-                        displayName: 'Example Name',
-                        description: ['Description'],
-                        summary: ['Summary']
-                    })
-                ]
-            }]
-        })
         jest.spyOn(internalCache.ComponentAssetMeta, "getAcrossAssets").mockResolvedValue({
-            [`ASSET#Base`]: new StandardRoom({
-                universalKey: 'ROOM#TestOne',
-                tag: 'Room',
-                shortName: 'TestRoom',
-                exits: [],
-                examples: ['EXAMPLE#Base']
-            })
+            [`ASSET#Base`]: new StandardRoom(deIndentWML(`
+                <Room uuid=(TestOne)>
+                    <ShortName>TestRoom</ShortName>
+                    <Situation uuid=(DEFAULT)>
+                        <DisplayName>Situation prose</DisplayName>
+                    </Situation>
+                </Room>
+            `)),
         })
         jest.spyOn(internalCache.RoomCharacterList, "get").mockResolvedValue([
             { EphemeraId: 'CHARACTER#TESS', DisplayName: 'Tess', Color: 'purple', SessionIds: [] }
         ])
         const descriptionOutput = await internalCache.ComponentRender.get('CHARACTER#TESS', 'ROOM#TestOne')
+        expect(internalCache.Examples.get).not.toHaveBeenCalled()
         expect(schemaToWML([descriptionOutput.schema])).toEqual(deIndentWML(`
             <Asset uuid=(render)>
                 <Character uuid=(TESS) ref={0}><DisplayName>Tess</DisplayName></Character>
                 <Room uuid=(TestOne) ref={0}>
                     <ShortName>TestRoom</ShortName>
                     <Character uuid=(TESS) />
-                    <Render>
-                        <DisplayName>Example Name</DisplayName>
-                        <Summary>Summary</Summary>
-                        <Description>Description</Description>
-                    </Render>
                 </Room>
             </Asset>
         `))
@@ -106,7 +89,6 @@ describe('ComponentRender cache handler', () => {
                 tag: 'Room',
                 shortName: 'TestRoom',
                 exits: [],
-                examples: [],
             }),
         })
         jest.spyOn(internalCache.RoomCharacterList, "get").mockResolvedValue([])
@@ -160,7 +142,6 @@ describe('ComponentRender cache handler', () => {
                 tag: 'Room',
                 shortName: 'TestRoom',
                 exits: [],
-                examples: [],
             }),
         })
         jest.spyOn(internalCache.RoomCharacterList, "get").mockResolvedValue([])

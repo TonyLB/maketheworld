@@ -153,9 +153,6 @@ describe('mapTreeMemo', () => {
                             <Position {100, 100} />
                             <ShortName>Room One</ShortName>
                             <Exit to=(ROOM#room2)>to room two</Exit>
-                            <Example key=(example1)>
-                                <Description>This should not be included</Description>
-                            </Example>
                             <Feature key=(feature1)>
                                 <ShortName>This should not be included</ShortName>
                             </Feature>
@@ -176,10 +173,11 @@ describe('mapTreeMemo', () => {
                 // Should have exits
                 expect(room1.exits).toHaveLength(1)
                 
-                // Should NOT have examples, features, or other content
-                expect(room1.examples.payload).toHaveLength(0)
+                // Stub should omit nested Feature (and legacy Example content): only ShortName + exits in serialized stub
                 expect(room1.features.payload).toHaveLength(0)
                 expect(room1.characters.payload).toHaveLength(0)
+                expect(schemaToWML([room1.schema])).not.toMatch(/<Example/)
+                expect(schemaToWML([room1.schema])).not.toMatch(/<Feature/)
             }
             
         })

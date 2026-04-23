@@ -8,8 +8,12 @@ import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import internalCache from '../../internalCache'
 import messageBus from '../../messageBus'
 import * as schemaModule from '@tonylb/mtw-wml/ts/schema'
+import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
+import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import {
+    makePassThroughGenerationDeferredPayload,
     makePassThroughGenerationStartedPayload,
+    makePassThroughOrchestrationErrorPayload,
     passThroughFixtureMinimalDynamoItem,
     passThroughFixturePerspectiveKey,
     passThroughFixtureRoomId,
@@ -84,6 +88,127 @@ describe('mtw.ephemera.perception DataSource', () => {
             characterId: 'CHARACTER#viewer',
         })
         expect(sendSpy.mock.calls.some((call) => call[0]?.type === 'PublishMessage')).toBe(false)
+        sendSpy.mockRestore()
+    })
+
+    function assertFullRoomRenderPlaceholderWml(wmlContent: string, roomId: string, expectedDescription: string): void {
+        const parsed = new StandardForm(wmlContent, { standardizeMode: 'ephemeraWire' })
+        expect(Object.keys(parsed.byUniversalId).filter((k) => k.startsWith('EXAMPLE#'))).toHaveLength(0)
+        const room = parsed.byUniversalId[roomId]
+        expect(room).toBeInstanceOf(StandardRoom)
+        const r = room as StandardRoom
+        expect(r.render?.description).toEqual([expectedDescription])
+    }
+
+    async function sendOrchestrationStreamingEvent(
+        payload:
+            | ReturnType<typeof makePassThroughGenerationStartedPayload>
+            | ReturnType<typeof makePassThroughOrchestrationErrorPayload>
+            | ReturnType<typeof makePassThroughGenerationDeferredPayload>
+    ): Promise<void> {
+        const tsOrch = Date.now()
+        messageBus.send({
+            type: 'StreamingEvent',
+            dataSourceKey: RENDER_ORCHESTRATION_DATA_SOURCE_KEY,
+            streamKey: passThroughFixtureRoomId,
+            timestamp: tsOrch,
+            header: {
+                dataSourceKey: RENDER_ORCHESTRATION_DATA_SOURCE_KEY,
+                streamKey: passThroughFixtureRoomId,
+                timestamp: tsOrch,
+                type: payload.type,
+            },
+            getContent: () => Promise.resolve(payload),
+        })
+        await messageBus.flush()
+    }
+
+    it('roomDescription Generation Started publishes render-channel full-room WML with Render placeholder (no Example)', async () => {
+        const sendSpy = jest.spyOn(messageBus, 'send')
+
+        sendPerceptionThreadRegistered(messageBus, passThroughFixtureRoomId, {
+            threadKind: 'roomDescription',
+            componentId: passThroughFixtureRoomId,
+            perspectiveKey: passThroughFixturePerspectiveKey,
+            characterId: 'CHARACTER#viewer',
+        })
+        await messageBus.flush()
+
+        await sendOrchestrationStreamingEvent(makePassThroughGenerationStartedPayload())
+
+        const genPublish = sendSpy.mock.calls.find((c) => {
+            const m = c[0] as { type?: string; metaData?: { status?: string; displayMode?: string }; wmlContent?: string }
+            return (
+                m?.type === 'PublishMessage'
+                && m?.metaData?.status === 'generating'
+                && m?.metaData?.displayMode === 'full'
+                && typeof m.wmlContent === 'string'
+            )
+        })
+        expect(genPublish).toBeDefined()
+        assertFullRoomRenderPlaceholderWml(
+            (genPublish![0] as { wmlContent: string }).wmlContent,
+            passThroughFixtureRoomId,
+            'Generating'
+        )
+        sendSpy.mockRestore()
+    })
+
+    it('roomDescription Orchestration Error publishes full-room Render placeholder and removes thread', async () => {
+        const sendSpy = jest.spyOn(messageBus, 'send')
+
+        sendPerceptionThreadRegistered(messageBus, passThroughFixtureRoomId, {
+            threadKind: 'roomDescription',
+            componentId: passThroughFixtureRoomId,
+            perspectiveKey: passThroughFixturePerspectiveKey,
+            characterId: 'CHARACTER#viewer',
+        })
+        await messageBus.flush()
+
+        await sendOrchestrationStreamingEvent(makePassThroughOrchestrationErrorPayload())
+
+        const errPublish = sendSpy.mock.calls.find((c) => {
+            const m = c[0] as { type?: string; metaData?: { displayMode?: string }; wmlContent?: string }
+            return m?.type === 'PublishMessage' && m?.metaData?.displayMode === 'full' && typeof m.wmlContent === 'string'
+        })
+        expect(errPublish).toBeDefined()
+        assertFullRoomRenderPlaceholderWml(
+            (errPublish![0] as { wmlContent: string }).wmlContent,
+            passThroughFixtureRoomId,
+            'Error'
+        )
+        expect(internalCache.PerceptionThreads.list(passThroughFixtureRoomId, passThroughFixturePerspectiveKey)).toEqual(
+            []
+        )
+        sendSpy.mockRestore()
+    })
+
+    it('roomDescription Generation Deferred publishes full-room Render placeholder and removes thread', async () => {
+        const sendSpy = jest.spyOn(messageBus, 'send')
+
+        sendPerceptionThreadRegistered(messageBus, passThroughFixtureRoomId, {
+            threadKind: 'roomDescription',
+            componentId: passThroughFixtureRoomId,
+            perspectiveKey: passThroughFixturePerspectiveKey,
+            characterId: 'CHARACTER#viewer',
+        })
+        await messageBus.flush()
+
+        await sendOrchestrationStreamingEvent(makePassThroughGenerationDeferredPayload())
+
+        const defPublish = sendSpy.mock.calls.find((c) => {
+            const m = c[0] as { type?: string; metaData?: { displayMode?: string }; wmlContent?: string }
+            return m?.type === 'PublishMessage' && m?.metaData?.displayMode === 'full' && typeof m.wmlContent === 'string'
+        })
+        expect(defPublish).toBeDefined()
+        assertFullRoomRenderPlaceholderWml(
+            (defPublish![0] as { wmlContent: string }).wmlContent,
+            passThroughFixtureRoomId,
+            'Error'
+        )
+        expect(internalCache.PerceptionThreads.list(passThroughFixtureRoomId, passThroughFixturePerspectiveKey)).toEqual(
+            []
+        )
         sendSpy.mockRestore()
     })
 

@@ -6,7 +6,7 @@
 
 ## Purpose
 
-In WML, components contain reference collections (like `features`, `examples`, `characters` in a Room) that point to other components. `ReferenceList` provides a unified interface for:
+In WML, components contain reference collections (for example **`features`** and **`characters`** on Room, **`examples`** on Feature and Knowledge) that point to other components. `ReferenceList` provides a unified interface for:
 
 - **Storing references** as a collection of `StandardReference` objects
 - **Merging references** from multiple component appearances

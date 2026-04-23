@@ -1,6 +1,8 @@
 import internalCache from '../internalCache'
 import StandardExample from '@tonylb/mtw-wml/ts/standardize/components/example'
 import { StandardRoom } from '@tonylb/mtw-wml/ts/standardize/components/room'
+import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
+import StandardKnowledge from '@tonylb/mtw-wml/ts/standardize/components/knowledge'
 import StandardSituation from '@tonylb/mtw-wml/ts/standardize/components/situation'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
@@ -81,7 +83,7 @@ describe('exampleEnrichment helpers', () => {
         expect(payload.provenance.type).toBe('authored')
     })
 
-    it('should merge Example and find parentIds in enrichExampleEvent', async () => {
+    it('should not treat Room as Example parent but keep Feature and Knowledge parentIds in enrichExampleEvent', async () => {
         const exampleId = 'EXAMPLE#one' as const
         const eventAssetId = 'ASSET#asset1' as const
 
@@ -91,9 +93,21 @@ describe('exampleEnrichment helpers', () => {
             </Example>
         `))
 
-        const room = new StandardRoom({
-            tag: 'Room',
-            universalKey: 'ROOM#one',
+        const room = new StandardRoom(deIndentWML(`
+            <Room key=(one) uuid=(ROOM#one)>
+                <Situation uuid=(DEFAULT)><DisplayName>Room prose</DisplayName></Situation>
+            </Room>
+        `))
+        const feature = new StandardFeature({
+            tag: 'Feature',
+            universalKey: 'FEATURE#one',
+            examples: [
+                { universalKey: exampleId, key: 'exampleRef', tag: 'Example' } as any,
+            ],
+        } as any)
+        const knowledge = new StandardKnowledge({
+            tag: 'Knowledge',
+            universalKey: 'KNOWLEDGE#one',
             examples: [
                 { universalKey: exampleId, key: 'exampleRef', tag: 'Example' } as any,
             ],
@@ -107,6 +121,8 @@ describe('exampleEnrichment helpers', () => {
             } as any,
             exampleBase.toJSON() as any,
             room.toJSON() as any,
+            feature.toJSON() as any,
+            knowledge.toJSON() as any,
         ])
 
         mockInternalCache.ComponentData.get.mockResolvedValue([
@@ -137,7 +153,8 @@ describe('exampleEnrichment helpers', () => {
 
         expect(result.exampleId).toBe(exampleId)
         expect(result.assetStack).toEqual([eventAssetId])
-        expect(result.parentIds).toEqual(['ROOM#one'])
+        expect(result.parentIds).toEqual(expect.arrayContaining(['FEATURE#one', 'KNOWLEDGE#one']))
+        expect(result.parentIds).not.toContain('ROOM#one')
         expect(result.example).toBeDefined()
         expect(result.example?.renderedContent.description.length).toBeGreaterThan(0)
     })

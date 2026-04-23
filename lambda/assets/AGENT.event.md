@@ -143,19 +143,20 @@ The Assets Lambda hosts six data sources, each serving a specific purpose:
 
 Where:
 - `exampleId`: Example component UUID (blueprint Example)
-- `parentIds`: Component UUIDs of parent Room/Feature/Knowledge that reference the Example
+- `parentIds`: Component UUIDs of parents derived from **Feature**/**Knowledge** **`examples`** lists that reference this Example (`exampleEnrichment` does not walk **`Room.examples`**)
 - `assetStack`: Ordered list of AssetUUIDs in the Example's inheritance chain (base-first, event asset last)
 - `example`: Cache-shaped payload `{ markState, renderedContent, provenance: { type: 'authored' } }` matching Ephemera render-cache schema
 
 **Event Subscription and Enrichment**:
 
 - Subscribes to `mtw.assets` **Component Updated** and **Component Removed** events.
-- Filters to **Example-associated** component events only:
-  - All `Example` components.
-  - `Room`, `Feature`, and `Knowledge` components whose `examples` field on the **diff** has non-zero length (`component.examples?.payload?.length > 0`), which reliably indicates example-related changes (add/remove of example refs or example content).
+- Filters to **Example-associated** component events via **[`isExampleAssociatedComponent`](./componentExamples/exampleAssociatedFilter.ts)**:
+  - Every **`Example`** component.
+  - **`Feature`** and **`Knowledge`** only when they have a non-empty **`examples`** reference list (`component.examples?.payload?.length > 0`).
+  - **`Room`** updates **do not** pass this filter (Room prose is **Situation** / **`render`**, not **`Room.examples`**). **`Room`** **`Component Updated`** therefore does **not** drive this data source today; see **[`componentExamples/AGENT.md`](./componentExamples/AGENT.md)** and **[`componentExamples/index.test.ts`](./componentExamples/index.test.ts)**.
 - For each Example-associated change, this data source:
   - Reconstructs the Example's **inheritance chain** via `_from` links across the Assets table to build the ordered `assetStack` (base-first, event asset last).
-  - For each asset in that chain, scans all candidate parent components (Rooms/Features/Knowledge) to find those whose `examples` lists reference the Example, yielding `parentIds`.
+  - Derives **`parentIds`** from **Feature**/**Knowledge** **`examples`** reference lists (via **[`exampleEnrichment.ts`](./componentExamples/exampleEnrichment.ts)**); **`Room.examples`** is not used for parent discovery after the standardized model dropped Room-owned example lists.
   - For `ExampleUpdated` (and eventually `ExampleAdded`), merges the Example across the asset stack into a single payload shaped for Ephemera's render cache (`{ markState, renderedContent, provenance: { type: 'authored' } }`).
   - For `ExampleRemoved`, computes `assetStack` and `parentIds` without emitting a new example payload.
 
@@ -163,10 +164,12 @@ Other component types (Character, Message, Guidance, etc.) are ignored by this d
 
 **Diagnostics reseed integration (steady state):**
 - `Ephemera RenderCache Finding` remediation in `mtw.assets` uses synthetic `Component Updated` events to intentionally re-enter this enrichment pipeline.
-- As a result, reseed uses the same authored payload construction path as normal component updates (including room-situation fanout) rather than introducing a separate cache-healing event shape.
+- As a result, reseed uses the same authored payload construction path as normal component updates rather than introducing a separate cache-healing event shape.
 - `status: 'missing'` and `status: 'corrupted'` currently share the same idempotent reseed behavior.
 
 **Implementation**: [`./componentExamples/index.ts`](./componentExamples/index.ts)
+
+**Steady-state notes** (filter and enrichment): [`./componentExamples/AGENT.md`](./componentExamples/AGENT.md).
 
 For more on how these events are consumed to populate Ephemera's render cache, see `lambda/ephemera/AGENT.caching.planning.md` and `lambda/ephemera/dataSource/renderCache/AGENT.md`.
 
@@ -258,7 +261,7 @@ Each downstream data source applies its own filtering:
 - **characters**: Filters for character component changes only
 - **library**: Filters for zone changes involving Library zone
 - **players**: Filters for zone changes involving Personal/Draft zones and player settings updates
-- **componentExamples**: Filters for Component Updated and Component Removed, then to Example-associated components only (Example, Room, Feature, Knowledge)
+- **componentExamples**: Filters for Component Updated and Component Removed, then to Example-associated components only (**Example**, **Feature** with non-empty **`examples`**, **Knowledge** with non-empty **`examples`**; see **[`componentExamples/exampleAssociatedFilter.ts`](./componentExamples/exampleAssociatedFilter.ts)**)
 
 This cascading pattern enables:
 - Specialized views of asset data
