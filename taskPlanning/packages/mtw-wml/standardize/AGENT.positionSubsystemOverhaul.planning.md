@@ -9,7 +9,6 @@ Track removal of the temporary Position missing-payload fallback (`{ x: 0, y: 0 
 ## Context
 
 - Temporary fallback is documented in:
-  - [`taskPlanning/packages/mtw-wml/standardize/AGENT.facetDefaults.planning.md`](./AGENT.facetDefaults.planning.md)
   - [`packages/mtw-wml/ts/standardize/keys/facets/AGENT.facets.md`](../../../../packages/mtw-wml/ts/standardize/keys/facets/AGENT.facets.md)
 
 ## Scope

@@ -78,6 +78,17 @@
 - Follow-up cleanup plan:
   - [`taskPlanning/packages/mtw-wml/standardize/AGENT.positionSubsystemOverhaul.planning.md`](../../../../taskPlanning/packages/mtw-wml/standardize/AGENT.positionSubsystemOverhaul.planning.md)
 
+## Missing-payload policy (high level)
+
+- Intent: preserve backward-compatible ingestion for facet envelopes that omit `payload`, without broadening acceptance of malformed present payload values.
+- Scope boundary: tolerance applies only at ingestion boundaries; normative serialized shapes remain payload-required.
+- Navigation guide:
+  - Facet envelope/type-level shapes: [`dataTypes/facet.ts`](./dataTypes/facet.ts)
+  - Input vs normative facet list aliases: [`../abstract.ts`](../abstract.ts)
+  - Guard behavior at component boundaries: [`../../components/dataTypes/typeguards.ts`](../../components/dataTypes/typeguards.ts), [`../../components/dataTypes/index.ts`](../../components/dataTypes/index.ts)
+  - Default injection path per facet family: `position.ts`, `mark.ts`, `lensMark.ts`, `situationRoom.ts`, `exit.ts` (via `facetFactory.ts`)
+  - Behavioral regression coverage: `facetFactory.test.ts`, `dataTypes/facet.test.ts`, `../../index.test.ts`
+
 ## Usage Patterns
 
 - **Common Scenarios**: 
