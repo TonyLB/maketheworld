@@ -1,6 +1,6 @@
 # Facet payload defaults and tolerant parse fallback
 
-Status: in progress. Next step: add and finalize broader missing-payload regression coverage.
+Status: complete. Next step: follow Position subsystem overhaul cleanup plan.
 
 ## Purpose and scope
 
@@ -39,8 +39,8 @@ This file is temporary task tracking. Follow task-plan conventions in [`taskPlan
 | 1 | Define default matrix by facet type | Complete | Approved defaults for Exit/Mark/LensMark/SituationRoom and temporary-risk Position fallback |
 | 2 | Implement tolerant parse fallback | Pending | Keep behavior scoped to missing payload only |
 | 3 | Add tests for legacy/malformed facet JSON | Pending | Constructor + NDJSON + merge paths |
-| 4 | Validate downstream lambda/client behavior | Pending | Ensure no silent parse failures |
-| 5 | Document interim Position tradeoff | Pending | Add explicit temporary-risk note |
+| 4 | Validate downstream lambda/client behavior | Complete | Authoring edit acceptance paths and conflict/error observability checked in active flows |
+| 5 | Document interim Position tradeoff | Complete | Durable note added and cleanup follow-up linked |
 
 ## Approved default matrix
 
@@ -74,12 +74,14 @@ Use `[ ]` for pending and `[X]` for completed work. Mark each nested line `[X]` 
   - [X] Regression coverage for merge/diff/invert semantics.
 
 Verification note: Added explicit regression tests proving missing-payload-origin facets preserve expected merge/diff/invert behavior at facet and StandardForm levels.
-- [ ] Validate end-to-end behavior in active flows.
-  - [ ] Authoring edit acceptance paths (client + lambda).
-  - [ ] Conflict/error response behavior remains observable.
-- [ ] Document and bound the Position risk.
-  - [ ] Add explicit note in durable facet docs that Position fallback is temporary.
-  - [ ] Create follow-up link for Position subsystem overhaul cleanup.
+- [X] Validate end-to-end behavior in active flows.
+  - [X] Authoring edit acceptance paths (client + lambda).
+  - [X] Conflict/error response behavior remains observable.
+- [X] Document and bound the Position risk.
+  - [X] Add explicit note in durable facet docs that Position fallback is temporary.
+  - [X] Create follow-up link for Position subsystem overhaul cleanup.
+
+Position cleanup follow-up: [`taskPlanning/packages/mtw-wml/standardize/AGENT.positionSubsystemOverhaul.planning.md`](./AGENT.positionSubsystemOverhaul.planning.md)
 
 ## Verification focus
 

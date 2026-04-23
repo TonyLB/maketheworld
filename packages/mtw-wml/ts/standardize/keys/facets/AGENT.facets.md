@@ -70,6 +70,14 @@
   - Will be integrated into StandardComponent implementations (Phase 5)
   - Replaces ad-hoc patterns like StandardPosition and StandardExit (optional, Phase 6)
 
+## Position fallback risk note
+
+- Position currently allows omitted payload ingestion by injecting a temporary default: `{ x: 0, y: 0 }`.
+- This fallback is a short-term compatibility tradeoff, not a neutral semantic default.
+- Keep strict rejection for malformed present payload values; tolerance is only for omitted payload.
+- Follow-up cleanup plan:
+  - [`taskPlanning/packages/mtw-wml/standardize/AGENT.positionSubsystemOverhaul.planning.md`](../../../../taskPlanning/packages/mtw-wml/standardize/AGENT.positionSubsystemOverhaul.planning.md)
+
 ## Usage Patterns
 
 - **Common Scenarios**: 
