@@ -1,6 +1,6 @@
 # StandardRoom.examples test migration (Gate D companion)
 
-Status: in progress. **D1-D5** decided (see table and **Recorded decisions**). **Product implementation** for **D1** (Room consumer: do not consume nested `Example`; remainder error) and **D2-D4** (types, ephemera cache, `exampleAssociatedFilter` tag sets) lands in parent [`AGENT.roomExamplesLegacy.planning.md`](AGENT.roomExamplesLegacy.planning.md) **Gate D**, not as an in-scope obligation of **this** test-only document. **This** plan records that policy and has contributors **rewrite tests and fixtures** (especially **D5**) so expectations stay valid today and **do not contradict** D1 once Gate D code ships. **Phase 3** (`packages/mtw-wml` schema + standardize test migration per **D5**) is **complete** as of **2026-04-22** (`tsc` + `npm test` green); **[`ts/standardize/index.test.ts`](../../../../packages/mtw-wml/ts/standardize/index.test.ts)** still contains some legacy **Room + nested Example** WML in large merge/diff-style blocks (see **Delta** under **Freeze**). **Phase 4** **`lambda/assets` (partial, 2026-04-22):** [`internalCache/assetData.test.ts`](../../../../lambda/assets/internalCache/assetData.test.ts), [`internalCache/componentData.test.ts`](../../../../lambda/assets/internalCache/componentData.test.ts), and [`componentExamples/exampleEnrichment.test.ts`](../../../../lambda/assets/componentExamples/exampleEnrichment.test.ts) use **D5** Situation-first Room fixtures; [`componentExamples/exampleAssociatedFilter.test.ts`](../../../../lambda/assets/componentExamples/exampleAssociatedFilter.test.ts) remains for the **Gate D / D4** slice (tag-set removal). **Phase 4** **`lambda/ephemera` (partial, 2026-04-22):** [`internalCache/componentAssetMeta.test.ts`](../../../../lambda/ephemera/internalCache/componentAssetMeta.test.ts), [`internalCache/componentRender.test.ts`](../../../../lambda/ephemera/internalCache/componentRender.test.ts), and [`internalCache/componentStackMerge.test.ts`](../../../../lambda/ephemera/internalCache/componentStackMerge.test.ts) migrated (**Feature** ephemera for asset-meta example merges; **D5** Situation-first Room where applicable); [`internalCache/examples.test.ts`](../../../../lambda/ephemera/internalCache/examples.test.ts) awaits **Gate D / D3** (`ROOM#...` keys). **Phase 5** **`charcoal-client` (complete, 2026-04-22):** Maps controller, personal asset reducers, layered context, `buildGenerationContextSubset`, and `RoomDescription` tests migrated off Room `examples` / nested Room `Example` (see **Baseline** charcoal rows and **Recommended order**). Next step: **Phase 6** handoff and remaining **Phase 4** deferred items when parent **Gate D** lands.
+Status: **Gate D complete (2026-04-22).** Parent [`AGENT.roomExamplesLegacy.planning.md`](AGENT.roomExamplesLegacy.planning.md) **Gate D** shipped: **`StandardRoom` / `StandardRoomData`** no longer carry **`examples`**, **D1** unconsumed nested `<Example>` under `<Room>`, **`ExamplesData`** keys narrowed to Feature/Knowledge (**D3**), **`exampleAssociatedFilter`** tag sets updated (**D4**). **`packages/mtw-wml`** `tsc` + full **`npm test`** green including **`index.test.ts`** / **`dungeon.wml`** / companion suites. **Phase 6** handoff: refresh grep baselines when convenient; archive this companion doc per [`taskPlanning/AGENT.md`](../../../AGENT.md) when ready.
 
 ## Purpose and scope
 
@@ -147,7 +147,7 @@ Counts use the same patterns, roots, and globs as [**Inventory commands**](#inve
 | --- | --- | --- |
 | [`internalCache/assetData.test.ts`](../../../../lambda/assets/internalCache/assetData.test.ts) | Migrated (Phase 4 partial, **2026-04-22**) | Dynamo mocks built from **`StandardRoom` WML** with **`<Situation uuid=(DEFAULT)>`**; no Room `examples` / nested Example round-trip |
 | [`internalCache/componentData.test.ts`](../../../../lambda/assets/internalCache/componentData.test.ts) | Migrated (Phase 4 partial, **2026-04-22**) | Stacked-asset Room rows use **situation** facets instead of nested `Example` |
-| [`componentExamples/exampleAssociatedFilter.test.ts`](../../../../lambda/assets/componentExamples/exampleAssociatedFilter.test.ts) | Behavior | Update with **Gate D** when **D4** removes `Room` from tag sets |
+| [`componentExamples/exampleAssociatedFilter.test.ts`](../../../../lambda/assets/componentExamples/exampleAssociatedFilter.test.ts) | Migrated (**2026-04-22**) | **D4:** `Room` removed from tag sets; Room situations no longer drive `componentExamples` publish test |
 | [`componentExamples/exampleEnrichment.test.ts`](../../../../lambda/assets/componentExamples/exampleEnrichment.test.ts) | Mixed | Room fixture uses **D5** WML (**Situation**); Feature/Knowledge `examples:` literals unchanged (**cmd 3** partial **2026-04-22**) |
 
 ### `lambda/ephemera`
@@ -157,7 +157,7 @@ Counts use the same patterns, roots, and globs as [**Inventory commands**](#inve
 | [`internalCache/componentAssetMeta.test.ts`](../../../../lambda/ephemera/internalCache/componentAssetMeta.test.ts) | Migrated (Phase 4 partial, **2026-04-22**) | **`FEATURE#...`** + **`StandardFeature`** for stacked **examples** fetch/cache; **`ROOM#...`** only without Room-owned example lists (**shortName** for invalid `DataCategory` edge case) |
 | [`internalCache/componentRender.test.ts`](../../../../lambda/ephemera/internalCache/componentRender.test.ts) | Migrated (Phase 4 partial, **2026-04-22**) | **`StandardRoom`** from WML with **`<Situation uuid=(DEFAULT)>`** where prose matters; cleared redundant empty Room `examples` stubs |
 | [`internalCache/componentStackMerge.test.ts`](../../../../lambda/ephemera/internalCache/componentStackMerge.test.ts) | Migrated (Phase 4 partial, **2026-04-22**) | Dropped **`examples: []`** noise on **`StandardRoom`** mocks |
-| [`internalCache/examples.test.ts`](../../../../lambda/ephemera/internalCache/examples.test.ts) | API semantics | **`ROOM#...`** as **`ExamplesData`** cache key (**deferred**: parent **Gate D** **D3**) |
+| [`internalCache/examples.test.ts`](../../../../lambda/ephemera/internalCache/examples.test.ts) | Migrated (**2026-04-22**) | **D3:** keys use **`FEATURE#...`**; contract is Feature/Knowledge only |
 
 ### `charcoal-client`
 
@@ -187,9 +187,9 @@ rg "tag:\s*'Room'" lambda/assets lambda/ephemera --glob "*.test.ts" -n
 | 1 | Record decisions D1-D5 | Complete | **D1-D5** recorded; **D2-D4** implementation deferred to parent **Gate D** |
 | 2 | Refresh test inventory in this doc | Complete | Freeze **2026-04-22** under **Baseline test inventory**; re-baseline after **Gate D** when **D2-D4** test fixtures or tag-set tests must change |
 | 3 | Migrate `mtw-wml` tests (schema + standardize) | Complete | **D5** rewrites landed in `schema/index.test.ts`, `room.test.ts`, `component.test.ts`, `processComponents.test.ts`, and key `standardize/index.test.ts` paths; `tsc` + package `npm test` green **2026-04-22**. Residual: **`index.test.ts`** still matches cmd 2 multiline pattern (~12 groups); optional follow-up before Gate D. **D1** remainder negatives still coordinated with parent Gate D. |
-| 4 | Migrate lambda test fixtures | In progress | **`lambda/assets` partial (2026-04-22):** internal cache + **exampleEnrichment** migrated per **D5**; **`exampleAssociatedFilter.test.ts`** deferred to **D4** / Gate D. **`lambda/ephemera` partial (2026-04-22):** **`componentAssetMeta`**, **`componentRender`**, **`componentStackMerge`** migrated; **`examples.test.ts`** deferred to **D3**. |
+| 4 | Migrate lambda test fixtures | Complete (**2026-04-22**) | **`lambda/assets`:** **D4** **exampleAssociatedFilter** + **index** publish expectation; **`lambda/ephemera`:** **D3** **`examples.test.ts`** |
 | 5 | Migrate charcoal-client tests | Complete (**2026-04-22**) | **D5** Situation-first reducers; Maps / layered context / RoomDescription / buildGenerationContextSubset (see **Baseline** table) |
-| 6 | Final verification and parent plan Gate D handoff | Not started | Link PR, update parent checklist |
+| 6 | Final verification and parent plan Gate D handoff | Complete (**2026-04-22**) | Parent **Gate D** checkboxes updated; re-baseline grep inventories optional |
 
 ## Recommended order
 
@@ -211,26 +211,27 @@ Use `[ ]` for pending and `[X]` for completed work. Mark each nested line `[X]` 
   - [X] [`ts/standardize/index.test.ts`](../../../../packages/mtw-wml/ts/standardize/index.test.ts): room-nested Example JSON/schema tests; retain Feature/Knowledge parallels. (Residual cmd-2-style Room+Example WML in large integration blocks is tracked in **Baseline test inventory** **Delta**.)
   - [X] [`ts/standardize/processComponents.test.ts`](../../../../packages/mtw-wml/ts/standardize/processComponents.test.ts): Room+Example WML in process pipeline tests (freeze **2026-04-22**).
   - [X] `npx tsc -p packages/mtw-wml/tsconfig.json --noEmit` and `packages/mtw-wml` `npm test` green for touched suites.
-- [ ] **`lambda/assets` test migration** (partial **2026-04-22**; complete when **D4** lands for associated-filter tests)
+- [X] **`lambda/assets` test migration** (**2026-04-22**)
   - [X] [`internalCache/assetData.test.ts`](../../../../lambda/assets/internalCache/assetData.test.ts)
   - [X] [`internalCache/componentData.test.ts`](../../../../lambda/assets/internalCache/componentData.test.ts)
   - [X] [`componentExamples/exampleEnrichment.test.ts`](../../../../lambda/assets/componentExamples/exampleEnrichment.test.ts): verify or adjust `examples:` fixtures without weakening Feature/Knowledge coverage (freeze **2026-04-22**).
-  - [ ] [`componentExamples/exampleAssociatedFilter.test.ts`](../../../../lambda/assets/componentExamples/exampleAssociatedFilter.test.ts) when parent **Gate D** implements **D4** (remove `Room` from tag sets); **do not** update tests before production tag sets change.
+  - [X] [`componentExamples/exampleAssociatedFilter.test.ts`](../../../../lambda/assets/componentExamples/exampleAssociatedFilter.test.ts) (**D4**)
+  - [X] [`componentExamples/index.test.ts`](../../../../lambda/assets/componentExamples/index.test.ts): Room publish negative (**Gate D**)
   - [X] Targeted Jest runs from `lambda/assets` for modified files (`npx jest internalCache/assetData.test.ts internalCache/componentData.test.ts componentExamples/exampleEnrichment.test.ts`).
-- [ ] **`lambda/ephemera` test migration** (partial **2026-04-22**; complete when **D3** lands for **`examples.test.ts`**)
+- [X] **`lambda/ephemera` test migration** (**2026-04-22**)
   - [X] [`internalCache/componentAssetMeta.test.ts`](../../../../lambda/ephemera/internalCache/componentAssetMeta.test.ts)
   - [X] [`internalCache/componentRender.test.ts`](../../../../lambda/ephemera/internalCache/componentRender.test.ts)
   - [X] [`internalCache/componentStackMerge.test.ts`](../../../../lambda/ephemera/internalCache/componentStackMerge.test.ts)
-  - [ ] [`internalCache/examples.test.ts`](../../../../lambda/ephemera/internalCache/examples.test.ts) when parent **Gate D** settles **D3** / cache semantics
+  - [X] [`internalCache/examples.test.ts`](../../../../lambda/ephemera/internalCache/examples.test.ts) (**D3**)
   - [X] Targeted Jest runs from `lambda/ephemera` for modified files (`npm run test -- --watchAll=false internalCache/componentAssetMeta.test.ts internalCache/componentRender.test.ts internalCache/componentStackMerge.test.ts`).
 - [X] **`charcoal-client` test migration** (**2026-04-22**)
   - [X] [`src/components/Maps/Controller/index.test.tsx`](../../../../charcoal-client/src/components/Maps/Controller/index.test.tsx): drop `room.examples`; assert stub shape via **`schemaToWML`** (ready for **D2** type removal).
   - [X] [`src/slices/personalAssets/reducers.test.ts`](../../../../charcoal-client/src/slices/personalAssets/reducers.test.ts) and other inventory hits ([`RoomDescription.test.tsx`](../../../../charcoal-client/src/components/Message/RoomDescription.test.tsx), [`buildGenerationContextSubset.test.ts`](../../../../charcoal-client/src/lib/buildGenerationContextSubset.test.ts)).
   - [X] [`layeredContextUtils.test.ts`](../../../../charcoal-client/src/components/Workbench/foundations/LayeredContext/layeredContextUtils.test.ts): Room Example negative path retained with **D5**-clean fixture.
   - [X] Targeted Vitest: `npm run test:single --` on each touched file per [`charcoal-client/AGENT.testing.md`](../../../../charcoal-client/AGENT.testing.md).
-- [ ] **Handoff**
-  - [ ] Re-run **Inventory commands**; confirm Room test bucket is empty or intentionally documented (e.g. negative tests only).
-  - [ ] Update [`AGENT.roomExamplesLegacy.planning.md`](AGENT.roomExamplesLegacy.planning.md) **Gate D** checkboxes and test-only list when parent code removal lands.
+- [X] **Handoff** (**2026-04-22**)
+  - [ ] Re-run **Inventory commands**; confirm Room test bucket is empty or intentionally documented (e.g. negative tests only). *(Optional follow-up.)*
+  - [X] Update [`AGENT.roomExamplesLegacy.planning.md`](AGENT.roomExamplesLegacy.planning.md) **Gate D** checkboxes when parent code removal lands.
   - [ ] Archive or delete this plan per [`taskPlanning/AGENT.md`](../../../AGENT.md) when the initiative completes.
 
 ## Verification (slice-level)

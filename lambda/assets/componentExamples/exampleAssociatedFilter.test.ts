@@ -7,22 +7,22 @@ import {
 
 describe('exampleAssociatedFilter', () => {
     describe('EXAMPLE_ASSOCIATED_TAGS', () => {
-        it('should contain Example, Room, Feature, Knowledge', () => {
+        it('should contain Example, Feature, Knowledge', () => {
             expect(EXAMPLE_ASSOCIATED_TAGS.has('Example')).toBe(true)
-            expect(EXAMPLE_ASSOCIATED_TAGS.has('Room')).toBe(true)
             expect(EXAMPLE_ASSOCIATED_TAGS.has('Feature')).toBe(true)
             expect(EXAMPLE_ASSOCIATED_TAGS.has('Knowledge')).toBe(true)
-            expect(EXAMPLE_ASSOCIATED_TAGS.size).toBe(4)
+            expect(EXAMPLE_ASSOCIATED_TAGS.has('Room')).toBe(false)
+            expect(EXAMPLE_ASSOCIATED_TAGS.size).toBe(3)
         })
     })
 
     describe('EXAMPLE_PARENT_TAGS', () => {
-        it('should contain Room, Feature, Knowledge only', () => {
-            expect(EXAMPLE_PARENT_TAGS.has('Room')).toBe(true)
+        it('should contain Feature, Knowledge only', () => {
             expect(EXAMPLE_PARENT_TAGS.has('Feature')).toBe(true)
             expect(EXAMPLE_PARENT_TAGS.has('Knowledge')).toBe(true)
+            expect(EXAMPLE_PARENT_TAGS.has('Room')).toBe(false)
             expect(EXAMPLE_PARENT_TAGS.has('Example')).toBe(false)
-            expect(EXAMPLE_PARENT_TAGS.size).toBe(3)
+            expect(EXAMPLE_PARENT_TAGS.size).toBe(2)
         })
     })
 
@@ -32,9 +32,9 @@ describe('exampleAssociatedFilter', () => {
             expect(isExampleAssociatedComponent({ tag: 'Example', examples: { payload: [] } } as unknown as StandardComponent)).toBe(true)
         })
 
-        it('should return true for Room only when situations has non-zero length (Phase 3: situations-only)', () => {
+        it('should return false for Room (not in Example-lifecycle filter after Gate D)', () => {
             const withSituations = { items: [{ reference: { universalKey: 'SITUATION#x' }, payload: {} }] }
-            expect(isExampleAssociatedComponent({ tag: 'Room', situations: withSituations } as unknown as StandardComponent)).toBe(true)
+            expect(isExampleAssociatedComponent({ tag: 'Room', situations: withSituations } as unknown as StandardComponent)).toBe(false)
             expect(isExampleAssociatedComponent({ tag: 'Room', examples: { payload: [{ tag: 'Example', universalKey: 'EXAMPLE#x' }] } } as unknown as StandardComponent)).toBe(false)
         })
 
@@ -50,15 +50,14 @@ describe('exampleAssociatedFilter', () => {
             expect(isExampleAssociatedComponent({ tag: 'Knowledge' } as unknown as StandardComponent)).toBe(false)
         })
 
-        it('should return false for Room when situations.items is empty; Feature, Knowledge when examples.payload is empty', () => {
-            expect(isExampleAssociatedComponent({ tag: 'Room', situations: { items: [] } } as unknown as StandardComponent)).toBe(false)
-            expect(isExampleAssociatedComponent({ tag: 'Room', examples: { payload: [] } } as unknown as StandardComponent)).toBe(false)
+        it('should return false for Feature, Knowledge when examples.payload is empty', () => {
             expect(isExampleAssociatedComponent({ tag: 'Feature', examples: { payload: [] } } as unknown as StandardComponent)).toBe(false)
             expect(isExampleAssociatedComponent({ tag: 'Knowledge', examples: { payload: [] } } as unknown as StandardComponent)).toBe(false)
         })
 
-        it('should return false for Room, Feature, Knowledge when examples.payload is undefined', () => {
-            expect(isExampleAssociatedComponent({ tag: 'Room', examples: {} } as unknown as StandardComponent)).toBe(false)
+        it('should return false for Feature, Knowledge when examples.payload is undefined', () => {
+            expect(isExampleAssociatedComponent({ tag: 'Feature', examples: {} } as unknown as StandardComponent)).toBe(false)
+            expect(isExampleAssociatedComponent({ tag: 'Knowledge', examples: {} } as unknown as StandardComponent)).toBe(false)
         })
 
         it('should return false for Character, Message, Guidance, Lens, Mark', () => {

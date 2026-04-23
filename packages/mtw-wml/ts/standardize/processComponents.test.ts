@@ -464,7 +464,7 @@ describe("processComponents", () => {
                 <Asset uuid=(Test)>
                     <Room key=(room1)>
                         <Feature key=(feature1) />
-                        <Example uuid=(example1) />
+                        <Example ref={0} uuid=(example1) />
                     </Room>
                 </Asset>
             `
@@ -575,7 +575,7 @@ describe("processComponents", () => {
                 <Asset uuid=(Test)>
                     <Room key=(room1)>
                         <Feature key=(feature1) />
-                        <Example uuid=(example1) />
+                        <Example ref={0} uuid=(example1) />
                     </Room>
                     <Feature key=(feature2) />
                 </Asset>

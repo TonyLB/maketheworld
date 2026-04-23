@@ -98,7 +98,6 @@ describe('mtw.ephemera.perception DataSource', () => {
         expect(room).toBeInstanceOf(StandardRoom)
         const r = room as StandardRoom
         expect(r.render?.description).toEqual([expectedDescription])
-        expect(r.examples.payload).toHaveLength(0)
     }
 
     async function sendOrchestrationStreamingEvent(

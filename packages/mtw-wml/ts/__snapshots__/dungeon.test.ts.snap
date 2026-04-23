@@ -46,6 +46,11 @@ exports[`large WML test should parse properly 1`] = `
   {
     "properties": [
       {
+        "key": "ref",
+        "type": 2,
+        "value": "0",
+      },
+      {
         "key": "uuid",
         "type": 0,
         "value": "example1",
@@ -336,6 +341,11 @@ exports[`large WML test should parse properly 1`] = `
   {
     "properties": [
       {
+        "key": "ref",
+        "type": 2,
+        "value": "0",
+      },
+      {
         "key": "uuid",
         "type": 0,
         "value": "example2",
@@ -376,6 +386,11 @@ exports[`large WML test should parse properly 1`] = `
   },
   {
     "properties": [
+      {
+        "key": "ref",
+        "type": 2,
+        "value": "0",
+      },
       {
         "key": "uuid",
         "type": 0,
@@ -432,6 +447,11 @@ exports[`large WML test should parse properly 1`] = `
   },
   {
     "properties": [
+      {
+        "key": "ref",
+        "type": 2,
+        "value": "0",
+      },
       {
         "key": "uuid",
         "type": 0,
@@ -519,6 +539,11 @@ exports[`large WML test should parse properly 1`] = `
   {
     "properties": [
       {
+        "key": "ref",
+        "type": 2,
+        "value": "0",
+      },
+      {
         "key": "uuid",
         "type": 0,
         "value": "example5",
@@ -604,32 +629,21 @@ exports[`large WML test should parse properly 1`] = `
 exports[`large WML test should standardize properly 1`] = `
 [
   {
-    "examples": [
-      "EXAMPLE#example2",
-      "EXAMPLE#example3",
-    ],
-    "exits": [
+    "description": [
+      "Natural rock formations rise in a jagged cliff-face. An asymmetric opening leads into a dimly lit cave.",
       {
-        "payload": "passage",
-        "reference": {
-          "key": "curvingPassage",
-          "tag": "Room",
-          "universalKey": undefined,
+        "children": [],
+        "data": {
+          "tag": "br",
         },
       },
-      {
-        "payload": "out",
-        "reference": {
-          "key": "VORTEX",
-          "tag": "Room",
-          "universalKey": undefined,
-        },
-      },
+      "(You could also go literally anywhere else in the world, if any of it had been created. But it hasn't)",
     ],
-    "key": "cave",
-    "shortName": undefined,
-    "tag": "Room",
-    "universalKey": undefined,
+    "displayName": "Cave entrance",
+    "key": undefined,
+    "summary": undefined,
+    "tag": "Example",
+    "universalKey": "EXAMPLE#example1",
   },
   {
     "description": [
@@ -652,35 +666,14 @@ exports[`large WML test should standardize properly 1`] = `
     "universalKey": "EXAMPLE#example3",
   },
   {
-    "examples": [
-      "EXAMPLE#example5",
+    "description": [
+      "Walls smoothly cut from the bedrock curve in a long arc, lit every few yards by a small sconce mounted above eye-level.",
     ],
-    "exits": [
-      {
-        "payload": "passage",
-        "reference": {
-          "key": "curvingPassage",
-          "tag": "Room",
-          "universalKey": undefined,
-        },
-      },
-    ],
-    "features": [
-      {
-        "key": "orc",
-        "tag": "Feature",
-        "universalKey": undefined,
-      },
-      {
-        "key": "pie",
-        "tag": "Feature",
-        "universalKey": undefined,
-      },
-    ],
-    "key": "chamber",
-    "shortName": undefined,
-    "tag": "Room",
-    "universalKey": undefined,
+    "displayName": "Curving Passage",
+    "key": undefined,
+    "summary": undefined,
+    "tag": "Example",
+    "universalKey": "EXAMPLE#example4",
   },
   {
     "description": [
@@ -727,6 +720,58 @@ exports[`large WML test should standardize properly 1`] = `
     "universalKey": "EXAMPLE#example5",
   },
   {
+    "exits": [
+      {
+        "payload": "passage",
+        "reference": {
+          "key": "curvingPassage",
+          "tag": "Room",
+          "universalKey": undefined,
+        },
+      },
+      {
+        "payload": "out",
+        "reference": {
+          "key": "VORTEX",
+          "tag": "Room",
+          "universalKey": undefined,
+        },
+      },
+    ],
+    "key": "cave",
+    "shortName": undefined,
+    "tag": "Room",
+    "universalKey": undefined,
+  },
+  {
+    "exits": [
+      {
+        "payload": "passage",
+        "reference": {
+          "key": "curvingPassage",
+          "tag": "Room",
+          "universalKey": undefined,
+        },
+      },
+    ],
+    "features": [
+      {
+        "key": "orc",
+        "tag": "Feature",
+        "universalKey": undefined,
+      },
+      {
+        "key": "pie",
+        "tag": "Feature",
+        "universalKey": undefined,
+      },
+    ],
+    "key": "chamber",
+    "shortName": undefined,
+    "tag": "Room",
+    "universalKey": undefined,
+  },
+  {
     "key": "orc",
     "shortName": undefined,
     "tag": "Feature",
@@ -739,9 +784,6 @@ exports[`large WML test should standardize properly 1`] = `
     "universalKey": undefined,
   },
   {
-    "examples": [
-      "EXAMPLE#example4",
-    ],
     "exits": [
       {
         "payload": "cave",
@@ -764,16 +806,6 @@ exports[`large WML test should standardize properly 1`] = `
     "shortName": undefined,
     "tag": "Room",
     "universalKey": undefined,
-  },
-  {
-    "description": [
-      "Walls smoothly cut from the bedrock curve in a long arc, lit every few yards by a small sconce mounted above eye-level.",
-    ],
-    "displayName": "Curving Passage",
-    "key": undefined,
-    "summary": undefined,
-    "tag": "Example",
-    "universalKey": "EXAMPLE#example4",
   },
   {
     "images": [
@@ -842,9 +874,6 @@ exports[`large WML test should standardize properly 1`] = `
     "universalKey": undefined,
   },
   {
-    "examples": [
-      "EXAMPLE#example1",
-    ],
     "exits": [
       {
         "payload": "cave",
@@ -859,23 +888,6 @@ exports[`large WML test should standardize properly 1`] = `
     "shortName": undefined,
     "tag": "Room",
     "universalKey": undefined,
-  },
-  {
-    "description": [
-      "Natural rock formations rise in a jagged cliff-face. An asymmetric opening leads into a dimly lit cave.",
-      {
-        "children": [],
-        "data": {
-          "tag": "br",
-        },
-      },
-      "(You could also go literally anywhere else in the world, if any of it had been created. But it hasn't)",
-    ],
-    "displayName": "Cave entrance",
-    "key": undefined,
-    "summary": undefined,
-    "tag": "Example",
-    "universalKey": "EXAMPLE#example1",
   },
 ]
 `;

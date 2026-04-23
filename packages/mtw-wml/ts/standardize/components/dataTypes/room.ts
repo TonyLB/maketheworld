@@ -21,10 +21,6 @@ export type StandardRoomData = {
     situations?: FacetListData<SituationRoomFacetPayloadType>;
     lens?: ReferenceListData;
     features?: ReferenceListData;
-    /**
-     * @deprecated For Room display prose. Prefer `situations` (Situation facets) in asset WML and `render` on ephemera wire (`SituationRoomFacetPayloadType`). Kept for migration and legacy assets.
-     */
-    examples?: ReferenceListData;
     guidance?: ReferenceListData;
     characters?: ReferenceListData;
     /** Ephemera wire: runtime objects (OBJECT# + ShortName); same JSON shape as ephemera Meta::Room.objects. */
@@ -69,7 +65,6 @@ export const isStandardRoomData = (arg: any): arg is StandardRoomData => {
             situations: 'facetList',
             lens: 'referenceList',
             features: 'referenceList',
-            examples: 'referenceList',
             guidance: 'referenceList',
             characters: 'referenceList'
         }),

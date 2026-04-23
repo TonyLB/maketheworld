@@ -1977,7 +1977,7 @@ describe('SchemaOrganization', () => {
                 <Asset uuid=(test)>
                     <Room uuid=(ROOM#room1) key=(room1)>
                         <Feature uuid=(FEATURE#feature1) key=(feature1) />
-                        <Example uuid=(EXAMPLE#example1) key=(example1) />
+                        <Example ref={0} uuid=(EXAMPLE#example1) key=(example1) />
                         <Character uuid=(CHARACTER#char1) key=(char1) />
                     </Room>
                 </Asset>
@@ -1994,9 +1994,9 @@ describe('SchemaOrganization', () => {
             const room1Key = new StandardKey({ key: 'room1', universalKey: 'ROOM#room1' })
             const descendants = organization.implicitDescendantsOfAncestor(room1Key)
 
-            expect(descendants.length).toBe(3)
+            expect(descendants.length).toBe(2)
             const descendantKeys = descendants.map(d => d.key).sort()
-            expect(descendantKeys).toEqual(['char1', 'example1', 'feature1'])
+            expect(descendantKeys).toEqual(['char1', 'feature1'])
         })
     })
 })

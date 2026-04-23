@@ -283,17 +283,17 @@ describe('StandardRoom class', () => {
             tag: 'Room',
             key: 'testRoomOne',
             universalKey: 'ROOM#Room1',
-            examples: [{ tag: 'Example', key: 'base', universalKey: 'EXAMPLE#Example1' }],
+            guidance: [{ tag: 'Guidance', key: 'base', universalKey: 'GUIDANCE#Guide1' }],
             exits: [{ reference: { tag: 'Room', key: 'testRoomTwo' }, payload: 'exit' }],
         })
         const remapped = test.withMapping([
             new StandardReference({ universalKey: 'ROOM#Room1', key: 'testRoomOne', tag: 'Room'}),
-            new StandardReference({ universalKey: 'EXAMPLE#Example1', key: 'base', tag: 'Example' }),
+            new StandardReference({ universalKey: 'GUIDANCE#Guide1', key: 'base', tag: 'Guidance' }),
             new StandardReference({ universalKey: 'ROOM#testRoomTwo', key: 'testRoomTwo', tag: 'Room' })
         ]).remapReferences('universal')
         expect(schemaToWML([remapped.schema])).toEqual(deIndentWML(`
             <Room uuid=(Room1) key=(testRoomOne)>
-                <Example uuid=(Example1) />
+                <Guidance uuid=(Guide1) />
                 <Exit to=(testRoomTwo)>exit</Exit>
             </Room>
         `))
@@ -303,19 +303,19 @@ describe('StandardRoom class', () => {
         const test = new StandardRoom({
             tag: 'Room',
             key: 'testRoomOne',
-            examples: [{ tag: 'Example', universalKey: 'EXAMPLE#Example1' }],
+            guidance: [{ tag: 'Guidance', universalKey: 'GUIDANCE#Guide1' }],
             features: [{ tag: 'Feature', universalKey: 'FEATURE#Feature1' }],
         })
         expect(schemaToWML([
             test.withMapping([
                 new StandardReference({ universalKey: 'ROOM#Room1', tag: 'Room', key: 'testRoomOne' }),
-                new StandardReference({ universalKey: 'EXAMPLE#Example1', tag: 'Example', key: 'base' }),
+                new StandardReference({ universalKey: 'GUIDANCE#Guide1', tag: 'Guidance', key: 'guideOne' }),
                 new StandardReference({ universalKey: 'FEATURE#Feature1', tag: 'Feature', key: 'featureOne' })
             ]).remapReferences('key').schema
         ])).toEqual(deIndentWML(`
             <Room key=(testRoomOne)>
                 <Feature key=(featureOne) />
-                <Example key=(base) />
+                <Guidance key=(guideOne) />
             </Room>
         `))
     })
@@ -324,7 +324,7 @@ describe('StandardRoom class', () => {
         const test = new StandardRoom({
             tag: 'Room',
             key: 'testRoomOne',
-            examples: [{ tag: 'Example', universalKey: 'EXAMPLE#Example1' }],
+            guidance: [{ tag: 'Guidance', universalKey: 'GUIDANCE#Guide1' }],
             features: [{ tag: 'Feature', universalKey: 'FEATURE#Feature1' }],
         })
         const feature = new StandardKey({ key: 'featureTwo' })
@@ -333,34 +333,26 @@ describe('StandardRoom class', () => {
             <Room key=(testRoomOne)>
                 <Feature uuid=(Feature1) />
                 <Feature key=(featureTwo) />
-                <Example uuid=(Example1) />
+                <Guidance uuid=(Guide1) />
             </Room>
         `))
     })
 
-    it('should correctly add an example reference to a room', () => {
+    it('should reject withChild for Example on Room', () => {
         const test = new StandardRoom({
             tag: 'Room',
             key: 'testRoomOne',
-            examples: [{ tag: 'Example', universalKey: 'EXAMPLE#Example1' }],
             features: [{ tag: 'Feature', universalKey: 'FEATURE#Feature1' }],
         })
-        const example = new StandardKey("EXAMPLE#Example2")
-        const added = test.withChild(new StandardReference(example))
-        expect(schemaToWML([added.schema])).toEqual(deIndentWML(`
-            <Room key=(testRoomOne)>
-                <Feature uuid=(Feature1) />
-                <Example uuid=(Example1) />
-                <Example uuid=(Example2) />
-            </Room>
-        `))
+        const example = new StandardKey('EXAMPLE#Example2')
+        expect(() => test.withChild(new StandardReference(example))).toThrow(/Invalid child type Example/)
     })
 
     it('should correctly add a character reference to a room', () => {
         const test = new StandardRoom({
             tag: 'Room',
             key: 'testRoomOne',
-            examples: [{ tag: 'Example', universalKey: 'EXAMPLE#Example1' }],
+            guidance: [{ tag: 'Guidance', universalKey: 'GUIDANCE#Guide1' }],
             features: [{ tag: 'Feature', universalKey: 'FEATURE#Feature1' }],
         })
         const character = new StandardKey("CHARACTER#Character1")
@@ -368,7 +360,7 @@ describe('StandardRoom class', () => {
         expect(schemaToWML([added.schema])).toEqual(deIndentWML(`
             <Room key=(testRoomOne)>
                 <Feature uuid=(Feature1) />
-                <Example uuid=(Example1) />
+                <Guidance uuid=(Guide1) />
                 <Character uuid=(Character1) />
             </Room>
         `))
@@ -870,7 +862,6 @@ describe('StandardRoom class', () => {
                 shortName: 'Test Room',
                 exits: [{ reference: { tag: 'Room', key: 'target' }, payload: 'Exit description' }],
                 features: [{ tag: 'Feature', key: 'feat1' }],
-                examples: [{ tag: 'Example', key: 'ex1' }],
                 characters: [{ tag: 'Character', key: 'char1' }]
             }
             const room = new StandardRoom(roomData)
@@ -881,7 +872,6 @@ describe('StandardRoom class', () => {
                 <Room key=(test)>
                     <Remove><ShortName>Test Room</ShortName></Remove>
                     <Remove><Feature key=(feat1) /></Remove>
-                    <Remove><Example key=(ex1) /></Remove>
                     <Remove><Character key=(char1) /></Remove>
                     <Remove><Exit to=(target)>Exit description</Exit></Remove>
                 </Room>
@@ -915,7 +905,6 @@ describe('StandardRoom class', () => {
                 shortName: 'Test Room',
                 exits: [{ reference: { tag: 'Room', key: 'target' }, payload: 'Exit' }],
                 features: [{ tag: 'Feature', key: 'feat1' }],
-                examples: [{ tag: 'Example', key: 'ex1', ref: -1 }]
             }
             const room = new StandardRoom(roomData)
             const doubleInverted = room._payload.invert().invert()
@@ -925,7 +914,6 @@ describe('StandardRoom class', () => {
             expect(doubleInverted.shortName?.toJSON()).toEqual(room._payload.shortName?.toJSON())
             expect(doubleInverted.exits.toJSON()).toEqual(room._payload.exits.toJSON())
             expect(doubleInverted.features.toJSON()).toEqual(room._payload.features.toJSON())
-            expect(doubleInverted.examples.toJSON()).toEqual(room._payload.examples.toJSON())
         })
 
         it('should invert an empty room', () => {
@@ -935,7 +923,6 @@ describe('StandardRoom class', () => {
             expect(inverted.shortName).toBeUndefined()
             expect(inverted.exits.length).toEqual(0)
             expect(inverted.features.toJSON()).toEqual([])
-            expect(inverted.examples.toJSON()).toEqual([])
             expect(inverted.characters.toJSON()).toEqual([])
         })
 
@@ -950,7 +937,6 @@ describe('StandardRoom class', () => {
             expect(inverted.shortName).toBeUndefined()
             expect(inverted.exits.length).toEqual(0)
             expect(inverted.features.toJSON()).toEqual([{ tag: 'Feature', key: 'feat1', ref: -1 }])
-            expect(inverted.examples.toJSON()).toEqual([])
             expect(inverted.characters.toJSON()).toEqual([])
         })
     })
@@ -1301,7 +1287,6 @@ describe('StandardRoom class', () => {
             const { payload: result, inlineRemainder } = room._payload.assureReferences([])
             
             expect(result.features.payload.length).toBe(0)
-            expect(result.examples.payload.length).toBe(0)
             expect(result.characters.payload.length).toBe(0)
             expect(inlineRemainder).toEqual([])
             // Verify it's a clone (original unchanged)
@@ -1316,15 +1301,11 @@ describe('StandardRoom class', () => {
             
             const { payload: result, inlineRemainder } = room._payload.assureReferences([featureRef, exampleRef, charRef])
             
-            expect(inlineRemainder).toEqual([])
-            // Verify references were added with ref={0}
+            expect(inlineRemainder.length).toBe(1)
+            expect(inlineRemainder[0].tag).toBe('Example')
             expect(result.features.payload.length).toBe(1)
             expect(result.features.payload[0].ref).toBe(0)
             expect(result.features.payload[0].sameKey(featureRef)).toBe(true)
-            
-            expect(result.examples.payload.length).toBe(1)
-            expect(result.examples.payload[0].ref).toBe(0)
-            expect(result.examples.payload[0].sameKey(exampleRef)).toBe(true)
             
             expect(result.characters.payload.length).toBe(1)
             expect(result.characters.payload[0].ref).toBe(0)
@@ -1336,19 +1317,18 @@ describe('StandardRoom class', () => {
                 tag: 'Room',
                 key: 'test',
                 features: [{ tag: 'Feature', key: 'feat1' }],
-                examples: [{ tag: 'Example', key: 'ex1', ref: 2 }],
+                guidance: [{ tag: 'Guidance', key: 'g1', ref: 2 }],
             })
             const featureRef = new StandardReference({ tag: 'Feature', key: 'feat1' })
-            const exampleRef = new StandardReference({ tag: 'Example', key: 'ex1', ref: 2 })
+            const guidanceRef = new StandardReference({ tag: 'Guidance', key: 'g1', ref: 2 })
             
-            const { payload: result } = room._payload.assureReferences([featureRef, exampleRef])
+            const { payload: result } = room._payload.assureReferences([featureRef, guidanceRef])
             
-            // Verify existing references were left unchanged
             expect(result.features.payload.length).toBe(1)
-            expect(result.features.payload[0].ref).toBe(1) // Original ref value (default)
+            expect(result.features.payload[0].ref).toBe(1)
             
-            expect(result.examples.payload.length).toBe(1)
-            expect(result.examples.payload[0].ref).toBe(2) // Original ref value
+            expect(result.guidance.payload.length).toBe(1)
+            expect(result.guidance.payload[0].ref).toBe(2)
         })
         
         it('should handle mixed scenarios (some exist, some do not)', () => {
@@ -1359,23 +1339,20 @@ describe('StandardRoom class', () => {
             `))
             const existingFeature = new StandardReference({ tag: 'Feature', key: 'existingFeat' })
             const newFeature = new StandardReference({ tag: 'Feature', key: 'newFeat' })
-            const newExample = new StandardReference({ tag: 'Example', key: 'newEx' })
+            const newGuidance = new StandardReference({ tag: 'Guidance', key: 'newGuide' })
             
-            const { payload: result } = room._payload.assureReferences([existingFeature, newFeature, newExample])
+            const { payload: result } = room._payload.assureReferences([existingFeature, newFeature, newGuidance])
             
-            // Existing feature should be unchanged
             expect(result.features.payload.length).toBe(2)
             const existingFeatInResult = result.features.payload.find(ref => ref.sameKey(existingFeature))
-            expect(existingFeatInResult?.ref).toBe(1) // Original ref value
+            expect(existingFeatInResult?.ref).toBe(1)
             
-            // New feature should be added with ref={0}
             const newFeatInResult = result.features.payload.find(ref => ref.sameKey(newFeature))
             expect(newFeatInResult?.ref).toBe(0)
             
-            // New example should be added with ref={0}
-            expect(result.examples.payload.length).toBe(1)
-            expect(result.examples.payload[0].ref).toBe(0)
-            expect(result.examples.payload[0].sameKey(newExample)).toBe(true)
+            expect(result.guidance.payload.length).toBe(1)
+            expect(result.guidance.payload[0].ref).toBe(0)
+            expect(result.guidance.payload[0].sameKey(newGuidance)).toBe(true)
         })
         
         it('should return a clone without mutating the original', () => {
@@ -1396,44 +1373,41 @@ describe('StandardRoom class', () => {
         it('should be idempotent (calling multiple times with same children produces same result)', () => {
             const room = new StandardRoom({ tag: 'Room', key: 'test' })
             const featureRef = new StandardReference({ tag: 'Feature', key: 'feat1' })
-            const exampleRef = new StandardReference({ tag: 'Example', key: 'ex1' })
+            const guidanceRef = new StandardReference({ tag: 'Guidance', key: 'g1' })
             
-            const { payload: firstPayload } = room._payload.assureReferences([featureRef, exampleRef])
-            const { payload: secondPayload } = firstPayload.assureReferences([featureRef, exampleRef])
+            const { payload: firstPayload } = room._payload.assureReferences([featureRef, guidanceRef])
+            const { payload: secondPayload } = firstPayload.assureReferences([featureRef, guidanceRef])
             
-            // Both calls should produce the same result
             expect(firstPayload.features.payload.length).toBe(1)
             expect(secondPayload.features.payload.length).toBe(1)
             expect(firstPayload.features.payload[0].sameKey(secondPayload.features.payload[0])).toBe(true)
             expect(firstPayload.features.payload[0].ref).toBe(0)
             expect(secondPayload.features.payload[0].ref).toBe(0)
             
-            expect(firstPayload.examples.payload.length).toBe(1)
-            expect(secondPayload.examples.payload.length).toBe(1)
-            expect(firstPayload.examples.payload[0].sameKey(secondPayload.examples.payload[0])).toBe(true)
-            expect(firstPayload.examples.payload[0].ref).toBe(0)
-            expect(secondPayload.examples.payload[0].ref).toBe(0)
+            expect(firstPayload.guidance.payload.length).toBe(1)
+            expect(secondPayload.guidance.payload.length).toBe(1)
+            expect(firstPayload.guidance.payload[0].sameKey(secondPayload.guidance.payload[0])).toBe(true)
+            expect(firstPayload.guidance.payload[0].ref).toBe(0)
+            expect(secondPayload.guidance.payload[0].ref).toBe(0)
         })
         
         it('should dispatch children to correct buckets based on tag', () => {
             const room = new StandardRoom({ tag: 'Room', key: 'test' })
             const featureRef = new StandardReference({ tag: 'Feature', key: 'feat1' })
-            const exampleRef = new StandardReference({ tag: 'Example', key: 'ex1' })
+            const guidanceRef = new StandardReference({ tag: 'Guidance', key: 'g1' })
             const charRef = new StandardReference({ tag: 'Character', key: 'char1' })
             
-            const { payload: result } = room._payload.assureReferences([featureRef, exampleRef, charRef])
+            const { payload: result } = room._payload.assureReferences([featureRef, guidanceRef, charRef])
             
-            // Verify each reference went to the correct bucket
             expect(result.features.payload.length).toBe(1)
             expect(result.features.payload[0].sameKey(featureRef)).toBe(true)
             
-            expect(result.examples.payload.length).toBe(1)
-            expect(result.examples.payload[0].sameKey(exampleRef)).toBe(true)
+            expect(result.guidance.payload.length).toBe(1)
+            expect(result.guidance.payload[0].sameKey(guidanceRef)).toBe(true)
             
             expect(result.characters.payload.length).toBe(1)
             expect(result.characters.payload[0].sameKey(charRef)).toBe(true)
             
-            // Verify other buckets are empty
             expect(result.exits.length).toBe(0)
         })
 
@@ -1464,21 +1438,19 @@ describe('StandardRoom class', () => {
                     { tag: 'Feature', key: 'feat1' },
                     { tag: 'Feature', key: 'feat2' },
                 ],
-                examples: [{ tag: 'Example', key: 'ex1' }],
+                guidance: [{ tag: 'Guidance', key: 'g1' }],
                 characters: [{ tag: 'Character', key: 'char1' }],
             })
             const featureRef = new StandardReference({ tag: 'Feature', key: 'feat1' })
-            const exampleRef = new StandardReference({ tag: 'Example', key: 'ex1' })
+            const guidanceRef = new StandardReference({ tag: 'Guidance', key: 'g1' })
             
-            const result = room._payload.removeReferences([featureRef, exampleRef])
+            const result = room._payload.removeReferences([featureRef, guidanceRef])
             
-            // Verify matching references were removed
             expect(result.features.payload.length).toBe(1)
             expect(result.features.payload[0].sameKey(new StandardReference({ tag: 'Feature', key: 'feat2' }))).toBe(true)
             
-            expect(result.examples.payload.length).toBe(0)
+            expect(result.guidance.payload.length).toBe(0)
             
-            // Verify non-matching references were preserved
             expect(result.characters.payload.length).toBe(1)
             expect(result.characters.payload[0].sameKey(new StandardReference({ tag: 'Character', key: 'char1' }))).toBe(true)
         })
@@ -1511,9 +1483,8 @@ describe('StandardRoom class', () => {
             
             const result = room._payload.removeReferences([])
             
-            // All references should be preserved
             expect(result.features.payload.length).toBe(1)
-            expect(result.examples.payload.length).toBe(0)
+            expect(result.guidance.payload.length).toBe(0)
             expect(result.characters.payload.length).toBe(0)
         })
     })
