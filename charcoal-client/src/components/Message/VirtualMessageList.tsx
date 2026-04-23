@@ -119,8 +119,6 @@ export const VirtualMessageList = () => {
 
     return (
         <GroupedVirtuoso
-            onPointerEnterCapture={() => {}}
-            onPointerLeaveCapture={() => {}}
             groupCounts={groupCounts}
             groupContent={groupContent}
             components={Components}
