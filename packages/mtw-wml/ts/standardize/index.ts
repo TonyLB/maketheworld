@@ -1,6 +1,6 @@
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
-import { defaultComponentFromTag, isStandardNDJSON, SerializeNDJSONMixin, StandardComponentData, StandardFormSemanticMode, StandardFormSubsetRequest, StandardFormSubsetCascadeCondition, standardFormSubsetRequestMatch, standardFormSubsetRequestPriority, StandardNDJSON } from "./baseClasses"
-import { isStandardComponentData, isStandardForm, StandardFormData } from "./components/dataTypes"
+import { defaultComponentFromTag, isStandardNDJSON, SerializeNDJSONMixin, StandardComponentInputData, StandardFormSemanticMode, StandardFormSubsetRequest, StandardFormSubsetCascadeCondition, standardFormSubsetRequestMatch, standardFormSubsetRequestPriority, StandardNDJSON, StandardComponentData } from "./baseClasses"
+import { isStandardComponentInputData, isStandardFormInput, StandardFormData, StandardFormInputData } from "./components/dataTypes"
 import { RenderTree } from "@tonylb/mtw-base/ts/renderTree"
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable"
 import SchemaTagTree from "../tagTree/schema"
@@ -131,17 +131,17 @@ export class StandardForm {
     _schemaOrganizationCache?: SchemaOrganization;
 
     static resolveInitialStandardizeMode(
-        args: StandardFormData | GenericTreeNode<SchemaTag> | StandardNDJSON | string,
+        args: StandardFormInputData | GenericTreeNode<SchemaTag> | StandardNDJSON | string,
         options?: StandardFormConstructionOptions,
     ): WmlStandardizeMode {
-        if (isStandardForm(args) && args.standardizeMode !== undefined) {
+        if (isStandardFormInput(args) && args.standardizeMode !== undefined) {
             return resolveStandardizeMode(args.standardizeMode)
         }
         return resolveStandardizeMode(options?.standardizeMode)
     }
 
     constructor(
-        args: StandardFormData | GenericTreeNode<SchemaTag> | StandardNDJSON | string,
+        args: StandardFormInputData | GenericTreeNode<SchemaTag> | StandardNDJSON | string,
         options?: StandardFormConstructionOptions,
     ) {
         this.standardizeMode = StandardForm.resolveInitialStandardizeMode(args, options)
@@ -151,7 +151,7 @@ export class StandardForm {
             this._metaData = []
             return
         }
-        if (isStandardForm(args)) {
+        if (isStandardFormInput(args)) {
             this._universalKey = args.universalKey
 
             this._metaData = args.metaData.filter((node) => (!wrappedNodeTypeGuard(isSchemaImport)(node)))
@@ -190,7 +190,7 @@ export class StandardForm {
             this._summary = (assetLine as any).summary ? new StandardRender((assetLine as any).summary) : undefined
             this._topLevel = (assetLine as any).topLevel ? new ReferenceList((assetLine as any).topLevel) : undefined
             
-            this._components = args.filter(isStandardComponentData).reduce<StandardComponent[]>((previous, standardData: StandardComponentData & SerializeNDJSONMixin) => {
+            this._components = args.filter(isStandardComponentInputData).reduce<StandardComponent[]>((previous, standardData: StandardComponentInputData & SerializeNDJSONMixin) => {
                 const { component } = standardComponentFactory(standardData, { standardizeMode: this.standardizeMode })
                 if (component) {
                     component._from = standardData.from

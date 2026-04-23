@@ -16,7 +16,7 @@ import StandardMap from './components/map'
 import StandardMark, { StandardLens } from './components/worldState'
 import { StandardMarkFacet } from './keys/facets/mark'
 import { StandardExplicitKey } from './explicit/key'
-import { StandardFormData } from './components/dataTypes'
+import { isStandardForm, isStandardFormInput, StandardFormData } from './components/dataTypes'
 jest.mock('@tonylb/mtw-utilities/ts/uuid/index', () => {
     return {
         ...jest.requireActual('@tonylb/mtw-utilities/ts/uuid/___mocks___/index')
@@ -25,6 +25,34 @@ jest.mock('@tonylb/mtw-utilities/ts/uuid/index', () => {
 
 
 describe('StandardForm', () => {
+    describe('input vs normative typeguards', () => {
+        it('accepts missing facet payload in input guard but rejects in normative guard', () => {
+            const candidate = {
+                universalKey: 'ASSET#test',
+                metaData: [],
+                components: [
+                    {
+                        tag: 'Example',
+                        key: 'example1',
+                        universalKey: 'EXAMPLE#example1',
+                        marks: [
+                            {
+                                reference: {
+                                    tag: 'Mark',
+                                    key: 'mark1',
+                                    universalKey: 'MARK#mark1'
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+
+            expect(isStandardFormInput(candidate)).toBe(true)
+            expect(isStandardForm(candidate)).toBe(false)
+        })
+    })
+
     describe('isEmpty()', () => {
         it('returns true for empty asset with only universalKey', () => {
             const sf = new StandardForm('ASSET#TestAsset')
@@ -354,6 +382,168 @@ describe('StandardForm', () => {
                 <Remove><Room uuid=(testRoomTwo) key=(testRoomTwo) /></Remove>
             </Asset>
         `))
+    })
+
+    it('should accept JSON facet entries with missing payload and inject defaults', () => {
+        const test = new StandardForm({
+            universalKey: 'ASSET#test',
+            metaData: [],
+            components: [
+                {
+                    tag: 'Example',
+                    key: 'example1',
+                    universalKey: 'EXAMPLE#example1',
+                    marks: [
+                        {
+                            reference: {
+                                tag: 'Mark',
+                                key: 'mark1',
+                                universalKey: 'MARK#mark1'
+                            }
+                        }
+                    ]
+                }
+            ]
+        })
+        const json = test.toJSON()
+        expect(json.universalKey).toBe('ASSET#test')
+        expect(json.components).toEqual([
+            expect.objectContaining({
+                tag: 'Example',
+                key: 'example1',
+                universalKey: 'EXAMPLE#example1',
+                marks: [
+                    {
+                        reference: 'MARK#mark1',
+                        payload: ''
+                    }
+                ]
+            })
+        ])
+    })
+
+    it('should reject malformed present payload in JSON facet entries', () => {
+        expect(() => new StandardForm({
+            universalKey: 'ASSET#test',
+            metaData: [],
+            components: [
+                {
+                    tag: 'Example',
+                    key: 'example1',
+                    universalKey: 'EXAMPLE#example1',
+                    marks: [
+                        {
+                            reference: {
+                                tag: 'Mark',
+                                key: 'mark1',
+                                universalKey: 'MARK#mark1'
+                            },
+                            payload: null
+                        }
+                    ]
+                }
+            ]
+        } as unknown as StandardFormData)).toThrow()
+    })
+
+    it('should accept NDJSON facet entries with missing payload and inject defaults', () => {
+        const test = new StandardForm([
+            {
+                tag: 'Asset',
+                universalKey: 'ASSET#test'
+            },
+            {
+                tag: 'Example',
+                key: 'example1',
+                universalKey: 'EXAMPLE#example1',
+                marks: [
+                    {
+                        reference: {
+                            tag: 'Mark',
+                            key: 'mark1',
+                            universalKey: 'MARK#mark1'
+                        }
+                    }
+                ]
+            }
+        ])
+        const json = test.toJSON()
+        expect(json.universalKey).toBe('ASSET#test')
+        expect(json.components).toEqual([
+            expect.objectContaining({
+                tag: 'Example',
+                key: 'example1',
+                universalKey: 'EXAMPLE#example1',
+                marks: [
+                    {
+                        reference: 'MARK#mark1',
+                        payload: ''
+                    }
+                ]
+            })
+        ])
+    })
+
+    it('should preserve missing-payload default through diff/merge roundtrip', () => {
+        const base = new StandardForm({
+            universalKey: 'ASSET#test',
+            metaData: [],
+            components: [
+                {
+                    tag: 'Example',
+                    key: 'example1',
+                    universalKey: 'EXAMPLE#example1',
+                    marks: [
+                        {
+                            reference: {
+                                tag: 'Mark',
+                                key: 'mark1',
+                                universalKey: 'MARK#mark1'
+                            }
+                        }
+                    ]
+                }
+            ]
+        })
+        const updated = new StandardForm({
+            universalKey: 'ASSET#test',
+            metaData: [],
+            components: [
+                {
+                    tag: 'Example',
+                    key: 'example1',
+                    universalKey: 'EXAMPLE#example1',
+                    marks: [
+                        {
+                            reference: {
+                                tag: 'Mark',
+                                key: 'mark1',
+                                universalKey: 'MARK#mark1'
+                            },
+                            payload: 'Updated narrative'
+                        }
+                    ]
+                }
+            ]
+        })
+
+        const diff = base.diff(updated)
+        expect(diff).toBeDefined()
+        const merged = base.merge(diff!)
+        expect(merged.toJSON().components).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    tag: 'Example',
+                    key: 'example1',
+                    marks: [
+                        {
+                            reference: 'MARK#mark1',
+                            payload: 'Updated narrative'
+                        }
+                    ]
+                })
+            ])
+        )
     })
 
     it('should accept edit tags', () => {

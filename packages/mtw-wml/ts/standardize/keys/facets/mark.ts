@@ -164,7 +164,11 @@ export function createMarkFacetPayload(arg: any): MarkFacetPayload {
 export class StandardMarkFacet extends facetClassFactory(
     MarkFacetPayload,
     createMarkFacetPayload,
-    'MarkFacet'
+    'MarkFacet',
+    undefined,
+    {
+        missingPayloadDefault: () => ''
+    }
 ) {
     constructor(
         props: StandardFacetData<MarkFacetPayloadType> | StandardMarkFacet | GenericTree<SchemaTag> | string

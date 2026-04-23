@@ -3,7 +3,7 @@ import { isSchemaTreeNode } from "../../../schema"
 import { isStandardLiteralData } from "../../literal"
 import { isStandardReferenceData } from "./reference"
 import { editWrappedTypeguard, StandardEditableData } from "@tonylb/mtw-base/ts/editable"
-import { isStandardFacetData } from "../../keys/facets/dataTypes/facet"
+import { isStandardFacetData, isStandardFacetEnvelopeWithOptionalPayload } from "../../keys/facets/dataTypes/facet"
 
 // Typeguard to check if a value is a RenderTree (array of RenderTreeNode)
 const isRenderTreeArray = (value: any): value is RenderTree => {
@@ -14,7 +14,7 @@ export const checkAll = (...items: boolean[]): boolean => (
     items.reduce<boolean>((previous, item) => (previous && item), true)
 )
 
-type CheckType = 'node' | 'tree' | 'referenceList' | 'facetList' | 'renderTree' | 'literal' | 'string' | 'number' | 'boolean' | 'key'
+type CheckType = 'node' | 'tree' | 'referenceList' | 'facetList' | 'facetListInput' | 'renderTree' | 'literal' | 'string' | 'number' | 'boolean' | 'key'
 
 export const checkTypes = (item: any, requiredList: Record<string, CheckType>, optionalList?: Record<string, CheckType>): boolean => {
     const checkSingleType = (value: any, type: CheckType): boolean => {
@@ -45,6 +45,11 @@ export const checkTypes = (item: any, requiredList: Record<string, CheckType>, o
                     return false
                 }
                 return value.every((item) => editWrappedTypeguard(isStandardFacetData)(item))
+            case 'facetListInput':
+                if (!Array.isArray(value)) {
+                    return false
+                }
+                return value.every((item) => editWrappedTypeguard(isStandardFacetEnvelopeWithOptionalPayload)(item))
             case 'key':
                 // key can be string or StandardEditableData<string> (for Replace/Remove structures)
                 return typeof value === 'string' || 

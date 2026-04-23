@@ -3,7 +3,7 @@ import applyEdits from "../../schema/treeManipulation/applyEdits"
 import { GenericTree, GenericTreeNode, treeNodeTypeguard } from "@tonylb/mtw-base/ts/genericTree"
 import { AssureReferencesResult, componentClassFactory, ComponentConstructorMethods } from "./component"
 import { StandardComponent, StandardComponentReferenceKey, NestedSchemaOptions } from "./baseClasses"
-import { StandardMapData } from "./dataTypes/map"
+import { StandardMapData, StandardMapInputData } from "./dataTypes/map"
 import { ReferenceFormat } from "./utils/references"
 import { AssetUUID, ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaMap } from "@tonylb/mtw-base/ts/schema/components"
@@ -49,7 +49,7 @@ class StandardizeConsumerImageList<D extends object = object> implements Standar
  * established by MarkFacetList in StandardExample. Each position facet contains a reference
  * to a Room and a payload with x, y coordinates.
  */
-export class StandardMapPayload implements ComponentConstructorMethods<StandardMapData> {
+export class StandardMapPayload implements ComponentConstructorMethods<StandardMapInputData, StandardMapData> {
     _shortName?: StandardLiteral;
     _images: GenericTree<SchemaTag> = [];
     _positions: PositionFacetList;
@@ -65,7 +65,7 @@ export class StandardMapPayload implements ComponentConstructorMethods<StandardM
         }
     }
 
-    fromJSON(props: StandardMapData) {
+    fromJSON(props: StandardMapInputData) {
         this._shortName = props.shortName ? new StandardLiteral(props.shortName, { tag: 'ShortName' }) : undefined
         this._images = props.images ?? []
         this._positions = new PositionFacetList(props.positions ?? [])

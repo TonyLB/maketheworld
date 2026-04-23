@@ -158,7 +158,11 @@ function createLensMarkFacetPayload(arg: any): LensMarkFacetPayload {
 export class StandardLensMarkFacet extends facetClassFactory(
     LensMarkFacetPayload,
     createLensMarkFacetPayload,
-    "LensMarkFacet"
+    "LensMarkFacet",
+    undefined,
+    {
+        missingPayloadDefault: () => ({})
+    }
 ) {
     constructor(
         props:

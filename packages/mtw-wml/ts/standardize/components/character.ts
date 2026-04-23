@@ -20,7 +20,7 @@ import {
     StandardizeConsumerStandardLiteral,
 } from "./fromSchemaPipeline"
 
-export class StandardCharacterPayload implements ComponentConstructorMethods<StandardCharacterData> {
+export class StandardCharacterPayload implements ComponentConstructorMethods<StandardCharacterData, StandardCharacterData> {
     _displayName?: StandardLiteral;
     _shortName?: StandardLiteral;
     _pronouns?: StandardLiteral;

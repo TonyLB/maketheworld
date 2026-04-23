@@ -6,18 +6,18 @@ import { StandardKeyData } from "../../keys/dataTypes/reference"
 
 import { isStandardCharacterData, StandardCharacterData } from "./character"
 
-import { isStandardExampleData, StandardExampleData } from "./example"
+import { isStandardExampleData, isStandardExampleInputData, StandardExampleData, StandardExampleInputData } from "./example"
 import { StandardFeatureData, isStandardFeatureData } from "./feature"
 import { StandardImageData, isStandardImageData } from "./image"
 import { StandardKnowledgeData, isStandardKnowledgeData } from "./knowledge"
-import { StandardMapData, isStandardMapData } from "./map"
+import { StandardMapData, StandardMapInputData, isStandardMapData, isStandardMapInputData } from "./map"
 import { StandardMessageData, isStandardMessageData } from "./message"
 import { StandardMomentData, isStandardMomentData } from "./moment"
-import { StandardRoomData, StandardRoomObjectData, StandardRoomRenderData, isStandardRoomData } from "./room"
+import { StandardRoomData, StandardRoomInputData, StandardRoomObjectData, StandardRoomRenderData, isStandardRoomData, isStandardRoomInputData } from "./room"
 import { StandardMarkData, isStandardMarkData } from "./mark"
-import { StandardLensData, isStandardLensData } from "./lens"
-import { StandardGuidanceData, isStandardGuidanceData } from "./guidance"
-import { StandardSituationData, isStandardSituationData } from "./situation"
+import { StandardLensData, StandardLensInputData, isStandardLensData, isStandardLensInputData } from "./lens"
+import { StandardGuidanceData, StandardGuidanceInputData, isStandardGuidanceData, isStandardGuidanceInputData } from "./guidance"
+import { StandardSituationData, StandardSituationInputData, isStandardSituationData, isStandardSituationInputData } from "./situation"
 
 import { checkAll } from "./typeguards"
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
@@ -27,7 +27,27 @@ import { ReferenceListData } from "../../keys/dataTypes/reference"
 import type { WmlStandardizeMode } from "../../wmlStandardizeMode"
 
 export type { StandardRoomObjectData, StandardRoomRenderData }
-export { isStandardCharacterData, isStandardExampleData, isStandardRoomData, isStandardFeatureData, isStandardKnowledgeData, isStandardMapData, isStandardMessageData, isStandardMomentData, isStandardImageData, isStandardMarkData, isStandardLensData, isStandardGuidanceData, isStandardSituationData }
+export {
+    isStandardCharacterData,
+    isStandardExampleData,
+    isStandardExampleInputData,
+    isStandardRoomData,
+    isStandardRoomInputData,
+    isStandardFeatureData,
+    isStandardKnowledgeData,
+    isStandardMapData,
+    isStandardMapInputData,
+    isStandardMessageData,
+    isStandardMomentData,
+    isStandardImageData,
+    isStandardMarkData,
+    isStandardLensData,
+    isStandardLensInputData,
+    isStandardGuidanceData,
+    isStandardGuidanceInputData,
+    isStandardSituationData,
+    isStandardSituationInputData
+}
 
 export type StandardComponentNonEditData =
     StandardCharacterData |
@@ -43,6 +63,23 @@ export type StandardComponentNonEditData =
     StandardLensData |
     StandardGuidanceData |
     StandardSituationData
+
+export type StandardComponentInputNonEditData =
+    StandardCharacterData |
+    StandardExampleInputData |
+    StandardRoomInputData |
+    StandardFeatureData |
+    StandardKnowledgeData |
+    StandardMapInputData |
+    StandardMessageData |
+    StandardMomentData |
+    StandardImageData |
+    StandardMarkData |
+    StandardLensInputData |
+    StandardGuidanceInputData |
+    StandardSituationInputData
+
+export type StandardComponentInputData = StandardComponentInputNonEditData
 
 
 export const isStandardFactory = <T extends StandardComponentData>(tag: StandardComponentTag) => (value: StandardComponentData): value is T => (typeof value !== 'string' && value.tag === tag)
@@ -63,10 +100,36 @@ export const isStandardComponentData = (value: any): value is StandardComponentD
     isStandardSituationData(value)
 )
 
+export const isStandardComponentInputData = (value: any): value is StandardComponentInputData => (
+    isStandardCharacterData(value) ||
+    isStandardExampleInputData(value) ||
+    isStandardRoomInputData(value) ||
+    isStandardFeatureData(value) ||
+    isStandardKnowledgeData(value) ||
+    isStandardMapInputData(value) ||
+    isStandardMessageData(value) ||
+    isStandardMomentData(value) ||
+    isStandardImageData(value) ||
+    isStandardMarkData(value) ||
+    isStandardLensInputData(value) ||
+    isStandardGuidanceInputData(value) ||
+    isStandardSituationInputData(value)
+)
+
 
 export type StandardFormData = {
     universalKey: AssetUUID;
     components: StandardComponentData[];
+    metaData: GenericTree<SchemaTag>;
+    shortName?: StandardEditableData<string>;
+    summary?: StandardEditableData<RenderTree>;
+    topLevel?: ReferenceListData;
+    standardizeMode?: WmlStandardizeMode;
+}
+
+export type StandardFormInputData = {
+    universalKey: AssetUUID;
+    components: StandardComponentInputData[];
     metaData: GenericTree<SchemaTag>;
     shortName?: StandardEditableData<string>;
     summary?: StandardEditableData<RenderTree>;
@@ -82,5 +145,16 @@ export const isStandardForm = (arg: any): arg is StandardFormData => {
         ('universalKey' in arg && typeof arg.universalKey === 'string' && isSchemaAssetUUID(arg.universalKey)),
         ('metaData' in arg && Array.isArray(arg.metaData) && arg.metaData.every(isSchemaTreeNode)),
         ('components' in arg && Array.isArray(arg.components) && arg.components.every(isStandardComponentData))
+    )
+}
+
+export const isStandardFormInput = (arg: any): arg is StandardFormInputData => {
+    if (typeof arg !== 'object') {
+        return false
+    }
+    return checkAll(
+        ('universalKey' in arg && typeof arg.universalKey === 'string' && isSchemaAssetUUID(arg.universalKey)),
+        ('metaData' in arg && Array.isArray(arg.metaData) && arg.metaData.every(isSchemaTreeNode)),
+        ('components' in arg && Array.isArray(arg.components) && arg.components.every(isStandardComponentInputData))
     )
 }

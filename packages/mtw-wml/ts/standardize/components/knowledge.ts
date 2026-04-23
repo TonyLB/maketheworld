@@ -23,7 +23,7 @@ import {
 } from "./fromSchemaPipeline"
 import { ReferenceFormat } from "./utils/references"
 
-export class StandardKnowledgePayload implements HasShortName, ComponentConstructorMethods<StandardKnowledgeData> {
+export class StandardKnowledgePayload implements HasShortName, ComponentConstructorMethods<StandardKnowledgeData, StandardKnowledgeData> {
     _shortName?: StandardLiteral;
     _examples: ReferenceList;
     tag = 'Knowledge' as const

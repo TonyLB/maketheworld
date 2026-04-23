@@ -2,9 +2,10 @@ import { ReferenceListData } from "./reference"
 import { StandardBaseData } from "./abstract"
 import { checkAll, checkTypes } from "./typeguards"
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable"
-import { FacetListData } from "../../keys/abstract"
+import { FacetListData, FacetListInputData } from "../../keys/abstract"
 import { ExitPayload } from "../../keys/facets/dataTypes/facet"
 import { isSituationRoomFacetPayload, type SituationRoomFacetPayloadType } from "../../keys/facets/situationRoom"
+import { Override } from "../../types"
 
 export type StandardRoomObjectData = {
     uuid: string;
@@ -28,6 +29,11 @@ export type StandardRoomData = {
     /** Ephemera wire: resolved DisplayName / Summary / Description from `<Render>`. */
     render?: StandardRoomRenderData;
 } & StandardBaseData
+
+export type StandardRoomInputData = Override<StandardRoomData, {
+    exits?: FacetListInputData<ExitPayload>;
+    situations?: FacetListInputData<SituationRoomFacetPayloadType>;
+}>
 
 const isStandardRoomObjectData = (x: unknown): x is StandardRoomObjectData => (
     typeof x === 'object'
@@ -63,6 +69,32 @@ export const isStandardRoomData = (arg: any): arg is StandardRoomData => {
             shortName: 'literal',
             exits: 'facetList',
             situations: 'facetList',
+            lens: 'referenceList',
+            features: 'referenceList',
+            guidance: 'referenceList',
+            characters: 'referenceList'
+        }),
+        !('objects' in arg) ||
+            (Array.isArray(arg.objects) && (arg.objects as unknown[]).every(isStandardRoomObjectData)),
+        !('render' in arg) ||
+            isStandardRoomRenderData(arg.render)
+    )
+}
+
+export const isStandardRoomInputData = (arg: any): arg is StandardRoomInputData => {
+    if (typeof arg !== 'object') {
+        return false
+    }
+
+    return checkAll(
+        ('tag' in arg && arg.tag === 'Room'),
+        checkTypes(arg, { },
+        {
+            key: 'key',
+            universalKey: 'string',
+            shortName: 'literal',
+            exits: 'facetListInput',
+            situations: 'facetListInput',
             lens: 'referenceList',
             features: 'referenceList',
             guidance: 'referenceList',

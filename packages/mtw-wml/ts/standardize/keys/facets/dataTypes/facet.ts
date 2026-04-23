@@ -69,6 +69,11 @@ export type StandardFacetData<TPayload> = {
     payload: StandardEditableData<TPayload>;
 }
 
+export type StandardFacetEnvelopeWithOptionalPayload<TPayload = any> = {
+    reference: StandardReferenceData;
+    payload?: StandardEditableData<TPayload>;
+}
+
 /**
  * Type guard for PositionPayload
  * Checks for object with x and y number properties (no type field needed - type inferred from context)
@@ -147,6 +152,21 @@ export const isStandardFacetData = (arg: any): arg is StandardFacetData<any> => 
     return (
         'reference' in arg &&
         'payload' in arg &&
+        isStandardReferenceData(arg.reference)
+    )
+}
+
+/**
+ * Ingestion-only guard for legacy facet JSON that may omit payload.
+ * Keeps reference validation strict while allowing payload to be injected later.
+ */
+export const isStandardFacetEnvelopeWithOptionalPayload = (arg: any): arg is StandardFacetEnvelopeWithOptionalPayload => {
+    if (typeof arg !== 'object' || arg === null) {
+        return false
+    }
+
+    return (
+        'reference' in arg &&
         isStandardReferenceData(arg.reference)
     )
 }

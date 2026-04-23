@@ -21,7 +21,7 @@ import { isSchemaTreeNode, nodeFromWML } from "../../schema";
 import { AssetUUID, ComponentUUID, isSchemaComponent, isSchemaComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema";
 import { ComponentTag } from "./dataTypes/abstract";
 import { deepEqual } from "../../lib/objects";
-import { StandardComponentData, StandardFormSubsetRequest } from "../baseClasses";
+import { StandardComponentData, StandardComponentInputData, StandardFormSubsetRequest } from "../baseClasses";
 import { ReferenceFormat } from "./utils/references";
 import { isStandardReferenceData, StandardReferenceData } from "./dataTypes/reference";
 import StandardReference from "../keys/reference";
@@ -46,12 +46,12 @@ export type ComponentConstructorMethodsDiff<D extends ComponentKey> = {
     payload: D;
 }
 
-export interface ComponentConstructorMethods<D> {
-    fromJSON(line: D): void;
+export interface ComponentConstructorMethods<DInput, DOutput> {
+    fromJSON(line: DInput): void;
     fromSchema(node: GenericTreeNode<SchemaTag>, context?: StandardizeFromSchemaContext): GenericTree<SchemaTag>;
     subset(options: StandardFormSubsetRequest): this;
     merge(incoming: this): this;
-    toJSON(options?: StandardToJSONOptions): Omit<D, 'key' | 'universalKey'>;
+    toJSON(options?: StandardToJSONOptions): Omit<DOutput, 'key' | 'universalKey'>;
     schema(key?: string, universalKey?: ComponentUUID, mappings?: StandardReference[]): GenericTreeNode<SchemaTag>;
     nestedSchema?(lookup: (key: string | StandardKey) => StandardComponent | undefined, options: NestedSchemaOptions): GenericTreeNode<SchemaTag>;
     tag: ComponentTag;
@@ -73,7 +73,16 @@ export interface ComponentConstructorMethods<D> {
     isEmpty?(): boolean;
 }
 
-export const componentClassFactory = <D extends StandardComponentData, TBase extends new (...args: any[]) => ComponentConstructorMethods<D>>(Base: TBase, label: string) => {
+//
+// componentClassFactory is explicitly bi-typed:
+// - DInput: permissive ingest shape accepted by fromJSON/constructors
+// - DOutput: normative serialized shape emitted by toJSON
+//
+export const componentClassFactory = <
+    DInput extends StandardComponentInputData,
+    DOutput extends StandardComponentData,
+    TBase extends new (...args: any[]) => ComponentConstructorMethods<DInput, DOutput>
+>(Base: TBase, label: string) => {
     return class GeneratedComponentClass implements StandardComponent {
         _key?: StandardExplicitKey;
         _universalKey?: ComponentUUID;
@@ -83,7 +92,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
         _origin?: AssetUUID[];
         explicitParent?: StandardExplicitParent;
         constructor(
-            props: string | D | GenericTreeNode<SchemaTag> | GeneratedComponentClass,
+            props: string | DInput | GenericTreeNode<SchemaTag> | GeneratedComponentClass,
             options?: StandardFormConstructionOptions,
         ) {
             this._payload = new Base() as InstanceType<typeof Base>
@@ -272,7 +281,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
             return this
         }
 
-        toJSON(options?: StandardToJSONOptions): D {
+        toJSON(options?: StandardToJSONOptions): DOutput {
             return {
                 key: this._key?.toJSON(),  // Returns string for Simple, StandardEditableData<string> for Remove/Replace
                 universalKey: this.universalKey,
@@ -280,7 +289,7 @@ export const componentClassFactory = <D extends StandardComponentData, TBase ext
                 ...(this._from ? { from: this._from } : {}),
                 ...(this._origin ? { origin: this._origin } : {}),
                 ...(this.explicitParent ? { explicitParent: this.explicitParent.toJSON() } : {}),
-            } as D
+            } as DOutput
         }
 
         get schema(): GenericTreeNode<SchemaTag> {

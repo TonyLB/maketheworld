@@ -70,6 +70,25 @@
   - Will be integrated into StandardComponent implementations (Phase 5)
   - Replaces ad-hoc patterns like StandardPosition and StandardExit (optional, Phase 6)
 
+## Position fallback risk note
+
+- Position currently allows omitted payload ingestion by injecting a temporary default: `{ x: 0, y: 0 }`.
+- This fallback is a short-term compatibility tradeoff, not a neutral semantic default.
+- Keep strict rejection for malformed present payload values; tolerance is only for omitted payload.
+- Follow-up cleanup plan:
+  - [`taskPlanning/packages/mtw-wml/standardize/AGENT.positionSubsystemOverhaul.planning.md`](../../../../taskPlanning/packages/mtw-wml/standardize/AGENT.positionSubsystemOverhaul.planning.md)
+
+## Missing-payload policy (high level)
+
+- Intent: preserve backward-compatible ingestion for facet envelopes that omit `payload`, without broadening acceptance of malformed present payload values.
+- Scope boundary: tolerance applies only at ingestion boundaries; normative serialized shapes remain payload-required.
+- Navigation guide:
+  - Facet envelope/type-level shapes: [`dataTypes/facet.ts`](./dataTypes/facet.ts)
+  - Input vs normative facet list aliases: [`../abstract.ts`](../abstract.ts)
+  - Guard behavior at component boundaries: [`../../components/dataTypes/typeguards.ts`](../../components/dataTypes/typeguards.ts), [`../../components/dataTypes/index.ts`](../../components/dataTypes/index.ts)
+  - Default injection path per facet family: `position.ts`, `mark.ts`, `lensMark.ts`, `situationRoom.ts`, `exit.ts` (via `facetFactory.ts`)
+  - Behavioral regression coverage: `facetFactory.test.ts`, `dataTypes/facet.test.ts`, `../../index.test.ts`
+
 ## Usage Patterns
 
 - **Common Scenarios**: 

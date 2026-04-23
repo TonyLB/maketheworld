@@ -1,4 +1,4 @@
-import React, { FunctionComponent, useCallback, useMemo } from "react"
+import React, { FunctionComponent, useCallback, useMemo, useState } from "react"
 import Box from "@mui/material/Box"
 import List from "@mui/material/List"
 import ListItem from "@mui/material/ListItem"
@@ -7,10 +7,7 @@ import ListItemIcon from "@mui/material/ListItemIcon"
 import ListItemText from "@mui/material/ListItemText"
 import IconButton from "@mui/material/IconButton"
 import TextField from "@mui/material/TextField"
-import Select, { SelectChangeEvent } from "@mui/material/Select"
-import MenuItem from "@mui/material/MenuItem"
-import FormControl from "@mui/material/FormControl"
-import InputLabel from "@mui/material/InputLabel"
+import Typography from "@mui/material/Typography"
 import { useWorkbenchAsset } from "../foundations/useWorkbenchAsset"
 import ExitIcon from '@mui/icons-material/CallMade'
 import AddIcon from '@mui/icons-material/Add'
@@ -19,67 +16,10 @@ import { MakeTheWorldAccordion } from "../../UI"
 import StandardRoom from "@tonylb/mtw-wml/ts/standardize/components/room"
 import { StandardExitFacet } from "@tonylb/mtw-wml/ts/standardize/keys/facets/exit"
 import { ComponentUUID } from "@tonylb/mtw-base/ts/schema"
+import ComponentSelectorDialog from "../foundations/ComponentSelector/ComponentSelectorDialog"
 
 export type ExitEditorProps = {
     RoomId: ComponentUUID;
-}
-
-const ExitTargetSelector: FunctionComponent<{
-    target: string;
-    currentRoomKey: string | undefined;
-    onChange: (target: string) => void;
-    disabled?: boolean;
-}> = ({ target, currentRoomKey, onChange, disabled }) => {
-    const { readonly, standardForm } = useWorkbenchAsset()
-
-    const roomNamesInScope = useMemo<Record<string, string>>(() => {
-        const rooms = standardForm.components
-            .filter((component): component is StandardRoom => (component instanceof StandardRoom))
-
-        const roomNamesInScope: Record<string, string> = {}
-        rooms
-            .filter(room => room.key !== currentRoomKey)
-            .forEach((room) => {
-                if (room.key) {
-                    let roomName = room.key
-                    if (room.shortName) {
-                        const shortNameData = room.shortName.toJSON()
-                        if (typeof shortNameData === 'string') {
-                            roomName = shortNameData
-                        }
-                    }
-                    roomNamesInScope[room.key] = roomName
-                }
-            })
-        return roomNamesInScope
-    }, [currentRoomKey, standardForm])
-
-    const handleChange = useCallback((event: SelectChangeEvent<string>) => {
-        if (!readonly && !disabled) {
-            onChange(event.target.value)
-        }
-    }, [onChange, readonly, disabled])
-
-    return (
-        <FormControl size="small" disabled={readonly || disabled}>
-            <InputLabel>Target Room</InputLabel>
-            <Select
-                value={target}
-                label="Target Room"
-                onChange={handleChange}
-                sx={{ minWidth: 150, background: 'white' }}
-            >
-                <MenuItem value="">
-                    <em>Select target room...</em>
-                </MenuItem>
-                {Object.entries(roomNamesInScope).map(([key, name]) => (
-                    <MenuItem key={key} value={key}>
-                        {name}
-                    </MenuItem>
-                ))}
-            </Select>
-        </FormControl>
-    )
 }
 
 const ExitRowEditor: FunctionComponent<{
@@ -87,9 +27,8 @@ const ExitRowEditor: FunctionComponent<{
     onUpdate: (exit: StandardExitFacet) => void;
     onDelete: () => void;
     disabled?: boolean;
-    currentRoomKey: string | undefined;
-}> = ({ exit, onUpdate, onDelete, disabled, currentRoomKey }) => {
-    const { readonly } = useWorkbenchAsset()
+}> = ({ exit, onUpdate, onDelete, disabled }) => {
+    const { readonly, standardForm } = useWorkbenchAsset()
     const isDisabled = readonly || disabled
 
     const handleDescriptionChange = useCallback((newDescription: string) => {
@@ -102,24 +41,41 @@ const ExitRowEditor: FunctionComponent<{
         }
     }, [exit, onUpdate, isDisabled])
 
-    const handleTargetChange = useCallback((newTarget: string) => {
-        if (!isDisabled && newTarget) {
-            const updatedExit = new StandardExitFacet({
-                reference: { tag: 'Room', key: newTarget },
-                payload: exit.payload.toJSON()
-            })
-            onUpdate(updatedExit)
+    const targetRoomDisplay = useMemo(() => {
+        let targetRoom: StandardRoom | undefined
+        const targetUniversalKey = exit.reference.universalKey
+        if (targetUniversalKey) {
+            const byUniversalId = standardForm.byUniversalId[targetUniversalKey]
+            if (byUniversalId instanceof StandardRoom) {
+                targetRoom = byUniversalId
+            }
         }
-    }, [exit, onUpdate, isDisabled])
+        if (!targetRoom && exit.reference.key) {
+            const byLocalKey = standardForm.components.find((component) => (
+                component instanceof StandardRoom &&
+                component.key === exit.reference.key
+            ))
+            if (byLocalKey instanceof StandardRoom) {
+                targetRoom = byLocalKey
+            }
+        }
+        if (!targetRoom) {
+            return 'Unknown room'
+        }
+        const shortNameData = targetRoom.shortName?.toJSON()
+        if (typeof shortNameData === 'string' && shortNameData.trim().length) {
+            return shortNameData
+        }
+        if (targetRoom.key) {
+            return targetRoom.key
+        }
+        return 'Untitled'
+    }, [exit.reference, standardForm])
 
     const currentDescription = useMemo(() => {
         const desc = exit.payload.toJSON()
         return typeof desc === 'string' ? desc : ''
     }, [exit.payload])
-
-    const currentTarget = useMemo(() => {
-        return exit.reference.standardKey.key || ''
-    }, [exit.reference])
 
     return (
         <ListItem
@@ -141,25 +97,30 @@ const ExitRowEditor: FunctionComponent<{
                 </IconButton>
             }
         >
-            <Box sx={{ display: 'flex', flexDirection: 'column', width: '100%', gap: 1 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <ExitIcon sx={{ color: 'grey', fontSize: 20 }} />
+            <Box sx={{ display: 'flex', width: '100%', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                <Typography
+                    variant="body2"
+                    sx={{
+                        fontWeight: 700,
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        maxWidth: '40%'
+                    }}
+                    title={targetRoomDisplay}
+                >
+                    {targetRoomDisplay}
+                </Typography>
+                <ExitIcon sx={{ color: 'grey', fontSize: 20, flexShrink: 0 }} />
+                <Box sx={{ flex: '1 1 240px', minWidth: 180 }}>
                     <TextField
                         label="Exit Name"
                         value={currentDescription}
                         onChange={(e) => handleDescriptionChange(e.target.value)}
                         disabled={isDisabled}
                         size="small"
-                        sx={{ flexGrow: 1 }}
+                        fullWidth
                         placeholder="Enter exit name..."
-                    />
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <ExitTargetSelector
-                        target={currentTarget}
-                        currentRoomKey={currentRoomKey}
-                        onChange={handleTargetChange}
-                        disabled={isDisabled}
                     />
                 </Box>
             </Box>
@@ -168,7 +129,8 @@ const ExitRowEditor: FunctionComponent<{
 }
 
 export const ExitEditor: FunctionComponent<ExitEditorProps> = ({ RoomId }) => {
-    const { standardForm, updateStandard } = useWorkbenchAsset()
+    const { readonly, standardForm, updateStandard } = useWorkbenchAsset()
+    const [isAddExitDialogOpen, setIsAddExitDialogOpen] = useState(false)
 
     const room = useMemo(() => {
         if (RoomId) {
@@ -193,7 +155,56 @@ export const ExitEditor: FunctionComponent<ExitEditorProps> = ({ RoomId }) => {
         return names.length ? names.join(', ') : undefined
     }, [exits])
 
-    const addExit = useCallback(() => {
+    const roomsByKey = useMemo<Record<string, ComponentUUID>>(() => (
+        standardForm.components.reduce<Record<string, ComponentUUID>>((previous, component) => {
+            if (component instanceof StandardRoom && component.key && component.universalKey) {
+                previous[component.key] = component.universalKey
+            }
+            return previous
+        }, {})
+    ), [standardForm])
+
+    const targetedRoomUniversalKeys = useMemo<Set<ComponentUUID>>(() => (
+        exits.reduce<Set<ComponentUUID>>((previous, exit) => {
+            const directUniversalKey = exit.reference.universalKey
+            if (directUniversalKey) {
+                previous.add(directUniversalKey)
+                return previous
+            }
+            const localKey = exit.reference.key
+            const lookedUpUniversalKey = localKey ? roomsByKey[localKey] : undefined
+            if (lookedUpUniversalKey) {
+                previous.add(lookedUpUniversalKey)
+            }
+            return previous
+        }, new Set<ComponentUUID>())
+    ), [exits, roomsByKey])
+
+    const isExcludedFromAddExitSelector = useCallback((universalKey: ComponentUUID) => {
+        if (room?.universalKey && room.universalKey === universalKey) {
+            return true
+        }
+        return targetedRoomUniversalKeys.has(universalKey)
+    }, [room, targetedRoomUniversalKeys])
+
+    const hasAvailableAddExitTarget = useMemo(() => (
+        standardForm.components.some((component) => (
+            component instanceof StandardRoom &&
+            Boolean(component.universalKey) &&
+            !isExcludedFromAddExitSelector(component.universalKey as ComponentUUID)
+        ))
+    ), [standardForm, isExcludedFromAddExitSelector])
+
+    const openAddExitSelector = useCallback(() => {
+        if (readonly || !room || !hasAvailableAddExitTarget) return
+        setIsAddExitDialogOpen(true)
+    }, [readonly, room, hasAvailableAddExitTarget])
+
+    const closeAddExitSelector = useCallback(() => {
+        setIsAddExitDialogOpen(false)
+    }, [])
+
+    const addExitWithTarget = useCallback((targetRoomId: ComponentUUID) => {
         if (!room) return
 
         updateStandard({
@@ -202,7 +213,7 @@ export const ExitEditor: FunctionComponent<ExitEditorProps> = ({ RoomId }) => {
                 const base = component.byUniversalId[RoomId]
                 if (base instanceof StandardRoom) {
                     const newExitFacet = new StandardExitFacet({
-                        reference: { tag: 'Room', key: '' },
+                        reference: { tag: 'Room', universalKey: targetRoomId },
                         payload: undefined
                     })
                     base._payload._exits.items.push(newExitFacet)
@@ -210,6 +221,7 @@ export const ExitEditor: FunctionComponent<ExitEditorProps> = ({ RoomId }) => {
                 return component
             }
         })
+        setIsAddExitDialogOpen(false)
     }, [room, RoomId, updateStandard])
 
     const updateExit = useCallback((index: number, updatedExit: StandardExitFacet) => {
@@ -261,11 +273,14 @@ export const ExitEditor: FunctionComponent<ExitEditorProps> = ({ RoomId }) => {
                         exit={exit}
                         onUpdate={(updatedExit) => updateExit(index, updatedExit)}
                         onDelete={() => deleteExit(index)}
-                        currentRoomKey={room.key}
                     />
                 ))}
                 <ListItem>
-                    <ListItemButton onClick={addExit} sx={{ justifyContent: 'center' }}>
+                    <ListItemButton
+                        onClick={openAddExitSelector}
+                        disabled={readonly || !hasAvailableAddExitTarget}
+                        sx={{ justifyContent: 'center' }}
+                    >
                         <ListItemIcon>
                             <AddIcon />
                         </ListItemIcon>
@@ -273,6 +288,13 @@ export const ExitEditor: FunctionComponent<ExitEditorProps> = ({ RoomId }) => {
                     </ListItemButton>
                 </ListItem>
             </List>
+            <ComponentSelectorDialog
+                open={isAddExitDialogOpen}
+                onClose={closeAddExitSelector}
+                tag="Room"
+                onSelect={addExitWithTarget}
+                isExcluded={isExcludedFromAddExitSelector}
+            />
         </MakeTheWorldAccordion>
     )
 }

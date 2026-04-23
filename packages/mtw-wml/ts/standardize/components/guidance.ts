@@ -4,7 +4,7 @@ import { componentClassFactory, ComponentConstructorMethods } from "./component"
 import { StandardComponent, StandardComponentReferenceKey, NestedSchemaOptions } from "./baseClasses"
 import { StandardToJSONOptions } from "./baseClasses"
 import { ReferenceFormat } from "./utils/references"
-import { StandardGuidanceData, StandardGuidanceNDJSONData } from "./dataTypes/guidance"
+import { StandardGuidanceData, StandardGuidanceInputData, StandardGuidanceNDJSONData, StandardGuidanceNDJSONInputData } from "./dataTypes/guidance"
 import { ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaGuidance } from "@tonylb/mtw-base/ts/schema/components"
 import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
@@ -18,7 +18,7 @@ import type { StandardFormConstructionOptions, StandardizeFromSchemaContext } fr
 import { HasShortName } from "./abstract"
 import { processWithConsumers, StandardizeConsumerFacetListMark, StandardizeConsumerInline, StandardizeConsumerStandardLiteral } from "./fromSchemaPipeline"
 
-export class StandardGuidancePayload implements HasShortName, ComponentConstructorMethods<StandardGuidanceNDJSONData | StandardGuidanceData> {
+export class StandardGuidancePayload implements HasShortName, ComponentConstructorMethods<StandardGuidanceNDJSONInputData | StandardGuidanceInputData, StandardGuidanceData> {
     _instructions?: StandardLiteral;
     _shortName?: StandardLiteral;
     _marks: MarkFacetList;
@@ -35,7 +35,7 @@ export class StandardGuidancePayload implements HasShortName, ComponentConstruct
         }
     }
 
-    fromJSON(props: StandardGuidanceData | StandardGuidanceNDJSONData) {
+    fromJSON(props: StandardGuidanceInputData | StandardGuidanceNDJSONInputData) {
         const { instructions, marks, shortName } = props
         this._instructions = instructions ? new StandardLiteral(instructions, { tag: 'Instructions' }) : undefined
         this._shortName = shortName ? new StandardLiteral(shortName, { tag: 'ShortName' }) : undefined
@@ -218,7 +218,7 @@ export class StandardGuidance extends componentClassFactory(StandardGuidancePayl
     get marks() { return this._payload.marks }
 
     constructor(
-        props: string | StandardGuidanceData | StandardGuidanceNDJSONData | GenericTreeNode<SchemaTag> | StandardGuidance,
+        props: string | StandardGuidanceInputData | StandardGuidanceNDJSONInputData | GenericTreeNode<SchemaTag> | StandardGuidance,
         options?: StandardFormConstructionOptions,
     ) {
         super(props, options)
