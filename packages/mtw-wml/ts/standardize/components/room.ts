@@ -11,6 +11,7 @@ import StandardReference from "../keys/reference"
 import { StandardKey } from "../keys/key"
 import { StandardReferenceData } from "./dataTypes/reference"
 import { AssetUUID, ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
+import { isSchemaExample } from "@tonylb/mtw-base/ts/schema/example"
 import { isSchemaObject, isSchemaRoom, isSchemaShortName, isSchemaRender } from "@tonylb/mtw-base/ts/schema/components"
 import { deepEqual } from "../../lib/objects"
 import { StandardLiteral } from "../literal"
@@ -22,8 +23,8 @@ import { ExitFacetList, StandardExitFacet } from "../keys/facets/exit"
 import { parseProseTripletChildren, SituationRoomFacetList, SituationRoomFacetPayload } from "../keys/facets/situationRoom"
 import { StandardExplicitParent } from "../explicit"
 import { StandardFormSubsetRequest } from "../baseClasses"
-import { processWithConsumers, StandardizeConsumerInline, StandardizeConsumerReferenceList, StandardizeConsumerSimple, StandardizeConsumerStandardLiteral, type StandardizeConsumer } from "./fromSchemaPipeline"
-import { splitTaggedChildren } from "../../schema/utils"
+import { processWithConsumers, StandardizeConsumerReferenceList, StandardizeConsumerSimple, StandardizeConsumerStandardLiteral, type StandardizeConsumer } from "./fromSchemaPipeline"
+import { splitChildrenByPredicate, splitTaggedChildren } from "../../schema/utils"
 import { isSchemaSituation } from "@tonylb/mtw-base/ts/schema/components"
 import { StandardSituationRoomFacet } from "../keys/facets/situationRoom"
 import { SingleReference } from "../keys/singleReference"
@@ -33,6 +34,26 @@ import { SingleReference } from "../keys/singleReference"
  * Parses Situation children (with DisplayName/Summary/Description payload) into SituationRoomFacetList.
  * Cleaned Situation nodes (render tags stripped) go to returnRemainderAddition for processComponents recursion.
  */
+/**
+ * Like StandardizeConsumerInline, but records ref={0} Example refs on the Room payload so
+ * referencedKeys() includes Direct edges for subset cascade (Examples hoist to asset scope).
+ * Scoped to Example only — other ref={0} components use different semantics (merge/remove).
+ */
+class StandardizeConsumerInlineRoomRefs implements StandardizeConsumer {
+    constructor(private readonly payload: StandardRoomPayload) {}
+
+    process(children: GenericTree<SchemaTag>): { parsingRemainder: GenericTree<SchemaTag>; returnRemainderAddition: GenericTree<SchemaTag> } {
+        const predicate = (node: GenericTreeNode<SchemaTag>) =>
+            isSchemaExample(node.data) && (node.data as { ref?: number }).ref === 0
+        const { matched, remainder } = splitChildrenByPredicate(children, predicate)
+        this.payload.recordInlineSchemaRefs(matched)
+        return {
+            parsingRemainder: remainder,
+            returnRemainderAddition: matched
+        }
+    }
+}
+
 class StandardizeConsumerFacetListSituation<D extends object = object> implements StandardizeConsumer {
     constructor(
         private readonly context: D,
@@ -89,6 +110,8 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
     _features: ReferenceList;
     _guidance: ReferenceList;
     _characters: ReferenceList;
+    /** Direct refs to ref={0} inline children (e.g. Example); not persisted in toJSON — used for referencedKeys / subset. */
+    _inlineRefs: ReferenceList;
     _objects: StandardRoomObjectData[];
     _render?: SituationRoomFacetPayload;
     tag = 'Room' as const
@@ -102,6 +125,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
             this._features = previous._features.clone()
             this._guidance = previous._guidance.clone()
             this._characters = previous._characters.clone()
+            this._inlineRefs = previous._inlineRefs.clone()
             this._objects = [...previous._objects]
             this._render = previous._render?.clone()
         }
@@ -112,8 +136,15 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
             this._guidance = new ReferenceList([])
             this._features = new ReferenceList([])
             this._characters = new ReferenceList([])
+            this._inlineRefs = new ReferenceList([])
             this._objects = []
         }
+    }
+
+    recordInlineSchemaRefs(matched: GenericTree<SchemaTag>): void {
+        this._inlineRefs = matched.length
+            ? new ReferenceList(matched.map((node) => new StandardReference([node])))
+            : new ReferenceList([])
     }
 
     fromJSON(props: StandardRoomData) {
@@ -225,7 +256,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
                     })
                 )
             }
-            consumers.push(new StandardizeConsumerInline())
+            consumers.push(new StandardizeConsumerInlineRoomRefs(this))
             const returnRemainder = processWithConsumers(this, consumers, node.children)
             return returnRemainder
         }
@@ -394,6 +425,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         returnValue._features = this._features.merge(incoming._features) ?? new ReferenceList([])
         returnValue._guidance = this._guidance.merge(incoming._guidance) ?? new ReferenceList([])
         returnValue._characters = this._characters.merge(incoming._characters) ?? new ReferenceList([])
+        returnValue._inlineRefs = this._inlineRefs.merge(incoming._inlineRefs, { cleanEmptyReferences: true }) ?? new ReferenceList([])
         returnValue._objects = [...this._objects, ...incoming._objects]
         if (incoming._render !== undefined) {
             returnValue._render = this._render !== undefined
@@ -418,6 +450,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         returnValue._features = this._features.invert()
         returnValue._guidance = this._guidance.invert()
         returnValue._characters = this._characters.invert()
+        returnValue._inlineRefs = this._inlineRefs.invert()
         returnValue._objects = []
         returnValue._render = this._render?.invert()
         return returnValue as this
@@ -470,6 +503,9 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         returnValue._characters = this._characters.filter(
             item => !references.some(ref => item.sameKey(ref))
         )
+        returnValue._inlineRefs = this._inlineRefs.filter(
+            item => !references.some(ref => item.sameKey(ref))
+        )
         
         return returnValue as this
     }
@@ -499,7 +535,8 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
             ...this.lens.payload.map((reference) => ({ referenceType: 'Direct' as const, reference })),
             ...this.features.payload.map((reference) => ({ referenceType: 'Direct' as const, reference })),
             ...this.guidance.payload.map((reference) => ({ referenceType: 'Direct' as const, reference })),
-            ...this.characters.payload.map((reference) => ({ referenceType: 'Direct' as const, reference }))
+            ...this.characters.payload.map((reference) => ({ referenceType: 'Direct' as const, reference })),
+            ...this._inlineRefs.payload.map((reference) => ({ referenceType: 'Direct' as const, reference }))
         ]
     }
 
@@ -524,6 +561,7 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         returnValue._lens = returnValue._lens.toFormat(props.mapTo, props.mappings)
         returnValue._features = returnValue._features.toFormat(props.mapTo, props.mappings)
         returnValue._guidance = returnValue._guidance.toFormat(props.mapTo, props.mappings)
+        returnValue._inlineRefs = this._inlineRefs.toFormat(props.mapTo, props.mappings)
         returnValue._exits = this._exits.lookup(props.mappings).toFormat(props.mapTo)
         returnValue._situations = this._situations.lookup(props.mappings).toFormat(props.mapTo)
         return returnValue as this
@@ -558,9 +596,10 @@ export class StandardRoomPayload implements HasShortName, ComponentConstructorMe
         const hasFeatures = this._features.payload.length > 0
         const hasGuidance = this._guidance.payload.length > 0
         const hasCharacters = this._characters.payload.length > 0
+        const hasInlineRefs = this._inlineRefs.payload.length > 0
         const hasObjects = this._objects.length > 0
         const hasRender = Boolean(this._render)
-        return !(hasShortName || hasExits || hasSituations || hasLens || hasFeatures || hasGuidance || hasCharacters || hasObjects || hasRender)
+        return !(hasShortName || hasExits || hasSituations || hasLens || hasFeatures || hasGuidance || hasCharacters || hasInlineRefs || hasObjects || hasRender)
     }
 }
 
@@ -602,6 +641,7 @@ export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'St
             !(this.features.diff(incoming.features)?.payload.length) &&
             !(this.guidance.diff(incoming.guidance)?.payload.length) &&
             !(this.characters.diff(incoming.characters)?.payload.length) &&
+            !(this._payload._inlineRefs.diff(incoming._payload._inlineRefs)?.payload.length) &&
             !(exitsDiff?.length) &&
             !(situationsDiff?.length) &&
             deepEqual(this.shortName?.toJSON(), incoming.shortName?.toJSON()) &&

@@ -26,24 +26,28 @@ describe('fetchImportsMessage', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         jest.resetAllMocks()
+        //
+        // Room prose: prefer <Situation uuid=(DEFAULT)> over <Example ref={0}> (Gate D). Exception for
+        // testRoomWithFeatures (Link in copy) — see the "should properly stub out features" test comment.
+        //
         const testFinal = new StandardForm(`<Asset uuid=(testFinal)>
             <Room uuid=(testNonImport) key=(testNonImport)>
-                <Example uuid=(testNonImportExample)>
+                <Situation uuid=(DEFAULT)>
                     <Description>
                         DescriptionOne
                     </Description>
-                </Example>
+                </Situation>
                 <Exit to=(testNonImportStub)>test exit</Exit>
             </Room>
             <Room uuid=(testNonImportStub) key=(testNonImportStub)>
                 <ShortName>StubOne</ShortName>
             </Room>
             <Room uuid=(testImportOne) key=(testImportOne) from=(ASSET#testImportAssetOne)>
-                <Example uuid=(testImportOneExample)>
+                <Situation uuid=(DEFAULT)>
                     <Description>
                         Two
                     </Description>
-                </Example>
+                </Situation>
                 <Exit to=(testImportStubOne)>test exit one</Exit>
             </Room>
             <Room uuid=(testImportStubOne) key=(testImportStubOne)  from=(ASSET#testImportAssetOne) />
@@ -54,7 +58,7 @@ describe('fetchImportsMessage', () => {
             </Room>
             <Room uuid=(testImportThree) key=(testImportThree) from=(ASSET#testImportAssetTwo) />
             <Room uuid=(testRoomWithFeatures) key=(testRoomWithFeatures) from=(ASSET#testImportAssetFour)>
-                <Example uuid=(testRoomWithFeaturesExample)>
+                <Example ref={0} uuid=(testRoomWithFeaturesExample)>
                     <Description>
                         <Link to=(featureImport)>Test</Link>
                     </Description>
@@ -64,31 +68,31 @@ describe('fetchImportsMessage', () => {
         </Asset>`)
         const testImportOne = new StandardForm(`<Asset uuid=(testImportAssetOne)>
             <Room uuid=(testImportOne)>
-                <Example uuid=(testImportOneExample)>
+                <Situation uuid=(DEFAULT)>
                     <Description>
                         One
                     </Description>
-                </Example>
+                </Situation>
             </Room>
             <Room uuid=(testImportStubOne)>
                 <ShortName>StubTwo</ShortName>
             </Room>
             <Room uuid=(testImportFoo)>
                 <ShortName>StubFoo</ShortName>
-                <Example uuid=(testImportFooExample)>
+                <Situation uuid=(DEFAULT)>
                     <Description>
                         Foo
                     </Description>
-                </Example>
+                </Situation>
             </Room>
         </Asset>`)
         const testImportTwo = new StandardForm(`<Asset uuid=(testImportAssetTwo)>
             <Room uuid=(testImportThree) key=(basic) from=(ASSET#testImportAssetThree)>
-                <Example uuid=(testImportTwoExample)>
+                <Situation uuid=(DEFAULT)>
                     <Description>
                         Asset Two
                     </Description>
-                </Example>
+                </Situation>
                 <Exit to=(stub)>test exit</Exit>
             </Room>
             <Room uuid=(testStubOne) key=(stub) from=(ASSET#testImportAssetThree) />
@@ -111,7 +115,7 @@ describe('fetchImportsMessage', () => {
                 </Example>
             </Feature>
             <Room uuid=(testRoomWithFeatures) key=(testRoomWithFeatures)>
-                <Example uuid=(testRoomWithFeaturesExample)>
+                <Example ref={0} uuid=(testRoomWithFeaturesExample)>
                     <Description><Link to=(testFeature)>Test</Link></Description>
                 </Example>
             </Room>
@@ -190,6 +194,12 @@ describe('fetchImportsMessage', () => {
         expect(JSON.parse((snsClientMock.send.mock.calls[0][0].input as any).Message)).toMatchSnapshot()
     })
 
+    //
+    // Provisional: fixtures still use Room-hosted Example + Link because subset/import cascade
+    // resolves imported Features via Example referencedKeys. SituationFacet/Situation room prose does
+    // not yet raise Link references from Description for that traversal — once it does, switch
+    // testFinal / testImportFour testRoomWithFeatures to Situation like the other rooms.
+    //
     it('should properly stub out features in room description', async () => {
         await fetchImportsMessage({ payloads: [{ type: 'FetchImports', importsFromAsset: [{ assetId: 'ASSET#testFinal', keys: ['ROOM#testRoomWithFeatures'] }] }], messageBus })
         expect(JSON.parse((snsClientMock.send.mock.calls[0][0].input as any).Message)).toMatchSnapshot()

@@ -48,9 +48,10 @@ Object {
         key=(testImportThree)
         origin=(ASSET#testImportAssetThree,ASSET#testImportAssetTwo,ASSET#testFinal)
     >
-        <Example uuid=(testImportTwoExample) origin=(ASSET#testImportAssetTwo)>
+        <Situation uuid=(DEFAULT) origin=(ASSET#testImportAssetTwo) ref={0} />
+        <Situation uuid=(DEFAULT)>
             <Description>Asset Two</Description>
-        </Example>
+        </Situation>
         <Exit to=(ROOM#stub)>test exit</Exit>
         <Exit to=(ROOM#testStubOne)>test exit</Exit>
     </Room>
@@ -67,6 +68,19 @@ Object {
     Object {
       "assetId": "ASSET#testFinal",
       "wml": "<Asset uuid=(testFinal)>
+    <Example
+        uuid=(testRoomWithFeaturesExample)
+        origin=(ASSET#testImportAssetFour,ASSET#testFinal)
+        ref={0}
+    >
+        <Description>
+            <Link to=(testFeature)>
+                Test
+            </Link><Link to=(featureImport)>
+                Test
+            </Link>
+        </Description>
+    </Example>
     <Feature
         uuid=(testFeature)
         key=(featureImport)
@@ -76,9 +90,7 @@ Object {
         uuid=(testRoomWithFeatures)
         key=(testRoomWithFeatures)
         origin=(ASSET#testImportAssetFour,ASSET#testFinal)
-    >
-        
-    </Room>
+    />
 </Asset>",
     },
   ],
@@ -97,13 +109,14 @@ Object {
         key=(testImportOne)
         origin=(ASSET#testImportAssetOne,ASSET#testFinal)
     >
-        <Example
-            uuid=(testImportOneExample)
+        <Situation
+            uuid=(DEFAULT)
             origin=(ASSET#testImportAssetOne,ASSET#testFinal)
-            ref={2}
-        >
+            ref={0}
+        />
+        <Situation uuid=(DEFAULT) ref={2}>
             <Description>OneTwo</Description>
-        </Example>
+        </Situation>
         <Exit to=(testImportStubOne)>test exit one</Exit>
     </Room>
     <Room
@@ -127,9 +140,10 @@ Object {
       "assetId": "ASSET#testFinal",
       "wml": "<Asset uuid=(testFinal)>
     <Room uuid=(testNonImport) key=(testNonImport) origin=(ASSET#testFinal)>
-        <Example uuid=(testNonImportExample) origin=(ASSET#testFinal)>
+        <Situation uuid=(DEFAULT) origin=(ASSET#testFinal) ref={0} />
+        <Situation uuid=(DEFAULT)>
             <Description>DescriptionOne</Description>
-        </Example>
+        </Situation>
         <Exit to=(testNonImportStub)>test exit</Exit>
     </Room>
     <Room
