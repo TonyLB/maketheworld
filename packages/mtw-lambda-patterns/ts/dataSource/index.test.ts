@@ -1,4 +1,4 @@
-import { DataSource, SerializableObject, SnapshotType, coreFormatToStreamingEnvelope } from './index'
+import { DataSource, SerializableObject, SnapshotType, coreFormatToStreamingEnvelope, resolveReplayCursorTimestamp } from './index'
 import { StreamingEventHeader } from './baseClasses'
 import { getCurrentTimestamp } from '../internalUtils/dateUtil'
 
@@ -200,6 +200,7 @@ describe('DataSource', () => {
             expect(result).toEqual({
                 ...expectedContent,
                 createdAt: 100000000,
+                replayAt: 100000000,
                 expiresAt: 100300000 // 5 minutes later
             })
         })
@@ -325,6 +326,7 @@ describe('DataSource', () => {
                 name: 'Test Snapshot',
                 value: 42,
                 createdAt: 100000000,
+                replayAt: 100000000,
                 expiresAt: 100300000
             })
         })
@@ -957,6 +959,51 @@ describe('DataSource', () => {
     })
 
     describe('initializeSubscription', () => {
+        it('should prefer replayAt over createdAt for replay cursor', async () => {
+            const sessionId = 'SESSION#test-session' as const
+            const streamKey = 'test-stream'
+
+            jest.spyOn(dataSource, 'getSnapshotExternal').mockResolvedValue({
+                id: 'test-id',
+                name: 'Test Snapshot',
+                value: 42,
+                createdAt: 100000000,
+                replayAt: 100002000,
+                expiresAt: 100005000
+            })
+            mockDynamo.query.mockResolvedValue([])
+
+            await dataSource.initializeSubscription({ sessionId, streamKey })
+
+            expect(mockDynamo.query).toHaveBeenCalledWith(expect.objectContaining({
+                ExpressionAttributeValues: expect.objectContaining({
+                    ':timestampPrefix': 'EVENT#100002000'
+                })
+            }))
+        })
+
+        it('should fall back to createdAt when replayAt is missing', async () => {
+            const sessionId = 'SESSION#test-session' as const
+            const streamKey = 'test-stream'
+
+            jest.spyOn(dataSource, 'getSnapshotExternal').mockResolvedValue({
+                id: 'test-id',
+                name: 'Test Snapshot',
+                value: 42,
+                createdAt: 100000000,
+                expiresAt: 100005000
+            })
+            mockDynamo.query.mockResolvedValue([])
+
+            await dataSource.initializeSubscription({ sessionId, streamKey })
+
+            expect(mockDynamo.query).toHaveBeenCalledWith(expect.objectContaining({
+                ExpressionAttributeValues: expect.objectContaining({
+                    ':timestampPrefix': 'EVENT#100000000'
+                })
+            }))
+        })
+
         it('should deliver snapshot and events via SNS', async () => {
             const sessionId = 'SESSION#test-session' as const
             const streamKey = 'test-stream'
@@ -1109,6 +1156,11 @@ describe('DataSource', () => {
     })
 
     describe('type safety', () => {
+        it('resolveReplayCursorTimestamp should use replayAt then createdAt fallback', () => {
+            expect(resolveReplayCursorTimestamp({ createdAt: 100, replayAt: 250 })).toBe(250)
+            expect(resolveReplayCursorTimestamp({ createdAt: 100 })).toBe(100)
+        })
+
         it('should work with different SerializableObject types', () => {
             type ComplexSnapshot = {
                 id: string
@@ -2141,6 +2193,7 @@ describe('DataSource', () => {
                 name: 'Generated Stream 1 Snapshot',
                 value: 300,
                 createdAt: 100000000,
+                replayAt: 100000000,
                 expiresAt: 100300000
             }
             
@@ -2150,6 +2203,7 @@ describe('DataSource', () => {
                 name: 'Generated Stream 2 Snapshot', 
                 value: 400,
                 createdAt: 100000000,
+                replayAt: 100000000,
                 expiresAt: 100300000
             }
             
@@ -2659,6 +2713,7 @@ describe('DataSource', () => {
                     name: 'Test Snapshot',
                     value: 42,
                     createdAt: 100000000,
+                    replayAt: 100000000,
                     expiresAt: 100300000
                 }
 

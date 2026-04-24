@@ -10,10 +10,18 @@ import { publishStreamEvent, StreamEventPublisherSerializer, wireFormatsFromCore
 
 export type SerializableObject = Record<string, unknown>
 
-export type SnapshotType<SnapshotPayload extends SerializableObject> = SnapshotPayload & {
+export type SnapshotMetadata = {
     createdAt: number;
+    // Temporary compatibility: legacy snapshots may omit replayAt.
+    // Replay cursor resolution MUST be replayAt first, then createdAt fallback.
+    replayAt?: number;
     expiresAt: number;
 }
+
+export type SnapshotType<SnapshotPayload extends SerializableObject> = SnapshotPayload & SnapshotMetadata
+
+export const resolveReplayCursorTimestamp = (snapshot: Pick<SnapshotMetadata, 'createdAt' | 'replayAt'>): number =>
+    snapshot.replayAt ?? snapshot.createdAt
 
 export type DynamoGetItemArgs = {
     Key: Record<string, string>
@@ -207,6 +215,7 @@ export class DataSource<
                 streamKey,
                 timestamp: now,
                 createdAt: now,
+                replayAt: now,
                 expiresAt: now + 300000 // 5 minutes default expiration
             } as unknown as SnapshotType<SnapshotPayload>
         }
@@ -215,6 +224,7 @@ export class DataSource<
         return {
             ...content,
             createdAt: now,
+            replayAt: now,
             expiresAt: now + 300000 // 5 minutes default expiration
         }
     }
@@ -478,7 +488,7 @@ export class DataSource<
         }
 
         const externalSnapshot = await this.getSnapshotExternal(streamKey)
-        const recentEvents = await this.getRecentEvents(streamKey, externalSnapshot.createdAt)
+        const recentEvents = await this.getRecentEvents(streamKey, resolveReplayCursorTimestamp(externalSnapshot))
         await this.deliverReplayData({ sessionId, streamKey, snapshot: externalSnapshot, events: recentEvents })
     }
 

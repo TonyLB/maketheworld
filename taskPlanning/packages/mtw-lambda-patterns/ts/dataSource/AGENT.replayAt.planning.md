@@ -39,10 +39,10 @@ For replayable sources that may serve a historical snapshot object while generat
 
 Use `[ ]` for pending items and `[X]` for completed items. If a step has nested bullets, mark each nested line `[X]` when done so partial progress stays visible.
 
-- [ ] 1) Lock contract and compatibility behavior
-  - [ ] Define replay snapshot metadata shape in `packages/mtw-lambda-patterns/ts/dataSource`
-  - [ ] Decide canonical replay field name (`replayAt` preferred) and fallback precedence
-  - [ ] Document temporary compatibility rule: replay cursor resolution order (new field first, legacy fallback second)
+- [X] 1) Lock contract and compatibility behavior
+  - [X] Define replay snapshot metadata shape in `packages/mtw-lambda-patterns/ts/dataSource`
+  - [X] Decide canonical replay field name (`replayAt` preferred) and fallback precedence
+  - [X] Document temporary compatibility rule: replay cursor resolution order (new field first, legacy fallback second)
 - [ ] 2) Land framework changes in `mtw-lambda-patterns`
   - [ ] Update snapshot generation path to carry replay watermark separately from generation timestamp
   - [ ] Update replay query lower-bound in `initializeSubscription` to use replay watermark
@@ -97,6 +97,7 @@ Suggested validation assertions for this task:
 ## Design decisions (locked for implementation)
 
 - `replayAt` is part of the shared snapshot metadata shape for consistency, including non-replayable DataSource snapshot typing. For non-replayable paths this is effectively a no-op field.
+- Temporary compatibility rule is now explicit in framework code/tests: resolve replay cursor as `replayAt ?? createdAt` until all legacy snapshots are migrated.
 - Replay query semantics are strict lower-bound replay without consumer dedupe complexity: replay events strictly after the snapshot watermark (`replayAt`) and avoid inclusive overlap contracts.
 - Keep dual fields indefinitely unless future evidence says otherwise:
   - `createdAt` remains generation/cache metadata and stays available across DataSources.
