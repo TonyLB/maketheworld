@@ -637,6 +637,7 @@ export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'St
         }
         const exitsDiff = this.exits.diff(incoming.exits)
         const situationsDiff = this.situations.diff(incoming.situations)
+        const shortNameEqual = (this.shortName ?? new StandardLiteral('')).equals(incoming.shortName ?? new StandardLiteral(''))
         return !(this.lens.diff(incoming.lens)?.payload.length) &&
             !(this.features.diff(incoming.features)?.payload.length) &&
             !(this.guidance.diff(incoming.guidance)?.payload.length) &&
@@ -644,7 +645,7 @@ export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'St
             !(this._payload._inlineRefs.diff(incoming._payload._inlineRefs)?.payload.length) &&
             !(exitsDiff?.length) &&
             !(situationsDiff?.length) &&
-            deepEqual(this.shortName?.toJSON(), incoming.shortName?.toJSON()) &&
+            shortNameEqual &&
             deepEqual(this.objects, incoming.objects) &&
             deepEqual(this.render, incoming.render)
     }

@@ -158,6 +158,15 @@ const recreated = original.merge(diff)
 // Result: Same as modified
 ```
 
+### Equality (`equals`)
+
+`StandardRender.equals(other)` compares two instances without using `toJSON()` reference checks or ad hoc deep equality on serialized shapes.
+
+- If both values are **vacuous** per `isEmpty()` (plain empty tree, empty remove match, identity replace, and other cases defined there), `equals` returns **true** so optional rich-text fields treat those shapes consistently.
+- Otherwise, equality follows the **editable wrapper** `diff`: `equals` is **true** when `this._payload.diff(other._payload)` is **undefined** (no semantic delta between the two states).
+
+Use `equals` (and, for optional fields, `defaultedEquals` from the semantic-optionals initiative) in UI sync and component equality instead of comparing `toJSON()` outputs.
+
 ## Integration with Components
 
 ### Component Usage
@@ -199,7 +208,7 @@ class StandardExample {
 
 ### Current State
 - **Core Elements**: All render element types implemented
-- **Merge/Diff**: Full support for content operations
+- **Merge/Diff/Equals**: Full support for content operations and semantic `equals`
 - **Normalization**: Automatic whitespace and content normalization
 - **Type Safety**: Strong TypeScript typing throughout
 

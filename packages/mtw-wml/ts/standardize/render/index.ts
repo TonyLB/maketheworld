@@ -471,6 +471,23 @@ export class StandardRender {
         return false
     }
 
+    /**
+     * Semantic equality for rich text: vacuous shapes agree via {@link isEmpty};
+     * otherwise equality follows editable-wrapper diff (no delta between states).
+     */
+    equals(other: StandardRender): boolean {
+        if (this === other) {
+            return true
+        }
+        if (this.isEmpty() && other.isEmpty()) {
+            return true
+        }
+        if (this.isEmpty() !== other.isEmpty()) {
+            return false
+        }
+        return this._payload.diff(other._payload) === undefined
+    }
+
     get schema(): GenericTree<SchemaTag> {
         return this._payload.schema
     }

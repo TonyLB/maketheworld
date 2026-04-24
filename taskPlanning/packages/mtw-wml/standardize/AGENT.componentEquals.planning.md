@@ -1,6 +1,6 @@
 # Component and form equality (`equals` / `isEmpty` foundations)
 
-Status: in progress (next: **`StandardRender.equals`** (+ tests) alongside audit **`StandardComponent`** **`equals`** gaps per [**Intertwined execution order**](#intertwined-execution-order); **`StandardRender.isEmpty`** landed in parent plan).
+Status: in progress (next: **`defaultedEquals`** (+ consumers) per [**Intertwined execution order**](#intertwined-execution-order), with parent plan; component **`equals`** audit is recorded under [**Audit findings (StandardComponent.equals)**](#audit-findings-standardcomponentequals); **`StandardRender.equals`** landed with **`isEmpty`** + **`_payload.diff`**).
 
 See [`taskPlanning/AGENT.md`](../../../AGENT.md) for what belongs in a task plan versus durable package docs, checkbox conventions, and when to retire this file.
 
@@ -60,6 +60,37 @@ Out of scope for this task plan alone: **full execution** of every parent-plan c
 
 - **Order-independent list equality:** Reordering is a **permissible variation** that does **not** change semantic content. **`equals`** must return **true** when the only differences are **order permutations** among: **imports** (within **`_metaData`** / schema import lists as modeled), **reference lists**, and **facet lists**. Implement comparisons as multiset / keyed-set equivalence (or stable sort then compare), not raw array index equality.
 
+## Audit findings (StandardComponent.equals)
+
+Inventory of classes from [`componentClassFactory`](../../../../packages/mtw-wml/ts/standardize/components/component.ts) in [`packages/mtw-wml/ts/standardize/components/`](../../../../packages/mtw-wml/ts/standardize/components/). Default **`equals`** is **`deepEqual(this.toJSON(), incoming.toJSON())`** in [`component.ts`](../../../../packages/mtw-wml/ts/standardize/components/component.ts) unless overridden.
+
+**Facet list machinery (order-independent):** [`MarkFacetList`](../../../../packages/mtw-wml/ts/standardize/keys/facets/mark.ts) and [`LensMarkFacetList`](../../../../packages/mtw-wml/ts/standardize/keys/facets/lensMark.ts) use [`facetListClassFactory`](../../../../packages/mtw-wml/ts/standardize/keys/facets/facetListFactory.ts), which implements **`equals`**, **`merge`**, **`diff`**, and **`invert`**. List **`equals`** matches items in **set-like** fashion (order does not matter). Prefer **`this._marks.equals(incoming._marks)`** (or an empty **`diff`**) over **`deepEqual`** on **`marks.toJSON()`** when fixing component **`equals`**.
+
+**Reference lists:** [`ReferenceList.diff`](../../../../packages/mtw-wml/ts/standardize/keys/referenceList.ts) is keyed by reference identity; overrides that end with **`!(list.diff(incoming)?.payload.length)`** already treat reference collection reordering as non-differences for that bucket.
+
+Per-component summary:
+
+- **StandardRoom** ([`room.ts`](../../../../packages/mtw-wml/ts/standardize/components/room.ts)): **Override.** Reference buckets (lens, features, guidance, characters, inline refs) via **`diff`**; exits/situations via **`diff`**. Still uses **`deepEqual`** on **`shortName?.toJSON()`**, **`objects`**, and **`render`**. **`render`** should use **`StandardRender.equals`** (and/or **`defaultedEquals`**) once available; **`objects`** may need an explicit order-independent policy if array order is not semantically meaningful. **Wrapper fields** (**`_key`**, **`universalKey`**, **`explicitParent`**, **`_from`**, **`_origin`**, **`_mapping`**) are **not** compared in this override (unlike default **`toJSON`** equality on the wrapper); document intent when tightening **full semantics** (**Decisions locked**).
+- **StandardFeature**, **StandardKnowledge**: **Override.** **`examples`** via **`ReferenceList`** semantics + **`shortName`** via **`deepEqual`** of JSON. **`shortName`** ties to parent follow-on **`StandardLiteral`** semantic equality when that lands.
+- **StandardMessage**: **Override.** **`rooms`** via **`ReferenceList.diff`**; **`description`** still **`deepEqual(toJSON)`** -- switch to **`StandardRender.equals`** once line 84 ships.
+- **StandardMoment**: **Override.** **`messages`** via **`ReferenceList.diff`**; **`shortName`** compared via primitive from **`toJSON()`** -- align with **`StandardLiteral`** when that tier ships.
+- **StandardMap**, **StandardCharacter**, **StandardImage**: **Default `equals` only.** Highest priority for new overrides: map **positions** / **images** arrays and character literals / image are sensitive to JSON ordering and lack semantic **`StandardRender`** / **`StandardLiteral`** comparison until those tiers exist.
+- **StandardSituation**: **Override** but **`deepEqual(this.toJSON(), incoming.toJSON())`**. **`_marks`** is a **`MarkFacetList`** -- replace with **`this.marks.equals(incoming.marks)`** (or equivalent **`diff`**-empty check) plus literal comparison aligned with **`StandardLiteral`** follow-on.
+- **StandardExample**, **StandardGuidance**: **Override** + **`deepEqual(toJSON)`**. Carry **`MarkFacetList`** via list **`equals`**; carry **`StandardRender`** fields (**`summary`**, **`description`**, instructions-only on guidance) via **`StandardRender.equals`** once available; literals via **`StandardLiteral`** follow-on.
+- **StandardMark**, **StandardLens**: **Override** + **`deepEqual(toJSON)`**. **`StandardRender`** description and **`MarkFacetList`** / **`LensMarkFacetList`** should use type **`equals`** instead of serialized array order.
+
+**`StandardForm` imports:** Not on **`StandardComponent`** classes; handle **order-independent imports** under future **`StandardForm.equals`** and parent diff work ([`index.ts`](../../../../packages/mtw-wml/ts/standardize/index.ts) **`_metaData`**).
+
+**`isEmpty`:** Payloads for the types above already expose **`isEmpty`** where the codebase needed it; **no new `isEmpty`** from this audit. If a future fix adds **`isEmpty`** to a component type, implement it **before** changing **`equals`** (**Decisions locked**).
+
+### Next implementation order (post-audit, line 84+)
+
+1. Land **`StandardRender.equals`** (+ tests) in [`render/index.ts`](../../../../packages/mtw-wml/ts/standardize/render/index.ts).
+2. Update **`equals`** on components that embed **`StandardRender`**: **StandardRoom**, **StandardMessage**, **StandardMark**, **StandardLens**, **StandardExample** (summary, description).
+3. Replace **`deepEqual`** on **`MarkFacetList` / `LensMarkFacetList` JSON** with list **`equals`** on: **StandardSituation**, **StandardExample**, **StandardGuidance**, **StandardLens** (marks).
+4. Add or replace **component-level `equals`** for **StandardMap**, **StandardCharacter**, **StandardImage** (today: factory default only).
+5. Defer **literal-field** semantic **`equals`** to parent **Follow-on** **`StandardLiteral`** unless a small local fix is unavoidable.
+
 ## Progress
 
 Aligned with [`../AGENT.semanticOptionalsDefensiveProgramming.planning.md`](../AGENT.semanticOptionalsDefensiveProgramming.planning.md) **Progress** (see [**Intertwined execution order**](#intertwined-execution-order)). The row **Wire parent plan** matches parent phases **`defaultedEquals`** and **Client: summary write path + sync**.
@@ -67,9 +98,12 @@ Aligned with [`../AGENT.semanticOptionalsDefensiveProgramming.planning.md`](../A
 | Phase | Status |
 | --- | --- |
 | Plan coordination with parent | done |
-| Audit existing **`equals`** on components + gaps | not started |
+| Audit existing **`equals`** on components + gaps | done (see [**Audit findings**](#audit-findings-standardcomponentequals)) |
 | **`StandardRender.isEmpty`** (with parent plan) **before** **`StandardRender.equals`** | done |
-| **`StandardRender.equals`** (+ tests) | not started |
+| **`StandardRender.equals`** (+ tests) | done |
+| **`StandardLiteral`:** **`isEmpty`** **then** **`equals`** (+ tests) | done |
+| **`ReferenceList`:** **`isEmpty`** (where needed) **then** **`equals`** (+ tests) | not started |
+| **Facet lists** ([`facetListClassFactory`](../../../../packages/mtw-wml/ts/standardize/keys/facets/facetListFactory.ts) types): **`isEmpty`** (where needed) **then** **`equals`** / call-site cleanup (+ tests) | not started |
 | **`StandardForm.isEmpty`** semantics (parent plan) **before** **`StandardForm.equals`** | not started |
 | **`StandardForm.equals`** (+ tests) | not started |
 | Wire parent plan: client sync / **`defaultedEquals`** consumers | not started (track completion in parent plan where appropriate) |
@@ -79,24 +113,30 @@ Aligned with [`../AGENT.semanticOptionalsDefensiveProgramming.planning.md`](../A
 
 Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as you complete them so partial progress is visible.
 
-- [ ] Audit **`StandardComponent`** **`equals`** overrides and defaults; list types that need semantic fixes (references, nested payloads, **order-independent** imports / reference lists / facet lists per **Decisions locked**). Where **`isEmpty`** is added to a component type, implement **`isEmpty`** before **`equals`** (**Decisions locked**).
+- [X] Audit **`StandardComponent`** **`equals`** overrides and defaults; list types that need semantic fixes (references, nested payloads, **order-independent** imports / reference lists / facet lists per **Decisions locked**). Where **`isEmpty`** is added to a component type, implement **`isEmpty`** before **`equals`** (**Decisions locked**). Findings: [**Audit findings (StandardComponent.equals)**](#audit-findings-standardcomponentequals).
 - [X] Complete **`StandardRender.isEmpty`** per parent plan [**Decisions locked**](../AGENT.semanticOptionalsDefensiveProgramming.planning.md).
-- [ ] Implement **`StandardRender.equals`** (delegating to editable payload **`equals`** / **`diff`** / **`isEmpty`** as appropriate).
+- [X] Implement **`StandardRender.equals`** (delegating to editable payload **`equals`** / **`diff`** / **`isEmpty`** as appropriate). **Shipped:** mutual **`isEmpty()`** for vacuity, then **`this._payload.diff(other._payload) === undefined`** when both non-vacuous (no separate payload **`equals`** on **`StandardRenderSimpleBase`**). Tests and note in [`packages/mtw-wml/ts/standardize/render/AGENT.md`](../../../../packages/mtw-wml/ts/standardize/render/AGENT.md).
+- [X] **`StandardLiteral`:** complete **`isEmpty`** (semantic vacuity per parent [**Decisions locked**](../AGENT.semanticOptionalsDefensiveProgramming.planning.md)), **then** implement or update **`equals`** so literals match full semantics (replaces ad hoc **`deepEqual(toJSON)`** on literal-shaped fields in component **`equals`** audits). **Shipped:** `StandardLiteral.isEmpty`/`equals`, literal semantic tests, and representative component `equals` call-site updates/tests (Feature, Knowledge, Room, Message shortName, Moment).
+- [ ] **`ReferenceList`:** complete **`isEmpty`** where needed for optional reference collections, **then** implement or update **`equals`** (order-independent / keyed-set equivalence per **Decisions locked**; align with existing **`ReferenceList.diff`** touchpoints in component overrides).
+- [ ] **Facet lists** (types from [`facetListClassFactory`](../../../../packages/mtw-wml/ts/standardize/keys/facets/facetListFactory.ts) such as **`MarkFacetList`**, **`LensMarkFacetList`**, and other generated facet list classes): complete **`isEmpty`** where missing and required for optional facet payloads, **then** confirm or extend **`equals`** (factory already exposes order-independent **`equals`**; tighten any call sites still using **`deepEqual`** on **`toJSON()`** per [**Audit findings**](#audit-findings-standardcomponentequals)).
 - [ ] Align **`StandardForm.isEmpty()`** with semantic **`_summary`** (**parent plan**), **then** implement **`StandardForm.equals(incoming, options?)`** with **`optimizeByUniversalKey`** (**Decisions locked**); default behavior = full comparison unless optimization explicitly enabled.
-- [ ] Add **`packages/mtw-wml`** unit tests for **`StandardRender.equals`**, **`StandardForm.equals`**, and representative components.
+- [ ] Add **`packages/mtw-wml`** unit tests for **`StandardRender.equals`** (landed), **`StandardForm.equals`**, **`StandardLiteral`** (**`isEmpty`** / **`equals`**), **`ReferenceList`**, representative **facet list** types, and representative **`StandardComponent`** **`equals`** overrides.
 - [ ] Implement Workbench summary sync on the parent plan ([`WorkbenchAssetEditForm`](../../../../charcoal-client/src/components/Workbench/WorkbenchAssetEditForm.tsx), canonical **`_summary`**) using **`StandardRender.equals`** / **`defaultedEquals`** (see parent [**Open questions (Workbench summary sync)**](../AGENT.semanticOptionalsDefensiveProgramming.planning.md#open-questions-workbench-summary-sync) and **Decisions locked** in both plans; parent **Recommended order** tracks the same work).
 - [ ] Copy **lasting** equality contracts into [`packages/mtw-wml/ts/standardize/AGENT.md`](../../../../packages/mtw-wml/ts/standardize/AGENT.md) if needed; archive or delete this plan per [`taskPlanning/AGENT.md`](../../../AGENT.md).
 
 ## Verification
 
 - **`packages/mtw-wml`** test run passes after changes.
-- New tests cover: **`undefined`** vs **`new StandardRender([])`** equality once **`defaultedEquals`** exists; two empty assets / same **`StandardForm`**; **`equals`** symmetric and reflexive on samples; **`StandardForm.equals`** cases that differ only in an unrelated component still fail equality; **`StandardForm.equals`** with **`optimizeByUniversalKey: true`** vs **false** / omitted where behavior differs; **order permutations** on imports, reference lists, and facet lists still **`equals` true** (**Decisions locked**); representative **`StandardRoom`** (or similar) **`equals`** exercises **all** significant fields.
+- New tests cover: **`undefined`** vs **`new StandardRender([])`** equality once **`defaultedEquals`** exists; two empty assets / same **`StandardForm`**; **`StandardRender.equals`** reflexive / symmetric / vacuous-family cases (see render tests); **`StandardLiteral`** and **`ReferenceList`** **`isEmpty`** / **`equals`** (including vacuity and **order permutations** on reference lists per **Decisions locked**); **facet list** **`equals`** (order-independent) and any new **`isEmpty`** behavior; **`equals`** symmetric and reflexive on samples where types ship **`equals`**; **`StandardForm.equals`** cases that differ only in an unrelated component still fail equality; **`StandardForm.equals`** with **`optimizeByUniversalKey: true`** vs **false** / omitted where behavior differs; **order permutations** on imports, reference lists, and facet lists still **`equals` true** (**Decisions locked**); representative **`StandardRoom`** (or similar) **`equals`** exercises **all** significant fields.
 - Grep aids:
 
 ```bash
 rg "equals\\(incoming" packages/mtw-wml/ts/standardize/components --glob "*.ts"
 rg "deepEqual\\(this\\.toJSON" packages/mtw-wml/ts/standardize/components/component.ts
 rg "toJSON\\(\\) !==" charcoal-client/src/components/Workbench
+rg "\\.isEmpty\\(|\\.equals\\(" packages/mtw-wml/ts/standardize/literal --glob "*.ts"
+rg "\\.isEmpty\\(|\\.equals\\(" packages/mtw-wml/ts/standardize/keys/referenceList.ts
+rg "\\.isEmpty\\(|\\.equals\\(" packages/mtw-wml/ts/standardize/keys/facets --glob "*.ts"
 ```
 
 ## Relationship to durable docs

@@ -1,6 +1,6 @@
 # Semantic optionals: defensive programming (RenderTree and beyond)
 
-Status: in progress (next: **`StandardRender.equals`** with [`standardize/AGENT.componentEquals.planning.md`](standardize/AGENT.componentEquals.planning.md), then **`defaultedEquals`** per [**Intertwined execution order**](#intertwined-execution-order)).
+Status: in progress (next: **`defaultedEquals`** per [**Intertwined execution order**](#intertwined-execution-order); **`StandardRender.equals`** is done in [`standardize/AGENT.componentEquals.planning.md`](standardize/AGENT.componentEquals.planning.md)).
 
 See [`taskPlanning/AGENT.md`](../../AGENT.md) for what belongs in a task plan versus durable package docs, checkbox conventions, and when to retire this file.
 
@@ -78,12 +78,14 @@ Aligned phase names with [`standardize/AGENT.componentEquals.planning.md`](stand
 | Phase | Status |
 | --- | --- |
 | Plan coordination with component-equals | done |
+| Component-equals: **`StandardComponent` `equals` audit** (line 82) | done ([inventory and sequencing](standardize/AGENT.componentEquals.planning.md#audit-findings-standardcomponentequals)) |
 | `StandardRender.isEmpty` (+ tests) | done |
+| `StandardRender.equals` (+ tests; component-equals plan) | done |
 | `defaultedEquals` helper (+ tests) | not started |
 | `StandardForm.diff` / `isEmpty` alignment | not started |
 | Client: summary write path + sync | not started |
 | Verification / regression tests | not started |
-| Follow-on: **`StandardLiteral`** -> **`ReferenceList`** -> facet lists (**Decisions locked**) | not started |
+| Follow-on: **`StandardLiteral`** -> **`ReferenceList`** -> facet lists (**Decisions locked**) | in progress (**`StandardLiteral`** done in component-equals slice; next: **`ReferenceList`**. Generated facet lists already expose order-independent **`equals`** in [`facetListFactory.ts`](../../../packages/mtw-wml/ts/standardize/keys/facets/facetListFactory.ts)). |
 | Durable doc updates (if any) + retire or archive this plan | not started |
 
 ## Recommended order
@@ -92,12 +94,12 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as y
 
 - [X] Coordinate with [`standardize/AGENT.componentEquals.planning.md`](standardize/AGENT.componentEquals.planning.md) (**intertwined**). See [**Intertwined execution order**](#intertwined-execution-order) and [**Open questions (Workbench summary sync)**](#open-questions-workbench-summary-sync).
 - [X] Add **`StandardRender.isEmpty()`** (and tests) using the **no-op diff / merge** criterion (see **Decisions locked**).
-- [ ] Implement **`defaultedEquals`** in an appropriate shared module (likely under `packages/mtw-wml` or `packages/mtw-base`, per team preference) with unit tests.
+- [ ] Implement **`defaultedEquals`** in an appropriate shared module (likely under `packages/mtw-wml` or `packages/mtw-base`, per team preference) with unit tests. When wiring optional **`StandardRender`** fields on components, use the [**StandardComponent `equals` audit**](standardize/AGENT.componentEquals.planning.md#audit-findings-standardcomponentequals) (Room/Message/Mark/Lens/Example, etc.) so **`StandardRender.equals`** / **`defaultedEquals`** land with the right call sites.
 - [ ] Refactor **`StandardForm.diff`** asset-level `_summary` / `_shortName` (and any parallel fields) so **vacuous outcomes** become **`undefined`**; add **`StandardForm.isEmpty`** checks that use semantic emptiness for `_summary`.
 - [ ] While touching RenderTree optional fields, adopt **`defaultedEquals`** where the **optional content** contract clearly applies; flag unclear sites for quick review (per **Decisions locked** process).
 - [ ] **Client:** align [`WorkbenchAssetEditForm`](../../../charcoal-client/src/components/Workbench/WorkbenchAssetEditForm.tsx) (and similar) so vacuous editor output maps to **`_summary: undefined`** (preferred canonical per **Decisions locked**); replace **`toJSON()`** reference sync with **`StandardRender.equals`** / **`defaultedEquals`** after the component-equals sub-task exposes them (**Decisions locked**).
 - [ ] **Verification:** run `packages/mtw-wml` tests and targeted `charcoal-client` tests; grep for `Boolean(this._summary)` / `_summary ?` diff branches to ensure coverage.
-- [ ] **Follow-on (after RenderTree track):** **`StandardLiteral`**, then **`ReferenceList`**, then facet lists (**Decisions locked**).
+- [ ] **Follow-on (after RenderTree track):** **`StandardLiteral`** [X], then **`ReferenceList`** [ ], then facet lists [ ] (**Decisions locked**).
 - [ ] Move any **lasting** conventions into [`packages/mtw-wml/ts/standardize/AGENT.md`](../../../packages/mtw-wml/ts/standardize/AGENT.md) or render AGENT doc; then archive or delete this plan per [`taskPlanning/AGENT.md`](../../AGENT.md).
 
 ## Verification

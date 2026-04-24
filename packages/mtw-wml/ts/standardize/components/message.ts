@@ -225,8 +225,9 @@ export class StandardMessage extends componentClassFactory(StandardMessagePayloa
             return false
         }
         const roomsDiff = this.rooms.diff(incoming.rooms) ?? new ReferenceList([])
+        const shortNameEqual = (this.shortName ?? new StandardLiteral('')).equals(incoming.shortName ?? new StandardLiteral(''))
         return !(roomsDiff.payload.length) &&
-            deepEqual(this.shortName?.toJSON(), incoming.shortName?.toJSON()) &&
+            shortNameEqual &&
             deepEqual(this.description?.toJSON(), incoming.description?.toJSON())
     }
 

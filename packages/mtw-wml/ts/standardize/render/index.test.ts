@@ -233,6 +233,76 @@ describe('StandardRender', () => {
         })
     })
 
+    describe('equals', () => {
+        it('is reflexive for plain, remove, and replace', () => {
+            const plain = new StandardRender([])
+            expect(plain.equals(plain)).toBe(true)
+            const schema = new Schema()
+            schema.loadWML(`<Remove>Example</Remove>`)
+            const remove = new StandardRender(schema.schema)
+            expect(remove.equals(remove)).toBe(true)
+            schema.loadWML(`
+                <Replace>Old</Replace><With>New</With>
+            `)
+            const replace = new StandardRender(schema.schema)
+            expect(replace.equals(replace)).toBe(true)
+        })
+
+        it('treats all vacuous shapes as equal', () => {
+            const empty = new StandardRender([])
+            expect(empty.equals(new StandardRender([]))).toBe(true)
+            expect(empty.equals(new StandardRender({ tag: 'Remove', match: [] }))).toBe(true)
+            expect(empty.equals(new StandardRender({ tag: 'Replace', match: [], payload: [] }))).toBe(true)
+            const tree = ['Test', { data: { tag: 'br' }, children: [] }, 'Test 2'] as const
+            const identityReplace = new StandardRender({
+                tag: 'Replace',
+                match: [...tree],
+                payload: [...tree]
+            })
+            expect(empty.equals(identityReplace)).toBe(true)
+            expect(identityReplace.equals(empty)).toBe(true)
+        })
+
+        it('returns false when one side is vacuous and the other is not', () => {
+            const empty = new StandardRender([])
+            const schema = new Schema()
+            schema.loadWML(`Example<Link to=(Feature1)>Link</Link>`)
+            const nonEmpty = new StandardRender(schema.schema)
+            expect(empty.equals(nonEmpty)).toBe(false)
+            expect(nonEmpty.equals(empty)).toBe(false)
+        })
+
+        it('returns true for two identical non-empty plain renders', () => {
+            const schema = new Schema()
+            schema.loadWML(`Example<Link to=(Feature1)>Link</Link>`)
+            const a = new StandardRender(schema.schema)
+            const b = new StandardRender(schema.schema)
+            expect(a.equals(b)).toBe(true)
+            expect(b.equals(a)).toBe(true)
+        })
+
+        it('returns false for clearly different content', () => {
+            const s1 = new Schema()
+            s1.loadWML(`Alpha`)
+            const s2 = new Schema()
+            s2.loadWML(`Beta`)
+            expect(new StandardRender(s1.schema).equals(new StandardRender(s2.schema))).toBe(false)
+        })
+
+        it('plain content is not equal to identity Replace of the same tree (different representation)', () => {
+            const tree = ['Test', { data: { tag: 'br' }, children: [] }, 'Test 2'] as const
+            const plain = new StandardRender([...tree])
+            const identityReplace = new StandardRender({
+                tag: 'Replace',
+                match: [...tree],
+                payload: [...tree]
+            })
+            expect(identityReplace.isEmpty()).toBe(true)
+            expect(plain.isEmpty()).toBe(false)
+            expect(plain.equals(identityReplace)).toBe(false)
+        })
+    })
+
     it('should create an instance from incoming remove', () => {
         const schema = new Schema()
         schema.loadWML(`<Remove>Example<Link to=(Feature1)>Link</Link></Remove>`)

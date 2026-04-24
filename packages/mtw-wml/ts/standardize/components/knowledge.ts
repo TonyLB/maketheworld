@@ -9,7 +9,6 @@ import { StandardKey } from "../keys/key"
 import { StandardReferenceData } from "./dataTypes/reference"
 import { AssetUUID, ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaKnowledge } from "@tonylb/mtw-base/ts/schema/components"
-import { deepEqual } from "../../lib/objects"
 import { renderReference } from "./utils/schema"
 import { HasShortName } from "./abstract"
 import { StandardLiteral } from "../literal"
@@ -217,8 +216,9 @@ export class StandardKnowledge extends componentClassFactory(StandardKnowledgePa
         if (!(incoming instanceof StandardKnowledge)) {
             return false
         }
+        const shortNameEqual = (this.shortName ?? new StandardLiteral('')).equals(incoming.shortName ?? new StandardLiteral(''))
         return !(this.examples.diff(incoming.examples)?.payload?.length) &&
-            deepEqual(this.shortName?.toJSON(), incoming.shortName?.toJSON())
+            shortNameEqual
     }
 
     override invert(): StandardKnowledge {
