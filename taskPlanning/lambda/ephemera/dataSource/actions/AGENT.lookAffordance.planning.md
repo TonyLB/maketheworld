@@ -57,10 +57,10 @@ Canonical type string: **`LookRoom`**. Refine other implementation details (tie-
 | --- | --- |
 | Types + guards | Done (LookRoom + `isParseCommandLookRoomResult`) |
 | Deterministic short-circuit in `parseCommand` | Done |
-| Step A prompt + interpretation + tests | Done (parse; handler and bus tests in later slice) |
-| Actions `index.ts` handler + room resolution | |
-| Optional shared helper with `executeAction` | |
-| Tests (parse + handler + mocked bus) | |
+| Step A prompt + interpretation + tests | Done |
+| Actions `index.ts` handler + room resolution | Done |
+| Optional shared helper with `executeAction` | Done (`requestFullRoomDescriptionForCharacter`) |
+| Tests (parse + handler + mocked bus) | Done |
 | Durable doc touch-up (`dataSource/actions/AGENT.md` or `parse` pointer) | |
 
 ## Recommended order
@@ -71,9 +71,9 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested lines `[X]` a
 - [X] Add **`LookRoom`** (`ParseCommandLookRoomResult`) to **`ParseCommandResult`** and **`IntentClassificationResult`** in [`baseClasses.ts`](../../../../lambda/ephemera/dataSource/actions/baseClasses.ts) with **`isParseCommandLookRoomResult`**.
 - [X] In [`parseCommand.ts`](../../../../lambda/ephemera/dataSource/actions/parseCommand.ts): after Coyote test shortcuts, if deterministic **`look` / `l`**, return **`{ type: 'LookRoom', confidence: 1 }`** without calling Bedrock.
 - [X] Update [`buildParseCommandIntentClassificationPrompt.ts`](../../../../lambda/ephemera/dataSource/actions/buildParseCommandIntentClassificationPrompt.ts) and [`parseCommandIntentClassification.ts`](../../../../lambda/ephemera/dataSource/actions/parseCommandIntentClassification.ts) for the new Step A type; keep JSON-only contract and error handling consistent.
-- [ ] In [`index.ts`](../../../../lambda/ephemera/dataSource/actions/index.ts): handle **`LookRoom`**: not in room (OOC), else **register + render request** (reuse **`executeAction`** factoring if practical).
-- [ ] Tests: **deterministic** (no mock Bedrock), **LLM fixture** (mock **`invokeBedrockParseCommand`**) for paraphrase intent, **handler** asserts **`sendPerceptionThreadRegistered` / `sendRenderRequested`** (or shared helper) with expected **`threadKind: 'roomDescription'`** and room id.
-- [ ] Short **Verification** run (below); update **Progress** table; if behavior is non-obvious, add a line to [`lambda/ephemera/dataSource/actions/AGENT.md`](../../../../lambda/ephemera/dataSource/actions/AGENT.md) under Role or a new **Affordances** bullet.
+- [X] In [`index.ts`](../../../../lambda/ephemera/dataSource/actions/index.ts): handle **`LookRoom`**: not in room (OOC), else **register + render request** (reuse **`executeAction`** factoring if practical).
+- [X] Tests: **deterministic** (no mock Bedrock), **LLM fixture** (mock **`invokeBedrockParseCommand`**) for paraphrase intent, **handler** asserts **`sendPerceptionThreadRegistered` / `sendRenderRequested`** (or shared helper) with expected **`threadKind: 'roomDescription'`** and room id.
+- [X] Short **Verification** run (below); update **Progress** table; if behavior is non-obvious, add a line to [`lambda/ephemera/dataSource/actions/AGENT.md`](../../../../lambda/ephemera/dataSource/actions/AGENT.md) under Role or a new **Affordances** bullet.
 
 ## Verification
 

@@ -22,11 +22,13 @@ import {
     isParseCommandCoyoteAffinitiesTestResult,
     isParseCommandCoyoteEngineTestResult,
     isParseCommandErrorResult,
+    isParseCommandLookRoomResult,
     isParseCommandNavigationResult,
     isParseCommandUnimplementedResult,
     isParseCommandUnknownResult,
 } from './baseClasses'
 import { parseCommand } from './parseCommand'
+import { requestFullRoomDescriptionForCharacter } from './requestFullRoomDescriptionForCharacter'
 import { collectCoyoteOccupiedStableKeys } from './collectCoyoteOccupiedStableKeys'
 import { finalizeStableKeysDeterministic } from './finalizeStableKeysDeterministic'
 import { runAcmeOrderAffinitiesHarness } from './runAcmeOrderAffinitiesHarness'
@@ -135,6 +137,24 @@ export const ephemeraActionsDataSource = new EphemeraDataSource<
                             toRoomId: parseResult.targetId,
                         },
                     })
+                }
+            }
+            else if (isEphemeraCharacterId(content.characterId) && isParseCommandLookRoomResult(parseResult)) {
+                const { fromRoomId } = await getRoomExitTargetsForCharacter(content.characterId)
+                if (!fromRoomId) {
+                    messageBus.send({
+                        type: 'PublishMessage',
+                        targets: [content.characterId],
+                        displayProtocol: 'WorldOOCMessage',
+                        message: ['You are not in a room, so you cannot go anywhere.'],
+                    })
+                }
+                else {
+                    await requestFullRoomDescriptionForCharacter(
+                        messageBus,
+                        content.characterId,
+                        fromRoomId,
+                    )
                 }
             }
             else if (isEphemeraCharacterId(content.characterId) && isParseCommandAcmeOrderResult(parseResult)) {
