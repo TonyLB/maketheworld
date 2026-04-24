@@ -4,6 +4,7 @@ import {
     isParseCommandAcmeOrderResult,
     isParseCommandAwaitRoadrunnerResult,
     isParseCommandErrorResult,
+    isParseCommandLookRoomResult,
     isParseCommandNavigationResult,
     isParseCommandUnimplementedResult,
     isParseCommandUnknownResult,
@@ -154,6 +155,13 @@ describe('parseCommand type guards', () => {
     it('isParseCommandAwaitRoadrunnerResult requires confidence', () => {
         expect(isParseCommandAwaitRoadrunnerResult({ type: 'AwaitRoadRunner', confidence: 0.7 })).toBe(true)
         expect(isParseCommandAwaitRoadrunnerResult({ type: 'AwaitRoadRunner' } as any)).toBe(false)
+    })
+
+    it('isParseCommandLookRoomResult requires confidence in [0, 1]', () => {
+        expect(isParseCommandLookRoomResult({ type: 'LookRoom', confidence: 1 })).toBe(true)
+        expect(isParseCommandLookRoomResult({ type: 'LookRoom', confidence: 0.4 })).toBe(true)
+        expect(isParseCommandLookRoomResult({ type: 'LookRoom' } as any)).toBe(false)
+        expect(isParseCommandLookRoomResult({ type: 'LookRoom', confidence: 1.5 })).toBe(false)
     })
 
     it('isParseCommandUnimplementedResult and isParseCommandUnknownResult require confidence', () => {

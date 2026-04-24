@@ -49,11 +49,15 @@ export type ParseCommandAcmeOrderIntentResult = {
     confidence: ParseCommandConfidence
 }
 
-/** Outcome of Step A intent classification only (includes Acme intent without line items). */
+/**
+ * Outcome of Step A intent classification only (includes Acme intent without line items, and
+ * **LookRoom** for full room description / examine-surroundings intent without Step B).
+ */
 export type IntentClassificationResult =
     | ParseCommandErrorResult
     | ParseCommandAwaitRoadrunnerResult
     | ParseCommandAcmeOrderIntentResult
+    | ParseCommandLookRoomResult
     | ParseCommandUnimplementedResult
     | ParseCommandUnknownResult
 
@@ -68,6 +72,12 @@ export type ParseCommandAcmeOrderResult = {
 /** Coyote Game: wait-state for Road Runner encounter flows. */
 export type ParseCommandAwaitRoadrunnerResult = {
     type: 'AwaitRoadRunner'
+    confidence: ParseCommandConfidence
+}
+
+/** Full description of the current room (examine surroundings); no Step B enrich. */
+export type ParseCommandLookRoomResult = {
+    type: 'LookRoom'
     confidence: ParseCommandConfidence
 }
 
@@ -98,6 +108,7 @@ export type ParseCommandResult =
     | ParseCommandNavigationResult
     | ParseCommandAcmeOrderResult
     | ParseCommandAwaitRoadrunnerResult
+    | ParseCommandLookRoomResult
     | ParseCommandCoyoteEngineTestResult
     | ParseCommandCoyoteAffinitiesTestResult
     | ParseCommandUnimplementedResult
@@ -122,6 +133,15 @@ export function isParseCommandAwaitRoadrunnerResult(
     result: ParseCommandResult | IntentClassificationResult
 ): result is ParseCommandAwaitRoadrunnerResult {
     if (result.type !== 'AwaitRoadRunner') {
+        return false
+    }
+    return isParseConfidence(result.confidence)
+}
+
+export function isParseCommandLookRoomResult(
+    result: ParseCommandResult | IntentClassificationResult
+): result is ParseCommandLookRoomResult {
+    if (result.type !== 'LookRoom') {
         return false
     }
     return isParseConfidence(result.confidence)

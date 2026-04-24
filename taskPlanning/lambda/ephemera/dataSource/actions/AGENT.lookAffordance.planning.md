@@ -1,6 +1,6 @@
 # Look affordance (`parseCommand` + room full description)
 
-**Status:** Not started.
+**Status:** In progress.
 
 Skim [`taskPlanning/AGENT.md`](../../../../AGENT.md) once for durability, what belongs in this file vs package `AGENT.md`, and **Recommended order** checkbox conventions.
 
@@ -28,16 +28,18 @@ Extend [`parseCommand`](../../../../lambda/ephemera/dataSource/actions/parseComm
 4. **Legacy parity** --- Room bare look: [`lambda/ephemera/parse/index.ts`](../../../../lambda/ephemera/parse/index.ts) (regex for **`look` / `l`**); effect pipeline: [`executeAction.ts`](../../../../lambda/ephemera/parse/executeAction.ts) **`look`** for **`EphemeraRoomId`** (**`sendPerceptionThreadRegistered`** with **`threadKind: 'roomDescription'`** + **`sendRenderRequested`** with perspective and **`generationContextWml`**).
 5. **Tests** --- [`parseCommand.test.ts`](../../../../lambda/ephemera/dataSource/actions/parseCommand.test.ts), [`index.test.ts`](../../../../lambda/ephemera/dataSource/actions/index.test.ts); Jest from **`lambda/ephemera`**.
 
-## Material decisions (proposed; refine when implementing)
+## Material decisions
+
+Canonical type string: **`LookRoom`**. Refine other implementation details (tie-breaks, copy) as you build; the **JSON** `type` and **`ParseCommandResult`** discriminant **must** stay **`LookRoom`**.
 
 | Topic | Proposed direction |
 | --- | --- |
 | **Deterministic match** | After trim, case-insensitive **exact** token: **`^look$`** or **`^l$`** (equivalently, mirror legacy **`\s*(?:look\|l)\s*`** for the whole string with no other words). Shorthand **`l`** must be the entire command, not a prefix of longer input. **Do not** invoke Bedrock on this path. |
-| **Result type** | New **`ParseCommandResult`** variant, e.g. **`{ type: 'LookRoom', confidence: number }`**, with **`isParseCommandLookRoomResult`** in [`baseClasses.ts`](../../../../lambda/ephemera/dataSource/actions/baseClasses.ts). **Confidence 1** on the deterministic path. |
-| **LLM label** | Add a Step A JSON outcome, e.g. **`"type": "LookRoom"`** (name must match prompt and **`interpretParseCommandIntentClassificationBody`**; keep **`confidence`** in `[0, 1]`). Step B **not** run for this intent (same structure as **`AwaitRoadRunner`**: classifies, then short-circuits before enrich). |
+| **Result type** | New **`ParseCommandResult`** variant: **`{ type: 'LookRoom', confidence: number }`** (exported as **`ParseCommandLookRoomResult`**), with **`isParseCommandLookRoomResult`** in [`baseClasses.ts`](../../../../lambda/ephemera/dataSource/actions/baseClasses.ts). **Confidence 1** on the deterministic path. |
+| **LLM label** | Step A JSON outcome **`"type": "LookRoom"`** (name must match prompt and **`interpretParseCommandIntentClassificationBody`**; keep **`confidence`** in `[0, 1]`). Step B **not** run for this intent (same structure as **`AwaitRoadRunner`**: classifies, then short-circuits before enrich). |
 | **Prompt (Step A)** | Extend the classification prompt: place **LookRoom** in the **mandatory decision order** (document tie-breaks vs **AwaitRoadRunner** / **AcmeOrder** --- e.g. when the line is *primarily* about *seeing* the *current space*, description of surroundings, "examine the room", "what's here", *without* a shopping/catalog focus). Excluded: ordering from Acme, or clearly meta/OOC (maps to **Unknown** / **Unimplemented** as today). |
 | **Handler** | If **`content.characterId`** is valid: resolve the character's **current room** (e.g. same data as **[`getRoomExitTargetsForCharacter`](../../../../lambda/ephemera/dataSource/actions/roomExitTargetsForCharacter.ts)** **`fromRoomId`**). If not in a room, **`WorldOOCMessage`** with a clear line (consistent with **Navigation** when not in a room). If in a room, run the **same side effects** as **`executeAction` `look`** for that **room** (or call a small shared helper used by both paths): **`sendPerceptionThreadRegistered`**, **`ComponentRender`**, **`sendRenderRequested`**. **No** new bus **`streamEvent`** on `mtw.ephemera.actions` required unless you explicitly want a journal entry for "look" --- product default is **perception + render** only, matching legacy. |
-| **Stream / published events** | Optional: add a **`Look Room`-typed** (or similar) **published** payload in [`publishedEvents.ts`](../../../../lambda/ephemera/dataSource/actions/publishedEvents.ts) for observability **only** if other DataSources need to subscribe; otherwise keep effects on **`messageBus`** and existing perception/render events only. |
+| **Stream / published events** | Optional: add a **LookRoom**-typed (or product-labeled) **published** payload in [`publishedEvents.ts`](../../../../lambda/ephemera/dataSource/actions/publishedEvents.ts) for observability **only** if other DataSources need to subscribe; otherwise keep effects on **`messageBus`** and existing perception/render events only. |
 
 ## End-to-end chain (for verification)
 
@@ -53,7 +55,7 @@ Extend [`parseCommand`](../../../../lambda/ephemera/dataSource/actions/parseComm
 
 | Area | State |
 | --- | --- |
-| Types + guards | |
+| Types + guards | Done (LookRoom + `isParseCommandLookRoomResult`) |
 | Deterministic short-circuit in `parseCommand` | |
 | Step A prompt + interpretation + tests | |
 | Actions `index.ts` handler + room resolution | |
@@ -65,8 +67,8 @@ Extend [`parseCommand`](../../../../lambda/ephemera/dataSource/actions/parseComm
 
 Pending work uses `[ ]` and completed work uses `[X]`. Mark nested lines `[X]` as you complete them.
 
-- [ ] Read **Material decisions** and adjust naming (**`LookRoom`** vs product-preferred label) in code and prompt in one pass.
-- [ ] Add **`LookRoom` (or chosen name)** to **`ParseCommandResult`** and **`IntentClassificationResult`** in [`baseClasses.ts`](../../../../lambda/ephemera/dataSource/actions/baseClasses.ts) with a type guard.
+- [X] Read **Material decisions** and lock naming as **`LookRoom`** in the task plan and in **`baseClasses.ts`**; Step A prompt text is the next line.
+- [X] Add **`LookRoom`** (`ParseCommandLookRoomResult`) to **`ParseCommandResult`** and **`IntentClassificationResult`** in [`baseClasses.ts`](../../../../lambda/ephemera/dataSource/actions/baseClasses.ts) with **`isParseCommandLookRoomResult`**.
 - [ ] In [`parseCommand.ts`](../../../../lambda/ephemera/dataSource/actions/parseCommand.ts): after Coyote test shortcuts, if deterministic **`look` / `l`**, return **`{ type: 'LookRoom', confidence: 1 }`** without calling Bedrock.
 - [ ] Update [`buildParseCommandIntentClassificationPrompt.ts`](../../../../lambda/ephemera/dataSource/actions/buildParseCommandIntentClassificationPrompt.ts) and [`parseCommandIntentClassification.ts`](../../../../lambda/ephemera/dataSource/actions/parseCommandIntentClassification.ts) for the new Step A type; keep JSON-only contract and error handling consistent.
 - [ ] In [`index.ts`](../../../../lambda/ephemera/dataSource/actions/index.ts): handle **`LookRoom`**: not in room (OOC), else **register + render request** (reuse **`executeAction`** factoring if practical).
@@ -84,7 +86,7 @@ cd lambda/ephemera && npm run build
 
 Grep spot-checks after implementation:
 
-- `LookRoom` (or final type name) in `baseClasses.ts`, `parseCommand.ts`, `index.ts`.
+- `LookRoom` in `baseClasses.ts`, and after later slices in `parseCommand.ts`, `index.ts`.
 - `roomDescription` + `sendRenderRequested` in the new handler path (or shared module).
 
 ## When this task finishes
