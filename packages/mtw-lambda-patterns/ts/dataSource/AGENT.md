@@ -137,6 +137,16 @@ Deserialize data from the replay store for a specific stream and deliver it dire
 - **Direct Session Delivery**: Data goes straight to the requesting session
 - **Efficient Replay**: Only the specific subscriber gets the historical data they need
 
+#### Snapshot metadata: `createdAt` and `replayAt`
+Replayable snapshots carry two timestamps with different roles:
+
+- **`createdAt`**: When the snapshot envelope was produced (generation and in-memory cache timing). This stays stable for readers that care about freshness of the cached snapshot object.
+- **`replayAt`**: The replay watermark used as the strict lower bound when fetching replay events in `initializeSubscription` (events strictly after this value). This should reflect the **represented** stream state when that state is older than `createdAt` (for example, a historical sidecar while the envelope is built now).
+
+**Compatibility**: Legacy stored snapshots may omit `replayAt`. The framework resolves the replay cursor as **`replayAt ?? createdAt`** (see `resolveReplayCursorTimestamp` in [`index.ts`](./index.ts)).
+
+**`snapshotContentGenerator`**: Domain payloads do not need to include `replayAt`. If the generator omits it, the framework sets `replayAt` to the same instant as `createdAt` for that generation, which matches typical inline snapshots. When the materialized body corresponds to an earlier authoritative time (notably WML sidecars keyed off `Meta::Snapshot`), the generator should return **`replayAt`** alongside the domain fields; see [`lambda/wml/dataSource/snapshotContent.ts`](../../../../lambda/wml/dataSource/snapshotContent.ts).
+
 #### Replay subscribe diagnostics (optional)
 Replayable DataSources can emit structured subscribe/replay diagnostics from `initializeSubscription` using:
 
