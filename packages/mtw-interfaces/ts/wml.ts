@@ -38,7 +38,11 @@ export type BackupWMLAPIMessage = {
     to: string;
 }
 
-/** Operator/bootstrap path: promote asset to Canon via internal coordination (not a product client API). */
+/**
+ * Operator/bootstrap path: promote asset to Canon via internal `api.wml` coordination
+ * (`moveAsset` to Library when needed, then `Canonize Asset`), same outbound events as other zone work.
+ * Not community publishing; see `lambda/wml/AGENT.event.md`.
+ */
 export type PromoteToCanonAPIMessage = {
     message: 'promoteToCanon';
     AssetId: EphemeraAssetId;

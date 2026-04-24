@@ -1,6 +1,6 @@
 # WML operator canonize outlet (dev / bootstrap) - task plan
 
-**Status:** In progress; `promoteToCanon` handler, types, composite bus orchestration, **state-based idempotency** (re-read zone between steps), and **unit tests** are implemented (see Recommended order). Remaining work: durable docs, verification checklist, demo.
+**Status:** In progress; `promoteToCanon` handler, types, composite bus orchestration, **state-based idempotency** (re-read zone between steps), **unit tests**, and **durable docs** ([`lambda/wml/AGENT.event.md`](../../../lambda/wml/AGENT.event.md), `mtw-interfaces` `PromoteToCanonAPIMessage` docstring) are in place (see Recommended order). Remaining work: verification checklist, demo.
 
 Skim [`taskPlanning/AGENT.md`](../../AGENT.md) once for durability rules, what belongs in this file versus package docs, and how to retire this plan when the work ships.
 
@@ -47,7 +47,7 @@ Add a **development- and bootstrap-oriented** way to promote a WML asset to **Ca
    Read [`AGENT.CoyoteGame.md`](../../../AGENT.CoyoteGame.md) **MVP / demo topology**. **Why:** Clarifies rooms and scenery needs for the demo. For **bootstrap** visibility, assume **`mtw.assets`** plus ephemera's **periodic canon reload** are enough; **real-time** ephemera on **`Zone Changed`** is out of scope for this slice.
 
 4. **Current WML event story**  
-   Read [`lambda/wml/AGENT.event.md`](../../../lambda/wml/AGENT.event.md) and the **Reserved handlers** note in [`packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md`](../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md). **Why:** Canonize is already subscribed; only the **call path** is missing.
+   Read [`lambda/wml/AGENT.event.md`](../../../lambda/wml/AGENT.event.md) and the **Reserved handlers** note in [`packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md`](../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md). **Why:** Steady-state event flow, **`api.wml`** coordination, and how **`promoteToCanon`** differs from future publishing.
 
 5. **Zone move rules**  
    Read [`lambda/wml/dataSource/moveAsset/AGENT.md`](../../../lambda/wml/dataSource/moveAsset/AGENT.md) and trace `moveAsset` usage from `processCanonizeDecanonize`. **Why:** Any multi-hop promotion must respect allowed transitions and failure modes.
@@ -76,7 +76,7 @@ Add a **development- and bootstrap-oriented** way to promote a WML asset to **Ca
 | Agreed decisions recorded in plan | Done |
 | Handler + composite orchestration + types (`promoteToCanon`) | Done |
 | State-based idempotency + tests | Done |
-| Durable doc updates (event flow, message contract) | Not started |
+| Durable doc updates (event flow, message contract) | Done |
 | Demo verified (Coyote or minimal asset read path) | Not started |
 
 ## Recommended order
@@ -87,7 +87,7 @@ Pending work uses `[ ]`; completed work uses `[X]`. Apply the same convention to
   - [X] Implement **composite orchestration** in one place (prefer **handler** or a small **module** next to the lambda, unit-tested) that calls **`sendMoveAsset`** and a typed **`sendCanonizeAsset`** (add the latter next to **`sendMoveAsset`** in [`lambda/wml/dataSource/subscribedEvents.ts`](../../../lambda/wml/dataSource/subscribedEvents.ts) if it does not exist yet) so `mtw-wml` remains the single authority for S3 / zone truth
 - [X] Implement **state-based idempotency**: if already **Canon**, skip all coordination sends so nothing new is published; otherwise only enqueue moves/canonize that are still required (no duplicate **`Zone Changed`**), consistent with `moveAsset` behavior where applicable
 - [X] Add **unit tests** (WML package or lambda-local, per existing conventions) for message parsing, composite paths, and no-op paths
-- [ ] Update durable docs: [`lambda/wml/AGENT.event.md`](../../../lambda/wml/AGENT.event.md) (and interfaces docstrings if applicable) to describe the **operator-only** path and how it differs from future publishing
+- [X] Update durable docs: [`lambda/wml/AGENT.event.md`](../../../lambda/wml/AGENT.event.md) (and interfaces docstrings if applicable) to describe the **operator-only** path and how it differs from future publishing
 - [ ] **Verification** (below) passes; update **Progress** table and this checklist
 - [ ] Run demo or smallest manual checklist proving **players / clients** see Canon content if that is in scope for the slice
 
