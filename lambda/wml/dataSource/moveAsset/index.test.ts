@@ -138,7 +138,8 @@ describe('moveAsset', () => {
                 assetId: 'ASSET#test-asset',
                 fromZone: 'Library',
                 toZone: 'Archive',
-                timestamp: 1234567890000
+                timestamp: 1234567890000,
+                player: undefined,
             })
             expect(result.success).toBe(true)
             expect(result.message).toContain('zone changed from Library to Archive')
@@ -164,7 +165,8 @@ describe('moveAsset', () => {
                 assetId: 'ASSET#test-asset',
                 fromZone: 'Archive',
                 toZone: 'Library',
-                timestamp: 1234567890000
+                timestamp: 1234567890000,
+                player: undefined,
             })
             expect(result.success).toBe(true)
             expect(result.message).toContain('zone changed from Archive to Library')
@@ -193,9 +195,10 @@ describe('moveAsset', () => {
                 assetId: 'ASSET#test-asset',
                 fromZone: 'Personal',
                 toZone: 'Library',
-                timestamp: 1234567890000
+                timestamp: 1234567890000,
+                player: 'alice',
             })
-            
+
             expect(result.success).toBe(true)
             expect(result.message).toContain('zone changed')
             expect(result.message).toContain('Personal')
@@ -223,7 +226,8 @@ describe('moveAsset', () => {
                 assetId: 'ASSET#test-asset',
                 fromZone: 'Library',
                 toZone: 'Canon',
-                timestamp: 1234567890000
+                timestamp: 1234567890000,
+                player: undefined,
             })
             
             expect(result.success).toBe(true)
@@ -359,9 +363,10 @@ describe('moveAsset', () => {
                 assetId: 'ASSET#test-asset',
                 fromZone: 'Personal',
                 toZone: 'Library',
-                timestamp: 1234567890000
+                timestamp: 1234567890000,
+                player: 'alice',
             })
-            
+
             // Verify result mapping
             expect(result.success).toBe(true)
             expect(result.message).toContain('zone changed from Personal to Library')

@@ -1,6 +1,6 @@
 # WML operator canonize outlet (dev / bootstrap) - task plan
 
-**Status:** In progress; `promoteToCanon` handler, types, composite bus orchestration, **state-based idempotency** (re-read zone between steps), **unit tests**, and **durable docs** ([`lambda/wml/AGENT.event.md`](../../../lambda/wml/AGENT.event.md), `mtw-interfaces` `PromoteToCanonAPIMessage` docstring) are in place (see Recommended order). Remaining work: verification checklist, demo.
+**Status:** In progress; **`promoteToCanon`** stack is in place including **Draft/Personal `player`** through **`changeZone`**, **`moveAsset`**, and **`promoteToCanon`** refetch (see Recommended order). Remaining work: **Verification** checklist below, **demo** or manual proof.
 
 Skim [`taskPlanning/AGENT.md`](../../AGENT.md) once for durability rules, what belongs in this file versus package docs, and how to retire this plan when the work ships.
 
@@ -77,6 +77,7 @@ Add a **development- and bootstrap-oriented** way to promote a WML asset to **Ca
 | Handler + composite orchestration + types (`promoteToCanon`) | Done |
 | State-based idempotency + tests | Done |
 | Durable doc updates (event flow, message contract) | Done |
+| Draft/Personal player plumbed through changeZone, moveAsset, promoteToCanon | Done |
 | Demo verified (Coyote or minimal asset read path) | Not started |
 
 ## Recommended order
@@ -88,6 +89,11 @@ Pending work uses `[ ]`; completed work uses `[X]`. Apply the same convention to
 - [X] Implement **state-based idempotency**: if already **Canon**, skip all coordination sends so nothing new is published; otherwise only enqueue moves/canonize that are still required (no duplicate **`Zone Changed`**), consistent with `moveAsset` behavior where applicable
 - [X] Add **unit tests** (WML package or lambda-local, per existing conventions) for message parsing, composite paths, and no-op paths
 - [X] Update durable docs: [`lambda/wml/AGENT.event.md`](../../../lambda/wml/AGENT.event.md) (and interfaces docstrings if applicable) to describe the **operator-only** path and how it differs from future publishing
+- [X] **Draft/Personal `player` for zone moves:** **`AssetWorkspace`** requires **`player`** when **`fromZone`** is **Draft** or **Personal**; **`changeZone`** passes it into **`fetchAndDecideRepair`** so **`promoteToCanon`** and **`moveAsset`** do not fail with `Player is required for Personal/Draft zones`.
+  - [X] Thread optional **`player`** on **`ChangeZoneArgs`** through [`lambda/wml/s3Storage/index.ts`](../../../lambda/wml/s3Storage/index.ts) into **`applyStorageOperation`** / **`fetchAndDecideRepair`**
+  - [X] Forward **`request.player`** from [`lambda/wml/dataSource/moveAsset/index.ts`](../../../lambda/wml/dataSource/moveAsset/index.ts) into **`changeZone`**
+  - [X] Have **`promoteToCanon`** include **`player`** on internal **`sendMoveAsset`** using the same **`AssetWorkspace.fromUUID`** refetch as zone (see [`lambda/wml/promoteToCanon.ts`](../../../lambda/wml/promoteToCanon.ts), [`lambda/wml/app.ts`](../../../lambda/wml/app.ts))
+  - [X] Add or extend **unit tests** for a **Draft** or **Personal** source path
 - [ ] **Verification** (below) passes; update **Progress** table and this checklist
 - [ ] Run demo or smallest manual checklist proving **players / clients** see Canon content if that is in scope for the slice
 

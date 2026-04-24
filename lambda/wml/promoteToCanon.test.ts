@@ -54,7 +54,10 @@ describe('runPromoteToCanonOnBus', () => {
         const { sent, bus, flushLanes } = makeBus()
         const zones: Zone[] = ['Draft', 'Library', 'Canon']
         let i = 0
-        await runPromoteToCanonOnBus(bus, 'ASSET#test', async () => zones[i++])
+        await runPromoteToCanonOnBus(bus, 'ASSET#test', async () => {
+            const zone = zones[i++]
+            return { zone, player: zone === 'Draft' ? 'bob' : undefined }
+        })
         expect(flushLanes).toHaveLength(2)
         expect(sent).toHaveLength(2)
         const lane = sent[0].laneId
@@ -63,13 +66,16 @@ describe('runPromoteToCanonOnBus', () => {
         expect(flushLanes).toEqual([lane, lane])
         expect(sent[0].payload.header.type).toBe('Move Asset')
         expect(sent[1].payload.header.type).toBe('Canonize Asset')
+        const moveContent = (await sent[0].payload.getContent()) as { player?: string; fromZone: Zone; toZone: string }
+        expect(moveContent.player).toBe('bob')
+        expect(moveContent.fromZone).toBe('Draft')
     })
 
     it('flushes once for Library-only path when zone is Library then Canon', async () => {
         const { sent, bus, flushLanes } = makeBus()
         const zones: Zone[] = ['Library', 'Canon']
         let i = 0
-        await runPromoteToCanonOnBus(bus, 'ASSET#x', async () => zones[i++])
+        await runPromoteToCanonOnBus(bus, 'ASSET#x', async () => ({ zone: zones[i++] }))
         expect(flushLanes).toHaveLength(1)
         expect(sent).toHaveLength(1)
         const lane = sent[0].laneId
@@ -80,7 +86,7 @@ describe('runPromoteToCanonOnBus', () => {
 
     it('does not send or flush when already Canon', async () => {
         const { sent, bus, flushLanes } = makeBus()
-        await runPromoteToCanonOnBus(bus, 'ASSET#x', async () => 'Canon')
+        await runPromoteToCanonOnBus(bus, 'ASSET#x', async () => ({ zone: 'Canon' }))
         expect(flushLanes).toHaveLength(0)
         expect(sent).toHaveLength(0)
     })
@@ -89,7 +95,10 @@ describe('runPromoteToCanonOnBus', () => {
         const { sent, bus, flushLanes } = makeBus()
         const zones: Zone[] = ['Draft', 'Canon']
         let i = 0
-        await runPromoteToCanonOnBus(bus, 'ASSET#race', async () => zones[i++])
+        await runPromoteToCanonOnBus(bus, 'ASSET#race', async () => {
+            const zone = zones[i++]
+            return { zone, player: zone === 'Draft' ? 'bob' : undefined }
+        })
         expect(flushLanes).toHaveLength(1)
         expect(sent).toHaveLength(1)
         expect(flushLanes[0]).toBe(sent[0].laneId)

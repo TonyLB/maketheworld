@@ -17,8 +17,11 @@ type WmlCoordinationBus = {
 
 const MAX_PROMOTE_TO_CANON_ITERATIONS = 8
 
-/** Refetch authoritative zone between coordination steps (e.g. from AssetWorkspace.fromUUID). */
-export type GetCurrentZoneForPromote = () => Promise<Zone>
+/** Zone and optional player from the same refetch as coordination steps (e.g. AssetWorkspace.fromUUID). */
+export type PromoteToCanonAssetContext = { zone: Zone; player?: string }
+
+/** Refetch authoritative context between coordination steps. */
+export type GetPromoteToCanonContext = () => Promise<PromoteToCanonAssetContext>
 
 /** Ordered coordination steps for promote-to-Canon (caller must flush between each send). */
 export function planPromoteToCanonSteps(currentZone: Zone): PromoteToCanonStep[] {
@@ -44,11 +47,11 @@ export function planPromoteToCanonSteps(currentZone: Zone): PromoteToCanonStep[]
 export async function runPromoteToCanonOnBus(
     bus: WmlCoordinationBus,
     streamKey: string,
-    getCurrentZone: GetCurrentZoneForPromote
+    getContext: GetPromoteToCanonContext
 ): Promise<void> {
     const laneId = `promoteToCanon:${streamKey}:${uuidv4()}`
     for (let i = 0; i < MAX_PROMOTE_TO_CANON_ITERATIONS; i++) {
-        const currentZone = await getCurrentZone()
+        const { zone: currentZone, player } = await getContext()
         const steps = planPromoteToCanonSteps(currentZone)
         if (steps.length === 0) {
             return
@@ -61,6 +64,7 @@ export async function runPromoteToCanonOnBus(
                 {
                     fromZone: step.fromZone,
                     toZone: step.toZone,
+                    player,
                 },
                 laneId
             )

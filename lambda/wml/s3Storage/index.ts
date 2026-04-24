@@ -185,6 +185,12 @@ export interface ChangeZoneArgs {
      * Used for event ordering and potential snapshot naming
      */
     timestamp: number
+
+    /**
+     * Owning player when fromZone is Personal or Draft.
+     * Required for fetch/repair paths that construct AssetWorkspace at the source zone.
+     */
+    player?: string
 }
 
 /**
@@ -660,6 +666,7 @@ async function changeZoneForPrefix(args: {
     toZone: Zone
     timestamp: number
     suffix: ManifestSuffix
+    player?: string
 }): Promise<{
     success: true
     repairPerformed: boolean
@@ -671,7 +678,8 @@ async function changeZoneForPrefix(args: {
             assetId: args.assetId,
             suffix: args.suffix,
             zone: args.fromZone,
-            createIfNeeded: true  // Zone changes can create empty assets
+            createIfNeeded: true, // Zone changes can create empty assets
+            player: args.player,
         },
         args,
         executeChangeZoneForPrefixStrategy
@@ -726,12 +734,12 @@ async function changeZoneForPrefix(args: {
  * ```
  */
 export async function changeZone(args: ChangeZoneArgs): Promise<ChangeZoneResult> {
-    const { assetId, fromZone, toZone, timestamp } = args
-    
+    const { assetId, fromZone, toZone, timestamp, player } = args
+
     // Process both content and auth files in parallel
     const results = await Promise.all([
-        changeZoneForPrefix({ assetId, fromZone, toZone, timestamp, suffix: 'wml' }),
-        changeZoneForPrefix({ assetId, fromZone, toZone, timestamp, suffix: 'auth.wml' })
+        changeZoneForPrefix({ assetId, fromZone, toZone, timestamp, suffix: 'wml', player }),
+        changeZoneForPrefix({ assetId, fromZone, toZone, timestamp, suffix: 'auth.wml', player }),
     ])
     
     // Check if either failed

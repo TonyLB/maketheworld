@@ -162,7 +162,7 @@ export const handler = async (event: any, context: any) => {
                 if (!w) {
                     throw new Error(`Asset not found during promoteToCanon: ${request.AssetId}`)
                 }
-                return w.zone as Zone
+                return { zone: w.zone as Zone, player: w.player }
             })
             return await extractReturnValue(messageBus)
         }
