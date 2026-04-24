@@ -447,6 +447,30 @@ export class StandardRender {
         return ''
     }
 
+    /**
+     * True when this value is a no-op as optional rich text: plain [], Remove(match: []),
+     * or Replace where match and payload have no diff (identity replace). See task plan
+     * semantic optionals / Decisions locked (no-op diff / merge criterion).
+     */
+    isEmpty(): boolean {
+        if (this._payload instanceof PlainClass) {
+            const tree = this.plain
+            return !tree || tree.length === 0
+        }
+        if (this._payload instanceof RemoveClass) {
+            const matchTree = this._payload.match?.toJSON() as RenderTree | undefined
+            return !matchTree || matchTree.length === 0
+        }
+        if (this._payload instanceof ReplaceClass) {
+            const matchTree = (this._payload.match?.toJSON() ?? []) as RenderTree
+            const payloadTree = (this._payload.payload?.toJSON() ?? []) as RenderTree
+            const matchRender = new StandardRender(matchTree)
+            const payloadRender = new StandardRender(payloadTree)
+            return matchRender.diff(payloadRender) === undefined
+        }
+        return false
+    }
+
     get schema(): GenericTree<SchemaTag> {
         return this._payload.schema
     }

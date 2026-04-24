@@ -183,6 +183,56 @@ describe('StandardRender', () => {
         })
     })
 
+    // Vacuity uses the no-op diff / merge criterion (semantic optionals task plan).
+    describe('isEmpty', () => {
+        it('returns true for plain empty render tree', () => {
+            expect(new StandardRender([]).isEmpty()).toBe(true)
+        })
+
+        it('returns false for non-empty plain content', () => {
+            const schema = new Schema()
+            schema.loadWML(`Example<Link to=(Feature1)>Link</Link>`)
+            expect(new StandardRender(schema.schema).isEmpty()).toBe(false)
+        })
+
+        it('returns true for Remove with empty match', () => {
+            expect(new StandardRender({ tag: 'Remove', match: [] }).isEmpty()).toBe(true)
+        })
+
+        it('returns false for Remove with non-empty match', () => {
+            const schema = new Schema()
+            schema.loadWML(`<Remove>Example</Remove>`)
+            expect(new StandardRender(schema.schema).isEmpty()).toBe(false)
+        })
+
+        it('returns true for Replace when match and payload have no diff (identity)', () => {
+            const tree = ['Test', { data: { tag: 'br' }, children: [] }, 'Test 2'] as const
+            const replace = new StandardRender({
+                tag: 'Replace',
+                match: [...tree],
+                payload: [...tree]
+            })
+            expect(replace.isEmpty()).toBe(true)
+        })
+
+        it('returns true for Replace with identical empty trees', () => {
+            expect(new StandardRender({ tag: 'Replace', match: [], payload: [] }).isEmpty()).toBe(true)
+        })
+
+        it('returns false for Replace when match and payload differ', () => {
+            const schema = new Schema()
+            schema.loadWML(`
+                <Replace>
+                    Example<Link to=(Feature1)>Link</Link>
+                </Replace>
+                <With>
+                    Another<Link to=(Feature2)>Link</Link>
+                </With>
+            `)
+            expect(new StandardRender(schema.schema).isEmpty()).toBe(false)
+        })
+    })
+
     it('should create an instance from incoming remove', () => {
         const schema = new Schema()
         schema.loadWML(`<Remove>Example<Link to=(Feature1)>Link</Link></Remove>`)

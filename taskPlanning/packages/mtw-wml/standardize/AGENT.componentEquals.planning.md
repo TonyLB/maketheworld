@@ -1,6 +1,6 @@
 # Component and form equality (`equals` / `isEmpty` foundations)
 
-Status: not started.
+Status: in progress (next: **`StandardRender.equals`** (+ tests) alongside audit **`StandardComponent`** **`equals`** gaps per [**Intertwined execution order**](#intertwined-execution-order); **`StandardRender.isEmpty`** landed in parent plan).
 
 See [`taskPlanning/AGENT.md`](../../../AGENT.md) for what belongs in a task plan versus durable package docs, checkbox conventions, and when to retire this file.
 
@@ -14,6 +14,21 @@ This work is a **preparatory sub-task** for [`../AGENT.semanticOptionalsDefensiv
 
 - **Intertwined execution:** Client summary sync in [`WorkbenchAssetEditForm`](../../../../charcoal-client/src/components/Workbench/WorkbenchAssetEditForm.tsx) **depends on** **`StandardRender.equals`** / **`defaultedEquals`** from this plan (see parent plan **Decisions locked**). Advance **`equals`** deliverables together with the parent initiative rather than strictly before or after.
 - **Coordinates with:** Parent plan for **`StandardRender.isEmpty`** and **`StandardForm.isEmpty`** summary semantics; **`equals`** work follows **`isEmpty`** at each type (**Decisions locked**).
+- **Workbench summary sync** matches parent [**Open questions (Workbench summary sync)**](../AGENT.semanticOptionalsDefensiveProgramming.planning.md#open-questions-workbench-summary-sync) (same scenario as parent **Purpose** grounding incident).
+- **Coordination checklist:** Parent [**Recommended order**](../AGENT.semanticOptionalsDefensiveProgramming.planning.md#recommended-order) item "Coordinate with component-equals" is complete; both plans share [**Intertwined execution order**](#intertwined-execution-order).
+
+## Intertwined execution order
+
+Same sequencing as [`../AGENT.semanticOptionalsDefensiveProgramming.planning.md`](../AGENT.semanticOptionalsDefensiveProgramming.planning.md). Implement in this order:
+
+1. **`StandardRender.isEmpty`** — joint foundation (parent plan **Recommended order**; this plan **Progress**).
+2. **`StandardRender.equals`** — this plan; enables **`defaultedEquals`** tests that mix **`undefined`** and empty render.
+3. **`defaultedEquals`** — parent plan; ship alongside or immediately after **`StandardRender.equals`**.
+4. **`StandardForm.isEmpty`** (semantic **`_summary`**) — parent plan **before** **`StandardForm.equals`**.
+5. **`StandardForm.equals`** — this plan.
+6. **Client** ([`WorkbenchAssetEditForm`](../../../../charcoal-client/src/components/Workbench/WorkbenchAssetEditForm.tsx) and similar) — parent plan; use **`StandardRender.equals`** / **`defaultedEquals`** after step 3.
+
+**Plan coordination** with the semantic-optionals task plan is complete (this subsection and matching text there); implementation tasks remain.
 
 ## Scope
 
@@ -47,10 +62,13 @@ Out of scope for this task plan alone: **full execution** of every parent-plan c
 
 ## Progress
 
+Aligned with [`../AGENT.semanticOptionalsDefensiveProgramming.planning.md`](../AGENT.semanticOptionalsDefensiveProgramming.planning.md) **Progress** (see [**Intertwined execution order**](#intertwined-execution-order)). The row **Wire parent plan** matches parent phases **`defaultedEquals`** and **Client: summary write path + sync**.
+
 | Phase | Status |
 | --- | --- |
+| Plan coordination with parent | done |
 | Audit existing **`equals`** on components + gaps | not started |
-| **`StandardRender.isEmpty`** (with parent plan) **before** **`StandardRender.equals`** | not started |
+| **`StandardRender.isEmpty`** (with parent plan) **before** **`StandardRender.equals`** | done |
 | **`StandardRender.equals`** (+ tests) | not started |
 | **`StandardForm.isEmpty`** semantics (parent plan) **before** **`StandardForm.equals`** | not started |
 | **`StandardForm.equals`** (+ tests) | not started |
@@ -62,10 +80,11 @@ Out of scope for this task plan alone: **full execution** of every parent-plan c
 Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as you complete them so partial progress is visible.
 
 - [ ] Audit **`StandardComponent`** **`equals`** overrides and defaults; list types that need semantic fixes (references, nested payloads, **order-independent** imports / reference lists / facet lists per **Decisions locked**). Where **`isEmpty`** is added to a component type, implement **`isEmpty`** before **`equals`** (**Decisions locked**).
-- [ ] Complete **`StandardRender.isEmpty`** per parent plan [**Decisions locked**](../AGENT.semanticOptionalsDefensiveProgramming.planning.md), **then** implement **`StandardRender.equals`** (delegating to editable payload **`equals`** / **`diff`** / **`isEmpty`** as appropriate).
+- [X] Complete **`StandardRender.isEmpty`** per parent plan [**Decisions locked**](../AGENT.semanticOptionalsDefensiveProgramming.planning.md).
+- [ ] Implement **`StandardRender.equals`** (delegating to editable payload **`equals`** / **`diff`** / **`isEmpty`** as appropriate).
 - [ ] Align **`StandardForm.isEmpty()`** with semantic **`_summary`** (**parent plan**), **then** implement **`StandardForm.equals(incoming, options?)`** with **`optimizeByUniversalKey`** (**Decisions locked**); default behavior = full comparison unless optimization explicitly enabled.
 - [ ] Add **`packages/mtw-wml`** unit tests for **`StandardRender.equals`**, **`StandardForm.equals`**, and representative components.
-- [ ] Update [`../AGENT.semanticOptionalsDefensiveProgramming.planning.md`](../AGENT.semanticOptionalsDefensiveProgramming.planning.md): resolve **Sync effect** open question; implement Workbench summary sync with **`StandardRender.equals`** / **`defaultedEquals`** (see **Decisions locked**).
+- [ ] Implement Workbench summary sync on the parent plan ([`WorkbenchAssetEditForm`](../../../../charcoal-client/src/components/Workbench/WorkbenchAssetEditForm.tsx), canonical **`_summary`**) using **`StandardRender.equals`** / **`defaultedEquals`** (see parent [**Open questions (Workbench summary sync)**](../AGENT.semanticOptionalsDefensiveProgramming.planning.md#open-questions-workbench-summary-sync) and **Decisions locked** in both plans; parent **Recommended order** tracks the same work).
 - [ ] Copy **lasting** equality contracts into [`packages/mtw-wml/ts/standardize/AGENT.md`](../../../../packages/mtw-wml/ts/standardize/AGENT.md) if needed; archive or delete this plan per [`taskPlanning/AGENT.md`](../../../AGENT.md).
 
 ## Verification

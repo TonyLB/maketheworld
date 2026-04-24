@@ -1,6 +1,6 @@
 # Semantic optionals: defensive programming (RenderTree and beyond)
 
-Status: not started.
+Status: in progress (next: **`StandardRender.equals`** with [`standardize/AGENT.componentEquals.planning.md`](standardize/AGENT.componentEquals.planning.md), then **`defaultedEquals`** per [**Intertwined execution order**](#intertwined-execution-order)).
 
 See [`taskPlanning/AGENT.md`](../../AGENT.md) for what belongs in a task plan versus durable package docs, checkbox conventions, and when to retire this file.
 
@@ -9,6 +9,23 @@ See [`taskPlanning/AGENT.md`](../../AGENT.md) for what belongs in a task plan ve
 Eliminate spurious edits and inconsistent behavior when optional rich-text (and similar) fields treat **`undefined` (absent)** and **semantically empty** values (for example **`new StandardRender([])`**) as different at equality, diff, `isEmpty`, and persistence boundaries.
 
 Grounding incident: asset-level **Summary** in Workbench authoring can debounce **updates from no summary to an empty render tree** because the baseline keeps `_summary === undefined` while the UI normalizes to `new StandardRender([])`, and `StandardForm.diff` assigns `incoming._summary` wholesale when the base has no `_summary`, without compacting an empty outcome to absent. Related: `StandardForm.isEmpty()` currently uses `Boolean(this._summary)`, so an empty `StandardRender` instance is wrongly treated as meaningful content; **`hasSummary` will use semantic emptiness** once `StandardRender.isEmpty()` exists (see **Decisions locked**).
+
+## Open questions (Workbench summary sync)
+
+This names the same scenario as the grounding incident above and as **Workbench summary sync** in [`standardize/AGENT.componentEquals.planning.md`](standardize/AGENT.componentEquals.planning.md). It is not a separate mystery: resolution is **implementation** of **`StandardRender.equals`** / **`defaultedEquals`**, diff compaction, canonical **`_summary: undefined`** when vacuous, and replacing **`toJSON()`** reference checks in [`WorkbenchAssetEditForm`](../../../charcoal-client/src/components/Workbench/WorkbenchAssetEditForm.tsx), per **Decisions locked**. Detailed checkbox work lives in **Recommended order** below and in the component-equals plan.
+
+## Intertwined execution order
+
+Shared sequencing with [`standardize/AGENT.componentEquals.planning.md`](standardize/AGENT.componentEquals.planning.md). Implement in this order:
+
+1. **`StandardRender.isEmpty`** — joint foundation (this plan **Recommended order**; component plan **Progress**).
+2. **`StandardRender.equals`** — [`standardize/AGENT.componentEquals.planning.md`](standardize/AGENT.componentEquals.planning.md); enables **`defaultedEquals`** tests that mix **`undefined`** and empty render.
+3. **`defaultedEquals`** — this plan; ship alongside or immediately after **`StandardRender.equals`**.
+4. **`StandardForm.isEmpty`** (semantic **`_summary`**) — this plan **before** **`StandardForm.equals`**.
+5. **`StandardForm.equals`** — [`standardize/AGENT.componentEquals.planning.md`](standardize/AGENT.componentEquals.planning.md).
+6. **Client** ([`WorkbenchAssetEditForm`](../../../charcoal-client/src/components/Workbench/WorkbenchAssetEditForm.tsx) and similar) — this plan; use **`StandardRender.equals`** / **`defaultedEquals`** after step 3.
+
+**Plan coordination** with the component-equals task plan is complete (this subsection and matching text there); implementation tasks remain.
 
 ## Target behavior (layers)
 
@@ -56,9 +73,12 @@ Grounding incident: asset-level **Summary** in Workbench authoring can debounce 
 
 ## Progress
 
+Aligned phase names with [`standardize/AGENT.componentEquals.planning.md`](standardize/AGENT.componentEquals.planning.md) **Progress** (see [**Intertwined execution order**](#intertwined-execution-order)).
+
 | Phase | Status |
 | --- | --- |
-| `StandardRender.isEmpty` (+ tests) | not started |
+| Plan coordination with component-equals | done |
+| `StandardRender.isEmpty` (+ tests) | done |
 | `defaultedEquals` helper (+ tests) | not started |
 | `StandardForm.diff` / `isEmpty` alignment | not started |
 | Client: summary write path + sync | not started |
@@ -70,8 +90,8 @@ Grounding incident: asset-level **Summary** in Workbench authoring can debounce 
 
 Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as you complete them so partial progress is visible.
 
-- [ ] Coordinate with [`standardize/AGENT.componentEquals.planning.md`](standardize/AGENT.componentEquals.planning.md) (**intertwined**).
-- [ ] Add **`StandardRender.isEmpty()`** (and tests) using the **no-op diff / merge** criterion (see **Decisions locked**).
+- [X] Coordinate with [`standardize/AGENT.componentEquals.planning.md`](standardize/AGENT.componentEquals.planning.md) (**intertwined**). See [**Intertwined execution order**](#intertwined-execution-order) and [**Open questions (Workbench summary sync)**](#open-questions-workbench-summary-sync).
+- [X] Add **`StandardRender.isEmpty()`** (and tests) using the **no-op diff / merge** criterion (see **Decisions locked**).
 - [ ] Implement **`defaultedEquals`** in an appropriate shared module (likely under `packages/mtw-wml` or `packages/mtw-base`, per team preference) with unit tests.
 - [ ] Refactor **`StandardForm.diff`** asset-level `_summary` / `_shortName` (and any parallel fields) so **vacuous outcomes** become **`undefined`**; add **`StandardForm.isEmpty`** checks that use semantic emptiness for `_summary`.
 - [ ] While touching RenderTree optional fields, adopt **`defaultedEquals`** where the **optional content** contract clearly applies; flag unclear sites for quick review (per **Decisions locked** process).
