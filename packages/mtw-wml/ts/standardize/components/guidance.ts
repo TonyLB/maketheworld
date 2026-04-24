@@ -8,7 +8,6 @@ import { StandardGuidanceData, StandardGuidanceInputData, StandardGuidanceNDJSON
 import { ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaGuidance } from "@tonylb/mtw-base/ts/schema/components"
 import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
-import { deepEqual } from "../../lib/objects"
 import { StandardKey } from "../keys/key"
 import StandardReference from "../keys/reference"
 import { MarkFacetList } from "../keys/facets/mark"
@@ -17,6 +16,7 @@ import { StandardLiteral } from "../literal"
 import type { StandardFormConstructionOptions, StandardizeFromSchemaContext } from "../wmlStandardizeMode"
 import { HasShortName } from "./abstract"
 import { processWithConsumers, StandardizeConsumerFacetListMark, StandardizeConsumerInline, StandardizeConsumerStandardLiteral } from "./fromSchemaPipeline"
+import { defaultedEquals } from "./utils"
 
 export class StandardGuidancePayload implements HasShortName, ComponentConstructorMethods<StandardGuidanceNDJSONInputData | StandardGuidanceInputData, StandardGuidanceData> {
     _instructions?: StandardLiteral;
@@ -238,7 +238,9 @@ export class StandardGuidance extends componentClassFactory(StandardGuidancePayl
         if (!(incoming instanceof StandardGuidance)) {
             return false
         }
-        return deepEqual(this.toJSON(), incoming.toJSON())
+        return this.marks.equals(incoming.marks) &&
+            defaultedEquals(this.instructions, incoming.instructions) &&
+            defaultedEquals(this.shortName, incoming.shortName)
     }
 }
 

@@ -133,6 +133,32 @@ particular context.
 - **`mapContents(callback)`**: Transforms all component content
 - **`renameKey(props)`**: @deprecated Use explicit `<Key>` tags in edits processed through `merge()` instead
 
+## Semantic Optionals And Equality Contracts
+
+These are durable behavior guarantees for optional semantic-content fields (especially Asset-level `_summary` and `_shortName`):
+
+- **`StandardForm.isEmpty()` uses semantic vacuity for optional metadata**
+  - `_summary`, `_shortName`, and `_topLevel` are meaningful only when present and non-empty by their own `isEmpty()` rules.
+  - Example: a vacuous `StandardRender` summary (such as plain empty render content) does not make an asset non-empty.
+
+- **`StandardForm.diff()` compacts vacuous optional metadata to `undefined`**
+  - When the computed diff result for `_summary` or `_shortName` is semantically empty, the patch field is compacted to `undefined`.
+  - `undefined` on a patch means "no change" during merge; clearing existing values is represented through edit payloads (for example `Remove`), not by explicit empty placeholders.
+
+- **Omission-over-empty is the canonical serialization shape**
+  - For optional semantic-content fields, omitted/`undefined` and semantically empty are treated as equivalent.
+  - When both are valid representations, prefer omission/`undefined` to avoid redundant no-op deltas.
+
+- **Use `defaultedEquals` only for optional semantic-content slots**
+  - `defaultedEquals` treats `undefined` and semantically empty as the same vacuous class, then falls through to type `equals` for non-vacuous values.
+  - Apply it for optional content fields (such as optional render/literal/reference-list-like payloads), not as a blanket replacement for every optional property comparison.
+
+- **`StandardForm.equals(incoming, options?)` remains full semantic equality**
+  - Equality always includes Asset-level metadata (`_shortName`, `_summary`, `_topLevel`, `_metaData`) plus component-set equivalence and per-component `equals`.
+  - `options.optimizeByUniversalKey` may choose a faster matching path when universal-key preconditions are met; semantics do not weaken, and implementation falls back to full comparison when those preconditions are not satisfied.
+
+For rich-text payload semantics (`StandardRender.isEmpty()` and `StandardRender.equals()`), see [`./render/AGENT.md`](./render/AGENT.md).
+
 ### Constructor Overloads
 
 All overloads accept an optional **second** argument: **`options?: StandardFormConstructionOptions`** (e.g. `{ standardizeMode: 'ephemeraWire' }`). Examples below omit it for brevity.

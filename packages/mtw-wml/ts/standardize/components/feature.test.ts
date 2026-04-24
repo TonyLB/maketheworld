@@ -97,6 +97,23 @@ describe('StandardFeature class', () => {
         `))
     })
 
+    it('should treat undefined and empty shortName as equal', () => {
+        const withoutShortName = new StandardFeature({
+            tag: 'Feature',
+            key: 'test',
+            examples: [{ tag: 'Example', key: 'ex1' }]
+        })
+        const withEmptyShortName = new StandardFeature({
+            tag: 'Feature',
+            key: 'test',
+            shortName: '',
+            examples: [{ tag: 'Example', key: 'ex1' }]
+        })
+
+        expect(withoutShortName.equals(withEmptyShortName)).toBe(true)
+        expect(withEmptyShortName.equals(withoutShortName)).toBe(true)
+    })
+
     it('should throw on unconsumed child tags', () => {
         const testSource = deIndentWML(`
             <Feature key=(testFeature)>

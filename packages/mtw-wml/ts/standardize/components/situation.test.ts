@@ -285,10 +285,45 @@ describe('StandardSituation class', () => {
         expect(a.equals(b)).toBe(false)
     })
 
+    it('should report equals for mark-order permutations', () => {
+        const a = new StandardSituation(deIndentWML(`
+            <Situation key=(test)>
+                <Mark uuid=(MARK#m1)><Match>Alpha</Match></Mark>
+                <Mark uuid=(MARK#m2)><Match>Beta</Match></Mark>
+            </Situation>
+        `))
+        const b = new StandardSituation(deIndentWML(`
+            <Situation key=(test)>
+                <Mark uuid=(MARK#m2)><Match>Beta</Match></Mark>
+                <Mark uuid=(MARK#m1)><Match>Alpha</Match></Mark>
+            </Situation>
+        `))
+        expect(a.equals(b)).toBe(true)
+        expect(b.equals(a)).toBe(true)
+    })
+
     it('should clone independently', () => {
         const orig = new StandardSituation(deIndentWML(`<Situation key=(testKey)><Mark uuid=(MARK#m)><Match>X</Match></Mark></Situation>`))
         const cloned = orig.clone()
         expect(cloned.equals(orig)).toBe(true)
         expect(cloned).not.toBe(orig)
+    })
+})
+
+describe('StandardSituation.equals semantic optionals', () => {
+    it('treats undefined and semantic-empty shortName as equal', () => {
+        const withoutShortName = new StandardSituation({
+            tag: 'Situation',
+            key: 'test',
+            marks: [],
+        })
+        const withEmptyShortName = new StandardSituation({
+            tag: 'Situation',
+            key: 'test',
+            shortName: '',
+            marks: [],
+        })
+        expect(withoutShortName.equals(withEmptyShortName)).toBe(true)
+        expect(withEmptyShortName.equals(withoutShortName)).toBe(true)
     })
 })

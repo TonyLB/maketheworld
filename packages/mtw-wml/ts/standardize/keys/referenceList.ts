@@ -113,6 +113,29 @@ export class ReferenceList {
         return this._items
     }
 
+    isEmpty(): boolean {
+        return this._items.length === 0 || this._items.every((item) => item.ref === 0)
+    }
+
+    equals(other: ReferenceList): boolean {
+        if (!(other instanceof ReferenceList)) {
+            return false
+        }
+
+        const unmatchedBaseItems = this._items.filter(item => !other._items.some(otherItem => item.sameKey(otherItem)))
+        if (unmatchedBaseItems.length > 0) {
+            return false
+        }
+        const unmatchedOtherItems = other._items.filter(item => !this._items.some(baseItem => baseItem.sameKey(item)))
+        if (unmatchedOtherItems.length > 0) {
+            return false
+        }
+        return this._items.every((item) => {
+            const matchingItem = other._items.find((otherItem) => item.sameKey(otherItem))
+            return matchingItem ? matchingItem.ref === item.ref : false
+        })
+    }
+
     merge(other: ReferenceList, options?: { cleanEmptyReferences?: boolean }): ReferenceList | undefined {
         if (!(other instanceof ReferenceList)) {
             throw new Error('Cannot merge with non-ReferenceList instance')

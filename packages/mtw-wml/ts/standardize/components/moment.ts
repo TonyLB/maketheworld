@@ -211,7 +211,7 @@ export class StandardMoment extends componentClassFactory(StandardMomentPayload,
         if (!(incoming instanceof StandardMoment)) {
             return false
         }
-        const shortNameEqual = (this.shortName?.toJSON() ?? '') === (incoming.shortName?.toJSON() ?? '')
+        const shortNameEqual = (this.shortName ?? new StandardLiteral('')).equals(incoming.shortName ?? new StandardLiteral(''))
         return shortNameEqual && !(this.messages.diff(incoming.messages)?.payload?.length)
     }
 

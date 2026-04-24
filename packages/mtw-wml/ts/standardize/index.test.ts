@@ -79,6 +79,185 @@ describe('StandardForm', () => {
             </Asset>`)
             expect(sf.isEmpty()).toBe(false)
         })
+
+        it('returns true when Summary is semantically empty', () => {
+            const sf = new StandardForm({
+                universalKey: 'ASSET#TestAsset',
+                metaData: [],
+                components: [],
+                summary: []
+            })
+            expect(sf.summary?.isEmpty()).toBe(true)
+            expect(sf.isEmpty()).toBe(true)
+        })
+
+        it('returns false when Summary is non-empty from data input', () => {
+            const sf = new StandardForm({
+                universalKey: 'ASSET#TestAsset',
+                metaData: [],
+                components: [],
+                summary: ['Some description']
+            })
+            expect(sf.summary?.isEmpty()).toBe(false)
+            expect(sf.isEmpty()).toBe(false)
+        })
+
+        it('returns true when ShortName is semantically empty', () => {
+            const sf = new StandardForm('ASSET#TestAsset')
+            ;(sf as any)._shortName = new StandardLiteral('', { tag: 'ShortName' })
+            expect(sf.shortName?.isEmpty()).toBe(true)
+            expect(sf.isEmpty()).toBe(true)
+        })
+
+        it('returns true with explicitly empty topLevel reference list', () => {
+            const sf = new StandardForm('ASSET#TestAsset')
+            ;(sf as any)._topLevel = new ReferenceList([])
+            expect(sf.isEmpty()).toBe(true)
+        })
+
+        it('returns false with non-empty topLevel reference list', () => {
+            const sf = new StandardForm('ASSET#TestAsset')
+            ;(sf as any)._topLevel = new ReferenceList([
+                new StandardReference({ tag: 'Room', universalKey: 'ROOM#main' })
+            ])
+            expect(sf.isEmpty()).toBe(false)
+        })
+
+        it('returns true when all components are semantically empty', () => {
+            const sf = new StandardForm('ASSET#TestAsset')
+            ;(sf as any)._components = [{ isEmpty: () => true }]
+            expect(sf.isEmpty()).toBe(true)
+        })
+
+        it('returns false when at least one component is non-empty', () => {
+            const sf = new StandardForm('ASSET#TestAsset')
+            ;(sf as any)._components = [{ isEmpty: () => true }, { isEmpty: () => false }]
+            expect(sf.isEmpty()).toBe(false)
+        })
+
+        it('returns true when metadata and components are all vacuous', () => {
+            const sf = new StandardForm({
+                universalKey: 'ASSET#TestAsset',
+                metaData: [],
+                components: [],
+                summary: []
+            })
+            ;(sf as any)._shortName = new StandardLiteral('', { tag: 'ShortName' })
+            ;(sf as any)._topLevel = new ReferenceList([])
+            ;(sf as any)._components = [{ isEmpty: () => true }]
+            expect(sf.isEmpty()).toBe(true)
+        })
+    })
+
+    describe('equals()', () => {
+        it('returns true for identical forms', () => {
+            const left = new StandardForm(deIndentWML(`
+                <Asset uuid=(TestAsset)>
+                    <Room uuid=(ROOM#room1) key=(room1)>
+                        <ShortName>Room One</ShortName>
+                    </Room>
+                </Asset>
+            `))
+            const right = new StandardForm(deIndentWML(`
+                <Asset uuid=(TestAsset)>
+                    <Room uuid=(ROOM#room1) key=(room1)>
+                        <ShortName>Room One</ShortName>
+                    </Room>
+                </Asset>
+            `))
+            expect(left.equals(right)).toBe(true)
+        })
+
+        it('returns false when an unrelated component differs', () => {
+            const left = new StandardForm(deIndentWML(`
+                <Asset uuid=(TestAsset)>
+                    <Room uuid=(ROOM#room1) key=(room1) />
+                    <Feature uuid=(FEATURE#feature1) key=(feature1)>
+                        <ShortName>Base Feature</ShortName>
+                    </Feature>
+                </Asset>
+            `))
+            const right = new StandardForm(deIndentWML(`
+                <Asset uuid=(TestAsset)>
+                    <Room uuid=(ROOM#room1) key=(room1) />
+                    <Feature uuid=(FEATURE#feature1) key=(feature1)>
+                        <ShortName>Changed Feature</ShortName>
+                    </Feature>
+                </Asset>
+            `))
+            expect(left.equals(right)).toBe(false)
+        })
+
+        it('treats vacuous optional metadata as equal', () => {
+            const left = new StandardForm({
+                universalKey: 'ASSET#TestAsset',
+                metaData: [],
+                components: [],
+                shortName: '',
+                summary: [],
+                topLevel: []
+            })
+            const right = new StandardForm({
+                universalKey: 'ASSET#TestAsset',
+                metaData: [],
+                components: []
+            })
+            expect(left.equals(right)).toBe(true)
+        })
+
+        it('treats metadata ordering as non-semantic', () => {
+            const left = new StandardForm('ASSET#TestAsset')
+            const right = new StandardForm('ASSET#TestAsset')
+            ;(left as any)._metaData = [
+                { data: { tag: 'Import', from: 'ASSET#alpha' }, children: [] },
+                { data: { tag: 'Import', from: 'ASSET#beta' }, children: [] }
+            ]
+            ;(right as any)._metaData = [
+                { data: { tag: 'Import', from: 'ASSET#beta' }, children: [] },
+                { data: { tag: 'Import', from: 'ASSET#alpha' }, children: [] }
+            ]
+            expect(left.equals(right)).toBe(true)
+        })
+
+        it('supports optimizeByUniversalKey with parity to default comparison', () => {
+            const left = new StandardForm(deIndentWML(`
+                <Asset uuid=(TestAsset)>
+                    <Room uuid=(ROOM#room1) key=(room1)>
+                        <Feature uuid=(FEATURE#feature1) />
+                    </Room>
+                    <Feature uuid=(FEATURE#feature1) key=(feature1) />
+                </Asset>
+            `))
+            const right = new StandardForm(deIndentWML(`
+                <Asset uuid=(TestAsset)>
+                    <Feature uuid=(FEATURE#feature1) key=(feature1) />
+                    <Room uuid=(ROOM#room1) key=(room1)>
+                        <Feature uuid=(FEATURE#feature1) />
+                    </Room>
+                </Asset>
+            `))
+            expect(left.equals(right)).toBe(true)
+            expect(left.equals(right, { optimizeByUniversalKey: true })).toBe(true)
+        })
+
+        it('falls back to full comparison when optimizeByUniversalKey preconditions fail', () => {
+            const left = new StandardForm(deIndentWML(`
+                <Asset uuid=(TestAsset)>
+                    <Room key=(room1)>
+                        <ShortName>Room One</ShortName>
+                    </Room>
+                </Asset>
+            `))
+            const right = new StandardForm(deIndentWML(`
+                <Asset uuid=(TestAsset)>
+                    <Room key=(room1)>
+                        <ShortName>Room Two</ShortName>
+                    </Room>
+                </Asset>
+            `))
+            expect(left.equals(right)).toBe(false)
+            expect(left.equals(right, { optimizeByUniversalKey: true })).toBe(false)
+        })
     })
 
     describe('standardizeMode', () => {
@@ -2924,6 +3103,93 @@ describe('StandardForm', () => {
                     </Asset>
                 `))
             })
+
+            it('should keep key-only room rename diff observable for exit retarget flow', () => {
+                const base = new StandardForm(`
+                    <Asset uuid=(testAsset)>
+                        <Room uuid=(Room1)>
+                            <Situation uuid=(DEFAULT)>
+                                <DisplayName>Test Room</DisplayName>
+                                <Description>Test Description</Description>
+                            </Situation>
+                            <Exit to=(ROOM#Room2)>out</Exit>
+                        </Room>
+                        <Room uuid=(Room2)>
+                            <Situation uuid=(DEFAULT)><DisplayName>Garden</DisplayName></Situation>
+                            <Exit to=(ROOM#Room1)>text</Exit>
+                        </Room>
+                    </Asset>
+                `)
+                const incoming = new StandardForm(`
+                    <Asset uuid=(testAsset)>
+                        <Room uuid=(Room1)>
+                            <Situation uuid=(DEFAULT)>
+                                <DisplayName>Test Room</DisplayName>
+                                <Description>Test Description</Description>
+                            </Situation>
+                            <Exit to=(garden)>out</Exit>
+                        </Room>
+                        <Room uuid=(Room2) key=(garden)>
+                            <Situation uuid=(DEFAULT)><DisplayName>Garden</DisplayName></Situation>
+                            <Exit to=(ROOM#Room1)>text</Exit>
+                        </Room>
+                    </Asset>
+                `)
+                const diff = base.diff(incoming)
+                expect(diff.isEmpty()).toBe(false)
+                expect(schemaToWML([base.merge(diff).schema])).toEqual(schemaToWML([incoming.schema]))
+            })
+
+            it('should keep key-only room rename diff observable for map reference retarget flow', () => {
+                const base = new StandardForm(`
+                    <Asset uuid=(testAsset)>
+                        <Room uuid=(Room2)>
+                            <Situation uuid=(DEFAULT)><DisplayName>Garden</DisplayName></Situation>
+                        </Room>
+                        <Map uuid=(testMap)><Room uuid=(Room2)><Position {0, 0} /></Room></Map>
+                    </Asset>
+                `)
+                const incoming = new StandardForm(`
+                    <Asset uuid=(testAsset)>
+                        <Room uuid=(Room2) key=(garden)>
+                            <Situation uuid=(DEFAULT)><DisplayName>Garden</DisplayName></Situation>
+                        </Room>
+                        <Map uuid=(testMap)><Room key=(garden)><Position {0, 0} /></Room></Map>
+                    </Asset>
+                `)
+                const diff = base.diff(incoming)
+                expect(diff.isEmpty()).toBe(false)
+                expect(diff._lookup('ROOM#Room2')?.key).toBe('garden')
+            })
+
+            it('should keep key-only feature rename diff observable for link retarget flow', () => {
+                const base = new StandardForm(`
+                    <Asset uuid=(testAsset)>
+                        <Feature uuid=(Feature1) key=(Feature1)>
+                            <Example uuid=(base)>
+                                <DisplayName>Test Feature</DisplayName>
+                                <Description><Link to=(Feature1)>Link</Link></Description>
+                            </Example>
+                        </Feature>
+                    </Asset>
+                `)
+                const incoming = new StandardForm(`
+                    <Asset uuid=(testAsset)>
+                        <Feature uuid=(Feature1) key=(clockTower)>
+                            <Example uuid=(base)>
+                                <DisplayName>Test Feature</DisplayName>
+                                <Description><Link to=(clockTower)>Link</Link></Description>
+                            </Example>
+                        </Feature>
+                    </Asset>
+                `)
+                const diff = base.diff(incoming)
+                expect(diff.isEmpty()).toBe(false)
+                const featureDiff = diff._lookup('FEATURE#Feature1')
+                expect(featureDiff).toBeDefined()
+                expect(featureDiff?.key).toBe('Feature1')
+                expect(schemaToWML([diff.schema])).toContain('<Replace><Key>Feature1</Key></Replace><With><Key>clockTower</Key></With>')
+            })
         })
 
     })
@@ -4642,6 +4908,23 @@ describe('StandardForm', () => {
             `))
         })
 
+        it('should compact Asset-level Summary to undefined when incoming summary is semantically empty', () => {
+            const baseForm = new StandardForm({
+                universalKey: 'ASSET#test',
+                components: [],
+                metaData: []
+            })
+            const incomingForm = new StandardForm({
+                universalKey: 'ASSET#test',
+                components: [],
+                metaData: [],
+                summary: []
+            })
+
+            const diffed = baseForm.diff(incomingForm)
+            expect(diffed.summary).toBeUndefined()
+        })
+
         it('should diff when Asset-level ShortName is added', () => {
             const baseWML = deIndentWML(`
                 <Asset uuid=(test)>
@@ -4666,6 +4949,23 @@ describe('StandardForm', () => {
             expect(diffWML).toEqual(deIndentWML(`
                 <Asset uuid=(test)><ShortName>New Name</ShortName></Asset>
             `))
+        })
+
+        it('should compact Asset-level ShortName to undefined when incoming shortName is semantically empty', () => {
+            const baseForm = new StandardForm({
+                universalKey: 'ASSET#test',
+                components: [],
+                metaData: []
+            })
+            const incomingForm = new StandardForm({
+                universalKey: 'ASSET#test',
+                components: [],
+                metaData: []
+            })
+            ;(incomingForm as any)._shortName = new StandardLiteral('', { tag: 'ShortName' })
+
+            const diffed = baseForm.diff(incomingForm)
+            expect(diffed.shortName).toBeUndefined()
         })
 
         it('should diff when Asset-level ShortName is removed', () => {

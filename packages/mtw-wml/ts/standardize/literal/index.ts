@@ -223,6 +223,46 @@ export class StandardLiteral {
         return this._payload.toJSON()
     }
 
+    /**
+     * True when this value is a no-op as optional literal content: plain '',
+     * Remove(match: ''), or Replace where match and payload have no diff.
+     */
+    isEmpty(): boolean {
+        if (this._payload instanceof PlainClass) {
+            const value = this._payload.plain?.toJSON() ?? ''
+            return value.length === 0
+        }
+        if (this._payload instanceof RemoveClass) {
+            const matchValue = (this._payload as any).match?.toJSON() ?? ''
+            return matchValue.length === 0
+        }
+        if (this._payload instanceof ReplaceClass) {
+            const matchValue = (this._payload as any).match?.toJSON() ?? ''
+            const payloadValue = (this._payload as any).payload?.toJSON() ?? ''
+            const matchLiteral = new StandardLiteral(matchValue)
+            const payloadLiteral = new StandardLiteral(payloadValue)
+            return matchLiteral.equals(payloadLiteral)
+        }
+        return false
+    }
+
+    /**
+     * Semantic equality for literal values: vacuous shapes agree via isEmpty;
+     * otherwise equality follows editable-wrapper diff (no delta between states).
+     */
+    equals(other: StandardLiteral): boolean {
+        if (this === other) {
+            return true
+        }
+        if (this.isEmpty() && other.isEmpty()) {
+            return true
+        }
+        if (this.isEmpty() !== other.isEmpty()) {
+            return false
+        }
+        return this._payload.diff(other._payload) === undefined
+    }
+
     _wrap(instance: StandardLiteral): StandardLiteral {
         return instance
     }

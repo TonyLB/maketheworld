@@ -659,15 +659,22 @@ describe('StandardLens class', () => {
                 <Mark key=(mark1) />
             </Lens>
         `)
-        expect(testLens.toJSON()).toMatchObject({
+        const testLensJSON = testLens.toJSON() as StandardLensData
+        expect(testLensJSON).toMatchObject({
             key: 'testLens',
             tag: 'Lens',
             shortName: 'Test Lens',
             description: ['Test description.'],
         })
-        expect(testLens.toJSON().marks).toHaveLength(1)
-        expect(testLens.toJSON().marks![0].reference).toMatchObject({ key: 'mark1', tag: 'Mark' })
-        expect(testLens.toJSON().marks![0].payload).toEqual({})
+        const testLensMarks = testLensJSON.marks ?? []
+        expect(testLensMarks).toHaveLength(1)
+        const [firstMark] = testLensMarks
+        expect(firstMark).toBeDefined()
+        if (!firstMark || 'tag' in firstMark) {
+            throw new Error('Expected plain mark facet data in Lens JSON')
+        }
+        expect(firstMark.reference).toMatchObject({ key: 'mark1', tag: 'Mark' })
+        expect(firstMark.payload).toEqual({})
     })
 
     it('should omit empty marks from JSON', () => {
@@ -890,15 +897,22 @@ describe('StandardLens class', () => {
             marks: [{ reference: { key: 'illumination', tag: 'Mark' as const }, payload: { default: 'light' } }],
         }
         const lens = new StandardLens(data)
-        expect(lens.toJSON()).toMatchObject({
+        const lensJSON = lens.toJSON() as StandardLensData
+        expect(lensJSON).toMatchObject({
             key: 'test',
             tag: 'Lens',
             shortName: 'Test Lens',
         })
-        expect(lens.toJSON().marks).toHaveLength(1)
-        expect(lens.toJSON().marks![0].reference).toMatchObject({ key: 'illumination', tag: 'Mark' })
-        expect(lens.toJSON().marks![0].payload).toEqual({ default: 'light' })
-        const roundTripped = new StandardLens(lens.toJSON())
+        const lensMarks = lensJSON.marks ?? []
+        expect(lensMarks).toHaveLength(1)
+        const [firstLensMark] = lensMarks
+        expect(firstLensMark).toBeDefined()
+        if (!firstLensMark || 'tag' in firstLensMark) {
+            throw new Error('Expected plain mark facet data in Lens JSON')
+        }
+        expect(firstLensMark.reference).toMatchObject({ key: 'illumination', tag: 'Mark' })
+        expect(firstLensMark.payload).toEqual({ default: 'light' })
+        const roundTripped = new StandardLens(lensJSON)
         expect(roundTripped.marks.items[0].payload.default?.toJSON()).toEqual('light')
     })
 
@@ -929,13 +943,25 @@ describe('StandardLens class', () => {
         `)
         const diff = lens1.diff(lens2)
         expect(diff).toBeDefined()
-        expect(diff!.toJSON().marks).toHaveLength(1)
-        const payload = diff!.toJSON().marks![0].payload
-        expect(payload.default).toBeDefined()
-        if (typeof payload.default === 'object' && payload.default !== null && 'tag' in payload.default) {
-            expect(payload.default).toMatchObject({ tag: 'Replace', match: 'dark', payload: 'light' })
+        const diffJSON = diff?.toJSON() as StandardLensData | undefined
+        const diffMarks = diffJSON?.marks ?? []
+        expect(diffMarks).toHaveLength(1)
+        const [firstDiffMark] = diffMarks
+        expect(firstDiffMark).toBeDefined()
+        if (!firstDiffMark || 'tag' in firstDiffMark) {
+            throw new Error('Expected plain mark facet data in Lens diff JSON')
+        }
+        const payload = firstDiffMark.payload
+        const defaultValue = 'tag' in payload
+            ? payload.tag === 'Replace'
+                ? payload.payload.default
+                : payload.match.default
+            : payload.default
+        expect(defaultValue).toBeDefined()
+        if (typeof defaultValue === 'object' && defaultValue !== null && 'tag' in defaultValue) {
+            expect(defaultValue).toMatchObject({ tag: 'Replace', match: 'dark', payload: 'light' })
         } else {
-            expect(payload.default).toEqual('light')
+            expect(defaultValue).toEqual('light')
         }
     })
 
@@ -955,4 +981,38 @@ describe('StandardLens class', () => {
         }
     })
 
+})
+
+describe('worldState equals semantic optionals', () => {
+    it('treats undefined and semantic-empty description as equal on StandardMark', () => {
+        const withoutDescription = new StandardMark({
+            key: 'test',
+            tag: 'Mark',
+            shortName: 'Alpha',
+        })
+        const withEmptyDescription = new StandardMark({
+            key: 'test',
+            tag: 'Mark',
+            shortName: 'Alpha',
+            description: [],
+        })
+        expect(withoutDescription.equals(withEmptyDescription)).toBe(true)
+        expect(withEmptyDescription.equals(withoutDescription)).toBe(true)
+    })
+
+    it('treats undefined and semantic-empty shortName as equal on StandardLens', () => {
+        const withoutShortName = new StandardLens({
+            key: 'test',
+            tag: 'Lens',
+            marks: [],
+        })
+        const withEmptyShortName = new StandardLens({
+            key: 'test',
+            tag: 'Lens',
+            shortName: '',
+            marks: [],
+        })
+        expect(withoutShortName.equals(withEmptyShortName)).toBe(true)
+        expect(withEmptyShortName.equals(withoutShortName)).toBe(true)
+    })
 })

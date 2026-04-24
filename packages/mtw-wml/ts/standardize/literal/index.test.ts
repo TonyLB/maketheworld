@@ -3,6 +3,45 @@ import { deIndentWML } from '../../schema/utils'
 import { StandardLiteral, PlainClass, RemoveClass, ReplaceClass } from './index'
 
 describe('StandardLiteral', () => {
+    describe('semantic emptiness and equality', () => {
+        it('should treat plain empty string as empty', () => {
+            expect(new StandardLiteral('').isEmpty()).toBe(true)
+            expect(new StandardLiteral('test').isEmpty()).toBe(false)
+        })
+
+        it('should treat remove empty match as empty', () => {
+            expect(new StandardLiteral({ tag: 'Remove', match: '' }).isEmpty()).toBe(true)
+            expect(new StandardLiteral({ tag: 'Remove', match: 'x' }).isEmpty()).toBe(false)
+        })
+
+        it('should treat identity replace as empty', () => {
+            expect(new StandardLiteral({ tag: 'Replace', match: '', payload: '' }).isEmpty()).toBe(true)
+            expect(new StandardLiteral({ tag: 'Replace', match: 'x', payload: 'x' }).isEmpty()).toBe(true)
+            expect(new StandardLiteral({ tag: 'Replace', match: 'x', payload: 'y' }).isEmpty()).toBe(false)
+        })
+
+        it('should treat vacuous-family shapes as equal', () => {
+            const plainEmpty = new StandardLiteral('')
+            const removeEmpty = new StandardLiteral({ tag: 'Remove', match: '' })
+            const replaceEmpty = new StandardLiteral({ tag: 'Replace', match: '', payload: '' })
+
+            expect(plainEmpty.equals(removeEmpty)).toBe(true)
+            expect(removeEmpty.equals(replaceEmpty)).toBe(true)
+            expect(replaceEmpty.equals(plainEmpty)).toBe(true)
+        })
+
+        it('should compare non-vacuous values by semantic diff', () => {
+            const left = new StandardLiteral('alpha')
+            const right = new StandardLiteral('alpha')
+            const different = new StandardLiteral('beta')
+
+            expect(left.equals(right)).toBe(true)
+            expect(right.equals(left)).toBe(true)
+            expect(left.equals(different)).toBe(false)
+            expect(left.equals(new StandardLiteral({ tag: 'Remove', match: '' }))).toBe(false)
+        })
+    })
+
     it('should create a StandardLiteralSimple from string', () => {
         const literal = new StandardLiteral('test')
         expect(literal._payload).toBeInstanceOf(PlainClass)

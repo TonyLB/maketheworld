@@ -7,6 +7,7 @@ import { MakeTheWorldAccordion } from "../../UI";
 import { StandardLiteral } from "@tonylb/mtw-wml/ts/standardize/literal";
 import { StandardRender } from "@tonylb/mtw-wml/ts/standardize/render";
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize";
+import { defaultedEquals } from "@tonylb/mtw-wml/ts/standardize/components/utils";
 import { TopLevelStandardLiteralEditor } from "../foundations/StandardLiteral";
 import { StandardRenderEditor } from "../foundations/StandardRender";
 import { ComponentUUID } from "@tonylb/mtw-base/ts/schema";
@@ -82,16 +83,13 @@ export const ExampleEditor: FunctionComponent = () => {
             if (!componentId || readonly) return
             const currentExample = standardForm.byUniversalId[componentId]
             if (!currentExample || !(currentExample instanceof StandardExample)) return
-            const newValue = newSummary.toJSON() ?? []
-            const currentValue = currentExample.summary?.toJSON() ?? []
-            if (JSON.stringify(currentValue) === JSON.stringify(newValue)) return
+            if (defaultedEquals(currentExample.summary, newSummary)) return
             updateStandard({
                 type: 'update',
                 update: (draft: StandardForm) => {
                     const ex = draft.byUniversalId[componentId]
                     if (ex && ex instanceof StandardExample) {
-                        const isEmpty = !newValue || (Array.isArray(newValue) && newValue.length === 0)
-                        ex._payload._summary = isEmpty ? undefined : newSummary
+                        ex._payload._summary = newSummary.isEmpty() ? undefined : newSummary
                     }
                     return draft
                 }
@@ -105,16 +103,13 @@ export const ExampleEditor: FunctionComponent = () => {
             if (!componentId || readonly) return
             const currentExample = standardForm.byUniversalId[componentId]
             if (!currentExample || !(currentExample instanceof StandardExample)) return
-            const newValue = newDescription.toJSON() ?? []
-            const currentValue = currentExample.description?.toJSON() ?? []
-            if (JSON.stringify(currentValue) === JSON.stringify(newValue)) return
+            if (defaultedEquals(currentExample.description, newDescription)) return
             updateStandard({
                 type: 'update',
                 update: (draft: StandardForm) => {
                     const ex = draft.byUniversalId[componentId]
                     if (ex && ex instanceof StandardExample) {
-                        const isEmpty = !newValue || (Array.isArray(newValue) && newValue.length === 0)
-                        ex._payload._description = isEmpty ? undefined : newDescription
+                        ex._payload._description = newDescription.isEmpty() ? undefined : newDescription
                     }
                     return draft
                 }

@@ -73,6 +73,23 @@ describe('StandardMoment class', () => {
         expect(testMoment.diff(testMoment)).toBeUndefined()
     })
 
+    it('should treat undefined and empty shortName as equal', () => {
+        const withoutShortName = new StandardMoment({
+            tag: 'Moment',
+            key: 'test',
+            messages: [{ tag: 'Message', key: 'msg1' }]
+        })
+        const withEmptyShortName = new StandardMoment({
+            tag: 'Moment',
+            key: 'test',
+            shortName: '',
+            messages: [{ tag: 'Message', key: 'msg1' }]
+        })
+
+        expect(withoutShortName.equals(withEmptyShortName)).toBe(true)
+        expect(withEmptyShortName.equals(withoutShortName)).toBe(true)
+    })
+
     it('should correctly diff adding a message', () => {
         const testSource = deIndentWML(`
             <Moment key=(test)><Message key=(testMessage) /></Moment>

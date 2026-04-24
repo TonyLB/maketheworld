@@ -18,7 +18,6 @@ import { ReferenceList } from "./reference"
 import StandardReference from "../keys/reference"
 import { StandardKey } from "../keys/key"
 import { StandardReferenceData } from "./dataTypes/reference"
-import { deepEqual } from "../../lib/objects"
 import { StandardExplicitParent } from "../explicit"
 import { StandardLiteral } from "../literal"
 import type { StandardizeFromSchemaContext } from "../wmlStandardizeMode"
@@ -29,6 +28,7 @@ import {
     StandardizeConsumerRender,
     StandardizeConsumerStandardLiteral,
 } from "./fromSchemaPipeline"
+import { defaultedEquals } from "./utils"
 
 export class StandardMessagePayload implements ComponentConstructorMethods<StandardMessageData, StandardMessageData> {
     _shortName?: StandardLiteral;
@@ -226,8 +226,8 @@ export class StandardMessage extends componentClassFactory(StandardMessagePayloa
         }
         const roomsDiff = this.rooms.diff(incoming.rooms) ?? new ReferenceList([])
         return !(roomsDiff.payload.length) &&
-            deepEqual(this.shortName?.toJSON(), incoming.shortName?.toJSON()) &&
-            deepEqual(this.description?.toJSON(), incoming.description?.toJSON())
+            defaultedEquals(this.shortName, incoming.shortName) &&
+            defaultedEquals(this.description, incoming.description)
     }
 
 }

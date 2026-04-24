@@ -174,6 +174,22 @@ describe('StandardGuidance class', () => {
     })
 })
 
+describe('StandardGuidance.equals semantic optionals', () => {
+    it('treats undefined and semantic-empty instructions as equal', () => {
+        const withoutInstructions = new StandardGuidance({
+            tag: 'Guidance',
+            key: 'testGuidance',
+        })
+        const withEmptyInstructions = new StandardGuidance({
+            tag: 'Guidance',
+            key: 'testGuidance',
+            instructions: '',
+        })
+        expect(withoutInstructions.equals(withEmptyInstructions)).toBe(true)
+        expect(withEmptyInstructions.equals(withoutInstructions)).toBe(true)
+    })
+})
+
 describe('Guidance facet round-trip (WML -> StandardForm -> WML)', () => {
     it('should not emit Mark at top level when Guidance has a Mark facet with Match value', () => {
         const wml = deIndentWML(`

@@ -322,3 +322,21 @@ describe('StandardMessage class', () => {
     })
 
 })
+
+describe('StandardMessage.equals semantic optionals', () => {
+    it('treats undefined and semantic-empty description as equal', () => {
+        const withoutDescription = new StandardMessage({
+            key: 'test',
+            tag: 'Message',
+            rooms: [{ tag: 'Room', key: 'testRoom' }],
+        })
+        const withEmptyDescription = new StandardMessage({
+            key: 'test',
+            tag: 'Message',
+            description: { data: { tag: 'Description' }, children: [] },
+            rooms: [{ tag: 'Room', key: 'testRoom' }],
+        })
+        expect(withoutDescription.equals(withEmptyDescription)).toBe(true)
+        expect(withEmptyDescription.equals(withoutDescription)).toBe(true)
+    })
+})
