@@ -292,7 +292,11 @@ export class StandardExample extends componentClassFactory(StandardExamplePayloa
         if (!(incoming instanceof StandardExample)) {
             return false
         }
-        return deepEqual(this.toJSON(), incoming.toJSON())
+        return this.marks.equals(incoming.marks) &&
+            deepEqual(this.displayName?.toJSON(), incoming.displayName?.toJSON()) &&
+            deepEqual(this.summary?.toJSON(), incoming.summary?.toJSON()) &&
+            deepEqual(this.description?.toJSON(), incoming.description?.toJSON()) &&
+            deepEqual(this.shortName?.toJSON(), incoming.shortName?.toJSON())
     }
 
 }

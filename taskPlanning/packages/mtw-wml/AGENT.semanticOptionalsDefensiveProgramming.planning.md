@@ -85,7 +85,7 @@ Aligned phase names with [`standardize/AGENT.componentEquals.planning.md`](stand
 | `StandardForm.diff` / `isEmpty` alignment | not started |
 | Client: summary write path + sync | not started |
 | Verification / regression tests | not started |
-| Follow-on: **`StandardLiteral`** -> **`ReferenceList`** -> facet lists (**Decisions locked**) | in progress (**`StandardLiteral`** and **`ReferenceList`** done in component-equals slices; next: facet lists. Generated facet lists already expose order-independent **`equals`** in [`facetListFactory.ts`](../../../packages/mtw-wml/ts/standardize/keys/facets/facetListFactory.ts)). |
+| Follow-on: **`StandardLiteral`** -> **`ReferenceList`** -> facet lists (**Decisions locked**) | done (**`StandardLiteral`**, **`ReferenceList`**, and facet-list slice complete in component-equals plan; facet lists now include semantic **`isEmpty`** for empty/ref=0-only lists and call-site migration to list **`equals`** in component overrides). |
 | Durable doc updates (if any) + retire or archive this plan | not started |
 
 ## Recommended order
@@ -99,7 +99,7 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as y
 - [ ] While touching RenderTree optional fields, adopt **`defaultedEquals`** where the **optional content** contract clearly applies; flag unclear sites for quick review (per **Decisions locked** process).
 - [ ] **Client:** align [`WorkbenchAssetEditForm`](../../../charcoal-client/src/components/Workbench/WorkbenchAssetEditForm.tsx) (and similar) so vacuous editor output maps to **`_summary: undefined`** (preferred canonical per **Decisions locked**); replace **`toJSON()`** reference sync with **`StandardRender.equals`** / **`defaultedEquals`** after the component-equals sub-task exposes them (**Decisions locked**).
 - [ ] **Verification:** run `packages/mtw-wml` tests and targeted `charcoal-client` tests; grep for `Boolean(this._summary)` / `_summary ?` diff branches to ensure coverage.
-- [ ] **Follow-on (after RenderTree track):** **`StandardLiteral`** [X], then **`ReferenceList`** [X], then facet lists [ ] (**Decisions locked**).
+- [X] **Follow-on (after RenderTree track):** **`StandardLiteral`** [X], then **`ReferenceList`** [X], then facet lists [X] (**Decisions locked**).
 - [ ] Move any **lasting** conventions into [`packages/mtw-wml/ts/standardize/AGENT.md`](../../../packages/mtw-wml/ts/standardize/AGENT.md) or render AGENT doc; then archive or delete this plan per [`taskPlanning/AGENT.md`](../../AGENT.md).
 
 ## Verification

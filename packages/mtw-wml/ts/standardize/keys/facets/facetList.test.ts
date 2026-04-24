@@ -260,6 +260,27 @@ describe('Concrete FacetList Classes', () => {
     });
 
     describe('Basic Accessors and Utilities', () => {
+        it('should report isEmpty true for empty list', () => {
+            const list = new PositionFacetList([])
+            expect(list.isEmpty()).toBe(true)
+        })
+
+        it('should report isEmpty true for ref=0-only list', () => {
+            const list = new PositionFacetList([
+                createPositionFacet('room1', 10, 20, 0),
+                createPositionFacet('room2', 30, 40, 0)
+            ])
+            expect(list.isEmpty()).toBe(true)
+        })
+
+        it('should report isEmpty false when any facet has non-zero ref', () => {
+            const list = new PositionFacetList([
+                createPositionFacet('room1', 10, 20, 0),
+                createPositionFacet('room2', 30, 40, 1)
+            ])
+            expect(list.isEmpty()).toBe(false)
+        })
+
         it('should return items array', () => {
             const facet1 = createPositionFacet('room1', 10, 20);
             const facet2 = createPositionFacet('room2', 30, 40);
@@ -311,6 +332,26 @@ describe('Concrete FacetList Classes', () => {
                 createPositionFacetData('room2', 30, 40)
             ]);
             
+            expect(list1.equals(list2)).toBe(false);
+        });
+
+        it('should return false for same reference identity with different payload', () => {
+            const list1 = new PositionFacetList([
+                createPositionFacetData('room1', 10, 20)
+            ]);
+            const list2 = new PositionFacetList([
+                createPositionFacetData('room1', 99, 100)
+            ]);
+            expect(list1.equals(list2)).toBe(false);
+        });
+
+        it('should return false for same reference identity with different ref', () => {
+            const list1 = new PositionFacetList([
+                createPositionFacet('room1', 10, 20, 1)
+            ]);
+            const list2 = new PositionFacetList([
+                createPositionFacet('room1', 10, 20, 2)
+            ]);
             expect(list1.equals(list2)).toBe(false);
         });
 

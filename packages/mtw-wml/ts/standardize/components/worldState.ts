@@ -412,6 +412,8 @@ export class StandardLens extends componentClassFactory(StandardLensPayload, 'St
         if (!(incoming instanceof StandardLens)) {
             return false
         }
-        return deepEqual(this.toJSON(), incoming.toJSON())
+        return this.marks.equals(incoming.marks) &&
+            deepEqual(this.shortName?.toJSON(), incoming.shortName?.toJSON()) &&
+            deepEqual(this.description?.toJSON(), incoming.description?.toJSON())
     }
 }

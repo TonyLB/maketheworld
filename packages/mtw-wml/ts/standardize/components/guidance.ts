@@ -238,7 +238,9 @@ export class StandardGuidance extends componentClassFactory(StandardGuidancePayl
         if (!(incoming instanceof StandardGuidance)) {
             return false
         }
-        return deepEqual(this.toJSON(), incoming.toJSON())
+        return this.marks.equals(incoming.marks) &&
+            deepEqual(this.instructions?.toJSON(), incoming.instructions?.toJSON()) &&
+            deepEqual(this.shortName?.toJSON(), incoming.shortName?.toJSON())
     }
 }
 

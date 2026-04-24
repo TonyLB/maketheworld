@@ -18,6 +18,7 @@ export interface FacetListItem {
     diff(incoming: this | undefined): this | undefined;
     invert(): this;
     equals(other: this): boolean;
+    readonly ref: number;
     // Payload type is specific to each facet list (string, {x,y}, string|undefined) - use any in interface
     toJSON(): StandardFacetData<any>;
     toFormat(format: ReferenceFormat): this;
@@ -144,6 +145,10 @@ export const facetListClassFactory = <
 
         get length(): number {
             return this._items.length;
+        }
+
+        isEmpty(): boolean {
+            return this._items.length === 0 || this._items.every((item) => item.ref === 0);
         }
 
         equals(other: GeneratedFacetListClass): boolean {

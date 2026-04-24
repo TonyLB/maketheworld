@@ -193,7 +193,8 @@ export class StandardSituation extends componentClassFactory(StandardSituationPa
         if (!(incoming instanceof StandardSituation)) {
             return false
         }
-        return deepEqual(this.toJSON(), incoming.toJSON())
+        return this.marks.equals(incoming.marks) &&
+            deepEqual(this.shortName?.toJSON(), incoming.shortName?.toJSON())
     }
 }
 

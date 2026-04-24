@@ -19,6 +19,7 @@ import { StandardReference, LookupMappings } from "../reference";
 import { StandardKey } from "../key";
 import { treeFromWML, isSchemaTreeNode } from "../../../schema";
 import { StandardComponent } from "../../components/baseClasses";
+import { deepEqual } from "../../../lib/objects";
 
 export const facetClassFactory = <D, PayloadClass extends { renderFacet: (...args: any[]) => any, fromSchema: (...args: any[]) => any, clone: () => any, toJSON: () => any, merge: (other: any) => any, diff: (other: any) => any, invert: () => any }>(
     PayloadClass: new (...args: any[]) => PayloadClass,
@@ -198,8 +199,8 @@ export const facetClassFactory = <D, PayloadClass extends { renderFacet: (...arg
             if (this._reference.ref !== other._reference.ref) {
                 return false;
             }
-            // Delegate payload comparison to payload.toJSON() - handles all cases including Replace
-            return JSON.stringify(this.payload.toJSON()) === JSON.stringify(other.payload.toJSON());
+            // Delegate payload comparison to semantic payload JSON, including Replace/Remove payloads.
+            return deepEqual(this.payload.toJSON(), other.payload.toJSON());
         }
 
         sameKey(other: GeneratedFacetClass): boolean {
