@@ -38,14 +38,22 @@ export type BackupWMLAPIMessage = {
     to: string;
 }
 
+/** Operator/bootstrap path: promote asset to Canon via internal coordination (not a product client API). */
+export type PromoteToCanonAPIMessage = {
+    message: 'promoteToCanon';
+    AssetId: EphemeraAssetId;
+}
+
 export type WMLAPIMessage = { RequestId?: string; connectionId?: string } & (
     ApplyEditAPIMessage |
     MoveAssetAPIMessage |
     PurgeAssetAPIMessage |
-    BackupWMLAPIMessage
+    BackupWMLAPIMessage |
+    PromoteToCanonAPIMessage
 )
 
 export const isApplyEditAPIMessage = (message: WMLAPIMessage): message is ApplyEditAPIMessage & { RequestId?: string; connectionId?: string } => (message.message === 'applyEdit')
 export const isMoveAssetAPIMessage = (message: WMLAPIMessage): message is MoveAssetAPIMessage & { RequestId?: string; connectionId?: string } => (message.message === 'moveAsset')
 export const isPurgeAssetAPIMessage = (message: WMLAPIMessage): message is PurgeAssetAPIMessage & { RequestId?: string; connectionId?: string } => (message.message === 'purgeAsset')
 export const isBackupWMLAPIMessage = (message: WMLAPIMessage): message is BackupWMLAPIMessage & { RequestId?: string; connectionId?: string } => (message.message === 'backupWML')
+export const isPromoteToCanonAPIMessage = (message: WMLAPIMessage): message is PromoteToCanonAPIMessage & { RequestId?: string; connectionId?: string } => (message.message === 'promoteToCanon')

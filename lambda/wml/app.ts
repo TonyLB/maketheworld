@@ -4,6 +4,9 @@ import { S3Client } from "@aws-sdk/client-s3";
 import messageBus from "./messageBus";
 import { extractReturnValue } from "./returnValue/index";
 import { sendApplyEdit, sendMoveAsset, sendPurgeAsset } from './dataSource/subscribedEvents';
+import { runPromoteToCanonOnBus } from './promoteToCanon';
+import { AssetWorkspace } from './s3Storage/AssetWorkspace';
+import type { Zone } from '@tonylb/mtw-interfaces/ts/baseClasses';
 import { sendInitializeSubscription } from './dataSource/initSubscription';
 import { fromEventBridgeFormat } from '@tonylb/mtw-lambda-patterns/ts/dataSource/formatTransform';
 import { coreFormatToStreamingEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource';
@@ -29,7 +32,7 @@ const isWMLAPIMessage = (msg: unknown): msg is WMLAPIMessage => {
            typeof msg === 'object' && 
            'message' in msg && 
            typeof (msg as any).message === 'string' &&
-           ['backupWML', 'applyEdit', 'moveAsset', 'purgeAsset'].includes((msg as any).message)
+           ['backupWML', 'applyEdit', 'moveAsset', 'purgeAsset', 'promoteToCanon'].includes((msg as any).message)
 }
 
 export const handler = async (event: any, context: any) => {
@@ -147,6 +150,23 @@ export const handler = async (event: any, context: any) => {
             }
             sendPurgeAsset(messageBus, request.AssetId, content)
             await messageBus.flush()
+            return await extractReturnValue(messageBus)
+        }
+        case 'promoteToCanon': {
+            if (request.RequestId) {
+                internalCache.Connection.set({ key: 'RequestId', value: request.RequestId })
+            }
+            const workspace = await AssetWorkspace.fromUUID(request.AssetId, { preferDynamo: false, allowS3Fallback: true })
+            if (!workspace) {
+                return {
+                    statusCode: 404,
+                    body: JSON.stringify({
+                        error: `Asset not found: ${request.AssetId}`,
+                        RequestId: request.RequestId,
+                    }),
+                }
+            }
+            await runPromoteToCanonOnBus(messageBus, request.AssetId, workspace.zone as Zone)
             return await extractReturnValue(messageBus)
         }
     }

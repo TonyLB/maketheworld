@@ -106,6 +106,25 @@ export function sendMoveAsset(bus: Bus, streamKey: string, content: MoveAssetReq
     })
 }
 
+export function sendCanonizeAsset(bus: Bus, streamKey: string, content: CoordinationCanonizeEvent): void {
+    const timestamp = Date.now()
+    const header: StreamingEventHeader = {
+        dataSourceKey: 'api.wml',
+        streamKey,
+        timestamp,
+        type: 'Canonize Asset',
+    }
+    const envelope = createInternalOriginEnvelope(header, content, apiWmlSerializer)
+    bus.send({
+        type: 'StreamingEvent',
+        dataSourceKey: 'api.wml',
+        streamKey,
+        header: envelope.header,
+        getContent: envelope.getContent,
+        timestamp,
+    })
+}
+
 export function sendPurgeAsset(bus: Bus, streamKey: string, content: PurgeAssetRequest): void {
     const timestamp = Date.now()
     const header: StreamingEventHeader = {
