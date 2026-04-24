@@ -1,7 +1,7 @@
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
-import type { EphemeraCacheRenderedContent } from '../renderCache/baseClasses'
-import { roomRenderWmlFromCacheRecord } from './roomRenderWmlFromCacheRecord'
+import type { EphemeraCacheDynamoItem, EphemeraCacheRenderedContent } from '../renderCache/baseClasses'
+import { roomRenderChannelWmlForRoomId, roomRenderWmlFromCacheRecord } from './roomRenderWmlFromCacheRecord'
 
 describe('roomRenderWmlFromCacheRecord', () => {
     const roomId = 'ROOM#audit' as const
@@ -31,5 +31,31 @@ describe('roomRenderWmlFromCacheRecord', () => {
         const room = parsed.byUniversalId[roomId]
         expect(room).toBeInstanceOf(StandardRoom)
         expect((room as StandardRoom).render).toBeUndefined()
+    })
+})
+
+describe('roomRenderChannelWmlForRoomId', () => {
+    const roomId = 'ROOM#cachePick' as const
+
+    it('uses first cache row renderedContent', () => {
+        const rows: EphemeraCacheDynamoItem[] = [
+            {
+                EphemeraId: roomId,
+                DataCategory: 'CACHE#aa',
+                markState: { markValue: [] },
+                renderedContent: { displayName: ['Hall'], description: [] },
+                provenance: { type: 'authored' },
+                perspectiveId: 'p0',
+                perspectiveMatcher: { assetStack: [] } as any,
+            },
+        ]
+        const wml = roomRenderChannelWmlForRoomId(roomId, rows)
+        expect(wml).toMatch(/Hall/)
+    })
+
+    it('matches empty-list behavior when there are no cache rows', () => {
+        const wmlEmpty = roomRenderChannelWmlForRoomId(roomId, [])
+        const wmlDirect = roomRenderWmlFromCacheRecord(roomId, { description: [] })
+        expect(wmlEmpty).toEqual(wmlDirect)
     })
 })

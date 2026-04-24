@@ -9,6 +9,7 @@ import { schemaToWML } from "@tonylb/mtw-wml/ts/schema"
 import { sendCharacterPerceptionRequested } from "../dataSource/perception/subscribedEvents"
 import { roomHeaderGeneratingPlaceholderWml } from "../dataSource/perception/roomHeaderPlaceholderWml"
 import { kickRoomHeaderBroadcastForRoom } from "../dataSource/perception/kickRoomHeaderBroadcast"
+import { roomRenderChannelWmlForRoomId } from "../dataSource/perception/roomRenderWmlFromCacheRecord"
 
 /**
  * When false, Perception requests for MAP# ids do not emit EphemeraUpdate MapUpdate.
@@ -54,13 +55,14 @@ export const perceptionMessage = async ({
             if (isEphemeraRoomId(payload.ephemeraId)) {
                 const internalCache = getCache()
                 const characterList = payload.characterId ? [payload.characterId] : (await internalCache.RoomCharacterList.get(payload.ephemeraId)).map(({ EphemeraId }) => (EphemeraId))
-                await Promise.all(characterList.map(async (characterId) => {
-                    const roomDescribe = await internalCache.ComponentRender.get(characterId, payload.ephemeraId, { header: payload.header })
+                const cacheRecords = await internalCache.RenderCache.get(payload.ephemeraId)
+                const wmlContent = roomRenderChannelWmlForRoomId(payload.ephemeraId, cacheRecords)
+                for (const characterId of characterList) {
                     messageBus.send({
                         type: 'PublishMessage',
                         targets: [characterId],
                         displayProtocol: 'PerceptionMessage',
-                        wmlContent: schemaToWML([roomDescribe.schema]),
+                        wmlContent,
                         metaData: {
                             componentUUID: payload.ephemeraId,
                             displayMode: payload.header ? 'header' : 'full',
@@ -68,7 +70,7 @@ export const perceptionMessage = async ({
                         },
                         messageGroupId: payload.messageGroupId
                     })
-                }))
+                }
             }
         }
         else if (isPerceptionComponentMessage(payload)) {
