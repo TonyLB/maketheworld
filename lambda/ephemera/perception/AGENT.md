@@ -156,7 +156,8 @@ Displays room descriptions to characters:
 
 **Behavior:**
 - **Character Targeting**: Sends to specific character or all characters in room
-- **Description Types**: Full room description or header-only based on `header` flag
+- **Description Types**: Full room description or header-only based on `header` flag (`displayMode` on the **`PublishMessage`**)
+- **Render body**: **`wmlContent`** is built from **`internalCache.RenderCache`** and [`roomRenderChannelWmlForRoomId`](../dataSource/perception/roomRenderWmlFromCacheRecord.ts) (cache-backed prose for **`roomChannel: 'render'`**), not **`ComponentRender.get`**
 - **Real-time Updates**: Provides immediate room information
 
 #### **Special Header Message Behavior**
@@ -213,7 +214,8 @@ Displays map information to characters:
 The perception system heavily leverages the internalCache for efficient data access:
 
 - **ComponentAssetMeta**: Retrieves component metadata across assets ([`../internalCache/componentAssetMeta.AGENT.md`](../internalCache/componentAssetMeta.AGENT.md))
-- **ComponentRender**: Generates rendered descriptions for components ([`../internalCache/componentRender.AGENT.md`](../internalCache/componentRender.AGENT.md))
+- **ComponentRender**: Generates rendered descriptions for non-room components and for **non-publish** room uses (e.g. generation context in **`executeAction`**); **room** **`PerceptionMessage`** on the render channel uses **RenderCache** + **`roomRenderChannelWmlForRoomId`**, not **`ComponentRender.get`** ([`../dataSource/perception/AGENT.md`](../dataSource/perception/AGENT.md) **Multi-channel**)
+- **RenderCache**: Request-scoped room cache rows for imperative room perception WML (see **`roomRenderChannelWmlForRoomId`**)
 - **CharacterMeta**: Gets character information and asset access
 - **RoomCharacterList**: Finds characters in specific rooms
 - **Global**: Accesses system-wide asset information

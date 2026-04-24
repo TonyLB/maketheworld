@@ -8,6 +8,8 @@ import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import messageBus from '../messageBus'
 import '../dataSource/perception'
 
+import type { EphemeraCacheDynamoItem } from '../dataSource/renderCache/baseClasses'
+import { roomRenderChannelWmlForRoomId } from '../dataSource/perception/roomRenderWmlFromCacheRecord'
 import perceptionMessage, { sendRoomGeneratingHeader } from '.'
 
 const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
@@ -81,6 +83,94 @@ describe('Perception message', () => {
             messageGroupId: undefined,
         })
         sendSpy.mockRestore()
+    })
+
+    describe('PerceptionRoomMessage', () => {
+        const roomId = 'ROOM#HALL' as const
+
+        const sampleCacheRow: EphemeraCacheDynamoItem = {
+            EphemeraId: roomId,
+            DataCategory: 'CACHE#x0',
+            markState: { markValue: [] },
+            renderedContent: {
+                displayName: ['Foyer'],
+                description: ['A bright entry.'],
+            },
+            provenance: { type: 'authored' },
+            perspectiveId: 'pid',
+            perspectiveMatcher: { assetStack: [] } as any,
+        }
+
+        it('builds wml from RenderCache first row (no ComponentRender get)', async () => {
+            const renderCacheGet = jest.fn().mockResolvedValue([sampleCacheRow])
+            const mockInternalCache = {
+                RenderCache: { get: renderCacheGet },
+                RoomCharacterList: { get: jest.fn() },
+                ComponentRender: { get: jest.fn() },
+            } as any
+
+            const sendSpy = jest.spyOn(messageBus, 'send')
+
+            await perceptionMessage({
+                payloads: [
+                    {
+                        type: 'Perception',
+                        characterId: 'CHARACTER#TESS',
+                        ephemeraId: roomId,
+                        header: true,
+                    },
+                ],
+                messageBus,
+                internalCacheOverride: mockInternalCache,
+            })
+            await messageBus.flush()
+
+            expect(mockInternalCache.ComponentRender.get).not.toHaveBeenCalled()
+            expect(renderCacheGet).toHaveBeenCalledWith(roomId)
+            const expectedWml = roomRenderChannelWmlForRoomId(roomId, [sampleCacheRow])
+            expect(sendSpy).toHaveBeenCalledWith({
+                type: 'PublishMessage',
+                targets: ['CHARACTER#TESS'],
+                displayProtocol: 'PerceptionMessage',
+                wmlContent: expectedWml,
+                metaData: {
+                    componentUUID: roomId,
+                    displayMode: 'header',
+                    roomChannel: 'render',
+                },
+                messageGroupId: undefined,
+            })
+            expect(expectedWml).not.toMatch(/<Exit\b/i)
+            sendSpy.mockRestore()
+        })
+
+        it('uses empty-cache prose when RenderCache has no rows', async () => {
+            const renderCacheGet = jest.fn().mockResolvedValue([])
+            const mockInternalCache = {
+                RenderCache: { get: renderCacheGet },
+                RoomCharacterList: { get: jest.fn() },
+                ComponentRender: { get: jest.fn() },
+            } as any
+            const sendSpy = jest.spyOn(messageBus, 'send')
+            const expectedWml = roomRenderChannelWmlForRoomId(roomId, [])
+
+            await perceptionMessage({
+                payloads: [
+                    { type: 'Perception', characterId: 'CHARACTER#TESS', ephemeraId: roomId },
+                ],
+                messageBus,
+                internalCacheOverride: mockInternalCache,
+            })
+            await messageBus.flush()
+
+            expect(sendSpy).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    wmlContent: expectedWml,
+                    metaData: expect.objectContaining({ displayMode: 'full' }),
+                })
+            )
+            sendSpy.mockRestore()
+        })
     })
 
     describe('sendRoomGeneratingHeader', () => {
