@@ -140,6 +140,7 @@ describe('AssetsDataSource', () => {
                 data: 'snapshot for test-stream',
                 timestamp: expect.any(Number),
                 createdAt: expect.any(Number),
+                replayAt: expect.any(Number),
                 expiresAt: expect.any(Number)
             })
         })
