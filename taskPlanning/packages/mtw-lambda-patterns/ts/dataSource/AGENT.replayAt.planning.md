@@ -1,6 +1,6 @@
 # replayAt refactor plan for DataSource snapshots
 
-Status: in progress. Next step: finalize contract shape for replayable snapshots and land framework-first scaffolding with compatibility aliases.
+Status: in progress. Next step: step 6) complete migration checks and durable docs cleanup.
 
 ## Scope and intent
 
@@ -28,11 +28,11 @@ For replayable sources that may serve a historical snapshot object while generat
 
 | Workstream | Status | Notes |
 | --- | --- | --- |
-| Contract design (`replayAt`) | In progress | Shape agreed conceptually; exact type layering pending |
-| Framework implementation | Not started | `initializeSubscription` and snapshot generation/store/load path |
-| WML adoption | In progress | `generateWmlSnapshotContent` now returns sidecar payload + `replayAt` sourced from `Meta::Snapshot.snapshotHeader.timestamp`; DataSource snapshot generation preserves generator-provided `replayAt` |
+| Contract design (`replayAt`) | Done | Contract and fallback precedence locked in framework and tests |
+| Framework implementation | Done | `replayAt`, `initializeSubscription` replay lower-bound, store/load paths |
+| WML adoption | Done | `generateWmlSnapshotContent` returns sidecar + `replayAt` from `Meta::Snapshot` |
 | Compatibility + migration | Not started | Alias and fallback behavior for existing snapshots |
-| Tests and diagnostics | Not started | Unit/integration updates and targeted instrumentation |
+| Tests and diagnostics | Done | Replay tests and subscribe diagnostics are in place with env-gated sampling and replay window metadata logs |
 | Follow-up documentation | Not started | Update durable docs, then retire this plan when complete |
 
 ## Recommended order
@@ -52,14 +52,14 @@ Use `[ ]` for pending items and `[X]` for completed items. If a step has nested 
   - [X] Update `lambda/wml/dataSource/snapshotContent.ts` to return authoritative replay watermark with sidecar payload
   - [X] Ensure watermark reflects represented snapshot state (not envelope generation time)
   - [X] Verify `createSnapshotFirst` and existing manifest fallback behavior still operate correctly
-- [ ] 4) Update tests
+- [X] 4) Update tests
   - [X] Add/adjust framework tests in `packages/mtw-lambda-patterns/ts/dataSource/index.test.ts`
   - [X] Add/adjust WML snapshot tests in `lambda/wml/dataSource/snapshotContent.test.ts`
-  - [ ] Add regression test: historical snapshot + replay emits complete current state after subscribe
-- [ ] 5) Add focused diagnostics for rollout confidence
-  - [ ] Log snapshot replay metadata at subscribe (`createdAt`, `replayAt`, stream key, replay event count)
-  - [ ] Log replay window bounds and latest replayed timestamp
-  - [ ] Keep logs scoped/sampled to avoid noisy production output
+  - [X] Add regression test: historical snapshot + replay emits complete current state after subscribe
+- [X] 5) Add focused diagnostics for rollout confidence
+  - [X] Log snapshot replay metadata at subscribe (`createdAt`, `replayAt`, stream key, replay event count)
+  - [X] Log replay window bounds and latest replayed timestamp
+  - [X] Keep logs scoped/sampled to avoid noisy production output
 - [ ] 6) Migration and cleanup
   - [ ] Confirm all replayable DataSources compile with compatibility defaults
   - [ ] Update durable docs in package-level `AGENT.md` files where semantics changed

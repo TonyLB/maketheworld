@@ -137,6 +137,16 @@ Deserialize data from the replay store for a specific stream and deliver it dire
 - **Direct Session Delivery**: Data goes straight to the requesting session
 - **Efficient Replay**: Only the specific subscriber gets the historical data they need
 
+#### Replay subscribe diagnostics (optional)
+Replayable DataSources can emit structured subscribe/replay diagnostics from `initializeSubscription` using:
+
+- `MTW_DATA_SOURCE_REPLAY_LOG_SAMPLE_RATE` (float in `[0,1]`)
+  - Missing, invalid, or `0`: no diagnostic logs
+  - `1`: log every subscribe/replay initialization
+  - `0 < rate < 1`: sample probabilistically per initialization
+
+When emitted, logs include fields such as `dataSourceKey`, `streamKey`, `sessionId`, `createdAt`, `replayAt`, `replayCursor`, `replayEventCount`, `replayWindowLower`, `replayWindowFirst`, and `replayWindowLatest`.
+
 ### **4. Event Subscription**
 Subscribe to incoming events from other data sources and process them into local state changes through the messageBus system.
 

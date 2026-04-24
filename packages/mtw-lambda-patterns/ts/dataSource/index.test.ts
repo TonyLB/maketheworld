@@ -1062,6 +1062,159 @@ describe('DataSource', () => {
             }))
         })
 
+        it('should not log replay diagnostics when sample rate is 0', async () => {
+            const previousSampleRate = process.env.MTW_DATA_SOURCE_REPLAY_LOG_SAMPLE_RATE
+            process.env.MTW_DATA_SOURCE_REPLAY_LOG_SAMPLE_RATE = '0'
+            const infoSpy = jest.spyOn(console, 'info').mockImplementation(() => {})
+            const sessionId = 'SESSION#test-session' as const
+            const streamKey = 'test-stream'
+
+            jest.spyOn(dataSource, 'getSnapshotExternal').mockResolvedValue({
+                id: 'test-id',
+                name: 'Test Snapshot',
+                value: 42,
+                createdAt: 100000000,
+                replayAt: 100002000,
+                expiresAt: 100005000
+            })
+            mockDynamo.query.mockResolvedValue([])
+
+            try {
+                await dataSource.initializeSubscription({ sessionId, streamKey })
+                expect(infoSpy).not.toHaveBeenCalled()
+            }
+            finally {
+                infoSpy.mockRestore()
+                if (previousSampleRate === undefined) {
+                    delete process.env.MTW_DATA_SOURCE_REPLAY_LOG_SAMPLE_RATE
+                } else {
+                    process.env.MTW_DATA_SOURCE_REPLAY_LOG_SAMPLE_RATE = previousSampleRate
+                }
+            }
+        })
+
+        it('should log replay diagnostics when sample rate is 1', async () => {
+            const previousSampleRate = process.env.MTW_DATA_SOURCE_REPLAY_LOG_SAMPLE_RATE
+            process.env.MTW_DATA_SOURCE_REPLAY_LOG_SAMPLE_RATE = '1'
+            const infoSpy = jest.spyOn(console, 'info').mockImplementation(() => {})
+            const sessionId = 'SESSION#test-session' as const
+            const streamKey = 'test-stream'
+
+            jest.spyOn(dataSource, 'getSnapshotExternal').mockResolvedValue({
+                id: 'test-id',
+                name: 'Test Snapshot',
+                value: 42,
+                createdAt: 100010000,
+                replayAt: 100000000,
+                expiresAt: 100015000
+            })
+            const primaryKey = `STREAM#mtw.testDataSource::${streamKey}`
+            mockDynamo.query.mockResolvedValue([
+                {
+                    AssetId: primaryKey,
+                    DataCategory: 'EVENT#100005000::event-1',
+                    eventType: 'TestUpdatePayload',
+                    update: { type: 'TestUpdatePayload', update: 'event-1' }
+                },
+                {
+                    AssetId: primaryKey,
+                    DataCategory: 'EVENT#100008000::event-2',
+                    eventType: 'TestUpdatePayload',
+                    update: { type: 'TestUpdatePayload', update: 'event-2' }
+                }
+            ])
+
+            try {
+                await dataSource.initializeSubscription({ sessionId, streamKey })
+                expect(infoSpy).toHaveBeenCalledTimes(1)
+                const [prefix, payload] = infoSpy.mock.calls[0]
+                expect(prefix).toBe('[DataSourceReplaySubscribe]')
+                expect(JSON.parse(payload)).toMatchObject({
+                    dataSourceKey: 'mtw.testDataSource',
+                    streamKey,
+                    sessionId,
+                    createdAt: 100010000,
+                    replayAt: 100000000,
+                    replayCursor: 100000000,
+                    replayEventCount: 2,
+                    replayWindowLower: 100000000,
+                    replayWindowFirst: 100005000,
+                    replayWindowLatest: 100008000
+                })
+            }
+            finally {
+                infoSpy.mockRestore()
+                if (previousSampleRate === undefined) {
+                    delete process.env.MTW_DATA_SOURCE_REPLAY_LOG_SAMPLE_RATE
+                } else {
+                    process.env.MTW_DATA_SOURCE_REPLAY_LOG_SAMPLE_RATE = previousSampleRate
+                }
+            }
+        })
+
+        it('replays gap events when replayAt is older than createdAt (historical snapshot watermark)', async () => {
+            const sessionId = 'SESSION#test-session' as const
+            const streamKey = 'test-stream'
+            const replayAt = 100000000
+            const createdAt = 100010000
+
+            const getSnapshotSpy = jest.spyOn(dataSource, 'getSnapshotExternal').mockResolvedValue({
+                id: 'test-id',
+                name: 'Test Snapshot',
+                value: 42,
+                createdAt,
+                replayAt,
+                expiresAt: 200000000
+            })
+
+            const primaryKey = `STREAM#mtw.testDataSource::${streamKey}`
+            mockDynamo.query.mockImplementation((args: { ExpressionAttributeValues?: { ':timestampPrefix'?: string } }) => {
+                const prefix = args.ExpressionAttributeValues?.[':timestampPrefix']
+                if (prefix === `EVENT#${createdAt}`) {
+                    return Promise.resolve([])
+                }
+                if (prefix === `EVENT#${replayAt}`) {
+                    return Promise.resolve([
+                        {
+                            AssetId: primaryKey,
+                            DataCategory: 'EVENT#100005000::gap-1',
+                            eventType: 'TestUpdatePayload',
+                            update: { type: 'TestUpdatePayload', update: 'gap-1' }
+                        },
+                        {
+                            AssetId: primaryKey,
+                            DataCategory: 'EVENT#100008000::gap-2',
+                            eventType: 'TestUpdatePayload',
+                            update: { type: 'TestUpdatePayload', update: 'gap-2' }
+                        }
+                    ])
+                }
+                return Promise.resolve([])
+            })
+
+            await dataSource.initializeSubscription({ sessionId, streamKey })
+
+            expect(mockDynamo.query).toHaveBeenCalledWith(expect.objectContaining({
+                ExpressionAttributeValues: expect.objectContaining({
+                    ':timestampPrefix': `EVENT#${replayAt}`
+                })
+            }))
+            expect(mockSns.send).toHaveBeenCalledTimes(3)
+
+            const event1 = JSON.parse(mockSns.send.mock.calls[1][0].Message)
+            const event2 = JSON.parse(mockSns.send.mock.calls[2][0].Message)
+            expect(event1).toMatchObject({
+                messageType: 'StreamEvent',
+                update: { type: 'TestUpdatePayload', update: 'gap-1' }
+            })
+            expect(event2).toMatchObject({
+                messageType: 'StreamEvent',
+                update: { type: 'TestUpdatePayload', update: 'gap-2' }
+            })
+
+            getSnapshotSpy.mockRestore()
+        })
+
         it('should deliver snapshot and events via SNS', async () => {
             const sessionId = 'SESSION#test-session' as const
             const streamKey = 'test-stream'

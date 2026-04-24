@@ -23,6 +23,27 @@ export type SnapshotType<SnapshotPayload extends SerializableObject> = SnapshotP
 export const resolveReplayCursorTimestamp = (snapshot: Pick<SnapshotMetadata, 'createdAt' | 'replayAt'>): number =>
     snapshot.replayAt ?? snapshot.createdAt
 
+const REPLAY_LOG_SAMPLE_RATE_ENV = 'MTW_DATA_SOURCE_REPLAY_LOG_SAMPLE_RATE'
+
+const shouldEmitReplaySubscribeDiagnostics = (): boolean => {
+    const rawSampleRate = process.env[REPLAY_LOG_SAMPLE_RATE_ENV]
+    if (!rawSampleRate) {
+        return false
+    }
+    const parsedSampleRate = Number(rawSampleRate)
+    if (!Number.isFinite(parsedSampleRate)) {
+        return false
+    }
+    const boundedSampleRate = Math.max(0, Math.min(1, parsedSampleRate))
+    if (boundedSampleRate <= 0) {
+        return false
+    }
+    if (boundedSampleRate >= 1) {
+        return true
+    }
+    return Math.random() < boundedSampleRate
+}
+
 const withSnapshotReplayMetadata = <SnapshotPayload extends SerializableObject>(
     snapshot: SnapshotType<SnapshotPayload>,
     createdAt: number
@@ -505,7 +526,24 @@ export class DataSource<
         }
 
         const externalSnapshot = await this.getSnapshotExternal(streamKey)
-        const recentEvents = await this.getRecentEvents(streamKey, resolveReplayCursorTimestamp(externalSnapshot))
+        const replayCursor = resolveReplayCursorTimestamp(externalSnapshot)
+        const recentEvents = await this.getRecentEvents(streamKey, replayCursor)
+        if (shouldEmitReplaySubscribeDiagnostics()) {
+            const replayWindowFirst = recentEvents.length > 0 ? recentEvents[0].timestamp : null
+            const replayWindowLatest = recentEvents.length > 0 ? recentEvents[recentEvents.length - 1].timestamp : null
+            console.info('[DataSourceReplaySubscribe]', JSON.stringify({
+                dataSourceKey: this.dataSourceKey,
+                streamKey,
+                sessionId,
+                createdAt: externalSnapshot.createdAt,
+                replayAt: externalSnapshot.replayAt ?? null,
+                replayCursor,
+                replayEventCount: recentEvents.length,
+                replayWindowLower: replayCursor,
+                replayWindowFirst,
+                replayWindowLatest
+            }))
+        }
         await this.deliverReplayData({ sessionId, streamKey, snapshot: externalSnapshot, events: recentEvents })
     }
 
