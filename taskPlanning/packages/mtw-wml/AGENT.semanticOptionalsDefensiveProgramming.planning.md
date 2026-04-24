@@ -1,6 +1,6 @@
 # Semantic optionals: defensive programming (RenderTree and beyond)
 
-Status: in progress (next: final verification + durable doc wrap-up; client summary write path/sync now uses semantic equality and vacuous-summary canonicalization in Workbench, and **`defaultedEquals`**, **`StandardRender.equals`**, and **`StandardForm.equals`** are done in [`standardize/AGENT.componentEquals.planning.md`](standardize/AGENT.componentEquals.planning.md)).
+Status: in progress (next: durable doc wrap-up; targeted verification now includes passing local-key rename parity regressions in both `charcoal-client` reducer tests and `packages/mtw-wml` `ts/standardize/index.test.ts`, while client summary write path/sync uses semantic equality and vacuous-summary canonicalization in Workbench, and **`defaultedEquals`**, **`StandardRender.equals`**, and **`StandardForm.equals`** are done in [`standardize/AGENT.componentEquals.planning.md`](standardize/AGENT.componentEquals.planning.md)).
 
 See [`taskPlanning/AGENT.md`](../../AGENT.md) for what belongs in a task plan versus durable package docs, checkbox conventions, and when to retire this file.
 
@@ -84,7 +84,7 @@ Aligned phase names with [`standardize/AGENT.componentEquals.planning.md`](stand
 | `defaultedEquals` helper (+ tests) | not started |
 | `StandardForm.diff` / `isEmpty` alignment | done (`StandardForm.isEmpty` now uses semantic `_summary` emptiness; `StandardForm.diff` compacts vacuous `_summary`/`_shortName` outcomes to `undefined`, with targeted coverage in `ts/standardize/index.test.ts`) |
 | Client: summary write path + sync | done (`WorkbenchAssetEditForm` now compares summary sync with `defaultedEquals` and canonicalizes vacuous editor output to `_summary: undefined`; similar semantic RenderTree updates landed in `ExampleEditor`, `LensDetail`, and `MarkEditor`.) |
-| Verification / regression tests | in progress (`packages/mtw-wml` targeted `ts/standardize/index.test.ts` run covers `StandardForm.equals` parity/fallback cases; client-targeted reducers tests now cover vacuous vs non-empty asset summary update behavior.) |
+| Verification / regression tests | in progress (`packages/mtw-wml` full `ts/standardize/index.test.ts` now passes with key-only rename regression coverage; targeted `charcoal-client/src/slices/personalAssets/reducers.test.ts` rename tests pass: exit-target, map-reference, and link-target rename flows.) |
 | Follow-on: **`StandardLiteral`** -> **`ReferenceList`** -> facet lists (**Decisions locked**) | done (**`StandardLiteral`**, **`ReferenceList`**, and facet-list slice complete in component-equals plan; facet lists now include semantic **`isEmpty`** for empty/ref=0-only lists and call-site migration to list **`equals`** in component overrides). |
 | Durable doc updates (if any) + retire or archive this plan | not started |
 

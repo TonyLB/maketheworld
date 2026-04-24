@@ -3103,6 +3103,93 @@ describe('StandardForm', () => {
                     </Asset>
                 `))
             })
+
+            it('should keep key-only room rename diff observable for exit retarget flow', () => {
+                const base = new StandardForm(`
+                    <Asset uuid=(testAsset)>
+                        <Room uuid=(Room1)>
+                            <Situation uuid=(DEFAULT)>
+                                <DisplayName>Test Room</DisplayName>
+                                <Description>Test Description</Description>
+                            </Situation>
+                            <Exit to=(ROOM#Room2)>out</Exit>
+                        </Room>
+                        <Room uuid=(Room2)>
+                            <Situation uuid=(DEFAULT)><DisplayName>Garden</DisplayName></Situation>
+                            <Exit to=(ROOM#Room1)>text</Exit>
+                        </Room>
+                    </Asset>
+                `)
+                const incoming = new StandardForm(`
+                    <Asset uuid=(testAsset)>
+                        <Room uuid=(Room1)>
+                            <Situation uuid=(DEFAULT)>
+                                <DisplayName>Test Room</DisplayName>
+                                <Description>Test Description</Description>
+                            </Situation>
+                            <Exit to=(garden)>out</Exit>
+                        </Room>
+                        <Room uuid=(Room2) key=(garden)>
+                            <Situation uuid=(DEFAULT)><DisplayName>Garden</DisplayName></Situation>
+                            <Exit to=(ROOM#Room1)>text</Exit>
+                        </Room>
+                    </Asset>
+                `)
+                const diff = base.diff(incoming)
+                expect(diff.isEmpty()).toBe(false)
+                expect(schemaToWML([base.merge(diff).schema])).toEqual(schemaToWML([incoming.schema]))
+            })
+
+            it('should keep key-only room rename diff observable for map reference retarget flow', () => {
+                const base = new StandardForm(`
+                    <Asset uuid=(testAsset)>
+                        <Room uuid=(Room2)>
+                            <Situation uuid=(DEFAULT)><DisplayName>Garden</DisplayName></Situation>
+                        </Room>
+                        <Map uuid=(testMap)><Room uuid=(Room2)><Position {0, 0} /></Room></Map>
+                    </Asset>
+                `)
+                const incoming = new StandardForm(`
+                    <Asset uuid=(testAsset)>
+                        <Room uuid=(Room2) key=(garden)>
+                            <Situation uuid=(DEFAULT)><DisplayName>Garden</DisplayName></Situation>
+                        </Room>
+                        <Map uuid=(testMap)><Room key=(garden)><Position {0, 0} /></Room></Map>
+                    </Asset>
+                `)
+                const diff = base.diff(incoming)
+                expect(diff.isEmpty()).toBe(false)
+                expect(diff._lookup('ROOM#Room2')?.key).toBe('garden')
+            })
+
+            it('should keep key-only feature rename diff observable for link retarget flow', () => {
+                const base = new StandardForm(`
+                    <Asset uuid=(testAsset)>
+                        <Feature uuid=(Feature1) key=(Feature1)>
+                            <Example uuid=(base)>
+                                <DisplayName>Test Feature</DisplayName>
+                                <Description><Link to=(Feature1)>Link</Link></Description>
+                            </Example>
+                        </Feature>
+                    </Asset>
+                `)
+                const incoming = new StandardForm(`
+                    <Asset uuid=(testAsset)>
+                        <Feature uuid=(Feature1) key=(clockTower)>
+                            <Example uuid=(base)>
+                                <DisplayName>Test Feature</DisplayName>
+                                <Description><Link to=(clockTower)>Link</Link></Description>
+                            </Example>
+                        </Feature>
+                    </Asset>
+                `)
+                const diff = base.diff(incoming)
+                expect(diff.isEmpty()).toBe(false)
+                const featureDiff = diff._lookup('FEATURE#Feature1')
+                expect(featureDiff).toBeDefined()
+                expect(featureDiff?.key).toBe('Feature1')
+                expect(schemaToWML([diff.schema])).toContain('<Replace><Key>Feature1</Key></Replace><With><Key>clockTower</Key></With>')
+            })
         })
 
     })

@@ -302,7 +302,13 @@ export class StandardForm {
      * Imports and empty metadata do not count as content.
      */
     isEmpty(): boolean {
-        const hasComponents = this._components.some((component) => !component.isEmpty())
+        const hasComponents = this._components.some((component) => {
+            if (!component.isEmpty()) {
+                return true
+            }
+            // Key/Parent-only diffs are meaningful even when payload is empty.
+            return Boolean(component.key || component.explicitParent)
+        })
         const hasShortName = Boolean(this._shortName && !this._shortName.isEmpty())
         const hasSummary = Boolean(this._summary && !this._summary.isEmpty())
         const hasTopLevel = Boolean(this._topLevel && !this._topLevel.isEmpty())

@@ -1,6 +1,6 @@
 # Component and form equality (`equals` / `isEmpty` foundations)
 
-Status: in progress (next: close local-key rename diff gap from `charcoal-client` reducer regressions, then durable docs; **`StandardForm.equals(incoming, options?)`** is now shipped with default full semantics and optional **`optimizeByUniversalKey`** fallback-to-full behavior).
+Status: in progress (next: durable docs closeout; local-key rename diff parity is restored and reducer regressions now pass without expectation downgrades; **`StandardForm.equals(incoming, options?)`** is now shipped with default full semantics and optional **`optimizeByUniversalKey`** fallback-to-full behavior).
 
 See [`taskPlanning/AGENT.md`](../../../AGENT.md) for what belongs in a task plan versus durable package docs, checkbox conventions, and when to retire this file.
 
@@ -107,7 +107,7 @@ Aligned with [`../AGENT.semanticOptionalsDefensiveProgramming.planning.md`](../A
 | **`StandardForm.isEmpty`** semantics (parent plan) **before** **`StandardForm.equals`** | done (`StandardForm.isEmpty` now treats semantic-empty `_summary` as vacuous; parent slice also compacts vacuous `_summary`/`_shortName` in `StandardForm.diff`) |
 | **`StandardForm.equals`** (+ tests) | done (`StandardForm.equals(incoming, options?)` shipped with `StandardFormEqualsOptions`, default full semantic comparison, optional `optimizeByUniversalKey`, and guarded fallback to full comparison when universal-key preconditions are not met; targeted `index.test.ts` coverage added) |
 | Wire parent plan: client sync / **`defaultedEquals`** consumers | done (`WorkbenchAssetEditForm` summary sync now uses `defaultedEquals` and vacuous-summary canonicalization; similar semantic `StandardRender` update guards landed in `ExampleEditor`, `LensDetail`, and `MarkEditor`.) |
-| Local-key rename diff parity (`charcoal-client` full suite regressions) | not started (`personalAssets/reducers.test.ts` rename scenarios currently show empty edits when only local key changes, indicating key-change deltas are being normalized away before diff/propagation.) |
+| Local-key rename diff parity (`charcoal-client` full suite regressions) | done (`StandardForm.isEmpty` now treats key/explicitParent-only component deltas as meaningful so `updateStandard` no longer drops key-only rename diffs; targeted `reducers.test.ts` rename cases and `packages/mtw-wml/ts/standardize/index.test.ts` key-only rename regressions pass.) |
 | Durable doc note in [`packages/mtw-wml/ts/standardize/AGENT.md`](../../../../packages/mtw-wml/ts/standardize/AGENT.md) + retire this plan when done | not started |
 
 ## Recommended order
@@ -124,12 +124,12 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as y
   - [X] Align **`StandardForm.isEmpty()`** with semantic **`_summary`** (**parent plan**), including vacuous metadata diff compaction for `_summary`/`_shortName`.
 - [X] Add **`packages/mtw-wml`** unit tests for **`StandardRender.equals`** (landed), **`StandardForm.equals`**, **`StandardLiteral`** (**`isEmpty`** / **`equals`**), **`ReferenceList`**, representative **facet list** types, and representative **`StandardComponent`** **`equals`** overrides. (`ts/standardize/index.test.ts` now includes `StandardForm.equals` cases for identical forms, unrelated component deltas, vacuous optional metadata equivalence, metadata-order permutations, optimization parity, and guarded optimization fallback.)
 - [X] Implement Workbench summary sync on the parent plan ([`WorkbenchAssetEditForm`](../../../../charcoal-client/src/components/Workbench/WorkbenchAssetEditForm.tsx), canonical **`_summary`**) using **`StandardRender.equals`** / **`defaultedEquals`** (see parent [**Open questions (Workbench summary sync)**](../AGENT.semanticOptionalsDefensiveProgramming.planning.md#open-questions-workbench-summary-sync) and **Decisions locked** in both plans; parent **Recommended order** tracks the same work).
-- [ ] Restore local-key rename diff/non-equality parity for `StandardForm.diff` and component matching before doc closeout.
-  - [ ] Reproduce and pin failures from [`charcoal-client/src/slices/personalAssets/reducers.test.ts`](../../../../charcoal-client/src/slices/personalAssets/reducers.test.ts) (`should rename exit targets on rename of room`, `should rename map references on rename of room`, `should rename link targets on rename of feature`) as the acceptance baseline for this gap.
-  - [ ] Audit key-normalization in [`packages/mtw-wml/ts/standardize/index.ts`](../../../../packages/mtw-wml/ts/standardize/index.ts) `diff()` (`mergedForKeys`, `allKeys`, `_lookup(...).withMapping(...).remapReferences('both')`) to ensure local key changes are not collapsed prior to component diff.
-  - [ ] Ensure key-only edits remain observable through component diff output (for both plain key rename and downstream reference rewrites), including paths where universal keys are shared and only local keys change.
-  - [ ] Add/adjust `packages/mtw-wml` regression coverage in [`packages/mtw-wml/ts/standardize/index.test.ts`](../../../../packages/mtw-wml/ts/standardize/index.test.ts) for key-only rename deltas and verify no behavioral regression in existing `StandardForm.equals` semantics.
-  - [ ] Re-run targeted `charcoal-client` reducer tests plus package `index.test.ts`; keep this item open until rename tests pass without expectation downgrades.
+- [X] Restore local-key rename diff/non-equality parity for `StandardForm.diff` and component matching before doc closeout.
+  - [X] Reproduce and pin failures from [`charcoal-client/src/slices/personalAssets/reducers.test.ts`](../../../../charcoal-client/src/slices/personalAssets/reducers.test.ts) (`should rename exit targets on rename of room`, `should rename map references on rename of room`, `should rename link targets on rename of feature`) as the acceptance baseline for this gap.
+  - [X] Audit key-normalization in [`packages/mtw-wml/ts/standardize/index.ts`](../../../../packages/mtw-wml/ts/standardize/index.ts) `diff()` (`mergedForKeys`, `allKeys`, `_lookup(...).withMapping(...).remapReferences('both')`) to ensure local key changes are not collapsed prior to component diff.
+  - [X] Ensure key-only edits remain observable through component diff output (for both plain key rename and downstream reference rewrites), including paths where universal keys are shared and only local keys change. (`StandardForm.isEmpty` now flags key/parent-only component edits as non-vacuous.)
+  - [X] Add/adjust `packages/mtw-wml` regression coverage in [`packages/mtw-wml/ts/standardize/index.test.ts`](../../../../packages/mtw-wml/ts/standardize/index.test.ts) for key-only rename deltas and verify no behavioral regression in existing `StandardForm.equals` semantics.
+  - [X] Re-run targeted `charcoal-client` reducer tests plus package `index.test.ts`; rename tests now pass without expectation downgrades.
 - [ ] Copy **lasting** equality contracts into [`packages/mtw-wml/ts/standardize/AGENT.md`](../../../../packages/mtw-wml/ts/standardize/AGENT.md) if needed; archive or delete this plan per [`taskPlanning/AGENT.md`](../../../AGENT.md).
 
 ## Verification
