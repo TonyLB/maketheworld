@@ -1,5 +1,5 @@
 /**
- * Intent classification for parse Step A: **AwaitRoadRunner**, **AcmeOrder** (intent only), **Unimplemented** vs **Unknown**.
+ * Intent classification for parse Step A: **AwaitRoadRunner**, **AcmeOrder** (intent only), **LookRoom**, **Unimplemented** vs **Unknown**.
  */
 
 export function buildParseCommandIntentClassificationPrompt(command: string): string {
@@ -10,7 +10,7 @@ export function buildParseCommandIntentClassificationPrompt(command: string): st
 
 ## Decision order (mandatory)
 
-**Before** choosing Unimplemented or Unknown, evaluate **AwaitRoadRunner** and **AcmeOrder** as **same-tier** special intents.
+**Before** choosing Unimplemented or Unknown, evaluate **AwaitRoadRunner**, **AcmeOrder**, and **LookRoom** as **same-tier** special intents.
 
 ### A — AwaitRoadRunner
 
@@ -22,13 +22,19 @@ Choose **AcmeOrder** when the line is **primarily** about **ordering or buying g
 
 **Do not** list products, judge catalog validity, or segment line items — a **later step** parses the command and validates **tangible vs. abstract**, **catalog membership**, **size**, **affinities**, and **normalized titles**.
 
-### Tie-break when both A and B could apply
+### C — LookRoom
 
-Prefer **AcmeOrder** when **commerce / catalog / product** language is central (verbs like order, buy, mail, send for, plus product nouns). Prefer **AwaitRoadRunner** when **patience / timing / the chase** is central with **no** clear product order. If still ambiguous, prefer **AwaitRoadRunner**.
+Choose **LookRoom** when the line is **primarily** about **seeing, examining, or taking in the current room or immediate surroundings** (a full look at where you are now) — e.g. "examine the room", "look around", "what's here", "describe my surroundings", "survey the area" — and **not** a targeted look at a named object, exit, or character. **Do not** choose this when the line is only the single word **look** or **l** (the game handles that elsewhere).
 
-### After A / B
+### Tie-breaks when more than one of A, B, or C could apply
 
-If neither A nor B applies, choose **Unimplemented** vs **Unknown** as follows.
+- Prefer **AcmeOrder** when **commerce / catalog / ordering** language is central.
+- Prefer **AwaitRoadRunner** when **patience / timing / the chase** is central with **no** clear product order and **no** clear "see the current space" intent.
+- Prefer **LookRoom** when **perceiving the current space** (not ordering from Acme) is central and the line is **not** mainly biding for the Road Runner. If a line mixes catalog shopping with **look at** a product, that is still **AcmeOrder**, not **LookRoom**. Map clear OOC/meta or nonsense to **Unknown** (or **Unimplemented** only when there is a clear in-world intent we do not cover).
+
+### After A, B, and C
+
+If none of A, B, or C applies, choose **Unimplemented** vs **Unknown** as follows.
 
 ## Outcomes (choose exactly one)
 
@@ -36,9 +42,11 @@ If neither A nor B applies, choose **Unimplemented** vs **Unknown** as follows.
 
 2. **AcmeOrder** — As in section B. Respond with **only** \`type\` and \`confidence\`. **Do not** include \`orders\`, \`order\`, product names, or validation fields.
 
-3. **Unimplemented** — Clear **other** in-world intent we do not implement yet (not mainly A or B).
+3. **LookRoom** — As in section C. Respond with **only** \`type\` and \`confidence\`. No follow-up step runs for this intent in the Acme pipeline.
 
-4. **Unknown** — No sensible in-world intent (noise, OOC/meta, mash, empty).
+4. **Unimplemented** — Clear **other** in-world intent we do not implement yet (not mainly A, B, or C).
+
+5. **Unknown** — No sensible in-world intent (noise, OOC/meta, mash, empty).
 
 ## Rules
 
@@ -55,13 +63,17 @@ or
 
 or
 
+{ "type": "LookRoom", "confidence": <number> }
+
+or
+
 { "type": "Unimplemented", "confidence": <number> }
 
 or
 
 { "type": "Unknown", "confidence": <number> }
 
-The \`type\` string must be exactly \`AwaitRoadRunner\`, \`AcmeOrder\`, \`Unimplemented\`, or \`Unknown\` (case-sensitive).
+The \`type\` string must be exactly \`AwaitRoadRunner\`, \`AcmeOrder\`, \`LookRoom\`, \`Unimplemented\`, or \`Unknown\` (case-sensitive).
 
 ## Player input
 

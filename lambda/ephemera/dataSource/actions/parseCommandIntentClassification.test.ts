@@ -8,7 +8,7 @@ describe('interpretParseCommandIntentClassificationBody', () => {
             )
         ).toEqual({
             type: 'Error',
-            errorMessage: 'Model JSON must be a valid AwaitRoadRunner, AcmeOrder (confidence only), Unimplemented, or Unknown payload (see prompt)',
+            errorMessage: 'Model JSON must be a valid AwaitRoadRunner, AcmeOrder (confidence only), LookRoom, Unimplemented, or Unknown payload (see prompt)',
         })
     })
 
@@ -19,7 +19,7 @@ describe('interpretParseCommandIntentClassificationBody', () => {
             )
         ).toEqual({
             type: 'Error',
-            errorMessage: 'Model JSON must be a valid AwaitRoadRunner, AcmeOrder (confidence only), Unimplemented, or Unknown payload (see prompt)',
+            errorMessage: 'Model JSON must be a valid AwaitRoadRunner, AcmeOrder (confidence only), LookRoom, Unimplemented, or Unknown payload (see prompt)',
         })
     })
 })
