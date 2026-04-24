@@ -230,10 +230,12 @@ export class DataSource<
         }
         
         const content = await this.snapshotContentGenerator(streamKey)
+        const { replayAt: contentReplayAt, ...snapshotContent } =
+            content as SnapshotPayload & { replayAt?: number }
         return {
-            ...content,
+            ...(snapshotContent as SnapshotPayload),
             createdAt: now,
-            replayAt: now,
+            replayAt: contentReplayAt ?? now,
             expiresAt: now + 300000 // 5 minutes default expiration
         }
     }

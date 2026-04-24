@@ -30,7 +30,7 @@ For replayable sources that may serve a historical snapshot object while generat
 | --- | --- | --- |
 | Contract design (`replayAt`) | In progress | Shape agreed conceptually; exact type layering pending |
 | Framework implementation | Not started | `initializeSubscription` and snapshot generation/store/load path |
-| WML adoption | Not started | `generateWmlSnapshotContent` should provide replay watermark |
+| WML adoption | In progress | `generateWmlSnapshotContent` now returns sidecar payload + `replayAt` sourced from `Meta::Snapshot.snapshotHeader.timestamp`; DataSource snapshot generation preserves generator-provided `replayAt` |
 | Compatibility + migration | Not started | Alias and fallback behavior for existing snapshots |
 | Tests and diagnostics | Not started | Unit/integration updates and targeted instrumentation |
 | Follow-up documentation | Not started | Update durable docs, then retire this plan when complete |
@@ -48,13 +48,13 @@ Use `[ ]` for pending items and `[X]` for completed items. If a step has nested 
   - [X] Update replay query lower-bound in `initializeSubscription` to use replay watermark
   - [X] Update snapshot store/load and serializer boundaries so replay watermark persists across cache/store round trips
   - [X] Keep `createdAt` behavior stable for non-replayable and legacy readers
-- [ ] 3) Adopt in `mtw.wml`
-  - [ ] Update `lambda/wml/dataSource/snapshotContent.ts` to return authoritative replay watermark with sidecar payload
-  - [ ] Ensure watermark reflects represented snapshot state (not envelope generation time)
-  - [ ] Verify `createSnapshotFirst` and existing manifest fallback behavior still operate correctly
+- [X] 3) Adopt in `mtw.wml`
+  - [X] Update `lambda/wml/dataSource/snapshotContent.ts` to return authoritative replay watermark with sidecar payload
+  - [X] Ensure watermark reflects represented snapshot state (not envelope generation time)
+  - [X] Verify `createSnapshotFirst` and existing manifest fallback behavior still operate correctly
 - [ ] 4) Update tests
-  - [ ] Add/adjust framework tests in `packages/mtw-lambda-patterns/ts/dataSource/index.test.ts`
-  - [ ] Add/adjust WML snapshot tests in `lambda/wml/dataSource/snapshotContent.test.ts`
+  - [X] Add/adjust framework tests in `packages/mtw-lambda-patterns/ts/dataSource/index.test.ts`
+  - [X] Add/adjust WML snapshot tests in `lambda/wml/dataSource/snapshotContent.test.ts`
   - [ ] Add regression test: historical snapshot + replay emits complete current state after subscribe
 - [ ] 5) Add focused diagnostics for rollout confidence
   - [ ] Log snapshot replay metadata at subscribe (`createdAt`, `replayAt`, stream key, replay event count)

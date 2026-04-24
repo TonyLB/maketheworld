@@ -228,6 +228,22 @@ describe('DataSource', () => {
             expect(result2.createdAt).toBe(200000000)
             expect(result2.expiresAt).toBe(200300000)
         })
+
+        it('should preserve authoritative replayAt from snapshotContentGenerator', async () => {
+            const streamKey = 'test-stream'
+            mockSnapshotContentGenerator.mockResolvedValueOnce({
+                id: 'test-id',
+                name: 'Test Snapshot',
+                value: 42,
+                replayAt: 99999000
+            } as unknown as TestSnapshotPayload)
+
+            const result = await dataSource.generateSnapshot(streamKey)
+
+            expect(result.createdAt).toBe(100000000)
+            expect(result.replayAt).toBe(99999000)
+            expect(result.expiresAt).toBe(100300000)
+        })
     })
 
     describe('getSnapshot', () => {
