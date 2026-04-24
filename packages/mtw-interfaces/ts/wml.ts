@@ -52,6 +52,16 @@ export type WMLAPIMessage = { RequestId?: string; connectionId?: string } & (
     PromoteToCanonAPIMessage
 )
 
+const WML_API_MESSAGE_TYPES = ['backupWML', 'applyEdit', 'moveAsset', 'purgeAsset', 'promoteToCanon'] as const
+
+/** Narrow unknown WebSocket / direct Lambda payloads to the WML API message union (discriminator only). */
+export const isWMLAPIMessage = (msg: unknown): msg is WMLAPIMessage =>
+    msg !== null &&
+    typeof msg === 'object' &&
+    'message' in msg &&
+    typeof (msg as { message: unknown }).message === 'string' &&
+    (WML_API_MESSAGE_TYPES as readonly string[]).includes((msg as { message: string }).message)
+
 export const isApplyEditAPIMessage = (message: WMLAPIMessage): message is ApplyEditAPIMessage & { RequestId?: string; connectionId?: string } => (message.message === 'applyEdit')
 export const isMoveAssetAPIMessage = (message: WMLAPIMessage): message is MoveAssetAPIMessage & { RequestId?: string; connectionId?: string } => (message.message === 'moveAsset')
 export const isPurgeAssetAPIMessage = (message: WMLAPIMessage): message is PurgeAssetAPIMessage & { RequestId?: string; connectionId?: string } => (message.message === 'purgeAsset')

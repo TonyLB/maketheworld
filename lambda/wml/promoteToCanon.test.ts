@@ -1,5 +1,6 @@
 import { planPromoteToCanonSteps, runPromoteToCanonOnBus } from './promoteToCanon'
 import type { StreamingEventMessage } from './messageBus/baseClasses'
+import type { Zone } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 describe('planPromoteToCanonSteps', () => {
     it('returns no steps when already Canon', () => {
@@ -33,54 +34,65 @@ describe('planPromoteToCanonSteps', () => {
 })
 
 describe('runPromoteToCanonOnBus', () => {
-    it('sends move then canonize with a flush after each for Draft', async () => {
-        const sent: StreamingEventMessage[] = []
-        let flushCount = 0
+    type SentItem = { payload: StreamingEventMessage; laneId?: string }
+
+    const makeBus = () => {
+        const sent: SentItem[] = []
+        const flushLanes: (string | undefined)[] = []
         const bus = {
-            send: (p: StreamingEventMessage) => {
-                sent.push(p)
+            send: (p: StreamingEventMessage, laneId?: string) => {
+                sent.push({ payload: p, laneId })
             },
-            flush: async () => {
-                flushCount += 1
+            flush: async (laneId?: string) => {
+                flushLanes.push(laneId)
             },
         }
-        await runPromoteToCanonOnBus(bus, 'ASSET#test', 'Draft')
-        expect(flushCount).toBe(2)
+        return { sent, bus, flushLanes }
+    }
+
+    it('sends move then canonize with a flush after each for Draft when zone advances after each step', async () => {
+        const { sent, bus, flushLanes } = makeBus()
+        const zones: Zone[] = ['Draft', 'Library', 'Canon']
+        let i = 0
+        await runPromoteToCanonOnBus(bus, 'ASSET#test', async () => zones[i++])
+        expect(flushLanes).toHaveLength(2)
         expect(sent).toHaveLength(2)
-        expect(sent[0].header.type).toBe('Move Asset')
-        expect(sent[1].header.type).toBe('Canonize Asset')
+        const lane = sent[0].laneId
+        expect(lane).toMatch(/^promoteToCanon:ASSET#test:/)
+        expect(sent[1].laneId).toBe(lane)
+        expect(flushLanes).toEqual([lane, lane])
+        expect(sent[0].payload.header.type).toBe('Move Asset')
+        expect(sent[1].payload.header.type).toBe('Canonize Asset')
     })
 
-    it('flushes once for Library-only path', async () => {
-        const sent: StreamingEventMessage[] = []
-        let flushCount = 0
-        const bus = {
-            send: (p: StreamingEventMessage) => {
-                sent.push(p)
-            },
-            flush: async () => {
-                flushCount += 1
-            },
-        }
-        await runPromoteToCanonOnBus(bus, 'ASSET#x', 'Library')
-        expect(flushCount).toBe(1)
+    it('flushes once for Library-only path when zone is Library then Canon', async () => {
+        const { sent, bus, flushLanes } = makeBus()
+        const zones: Zone[] = ['Library', 'Canon']
+        let i = 0
+        await runPromoteToCanonOnBus(bus, 'ASSET#x', async () => zones[i++])
+        expect(flushLanes).toHaveLength(1)
         expect(sent).toHaveLength(1)
-        expect(sent[0].header.type).toBe('Canonize Asset')
+        const lane = sent[0].laneId
+        expect(lane).toMatch(/^promoteToCanon:ASSET#x:/)
+        expect(flushLanes).toEqual([lane])
+        expect(sent[0].payload.header.type).toBe('Canonize Asset')
     })
 
     it('does not send or flush when already Canon', async () => {
-        const sent: StreamingEventMessage[] = []
-        let flushCount = 0
-        const bus = {
-            send: (p: StreamingEventMessage) => {
-                sent.push(p)
-            },
-            flush: async () => {
-                flushCount += 1
-            },
-        }
-        await runPromoteToCanonOnBus(bus, 'ASSET#x', 'Canon')
-        expect(flushCount).toBe(0)
+        const { sent, bus, flushLanes } = makeBus()
+        await runPromoteToCanonOnBus(bus, 'ASSET#x', async () => 'Canon')
+        expect(flushLanes).toHaveLength(0)
         expect(sent).toHaveLength(0)
+    })
+
+    it('skips canonize when zone becomes Canon before canonize step (e.g. concurrent writer)', async () => {
+        const { sent, bus, flushLanes } = makeBus()
+        const zones: Zone[] = ['Draft', 'Canon']
+        let i = 0
+        await runPromoteToCanonOnBus(bus, 'ASSET#race', async () => zones[i++])
+        expect(flushLanes).toHaveLength(1)
+        expect(sent).toHaveLength(1)
+        expect(flushLanes[0]).toBe(sent[0].laneId)
+        expect(sent[0].payload.header.type).toBe('Move Asset')
     })
 })

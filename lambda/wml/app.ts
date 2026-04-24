@@ -12,7 +12,7 @@ import { fromEventBridgeFormat } from '@tonylb/mtw-lambda-patterns/ts/dataSource
 import { coreFormatToStreamingEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource';
 import { DiagnosticsEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics';
 import { createNodeDataSourceEnvironment } from '@tonylb/mtw-lambda-patterns/ts/dataSource/nodeEnvironment';
-import { WMLAPIMessage } from '@tonylb/mtw-interfaces/ts/wml';
+import { isWMLAPIMessage, WMLAPIMessage } from '@tonylb/mtw-interfaces/ts/wml';
 
 // Import DataSources to trigger their messageBus subscriptions (side-effect imports)
 import './dataSource'  // mtw.wml DataSource
@@ -24,15 +24,6 @@ const s3Client = new S3Client(params)
 const eventDeserializers = {
     'mtw.diagnostics': new DiagnosticsEventSerializer(createNodeDataSourceEnvironment()),
     // Add other data source deserializers here as needed
-}
-
-// Type guard for WML API messages
-const isWMLAPIMessage = (msg: unknown): msg is WMLAPIMessage => {
-    return msg !== null && 
-           typeof msg === 'object' && 
-           'message' in msg && 
-           typeof (msg as any).message === 'string' &&
-           ['backupWML', 'applyEdit', 'moveAsset', 'purgeAsset', 'promoteToCanon'].includes((msg as any).message)
 }
 
 export const handler = async (event: any, context: any) => {
@@ -156,8 +147,8 @@ export const handler = async (event: any, context: any) => {
             if (request.RequestId) {
                 internalCache.Connection.set({ key: 'RequestId', value: request.RequestId })
             }
-            const workspace = await AssetWorkspace.fromUUID(request.AssetId, { preferDynamo: false, allowS3Fallback: true })
-            if (!workspace) {
+            const existing = await AssetWorkspace.fromUUID(request.AssetId, { preferDynamo: false, allowS3Fallback: true })
+            if (!existing) {
                 return {
                     statusCode: 404,
                     body: JSON.stringify({
@@ -166,7 +157,13 @@ export const handler = async (event: any, context: any) => {
                     }),
                 }
             }
-            await runPromoteToCanonOnBus(messageBus, request.AssetId, workspace.zone as Zone)
+            await runPromoteToCanonOnBus(messageBus, request.AssetId, async () => {
+                const w = await AssetWorkspace.fromUUID(request.AssetId, { preferDynamo: false, allowS3Fallback: true })
+                if (!w) {
+                    throw new Error(`Asset not found during promoteToCanon: ${request.AssetId}`)
+                }
+                return w.zone as Zone
+            })
             return await extractReturnValue(messageBus)
         }
     }
