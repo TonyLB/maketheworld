@@ -79,6 +79,74 @@ describe('StandardForm', () => {
             </Asset>`)
             expect(sf.isEmpty()).toBe(false)
         })
+
+        it('returns true when Summary is semantically empty', () => {
+            const sf = new StandardForm({
+                universalKey: 'ASSET#TestAsset',
+                metaData: [],
+                components: [],
+                summary: []
+            })
+            expect(sf.summary?.isEmpty()).toBe(true)
+            expect(sf.isEmpty()).toBe(true)
+        })
+
+        it('returns false when Summary is non-empty from data input', () => {
+            const sf = new StandardForm({
+                universalKey: 'ASSET#TestAsset',
+                metaData: [],
+                components: [],
+                summary: ['Some description']
+            })
+            expect(sf.summary?.isEmpty()).toBe(false)
+            expect(sf.isEmpty()).toBe(false)
+        })
+
+        it('returns true when ShortName is semantically empty', () => {
+            const sf = new StandardForm('ASSET#TestAsset')
+            ;(sf as any)._shortName = new StandardLiteral('', { tag: 'ShortName' })
+            expect(sf.shortName?.isEmpty()).toBe(true)
+            expect(sf.isEmpty()).toBe(true)
+        })
+
+        it('returns true with explicitly empty topLevel reference list', () => {
+            const sf = new StandardForm('ASSET#TestAsset')
+            ;(sf as any)._topLevel = new ReferenceList([])
+            expect(sf.isEmpty()).toBe(true)
+        })
+
+        it('returns false with non-empty topLevel reference list', () => {
+            const sf = new StandardForm('ASSET#TestAsset')
+            ;(sf as any)._topLevel = new ReferenceList([
+                new StandardReference({ tag: 'Room', universalKey: 'ROOM#main' })
+            ])
+            expect(sf.isEmpty()).toBe(false)
+        })
+
+        it('returns true when all components are semantically empty', () => {
+            const sf = new StandardForm('ASSET#TestAsset')
+            ;(sf as any)._components = [{ isEmpty: () => true }]
+            expect(sf.isEmpty()).toBe(true)
+        })
+
+        it('returns false when at least one component is non-empty', () => {
+            const sf = new StandardForm('ASSET#TestAsset')
+            ;(sf as any)._components = [{ isEmpty: () => true }, { isEmpty: () => false }]
+            expect(sf.isEmpty()).toBe(false)
+        })
+
+        it('returns true when metadata and components are all vacuous', () => {
+            const sf = new StandardForm({
+                universalKey: 'ASSET#TestAsset',
+                metaData: [],
+                components: [],
+                summary: []
+            })
+            ;(sf as any)._shortName = new StandardLiteral('', { tag: 'ShortName' })
+            ;(sf as any)._topLevel = new ReferenceList([])
+            ;(sf as any)._components = [{ isEmpty: () => true }]
+            expect(sf.isEmpty()).toBe(true)
+        })
     })
 
     describe('standardizeMode', () => {
@@ -4642,6 +4710,23 @@ describe('StandardForm', () => {
             `))
         })
 
+        it('should compact Asset-level Summary to undefined when incoming summary is semantically empty', () => {
+            const baseForm = new StandardForm({
+                universalKey: 'ASSET#test',
+                components: [],
+                metaData: []
+            })
+            const incomingForm = new StandardForm({
+                universalKey: 'ASSET#test',
+                components: [],
+                metaData: [],
+                summary: []
+            })
+
+            const diffed = baseForm.diff(incomingForm)
+            expect(diffed.summary).toBeUndefined()
+        })
+
         it('should diff when Asset-level ShortName is added', () => {
             const baseWML = deIndentWML(`
                 <Asset uuid=(test)>
@@ -4666,6 +4751,23 @@ describe('StandardForm', () => {
             expect(diffWML).toEqual(deIndentWML(`
                 <Asset uuid=(test)><ShortName>New Name</ShortName></Asset>
             `))
+        })
+
+        it('should compact Asset-level ShortName to undefined when incoming shortName is semantically empty', () => {
+            const baseForm = new StandardForm({
+                universalKey: 'ASSET#test',
+                components: [],
+                metaData: []
+            })
+            const incomingForm = new StandardForm({
+                universalKey: 'ASSET#test',
+                components: [],
+                metaData: []
+            })
+            ;(incomingForm as any)._shortName = new StandardLiteral('', { tag: 'ShortName' })
+
+            const diffed = baseForm.diff(incomingForm)
+            expect(diffed.shortName).toBeUndefined()
         })
 
         it('should diff when Asset-level ShortName is removed', () => {

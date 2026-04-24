@@ -82,7 +82,7 @@ Aligned phase names with [`standardize/AGENT.componentEquals.planning.md`](stand
 | `StandardRender.isEmpty` (+ tests) | done |
 | `StandardRender.equals` (+ tests; component-equals plan) | done |
 | `defaultedEquals` helper (+ tests) | not started |
-| `StandardForm.diff` / `isEmpty` alignment | not started |
+| `StandardForm.diff` / `isEmpty` alignment | done (`StandardForm.isEmpty` now uses semantic `_summary` emptiness; `StandardForm.diff` compacts vacuous `_summary`/`_shortName` outcomes to `undefined`, with targeted coverage in `ts/standardize/index.test.ts`) |
 | Client: summary write path + sync | not started |
 | Verification / regression tests | not started |
 | Follow-on: **`StandardLiteral`** -> **`ReferenceList`** -> facet lists (**Decisions locked**) | done (**`StandardLiteral`**, **`ReferenceList`**, and facet-list slice complete in component-equals plan; facet lists now include semantic **`isEmpty`** for empty/ref=0-only lists and call-site migration to list **`equals`** in component overrides). |
@@ -99,7 +99,7 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as y
   - [X] Add a cross-type unit-test matrix for **`defaultedEquals`** that covers **`undefined`**, empty, and non-empty combinations on **`StandardRender`**, **`StandardLiteral`**, **`ReferenceList`**, and representative facet-list types.
   - [X] Use the [**StandardComponent `equals` audit**](standardize/AGENT.componentEquals.planning.md#audit-findings-standardcomponentequals) to sweep component optional semantic-content fields (Room/Message/Mark/Lens/Example/Guidance/Situation, etc.) and replace raw optional **`toJSON`** deep-equality checks with **`defaultedEquals`** and/or type **`.equals`** where the optional-content contract applies.
   - [X] Record intentional non-adoptions at ambiguous sites (brief call-site comment or plan note) per **Decisions locked** so we avoid blind global replacement.
-- [ ] Refactor **`StandardForm.diff`** asset-level `_summary` / `_shortName` (and any parallel fields) so **vacuous outcomes** become **`undefined`**; add **`StandardForm.isEmpty`** checks that use semantic emptiness for `_summary`.
+- [X] Refactor **`StandardForm.diff`** asset-level `_summary` / `_shortName` (and any parallel fields) so **vacuous outcomes** become **`undefined`**; add **`StandardForm.isEmpty`** checks that use semantic emptiness for `_summary`. (Shipped in `ts/standardize/index.ts` with targeted `index.test.ts` coverage, including undefined vs semantic-empty summary/shortName cases.)
 - [X] While touching optional semantic-content fields (RenderTree and non-RenderTree), adopt **`defaultedEquals`** where the **optional content** contract clearly applies; flag unclear sites for quick review (per **Decisions locked** process).
 - [ ] **Client:** align [`WorkbenchAssetEditForm`](../../../charcoal-client/src/components/Workbench/WorkbenchAssetEditForm.tsx) (and similar) so vacuous editor output maps to **`_summary: undefined`** (preferred canonical per **Decisions locked**); replace **`toJSON()`** reference sync with **`StandardRender.equals`** / **`defaultedEquals`** after the component-equals sub-task exposes them (**Decisions locked**).
 - [ ] **Verification:** run `packages/mtw-wml` tests and targeted `charcoal-client` tests; grep for `Boolean(this._summary)` / `_summary ?` diff branches to ensure coverage.

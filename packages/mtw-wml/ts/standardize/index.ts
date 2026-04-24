@@ -296,10 +296,10 @@ export class StandardForm {
      * Imports and empty metadata do not count as content.
      */
     isEmpty(): boolean {
-        const hasComponents = this._components.length > 0
-        const hasShortName = Boolean(this._shortName)
-        const hasSummary = Boolean(this._summary)
-        const hasTopLevel = Boolean(this._topLevel?.payload?.length)
+        const hasComponents = this._components.some((component) => !component.isEmpty())
+        const hasShortName = Boolean(this._shortName && !this._shortName.isEmpty())
+        const hasSummary = Boolean(this._summary && !this._summary.isEmpty())
+        const hasTopLevel = Boolean(this._topLevel && !this._topLevel.isEmpty())
         return !(hasComponents || hasShortName || hasSummary || hasTopLevel)
     }
 
@@ -1256,12 +1256,14 @@ export class StandardForm {
         diffedValueFinal._metaData = applyEdits(combinedMetaData.tree)
 
         // Diff Asset-level metadata
-        diffedValueFinal._shortName = this._shortName
+        const shortNameDiff = this._shortName
             ? this._shortName.diff(incoming._shortName)
             : incoming._shortName
-        diffedValueFinal._summary = this._summary
+        diffedValueFinal._shortName = shortNameDiff?.isEmpty() ? undefined : shortNameDiff
+        const summaryDiff = this._summary
             ? this._summary.diff(incoming._summary)
             : incoming._summary
+        diffedValueFinal._summary = summaryDiff?.isEmpty() ? undefined : summaryDiff
 
         diffedValueFinal.validate()
         return diffedValueFinal
