@@ -969,3 +969,36 @@ describe('StandardExample class', () => {
         })
     })
 })
+
+describe('StandardExample.equals semantic optionals', () => {
+    it('treats undefined and semantic-empty summary as equal', () => {
+        const withoutSummary = new StandardExample({
+            key: 'test',
+            tag: 'Example',
+            displayName: 'Alpha',
+        })
+        const withEmptySummary = new StandardExample({
+            key: 'test',
+            tag: 'Example',
+            displayName: 'Alpha',
+            summary: [],
+        })
+        expect(withoutSummary.equals(withEmptySummary)).toBe(true)
+        expect(withEmptySummary.equals(withoutSummary)).toBe(true)
+    })
+
+    it('treats undefined and semantic-empty shortName as equal', () => {
+        const withoutShortName = new StandardExample({
+            key: 'test',
+            tag: 'Example',
+            displayName: 'Alpha',
+        })
+        const withEmptyShortName = new StandardExample({
+            key: 'test',
+            tag: 'Example',
+            displayName: 'Alpha',
+            shortName: '',
+        })
+        expect(withoutShortName.equals(withEmptyShortName)).toBe(true)
+    })
+})

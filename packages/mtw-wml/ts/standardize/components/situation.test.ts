@@ -309,3 +309,21 @@ describe('StandardSituation class', () => {
         expect(cloned).not.toBe(orig)
     })
 })
+
+describe('StandardSituation.equals semantic optionals', () => {
+    it('treats undefined and semantic-empty shortName as equal', () => {
+        const withoutShortName = new StandardSituation({
+            tag: 'Situation',
+            key: 'test',
+            marks: [],
+        })
+        const withEmptyShortName = new StandardSituation({
+            tag: 'Situation',
+            key: 'test',
+            shortName: '',
+            marks: [],
+        })
+        expect(withoutShortName.equals(withEmptyShortName)).toBe(true)
+        expect(withEmptyShortName.equals(withoutShortName)).toBe(true)
+    })
+})

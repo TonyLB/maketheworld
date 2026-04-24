@@ -9,7 +9,6 @@ import { StandardExampleData, StandardExampleInputData, StandardExampleNDJSONDat
 import { AssetUUID, ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaExample, isSchemaDisplayName, isSchemaSummary, isSchemaDescription, SchemaDisplayNameTag, SchemaSummaryTag, SchemaDescriptionTag } from "@tonylb/mtw-base/ts/schema/example"
 import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
-import { deepEqual } from "../../lib/objects"
 import { renderTreeToSchema, schemaToRenderTree, RenderTree } from "@tonylb/mtw-base/ts/renderTree"
 import { StandardKey } from "../keys/key"
 import StandardReference from "../keys/reference"
@@ -18,6 +17,7 @@ import { MarkFacetList } from "../keys/facets/mark"
 import { StandardEditableData, extractFromEditableData } from "@tonylb/mtw-base/ts/editable"
 import { StandardFormSubsetRequest } from "../baseClasses"
 import { StandardLiteral } from "../literal"
+import { defaultedEquals } from "./utils"
 import type { StandardFormConstructionOptions, StandardizeFromSchemaContext } from "../wmlStandardizeMode"
 import { HasShortName } from "./abstract"
 import { processWithConsumers, StandardizeConsumerFacetListMark, StandardizeConsumerInline, StandardizeConsumerRender, StandardizeConsumerStandardLiteral } from "./fromSchemaPipeline"
@@ -293,10 +293,10 @@ export class StandardExample extends componentClassFactory(StandardExamplePayloa
             return false
         }
         return this.marks.equals(incoming.marks) &&
-            deepEqual(this.displayName?.toJSON(), incoming.displayName?.toJSON()) &&
-            deepEqual(this.summary?.toJSON(), incoming.summary?.toJSON()) &&
-            deepEqual(this.description?.toJSON(), incoming.description?.toJSON()) &&
-            deepEqual(this.shortName?.toJSON(), incoming.shortName?.toJSON())
+            defaultedEquals(this.displayName, incoming.displayName) &&
+            defaultedEquals(this.summary, incoming.summary) &&
+            defaultedEquals(this.description, incoming.description) &&
+            defaultedEquals(this.shortName, incoming.shortName)
     }
 
 }

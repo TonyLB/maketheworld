@@ -6,7 +6,6 @@ import { ReferenceFormat } from "./utils/references"
 import { StandardSituationData, StandardSituationInputData } from "./dataTypes/situation"
 import { ComponentUUID, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaSituation } from "@tonylb/mtw-base/ts/schema/components"
-import { deepEqual } from "../../lib/objects"
 import { StandardKey } from "../keys/key"
 import StandardReference from "../keys/reference"
 import { MarkFacetList } from "../keys/facets/mark"
@@ -16,6 +15,7 @@ import type { StandardFormConstructionOptions, StandardizeFromSchemaContext } fr
 import { HasShortName } from "./abstract"
 import { excludeUndefined } from "../../lib/lists"
 import { processWithConsumers, StandardizeConsumerFacetListMark, StandardizeConsumerInline, StandardizeConsumerStandardLiteral } from "./fromSchemaPipeline"
+import { defaultedEquals } from "./utils"
 
 export class StandardSituationPayload implements HasShortName, ComponentConstructorMethods<StandardSituationInputData, StandardSituationData> {
     _shortName?: StandardLiteral;
@@ -194,7 +194,7 @@ export class StandardSituation extends componentClassFactory(StandardSituationPa
             return false
         }
         return this.marks.equals(incoming.marks) &&
-            deepEqual(this.shortName?.toJSON(), incoming.shortName?.toJSON())
+            defaultedEquals(this.shortName, incoming.shortName)
     }
 }
 

@@ -364,6 +364,9 @@ export const componentClassFactory = <
         // The equals method should often be overridden at the specific component level,
         // if there is simplified processing, or if the component includes references that
         // can be equal (semantically) without being identical.
+        // Intentional fallback: keep wrapper-level deep equality here rather than applying
+        // defaultedEquals globally. Per-type overrides decide where optional semantic fields
+        // should collapse undefined and semantic-empty.
         //
         equals(incoming: StandardComponent): boolean {
             return deepEqual(this.toJSON(), incoming.toJSON())

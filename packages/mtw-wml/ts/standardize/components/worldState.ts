@@ -27,6 +27,7 @@ import {
     StandardizeConsumerStandardLiteral,
 } from "./fromSchemaPipeline"
 import { SchemaDescriptionTag, isSchemaDescription } from "@tonylb/mtw-base/ts/schema/example"
+import { defaultedEquals } from "./utils"
 
 export class StandardMarkPayload implements HasShortName, ComponentConstructorMethods<StandardMarkData, StandardMarkData> {
     _shortName?: StandardLiteral;
@@ -169,7 +170,8 @@ export class StandardMark extends componentClassFactory(StandardMarkPayload, 'St
         if (!(incoming instanceof StandardMark)) {
             return false
         }
-        return deepEqual(this.toJSON(), incoming.toJSON())
+        return defaultedEquals(this.shortName, incoming.shortName) &&
+            defaultedEquals(this.description, incoming.description)
     }
 
 }
@@ -413,7 +415,7 @@ export class StandardLens extends componentClassFactory(StandardLensPayload, 'St
             return false
         }
         return this.marks.equals(incoming.marks) &&
-            deepEqual(this.shortName?.toJSON(), incoming.shortName?.toJSON()) &&
-            deepEqual(this.description?.toJSON(), incoming.description?.toJSON())
+            defaultedEquals(this.shortName, incoming.shortName) &&
+            defaultedEquals(this.description, incoming.description)
     }
 }
