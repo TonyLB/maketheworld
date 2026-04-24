@@ -627,7 +627,35 @@ describe('changeZone (unit tests with mocked pipeline)', () => {
             // Should NOT report repair
             expect(result.metadata.repairPerformed).toBe(false)
         })
-        
+
+        it('should pass player to applyStorageOperation when provided for Draft fromZone', async () => {
+            mockApplyStorageOperationHelper({
+                baseline: new StandardForm(TEST_ASSET_ID),
+                repairDecision: {}
+            })
+
+            const result = await changeZone({
+                assetId: TEST_ASSET_ID,
+                fromZone: 'Draft',
+                toZone: 'Library',
+                timestamp: TEST_TIMESTAMP,
+                player: TEST_PLAYER,
+            })
+
+            expect(result.success).toBe(true)
+            expect(mockApplyStorageOperation).toHaveBeenCalledTimes(2)
+            expect(mockApplyStorageOperation.mock.calls[0][0]).toMatchObject({
+                assetId: TEST_ASSET_ID,
+                zone: 'Draft',
+                player: TEST_PLAYER,
+                createIfNeeded: true,
+            })
+            expect(mockApplyStorageOperation.mock.calls[1][0]).toMatchObject({
+                player: TEST_PLAYER,
+                zone: 'Draft',
+            })
+        })
+
         it('should use fast tag-update path when no repair needed', async () => {
             // Setup: No repair decision
             mockApplyStorageOperationHelper({

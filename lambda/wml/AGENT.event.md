@@ -8,7 +8,7 @@ This document tracks the event flow architecture within the WML Lambda system, w
 
 The WML Lambda serves as the domain authority for WML source files and their StandardForm representations. It participates in the event mesh as:
 
-- **Event Consumer**: Processes internal events (Apply Edit, Move Asset, Purge Asset); canonize/decanonize handlers reserved (no current trigger)
+- **Event Consumer**: Processes internal events (Apply Edit, Move Asset, Purge Asset, and **Canonize Asset** when enqueued on `api.wml` by coordination). **Decanonize** remains reserved (no operator or client trigger). **`promoteToCanon`** is a **direct** WML API message (operator/bootstrap); it is **not** a new EventBridge-ingested event type---it enqueues the same `api.wml` coordination primitives as other flows.
 - **Event Producer**: Publishes content updates, zone changes, and merge conflicts via EventBridge
 - **Source of Truth**: Maintains authoritative S3 storage for WML and NDJSON files
 - **Data Transformation Pipeline Root**: Triggers downstream caching and materialization
@@ -28,7 +28,7 @@ The WML Lambda serves as the domain authority for WML source files and their Sta
 - `Zone Changed` - Asset moved between zones (Canon, Library, Personal, Draft, Archive)
 - `Merge Conflict` - Edit application failed due to conflicts
 
-**Event Subscriptions**: Subscribes to api.wml events (Apply Edit, Move Asset, Purge Asset) and mtw.diagnostics; canonize/decanonize reserved (no API or EventBridge trigger)
+**Event Subscriptions**: Subscribes to `api.wml` events (Apply Edit, Move Asset, Purge Asset, **Canonize Asset**, Decanonize) and `mtw.diagnostics`. **Canonize Asset** runs when internal coordination sends it (for example from the operator **`promoteToCanon`** path). There is **no** separate EventBridge subscription that invents canonize from outside the lambda; **Decanonize** has no product or operator call path yet.
 
 **Implementation**: [`./dataSource/mtw-wml.ts`](./dataSource/mtw-wml.ts)
 
@@ -46,7 +46,7 @@ The WML Lambda has successfully implemented the DataSource pattern with the foll
 2. **MessageBus Integration**: Internal event coordination fully wired and functional
 3. **Zone Changed Events**: Published via DataSource pattern when assets move between zones
 4. **Move Asset Operations**: Complete implementation with S3 file moves and event publishing
-5. **Internal event processing**: Apply Edit, Move Asset, Purge Asset; canonize/decanonize handlers exist but are reserved (no call path)
+5. **Internal event processing**: Apply Edit, Move Asset, Purge Asset; **Canonize Asset** when driven by coordination (see **Operator promote to Canon** below); **Decanonize** handler exists but has no call path
 6. **EventBridge Event Ingestion**: Receives and deserializes incoming events from other data sources
 
 ### ✅ Recently Completed
@@ -69,12 +69,13 @@ The WML Lambda has successfully implemented the DataSource pattern with the foll
 
 The WML Lambda receives events from multiple sources:
 
-**API-triggered events** (dataSourceKey: `api.wml`, via API → messageBus):
-- Apply Edit, Move Asset, Purge Asset. Canonize/Decanonize reserved (no trigger).
+**API-triggered events** (dataSourceKey: `api.wml`, via direct handler → messageBus coordination):
+- Apply Edit, Move Asset, Purge Asset, **Canonize Asset** (when enqueued internally), Decanonize (handler reserved; no trigger).
 
 **Direct API Calls** (via Step Functions or WebSocket API):
 - `applyEdit` - Apply WML edit to existing content (processed via DataSource)
 - `moveAsset` - Move asset between zones (processed via DataSource)
+- `promoteToCanon` - Operator/bootstrap: promote an asset to **Canon** by `AssetId` using internal **`Move Asset`** (to Library when needed) and **`Canonize Asset`** on the messageBus (same authority pipeline as normal zone work; not a first-class client publishing API). See **Operator promote to Canon** below.
 - ~~`copyWML`~~ - DEPRECATED (removed in Phase 1 migration)
 - ~~`resetWML`~~ - DEPRECATED (removed in Phase 1 migration)
 - `backupWML` - Create backup of asset (deferred to Phase 2)
@@ -85,7 +86,7 @@ The WML Lambda receives events from multiple sources:
 **Via DataSource Pattern** (published to `mtw.wml` EventBridge source):
 - `Zone Changed` - Asset moved between zones
   - Includes: fromZone, toZone, player (optional), subFolder (optional)
-  - Triggered by: Move Asset operations, canonization, decanonization
+  - Triggered by: Move Asset operations, canonization (including steps issued by **`promoteToCanon`**). **Decanonization** is not exposed on an operator path; reset demos by removing the asset instead.
 
 - `Content Update` - WML content successfully edited
   - Includes: StandardForm schema (serialized to WML string), `RequestIds` for client pending-edit clearance
@@ -138,7 +139,24 @@ The WML Lambda receives events from multiple sources:
 **Incoming api.wml events** (API → send-helper → messageBus → receiveEvents):
 - `Apply Edit` - WML edit application
 - `Move Asset` - Asset zone transitions
-- `Purge Asset` - Asset purge (Draft/Archive). Canonize/Decanonize and Create Snapshot handlers are reserved (no current API or trigger). Canonize/Decanonize will be reactivated with publishing UI ([AGENT.collaboration.publishing](../../AGENT.collaboration.publishing.md)); Create Snapshot remains reserved for reactivation. See [packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md](../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md) (Snapshot envelope conventions).
+- `Purge Asset` - Asset purge (Draft/Archive)
+- **`Canonize Asset`** - Runs when coordination enqueues it (operator **`promoteToCanon`** issues **`Move Asset`** to Library when needed, then **`Canonize Asset`**; future **community publishing** flows may enqueue the same primitives from product UX---see [AGENT.collaboration.md](../../AGENT.collaboration.md) and [AGENT.collaboration.publishing.md](../../AGENT.collaboration.publishing.md)). This is **not** a separate bootstrapping-only S3 path; authoritative updates still go through `mtw-wml` as for other zone operations.
+- **Decanonize** - Handler reserved; no operator or EventBridge trigger (demo reset: remove the asset).
+- **Create Snapshot** - Reserved for reactivation. See [packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md](../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md) (Snapshot envelope conventions).
+
+### Operator promote to Canon
+
+**Purpose:** Development and bootstrap (for example Coyote Game scenery in [AGENT.CoyoteGame.md](../../AGENT.CoyoteGame.md)): promote a WML asset to **Canon** by **`AssetId`** without a first-class client publishing API.
+
+**Invocation:** Trusted operator surfaces only (for example Lambda test console or WebSocket payload with `message: 'promoteToCanon'`). Additional IAM or env gating is a separate concern; this doc describes event flow only.
+
+**Mechanics:** [`lambda/wml/promoteToCanon.ts`](./promoteToCanon.ts) plans a minimal sequence (`planPromoteToCanonSteps`): if the asset is not already in **Library**, enqueue **`Move Asset`** toward **Library**, then **`Canonize Asset`** (Library → Canon inside [`dataSource/mtw-wml.ts`](./dataSource/mtw-wml.ts)). Each step is sent on the messageBus and flushed before the next; the runner **re-reads zone and player** from **`AssetWorkspace.fromUUID`** between steps so work is skipped if already done (**state-based idempotency**; no `idempotencyKey` on the message). If the asset is **already Canon**, no coordination is sent and no redundant **`Zone Changed`** is published.
+
+**Player (Draft/Personal `fromZone`):** Internal **`Move Asset`** payloads include **`player`** from that refetch so **[`s3Storage` `changeZone`](./s3Storage/index.ts)** can pass it into **`fetchAndDecideRepair`**. Without it, moves **from** **Draft** or **Personal** can fail (`AssetWorkspace` requires **`player`** in those zones). The direct **`moveAsset`** handler forwards **`request.player`** into **`changeZone`** the same way (`MoveAssetRequest` in [`dataSource/localApiEvents.ts`](./dataSource/localApiEvents.ts)).
+
+**Outbounds:** Same **`Zone Changed`** (and any other outbounds from those primitives) as normal moves and canonize---not a parallel synthetic event channel.
+
+**vs publishing:** **`promoteToCanon`** is an **operator escape hatch** aligned with **direct canon** and **operator rollback** language in the collaboration docs. Long term, **community publishing** should supersede ad hoc promotion; keep this path easy to narrow or delete once publishing exists.
 
 ## Related Event Documentation
 
@@ -176,8 +194,8 @@ This document is part of a coordinated event flow documentation effort across th
 - **SNS**: Connected to feedback topic for notifications
 
 **Event Handling**:
-- Subscribes to `api.wml` dataSource for Apply Edit, Move Asset, Purge Asset (and mtw.diagnostics)
-- Processes Apply Edit, Move Asset, Purge Asset; Canonize/Decanonize handlers reserved (no call path)
+- Subscribes to `api.wml` dataSource for Apply Edit, Move Asset, Purge Asset, Canonize Asset, Decanonize (and mtw.diagnostics)
+- Processes Apply Edit, Move Asset, Purge Asset, and **Canonize Asset** when coordination delivers it (including from **`promoteToCanon`**). **Decanonize** remains without a triggering call path.
 - Streams appropriate events (Content Update, Merge Conflict, Zone Changed) on operation completion
 - Error handling with logging (operations don't fail on streaming errors)
 
@@ -215,6 +233,7 @@ This document is part of a coordinated event flow documentation effort across th
 **Business Logic**:
 - `lambda/wml/dataSource/applyEdit/` - Content edit application via DataSource
 - `lambda/wml/dataSource/moveAsset/` - Asset zone transitions via DataSource
+- `lambda/wml/promoteToCanon.ts` - Operator **`promoteToCanon`** coordination (step plan and messageBus runner); tests in `lambda/wml/promoteToCanon.test.ts`
 - ~~`lambda/wml/resetWML/index.ts`~~ - DEPRECATED (removed in Phase 1)
 - ~~`lambda/wml/copyWML/index.ts`~~ - DEPRECATED (removed in Phase 1)
 - `lambda/wml/backupWML/index.ts` - Asset backup creation (deferred to Phase 2)
@@ -229,6 +248,7 @@ This document is part of a coordinated event flow documentation effort across th
 - DataSource event handling: `lambda/wml/dataSource/mtw-wml.test.ts`
 - Apply Edit operations: `lambda/wml/dataSource/applyEdit/index.test.ts`
 - Move Asset operations: `lambda/wml/dataSource/moveAsset/index.test.ts`
+- Promote to Canon: `lambda/wml/promoteToCanon.test.ts`
 - Event serialization: `packages/mtw-interfaces/ts/eventBridge/wml/index.test.ts`
 
 **Integration Testing Needs**:
@@ -273,4 +293,4 @@ This document is part of a coordinated event flow documentation effort across th
 
 ---
 
-**Document Status**: This document reflects the current state of the WML Lambda event architecture as of the DataSource pattern implementation. It should be updated as new event types are added or significant architectural changes are made.
+**Document Status**: Reflects the DataSource pattern plus the operator **`promoteToCanon`** path (direct WML API message, internal `api.wml` coordination, same outbound events as other zone operations). Update when publishing-driven UX changes how **Canonize Asset** is enqueued or when new event types ship.

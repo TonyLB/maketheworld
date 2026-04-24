@@ -4,12 +4,15 @@ import { S3Client } from "@aws-sdk/client-s3";
 import messageBus from "./messageBus";
 import { extractReturnValue } from "./returnValue/index";
 import { sendApplyEdit, sendMoveAsset, sendPurgeAsset } from './dataSource/subscribedEvents';
+import { runPromoteToCanonOnBus } from './promoteToCanon';
+import { AssetWorkspace } from './s3Storage/AssetWorkspace';
+import type { Zone } from '@tonylb/mtw-interfaces/ts/baseClasses';
 import { sendInitializeSubscription } from './dataSource/initSubscription';
 import { fromEventBridgeFormat } from '@tonylb/mtw-lambda-patterns/ts/dataSource/formatTransform';
 import { coreFormatToStreamingEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource';
 import { DiagnosticsEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics';
 import { createNodeDataSourceEnvironment } from '@tonylb/mtw-lambda-patterns/ts/dataSource/nodeEnvironment';
-import { WMLAPIMessage } from '@tonylb/mtw-interfaces/ts/wml';
+import { isWMLAPIMessage, WMLAPIMessage } from '@tonylb/mtw-interfaces/ts/wml';
 
 // Import DataSources to trigger their messageBus subscriptions (side-effect imports)
 import './dataSource'  // mtw.wml DataSource
@@ -21,15 +24,6 @@ const s3Client = new S3Client(params)
 const eventDeserializers = {
     'mtw.diagnostics': new DiagnosticsEventSerializer(createNodeDataSourceEnvironment()),
     // Add other data source deserializers here as needed
-}
-
-// Type guard for WML API messages
-const isWMLAPIMessage = (msg: unknown): msg is WMLAPIMessage => {
-    return msg !== null && 
-           typeof msg === 'object' && 
-           'message' in msg && 
-           typeof (msg as any).message === 'string' &&
-           ['backupWML', 'applyEdit', 'moveAsset', 'purgeAsset'].includes((msg as any).message)
 }
 
 export const handler = async (event: any, context: any) => {
@@ -147,6 +141,29 @@ export const handler = async (event: any, context: any) => {
             }
             sendPurgeAsset(messageBus, request.AssetId, content)
             await messageBus.flush()
+            return await extractReturnValue(messageBus)
+        }
+        case 'promoteToCanon': {
+            if (request.RequestId) {
+                internalCache.Connection.set({ key: 'RequestId', value: request.RequestId })
+            }
+            const existing = await AssetWorkspace.fromUUID(request.AssetId, { preferDynamo: false, allowS3Fallback: true })
+            if (!existing) {
+                return {
+                    statusCode: 404,
+                    body: JSON.stringify({
+                        error: `Asset not found: ${request.AssetId}`,
+                        RequestId: request.RequestId,
+                    }),
+                }
+            }
+            await runPromoteToCanonOnBus(messageBus, request.AssetId, async () => {
+                const w = await AssetWorkspace.fromUUID(request.AssetId, { preferDynamo: false, allowS3Fallback: true })
+                if (!w) {
+                    throw new Error(`Asset not found during promoteToCanon: ${request.AssetId}`)
+                }
+                return { zone: w.zone as Zone, player: w.player }
+            })
             return await extractReturnValue(messageBus)
         }
     }

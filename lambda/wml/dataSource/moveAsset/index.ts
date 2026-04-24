@@ -38,11 +38,12 @@ export interface MoveAssetResponse {
  * creates a new object with player metadata.
  * 
  * @param assetId - The asset UUID (does not change during move)
- * @param request - Zone transition request (fromZone, toZone)
- *                  Note: player/subFolder fields are deprecated and ignored
+ * @param request - Zone transition request (fromZone, toZone, optional player)
+ *                  `player` is forwarded to storage when present (needed for Personal/Draft source zones).
+ *                  `subFolder` is legacy and ignored here.
  */
 export async function moveAsset(assetId: AssetUUID, request: MoveAssetRequest): Promise<MoveAssetResponse> {
-    const { fromZone, toZone } = request
+    const { fromZone, toZone, player } = request
     
     // Validate that we're not trying to move TO Personal/Draft from Canon/Library
     // (would require player metadata that doesn't exist on Canon/Library assets)
@@ -59,7 +60,8 @@ export async function moveAsset(assetId: AssetUUID, request: MoveAssetRequest): 
         assetId,
         fromZone,
         toZone,
-        timestamp: now()
+        timestamp: now(),
+        player,
     })
     
     // Map storage result to domain response

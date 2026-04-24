@@ -64,7 +64,7 @@ const isDiagnosticsEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<Diagnost
 
 export { isApplyEditEnvelope, isMoveAssetEnvelope, isCanonizeOrDecanonizeEnvelope, isCreateSnapshotEnvelope, isPurgeAssetEnvelope, isDiagnosticsEnvelope }
 
-type Bus = { send: (payload: StreamingEventMessage) => void }
+type Bus = { send: (payload: StreamingEventMessage, laneId?: string) => void }
 
 const apiWmlSerializer = { serialize: ({ content, header }: { content: object; header: StreamingEventHeader }) => ({ type: header.type, ...content }) }
 
@@ -77,17 +77,19 @@ export function sendApplyEdit(bus: Bus, streamKey: string, content: ApplyEditReq
         type: 'Apply Edit',
     }
     const envelope = createInternalOriginEnvelope(header, content, apiWmlSerializer)
-    bus.send({
-        type: 'StreamingEvent',
-        dataSourceKey: 'api.wml',
-        streamKey,
-        header: envelope.header,
-        getContent: envelope.getContent,
-        timestamp,
-    })
+    bus.send(
+        {
+            type: 'StreamingEvent',
+            dataSourceKey: 'api.wml',
+            streamKey,
+            header: envelope.header,
+            getContent: envelope.getContent,
+            timestamp,
+        }
+    )
 }
 
-export function sendMoveAsset(bus: Bus, streamKey: string, content: MoveAssetRequest): void {
+export function sendMoveAsset(bus: Bus, streamKey: string, content: MoveAssetRequest, laneId?: string): void {
     const timestamp = Date.now()
     const header: StreamingEventHeader = {
         dataSourceKey: 'api.wml',
@@ -96,14 +98,39 @@ export function sendMoveAsset(bus: Bus, streamKey: string, content: MoveAssetReq
         type: 'Move Asset',
     }
     const envelope = createInternalOriginEnvelope(header, content, apiWmlSerializer)
-    bus.send({
-        type: 'StreamingEvent',
+    bus.send(
+        {
+            type: 'StreamingEvent',
+            dataSourceKey: 'api.wml',
+            streamKey,
+            header: envelope.header,
+            getContent: envelope.getContent,
+            timestamp,
+        },
+        laneId
+    )
+}
+
+export function sendCanonizeAsset(bus: Bus, streamKey: string, content: CoordinationCanonizeEvent, laneId?: string): void {
+    const timestamp = Date.now()
+    const header: StreamingEventHeader = {
         dataSourceKey: 'api.wml',
         streamKey,
-        header: envelope.header,
-        getContent: envelope.getContent,
         timestamp,
-    })
+        type: 'Canonize Asset',
+    }
+    const envelope = createInternalOriginEnvelope(header, content, apiWmlSerializer)
+    bus.send(
+        {
+            type: 'StreamingEvent',
+            dataSourceKey: 'api.wml',
+            streamKey,
+            header: envelope.header,
+            getContent: envelope.getContent,
+            timestamp,
+        },
+        laneId
+    )
 }
 
 export function sendPurgeAsset(bus: Bus, streamKey: string, content: PurgeAssetRequest): void {
