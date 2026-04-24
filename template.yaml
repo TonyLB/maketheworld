@@ -1324,6 +1324,7 @@ Resources:
                   UPLOAD_BUCKET: !Sub '${TablePrefix}-uploads'
                   IMAGES_BUCKET: !Sub '${TablePrefix}-images'
                   FEEDBACK_TOPIC: !Ref MTWFeedbackTopic
+                  MTW_DATA_SOURCE_REPLAY_LOG_SAMPLE_RATE: '0'
                   COGNITO_POOL_ID: !Ref UserPool
                   HEAL_SFN: !Ref HealStateMachine
                   LLM_GENERATE_SFN: !Ref LargeLanguageModelStateMachine
@@ -1518,6 +1519,7 @@ Resources:
             IMAGES_BUCKET: !Sub '${TablePrefix}-images'
             EVENT_BUS_NAME: !Sub '${TablePrefix}-bus'
             EVENT_BRIDGE_SOURCE_NAME: 'mtw.wml'
+            MTW_DATA_SOURCE_REPLAY_LOG_SAMPLE_RATE: '0'
             CACHE_ASSETS_SFN: !Ref CacheAssetsStateMachine
         Policies:
           - DynamoDBCrudPolicy:

@@ -1,4 +1,4 @@
-import { DataSource, SerializableObject, SnapshotType, coreFormatToStreamingEnvelope } from './index'
+import { DataSource, SerializableObject, SnapshotType, coreFormatToStreamingEnvelope, resolveReplayCursorTimestamp } from './index'
 import { StreamingEventHeader } from './baseClasses'
 import { getCurrentTimestamp } from '../internalUtils/dateUtil'
 
@@ -200,6 +200,7 @@ describe('DataSource', () => {
             expect(result).toEqual({
                 ...expectedContent,
                 createdAt: 100000000,
+                replayAt: 100000000,
                 expiresAt: 100300000 // 5 minutes later
             })
         })
@@ -226,6 +227,22 @@ describe('DataSource', () => {
             expect(result1.expiresAt).toBe(100300000)
             expect(result2.createdAt).toBe(200000000)
             expect(result2.expiresAt).toBe(200300000)
+        })
+
+        it('should preserve authoritative replayAt from snapshotContentGenerator', async () => {
+            const streamKey = 'test-stream'
+            mockSnapshotContentGenerator.mockResolvedValueOnce({
+                id: 'test-id',
+                name: 'Test Snapshot',
+                value: 42,
+                replayAt: 99999000
+            } as unknown as TestSnapshotPayload)
+
+            const result = await dataSource.generateSnapshot(streamKey)
+
+            expect(result.createdAt).toBe(100000000)
+            expect(result.replayAt).toBe(99999000)
+            expect(result.expiresAt).toBe(100300000)
         })
     })
 
@@ -265,8 +282,14 @@ describe('DataSource', () => {
             
             const result = await dataSource.getSnapshot(streamKey)
             
-            expect(result).toBe(storedSnapshot)
-            expect(dataSource._snapshots[streamKey]).toBe(storedSnapshot)
+            expect(result).toEqual({
+                ...storedSnapshot,
+                replayAt: 100000000
+            })
+            expect(dataSource._snapshots[streamKey]).toEqual({
+                ...storedSnapshot,
+                replayAt: 100000000
+            })
             expect(mockSnapshotContentGenerator).not.toHaveBeenCalled()
             expect(mockSingleFlight).not.toHaveBeenCalled()
         })
@@ -300,6 +323,7 @@ describe('DataSource', () => {
                 name: 'Test Snapshot',
                 value: 42,
                 createdAt: 100000000,
+                replayAt: 100000000,
                 expiresAt: 100300000
             })
         })
@@ -325,6 +349,7 @@ describe('DataSource', () => {
                 name: 'Test Snapshot',
                 value: 42,
                 createdAt: 100000000,
+                replayAt: 100000000,
                 expiresAt: 100300000
             })
         })
@@ -405,6 +430,7 @@ describe('DataSource', () => {
                     dataSourceKey: 'mtw.testDataSource',
                     streamKey: 'test-stream',
                     timestamp: 100000000,
+                    replayAt: 100000000,
                     type: 'Snapshot'
                 },
                 snapshotUpdate: {
@@ -444,6 +470,7 @@ describe('DataSource', () => {
                     dataSourceKey: 'mtw.differentDataSource',
                     streamKey: 'test-stream',
                     timestamp: 100000000,
+                    replayAt: 100000000,
                     type: 'Snapshot'
                 },
                 snapshotUpdate: {
@@ -490,6 +517,7 @@ describe('DataSource', () => {
                 ...storedSnapshot,
                 type: 'Snapshot',
                 createdAt: 100000000,
+                replayAt: 100000000,
                 expiresAt: 100300000
             })
         })
@@ -554,6 +582,38 @@ describe('DataSource', () => {
                 ...storedSnapshot,
                 type: 'Snapshot',
                 createdAt: 100000000,
+                replayAt: 100000000,
+                expiresAt: 100300000
+            })
+        })
+
+        it('should prefer replayAt from snapshot header when loading envelope shape', async () => {
+            const streamKey = 'test-stream'
+            const storedSnapshot = {
+                id: 'stored-id',
+                name: 'Stored Snapshot',
+                value: 200
+            }
+
+            mockDynamo.getItem.mockResolvedValue({
+                AssetId: 'STREAM#mtw.testDataSource::test-stream',
+                DataCategory: 'Meta::Snapshot',
+                snapshotHeader: {
+                    dataSourceKey: 'mtw.testDataSource',
+                    streamKey: 'test-stream',
+                    timestamp: 100000000,
+                    replayAt: 100002000,
+                    type: 'Snapshot'
+                },
+                snapshotUpdate: storedSnapshot
+            })
+
+            const result = await dataSource.loadSnapshotFromStore(streamKey)
+            expect(result).toEqual({
+                ...storedSnapshot,
+                type: 'Snapshot',
+                createdAt: 100000000,
+                replayAt: 100002000,
                 expiresAt: 100300000
             })
         })
@@ -957,6 +1017,204 @@ describe('DataSource', () => {
     })
 
     describe('initializeSubscription', () => {
+        it('should prefer replayAt over createdAt for replay cursor', async () => {
+            const sessionId = 'SESSION#test-session' as const
+            const streamKey = 'test-stream'
+
+            jest.spyOn(dataSource, 'getSnapshotExternal').mockResolvedValue({
+                id: 'test-id',
+                name: 'Test Snapshot',
+                value: 42,
+                createdAt: 100000000,
+                replayAt: 100002000,
+                expiresAt: 100005000
+            })
+            mockDynamo.query.mockResolvedValue([])
+
+            await dataSource.initializeSubscription({ sessionId, streamKey })
+
+            expect(mockDynamo.query).toHaveBeenCalledWith(expect.objectContaining({
+                ExpressionAttributeValues: expect.objectContaining({
+                    ':timestampPrefix': 'EVENT#100002000'
+                })
+            }))
+        })
+
+        it('should fall back to createdAt when replayAt is missing', async () => {
+            const sessionId = 'SESSION#test-session' as const
+            const streamKey = 'test-stream'
+
+            jest.spyOn(dataSource, 'getSnapshotExternal').mockResolvedValue({
+                id: 'test-id',
+                name: 'Test Snapshot',
+                value: 42,
+                createdAt: 100000000,
+                expiresAt: 100005000
+            })
+            mockDynamo.query.mockResolvedValue([])
+
+            await dataSource.initializeSubscription({ sessionId, streamKey })
+
+            expect(mockDynamo.query).toHaveBeenCalledWith(expect.objectContaining({
+                ExpressionAttributeValues: expect.objectContaining({
+                    ':timestampPrefix': 'EVENT#100000000'
+                })
+            }))
+        })
+
+        it('should not log replay diagnostics when sample rate is 0', async () => {
+            const previousSampleRate = process.env.MTW_DATA_SOURCE_REPLAY_LOG_SAMPLE_RATE
+            process.env.MTW_DATA_SOURCE_REPLAY_LOG_SAMPLE_RATE = '0'
+            const infoSpy = jest.spyOn(console, 'info').mockImplementation(() => {})
+            const sessionId = 'SESSION#test-session' as const
+            const streamKey = 'test-stream'
+
+            jest.spyOn(dataSource, 'getSnapshotExternal').mockResolvedValue({
+                id: 'test-id',
+                name: 'Test Snapshot',
+                value: 42,
+                createdAt: 100000000,
+                replayAt: 100002000,
+                expiresAt: 100005000
+            })
+            mockDynamo.query.mockResolvedValue([])
+
+            try {
+                await dataSource.initializeSubscription({ sessionId, streamKey })
+                expect(infoSpy).not.toHaveBeenCalled()
+            }
+            finally {
+                infoSpy.mockRestore()
+                if (previousSampleRate === undefined) {
+                    delete process.env.MTW_DATA_SOURCE_REPLAY_LOG_SAMPLE_RATE
+                } else {
+                    process.env.MTW_DATA_SOURCE_REPLAY_LOG_SAMPLE_RATE = previousSampleRate
+                }
+            }
+        })
+
+        it('should log replay diagnostics when sample rate is 1', async () => {
+            const previousSampleRate = process.env.MTW_DATA_SOURCE_REPLAY_LOG_SAMPLE_RATE
+            process.env.MTW_DATA_SOURCE_REPLAY_LOG_SAMPLE_RATE = '1'
+            const infoSpy = jest.spyOn(console, 'info').mockImplementation(() => {})
+            const sessionId = 'SESSION#test-session' as const
+            const streamKey = 'test-stream'
+
+            jest.spyOn(dataSource, 'getSnapshotExternal').mockResolvedValue({
+                id: 'test-id',
+                name: 'Test Snapshot',
+                value: 42,
+                createdAt: 100010000,
+                replayAt: 100000000,
+                expiresAt: 100015000
+            })
+            const primaryKey = `STREAM#mtw.testDataSource::${streamKey}`
+            mockDynamo.query.mockResolvedValue([
+                {
+                    AssetId: primaryKey,
+                    DataCategory: 'EVENT#100005000::event-1',
+                    eventType: 'TestUpdatePayload',
+                    update: { type: 'TestUpdatePayload', update: 'event-1' }
+                },
+                {
+                    AssetId: primaryKey,
+                    DataCategory: 'EVENT#100008000::event-2',
+                    eventType: 'TestUpdatePayload',
+                    update: { type: 'TestUpdatePayload', update: 'event-2' }
+                }
+            ])
+
+            try {
+                await dataSource.initializeSubscription({ sessionId, streamKey })
+                expect(infoSpy).toHaveBeenCalledTimes(1)
+                const [prefix, payload] = infoSpy.mock.calls[0]
+                expect(prefix).toBe('[DataSourceReplaySubscribe]')
+                expect(JSON.parse(payload)).toMatchObject({
+                    dataSourceKey: 'mtw.testDataSource',
+                    streamKey,
+                    sessionId,
+                    createdAt: 100010000,
+                    replayAt: 100000000,
+                    replayCursor: 100000000,
+                    replayEventCount: 2,
+                    replayWindowLower: 100000000,
+                    replayWindowFirst: 100005000,
+                    replayWindowLatest: 100008000
+                })
+            }
+            finally {
+                infoSpy.mockRestore()
+                if (previousSampleRate === undefined) {
+                    delete process.env.MTW_DATA_SOURCE_REPLAY_LOG_SAMPLE_RATE
+                } else {
+                    process.env.MTW_DATA_SOURCE_REPLAY_LOG_SAMPLE_RATE = previousSampleRate
+                }
+            }
+        })
+
+        it('replays gap events when replayAt is older than createdAt (historical snapshot watermark)', async () => {
+            const sessionId = 'SESSION#test-session' as const
+            const streamKey = 'test-stream'
+            const replayAt = 100000000
+            const createdAt = 100010000
+
+            const getSnapshotSpy = jest.spyOn(dataSource, 'getSnapshotExternal').mockResolvedValue({
+                id: 'test-id',
+                name: 'Test Snapshot',
+                value: 42,
+                createdAt,
+                replayAt,
+                expiresAt: 200000000
+            })
+
+            const primaryKey = `STREAM#mtw.testDataSource::${streamKey}`
+            mockDynamo.query.mockImplementation((args: { ExpressionAttributeValues?: { ':timestampPrefix'?: string } }) => {
+                const prefix = args.ExpressionAttributeValues?.[':timestampPrefix']
+                if (prefix === `EVENT#${createdAt}`) {
+                    return Promise.resolve([])
+                }
+                if (prefix === `EVENT#${replayAt}`) {
+                    return Promise.resolve([
+                        {
+                            AssetId: primaryKey,
+                            DataCategory: 'EVENT#100005000::gap-1',
+                            eventType: 'TestUpdatePayload',
+                            update: { type: 'TestUpdatePayload', update: 'gap-1' }
+                        },
+                        {
+                            AssetId: primaryKey,
+                            DataCategory: 'EVENT#100008000::gap-2',
+                            eventType: 'TestUpdatePayload',
+                            update: { type: 'TestUpdatePayload', update: 'gap-2' }
+                        }
+                    ])
+                }
+                return Promise.resolve([])
+            })
+
+            await dataSource.initializeSubscription({ sessionId, streamKey })
+
+            expect(mockDynamo.query).toHaveBeenCalledWith(expect.objectContaining({
+                ExpressionAttributeValues: expect.objectContaining({
+                    ':timestampPrefix': `EVENT#${replayAt}`
+                })
+            }))
+            expect(mockSns.send).toHaveBeenCalledTimes(3)
+
+            const event1 = JSON.parse(mockSns.send.mock.calls[1][0].Message)
+            const event2 = JSON.parse(mockSns.send.mock.calls[2][0].Message)
+            expect(event1).toMatchObject({
+                messageType: 'StreamEvent',
+                update: { type: 'TestUpdatePayload', update: 'gap-1' }
+            })
+            expect(event2).toMatchObject({
+                messageType: 'StreamEvent',
+                update: { type: 'TestUpdatePayload', update: 'gap-2' }
+            })
+
+            getSnapshotSpy.mockRestore()
+        })
+
         it('should deliver snapshot and events via SNS', async () => {
             const sessionId = 'SESSION#test-session' as const
             const streamKey = 'test-stream'
@@ -1109,6 +1367,11 @@ describe('DataSource', () => {
     })
 
     describe('type safety', () => {
+        it('resolveReplayCursorTimestamp should use replayAt then createdAt fallback', () => {
+            expect(resolveReplayCursorTimestamp({ createdAt: 100, replayAt: 250 })).toBe(250)
+            expect(resolveReplayCursorTimestamp({ createdAt: 100 })).toBe(100)
+        })
+
         it('should work with different SerializableObject types', () => {
             type ComplexSnapshot = {
                 id: string
@@ -2115,15 +2378,27 @@ describe('DataSource', () => {
             
             // Get snapshot for first stream
             const result1 = await dataSource.getSnapshot(streamKey1)
-            expect(result1).toBe(snapshot1)
-            expect(dataSource._snapshots[streamKey1]).toBe(snapshot1) // Should be cached
+            expect(result1).toEqual({
+                ...snapshot1,
+                replayAt: 100000000
+            })
+            expect(dataSource._snapshots[streamKey1]).toEqual({
+                ...snapshot1,
+                replayAt: 100000000
+            }) // Should be cached
             
             // Get snapshot for second stream - this should NOT return the cached snapshot from stream-1
             const result2 = await dataSource.getSnapshot(streamKey2)
             
-            expect(result2).toBe(snapshot2)
+            expect(result2).toEqual({
+                ...snapshot2,
+                replayAt: 100000000
+            })
             expect(result2).not.toBe(snapshot1) // Should not be the cached snapshot from stream-1
-            expect(dataSource._snapshots[streamKey2]).toBe(snapshot2) // Should be updated to stream-2's snapshot
+            expect(dataSource._snapshots[streamKey2]).toEqual({
+                ...snapshot2,
+                replayAt: 100000000
+            }) // Should be updated to stream-2's snapshot
             
             // Verify that loadSnapshotFromStore was called for both streams
             expect(dataSource.loadSnapshotFromStore).toHaveBeenCalledWith(streamKey1)
@@ -2141,6 +2416,7 @@ describe('DataSource', () => {
                 name: 'Generated Stream 1 Snapshot',
                 value: 300,
                 createdAt: 100000000,
+                replayAt: 100000000,
                 expiresAt: 100300000
             }
             
@@ -2150,6 +2426,7 @@ describe('DataSource', () => {
                 name: 'Generated Stream 2 Snapshot', 
                 value: 400,
                 createdAt: 100000000,
+                replayAt: 100000000,
                 expiresAt: 100300000
             }
             
@@ -2659,6 +2936,7 @@ describe('DataSource', () => {
                     name: 'Test Snapshot',
                     value: 42,
                     createdAt: 100000000,
+                    replayAt: 100000000,
                     expiresAt: 100300000
                 }
 
@@ -2688,6 +2966,7 @@ describe('DataSource', () => {
                     externalName: 'Test Snapshot',
                     externalValue: 42,
                     createdAt: 100000000,
+                    replayAt: 100000000,
                     expiresAt: 100300000
                 })
             })
@@ -2700,6 +2979,7 @@ describe('DataSource', () => {
                     externalName: 'Stored Snapshot',
                     externalValue: 200,
                     createdAt: 100000000,
+                    replayAt: 100002000,
                     expiresAt: 100300000
                 }
 
@@ -2721,6 +3001,7 @@ describe('DataSource', () => {
                     externalName: 'Test Snapshot',
                     externalValue: 42,
                     createdAt: 100000000,
+                    replayAt: 100002000,
                     expiresAt: 100300000
                 }
 
@@ -2737,6 +3018,7 @@ describe('DataSource', () => {
                     name: 'Test Snapshot',
                     value: 42,
                     createdAt: 100000000,
+                    replayAt: 100002000,
                     expiresAt: 100300000
                 })
             })
@@ -2748,6 +3030,7 @@ describe('DataSource', () => {
                     name: 'Cached Snapshot',
                     value: 100,
                     createdAt: 100000000,
+                    replayAt: 100002000,
                     expiresAt: 100300000
                 }
 
@@ -2768,6 +3051,7 @@ describe('DataSource', () => {
                     name: 'Test Snapshot',
                     value: 42,
                     createdAt: 100000000,
+                    replayAt: 100002000,
                     expiresAt: 100300000
                 }
 
@@ -2784,6 +3068,7 @@ describe('DataSource', () => {
                         dataSourceKey: 'mtw.testDataSource',
                         streamKey: 'test-stream',
                         timestamp: 100000000,
+                        replayAt: 100002000,
                         type: 'Snapshot'
                     },
                     snapshotUpdate: {

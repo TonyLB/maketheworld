@@ -33,7 +33,10 @@ describe('generateWmlSnapshotContent', () => {
     it('returns domain-shaped payload with sidecarUrl', async () => {
         const result = await generateWmlSnapshotContent('ASSET#room')
 
-        expect(result).toEqual({ wml: { sidecarUrl: expect.stringContaining('https://') } })
+        expect(result).toEqual({
+            wml: { sidecarUrl: expect.stringContaining('https://') },
+            replayAt: 0
+        })
     })
 
     it('passes createSnapshotFirst false when no Dynamo events and no manifest chunks', async () => {
@@ -61,7 +64,7 @@ describe('generateWmlSnapshotContent', () => {
     it('uses sinceTimestamp from Meta::Snapshot when present', async () => {
         mockAssetDBGetItem.mockResolvedValue({ snapshotHeader: { timestamp: 1000 } })
 
-        await generateWmlSnapshotContent('ASSET#room')
+        const result = await generateWmlSnapshotContent('ASSET#room')
 
         expect(mockAssetDBQuery).toHaveBeenCalledWith(
             expect.objectContaining({
@@ -70,12 +73,13 @@ describe('generateWmlSnapshotContent', () => {
                 })
             })
         )
+        expect(result.replayAt).toBe(1000)
     })
 
     it('uses sinceTimestamp 0 when no Meta::Snapshot exists', async () => {
         mockAssetDBGetItem.mockResolvedValue(undefined)
 
-        await generateWmlSnapshotContent('ASSET#room')
+        const result = await generateWmlSnapshotContent('ASSET#room')
 
         expect(mockAssetDBQuery).toHaveBeenCalledWith(
             expect.objectContaining({
@@ -84,6 +88,7 @@ describe('generateWmlSnapshotContent', () => {
                 })
             })
         )
+        expect(result.replayAt).toBe(0)
     })
 
     it('manifest fallback: creates snapshot and logs when Dynamo has 0 but manifest has chunks', async () => {
@@ -93,12 +98,13 @@ describe('generateWmlSnapshotContent', () => {
 
         const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {})
 
-        await generateWmlSnapshotContent('ASSET#room')
+        const result = await generateWmlSnapshotContent('ASSET#room')
 
         expect(mockGetPresignedSnapshotUrl).toHaveBeenCalledWith('ASSET#room', true)
         expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('mtw.wml snapshot mismatch'))
         expect(warnSpy.mock.calls[0][0]).toContain('3 chunks')
         expect(warnSpy.mock.calls[0][0]).toContain('ASSET#room')
+        expect(result.replayAt).toBe(1729252800000)
 
         warnSpy.mockRestore()
     })

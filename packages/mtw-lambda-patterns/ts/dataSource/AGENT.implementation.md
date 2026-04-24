@@ -411,7 +411,7 @@ The DataSource pattern uses a consistent timestamp strategy across all event and
 
 ### **Timestamp Storage Locations**:
 - **DynamoDB Records**: Timestamp embedded in `DataCategory` field as `EVENT#${timestamp}::${uuid}` (no separate timestamp field)
-- **Replayable Snapshots**: Timestamp included in snapshot metadata for replayable data sources
+- **Replayable Snapshots**: Snapshot rows carry **`createdAt`** (envelope generation / cache) and **`replayAt`** (replay lower bound). `initializeSubscription` uses the replay cursor **`replayAt ?? createdAt`** so legacy rows without `replayAt` still replay correctly. Replay queries use a strict lower bound on that cursor (see `getRecentEvents` / `initializeSubscription` in [`index.ts`](./index.ts)).
 - **Non-Replayable getSnapshot()**: Throws error - snapshots are not supported for non-replayable data sources
 - **MessageBus Events**: Timestamp included in event metadata for internal coordination
 - **EventBridge Events**: No timestamp in Detail payload (EventBridge provides automatic timestamps)
