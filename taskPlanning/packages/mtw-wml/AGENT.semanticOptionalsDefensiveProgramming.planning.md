@@ -1,6 +1,6 @@
 # Semantic optionals: defensive programming (RenderTree and beyond)
 
-Status: in progress (next: **`defaultedEquals`** per [**Intertwined execution order**](#intertwined-execution-order); **`StandardRender.equals`** is done in [`standardize/AGENT.componentEquals.planning.md`](standardize/AGENT.componentEquals.planning.md)).
+Status: in progress (next: final verification + durable doc wrap-up; client summary write path/sync now uses semantic equality and vacuous-summary canonicalization in Workbench, and **`defaultedEquals`**, **`StandardRender.equals`**, and **`StandardForm.equals`** are done in [`standardize/AGENT.componentEquals.planning.md`](standardize/AGENT.componentEquals.planning.md)).
 
 See [`taskPlanning/AGENT.md`](../../AGENT.md) for what belongs in a task plan versus durable package docs, checkbox conventions, and when to retire this file.
 
@@ -83,8 +83,8 @@ Aligned phase names with [`standardize/AGENT.componentEquals.planning.md`](stand
 | `StandardRender.equals` (+ tests; component-equals plan) | done |
 | `defaultedEquals` helper (+ tests) | not started |
 | `StandardForm.diff` / `isEmpty` alignment | done (`StandardForm.isEmpty` now uses semantic `_summary` emptiness; `StandardForm.diff` compacts vacuous `_summary`/`_shortName` outcomes to `undefined`, with targeted coverage in `ts/standardize/index.test.ts`) |
-| Client: summary write path + sync | not started |
-| Verification / regression tests | not started |
+| Client: summary write path + sync | done (`WorkbenchAssetEditForm` now compares summary sync with `defaultedEquals` and canonicalizes vacuous editor output to `_summary: undefined`; similar semantic RenderTree updates landed in `ExampleEditor`, `LensDetail`, and `MarkEditor`.) |
+| Verification / regression tests | in progress (`packages/mtw-wml` targeted `ts/standardize/index.test.ts` run covers `StandardForm.equals` parity/fallback cases; client-targeted reducers tests now cover vacuous vs non-empty asset summary update behavior.) |
 | Follow-on: **`StandardLiteral`** -> **`ReferenceList`** -> facet lists (**Decisions locked**) | done (**`StandardLiteral`**, **`ReferenceList`**, and facet-list slice complete in component-equals plan; facet lists now include semantic **`isEmpty`** for empty/ref=0-only lists and call-site migration to list **`equals`** in component overrides). |
 | Durable doc updates (if any) + retire or archive this plan | not started |
 
@@ -101,7 +101,7 @@ Pending work uses `[ ]`; completed work uses `[X]`. Mark nested lines `[X]` as y
   - [X] Record intentional non-adoptions at ambiguous sites (brief call-site comment or plan note) per **Decisions locked** so we avoid blind global replacement.
 - [X] Refactor **`StandardForm.diff`** asset-level `_summary` / `_shortName` (and any parallel fields) so **vacuous outcomes** become **`undefined`**; add **`StandardForm.isEmpty`** checks that use semantic emptiness for `_summary`. (Shipped in `ts/standardize/index.ts` with targeted `index.test.ts` coverage, including undefined vs semantic-empty summary/shortName cases.)
 - [X] While touching optional semantic-content fields (RenderTree and non-RenderTree), adopt **`defaultedEquals`** where the **optional content** contract clearly applies; flag unclear sites for quick review (per **Decisions locked** process).
-- [ ] **Client:** align [`WorkbenchAssetEditForm`](../../../charcoal-client/src/components/Workbench/WorkbenchAssetEditForm.tsx) (and similar) so vacuous editor output maps to **`_summary: undefined`** (preferred canonical per **Decisions locked**); replace **`toJSON()`** reference sync with **`StandardRender.equals`** / **`defaultedEquals`** after the component-equals sub-task exposes them (**Decisions locked**).
+- [X] **Client:** align [`WorkbenchAssetEditForm`](../../../charcoal-client/src/components/Workbench/WorkbenchAssetEditForm.tsx) (and similar) so vacuous editor output maps to **`_summary: undefined`** (preferred canonical per **Decisions locked**); replace **`toJSON()`** reference sync with **`StandardRender.equals`** / **`defaultedEquals`** after the component-equals sub-task exposes them (**Decisions locked**).
 - [ ] **Verification:** run `packages/mtw-wml` tests and targeted `charcoal-client` tests; grep for `Boolean(this._summary)` / `_summary ?` diff branches to ensure coverage.
 - [X] **Follow-on (after RenderTree track):** **`StandardLiteral`** [X], then **`ReferenceList`** [X], then facet lists [X] (**Decisions locked**).
 - [ ] Move any **lasting** conventions into [`packages/mtw-wml/ts/standardize/AGENT.md`](../../../packages/mtw-wml/ts/standardize/AGENT.md) or render AGENT doc; then archive or delete this plan per [`taskPlanning/AGENT.md`](../../AGENT.md).

@@ -5,6 +5,7 @@ import StandardMark from "@tonylb/mtw-wml/ts/standardize/components/worldState"
 import { StandardLiteral } from "@tonylb/mtw-wml/ts/standardize/literal"
 import { StandardRender } from "@tonylb/mtw-wml/ts/standardize/render"
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
+import { defaultedEquals } from "@tonylb/mtw-wml/ts/standardize/components/utils"
 import { ComponentUUID } from "@tonylb/mtw-base/ts/schema"
 import { StandardLiteralEditor } from "../foundations/StandardLiteral"
 import { StandardRenderEditor } from "../foundations/StandardRender"
@@ -56,16 +57,13 @@ export const MarkEditor: FunctionComponent = () => {
             if (!markId || readonly) return
             const currentMark = standardForm.byUniversalId[markId]
             if (!currentMark || !(currentMark instanceof StandardMark)) return
-            const newValue = newDescription.toJSON() ?? []
-            const currentValue = currentMark.description?.toJSON() ?? []
-            if (JSON.stringify(currentValue) === JSON.stringify(newValue)) return
+            if (defaultedEquals(currentMark.description, newDescription)) return
             updateStandard({
                 type: 'update',
                 update: (draft: StandardForm) => {
                     const m = draft.byUniversalId[markId]
                     if (m && m instanceof StandardMark) {
-                        const isEmpty = !newValue || (Array.isArray(newValue) && newValue.length === 0)
-                        m._payload._description = isEmpty ? undefined : newDescription
+                        m._payload._description = newDescription.isEmpty() ? undefined : newDescription
                     }
                     return draft
                 }

@@ -11,6 +11,7 @@ import { StandardLens } from "@tonylb/mtw-wml/ts/standardize/components/worldSta
 import { StandardLiteral } from "@tonylb/mtw-wml/ts/standardize/literal"
 import { StandardRender } from "@tonylb/mtw-wml/ts/standardize/render"
 import { StandardForm } from "@tonylb/mtw-wml/ts/standardize"
+import { defaultedEquals } from "@tonylb/mtw-wml/ts/standardize/components/utils"
 import { LensMarkFacetList } from "@tonylb/mtw-wml/ts/standardize/keys/facets/lensMark"
 import { StandardLiteralEditor } from "../foundations/StandardLiteral"
 import { StandardRenderEditor } from "../foundations/StandardRender"
@@ -79,17 +80,13 @@ export const LensDetail: FunctionComponent = () => {
     const updateLensDescription = useCallback(
         (newDescription: StandardRender) => {
             if (!lensId || readonly) return
-            const newValue = newDescription.toJSON() ?? []
-            const currentValue = lens?.description?.toJSON() ?? []
-            if (JSON.stringify(currentValue) === JSON.stringify(newValue)) return
+            if (defaultedEquals(lens?.description, newDescription)) return
             updateStandard({
                 type: "update",
                 update: (draft: StandardForm) => {
                     const target = draft.byUniversalId[lensId]
                     if (target && target instanceof StandardLens) {
-                        const isEmpty =
-                            !newValue || (Array.isArray(newValue) && newValue.length === 0)
-                        target._payload._description = isEmpty ? undefined : newDescription
+                        target._payload._description = newDescription.isEmpty() ? undefined : newDescription
                     }
                     return draft
                 }

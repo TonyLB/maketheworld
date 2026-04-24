@@ -7,6 +7,7 @@ import { deIndentWML } from "@tonylb/mtw-wml/ts/schema/utils"
 import { publicSelectors } from "./selectors"
 import StandardRoom from "@tonylb/mtw-wml/ts/standardize/components/room"
 import { StandardLiteral } from "@tonylb/mtw-wml/ts/standardize/literal"
+import { StandardRender } from "@tonylb/mtw-wml/ts/standardize/render"
 import {
     SituationRoomFacetList,
     StandardSituationRoomFacet,
@@ -531,6 +532,64 @@ describe('personalAsset slice reducers', () => {
                 })
             }) as unknown as PersonalAssetsPublic
             expect(newState.lastUpdateDiff).toBeUndefined()
+        })
+
+        it('should not emit edit diff for vacuous asset summary update', () => {
+            const baseWML = `<Asset uuid=(test)><ShortName>Test Asset</ShortName></Asset>`
+            const schema = new Schema()
+            schema.loadWML(baseWML)
+            const standardizedJSON = new StandardForm(schema.schema[0]).toJSON()
+            const initialState = {
+                inherited: { universalKey: standardizedJSON.universalKey, components: [], metaData: [] },
+                edit: { universalKey: standardizedJSON.universalKey, components: [], metaData: [] },
+                pendingEdits: [],
+                lastUpdateDiff: undefined
+            } as any
+            const newState = produce(initialState, (state) => {
+                updateStandard(state, {
+                    type: 'updateStandard',
+                    payload: {
+                        type: 'update',
+                        base: standardizedJSON,
+                        update: (draft) => {
+                            const incomingSummary = new StandardRender([])
+                            draft._summary = incomingSummary.isEmpty() ? undefined : incomingSummary
+                            return draft
+                        }
+                    }
+                })
+            }) as unknown as PersonalAssetsPublic
+            expect(newState.lastUpdateDiff).toBeUndefined()
+            expect(newState.edit.summary).toBeUndefined()
+        })
+
+        it('should emit edit diff for non-empty asset summary update', () => {
+            const baseWML = `<Asset uuid=(test)><ShortName>Test Asset</ShortName></Asset>`
+            const schema = new Schema()
+            schema.loadWML(baseWML)
+            const standardizedJSON = new StandardForm(schema.schema[0]).toJSON()
+            const initialState = {
+                inherited: { universalKey: standardizedJSON.universalKey, components: [], metaData: [] },
+                edit: { universalKey: standardizedJSON.universalKey, components: [], metaData: [] },
+                pendingEdits: [],
+                lastUpdateDiff: undefined
+            } as any
+            const newState = produce(initialState, (state) => {
+                updateStandard(state, {
+                    type: 'updateStandard',
+                    payload: {
+                        type: 'update',
+                        base: standardizedJSON,
+                        update: (draft) => {
+                            const incomingSummary = new StandardRender(['Updated summary'])
+                            draft._summary = incomingSummary.isEmpty() ? undefined : incomingSummary
+                            return draft
+                        }
+                    }
+                })
+            }) as unknown as PersonalAssetsPublic
+            expect(newState.lastUpdateDiff).toBeDefined()
+            expect(newState.edit.summary).toBeDefined()
         })
     })
 

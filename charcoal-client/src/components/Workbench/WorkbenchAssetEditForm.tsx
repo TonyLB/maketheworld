@@ -10,6 +10,7 @@ import { StandardRenderEditor } from './foundations/StandardRender'
 import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
 import { StandardRender } from '@tonylb/mtw-wml/ts/standardize/render'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
+import { defaultedEquals } from '@tonylb/mtw-wml/ts/standardize/components/utils'
 import { useDebouncedOnChange } from '../../hooks/useDebounce'
 import { MakeTheWorldAccordion } from '../UI'
 import { TopLevelEditor } from './foundations/ReferenceList'
@@ -45,9 +46,7 @@ export const AssetEditForm: FunctionComponent = () => {
     useEffect(() => {
         const newSummary = standardForm.summary ?? new StandardRender([])
         const currentSummary = summaryRef.current
-        const newJson = newSummary.toJSON()
-        const currentJson = currentSummary.toJSON()
-        if (newJson !== currentJson) {
+        if (!defaultedEquals(newSummary, currentSummary)) {
             setSummary(newSummary)
         }
     }, [standardForm.summary])
@@ -69,7 +68,7 @@ export const AssetEditForm: FunctionComponent = () => {
             updateStandard({
                 type: 'update',
                 update: (draft: StandardForm) => {
-                    draft._summary = value
+                    draft._summary = value.isEmpty() ? undefined : value
                     return draft
                 }
             })

@@ -43,6 +43,8 @@ import { SchemaOrganization, createOrganizationContext } from "./schemaOrganizat
 import { renderReference } from "./components/utils/schema"
 import { RemoveClass as StandardExplicitKeyRemoveClass, ReplaceClass as StandardExplicitKeyReplaceClass } from "./explicit/key"
 import { resolveStandardizeMode, type StandardFormConstructionOptions, type WmlStandardizeMode } from "./wmlStandardizeMode"
+import { deepEqual } from "../lib/objects"
+import { defaultedEquals } from "./components/utils/defaultedEquals"
 
 //
 // Component order defines which component tags are processed from schema (and their order).
@@ -111,6 +113,10 @@ export const hasShortName = (component: StandardComponent): component is Standar
         (component instanceof StandardImage) ||
         (component instanceof StandardMessage) ||
         (component instanceof StandardMoment)
+}
+
+export type StandardFormEqualsOptions = {
+    optimizeByUniversalKey?: boolean;
 }
 
 export class StandardForm {
@@ -301,6 +307,78 @@ export class StandardForm {
         const hasSummary = Boolean(this._summary && !this._summary.isEmpty())
         const hasTopLevel = Boolean(this._topLevel && !this._topLevel.isEmpty())
         return !(hasComponents || hasShortName || hasSummary || hasTopLevel)
+    }
+
+    private _normalizedMetaData(): string[] {
+        return (new SchemaTagTree(this._metaData))
+            .tree
+            .map((node) => JSON.stringify(node))
+            .sort()
+    }
+
+    private _assetLevelEquals(incoming: StandardForm): boolean {
+        return this._universalKey === incoming._universalKey &&
+            this.standardizeMode === incoming.standardizeMode &&
+            defaultedEquals(this._shortName, incoming._shortName) &&
+            defaultedEquals(this._summary, incoming._summary) &&
+            defaultedEquals(this._topLevel, incoming._topLevel) &&
+            deepEqual(this._normalizedMetaData(), incoming._normalizedMetaData())
+    }
+
+    private _componentSetEquals(incoming: StandardForm): boolean {
+        if (this._components.length !== incoming._components.length) {
+            return false
+        }
+        const incomingByStandardKey = new Map(
+            incoming._components.map((component) => [
+                JSON.stringify(component.standardKey.toJSON()),
+                component
+            ])
+        )
+        if (incomingByStandardKey.size !== incoming._components.length) {
+            return false
+        }
+        return this._components.every((component) => {
+            const incomingComponent = incomingByStandardKey.get(JSON.stringify(component.standardKey.toJSON()))
+            return incomingComponent ? component.equals(incomingComponent) : false
+        })
+    }
+
+    private _canOptimizeByUniversalKey(incoming: StandardForm): boolean {
+        if (this._components.some(({ universalKey }) => !universalKey) || incoming._components.some(({ universalKey }) => !universalKey)) {
+            return false
+        }
+        const thisUniversalKeys = new Set(this._components.map(({ universalKey }) => universalKey))
+        const incomingUniversalKeys = new Set(incoming._components.map(({ universalKey }) => universalKey))
+        return thisUniversalKeys.size === this._components.length &&
+            incomingUniversalKeys.size === incoming._components.length
+    }
+
+    private _componentSetEqualsByUniversalKey(incoming: StandardForm): boolean {
+        if (this._components.length !== incoming._components.length) {
+            return false
+        }
+        const incomingByUniversalKey = new Map(incoming._components.map((component) => [component.universalKey, component]))
+        if (incomingByUniversalKey.size !== incoming._components.length) {
+            return false
+        }
+        return this._components.every((component) => {
+            const incomingComponent = component.universalKey ? incomingByUniversalKey.get(component.universalKey) : undefined
+            return incomingComponent ? component.equals(incomingComponent) : false
+        })
+    }
+
+    equals(incoming: StandardForm, options?: StandardFormEqualsOptions): boolean {
+        if (this === incoming) {
+            return true
+        }
+        if (!this._assetLevelEquals(incoming)) {
+            return false
+        }
+        if (options?.optimizeByUniversalKey && this._canOptimizeByUniversalKey(incoming)) {
+            return this._componentSetEqualsByUniversalKey(incoming)
+        }
+        return this._componentSetEquals(incoming)
     }
 
     get metaData(): GenericTree<SchemaTag> {
