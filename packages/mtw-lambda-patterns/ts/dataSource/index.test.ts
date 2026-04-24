@@ -266,8 +266,14 @@ describe('DataSource', () => {
             
             const result = await dataSource.getSnapshot(streamKey)
             
-            expect(result).toBe(storedSnapshot)
-            expect(dataSource._snapshots[streamKey]).toBe(storedSnapshot)
+            expect(result).toEqual({
+                ...storedSnapshot,
+                replayAt: 100000000
+            })
+            expect(dataSource._snapshots[streamKey]).toEqual({
+                ...storedSnapshot,
+                replayAt: 100000000
+            })
             expect(mockSnapshotContentGenerator).not.toHaveBeenCalled()
             expect(mockSingleFlight).not.toHaveBeenCalled()
         })
@@ -301,6 +307,7 @@ describe('DataSource', () => {
                 name: 'Test Snapshot',
                 value: 42,
                 createdAt: 100000000,
+                replayAt: 100000000,
                 expiresAt: 100300000
             })
         })
@@ -407,6 +414,7 @@ describe('DataSource', () => {
                     dataSourceKey: 'mtw.testDataSource',
                     streamKey: 'test-stream',
                     timestamp: 100000000,
+                    replayAt: 100000000,
                     type: 'Snapshot'
                 },
                 snapshotUpdate: {
@@ -446,6 +454,7 @@ describe('DataSource', () => {
                     dataSourceKey: 'mtw.differentDataSource',
                     streamKey: 'test-stream',
                     timestamp: 100000000,
+                    replayAt: 100000000,
                     type: 'Snapshot'
                 },
                 snapshotUpdate: {
@@ -492,6 +501,7 @@ describe('DataSource', () => {
                 ...storedSnapshot,
                 type: 'Snapshot',
                 createdAt: 100000000,
+                replayAt: 100000000,
                 expiresAt: 100300000
             })
         })
@@ -556,6 +566,38 @@ describe('DataSource', () => {
                 ...storedSnapshot,
                 type: 'Snapshot',
                 createdAt: 100000000,
+                replayAt: 100000000,
+                expiresAt: 100300000
+            })
+        })
+
+        it('should prefer replayAt from snapshot header when loading envelope shape', async () => {
+            const streamKey = 'test-stream'
+            const storedSnapshot = {
+                id: 'stored-id',
+                name: 'Stored Snapshot',
+                value: 200
+            }
+
+            mockDynamo.getItem.mockResolvedValue({
+                AssetId: 'STREAM#mtw.testDataSource::test-stream',
+                DataCategory: 'Meta::Snapshot',
+                snapshotHeader: {
+                    dataSourceKey: 'mtw.testDataSource',
+                    streamKey: 'test-stream',
+                    timestamp: 100000000,
+                    replayAt: 100002000,
+                    type: 'Snapshot'
+                },
+                snapshotUpdate: storedSnapshot
+            })
+
+            const result = await dataSource.loadSnapshotFromStore(streamKey)
+            expect(result).toEqual({
+                ...storedSnapshot,
+                type: 'Snapshot',
+                createdAt: 100000000,
+                replayAt: 100002000,
                 expiresAt: 100300000
             })
         })
@@ -2167,15 +2209,27 @@ describe('DataSource', () => {
             
             // Get snapshot for first stream
             const result1 = await dataSource.getSnapshot(streamKey1)
-            expect(result1).toBe(snapshot1)
-            expect(dataSource._snapshots[streamKey1]).toBe(snapshot1) // Should be cached
+            expect(result1).toEqual({
+                ...snapshot1,
+                replayAt: 100000000
+            })
+            expect(dataSource._snapshots[streamKey1]).toEqual({
+                ...snapshot1,
+                replayAt: 100000000
+            }) // Should be cached
             
             // Get snapshot for second stream - this should NOT return the cached snapshot from stream-1
             const result2 = await dataSource.getSnapshot(streamKey2)
             
-            expect(result2).toBe(snapshot2)
+            expect(result2).toEqual({
+                ...snapshot2,
+                replayAt: 100000000
+            })
             expect(result2).not.toBe(snapshot1) // Should not be the cached snapshot from stream-1
-            expect(dataSource._snapshots[streamKey2]).toBe(snapshot2) // Should be updated to stream-2's snapshot
+            expect(dataSource._snapshots[streamKey2]).toEqual({
+                ...snapshot2,
+                replayAt: 100000000
+            }) // Should be updated to stream-2's snapshot
             
             // Verify that loadSnapshotFromStore was called for both streams
             expect(dataSource.loadSnapshotFromStore).toHaveBeenCalledWith(streamKey1)
@@ -2743,6 +2797,7 @@ describe('DataSource', () => {
                     externalName: 'Test Snapshot',
                     externalValue: 42,
                     createdAt: 100000000,
+                    replayAt: 100000000,
                     expiresAt: 100300000
                 })
             })
@@ -2755,6 +2810,7 @@ describe('DataSource', () => {
                     externalName: 'Stored Snapshot',
                     externalValue: 200,
                     createdAt: 100000000,
+                    replayAt: 100002000,
                     expiresAt: 100300000
                 }
 
@@ -2776,6 +2832,7 @@ describe('DataSource', () => {
                     externalName: 'Test Snapshot',
                     externalValue: 42,
                     createdAt: 100000000,
+                    replayAt: 100002000,
                     expiresAt: 100300000
                 }
 
@@ -2792,6 +2849,7 @@ describe('DataSource', () => {
                     name: 'Test Snapshot',
                     value: 42,
                     createdAt: 100000000,
+                    replayAt: 100002000,
                     expiresAt: 100300000
                 })
             })
@@ -2803,6 +2861,7 @@ describe('DataSource', () => {
                     name: 'Cached Snapshot',
                     value: 100,
                     createdAt: 100000000,
+                    replayAt: 100002000,
                     expiresAt: 100300000
                 }
 
@@ -2823,6 +2882,7 @@ describe('DataSource', () => {
                     name: 'Test Snapshot',
                     value: 42,
                     createdAt: 100000000,
+                    replayAt: 100002000,
                     expiresAt: 100300000
                 }
 
@@ -2839,6 +2899,7 @@ describe('DataSource', () => {
                         dataSourceKey: 'mtw.testDataSource',
                         streamKey: 'test-stream',
                         timestamp: 100000000,
+                        replayAt: 100002000,
                         type: 'Snapshot'
                     },
                     snapshotUpdate: {

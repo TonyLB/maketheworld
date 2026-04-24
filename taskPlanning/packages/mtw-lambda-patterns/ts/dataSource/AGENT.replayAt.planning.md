@@ -43,11 +43,11 @@ Use `[ ]` for pending items and `[X]` for completed items. If a step has nested 
   - [X] Define replay snapshot metadata shape in `packages/mtw-lambda-patterns/ts/dataSource`
   - [X] Decide canonical replay field name (`replayAt` preferred) and fallback precedence
   - [X] Document temporary compatibility rule: replay cursor resolution order (new field first, legacy fallback second)
-- [ ] 2) Land framework changes in `mtw-lambda-patterns`
-  - [ ] Update snapshot generation path to carry replay watermark separately from generation timestamp
-  - [ ] Update replay query lower-bound in `initializeSubscription` to use replay watermark
-  - [ ] Update snapshot store/load and serializer boundaries so replay watermark persists across cache/store round trips
-  - [ ] Keep `createdAt` behavior stable for non-replayable and legacy readers
+- [X] 2) Land framework changes in `mtw-lambda-patterns`
+  - [X] Update snapshot generation path to carry replay watermark separately from generation timestamp
+  - [X] Update replay query lower-bound in `initializeSubscription` to use replay watermark
+  - [X] Update snapshot store/load and serializer boundaries so replay watermark persists across cache/store round trips
+  - [X] Keep `createdAt` behavior stable for non-replayable and legacy readers
 - [ ] 3) Adopt in `mtw.wml`
   - [ ] Update `lambda/wml/dataSource/snapshotContent.ts` to return authoritative replay watermark with sidecar payload
   - [ ] Ensure watermark reflects represented snapshot state (not envelope generation time)

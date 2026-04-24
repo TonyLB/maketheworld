@@ -6,7 +6,7 @@ import { PublishCommand } from '@aws-sdk/client-sns'
 import { StreamingEventPayloadContract, StreamingEventHeader, StreamEventHeaderFragment, StreamingEventEnvelope, DataSourceEventSerializer, EventPayload } from './baseClasses'
 import { CoreExternalFormat, fromDynamoDBFormat, DynamoDBFormat } from './formatTransform'
 import { DataSourceAggregator } from './aggregation'
-import { publishStreamEvent, StreamEventPublisherSerializer, wireFormatsFromCoreFormat, createSnapshotCoreFormat } from './streamEventPublisher'
+import { publishStreamEvent, StreamEventPublisherSerializer, wireFormatsFromCoreFormat } from './streamEventPublisher'
 
 export type SerializableObject = Record<string, unknown>
 
@@ -22,6 +22,15 @@ export type SnapshotType<SnapshotPayload extends SerializableObject> = SnapshotP
 
 export const resolveReplayCursorTimestamp = (snapshot: Pick<SnapshotMetadata, 'createdAt' | 'replayAt'>): number =>
     snapshot.replayAt ?? snapshot.createdAt
+
+const withSnapshotReplayMetadata = <SnapshotPayload extends SerializableObject>(
+    snapshot: SnapshotType<SnapshotPayload>,
+    createdAt: number
+): SnapshotType<SnapshotPayload> => ({
+    ...snapshot,
+    createdAt,
+    replayAt: resolveReplayCursorTimestamp(snapshot),
+})
 
 export type DynamoGetItemArgs = {
     Key: Record<string, string>
@@ -244,7 +253,7 @@ export class DataSource<
         // Check in-memory cache first (internal format)
         const cached = this._snapshots[streamKey]
         if (cached && now <= cached.expiresAt) {
-            const internalSnapshot = cached
+            const internalSnapshot = withSnapshotReplayMetadata(cached, cached.createdAt)
             // Serialize to external format for storage
             const snapshotHeader = { dataSourceKey: this.dataSourceKey, streamKey, timestamp: internalSnapshot.createdAt, type: 'Snapshot' as const }
             const externalPayload = this.eventSerializer
@@ -255,6 +264,7 @@ export class DataSource<
                 ...externalPayload,
                 type: 'Snapshot',
                 createdAt: internalSnapshot.createdAt,
+                replayAt: internalSnapshot.replayAt,
                 expiresAt: internalSnapshot.expiresAt
             } as SnapshotType<ExternalSnapshotPayload>
             return externalSnapshot
@@ -265,20 +275,21 @@ export class DataSource<
         if (loaded && now <= loaded.expiresAt) {
             // Deserialize and cache the internal format for future calls
             if (this.eventSerializer) {
-                const { createdAt, expiresAt, ...externalPayload } = loaded
+                const { createdAt, replayAt, expiresAt, ...externalPayload } = loaded
                 const snapshotHeader = { dataSourceKey: this.dataSourceKey, streamKey, timestamp: loaded.createdAt, type: 'Snapshot' as const }
                 const internalPayload = await this.eventSerializer.deserialize({ content: externalPayload as any, header: snapshotHeader as Header })
                 if (internalPayload) {
-                    const internalSnapshot = {
+                    const internalSnapshot = withSnapshotReplayMetadata({
                         ...internalPayload,
                         createdAt,
+                        replayAt,
                         expiresAt
-                    } as unknown as SnapshotType<SnapshotPayload>
+                    } as unknown as SnapshotType<SnapshotPayload>, createdAt)
                     this._snapshots[streamKey] = internalSnapshot
                 }
             } else {
                 // No serializer - assume internal and external are the same
-                this._snapshots[streamKey] = loaded as unknown as SnapshotType<SnapshotPayload>
+                this._snapshots[streamKey] = withSnapshotReplayMetadata(loaded as unknown as SnapshotType<SnapshotPayload>, loaded.createdAt)
             }
             
             return loaded
@@ -290,7 +301,8 @@ export class DataSource<
             argumentHash: streamKey,
             computation: async () => {
                 // Generate snapshot in internal format
-                const internalSnapshot = await this.generateSnapshot(streamKey)
+                const generatedInternalSnapshot = await this.generateSnapshot(streamKey)
+                const internalSnapshot = withSnapshotReplayMetadata(generatedInternalSnapshot, generatedInternalSnapshot.createdAt)
 
                 // Serialize to external format for storage
                 const snapshotHeader = { dataSourceKey: this.dataSourceKey, streamKey, timestamp: internalSnapshot.createdAt, type: 'Snapshot' as const }
@@ -302,6 +314,7 @@ export class DataSource<
                     ...externalPayload,
                     type: 'Snapshot',
                     createdAt: internalSnapshot.createdAt,
+                    replayAt: internalSnapshot.replayAt,
                     expiresAt: internalSnapshot.expiresAt
                 } as SnapshotType<ExternalSnapshotPayload>
 
@@ -322,20 +335,21 @@ export class DataSource<
         
         // Deserialize and cache the internal format for future calls
         if (this.eventSerializer) {
-            const { createdAt, expiresAt, ...externalPayload } = generated
+            const { createdAt, replayAt, expiresAt, ...externalPayload } = generated
             const snapshotHeader = { dataSourceKey: this.dataSourceKey, streamKey, timestamp: generated.createdAt, type: 'Snapshot' as const }
             const internalPayload = await this.eventSerializer.deserialize({ content: externalPayload as any, header: snapshotHeader as Header })
             if (internalPayload) {
-                const internalSnapshot = {
+                const internalSnapshot = withSnapshotReplayMetadata({
                     ...internalPayload,
                     createdAt,
+                    replayAt,
                     expiresAt
-                } as unknown as SnapshotType<SnapshotPayload>
+                } as unknown as SnapshotType<SnapshotPayload>, createdAt)
                 this._snapshots[streamKey] = internalSnapshot
             }
         } else {
             // No serializer - assume internal and external are the same
-            this._snapshots[streamKey] = generated as unknown as SnapshotType<SnapshotPayload>
+            this._snapshots[streamKey] = withSnapshotReplayMetadata(generated as unknown as SnapshotType<SnapshotPayload>, generated.createdAt)
         }
 
         return generated
@@ -361,15 +375,16 @@ export class DataSource<
 
         // Deserialize to internal format
         if (this.eventSerializer) {
-            const { createdAt, expiresAt, ...externalPayload } = externalSnapshot
+            const { createdAt, replayAt, expiresAt, ...externalPayload } = externalSnapshot
             const snapshotHeader = { dataSourceKey: this.dataSourceKey, streamKey, timestamp: externalSnapshot.createdAt, type: 'Snapshot' as const }
             const internalPayload = await this.eventSerializer.deserialize({ content: externalPayload as any, header: snapshotHeader as Header })
             if (internalPayload) {
-                const internalSnapshot = {
+                const internalSnapshot = withSnapshotReplayMetadata({
                     ...internalPayload,
                     createdAt,
+                    replayAt,
                     expiresAt
-                } as unknown as SnapshotType<SnapshotPayload>
+                } as unknown as SnapshotType<SnapshotPayload>, createdAt)
                 // Cache the internal snapshot
                 this._snapshots[streamKey] = internalSnapshot
                 return internalSnapshot
@@ -377,7 +392,7 @@ export class DataSource<
         }
 
         // No serializer - assume internal and external are the same
-        const internalSnapshot = externalSnapshot as unknown as SnapshotType<SnapshotPayload>
+        const internalSnapshot = withSnapshotReplayMetadata(externalSnapshot as unknown as SnapshotType<SnapshotPayload>, externalSnapshot.createdAt)
         this._snapshots[streamKey] = internalSnapshot
         return internalSnapshot
     }
@@ -622,7 +637,7 @@ export class DataSource<
         // (snapshotHeader + snapshotUpdate) and the legacy shape (snapshot blob) for migration.
         const result = await this.dynamo.getItem<Record<KeyType, string> & {
             DataCategory: string;
-            snapshotHeader?: CoreExternalFormat['header'];
+            snapshotHeader?: CoreExternalFormat['header'] & { replayAt?: unknown };
             snapshotUpdate?: ExternalSnapshotPayload;
             snapshot?: SnapshotType<ExternalSnapshotPayload>;
         }>({
@@ -639,12 +654,14 @@ export class DataSource<
             const header = result.snapshotHeader
             const update = result.snapshotUpdate
             const createdAt = header.timestamp
+            const replayAt = (typeof header.replayAt === 'number') ? header.replayAt : createdAt
             const expiresAt = createdAt + 300000 // 5 minutes default expiration
 
             const externalSnapshot: SnapshotType<ExternalSnapshotPayload> = {
                 ...(update as unknown as ExternalSnapshotPayload),
                 type: header.type ?? 'Snapshot',
                 createdAt,
+                replayAt,
                 expiresAt
             }
             return externalSnapshot
@@ -655,6 +672,7 @@ export class DataSource<
             const legacySnapshot = result.snapshot as SnapshotType<ExternalSnapshotPayload> & { type?: string }
             return {
                 ...legacySnapshot,
+                replayAt: resolveReplayCursorTimestamp(legacySnapshot),
                 type: legacySnapshot.type ?? 'Snapshot'
             }
         }
@@ -669,21 +687,26 @@ export class DataSource<
         }
         
         // Serialize snapshot to external format for storage (external snapshot payload)
-        const snapshotHeader = { dataSourceKey: this.dataSourceKey, streamKey, timestamp: snapshot.createdAt, type: 'Snapshot' as const }
+        const snapshotWithReplayMetadata = withSnapshotReplayMetadata(snapshot, snapshot.createdAt)
+        const snapshotHeader = {
+            dataSourceKey: this.dataSourceKey,
+            streamKey,
+            timestamp: snapshotWithReplayMetadata.createdAt,
+            type: 'Snapshot' as const,
+            replayAt: snapshotWithReplayMetadata.replayAt
+        }
         const baseExternalSnapshot = this.eventSerializer
-            ? this.eventSerializer.serialize({ content: snapshot as any, header: snapshotHeader as Header })
+            ? this.eventSerializer.serialize({ content: snapshotWithReplayMetadata as any, header: snapshotHeader as unknown as Header })
             : (() => {
-                const { createdAt, expiresAt, ...rest } = snapshot as SnapshotType<SnapshotPayload> & { type?: string }
+                const { createdAt, replayAt, expiresAt, ...rest } = snapshotWithReplayMetadata as SnapshotType<SnapshotPayload> & { type?: string }
                 return rest as unknown as ExternalSnapshotPayload
             })()
 
         // Build CoreExternalFormat for the snapshot: header.timestamp is the creation time
-        const coreFormat: CoreExternalFormat = createSnapshotCoreFormat(
-            this.dataSourceKey,
-            streamKey,
-            snapshot.createdAt,
-            baseExternalSnapshot as unknown as CoreExternalFormat['update']
-        )
+        const coreFormat: CoreExternalFormat = {
+            header: snapshotHeader,
+            update: baseExternalSnapshot as unknown as CoreExternalFormat['update']
+        }
 
         // Store as a CoreExternalFormat-shaped record under Meta::Snapshot
         await this.dynamo.putItem({
