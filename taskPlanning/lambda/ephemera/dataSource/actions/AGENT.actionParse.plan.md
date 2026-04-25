@@ -1,6 +1,6 @@
 # Action Parse DataSource Plan
 
-**Status:** In progress. Phases 1-3 are complete; next step is Phase 4 (action branch framework).
+**Status:** In progress. Phases 1-3 are complete; Phase 4 has started with `LookRoom` as a shipped branch pattern.
 
 ## Purpose
 
@@ -25,6 +25,16 @@ This plan is task-scoped and should be retired after the action parse initiative
 - LLM parser architecture (prompting, output schema, validation, fallback behavior).
 - Action branch taxonomy and per-branch response semantics (which branches return immediate success, deferred progress, errors, or multi-step conversation outputs).
 - Evolution from imperative parsing to DataSource-driven branch handling.
+
+## Durable branch pattern note
+
+The `LookRoom` affordance is now the reference branch for event-driven cross-DataSource behavior:
+
+- deterministic `look` / `l` fast path plus Step A `LookRoom` classification for paraphrases;
+- actions publishes `Look Command Requested` (typed payload + guard);
+- render orchestration subscriber enforces lane ordering (`Perception Thread Registered` -> `flush(lane)` -> default-lane `Render Requested`).
+
+Use this as the baseline when adding similar affordances that require perception/render coordination.
 
 ## Getting started
 
@@ -86,7 +96,8 @@ Use `[ ]` for pending and `[X]` for complete. Mark nested lines as you finish ea
 
 - [ ] Phase 4 - action branch framework
   - [ ] Define branch registry/routing by intent (single dispatch point).
-  - [ ] Implement first minimal branch set aligned with current affordances (e.g. look, move, home) through the new path.
+  - [X] Implement first minimal branch set aligned with current affordances (initial shipped branch: `LookRoom`).
+  - [ ] Extend branch set (e.g. move, home) through the new path.
   - [ ] Ensure branch outputs map cleanly to response patterns (immediate success, error, or deferred conversation step).
   - [ ] Preserve parity checks against legacy imperative behavior while migrating.
 

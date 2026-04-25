@@ -12,6 +12,23 @@ Parses slash-free and natural-language commands (**Bedrock**: intent classificat
 
 Related index: [`../AGENT.md`](../AGENT.md) (**DataSource instances** table).
 
+## Adding a new command affordance
+
+Use this sequence when adding a new parse affordance to `mtw.ephemera.actions`:
+
+1. Add a new discriminant in [`baseClasses.ts`](baseClasses.ts) (`ParseCommandResult` variant + type guard).
+2. In [`parseCommand.ts`](parseCommand.ts), prefer a deterministic short-circuit first when possible (no Bedrock call), then Step A classification, and run Step B only for intents that need enrichment.
+3. Keep the Step A label string, prompt enum, and interpretation guard aligned across [`buildParseCommandIntentClassificationPrompt.ts`](buildParseCommandIntentClassificationPrompt.ts), [`parseCommandIntentClassification.ts`](parseCommandIntentClassification.ts), and `baseClasses.ts`.
+4. In [`index.ts`](index.ts), branch on the affordance guard and either publish a stream event (preferred for multi-DataSource workflows) or apply local side effects for strictly local behavior.
+5. Add payload type + runtime guard in [`publishedEvents.ts`](publishedEvents.ts) for any new stream contract.
+
+### Room look as reference implementation
+
+- `LookRoom` shows the preferred cross-DataSource pattern for affordances that need render/perception ordering.
+- In-room `LookRoom` publishes **`Look Command Requested`** from actions.
+- `mtw.ephemera.renderOrchestration` subscribes and handles ordering: register `roomDescription` perception thread, `flush(lookCommandPerceptionThreadLaneId)`, then send default-lane `Render Requested`.
+- This keeps perception-thread visibility ordered before downstream render orchestration and reuse of existing `Render Pertains` -> terminal `PerceptionMessage` behavior.
+
 ---
 
 ## Acme catalog lines and `stableKey` (normative contract)
