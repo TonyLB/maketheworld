@@ -79,7 +79,7 @@ Canonical type string: **`LookRoom`**. Refine other implementation details (tie-
 | Actions `index.ts` handler + room resolution | Done |
 | Optional shared helper with `executeAction` | Done (`requestFullRoomDescriptionForCharacter`) |
 | Tests (parse + handler + mocked bus) | Done |
-| Event-driven look: actions outbound, render orchestration subscribe, lane-ordered `PerceptionThreads` then `Render Request` | Planned (see [Recommended order](#recommended-order) below) |
+| Event-driven look: actions outbound, render orchestration subscribe, lane-ordered `PerceptionThreads` then `Render Request` | In progress: outbound type + guard in [`publishedEvents.ts`](../../../../lambda/ephemera/dataSource/actions/publishedEvents.ts) (`Look Command Requested`); emit + subscribe + ordering still [Recommended order](#recommended-order) |
 | Durable doc touch-up (`dataSource/actions/AGENT.md`, `parse` pointer; post-next-phase render + actions `AGENT.md` ingress) | |
 
 ## Recommended order
@@ -93,7 +93,7 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested lines `[X]` a
 - [X] In [`index.ts`](../../../../lambda/ephemera/dataSource/actions/index.ts): handle **`LookRoom`**: not in room (OOC), else **register + render request** (reuse **`executeAction`** factoring if practical).
 - [X] Tests: **deterministic** (no mock Bedrock), **LLM fixture** (mock **`invokeBedrockParseCommand`**) for paraphrase intent, **handler** asserts **`sendPerceptionThreadRegistered` / `sendRenderRequested`** (or shared helper) with expected **`threadKind: 'roomDescription'`** and room id.
 - [X] Short **Verification** run (below); update **Progress** table; if behavior is non-obvious, add a line to [`lambda/ephemera/dataSource/actions/AGENT.md`](../../../../lambda/ephemera/dataSource/actions/AGENT.md) under Role or a new **Affordances** bullet.
-- [ ] **Next phase --- outbound envelope:** In [`publishedEvents.ts`](../../../../lambda/ephemera/dataSource/actions/publishedEvents.ts), add a **`mtw.ephemera.actions` payload** (e.g. type **`Look Command Requested`**) with fields needed for render orchestration (e.g. **`characterId`**, **`roomId`**, **`confidence`**; align with [`requestFullRoomDescriptionForCharacter`](../../../../lambda/ephemera/dataSource/actions/requestFullRoomDescriptionForCharacter.ts) and **`RenderRequestedCommand`** as needed). Add a runtime **type guard** if other actions outbounds use one.
+- [X] **Next phase --- outbound envelope:** In [`publishedEvents.ts`](../../../../lambda/ephemera/dataSource/actions/publishedEvents.ts), add a **`mtw.ephemera.actions` payload** (e.g. type **`Look Command Requested`**) with fields needed for render orchestration (e.g. **`characterId`**, **`roomId`**, **`confidence`**; align with [`requestFullRoomDescriptionForCharacter`](../../../../lambda/ephemera/dataSource/actions/requestFullRoomDescriptionForCharacter.ts) and **`RenderRequestedCommand`** as needed). Add a runtime **type guard** if other actions outbounds use one.
 - [ ] **Next phase --- emit from actions:** In [`index.ts`](../../../../lambda/ephemera/dataSource/actions/index.ts), for **`LookRoom`**, **`streamEvent`** the new outbound in-room (and stop or feature-flag the direct **`requestFullRoomDescriptionForCharacter`** call so there is a single code path to production). Keep **OOC** and **paraphrase** tests aligned.
 - [ ] **Next phase --- render orchestration subscription:** Extend [`isRenderOrchestrationSubscribedEnvelope`](../../../../lambda/ephemera/dataSource/renderOrchestration/subscribedEvents.ts) and related types so **`dataSourceKey: 'mtw.ephemera.actions'`** + the new header **`type`** are part of the union; update **`RenderOrchestrationSubscribedContent`** in [`orchestrationHandler.ts`](../../../../lambda/ephemera/dataSource/renderOrchestration/orchestrationHandler.ts) (and imports) to narrow the new case.
 - [ ] **Next phase --- handler and ordering:** In the new branch, **enqueue** **`PerceptionThreads` registration** (or **`sendPerceptionThreadRegistered`**) on a **named** **`messageBus` `laneId`**; **await** **`messageBus.flush(thatLaneId)`**; then invoke the **existing** passive render pipeline (**`sendRenderRequested`**, fast-paths, **etc.**) so **correlation** sees an established **`roomDescription`** row before **`Render Pertains`**.
@@ -106,6 +106,7 @@ From `lambda/ephemera/` (Jest; use **exact** commands from the repo if [`AGENT.m
 
 ```bash
 cd lambda/ephemera && npx jest dataSource/actions/parseCommand.test.ts dataSource/actions/index.test.ts --runInBand
+cd lambda/ephemera && npx jest dataSource/actions/publishedEvents.test.ts --runInBand
 cd lambda/ephemera && npm run build
 ```
 
@@ -113,7 +114,7 @@ Grep spot-checks after implementation:
 
 - `LookRoom` in `baseClasses.ts`, and after later slices in `parseCommand.ts`, `index.ts`.
 - `roomDescription` + `sendRenderRequested` in the new handler path (or shared module).
-- After the next phase: new **`Look Command Requested`** (or final name) in `publishedEvents.ts` + `isRenderOrchestrationSubscribedEnvelope` + perception **lane** `flush` in logs/tests.
+- `LookCommandRequestedPublishedPayload` / **`Look Command Requested`** + **`isLookCommandRequestedPublishedPayload`** in `publishedEvents.ts` (Jest: `dataSource/actions/publishedEvents.test.ts`). Remaining next phase: `isRenderOrchestrationSubscribedEnvelope` + perception **lane** `flush` in logs/tests.
 
 ## When this task finishes
 
