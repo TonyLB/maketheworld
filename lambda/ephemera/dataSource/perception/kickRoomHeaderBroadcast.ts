@@ -98,7 +98,7 @@ export async function kickPassiveRenderRequestedForCharacterInRoom(options: {
     assets: readonly string[];
     messageBus: MessageBus;
     useDefaultMessageBusLane?: boolean;
-}): Promise<void> {
+}): Promise<boolean> {
     const { roomId, characterId, assets, messageBus, useDefaultMessageBusLane } = options
     const roomAssetStack = await resolveRoomAssetStackForRoom(roomId, {
         RoomAssets: internalCache.RoomAssets,
@@ -109,11 +109,12 @@ export async function kickPassiveRenderRequestedForCharacterInRoom(options: {
     })
     const filteredAssetStack = filterRoomCanonStackByCharacterAssets(roomAssetStack, assets, roomCanonStack)
     if (filteredAssetStack.length === 0) {
-        return
+        return false
     }
     sendRenderRequested(messageBus, roomId, {
         componentId: roomId,
         perspective: { assetStack: filteredAssetStack },
         characterId,
     }, useDefaultMessageBusLane ? { useDefaultMessageBusLane: true } : undefined)
+    return true
 }

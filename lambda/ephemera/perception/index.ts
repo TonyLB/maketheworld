@@ -9,7 +9,7 @@ import { schemaToWML } from "@tonylb/mtw-wml/ts/schema"
 import { sendCharacterPerceptionRequested } from "../dataSource/perception/subscribedEvents"
 import { roomHeaderGeneratingPlaceholderWml } from "../dataSource/perception/roomHeaderPlaceholderWml"
 import { kickRoomHeaderBroadcastForRoom } from "../dataSource/perception/kickRoomHeaderBroadcast"
-import { roomRenderChannelWmlForRoomId } from "../dataSource/perception/roomRenderWmlFromCacheRecord"
+import { roomHeaderChannelWmlForRoomId, roomRenderChannelWmlForRoomId } from "../dataSource/perception/roomRenderWmlFromCacheRecord"
 
 /**
  * When false, Perception requests for MAP# ids do not emit EphemeraUpdate MapUpdate.
@@ -56,7 +56,9 @@ export const perceptionMessage = async ({
                 const internalCache = getCache()
                 const characterList = payload.characterId ? [payload.characterId] : (await internalCache.RoomCharacterList.get(payload.ephemeraId)).map(({ EphemeraId }) => (EphemeraId))
                 const cacheRecords = await internalCache.RenderCache.get(payload.ephemeraId)
-                const wmlContent = roomRenderChannelWmlForRoomId(payload.ephemeraId, cacheRecords)
+                const wmlContent = payload.header
+                    ? roomHeaderChannelWmlForRoomId(payload.ephemeraId, cacheRecords)
+                    : roomRenderChannelWmlForRoomId(payload.ephemeraId, cacheRecords)
                 for (const characterId of characterList) {
                     messageBus.send({
                         type: 'PublishMessage',
