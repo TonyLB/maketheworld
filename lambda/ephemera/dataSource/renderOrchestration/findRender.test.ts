@@ -139,4 +139,19 @@ describe('dataSource/renderOrchestration/findRender', () => {
             })
         )
     })
+
+    it('calls slow-path generation without resolve-level generationContextWml', async () => {
+        const deps = baseDeps()
+        const resolve: RenderResolveInputSuccess = {
+            ...baseResolve,
+            allowGeneration: true,
+        }
+        await findRender(resolve, deps)
+        expect(deps.generateRoomPreview).toHaveBeenCalledWith(
+            expect.not.objectContaining({ generationContextWml: expect.anything() }),
+            expect.objectContaining({
+                flushOrchestrationLane: expect.any(Function),
+            })
+        )
+    })
 })

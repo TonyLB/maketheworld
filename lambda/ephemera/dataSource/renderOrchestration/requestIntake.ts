@@ -64,7 +64,6 @@ export const intakeRenderRequested = async (
         markState: stateMarks,
         markProvenance: 'meta',
         allowGeneration: payload.allowGeneration,
-        generationContextWml: payload.generationContextWml,
         ...(pointerId !== undefined ? { pointerHint: pointerId } : {}),
     }
 

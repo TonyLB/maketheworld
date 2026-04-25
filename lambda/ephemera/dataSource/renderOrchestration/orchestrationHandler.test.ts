@@ -332,6 +332,10 @@ describe('dataSource/renderOrchestration/orchestrationHandler', () => {
             }
         )
         expect(generateRoomPreview).toHaveBeenCalled()
+        expect(generateRoomPreview).toHaveBeenCalledWith(
+            expect.not.objectContaining({ generationContextWml: expect.anything() }),
+            expect.any(Object)
+        )
         let sawRenderGenerated = false
         for (const call of messageBus.send.mock.calls) {
             const msg = call[0] as { type?: string; dataSourceKey?: string; getContent?: () => Promise<unknown> }

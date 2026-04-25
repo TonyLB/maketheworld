@@ -5,10 +5,12 @@ jest.mock('uuid', () => ({
 
 import { generateRoomPreview } from './generateRoomPreview'
 import { passThroughSingleFlight } from './singleFlightRenderGeneration'
+import internalCache from '../../internalCache'
 import type {
     EphemeraCacheMarkState,
     EphemeraCacheRenderedContent,
 } from '../renderCache/baseClasses'
+import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
 
 const makeMarkState = (entries: Array<{ mark: string; value: string }>): EphemeraCacheMarkState => ({
     markValue: entries
@@ -23,26 +25,46 @@ describe('dataSource/renderOrchestration/generateRoomPreview', () => {
         noopPublishOrchestration.mockResolvedValue(undefined)
     })
 
-    it('publishes Orchestration Error CONTEXT_REQUIRED and returns fail when no generationContextWml', async () => {
+    it('derives context from GenerationContext cache when generationContextWml is omitted', async () => {
+        const generationContextSpy = jest.spyOn(internalCache.GenerationContext, 'get').mockResolvedValue({
+            componentId: roomId,
+            shortName: new StandardLiteral('Test Room'),
+        })
+        const generateRoomDescriptionImpl = jest.fn().mockResolvedValue({
+            success: false,
+            errorCode: 'NO_EXACT_MATCH',
+            errorMessage: 'No exact match for proposed state'
+        })
+        const queryCacheRecordsForComponentImpl = jest.fn().mockResolvedValue([])
+
         const result = await generateRoomPreview({
             roomId,
             markState: makeMarkState([{ mark: 'MARK#a', value: 'one' }]),
             assetStack: ['ASSET#one']
-        }, { publishOrchestration: noopPublishOrchestration, runWithSingleFlight: passThroughSingleFlight })
+        }, {
+            publishOrchestration: noopPublishOrchestration,
+            runWithSingleFlight: passThroughSingleFlight,
+            generateRoomDescriptionImpl,
+            queryCacheRecordsForComponentImpl,
+        })
 
         expect(result).toBe('fail')
-        expect(noopPublishOrchestration).toHaveBeenCalledTimes(1)
-        expect(noopPublishOrchestration).toHaveBeenCalledWith({
+        expect(generationContextSpy).toHaveBeenCalledWith(roomId, ['ASSET#one'])
+        expect(noopPublishOrchestration).toHaveBeenCalledTimes(2)
+        expect(noopPublishOrchestration).toHaveBeenNthCalledWith(1, expect.objectContaining({
+            type: 'Generation Started',
+            phase: 'generating',
+        }))
+        expect(noopPublishOrchestration).toHaveBeenNthCalledWith(2, expect.objectContaining({
             type: 'Orchestration Error',
-            componentId: roomId,
-            perspective: { assetStack: ['ASSET#one'] },
-            perspectiveKey: expect.any(String),
-            errorCode: 'CONTEXT_REQUIRED',
-            errorMessage: 'Generation context required',
-        })
+            errorCode: 'NO_EXACT_MATCH',
+            errorMessage: 'No exact match for proposed state',
+        }))
+        generationContextSpy.mockRestore()
     })
 
-    it('publishes Orchestration Error CONTEXT_REQUIRED and returns fail when invalid generationContextWml', async () => {
+    it('publishes Orchestration Error CONTEXT_REQUIRED when neither ingress nor cache can provide context', async () => {
+        const generationContextSpy = jest.spyOn(internalCache.GenerationContext, 'get').mockResolvedValue(undefined)
         const result = await generateRoomPreview({
             roomId,
             markState: makeMarkState([{ mark: 'MARK#a', value: 'one' }]),
@@ -52,11 +74,13 @@ describe('dataSource/renderOrchestration/generateRoomPreview', () => {
 
         expect(result).toBe('fail')
         expect(noopPublishOrchestration).toHaveBeenCalledTimes(1)
+        expect(generationContextSpy).toHaveBeenCalledWith(roomId, ['ASSET#one'])
         expect(noopPublishOrchestration).toHaveBeenCalledWith(expect.objectContaining({
             type: 'Orchestration Error',
             errorCode: 'CONTEXT_REQUIRED',
             errorMessage: 'Generation context required',
         }))
+        generationContextSpy.mockRestore()
     })
 
     it('publishes Generation Started then Orchestration Error NO_EXACT_MATCH when valid context but generation fails', async () => {
