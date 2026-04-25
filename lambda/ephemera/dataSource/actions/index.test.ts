@@ -2,7 +2,6 @@ import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import { ephemeraActionsDataSource } from './index'
 import messageBus from '../../messageBus'
-import internalCache from '../../internalCache'
 import { parseCommand } from './parseCommand'
 import { collectCoyoteOccupiedStableKeys } from './collectCoyoteOccupiedStableKeys'
 import { finalizeStableKeysDeterministic } from './finalizeStableKeysDeterministic'
@@ -15,7 +14,6 @@ import { sendRenderRequested } from '../renderOrchestration/subscribedEvents'
 jest.mock('@tonylb/mtw-wml/ts/schema', () => ({
     schemaToWML: jest.fn(() => '<Asset />'),
 }))
-jest.mock('../../internalCache')
 jest.mock('../perception/subscribedEvents', () => {
     const actual = jest.requireActual('../perception/subscribedEvents') as object
     return {
@@ -49,8 +47,6 @@ jest.mock('./runAcmeOrderAffinitiesHarness', () => ({
 }))
 
 const mockMessageBus = messageBus as jest.Mocked<typeof messageBus>
-// @ts-ignore - full mock surface for look-room path
-const internalCacheMock = jest.mocked(internalCache, true)
 const mockSendPerceptionThreadRegistered = sendPerceptionThreadRegistered as jest.MockedFunction<typeof sendPerceptionThreadRegistered>
 const mockSendRenderRequested = sendRenderRequested as jest.MockedFunction<typeof sendRenderRequested>
 const mockedParseCommand = jest.mocked(parseCommand)
@@ -287,20 +283,13 @@ describe('ephemeraActionsDataSource', () => {
             })
         })
 
-        it('registers roomDescription and requests render when in a room (deterministic LookRoom)', async () => {
+        it('streams Look Command Requested when in a room (deterministic LookRoom)', async () => {
             mockedParseCommand.mockResolvedValue({ type: 'LookRoom', confidence: 1 })
             mockedGetRoomExitTargetsForCharacter.mockResolvedValue({
                 fromRoomId: currentRoom,
                 toRoomIds: [],
             })
-            internalCacheMock.CharacterMeta.get = jest.fn().mockResolvedValue({
-                assets: ['ASSET#one'],
-            })
-            internalCacheMock.RoomAssets = { get: jest.fn().mockResolvedValue([]) } as any
-            internalCacheMock.AssetMetaData = { get: jest.fn().mockResolvedValue([]) } as any
-            internalCacheMock.ComponentRender = {
-                get: jest.fn().mockResolvedValue({ schema: {} }),
-            } as any
+            const streamEvent = jest.fn(async () => {})
 
             await ephemeraActionsDataSource.receiveEvents!({
                 events: [{
@@ -316,28 +305,22 @@ describe('ephemeraActionsDataSource', () => {
                         requestId: 'req-look',
                     }),
                 }],
-                streamEvent: jest.fn(async () => {}),
+                streamEvent,
                 streamEnvelope: jest.fn(async () => {}),
             })
 
-            expect(mockSendPerceptionThreadRegistered).toHaveBeenCalledWith(
-                mockMessageBus,
-                currentRoom,
-                expect.objectContaining({
-                    threadKind: 'roomDescription',
-                    componentId: currentRoom,
+            expect(streamEvent).toHaveBeenCalledWith({
+                streamKey: 'CHARACTER#123',
+                header: { type: 'Look Command Requested' },
+                update: {
+                    type: 'Look Command Requested',
                     characterId: 'CHARACTER#123',
-                }),
-            )
-            expect(mockSendRenderRequested).toHaveBeenCalledWith(
-                mockMessageBus,
-                currentRoom,
-                expect.objectContaining({
-                    componentId: currentRoom,
-                    characterId: 'CHARACTER#123',
-                    generationContextWml: '<Asset />',
-                }),
-            )
+                    roomId: currentRoom,
+                    confidence: 1,
+                },
+            })
+            expect(mockSendPerceptionThreadRegistered).not.toHaveBeenCalled()
+            expect(mockSendRenderRequested).not.toHaveBeenCalled()
             expect(mockMessageBus.send).toHaveBeenCalledWith({
                 type: 'ReturnValue',
                 body: {
@@ -348,20 +331,13 @@ describe('ephemeraActionsDataSource', () => {
             })
         })
 
-        it('registers roomDescription for Step A LookRoom (paraphrase) same as bare look', async () => {
+        it('streams Look Command Requested for Step A LookRoom (paraphrase) with confidence from parse', async () => {
             mockedParseCommand.mockResolvedValue({ type: 'LookRoom', confidence: 0.91 })
             mockedGetRoomExitTargetsForCharacter.mockResolvedValue({
                 fromRoomId: currentRoom,
                 toRoomIds: [],
             })
-            internalCacheMock.CharacterMeta.get = jest.fn().mockResolvedValue({
-                assets: ['ASSET#one'],
-            })
-            internalCacheMock.RoomAssets = { get: jest.fn().mockResolvedValue([]) } as any
-            internalCacheMock.AssetMetaData = { get: jest.fn().mockResolvedValue([]) } as any
-            internalCacheMock.ComponentRender = {
-                get: jest.fn().mockResolvedValue({ schema: {} }),
-            } as any
+            const streamEvent = jest.fn(async () => {})
 
             await ephemeraActionsDataSource.receiveEvents!({
                 events: [{
@@ -376,27 +352,22 @@ describe('ephemeraActionsDataSource', () => {
                         command: 'examine the room',
                     }),
                 }],
-                streamEvent: jest.fn(async () => {}),
+                streamEvent,
                 streamEnvelope: jest.fn(async () => {}),
             })
 
-            expect(mockSendPerceptionThreadRegistered).toHaveBeenCalledWith(
-                mockMessageBus,
-                currentRoom,
-                expect.objectContaining({
-                    threadKind: 'roomDescription',
-                    componentId: currentRoom,
+            expect(streamEvent).toHaveBeenCalledWith({
+                streamKey: 'CHARACTER#123',
+                header: { type: 'Look Command Requested' },
+                update: {
+                    type: 'Look Command Requested',
                     characterId: 'CHARACTER#123',
-                }),
-            )
-            expect(mockSendRenderRequested).toHaveBeenCalledWith(
-                mockMessageBus,
-                currentRoom,
-                expect.objectContaining({
-                    componentId: currentRoom,
-                    characterId: 'CHARACTER#123',
-                }),
-            )
+                    roomId: currentRoom,
+                    confidence: 0.91,
+                },
+            })
+            expect(mockSendPerceptionThreadRegistered).not.toHaveBeenCalled()
+            expect(mockSendRenderRequested).not.toHaveBeenCalled()
         })
     })
 

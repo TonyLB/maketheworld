@@ -28,7 +28,6 @@ import {
     isParseCommandUnknownResult,
 } from './baseClasses'
 import { parseCommand } from './parseCommand'
-import { requestFullRoomDescriptionForCharacter } from './requestFullRoomDescriptionForCharacter'
 import { collectCoyoteOccupiedStableKeys } from './collectCoyoteOccupiedStableKeys'
 import { finalizeStableKeysDeterministic } from './finalizeStableKeysDeterministic'
 import { runAcmeOrderAffinitiesHarness } from './runAcmeOrderAffinitiesHarness'
@@ -150,11 +149,16 @@ export const ephemeraActionsDataSource = new EphemeraDataSource<
                     })
                 }
                 else {
-                    await requestFullRoomDescriptionForCharacter(
-                        messageBus,
-                        content.characterId,
-                        fromRoomId,
-                    )
+                    await streamEvent({
+                        streamKey: content.characterId,
+                        header: { type: 'Look Command Requested' },
+                        update: {
+                            type: 'Look Command Requested',
+                            characterId: content.characterId,
+                            roomId: fromRoomId,
+                            confidence: parseResult.confidence,
+                        },
+                    })
                 }
             }
             else if (isEphemeraCharacterId(content.characterId) && isParseCommandAcmeOrderResult(parseResult)) {
