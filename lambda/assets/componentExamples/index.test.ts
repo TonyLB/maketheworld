@@ -289,7 +289,7 @@ describe('ComponentExamplesDataSource (mtw.assets.componentExamples)', () => {
             })
         })
 
-        it('does not publish componentExamples events for Room updates (Gate D: Room excluded from Example-lifecycle filter)', async () => {
+        it('publishes ExampleUpdated for Room updates by mirroring Situation facets', async () => {
             const mockStreamEvent = jest.fn().mockResolvedValue(undefined)
             const mockStreamEnvelope = jest.fn().mockResolvedValue(undefined)
 
@@ -388,7 +388,17 @@ describe('ComponentExamplesDataSource (mtw.assets.componentExamples)', () => {
                 streamEnvelope: mockStreamEnvelope,
             })
 
-            expect(mockStreamEvent).toHaveBeenCalledTimes(0)
+            expect(mockStreamEvent).toHaveBeenCalledTimes(1)
+            expect(mockStreamEvent).toHaveBeenCalledWith({
+                streamKey: 'SITUATION#s1',
+                update: expect.objectContaining({
+                    type: 'ExampleUpdated',
+                    exampleId: 'SITUATION#s1',
+                    parentIds: ['ROOM#one'],
+                    assetStack: ['ASSET#room1'],
+                }),
+                header: { type: 'ExampleUpdated' },
+            })
         })
     })
 })

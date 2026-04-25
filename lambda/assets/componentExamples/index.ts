@@ -1,9 +1,9 @@
 //
 // Non-replayable DataSource for mtw.assets.componentExamples
 //
-// Subscribes to mtw.assets Component Updated / Component Removed and filters to
-// Example-associated components only (Example, Feature, Knowledge per exampleAssociatedFilter).
-// Events on this stream may carry Situation ids and situation-facet payloads (Phase 3);
+// Subscribes to mtw.assets Component Updated / Component Removed and publishes
+// Example-lifecycle events for Example-associated components (Example, Feature, Knowledge per
+// exampleAssociatedFilter) plus Room Situation-facet mirror events.
 // "Example" in event names is legacy.
 //
 import { AssetsDataSource } from '../dataSource/abstract'
@@ -48,9 +48,6 @@ export const componentExamplesDataSource = new AssetsDataSource<
                     return
                 }
                 const content = await event.getContent()
-                if (!isExampleAssociatedComponent(content.component)) {
-                    return
-                }
                 const assetId = event.header.streamKey as AssetUUID
                 const eventType = event.header.type
 
@@ -157,6 +154,10 @@ export const componentExamplesDataSource = new AssetsDataSource<
                             header: { type: 'ExampleUpdated' },
                         })
                     }
+                    return
+                }
+
+                if (!isExampleAssociatedComponent(content.component)) {
                     return
                 }
 
