@@ -98,6 +98,19 @@ describe('ComponentExamplesDataSource (mtw.assets.componentExamples)', () => {
             expect(componentExamplesDataSource.subscribedEventTypeGuard?.(envelope)).toBe(true)
         })
 
+        it('should subscribe to Component Republished events from mtw.assets', () => {
+            const envelope = {
+                header: {
+                    dataSourceKey: 'mtw.assets',
+                    streamKey: 'ASSET#asset123',
+                    timestamp: Date.now(),
+                    type: 'Component Republished',
+                },
+                getContent: () => Promise.resolve({ component: {} }),
+            }
+            expect(componentExamplesDataSource.subscribedEventTypeGuard?.(envelope)).toBe(true)
+        })
+
         it('should not subscribe to events from other data sources', () => {
             const envelope = {
                 header: {
@@ -210,6 +223,69 @@ describe('ComponentExamplesDataSource (mtw.assets.componentExamples)', () => {
                 universalKey: 'EXAMPLE#one',
             })
 
+            expect(mockStreamEvent).toHaveBeenCalledTimes(1)
+            expect(mockStreamEvent).toHaveBeenCalledWith({
+                streamKey: 'EXAMPLE#one',
+                update: {
+                    type: 'ExampleUpdated',
+                    exampleId: 'EXAMPLE#one',
+                    parentIds: ['ROOM#one'],
+                    assetStack: ['ASSET#asset1'],
+                    perspectiveMatcher: { requiredAssetIds: ['ASSET#asset1'], forbiddenAssetIds: [] },
+                    example: {
+                        markState: { markValue: [] },
+                        renderedContent: { description: [] },
+                        provenance: { type: 'authored' },
+                    },
+                },
+                header: { type: 'ExampleUpdated' },
+            })
+        })
+
+        it('should publish ExampleUpdated for Example Component Republished events with enrichment', async () => {
+            ;(enrichExampleEvent as jest.Mock).mockResolvedValue({
+                exampleId: 'EXAMPLE#one',
+                assetStack: ['ASSET#asset1'],
+                parentIds: ['ROOM#one'],
+                example: {
+                    markState: { markValue: [] },
+                    renderedContent: { description: [] },
+                    provenance: { type: 'authored' },
+                },
+            })
+
+            const events: ComponentExamplesIncomingEvent[] = [
+                {
+                    header: {
+                        dataSourceKey: 'mtw.assets',
+                        streamKey: 'ASSET#asset1',
+                        timestamp: 123,
+                        type: 'Component Republished',
+                    },
+                    getContent: () =>
+                        Promise.resolve({
+                            type: 'Component Updated',
+                            component: new StandardExample({
+                                tag: 'Example',
+                                universalKey: 'EXAMPLE#one',
+                            } as any),
+                        } as any),
+                },
+            ]
+
+            await componentExamplesDataSource.receiveEvents?.({
+                events,
+                streamEvent: mockStreamEvent,
+                streamEnvelope: mockStreamEnvelope,
+            })
+
+            expect(enrichExampleEvent).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    exampleId: 'EXAMPLE#one',
+                    eventAssetId: 'ASSET#asset1',
+                    eventType: 'Component Updated',
+                })
+            )
             expect(mockStreamEvent).toHaveBeenCalledTimes(1)
             expect(mockStreamEvent).toHaveBeenCalledWith({
                 streamKey: 'EXAMPLE#one',

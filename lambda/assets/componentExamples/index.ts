@@ -166,11 +166,16 @@ export const componentExamplesDataSource = new AssetsDataSource<
                     return
                 }
 
+                const enrichmentEventType = (
+                    eventType === 'Component Republished'
+                        ? 'Component Updated'
+                        : eventType
+                )
                 const enriched = await enrichExampleEvent({
                     exampleId: content.component.universalKey as ComponentUUID,
                     eventAssetId: assetId,
                     component: content.component,
-                    eventType,
+                    eventType: enrichmentEventType,
                 })
 
                 const streamKey = enriched.exampleId
@@ -196,7 +201,7 @@ export const componentExamplesDataSource = new AssetsDataSource<
                     return
                 }
 
-                if (eventType === 'Component Updated') {
+                if (eventType === 'Component Updated' || eventType === 'Component Republished') {
                     if (!enriched.example) {
                         return
                     }
