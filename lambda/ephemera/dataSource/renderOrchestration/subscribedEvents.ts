@@ -4,7 +4,6 @@
  * Part of mtw.ephemera.renderOrchestration (see ../AGENT.md).
  * Internal-only publish path uses dataSourceKey 'api.ephemera'; stream outbounds are defined in publishedEvents.ts.
  */
-import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import {
     StreamingEventEnvelope,
     StreamingEventHeader,
@@ -62,14 +61,6 @@ export const isLookCommandRequestedActionsEnvelope = makeStreamingEnvelopeGuardF
     StreamingEventHeader & { dataSourceKey: 'mtw.ephemera.actions'; type: 'Look Command Requested' }
 >(isLookCommandRequestedHeader)
 
-/** Perception thread registration for event-driven `look` before default-lane `Render Requested` (see handleLookCommandRequested). */
-export function lookCommandPerceptionThreadLaneId(args: {
-    roomId: EphemeraRoomId;
-    characterId: EphemeraCharacterId;
-}): string {
-    return `lookCommand:perceptionThread:${args.roomId}:${args.characterId}`
-}
-
 /** Ingress (`api.ephemera` render), `mtw.ephemera.actions` `Look Command Requested`, and `State Changed` (passive fan-out). */
 export type RenderOrchestrationSubscribedContent =
     | RenderOrchestrationIngressCommand
@@ -100,7 +91,7 @@ const apiEphemeraSerializer = {
 
 export type SendRenderRequestedOptions = {
     /**
-     * When set, the message is on the default bus lane so an in-flight `flush` picks it up (e.g. event-driven look after `flush(lookCommandPerceptionThreadLaneId)`). Otherwise uses {@link renderOrchestrationIngressLaneId}.
+     * When set, the message is on the default bus lane so an in-flight `flush` picks it up (e.g. event-driven look after flushing its run-scoped perception lane). Otherwise uses {@link renderOrchestrationIngressLaneId}.
      */
     useDefaultMessageBusLane?: boolean
 }

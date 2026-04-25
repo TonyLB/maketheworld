@@ -108,7 +108,6 @@ export const findRender = async (
             roomId: resolve.roomId,
             markState: resolve.markState,
             assetStack: resolve.perspective.assetStack,
-            generationContextWml: resolve.generationContextWml,
         },
         {
             publishOrchestration: async (content) => {

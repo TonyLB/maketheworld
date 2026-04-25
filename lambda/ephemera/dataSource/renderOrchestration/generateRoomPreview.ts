@@ -1,6 +1,6 @@
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraCacheId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import type { AssetUUID } from '@tonylb/mtw-base/ts/schema'
+import type { AssetUUID, ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import { v4 as uuidv4 } from 'uuid'
 import { perspectiveMatches, computePerspectiveKey, type Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
 import { delayPromise } from '@tonylb/mtw-utilities/ts/dynamoDB/delayPromise'
@@ -31,6 +31,28 @@ export type GenerateRoomPreviewInput = {
 }
 
 type GenerateRoomDescription = typeof generateRoomDescription
+
+const generationContextFormFromCache = async (
+    roomId: EphemeraRoomId,
+    assetStack: AssetUUID[],
+): Promise<StandardForm | undefined> => {
+    const generationContext = await internalCache.GenerationContext.get(
+        roomId as ComponentUUID,
+        assetStack
+    )
+    if (!generationContext) {
+        return undefined
+    }
+    const provisionalForm = new StandardForm([
+        { tag: 'Asset', universalKey: 'ASSET#generationContext', key: 'generationContext' },
+        {
+            tag: 'Room',
+            universalKey: roomId,
+            shortName: generationContext.shortName.toJSON(),
+        },
+    ])
+    return provisionalForm
+}
 
 export type GetExactMatchForGeneration = (input: {
     componentId: EphemeraRoomId;
@@ -110,6 +132,13 @@ export const generateRoomPreview = async (
             parsedContext = new StandardForm(generationContextWml)
         } catch {
             // invalid WML; parsedContext stays null
+        }
+    }
+    if (!parsedContext) {
+        try {
+            parsedContext = await generationContextFormFromCache(roomId, perspective.assetStack) ?? null
+        } catch {
+            // missing/invalid derived context; parsedContext stays null
         }
     }
 

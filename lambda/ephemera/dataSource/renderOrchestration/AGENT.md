@@ -29,9 +29,17 @@ Orchestration keeps **policy and multi-step lifecycle sequencing** out of neighb
 
 ## What passive orchestration does today
 
-1. Subscribes to internal `api.ephemera` streaming envelopes with header type **`Render Requested`**, to **`mtw.ephemera.state` `State Changed`** (fan-out, see [Passive state fan-out](#passive-state-fan-out-s--a-union-p)), and to sibling **`mtw.ephemera.actions` `Look Command Requested`** (room full-look: [`handleLookCommandRequestedForRenderOrchestration.ts`](handleLookCommandRequestedForRenderOrchestration.ts) + [`subscribedEvents.ts`](subscribedEvents.ts) `isLookCommandRequestedActionsEnvelope`, **`lookCommandPerceptionThreadLaneId`**).
-2. Maps `Render Requested` ingress to **`RenderRequested`** and runs **`orchestrateRenderRequest`** (`orchestrationHandler.ts`): intake (`requestIntake.ts`), optional **`Orchestration Error`** from `intakeErrors.ts`, then **`findRender`**, then **`generateRoomPreview`** on cache miss when policy allows. The **look** path: **`Perception Thread Registered`** on a **named** lane, **`await messageBus.flush(thatLane)`** so the thread row exists, then **`sendRenderRequested`** on the **default** lane with **`useDefaultMessageBusLane: true`** (no `renderOrchestration:*` lane for that kick; the in-flight `flush` drains default-lane work).
+1. Subscribes to internal `api.ephemera` streaming envelopes with header type **`Render Requested`**, to **`mtw.ephemera.state` `State Changed`** (fan-out, see [Passive state fan-out](#passive-state-fan-out-s--a-union-p)), and to sibling **`mtw.ephemera.actions` `Look Command Requested`** (room full-look: [`handleLookCommandRequestedForRenderOrchestration.ts`](handleLookCommandRequestedForRenderOrchestration.ts) + [`subscribedEvents.ts`](subscribedEvents.ts) `isLookCommandRequestedActionsEnvelope`, with a run-scoped perception lane for send+flush ordering).
+2. Maps `Render Requested` ingress to **`RenderRequested`** and runs **`orchestrateRenderRequest`** (`orchestrationHandler.ts`): intake (`requestIntake.ts`), optional **`Orchestration Error`** from `intakeErrors.ts`, then **`findRender`**, then **`generateRoomPreview`** on cache miss when policy allows. The **look** path: **`Perception Thread Registered`** on the **same run-scoped** lane (prefix `lookCommand:perceptionThread:` plus `uuidv4()`), **`await messageBus.flush(thatLane)`** so the thread row exists, then **`sendRenderRequested`** on the **default** lane with **`useDefaultMessageBusLane: true`** (no `renderOrchestration:*` lane for that kick; the in-flight `flush` drains default-lane work).
 3. Publishes **six outbound** payload types on **`mtw.ephemera.renderOrchestration`** (union in [`publishedEvents.ts`](publishedEvents.ts)): **`Current Cache Valid`**, **`Exact Match Found`**, **`Generation Started`**, **`Render Generated`**, **`Orchestration Error`**, **`Generation Deferred`**.
+
+### Generation context (passive slow path)
+
+Slow-path room generation resolves **grounding context inside** [`generateRoomPreview.ts`](generateRoomPreview.ts):
+optional ingress **`generationContextWml`** is parsed when present; otherwise context is loaded from
+**`internalCache.GenerationContext`** using **`roomId`** and perspective **`assetStack`**. Upstream
+orchestration and intake do **not** pre-assemble or carry `generationContextWml` on the resolve object.
+Canonical intent and cache behavior: [`../../internalCache/generationContext/AGENT.md`](../../internalCache/generationContext/AGENT.md).
 
 **Not orchestration-owned:** durable **`CACHE#...`** writes or the final correlated **`Render Pertains`** signal. On generation success, orchestration emits **`Render Generated`** with full content; **`mtw.ephemera.renderCache`** subscribes, performs the single **`putCacheRecord`**, then emits **`Render Pertains`** and **`Cache Updated`** (see [pass-through contract](../../../../taskPlanning/lambda/ephemera/dataSource/AGENT.passThrough.contract.planning.md)).
 

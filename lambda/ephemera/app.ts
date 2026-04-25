@@ -282,7 +282,7 @@ export const handler = async (event: any, context: any) => {
 
     // Default-lane drain: terminal render-orchestration outbounds use `laneId: ''` from `publishOrchestration`.
     // Named `renderOrchestration:*` lanes are flushed in parallel with generation inside `generateRoomPreview`.
-    // Event-driven `look` uses `flush(lookCommandPerceptionThreadLaneId)` only inside `renderOrchestration` (not here); the `Render Requested` for look is on the default lane and drains with this call.
+    // Event-driven `look` flushes its run-scoped perception lane only inside `renderOrchestration` (not here); the `Render Requested` for look is on the default lane and drains with this call.
     await messageBus.flush()
     return extractReturnValue(messageBus)
 

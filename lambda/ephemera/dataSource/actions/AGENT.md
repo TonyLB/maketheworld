@@ -4,7 +4,7 @@
 
 **Ingress:** **`api.ephemera`** **`Parse Requested`** (player command routing). See [`../apiEphemera.ts`](../apiEphemera.ts).
 
-**Outbound (room look):** In-room **`LookRoom`** results **`streamEvent`** a **`Look Command Requested`** payload (see [`publishedEvents.ts`](publishedEvents.ts)). **`mtw.ephemera.renderOrchestration`** subscribes as a sibling; [`handleLookCommandRequestedForRenderOrchestration`](../renderOrchestration/handleLookCommandRequestedForRenderOrchestration.ts) runs **`Perception Thread Registered`**, **`flush(lookCommandPerceptionThreadLaneId)`**, then default-lane **`Render Requested`** (docs in [`../renderOrchestration/AGENT.md`](../renderOrchestration/AGENT.md)).
+**Outbound (room look):** In-room **`LookRoom`** results **`streamEvent`** a **`Look Command Requested`** payload (see [`publishedEvents.ts`](publishedEvents.ts)). **`mtw.ephemera.renderOrchestration`** subscribes as a sibling; [`handleLookCommandRequestedForRenderOrchestration`](../renderOrchestration/handleLookCommandRequestedForRenderOrchestration.ts) runs **`Perception Thread Registered`**, flushes the same run-scoped lane, then sends default-lane **`Render Requested`** (docs in [`../renderOrchestration/AGENT.md`](../renderOrchestration/AGENT.md)).
 
 ## Role
 
@@ -26,7 +26,7 @@ Use this sequence when adding a new parse affordance to `mtw.ephemera.actions`:
 
 - `LookRoom` shows the preferred cross-DataSource pattern for affordances that need render/perception ordering.
 - In-room `LookRoom` publishes **`Look Command Requested`** from actions.
-- `mtw.ephemera.renderOrchestration` subscribes and handles ordering: register `roomDescription` perception thread, `flush(lookCommandPerceptionThreadLaneId)`, then send default-lane `Render Requested`.
+- `mtw.ephemera.renderOrchestration` subscribes and handles ordering: register `roomDescription` perception thread, flush that same run-scoped lane, then send default-lane `Render Requested`.
 - This keeps perception-thread visibility ordered before downstream render orchestration and reuse of existing `Render Pertains` -> terminal `PerceptionMessage` behavior.
 
 ---

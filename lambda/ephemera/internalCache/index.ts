@@ -34,6 +34,7 @@ import messageBus from '../messageBus';
 import CacheCoyoteGameData from './coyoteGame';
 import { generateHypothesis } from '../dataSource/coyoteGame/generateHypothesis';
 import { generatePlanOutcome } from '../dataSource/coyoteGame/generatePlanOutcome';
+import GenerationContextData from './generationContext';
 
 const graphDBHandler: GraphDBHandler = new (withPrimitives<'PrimaryKey', string>()(withGetOperations<'PrimaryKey', string>()(DBHandlerBase)))({
     client: assetDB._client,
@@ -74,6 +75,7 @@ export class InternalCache {
 
     ComponentRender: ComponentRenderData;
     ComponentStackMerge: ComponentStackMergeData;
+    GenerationContext: GenerationContextData;
     CharacterPossibleMaps: CacheCharacterPossibleMapsData;
 
     constructor() {
@@ -110,6 +112,7 @@ export class InternalCache {
             this.CharacterMeta,
             (roomId) => this.ComponentEphemeraMeta.get(roomId)
         )
+        this.GenerationContext = new GenerationContextData(this.ComponentAssetMeta)
         this.CharacterPossibleMaps = new CacheCharacterPossibleMapsData(this.CharacterMeta, this.Graph)
         this._invalidateAssetCallback = (EphemeraId) => {
             // Variable/Computed invalidation removed - no longer needed
@@ -137,6 +140,7 @@ export class InternalCache {
         this.Examples.clear()
         this.ComponentRender.clear()
         this.ComponentStackMerge.clear()
+        this.GenerationContext.clear()
         this.CharacterPossibleMaps.clear()
         this.Conversations.clear()
         this.RenderCache.clear()
@@ -149,6 +153,7 @@ export class InternalCache {
             this.AssetMetaData.flush(),
             this.ComponentRender.flush(),
             this.ComponentStackMerge.flush(),
+            this.GenerationContext.flush(),
             this.RenderCache.flush(),
         ])
     }

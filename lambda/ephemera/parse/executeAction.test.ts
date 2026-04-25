@@ -87,9 +87,11 @@ describe('executeAction', () => {
                 expect.objectContaining({
                     componentId: 'ROOM#456',
                     characterId: 'CHARACTER#123',
-                    generationContextWml: '<Asset />',
+                    perspective: expect.objectContaining({ assetStack: [] }),
                 })
             )
+            const renderCommand = mockSendRenderRequested.mock.calls[0][2] as Record<string, unknown>
+            expect(renderCommand.generationContextWml).toBeUndefined()
             expect(MockMessageBus.send).not.toHaveBeenCalledWith(
                 expect.objectContaining({ type: 'Perception' })
             )

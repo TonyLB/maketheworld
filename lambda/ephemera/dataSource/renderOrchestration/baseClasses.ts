@@ -36,7 +36,6 @@ export type RenderResolveInputSuccess = {
     pointerHint?: EphemeraCacheId;
     /** Carried through for slow-path generation when wired. `undefined` means default allow (true). */
     allowGeneration?: boolean;
-    generationContextWml?: string;
 }
 
 /** Intake-level failures before B-phase resolve runs. */

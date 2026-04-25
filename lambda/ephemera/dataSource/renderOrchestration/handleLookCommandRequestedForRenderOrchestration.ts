@@ -1,76 +1,62 @@
 import type { LookCommandRequestedPublishedPayload } from '../actions/publishedEvents'
-import { prepareFullRoomDescriptionRenderForCharacter } from '../actions/requestFullRoomDescriptionForCharacter'
 import type { MessageBus } from '../../messageBus/baseClasses'
 import { sendPerceptionThreadRegistered } from '../perception/subscribedEvents'
-import { lookCommandPerceptionThreadLaneId, sendRenderRequested } from './subscribedEvents'
+import { sendRenderRequested } from './subscribedEvents'
 import internalCache from '../../internalCache'
-import { mergeRoomShortNameLiteral } from '../../internalCache/componentStackMerge'
-import type { AssetUUID, ComponentUUID } from '@tonylb/mtw-base/ts/schema'
-import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
-import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
-import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
-import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { resolveCanonAssetStackForRoom } from '../state/resolveAssetStackForRoom'
+import { filterRoomCanonStackByCharacterAssets } from './fanOutStateChangedToPassiveRenders'
+import { computePerspectiveKey, type Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
+import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { v4 as uuidv4 } from 'uuid'
 
-export async function provisionalGenerationContextWmlFromRoomShortName(
+export const prepareLookOrchestrationPerspective = async (
+    characterId: EphemeraCharacterId,
     roomId: EphemeraRoomId,
-    assetStack: string[],
-): Promise<string> {
-    const roomMetaByAsset = await internalCache.ComponentAssetMeta.getAcrossAssets(
-        roomId as ComponentUUID,
-        assetStack as AssetUUID[],
-    )
-    const mergedShortName = mergeRoomShortNameLiteral(
-        Object.values(roomMetaByAsset).flatMap((component) => (
-            component instanceof StandardRoom ? [component] : []
-        ))
-    )
-    const provisionalForm = new StandardForm([
-        { tag: 'Asset', universalKey: 'ASSET#generationContext', key: 'generationContext' },
-        {
-            tag: 'Room',
-            universalKey: roomId,
-            ...(mergedShortName ? { shortName: mergedShortName.toJSON() } : {}),
-        },
-    ])
-    return schemaToWML([provisionalForm.schema])
+): Promise<{ roomId: EphemeraRoomId; perspective: Perspective; perspectiveKey: string }> => {
+    const roomCanonStack = await resolveCanonAssetStackForRoom(roomId, {
+        RoomAssets: internalCache.RoomAssets,
+        AssetMetaData: internalCache.AssetMetaData,
+    })
+    const { assets: characterAssets = [] } = await internalCache.CharacterMeta.get(characterId) || {}
+    const filteredAssetStack = filterRoomCanonStackByCharacterAssets(roomCanonStack, characterAssets)
+    const perspective = { assetStack: filteredAssetStack }
+    const perspectiveKey = computePerspectiveKey(perspective.assetStack)
+    return { roomId, perspective, perspectiveKey }
 }
 
 /**
- * Event-driven look: register `roomDescription` on a named bus lane, flush so `PerceptionThreads` exists, then
+ * Event-driven look: register `roomDescription` on a run-scoped bus lane, flush so `PerceptionThreads` exists, then
  * `Render Requested` on the default lane (ongoing `flush` resolves it; no `renderOrchestration:*` lane for this path).
  */
 export async function handleLookCommandRequestedForRenderOrchestration(
     messageBus: MessageBus,
     payload: LookCommandRequestedPublishedPayload,
 ): Promise<void> {
-    const prepared = await prepareFullRoomDescriptionRenderForCharacter(
-        payload.characterId,
-        payload.roomId,
-        { includeGenerationContextWml: false },
+    const { roomId, characterId } = payload
+    const { perspective, perspectiveKey } = await prepareLookOrchestrationPerspective(
+        characterId,
+        roomId,
     )
-    // Provisional ad-hoc context until structured internal cache lands:
-    // taskPlanning/lambda/ephemera/internalCache/generationContext/AGENT.generationContextCache.planning.md
-    const provisionalGenerationContextWml = await provisionalGenerationContextWmlFromRoomShortName(
-        prepared.roomId,
-        prepared.renderCommand.perspective.assetStack,
-    )
-    const perceptionLane = lookCommandPerceptionThreadLaneId({
-        roomId: prepared.roomId,
-        characterId: prepared.characterId,
-    })
+    const perceptionLane = `lookCommand:perceptionThread:${uuidv4()}`
     sendPerceptionThreadRegistered(
         messageBus,
-        prepared.roomId,
-        prepared.threadRegisterCommand,
+        roomId,
+        {
+            threadKind: 'roomDescription',
+            componentId: roomId,
+            perspectiveKey,
+            characterId,
+        },
         perceptionLane
     )
     await messageBus.flush(perceptionLane)
     sendRenderRequested(
         messageBus,
-        prepared.roomId,
+        payload.roomId,
         {
-            ...prepared.renderCommand,
-            generationContextWml: provisionalGenerationContextWml,
+            componentId: roomId,
+            perspective,
+            characterId,
         },
         { useDefaultMessageBusLane: true }
     )

@@ -144,46 +144,62 @@ describe('dataSource/renderOrchestration/orchestrationHandler', () => {
         expect(getExactMatch).toHaveBeenCalled()
     })
 
-    it('emits Orchestration Error and does not clear pointer when state marks missing', async () => {
+    it('uses empty default marks when state marks missing (no lens) and does not call generation', async () => {
         const clearPerspectivePointer = jest.fn().mockResolvedValue(undefined)
+        const generateRoomPreview = jest.fn()
         const messageBus = makeBus()
+        const getExactMatch = jest.fn().mockResolvedValue(null)
         await orchestrateRenderRequest(
-            { payload: basePayload, messageBus, streamEvent: streamEventFromMessageBus(messageBus) },
+            { payload: { ...basePayload, allowGeneration: true }, messageBus, streamEvent: streamEventFromMessageBus(messageBus) },
             {
                 getMetaRoom: jest.fn().mockResolvedValue({ ...baseMetaRoom, state: undefined }),
                 computePerspectiveKey: jest.fn().mockReturnValue('PERSPECTIVE#v1#abc'),
+                computeDefaultMarksForRoom: jest.fn().mockResolvedValue({ markValue: [] }),
                 getCacheRecordById: jest.fn().mockResolvedValue(baseCacheRecord),
-                getExactMatch: jest.fn(),
+                getExactMatch,
                 clearPerspectivePointer,
-                markStatesEqual: jest.fn().mockReturnValue(false)
+                markStatesEqual: jest.fn().mockReturnValue(false),
+                generateRoomPreview,
             }
         )
-        expect(clearPerspectivePointer).not.toHaveBeenCalled()
+        expect(clearPerspectivePointer).toHaveBeenCalled()
+        expect(generateRoomPreview).not.toHaveBeenCalled()
         const content = await findOrchestrationStreamingEvent(messageBus.send)!.getContent()
-        expect(isRenderOrchestrationOrchestrationErrorPayload(content)).toBe(true)
-        expect((content as { errorCode?: string }).errorCode).toBe('META_ROOM_MARKS_MISSING')
-        expect((content as { errorMessage?: string }).errorMessage).toEqual(expect.stringContaining('Meta::Room.state.marks'))
+        expect(isRenderOrchestrationGenerationDeferredPayload(content)).toBe(true)
+        expect(getExactMatch).toHaveBeenCalledWith(
+            expect.objectContaining({
+                componentId: 'ROOM#one',
+                proposedMarkState: { markValue: [] },
+            })
+        )
     })
 
-    it('emits Orchestration Error when Meta::Room is missing', async () => {
+    it('uses empty default marks when Meta::Room row is missing and does not call generation', async () => {
+        const generateRoomPreview = jest.fn()
         const messageBus = makeBus()
-        const getCacheRecordById = jest.fn()
+        const getExactMatch = jest.fn().mockResolvedValue(null)
         await orchestrateRenderRequest(
             { payload: basePayload, messageBus, streamEvent: streamEventFromMessageBus(messageBus) },
             {
                 getMetaRoom: jest.fn().mockResolvedValue(undefined),
                 computePerspectiveKey: jest.fn().mockReturnValue('PERSPECTIVE#v1#abc'),
-                getCacheRecordById,
-                getExactMatch: jest.fn(),
+                computeDefaultMarksForRoom: jest.fn().mockResolvedValue({ markValue: [] }),
+                getCacheRecordById: jest.fn(),
+                getExactMatch,
                 clearPerspectivePointer: jest.fn(),
-                markStatesEqual: jest.fn()
+                markStatesEqual: jest.fn(),
+                generateRoomPreview,
             }
         )
-        expect(getCacheRecordById).not.toHaveBeenCalled()
+        expect(generateRoomPreview).not.toHaveBeenCalled()
         const content = await findOrchestrationStreamingEvent(messageBus.send)!.getContent()
-        expect(isRenderOrchestrationOrchestrationErrorPayload(content)).toBe(true)
-        expect((content as { errorCode?: string }).errorCode).toBe('META_ROOM_MARKS_MISSING')
-        expect((content as { errorMessage?: string }).errorMessage).toEqual(expect.stringContaining('Meta::Room.state.marks'))
+        expect(isRenderOrchestrationGenerationDeferredPayload(content)).toBe(true)
+        expect(getExactMatch).toHaveBeenCalledWith(
+            expect.objectContaining({
+                componentId: 'ROOM#one',
+                proposedMarkState: { markValue: [] },
+            })
+        )
     })
 
     it('clears pointer and emits Generation Deferred when markState mismatch', async () => {
@@ -332,6 +348,10 @@ describe('dataSource/renderOrchestration/orchestrationHandler', () => {
             }
         )
         expect(generateRoomPreview).toHaveBeenCalled()
+        expect(generateRoomPreview).toHaveBeenCalledWith(
+            expect.not.objectContaining({ generationContextWml: expect.anything() }),
+            expect.any(Object)
+        )
         let sawRenderGenerated = false
         for (const call of messageBus.send.mock.calls) {
             const msg = call[0] as { type?: string; dataSourceKey?: string; getContent?: () => Promise<unknown> }

@@ -1,6 +1,5 @@
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { computePerspectiveKey } from '@tonylb/mtw-interfaces/ts/perspective'
-import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
 
 import internalCache from '../../internalCache'
 import type { StreamingEventMessage } from '../../messageBus/baseClasses'
@@ -27,7 +26,6 @@ export type PreparedFullRoomDescriptionRender = {
 export async function prepareFullRoomDescriptionRenderForCharacter(
     characterId: EphemeraCharacterId,
     roomId: EphemeraRoomId,
-    options?: { includeGenerationContextWml?: boolean },
 ): Promise<PreparedFullRoomDescriptionRender> {
     const roomCanonStack = await resolveCanonAssetStackForRoom(roomId, {
         RoomAssets: internalCache.RoomAssets,
@@ -47,10 +45,6 @@ export async function prepareFullRoomDescriptionRenderForCharacter(
         componentId: roomId,
         perspective,
         characterId,
-    }
-    if (options?.includeGenerationContextWml !== false) {
-        const roomForm = await internalCache.ComponentRender.get(characterId, roomId)
-        renderCommand.generationContextWml = schemaToWML([roomForm.schema])
     }
     return {
         roomId,

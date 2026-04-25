@@ -97,4 +97,10 @@ describe('InternalCache', () => {
         
     })
 
+    it('flush includes GenerationContext handler', async () => {
+        const flushSpy = jest.spyOn(internalCache.GenerationContext, 'flush')
+        await internalCache.flush()
+        expect(flushSpy).toHaveBeenCalledTimes(1)
+    })
+
 })
