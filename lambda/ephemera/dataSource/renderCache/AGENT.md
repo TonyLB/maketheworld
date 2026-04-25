@@ -237,6 +237,7 @@ Durable behavior and types: [`../renderOrchestration/AGENT.md`](../renderOrchest
 [`../renderOrchestration/generateRoomPreview.ts`](../renderOrchestration/generateRoomPreview.ts) implements **generation on cache miss** (parse WML context, Bedrock `generateRoomDescription`, **`publishOrchestration`** stream outbounds only). It does **not** perform exact-match; orchestration must run that first. It does **not** enqueue **`Put Cache Record`** on success; this DataSource writes on **`Render Generated`**.
 
 - Input: `roomId`, `markState`, `assetStack`, optional `generationContextWml`.
+- Passive publishers often **omit** `generationContextWml`. In that case [`generateRoomPreview.ts`](../renderOrchestration/generateRoomPreview.ts) resolves grounding context from **`internalCache.GenerationContext`** for the same `roomId` and `assetStack`. Optional ingress WML remains a **compat** parse path when callers supply it. See [`../../internalCache/generationContext/AGENT.md`](../../internalCache/generationContext/AGENT.md).
 - Required: `publishOrchestration` for streaming outbounds; tests inject mocks. **`runWithSingleFlight`** can be overridden for unit tests (`passThroughSingleFlight`).
 
 ### Authoring preview (removed)
