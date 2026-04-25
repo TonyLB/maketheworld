@@ -150,6 +150,7 @@ export const orchestrateRenderRequest = async (
     console.log('[mtw.ephemera.renderOrchestration] Render Requested intake ok', {
         roomId: intake.roomId,
         perspectiveKey: pkAfterIntake,
+        perspectiveAssetStack: intake.perspective.assetStack,
         hasPointerHint: intake.pointerHint !== undefined,
     })
 

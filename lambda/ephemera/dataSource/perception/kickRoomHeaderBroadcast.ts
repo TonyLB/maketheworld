@@ -6,7 +6,7 @@ import { computePerspectiveKey } from '@tonylb/mtw-interfaces/ts/perspective'
 import internalCache from '../../internalCache'
 import type { MessageBus } from '../../messageBus/baseClasses'
 import type { MessageGroupId } from '../../internalCache/orchestrateMessages'
-import { resolveCanonAssetStackForRoom } from '../state/resolveAssetStackForRoom'
+import { resolveCanonAssetStackForRoom, resolveRoomAssetStackForRoom } from '../state/resolveAssetStackForRoom'
 import {
     filterRoomCanonStackByCharacterAssets,
     groupCharacterRowsByPerspective,
@@ -21,6 +21,9 @@ export async function kickRoomHeaderBroadcastForRoom(options: {
     messageGroupId?: MessageGroupId;
 }): Promise<void> {
     const { roomId, messageBus, messageGroupId } = options
+    const roomAssetStack = await resolveRoomAssetStackForRoom(roomId, {
+        RoomAssets: internalCache.RoomAssets,
+    })
     const roomCanonStack = await resolveCanonAssetStackForRoom(roomId, {
         RoomAssets: internalCache.RoomAssets,
         AssetMetaData: internalCache.AssetMetaData,
@@ -34,7 +37,7 @@ export async function kickRoomHeaderBroadcastForRoom(options: {
         })
     )
     const rows = characterMetaRows.reduce<CharacterPerspectiveRow[]>((previous, { characterId, assets }) => {
-        const filteredAssetStack = filterRoomCanonStackByCharacterAssets(roomCanonStack, assets)
+        const filteredAssetStack = filterRoomCanonStackByCharacterAssets(roomAssetStack, assets, roomCanonStack)
         if (filteredAssetStack.length === 0) {
             return previous
         }
@@ -71,11 +74,14 @@ export async function getCharacterRoomPerspectiveKey(
     roomId: EphemeraRoomId,
     assets: readonly string[]
 ): Promise<string | null> {
+    const roomAssetStack = await resolveRoomAssetStackForRoom(roomId, {
+        RoomAssets: internalCache.RoomAssets,
+    })
     const roomCanonStack = await resolveCanonAssetStackForRoom(roomId, {
         RoomAssets: internalCache.RoomAssets,
         AssetMetaData: internalCache.AssetMetaData,
     })
-    const filteredAssetStack = filterRoomCanonStackByCharacterAssets(roomCanonStack, assets)
+    const filteredAssetStack = filterRoomCanonStackByCharacterAssets(roomAssetStack, assets, roomCanonStack)
     if (filteredAssetStack.length === 0) {
         return null
     }
@@ -93,11 +99,14 @@ export async function kickPassiveRenderRequestedForCharacterInRoom(options: {
     messageBus: MessageBus;
 }): Promise<void> {
     const { roomId, characterId, assets, messageBus } = options
+    const roomAssetStack = await resolveRoomAssetStackForRoom(roomId, {
+        RoomAssets: internalCache.RoomAssets,
+    })
     const roomCanonStack = await resolveCanonAssetStackForRoom(roomId, {
         RoomAssets: internalCache.RoomAssets,
         AssetMetaData: internalCache.AssetMetaData,
     })
-    const filteredAssetStack = filterRoomCanonStackByCharacterAssets(roomCanonStack, assets)
+    const filteredAssetStack = filterRoomCanonStackByCharacterAssets(roomAssetStack, assets, roomCanonStack)
     if (filteredAssetStack.length === 0) {
         return
     }

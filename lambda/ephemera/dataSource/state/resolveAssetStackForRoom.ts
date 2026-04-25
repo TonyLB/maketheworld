@@ -4,6 +4,20 @@ import type { InternalCache } from '../../internalCache'
 
 export type CanonAssetStackCache = Pick<InternalCache, 'RoomAssets' | 'AssetMetaData'>
 
+export type RoomAssetStackCache = Pick<InternalCache, 'RoomAssets'>
+
+/**
+ * Resolve full room stack from `Meta::Room.cached` participation order.
+ * Includes Canon and non-Canon assets; order matches `cached`.
+ */
+export async function resolveRoomAssetStackForRoom(
+    roomId: EphemeraRoomId,
+    cache: RoomAssetStackCache
+): Promise<AssetUUID[]> {
+    const ids = (await cache.RoomAssets.get(roomId)) ?? []
+    return ids
+}
+
 /**
  * Resolve `perspective.assetStack` for room state defaults: participation order from `Meta::Room.cached`
  * ([`RoomAssets.get`](../../internalCache/assetRooms.ts)), then keep only assets whose `Meta::Asset` row has

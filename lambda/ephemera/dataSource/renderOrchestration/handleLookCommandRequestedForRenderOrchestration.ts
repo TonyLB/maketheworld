@@ -3,7 +3,7 @@ import type { MessageBus } from '../../messageBus/baseClasses'
 import { sendPerceptionThreadRegistered } from '../perception/subscribedEvents'
 import { sendRenderRequested } from './subscribedEvents'
 import internalCache from '../../internalCache'
-import { resolveCanonAssetStackForRoom } from '../state/resolveAssetStackForRoom'
+import { resolveCanonAssetStackForRoom, resolveRoomAssetStackForRoom } from '../state/resolveAssetStackForRoom'
 import { filterRoomCanonStackByCharacterAssets } from './fanOutStateChangedToPassiveRenders'
 import { computePerspectiveKey, type Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
@@ -13,12 +13,15 @@ export const prepareLookOrchestrationPerspective = async (
     characterId: EphemeraCharacterId,
     roomId: EphemeraRoomId,
 ): Promise<{ roomId: EphemeraRoomId; perspective: Perspective; perspectiveKey: string }> => {
+    const roomAssetStack = await resolveRoomAssetStackForRoom(roomId, {
+        RoomAssets: internalCache.RoomAssets,
+    })
     const roomCanonStack = await resolveCanonAssetStackForRoom(roomId, {
         RoomAssets: internalCache.RoomAssets,
         AssetMetaData: internalCache.AssetMetaData,
     })
     const { assets: characterAssets = [] } = await internalCache.CharacterMeta.get(characterId) || {}
-    const filteredAssetStack = filterRoomCanonStackByCharacterAssets(roomCanonStack, characterAssets)
+    const filteredAssetStack = filterRoomCanonStackByCharacterAssets(roomAssetStack, characterAssets, roomCanonStack)
     const perspective = { assetStack: filteredAssetStack }
     const perspectiveKey = computePerspectiveKey(perspective.assetStack)
     return { roomId, perspective, perspectiveKey }
