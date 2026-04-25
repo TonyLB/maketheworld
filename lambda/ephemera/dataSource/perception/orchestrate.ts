@@ -100,6 +100,16 @@ async function handleRenderPertains(
         payload.componentId,
         payload.cacheRecord.renderedContent
     )
+
+    let publishedRoomDescription = 0
+    let skippedRoomDescriptionTerminal = 0
+    let publishedHeaderBroadcast = 0
+    let skippedHeaderTerminal = 0
+    let skippedHeaderEmptyTargets = 0
+    let publishedCharacterMove = 0
+    let skippedCharacterMoveTerminal = 0
+    let skippedCharacterMoveEmptyTargets = 0
+
     for (const entry of entries) {
         if (!isRoomDescriptionPerceptionThread(entry.thread)) {
             continue
@@ -110,6 +120,7 @@ async function handleRenderPertains(
         }
         if (thread.status === 'Terminal') {
             logTerminalDedupe('Render Pertains', payload.componentId, payload.perspectiveKey, registrationId)
+            skippedRoomDescriptionTerminal += 1
             continue
         }
         const characterId = registration.characterId
@@ -128,6 +139,7 @@ async function handleRenderPertains(
             messageGroupId: registration.messageGroupId,
             messageId,
         })
+        publishedRoomDescription += 1
 
         internalCache.PerceptionThreads.remove({
             componentId: payload.componentId,
@@ -146,6 +158,7 @@ async function handleRenderPertains(
         }
         if (thread.status === 'Terminal') {
             logTerminalDedupe('Render Pertains', payload.componentId, payload.perspectiveKey, registrationId)
+            skippedHeaderTerminal += 1
             continue
         }
         const targets = registration.targets
@@ -165,6 +178,10 @@ async function handleRenderPertains(
                 messageGroupId: registration.messageGroupId,
                 messageId,
             })
+            publishedHeaderBroadcast += 1
+        }
+        else {
+            skippedHeaderEmptyTargets += 1
         }
 
         internalCache.PerceptionThreads.remove({
@@ -184,6 +201,7 @@ async function handleRenderPertains(
         }
         if (thread.status === 'Terminal') {
             logTerminalDedupe('Render Pertains', payload.componentId, payload.perspectiveKey, registrationId)
+            skippedCharacterMoveTerminal += 1
             continue
         }
         const targets = headerTargetsForCharacterMove(registration)
@@ -203,6 +221,10 @@ async function handleRenderPertains(
                 messageGroupId: registration.messageGroupId,
                 messageId,
             })
+            publishedCharacterMove += 1
+        }
+        else {
+            skippedCharacterMoveEmptyTargets += 1
         }
 
         internalCache.PerceptionThreads.remove({
@@ -210,6 +232,27 @@ async function handleRenderPertains(
             perspectiveKey: payload.perspectiveKey,
             registrationId,
         })
+    }
+
+    const summary = {
+        componentId: payload.componentId,
+        perspectiveKey: payload.perspectiveKey,
+        cacheId: payload.cacheId,
+        bucketSize: entries.length,
+        publishedRoomDescription,
+        skippedRoomDescriptionTerminal,
+        publishedHeaderBroadcast,
+        skippedHeaderTerminal,
+        skippedHeaderEmptyTargets,
+        publishedCharacterMove,
+        skippedCharacterMoveTerminal,
+        skippedCharacterMoveEmptyTargets,
+    }
+    if (entries.length === 0) {
+        console.warn('[mtw.ephemera.perception] handleRenderPertains: no PerceptionThreads rows for bucket', summary)
+    }
+    else {
+        console.log('[mtw.ephemera.perception] handleRenderPertains', summary)
     }
 }
 

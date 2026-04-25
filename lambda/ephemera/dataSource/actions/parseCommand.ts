@@ -6,6 +6,7 @@ import { invokeBedrockParseCommand } from '../../generateExample/invokeBedrockPa
 import type { ParseCommandDeps, ParseCommandInput, ParseCommandResult } from './baseClasses'
 import {
     isParseCommandAcmeOrderIntentResult,
+    isParseCommandLookRoomResult,
 } from './baseClasses'
 import { buildParseAcmeOrderEnrichPrompt } from './buildParseAcmeOrderEnrichPrompt'
 import { buildParseCommandIntentClassificationPrompt } from './buildParseCommandIntentClassificationPrompt'
@@ -100,6 +101,13 @@ export async function parseCommand(
     deps: ParseCommandDeps = {}
 ): Promise<ParseCommandResult> {
     const { result } = await parseCommandCore(input, deps)
+    if (isParseCommandLookRoomResult(result)) {
+        const preview = input.command.trim().slice(0, 120)
+        console.log('[mtw.ephemera.parseCommand] LookRoom', {
+            confidence: result.confidence,
+            commandPreview: preview,
+        })
+    }
     return result
 }
 
