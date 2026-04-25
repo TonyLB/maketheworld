@@ -385,6 +385,14 @@ describe('mtw.ephemera.perception DataSource', () => {
             messageGroupId: 'MSG#root',
             leaveMessageGroupId: 'MSG#leave',
             arriveMessageGroupId: 'MSG#arrive',
+            leaveWorldMessage: {
+                targets: ['ROOM#other', 'CHARACTER#viewer'],
+                message: ['Viewer has left.'],
+            },
+            arriveWorldMessage: {
+                targets: ['ROOM#fixture', 'CHARACTER#viewer'],
+                message: ['Viewer has arrived.'],
+            },
         })
         await messageBus.flush()
 
@@ -419,6 +427,21 @@ describe('mtw.ephemera.perception DataSource', () => {
         expect((genPublish![0] as { metaData?: { roomChannel?: string } }).metaData?.roomChannel).toBe('render')
         const mid = (genPublish![0] as { messageId?: string }).messageId
         expect(mid).toMatch(/^MESSAGE#/)
+        const leavePublish = sendSpy.mock.calls.find((c) => {
+            const m = c[0] as { type?: string; displayProtocol?: string; messageGroupId?: string }
+            return m?.type === 'PublishMessage' && m?.displayProtocol === 'WorldMessage' && m?.messageGroupId === 'MSG#leave'
+        })
+        expect(leavePublish).toBeDefined()
+        const arrivePublish = sendSpy.mock.calls.find((c) => {
+            const m = c[0] as { type?: string; displayProtocol?: string; messageGroupId?: string }
+            return m?.type === 'PublishMessage' && m?.displayProtocol === 'WorldMessage' && m?.messageGroupId === 'MSG#arrive'
+        })
+        expect(arrivePublish).toBeDefined()
+        const leaveIndex = sendSpy.mock.calls.indexOf(leavePublish!)
+        const headerIndex = sendSpy.mock.calls.indexOf(genPublish!)
+        const arriveIndex = sendSpy.mock.calls.indexOf(arrivePublish!)
+        expect(leaveIndex).toBeLessThan(headerIndex)
+        expect(headerIndex).toBeLessThan(arriveIndex)
 
         const tsCache = Date.now()
         messageBus.send({
@@ -453,6 +476,89 @@ describe('mtw.ephemera.perception DataSource', () => {
         expect(
             internalCache.PerceptionThreads.list(passThroughFixtureRoomId, passThroughFixturePerspectiveKey)
         ).toEqual([])
+
+        schemaSpy.mockRestore()
+        sendSpy.mockRestore()
+    })
+
+    it('characterMove dispatches leave/arrive at most once across repeated orchestration events', async () => {
+        const sendSpy = jest.spyOn(messageBus, 'send')
+        const schemaSpy = jest.spyOn(schemaModule, 'schemaToWML').mockReturnValue('<HeaderMoveTerminal />')
+
+        sendPerceptionThreadRegistered(messageBus, passThroughFixtureRoomId, {
+            threadKind: 'characterMove',
+            componentId: passThroughFixtureRoomId,
+            perspectiveKey: passThroughFixturePerspectiveKey,
+            characterId: 'CHARACTER#viewer',
+            departureRoomId: 'ROOM#other',
+            messageGroupId: 'MSG#root',
+            leaveMessageGroupId: 'MSG#leave',
+            arriveMessageGroupId: 'MSG#arrive',
+            leaveWorldMessage: {
+                targets: ['ROOM#other', 'CHARACTER#viewer'],
+                message: ['Viewer has left.'],
+            },
+            arriveWorldMessage: {
+                targets: ['ROOM#fixture', 'CHARACTER#viewer'],
+                message: ['Viewer has arrived.'],
+            },
+        })
+        await messageBus.flush()
+
+        const generationEvent = () => {
+            const tsOrch = Date.now()
+            messageBus.send({
+                type: 'StreamingEvent',
+                dataSourceKey: RENDER_ORCHESTRATION_DATA_SOURCE_KEY,
+                streamKey: passThroughFixtureRoomId,
+                timestamp: tsOrch,
+                header: {
+                    dataSourceKey: RENDER_ORCHESTRATION_DATA_SOURCE_KEY,
+                    streamKey: passThroughFixtureRoomId,
+                    timestamp: tsOrch,
+                    type: 'Generation Started',
+                },
+                getContent: () => Promise.resolve(makePassThroughGenerationStartedPayload()),
+            })
+        }
+
+        generationEvent()
+        generationEvent()
+        await messageBus.flush()
+
+        const tsCache = Date.now()
+        messageBus.send({
+            type: 'StreamingEvent',
+            dataSourceKey: RENDER_CACHE_DATA_SOURCE_KEY,
+            streamKey: passThroughFixtureRoomId,
+            timestamp: tsCache,
+            header: {
+                dataSourceKey: RENDER_CACHE_DATA_SOURCE_KEY,
+                streamKey: passThroughFixtureRoomId,
+                timestamp: tsCache,
+                type: 'Render Pertains',
+            },
+            getContent: () =>
+                Promise.resolve({
+                    type: 'Render Pertains',
+                    componentId: passThroughFixtureRoomId,
+                    perspectiveKey: passThroughFixturePerspectiveKey,
+                    cacheId: passThroughFixtureMinimalDynamoItem.DataCategory,
+                    cacheRecord: passThroughFixtureMinimalDynamoItem,
+                }),
+        })
+        await messageBus.flush()
+
+        const leavePublishes = sendSpy.mock.calls.filter((c) => {
+            const m = c[0] as { type?: string; displayProtocol?: string; messageGroupId?: string }
+            return m?.type === 'PublishMessage' && m?.displayProtocol === 'WorldMessage' && m?.messageGroupId === 'MSG#leave'
+        })
+        const arrivePublishes = sendSpy.mock.calls.filter((c) => {
+            const m = c[0] as { type?: string; displayProtocol?: string; messageGroupId?: string }
+            return m?.type === 'PublishMessage' && m?.displayProtocol === 'WorldMessage' && m?.messageGroupId === 'MSG#arrive'
+        })
+        expect(leavePublishes).toHaveLength(1)
+        expect(arrivePublishes).toHaveLength(1)
 
         schemaSpy.mockRestore()
         sendSpy.mockRestore()

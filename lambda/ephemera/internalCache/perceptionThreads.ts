@@ -576,13 +576,16 @@ export default class PerceptionThreadsData {
                     || p.leaveDispatched !== undefined
                     || p.arriveDispatched !== undefined
                 if (hasThreadPatchFields) {
-                    entry.thread = mergePerceptionThreadPatch(entry.thread, {
+                    const threadPatch: CharacterMovePerceptionThreadPatch = {
                         threadKind: 'characterMove',
-                        status: p.status,
-                        messageId: p.messageId,
-                        cacheId: p.cacheId,
-                        leaveDispatched: p.leaveDispatched,
-                        arriveDispatched: p.arriveDispatched,
+                        ...(p.status !== undefined ? { status: p.status } : {}),
+                        ...(p.messageId !== undefined ? { messageId: p.messageId } : {}),
+                        ...(p.cacheId !== undefined ? { cacheId: p.cacheId } : {}),
+                        ...(p.leaveDispatched !== undefined ? { leaveDispatched: p.leaveDispatched } : {}),
+                        ...(p.arriveDispatched !== undefined ? { arriveDispatched: p.arriveDispatched } : {}),
+                    }
+                    entry.thread = mergePerceptionThreadPatch(entry.thread, {
+                        ...threadPatch
                     })
                 }
                 return true

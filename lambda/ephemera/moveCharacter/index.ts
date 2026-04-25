@@ -8,11 +8,7 @@ import {
     getCharacterRoomPerspectiveKey,
     kickPassiveRenderRequestedForCharacterInRoom,
 } from "../dataSource/perception/kickRoomHeaderBroadcast"
-import {
-    sendCharacterMoveArrive,
-    sendCharacterMoveLeave,
-    type CharacterMoveDeliveryKey,
-} from "../dataSource/perception/characterMoveDelivery"
+import { type CharacterMoveDeliveryKey } from "../dataSource/perception/characterMoveDelivery"
 
 export type RoomStackItem = {
     asset: string;
@@ -164,9 +160,7 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
                             internalCache.ComponentStackMerge.invalidate(characterMeta.RoomId)
                             internalCache.RoomCharacterList.set({ key: characterMeta.RoomId, value: activeCharacters })
                             if (priorActiveCharacters.find(({ EphemeraId }) => (EphemeraId === characterMeta.EphemeraId))) {
-                                if (characterMoveKey) {
-                                    sendCharacterMoveLeave(messageBus, characterMoveKey)
-                                } else if (!payload.suppressDeparture) {
+                                if (!characterMoveKey && !payload.suppressDeparture) {
                                     messageBus.send({
                                         type: 'PublishMessage',
                                         targets: [characterMeta.RoomId, payload.characterId],
@@ -208,11 +202,7 @@ export const moveCharacter = async ({ payloads, messageBus }: { payloads: MoveCh
                             internalCache.ComponentStackMerge.invalidate(payload.roomId)
                             internalCache.RoomCharacterList.set({ key: payload.roomId, value: activeCharacters })
                 
-                            if (characterMoveKey) {
-                                if (!payload.suppressArrival) {
-                                    sendCharacterMoveArrive(messageBus, characterMoveKey)
-                                }
-                            } else if (!payload.suppressArrival) {
+                            if (!characterMoveKey && !payload.suppressArrival) {
                                 messageBus.send({
                                     type: 'PublishMessage',
                                     targets: [payload.roomId, payload.suppressSelfMessage ? `!${payload.characterId}` : payload.characterId],

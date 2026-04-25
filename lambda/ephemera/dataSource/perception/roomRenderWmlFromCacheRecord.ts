@@ -74,7 +74,7 @@ export function roomHeaderWmlFromCacheRecord(
     const summaryOrDescription = renderedContent.summary ?? renderedContent.description
     const headerRenderedContent: EphemeraCacheRenderedContent = {
         ...(renderedContent.displayName !== undefined ? { displayName: renderedContent.displayName } : {}),
-        ...(renderedContent.summary !== undefined ? { summary: renderedContent.summary } : {}),
+        summary: summaryOrDescription,
         description: summaryOrDescription,
     }
     return roomRenderWmlFromCacheRecord(roomId, headerRenderedContent)

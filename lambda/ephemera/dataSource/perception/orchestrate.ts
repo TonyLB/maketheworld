@@ -71,6 +71,64 @@ function headerTargetsForCharacterMove(
     return registration.headerTargets?.length ? registration.headerTargets : [registration.characterId]
 }
 
+function publishCharacterMoveLeaveIfNeeded(
+    bus: MessageBus,
+    entry: ReturnType<typeof internalCache.PerceptionThreads.list>[number],
+    componentId: EphemeraRoomId,
+    perspectiveKey: string
+): void {
+    const { registration, registrationId, thread } = entry
+    if (registration.threadKind !== 'characterMove' || !isCharacterMovePerceptionThread(thread)) {
+        return
+    }
+    if (thread.leaveDispatched) {
+        return
+    }
+    const leave = registration.leaveWorldMessage
+    if (leave) {
+        bus.send({
+            type: 'PublishMessage',
+            displayProtocol: 'WorldMessage',
+            targets: leave.targets,
+            message: leave.message,
+            messageGroupId: registration.leaveMessageGroupId,
+        })
+    }
+    internalCache.PerceptionThreads.update(
+        { componentId, perspectiveKey, registrationId },
+        { threadKind: 'characterMove', leaveDispatched: true }
+    )
+}
+
+function publishCharacterMoveArriveIfNeeded(
+    bus: MessageBus,
+    entry: ReturnType<typeof internalCache.PerceptionThreads.list>[number],
+    componentId: EphemeraRoomId,
+    perspectiveKey: string
+): void {
+    const { registration, registrationId, thread } = entry
+    if (registration.threadKind !== 'characterMove' || !isCharacterMovePerceptionThread(thread)) {
+        return
+    }
+    if (thread.arriveDispatched) {
+        return
+    }
+    const arrive = registration.arriveWorldMessage
+    if (arrive) {
+        bus.send({
+            type: 'PublishMessage',
+            displayProtocol: 'WorldMessage',
+            targets: arrive.targets,
+            message: arrive.message,
+            messageGroupId: registration.arriveMessageGroupId,
+        })
+    }
+    internalCache.PerceptionThreads.update(
+        { componentId, perspectiveKey, registrationId },
+        { threadKind: 'characterMove', arriveDispatched: true }
+    )
+}
+
 export async function orchestrateRoomDescriptionStreams(
     raw: unknown,
     bus: MessageBus
@@ -208,6 +266,7 @@ async function handleRenderPertains(
             skippedCharacterMoveTerminal += 1
             continue
         }
+        publishCharacterMoveLeaveIfNeeded(bus, entry, payload.componentId, payload.perspectiveKey)
         const targets = headerTargetsForCharacterMove(registration)
         const roomId = payload.componentId
         const messageId = thread.messageId ?? `MESSAGE#${uuidv4()}`
@@ -230,6 +289,7 @@ async function handleRenderPertains(
         else {
             skippedCharacterMoveEmptyTargets += 1
         }
+        publishCharacterMoveArriveIfNeeded(bus, entry, payload.componentId, payload.perspectiveKey)
 
         internalCache.PerceptionThreads.remove({
             componentId: payload.componentId,
@@ -352,6 +412,7 @@ async function handleGenerationStarted(
             logTerminalDedupe('Generation Started', payload.componentId, payload.perspectiveKey, registrationId)
             continue
         }
+        publishCharacterMoveLeaveIfNeeded(bus, entry, payload.componentId, payload.perspectiveKey)
         const roomId = payload.componentId
         const targets = headerTargetsForCharacterMove(registration)
         const messageId = `MESSAGE#${uuidv4()}`
@@ -374,6 +435,7 @@ async function handleGenerationStarted(
             { componentId: payload.componentId, perspectiveKey: payload.perspectiveKey, registrationId },
             { threadKind: 'characterMove', status: 'Generating', messageId }
         )
+        publishCharacterMoveArriveIfNeeded(bus, entry, payload.componentId, payload.perspectiveKey)
     }
 }
 
@@ -471,6 +533,7 @@ async function handleOrchestrationErrorOrDeferred(payload: ErrorLikePayload, bus
             logTerminalDedupe(payload.type, payload.componentId, payload.perspectiveKey, registrationId)
             continue
         }
+        publishCharacterMoveLeaveIfNeeded(bus, entry, payload.componentId, payload.perspectiveKey)
 
         const roomId = payload.componentId
         const targets = headerTargetsForCharacterMove(registration)
@@ -488,6 +551,7 @@ async function handleOrchestrationErrorOrDeferred(payload: ErrorLikePayload, bus
             messageGroupId: registration.messageGroupId,
             messageId,
         })
+        publishCharacterMoveArriveIfNeeded(bus, entry, payload.componentId, payload.perspectiveKey)
 
         internalCache.PerceptionThreads.remove({
             componentId: payload.componentId,

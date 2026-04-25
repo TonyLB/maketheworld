@@ -181,24 +181,10 @@ describe('moveCharacter', () => {
             }]
         })
         expect(messageBusSend).toHaveBeenCalledWith({
-            type: 'PublishMessage',
-            targets: ['ROOM#VORTEX', 'CHARACTER#Test'],
-            displayProtocol: 'WorldMessage',
-            message: ['Test has left.'],
-            messageGroupId: 'UUID#Before'
-        })
-        expect(messageBusSend).toHaveBeenCalledWith({
             type: 'RoomUpdate',
             roomId: 'ROOM#VORTEX'
         })
         expect(messageBusSend.mock.calls.filter((c) => (c[0] as { type?: string })?.type === 'Perception')).toHaveLength(0)
-        expect(messageBusSend).toHaveBeenCalledWith({
-            type: 'PublishMessage',
-            targets: ['ROOM#TestTwo', 'CHARACTER#Test'],
-            displayProtocol: 'WorldMessage',
-            message: ['Test has arrived.'],
-            messageGroupId: 'UUID#After'
-        })
         expect(messageBusSend).toHaveBeenCalledWith({
             type: 'RoomUpdate',
             roomId: 'ROOM#TestTwo'
@@ -295,7 +281,7 @@ describe('moveCharacter', () => {
             'ROOM#VORTEX',
             {
                 componentId: 'ROOM#VORTEX',
-                perspective: { assetStack: ['ASSET#primitives', 'ASSET#TownCenter'] },
+                perspective: { assetStack: ['ASSET#primitives', 'ASSET#TownCenter', 'ASSET#Dockside'] },
                 characterId: 'CHARACTER#Test',
             },
             { useDefaultMessageBusLane: true }
