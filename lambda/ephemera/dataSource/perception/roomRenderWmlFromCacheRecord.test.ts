@@ -1,7 +1,12 @@
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import type { EphemeraCacheDynamoItem, EphemeraCacheRenderedContent } from '../renderCache/baseClasses'
-import { roomRenderChannelWmlForRoomId, roomRenderWmlFromCacheRecord } from './roomRenderWmlFromCacheRecord'
+import {
+    roomHeaderChannelWmlForRoomId,
+    roomHeaderWmlFromCacheRecord,
+    roomRenderChannelWmlForRoomId,
+    roomRenderWmlFromCacheRecord,
+} from './roomRenderWmlFromCacheRecord'
 
 describe('roomRenderWmlFromCacheRecord', () => {
     const roomId = 'ROOM#audit' as const
@@ -57,5 +62,63 @@ describe('roomRenderChannelWmlForRoomId', () => {
         const wmlEmpty = roomRenderChannelWmlForRoomId(roomId, [])
         const wmlDirect = roomRenderWmlFromCacheRecord(roomId, { description: [] })
         expect(wmlEmpty).toEqual(wmlDirect)
+    })
+})
+
+describe('roomHeaderWmlFromCacheRecord', () => {
+    const roomId = 'ROOM#header' as const
+
+    it('uses summary as header prose when summary is present', () => {
+        const wml = roomHeaderWmlFromCacheRecord(roomId, {
+            displayName: ['Gallery'],
+            summary: ['Header summary'],
+            description: ['Long room description'],
+        })
+        const parsed = new StandardForm(wml, { standardizeMode: 'ephemeraWire' })
+        const room = parsed.byUniversalId[roomId]
+        expect(room).toBeInstanceOf(StandardRoom)
+        const render = (room as StandardRoom).render
+        expect(render?.summary).toEqual(['Header summary'])
+        expect(render?.description).toEqual(['Header summary'])
+    })
+
+    it('falls back to description when summary is absent', () => {
+        const wml = roomHeaderWmlFromCacheRecord(roomId, {
+            displayName: ['Gallery'],
+            description: ['Long room description'],
+        })
+        const parsed = new StandardForm(wml, { standardizeMode: 'ephemeraWire' })
+        const room = parsed.byUniversalId[roomId]
+        expect(room).toBeInstanceOf(StandardRoom)
+        const render = (room as StandardRoom).render
+        expect(render?.description).toEqual(['Long room description'])
+    })
+})
+
+describe('roomHeaderChannelWmlForRoomId', () => {
+    const roomId = 'ROOM#headerPick' as const
+
+    it('uses first cache row and applies header prose mapping', () => {
+        const rows: EphemeraCacheDynamoItem[] = [
+            {
+                EphemeraId: roomId,
+                DataCategory: 'CACHE#hh',
+                markState: { markValue: [] },
+                renderedContent: {
+                    displayName: ['Hall'],
+                    summary: ['Header prose'],
+                    description: ['Full prose'],
+                },
+                provenance: { type: 'authored' },
+                perspectiveId: 'p0',
+                perspectiveMatcher: { assetStack: [] } as any,
+            },
+        ]
+        const wml = roomHeaderChannelWmlForRoomId(roomId, rows)
+        const parsed = new StandardForm(wml, { standardizeMode: 'ephemeraWire' })
+        const room = parsed.byUniversalId[roomId]
+        expect(room).toBeInstanceOf(StandardRoom)
+        const render = (room as StandardRoom).render
+        expect(render?.description).toEqual(['Header prose'])
     })
 })

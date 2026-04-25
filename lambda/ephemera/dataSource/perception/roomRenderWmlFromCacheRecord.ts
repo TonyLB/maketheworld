@@ -10,6 +10,10 @@ const EMPTY_ROOM_CACHE_RENDERED_CONTENT: EphemeraCacheRenderedContent = {
     description: [],
 }
 
+const EMPTY_ROOM_HEADER_CACHE_RENDERED_CONTENT: EphemeraCacheRenderedContent = {
+    description: [],
+}
+
 /**
  * Render-channel WML for imperative `PerceptionRoomMessage`, aligned with `ComponentRender` + `RenderCache` first-row choice.
  * Uses the first `cacheRecords[0]` when non-empty; otherwise the same empty `renderedContent` as a cache miss.
@@ -23,6 +27,21 @@ export function roomRenderChannelWmlForRoomId(
         return roomRenderWmlFromCacheRecord(roomId, EMPTY_ROOM_CACHE_RENDERED_CONTENT)
     }
     return roomRenderWmlFromCacheRecord(roomId, first.renderedContent)
+}
+
+/**
+ * Header-channel WML for imperative `PerceptionRoomMessage` with `header: true`.
+ * Header prose prefers `summary` and falls back to `description` when summary is absent.
+ */
+export function roomHeaderChannelWmlForRoomId(
+    roomId: EphemeraRoomId,
+    cacheRecords: EphemeraCacheDynamoItem[]
+): string {
+    const first = cacheRecords[0]
+    if (!first) {
+        return roomHeaderWmlFromCacheRecord(roomId, EMPTY_ROOM_HEADER_CACHE_RENDERED_CONTENT)
+    }
+    return roomHeaderWmlFromCacheRecord(roomId, first.renderedContent)
 }
 
 /**
@@ -43,4 +62,20 @@ export function roomRenderWmlFromCacheRecord(
         roomRow,
     ])
     return schemaToWML([form.schema])
+}
+
+/**
+ * Header render WML from cache: map summary into description for header display, fallback to full description.
+ */
+export function roomHeaderWmlFromCacheRecord(
+    roomId: EphemeraRoomId,
+    renderedContent: EphemeraCacheRenderedContent
+): string {
+    const summaryOrDescription = renderedContent.summary ?? renderedContent.description
+    const headerRenderedContent: EphemeraCacheRenderedContent = {
+        ...(renderedContent.displayName !== undefined ? { displayName: renderedContent.displayName } : {}),
+        ...(renderedContent.summary !== undefined ? { summary: renderedContent.summary } : {}),
+        description: summaryOrDescription,
+    }
+    return roomRenderWmlFromCacheRecord(roomId, headerRenderedContent)
 }

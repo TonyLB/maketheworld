@@ -9,7 +9,7 @@ import messageBus from '../messageBus'
 import '../dataSource/perception'
 
 import type { EphemeraCacheDynamoItem } from '../dataSource/renderCache/baseClasses'
-import { roomRenderChannelWmlForRoomId } from '../dataSource/perception/roomRenderWmlFromCacheRecord'
+import { roomHeaderChannelWmlForRoomId, roomRenderChannelWmlForRoomId } from '../dataSource/perception/roomRenderWmlFromCacheRecord'
 import perceptionMessage, { sendRoomGeneratingHeader } from '.'
 
 const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
@@ -127,7 +127,7 @@ describe('Perception message', () => {
 
             expect(mockInternalCache.ComponentRender.get).not.toHaveBeenCalled()
             expect(renderCacheGet).toHaveBeenCalledWith(roomId)
-            const expectedWml = roomRenderChannelWmlForRoomId(roomId, [sampleCacheRow])
+            const expectedWml = roomHeaderChannelWmlForRoomId(roomId, [sampleCacheRow])
             expect(sendSpy).toHaveBeenCalledWith({
                 type: 'PublishMessage',
                 targets: ['CHARACTER#TESS'],

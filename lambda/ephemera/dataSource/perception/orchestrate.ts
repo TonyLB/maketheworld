@@ -17,7 +17,7 @@ import {
 } from '../../internalCache/perceptionThreads'
 import type { PerceptionThreadRegisterCharacterMoveCommand } from './localApiEvents'
 import { roomHeaderErrorPlaceholderWml, roomHeaderGeneratingPlaceholderWml } from './roomHeaderPlaceholderWml'
-import { roomRenderWmlFromCacheRecord } from './roomRenderWmlFromCacheRecord'
+import { roomHeaderWmlFromCacheRecord, roomRenderWmlFromCacheRecord } from './roomRenderWmlFromCacheRecord'
 import { isRenderCacheRenderPertainsPayload } from '../renderCache/baseClasses'
 import { situationRoomRenderPayloadFromCacheRenderedContent } from '../renderCache/renderedContentToSituationRoomPayload'
 import {
@@ -100,6 +100,10 @@ async function handleRenderPertains(
         payload.componentId,
         payload.cacheRecord.renderedContent
     )
+    const terminalHeaderWml = roomHeaderWmlFromCacheRecord(
+        payload.componentId,
+        payload.cacheRecord.renderedContent
+    )
 
     let publishedRoomDescription = 0
     let skippedRoomDescriptionTerminal = 0
@@ -169,7 +173,7 @@ async function handleRenderPertains(
                 type: 'PublishMessage',
                 targets,
                 displayProtocol: 'PerceptionMessage',
-                wmlContent: terminalRenderWml,
+                wmlContent: terminalHeaderWml,
                 metaData: {
                     componentUUID: roomId,
                     displayMode: 'header',
@@ -212,7 +216,7 @@ async function handleRenderPertains(
                 type: 'PublishMessage',
                 targets,
                 displayProtocol: 'PerceptionMessage',
-                wmlContent: terminalRenderWml,
+                wmlContent: terminalHeaderWml,
                 metaData: {
                     componentUUID: roomId,
                     displayMode: 'header',

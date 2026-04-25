@@ -261,7 +261,7 @@ describe('moveCharacter', () => {
                 ]
             })
         }
-        expect(messageBusSend).toHaveBeenCalledTimes(5)
+        expect(messageBusSend).toHaveBeenCalledTimes(4)
         expect(messageBusSend).toHaveBeenCalledWith({
             type: 'EphemeraUpdate',
             updates: [{
@@ -271,13 +271,6 @@ describe('moveCharacter', () => {
                 RoomId: 'ROOM#VORTEX',
                 connectionTargets: ['GLOBAL', 'SESSION#abcdef'],
             }]
-        })
-        expect(messageBusSend).toHaveBeenCalledWith({
-            type: 'Perception',
-            characterId: 'CHARACTER#Test',
-            ephemeraId: 'ROOM#VORTEX',
-            header: true,
-            messageGroupId: 'UUID#MessageGroup'
         })
         expect(messageBusSend).toHaveBeenCalledWith({
             type: 'PublishMessage',
@@ -296,7 +289,17 @@ describe('moveCharacter', () => {
             previousRoomId: 'ROOM#VORTEX',
             roomId: 'ROOM#VORTEX'
         })
-        expect(mockSendRenderRequested).not.toHaveBeenCalled()
+        expect(mockSendRenderRequested).toHaveBeenCalledTimes(1)
+        expect(mockSendRenderRequested).toHaveBeenCalledWith(
+            messageBusMock,
+            'ROOM#VORTEX',
+            {
+                componentId: 'ROOM#VORTEX',
+                perspective: { assetStack: ['ASSET#primitives', 'ASSET#TownCenter'] },
+                characterId: 'CHARACTER#Test',
+            },
+            { useDefaultMessageBusLane: true }
+        )
     })
 
     it('kicks passive render with Canon-only perspective when character assets do not overlap', async () => {
